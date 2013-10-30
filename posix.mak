@@ -169,7 +169,7 @@ $(DRUNTIME): $(OBJS) $(SRCS)
 	$(DMD) -lib -of$(DRUNTIME) -Xfdruntime.json $(DFLAGS) $(SRCS) $(OBJS)
 
 UT_MODULES:=$(patsubst src/%.d,$(OBJDIR)/%,$(SRCS))
-ADDITIONAL_TESTS:=
+ADDITIONAL_TESTS:=test/init_fini
 ADDITIONAL_TESTS+=$(if $(findstring $(OS),linux),test/shared,)
 
 unittest : $(UT_MODULES) $(addsuffix /.run,$(ADDITIONAL_TESTS))
@@ -215,8 +215,12 @@ $(OBJDIR)/% : $(OBJDIR)/test_runner
 # succeeded, render the file new again
 	@touch $@
 
-test/%/.run: test/%/Makefile $(DRUNTIMESO)
-	$(QUIET)$(MAKE) -C test/$* MODEL=$(MODEL) OS=$(OS) DMD=$(abspath $(DMD)) DRUNTIMESO=$(abspath $(DRUNTIMESO)) QUIET=$(QUIET)
+test/init_fini/.run: $(DRUNTIME)
+test/shared/.run: $(DRUNTIMESO)
+
+test/%/.run: test/%/Makefile
+	$(QUIET)$(MAKE) -C test/$* MODEL=$(MODEL) OS=$(OS) DMD=$(abspath $(DMD)) \
+		DRUNTIME=$(abspath $(DRUNTIME)) DRUNTIMESO=$(abspath $(DRUNTIMESO)) QUIET=$(QUIET)
 
 detab:
 	detab $(MANIFEST)

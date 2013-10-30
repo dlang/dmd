@@ -14,23 +14,35 @@ int main(int argc, char* argv[])
     name[pathlen + sizeof("plugin1.so") - 5] = '2';
     void* plugin2 = dlopen(name, RTLD_LAZY);
 
+    int (*plugin1_init)() = dlsym(plugin1, "plugin_init");
+    int (*plugin1_term)() = dlsym(plugin1, "plugin_term");
     int (*runTests1)() = dlsym(plugin1, "runTests");
+    int (*plugin2_init)() = dlsym(plugin2, "plugin_init");
+    int (*plugin2_term)() = dlsym(plugin2, "plugin_term");
     int (*runTests2)() = dlsym(plugin2, "runTests");
+    assert(plugin1_init());
     assert(runTests1());
+    assert(plugin2_init());
     assert(runTests2());
 
+    assert(plugin1_term());
     assert(dlclose(plugin1) == 0);
     assert(runTests2());
 
     name[pathlen + sizeof("plugin1.so") - 5] = '1';
     plugin1 = dlopen(name, RTLD_LAZY);
+    plugin1_init = dlsym(plugin1, "plugin_init");
+    plugin1_term = dlsym(plugin1, "plugin_term");
     runTests1 = dlsym(plugin1, "runTests");
+    assert(plugin1_init());
     assert(runTests1());
     assert(runTests2());
 
+    assert(plugin2_term());
     assert(dlclose(plugin2) == 0);
     assert(runTests1());
 
+    assert(plugin1_term());
     assert(dlclose(plugin1) == 0);
 
     free(name);

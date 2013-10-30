@@ -24,6 +24,11 @@ version (Windows) extern (C) void* rt_loadLibraryW(const wchar_t* name);
 /// C interface for Runtime.unloadLibrary, returns 1/0 instead of bool
 extern (C) int rt_unloadLibrary(void* ptr);
 
+/// C interface for Runtime.initialize, returns 1/0 instead of bool
+extern(C) int rt_init();
+/// C interface for Runtime.terminate, returns 1/0 instead of bool
+extern(C) int rt_term();
+
 private
 {
     alias bool function() ModuleUnitTester;
@@ -37,8 +42,6 @@ private
     extern (C) TraceHandler rt_getTraceHandler();
 
     alias void delegate( Throwable ) ExceptionHandler;
-    extern (C) bool rt_init( ExceptionHandler dg = null );
-    extern (C) bool rt_term( ExceptionHandler dg = null );
 
     extern (C) void* thread_stackBottom();
 
@@ -101,40 +104,42 @@ struct Runtime
      * Initializes the runtime.  This call is to be used in instances where the
      * standard program initialization process is not executed.  This is most
      * often in shared libraries or in libraries linked to a C program.
-     *
-     * Params:
-     *  dg = A delegate which will receive any exception thrown during the
-     *       initialization process or null if such exceptions should be
-     *       discarded.
+     * If the runtime was already successfully initialized this returns true.
+     * Each call to initialize must be paired by a call to $(LREF, terminate).
      *
      * Returns:
-     *  true if initialization succeeds and false if initialization fails.
+     *  true if initialization succeeded or false if initialization failed.
      */
-    static bool initialize( ExceptionHandler dg = null )
+    static bool initialize()
     {
-        return rt_init( dg );
+        return !!rt_init();
+    }
+
+    deprecated("Please use the overload of Runtime.initialize that takes no argument.")
+    static bool initialize(ExceptionHandler dg = null)
+    {
+        return !!rt_init();
     }
 
 
     /**
-     * Terminates the runtime. This call is to be used in instances
-     * where the standard program termination process will not be not
-     * executed. This is most often in shared libraries or in
-     * libraries linked to a C program. All non-daemon threads must be
-     * joined or detached prior to calling this function. See also
-     * $(CXREF thread, thread_joinAll) and $(CXREF thread, thread_detachThis).
-     *
-     * Params:
-     *  dg = A delegate which will receive any exception thrown during the
-     *       termination process or null if such exceptions should be
-     *       discarded.
+     * Terminates the runtime.  This call is to be used in instances where the
+     * standard program termination process will not be not executed.  This is
+     * most often in shared libraries or in libraries linked to a C program.
+     * If the runtime was not successfully initialized the function returns false.
      *
      * Returns:
-     *  true if termination succeeds and false if termination fails.
+     *  true if termination succeeded or false if termination failed.
      */
-    static bool terminate( ExceptionHandler dg = null )
+    static bool terminate()
     {
-        return rt_term( dg );
+        return !!rt_term();
+    }
+
+    deprecated("Please use the overload of Runtime.terminate that takes no argument.")
+    static bool terminate(ExceptionHandler dg = null)
+    {
+        return !!rt_term();
     }
 
 

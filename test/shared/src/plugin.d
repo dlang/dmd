@@ -30,3 +30,16 @@ extern(C) int runTests()
     }
     return true;
 }
+
+// Provide a way to initialize D from C programs that are D agnostic.
+import core.runtime : rt_init, rt_term;
+
+extern(C) int plugin_init()
+{
+    return rt_init();
+}
+
+extern(C) int plugin_term()
+{
+    return rt_term();
+}

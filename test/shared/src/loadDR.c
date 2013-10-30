@@ -10,8 +10,13 @@ int main(int argc, char* argv[])
     void *h = dlopen(argv[1], RTLD_LAZY); // load druntime
     assert(h != NULL);
 
+    int (*rt_init)(void) = dlsym(h, "rt_init");
+    int (*rt_term)(void) = dlsym(h, "rt_term");
     void* (*rt_loadLibrary)(const char*) = dlsym(h, "rt_loadLibrary");
     int (*rt_unloadLibrary)(void*) = dlsym(h, "rt_unloadLibrary");
+
+    int res = EXIT_FAILURE;
+    if (!rt_init()) goto Lexit;
 
     const size_t pathlen = strrchr(argv[0], '/') - argv[0] + 1;
     char *name = malloc(pathlen + sizeof("lib.so"));
@@ -26,6 +31,9 @@ int main(int argc, char* argv[])
     assert(runTests());
     assert(rt_unloadLibrary(dlib));
 
+    if (rt_term()) res = EXIT_SUCCESS;
+
+Lexit:
     assert(dlclose(h) == 0);
-    return EXIT_SUCCESS;
+    return res;
 }
