@@ -123,12 +123,9 @@ struct Runtime
 
 
     /**
-     * Terminates the runtime. This call is to be used in instances
-     * where the standard program termination process will not be not
-     * executed. This is most often in shared libraries or in
-     * libraries linked to a C program. All non-daemon threads must be
-     * joined or detached prior to calling this function. See also
-     * $(CXREF thread, thread_joinAll) and $(CXREF thread, thread_detachThis).
+     * Terminates the runtime.  This call is to be used in instances where the
+     * standard program termination process will not be not executed.  This is
+     * most often in shared libraries or in libraries linked to a C program.
      * If the runtime was not successfully initialized the function returns false.
      *
      * Returns:
