@@ -8,7 +8,7 @@ QUIET:=
 
 SRC:=src
 ROOT:=obj/$(OS)/$(MODEL)
-TESTS:=thread_join
+TESTS:=thread_join runtime_args
 
 ifneq (default,$(MODEL))
 	MODEL_FLAG:=-m$(MODEL)
@@ -24,7 +24,7 @@ $(ROOT)/%.done: $(ROOT)/%
 	$(QUIET)./$(ROOT)/$* $(RUN_ARGS)
 	@touch $@
 
-$(ROOT)/thread_join: $(SRC)/thread_join.d
+$(ROOT)/%: $(SRC)/%.d
 	$(QUIET)$(DMD) $(DFLAGS) -of$@ $<
 
 clean:
