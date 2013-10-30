@@ -1647,6 +1647,7 @@ struct Gcx
             else
             {
                 // we are in a B_FREE page
+                assert(bin == B_FREE);
                 return null;
             }
         }
@@ -2324,6 +2325,7 @@ struct Gcx
                     else
                     {
                         // Don't mark bits in B_FREE pages
+                        assert(bin == B_FREE);
                         continue;
                     }
 
@@ -2751,6 +2753,7 @@ struct Gcx
             }
             else // bins == B_FREE
             {
+                assert(bins == B_FREE);
                 return IsMarked.no;
             }
             return pool.mark.test(biti) ? IsMarked.yes : IsMarked.no;
