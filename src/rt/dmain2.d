@@ -433,7 +433,7 @@ private void printThrowable(Throwable t)
 {
     void sink(const(char)[] buf) nothrow
     {
-        printf("%.*s", cast(int)buf.length, buf.ptr);
+        fprintf(stderr, "%.*s", cast(int)buf.length, buf.ptr);
     }
 
     for (; t; t = t.next)
