@@ -641,8 +641,6 @@ class GC
                     auto pool = gcx.findPool(p);
                     auto pagenum = (p - pool.baseAddr) / PAGESIZE;
 
-                    size_t biti = void;
-
                     if (newsz < psz)
                     {   // Shrink in place
                         debug (MEMSTOMP) memset(p + size, 0xF2, psize - size);
@@ -662,7 +660,7 @@ class GC
                     pool.updateOffsets(pagenum);
                     if (bits)
                     {
-                        biti = cast(size_t)(p - pool.baseAddr) >> pool.shiftBy;
+                        immutable biti = cast(size_t)(p - pool.baseAddr) >> pool.shiftBy;
                         gcx.clrBits(pool, biti, ~BlkAttr.NONE);
                         gcx.setBits(pool, biti, bits);
                     }
