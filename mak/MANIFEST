@@ -1,6 +1,7 @@
 MANIFEST=\
+	HACKING.md \
 	LICENSE \
-	README \
+	README.md \
 	posix.mak \
 	win32.mak \
 	win64.mak \
@@ -236,7 +237,6 @@ MANIFEST=\
 	src\rt\typeinfo\ti_void.d \
 	src\rt\typeinfo\ti_wchar.d \
 	\
-	src\rt\util\console.d \
 	src\rt\util\container.d \
 	src\rt\util\hash.d \
 	src\rt\util\string.d \
@@ -244,6 +244,9 @@ MANIFEST=\
 	\
 	src\etc\linux\memoryerror.d \
 	\
+	test\exceptions\Makefile \
+	test\exceptions\src\stderr_msg.d \
+	test\exceptions\src\unittest_assert.d \
 	test\init_fini\src\runtime_args.d \
 	test\init_fini\src\thread_join.d \
 	test\init_fini\Makefile \
