@@ -421,6 +421,15 @@ void processGCMarks(BlkInfo* cache, scope rt.tlsgc.IsMarkedDg isMarked)
     }
 }
 
+unittest
+{
+    import core.memory;
+    // Bugzilla 10701 - segfault in GC
+    ubyte[] result; result.length = 4096;
+    GC.free(result.ptr);
+    GC.collect();
+}
+
 /**
   Get the cached block info of an interior pointer.  Returns null if the
   interior pointer's block is not cached.

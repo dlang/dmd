@@ -1647,6 +1647,7 @@ struct Gcx
             else
             {
                 // we are in a B_FREE page
+                assert(bin == B_FREE);
                 return null;
             }
         }
@@ -2324,6 +2325,7 @@ struct Gcx
                     else
                     {
                         // Don't mark bits in B_FREE pages
+                        assert(bin == B_FREE);
                         continue;
                     }
 
@@ -2630,7 +2632,7 @@ struct Gcx
                                 toClear |= GCBits.BITS_1 << clearIndex;
 
                                 List *list = cast(List *)p;
-                                debug(PRINTF) printf("\tcollecting %p\n", list);
+                                debug(COLLECT_PRINTF) printf("\tcollecting %p\n", list);
                                 log_free(sentinel_add(list));
 
                                 debug (MEMSTOMP) memset(p, 0xF3, size);
@@ -2744,10 +2746,15 @@ struct Gcx
             {
                 biti = (offset & notbinsize[bins]) >> pool.shiftBy;
             }
-            else
+            else if(bins == B_PAGEPLUS)
             {
                 pn -= pool.bPageOffsets[pn];
                 biti = pn * (PAGESIZE >> pool.shiftBy);
+            }
+            else // bins == B_FREE
+            {
+                assert(bins == B_FREE);
+                return IsMarked.no;
             }
             return pool.mark.test(biti) ? IsMarked.yes : IsMarked.no;
         }
