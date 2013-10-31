@@ -21,6 +21,9 @@
 #include        "go.h"
 #include        "ty.h"
 #include        "code.h"
+#if SPP || SCPP
+#include        "parser.h"
+#endif
 
 #include        "optab.c"
 #include        "tytab.c"
@@ -132,6 +135,10 @@ char     *foutdir = NULL,       // directory to place output files in
         *ftdbname = NULL,
         *fdepname = NULL,
         *flstname = NULL;       /* the filename strings                 */
+
+#if SPP || SCPP
+phstring_t fdeplist;
+#endif
 
 list_t pathlist;                /* include paths                        */
 list_t headers;                 /* pre-include files                    */
