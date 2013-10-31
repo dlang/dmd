@@ -92,8 +92,12 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
     nameoffset = 0;
     namelen = 0;
 
-    srcfilename = FileName::defaultExt(filename, global.mars_ext);
-    if (!FileName::equalsExt(srcfilename, global.mars_ext) &&
+    if (global.params.run && FileName::exists(filename))
+        srcfilename = FileName::dup(filename);
+    else
+        srcfilename = FileName::defaultExt(filename, global.mars_ext);
+    if (!global.params.run &&
+        !FileName::equalsExt(srcfilename, global.mars_ext) &&
         !FileName::equalsExt(srcfilename, global.hdr_ext) &&
         !FileName::equalsExt(srcfilename, "dd"))
     {
