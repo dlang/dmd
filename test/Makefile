@@ -61,7 +61,7 @@ ifeq (,$(OS))
         OS:=osx
     else
         ifeq (Linux,$(OS))
-            OS:=posix
+            OS:=linux
         else
             ifeq (FreeBSD,$(OS))
                 OS:=freebsd
