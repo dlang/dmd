@@ -1083,6 +1083,7 @@ public:
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *addDtorHook(Scope *sc);
+    Expression *implicitCastTo(Scope *sc, Type *t);
     MATCH implicitConvTo(Type *t);
 
     int inlineCost3(InlineCostState *ics);
