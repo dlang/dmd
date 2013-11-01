@@ -11542,7 +11542,118 @@ Ltupleassign:
     if (t1->ty == Tstruct)
     {
         StructDeclaration *sd = ((TypeStruct *)t1)->sym;
-        if (op == TOKassign)
+        if (op == TOKconstruct && !refinit)
+        {
+            Type *t2 = e2->type->toBasetype();
+            if (t2->ty == Tstruct && sd == ((TypeStruct *)t2)->sym)
+            {
+                if (sd->ctor &&            // there are constructors
+                    e2->op == TOKcall &&
+                    e2->type->implicitConvTo(t1))
+                {
+                    /* Look for form of constructor call which is:
+                     *    *__ctmp.ctor(arguments...)
+                     */
+                    CallExp *ce = (CallExp *)e2;
+                    if (ce->e1->op == TOKdotvar)
+                    {
+                        DotVarExp *dve = (DotVarExp *)ce->e1;
+                        if (dve->var->isCtorDeclaration())
+                        {
+                            /* It's a constructor call, currently constructing
+                             * a temporary __ctmp.
+                             */
+                            /* Before calling the constructor, initialize
+                             * variable with a bit copy of the default
+                             * initializer
+                             */
+
+                            if (sd->zeroInit == 1)
+                            {
+                                e2 = new IntegerExp(loc, 0, Type::tint32);
+                            }
+                            else if (sd->isNested())
+                            {
+                                e2 = t1->defaultInitLiteral(loc);
+                                this->op = TOKblit;
+                            }
+                            else
+                            {
+                                e2 = t1->defaultInit(loc);
+                                this->op = TOKblit;
+                            }
+                            type = e1->type;
+
+                            /* Replace __ctmp being constructed with e1.
+                             * We need to copy constructor call expression,
+                             * because it may be used in other place.
+                             */
+                            DotVarExp *dvx = (DotVarExp *)dve->copy();
+                            dvx->e1 = e1;
+                            CallExp *cx = (CallExp *)ce->copy();
+                            cx->e1 = dvx;
+
+                            Expression *e = new CommaExp(loc, this, cx);
+                            e = e->semantic(sc);
+                            return e;
+                        }
+                    }
+                }
+                if (sd->cpctor)
+                {
+                    /* We have a copy constructor for this
+                     */
+                    if (e2->op == TOKquestion)
+                    {
+                        /* Write as:
+                         *  a ? e1 = b : e1 = c;
+                         */
+                        CondExp *econd = (CondExp *)e2;
+                        AssignExp *ea1 = new AssignExp(econd->e1->loc, e1, econd->e1);
+                        ea1->op = op;
+                        AssignExp *ea2 = new AssignExp(econd->e1->loc, e1, econd->e2);
+                        ea2->op = op;
+                        Expression *e = new CondExp(loc, econd->econd, ea1, ea2);
+                        return e->semantic(sc);
+                    }
+
+                    if (e2->isLvalue())
+                    {
+                        /* Write as:
+                         *  e1.cpctor(e2);
+                         */
+                        if (!e2->type->implicitConvTo(e1->type))
+                            error("conversion error from %s to %s", e2->type->toChars(), e1->type->toChars());
+
+                        Expression *e = new DotVarExp(loc, e1, sd->cpctor, 0);
+                        e = new CallExp(loc, e, e2);
+                        return e->semantic(sc);
+                    }
+                    else
+                    {
+                        /* The struct value returned from the function is transferred
+                         * so should not call the destructor on it.
+                         */
+                        e2 = valueNoDtor(e2);
+                    }
+                }
+            }
+            else if (!e2->implicitConvTo(t1))
+            {
+                // Look for implicit constructor call
+                if (sd->ctor)
+                {
+                    // Look for constructor first
+                    // Rewrite as e1.ctor(arguments)
+                    Expression *e;
+                    e = new DotIdExp(loc, e1, Id::ctor);
+                    e = new CallExp(loc, e, e2);
+                    e = e->semantic(sc);
+                    return e;
+                }
+            }
+        }
+        else if (op == TOKassign)
         {
             if (e1->op == TOKindex &&
                 ((IndexExp *)e1)->e1->type->toBasetype()->ty == Taarray)
@@ -11655,120 +11766,6 @@ Ltupleassign:
                  * if done through an opAssign overload.
                  */
                 return e;
-            }
-        }
-        else if (op == TOKconstruct && !refinit)
-        {
-            Type *t2 = e2->type->toBasetype();
-            if (t2->ty == Tstruct && sd == ((TypeStruct *)t2)->sym)
-            {
-                if (sd->ctor &&            // there are constructors
-                    e2->op == TOKcall &&
-                    e2->type->implicitConvTo(t1))
-                {
-                    /* Look for form of constructor call which is:
-                     *    *__ctmp.ctor(arguments...)
-                     */
-                    CallExp *ce = (CallExp *)e2;
-                    if (ce->e1->op == TOKdotvar)
-                    {
-                        DotVarExp *dve = (DotVarExp *)ce->e1;
-                        if (dve->var->isCtorDeclaration())
-                        {
-                            /* It's a constructor call, currently constructing
-                             * a temporary __ctmp.
-                             */
-                            /* Before calling the constructor, initialize
-                             * variable with a bit copy of the default
-                             * initializer
-                             */
-
-                            if (sd->zeroInit == 1)
-                            {
-                                e2 = new IntegerExp(loc, 0, Type::tint32);
-                            }
-                            else if (sd->isNested())
-                            {
-                                e2 = t1->defaultInitLiteral(loc);
-                                this->op = TOKblit;
-                            }
-                            else
-                            {
-                                e2 = t1->defaultInit(loc);
-                                this->op = TOKblit;
-                            }
-                            type = e1->type;
-
-                            /* Replace __ctmp being constructed with e1.
-                             * We need to copy constructor call expression,
-                             * because it may be used in other place.
-                             */
-                            DotVarExp *dvx = (DotVarExp *)dve->copy();
-                            dvx->e1 = e1;
-                            CallExp *cx = (CallExp *)ce->copy();
-                            cx->e1 = dvx;
-
-                            Expression *e = new CommaExp(loc, this, cx);
-                            e = e->semantic(sc);
-                            return e;
-                        }
-                    }
-                }
-                if (sd->cpctor)
-                {
-                    /* We have a copy constructor for this
-                     */
-                    if (e2->op == TOKquestion)
-                    {
-                        /* Write as:
-                         *  a ? e1 = b : e1 = c;
-                         */
-                        CondExp *econd = (CondExp *)e2;
-                        AssignExp *ea1 = new AssignExp(econd->e1->loc, e1, econd->e1);
-                        ea1->op = op;
-                        AssignExp *ea2 = new AssignExp(econd->e1->loc, e1, econd->e2);
-                        ea2->op = op;
-                        Expression *e = new CondExp(loc, econd->econd, ea1, ea2);
-                        return e->semantic(sc);
-                    }
-
-                    if (e2->isLvalue())
-                    {
-                        /* Write as:
-                         *  e1.cpctor(e2);
-                         */
-                        if (!e2->type->implicitConvTo(e1->type))
-                            error("conversion error from %s to %s", e2->type->toChars(), e1->type->toChars());
-
-                        Expression *e = new DotVarExp(loc, e1, sd->cpctor, 0);
-                        e = new CallExp(loc, e, e2);
-                        return e->semantic(sc);
-                    }
-                    else
-                    {
-                        /* The struct value returned from the function is transferred
-                         * so should not call the destructor on it.
-                         */
-                        e2 = valueNoDtor(e2);
-                    }
-                }
-            }
-            else
-            {
-                if (!e2->implicitConvTo(t1))
-                {
-                    // Look for implicit constructor call
-                    if (sd->ctor)
-                    {
-                        // Look for constructor first
-                        // Rewrite as e1.ctor(arguments)
-                        Expression *e;
-                        e = new DotIdExp(loc, e1, Id::ctor);
-                        e = new CallExp(loc, e, e2);
-                        e = e->semantic(sc);
-                        return e;
-                    }
-                }
             }
         }
         Lx: ;
