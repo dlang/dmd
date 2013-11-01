@@ -837,7 +837,8 @@ void VarDeclaration::semantic(Scope *sc)
 
     Scope *scx = NULL;
     if (scope)
-    {   sc = scope;
+    {
+        sc = scope;
         scx = sc;
         scope = NULL;
     }
@@ -858,7 +859,8 @@ void VarDeclaration::semantic(Scope *sc)
      */
     int inferred = 0;
     if (!type)
-    {   inuse++;
+    {
+        inuse++;
 
         // Infering the type requires running semantic,
         // so mark the scope as ctfe if required
@@ -868,7 +870,8 @@ void VarDeclaration::semantic(Scope *sc)
         //printf("inferring type for %s with init %s\n", toChars(), init->toChars());
         ArrayInitializer *ai = init->isArrayInitializer();
         if (ai)
-        {   Expression *e;
+        {
+            Expression *e;
             if (ai->isAssociativeArray())
                 e = ai->toAssocArrayLiteral();
             else
@@ -895,7 +898,8 @@ void VarDeclaration::semantic(Scope *sc)
         inferred = 1;
 
         if (init->isArrayInitializer() && type->toBasetype()->ty == Tsarray)
-        {   // Prefer array literals to give a T[] type rather than a T[dim]
+        {
+            // Prefer array literals to give a T[] type rather than a T[dim]
             type = type->toBasetype()->nextOf()->arrayOf();
         }
 
@@ -906,7 +910,8 @@ void VarDeclaration::semantic(Scope *sc)
         originalType = type->syntaxCopy();
     }
     else
-    {   if (!originalType)
+    {
+        if (!originalType)
             originalType = type->syntaxCopy();
         inuse++;
         type = type->semantic(loc, sc);
@@ -978,13 +983,14 @@ void VarDeclaration::semantic(Scope *sc)
         tb = type;
     }
     if (tb->ty == Tfunction)
-    {   error("cannot be declared to be a function");
+    {
+        error("cannot be declared to be a function");
         type = Type::terror;
         tb = type;
     }
     if (tb->ty == Tstruct)
-    {   TypeStruct *ts = (TypeStruct *)tb;
-
+    {
+        TypeStruct *ts = (TypeStruct *)tb;
         if (!ts->sym->members)
         {
             error("no definition of struct %s", ts->toChars());
@@ -994,7 +1000,8 @@ void VarDeclaration::semantic(Scope *sc)
        error("storage class 'auto' has no effect if type is not inferred, did you mean 'scope'?");
 
     if (tb->ty == Ttuple)
-    {   /* Instead, declare variables for each of the tuple elements
+    {
+        /* Instead, declare variables for each of the tuple elements
          * and add those.
          */
         TypeTuple *tt = (TypeTuple *)tb;
@@ -1097,7 +1104,8 @@ Lnomatch:
             TupleExp *te = (TupleExp *)ie;
             size_t tedim = te->exps->dim;
             if (tedim != nelems)
-            {   ::error(loc, "tuple of %d elements cannot be assigned to tuple of %d elements", (int)tedim, (int)nelems);
+            {
+                ::error(loc, "tuple of %d elements cannot be assigned to tuple of %d elements", (int)tedim, (int)nelems);
                 for (size_t u = tedim; u < nelems; u++) // fill dummy expression
                     te->exps->push(new ErrorExp());
             }
@@ -1137,7 +1145,8 @@ Lnomatch:
             v->semantic(sc);
 
             if (sc->scopesym)
-            {   //printf("adding %s to %s\n", v->toChars(), sc->scopesym->toChars());
+            {
+                //printf("adding %s to %s\n", v->toChars(), sc->scopesym->toChars());
                 if (sc->scopesym->members)
                     sc->scopesym->members->push(v);
             }
@@ -1377,7 +1386,8 @@ Lnomatch:
         }
         else if (type->ty == Tstruct &&
             ((TypeStruct *)type)->sym->zeroInit == 1)
-        {   /* If a struct is all zeros, as a special case
+        {
+            /* If a struct is all zeros, as a special case
              * set it's initializer to the integer 0.
              * In AssignExp::toElem(), we check for this and issue
              * a memset() to initialize the struct.
@@ -1392,9 +1402,11 @@ Lnomatch:
             goto Ldtor;
         }
         else if (type->ty == Ttypedef)
-        {   TypeTypedef *td = (TypeTypedef *)type;
+        {
+            TypeTypedef *td = (TypeTypedef *)type;
             if (td->sym->init)
-            {   init = td->sym->init;
+            {
+                init = td->sym->init;
                 ExpInitializer *ie = init->isExpInitializer();
                 if (ie)
                     // Make copy so we can modify it
@@ -1429,9 +1441,11 @@ Lnomatch:
         {
             // See if initializer is a NewExp that can be allocated on the stack
             if (ei->exp->op == TOKnew)
-            {   NewExp *ne = (NewExp *)ei->exp;
+            {
+                NewExp *ne = (NewExp *)ei->exp;
                 if (!(ne->newargs && ne->newargs->dim))
-                {   ne->onstack = 1;
+                {
+                    ne->onstack = 1;
                     onstack = 1;
                     if (type->isBaseOf(ne->newtype->semantic(loc, sc), NULL))
                         onstack = 2;
@@ -1439,7 +1453,8 @@ Lnomatch:
             }
             // or a delegate that doesn't escape a reference to the function
             else if (ei->exp->op == TOKfunction)
-            {   FuncDeclaration *f = ((FuncExp *)ei->exp)->fd;
+            {
+                FuncDeclaration *f = ((FuncExp *)ei->exp)->fd;
                 f->tookAddressOf--;
             }
         }
@@ -1463,7 +1478,8 @@ Lnomatch:
                         init = init->semantic(sc, type, INITnointerpret);
                         e = init->toExpression();
                         if (!e)
-                        {   error("is not a static and cannot have static initializer");
+                        {
+                            error("is not a static and cannot have static initializer");
                             return;
                         }
                     }
@@ -1519,11 +1535,14 @@ Lnomatch:
                          *    *__ctmp.ctor(arguments...)
                          */
                         if ((*pinit)->type->implicitConvTo(t))
-                        {   CallExp *ce = (CallExp *)(*pinit);
+                        {
+                            CallExp *ce = (CallExp *)(*pinit);
                             if (ce->e1->op == TOKdotvar)
-                            {   DotVarExp *dve = (DotVarExp *)ce->e1;
+                            {
+                                DotVarExp *dve = (DotVarExp *)ce->e1;
                                 if (dve->var->isCtorDeclaration())
-                                {   /* It's a constructor call, currently constructing
+                                {
+                                    /* It's a constructor call, currently constructing
                                      * a temporary __ctmp.
                                      */
                                     /* Before calling the constructor, initialize
@@ -1610,7 +1629,8 @@ Lnomatch:
                             /* Initializing with the same type is done differently
                              */
                             !(ti->ty == Tstruct && t->toDsymbol(sc) == ti->toDsymbol(sc)))
-                        {   // Rewrite as e1.call(arguments)
+                        {
+                            // Rewrite as e1.call(arguments)
                             Expression *e = typeDotIdExp(ei->exp->loc, t, Id::call);
                             ei->exp = new CallExp(loc, e, ei->exp);
                         }

@@ -2879,7 +2879,8 @@ elem *AssignExp::toElem(IRState *irs)
 
         // which we do if the 'next' types match
         if (ismemset)
-        {   // Do a memset for array[]=v
+        {
+            // Do a memset for array[]=v
             //printf("Lpair %s\n", toChars());
             elem *evalue;
             elem *enbytes;
@@ -2928,22 +2929,14 @@ elem *AssignExp::toElem(IRState *irs)
 
 #if 0
             printf("sz = %d\n", sz);
-            printf("n1x\n");
-            elem_print(n1x);
-            printf("einit\n");
-            elem_print(einit);
-            printf("elwrx\n");
-            elem_print(elwrx);
-            printf("euprx\n");
-            elem_print(euprx);
-            printf("n1\n");
-            elem_print(n1);
-            printf("elwr\n");
-            elem_print(elwr);
-            printf("eupr\n");
-            elem_print(eupr);
-            printf("enbytes\n");
-            elem_print(enbytes);
+            printf("n1x\n");        elem_print(n1x);
+            printf("einit\n");      elem_print(einit);
+            printf("elwrx\n");      elem_print(elwrx);
+            printf("euprx\n");      elem_print(euprx);
+            printf("n1\n");         elem_print(n1);
+            printf("elwr\n");       elem_print(elwr);
+            printf("eupr\n");       elem_print(eupr);
+            printf("enbytes\n");    elem_print(enbytes);
 #endif
             einit = el_combine(n1x, einit);
             einit = el_combine(einit, elwrx);
@@ -2952,10 +2945,8 @@ elem *AssignExp::toElem(IRState *irs)
             evalue = this->e2->toElem(irs);
 
 #if 0
-            printf("n1\n");
-            elem_print(n1);
-            printf("enbytes\n");
-            elem_print(enbytes);
+            printf("n1\n");         elem_print(n1);
+            printf("enbytes\n");    elem_print(enbytes);
 #endif
 
             if (irs->arrayBoundsCheck() && eupr && ta->ty != Tpointer)
@@ -3171,8 +3162,8 @@ elem *AssignExp::toElem(IRState *irs)
      * function arguments, it'll fail.
      */
     if (op == TOKconstruct && e2->op == TOKcall)
-    {   CallExp *ce = (CallExp *)e2;
-
+    {
+        CallExp *ce = (CallExp *)e2;
         TypeFunction *tf = (TypeFunction *)ce->e1->type->toBasetype();
         if (tf->ty == Tfunction && tf->retStyle() == RETstack)
         {
@@ -3187,10 +3178,11 @@ elem *AssignExp::toElem(IRState *irs)
 #endif
 //if (op == TOKconstruct) printf("construct\n");
     if (t1b->ty == Tstruct || t1b->ty == Tsarray)
-    {   elem *eleft = e1->toElem(irs);
-
+    {
+        elem *eleft = e1->toElem(irs);
         if (e2->op == TOKint64)
-        {   /* Implement:
+        {
+            /* Implement:
              *  (struct = 0)
              * with:
              *  memset(&struct, 0, struct.sizeof)
@@ -3230,7 +3222,8 @@ elem *AssignExp::toElem(IRState *irs)
                 ex = e1->E1;
             if (this->e2->op == TOKstructliteral &&
                 ex->Eoper == OPvar && ex->EV.sp.Voffset == 0)
-            {   StructLiteralExp *se = (StructLiteralExp *)this->e2;
+            {
+                StructLiteralExp *se = (StructLiteralExp *)this->e2;
 
                 Symbol *symSave = se->sym;
                 size_t soffsetSave = se->soffset;
