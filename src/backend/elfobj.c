@@ -2310,7 +2310,7 @@ int Obj::common_block(Symbol *s,targ_size_t size,targ_size_t count)
         s->Sfl = FLtlsdata;
         SegData[s->Sseg]->SDsym = s;
         SegData[s->Sseg]->SDoffset += size * count;
-        Obj::pubdef(s->Sseg, s, 0);
+        Obj::pubdefsize(s->Sseg, s, 0, size * count);
         searchfixlist(s);
         return s->Sseg;
     }
@@ -2321,7 +2321,7 @@ int Obj::common_block(Symbol *s,targ_size_t size,targ_size_t count)
         s->Sfl = FLudata;
         SegData[s->Sseg]->SDsym = s;
         SegData[s->Sseg]->SDoffset += size * count;
-        Obj::pubdef(s->Sseg, s, 0);
+        Obj::pubdefsize(s->Sseg, s, 0, size * count);
         searchfixlist(s);
         return s->Sseg;
     }
