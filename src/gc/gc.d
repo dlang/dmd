@@ -90,6 +90,7 @@ private
 private
 {
     extern (C) void rt_finalize2(void* p, bool det, bool resetMemory);
+    extern (C) int rt_hasFinalizerInSegment(void* p, in void[] segment);
 
     extern (C) void thread_suspendAll();
     extern (C) void thread_resumeAll();
@@ -1127,6 +1128,15 @@ class GC
         gcx.removeRange(p);
     }
 
+    /**
+     * run finalizers
+     */
+    void runFinalizers(in void[] segment)
+    {
+        gcLock.lock();
+        scope(exit) gcLock.unlock();
+        gcx.runFinalizers(segment);
+    }
 
     /**
      *
@@ -1554,6 +1564,100 @@ struct Gcx
         // The problem is that we can get a Close() call on a thread
         // other than the one the range was allocated on.
         //assert(zero);
+    }
+
+
+    /**
+     *
+     */
+    void runFinalizers(in void[] segment)
+    {
+        foreach (pool; pooltable[0 .. npools])
+        {
+            if (!pool.finals.nbits) continue;
+
+            if (pool.isLargeObject)
+            {
+                foreach (ref pn; 0 .. pool.npages)
+                {
+                    Bins bin = cast(Bins)pool.pagetable[pn];
+                    if (bin > B_PAGE) continue;
+                    size_t biti = pn;
+
+                    auto p = pool.baseAddr + pn * PAGESIZE;
+
+                    if (!pool.finals.test(biti) ||
+                        !rt_hasFinalizerInSegment(sentinel_add(p), segment))
+                        continue;
+
+                    rt_finalize2(sentinel_add(p), false, false);
+                    clrBits(pool, biti, ~BlkAttr.NONE);
+
+                    if (pn < pool.searchStart) pool.searchStart = pn;
+
+                    debug(COLLECT_PRINTF) printf("\tcollecting big %p\n", p);
+                    log_free(sentinel_add(p));
+
+                    size_t n = 1;
+                    for (; pn + n < pool.npages; ++n)
+                        if (pool.pagetable[pn + n] != B_PAGEPLUS) break;
+                    debug (MEMSTOMP) memset(pool.baseAddr + pn * PAGESIZE, 0xF3, n * PAGESIZE);
+                    pool.freePages(pn, n);
+                }
+            }
+            else
+            {
+                foreach (ref pn; 0 .. pool.npages)
+                {
+                    Bins bin = cast(Bins)pool.pagetable[pn];
+
+                    if (bin >= B_PAGE) continue;
+
+                    immutable size = binsize[bin];
+                    auto p = pool.baseAddr + pn * PAGESIZE;
+                    const ptop = p + PAGESIZE;
+                    auto biti = pn * (PAGESIZE/16);
+                    immutable bitstride = size / 16;
+
+                    GCBits.wordtype toClear;
+                    size_t clearStart = (biti >> GCBits.BITS_SHIFT) + 1;
+                    size_t clearIndex;
+
+                    for (; p < ptop; p += size, biti += bitstride, clearIndex += bitstride)
+                    {
+                        if (clearIndex > GCBits.BITS_PER_WORD - 1)
+                        {
+                            if (toClear)
+                            {
+                                Gcx.clrBitsSmallSweep(pool, clearStart, toClear);
+                                toClear = 0;
+                            }
+
+                            clearStart = (biti >> GCBits.BITS_SHIFT) + 1;
+                            clearIndex = biti & GCBits.BITS_MASK;
+                        }
+
+                        if (!pool.finals.test(biti) ||
+                            !rt_hasFinalizerInSegment(sentinel_add(p), segment))
+                            continue;
+
+                        rt_finalize2(sentinel_add(p), false, false);
+                        toClear |= GCBits.BITS_1 << clearIndex;
+
+                        debug(COLLECT_PRINTF) printf("\tcollecting %p\n", p);
+                        log_free(sentinel_add(p));
+
+                        debug (MEMSTOMP) memset(p, 0xF3, size);
+                        pool.freebits.set(biti);
+                    }
+
+                    if (toClear)
+                    {
+                        Gcx.clrBitsSmallSweep(pool, clearStart, toClear);
+                    }
+                }
+            }
+        }
     }
 
 

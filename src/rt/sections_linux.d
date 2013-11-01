@@ -85,6 +85,7 @@ private:
 
     version (Shared)
     {
+        Array!(void[]) _codeSegments; // array of code segments
         Array!(DSO*) _deps; // D libraries needed by this DSO
         link_map* _linkMap; // corresponding link_map*
     }
@@ -374,6 +375,8 @@ extern(C) void _d_dso_registry(CompilerDSOData* data)
             immutable runTlsDtors = !_rtLoading;
             runModuleDestructors(pdso, runTlsDtors);
             unregisterGCRanges(pdso);
+            // run finalizers after module dtors (same order as in rt_term)
+            version (Shared) runFinalizers(pdso);
         }
 
         version (Shared)
@@ -532,9 +535,16 @@ void unregisterGCRanges(DSO* pdso)
         GC.removeRange(rng.ptr);
 }
 
+version (Shared) void runFinalizers(DSO* pdso)
+{
+    foreach (seg; pdso._codeSegments)
+        GC.runFinalizers(seg);
+}
+
 void freeDSO(DSO* pdso)
 {
     pdso._gcRanges.reset();
+    version (Shared) pdso._codeSegments.reset();
     .free(pdso);
 }
 
@@ -634,18 +644,29 @@ void scanSegments(in ref dl_phdr_info info, DSO* pdso)
 {
     foreach (ref phdr; info.dlpi_phdr[0 .. info.dlpi_phnum])
     {
-        // If loadable segment and writeable
-        if (phdr.p_type == PT_LOAD && phdr.p_flags & PF_W)
+        switch (phdr.p_type)
         {
-                                  /* base address + virtual address */
-            auto beg = cast(void*)(info.dlpi_addr + phdr.p_vaddr);
-            pdso._gcRanges.insertBack(beg[0 .. phdr.p_memsz]);
-        }
-        else if (phdr.p_type == PT_TLS)
-        {   // Thread local storage segment
+        case PT_LOAD:
+            if (phdr.p_flags & PF_W) // writeable data segment
+            {
+                auto beg = cast(void*)(info.dlpi_addr + phdr.p_vaddr);
+                pdso._gcRanges.insertBack(beg[0 .. phdr.p_memsz]);
+            }
+            version (Shared) if (phdr.p_flags & PF_X) // code segment
+            {
+                auto beg = cast(void*)(info.dlpi_addr + phdr.p_vaddr);
+                pdso._codeSegments.insertBack(beg[0 .. phdr.p_memsz]);
+            }
+            break;
+
+        case PT_TLS: // TLS segment
             assert(!pdso._tlsSize); // is unique per DSO
             pdso._tlsMod = info.dlpi_tls_modid;
             pdso._tlsSize = phdr.p_memsz;
+            break;
+
+        default:
+            break;
         }
     }
 }
