@@ -2578,8 +2578,6 @@ struct Gcx
                         }
                     }
                 }
-
-                continue;
             }
             else
             {
