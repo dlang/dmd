@@ -9432,8 +9432,9 @@ MATCH TypeNull::implicitConvTo(Type *to)
     // NULL implicitly converts to any pointer type or dynamic array
     //if (type->ty == Tpointer && type->nextOf()->ty == Tvoid)
     {
-        Type *tb= to->toBasetype();
-        if (tb->ty == Tpointer || tb->ty == Tarray ||
+        Type *tb = to->toBasetype();
+        if (tb->ty == Tnull ||
+            tb->ty == Tpointer || tb->ty == Tarray ||
             tb->ty == Taarray  || tb->ty == Tclass ||
             tb->ty == Tdelegate)
             return MATCHconst;
@@ -9453,8 +9454,13 @@ void TypeNull::toDecoBuffer(OutBuffer *buf, int flag)
     Type::toDecoBuffer(buf, flag);
 }
 
-void TypeNull::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
+void TypeNull::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 {
+    if (mod != this->mod)
+    {
+        toCBuffer3(buf, hgs, mod);
+        return;
+    }
     buf->writestring("typeof(null)");
 }
 

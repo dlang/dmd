@@ -2700,6 +2700,15 @@ Lcc:
         e2 = e2->castTo(sc, t);
         goto Lagain;
     }
+    else if (t1->ty == Tnull && t2->ty == Tnull)
+    {
+        unsigned char mod = MODmerge(t1->mod, t2->mod);
+
+        t = t1->castMod(mod);
+        e1 = e1->castTo(sc, t);
+        e2 = e2->castTo(sc, t);
+        goto Lret;
+    }
     else if (e1->isArrayOperand() && t1->ty == Tarray &&
              e2->implicitConvTo(t1->nextOf()))
     {   // T[] op T
