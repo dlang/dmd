@@ -1062,7 +1062,7 @@ public:
     MATCH implicitConvTo(Type *to);
     int checkBoolean();
 
-    void toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
+    void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     void toJson(JsonOut *json);
 
     d_uns64 size(Loc loc);

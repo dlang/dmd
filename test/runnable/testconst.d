@@ -3219,6 +3219,34 @@ void test10761()
 }
 
 /************************************/
+// 11226
+
+void test11226()
+{
+    typeof(null) m;
+    const typeof(null) c = m;
+    immutable typeof(null) i = m;
+
+    m = m, m = c, m = i;
+    assert(m == c);
+    assert(m == i);
+    assert(c == i);
+    static assert(is(typeof(true ? m : m) ==           typeof(null)));
+    static assert(is(typeof(true ? m : c) ==     const typeof(null)));
+    static assert(is(typeof(true ? m : i) ==     const typeof(null)));
+    static assert(is(typeof(true ? c : m) ==     const typeof(null)));
+    static assert(is(typeof(true ? c : c) ==     const typeof(null)));
+    static assert(is(typeof(true ? c : i) ==     const typeof(null)));
+    static assert(is(typeof(true ? i : m) ==     const typeof(null)));
+    static assert(is(typeof(true ? i : c) ==     const typeof(null)));
+    static assert(is(typeof(true ? i : i) == immutable typeof(null)));
+
+    static assert(typeof(m).stringof ==           "typeof(null)" );
+    static assert(typeof(c).stringof ==     "const(typeof(null))");
+    static assert(typeof(i).stringof == "immutable(typeof(null))");
+}
+
+/************************************/
 // 11257
 
 struct R11257
@@ -3360,6 +3388,7 @@ int main()
     test9090();
     test9461();
     test9209();
+    test11226();
 
     printf("Success\n");
     return 0;
