@@ -168,7 +168,7 @@ Dsymbol *Declaration::search(Loc loc, Identifier *ident, int flags)
     Dsymbol *s = Dsymbol::search(loc, ident, flags);
     if (!s && type)
     {
-        s = type->toDsymbol(NULL);
+        s = type->toDsymbol(scope);
         if (s)
             s = s->search(loc, ident, flags);
     }
