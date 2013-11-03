@@ -5252,7 +5252,8 @@ Expression *NewExp::semantic(Scope *sc)
 
 Lagain:
     if (thisexp)
-    {   thisexp = thisexp->semantic(sc);
+    {
+        thisexp = thisexp->semantic(sc);
         cdthis = thisexp->type->isClassHandle();
         if (cdthis)
         {
@@ -5260,6 +5261,8 @@ Lagain:
             type = newtype->semantic(loc, sc);
             sc = sc->pop();
 
+            if (type->ty == Terror)
+                goto Lerr;
             if (!MODimplicitConv(thisexp->type->mod, newtype->mod))
             {
                 error("nested type %s should have the same or weaker constancy as enclosing type %s",
@@ -5274,7 +5277,11 @@ Lagain:
         }
     }
     else
+    {
         type = newtype->semantic(loc, sc);
+        if (type->ty == Terror)
+            goto Lerr;
+    }
     newtype = type;             // in case type gets cast to something else
     tb = type->toBasetype();
     //printf("tb: %s, deco = %s\n", tb->toChars(), tb->deco);
