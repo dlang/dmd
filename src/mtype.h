@@ -105,8 +105,6 @@ enum ENUMTY
 };
 typedef unsigned char TY;       // ENUMTY
 
-#define Tascii Tchar
-
 extern int Tsize_t;
 extern int Tptrdiff_t;
 

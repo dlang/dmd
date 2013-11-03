@@ -99,7 +99,7 @@ TypeTuple *TypeBasic::toArgTypes()
             t2 = Type::tfloat80;
             break;
 
-        case Tascii:
+        case Tchar:
             t1 = Type::tuns8;
             break;
 

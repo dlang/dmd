@@ -252,7 +252,7 @@ void Type::init()
     mangleChar[Tcomplex80] = 'c';
 
     mangleChar[Tbool] = 'b';
-    mangleChar[Tascii] = 'a';
+    mangleChar[Tchar] = 'a';
     mangleChar[Twchar] = 'u';
     mangleChar[Tdchar] = 'w';
 
@@ -283,7 +283,7 @@ void Type::init()
           Timaginary32, Timaginary64, Timaginary80,
           Tcomplex32, Tcomplex64, Tcomplex80,
           Tbool,
-          Tascii, Twchar, Tdchar };
+          Tchar, Twchar, Tdchar };
 
     for (size_t i = 0; i < sizeof(basetab) / sizeof(basetab[0]); i++)
     {   Type *t = new TypeBasic(basetab[i]);
@@ -2802,7 +2802,7 @@ TypeBasic::TypeBasic(TY ty)
                         flags |= TFLAGSintegral | TFLAGSunsigned;
                         break;
 
-        case Tascii:    d = Token::toChars(TOKchar);
+        case Tchar:     d = Token::toChars(TOKchar);
                         flags |= TFLAGSintegral | TFLAGSunsigned;
                         break;
 
@@ -2886,7 +2886,7 @@ d_uns64 TypeBasic::size(Loc loc)
             break;
 
         case Tbool:     size = 1;               break;
-        case Tascii:    size = 1;               break;
+        case Tchar:     size = 1;               break;
         case Twchar:    size = 2;               break;
         case Tdchar:    size = 4;               break;
 
