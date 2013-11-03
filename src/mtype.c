@@ -4635,6 +4635,7 @@ printf("index->ito->ito = x%x\n", index->ito->ito);
         case Tfunction:
         case Tvoid:
         case Tnone:
+        case Ttuple:
             error(loc, "can't have associative array of %s", next->toChars());
         case Terror:
             return Type::terror;
