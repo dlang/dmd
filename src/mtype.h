@@ -105,8 +105,6 @@ enum ENUMTY
 };
 typedef unsigned char TY;       // ENUMTY
 
-#define Tascii Tchar
-
 extern int Tsize_t;
 extern int Tptrdiff_t;
 
@@ -1101,9 +1099,6 @@ public:
     typedef int (*ForeachDg)(void *ctx, size_t paramidx, Parameter *param);
     static int foreach(Parameters *args, ForeachDg dg, void *ctx, size_t *pn=NULL);
 };
-
-extern int Tsize_t;
-extern int Tptrdiff_t;
 
 int arrayTypeCompatible(Loc loc, Type *t1, Type *t2);
 int arrayTypeCompatibleWithoutCasting(Loc loc, Type *t1, Type *t2);
