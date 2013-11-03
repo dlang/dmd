@@ -1100,9 +1100,6 @@ public:
     static int foreach(Parameters *args, ForeachDg dg, void *ctx, size_t *pn=NULL);
 };
 
-extern int Tsize_t;
-extern int Tptrdiff_t;
-
 int arrayTypeCompatible(Loc loc, Type *t1, Type *t2);
 int arrayTypeCompatibleWithoutCasting(Loc loc, Type *t1, Type *t2);
 void MODtoBuffer(OutBuffer *buf, unsigned char mod);
