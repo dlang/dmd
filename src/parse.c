@@ -3081,6 +3081,7 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, utf8_t *comment)
             break;
         }
         case TOKtypedef:
+            deprecation("use of typedef is deprecated; use alias instead");
             tok = token.value;
             nextToken();
             break;
@@ -3285,7 +3286,8 @@ L2:
             error("no identifier for declarator %s", t->toChars());
 
         if (tok == TOKtypedef || tok == TOKalias)
-        {   Declaration *v;
+        {
+            Declaration *v;
             Initializer *init = NULL;
 
             /* Aliases can no longer have multiple declarators, storage classes,
@@ -3303,7 +3305,6 @@ L2:
             }
             if (tok == TOKtypedef)
             {
-                deprecation("use of typedef is deprecated; use alias instead");
                 v = new TypedefDeclaration(loc, ident, t, init);
             }
             else
