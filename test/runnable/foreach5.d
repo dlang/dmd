@@ -733,6 +733,35 @@ void test10475b()
 }
 
 /***************************************/
+// 11291
+
+void test11291()
+{
+    struct Tuple(T...)
+    {
+        T field;
+        alias field this;
+    }
+    struct zip
+    {
+        string[] s1, s2;
+
+        bool empty() { return true; }
+        auto front() { return Tuple!(string, string)(s1[0], s2[0]); }
+        void popFront() {}
+    }
+
+    foreach (const a, const b; zip(["foo"], ["bar"]))
+    {
+        static assert(is(typeof(a) == const string));
+        static assert(is(typeof(b) == const string));
+
+        static assert(!__traits(compiles, a = "something"));
+        static assert(!__traits(compiles, b = "something"));
+    }
+}
+
+/***************************************/
 
 int main()
 {
@@ -755,6 +784,7 @@ int main()
     test9068();
     test10475a();
     test10475b();
+    test11291();
 
     printf("Success\n");
     return 0;
