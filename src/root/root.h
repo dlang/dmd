@@ -114,6 +114,7 @@ public:
 
     static const char *combine(const char *path, const char *name);
     static Strings *splitPath(const char *path);
+    static const char *dup(const char *name);
     static const char *defaultExt(const char *name, const char *ext);
     static const char *forceExt(const char *name, const char *ext);
     static int equalsExt(const char *name, const char *ext);

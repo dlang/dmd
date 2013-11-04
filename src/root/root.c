@@ -593,6 +593,15 @@ const char *FileName::replaceName(const char *path, const char *name)
  * Free returned value with FileName::free()
  */
 
+const char *FileName::dup(const char *name)
+{
+    return  mem.strdup(name);
+}
+
+/***************************
+ * Free returned value with FileName::free()
+ */
+
 const char *FileName::defaultExt(const char *name, const char *ext)
 {
     const char *e = FileName::ext(name);

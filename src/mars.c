@@ -1374,12 +1374,12 @@ Language changes listed by -transition=id:\n\
             /* Examine extension to see if it is a valid
              * D source file extension
              */
-            if (FileName::equals(ext, global.mars_ext) ||
+            if (global.params.run ||
+                FileName::equals(ext, global.mars_ext) ||
                 FileName::equals(ext, global.hdr_ext) ||
                 FileName::equals(ext, "dd"))
             {
                 ext--;                  // skip onto '.'
-                assert(*ext == '.');
                 name = (char *)mem.malloc((ext - p) + 1);
                 memcpy(name, p, ext - p);
                 name[ext - p] = 0;              // strip extension
