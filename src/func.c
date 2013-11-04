@@ -2985,9 +2985,10 @@ Lerr:
     // Don't give error if in template constraint
     if (!((sc->flags & SCOPEstaticif) && parent->isTemplateDeclaration()))
     {
+        const char *xstatic = isStatic() ? "static " : "";
         // better diagnostics for static functions
         ::error(loc, "%s%s %s cannot access frame of function %s",
-            isStatic() ? "static " : "", kind(), toPrettyChars(), fd->toPrettyChars());
+            xstatic, kind(), toPrettyChars(), fd->toPrettyChars());
     }
     return 1;
 }
