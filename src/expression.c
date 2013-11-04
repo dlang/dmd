@@ -13690,7 +13690,7 @@ Expression *CondExp::semantic(Scope *sc)
     econd = econd->checkToBoolean(sc);
 
     unsigned cs0 = sc->callSuper;
-    unsigned *fi0 = fi0 = sc->saveFieldInit();
+    unsigned *fi0 = sc->saveFieldInit();
     e1 = e1->semantic(sc);
     e1 = resolveProperties(sc, e1);
 
