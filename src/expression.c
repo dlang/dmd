@@ -11631,7 +11631,6 @@ Ltupleassign:
                         ex = ex->modifiableLvalue(sc, ex);  // allocate new slot
                         ey = new ConstructExp(loc, ex, ey);
 
-                        e = new CastExp(e->loc, e, Type::tvoid);
                         ey = new CastExp(ey->loc, ey, Type::tvoid);
                     }
                 }

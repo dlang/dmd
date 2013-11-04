@@ -556,6 +556,12 @@ Expression *IfStatement::doInline(InlineDoState *ids)
     {
         e = new CondExp(econd->loc, econd, e1, e2);
         e->type = e1->type;
+        if (e->type->ty == Ttuple)
+        {
+            e1->type = Type::tvoid;
+            e2->type = Type::tvoid;
+            e->type = Type::tvoid;
+        }
     }
     else if (e1)
     {
