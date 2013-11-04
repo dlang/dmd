@@ -441,22 +441,22 @@ int runLINK()
     const char *cc = getenv("CC");
     if (!cc)
         cc = "gcc";
-    argv.push((char *)cc);
+    argv.push(cc);
     argv.insert(1, global.params.objfiles);
 
 #if __APPLE__
     // If we are on Mac OS X and linking a dynamic library,
     // add the "-dynamiclib" flag
     if (global.params.dll)
-        argv.push((char *) "-dynamiclib");
+        argv.push("-dynamiclib");
 #elif linux || __FreeBSD__ || __OpenBSD__ || __sun
     if (global.params.dll)
-        argv.push((char *) "-shared");
+        argv.push("-shared");
 #endif
 
     // None of that a.out stuff. Use explicit exe file name, or
     // generate one from name of first source file.
-    argv.push((char *)"-o");
+    argv.push("-o");
     if (global.params.exefile)
     {
         argv.push(global.params.exefile);
@@ -488,20 +488,20 @@ int runLINK()
     FileName::ensurePathToNameExists(global.params.exefile);
 
     if (global.params.symdebug)
-        argv.push((char *)"-g");
+        argv.push("-g");
 
     if (global.params.is64bit)
-        argv.push((char *)"-m64");
+        argv.push("-m64");
     else
-        argv.push((char *)"-m32");
+        argv.push("-m32");
 
     if (global.params.map || global.params.mapfile)
     {
-        argv.push((char *)"-Xlinker");
+        argv.push("-Xlinker");
 #if __APPLE__
-        argv.push((char *)"-map");
+        argv.push("-map");
 #else
-        argv.push((char *)"-Map");
+        argv.push("-Map");
 #endif
         if (!global.params.mapfile)
         {
@@ -516,7 +516,7 @@ int runLINK()
 
             global.params.mapfile = (char *)p;
         }
-        argv.push((char *)"-Xlinker");
+        argv.push("-Xlinker");
         argv.push(global.params.mapfile);
     }
 
@@ -532,17 +532,17 @@ int runLINK()
          * BUG: disabled because it causes exception handling to fail
          * because EH sections are "unreferenced" and elided
          */
-        argv.push((char *)"-Xlinker");
-        argv.push((char *)"--gc-sections");
+        argv.push("-Xlinker");
+        argv.push("--gc-sections");
     }
 
     for (size_t i = 0; i < global.params.linkswitches->dim; i++)
-    {   char *p = (*global.params.linkswitches)[i];
+    {   const char *p = (*global.params.linkswitches)[i];
         if (!p || !p[0] || !(p[0] == '-' && (p[1] == 'l' || p[1] == 'L')))
             // Don't need -Xlinker if switch starts with -l or -L.
             // Eliding -Xlinker is significant for -L since it allows our paths
             // to take precedence over gcc defaults.
-            argv.push((char *)"-Xlinker");
+            argv.push("-Xlinker");
         argv.push(p);
     }
 
@@ -555,7 +555,7 @@ int runLINK()
      *  4. standard libraries.
      */
     for (size_t i = 0; i < global.params.libfiles->dim; i++)
-    {   char *p = (*global.params.libfiles)[i];
+    {   const char *p = (*global.params.libfiles)[i];
         size_t plen = strlen(p);
         if (plen > 2 && p[plen - 2] == '.' && p[plen -1] == 'a')
             argv.push(p);
@@ -595,15 +595,15 @@ int runLINK()
     }
 
 #ifdef __sun
-    argv.push((char *)"-mt");
+    argv.push("-mt");
 #endif
 
-//    argv.push((void *)"-ldruntime");
-    argv.push((char *)"-lpthread");
-    argv.push((char *)"-lm");
+//    argv.push("-ldruntime");
+    argv.push("-lpthread");
+    argv.push("-lm");
 #if linux && DMDV2
     // Changes in ld for Ubuntu 11.10 require this to appear after phobos2
-    argv.push((char *)"-lrt");
+    argv.push("-lrt");
 #endif
 
     if (!global.params.quiet || global.params.verbose)
@@ -632,7 +632,7 @@ int runLINK()
         dup2(fds[1], STDERR_FILENO);
         close(fds[0]);
 
-        execvp(argv[0], argv.tdata());
+        execvp(argv[0], (char **)argv.tdata());
         perror(argv[0]);           // failed to execute
         return -1;
     }
@@ -779,7 +779,7 @@ int executecmd(char *cmd, char *args, int useenv)
 int executearg0(char *cmd, char *args)
 {
     const char *file;
-    char *argv0 = global.params.argv0;
+    const char *argv0 = global.params.argv0;
 
     //printf("argv0='%s', cmd='%s', args='%s'\n",argv0,cmd,args);
 
@@ -835,7 +835,7 @@ int runProgram()
 
     argv.push(global.params.exefile);
     for (size_t i = 0; i < global.params.runargs_length; i++)
-    {   char *a = global.params.runargs[i];
+    {   const char *a = global.params.runargs[i];
 
 #if _WIN32
         // BUG: what about " appearing in the string?
@@ -869,7 +869,7 @@ int runProgram()
         {   // Make it "./fn"
             fn = FileName::combine(".", fn);
         }
-        execv(fn, argv.tdata());
+        execv(fn, (char **)argv.tdata());
         perror(fn);             // failed to execute
         return -1;
     }

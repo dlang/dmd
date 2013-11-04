@@ -58,7 +58,7 @@ class LibMach : public Library
     StringTable tab;
 
     LibMach();
-    void setFilename(char *dir, char *filename);
+    void setFilename(const char *dir, const char *filename);
     void addObject(const char *module_name, void *buf, size_t buflen);
     void addLibrary(void *buf, size_t buflen);
     void write();
@@ -96,7 +96,7 @@ LibMach::LibMach()
  * Add default library file name extension.
  */
 
-void LibMach::setFilename(char *dir, char *filename)
+void LibMach::setFilename(const char *dir, const char *filename)
 {
 #if LOG
     printf("LibMach::setFilename(dir = '%s', filename = '%s')\n",

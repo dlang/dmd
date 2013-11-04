@@ -403,7 +403,7 @@ Token *Lexer::peekPastParen(Token *tk)
  *      0       invalid
  */
 
-int Lexer::isValidIdentifier(char *p)
+int Lexer::isValidIdentifier(const char *p)
 {
     size_t len;
     size_t idx;

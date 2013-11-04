@@ -44,7 +44,7 @@ void Module::init()
     modules = new DsymbolTable();
 }
 
-Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen)
+Module::Module(const char *filename, Identifier *ident, int doDocComment, int doHdrGen)
         : Package(ident)
 {
     const char *srcfilename;
@@ -275,7 +275,7 @@ bool Module::read(Loc loc)
             {
                 for (size_t i = 0; i < global.path->dim; i++)
                 {
-                    char *p = (*global.path)[i];
+                    const char *p = (*global.path)[i];
                     fprintf(stderr, "import path[%llu] = %s\n", (ulonglong)i, p);
                 }
             }

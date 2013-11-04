@@ -121,7 +121,7 @@ struct OutBuffer;
 // Can't include arraytypes.h here, need to declare these directly.
 template <typename TYPE> struct Array;
 typedef Array<class Identifier> Identifiers;
-typedef Array<char> Strings;
+typedef Array<const char> Strings;
 
 // Put command line switches in here
 struct Param
@@ -180,24 +180,24 @@ struct Param
     bool addMain;       // add a default main() function
     bool allInst;       // generate code for all template instantiations
 
-    char *argv0;        // program name
+    const char *argv0;        // program name
     Strings *imppath;     // array of char*'s of where to look for import modules
     Strings *fileImppath; // array of char*'s of where to look for file import modules
-    char *objdir;       // .obj/.lib file output directory
-    char *objname;      // .obj file output name
-    char *libname;      // .lib file output name
+    const char *objdir;       // .obj/.lib file output directory
+    const char *objname;      // .obj file output name
+    const char *libname;      // .lib file output name
 
     char doDocComments; // process embedded documentation comments
-    char *docdir;       // write documentation file to docdir directory
-    char *docname;      // write documentation file to docname
+    const char *docdir;       // write documentation file to docdir directory
+    const char *docname;      // write documentation file to docname
     Strings *ddocfiles;   // macro include files for Ddoc
 
     char doHdrGeneration;       // process embedded documentation comments
-    char *hdrdir;               // write 'header' file to docdir directory
-    char *hdrname;              // write 'header' file to docname
+    const char *hdrdir;               // write 'header' file to docdir directory
+    const char *hdrname;              // write 'header' file to docname
 
     char doXGeneration;         // write JSON file
-    char *xfilename;            // write JSON file to xfilename
+    const char *xfilename;            // write JSON file to xfilename
 
     unsigned debuglevel;        // debug level
     Strings *debugids;     // debug identifiers
@@ -208,7 +208,7 @@ struct Param
     const char *defaultlibname; // default library for non-debug builds
     const char *debuglibname;   // default library for debug builds
 
-    char *moduleDepsFile;       // filename for deps output
+    const char *moduleDepsFile;       // filename for deps output
     OutBuffer *moduleDeps;      // contents to be written to deps file
 
     // Hidden debug switches
@@ -223,16 +223,16 @@ struct Param
 
     char run;           // run resulting executable
     size_t runargs_length;
-    char** runargs;     // arguments for executable
+    const char** runargs;     // arguments for executable
 
     // Linker stuff
     Strings *objfiles;
     Strings *linkswitches;
     Strings *libfiles;
-    char *deffile;
-    char *resfile;
-    char *exefile;
-    char *mapfile;
+    const char *deffile;
+    const char *resfile;
+    const char *exefile;
+    const char *mapfile;
 };
 
 struct Compiler

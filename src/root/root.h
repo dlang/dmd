@@ -32,7 +32,7 @@ struct OutBuffer;
 // Can't include arraytypes.h here, need to declare these directly.
 template <typename TYPE> struct Array;
 typedef Array<class File> Files;
-typedef Array<char> Strings;
+typedef Array<const char> Strings;
 
 
 class RootObject
