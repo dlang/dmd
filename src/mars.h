@@ -180,35 +180,35 @@ struct Param
     bool addMain;       // add a default main() function
     bool allInst;       // generate code for all template instantiations
 
-    const char *argv0;        // program name
+    const char *argv0;    // program name
     Strings *imppath;     // array of char*'s of where to look for import modules
     Strings *fileImppath; // array of char*'s of where to look for file import modules
-    const char *objdir;       // .obj/.lib file output directory
-    const char *objname;      // .obj file output name
-    const char *libname;      // .lib file output name
+    const char *objdir;   // .obj/.lib file output directory
+    const char *objname;  // .obj file output name
+    const char *libname;  // .lib file output name
 
-    char doDocComments; // process embedded documentation comments
-    const char *docdir;       // write documentation file to docdir directory
-    const char *docname;      // write documentation file to docname
-    Strings *ddocfiles;   // macro include files for Ddoc
+    char doDocComments;  // process embedded documentation comments
+    const char *docdir;  // write documentation file to docdir directory
+    const char *docname; // write documentation file to docname
+    Strings *ddocfiles;  // macro include files for Ddoc
 
-    char doHdrGeneration;       // process embedded documentation comments
-    const char *hdrdir;               // write 'header' file to docdir directory
-    const char *hdrname;              // write 'header' file to docname
+    char doHdrGeneration;  // process embedded documentation comments
+    const char *hdrdir;    // write 'header' file to docdir directory
+    const char *hdrname;   // write 'header' file to docname
 
-    char doXGeneration;         // write JSON file
-    const char *xfilename;            // write JSON file to xfilename
+    char doXGeneration;    // write JSON file
+    const char *xfilename; // write JSON file to xfilename
 
-    unsigned debuglevel;        // debug level
+    unsigned debuglevel;   // debug level
     Strings *debugids;     // debug identifiers
 
-    unsigned versionlevel;      // version level
+    unsigned versionlevel; // version level
     Strings *versionids;   // version identifiers
 
     const char *defaultlibname; // default library for non-debug builds
     const char *debuglibname;   // default library for debug builds
 
-    const char *moduleDepsFile;       // filename for deps output
+    const char *moduleDepsFile; // filename for deps output
     OutBuffer *moduleDeps;      // contents to be written to deps file
 
     // Hidden debug switches
@@ -223,7 +223,7 @@ struct Param
 
     char run;           // run resulting executable
     size_t runargs_length;
-    const char** runargs;     // arguments for executable
+    const char** runargs; // arguments for executable
 
     // Linker stuff
     Strings *objfiles;
