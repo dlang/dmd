@@ -2615,7 +2615,7 @@ Statement *IfStatement::semantic(Scope *sc)
     // Evaluate at runtime
     unsigned cs0 = sc->callSuper;
     unsigned cs1;
-    unsigned *fi0 = fi0 = sc->saveFieldInit();
+    unsigned *fi0 = sc->saveFieldInit();
     unsigned *fi1 = NULL;
 
     ScopeDsymbol *sym = new ScopeDsymbol();
