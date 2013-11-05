@@ -25,8 +25,7 @@ class TypeInfo_e : TypeInfo
 
     static bool _equals(real f1, real f2)
     {
-        return f1 == f2 ||
-                (f1 !<>= f1 && f2 !<>= f2);
+        return f1 == f2;
     }
 
     static int _compare(real d1, real d2)
