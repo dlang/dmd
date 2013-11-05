@@ -47,10 +47,10 @@ struct Escape
 class Section
 {
 public:
-    utf8_t *name;
+    const utf8_t *name;
     size_t namelen;
 
-    utf8_t *body;
+    const utf8_t *body;
     size_t bodylen;
 
     int nooutput;
@@ -86,19 +86,19 @@ struct DocComment
        summary(NULL), copyright(NULL), macros(NULL), pmacrotable(NULL), pescapetable(NULL)
     { }
 
-    static DocComment *parse(Scope *sc, Dsymbol *s, utf8_t *comment);
-    static void parseMacros(Escape **pescapetable, Macro **pmacrotable, utf8_t *m, size_t mlen);
-    static void parseEscapes(Escape **pescapetable, utf8_t *textstart, size_t textlen);
+    static DocComment *parse(Scope *sc, Dsymbol *s, const utf8_t *comment);
+    static void parseMacros(Escape **pescapetable, Macro **pmacrotable, const utf8_t *m, size_t mlen);
+    static void parseEscapes(Escape **pescapetable, const utf8_t *textstart, size_t textlen);
 
-    void parseSections(utf8_t *comment);
+    void parseSections(const utf8_t *comment);
     void writeSections(Scope *sc, Dsymbol *s, OutBuffer *buf);
 };
 
 
-int cmp(const char *stringz, void *s, size_t slen);
-int icmp(const char *stringz, void *s, size_t slen);
-int isDitto(utf8_t *comment);
-utf8_t *skipwhitespace(utf8_t *p);
+int cmp(const char *stringz, const void *s, size_t slen);
+int icmp(const char *stringz, const void *s, size_t slen);
+int isDitto(const utf8_t *comment);
+const utf8_t *skipwhitespace(const utf8_t *p);
 size_t skiptoident(OutBuffer *buf, size_t i);
 size_t skippastident(OutBuffer *buf, size_t i);
 size_t skippastURL(OutBuffer *buf, size_t i);
@@ -106,13 +106,13 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset);
 void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset, bool anchor = true);
 void highlightCode2(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset);
 TypeFunction *isTypeFunction(Dsymbol *s);
-Parameter *isFunctionParameter(Dsymbol *s, utf8_t *p, size_t len);
-TemplateParameter *isTemplateParameter(Dsymbol *s, utf8_t *p, size_t len);
+Parameter *isFunctionParameter(Dsymbol *s, const utf8_t *p, size_t len);
+TemplateParameter *isTemplateParameter(Dsymbol *s, const utf8_t *p, size_t len);
 
-int isIdStart(utf8_t *p);
-int isIdTail(utf8_t *p);
-int isIndentWS(utf8_t *p);
-int utfStride(utf8_t *p);
+int isIdStart(const utf8_t *p);
+int isIdTail(const utf8_t *p);
+int isIndentWS(const utf8_t *p);
+int utfStride(const utf8_t *p);
 
 static const char ddoc_default[] = "\
 DDOC =  <html><head>\n\
@@ -1210,7 +1210,7 @@ void EnumMember::toDocBuffer(OutBuffer *buf, Scope *sc)
 
 /********************************* DocComment *********************************/
 
-DocComment *DocComment::parse(Scope *sc, Dsymbol *s, utf8_t *comment)
+DocComment *DocComment::parse(Scope *sc, Dsymbol *s, const utf8_t *comment)
 {
     //printf("parse(%s): '%s'\n", s->toChars(), comment);
     if (sc->lastdc && isDitto(comment))
@@ -1247,21 +1247,22 @@ DocComment *DocComment::parse(Scope *sc, Dsymbol *s, utf8_t *comment)
  * then (*pcomment)[0 .. idlen] is the identifier.
  */
 
-void DocComment::parseSections(utf8_t *comment)
-{   utf8_t *p;
-    utf8_t *pstart;
-    utf8_t *pend;
-    utf8_t *idstart;
+void DocComment::parseSections(const utf8_t *comment)
+{
+    const utf8_t *p;
+    const utf8_t *pstart;
+    const utf8_t *pend;
+    const utf8_t *idstart;
     size_t idlen;
 
-    utf8_t *name = NULL;
+    const utf8_t *name = NULL;
     size_t namelen = 0;
 
     //printf("parseSections('%s')\n", comment);
     p = comment;
     while (*p)
     {
-        utf8_t *pstart0 = p;
+        const utf8_t *pstart0 = p;
         p = skipwhitespace(p);
         pstart = p;
         pend = p;
@@ -1296,7 +1297,7 @@ void DocComment::parseSections(utf8_t *comment)
 
             if (!inCode && isIdStart(p))
             {
-                utf8_t *q = p + utfStride(p);
+                const utf8_t *q = p + utfStride(p);
                 while (isIdTail(q))
                     q += utfStride(q);
                 if (*q == ':')  // identifier: ends it
@@ -1451,17 +1452,17 @@ void Section::write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
 
 void ParamSection::write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
 {
-    utf8_t *p = body;
+    const utf8_t *p = body;
     size_t len = bodylen;
-    utf8_t *pend = p + len;
+    const utf8_t *pend = p + len;
 
-    utf8_t *tempstart;
+    const utf8_t *tempstart;
     size_t templen;
 
-    utf8_t *namestart;
+    const utf8_t *namestart;
     size_t namelen = 0;       // !=0 if line continuation
 
-    utf8_t *textstart;
+    const utf8_t *textstart;
     size_t textlen;
 
     size_t o, paramcount = 0;
@@ -1606,19 +1607,19 @@ void MacroSection::write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
  *      name2 = value2
  */
 
-void DocComment::parseMacros(Escape **pescapetable, Macro **pmacrotable, utf8_t *m, size_t mlen)
+void DocComment::parseMacros(Escape **pescapetable, Macro **pmacrotable, const utf8_t *m, size_t mlen)
 {
-    utf8_t *p = m;
+    const utf8_t *p = m;
     size_t len = mlen;
-    utf8_t *pend = p + len;
+    const utf8_t *pend = p + len;
 
-    utf8_t *tempstart;
+    const utf8_t *tempstart;
     size_t templen;
 
-    utf8_t *namestart;
+    const utf8_t *namestart;
     size_t namelen = 0;       // !=0 if line continuation
 
-    utf8_t *textstart;
+    const utf8_t *textstart;
     size_t textlen;
 
     while (p < pend)
@@ -1731,7 +1732,7 @@ Ldone:
  * by whitespace and/or commas.
  */
 
-void DocComment::parseEscapes(Escape **pescapetable, utf8_t *textstart, size_t textlen)
+void DocComment::parseEscapes(Escape **pescapetable, const utf8_t *textstart, size_t textlen)
 {   Escape *escapetable = *pescapetable;
 
     if (!escapetable)
@@ -1740,8 +1741,8 @@ void DocComment::parseEscapes(Escape **pescapetable, utf8_t *textstart, size_t t
         *pescapetable = escapetable;
     }
     //printf("parseEscapes('%.*s') pescapetable = %p\n", textlen, textstart, pescapetable);
-    utf8_t *p = textstart;
-    utf8_t *pend = p + textlen;
+    const utf8_t *p = textstart;
+    const utf8_t *pend = p + textlen;
 
     while (1)
     {
@@ -1757,7 +1758,7 @@ void DocComment::parseEscapes(Escape **pescapetable, utf8_t *textstart, size_t t
             return;
         utf8_t c = p[1];
         p += 3;
-        utf8_t *start = p;
+        const utf8_t *start = p;
         while (1)
         {
             if (p >= pend)
@@ -1781,7 +1782,7 @@ void DocComment::parseEscapes(Escape **pescapetable, utf8_t *textstart, size_t t
  * Return < 0, ==0, > 0
  */
 
-int cmp(const char *stringz, void *s, size_t slen)
+int cmp(const char *stringz, const void *s, size_t slen)
 {
     size_t len1 = strlen(stringz);
 
@@ -1790,7 +1791,7 @@ int cmp(const char *stringz, void *s, size_t slen)
     return memcmp(stringz, s, slen);
 }
 
-int icmp(const char *stringz, void *s, size_t slen)
+int icmp(const char *stringz, const void *s, size_t slen)
 {
     size_t len1 = strlen(stringz);
 
@@ -1803,13 +1804,13 @@ int icmp(const char *stringz, void *s, size_t slen)
  * Return !=0 if comment consists entirely of "ditto".
  */
 
-int isDitto(utf8_t *comment)
+int isDitto(const utf8_t *comment)
 {
     if (comment)
     {
-        utf8_t *p = skipwhitespace(comment);
+        const utf8_t *p = skipwhitespace(comment);
 
-        if (Port::memicmp((char *)p, "ditto", 5) == 0 && *skipwhitespace(p + 5) == 0)
+        if (Port::memicmp((const char *)p, "ditto", 5) == 0 && *skipwhitespace(p + 5) == 0)
             return 1;
     }
     return 0;
@@ -1819,7 +1820,7 @@ int isDitto(utf8_t *comment)
  * Skip white space.
  */
 
-utf8_t *skipwhitespace(utf8_t *p)
+const utf8_t *skipwhitespace(const utf8_t *p)
 {
     for (; 1; p++)
     {   switch (*p)
@@ -1991,7 +1992,7 @@ TypeFunction *isTypeFunction(Dsymbol *s)
 /****************************************************
  */
 
-Parameter *isFunctionParameter(Dsymbol *s, utf8_t *p, size_t len)
+Parameter *isFunctionParameter(Dsymbol *s, const utf8_t *p, size_t len)
 {
     TypeFunction *tf = isTypeFunction(s);
     if (tf && tf->parameters)
@@ -2011,7 +2012,7 @@ Parameter *isFunctionParameter(Dsymbol *s, utf8_t *p, size_t len)
 /****************************************************
  */
 
-TemplateParameter *isTemplateParameter(Dsymbol *s, utf8_t *p, size_t len)
+TemplateParameter *isTemplateParameter(Dsymbol *s, const utf8_t *p, size_t len)
 {
     TemplateDeclaration *td = s->isTemplateDeclaration();
     if (td && td->origParameters)
@@ -2496,7 +2497,7 @@ const char *Escape::escapeChar(unsigned c)
  * Determine if p points to the start of an identifier.
  */
 
-int isIdStart(utf8_t *p)
+int isIdStart(const utf8_t *p)
 {
     unsigned c = *p;
     if (isalpha(c) || c == '_')
@@ -2515,7 +2516,7 @@ int isIdStart(utf8_t *p)
  * Determine if p points to the rest of an identifier.
  */
 
-int isIdTail(utf8_t *p)
+int isIdTail(const utf8_t *p)
 {
     unsigned c = *p;
     if (isalnum(c) || c == '_')
@@ -2534,7 +2535,7 @@ int isIdTail(utf8_t *p)
  * Determine if p points to the indentation space.
  */
 
-int isIndentWS(utf8_t *p)
+int isIndentWS(const utf8_t *p)
 {
     return (*p == ' ') || (*p == '\t');
 }
@@ -2543,7 +2544,7 @@ int isIndentWS(utf8_t *p)
  * Return number of bytes in UTF character.
  */
 
-int utfStride(utf8_t *p)
+int utfStride(const utf8_t *p)
 {
     unsigned c = *p;
     if (c < 0x80)
