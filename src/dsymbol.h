@@ -121,7 +121,7 @@ public:
     Dsymbol *parent;
     Symbol *csym;               // symbol for code generator
     Symbol *isym;               // import version of csym
-    utf8_t *comment;     // documentation comment for this Dsymbol
+    const utf8_t *comment;     // documentation comment for this Dsymbol
     Loc loc;                    // where defined
     Scope *scope;               // !=NULL means context to use for semantic()
     bool errors;                // this symbol failed to pass semantic()
@@ -205,7 +205,7 @@ public:
     virtual void addLocalClass(ClassDeclarations *) { }
     virtual void checkCtorConstInit() { }
 
-    virtual void addComment(utf8_t *comment);
+    virtual void addComment(const utf8_t *comment);
     virtual void emitComment(Scope *sc);
     void emitDitto(Scope *sc);
 

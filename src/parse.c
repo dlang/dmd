@@ -75,7 +75,7 @@ Dsymbols *Parser::parseModule()
     if (token.value == TOKmodule)
     {
         Loc loc = token.loc;
-        utf8_t *comment = token.blockComment;
+        const utf8_t *comment = token.blockComment;
         bool safe = FALSE;
 
         nextToken();
@@ -154,7 +154,7 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
     StorageClass stc;
     StorageClass storageClass;
     Condition *condition;
-    utf8_t *comment;
+    const utf8_t *comment;
     Dsymbol *lastDecl = NULL;   // used to link unittest to its previous declaration
     if (!pLastDecl)
         pLastDecl = &lastDecl;
@@ -1335,7 +1335,7 @@ UnitTestDeclaration *Parser::parseUnitTest()
 
     nextToken();
     utf8_t *begPtr = token.ptr + 1;  // skip '{'
-    utf8_t *endPtr = NULL;
+    const utf8_t *endPtr = NULL;
     body = parseStatement(PScurly, &endPtr);
 
     /** Extract unittest body as a string. Must be done eagerly since memory
@@ -1344,7 +1344,7 @@ UnitTestDeclaration *Parser::parseUnitTest()
     if (global.params.doDocComments && endPtr > begPtr)
     {
         /* Remove trailing whitespaces */
-        for (utf8_t *p = endPtr - 1;
+        for (const utf8_t *p = endPtr - 1;
              begPtr <= p && (*p == ' ' || *p == '\n' || *p == '\t'); --p)
         {
             endPtr = p;
@@ -1629,7 +1629,7 @@ EnumDeclaration *Parser::parseEnum()
         //printf("enum definition\n");
         e->members = new Dsymbols();
         nextToken();
-        utf8_t *comment = token.blockComment;
+        const utf8_t *comment = token.blockComment;
         while (token.value != TOKrcurly)
         {
             /* Can take the following forms:
@@ -2893,7 +2893,7 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident, TemplateParameters *
  * Return array of Declaration *'s.
  */
 
-Dsymbols *Parser::parseDeclarations(StorageClass storage_class, utf8_t *comment)
+Dsymbols *Parser::parseDeclarations(StorageClass storage_class, const utf8_t *comment)
 {
     StorageClass stc;
     int disable;
@@ -3449,7 +3449,7 @@ L2:
  */
 
 #if DMDV2
-Dsymbols *Parser::parseAutoDeclarations(StorageClass storageClass, utf8_t *comment)
+Dsymbols *Parser::parseAutoDeclarations(StorageClass storageClass, const utf8_t *comment)
 {
     Dsymbols *a = new Dsymbols;
 
@@ -3862,7 +3862,7 @@ void Parser::checkDanglingElse(Loc elseloc)
  *      flags   PSxxxx
  */
 
-Statement *Parser::parseStatement(int flags, utf8_t** endPtr)
+Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
 {
     Statement *s;
     Condition *condition;
@@ -7132,7 +7132,7 @@ Expression *Parser::parseNewExp(Expression *thisexp)
 /**********************************************
  */
 
-void Parser::addComment(Dsymbol *s, utf8_t *blockComment)
+void Parser::addComment(Dsymbol *s, const utf8_t *blockComment)
 {
     s->addComment(combineComments(blockComment, token.lineComment));
     token.lineComment = NULL;

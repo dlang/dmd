@@ -229,8 +229,8 @@ struct Token
     Loc loc;
     utf8_t *ptr;         // pointer to first character of this token within buffer
     TOK value;
-    utf8_t *blockComment; // doc comment string prior to this token
-    utf8_t *lineComment;  // doc comment for previous token
+    const utf8_t *blockComment; // doc comment string prior to this token
+    const utf8_t *lineComment;  // doc comment for previous token
     union
     {
         // Integers
@@ -316,7 +316,7 @@ public:
     void getDocComment(Token *t, unsigned lineComment);
 
     static int isValidIdentifier(const char *p);
-    static utf8_t *combineComments(utf8_t *c1, utf8_t *c2);
+    static const utf8_t *combineComments(const utf8_t *c1, const utf8_t *c2);
 };
 
 #endif /* DMD_LEXER_H */
