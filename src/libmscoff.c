@@ -67,7 +67,7 @@ class LibMSCoff : public Library
     StringTable tab;
 
     LibMSCoff();
-    void setFilename(char *dir, char *filename);
+    void setFilename(const char *dir, const char *filename);
     void addObject(const char *module_name, void *buf, size_t buflen);
     void addLibrary(void *buf, size_t buflen);
     void write();
@@ -112,7 +112,7 @@ LibMSCoff::LibMSCoff()
  * Add default library file name extension.
  */
 
-void LibMSCoff::setFilename(char *dir, char *filename)
+void LibMSCoff::setFilename(const char *dir, const char *filename)
 {
 #if LOG
     printf("LibMSCoff::setFilename(dir = '%s', filename = '%s')\n",

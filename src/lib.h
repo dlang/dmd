@@ -20,7 +20,7 @@ class Library
   public:
     static Library *factory();
 
-    virtual void setFilename(char *dir, char *filename) = 0;
+    virtual void setFilename(const char *dir, const char *filename) = 0;
     virtual void addObject(const char *module_name, void *buf, size_t buflen) = 0;
     virtual void addLibrary(void *buf, size_t buflen) = 0;
     virtual void write() = 0;
