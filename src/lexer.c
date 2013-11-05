@@ -2652,7 +2652,7 @@ void Lexer::getDocComment(Token *t, unsigned lineComment)
 
     // It's a line comment if the start of the doc comment comes
     // after other non-whitespace on the same line.
-    utf8_t** dc = (lineComment && anyToken)
+    const utf8_t** dc = (lineComment && anyToken)
                          ? &t->lineComment
                          : &t->blockComment;
 
@@ -2668,11 +2668,11 @@ void Lexer::getDocComment(Token *t, unsigned lineComment)
  * separated by a newline.
  */
 
-utf8_t *Lexer::combineComments(utf8_t *c1, utf8_t *c2)
+const utf8_t *Lexer::combineComments(const utf8_t *c1, const utf8_t *c2)
 {
     //printf("Lexer::combineComments('%s', '%s')\n", c1, c2);
 
-    utf8_t *c = c2;
+    const utf8_t *c = c2;
 
     if (c1)
     {   c = c1;
@@ -2680,14 +2680,15 @@ utf8_t *Lexer::combineComments(utf8_t *c1, utf8_t *c2)
         {   size_t len1 = strlen((char *)c1);
             size_t len2 = strlen((char *)c2);
 
-            c = (utf8_t *)mem.malloc(len1 + 1 + len2 + 1);
-            memcpy(c, c1, len1);
+            utf8_t *p = (utf8_t *)mem.malloc(len1 + 1 + len2 + 1);
+            memcpy(p, c1, len1);
             if (len1 && c1[len1 - 1] != '\n')
-            {   c[len1] = '\n';
+            {   p[len1] = '\n';
                 len1++;
             }
-            memcpy(c + len1, c2, len2);
-            c[len1 + len2] = 0;
+            memcpy(p + len1, c2, len2);
+            p[len1 + len2] = 0;
+            c = p;
         }
     }
     return c;

@@ -552,7 +552,7 @@ void emitUnittestComment(Scope *sc, Dsymbol *s, size_t ofs)
             continue;
 
         // Strip whitespaces to avoid showing empty summary
-        utf8_t *c = utd->comment;
+        const utf8_t *c = utd->comment;
         while (*c == ' ' || *c == '\t' || *c == '\n' || *c == '\r') ++c;
 
         OutBuffer codebuf;
@@ -746,7 +746,7 @@ void TemplateDeclaration::emitComment(Scope *sc)
     if (prot() == PROTprivate)
         return;
 
-    utf8_t *com = comment;
+    const utf8_t *com = comment;
     int hasmembers = 1;
 
     Dsymbol *ss = this;
