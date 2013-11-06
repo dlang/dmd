@@ -218,9 +218,9 @@ static assert(!is(typeof(A!(int))));
 **************************************************/
 void bug6720() { }
 
-//static assert(!is(typeof(
-//cast(bool)bug6720()
-//)));
+static assert(!is(typeof(
+cast(bool)bug6720()
+)));
 
 /**************************************************
     1099
@@ -417,29 +417,4 @@ static if (is(object.ModuleInfo == class))
     static assert(__traits(classInstanceSize, object.ModuleInfo) !=
                   __traits(classInstanceSize, ModuleInfo));
 }
-
-/**************************************************
-    5796
-**************************************************/
-
-
-template A(B) {
-    pragma(msg, "missing ;")
-    enum X = 0;
-}
-
-
-static assert(!is(typeof(A!(int))));
-
-
-/**************************************************
-    6720
-**************************************************/
-void bug6720() { }
-
-
-static assert(!is(typeof(
-cast(bool)bug6720()
-)));
-
 
