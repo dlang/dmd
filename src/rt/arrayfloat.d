@@ -16,6 +16,7 @@ module rt.arrayfloat;
 // debug=PRINTF
 
 private import core.cpuid;
+import rt.util.array;
 
 version (unittest)
 {
@@ -38,12 +39,6 @@ else
 }
 
 //version = log;
-
-@trusted pure nothrow
-bool disjoint(T)(T[] a, T[] b)
-{
-    return (a.ptr + a.length <= b.ptr || b.ptr + b.length <= a.ptr);
-}
 
 alias float T;
 
@@ -164,14 +159,10 @@ private template CodeGenSliceSliceOp(string opD, string opSSE, string op3DNow)
  */
 
 T[] _arraySliceSliceAddSliceAssign_f(T[] a, T[] c, T[] b)
-in
 {
-        assert(a.length == b.length && b.length == c.length);
-        assert(disjoint(a, b));
-        assert(disjoint(a, c));
-}
-body
-{
+    enforceTypedArraysConformable("vector operation", a, b);
+    enforceTypedArraysConformable("vector operation", a, c);
+
     mixin(CodeGenSliceSliceOp!("+", "addps", "pfadd"));
 }
 
@@ -221,14 +212,10 @@ unittest
  */
 
 T[] _arraySliceSliceMinSliceAssign_f(T[] a, T[] c, T[] b)
-in
 {
-        assert(a.length == b.length && b.length == c.length);
-        assert(disjoint(a, b));
-        assert(disjoint(a, c));
-}
-body
-{
+    enforceTypedArraysConformable("vector operation", a, b);
+    enforceTypedArraysConformable("vector operation", a, c);
+
     mixin(CodeGenSliceSliceOp!("-", "subps", "pfsub"));
 }
 
@@ -278,14 +265,10 @@ unittest
  */
 
 T[] _arraySliceSliceMulSliceAssign_f(T[] a, T[] c, T[] b)
-in
 {
-        assert(a.length == b.length && b.length == c.length);
-        assert(disjoint(a, b));
-        assert(disjoint(a, c));
-}
-body
-{
+    enforceTypedArraysConformable("vector operation", a, b);
+    enforceTypedArraysConformable("vector operation", a, c);
+
     mixin(CodeGenSliceSliceOp!("*", "mulps", "pfmul"));
 }
 
@@ -741,13 +724,9 @@ private template CodeGenSliceExpOp(string opD, string opSSE, string op3DNow)
  */
 
 T[] _arraySliceExpAddSliceAssign_f(T[] a, T value, T[] b)
-in
 {
-    assert(a.length == b.length);
-    assert(disjoint(a, b));
-}
-body
-{
+    enforceTypedArraysConformable("vector operation", a, b);
+
     mixin(CodeGenSliceExpOp!("+", "addps", "pfadd"));
 }
 
@@ -796,13 +775,9 @@ unittest
  */
 
 T[] _arraySliceExpMinSliceAssign_f(T[] a, T value, T[] b)
-in
 {
-    assert (a.length == b.length);
-    assert (disjoint(a, b));
-}
-body
-{
+    enforceTypedArraysConformable("vector operation", a, b);
+
     mixin(CodeGenSliceExpOp!("-", "subps", "pfsub"));
 }
 
@@ -851,13 +826,9 @@ unittest
  */
 
 T[] _arraySliceExpMulSliceAssign_f(T[] a, T value, T[] b)
-in
 {
-    assert(a.length == b.length);
-    assert(disjoint(a, b));
-}
-body
-{
+    enforceTypedArraysConformable("vector operation", a, b);
+
     mixin(CodeGenSliceExpOp!("*", "mulps", "pfmul"));
 }
 
@@ -1050,13 +1021,9 @@ private template CodeGenSliceOpAssign(string opD, string opSSE, string op3DNow)
  */
 
 T[] _arraySliceSliceAddass_f(T[] a, T[] b)
-in
 {
-    assert (a.length == b.length);
-    assert (disjoint(a, b));
-}
-body
-{
+    enforceTypedArraysConformable("vector operation", a, b);
+
     mixin(CodeGenSliceOpAssign!("+=", "addps", "pfadd"));
 }
 
@@ -1106,13 +1073,9 @@ unittest
  */
 
 T[] _arraySliceSliceMinass_f(T[] a, T[] b)
-in
 {
-    assert (a.length == b.length);
-    assert (disjoint(a, b));
-}
-body
-{
+    enforceTypedArraysConformable("vector operation", a, b);
+
     mixin(CodeGenSliceOpAssign!("-=", "subps", "pfsub"));
 }
 
@@ -1162,13 +1125,9 @@ unittest
  */
 
 T[] _arraySliceSliceMulass_f(T[] a, T[] b)
-in
 {
-    assert (a.length == b.length);
-    assert (disjoint(a, b));
-}
-body
-{
+    enforceTypedArraysConformable("vector operation", a, b);
+
     mixin(CodeGenSliceOpAssign!("*=", "mulps", "pfmul"));
 }
 
@@ -1219,13 +1178,9 @@ unittest
  */
 
 T[] _arrayExpSliceMinSliceAssign_f(T[] a, T[] b, T value)
-in
 {
-    assert (a.length == b.length);
-    assert (disjoint(a, b));
-}
-body
-{
+    enforceTypedArraysConformable("vector operation", a, b);
+
     //printf("_arrayExpSliceMinSliceAssign_f()\n");
     auto aptr = a.ptr;
     auto aend = aptr + a.length;
@@ -1377,13 +1332,9 @@ T[] _arraySliceExpMulSliceMinass_f(T[] a, T value, T[] b)
  */
 
 T[] _arraySliceExpMulSliceAddass_f(T[] a, T value, T[] b)
-in
 {
-        assert(a.length == b.length);
-        assert(disjoint(a, b));
-}
-body
-{
+    enforceTypedArraysConformable("vector operation", a, b);
+
     auto aptr = a.ptr;
     auto aend = aptr + a.length;
     auto bptr = b.ptr;
