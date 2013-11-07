@@ -12,7 +12,7 @@ module rt.util.array;
 import rt.util.string;
 
 
-@safe pure nothrow:
+@safe /* pure dmd @@@BUG11461@@@ */ nothrow:
 
 void enforceTypedArraysConformable(T)(in char[] action,
     in T[] a1, in T[] a2, in bool allowOverlap = false)
