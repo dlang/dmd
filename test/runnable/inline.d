@@ -292,6 +292,30 @@ void test11223()
 }
 
 /************************************/
+// 11314
+
+struct Tuple11314(T...)
+{
+    T values;
+
+    void opAssign(typeof(this) rhs)
+    {
+        if (0)
+            values[] = rhs.values[];
+        else
+            assert(1);
+    }
+}
+
+struct S11314 {}
+
+void test11314()
+{
+    Tuple11314!S11314 t;
+    t = Tuple11314!S11314(S11314.init);
+}
+
+/************************************/
 
 int main()
 {
@@ -305,6 +329,7 @@ int main()
     test8();
     test4841();
     test11223();
+    test11314();
 
     printf("Success\n");
     return 0;
