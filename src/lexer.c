@@ -30,7 +30,7 @@
 #include "id.h"
 #include "module.h"
 
-extern int HtmlNamedEntity(utf8_t *p, size_t length);
+extern int HtmlNamedEntity(const utf8_t *p, size_t length);
 
 #define LS 0x2028       // UTF line separator
 #define PS 0x2029       // UTF paragraph separator
@@ -215,7 +215,7 @@ StringTable Lexer::stringtable;
 OutBuffer Lexer::stringbuffer;
 
 Lexer::Lexer(Module *mod,
-        utf8_t *base, size_t begoffset, size_t endoffset,
+        const utf8_t *base, size_t begoffset, size_t endoffset,
         int doDocComment, int commentToken)
 {
     scanloc = Loc(mod, 1);
@@ -522,7 +522,7 @@ void Lexer::scan(Token *t)
 #if ! TEXTUAL_ASSEMBLY_OUT
             case '\\':                  // escaped string literal
             {   unsigned c;
-                utf8_t *pstart = p;
+                const utf8_t *pstart = p;
 
                 stringbuffer.reset();
                 do
@@ -582,7 +582,7 @@ void Lexer::scan(Token *t)
                     if (isidchar(c))
                         continue;
                     else if (c & 0x80)
-                    {   utf8_t *s = p;
+                    {   const utf8_t *s = p;
                         unsigned u = decodeUTF();
                         if (isUniAlpha(u))
                             continue;
@@ -1280,7 +1280,7 @@ unsigned Lexer::escapeSequence()
                 break;
 
         case '&':                       // named character entity
-                for (utf8_t *idstart = ++p; 1; p++)
+                for (const utf8_t *idstart = ++p; 1; p++)
                 {
                     switch (*p)
                     {
@@ -1608,7 +1608,7 @@ TOK Lexer::delimitedStringConstant(Token *t)
 #endif
                            )
             {   Token t;
-                utf8_t *psave = p;
+                const utf8_t *psave = p;
                 p--;
                 scan(&t);               // read in possible heredoc identifier
                 //printf("endid = '%s'\n", t.ident->toChars());
@@ -1657,7 +1657,7 @@ TOK Lexer::tokenStringConstant(Token *t)
 {
     unsigned nest = 1;
     Loc start = scanloc;
-    utf8_t *pstart = ++p;
+    const utf8_t *pstart = ++p;
 
     while (1)
     {   Token tok;
@@ -1899,7 +1899,7 @@ TOK Lexer::number(Token *t)
     FLAGS flags = FLAGS_decimal;
 
     unsigned c;
-    utf8_t *start;
+    const utf8_t *start;
     TOK result;
 
     //printf("Lexer::number()\n");
@@ -2517,7 +2517,7 @@ unsigned Lexer::decodeUTF()
 {
     dchar_t u;
     utf8_t c;
-    utf8_t *s = p;
+    const utf8_t *s = p;
     size_t len;
     size_t idx;
     const char *msg;
@@ -2557,9 +2557,9 @@ void Lexer::getDocComment(Token *t, unsigned lineComment)
 
     /* Start of comment text skips over / * *, / + +, or / / /
      */
-    utf8_t *q = t->ptr + 3;      // start of comment text
+    const utf8_t *q = t->ptr + 3;      // start of comment text
 
-    utf8_t *qend = p;
+    const utf8_t *qend = p;
     if (ct == '*' || ct == '+')
         qend -= 2;
 

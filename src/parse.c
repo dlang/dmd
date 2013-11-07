@@ -55,7 +55,7 @@
 // Support D1 inout
 #define D1INOUT         0
 
-Parser::Parser(Module *module, utf8_t *base, size_t length, int doDocComment)
+Parser::Parser(Module *module, const utf8_t *base, size_t length, int doDocComment)
     : Lexer(module, base, 0, length, doDocComment, 0)
 {
     //printf("Parser::Parser()\n");
@@ -1334,7 +1334,7 @@ UnitTestDeclaration *Parser::parseUnitTest()
     Loc loc = token.loc;
 
     nextToken();
-    utf8_t *begPtr = token.ptr + 1;  // skip '{'
+    const utf8_t *begPtr = token.ptr + 1;  // skip '{'
     const utf8_t *endPtr = NULL;
     body = parseStatement(PScurly, &endPtr);
 
