@@ -15,6 +15,7 @@ module rt.arrayassign;
 
 private
 {
+    import rt.util.array;
     import rt.util.string;
     import core.stdc.string;
     import core.stdc.stdlib;
@@ -31,17 +32,9 @@ extern (C) void[] _d_arrayassign(TypeInfo ti, void[] from, void[] to)
 {
     debug(PRINTF) printf("_d_arrayassign(from = %p,%d, to = %p,%d) size = %d\n", from.ptr, from.length, to.ptr, to.length, ti.tsize);
 
-    if (to.length != from.length)
-    {
-        SizeStringBuff tmpBuff = void;
-        string msg = "lengths don't match for array copy, "c;
-        msg ~= to.length.sizeToTempString(tmpBuff);
-        msg ~= " = ";
-        msg ~= from.length.sizeToTempString(tmpBuff);
-        throw new Error(msg);
-    }
-
     auto element_size = ti.tsize;
+
+    enforceRawArraysConformable("copy", element_size, from, to, true);
 
     /* Need a temporary buffer tmp[] big enough to hold one element
      */
@@ -89,17 +82,10 @@ extern (C) void[] _d_arrayctor(TypeInfo ti, void[] from, void[] to)
 {
     debug(PRINTF) printf("_d_arrayctor(from = %p,%d, to = %p,%d) size = %d\n", from.ptr, from.length, to.ptr, to.length, ti.tsize);
 
-    if (to.length != from.length)
-    {
-        SizeStringBuff tmpBuff = void;
-        string msg = "lengths don't match for array initialization,"c;
-        msg ~= to.length.sizeToTempString(tmpBuff);
-        msg ~= " = ";
-        msg ~= from.length.sizeToTempString(tmpBuff);
-        throw new Error(msg);
-    }
 
     auto element_size = ti.tsize;
+
+    enforceRawArraysConformable("initialization", element_size, from, to);
 
     size_t i;
     try
