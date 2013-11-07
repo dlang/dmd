@@ -2374,7 +2374,7 @@ static NameId* namesTable[] = {
         namesS, namesT, namesU, namesV, namesW, namesX, namesY, namesZ, NULL
 };
 
-int HtmlNamedEntity(utf8_t *p, size_t length)
+int HtmlNamedEntity(const utf8_t *p, size_t length)
 {
     int tableIndex = tolower(*p) - 'a';
     if (tableIndex >= 0 && tableIndex < 26)

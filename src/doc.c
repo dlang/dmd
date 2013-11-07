@@ -2371,7 +2371,7 @@ void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset, bool an
 /****************************************
  */
 
-void highlightCode3(Scope *sc, OutBuffer *buf, utf8_t *p, utf8_t *pend)
+void highlightCode3(Scope *sc, OutBuffer *buf, const utf8_t *p, const utf8_t *pend)
 {
     for (; p < pend; p++)
     {   const char *s = sc->module->escapetable->escapeChar(*p);
@@ -2395,7 +2395,7 @@ void highlightCode2(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
     Lexer lex(NULL, buf->data, 0, buf->offset - 1, 0, 1);
     Token tok;
     OutBuffer res;
-    utf8_t *lastp = buf->data;
+    const utf8_t *lastp = buf->data;
     const char *highlight;
 
     if (s->isModule() && ((Module *)s)->isDocFile)
