@@ -107,8 +107,8 @@ private
     alias void delegate(void*, void*) scanFn;
     extern (C) void thread_scanAll(scope scanFn fn);
 
-    extern (C) void onOutOfMemoryError() @trusted pure nothrow;
-    extern (C) void onInvalidMemoryOperationError() @trusted pure nothrow;
+    extern (C) void onOutOfMemoryError() @trusted /* pure dmd @@@BUG11461@@@ */ nothrow;
+    extern (C) void onInvalidMemoryOperationError() @trusted /* pure dmd @@@BUG11461@@@ */ nothrow;
 
     enum
     {

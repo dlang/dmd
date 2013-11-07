@@ -46,7 +46,7 @@ private
     extern (C) BlkInfo gc_query( in void* p );
 
     extern (C) void onFinalizeError( ClassInfo c, Throwable e ) @safe pure nothrow;
-    extern (C) void onOutOfMemoryError() @trusted pure nothrow;
+    extern (C) void onOutOfMemoryError() @trusted /* pure dmd @@@BUG11461@@@ */ nothrow;
 
     extern (C) void _d_monitordelete(Object h, bool det = true);
 
