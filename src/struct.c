@@ -20,6 +20,7 @@
 #include "id.h"
 #include "statement.h"
 #include "template.h"
+#include "visitor.h"
 
 FuncDeclaration *StructDeclaration::xerreq;     // object.xopEquals
 FuncDeclaration *StructDeclaration::xerrcmp;    // object.xopCmp
@@ -1021,4 +1022,18 @@ const char *UnionDeclaration::kind()
     return "union";
 }
 
+void AggregateDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+}
+
+void StructDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+} 
+
+void UnionDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+}
 

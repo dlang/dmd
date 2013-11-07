@@ -35,6 +35,7 @@ class TemplateInstance;
 struct CppMangleState;
 class TemplateDeclaration;
 struct JsonOut;
+class Visitor;
 enum LINK;
 
 class TypeBasic;
@@ -252,6 +253,7 @@ public:
 #if CPP_MANGLE
     virtual void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
+    virtual void acceptVisitor(Visitor *m); 
     virtual int isintegral();
     virtual int isfloating();   // real, imaginary, or complex
     virtual int isreal();
@@ -362,6 +364,7 @@ public:
     Expression *defaultInit(Loc loc);
     Expression *defaultInitLiteral(Loc loc);
     TypeTuple *toArgTypes();
+    void acceptVisitor(Visitor *m); 
 };
 
 class TypeNext : public Type
@@ -385,6 +388,7 @@ public:
     MATCH constConv(Type *to);
     unsigned wildConvTo(Type *tprm);
     void transitive();
+    void acceptVisitor(Visitor *m); 
 };
 
 class TypeBasic : public Type
@@ -405,6 +409,7 @@ public:
 #if CPP_MANGLE
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
+    void acceptVisitor(Visitor *m); 
     int isintegral();
     int isfloating();
     int isreal();
@@ -444,6 +449,7 @@ public:
 #if CPP_MANGLE
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
+    void acceptVisitor(Visitor *m); 
     int isintegral();
     int isfloating();
     int isscalar();
@@ -465,6 +471,7 @@ class TypeArray : public TypeNext
 public:
     TypeArray(TY ty, Type *next);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
+    void acceptVisitor(Visitor *m); 
 };
 
 // Static array, one with a fixed dimension
@@ -504,7 +511,7 @@ public:
 #if CPP_MANGLE
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
-
+    void acceptVisitor(Visitor *m); 
     static Type *makeType(Loc loc, Type *tn, dinteger_t dim);
 
     type *toCtype();
@@ -539,7 +546,7 @@ public:
 #if CPP_MANGLE
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
-
+    void acceptVisitor(Visitor *m); 
     type *toCtype();
 };
 
@@ -577,7 +584,7 @@ public:
 #if CPP_MANGLE
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
-
+    void acceptVisitor(Visitor *m); 
     // Back end
     Symbol *aaGetSymbol(const char *func, int flags);
 
@@ -605,7 +612,7 @@ public:
 #if CPP_MANGLE
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
-
+    void acceptVisitor(Visitor *m); 
     type *toCtype();
 };
 
@@ -625,6 +632,7 @@ public:
 #if CPP_MANGLE
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
+    void acceptVisitor(Visitor *m); 
 };
 
 enum RET
@@ -687,6 +695,7 @@ public:
 #if CPP_MANGLE
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
+    void acceptVisitor(Visitor *m); 
     bool parameterEscapes(Parameter *p);
     Type *addStorageClass(StorageClass stc);
 
@@ -724,7 +733,7 @@ public:
 #if CPP_MANGLE
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
-
+    void acceptVisitor(Visitor *m); 
     type *toCtype();
 };
 
@@ -743,7 +752,8 @@ public:
     void toJson(JsonOut *json);
     d_uns64 size(Loc loc);
     void resolveHelper(Loc loc, Scope *sc, Dsymbol *s, Dsymbol *scopesym,
-        Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
+    Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
+    void acceptVisitor(Visitor *m); 
 };
 
 class TypeIdentifier : public TypeQualified
@@ -765,6 +775,7 @@ public:
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
     Type *reliesOnTident(TemplateParameters *tparams = NULL);
     Expression *toExpression();
+    void acceptVisitor(Visitor *m); 
 };
 
 /* Similar to TypeIdentifier, but with a TemplateInstance as the root
@@ -787,6 +798,7 @@ public:
     Type *reliesOnTident(TemplateParameters *tparams = NULL);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
     Expression *toExpression();
+    void acceptVisitor(Visitor *m); 
 };
 
 class TypeTypeof : public TypeQualified
@@ -804,6 +816,7 @@ public:
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
     Type *semantic(Loc loc, Scope *sc);
     d_uns64 size(Loc loc);
+    void acceptVisitor(Visitor *m); 
 };
 
 class TypeReturn : public TypeQualified
@@ -817,6 +830,7 @@ public:
     Type *semantic(Loc loc, Scope *sc);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     void toJson(JsonOut *json);
+    void acceptVisitor(Visitor *m); 
 };
 
 // Whether alias this dependency is recursive or not.
@@ -868,7 +882,7 @@ public:
 #if CPP_MANGLE
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
-
+    void acceptVisitor(Visitor *m); 
     type *toCtype();
 };
 
@@ -915,7 +929,7 @@ public:
 #if CPP_MANGLE
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
-
+    void acceptVisitor(Visitor *m); 
     type *toCtype();
 };
 
@@ -965,7 +979,7 @@ public:
 #if CPP_MANGLE
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
-
+    void acceptVisitor(Visitor *m); 
     type *toCtype();
     type *toCParamtype();
 };
@@ -1005,7 +1019,7 @@ public:
 #if CPP_MANGLE
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
-
+    void acceptVisitor(Visitor *m); 
     type *toCtype();
 
     Symbol *toSymbol();
@@ -1032,6 +1046,7 @@ public:
     Expression *getProperty(Loc loc, Identifier *ident, int flag);
     Expression *defaultInit(Loc loc);
     TypeInfoDeclaration *getTypeInfoDeclaration();
+    void acceptVisitor(Visitor *m); 
 };
 
 class TypeSlice : public TypeNext
@@ -1047,6 +1062,7 @@ public:
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     void toJson(JsonOut *json);
+    void acceptVisitor(Visitor *m); 
 };
 
 class TypeNull : public Type
@@ -1065,6 +1081,7 @@ public:
 
     d_uns64 size(Loc loc);
     Expression *defaultInit(Loc loc);
+    void acceptVisitor(Visitor *m); 
 };
 
 /**************************************************************/

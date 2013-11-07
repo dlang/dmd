@@ -73,6 +73,8 @@ struct HdrGenState;
 class OverloadSet;
 struct AA;
 struct JsonOut;
+class Visitor; 
+
 #ifdef IN_GCC
 typedef union tree_node TYPE;
 #else
@@ -194,6 +196,7 @@ public:
     virtual AggregateDeclaration *isMember();   // is this symbol a member of an AggregateDeclaration?
     virtual Type *getType();                    // is this a type?
     virtual const char *mangle(bool isv = false);
+    virtual void acceptVisitor(Visitor *v);
     virtual bool needThis();                    // need a 'this' pointer?
     virtual PROT prot();
     virtual Dsymbol *syntaxCopy(Dsymbol *s);    // copy only syntax trees
@@ -297,6 +300,7 @@ public:
     static int foreach(Scope *sc, Dsymbols *members, ForeachDg dg, void *ctx, size_t *pn=NULL);
 
     ScopeDsymbol *isScopeDsymbol() { return this; }
+    void acceptVisitor(Visitor *v);
 };
 
 // With statement scope
@@ -310,6 +314,7 @@ public:
     Dsymbol *search(Loc loc, Identifier *ident, int flags);
 
     WithScopeSymbol *isWithScopeSymbol() { return this; }
+    void acceptVisitor(Visitor *v);
 };
 
 // Array Index/Slice scope
@@ -328,6 +333,7 @@ public:
     Dsymbol *search(Loc loc, Identifier *ident, int flags);
 
     ArrayScopeSymbol *isArrayScopeSymbol() { return this; }
+    void acceptVisitor(Visitor *v);
 };
 
 // Overload Sets
@@ -342,6 +348,7 @@ public:
     void push(Dsymbol *s);
     OverloadSet *isOverloadSet() { return this; }
     const char *kind();
+    void acceptVisitor(Visitor *v);
 };
 #endif
 

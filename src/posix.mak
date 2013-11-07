@@ -90,7 +90,7 @@ DMD_OBJS = \
 	glocal.o gloop.o glue.o go.o gother.o iasm.o id.o \
 	identifier.o impcnvtab.o import.o inifile.o init.o inline.o \
 	lexer.o link.o mangle.o mars.o rmem.o module.o msc.o mtype.o \
-	nteh.o cppmangle.o opover.o optimize.o os.o out.o outbuf.o \
+	nteh.o cppmangle.o visitor.o opover.o optimize.o os.o out.o outbuf.o \
 	parse.o ph2.o root.o rtlsym.o s2ir.o scope.o statement.o \
 	stringtable.o struct.o csymbol.o template.o tk.o tocsym.o todt.o \
 	type.o typinf.o util2.o var.o version.o strtold.o utf.o staticassert.o \
@@ -123,7 +123,7 @@ SRC = win32.mak posix.mak \
 	utf.h utf.c staticassert.h staticassert.c \
 	typinf.c toobj.c toctype.c tocvdebug.c toelfdebug.c entity.c \
 	doc.h doc.c macro.h macro.c hdrgen.h hdrgen.c arraytypes.h \
-	delegatize.c toir.h toir.c interpret.c traits.c cppmangle.c \
+	delegatize.c toir.h toir.c interpret.c traits.c cppmangle.c visitor.c visitor.h \
 	builtin.c clone.c lib.h libomf.c libelf.c libmach.c arrayop.c \
 	libmscoff.c scanelf.c scanmach.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c \
@@ -342,6 +342,9 @@ cond.o: cond.c
 	$(CC) -c $(CFLAGS) $<
 
 cppmangle.o: cppmangle.c
+	$(CC) -c $(CFLAGS) $<
+
+visitor.o: visitor.c visitor.h
 	$(CC) -c $(CFLAGS) $<
 
 cv8.o: $C/cv8.c

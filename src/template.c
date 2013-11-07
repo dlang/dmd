@@ -33,6 +33,7 @@
 #include "hdrgen.h"
 #include "id.h"
 #include "attrib.h"
+#include "visitor.h"
 
 #if WINDOWS_SEH
 #include <windows.h>
@@ -7707,4 +7708,17 @@ void TemplateMixin::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writenl();
 }
 
+void TemplateDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+} 
 
+void TemplateInstance::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+} 
+
+void TemplateMixin::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+}

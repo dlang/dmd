@@ -170,6 +170,7 @@ public:
     PROT prot();
 
     Declaration *isDeclaration() { return this; }
+    void acceptVisitor(Visitor *v);
 };
 
 /**************************************************************/
@@ -189,6 +190,7 @@ public:
     bool needThis();
 
     TupleDeclaration *isTupleDeclaration() { return this; }
+    void acceptVisitor(Visitor *v);
 };
 
 /**************************************************************/
@@ -221,6 +223,7 @@ public:
 
     Symbol *sinit;
     Symbol *toInitializer();
+    void acceptVisitor(Visitor *v);
 };
 
 /**************************************************************/
@@ -248,6 +251,7 @@ public:
     void toDocBuffer(OutBuffer *buf, Scope *sc);
 
     AliasDeclaration *isAliasDeclaration() { return this; }
+    void acceptVisitor(Visitor *v);
 };
 
 /**************************************************************/
@@ -320,6 +324,7 @@ public:
     void toObjFile(int multiobj);                       // compile to .obj file
     int cvMember(unsigned char *p);
     const char *mangle(bool isv = false);
+    void acceptVisitor(Visitor *v);
     // Eliminate need for dynamic_cast
     VarDeclaration *isVarDeclaration() { return (VarDeclaration *)this; }
 };
@@ -339,6 +344,7 @@ public:
 
     // Eliminate need for dynamic_cast
     SymbolDeclaration *isSymbolDeclaration() { return (SymbolDeclaration *)this; }
+    void acceptVisitor(Visitor *v);
 };
 
 class ClassInfoDeclaration : public VarDeclaration
@@ -354,6 +360,7 @@ public:
     void toJson(JsonOut *json);
 
     Symbol *toSymbol();
+    void acceptVisitor(Visitor *v);
 };
 
 class TypeInfoDeclaration : public VarDeclaration
@@ -374,6 +381,7 @@ public:
     virtual void toDt(dt_t **pdt);
 
     TypeInfoDeclaration *isTypeInfoDeclaration() { return this; }
+    void acceptVisitor(Visitor *v);
 };
 
 class TypeInfoStructDeclaration : public TypeInfoDeclaration
@@ -382,6 +390,7 @@ public:
     TypeInfoStructDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
+    void acceptVisitor(Visitor *v);
 };
 
 class TypeInfoClassDeclaration : public TypeInfoDeclaration
@@ -391,6 +400,7 @@ public:
     Symbol *toSymbol();
 
     void toDt(dt_t **pdt);
+    void acceptVisitor(Visitor *v);
 };
 
 class TypeInfoInterfaceDeclaration : public TypeInfoDeclaration
@@ -399,6 +409,7 @@ public:
     TypeInfoInterfaceDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
+    void acceptVisitor(Visitor *v);
 };
 
 class TypeInfoTypedefDeclaration : public TypeInfoDeclaration
@@ -407,6 +418,7 @@ public:
     TypeInfoTypedefDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
+    void acceptVisitor(Visitor *v);
 };
 
 class TypeInfoPointerDeclaration : public TypeInfoDeclaration
@@ -415,6 +427,7 @@ public:
     TypeInfoPointerDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
+    void acceptVisitor(Visitor *v);
 };
 
 class TypeInfoArrayDeclaration : public TypeInfoDeclaration
@@ -423,6 +436,7 @@ public:
     TypeInfoArrayDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
+    void acceptVisitor(Visitor *v);
 };
 
 class TypeInfoStaticArrayDeclaration : public TypeInfoDeclaration
@@ -431,6 +445,7 @@ public:
     TypeInfoStaticArrayDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
+    void acceptVisitor(Visitor *v);
 };
 
 class TypeInfoAssociativeArrayDeclaration : public TypeInfoDeclaration
@@ -439,6 +454,7 @@ public:
     TypeInfoAssociativeArrayDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
+    void acceptVisitor(Visitor *v);
 };
 
 class TypeInfoEnumDeclaration : public TypeInfoDeclaration
@@ -447,6 +463,7 @@ public:
     TypeInfoEnumDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
+    void acceptVisitor(Visitor *v);
 };
 
 class TypeInfoFunctionDeclaration : public TypeInfoDeclaration
@@ -455,6 +472,7 @@ public:
     TypeInfoFunctionDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
+    void acceptVisitor(Visitor *v);
 };
 
 class TypeInfoDelegateDeclaration : public TypeInfoDeclaration
@@ -463,6 +481,7 @@ public:
     TypeInfoDelegateDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
+    void acceptVisitor(Visitor *v);
 };
 
 class TypeInfoTupleDeclaration : public TypeInfoDeclaration
@@ -471,6 +490,7 @@ public:
     TypeInfoTupleDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
+    void acceptVisitor(Visitor *v);
 };
 
 #if DMDV2
@@ -480,6 +500,7 @@ public:
     TypeInfoConstDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
+    void acceptVisitor(Visitor *v);
 };
 
 class TypeInfoInvariantDeclaration : public TypeInfoDeclaration
@@ -488,6 +509,7 @@ public:
     TypeInfoInvariantDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
+    void acceptVisitor(Visitor *v);
 };
 
 class TypeInfoSharedDeclaration : public TypeInfoDeclaration
@@ -496,6 +518,7 @@ public:
     TypeInfoSharedDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
+    void acceptVisitor(Visitor *v);
 };
 
 class TypeInfoWildDeclaration : public TypeInfoDeclaration
@@ -504,6 +527,7 @@ public:
     TypeInfoWildDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
+    void acceptVisitor(Visitor *v);
 };
 
 class TypeInfoVectorDeclaration : public TypeInfoDeclaration
@@ -512,6 +536,7 @@ public:
     TypeInfoVectorDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
+    void acceptVisitor(Visitor *v);
 };
 #endif
 
@@ -523,6 +548,7 @@ public:
     ThisDeclaration(Loc loc, Type *t);
     Dsymbol *syntaxCopy(Dsymbol *);
     ThisDeclaration *isThisDeclaration() { return this; }
+    void acceptVisitor(Visitor *v);
 };
 
 enum ILS
@@ -678,6 +704,7 @@ public:
     void appendState(Statement *s);
     const char *mangle(bool isv = false);
     const char *mangleExact(bool isv = false);
+    void acceptVisitor(Visitor *v);
     const char *toPrettyChars();
     const char *toFullSignature();  // for diagnostics, e.g. 'int foo(int x, int y) pure'
     bool isMain();
@@ -757,6 +784,7 @@ public:
     const char *mangle(bool isv = false);
 
     FuncDeclaration *toAliasFunc();
+    void acceptVisitor(Visitor *v);
 };
 
 class FuncLiteralDeclaration : public FuncDeclaration
@@ -774,6 +802,7 @@ public:
 
     FuncLiteralDeclaration *isFuncLiteralDeclaration() { return this; }
     const char *kind();
+    void acceptVisitor(Visitor *v);
 };
 
 class CtorDeclaration : public FuncDeclaration
@@ -789,6 +818,7 @@ public:
     bool addPostInvariant();
 
     CtorDeclaration *isCtorDeclaration() { return this; }
+    void acceptVisitor(Visitor *v);
 };
 
 #if DMDV2
@@ -807,6 +837,7 @@ public:
     void emitComment(Scope *sc);
 
     PostBlitDeclaration *isPostBlitDeclaration() { return this; }
+    void acceptVisitor(Visitor *v);
 };
 #endif
 
@@ -827,6 +858,7 @@ public:
     void emitComment(Scope *sc);
 
     DtorDeclaration *isDtorDeclaration() { return this; }
+    void acceptVisitor(Visitor *v);
 };
 
 class StaticCtorDeclaration : public FuncDeclaration
@@ -845,6 +877,7 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     StaticCtorDeclaration *isStaticCtorDeclaration() { return this; }
+    void acceptVisitor(Visitor *v);
 };
 
 #if DMDV2
@@ -856,6 +889,7 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     SharedStaticCtorDeclaration *isSharedStaticCtorDeclaration() { return this; }
+    void acceptVisitor(Visitor *v);
 };
 #endif
 
@@ -877,6 +911,7 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     StaticDtorDeclaration *isStaticDtorDeclaration() { return this; }
+    void acceptVisitor(Visitor *v);
 };
 
 #if DMDV2
@@ -888,6 +923,7 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     SharedStaticDtorDeclaration *isSharedStaticDtorDeclaration() { return this; }
+    void acceptVisitor(Visitor *v);
 };
 #endif
 
@@ -904,6 +940,7 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     InvariantDeclaration *isInvariantDeclaration() { return this; }
+    void acceptVisitor(Visitor *v);
 };
 
 class UnitTestDeclaration : public FuncDeclaration
@@ -921,6 +958,7 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     UnitTestDeclaration *isUnitTestDeclaration() { return this; }
+    void acceptVisitor(Visitor *v);
 };
 
 class NewDeclaration : public FuncDeclaration
@@ -939,6 +977,7 @@ public:
     bool addPostInvariant();
 
     NewDeclaration *isNewDeclaration() { return this; }
+    void acceptVisitor(Visitor *v);
 };
 
 
@@ -957,6 +996,7 @@ public:
     bool addPreInvariant();
     bool addPostInvariant();
     DeleteDeclaration *isDeleteDeclaration() { return this; }
+    void acceptVisitor(Visitor *v);
 };
 
 #endif /* DMD_DECLARATION_H */

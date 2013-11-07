@@ -22,6 +22,7 @@
 #include "declaration.h"
 #include "id.h"
 #include "attrib.h"
+#include "visitor.h"
 
 /********************************* Import ****************************/
 
@@ -481,3 +482,7 @@ void Import::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writenl();
 }
 
+void Import::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+} 

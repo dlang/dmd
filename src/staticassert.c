@@ -19,7 +19,7 @@
 #include "scope.h"
 #include "template.h"
 #include "declaration.h"
-
+#include "visitor.h"
 
 /********************************* AttribDeclaration ****************************/
 
@@ -144,3 +144,9 @@ void StaticAssert::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writestring(");");
     buf->writenl();
 }
+
+void StaticAssert::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+}
+
