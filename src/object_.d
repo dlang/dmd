@@ -487,8 +487,8 @@ class TypeInfo_StaticArray : TypeInfo
 {
     override string toString() const
     {
-        char[20] tmp = void;
-        return cast(string)(value.toString() ~ "[" ~ tmp.uintToString(len) ~ "]");
+        SizeStringBuff tmpBuff = void;
+        return cast(string)(value.toString() ~ "[" ~ len.sizeToTempString(tmpBuff) ~ "]");
     }
 
     override bool opEquals(Object o)
@@ -1362,13 +1362,13 @@ class Throwable : Object
      */
     void toString(scope void delegate(const(char)[]) sink) const
     {
-        char[20] tmp = void;
+        SizeStringBuff tmpBuff = void;
 
         sink(this.classinfo.name);
         if (file)
         {
             sink("@"); sink(file);
-            sink("("); sink(tmp.uintToString(line)); sink(")");
+            sink("("); sink(line.sizeToTempString(tmpBuff)); sink(")");
         }
 
         if (msg)

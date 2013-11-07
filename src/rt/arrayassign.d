@@ -33,11 +33,11 @@ extern (C) void[] _d_arrayassign(TypeInfo ti, void[] from, void[] to)
 
     if (to.length != from.length)
     {
-        enum len = is(size_t == uint) ? 10 : 20;
-        char[len] tmp1 = void;
-        char[len] tmp2 = void;
+        SizeStringBuff tmpBuff = void;
         string msg = "lengths don't match for array copy, "c;
-        msg ~= tmp1.uintToString(to.length) ~ " = " ~ tmp2.uintToString(from.length);
+        msg ~= to.length.sizeToTempString(tmpBuff);
+        msg ~= " = ";
+        msg ~= from.length.sizeToTempString(tmpBuff);
         throw new Error(msg);
     }
 
@@ -91,10 +91,11 @@ extern (C) void[] _d_arrayctor(TypeInfo ti, void[] from, void[] to)
 
     if (to.length != from.length)
     {
-        enum len = is(size_t == uint) ? 10 : 20;
-        char[len] tmp = void;
+        SizeStringBuff tmpBuff = void;
         string msg = "lengths don't match for array initialization,"c;
-        msg ~= tmp.uintToString(to.length) ~ " = " ~ tmp.uintToString(from.length);
+        msg ~= to.length.sizeToTempString(tmpBuff);
+        msg ~= " = ";
+        msg ~= from.length.sizeToTempString(tmpBuff);
         throw new Error(msg);
     }
 

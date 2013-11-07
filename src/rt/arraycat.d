@@ -29,10 +29,11 @@ byte[] _d_arraycopy(size_t size, byte[] from, byte[] to)
 
     if (to.length != from.length)
     {
-        char[10] tmp1 = void;
-        char[10] tmp2 = void;
+        SizeStringBuff tmpBuff = void;
         string msg = "lengths don't match for array copy, "c;
-        msg ~= tmp1.uintToString(to.length) ~ " = " ~ tmp2.uintToString(from.length);
+        msg ~= to.length.sizeToTempString(tmpBuff);
+        msg ~= " = ";
+        msg ~= from.length.sizeToTempString(tmpBuff);
         throw new Error(msg);
     }
     else if (to.ptr + to.length * size <= from.ptr ||
