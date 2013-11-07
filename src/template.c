@@ -5507,10 +5507,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
             Module *m = (Module *)s;
             if (!m->isRoot())
             {
-                //if (tinst && tinst->objFileModule)
-                //    m = tinst->objFileModule;
-                //else
-                    m = m->importedFrom;
+                m = m->importedFrom;
             }
             //printf("\t2: adding to module %s instead of module %s\n", m->toChars(), sc->module->toChars());
             a = m->members;
