@@ -47,8 +47,9 @@
 
 #include        "arraytypes.h"
 
-int executecmd(char *cmd, char *args, int useenv);
-int executearg0(char *cmd, char *args);
+void toWinPath(char *src);
+int executecmd(const char *cmd, const char *args, int useenv);
+int executearg0(const char *cmd, const char *args);
 
 /****************************************
  * Write filename to cmdbuf, quoting if necessary.
@@ -273,7 +274,7 @@ int runLINK()
                 sprintf(p, "@%s", lnkfilename);
         }
 
-        char *linkcmd = getenv("LINKCMD64");
+        const char *linkcmd = getenv("LINKCMD64");
         if (!linkcmd)
             linkcmd = getenv("LINKCMD"); // backward compatible
         if (!linkcmd)
@@ -420,7 +421,7 @@ int runLINK()
                 sprintf(p, "@%s", lnkfilename);
         }
 
-        char *linkcmd = getenv("LINKCMD");
+        const char *linkcmd = getenv("LINKCMD");
         if (!linkcmd)
             linkcmd = "link";
         int status = executecmd(linkcmd, p, 1);
@@ -695,7 +696,7 @@ void deleteExeFile()
  */
 
 #if _WIN32
-int executecmd(char *cmd, char *args, int useenv)
+int executecmd(const char *cmd, const char *args, int useenv)
 {
     int status;
     size_t len;
@@ -730,10 +731,10 @@ int executecmd(char *cmd, char *args, int useenv)
         }
     }
 
-#if _WIN32
     // Normalize executable path separators, see Bugzilla 9330
-    for (char *p=cmd; *p; ++p)
-        if (*p == '/') *p = '\\';
+    char *p = mem.strdup(cmd);
+    toWinPath(p);
+    cmd = p;
 
 #ifdef _MSC_VER
     if(strchr(cmd, ' '))
@@ -746,14 +747,12 @@ int executecmd(char *cmd, char *args, int useenv)
             cmd = shortName;
     }
 #endif
-#endif
 
     status = executearg0(cmd,args);
-#if _WIN32
     if (status == -1)
         // spawnlp returns intptr_t in some systems, not int
         status = spawnlp(0,cmd,cmd,args,NULL);
-#endif
+
 //    if (global.params.verbose)
 //      fprintf(global.stdmsg, "\n");
     if (status)
@@ -776,7 +775,7 @@ int executecmd(char *cmd, char *args, int useenv)
  */
 
 #if _WIN32
-int executearg0(char *cmd, char *args)
+int executearg0(const char *cmd, const char *args)
 {
     const char *file;
     const char *argv0 = global.params.argv0;
@@ -790,27 +789,8 @@ int executearg0(char *cmd, char *args)
     file = FileName::replaceName(argv0, cmd);
 
     //printf("spawning '%s'\n",file);
-#if _WIN32
     // spawnlp returns intptr_t in some systems, not int
     return spawnl(0,file,file,args,NULL);
-#elif linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
-    char *full;
-    int cmdl = strlen(cmd);
-
-    full = (char*) mem.malloc(cmdl + strlen(args) + 2);
-    if (full == NULL)
-        return 1;
-    strcpy(full, cmd);
-    full [cmdl] = ' ';
-    strcpy(full + cmdl + 1, args);
-
-    int result = system(full);
-
-    mem.free(full);
-    return result;
-#else
-    assert(0);
-#endif
 }
 #endif
 
