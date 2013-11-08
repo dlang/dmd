@@ -490,7 +490,6 @@ int tryMain(size_t argc, const char *argv[])
 
     Strings files;
     Strings libmodules;
-    const char *p;
     size_t argcstart = argc;
     int setdebuglib = 0;
     char noboundscheck = 0;
@@ -625,7 +624,7 @@ int tryMain(size_t argc, const char *argv[])
 
     for (size_t i = 1; i < argc; i++)
     {
-        p = argv[i];
+        const char *p = argv[i];
         if (*p == '-')
         {
             if (strcmp(p + 1, "allinst") == 0)
@@ -1302,7 +1301,7 @@ Language changes listed by -transition=id:\n\
         ;
         const char *name;
 
-        p = files[i];
+        const char *p = files[i];
 
 #if _WIN32
         toWinPath((char *)p);
