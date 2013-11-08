@@ -864,7 +864,7 @@ void VarDeclaration::semantic(Scope *sc)
 
         // Infering the type requires running semantic,
         // so mark the scope as ctfe if required
-        bool needctfe = (storage_class & (STCmanifest | STCstatic));
+        bool needctfe = (storage_class & (STCmanifest | STCstatic)) != 0;
         if (needctfe) sc = sc->startCTFE();
 
         //printf("inferring type for %s with init %s\n", toChars(), init->toChars());
