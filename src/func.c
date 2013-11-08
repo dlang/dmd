@@ -1739,8 +1739,7 @@ void FuncDeclaration::semantic3(Scope *sc)
             if (isSynchronized())
             {   /* Wrap the entire function body in a synchronized statement
                  */
-                AggregateDeclaration *ad = isThis();
-                ClassDeclaration *cd = ad ? ad->isClassDeclaration() : parent->isClassDeclaration();
+                ClassDeclaration *cd = isThis() ? isThis()->isClassDeclaration() : parent->isClassDeclaration();
 
                 if (cd)
                 {
@@ -1844,7 +1843,7 @@ bool FuncDeclaration::functionSemantic()
         semantic(scope);
         global.gag = oldgag;
         if (spec && global.errors != olderrs)
-            spec->errors = global.errors - olderrs;
+            spec->errors = global.errors - olderrs != 0;
         if (olderrs != global.errors)   // if errors compiling this function
             return false;
     }
@@ -1894,7 +1893,7 @@ bool FuncDeclaration::functionSemantic3()
         // If it is a speculatively-instantiated template, and errors occur,
         // we need to mark the template as having errors.
         if (spec && global.errors != olderrs)
-            spec->errors = global.errors - olderrs;
+            spec->errors = global.errors - olderrs != 0;
         if (olderrs != global.errors)   // if errors compiling this function
             return false;
     }
@@ -2567,7 +2566,7 @@ FuncDeclaration *FuncDeclaration::overloadExactMatch(Type *t)
 static void MODMatchToBuffer(OutBuffer *buf, unsigned char lhsMod, unsigned char rhsMod)
 {
     bool bothMutable = ((lhsMod & rhsMod) == 0);
-    bool sharedMismatch = ((lhsMod ^ rhsMod) & MODshared);
+    bool sharedMismatch = ((lhsMod ^ rhsMod) & MODshared) != 0;
     bool sharedMismatchOnly = ((lhsMod ^ rhsMod) == MODshared);
 
     if (lhsMod & MODshared)

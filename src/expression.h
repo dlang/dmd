@@ -195,7 +195,7 @@ public:
     bool hasSideEffect();
     void discardValue();
     void useValue();
-    int canThrow(bool mustNotThrow);
+    bool canThrow(bool mustNotThrow);
 
     virtual int inlineCost3(InlineCostState *ics);
     virtual Expression *doInline(InlineDoState *ids);

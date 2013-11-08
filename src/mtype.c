@@ -1717,9 +1717,9 @@ Type *Type::merge2()
     return t;
 }
 
-int Type::isintegral()
+bool Type::isintegral()
 {
-    return FALSE;
+    return false;
 }
 
 int Type::isfloating()
@@ -1747,9 +1747,9 @@ int Type::isscalar()
     return FALSE;
 }
 
-int Type::isunsigned()
+bool Type::isunsigned()
 {
-    return FALSE;
+    return false;
 }
 
 ClassDeclaration *Type::isClassHandle()
@@ -3311,10 +3311,10 @@ int TypeBasic::isZeroInit(Loc loc)
     }
 }
 
-int TypeBasic::isintegral()
+bool TypeBasic::isintegral()
 {
     //printf("TypeBasic::isintegral('%s') x%x\n", toChars(), flags);
-    return flags & TFLAGSintegral;
+    return (flags & TFLAGSintegral) != 0;
 }
 
 int TypeBasic::isfloating()
@@ -3337,9 +3337,9 @@ int TypeBasic::iscomplex()
     return flags & TFLAGScomplex;
 }
 
-int TypeBasic::isunsigned()
+bool TypeBasic::isunsigned()
 {
-    return flags & TFLAGSunsigned;
+    return (flags & TFLAGSunsigned) != 0;
 }
 
 int TypeBasic::isscalar()
@@ -3569,7 +3569,7 @@ int TypeVector::isZeroInit(Loc loc)
     return basetype->isZeroInit(loc);
 }
 
-int TypeVector::isintegral()
+bool TypeVector::isintegral()
 {
     //printf("TypeVector::isintegral('%s') x%x\n", toChars(), flags);
     return basetype->nextOf()->isintegral();
@@ -3580,7 +3580,7 @@ int TypeVector::isfloating()
     return basetype->nextOf()->isfloating();
 }
 
-int TypeVector::isunsigned()
+bool TypeVector::isunsigned()
 {
     return basetype->nextOf()->isunsigned();
 }
@@ -7510,7 +7510,7 @@ Expression *TypeEnum::getProperty(Loc loc, Identifier *ident, int flag)
     return e;
 }
 
-int TypeEnum::isintegral()
+bool TypeEnum::isintegral()
 {
     return sym->memtype->isintegral();
 }
@@ -7535,7 +7535,7 @@ int TypeEnum::iscomplex()
     return sym->memtype->iscomplex();
 }
 
-int TypeEnum::isunsigned()
+bool TypeEnum::isunsigned()
 {
     return sym->memtype->isunsigned();
 }
@@ -7730,7 +7730,7 @@ Expression *TypeTypedef::getProperty(Loc loc, Identifier *ident, int flag)
     return sym->basetype->getProperty(loc, ident, flag);
 }
 
-int TypeTypedef::isintegral()
+bool TypeTypedef::isintegral()
 {
     //printf("TypeTypedef::isintegral()\n");
     //printf("sym = '%s'\n", sym->toChars());
@@ -7758,7 +7758,7 @@ int TypeTypedef::iscomplex()
     return sym->basetype->iscomplex();
 }
 
-int TypeTypedef::isunsigned()
+bool TypeTypedef::isunsigned()
 {
     return sym->basetype->isunsigned();
 }

@@ -252,13 +252,13 @@ public:
 #if CPP_MANGLE
     virtual void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
-    virtual int isintegral();
+    virtual bool isintegral();
     virtual int isfloating();   // real, imaginary, or complex
     virtual int isreal();
     virtual int isimaginary();
     virtual int iscomplex();
     virtual int isscalar();
-    virtual int isunsigned();
+    virtual bool isunsigned();
     virtual int isscope();
     virtual int isString();
     virtual int isAssignable();
@@ -405,13 +405,13 @@ public:
 #if CPP_MANGLE
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
-    int isintegral();
+    bool isintegral();
     int isfloating();
     int isreal();
     int isimaginary();
     int iscomplex();
     int isscalar();
-    int isunsigned();
+    bool isunsigned();
     MATCH implicitConvTo(Type *to);
     Expression *defaultInit(Loc loc);
     int isZeroInit(Loc loc);
@@ -444,10 +444,10 @@ public:
 #if CPP_MANGLE
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
-    int isintegral();
+    bool isintegral();
     int isfloating();
     int isscalar();
-    int isunsigned();
+    bool isunsigned();
     int checkBoolean();
     MATCH implicitConvTo(Type *to);
     Expression *defaultInit(Loc loc);
@@ -890,13 +890,13 @@ public:
     void toJson(JsonOut *json);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     Expression *getProperty(Loc loc, Identifier *ident, int flag);
-    int isintegral();
+    bool isintegral();
     int isfloating();
     int isreal();
     int isimaginary();
     int iscomplex();
     int isscalar();
-    int isunsigned();
+    bool isunsigned();
     int checkBoolean();
     int isString();
     int isAssignable();
@@ -938,13 +938,13 @@ public:
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     structalign_t alignment();
     Expression *getProperty(Loc loc, Identifier *ident, int flag);
-    int isintegral();
+    bool isintegral();
     int isfloating();
     int isreal();
     int isimaginary();
     int iscomplex();
     int isscalar();
-    int isunsigned();
+    bool isunsigned();
     int checkBoolean();
     int isAssignable();
     int needsDestruction();
