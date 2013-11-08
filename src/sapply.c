@@ -176,7 +176,7 @@ bool TryCatchStatement::apply(sapply_fp_t fp, void *param)
     for (size_t i = 0; i < catches->dim; i++)
     {   Catch *c = (*catches)[i];
 
-        bool r = scondApply(c->handler, fp, param);
+        r = scondApply(c->handler, fp, param);
         if (r)
             return r;
     }
