@@ -9314,12 +9314,11 @@ Lagain:
         t1 = f->type;
     }
     assert(t1->ty == Tfunction);
-    TypeFunction *tf = (TypeFunction *)(t1);
 
     if (!arguments)
         arguments = new Expressions();
     int olderrors = global.errors;
-    type = functionParameters(loc, sc, tf, tthis, arguments, f);
+    type = functionParameters(loc, sc, (TypeFunction *)(t1), tthis, arguments, f);
     if (olderrors != global.errors)
         return new ErrorExp();
 
