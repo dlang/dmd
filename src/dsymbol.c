@@ -453,24 +453,23 @@ Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, RootObject *id)
             //printf("\ttemplate instance id\n");
             Dsymbol *st = (Dsymbol *)id;
             TemplateInstance *ti = st->isTemplateInstance();
-            Identifier *id = ti->name;
-            sm = s->search(loc, id, 0);
+            sm = s->search(loc, ti->name, 0);
             if (!sm)
             {
-                sm = s->search_correct(id);
+                sm = s->search_correct(ti->name);
                 if (sm)
                     error("template identifier '%s' is not a member of '%s %s', did you mean '%s %s'?",
-                          id->toChars(), s->kind(), s->toChars(), sm->kind(), sm->toChars());
+                          ti->name->toChars(), s->kind(), s->toChars(), sm->kind(), sm->toChars());
                 else
                     error("template identifier '%s' is not a member of '%s %s'",
-                          id->toChars(), s->kind(), s->toChars());
+                          ti->name->toChars(), s->kind(), s->toChars());
                 return NULL;
             }
             sm = sm->toAlias();
             TemplateDeclaration *td = sm->isTemplateDeclaration();
             if (!td)
             {
-                error("%s is not a template, it is a %s", id->toChars(), sm->kind());
+                error("%s is not a template, it is a %s", ti->name->toChars(), sm->kind());
                 return NULL;
             }
             ti->tempdecl = td;
