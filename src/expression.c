@@ -3823,7 +3823,7 @@ Expression *SuperExp::semantic(Scope *sc)
                 error("%s is not in a class scope", toChars());
                 goto Lerr;
             }
-            ClassDeclaration *cd = s->isClassDeclaration();
+            cd = s->isClassDeclaration();
             if (cd)
             {
                 cd = cd->baseClass;
