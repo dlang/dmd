@@ -613,12 +613,12 @@ Statement *CompoundStatement::semantic(Scope *sc)
     {
         s = (*statements)[i];
         if (s)
-        {   Statements *a = s->flatten(sc);
+        {   Statements *flt = s->flatten(sc);
 
-            if (a)
+            if (flt)
             {
                 statements->remove(i);
-                statements->insert(i, a);
+                statements->insert(i, flt);
                 continue;
             }
             s = s->semantic(sc);
