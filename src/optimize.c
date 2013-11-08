@@ -502,9 +502,9 @@ Expression *CallExp::optimize(int result, bool keepLvalue)
         for (size_t i = 0; i < arguments->dim; i++)
         {
             Parameter *p = Parameter::getNth(tf->parameters, i);
-            bool keepLvalue = (p ? (p->storageClass & (STCref | STCout)) != 0 : false);
+            bool keep = (p ? (p->storageClass & (STCref | STCout)) != 0 : false);
             Expression *e = (*arguments)[i];
-            e = e->optimize(WANTvalue, keepLvalue);
+            e = e->optimize(WANTvalue, keep);
             (*arguments)[i] = e;
         }
     }
