@@ -8867,7 +8867,6 @@ L1:
                     // Skip up over nested functions, and get the enclosing
                     // class type.
                     int n = 0;
-                    Dsymbol *s;
                     for (s = tcd->toParent();
                          s && s->isFuncDeclaration();
                          s = s->toParent())
