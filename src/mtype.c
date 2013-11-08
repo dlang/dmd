@@ -2240,7 +2240,7 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident, int flag
              *  tempalte opDispatch(name) if (isValid!name) { ... }
              */
             unsigned errors = flag ? global.startGagging() : 0;
-            Expression *e = dti->semanticY(sc, 0);
+            e = dti->semanticY(sc, 0);
             if (flag && global.endGagging(errors))
                 e = NULL;
             return e;
@@ -6601,17 +6601,17 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                     e = e->semantic(sc);
                     for (; i < idents.dim; i++)
                     {
-                        RootObject *id = idents[i];
-                        //printf("e: '%s', id: '%s', type = %s\n", e->toChars(), id->toChars(), e->type->toChars());
-                        if (id->dyncast() == DYNCAST_IDENTIFIER)
+                        RootObject *id2 = idents[i];
+                        //printf("e: '%s', id: '%s', type = %s\n", e->toChars(), id2->toChars(), e->type->toChars());
+                        if (id2->dyncast() == DYNCAST_IDENTIFIER)
                         {
-                            DotIdExp *die = new DotIdExp(e->loc, e, (Identifier *)id);
+                            DotIdExp *die = new DotIdExp(e->loc, e, (Identifier *)id2);
                             e = die->semanticY(sc, 0);
                         }
                         else
                         {
-                            assert(id->dyncast() == DYNCAST_DSYMBOL);
-                            TemplateInstance *ti = ((Dsymbol *)id)->isTemplateInstance();
+                            assert(id2->dyncast() == DYNCAST_DSYMBOL);
+                            TemplateInstance *ti = ((Dsymbol *)id2)->isTemplateInstance();
                             assert(ti);
                             DotTemplateInstanceExp *dte = new DotTemplateInstanceExp(e->loc, e, ti->name, ti->tiargs);
                             e = dte->semanticY(sc, 0);
@@ -8001,9 +8001,7 @@ void TypeStruct::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 
 Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
 {
-    VarDeclaration *v;
     Dsymbol *s;
-    DotVarExp *de;
 
 #if LOGDOTEXP
     printf("TypeStruct::dotExp(e = '%s', ident = '%s')\n", e->toChars(), ident->toChars());
@@ -8090,7 +8088,7 @@ L1:
         s->checkDeprecated(e->loc, sc);
     s = s->toAlias();
 
-    v = s->isVarDeclaration();
+    VarDeclaration *v = s->isVarDeclaration();
     if (v && v->inuse && (!v->type || !v->type->deco))  // Bugzilla 9494
     {   e->error("circular reference to '%s'", v->toPrettyChars());
         return new ErrorExp();
@@ -8230,7 +8228,7 @@ L1:
 #endif
     }
 
-    de = new DotVarExp(e->loc, e, d);
+    DotVarExp *de = new DotVarExp(e->loc, e, d);
     return de->semantic(sc);
 }
 
@@ -8555,7 +8553,6 @@ void TypeClass::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 
 Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
 {
-    VarDeclaration *v;
     Dsymbol *s;
 
 #if LOGDOTEXP
@@ -8737,7 +8734,7 @@ L1:
         s->checkDeprecated(e->loc, sc);
     s = s->toAlias();
 
-    v = s->isVarDeclaration();
+    VarDeclaration *v = s->isVarDeclaration();
     if (v && v->inuse && (!v->type || !v->type->deco))  // Bugzilla 9494
     {   e->error("circular reference to '%s'", v->toPrettyChars());
         return new ErrorExp();
@@ -8870,7 +8867,6 @@ L1:
                     // Skip up over nested functions, and get the enclosing
                     // class type.
                     int n = 0;
-                    Dsymbol *s;
                     for (s = tcd->toParent();
                          s && s->isFuncDeclaration();
                          s = s->toParent())

@@ -449,7 +449,7 @@ Expression *DotVarExp::optimize(int result, bool keepLvalue)
         VarDeclaration *vf = var->isVarDeclaration();
         if (vf)
         {
-            Expression *e = sle->getField(type, vf->offset);
+            e = sle->getField(type, vf->offset);
             if (e && e != EXP_CANT_INTERPRET)
                 return e;
         }
@@ -489,7 +489,6 @@ Expression *NewExp::optimize(int result, bool keepLvalue)
 Expression *CallExp::optimize(int result, bool keepLvalue)
 {
     //printf("CallExp::optimize(result = %d) %s\n", result, toChars());
-    Expression *e = this;
 
     // Optimize parameters with keeping lvalue-ness
     if (arguments)
@@ -502,9 +501,9 @@ Expression *CallExp::optimize(int result, bool keepLvalue)
         for (size_t i = 0; i < arguments->dim; i++)
         {
             Parameter *p = Parameter::getNth(tf->parameters, i);
-            bool keepLvalue = (p ? (p->storageClass & (STCref | STCout)) != 0 : false);
+            bool keep = (p ? (p->storageClass & (STCref | STCout)) != 0 : false);
             Expression *e = (*arguments)[i];
-            e = e->optimize(WANTvalue, keepLvalue);
+            e = e->optimize(WANTvalue, keep);
             (*arguments)[i] = e;
         }
     }
@@ -513,6 +512,7 @@ Expression *CallExp::optimize(int result, bool keepLvalue)
     if (keepLvalue)
         return this;
 
+    Expression *e = this;
 #if 1
 #else
     if (e1->op == TOKvar)

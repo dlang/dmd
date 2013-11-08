@@ -121,7 +121,6 @@ Dsymbol *FuncDeclaration::syntaxCopy(Dsymbol *s)
 void FuncDeclaration::semantic(Scope *sc)
 {   TypeFunction *f;
     AggregateDeclaration *ad;
-    StructDeclaration *sd;
     ClassDeclaration *cd;
     InterfaceDeclaration *id;
     bool doesoverride;
@@ -363,7 +362,7 @@ void FuncDeclaration::semantic(Scope *sc)
     }
 #endif
 
-    sd = parent->isStructDeclaration();
+    StructDeclaration *sd = parent->isStructDeclaration();
     if (sd)
     {
         if (isCtorDeclaration())
@@ -452,12 +451,12 @@ void FuncDeclaration::semantic(Scope *sc)
                 continue;
             for (size_t j = 0; j < cbd->vtbl.dim; j++)
             {
-                FuncDeclaration *f = cbd->vtbl[j]->isFuncDeclaration();
-                if (!f || f->ident != ident)
+                FuncDeclaration *f2 = cbd->vtbl[j]->isFuncDeclaration();
+                if (!f2 || f2->ident != ident)
                     continue;
                 if (cbd->parent && cbd->parent->isTemplateInstance())
                 {
-                    if (!f->functionSemantic())
+                    if (!f2->functionSemantic())
                         goto Ldone;
                 }
                 may_override = true;
@@ -492,12 +491,12 @@ void FuncDeclaration::semantic(Scope *sc)
                 {   Dsymbol *s = cd->baseClass->search(loc, ident, 0);
                     if (s)
                     {
-                        FuncDeclaration *f = s->isFuncDeclaration();
-                        if (f)
+                        FuncDeclaration *f2 = s->isFuncDeclaration();
+                        if (f2)
                         {
-                            f = f->overloadExactMatch(type);
-                            if (f && f->isFinalFunc() && f->prot() != PROTprivate)
-                                error("cannot override final function %s", f->toPrettyChars());
+                            f2 = f2->overloadExactMatch(type);
+                            if (f2 && f2->isFinalFunc() && f2->prot() != PROTprivate)
+                                error("cannot override final function %s", f2->toPrettyChars());
                         }
                     }
                 }
@@ -710,12 +709,12 @@ void FuncDeclaration::semantic(Scope *sc)
                 Dsymbol *s = search_function(b->base, ident);
                 if (s)
                 {
-                    FuncDeclaration *f = s->isFuncDeclaration();
-                    if (f)
+                    FuncDeclaration *f2 = s->isFuncDeclaration();
+                    if (f2)
                     {
-                        f = f->overloadExactMatch(type);
-                        if (f && f->isFinalFunc() && f->prot() != PROTprivate)
-                            error("cannot override final function %s.%s", b->base->toChars(), f->toPrettyChars());
+                        f2 = f2->overloadExactMatch(type);
+                        if (f2 && f2->isFinalFunc() && f2->prot() != PROTprivate)
+                            error("cannot override final function %s.%s", b->base->toChars(), f2->toPrettyChars());
                     }
                 }
             }
@@ -746,10 +745,10 @@ void FuncDeclaration::semantic(Scope *sc)
             }
 
             // If it's a member template
-            ClassDeclaration *cd = ti->tempdecl->isClassMember();
-            if (cd)
+            ClassDeclaration *cd2 = ti->tempdecl->isClassMember();
+            if (cd2)
             {
-                error("cannot use template to add virtual function to class '%s'", cd->toChars());
+                error("cannot use template to add virtual function to class '%s'", cd2->toChars());
             }
         }
     }
@@ -1029,8 +1028,6 @@ void FuncDeclaration::semantic3(Scope *sc)
         // Declare hidden variable _arguments[] and _argptr
         if (f->varargs == 1)
         {
-            Type *t;
-
 #ifndef IN_GCC
             if (global.params.is64bit && !global.params.isWindows)
             {   // Declare save area for varargs registers
@@ -1059,8 +1056,8 @@ void FuncDeclaration::semantic3(Scope *sc)
                 sc2->insert(v_arguments);
                 v_arguments->parent = this;
 
-                //t = Type::typeinfo->type->constOf()->arrayOf();
-                t = Type::dtypeinfo->type->arrayOf();
+                //Type *t = Type::typeinfo->type->constOf()->arrayOf();
+                Type *t = Type::dtypeinfo->type->arrayOf();
                 _arguments = new VarDeclaration(Loc(), t, Id::_arguments, NULL);
                 _arguments->semantic(sc2);
                 sc2->insert(_arguments);
@@ -1068,7 +1065,7 @@ void FuncDeclaration::semantic3(Scope *sc)
             }
             if (f->linkage == LINKd || (f->parameters && Parameter::dim(f->parameters)))
             {   // Declare _argptr
-                t = Type::tvalist;
+                Type *t = Type::tvalist;
                 argptr = new VarDeclaration(Loc(), t, Id::_argptr, NULL);
                 argptr->semantic(sc2);
                 sc2->insert(argptr);
@@ -1263,17 +1260,17 @@ void FuncDeclaration::semantic3(Scope *sc)
             sym->parent = sc2->scopesym;
             sc2 = sc2->push(sym);
 
-            AggregateDeclaration *ad = isAggregateMember2();
+            AggregateDeclaration *ad2 = isAggregateMember2();
 
             /* If this is a class constructor
              */
-            if (ad && isCtorDeclaration())
+            if (ad2 && isCtorDeclaration())
             {
-                sc2->fieldinit = new unsigned[ad->fields.dim];
-                sc2->fieldinit_dim = ad->fields.dim;
-                for (size_t i = 0; i < ad->fields.dim; i++)
+                sc2->fieldinit = new unsigned[ad2->fields.dim];
+                sc2->fieldinit_dim = ad2->fields.dim;
+                for (size_t i = 0; i < ad2->fields.dim; i++)
                 {
-                    VarDeclaration *v = ad->fields[i];
+                    VarDeclaration *v = ad2->fields[i];
                     v->ctorinit = 0;
                     sc2->fieldinit[i] = 0;
                 }
@@ -1336,7 +1333,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 
             if (fbody->isErrorStatement())
                 ;
-            else if (isCtorDeclaration() && ad)
+            else if (isCtorDeclaration() && ad2)
             {
 #if DMDV2
                 // Check for errors related to 'nothrow'.
@@ -1349,13 +1346,13 @@ void FuncDeclaration::semantic3(Scope *sc)
 #endif
                 //printf("callSuper = x%x\n", sc2->callSuper);
 
-                ClassDeclaration *cd = ad->isClassDeclaration();
+                ClassDeclaration *cd = ad2->isClassDeclaration();
 
                 // Verify that all the ctorinit fields got initialized
                 if (!(sc2->callSuper & CSXthis_ctor))
                 {
-                    for (size_t i = 0; i < ad->fields.dim; i++)
-                    {   VarDeclaration *v = ad->fields[i];
+                    for (size_t i = 0; i < ad2->fields.dim; i++)
+                    {   VarDeclaration *v = ad2->fields[i];
 
                         if (v->ctorinit == 0)
                         {

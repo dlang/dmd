@@ -2901,7 +2901,6 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, const utf8_t *co
     Type *t;
     Type *tfirst;
     Identifier *ident;
-    Dsymbols *a;
     TOK tok = TOKreserved;
     LINK link = linkage;
     unsigned structalign = 0;
@@ -2932,7 +2931,7 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, const utf8_t *co
                 nextToken();
                 check(TOKthis);
                 check(TOKsemicolon);
-                a = new Dsymbols();
+                Dsymbols *a = new Dsymbols();
                 a->push(s);
                 addComment(s, comment);
                 return a;
@@ -2948,7 +2947,7 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, const utf8_t *co
                 AliasThis *s = new AliasThis(loc, token.ident);
                 nextToken();
                 check(TOKsemicolon);
-                a = new Dsymbols();
+                Dsymbols *a = new Dsymbols();
                 a->push(s);
                 addComment(s, comment);
                 return a;
@@ -2964,7 +2963,7 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, const utf8_t *co
                  ? skipParens(tk, &tk) && (tk = peek(tk), 1) : 1) &&
                 tk->value == TOKassign)
             {
-                a = new Dsymbols();
+                Dsymbols *a = new Dsymbols();
                 while (1)
                 {
                     ident = token.ident;
@@ -3027,7 +3026,7 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, const utf8_t *co
                 (tk = peek(tk))->value == TOKassign)
             {
                 nextToken();
-                a = new Dsymbols();
+                Dsymbols *a = new Dsymbols();
                 while (1)
                 {
                     ident = token.ident;
@@ -3266,7 +3265,7 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, const utf8_t *co
 
 L2:
     tfirst = NULL;
-    a = new Dsymbols();
+    Dsymbols *a = new Dsymbols();
 
     while (1)
     {
@@ -3865,7 +3864,7 @@ void Parser::checkDanglingElse(Loc elseloc)
 Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
 {
     Statement *s;
-    Condition *condition;
+    Condition *cond;
     Statement *ifbody;
     Statement *elsebody;
     bool isfinal;
@@ -3969,7 +3968,7 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
             if (t->value == TOKif)
             {
                 nextToken();
-                condition = parseStaticIfCondition();
+                cond = parseStaticIfCondition();
                 goto Lcondition;
             }
             if (t->value == TOKimport)
@@ -4325,8 +4324,6 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
         {
             Parameter *arg = NULL;
             Expression *condition;
-            Statement *ifbody;
-            Statement *elsebody;
 
             nextToken();
             check(TOKlparen);
@@ -4469,12 +4466,12 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
 
         case TOKdebug:
             nextToken();
-            condition = parseDebugCondition();
+            cond = parseDebugCondition();
             goto Lcondition;
 
         case TOKversion:
             nextToken();
-            condition = parseVersionCondition();
+            cond = parseVersionCondition();
             goto Lcondition;
 
         Lcondition:
@@ -4492,7 +4489,7 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
                 elsebody = parseStatement(0 /*PSsemi*/);
                 checkDanglingElse(elseloc);
             }
-            s = new ConditionalStatement(loc, condition, ifbody, elsebody);
+            s = new ConditionalStatement(loc, cond, ifbody, elsebody);
             if (flags & PSscope)
                 s = new ScopeStatement(loc, s);
             break;
@@ -4754,7 +4751,7 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
                 Catch *c;
                 Type *t;
                 Identifier *id;
-                Loc loc = token.loc;
+                Loc catchloc = token.loc;
 
                 nextToken();
                 if (token.value == TOKlcurly || token.value != TOKlparen)
@@ -4770,7 +4767,7 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
                     check(TOKrparen);
                 }
                 handler = parseStatement(0);
-                c = new Catch(loc, t, id, handler);
+                c = new Catch(catchloc, t, id, handler);
                 if (!catches)
                     catches = new Catches();
                 catches->push(c);
@@ -5936,7 +5933,6 @@ Expression *Parser::parsePrimaryExp()
             TOK tok = TOKreserved;
             TOK tok2 = TOKreserved;
             TemplateParameters *tpl = NULL;
-            Loc loc = token.loc;
 
             nextToken();
             if (token.value == TOKlparen)
@@ -6073,7 +6069,7 @@ Expression *Parser::parsePrimaryExp()
             nextToken();
             while (token.value != TOKrbracket && token.value != TOKeof)
             {
-                    Expression *e = parseAssignExp();
+                    e = parseAssignExp();
                     if (token.value == TOKcolon && (keys || values->dim == 0))
                     {   nextToken();
                         if (!keys)
@@ -6110,8 +6106,7 @@ Expression *Parser::parsePrimaryExp()
             int varargs = 0;
             Type *tret = NULL;
             StorageClass stc = 0;
-            TOK save = TOKreserved;
-            Loc loc = token.loc;
+            save = TOKreserved;
 
             switch (token.value)
             {
@@ -6153,8 +6148,8 @@ Expression *Parser::parsePrimaryExp()
                 case TOKidentifier:
                 {   // identifier => expression
                     parameters = new Parameters();
-                    Identifier *id = Lexer::uniqueId("__T");
-                    Type *t = new TypeIdentifier(loc, id);
+                    id = Lexer::uniqueId("__T");
+                    t = new TypeIdentifier(loc, id);
                     parameters->push(new Parameter(0, t, token.ident, NULL));
 
                     tpl = new TemplateParameters();
@@ -6176,9 +6171,9 @@ Expression *Parser::parsePrimaryExp()
             if (token.value == TOKgoesto)
             {
                 check(TOKgoesto);
-                Loc loc = token.loc;
+                Loc returnloc = token.loc;
                 Expression *ae = parseAssignExp();
-                fd->fbody = new ReturnStatement(loc, ae);
+                fd->fbody = new ReturnStatement(returnloc, ae);
                 fd->endloc = token.loc;
             }
             else
@@ -7049,7 +7044,6 @@ Expression *Parser::parseNewExp(Expression *thisexp)
     Type *t;
     Expressions *newargs;
     Expressions *arguments = NULL;
-    Expression *e;
     Loc loc = token.loc;
 
     nextToken();
@@ -7087,7 +7081,7 @@ Expression *Parser::parseNewExp(Expression *thisexp)
             cd->members = decl;
         }
 
-        e = new NewAnonClassExp(loc, thisexp, newargs, cd, arguments);
+        Expression *e = new NewAnonClassExp(loc, thisexp, newargs, cd, arguments);
 
         return e;
     }
@@ -7125,7 +7119,7 @@ Expression *Parser::parseNewExp(Expression *thisexp)
     {
         arguments = parseArguments();
     }
-    e = new NewExp(loc, thisexp, newargs, t, arguments);
+    Expression *e = new NewExp(loc, thisexp, newargs, t, arguments);
     return e;
 }
 

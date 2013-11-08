@@ -613,12 +613,12 @@ Statement *CompoundStatement::semantic(Scope *sc)
     {
         s = (*statements)[i];
         if (s)
-        {   Statements *a = s->flatten(sc);
+        {   Statements *flt = s->flatten(sc);
 
-            if (a)
+            if (flt)
             {
                 statements->remove(i);
-                statements->insert(i, a);
+                statements->insert(i, flt);
                 continue;
             }
             s = s->semantic(sc);
@@ -1549,23 +1549,23 @@ Statement *ForeachStatement::semantic(Scope *sc)
             Dsymbol *var;
             if (te)
             {   Type *tb = e->type->toBasetype();
-                Dsymbol *s = NULL;
+                Dsymbol *ds = NULL;
                 if ((tb->ty == Tfunction || tb->ty == Tsarray) && e->op == TOKvar)
-                    s = ((VarExp *)e)->var;
+                    ds = ((VarExp *)e)->var;
                 else if (e->op == TOKtemplate)
-                    s =((TemplateExp *)e)->td;
+                    ds =((TemplateExp *)e)->td;
                 else if (e->op == TOKimport)
-                    s =((ScopeExp *)e)->sds;
+                    ds =((ScopeExp *)e)->sds;
 
-                if (s)
+                if (ds)
                 {
-                    var = new AliasDeclaration(loc, arg->ident, s);
+                    var = new AliasDeclaration(loc, arg->ident, ds);
                     if (arg->storageClass & STCref)
                     {   error("symbol %s cannot be ref", s->toChars());
                         goto Lerror;
                     }
                     if (argtype)
-                    {   error("cannot specify element type for symbol %s", s->toChars());
+                    {   error("cannot specify element type for symbol %s", ds->toChars());
                         goto Lerror;
                     }
                 }
@@ -1792,8 +1792,8 @@ Lagain:
                 }
                 else
                 {
-                    ExpInitializer *ie = new ExpInitializer(loc, new IdentifierExp(loc, key->ident));
-                    VarDeclaration *v = new VarDeclaration(loc, arg->type, arg->ident, ie);
+                    ExpInitializer *ei = new ExpInitializer(loc, new IdentifierExp(loc, key->ident));
+                    VarDeclaration *v = new VarDeclaration(loc, arg->type, arg->ident, ei);
                     v->storage_class |= STCforeach | (arg->storageClass & STCref);
                     body = new CompoundStatement(loc, new ExpStatement(loc, v), body);
                 }
@@ -1891,8 +1891,8 @@ Lagain:
 
             /* Generate a temporary __r and initialize it with the aggregate.
              */
-            Identifier *id = Identifier::generateId("__r");
-            VarDeclaration *r = new VarDeclaration(loc, NULL, id, new ExpInitializer(loc, aggr));
+            Identifier *rid = Identifier::generateId("__r");
+            VarDeclaration *r = new VarDeclaration(loc, NULL, rid, new ExpInitializer(loc, aggr));
             Statement *init = new ExpStatement(loc, r);
 
             // !__r.empty
@@ -1927,8 +1927,7 @@ Lagain:
                 VarDeclaration *vd = new VarDeclaration(loc, NULL, id, ei);
                 vd->storage_class |= STCctfe | STCref | STCforeach;
 
-                Expression *de = new DeclarationExp(loc, vd);
-                makeargs = new ExpStatement(loc, de);
+                makeargs = new ExpStatement(loc, new DeclarationExp(loc, vd));
 
                 Expression *ve = new VarExp(loc, vd);
                 ve->type = sfront->isDeclaration()->type;
@@ -2124,7 +2123,7 @@ Lagain:
 
                 unsigned char i = dim == 2;
                 if (!fdapply[i]) {
-                    Parameters* args = new Parameters;
+                    args = new Parameters;
                     args->push(new Parameter(STCin, Type::tvoid->pointerTo(), NULL, NULL));
                     args->push(new Parameter(STCin, Type::tsize_t, NULL, NULL));
                     Parameters* dgargs = new Parameters;
@@ -2184,7 +2183,7 @@ Lagain:
 
                 FuncDeclaration *fdapply;
                 TypeDelegate *dgty;
-                Parameters* args = new Parameters;
+                args = new Parameters;
                 args->push(new Parameter(STCin, tn->arrayOf(), NULL, NULL));
                 Parameters* dgargs = new Parameters;
                 dgargs->push(new Parameter(STCin, Type::tvoidptr, NULL, NULL));
@@ -5314,10 +5313,10 @@ Statement *ImportStatement::semantic(Scope *sc)
     for (size_t i = 0; i < imports->dim; i++)
     {   Import *s = (*imports)[i]->isImport();
 
-        for (size_t i = 0; i < s->names.dim; i++)
+        for (size_t j = 0; j < s->names.dim; j++)
         {
-            Identifier *name = s->names[i];
-            Identifier *alias = s->aliases[i];
+            Identifier *name = s->names[j];
+            Identifier *alias = s->aliases[j];
 
             if (!alias)
                 alias = name;
@@ -5333,9 +5332,9 @@ Statement *ImportStatement::semantic(Scope *sc)
         s->semantic2(sc);
         sc->insert(s);
 
-        for (size_t i = 0; i < s->aliasdecls.dim; i++)
+        for (size_t j = 0; j < s->aliasdecls.dim; j++)
         {
-            sc->insert(s->aliasdecls[i]);
+            sc->insert(s->aliasdecls[j]);
         }
     }
     return this;

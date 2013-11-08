@@ -966,7 +966,6 @@ void VarDeclaration::semantic(Scope *sc)
 #endif
 
     Dsymbol *parent = toParent();
-    FuncDeclaration *fd = parent->isFuncDeclaration();
 
     Type *tb = type->toBasetype();
     Type *tbn = tb->baseElemOf();
@@ -1006,8 +1005,6 @@ void VarDeclaration::semantic(Scope *sc)
          */
         TypeTuple *tt = (TypeTuple *)tb;
         size_t nelems = Parameter::dim(tt->arguments);
-        Objects *exps = new Objects();
-        exps->setDim(nelems);
         Expression *ie = (init && !init->isVoidInitializer()) ? init->toExpression() : NULL;
         if (ie) ie = ie->semantic(sc);
 
@@ -1064,7 +1061,7 @@ void VarDeclaration::semantic(Scope *sc)
                     {
                     Lexpand2:
                         Expression *ee = (*exps)[u];
-                        Parameter *arg = Parameter::getNth(tt->arguments, pos + u);
+                        arg = Parameter::getNth(tt->arguments, pos + u);
                         arg->type = arg->type->semantic(loc, sc);
                         //printf("[%d+%d] exps->dim = %d, ", pos, u, exps->dim);
                         //printf("ee = (%s %s, %s), ", Token::tochars[ee->op], ee->toChars(), ee->type->toChars());
@@ -1111,6 +1108,8 @@ Lnomatch:
             }
         }
 
+        Objects *exps = new Objects();
+        exps->setDim(nelems);
         for (size_t i = 0; i < nelems; i++)
         {
             Parameter *arg = Parameter::getNth(tt->arguments, i);
@@ -1332,6 +1331,7 @@ Lnomatch:
     }
 #endif
 
+    FuncDeclaration *fd = parent->isFuncDeclaration();
     if (type->isscope() && !noscope)
     {
         if (storage_class & (STCfield | STCout | STCref | STCstatic | STCmanifest | STCtls | STCgshared) || !fd)
@@ -1529,7 +1529,7 @@ Lnomatch:
                     exp = resolveProperties(sc, exp);
                     if (needctfe) sc = sc->endCTFE();
 
-                    Type *tb = type->toBasetype();
+                    Type *tb2 = type->toBasetype();
                     Type *ti = exp->type->toBasetype();
 
                     /* The problem is the following code:
@@ -1550,11 +1550,11 @@ Lnomatch:
                          * (which implies a postblit)
                          */
                         if (sd->cpctor &&               // there is a copy constructor
-                            tb->toDsymbol(NULL) == sd)  // exp is the same struct
+                            tb2->toDsymbol(NULL) == sd)  // exp is the same struct
                         {
                             // The only allowable initializer is a (non-copy) constructor
                             if (exp->isLvalue())
-                                error("of type struct %s uses this(this), which is not allowed in static initialization", tb->toChars());
+                                error("of type struct %s uses this(this), which is not allowed in static initialization", tb2->toChars());
                         }
                     }
                     ei->exp = exp;

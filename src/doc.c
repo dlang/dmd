@@ -2222,7 +2222,7 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
                         // Remove leading indentations from all lines
                         bool lineStart = true;
                         utf8_t *endp = (utf8_t *)codebuf.data + codebuf.offset;
-                        for (utf8_t *p = (utf8_t *)codebuf.data; p < endp; )
+                        for (p = (utf8_t *)codebuf.data; p < endp; )
                         {
                             if (lineStart)
                             {

@@ -611,9 +611,9 @@ void Lexer::scan(Token *t)
                     if (!initdone)       // lazy evaluation
                     {
                         initdone = true;
-                        time_t t;
-                        ::time(&t);
-                        char *p = ctime(&t);
+                        time_t ct;
+                        ::time(&ct);
+                        char *p = ctime(&ct);
                         assert(p);
                         sprintf(date, "%.6s %.4s", p + 4, p + 20);
                         sprintf(time, "%.8s", p + 11);
@@ -663,7 +663,7 @@ void Lexer::scan(Token *t)
 
                         for (const char *p = global.version + 1; 1; p++)
                         {
-                            char c = *p;
+                            c = *p;
                             if (isdigit((utf8_t)c))
                                 minor = minor * 10 + c - '0';
                             else if (c == '.')
@@ -1560,15 +1560,15 @@ TOK Lexer::delimitedStringConstant(Token *t)
                 delimright = '>';
             else if (isalpha(c) || c == '_' || (c >= 0x80 && isUniAlpha(c)))
             {   // Start of identifier; must be a heredoc
-                Token t;
+                Token tok;
                 p--;
-                scan(&t);               // read in heredoc identifier
-                if (t.value != TOKidentifier)
-                {   error("identifier expected for heredoc, not %s", t.toChars());
+                scan(&tok);               // read in heredoc identifier
+                if (tok.value != TOKidentifier)
+                {   error("identifier expected for heredoc, not %s", tok.toChars());
                     delimright = c;
                 }
                 else
-                {   hereid = t.ident;
+                {   hereid = tok.ident;
                     //printf("hereid = '%s'\n", hereid->toChars());
                     blankrol = 1;
                 }
@@ -1607,12 +1607,12 @@ TOK Lexer::delimitedStringConstant(Token *t)
                             && hereid
 #endif
                            )
-            {   Token t;
+            {   Token tok;
                 const utf8_t *psave = p;
                 p--;
-                scan(&t);               // read in possible heredoc identifier
-                //printf("endid = '%s'\n", t.ident->toChars());
-                if (t.value == TOKidentifier && t.ident->equals(hereid))
+                scan(&tok);               // read in possible heredoc identifier
+                //printf("endid = '%s'\n", tok.ident->toChars());
+                if (tok.value == TOKidentifier && tok.ident->equals(hereid))
                 {   /* should check that rest of line is blank
                      */
                     goto Ldone;

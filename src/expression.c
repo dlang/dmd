@@ -303,8 +303,7 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
 
             for (size_t i = 0; i < os->a.dim; i++)
             {
-                Dsymbol *s = os->a[i];
-                FuncDeclaration *f = resolveFuncCall(loc, sc, s, tiargs, tthis, &a, 1);
+                FuncDeclaration *f = resolveFuncCall(loc, sc, os->a[i], tiargs, tthis, &a, 1);
                 if (f)
                 {
                     fd = f;
@@ -323,8 +322,7 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
         {
             for (size_t i = 0; i < os->a.dim; i++)
             {
-                Dsymbol *s = os->a[i];
-                FuncDeclaration *f = resolveFuncCall(loc, sc, s, tiargs, tthis, NULL, 1);
+                FuncDeclaration *f = resolveFuncCall(loc, sc, os->a[i], tiargs, tthis, NULL, 1);
                 if (f)
                 {
                     fd = f;
@@ -418,7 +416,6 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
         tthis  = NULL;
     Lfd:
         assert(s);
-        FuncDeclaration *fd;
         if (e2)
         {
             e2 = e2->semantic(sc);
@@ -429,7 +426,7 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
             Expressions a;
             a.push(e2);
 
-            fd = resolveFuncCall(loc, sc, s, tiargs, tthis, &a, 1);
+            FuncDeclaration *fd = resolveFuncCall(loc, sc, s, tiargs, tthis, &a, 1);
             if (fd && fd->type)
             {
                 assert(fd->type->ty == Tfunction);
@@ -441,7 +438,7 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
             }
         }
         {
-            fd = resolveFuncCall(loc, sc, s, tiargs, tthis, NULL, 1);
+            FuncDeclaration *fd = resolveFuncCall(loc, sc, s, tiargs, tthis, NULL, 1);
             if (fd && fd->type)
             {
                 assert(fd->type->ty == Tfunction);
@@ -3819,14 +3816,14 @@ Expression *SuperExp::semantic(Scope *sc)
     if (!fd && sc->intypeof == 1)
     {
         // Find enclosing class
-        for (Dsymbol *s = sc->getStructClassScope(); 1; s = s->parent)
+        for (s = sc->getStructClassScope(); 1; s = s->parent)
         {
             if (!s)
             {
                 error("%s is not in a class scope", toChars());
                 goto Lerr;
             }
-            ClassDeclaration *cd = s->isClassDeclaration();
+            cd = s->isClassDeclaration();
             if (cd)
             {
                 cd = cd->baseClass;
@@ -4290,7 +4287,6 @@ void StringExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 void StringExp::toMangleBuffer(OutBuffer *buf)
 {   char m;
     OutBuffer tmp;
-    const char *p;
     unsigned c;
     size_t u;
     utf8_t *q;
@@ -4308,7 +4304,7 @@ void StringExp::toMangleBuffer(OutBuffer *buf)
             m = 'w';
             for (u = 0; u < len; )
             {
-                p = utf_decodeWchar((unsigned short *)string, len, &u, &c);
+                const char *p = utf_decodeWchar((unsigned short *)string, len, &u, &c);
                 if (p)
                     error("%s", p);
                 else
@@ -6829,8 +6825,7 @@ Expression *IsExp::semantic(Scope *sc)
          */
 
         Identifier *tid = id ? id : Lexer::uniqueId("__isexp_id");
-        TemplateParameter *tp = new TemplateTypeParameter(loc, tid, NULL, NULL);
-        parameters->insert(0, tp);
+        parameters->insert(0, new TemplateTypeParameter(loc, tid, NULL, NULL));
 
         Objects dedtypes;
         dedtypes.setDim(parameters->dim);
@@ -7559,8 +7554,6 @@ Expression *DotIdExp::semantic(Scope *sc)
 Expression *DotIdExp::semanticX(Scope *sc)
 {
     //printf("DotIdExp::semanticX(this = %p, '%s')\n", this, toChars());
-    Expression *e;
-
     UnaExp::semantic(sc);
     if (e1->op == TOKerror)
         return e1;
@@ -7584,7 +7577,7 @@ Expression *DotIdExp::semanticX(Scope *sc)
             L1:
             {
                 const char* s = ds->mangle();
-                e = new StringExp(loc, (void*)s, strlen(s), 'c');
+                Expression *e = new StringExp(loc, (void*)s, strlen(s), 'c');
                 e = e->semantic(sc);
                 return e;
             }
@@ -7614,7 +7607,7 @@ Expression *DotIdExp::semanticX(Scope *sc)
             (*exps)[i] = e;
         }
         // Don't evaluate te->e0 in runtime
-        e = new TupleExp(loc, /*te->e0*/NULL, exps);
+        Expression *e = new TupleExp(loc, /*te->e0*/NULL, exps);
         e = e->semantic(sc);
         return e;
     }
@@ -7624,7 +7617,7 @@ Expression *DotIdExp::semanticX(Scope *sc)
     {
         TupleExp *te = (TupleExp *)e1;
         // Don't evaluate te->e0 in runtime
-        e = new IntegerExp(loc, te->exps->dim, Type::tsize_t);
+        Expression *e = new IntegerExp(loc, te->exps->dim, Type::tsize_t);
         return e;
     }
 
@@ -7811,8 +7804,6 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
             Import *imp = s->isImport();
             if (imp)
             {
-                ScopeExp *ie;
-
                 ie = new ScopeExp(loc, imp->pkg);
                 return ie->semantic(sc);
             }
@@ -7824,8 +7815,8 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
             assert(0);
         }
         else if (ident == Id::stringof)
-        {   char *s = ie->toChars();
-            e = new StringExp(loc, s, strlen(s), 'c');
+        {   char *p = ie->toChars();
+            e = new StringExp(loc, p, strlen(p), 'c');
             e = e->semantic(sc);
             return e;
         }
@@ -8597,9 +8588,11 @@ Expression *CallExp::semantic(Scope *sc)
             return e1;
     }
 
-    Expression *e = resolveUFCS(sc, this);
-    if (e)
-        return e;
+    {
+        Expression *e = resolveUFCS(sc, this);
+        if (e)
+            return e;
+    }
 
     /* This recognizes:
      *  foo!(tiargs)(funcargs)
@@ -8900,7 +8893,6 @@ Lagain:
     {
         DotVarExp *dve;
         DotTemplateExp *dte;
-        AggregateDeclaration *ad;
         UnaExp *ue = (UnaExp *)(e1);
 
         Expression *ue1 = ue->e1;
@@ -8930,10 +8922,10 @@ Lagain:
         f = resolveFuncCall(loc, sc, s, tiargs, ue1 ? ue1->type : NULL, arguments);
         if (!f)
             return new ErrorExp();
-        ad = f->toParent2()->isAggregateDeclaration();
 
         if (f->needThis())
         {
+            AggregateDeclaration *ad = f->toParent2()->isAggregateDeclaration();
             ue->e1 = getRightThis(loc, sc, ad, ue->e1, f);
             if (ue->e1->op == TOKerror)
                 return ue->e1;
@@ -9322,12 +9314,11 @@ Lagain:
         t1 = f->type;
     }
     assert(t1->ty == Tfunction);
-    TypeFunction *tf = (TypeFunction *)(t1);
 
     if (!arguments)
         arguments = new Expressions();
     int olderrors = global.errors;
-    type = functionParameters(loc, sc, tf, tthis, arguments, f);
+    type = functionParameters(loc, sc, (TypeFunction *)(t1), tthis, arguments, f);
     if (olderrors != global.errors)
         return new ErrorExp();
 
@@ -10332,7 +10323,7 @@ Lagain:
         if (e1->op == TOKarrayliteral)
         {   // Convert [a,b,c][] to [a,b,c]
             Type *t1b = e1->type->toBasetype();
-            Expression *e = e1;
+            e = e1;
             if (t1b->ty == Tsarray)
             {
                 e = e->copy();
@@ -10481,8 +10472,8 @@ Lagain:
             {   Expressions *exps = new Expressions;
                 exps->setDim(j2 - j1);
                 for (size_t i = 0; i < j2 - j1; i++)
-                {   Expression *e = (*te->exps)[j1 + i];
-                    (*exps)[i] = e;
+                {
+                    (*exps)[i] = (*te->exps)[j1 + i];
                 }
                 e = new TupleExp(loc, te->e0, exps);
             }
@@ -12448,7 +12439,7 @@ Expression *AddExp::semantic(Scope *sc)
         else
         {
             typeCombine(sc);
-            Type *tb1 = e1->type->toBasetype();
+            tb1 = e1->type->toBasetype();
             if (tb1->ty == Tvector && !tb1->isscalar())
             {
                 return incompatibleTypes();
@@ -12529,7 +12520,6 @@ Expression *MinExp::semantic(Scope *sc)
         {   // Need to divide the result by the stride
             // Replace (ptr - ptr) with (ptr - ptr) / stride
             d_int64 stride;
-            Expression *e;
 
             typeCombine(sc);            // make sure pointer types are compatible
             type = Type::tptrdiff_t;
@@ -12775,7 +12765,7 @@ Expression *MulExp::semantic(Scope *sc)
         else if (t1->isimaginary())
         {
             if (t2->isimaginary())
-            {   Expression *e;
+            {
 
                 switch (t1->toBasetype()->ty)
                 {
@@ -12839,7 +12829,7 @@ Expression *DivExp::semantic(Scope *sc)
         {
             type = t2;
             if (t2->isimaginary())
-            {   Expression *e;
+            {
 
                 // x/iv = i(-x/v)
                 e2->type = t1;
@@ -13683,7 +13673,7 @@ Expression *EqualExp::semantic(Scope *sc)
         TupleExp *tup1 = (TupleExp *)e1;
         TupleExp *tup2 = (TupleExp *)e2;
         size_t dim = tup1->exps->dim;
-        Expression *e = NULL;
+        e = NULL;
         if (dim != tup2->exps->dim)
         {
             error("mismatched tuple lengths, %d and %d", (int)dim, (int)tup2->exps->dim);

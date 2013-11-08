@@ -1129,8 +1129,6 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(FuncDeclaration *f, Loc l
     unsigned wildmatch = 0;
     TemplateParameters *inferparams = parameters;
 
-    TypeFunction *tf = (TypeFunction *)fd->type;
-
 #if 0
     printf("\nTemplateDeclaration::deduceFunctionTemplateMatch() %s\n", toChars());
     for (size_t i = 0; i < (fargs ? fargs->dim : 0); i++)
@@ -1216,11 +1214,10 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(FuncDeclaration *f, Loc l
 
         for (size_t i = 0; i < n; i++)
         {   assert(i < parameters->dim);
-            TemplateParameter *tp = (*parameters)[i];
             MATCH m;
             Declaration *sparam = NULL;
 
-            m = tp->matchArg(loc, paramscope, dedargs, i, parameters, &dedtypes, &sparam);
+            m = (*parameters)[i]->matchArg(loc, paramscope, dedargs, i, parameters, &dedtypes, &sparam);
             //printf("\tdeduceType m = %d\n", m);
             if (m == MATCHnomatch)
                 goto Lnomatch;
@@ -1313,8 +1310,8 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(FuncDeclaration *f, Loc l
 
         // Match 'tthis' to any TemplateThisParameter's
         for (size_t i = 0; i < parameters->dim; i++)
-        {   TemplateParameter *tp = (*parameters)[i];
-            TemplateThisParameter *ttp = tp->isTemplateThisParameter();
+        {
+            TemplateThisParameter *ttp = (*parameters)[i]->isTemplateThisParameter();
             if (ttp)
             {   hasttp = true;
 
@@ -1693,8 +1690,7 @@ Lretry:
              */
             if (farg->op == TOKfunction)
             {   FuncExp *fe = (FuncExp *)farg;
-                Type *tp = prmtype;
-                Expression *e = fe->inferType(tp, 1, paramscope, inferparams);
+                Expression *e = fe->inferType(prmtype, 1, paramscope, inferparams);
                 if (!e)
                     goto Lvarargs;
                 farg = e;
@@ -1875,9 +1871,8 @@ Lretry:
 
                     if (arg->op == TOKfunction)
                     {   FuncExp *fe = (FuncExp *)arg;
-                        Type *tp = tb->nextOf();
 
-                        Expression *e = fe->inferType(tp, 1, paramscope, inferparams);
+                        Expression *e = fe->inferType(tb->nextOf(), 1, paramscope, inferparams);
                         if (!e)
                             goto Lnomatch;
                         arg = e;
@@ -2031,7 +2026,6 @@ Lmatch:
 
         int nerrors = global.errors;
 
-        FuncDeclaration *fd = f;
         Dsymbol *s = parent;
         while (s->isTemplateInstance() || s->isTemplateMixin())
             s = s->parent;
@@ -2713,15 +2707,15 @@ FuncDeclaration *TemplateDeclaration::doHeaderInstantiation(Scope *sc,
     sc2->tinst = ti;
 
     {
-        Scope *sc = sc2;
-        sc = sc->push();
+        Scope *scx = sc2;
+        scx = scx->push();
 
         if (hasttp)
             fd->type = fd->type->addMod(tthis->mod);
         //printf("tthis = %s, fdtype = %s\n", tthis->toChars(), fd->type->toChars());
         if (fd->isCtorDeclaration())
         {
-            sc->flags |= SCOPEctor;
+            scx->flags |= SCOPEctor;
 
             Dsymbol *parent = toParent2();
             Type *tret;
@@ -2733,7 +2727,7 @@ FuncDeclaration *TemplateDeclaration::doHeaderInstantiation(Scope *sc,
             else
             {   tret = ad->handle;
                 assert(tret);
-                tret = tret->addStorageClass(fd->storage_class | sc->stc);
+                tret = tret->addStorageClass(fd->storage_class | scx->stc);
                 tret = tret->addMod(fd->type->mod);
             }
             ((TypeFunction *)fd->type)->next = tret;
@@ -2741,9 +2735,9 @@ FuncDeclaration *TemplateDeclaration::doHeaderInstantiation(Scope *sc,
                 ((TypeFunction *)fd->type)->isref = 1;
             //printf("fd->type = %s\n", fd->type->toChars());
         }
-        fd->type = fd->type->addSTC(sc->stc);
-        fd->type = fd->type->semantic(fd->loc, sc);
-        sc = sc->pop();
+        fd->type = fd->type->addSTC(scx->stc);
+        fd->type = fd->type->semantic(fd->loc, scx);
+        scx = scx->pop();
     }
     //printf("\t[%s] fd->type = %s, mod = %x, ", loc.toChars(), fd->type->toChars(), fd->type->mod);
     //printf("fd->needThis() = %d\n", fd->needThis());
@@ -3893,8 +3887,7 @@ MATCH TypeInstance::deduceType(Scope *sc,
                         goto Le;
                     goto Lnomatch;
                 }
-                TemplateParameter *tp = (*parameters)[j];
-                if (!tp->matchArg(sc, e1, j, parameters, dedtypes, NULL))
+                if (!(*parameters)[j]->matchArg(sc, e1, j, parameters, dedtypes, NULL))
                     goto Lnomatch;
             }
             else if (s1 && s2)
@@ -3913,8 +3906,7 @@ MATCH TypeInstance::deduceType(Scope *sc,
                         goto Ls;
                     goto Lnomatch;
                 }
-                TemplateParameter *tp = (*parameters)[j];
-                if (!tp->matchArg(sc, s1, j, parameters, dedtypes, NULL))
+                if (!(*parameters)[j]->matchArg(sc, s1, j, parameters, dedtypes, NULL))
                     goto Lnomatch;
             }
             else
@@ -7329,18 +7321,18 @@ bool TemplateMixin::findTemplateDeclaration(Scope *sc)
          */
         if (os)
         {
-            Dsymbol *s = NULL;
+            Dsymbol *ds = NULL;
             for (size_t i = 0; i < os->a.dim; i++)
             {
                 Dsymbol *s2 = os->a[i]->isTemplateDeclaration();
                 if (s2)
                 {
-                    if (s)
+                    if (ds)
                     {
                         tempdecl = os;
                         break;
                     }
-                    s = s2;
+                    ds = s2;
                 }
             }
         }

@@ -483,7 +483,7 @@ FuncDeclaration *StructDeclaration::buildXopEquals(Scope *sc)
         {
             TypeFunction *tfeqptr;
             {
-                Scope sc;
+                Scope scx;
 
                 /* const bool opEquals(ref const S s);
                  */
@@ -491,7 +491,7 @@ FuncDeclaration *StructDeclaration::buildXopEquals(Scope *sc)
                 parameters->push(new Parameter(STCref | STCconst, type, NULL, NULL));
                 tfeqptr = new TypeFunction(parameters, Type::tbool, 0, LINKd);
                 tfeqptr->mod = MODconst;
-                tfeqptr = (TypeFunction *)tfeqptr->semantic(Loc(), &sc);
+                tfeqptr = (TypeFunction *)tfeqptr->semantic(Loc(), &scx);
             }
             fd = fd->overloadExactMatch(tfeqptr);
             if (fd)
@@ -569,7 +569,7 @@ FuncDeclaration *StructDeclaration::buildXopCmp(Scope *sc)
         {
             TypeFunction *tfcmpptr;
             {
-                Scope sc;
+                Scope scx;
 
                 /* const int opCmp(ref const S s);
                  */
@@ -577,7 +577,7 @@ FuncDeclaration *StructDeclaration::buildXopCmp(Scope *sc)
                 parameters->push(new Parameter(STCref | STCconst, type, NULL, NULL));
                 tfcmpptr = new TypeFunction(parameters, Type::tint32, 0, LINKd);
                 tfcmpptr->mod = MODconst;
-                tfcmpptr = (TypeFunction *)tfcmpptr->semantic(Loc(), &sc);
+                tfcmpptr = (TypeFunction *)tfcmpptr->semantic(Loc(), &scx);
             }
             fd = fd->overloadExactMatch(tfcmpptr);
             if (fd)
