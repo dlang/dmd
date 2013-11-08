@@ -1843,7 +1843,7 @@ bool FuncDeclaration::functionSemantic()
         semantic(scope);
         global.gag = oldgag;
         if (spec && global.errors != olderrs)
-            spec->errors = global.errors - olderrs;
+            spec->errors = global.errors - olderrs != 0;
         if (olderrs != global.errors)   // if errors compiling this function
             return false;
     }
@@ -1893,7 +1893,7 @@ bool FuncDeclaration::functionSemantic3()
         // If it is a speculatively-instantiated template, and errors occur,
         // we need to mark the template as having errors.
         if (spec && global.errors != olderrs)
-            spec->errors = global.errors - olderrs;
+            spec->errors = global.errors - olderrs != 0;
         if (olderrs != global.errors)   // if errors compiling this function
             return false;
     }
