@@ -1696,7 +1696,6 @@ Expression *FuncDeclaration::expandInline(InlineScanState *iss,
         Expression *eret, Expression *ethis, Expressions *arguments, Statement **ps)
 {
     InlineDoState ids;
-    DeclarationExp *de;
     Expression *e = NULL;
     Statements *as = NULL;
     TypeFunction *tf = (TypeFunction*)type;
@@ -1842,7 +1841,7 @@ Expression *FuncDeclaration::expandInline(InlineScanState *iss,
             ids.from.push(vfrom);
             ids.to.push(vto);
 
-            de = new DeclarationExp(Loc(), vto);
+            DeclarationExp *de = new DeclarationExp(Loc(), vto);
             de->type = Type::tvoid;
 
             e = Expression::combine(e, de);
