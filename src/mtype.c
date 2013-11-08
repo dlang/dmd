@@ -1717,9 +1717,9 @@ Type *Type::merge2()
     return t;
 }
 
-int Type::isintegral()
+bool Type::isintegral()
 {
-    return FALSE;
+    return false;
 }
 
 int Type::isfloating()
@@ -3311,10 +3311,10 @@ int TypeBasic::isZeroInit(Loc loc)
     }
 }
 
-int TypeBasic::isintegral()
+bool TypeBasic::isintegral()
 {
     //printf("TypeBasic::isintegral('%s') x%x\n", toChars(), flags);
-    return flags & TFLAGSintegral;
+    return (flags & TFLAGSintegral) != 0;
 }
 
 int TypeBasic::isfloating()
@@ -3569,7 +3569,7 @@ int TypeVector::isZeroInit(Loc loc)
     return basetype->isZeroInit(loc);
 }
 
-int TypeVector::isintegral()
+bool TypeVector::isintegral()
 {
     //printf("TypeVector::isintegral('%s') x%x\n", toChars(), flags);
     return basetype->nextOf()->isintegral();
@@ -7510,7 +7510,7 @@ Expression *TypeEnum::getProperty(Loc loc, Identifier *ident, int flag)
     return e;
 }
 
-int TypeEnum::isintegral()
+bool TypeEnum::isintegral()
 {
     return sym->memtype->isintegral();
 }
@@ -7730,7 +7730,7 @@ Expression *TypeTypedef::getProperty(Loc loc, Identifier *ident, int flag)
     return sym->basetype->getProperty(loc, ident, flag);
 }
 
-int TypeTypedef::isintegral()
+bool TypeTypedef::isintegral()
 {
     //printf("TypeTypedef::isintegral()\n");
     //printf("sym = '%s'\n", sym->toChars());

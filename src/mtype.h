@@ -252,7 +252,7 @@ public:
 #if CPP_MANGLE
     virtual void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
-    virtual int isintegral();
+    virtual bool isintegral();
     virtual int isfloating();   // real, imaginary, or complex
     virtual int isreal();
     virtual int isimaginary();
@@ -405,7 +405,7 @@ public:
 #if CPP_MANGLE
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
-    int isintegral();
+    bool isintegral();
     int isfloating();
     int isreal();
     int isimaginary();
@@ -444,7 +444,7 @@ public:
 #if CPP_MANGLE
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
-    int isintegral();
+    bool isintegral();
     int isfloating();
     int isscalar();
     int isunsigned();
@@ -890,7 +890,7 @@ public:
     void toJson(JsonOut *json);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     Expression *getProperty(Loc loc, Identifier *ident, int flag);
-    int isintegral();
+    bool isintegral();
     int isfloating();
     int isreal();
     int isimaginary();
@@ -938,7 +938,7 @@ public:
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     structalign_t alignment();
     Expression *getProperty(Loc loc, Identifier *ident, int flag);
-    int isintegral();
+    bool isintegral();
     int isfloating();
     int isreal();
     int isimaginary();
