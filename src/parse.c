@@ -6148,7 +6148,7 @@ Expression *Parser::parsePrimaryExp()
                 case TOKidentifier:
                 {   // identifier => expression
                     parameters = new Parameters();
-                    Identifier *id = Lexer::uniqueId("__T");
+                    id = Lexer::uniqueId("__T");
                     Type *t = new TypeIdentifier(loc, id);
                     parameters->push(new Parameter(0, t, token.ident, NULL));
 
