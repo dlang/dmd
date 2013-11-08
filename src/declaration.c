@@ -966,7 +966,6 @@ void VarDeclaration::semantic(Scope *sc)
 #endif
 
     Dsymbol *parent = toParent();
-    FuncDeclaration *fd = parent->isFuncDeclaration();
 
     Type *tb = type->toBasetype();
     Type *tbn = tb->baseElemOf();
@@ -1332,6 +1331,7 @@ Lnomatch:
     }
 #endif
 
+    FuncDeclaration *fd = parent->isFuncDeclaration();
     if (type->isscope() && !noscope)
     {
         if (storage_class & (STCfield | STCout | STCref | STCstatic | STCmanifest | STCtls | STCgshared) || !fd)
