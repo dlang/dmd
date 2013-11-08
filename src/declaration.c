@@ -1529,7 +1529,7 @@ Lnomatch:
                     exp = resolveProperties(sc, exp);
                     if (needctfe) sc = sc->endCTFE();
 
-                    Type *tb = type->toBasetype();
+                    Type *tb2 = type->toBasetype();
                     Type *ti = exp->type->toBasetype();
 
                     /* The problem is the following code:
@@ -1550,11 +1550,11 @@ Lnomatch:
                          * (which implies a postblit)
                          */
                         if (sd->cpctor &&               // there is a copy constructor
-                            tb->toDsymbol(NULL) == sd)  // exp is the same struct
+                            tb2->toDsymbol(NULL) == sd)  // exp is the same struct
                         {
                             // The only allowable initializer is a (non-copy) constructor
                             if (exp->isLvalue())
-                                error("of type struct %s uses this(this), which is not allowed in static initialization", tb->toChars());
+                                error("of type struct %s uses this(this), which is not allowed in static initialization", tb2->toChars());
                         }
                     }
                     ei->exp = exp;
