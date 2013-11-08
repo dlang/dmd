@@ -3864,7 +3864,7 @@ void Parser::checkDanglingElse(Loc elseloc)
 Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
 {
     Statement *s;
-    Condition *condition;
+    Condition *cond;
     Statement *ifbody;
     Statement *elsebody;
     bool isfinal;
@@ -3968,7 +3968,7 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
             if (t->value == TOKif)
             {
                 nextToken();
-                condition = parseStaticIfCondition();
+                cond = parseStaticIfCondition();
                 goto Lcondition;
             }
             if (t->value == TOKimport)
@@ -4468,12 +4468,12 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
 
         case TOKdebug:
             nextToken();
-            condition = parseDebugCondition();
+            cond = parseDebugCondition();
             goto Lcondition;
 
         case TOKversion:
             nextToken();
-            condition = parseVersionCondition();
+            cond = parseVersionCondition();
             goto Lcondition;
 
         Lcondition:
@@ -4491,7 +4491,7 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
                 elsebody = parseStatement(0 /*PSsemi*/);
                 checkDanglingElse(elseloc);
             }
-            s = new ConditionalStatement(loc, condition, ifbody, elsebody);
+            s = new ConditionalStatement(loc, cond, ifbody, elsebody);
             if (flags & PSscope)
                 s = new ScopeStatement(loc, s);
             break;
