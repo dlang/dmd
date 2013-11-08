@@ -182,46 +182,6 @@ enum TOK
 
 #define TOKwild TOKinout
 
-#define BASIC_TYPES                     \
-        TOKwchar: case TOKdchar:                \
-        case TOKbool: case TOKchar:             \
-        case TOKint8: case TOKuns8:             \
-        case TOKint16: case TOKuns16:           \
-        case TOKint32: case TOKuns32:           \
-        case TOKint64: case TOKuns64:           \
-        case TOKint128: case TOKuns128: \
-        case TOKfloat32: case TOKfloat64: case TOKfloat80:              \
-        case TOKimaginary32: case TOKimaginary64: case TOKimaginary80:  \
-        case TOKcomplex32: case TOKcomplex64: case TOKcomplex80:        \
-        case TOKvoid
-
-#define BASIC_TYPES_X(t)                                        \
-        TOKvoid:         t = Type::tvoid;  goto LabelX;         \
-        case TOKint8:    t = Type::tint8;  goto LabelX;         \
-        case TOKuns8:    t = Type::tuns8;  goto LabelX;         \
-        case TOKint16:   t = Type::tint16; goto LabelX;         \
-        case TOKuns16:   t = Type::tuns16; goto LabelX;         \
-        case TOKint32:   t = Type::tint32; goto LabelX;         \
-        case TOKuns32:   t = Type::tuns32; goto LabelX;         \
-        case TOKint64:   t = Type::tint64; goto LabelX;         \
-        case TOKuns64:   t = Type::tuns64; goto LabelX;         \
-        case TOKint128:  t = Type::tint128; goto LabelX;        \
-        case TOKuns128:  t = Type::tuns128; goto LabelX;        \
-        case TOKfloat32: t = Type::tfloat32; goto LabelX;       \
-        case TOKfloat64: t = Type::tfloat64; goto LabelX;       \
-        case TOKfloat80: t = Type::tfloat80; goto LabelX;       \
-        case TOKimaginary32: t = Type::timaginary32; goto LabelX;       \
-        case TOKimaginary64: t = Type::timaginary64; goto LabelX;       \
-        case TOKimaginary80: t = Type::timaginary80; goto LabelX;       \
-        case TOKcomplex32: t = Type::tcomplex32; goto LabelX;   \
-        case TOKcomplex64: t = Type::tcomplex64; goto LabelX;   \
-        case TOKcomplex80: t = Type::tcomplex80; goto LabelX;   \
-        case TOKbool:    t = Type::tbool;    goto LabelX;       \
-        case TOKchar:    t = Type::tchar;    goto LabelX;       \
-        case TOKwchar:   t = Type::twchar; goto LabelX; \
-        case TOKdchar:   t = Type::tdchar; goto LabelX; \
-        LabelX
-
 struct Token
 {
     Token *next;
