@@ -1360,7 +1360,7 @@ class Throwable : Object
      * performed in certain error situations.  Override this $(D
      * toString) method to customize the error message.
      */
-    void toString(scope void delegate(const(char)[]) sink) const
+    void toString(scope void delegate(in char[]) sink) const
     {
         SizeStringBuff tmpBuff = void;
 
