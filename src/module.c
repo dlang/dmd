@@ -496,17 +496,18 @@ void Module::parse()
             setDocfile();
         return;
     }
-    Parser p(this, buf, buflen, docfile != NULL);
-    p.nextToken();
-    members = p.parseModule();
+    {
+        Parser p(this, buf, buflen, docfile != NULL);
+        p.nextToken();
+        members = p.parseModule();
+        md = p.md;
+        numlines = p.scanloc.linnum;
+    }
 
     if (srcfile->ref == 0)
         ::free(srcfile->buffer);
     srcfile->buffer = NULL;
     srcfile->len = 0;
-
-    md = p.md;
-    numlines = p.scanloc.linnum;
 
     /* The symbol table into which the module is to be inserted.
      */
