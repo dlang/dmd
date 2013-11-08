@@ -7554,8 +7554,6 @@ Expression *DotIdExp::semantic(Scope *sc)
 Expression *DotIdExp::semanticX(Scope *sc)
 {
     //printf("DotIdExp::semanticX(this = %p, '%s')\n", this, toChars());
-    Expression *e;
-
     UnaExp::semantic(sc);
     if (e1->op == TOKerror)
         return e1;
@@ -7579,7 +7577,7 @@ Expression *DotIdExp::semanticX(Scope *sc)
             L1:
             {
                 const char* s = ds->mangle();
-                e = new StringExp(loc, (void*)s, strlen(s), 'c');
+                Expression *e = new StringExp(loc, (void*)s, strlen(s), 'c');
                 e = e->semantic(sc);
                 return e;
             }
@@ -7609,7 +7607,7 @@ Expression *DotIdExp::semanticX(Scope *sc)
             (*exps)[i] = e;
         }
         // Don't evaluate te->e0 in runtime
-        e = new TupleExp(loc, /*te->e0*/NULL, exps);
+        Expression *e = new TupleExp(loc, /*te->e0*/NULL, exps);
         e = e->semantic(sc);
         return e;
     }
@@ -7619,7 +7617,7 @@ Expression *DotIdExp::semanticX(Scope *sc)
     {
         TupleExp *te = (TupleExp *)e1;
         // Don't evaluate te->e0 in runtime
-        e = new IntegerExp(loc, te->exps->dim, Type::tsize_t);
+        Expression *e = new IntegerExp(loc, te->exps->dim, Type::tsize_t);
         return e;
     }
 
