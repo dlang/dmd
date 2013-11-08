@@ -491,7 +491,6 @@ int tryMain(size_t argc, const char *argv[])
     Strings files;
     Strings libmodules;
     const char *p;
-    Module *m;
     size_t argcstart = argc;
     int setdebuglib = 0;
     char noboundscheck = 0;
@@ -1406,7 +1405,7 @@ Language changes listed by -transition=id:\n\
          */
 
         Identifier *id = Lexer::idPool(name);
-        m = new Module(files[i], id, global.params.doDocComments, global.params.doHdrGeneration);
+        Module *m = new Module(files[i], id, global.params.doDocComments, global.params.doHdrGeneration);
         modules.push(m);
 
         if (firstmodule)
@@ -1441,7 +1440,7 @@ Language changes listed by -transition=id:\n\
     AsyncRead *aw = AsyncRead::create(modules.dim);
     for (size_t i = 0; i < modules.dim; i++)
     {
-        m = modules[i];
+        Module *m = modules[i];
         aw->addFile(m->srcfile);
     }
     aw->start();
@@ -1449,7 +1448,7 @@ Language changes listed by -transition=id:\n\
     // Single threaded
     for (size_t i = 0; i < modules.dim; i++)
     {
-        m = modules[i];
+        Module *m = modules[i];
         m->read(Loc());
     }
 #endif
@@ -1459,7 +1458,7 @@ Language changes listed by -transition=id:\n\
     size_t filecount = modules.dim;
     for (size_t filei = 0, modi = 0; filei < filecount; filei++, modi++)
     {
-        m = modules[modi];
+        Module *m = modules[modi];
         if (global.params.verbose)
             fprintf(global.stdmsg, "parse     %s\n", m->toChars());
         if (!Module::rootModule)
@@ -1519,7 +1518,7 @@ Language changes listed by -transition=id:\n\
          */
         for (size_t i = 0; i < modules.dim; i++)
         {
-            m = modules[i];
+            Module *m = modules[i];
             if (global.params.verbose)
                 fprintf(global.stdmsg, "import    %s\n", m->toChars());
             m->genhdrfile();
@@ -1531,7 +1530,7 @@ Language changes listed by -transition=id:\n\
     // load all unconditional imports for better symbol resolving
     for (size_t i = 0; i < modules.dim; i++)
     {
-       m = modules[i];
+       Module *m = modules[i];
        if (global.params.verbose)
            fprintf(global.stdmsg, "importall %s\n", m->toChars());
        m->importAll(NULL);
@@ -1544,7 +1543,7 @@ Language changes listed by -transition=id:\n\
     // Do semantic analysis
     for (size_t i = 0; i < modules.dim; i++)
     {
-        m = modules[i];
+        Module *m = modules[i];
         if (global.params.verbose)
             fprintf(global.stdmsg, "semantic  %s\n", m->toChars());
         m->semantic();
@@ -1558,7 +1557,7 @@ Language changes listed by -transition=id:\n\
     // Do pass 2 semantic analysis
     for (size_t i = 0; i < modules.dim; i++)
     {
-        m = modules[i];
+        Module *m = modules[i];
         if (global.params.verbose)
             fprintf(global.stdmsg, "semantic2 %s\n", m->toChars());
         m->semantic2();
@@ -1569,7 +1568,7 @@ Language changes listed by -transition=id:\n\
     // Do pass 3 semantic analysis
     for (size_t i = 0; i < modules.dim; i++)
     {
-        m = modules[i];
+        Module *m = modules[i];
         if (global.params.verbose)
             fprintf(global.stdmsg, "semantic3 %s\n", m->toChars());
         m->semantic3();
@@ -1590,7 +1589,7 @@ Language changes listed by -transition=id:\n\
             // since otherwise functions in them cannot be inlined
             for (size_t i = 0; i < Module::amodules.dim; i++)
             {
-                m = Module::amodules[i];
+                Module *m = Module::amodules[i];
                 if (global.params.verbose)
                     fprintf(global.stdmsg, "semantic3 %s\n", m->toChars());
                 m->semantic3();
@@ -1621,7 +1620,7 @@ Language changes listed by -transition=id:\n\
     {
         for (size_t i = 0; i < modules.dim; i++)
         {
-            m = modules[i];
+            Module *m = modules[i];
             if (global.params.verbose)
                 fprintf(global.stdmsg, "inline scan %s\n", m->toChars());
             m->inlineScan();
@@ -1702,7 +1701,7 @@ Language changes listed by -transition=id:\n\
             obj_start(modules[0]->srcfile->toChars());
         for (size_t i = 0; i < modules.dim; i++)
         {
-            m = modules[i];
+            Module *m = modules[i];
             if (global.params.verbose)
                 fprintf(global.stdmsg, "code      %s\n", m->toChars());
             m->genobjfile(0);
@@ -1720,7 +1719,7 @@ Language changes listed by -transition=id:\n\
     {
         for (size_t i = 0; i < modules.dim; i++)
         {
-            m = modules[i];
+            Module *m = modules[i];
             if (global.params.verbose)
                 fprintf(global.stdmsg, "code      %s\n", m->toChars());
             if (global.params.obj)
