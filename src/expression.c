@@ -8588,9 +8588,11 @@ Expression *CallExp::semantic(Scope *sc)
             return e1;
     }
 
-    Expression *e = resolveUFCS(sc, this);
-    if (e)
-        return e;
+    {
+        Expression *e = resolveUFCS(sc, this);
+        if (e)
+            return e;
+    }
 
     /* This recognizes:
      *  foo!(tiargs)(funcargs)
