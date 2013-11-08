@@ -7044,7 +7044,6 @@ Expression *Parser::parseNewExp(Expression *thisexp)
     Type *t;
     Expressions *newargs;
     Expressions *arguments = NULL;
-    Expression *e;
     Loc loc = token.loc;
 
     nextToken();
@@ -7082,7 +7081,7 @@ Expression *Parser::parseNewExp(Expression *thisexp)
             cd->members = decl;
         }
 
-        e = new NewAnonClassExp(loc, thisexp, newargs, cd, arguments);
+        Expression *e = new NewAnonClassExp(loc, thisexp, newargs, cd, arguments);
 
         return e;
     }
@@ -7120,7 +7119,7 @@ Expression *Parser::parseNewExp(Expression *thisexp)
     {
         arguments = parseArguments();
     }
-    e = new NewExp(loc, thisexp, newargs, t, arguments);
+    Expression *e = new NewExp(loc, thisexp, newargs, t, arguments);
     return e;
 }
 
