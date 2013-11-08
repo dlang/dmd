@@ -3816,7 +3816,7 @@ Expression *SuperExp::semantic(Scope *sc)
     if (!fd && sc->intypeof == 1)
     {
         // Find enclosing class
-        for (Dsymbol *s = sc->getStructClassScope(); 1; s = s->parent)
+        for (s = sc->getStructClassScope(); 1; s = s->parent)
         {
             if (!s)
             {
