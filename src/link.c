@@ -48,7 +48,7 @@
 #include        "arraytypes.h"
 
 void toWinPath(char *src);
-int executecmd(const char *cmd, const char *args, int useenv);
+int executecmd(const char *cmd, const char *args);
 int executearg0(const char *cmd, const char *args);
 
 /****************************************
@@ -290,7 +290,7 @@ int runLINK()
             else
                 linkcmd = "link";
         }
-        int status = executecmd(linkcmd, p, 1);
+        int status = executecmd(linkcmd, p);
         if (lnkfilename)
         {
             remove(lnkfilename);
@@ -424,7 +424,7 @@ int runLINK()
         const char *linkcmd = getenv("LINKCMD");
         if (!linkcmd)
             linkcmd = "link";
-        int status = executecmd(linkcmd, p, 1);
+        int status = executecmd(linkcmd, p);
         if (lnkfilename)
         {
             remove(lnkfilename);
@@ -692,11 +692,10 @@ void deleteExeFile()
  * Execute a rule.  Return the status.
  *      cmd     program to run
  *      args    arguments to cmd, as a string
- *      useenv  if cmd knows about _CMDLINE environment variable
  */
 
 #if _WIN32
-int executecmd(const char *cmd, const char *args, int useenv)
+int executecmd(const char *cmd, const char *args)
 {
     int status;
     size_t len;
@@ -704,29 +703,20 @@ int executecmd(const char *cmd, const char *args, int useenv)
     if (!global.params.quiet || global.params.verbose)
         fprintf(global.stdmsg, "%s %s\n", cmd, args);
 
-    if (global.params.is64bit)
+    if (!global.params.is64bit)
     {
-    }
-    else
-    {
-    if ((len = strlen(args)) > 255)
-    {   char *q;
-        static char envname[] = "@_CMDLINE";
-
-        envname[0] = '@';
-        switch (useenv)
-        {   case 0:     goto L1;
-            case 2: envname[0] = '%';   break;
-        }
-        q = (char *) alloca(sizeof(envname) + len + 1);
-        sprintf(q,"%s=%s", envname + 1, args);
-        status = putenv(q);
-        if (status == 0)
-            args = envname;
-        else
+        if ((len = strlen(args)) > 255)
         {
-        L1:
-            error(Loc(), "command line length of %d is too long",len);
+            char *q = (char *) alloca(8 + len + 1);
+            sprintf(q,"_CMDLINE=%s", args);
+            status = putenv(q);
+            if (status == 0)
+            {
+                args = "@_CMDLINE";
+            }
+            else
+            {
+                error(Loc(), "command line length of %d is too long",len);
             }
         }
     }
