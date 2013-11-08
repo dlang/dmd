@@ -1822,6 +1822,13 @@ Expression *FuncDeclaration::expandInline(InlineScanState *iss, Expression *ethi
     return e;
 }
 
+void UnitTestDeclaration::inlineScan()
+{
+    if (global.params.useUnitTests)
+    {
+        FuncDeclaration::inlineScan();
+    }
+}
 
 /****************************************************
  * Perform the "inline copying" of a default argument for a function parameter.

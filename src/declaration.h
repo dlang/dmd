@@ -918,6 +918,7 @@ public:
     bool addPreInvariant();
     bool addPostInvariant();
     void emitComment(Scope *sc);
+    void inlineScan();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     UnitTestDeclaration *isUnitTestDeclaration() { return this; }
