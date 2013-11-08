@@ -745,10 +745,10 @@ void FuncDeclaration::semantic(Scope *sc)
             }
 
             // If it's a member template
-            ClassDeclaration *cd = ti->tempdecl->isClassMember();
-            if (cd)
+            ClassDeclaration *cd2 = ti->tempdecl->isClassMember();
+            if (cd2)
             {
-                error("cannot use template to add virtual function to class '%s'", cd->toChars());
+                error("cannot use template to add virtual function to class '%s'", cd2->toChars());
             }
         }
     }
