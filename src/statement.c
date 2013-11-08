@@ -1549,23 +1549,23 @@ Statement *ForeachStatement::semantic(Scope *sc)
             Dsymbol *var;
             if (te)
             {   Type *tb = e->type->toBasetype();
-                Dsymbol *s = NULL;
+                Dsymbol *ds = NULL;
                 if ((tb->ty == Tfunction || tb->ty == Tsarray) && e->op == TOKvar)
-                    s = ((VarExp *)e)->var;
+                    ds = ((VarExp *)e)->var;
                 else if (e->op == TOKtemplate)
-                    s =((TemplateExp *)e)->td;
+                    ds =((TemplateExp *)e)->td;
                 else if (e->op == TOKimport)
-                    s =((ScopeExp *)e)->sds;
+                    ds =((ScopeExp *)e)->sds;
 
-                if (s)
+                if (ds)
                 {
-                    var = new AliasDeclaration(loc, arg->ident, s);
+                    var = new AliasDeclaration(loc, arg->ident, ds);
                     if (arg->storageClass & STCref)
                     {   error("symbol %s cannot be ref", s->toChars());
                         goto Lerror;
                     }
                     if (argtype)
-                    {   error("cannot specify element type for symbol %s", s->toChars());
+                    {   error("cannot specify element type for symbol %s", ds->toChars());
                         goto Lerror;
                     }
                 }
