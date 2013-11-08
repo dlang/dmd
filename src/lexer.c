@@ -663,7 +663,7 @@ void Lexer::scan(Token *t)
 
                         for (const char *p = global.version + 1; 1; p++)
                         {
-                            char c = *p;
+                            c = *p;
                             if (isdigit((utf8_t)c))
                                 minor = minor * 10 + c - '0';
                             else if (c == '.')
