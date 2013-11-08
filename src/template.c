@@ -2765,6 +2765,88 @@ void TemplateDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     if (onemember && onemember->isFuncDeclaration())
         buf->writestring("foo ");
 #endif
+    if (hgs->hdrgen && members && members->dim == 1)
+    {
+        FuncDeclaration *fd = (*members)[0]->isFuncDeclaration();
+        if (fd && fd->type && fd->type->ty == Tfunction && fd->ident == ident)
+        {
+            TypeFunction *tf = (TypeFunction *)fd->type;
+            tf->toCBufferWithAttributes(buf, ident, hgs, tf, this);
+
+            if (constraint)
+            {
+                buf->writestring(" if (");
+                constraint->toCBuffer(buf, hgs);
+                buf->writeByte(')');
+            }
+
+            hgs->tpltMember++;
+            fd->bodyToCBuffer(buf, hgs);
+            hgs->tpltMember--;
+            return;
+        }
+
+        AggregateDeclaration *ad = (*members)[0]->isAggregateDeclaration();
+        if (ad)
+        {
+            buf->writestring(ad->kind());
+            buf->writeByte(' ');
+            buf->writestring(ident->toChars());
+            buf->writeByte('(');
+            for (size_t i = 0; i < parameters->dim; i++)
+            {
+                TemplateParameter *tp = (*parameters)[i];
+                if (hgs->ddoc)
+                    tp = (*origParameters)[i];
+                if (i)
+                    buf->writestring(", ");
+                tp->toCBuffer(buf, hgs);
+            }
+            buf->writeByte(')');
+
+            if (constraint)
+            {
+                buf->writestring(" if (");
+                constraint->toCBuffer(buf, hgs);
+                buf->writeByte(')');
+            }
+
+             ClassDeclaration *cd = ad->isClassDeclaration();
+            if (cd && cd->baseclasses->dim)
+            {
+                buf->writestring(" : ");
+                for (size_t i = 0; i < cd->baseclasses->dim; i++)
+                {
+                    BaseClass *b = (*cd->baseclasses)[i];
+                    if (i)
+                        buf->writestring(", ");
+                    b->type->toCBuffer(buf, NULL, hgs);
+                }
+            }
+
+            hgs->tpltMember++;
+            if (ad->members)
+            {
+                buf->writenl();
+                buf->writeByte('{');
+                buf->writenl();
+                buf->level++;
+                for (size_t i = 0; i < ad->members->dim; i++)
+                {
+                    Dsymbol *s = (*ad->members)[i];
+                    s->toCBuffer(buf, hgs);
+                }
+                buf->level--;
+                buf->writestring("}");
+            }
+            else
+                buf->writeByte(';');
+            buf->writenl();
+            hgs->tpltMember--;
+            return;
+        }
+    }
+
     if (hgs->ddoc)
         buf->writestring(kind());
     else
@@ -2784,7 +2866,8 @@ void TemplateDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writeByte(')');
 #if DMDV2
     if (constraint)
-    {   buf->writestring(" if (");
+    {
+        buf->writestring(" if (");
         constraint->toCBuffer(buf, hgs);
         buf->writeByte(')');
     }

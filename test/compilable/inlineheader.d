@@ -307,7 +307,7 @@ void func8()
   scope a= new D8();
 }
 
-T func9(T)()
+T func9(T)() if (true)
 {
     T i;
     scope(exit) i= 1;
@@ -371,6 +371,17 @@ import std.stdio : writeln, F = File;
 void foo6591()()
 {
     import std.stdio : writeln, F = File;
+}
+
+
+// 8081
+version(unittest) {
+    pure nothrow unittest {}
+    pure nothrow unittest {}
+
+    public unittest {}
+    extern(C) unittest {}
+    align unittest {}
 }
 
 
