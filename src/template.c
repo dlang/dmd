@@ -7323,18 +7323,18 @@ bool TemplateMixin::findTemplateDeclaration(Scope *sc)
          */
         if (os)
         {
-            Dsymbol *s = NULL;
+            Dsymbol *ds = NULL;
             for (size_t i = 0; i < os->a.dim; i++)
             {
                 Dsymbol *s2 = os->a[i]->isTemplateDeclaration();
                 if (s2)
                 {
-                    if (s)
+                    if (ds)
                     {
                         tempdecl = os;
                         break;
                     }
-                    s = s2;
+                    ds = s2;
                 }
             }
         }
