@@ -8893,7 +8893,6 @@ Lagain:
     {
         DotVarExp *dve;
         DotTemplateExp *dte;
-        AggregateDeclaration *ad;
         UnaExp *ue = (UnaExp *)(e1);
 
         Expression *ue1 = ue->e1;
@@ -8923,10 +8922,10 @@ Lagain:
         f = resolveFuncCall(loc, sc, s, tiargs, ue1 ? ue1->type : NULL, arguments);
         if (!f)
             return new ErrorExp();
-        ad = f->toParent2()->isAggregateDeclaration();
 
         if (f->needThis())
         {
+            AggregateDeclaration *ad = f->toParent2()->isAggregateDeclaration();
             ue->e1 = getRightThis(loc, sc, ad, ue->e1, f);
             if (ue->e1->op == TOKerror)
                 return ue->e1;
