@@ -126,7 +126,7 @@ enum TOK
         TOKfloat32, TOKfloat64, TOKfloat80,
         TOKimaginary32, TOKimaginary64, TOKimaginary80,
         TOKcomplex32, TOKcomplex64, TOKcomplex80,
-        TOKchar, TOKwchar, TOKdchar, TOKbit, TOKbool,
+        TOKchar, TOKwchar, TOKdchar, TOKbool,
 
 // 152
         // Aggregates
@@ -185,7 +185,7 @@ enum TOK
 
 #define BASIC_TYPES                     \
         TOKwchar: case TOKdchar:                \
-        case TOKbit: case TOKbool: case TOKchar:        \
+        case TOKbool: case TOKchar:             \
         case TOKint8: case TOKuns8:             \
         case TOKint16: case TOKuns16:           \
         case TOKint32: case TOKuns32:           \
