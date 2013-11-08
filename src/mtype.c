@@ -2240,7 +2240,7 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident, int flag
              *  tempalte opDispatch(name) if (isValid!name) { ... }
              */
             unsigned errors = flag ? global.startGagging() : 0;
-            Expression *e = dti->semanticY(sc, 0);
+            e = dti->semanticY(sc, 0);
             if (flag && global.endGagging(errors))
                 e = NULL;
             return e;
