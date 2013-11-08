@@ -2123,7 +2123,7 @@ Lagain:
 
                 unsigned char i = dim == 2;
                 if (!fdapply[i]) {
-                    Parameters* args = new Parameters;
+                    args = new Parameters;
                     args->push(new Parameter(STCin, Type::tvoid->pointerTo(), NULL, NULL));
                     args->push(new Parameter(STCin, Type::tsize_t, NULL, NULL));
                     Parameters* dgargs = new Parameters;
@@ -2183,7 +2183,7 @@ Lagain:
 
                 FuncDeclaration *fdapply;
                 TypeDelegate *dgty;
-                Parameters* args = new Parameters;
+                args = new Parameters;
                 args->push(new Parameter(STCin, tn->arrayOf(), NULL, NULL));
                 Parameters* dgargs = new Parameters;
                 dgargs->push(new Parameter(STCin, Type::tvoidptr, NULL, NULL));
