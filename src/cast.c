@@ -645,6 +645,27 @@ MATCH AssocArrayLiteralExp::implicitConvTo(Type *t)
         return Expression::implicitConvTo(t);
 }
 
+Expression *CallExp::implicitCastTo(Scope *sc, Type *t)
+{
+    //printf("CallExp::implicitCastTo(%s of type %s) => %s\n", toChars(), type->toChars(), t->toChars());
+
+    /* Allow the result of strongly pure functions to
+     * convert to immutable
+     */
+    if (f && f->isolateReturn() &&
+        type->immutableOf()->equals(t->immutableOf()))
+    {
+        /* Avoid emitting CastExp for:
+         *  T[] make() pure { ...  }
+         *  immutable T[] arr = make();  // unique return
+         */
+        Expression *e = copy();
+        e->type = t;
+        return e;
+    }
+    return Expression::implicitCastTo(sc, t);
+}
+
 MATCH CallExp::implicitConvTo(Type *t)
 {
 #if 0

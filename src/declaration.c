@@ -837,7 +837,8 @@ void VarDeclaration::semantic(Scope *sc)
 
     Scope *scx = NULL;
     if (scope)
-    {   sc = scope;
+    {
+        sc = scope;
         scx = sc;
         scope = NULL;
     }
@@ -858,7 +859,8 @@ void VarDeclaration::semantic(Scope *sc)
      */
     int inferred = 0;
     if (!type)
-    {   inuse++;
+    {
+        inuse++;
 
         // Infering the type requires running semantic,
         // so mark the scope as ctfe if required
@@ -868,7 +870,8 @@ void VarDeclaration::semantic(Scope *sc)
         //printf("inferring type for %s with init %s\n", toChars(), init->toChars());
         ArrayInitializer *ai = init->isArrayInitializer();
         if (ai)
-        {   Expression *e;
+        {
+            Expression *e;
             if (ai->isAssociativeArray())
                 e = ai->toAssocArrayLiteral();
             else
@@ -895,7 +898,8 @@ void VarDeclaration::semantic(Scope *sc)
         inferred = 1;
 
         if (init->isArrayInitializer() && type->toBasetype()->ty == Tsarray)
-        {   // Prefer array literals to give a T[] type rather than a T[dim]
+        {
+            // Prefer array literals to give a T[] type rather than a T[dim]
             type = type->toBasetype()->nextOf()->arrayOf();
         }
 
@@ -906,7 +910,8 @@ void VarDeclaration::semantic(Scope *sc)
         originalType = type->syntaxCopy();
     }
     else
-    {   if (!originalType)
+    {
+        if (!originalType)
             originalType = type->syntaxCopy();
         inuse++;
         type = type->semantic(loc, sc);
@@ -978,13 +983,14 @@ void VarDeclaration::semantic(Scope *sc)
         tb = type;
     }
     if (tb->ty == Tfunction)
-    {   error("cannot be declared to be a function");
+    {
+        error("cannot be declared to be a function");
         type = Type::terror;
         tb = type;
     }
     if (tb->ty == Tstruct)
-    {   TypeStruct *ts = (TypeStruct *)tb;
-
+    {
+        TypeStruct *ts = (TypeStruct *)tb;
         if (!ts->sym->members)
         {
             error("no definition of struct %s", ts->toChars());
@@ -994,7 +1000,8 @@ void VarDeclaration::semantic(Scope *sc)
        error("storage class 'auto' has no effect if type is not inferred, did you mean 'scope'?");
 
     if (tb->ty == Ttuple)
-    {   /* Instead, declare variables for each of the tuple elements
+    {
+        /* Instead, declare variables for each of the tuple elements
          * and add those.
          */
         TypeTuple *tt = (TypeTuple *)tb;
@@ -1097,7 +1104,8 @@ Lnomatch:
             TupleExp *te = (TupleExp *)ie;
             size_t tedim = te->exps->dim;
             if (tedim != nelems)
-            {   ::error(loc, "tuple of %d elements cannot be assigned to tuple of %d elements", (int)tedim, (int)nelems);
+            {
+                ::error(loc, "tuple of %d elements cannot be assigned to tuple of %d elements", (int)tedim, (int)nelems);
                 for (size_t u = tedim; u < nelems; u++) // fill dummy expression
                     te->exps->push(new ErrorExp());
             }
@@ -1137,7 +1145,8 @@ Lnomatch:
             v->semantic(sc);
 
             if (sc->scopesym)
-            {   //printf("adding %s to %s\n", v->toChars(), sc->scopesym->toChars());
+            {
+                //printf("adding %s to %s\n", v->toChars(), sc->scopesym->toChars());
                 if (sc->scopesym->members)
                     sc->scopesym->members->push(v);
             }
@@ -1377,7 +1386,8 @@ Lnomatch:
         }
         else if (type->ty == Tstruct &&
             ((TypeStruct *)type)->sym->zeroInit == 1)
-        {   /* If a struct is all zeros, as a special case
+        {
+            /* If a struct is all zeros, as a special case
              * set it's initializer to the integer 0.
              * In AssignExp::toElem(), we check for this and issue
              * a memset() to initialize the struct.
@@ -1392,9 +1402,11 @@ Lnomatch:
             goto Ldtor;
         }
         else if (type->ty == Ttypedef)
-        {   TypeTypedef *td = (TypeTypedef *)type;
+        {
+            TypeTypedef *td = (TypeTypedef *)type;
             if (td->sym->init)
-            {   init = td->sym->init;
+            {
+                init = td->sym->init;
                 ExpInitializer *ie = init->isExpInitializer();
                 if (ie)
                     // Make copy so we can modify it
@@ -1429,9 +1441,11 @@ Lnomatch:
         {
             // See if initializer is a NewExp that can be allocated on the stack
             if (ei->exp->op == TOKnew)
-            {   NewExp *ne = (NewExp *)ei->exp;
+            {
+                NewExp *ne = (NewExp *)ei->exp;
                 if (!(ne->newargs && ne->newargs->dim))
-                {   ne->onstack = 1;
+                {
+                    ne->onstack = 1;
                     onstack = 1;
                     if (type->isBaseOf(ne->newtype->semantic(loc, sc), NULL))
                         onstack = 2;
@@ -1439,7 +1453,8 @@ Lnomatch:
             }
             // or a delegate that doesn't escape a reference to the function
             else if (ei->exp->op == TOKfunction)
-            {   FuncDeclaration *f = ((FuncExp *)ei->exp)->fd;
+            {
+                FuncDeclaration *f = ((FuncExp *)ei->exp)->fd;
                 f->tookAddressOf--;
             }
         }
@@ -1463,7 +1478,8 @@ Lnomatch:
                         init = init->semantic(sc, type, INITnointerpret);
                         e = init->toExpression();
                         if (!e)
-                        {   error("is not a static and cannot have static initializer");
+                        {
+                            error("is not a static and cannot have static initializer");
                             return;
                         }
                     }
@@ -1472,150 +1488,6 @@ Lnomatch:
                 }
 
                 Expression *e1 = new VarExp(loc, this);
-
-                Type *t = type->toBasetype();
-                if (ei && !inferred)
-                    ei->exp = ei->exp->inferType(t);
-
-            Linit2:
-                if (t->ty == Tsarray && !(storage_class & (STCref | STCout)))
-                {
-                    ei->exp = ei->exp->semantic(sc);
-                    if (!ei->exp->implicitConvTo(type))
-                    {
-                        dinteger_t dim = ((TypeSArray *)t)->dim->toInteger();
-                        // If multidimensional static array, treat as one large array
-                        while (1)
-                        {
-                            t = t->nextOf()->toBasetype();
-                            if (t->ty != Tsarray)
-                                break;
-                            dim *= ((TypeSArray *)t)->dim->toInteger();
-                            e1->type = TypeSArray::makeType(Loc(), t->nextOf(), dim);
-                        }
-                    }
-                    e1 = new SliceExp(loc, e1, NULL, NULL);
-                }
-                else if (t->ty == Tstruct)
-                {
-                    ei->exp = ei->exp->semantic(sc);
-                    ei->exp = resolveProperties(sc, ei->exp);
-                    StructDeclaration *sd = ((TypeStruct *)t)->sym;
-#if DMDV2
-                    Expression** pinit = &ei->exp;
-                    while ((*pinit)->op == TOKcomma)
-                    {
-                        pinit = &((CommaExp *)*pinit)->e2;
-                    }
-
-                    /* Look to see if initializer is a call to the constructor
-                     */
-                    if (sd->ctor &&             // there are constructors
-                        (*pinit)->type->ty == Tstruct && // rvalue is the same struct
-                        ((TypeStruct *)(*pinit)->type)->sym == sd &&
-                        (*pinit)->op == TOKcall)
-                    {
-                        /* Look for form of constructor call which is:
-                         *    *__ctmp.ctor(arguments...)
-                         */
-                        if ((*pinit)->type->implicitConvTo(t))
-                        {   CallExp *ce = (CallExp *)(*pinit);
-                            if (ce->e1->op == TOKdotvar)
-                            {   DotVarExp *dve = (DotVarExp *)ce->e1;
-                                if (dve->var->isCtorDeclaration())
-                                {   /* It's a constructor call, currently constructing
-                                     * a temporary __ctmp.
-                                     */
-                                    /* Before calling the constructor, initialize
-                                     * variable with a bit copy of the default
-                                     * initializer
-                                     */
-
-                                    /* Remove ref if this declaration is ref binding.
-                                     * ref Type __self = (__ctmp = 0, __ctmp).this(...);
-                                     * ->  Type __self = (__self = 0, __self.this(...));
-                                     */
-                                    storage_class &= ~(STCref | STCforeach | STCparameter);
-
-                                    Expression *e = new VarExp(loc, this);
-                                    if (sd->zeroInit == 1)
-                                    {
-                                        e = new ConstructExp(loc, e, new IntegerExp(loc, 0, Type::tint32));
-                                    }
-                                    else if (sd->isNested())
-                                    {
-                                        e = new AssignExp(loc, e, t->defaultInitLiteral(loc));
-                                        e->op = TOKblit;
-                                    }
-                                    else
-                                    {
-                                        e = new AssignExp(loc, e, t->defaultInit(loc));
-                                        e->op = TOKblit;
-                                    }
-                                    e->type = t;
-
-                                    /* Replace __ctmp being constructed with e1.
-                                     * We need to copy constructor call expression,
-                                     * because it may be used in other place.
-                                     */
-                                    DotVarExp *dvx = (DotVarExp *)dve->copy();
-                                    dvx->e1 = e1;
-                                    CallExp *cx = (CallExp *)ce->copy();
-                                    cx->e1 = dvx;
-
-                                    (*pinit) = new CommaExp(loc, e, cx);
-                                    (*pinit) = (*pinit)->semantic(sc);
-                                    goto Ldtor;
-                                }
-                            }
-                        }
-                    }
-
-                    /* Look for ((S tmp = S()),tmp) and replace it with just S()
-                     */
-                    Expression *e2 = ei->exp->isTemp();
-                    if (e2)
-                    {
-                        ei->exp = e2;
-                        goto Linit2;
-                    }
-#endif
-                    if (!ei->exp->implicitConvTo(type))
-                    {
-                        Type *ti = ei->exp->type->toBasetype();
-                        // Look for constructor first
-                        if (sd->ctor &&
-                            /* Initializing with the same type is done differently
-                             */
-                            !(ti->ty == Tstruct && t->toDsymbol(sc) == ti->toDsymbol(sc)))
-                        {
-                           // Rewrite as e1.ctor(arguments)
-                            Expression *ector = new DotIdExp(loc, e1, Id::ctor);
-                            ei->exp = new CallExp(loc, ector, ei->exp);
-                            /* Before calling the constructor, initialize
-                             * variable with a bit copy of the default
-                             * initializer
-                             */
-                            Expression *e = new AssignExp(loc, e1, t->defaultInit(loc));
-                            e->op = TOKblit;
-                            e->type = t;
-                            ei->exp = new CommaExp(loc, e, ei->exp);
-                        }
-                        else
-                        /* Look for static opCall
-                         * See bugzilla 2702 for more discussion
-                         */
-                        // Don't cast away invariant or mutability in initializer
-                        if (search_function(sd, Id::call) &&
-                            /* Initializing with the same type is done differently
-                             */
-                            !(ti->ty == Tstruct && t->toDsymbol(sc) == ti->toDsymbol(sc)))
-                        {   // Rewrite as e1.call(arguments)
-                            Expression *e = typeDotIdExp(ei->exp->loc, t, Id::call);
-                            ei->exp = new CallExp(loc, e, ei->exp);
-                        }
-                    }
-                }
                 ei->exp = new AssignExp(loc, e1, ei->exp);
                 ei->exp->op = op;
                 canassign++;

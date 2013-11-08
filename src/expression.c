@@ -11243,7 +11243,8 @@ Expression *AssignExp::semantic(Scope *sc)
         return this;
 
     if (e2->op == TOKcomma)
-    {   /* Rewrite to get rid of the comma from rvalue
+    {
+        /* Rewrite to get rid of the comma from rvalue
          */
         AssignExp *ea = new AssignExp(loc, e1, ((CommaExp *)e2)->e2);
         ea->op = op;
@@ -11525,23 +11526,139 @@ Ltupleassign:
         op = TOKconstruct;
     }
 
-    // Determine if this is an initialization of a reference
-    int refinit = 0;
-    if (op == TOKconstruct && e1->op == TOKvar)
-    {
-        VarExp *ve = (VarExp *)e1;
-        VarDeclaration *v = ve->var->isVarDeclaration();
-        if (v->storage_class & (STCout | STCref))
-            refinit = 1;
-    }
-
     /* If it is an assignment from a 'foreign' type,
      * check for operator overloading.
      */
-    if (t1->ty == Tstruct)
+    if (op == TOKconstruct && e1->op == TOKvar &&
+        ((VarExp *)e1)->var->storage_class & (STCout | STCref))
+    {
+        // If this is an initialization of a reference,
+        // do nothing
+    }
+    else if (t1->ty == Tstruct)
     {
         StructDeclaration *sd = ((TypeStruct *)t1)->sym;
-        if (op == TOKassign)
+        if (op == TOKconstruct)
+        {
+            Type *t2 = e2->type->toBasetype();
+            if (t2->ty == Tstruct && sd == ((TypeStruct *)t2)->sym)
+            {
+                CallExp *ce;
+                DotVarExp *dve;
+                if (sd->ctor &&            // there are constructors
+                    e2->op == TOKcall &&
+                    (ce = (CallExp *)e2, ce->e1->op == TOKdotvar) &&
+                    (dve = (DotVarExp *)ce->e1, dve->var->isCtorDeclaration()) &&
+                    e2->type->implicitConvTo(t1))
+                {
+                    /* Look for form of constructor call which is:
+                     *    __ctmp.ctor(arguments...)
+                     */
+
+                    /* Before calling the constructor, initialize
+                     * variable with a bit copy of the default
+                     * initializer
+                     */
+                    AssignExp *ae = this;
+                    if (sd->zeroInit == 1)
+                        ae->e2 = new IntegerExp(loc, 0, Type::tint32);
+                    else if (sd->isNested())
+                        ae->e2 = t1->defaultInitLiteral(loc);
+                    else
+                        ae->e2 = t1->defaultInit(loc);
+                    // Keep ae->op == TOKconstruct
+                    ae->type = e1->type;
+
+                    /* Replace __ctmp being constructed with e1.
+                     * We need to copy constructor call expression,
+                     * because it may be used in other place.
+                     */
+                    DotVarExp *dvx = (DotVarExp *)dve->copy();
+                    dvx->e1 = this->e1;
+                    CallExp *cx = (CallExp *)ce->copy();
+                    cx->e1 = dvx;
+
+                    Expression *e = new CommaExp(loc, ae, cx);
+                    e = e->semantic(sc);
+                    return e;
+                }
+                if (sd->cpctor)
+                {
+                    /* We have a copy constructor for this
+                     */
+                    if (e2->op == TOKquestion)
+                    {
+                        /* Rewrite as:
+                         *  a ? e1 = b : e1 = c;
+                         */
+                        CondExp *econd = (CondExp *)e2;
+                        Expression *ea1 = new ConstructExp(econd->e1->loc, e1, econd->e1);
+                        Expression *ea2 = new ConstructExp(econd->e1->loc, e1, econd->e2);
+                        Expression *e = new CondExp(loc, econd->econd, ea1, ea2);
+                        return e->semantic(sc);
+                    }
+
+                    if (e2->isLvalue())
+                    {
+                        /* Rewrite as:
+                         *  e1.cpctor(e2);
+                         */
+                        if (!e2->type->implicitConvTo(e1->type))
+                            error("conversion error from %s to %s", e2->type->toChars(), e1->type->toChars());
+
+                        Expression *e = new DotVarExp(loc, e1, sd->cpctor, 0);
+                        e = new CallExp(loc, e, e2);
+                        return e->semantic(sc);
+                    }
+                    else
+                    {
+                        /* The struct value returned from the function is transferred
+                         * so should not call the destructor on it.
+                         */
+                        e2 = valueNoDtor(e2);
+                    }
+                }
+            }
+            else if (!e2->implicitConvTo(t1))
+            {
+                if (sd->ctor)
+                {
+                    /* Look for implicit constructor call
+                     * Rewrite as:
+                     *  e1 = init, e1.ctor(e2)
+                     */
+                    Expression *ex;
+                    ex = new AssignExp(loc, e1, e1->type->defaultInit(loc));
+                    ex->op = TOKblit;
+                    ex->type = e1->type;
+
+                    Expression *e;
+                    e = new DotIdExp(loc, e1, Id::ctor);
+                    e = new CallExp(loc, e, e2);
+                    e = new CommaExp(loc, ex, e);
+                    e = e->semantic(sc);
+                    return e;
+                }
+                else if (search_function(sd, Id::call))
+                {
+                    /* Look for static opCall
+                     * (See bugzilla 2702 for more discussion)
+                     * Rewrite as:
+                     *  e1 = typeof(e1).opCall(arguments)
+                     */
+                    Expression *e = typeDotIdExp(e2->loc, e1->type, Id::call);
+                    e2 = new CallExp(loc, e, e2);
+
+                    e2 = e2->semantic(sc);
+                    if (e2->op == TOKerror)
+                        return new ErrorExp();
+                    e2 = resolveProperties(sc, e2);
+                    if (!e2->rvalue())
+                        return new ErrorExp();
+                }
+            }
+        }
+        else if (op == TOKassign)
         {
             if (e1->op == TOKindex &&
                 ((IndexExp *)e1)->e1->type->toBasetype()->ty == Taarray)
@@ -11607,26 +11724,24 @@ Ltupleassign:
                 ae->e2 = ev;
                 //Expression *e = new CallExp(loc, new DotIdExp(loc, ex, Id::assign), ev);
                 Expression *e = ae->op_overload(sc);
-                if (!e)
-                    goto Lx;
-
-                Expression *ey = NULL;
-                if (t2->ty == Tstruct && sd == t2->toDsymbol(sc))
+                if (e)
                 {
-                    ey = ev;
-                    goto Lctor;
-                }
-                else if (!ev->implicitConvTo(ie->type) && sd->ctor)
-                {
-                    // Look for implicit constructor call
-                    // Rewrite as S().ctor(e2)
-                    ey = new StructLiteralExp(loc, sd, NULL);
-                    ey = new DotIdExp(loc, ey, Id::ctor);
-                    ey = new CallExp(loc, ey, ev);
-                    ey = ey->trySemantic(sc);
+                    Expression *ey = NULL;
+                    if (t2->ty == Tstruct && sd == t2->toDsymbol(sc))
+                    {
+                        ey = ev;
+                    }
+                    else if (!ev->implicitConvTo(ie->type) && sd->ctor)
+                    {
+                        // Look for implicit constructor call
+                        // Rewrite as S().ctor(e2)
+                        ey = new StructLiteralExp(loc, sd, NULL);
+                        ey = new DotIdExp(loc, ey, Id::ctor);
+                        ey = new CallExp(loc, ey, ev);
+                        ey = ey->trySemantic(sc);
+                    }
                     if (ey)
                     {
-                    Lctor:
                         Expression *ex;
                         ex = new IndexExp(loc, ea, ek);
                         ex = ex->semantic(sc);
@@ -11635,141 +11750,23 @@ Ltupleassign:
                         ey = new ConstructExp(loc, ex, ey);
 
                         ey = new CastExp(ey->loc, ey, Type::tvoid);
+
+                        e = new CondExp(loc, new InExp(loc, ek, ea), e, ey);
                     }
-                }
-                if (ey)
-                    e = new CondExp(loc, new InExp(loc, ek, ea), e, ey);
-
-                e = combine(e0, e);
-                e = e->semantic(sc);
-                return e;
-            }
-
-            Expression *e = op_overload(sc);
-            if (e)
-            {
-                /* See if we need to set ctorinit, i.e. track
-                 * assignments to fields. An assignment to a field counts even
-                 * if done through an opAssign overload.
-                 */
-                return e;
-            }
-        }
-        else if (op == TOKconstruct && !refinit)
-        {
-            Type *t2 = e2->type->toBasetype();
-            if (t2->ty == Tstruct && sd == ((TypeStruct *)t2)->sym)
-            {
-                if (sd->ctor &&            // there are constructors
-                    e2->op == TOKcall &&
-                    e2->type->implicitConvTo(t1))
-                {
-                    /* Look for form of constructor call which is:
-                     *    *__ctmp.ctor(arguments...)
-                     */
-                    CallExp *ce = (CallExp *)e2;
-                    if (ce->e1->op == TOKdotvar)
-                    {
-                        DotVarExp *dve = (DotVarExp *)ce->e1;
-                        if (dve->var->isCtorDeclaration())
-                        {
-                            /* It's a constructor call, currently constructing
-                             * a temporary __ctmp.
-                             */
-                            /* Before calling the constructor, initialize
-                             * variable with a bit copy of the default
-                             * initializer
-                             */
-
-                            if (sd->zeroInit == 1)
-                            {
-                                e2 = new IntegerExp(loc, 0, Type::tint32);
-                            }
-                            else if (sd->isNested())
-                            {
-                                e2 = t1->defaultInitLiteral(loc);
-                                this->op = TOKblit;
-                            }
-                            else
-                            {
-                                e2 = t1->defaultInit(loc);
-                                this->op = TOKblit;
-                            }
-                            type = e1->type;
-
-                            /* Replace __ctmp being constructed with e1.
-                             * We need to copy constructor call expression,
-                             * because it may be used in other place.
-                             */
-                            DotVarExp *dvx = (DotVarExp *)dve->copy();
-                            dvx->e1 = e1;
-                            CallExp *cx = (CallExp *)ce->copy();
-                            cx->e1 = dvx;
-
-                            Expression *e = new CommaExp(loc, this, cx);
-                            e = e->semantic(sc);
-                            return e;
-                        }
-                    }
-                }
-                if (sd->cpctor)
-                {
-                    /* We have a copy constructor for this
-                     */
-                    if (e2->op == TOKquestion)
-                    {
-                        /* Write as:
-                         *  a ? e1 = b : e1 = c;
-                         */
-                        CondExp *econd = (CondExp *)e2;
-                        AssignExp *ea1 = new AssignExp(econd->e1->loc, e1, econd->e1);
-                        ea1->op = op;
-                        AssignExp *ea2 = new AssignExp(econd->e1->loc, e1, econd->e2);
-                        ea2->op = op;
-                        Expression *e = new CondExp(loc, econd->econd, ea1, ea2);
-                        return e->semantic(sc);
-                    }
-
-                    if (e2->isLvalue())
-                    {
-                        /* Write as:
-                         *  e1.cpctor(e2);
-                         */
-                        if (!e2->type->implicitConvTo(e1->type))
-                            error("conversion error from %s to %s", e2->type->toChars(), e1->type->toChars());
-
-                        Expression *e = new DotVarExp(loc, e1, sd->cpctor, 0);
-                        e = new CallExp(loc, e, e2);
-                        return e->semantic(sc);
-                    }
-                    else
-                    {
-                        /* The struct value returned from the function is transferred
-                         * so should not call the destructor on it.
-                         */
-                        e2 = valueNoDtor(e2);
-                    }
+                    e = combine(e0, e);
+                    e = e->semantic(sc);
+                    return e;
                 }
             }
             else
             {
-                if (!e2->implicitConvTo(t1))
-                {
-                    // Look for implicit constructor call
-                    if (sd->ctor)
-                    {
-                        // Look for constructor first
-                        // Rewrite as e1.ctor(arguments)
-                        Expression *e;
-                        e = new DotIdExp(loc, e1, Id::ctor);
-                        e = new CallExp(loc, e, e2);
-                        e = e->semantic(sc);
-                        return e;
-                    }
-                }
+                Expression *e = op_overload(sc);
+                if (e)
+                    return e;
             }
         }
-        Lx: ;
+        else
+            assert(op == TOKblit);
     }
     else if (t1->ty == Tclass)
     {
@@ -11781,8 +11778,7 @@ Ltupleassign:
                 return e;
         }
     }
-
-    if (t1->ty == Tsarray && !refinit)
+    else if (t1->ty == Tsarray)
     {
         Type *t2 = e2->type->toBasetype();
 
@@ -11792,11 +11788,98 @@ Ltupleassign:
             // Assignment to an AA of fixed-length arrays.
             // Convert T[n][U] = T[] into T[n][U] = T[n]
             e2 = e2->implicitCastTo(sc, e1->type);
-            if (e2->type == Type::terror)
+            if (e2->op == TOKerror)
                 return e2;
         }
-        else
+        else if (op == TOKconstruct)
         {
+            Expression *e2x = e2;
+            if (e2x->op == TOKslice)
+            {
+                SliceExp *se = (SliceExp *)e2;
+                if (se->lwr == NULL && se->e1->implicitConvTo(e1->type))
+                {
+                    e2x = se->e1;
+                }
+            }
+            if (e2x->op == TOKcall && !e2x->isLvalue() &&
+                e2x->implicitConvTo(e1->type))
+            {
+                // Keep the expression form for NRVO
+                e2 = e2x->implicitCastTo(sc, e1->type);
+                if (e2->op == TOKerror)
+                    return e2;
+            }
+            else
+            {
+                /* Rewrite:
+                 *  sa = e;     as: sa[] = e;
+                 *  sa = arr;   as: sa[] = arr[];
+                 *  sa = [...]; as: sa[] = [...];
+                 */
+                // Convert e2 to e2[], if t2 is impllicitly convertible to t1.
+                if (e2->op != TOKarrayliteral && t2->ty == Tsarray && t2->implicitConvTo(t1))
+                {
+                    e2 = new SliceExp(e2->loc, e2, NULL, NULL);
+                    e2 = e2->semantic(sc);
+                }
+        #if 1
+                else if (!e2->implicitConvTo(e1->type))
+                {
+                    // If multidimensional static array, treat as one large array
+                    dinteger_t dim = ((TypeSArray *)t1)->dim->toInteger();
+                    Type *t = t1;
+                    while (1)
+                    {
+                        t = t->nextOf()->toBasetype();
+                        if (t->ty != Tsarray)
+                            break;
+                        dim *= ((TypeSArray *)t)->dim->toInteger();
+                        e1->type = TypeSArray::makeType(Loc(), t->nextOf(), dim);
+                    }
+                }
+        #else   // TODO: This is an enhancement feature.
+                else
+                {
+                    /* multidimentional block assignment on initialization
+                     * Rewrite:
+                     *     T e;   // T may be static array type
+                     *     T[d1][d2]...[dn] sa = e;
+                     * as:
+                     *     T[d1*d2* ... dn] sa = e;
+                     */
+                    Type *t = t1->nextOf();
+                    dinteger_t dim = ((TypeSArray *)t1)->dim->toInteger();
+                    while (1)
+                    {
+                        if (t2->implicitConvTo(t))
+                        {
+                            if (t != t1->nextOf())
+                                e1->type = TypeSArray::makeType(Loc(), t, dim);
+                            break;
+                        }
+                        if (t->ty != Tsarray)
+                            break;
+                        dim *= ((TypeSArray *)t)->dim->toInteger();
+                        t = t->nextOf()->toBasetype();
+                    }
+                }
+        #endif
+
+                // Convert e1 to e1[]
+                e1 = new SliceExp(e1->loc, e1, NULL, NULL);
+                e1 = e1->semantic(sc);
+                t1 = e1->type->toBasetype();
+            }
+        }
+        else if (op == TOKassign)
+        {
+            /* Rewrite:
+             *  sa = e;     as: sa[] = e;
+             *  sa = arr;   as: sa[] = arr[];
+             *  sa = [...]; as: sa[] = [...];
+             */
+
             // Convert e2 to e2[], unless e2-> e1[0]
             if (e2->op != TOKarrayliteral && t2->ty == Tsarray && !t2->implicitConvTo(t1->nextOf()))
             {
@@ -11826,12 +11909,40 @@ Ltupleassign:
             }
 
             // Convert e1 to e1[]
-            Expression *e = new SliceExp(e1->loc, e1, NULL, NULL);
-            e1 = e->semantic(sc);
+            e1 = new SliceExp(e1->loc, e1, NULL, NULL);
+            e1 = e1->semantic(sc);
+            t1 = e1->type->toBasetype();
+        }
+        else
+        {
+            assert(op == TOKblit);
+
+            if (!e2->implicitConvTo(e1->type))
+            {
+                /* Internal handling for the default initialization
+                 * of multi-dimentional static array:
+                 *  T[2][3] sa; // = T.init; if T is zero-init
+                 */
+                // Treat e1 as one large array
+                dinteger_t dim = ((TypeSArray *)t1)->dim->toInteger();
+                Type *t = t1;
+                while (1)
+                {
+                    t = t->nextOf()->toBasetype();
+                    if (t->ty != Tsarray)
+                        break;
+                    dim *= ((TypeSArray *)t)->dim->toInteger();
+                    e1->type = TypeSArray::makeType(Loc(), t->nextOf(), dim);
+                }
+            }
+            e1 = new SliceExp(loc, e1, NULL, NULL);
+            e1 = e1->semantic(sc);
             t1 = e1->type->toBasetype();
         }
     }
 
+    /* Check the mutability of e1.
+     */
     if (e1->op == TOKarraylength)
     {
         // e1 is not an lvalue, but we let code generator handle it
@@ -11853,7 +11964,8 @@ Ltupleassign:
         }
     }
     else
-    {   // Try to do a decent error message with the expression
+    {
+        // Try to do a decent error message with the expression
         // before it got constant folded
         if (e1->op != TOKvar)
             e1 = e1->optimize(WANTvalue);
@@ -11876,7 +11988,8 @@ Ltupleassign:
         t1->nextOf() && (telem->ty != Tvoid || e2->op == TOKnull) &&
         e2->implicitConvTo(t1->nextOf())
        )
-    {   // memset
+    {
+        // memset
         ismemset = 1;   // make it easy for back end to tell what this is
         e2 = e2->implicitCastTo(sc, t1->nextOf());
         if (op != TOKblit && e2->isLvalue())
@@ -11887,18 +12000,22 @@ Ltupleassign:
         /* Should have already converted e1 => e1[]
          * unless it is an AA
          */
-        if (!(e1->op == TOKindex && t2->ty == Tsarray &&
-            ((IndexExp *)e1)->e1->type->toBasetype()->ty == Taarray))
+        if (e1->op == TOKindex && t2->ty == Tsarray &&
+            ((IndexExp *)e1)->e1->type->toBasetype()->ty == Taarray)
         {
-            assert(op == TOKconstruct);
         }
+        else
+            assert(op != TOKassign);
         //error("cannot assign to static array %s", e1->toChars());
     }
     // Check element-wise assignment.
     else if (e1->op == TOKslice &&
-        (t2->ty == Tarray || t2->ty == Tsarray) &&
-        t2->nextOf()->implicitConvTo(t1->nextOf()))
+             (t2->ty == Tarray || t2->ty == Tsarray) &&
+             t2->nextOf()->implicitConvTo(t1->nextOf()))
     {
+        /* If assigned elements number is known at compile time,
+         * check the mismatch.
+         */
         SliceExp *se1 = (SliceExp *)e1;
         Type *tx1 = se1->e1->type->toBasetype();
         if (se1->lwr == NULL && tx1->ty == Tsarray)
@@ -11913,7 +12030,8 @@ Ltupleassign:
                 goto Lsa;
             }
             if (tx2->ty == Tsarray)
-            {   // sa1[] = sa2[];
+            {
+                // sa1[] = sa2[];
                 // sa1[] = sa2;
                 // sa1[] = [ ... ];
                 dim2 = ((TypeSArray *)tx2)->dim->toInteger();
