@@ -449,7 +449,7 @@ Expression *DotVarExp::optimize(int result, bool keepLvalue)
         VarDeclaration *vf = var->isVarDeclaration();
         if (vf)
         {
-            Expression *e = sle->getField(type, vf->offset);
+            e = sle->getField(type, vf->offset);
             if (e && e != EXP_CANT_INTERPRET)
                 return e;
         }
