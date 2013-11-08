@@ -3887,8 +3887,7 @@ MATCH TypeInstance::deduceType(Scope *sc,
                         goto Le;
                     goto Lnomatch;
                 }
-                TemplateParameter *tp = (*parameters)[j];
-                if (!tp->matchArg(sc, e1, j, parameters, dedtypes, NULL))
+                if (!(*parameters)[j]->matchArg(sc, e1, j, parameters, dedtypes, NULL))
                     goto Lnomatch;
             }
             else if (s1 && s2)
@@ -3907,8 +3906,7 @@ MATCH TypeInstance::deduceType(Scope *sc,
                         goto Ls;
                     goto Lnomatch;
                 }
-                TemplateParameter *tp = (*parameters)[j];
-                if (!tp->matchArg(sc, s1, j, parameters, dedtypes, NULL))
+                if (!(*parameters)[j]->matchArg(sc, s1, j, parameters, dedtypes, NULL))
                     goto Lnomatch;
             }
             else
