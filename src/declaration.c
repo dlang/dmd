@@ -1006,8 +1006,6 @@ void VarDeclaration::semantic(Scope *sc)
          */
         TypeTuple *tt = (TypeTuple *)tb;
         size_t nelems = Parameter::dim(tt->arguments);
-        Objects *exps = new Objects();
-        exps->setDim(nelems);
         Expression *ie = (init && !init->isVoidInitializer()) ? init->toExpression() : NULL;
         if (ie) ie = ie->semantic(sc);
 
@@ -1111,6 +1109,8 @@ Lnomatch:
             }
         }
 
+        Objects *exps = new Objects();
+        exps->setDim(nelems);
         for (size_t i = 0; i < nelems; i++)
         {
             Parameter *arg = Parameter::getNth(tt->arguments, i);
