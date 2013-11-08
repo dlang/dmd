@@ -1891,8 +1891,8 @@ Lagain:
 
             /* Generate a temporary __r and initialize it with the aggregate.
              */
-            Identifier *id = Identifier::generateId("__r");
-            VarDeclaration *r = new VarDeclaration(loc, NULL, id, new ExpInitializer(loc, aggr));
+            Identifier *rid = Identifier::generateId("__r");
+            VarDeclaration *r = new VarDeclaration(loc, NULL, rid, new ExpInitializer(loc, aggr));
             Statement *init = new ExpStatement(loc, r);
 
             // !__r.empty
