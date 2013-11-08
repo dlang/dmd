@@ -321,7 +321,7 @@ void Module::parse()
     char *srcname = srcfile->name->toChars();
     //printf("Module::parse(srcname = '%s')\n", srcname);
 
-    utf8_t *buf = srcfile->buffer;
+    utf8_t *buf = (utf8_t *)srcfile->buffer;
     size_t buflen = srcfile->len;
 
     if (buflen >= 2)

@@ -259,7 +259,7 @@ void Macro::expand(OutBuffer *buf, size_t start, size_t *pend,
     arg = memdup(arg, arglen);
     for (size_t u = start; u + 1 < end; )
     {
-        utf8_t *p = buf->data;   // buf->data is not loop invariant
+        utf8_t *p = (utf8_t *)buf->data;   // buf->data is not loop invariant
 
         /* Look for $0, but not $$0, and replace it with arg.
          */
@@ -327,7 +327,7 @@ void Macro::expand(OutBuffer *buf, size_t start, size_t *pend,
      */
     for (size_t u = start; u + 4 < end; )
     {
-        utf8_t *p = buf->data;   // buf->data is not loop invariant
+        utf8_t *p = (utf8_t *)buf->data;   // buf->data is not loop invariant
 
         /* A valid start of macro expansion is $(c, where c is
          * an id start character, and not $$(c.

@@ -249,7 +249,7 @@ void Module::gendocfile()
             mbuf.write(file.buffer, file.len);
         }
     }
-    DocComment::parseMacros(&escapetable, &macrotable, mbuf.data, mbuf.offset);
+    DocComment::parseMacros(&escapetable, &macrotable, (utf8_t *)mbuf.data, mbuf.offset);
 
     Scope *sc = Scope::createGlobal(this);      // create root scope
     sc->docbuf = &buf;
@@ -305,7 +305,7 @@ void Module::gendocfile()
     }
 
     //printf("BODY= '%.*s'\n", buf.offset, buf.data);
-    Macro::define(&macrotable, (utf8_t *)"BODY", 4, buf.data, buf.offset);
+    Macro::define(&macrotable, (utf8_t *)"BODY", 4, (utf8_t *)buf.data, buf.offset);
 
     OutBuffer buf2;
     buf2.writestring("$(DDOC)\n");
@@ -319,7 +319,7 @@ void Module::gendocfile()
     {
         buf.setsize(0);
         buf.reserve(buf2.offset);
-        utf8_t *p = buf2.data;
+        utf8_t *p = (utf8_t *)buf2.data;
         for (size_t j = 0; j < buf2.offset; j++)
         {
             utf8_t c = p[j];
@@ -1904,7 +1904,7 @@ size_t skippastident(OutBuffer *buf, size_t i)
 
 size_t skippastURL(OutBuffer *buf, size_t i)
 {   size_t length = buf->offset - i;
-    utf8_t *p = &buf->data[i];
+    utf8_t *p = (utf8_t *)&buf->data[i];
     size_t j;
     unsigned sawdot = 0;
 
@@ -2075,7 +2075,7 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
                 leadingBlank = 0;
                 if (inCode)
                     break;
-                p = &buf->data[i];
+                p = (utf8_t *)&buf->data[i];
                 se = sc->module->escapetable->escapeChar('<');
 
                 if (se && strcmp(se, "&lt;") == 0)
@@ -2149,7 +2149,7 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
                 leadingBlank = 0;
                 if (inCode)
                     break;
-                p = &buf->data[i];
+                p = (utf8_t *)&buf->data[i];
                 if (p[1] == '#' || isalpha(p[1]))
                     break;                      // already a character entity
                 // Replace '&' with '&amp;' character entity
@@ -2221,8 +2221,8 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
 
                         // Remove leading indentations from all lines
                         bool lineStart = true;
-                        utf8_t *endp = codebuf.data + codebuf.offset;
-                        for (utf8_t *p = codebuf.data; p < endp; )
+                        utf8_t *endp = (utf8_t *)codebuf.data + codebuf.offset;
+                        for (utf8_t *p = (utf8_t *)codebuf.data; p < endp; )
                         {
                             if (lineStart)
                             {
@@ -2230,11 +2230,11 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
                                 utf8_t *q = p;
                                 while (j-- > 0 && q < endp && isIndentWS(q))
                                     ++q;
-                                codebuf.remove(p - codebuf.data, q - p);
-                                assert(codebuf.data <= p);
-                                assert(p < codebuf.data + codebuf.offset);
+                                codebuf.remove(p - (utf8_t *)codebuf.data, q - p);
+                                assert((utf8_t *)codebuf.data <= p);
+                                assert(p < (utf8_t *)codebuf.data + codebuf.offset);
                                 lineStart = false;
-                                endp = codebuf.data + codebuf.offset; // update
+                                endp = (utf8_t *)codebuf.data + codebuf.offset; // update
                                 continue;
                             }
                             if (*p == '\n')
@@ -2264,7 +2264,7 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
             default:
                 leadingBlank = 0;
                 if (!sc->module->isDocFile &&
-                    !inCode && isIdStart(&buf->data[i]))
+                    !inCode && isIdStart((utf8_t *)&buf->data[i]))
                 {
                     size_t j = skippastident(buf, i);
                     if (j > i)
@@ -2287,14 +2287,14 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
                                 i = buf->bracket(i, "$(DDOC_PSYMBOL ", j, ")") - 1;
                                 break;
                             }
-                            else if (isKeyword(buf->data + i, j - i))
+                            else if (isKeyword((utf8_t *)buf->data + i, j - i))
                             {
                                 i = buf->bracket(i, "$(DDOC_KEYWORD ", j, ")") - 1;
                                 break;
                             }
                             else
                             {
-                                if (f && isFunctionParameter(f, buf->data + i, j - i))
+                                if (f && isFunctionParameter(f, (utf8_t *)buf->data + i, j - i))
                                 {
                                     //printf("highlighting arg '%s', i = %d, j = %d\n", arg->ident->toChars(), i, j);
                                     i = buf->bracket(i, "$(DDOC_PARAM ", j, ")") - 1;
@@ -2343,7 +2343,7 @@ void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset, bool an
             i = buf->insert(i, se, len);
             i--;                // point to ';'
         }
-        else if (isIdStart(&buf->data[i]))
+        else if (isIdStart((utf8_t *)&buf->data[i]))
         {
             size_t j = skippastident(buf, i);
             if (j > i)
@@ -2355,7 +2355,7 @@ void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset, bool an
                 }
                 else if (f)
                 {
-                    if (isFunctionParameter(f, buf->data + i, j - i))
+                    if (isFunctionParameter(f, (utf8_t *)buf->data + i, j - i))
                     {
                         //printf("highlighting arg '%s', i = %d, j = %d\n", arg->ident->toChars(), i, j);
                         i = buf->bracket(i, "$(DDOC_PARAM ", j, ")") - 1;
@@ -2392,10 +2392,10 @@ void highlightCode2(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
     const char *sid = s->ident->toChars();
     FuncDeclaration *f = s->isFuncDeclaration();
     unsigned errorsave = global.errors;
-    Lexer lex(NULL, buf->data, 0, buf->offset - 1, 0, 1);
+    Lexer lex(NULL, (utf8_t *)buf->data, 0, buf->offset - 1, 0, 1);
     Token tok;
     OutBuffer res;
-    const utf8_t *lastp = buf->data;
+    const utf8_t *lastp = (utf8_t *)buf->data;
     const char *highlight;
 
     if (s->isModule() && ((Module *)s)->isDocFile)
