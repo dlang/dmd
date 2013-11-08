@@ -5933,7 +5933,6 @@ Expression *Parser::parsePrimaryExp()
             TOK tok = TOKreserved;
             TOK tok2 = TOKreserved;
             TemplateParameters *tpl = NULL;
-            Loc loc = token.loc;
 
             nextToken();
             if (token.value == TOKlparen)
@@ -6108,7 +6107,6 @@ Expression *Parser::parsePrimaryExp()
             Type *tret = NULL;
             StorageClass stc = 0;
             TOK save = TOKreserved;
-            Loc loc = token.loc;
 
             switch (token.value)
             {
@@ -6173,9 +6171,9 @@ Expression *Parser::parsePrimaryExp()
             if (token.value == TOKgoesto)
             {
                 check(TOKgoesto);
-                Loc loc = token.loc;
+                Loc returnloc = token.loc;
                 Expression *ae = parseAssignExp();
-                fd->fbody = new ReturnStatement(loc, ae);
+                fd->fbody = new ReturnStatement(returnloc, ae);
                 fd->endloc = token.loc;
             }
             else
