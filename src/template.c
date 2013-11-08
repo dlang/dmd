@@ -2707,15 +2707,15 @@ FuncDeclaration *TemplateDeclaration::doHeaderInstantiation(Scope *sc,
     sc2->tinst = ti;
 
     {
-        Scope *sc = sc2;
-        sc = sc->push();
+        Scope *scx = sc2;
+        scx = scx->push();
 
         if (hasttp)
             fd->type = fd->type->addMod(tthis->mod);
         //printf("tthis = %s, fdtype = %s\n", tthis->toChars(), fd->type->toChars());
         if (fd->isCtorDeclaration())
         {
-            sc->flags |= SCOPEctor;
+            scx->flags |= SCOPEctor;
 
             Dsymbol *parent = toParent2();
             Type *tret;
@@ -2727,7 +2727,7 @@ FuncDeclaration *TemplateDeclaration::doHeaderInstantiation(Scope *sc,
             else
             {   tret = ad->handle;
                 assert(tret);
-                tret = tret->addStorageClass(fd->storage_class | sc->stc);
+                tret = tret->addStorageClass(fd->storage_class | scx->stc);
                 tret = tret->addMod(fd->type->mod);
             }
             ((TypeFunction *)fd->type)->next = tret;
@@ -2735,9 +2735,9 @@ FuncDeclaration *TemplateDeclaration::doHeaderInstantiation(Scope *sc,
                 ((TypeFunction *)fd->type)->isref = 1;
             //printf("fd->type = %s\n", fd->type->toChars());
         }
-        fd->type = fd->type->addSTC(sc->stc);
-        fd->type = fd->type->semantic(fd->loc, sc);
-        sc = sc->pop();
+        fd->type = fd->type->addSTC(scx->stc);
+        fd->type = fd->type->semantic(fd->loc, scx);
+        scx = scx->pop();
     }
     //printf("\t[%s] fd->type = %s, mod = %x, ", loc.toChars(), fd->type->toChars(), fd->type->mod);
     //printf("fd->needThis() = %d\n", fd->needThis());
