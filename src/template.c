@@ -1216,11 +1216,10 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(FuncDeclaration *f, Loc l
 
         for (size_t i = 0; i < n; i++)
         {   assert(i < parameters->dim);
-            TemplateParameter *tp = (*parameters)[i];
             MATCH m;
             Declaration *sparam = NULL;
 
-            m = tp->matchArg(loc, paramscope, dedargs, i, parameters, &dedtypes, &sparam);
+            m = (*parameters)[i]->matchArg(loc, paramscope, dedargs, i, parameters, &dedtypes, &sparam);
             //printf("\tdeduceType m = %d\n", m);
             if (m == MATCHnomatch)
                 goto Lnomatch;
@@ -1313,8 +1312,8 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(FuncDeclaration *f, Loc l
 
         // Match 'tthis' to any TemplateThisParameter's
         for (size_t i = 0; i < parameters->dim; i++)
-        {   TemplateParameter *tp = (*parameters)[i];
-            TemplateThisParameter *ttp = tp->isTemplateThisParameter();
+        {
+            TemplateThisParameter *ttp = (*parameters)[i]->isTemplateThisParameter();
             if (ttp)
             {   hasttp = true;
 
@@ -1693,8 +1692,7 @@ Lretry:
              */
             if (farg->op == TOKfunction)
             {   FuncExp *fe = (FuncExp *)farg;
-                Type *tp = prmtype;
-                Expression *e = fe->inferType(tp, 1, paramscope, inferparams);
+                Expression *e = fe->inferType(prmtype, 1, paramscope, inferparams);
                 if (!e)
                     goto Lvarargs;
                 farg = e;
@@ -1875,9 +1873,8 @@ Lretry:
 
                     if (arg->op == TOKfunction)
                     {   FuncExp *fe = (FuncExp *)arg;
-                        Type *tp = tb->nextOf();
 
-                        Expression *e = fe->inferType(tp, 1, paramscope, inferparams);
+                        Expression *e = fe->inferType(tb->nextOf(), 1, paramscope, inferparams);
                         if (!e)
                             goto Lnomatch;
                         arg = e;
