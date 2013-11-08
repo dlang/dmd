@@ -1168,7 +1168,7 @@ Expression *Expression::castTo(Scope *sc, Type *t)
             }
             else if (typeb->implicitConvTo(tb) == MATCHconst && t->equals(type->constOf()))
             {
-                Expression *e = copy();
+                e = copy();
                 e->type = t;
                 return e;
             }
