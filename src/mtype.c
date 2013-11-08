@@ -1747,9 +1747,9 @@ int Type::isscalar()
     return FALSE;
 }
 
-int Type::isunsigned()
+bool Type::isunsigned()
 {
-    return FALSE;
+    return false;
 }
 
 ClassDeclaration *Type::isClassHandle()
@@ -3337,9 +3337,9 @@ int TypeBasic::iscomplex()
     return flags & TFLAGScomplex;
 }
 
-int TypeBasic::isunsigned()
+bool TypeBasic::isunsigned()
 {
-    return flags & TFLAGSunsigned;
+    return (flags & TFLAGSunsigned) != 0;
 }
 
 int TypeBasic::isscalar()
@@ -3580,7 +3580,7 @@ int TypeVector::isfloating()
     return basetype->nextOf()->isfloating();
 }
 
-int TypeVector::isunsigned()
+bool TypeVector::isunsigned()
 {
     return basetype->nextOf()->isunsigned();
 }
@@ -7535,7 +7535,7 @@ int TypeEnum::iscomplex()
     return sym->memtype->iscomplex();
 }
 
-int TypeEnum::isunsigned()
+bool TypeEnum::isunsigned()
 {
     return sym->memtype->isunsigned();
 }
@@ -7758,7 +7758,7 @@ int TypeTypedef::iscomplex()
     return sym->basetype->iscomplex();
 }
 
-int TypeTypedef::isunsigned()
+bool TypeTypedef::isunsigned()
 {
     return sym->basetype->isunsigned();
 }

@@ -258,7 +258,7 @@ public:
     virtual int isimaginary();
     virtual int iscomplex();
     virtual int isscalar();
-    virtual int isunsigned();
+    virtual bool isunsigned();
     virtual int isscope();
     virtual int isString();
     virtual int isAssignable();
@@ -411,7 +411,7 @@ public:
     int isimaginary();
     int iscomplex();
     int isscalar();
-    int isunsigned();
+    bool isunsigned();
     MATCH implicitConvTo(Type *to);
     Expression *defaultInit(Loc loc);
     int isZeroInit(Loc loc);
@@ -447,7 +447,7 @@ public:
     bool isintegral();
     int isfloating();
     int isscalar();
-    int isunsigned();
+    bool isunsigned();
     int checkBoolean();
     MATCH implicitConvTo(Type *to);
     Expression *defaultInit(Loc loc);
@@ -896,7 +896,7 @@ public:
     int isimaginary();
     int iscomplex();
     int isscalar();
-    int isunsigned();
+    bool isunsigned();
     int checkBoolean();
     int isString();
     int isAssignable();
@@ -944,7 +944,7 @@ public:
     int isimaginary();
     int iscomplex();
     int isscalar();
-    int isunsigned();
+    bool isunsigned();
     int checkBoolean();
     int isAssignable();
     int needsDestruction();
