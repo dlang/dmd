@@ -47,9 +47,9 @@ const int CMoctal =     0x1;
 const int CMhex =       0x2;
 const int CMidchar =    0x4;
 
-inline bool isoctal (utf8_t c) { return cmtable[c] & CMoctal; }
-inline bool ishex   (utf8_t c) { return cmtable[c] & CMhex; }
-inline bool isidchar(utf8_t c) { return cmtable[c] & CMidchar; }
+inline bool isoctal (utf8_t c) { return (cmtable[c] & CMoctal) != 0; }
+inline bool ishex   (utf8_t c) { return (cmtable[c] & CMhex) != 0; }
+inline bool isidchar(utf8_t c) { return (cmtable[c] & CMidchar) != 0; }
 
 static void cmtable_init()
 {
