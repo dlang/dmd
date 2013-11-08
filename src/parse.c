@@ -6069,7 +6069,7 @@ Expression *Parser::parsePrimaryExp()
             nextToken();
             while (token.value != TOKrbracket && token.value != TOKeof)
             {
-                    Expression *e = parseAssignExp();
+                    e = parseAssignExp();
                     if (token.value == TOKcolon && (keys || values->dim == 0))
                     {   nextToken();
                         if (!keys)
