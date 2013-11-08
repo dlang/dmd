@@ -1129,8 +1129,6 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(FuncDeclaration *f, Loc l
     unsigned wildmatch = 0;
     TemplateParameters *inferparams = parameters;
 
-    TypeFunction *tf = (TypeFunction *)fd->type;
-
 #if 0
     printf("\nTemplateDeclaration::deduceFunctionTemplateMatch() %s\n", toChars());
     for (size_t i = 0; i < (fargs ? fargs->dim : 0); i++)
