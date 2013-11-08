@@ -8001,7 +8001,6 @@ void TypeStruct::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 
 Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
 {
-    VarDeclaration *v;
     Dsymbol *s;
     DotVarExp *de;
 
@@ -8090,7 +8089,7 @@ L1:
         s->checkDeprecated(e->loc, sc);
     s = s->toAlias();
 
-    v = s->isVarDeclaration();
+    VarDeclaration *v = s->isVarDeclaration();
     if (v && v->inuse && (!v->type || !v->type->deco))  // Bugzilla 9494
     {   e->error("circular reference to '%s'", v->toPrettyChars());
         return new ErrorExp();
