@@ -5313,10 +5313,10 @@ Statement *ImportStatement::semantic(Scope *sc)
     for (size_t i = 0; i < imports->dim; i++)
     {   Import *s = (*imports)[i]->isImport();
 
-        for (size_t i = 0; i < s->names.dim; i++)
+        for (size_t j = 0; j < s->names.dim; j++)
         {
-            Identifier *name = s->names[i];
-            Identifier *alias = s->aliases[i];
+            Identifier *name = s->names[j];
+            Identifier *alias = s->aliases[j];
 
             if (!alias)
                 alias = name;
@@ -5332,9 +5332,9 @@ Statement *ImportStatement::semantic(Scope *sc)
         s->semantic2(sc);
         sc->insert(s);
 
-        for (size_t i = 0; i < s->aliasdecls.dim; i++)
+        for (size_t j = 0; j < s->aliasdecls.dim; j++)
         {
-            sc->insert(s->aliasdecls[i]);
+            sc->insert(s->aliasdecls[j]);
         }
     }
     return this;
