@@ -6106,7 +6106,7 @@ Expression *Parser::parsePrimaryExp()
             int varargs = 0;
             Type *tret = NULL;
             StorageClass stc = 0;
-            TOK save = TOKreserved;
+            save = TOKreserved;
 
             switch (token.value)
             {
