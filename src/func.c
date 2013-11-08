@@ -2982,8 +2982,12 @@ int FuncDeclaration::getLevel(Loc loc, Scope *sc, FuncDeclaration *fd)
     return level;
 
 Lerr:
+    Dsymbol *p = toParent2();
+    while (p->toParent2()->isFuncDeclaration())
+        p = p->toParent2();
+
     // Don't give error if in template constraint
-    if (!((sc->flags & SCOPEstaticif) && parent->isTemplateDeclaration()))
+    if (!(sc->flags & SCOPEstaticif) && !p->parent->isTemplateDeclaration())
     {
         const char *xstatic = isStatic() ? "static " : "";
         // better diagnostics for static functions
@@ -3518,7 +3522,7 @@ void FuncDeclaration::checkNestedReference(Scope *sc, Loc loc)
         FuncDeclaration *fdthis = sc->parent->isFuncDeclaration();
 
         //printf("this = %s in [%s]\n", this->toChars(), this->loc.toChars());
-        //printf("fdv  = %s in [%s]\n", fdv->toChars(), fdv->loc.toChars());
+        //printf("fdv2 = %s in [%s]\n", fdv2->toChars(), fdv2->loc.toChars());
         //printf("fdthis = %s in [%s]\n", fdthis->toChars(), fdthis->loc.toChars());
 
         if (fdv2 && fdthis && fdv2 != fdthis)
@@ -3539,8 +3543,7 @@ void FuncDeclaration::checkNestedReference(Scope *sc, Loc loc)
             }
         }
 
-        FuncDeclaration *fdv = toParent()->isFuncDeclaration();
-        fdv = toParent()->isFuncDeclaration();
+        FuncDeclaration *fdv = toParent2()->isFuncDeclaration();
         if (fdv && fdthis && fdv != fdthis)
         {
             int lv = fdthis->getLevel(loc, sc, fdv);

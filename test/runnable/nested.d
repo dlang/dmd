@@ -2466,6 +2466,27 @@ class C10495
 }
 
 /*******************************************/
+// 11385
+
+auto map11385(alias fun, R)(R range)
+{
+    return MapResult11385!(fun, R)(range);
+}
+struct MapResult11385(alias fun, R)
+{
+    R range;
+    auto front() { return fun(range[0]); }
+}
+void test11385()
+{
+    //import std.algorithm;
+    static auto fun1(T)(T a) { return a * 2; }
+           auto fun2(T)(T a) { return a * 2; }
+    [1].map11385!(a=>fun1(a));   // OK
+    [1].map11385!(a=>fun2(a));   // NG:XXX is a nested function and cannot be accessed from XXX
+}
+
+/*******************************************/
 
 int main()
 {
@@ -2550,6 +2571,7 @@ int main()
     test8832();
     test9315();
     test9244();
+    test11385();
 
     printf("Success\n");
     return 0;
