@@ -611,9 +611,9 @@ void Lexer::scan(Token *t)
                     if (!initdone)       // lazy evaluation
                     {
                         initdone = true;
-                        time_t t;
-                        ::time(&t);
-                        char *p = ctime(&t);
+                        time_t ct;
+                        ::time(&ct);
+                        char *p = ctime(&ct);
                         assert(p);
                         sprintf(date, "%.6s %.4s", p + 4, p + 20);
                         sprintf(time, "%.8s", p + 11);
