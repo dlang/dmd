@@ -1260,17 +1260,17 @@ void FuncDeclaration::semantic3(Scope *sc)
             sym->parent = sc2->scopesym;
             sc2 = sc2->push(sym);
 
-            AggregateDeclaration *ad = isAggregateMember2();
+            AggregateDeclaration *ad2 = isAggregateMember2();
 
             /* If this is a class constructor
              */
-            if (ad && isCtorDeclaration())
+            if (ad2 && isCtorDeclaration())
             {
-                sc2->fieldinit = new unsigned[ad->fields.dim];
-                sc2->fieldinit_dim = ad->fields.dim;
-                for (size_t i = 0; i < ad->fields.dim; i++)
+                sc2->fieldinit = new unsigned[ad2->fields.dim];
+                sc2->fieldinit_dim = ad2->fields.dim;
+                for (size_t i = 0; i < ad2->fields.dim; i++)
                 {
-                    VarDeclaration *v = ad->fields[i];
+                    VarDeclaration *v = ad2->fields[i];
                     v->ctorinit = 0;
                     sc2->fieldinit[i] = 0;
                 }
@@ -1333,7 +1333,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 
             if (fbody->isErrorStatement())
                 ;
-            else if (isCtorDeclaration() && ad)
+            else if (isCtorDeclaration() && ad2)
             {
 #if DMDV2
                 // Check for errors related to 'nothrow'.
@@ -1346,13 +1346,13 @@ void FuncDeclaration::semantic3(Scope *sc)
 #endif
                 //printf("callSuper = x%x\n", sc2->callSuper);
 
-                ClassDeclaration *cd = ad->isClassDeclaration();
+                ClassDeclaration *cd = ad2->isClassDeclaration();
 
                 // Verify that all the ctorinit fields got initialized
                 if (!(sc2->callSuper & CSXthis_ctor))
                 {
-                    for (size_t i = 0; i < ad->fields.dim; i++)
-                    {   VarDeclaration *v = ad->fields[i];
+                    for (size_t i = 0; i < ad2->fields.dim; i++)
+                    {   VarDeclaration *v = ad2->fields[i];
 
                         if (v->ctorinit == 0)
                         {
