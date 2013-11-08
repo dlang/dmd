@@ -121,7 +121,6 @@ Dsymbol *FuncDeclaration::syntaxCopy(Dsymbol *s)
 void FuncDeclaration::semantic(Scope *sc)
 {   TypeFunction *f;
     AggregateDeclaration *ad;
-    StructDeclaration *sd;
     ClassDeclaration *cd;
     InterfaceDeclaration *id;
     bool doesoverride;
@@ -363,7 +362,7 @@ void FuncDeclaration::semantic(Scope *sc)
     }
 #endif
 
-    sd = parent->isStructDeclaration();
+    StructDeclaration *sd = parent->isStructDeclaration();
     if (sd)
     {
         if (isCtorDeclaration())
