@@ -6149,7 +6149,7 @@ Expression *Parser::parsePrimaryExp()
                 {   // identifier => expression
                     parameters = new Parameters();
                     id = Lexer::uniqueId("__T");
-                    Type *t = new TypeIdentifier(loc, id);
+                    t = new TypeIdentifier(loc, id);
                     parameters->push(new Parameter(0, t, token.ident, NULL));
 
                     tpl = new TemplateParameters();
