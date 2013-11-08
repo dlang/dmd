@@ -36,7 +36,7 @@ bool Statement::apply(sapply_fp_t fp, void *param)
 /******************************
  * Perform apply() on an t if not null
  */
-#define scondApply(t, fp, param) (t ? t->apply(fp, param) : 0)
+#define scondApply(t, fp, param) (t ? t->apply(fp, param) : false)
 
 
 
