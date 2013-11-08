@@ -6825,8 +6825,7 @@ Expression *IsExp::semantic(Scope *sc)
          */
 
         Identifier *tid = id ? id : Lexer::uniqueId("__isexp_id");
-        TemplateParameter *tp = new TemplateTypeParameter(loc, tid, NULL, NULL);
-        parameters->insert(0, tp);
+        parameters->insert(0, new TemplateTypeParameter(loc, tid, NULL, NULL));
 
         Objects dedtypes;
         dedtypes.setDim(parameters->dim);
