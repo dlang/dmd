@@ -4751,7 +4751,7 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
                 Catch *c;
                 Type *t;
                 Identifier *id;
-                Loc loc = token.loc;
+                Loc catchloc = token.loc;
 
                 nextToken();
                 if (token.value == TOKlcurly || token.value != TOKlparen)
@@ -4767,7 +4767,7 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
                     check(TOKrparen);
                 }
                 handler = parseStatement(0);
-                c = new Catch(loc, t, id, handler);
+                c = new Catch(catchloc, t, id, handler);
                 if (!catches)
                     catches = new Catches();
                 catches->push(c);
