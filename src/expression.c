@@ -12765,7 +12765,7 @@ Expression *MulExp::semantic(Scope *sc)
         else if (t1->isimaginary())
         {
             if (t2->isimaginary())
-            {   Expression *e;
+            {
 
                 switch (t1->toBasetype()->ty)
                 {
