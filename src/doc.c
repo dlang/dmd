@@ -2063,7 +2063,7 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
                 if (!sc->module->isDocFile &&
                     !inCode && i == iLineStart && i + 1 < buf->offset)    // if "\n\n"
                 {
-                    static char blankline[] = "$(DDOC_BLANKLINE)\n";
+                    static const char blankline[] = "$(DDOC_BLANKLINE)\n";
 
                     i = buf->insert(i, blankline, strlen(blankline));
                 }
@@ -2249,7 +2249,7 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
                         i -= 2; // in next loop, c should be '\n'
                     }
                     else
-                    {   static char pre[] = "$(D_CODE \n";
+                    {   static const char pre[] = "$(D_CODE \n";
 
                         inCode = 1;
                         codeIndent = istart - iLineStart;  // save indent count
