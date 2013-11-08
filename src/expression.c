@@ -7815,8 +7815,8 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
             assert(0);
         }
         else if (ident == Id::stringof)
-        {   char *s = ie->toChars();
-            e = new StringExp(loc, s, strlen(s), 'c');
+        {   char *p = ie->toChars();
+            e = new StringExp(loc, p, strlen(p), 'c');
             e = e->semantic(sc);
             return e;
         }
