@@ -12829,7 +12829,7 @@ Expression *DivExp::semantic(Scope *sc)
         {
             type = t2;
             if (t2->isimaginary())
-            {   Expression *e;
+            {
 
                 // x/iv = i(-x/v)
                 e2->type = t1;
