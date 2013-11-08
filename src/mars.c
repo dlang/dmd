@@ -544,7 +544,7 @@ int tryMain(size_t argc, const char *argv[])
     global.params.is64bit = (sizeof(size_t) == 8);
 
 #if TARGET_WINDOS
-    global.params.is64bit = 0;
+    global.params.is64bit = false;
     global.params.defaultlibname = "phobos";
 #elif TARGET_LINUX
     global.params.defaultlibname = "libphobos2.a";
@@ -696,9 +696,9 @@ int tryMain(size_t argc, const char *argv[])
                 global.params.trace = 1;
             }
             else if (strcmp(p + 1, "m32") == 0)
-                global.params.is64bit = 0;
+                global.params.is64bit = false;
             else if (strcmp(p + 1, "m64") == 0)
-                global.params.is64bit = 1;
+                global.params.is64bit = true;
             else if (strcmp(p + 1, "profile") == 0)
                 global.params.trace = 1;
             else if (strcmp(p + 1, "v") == 0)
