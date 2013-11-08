@@ -8002,7 +8002,6 @@ void TypeStruct::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
 {
     Dsymbol *s;
-    DotVarExp *de;
 
 #if LOGDOTEXP
     printf("TypeStruct::dotExp(e = '%s', ident = '%s')\n", e->toChars(), ident->toChars());
@@ -8229,7 +8228,7 @@ L1:
 #endif
     }
 
-    de = new DotVarExp(e->loc, e, d);
+    DotVarExp *de = new DotVarExp(e->loc, e, d);
     return de->semantic(sc);
 }
 
