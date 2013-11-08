@@ -4287,7 +4287,6 @@ void StringExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 void StringExp::toMangleBuffer(OutBuffer *buf)
 {   char m;
     OutBuffer tmp;
-    const char *p;
     unsigned c;
     size_t u;
     utf8_t *q;
@@ -4305,7 +4304,7 @@ void StringExp::toMangleBuffer(OutBuffer *buf)
             m = 'w';
             for (u = 0; u < len; )
             {
-                p = utf_decodeWchar((unsigned short *)string, len, &u, &c);
+                const char *p = utf_decodeWchar((unsigned short *)string, len, &u, &c);
                 if (p)
                     error("%s", p);
                 else
