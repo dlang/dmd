@@ -451,12 +451,12 @@ void FuncDeclaration::semantic(Scope *sc)
                 continue;
             for (size_t j = 0; j < cbd->vtbl.dim; j++)
             {
-                FuncDeclaration *f = cbd->vtbl[j]->isFuncDeclaration();
-                if (!f || f->ident != ident)
+                FuncDeclaration *f2 = cbd->vtbl[j]->isFuncDeclaration();
+                if (!f2 || f2->ident != ident)
                     continue;
                 if (cbd->parent && cbd->parent->isTemplateInstance())
                 {
-                    if (!f->functionSemantic())
+                    if (!f2->functionSemantic())
                         goto Ldone;
                 }
                 may_override = true;
@@ -491,12 +491,12 @@ void FuncDeclaration::semantic(Scope *sc)
                 {   Dsymbol *s = cd->baseClass->search(loc, ident, 0);
                     if (s)
                     {
-                        FuncDeclaration *f = s->isFuncDeclaration();
-                        if (f)
+                        FuncDeclaration *f2 = s->isFuncDeclaration();
+                        if (f2)
                         {
-                            f = f->overloadExactMatch(type);
-                            if (f && f->isFinalFunc() && f->prot() != PROTprivate)
-                                error("cannot override final function %s", f->toPrettyChars());
+                            f2 = f2->overloadExactMatch(type);
+                            if (f2 && f2->isFinalFunc() && f2->prot() != PROTprivate)
+                                error("cannot override final function %s", f2->toPrettyChars());
                         }
                     }
                 }
@@ -709,12 +709,12 @@ void FuncDeclaration::semantic(Scope *sc)
                 Dsymbol *s = search_function(b->base, ident);
                 if (s)
                 {
-                    FuncDeclaration *f = s->isFuncDeclaration();
-                    if (f)
+                    FuncDeclaration *f2 = s->isFuncDeclaration();
+                    if (f2)
                     {
-                        f = f->overloadExactMatch(type);
-                        if (f && f->isFinalFunc() && f->prot() != PROTprivate)
-                            error("cannot override final function %s.%s", b->base->toChars(), f->toPrettyChars());
+                        f2 = f2->overloadExactMatch(type);
+                        if (f2 && f2->isFinalFunc() && f2->prot() != PROTprivate)
+                            error("cannot override final function %s.%s", b->base->toChars(), f2->toPrettyChars());
                     }
                 }
             }
