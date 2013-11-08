@@ -1739,8 +1739,7 @@ void FuncDeclaration::semantic3(Scope *sc)
             if (isSynchronized())
             {   /* Wrap the entire function body in a synchronized statement
                  */
-                AggregateDeclaration *ad = isThis();
-                ClassDeclaration *cd = ad ? ad->isClassDeclaration() : parent->isClassDeclaration();
+                ClassDeclaration *cd = isThis() ? isThis()->isClassDeclaration() : parent->isClassDeclaration();
 
                 if (cd)
                 {
