@@ -1062,7 +1062,7 @@ void VarDeclaration::semantic(Scope *sc)
                     {
                     Lexpand2:
                         Expression *ee = (*exps)[u];
-                        Parameter *arg = Parameter::getNth(tt->arguments, pos + u);
+                        arg = Parameter::getNth(tt->arguments, pos + u);
                         arg->type = arg->type->semantic(loc, sc);
                         //printf("[%d+%d] exps->dim = %d, ", pos, u, exps->dim);
                         //printf("ee = (%s %s, %s), ", Token::tochars[ee->op], ee->toChars(), ee->type->toChars());
