@@ -10323,7 +10323,7 @@ Lagain:
         if (e1->op == TOKarrayliteral)
         {   // Convert [a,b,c][] to [a,b,c]
             Type *t1b = e1->type->toBasetype();
-            Expression *e = e1;
+            e = e1;
             if (t1b->ty == Tsarray)
             {
                 e = e->copy();
@@ -10472,8 +10472,8 @@ Lagain:
             {   Expressions *exps = new Expressions;
                 exps->setDim(j2 - j1);
                 for (size_t i = 0; i < j2 - j1; i++)
-                {   Expression *e = (*te->exps)[j1 + i];
-                    (*exps)[i] = e;
+                {
+                    (*exps)[i] = (*te->exps)[j1 + i];
                 }
                 e = new TupleExp(loc, te->e0, exps);
             }
