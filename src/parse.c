@@ -4324,8 +4324,6 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
         {
             Parameter *arg = NULL;
             Expression *condition;
-            Statement *ifbody;
-            Statement *elsebody;
 
             nextToken();
             check(TOKlparen);
