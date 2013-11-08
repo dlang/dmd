@@ -1927,8 +1927,7 @@ Lagain:
                 VarDeclaration *vd = new VarDeclaration(loc, NULL, id, ei);
                 vd->storage_class |= STCctfe | STCref | STCforeach;
 
-                Expression *de = new DeclarationExp(loc, vd);
-                makeargs = new ExpStatement(loc, de);
+                makeargs = new ExpStatement(loc, new DeclarationExp(loc, vd));
 
                 Expression *ve = new VarExp(loc, vd);
                 ve->type = sfront->isDeclaration()->type;
