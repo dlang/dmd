@@ -12439,7 +12439,7 @@ Expression *AddExp::semantic(Scope *sc)
         else
         {
             typeCombine(sc);
-            Type *tb1 = e1->type->toBasetype();
+            tb1 = e1->type->toBasetype();
             if (tb1->ty == Tvector && !tb1->isscalar())
             {
                 return incompatibleTypes();
