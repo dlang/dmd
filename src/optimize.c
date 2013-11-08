@@ -489,7 +489,6 @@ Expression *NewExp::optimize(int result, bool keepLvalue)
 Expression *CallExp::optimize(int result, bool keepLvalue)
 {
     //printf("CallExp::optimize(result = %d) %s\n", result, toChars());
-    Expression *e = this;
 
     // Optimize parameters with keeping lvalue-ness
     if (arguments)
@@ -513,6 +512,7 @@ Expression *CallExp::optimize(int result, bool keepLvalue)
     if (keepLvalue)
         return this;
 
+    Expression *e = this;
 #if 1
 #else
     if (e1->op == TOKvar)
