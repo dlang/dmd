@@ -697,6 +697,22 @@ void test10684b()
 }
 
 /************************************************************************/
+// 11376
+
+template TL11376(T...)
+{
+    alias TL11376 = T;
+}
+
+auto sumArrs11376(T0, T1)(T0[] a, T1[] b)
+{
+    a[] += b[]; //no ICE without this line
+    return a;
+}
+
+static assert(!__traits(compiles, sumArrs11376(TL11376!(string[], string).init)));
+
+/************************************************************************/
 
 int main()
 {

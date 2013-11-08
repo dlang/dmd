@@ -369,9 +369,15 @@ Expression *BinExp::arrayOp(Scope *sc)
 
     Type *tb = type->toBasetype();
     assert(tb->ty == Tarray || tb->ty == Tsarray);
-    if (tb->nextOf()->toBasetype()->ty == Tvoid)
+    Type *tbn = tb->nextOf()->toBasetype();
+    if (tbn->ty == Tvoid)
     {
         error("Cannot perform array operations on void[] arrays");
+        return new ErrorExp();
+    }
+    if (!tbn->isscalar())
+    {
+        error("'%s' each element is not a scalar, it is a %s", toChars(), tbn->toChars());
         return new ErrorExp();
     }
 
