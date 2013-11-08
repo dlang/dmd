@@ -2901,7 +2901,6 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, const utf8_t *co
     Type *t;
     Type *tfirst;
     Identifier *ident;
-    Dsymbols *a;
     TOK tok = TOKreserved;
     LINK link = linkage;
     unsigned structalign = 0;
@@ -2932,7 +2931,7 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, const utf8_t *co
                 nextToken();
                 check(TOKthis);
                 check(TOKsemicolon);
-                a = new Dsymbols();
+                Dsymbols *a = new Dsymbols();
                 a->push(s);
                 addComment(s, comment);
                 return a;
@@ -2948,7 +2947,7 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, const utf8_t *co
                 AliasThis *s = new AliasThis(loc, token.ident);
                 nextToken();
                 check(TOKsemicolon);
-                a = new Dsymbols();
+                Dsymbols *a = new Dsymbols();
                 a->push(s);
                 addComment(s, comment);
                 return a;
@@ -2964,7 +2963,7 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, const utf8_t *co
                  ? skipParens(tk, &tk) && (tk = peek(tk), 1) : 1) &&
                 tk->value == TOKassign)
             {
-                a = new Dsymbols();
+                Dsymbols *a = new Dsymbols();
                 while (1)
                 {
                     ident = token.ident;
@@ -3027,7 +3026,7 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, const utf8_t *co
                 (tk = peek(tk))->value == TOKassign)
             {
                 nextToken();
-                a = new Dsymbols();
+                Dsymbols *a = new Dsymbols();
                 while (1)
                 {
                     ident = token.ident;
@@ -3266,7 +3265,7 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, const utf8_t *co
 
 L2:
     tfirst = NULL;
-    a = new Dsymbols();
+    Dsymbols *a = new Dsymbols();
 
     while (1)
     {
