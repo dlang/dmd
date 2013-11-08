@@ -2026,7 +2026,6 @@ Lmatch:
 
         int nerrors = global.errors;
 
-        FuncDeclaration *fd = f;
         Dsymbol *s = parent;
         while (s->isTemplateInstance() || s->isTemplateMixin())
             s = s->parent;
