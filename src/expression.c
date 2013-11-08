@@ -4711,7 +4711,11 @@ Expression *StructLiteralExp::semantic(Scope *sc)
     }
     assert(e == this);
     type = stype ? stype : sd->type;
+    return this;
+}
 
+Expression *StructLiteralExp::addDtorHook(Scope *sc)
+{
     /* If struct requires a destructor, rewrite as:
      *    (S tmp = S()),tmp
      * so that the destructor can be hung on tmp.
@@ -4719,14 +4723,13 @@ Expression *StructLiteralExp::semantic(Scope *sc)
     if (sd->dtor && sc->func)
     {
         Identifier *idtmp = Lexer::uniqueId("__sl");
-        VarDeclaration *tmp = new VarDeclaration(loc, type, idtmp, new ExpInitializer(Loc(), this));
+        VarDeclaration *tmp = new VarDeclaration(loc, type, idtmp, new ExpInitializer(loc, this));
         tmp->storage_class |= STCctfe;
         Expression *ae = new DeclarationExp(loc, tmp);
         Expression *e = new CommaExp(loc, ae, new VarExp(loc, tmp));
         e = e->semantic(sc);
         return e;
     }
-
     return this;
 }
 
