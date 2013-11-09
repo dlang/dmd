@@ -1353,7 +1353,7 @@ Expression *Slice(Type *type, Expression *e1, Expression *lwr, Expression *upr)
         else
         {
             void *s;
-            size_t len = iupr - ilwr;
+            size_t len = (size_t)(iupr - ilwr);
             int sz = es1->sz;
             StringExp *es;
 
