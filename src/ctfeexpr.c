@@ -1574,7 +1574,7 @@ Expression *ctfeCat(Type *type, Expression *e1, Expression *e2)
         StringExp *es1 = (StringExp *)e2;
         ArrayLiteralExp *es2 = (ArrayLiteralExp *)e1;
         size_t len = es1->len + es2->elements->dim;
-        int sz = es1->sz;
+        unsigned char sz = es1->sz;
 
         void *s = mem.malloc((len + 1) * sz);
         memcpy((char *)s + sz * es2->elements->dim, es1->string, es1->len * sz);
@@ -1605,7 +1605,7 @@ Expression *ctfeCat(Type *type, Expression *e1, Expression *e2)
         StringExp *es1 = (StringExp *)e1;
         ArrayLiteralExp *es2 = (ArrayLiteralExp *)e2;
         size_t len = es1->len + es2->elements->dim;
-        int sz = es1->sz;
+        unsigned char sz = es1->sz;
 
         void *s = mem.malloc((len + 1) * sz);
         memcpy(s, es1->string, es1->len * sz);
