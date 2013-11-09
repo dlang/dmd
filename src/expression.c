@@ -1368,7 +1368,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
 
     size_t n = (nargs > nparams) ? nargs : nparams;   // n = max(nargs, nparams)
 
-    unsigned wildmatch = 0;
+    unsigned char wildmatch = 0;
     if (tthis && tf->isWild() && !isCtorCall)
     {
         Type *t = tthis;
