@@ -650,7 +650,7 @@ int tryMain(size_t argc, const char *argv[])
                         percent = strtol(p + 5, (char **)&p, 10);
                         if (*p || errno || percent > 100)
                             goto Lerror;
-                        global.params.covPercent = percent;
+                        global.params.covPercent = (unsigned char)percent;
                     }
                     else
                         goto Lerror;
