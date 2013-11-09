@@ -4137,7 +4137,7 @@ Expression *interpretAssignToSlice(InterState *istate, CtfeGoal goal, Loc loc,
         Type *elemtype = existingAE->type->nextOf();
         for (size_t j = 0; j < newelems->dim; j++)
         {
-            (*oldelems)[j + firstIndex] = paintTypeOntoLiteral(elemtype, (*newelems)[j]);
+            (*oldelems)[(size_t)(j + firstIndex)] = paintTypeOntoLiteral(elemtype, (*newelems)[j]);
         }
         return newval;
     }
