@@ -2209,7 +2209,7 @@ Expression *TypeSArray::voidInitLiteral(VarDeclaration *var)
     bool mustCopy = (elem->op == TOKarrayliteral || elem->op == TOKstructliteral);
 
     Expressions *elements = new Expressions();
-    size_t d = dim->toInteger();
+    size_t d = (size_t)dim->toInteger();
     elements->setDim(d);
     for (size_t i = 0; i < d; i++)
     {   if (mustCopy && i > 0)
