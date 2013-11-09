@@ -9296,7 +9296,7 @@ Type *TypeSlice::semantic(Loc loc, Scope *sc)
 
     Parameters *args = new Parameters;
     args->reserve((size_t)(i2 - i1));
-    for (size_t i = i1; i < i2; i++)
+    for (size_t i = (size_t)i1; i < (size_t)i2; i++)
     {   Parameter *arg = (*tt->arguments)[i];
         args->push(arg);
     }
