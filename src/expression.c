@@ -4161,7 +4161,7 @@ Expression *StringExp::modifiableLvalue(Scope *sc, Expression *e)
     return new ErrorExp();
 }
 
-unsigned StringExp::charAt(size_t i)
+unsigned StringExp::charAt(uinteger_t i)
 {   unsigned value;
 
     switch (sz)
