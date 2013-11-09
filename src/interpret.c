@@ -3907,12 +3907,12 @@ bool interpretAssignToIndex(InterState *istate, Loc loc,
             originalExp->error("cannot modify read-only string literal %s", ie->e1->toChars());
             return false;
         }
-        unsigned value = newval->toInteger();
+        dinteger_t value = newval->toInteger();
         switch (existingSE->sz)
         {
-            case 1: s[indexToModify] = value; break;
-            case 2: ((unsigned short *)s)[indexToModify] = value; break;
-            case 4: ((unsigned *)s)[indexToModify] = value; break;
+            case 1: s[(size_t)indexToModify] = (utf8_t)value; break;
+            case 2: ((unsigned short *)s)[(size_t)indexToModify] = (unsigned short)value; break;
+            case 4: ((unsigned *)s)[(size_t)indexToModify] = (unsigned)value; break;
             default:
                 assert(0);
                 break;
