@@ -962,7 +962,7 @@ Expression *ExpInitializer::toExpression(Type *t)
         if (tb->ty == Tsarray && exp->implicitConvTo(tb->nextOf()))
         {
             TypeSArray *tsa = (TypeSArray *)tb;
-            size_t d = tsa->dim->toInteger();
+            size_t d = (size_t)tsa->dim->toInteger();
             Expressions *elements = new Expressions();
             elements->setDim(d);
             for (size_t i = 0; i < d; i++)
