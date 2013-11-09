@@ -3894,9 +3894,9 @@ bool interpretAssignToIndex(InterState *istate, Loc loc,
     if (existingAE)
     {
         if (newval->op == TOKstructliteral)
-            assignInPlace((*existingAE->elements)[indexToModify], newval);
+            assignInPlace((*existingAE->elements)[(size_t)indexToModify], newval);
         else
-            (*existingAE->elements)[indexToModify] = newval;
+            (*existingAE->elements)[(size_t)indexToModify] = newval;
         return true;
     }
     if (existingSE)
