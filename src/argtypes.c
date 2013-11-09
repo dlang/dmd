@@ -354,7 +354,7 @@ TypeTuple *TypeStruct::toArgTypes()
                     goto Lmemory;
 
                 // Fields that overlap the 8byte boundary goto Lmemory
-                unsigned fieldsz = f->type->size(Loc());
+                d_uns64 fieldsz = f->type->size(Loc());
                 if (f->offset < 8 && (f->offset + fieldsz) > 8)
                     goto Lmemory;
             }
