@@ -529,7 +529,7 @@ Expression *ArrayInitializer::toExpression(Type *tx)
             if (index[i])
             {
                 if (index[i]->op == TOKint64)
-                    j = index[i]->toInteger();
+                    j = (size_t)index[i]->toInteger();
                 else
                     goto Lno;
             }
@@ -544,7 +544,7 @@ Expression *ArrayInitializer::toExpression(Type *tx)
     for (size_t i = 0, j = 0; i < value.dim; i++, j++)
     {
         if (index[i])
-            j = (index[i])->toInteger();
+            j = (size_t)(index[i])->toInteger();
         assert(j < edim);
         Initializer *iz = value[i];
         if (!iz)
