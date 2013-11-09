@@ -1386,7 +1386,7 @@ Expression *Slice(Type *type, Expression *e1, Expression *lwr, Expression *upr)
             elements->setDim((size_t)(iupr - ilwr));
             memcpy(elements->tdata(),
                    es1->elements->tdata() + ilwr,
-                   (iupr - ilwr) * sizeof((*es1->elements)[0]));
+                   (size_t)(iupr - ilwr) * sizeof((*es1->elements)[0]));
             e = new ArrayLiteralExp(e1->loc, elements);
             e->type = type;
         }
