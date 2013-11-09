@@ -4208,13 +4208,13 @@ Expression *interpretAssignToSlice(InterState *istate, CtfeGoal goal, Loc loc,
         {
             if (!directblk)
                 // Multidimensional array block assign
-                recursiveBlockAssign((ArrayLiteralExp *)(*w)[j+firstIndex], newval, wantRef);
+                recursiveBlockAssign((ArrayLiteralExp *)(*w)[(size_t)(j+firstIndex)], newval, wantRef);
             else
             {
                 if (wantRef || cow)
-                    (*existingAE->elements)[j+firstIndex] = newval;
+                    (*existingAE->elements)[(size_t)(j+firstIndex)] = newval;
                 else
-                    assignInPlace((*existingAE->elements)[j+firstIndex], newval);
+                    assignInPlace((*existingAE->elements)[(size_t)(j+firstIndex)], newval);
             }
         }
         if (goal == ctfeNeedNothing)
