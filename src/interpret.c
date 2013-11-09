@@ -2779,7 +2779,7 @@ Expression *recursivelyCreateArrayLiteral(Loc loc, Type *newtype, InterState *is
         || elemType->ty == Tdchar)
         return createBlockDuplicatedStringLiteral(loc, newtype,
             (unsigned)(elemType->defaultInitLiteral(loc)->toInteger()),
-            len, (int)elemType->size());
+            len, (unsigned char)elemType->size());
     return createBlockDuplicatedArrayLiteral(loc, newtype,
         elemType->defaultInitLiteral(loc),
         len);

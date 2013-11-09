@@ -489,7 +489,7 @@ ArrayLiteralExp *createBlockDuplicatedArrayLiteral(Loc loc, Type *type,
  * Create a string literal consisting of 'value' duplicated 'dim' times.
  */
 StringExp *createBlockDuplicatedStringLiteral(Loc loc, Type *type,
-        unsigned value, size_t dim, int sz)
+        unsigned value, size_t dim, unsigned char sz)
 {
     utf8_t *s = (utf8_t *)mem.calloc(dim + 1, sz);
     for (size_t elemi = 0; elemi < dim; ++elemi)
