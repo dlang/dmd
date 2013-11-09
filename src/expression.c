@@ -9866,12 +9866,12 @@ CastExp::CastExp(Loc loc, Expression *e, Type *t)
         : UnaExp(loc, TOKcast, sizeof(CastExp), e)
 {
     to = t;
-    this->mod = ~0;
+    this->mod = (unsigned char)~0;
 }
 
 /* For cast(const) and cast(immutable)
  */
-CastExp::CastExp(Loc loc, Expression *e, unsigned mod)
+CastExp::CastExp(Loc loc, Expression *e, unsigned char mod)
         : UnaExp(loc, TOKcast, sizeof(CastExp), e)
 {
     to = NULL;

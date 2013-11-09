@@ -1198,10 +1198,10 @@ class CastExp : public UnaExp
 public:
     // Possible to cast to one type while painting to another type
     Type *to;                   // type to cast to
-    unsigned mod;               // MODxxxxx
+    unsigned char mod;          // MODxxxxx
 
     CastExp(Loc loc, Expression *e, Type *t);
-    CastExp(Loc loc, Expression *e, unsigned mod);
+    CastExp(Loc loc, Expression *e, unsigned char mod);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     MATCH implicitConvTo(Type *t);
