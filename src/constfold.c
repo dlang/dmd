@@ -1274,7 +1274,7 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
         }
         else if (e1->op == TOKarrayliteral)
         {   ArrayLiteralExp *ale = (ArrayLiteralExp *)e1;
-            e = (*ale->elements)[i];
+            e = (*ale->elements)[(size_t)i];
             e->type = type;
             e->loc = loc;
             if (e->hasSideEffect())
@@ -1293,7 +1293,7 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
                 e = new ErrorExp();
             }
             else
-            {   e = (*ale->elements)[i];
+            {   e = (*ale->elements)[(size_t)i];
                 e->type = type;
                 e->loc = loc;
                 if (e->hasSideEffect())
