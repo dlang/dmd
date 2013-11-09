@@ -1313,7 +1313,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(FuncDeclaration *f, Loc l
         // Match attributes of tthis against attributes of fd
         if (fd->type && !fd->isCtorDeclaration())
         {
-            unsigned mod = fd->type->mod;
+            unsigned char mod = fd->type->mod;
             StorageClass stc = scope->stc | fd->storage_class2;
             // Propagate parent storage class (see bug 5504)
             Dsymbol *p = parent;
@@ -1337,7 +1337,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(FuncDeclaration *f, Loc l
             if (mod & MODconst)
                 mod &= ~STCwild;
 
-            unsigned thismod = tthis->mod;
+            unsigned char thismod = tthis->mod;
             if (hasttp)
                 mod = MODmerge(thismod, mod);
             if (thismod != mod)

@@ -1368,7 +1368,7 @@ int MODmethodConv(unsigned char modfrom, unsigned char modto)
 /***************************
  * Merge mod bits to form common mod.
  */
-int MODmerge(unsigned char mod1, unsigned char mod2)
+unsigned char MODmerge(unsigned char mod1, unsigned char mod2)
 {
     if (mod1 == mod2)
         return mod1;

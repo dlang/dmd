@@ -1106,7 +1106,7 @@ void MODtoBuffer(OutBuffer *buf, unsigned char mod);
 char *MODtoChars(unsigned char mod);
 int MODimplicitConv(unsigned char modfrom, unsigned char modto);
 int MODmethodConv(unsigned char modfrom, unsigned char modto);
-int MODmerge(unsigned char mod1, unsigned char mod2);
+unsigned char MODmerge(unsigned char mod1, unsigned char mod2);
 void identifierToDocBuffer(Identifier* ident, OutBuffer *buf, HdrGenState *hgs);
 
 #endif /* DMD_MTYPE_H */
