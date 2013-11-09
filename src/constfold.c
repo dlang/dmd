@@ -1525,12 +1525,12 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
 
             dinteger_t v = e->toInteger();
 
-            size_t len = (t->ty == tn->ty) ? 1 : utf_codeLength(sz, v);
+            size_t len = (t->ty == tn->ty) ? 1 : utf_codeLength(sz, (dchar_t)v);
             s = mem.malloc((len + 1) * sz);
             if (t->ty == tn->ty)
                 memcpy((utf8_t *)s, &v, sz);
             else
-                utf_encode(sz, s, v);
+                utf_encode(sz, s, (dchar_t)v);
 
             // Add terminating 0
             memset((utf8_t *)s + len * sz, 0, sz);
@@ -1647,14 +1647,14 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
         // (char[] ~ char, wchar[]~wchar, or dchar[]~dchar)
         bool homoConcat = (sz == t2->size());
         size_t len = es1->len;
-        len += homoConcat ? 1 : utf_codeLength(sz, v);
+        len += homoConcat ? 1 : utf_codeLength(sz, (dchar_t)v);
 
         s = mem.malloc((len + 1) * sz);
         memcpy(s, es1->string, es1->len * sz);
         if (homoConcat)
              memcpy((utf8_t *)s + (sz * es1->len), &v, sz);
         else
-             utf_encode(sz, (utf8_t *)s + (sz * es1->len), v);
+             utf_encode(sz, (utf8_t *)s + (sz * es1->len), (dchar_t)v);
 
         // Add terminating 0
         memset((utf8_t *)s + len * sz, 0, sz);
