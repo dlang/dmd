@@ -422,7 +422,7 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
             sc = sc->endCTFE();
             idx = idx->ctfeInterpret();
             index[i] = idx;
-            length = idx->toInteger();
+            length = (size_t)idx->toInteger();
             if (idx->op == TOKerror)
                 errors = true;
         }
