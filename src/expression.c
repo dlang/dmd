@@ -4273,9 +4273,9 @@ void StringExp::toMangleBuffer(OutBuffer *buf)
          p < pend; p += 2, ++q)
     {
         utf8_t hi = *q >> 4 & 0xF;
-        p[0] = (hi < 10 ? hi + '0' : hi - 10 + 'a');
+        p[0] = (utf8_t)(hi < 10 ? hi + '0' : hi - 10 + 'a');
         utf8_t lo = *q & 0xF;
-        p[1] = (lo < 10 ? lo + '0' : lo - 10 + 'a');
+        p[1] = (utf8_t)(lo < 10 ? lo + '0' : lo - 10 + 'a');
     }
     buf->offset += 2 * qlen;
 }
