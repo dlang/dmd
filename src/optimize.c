@@ -1030,7 +1030,7 @@ void setLengthVarIfKnown(VarDeclaration *lengthVar, Expression *arr)
     {
         Type *t = arr->type->toBasetype();
         if (t->ty == Tsarray)
-            len = ((TypeSArray *)t)->dim->toInteger();
+            len = (size_t)((TypeSArray *)t)->dim->toInteger();
         else
             return; // we don't know the length yet
     }
