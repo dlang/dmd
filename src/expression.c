@@ -2831,7 +2831,7 @@ void IntegerExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
                 unsigned o = buf->offset;
                 if (v == '\'')
                     buf->writestring("'\\''");
-                else if (isprint(v) && v != '\\')
+                else if (isprint((int)v) && v != '\\')
                     buf->printf("'%c'", (int)v);
                 else
                     buf->printf("'\\x%02x'", (int)v);
