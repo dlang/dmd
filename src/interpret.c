@@ -4008,9 +4008,9 @@ Expression *interpretAssignToSlice(InterState *istate, CtfeGoal goal, Loc loc,
     if (exceptionOrCantInterpret(lower))
         return lower;
 
-    size_t dim = dollar;
-    size_t upperbound = upper ? upper->toInteger() : dim;
-    int lowerbound = lower ? lower->toInteger() : 0;
+    unsigned dim = (unsigned)dollar;
+    size_t upperbound = (size_t)(upper ? upper->toInteger() : dim);
+    int lowerbound = (int)(lower ? lower->toInteger() : 0);
 
     if (!assignmentToSlicedPointer && (((int)lowerbound < 0) || (upperbound > dim)))
     {
