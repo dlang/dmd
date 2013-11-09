@@ -1011,7 +1011,7 @@ Type *SliceExp::toStaticArrayType()
         Expression *upr = this->upr->optimize(WANTvalue);
         if (lwr->isConst() && upr->isConst())
         {
-            size_t len = upr->toUInteger() - lwr->toUInteger();
+            size_t len = (size_t)(upr->toUInteger() - lwr->toUInteger());
             return TypeSArray::makeType(loc, type->toBasetype()->nextOf(), len);
         }
     }
