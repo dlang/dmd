@@ -1802,7 +1802,7 @@ Expression *Ptr(Type *type, Expression *e1)
         {   AddrExp *ade = (AddrExp *)ae->e1;
             if (ade->e1->op == TOKstructliteral)
             {   StructLiteralExp *se = (StructLiteralExp *)ade->e1;
-                unsigned offset = ae->e2->toInteger();
+                unsigned offset = (unsigned)ae->e2->toInteger();
                 Expression *e = se->getField(type, offset);
                 if (!e)
                     e = EXP_CANT_INTERPRET;
