@@ -4250,7 +4250,7 @@ Expression *TypeSArray::defaultInitLiteral(Loc loc)
 #if LOGDEFAULTINIT
     printf("TypeSArray::defaultInitLiteral() '%s'\n", toChars());
 #endif
-    size_t d = dim->toInteger();
+    size_t d = (size_t)dim->toInteger();
     Expression *elementinit;
     if (next->ty == Tvoid)
         elementinit = tuns8->defaultInitLiteral(loc);
