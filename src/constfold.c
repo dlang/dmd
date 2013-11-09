@@ -1431,8 +1431,8 @@ void sliceAssignStringFromArrayLiteral(StringExp *existingSE, ArrayLiteralExp *n
         unsigned value = (unsigned)((*newae->elements)[j]->toInteger());
         switch (existingSE->sz)
         {
-            case 1: s[j+firstIndex] = value; break;
-            case 2: ((unsigned short *)s)[j+firstIndex] = value; break;
+            case 1: s[j+firstIndex] = (utf8_t)value; break;
+            case 2: ((unsigned short *)s)[j+firstIndex] = (unsigned short)value; break;
             case 4: ((unsigned *)s)[j+firstIndex] = value; break;
             default:
                 assert(0);
