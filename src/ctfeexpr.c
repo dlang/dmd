@@ -1918,9 +1918,9 @@ Expression *changeArrayLiteralLength(Loc loc, TypeArray *arrayType,
         {
             switch (oldse->sz)
             {
-                case 1:     s[indxlo + elemi] = defaultValue; break;
-                case 2:     ((unsigned short *)s)[indxlo + elemi] = defaultValue; break;
-                case 4:     ((unsigned *)s)[indxlo + elemi] = defaultValue; break;
+                case 1:     s[(size_t)(indxlo + elemi)] = (utf8_t)defaultValue; break;
+                case 2:     ((unsigned short *)s)[(size_t)(indxlo + elemi)] = (unsigned short)defaultValue; break;
+                case 4:     ((unsigned *)s)[(size_t)(indxlo + elemi)] = defaultValue; break;
                 default:    assert(0);
             }
         }
