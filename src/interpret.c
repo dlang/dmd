@@ -6148,7 +6148,7 @@ Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *del
 
                     Expression * r = (*ale->elements)[indx];
                     assert(r->op == TOKint64);
-                    rawvalue = ((IntegerExp *)r)->value;
+                    rawvalue = (dchar_t)((IntegerExp *)r)->value;
                     n = 1;
                 }
                 break;
