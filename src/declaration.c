@@ -99,7 +99,7 @@ const char *Declaration::kind()
 unsigned Declaration::size(Loc loc)
 {
     assert(type);
-    return type->size();
+    return (unsigned)type->size();
 }
 
 bool Declaration::isDelete()
@@ -1711,7 +1711,7 @@ void VarDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset,
     }
 
 
-    unsigned memsize      = t->size(loc);            // size of member
+    unsigned memsize      = (unsigned)t->size(loc);  // size of member
     unsigned memalignsize = Target::fieldalign(t);   // size of member for alignment purposes
 
     offset = AggregateDeclaration::placeField(poffset, memsize, memalignsize, alignment,

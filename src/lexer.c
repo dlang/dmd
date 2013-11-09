@@ -1215,14 +1215,14 @@ unsigned Lexer::escapeSequence()
         Lhex:
                 p++;
                 c = *p;
-                if (ishex(c))
+                if (ishex((utf8_t)c))
                 {   unsigned v;
 
                     n = 0;
                     v = 0;
                     while (1)
                     {
-                        if (isdigit(c))
+                        if (isdigit((utf8_t)c))
                             c -= '0';
                         else if (islower(c))
                             c -= 'a' - 10;
@@ -1232,7 +1232,7 @@ unsigned Lexer::escapeSequence()
                         c = *++p;
                         if (++n == ndigits)
                             break;
-                        if (!ishex(c))
+                        if (!ishex((utf8_t)c))
                         {   error("escape hex sequence has %d hex digits instead of %d", n, ndigits);
                             break;
                         }
@@ -1278,7 +1278,7 @@ unsigned Lexer::escapeSequence()
                 break;
 
         default:
-                if (isoctal(c))
+                if (isoctal((utf8_t)c))
                 {   unsigned v;
 
                     n = 0;
@@ -1287,7 +1287,7 @@ unsigned Lexer::escapeSequence()
                     {
                         v = v * 8 + (c - '0');
                         c = *++p;
-                    } while (++n < 3 && isoctal(c));
+                    } while (++n < 3 && isoctal((utf8_t)c));
                     c = v;
                     if (c > 0xFF)
                         error("0%03o is larger than a byte", c);
@@ -1949,7 +1949,7 @@ TOK Lexer::number(Token *t)
 
             case STATE_hex0:            // reading hex number
             case STATE_hex:
-                if (!ishex(c))
+                if (!ishex((utf8_t)c))
                 {
                     if (c == '_')               // ignore embedded _
                     {   p++;
@@ -1968,7 +1968,7 @@ TOK Lexer::number(Token *t)
 
             case STATE_octal:           // reading octal number
             case STATE_octale:          // reading octal number with non-octal digits
-                if (!isoctal(c))
+                if (!isoctal((utf8_t)c))
                 {
                     if (c == '_')               // ignore embedded _
                     {   p++;
@@ -2352,7 +2352,7 @@ void Lexer::poundLine()
 
     scan(&tok);
     if (tok.value == TOKint32v || tok.value == TOKint64v)
-    {   linnum = tok.uns64value - 1;
+    {   linnum = (int)(tok.uns64value - 1);
         if (linnum != tok.uns64value - 1)
             error("line number out of range");
     }

@@ -2779,7 +2779,7 @@ Expression *recursivelyCreateArrayLiteral(Loc loc, Type *newtype, InterState *is
         || elemType->ty == Tdchar)
         return createBlockDuplicatedStringLiteral(loc, newtype,
             (unsigned)(elemType->defaultInitLiteral(loc)->toInteger()),
-            len, elemType->size());
+            len, (unsigned char)elemType->size());
     return createBlockDuplicatedArrayLiteral(loc, newtype,
         elemType->defaultInitLiteral(loc),
         len);
@@ -3353,8 +3353,8 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             returnValue = newval;
         if (e1->op == TOKarraylength)
         {
-            size_t oldlen = oldval->toInteger();
-            size_t newlen = newval->toInteger();
+            size_t oldlen = (size_t)oldval->toInteger();
+            size_t newlen = (size_t)newval->toInteger();
             if (oldlen == newlen) // no change required -- we're done!
                 return returnValue;
             // Now change the assignment from arr.length = n into arr = newval
@@ -3894,9 +3894,9 @@ bool interpretAssignToIndex(InterState *istate, Loc loc,
     if (existingAE)
     {
         if (newval->op == TOKstructliteral)
-            assignInPlace((*existingAE->elements)[indexToModify], newval);
+            assignInPlace((*existingAE->elements)[(size_t)indexToModify], newval);
         else
-            (*existingAE->elements)[indexToModify] = newval;
+            (*existingAE->elements)[(size_t)indexToModify] = newval;
         return true;
     }
     if (existingSE)
@@ -3907,12 +3907,12 @@ bool interpretAssignToIndex(InterState *istate, Loc loc,
             originalExp->error("cannot modify read-only string literal %s", ie->e1->toChars());
             return false;
         }
-        unsigned value = newval->toInteger();
+        dinteger_t value = newval->toInteger();
         switch (existingSE->sz)
         {
-            case 1: s[indexToModify] = value; break;
-            case 2: ((unsigned short *)s)[indexToModify] = value; break;
-            case 4: ((unsigned *)s)[indexToModify] = value; break;
+            case 1: s[(size_t)indexToModify] = (utf8_t)value; break;
+            case 2: ((unsigned short *)s)[(size_t)indexToModify] = (unsigned short)value; break;
+            case 4: ((unsigned *)s)[(size_t)indexToModify] = (unsigned)value; break;
             default:
                 assert(0);
                 break;
@@ -4008,9 +4008,9 @@ Expression *interpretAssignToSlice(InterState *istate, CtfeGoal goal, Loc loc,
     if (exceptionOrCantInterpret(lower))
         return lower;
 
-    size_t dim = dollar;
-    size_t upperbound = upper ? upper->toInteger() : dim;
-    int lowerbound = lower ? lower->toInteger() : 0;
+    unsigned dim = (unsigned)dollar;
+    size_t upperbound = (size_t)(upper ? upper->toInteger() : dim);
+    int lowerbound = (int)(lower ? lower->toInteger() : 0);
 
     if (!assignmentToSlicedPointer && (((int)lowerbound < 0) || (upperbound > dim)))
     {
@@ -4137,13 +4137,13 @@ Expression *interpretAssignToSlice(InterState *istate, CtfeGoal goal, Loc loc,
         Type *elemtype = existingAE->type->nextOf();
         for (size_t j = 0; j < newelems->dim; j++)
         {
-            (*oldelems)[j + firstIndex] = paintTypeOntoLiteral(elemtype, (*newelems)[j]);
+            (*oldelems)[(size_t)(j + firstIndex)] = paintTypeOntoLiteral(elemtype, (*newelems)[j]);
         }
         return newval;
     }
     else if (newval->op == TOKstring && existingSE)
     {
-        sliceAssignStringFromString((StringExp *)existingSE, (StringExp *)newval, firstIndex);
+        sliceAssignStringFromString((StringExp *)existingSE, (StringExp *)newval, (size_t)firstIndex);
         return newval;
     }
     else if (newval->op == TOKstring && existingAE
@@ -4151,27 +4151,27 @@ Expression *interpretAssignToSlice(InterState *istate, CtfeGoal goal, Loc loc,
     {   /* Mixed slice: it was initialized as an array literal of chars.
          * Now a slice of it is being set with a string.
          */
-        sliceAssignArrayLiteralFromString(existingAE, (StringExp *)newval, firstIndex);
+        sliceAssignArrayLiteralFromString(existingAE, (StringExp *)newval, (size_t)firstIndex);
         return newval;
     }
     else if (newval->op == TOKarrayliteral && existingSE)
     {   /* Mixed slice: it was initialized as a string literal.
          * Now a slice of it is being set with an array literal.
          */
-        sliceAssignStringFromArrayLiteral(existingSE, (ArrayLiteralExp *)newval, firstIndex);
+        sliceAssignStringFromArrayLiteral(existingSE, (ArrayLiteralExp *)newval, (size_t)firstIndex);
         return newval;
     }
     else if (existingSE)
     {   // String literal block slice assign
-        unsigned value = newval->toInteger();
+        dinteger_t value = newval->toInteger();
         utf8_t *s = (utf8_t *)existingSE->string;
         for (size_t j = 0; j < upperbound-lowerbound; j++)
         {
             switch (existingSE->sz)
             {
-                case 1: s[j+firstIndex] = value; break;
-                case 2: ((unsigned short *)s)[j+firstIndex] = value; break;
-                case 4: ((unsigned *)s)[j+firstIndex] = value; break;
+                case 1: s[(size_t)(j+firstIndex)] = (utf8_t)value; break;
+                case 2: ((unsigned short *)s)[(size_t)(j+firstIndex)] = (unsigned short)value; break;
+                case 4: ((unsigned *)s)[(size_t)(j+firstIndex)] = (unsigned)value; break;
                 default:
                     assert(0);
                     break;
@@ -4208,13 +4208,13 @@ Expression *interpretAssignToSlice(InterState *istate, CtfeGoal goal, Loc loc,
         {
             if (!directblk)
                 // Multidimensional array block assign
-                recursiveBlockAssign((ArrayLiteralExp *)(*w)[j+firstIndex], newval, wantRef);
+                recursiveBlockAssign((ArrayLiteralExp *)(*w)[(size_t)(j+firstIndex)], newval, wantRef);
             else
             {
                 if (wantRef || cow)
-                    (*existingAE->elements)[j+firstIndex] = newval;
+                    (*existingAE->elements)[(size_t)(j+firstIndex)] = newval;
                 else
-                    assignInPlace((*existingAE->elements)[j+firstIndex], newval);
+                    assignInPlace((*existingAE->elements)[(size_t)(j+firstIndex)], newval);
             }
         }
         if (goal == ctfeNeedNothing)
@@ -5412,7 +5412,7 @@ Expression *CastExp::interpret(InterState *istate, CtfeGoal goal)
                 Expression *xx = NULL;
                 if (ie->e1->op == TOKarrayliteral && ie->e2->op == TOKint64)
                 {   ArrayLiteralExp *ale = (ArrayLiteralExp *)ie->e1;
-                    uinteger_t indx = ie->e2->toInteger();
+                    size_t indx = (size_t)ie->e2->toInteger();
                     if (indx < ale->elements->dim)
                     xx = (*ale->elements)[indx];
                 }
@@ -5583,7 +5583,7 @@ Expression *PtrExp::interpret(InterState *istate, CtfeGoal goal)
             if (ex->op == TOKstructliteral)
             {   StructLiteralExp *se = (StructLiteralExp *)ex;
                 dinteger_t offset = ae->e2->toInteger();
-                e = se->getField(type, offset);
+                e = se->getField(type, (unsigned)offset);
                 if (!e)
                     e = EXP_CANT_INTERPRET;
                 return e;
@@ -6046,7 +6046,7 @@ Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *del
     Type *charType = (*fd->parameters)[numParams-1]->type;
     Type *indexType = numParams == 2 ? (*fd->parameters)[0]->type
                                      : Type::tsize_t;
-    uinteger_t len = resolveArrayLength(str);
+    size_t len = (size_t)resolveArrayLength(str);
     if (len == 0)
         return new IntegerExp(deleg->loc, 0, indexType);
 
@@ -6086,7 +6086,7 @@ Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *del
         {   // If it is an array literal, copy the code points into the buffer
             size_t buflen = 1; // #code points in the buffer
             size_t n = 1;   // #code points in this char
-            size_t sz = ale->type->nextOf()->size();
+            size_t sz = (size_t)ale->type->nextOf()->size();
 
             switch(sz)
             {
@@ -6148,7 +6148,7 @@ Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *del
 
                     Expression * r = (*ale->elements)[indx];
                     assert(r->op == TOKint64);
-                    rawvalue = ((IntegerExp *)r)->value;
+                    rawvalue = (dchar_t)((IntegerExp *)r)->value;
                     n = 1;
                 }
                 break;

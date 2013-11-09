@@ -6336,7 +6336,7 @@ Expression *Parser::parseUnaryExp()
             /* Look for cast(), cast(const), cast(immutable),
              * cast(shared), cast(shared const), cast(wild), cast(shared wild)
              */
-            unsigned m;
+            unsigned char m;
             if (token.value == TOKrparen)
             {
                 m = 0;

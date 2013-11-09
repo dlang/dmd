@@ -123,7 +123,7 @@ ArrayLiteralExp *createBlockDuplicatedArrayLiteral(Loc loc, Type *type,
 
 /// Create a string literal consisting of 'value' duplicated 'dim' times.
 StringExp *createBlockDuplicatedStringLiteral(Loc loc, Type *type,
-        unsigned value, size_t dim, int sz);
+        unsigned value, size_t dim, unsigned char sz);
 
 
 /* Set dest = src, where both dest and src are container value literals

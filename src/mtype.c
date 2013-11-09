@@ -356,7 +356,7 @@ d_uns64 Type::size(Loc loc)
 
 unsigned Type::alignsize()
 {
-    return size(Loc());
+    return (unsigned)size(Loc());
 }
 
 Type *Type::semantic(Loc loc, Scope *sc)
@@ -1368,7 +1368,7 @@ int MODmethodConv(unsigned char modfrom, unsigned char modto)
 /***************************
  * Merge mod bits to form common mod.
  */
-int MODmerge(unsigned char mod1, unsigned char mod2)
+unsigned char MODmerge(unsigned char mod1, unsigned char mod2)
 {
     if (mod1 == mod2)
         return mod1;
@@ -1524,8 +1524,8 @@ void Type::toCBuffer3(OutBuffer *buf, HdrGenState *hgs, int mod)
             MODtoBuffer(buf, this->mod & MODshared);
             buf->writeByte('(');
         }
-        int m1 = this->mod & ~MODshared;
-        int m2 = (mod ^ m1) & m1;
+        unsigned char m1 = this->mod & ~MODshared;
+        unsigned char m2 = (mod ^ m1) & m1;
         if (m2)
         {
             MODtoBuffer(buf, m2);
@@ -3659,7 +3659,7 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
         Expression *ec;
         FuncDeclaration *fd;
         Expressions *arguments;
-        int size = next->size(e->loc);
+        dinteger_t size = next->size(e->loc);
         int dup;
 
         Expression *olde = e;
@@ -4250,7 +4250,7 @@ Expression *TypeSArray::defaultInitLiteral(Loc loc)
 #if LOGDEFAULTINIT
     printf("TypeSArray::defaultInitLiteral() '%s'\n", toChars());
 #endif
-    size_t d = dim->toInteger();
+    size_t d = (size_t)dim->toInteger();
     Expression *elementinit;
     if (next->ty == Tvoid)
         elementinit = tuns8->defaultInitLiteral(loc);
@@ -5715,7 +5715,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
             }
             else if (fparam->storageClass & STCout)
             {
-                if (unsigned m = fparam->type->mod & (MODimmutable | MODconst | MODwild))
+                if (unsigned char m = fparam->type->mod & (MODimmutable | MODconst | MODwild))
                     error(loc, "cannot have %s out parameter of type %s", MODtoChars(m), t->toChars());
                 else
                 {
@@ -8261,7 +8261,7 @@ Expression *TypeStruct::defaultInitLiteral(Loc loc)
         if (e && e->op == TOKerror)
             return e;
         if (e)
-            offset = vd->offset + vd->type->size();
+            offset = vd->offset + (unsigned)vd->type->size();
         (*structelems)[j] = e;
     }
     StructLiteralExp *structinit = new StructLiteralExp(loc, (StructDeclaration *)sym, structelems);
@@ -9295,8 +9295,8 @@ Type *TypeSlice::semantic(Loc loc, Scope *sc)
     }
 
     Parameters *args = new Parameters;
-    args->reserve(i2 - i1);
-    for (size_t i = i1; i < i2; i++)
+    args->reserve((size_t)(i2 - i1));
+    for (size_t i = (size_t)i1; i < (size_t)i2; i++)
     {   Parameter *arg = (*tt->arguments)[i];
         args->push(arg);
     }
@@ -9353,7 +9353,7 @@ void TypeSlice::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol 
              * is a slice [i1..i2] out of the old one.
              */
             Objects *objects = new Objects;
-            objects->setDim(i2 - i1);
+            objects->setDim((size_t)(i2 - i1));
             for (size_t i = 0; i < objects->dim; i++)
             {
                 (*objects)[i] = (*td->objects)[(size_t)i1 + i];

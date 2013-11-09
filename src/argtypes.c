@@ -198,8 +198,8 @@ Type *argtypemerge(Type *t1, Type *t2, unsigned offset2)
     if (!t2)
         return t1;
 
-    unsigned sz1 = t1->size(Loc());
-    unsigned sz2 = t2->size(Loc());
+    unsigned sz1 = (unsigned)t1->size(Loc());
+    unsigned sz2 = (unsigned)t2->size(Loc());
 
     if (t1->ty != t2->ty &&
         (t1->ty == Tfloat80 || t2->ty == Tfloat80))
@@ -259,7 +259,7 @@ TypeTuple *TypeDArray::toArgTypes()
     if (global.params.is64bit && !global.params.isLP64)
     {
         // For AMD64 ILP32 ABI, D arrays fit into a single integer register.
-        unsigned offset = Type::tsize_t->size(Loc());
+        unsigned offset = (unsigned)Type::tsize_t->size(Loc());
         Type *t = argtypemerge(Type::tsize_t, Type::tvoidptr, offset);
         if (t)
             return new TypeTuple(t);
@@ -275,7 +275,7 @@ TypeTuple *TypeDelegate::toArgTypes()
     if (global.params.is64bit && !global.params.isLP64)
     {
         // For AMD64 ILP32 ABI, delegates fit into a single integer register.
-        unsigned offset = Type::tsize_t->size(Loc());
+        unsigned offset = (unsigned)Type::tsize_t->size(Loc());
         Type *t = argtypemerge(Type::tsize_t, Type::tvoidptr, offset);
         if (t)
             return new TypeTuple(t);
@@ -354,7 +354,7 @@ TypeTuple *TypeStruct::toArgTypes()
                     goto Lmemory;
 
                 // Fields that overlap the 8byte boundary goto Lmemory
-                unsigned fieldsz = f->type->size(Loc());
+                d_uns64 fieldsz = f->type->size(Loc());
                 if (f->offset < 8 && (f->offset + fieldsz) > 8)
                     goto Lmemory;
             }

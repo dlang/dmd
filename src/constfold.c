@@ -758,7 +758,7 @@ Expression *Equal(TOK op, Type *type, Expression *e1, Expression *e2)
                 Expression *v = Equal(TOKequal, Type::tint32, ee1, ee2);
                 if (v == EXP_CANT_INTERPRET)
                     return EXP_CANT_INTERPRET;
-                cmp = v->toInteger();
+                cmp = (int)v->toInteger();
                 if (cmp == 0)
                     break;
             }
@@ -824,7 +824,7 @@ Expression *Equal(TOK op, Type *type, Expression *e1, Expression *e2)
                 Expression *v = Equal(TOKequal, Type::tint32, ee1, ee2);
                 if (v == EXP_CANT_INTERPRET)
                     return EXP_CANT_INTERPRET;
-                cmp = v->toInteger();
+                cmp = (int)v->toInteger();
                 if (cmp == 0)
                     break;
             }
@@ -1274,7 +1274,7 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
         }
         else if (e1->op == TOKarrayliteral)
         {   ArrayLiteralExp *ale = (ArrayLiteralExp *)e1;
-            e = (*ale->elements)[i];
+            e = (*ale->elements)[(size_t)i];
             e->type = type;
             e->loc = loc;
             if (e->hasSideEffect())
@@ -1293,7 +1293,7 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
                 e = new ErrorExp();
             }
             else
-            {   e = (*ale->elements)[i];
+            {   e = (*ale->elements)[(size_t)i];
                 e->type = type;
                 e->loc = loc;
                 if (e->hasSideEffect())
@@ -1353,8 +1353,8 @@ Expression *Slice(Type *type, Expression *e1, Expression *lwr, Expression *upr)
         else
         {
             void *s;
-            size_t len = iupr - ilwr;
-            int sz = es1->sz;
+            size_t len = (size_t)(iupr - ilwr);
+            unsigned char sz = es1->sz;
             StringExp *es;
 
             s = mem.malloc((len + 1) * sz);
@@ -1383,10 +1383,10 @@ Expression *Slice(Type *type, Expression *e1, Expression *lwr, Expression *upr)
         else
         {
             Expressions *elements = new Expressions();
-            elements->setDim(iupr - ilwr);
+            elements->setDim((size_t)(iupr - ilwr));
             memcpy(elements->tdata(),
                    es1->elements->tdata() + ilwr,
-                   (iupr - ilwr) * sizeof((*es1->elements)[0]));
+                   (size_t)(iupr - ilwr) * sizeof((*es1->elements)[0]));
             e = new ArrayLiteralExp(e1->loc, elements);
             e->type = type;
         }
@@ -1431,8 +1431,8 @@ void sliceAssignStringFromArrayLiteral(StringExp *existingSE, ArrayLiteralExp *n
         unsigned value = (unsigned)((*newae->elements)[j]->toInteger());
         switch (existingSE->sz)
         {
-            case 1: s[j+firstIndex] = value; break;
-            case 2: ((unsigned short *)s)[j+firstIndex] = value; break;
+            case 1: s[j+firstIndex] = (utf8_t)value; break;
+            case 2: ((unsigned short *)s)[j+firstIndex] = (unsigned short)value; break;
             case 4: ((unsigned *)s)[j+firstIndex] = value; break;
             default:
                 assert(0);
@@ -1521,16 +1521,16 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
             StringExp *es;
             if (t->nextOf())
                 t = t->nextOf()->toBasetype();
-            size_t sz = t->size();
+            unsigned char sz = (unsigned char)t->size();
 
             dinteger_t v = e->toInteger();
 
-            size_t len = (t->ty == tn->ty) ? 1 : utf_codeLength(sz, v);
+            size_t len = (t->ty == tn->ty) ? 1 : utf_codeLength(sz, (dchar_t)v);
             s = mem.malloc((len + 1) * sz);
             if (t->ty == tn->ty)
                 memcpy((utf8_t *)s, &v, sz);
             else
-                utf_encode(sz, s, v);
+                utf_encode(sz, s, (dchar_t)v);
 
             // Add terminating 0
             memset((utf8_t *)s + len * sz, 0, sz);
@@ -1575,7 +1575,7 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
         StringExp *es2 = (StringExp *)e2;
         StringExp *es;
         size_t len = es1->len + es2->len;
-        int sz = es1->sz;
+        unsigned char sz = es1->sz;
 
         if (sz != es2->sz)
         {
@@ -1640,21 +1640,21 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
         void *s;
         StringExp *es1 = (StringExp *)e1;
         StringExp *es;
-        size_t sz = es1->sz;
+        unsigned char sz = es1->sz;
         dinteger_t v = e2->toInteger();
 
         // Is it a concatentation of homogenous types?
         // (char[] ~ char, wchar[]~wchar, or dchar[]~dchar)
         bool homoConcat = (sz == t2->size());
         size_t len = es1->len;
-        len += homoConcat ? 1 : utf_codeLength(sz, v);
+        len += homoConcat ? 1 : utf_codeLength(sz, (dchar_t)v);
 
         s = mem.malloc((len + 1) * sz);
         memcpy(s, es1->string, es1->len * sz);
         if (homoConcat)
              memcpy((utf8_t *)s + (sz * es1->len), &v, sz);
         else
-             utf_encode(sz, (utf8_t *)s + (sz * es1->len), v);
+             utf_encode(sz, (utf8_t *)s + (sz * es1->len), (dchar_t)v);
 
         // Add terminating 0
         memset((utf8_t *)s + len * sz, 0, sz);
@@ -1672,7 +1672,7 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
         StringExp *es2 = (StringExp *)e2;
         StringExp *es;
         size_t len = 1 + es2->len;
-        int sz = es2->sz;
+        unsigned char sz = es2->sz;
         dinteger_t v = e1->toInteger();
 
         s = mem.malloc((len + 1) * sz);
@@ -1802,7 +1802,7 @@ Expression *Ptr(Type *type, Expression *e1)
         {   AddrExp *ade = (AddrExp *)ae->e1;
             if (ade->e1->op == TOKstructliteral)
             {   StructLiteralExp *se = (StructLiteralExp *)ade->e1;
-                unsigned offset = ae->e2->toInteger();
+                unsigned offset = (unsigned)ae->e2->toInteger();
                 Expression *e = se->getField(type, offset);
                 if (!e)
                     e = EXP_CANT_INTERPRET;
