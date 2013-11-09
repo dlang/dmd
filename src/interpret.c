@@ -4163,15 +4163,15 @@ Expression *interpretAssignToSlice(InterState *istate, CtfeGoal goal, Loc loc,
     }
     else if (existingSE)
     {   // String literal block slice assign
-        unsigned value = newval->toInteger();
+        dinteger_t value = newval->toInteger();
         utf8_t *s = (utf8_t *)existingSE->string;
         for (size_t j = 0; j < upperbound-lowerbound; j++)
         {
             switch (existingSE->sz)
             {
-                case 1: s[j+firstIndex] = value; break;
-                case 2: ((unsigned short *)s)[j+firstIndex] = value; break;
-                case 4: ((unsigned *)s)[j+firstIndex] = value; break;
+                case 1: s[(size_t)(j+firstIndex)] = (utf8_t)value; break;
+                case 2: ((unsigned short *)s)[(size_t)(j+firstIndex)] = (unsigned short)value; break;
+                case 4: ((unsigned *)s)[(size_t)(j+firstIndex)] = (unsigned)value; break;
                 default:
                     assert(0);
                     break;
