@@ -6046,7 +6046,7 @@ Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *del
     Type *charType = (*fd->parameters)[numParams-1]->type;
     Type *indexType = numParams == 2 ? (*fd->parameters)[0]->type
                                      : Type::tsize_t;
-    uinteger_t len = resolveArrayLength(str);
+    size_t len = (size_t)resolveArrayLength(str);
     if (len == 0)
         return new IntegerExp(deleg->loc, 0, indexType);
 
