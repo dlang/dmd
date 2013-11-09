@@ -4383,9 +4383,9 @@ StringExp *ArrayLiteralExp::toString()
                 Expression *ch = (*elements)[i];
                 if (ch->op != TOKint64)
                     return NULL;
-                     if (sz == 1) buf.writebyte(ch->toInteger());
-                else if (sz == 2) buf.writeword(ch->toInteger());
-                else              buf.write4(ch->toInteger());
+                     if (sz == 1) buf.writebyte((unsigned)ch->toInteger());
+                else if (sz == 2) buf.writeword((unsigned)ch->toInteger());
+                else              buf.write4((unsigned)ch->toInteger());
             }
         }
         char prefix;
