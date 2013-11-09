@@ -4167,15 +4167,15 @@ unsigned StringExp::charAt(uinteger_t i)
     switch (sz)
     {
         case 1:
-            value = ((utf8_t *)string)[i];
+            value = ((utf8_t *)string)[(size_t)i];
             break;
 
         case 2:
-            value = ((unsigned short *)string)[i];
+            value = ((unsigned short *)string)[(size_t)i];
             break;
 
         case 4:
-            value = ((unsigned int *)string)[i];
+            value = ((unsigned int *)string)[(size_t)i];
             break;
 
         default:
