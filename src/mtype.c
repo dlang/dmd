@@ -8261,7 +8261,7 @@ Expression *TypeStruct::defaultInitLiteral(Loc loc)
         if (e && e->op == TOKerror)
             return e;
         if (e)
-            offset = vd->offset + vd->type->size();
+            offset = vd->offset + (unsigned)vd->type->size();
         (*structelems)[j] = e;
     }
     StructLiteralExp *structinit = new StructLiteralExp(loc, (StructDeclaration *)sym, structelems);
