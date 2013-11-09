@@ -462,6 +462,34 @@ int runLINK()
     {
         argv.push(global.params.exefile);
     }
+    else if (global.params.run)
+    {
+#if 1
+        char name[] = P_tmpdir"/dmd_runXXXXXX";
+        int fd = mkstemp(name);
+        if (fd == -1)
+        {   error(Loc(), "error creating temporary file");
+            return 1;
+        }
+        else
+            close(fd);
+        global.params.exefile = mem.strdup(name);
+        argv.push(global.params.exefile);
+#else
+        /* The use of tmpnam raises the issue of "is this a security hole"?
+         * The hole is that after tmpnam and before the file is opened,
+         * the attacker modifies the file system to get control of the
+         * file with that name. I do not know if this is an issue in
+         * this context.
+         * We cannot just replace it with mkstemp, because this name is
+         * passed to the linker that actually opens the file and writes to it.
+         */
+        char s[L_tmpnam + 1];
+        char *n = tmpnam(s);
+        global.params.exefile = mem.strdup(n);
+        argv.push(global.params.exefile);
+#endif
+    }
     else
     {   // Generate exe file name from first obj name
         const char *n = (*global.params.objfiles)[0];

@@ -93,7 +93,24 @@ Module::Module(const char *filename, Identifier *ident, int doDocComment, int do
     namelen = 0;
 
     srcfilename = FileName::defaultExt(filename, global.mars_ext);
-    if (!FileName::equalsExt(srcfilename, global.mars_ext) &&
+
+#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+    /* Allow 'script' D source files to have no extension.
+     */
+    bool allow_no_extension = true;
+#else
+    bool allow_no_extension = false;
+#endif
+    if (allow_no_extension &&
+        global.params.run &&
+        !FileName::ext(filename) &&
+        FileName::exists(srcfilename) == 0 &&
+        FileName::exists(filename) == 1)
+    {
+        FileName::free(srcfilename);
+        srcfilename = FileName::removeExt(filename);    // just does a mem.strdup(filename)
+    }
+    else if (!FileName::equalsExt(srcfilename, global.mars_ext) &&
         !FileName::equalsExt(srcfilename, global.hdr_ext) &&
         !FileName::equalsExt(srcfilename, "dd"))
     {
