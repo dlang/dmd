@@ -5412,7 +5412,7 @@ Expression *CastExp::interpret(InterState *istate, CtfeGoal goal)
                 Expression *xx = NULL;
                 if (ie->e1->op == TOKarrayliteral && ie->e2->op == TOKint64)
                 {   ArrayLiteralExp *ale = (ArrayLiteralExp *)ie->e1;
-                    uinteger_t indx = ie->e2->toInteger();
+                    size_t indx = (size_t)ie->e2->toInteger();
                     if (indx < ale->elements->dim)
                     xx = (*ale->elements)[indx];
                 }
