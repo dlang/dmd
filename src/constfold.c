@@ -1383,7 +1383,7 @@ Expression *Slice(Type *type, Expression *e1, Expression *lwr, Expression *upr)
         else
         {
             Expressions *elements = new Expressions();
-            elements->setDim(iupr - ilwr);
+            elements->setDim((size_t)(iupr - ilwr));
             memcpy(elements->tdata(),
                    es1->elements->tdata() + ilwr,
                    (iupr - ilwr) * sizeof((*es1->elements)[0]));
