@@ -1521,7 +1521,7 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
             StringExp *es;
             if (t->nextOf())
                 t = t->nextOf()->toBasetype();
-            size_t sz = t->size();
+            unsigned char sz = (unsigned char)t->size();
 
             dinteger_t v = e->toInteger();
 
