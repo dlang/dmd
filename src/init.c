@@ -509,7 +509,7 @@ Expression *ArrayInitializer::toExpression(Type *tx)
         switch (t->ty)
         {
            case Tsarray:
-               edim = ((TypeSArray *)t)->dim->toInteger();
+               edim = (size_t)((TypeSArray *)t)->dim->toInteger();
                break;
 
            case Tpointer:
