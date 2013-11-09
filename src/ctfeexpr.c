@@ -1395,7 +1395,7 @@ int ctfeRawCmp(Loc loc, Expression *e1, Expression *e2)
             if (res != 0)
                 return res;
         }
-        return len1 - len2;
+        return (int)(len1 - len2);
     }
     if (e1->type->isintegral())
     {
