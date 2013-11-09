@@ -99,7 +99,7 @@ const char *Declaration::kind()
 unsigned Declaration::size(Loc loc)
 {
     assert(type);
-    return type->size();
+    return (unsigned)type->size();
 }
 
 bool Declaration::isDelete()
