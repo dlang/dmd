@@ -1904,7 +1904,7 @@ Expression *changeArrayLiteralLength(Loc loc, TypeArray *arrayType,
     // Resolve slices
     size_t indxlo = 0;
     if (oldval->op == TOKslice)
-    {   indxlo = ((SliceExp *)oldval)->lwr->toInteger();
+    {   indxlo = (size_t)((SliceExp *)oldval)->lwr->toInteger();
         oldval = ((SliceExp *)oldval)->e1;
     }
     size_t copylen = oldlen < newlen ? oldlen : newlen;
