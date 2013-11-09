@@ -683,9 +683,9 @@ public:
 class SymOffExp : public SymbolExp
 {
 public:
-    unsigned offset;
+    dinteger_t offset;
 
-    SymOffExp(Loc loc, Declaration *var, unsigned offset, bool hasOverloads = false);
+    SymOffExp(Loc loc, Declaration *var, dinteger_t offset, bool hasOverloads = false);
     Expression *semantic(Scope *sc);
     Expression *optimize(int result, bool keepLvalue = false);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);

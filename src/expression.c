@@ -5632,7 +5632,7 @@ SymbolExp::SymbolExp(Loc loc, TOK op, int size, Declaration *var, bool hasOverlo
 
 /********************** SymOffExp **************************************/
 
-SymOffExp::SymOffExp(Loc loc, Declaration *var, unsigned offset, bool hasOverloads)
+SymOffExp::SymOffExp(Loc loc, Declaration *var, dinteger_t offset, bool hasOverloads)
     : SymbolExp(loc, TOKsymoff, sizeof(SymOffExp), var, hasOverloads)
 {
     this->offset = offset;
