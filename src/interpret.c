@@ -4143,7 +4143,7 @@ Expression *interpretAssignToSlice(InterState *istate, CtfeGoal goal, Loc loc,
     }
     else if (newval->op == TOKstring && existingSE)
     {
-        sliceAssignStringFromString((StringExp *)existingSE, (StringExp *)newval, firstIndex);
+        sliceAssignStringFromString((StringExp *)existingSE, (StringExp *)newval, (size_t)firstIndex);
         return newval;
     }
     else if (newval->op == TOKstring && existingAE
@@ -4151,14 +4151,14 @@ Expression *interpretAssignToSlice(InterState *istate, CtfeGoal goal, Loc loc,
     {   /* Mixed slice: it was initialized as an array literal of chars.
          * Now a slice of it is being set with a string.
          */
-        sliceAssignArrayLiteralFromString(existingAE, (StringExp *)newval, firstIndex);
+        sliceAssignArrayLiteralFromString(existingAE, (StringExp *)newval, (size_t)firstIndex);
         return newval;
     }
     else if (newval->op == TOKarrayliteral && existingSE)
     {   /* Mixed slice: it was initialized as a string literal.
          * Now a slice of it is being set with an array literal.
          */
-        sliceAssignStringFromArrayLiteral(existingSE, (ArrayLiteralExp *)newval, firstIndex);
+        sliceAssignStringFromArrayLiteral(existingSE, (ArrayLiteralExp *)newval, (size_t)firstIndex);
         return newval;
     }
     else if (existingSE)
