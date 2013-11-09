@@ -6086,7 +6086,7 @@ Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *del
         {   // If it is an array literal, copy the code points into the buffer
             size_t buflen = 1; // #code points in the buffer
             size_t n = 1;   // #code points in this char
-            size_t sz = ale->type->nextOf()->size();
+            size_t sz = (size_t)ale->type->nextOf()->size();
 
             switch(sz)
             {
