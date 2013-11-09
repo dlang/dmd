@@ -1271,11 +1271,11 @@ int ctfeCmpArrays(Loc loc, Expression *e1, Expression *e2, uinteger_t len)
 
     // Now both must be either TOKarrayliteral or TOKstring
     if (se1 && se2)
-        return sliceCmpStringWithString(se1, se2, lo1, lo2, len);
+        return sliceCmpStringWithString(se1, se2, (size_t)lo1, (size_t)lo2, (size_t)len);
     if (se1 && ae2)
-        return sliceCmpStringWithArray(se1, ae2, lo1, lo2, len);
+        return sliceCmpStringWithArray(se1, ae2, (size_t)lo1, (size_t)lo2, (size_t)len);
     if (se2 && ae1)
-        return -sliceCmpStringWithArray(se2, ae1, lo2, lo1, len);
+        return -sliceCmpStringWithArray(se2, ae1, (size_t)lo2, (size_t)lo1, (size_t)len);
 
     assert (ae1 && ae2);
     // Comparing two array literals. This case is potentially recursive.
