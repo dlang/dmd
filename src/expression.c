@@ -4803,7 +4803,7 @@ Expression *StructLiteralExp::getField(Type *type, unsigned offset)
              */
             if (e->type->castMod(0) != type->castMod(0) && type->ty == Tsarray)
             {   TypeSArray *tsa = (TypeSArray *)type;
-                uinteger_t length = tsa->dim->toInteger();
+                size_t length = (size_t)tsa->dim->toInteger();
                 Expressions *z = new Expressions;
                 z->setDim(length);
                 for (size_t q = 0; q < length; ++q)
