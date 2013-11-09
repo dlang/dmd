@@ -4605,7 +4605,7 @@ Expression *StructLiteralExp::semantic(Scope *sc)
             error("overlapping initialization for %s", v->toChars());
             return new ErrorExp();
         }
-        offset = v->offset + v->type->size();
+        offset = (unsigned)(v->offset + v->type->size());
 
         Type *telem = v->type;
         if (stype)
