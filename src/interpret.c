@@ -3353,8 +3353,8 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             returnValue = newval;
         if (e1->op == TOKarraylength)
         {
-            size_t oldlen = oldval->toInteger();
-            size_t newlen = newval->toInteger();
+            size_t oldlen = (size_t)oldval->toInteger();
+            size_t newlen = (size_t)newval->toInteger();
             if (oldlen == newlen) // no change required -- we're done!
                 return returnValue;
             // Now change the assignment from arr.length = n into arr = newval
