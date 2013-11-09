@@ -880,7 +880,7 @@ Expression *paintFloatInt(Expression *fromVal, Type *to)
         }
         else
         {
-            u.x = fromVal->toInteger();
+            u.x = (d_int32)fromVal->toInteger();
             return new RealExp(fromVal->loc, ldouble(u.f), to);
         }
     }
