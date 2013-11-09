@@ -198,8 +198,8 @@ Type *argtypemerge(Type *t1, Type *t2, unsigned offset2)
     if (!t2)
         return t1;
 
-    unsigned sz1 = t1->size(Loc());
-    unsigned sz2 = t2->size(Loc());
+    unsigned sz1 = (unsigned)t1->size(Loc());
+    unsigned sz2 = (unsigned)t2->size(Loc());
 
     if (t1->ty != t2->ty &&
         (t1->ty == Tfloat80 || t2->ty == Tfloat80))
