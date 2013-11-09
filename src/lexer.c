@@ -2352,7 +2352,7 @@ void Lexer::poundLine()
 
     scan(&tok);
     if (tok.value == TOKint32v || tok.value == TOKint64v)
-    {   linnum = tok.uns64value - 1;
+    {   linnum = (int)(tok.uns64value - 1);
         if (linnum != tok.uns64value - 1)
             error("line number out of range");
     }
