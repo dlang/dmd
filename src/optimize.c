@@ -417,7 +417,7 @@ Expression *PtrExp::optimize(int result, bool keepLvalue)
         Expression *e = expandVar(result, v);
         if (e && e->op == TOKstructliteral)
         {   StructLiteralExp *sle = (StructLiteralExp *)e;
-            e = sle->getField(type, se->offset);
+            e = sle->getField(type, (unsigned)se->offset);
             if (e && e != EXP_CANT_INTERPRET)
                 return e;
         }

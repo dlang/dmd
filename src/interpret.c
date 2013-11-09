@@ -5583,7 +5583,7 @@ Expression *PtrExp::interpret(InterState *istate, CtfeGoal goal)
             if (ex->op == TOKstructliteral)
             {   StructLiteralExp *se = (StructLiteralExp *)ex;
                 dinteger_t offset = ae->e2->toInteger();
-                e = se->getField(type, offset);
+                e = se->getField(type, (unsigned)offset);
                 if (!e)
                     e = EXP_CANT_INTERPRET;
                 return e;
