@@ -3659,7 +3659,7 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
         Expression *ec;
         FuncDeclaration *fd;
         Expressions *arguments;
-        int size = next->size(e->loc);
+        dinteger_t size = next->size(e->loc);
         int dup;
 
         Expression *olde = e;
