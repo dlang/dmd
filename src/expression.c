@@ -1875,7 +1875,7 @@ Expression::Expression(Loc loc, TOK op, int size)
     //printf("Expression::Expression(op = %d) this = %p\n", op, this);
     this->loc = loc;
     this->op = op;
-    this->size = size;
+    this->size = (unsigned char)size;
     this->parens = 0;
     type = NULL;
 }
