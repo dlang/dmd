@@ -1701,7 +1701,7 @@ Expression *ctfeIndex(Loc loc, Type *type, Expression *e1, uinteger_t indx)
         error(loc, "array index %llu is out of bounds %s[0 .. %llu]", indx, e1->toChars(), (ulonglong)ale->elements->dim);
         return EXP_CANT_INTERPRET;
     }
-    Expression *e = (*ale->elements)[indx];
+    Expression *e = (*ale->elements)[(size_t)indx];
     return paintTypeOntoLiteral(type, e);
 }
 
