@@ -9353,7 +9353,7 @@ void TypeSlice::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol 
              * is a slice [i1..i2] out of the old one.
              */
             Objects *objects = new Objects;
-            objects->setDim(i2 - i1);
+            objects->setDim((size_t)(i2 - i1));
             for (size_t i = 0; i < objects->dim; i++)
             {
                 (*objects)[i] = (*td->objects)[(size_t)i1 + i];
