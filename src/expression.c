@@ -10144,7 +10144,7 @@ Expression *VectorExp::semantic(Scope *sc)
     assert(tb->ty == Tvector);
     TypeVector *tv = (TypeVector *)tb;
     Type *te = tv->elementType();
-    dim = tv->size(loc) / te->size(loc);
+    dim = (size_t)(tv->size(loc) / te->size(loc));
     return this;
 }
 
