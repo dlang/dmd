@@ -1283,8 +1283,8 @@ int ctfeCmpArrays(Loc loc, Expression *e1, Expression *e2, uinteger_t len)
     // a full cmp.
     bool needCmp = ae1->type->nextOf()->isintegral();
     for (size_t i = 0; i < len; i++)
-    {   Expression *ee1 = (*ae1->elements)[lo1 + i];
-        Expression *ee2 = (*ae2->elements)[lo2 + i];
+    {   Expression *ee1 = (*ae1->elements)[(size_t)(lo1 + i)];
+        Expression *ee2 = (*ae2->elements)[(size_t)(lo2 + i)];
         if (needCmp)
         {   sinteger_t c = ee1->toInteger() - ee2->toInteger();
             if (c > 0)
