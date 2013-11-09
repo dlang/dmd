@@ -1575,7 +1575,7 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
         StringExp *es2 = (StringExp *)e2;
         StringExp *es;
         size_t len = es1->len + es2->len;
-        int sz = es1->sz;
+        unsigned char sz = es1->sz;
 
         if (sz != es2->sz)
         {
@@ -1640,7 +1640,7 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
         void *s;
         StringExp *es1 = (StringExp *)e1;
         StringExp *es;
-        size_t sz = es1->sz;
+        unsigned char sz = es1->sz;
         dinteger_t v = e2->toInteger();
 
         // Is it a concatentation of homogenous types?
@@ -1672,7 +1672,7 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
         StringExp *es2 = (StringExp *)e2;
         StringExp *es;
         size_t len = 1 + es2->len;
-        int sz = es2->sz;
+        unsigned char sz = es2->sz;
         dinteger_t v = e1->toInteger();
 
         s = mem.malloc((len + 1) * sz);
