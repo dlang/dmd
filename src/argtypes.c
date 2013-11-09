@@ -259,7 +259,7 @@ TypeTuple *TypeDArray::toArgTypes()
     if (global.params.is64bit && !global.params.isLP64)
     {
         // For AMD64 ILP32 ABI, D arrays fit into a single integer register.
-        unsigned offset = Type::tsize_t->size(Loc());
+        unsigned offset = (unsigned)Type::tsize_t->size(Loc());
         Type *t = argtypemerge(Type::tsize_t, Type::tvoidptr, offset);
         if (t)
             return new TypeTuple(t);
@@ -275,7 +275,7 @@ TypeTuple *TypeDelegate::toArgTypes()
     if (global.params.is64bit && !global.params.isLP64)
     {
         // For AMD64 ILP32 ABI, delegates fit into a single integer register.
-        unsigned offset = Type::tsize_t->size(Loc());
+        unsigned offset = (unsigned)Type::tsize_t->size(Loc());
         Type *t = argtypemerge(Type::tsize_t, Type::tvoidptr, offset);
         if (t)
             return new TypeTuple(t);
