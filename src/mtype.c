@@ -1524,8 +1524,8 @@ void Type::toCBuffer3(OutBuffer *buf, HdrGenState *hgs, int mod)
             MODtoBuffer(buf, this->mod & MODshared);
             buf->writeByte('(');
         }
-        int m1 = this->mod & ~MODshared;
-        int m2 = (mod ^ m1) & m1;
+        unsigned char m1 = this->mod & ~MODshared;
+        unsigned char m2 = (mod ^ m1) & m1;
         if (m2)
         {
             MODtoBuffer(buf, m2);
