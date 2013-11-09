@@ -271,6 +271,18 @@ struct Task
     }
 }
 
+void test9356()
+{
+    static inout(char)[] bar (inout(char)[] a)
+    {
+        return a;
+    }
+
+    string result;
+    result ~= bar("abc");
+    assert(result == "abc");
+}
+
 /************************************/
 // 11223
 
@@ -389,6 +401,7 @@ int main()
     test3();
     test4();
     test5();
+    test9356();
     test6();
     test7();
     test8();

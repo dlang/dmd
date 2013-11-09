@@ -1926,6 +1926,7 @@ elem *NewExp::toElem(IRState *irs)
     }
     else
     {
+        error("ICE: cannot new type %s\n", t->toChars());
         assert(0);
     }
 
@@ -3277,9 +3278,10 @@ elem *CatAssignExp::toElem(IRState *irs)
             elem *ep = el_params(e2, e1, this->e1->type->getTypeInfo(NULL)->toElem(irs), NULL);
             e = el_bin(OPcall, TYdarray, el_var(rtlsym[RTLSYM_ARRAYAPPENDT]), ep);
         }
-        else
+        else if (tb1n->equals(tb2))
         {
             // Append element
+
             elem *e2x = NULL;
 
             if (e2->Eoper != OPvar && e2->Eoper != OPconst)
@@ -3339,6 +3341,12 @@ elem *CatAssignExp::toElem(IRState *irs)
             e = el_combine(e, eeq);
             e = el_combine(e, el_var(stmp));
         }
+        else
+        {
+            error("ICE: cannot append '%s' to '%s'", tb2->toChars(), tb1->toChars());
+            assert(0);
+        }
+
         el_setLoc(e,loc);
     }
     else

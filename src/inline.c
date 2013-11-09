@@ -1430,6 +1430,8 @@ Expression *CallExp::inlineScan(InlineScanState *iss, Expression *eret)
         }
     }
 
+    if (e && type->ty != Tvoid)
+        e->type = type;
     return e;
 }
 
@@ -1919,6 +1921,13 @@ Expression *FuncDeclaration::expandInline(InlineScanState *iss,
     return e;
 }
 
+void UnitTestDeclaration::inlineScan()
+{
+    if (global.params.useUnitTests)
+    {
+        FuncDeclaration::inlineScan();
+    }
+}
 
 /****************************************************
  * Perform the "inline copying" of a default argument for a function parameter.
