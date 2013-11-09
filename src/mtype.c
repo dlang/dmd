@@ -5715,7 +5715,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
             }
             else if (fparam->storageClass & STCout)
             {
-                if (unsigned m = fparam->type->mod & (MODimmutable | MODconst | MODwild))
+                if (unsigned char m = fparam->type->mod & (MODimmutable | MODconst | MODwild))
                     error(loc, "cannot have %s out parameter of type %s", MODtoChars(m), t->toChars());
                 else
                 {
