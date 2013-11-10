@@ -13,11 +13,6 @@
 #include <ctype.h>
 #include <assert.h>
 #include <string.h>                     // memset()
-#if _MSC_VER
-#include <complex>
-#else
-#include <complex.h>
-#endif
 
 #ifdef __APPLE__
 #define integer_t dmd_integer_t

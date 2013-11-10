@@ -13,10 +13,6 @@
 #include <assert.h>
 #include <math.h>
 
-#if __DMC__
-#include <complex.h>
-#endif
-
 #include "lexer.h"
 #include "mtype.h"
 #include "expression.h"

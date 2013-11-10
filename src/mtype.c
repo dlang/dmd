@@ -18,10 +18,7 @@
 
 #if _MSC_VER
 #include <malloc.h>
-#include <complex>
 #include <limits>
-#elif __DMC__
-#include <complex.h>
 #elif __MINGW32__
 #include <malloc.h>
 #endif
@@ -3142,14 +3139,9 @@ Lfvalue:
     {
         complex_t cvalue;
 
-#if __DMC__
-        //((real_t *)&cvalue)[0] = fvalue;
-        //((real_t *)&cvalue)[1] = fvalue;
-        cvalue = fvalue + fvalue * I;
-#else
         cvalue.re = fvalue;
         cvalue.im = fvalue;
-#endif
+
         //for (int i = 0; i < 20; i++)
         //    printf("%02x ", ((unsigned char *)&cvalue)[i]);
         //printf("\n");
