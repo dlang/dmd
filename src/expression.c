@@ -1760,10 +1760,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             // Give error for overloaded function addresses
             if (arg->op == TOKsymoff)
             {   SymOffExp *se = (SymOffExp *)arg;
-                if (
-#if DMDV2
-                    se->hasOverloads &&
-#endif
+                if (se->hasOverloads &&
                     !se->var->isFuncDeclaration()->isUnique())
                 {   arg->error("function %s is overloaded", arg->toChars());
                     arg = new ErrorExp();
@@ -3499,11 +3496,7 @@ Lagain:
     // BUG: This should happen after overload resolution for functions, not before
     if (s->needThis())
     {
-        if (hasThis(sc)
-#if DMDV2
-                && !s->isFuncDeclaration()
-#endif
-            )
+        if (hasThis(sc) && !s->isFuncDeclaration())
         {
             // Supply an implicit 'this', as in
             //    this.ident
@@ -12040,9 +12033,7 @@ Ltupleassign:
               e2->op == TOKmul || e2->op == TOKdiv ||
               e2->op == TOKmod || e2->op == TOKxor ||
               e2->op == TOKand || e2->op == TOKor  ||
-    #if DMDV2
               e2->op == TOKpow ||
-    #endif
               e2->op == TOKtilde || e2->op == TOKneg))
         {
             const char* e1str = e1->toChars();
@@ -12097,9 +12088,7 @@ Ltupleassign:
          e2->op == TOKmul || e2->op == TOKdiv ||
          e2->op == TOKmod || e2->op == TOKxor ||
          e2->op == TOKand || e2->op == TOKor  ||
-#if DMDV2
          e2->op == TOKpow ||
-#endif
          e2->op == TOKtilde || e2->op == TOKneg))
     {
         type = e1->type;
@@ -12193,11 +12182,9 @@ Expression *CatAssignExp::semantic(Scope *sc)
     if ((tb1->ty == Tarray) &&
         (tb2->ty == Tarray || tb2->ty == Tsarray) &&
         (e2->implicitConvTo(e1->type)
-#if DMDV2
          || (tb2->nextOf()->implicitConvTo(tb1next) &&
              (tb2->nextOf()->size(Loc()) == tb1next->size(Loc()) ||
              tb1next->ty == Tchar || tb1next->ty == Twchar || tb1next->ty == Tdchar))
-#endif
         )
        )
     {   // Append array
@@ -13358,10 +13345,8 @@ Expression *InExp::semantic(Scope *sc)
         {
             TypeAArray *ta = (TypeAArray *)t2b;
 
-#if DMDV2
             // Special handling for array keys
             if (!arrayTypeCompatible(e1->loc, e1->type, ta->index))
-#endif
             {
                 // Convert key to type of key
                 e1 = e1->implicitCastTo(sc, ta->index);
