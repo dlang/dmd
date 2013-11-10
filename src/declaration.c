@@ -524,14 +524,9 @@ void AliasDeclaration::semantic(Scope *sc)
         s = NULL;
         type = Type::terror;
     }
-    if (s
-#if DMDV2
-        && ((s->getType() && type->equals(s->getType())) || s->isEnumMember())
-#endif
-        )
+    if (s && ((s->getType() && type->equals(s->getType())) || s->isEnumMember()))
         goto L2;                        // it's a symbolic alias
 
-#if DMDV2
     type = type->addStorageClass(storage_class);
     if (storage_class & (STCref | STCnothrow | STCpure | STCdisable))
     {   // For 'ref' to be attached to function types, and picked
@@ -542,7 +537,6 @@ void AliasDeclaration::semantic(Scope *sc)
         sc = sc->pop();
     }
     else
-#endif
         type->resolve(loc, sc, &e, &t, &s);
     if (s)
     {
@@ -709,30 +703,14 @@ Dsymbol *AliasDeclaration::toAlias()
 void AliasDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("alias ");
-#if 0
-    if (hgs->hdrgen)
+    if (aliassym)
     {
-        if (haliassym)
-        {
-            haliassym->toCBuffer(buf, hgs);
-            buf->writeByte(' ');
-            buf->writestring(ident->toChars());
-        }
-        else
-            htype->toCBuffer(buf, ident, hgs);
+        aliassym->toCBuffer(buf, hgs);
+        buf->writeByte(' ');
+        buf->writestring(ident->toChars());
     }
     else
-#endif
-    {
-        if (aliassym)
-        {
-            aliassym->toCBuffer(buf, hgs);
-            buf->writeByte(' ');
-            buf->writestring(ident->toChars());
-        }
-        else
-            type->toCBuffer(buf, ident, hgs);
-    }
+        type->toCBuffer(buf, ident, hgs);
     buf->writeByte(';');
     buf->writenl();
 }
@@ -1798,12 +1776,10 @@ void VarDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         buf->writestring(ident->toChars());
     if (init)
     {   buf->writestring(" = ");
-#if DMDV2
         ExpInitializer *ie = init->isExpInitializer();
         if (ie && (ie->exp->op == TOKconstruct || ie->exp->op == TOKblit))
             ((AssignExp *)ie->exp)->e2->toCBuffer(buf, hgs);
         else
-#endif
             init->toCBuffer(buf, hgs);
     }
     buf->writeByte(';');
