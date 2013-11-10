@@ -157,7 +157,7 @@ enum TOK
         TOKargTypes,
         TOKref,
         TOKmacro,
-#if DMDV2
+
         TOKparameters,
         TOKtraits,
         TOKoverloadset,
@@ -176,7 +176,6 @@ enum TOK
         TOKgoesto,
         TOKvector,
         TOKpound,
-#endif
 
         TOKMAX
 };

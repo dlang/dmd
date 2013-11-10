@@ -494,7 +494,6 @@ const char *StorageClassDeclaration::stcToChars(char tmp[], StorageClass& stc)
         { STCalias,        TOKalias },
         { STCout,          TOKout },
         { STCin,           TOKin },
-#if DMDV2
         { STCmanifest,     TOKenum },
         { STCimmutable,    TOKimmutable },
         { STCshared,       TOKshared },
@@ -509,7 +508,6 @@ const char *StorageClassDeclaration::stcToChars(char tmp[], StorageClass& stc)
         { STCtrusted,      TOKat,       "trusted" },
         { STCsystem,       TOKat,       "system" },
         { STCdisable,      TOKat,       "disable" },
-#endif
     };
 
     for (int i = 0; i < sizeof(table)/sizeof(table[0]); i++)
@@ -523,7 +521,6 @@ const char *StorageClassDeclaration::stcToChars(char tmp[], StorageClass& stc)
                 return "__thread";
 
             TOK tok = table[i].tok;
-#if DMDV2
             if (tok == TOKat)
             {
                 tmp[0] = '@';
@@ -531,7 +528,6 @@ const char *StorageClassDeclaration::stcToChars(char tmp[], StorageClass& stc)
                 return tmp;
             }
             else
-#endif
                 return Token::toChars(tok);
         }
     }

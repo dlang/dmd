@@ -96,13 +96,11 @@ void writeFilename(OutBuffer *buf, const char *filename)
  */
 int findNoMainError(int fd)
 {
-    static const char nmeErrorMessage[] =
 #if __APPLE__
-        "\"__Dmain\", referenced from:"
+    static const char nmeErrorMessage[] = "\"__Dmain\", referenced from:";
 #else
-        "undefined reference to `_Dmain'"
+    static const char nmeErrorMessage[] = "undefined reference to `_Dmain'";
 #endif
-        ;
 
     FILE *stream = fdopen(fd, "r");
     if (stream == NULL) return -1;

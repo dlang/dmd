@@ -882,12 +882,10 @@ void CompoundDeclarationStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
                 if (v->init)
                 {   buf->writestring(" = ");
-#if DMDV2
                     ExpInitializer *ie = v->init->isExpInitializer();
                     if (ie && (ie->exp->op == TOKconstruct || ie->exp->op == TOKblit))
                         ((AssignExp *)ie->exp)->e2->toCBuffer(buf, hgs);
                     else
-#endif
                         v->init->toCBuffer(buf, hgs);
                 }
             }
@@ -2231,26 +2229,11 @@ Lagain:
                 assert(tab->ty == Tstruct || tab->ty == Tclass);
                 Expressions *exps = new Expressions();
                 assert(sapply);
-#if 0
-                TemplateDeclaration *td;
-                if (sapply &&
-                    (td = sapply->isTemplateDeclaration()) != NULL)
-                {   /* Call:
-                     *  aggr.apply!(fld)()
-                     */
-                    Objects *tiargs = new Objects();
-                    tiargs->push(fld);
-                    ec = new DotTemplateInstanceExp(loc, aggr, sapply->ident, tiargs);
-                }
-                else
-#endif
-                {
-                    /* Call:
-                     *  aggr.apply(flde)
-                     */
-                    ec = new DotIdExp(loc, aggr, sapply->ident);
-                    exps->push(flde);
-                }
+                /* Call:
+                 *  aggr.apply(flde)
+                 */
+                ec = new DotIdExp(loc, aggr, sapply->ident);
+                exps->push(flde);
                 e = new CallExp(loc, ec, exps);
                 e = e->semantic(sc);
                 if (e->type != Type::tint32)

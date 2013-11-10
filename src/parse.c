@@ -1523,15 +1523,10 @@ Parameters *Parser::parseParameters(int *pvarargs, TemplateParameters **tpl)
                         error("scope cannot be ref or out");
 
                     Token *t;
-#if 0
-                    if (tpl && !stc && token.value == TOKidentifier &&
-                        (t = peek(&token), (t->value == TOKcomma || t->value == TOKrparen)))
-#else
                     if (tpl && token.value == TOKidentifier &&
                         (t = peek(&token), (t->value == TOKcomma ||
                                             t->value == TOKrparen ||
                                             t->value == TOKdotdotdot)))
-#endif
                     {
                         Identifier *id = Lexer::uniqueId("__T");
                         Loc loc = token.loc;
@@ -4581,13 +4576,11 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
                 s = parseStatement(PSsemi | PScurlyscope);
             s = new ScopeStatement(loc, s);
 
-#if DMDV2
             if (last)
             {
                 s = new CaseRangeStatement(loc, exp, last, s);
             }
             else
-#endif
             {
                 // Keep cases in order by building the case statements backwards
                 for (size_t i = cases.dim; i; i--)
@@ -5953,13 +5946,11 @@ Expression *Parser::parsePrimaryExp()
                          token.value == TOKinterface ||
                          token.value == TOKargTypes ||
                          token.value == TOKparameters ||
-#if DMDV2
                          token.value == TOKconst && peek(&token)->value == TOKrparen ||
                          token.value == TOKinvariant && peek(&token)->value == TOKrparen ||
                          token.value == TOKimmutable && peek(&token)->value == TOKrparen ||
                          token.value == TOKshared && peek(&token)->value == TOKrparen ||
                          token.value == TOKwild && peek(&token)->value == TOKrparen ||
-#endif
                          token.value == TOKfunction ||
                          token.value == TOKdelegate ||
                          token.value == TOKreturn))
