@@ -2072,14 +2072,10 @@ done:
         n = stringbuffer.data[0] - '0';
     else
     {
-        // Convert string to integer
-#if __DMC__
-        errno = 0;
-        n = strtoull((char *)stringbuffer.data,NULL,0);
-        if (errno == ERANGE)
-            error("integer overflow");
-#else
-        // Not everybody implements strtoull()
+        /* Convert string to integer
+         * Not everybody implements strtoull()
+         * and besides, we don't want to deal with errno.
+         */
         char *p = (char *)stringbuffer.data;
         int r = 10, d;
 
@@ -2117,7 +2113,7 @@ done:
             n = n2 + d;
             p++;
         }
-#endif
+
         if (sizeof(n) > 8 &&
             n > 0xFFFFFFFFFFFFFFFFULL)  // if n needs more than 64 bits
             error("integer overflow");
@@ -2232,35 +2228,15 @@ done:
  */
 
 TOK Lexer::inreal(Token *t)
-#ifdef __DMC__
-__in
-{
-    assert(*p == '.' || isdigit(*p));
-}
-__out (result)
-{
-    switch (result)
-    {
-        case TOKfloat32v:
-        case TOKfloat64v:
-        case TOKfloat80v:
-        case TOKimaginary32v:
-        case TOKimaginary64v:
-        case TOKimaginary80v:
-            break;
-
-        default:
-            assert(0);
-    }
-}
-__body
-#endif /* __DMC__ */
 {   int dblstate;
     unsigned c;
     char hex;                   // is this a hexadecimal-floating-constant?
     TOK result;
 
     //printf("Lexer::inreal()\n");
+#ifdef DEBUG
+    assert(*p == '.' || isdigit(*p));
+#endif
     stringbuffer.reset();
     dblstate = 0;
     hex = 0;
@@ -2389,6 +2365,21 @@ done:
     }
     if (errno == ERANGE)
         error("number is not representable");
+#ifdef DEBUG
+    switch (result)
+    {
+        case TOKfloat32v:
+        case TOKfloat64v:
+        case TOKfloat80v:
+        case TOKimaginary32v:
+        case TOKimaginary64v:
+        case TOKimaginary80v:
+            break;
+
+        default:
+            assert(0);
+    }
+#endif
     return result;
 }
 
