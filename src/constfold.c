@@ -824,7 +824,7 @@ Expression *Equal(TOK op, Type *type, Expression *e1, Expression *e2)
                 Expression *v = Equal(TOKequal, Type::tint32, ee1, ee2);
                 if (v == EXP_CANT_INTERPRET)
                     return EXP_CANT_INTERPRET;
-                cmp = v->toInteger();
+                cmp = (int)v->toInteger();
                 if (cmp == 0)
                     break;
             }
