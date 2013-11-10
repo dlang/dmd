@@ -12,11 +12,6 @@
 #include <ctype.h>
 #include <math.h>
 #include <assert.h>
-#if _MSC_VER
-#include <complex>
-#else
-#include <complex.h>
-#endif
 
 #include "rmem.h"
 #include "port.h"
@@ -3052,11 +3047,7 @@ real_t RealExp::toImaginary()
 
 complex_t RealExp::toComplex()
 {
-#ifdef __DMC__
-    return toReal() + toImaginary() * I;
-#else
     return complex_t(toReal(), toImaginary());
-#endif
 }
 
 /********************************

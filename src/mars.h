@@ -312,12 +312,7 @@ extern Global global;
 
 #include "longdouble.h"
 
-#ifdef __DMC__
- #include  <complex.h>
- typedef _Complex long double complex_t;
-#else
- #include "complex_t.h"
-#endif
+#include "complex_t.h"
 
 // Be careful not to care about sign when using dinteger_t
 //typedef uint64_t integer_t;

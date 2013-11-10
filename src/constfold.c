@@ -14,10 +14,6 @@
 #include <string.h>                     // mem{cpy|set|cmp}()
 #include <math.h>
 
-#if __DMC__
-#include <complex.h>
-#endif
-
 #include "rmem.h"
 #include "root.h"
 #include "port.h"
@@ -185,17 +181,6 @@ Expression *Add(Type *type, Expression *e1, Expression *e2)
 
         switch (x)
         {
-#if __DMC__
-            case 0+0:   v = (complex_t) (r1 + r2);      break;
-            case 0+1:   v = r1 + i2 * I;                break;
-            case 0+2:   v = r1 + c2;                    break;
-            case 3+0:   v = i1 * I + r2;                break;
-            case 3+1:   v = (complex_t) ((i1 + i2) * I); break;
-            case 3+2:   v = i1 * I + c2;                break;
-            case 6+0:   v = c1 + r2;                    break;
-            case 6+1:   v = c1 + i2 * I;                break;
-            case 6+2:   v = c1 + c2;                    break;
-#else
             case 0+0:   v = complex_t(r1 + r2, 0);      break;
             case 0+1:   v = complex_t(r1, i2);          break;
             case 0+2:   v = complex_t(r1 + creall(c2), cimagl(c2));     break;
@@ -205,7 +190,6 @@ Expression *Add(Type *type, Expression *e1, Expression *e2)
             case 6+0:   v = complex_t(creall(c1) + r2, cimagl(c2));     break;
             case 6+1:   v = complex_t(creall(c1), cimagl(c1) + i2);     break;
             case 6+2:   v = c1 + c2;                    break;
-#endif
             default: assert(0);
         }
         e = new ComplexExp(loc, v, type);
@@ -282,17 +266,6 @@ Expression *Min(Type *type, Expression *e1, Expression *e2)
 
         switch (x)
         {
-#if __DMC__
-            case 0+0:   v = (complex_t) (r1 - r2);      break;
-            case 0+1:   v = r1 - i2 * I;                break;
-            case 0+2:   v = r1 - c2;                    break;
-            case 3+0:   v = i1 * I - r2;                break;
-            case 3+1:   v = (complex_t) ((i1 - i2) * I); break;
-            case 3+2:   v = i1 * I - c2;                break;
-            case 6+0:   v = c1 - r2;                    break;
-            case 6+1:   v = c1 - i2 * I;                break;
-            case 6+2:   v = c1 - c2;                    break;
-#else
             case 0+0:   v = complex_t(r1 - r2, 0);      break;
             case 0+1:   v = complex_t(r1, -i2);         break;
             case 0+2:   v = complex_t(r1 - creall(c2), -cimagl(c2));    break;
@@ -302,7 +275,6 @@ Expression *Min(Type *type, Expression *e1, Expression *e2)
             case 6+0:   v = complex_t(creall(c1) - r2, cimagl(c1));     break;
             case 6+1:   v = complex_t(creall(c1), cimagl(c1) - i2);     break;
             case 6+2:   v = c1 - c2;                    break;
-#endif
             default: assert(0);
         }
         e = new ComplexExp(loc, v, type);
@@ -330,43 +302,27 @@ Expression *Mul(Type *type, Expression *e1, Expression *e2)
 
         if (e1->type->isreal())
         {
-#if __DMC__
-            c = e1->toReal() * e2->toComplex();
-#else
             r = e1->toReal();
             c = e2->toComplex();
             c = complex_t(r * creall(c), r * cimagl(c));
-#endif
         }
         else if (e1->type->isimaginary())
         {
-#if __DMC__
-            c = e1->toImaginary() * I * e2->toComplex();
-#else
             r = e1->toImaginary();
             c = e2->toComplex();
             c = complex_t(-r * cimagl(c), r * creall(c));
-#endif
         }
         else if (e2->type->isreal())
         {
-#if __DMC__
-            c = e2->toReal() * e1->toComplex();
-#else
             r = e2->toReal();
             c = e1->toComplex();
             c = complex_t(r * creall(c), r * cimagl(c));
-#endif
         }
         else if (e2->type->isimaginary())
         {
-#if __DMC__
-            c = e1->toComplex() * e2->toImaginary() * I;
-#else
             r = e2->toImaginary();
             c = e1->toComplex();
             c = complex_t(-r * cimagl(c), r * creall(c));
-#endif
         }
         else
             c = e1->toComplex() * e2->toComplex();
@@ -404,31 +360,15 @@ Expression *Div(Type *type, Expression *e1, Expression *e2)
                 e = new RealExp(loc, e1->toReal() / e2->toReal(), type);
                 return e;
             }
-#if __DMC__
-            //r = e2->toReal();
-            //c = e1->toComplex();
-            //printf("(%Lg + %Lgi) / %Lg\n", creall(c), cimagl(c), r);
-
-            c = e1->toComplex() / e2->toReal();
-#else
             r = e2->toReal();
             c = e1->toComplex();
             c = complex_t(creall(c) / r, cimagl(c) / r);
-#endif
         }
         else if (e2->type->isimaginary())
         {
-#if __DMC__
-            //r = e2->toImaginary();
-            //c = e1->toComplex();
-            //printf("(%Lg + %Lgi) / %Lgi\n", creall(c), cimagl(c), r);
-
-            c = e1->toComplex() / (e2->toImaginary() * I);
-#else
             r = e2->toImaginary();
             c = e1->toComplex();
             c = complex_t(cimagl(c) / r, -creall(c) / r);
-#endif
         }
         else
         {
@@ -476,20 +416,12 @@ Expression *Mod(Type *type, Expression *e1, Expression *e2)
         if (e2->type->isreal())
         {   real_t r2 = e2->toReal();
 
-#ifdef __DMC__
-            c = Port::fmodl(e1->toReal(), r2) + Port::fmodl(e1->toImaginary(), r2) * I;
-#else
             c = complex_t(Port::fmodl(e1->toReal(), r2), Port::fmodl(e1->toImaginary(), r2));
-#endif
         }
         else if (e2->type->isimaginary())
         {   real_t i2 = e2->toImaginary();
 
-#ifdef __DMC__
-            c = Port::fmodl(e1->toReal(), i2) + Port::fmodl(e1->toImaginary(), i2) * I;
-#else
             c = complex_t(Port::fmodl(e1->toReal(), i2), Port::fmodl(e1->toImaginary(), i2));
-#endif
         }
         else
             assert(0);
@@ -914,9 +846,6 @@ Expression *Equal(TOK op, Type *type, Expression *e1, Expression *e2)
         r1 = e1->toImaginary();
         r2 = e2->toImaginary();
      L1:
-#if __DMC__
-        cmp = (r1 == r2);
-#else
         if (Port::isNan(r1) || Port::isNan(r2)) // if unordered
         {
             cmp = 0;
@@ -925,7 +854,6 @@ Expression *Equal(TOK op, Type *type, Expression *e1, Expression *e2)
         {
             cmp = (r1 == r2);
         }
-#endif
     }
     else if (e1->type->iscomplex())
     {
@@ -1046,30 +974,8 @@ Expression *Cmp(TOK op, Type *type, Expression *e1, Expression *e2)
         r1 = e1->toImaginary();
         r2 = e2->toImaginary();
      L1:
-#if __DMC__
-        // DMC is the only compiler I know of that handles NAN arguments
-        // correctly in comparisons.
-        switch (op)
-        {
-            case TOKlt:    n = r1 <  r2;        break;
-            case TOKle:    n = r1 <= r2;        break;
-            case TOKgt:    n = r1 >  r2;        break;
-            case TOKge:    n = r1 >= r2;        break;
-
-            case TOKleg:   n = r1 <>=  r2;      break;
-            case TOKlg:    n = r1 <>   r2;      break;
-            case TOKunord: n = r1 !<>= r2;      break;
-            case TOKue:    n = r1 !<>  r2;      break;
-            case TOKug:    n = r1 !<=  r2;      break;
-            case TOKuge:   n = r1 !<   r2;      break;
-            case TOKul:    n = r1 !>=  r2;      break;
-            case TOKule:   n = r1 !>   r2;      break;
-
-            default:
-                assert(0);
-        }
-#else
         // Don't rely on compiler, handle NAN arguments separately
+        // (DMC does do it correctly)
         if (Port::isNan(r1) || Port::isNan(r2)) // if unordered
         {
             switch (op)
@@ -1114,7 +1020,6 @@ Expression *Cmp(TOK op, Type *type, Expression *e1, Expression *e2)
                     assert(0);
             }
         }
-#endif
     }
     else if (e1->type->iscomplex())
     {

@@ -1191,29 +1191,7 @@ int intSignedCmp(TOK op, sinteger_t n1, sinteger_t n2)
 int realCmp(TOK op, real_t r1, real_t r2)
 {
     int n;
-#if __DMC__
-    // DMC is the only compiler I know of that handles NAN arguments
-    // correctly in comparisons.
-    switch (op)
-    {
-        case TOKlt:    n = r1 <  r2;        break;
-        case TOKle:    n = r1 <= r2;        break;
-        case TOKgt:    n = r1 >  r2;        break;
-        case TOKge:    n = r1 >= r2;        break;
 
-        case TOKleg:   n = r1 <>=  r2;      break;
-        case TOKlg:    n = r1 <>   r2;      break;
-        case TOKunord: n = r1 !<>= r2;      break;
-        case TOKue:    n = r1 !<>  r2;      break;
-        case TOKug:    n = r1 !<=  r2;      break;
-        case TOKuge:   n = r1 !<   r2;      break;
-        case TOKul:    n = r1 !>=  r2;      break;
-        case TOKule:   n = r1 !>   r2;      break;
-
-        default:
-            assert(0);
-    }
-#else
     // Don't rely on compiler, handle NAN arguments separately
     if (Port::isNan(r1) || Port::isNan(r2)) // if unordered
     {
@@ -1259,7 +1237,6 @@ int realCmp(TOK op, real_t r1, real_t r2)
                 assert(0);
         }
     }
-#endif
     return n;
 }
 
@@ -1437,9 +1414,6 @@ int ctfeRawCmp(Loc loc, Expression *e1, Expression *e2)
         r1 = e1->toImaginary();
         r2 = e2->toImaginary();
      L1:
-#if __DMC__
-        return (r1 != r2);
-#else
         if (Port::isNan(r1) || Port::isNan(r2)) // if unordered
         {
             return 1;
@@ -1448,7 +1422,6 @@ int ctfeRawCmp(Loc loc, Expression *e1, Expression *e2)
         {
             return (r1 != r2);
         }
-#endif
     }
     else if (e1->type->iscomplex())
     {
