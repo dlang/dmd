@@ -231,63 +231,6 @@ void ClassDeclaration::toObjFile(int multiobj)
         member->toObjFile(multiobj);
     }
 
-#if 0
-    // Build destructor by aggregating dtors[]
-    Symbol *sdtor;
-    switch (dtors.dim)
-    {   case 0:
-            // No destructors for this class
-            sdtor = NULL;
-            break;
-
-        case 1:
-            // One destructor, just use it directly
-            sdtor = dtors[0]->toSymbol();
-            break;
-
-        default:
-        {   /* Build a destructor that calls all the
-             * other destructors in dtors[].
-             */
-
-            elem *edtor = NULL;
-
-            // Declare 'this' pointer for our new destructor
-            Symbol *sthis = symbol_calloc("this");
-            sthis->Stype = type_fake(TYnptr);
-            sthis->Stype->Tcount++;
-            sthis->Sclass = (config.exe == EX_WIN64) ? SCshadowreg : SCfastpar;
-            sthis->Spreg = AX;
-            sthis->Spreg2 = NOREG;
-            sthis->Sfl = (sthis->Sclass == SCshadowreg) ? FLauto : FLfast;
-
-            // Call each of the destructors in dtors[]
-            // in reverse order
-            for (size_t i = 0; i < dtors.dim; i++)
-            {   DtorDeclaration *d = dtors[i];
-                Symbol *s = d->toSymbol();
-                elem *e = el_bin(OPcall, TYvoid, el_var(s), el_var(sthis));
-                edtor = el_combine(e, edtor);
-            }
-
-            // Create type for the function
-            ::type *t = type_function(TYjfunc, NULL, 0, false, tsvoid);
-            t->Tmangle = mTYman_d;
-
-            // Create the function, sdtor, and write it out
-            localgot = NULL;
-            sdtor = toSymbolX("__dtor", SCglobal, t, "FZv");
-            block *b = block_calloc();
-            b->BC = BCret;
-            b->Belem = edtor;
-            sdtor->Sfunc->Fstartblock = b;
-            cstate.CSpsymtab = &sdtor->Sfunc->Flocsym;
-            symbol_add(sthis);
-            writefunc(sdtor);
-        }
-    }
-#endif
-
     // Generate C symbols
     toSymbol();
     toVtblSymbol();
@@ -403,9 +346,7 @@ void ClassDeclaration::toObjFile(int multiobj)
     ClassFlags::Type flags = ClassFlags::hasOffTi;
     if (isCOMclass()) flags |= ClassFlags::isCOMclass;
     if (isCPPclass()) flags |= ClassFlags::isCPPclass;
-#if DMDV2
     flags |= ClassFlags::hasGetMembers;
-#endif
     flags |= ClassFlags::hasTypeInfo;
     if (ctor)
         flags |= ClassFlags::hasCtor;
@@ -445,15 +386,6 @@ void ClassDeclaration::toObjFile(int multiobj)
     else
         dtsize_t(&dt, 0);
 
-#if DMDV2
-#if 0
-    FuncDeclaration *sgetmembers = findGetMembers();
-    if (sgetmembers)
-        dtxoff(&dt, sgetmembers->toSymbol(), 0, TYnptr);
-    else
-        dtsize_t(&dt, 0);        // module getMembers() function
-#endif
-
     // xgetRTInfo
     if (getRTInfo)
         getRTInfo->toDt(&dt);
@@ -461,7 +393,6 @@ void ClassDeclaration::toObjFile(int multiobj)
         dtsize_t(&dt, 0);
     else
         dtsize_t(&dt, 1);
-#endif
 
     //dtxoff(&dt, type->vtinfo->toSymbol(), 0, TYnptr); // typeinfo
 
@@ -538,7 +469,6 @@ void ClassDeclaration::toObjFile(int multiobj)
         }
     }
 
-#if 1
     // Put out the overriding interface vtbl[]s.
     // This must be mirrored with ClassDeclaration::baseVtblOffset()
     //printf("putting out overriding interface vtbl[]s for '%s' at offset x%x\n", toChars(), offset);
@@ -580,7 +510,7 @@ void ClassDeclaration::toObjFile(int multiobj)
             }
         }
     }
-#endif
+
 #if INTERFACE_VIRTUAL
     // Put out the overriding interface vtbl[]s.
     // This must be mirrored with ClassDeclaration::baseVtblOffset()
@@ -651,7 +581,6 @@ void ClassDeclaration::toObjFile(int multiobj)
 
             Symbol *s = fd->toSymbol();
 
-#if DMDV2
             if (isFuncHidden(fd))
             {   /* fd is hidden from the view of this class.
                  * If fd overlaps with any function in the vtbl[], then
@@ -675,7 +604,7 @@ void ClassDeclaration::toObjFile(int multiobj)
                     }
                 }
             }
-#endif
+
             dtxoff(&dt, s, 0, TYnptr);
         }
         else
@@ -712,7 +641,6 @@ unsigned ClassDeclaration::baseVtblOffset(BaseClass *bc)
         csymoffset += b->base->vtbl.dim * Target::ptrsize;
     }
 
-#if 1
     // Put out the overriding interface vtbl[]s.
     // This must be mirrored with ClassDeclaration::baseVtblOffset()
     //printf("putting out overriding interface vtbl[]s for '%s' at offset x%x\n", toChars(), offset);
@@ -734,7 +662,7 @@ unsigned ClassDeclaration::baseVtblOffset(BaseClass *bc)
             }
         }
     }
-#endif
+
 #if INTERFACE_VIRTUAL
     for (size_t i = 0; i < vtblInterfaces->dim; i++)
     {   BaseClass *b = (*vtblInterfaces)[i];
@@ -820,10 +748,8 @@ void InterfaceDeclaration::toObjFile(int multiobj)
             void *deallocator;
             OffsetTypeInfo[] offTi;
             void *defaultConstructor;
-#if DMDV2
             //const(MemberInfo[]) function(string) xgetMembers;   // module getMembers() function
             void* xgetRTInfo;
-#endif
             //TypeInfo typeinfo;
        }
      */
@@ -895,7 +821,6 @@ void InterfaceDeclaration::toObjFile(int multiobj)
     // defaultConstructor
     dtsize_t(&dt, 0);
 
-#if DMDV2
     // xgetMembers
     //dtsize_t(&dt, 0);
 
@@ -905,7 +830,6 @@ void InterfaceDeclaration::toObjFile(int multiobj)
         getRTInfo->toDt(&dt);
     else
         dtsize_t(&dt, 0);       // no pointers
-#endif
 
     //dtxoff(&dt, type->vtinfo->toSymbol(), 0, TYnptr); // typeinfo
 
@@ -1020,13 +944,11 @@ void VarDeclaration::toObjFile(int multiobj)
         return;
     }
 
-#if DMDV2
     // Do not store variables we cannot take the address of
     if (!canTakeAddressOf())
     {
         return;
     }
-#endif
 
     if (isDataseg() && !(storage_class & STCextern))
     {
@@ -1034,16 +956,6 @@ void VarDeclaration::toObjFile(int multiobj)
         sz = type->size();
 
         parent = this->toParent();
-#if DMDV1       /* private statics should still get a global symbol, in case
-         * another module inlines a function that references it.
-         */
-        if (/*protection == PROTprivate ||*/
-            !parent || parent->ident == NULL || parent->isFuncDeclaration())
-        {
-            s->Sclass = SCstatic;
-        }
-        else
-#endif
         {
             if (storage_class & STCcomdat)
                 s->Sclass = SCcomdat;
@@ -1058,16 +970,6 @@ void VarDeclaration::toObjFile(int multiobj)
                  */
                 if (parent->isTemplateInstance() && !parent->isTemplateMixin())
                 {
-#if DMDV1
-                    /* These symbol constants have already been copied,
-                     * so no reason to output them.
-                     * Note that currently there is no way to take
-                     * the address of such a const.
-                     */
-                    if (isConst() && type->toBasetype()->ty != Tsarray &&
-                        init && init->isExpInitializer())
-                        return;
-#endif
                     s->Sclass = SCcomdat;
                     break;
                 }
@@ -1184,10 +1086,8 @@ void EnumDeclaration::toObjFile(int multiobj)
         return;
     }
 
-#if DMDV2
     if (isAnonymous())
         return;
-#endif
 
     if (global.params.symdebug)
         toDebug();
@@ -1292,7 +1192,6 @@ void PragmaDeclaration::toObjFile(int multiobj)
             global.params.libfiles->push(name);
         }
     }
-#if DMDV2
     else if (ident == Id::startaddress)
     {
         assert(args && args->dim == 1);
@@ -1303,7 +1202,6 @@ void PragmaDeclaration::toObjFile(int multiobj)
         Symbol *s = f->toSymbol();
         obj_startaddress(s);
     }
-#endif
     AttribDeclaration::toObjFile(multiobj);
 }
 
