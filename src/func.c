@@ -401,9 +401,7 @@ void FuncDeclaration::semantic(Scope *sc)
         storage_class |= STCabstract;
 
         if (isCtorDeclaration() ||
-#if DMDV2
             isPostBlitDeclaration() ||
-#endif
             isDtorDeclaration() ||
             isInvariantDeclaration() ||
             isNewDeclaration() || isDelete())
@@ -3717,11 +3715,7 @@ Lyes:
 
 bool FuncDeclaration::hasNestedFrameRefs()
 {
-#if DMDV2
     if (closureVars.dim)
-#else
-    if (nestedFrameRef)
-#endif
         return true;
 
     /* If a virtual method has contracts, assume its variables are referenced

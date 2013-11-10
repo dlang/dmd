@@ -315,9 +315,7 @@ int DeclarationExp::inlineCost3(InlineCostState *ics)
         declaration->isClassDeclaration() ||
         declaration->isFuncDeclaration() ||
         declaration->isTypedefDeclaration() ||
-#if DMDV2
         declaration->isAttribDeclaration() ||
-#endif
         declaration->isTemplateMixin())
         return COST_MAX;
 
