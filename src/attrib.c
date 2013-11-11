@@ -1021,6 +1021,37 @@ void PragmaDeclaration::semantic(Scope *sc)
         }
         goto Lnodecl;
     }
+    else if (ident == Id::error)
+    {
+        if (args)
+        {
+            for (size_t i = 0; i < args->dim; i++)
+            {
+                Expression *e = (*args)[i];
+
+                sc = sc->startCTFE();
+                e = e->semantic(sc);
+                e = resolveProperties(sc, e);
+                sc = sc->endCTFE();
+                // pragma(msg) is allowed to contain types as well as expressions
+                e = ctfeInterpretForPragmaMsg(e);
+                if (e->op == TOKerror)
+                {   errorSupplemental(loc, "while evaluating pragma(error, %s)", (*args)[i]->toChars());
+                    return;
+                }
+                StringExp *se = e->toString();
+                if (se)
+                {
+                    errorPragma((char *)se->string);
+                }
+                else
+                {
+                    errorPragma(e->toChars());
+                }
+            }
+            fprintf(stderr, "\n");
+        }
+    }
     else if (ident == Id::lib)
     {
         if (!args || args->dim != 1)
@@ -1251,6 +1282,14 @@ void PragmaDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     AttribDeclaration::toCBuffer(buf, hgs);
 }
 
+
+void PragmaDeclaration::errorPragma(const char *format, ...)
+{
+    va_list ap;
+    va_start(ap, format);
+    ::verror(getLoc(), format, ap);
+    va_end(ap);
+}
 
 /********************************* ConditionalDeclaration ****************************/
 

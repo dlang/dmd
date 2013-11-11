@@ -511,6 +511,8 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     void toIR(IRState *irs);
+
+    void errorPragma(const char *format, ...);
 };
 
 class StaticAssertStatement : public Statement

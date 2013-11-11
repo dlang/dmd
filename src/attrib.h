@@ -158,6 +158,7 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     const char *kind();
     void toObjFile(int multiobj);                       // compile to .obj file
+    void errorPragma(const char *format, ...);
 };
 
 class ConditionalDeclaration : public AttribDeclaration
