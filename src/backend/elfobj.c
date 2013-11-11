@@ -2701,12 +2701,11 @@ void Obj::reftocodeseg(int seg,targ_size_t offset,targ_size_t val)
     {
         val = val - funcsym_p->Soffset;
         int relinfo;
-        targ_size_t v = 0;
         if (I64)
             relinfo = (config.flags3 & CFG3pic) ? R_X86_64_PC32 : R_X86_64_32;
         else
             relinfo = (config.flags3 & CFG3pic) ? RI_TYPE_GOTOFF : RI_TYPE_SYM32;
-        ElfObj::addrel(seg,offset, relinfo, funcsym_p->Sxtrnnum, v);
+        ElfObj::addrel(seg,offset, relinfo, funcsym_p->Sxtrnnum, 0);
     }
     buf->write32(val);
     if (save > offset + 4)
