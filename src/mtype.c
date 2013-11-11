@@ -6370,11 +6370,6 @@ d_uns64 TypeDelegate::size(Loc loc)
 
 unsigned TypeDelegate::alignsize()
 {
-#if DMDV1
-    // See Bugzilla 942 for discussion
-    if (!global.params.is64bit)
-        return Target::ptrsize * 2;
-#endif
     return Target::ptrsize;
 }
 

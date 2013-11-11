@@ -138,10 +138,6 @@ public:
     Expression *parseMulExp();
     Expression *parseAddExp();
     Expression *parseShiftExp();
-#if DMDV1
-    Expression *parseRelExp();
-    Expression *parseEqualExp();
-#endif
     Expression *parseCmpExp();
     Expression *parseAndExp();
     Expression *parseXorExp();

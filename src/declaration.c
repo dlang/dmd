@@ -487,11 +487,6 @@ void AliasDeclaration::semantic(Scope *sc)
     }
     this->inSemantic = true;
 
-#if DMDV1   // don't really know why this is here
-    if (storage_class & STCconst)
-        error("cannot be const");
-#endif
-
     storage_class |= sc->stc & STCdeprecated;
     protection = sc->protection;
     userAttributes = sc->userAttributes;
@@ -737,9 +732,6 @@ VarDeclaration::VarDeclaration(Loc loc, Type *type, Identifier *id, Initializer 
     noscope = 0;
 #if DMDV2
     isargptr = FALSE;
-#endif
-#if DMDV1
-    nestedref = 0;
 #endif
     alignment = 0;
     ctorinit = 0;

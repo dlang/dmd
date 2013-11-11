@@ -1081,17 +1081,6 @@ void FuncDeclaration::toDocBuffer(OutBuffer *buf, Scope *sc)
     }
 }
 
-#if DMDV1
-void CtorDeclaration::toDocBuffer(OutBuffer *buf, Scope *sc)
-{
-    HdrGenState hgs;
-
-    buf->writestring("this");
-    Parameter::argsToCBuffer(buf, &hgs, arguments, varargs);
-    buf->writestring(";\n");
-}
-#endif
-
 void AggregateDeclaration::toDocBuffer(OutBuffer *buf, Scope *sc)
 {
     if (ident)

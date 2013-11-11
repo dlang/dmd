@@ -173,9 +173,6 @@ public:
     const char *kind();
     void finalizeSize(Scope *sc);
     bool isPOD();
-#if DMDV1
-    Expression *cloneMembers();
-#endif
 #if DMDV2
     int needOpAssign();
     int needOpEquals();
@@ -261,10 +258,6 @@ public:
     static ClassDeclaration *errorException;
 
     ClassDeclaration *baseClass;        // NULL only if this is Object
-#if DMDV1
-    CtorDeclaration *ctor;
-    CtorDeclaration *defaultCtor;       // default constructor
-#endif
     FuncDeclaration *staticCtor;
     FuncDeclaration *staticDtor;
     Dsymbols vtbl;                      // Array of FuncDeclaration's making up the vtbl[]

@@ -318,32 +318,7 @@ int intrinsic_op(char *name)
     //printf("intrinsic_op(%s)\n", name);
     static const char *std_namearray[] =
     {
-#if DMDV1
-        "4math3cosFeZe",
-        "4math3sinFeZe",
-        "4math4fabsFeZe",
-        "4math4rintFeZe",
-        "4math4sqrtFdZd",
-        "4math4sqrtFeZe",
-        "4math4sqrtFfZf",
-        "4math4yl2xFeeZe",
-        "4math5ldexpFeiZe",
-        "4math6rndtolFeZl",
-        "4math6yl2xp1FeeZe",
-
-        "9intrinsic3bsfFkZi",
-        "9intrinsic3bsrFkZi",
-        "9intrinsic3btcFPkkZi",
-        "9intrinsic3btrFPkkZi",
-        "9intrinsic3btsFPkkZi",
-        "9intrinsic3inpFkZh",
-        "9intrinsic4inplFkZk",
-        "9intrinsic4inpwFkZt",
-        "9intrinsic4outpFkhZh",
-        "9intrinsic5bswapFkZk",
-        "9intrinsic5outplFkkZk",
-        "9intrinsic5outpwFktZt",
-#elif DMDV2
+#if DMDV2
         /* The names are mangled differently because of the pure and
          * nothrow attributes.
          */
@@ -362,32 +337,7 @@ int intrinsic_op(char *name)
     };
     static const char *std_namearray64[] =
     {
-#if DMDV1
-        "4math3cosFeZe",
-        "4math3sinFeZe",
-        "4math4fabsFeZe",
-        "4math4rintFeZe",
-        "4math4sqrtFdZd",
-        "4math4sqrtFeZe",
-        "4math4sqrtFfZf",
-        "4math4yl2xFeeZe",
-        "4math5ldexpFeiZe",
-        "4math6rndtolFeZl",
-        "4math6yl2xp1FeeZe",
-
-        "9intrinsic3bsfFkZi",
-        "9intrinsic3bsrFkZi",
-        "9intrinsic3btcFPmmZi",
-        "9intrinsic3btrFPmmZi",
-        "9intrinsic3btsFPmmZi",
-        "9intrinsic3inpFkZh",
-        "9intrinsic4inplFkZk",
-        "9intrinsic4inpwFkZt",
-        "9intrinsic4outpFkhZh",
-        "9intrinsic5bswapFkZk",
-        "9intrinsic5outplFkkZk",
-        "9intrinsic5outpwFktZt",
-#elif DMDV2
+#if DMDV2
         /* The names are mangled differently because of the pure and
          * nothrow attributes.
          */

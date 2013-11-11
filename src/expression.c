@@ -1079,34 +1079,6 @@ int expandAliasThisTuples(Expressions *exps, size_t starti)
 
 Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt)
 {
-#if DMDV1
-    /* The first element sets the type
-     */
-    Type *t0 = NULL;
-    for (size_t i = 0; i < exps->dim; i++)
-    {   Expression *e = (*exps)[i];
-
-        if (!e->type)
-        {   error("%s has no value", e->toChars());
-            e = new ErrorExp();
-        }
-        e = resolveProperties(sc, e);
-
-        if (!t0)
-            t0 = e->type;
-        else
-            e = e->implicitCastTo(sc, t0);
-        (*exps)[i] = e;
-    }
-
-    if (!t0)
-        t0 = Type::tvoid;
-    if (pt)
-        *pt = t0;
-
-    // Eventually, we want to make this copy-on-write
-    return exps;
-#endif
 #if DMDV2
     /* The type is determined by applying ?: to each pair.
      */
@@ -10194,16 +10166,12 @@ void CastExp::checkEscape()
 void CastExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("cast(");
-#if DMDV1
-    to->toCBuffer(buf, NULL, hgs);
-#else
     if (to)
         to->toCBuffer(buf, NULL, hgs);
     else
     {
         MODtoBuffer(buf, mod);
     }
-#endif
     buf->writeByte(')');
     expToCBuffer(buf, hgs, e1, precedence[op]);
 }

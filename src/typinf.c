@@ -686,24 +686,7 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
 void TypeInfoClassDeclaration::toDt(dt_t **pdt)
 {
     //printf("TypeInfoClassDeclaration::toDt() %s\n", tinfo->toChars());
-#if DMDV1
-    verifyStructSize(Type::typeinfoclass, 3 * Target::ptrsize);
-
-    dtxoff(pdt, Type::typeinfoclass->toVtblSymbol(), 0); // vtbl for TypeInfoClass
-    dtsize_t(pdt, 0);                        // monitor
-
-    assert(tinfo->ty == Tclass);
-
-    TypeClass *tc = (TypeClass *)tinfo;
-    Symbol *s;
-
-    if (!tc->sym->vclassinfo)
-        tc->sym->vclassinfo = new ClassInfoDeclaration(tc->sym);
-    s = tc->sym->vclassinfo->toSymbol();
-    dtxoff(pdt, s, 0);          // ClassInfo for tinfo
-#else
     assert(0);
-#endif
 }
 
 void TypeInfoInterfaceDeclaration::toDt(dt_t **pdt)
@@ -720,11 +703,7 @@ void TypeInfoInterfaceDeclaration::toDt(dt_t **pdt)
     Symbol *s;
 
     if (!tc->sym->vclassinfo)
-#if DMDV1
-        tc->sym->vclassinfo = new ClassInfoDeclaration(tc->sym);
-#else
         tc->sym->vclassinfo = new TypeInfoClassDeclaration(tc);
-#endif
     s = tc->sym->vclassinfo->toSymbol();
     dtxoff(pdt, s, 0);          // ClassInfo for tinfo
 }
