@@ -4690,7 +4690,7 @@ Statement *AsmStatement::semantic(Scope *sc)
 
     assert(sc->func);
 #if DMDV2
-    if (sc->func->setUnsafe())
+    if (sc->func->setUnsafe(sc))
         error("inline assembler not allowed in @safe function %s", sc->func->toChars());
 #endif
 
