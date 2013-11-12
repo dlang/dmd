@@ -497,7 +497,6 @@ void Lexer::scan(Token *t)
                 t->value = hexStringConstant(t);
                 return;
 
-#if DMDV2
             case 'q':
                 if (p[1] == '"')
                 {
@@ -513,7 +512,6 @@ void Lexer::scan(Token *t)
                 }
                 else
                     goto case_ident;
-#endif
 
             case '"':
                 t->value = escapeStringConstant(t,0);
@@ -549,9 +547,7 @@ void Lexer::scan(Token *t)
                 memcpy(t->ustring, stringbuffer.data, stringbuffer.offset);
                 t->postfix = 0;
                 t->value = TOKstring;
-#if DMDV2
                 error("Escape String literal %.*s is deprecated, use double quoted string literal \"%.*s\" instead", p - pstart, pstart, p - pstart, pstart);
-#endif
                 return;
             }
 #endif
@@ -559,11 +555,7 @@ void Lexer::scan(Token *t)
             case 'a':   case 'b':   case 'c':   case 'd':   case 'e':
             case 'f':   case 'g':   case 'h':   case 'i':   case 'j':
             case 'k':   case 'l':   case 'm':   case 'n':   case 'o':
-#if DMDV2
             case 'p':   /*case 'q': case 'r':*/ case 's':   case 't':
-#else
-            case 'p':   case 'q': /*case 'r':*/ case 's':   case 't':
-#endif
             case 'u':   case 'v':   case 'w': /*case 'x':*/ case 'y':
             case 'z':
             case 'A':   case 'B':   case 'C':   case 'D':   case 'E':
@@ -667,7 +659,6 @@ void Lexer::scan(Token *t)
                         t->value = TOKint64v;
                         t->uns64value = major * 1000 + minor;
                     }
-#if DMDV2
                     else if (id == Id::EOFX)
                     {
                         t->value = TOKeof;
@@ -675,7 +666,6 @@ void Lexer::scan(Token *t)
                         while (!(*p == 0 || *p == 0x1A))
                             p++;
                     }
-#endif
                 }
                 //printf("t->value = %d\n",t->value);
                 return;
@@ -1070,12 +1060,10 @@ void Lexer::scan(Token *t)
                 {   p++;
                     t->value = TOKequal;            // ==
                 }
-#if DMDV2
                 else if (*p == '>')
                 {   p++;
                     t->value = TOKgoesto;               // =>
                 }
-#endif
                 else
                     t->value = TOKassign;               // =
                 return;
@@ -1090,7 +1078,6 @@ void Lexer::scan(Token *t)
                     t->value = TOKtilde;                // ~
                 return;
 
-#if DMDV2
             case '^':
                 p++;
                 if (*p == '^')
@@ -1109,7 +1096,6 @@ void Lexer::scan(Token *t)
                 else
                     t->value = TOKxor;       // ^
                 return;
-#endif
 
 #define SINGLE(c,tok) case c: p++; t->value = tok; return;
 
@@ -1124,9 +1110,7 @@ void Lexer::scan(Token *t)
             SINGLE(';', TOKsemicolon)
             SINGLE(':', TOKcolon)
             SINGLE('$', TOKdollar)
-#if DMDV2
             SINGLE('@', TOKat)
-#endif
 #undef SINGLE
 
 #define DOUBLE(c1,tok1,c2,tok2)         \
@@ -1462,7 +1446,6 @@ TOK Lexer::hexStringConstant(Token *t)
 }
 
 
-#if DMDV2
 /**************************************
  * Lex delimited strings:
  *      q"(foo(xxx))"   // "foo(xxx)"
@@ -1561,10 +1544,8 @@ TOK Lexer::delimitedStringConstant(Token *t)
             else
             {   delimright = c;
                 nest = 0;
-#if DMDV2
                 if (isspace(c))
                     error("delimiter cannot be whitespace");
-#endif
             }
         }
         else
@@ -1678,7 +1659,6 @@ Lerror:
     return TOKstring;
 }
 
-#endif
 
 
 /**************************************
@@ -1910,10 +1890,8 @@ TOK Lexer::number(Token *t)
                     case '.':
                         if (p[1] == '.')        // .. is a separate token
                             goto done;
-#if DMDV2
                         if (isalpha(p[1]) || p[1] == '_' || (p[1] & 0x80))
                             goto done;
-#endif
                     case 'i':
                     case 'f':
                     case 'F':
@@ -1952,10 +1930,8 @@ TOK Lexer::number(Token *t)
                     }
                     if (c == '.' && p[1] != '.')
                     {
-#if DMDV2
                         if (isalpha(p[1]) || p[1] == '_' || (p[1] & 0x80))
                             goto done;
-#endif
                         goto real;
                     }
                     else if (c == 'i' || c == 'f' || c == 'F' ||
@@ -2124,11 +2100,9 @@ done:
         break;
     }
 
-#if DMDV2
     if (state == STATE_octal && n >= 8)
         deprecation("octal literals 0%llo%.*s are deprecated, use std.conv.octal!%llo%.*s instead",
                 n, p - psuffix, psuffix, n, p - psuffix, psuffix);
-#endif
 
     switch (flags)
     {
@@ -2887,9 +2861,7 @@ void Lexer::initKeywords()
     Token::tochars[TOKxorass]           = "^=";
     Token::tochars[TOKassign]           = "=";
     Token::tochars[TOKconstruct]        = "=";
-#if DMDV2
     Token::tochars[TOKblit]             = "=";
-#endif
     Token::tochars[TOKlt]               = "<";
     Token::tochars[TOKgt]               = ">";
     Token::tochars[TOKle]               = "<=";
@@ -2958,13 +2930,11 @@ void Lexer::initKeywords()
 
     Token::tochars[TOKorass]            = "|=";
     Token::tochars[TOKidentifier]       = "identifier";
-#if DMDV2
     Token::tochars[TOKat]               = "@";
     Token::tochars[TOKpow]              = "^^";
     Token::tochars[TOKpowass]           = "^^=";
     Token::tochars[TOKgoesto]           = "=>";
     Token::tochars[TOKpound]            = "#";
-#endif
 
      // For debugging
     Token::tochars[TOKerror]            = "error";

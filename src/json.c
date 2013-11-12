@@ -807,9 +807,7 @@ void ConditionalDeclaration::toJson(JsonOut *json)
 
 void ClassInfoDeclaration::toJson(JsonOut *json)  { }
 void TypeInfoDeclaration::toJson(JsonOut *json)   { }
-#if DMDV2
 void PostBlitDeclaration::toJson(JsonOut *json)   { }
-#endif
 
 
 void Declaration::toJson(JsonOut *json)
@@ -966,14 +964,10 @@ void TemplateDeclaration::toJson(JsonOut *json)
         TemplateTypeParameter *type = s->isTemplateTypeParameter();
         if (type)
         {
-#if DMDV2
             if (s->isTemplateThisParameter())
                 json->property("kind", "this");
             else
                 json->property("kind", "type");
-#else
-            json->property("kind", "type");
-#endif
             json->property("type", "deco", type->specType);
 
             json->property("default", "defaultDeco", type->defaultType);

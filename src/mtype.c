@@ -131,14 +131,12 @@ Type::Type(TY ty)
     this->ty = ty;
     this->mod = 0;
     this->deco = NULL;
-#if DMDV2
     this->cto = NULL;
     this->ito = NULL;
     this->sto = NULL;
     this->scto = NULL;
     this->wto = NULL;
     this->swto = NULL;
-#endif
     this->pto = NULL;
     this->rto = NULL;
     this->arrayof = NULL;
@@ -3345,7 +3343,6 @@ MATCH TypeBasic::implicitConvTo(Type *to)
     if (this == to)
         return MATCHexact;
 
-#if DMDV2
     if (ty == to->ty)
     {
         if (mod == to->mod)
@@ -3357,7 +3354,6 @@ MATCH TypeBasic::implicitConvTo(Type *to)
         else
             return MATCHconvert;
     }
-#endif
 
     if (ty == Tvoid || to->ty == Tvoid)
         return MATCHnomatch;
@@ -3381,7 +3377,6 @@ MATCH TypeBasic::implicitConvTo(Type *to)
         if (tob->flags & (TFLAGSimaginary | TFLAGScomplex))
             return MATCHnomatch;
 
-#if DMDV2
         // If converting from integral to integral
         if (tob->flags & TFLAGSintegral)
         {   d_uns64 sz = size(Loc());
@@ -3397,7 +3392,6 @@ MATCH TypeBasic::implicitConvTo(Type *to)
             /*if (sz == tosz && (flags ^ tob->flags) & TFLAGSunsigned)
                 return MATCHnomatch;*/
         }
-#endif
     }
     else if (flags & TFLAGSfloating)
     {
@@ -7148,9 +7142,7 @@ void TypeTypeof::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
         if (global.gag)
             global.speculativeGag = global.gag;
         exp = exp->semantic(sc2);
-#if DMDV2
         exp = resolvePropertiesOnly(sc2, exp);
-#endif
         global.speculativeGag = oldspecgag;
         sc2->pop();
         if (exp->op == TOKtype)

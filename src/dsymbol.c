@@ -554,7 +554,6 @@ bool Dsymbol::isDeprecated()
     return false;
 }
 
-#if DMDV2
 bool Dsymbol::isOverloadable()
 {
     return false;
@@ -564,7 +563,6 @@ bool Dsymbol::hasOverloads()
 {
     return false;
 }
-#endif
 
 LabelDsymbol *Dsymbol::isLabel()                // is this a LabelDsymbol()?
 {
@@ -809,7 +807,6 @@ void Dsymbol::addComment(const utf8_t *comment)
 
 /********************************* OverloadSet ****************************/
 
-#if DMDV2
 OverloadSet::OverloadSet(Identifier *ident)
     : Dsymbol(ident)
 {
@@ -824,7 +821,6 @@ const char *OverloadSet::kind()
 {
     return "overloadset";
 }
-#endif
 
 
 /********************************* ScopeDsymbol ****************************/
@@ -1111,7 +1107,6 @@ bool ScopeDsymbol::hasStaticCtorOrDtor()
  * Determine number of Dsymbols, folding in AttribDeclaration members.
  */
 
-#if DMDV2
 static int dimDg(void *ctx, size_t n, Dsymbol *)
 {
     ++*(size_t *)ctx;
@@ -1124,7 +1119,6 @@ size_t ScopeDsymbol::dim(Dsymbols *members)
     foreach(NULL, members, &dimDg, &n);
     return n;
 }
-#endif
 
 /***************************************
  * Get nth Dsymbol, folding in AttribDeclaration members.
@@ -1134,7 +1128,6 @@ size_t ScopeDsymbol::dim(Dsymbols *members)
  *                      of Dsymbols
  */
 
-#if DMDV2
 struct GetNthSymbolCtx
 {
     size_t nth;
@@ -1157,7 +1150,6 @@ Dsymbol *ScopeDsymbol::getNth(Dsymbols *members, size_t nth, size_t *pn)
     int res = foreach(NULL, members, &getNthSymbolDg, &ctx);
     return res ? ctx.sym : NULL;
 }
-#endif
 
 /***************************************
  * Expands attribute declarations in members in depth first
@@ -1168,7 +1160,6 @@ Dsymbol *ScopeDsymbol::getNth(Dsymbols *members, size_t nth, size_t *pn)
  * calculating dim and calling N times getNth.
  */
 
-#if DMDV2
 int ScopeDsymbol::foreach(Scope *sc, Dsymbols *members, ScopeDsymbol::ForeachDg dg, void *ctx, size_t *pn)
 {
     assert(dg);
@@ -1199,7 +1190,6 @@ int ScopeDsymbol::foreach(Scope *sc, Dsymbols *members, ScopeDsymbol::ForeachDg 
         *pn = n; // update index
     return result;
 }
-#endif
 
 /*******************************************
  * Look for member of the form:
@@ -1207,7 +1197,6 @@ int ScopeDsymbol::foreach(Scope *sc, Dsymbols *members, ScopeDsymbol::ForeachDg 
  * Returns NULL if not found
  */
 
-#if DMDV2
 FuncDeclaration *ScopeDsymbol::findGetMembers()
 {
     Dsymbol *s = search_function(this, Id::getmembers);
@@ -1235,7 +1224,6 @@ FuncDeclaration *ScopeDsymbol::findGetMembers()
 
     return fdx;
 }
-#endif
 
 
 /****************************** WithScopeSymbol ******************************/

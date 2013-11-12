@@ -454,7 +454,6 @@ void ObjectToCBuffer(OutBuffer *buf, HdrGenState *hgs, RootObject *oarg)
     }
 }
 
-#if DMDV2
 RootObject *objectSyntaxCopy(RootObject *o)
 {
     if (!o)
@@ -467,7 +466,6 @@ RootObject *objectSyntaxCopy(RootObject *o)
         return e->syntaxCopy();
     return o;
 }
-#endif
 
 
 /* ======================== TemplateDeclaration ============================= */
@@ -579,14 +577,12 @@ void TemplateDeclaration::semantic(Scope *sc)
         sc->module->toModuleAssert();
     }
 
-#if DMDV2
     if (sc->module)
     {
         // Generate this function as it may be used
         // when template is instantiated in other modules
         sc->module->toModuleUnittest();
     }
-#endif
 
     /* Remember Scope for later instantiations, but make
      * a copy since attributes can change.
@@ -891,7 +887,6 @@ MATCH TemplateDeclaration::matchWithInstance(Scope *sc, TemplateInstance *ti,
         }
     }
 
-#if DMDV2
     if (m && constraint && !flag)
     {
         /* Check to see if constraint is satisfied.
@@ -975,7 +970,6 @@ MATCH TemplateDeclaration::matchWithInstance(Scope *sc, TemplateInstance *ti,
             e->error("constraint %s is not constant or does not evaluate to a bool", e->toChars());
         }
     }
-#endif
 
 #if LOGM
     // Print out the results
@@ -1296,7 +1290,6 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(FuncDeclaration *f, Loc l
         }
     }
 
-#if DMDV2
     if (tthis)
     {
         bool hasttp = false;
@@ -1356,7 +1349,6 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(FuncDeclaration *f, Loc l
             }
         }
     }
-#endif
 
     // Loop through the function parameters
     {
@@ -1651,7 +1643,6 @@ Lretry:
 #endif
             Type *argtype = farg->type;
 
-#if DMDV2
             /* Allow expressions that have CT-known boundaries and type [] to match with [dim]
              */
             Type *taai;
@@ -1702,7 +1693,6 @@ Lretry:
             {
                 argtype = argtype->mutableOf();
             }
-#endif
 
             if (fvarargs == 2 && parami + 1 == nfparams && argi + 1 < nfargs)
                 goto Lvarargs;
@@ -1974,7 +1964,6 @@ Lmatch:
         }
     }
 
-#if DMDV2
     if (constraint)
     {
         /* Check to see if constraint is satisfied.
@@ -2056,7 +2045,6 @@ Lmatch:
             e->error("constraint %s is not constant or does not evaluate to a bool", e->toChars());
         }
     }
-#endif
 
 #if 0
     for (i = 0; i < dedargs->dim; i++)
@@ -2851,14 +2839,12 @@ void TemplateDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         tp->toCBuffer(buf, hgs);
     }
     buf->writeByte(')');
-#if DMDV2
     if (constraint)
     {
         buf->writestring(" if (");
         constraint->toCBuffer(buf, hgs);
         buf->writeByte(')');
     }
-#endif
 
     if (hgs->hdrgen)
     {
@@ -2909,13 +2895,11 @@ char *TemplateDeclaration::toChars()
         }
     }
 
-#if DMDV2
     if (constraint)
     {   buf.writestring(" if (");
         constraint->toCBuffer(&buf, &hgs);
         buf.writeByte(')');
     }
-#endif
     buf.writeByte(0);
     return (char *)buf.extractData();
 }
@@ -3412,7 +3396,6 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
 
     if (ty != tparam->ty)
     {
-#if DMDV2
         // Can't instantiate AssociativeArray!() without a scope
         if (tparam->ty == Taarray && !((TypeAArray*)tparam)->sc)
             ((TypeAArray*)tparam)->sc = sc;
@@ -3425,9 +3408,6 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
                 m = at->deduceType(sc, tparam, parameters, dedtypes, wildmatch);
         }
         return m;
-#else
-        return implicitConvTo(tparam);
-#endif
     }
 
     if (nextOf())
@@ -3444,13 +3424,10 @@ Lexact:
 Lnomatch:
     return MATCHnomatch;
 
-#if DMDV2
 Lconst:
     return MATCHconst;
-#endif
 }
 
-#if DMDV2
 MATCH TypeVector::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
         Objects *dedtypes, unsigned *wildmatch)
 {
@@ -3465,9 +3442,7 @@ MATCH TypeVector::deduceType(Scope *sc, Type *tparam, TemplateParameters *parame
     }
     return Type::deduceType(sc, tparam, parameters, dedtypes, wildmatch);
 }
-#endif
 
-#if DMDV2
 MATCH TypeDArray::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
         Objects *dedtypes, unsigned *wildmatch)
 {
@@ -3478,7 +3453,6 @@ MATCH TypeDArray::deduceType(Scope *sc, Type *tparam, TemplateParameters *parame
 #endif
     return Type::deduceType(sc, tparam, parameters, dedtypes, wildmatch);
 }
-#endif
 
 MATCH TypeSArray::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
         Objects *dedtypes, unsigned *wildmatch)
@@ -4184,12 +4158,10 @@ TemplateTupleParameter *TemplateParameter::isTemplateTupleParameter()
     return NULL;
 }
 
-#if DMDV2
 TemplateThisParameter  *TemplateParameter::isTemplateThisParameter()
 {
     return NULL;
 }
-#endif
 
 /*******************************************
  * Match to a particular TemplateParameter.
@@ -4444,7 +4416,6 @@ RootObject *TemplateTypeParameter::defaultArg(Loc loc, Scope *sc)
 
 /* ======================== TemplateThisParameter =========================== */
 
-#if DMDV2
 // this-parameter
 
 TemplateThisParameter::TemplateThisParameter(Loc loc, Identifier *ident,
@@ -4474,7 +4445,6 @@ void TemplateThisParameter::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writestring("this ");
     TemplateTypeParameter::toCBuffer(buf, hgs);
 }
-#endif
 
 /* ======================== TemplateAliasParameter ========================== */
 
@@ -5048,9 +5018,7 @@ RootObject *TemplateValueParameter::defaultArg(Loc loc, Scope *sc)
         e = e->syntaxCopy();
         e = e->semantic(sc);
         e = resolveProperties(sc, e);
-#if DMDV2
         e = e->resolveLoc(loc, sc);
-#endif
     }
     return e;
 }
@@ -6701,9 +6669,7 @@ bool TemplateInstance::hasNestedArgs(Objects *args)
                 (ad && ad->isNested()) ||
 #endif
                 (d && !d->isDataseg() &&
-#if DMDV2
                  !(d->storage_class & STCmanifest) &&
-#endif
                  (!d->isFuncDeclaration() || d->isFuncDeclaration()->isNested()) &&
                  !isTemplateMixin()
                 ))

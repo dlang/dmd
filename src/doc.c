@@ -665,9 +665,7 @@ void emitProtection(OutBuffer *buf, PROT prot)
 void Dsymbol::emitComment(Scope *sc)               { }
 void InvariantDeclaration::emitComment(Scope *sc)  { }
 void UnitTestDeclaration::emitComment(Scope *sc)   { }
-#if DMDV2
 void PostBlitDeclaration::emitComment(Scope *sc)   { }
-#endif
 void DtorDeclaration::emitComment(Scope *sc)       { }
 void StaticCtorDeclaration::emitComment(Scope *sc) { }
 void StaticDtorDeclaration::emitComment(Scope *sc) { }
@@ -900,10 +898,8 @@ void prefix(OutBuffer *buf, Dsymbol *s)
         {
             if (d->isConst())
                 buf->writestring("const ");
-    #if DMDV2
             if (d->isImmutable())
                 buf->writestring("immutable ");
-    #endif
             if (d->isSynchronized())
                 buf->writestring("synchronized ");
         }

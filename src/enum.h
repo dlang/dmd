@@ -57,9 +57,7 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Type *getType();
     const char *kind();
-#if DMDV2
     Dsymbol *search(Loc, Identifier *ident, int flags);
-#endif
     bool isDeprecated();                // is Dsymbol deprecated?
     PROT prot();
     Expression *getMaxMinValue(Loc loc, Identifier *id);

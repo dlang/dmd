@@ -83,10 +83,8 @@ int arrayExpressionCanThrow(Expressions *exps, bool mustNotThrow);
 TemplateDeclaration *getFuncTemplateDecl(Dsymbol *s);
 Expression *valueNoDtor(Expression *e);
 int modifyFieldVar(Loc loc, Scope *sc, VarDeclaration *var, Expression *e1);
-#if DMDV2
 Expression *resolveAliasThis(Scope *sc, Expression *e);
 Expression *callCpCtor(Scope *sc, Expression *e);
-#endif
 Expression *resolveOpDollar(Scope *sc, ArrayExp *ae);
 Expression *resolveOpDollar(Scope *sc, SliceExp *se);
 Expressions *arrayExpressionSemantic(Expressions *exps, Scope *sc);
@@ -669,7 +667,6 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 
-#if DMDV2
 class SymbolExp : public Expression
 {
 public:
@@ -680,7 +677,6 @@ public:
 
     elem *toElem(IRState *irs);
 };
-#endif
 
 // Offset from symbol
 
@@ -730,7 +726,6 @@ public:
     //Expression *inlineScan(InlineScanState *iss);
 };
 
-#if DMDV2
 // Overload Set
 
 class OverExp : public Expression
@@ -743,7 +738,6 @@ public:
     Expression *toLvalue(Scope *sc, Expression *e);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
-#endif
 
 // Function/Delegate literal
 
@@ -804,7 +798,6 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 
-#if DMDV2
 class TraitsExp : public Expression
 {
 public:
@@ -816,7 +809,6 @@ public:
     Expression *semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
-#endif
 
 class HaltExp : public Expression
 {
@@ -1474,7 +1466,6 @@ public:
     elem *toElem(IRState *irs);
 };
 
-#if DMDV2
 class PowAssignExp : public BinAssignExp
 {
 public:
@@ -1483,7 +1474,6 @@ public:
     Identifier *opId();    /* For operator overloading */
     elem *toElem(IRState *irs);
 };
-#endif
 
 class ShlAssignExp : public BinAssignExp
 {
@@ -1610,7 +1600,6 @@ public:
     elem *toElem(IRState *irs);
 };
 
-#if DMDV2
 class PowExp : public BinExp
 {
 public:
@@ -1624,7 +1613,6 @@ public:
 
     elem *toElem(IRState *irs);
 };
-#endif
 
 class ShlExp : public BinExp
 {
@@ -1846,7 +1834,6 @@ public:
     elem *toElem(IRState *irs);
 };
 
-#if DMDV2
 /****************************************************************/
 
 class DefaultInitExp : public Expression
@@ -1897,8 +1884,6 @@ public:
     Expression *semantic(Scope *sc);
     Expression *resolveLoc(Loc loc, Scope *sc);
 };
-
-#endif
 
 /****************************************************************/
 

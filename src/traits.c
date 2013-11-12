@@ -38,7 +38,6 @@
 
 #define LOGSEMANTIC     0
 
-#if DMDV2
 
 /************************************************
  * Delegate to be passed to overloadApply() that looks
@@ -271,7 +270,6 @@ Expression *TraitsExp::semantic(Scope *sc)
         FuncDeclaration *f;
         ISDSYMBOL((f = s->isFuncDeclaration()) != NULL && f->isFinalFunc())
     }
-#if DMDV2
     else if (ident == Id::isStaticFunction)
     {
         FuncDeclaration *f;
@@ -368,7 +366,6 @@ Expression *TraitsExp::semantic(Scope *sc)
         }
         return (new DsymbolExp(loc, s))->semantic(sc);
     }
-#endif
     else if (ident == Id::hasMember ||
              ident == Id::getMember ||
              ident == Id::getOverloads ||
@@ -616,13 +613,11 @@ Expression *TraitsExp::semantic(Scope *sc)
             (*exps)[i] = se;
         }
 
-#if DMDV2
         /* Making this a tuple is more flexible, as it can be statically unrolled.
          * To make an array literal, enclose __traits in [ ]:
          *   [ __traits(allMembers, ...) ]
          */
         Expression *e = new TupleExp(loc, exps);
-#endif
         e = e->semantic(sc);
         return e;
     }
@@ -806,5 +801,3 @@ Lfalse:
 Ltrue:
     return new IntegerExp(loc, 1, Type::tbool);
 }
-
-#endif

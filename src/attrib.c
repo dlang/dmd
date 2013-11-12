@@ -1065,7 +1065,6 @@ void PragmaDeclaration::semantic(Scope *sc)
         }
         goto Lnodecl;
     }
-#if DMDV2
     else if (ident == Id::startaddress)
     {
         if (!args || args->dim != 1)
@@ -1087,7 +1086,6 @@ void PragmaDeclaration::semantic(Scope *sc)
         }
         goto Lnodecl;
     }
-#endif
     else if (ident == Id::mangle)
     {
         if (!args || args->dim != 1)

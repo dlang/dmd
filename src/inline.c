@@ -150,12 +150,10 @@ int ReturnStatement::inlineCost(InlineCostState *ics)
     return expressionInlineCost(exp, ics);
 }
 
-#if DMDV2
 int ImportStatement::inlineCost(InlineCostState *ics)
 {
     return 0;
 }
-#endif
 
 int ForStatement::inlineCost(InlineCostState *ics)
 {
@@ -245,10 +243,8 @@ int ThisExp::inlineCost3(InlineCostState *ics)
 int StructLiteralExp::inlineCost3(InlineCostState *ics)
 {
     //printf("StructLiteralExp::inlineCost3() %s\n", toChars());
-#if DMDV2
     if (sd->isNested())
         return COST_MAX;
-#endif
     return 1;
 }
 
@@ -294,10 +290,8 @@ int DeclarationExp::inlineCost3(InlineCostState *ics)
             return COST_MAX;
         cost += 1;
 
-#if DMDV2
         if (vd->edtor)                  // if destructor required
             return COST_MAX;            // needs work to make this work
-#endif
         // Scan initializer (vd->init)
         if (vd->init)
         {
@@ -442,12 +436,10 @@ Statement *ReturnStatement::doInlineStatement(InlineDoState *ids)
     return new ReturnStatement(loc, exp ? exp->doInline(ids) : NULL);
 }
 
-#if DMDV2
 Statement *ImportStatement::doInlineStatement(InlineDoState *ids)
 {
     return NULL;
 }
-#endif
 
 Statement *ForStatement::doInlineStatement(InlineDoState *ids)
 {
@@ -584,12 +576,10 @@ Expression *ReturnStatement::doInline(InlineDoState *ids)
     return exp ? exp->doInline(ids) : NULL;
 }
 
-#if DMDV2
 Expression *ImportStatement::doInline(InlineDoState *ids)
 {
     return NULL;
 }
-#endif
 
 /* --------------------------------------------------------------- */
 
@@ -1130,7 +1120,6 @@ Statement *ForeachStatement::inlineScan(InlineScanState *iss)
 }
 
 
-#if DMDV2
 Statement *ForeachRangeStatement::inlineScan(InlineScanState *iss)
 {
     lwr = lwr->inlineScan(iss);
@@ -1139,7 +1128,6 @@ Statement *ForeachRangeStatement::inlineScan(InlineScanState *iss)
         body = body->inlineScan(iss);
     return this;
 }
-#endif
 
 
 Statement *IfStatement::inlineScan(InlineScanState *iss)
