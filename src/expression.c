@@ -13774,7 +13774,7 @@ Expression *CondExp::modifiableLvalue(Scope *sc, Expression *e)
 {
     //error("conditional expression %s is not a modifiable lvalue", toChars());
     e1 = e1->modifiableLvalue(sc, e1);
-    e2 = e2->modifiableLvalue(sc, e1);
+    e2 = e2->modifiableLvalue(sc, e2);
     return toLvalue(sc, this);
 }
 
