@@ -328,10 +328,8 @@ bool isArrayOpValid(Expression *e)
             case TOKxorass:
             case TOKandass:
             case TOKorass:
-#if DMDV2
             case TOKpow:
             case TOKpowass:
-#endif
                  return isArrayOpValid(((BinExp *)e)->e1) && isArrayOpValid(((BinExp *)e)->e2);
 
             case TOKcall:
@@ -389,11 +387,7 @@ Expression *BinExp::arrayOp(Scope *sc)
 
     /* Append deco of array element type
      */
-#if DMDV2
     buf.writestring(type->toBasetype()->nextOf()->toBasetype()->mutableOf()->deco);
-#else
-    buf.writestring(type->toBasetype()->nextOf()->toBasetype()->deco);
-#endif
 
     buf.writeByte(0);
     char *name = buf.toChars();
@@ -491,9 +485,7 @@ void BinAssignExp::buildArrayIdent(OutBuffer *buf, Expressions *arguments)
     case TOKxorass: s = "Xorass"; break;
     case TOKandass: s = "Andass"; break;
     case TOKorass:  s = "Orass";  break;
-#if DMDV2
     case TOKpowass: s = "Powass"; break;
-#endif
     default: assert(0);
     }
     buf->writestring(s);
@@ -526,9 +518,7 @@ void BinExp::buildArrayIdent(OutBuffer *buf, Expressions *arguments)
     case TOKxor: s = "Xor"; break;
     case TOKand: s = "And"; break;
     case TOKor:  s = "Or";  break;
-#if DMDV2
     case TOKpow: s = "Pow"; break;
-#endif
     default: break;
     }
     if (s)
@@ -597,14 +587,12 @@ Expression *AssignExp::buildArrayLoop(Parameters *fparams)
     /* Evaluate assign expressions right to left
      */
     Expression *ex2 = e2->buildArrayLoop(fparams);
-#if DMDV2
     /* Need the cast because:
      *   b = c + p[i];
      * where b is a byte fails because (c + p[i]) is an int
      * which cannot be implicitly cast to byte.
      */
     ex2 = new CastExp(Loc(), ex2, e1->type->nextOf());
-#endif
     Expression *ex1 = e1->buildArrayLoop(fparams);
     Parameter *param = (*fparams)[0];
     param->storageClass = 0;
@@ -631,9 +619,7 @@ Expression *BinAssignExp::buildArrayLoop(Parameters *fparams)
     case TOKxorass: return new XorAssignExp(loc, ex1, ex2);
     case TOKandass: return new AndAssignExp(loc, ex1, ex2);
     case TOKorass:  return new OrAssignExp(loc, ex1, ex2);
-#if DMDV2
     case TOKpowass: return new PowAssignExp(loc, ex1, ex2);
-#endif
     default:
         assert(0);
         return NULL;
@@ -666,9 +652,7 @@ Expression *BinExp::buildArrayLoop(Parameters *fparams)
     case TOKxor:
     case TOKand:
     case TOKor:
-#if DMDV2
     case TOKpow:
-#endif
     {
         /* Evaluate assign expressions left to right
          */
@@ -720,10 +704,8 @@ int Expression::isArrayOperand()
             case TOKxorass:
             case TOKandass:
             case TOKorass:
-#if DMDV2
             case TOKpow:
             case TOKpowass:
-#endif
             case TOKneg:
             case TOKtilde:
                 return 1;

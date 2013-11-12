@@ -758,7 +758,6 @@ FuncDeclaration *StructDeclaration::buildCpCtor(Scope *sc)
  * and the ordering changes (runs forward instead of backwards).
  */
 
-#if DMDV2
 FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
 {
     //printf("StructDeclaration::buildPostBlit() %s\n", toChars());
@@ -864,8 +863,6 @@ FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
     }
 }
 
-#endif
-
 /*****************************************
  * Create inclusive destructor for struct/class by aggregating
  * all the destructors in dtors[] with the destructors for
@@ -882,7 +879,6 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
     Loc loc = Loc();    // internal code should have no loc to prevent coverage
 
     Expression *e = NULL;
-#if DMDV2
     for (size_t i = 0; i < fields.dim; i++)
     {
         Dsymbol *s = fields[i];
@@ -946,7 +942,6 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
         members->push(dd);
         dd->semantic(sc);
     }
-#endif
 
     switch (dtors.dim)
     {

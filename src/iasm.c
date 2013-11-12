@@ -2450,11 +2450,8 @@ STATIC void asm_merge_symbol(OPND *o1, Dsymbol *s)
             o1->disp += v->offset;
             goto L2;
         }
-        if ((v->isConst()
-#if DMDV2
-                || v->isImmutable() || v->storage_class & STCmanifest
-#endif
-            ) && !v->type->isfloating() && v->init)
+        if ((v->isConst() || v->isImmutable() || v->storage_class & STCmanifest) &&
+            !v->type->isfloating() && v->init)
         {   ExpInitializer *ei = v->init->isExpInitializer();
 
             if (ei)
@@ -4689,10 +4686,8 @@ Statement *AsmStatement::semantic(Scope *sc)
     //printf("AsmStatement::semantic()\n");
 
     assert(sc->func);
-#if DMDV2
     if (sc->func->setUnsafe())
         error("inline assembler not allowed in @safe function %s", sc->func->toChars());
-#endif
 
     OP *o;
     OPND *o1 = NULL,*o2 = NULL, *o3 = NULL, *o4 = NULL;

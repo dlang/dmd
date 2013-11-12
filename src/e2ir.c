@@ -380,13 +380,11 @@ if (I32) assert(tysize[TYnptr] == 4);
         e = el_una(OPind, tyret, e);
     }
 
-#if DMDV2
     if (tf->isref)
     {
         e->Ety = TYnptr;
         e = el_una(OPind, tyret, e);
     }
-#endif
 
     if (tybasic(tyret) == TYstruct)
     {
@@ -798,7 +796,6 @@ elem *Expression::toElemDtor(IRState *irs)
 
 /************************************
  */
-#if DMDV2
 elem *SymbolExp::toElem(IRState *irs)
 {
     elem *e;
@@ -964,7 +961,6 @@ L1:
     el_setLoc(e,loc);
     return e;
 }
-#endif
 
 #if 0
 elem *SymOffExp::toElem(IRState *irs)
@@ -1657,7 +1653,6 @@ elem *NewExp::toElem(IRState *irs)
         e = el_combine(ex, ey);
         e = el_combine(e, ez);
     }
-#if DMDV2
     else if (t->ty == Tpointer && t->nextOf()->toBasetype()->ty == Tstruct)
     {
         t = newtype->toBasetype();
@@ -1747,7 +1742,6 @@ elem *NewExp::toElem(IRState *irs)
         e = el_combine(ex, ey);
         e = el_combine(e, ez);
     }
-#endif
     else if (t->ty == Tarray)
     {
         TypeDArray *tda = (TypeDArray *)(t);
@@ -2301,14 +2295,9 @@ elem *CmpExp::toElem(IRState *irs)
         elem *ea1 = eval_Darray(irs, e1);
         elem *ea2 = eval_Darray(irs, e2);
 
-#if DMDV2
         ep = el_params(telement->arrayOf()->getInternalTypeInfo(NULL)->toElem(irs),
                 ea2, ea1, NULL);
         rtlfunc = RTLSYM_ARRAYCMP2;
-#else
-        ep = el_params(telement->getInternalTypeInfo(NULL)->toElem(irs), ea2, ea1, NULL);
-        rtlfunc = RTLSYM_ARRAYCMP;
-#endif
         e = el_bin(OPcall, TYint, el_var(rtlsym[rtlfunc]), ep);
         e = el_bin(eop, TYint, e, el_long(TYint, 0));
         el_setLoc(e,loc);
@@ -2443,14 +2432,9 @@ elem *EqualExp::toElem(IRState *irs)
         elem *ea1 = eval_Darray(irs, e1);
         elem *ea2 = eval_Darray(irs, e2);
 
-#if DMDV2
         elem *ep = el_params(telement->arrayOf()->getInternalTypeInfo(NULL)->toElem(irs),
                 ea2, ea1, NULL);
         int rtlfunc = RTLSYM_ARRAYEQ2;
-#else
-        elem *ep = el_params(telement->getInternalTypeInfo(NULL)->toElem(irs), ea2, ea1, NULL);
-        int rtlfunc = RTLSYM_ARRAYEQ;
-#endif
         e = el_bin(OPcall, TYint, el_var(rtlsym[rtlfunc]), ep);
         if (op == TOKnotequal)
             e = el_bin(OPxor, TYint, e, el_long(TYint, 1));
@@ -2587,7 +2571,6 @@ elem *AssignExp::toElem(IRState *irs)
 
     elem *e;
 
-#if DMDV2
     /* Look for reference initializations
      */
     if (op == TOKconstruct && e1->op == TOKvar)
@@ -2615,7 +2598,6 @@ elem *AssignExp::toElem(IRState *irs)
             goto Lret;
         }
     }
-#endif
 
 #if 1
     /* This will work if we can distinguish an assignment from
@@ -2965,7 +2947,6 @@ elem *AssignExp::toElem(IRState *irs)
                 e = el_pair(eto->Ety, el_copytree(elen), e);
                 e = el_combine(eto, e);
             }
-#if DMDV2
             else if (postblit && op != TOKblit)
             {
                 /* Generate:
@@ -2984,7 +2965,6 @@ elem *AssignExp::toElem(IRState *irs)
                 int rtl = (op == TOKconstruct) ? RTLSYM_ARRAYCTOR : RTLSYM_ARRAYASSIGN;
                 e = el_bin(OPcall, type->totym(), el_var(rtlsym[rtl]), ep);
             }
-#endif
             else
             {
                 // Generate:
@@ -3930,12 +3910,10 @@ elem *CastExp::toElem(IRState *irs)
     Type *tfrom = e1->type->toBasetype();
     Type *t = to->toBasetype();         // skip over typedef's
 
-#if DMDV2
     if (tfrom->ty == Taarray)
         tfrom = ((TypeAArray*)tfrom)->getImpl()->type;
     if (t->ty == Taarray)
         t = ((TypeAArray*)t)->getImpl()->type;
-#endif
 
     if (t->equals(tfrom))
         goto Lret;
@@ -4840,7 +4818,6 @@ elem *TupleExp::toElem(IRState *irs)
     return e;
 }
 
-#if DMDV2
 elem *tree_insert(Elems *args, size_t low, size_t high)
 {
     assert(low < high);
@@ -4850,7 +4827,6 @@ elem *tree_insert(Elems *args, size_t low, size_t high)
     return el_param(tree_insert(args, low, mid),
                     tree_insert(args, mid, high));
 }
-#endif
 
 elem *ArrayLiteralExp::toElem(IRState *irs)
 {   elem *e;
@@ -5208,7 +5184,6 @@ elem *StructLiteralExp::toElem(IRState *irs)
         }
     }
 
-#if DMDV2
     if (sd->isNested() && dim != sd->fields.dim)
     {
         // Initialize the hidden 'this' pointer
@@ -5233,7 +5208,6 @@ elem *StructLiteralExp::toElem(IRState *irs)
 
         e = el_combine(e, e1);
     }
-#endif
 
     elem *ev = el_var(stmp);
     ev->ET = sd->type->toCtype();

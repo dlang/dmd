@@ -24,7 +24,6 @@
 #include "id.h"
 #include "module.h"
 
-#if DMDV2
 
 /**********************************
  * Determine if function is a builtin one that we can
@@ -222,5 +221,3 @@ Expression *eval_builtin(Loc loc, BUILTIN builtin, Expressions *arguments)
     }
     return e;
 }
-
-#endif

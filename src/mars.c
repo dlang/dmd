@@ -589,9 +589,7 @@ int tryMain(size_t argc, const char *argv[])
 
     VersionCondition::addPredefinedGlobalIdent("LittleEndian");
     //VersionCondition::addPredefinedGlobalIdent("D_Bits");
-#if DMDV2
     VersionCondition::addPredefinedGlobalIdent("D_Version2");
-#endif
     VersionCondition::addPredefinedGlobalIdent("all");
 
 #if _WIN32
@@ -703,7 +701,6 @@ int tryMain(size_t argc, const char *argv[])
                 global.params.trace = 1;
             else if (strcmp(p + 1, "v") == 0)
                 global.params.verbose = 1;
-#if DMDV2
             else if (strcmp(p + 1, "vtls") == 0)
                 global.params.vtls = 1;
             else if (memcmp(p + 1, "transition", 10) == 0)
@@ -759,7 +756,6 @@ Language changes listed by -transition=id:\n\
                 else
                     goto Lerror;
             }
-#endif
             else if (strcmp(p + 1, "w") == 0)
                 global.params.warnings = 1;
             else if (strcmp(p + 1, "wi") == 0)
@@ -884,10 +880,8 @@ Language changes listed by -transition=id:\n\
                 global.params.release = 1;
             else if (strcmp(p + 1, "betterC") == 0)
                 global.params.betterC = 1;
-#if DMDV2
             else if (strcmp(p + 1, "noboundscheck") == 0)
                 noboundscheck = 1;
-#endif
             else if (strcmp(p + 1, "unittest") == 0)
                 global.params.useUnitTests = 1;
             else if (p[1] == 'I')
@@ -1206,14 +1200,12 @@ Language changes listed by -transition=id:\n\
         VersionCondition::addPredefinedGlobalIdent("D_Coverage");
     if (global.params.pic)
         VersionCondition::addPredefinedGlobalIdent("D_PIC");
-#if DMDV2
     if (global.params.useUnitTests)
         VersionCondition::addPredefinedGlobalIdent("unittest");
     if (global.params.useAssert)
         VersionCondition::addPredefinedGlobalIdent("assert");
     if (noboundscheck)
         VersionCondition::addPredefinedGlobalIdent("D_NoBoundsChecks");
-#endif
 
     VersionCondition::addPredefinedGlobalIdent("D_HardFloat");
 

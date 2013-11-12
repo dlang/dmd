@@ -102,10 +102,8 @@ Identifier *DivExp::opId_r() { return Id::div_r; }
 Identifier *ModExp::opId()   { return Id::mod; }
 Identifier *ModExp::opId_r() { return Id::mod_r; }
 
-#if DMDV2
 Identifier *PowExp::opId()   { return Id::pow; }
 Identifier *PowExp::opId_r() { return Id::pow_r; }
-#endif
 
 Identifier *ShlExp::opId()   { return Id::shl; }
 Identifier *ShlExp::opId_r() { return Id::shl_r; }
@@ -214,7 +212,6 @@ Expression *UnaExp::op_overload(Scope *sc)
 {
     //printf("UnaExp::op_overload() (%s)\n", toChars());
 
-#if DMDV2
     if (e1->op == TOKarray)
     {
         ArrayExp *ae = (ArrayExp *)e1;
@@ -306,7 +303,6 @@ Expression *UnaExp::op_overload(Scope *sc)
             att1 = NULL;
         }
     }
-#endif
 
     e1 = e1->semantic(sc);
     e1 = resolveProperties(sc, e1);
@@ -340,7 +336,6 @@ Expression *UnaExp::op_overload(Scope *sc)
         }
 #endif
 
-#if DMDV2
         /* Rewrite as:
          *      e1.opUnary!("+")();
          */
@@ -368,7 +363,6 @@ Expression *UnaExp::op_overload(Scope *sc)
             ue->e1 = e1;
             return ue->trySemantic(sc);
         }
-#endif
     }
     return NULL;
 }
@@ -496,7 +490,6 @@ Expression *BinExp::op_overload(Scope *sc)
 #endif
 
     Objects *tiargs = NULL;
-#if DMDV2
     if (op == TOKplusplus || op == TOKminusminus)
     {   // Bug4099 fix
         if (ad1 && search_function(ad1, Id::opUnary))
@@ -532,7 +525,6 @@ Expression *BinExp::op_overload(Scope *sc)
             tiargs = opToArg(sc, op);
         }
     }
-#endif
 
     if (s || s_r)
     {
@@ -687,7 +679,6 @@ L1:
     }
 #endif
 
-#if DMDV2
     // Try alias this on first operand
     if (ad1 && ad1->aliasthis &&
         !(op == TOKassign && ad2 && ad1 == ad2))   // See Bugzilla 2943
@@ -726,7 +717,6 @@ L1:
         be->e2 = e2;
         return be->trySemantic(sc);
     }
-#endif
     return NULL;
 }
 
@@ -943,7 +933,6 @@ Expression *BinAssignExp::op_overload(Scope *sc)
 {
     //printf("BinAssignExp::op_overload() (%s)\n", toChars());
 
-#if DMDV2
     if (e1->op == TOKarray)
     {
         ArrayExp *ae = (ArrayExp *)e1;
@@ -1040,7 +1029,6 @@ Expression *BinAssignExp::op_overload(Scope *sc)
             att1 = NULL;
         }
     }
-#endif
 
     BinExp::semantic(sc);
     e1 = resolveProperties(sc, e1);
@@ -1066,7 +1054,6 @@ Expression *BinAssignExp::op_overload(Scope *sc)
 #endif
 
     Objects *tiargs = NULL;
-#if DMDV2
     if (!s)
     {   /* Try the new D2 scheme, opOpAssign
          */
@@ -1086,7 +1073,6 @@ Expression *BinAssignExp::op_overload(Scope *sc)
             tiargs = opToArg(sc, op);
         }
     }
-#endif
 
     if (s)
     {
@@ -1126,7 +1112,6 @@ Expression *BinAssignExp::op_overload(Scope *sc)
 
 L1:
 
-#if DMDV2
     // Try alias this on first operand
     if (ad1 && ad1->aliasthis)
     {
@@ -1161,7 +1146,6 @@ L1:
         be->e2 = e2;
         return be->trySemantic(sc);
     }
-#endif
     return NULL;
 }
 
@@ -1221,10 +1205,8 @@ Dsymbol *search_function(ScopeDsymbol *ad, Identifier *funcid)
 int ForeachStatement::inferAggregate(Scope *sc, Dsymbol *&sapply)
 {
     Identifier *idapply = (op == TOKforeach) ? Id::apply : Id::applyReverse;
-#if DMDV2
     Identifier *idfront = (op == TOKforeach) ? Id::Ffront : Id::Fback;
     int sliced = 0;
-#endif
     Type *tab;
     Type *att = NULL;
     Expression *org_aggr = aggr;
@@ -1260,7 +1242,6 @@ int ForeachStatement::inferAggregate(Scope *sc, Dsymbol *&sapply)
                 goto Laggr;
 
             Laggr:
-#if DMDV2
                 if (!sliced)
                 {
                     sapply = search_function(ad, idapply);
@@ -1293,13 +1274,6 @@ int ForeachStatement::inferAggregate(Scope *sc, Dsymbol *&sapply)
                     aggr = new DotIdExp(aggr->loc, aggr, ad->aliasthis->ident);
                     continue;
                 }
-#else
-                sapply = search_function(ad, idapply);
-                if (sapply)
-                {   // opApply aggregate
-                    break;
-                }
-#endif
                 goto Lerr;
 
             case Tdelegate:

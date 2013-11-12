@@ -132,8 +132,6 @@ PROT Declaration::prot()
  * Issue error if not.
  */
 
-#if DMDV2
-
 int Declaration::checkModify(Loc loc, Scope *sc, Type *t, Expression *e1, int flag)
 {
     VarDeclaration *v = isVarDeclaration();
@@ -161,7 +159,6 @@ int Declaration::checkModify(Loc loc, Scope *sc, Type *t, Expression *e1, int fl
     }
     return 1;
 }
-#endif
 
 Dsymbol *Declaration::search(Loc loc, Identifier *ident, int flags)
 {
@@ -338,9 +335,7 @@ void TypedefDeclaration::semantic(Scope *sc)
             return;
         }
         sem = SemanticDone;
-#if DMDV2
         type = type->addStorageClass(storage_class);
-#endif
         Type *savedtype = type;
         type = type->semantic(loc, sc);
         if (sc->parent->isFuncDeclaration() && init)
@@ -730,19 +725,15 @@ VarDeclaration::VarDeclaration(Loc loc, Type *type, Identifier *id, Initializer 
     this->loc = loc;
     offset = 0;
     noscope = 0;
-#if DMDV2
     isargptr = FALSE;
-#endif
     alignment = 0;
     ctorinit = 0;
     aliassym = NULL;
     onstack = 0;
     canassign = 0;
     ctfeAdrOnStack = -1;
-#if DMDV2
     rundtor = NULL;
     edtor = NULL;
-#endif
 }
 
 Dsymbol *VarDeclaration::syntaxCopy(Dsymbol *s)
@@ -905,7 +896,6 @@ void VarDeclaration::semantic(Scope *sc)
     //printf("sc->stc = %x\n", sc->stc);
     //printf("storage_class = x%x\n", storage_class);
 
-#if DMDV2
     // Safety checks
     if (sc->func && !sc->intypeof)
     {
@@ -933,7 +923,6 @@ void VarDeclaration::semantic(Scope *sc)
             }
         }
     }
-#endif
 
     Dsymbol *parent = toParent();
 
@@ -1186,14 +1175,12 @@ Lnomatch:
                 fprintf(global.stdmsg, "%s: %s.%s is %s field\n", p ? p : "", ad->toPrettyChars(), toChars(), s);
             }
             storage_class |= STCfield;
-#if DMDV2
             if (tbn->ty == Tstruct && ((TypeStruct *)tbn)->sym->noDefaultCtor ||
                 tbn->ty == Tclass  && ((TypeClass  *)tbn)->sym->noDefaultCtor)
             {
                 if (!isThisDeclaration())
                     aad->noDefaultCtor = TRUE;
             }
-#endif
 #else
             if (storage_class & (STCconst | STCimmutable) && init)
             {
@@ -1206,14 +1193,12 @@ Lnomatch:
             else
             {
                 storage_class |= STCfield;
-#if DMDV2
                 if ((tbn->ty == Tstruct && ((TypeStruct *)tbn)->sym->noDefaultCtor) ||
                     (tbn->ty == Tclass  && ((TypeClass  *)tbn)->sym->noDefaultCtor))
                 {
                     if (!isThisDeclaration())
                         aad->noDefaultCtor = TRUE;
                 }
-#endif
             }
 #endif
         }
@@ -1247,7 +1232,6 @@ Lnomatch:
         }
     }
 
-#if DMDV2
     if ((storage_class & (STCref | STCparameter | STCforeach)) == STCref &&
         ident != Id::This)
     {
@@ -1299,7 +1283,6 @@ Lnomatch:
                 error("default construction is disabled for type %s", type->toChars());
         }
     }
-#endif
 
     FuncDeclaration *fd = parent->isFuncDeclaration();
     if (type->isscope() && !noscope)
@@ -1488,7 +1471,6 @@ Lnomatch:
             {
                 unsigned errors = global.errors;
                 inuse++;
-#if DMDV2
                 if (ei)
                 {
                     Expression *exp = ei->exp->syntaxCopy();
@@ -1529,7 +1511,6 @@ Lnomatch:
                     }
                     ei->exp = exp;
                 }
-#endif
                 init = init->semantic(sc, type, INITinterpret);
                 inuse--;
                 if (global.errors > errors)
@@ -2224,7 +2205,6 @@ char *TypeInfoDeclaration::toChars()
 
 /***************************** TypeInfoConstDeclaration **********************/
 
-#if DMDV2
 TypeInfoConstDeclaration::TypeInfoConstDeclaration(Type *tinfo)
     : TypeInfoDeclaration(tinfo, 0)
 {
@@ -2234,11 +2214,9 @@ TypeInfoConstDeclaration::TypeInfoConstDeclaration(Type *tinfo)
     }
     type = Type::typeinfoconst->type;
 }
-#endif
 
 /***************************** TypeInfoInvariantDeclaration **********************/
 
-#if DMDV2
 TypeInfoInvariantDeclaration::TypeInfoInvariantDeclaration(Type *tinfo)
     : TypeInfoDeclaration(tinfo, 0)
 {
@@ -2248,11 +2226,9 @@ TypeInfoInvariantDeclaration::TypeInfoInvariantDeclaration(Type *tinfo)
     }
     type = Type::typeinfoinvariant->type;
 }
-#endif
 
 /***************************** TypeInfoSharedDeclaration **********************/
 
-#if DMDV2
 TypeInfoSharedDeclaration::TypeInfoSharedDeclaration(Type *tinfo)
     : TypeInfoDeclaration(tinfo, 0)
 {
@@ -2262,11 +2238,9 @@ TypeInfoSharedDeclaration::TypeInfoSharedDeclaration(Type *tinfo)
     }
     type = Type::typeinfoshared->type;
 }
-#endif
 
 /***************************** TypeInfoWildDeclaration **********************/
 
-#if DMDV2
 TypeInfoWildDeclaration::TypeInfoWildDeclaration(Type *tinfo)
     : TypeInfoDeclaration(tinfo, 0)
 {
@@ -2276,7 +2250,6 @@ TypeInfoWildDeclaration::TypeInfoWildDeclaration(Type *tinfo)
     }
     type = Type::typeinfowild->type;
 }
-#endif
 
 /***************************** TypeInfoStructDeclaration **********************/
 

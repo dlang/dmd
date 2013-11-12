@@ -445,10 +445,8 @@ void Module::genobjfile(int multiobj)
         sctor = callFuncsAndGates(this, &sctors, &ectorgates, "__modctor");
         sdtor = callFuncsAndGates(this, &sdtors, NULL, "__moddtor");
 
-#if DMDV2
         ssharedctor = callFuncsAndGates(this, &ssharedctors, (StaticDtorDeclarations *)&esharedctorgates, "__modsharedctor");
         sshareddtor = callFuncsAndGates(this, &sshareddtors, NULL, "__modshareddtor");
-#endif
         stest = callFuncsAndGates(this, &stests, NULL, "__modtest");
 
         if (doppelganger)
@@ -1021,9 +1019,7 @@ void FuncDeclaration::toObjFile(int multiobj)
             sbody = new CompoundStatement(Loc(), sp, stf);
         }
 
-#if DMDV2
         buildClosure(&irs);
-#endif
 
 #if TARGET_WINDOS
         if (func->isSynchronized() && cd && config.flags2 & CFG2seh &&
@@ -1057,20 +1053,16 @@ void FuncDeclaration::toObjFile(int multiobj)
     }
 
     // If static constructor
-#if DMDV2
     if (isSharedStaticCtorDeclaration())        // must come first because it derives from StaticCtorDeclaration
     {
         ssharedctors.push(s);
     }
-    else
-#endif
-    if (isStaticCtorDeclaration())
+    else if (isStaticCtorDeclaration())
     {
         sctors.push(s);
     }
 
     // If static destructor
-#if DMDV2
     if (isSharedStaticDtorDeclaration())        // must come first because it derives from StaticDtorDeclaration
     {
         SharedStaticDtorDeclaration *f = isSharedStaticDtorDeclaration();
@@ -1083,9 +1075,7 @@ void FuncDeclaration::toObjFile(int multiobj)
 
         sshareddtors.shift(s);
     }
-    else
-#endif
-    if (isStaticDtorDeclaration())
+    else if (isStaticDtorDeclaration())
     {
         StaticDtorDeclaration *f = isStaticDtorDeclaration();
         assert(f);
@@ -1144,13 +1134,11 @@ void FuncDeclaration::toObjFile(int multiobj)
     if (ident && memcmp(ident->toChars(), "_STD", 4) == 0)
         objmod->staticdtor(s);
 #endif
-#if DMDV2
     if (irs.startaddress)
     {
         //printf("Setting start address\n");
         objmod->startaddress(irs.startaddress);
     }
-#endif
 }
 
 bool onlyOneMain(Loc loc)
@@ -1285,7 +1273,6 @@ unsigned Type::totym()
             assert(0);
     }
 
-#if DMDV2
     // Add modifiers
     switch (mod)
     {
@@ -1308,7 +1295,6 @@ unsigned Type::totym()
         default:
             assert(0);
     }
-#endif
 
     return t;
 }
@@ -1345,10 +1331,8 @@ unsigned TypeFunction::totym()
             printf("linkage = %d\n", linkage);
             assert(0);
     }
-#if DMDV2
     if (isnothrow)
         tyf |= mTYnothrow;
-#endif
     return tyf;
 }
 

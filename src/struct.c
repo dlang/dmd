@@ -118,12 +118,10 @@ AggregateDeclaration::AggregateDeclaration(Loc loc, Identifier *id)
     enclosing = NULL;
     vthis = NULL;
 
-#if DMDV2
     ctor = NULL;
     defaultCtor = NULL;
     aliasthis = NULL;
     noDefaultCtor = FALSE;
-#endif
     dtor = NULL;
     getRTInfo = NULL;
 }
@@ -554,7 +552,6 @@ StructDeclaration::StructDeclaration(Loc loc, Identifier *id)
     : AggregateDeclaration(loc, id)
 {
     zeroInit = 0;       // assume false until we do semantic processing
-#if DMDV2
     hasIdentityAssign = 0;
     hasIdentityEquals = 0;
     cpctor = NULL;
@@ -563,7 +560,6 @@ StructDeclaration::StructDeclaration(Loc loc, Identifier *id)
     xeq = NULL;
     xcmp = NULL;
     alignment = 0;
-#endif
     arg1type = NULL;
     arg2type = NULL;
 
@@ -571,16 +567,8 @@ StructDeclaration::StructDeclaration(Loc loc, Identifier *id)
     type = new TypeStruct(this);
 
 #if MODULEINFO_IS_STRUCT
-  #ifdef DMDV2
     if (id == Id::ModuleInfo && !Module::moduleinfo)
         Module::moduleinfo = this;
-  #else
-    if (id == Id::ModuleInfo)
-    {   if (Module::moduleinfo)
-            Module::moduleinfo->error("only object.d can define this reserved struct name");
-        Module::moduleinfo = this;
-    }
-  #endif
 #endif
 }
 
@@ -747,7 +735,6 @@ void StructDeclaration::semantic(Scope *sc)
         }
     }
 
-#if DMDV2
     dtor = buildDtor(sc2);
     postblit = buildPostBlit(sc2);
     cpctor = buildCpCtor(sc2);
@@ -767,7 +754,6 @@ void StructDeclaration::semantic(Scope *sc)
     /* Defer requesting semantic3 until TypeInfo generation is actually invoked.
      * See Type::getTypeInfo().
      */
-#endif
     inv = buildInv(sc2);
 
     sc2->pop();

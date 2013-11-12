@@ -127,16 +127,13 @@ TypeTuple *TypeBasic::toArgTypes()
     return t;
 }
 
-#if DMDV2
 TypeTuple *TypeVector::toArgTypes()
 {
     return new TypeTuple(this);
 }
-#endif
 
 TypeTuple *TypeSArray::toArgTypes()
 {
-#if DMDV2
     if (dim)
     {
         /* Should really be done as if it were a struct with dim members
@@ -149,9 +146,6 @@ TypeTuple *TypeSArray::toArgTypes()
             return next->toArgTypes();
     }
     return new TypeTuple();     // pass on the stack for efficiency
-#else
-    return new TypeTuple();     // pass on the stack for efficiency
-#endif
 }
 
 TypeTuple *TypeAArray::toArgTypes()

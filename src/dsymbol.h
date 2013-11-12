@@ -186,10 +186,8 @@ public:
     virtual bool isExport();                    // is Dsymbol exported?
     virtual bool isImportedSymbol();            // is Dsymbol imported?
     virtual bool isDeprecated();                // is Dsymbol deprecated?
-#if DMDV2
     virtual bool isOverloadable();
     virtual bool hasOverloads();
-#endif
     virtual LabelDsymbol *isLabel();            // is this a LabelDsymbol?
     virtual AggregateDeclaration *isMember();   // is this symbol a member of an AggregateDeclaration?
     virtual Type *getType();                    // is this a type?
@@ -332,7 +330,6 @@ public:
 
 // Overload Sets
 
-#if DMDV2
 class OverloadSet : public Dsymbol
 {
 public:
@@ -343,7 +340,6 @@ public:
     OverloadSet *isOverloadSet() { return this; }
     const char *kind();
 };
-#endif
 
 // Table of Dsymbol's
 

@@ -101,13 +101,11 @@ bool ForeachStatement::apply(sapply_fp_t fp, void *param)
            (*fp)(this, param);
 }
 
-#if DMDV2
 bool ForeachRangeStatement::apply(sapply_fp_t fp, void *param)
 {
     return scondApply(body, fp, param) ||
            (*fp)(this, param);
 }
-#endif
 
 bool IfStatement::apply(sapply_fp_t fp, void *param)
 {
@@ -141,13 +139,11 @@ bool CaseStatement::apply(sapply_fp_t fp, void *param)
            (*fp)(this, param);
 }
 
-#if DMDV2
 bool CaseRangeStatement::apply(sapply_fp_t fp, void *param)
 {
     return scondApply(statement, fp, param) ||
            (*fp)(this, param);
 }
-#endif
 
 bool DefaultStatement::apply(sapply_fp_t fp, void *param)
 {

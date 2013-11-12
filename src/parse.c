@@ -79,7 +79,7 @@ Dsymbols *Parser::parseModule()
         bool safe = FALSE;
 
         nextToken();
-#if 0 && DMDV2
+#if 0
         if (token.value == TOKlparen)
         {
             nextToken();
@@ -377,7 +377,6 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
             case TOKoverride:     stc = STCoverride;     goto Lstc;
             case TOKabstract:     stc = STCabstract;     goto Lstc;
             case TOKsynchronized: stc = STCsynchronized; goto Lstc;
-#if DMDV2
             case TOKnothrow:      stc = STCnothrow;      goto Lstc;
             case TOKpure:         stc = STCpure;         goto Lstc;
             case TOKref:          stc = STCref;          goto Lstc;
@@ -393,7 +392,6 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
                 s = new UserAttributeDeclaration(exps, a);
                 break;
             }
-#endif
 
             Lstc:
                 if (storageClass & stc)
@@ -707,7 +705,6 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
  * Give error on conflicting storage classes.
  */
 
-#if DMDV2
 void Parser::composeStorageClass(StorageClass stc)
 {
     StorageClass u = stc;
@@ -723,7 +720,6 @@ void Parser::composeStorageClass(StorageClass stc)
     if (u & (u - 1))
         error("conflicting attribute @%s", token.toChars());
 }
-#endif
 
 /***********************************************
  * Parse attribute, lexer is on '@'.
@@ -736,7 +732,6 @@ void Parser::composeStorageClass(StorageClass stc)
  *      *pudas          NULL if not a user defined attribute
  */
 
-#if DMDV2
 StorageClass Parser::parseAttribute(Expressions **pudas)
 {
     nextToken();
@@ -788,7 +783,6 @@ StorageClass Parser::parseAttribute(Expressions **pudas)
         error("valid attributes are @property, @safe, @trusted, @system, @disable");
     return stc;
 }
-#endif
 
 /***********************************************
  * Parse const/immutable/shared/inout/nothrow/pure postfix
@@ -931,7 +925,6 @@ StaticAssert *Parser::parseStaticAssert()
  * Current token is on the 'typeof'.
  */
 
-#if DMDV2
 TypeQualified *Parser::parseTypeof()
 {
     TypeQualified *t;
@@ -952,14 +945,12 @@ TypeQualified *Parser::parseTypeof()
     check(TOKrparen);
     return t;
 }
-#endif
 
 /***********************************
  * Parse __vector(type).
  * Current token is on the '__vector'.
  */
 
-#if DMDV2
 Type *Parser::parseVector()
 {
     Loc loc = token.loc;
@@ -969,7 +960,6 @@ Type *Parser::parseVector()
     check(TOKrparen);
     return new TypeVector(loc, tb);
 }
-#endif
 
 /***********************************
  * Parse extern (linkage)
@@ -1065,7 +1055,6 @@ Condition *Parser::parseVersionCondition()
             id = token.ident;
         else if (token.value == TOKint32v || token.value == TOKint64v)
             level = (unsigned)token.uns64value;
-#if DMDV2
         /* Allow:
          *    version (unittest)
          *    version (assert)
@@ -1075,7 +1064,6 @@ Condition *Parser::parseVersionCondition()
             id = Lexer::idPool(Token::toChars(TOKunittest));
         else if (token.value == TOKassert)
             id = Lexer::idPool(Token::toChars(TOKassert));
-#endif
         else
             error("identifier or integer expected, not %s", token.toChars());
         nextToken();
@@ -1872,7 +1860,6 @@ BaseClasses *Parser::parseBaseClasses()
  *      if ( ConstraintExpression )
  */
 
-#if DMDV2
 Expression *Parser::parseConstraint()
 {   Expression *e = NULL;
 
@@ -1885,7 +1872,6 @@ Expression *Parser::parseConstraint()
     }
     return e;
 }
-#endif
 
 /**************************************
  * Parse a TemplateDeclaration.
@@ -2047,7 +2033,6 @@ TemplateParameters *Parser::parseTemplateParameterList(int flag)
                 nextToken();
                 tp = new TemplateTupleParameter(loc, tp_ident);
             }
-#if DMDV2
             else if (token.value == TOKthis)
             {
                 // ThisParameter
@@ -2072,7 +2057,6 @@ TemplateParameters *Parser::parseTemplateParameterList(int flag)
                 }
                 tp = new TemplateThisParameter(loc, tp_ident, tp_spectype, tp_defaulttype);
             }
-#endif
             else
             {
                 // ValueParameter
@@ -2413,7 +2397,6 @@ Import *Parser::parseImport(Dsymbols *decldefs, int isstatic)
     return NULL;
 }
 
-#if DMDV2
 Type *Parser::parseType(Identifier **pident, TemplateParameters **tpl)
 {   Type *t;
 
@@ -2485,7 +2468,6 @@ Type *Parser::parseType(Identifier **pident, TemplateParameters **tpl)
     t = parseDeclarator(t, pident, tpl);
     return t;
 }
-#endif
 
 Type *Parser::parseBasicType()
 {
@@ -3122,7 +3104,6 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, const utf8_t *co
             case TOKabstract:   stc = STCabstract;       goto L1;
             case TOKsynchronized: stc = STCsynchronized; goto L1;
             case TOKdeprecated: stc = STCdeprecated;     goto L1;
-#if DMDV2
             case TOKnothrow:    stc = STCnothrow;        goto L1;
             case TOKpure:       stc = STCpure;           goto L1;
             case TOKref:        stc = STCref;            goto L1;
@@ -3135,7 +3116,6 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, const utf8_t *co
                     goto L1;
                 continue;
             }
-#endif
             L1:
                 if (storage_class & stc)
                     error("redundant storage class '%s'", token.toChars());
@@ -3444,7 +3424,6 @@ L2:
  * Ends with scanner past closing ';'
  */
 
-#if DMDV2
 Dsymbols *Parser::parseAutoDeclarations(StorageClass storageClass, const utf8_t *comment)
 {
     Dsymbols *a = new Dsymbols;
@@ -3483,7 +3462,6 @@ Dsymbols *Parser::parseAutoDeclarations(StorageClass storageClass, const utf8_t 
     }
     return a;
 }
-#endif
 
 /*****************************************
  * Parse contracts following function declaration.
@@ -3806,7 +3784,6 @@ Initializer *Parser::parseInitializer()
  * with special handling for __FILE__, __LINE__, __MODULE__, __FUNCTION__, and __PRETTY_FUNCTION__.
  */
 
-#if DMDV2
 Expression *Parser::parseDefaultInitExp()
 {
     if (token.value == TOKfile ||
@@ -3837,7 +3814,6 @@ Expression *Parser::parseDefaultInitExp()
     Expression *e = parseAssignExp();
     return e;
 }
-#endif
 
 /*****************************************
  */
@@ -3936,14 +3912,12 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
         case TOKtypeid:
         case TOKis:
         case TOKlbracket:
-#if DMDV2
         case TOKtraits:
         case TOKfile:
         case TOKline:
         case TOKmodulestring:
         case TOKfuncstring:
         case TOKprettyfunc:
-#endif
         Lexp:
         {
             Expression *exp = parseExpression();
@@ -4001,7 +3975,6 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
         case TOKextern:
         case TOKalign:
         case TOKinvariant:
-#if DMDV2
         case TOKimmutable:
         case TOKshared:
         case TOKwild:
@@ -4010,7 +3983,6 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
         case TOKref:
         case TOKgshared:
         case TOKat:
-#endif
         case TOKstruct:
         case TOKunion:
         case TOKclass:
@@ -4548,7 +4520,6 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
             }
             check(TOKcolon);
 
-#if DMDV2
             /* case exp: .. case last:
              */
             if (token.value == TOKslice)
@@ -4560,7 +4531,6 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
                 last = parseAssignExp();
                 check(TOKcolon);
             }
-#endif
 
             if (flags & PScurlyscope)
             {
@@ -4798,9 +4768,7 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
         case TOKvolatile:
             nextToken();
             s = parseStatement(PSsemi | PScurlyscope);
-#if DMDV2
             deprecation("volatile statements deprecated; use synchronized statements instead");
-#endif
             s = new SynchronizedStatement(loc, (Expression *)NULL, s);
             break;
 
@@ -4974,7 +4942,6 @@ int Parser::isDeclaration(Token *t, int needId, TOK endtok, Token **pt)
     int haveId = 0;
     int haveTpl = 0;
 
-#if DMDV2
     while (1)
     {
         if ((t->value == TOKconst ||
@@ -4993,7 +4960,6 @@ int Parser::isDeclaration(Token *t, int needId, TOK endtok, Token **pt)
         }
         break;
     }
-#endif
 
     if (!isBasicType(&t))
     {
@@ -5272,7 +5238,6 @@ int Parser::isDeclarator(Token **pt, int *haveId, int *haveTpl, TOK endtok)
                 }
                 if (!isParameters(&t))
                     return FALSE;
-#if DMDV2
                 while (1)
                 {
                     switch (t->value)
@@ -5295,7 +5260,6 @@ int Parser::isDeclarator(Token **pt, int *haveId, int *haveTpl, TOK endtok)
                     }
                     break;
                 }
-#endif
                 continue;
 
             // Valid tokens that follow a declaration
@@ -5763,7 +5727,6 @@ Expression *Parser::parsePrimaryExp()
             nextToken();
             break;
 
-#if DMDV2
         case TOKfile:
         {   const char *s = loc.filename ? loc.filename : mod->ident->toChars();
             e = new StringExp(loc, (char *)s, strlen(s), 0);
@@ -5793,7 +5756,6 @@ Expression *Parser::parsePrimaryExp()
             e = new PrettyFuncInitExp(loc);
             nextToken();
             break;
-#endif
 
         case TOKtrue:
             e = new IntegerExp(loc, 1, Type::tbool);
@@ -5895,7 +5857,6 @@ Expression *Parser::parsePrimaryExp()
             break;
         }
 
-#if DMDV2
         case TOKtraits:
         {   /* __traits(identifier, args...)
              */
@@ -5918,7 +5879,6 @@ Expression *Parser::parsePrimaryExp()
             e = new TraitsExp(loc, ident, args);
             break;
         }
-#endif
 
         case TOKis:
         {
@@ -6517,13 +6477,11 @@ Expression *Parser::parseUnaryExp()
                     case TOKdelegate:
                     case TOKtypeof:
                     case TOKvector:
-#if DMDV2
                     case TOKfile:
                     case TOKline:
                     case TOKmodulestring:
                     case TOKfuncstring:
                     case TOKprettyfunc:
-#endif
                     case BASIC_TYPES:           // (type)int.size
                     {   // (type) una_exp
                         Type *t;
@@ -7041,13 +6999,11 @@ void initPrecedence()
     precedence[TOKarrayliteral] = PREC_primary;
     precedence[TOKassocarrayliteral] = PREC_primary;
     precedence[TOKclassreference] = PREC_primary;
-#if DMDV2
     precedence[TOKfile] = PREC_primary;
     precedence[TOKline] = PREC_primary;
     precedence[TOKmodulestring] = PREC_primary;
     precedence[TOKfuncstring] = PREC_primary;
     precedence[TOKprettyfunc] = PREC_primary;
-#endif
     precedence[TOKtypeid] = PREC_primary;
     precedence[TOKis] = PREC_primary;
     precedence[TOKassert] = PREC_primary;
@@ -7061,12 +7017,10 @@ void initPrecedence()
     precedence[TOKarraylength] = PREC_primary;
     precedence[TOKremove] = PREC_primary;
     precedence[TOKtuple] = PREC_primary;
-#if DMDV2
     precedence[TOKtraits] = PREC_primary;
     precedence[TOKdefault] = PREC_primary;
     precedence[TOKoverloadset] = PREC_primary;
     precedence[TOKvoid] = PREC_primary;
-#endif
 
     // post
     precedence[TOKdotti] = PREC_primary;
@@ -7077,10 +7031,8 @@ void initPrecedence()
 //  precedence[TOKarrow] = PREC_primary;
     precedence[TOKplusplus] = PREC_primary;
     precedence[TOKminusminus] = PREC_primary;
-#if DMDV2
     precedence[TOKpreplusplus] = PREC_primary;
     precedence[TOKpreminusminus] = PREC_primary;
-#endif
     precedence[TOKcall] = PREC_primary;
     precedence[TOKslice] = PREC_primary;
     precedence[TOKarray] = PREC_primary;
@@ -7099,10 +7051,8 @@ void initPrecedence()
     precedence[TOKnewanonclass] = PREC_unary;
     precedence[TOKcast] = PREC_unary;
 
-#if DMDV2
     precedence[TOKvector] = PREC_unary;
     precedence[TOKpow] = PREC_pow;
-#endif
 
     precedence[TOKmul] = PREC_mul;
     precedence[TOKdiv] = PREC_mul;
@@ -7166,9 +7116,7 @@ void initPrecedence()
     precedence[TOKmulass] = PREC_assign;
     precedence[TOKdivass] = PREC_assign;
     precedence[TOKmodass] = PREC_assign;
-#if DMDV2
     precedence[TOKpowass] = PREC_assign;
-#endif
     precedence[TOKshlass] = PREC_assign;
     precedence[TOKshrass] = PREC_assign;
     precedence[TOKushrass] = PREC_assign;

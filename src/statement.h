@@ -420,7 +420,6 @@ public:
     void toIR(IRState *irs);
 };
 
-#if DMDV2
 class ForeachRangeStatement : public Statement
 {
 public:
@@ -448,7 +447,6 @@ public:
 
     void toIR(IRState *irs);
 };
-#endif
 
 class IfStatement : public Statement
 {
@@ -581,7 +579,6 @@ public:
     void toIR(IRState *irs);
 };
 
-#if DMDV2
 
 class CaseRangeStatement : public Statement
 {
@@ -597,7 +594,6 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 
-#endif
 
 class DefaultStatement : public Statement
 {

@@ -39,14 +39,12 @@ Expression *Expression::implicitCastTo(Scope *sc, Type *t)
     MATCH match = implicitConvTo(t);
     if (match)
     {
-#if DMDV2
         if (match == MATCHconst && type->constConv(t))
         {
             Expression *e = copy();
             e->type = t;
             return e;
         }
-#endif
         return castTo(sc, t);
     }
 
@@ -411,7 +409,6 @@ MATCH NullExp::implicitConvTo(Type *t)
     return Expression::implicitConvTo(t);
 }
 
-#if DMDV2
 MATCH StructLiteralExp::implicitConvTo(Type *t)
 {
 #if 0
@@ -440,7 +437,6 @@ MATCH StructLiteralExp::implicitConvTo(Type *t)
     }
     return m;
 }
-#endif
 
 MATCH StringExp::implicitConvTo(Type *t)
 {
@@ -1734,9 +1730,7 @@ Expression *SymOffExp::castTo(Scope *sc, Type *t)
                         e = new SymOffExp(loc, f, 0);
                         e->type = t;
                     }
-#if DMDV2
                     f->tookAddressOf++;
-#endif
                     return e;
                 }
             }

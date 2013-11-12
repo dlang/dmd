@@ -20,8 +20,6 @@
 #include "mtype.h"
 #include "declaration.h"
 
-#if DMDV2
-
 Expression *resolveAliasThis(Scope *sc, Expression *e)
 {
     Type *t = e->type->toBasetype();
@@ -136,5 +134,3 @@ void AliasThis::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writestring(ident->toChars());
     buf->writestring(" this;\n");
 }
-
-#endif

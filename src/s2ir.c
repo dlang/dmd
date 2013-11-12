@@ -185,7 +185,6 @@ void IfStatement::toIR(IRState *irs)
 /**************************************
  */
 
-#if DMDV2
 void PragmaStatement::toIR(IRState *irs)
 {
     //printf("PragmaStatement::toIR()\n");
@@ -202,7 +201,6 @@ void PragmaStatement::toIR(IRState *irs)
         irs->startaddress = s;
     }
 }
-#endif
 
 /***********************
  */
@@ -306,12 +304,10 @@ void ForeachStatement::toIR(IRState *irs)
 /**************************************
  */
 
-#if DMDV2
 void ForeachRangeStatement::toIR(IRState *irs)
 {
     assert(0);
 }
-#endif
 
 
 /****************************************
@@ -484,7 +480,6 @@ void SwitchStatement::toIR(IRState *irs)
 
     incUsage(irs, loc);
     elem *econd = condition->toElemDtor(&mystate);
-#if DMDV2
     if (hasVars)
     {   /* Generate a sequence of if-then-else blocks for the cases.
          */
@@ -523,7 +518,6 @@ void SwitchStatement::toIR(IRState *irs)
         block_goto(blx, BCgoto, mystate.breakBlock);
         return;
     }
-#endif
 
     if (condition->type->isString())
     {
@@ -801,13 +795,11 @@ void ReturnStatement::toIR(IRState *irs)
             e = el_var(irs->shidden);
             e = el_bin(OPcomma, e->Ety, es, e);
         }
-#if DMDV2
         else if (tf->isref)
         {   // Reference return, so convert to a pointer
             Expression *ae = exp->addressOf(NULL);
             e = ae->toElemDtor(irs);
         }
-#endif
         else
         {
             e = exp->toElemDtor(irs);

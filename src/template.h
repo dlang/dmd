@@ -138,9 +138,7 @@ public:
     virtual TemplateTypeParameter  *isTemplateTypeParameter();
     virtual TemplateValueParameter *isTemplateValueParameter();
     virtual TemplateAliasParameter *isTemplateAliasParameter();
-#if DMDV2
     virtual TemplateThisParameter *isTemplateThisParameter();
-#endif
     virtual TemplateTupleParameter *isTemplateTupleParameter();
 
     virtual TemplateParameter *syntaxCopy() = 0;
@@ -191,7 +189,6 @@ public:
     void *dummyArg();
 };
 
-#if DMDV2
 class TemplateThisParameter : public TemplateTypeParameter
 {
 public:
@@ -205,7 +202,6 @@ public:
     TemplateParameter *syntaxCopy();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
-#endif
 
 class TemplateValueParameter : public TemplateParameter
 {

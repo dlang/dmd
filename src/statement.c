@@ -1855,7 +1855,6 @@ Lagain:
 
         case Tclass:
         case Tstruct:
-#if DMDV2
             /* Prefer using opApply, if it exists
              */
             if (sapply)
@@ -1991,7 +1990,6 @@ Lagain:
             error("cannot infer argument types");
             goto Lerror2;
         }
-#endif
         case Tdelegate:
         Lapply:
         {
@@ -2354,7 +2352,6 @@ void ForeachStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /**************************** ForeachRangeStatement ***************************/
 
-#if DMDV2
 
 ForeachRangeStatement::ForeachRangeStatement(Loc loc, TOK op, Parameter *arg,
         Expression *lwr, Expression *upr, Statement *body)
@@ -2563,7 +2560,6 @@ void ForeachRangeStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writenl();
 }
 
-#endif
 
 /******************************** IfStatement ***************************/
 
@@ -2926,7 +2922,6 @@ Statement *PragmaStatement::semantic(Scope *sc)
         }
 #endif
     }
-#if DMDV2
     else if (ident == Id::startaddress)
     {
         if (!args || args->dim != 1)
@@ -2952,7 +2947,6 @@ Statement *PragmaStatement::semantic(Scope *sc)
             return this;
         }
     }
-#endif
     else
         error("unrecognized pragma(%s)", ident->toChars());
 Lerror:
@@ -3132,7 +3126,6 @@ Statement *SwitchStatement::semantic(Scope *sc)
     }
 
     bool needswitcherror = FALSE;
-#if DMDV2
     if (isFinal)
     {   Type *t = condition->type;
         while (t && t->ty == Ttypedef)
@@ -3170,7 +3163,6 @@ Statement *SwitchStatement::semantic(Scope *sc)
         else
             needswitcherror = TRUE;
     }
-#endif
 
     if (!sc->sw->sdefault && (!isFinal || needswitcherror || global.params.useAssert))
     {   hasNoDefault = 1;
@@ -3369,7 +3361,6 @@ void CaseStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /******************************** CaseRangeStatement ***************************/
 
-#if DMDV2
 
 CaseRangeStatement::CaseRangeStatement(Loc loc, Expression *first,
         Expression *last, Statement *s)
@@ -3470,7 +3461,6 @@ void CaseRangeStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     statement->toCBuffer(buf, hgs);
 }
 
-#endif
 
 /******************************** DefaultStatement ***************************/
 

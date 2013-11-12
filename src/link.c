@@ -600,7 +600,7 @@ int runLINK()
 //    argv.push("-ldruntime");
     argv.push("-lpthread");
     argv.push("-lm");
-#if linux && DMDV2
+#if linux
     // Changes in ld for Ubuntu 11.10 require this to appear after phobos2
     argv.push("-lrt");
 #endif

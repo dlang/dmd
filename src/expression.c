@@ -943,7 +943,6 @@ Expressions *arrayExpressionSemantic(Expressions *exps, Scope *sc)
  * Perform canThrow() on an array of Expressions.
  */
 
-#if DMDV2
 int arrayExpressionCanThrow(Expressions *exps, bool mustNotThrow)
 {
     if (exps)
@@ -956,7 +955,6 @@ int arrayExpressionCanThrow(Expressions *exps, bool mustNotThrow)
     }
     return 0;
 }
-#endif
 
 /****************************************
  * Expand tuples.
@@ -1079,7 +1077,6 @@ int expandAliasThisTuples(Expressions *exps, size_t starti)
 
 Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt)
 {
-#if DMDV2
     /* The type is determined by applying ?: to each pair.
      */
     /* Still have a problem with:
@@ -1151,7 +1148,6 @@ Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt
 
     // Eventually, we want to make this copy-on-write
     return exps;
-#endif
 }
 
 /****************************************
@@ -1250,7 +1246,6 @@ Expression *valueNoDtor(Expression *e)
 /********************************************
  * Determine if t is an array of structs that need a default construction.
  */
-#if DMDV2
 bool checkDefCtor(Loc loc, Type *t)
 {
     t = t->baseElemOf();
@@ -1265,12 +1260,10 @@ bool checkDefCtor(Loc loc, Type *t)
     }
     return false;
 }
-#endif
 
 /********************************************
  * Determine if t is an array of structs that need a postblit.
  */
-#if DMDV2
 bool Expression::checkPostblit(Scope *sc, Type *t)
 {
     t = t->baseElemOf();
@@ -1295,14 +1288,12 @@ bool Expression::checkPostblit(Scope *sc, Type *t)
     }
     return false;
 }
-#endif
 
 /*********************************************
  * Call copy constructor for struct value argument.
  * Input:
  *      sc      just used to specify the scope of created temporary variable
  */
-#if DMDV2
 Expression *callCpCtor(Scope *sc, Expression *e)
 {
     Type *tv = e->type->baseElemOf();
@@ -1331,7 +1322,6 @@ Expression *callCpCtor(Scope *sc, Expression *e)
     }
     return e;
 }
-#endif
 
 /****************************************
  * Now that we know the exact type of the function we're calling,
@@ -1417,10 +1407,8 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                 }
                 arg = p->defaultArg;
                 arg = arg->inlineCopy(sc);
-#if DMDV2
                 // __FILE__, __LINE__, __MODULE__, __FUNCTION__, and __PRETTY_FUNCTION__
                 arg = arg->resolveLoc(loc, sc);
-#endif
                 arguments->push(arg);
                 nargs++;
             }
@@ -1642,7 +1630,6 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
 
             //printf("arg: %s\n", arg->toChars());
             //printf("type: %s\n", arg->type->toChars());
-#if DMDV2
             /* Look for arguments that cannot 'escape' from the called
              * function.
              */
@@ -1676,7 +1663,6 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                     }
                 }
             }
-#endif
             arg = arg->optimize(WANTvalue, (p->storageClass & (STCref | STCout)) != 0);
         }
         else
@@ -2236,7 +2222,6 @@ void Expression::checkDeprecated(Scope *sc, Dsymbol *s)
     s->checkDeprecated(loc, sc);
 }
 
-#if DMDV2
 /*********************************************
  * Calling function f.
  * Check the purity, i.e. if we're in a pure function
@@ -2449,7 +2434,6 @@ void Expression::checkSafety(Scope *sc, FuncDeclaration *f)
         }
     }
 }
-#endif
 
 /*****************************
  * Check that expression can be tested for true or false.
@@ -3298,7 +3282,6 @@ Expression *IdentifierExp::semantic(Scope *sc)
         WithScopeSymbol *withsym = scopesym->isWithScopeSymbol();
         if (withsym)
         {
-#if DMDV2
             /* Disallow shadowing
              */
             // First find the scope of the with
@@ -3320,7 +3303,6 @@ Expression *IdentifierExp::semantic(Scope *sc)
                     return new ErrorExp();
                 }
             }
-#endif
             s = s->toAlias();
 
             // Same as wthis.ident
@@ -3359,7 +3341,6 @@ Expression *IdentifierExp::semantic(Scope *sc)
         }
         return e->semantic(sc);
     }
-#if DMDV2
     if (hasThis(sc))
     {
         AggregateDeclaration *ad = sc->getStructClassScope();
@@ -3381,7 +3362,6 @@ Expression *IdentifierExp::semantic(Scope *sc)
        e = e->semantic(sc);
        return e;
     }
-#endif
     const char *n = importHint(ident->toChars());
     if (n)
         error("'%s' is not defined, perhaps you need to import %s; ?", ident->toChars(), n);
@@ -5352,10 +5332,8 @@ Lagain:
         if (f)
         {
             checkDeprecated(sc, f);
-#if DMDV2
             checkPurity(sc, f);
             checkSafety(sc, f);
-#endif
             member = f->isCtorDeclaration();
             assert(member);
 
@@ -5451,10 +5429,8 @@ Lagain:
         if (f)
         {
             checkDeprecated(sc, f);
-#if DMDV2
             checkPurity(sc, f);
             checkSafety(sc, f);
-#endif
             member = f->isCtorDeclaration();
             assert(member);
 
@@ -5646,7 +5622,6 @@ void NewAnonClassExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /********************** SymbolExp **************************************/
 
-#if DMDV2
 SymbolExp::SymbolExp(Loc loc, TOK op, int size, Declaration *var, bool hasOverloads)
     : Expression(loc, op, size)
 {
@@ -5654,7 +5629,6 @@ SymbolExp::SymbolExp(Loc loc, TOK op, int size, Declaration *var, bool hasOverlo
     this->var = var;
     this->hasOverloads = hasOverloads;
 }
-#endif
 
 /********************** SymOffExp **************************************/
 
@@ -5771,9 +5745,7 @@ Expression *VarExp::semantic(Scope *sc)
     {
         hasOverloads = 0;
         v->checkNestedReference(sc, loc);
-#if DMDV2
         checkPurity(sc, v);
-#endif
     }
     FuncDeclaration *f = var->isFuncDeclaration();
     if (f)
@@ -5865,7 +5837,6 @@ Expression *VarExp::modifiableLvalue(Scope *sc, Expression *e)
 
 /******************************** OverExp **************************/
 
-#if DMDV2
 OverExp::OverExp(Loc loc, OverloadSet *s)
         : Expression(loc, TOKoverloadset, sizeof(OverExp))
 {
@@ -5888,8 +5859,6 @@ void OverExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring(vars->ident->toChars());
 }
-
-#endif
 
 
 /******************************** TupleExp **************************/
@@ -6471,7 +6440,6 @@ void TypeidExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 }
 
 /************************ TraitsExp ************************************/
-#if DMDV2
 /*
  *      __traits(identifier, args...)
  */
@@ -6505,7 +6473,6 @@ void TraitsExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     }
     buf->writeByte(')');
 }
-#endif
 
 /************************************************************/
 
@@ -6625,7 +6592,6 @@ Expression *IsExp::semantic(Scope *sc)
                     goto Lno;
                 tded = targ;
                 break;
-#if DMDV2
             case TOKconst:
                 if (!targ->isConst())
                     goto Lno;
@@ -6649,7 +6615,6 @@ Expression *IsExp::semantic(Scope *sc)
                     goto Lno;
                 tded = targ;
                 break;
-#endif
 
             case TOKsuper:
                 // If class or interface, get the base class and interfaces
@@ -6800,7 +6765,6 @@ Expression *IsExp::semantic(Scope *sc)
             tded = (Type *)dedtypes[0];
             if (!tded)
                 tded = targ;
-#if DMDV2
             Objects tiargs;
             tiargs.setDim(1);
             tiargs[0] = targ;
@@ -6820,7 +6784,6 @@ Expression *IsExp::semantic(Scope *sc)
                 else if (!sc->insert(s))
                     error("declaration %s is already defined", s->toChars());
             }
-#endif
             goto Lyes;
         }
     }
@@ -6875,7 +6838,6 @@ void IsExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
             buf->writestring(" == ");
         tspec->toCBuffer(buf, NULL, hgs);
     }
-#if DMDV2
     if (parameters)
     {
         for (size_t i = 0; i < parameters->dim; i++)
@@ -6885,7 +6847,6 @@ void IsExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
             tp->toCBuffer(buf, hgs);
         }
     }
-#endif
     buf->writeByte(')');
 }
 
@@ -7218,7 +7179,6 @@ Expression *BinAssignExp::semantic(Scope *sc)
     return reorderSettingAAElem(sc);
 }
 
-#if DMDV2
 int BinAssignExp::isLvalue()
 {
     return 1;
@@ -7267,8 +7227,6 @@ Expression *BinAssignExp::modifiableLvalue(Scope *sc, Expression *e)
     // should check e1->checkModifiable() ?
     return toLvalue(sc, this);
 }
-
-#endif
 
 /************************************************************/
 
@@ -7549,7 +7507,6 @@ Expression *DotIdExp::semanticX(Scope *sc)
     {
         e1 = resolvePropertiesX(sc, e1);
     }
-#if DMDV2
     if (e1->op == TOKtuple && ident == Id::offsetof)
     {   /* 'distribute' the .offsetof to each of the tuple elements.
          */
@@ -7567,7 +7524,6 @@ Expression *DotIdExp::semanticX(Scope *sc)
         e = e->semantic(sc);
         return e;
     }
-#endif
 
     if (e1->op == TOKtuple && ident == Id::length)
     {
@@ -7720,13 +7676,11 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
                 }
                 return e;
             }
-#if DMDV2
             OverloadSet *o = s->isOverloadSet();
             if (o)
             {   //printf("'%s' is an overload set\n", o->toChars());
                 return new OverExp(loc, o);
             }
-#endif
 
             Type *t = s->getType();
             if (t)
@@ -8728,7 +8682,6 @@ Lagain:
         if (t1->ty == Tstruct)
         {
             ad = ((TypeStruct *)t1)->sym;
-#if DMDV2
 
             if (ad->sizeok == SIZEOKnone)
             {
@@ -8783,7 +8736,6 @@ Lagain:
                 e = e->semantic(sc);
                 return e;
             }
-#endif
             // No constructor, look for overload of opCall
             if (search_function(ad, Id::call))
                 goto L1;        // overload of opCall, therefore it's a call
@@ -8902,10 +8854,8 @@ Lagain:
         }
 
         checkDeprecated(sc, f);
-#if DMDV2
         checkPurity(sc, f);
         checkSafety(sc, f);
-#endif
         accessCheck(loc, sc, ue->e1, f);
         if (!f->needThis())
         {
@@ -8989,10 +8939,8 @@ Lagain:
                     return new ErrorExp();
                 accessCheck(loc, sc, NULL, f);
                 checkDeprecated(sc, f);
-#if DMDV2
                 checkPurity(sc, f);
                 checkSafety(sc, f);
-#endif
                 e1 = new DotVarExp(e1->loc, e1, f);
                 e1 = e1->semantic(sc);
                 t1 = e1->type;
@@ -9029,10 +8977,8 @@ Lagain:
             if (!f)
                 return new ErrorExp();
             checkDeprecated(sc, f);
-#if DMDV2
             checkPurity(sc, f);
             checkSafety(sc, f);
-#endif
             e1 = new DotVarExp(e1->loc, e1, f);
             e1 = e1->semantic(sc);
             t1 = e1->type;
@@ -9167,10 +9113,8 @@ Lagain:
         // Purity and safety check should run after testing arguments matching
         if (f)
         {
-#if DMDV2
             checkPurity(sc, f);
             checkSafety(sc, f);
-#endif
             f->checkNestedReference(sc, loc);
         }
         else if (sc->func && !(sc->flags & SCOPEctfe))
@@ -9252,10 +9196,8 @@ Lagain:
         }
 
         checkDeprecated(sc, f);
-#if DMDV2
         checkPurity(sc, f);
         checkSafety(sc, f);
-#endif
         f->checkNestedReference(sc, loc);
         accessCheck(loc, sc, NULL, f);
 
@@ -9654,13 +9596,11 @@ int PtrExp::checkModifiable(Scope *sc, int flag)
     return 1;
 }
 
-#if DMDV2
 Expression *PtrExp::modifiableLvalue(Scope *sc, Expression *e)
 {
     //printf("PtrExp::modifiableLvalue() %s, type %s\n", toChars(), type->toChars());
     return Expression::modifiableLvalue(sc, e);
 }
-#endif
 
 void PtrExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
@@ -9929,7 +9869,6 @@ CastExp::CastExp(Loc loc, Expression *e, Type *t)
     this->mod = ~0;
 }
 
-#if DMDV2
 /* For cast(const) and cast(immutable)
  */
 CastExp::CastExp(Loc loc, Expression *e, unsigned mod)
@@ -9938,7 +9877,6 @@ CastExp::CastExp(Loc loc, Expression *e, unsigned mod)
     to = NULL;
     this->mod = mod;
 }
-#endif
 
 Expression *CastExp::syntaxCopy()
 {
@@ -10134,7 +10072,6 @@ Expression *CastExp::semantic(Scope *sc)
     }
 
 Lsafe:
-#if DMDV2
     /* Instantiate AA implementations during semantic analysis.
      */
     Type *tfrom = e1->type->toBasetype();
@@ -10143,7 +10080,6 @@ Lsafe:
         ((TypeAArray *)tfrom)->getImpl();
     if (t->ty == Taarray)
         ((TypeAArray *)t)->getImpl();
-#endif
     Expression *e = e1->castTo(sc, to);
     return e;
 }

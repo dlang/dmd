@@ -87,12 +87,10 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
     nrvo_can = 1;
     nrvo_var = NULL;
     shidden = NULL;
-#if DMDV2
     builtin = BUILTINunknown;
     tookAddressOf = 0;
     requiresClosure = false;
     flags = 0;
-#endif
     returns = NULL;
 }
 
@@ -547,10 +545,8 @@ void FuncDeclaration::semantic(Scope *sc)
                     error("cannot override final function %s", fdv->toPrettyChars());
 
                 doesoverride = TRUE;
-#if DMDV2
                 if (!isOverride())
                     ::deprecation(loc, "overriding base class function without using override attribute is deprecated (%s overrides %s)", toPrettyChars(), fdv->toPrettyChars());
-#endif
 
                 if (fdc->toParent() == parent)
                 {
@@ -625,13 +621,11 @@ void FuncDeclaration::semantic(Scope *sc)
                      */
                     foverrides.push(fdv);
 
-#if DMDV2
                     /* Should we really require 'override' when implementing
                      * an interface function?
                      */
                     //if (!isOverride())
                         //warning(loc, "overrides base class function %s, but is not marked with 'override'", fdv->toPrettyChars());
-#endif
 
                     if (fdv->tintro)
                         ti = fdv->tintro;
@@ -1330,7 +1324,6 @@ void FuncDeclaration::semantic3(Scope *sc)
                 ;
             else if (isCtorDeclaration() && ad2)
             {
-#if DMDV2
                 // Check for errors related to 'nothrow'.
                 int nothrowErrors = global.errors;
                 int blockexit = fbody->blockExit(f->isnothrow);
@@ -1338,7 +1331,6 @@ void FuncDeclaration::semantic3(Scope *sc)
                     ::error(loc, "%s '%s' is nothrow yet may throw", kind(), toPrettyChars());
                 if (flags & FUNCFLAGnothrowInprocess)
                     f->isnothrow = !(blockexit & BEthrow);
-#endif
                 //printf("callSuper = x%x\n", sc2->callSuper);
 
                 ClassDeclaration *cd = ad2->isClassDeclaration();
@@ -1430,7 +1422,6 @@ void FuncDeclaration::semantic3(Scope *sc)
             }
             else
             {
-#if DMDV2
                 // Check for errors related to 'nothrow'.
                 int nothrowErrors = global.errors;
                 int blockexit = fbody->blockExit(f->isnothrow);
@@ -1443,7 +1434,6 @@ void FuncDeclaration::semantic3(Scope *sc)
                 }
 
                 int offend = blockexit & BEfallthru;
-#endif
                 if (type->nextOf()->ty != Tvoid)
                 {
                     if (offend)
@@ -1691,7 +1681,6 @@ void FuncDeclaration::semantic3(Scope *sc)
             }
 
             fbody = new CompoundStatement(Loc(), a);
-#if DMDV2
             /* Append destructor calls for parameters as finally blocks.
              */
             if (parameters)
@@ -1725,7 +1714,6 @@ void FuncDeclaration::semantic3(Scope *sc)
             }
             // from this point on all possible 'throwers' are checked
             flags &= ~FUNCFLAGnothrowInprocess;
-#endif
 
             if (isSynchronized())
             {   /* Wrap the entire function body in a synchronized statement
@@ -2071,14 +2059,12 @@ void FuncDeclaration::buildResultVar()
     VarDeclaration *v = new VarDeclaration(loc, type->nextOf(), outId, NULL);
     v->noscope = 1;
     v->storage_class |= STCresult;
-#if DMDV2
     if (!isVirtual())
         v->storage_class |= STCconst;
     if (tf->isref)
     {
         v->storage_class |= STCref | STCforeach;
     }
-#endif
     v->semantic(scout);
     if (!scout->insert(v))
         error("out result %s is already defined", v->toChars());
@@ -2529,7 +2515,6 @@ FuncDeclaration *FuncDeclaration::overloadExactMatch(Type *t)
             return 1;
         }
 
-#if DMDV2
         /* Allow covariant matches, as long as the return type
          * is just a const conversion.
          * This allows things like pure functions to match with an impure function type.
@@ -2543,7 +2528,6 @@ FuncDeclaration *FuncDeclaration::overloadExactMatch(Type *t)
                 return 1;
             }
         }
-#endif
         return 0;
     }
   };
@@ -3604,7 +3588,6 @@ bool checkEscapingSiblings(FuncDeclaration *f, FuncDeclaration *outerFunc)
  * created for them.
  */
 
-#if DMDV2
 bool FuncDeclaration::needsClosure()
 {
     /* Need a closure for all the closureVars[] if any of the
@@ -3699,7 +3682,6 @@ Lyes:
     //printf("\tneeds closure\n");
     return true;
 }
-#endif
 
 /***********************************************
  * Determine if function's variables are referenced by a function
@@ -3969,7 +3951,6 @@ bool CtorDeclaration::addPostInvariant()
 
 /********************************* PostBlitDeclaration ****************************/
 
-#if DMDV2
 PostBlitDeclaration::PostBlitDeclaration(Loc loc, Loc endloc, StorageClass stc, Identifier *id)
     : FuncDeclaration(loc, endloc, id, stc, NULL)
 {
@@ -4039,7 +4020,6 @@ void PostBlitDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writestring("this(this)");
     bodyToCBuffer(buf, hgs);
 }
-#endif
 
 /********************************* DtorDeclaration ****************************/
 
