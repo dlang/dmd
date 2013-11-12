@@ -125,6 +125,81 @@ static void collectUnitTests(Dsymbols *symbols, AA *uniqueUnitTests, Expressions
 
 /************************ TraitsExp ************************************/
 
+bool isTypeArithmetic(Type *t)       { return t->isintegral() || t->isfloating(); }
+bool isTypeFloating(Type *t)         { return t->isfloating(); }
+bool isTypeIntegral(Type *t)         { return t->isintegral(); }
+bool isTypeScalar(Type *t)           { return t->isscalar(); }
+bool isTypeUnsigned(Type *t)         { return t->isunsigned(); }
+bool isTypeAssociativeArray(Type *t) { return t->toBasetype()->ty == Taarray; }
+bool isTypeStaticArray(Type *t)      { return t->toBasetype()->ty == Tsarray; }
+bool isTypeAbstractClass(Type *t)    { return t->toBasetype()->ty == Tclass && ((TypeClass *)t->toBasetype())->sym->isAbstract(); }
+bool isTypeFinalClass(Type *t)       { return t->toBasetype()->ty == Tclass && (((TypeClass *)t->toBasetype())->sym->storage_class & STCfinal) != 0; }
+
+Expression *TraitsExp::isTypeX(bool (*fp)(Type *t))
+{
+    int result = 0;
+    if (!args || !args->dim)
+        goto Lfalse;
+    for (size_t i = 0; i < args->dim; i++)
+    {
+        Type *t = getType((*args)[i]);
+        if (!t || !fp(t))
+            goto Lfalse;
+    }
+    result = 1;
+Lfalse:
+    return new IntegerExp(loc, result, Type::tbool);
+}
+
+bool isFuncAbstractFunction(FuncDeclaration *f) { return f->isAbstract(); }
+bool isFuncVirtualFunction(FuncDeclaration *f) { return f->isVirtual(); }
+bool isFuncVirtualMethod(FuncDeclaration *f) { return f->isVirtualMethod(); }
+bool isFuncFinalFunction(FuncDeclaration *f) { return f->isFinalFunc(); }
+bool isFuncStaticFunction(FuncDeclaration *f) { return !f->needThis() && !f->isNested(); }
+bool isFuncOverrideFunction(FuncDeclaration *f) { return f->isOverride(); }
+
+Expression *TraitsExp::isFuncX(bool (*fp)(FuncDeclaration *f))
+{
+    int result = 0;
+    if (!args || !args->dim)
+        goto Lfalse;
+    for (size_t i = 0; i < args->dim; i++)
+    {
+        Dsymbol *s = getDsymbol((*args)[i]);
+        if (!s)
+            goto Lfalse;
+        FuncDeclaration *f = s->isFuncDeclaration();
+        if (!f || !fp(f))
+            goto Lfalse;
+    }
+    result = 1;
+Lfalse:
+    return new IntegerExp(loc, result, Type::tbool);
+}
+
+bool isDeclRef(Declaration *d) { return d->isRef(); }
+bool isDeclOut(Declaration *d) { return d->isOut(); }
+bool isDeclLazy(Declaration *d) { return (d->storage_class & STClazy) != 0; }
+
+Expression *TraitsExp::isDeclX(bool (*fp)(Declaration *d))
+{
+    int result = 0;
+    if (!args || !args->dim)
+        goto Lfalse;
+    for (size_t i = 0; i < args->dim; i++)
+    {
+        Dsymbol *s = getDsymbol((*args)[i]);
+        if (!s)
+            goto Lfalse;
+        Declaration *d = s->isDeclaration();
+        if (!d || !fp(d))
+            goto Lfalse;
+    }
+    result = 1;
+Lfalse:
+    return new IntegerExp(loc, result, Type::tbool);
+}
+
 Expression *TraitsExp::semantic(Scope *sc)
 {
 #if LOGSEMANTIC
@@ -138,67 +213,41 @@ Expression *TraitsExp::semantic(Scope *sc)
     size_t dim = args ? args->dim : 0;
     Declaration *d;
 
-#define ISTYPE(cond) \
-        for (size_t i = 0; i < dim; i++)        \
-        {   Type *t = getType((*args)[i]);      \
-            if (!t)                             \
-                goto Lfalse;                    \
-            if (!(cond))                        \
-                goto Lfalse;                    \
-        }                                       \
-        if (!dim)                               \
-            goto Lfalse;                        \
-        goto Ltrue;
-
-#define ISDSYMBOL(cond) \
-        for (size_t i = 0; i < dim; i++)        \
-        {   Dsymbol *s = getDsymbol((*args)[i]); \
-            if (!s)                             \
-                goto Lfalse;                    \
-            if (!(cond))                        \
-                goto Lfalse;                    \
-        }                                       \
-        if (!dim)                               \
-            goto Lfalse;                        \
-        goto Ltrue;
-
-
-
     if (ident == Id::isArithmetic)
     {
-        ISTYPE(t->isintegral() || t->isfloating())
+        return isTypeX(&isTypeArithmetic);
     }
     else if (ident == Id::isFloating)
     {
-        ISTYPE(t->isfloating())
+        return isTypeX(&isTypeFloating);
     }
     else if (ident == Id::isIntegral)
     {
-        ISTYPE(t->isintegral())
+        return isTypeX(&isTypeIntegral);
     }
     else if (ident == Id::isScalar)
     {
-        ISTYPE(t->isscalar())
+        return isTypeX(&isTypeScalar);
     }
     else if (ident == Id::isUnsigned)
     {
-        ISTYPE(t->isunsigned())
+        return isTypeX(&isTypeUnsigned);
     }
     else if (ident == Id::isAssociativeArray)
     {
-        ISTYPE(t->toBasetype()->ty == Taarray)
+        return isTypeX(&isTypeAssociativeArray);
     }
     else if (ident == Id::isStaticArray)
     {
-        ISTYPE(t->toBasetype()->ty == Tsarray)
+        return isTypeX(&isTypeStaticArray);
     }
     else if (ident == Id::isAbstractClass)
     {
-        ISTYPE(t->toBasetype()->ty == Tclass && ((TypeClass *)t->toBasetype())->sym->isAbstract())
+        return isTypeX(&isTypeAbstractClass);
     }
     else if (ident == Id::isFinalClass)
     {
-        ISTYPE(t->toBasetype()->ty == Tclass && ((TypeClass *)t->toBasetype())->sym->storage_class & STCfinal)
+        return isTypeX(&isTypeFinalClass);
     }
     else if (ident == Id::isPOD)
     {
@@ -252,40 +301,35 @@ Expression *TraitsExp::semantic(Scope *sc)
     }
     else if (ident == Id::isAbstractFunction)
     {
-        FuncDeclaration *f;
-        ISDSYMBOL((f = s->isFuncDeclaration()) != NULL && f->isAbstract())
+        return isFuncX(&isFuncAbstractFunction);
     }
     else if (ident == Id::isVirtualFunction)
     {
-        FuncDeclaration *f;
-        ISDSYMBOL((f = s->isFuncDeclaration()) != NULL && f->isVirtual())
+        return isFuncX(&isFuncVirtualFunction);
     }
     else if (ident == Id::isVirtualMethod)
     {
-        FuncDeclaration *f;
-        ISDSYMBOL((f = s->isFuncDeclaration()) != NULL && f->isVirtualMethod())
+        return isFuncX(&isFuncVirtualMethod);
     }
     else if (ident == Id::isFinalFunction)
     {
-        FuncDeclaration *f;
-        ISDSYMBOL((f = s->isFuncDeclaration()) != NULL && f->isFinalFunc())
+        return isFuncX(&isFuncFinalFunction);
     }
     else if (ident == Id::isStaticFunction)
     {
-        FuncDeclaration *f;
-        ISDSYMBOL((f = s->isFuncDeclaration()) != NULL && !f->needThis() && !f->isNested())
+        return isFuncX(&isFuncStaticFunction);
     }
     else if (ident == Id::isRef)
     {
-        ISDSYMBOL((d = s->isDeclaration()) != NULL && d->isRef())
+        return isDeclX(&isDeclRef);
     }
     else if (ident == Id::isOut)
     {
-        ISDSYMBOL((d = s->isDeclaration()) != NULL && d->isOut())
+        return isDeclX(&isDeclOut);
     }
     else if (ident == Id::isLazy)
     {
-        ISDSYMBOL((d = s->isDeclaration()) != NULL && d->storage_class & STClazy)
+        return isDeclX(&isDeclLazy);
     }
     else if (ident == Id::identifier)
     {   // Get identifier for symbol as a string literal
@@ -764,8 +808,7 @@ Expression *TraitsExp::semantic(Scope *sc)
     }
     else if (ident == Id::isOverrideFunction)
     {
-        FuncDeclaration *f;
-        ISDSYMBOL((f = s->isFuncDeclaration()) != NULL && f->isOverride())
+        return isFuncX(&isFuncOverrideFunction);
     }
     else if(ident == Id::getVirtualIndex)
     {

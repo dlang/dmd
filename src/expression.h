@@ -807,6 +807,9 @@ public:
     TraitsExp(Loc loc, Identifier *ident, Objects *args);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
+    Expression *isTypeX(bool (*fp)(Type *t));
+    Expression *isFuncX(bool (*fp)(FuncDeclaration *f));
+    Expression *isDeclX(bool (*fp)(Declaration *d));
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 
