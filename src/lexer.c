@@ -1142,9 +1142,6 @@ void Lexer::scan(Token *t)
 
             DOUBLE('*', TOKmul, '=', TOKmulass)
             DOUBLE('%', TOKmod, '=', TOKmodass)
-#if DMDV1
-            DOUBLE('^', TOKxor, '=', TOKxorass)
-#endif
 #undef DOUBLE
 
             case '#':

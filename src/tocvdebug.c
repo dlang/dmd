@@ -574,11 +574,7 @@ void ClassDeclaration::toDebug()
 //    if (st->Sopeq && !(st->Sopeq->Sfunc->Fflags & Fnodebug))
 //      property |= 0x20;               // class has overloaded assignment
 
-#if DMDV1
-    const char *id = toPrettyChars();
-#else
     const char *id = isCPPinterface() ? ident->toChars() : toPrettyChars();
-#endif
     unsigned leaf = config.fulltypes == CV8 ? LF_CLASS_V3 : LF_CLASS;
 
     unsigned numidx = (leaf == LF_CLASS_V3) ? 18 : 12;

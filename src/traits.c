@@ -616,9 +616,6 @@ Expression *TraitsExp::semantic(Scope *sc)
             (*exps)[i] = se;
         }
 
-#if DMDV1
-        Expression *e = new ArrayLiteralExp(loc, exps);
-#endif
 #if DMDV2
         /* Making this a tuple is more flexible, as it can be statically unrolled.
          * To make an array literal, enclose __traits in [ ]:

@@ -246,23 +246,12 @@ ArrayOp *buildArrayOp(Identifier *ident, BinExp *exp, Scope *sc, Loc loc)
      */
 
     Parameter *p = (*fparams)[0 /*fparams->dim - 1*/];
-#if DMDV1
-    // for (size_t i = 0; i < p.length; i++)
-    Initializer *init = new ExpInitializer(0, new IntegerExp(0, 0, Type::tsize_t));
-    Dsymbol *d = new VarDeclaration(0, Type::tsize_t, Id::p, init);
-    Statement *s1 = new ForStatement(0,
-        new ExpStatement(0, d),
-        new CmpExp(TOKlt, 0, new IdentifierExp(0, Id::p), new ArrayLengthExp(0, new IdentifierExp(0, p->ident))),
-        new PostExp(TOKplusplus, 0, new IdentifierExp(0, Id::p)),
-        new ExpStatement(0, loopbody));
-#else
     // foreach (i; 0 .. p.length)
     Statement *s1 = new ForeachRangeStatement(Loc(), TOKforeach,
         new Parameter(0, NULL, Id::p, NULL),
         new IntegerExp(Loc(), 0, Type::tsize_t),
         new ArrayLengthExp(Loc(), new IdentifierExp(Loc(), p->ident)),
         new ExpStatement(Loc(), loopbody));
-#endif
     //printf("%s\n", s1->toChars());
     Statement *s2 = new ReturnStatement(Loc(), new IdentifierExp(Loc(), p->ident));
     //printf("s2: %s\n", s2->toChars());

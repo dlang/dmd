@@ -565,13 +565,6 @@ void TemplateDeclaration::semantic(Scope *sc)
             Type::rtinfo = this;
     }
 
-    if (sc->func)
-    {
-#if DMDV1
-        error("cannot declare template at function scope %s", sc->func->toChars());
-#endif
-    }
-
     if (/*global.params.useArrayBounds &&*/ sc->module)
     {
         // Generate this function as it may be used

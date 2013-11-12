@@ -75,9 +75,6 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
     isArrayOp = 0;
     dArrayOp = NULL;
     semantic3Errors = 0;
-#if DMDV1
-    nestedFrameRef = 0;
-#endif
     fes = NULL;
     introducing = 0;
     tintro = NULL;
@@ -1451,11 +1448,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 {
                     if (offend)
                     {   Expression *e;
-#if DMDV1
-                        warning(loc, "no return exp; or assert(0); at end of function");
-#else
                         error("no return exp; or assert(0); at end of function");
-#endif
                         if (global.params.useAssert &&
                             !global.params.useInline)
                         {   /* Add an assert(0, msg); where the missing return

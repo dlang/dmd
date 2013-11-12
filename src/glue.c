@@ -838,11 +838,7 @@ void FuncDeclaration::toObjFile(int multiobj)
         sprintf(hiddenparam,"__HID%d",++hiddenparami);
         shidden = symbol_name(hiddenparam,SCparameter,thidden);
         shidden->Sflags |= SFLtrue | SFLfree;
-#if DMDV1
-        if (func->nrvo_can && func->nrvo_var && func->nrvo_var->nestedref)
-#else
         if (func->nrvo_can && func->nrvo_var && func->nrvo_var->nestedrefs.dim)
-#endif
             type_setcv(&shidden->Stype, shidden->Stype->Tty | mTYvolatile);
         irs.shidden = shidden;
         this->shidden = shidden;

@@ -4703,9 +4703,6 @@ Statement *AsmStatement::semantic(Scope *sc)
     FuncDeclaration *fd = sc->parent->isFuncDeclaration();
 
     assert(fd);
-#if DMDV1
-    fd->inlineAsm = 1;
-#endif
 
     if (!tokens)
         return NULL;
