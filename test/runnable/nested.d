@@ -2488,6 +2488,28 @@ void test11385()
 
 /*******************************************/
 
+void xmap(alias g)(int t)
+{
+    g(t);
+}
+
+enum foo11297 = function (int x)
+   {
+//	int bar(int y) { return x; } xmap!bar(7);
+        xmap!(y => x)(7);
+   };
+
+void xreduce(alias f)()
+{
+    f(4);
+}
+
+void test11297() {
+    xreduce!foo11297();
+}
+
+/*******************************************/
+
 int main()
 {
     test1();
@@ -2572,6 +2594,7 @@ int main()
     test9315();
     test9244();
     test11385();
+    test11297();
 
     printf("Success\n");
     return 0;
