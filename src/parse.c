@@ -3291,7 +3291,9 @@ L2:
              * The grammar has already been fixed to preclude them.
              */
 
-            assert(!udas);
+            if (udas)
+                error("user defined attributes not allowed for %s declarations", Token::toChars(tok));
+
             if (token.value == TOKassign)
             {
                 nextToken();
