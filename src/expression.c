@@ -707,11 +707,11 @@ Expression *searchUFCS(Scope *sc, UnaExp *ue, Identifier *ident)
 
     if (ue->op == TOKdotti)
     {
+        DotTemplateInstanceExp *dti = (DotTemplateInstanceExp *)ue;
         TemplateInstance *ti = new TemplateInstance(loc, s->ident);
+        ti->tiargs = dti->ti->tiargs;   // for better diagnostic message
         if (!ti->updateTemplateDeclaration(sc, s))
             return new ErrorExp();
-        DotTemplateInstanceExp *dti = (DotTemplateInstanceExp *)ue;
-        ti->tiargs = dti->ti->tiargs;
         return new ScopeExp(loc, ti);
     }
     else
