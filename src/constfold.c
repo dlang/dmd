@@ -495,7 +495,12 @@ Expression *Pow(Type *type, Expression *e1, Expression *e2)
         else
             neg = false;
 
-        if (e1->type->isfloating())
+        if (e1->type->iscomplex())
+        {
+            r = new ComplexExp(loc, e1->toComplex(), e1->type);
+            v = new ComplexExp(loc, complex_t(1.0, 0.0), e1->type);
+        }
+        else if (e1->type->isfloating())
         {
             r = new RealExp(loc, e1->toReal(), e1->type);
             v = new RealExp(loc, ldouble(1.0), e1->type);
@@ -517,7 +522,9 @@ Expression *Pow(Type *type, Expression *e1, Expression *e2)
         if (neg)
             v = Div(v->type, new RealExp(loc, ldouble(1.0), v->type), v);
 
-        if (type->isintegral())
+        if (type->iscomplex())
+            e = new ComplexExp(loc, v->toComplex(), type);
+        else if (type->isintegral())
             e = new IntegerExp(loc, v->toInteger(), type);
         else
             e = new RealExp(loc, v->toReal(), type);
