@@ -690,6 +690,7 @@ void FuncDeclaration::toObjFile(int multiobj)
 
     if (isNested())
     {
+
 //      if (!(config.flags3 & CFG3pic))
 //          s->Sclass = SCstatic;
         f->Fflags3 |= Fnested;
@@ -701,19 +702,18 @@ void FuncDeclaration::toObjFile(int multiobj)
         // Bug 8016 - only include the function if it is a template instance
         Dsymbol * owner = NULL;
         if (fdp)
-        {   owner =  fdp->toParent();
-            while (owner && !owner->isTemplateInstance())
-                owner = owner->toParent();
-        }
-
-        if (owner && fdp && fdp->semanticRun == PASSsemantic3done &&
-            !fdp->isUnitTestDeclaration())
         {
-            /* Can't do unittest's out of order, they are order dependent in that their
-             * execution is done in lexical order, and some modules (std.datetime *cough*
-             * *cough*) rely on this.
-             */
-            fdp->toObjFile(multiobj);
+            //printf("fdp = %s %s\n", fdp->kind(), fdp->toChars());
+            owner =  fdp->toParent2();
+            if (owner && fdp->semanticRun == PASSsemantic3done &&
+                !fdp->isUnitTestDeclaration())
+            {
+                /* Can't do unittest's out of order, they are order dependent in that their
+                 * execution is done in lexical order, and some modules (std.datetime *cough*
+                 * *cough*) rely on this.
+                 */
+                fdp->toObjFile(multiobj);
+            }
         }
     }
     else
@@ -888,6 +888,7 @@ void FuncDeclaration::toObjFile(int multiobj)
         for (size_t i = 0; i < parameters->dim; i++)
         {
             VarDeclaration *v = (*parameters)[i];
+            //printf("param[%d] = %p, %s\n", i, v, v->toChars());
             assert(!v->csym);
             params[pi + i] = v->toSymbol();
         }
