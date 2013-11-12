@@ -7105,6 +7105,8 @@ void TemplateInstance::toCBufferTiargs(OutBuffer *buf, HdrGenState *hgs)
     buf->writeByte('!');
     if (nest)
         buf->writestring("(...)");
+    else if (!tiargs)
+        buf->writestring("()");
     else
     {
         if (tiargs->dim == 1)
