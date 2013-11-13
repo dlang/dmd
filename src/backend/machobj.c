@@ -1952,6 +1952,7 @@ char *obj_mangle2(Symbol *s,char *dest)
         case mTYman_cpp:
         case mTYman_d:
         case mTYman_sys:
+        case mTYman_custom:
         case 0:
             if (len >= DEST_LEN)
                 dest = (char *)mem_malloc(len + 1);

@@ -27,6 +27,7 @@ typedef unsigned char mangle_t;
 #define mTYman_sys      5       // _syscall mangling
 #define mTYman_std      6       // _stdcall mangling
 #define mTYman_d        7       // D mangling
+#define mTYman_custom   8       // Custom mangling
 
 /*********************************
  * Data type.

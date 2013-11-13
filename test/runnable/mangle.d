@@ -48,6 +48,26 @@ void test9()
     assert(test9_1_e == 42);
 }
 
+
+version(Win32) version(DigitalMars)
+{
+    struct Loc
+    {
+    }
+
+    pragma(mangle, "?verror@@YAXULoc@@PBDPAD@Z")
+    extern(C++) void verror_imp(Loc loc, const(char)* format, void *ap)
+    {
+    }
+
+    extern(C++) void verror(Loc loc, const(char)* format, char *ap);
+
+    void test10()
+    {
+        verror(Loc(), null, null);
+    }
+}
+
 void main()
 {
     test8();

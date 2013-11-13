@@ -2301,6 +2301,7 @@ size_t Obj::mangle(Symbol *s,char *dest)
             }
         case mTYman_d:
         case mTYman_sys:
+        case mTYman_custom:
             memcpy(dest + 1, name, len);        // no mangling
             dest[1 + len] = 0;
             break;
