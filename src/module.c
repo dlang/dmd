@@ -1104,8 +1104,8 @@ DsymbolTable *Package::resolve(Identifiers *packages, Dsymbol **pparent, Package
     if (packages)
     {
         for (size_t i = 0; i < packages->dim; i++)
-        {   Identifier *pid = (*packages)[i];
-
+        {
+            Identifier *pid = (*packages)[i];
             Package *pkg;
             Dsymbol *p = dst->lookup(pid);
             if (!p)
@@ -1132,14 +1132,13 @@ DsymbolTable *Package::resolve(Identifiers *packages, Dsymbol **pparent, Package
             dst = pkg->symtab;
             if (ppkg && !*ppkg)
                 *ppkg = pkg;
-#if 0
             if (pkg->isModule())
-            {   // Return the module so that a nice error message can be generated
+            {
+                // Return the module so that a nice error message can be generated
                 if (ppkg)
                     *ppkg = (Package *)p;
                 break;
             }
-#endif
         }
     }
     if (pparent)
