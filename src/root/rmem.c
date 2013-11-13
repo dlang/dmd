@@ -18,10 +18,6 @@
 
 Mem mem;
 
-void Mem::init()
-{
-}
-
 char *Mem::strdup(const char *s)
 {
     char *p;
@@ -117,24 +113,6 @@ void Mem::error()
     printf("Error: out of memory\n");
     exit(EXIT_FAILURE);
 }
-
-void Mem::fullcollect()
-{
-}
-
-void Mem::mark(void *pointer)
-{
-    (void) pointer;             // necessary for VC /W4
-}
-
-void Mem::setStackBottom(void *bottom)
-{
-}
-
-void Mem::addroots(char* pStart, char* pEnd)
-{
-}
-
 
 /* =================================================== */
 
