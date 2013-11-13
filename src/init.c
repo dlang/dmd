@@ -508,17 +508,18 @@ Expression *ArrayInitializer::toExpression(Type *tx)
         t = type->toBasetype();
         switch (t->ty)
         {
-           case Tsarray:
-               edim = ((TypeSArray *)t)->dim->toInteger();
-               break;
+            case Tsarray:
+                edim = ((TypeSArray *)t)->dim->toInteger();
+                break;
 
-           case Tpointer:
-           case Tarray:
-               edim = dim;
-               break;
+            case Tvector:
+            case Tpointer:
+            case Tarray:
+                edim = dim;
+                break;
 
-           default:
-               assert(0);
+            default:
+                assert(0);
         }
     }
     else
@@ -739,6 +740,8 @@ bool hasNonConstPointers(Expression *e)
     }
     if (e->op == TOKarrayliteral)
     {
+        if (e->type->ty == Tvector)
+            return false;
         if (!e->type->nextOf()->hasPointers())
             return false;
         ArrayLiteralExp *ae = (ArrayLiteralExp *)e;

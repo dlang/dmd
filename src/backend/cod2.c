@@ -192,8 +192,7 @@ code *cdorth(elem *e,regm_t *pretregs)
   unsigned char word = (!I16 && sz == SHORTSIZE) ? CFopsize : 0;
   unsigned test = FALSE;                // assume we destroyed lvalue
   code cs;
-  cs.Iflags = 0;
-  cs.Irex = 0;
+  memset(&cs, 0, sizeof(cs));
   code *cr = CNIL;
 
   switch (e->Eoper)
@@ -2713,6 +2712,7 @@ code *cdshift(elem *e,regm_t *pretregs)
 
 code *cdind(elem *e,regm_t *pretregs)
 { code *c,*ce,cs;
+  memset(&cs, 0, sizeof(cs));
   tym_t tym;
   regm_t idxregs,retregs;
   unsigned reg,nreg,byte;

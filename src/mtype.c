@@ -195,6 +195,7 @@ void Type::init()
     sizeTy[Tsarray] = sizeof(TypeSArray);
     sizeTy[Tarray] = sizeof(TypeDArray);
     sizeTy[Taarray] = sizeof(TypeAArray);
+    sizeTy[Tvector] = sizeof(TypeVector);
     sizeTy[Tpointer] = sizeof(TypePointer);
     sizeTy[Treference] = sizeof(TypeReference);
     sizeTy[Tfunction] = sizeof(TypeFunction);

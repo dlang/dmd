@@ -12,6 +12,7 @@
 #if !SPP
 
 #include        <stdio.h>
+#include        <string.h>
 #include        <time.h>
 
 #include        "cc.h"
@@ -783,6 +784,7 @@ code *cdaddass(elem *e,regm_t *pretregs)
   unsigned reg,op,op1,op2,mode,wantres;
   int byte;
   code *cl,*cr,*c,*ce,cs;
+  memset(&cs, 0, sizeof(cs));
   elem *e1;
   elem *e2;
   unsigned opsize;
