@@ -1941,6 +1941,8 @@ Expression *VarDeclaration::getConstInitializer(bool needFullType)
     Expression *e = init->toExpression(needFullType ? type : NULL);
 
     global.gag = oldgag;
+    if (e && e->op == TOKerror)
+        return NULL;
     return e;
 }
 
