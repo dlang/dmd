@@ -8970,8 +8970,15 @@ MATCH TypeClass::constConv(Type *to)
     /* Conversion derived to const(base)
      */
     int offset = 0;
-    if (to->isBaseOf(this, &offset) && offset == 0 && !to->isMutable() && !to->isWild())
-        return MATCHconvert;
+    if (to->isBaseOf(this, &offset) && offset == 0 &&
+        MODimplicitConv(mod, to->mod))
+    {
+        // Disallow:
+        //  derived to base
+        //  inout(derived) to inout(base)
+        if (!to->isMutable() && !to->isWild())
+            return MATCHconvert;
+    }
 
     return MATCHnomatch;
 }

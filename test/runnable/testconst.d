@@ -3272,6 +3272,79 @@ static assert(is(typeof(f11215(0)) == shared(void**)));
 static assert(is(typeof(f11215((const int).init)) == shared(const(void)**)));
 
 /************************************/
+// 11489
+
+void test11489(inout int = 0)
+{
+    static class B {}
+    static class D : B {}
+
+                 D [] dm;
+           const(D)[] dc;
+           inout(D)[] dw;
+          shared(D)[] dsm;
+    shared(const D)[] dsc;
+    shared(inout D)[] dsw;
+       immutable(D)[] di;
+
+    static assert(!__traits(compiles, {              B [] b = dm; }));
+    static assert( __traits(compiles, {        const(B)[] b = dm; }));
+    static assert(!__traits(compiles, {        inout(B)[] b = dm; }));
+    static assert(!__traits(compiles, {       shared(B)[] b = dm; }));
+    static assert(!__traits(compiles, { shared(const B)[] b = dm; }));
+    static assert(!__traits(compiles, { shared(inout B)[] b = dm; }));
+    static assert(!__traits(compiles, {    immutable(B)[] b = dm; }));
+
+    static assert(!__traits(compiles, {              B [] b = dc; }));
+    static assert( __traits(compiles, {        const(B)[] b = dc; }));
+    static assert(!__traits(compiles, {        inout(B)[] b = dc; }));
+    static assert(!__traits(compiles, {       shared(B)[] b = dc; }));
+    static assert(!__traits(compiles, { shared(const B)[] b = dc; }));
+    static assert(!__traits(compiles, { shared(inout B)[] b = dc; }));
+    static assert(!__traits(compiles, {    immutable(B)[] b = dc; }));
+
+    static assert(!__traits(compiles, {              B [] b = dw; }));
+    static assert( __traits(compiles, {        const(B)[] b = dw; }));
+    static assert(!__traits(compiles, {        inout(B)[] b = dw; }));
+    static assert(!__traits(compiles, {       shared(B)[] b = dw; }));
+    static assert(!__traits(compiles, { shared(const B)[] b = dw; }));
+    static assert(!__traits(compiles, { shared(inout B)[] b = dw; }));
+    static assert(!__traits(compiles, {    immutable(B)[] b = dw; }));
+
+    static assert(!__traits(compiles, {              B [] b = dsm; }));
+    static assert(!__traits(compiles, {        const(B)[] b = dsm; }));
+    static assert(!__traits(compiles, {        inout(B)[] b = dsm; }));
+    static assert(!__traits(compiles, {       shared(B)[] b = dsm; }));
+    static assert( __traits(compiles, { shared(const B)[] b = dsm; }));
+    static assert(!__traits(compiles, { shared(inout B)[] b = dsm; }));
+    static assert(!__traits(compiles, {    immutable(B)[] b = dsm; }));
+
+    static assert(!__traits(compiles, {              B [] b = dsc; }));
+    static assert(!__traits(compiles, {        const(B)[] b = dsc; }));
+    static assert(!__traits(compiles, {        inout(B)[] b = dsc; }));
+    static assert(!__traits(compiles, {       shared(B)[] b = dsc; }));
+    static assert( __traits(compiles, { shared(const B)[] b = dsc; }));
+    static assert(!__traits(compiles, { shared(inout B)[] b = dsc; }));
+    static assert(!__traits(compiles, {    immutable(B)[] b = dsc; }));
+
+    static assert(!__traits(compiles, {              B [] b = dsw; }));
+    static assert(!__traits(compiles, {        const(B)[] b = dsw; }));
+    static assert(!__traits(compiles, {        inout(B)[] b = dsw; }));
+    static assert(!__traits(compiles, {       shared(B)[] b = dsw; }));
+    static assert( __traits(compiles, { shared(const B)[] b = dsw; }));
+    static assert(!__traits(compiles, { shared(inout B)[] b = dsw; }));
+    static assert(!__traits(compiles, {    immutable(B)[] b = dsw; }));
+
+    static assert(!__traits(compiles, {              B [] b = di; }));
+    static assert( __traits(compiles, {        const(B)[] b = di; }));
+    static assert(!__traits(compiles, {        inout(B)[] b = di; }));
+    static assert(!__traits(compiles, {       shared(B)[] b = di; }));
+    static assert( __traits(compiles, { shared(const B)[] b = di; }));
+    static assert(!__traits(compiles, { shared(inout B)[] b = di; }));
+    static assert( __traits(compiles, {    immutable(B)[] b = di; }));
+}
+
+/************************************/
 
 int main()
 {
