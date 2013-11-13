@@ -5866,6 +5866,33 @@ string f10782()
 mixin(f10782());
 
 /**************************************************
+    11510 support overlapped field access in CTFE
+**************************************************/
+
+struct S11510
+{
+    union
+    {
+        size_t x;
+        int* y; // pointer field
+    }
+}
+bool test11510()
+{
+    S11510 s;
+
+    s.y = [1,2,3].ptr;            // writing overlapped pointer field is OK
+    assert(s.y[0..3] == [1,2,3]); // reading valid field is OK
+
+    s.x = 10;
+    assert(s.x == 10);
+
+    // There's no reinterpretation between S.x and S.y
+    return true;
+}
+static assert(test11510());
+
+/**************************************************
     11534 - subtitude inout
 **************************************************/
 

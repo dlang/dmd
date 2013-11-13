@@ -485,6 +485,23 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
                 return e->semantic(sc);
             }
         }
+        else if (e1->op == TOKdotvar)
+        {
+            // Check for reading overlapped pointer field in @safe code.
+            VarDeclaration *v = ((DotVarExp *)e1)->var->isVarDeclaration();
+            if (v && v->overlapped &&
+                sc->func && !sc->intypeof)
+            {
+                AggregateDeclaration *ad = v->toParent2()->isAggregateDeclaration();
+                if (ad && e1->type->hasPointers() &&
+                    sc->func->setUnsafe())
+                {
+                    e1->error("field %s.%s cannot be accessed in @safe code because it overlaps with a pointer",
+                        ad->toChars(), v->toChars());
+                    return new ErrorExp();
+                }
+            }
+        }
         else if (e1->op == TOKdotexp)
         {
             e1->error("expression has no value");
@@ -7812,19 +7829,6 @@ Expression *DotVarExp::semantic(Scope *sc)
                 Expression *e = new CommaExp(loc, e1, ve);
                 e = e->semantic(sc);
                 return e;
-            }
-        }
-        Dsymbol *s;
-        if (sc->func && !sc->intypeof && t1->hasPointers() &&
-            (s = t1->toDsymbol(sc)) != NULL)
-        {
-            AggregateDeclaration *ad = s->isAggregateDeclaration();
-            if (ad && ad->hasUnions)
-            {
-                if (sc->func->setUnsafe())
-                {   error("union %s containing pointers are not allowed in @safe functions", t1->toChars());
-                    goto Lerr;
-                }
             }
         }
     }

@@ -5882,41 +5882,56 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
         #endif
         if (ex->op == TOKaddress)
             ex = ((AddrExp *)ex)->e1;
+
         VarDeclaration *v = var->isVarDeclaration();
         if (!v)
         {
             error("CTFE internal error: %s", toChars());
             return EXP_CANT_INTERPRET;
         }
-        if (ex->op == TOKnull && ex->type->toBasetype()->ty == Tclass)
-        {   error("class '%s' is null and cannot be dereferenced", e1->toChars());
-            return EXP_CANT_INTERPRET;
-        }
         if (ex->op == TOKnull)
-        {   error("dereference of null pointer '%s'", e1->toChars());
+        {
+            if (ex->type->toBasetype()->ty == Tclass)
+                error("class '%s' is null and cannot be dereferenced", e1->toChars());
+            else
+                error("dereference of null pointer '%s'", e1->toChars());
             return EXP_CANT_INTERPRET;
         }
         if (ex->op == TOKstructliteral || ex->op == TOKclassreference)
         {
-            StructLiteralExp *se = ex->op == TOKclassreference ? ((ClassReferenceExp *)ex)->value : (StructLiteralExp *)ex;
-            /* We don't know how to deal with overlapping fields
-             */
+            StructLiteralExp *se;
+            int i;
+
+            // We can't use getField, because it makes a copy
+            if (ex->op == TOKclassreference)
+            {
+                se = ((ClassReferenceExp *)ex)->value;
+                i  = ((ClassReferenceExp *)ex)->findFieldIndexByName(v);
+            }
+            else
+            {
+                se = (StructLiteralExp *)ex;
+                i  = findFieldIndexByName(se->sd, v);
+            }
+#if DMDV1
             if (se->sd->hasUnions)
-            {   error("Unions with overlapping fields are not yet supported in CTFE");
+            {
+                error("Unions with overlapping fields are not yet supported in CTFE");
                 return EXP_CANT_INTERPRET;
             }
-            // We can't use getField, because it makes a copy
-            int i = -1;
-            if (ex->op == TOKclassreference)
-                i = ((ClassReferenceExp *)ex)->findFieldIndexByName(v);
-            else
-                i = findFieldIndexByName(se->sd, v);
+#endif
             if (i == -1)
             {
                 error("couldn't find field %s of type %s in %s", v->toChars(), type->toChars(), se->toChars());
                 return EXP_CANT_INTERPRET;
             }
             e = (*se->elements)[i];
+            if (!e)
+            {
+                error("Internal Compiler Error: Null field %s", v->toChars());
+                return EXP_CANT_INTERPRET;
+            }
+
             if (goal == ctfeNeedLvalue || goal == ctfeNeedLvalueRef)
             {
                 // If it is an lvalue literal, return it...
@@ -5939,11 +5954,6 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
                 e->type = type;
                 return e;
             }
-            if (!e)
-            {
-                error("Internal Compiler Error: Null field %s", v->toChars());
-                return EXP_CANT_INTERPRET;
-            }
             // If it is an rvalue literal, return it...
             if (e->op == TOKstructliteral || e->op == TOKarrayliteral ||
                 e->op == TOKassocarrayliteral || e->op == TOKstring)
@@ -5951,15 +5961,24 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
             if (e->op == TOKvoid)
             {
                 VoidInitExp *ve = (VoidInitExp *)e;
-                error("cannot read uninitialized variable %s in CTFE", ve->var->toChars());
+                const char *s = ve->var->toChars();
+#if DMDV2
+                if (v->overlapped)
+                {
+                    error("Reinterpretation through overlapped field %s is not allowed in CTFE", s);
+                    return EXP_CANT_INTERPRET;
+                }
+#endif
+                error("cannot read uninitialized variable %s in CTFE", s);
                 return EXP_CANT_INTERPRET;
             }
-            if ( isPointer(type) )
+            if (isPointer(type))
             {
                 return paintTypeOntoLiteral(type, e);
             }
             if (e->op == TOKvar)
-            {   // Don't typepaint twice, since that might cause an erroneous copy
+            {
+                // Don't typepaint twice, since that might cause an erroneous copy
                 e = getVarExp(loc, istate, ((VarExp *)e)->var, goal);
                 if (e != EXP_CANT_INTERPRET && e->op != TOKthrownexception)
                     e = paintTypeOntoLiteral(type, e);

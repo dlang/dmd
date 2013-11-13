@@ -106,7 +106,6 @@ AggregateDeclaration::AggregateDeclaration(Loc loc, Identifier *id)
     handle = NULL;
     structsize = 0;             // size of struct
     alignsize = 0;              // size of struct for alignment purposes
-    hasUnions = 0;
     sizeok = SIZEOKnone;        // size not determined yet
     deferred = NULL;
     isdeprecated = false;
@@ -847,6 +846,9 @@ void StructDeclaration::finalizeSize(Scope *sc)
         structsize = (structsize + alignment - 1) & ~(alignment - 1);
 
     sizeok = SIZEOKdone;
+
+    // Calculate fields[i]->overlapped
+    fill(loc, NULL, true);
 }
 
 bool StructDeclaration::fill(Loc loc, Expressions *elements, bool ctorinit)
@@ -883,8 +885,6 @@ bool StructDeclaration::fill(Loc loc, Expressions *elements, bool ctorinit)
             if (!overlap)
                 continue;
 
-            hasUnions = 1;  // note that directly unrelated...
-
             if (elements)
             {
                 if ((*elements)[j])
@@ -893,42 +893,51 @@ bool StructDeclaration::fill(Loc loc, Expressions *elements, bool ctorinit)
                     break;
                 }
             }
+            else
+            {
+                vd->overlapped = true;
+            }
             if (v2->init && v2->init->isVoidInitializer())
                 continue;
 
-#if 1
-            /* Prefer first found non-void-initialized field
-             * union U { int a; int b = 2; }
-             * U u;    // Error: overlapping initialization for field a and b
-             */
-            if (!vx)
-                vx = v2, fieldi = j;
-            else if (v2->init)
+            if (elements)
             {
-                ::error(loc, "overlapping initialization for field %s and %s",
-                    v2->toChars(), vd->toChars());
-            }
-#else   // fix Bugzilla 1432
-            /* Prefer explicitly initialized field
-             * union U { int a; int b = 2; }
-             * U u;    // OK (u.b == 2)
-             */
-            if (!vx || !vx->init && v2->init)
-                vx = v2, fieldi = j;
-            else if (vx != vd &&
-                !(vx->offset < v2->offset + v2->type->size() &&
-                  v2->offset < vx->offset + vx->type->size()))
-            {
-                // Both vx and v2 fills vd, but vx and v2 does not overlap
-            }
-            else if (vx->init && v2->init)
-            {
-                ::error(loc, "overlapping default initialization for field %s and %s",
-                    v2->toChars(), vd->toChars());
+                /* Prefer first found non-void-initialized field
+                 * union U { int a; int b = 2; }
+                 * U u;    // Error: overlapping initialization for field a and b
+                 */
+                if (!vx)
+                    vx = v2, fieldi = j;
+                else if (v2->init)
+                {
+                    ::error(loc, "overlapping initialization for field %s and %s",
+                        v2->toChars(), vd->toChars());
+                }
             }
             else
-                assert(vx->init || !vx->init && !v2->init);
-#endif
+            {
+                // Will fix Bugzilla 1432 by enabling this path always
+
+                /* Prefer explicitly initialized field
+                 * union U { int a; int b = 2; }
+                 * U u;    // OK (u.b == 2)
+                 */
+                if (!vx || !vx->init && v2->init)
+                    vx = v2, fieldi = j;
+                else if (vx != vd &&
+                    !(vx->offset < v2->offset + v2->type->size() &&
+                      v2->offset < vx->offset + vx->type->size()))
+                {
+                    // Both vx and v2 fills vd, but vx and v2 does not overlap
+                }
+                else if (vx->init && v2->init)
+                {
+                    ::error(loc, "overlapping default initialization for field %s and %s",
+                        v2->toChars(), vd->toChars());
+                }
+                else
+                    assert(vx->init || !vx->init && !v2->init);
+            }
         }
         if (elements && vx)
         {
@@ -1039,7 +1048,6 @@ const char *StructDeclaration::kind()
 UnionDeclaration::UnionDeclaration(Loc loc, Identifier *id)
     : StructDeclaration(loc, id)
 {
-    hasUnions = 1;
 }
 
 Dsymbol *UnionDeclaration::syntaxCopy(Dsymbol *s)

@@ -115,14 +115,6 @@ union UnsafeUnion5
     pwrapper b;
 }
 
-SafeUnion1 su1;
-SafeUnion2 su2;
-UnsafeUnion1 uu1;
-UnsafeUnion2 uu2;
-UnsafeUnion3 uu3;
-UnsafeUnion4 uu4;
-UnsafeUnion5 uu5;
-
 union uA
 {
     struct
@@ -143,29 +135,49 @@ struct uD
 {
     uC a;
 }
-uD uud;
 
 @safe
-void safeunions()
+void safeunions()   // improved for issue 11510
 {
-    //static assert( __traits(compiles, { SafeUnion1 x; x.a = 7; }));
-    static assert( __traits(compiles, { SafeUnion2 x; x.a = 7; }));
-    static assert(!__traits(compiles, { UnsafeUnion1 x; x.a = 7; }));
-    static assert(!__traits(compiles, { UnsafeUnion2 x; x.a = 7; }));
-    static assert(!__traits(compiles, { UnsafeUnion3 x; x.a = 7; }));
-    static assert(!__traits(compiles, { UnsafeUnion4 x; x.a = 7; }));
-    static assert(!__traits(compiles, { UnsafeUnion5 x; }));
+    SafeUnion1 su1;
+    SafeUnion2 su2;
+    UnsafeUnion1 uu1;
+    UnsafeUnion2 uu2;
+    UnsafeUnion3 uu3;
+    UnsafeUnion4 uu4;
+    UnsafeUnion5 uu5;
+    uD uud;
 
-    typeof(uu1.a) f;
+    int n;
+    void* p;
+    Object o;
 
-    //static assert( __traits(compiles, { su1.a = 7; }));
-    static assert( __traits(compiles, { su2.a = 7; }));
-    static assert(!__traits(compiles, { uu1.a = 7; }));
-    static assert(!__traits(compiles, { uu2.a = 7; }));
-    static assert(!__traits(compiles, { uu3.a = 7; }));
-    static assert(!__traits(compiles, { uu4.a = 7; }));
-    static assert(!__traits(compiles, { uu5.x.a = null; }));
-    static assert(!__traits(compiles, { uud.a.a.a.a = null; }));
+    // Writing field is always allowed, even if it is overlapped.
+    su1.a = 7, su1.b = 8, su1.c = null;
+    su2.a = 7, su2.b = 8, su2.c = 9;
+    uu1.a = 7,            uu1.c = null;
+    uu2.a = 7; uu2.b = 8, uu2.c = null;
+    uu3.a = 7;            uu3.c = null;
+    uu4.a = 7; uu4.b = 8, uu4.c = null;
+    uu5.x.a = 7; uu5.x.b = 8, uu5.x.c = 9;
+    uud.a.a.a.a = null, uud.a.a.a.b = null;
+
+    // Reading field is allowed, if it is not overlapped or has no pointers.
+    n = su1.a, n = su1.b, p = su1.c;
+    n = su2.a, n = su2.b, n = su2.c;
+    n = uu1.a;
+    n = uu2.a, n = uu2.b;
+    n = uu3.a;
+    n = uu4.a, n = uu4.b;
+    n = uu5.x.a, n = uu5.x.b, n = uu5.x.c;
+    p = uud.a.a.a.a, p = uud.a.a.a.b;
+
+    // Reading overlapped pointer field is not allowed.
+    static assert(!__traits(compiles, { auto p = uu1.c; }));
+    static assert(!__traits(compiles, { auto p = uu2.c; }));
+    static assert(!__traits(compiles, { auto c = uu3.c; }));
+    static assert(!__traits(compiles, { auto c = uu4.c; }));
+    static assert(!__traits(compiles, { auto p = uu5.b.a; }));
 }
 
 
