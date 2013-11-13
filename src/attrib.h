@@ -159,6 +159,7 @@ public:
     const char *kind();
     void toObjFile(int multiobj);                       // compile to .obj file
     void errorPragma(const char *format, ...);
+    void warningPragma(const char *format, ...);
 };
 
 class ConditionalDeclaration : public AttribDeclaration

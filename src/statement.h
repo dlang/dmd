@@ -512,6 +512,7 @@ public:
 
     void toIR(IRState *irs);
 
+    void warningPragma(const char *format, ...);
     void errorPragma(const char *format, ...);
 };
 

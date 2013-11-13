@@ -265,6 +265,7 @@ Msgtable msgtable[] =
     // For pragma's
     { "lib" },
     { "msg" },
+    { "warning" },
     { "error" },
     { "startaddress" },
     { "mangle" },
