@@ -166,6 +166,7 @@ public:
     const char *mangle(bool isv = false);
     const char *kind();
     void finalizeSize(Scope *sc);
+    bool fill(Loc loc, Expressions *elements, bool ctorinit);
     bool isPOD();
     int needOpAssign();
     int needOpEquals();

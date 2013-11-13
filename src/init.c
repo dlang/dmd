@@ -278,13 +278,11 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, NeedInterpret needI
             return new ErrorInitializer();
 
         StructLiteralExp *sle = new StructLiteralExp(loc, sd, elements, t);
-        Expression *e = sle->fill(false);
-        if (e->op == TOKerror)
+        if (!sd->fill(loc, elements, false))
             return new ErrorInitializer();
+        sle->type = t;
 
-        e->type = t;
-
-        ExpInitializer *ie = new ExpInitializer(loc, e);
+        ExpInitializer *ie = new ExpInitializer(loc, sle);
         return ie->semantic(sc, t, needInterpret);
     }
     else if ((t->ty == Tdelegate || t->ty == Tpointer && t->nextOf()->ty == Tfunction) && value.dim == 0)
