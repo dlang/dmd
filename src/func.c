@@ -310,7 +310,12 @@ void FuncDeclaration::semantic(Scope *sc)
     storage_class &= ~STCref;
     if (type->ty != Tfunction)
     {
-        error("%s must be a function instead of %s", toChars(), type->toChars());
+        if (type->ty != Terror)
+        {
+            error("%s must be a function instead of %s", toChars(), type->toChars());
+            type = Type::terror;
+        }
+        errors = true;
         return;
     }
     f = (TypeFunction *)type;
@@ -2759,7 +2764,6 @@ Lerror:
     if (tthis)
         tthis->modToBuffer(&fargsBuf);
 
-    assert(!m.lastf || m.nextf);
     if (!m.lastf && !(flags & 1))   // no match
     {
         if (td)

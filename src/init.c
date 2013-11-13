@@ -808,7 +808,7 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInte
     exp = resolveProperties(sc, exp);
     if (needInterpret) sc = sc->endCTFE();
     if (exp->op == TOKerror)
-        return this;
+        return new ErrorInitializer();
 
     int olderrors = global.errors;
     if (needInterpret)
