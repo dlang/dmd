@@ -4006,6 +4006,17 @@ static assert(test7544());
 
 /***************************************************/
 
+void test11317()
+{
+    auto ref uint fun11317()
+    {
+        return 0;
+    }
+    assert(fun11317() == 0);
+}
+
+/***************************************************/
+
 struct S6230 {
     int p;
     int q() const pure {
@@ -6922,6 +6933,7 @@ int main()
     test6630();
     test6690();
     test2953();
+    test11317();
     test2997();
     test4647();
     test5696();

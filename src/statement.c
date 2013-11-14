@@ -3628,6 +3628,7 @@ ReturnStatement::ReturnStatement(Loc loc, Expression *exp)
 {
     this->exp = exp;
     this->implicit0 = 0;
+    this->isRefReturn = false;
 }
 
 Statement *ReturnStatement::syntaxCopy()
@@ -3652,7 +3653,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
 
     TypeFunction *tf = (TypeFunction *)fd->type;
     assert(tf->ty == Tfunction);
-    bool isRefReturn = tf->isref && !(fd->storage_class & STCauto);
+    isRefReturn = tf->isref && !(fd->storage_class & STCauto);
     // Until 'ref' deduction finished, 'auto ref' is treated as a 'value return'.
 
     Type *tret = tf->next;
