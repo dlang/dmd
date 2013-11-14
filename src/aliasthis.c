@@ -78,7 +78,8 @@ void AliasThis::semantic(Scope *sc)
         assert(ad->members);
         Dsymbol *s = ad->search(loc, ident, 0);
         if (!s)
-        {   s = sc->search(loc, ident, NULL);
+        {
+            s = sc->search(loc, ident, NULL);
             if (s)
                 ::error(loc, "%s is not a member of %s", s->toChars(), ad->toChars());
             else
@@ -88,15 +89,18 @@ void AliasThis::semantic(Scope *sc)
         else if (ad->aliasthis && s != ad->aliasthis)
             error("there can be only one alias this");
 
+        if (ad->type->ty == Tstruct && ((TypeStruct *)ad->type)->sym != ad)
+        {
+            AggregateDeclaration *ad2 = ((TypeStruct *)ad->type)->sym;
+            assert(ad2->type == Type::terror);
+            ad->aliasthis = ad2->aliasthis;
+            return;
+        }
+
         /* disable the alias this conversion so the implicit conversion check
          * doesn't use it.
          */
-        /* This should use ad->aliasthis directly, but with static foreach and templates
-         * ad->type->sym might be different to ad.
-         */
-        AggregateDeclaration *ad2 = ad->type->toDsymbol(NULL)->isAggregateDeclaration();
-        Dsymbol *save = ad2->aliasthis;
-        ad2->aliasthis = NULL;
+        ad->aliasthis = NULL;
 
         if (Declaration *d = s->isDeclaration())
         {
@@ -108,7 +112,6 @@ void AliasThis::semantic(Scope *sc)
             }
         }
 
-        ad2->aliasthis = save;
         ad->aliasthis = s;
     }
     else
