@@ -1608,6 +1608,7 @@ void Obj::ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym)
     assert(ehsym->Sxtrnnum && ehsym->Sseg);
     if (I64)
     {
+        // use only rela addend and write 0 to target
         ElfObj::addrel(seg, buf->size(), R_X86_64_64, MAP_SEG2SYMIDX(sfunc->Sseg), sfunc->Soffset);
         buf->write64(0);
 
@@ -1618,6 +1619,7 @@ void Obj::ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym)
     }
     else
     {
+        // write addend to target
         ElfObj::addrel(seg, buf->size(), RI_TYPE_SYM32, MAP_SEG2SYMIDX(sfunc->Sseg), 0);
         buf->write32(sfunc->Soffset);
 
@@ -2641,6 +2643,7 @@ void Obj::reftodatseg(int seg,targ_size_t offset,targ_size_t val,
         else
             relinfo = (flags & CFswitch) ? R_X86_64_32S : R_X86_64_32;
 
+        // use only rela addend and write 0 to target
         ElfObj::addrel(seg, offset, relinfo, targetsymidx, val);
         const size_t sz = (flags & CFoffset64) ? 8 : 4;
         buf->writezeros(sz);
@@ -2656,6 +2659,7 @@ void Obj::reftodatseg(int seg,targ_size_t offset,targ_size_t val,
         else
             relinfo = RI_TYPE_SYM32;
 
+        // write addend to target
         ElfObj::addrel(seg, offset, relinfo, STI_RODAT, 0);
         buf->write32(val);
         if (save > offset + 4)
@@ -2785,11 +2789,13 @@ int Obj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
             }
             if (I64)
             {
+                // use only rela addend and write 0 to target
                 ElfObj::addrel(seg,offset,relinfo,STI_RODAT,val + s->Soffset);
                 val = 0;
             }
             else
             {
+                // write addend to target
                 ElfObj::addrel(seg,offset,relinfo,STI_RODAT,0);
                 val = val + s->Soffset;
             }
@@ -2836,11 +2842,13 @@ int Obj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
                         //dbg_printf("\tadding relocation\n");
                         if (I64)
                         {   relinfo = config.flags3 & CFG3pic ?  R_X86_64_PLT32 : R_X86_64_PC32;
+                            // use only rela addend and write 0 to target
                             ElfObj::addrel(seg,offset, relinfo, s->Sxtrnnum, -4);
                             val = 0;
                         }
                         else
                         {   relinfo = config.flags3 & CFG3pic ?  RI_TYPE_PLT32 : RI_TYPE_PC32;
+                            // write addend to target
                             ElfObj::addrel(seg,offset, relinfo, s->Sxtrnnum, 0);
                             val = (targ_size_t)-4;
                         }
@@ -2930,11 +2938,13 @@ int Obj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
                     //printf("\t\t************* adding relocation\n");
                     if (I64)
                     {
+                        // use only rela addend and write 0 to target
                         ElfObj::addrel(seg,offset,relinfo,refseg,val);
                         val = 0;
                     }
                     else
                     {
+                        // write addend to target
                         ElfObj::addrel(seg,offset,relinfo,refseg,0);
                     }
                 }
@@ -3102,11 +3112,13 @@ void Obj::moduleinfo(Symbol *scc)
     Outbuffer *buf = SegData[seg]->SDbuf;
     if (I64)
     {
+        // use only rela addend and write 0 to target
         ElfObj::addrel(seg, SegData[seg]->SDoffset, R_X86_64_64, STI_TEXT, codeOffset);
         buf->write64(0);
     }
     else
     {
+        // write addend to target
         ElfObj::addrel(seg, SegData[seg]->SDoffset, RI_TYPE_SYM32, STI_TEXT, 0);
         buf->write32(codeOffset);
     }
@@ -3312,11 +3324,13 @@ static void obj_rtinit()
         buf->writeByte(0xE8);
         if (I64)
         {
+            // use only rela addend and write 0 to target
             buf->write32(0);
             ElfObj::addrel(codseg, off + 1, R_X86_64_PLT32, symidx, -4);
         }
         else
         {
+            // write addend to target
             buf->write32(-4);
             ElfObj::addrel(codseg, off + 1, RI_TYPE_PLT32, symidx, 0);
         }
@@ -3360,11 +3374,13 @@ static void obj_rtinit()
             buf->writeByte(0xE8);
             if (I64)
             {
+                // use only rela addend and write 0 to target
                 buf->write32(0);
                 ElfObj::addrel(codseg, off + 1, R_X86_64_PLT32, symidx, -4);
             }
             else
             {
+                // write addend to target
                 buf->write32(-4);
                 ElfObj::addrel(codseg, off + 1, RI_TYPE_PLT32, symidx, 0);
             }
@@ -3392,11 +3408,13 @@ static void obj_rtinit()
             buf->writeByte(0xE8);
             if (I64)
             {
+                // use only rela addend and write 0 to target
                 buf->write32(0);
                 ElfObj::addrel(codseg, off + 1, R_X86_64_PC32, symidx, -4);
             }
             else
             {
+                // write addend to target
                 buf->write32(-4);
                 ElfObj::addrel(codseg, off + 1, RI_TYPE_PC32, symidx, -4);
             }
