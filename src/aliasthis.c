@@ -23,35 +23,27 @@
 Expression *resolveAliasThis(Scope *sc, Expression *e)
 {
     Type *t = e->type->toBasetype();
-    AggregateDeclaration *ad;
+    AggregateDeclaration *ad = isAggregate(t);
 
-    if (t->ty == Tclass)
-    {   ad = ((TypeClass *)t)->sym;
-        goto L1;
-    }
-    else if (t->ty == Tstruct)
-    {   ad = ((TypeStruct *)t)->sym;
-    L1:
-        if (ad && ad->aliasthis)
+    if (ad && ad->aliasthis)
+    {
+        bool isstatic = (e->op == TOKtype);
+        e = new DotIdExp(e->loc, e, ad->aliasthis->ident);
+        e = e->semantic(sc);
+        if (isstatic && ad->aliasthis->needThis())
         {
-            bool isstatic = (e->op == TOKtype);
-            e = new DotIdExp(e->loc, e, ad->aliasthis->ident);
-            e = e->semantic(sc);
-            if (isstatic && ad->aliasthis->needThis())
-            {
-                /* non-@property function is not called inside typeof(),
-                 * so resolve it ahead.
-                 */
-                int save = sc->intypeof;
-                sc->intypeof = 1;   // bypass "need this" error check
-                e = resolveProperties(sc, e);
-                sc->intypeof = save;
-
-                e = new TypeExp(e->loc, new TypeTypeof(e->loc, e));
-                e = e->semantic(sc);
-            }
+            /* non-@property function is not called inside typeof(),
+             * so resolve it ahead.
+             */
+            int save = sc->intypeof;
+            sc->intypeof = 1;   // bypass "need this" error check
             e = resolveProperties(sc, e);
+            sc->intypeof = save;
+
+            e = new TypeExp(e->loc, new TypeTypeof(e->loc, e));
+            e = e->semantic(sc);
         }
+        e = resolveProperties(sc, e);
     }
 
     return e;

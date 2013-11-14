@@ -89,6 +89,8 @@ Expression *resolveOpDollar(Scope *sc, ArrayExp *ae);
 Expression *resolveOpDollar(Scope *sc, SliceExp *se);
 Expressions *arrayExpressionSemantic(Expressions *exps, Scope *sc);
 
+AggregateDeclaration *isAggregate(Type *t);
+
 /* Run CTFE on the expression, but allow the expression to be a TypeExp
  * or a tuple containing a TypeExp. (This is required by pragma(msg)).
  */

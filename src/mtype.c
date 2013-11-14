@@ -1220,19 +1220,9 @@ Type *Type::arrayOf()
 
 Type *Type::aliasthisOf()
 {
-    AggregateDeclaration *ad = NULL;
-    if (ty == Tclass)
+    AggregateDeclaration *ad = isAggregate(this);
+    if (ad && ad->aliasthis)
     {
-        ad = ((TypeClass *)this)->sym;
-        goto L1;
-    }
-    else if (ty == Tstruct)
-    {
-        ad = ((TypeStruct *)this)->sym;
-    L1:
-        if (!ad->aliasthis)
-            return NULL;
-
         Declaration *d = ad->aliasthis->isDeclaration();
         if (d)
         {   assert(d->type);
@@ -8919,9 +8909,8 @@ int TypeClass::isscope()
 int TypeClass::isBaseOf(Type *t, int *poffset)
 {
     if (t && t->ty == Tclass)
-    {   ClassDeclaration *cd;
-
-        cd   = ((TypeClass *)t)->sym;
+    {
+        ClassDeclaration *cd = ((TypeClass *)t)->sym;
         if (sym->isBaseOf(cd, poffset))
             return 1;
     }
