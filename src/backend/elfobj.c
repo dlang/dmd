@@ -1537,10 +1537,17 @@ void Obj::staticctor(Symbol *s,int dtor,int none)
         ElfObj::getsegment(".ctors", NULL, SHT_PROGDEF, SHF_ALLOC|SHF_WRITE, 4);
     buf = SegData[seg]->SDbuf;
     if (I64)
-        buf->write64(s->Soffset);
+    {
+        // use only rela addend and write 0 to target
+        buf->write64(0);
+        ElfObj::addrel(seg,SegData[seg]->SDoffset,I64 ? R_X86_64_64 : RI_TYPE_SYM32,STI_TEXT,s->Soffset);
+    }
     else
+    {
+        // write addend to target
         buf->write32(s->Soffset);
-    ElfObj::addrel(seg,SegData[seg]->SDoffset,I64 ? R_X86_64_64 : RI_TYPE_SYM32,STI_TEXT,0);
+        ElfObj::addrel(seg,SegData[seg]->SDoffset,I64 ? R_X86_64_64 : RI_TYPE_SYM32,STI_TEXT,0);
+    }
     SegData[seg]->SDoffset = buf->size();
 }
 
@@ -1562,10 +1569,17 @@ void Obj::staticdtor(Symbol *s)
     seg = ElfObj::getsegment(".dtors", NULL, SHT_PROGDEF, SHF_ALLOC|SHF_WRITE, 4);
     buf = SegData[seg]->SDbuf;
     if (I64)
-        buf->write64(s->Soffset);
+    {
+        // use only rela addend and write 0 to target
+        buf->write64(0);
+        ElfObj::addrel(seg,SegData[seg]->SDoffset,I64 ? R_X86_64_64 : RI_TYPE_SYM32,s->Sxtrnnum,s->Soffset);
+    }
     else
+    {
+        // write addend to target
         buf->write32(s->Soffset);
-    ElfObj::addrel(seg,SegData[seg]->SDoffset,I64 ? R_X86_64_64 : RI_TYPE_SYM32,s->Sxtrnnum,0);
+        ElfObj::addrel(seg,SegData[seg]->SDoffset,I64 ? R_X86_64_64 : RI_TYPE_SYM32,s->Sxtrnnum,0);
+    }
     SegData[seg]->SDoffset = buf->size();
 }
 
@@ -2688,24 +2702,34 @@ void Obj::reftocodeseg(int seg,targ_size_t offset,targ_size_t val)
     buf = SegData[seg]->SDbuf;
     save = buf->size();
     buf->setsize(offset);
+
+    val = val - funcsym_p->Soffset;
+    int relinfo;
 #if 0
     if (segtyp == CODE)
     {
-        val = val - funcsym_p->Soffset;
-        ElfObj::addrel(seg,offset,RI_TYPE_PC32,funcsym_p->Sxtrnnum,0);
+        relinfo = RI_TYPE_PC32;
     }
     else
 #endif
     {
-        val = val - funcsym_p->Soffset;
-        int relinfo;
         if (I64)
             relinfo = (config.flags3 & CFG3pic) ? R_X86_64_PC32 : R_X86_64_32;
         else
             relinfo = (config.flags3 & CFG3pic) ? RI_TYPE_GOTOFF : RI_TYPE_SYM32;
+    }
+    if (I64)
+    {
+        // use only rela addend and write 0 to target
+        buf->write32(0);
+        ElfObj::addrel(seg,offset, relinfo, funcsym_p->Sxtrnnum, val);
+    }
+    else
+    {
+        // write addend to target
+        buf->write32(val);
         ElfObj::addrel(seg,offset, relinfo, funcsym_p->Sxtrnnum, 0);
     }
-    buf->write32(val);
     if (save > offset + 4)
         buf->setsize(save);
 }
