@@ -102,7 +102,11 @@ void AliasThis::semantic(Scope *sc)
          */
         ad->aliasthis = NULL;
 
-        if (Declaration *d = s->isDeclaration())
+        Dsymbol *sx = s;
+        if (sx->isAliasDeclaration())
+            sx = sx->toAlias();
+        Declaration *d = sx->isDeclaration();
+        if (d && !d->isTupleDeclaration())
         {
             Type *t = d->type;
             assert(t);
