@@ -6722,6 +6722,22 @@ void test11075()
 
 
 /***************************************************/
+// 11317
+
+void test11317()
+{
+    auto ref uint fun()
+    {
+        return 0;
+    }
+
+    void test(ref uint x) {}
+    static assert(!__traits(compiles, test(fun())));
+
+    assert(fun() == 0);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -6999,6 +7015,7 @@ int main()
     test10634();
     test7254();
     test11075();
+    test11317();
 
     printf("Success\n");
     return 0;
