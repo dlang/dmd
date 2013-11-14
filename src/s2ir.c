@@ -795,7 +795,7 @@ void ReturnStatement::toIR(IRState *irs)
             e = el_var(irs->shidden);
             e = el_bin(OPcomma, e->Ety, es, e);
         }
-        else if (tf->isref)
+        else if (isRefReturn)
         {   // Reference return, so convert to a pointer
             Expression *ae = exp->addressOf(NULL);
             e = ae->toElemDtor(irs);

@@ -668,6 +668,7 @@ class ReturnStatement : public Statement
 public:
     Expression *exp;
     bool implicit0;             // this is an implicit "return 0;"
+    bool isRefReturn;
 
     ReturnStatement(Loc loc, Expression *exp);
     Statement *syntaxCopy();
