@@ -6303,7 +6303,10 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
             }
             e = eval_builtin(loc, b, &args);
             if (!e)
+            {
+                error(loc, "cannot evaluate unimplemented builtin %s at compile time", fd->toChars());
                 e = EXP_CANT_INTERPRET;
+            }
         }
     }
 
