@@ -2193,6 +2193,15 @@ static assert(A110.s == "Boo!int");
 
 /***************************************************/
 
+int test11247()
+{
+    static assert(is(byte[typeof(int.init).sizeof] == byte[4]));
+    static assert(is(byte[typeof(return).sizeof] == byte[4]));
+    return 0;
+}
+
+/***************************************************/
+
 // 3716
 void test111()
 {
