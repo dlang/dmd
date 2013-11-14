@@ -4435,11 +4435,27 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
 
         case TOKdebug:
             nextToken();
+            if (token.value == TOKassign)
+            {
+                error("debug conditions can only be declared at module scope");
+                nextToken();
+                nextToken();
+                check(TOKsemicolon);
+                break;
+            }
             cond = parseDebugCondition();
             goto Lcondition;
 
         case TOKversion:
             nextToken();
+            if (token.value == TOKassign)
+            {
+                error("version conditions can only be declared at module scope");
+                nextToken();
+                nextToken();
+                check(TOKsemicolon);
+                break;
+            }
             cond = parseVersionCondition();
             goto Lcondition;
 
