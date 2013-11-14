@@ -2597,6 +2597,9 @@ void ElfObj::addrel(int seg, targ_size_t offset, unsigned type,
  *      int *abc = &def[3];
  *      to allocate storage:
  *              Obj::reftodatseg(DATA,offset,3 * sizeof(int *),UDATA);
+ * Note:
+ *      For I64 && (flags & CFoffset64) && (flags & CFswitch)
+ *      targetdatum is a symidx rather than a segment.
  */
 
 void Obj::reftodatseg(int seg,targ_size_t offset,targ_size_t val,
@@ -2612,67 +2615,52 @@ void Obj::reftodatseg(int seg,targ_size_t offset,targ_size_t val,
     printf("Obj::reftodatseg(seg=%d, offset=x%llx, val=x%llx,data %x, flags %x)\n",
         seg,(unsigned long long)offset,(unsigned long long)val,targetdatum,flags);
 #endif
-    /*if (OPT_IS_SET(OPTfwritable_strings))
-    {
-        ElfObj::addrel(seg,offset,RI_TYPE_SYM32,STI_DATA,0);
-    }
-    else*/
-    {
-        int relinfo;
-        targ_size_t v = 0;
+    int relinfo;
 
-        if (I64)
+    if (I64)
+    {
+        IDXSYM targetsymidx = STI_RODAT;
+
+        if (flags & CFoffset64)
         {
-            if (flags & CFoffset64)
-            {
-                relinfo = R_X86_64_64;
-                ElfObj::addrel(seg, offset, relinfo, (flags & CFswitch) ? targetdatum : STI_RODAT, val);
-                buf->write64(0);
-                if (save > offset + 8)
-                    buf->setsize(save);
-                return;
-            }
-            else if (flags & CFswitch)
-            {
-                //printf("targetdatum = %d, MAP_SEG2SYMIDX = %d\n", targetdatum, MAP_SEG2SYMIDX(targetdatum));
-                relinfo = R_X86_64_PC32;
-                ElfObj::addrel(seg, offset, relinfo, MAP_SEG2SYMIDX(targetdatum), val);
-                buf->write32(0);
-                if (save > offset + 4)
-                    buf->setsize(save);
-                return;
-            }
-            else if (MAP_SEG2TYP(seg) == CODE && config.flags3 & CFG3pic)
-            {   relinfo = R_X86_64_PC32;
-                v = -4L + val;
-                val = 0;
-            }
-            else
-            {
-                if (MAP_SEG2SEC(targetdatum)->sh_flags & SHF_TLS)
-                    relinfo = config.flags3 & CFG3pic ? R_X86_64_TLSGD : R_X86_64_TPOFF32;
-                else
-                    relinfo = (flags & CFswitch) ? R_X86_64_32S : R_X86_64_32;
-                v = val;
-                val = 0;
-            }
-            assert(val == 0);
+            relinfo = R_X86_64_64;
+            if (flags & CFswitch) targetsymidx = targetdatum;
         }
+        else if (flags & CFswitch)
+        {
+            relinfo = R_X86_64_PC32;
+            targetsymidx = MAP_SEG2SYMIDX(targetdatum);
+        }
+        else if (MAP_SEG2TYP(seg) == CODE && config.flags3 & CFG3pic)
+        {
+            relinfo = R_X86_64_PC32;
+            val -= 4;
+        }
+        else if (MAP_SEG2SEC(targetdatum)->sh_flags & SHF_TLS)
+            relinfo = config.flags3 & CFG3pic ? R_X86_64_TLSGD : R_X86_64_TPOFF32;
         else
-        {
-            if (MAP_SEG2TYP(seg) == CODE && config.flags3 & CFG3pic)
-                relinfo = RI_TYPE_GOTOFF;
-            else if (MAP_SEG2SEC(targetdatum)->sh_flags & SHF_TLS)
-                relinfo = config.flags3 & CFG3pic ? RI_TYPE_TLS_GD : RI_TYPE_TLS_LE;
-            else
-                relinfo = RI_TYPE_SYM32;
-        }
+            relinfo = (flags & CFswitch) ? R_X86_64_32S : R_X86_64_32;
 
-        ElfObj::addrel(seg, offset, relinfo, STI_RODAT, v);
+        ElfObj::addrel(seg, offset, relinfo, targetsymidx, val);
+        const size_t sz = (flags & CFoffset64) ? 8 : 4;
+        buf->writezeros(sz);
+        if (save > offset + sz)
+            buf->setsize(save);
     }
-    buf->write32(val);
-    if (save > offset + 4)
-        buf->setsize(save);
+    else
+    {
+        if (MAP_SEG2TYP(seg) == CODE && config.flags3 & CFG3pic)
+            relinfo = RI_TYPE_GOTOFF;
+        else if (MAP_SEG2SEC(targetdatum)->sh_flags & SHF_TLS)
+            relinfo = config.flags3 & CFG3pic ? RI_TYPE_TLS_GD : RI_TYPE_TLS_LE;
+        else
+            relinfo = RI_TYPE_SYM32;
+
+        ElfObj::addrel(seg, offset, relinfo, STI_RODAT, 0);
+        buf->write32(val);
+        if (save > offset + 4)
+            buf->setsize(save);
+    }
 }
 
 /*******************************
