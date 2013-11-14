@@ -3652,8 +3652,6 @@ Statement *ReturnStatement::semantic(Scope *sc)
 
     TypeFunction *tf = (TypeFunction *)fd->type;
     assert(tf->ty == Tfunction);
-    bool isRefReturn = tf->isref && !(fd->storage_class & STCauto);
-    // Until 'ref' deduction finished, 'auto ref' is treated as a 'value return'.
 
     Type *tret = tf->next;
     if (fd->tintro)
@@ -3700,21 +3698,43 @@ Statement *ReturnStatement::semantic(Scope *sc)
             exp = exp->inferType(fld->treq->nextOf()->nextOf());
         exp = exp->semantic(sc);
         exp = resolveProperties(sc, exp);
-        // Until 'ref' deduction finished, don't invoke constant folding
-        if (!tf->isref)
-            exp = exp->optimize(WANTvalue);
 
         if (Expression *e = exp->isTemp())
             exp = e;                // don't need temporary
         if (exp->op == TOKcall)
             exp = valueNoDtor(exp);
 
+        // deduce 'auto ref'
+        if (tf->isref && (fd->storage_class & STCauto))
+        {
+            /* Determine "refness" of function return:
+             * if it's an lvalue, return by ref, else return by value
+             */
+            if (exp->isLvalue())
+            {
+                /* Return by ref
+                 * (but first ensure it doesn't fail the "check for
+                 * escaping reference" test)
+                 */
+                unsigned errors = global.startGagging();
+                exp->checkEscapeRef();
+                if (global.endGagging(errors))
+                    tf->isref = false;  // return by value
+            }
+            else
+                tf->isref = false;      // return by value
+            fd->storage_class &= ~STCauto;
+        }
+        if (!tf->isref)
+            exp = exp->optimize(WANTvalue);
+
+        // handle NRVO
         if (fd->nrvo_can && exp->op == TOKvar)
         {
             VarExp *ve = (VarExp *)exp;
             VarDeclaration *v = ve->var->isVarDeclaration();
 
-            if (isRefReturn)
+            if (tf->isref)
                 // Function returns a reference
                 fd->nrvo_can = 0;
             else if (!v || v->isOut() || v->isRef())
@@ -3735,6 +3755,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
         else
             fd->nrvo_can = 0;
 
+        // infer return type
         if (fd->inferRetType)
         {
             Type *tfret = tf->nextOf();
@@ -3768,46 +3789,16 @@ Statement *ReturnStatement::semantic(Scope *sc)
                  */
             }
             else
-            {
-                if (tf->isref && (fd->storage_class & STCauto))
-                {   /* Determine "refness" of function return:
-                     * if it's an lvalue, return by ref, else return by value
-                     */
-                    if (exp->isLvalue())
-                    {
-                        /* Return by ref
-                         * (but first ensure it doesn't fail the "check for
-                         * escaping reference" test)
-                         */
-                        unsigned errors = global.startGagging();
-                        exp->checkEscapeRef();
-                        if (global.endGagging(errors))
-                            tf->isref = false;  // return by value
-                    }
-                    else
-                        tf->isref = false;      // return by value
-                    fd->storage_class &= ~STCauto;
-
-                    isRefReturn = tf->isref;    // 'ref' deduction finished
-                    if (!isRefReturn)
-                        exp = exp->optimize(WANTvalue);
-                }
                 tf->next = exp->type;
-                //fd->type = tf->semantic(loc, sc);     // Removed with 6902
-                if (!fd->tintro)
-                {
-                    tret = tf->next;
-                    tbret = tret->toBasetype();
-                }
-            }
-            if (fd->returnLabel)
-                eorg = exp->copy();
 
-            if (!fd->returns)
-                fd->returns = new ReturnStatements();
-            fd->returns->push(this);
+            if (!fd->tintro)
+            {
+                tret = tf->next;
+                tbret = tret->toBasetype();
+            }
         }
-        else if (tbret->ty != Tvoid)
+
+        if (tbret->ty != Tvoid)
         {
             if (!exp->type->implicitConvTo(tret) &&
                 fd->parametersIntersect(exp->type))
@@ -3825,7 +3816,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
                 eorg = exp->copy();
             exp = exp->implicitCastTo(sc, tret);
 
-            if (!isRefReturn)
+            if (!tf->isref)
                 exp = exp->optimize(WANTvalue);
 
             if (!fd->returns)
@@ -3841,15 +3832,10 @@ Statement *ReturnStatement::semantic(Scope *sc)
                 error("mismatched function return type inference of void and %s",
                     tf->next->toChars());
         }
-        else
-        {
-            tf->next = Type::tvoid;
-            //fd->type = fd->type->semantic(loc, sc);   // Remove with7321, same as 6902
-            if (!fd->tintro)
-            {   tret = Type::tvoid;
-                tbret = tret;
-            }
-        }
+        tf->next = Type::tvoid;
+
+        tret = Type::tvoid;
+        tbret = tret;
     }
     else if (tbret->ty != Tvoid)        // if non-void return
         error("return expression expected");
@@ -3885,14 +3871,15 @@ Statement *ReturnStatement::semantic(Scope *sc)
         {
             // Construct: return vresult;
             if (!fd->vresult)
-            {   // Declare vresult
+            {
+                // Declare vresult
                 Scope *sco = fd->scout ? fd->scout : scx;
                 if (!fd->outId)
                     fd->outId = Id::result;
                 VarDeclaration *v = new VarDeclaration(loc, tret, fd->outId, NULL);
                 v->noscope = 1;
                 v->storage_class |= STCresult;
-                if (isRefReturn)
+                if (tf->isref)
                     v->storage_class |= STCref | STCforeach;
                 v->semantic(sco);
                 if (!sco->insert(v))
@@ -3916,8 +3903,9 @@ Statement *ReturnStatement::semantic(Scope *sc)
 
     if (exp)
     {
-        if (isRefReturn && !fd->isCtorDeclaration())
-        {   // Function returns a reference
+        if (tf->isref && !fd->isCtorDeclaration())
+        {
+            // Function returns a reference
             exp = exp->toLvalue(sc, exp);
             exp->checkEscapeRef();
         }
