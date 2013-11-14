@@ -27,8 +27,6 @@
 #include "ctfe.h"
 #include "target.h"
 
-AggregateDeclaration *isAggregate(Type *t); // from opover.c
-
 void checkFrameAccess(Loc loc, Scope *sc, AggregateDeclaration *ad)
 {
     if (!ad->isNested())

@@ -3416,8 +3416,6 @@ DsymbolExp::DsymbolExp(Loc loc, Dsymbol *s, bool hasOverloads)
     this->hasOverloads = hasOverloads;
 }
 
-AggregateDeclaration *isAggregate(Type *t);
-
 Expression *DsymbolExp::semantic(Scope *sc)
 {
 #if LOGSEMANTIC
@@ -10182,8 +10180,8 @@ Expression *SliceExp::syntaxCopy()
 }
 
 Expression *SliceExp::semantic(Scope *sc)
-{   Expression *e;
-    AggregateDeclaration *ad;
+{
+    Expression *e;
     //FuncDeclaration *fd;
     ScopeDsymbol *sym;
 
@@ -10245,16 +10243,8 @@ Lagain:
     else if (t->ty == Tsarray)
     {
     }
-    else if (t->ty == Tclass)
+    else if (AggregateDeclaration *ad = isAggregate(t))
     {
-        ad = ((TypeClass *)t)->sym;
-        goto L1;
-    }
-    else if (t->ty == Tstruct)
-    {
-        ad = ((TypeStruct *)t)->sym;
-
-    L1:
         if (search_function(ad, Id::slice))
         {
             // Rewrite as e1.slice(lwr, upr)
@@ -11138,21 +11128,14 @@ Expression *AssignExp::semantic(Scope *sc)
     if (e1->op == TOKarray)
     {
         ArrayExp *ae = (ArrayExp *)e1;
-        AggregateDeclaration *ad = NULL;
-
         ae->e1 = ae->e1->semantic(sc);
         ae->e1 = resolveProperties(sc, ae->e1);
         Expression *ae1old = ae->e1;
 
         Type *t1 = ae->e1->type->toBasetype();
-        if (t1->ty == Tstruct)
+        AggregateDeclaration *ad = isAggregate(t1);
+        if (ad)
         {
-            ad = ((TypeStruct *)t1)->sym;
-            goto L1;
-        }
-        else if (t1->ty == Tclass)
-        {
-            ad = ((TypeClass *)t1)->sym;
           L1:
             // Rewrite (a[i] = value) to (a.opIndexAssign(value, i))
             if (search_function(ad, Id::indexass))
@@ -11177,16 +11160,9 @@ Expression *AssignExp::semantic(Scope *sc)
                 att1 = t1;
             ae->e1 = resolveAliasThis(sc, ae->e1);
             t1 = ae->e1->type->toBasetype();
-            if (t1->ty == Tstruct)
-            {
-                ad = ((TypeStruct *)t1)->sym;
+            ad = isAggregate(t1);
+            if (ad)
                 goto L1;
-            }
-            else if (t1->ty == Tclass)
-            {
-                ad = ((TypeClass *)t1)->sym;
-                goto L1;
-            }
         }
 
         ae->e1 = ae1old;    // restore
@@ -11198,21 +11174,14 @@ Expression *AssignExp::semantic(Scope *sc)
     if (e1->op == TOKslice)
     {
         SliceExp *ae = (SliceExp *)e1;
-        AggregateDeclaration *ad = NULL;
-
         ae->e1 = ae->e1->semantic(sc);
         ae->e1 = resolveProperties(sc, ae->e1);
         Expression *ae1old = ae->e1;
 
         Type *t1 = ae->e1->type->toBasetype();
-        if (t1->ty == Tstruct)
+        AggregateDeclaration *ad = isAggregate(t1);
+        if (ad)
         {
-            ad = ((TypeStruct *)t1)->sym;
-            goto L2;
-        }
-        else if (t1->ty == Tclass)
-        {
-            ad = ((TypeClass *)t1)->sym;
           L2:
             // Rewrite (a[i..j] = value) to (a.opSliceAssign(value, i, j))
             if (search_function(ad, Id::sliceass))
@@ -11241,16 +11210,9 @@ Expression *AssignExp::semantic(Scope *sc)
                 att1 = t1;
             ae->e1 = resolveAliasThis(sc, ae->e1);
             t1 = ae->e1->type->toBasetype();
-            if (t1->ty == Tstruct)
-            {
-                ad = ((TypeStruct *)t1)->sym;
+            ad = isAggregate(t1);
+            if (ad)
                 goto L2;
-            }
-            else if (t1->ty == Tclass)
-            {
-                ad = ((TypeClass *)t1)->sym;
-                goto L2;
-            }
         }
 
         ae->e1 = ae1old;    // restore

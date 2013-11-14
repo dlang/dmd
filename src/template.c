@@ -1714,7 +1714,6 @@ Lretry:
             if (!m)
             {   Type *tbp = prmtype->toBasetype();
                 Type *tba = farg->type->toBasetype();
-                AggregateDeclaration *ad;
                 if (tbp->ty == Tdelegate)
                 {
                     TypeDelegate *td = (TypeDelegate *)prmtype->toBasetype();
@@ -1728,23 +1727,18 @@ Lretry:
                     }
                     //printf("\tm2 = %d\n", m);
                 }
-                else if (tba->ty == Tclass)
+                else if (AggregateDeclaration *ad = isAggregate(tba))
                 {
-                    ad = ((TypeClass *)tba)->sym;
-                    goto Lad;
-                }
-                else if (tba->ty == Tstruct)
-                {
-                    ad = ((TypeStruct *)tba)->sym;
-            Lad:
                     if (ad->aliasthis)
-                    {   /* If a semantic error occurs while doing alias this,
+                    {
+                        /* If a semantic error occurs while doing alias this,
                          * eg purity(bug 7295), just regard it as not a match.
                          */
                         unsigned olderrors = global.startGagging();
                         Expression *e = resolveAliasThis(sc, farg);
                         if (!global.endGagging(olderrors))
-                        {   farg = e;
+                        {
+                            farg = e;
                             goto Lretry;
                         }
                     }

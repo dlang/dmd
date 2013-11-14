@@ -1220,22 +1220,16 @@ Type *Type::arrayOf()
 
 Type *Type::aliasthisOf()
 {
-    AggregateDeclaration *ad = NULL;
-    if (ty == Tclass)
+    AggregateDeclaration *ad = isAggregate(this);
+    if (ad && ad->aliasthis)
     {
-        ad = ((TypeClass *)this)->sym;
-        goto L1;
-    }
-    else if (ty == Tstruct)
-    {
-        ad = ((TypeStruct *)this)->sym;
-    L1:
-        if (!ad->aliasthis)
-            return NULL;
-
-        Declaration *d = ad->aliasthis->isDeclaration();
-        if (d)
-        {   assert(d->type);
+        Dsymbol *s = ad->aliasthis;
+        if (s->isAliasDeclaration())
+            s = s->toAlias();
+        Declaration *d = s->isDeclaration();
+        if (d && !d->isTupleDeclaration())
+        {
+            assert(d->type);
             Type *t = d->type;
             if (d->isVarDeclaration() && d->needThis())
             {
@@ -1254,15 +1248,16 @@ Type *Type::aliasthisOf()
             }
             return t;
         }
-        EnumDeclaration *ed = ad->aliasthis->isEnumDeclaration();
+        EnumDeclaration *ed = s->isEnumDeclaration();
         if (ed)
         {
             Type *t = ed->type;
             return t;
         }
-        TemplateDeclaration *td = ad->aliasthis->isTemplateDeclaration();
+        TemplateDeclaration *td = s->isTemplateDeclaration();
         if (td)
-        {   assert(td->scope);
+        {
+            assert(td->scope);
             FuncDeclaration *fd = resolveFuncCall(Loc(), NULL, td, NULL, this, NULL, 1);
             if (fd && fd->functionSemantic())
             {
@@ -1273,7 +1268,7 @@ Type *Type::aliasthisOf()
             else
                 return Type::terror;
         }
-        //printf("%s\n", ad->aliasthis->kind());
+        //printf("%s\n", s->kind());
     }
     return NULL;
 }
@@ -8920,9 +8915,8 @@ int TypeClass::isscope()
 int TypeClass::isBaseOf(Type *t, int *poffset)
 {
     if (t && t->ty == Tclass)
-    {   ClassDeclaration *cd;
-
-        cd   = ((TypeClass *)t)->sym;
+    {
+        ClassDeclaration *cd = ((TypeClass *)t)->sym;
         if (sym->isBaseOf(cd, poffset))
             return 1;
     }

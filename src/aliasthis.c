@@ -23,35 +23,27 @@
 Expression *resolveAliasThis(Scope *sc, Expression *e)
 {
     Type *t = e->type->toBasetype();
-    AggregateDeclaration *ad;
+    AggregateDeclaration *ad = isAggregate(t);
 
-    if (t->ty == Tclass)
-    {   ad = ((TypeClass *)t)->sym;
-        goto L1;
-    }
-    else if (t->ty == Tstruct)
-    {   ad = ((TypeStruct *)t)->sym;
-    L1:
-        if (ad && ad->aliasthis)
+    if (ad && ad->aliasthis)
+    {
+        bool isstatic = (e->op == TOKtype);
+        e = new DotIdExp(e->loc, e, ad->aliasthis->ident);
+        e = e->semantic(sc);
+        if (isstatic && ad->aliasthis->needThis())
         {
-            bool isstatic = (e->op == TOKtype);
-            e = new DotIdExp(e->loc, e, ad->aliasthis->ident);
-            e = e->semantic(sc);
-            if (isstatic && ad->aliasthis->needThis())
-            {
-                /* non-@property function is not called inside typeof(),
-                 * so resolve it ahead.
-                 */
-                int save = sc->intypeof;
-                sc->intypeof = 1;   // bypass "need this" error check
-                e = resolveProperties(sc, e);
-                sc->intypeof = save;
-
-                e = new TypeExp(e->loc, new TypeTypeof(e->loc, e));
-                e = e->semantic(sc);
-            }
+            /* non-@property function is not called inside typeof(),
+             * so resolve it ahead.
+             */
+            int save = sc->intypeof;
+            sc->intypeof = 1;   // bypass "need this" error check
             e = resolveProperties(sc, e);
+            sc->intypeof = save;
+
+            e = new TypeExp(e->loc, new TypeTypeof(e->loc, e));
+            e = e->semantic(sc);
         }
+        e = resolveProperties(sc, e);
     }
 
     return e;
@@ -86,7 +78,8 @@ void AliasThis::semantic(Scope *sc)
         assert(ad->members);
         Dsymbol *s = ad->search(loc, ident, 0);
         if (!s)
-        {   s = sc->search(loc, ident, NULL);
+        {
+            s = sc->search(loc, ident, NULL);
             if (s)
                 ::error(loc, "%s is not a member of %s", s->toChars(), ad->toChars());
             else
@@ -96,17 +89,24 @@ void AliasThis::semantic(Scope *sc)
         else if (ad->aliasthis && s != ad->aliasthis)
             error("there can be only one alias this");
 
+        if (ad->type->ty == Tstruct && ((TypeStruct *)ad->type)->sym != ad)
+        {
+            AggregateDeclaration *ad2 = ((TypeStruct *)ad->type)->sym;
+            assert(ad2->type == Type::terror);
+            ad->aliasthis = ad2->aliasthis;
+            return;
+        }
+
         /* disable the alias this conversion so the implicit conversion check
          * doesn't use it.
          */
-        /* This should use ad->aliasthis directly, but with static foreach and templates
-         * ad->type->sym might be different to ad.
-         */
-        AggregateDeclaration *ad2 = ad->type->toDsymbol(NULL)->isAggregateDeclaration();
-        Dsymbol *save = ad2->aliasthis;
-        ad2->aliasthis = NULL;
+        ad->aliasthis = NULL;
 
-        if (Declaration *d = s->isDeclaration())
+        Dsymbol *sx = s;
+        if (sx->isAliasDeclaration())
+            sx = sx->toAlias();
+        Declaration *d = sx->isDeclaration();
+        if (d && !d->isTupleDeclaration())
         {
             Type *t = d->type;
             assert(t);
@@ -116,7 +116,6 @@ void AliasThis::semantic(Scope *sc)
             }
         }
 
-        ad2->aliasthis = save;
         ad->aliasthis = s;
     }
     else

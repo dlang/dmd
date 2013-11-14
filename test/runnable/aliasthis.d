@@ -1200,6 +1200,43 @@ void test8169()
 }
 
 /***************************************************/
+// 8735
+
+struct S8735(alias Arg)
+{
+    alias Arg Val;
+    alias Val this;
+}
+
+struct Tuple9709(T...)
+{
+    alias T expand;
+    alias expand this;
+}
+
+void test8735()
+{
+    alias S8735!1 S;
+    S s;
+    int n = s;
+    assert(n == 1);
+
+    // 11502 case
+    static void f(int i);
+    S8735!f sf;
+
+    // 9709 case
+    alias A = Tuple9709!(1,int,"foo");
+    A a;
+    static assert(A[0] == 1);
+    static assert(a[0] == 1);
+    //static assert(is(A[1] == int));
+    //static assert(is(a[1] == int));
+    static assert(A[2] == "foo");
+    static assert(a[2] == "foo");
+}
+
+/***************************************************/
 // 9174
 
 void test9174()
@@ -1549,6 +1586,7 @@ int main()
     test7945();
     test7992();
     test8169();
+    test8735();
     test9174();
     test9858();
     test9873();
