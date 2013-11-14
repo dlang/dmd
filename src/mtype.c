@@ -4564,7 +4564,8 @@ Type *TypeAArray::semantic(Loc loc, Scope *sc)
 
     // Deal with the case where we thought the index was a type, but
     // in reality it was an expression.
-    if (index->ty == Tident || index->ty == Tinstance || index->ty == Tsarray)
+    if (index->ty == Tident || index->ty == Tinstance || index->ty == Tsarray ||
+        index->ty == Ttypeof || index->ty == Treturn)
     {
         Expression *e;
         Type *t;
