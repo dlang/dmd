@@ -4543,9 +4543,10 @@ Lagain:
                 goto Lpaint;
             //dump(0);
             //printf("fty = %d, tty = %d, %d\n", fty, tty, t->ty);
+            // This error should really be pushed to the front end
             error("e2ir: cannot cast %s of type %s to type %s", e1->toChars(), e1->type->toChars(), t->toChars());
-            e = el_long(ttym, 0);
-            break;
+            e = el_long(TYint, 0);
+            return e;
 
         Lzero:
             e = el_bin(OPcomma, ttym, e, el_long(ttym, 0));
