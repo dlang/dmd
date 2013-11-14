@@ -136,7 +136,7 @@ void cpp_mangle_name(OutBuffer *buf, CppMangleState *cms, Dsymbol *s)
                     if (se->sz != 1)
                         s->error("C++ namespaces must be ASCII");
                     // TODO: handle "::"
-                    assert(nscount < 8);
+                    assert(nscount < 16);
                     ns[nscount++] = (const char*)se->string;
                 }
             }
