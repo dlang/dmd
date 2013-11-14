@@ -2647,10 +2647,16 @@ void Obj::reftodatseg(int seg,targ_size_t offset,targ_size_t val,
                 v = -4L + val;
                 val = 0;
             }
-            else if (MAP_SEG2SEC(targetdatum)->sh_flags & SHF_TLS)
-                relinfo = config.flags3 & CFG3pic ? R_X86_64_TLSGD : R_X86_64_TPOFF32;
             else
-                relinfo = (flags & CFswitch) ? R_X86_64_32S : R_X86_64_32;
+            {
+                if (MAP_SEG2SEC(targetdatum)->sh_flags & SHF_TLS)
+                    relinfo = config.flags3 & CFG3pic ? R_X86_64_TLSGD : R_X86_64_TPOFF32;
+                else
+                    relinfo = (flags & CFswitch) ? R_X86_64_32S : R_X86_64_32;
+                v = val;
+                val = 0;
+            }
+            assert(val == 0);
         }
         else
         {
