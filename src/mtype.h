@@ -257,7 +257,7 @@ public:
     virtual bool isreal();
     virtual bool isimaginary();
     virtual bool iscomplex();
-    virtual int isscalar();
+    virtual bool isscalar();
     virtual bool isunsigned();
     virtual int isscope();
     virtual int isString();
@@ -410,7 +410,7 @@ public:
     bool isreal();
     bool isimaginary();
     bool iscomplex();
-    int isscalar();
+    bool isscalar();
     bool isunsigned();
     MATCH implicitConvTo(Type *to);
     Expression *defaultInit(Loc loc);
@@ -446,7 +446,7 @@ public:
 #endif
     bool isintegral();
     bool isfloating();
-    int isscalar();
+    bool isscalar();
     bool isunsigned();
     int checkBoolean();
     MATCH implicitConvTo(Type *to);
@@ -596,7 +596,7 @@ public:
     void toJson(JsonOut *json);
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);
-    int isscalar();
+    bool isscalar();
     Expression *defaultInit(Loc loc);
     int isZeroInit(Loc loc);
     TypeInfoDeclaration *getTypeInfoDeclaration();
@@ -895,7 +895,7 @@ public:
     bool isreal();
     bool isimaginary();
     bool iscomplex();
-    int isscalar();
+    bool isscalar();
     bool isunsigned();
     int checkBoolean();
     int isString();
@@ -943,7 +943,7 @@ public:
     bool isreal();
     bool isimaginary();
     bool iscomplex();
-    int isscalar();
+    bool isscalar();
     bool isunsigned();
     int checkBoolean();
     int isAssignable();
