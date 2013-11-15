@@ -1538,6 +1538,32 @@ STATIC elem *elor(elem *e, goal_t goal)
             e1->Eoper = OPror;
             return el_selecte1(e);
         }
+        // rotate left by a constant
+        if (e1->Eoper == OPshl && e2->Eoper == OPshr &&
+            tyuns(e2->E1->Ety) &&
+            e1->E2->Eoper == OPconst &&
+            e2->E2->Eoper == OPconst &&
+            el_tolong(e2->E2) == sz * 8 - el_tolong(e1->E2) &&
+            el_match5(e1->E1, e2->E1) &&
+            !el_sideeffect(e)
+           )
+        {
+            e1->Eoper = OProl;
+            return el_selecte1(e);
+        }
+        // rotate right by a constant
+        if (e1->Eoper == OPshr && e2->Eoper == OPshl &&
+            tyuns(e2->E1->Ety) &&
+            e1->E2->Eoper == OPconst &&
+            e2->E2->Eoper == OPconst &&
+            el_tolong(e2->E2) == sz * 8 - el_tolong(e1->E2) &&
+            el_match5(e1->E1, e2->E1) &&
+            !el_sideeffect(e)
+           )
+        {
+            e1->Eoper = OPror;
+            return el_selecte1(e);
+        }
     }
 
     /* BSWAP: (data[0]<< 24) | (data[1]<< 16) | (data[2]<< 8) | (data[3]<< 0)

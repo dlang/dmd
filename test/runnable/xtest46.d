@@ -4361,6 +4361,24 @@ void test6473()
 
 /***************************************************/
 
+uint rol11417(uint n)(in uint x)
+{
+    return x << n | x >> 32 - n;
+}
+
+uint ror11417(uint n)(in uint x)
+{
+    return x >> n | x << 32 - n;
+}
+
+void test11417()
+{
+    assert(rol11417!1(0x8000_0000) == 0x1);
+    assert(ror11417!1(0x1) == 0x8000_0000);
+}
+
+/***************************************************/
+
 void test6578()
 {
     static struct Foo
@@ -6979,6 +6997,7 @@ int main()
     test7534cov();
     test7618();
     test7621();
+    test11417();
     test7682();
     test7735();
     test7823();
