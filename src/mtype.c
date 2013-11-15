@@ -1717,9 +1717,9 @@ bool Type::isfloating()
     return false;
 }
 
-int Type::isreal()
+bool Type::isreal()
 {
-    return FALSE;
+    return false;
 }
 
 int Type::isimaginary()
@@ -3307,9 +3307,9 @@ bool TypeBasic::isfloating()
     return (flags & TFLAGSfloating) != 0;
 }
 
-int TypeBasic::isreal()
+bool TypeBasic::isreal()
 {
-    return flags & TFLAGSreal;
+    return (flags & TFLAGSreal) != 0;
 }
 
 int TypeBasic::isimaginary()
@@ -7495,7 +7495,7 @@ bool TypeEnum::isfloating()
     return sym->memtype->isfloating();
 }
 
-int TypeEnum::isreal()
+bool TypeEnum::isreal()
 {
     return sym->memtype->isreal();
 }
@@ -7718,7 +7718,7 @@ bool TypeTypedef::isfloating()
     return sym->basetype->isfloating();
 }
 
-int TypeTypedef::isreal()
+bool TypeTypedef::isreal()
 {
     return sym->basetype->isreal();
 }

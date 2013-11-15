@@ -254,7 +254,7 @@ public:
 #endif
     virtual bool isintegral();
     virtual bool isfloating();   // real, imaginary, or complex
-    virtual int isreal();
+    virtual bool isreal();
     virtual int isimaginary();
     virtual int iscomplex();
     virtual int isscalar();
@@ -407,7 +407,7 @@ public:
 #endif
     bool isintegral();
     bool isfloating();
-    int isreal();
+    bool isreal();
     int isimaginary();
     int iscomplex();
     int isscalar();
@@ -892,7 +892,7 @@ public:
     Expression *getProperty(Loc loc, Identifier *ident, int flag);
     bool isintegral();
     bool isfloating();
-    int isreal();
+    bool isreal();
     int isimaginary();
     int iscomplex();
     int isscalar();
@@ -940,7 +940,7 @@ public:
     Expression *getProperty(Loc loc, Identifier *ident, int flag);
     bool isintegral();
     bool isfloating();
-    int isreal();
+    bool isreal();
     int isimaginary();
     int iscomplex();
     int isscalar();
