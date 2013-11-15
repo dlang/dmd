@@ -47,7 +47,7 @@ private
     }
 
     extern (C) void thread_init();
-    extern (C) void onOutOfMemoryError();
+    extern (C) void onOutOfMemoryError() @trusted /* pure dmd @@@BUG11461@@@ */ nothrow;
 
     struct Proxy
     {

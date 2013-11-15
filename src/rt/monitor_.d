@@ -15,6 +15,8 @@ module rt.monitor_;
 
 //debug=PRINTF;
 
+nothrow:
+
 private
 {
     debug(PRINTF) import core.stdc.stdio;
@@ -72,12 +74,12 @@ private
         static assert(0, "Unsupported platform");
     }
 
-    Monitor* getMonitor(Object h)
+    Monitor* getMonitor(Object h) pure
     {
         return cast(Monitor*) h.__monitor;
     }
 
-    void setMonitor(Object h, Monitor* m)
+    void setMonitor(Object h, Monitor* m) pure
     {
         h.__monitor = m;
     }
