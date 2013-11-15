@@ -1180,9 +1180,6 @@ void Lexer::scan(Token *t)
 unsigned Lexer::escapeSequence()
 {   unsigned c = *p;
 
-#ifdef TEXTUAL_ASSEMBLY_OUT
-    return c;
-#endif
     int n;
     int ndigits;
 
@@ -1676,7 +1673,6 @@ TOK Lexer::escapeStringConstant(Token *t, int wide)
         c = *p++;
         switch (c)
         {
-#if !( TEXTUAL_ASSEMBLY_OUT )
             case '\\':
                 switch (*p)
                 {
@@ -1692,7 +1688,6 @@ TOK Lexer::escapeStringConstant(Token *t, int wide)
                         break;
                 }
                 break;
-#endif
             case '\n':
                 scanloc.linnum++;
                 break;
@@ -1753,7 +1748,6 @@ TOK Lexer::charConstant(Token *t, int wide)
     c = *p++;
     switch (c)
     {
-#if ! TEXTUAL_ASSEMBLY_OUT
         case '\\':
             switch (*p)
             {
@@ -1773,7 +1767,6 @@ TOK Lexer::charConstant(Token *t, int wide)
                     break;
             }
             break;
-#endif
         case '\n':
         L1:
             scanloc.linnum++;
