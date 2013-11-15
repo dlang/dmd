@@ -1712,9 +1712,9 @@ bool Type::isintegral()
     return false;
 }
 
-int Type::isfloating()
+bool Type::isfloating()
 {
-    return FALSE;
+    return false;
 }
 
 int Type::isreal()
@@ -3302,9 +3302,9 @@ bool TypeBasic::isintegral()
     return (flags & TFLAGSintegral) != 0;
 }
 
-int TypeBasic::isfloating()
+bool TypeBasic::isfloating()
 {
-    return flags & TFLAGSfloating;
+    return (flags & TFLAGSfloating) != 0;
 }
 
 int TypeBasic::isreal()
@@ -3556,7 +3556,7 @@ bool TypeVector::isintegral()
     return basetype->nextOf()->isintegral();
 }
 
-int TypeVector::isfloating()
+bool TypeVector::isfloating()
 {
     return basetype->nextOf()->isfloating();
 }
@@ -7490,7 +7490,7 @@ bool TypeEnum::isintegral()
     return sym->memtype->isintegral();
 }
 
-int TypeEnum::isfloating()
+bool TypeEnum::isfloating()
 {
     return sym->memtype->isfloating();
 }
@@ -7713,7 +7713,7 @@ bool TypeTypedef::isintegral()
     return sym->basetype->isintegral();
 }
 
-int TypeTypedef::isfloating()
+bool TypeTypedef::isfloating()
 {
     return sym->basetype->isfloating();
 }

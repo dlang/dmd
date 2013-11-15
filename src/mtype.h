@@ -253,7 +253,7 @@ public:
     virtual void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
     virtual bool isintegral();
-    virtual int isfloating();   // real, imaginary, or complex
+    virtual bool isfloating();   // real, imaginary, or complex
     virtual int isreal();
     virtual int isimaginary();
     virtual int iscomplex();
@@ -406,7 +406,7 @@ public:
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
     bool isintegral();
-    int isfloating();
+    bool isfloating();
     int isreal();
     int isimaginary();
     int iscomplex();
@@ -445,7 +445,7 @@ public:
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
     bool isintegral();
-    int isfloating();
+    bool isfloating();
     int isscalar();
     bool isunsigned();
     int checkBoolean();
@@ -891,7 +891,7 @@ public:
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     Expression *getProperty(Loc loc, Identifier *ident, int flag);
     bool isintegral();
-    int isfloating();
+    bool isfloating();
     int isreal();
     int isimaginary();
     int iscomplex();
@@ -939,7 +939,7 @@ public:
     structalign_t alignment();
     Expression *getProperty(Loc loc, Identifier *ident, int flag);
     bool isintegral();
-    int isfloating();
+    bool isfloating();
     int isreal();
     int isimaginary();
     int iscomplex();
