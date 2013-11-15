@@ -256,7 +256,7 @@ public:
     virtual bool isfloating();   // real, imaginary, or complex
     virtual bool isreal();
     virtual bool isimaginary();
-    virtual int iscomplex();
+    virtual bool iscomplex();
     virtual int isscalar();
     virtual bool isunsigned();
     virtual int isscope();
@@ -409,7 +409,7 @@ public:
     bool isfloating();
     bool isreal();
     bool isimaginary();
-    int iscomplex();
+    bool iscomplex();
     int isscalar();
     bool isunsigned();
     MATCH implicitConvTo(Type *to);
@@ -894,7 +894,7 @@ public:
     bool isfloating();
     bool isreal();
     bool isimaginary();
-    int iscomplex();
+    bool iscomplex();
     int isscalar();
     bool isunsigned();
     int checkBoolean();
@@ -942,7 +942,7 @@ public:
     bool isfloating();
     bool isreal();
     bool isimaginary();
-    int iscomplex();
+    bool iscomplex();
     int isscalar();
     bool isunsigned();
     int checkBoolean();

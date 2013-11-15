@@ -1727,9 +1727,9 @@ bool Type::isimaginary()
     return false;
 }
 
-int Type::iscomplex()
+bool Type::iscomplex()
 {
-    return FALSE;
+    return false;
 }
 
 int Type::isscalar()
@@ -3317,9 +3317,9 @@ bool TypeBasic::isimaginary()
     return (flags & TFLAGSimaginary) != 0;
 }
 
-int TypeBasic::iscomplex()
+bool TypeBasic::iscomplex()
 {
-    return flags & TFLAGScomplex;
+    return (flags & TFLAGScomplex) != 0;
 }
 
 bool TypeBasic::isunsigned()
@@ -7505,7 +7505,7 @@ bool TypeEnum::isimaginary()
     return sym->memtype->isimaginary();
 }
 
-int TypeEnum::iscomplex()
+bool TypeEnum::iscomplex()
 {
     return sym->memtype->iscomplex();
 }
@@ -7728,7 +7728,7 @@ bool TypeTypedef::isimaginary()
     return sym->basetype->isimaginary();
 }
 
-int TypeTypedef::iscomplex()
+bool TypeTypedef::iscomplex()
 {
     return sym->basetype->iscomplex();
 }
