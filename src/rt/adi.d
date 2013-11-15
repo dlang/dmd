@@ -406,6 +406,9 @@ unittest
     assert(a != "betty");
     assert(a == "hello");
     assert(a != "hxxxx");
+
+    float[] fa = [float.nan];
+    assert(fa != fa);
 }
 
 /***************************************

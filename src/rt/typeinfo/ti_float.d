@@ -23,8 +23,7 @@ class TypeInfo_f : TypeInfo
 
     static bool _equals(float f1, float f2)
     {
-        return f1 == f2 ||
-                (f1 !<>= f1 && f2 !<>= f2);
+        return f1 == f2;
     }
 
     static int _compare(float d1, float d2)
