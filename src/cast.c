@@ -1011,7 +1011,7 @@ Type *SliceExp::toStaticArrayType()
         Expression *upr = this->upr->optimize(WANTvalue);
         if (lwr->isConst() && upr->isConst())
         {
-            size_t len = upr->toUInteger() - lwr->toUInteger();
+            size_t len = (size_t)(upr->toUInteger() - lwr->toUInteger());
             return TypeSArray::makeType(loc, type->toBasetype()->nextOf(), len);
         }
     }
@@ -1466,7 +1466,7 @@ L2:
     // See if need to truncate or extend the literal
     if (tb->ty == Tsarray)
     {
-        dinteger_t dim2 = ((TypeSArray *)tb)->dim->toInteger();
+        size_t dim2 = (size_t)((TypeSArray *)tb)->dim->toInteger();
 
         //printf("dim from = %d, to = %d\n", (int)se->len, (int)dim2);
 

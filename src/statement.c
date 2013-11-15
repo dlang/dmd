@@ -2134,7 +2134,7 @@ Lagain:
                 ec = new VarExp(Loc(), fdapply[i]);
                 Expressions *exps = new Expressions();
                 exps->push(aggr);
-                size_t keysize = taa->index->size();
+                size_t keysize = (size_t)taa->index->size();
                 keysize = (keysize + ((size_t)Target::ptrsize-1)) & ~((size_t)Target::ptrsize-1);
                 // paint delegate argument to the type runtime expects
                 if (!fldeTy[i]->equals(flde->type)) {

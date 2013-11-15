@@ -422,7 +422,7 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
             sc = sc->endCTFE();
             idx = idx->ctfeInterpret();
             index[i] = idx;
-            length = idx->toInteger();
+            length = (size_t)idx->toInteger();
             if (idx->op == TOKerror)
                 errors = true;
         }
@@ -509,7 +509,7 @@ Expression *ArrayInitializer::toExpression(Type *tx)
         switch (t->ty)
         {
            case Tsarray:
-               edim = ((TypeSArray *)t)->dim->toInteger();
+               edim = (size_t)((TypeSArray *)t)->dim->toInteger();
                break;
 
            case Tpointer:
@@ -529,7 +529,7 @@ Expression *ArrayInitializer::toExpression(Type *tx)
             if (index[i])
             {
                 if (index[i]->op == TOKint64)
-                    j = index[i]->toInteger();
+                    j = (size_t)index[i]->toInteger();
                 else
                     goto Lno;
             }
@@ -544,7 +544,7 @@ Expression *ArrayInitializer::toExpression(Type *tx)
     for (size_t i = 0, j = 0; i < value.dim; i++, j++)
     {
         if (index[i])
-            j = (index[i])->toInteger();
+            j = (size_t)(index[i])->toInteger();
         assert(j < edim);
         Initializer *iz = value[i];
         if (!iz)
@@ -962,7 +962,7 @@ Expression *ExpInitializer::toExpression(Type *t)
         if (tb->ty == Tsarray && exp->implicitConvTo(tb->nextOf()))
         {
             TypeSArray *tsa = (TypeSArray *)tb;
-            size_t d = tsa->dim->toInteger();
+            size_t d = (size_t)tsa->dim->toInteger();
             Expressions *elements = new Expressions();
             elements->setDim(d);
             for (size_t i = 0; i < d; i++)

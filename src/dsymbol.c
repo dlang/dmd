@@ -1010,7 +1010,7 @@ void ScopeDsymbol::importScope(Dsymbol *s, PROT protection)
             }
         }
         imports->push(s);
-        prots = (unsigned char *)mem.realloc(prots, imports->dim * sizeof(prots[0]));
+        prots = (PROT *)mem.realloc(prots, imports->dim * sizeof(prots[0]));
         prots[imports->dim - 1] = protection;
     }
 }

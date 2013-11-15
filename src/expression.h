@@ -421,7 +421,7 @@ public:
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
-    unsigned charAt(size_t i);
+    unsigned charAt(uinteger_t i);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toMangleBuffer(OutBuffer *buf);
     elem *toElem(IRState *irs);
@@ -685,9 +685,9 @@ public:
 class SymOffExp : public SymbolExp
 {
 public:
-    unsigned offset;
+    dinteger_t offset;
 
-    SymOffExp(Loc loc, Declaration *var, unsigned offset, bool hasOverloads = false);
+    SymOffExp(Loc loc, Declaration *var, dinteger_t offset, bool hasOverloads = false);
     Expression *semantic(Scope *sc);
     Expression *optimize(int result, bool keepLvalue = false);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
@@ -1200,10 +1200,10 @@ class CastExp : public UnaExp
 public:
     // Possible to cast to one type while painting to another type
     Type *to;                   // type to cast to
-    unsigned mod;               // MODxxxxx
+    unsigned char mod;          // MODxxxxx
 
     CastExp(Loc loc, Expression *e, Type *t);
-    CastExp(Loc loc, Expression *e, unsigned mod);
+    CastExp(Loc loc, Expression *e, unsigned char mod);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     MATCH implicitConvTo(Type *t);

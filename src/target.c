@@ -95,7 +95,7 @@ unsigned Target::alignsize(Type* type)
         default:
             break;
     }
-    return type->size(Loc());
+    return (unsigned)type->size(Loc());
 }
 
 /******************************
