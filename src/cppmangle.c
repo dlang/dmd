@@ -123,7 +123,8 @@ void prefix_name(OutBuffer *buf, CppMangleState *cms, Dsymbol *s)
 
 void cpp_mangle_name(OutBuffer *buf, CppMangleState *cms, Dsymbol *s)
 {
-    const char* ns[16];
+    const size_t MAXNS = 16;
+    const char* ns[MAXNS];
     int nscount = 0;
     for (int t = 0; s->userAttributes && t < s->userAttributes->dim; ++t)
     {   Expression* exp = (*s->userAttributes)[t];
@@ -136,7 +137,7 @@ void cpp_mangle_name(OutBuffer *buf, CppMangleState *cms, Dsymbol *s)
                     if (se->sz != 1)
                         s->error("C++ namespaces must be ASCII");
                     // TODO: handle "::"
-                    assert(nscount < 16);
+                    assert(nscount < MAXNS);
                     ns[nscount++] = (const char*)se->string;
                 }
             }
