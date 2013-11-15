@@ -374,6 +374,17 @@ void ClassDeclaration::semantic(Scope *sc)
                     if (/*doAncestorsSemantic == SemanticIn &&*/ tc->sym->scope)
                         tc->sym->semantic(NULL);
                 }
+
+                if (tc->sym->symtab && tc->sym->scope == NULL)
+                {
+                    /* Bugzilla 11034: Essentailly, class inheritance hierarchy
+                     * and instance size of each classes are orthogonal information.
+                     * Therefore, even if tc->sym->sizeof == SIZEOKnone,
+                     * we need to set baseClass field for class covariance check.
+                     */
+                    baseClass = tc->sym;
+                    b->base = baseClass;
+                }
                 if (!tc->sym->symtab || tc->sym->scope || tc->sym->sizeok == SIZEOKnone)
                 {
                     //printf("%s: forward reference of base class %s\n", toChars(), tc->sym->toChars());
@@ -386,10 +397,6 @@ void ClassDeclaration::semantic(Scope *sc)
                         tc->sym->scope->module->addDeferredSemantic(tc->sym);
                     scope->module->addDeferredSemantic(this);
                     return;
-                }
-                else
-                {   baseClass = tc->sym;
-                    b->base = baseClass;
                 }
              L7: ;
             }
