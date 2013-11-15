@@ -255,7 +255,7 @@ public:
     virtual bool isintegral();
     virtual bool isfloating();   // real, imaginary, or complex
     virtual bool isreal();
-    virtual int isimaginary();
+    virtual bool isimaginary();
     virtual int iscomplex();
     virtual int isscalar();
     virtual bool isunsigned();
@@ -408,7 +408,7 @@ public:
     bool isintegral();
     bool isfloating();
     bool isreal();
-    int isimaginary();
+    bool isimaginary();
     int iscomplex();
     int isscalar();
     bool isunsigned();
@@ -893,7 +893,7 @@ public:
     bool isintegral();
     bool isfloating();
     bool isreal();
-    int isimaginary();
+    bool isimaginary();
     int iscomplex();
     int isscalar();
     bool isunsigned();
@@ -941,7 +941,7 @@ public:
     bool isintegral();
     bool isfloating();
     bool isreal();
-    int isimaginary();
+    bool isimaginary();
     int iscomplex();
     int isscalar();
     bool isunsigned();

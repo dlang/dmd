@@ -1722,9 +1722,9 @@ bool Type::isreal()
     return false;
 }
 
-int Type::isimaginary()
+bool Type::isimaginary()
 {
-    return FALSE;
+    return false;
 }
 
 int Type::iscomplex()
@@ -3312,9 +3312,9 @@ bool TypeBasic::isreal()
     return (flags & TFLAGSreal) != 0;
 }
 
-int TypeBasic::isimaginary()
+bool TypeBasic::isimaginary()
 {
-    return flags & TFLAGSimaginary;
+    return (flags & TFLAGSimaginary) != 0;
 }
 
 int TypeBasic::iscomplex()
@@ -7500,7 +7500,7 @@ bool TypeEnum::isreal()
     return sym->memtype->isreal();
 }
 
-int TypeEnum::isimaginary()
+bool TypeEnum::isimaginary()
 {
     return sym->memtype->isimaginary();
 }
@@ -7723,7 +7723,7 @@ bool TypeTypedef::isreal()
     return sym->basetype->isreal();
 }
 
-int TypeTypedef::isimaginary()
+bool TypeTypedef::isimaginary()
 {
     return sym->basetype->isimaginary();
 }
