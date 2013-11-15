@@ -19,30 +19,47 @@ private import core.stdc.string;
 pure:
 nothrow:
 
-char[] uintToString( char[] buf, uint val )
+alias UintStringBuff = char[10];
+alias UlongStringBuff = char[20];
+
+version(D_LP64)
+    alias SizeStringBuff = UlongStringBuff;
+else
+    alias SizeStringBuff = UintStringBuff;
+
+char[] uintToTempString(size_t n)(in uint val, ref char[n] buff)
+{ return val._unsignedToTempString(buff); }
+
+char[] ulongToTempString(size_t n)(in ulong val, ref char[n] buff)
+{ return val._unsignedToTempString(buff); }
+
+version(D_LP64)
+    alias sizeToTempString = ulongToTempString;
+else
+    alias sizeToTempString = uintToTempString;
+
+private char[] _unsignedToTempString(T, size_t n)(in T val, ref char[n] buff)
+if(is(T == uint) || is(T == ulong))
 {
-    assert( buf.length > 9 );
-    auto p = buf.ptr + buf.length;
+    static assert(n >= (is(T == uint) ? 10 : 20), "Buffer is to small for `" ~ T.stringof ~ "`.");
 
+    char* p = buff.ptr + buff.length;
+    T k = val;
     do
-    {
-        *--p = cast(char)(val % 10 + '0');
-    } while( val /= 10 );
+        *--p = cast(char) (k % 10 + '0');
+    while(k /= 10);
 
-    return buf[p - buf.ptr .. $];
+    return buff[p - buff.ptr .. $];
 }
 
-char[] uintToString( char[] buf, ulong val )
+unittest
 {
-    assert( buf.length >= 20 );
-    auto p = buf.ptr + buf.length;
-
-    do
-    {
-        *--p = cast(char)(val % 10 + '0');
-    } while( val /= 10 );
-
-    return buf[p - buf.ptr .. $];
+    UlongStringBuff buff;
+    assert(1.uintToTempString(buff) == "1");
+    assert(12.ulongToTempString(buff) == "12");
+    assert(long.sizeof.sizeToTempString(buff) == "8");
+    assert(uint.max.uintToTempString(buff) == "4294967295");
+    assert(ulong.max.ulongToTempString(buff) == "18446744073709551615");
 }
 
 

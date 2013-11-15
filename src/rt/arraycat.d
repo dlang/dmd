@@ -16,33 +16,19 @@ module rt.arraycat;
 private
 {
     import core.stdc.string;
+    import rt.util.array;
     import rt.util.string;
     debug(PRINTF) import core.stdc.stdio;
 }
 
 extern (C) @trusted nothrow:
 
-byte[] _d_arraycopy(size_t size, byte[] from, byte[] to)
+void[] _d_arraycopy(size_t size, void[] from, void[] to)
 {
     debug(PRINTF) printf("f = %p,%d, t = %p,%d, size = %d\n",
                  from.ptr, from.length, to.ptr, to.length, size);
 
-    if (to.length != from.length)
-    {
-        char[10] tmp1 = void;
-        char[10] tmp2 = void;
-        string msg = "lengths don't match for array copy, "c;
-        msg ~= tmp1.uintToString(to.length) ~ " = " ~ tmp2.uintToString(from.length);
-        throw new Error(msg);
-    }
-    else if (to.ptr + to.length * size <= from.ptr ||
-             from.ptr + from.length * size <= to.ptr)
-    {
-        memcpy(to.ptr, from.ptr, to.length * size);
-    }
-    else
-    {
-        throw new Error("overlapping array copy");
-    }
+    enforceRawArraysConformable("copy", size, from, to);
+    memcpy(to.ptr, from.ptr, to.length * size);
     return to;
 }

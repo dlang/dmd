@@ -388,7 +388,7 @@ extern (C) bool runModuleUnitTests()
 
     if( Runtime.sm_moduleUnitTester is null )
     {
-        void printErr(const(char)[] buf)
+        void printErr(in char[] buf)
         {
             .fprintf(.stderr, "%.*s", cast(int)buf.length, buf.ptr);
         }
