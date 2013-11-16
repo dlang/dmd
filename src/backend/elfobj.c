@@ -2829,10 +2829,6 @@ int Obj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
         }
     }
 
-    buf = SegData[seg]->SDbuf;
-    int save = buf->size();
-    buf->setsize(offset);
-
     switch (s->Sclass)
     {
         case SClocstat:
@@ -2858,19 +2854,9 @@ int Obj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
                 relinfo = R_X86_64_64;
                 retsize = 8;
             }
-            if (I64)
-            {
-                // use only rela addend and write 0 to target
-                ElfObj::addrel(seg,offset,relinfo,STI_RODAT,val + s->Soffset);
-                val = 0;
-            }
-            else
-            {
-                // write addend to target
-                ElfObj::addrel(seg,offset,relinfo,STI_RODAT,0);
-                val = val + s->Soffset;
-            }
-            goto outaddrval;
+            refseg = STI_RODAT;
+            val += s->Soffset;
+            goto outrel;
 
         case SCcomdat:
         case_SCcomdat:
@@ -2898,6 +2884,8 @@ int Obj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
             }
             else
             {
+                refseg = s->Sxtrnnum;       // default to name symbol table entry
+
                 if (flags & CFselfrel)
                 {               // only for function references within code segments
                     if (!external &&            // local definition found
@@ -2912,22 +2900,14 @@ int Obj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
                     {
                         //dbg_printf("\tadding relocation\n");
                         if (I64)
-                        {   relinfo = config.flags3 & CFG3pic ?  R_X86_64_PLT32 : R_X86_64_PC32;
-                            // use only rela addend and write 0 to target
-                            ElfObj::addrel(seg,offset, relinfo, s->Sxtrnnum, -4);
-                            val = 0;
-                        }
+                            relinfo = config.flags3 & CFG3pic ?  R_X86_64_PLT32 : R_X86_64_PC32;
                         else
-                        {   relinfo = config.flags3 & CFG3pic ?  RI_TYPE_PLT32 : RI_TYPE_PC32;
-                            // write addend to target
-                            ElfObj::addrel(seg,offset, relinfo, s->Sxtrnnum, 0);
-                            val = (targ_size_t)-4;
-                        }
+                            relinfo = config.flags3 & CFG3pic ?  RI_TYPE_PLT32 : RI_TYPE_PC32;
+                        val = (targ_size_t)-4;
                     }
                 }
                 else
                 {       // code to code code to data, data to code, data to data refs
-                    refseg = s->Sxtrnnum;       // default to name symbol table entry
                     if (s->Sclass == SCstatic)
                     {                           // offset into .data or .bss seg
                         refseg = MAP_SEG2SYMIDX(s->Sseg);
@@ -3006,39 +2986,19 @@ int Obj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
                     {
                         relinfo = R_X86_64_64;
                     }
-                    //printf("\t\t************* adding relocation\n");
-                    if (I64)
-                    {
-                        // use only rela addend and write 0 to target
-                        ElfObj::addrel(seg,offset,relinfo,refseg,val);
-                        val = 0;
-                    }
-                    else
-                    {
-                        // write addend to target
-                        ElfObj::addrel(seg,offset,relinfo,refseg,0);
-                    }
                 }
-outaddrval:
-                if (I64)
+                if (relinfo == R_X86_64_NONE)
                 {
-                    // Elf64 uses only the explicit addends of Rela
-                    // relocations. It seems like ld.bfd still adds the value at
-                    // the to be relocated address, but ld.gold and the runtime
-                    // linker do not. So make sure we write a 0 to the target
-                    // if we emitted a relocation for it. See Issue 10274.
-                    assert(relinfo == R_X86_64_NONE || val == 0);
+                outaddrval:
+                    writeaddrval(seg, offset, val, retsize);
                 }
-
-                if (retsize == 8)
-                    buf->write64(val);
-                else if (retsize == 4)
-                    buf->write32(val);
                 else
-                    assert(0);
-
-                if (save > offset + retsize)
-                    buf->setsize(save);
+                {
+                outrel:
+                    //printf("\t\t************* adding relocation\n");
+                    const size_t nbytes = ElfObj::writerel(seg, offset, relinfo, refseg, val);
+                    assert(nbytes == retsize);
+                }
             }
             break;
 
