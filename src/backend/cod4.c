@@ -3454,6 +3454,8 @@ code *cdbtst(elem *e, regm_t *pretregs)
         cs.Iop = 0x0F00 | op;                     // BT rm,reg
         code_newreg(&cs,reg);
         cs.Iflags |= CFpsw | word;
+        if (I64 && tysize[ty1] == 8)
+            cs.Irex |= REX_W;
         c2 = gen(c2,&cs);
     }
 
