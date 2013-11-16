@@ -2763,6 +2763,8 @@ Expression *BinExp::typeCombine(Scope *sc)
             goto Lerror;
         else if (t1->ty == Tclass && t2->ty == Tclass)
             goto Lerror;
+        else if (t1->ty == Taarray && t2->ty == Taarray)
+            goto Lerror;
     }
 
     if (!typeMerge(sc, this, &type, &e1, &e2))
