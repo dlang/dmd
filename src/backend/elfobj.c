@@ -2709,21 +2709,14 @@ size_t ElfObj::writerel(int targseg, size_t offset, unsigned reltype,
 void Obj::reftodatseg(int seg,targ_size_t offset,targ_size_t val,
         unsigned targetdatum,int flags)
 {
-    Outbuffer *buf;
-    int save;
-
-    buf = SegData[seg]->SDbuf;
-    save = buf->size();
-    buf->setsize(offset);
 #if 0
     printf("Obj::reftodatseg(seg=%d, offset=x%llx, val=x%llx,data %x, flags %x)\n",
         seg,(unsigned long long)offset,(unsigned long long)val,targetdatum,flags);
 #endif
     int relinfo;
-
+    IDXSYM targetsymidx = STI_RODAT;
     if (I64)
     {
-        IDXSYM targetsymidx = STI_RODAT;
 
         if (flags & CFoffset64)
         {
@@ -2744,13 +2737,6 @@ void Obj::reftodatseg(int seg,targ_size_t offset,targ_size_t val,
             relinfo = config.flags3 & CFG3pic ? R_X86_64_TLSGD : R_X86_64_TPOFF32;
         else
             relinfo = (flags & CFswitch) ? R_X86_64_32S : R_X86_64_32;
-
-        // use only rela addend and write 0 to target
-        ElfObj::addrel(seg, offset, relinfo, targetsymidx, val);
-        const size_t sz = (flags & CFoffset64) ? 8 : 4;
-        buf->writezeros(sz);
-        if (save > offset + sz)
-            buf->setsize(save);
     }
     else
     {
@@ -2760,13 +2746,8 @@ void Obj::reftodatseg(int seg,targ_size_t offset,targ_size_t val,
             relinfo = config.flags3 & CFG3pic ? RI_TYPE_TLS_GD : RI_TYPE_TLS_LE;
         else
             relinfo = RI_TYPE_SYM32;
-
-        // write addend to target
-        ElfObj::addrel(seg, offset, relinfo, STI_RODAT, 0);
-        buf->write32(val);
-        if (save > offset + 4)
-            buf->setsize(save);
     }
+    ElfObj::writerel(seg, offset, relinfo, targetsymidx, val);
 }
 
 /*******************************
