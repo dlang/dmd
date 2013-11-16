@@ -1712,29 +1712,29 @@ bool Type::isintegral()
     return false;
 }
 
-int Type::isfloating()
+bool Type::isfloating()
 {
-    return FALSE;
+    return false;
 }
 
-int Type::isreal()
+bool Type::isreal()
 {
-    return FALSE;
+    return false;
 }
 
-int Type::isimaginary()
+bool Type::isimaginary()
 {
-    return FALSE;
+    return false;
 }
 
-int Type::iscomplex()
+bool Type::iscomplex()
 {
-    return FALSE;
+    return false;
 }
 
-int Type::isscalar()
+bool Type::isscalar()
 {
-    return FALSE;
+    return false;
 }
 
 bool Type::isunsigned()
@@ -3302,24 +3302,24 @@ bool TypeBasic::isintegral()
     return (flags & TFLAGSintegral) != 0;
 }
 
-int TypeBasic::isfloating()
+bool TypeBasic::isfloating()
 {
-    return flags & TFLAGSfloating;
+    return (flags & TFLAGSfloating) != 0;
 }
 
-int TypeBasic::isreal()
+bool TypeBasic::isreal()
 {
-    return flags & TFLAGSreal;
+    return (flags & TFLAGSreal) != 0;
 }
 
-int TypeBasic::isimaginary()
+bool TypeBasic::isimaginary()
 {
-    return flags & TFLAGSimaginary;
+    return (flags & TFLAGSimaginary) != 0;
 }
 
-int TypeBasic::iscomplex()
+bool TypeBasic::iscomplex()
 {
-    return flags & TFLAGScomplex;
+    return (flags & TFLAGScomplex) != 0;
 }
 
 bool TypeBasic::isunsigned()
@@ -3327,9 +3327,9 @@ bool TypeBasic::isunsigned()
     return (flags & TFLAGSunsigned) != 0;
 }
 
-int TypeBasic::isscalar()
+bool TypeBasic::isscalar()
 {
-    return flags & (TFLAGSintegral | TFLAGSfloating);
+    return (flags & (TFLAGSintegral | TFLAGSfloating)) != 0;
 }
 
 MATCH TypeBasic::implicitConvTo(Type *to)
@@ -3556,7 +3556,7 @@ bool TypeVector::isintegral()
     return basetype->nextOf()->isintegral();
 }
 
-int TypeVector::isfloating()
+bool TypeVector::isfloating()
 {
     return basetype->nextOf()->isfloating();
 }
@@ -3566,7 +3566,7 @@ bool TypeVector::isunsigned()
     return basetype->nextOf()->isunsigned();
 }
 
-int TypeVector::isscalar()
+bool TypeVector::isscalar()
 {
     return basetype->nextOf()->isscalar();
 }
@@ -5019,9 +5019,9 @@ MATCH TypePointer::constConv(Type *to)
     return TypeNext::constConv(to);
 }
 
-int TypePointer::isscalar()
+bool TypePointer::isscalar()
 {
-    return TRUE;
+    return true;
 }
 
 Expression *TypePointer::defaultInit(Loc loc)
@@ -7490,22 +7490,22 @@ bool TypeEnum::isintegral()
     return sym->memtype->isintegral();
 }
 
-int TypeEnum::isfloating()
+bool TypeEnum::isfloating()
 {
     return sym->memtype->isfloating();
 }
 
-int TypeEnum::isreal()
+bool TypeEnum::isreal()
 {
     return sym->memtype->isreal();
 }
 
-int TypeEnum::isimaginary()
+bool TypeEnum::isimaginary()
 {
     return sym->memtype->isimaginary();
 }
 
-int TypeEnum::iscomplex()
+bool TypeEnum::iscomplex()
 {
     return sym->memtype->iscomplex();
 }
@@ -7515,7 +7515,7 @@ bool TypeEnum::isunsigned()
     return sym->memtype->isunsigned();
 }
 
-int TypeEnum::isscalar()
+bool TypeEnum::isscalar()
 {
     return sym->memtype->isscalar();
 }
@@ -7713,22 +7713,22 @@ bool TypeTypedef::isintegral()
     return sym->basetype->isintegral();
 }
 
-int TypeTypedef::isfloating()
+bool TypeTypedef::isfloating()
 {
     return sym->basetype->isfloating();
 }
 
-int TypeTypedef::isreal()
+bool TypeTypedef::isreal()
 {
     return sym->basetype->isreal();
 }
 
-int TypeTypedef::isimaginary()
+bool TypeTypedef::isimaginary()
 {
     return sym->basetype->isimaginary();
 }
 
-int TypeTypedef::iscomplex()
+bool TypeTypedef::iscomplex()
 {
     return sym->basetype->iscomplex();
 }
@@ -7738,7 +7738,7 @@ bool TypeTypedef::isunsigned()
     return sym->basetype->isunsigned();
 }
 
-int TypeTypedef::isscalar()
+bool TypeTypedef::isscalar()
 {
     return sym->basetype->isscalar();
 }
