@@ -2484,7 +2484,7 @@ unsigned Obj::bytes(int seg, targ_size_t offset, unsigned nbytes, void *p)
 int relcnt=0;
 
 void ElfObj::addrel(int seg, targ_size_t offset, unsigned type,
-                                        IDXSYM symidx, targ_size_t val)
+                    IDXSYM symidx, targ_size_t val)
 {
     seg_data *segdata;
     Outbuffer *buf;
@@ -2599,6 +2599,138 @@ void ElfObj::addrel(int seg, targ_size_t offset, unsigned type,
             segdata->SDrelindex = i;    // next entry usually greater
         }
     }
+}
+
+static size_t relsize64(unsigned type)
+{
+    assert(I64);
+    switch (type)
+    {
+    case R_X86_64_NONE: return 0;
+    case R_X86_64_64: return 8;
+    case R_X86_64_PC32: return 4;
+    case R_X86_64_GOT32: return 4;
+    case R_X86_64_PLT32: return 4;
+    case R_X86_64_COPY: return 0;
+    case R_X86_64_GLOB_DAT: return 8;
+    case R_X86_64_JUMP_SLOT: return 8;
+    case R_X86_64_RELATIVE: return 8;
+    case R_X86_64_GOTPCREL: return 4;
+    case R_X86_64_32: return 4;
+    case R_X86_64_32S: return 4;
+    case R_X86_64_16: return 2;
+    case R_X86_64_PC16: return 2;
+    case R_X86_64_8: return 1;
+    case R_X86_64_PC8: return 1;
+    case R_X86_64_DTPMOD64: return 8;
+    case R_X86_64_DTPOFF64: return 8;
+    case R_X86_64_TPOFF64: return 8;
+    case R_X86_64_TLSGD: return 4;
+    case R_X86_64_TLSLD: return 4;
+    case R_X86_64_DTPOFF32: return 4;
+    case R_X86_64_GOTTPOFF: return 4;
+    case R_X86_64_TPOFF32: return 4;
+    case R_X86_64_PC64: return 8;
+    case R_X86_64_GOTOFF64: return 8;
+    case R_X86_64_GOTPC32: return 4;
+    default:
+        assert(0);
+    }
+}
+
+static size_t relsize32(unsigned type)
+{
+    assert(I32);
+    switch (type)
+    {
+    case RI_TYPE_NONE: return 0;
+    case RI_TYPE_SYM32: return 4;
+    case RI_TYPE_PC32: return 4;
+    case RI_TYPE_GOT32: return 4;
+    case RI_TYPE_PLT32: return 4;
+    case RI_TYPE_COPY: return 0;
+    case RI_TYPE_GLOBDAT: return 4;
+    case RI_TYPE_JMPSLOT: return 4;
+    case RI_TYPE_REL: return 4;
+    case RI_TYPE_GOTOFF: return 4;
+    case RI_TYPE_GOTPC: return 4;
+    case RI_TYPE_TLS_TPOFF: return 4;
+    case RI_TYPE_TLS_IE: return 4;
+    case RI_TYPE_TLS_GOTIE: return 4;
+    case RI_TYPE_TLS_LE: return 4;
+    case RI_TYPE_TLS_GD: return 4;
+    case RI_TYPE_TLS_LDM: return 4;
+    case RI_TYPE_TLS_GD_32: return 4;
+    case RI_TYPE_TLS_GD_PUSH: return 4;
+    case RI_TYPE_TLS_GD_CALL: return 4;
+    case RI_TYPE_TLS_GD_POP: return 4;
+    case RI_TYPE_TLS_LDM_32: return 4;
+    case RI_TYPE_TLS_LDM_PUSH: return 4;
+    case RI_TYPE_TLS_LDM_CALL: return 4;
+    case RI_TYPE_TLS_LDM_POP: return 4;
+    case RI_TYPE_TLS_LDO_32: return 4;
+    case RI_TYPE_TLS_IE_32: return 4;
+    case RI_TYPE_TLS_LE_32: return 4;
+    case RI_TYPE_TLS_DTPMOD32: return 4;
+    case RI_TYPE_TLS_DTPOFF32: return 4;
+    case RI_TYPE_TLS_TPOFF32: return 4;
+    default:
+        assert(0);
+    }
+}
+
+/*******************************
+ * Write/Append a value to the given segment and offset.
+ *      targseg =       the target segment for the relocation
+ *      offset =        offset within target segment
+ *      val =           addend or displacement from symbol
+ *      size =          number of bytes to write
+ */
+static size_t writeaddrval(int targseg, size_t offset, targ_size_t val, size_t size)
+{
+    assert(targseg >= 0 && targseg <= seg_count);
+
+    Outbuffer *buf = SegData[targseg]->SDbuf;
+    const size_t save = buf->size();
+    buf->setsize(offset);
+    buf->write(&val, size);
+    // restore Outbuffer position
+    if (save > offset + size)
+        buf->setsize(save);
+    return size;
+}
+
+/*******************************
+ * Write/Append a relocatable value to the given segment and offset.
+ * Input:
+ *      targseg =       the target segment for the relocation
+ *      offset =        offset within target segment
+ *      reltype =       ELF relocation type RI_TYPE_XXXX
+ *      symidx =        symbol base for relocation
+ *      val =           addend or displacement from symbol
+ */
+size_t ElfObj::writerel(int targseg, size_t offset, unsigned reltype,
+                        IDXSYM symidx, targ_size_t val)
+{
+    assert(reltype != R_X86_64_NONE);
+
+    size_t sz;
+    if (I64)
+    {
+        // Elf64_Rela stores addend in Rela.r_addend field
+        sz = relsize64(reltype);
+        writeaddrval(targseg, offset, 0, sz);
+        addrel(targseg, offset, reltype, symidx, val);
+    }
+    else
+    {
+        assert(I32);
+        // Elf32_Rel stores addend in target location
+        sz = relsize32(reltype);
+        writeaddrval(targseg, offset, val, sz);
+        addrel(targseg, offset, reltype, symidx, 0);
+    }
+    return sz;
 }
 
 /*******************************
