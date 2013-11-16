@@ -851,6 +851,38 @@ void test6937()
 }
 
 /********************************************/
+// 3991
+
+union X3991
+{
+    int   a = void;
+    dchar b = void;
+}
+
+union Y3991
+{
+    int   a = void;
+    dchar b = 'a';
+}
+
+union Z3991
+{
+    int   a = 123;
+    dchar b = void;
+}
+
+void test3991()
+{
+    X3991 x;
+
+    Y3991 y;
+    assert(y.b == 'a');
+
+    Z3991 z;
+    assert(z.a == 123);
+}
+
+/********************************************/
 // 7727
 
 union U7727A1 { int i;       double d;       }
@@ -1237,6 +1269,7 @@ int main()
     test5889();
     test4247();
     test6937();
+    test3991();
     test7727();
     test7929();
     test7021();

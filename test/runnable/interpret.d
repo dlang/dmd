@@ -2766,6 +2766,36 @@ struct S5117b
 }
 
 /************************************************/
+// 6439
+
+struct A6439
+{
+    this(uint a, uint b)
+    {
+        begin = a;
+        end = b;
+    }
+    union
+    {
+        struct
+        {
+            uint begin, end;
+        }
+        uint[2] arr;
+    }
+}
+
+void test6439()
+{
+    enum y = A6439(10, 20);
+    A6439 y2 = A6439(10, 20);
+    assert(y2.begin == y.begin && y2.end == y.end);  //passes
+    assert(y.arr != [0,0]);
+    assert(y.arr == [10,20]);
+    assert(y.arr == y2.arr);
+}
+
+/************************************************/
 // from tests/fail_compilation/fail147
 
 static assert(!is(typeof(Compileable!(
@@ -3238,6 +3268,7 @@ int main()
     //test108(); 
     test109();
     test112();
+    test6439();
     test6504();
     test8818();
     test9954();    

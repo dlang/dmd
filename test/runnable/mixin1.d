@@ -1042,6 +1042,20 @@ void test2245()
 }
 
 /*******************************************/
+// 2481
+
+template M2481() { int i; }
+class Z2481a { struct { mixin M2481!(); } }
+class Z2481b { struct { int i; } }
+
+void test2481()
+{
+    Z2481a z1;
+    Z2481b z2;
+    static assert(z1.i.offsetof == z2.i.offsetof);
+}
+
+/*******************************************/
 // 2740
 
 interface IFooable2740
