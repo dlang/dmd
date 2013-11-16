@@ -1527,28 +1527,14 @@ void Obj::compiler()
 
 void Obj::staticctor(Symbol *s,int dtor,int none)
 {
-// Static constructors and destructors
-    IDXSEC seg;
-    Outbuffer *buf;
-
+    // Static constructors and destructors
     //dbg_printf("Obj::staticctor(%s) offset %x\n",s->Sident,s->Soffset);
     //symbol_print(s);
-    s->Sseg = seg =
+    const IDXSEC seg = s->Sseg =
         ElfObj::getsegment(".ctors", NULL, SHT_PROGDEF, SHF_ALLOC|SHF_WRITE, 4);
-    buf = SegData[seg]->SDbuf;
-    if (I64)
-    {
-        // use only rela addend and write 0 to target
-        buf->write64(0);
-        ElfObj::addrel(seg,SegData[seg]->SDoffset,I64 ? R_X86_64_64 : RI_TYPE_SYM32,STI_TEXT,s->Soffset);
-    }
-    else
-    {
-        // write addend to target
-        buf->write32(s->Soffset);
-        ElfObj::addrel(seg,SegData[seg]->SDoffset,I64 ? R_X86_64_64 : RI_TYPE_SYM32,STI_TEXT,0);
-    }
-    SegData[seg]->SDoffset = buf->size();
+    const unsigned relinfo = I64 ? R_X86_64_64 : RI_TYPE_SYM32;
+    const size_t sz = ElfObj::writerel(seg, SegData[seg]->SDoffset, relinfo, STI_TEXT, s->Soffset);
+    SegData[seg]->SDoffset += sz;
 }
 
 /**************************************
@@ -1561,26 +1547,14 @@ void Obj::staticctor(Symbol *s,int dtor,int none)
 
 void Obj::staticdtor(Symbol *s)
 {
-    IDXSEC seg;
-    Outbuffer *buf;
-
     //dbg_printf("Obj::staticdtor(%s) offset %x\n",s->Sident,s->Soffset);
     //symbol_print(s);
-    seg = ElfObj::getsegment(".dtors", NULL, SHT_PROGDEF, SHF_ALLOC|SHF_WRITE, 4);
-    buf = SegData[seg]->SDbuf;
-    if (I64)
-    {
-        // use only rela addend and write 0 to target
-        buf->write64(0);
-        ElfObj::addrel(seg,SegData[seg]->SDoffset,I64 ? R_X86_64_64 : RI_TYPE_SYM32,s->Sxtrnnum,s->Soffset);
-    }
-    else
-    {
-        // write addend to target
-        buf->write32(s->Soffset);
-        ElfObj::addrel(seg,SegData[seg]->SDoffset,I64 ? R_X86_64_64 : RI_TYPE_SYM32,s->Sxtrnnum,0);
-    }
-    SegData[seg]->SDoffset = buf->size();
+    // Why does this sequence differ from staticctor, looks like a bug?
+    const IDXSEC seg =
+        ElfObj::getsegment(".dtors", NULL, SHT_PROGDEF, SHF_ALLOC|SHF_WRITE, 4);
+    const unsigned relinfo = I64 ? R_X86_64_64 : RI_TYPE_SYM32;
+    const size_t sz = ElfObj::writerel(seg, SegData[seg]->SDoffset, relinfo, s->Sxtrnnum, s->Soffset);
+    SegData[seg]->SDoffset += sz;
 }
 
 //#else
