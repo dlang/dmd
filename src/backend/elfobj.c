@@ -3265,20 +3265,9 @@ void Obj::moduleinfo(Symbol *scc)
      */
     const int seg = ElfObj::getsegment(".ctors", NULL, SHT_PROGDEF, SHF_ALLOC|SHF_WRITE, NPTRSIZE);
 
-    Outbuffer *buf = SegData[seg]->SDbuf;
-    if (I64)
-    {
-        // use only rela addend and write 0 to target
-        ElfObj::addrel(seg, SegData[seg]->SDoffset, R_X86_64_64, STI_TEXT, codeOffset);
-        buf->write64(0);
-    }
-    else
-    {
-        // write addend to target
-        ElfObj::addrel(seg, SegData[seg]->SDoffset, RI_TYPE_SYM32, STI_TEXT, 0);
-        buf->write32(codeOffset);
-    }
-    SegData[seg]->SDoffset += NPTRSIZE;
+    const unsigned relinfo = I64 ? R_X86_64_64 : RI_TYPE_SYM32;
+    const size_t sz = ElfObj::writerel(seg, SegData[seg]->SDoffset, relinfo, STI_TEXT, codeOffset);
+    SegData[seg]->SDoffset += sz;
 #endif // !REQUIRE_DSO_REGISTRY
 }
 
