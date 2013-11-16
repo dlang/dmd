@@ -2762,20 +2762,11 @@ void Obj::reftodatseg(int seg,targ_size_t offset,targ_size_t val,
 
 void Obj::reftocodeseg(int seg,targ_size_t offset,targ_size_t val)
 {
-    Outbuffer *buf;
-    int save;
-    int segtyp = MAP_SEG2TYP(seg);
-
     //dbg_printf("Obj::reftocodeseg(seg=%d, offset=x%lx, val=x%lx )\n",seg,offset,val);
-    assert(seg > 0);            // COMDATs not done yet
-    buf = SegData[seg]->SDbuf;
-    save = buf->size();
-    buf->setsize(offset);
 
-    val = val - funcsym_p->Soffset;
     int relinfo;
 #if 0
-    if (segtyp == CODE)
+    if (MAP_SEG2TYP(seg) == CODE)
     {
         relinfo = RI_TYPE_PC32;
     }
@@ -2787,20 +2778,7 @@ void Obj::reftocodeseg(int seg,targ_size_t offset,targ_size_t val)
         else
             relinfo = (config.flags3 & CFG3pic) ? RI_TYPE_GOTOFF : RI_TYPE_SYM32;
     }
-    if (I64)
-    {
-        // use only rela addend and write 0 to target
-        buf->write32(0);
-        ElfObj::addrel(seg,offset, relinfo, funcsym_p->Sxtrnnum, val);
-    }
-    else
-    {
-        // write addend to target
-        buf->write32(val);
-        ElfObj::addrel(seg,offset, relinfo, funcsym_p->Sxtrnnum, 0);
-    }
-    if (save > offset + 4)
-        buf->setsize(save);
+    ElfObj::writerel(seg, offset, relinfo, funcsym_p->Sxtrnnum, val - funcsym_p->Soffset);
 }
 
 /*******************************
