@@ -351,6 +351,8 @@ void TypedefDeclaration::semantic(Scope *sc)
     else if (sem == SemanticIn)
     {
         error("circular definition");
+        basetype = Type::terror;
+        errors = true;
     }
 }
 
@@ -359,6 +361,7 @@ void TypedefDeclaration::semantic2(Scope *sc)
     //printf("TypedefDeclaration::semantic2(%s) sem = %d\n", toChars(), sem);
     if (sem == SemanticDone)
     {   sem = Semantic2Done;
+        basetype->alignment();          // used to detect circular typedef declarations
         if (init)
         {
             Initializer *savedinit = init;
