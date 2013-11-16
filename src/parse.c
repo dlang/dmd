@@ -67,6 +67,35 @@ Parser::Parser(Module *module, const utf8_t *base, size_t length, int doDocComme
     //nextToken();              // start up the scanner
 }
 
+/*********************
+ * Use this constructor for string mixins.
+ * Input:
+ *      loc     location in source file of mixin
+ */
+Parser::Parser(Loc loc, Module *module, const utf8_t *base, size_t length, int doDocComment)
+    : Lexer(module, base, 0, length, doDocComment, 0)
+{
+    //printf("Parser::Parser()\n");
+    scanloc = loc;
+
+    if (loc.filename)
+    {
+        /* Create a pseudo-filename for the mixin string, as it may not even exist
+         * in the source file.
+         */
+        char *filename = (char *)mem.malloc(strlen(loc.filename) + 7 + sizeof(loc.linnum) * 3 + 1);
+        sprintf(filename, "%s-mixin-%d", loc.filename, (int)loc.linnum);
+        scanloc.filename = filename;
+    }
+
+    md = NULL;
+    linkage = LINKd;
+    endloc = Loc();
+    inBrackets = 0;
+    lookingForElse = Loc();
+    //nextToken();              // start up the scanner
+}
+
 Dsymbols *Parser::parseModule()
 {
     Dsymbols *decldefs;
