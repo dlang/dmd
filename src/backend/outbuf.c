@@ -1,5 +1,5 @@
 // Copyright (C) 1994-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2013 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -33,6 +33,7 @@ Outbuffer::Outbuffer()
     p = NULL;
     len = 0;
     inc = 0;
+    origbuf = NULL;
 }
 
 Outbuffer::~Outbuffer()
