@@ -906,6 +906,18 @@ void testandand()
 
 ////////////////////////////////////////////////////////////////////////
 
+bool bittest11508(char c)
+{
+    return c=='_' || c=='-' || c=='+' || c=='.';
+}
+
+void testbittest()
+{
+    assert(bittest11508('_'));
+}
+
+////////////////////////////////////////////////////////////////////////
+
 uint or1(ubyte x)
 {
     return x | (x<<8) | (x<<16) | (x<<24) | (x * 3);
@@ -1026,6 +1038,7 @@ int main()
     testarrayinit();
     testU();
     testulldiv();
+    testbittest();
     testfastudiv();
     testfastdiv();
     testdocond();
