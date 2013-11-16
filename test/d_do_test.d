@@ -174,8 +174,8 @@ void gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     }
     replaceResultsDir(testArgs.permuteArgs, envData);
 
-    // win(32|64) doesn't support pic, nor does freebsd/64 currently
-    if (envData.os == "win32" || envData.os == "win64" || envData.os == "freebsd")
+    // win(32|64) doesn't support pic
+    if (envData.os == "win32" || envData.os == "win64")
     {
         auto index = std.string.indexOf(testArgs.permuteArgs, "-fPIC");
         if (index != -1)
