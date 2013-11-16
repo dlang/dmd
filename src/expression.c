@@ -8452,6 +8452,7 @@ Expression *CallExp::semantic(Scope *sc)
     Objects *tiargs = NULL;     // initial list of template arguments
     Expression *ethis = NULL;
     Type *tthis = NULL;
+    Expression *e1org = e1;
 
 #if LOGSEMANTIC
     printf("CallExp::semantic() %s\n", toChars());
@@ -9220,6 +9221,7 @@ Lagain:
 
     if (!type)
     {
+        e1 = e1org;     // Bugzilla 10922, avoid recursive expression printing
         error("forward reference to inferred return type of function call %s", toChars());
         return new ErrorExp();
     }
