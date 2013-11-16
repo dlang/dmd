@@ -3419,9 +3419,8 @@ static void obj_rtinit()
             // add EBX,_GLOBAL_OFFSET_TABLE_+3
             buf->writeByte(0x81);
             buf->writeByte(modregrm(3,0,BX));
-            buf->write32(3);
-            ElfObj::addrel(codseg, off + 2, RI_TYPE_GOTPC, Obj::external(Obj::getGOTsym()), 0);
-            off += 6;
+            off += 2;
+            off += ElfObj::writerel(codseg, off, RI_TYPE_GOTPC, Obj::external(Obj::getGOTsym()), 3);
         }
 
         int reltype = I64 ? R_X86_64_PC32 : RI_TYPE_SYM32;
@@ -3435,16 +3434,14 @@ static void obj_rtinit()
                 buf->writeByte(REX | REX_W);
                 buf->writeByte(0x8D);
                 buf->writeByte(modregrm(0,AX,5));
-                buf->write32(0);
-                ElfObj::addrel(codseg, off + 3, reltype, syms[i], -4);
-                off += 7;
+                off += 3;
+                off += ElfObj::writerel(codseg, off, reltype, syms[i], -4);
             }
             else
             {  // mov EAX, sym
                 buf->writeByte(0xB8 + AX);
-                buf->write32(0);
-                ElfObj::addrel(codseg, off + 1, reltype, syms[i], 0);
-                off += 5;
+                off += 1;
+                off += ElfObj::writerel(codseg, off, reltype, syms[i], 0);
             }
 
             // push RAX
@@ -3478,19 +3475,8 @@ static void obj_rtinit()
 
         // call _d_dso_registry@PLT
         buf->writeByte(0xE8);
-        if (I64)
-        {
-            // use only rela addend and write 0 to target
-            buf->write32(0);
-            ElfObj::addrel(codseg, off + 1, R_X86_64_PLT32, symidx, -4);
-        }
-        else
-        {
-            // write addend to target
-            buf->write32(-4);
-            ElfObj::addrel(codseg, off + 1, RI_TYPE_PLT32, symidx, 0);
-        }
-        off += 5;
+        off += 1;
+        off += ElfObj::writerel(codseg, off, I64 ? R_X86_64_PLT32 : RI_TYPE_PLT32, symidx, -4);
 
 #else
 
@@ -3506,20 +3492,20 @@ static void obj_rtinit()
                 buf->writeByte(REX | REX_W);
                 buf->writeByte(0x83);
                 buf->writeByte(modregrm(0,7,5));
-                buf->write32(0);
-                ElfObj::addrel(codseg, off + 3, R_X86_64_GOTPCREL, symidx, -5);
+                off += 3;
+                off += ElfObj::writerel(codseg, off, R_X86_64_GOTPCREL, symidx, -5);
                 buf->writeByte(0);
-                off += 8;
+                off += 1;
             }
             else
             {
                 // cmp foo[GOT], 0
                 buf->writeByte(0x81);
                 buf->writeByte(modregrm(2,7,BX));
+                off += 2;
+                off += ElfObj::writerel(codseg, off, RI_TYPE_GOT32, symidx, 0);
                 buf->write32(0);
-                buf->write32(0);
-                ElfObj::addrel(codseg, off + 2, RI_TYPE_GOT32, symidx, 0);
-                off += 10;
+                off += 4;
             }
             // jz +5
             buf->writeByte(0x74);
@@ -3528,28 +3514,16 @@ static void obj_rtinit()
 
             // call foo@PLT[RIP]
             buf->writeByte(0xE8);
-            if (I64)
-            {
-                // use only rela addend and write 0 to target
-                buf->write32(0);
-                ElfObj::addrel(codseg, off + 1, R_X86_64_PLT32, symidx, -4);
-            }
-            else
-            {
-                // write addend to target
-                buf->write32(-4);
-                ElfObj::addrel(codseg, off + 1, RI_TYPE_PLT32, symidx, 0);
-            }
-            off += 5;
+            off += 1;
+            off += ElfObj::writerel(codseg, off, I64 ? R_X86_64_PLT32 : RI_TYPE_PLT32, symidx, -4);
         }
         else
         {
             // mov ECX, offset foo
             buf->writeByte(0xB8 + CX);
-            buf->write32(0);
+            off += 1;
             reltype = I64 ? R_X86_64_32 : RI_TYPE_SYM32;
-            ElfObj::addrel(codseg, off + 1, reltype, symidx, 0);
-            off += 5;
+            off += ElfObj::writerel(codseg, off, reltype, symidx, 0);
 
             // test ECX, ECX
             buf->writeByte(0x85);
@@ -3562,19 +3536,8 @@ static void obj_rtinit()
 
             // call _d_dso_registry[RIP]
             buf->writeByte(0xE8);
-            if (I64)
-            {
-                // use only rela addend and write 0 to target
-                buf->write32(0);
-                ElfObj::addrel(codseg, off + 1, R_X86_64_PC32, symidx, -4);
-            }
-            else
-            {
-                // write addend to target
-                buf->write32(-4);
-                ElfObj::addrel(codseg, off + 1, RI_TYPE_PC32, symidx, -4);
-            }
-            off += 5;
+            off += 1;
+            off += ElfObj::writerel(codseg, off, I64 ? R_X86_64_PC32 : RI_TYPE_PC32, symidx, -4);
         }
 
 #endif // REQUIRE_DSO_REGISTRY
@@ -3610,9 +3573,7 @@ static void obj_rtinit()
             else
                 reltype = RI_TYPE_SYM32;
 
-            ElfObj::addrel(seg, 0, reltype, MAP_SEG2SYMIDX(codseg), 0);
-            SegData[seg]->SDbuf->writezeros(NPTRSIZE);
-            SegData[seg]->SDoffset += NPTRSIZE;
+            SegData[seg]->SDoffset += ElfObj::writerel(seg, 0, reltype, MAP_SEG2SYMIDX(codseg), 0);
         }
     }
     // set group section infos
