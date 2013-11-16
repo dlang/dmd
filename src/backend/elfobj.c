@@ -1594,28 +1594,10 @@ void Obj::ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym)
 
     assert(sfunc->Sxtrnnum && sfunc->Sseg);
     assert(ehsym->Sxtrnnum && ehsym->Sseg);
-    if (I64)
-    {
-        // use only rela addend and write 0 to target
-        ElfObj::addrel(seg, buf->size(), R_X86_64_64, MAP_SEG2SYMIDX(sfunc->Sseg), sfunc->Soffset);
-        buf->write64(0);
-
-        ElfObj::addrel(seg, buf->size(), R_X86_64_64, MAP_SEG2SYMIDX(ehsym->Sseg), ehsym->Soffset);
-        buf->write64(0);
-
-        buf->write64(sfunc->Ssize);
-    }
-    else
-    {
-        // write addend to target
-        ElfObj::addrel(seg, buf->size(), RI_TYPE_SYM32, MAP_SEG2SYMIDX(sfunc->Sseg), 0);
-        buf->write32(sfunc->Soffset);
-
-        ElfObj::addrel(seg, buf->size(), RI_TYPE_SYM32, MAP_SEG2SYMIDX(ehsym->Sseg), 0);
-        buf->write32(ehsym->Soffset);
-
-        buf->write32(sfunc->Ssize);
-    }
+    const unsigned relinfo = I64 ?  R_X86_64_64 : RI_TYPE_SYM32;
+    ElfObj::writerel(seg, buf->size(), relinfo, MAP_SEG2SYMIDX(sfunc->Sseg), sfunc->Soffset);
+    ElfObj::writerel(seg, buf->size(), relinfo, MAP_SEG2SYMIDX(ehsym->Sseg), ehsym->Soffset);
+    buf->write(&sfunc->Ssize, NPTRSIZE);
 }
 
 /*********************************************
