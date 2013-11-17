@@ -9442,8 +9442,9 @@ Expression *AddrExp::semantic(Scope *sc)
                 {
                     if (sc->func->setUnsafe())
                     {
+                        const char *p = v->isParameter() ? "parameter" : "local";
                         error("cannot take address of %s %s in @safe function %s",
-                            v->isParameter() ? "parameter" : "local",
+                            p,
                             v->toChars(),
                             sc->func->toChars());
                     }

@@ -609,7 +609,8 @@ int tryMain(size_t argc, const char *argv[])
     is64bit = parse_arch(dflags_argc, dflags_argv, is64bit);
     global.params.is64bit = is64bit;
 
-    inifile(argv[0], inifilename, is64bit ? "Environment64" : "Environment32");
+    const char *envsec = is64bit ? "Environment64" : "Environment32";
+    inifile(argv[0], inifilename, envsec);
 
     getenv_setargv("DFLAGS", &argc, &argv);
 
@@ -1069,7 +1070,7 @@ Language changes listed by -transition=id:\n\
 
     if(global.params.is64bit != is64bit)
         error(Loc(), "the architecture must not be changed in the %s section of %s",
-              is64bit ? "Environment64" : "Environment32", inifilename);
+              envsec, inifilename);
 
     // Target uses 64bit pointers.
     global.params.isLP64 = global.params.is64bit;

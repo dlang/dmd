@@ -802,8 +802,10 @@ int CompoundStatement::blockExit(bool mustNotThrow)
                     else if (sd && (!sd->statement->hasCode() || sd->statement->isCaseStatement()))
                         ;
                     else
-                        s->error("switch case fallthrough - use 'goto %s;' if intended",
-                            s->isCaseStatement() ? "case" : "default");
+                    {
+                        const char *gototype = s->isCaseStatement() ? "case" : "default";
+                        s->error("switch case fallthrough - use 'goto %s;' if intended", gototype);
+                    }
                 }
             }
 
