@@ -7415,6 +7415,8 @@ Dsymbol *TypeEnum::toDsymbol(Scope *sc)
 
 Type *TypeEnum::toBasetype()
 {
+    if (!sym->members && !sym->memtype)
+        return this;
     return sym->getMemtype(Loc())->toBasetype();
 }
 
@@ -7487,71 +7489,72 @@ Expression *TypeEnum::getProperty(Loc loc, Identifier *ident, int flag)
 
 bool TypeEnum::isintegral()
 {
-    return sym->memtype->isintegral();
+    return sym->getMemtype(Loc())->isintegral();
 }
 
 bool TypeEnum::isfloating()
 {
-    return sym->memtype->isfloating();
+    return sym->getMemtype(Loc())->isfloating();
 }
 
 bool TypeEnum::isreal()
 {
-    return sym->memtype->isreal();
+    return sym->getMemtype(Loc())->isreal();
 }
 
 bool TypeEnum::isimaginary()
 {
-    return sym->memtype->isimaginary();
+    return sym->getMemtype(Loc())->isimaginary();
 }
 
 bool TypeEnum::iscomplex()
 {
-    return sym->memtype->iscomplex();
+    return sym->getMemtype(Loc())->iscomplex();
 }
 
 bool TypeEnum::isunsigned()
 {
-    return sym->memtype->isunsigned();
+    return sym->getMemtype(Loc())->isunsigned();
 }
 
 bool TypeEnum::isscalar()
 {
-    return sym->memtype->isscalar();
+    return sym->getMemtype(Loc())->isscalar();
 }
 
 int TypeEnum::isString()
 {
-    return sym->memtype->isString();
+    return sym->getMemtype(Loc())->isString();
 }
 
 int TypeEnum::isAssignable()
 {
-    return sym->memtype->isAssignable();
+    return sym->getMemtype(Loc())->isAssignable();
 }
 
 int TypeEnum::checkBoolean()
 {
-    return sym->memtype->checkBoolean();
+    return sym->getMemtype(Loc())->checkBoolean();
 }
 
 int TypeEnum::needsDestruction()
 {
-    return sym->memtype->needsDestruction();
+    return sym->getMemtype(Loc())->needsDestruction();
 }
 
 bool TypeEnum::needsNested()
 {
-    return sym->memtype ? sym->memtype->needsNested() : false;
+    return sym->getMemtype(Loc())->needsNested();
 }
 
 MATCH TypeEnum::implicitConvTo(Type *to)
-{   MATCH m;
+{
+    MATCH m;
 
     //printf("TypeEnum::implicitConvTo()\n");
     if (ty == to->ty && sym == ((TypeEnum *)to)->sym)
         m = (mod == to->mod) ? MATCHexact : MATCHconst;
-    else if (sym->memtype->implicitConvTo(to))
+    else if (sym->getMemtype(Loc())->implicitConvTo(to))
         m = MATCHconvert;       // match with conversions
     else
         m = MATCHnomatch;       // no match
@@ -7593,13 +7596,7 @@ int TypeEnum::hasPointers()
 
 Type *TypeEnum::nextOf()
 {
-    if (sym->semanticRun == PASSinit)
-    {
-        assert(sym->scope);
-        sym->semantic(sym->scope);
-    }
-    assert(sym->memtype);
-    return sym->memtype->nextOf();
+    return sym->getMemtype(Loc())->nextOf();
 }
 
 /***************************** TypeTypedef *****************************/
