@@ -471,7 +471,7 @@ RootObject *objectSyntaxCopy(RootObject *o)
 /* ======================== TemplateDeclaration ============================= */
 
 TemplateDeclaration::TemplateDeclaration(Loc loc, Identifier *id,
-        TemplateParameters *parameters, Expression *constraint, Dsymbols *decldefs, int ismixin)
+        TemplateParameters *parameters, Expression *constraint, Dsymbols *decldefs, bool ismixin, bool literal)
     : ScopeDsymbol(id)
 {
 #if LOG
@@ -499,7 +499,7 @@ TemplateDeclaration::TemplateDeclaration(Loc loc, Identifier *id,
     this->overroot = NULL;
     this->funcroot = NULL;
     this->onemember = NULL;
-    this->literal = 0;
+    this->literal = literal;
     this->ismixin = ismixin;
     this->previous = NULL;
     this->protection = PROTundefined;
@@ -538,8 +538,7 @@ Dsymbol *TemplateDeclaration::syntaxCopy(Dsymbol *)
     if (constraint)
         e = constraint->syntaxCopy();
     Dsymbols *d = Dsymbol::arraySyntaxCopy(members);
-    td = new TemplateDeclaration(loc, ident, p, e, d, ismixin);
-    td->literal = literal;
+    td = new TemplateDeclaration(loc, ident, p, e, d, ismixin, literal);
     return td;
 }
 

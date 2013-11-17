@@ -305,7 +305,7 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
         Dsymbols *decldefs = new Dsymbols();
         decldefs->push(s);
         TemplateDeclaration *tempdecl =
-            new TemplateDeclaration(assign->loc, fop->ident, tpl, NULL, decldefs, 0);
+            new TemplateDeclaration(assign->loc, fop->ident, tpl, NULL, decldefs);
         s = tempdecl;
     }
 #endif
