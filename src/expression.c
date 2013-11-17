@@ -6635,7 +6635,7 @@ Expression *IsExp::semantic(Scope *sc)
             case TOKenum:
                 if (targ->ty != Tenum)
                     goto Lno;
-                tded = ((TypeEnum *)targ)->sym->memtype;
+                tded = ((TypeEnum *)targ)->sym->getMemtype(loc);
                 break;
 
             case TOKdelegate:

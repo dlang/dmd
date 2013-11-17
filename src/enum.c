@@ -379,7 +379,8 @@ Type *EnumDeclaration::getMemtype(Loc loc)
     if (loc.linnum == 0)
         loc = this->loc;
     if (scope)
-    {   /* Enum is forward referenced. We don't need to resolve the whole thing,
+    {
+        /* Enum is forward referenced. We don't need to resolve the whole thing,
          * just the base type
          */
         if (memtype)
