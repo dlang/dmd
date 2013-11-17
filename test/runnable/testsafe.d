@@ -306,6 +306,16 @@ void arraycast()
     int[3] a; 
     int[] b = cast(int[])a; 
     uint[3] c = cast(uint[3])a; 
+
+    const char[] cc;
+    static assert( __traits(compiles, cast(const(ubyte)[])cc));
+    static assert( __traits(compiles, cast(const(ubyte[]))cc));
+    static assert(!__traits(compiles, cast(shared(ubyte)[])cc));
+
+    shared char[] sc;
+    static assert( __traits(compiles, cast(shared(ubyte)[])sc));
+    static assert( __traits(compiles, cast(shared(ubyte[]))sc));
+    static assert(!__traits(compiles, cast(const(ubyte)[])sc));
 } 
  
 @safe 
@@ -355,6 +365,19 @@ void classcast()
     static assert( __traits(compiles, cast(B)a));
     static assert( __traits(compiles, cast(A)b));
     static assert( __traits(compiles, cast(B)b));
+
+    const A ca;
+    const B cb;
+
+    static assert( __traits(compiles, cast(const(A))ca));
+    static assert( __traits(compiles, cast(const(B))ca));
+    static assert( __traits(compiles, cast(const(A))cb));
+    static assert( __traits(compiles, cast(const(B))cb));
+
+    static assert(!__traits(compiles, cast(A)ca));
+    static assert(!__traits(compiles, cast(B)ca));
+    static assert(!__traits(compiles, cast(A)cb));
+    static assert(!__traits(compiles, cast(B)cb));
 
     interface C {};
     interface D : C {};
