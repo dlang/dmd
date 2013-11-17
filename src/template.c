@@ -3666,12 +3666,12 @@ MATCH TypeInstance::deduceType(Scope *sc,
     printf("\tthis   = %d, ", ty); print();
     printf("\ttparam = %d, ", tparam->ty); tparam->print();
 #endif
-    TemplateDeclaration *tempdecl = tempinst->tempdecl->isTemplateDeclaration();
-    assert(tempdecl);
-
     // Extra check
-    if (tparam && tparam->ty == Tinstance)
+    if (tparam && tparam->ty == Tinstance && tempinst->tempdecl)
     {
+        TemplateDeclaration *tempdecl = tempinst->tempdecl->isTemplateDeclaration();
+        assert(tempdecl);
+
         TypeInstance *tp = (TypeInstance *)tparam;
 
         //printf("tempinst->tempdecl = %p\n", tempdecl);
@@ -4381,12 +4381,13 @@ void TemplateTypeParameter::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 
 void *TemplateTypeParameter::dummyArg()
-{   Type *t;
-
+{
+    Type *t;
     if (specType)
         t = specType;
     else
-    {   // Use this for alias-parameter's too (?)
+    {
+        // Use this for alias-parameter's too (?)
         if (!tdummy)
             tdummy = new TypeIdentifier(loc, ident);
         t = tdummy;
