@@ -5813,3 +5813,27 @@ string f10782()
 }
 mixin(f10782());
 
+/**************************************************
+    11534 - subtitude inout
+**************************************************/
+
+struct MultiArray11534
+{
+    this(size_t[] sizes...)
+    {
+        storage = new size_t[5];
+    }
+
+    @property auto raw_ptr() inout
+    {
+        return storage.ptr + 1;
+    }
+    size_t[] storage;
+}
+
+enum test11534 = () {
+    auto m = MultiArray11534(3,2,1);
+    auto start = m.raw_ptr;   //this trigger the bug
+    //auto start = m.storage.ptr + 1; //this obviously works
+    return 0;
+}();

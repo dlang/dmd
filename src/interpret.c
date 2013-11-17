@@ -4787,6 +4787,7 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
         return EXP_CANT_INTERPRET;
     }
     eresult = fd->interpret(istate, arguments, pthis);
+    eresult->type = type;
     if (eresult == EXP_CANT_INTERPRET)
     {   // Print a stack trace.
         if (!global.gag)
