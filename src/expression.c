@@ -1685,6 +1685,21 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                         arg = arg->castTo(sc, Type::timaginary64);
                         break;
                 }
+
+                if (tf->varargs == 1)
+                {
+                    const char *p = tf->linkage == LINKc ? "extern(C)" : "extern(C++)";
+                    if (arg->type->ty == Tarray)
+                    {
+                        arg->error("cannot pass dynamic arrays to %s vararg functions", p);
+                        arg = new ErrorExp();
+                    }
+                    if (arg->type->ty == Tsarray)
+                    {
+                        arg->error("cannot pass static arrays to %s vararg functions", p);
+                        arg = new ErrorExp();
+                    }
+                }
             }
 
             // Do not allow types that need destructors
