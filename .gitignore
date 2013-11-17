@@ -24,6 +24,7 @@ src/verstr.h
 .DS_Store
 trace.def
 trace.log
+Makefile
 
 # Visual Studio files
 *.exe
