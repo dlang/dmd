@@ -754,6 +754,7 @@ public:
 
     FuncLiteralDeclaration *isFuncLiteralDeclaration() { return this; }
     const char *kind();
+    const char *toPrettyChars();
 };
 
 class CtorDeclaration : public FuncDeclaration

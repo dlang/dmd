@@ -173,7 +173,17 @@ void FuncDeclaration::semantic(Scope *sc)
 
     FuncLiteralDeclaration *fld = isFuncLiteralDeclaration();
     if (fld && fld->treq)
-        linkage = ((TypeFunction *)fld->treq->nextOf())->linkage;
+    {
+        Type *treq = fld->treq;
+        assert(treq->nextOf()->ty == Tfunction);
+        if (treq->ty == Tdelegate)
+            fld->tok = TOKdelegate;
+        else if (treq->ty == Tpointer && treq->nextOf()->ty == Tfunction)
+            fld->tok = TOKfunction;
+        else
+            assert(0);
+        linkage = ((TypeFunction *)treq->nextOf())->linkage;
+    }
     else
         linkage = sc->linkage;
     protection = sc->protection;
@@ -3855,6 +3865,16 @@ void FuncLiteralDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     }
 }
 
+const char *FuncLiteralDeclaration::toPrettyChars()
+{
+    if (parent)
+    {
+        TemplateInstance *ti = parent->isTemplateInstance();
+        if (ti)
+            return ti->tempdecl->toPrettyChars();
+    }
+    return Dsymbol::toPrettyChars();
+}
 
 /********************************* CtorDeclaration ****************************/
 

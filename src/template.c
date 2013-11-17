@@ -2861,7 +2861,11 @@ void TemplateDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 
 char *TemplateDeclaration::toChars()
-{   OutBuffer buf;
+{
+    if (literal)
+        return Dsymbol::toChars();
+
+    OutBuffer buf;
     HdrGenState hgs;
 
     memset(&hgs, 0, sizeof(hgs));
@@ -2877,7 +2881,8 @@ char *TemplateDeclaration::toChars()
     buf.writeByte(')');
 
     if (onemember)
-    {   /* Bugzilla 9406:
+    {
+        /* Bugzilla 9406:
          * onemember->toAlias() might run semantic, so should not call it in stringizing
          */
         FuncDeclaration *fd = onemember->isFuncDeclaration();
@@ -2890,7 +2895,8 @@ char *TemplateDeclaration::toChars()
     }
 
     if (constraint)
-    {   buf.writestring(" if (");
+    {
+        buf.writestring(" if (");
         constraint->toCBuffer(&buf, &hgs);
         buf.writeByte(')');
     }
@@ -5763,7 +5769,8 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     // Give additional context info if error occurred during instantiation
     if (global.errors != errorsave)
     {
-        error(loc, "error instantiating");
+        if (!tempdecl->literal)
+            error(loc, "error instantiating");
         if (tinst)
         {   tinst->printInstantiationTrace();
         }
