@@ -501,6 +501,7 @@ TemplateDeclaration::TemplateDeclaration(Loc loc, Identifier *id,
     this->onemember = NULL;
     this->literal = literal;
     this->ismixin = ismixin;
+    this->isstatic = true;
     this->previous = NULL;
     this->protection = PROTundefined;
     this->numinstances = 0;
@@ -587,7 +588,8 @@ void TemplateDeclaration::semantic(Scope *sc)
      * a copy since attributes can change.
      */
     if (!this->scope)
-    {   this->scope = new Scope(*sc);
+    {
+        this->scope = new Scope(*sc);
         this->scope->setNoFree();
     }
 
@@ -599,6 +601,9 @@ void TemplateDeclaration::semantic(Scope *sc)
 
     if (!parent)
         parent = sc->parent;
+
+    isstatic = toParent()->isModule() ||
+               toParent()->isFuncDeclaration() && (scope->stc & STCstatic);
 
     protection = sc->protection;
 
@@ -626,7 +631,8 @@ void TemplateDeclaration::semantic(Scope *sc)
 
         tp->semantic(paramscope, parameters);
         if (i + 1 != parameters->dim && tp->isTemplateTupleParameter())
-        {   error("template tuple parameter must be last one");
+        {
+            error("template tuple parameter must be last one");
             errors = true;
         }
     }
@@ -5428,7 +5434,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     if (tempdecl->ismixin)
         error("mixin templates are not regular templates");
 
-    hasNestedArgs(tiargs);
+    hasNestedArgs(tiargs, tempdecl->isstatic);
 
     arrayCheckRecursiveExpansion(&tdtypes, tempdecl, sc);
 
@@ -5693,6 +5699,8 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     sc2->parent = /*enclosing ? sc->parent :*/ this;
     sc2->tinst = this;
     sc2->speculative = speculative;
+    if (enclosing && tempdecl->isstatic)
+        sc2->stc &= ~STCstatic;
 
     tryExpandMembers(sc2);
 
@@ -6585,7 +6593,7 @@ bool TemplateInstance::needsTypeInference(Scope *sc, int flag)
  * Sets enclosing property if so, and returns != 0;
  */
 
-bool TemplateInstance::hasNestedArgs(Objects *args)
+bool TemplateInstance::hasNestedArgs(Objects *args, bool isstatic)
 {
     int nested = 0;
     //printf("TemplateInstance::hasNestedArgs('%s')\n", tempdecl->ident->toChars());
@@ -6676,7 +6684,7 @@ bool TemplateInstance::hasNestedArgs(Objects *args)
                 ))
             {
                 // if module level template
-                if (tempdecl->toParent()->isModule())
+                if (isstatic)
                 {
                     Dsymbol *dparent = sa->toParent2();
                     if (!enclosing)
@@ -6711,7 +6719,7 @@ bool TemplateInstance::hasNestedArgs(Objects *args)
         }
         else if (va)
         {
-            nested |= hasNestedArgs(&va->objects);
+            nested |= hasNestedArgs(&va->objects, isstatic);
         }
     }
     //printf("-TemplateInstance::hasNestedArgs('%s') = %d\n", tempdecl->ident->toChars(), nested);

@@ -2886,6 +2886,41 @@ void test11271()
 }
 
 /******************************************/
+// 11533
+
+struct S11533
+{
+    void put(alias fun)() { fun!int(); }
+}
+void test11533a()
+{
+    static void foo(T)() {}
+    S11533 s;
+    s.put!foo();
+}
+
+void test11533b()
+{
+    static void bar(alias fun)() { fun(); }
+    void nested() {}
+    bar!nested();
+}
+
+void test11533c()
+{
+    static struct Foo(alias fun)
+    {
+        auto call() { return fun(); }
+    }
+    int var = 1;
+    auto getVar() { return var; }
+    Foo!getVar foo;
+    assert(foo.call() == var);
+    var += 1;
+    assert(foo.call() == var);
+}
+
+/******************************************/
 
 int main()
 {
@@ -2977,6 +3012,9 @@ int main()
     test10811();
     test10969();
     test11271();
+    test11533a();
+    test11533b();
+    test11533c();
 
     printf("Success\n");
     return 0;

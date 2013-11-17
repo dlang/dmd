@@ -3357,6 +3357,16 @@ L2:
                 TemplateDeclaration *tempdecl =
                     new TemplateDeclaration(loc, s->ident, tpl, constraint, decldefs);
                 s = tempdecl;
+
+                if (storage_class & STCstatic)
+                {
+                    assert(f->storage_class & STCstatic);
+                    f->storage_class &= ~STCstatic;
+
+                    Dsymbols *a = new Dsymbols();
+                    a->push(s);
+                    s = new StorageClassDeclaration(STCstatic, a);
+                }
             }
             if (link != linkage)
             {

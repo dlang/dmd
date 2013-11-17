@@ -70,6 +70,7 @@ public:
 
     bool literal;               // this template declaration is a literal
     bool ismixin;               // template declaration is only to be used as a mixin
+    bool isstatic;              // this is static template declaration
     PROT protection;
 
     struct Previous
@@ -344,7 +345,7 @@ public:
     bool semanticTiargs(Scope *sc);
     bool findBestMatch(Scope *sc, Expressions *fargs);
     bool needsTypeInference(Scope *sc, int flag = 0);
-    bool hasNestedArgs(Objects *tiargs);
+    bool hasNestedArgs(Objects *tiargs, bool isstatic);
     void declareParameters(Scope *sc);
     Identifier *genIdent(Objects *args);
     void expandMembers(Scope *sc);
