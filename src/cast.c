@@ -1949,7 +1949,8 @@ Expression *FuncExp::inferType(Type *to, int flag, Scope *sc, TemplateParameters
     {
         if (to->ty == Tdelegate ||
             to->ty == Tpointer && to->nextOf()->ty == Tfunction)
-        {   fd->treq = to;
+        {
+            fd->treq = to;
         }
         return this;
     }
@@ -1969,7 +1970,8 @@ Expression *FuncExp::inferType(Type *to, int flag, Scope *sc, TemplateParameters
     }
 
     if (td)
-    {   /// Parameter types inference from
+    {
+        // Parameter types inference from 'to'
         assert(td->scope);
         if (t->ty == Tfunction)
         {
@@ -1989,10 +1991,12 @@ Expression *FuncExp::inferType(Type *to, int flag, Scope *sc, TemplateParameters
                 {
                     TemplateParameter *tp = (*td->parameters)[i];
                     for (size_t u = 0; u < dim; u++)
-                    {   Parameter *p = Parameter::getNth(tfl->parameters, u);
+                    {
+                        Parameter *p = Parameter::getNth(tfl->parameters, u);
                         if (p->type->ty == Tident &&
                             ((TypeIdentifier *)p->type)->ident == tp->ident)
-                        {   p = Parameter::getNth(tfv->parameters, u);
+                        {
+                            p = Parameter::getNth(tfv->parameters, u);
                             Type *tprm = p->type;
                             if (tprm->reliesOnTident(tparams))
                                 goto L1;
@@ -2020,7 +2024,8 @@ Expression *FuncExp::inferType(Type *to, int flag, Scope *sc, TemplateParameters
                 fld->treq = NULL;
 
                 if (e->op == TOKfunction)
-                {   FuncExp *fe = (FuncExp *)e;
+                {
+                    FuncExp *fe = (FuncExp *)e;
                     assert(fe->td == NULL);
                     e = fe->inferType(to, flag);
                 }
@@ -2049,7 +2054,8 @@ Expression *FuncExp::inferType(Type *to, int flag, Scope *sc, TemplateParameters
     }
 L1:
     if (!flag && !e)
-    {   error("cannot infer function literal type from %s", to->toChars());
+    {
+        error("cannot infer function literal type from %s", to->toChars());
         e = new ErrorExp();
     }
     return e;
