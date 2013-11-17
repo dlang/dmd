@@ -2,7 +2,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/gag4269b.d(10): Error: undefined identifier Y, did you mean variable y?
+fail_compilation/gag4269b.d(10): Error: undefined identifier Y
 ---
 */
 
