@@ -31,10 +31,10 @@ MANIFEST=\
 	src\core\threadasm.S \
 	src\core\time.d \
 	src\core\vararg.d \
-    \
-    src\core\internal\hash.d \
-    src\core\internal\convert.d \
-    \
+	\
+	src\core\internal\hash.d \
+	src\core\internal\convert.d \
+	\
 	src\core\stdc\complex.d \
 	src\core\stdc\config.d \
 	src\core\stdc\ctype.d \

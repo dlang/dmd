@@ -1,16 +1,15 @@
 /**
- * Hash uniform caluclation implementation
+ * Written in the D programming language.
+ * This module provides functions to uniform calculating hash values for different types
  *
- * Author:   Igor Stepanov
- *            
+ * Copyright: Copyright Igor Stepanov 2013-2013.
+ * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
+ * Authors:   Igor Stepanov
+ * Source: $(DRUNTIMESRC core/internal/_hash.d)
  */
-
 module core.internal.hash;
 
 import core.internal.convert;
-/**
-    Compute hash value for different types.
-*/
 
 //enum hash. CTFE depends on base type
 @trusted nothrow
@@ -64,6 +63,7 @@ size_t hashOf(T)(auto ref T val, size_t seed = 0) if (!is(T == enum) && is(T S: 
     }
     else //Other types. CTFE unsupported
     {
+        assert(!__ctfe, "unable to compute hash of "~T.stringof);
         return bytesHash(val.ptr, ElementType.sizeof*val.length, seed);
     }
 }
@@ -72,23 +72,15 @@ size_t hashOf(T)(auto ref T val, size_t seed = 0) if (!is(T == enum) && is(T S: 
 @trusted nothrow pure
 size_t hashOf(T)(auto ref T val, size_t seed = 0) if (!is(T == enum) && __traits(isArithmetic, T))
 {
-    static if (is(typeof(toUbyte(val)) == const(ubyte)[])) //most of numerics CTFE ready
+    static if(__traits(isFloating, val))
     {
-        static if(__traits(isFloating, val))
-        {
-            T data = (val != val) ? T.nan : val;
-            auto bytes = toUbyte(data);
-            return bytesHash(bytes.ptr, bytes.length, seed);
-        }
-        else
-        {
-            auto bytes = toUbyte(val);
-            return bytesHash(bytes.ptr, bytes.length, seed);
-        }
+        T data = (val != val) ? T.nan : val;
+        auto bytes = toUbyte(data);
+        return bytesHash(bytes.ptr, bytes.length, seed);
     }
-    else //real, ireal, creal. CTFE unsupproted
+    else
     {
-        const(ubyte)[] bytes = (cast(const(ubyte)*)&val)[0 .. T.sizeof];
+        auto bytes = toUbyte(val);
         return bytesHash(bytes.ptr, bytes.length, seed);
     }
 }
@@ -127,6 +119,7 @@ size_t hashOf(T)(auto ref T val, size_t seed = 0) if (!is(T == enum) && (is(T ==
     }
     else // CTFE unsupproreted for structs with reference fields
     {
+        assert(!__ctfe, "unable to compute hash of "~T.stringof);
         const(ubyte)[] bytes = (cast(const(ubyte)*)&val)[0 .. T.sizeof];
         return bytesHash(bytes.ptr, bytes.length, seed);
     }
@@ -136,6 +129,7 @@ size_t hashOf(T)(auto ref T val, size_t seed = 0) if (!is(T == enum) && (is(T ==
 @trusted nothrow pure
 size_t hashOf(T)(auto ref T val, size_t seed = 0) if (!is(T == enum) && is(T == delegate))
 {
+    assert(!__ctfe, "unable to compute hash of "~T.stringof);
     const(ubyte)[] bytes = (cast(const(ubyte)*)&val)[0 .. T.sizeof];
     return bytesHash(bytes.ptr, bytes.length, seed);
 }
@@ -404,9 +398,9 @@ version(AnyX86)
 @trusted pure nothrow
 size_t bytesHash(const(void)* buf, size_t len, size_t seed = 0)
 {
-    static uint rotl32(uint x, byte r) pure nothrow @safe
+    static uint rotl32(uint n)(in uint x) pure nothrow @safe
     {
-        return (x << r) | (x >> (32 - r));
+        return (x << n) | (x >> (32 - n));
     }
 
     //-----------------------------------------------------------------------------
@@ -459,11 +453,11 @@ size_t bytesHash(const(void)* buf, size_t len, size_t seed = 0)
     {
         uint k1 = get32bits(data);
         k1 *= c1;
-        k1 = rotl32(k1,15);
+        k1 = rotl32!15(k1);
         k1 *= c2;
 
         h1 ^= k1;
-        h1 = rotl32(h1,13);
+        h1 = rotl32!13(h1);
         h1 = h1*5+c3;
     }
 
@@ -476,7 +470,7 @@ size_t bytesHash(const(void)* buf, size_t len, size_t seed = 0)
         case 3: k1 ^= data[2] << 16; goto case;
         case 2: k1 ^= data[1] << 8;  goto case;
         case 1: k1 ^= data[0];
-                k1 *= c1; k1 = rotl32(k1,15); k1 *= c2; h1 ^= k1;
+                k1 *= c1; k1 = rotl32!15(k1); k1 *= c2; h1 ^= k1;
                 goto default;
         default:
     }

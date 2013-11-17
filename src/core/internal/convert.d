@@ -1,3 +1,12 @@
+/**
+ * Written in the D programming language.
+ * This module provides functions to converting different values to const(ubyte)[]
+ *
+ * Copyright: Copyright Igor Stepanov 2013-2013.
+ * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
+ * Authors:   Igor Stepanov
+ * Source: $(DRUNTIMESRC core/internal/_convert.d)
+ */
 module core.internal.convert;
 
 @trusted pure nothrow
@@ -68,8 +77,8 @@ private Float parse(bool is_denormalized = false, T)(T x) if(is(T == float) || i
     if(x is cast(T)-0.0) return FloatTraits!T.NZERO;
     if(x is T.nan) return FloatTraits!T.NAN;
     if(x is -T.nan) return FloatTraits!T.NNAN;
-    if(x is T.infinity) return FloatTraits!T.INF;
-    if(x is -T.infinity) return FloatTraits!T.NINF;
+    if(x is T.infinity || x > T.max) return FloatTraits!T.INF;
+    if(x is -T.infinity || x < -T.max) return FloatTraits!T.NINF;
 
     uint sign = x < 0;
     x = sign ? -x : x;
@@ -79,7 +88,10 @@ private Float parse(bool is_denormalized = false, T)(T x) if(is(T == float) || i
 
     if(!exp)
     {
-        return Float(denormalizedMantissa(x), 0, sign);
+        if(is_denormalized)
+            return Float(0, 0, sign);
+        else
+            return Float(denormalizedMantissa(x), 0, sign);
     }
 
     x2 /= binPow2(e);
@@ -339,6 +351,21 @@ version(unittest)
         testNumberConvert!("0.0Fi");
         testNumberConvert!("0.0i");
         testNumberConvert!("0.0Li");
+
+        testNumberConvert!("cast(real)-0x9.0f7ee55df77618fp-13829L");
+        testNumberConvert!("cast(real)0x7.36e6e2640120d28p+8797L");
+        testNumberConvert!("cast(real)-0x1.05df6ce4702ccf8p+15835L");
+        testNumberConvert!("cast(real)0x9.54bb0d88806f714p-7088L");
+
+        testNumberConvert!("cast(double)-0x9.0f7ee55df77618fp-13829L");
+        testNumberConvert!("cast(double)0x7.36e6e2640120d28p+8797L");
+        testNumberConvert!("cast(double)-0x1.05df6ce4702ccf8p+15835L");
+        testNumberConvert!("cast(double)0x9.54bb0d88806f714p-7088L");
+
+        testNumberConvert!("cast(float)-0x9.0f7ee55df77618fp-13829L");
+        testNumberConvert!("cast(float)0x7.36e6e2640120d28p+8797L");
+        testNumberConvert!("cast(float)-0x1.05df6ce4702ccf8p+15835L");
+        testNumberConvert!("cast(float)0x9.54bb0d88806f714p-7088L");
     }
 
 
@@ -347,12 +374,6 @@ version(unittest)
         testConvert();
     }
 }
-
-
-
-
-
-
 
 private template Unqual(T)
 {
@@ -372,7 +393,7 @@ const(ubyte)[] toUbyte(T)(T[] arr) if (T.sizeof == 1)
 }
 
 @trusted pure nothrow
-const(ubyte)[] toUbyte(T)(T[] arr) if (is(typeof(toUbyte(arr[0])) == const(ubyte)[]))
+const(ubyte)[] toUbyte(T)(T[] arr) if ((is(typeof(toUbyte(arr[0])) == const(ubyte)[]))&&(T.sizeof > 1))
 {
     if (__ctfe)
     {

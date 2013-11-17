@@ -190,10 +190,10 @@ $(IMPDIR)\core\vararg.d : src\core\vararg.d
 	copy $** $@
 
 $(IMPDIR)\core\internal\hash.d : src\core\internal\hash.d
-    copy $** $@
+	copy $** $@
 
 $(IMPDIR)\core\internal\convert.d : src\core\internal\convert.d
-    copy $** $@ 
+	copy $** $@ 
 
 $(IMPDIR)\core\stdc\complex.d : src\core\stdc\complex.d
 	copy $** $@
