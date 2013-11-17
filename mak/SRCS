@@ -14,6 +14,9 @@ SRCS=\
 	src\core\time.d \
 	src\core\vararg.d \
 	\
+	src\core\internal\hash.d \
+	src\core\internal\convert.d \
+	\
 	src\core\stdc\config.d \
 	src\core\stdc\ctype.d \
 	src\core\stdc\errno.d \
