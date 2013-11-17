@@ -1190,12 +1190,12 @@ void preFunctionParameters(Loc loc, Scope *sc, Expressions *exps)
         {   Expression *arg = (*exps)[i];
 
             arg = resolveProperties(sc, arg);
-            (*exps)[i] =  arg;
-
             if (arg->op == TOKtype)
-                arg->error("%s is not an expression", arg->toChars());
-
-            //arg->rvalue();
+            {
+                arg->error("cannot pass type %s as a function argument", arg->toChars());
+                arg = new ErrorExp();
+            }
+            (*exps)[i] =  arg;
         }
     }
 }
