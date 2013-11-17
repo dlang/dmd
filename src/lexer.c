@@ -1585,6 +1585,8 @@ TOK Lexer::delimitedStringConstant(Token *t)
 Ldone:
     if (*p == '"')
         p++;
+    else if (hereid)
+        error("delimited string must end in %s\"", hereid->toChars());
     else
         error("delimited string must end in %c\"", delimright);
     t->len = stringbuffer.offset;
