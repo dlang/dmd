@@ -502,40 +502,28 @@ void cod3_buildmodulector(Outbuffer* buf, int codeOffset, int refOffset)
         buf->writeByte(REX | REX_W);
         buf->writeByte(LEA);
         buf->writeByte(modregrm(0,AX,5));
-        buf->write32(0);
-        ElfObj::addrel(seg, codeOffset + 3, R_X86_64_PC32, 3 /*STI_DATA*/, refOffset - 4);
+        codeOffset += 3;
+        codeOffset += ElfObj::writerel(seg, codeOffset, R_X86_64_PC32, 3 /*STI_DATA*/, refOffset - 4);
 
         // MOV RCX,_DmoduleRef@GOTPCREL[RIP]
         buf->writeByte(REX | REX_W);
         buf->writeByte(0x8B);
         buf->writeByte(modregrm(0,CX,5));
-        buf->write32(0);
-        ElfObj::addrel(seg, codeOffset + 10, R_X86_64_GOTPCREL, Obj::external_def("_Dmodule_ref"), -4);
+        codeOffset += 3;
+        codeOffset += ElfObj::writerel(seg, codeOffset, R_X86_64_GOTPCREL, Obj::external_def("_Dmodule_ref"), -4);
     }
     else
     {
-        const int reltype = I64 ? R_X86_64_32 : RI_TYPE_SYM32;
-
         /* movl ModuleReference*, %eax */
         buf->writeByte(0xB8);
-        if (I64)
-        {
-            // Elf64 uses only the explicit addends of a relocation.
-            // It seems like ld.bfd still adds the value at the to be relocated address,
-            // but ld.gold does not.
-            buf->write32(0);
-            ElfObj::addrel(seg, codeOffset + 1, reltype, 3 /*STI_DATA*/, refOffset);
-        }
-        else
-        {
-            buf->write32(refOffset);
-            ElfObj::addrel(seg, codeOffset + 1, reltype, 3 /*STI_DATA*/, 0);
-        }
+        codeOffset += 1;
+        const unsigned reltype = I64 ? R_X86_64_32 : RI_TYPE_SYM32;
+        codeOffset += ElfObj::writerel(seg, codeOffset, reltype, 3 /*STI_DATA*/, refOffset);
 
         /* movl _Dmodule_ref, %ecx */
         buf->writeByte(0xB9);
-        buf->write32(0);
-        ElfObj::addrel(seg, codeOffset + 6, reltype, Obj::external_def("_Dmodule_ref"), 0);
+        codeOffset += 1;
+        codeOffset += ElfObj::writerel(seg, codeOffset, reltype, Obj::external_def("_Dmodule_ref"), 0);
     }
 
     if (I64)
