@@ -7322,7 +7322,12 @@ public:
                 }
                 TemplateInstance ti = sa.isTemplateInstance();
                 Declaration d = sa.isDeclaration();
-                if ((td && td.literal) || (ti && ti.enclosing) || (d && !d.isDataseg() && !(d.storage_class & STCmanifest) && (!d.isFuncDeclaration() || d.isFuncDeclaration().isNested()) && !isTemplateMixin()))
+                if ((td && (td.literal || !td.isstatic && td.toParent2().isFuncDeclaration())) ||
+                    (ti && ti.enclosing) ||
+                    (d && !d.isDataseg() &&
+                     !(d.storage_class & STCmanifest) &&
+                     (!d.isFuncDeclaration() || d.isFuncDeclaration().isNested()) &&
+                     !isTemplateMixin()))
                 {
                     // if module level template
                     if (isstatic)
