@@ -426,14 +426,6 @@ Usage:\n\
 
 extern signed char tyalignsize[];
 
-#if _WIN32 && __DMC__
-extern "C"
-{
-    extern int _xi_a;
-    extern int _end;
-}
-#endif
-
 static Module *entrypoint = NULL;
 
 /************************************
@@ -482,12 +474,6 @@ void genCmain(Scope *sc)
 
 int tryMain(size_t argc, const char *argv[])
 {
-    mem.init();                         // initialize storage allocator
-    mem.setStackBottom(&argv);
-#if _WIN32 && __DMC__
-    mem.addroots((char *)&_xi_a, (char *)&_end);
-#endif
-
     Strings files;
     Strings libmodules;
     size_t argcstart = argc;

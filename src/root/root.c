@@ -127,10 +127,6 @@ void RootObject::toBuffer(OutBuffer *b)
     b->writestring("Object");
 }
 
-void RootObject::mark()
-{
-}
-
 /****************************** String ********************************/
 
 String::String(const char *str)
@@ -141,11 +137,6 @@ String::String(const char *str)
 String::~String()
 {
     mem.free((void *)str);
-}
-
-void String::mark()
-{
-    mem.mark((void *)str);
 }
 
 hash_t String::calcHash(const char *str, size_t len)
@@ -971,13 +962,6 @@ File::~File()
         mem.free(touchtime);
 }
 
-void File::mark()
-{
-    mem.mark(buffer);
-    mem.mark(touchtime);
-    mem.mark(name);
-}
-
 /*************************************
  */
 
@@ -1484,11 +1468,6 @@ char *OutBuffer::extractData()
     return p;
 }
 
-void OutBuffer::mark()
-{
-    mem.mark(data);
-}
-
 void OutBuffer::reserve(size_t nbytes)
 {
     //printf("OutBuffer::reserve: size = %d, offset = %d, nbytes = %d\n", size, offset, nbytes);
@@ -1854,98 +1833,4 @@ char *OutBuffer::toChars()
 {
     writeByte(0);
     return (char *)data;
-}
-
-// TODO: Remove (only used by disabled GC)
-/********************************* Bits ****************************/
-
-Bits::Bits()
-{
-    data = NULL;
-    bitdim = 0;
-    allocdim = 0;
-}
-
-Bits::~Bits()
-{
-    mem.free(data);
-}
-
-void Bits::mark()
-{
-    mem.mark(data);
-}
-
-void Bits::resize(unsigned bitdim)
-{
-    unsigned allocdim;
-    unsigned mask;
-
-    allocdim = (bitdim + 31) / 32;
-    data = (unsigned *)mem.realloc(data, allocdim * sizeof(data[0]));
-    if (this->allocdim < allocdim)
-        memset(data + this->allocdim, 0, (allocdim - this->allocdim) * sizeof(data[0]));
-
-    // Clear other bits in last word
-    mask = (1 << (bitdim & 31)) - 1;
-    if (mask)
-        data[allocdim - 1] &= ~mask;
-
-    this->bitdim = bitdim;
-    this->allocdim = allocdim;
-}
-
-void Bits::set(unsigned bitnum)
-{
-    data[bitnum / 32] |= 1 << (bitnum & 31);
-}
-
-void Bits::clear(unsigned bitnum)
-{
-    data[bitnum / 32] &= ~(1 << (bitnum & 31));
-}
-
-int Bits::test(unsigned bitnum)
-{
-    return data[bitnum / 32] & (1 << (bitnum & 31));
-}
-
-void Bits::set()
-{   unsigned mask;
-
-    memset(data, ~0, allocdim * sizeof(data[0]));
-
-    // Clear other bits in last word
-    mask = (1 << (bitdim & 31)) - 1;
-    if (mask)
-        data[allocdim - 1] &= mask;
-}
-
-void Bits::clear()
-{
-    memset(data, 0, allocdim * sizeof(data[0]));
-}
-
-void Bits::copy(Bits *from)
-{
-    assert(bitdim == from->bitdim);
-    memcpy(data, from->data, allocdim * sizeof(data[0]));
-}
-
-Bits *Bits::clone()
-{
-    Bits *b;
-
-    b = new Bits();
-    b->resize(bitdim);
-    b->copy(this);
-    return b;
-}
-
-void Bits::sub(Bits *b)
-{
-    unsigned u;
-
-    for (u = 0; u < allocdim; u++)
-        data[u] &= ~b->data[u];
 }

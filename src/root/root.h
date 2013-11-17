@@ -67,12 +67,6 @@ public:
      * defined by the library user. For Object, the return value is 0.
      */
     virtual int dyncast();
-
-    /**
-     * Marks pointers for garbage collector by calling mem.mark() for all pointers into heap.
-     */
-    /*virtual*/         // not used, disable for now
-        void mark();
 };
 
 class String : public RootObject
@@ -91,7 +85,6 @@ public:
     int compare(RootObject *obj);
     char *toChars();
     void print();
-    void mark();
 };
 
 class FileName : public String
@@ -144,8 +137,6 @@ public:
     File(const char *);
     File(const FileName *);
     ~File();
-
-    void mark();
 
     char *toChars();
 
@@ -250,7 +241,6 @@ struct OutBuffer
     OutBuffer();
     ~OutBuffer();
     char *extractData();
-    void mark();
 
     void reserve(size_t nbytes);
     void setsize(size_t size);
@@ -306,13 +296,6 @@ struct Array
     {
         if (data != &smallarray[0])
             mem.free(data);
-    }
-
-    void mark()
-    {
-        mem.mark(data);
-        for (size_t u = 0; u < dim; u++)
-            mem.mark(data[u]);      // BUG: what if arrays of Object's?
     }
 
     char *toChars()
@@ -520,32 +503,6 @@ struct Array
         }
         return 0;
     }
-};
-
-// TODO: Remove (only used by disabled GC)
-class Bits : public RootObject
-{
-public:
-    unsigned bitdim;
-    unsigned allocdim;
-    unsigned *data;
-
-    Bits();
-    ~Bits();
-    void mark();
-
-    void resize(unsigned bitdim);
-
-    void set(unsigned bitnum);
-    void clear(unsigned bitnum);
-    int test(unsigned bitnum);
-
-    void set();
-    void clear();
-    void copy(Bits *from);
-    Bits *clone();
-
-    void sub(Bits *b);
 };
 
 #endif
