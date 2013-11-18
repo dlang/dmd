@@ -605,9 +605,9 @@ void Lexer::scan(Token *t)
                         ::time(&ct);
                         char *p = ctime(&ct);
                         assert(p);
-                        sprintf(date, "%.6s %.4s", p + 4, p + 20);
-                        sprintf(time, "%.8s", p + 11);
-                        sprintf(timestamp, "%.24s", p);
+                        sprintf(&date[0], "%.6s %.4s", p + 4, p + 20);
+                        sprintf(&time[0], "%.8s", p + 11);
+                        sprintf(&timestamp[0], "%.24s", p);
                     }
 
                     if (id == Id::DATE)
