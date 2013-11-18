@@ -5592,16 +5592,17 @@ Expression *PtrExp::interpret(InterState *istate, CtfeGoal goal)
         }
         e = Ptr(type, e1);
     }
-#if DMDV2
-#else // this is required for D1, where structs return *this instead of 'this'.
-    else if (e1->op == TOKthis)
-    {
-        if (ctfeStack.getThis())
-            return ctfeStack.getThis()->interpret(istate);
-    }
-#endif
     else
     {
+#if DMDV2
+#else // this is required for D1, where structs return *this instead of 'this'.
+        if (e1->op == TOKthis)
+        {
+            if (ctfeStack.getThis())
+                return ctfeStack.getThis()->interpret(istate);
+            goto Ldone;
+        }
+#endif
         // Check for .classinfo, which is lowered in the semantic pass into **(class).
         if (e1->op == TOKstar && e1->type->ty == Tpointer && isTypeInfo_Class(e1->type->nextOf()))
         {
@@ -5739,6 +5740,7 @@ Expression *PtrExp::interpret(InterState *istate, CtfeGoal goal)
         e = paintTypeOntoLiteral(type, e);
     }
 
+Ldone:
 #if LOG
     if (e == EXP_CANT_INTERPRET)
         printf("PtrExp::interpret() %s = EXP_CANT_INTERPRET\n", toChars());

@@ -931,12 +931,6 @@ void Lexer::scan(Token *t)
                 {   p++;
                     t->value = TOKminass;
                 }
-#if 0
-                else if (*p == '>')
-                {   p++;
-                    t->value = TOKarrow;
-                }
-#endif
                 else if (*p == '-')
                 {   p++;
                     t->value = TOKminusminus;

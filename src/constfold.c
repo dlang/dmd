@@ -835,11 +835,6 @@ Expression *Equal(TOK op, Type *type, Expression *e1, Expression *e2)
                 cmp = 0;
         }
     }
-#if 0 // Should handle this
-    else if (e1->op == TOKarrayliteral && e2->op == TOKstring)
-    {
-    }
-#endif
     else if (e1->isConst() != 1 || e2->isConst() != 1)
         return EXP_CANT_INTERPRET;
     else if (e1->type->isreal())
