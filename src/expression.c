@@ -11684,7 +11684,6 @@ Ltupleassign:
                     e2 = new SliceExp(e2->loc, e2, NULL, NULL);
                     e2 = e2->semantic(sc);
                 }
-        #if 1
                 else if (!e2->implicitConvTo(e1->type))
                 {
                     // If multidimensional static array, treat as one large array
@@ -11699,33 +11698,6 @@ Ltupleassign:
                         e1->type = TypeSArray::makeType(Loc(), t->nextOf(), dim);
                     }
                 }
-        #else   // TODO: This is an enhancement feature.
-                else
-                {
-                    /* multidimentional block assignment on initialization
-                     * Rewrite:
-                     *     T e;   // T may be static array type
-                     *     T[d1][d2]...[dn] sa = e;
-                     * as:
-                     *     T[d1*d2* ... dn] sa = e;
-                     */
-                    Type *t = t1->nextOf();
-                    dinteger_t dim = ((TypeSArray *)t1)->dim->toInteger();
-                    while (1)
-                    {
-                        if (t2->implicitConvTo(t))
-                        {
-                            if (t != t1->nextOf())
-                                e1->type = TypeSArray::makeType(Loc(), t, dim);
-                            break;
-                        }
-                        if (t->ty != Tsarray)
-                            break;
-                        dim *= ((TypeSArray *)t)->dim->toInteger();
-                        t = t->nextOf()->toBasetype();
-                    }
-                }
-        #endif
 
                 // Convert e1 to e1[]
                 e1 = new SliceExp(e1->loc, e1, NULL, NULL);
