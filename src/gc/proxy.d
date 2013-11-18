@@ -107,7 +107,7 @@ extern (C)
     {
         version (GCCLASS)
         {   void* p;
-            ClassInfo ci = GC.classinfo;
+            ClassInfo ci = typeid(GC);
 
             p = malloc(ci.init.length);
             (cast(byte*)p)[0 .. ci.init.length] = ci.init[];

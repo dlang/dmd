@@ -24,7 +24,7 @@ void _d_invariant(Object o)
     // BUG: needs to be filename/line of caller, not library routine
     assert(o !is null); // just do null check, not invariant check
 
-    c = o.classinfo;
+    c = typeid(o);
     do
     {
         if (c.classInvariant)

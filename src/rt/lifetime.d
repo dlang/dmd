@@ -617,7 +617,7 @@ in
 body
 {
     // step 1, get the block
-    auto isshared = ti.classinfo is TypeInfo_Shared.classinfo;
+    auto isshared = typeid(ti) is typeid(TypeInfo_Shared);
     auto bic = !isshared ? __getBlkInfo((*p).ptr) : null;
     auto info = bic ? *bic : gc_query((*p).ptr);
     auto size = ti.next.tsize;
@@ -822,7 +822,7 @@ extern (C) void[] _d_newarrayT(const TypeInfo ti, size_t length)
         // update the length of the array
         auto arrstart = __arrayStart(info);
         memset(arrstart, 0, size);
-        auto isshared = ti.classinfo is TypeInfo_Shared.classinfo;
+        auto isshared = typeid(ti) is typeid(TypeInfo_Shared);
         __setArrayAllocLength(info, size, isshared);
         result = arrstart[0..length];
     }
@@ -900,7 +900,7 @@ extern (C) void[] _d_newarrayiT(const TypeInfo ti, size_t length)
                 memcpy(arrstart + u, q, isize);
             }
         }
-        auto isshared = ti.classinfo is TypeInfo_Shared.classinfo;
+        auto isshared = typeid(ti) is typeid(TypeInfo_Shared);
         __setArrayAllocLength(info, size, isshared);
         result = arrstart[0..length];
     }
@@ -937,7 +937,7 @@ void[] _d_newarrayOpT(alias op)(const TypeInfo ti, size_t ndims, va_list q)
             {
                 auto allocsize = (void[]).sizeof * dim;
                 auto info = gc_qalloc(allocsize + __arrayPad(allocsize));
-                auto isshared = ti.classinfo is TypeInfo_Shared.classinfo;
+                auto isshared = typeid(ti) is typeid(TypeInfo_Shared);
                 __setArrayAllocLength(info, allocsize, isshared);
                 auto p = __arrayStart(info)[0 .. dim];
 
@@ -1339,7 +1339,7 @@ body
 
         debug(PRINTF) printf("newsize = %x, newlength = %x\n", newsize, newlength);
 
-        auto   isshared = ti.classinfo is TypeInfo_Shared.classinfo;
+        auto   isshared = typeid(ti) is typeid(TypeInfo_Shared);
 
         if ((*p).ptr)
         {
@@ -1519,7 +1519,7 @@ body
 
 
         size_t size = (*p).length * sizeelem;
-        auto isshared = ti.classinfo is TypeInfo_Shared.classinfo;
+        auto isshared = typeid(ti) is typeid(TypeInfo_Shared);
         if ((*p).ptr)
         {
             newdata = (*p).ptr;
@@ -1799,7 +1799,7 @@ byte[] _d_arrayappendcTX(const TypeInfo ti, ref byte[] px, size_t n)
 
     // only optimize array append where ti is not a shared type
     auto sizeelem = ti.next.tsize;              // array element size
-    auto isshared = ti.classinfo is TypeInfo_Shared.classinfo;
+    auto isshared = typeid(ti) is typeid(TypeInfo_Shared);
     auto bic = !isshared ? __getBlkInfo(px.ptr) : null;
     auto info = bic ? *bic : gc_query(px.ptr);
     auto length = px.length;
@@ -2025,7 +2025,7 @@ body
     // do postblit processing
     __doPostblit(p, xlen + ylen, ti.next);
 
-    auto isshared = ti.classinfo is TypeInfo_Shared.classinfo;
+    auto isshared = typeid(ti) is typeid(TypeInfo_Shared);
     __setArrayAllocLength(info, len, isshared);
     return p[0 .. x.length + y.length];
 }
@@ -2077,7 +2077,7 @@ extern (C) void[] _d_arraycatnT(const TypeInfo ti, uint n, ...)
 
     auto allocsize = length * size;
     auto info = gc_qalloc(allocsize + __arrayPad(allocsize), !(ti.next.flags & 1) ? BlkAttr.NO_SCAN | BlkAttr.APPENDABLE : BlkAttr.APPENDABLE);
-    auto isshared = ti.classinfo is TypeInfo_Shared.classinfo;
+    auto isshared = typeid(ti) is typeid(TypeInfo_Shared);
     __setArrayAllocLength(info, allocsize, isshared);
     void *a = __arrayStart (info);
 
@@ -2151,7 +2151,7 @@ void* _d_arrayliteralTX(const TypeInfo ti, size_t length)
     {
         auto allocsize = length * sizeelem;
         auto info = gc_qalloc(allocsize + __arrayPad(allocsize), !(ti.next.flags & 1) ? BlkAttr.NO_SCAN | BlkAttr.APPENDABLE : BlkAttr.APPENDABLE);
-        auto isshared = ti.classinfo is TypeInfo_Shared.classinfo;
+        auto isshared = typeid(ti) is typeid(TypeInfo_Shared);
         __setArrayAllocLength(info, allocsize, isshared);
         result = __arrayStart(info);
     }
@@ -2173,7 +2173,7 @@ extern (C) void* _d_arrayliteralT(const TypeInfo ti, size_t length, ...)
     {
         auto allocsize = length * sizeelem;
         auto info = gc_qalloc(allocsize + __arrayPad(allocsize), !(ti.next.flags & 1) ? BlkAttr.NO_SCAN | BlkAttr.APPENDABLE : BlkAttr.APPENDABLE);
-        auto isshared = ti.classinfo is TypeInfo_Shared.classinfo;
+        auto isshared = typeid(ti) is typeid(TypeInfo_Shared);
         __setArrayAllocLength(info, allocsize, isshared);
         result = __arrayStart(info);
 
@@ -2252,7 +2252,7 @@ body
         auto sizeelem = ti.next.tsize;                  // array element size
         auto size = a.length * sizeelem;
         auto info = gc_qalloc(size + __arrayPad(size), !(ti.next.flags & 1) ? BlkAttr.NO_SCAN | BlkAttr.APPENDABLE : BlkAttr.APPENDABLE);
-        auto isshared = ti.classinfo is TypeInfo_Shared.classinfo;
+        auto isshared = typeid(ti) is typeid(TypeInfo_Shared);
         __setArrayAllocLength(info, size, isshared);
         r.ptr = __arrayStart(info);
         r.length = a.length;

@@ -29,7 +29,7 @@ Object _d_toObject(void* p)
         return null;
 
     Object o = cast(Object) p;
-    ClassInfo oc = o.classinfo;
+    ClassInfo oc = typeid(o);
     Interface* pi = **cast(Interface***) p;
 
     /* Interface.offset lines up with ClassInfo.name.ptr,
@@ -68,7 +68,7 @@ void* _d_dynamic_cast(Object o, ClassInfo c)
 
     void* res = null;
     size_t offset = 0;
-    if(o && _d_isbaseof2(o.classinfo, c, offset))
+    if(o && _d_isbaseof2(typeid(o), c, offset))
     {
         debug(cast_) printf("\toffset = %d\n", offset);
         res = cast(void*) o + offset;
@@ -143,7 +143,7 @@ void* _d_interface_vtbl(ClassInfo ic, Object o)
 
     assert(o);
 
-    foreach(iface; o.classinfo.interfaces)
+    foreach(iface; typeid(o).interfaces)
         if(iface.classinfo is ic)
             return cast(void*) iface.vtbl;
 
