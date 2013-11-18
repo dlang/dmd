@@ -1543,6 +1543,31 @@ void test7428(){
 }
 
 /*******************************************/
+// 4612
+
+struct S4612a(alias x)
+{
+    void* func() { void* p = &x; return p; }
+}
+
+struct S4612b(alias x)
+{
+    int i;
+    void* func() { void* p = &x; return p; }
+}
+
+void test4612()
+{
+    int a;
+
+    auto sa = S4612a!a();
+    assert(sa.func() == &a);
+
+    auto sb = S4612b!(a)();
+    assert(sb.func() == &a);
+}
+
+/*******************************************/
 
 struct S4841(alias pred)
 {
@@ -2569,6 +2594,7 @@ int main()
     test55();
     test4401();
     test7428();
+    test4612();
     test4841();
     test7199();
     test7965();
