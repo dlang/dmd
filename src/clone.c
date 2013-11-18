@@ -196,7 +196,11 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
     if (dtor || postblit)
     {
         if (dtor)
+        {
             stc = mergeFuncAttrs(stc, dtor->storage_class);
+            if (stc & STCsafe)
+                stc = (stc & ~STCsafe) | STCtrusted;
+        }
     }
     else
     {
