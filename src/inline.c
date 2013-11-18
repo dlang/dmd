@@ -1335,6 +1335,26 @@ Expression *BinExp::inlineScan(InlineScanState *iss)
     return this;
 }
 
+Expression *PostExp::inlineScan(InlineScanState *iss)
+{
+    //printf("PostExp::inlineScan(): %s\n", toChars());
+    e1 = e1->inlineScan(iss);
+    e2 = e2->inlineScan(iss);
+    if (e1->op == TOKquestion)
+    {
+        /* Convert:
+         *    (econd ? e1 : e2) to *(econd ? &e1 : &e2)
+         */
+        CondExp *ec = (CondExp *)e1;
+        e1 = new PtrExp(loc, ec, ec->type);
+        ec->e1 = ec->e1->addressOf(NULL);
+        ec->e2 = ec->e2->addressOf(NULL);
+        ec->typeCombine(NULL);
+        ec->type = ec->e2->type;
+    }
+    return this;
+}
+
 Expression *AssignExp::inlineScan(InlineScanState *iss)
 {
     if (op == TOKconstruct && e2->op == TOKcall)
