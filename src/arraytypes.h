@@ -56,7 +56,7 @@ typedef Array<class AliasDeclaration> AliasDeclarations;
 
 typedef Array<class Module> Modules;
 
-typedef Array<class File> Files;
+typedef Array<struct File> Files;
 
 typedef Array<class CaseStatement> CaseStatements;
 

@@ -436,7 +436,7 @@ void halt();
 
 class Dsymbol;
 class Library;
-class File;
+struct File;
 void obj_start(char *srcfile);
 void obj_end(Library *library, File *objfile);
 void obj_append(Dsymbol *s);
