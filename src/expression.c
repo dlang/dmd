@@ -10670,6 +10670,8 @@ Expression *DotExp::semantic(Scope *sc)
             return e;
         }
     }
+    if (e2->op == TOKtype)
+        return e2;
     if (!type)
         type = e2->type;
     return this;
