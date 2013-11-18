@@ -1128,15 +1128,7 @@ Language changes listed by -transition=id:\n\
         global.params.objname = NULL;
 
         // Haven't investigated handling these options with multiobj
-        if (!global.params.cov && !global.params.trace
-#if 0 && TARGET_WINDOS
-            /* multiobj causes class/struct debug info to be attached to init-data,
-             * but this will not be linked into the executable, so this info is lost.
-             * Bugzilla 4014
-             */
-            && !global.params.symdebug
-#endif
-           )
+        if (!global.params.cov && !global.params.trace)
             global.params.multiobj = 1;
     }
     else if (global.params.run)
