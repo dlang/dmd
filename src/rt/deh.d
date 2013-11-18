@@ -19,7 +19,7 @@ extern (C)
         auto t = cast(Throwable) o;
 
         if (t !is null && t.info is null &&
-            cast(byte*) t !is t.classinfo.init.ptr)
+            cast(byte*) t !is typeid(t).init.ptr)
         {
             t.info = _d_traceContext(context);
         }

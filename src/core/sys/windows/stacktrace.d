@@ -111,7 +111,7 @@ public:
      */
     static ulong[] trace(size_t skip = 0, CONTEXT* context = null)
     {
-        synchronized( StackTrace.classinfo )
+        synchronized( typeid(StackTrace) )
         {
             return traceNoSync(skip, context);
         }
@@ -126,7 +126,7 @@ public:
      */
     static char[][] resolve(const(ulong)[] addresses)
     {
-        synchronized( StackTrace.classinfo )
+        synchronized( typeid(StackTrace) )
         {
             return resolveNoSync(addresses);
         }
