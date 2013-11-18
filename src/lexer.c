@@ -517,7 +517,6 @@ void Lexer::scan(Token *t)
                 t->value = escapeStringConstant(t,0);
                 return;
 
-#if ! TEXTUAL_ASSEMBLY_OUT
             case '\\':                  // escaped string literal
             {   unsigned c;
                 const utf8_t *pstart = p;
@@ -550,7 +549,6 @@ void Lexer::scan(Token *t)
                 error("Escape String literal %.*s is deprecated, use double quoted string literal \"%.*s\" instead", p - pstart, pstart, p - pstart, pstart);
                 return;
             }
-#endif
 
             case 'a':   case 'b':   case 'c':   case 'd':   case 'e':
             case 'f':   case 'g':   case 'h':   case 'i':   case 'j':
