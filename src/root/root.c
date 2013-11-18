@@ -127,6 +127,12 @@ void RootObject::toBuffer(OutBuffer *b)
     b->writestring("Object");
 }
 
+void *RootObject::copyClass(size_t sz)
+{
+    void *p = mem.malloc(sz);
+    memcpy(p, (void *)this, sz);
+}
+
 /****************************** String ********************************/
 
 String::String(const char *str)

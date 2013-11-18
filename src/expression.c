@@ -1933,9 +1933,9 @@ Expression *Expression::copy()
 #endif
         assert(0);
     }
-    e = (Expression *)mem.malloc(size);
+    e = (Expression *)copyClass(size);
     //printf("Expression::copy(op = %d) e = %p\n", op, e);
-    return (Expression *)memcpy((void*)e, (void*)this, size);
+    return e;
 }
 
 /**************************

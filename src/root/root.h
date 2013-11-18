@@ -67,6 +67,8 @@ public:
      * defined by the library user. For Object, the return value is 0.
      */
     virtual int dyncast();
+
+    void *copyClass(size_t sz);
 };
 
 class String : public RootObject
