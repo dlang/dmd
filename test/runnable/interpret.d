@@ -2922,7 +2922,7 @@ void test105()
     assert(t105ia.test105a() == "test105a");
     assert(t105ib.test105b() == "test105b");
     
-    assert(t105a.classinfo is Test105b.classinfo);
+    assert(typeid(t105a) is typeid(Test105b));
     //t105b.d = -1;
     //assert(t105b.d == -1);
     //assert(t105a.d == 42);

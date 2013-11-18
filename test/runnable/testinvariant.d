@@ -18,8 +18,8 @@ int testinvariant()
     Foo f = new Foo();
     printf("f = %p\n", f);
     printf("f.sizeof = x%x\n", Foo.sizeof);
-    printf("f.classinfo = %p\n", f.classinfo);
-    printf("f.classinfo._invariant = %p\n", f.classinfo.base);
+    printf("f.classinfo = %p\n", typeid(f));
+    printf("f.classinfo._invariant = %p\n", typeid(f).base);
     f.test();
     printf("world\n");
     return 0;

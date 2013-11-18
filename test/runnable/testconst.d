@@ -598,14 +598,14 @@ class C42
 
 void test42()
 {
-    printf("%d\n", C42.classinfo.init.length);
+    printf("%d\n", typeid(C42).init.length);
   version (PULL93)
   {
-    assert(C42.classinfo.init.length == 12 + (void*).sizeof + (void*).sizeof);
+    assert(typeid(C42).init.length == 12 + (void*).sizeof + (void*).sizeof);
   }
   else
   {
-    assert(C42.classinfo.init.length == 8 + (void*).sizeof + (void*).sizeof);
+    assert(typeid(C42).init.length == 8 + (void*).sizeof + (void*).sizeof);
   }
     C42 c = new C42;
     assert(c.a == 1);
