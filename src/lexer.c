@@ -93,55 +93,55 @@ const char *Token::toChars()
 {   const char *p;
     static char buffer[3 + 3 * sizeof(float80value) + 1];
 
-    p = buffer;
+    p = &buffer[0];
     switch (value)
     {
         case TOKint32v:
-            sprintf(buffer,"%d",int32value);
+            sprintf(&buffer[0],"%d",int32value);
             break;
 
         case TOKuns32v:
         case TOKcharv:
         case TOKwcharv:
         case TOKdcharv:
-            sprintf(buffer,"%uU",uns32value);
+            sprintf(&buffer[0],"%uU",uns32value);
             break;
 
         case TOKint64v:
-            sprintf(buffer,"%lldL",(longlong)int64value);
+            sprintf(&buffer[0],"%lldL",(longlong)int64value);
             break;
 
         case TOKuns64v:
-            sprintf(buffer,"%lluUL",(ulonglong)uns64value);
+            sprintf(&buffer[0],"%lluUL",(ulonglong)uns64value);
             break;
 
         case TOKfloat32v:
-            ld_sprint(buffer, 'g', float80value);
-            strcat(buffer, "f");
+            ld_sprint(&buffer[0], 'g', float80value);
+            strcat(&buffer[0], "f");
             break;
 
         case TOKfloat64v:
-            ld_sprint(buffer, 'g', float80value);
+            ld_sprint(&buffer[0], 'g', float80value);
             break;
 
         case TOKfloat80v:
-            ld_sprint(buffer, 'g', float80value);
-            strcat(buffer, "L");
+            ld_sprint(&buffer[0], 'g', float80value);
+            strcat(&buffer[0], "L");
             break;
 
         case TOKimaginary32v:
-            ld_sprint(buffer, 'g', float80value);
-            strcat(buffer, "fi");
+            ld_sprint(&buffer[0], 'g', float80value);
+            strcat(&buffer[0], "fi");
             break;
 
         case TOKimaginary64v:
-            ld_sprint(buffer, 'g', float80value);
-            strcat(buffer, "i");
+            ld_sprint(&buffer[0], 'g', float80value);
+            strcat(&buffer[0], "i");
             break;
 
         case TOKimaginary80v:
-            ld_sprint(buffer, 'g', float80value);
-            strcat(buffer, "Li");
+            ld_sprint(&buffer[0], 'g', float80value);
+            strcat(&buffer[0], "Li");
             break;
 
         case TOKstring:
@@ -202,8 +202,8 @@ const char *Token::toChars(TOK value)
 
     p = tochars[value];
     if (!p)
-    {   sprintf(buffer,"TOK%d",value);
-        p = buffer;
+    {   sprintf(&buffer[0],"TOK%d",value);
+        p = &buffer[0];
     }
     return p;
 }
@@ -605,9 +605,9 @@ void Lexer::scan(Token *t)
                         ::time(&ct);
                         char *p = ctime(&ct);
                         assert(p);
-                        sprintf(date, "%.6s %.4s", p + 4, p + 20);
-                        sprintf(time, "%.8s", p + 11);
-                        sprintf(timestamp, "%.24s", p);
+                        sprintf(&date[0], "%.6s %.4s", p + 4, p + 20);
+                        sprintf(&time[0], "%.8s", p + 11);
+                        sprintf(&timestamp[0], "%.24s", p);
                     }
 
                     if (id == Id::DATE)

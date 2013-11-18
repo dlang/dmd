@@ -2931,12 +2931,11 @@ IntRange DivExp::getIntRange()
         return Expression::getIntRange() DUMP;
 
     // [a,b] / [c,d] = [min (a/c, a/d, b/c, b/d), max (a/c, a/d, b/c, b/d)]
-    SignExtendedNumber bdy[4] = {
-        ir1.imin / ir2.imin,
-        ir1.imin / ir2.imax,
-        ir1.imax / ir2.imin,
-        ir1.imax / ir2.imax
-    };
+    SignExtendedNumber bdy[4];
+    bdy[0] = ir1.imin / ir2.imin;
+    bdy[1] = ir1.imin / ir2.imax;
+    bdy[2] = ir1.imax / ir2.imin;
+    bdy[3] = ir1.imax / ir2.imax;
     return IntRange::fromNumbers4(bdy).cast(type) DUMP;
 }
 
@@ -2946,12 +2945,11 @@ IntRange MulExp::getIntRange()
     IntRange ir2 = e2->getIntRange();
 
     // [a,b] * [c,d] = [min (ac, ad, bc, bd), max (ac, ad, bc, bd)]
-    SignExtendedNumber bdy[4] = {
-        ir1.imin * ir2.imin,
-        ir1.imin * ir2.imax,
-        ir1.imax * ir2.imin,
-        ir1.imax * ir2.imax
-    };
+    SignExtendedNumber bdy[4];
+    bdy[0] = ir1.imin * ir2.imin;
+    bdy[1] = ir1.imin * ir2.imax;
+    bdy[2] = ir1.imax * ir2.imin;
+    bdy[3] = ir1.imax * ir2.imax;
     return IntRange::fromNumbers4(bdy).cast(type) DUMP;
 }
 

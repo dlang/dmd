@@ -1265,7 +1265,7 @@ void FuncDeclaration::semantic3(Scope *sc)
              */
             if (ad2 && isCtorDeclaration())
             {
-                sc2->fieldinit = new unsigned[ad2->fields.dim];
+                sc2->fieldinit = (unsigned *)mem.malloc(sizeof(unsigned) * ad2->fields.dim);
                 sc2->fieldinit_dim = ad2->fields.dim;
                 for (size_t i = 0; i < ad2->fields.dim; i++)
                 {
@@ -1368,7 +1368,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                         }
                     }
                 }
-                delete[] sc2->fieldinit;
+                mem.free(sc2->fieldinit);
                 sc2->fieldinit = NULL;
                 sc2->fieldinit_dim = 0;
 
