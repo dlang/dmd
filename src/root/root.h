@@ -31,7 +31,7 @@ struct OutBuffer;
 
 // Can't include arraytypes.h here, need to declare these directly.
 template <typename TYPE> struct Array;
-typedef Array<class File> Files;
+typedef Array<struct File> Files;
 typedef Array<const char> Strings;
 
 
@@ -69,7 +69,7 @@ public:
     virtual int dyncast();
 };
 
-class String : public RootObject
+struct String
 {
 public:
     const char *str;                  // the string itself
@@ -87,9 +87,10 @@ public:
     void print();
 };
 
-class FileName : public String
+struct FileName
 {
 public:
+    const char *str;
     FileName(const char *str);
     hash_t hashCode();
     bool equals(RootObject *obj);
@@ -122,9 +123,10 @@ public:
     static const char *canonicalName(const char *name);
 
     static void free(const char *str);
+    char *toChars();
 };
 
-class File : public RootObject
+struct File
 {
 public:
     int ref;                    // != 0 if this is a reference to someone else's buffer

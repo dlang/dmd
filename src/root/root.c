@@ -215,7 +215,7 @@ void String::print()
 /****************************** FileName ********************************/
 
 FileName::FileName(const char *str)
-    : String(str)
+    : str(mem.strdup(str))
 {
 }
 
@@ -365,7 +365,7 @@ hash_t FileName::hashCode()
     }
 #else
     // darwin HFS is case insensitive, though...
-    return String::hashCode();
+    return String::calcHash(str, strlen(str));
 #endif
 }
 
@@ -924,6 +924,11 @@ void FileName::free(const char *str)
         memset((void *)str, 0xAB, strlen(str) + 1);     // stomp
     }
     mem.free((void *)str);
+}
+
+char *FileName::toChars()
+{
+    return (char *)str;         // toChars() should really be const
 }
 
 
