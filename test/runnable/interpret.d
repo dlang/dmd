@@ -3113,6 +3113,27 @@ void test9954()
 }
 
 /************************************************/
+// 10483
+
+struct Bug10483
+{
+    int val[3][4];
+}
+
+struct Outer10483
+{
+    Bug10483 p = Bug10483(67);
+}
+
+int k10483a = Outer10483.init.p.val[2][2];   // ICE(expression.c)
+
+void test10483()
+{
+    int k10483b = Outer10483.init.p.val[2][2]; // Segfault (backend/type.c)
+}
+
+/************************************************/
+
 struct S10669 { uint x; }
 
 static const S10669 iid0_10669 = S10669(0);
