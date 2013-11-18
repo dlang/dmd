@@ -152,8 +152,7 @@ const char *Type::kind()
 
 Type *Type::copy()
 {
-    Type *t = (Type *)mem.malloc(sizeTy[ty]);
-    memcpy((void*)t, (void*)this, sizeTy[ty]);
+    Type *t = (Type *)copyClass(sizeTy[ty]);
     return t;
 }
 
@@ -390,9 +389,7 @@ Type *Type::trySemantic(Loc loc, Scope *sc)
 
 Type *Type::nullAttributes()
 {
-    unsigned sz = sizeTy[ty];
-    Type *t = (Type *)mem.malloc(sz);
-    memcpy((void*)t, (void*)this, sz);
+    Type *t = copy();
     // t->mod = NULL;  // leave mod unchanged
     t->deco = NULL;
     t->arrayof = NULL;
@@ -5599,8 +5596,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
     {   tf->parameters = (Parameters *)parameters->copy();
         for (size_t i = 0; i < parameters->dim; i++)
         {   Parameter *arg = (*parameters)[i];
-            Parameter *cpy = (Parameter *)mem.malloc(sizeof(Parameter));
-            memcpy((void*)cpy, (void*)arg, sizeof(Parameter));
+            Parameter *cpy = (Parameter *)arg->copyClass(sizeof(Parameter));
             (*tf->parameters)[i] = cpy;
         }
     }
