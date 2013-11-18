@@ -463,7 +463,9 @@ int runLINK()
     else if (global.params.run)
     {
 #if 1
-        char name[] = P_tmpdir"/dmd_runXXXXXX";
+        char name[L_tmpnam + 14 + 1];
+        strcpy(name, P_tmpdir);
+        strcat(name, "/dmd_runXXXXXX");
         int fd = mkstemp(name);
         if (fd == -1)
         {   error(Loc(), "error creating temporary file");
