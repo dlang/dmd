@@ -1372,9 +1372,9 @@ Files *File::match(FileName *n)
             char *fn;
             File *f;
 
-            fn = (char *)mem.malloc(name - c + strlen(fileinfo.cFileName) + 1);
+            fn = (char *)mem.malloc(name - c + strlen(&fileinfo.cFileName[0]) + 1);
             memcpy(fn, c, name - c);
-            strcpy(fn + (name - c), fileinfo.cFileName);
+            strcpy(fn + (name - c), &fileinfo.cFileName[0]);
             f = new File(fn);
             f->touchtime = mem.malloc(sizeof(WIN32_FIND_DATAA));
             memcpy(f->touchtime, &fileinfo, sizeof(fileinfo));
