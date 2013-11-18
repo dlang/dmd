@@ -957,6 +957,11 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
             printf("function body failed to interpret\n");
 #endif
         }
+        if (istatex.start)
+        {
+            error("CTFE internal error: failed to resume at statement %s", istatex.start->toChars());
+            return EXP_CANT_INTERPRET;
+        }
 
         /* This is how we deal with a recursive statement AST
          * that has arbitrary goto statements in it.
@@ -1748,7 +1753,8 @@ Expression *TryCatchStatement::interpret(InterState *istate)
 #if LOG
     printf("%s TryCatchStatement::interpret()\n", loc.toChars());
 #endif
-    START()
+    if (istate->start == this)
+        istate->start = NULL;
     Expression *e = body ? body->interpret(istate) : NULL;
     if (e == EXP_CANT_INTERPRET)
         return e;
@@ -1820,7 +1826,8 @@ Expression *TryFinallyStatement::interpret(InterState *istate)
 #if LOG
     printf("%s TryFinallyStatement::interpret()\n", loc.toChars());
 #endif
-    START()
+    if (istate->start == this)
+        istate->start = NULL;
     Expression *e = body ? body->interpret(istate) : NULL;
     if (e == EXP_CANT_INTERPRET)
         return e;
@@ -1866,7 +1873,8 @@ Expression *WithStatement::interpret(InterState *istate)
     if (exp->op == TOKimport || exp->op == TOKtype)
         return body ? body->interpret(istate) : EXP_VOID_INTERPRET;
 
-    START()
+    if (istate->start == this)
+        istate->start = NULL;
     Expression *e = exp->interpret(istate);
     if (exceptionOrCantInterpret(e))
         return e;
