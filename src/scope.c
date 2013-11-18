@@ -130,7 +130,7 @@ Scope::Scope(Scope *enclosing)
     this->callSuper = enclosing->callSuper;
     this->fieldinit = enclosing->saveFieldInit();
     this->fieldinit_dim = enclosing->fieldinit_dim;
-    this->flags = (enclosing->flags & (SCOPEcontract | SCOPEdebug | SCOPEctfe));
+    this->flags = (enclosing->flags & (SCOPEcontract | SCOPEdebug | SCOPEctfe | SCOPEcompile));
     this->lastdc = NULL;
     this->lastoffset = 0;
     this->docbuf = enclosing->docbuf;

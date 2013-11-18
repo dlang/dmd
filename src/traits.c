@@ -678,9 +678,9 @@ Expression *TraitsExp::semantic(Scope *sc)
             unsigned errors = global.startGagging();
             unsigned oldspec = global.speculativeGag;
             global.speculativeGag = global.gag;
-            sc = sc->push();
-            sc->speculative = true;
-            sc->flags = sc->enclosing->flags & ~SCOPEctfe;   // inherit without CTFEing
+            Scope *sc2 = sc->push();
+            sc2->speculative = true;
+            sc2->flags = sc->flags & ~SCOPEctfe | SCOPEcompile;
             bool err = false;
 
             RootObject *o = (*args)[i];
@@ -689,10 +689,10 @@ Expression *TraitsExp::semantic(Scope *sc)
             if (!e && t)
             {
                 Dsymbol *s;
-                t->resolve(loc, sc, &e, &t, &s);
+                t->resolve(loc, sc2, &e, &t, &s);
                 if (t)
                 {
-                    t->semantic(loc, sc);
+                    t->semantic(loc, sc2);
                     if (t->ty == Terror)
                         err = true;
                 }
@@ -701,13 +701,13 @@ Expression *TraitsExp::semantic(Scope *sc)
             }
             if (e)
             {
-                e = e->semantic(sc);
+                e = e->semantic(sc2);
                 e = e->optimize(WANTvalue);
                 if (e->op == TOKerror)
                     err = true;
             }
 
-            sc = sc->pop();
+            sc2->pop();
             global.speculativeGag = oldspec;
             if (global.endGagging(errors) || err)
             {

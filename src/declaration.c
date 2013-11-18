@@ -1876,7 +1876,8 @@ void VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
                 {
                     if (i == fdv->closureVars.dim)
                     {
-                        fdv->closureVars.push(this);
+                        if (!sc->intypeof && !(sc->flags & SCOPEcompile))
+                            fdv->closureVars.push(this);
                         break;
                     }
                     if (fdv->closureVars[i] == this)
