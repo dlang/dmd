@@ -107,6 +107,8 @@ static void __cdecl controlc_handler(void)
  * Trap control C interrupts.
  */
 
+#if !MARS
+
 void _STI_controlc()
 {
     //printf("_STI_controlc()\n");
@@ -120,6 +122,7 @@ void _STD_controlc()
     controlc_close();
 }
 
+#endif
 
 /***********************************
  * Send progress report.
