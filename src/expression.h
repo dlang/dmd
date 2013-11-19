@@ -1370,6 +1370,7 @@ public:
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Identifier *opId();    // For operator overloading
+    Expression *inlineScan(InlineScanState *iss);
     elem *toElem(IRState *irs);
 };
 

@@ -415,6 +415,23 @@ void test11394()
 }
 
 /**********************************/
+bool b11322;
+uint i11322;
+
+ref uint fun11322()
+{
+    if (b11322)
+	return i11322;
+    else
+	return i11322;
+}
+
+void test11322()
+{
+    fun11322()++;
+}
+
+/**********************************/
 
 int main()
 {
@@ -433,6 +450,7 @@ int main()
     test11224();
     test11322();
     test11394();
+    test11322();
 
     printf("Success\n");
     return 0;
