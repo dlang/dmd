@@ -2309,9 +2309,50 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
                 return 0;
 
             Dsymbol *s = ti->inst->toAlias();
-            if (!s->isFuncDeclaration() && !s->isTemplateDeclaration())
+            FuncDeclaration *fd;
+            if (TemplateDeclaration *tdx = s->isTemplateDeclaration())
+            {
+                Objects dedtypesX;  // empty tiargs
+
+                // Bugzilla 11553: Check for recursive instantiation of tdx.
+                for (TemplateDeclaration::Previous *p = tdx->previous; p; p = p->prev)
+                {
+                    if (arrayObjectMatch(p->dedargs, &dedtypesX))
+                    {
+                        //printf("recursive, no match p->sc=%p %p %s\n", p->sc, this, this->toChars());
+                        /* It must be a subscope of p->sc, other scope chains are not recursive
+                         * instantiations.
+                         */
+                        for (Scope *scx = sc; scx; scx = scx->enclosing)
+                        {
+                            if (scx == p->sc)
+                            {
+                                error(loc, "recursive template expansion while looking for %s.%s", ti->toChars(), tdx->toChars());
+                                goto Lerror;
+                            }
+                        }
+                    }
+                    /* BUG: should also check for ref param differences
+                     */
+                }
+
+                TemplateDeclaration::Previous pr;
+                pr.prev = tdx->previous;
+                pr.sc = sc;
+                pr.dedargs = &dedtypesX;
+                tdx->previous = &pr;                 // add this to threaded list
+
+                fd = resolveFuncCall(loc, sc, s, NULL, tthis, fargs, 1);
+
+                tdx->previous = pr.prev;             // unlink from threaded list
+            }
+            else if (s->isFuncDeclaration())
+            {
+                fd = resolveFuncCall(loc, sc, s, NULL, tthis, fargs, 1);
+            }
+            else
                 goto Lerror;
-            FuncDeclaration *fd = resolveFuncCall(loc, sc, s, NULL, tthis, fargs, 1);
+
             if (!fd)
                 return 0;
 
