@@ -72,6 +72,7 @@ elem *incUsageElem(IRState *irs, Loc loc)
     unsigned *p = irs->blx->module->covb;
     if (p)      // covb can be NULL if it has already been written out to its .obj file
     {
+        assert(linnum < irs->blx->module->numlines);
         p += linnum / (sizeof(*p) * 8);
         *p |= 1 << (linnum & (sizeof(*p) * 8 - 1));
     }

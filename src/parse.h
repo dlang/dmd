@@ -69,6 +69,7 @@ public:
     int inBrackets;             // inside [] of array index or slice
     Loc lookingForElse;         // location of lonely if looking for an else
 
+    Parser(Loc loc, Module *module, const utf8_t *base, size_t length, int doDocComment);
     Parser(Module *module, const utf8_t *base, size_t length, int doDocComment);
 
     Dsymbols *parseModule();
