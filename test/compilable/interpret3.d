@@ -5843,3 +5843,223 @@ enum test11534 = () {
     //auto start = m.storage.ptr + 1; //this obviously works
     return 0;
 }();
+
+/**************************************************
+    11540 - goto label + try-catch-finally / with statement
+**************************************************/
+
+static assert(()
+{
+    // enter to TryCatchStatement.body
+    {
+        bool c = false;
+        try {
+            if (c)  // need to bypass front-end optimization
+                throw new Exception("");
+            else
+            {
+                goto Lx;
+              L1:
+                c = true;
+            }
+        }
+        catch (Exception e) {}
+
+      Lx:
+        if (!c)
+            goto L1;
+    }
+
+    // jump inside TryCatchStatement.body
+    {
+        bool c = false;
+        try
+        {
+            if (c)  // need to bypass front-end optimization
+                throw new Exception("");
+            else
+                goto L2;
+          L2:
+            ;
+        }
+        catch (Exception e) {}
+    }
+
+    // exit from TryCatchStatement.body
+    {
+        bool c = false;
+        try
+        {
+            if (c)  // need to bypass front-end optimization
+                throw new Exception("");
+            else
+                goto L3;
+        }
+        catch (Exception e) {}
+
+        c = true;
+      L3:
+        assert(!c);
+    }
+
+    return 1;
+}());
+
+static assert(()
+{
+    // enter to TryCatchStatement.catches which has no exception variable
+    {
+        bool c = false;
+        goto L1;
+        try
+        {
+            c = true;
+        }
+        catch (Exception/* e*/)
+        {
+          L1:
+            ;
+        }
+        assert(c == false);
+    }
+
+    // jump inside TryCatchStatement.catches
+    {
+        bool c = false;
+        try
+        {
+            throw new Exception("");
+        }
+        catch (Exception e)
+        {
+            goto L2;
+            c = true;
+          L2:
+            ;
+        }
+        assert(c == false);
+    }
+
+    // exit from TryCatchStatement.catches
+    {
+        bool c = false;
+        try
+        {
+            throw new Exception("");
+        }
+        catch (Exception e)
+        {
+            goto L3;
+            c = true;
+        }
+      L3:
+        assert(c == false);
+    }
+
+    return 1;
+}());
+
+static assert(()
+{
+    // enter forward to TryFinallyStatement.body
+    {
+        bool c = false;
+        goto L0;
+        c = true;
+        try
+        {
+          L0:
+            ;
+        }
+        finally {}
+        assert(!c);
+    }
+
+    // enter back to TryFinallyStatement.body
+    {
+        bool c = false;
+        try
+        {
+            goto Lx;
+          L1:
+            c = true;
+        }
+        finally {
+        }
+
+      Lx:
+        if (!c)
+            goto L1;
+    }
+
+    // jump inside TryFinallyStatement.body
+    {
+        try
+        {
+            goto L2;
+          L2: ;
+        }
+        finally {}
+    }
+
+    // exit from TryFinallyStatement.body
+    {
+        bool c = false;
+        try
+        {
+            goto L3;
+        }
+        finally {}
+
+        c = true;
+      L3:
+        assert(!c);
+    }
+
+    // enter in / exit out from finally block is rejected in semantic analysis
+
+    // jump inside TryFinallyStatement.finalbody
+    {
+        bool c = false;
+        try
+        {
+        }
+        finally
+        {
+            goto L4;
+            c = true;
+          L4:
+            assert(c == false);
+        }
+    }
+
+    return 1;
+}());
+
+static assert(()
+{
+    {
+        bool c = false;
+        with (Object.init)
+        {
+            goto L2;
+            c = true;
+          L2:
+            ;
+        }
+        assert(c == false);
+    }
+
+    {
+        bool c = false;
+        with (Object.init)
+        {
+            goto L3;
+            c = true;
+        }
+      L3:
+        assert(c == false);
+    }
+
+    return 1;
+}());
