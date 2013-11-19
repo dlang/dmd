@@ -224,7 +224,7 @@ bool isNeedThisScope(Scope *sc, Declaration *d)
         }
         if (FuncDeclaration *f = s->isFuncDeclaration())
         {
-            if (f->isFuncLiteralDeclaration())
+            if (f->isFuncLiteralDeclaration() && f->isNested())
                 continue;
             if (f->isMember2())
                 break;

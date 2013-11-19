@@ -720,6 +720,8 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *);
     bool isNested();
     bool isVirtual();
+    bool addPreInvariant();
+    bool addPostInvariant();
 
     FuncLiteralDeclaration *isFuncLiteralDeclaration() { return this; }
     const char *kind();

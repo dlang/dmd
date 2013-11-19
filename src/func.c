@@ -1290,18 +1290,24 @@ void FuncDeclaration::semantic3(Scope *sc)
         sc2->fieldinit = NULL;
         sc2->fieldinit_dim = 0;
 
+        if (AggregateDeclaration *ad = isMember2())
+        {
+            FuncLiteralDeclaration *fld = isFuncLiteralDeclaration();
+            if (fld && !sc->intypeof)
+            {
+                if (fld->tok == TOKreserved)
+                    fld->tok = TOKfunction;
+                if (isNested())
+                {
+                    error("cannot be class members");
+                    return;
+                }
+            }
+            assert(!isNested() || sc->intypeof);    // can't be both member and nested
+        }
+
         // Declare 'this'
         AggregateDeclaration *ad = isThis();
-        if (ad)
-        {
-            if (isFuncLiteralDeclaration() && isNested() && !sc->intypeof)
-            {
-                error("function literals cannot be class members");
-                return;
-            }
-            else
-                assert(!isNested() || sc->intypeof);    // can't be both member and nested
-        }
         vthis = declareThis(sc2, ad);
 
         // Declare hidden variable _arguments[] and _argptr
@@ -2194,9 +2200,9 @@ void FuncDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 VarDeclaration *FuncDeclaration::declareThis(Scope *sc, AggregateDeclaration *ad)
 {
-    if (ad)
-    {   VarDeclaration *v;
-
+    if (ad && !isFuncLiteralDeclaration())
+    {
+        VarDeclaration *v;
         {
             assert(ad->handle);
             Type *thandle = ad->handle;
@@ -3147,11 +3153,10 @@ LabelDsymbol *FuncDeclaration::searchLabel(Identifier *ident)
  */
 
 AggregateDeclaration *FuncDeclaration::isThis()
-{   AggregateDeclaration *ad;
-
+{
     //printf("+FuncDeclaration::isThis() '%s'\n", toChars());
-    ad = NULL;
-    if ((storage_class & STCstatic) == 0)
+    AggregateDeclaration *ad = NULL;
+    if ((storage_class & STCstatic) == 0 && !isFuncLiteralDeclaration())
     {
         ad = isMember2();
     }
@@ -3160,13 +3165,12 @@ AggregateDeclaration *FuncDeclaration::isThis()
 }
 
 AggregateDeclaration *FuncDeclaration::isMember2()
-{   AggregateDeclaration *ad;
-
+{
     //printf("+FuncDeclaration::isMember2() '%s'\n", toChars());
-    ad = NULL;
+    AggregateDeclaration *ad = NULL;
     for (Dsymbol *s = this; s; s = s->parent)
     {
-//printf("\ts = '%s', parent = '%s', kind = %s\n", s->toChars(), s->parent->toChars(), s->parent->kind());
+        //printf("\ts = '%s', parent = '%s', kind = %s\n", s->toChars(), s->parent->toChars(), s->parent->kind());
         ad = s->isMember();
         if (ad)
         {
@@ -4188,6 +4192,16 @@ bool FuncLiteralDeclaration::isNested()
 }
 
 bool FuncLiteralDeclaration::isVirtual()
+{
+    return false;
+}
+
+bool FuncLiteralDeclaration::addPreInvariant()
+{
+    return false;
+}
+
+bool FuncLiteralDeclaration::addPostInvariant()
 {
     return false;
 }

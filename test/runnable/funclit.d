@@ -953,6 +953,25 @@ C11230 visit11230()
 }
 
 /***************************************************/
+// 10336
+
+struct S10336
+{
+    template opDispatch(string name)
+    {
+        enum opDispatch = function(int x) {
+            return x;
+        };
+    }
+}
+
+void test10336()
+{
+    S10336 s;
+    assert(s.hello(12) == 12);
+}
+
+/***************************************************/
 // 11661
 
 void test11661()
@@ -1009,6 +1028,7 @@ int main()
     test9928();
     test10133();
     test10288();
+    test10336();
     test11661();
 
     printf("Success\n");
