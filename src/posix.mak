@@ -50,6 +50,9 @@ ifneq (x,x$(MODEL))
     MODEL_FLAG=-m$(MODEL)
 endif
 
+os:=$(shell echo $(OS) | tr [:upper:] [:lower:])
+DMD_CONF:=../ini/$(os)/bin$(MODEL)/dmd.conf
+
 ifeq (OSX,$(OS))
     export MACOSX_DEPLOYMENT_TARGET=10.3
 endif
@@ -655,7 +658,7 @@ version.o: version.c
 install: all
 	mkdir -p $(INSTALL_DIR)/bin
 	cp dmd $(INSTALL_DIR)/bin/dmd
-	cp dmd.conf.default $(INSTALL_DIR)/bin/dmd.conf
+	cp $(DMD_CONF) $(INSTALL_DIR)/bin/dmd.conf
 	cp backendlicense.txt $(INSTALL_DIR)/dmd-backendlicense.txt
 	cp artistic.txt $(INSTALL_DIR)/dmd-artistic.txt
 

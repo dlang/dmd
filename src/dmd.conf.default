@@ -1,4 +1,0 @@
-
-[Environment]
-DFLAGS=-L--export-dynamic -I%@P%/../import -L-L%@P%/../lib -L-lrt
-
