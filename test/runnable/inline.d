@@ -358,6 +358,28 @@ void test11224()
 }
 
 /************************************/
+// 11322
+
+bool b11322;
+uint n11322;
+
+ref uint fun11322()
+{
+    if (b11322)
+        return n11322;
+    else
+        return n11322;
+}
+
+void test11322()
+{
+    fun11322()++;
+    assert(n11322 == 1);
+    fun11322() *= 5;
+    assert(n11322 == 5);
+}
+
+/************************************/
 // 11394
 
 debug(NRVO) static void* p11394a, p11394b, p11394c;
@@ -409,6 +431,7 @@ int main()
     test11223();
     test11314();
     test11224();
+    test11322();
     test11394();
 
     printf("Success\n");

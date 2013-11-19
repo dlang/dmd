@@ -1856,6 +1856,10 @@ Expression *FuncDeclaration::expandInline(InlineScanState *iss,
         //eb->print();
         //eb->dump(0);
 
+        // Bugzilla 11322:
+        if (tf->isref)
+            e = e->toLvalue(NULL, NULL);
+
         /* There's a problem if what the function returns is used subsequently as an
          * lvalue, as in a struct return that is then used as a 'this'.
          * If we take the address of the return value, we will be taking the address
