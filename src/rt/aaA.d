@@ -182,23 +182,25 @@ body
         pe = &e.next;
     }
 
-    // Not found, create new elem
-    //printf("create new one\n");
-    size_t size = Entry.sizeof + aligntsize(keytitsize) + valuesize;
-    e = cast(Entry *) GC.malloc(size);
-    e.next = null;
-    e.hash = key_hash;
-    ubyte* ptail = cast(ubyte*)(e + 1);
-    memcpy(ptail, pkey, keytitsize);
-    memset(ptail + aligntsize(keytitsize), 0, valuesize); // zero value
-    *pe = e;
-
-    auto nodes = ++aa.impl.nodes;
-    //printf("length = %d, nodes = %d\n", aa.a.buckets.length, nodes);
-    if (nodes > aa.impl.buckets.length * 4)
     {
-        //printf("rehash\n");
-        _aaRehash(aa,keyti);
+        // Not found, create new elem
+        //printf("create new one\n");
+        size_t size = Entry.sizeof + aligntsize(keytitsize) + valuesize;
+        e = cast(Entry *) GC.malloc(size);
+        e.next = null;
+        e.hash = key_hash;
+        ubyte* ptail = cast(ubyte*)(e + 1);
+        memcpy(ptail, pkey, keytitsize);
+        memset(ptail + aligntsize(keytitsize), 0, valuesize); // zero value
+        *pe = e;
+
+        auto nodes = ++aa.impl.nodes;
+        //printf("length = %d, nodes = %d\n", aa.a.buckets.length, nodes);
+        if (nodes > aa.impl.buckets.length * 4)
+        {
+            //printf("rehash\n");
+            _aaRehash(aa,keyti);
+        }
     }
 
 Lret:
