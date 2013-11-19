@@ -4457,6 +4457,7 @@ Statement *WithStatement::semantic(Scope *sc)
     if (body)
     {
         sc = sc->push(sym);
+        sc->insert(sym);
         body = body->semantic(sc);
         sc->pop();
         if (body && body->isErrorStatement())
@@ -5094,6 +5095,11 @@ bool GotoStatement::checkLabel()
     if (last == vd)
     {
         // All good, the label's scope has no variables
+    }
+    else if (vd->ident == Id::withSym)
+    {
+        error("goto skips declaration of with temporary at %s", vd->loc.toChars());
+        return true;
     }
     else
     {

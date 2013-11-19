@@ -458,6 +458,14 @@ Dsymbol *Scope::insert(Dsymbol *s)
             vd->lastVar = lastVar;
         lastVar = vd;
     }
+    else if (WithScopeSymbol *ss = s->isWithScopeSymbol())
+    {
+        VarDeclaration *vd = ss->withstate->wthis;
+        if (lastVar)
+            vd->lastVar = lastVar;
+        lastVar = vd;
+        return NULL;
+    }
     for (sc = this; sc; sc = sc->enclosing)
     {
         //printf("\tsc = %p\n", sc);
