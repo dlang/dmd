@@ -68,8 +68,9 @@ public:
 
     Dsymbol *onemember;         // if !=NULL then one member of this template
 
-    int literal;                // this template declaration is a literal
-    int ismixin;                // template declaration is only to be used as a mixin
+    bool literal;               // this template declaration is a literal
+    bool ismixin;               // template declaration is only to be used as a mixin
+    bool isstatic;              // this is static template declaration
     PROT protection;
 
     struct Previous
@@ -80,7 +81,7 @@ public:
     Previous *previous;         // threaded list of previous instantiation attempts on stack
 
     TemplateDeclaration(Loc loc, Identifier *id, TemplateParameters *parameters,
-        Expression *constraint, Dsymbols *decldefs, int ismixin);
+        Expression *constraint, Dsymbols *decldefs, bool ismixin = false, bool literal = false);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     bool overloadInsert(Dsymbol *s);
@@ -344,7 +345,7 @@ public:
     bool semanticTiargs(Scope *sc);
     bool findBestMatch(Scope *sc, Expressions *fargs);
     bool needsTypeInference(Scope *sc, int flag = 0);
-    bool hasNestedArgs(Objects *tiargs);
+    bool hasNestedArgs(Objects *tiargs, bool isstatic);
     void declareParameters(Scope *sc);
     Identifier *genIdent(Objects *args);
     void expandMembers(Scope *sc);

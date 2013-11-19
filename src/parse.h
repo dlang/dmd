@@ -80,7 +80,7 @@ public:
     StorageClass parsePostfix();
     StorageClass parseTypeCtor();
     Expression *parseConstraint();
-    TemplateDeclaration *parseTemplateDeclaration(int ismixin);
+    TemplateDeclaration *parseTemplateDeclaration(bool ismixin = false);
     TemplateParameters *parseTemplateParameterList(int flag = 0);
     Dsymbol *parseMixin();
     Objects *parseTemplateArgumentList();

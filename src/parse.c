@@ -193,7 +193,7 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
                 break;
 
             case TOKtemplate:
-                s = (Dsymbol *)parseTemplateDeclaration(0);
+                s = (Dsymbol *)parseTemplateDeclaration();
                 break;
 
             case TOKmixin:
@@ -214,7 +214,7 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
                     case TOKtemplate:
                         // mixin template
                         nextToken();
-                        s = (Dsymbol *)parseTemplateDeclaration(1);
+                        s = (Dsymbol *)parseTemplateDeclaration(true);
                         break;
 
                     default:
@@ -1159,7 +1159,7 @@ Dsymbol *Parser::parseCtor()
         Dsymbols *decldefs = new Dsymbols();
         decldefs->push(f);
         TemplateDeclaration *tempdecl =
-            new TemplateDeclaration(loc, f->ident, tpl, constraint, decldefs, 0);
+            new TemplateDeclaration(loc, f->ident, tpl, constraint, decldefs);
         return tempdecl;
     }
 
@@ -1797,12 +1797,12 @@ Dsymbol *Parser::parseAggregate()
     }
 
     if (tpl)
-    {   // Wrap a template around the aggregate declaration
-
+    {
+        // Wrap a template around the aggregate declaration
         Dsymbols *decldefs = new Dsymbols();
         decldefs->push(a);
         TemplateDeclaration *tempdecl =
-                new TemplateDeclaration(loc, id, tpl, constraint, decldefs, 0);
+                new TemplateDeclaration(loc, id, tpl, constraint, decldefs);
         return tempdecl;
     }
 
@@ -1877,7 +1877,7 @@ Expression *Parser::parseConstraint()
  * Parse a TemplateDeclaration.
  */
 
-TemplateDeclaration *Parser::parseTemplateDeclaration(int ismixin)
+TemplateDeclaration *Parser::parseTemplateDeclaration(bool ismixin)
 {
     TemplateDeclaration *tempdecl;
     Identifier *id;
@@ -1888,7 +1888,8 @@ TemplateDeclaration *Parser::parseTemplateDeclaration(int ismixin)
 
     nextToken();
     if (token.value != TOKidentifier)
-    {   error("TemplateIdentifier expected following template");
+    {
+        error("TemplateIdentifier expected following template");
         goto Lerr;
     }
     id = token.ident;
@@ -1900,7 +1901,8 @@ TemplateDeclaration *Parser::parseTemplateDeclaration(int ismixin)
     constraint = parseConstraint();
 
     if (token.value != TOKlcurly)
-    {   error("members of template declaration expected");
+    {
+        error("members of template declaration expected");
         goto Lerr;
     }
     else
@@ -1908,7 +1910,8 @@ TemplateDeclaration *Parser::parseTemplateDeclaration(int ismixin)
         nextToken();
         decldefs = parseDeclDefs(0);
         if (token.value != TOKrcurly)
-        {   error("template member expected");
+        {
+            error("template member expected");
             goto Lerr;
         }
         nextToken();
@@ -2956,7 +2959,7 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, const utf8_t *co
                         Dsymbols *a2 = new Dsymbols();
                         a2->push(s);
                         TemplateDeclaration *tempdecl =
-                            new TemplateDeclaration(loc, ident, tpl, NULL/*constraint*/, a2, 0);
+                            new TemplateDeclaration(loc, ident, tpl, NULL/*constraint*/, a2);
                         s = tempdecl;
                     }
                     a->push(s);
@@ -3021,7 +3024,7 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, const utf8_t *co
                         Dsymbols *a2 = new Dsymbols();
                         a2->push(s);
                         TemplateDeclaration *tempdecl =
-                            new TemplateDeclaration(loc, ident, tpl, NULL/*constraint*/, a2, 0);
+                            new TemplateDeclaration(loc, ident, tpl, NULL/*constraint*/, a2);
                         s = tempdecl;
                     }
                     a->push(s);
@@ -3352,8 +3355,18 @@ L2:
                 Dsymbols *decldefs = new Dsymbols();
                 decldefs->push(s);
                 TemplateDeclaration *tempdecl =
-                    new TemplateDeclaration(loc, s->ident, tpl, constraint, decldefs, 0);
+                    new TemplateDeclaration(loc, s->ident, tpl, constraint, decldefs);
                 s = tempdecl;
+
+                if (storage_class & STCstatic)
+                {
+                    assert(f->storage_class & STCstatic);
+                    f->storage_class &= ~STCstatic;
+
+                    Dsymbols *a = new Dsymbols();
+                    a->push(s);
+                    s = new StorageClassDeclaration(STCstatic, a);
+                }
             }
             if (link != linkage)
             {
@@ -4884,7 +4897,8 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
         }
 
         case TOKimport:
-        {   Dsymbols *imports = new Dsymbols();
+        {
+            Dsymbols *imports = new Dsymbols();
             parseImport(imports, 0);
             s = new ImportStatement(loc, imports);
             if (flags & PSscope)
@@ -4893,7 +4907,8 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
         }
 
         case TOKtemplate:
-        {   Dsymbol *d = parseTemplateDeclaration(0);
+        {
+            Dsymbol *d = parseTemplateDeclaration();
             s = new ExpStatement(loc, d);
             break;
         }
@@ -6152,11 +6167,11 @@ Expression *Parser::parsePrimaryExp()
 
             TemplateDeclaration *td = NULL;
             if (tpl)
-            {   // Wrap a template around function fd
+            {
+                // Wrap a template around function fd
                 Dsymbols *decldefs = new Dsymbols();
                 decldefs->push(fd);
-                td = new TemplateDeclaration(fd->loc, fd->ident, tpl, NULL, decldefs, 0);
-                td->literal = 1;    // it's a template 'literal'
+                td = new TemplateDeclaration(fd->loc, fd->ident, tpl, NULL, decldefs, false, true);
             }
 
             e = new FuncExp(loc, fd, td);
