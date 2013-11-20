@@ -890,6 +890,7 @@ public:
     GotoStatement(Loc loc, Identifier *ident);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
+    void checkLabel();
     int blockExit(bool mustNotThrow);
     Expression *interpret(InterState *istate);
     void ctfeCompile(CompiledCtfeFunction *ccf);

@@ -64,6 +64,8 @@ typedef Array<class CompoundStatement> CompoundStatements;
 
 typedef Array<class GotoCaseStatement> GotoCaseStatements;
 
+typedef Array<class GotoStatement> GotoStatements;
+
 typedef Array<class ReturnStatement> ReturnStatements;
 
 typedef Array<class TemplateInstance> TemplateInstances;
