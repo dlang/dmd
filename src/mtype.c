@@ -3601,6 +3601,16 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
     printf("TypeArray::dotExp(e = '%s', ident = '%s')\n", e->toChars(), ident->toChars());
 #endif
 
+    if (e->op == TOKtype)
+    {
+        if (ident == Id::sort || ident == Id::reverse ||
+            ident == Id::dup || ident == Id::idup)
+        {
+            e->error("%s is not an expression", e->toChars());
+            return new ErrorExp();
+        }
+    }
+
     if (!n->isMutable())
         if (ident == Id::sort || ident == Id::reverse)
         {   error(e->loc, "can only %s a mutable array", ident->toChars());
@@ -4105,6 +4115,11 @@ Expression *TypeSArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
     }
     else if (ident == Id::ptr)
     {
+        if (e->op == TOKtype)
+        {
+            e->error("%s is not an expression", e->toChars());
+            return new ErrorExp();
+        }
         if (size(e->loc) == 0)
             e = new NullExp(e->loc, next->pointerTo());
         else
@@ -4402,6 +4417,12 @@ Expression *TypeDArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
 #if LOGDOTEXP
     printf("TypeDArray::dotExp(e = '%s', ident = '%s')\n", e->toChars(), ident->toChars());
 #endif
+    if (e->op == TOKtype &&
+        (ident == Id::length || ident == Id::ptr))
+    {
+        e->error("%s is not an expression", e->toChars());
+        return new ErrorExp();
+    }
     if (ident == Id::length)
     {
         if (e->op == TOKstring)
