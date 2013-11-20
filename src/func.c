@@ -1840,7 +1840,7 @@ void FuncDeclaration::semantic3(Scope *sc)
         f->deco = NULL;
 
     // Do semantic type AFTER pure/nothrow inference.
-    if (!f->deco)
+    if (!f->deco && ident != Lexer::idPool("__xopEquals") && ident != Lexer::idPool("__xopCmp"))
     {
         sc = sc->push();
         sc->stc = 0;
