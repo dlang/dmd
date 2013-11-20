@@ -7346,16 +7346,19 @@ Expression *FileExp::semantic(Scope *sc)
 
     if (global.params.verbose)
         fprintf(global.stdmsg, "file      %s\t(%s)\n", (char *)se->string, name);
-    if (global.params.moduleDeps != NULL && global.params.moduleDepsFile == NULL)
+    if (global.params.moduleDeps != NULL)
     {
         OutBuffer *ob = global.params.moduleDeps;
         Module* imod = sc->instantiatingModule ? sc->instantiatingModule : sc->module;
 
-        ob->writestring("depsFile ");
+        if (!global.params.moduleDepsFile)
+            ob->writestring("depsFile ");
         ob->writestring(imod->toPrettyChars());
         ob->writestring(" (");
         escapePath(ob, imod->srcfile->toChars());
         ob->writestring(") : ");
+        if (global.params.moduleDepsFile)
+            ob->writestring("string : ");
         ob->writestring((char *) se->string);
         ob->writestring(" (");
         escapePath(ob, name);
