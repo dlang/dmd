@@ -5081,6 +5081,13 @@ void GotoStatement::checkLabel()
     if (!label->statement)
     {
         error("label '%s' is undefined", label->toChars());
+        return;
+    }
+
+    if (label->statement->tf != tf)
+    {
+        error("cannot goto in or out of finally block");
+        return;
     }
 }
 
