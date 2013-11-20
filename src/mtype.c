@@ -9054,7 +9054,7 @@ L1:
          */
 
         // If Class is in a failed template, return an error
-        TemplateInstance *tiparent = d->inTemplateInstance();
+        TemplateInstance *tiparent = d->isInstantiated();
         if (tiparent && tiparent->errors)
             return new ErrorExp();
 

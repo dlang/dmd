@@ -4246,7 +4246,7 @@ void StaticCtorDeclaration::semantic(Scope *sc)
      * it could get called multiple times by the module constructors
      * for different modules. Thus, protect it with a gate.
      */
-    if (inTemplateInstance() && semanticRun < PASSsemantic)
+    if (isInstantiated() && semanticRun < PASSsemantic)
     {
         /* Add this prefix to the function:
          *      static int gate;
@@ -4377,7 +4377,7 @@ void StaticDtorDeclaration::semantic(Scope *sc)
      * it could get called multiple times by the module constructors
      * for different modules. Thus, protect it with a gate.
      */
-    if (inTemplateInstance() && semanticRun < PASSsemantic)
+    if (isInstantiated() && semanticRun < PASSsemantic)
     {
         /* Add this prefix to the function:
          *      static int gate;

@@ -300,11 +300,11 @@ Dsymbol *Dsymbol::toParent2()
     return s;
 }
 
-TemplateInstance *Dsymbol::inTemplateInstance()
+TemplateInstance *Dsymbol::isInstantiated()
 {
-    for (Dsymbol *parent = this->parent; parent; parent = parent->parent)
+    for (Dsymbol *s = parent; s; s = s->parent)
     {
-        TemplateInstance *ti = parent->isTemplateInstance();
+        TemplateInstance *ti = s->isTemplateInstance();
         if (ti)
             return ti;
     }
@@ -317,7 +317,7 @@ TemplateInstance *Dsymbol::inTemplateInstance()
 // or NULL if not speculative.
 TemplateInstance *Dsymbol::isSpeculative()
 {
-    Dsymbol * par = parent;
+    Dsymbol *par = parent;
     while (par)
     {
         TemplateInstance *ti = par->isTemplateInstance();

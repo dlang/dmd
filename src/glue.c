@@ -600,13 +600,13 @@ void FuncDeclaration::toObjFile(int multiobj)
     assert(semanticRun == PASSsemantic3done);
     assert(ident != Id::empty);
 
-    if (!inTemplateInstance() && inNonRoot(this))
+    if (!isInstantiated() && inNonRoot(this))
         return;
 
     /* Skip generating code if this part of a TemplateInstance that is instantiated
      * only by non-root modules (i.e. modules not listed on the command line).
      */
-    TemplateInstance *ti = inTemplateInstance();
+    TemplateInstance *ti = isInstantiated();
     if (!global.params.useUnitTests &&
         !global.params.allInst &&
         /* The issue is that if the importee is compiled with a different -debug
