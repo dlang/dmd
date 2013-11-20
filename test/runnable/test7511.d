@@ -294,6 +294,38 @@ void test10373()
 }
 
 /**********************************/
+// 10329
+
+auto foo10329(T)(T arg)
+{
+    auto bar()
+    {
+        return arg;
+    }
+    static assert(is(typeof(&bar) == T delegate() nothrow @safe));
+    return bar();
+}
+
+auto make10329(T)(T arg)
+{
+    struct S
+    {
+        auto front() { return T.init; }
+    }
+    S s;
+    static assert(is(typeof(&s.front) == T delegate() pure nothrow @safe));
+    return s;
+}
+
+void test10329() pure nothrow @safe
+{
+    assert(foo10329(1) == 1);
+
+    auto s = make10329(1);
+    assert(s.front() == 0);
+}
+
+/**********************************/
 
 int main()
 {
@@ -303,6 +335,7 @@ int main()
     test7511d();
     test9952();
     test10373();
+    test10329();
 
     printf("Success\n");
     return 0;

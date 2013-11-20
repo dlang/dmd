@@ -48,7 +48,7 @@ void fECPa() {
         }
         h();
     }
-    static assert( is(typeof(&g!()) == void delegate() pure));
+    static assert( is(typeof(&g!()) == void delegate() pure nothrow @safe));
     static assert(!is(typeof(&g!()) == void delegate()));
 }
 
@@ -92,9 +92,9 @@ template map7017(fun...) if (fun.length >= 1)
     auto map7017()
     {
         struct Result {
-            this(int dummy){}   // impure member function
+            this(int dummy){}   // impure member function -> inferred to pure by fixing issue 10329
         }
-        return Result(0);   // impure call
+        return Result(0);   // impure call -> inferred to pure by fixing issue 10329
     }
 }
 
@@ -104,10 +104,10 @@ void test7017a() pure
 {
     int bar7017(immutable int x) pure nothrow { return 1; }
 
-    static assert(!__traits(compiles, map7017!((){})()));   // should pass, but fails
-    static assert(!__traits(compiles, map7017!q{ 1 }()));   // pass, OK
-    static assert(!__traits(compiles, map7017!foo7017()));  // pass, OK
-    static assert( __traits(compiles, map7017!bar7017()));
+    static assert(__traits(compiles, map7017!((){})()));
+    static assert(__traits(compiles, map7017!q{ 1 }()));
+    static assert(__traits(compiles, map7017!foo7017()));
+    static assert(__traits(compiles, map7017!bar7017()));
 }
 
 /***************************************************/

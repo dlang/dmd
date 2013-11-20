@@ -305,7 +305,7 @@ TemplateInstance *Dsymbol::isInstantiated()
     for (Dsymbol *s = parent; s; s = s->parent)
     {
         TemplateInstance *ti = s->isTemplateInstance();
-        if (ti)
+        if (ti && !ti->isTemplateMixin())
             return ti;
     }
     return NULL;
