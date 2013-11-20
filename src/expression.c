@@ -8632,6 +8632,8 @@ Lagain:
             }
             UnaExp::semantic(sc);
             --nest;
+            if (e1->op == TOKerror)
+                return e1;
         }
 
         /* Look for e1 being a lazy parameter
@@ -9048,6 +9050,8 @@ Lagain:
         error("function expected before (), not '%s'", e1->toChars());
         return new ErrorExp();
     }
+    else if (t1->ty == Terror)
+        return new ErrorExp();
     else if (t1->ty != Tfunction)
     {
         TypeFunction *tf;

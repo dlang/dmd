@@ -5755,6 +5755,8 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
                     e = e->toLvalue(argsc, e);
 
                 fparam->defaultArg = e;
+                if (e->op == TOKerror)
+                    return terror;
             }
 
             /* If fparam after semantic() turns out to be a tuple, the number of parameters may

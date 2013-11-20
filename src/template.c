@@ -2469,7 +2469,9 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
             {
                 // Disambiguate by tf->callMatch
                 TypeFunction *tf1 = (TypeFunction *)fd->type;
+                assert(tf1->ty == Tfunction);
                 TypeFunction *tf2 = (TypeFunction *)m->lastf->type;
+                assert(tf2->ty == Tfunction);
                 MATCH c1 = tf1->callMatch(tthis_fd,   fargs);
                 MATCH c2 = tf2->callMatch(tthis_best, fargs);
                 //printf("2: c1 = %d, c2 = %d\n", c1, c2);
@@ -2572,6 +2574,8 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
         p.tthis_best = m->lastf->needThis() && !m->lastf->isCtorDeclaration() ? tthis : NULL;
 
         TypeFunction *tf = (TypeFunction *)m->lastf->type;
+        if (tf->ty == Terror)
+            goto Lerror;
         assert(tf->ty == Tfunction);
         if (!tf->callMatch(p.tthis_best, fargs))
             goto Lerror;
@@ -2725,7 +2729,7 @@ FuncDeclaration *TemplateDeclaration::doHeaderInstantiation(Scope *sc,
     sc2->pop();
     scope->pop();
 
-    return fd;
+    return fd->type->ty == Tfunction ? fd : NULL;
 }
 
 bool TemplateDeclaration::hasStaticCtorOrDtor()
