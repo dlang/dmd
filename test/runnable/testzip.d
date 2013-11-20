@@ -53,7 +53,6 @@ int main(string[] args)
     am.name = "foo.bar";
     //am.extra = cast(ubyte[])"ExTrA";
     am.expandedData = cast(ubyte[])"We all live in a yellow submarine, a yellow submarine";
-    am.expandedSize = to!uint(am.expandedData.length);
     zr.addMember(am);
     void[] data2 = zr.build();
     std.file.write(outzipname, cast(byte[])data2);
