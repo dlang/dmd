@@ -372,8 +372,7 @@ void GotoStatement::toIR(IRState *irs)
     Blockx *blx = irs->blx;
 
     assert(label->statement);
-    if (tf != label->statement->tf)
-        error("cannot goto forward out of or into finally block");
+    assert(tf == label->statement->tf);
 
     block *bdest = labelToBlock(loc, blx, label, 1);
     if (!bdest)
