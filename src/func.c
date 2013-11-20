@@ -92,6 +92,7 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
     requiresClosure = false;
     flags = 0;
     returns = NULL;
+    gotos = NULL;
 }
 
 Dsymbol *FuncDeclaration::syntaxCopy(Dsymbol *s)
@@ -1760,6 +1761,15 @@ void FuncDeclaration::semantic3(Scope *sc)
                 {
                     error("synchronized function %s must be a member of a class", toChars());
                 }
+            }
+        }
+
+        // Fix up forward-referenced gotos
+        if (gotos)
+        {
+            for (size_t i = 0; i < gotos->dim; ++i)
+            {
+                (*gotos)[i]->checkLabel();
             }
         }
 

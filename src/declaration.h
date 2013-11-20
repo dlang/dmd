@@ -612,6 +612,7 @@ public:
     Symbol *shidden;                    // hidden pointer passed to function
 
     ReturnStatements *returns;
+    GotoStatements *gotos;              // Gotos with forward references
 
     BUILTIN builtin;               // set if this is a known, builtin
                                         // function we can evaluate at compile
