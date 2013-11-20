@@ -4847,6 +4847,14 @@ void pinholeopt(code *c,block *b)
             unsigned ereg = rm & 7;
             //printf("c = %p, op = %02x rm = %02x\n", c, op, rm);
 
+            // Replace IMUL AX, EA with IMUL EA
+            if (!I16 && op == 0xFAF && reg == modregrm(0,AX,0))
+            {
+                c->Iop = 0xF7;
+                c->Irm = modregrm(rm >> 6, 5, ereg);
+                goto L1;
+            }
+
             /* If immediate second operand      */
             if ((ins & T ||
                  ((op == 0xF6 || op == 0xF7) && (reg < modregrm(0,2,0) || reg > modregrm(0,3,0)))
@@ -5297,6 +5305,10 @@ STATIC void pinholeopt_unittest()
         {{ 64,0xF6,modregrmx(3,0,R8),0,0xFF,0 },  { 0,0x84,modregxrmx(3,R8,R8),0,0xFF }},
         {{ 64,0xF7,modregrmx(3,0,R8),0,0xFF,0 },  { 0,0x84,modregxrmx(3,R8,R8),0,0xFF }},
 #endif
+
+        // IMUL AX, EA                         IMUL EA
+        {{ 32,0xFAF,modregrm(3,AX,BX),0,0,0 }, { 0,0xF7,modregrm(3,5,BX),0,0 }},
+        {{ 64,0xFAF,modregrm(3,AX,BX),0,0,0 }, { 0,0xF7,modregrm(3,5,BX),0,0 }},
 
         // PUSH immed => PUSH immed8
         {{ 0,0x68,0,0,0 },    { 0,0x6A,0,0,0 }},
