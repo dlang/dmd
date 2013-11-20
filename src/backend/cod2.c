@@ -1552,7 +1552,10 @@ code *cdmul(elem *e,regm_t *pretregs)
                     retregs = ALLREGS;
                 cl = codelem(e1,&retregs,FALSE);        /* eval left leaf */
                 resreg = retregs;
-                cr = loadea(e2,&cs,0x0FAF,findreg(resreg),0,retregs,retregs);
+                if (resreg == mAX) // imul r/m
+                    cr = loadea(e2,&cs,0xF7,op,0, mAX, mAX | mDX);
+                else // imul r, r/m
+                    cr = loadea(e2,&cs,0x0FAF,findreg(resreg),0,retregs,retregs);
                 freenode(e2);
                 goto L3;
             }
