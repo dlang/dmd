@@ -3392,9 +3392,9 @@ L2:
                     assert(f->storage_class & STCstatic);
                     f->storage_class &= ~STCstatic;
 
-                    Dsymbols *a = new Dsymbols();
-                    a->push(s);
-                    s = new StorageClassDeclaration(STCstatic, a);
+                    Dsymbols *ax = new Dsymbols();
+                    ax->push(s);
+                    s = new StorageClassDeclaration(STCstatic, ax);
                 }
             }
             if (link != linkage)
