@@ -2922,6 +2922,17 @@ code *peephole(code *cstart,regm_t scratch)
             continue;
         }
 
+        // Do:
+        //      MOV     AX,EA           =>      MOV AX,EA
+        //      IMUL    AX,EA           =>      IMUL EA
+        if ((I32 || I64) &&
+            c->Iop == 0x8B && (c->Irm & 0x3C) == modregrm(0,AX,0) &&
+            c1->Iop == 0x0FAF && (c1->Irm & 0x3C) == modregrm(0,AX,0))
+        {
+            c1->Iop = 0xF7;
+            c1->Irm = c1->Irm & modregrm(3,0,7) | modregrm(0,5,0);
+        }
+
         // Combine two SUBs of the same register
         if (c->Iop == c1->Iop &&
             c->Iop == 0x83 &&
@@ -2953,11 +2964,11 @@ code *peephole(code *cstart,regm_t scratch)
             }
         }
 
-        if (c->Iop == 0x8B && (c->Irm & 0xC0) == 0xC0)    // MOV r1,EA
+        if (c->Iop == 0x8B && (c->Irm & 0xC0) == 0xC0)    // MOV r1,r2
         {   r1 = (c->Irm >> 3) & 7;
             r2 = c->Irm & 7;
         }
-        else if (c->Iop == 0x89 && (c->Irm & 0xC0) == 0xC0)   // MOV EA,r2
+        else if (c->Iop == 0x89 && (c->Irm & 0xC0) == 0xC0)   // MOV r1,r2
         {   r1 = c->Irm & 7;
             r2 = (c->Irm >> 3) & 7;
         }
