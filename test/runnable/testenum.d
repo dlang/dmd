@@ -397,10 +397,10 @@ void test8()
     enum E
     {
         A = B,
-	E = D + 7,
+        E = D + 7,
         B = 3,
-	C,
-	D,
+        C,
+        D,
     }
 
     assert(E.A == 3);

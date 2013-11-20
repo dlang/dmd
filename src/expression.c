@@ -6651,7 +6651,10 @@ Expression *IsExp::semantic(Scope *sc)
             case TOKenum:
                 if (targ->ty != Tenum)
                     goto Lno;
-                tded = ((TypeEnum *)targ)->sym->getMemtype(loc);
+                if (id)
+                    tded = ((TypeEnum *)targ)->sym->getMemtype(loc);
+                else
+                    tded = targ;
                 if (tded->ty == Terror)
                     return new ErrorExp();
                 break;
