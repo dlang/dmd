@@ -2953,11 +2953,11 @@ code *peephole(code *cstart,regm_t scratch)
             }
         }
 
-        if (c->Iop == 0x8B && (c->Irm & 0xC0) == 0xC0)    // MOV r1,EA
+        if (c->Iop == 0x8B && (c->Irm & 0xC0) == 0xC0)    // MOV r1,r2
         {   r1 = (c->Irm >> 3) & 7;
             r2 = c->Irm & 7;
         }
-        else if (c->Iop == 0x89 && (c->Irm & 0xC0) == 0xC0)   // MOV EA,r2
+        else if (c->Iop == 0x89 && (c->Irm & 0xC0) == 0xC0)   // MOV r1,r2
         {   r1 = c->Irm & 7;
             r2 = (c->Irm >> 3) & 7;
         }
