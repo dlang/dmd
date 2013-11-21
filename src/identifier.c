@@ -25,11 +25,6 @@ Identifier::Identifier(const char *string, int value)
     this->len = strlen(string);
 }
 
-hash_t Identifier::hashCode()
-{
-    return String::calcHash(string);
-}
-
 bool Identifier::equals(RootObject *o)
 {
     return this == o || memcmp(string,o->toChars(),len+1) == 0;

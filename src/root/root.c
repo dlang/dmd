@@ -97,11 +97,6 @@ bool RootObject::equals(RootObject *o)
     return o == this;
 }
 
-hash_t RootObject::hashCode()
-{
-    return (hash_t) this;
-}
-
 int RootObject::compare(RootObject *obj)
 {
     return this - obj;
@@ -126,91 +121,6 @@ void RootObject::toBuffer(OutBuffer *b)
 {
     b->writestring("Object");
 }
-
-/****************************** String ********************************/
-
-String::String(const char *str)
-    : str(mem.strdup(str))
-{
-}
-
-String::~String()
-{
-    mem.free((void *)str);
-}
-
-hash_t String::calcHash(const char *str, size_t len)
-{
-    hash_t hash = 0;
-
-    for (;;)
-    {
-        switch (len)
-        {
-            case 0:
-                return hash;
-
-            case 1:
-                hash *= 37;
-                hash += *(uint8_t *)str;
-                return hash;
-
-            case 2:
-                hash *= 37;
-                hash += *(uint16_t *)str;
-                return hash;
-
-            case 3:
-                hash *= 37;
-                hash += (*(uint16_t *)str << 8) +
-                        ((uint8_t *)str)[2];
-                return hash;
-
-            default:
-                hash *= 37;
-                hash += *(uint32_t *)str;
-                str += 4;
-                len -= 4;
-                break;
-        }
-    }
-}
-
-hash_t String::calcHash(const char *str)
-{
-    return calcHash(str, strlen(str));
-}
-
-hash_t String::hashCode()
-{
-    return calcHash(str, strlen(str));
-}
-
-size_t String::len()
-{
-    return strlen(str);
-}
-
-bool String::equals(RootObject *obj)
-{
-    return strcmp(str,((String *)obj)->str) == 0;
-}
-
-int String::compare(RootObject *obj)
-{
-    return strcmp(str,((String *)obj)->str);
-}
-
-char *String::toChars()
-{
-    return (char *)str;         // toChars() should really be const
-}
-
-void String::print()
-{
-    printf("String '%s'\n",str);
-}
-
 
 /****************************** FileName ********************************/
 
@@ -322,51 +232,6 @@ Strings *FileName::splitPath(const char *path)
         } while (c);
     }
     return array;
-}
-
-hash_t FileName::hashCode()
-{
-#if _WIN32
-    // We need a different hashCode because it must be case-insensitive
-    size_t len = strlen(str);
-    hash_t hash = 0;
-    utf8_t *s = (utf8_t *)str;
-
-    for (;;)
-    {
-        switch (len)
-        {
-            case 0:
-                return hash;
-
-            case 1:
-                hash *= 37;
-                hash += *(uint8_t *)s | 0x20;
-                return hash;
-
-            case 2:
-                hash *= 37;
-                hash += *(uint16_t *)s | 0x2020;
-                return hash;
-
-            case 3:
-                hash *= 37;
-                hash += ((*(uint16_t *)s << 8) +
-                         ((uint8_t *)s)[2]) | 0x202020;
-                break;
-
-            default:
-                hash *= 37;
-                hash += *(uint32_t *)s | 0x20202020;
-                s += 4;
-                len -= 4;
-                break;
-        }
-    }
-#else
-    // darwin HFS is case insensitive, though...
-    return String::calcHash(str, strlen(str));
-#endif
 }
 
 int FileName::compare(RootObject *obj)
