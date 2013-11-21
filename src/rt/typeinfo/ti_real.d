@@ -30,11 +30,11 @@ class TypeInfo_e : TypeInfo
 
     static int _compare(real d1, real d2)
     {
-        if (d1 !<>= d2)         // if either are NaN
+        if (d1 != d1 || d2 != d2)         // if either are NaN
         {
-            if (d1 !<>= d1)
+            if (d1 != d1)
             {
-                if (d2 !<>= d2)
+                if (d2 != d2)
                     return 0;
                 return -1;
             }
