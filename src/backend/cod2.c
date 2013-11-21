@@ -1942,7 +1942,11 @@ code *cdcond(elem *e,regm_t *pretregs)
         }
 
         if (v1 == 0 && v2 == ~(targ_size_t)0)
+        {
             c = gen2(c,0xF6 + (opcode & 1),grex | modregrmx(3,2,reg));  // NOT reg
+            if (I64 && sz2 == REGSIZE)
+                code_orrex(c, REX_W);
+        }
         else
         {
             v1 -= v2;
