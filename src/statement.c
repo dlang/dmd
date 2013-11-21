@@ -3699,9 +3699,6 @@ Statement *ReturnStatement::semantic(Scope *sc)
             exp = exp->inferType(fld->treq->nextOf()->nextOf());
         exp = exp->semantic(sc);
         exp = resolveProperties(sc, exp);
-
-        if (Expression *e = exp->isTemp())
-            exp = e;                // don't need temporary
         if (exp->op == TOKcall)
             exp = valueNoDtor(exp);
 

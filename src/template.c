@@ -7221,8 +7221,6 @@ int TemplateInstance::compare(RootObject *o)
             {
                 Parameter *fparam = Parameter::getNth(fparameters, j);
                 Expression *farg = (*fargs)[j];
-                if (Expression *e = farg->isTemp())
-                    farg = e;
                 if (fparam->storageClass & STCauto)         // if "auto ref"
                 {
                     if (farg->isLvalue())

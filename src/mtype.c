@@ -5804,8 +5804,6 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
                 if (fargs && i < fargs->dim)
                 {
                     Expression *farg = (*fargs)[i];
-                    if (Expression *e = farg->isTemp())
-                        farg = e;
                     if (farg->isLvalue())
                         ;                               // ref parameter
                     else
@@ -6013,9 +6011,8 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
     }
 
     for (size_t u = 0; u < nparams; u++)
-    {   MATCH m;
-
-        // BUG: what about out and ref?
+    {
+        MATCH m;
 
         Parameter *p = Parameter::getNth(parameters, u);
         assert(p);
@@ -6028,8 +6025,6 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
         {
         Expression *arg = (*args)[u];
         assert(arg);
-        if (Expression *e = arg->isTemp())
-            arg = e;
 
         if (arg->op == TOKfunction)
         {
