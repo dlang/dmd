@@ -289,7 +289,7 @@ void Import::semantic(Scope *sc)
          *      ModuleAliasIdentifier ] "\n"
          *
          *      BasicImportDeclaration
-         *          ::= ModuleFullyQualifiedName " (" FilePath ") : " Protection
+         *          ::= ModuleFullyQualifiedName " (" FilePath ") : " Protection|"string"
          *              " [ " static" ] : " ModuleFullyQualifiedName " (" FilePath ")"
          *
          *      FilePath

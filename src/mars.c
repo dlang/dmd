@@ -378,7 +378,7 @@ Usage:\n\
   -debuglib=name    set symbolic debug library to name\n\
   -defaultlib=name  set default library to name\n\
   -deps          print module dependencies (imports/file/version/debug/lib)\n\
-  -deps=filename write module dependencies to filename (only imports - deprecated)\n%s\
+  -deps=filename write module dependencies to filename (only imports)\n%s\
   -g             add symbolic debug info\n\
   -gc            add symbolic debug info, pretend to be C\n\
   -gs            always emit stack frame\n\
