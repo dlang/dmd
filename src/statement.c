@@ -2455,7 +2455,22 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
         arg->type = arg->type->semantic(loc, sc);
         arg->type = arg->type->addStorageClass(arg->storageClass);
         lwr = lwr->implicitCastTo(sc, arg->type);
-        upr = upr->implicitCastTo(sc, arg->type);
+
+        if (upr->implicitConvTo(arg->type) || (arg->storageClass & STCref))
+        {
+            upr = upr->implicitCastTo(sc, arg->type);
+        }
+        else
+        {
+            // See if upr-1 fits in arg->type
+            Expression *limit = new MinExp(loc, upr, new IntegerExp(1));
+            limit = limit->semantic(sc);
+            limit = limit->optimize(WANTvalue);
+            if (!limit->implicitConvTo(arg->type))
+            {
+                upr = upr->implicitCastTo(sc, arg->type);
+            }
+        }
     }
     else
     {
@@ -2484,6 +2499,10 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
         }
         arg->type = arg->type->addStorageClass(arg->storageClass);
     }
+    if (arg->type->ty == Terror ||
+       lwr->op == TOKerror ||
+       upr->op == TOKerror)
+       return new ErrorStatement();
 
     /* Convert to a for loop:
      *  foreach (key; lwr .. upr) =>
@@ -2492,14 +2511,13 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
      *  foreach_reverse (key; lwr .. upr) =>
      *  for (auto tmp = lwr, auto key = upr; key-- > tmp;)
      */
-
     ExpInitializer *ie = new ExpInitializer(loc, (op == TOKforeach) ? lwr : upr);
-    key = new VarDeclaration(loc, arg->type->mutableOf(), Lexer::uniqueId("__key"), ie);
+    key = new VarDeclaration(loc, upr->type->mutableOf(), Lexer::uniqueId("__key"), ie);
     key->storage_class |= STCtemp;
 
     Identifier *id = Lexer::uniqueId("__limit");
     ie = new ExpInitializer(loc, (op == TOKforeach) ? upr : lwr);
-    VarDeclaration *tmp = new VarDeclaration(loc, arg->type, id, ie);
+    VarDeclaration *tmp = new VarDeclaration(loc, upr->type, id, ie);
     tmp->storage_class |= STCtemp;
 
     Statements *cs = new Statements();
@@ -2550,7 +2568,7 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
     }
     else
     {
-        ie = new ExpInitializer(loc, new IdentifierExp(loc, key->ident));
+        ie = new ExpInitializer(loc, new CastExp(loc, new VarExp(loc, key), arg->type));
         VarDeclaration *v = new VarDeclaration(loc, arg->type, arg->ident, ie);
         v->storage_class |= STCtemp | STCforeach | (arg->storageClass & STCref);
         body = new CompoundStatement(loc, new ExpStatement(loc, v), body);
