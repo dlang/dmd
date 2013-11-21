@@ -34,6 +34,7 @@
 #include "parse.h"
 #include "lib.h"
 #include "json.h"
+#include "declaration.h"
 
 int response_expand(size_t *pargc, const char ***pargv);
 void browse(const char *url);
@@ -1214,6 +1215,7 @@ Language changes listed by -transition=id:\n\
     Target::init();
     Expression::init();
     initPrecedence();
+    builtin_init();
 
     if (global.params.verbose)
     {   fprintf(global.stdmsg, "binary    %s\n", argv[0]);

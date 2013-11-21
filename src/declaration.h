@@ -549,26 +549,15 @@ enum ILS
 enum BUILTIN
 {
     BUILTINunknown = -1,        // not known if this is a builtin
-    BUILTINnot,                 // this is not a builtin
-    BUILTINsin,                 // std.math.sin
-    BUILTINcos,                 // std.math.cos
-    BUILTINtan,                 // std.math.tan
-    BUILTINsqrt,                // std.math.sqrt
-    BUILTINfabs,                // std.math.fabs
-    BUILTINatan2,               // std.math.atan2
-    BUILTINrndtol,              // std.math.rndtol
-    BUILTINexpm1,               // std.math.expm1
-    BUILTINexp2,                // std.math.exp2
-    BUILTINyl2x,                // std.math.yl2x
-    BUILTINyl2xp1,              // std.math.yl2xp1
-    BUILTINbsr,                 // core.bitop.bsr
-    BUILTINbsf,                 // core.bitop.bsf
-    BUILTINbswap,               // core.bitop.bswap
-    BUILTINgcc,                 // GCC builtin
+    BUILTINno,                  // this is not a builtin
+    BUILTINyes,                 // this is a builtin
 };
 
-Expression *eval_builtin(Loc loc, BUILTIN builtin, Expressions *arguments);
+Expression *eval_builtin(Loc loc, FuncDeclaration *fd, Expressions *arguments);
 
+typedef Expression *(*builtin_fp)(Loc loc, FuncDeclaration *fd, Expressions *arguments);
+void add_builtin(const char *mangle, builtin_fp fp);
+void builtin_init();
 
 class FuncDeclaration : public Declaration
 {

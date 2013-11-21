@@ -6432,8 +6432,7 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
     }
     if (!pthis)
     {
-        BUILTIN b = fd->isBuiltin();
-        if (b)
+        if (fd->isBuiltin() == BUILTINyes)
         {   Expressions args;
             args.setDim(nargs);
             for (size_t i = 0; i < args.dim; i++)
@@ -6444,7 +6443,7 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
                     return earg;
                 args[i] = earg;
             }
-            e = eval_builtin(loc, b, &args);
+            e = eval_builtin(loc, fd, &args);
             if (!e)
             {
                 error(loc, "cannot evaluate unimplemented builtin %s at compile time", fd->toChars());
