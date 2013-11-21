@@ -77,6 +77,7 @@ Scope::Scope()
     this->noctor = 0;
     this->intypeof = 0;
     this->speculative = 0;
+    this->lastVar = NULL;
     this->callSuper = 0;
     this->fieldinit = NULL;
     this->fieldinit_dim = 0;
@@ -127,6 +128,7 @@ Scope::Scope(Scope *enclosing)
     this->noctor = enclosing->noctor;
     this->intypeof = enclosing->intypeof;
     this->speculative = enclosing->speculative;
+    this->lastVar = enclosing->lastVar;
     this->callSuper = enclosing->callSuper;
     this->fieldinit = enclosing->saveFieldInit();
     this->fieldinit_dim = enclosing->fieldinit_dim;
@@ -450,6 +452,12 @@ Dsymbol *Scope::search(Loc loc, Identifier *ident, Dsymbol **pscopesym)
 Dsymbol *Scope::insert(Dsymbol *s)
 {   Scope *sc;
 
+    if (VarDeclaration *vd = s->isVarDeclaration())
+    {
+        if (lastVar)
+            vd->lastVar = lastVar;
+        lastVar = vd;
+    }
     for (sc = this; sc; sc = sc->enclosing)
     {
         //printf("\tsc = %p\n", sc);
