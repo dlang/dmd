@@ -44,11 +44,6 @@ public:
     virtual bool equals(RootObject *o);
 
     /**
-     * Returns a hash code, useful for things like building hash tables of Objects.
-     */
-    virtual hash_t hashCode();
-
-    /**
      * Return <0, ==0, or >0 if this is less than, equal to, or greater than obj.
      * Useful for sorting Objects.
      */
@@ -69,30 +64,11 @@ public:
     virtual int dyncast();
 };
 
-struct String
-{
-public:
-    const char *str;                  // the string itself
-
-    String(const char *str);
-    ~String();
-
-    static hash_t calcHash(const char *str, size_t len);
-    static hash_t calcHash(const char *str);
-    hash_t hashCode();
-    size_t len();
-    bool equals(RootObject *obj);
-    int compare(RootObject *obj);
-    char *toChars();
-    void print();
-};
-
 struct FileName
 {
 public:
     const char *str;
     FileName(const char *str);
-    hash_t hashCode();
     bool equals(RootObject *obj);
     static int equals(const char *name1, const char *name2);
     int compare(RootObject *obj);
