@@ -176,7 +176,6 @@ public:
     Expression *addressOf(Scope *sc);
     Expression *deref();
     Expression *integralPromotions(Scope *sc);
-    Expression *isTemp();
 
     Expression *toDelegate(Scope *sc, Type *t);
 

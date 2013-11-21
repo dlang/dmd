@@ -1101,8 +1101,6 @@ Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt
             e = new ErrorExp();
         }
 
-        if (Expression *ex = e->isTemp())
-            e = ex;
         e = e->isLvalue() ? callCpCtor(sc, e) : valueNoDtor(e);
 
         if (t0)
@@ -1618,13 +1616,12 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                 arg = arg->toLvalue(sc, arg);
             }
             else if (p->storageClass & STClazy)
-            {   // Convert lazy argument to a delegate
+            {
+                // Convert lazy argument to a delegate
                 arg = arg->toDelegate(sc, p->type);
             }
             else
             {
-                if (Expression *e = arg->isTemp())
-                    arg = e;
                 arg = arg->isLvalue() ? callCpCtor(sc, arg) : valueNoDtor(arg);
             }
 
@@ -2587,49 +2584,6 @@ Expressions *Expression::arraySyntaxCopy(Expressions *exps)
         }
     }
     return a;
-}
-
-/***************************************************
- * Recognize expressions of the form:
- *      ((T v = init), v)
- * where v is a temp.
- * This is used in optimizing out unnecessary temporary generation.
- * Returns initializer expression of v if so, NULL if not.
- */
-
-Expression *Expression::isTemp()
-{
-    //printf("isTemp() %s\n", toChars());
-    if (op == TOKcomma)
-    {
-        CommaExp *ec = (CommaExp *)this;
-        if (ec->e1->op == TOKdeclaration &&
-            ec->e2->op == TOKvar)
-        {
-            DeclarationExp *de = (DeclarationExp *)ec->e1;
-            VarExp *ve = (VarExp *)ec->e2;
-            if (de->declaration == ve->var && ve->var->storage_class & STCctfe)
-            {
-                VarDeclaration *v = ve->var->isVarDeclaration();
-                if (v && v->init)
-                {
-                    ExpInitializer *ei = v->init->isExpInitializer();
-                    if (ei)
-                    {
-                        Expression *e = ei->exp;
-                        if (e->op == TOKconstruct)
-                        {
-                            ConstructExp *ce = (ConstructExp *)e;
-                            if (ce->e1->op == TOKvar && ((VarExp *)ce->e1)->var == ve->var)
-                                e = ce->e2;
-                        }
-                        return e;
-                    }
-                }
-            }
-        }
-    }
-    return NULL;
 }
 
 /************************************************
