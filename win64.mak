@@ -17,7 +17,7 @@ IMPDIR=import
 
 DFLAGS=-m$(MODEL) -O -release -inline -w -Isrc -Iimport
 UDFLAGS=-m$(MODEL) -O -release -w -Isrc -Iimport
-DDOCFLAGS=-c -w -o- -Isrc -Iimport
+DDOCFLAGS=-c -w -o- -Isrc -Iimport -version=CoreDdoc
 
 #CFLAGS=/O2 /I"$(VCDIR)"\INCLUDE /I"$(SDKDIR)"\Include
 CFLAGS=/Z7 /I"$(VCDIR)"\INCLUDE /I"$(SDKDIR)"\Include
@@ -26,7 +26,7 @@ DRUNTIME_BASE=druntime64
 DRUNTIME=lib\$(DRUNTIME_BASE).lib
 GCSTUB=lib\gcstub64.obj
 
-DOCFMT=-version=CoreDdoc
+DOCFMT=
 
 target : import copydir copy $(DRUNTIME) $(GCSTUB)
 
