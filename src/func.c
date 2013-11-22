@@ -166,6 +166,8 @@ void FuncDeclaration::semantic(Scope *sc)
         if (StructDeclaration *sd = ad->isStructDeclaration())
             sd->makeNested();
     }
+    if (sc->func)
+        storage_class |= sc->func->storage_class & STCdisable;
     // Remove prefix storage classes silently.
     if ((storage_class & STC_TYPECTOR) && !(ad || isNested()))
         storage_class &= ~STC_TYPECTOR;
