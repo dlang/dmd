@@ -95,9 +95,9 @@ OBJS= $(OBJDIR)/errno_c.o $(OBJDIR)/threadasm.o
 ######################## All of'em ##############################
 
 ifeq (linux,$(OS))
-target : import copy dll $(DRUNTIME) doc
+target : import copy dll $(DRUNTIME)
 else
-target : import copy $(DRUNTIME) doc
+target : import copy $(DRUNTIME)
 endif
 
 ######################## Doc .html file generation ##############################
@@ -228,13 +228,11 @@ detab:
 
 zip: druntime.zip
 
-druntime.zip: $(MANIFEST) $(DOCS) $(IMPORTS)
+druntime.zip: $(MANIFEST) $(IMPORTS)
 	rm -rf $@
 	zip $@ $^
 
 install: target
-	mkdir -p $(INSTALL_DIR)/html
-	cp -r doc/* $(INSTALL_DIR)/html/
 	mkdir -p $(INSTALL_DIR)/import
 	cp -r import/* $(INSTALL_DIR)/import/
 	mkdir -p $(INSTALL_DIR)/lib
