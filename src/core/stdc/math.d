@@ -548,34 +548,34 @@ else version( FreeBSD )
 extern (D)
 {
     //int isgreater(real-floating x, real-floating y);
-    int isgreater(float x, float y)        { return !(x !>  y); }
-    int isgreater(double x, double y)      { return !(x !>  y); }
-    int isgreater(real x, real y)          { return !(x !>  y); }
+    int isgreater(float x, float y)        { return x > y && !isunordered(x, y); }
+    int isgreater(double x, double y)      { return x > y && !isunordered(x, y); }
+    int isgreater(real x, real y)          { return x > y && !isunordered(x, y); }
 
     //int isgreaterequal(real-floating x, real-floating y);
-    int isgreaterequal(float x, float y)   { return !(x !>= y); }
-    int isgreaterequal(double x, double y) { return !(x !>= y); }
-    int isgreaterequal(real x, real y)     { return !(x !>= y); }
+    int isgreaterequal(float x, float y)   { return x >= y && !isunordered(x, y); }
+    int isgreaterequal(double x, double y) { return x >= y && !isunordered(x, y); }
+    int isgreaterequal(real x, real y)     { return x >= y && !isunordered(x, y); }
 
     //int isless(real-floating x, real-floating y);
-    int isless(float x, float y)           { return !(x !<  y); }
-    int isless(double x, double y)         { return !(x !<  y); }
-    int isless(real x, real y)             { return !(x !<  y); }
+    int isless(float x, float y)           { return x < y && !isunordered(x, y); }
+    int isless(double x, double y)         { return x < y && !isunordered(x, y); }
+    int isless(real x, real y)             { return x < y && !isunordered(x, y); }
 
     //int islessequal(real-floating x, real-floating y);
-    int islessequal(float x, float y)      { return !(x !<= y); }
-    int islessequal(double x, double y)    { return !(x !<= y); }
-    int islessequal(real x, real y)        { return !(x !<= y); }
+    int islessequal(float x, float y)      { return x <= y && !isunordered(x, y); }
+    int islessequal(double x, double y)    { return x <= y && !isunordered(x, y); }
+    int islessequal(real x, real y)        { return x <= y && !isunordered(x, y); }
 
     //int islessgreater(real-floating x, real-floating y);
-    int islessgreater(float x, float y)    { return !(x !<> y); }
-    int islessgreater(double x, double y)  { return !(x !<> y); }
-    int islessgreater(real x, real y)      { return !(x !<> y); }
+    int islessgreater(float x, float y)    { return x != y && !isunordered(x, y); }
+    int islessgreater(double x, double y)  { return x != y && !isunordered(x, y); }
+    int islessgreater(real x, real y)      { return x != y && !isunordered(x, y); }
 
     //int isunordered(real-floating x, real-floating y);
-    int isunordered(float x, float y)      { return (x !<>= y); }
-    int isunordered(double x, double y)    { return (x !<>= y); }
-    int isunordered(real x, real y)        { return (x !<>= y); }
+    int isunordered(float x, float y)      { return isnan(x) || isnan(y); }
+    int isunordered(double x, double y)    { return isnan(x) || isnan(y); }
+    int isunordered(real x, real y)        { return isnan(x) || isnan(y); }
 }
 
 /* NOTE: freebsd < 8-CURRENT doesn't appear to support *l, but we can

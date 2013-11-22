@@ -28,11 +28,11 @@ class TypeInfo_f : TypeInfo
 
     static int _compare(float d1, float d2)
     {
-        if (d1 !<>= d2)         // if either are NaN
+        if (d1 != d1 || d2 != d2)         // if either are NaN
         {
-            if (d1 !<>= d1)
+            if (d1 != d1)
             {
-                if (d2 !<>= d2)
+                if (d2 != d2)
                     return 0;
                 return -1;
             }
