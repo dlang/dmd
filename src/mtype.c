@@ -6623,7 +6623,8 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
         if (VarDeclaration *v = s->isVarDeclaration())
         {
             if (v && v->inuse && (!v->type || !v->type->deco))  // Bugzilla 9494
-            {   error(loc, "circular reference to '%s'", v->toPrettyChars());
+            {
+                error(loc, "circular reference to '%s'", v->toPrettyChars());
                 *pe = new ErrorExp();
                 return;
             }
@@ -8059,7 +8060,8 @@ L1:
 
     VarDeclaration *v = s->isVarDeclaration();
     if (v && v->inuse && (!v->type || !v->type->deco))  // Bugzilla 9494
-    {   e->error("circular reference to '%s'", v->toPrettyChars());
+    {
+        e->error("circular reference to '%s'", v->toPrettyChars());
         return new ErrorExp();
     }
     if (v && !v->isDataseg() && (v->storage_class & STCmanifest))
@@ -8237,6 +8239,11 @@ Expression *TypeStruct::defaultInitLiteral(Loc loc)
     {
         VarDeclaration *vd = sym->fields[j];
         Expression *e;
+        if (vd->inuse)
+        {
+            error(loc, "circular reference to '%s'", vd->toPrettyChars());
+            return new ErrorExp();
+        }
         if (vd->offset < offset)
             e = NULL;
         else if (vd->init)
@@ -8705,7 +8712,8 @@ L1:
 
     VarDeclaration *v = s->isVarDeclaration();
     if (v && v->inuse && (!v->type || !v->type->deco))  // Bugzilla 9494
-    {   e->error("circular reference to '%s'", v->toPrettyChars());
+    {
+        e->error("circular reference to '%s'", v->toPrettyChars());
         return new ErrorExp();
     }
     if (v && !v->isDataseg() && (v->storage_class & STCmanifest))
