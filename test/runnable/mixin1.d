@@ -1186,6 +1186,33 @@ void test9417()
 }
 
 /*******************************************/
+// 11487
+
+template X11487()
+{
+    struct R()
+    {
+        C11487 c;
+
+        ~this()
+        {
+            static assert(is(typeof(c.front) == void));
+        }
+    }
+    template Mix(alias R)
+    {
+        R!() range;
+        @property front() inout {}
+    }
+}
+
+class C11487
+{
+    alias X11487!() M;
+    mixin M.Mix!(M.R);
+}
+
+/*******************************************/
 
 int main()
 {
