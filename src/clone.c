@@ -76,6 +76,7 @@ FuncDeclaration *AggregateDeclaration::hasIdentityOpAssign(Scope *sc)
         unsigned oldspec = global.speculativeGag;   // template opAssign fbody makes it.
         global.speculativeGag = global.gag;
         sc = sc->push();
+        sc->tinst = NULL;
         sc->speculative = true;
 
         for (size_t i = 0; i < 2; i++)
@@ -419,6 +420,7 @@ FuncDeclaration *AggregateDeclaration::hasIdentityOpEquals(Scope *sc)
             unsigned oldspec = global.speculativeGag;   // template opAssign fbody makes it.
             global.speculativeGag = global.gag;
             sc = sc->push();
+            sc->tinst = NULL;
             sc->speculative = true;
 
             for (size_t j = 0; j < 2; j++)
