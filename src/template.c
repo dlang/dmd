@@ -1141,7 +1141,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(FuncDeclaration *f, Loc l
     dedtypes.setDim(parameters->dim);
     dedtypes.zero();
 
-    if (errors)
+    if (errors || f->errors)
         return MATCHnomatch;
 
     // Set up scope for parameters
@@ -2219,10 +2219,13 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
 
     static int fp(void *param, Dsymbol *s)
     {
-        if (FuncDeclaration *fd = s->isFuncDeclaration())
-            return ((ParamDeduce *)param)->fp(fd);
-        if (TemplateDeclaration *td = s->isTemplateDeclaration())
-            return ((ParamDeduce *)param)->fp(td);
+        if (!s->errors)
+        {
+            if (FuncDeclaration *fd = s->isFuncDeclaration())
+                return ((ParamDeduce *)param)->fp(fd);
+            if (TemplateDeclaration *td = s->isTemplateDeclaration())
+                return ((ParamDeduce *)param)->fp(td);
+        }
         return 0;
     }
     int fp(FuncDeclaration *fd)
@@ -7213,7 +7216,7 @@ int TemplateInstance::compare(RootObject *o)
     if (fargs)
     {
         FuncDeclaration *fd = ti->toAlias()->isFuncDeclaration();
-        if (fd)
+        if (fd && !fd->errors)
         {
             Parameters *fparameters = fd->getParameters(NULL);
             size_t nfparams = Parameter::dim(fparameters); // Num function parameters

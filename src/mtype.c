@@ -5590,6 +5590,8 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
     //printf("TypeFunction::semantic() this = %p\n", this);
     //printf("TypeFunction::semantic() %s, sc->stc = %llx, fargs = %p\n", toChars(), sc->stc, fargs);
 
+    bool errors = false;
+
     /* Copy in order to not mess up original.
      * This can produce redundant copies if inferring return type,
      * as semantic() will get called again on this.
@@ -5651,12 +5653,12 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
         if (tb->ty == Tfunction)
         {
             error(loc, "functions cannot return a function");
-            tf->next = Type::terror;
+            errors = true;
         }
         else if (tb->ty == Ttuple)
         {
             error(loc, "functions cannot return a tuple");
-            tf->next = Type::terror;
+            errors = true;
         }
         else if (tb->ty == Tstruct)
         {
@@ -5664,13 +5666,18 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
             if (sd->isforwardRef())
             {
                 error(loc, "cannot return opaque struct %s by value", tb->toChars());
-                tf->next = Type::terror;
+                errors = true;
             }
         }
         else if (tb->ty == Tvoid)
             tf->isref = FALSE;                  // rewrite "ref void" as just "void"
+        else if (tb->ty == Terror)
+            errors = true;
         if (tf->next->isscope() && !(sc->flags & SCOPEctor))
+        {
             error(loc, "functions cannot return scope %s", tf->next->toChars());
+            errors = true;
+        }
         if (tf->next->hasWild() &&
             !(tf->next->ty == Tpointer && tf->next->nextOf()->ty == Tfunction || tf->next->ty == Tdelegate))
             wildreturn = TRUE;
@@ -5694,6 +5701,11 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
             fparam->type = fparam->type->semantic(loc, argsc);
             if (tf->inuse == 1) tf->inuse--;
 
+            if (fparam->type->ty == Terror)
+            {   errors = true;
+                continue;
+            }
+
             fparam->type = fparam->type->addStorageClass(fparam->storageClass);
 
             if (fparam->storageClass & (STCauto | STCalias | STCstatic))
@@ -5705,14 +5717,20 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
             Type *t = fparam->type->toBasetype();
 
             if (!(fparam->storageClass & STClazy) && t->ty == Tvoid)
+            {
                 error(loc, "cannot have parameter of type %s", fparam->type->toChars());
+                errors = true;
+            }
             if (fparam->storageClass & (STCref | STClazy))
             {
             }
             else if (fparam->storageClass & STCout)
             {
                 if (unsigned char m = fparam->type->mod & (MODimmutable | MODconst | MODwild))
+                {
                     error(loc, "cannot have %s out parameter of type %s", MODtoChars(m), t->toChars());
+                    errors = true;
+                }
                 else
                 {
                     Type *tv = t;
@@ -5722,6 +5740,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
                     {
                         error(loc, "cannot have out parameter of type %s because the default construction is disbaled",
                             fparam->type->toChars());
+                        errors = true;
                     }
                 }
             }
@@ -5756,7 +5775,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 
                 fparam->defaultArg = e;
                 if (e->op == TOKerror)
-                    return terror;
+                    errors = true;
             }
 
             /* If fparam after semantic() turns out to be a tuple, the number of parameters may
@@ -5812,7 +5831,10 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
                         fparam->storageClass &= ~STCref;        // value parameter
                 }
                 else
+                {
                     error(loc, "auto can only be used for template function parameters");
+                    errors = true;
+                }
             }
 
             // Remove redundant storage classes for type, they are already applied
@@ -5833,14 +5855,23 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
     if (tf->inuse)
     {   error(loc, "recursive type");
         tf->inuse = 0;
-        return terror;
+        errors = true;
     }
 
     if (tf->isproperty && (tf->varargs || Parameter::dim(tf->parameters) > 2))
+    {
         error(loc, "properties can only have zero, one, or two parameter");
+        errors = true;
+    }
 
     if (tf->varargs == 1 && tf->linkage != LINKd && Parameter::dim(tf->parameters) == 0)
+    {
         error(loc, "variadic functions with non-D linkage must have at least one parameter");
+        errors = true;
+    }
+
+    if (errors)
+        return terror;
 
     /* Don't return merge(), because arg identifiers and default args
      * can be different

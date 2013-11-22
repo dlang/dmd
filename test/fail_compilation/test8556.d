@@ -1,8 +1,11 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test8556.d(22): Error: template instance Grab!(Circle!(uint[])) does not match template declaration Grab(Range) if (!isSliceable!Range)
-fail_compilation/test8556.d(53): Error: template instance test8556.grab!(Circle!(uint[])) error instantiating
+fail_compilation/test8556.d(25): Error: template instance Grab!(Circle!(uint[])) does not match template declaration Grab(Range) if (!isSliceable!Range)
+fail_compilation/test8556.d(56): Error: template instance test8556.grab!(Circle!(uint[])) error instantiating
+fail_compilation/test8556.d(56): Error: template test8556.grab does not match any function template declaration. Candidates are:
+fail_compilation/test8556.d(25):        test8556.grab(R)(R input)
+fail_compilation/test8556.d(56): Error: template test8556.grab(R)(R input) cannot deduce template function from argument types !()(Circle!(uint[]))
 ---
 */
 
