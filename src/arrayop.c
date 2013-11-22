@@ -307,6 +307,7 @@ bool isArrayOpValid(Expression *e)
     }
     Type *tb = e->type->toBasetype();
 
+    BinExp *be;
     if ( (tb->ty == Tarray) || (tb->ty == Tsarray) )
     {
         switch (e->op)
@@ -330,7 +331,12 @@ bool isArrayOpValid(Expression *e)
             case TOKorass:
             case TOKpow:
             case TOKpowass:
-                 return isArrayOpValid(((BinExp *)e)->e1) && isArrayOpValid(((BinExp *)e)->e2);
+                be = (BinExp *)e;
+                return isArrayOpValid(be->e1) && isArrayOpValid(be->e2);
+
+            case TOKconstruct:
+                be = (BinExp *)e;
+                return be->e1->op == TOKslice && isArrayOpValid(be->e2);
 
             case TOKcall:
                  return false; // TODO: Decide if [] is required after arrayop calls.
@@ -368,9 +374,9 @@ Expression *BinExp::arrayOp(Scope *sc)
         return new ErrorExp();
     }
 
-    if (!isArrayOpValid(e2))
+    if (!isArrayOpValid(this))
     {
-        e2->error("invalid array operation %s (did you forget a [] ?)", toChars());
+        error("invalid array operation %s (did you forget a [] ?)", toChars());
         return new ErrorExp();
     }
 
