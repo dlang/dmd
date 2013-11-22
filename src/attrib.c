@@ -1567,7 +1567,8 @@ int CompileDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 
     this->sd = sd;
     if (memnum == 0)
-    {   /* No members yet, so parse the mixin now
+    {
+        /* No members yet, so parse the mixin now
          */
         compileIt(sc);
         memnum |= AttribDeclaration::addMember(sc, sd, memnum);
@@ -1586,7 +1587,8 @@ void CompileDeclaration::compileIt(Scope *sc)
     exp = exp->ctfeInterpret();
     StringExp *se = exp->toString();
     if (!se)
-    {   exp->error("argument to mixin must be a string, not (%s)", exp->toChars());
+    {
+        exp->error("argument to mixin must be a string, not (%s)", exp->toChars());
     }
     else
     {
@@ -1611,6 +1613,15 @@ void CompileDeclaration::semantic(Scope *sc)
         compileIt(sc);
         AttribDeclaration::addMember(sc, sd, 0);
         compiled = 1;
+
+        if (scope && decl)
+        {
+            for (size_t i = 0; i < decl->dim; i++)
+            {
+                Dsymbol *s = (*decl)[i];
+                s->setScope(scope);
+            }
+        }
     }
     AttribDeclaration::semantic(sc);
 }
