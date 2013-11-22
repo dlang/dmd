@@ -630,7 +630,7 @@ body
             mov EAX, newcapacity;
             mul EAX, size;
             mov reqsize, EAX;
-            jc  Loverflow;
+            jnc  Lcontinue;
         }
     }
     else version (D_InlineAsm_X86_64)
@@ -642,16 +642,20 @@ body
             mov RAX, newcapacity;
             mul RAX, size;
             mov reqsize, RAX;
-            jc  Loverflow;
+            jnc  Lcontinue;
         }
     }
     else
     {
         size_t reqsize = size * newcapacity;
 
-        if (newcapacity > 0 && reqsize / newcapacity != size)
-            goto Loverflow;
+        if (newcapacity == 0 || reqsize / newcapacity == size)
+            goto Lcontinue;
     }
+Loverflow:
+    onOutOfMemoryError();
+    assert(0);
+Lcontinue:
 
     // step 2, get the actual "allocated" size.  If the allocated size does not
     // match what we expect, then we will need to reallocate anyways.
@@ -766,10 +770,6 @@ body
 
     curcapacity = info.size - arraypad;
     return curcapacity / size;
-
-Loverflow:
-    onOutOfMemoryError();
-    assert(0);
 }
 
 /**
@@ -1869,8 +1869,10 @@ byte[] _d_arrayappendcTX(const TypeInfo ti, ref byte[] px, size_t n)
     else
     {
         // not appendable or is null
-        auto allocsize = newCapacity(newlength, sizeelem);
-        info = gc_qalloc(allocsize + __arrayPad(allocsize), (info.base ? info.attr : !(ti.next.flags & 1) ? BlkAttr.NO_SCAN : 0) | BlkAttr.APPENDABLE);
+        {
+            auto allocsize = newCapacity(newlength, sizeelem);
+            info = gc_qalloc(allocsize + __arrayPad(allocsize), (info.base ? info.attr : !(ti.next.flags & 1) ? BlkAttr.NO_SCAN : 0) | BlkAttr.APPENDABLE);
+        }
     L2:
         __setArrayAllocLength(info, newsize, isshared);
         if(!isshared)
