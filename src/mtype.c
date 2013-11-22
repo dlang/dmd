@@ -4346,10 +4346,12 @@ Type *TypeDArray::semantic(Loc loc, Scope *sc)
     Type *tbn = tn->toBasetype();
     switch (tbn->ty)
     {
+        case Ttuple:
+            return tbn;
         case Tfunction:
         case Tnone:
-        case Ttuple:
             error(loc, "can't have array of %s", tbn->toChars());
+            return Type::terror;
         case Terror:
             return Type::terror;
         default:
