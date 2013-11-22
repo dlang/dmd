@@ -195,6 +195,18 @@ void testsizes()
 
 ///////////////////////
 
+size_t cond11565(size_t val)
+{
+    return val ? size_t.max : 0;
+}
+
+void test11565()
+{
+    assert(cond11565(true) == size_t.max);
+}
+
+///////////////////////
+
 int array1[3] = [1:1,2,0:3];
 
 void testarrayinit()
@@ -1043,6 +1055,7 @@ int main()
     testfastdiv();
     testdocond();
     testnegcom();
+    test11565();
     testoror();
     testbt();
     testandand();
