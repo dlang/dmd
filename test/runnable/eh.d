@@ -580,7 +580,7 @@ void test9568()
 
 /****************************************************/
 
-void test8()
+void test8a()
 {
   int a;
   goto L2;    // L2 is not addressable.
@@ -588,12 +588,49 @@ void test8()
   try {
       a += 2;
   }
-  catch (Exception e) {
+  catch (Exception) {
       a += 3;
 L2: ;
       a += 100;
   }
   assert(a == 100);
+}
+
+void test8b()
+{
+  int a;
+  goto L2;    // L2 is not addressable.
+
+  try {
+  }
+  catch (Exception) {
+      a += 3;
+L2: ;
+      a += 100;
+  }
+  assert(a == 100);
+}
+
+void test8c()
+{
+  int a;
+  goto L2;    // L2 is not addressable.
+
+  try
+    static assert(true);
+  catch (Exception) {
+      a += 3;
+L2: ;
+      a += 100;
+  }
+  assert(a == 100);
+}
+
+void test8()
+{
+  test8a();
+  test8b();
+  test8c();
 }
 
 /****************************************************/
