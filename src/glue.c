@@ -796,6 +796,7 @@ void FuncDeclaration::toObjFile(int multiobj)
 #endif
     }
 
+    symtab_t *symtabsave = cstate.CSpsymtab;
     cstate.CSpsymtab = &f->Flocsym;
 
     // Find module m for this function
@@ -1095,9 +1096,16 @@ void FuncDeclaration::toObjFile(int multiobj)
     }
 
     if (global.errors)
+    {
+        // Restore symbol table
+        cstate.CSpsymtab = symtabsave;
         return;
+    }
 
     writefunc(s);
+    // Restore symbol table
+    cstate.CSpsymtab = symtabsave;
+
     if (isExport())
         objmod->export_symbol(s, Para.offset);
 
