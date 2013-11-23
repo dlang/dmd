@@ -9968,20 +9968,20 @@ Expression *CastExp::semantic(Scope *sc)
             return new VectorExp(loc, e1, to);
         }
 
-        if (tob->isintegral() && t1b->ty == Tarray)
-        {
-            error("cannot cast %s to integral type %s", e1->toChars(), to->toChars());
-            return new ErrorExp();
-        }
+        if ((tob->ty == Tarray || tob->ty == Tsarray) && t1b->isTypeBasic())
+            goto Lfail;
+
+        if (tob->isTypeBasic() && (t1b->ty == Tarray || t1b->ty == Tsarray))
+            goto Lfail;
 
         if (tob->ty == Tpointer && t1b->ty == Tdelegate)
             deprecation("casting from %s to %s is deprecated", e1->type->toChars(), to->toChars());
 
         if (t1b->ty == Tvoid && tob->ty != Tvoid && e1->op != TOKfunction)
-        {
-            error("cannot cast %s of type %s to %s", e1->toChars(), e1->type->toChars(), to->toChars());
-            return new ErrorExp();
-        }
+            goto Lfail;
+
+        if (tob->ty == Tclass && t1b->isTypeBasic())
+            goto Lfail;
     }
     else if (!to)
     {   error("cannot cast tuple");
@@ -10060,14 +10060,20 @@ Expression *CastExp::semantic(Scope *sc)
 Lsafe:
     /* Instantiate AA implementations during semantic analysis.
      */
-    Type *tfrom = e1->type->toBasetype();
-    Type *t = to->toBasetype();
-    if (tfrom->ty == Taarray)
-        ((TypeAArray *)tfrom)->getImpl();
-    if (t->ty == Taarray)
-        ((TypeAArray *)t)->getImpl();
-    Expression *e = e1->castTo(sc, to);
-    return e;
+    {
+        Type *tfrom = e1->type->toBasetype();
+        Type *t = to->toBasetype();
+        if (tfrom->ty == Taarray)
+            ((TypeAArray *)tfrom)->getImpl();
+        if (t->ty == Taarray)
+            ((TypeAArray *)t)->getImpl();
+        Expression *e = e1->castTo(sc, to);
+        return e;
+    }
+
+Lfail:
+    error("cannot cast %s of type %s to %s", e1->toChars(), e1->type->toChars(), to->toChars());
+    return new ErrorExp();
 }
 
 
