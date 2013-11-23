@@ -2106,13 +2106,14 @@ Lagain:
                     {   error("foreach: index cannot be ref");
                         goto Lerror2;
                     }
-                    if (!arg->type->equals(taa->index))
+                    if (!taa->index->implicitConvTo(arg->type))
                     {   error("foreach: index must be type %s, not %s", taa->index->toChars(), arg->type->toChars());
                         goto Lerror2;
                     }
                     arg = (*arguments)[1];
                 }
-                if (!arg->type->equals(taa->nextOf()))
+                if ((!arg->type->equals(taa->nextOf()) && (arg->storageClass & STCref)) ||
+                    !taa->nextOf()->implicitConvTo(arg->type))
                 {   error("foreach: value must be type %s, not %s", taa->nextOf()->toChars(), arg->type->toChars());
                     goto Lerror2;
                 }
