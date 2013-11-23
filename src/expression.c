@@ -10003,13 +10003,6 @@ Expression *CastExp::semantic(Scope *sc)
         if (t1b->implicitConvTo(tob))
             goto Lsafe;
 
-        if (!t1b->isMutable() && tob->isMutable())
-            goto Lunsafe;
-
-        if (t1b->isShared() && !tob->isShared())
-            // Cast away shared
-            goto Lunsafe;
-
         if (!tob->hasPointers())
             goto Lsafe;
 
@@ -10026,6 +10019,8 @@ Expression *CastExp::semantic(Scope *sc)
                 cdto->isCPPinterface())
                 goto Lunsafe;
 
+            if (!MODimplicitConv(t1b->mod, tob->mod))
+                goto Lunsafe;
             goto Lsafe;
         }
 
