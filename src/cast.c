@@ -145,9 +145,8 @@ MATCH Expression::implicitConvTo(Type *t)
     if (type->isintegral() && t->isintegral() &&
         type->isTypeBasic() && t->isTypeBasic())
     {   IntRange src = this->getIntRange() DUMP;
-        IntRange targetUnsigned = IntRange::fromType(t, /*isUnsigned*/true) DUMP;
-        IntRange targetSigned = IntRange::fromType(t, /*isUnsigned*/false) DUMP;
-        if (targetUnsigned.contains(src) || targetSigned.contains(src))
+        IntRange target = IntRange::fromType(t) DUMP;
+        if (target.contains(src))
             return MATCHconvert;
     }
 

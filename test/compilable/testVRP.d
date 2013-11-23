@@ -92,7 +92,8 @@ void modulus_bug6000a() {
 
 void modulus_bug6000b() {
     long n = 10520;
-    ubyte b = n % 10;    
+    ubyte b;
+    static assert(!__traits(compiles, b = n % 10));
 }
 
 void modulus2() {
@@ -110,7 +111,8 @@ void modulus3() {
 void modulus4() {
     uint i;
     ushort s;
-    short t = i % s;
+    short t;
+    static assert(!__traits(compiles, t = i % s));
 }
 
 void modulusFail() {
