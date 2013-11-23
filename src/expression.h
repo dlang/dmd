@@ -1003,6 +1003,8 @@ public:
 
     DotVarExp(Loc loc, Expression *e, Declaration *var, bool hasOverloads = false);
     Expression *semantic(Scope *sc);
+    void checkEscape();
+    void checkEscapeRef();
     int checkModifiable(Scope *sc, int flag);
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
@@ -1347,6 +1349,8 @@ public:
     IndexExp(Loc loc, Expression *e1, Expression *e2);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
+    void checkEscape();
+    void checkEscapeRef();
     int checkModifiable(Scope *sc, int flag);
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);

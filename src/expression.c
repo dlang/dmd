@@ -7928,6 +7928,16 @@ Lerr:
     return new ErrorExp();
 }
 
+void DotVarExp::checkEscape()
+{
+    e1->checkEscape();
+}
+
+void DotVarExp::checkEscapeRef()
+{
+    e1->checkEscapeRef();
+}
+
 int DotVarExp::isLvalue()
 {
     return 1;
@@ -10904,6 +10914,18 @@ Expression *IndexExp::semantic(Scope *sc)
 
 Lerr:
     return new ErrorExp();
+}
+
+void IndexExp::checkEscape()
+{
+    if (e1->type->toBasetype()->ty == Tsarray)
+        e1->checkEscape();
+}
+
+void IndexExp::checkEscapeRef()
+{
+    if (e1->type->toBasetype()->ty == Tsarray)
+        e1->checkEscapeRef();
 }
 
 int IndexExp::isLvalue()

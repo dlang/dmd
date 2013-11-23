@@ -5806,7 +5806,7 @@ void test8004()
 
 void test8064()
 {
-    uint[5] arry;
+    uint[] arry = new uint[](5);
     ref uint acc(size_t i) {
         return arry[i];
     }
