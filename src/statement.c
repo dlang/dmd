@@ -1698,6 +1698,11 @@ Lagain:
                             goto Lerror2;
                         }
                     }
+                    TypeSArray *ta = tab->ty == Tsarray ? (TypeSArray *)tab : NULL;
+                    if (ta && !IntRange::fromType(var->type).contains(ta->dim->getIntRange()))
+                    {
+                        error("index type '%s' cannot cover index range 0..%s\n", arg->type->toChars(), ta->dim->toChars());
+                    }
                 }
                 else
                 {
