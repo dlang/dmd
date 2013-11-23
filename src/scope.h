@@ -59,6 +59,7 @@ enum PROT;
 
 #define SCOPEctfe           0x0080  // inside a ctfe-only expression
 #define SCOPEnoaccesscheck  0x0100  // don't do access checks
+#define SCOPEcompile        0x0200  // inside __traits(compile)
 
 struct Scope
 {

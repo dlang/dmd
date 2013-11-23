@@ -3531,13 +3531,15 @@ void FuncDeclaration::checkNestedReference(Scope *sc, Loc loc)
             {
                 bool found = false;
                 for (int i = 0; i < siblingCallers.dim; ++i)
-                {   if (siblingCallers[i] == fdthis)
+                {
+                    if (siblingCallers[i] == fdthis)
                         found = true;
                 }
                 if (!found)
                 {
                     //printf("\tadding sibling %s\n", fdthis->toPrettyChars());
-                    siblingCallers.push(fdthis);
+                    if (!sc->intypeof && !(sc->flags & SCOPEcompile))
+                        siblingCallers.push(fdthis);
                 }
             }
         }
