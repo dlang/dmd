@@ -352,13 +352,11 @@ class Error : Throwable
 
 extern (C)
 {
-    // from druntime/src/compiler/dmd/aaA.d
+    // from druntime/src/rt/aaA.d
 
     size_t _aaLen(in void* p) pure nothrow;
     void* _aaGetX(void** pp, const TypeInfo keyti, in size_t valuesize, in void* pkey);
     inout(void)* _aaGetRvalueX(inout void* p, in TypeInfo keyti, in size_t valuesize, in void* pkey);
-    inout(void)* _aaIn(inout void* p, in TypeInfo keyti);
-    void _aaDel(void* p, in TypeInfo keyti, ...);
     inout(void)[] _aaValues(inout void* p, in size_t keysize, in size_t valuesize) pure nothrow;
     inout(void)[] _aaKeys(inout void* p, in size_t keysize) pure nothrow;
     void* _aaRehash(void** pp, in TypeInfo keyti) pure nothrow;
@@ -375,8 +373,6 @@ extern (C)
     void* _aaRangeFrontKey(AARange r);
     void* _aaRangeFrontValue(AARange r);
     void _aaRangePopFront(ref AARange r);
-
-    void* _d_assocarrayliteralT(TypeInfo_AssociativeArray ti, in size_t length, ...);
 }
 
 private template _Unqual(T)
