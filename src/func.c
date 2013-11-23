@@ -904,7 +904,7 @@ Ldone:
     if (fbody && isMain() && sc->module->isRoot())
         genCmain(sc);
 
-    return;
+    assert(type->ty != Terror || errors);
 }
 
 void FuncDeclaration::semantic2(Scope *sc)
@@ -1830,6 +1830,8 @@ void FuncDeclaration::semantic3(Scope *sc)
         semanticRun = PASSsemantic3done;
         semantic3Errors = global.errors - nerrors;
     }
+    if (type->ty == Terror)
+        errors = true;
     //printf("-FuncDeclaration::semantic3('%s.%s', sc = %p, loc = %s)\n", parent->toChars(), toChars(), sc, loc.toChars());
     //fflush(stdout);
 }
