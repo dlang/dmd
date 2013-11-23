@@ -427,6 +427,10 @@ Expression *BinAssignExp::arrayOp(Scope *sc)
         error("slice %s is not mutable", e1->toChars());
         return new ErrorExp();
     }
+    if (e1->op == TOKarrayliteral)
+    {
+        return e1->modifiableLvalue(sc, e1);
+    }
 
     return BinExp::arrayOp(sc);
 }

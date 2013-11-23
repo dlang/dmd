@@ -7081,7 +7081,7 @@ Expression *BinAssignExp::semantic(Scope *sc)
         e = e->semantic(sc);
         return e;
     }
-    else if (e1->op == TOKslice)
+    else if (e1->op == TOKslice || e1->type->ty == Tarray || e1->type->ty == Tsarray)
     {
         // T[] op= ...
         e = typeCombine(sc);
@@ -11909,7 +11909,8 @@ Ltupleassign:
 
     /* Look for array operations
      */
-    if (e1->op == TOKslice && !ismemset &&
+    if ((e1->op == TOKslice || e1->type->ty == Tarray) &&
+        !ismemset &&
         (e2->op == TOKadd || e2->op == TOKmin ||
          e2->op == TOKmul || e2->op == TOKdiv ||
          e2->op == TOKmod || e2->op == TOKxor ||
@@ -12131,7 +12132,7 @@ Expression *PowAssignExp::semantic(Scope *sc)
         return e;
 
     assert(e1->type && e2->type);
-    if (e1->op == TOKslice)
+    if (e1->op == TOKslice || e1->type->ty == Tarray || e1->type->ty == Tsarray)
     {   // T[] ^^= ...
         e = typeCombine(sc);
         if (e->op == TOKerror)
