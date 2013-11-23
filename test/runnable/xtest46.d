@@ -1492,6 +1492,15 @@ void test74()
 
 /***************************************************/
 
+void test9212()
+{
+    int[int] aa;
+    foreach (const key, const val; aa) {}
+    foreach (size_t key, size_t val; aa) {}
+}
+
+/***************************************************/
+
 class A75
 {
     pure static void raise(string s)
