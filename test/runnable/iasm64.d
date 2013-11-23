@@ -2896,8 +2896,8 @@ void test38()
 
 void test39()
 {
-    goto end;
     const byte z = 35;
+    goto end;
     asm { db z; }
     end: ;
 }
