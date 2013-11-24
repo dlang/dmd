@@ -392,7 +392,6 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
     t = t->toBasetype();
     switch (t->ty)
     {
-        case Tpointer:
         case Tsarray:
         case Tarray:
             break;
@@ -406,6 +405,9 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
             aa = new ExpInitializer(loc, toAssocArrayLiteral());
             return aa->semantic(sc, t, needInterpret);
 
+        case Tpointer:
+            if (t->nextOf()->ty != Tfunction)
+                break;
         default:
             error(loc, "cannot use array to initialize %s", type->toChars());
             goto Lerr;
