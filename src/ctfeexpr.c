@@ -1130,6 +1130,7 @@ bool isCtfeComparable(Expression *e)
         x->op != TOKdelegate &&
         x->op != TOKarrayliteral &&
         x->op != TOKstructliteral &&
+        x->op != TOKassocarrayliteral &&
         x->op != TOKclassreference)
     {
         return false;
@@ -1460,6 +1461,43 @@ int ctfeRawCmp(Loc loc, Expression *e1, Expression *e2)
             }
             return 0;   // All elements are equal
         }
+    }
+    if (e1->op == TOKassocarrayliteral && e2->op == TOKassocarrayliteral)
+    {
+        AssocArrayLiteralExp *es1 = (AssocArrayLiteralExp *)e1;
+        AssocArrayLiteralExp *es2 = (AssocArrayLiteralExp *)e2;
+
+        int dim = es1->keys->dim;
+        if (es2->keys->dim != dim)
+            return 1;
+
+        bool *used = (bool *)mem.malloc(sizeof(bool) * dim);
+        memset(used, 0, sizeof(bool) * dim);
+
+        for (size_t i = 0; i < dim; ++i)
+        {
+            Expression *k1 = (*es1->keys)[i];
+            Expression *v1 = (*es1->values)[i];
+
+            for (size_t j = 0; j < dim; ++j)
+            {
+                if (used[j])
+                    continue;
+                Expression *k2 = (*es2->keys)[j];
+                Expression *v2 = (*es2->values)[j];
+
+                if (ctfeRawCmp(loc, k1, k2))
+                    continue;
+                used[j] = true;
+                if (ctfeRawCmp(loc, v1, v2))
+                {
+                    mem.free(used);
+                    return 1;
+                }
+            }
+        }
+        mem.free(used);
+        return 0;
     }
     error(loc, "CTFE internal error: bad compare");
     assert(0);
