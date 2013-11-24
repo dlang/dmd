@@ -892,7 +892,7 @@ MATCH TemplateDeclaration::matchWithInstance(Scope *sc, TemplateInstance *ti,
         }
     }
 
-    if (m && constraint && !flag)
+    if (m > MATCHnomatch && constraint && !flag)
     {
         /* Check to see if constraint is satisfied.
          */
@@ -981,7 +981,7 @@ MATCH TemplateDeclaration::matchWithInstance(Scope *sc, TemplateInstance *ti,
     printf("--------------------------\n");
     printf("template %s\n", toChars());
     printf("instance %s\n", ti->toChars());
-    if (m)
+    if (m > MATCHnomatch)
     {
         for (size_t i = 0; i < dedtypes_dim; i++)
         {
@@ -1066,7 +1066,7 @@ MATCH TemplateDeclaration::leastAsSpecialized(Scope *sc, TemplateDeclaration *td
 
     // Attempt a type deduction
     MATCH m = td2->matchWithInstance(sc, &ti, &dedtypes, fargs, 1);
-    if (m)
+    if (m > MATCHnomatch)
     {
         /* A non-variadic template is more specialized than a
          * variadic one.
@@ -1211,7 +1211,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(FuncDeclaration *f, Loc l
 
             m = (*parameters)[i]->matchArg(loc, paramscope, dedargs, i, parameters, &dedtypes, &sparam);
             //printf("\tdeduceType m = %d\n", m);
-            if (m == MATCHnomatch)
+            if (m <= MATCHnomatch)
                 goto Lnomatch;
             if (m < matchTiargs)
                 matchTiargs = m;
@@ -1308,7 +1308,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(FuncDeclaration *f, Loc l
 
                 Type *t = new TypeIdentifier(Loc(), ttp->ident);
                 MATCH m = tthis->deduceType(paramscope, t, parameters, &dedtypes);
-                if (!m)
+                if (m <= MATCHnomatch)
                     goto Lnomatch;
                 if (m < match)
                     match = m;          // pick worst match
@@ -1569,7 +1569,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(FuncDeclaration *f, Loc l
                     #undef X
 
                 Lx:
-                    if (m == MATCHnomatch)
+                    if (m <= MATCHnomatch)
                         goto Lnomatch;
                     if (m < match)
                         match = m;
@@ -1711,12 +1711,12 @@ Lretry:
             /* If no match, see if the argument can be matched by using
              * implicit conversions.
              */
-            if (!m)
+            if (m == MATCHnomatch)
                 m = farg->implicitConvTo(prmtype);
 
             /* If no match, see if there's a conversion to a delegate
              */
-            if (!m)
+            if (m == MATCHnomatch)
             {   Type *tbp = prmtype->toBasetype();
                 Type *tba = farg->type->toBasetype();
                 if (tbp->ty == Tdelegate)
@@ -1727,7 +1727,7 @@ Lretry:
                     if (!tf->varargs && Parameter::dim(tf->parameters) == 0)
                     {
                         m = farg->type->deduceType(paramscope, tf->next, parameters, &dedtypes);
-                        if (!m && tf->next->toBasetype()->ty == Tvoid)
+                        if (m == MATCHnomatch && tf->next->toBasetype()->ty == Tvoid)
                             m = MATCHconvert;
                     }
                     //printf("\tm2 = %d\n", m);
@@ -1750,7 +1750,7 @@ Lretry:
                 }
             }
 
-            if (m && (fparam->storageClass & (STCref | STCauto)) == STCref)
+            if (m > MATCHnomatch && (fparam->storageClass & (STCref | STCauto)) == STCref)
             {
                 if (!farg->isLvalue())
                 {
@@ -1764,15 +1764,15 @@ Lretry:
                         goto Lnomatch;
                 }
             }
-            if (m && (fparam->storageClass & STCout))
+            if (m > MATCHnomatch && (fparam->storageClass & STCout))
             {   if (!farg->isLvalue())
                     goto Lnomatch;
             }
-            if (!m && (fparam->storageClass & STClazy) && prmtype->ty == Tvoid &&
+            if (m == MATCHnomatch && (fparam->storageClass & STClazy) && prmtype->ty == Tvoid &&
                     farg->type->ty != Tvoid)
                 m = MATCHconvert;
 
-            if (m)
+            if (m != MATCHnomatch)
             {   if (m < match)
                     match = m;          // pick worst match
                 argi++;
@@ -1836,7 +1836,7 @@ Lretry:
                         {
                             Type *vt = tvp->valType->semantic(Loc(), sc);
                             MATCH m = (MATCH)dim->implicitConvTo(vt);
-                            if (!m)
+                            if (m <= MATCHnomatch)
                                 goto Lnomatch;
                             dedtypes[i] = dim;
                         }
@@ -1931,7 +1931,7 @@ Lmatch:
                     (*dedargs)[i] = oded;
                     MATCH m2 = tparam->matchArg(loc, paramscope, dedargs, i, parameters, &dedtypes, NULL);
                     //printf("m2 = %d\n", m2);
-                    if (!m2)
+                    if (m2 <= MATCHnomatch)
                         goto Lnomatch;
                     if (m2 < matchTiargs)
                         matchTiargs = m2;             // pick worst match
@@ -2268,7 +2268,7 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
         }
         MATCH mfa = tf->callMatch(tthis_fd, fargs);
         //printf("test1: mfa = %d\n", mfa);
-        if (mfa != MATCHnomatch)
+        if (mfa > MATCHnomatch)
         {
             if (mfa > m->last) goto LfIsBetter;
             if (mfa < m->last) goto LlastIsBetter;
@@ -2364,7 +2364,7 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
             assert(td->semanticRun != PASSinit);
             MATCH mta = td->matchWithInstance(sc, ti, &dedtypes, fargs, 0);
             //printf("matchWithInstance = %d\n", mta);
-            if (!mta || mta < ta_last)      // no match or less match
+            if (mta <= MATCHnomatch || mta < ta_last)      // no match or less match
                 return 0;
 
             ti->semantic(sc, fargs);
@@ -2410,7 +2410,7 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
             MATCH mta = (MATCH)(x >> 4);
             MATCH mfa = (MATCH)(x & 0xF);
             //printf("match:t/f = %d/%d\n", mta, mfa);
-            if (!mfa)               // if no match
+            if (mfa <= MATCHnomatch)               // if no match
                 continue;
 
             Type *tthis_fd = NULL;
@@ -2497,9 +2497,11 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
             continue;
 
           Ltd_best:         // td_best is the best match so far
+            //printf("Ltd_best\n");
             continue;
 
           Ltd:              // td is the new best match
+            //printf("Ltd\n");
             assert(td->scope);
             td_best = td;
             property = 0;   // (backward compatibility)
@@ -2536,7 +2538,7 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
     p.property   = 0;
     p.ov_index   = 0;
     p.td_best    = NULL;
-    p.ta_last    = m->last ? MATCHexact : MATCHnomatch;
+    p.ta_last    = m->last != MATCHnomatch ? MATCHexact : MATCHnomatch;
     p.tdargs     = new Objects();
     p.tthis_best = NULL;
 
@@ -2546,7 +2548,7 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
         dstart = td->funcroot;
     overloadApply(dstart, &p, &ParamDeduce::fp);
 
-    //printf("td_best = %p, m->lastf = %p, match:t/f = %d/%d\n", td_best, m->lastf, mta, mfa);
+    //printf("td_best = %p, m->lastf = %p\n", p.td_best, m->lastf);
     if (p.td_best)
     {
         // Matches to template function
@@ -2643,7 +2645,7 @@ FuncDeclaration *TemplateDeclaration::doHeaderInstantiation(Scope *sc,
     ti->tinst = sc->tinst;
     {
         ti->tdtypes.setDim(parameters->dim);
-        if (!matchWithInstance(sc, ti, &ti->tdtypes, fargs, 2))
+        if (matchWithInstance(sc, ti, &ti->tdtypes, fargs, 2) <= MATCHnomatch)
             return NULL;
     }
 
@@ -4018,7 +4020,7 @@ void deduceBaseClassParameters(BaseClass *b,
 
         TypeInstance *t = new TypeInstance(Loc(), parti);
         MATCH m = t->deduceType(sc, tparam, parameters, tmpdedtypes);
-        if (m != MATCHnomatch)
+        if (m > MATCHnomatch)
         {
             // If this is the first ever match, it becomes our best estimate
             if (numBaseClassMatches==0)
@@ -4316,7 +4318,7 @@ MATCH TemplateTypeParameter::matchArg(Scope *sc, RootObject *oarg,
 
         //printf("\tcalling deduceType(): ta is %s, specType is %s\n", ta->toChars(), specType->toChars());
         MATCH m2 = ta->deduceType(sc, specType, parameters, dedtypes);
-        if (m2 == MATCHnomatch)
+        if (m2 <= MATCHnomatch)
         {   //printf("\tfailed deduceType\n");
             goto Lnomatch;
         }
@@ -4640,7 +4642,7 @@ MATCH TemplateAliasParameter::matchArg(Scope *sc, RootObject *oarg,
                 goto Lnomatch;
             Type *t = new TypeInstance(Loc(), ti);
             MATCH m = t->deduceType(sc, ta, parameters, dedtypes);
-            if (m == MATCHnomatch)
+            if (m <= MATCHnomatch)
                 goto Lnomatch;
         }
     }
@@ -4910,7 +4912,7 @@ MATCH TemplateValueParameter::matchArg(Scope *sc, RootObject *oarg,
     {
         m = (MATCH)ei->implicitConvTo(vt);
         //printf("m: %d\n", m);
-        if (!m)
+        if (m <= MATCHnomatch)
             goto Lnomatch;
         if (m != MATCHexact)
         {
@@ -6350,7 +6352,7 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
         assert(td->semanticRun != PASSinit);
         MATCH m = td->matchWithInstance(sc, ti, &dedtypes, ti->fargs, 0);
         //printf("matchWithInstance = %d\n", m);
-        if (!m)                 // no match at all
+        if (m <= MATCHnomatch)                 // no match at all
             return 0;
 
         if (m < m_best) goto Ltd_best;
@@ -6563,7 +6565,7 @@ bool TemplateInstance::needsTypeInference(Scope *sc, int flag)
             dedtypes.zero();
             assert(td->semanticRun != PASSinit);
             MATCH m = td->matchWithInstance(sc, ti, &dedtypes, NULL, 0);
-            if (m == MATCHnomatch)
+            if (m <= MATCHnomatch)
                 return 0;
         }
 
