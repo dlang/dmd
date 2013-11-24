@@ -186,7 +186,7 @@ int runLINK()
         }
 
         // Make sure path to exe file exists
-        FileName::ensurePathToNameExists(global.params.exefile);
+        ensurePathToNameExists(Loc(), global.params.exefile);
 
         cmdbuf.writeByte(' ');
         if (global.params.mapfile)
@@ -330,7 +330,7 @@ int runLINK()
         }
 
         // Make sure path to exe file exists
-        FileName::ensurePathToNameExists(global.params.exefile);
+        ensurePathToNameExists(Loc(), global.params.exefile);
 
         cmdbuf.writeByte(',');
         if (global.params.mapfile)
@@ -514,7 +514,7 @@ int runLINK()
     }
 
     // Make sure path to exe file exists
-    FileName::ensurePathToNameExists(global.params.exefile);
+    ensurePathToNameExists(Loc(), global.params.exefile);
 
     if (global.params.symdebug)
         argv.push("-g");

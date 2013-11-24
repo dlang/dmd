@@ -259,10 +259,10 @@ void obj_end(Library *library, File *objfile)
         objfile->setbuffer(objbuf.buf, objbuf.p - objbuf.buf);
         objbuf.buf = NULL;
 
-        FileName::ensurePathToNameExists(objfilename);
+        ensurePathToNameExists(Loc(), objfilename);
 
         //printf("write obj %s\n", objfilename);
-        objfile->writev();
+        writeFile(Loc(), objfile);
     }
     objbuf.pend = NULL;
     objbuf.p = NULL;
