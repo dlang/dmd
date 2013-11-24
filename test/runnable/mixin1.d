@@ -1142,6 +1142,27 @@ void test42()
 }
 
 /*******************************************/
+// 7744
+
+class ZeroOrMore7744(Expr)
+{
+    enum name = "ZeroOrMore7744!("~Expr.name~")";
+}
+class Range7744(char begin, char end)
+{
+    enum name = "Range7744!("~begin~","~end~")";
+}
+
+mixin(q{
+    class RubySource7744 : ZeroOrMore7744!(DecLiteral7744)
+    {
+    }
+    class DecLiteral7744 : Range7744!('0','9')
+    {
+    }
+});
+
+/*******************************************/
 // 8032
 
 mixin template T8032()
