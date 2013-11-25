@@ -4463,6 +4463,7 @@ Statement *WithStatement::semantic(Scope *sc)
     if (body)
     {
         sc = sc->push(sym);
+        sc->insert(sym);
         body = body->semantic(sc);
         sc->pop();
         if (body && body->isErrorStatement())
@@ -5029,6 +5030,8 @@ GotoStatement::GotoStatement(Loc loc, Identifier *ident)
     this->ident = ident;
     this->label = NULL;
     this->tf = NULL;
+    this->lastVar = NULL;
+    this->fd = NULL;
 }
 
 Statement *GotoStatement::syntaxCopy()
@@ -5043,6 +5046,8 @@ Statement *GotoStatement::semantic(Scope *sc)
     //printf("GotoStatement::semantic()\n");
     ident = fixupLabelName(sc, ident);
 
+    this->lastVar = sc->lastVar;
+    this->fd = sc->func;
     tf = sc->tf;
     label = fd->searchLabel(ident);
     if (!label->statement && sc->fes)
@@ -5069,29 +5074,46 @@ Statement *GotoStatement::semantic(Scope *sc)
             fd->gotos = new GotoStatements();
         fd->gotos->push(this);
     }
-
-    if (label->statement && label->statement->tf != sc->tf)
-    {
-        error("cannot goto in or out of finally block");
+    else if (checkLabel())
         return new ErrorStatement();
-    }
 
     return this;
 }
 
-void GotoStatement::checkLabel()
+bool GotoStatement::checkLabel()
 {
     if (!label->statement)
     {
         error("label '%s' is undefined", label->toChars());
-        return;
+        return true;
     }
 
     if (label->statement->tf != tf)
     {
         error("cannot goto in or out of finally block");
-        return;
+        return true;
     }
+
+    VarDeclaration *last = lastVar;
+    VarDeclaration *vd = label->statement->lastVar;
+    while (last && last != vd)
+        last = last->lastVar;
+    if (last == vd)
+    {
+        // All good, the label's scope has no variables
+    }
+    else if (vd->ident == Id::withSym)
+    {
+        error("goto skips declaration of with temporary at %s", vd->loc.toChars());
+        return true;
+    }
+    else
+    {
+        error("goto skips declaration of variable %s at %s", vd->toPrettyChars(), vd->loc.toChars());
+        return true;
+    }
+
+    return false;
 }
 
 int GotoStatement::blockExit(bool mustNotThrow)
@@ -5118,6 +5140,7 @@ LabelStatement::LabelStatement(Loc loc, Identifier *ident, Statement *statement)
     this->statement = statement;
     this->tf = NULL;
     this->gotoTarget = NULL;
+    this->lastVar = NULL;
     this->lblock = NULL;
     this->fwdrefs = NULL;
 }
@@ -5132,6 +5155,7 @@ Statement *LabelStatement::semantic(Scope *sc)
 {   LabelDsymbol *ls;
     FuncDeclaration *fd = sc->parent->isFuncDeclaration();
 
+    this->lastVar = sc->lastVar;
     //printf("LabelStatement::semantic()\n");
     ident = fixupLabelName(sc, ident);
 

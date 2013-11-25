@@ -886,11 +886,13 @@ public:
     Identifier *ident;
     LabelDsymbol *label;
     TryFinallyStatement *tf;
+    VarDeclaration *lastVar;
+    FuncDeclaration *fd;
 
     GotoStatement(Loc loc, Identifier *ident);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
-    void checkLabel();
+    bool checkLabel();
     int blockExit(bool mustNotThrow);
     Expression *interpret(InterState *istate);
     void ctfeCompile(CompiledCtfeFunction *ccf);
@@ -906,6 +908,7 @@ public:
     Statement *statement;
     TryFinallyStatement *tf;
     Statement *gotoTarget;      // interpret
+    VarDeclaration *lastVar;
     block *lblock;              // back end
 
     Blocks *fwdrefs;            // forward references to this LabelStatement

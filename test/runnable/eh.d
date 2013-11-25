@@ -588,7 +588,7 @@ void test8()
   try {
       a += 2;
   }
-  catch (Exception e) {
+  catch (Exception) {
       a += 3;
 L2: ;
       a += 100;

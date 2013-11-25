@@ -436,13 +436,17 @@ void test2781()
     {
         Tuple2781b!(int[]) bar1;
         foreach(elem; bar1) goto L1;
+    L1:
+        ;
 
         Tuple2781b!(int[int]) bar2;
-        foreach(key, elem; bar2) goto L1;
+        foreach(key, elem; bar2) goto L2;
+    L2:
+        ;
 
         Tuple2781b!(string) bar3;
-        foreach(dchar elem; bar3) goto L1;
-    L1:
+        foreach(dchar elem; bar3) goto L3;
+    L3:
         ;
     }
 
