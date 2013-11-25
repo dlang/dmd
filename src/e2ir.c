@@ -139,7 +139,8 @@ elem *callfunc(Loc loc,
         ec = el_una(OPind, tf->totym(), ec);
     }
     else
-    {   assert(t->ty == Tfunction);
+    {
+        assert(t->ty == Tfunction);
         tf = (TypeFunction *)(t);
     }
     retmethod = tf->retStyle();
@@ -151,11 +152,26 @@ elem *callfunc(Loc loc,
     op = (ec->Eoper == OPvar) ? intrinsic_op(ec->EV.sp.Vsym->Sident) : -1;
     if (arguments)
     {
+        for (size_t i = 0; i < arguments->dim; i++)
+        {
+        Lagain:
+            Expression *arg = (*arguments)[i];
+            assert(arg->op != TOKtuple);
+            if (arg->op == TOKcomma)
+            {
+                CommaExp *ce = (CommaExp *)arg;
+                eside = el_combine(eside, ce->e1->toElem(irs));
+                (*arguments)[i] = ce->e2;
+                goto Lagain;
+            }
+        }
+
         // j=1 if _arguments[] is first argument
         int j = (tf->linkage == LINKd && tf->varargs == 1);
 
         for (size_t i = 0; i < arguments->dim ; i++)
-        {   Expression *arg = (*arguments)[i];
+        {
+            Expression *arg = (*arguments)[i];
             elem *ea;
 
             //printf("\targ[%d]: %s\n", i, arg->toChars());
@@ -175,7 +191,8 @@ elem *callfunc(Loc loc,
                 }
             }
             if (config.exe == EX_WIN64 && arg->type->size(arg->loc) > REGSIZE && op == -1)
-            {   /* Copy to a temporary, and make the argument a pointer
+            {
+                /* Copy to a temporary, and make the argument a pointer
                  * to that temporary.
                  */
                 ea = arg->toElem(irs);
@@ -184,7 +201,8 @@ elem *callfunc(Loc loc,
             }
             ea = arg->toElem(irs);
             if (config.exe == EX_WIN64 && tybasic(ea->Ety) == TYcfloat)
-            {   /* Treat a cfloat like it was a struct { float re,im; }
+            {
+                /* Treat a cfloat like it was a struct { float re,im; }
                  */
                 ea->Ety = TYllong;
             }
@@ -200,7 +218,8 @@ elem *callfunc(Loc loc,
     if (retmethod == RETstack)
     {
         if (!ehidden)
-        {   // Don't have one, so create one
+        {
+            // Don't have one, so create one
             type *tc;
 
             Type *tret = tf->next;
@@ -251,7 +270,7 @@ elem *callfunc(Loc loc,
         else
         {
             // Evaluate ec for side effects
-            eside = ec;
+            eside = el_combine(ec, eside);
         }
         Symbol *sfunc = fd->toSymbol();
 
@@ -3615,7 +3634,8 @@ elem *CallExp::toElem(IRState *irs)
     directcall = 0;
     fd = NULL;
     if (e1->op == TOKdotvar && t1->ty != Tdelegate)
-    {   DotVarExp *dve = (DotVarExp *)e1;
+    {
+        DotVarExp *dve = (DotVarExp *)e1;
 
         fd = dve->var->isFuncDeclaration();
         Expression *ex = dve->e1;
