@@ -403,7 +403,7 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
 
         case Taarray:
             // was actually an associative array literal
-            aa = new ExpInitializer(loc, toAssocArrayLiteral());
+            aa = new ExpInitializer(loc, toAssocArrayLiteral(t));
             return aa->semantic(sc, t, needInterpret);
 
         default:
@@ -500,6 +500,8 @@ Expression *ArrayInitializer::toExpression(Type *tx)
     Expressions *elements;
     size_t edim;
     Type *t = NULL;
+    if (!type)
+        type = tx;
     if (type)
     {
         if (type == Type::terror)
@@ -508,17 +510,19 @@ Expression *ArrayInitializer::toExpression(Type *tx)
         t = type->toBasetype();
         switch (t->ty)
         {
-           case Tsarray:
-               edim = (size_t)((TypeSArray *)t)->dim->toInteger();
-               break;
+        case Tsarray:
+            edim = (size_t)((TypeSArray *)t)->dim->toInteger();
+            break;
 
-           case Tpointer:
-           case Tarray:
-               edim = dim;
-               break;
+        case Tpointer:
+        case Tarray:
+            edim = dim;
+            break;
 
-           default:
-               assert(0);
+        case Taarray:
+            return toAssocArrayLiteral(type);
+        default:
+            assert(0);
         }
     }
     else
@@ -527,12 +531,7 @@ Expression *ArrayInitializer::toExpression(Type *tx)
         for (size_t i = 0, j = 0; i < value.dim; i++, j++)
         {
             if (index[i])
-            {
-                if (index[i]->op == TOKint64)
-                    j = (size_t)index[i]->toInteger();
-                else
-                    goto Lno;
-            }
+                return toAssocArrayLiteral();
             if (j >= edim)
                 edim = j + 1;
         }
@@ -549,7 +548,8 @@ Expression *ArrayInitializer::toExpression(Type *tx)
         Initializer *iz = value[i];
         if (!iz)
             goto Lno;
-        Expression *ex = iz->toExpression();
+        Type *tn = type ? type->nextOf() : NULL;
+        Expression *ex = iz->toExpression(tn);
         if (!ex)
         {
             goto Lno;
@@ -593,11 +593,11 @@ Lno:
  * If possible, convert array initializer to associative array initializer.
  */
 
-Expression *ArrayInitializer::toAssocArrayLiteral()
+Expression *ArrayInitializer::toAssocArrayLiteral(Type *t)
 {
     Expression *e;
 
-    //printf("ArrayInitializer::toAssocArrayInitializer()\n");
+    //printf("ArrayInitializer::toAssocArrayLiteral()\n");
     //static int i; if (++i == 2) halt();
     Expressions *keys = new Expressions();
     keys->setDim(value.dim);
@@ -614,7 +614,8 @@ Expression *ArrayInitializer::toAssocArrayLiteral()
         Initializer *iz = value[i];
         if (!iz)
             goto Lno;
-        e = iz->toExpression();
+        Type *tn = t ? t->nextOf() : NULL;
+        e = iz->toExpression(tn);
         if (!e)
             goto Lno;
         (*values)[i] = e;

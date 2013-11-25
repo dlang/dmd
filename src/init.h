@@ -118,7 +118,7 @@ public:
     int isAssociativeArray();
     Type *inferType(Scope *sc);
     Expression *toExpression(Type *t = NULL);
-    Expression *toAssocArrayLiteral();
+    Expression *toAssocArrayLiteral(Type *t = NULL);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     dt_t *toDt();
