@@ -67,7 +67,12 @@ char *mangle(Declaration *sthis, bool isv)
         }
         else
             buf.prependstring("0");
-        s = s->parent;
+
+        TemplateInstance *ti = s->isTemplateInstance();
+        if (ti && !ti->isTemplateMixin())
+            s = ti->tempdecl->parent;
+        else
+            s = s->parent;
     } while (s);
 
 //    buf.prependstring("_D");
@@ -323,7 +328,7 @@ const char *TemplateInstance::mangle(bool isv)
         error("is not defined");
     else
     {
-        Dsymbol *par = enclosing || isTemplateMixin() ? parent : tempdecl->parent;
+        Dsymbol *par = isTemplateMixin() ? parent : tempdecl->parent;
         if (par)
         {
             const char *p = par->mangle(isv);
