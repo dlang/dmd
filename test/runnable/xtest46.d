@@ -5903,6 +5903,39 @@ void test8395()
 }
 
 /***************************************************/
+// 8396
+
+void test8396()
+{
+    static int g;
+
+    static extern(C) int bar(int a, int b)
+    {
+        //printf("a = %d, b = %d\n", a, b);
+        assert(b - a == 1);
+        return ++g;
+    }
+    static auto getFunc(int n)
+    {
+        assert(++g == n);
+        return &bar;
+    }
+
+    static struct Tuple { int _a, _b; }
+    static Tuple foo(int n)
+    {
+        assert(++g == n);
+        return Tuple(1, 2);
+    }
+
+    g = 0;
+    assert(bar(foo(1).tupleof) == 2);
+
+    g = 0;
+    assert(getFunc(1)(foo(2).tupleof) == 3);
+}
+
+/***************************************************/
 
 enum E160 : ubyte { jan = 1 }
 
@@ -7027,6 +7060,7 @@ int main()
     test159();
     test8283();
     test8395();
+    test8396();
     test160();
     test8665();
     test8108();
