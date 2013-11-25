@@ -3593,8 +3593,18 @@ void markAsNeedingClosure(Dsymbol *f, FuncDeclaration *outerFunc)
  * Note that nested functions can only call lexically earlier nested
  * functions, so loops are impossible.
  */
-bool checkEscapingSiblings(FuncDeclaration *f, FuncDeclaration *outerFunc)
+bool checkEscapingSiblings(FuncDeclaration *f, FuncDeclaration *outerFunc, void *p = NULL)
 {
+    struct PrevSibling
+    {
+        PrevSibling *p;
+        FuncDeclaration *f;
+    };
+
+    PrevSibling ps;
+    ps.p = (PrevSibling *)p;
+    ps.f = f;
+
     //printf("checkEscapingSiblings(f = %s, outerfunc = %s)\n", f->toChars(), outerFunc->toChars());
     bool bAnyClosures = false;
     for (int i = 0; i < f->siblingCallers.dim; ++i)
@@ -3605,7 +3615,19 @@ bool checkEscapingSiblings(FuncDeclaration *f, FuncDeclaration *outerFunc)
             markAsNeedingClosure(g, outerFunc);
             bAnyClosures = true;
         }
-        bAnyClosures |= checkEscapingSiblings(g, outerFunc);
+
+        PrevSibling *prev = (PrevSibling *)p;
+        while (1)
+        {
+            if (!prev)
+            {
+                bAnyClosures |= checkEscapingSiblings(g, outerFunc, &ps);
+                break;
+            }
+            if (prev->f == g)
+                break;
+            prev = prev->p;
+        }
     }
     //printf("\t%d\n", bAnyClosures);
     return bAnyClosures;
