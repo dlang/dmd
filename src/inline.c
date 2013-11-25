@@ -339,13 +339,15 @@ int CallExp::inlineCost3(InlineCostState *ics)
 
 struct InlineDoState
 {
+    // inline context
     VarDeclaration *vthis;
     Dsymbols from;      // old Dsymbols
     Dsymbols to;        // parallel array of new Dsymbols
     Dsymbol *parent;    // new parent
     FuncDeclaration *fd; // function being inlined (old parent)
+    // inline result
+    bool foundReturn;
 };
-
 /* -------------------------------------------------------------------- */
 
 Statement *Statement::doInlineStatement(InlineDoState *ids)
@@ -372,20 +374,7 @@ Statement *CompoundStatement::doInlineStatement(InlineDoState *ids)
         if (s)
         {
             as->push(s->doInlineStatement(ids));
-            if (s->isReturnStatement())
-                break;
-
-            /* Check for:
-             *  if (condition)
-             *      return exp1;
-             *  else
-             *      return exp2;
-             */
-            IfStatement *ifs = s->isIfStatement();
-            if (ifs && ifs->elsebody && ifs->ifbody &&
-                ifs->ifbody->isReturnStatement() &&
-                ifs->elsebody->isReturnStatement()
-               )
+            if (ids->foundReturn)
                 break;
         }
         else
@@ -404,7 +393,7 @@ Statement *UnrolledLoopStatement::doInlineStatement(InlineDoState *ids)
         if (s)
         {
             as->push(s->doInlineStatement(ids));
-            if (s->isReturnStatement())
+            if (ids->foundReturn)
                 break;
         }
         else
@@ -425,7 +414,11 @@ Statement *IfStatement::doInlineStatement(InlineDoState *ids)
 
     Expression *condition = this->condition ? this->condition->doInline(ids) : NULL;
     Statement *ifbody = this->ifbody ? this->ifbody->doInlineStatement(ids) : NULL;
+    bool bodyReturn = ids->foundReturn;
+    ids->foundReturn = false;
     Statement *elsebody = this->elsebody ? this->elsebody->doInlineStatement(ids) : NULL;
+    ids->foundReturn = ids->foundReturn && bodyReturn;
+
 
     return new IfStatement(loc, arg, condition, ifbody, elsebody);
 }
@@ -433,6 +426,7 @@ Statement *IfStatement::doInlineStatement(InlineDoState *ids)
 Statement *ReturnStatement::doInlineStatement(InlineDoState *ids)
 {
     //printf("ReturnStatement::doInlineStatement() '%s'\n", exp ? exp->toChars() : "");
+    ids->foundReturn = true;
     return new ReturnStatement(loc, exp ? exp->doInline(ids) : NULL);
 }
 
@@ -480,20 +474,7 @@ Expression *CompoundStatement::doInline(InlineDoState *ids)
         {
             Expression *e2 = s->doInline(ids);
             e = Expression::combine(e, e2);
-            if (s->isReturnStatement())
-                break;
-
-            /* Check for:
-             *  if (condition)
-             *      return exp1;
-             *  else
-             *      return exp2;
-             */
-            IfStatement *ifs = s->isIfStatement();
-            if (ifs && ifs->elsebody && ifs->ifbody &&
-                ifs->ifbody->isReturnStatement() &&
-                ifs->elsebody->isReturnStatement()
-               )
+            if (ids->foundReturn)
                 break;
 
         }
@@ -512,7 +493,7 @@ Expression *UnrolledLoopStatement::doInline(InlineDoState *ids)
         {
             Expression *e2 = s->doInline(ids);
             e = Expression::combine(e, e2);
-            if (s->isReturnStatement())
+            if (ids->foundReturn)
                 break;
         }
     }
@@ -535,9 +516,13 @@ Expression *IfStatement::doInline(InlineDoState *ids)
     econd = condition->doInline(ids);
     assert(econd);
     if (ifbody)
+    {
         e1 = ifbody->doInline(ids);
+    }
     else
         e1 = NULL;
+    bool bodyReturn = ids->foundReturn;
+    ids->foundReturn = false;
     if (elsebody)
         e2 = elsebody->doInline(ids);
     else
@@ -567,12 +552,14 @@ Expression *IfStatement::doInline(InlineDoState *ids)
     {
         e = econd;
     }
+    ids->foundReturn = ids->foundReturn && bodyReturn;
     return e;
 }
 
 Expression *ReturnStatement::doInline(InlineDoState *ids)
 {
     //printf("ReturnStatement::doInline() '%s'\n", exp ? exp->toChars() : "");
+    ids->foundReturn = true;
     return exp ? exp->doInline(ids) : NULL;
 }
 
