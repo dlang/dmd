@@ -2256,6 +2256,22 @@ void test658()
 
 /***************************************************/
 
+void test8557()
+{
+    auto a5 = [["A": "B"], ["C": "D"]];
+    static assert(is(typeof(a5) == string[string][]));
+    int[char][char] foo1 = ['A': ['B': 1]]; //rejects-valid
+    int[char][char] foo2 = cast()['A': ['B': 1]]; //workaround
+    auto foo3 = ['A' : ['B': 1]];
+    static assert(is(typeof(foo3) == int[char][char]));
+    auto foo4 = ['A' : [3, 1]];
+    static assert(is(typeof(foo4) == int[][char]));
+    auto foo5 = ['A' : [3 : 1]];
+    static assert(is(typeof(foo5) == int[int][char]));
+}
+
+/***************************************************/
+
 void test3069()
 {
     ubyte id = 0;

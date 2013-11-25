@@ -1385,7 +1385,7 @@ Lnomatch:
         ArrayInitializer *ai = init->isArrayInitializer();
         if (ai && tb->ty == Taarray)
         {
-            Expression *e = ai->toAssocArrayLiteral();
+            Expression *e = ai->toAssocArrayLiteral(tb);
             init = new ExpInitializer(e->loc, e);
         }
 
