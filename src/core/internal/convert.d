@@ -338,7 +338,7 @@ version(unittest)
 
     private void testConvert()
     {
-        //Test special values
+        /**Test special values*/
         testNumberConvert!("-float.infinity");
         testNumberConvert!("float.infinity");
         testNumberConvert!("-0.0F");
@@ -360,14 +360,22 @@ version(unittest)
         //testNumberConvert!("-real.nan"); //BUG @@@3632@@@
         testNumberConvert!("real.nan");
 
-        //Test common values
+        /**
+            Test min and max values values: min value has an '1' mantissa and minimal exponent,
+            Max value has an all '1' bits mantissa and max exponent.
+        */
         testNumberConvert!("float.min_normal");
         testNumberConvert!("float.max");
+        
+        /**Test common values*/
         testNumberConvert!("-0.17F");
         testNumberConvert!("3.14F");
+        
+        /**Test immutable and const*/
         testNumberConvert!("cast(const)3.14F");
         testNumberConvert!("cast(immutable)3.14F");
 
+        /**The same tests for double and real*/
         testNumberConvert!("double.min_normal");
         testNumberConvert!("double.max");
         testNumberConvert!("-0.17");
@@ -382,9 +390,14 @@ version(unittest)
         testNumberConvert!("cast(const)3.14L");
         testNumberConvert!("cast(immutable)3.14L");
         
-        //Test denormalized values
+        /**Test denormalized values*/
+        
+        /**Max denormalized value, first bit is 1*/
         testNumberConvert!("float.min_normal/2");
+        /**Min denormalized value, last bit is 1*/
         testNumberConvert!("float.min_normal/2UL^^23");
+        
+        /**Denormalized values with round*/
         testNumberConvert!("float.min_normal/19");
         testNumberConvert!("float.min_normal/17");
 
@@ -398,15 +411,28 @@ version(unittest)
         testNumberConvert!("real.min_normal/19");
         testNumberConvert!("real.min_normal/17");
 
+        /**Test imaginary values: convert algorithm is same with real values*/
         testNumberConvert!("0.0Fi");
         testNumberConvert!("0.0i");
         testNumberConvert!("0.0Li");
 
-        testNumberConvert!("cast(real)-0x9.0f7ee55df77618fp-13829L");
-        testNumberConvert!("cast(real)0x7.36e6e2640120d28p+8797L");
-        testNumberConvert!("cast(real)-0x1.05df6ce4702ccf8p+15835L");
-        testNumberConvert!("cast(real)0x9.54bb0d88806f714p-7088L");
+        /**True random values*/
+        testNumberConvert!("-0x9.0f7ee55df77618fp-13829L");
+        testNumberConvert!("0x7.36e6e2640120d28p+8797L");
+        testNumberConvert!("-0x1.05df6ce4702ccf8p+15835L");
+        testNumberConvert!("0x9.54bb0d88806f714p-7088L");
 
+        testNumberConvert!("-0x9.0f7ee55df7ffp-338");
+        testNumberConvert!("0x7.36e6e264012dp+879");
+        testNumberConvert!("-0x1.05df6ce4708ep+658");
+        testNumberConvert!("0x9.54bb0d888061p-708");
+        
+        testNumberConvert!("-0x9.0f7eefp-101F");
+        testNumberConvert!("0x7.36e6ep+87F");
+        testNumberConvert!("-0x1.05df6p+112F");
+        testNumberConvert!("0x9.54bb0p-70F");
+        
+        /**Big overflow or underflow*/
         testNumberConvert!("cast(double)-0x9.0f7ee55df77618fp-13829L");
         testNumberConvert!("cast(double)0x7.36e6e2640120d28p+8797L");
         testNumberConvert!("cast(double)-0x1.05df6ce4702ccf8p+15835L");
