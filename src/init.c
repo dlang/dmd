@@ -387,8 +387,6 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
     if (sem)                            // if semantic() already run
         return this;
     sem = 1;
-    type = t;
-    Initializer *aa = NULL;
     t = t->toBasetype();
     switch (t->ty)
     {
@@ -401,17 +399,26 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
             break;
 
         case Taarray:
-            // was actually an associative array literal
-            aa = new ExpInitializer(loc, toAssocArrayLiteral());
-            return aa->semantic(sc, t, needInterpret);
-
+        case Tstruct:   // consider implicit constructor call
+        {
+            Expression *e;
+            if (t->ty == Taarray || isAssociativeArray())
+                e = toAssocArrayLiteral();
+            else
+                e = toExpression();
+            ExpInitializer *ei = new ExpInitializer(e->loc, e);
+            return ei->semantic(sc, t, needInterpret);
+        }
         case Tpointer:
             if (t->nextOf()->ty != Tfunction)
                 break;
+
         default:
-            error(loc, "cannot use array to initialize %s", type->toChars());
+            error(loc, "cannot use array to initialize %s", t->toChars());
             goto Lerr;
     }
+
+    type = t;
 
     length = 0;
     for (size_t i = 0; i < index.dim; i++)
