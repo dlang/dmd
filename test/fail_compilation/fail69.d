@@ -1,3 +1,9 @@
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail69.d(14): Error: can only initialize static const member x inside static constructor
+---
+*/
 
 class C
 {
@@ -5,11 +11,11 @@ class C
 
     void foo()
     {
-	x = 4;
+        x = 4;
     }
 
     static this()
     {
-	x = 5;
+        x = 5;
     }
 }
