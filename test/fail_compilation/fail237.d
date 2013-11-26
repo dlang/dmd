@@ -1,11 +1,10 @@
-/* bug581 mtype.c
-bug.d(173): Error: template identifier a is not a member of module bug
-Error: no property 'b' for type 'int'
-
-// Other errors in this report:  constfold.c
-Error: cannot cast int to char[]
-// todt.c
-Error: non-constant expression cast(char[])0
-
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail237.d(10): Error: undefined identifier 'a'
+---
 */
+
+// Issue 581 - Error message w/o line number in dot-instantiated template
+
 static assert(.a!().b);
