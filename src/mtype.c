@@ -7198,6 +7198,15 @@ void TypeTypeof::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
             error(loc, "argument %s to typeof is not an expression", exp->toChars());
             goto Lerr;
         }
+        else if (exp->op == TOKimport)
+        {
+            ScopeDsymbol *s = ((ScopeExp *)exp)->sds;
+            if (s->isPackage())
+            {
+                error(loc, "%s has no type", exp->toChars());
+                goto Lerr;
+            }
+        }
         t = exp->type;
         if (!t)
         {
