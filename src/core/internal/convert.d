@@ -10,9 +10,18 @@
 module core.internal.convert;
 
 @trusted pure nothrow
-const(ubyte)[] toUbyte(T)(ref T val) if(is(T == float) || is(T == double) || is(T == real) ||
-                                        is(T == ifloat) || is(T == idouble) || is(T == ireal))
+const(ubyte)[] toUbyte(T)(ref T val) if(is(Unqual!T == float) || is(Unqual!T == double) || is(Unqual!T == real) ||
+                                        is(Unqual!T == ifloat) || is(Unqual!T == idouble) || is(Unqual!T == ireal))
 {
+    static const(ubyte)[] reverse_(const(ubyte)[] arr)
+    {
+        ubyte[] buff = new ubyte[arr.length];
+        foreach(k, v; arr)
+        {
+            buff[$-k-1] = v;
+        }
+        return buff;
+    }
     if(__ctfe)
     {
         auto parsed = parse(val);
@@ -50,7 +59,15 @@ const(ubyte)[] toUbyte(T)(ref T val) if(is(T == float) || is(T == double) || is(
 
         try
         {
-            return buff.dup;
+            
+            version(LittleEndian)
+            {
+                return buff.dup;
+            }
+            else
+            {
+                return reverse_(buff);
+            }
         }
         catch
         {
@@ -65,14 +82,17 @@ const(ubyte)[] toUbyte(T)(ref T val) if(is(T == float) || is(T == double) || is(
 }
 
 @safe pure nothrow
-private Float parse(bool is_denormalized = false, T)(T x) if(is(T == ifloat) || is(T == idouble) || is(T == ireal))
+private Float parse(bool is_denormalized = false, T)(T x) if(is(Unqual!T == ifloat) || is(Unqual!T == idouble) || is(Unqual!T == ireal))
 {
     return parse(x.im);
 }
 
 @safe pure nothrow
-private Float parse(bool is_denormalized = false, T)(T x) if(is(T == float) || is(T == double))
+private Float parse(bool is_denormalized = false, T:real)(T x_) if(floatFormat!T != FloatFormat.Real80)
 {
+    Unqual!T x = x_;
+    assert(floatFormat!T != FloatFormat.DoubleDouble && floatFormat!T != FloatFormat.Quadruple,
+           "doubledouble and quadruple float formats are not supported in CTFE");
     if(x is cast(T)0.0) return FloatTraits!T.ZERO;
     if(x is cast(T)-0.0) return FloatTraits!T.NZERO;
     if(x is T.nan) return FloatTraits!T.NAN;
@@ -105,8 +125,9 @@ private Float parse(bool is_denormalized = false, T)(T x) if(is(T == float) || i
 }
 
 @safe pure nothrow
-private Float parse(bool _ = false, T)(T x) if(is(T == real))
+private Float parse(bool _ = false, T:real)(T x_) if(floatFormat!T == FloatFormat.Real80)
 {
+    Unqual!T x = x_;
     //HACK @@@3632@@@
 
     if(x == 0.0L)
@@ -129,8 +150,6 @@ private Float parse(bool _ = false, T)(T x) if(is(T == real))
 
     if(x == real.infinity) return Float(0x8000000000000000UL, 0x7fff, 0);
     if(x == -real.infinity) return Float(0x8000000000000000UL, 0x7fff, 1);
-
-
 
     enum EXPONENT_MED = (2^^(FloatTraits!T.EXPONENT-1) - 1);
     uint sign = x < 0;
@@ -156,7 +175,7 @@ private struct Float
     uint sign;
 }
 
-private template FloatTraits(T) if(is(T == float) || is(T == ifloat))
+private template FloatTraits(T) if(floatFormat!T == FloatFormat.Float)
 {
     enum EXPONENT = 8;
     enum MANTISSA = 23;
@@ -168,7 +187,7 @@ private template FloatTraits(T) if(is(T == float) || is(T == ifloat))
     enum NINF     = Float(0, 255, 1);
 }
 
-private template FloatTraits(T) if(is(T == double) || is(T == idouble))
+private template FloatTraits(T) if(floatFormat!T == FloatFormat.Double)
 {
     enum EXPONENT = 11;
     enum MANTISSA = 52;
@@ -180,7 +199,7 @@ private template FloatTraits(T) if(is(T == double) || is(T == idouble))
     enum NINF     = Float(0, 0x7ff, 1);
 }
 
-private template FloatTraits(T) if(is(T == real) || is(T == ireal))
+private template FloatTraits(T) if(floatFormat!T == FloatFormat.Real80)
 {
     enum EXPONENT = 15;
     enum MANTISSA = 64;
@@ -191,6 +210,31 @@ private template FloatTraits(T) if(is(T == real) || is(T == ireal))
     enum INF      = Float(0x8000000000000000UL, 0x7fff, 0);
     enum NINF     = Float(0x8000000000000000UL, 0x7fff, 1);
 }
+
+private template FloatTraits(T) if(floatFormat!T == FloatFormat.DoubleDouble) //Unsupported in CTFE
+{
+    enum EXPONENT = 11;
+    enum MANTISSA = 106;
+    enum ZERO     = Float(0, 0, 0);
+    enum NZERO    = Float(0, 0, 1);
+    enum NAN      = Float(0x8000000000000UL, 0x7ff, 0);
+    enum NNAN     = Float(0x8000000000000UL, 0x7ff, 1);
+    enum INF      = Float(0, 0x7ff, 0);
+    enum NINF     = Float(0, 0x7ff, 1);
+}
+
+private template FloatTraits(T) if(floatFormat!T == FloatFormat.Quadruple) //Unsupported in CTFE
+{
+    enum EXPONENT = 15;
+    enum MANTISSA = 112;
+    enum ZERO     = Float(0, 0, 0);
+    enum NZERO    = Float(0, 0, 1);
+    enum NAN      = Float(-1, 0x7fff, 0);
+    enum NNAN     = Float(-1, 0x7fff, 1);
+    enum INF      = Float(0, 0x7fff, 0);
+    enum NINF     = Float(0, 0x7fff, 1);
+}
+
 
 @safe pure nothrow
 private real binPow2(int pow)
@@ -255,7 +299,7 @@ private uint binLog2(T)(T x)
 }
 
 @safe pure nothrow
-private ulong denormalizedMantissa(T)(T x) if(is(T == real))
+private ulong denormalizedMantissa(T)(T x) if(floatFormat!T == FloatFormat.Real80)
 {
     x *= 2.0L^^FloatTraits!T.MANTISSA;
     auto fl = parse(x);
@@ -264,7 +308,7 @@ private ulong denormalizedMantissa(T)(T x) if(is(T == real))
 }
 
 @safe pure nothrow
-private ulong denormalizedMantissa(T)(T x) if(!is(T == real))
+private ulong denormalizedMantissa(T)(T x) if(floatFormat!T != FloatFormat.Real80)
 {
     x *= 2.0L^^FloatTraits!T.MANTISSA;
     auto fl = parse!true(x);
@@ -321,17 +365,23 @@ version(unittest)
         testNumberConvert!("float.max");
         testNumberConvert!("-0.17F");
         testNumberConvert!("3.14F");
+        testNumberConvert!("cast(const)3.14F");
+        testNumberConvert!("cast(immutable)3.14F");
 
         testNumberConvert!("double.min_normal");
         testNumberConvert!("double.max");
         testNumberConvert!("-0.17");
         testNumberConvert!("3.14");
+        testNumberConvert!("cast(const)3.14");
+        testNumberConvert!("cast(immutable)3.14");
 
         testNumberConvert!("real.min_normal");
         testNumberConvert!("real.max");
         testNumberConvert!("-0.17L");
         testNumberConvert!("3.14L");
-
+        testNumberConvert!("cast(const)3.14L");
+        testNumberConvert!("cast(immutable)3.14L");
+        
         //Test denormalized values
         testNumberConvert!("float.min_normal/2");
         testNumberConvert!("float.min_normal/2UL^^23");
@@ -375,6 +425,33 @@ version(unittest)
     }
 }
 
+
+
+private enum FloatFormat
+{
+    Float,
+    Double,
+    Real80,
+    DoubleDouble,
+    Quadruple
+}
+
+template floatFormat(T) if(is(T:real) || is(T:ireal))
+{
+    static if(T.mant_dig == 24)
+        enum floatFormat = FloatFormat.Float;
+    else static if(T.mant_dig == 53)
+        enum floatFormat = FloatFormat.Double;
+    else static if(T.mant_dig == 64)
+        enum floatFormat = FloatFormat.Real80;
+    else static if(T.mant_dig == 106)
+        enum floatFormat = FloatFormat.DoubleDouble;
+    else static if(T.mant_dig == 113)
+        enum floatFormat = FloatFormat.Quadruple;
+    else
+        static assert(0);
+    
+}
 private template Unqual(T)
 {
          static if (is(T U == shared(const U))) alias U Unqual;
