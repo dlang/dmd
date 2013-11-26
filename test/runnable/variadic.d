@@ -1515,6 +1515,12 @@ void test7263()
 }
 
 /***************************************/
+// 8244
+
+TypeTuple!(int,int)[] x8244;
+static assert(is(typeof(x8244) == TypeTuple!(int, int)));
+
+/***************************************/
 // 9017
 
 template X9017(Args...)
