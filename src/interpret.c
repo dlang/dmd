@@ -3143,10 +3143,9 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         {
             desttype = ((TypeArray *)desttype)->next;
 #if DMDV2
-            if (srctype->equals(desttype->castMod(0)))
-#else
-            if (srctype->equals(desttype))
+            desttype = desttype->toBasetype()->castMod(0);
 #endif
+            if (srctype->equals(desttype))
             {
                 isBlockAssignment = true;
                 break;
@@ -4196,7 +4195,7 @@ Expression *interpretAssignToSlice(InterState *istate, CtfeGoal goal, Loc loc,
         assert( existingAE->type->ty == Tsarray ||
                 existingAE->type->ty == Tarray);
 #if DMDV2
-        Type *desttype = ((TypeArray *)existingAE->type)->next->castMod(0);
+        Type *desttype = ((TypeArray *)existingAE->type)->next->toBasetype()->castMod(0);
         bool directblk = (e2->type->toBasetype()->castMod(0))->equals(desttype);
 #else
         Type *desttype = ((TypeArray *)existingAE->type)->next;

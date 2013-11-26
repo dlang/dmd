@@ -1845,7 +1845,7 @@ void recursiveBlockAssign(ArrayLiteralExp *ae, Expression *val, bool wantRef)
 {
     assert( ae->type->ty == Tsarray || ae->type->ty == Tarray);
 #if DMDV2
-    Type *desttype = ((TypeArray *)ae->type)->next->castMod(0);
+    Type *desttype = ((TypeArray *)ae->type)->next->toBasetype()->castMod(0);
     bool directblk = (val->type->toBasetype()->castMod(0))->equals(desttype);
 #else
     Type *desttype = ((TypeArray *)ae->type)->next;
