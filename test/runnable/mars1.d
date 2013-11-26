@@ -741,6 +741,25 @@ void testdocond()
 
 ////////////////////////////////////////////////////////////////////////
 
+struct S8658
+{
+    int[16385] a;
+}
+
+void foo8658(S8658 s)
+{
+    int x;
+}
+
+void test8658()
+{
+    S8658 s;
+    for(int i = 0; i < 1000; i++)
+        foo8658(s);
+}
+
+////////////////////////////////////////////////////////////////////////
+
 uint neg(uint i)
 {
     return ~i + 1;
@@ -1051,6 +1070,7 @@ int main()
     testU();
     testulldiv();
     testbittest();
+    test8658();
     testfastudiv();
     testfastdiv();
     testdocond();
