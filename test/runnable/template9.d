@@ -1914,6 +1914,42 @@ void test9038()
 }
 
 /**********************************/
+// 9050
+
+struct A9050(T) {}
+
+struct B9050(T)
+{
+    void f() { foo9050(A9050!int()); }
+}
+
+auto foo9050()(A9050!int base) pure
+{
+    return B9050!int();
+}
+
+auto s9050 = foo9050(A9050!int());
+
+/**********************************/
+// 10936 (dup of 9050)
+
+struct Vec10936(string s)
+{
+    auto foo(string v)()
+    {
+        return Vec10936!(v)();
+    }
+
+    static void bar()
+    {
+        Vec10936!"" v;
+        auto p = v.foo!"sup";
+    }
+}
+
+Vec10936!"" v;
+
+/**********************************/
 // 9076
 
 template forward9076(args...)

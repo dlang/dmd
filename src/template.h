@@ -315,6 +315,8 @@ public:
     Expressions *fargs;                 // for function template, these are the function arguments
     Module *instantiatingModule;        // the top module that instantiated this instance
 
+    TemplateInstances* deferred;
+
     TemplateInstance(Loc loc, Identifier *temp_id);
     TemplateInstance(Loc loc, TemplateDeclaration *tempdecl, Objects *tiargs);
     static Objects *arraySyntaxCopy(Objects *objs);
