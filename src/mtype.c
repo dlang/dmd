@@ -7493,7 +7493,9 @@ Expression *TypeEnum::dotExp(Scope *sc, Expression *e, Identifier *ident, int fl
 #if LOGDOTEXP
     printf("TypeEnum::dotExp(e = '%s', ident = '%s') '%s'\n", e->toChars(), ident->toChars(), toChars());
 #endif
-    Dsymbol *s = sym->search(e->loc, ident, 0);
+    Dsymbol *s = NULL;
+    if (!e || e->op == TOKtype)
+        s = sym->search(e->loc, ident, 0);
     if (!s)
     {
         if (ident == Id::max ||
