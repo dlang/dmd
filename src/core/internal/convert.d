@@ -134,22 +134,22 @@ private Float parse(bool _ = false, T:real)(T x_) if(floatFormat!T == FloatForma
     {
         real y = 1.0L/x;
         if(y == real.infinity) // -0.0
-            return Float(0, 0, 0);
+            return FloatTraits!T.ZERO;
         else
-            return Float(0, 0, 1); //0.0
+            return FloatTraits!T.NZERO; //0.0
     }
 
     if(x != x) //HACK: should be if(x is real.nan) and if(x is -real.nan)
     {
         auto y = cast(double)x;
         if(y is double.nan)
-            return Float(0xC000000000000000UL, 0x7fff, 0);
+            return FloatTraits!T.NAN;
         else
-            return Float(0xC000000000000000UL, 0x7fff, 1);
+            return FloatTraits!T.NNAN;
     }
 
-    if(x == real.infinity) return Float(0x8000000000000000UL, 0x7fff, 0);
-    if(x == -real.infinity) return Float(0x8000000000000000UL, 0x7fff, 1);
+    if(x == real.infinity) return FloatTraits!T.INF;
+    if(x == -real.infinity) return FloatTraits!T.NINF;
 
     enum EXPONENT_MED = (2^^(FloatTraits!T.EXPONENT-1) - 1);
     uint sign = x < 0;
