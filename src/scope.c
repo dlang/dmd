@@ -450,8 +450,7 @@ Dsymbol *Scope::search(Loc loc, Identifier *ident, Dsymbol **pscopesym)
 }
 
 Dsymbol *Scope::insert(Dsymbol *s)
-{   Scope *sc;
-
+{
     if (VarDeclaration *vd = s->isVarDeclaration())
     {
         if (lastVar)
@@ -460,13 +459,15 @@ Dsymbol *Scope::insert(Dsymbol *s)
     }
     else if (WithScopeSymbol *ss = s->isWithScopeSymbol())
     {
-        VarDeclaration *vd = ss->withstate->wthis;
-        if (lastVar)
-            vd->lastVar = lastVar;
-        lastVar = vd;
+        if (VarDeclaration *vd = ss->withstate->wthis)
+        {
+            if (lastVar)
+                vd->lastVar = lastVar;
+            lastVar = vd;
+        }
         return NULL;
     }
-    for (sc = this; sc; sc = sc->enclosing)
+    for (Scope *sc = this; sc; sc = sc->enclosing)
     {
         //printf("\tsc = %p\n", sc);
         if (sc->scopesym)

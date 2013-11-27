@@ -3246,7 +3246,7 @@ Expression *IdentifierExp::semantic(Scope *sc)
         /* See if the symbol was a member of an enclosing 'with'
          */
         WithScopeSymbol *withsym = scopesym->isWithScopeSymbol();
-        if (withsym)
+        if (withsym && withsym->withstate->wthis)
         {
             /* Disallow shadowing
              */
@@ -5012,7 +5012,7 @@ Lagain:
                 Expression *e;
 
                 //printf("s = %s, '%s'\n", s->kind(), s->toChars());
-                if (ti->withsym)
+                if (ti->withsym && ti->withsym->withstate->wthis)
                 {
                     // Same as wthis.s
                     e = new VarExp(loc, ti->withsym->withstate->wthis);
