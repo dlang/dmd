@@ -817,7 +817,11 @@ extern (C) void[] _d_newarrayT(const TypeInfo ti, size_t length)
         }
 
         // increase the size by the array pad.
-        auto info = gc_qalloc(size + __arrayPad(size), !(ti.next.flags & 1) ? BlkAttr.NO_SCAN | BlkAttr.APPENDABLE : BlkAttr.APPENDABLE);
+        auto pad = __arrayPad(size);
+        if (size + pad < size)
+            goto Loverflow;
+
+        auto info = gc_qalloc(size + pad, !(ti.next.flags & 1) ? BlkAttr.NO_SCAN | BlkAttr.APPENDABLE : BlkAttr.APPENDABLE);
         debug(PRINTF) printf(" p = %p\n", info.base);
         // update the length of the array
         auto arrstart = __arrayStart(info);
@@ -2405,4 +2409,17 @@ unittest
     }
     test(1);
     test(1024 * 1024);
+}
+
+unittest
+{
+    import core.exception;
+    try
+    {
+        size_t x = size_t.max;
+        byte[] big_buf = new byte[x];
+    }
+    catch(OutOfMemoryError)
+    {
+    }
 }
