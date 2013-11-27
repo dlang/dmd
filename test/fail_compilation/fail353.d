@@ -1,3 +1,10 @@
+/*
+TEST_OUTPUT:
+---
+block displacement of -130 exceeds the maximum offset of -128 to 127.
+---
+*/
+
 void foo()
 {
     enum NOP = 0x9090_9090_9090_9090;
