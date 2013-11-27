@@ -3408,6 +3408,12 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
 
     if (ty != tparam->ty)
     {
+        if (Dsymbol *sym = toDsymbol(sc))
+        {
+            if (sym->isforwardRef() && !tparam->deco)
+                goto Lnomatch;
+        }
+
         // Can't instantiate AssociativeArray!() without a scope
         if (tparam->ty == Taarray && !((TypeAArray*)tparam)->sc)
             ((TypeAArray*)tparam)->sc = sc;

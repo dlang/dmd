@@ -443,3 +443,11 @@ static if (is(object.ModuleInfo == class))
                   __traits(classInstanceSize, ModuleInfo));
 }
 
+/***************************************************/
+// 11554
+
+enum E11554;
+static assert(is(E11554 == enum));
+
+struct Bro11554(N...) {}
+static assert(!is(E11554 unused : Bro11554!M, M...));
