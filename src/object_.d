@@ -1365,13 +1365,13 @@ class Throwable : Object
         SizeStringBuff tmpBuff = void;
 
         sink(typeid(this).name);
-        if (file)
+        if (file.ptr)
         {
             sink("@"); sink(file);
             sink("("); sink(line.sizeToTempString(tmpBuff)); sink(")");
         }
 
-        if (msg)
+        if (msg.ptr)
         {
             sink(": "), sink(msg);
         }
