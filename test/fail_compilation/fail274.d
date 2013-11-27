@@ -1,15 +1,11 @@
-void main() {
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail274.d(10): Error: ] expected instead of ';'
+---
+*/
+
+void main()
+{
     asm { inc [; }
 }
-
-// 1144 mixin_34_A.  Segfault  D1 only
-char[] testHelper(A ...)(){
- 	    char[] result;
- 	    foreach(t; a){
- 	        result ~= "int " ~ t ~ ";\n";
- 	    }
- 	    return result;
- 	} 	
-void main(){
- 	    mixin( testHelper!( "hello", "world" )() );
- 	}
