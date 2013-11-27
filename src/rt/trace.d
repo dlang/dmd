@@ -675,7 +675,7 @@ static void trace_merge()
     SymPair *sfanin;
     SymPair **psp;
 
-    if (trace_logfilename && (fp = fopen(trace_logfilename.ptr,"r")) !is null)
+    if (trace_logfilename.ptr && (fp = fopen(trace_logfilename.ptr,"r")) !is null)
     {
         buf = null;
         sfanin = null;
