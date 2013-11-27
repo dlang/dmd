@@ -3324,6 +3324,7 @@ Statement *CaseStatement::semantic(Scope *sc)
                 sw->hasVars = 1;
                 if (sw->isFinal)
                     error("case variables not allowed in final switch statements");
+                warning("case variables are deprecated, use if-else instead");
                 goto L1;
             }
         }

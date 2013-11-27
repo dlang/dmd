@@ -324,56 +324,6 @@ void test14()
 
 /*****************************************/
 
-const int X15;
-immutable int Y15;
-const int Z15;
-
-int foo15(int i)
-{
-    auto y = 1;
-    switch (i)
-    {
-        case X15:
-            y += 1;
-            goto case;
-        case 3:
-            y += 2;
-            break;
-        case Y15:
-            y += 20;
-            goto case;
-        case Z15:
-            y += 10;
-            break;
-        default:
-            y += 4;
-            break;
-    }
-    printf("y = %d\n", y);
-    return y;
-}
-
-static this()
-{
-    X15 = 4;
-    Y15 = 4;
-    Z15 = 5;
-}
-
-void test15()
-{
-    auto i = foo15(3);
-    assert(i == 3);
-    i = foo15(4);
-    assert(i == 4);
-    i = foo15(7);
-    assert(i == 5);
-    i = foo15(5);
-    assert(i == 11);
-}
-
-/*****************************************/
-
 enum E16
 {
     A,B,C
@@ -639,7 +589,6 @@ int main()
     test12();
     test13();
     test14();
-    test15();
     test16();
     test17();
     test19();
