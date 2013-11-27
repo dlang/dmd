@@ -6191,7 +6191,7 @@ void test161()
 void test8819()
 {
     void[0] sa0 = (void[0]).init;
-    assert(sa0.ptr is null);
+    assert(sa0.ptr !is null); // 7175 - ptr should not be null
 
     void[1] sa1 = (void[1]).init;
     assert((cast(ubyte*)sa1.ptr)[0] == 0);

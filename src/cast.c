@@ -1073,10 +1073,7 @@ Expression *Expression::castTo(Scope *sc, Type *t)
         {
             //printf("Converting [dim] to *\n");
 
-            if (typeb->size(loc) == 0)
-                e = new NullExp(loc);
-            else
-                e = new AddrExp(loc, e);
+            e = new AddrExp(loc, e);
         }
         else
         {
