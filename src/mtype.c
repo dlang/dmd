@@ -5621,9 +5621,11 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
      */
     TypeFunction *tf = (TypeFunction *)copy();
     if (parameters)
-    {   tf->parameters = (Parameters *)parameters->copy();
+    {
+        tf->parameters = (Parameters *)parameters->copy();
         for (size_t i = 0; i < parameters->dim; i++)
-        {   Parameter *arg = (*parameters)[i];
+        {
+            Parameter *arg = (*parameters)[i];
             Parameter *cpy = (Parameter *)mem.malloc(sizeof(Parameter));
             memcpy((void*)cpy, (void*)arg, sizeof(Parameter));
             (*tf->parameters)[i] = cpy;
@@ -5718,14 +5720,15 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 
         size_t dim = Parameter::dim(tf->parameters);
         for (size_t i = 0; i < dim; i++)
-        {   Parameter *fparam = Parameter::getNth(tf->parameters, i);
-
+        {
+            Parameter *fparam = Parameter::getNth(tf->parameters, i);
             tf->inuse++;
             fparam->type = fparam->type->semantic(loc, argsc);
             if (tf->inuse == 1) tf->inuse--;
 
             if (fparam->type->ty == Terror)
-            {   errors = true;
+            {
+                errors = true;
                 continue;
             }
 
@@ -5777,12 +5780,14 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
             }
 
             if (fparam->defaultArg)
-            {   Expression *e = fparam->defaultArg;
+            {
+                Expression *e = fparam->defaultArg;
                 Initializer *init = new ExpInitializer(e->loc, e);
                 init = init->semantic(argsc, fparam->type, INITnointerpret);
                 e = init->toExpression();
                 if (e->op == TOKfunction)               // see Bugzilla 4820
-                {   FuncExp *fe = (FuncExp *)e;
+                {
+                    FuncExp *fe = (FuncExp *)e;
                     // Replace function literal with a function symbol,
                     // since default arg expression must be copied when used
                     // and copying the literal itself is wrong.
@@ -5822,7 +5827,8 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
                     Parameters *newparams = new Parameters();
                     newparams->setDim(tdim);
                     for (size_t j = 0; j < tdim; j++)
-                    {   Parameter *narg = (*tt->arguments)[j];
+                    {
+                        Parameter *narg = (*tt->arguments)[j];
                         (*newparams)[j] = new Parameter(narg->storageClass | fparam->storageClass,
                                 narg->type, narg->ident, narg->defaultArg);
                     }
@@ -5867,14 +5873,15 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
         wildparams = TRUE;
 
     if (wildreturn && !wildparams)
+    {
         error(loc, "inout on return means inout must be on a parameter as well for %s", toChars());
+        errors = true;
+    }
     tf->iswild = wildparams;
 
-    if (tf->next)
-        tf->deco = tf->merge()->deco;
-
     if (tf->inuse)
-    {   error(loc, "recursive type");
+    {
+        error(loc, "recursive type");
         tf->inuse = 0;
         errors = true;
     }
@@ -5893,6 +5900,9 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 
     if (errors)
         return terror;
+
+    if (tf->next)
+        tf->deco = tf->merge()->deco;
 
     /* Don't return merge(), because arg identifiers and default args
      * can be different
