@@ -1290,6 +1290,7 @@ Expression *scrubReturnValue(Loc loc, Expression *e)
             return EXP_CANT_INTERPRET;
         if (!scrubArray(loc, aae->values))
             return EXP_CANT_INTERPRET;
+        aae->type = toBuiltinAAType(aae->type);
     }
     return e;
 }

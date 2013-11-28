@@ -3190,6 +3190,26 @@ bool bug4021() {
 static assert(bug4021());
 
 /**************************************************
+    11629 crash on AA.rehash
+**************************************************/
+
+struct Base11629
+{
+    alias T = ubyte, Char = char;
+    alias String = immutable(Char)[];
+
+    const Char[T] toChar;
+
+    this(int _dummy)
+    {
+        Char[T] toCharTmp = [0:'A'];
+
+        toChar = toCharTmp.rehash;
+    }
+}
+enum ct11629 = Base11629(4);
+
+/**************************************************
     3512 foreach(dchar; string)
     6558 foreach(int, dchar; string)
 **************************************************/
