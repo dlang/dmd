@@ -6080,3 +6080,19 @@ static assert(()
 
     return 1;
 }());
+
+/**************************************************
+    11627 -  cast dchar to char at compile time on AA assignment
+**************************************************/
+
+bool test11627()
+{
+    char[ubyte] toCharTmp;
+    dchar letter = 'A';
+
+    //char c = cast(char)letter;    // OK
+    toCharTmp[0] = cast(char)letter;    // NG
+
+    return true;
+}
+static assert(test11627());
