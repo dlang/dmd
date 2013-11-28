@@ -112,16 +112,22 @@ size_t hashOf(T)(auto ref T val, size_t seed = 0) if (!is(T == enum) && (is(T ==
     {
         return seedHash(val.toHash(), seed);
     }
-    else static if (is(typeof(toUbyte(val)) == const(ubyte)[]))//CTFE ready for structs without reference fields
+    else
     {
-        auto bytes = toUbyte(val);
-        return bytesHash(bytes.ptr, bytes.length, seed);
-    }
-    else // CTFE unsupproreted for structs with reference fields
-    {
-        assert(!__ctfe, "unable to compute hash of "~T.stringof);
-        const(ubyte)[] bytes = (cast(const(ubyte)*)&val)[0 .. T.sizeof];
-        return bytesHash(bytes.ptr, bytes.length, seed);
+        static assert(!(__traits(hasMember, T, "toHash") && is(typeof(T.toHash) == function)),
+            "Error: struct "~__traits(identifier, T)~" has method toHash, however it cannot be called with "~T.stringof~" this.");
+
+        static if (is(typeof(toUbyte(val)) == const(ubyte)[]))//CTFE ready for structs without reference fields
+        {
+            auto bytes = toUbyte(val);
+            return bytesHash(bytes.ptr, bytes.length, seed);
+        }
+        else // CTFE unsupproreted for structs with reference fields
+        {
+            assert(!__ctfe, "unable to compute hash of "~T.stringof);
+            const(ubyte)[] bytes = (cast(const(ubyte)*)&val)[0 .. T.sizeof];
+            return bytesHash(bytes.ptr, bytes.length, seed);
+        }
     }
 }
 
@@ -134,10 +140,6 @@ size_t hashOf(T)(auto ref T val, size_t seed = 0) if (!is(T == enum) && is(T == 
     return bytesHash(bytes.ptr, bytes.length, seed);
 }
 
-/**
-    linked with
-    size_t interfaceGetHash(in void* p)
- */
 //class or interface hash. CTFE depends on toHash
 @trusted nothrow
 size_t hashOf(T)(auto ref T val, size_t seed = 0) if (!is(T == enum) && is(T == interface) || is(T == class))
@@ -213,6 +215,14 @@ unittest
         }
     }
 
+    static struct Goo
+    {
+        size_t toHash() pure @safe nothrow
+        {
+            return 1;
+        }
+    }
+    
     enum Gun: long
     {
         A = 99,
@@ -373,6 +383,11 @@ unittest
     assert(h27 == rth27);
     assert(h28 == rth28);
     assert(h29 == rth29);*/
+    
+    
+    //Fail tests:
+    
+    static assert(!__traits(compiles, {const Goo fail01; auto h = hashOf(fail01); return h;}));
 }
 
 
