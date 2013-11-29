@@ -79,7 +79,11 @@ else version( FreeBSD )
 }
 else version (linux)
 {
-    enum clock_t CLOCKS_PER_SEC = 1000000;
+    enum clock_t CLOCKS_PER_SEC = 1_000_000;
+}
+else version (Android)
+{
+    enum clock_t CLOCKS_PER_SEC = 1_000_000;
 }
 
 clock_t clock();
@@ -120,6 +124,11 @@ else version (Solaris)
 {
     void tzset();
     extern __gshared const(char)*[2] tzname;
+}
+else version( Android )
+{
+    void tzset();                            // non-standard
+    extern __gshared const(char)*[2] tzname; // non-standard
 }
 else
 {
