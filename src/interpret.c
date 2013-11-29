@@ -570,11 +570,7 @@ void TryCatchStatement::ctfeCompile(CompiledCtfeFunction *ccf)
         body->ctfeCompile(ccf);
     for (size_t i = 0; i < catches->dim; i++)
     {
-#if DMDV1
-        Catch *ca = (Catch *)catches->data[i];
-#else
-        Catch *ca = catches->tdata()[i];
-#endif
+        Catch *ca = (*catches)[i];
         if (ca->var)
             ccf->onDeclaration(ca->var);
         if (ca->handler)
@@ -956,6 +952,12 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
 #if LOG
             printf("function body failed to interpret\n");
 #endif
+        }
+
+        if (istatex.start)
+        {
+            error("CTFE internal error: failed to resume at statement %s", istatex.start->toChars());
+            return EXP_CANT_INTERPRET;
         }
 
         /* This is how we deal with a recursive statement AST
@@ -1748,7 +1750,22 @@ Expression *TryCatchStatement::interpret(InterState *istate)
 #if LOG
     printf("%s TryCatchStatement::interpret()\n", loc.toChars());
 #endif
-    START()
+    if (istate->start == this)
+        istate->start = NULL;
+    if (istate->start)
+    {
+        Expression *e = NULL;
+        if (body)
+            e = body->interpret(istate);
+        for (size_t i = 0; !e && istate->start && i < catches->dim; i++)
+        {
+            Catch *ca = (*catches)[i];
+            if (ca->handler)
+                e = ca->handler->interpret(istate);
+        }
+        return e;
+    }
+
     Expression *e = body ? body->interpret(istate) : NULL;
     if (e == EXP_CANT_INTERPRET)
         return e;
@@ -1760,21 +1777,36 @@ Expression *TryCatchStatement::interpret(InterState *istate)
     // Search for an appropriate catch clause.
     for (size_t i = 0; i < catches->dim; i++)
     {
-#if DMDV1
-        Catch *ca = (Catch *)catches->data[i];
-#else
         Catch *ca = (*catches)[i];
-#endif
         Type *catype = ca->type;
 
         if (catype->equals(extype) || catype->isBaseOf(extype, NULL))
-        {   // Execute the handler
+        {
+            // Execute the handler
             if (ca->var)
             {
                 ctfeStack.push(ca->var);
                 ca->var->setValue(ex->thrown);
             }
-            return ca->handler ? ca->handler->interpret(istate) : NULL;
+            if (ca->handler)
+            {
+                e = ca->handler->interpret(istate);
+                if (e == EXP_GOTO_INTERPRET)
+                {
+                    InterState istatex = *istate;
+                    istatex.start = istate->gotoTarget; // set starting statement
+                    istatex.gotoTarget = NULL;
+                    Expression *ex = ca->handler->interpret(&istatex);
+                    if (!istatex.start)
+                    {
+                        istate->gotoTarget = NULL;
+                        e = ex;
+                    }
+                }
+            }
+            else
+                e = NULL;
+            return e;
         }
     }
     return e;
@@ -1820,7 +1852,18 @@ Expression *TryFinallyStatement::interpret(InterState *istate)
 #if LOG
     printf("%s TryFinallyStatement::interpret()\n", loc.toChars());
 #endif
-    START()
+    if (istate->start == this)
+        istate->start = NULL;
+    if (istate->start)
+    {
+        Expression *e = NULL;
+        if (body)
+            e = body->interpret(istate);
+        // Jump into/out from finalbody is disabled in semantic analysis.
+        // and jump inside will be handled by the ScopeStatement == finalbody.
+        return e;
+    }
+
     Expression *e = body ? body->interpret(istate) : NULL;
     if (e == EXP_CANT_INTERPRET)
         return e;
@@ -1877,7 +1920,24 @@ Expression *WithStatement::interpret(InterState *istate)
     }
     ctfeStack.push(wthis);
     wthis->setValue(e);
-    e = body ? body->interpret(istate) : EXP_VOID_INTERPRET;
+    if (body)
+    {
+        e = body->interpret(istate);
+        if (e == EXP_GOTO_INTERPRET)
+        {
+            InterState istatex = *istate;
+            istatex.start = istate->gotoTarget; // set starting statement
+            istatex.gotoTarget = NULL;
+            Expression *ex = body->interpret(&istatex);
+            if (!istatex.start)
+            {
+                istate->gotoTarget = NULL;
+                e = ex;
+            }
+        }
+    }
+    else
+        e = EXP_VOID_INTERPRET;
     ctfeStack.pop(wthis);
     return e;
 }
@@ -4787,16 +4847,19 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
         return EXP_CANT_INTERPRET;
     }
     eresult = fd->interpret(istate, arguments, pthis);
-    eresult->type = type;
     if (eresult == EXP_CANT_INTERPRET)
-    {   // Print a stack trace.
+    {
+        // Print a stack trace.
         if (!global.gag)
             showCtfeBackTrace(istate, this, fd);
     }
     else if (eresult == EXP_VOID_INTERPRET)
         ;
     else
+    {
+        eresult->type = type;
         eresult->loc = loc;
+    }
     return eresult;
 }
 
