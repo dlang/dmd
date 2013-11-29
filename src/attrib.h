@@ -113,6 +113,7 @@ public:
     void importAll(Scope *sc);
     void setScope(Scope *sc);
     void semantic(Scope *sc);
+    void emitComment(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     static void protectionToCBuffer(OutBuffer *buf, PROT protection);

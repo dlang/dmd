@@ -731,6 +731,12 @@ void ProtDeclaration::semantic(Scope *sc)
     }
 }
 
+void ProtDeclaration::emitComment(Scope *sc)
+{
+    if (protection != PROTprivate)
+        AttribDeclaration::emitComment(sc);
+}
+
 void ProtDeclaration::protectionToCBuffer(OutBuffer *buf, PROT protection)
 {
     const char *p;
