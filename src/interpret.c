@@ -570,11 +570,7 @@ void TryCatchStatement::ctfeCompile(CompiledCtfeFunction *ccf)
         body->ctfeCompile(ccf);
     for (size_t i = 0; i < catches->dim; i++)
     {
-#if DMDV1
-        Catch *ca = (Catch *)catches->data[i];
-#else
-        Catch *ca = catches->tdata()[i];
-#endif
+        Catch *ca = (*catches)[i];
         if (ca->var)
             ccf->onDeclaration(ca->var);
         if (ca->handler)
@@ -1763,11 +1759,7 @@ Expression *TryCatchStatement::interpret(InterState *istate)
             e = body->interpret(istate);
         for (size_t i = 0; !e && istate->start && i < catches->dim; i++)
         {
-#if DMDV1
-            Catch *ca = (Catch *)catches->data[i];
-#else
             Catch *ca = (*catches)[i];
-#endif
             if (ca->handler)
                 e = ca->handler->interpret(istate);
         }
@@ -1785,11 +1777,7 @@ Expression *TryCatchStatement::interpret(InterState *istate)
     // Search for an appropriate catch clause.
     for (size_t i = 0; i < catches->dim; i++)
     {
-#if DMDV1
-        Catch *ca = (Catch *)catches->data[i];
-#else
         Catch *ca = (*catches)[i];
-#endif
         Type *catype = ca->type;
 
         if (catype->equals(extype) || catype->isBaseOf(extype, NULL))
