@@ -4391,10 +4391,14 @@ AssocArrayLiteralExp::AssocArrayLiteralExp(Loc loc,
                 Expressions *keys, Expressions *values)
     : Expression(loc, TOKassocarrayliteral, sizeof(AssocArrayLiteralExp))
 {
+    //printf("AssocArrayLiteralExp::AssocArrayLiteralExp(%p)\n", this);
     assert(keys->dim == values->dim);
     this->keys = keys;
     this->values = values;
     this->ownedByCtfe = false;
+    this->aaliteral = NULL;
+    this->semsc = NULL;
+    this->init = NULL;
 }
 
 Expression *AssocArrayLiteralExp::syntaxCopy()
@@ -4408,10 +4412,13 @@ Expression *AssocArrayLiteralExp::semantic(Scope *sc)
 #if LOGSEMANTIC
     printf("AssocArrayLiteralExp::semantic('%s')\n", toChars());
 #endif
-
+    semsc = sc;
+    assert(sc);
     if (type)
+    {
+        prepareInitializer(sc);
         return this;
-
+    }
     // Run semantic() on each element
     arrayExpressionSemantic(keys, sc);
     arrayExpressionSemantic(values, sc);
@@ -4433,7 +4440,82 @@ Expression *AssocArrayLiteralExp::semantic(Scope *sc)
 
     type = new TypeAArray(tvalue, tkey);
     type = type->semantic(loc, sc);
+    prepareInitializer(sc);
     return this;
+}
+
+void AssocArrayLiteralExp::prepareInitializer(Scope *sc)
+{
+#if LOGSEMANTIC
+    printf("AssocArrayLiteralExp::prepareInitializer('%s')\n", toChars());
+#endif
+    assert(type);
+    assert(sc);
+    //Pass arguments to object.aaLiteral
+    Objects *tiargs = new Objects();
+    
+    Type *tkey = NULL;
+    Type *tvalue = NULL;
+    if (type->ty == Taarray)
+    {
+        tkey = ((TypeAArray *)type)->index;
+        tvalue = ((TypeAArray *)type)->next;
+    }
+    else
+    {
+        assert(keys);
+        assert(values);
+        tkey = (*keys)[0]->type;
+        tvalue = (*values)[0]->type;
+    }
+    tiargs->push(tkey);
+    tiargs->push(tvalue);
+    assert(tkey);
+    assert(tvalue);
+    Expressions *fargs = new Expressions();
+    for (size_t i=0; i<keys->dim; ++i)
+    {
+        assert((*keys)[i]->type);
+        assert((*values)[i]->type);
+        fargs->push((*keys)[i]);
+        fargs->push((*values)[i]);
+    }
+    Objects *dedargs = new Objects();
+    
+    assert(Type::aaLiteral->onemember);
+    aaliteral = Type::aaLiteral->onemember->isFuncDeclaration();
+    assert(aaliteral);
+    Type::aaLiteral->deduceFunctionTemplateMatch(aaliteral, loc, sc, tiargs, NULL, fargs, dedargs);
+    TemplateInstance *ti = new TemplateInstance(loc, Type::aaLiteral, dedargs);
+    ti->semantic(sc);
+    ti->semantic2(sc);
+    ti->semantic3(sc);
+    aaliteral = ti->toAlias()->isFuncDeclaration();
+    assert(aaliteral);
+    
+    toObjectCodeExp();
+}
+
+
+void AssocArrayLiteralExp::toObjectCodeExp()
+{
+    #if LOGSEMANTIC
+    printf("AssocArrayLiteralExp::toObjectCodeExp('%s')\n", toChars());
+    #endif
+    assert(semsc);
+    assert(aaliteral);
+    Expressions *fargs = new Expressions();
+    for (size_t i=0; i<keys->dim; ++i)
+    {
+        assert((*keys)[i]->type);
+        assert((*values)[i]->type);
+        fargs->push((*keys)[i]);
+        fargs->push((*values)[i]);
+    }
+    Expression *ret = new CallExp(loc, new VarExp(loc, aaliteral, 0), fargs);
+    ret = ret->semantic(semsc);
+    ret = ret->optimize(WANTvalue);
+    init = ret;
 }
 
 

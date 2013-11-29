@@ -79,6 +79,9 @@ ClassDeclaration *Type::typeinfowild;
 TemplateDeclaration *Type::associativearray;
 TemplateDeclaration *Type::rtinfo;
 
+TemplateDeclaration *Type::aaLiteral;
+TemplateDeclaration *Type::aaInit;
+
 Type *Type::tvoid;
 Type *Type::tint8;
 Type *Type::tuns8;
@@ -4651,7 +4654,9 @@ printf("index->ito->ito = x%x\n", index->ito->ito);
     {   error(loc, "cannot have array of scope %s", next->toChars());
         return Type::terror;
     }
-    return merge();
+    TypeAArray *ret = (TypeAArray *)merge();
+    ret->generateInitializer();
+    return ret;
 }
 
 StructDeclaration *TypeAArray::getImpl()
@@ -4795,6 +4800,24 @@ Expression *TypeAArray::defaultInit(Loc loc)
     printf("TypeAArray::defaultInit() '%s'\n", toChars());
 #endif
     return new NullExp(loc, this);
+}
+
+void TypeAArray::generateInitializer()
+{
+    assert(sc);
+    Objects *tiargs = new Objects();
+    tiargs->push(index);
+    tiargs->push(next);
+    TemplateInstance *ti = new TemplateInstance(Loc(), Type::aaInit, tiargs);
+    ti->semantic(sc);
+    ti->semantic2(sc);
+    ti->semantic3(sc);
+    FuncDeclaration *aaInit = ti->toAlias()->isFuncDeclaration();
+    assert(aaInit);
+    Expression *ret = new CallExp(Loc(), new VarExp(Loc(), aaInit, 0), (Expressions *)NULL);
+    ret = ret->semantic(sc);
+    ret = ret->ctfeInterpret();
+    init = ret;
 }
 
 int TypeAArray::isZeroInit(Loc loc)

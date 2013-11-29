@@ -79,6 +79,8 @@ Msgtable msgtable[] =
     { "coverage", "__coverage" },
     { "__vptr" },
     { "__monitor" },
+    { "aaLiteral" },
+    { "aaInit" },
 
     { "TypeInfo" },
     { "TypeInfo_Class" },
