@@ -55,7 +55,7 @@ void functionToCBuffer2(TypeFunction *t, OutBuffer *buf, HdrGenState *hgs, int m
  */
 
 Expression *getRightThis(Loc loc, Scope *sc, AggregateDeclaration *ad,
-        Expression *e1, Declaration *var)
+        Expression *e1, Declaration *var, int flag = 0)
 {
     //printf("\ngetRightThis(e1 = %s, ad = %s, var = %s)\n", e1->toChars(), ad->toChars(), var->toChars());
  L1:
@@ -85,7 +85,8 @@ Expression *getRightThis(Loc loc, Scope *sc, AggregateDeclaration *ad,
              * member pointing to the enclosing class instance
              */
             if (tcd && tcd->isNested())
-            {   /* e1 is the 'this' pointer for an inner class: tcd.
+            {
+                /* e1 is the 'this' pointer for an inner class: tcd.
                  * Rewrite it as the 'this' pointer for the outer class.
                  */
 
@@ -102,7 +103,8 @@ Expression *getRightThis(Loc loc, Scope *sc, AggregateDeclaration *ad,
                 for (s = tcd->toParent();
                      s && s->isFuncDeclaration();
                      s = s->toParent())
-                {   FuncDeclaration *f = s->isFuncDeclaration();
+                {
+                    FuncDeclaration *f = s->isFuncDeclaration();
                     if (f->vthis)
                     {
                         //printf("rewriting e1 to %s's this\n", f->toChars());
@@ -119,7 +121,8 @@ Expression *getRightThis(Loc loc, Scope *sc, AggregateDeclaration *ad,
                     }
                 }
                 if (s && s->isClassDeclaration())
-                {   e1->type = s->isClassDeclaration()->type;
+                {
+                    e1->type = s->isClassDeclaration()->type;
                     e1->type = e1->type->addMod(t->mod);
                     if (n > 1)
                         e1 = e1->semantic(sc);
@@ -128,11 +131,14 @@ Expression *getRightThis(Loc loc, Scope *sc, AggregateDeclaration *ad,
                     e1 = e1->semantic(sc);
                 goto L1;
             }
+
             /* Can't find a path from e1 to ad
              */
+            if (flag)
+                return NULL;
             e1->error("this for %s needs to be type %s not type %s",
                 var->toChars(), ad->toChars(), t->toChars());
-            e1 = new ErrorExp();
+            return new ErrorExp();
         }
     }
     return e1;
@@ -7885,7 +7891,17 @@ Expression *DotVarExp::semantic(Scope *sc)
 
             Dsymbol *vparent = var->toParent();
             AggregateDeclaration *ad = vparent ? vparent->isAggregateDeclaration() : NULL;
-            e1 = getRightThis(loc, sc, ad, e1, var);
+
+            if (Expression *e1x = getRightThis(loc, sc, ad, e1, var, 1))
+                e1 = e1x;
+            else
+            {
+                /* Later checkRightThis will report correct error for invalid field variable access.
+                 */
+                Expression *e = new VarExp(loc, var);
+                e = e->semantic(sc);
+                return e;
+            }
             accessCheck(loc, sc, e1, var);
 
             VarDeclaration *v = var->isVarDeclaration();
