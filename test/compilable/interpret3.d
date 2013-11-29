@@ -4937,6 +4937,23 @@ enum s9982 = Bug9982(3);
 enum p9982 = SS9982(s9982);
 
 /**************************************************
+    11618 dotvar assign through casted pointer
+**************************************************/
+
+struct Tuple11618(T...)
+{
+    T field;
+    alias field this;
+}
+
+static assert({
+    Tuple11618!(immutable dchar) result = void;
+    auto addr = cast(dchar*) &result[0];
+    *addr = dchar.init;
+    return (result[0] == dchar.init);
+}());
+
+/**************************************************
     7143 'is' for classes
 **************************************************/
 
