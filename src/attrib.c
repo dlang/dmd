@@ -392,6 +392,8 @@ void StorageClassDeclaration::setScope(Scope *sc)
             scstc &= ~(STCgshared | STCshared | STCtls);
         if (stc & (STCsafe | STCtrusted | STCsystem))
             scstc &= ~(STCsafe | STCtrusted | STCsystem);
+        if (stc & (STCfinal | STCvirtual))
+            scstc &= ~(STCfinal | STCvirtual);
         scstc |= stc;
         //printf("scstc = x%llx\n", scstc);
 
@@ -448,6 +450,7 @@ const char *StorageClassDeclaration::stcToChars(char tmp[], StorageClass& stc)
         { STCextern,       TOKextern },
         { STCconst,        TOKconst },
         { STCfinal,        TOKfinal },
+        { STCvirtual,      TOKvirtual },
         { STCabstract,     TOKabstract },
         { STCsynchronized, TOKsynchronized },
         { STCdeprecated,   TOKdeprecated },
