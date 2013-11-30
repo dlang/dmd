@@ -93,7 +93,8 @@ else version(FreeBSD)
 }
 else version(Android)
 {
-    enum {
+    enum
+    {
         LC_CTYPE          = 0,
         LC_NUMERIC        = 1,
         LC_TIME           = 2,
