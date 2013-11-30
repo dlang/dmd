@@ -279,7 +279,14 @@ ArrayOp *buildArrayOp(Identifier *ident, BinExp *exp, Scope *sc, Loc loc)
     sc->linkage = LINKc;
     fd->semantic(sc);
     fd->semantic2(sc);
+    unsigned erroes = global.startGagging();
     fd->semantic3(sc);
+    if (global.endGagging(erroes))
+    {
+        fd->type = Type::terror;
+        fd->errors = true;
+        fd->fbody = NULL;
+    }
     sc->pop();
 
     if (op->cFunc)
@@ -368,12 +375,6 @@ Expression *BinExp::arrayOp(Scope *sc)
         error("Cannot perform array operations on void[] arrays");
         return new ErrorExp();
     }
-    if (!tbn->isscalar())
-    {
-        error("'%s' each element is not a scalar, it is a %s", toChars(), tbn->toChars());
-        return new ErrorExp();
-    }
-
     if (!isArrayOpValid(this))
     {
         error("invalid array operation %s (did you forget a [] ?)", toChars());
@@ -404,6 +405,20 @@ Expression *BinExp::arrayOp(Scope *sc)
 
     if (!op)
         op = buildArrayOp(ident, this, sc, loc);
+
+    if (op->dFunc && op->dFunc->errors)
+    {
+        const char *fmt;
+        if (tbn->ty == Tstruct || tbn->ty == Tclass)
+            fmt = "invalid array operation '%s' because %s doesn't support necessary arithmetic operations";
+        else if (!tbn->isscalar())
+            fmt = "invalid array operation '%s' because %s is not a scalar type";
+        else
+            fmt = "invalid array operation '%s' for element type %s";
+
+        error(fmt, toChars(), tbn->toChars());
+        return new ErrorExp();
+    }
 
     *pOp = op;
 

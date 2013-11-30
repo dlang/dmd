@@ -713,6 +713,30 @@ auto sumArrs11376(T0, T1)(T0[] a, T1[] b)
 static assert(!__traits(compiles, sumArrs11376(TL11376!(string[], string).init)));
 
 /************************************************************************/
+// 11525
+
+void test11525()
+{
+    static struct Complex(T)
+    {
+        T re, im;
+
+        ref opOpAssign(string op : "*")(Complex z)
+        {
+            auto temp = re*z.re - im*z.im;
+            im = im*z.re + re*z.im;
+            re = temp;
+            return this;
+        }
+    }
+
+    auto a = [Complex!double(2, 2)];
+    assert(a.length == 1 && a[0].re == 2 && a[0].im == 2);
+    a[] *= a[];
+    assert(a.length == 1 && a[0].re == 0 && a[0].im == 8);
+}
+
+/************************************************************************/
 
 int main()
 {
@@ -728,6 +752,7 @@ int main()
     test10433();
     test10684a();
     test10684b();
+    test11525();
 
     printf("Success\n");
     return 0;
