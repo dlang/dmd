@@ -520,6 +520,16 @@ int ld_type(longdouble x)
 
 size_t ld_sprint(char* str, int fmt, longdouble x)
 {
+    // ensure dmc compatible strings for nan and inf
+    switch(ld_type(x))
+    {
+    case LD_TYPE_QNAN:
+    case LD_TYPE_SNAN:
+        return sprintf(str, "nan");
+    case LD_TYPE_INFINITE:
+        return sprintf(str, x.sign ? "-inf" : "inf");
+    }
+
     // fmt is 'a','A','f' or 'g'
     if(fmt != 'a' && fmt != 'A')
     {
@@ -537,16 +547,8 @@ size_t ld_sprint(char* str, int fmt, longdouble x)
     unsigned short exp = x.exponent;
     unsigned long long mantissa = x.mantissa;
 
-    switch(ld_type(x))
-    {
-    case LD_TYPE_ZERO:
+    if(ld_type(x) == LD_TYPE_ZERO)
         return sprintf(str, "0x0.0L");
-    case LD_TYPE_QNAN:
-    case LD_TYPE_SNAN:
-        return sprintf(str, "NAN");
-    case LD_TYPE_INFINITE:
-        return sprintf(str, x.sign ? "-INF" : "INF");
-    }
 
     size_t len = 0;
     if(x.sign)
