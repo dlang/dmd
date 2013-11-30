@@ -4397,19 +4397,20 @@ Statement *WithStatement::semantic(Scope *sc)
     if (exp->op == TOKerror)
         return new ErrorStatement();
     if (exp->op == TOKimport)
-    {   ScopeExp *es = (ScopeExp *)exp;
-
-        sym = es->sds;
+    {
+        sym = new WithScopeSymbol(this);
+        sym->parent = sc->scopesym;
     }
     else if (exp->op == TOKtype)
-    {   TypeExp *es = (TypeExp *)exp;
-
-        Dsymbol *s = es->type->toDsymbol(sc);
-        sym = s ? s->isScopeDsymbol() : NULL;
-        if (!sym)
-        {   error("with type %s has no members", es->toChars());
+    {
+        Dsymbol *s = ((TypeExp *)exp)->type->toDsymbol(sc);
+        if (!s || !s->isScopeDsymbol())
+        {
+            error("with type %s has no members", exp->toChars());
             return new ErrorStatement();
         }
+        sym = new WithScopeSymbol(this);
+        sym->parent = sc->scopesym;
     }
     else
     {

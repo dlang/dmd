@@ -1239,11 +1239,22 @@ Dsymbol *WithScopeSymbol::search(Loc loc, Identifier *ident, int flags)
     Expression *eold = NULL;
     for (Expression *e = withstate->exp; e != eold; e = resolveAliasThis(scope, e))
     {
-        Type *t = e->type->toBasetype();
-        if (t->ty == Taarray)
-            s = ((TypeAArray *)t)->getImpl();
+        if (e->op == TOKimport)
+        {
+            s = ((ScopeExp *)e)->sds;
+        }
+        else if (e->op == TOKtype)
+        {
+            s = e->type->toDsymbol(NULL);
+        }
         else
-            s = t->toDsymbol(NULL);
+        {
+            Type *t = e->type->toBasetype();
+            if (t->ty == Taarray)
+                s = ((TypeAArray *)t)->getImpl();
+            else
+                s = t->toDsymbol(NULL);
+        }
         if (s)
         {
             s = s->search(loc, ident, 0);
