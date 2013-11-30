@@ -2590,56 +2590,6 @@ elem *AssignExp::toElem(IRState *irs)
 
     elem *e;
 
-    /* Look for reference initializations
-     */
-    if (op == TOKconstruct && e1->op == TOKvar)
-    {
-        VarExp *ve = (VarExp *)e1;
-        Declaration *s = ve->var;
-        if (s->storage_class & (STCout | STCref))
-//        if (ISREF(s, NULL))
-        {
-#if 0
-            Expression *ae = e2->addressOf(NULL);
-            e = ae->toElem(irs);
-#else
-            e = e2->toElem(irs);
-            e = addressElem(e, e2->type);
-#endif
-            elem *es = e1->toElem(irs);
-            if (es->Eoper == OPind)
-                es = es->E1;
-            else
-                es = el_una(OPaddr, TYnptr, es);
-            es->Ety = TYnptr;
-            e = el_bin(OPeq, TYnptr, es, e);
-// BUG: type is struct, and e2 is TOKint64
-            goto Lret;
-        }
-    }
-
-#if 1
-    /* This will work if we can distinguish an assignment from
-     * an initialization of the lvalue. It'll work if the latter.
-     * If the former, because of aliasing of the return value with
-     * function arguments, it'll fail.
-     */
-    if (op == TOKconstruct && e2->op == TOKcall)
-    {
-        CallExp *ce = (CallExp *)e2;
-        TypeFunction *tf = (TypeFunction *)ce->e1->type->toBasetype();
-        if (tf->ty == Tfunction && tf->retStyle() == RETstack)
-        {
-            elem *ehidden = e1->toElem(irs);
-            ehidden = el_una(OPaddr, TYnptr, ehidden);
-            assert(!irs->ehidden);
-            irs->ehidden = ehidden;
-            e = e2->toElem(irs);
-            goto Lret;
-        }
-    }
-#endif
-
     // Look for array.length = n
     if (e1->op == TOKarraylength)
     {
@@ -3002,7 +2952,57 @@ elem *AssignExp::toElem(IRState *irs)
         }
     }
 
-//if (op == TOKconstruct) printf("construct\n");
+    /* Look for reference initializations
+     */
+    if (op == TOKconstruct && e1->op == TOKvar)
+    {
+        VarExp *ve = (VarExp *)e1;
+        Declaration *s = ve->var;
+        if (s->storage_class & (STCout | STCref))
+//        if (ISREF(s, NULL))
+        {
+#if 0
+            Expression *ae = e2->addressOf(NULL);
+            e = ae->toElem(irs);
+#else
+            e = e2->toElem(irs);
+            e = addressElem(e, e2->type);
+#endif
+            elem *es = e1->toElem(irs);
+            if (es->Eoper == OPind)
+                es = es->E1;
+            else
+                es = el_una(OPaddr, TYnptr, es);
+            es->Ety = TYnptr;
+            e = el_bin(OPeq, TYnptr, es, e);
+// BUG: type is struct, and e2 is TOKint64
+            goto Lret;
+        }
+    }
+
+#if 1
+    /* This will work if we can distinguish an assignment from
+     * an initialization of the lvalue. It'll work if the latter.
+     * If the former, because of aliasing of the return value with
+     * function arguments, it'll fail.
+     */
+    if (op == TOKconstruct && e2->op == TOKcall)
+    {
+        CallExp *ce = (CallExp *)e2;
+        TypeFunction *tf = (TypeFunction *)ce->e1->type->toBasetype();
+        if (tf->ty == Tfunction && tf->retStyle() == RETstack)
+        {
+            elem *ehidden = e1->toElem(irs);
+            ehidden = el_una(OPaddr, TYnptr, ehidden);
+            assert(!irs->ehidden);
+            irs->ehidden = ehidden;
+            e = e2->toElem(irs);
+            goto Lret;
+        }
+    }
+#endif
+
+    //if (op == TOKconstruct) printf("construct\n");
     if (t1b->ty == Tstruct || t1b->ty == Tsarray)
     {
         elem *eleft = e1->toElem(irs);
