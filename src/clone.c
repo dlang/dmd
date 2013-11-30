@@ -246,7 +246,7 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
         {
             tmp = new VarDeclaration(loc, type, idtmp, new VoidInitializer(loc));
             tmp->noscope = 1;
-            tmp->storage_class |= STCctfe;
+            tmp->storage_class |= STCtemp | STCctfe;
             e = new DeclarationExp(loc, tmp);
             ec = new AssignExp(loc,
                 new VarExp(loc, tmp),

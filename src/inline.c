@@ -1700,7 +1700,7 @@ Expression *FuncDeclaration::expandInline(InlineScanState *iss,
              *   this.field = foo();   // inside constructor
              */
             vret = new VarDeclaration(loc, eret->type, Lexer::uniqueId("_satmp"), NULL);
-            vret->storage_class |= STCforeach | STCref;
+            vret->storage_class |= STCtemp | STCforeach | STCref;
             vret->linkage = LINKd;
             vret->parent = iss->fd;
 
@@ -1797,7 +1797,7 @@ Expression *FuncDeclaration::expandInline(InlineScanState *iss,
             ei = new ExpInitializer(arg->loc, arg);
 
             vto = new VarDeclaration(vfrom->loc, vfrom->type, vfrom->ident, ei);
-            vto->storage_class |= vfrom->storage_class & (STCin | STCout | STClazy | STCref);
+            vto->storage_class |= vfrom->storage_class & (STCtemp | STCin | STCout | STClazy | STCref);
             vto->linkage = vfrom->linkage;
             vto->parent = iss->fd;
             //printf("vto = '%s', vto->storage_class = x%x\n", vto->toChars(), vto->storage_class);

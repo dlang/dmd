@@ -827,6 +827,7 @@ Expression *createTypeInfoArray(Scope *sc, Expression *exps[], size_t dim)
         t = Type::typeinfo->type->arrayOf();
         ai->type = t;
         v = new VarDeclaration(0, t, id, ai);
+        v->storage_class |= STCtemp;
         m->members->push(v);
         m->symtabInsert(v);
         sc = sc->push();
