@@ -3109,6 +3109,26 @@ void test11286()
 }
 
 /**********************************/
+// 11505
+
+struct Foo11505
+{
+    Bar11505 b;
+}
+
+struct Bar11505
+{
+    ~this() @safe { }
+    void* p;
+}
+
+void test11505()
+{
+    Foo11505 f;
+    f = Foo11505();
+}
+
+/**********************************/
 
 int main()
 {
@@ -3205,6 +3225,7 @@ int main()
     test11134();
     test11197();
     test7474();
+    test11505();
 
     printf("Success\n");
     return 0;
