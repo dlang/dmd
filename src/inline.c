@@ -1774,7 +1774,7 @@ Expression *FuncDeclaration::expandInline(InlineScanState *iss,
             Identifier* tmp = Identifier::generateId("__nrvoretval");
             VarDeclaration* vd = new VarDeclaration(loc, nrvo_var->type, tmp, NULL);
             assert(!tf->isref);
-            vd->storage_class = STCtemp;
+            vd->storage_class = STCtemp | STCrvalue;
             vd->linkage = tf->linkage;
             vd->parent = iss->fd;
 
@@ -1870,7 +1870,7 @@ Expression *FuncDeclaration::expandInline(InlineScanState *iss,
 
             Identifier* tmp = Identifier::generateId("__inlineretval");
             VarDeclaration* vd = new VarDeclaration(loc, tf->next, tmp, ei);
-            vd->storage_class = (tf->isref ? STCref : 0) | STCtemp;
+            vd->storage_class = (tf->isref ? STCref : 0) | STCtemp | STCrvalue;
             vd->linkage = tf->linkage;
             vd->parent = iss->fd;
 

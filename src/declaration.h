@@ -76,16 +76,16 @@ enum PURE;
 #define STC_TYPECTOR    (STCconst | STCimmutable | STCshared | STCwild)
 #define STC_FUNCATTR    (STCref | STCnothrow | STCpure | STCproperty | STCsafe | STCtrusted | STCsystem)
 
-#define STCproperty     0x100000000LL
-#define STCsafe         0x200000000LL
-#define STCtrusted      0x400000000LL
-#define STCsystem       0x800000000LL
-#define STCctfe         0x1000000000LL  // can be used in CTFE, even if it is static
-#define STCdisable      0x2000000000LL  // for functions that are not callable
-#define STCresult       0x4000000000LL  // for result variables passed to out contracts
+#define STCproperty      0x100000000LL
+#define STCsafe          0x200000000LL
+#define STCtrusted       0x400000000LL
+#define STCsystem        0x800000000LL
+#define STCctfe          0x1000000000LL  // can be used in CTFE, even if it is static
+#define STCdisable       0x2000000000LL  // for functions that are not callable
+#define STCresult        0x4000000000LL  // for result variables passed to out contracts
 #define STCnodefaultctor 0x8000000000LL  // must be set inside constructor
-#define STCtemp         0x10000000000LL  // temporary variable introduced by inlining
-                                         // and used only in backend process, so it's rvalue
+#define STCtemp          0x10000000000LL // temporary variable
+#define STCrvalue        0x20000000000LL // force rvalue for variables
 
 const StorageClass STCStorageClass = (STCauto | STCscope | STCstatic | STCextern | STCconst | STCfinal |
     STCabstract | STCsynchronized | STCdeprecated | STCoverride | STClazy | STCalias |

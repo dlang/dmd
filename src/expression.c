@@ -5764,7 +5764,7 @@ void VarExp::checkEscapeRef()
 
 int VarExp::isLvalue()
 {
-    if (var->storage_class & (STClazy | STCtemp | STCmanifest))
+    if (var->storage_class & (STClazy | STCrvalue | STCmanifest))
         return 0;
     return 1;
 }
@@ -14060,7 +14060,7 @@ Expression *BinExp::reorderSettingAAElem(Scope *sc)
     {
         Identifier *id = Lexer::uniqueId("__aaval");
         VarDeclaration *vd = new VarDeclaration(loc, this->e2->type, id, new ExpInitializer(this->e2->loc, this->e2));
-        vd->storage_class |= STCtemp;
+        vd->storage_class |= STCtemp | STCrvalue;
         if (this->e2->isLvalue())
             vd->storage_class |= STCref | STCforeach;
         Expression *de = new DeclarationExp(this->e2->loc, vd);
