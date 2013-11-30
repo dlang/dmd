@@ -83,6 +83,7 @@ MANIFEST=\
 	src\core\sys\linux\errno.d \
 	src\core\sys\linux\execinfo.d \
 	src\core\sys\linux\link.d \
+	src\core\sys\linux\termios.d \
 	\
 	src\core\sys\linux\sys\inotify.d \
 	src\core\sys\linux\sys\mman.d \
