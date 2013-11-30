@@ -3267,8 +3267,8 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
     if (op == TOKconstruct && this->e1->op==TOKvar
         && ((VarExp*)this->e1)->var->storage_class & STCref)
     {
-         wantRef = true;
-         wantLvalueRef = true;
+        wantRef = true;
+        wantLvalueRef = true;
     }
 
     if (fp)

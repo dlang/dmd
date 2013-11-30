@@ -14022,8 +14022,7 @@ Expression *BinExp::reorderSettingAAElem(Scope *sc)
     /* Check recursive conversion */
     VarDeclaration *var;
     bool isrefvar = (e2->op == TOKvar &&
-                    (var = ((VarExp *)e2)->var->isVarDeclaration()) != NULL &&
-                    (var->storage_class & STCref));
+                    (var = ((VarExp *)e2)->var->isVarDeclaration()) != NULL);
     if (isrefvar)
         return this;
 
@@ -14061,7 +14060,9 @@ Expression *BinExp::reorderSettingAAElem(Scope *sc)
     {
         Identifier *id = Lexer::uniqueId("__aaval");
         VarDeclaration *vd = new VarDeclaration(loc, this->e2->type, id, new ExpInitializer(this->e2->loc, this->e2));
-        vd->storage_class |= STCref | STCforeach | (this->e2->isLvalue() ? 0 : STCtemp);
+        vd->storage_class |= STCtemp;
+        if (this->e2->isLvalue())
+            vd->storage_class |= STCref | STCforeach;
         Expression *de = new DeclarationExp(this->e2->loc, vd);
 
         ec = ec ? new CommaExp(loc, ec, de) : de;
