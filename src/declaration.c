@@ -1180,7 +1180,7 @@ Lnomatch:
             if (tbn->ty == Tstruct && ((TypeStruct *)tbn)->sym->noDefaultCtor ||
                 tbn->ty == Tclass  && ((TypeClass  *)tbn)->sym->noDefaultCtor)
             {
-                if (!isThisDeclaration())
+                if (!isThisDeclaration() && !init)
                     aad->noDefaultCtor = TRUE;
             }
 #else
@@ -1198,7 +1198,7 @@ Lnomatch:
                 if ((tbn->ty == Tstruct && ((TypeStruct *)tbn)->sym->noDefaultCtor) ||
                     (tbn->ty == Tclass  && ((TypeClass  *)tbn)->sym->noDefaultCtor))
                 {
-                    if (!isThisDeclaration())
+                    if (!isThisDeclaration() && !init)
                         aad->noDefaultCtor = TRUE;
                 }
             }
