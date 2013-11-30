@@ -1086,7 +1086,7 @@ private struct Demangle
             next();
             if( '0' > tok() || '9' < tok() )
                 error( "Number expected" );
-            // fall-through intentional
+            goto case;
         case '0': .. case '9':
             parseIntegerValue( name, type );
             return;
