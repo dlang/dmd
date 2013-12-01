@@ -127,8 +127,8 @@ else version (Solaris)
 }
 else version( Android )
 {
-    void tzset();                            // non-standard
-    extern __gshared const(char)*[2] tzname; // non-standard
+    void tzset();
+    extern __gshared const(char)*[2] tzname;
 }
 else
 {
