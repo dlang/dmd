@@ -595,14 +595,13 @@ Statement *CompoundStatement::syntaxCopy()
 
 
 Statement *CompoundStatement::semantic(Scope *sc)
-{   Statement *s;
-
+{
     //printf("CompoundStatement::semantic(this = %p, sc = %p)\n", this, sc);
 
 #if 0
     for (size_t i = 0; i < statements->dim; i++)
     {
-        s = (*statements)[i];
+        Statement *s = (*statements)[i];
         if (s)
             printf("[%d]: %s", i, s->toChars());
     }
@@ -610,10 +609,10 @@ Statement *CompoundStatement::semantic(Scope *sc)
 
     for (size_t i = 0; i < statements->dim; )
     {
-        s = (*statements)[i];
+        Statement *s = (*statements)[i];
         if (s)
-        {   Statements *flt = s->flatten(sc);
-
+        {
+            Statements *flt = s->flatten(sc);
             if (flt)
             {
                 statements->remove(i);
@@ -715,12 +714,24 @@ Statement *CompoundStatement::semantic(Scope *sc)
     }
     for (size_t i = 0; i < statements->dim; ++i)
     {
-        s = (*statements)[i];
-        if (s)
+    L1:
+        Statement *s = (*statements)[i];
+        if (!s)
+            continue;
+
+        Statement *se = s->isErrorStatement();
+        if (se)
+            return se;
+
+        /* Bugzilla 11653: 'semantic' may return another CompoundStatement
+         * (eg. CaseRangeStatement), so flatten it here.
+         */
+        Statements *flt = s->flatten(sc);
+        if (flt)
         {
-            Statement *se = s->isErrorStatement();
-            if (se)
-                return se;
+            statements->remove(i);
+            statements->insert(i, flt);
+            goto L1;
         }
     }
     if (statements->dim == 1)
@@ -740,7 +751,8 @@ ReturnStatement *CompoundStatement::isReturnStatement()
     ReturnStatement *rs = NULL;
 
     for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s = (*statements)[i];
+    {
+        Statement *s = (*statements)[i];
         if (s)
         {
             rs = s->isReturnStatement();
