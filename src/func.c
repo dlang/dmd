@@ -897,7 +897,7 @@ Ldone:
         {
             printedMain = true;
             const char *name = FileName::searchPath(global.path, mod->srcfile->toChars(), 1);
-            printf("entry     %-10s\t%s\n", type, name);
+            fprintf(global.stdmsg, "entry     %-10s\t%s\n", type, name);
         }
     }
 

@@ -306,7 +306,7 @@ int CompiledCtfeFunction::walkAllVars(Expression *e, void *_this)
         if (global.gag && ccf->func)
             return 1;
 
-        printf("CTFE: ErrorExp in %s\n", ccf->func ? ccf->func->loc.toChars() :  ccf->callingloc.toChars());
+        e->error("CTFE internal error: ErrorExp in %s\n", ccf->func ? ccf->func->loc.toChars() : ccf->callingloc.toChars());
         assert(0);
     }
     if (e->op == TOKdeclaration)
