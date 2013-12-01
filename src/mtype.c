@@ -3532,6 +3532,12 @@ Expression *TypeVector::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
         e = e->castTo(sc, basetype);
         return e;
     }
+    if (ident == Id::offsetof || ident == Id::offset || ident == Id::stringof)
+    {
+        // offsetof does not work on a cast expression, so use the basetype directly
+        // stringof should not add a cast to the output
+        return basetype->dotExp(sc, e, ident, flag);
+    }
     return basetype->dotExp(sc, e->castTo(sc, basetype), ident, flag);
 }
 
