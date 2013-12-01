@@ -5003,7 +5003,8 @@ Statements *DebugStatement::flatten(Scope *sc)
 {
     Statements *a = statement ? statement->flatten(sc) : NULL;
     if (a)
-    {   for (size_t i = 0; i < a->dim; i++)
+    {
+        for (size_t i = 0; i < a->dim; i++)
         {   Statement *s = (*a)[i];
 
             s = new DebugStatement(loc, s);
@@ -5149,14 +5150,14 @@ Statement *LabelStatement::syntaxCopy()
 }
 
 Statement *LabelStatement::semantic(Scope *sc)
-{   LabelDsymbol *ls;
+{
     FuncDeclaration *fd = sc->parent->isFuncDeclaration();
 
     this->lastVar = sc->lastVar;
     //printf("LabelStatement::semantic()\n");
     ident = fixupLabelName(sc, ident);
 
-    ls = fd->searchLabel(ident);
+    LabelDsymbol *ls = fd->searchLabel(ident);
     if (ls->statement)
     {
         error("Label '%s' already defined", ls->toChars());
@@ -5194,10 +5195,10 @@ Statements *LabelStatement::flatten(Scope *sc)
             {
                 a->push(new ExpStatement(loc, (Expression *)NULL));
             }
-            Statement *s = (*a)[0];
 
-            s = new LabelStatement(loc, ident, s);
-            (*a)[0] = s;
+            // reuse 'this' LabelStatement
+            this->statement = (*a)[0];
+            (*a)[0] = this;
         }
     }
 
