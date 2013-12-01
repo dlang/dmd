@@ -595,14 +595,13 @@ Statement *CompoundStatement::syntaxCopy()
 
 
 Statement *CompoundStatement::semantic(Scope *sc)
-{   Statement *s;
-
+{
     //printf("CompoundStatement::semantic(this = %p, sc = %p)\n", this, sc);
 
 #if 0
     for (size_t i = 0; i < statements->dim; i++)
     {
-        s = (*statements)[i];
+        Statement *s = (*statements)[i];
         if (s)
             printf("[%d]: %s", i, s->toChars());
     }
@@ -610,10 +609,10 @@ Statement *CompoundStatement::semantic(Scope *sc)
 
     for (size_t i = 0; i < statements->dim; )
     {
-        s = (*statements)[i];
+        Statement *s = (*statements)[i];
         if (s)
-        {   Statements *flt = s->flatten(sc);
-
+        {
+            Statements *flt = s->flatten(sc);
             if (flt)
             {
                 statements->remove(i);
@@ -715,12 +714,24 @@ Statement *CompoundStatement::semantic(Scope *sc)
     }
     for (size_t i = 0; i < statements->dim; ++i)
     {
-        s = (*statements)[i];
-        if (s)
+    L1:
+        Statement *s = (*statements)[i];
+        if (!s)
+            continue;
+
+        Statement *se = s->isErrorStatement();
+        if (se)
+            return se;
+
+        /* Bugzilla 11653: 'semantic' may return another CompoundStatement
+         * (eg. CaseRangeStatement), so flatten it here.
+         */
+        Statements *flt = s->flatten(sc);
+        if (flt)
         {
-            Statement *se = s->isErrorStatement();
-            if (se)
-                return se;
+            statements->remove(i);
+            statements->insert(i, flt);
+            goto L1;
         }
     }
     if (statements->dim == 1)
@@ -740,7 +751,8 @@ ReturnStatement *CompoundStatement::isReturnStatement()
     ReturnStatement *rs = NULL;
 
     for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s = (*statements)[i];
+    {
+        Statement *s = (*statements)[i];
         if (s)
         {
             rs = s->isReturnStatement();
@@ -2076,7 +2088,7 @@ Lagain:
             }
             tfld = new TypeFunction(args, Type::tint32, 0, LINKd);
             cases = new Statements();
-            gotos = new CompoundStatements();
+            gotos = new ScopeStatements();
             FuncLiteralDeclaration *fld = new FuncLiteralDeclaration(loc, Loc(), tfld, TOKdelegate, this);
             fld->fbody = body;
             Expression *flde = new FuncExp(loc, fld);
@@ -2085,14 +2097,14 @@ Lagain:
 
             // Resolve any forward referenced goto's
             for (size_t i = 0; i < gotos->dim; i++)
-            {   CompoundStatement *cs = (*gotos)[i];
-                GotoStatement *gs = (GotoStatement *)(*cs->statements)[0];
-
+            {
+                GotoStatement *gs = (GotoStatement *)(*gotos)[i]->statement;
                 if (!gs->label->statement)
-                {   // 'Promote' it to this scope, and replace with a return
+                {
+                    // 'Promote' it to this scope, and replace with a return
                     cases->push(gs);
                     s = new ReturnStatement(Loc(), new IntegerExp(cases->dim + 1));
-                    (*cs->statements)[0] = s;
+                    (*gotos)[i]->statement = s;
                 }
             }
 
@@ -5003,7 +5015,8 @@ Statements *DebugStatement::flatten(Scope *sc)
 {
     Statements *a = statement ? statement->flatten(sc) : NULL;
     if (a)
-    {   for (size_t i = 0; i < a->dim; i++)
+    {
+        for (size_t i = 0; i < a->dim; i++)
         {   Statement *s = (*a)[i];
 
             s = new DebugStatement(loc, s);
@@ -5055,17 +5068,13 @@ Statement *GotoStatement::semantic(Scope *sc)
     {
         /* Either the goto label is forward referenced or it
          * is in the function that the enclosing foreach is in.
-         * Can't know yet, so wrap the goto in a compound statement
+         * Can't know yet, so wrap the goto in a scope statement
          * so we can patch it later, and add it to a 'look at this later'
          * list.
          */
-        Statements *a = new Statements();
-        CompoundStatement *s;
-
-        a->push(this);
-        s = new CompoundStatement(loc, a);
-        sc->fes->gotos->push(s);         // 'look at this later' list
-        return s;
+        ScopeStatement *ss = new ScopeStatement(loc, this);
+        sc->fes->gotos->push(ss);       // 'look at this later' list
+        return ss;
     }
 
     // Add to fwdref list to check later
@@ -5153,14 +5162,14 @@ Statement *LabelStatement::syntaxCopy()
 }
 
 Statement *LabelStatement::semantic(Scope *sc)
-{   LabelDsymbol *ls;
+{
     FuncDeclaration *fd = sc->parent->isFuncDeclaration();
 
     this->lastVar = sc->lastVar;
     //printf("LabelStatement::semantic()\n");
     ident = fixupLabelName(sc, ident);
 
-    ls = fd->searchLabel(ident);
+    LabelDsymbol *ls = fd->searchLabel(ident);
     if (ls->statement)
     {
         error("Label '%s' already defined", ls->toChars());
@@ -5198,10 +5207,10 @@ Statements *LabelStatement::flatten(Scope *sc)
             {
                 a->push(new ExpStatement(loc, (Expression *)NULL));
             }
-            Statement *s = (*a)[0];
 
-            s = new LabelStatement(loc, ident, s);
-            (*a)[0] = s;
+            // reuse 'this' LabelStatement
+            this->statement = (*a)[0];
+            (*a)[0] = this;
         }
     }
 

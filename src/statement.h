@@ -399,7 +399,7 @@ public:
     FuncDeclaration *func;      // function we're lexically in
 
     Statements *cases;          // put breaks, continues, gotos and returns here
-    CompoundStatements *gotos;  // forward referenced goto's go here
+    ScopeStatements *gotos;     // forward referenced goto's go here
 
     ForeachStatement(Loc loc, TOK op, Parameters *arguments, Expression *aggr, Statement *body);
     Statement *syntaxCopy();
