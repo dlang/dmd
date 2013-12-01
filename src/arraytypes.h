@@ -60,7 +60,7 @@ typedef Array<struct File> Files;
 
 typedef Array<class CaseStatement> CaseStatements;
 
-typedef Array<class CompoundStatement> CompoundStatements;
+typedef Array<class ScopeStatement> ScopeStatements;
 
 typedef Array<class GotoCaseStatement> GotoCaseStatements;
 

@@ -2076,7 +2076,7 @@ Lagain:
             }
             tfld = new TypeFunction(args, Type::tint32, 0, LINKd);
             cases = new Statements();
-            gotos = new CompoundStatements();
+            gotos = new ScopeStatements();
             FuncLiteralDeclaration *fld = new FuncLiteralDeclaration(loc, Loc(), tfld, TOKdelegate, this);
             fld->fbody = body;
             Expression *flde = new FuncExp(loc, fld);
@@ -2085,14 +2085,14 @@ Lagain:
 
             // Resolve any forward referenced goto's
             for (size_t i = 0; i < gotos->dim; i++)
-            {   CompoundStatement *cs = (*gotos)[i];
-                GotoStatement *gs = (GotoStatement *)(*cs->statements)[0];
-
+            {
+                GotoStatement *gs = (GotoStatement *)(*gotos)[i]->statement;
                 if (!gs->label->statement)
-                {   // 'Promote' it to this scope, and replace with a return
+                {
+                    // 'Promote' it to this scope, and replace with a return
                     cases->push(gs);
                     s = new ReturnStatement(Loc(), new IntegerExp(cases->dim + 1));
-                    (*cs->statements)[0] = s;
+                    (*gotos)[i]->statement = s;
                 }
             }
 
@@ -5055,17 +5055,13 @@ Statement *GotoStatement::semantic(Scope *sc)
     {
         /* Either the goto label is forward referenced or it
          * is in the function that the enclosing foreach is in.
-         * Can't know yet, so wrap the goto in a compound statement
+         * Can't know yet, so wrap the goto in a scope statement
          * so we can patch it later, and add it to a 'look at this later'
          * list.
          */
-        Statements *a = new Statements();
-        CompoundStatement *s;
-
-        a->push(this);
-        s = new CompoundStatement(loc, a);
-        sc->fes->gotos->push(s);         // 'look at this later' list
-        return s;
+        ScopeStatement *ss = new ScopeStatement(loc, this);
+        sc->fes->gotos->push(ss);       // 'look at this later' list
+        return ss;
     }
 
     // Add to fwdref list to check later
