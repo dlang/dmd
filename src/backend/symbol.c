@@ -339,7 +339,7 @@ symbol * symbol_generate(int sclass,type *t)
     symbol *s = symbol_name(name,sclass,t);
     //symbol_print(s);
 #if MARS
-    s->Sflags |= SFLnodebug;
+    s->Sflags |= SFLnodebug | SFLartifical;
 #endif
     return s;
 }

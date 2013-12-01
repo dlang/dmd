@@ -172,6 +172,8 @@ Symbol *VarDeclaration::toSymbol()
             id = ident->toChars();
         Symbol *s = symbol_calloc(id);
         s->Salignment = alignment;
+        if (storage_class & STCtemp)
+            s->Sflags |= SFLartifical;
 
         if (storage_class & (STCout | STCref))
         {
@@ -279,7 +281,7 @@ Symbol *VarDeclaration::toSymbol()
             {
                 m = mTYman_cpp;
 
-                s->Sflags = SFLpublic;
+                s->Sflags |= SFLpublic;
                 Dsymbol *parent = toParent();
                 ClassDeclaration *cd = parent->isClassDeclaration();
                 if (cd)
