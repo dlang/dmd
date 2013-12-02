@@ -1005,6 +1005,8 @@ void dwarf_func_term(Symbol *sfunc)
    //printf("dwarf_func_term(sfunc = '%s')\n", sfunc->Sident);
 
 #if MARS
+    if (sfunc->Sflags & SFLnodebug)
+        return;
     const char* filename = sfunc->Sfunc->Fstartline.Sfilename;
     if (!filename)
         return;
@@ -1121,7 +1123,11 @@ void dwarf_func_term(Symbol *sfunc)
         unsigned autocode = 0;
         SYMIDX si;
         for (si = 0; si < globsym.top; si++)
-        {   symbol *sa = globsym.tab[si];
+        {
+            symbol *sa = globsym.tab[si];
+#if MARS
+            if (sa->Sflags & SFLnodebug) continue;
+#endif
 
             static unsigned char formal[] =
             {
@@ -1222,7 +1228,12 @@ void dwarf_func_term(Symbol *sfunc)
         if (haveparameters)
         {
             for (si = 0; si < globsym.top; si++)
-            {   symbol *sa = globsym.tab[si];
+            {
+                symbol *sa = globsym.tab[si];
+#if MARS
+                if (sa->Sflags & SFLnodebug) continue;
+#endif
+
                 unsigned vcode;
 
                 switch (sa->Sclass)
