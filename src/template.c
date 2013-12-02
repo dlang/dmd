@@ -5597,7 +5597,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 #endif
 
     // Copy the syntax trees from the TemplateDeclaration
-    if (members && speculative)
+    if (members && speculative && !errors)
     {}  // Don't copy again so they were previously created.
     else
         members = Dsymbol::arraySyntaxCopy(tempdecl->members);
@@ -7553,7 +7553,7 @@ void TemplateMixin::semantic(Scope *sc)
     }
 
     // Copy the syntax trees from the TemplateDeclaration
-    if (scx && members)
+    if (scx && members && !errors)
     {}  // Don't copy again so they were previously created.
     else
         members = Dsymbol::arraySyntaxCopy(tempdecl->members);
@@ -7672,6 +7672,7 @@ void TemplateMixin::semantic(Scope *sc)
     if (global.errors != errorsave)
     {
         error("error instantiating");
+        errors = true;
     }
 
     sc2->pop();
