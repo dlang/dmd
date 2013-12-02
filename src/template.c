@@ -1602,7 +1602,7 @@ Lretry:
                 if (farg->op == TOKstring)
                 {
                     StringExp *se = (StringExp *)farg;
-                    argtype = TypeSArray::makeType(se->loc, argtype->nextOf(), se->len);
+                    argtype = argtype->nextOf()->sarrayOf(se->len);
                 }
                 else if (farg->op == TOKslice)
                 {
@@ -1614,7 +1614,7 @@ Lretry:
                 else if (farg->op == TOKarrayliteral)
                 {
                     ArrayLiteralExp *ae = (ArrayLiteralExp *)farg;
-                    argtype = TypeSArray::makeType(ae->loc, argtype->nextOf(), ae->elements->dim);
+                    argtype = argtype->nextOf()->sarrayOf(ae->elements->dim);
                 }
             }
 

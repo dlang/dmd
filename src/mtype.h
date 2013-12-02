@@ -290,6 +290,7 @@ public:
     Type *pointerTo();
     Type *referenceTo();
     Type *arrayOf();
+    Type *sarrayOf(dinteger_t dim);
     Type *aliasthisOf();
     int checkAliasThisRec();
     virtual Type *makeConst();
@@ -505,8 +506,6 @@ public:
 #if CPP_MANGLE
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
-
-    static Type *makeType(Loc loc, Type *tn, dinteger_t dim);
 
     type *toCtype();
     type *toCParamtype();

@@ -1218,6 +1218,19 @@ Type *Type::arrayOf()
     return arrayof;
 }
 
+// Make corresponding static array type without semantic
+Type *Type::sarrayOf(dinteger_t dim)
+{
+    assert(deco);
+    Type *t = new TypeSArray(this, new IntegerExp(Loc(), dim, Type::tindex));
+
+    // according to TypeSArray::semantic()
+    t = t->addMod(mod);
+    t = t->merge();
+
+    return t;
+}
+
 Type *Type::aliasthisOf()
 {
     AggregateDeclaration *ad = isAggregate(this);
@@ -4069,19 +4082,6 @@ Lerror:
     return Type::terror;
 }
 
-// Make corresponding static array type without semantic
-Type *TypeSArray::makeType(Loc loc, Type *tn, dinteger_t dim)
-{
-    assert(tn->deco);
-    Type *t = new TypeSArray(tn, new IntegerExp(loc, dim, Type::tindex));
-
-    // according to TypeSArray::semantic()
-    t = t->addMod(tn->mod);
-    t = t->merge();
-
-    return t;
-}
-
 void TypeSArray::toDecoBuffer(OutBuffer *buf, int flag)
 {
     Type::toDecoBuffer(buf, flag);
@@ -6131,7 +6131,7 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
                     {
                         Type *tn = tprmb->nextOf()->castMod(targb->nextOf()->mod);
                         dinteger_t dim = ((StringExp *)arg)->len;
-                        targb = TypeSArray::makeType(Loc(), tn, dim);
+                        targb = tn->sarrayOf(dim);
                     }
                 }
                 else if (arg->op == TOKslice && tprmb->ty == Tsarray)
@@ -6141,7 +6141,7 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
                     {
                         Type *tn = targb->nextOf();
                         dinteger_t dim = ((TypeSArray *)tprmb)->dim->toUInteger();
-                        targb = TypeSArray::makeType(Loc(), tn, dim);
+                        targb = tn->sarrayOf(dim);
                     }
                 }
                 else

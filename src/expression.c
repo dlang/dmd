@@ -11683,7 +11683,7 @@ Ltupleassign:
                         if (t->ty != Tsarray)
                             break;
                         dim *= ((TypeSArray *)t)->dim->toInteger();
-                        e1->type = TypeSArray::makeType(Loc(), t->nextOf(), dim);
+                        e1->type = t->nextOf()->sarrayOf(dim);
                     }
                 }
 
@@ -11753,7 +11753,7 @@ Ltupleassign:
                     if (t->ty != Tsarray)
                         break;
                     dim *= ((TypeSArray *)t)->dim->toInteger();
-                    e1->type = TypeSArray::makeType(Loc(), t->nextOf(), dim);
+                    e1->type = t->nextOf()->sarrayOf(dim);
                 }
             }
             e1 = new SliceExp(loc, e1, NULL, NULL);
