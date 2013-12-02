@@ -1010,7 +1010,7 @@ void VarDeclaration::semantic(Scope *sc)
                     Identifier *id = Lexer::uniqueId("__tup");
                     ExpInitializer *ei = new ExpInitializer(e->loc, e);
                     VarDeclaration *v = new VarDeclaration(loc, NULL, id, ei);
-                    v->storage_class = STCctfe | STCref | STCforeach;
+                    v->storage_class = STCtemp | STCctfe | STCref | STCforeach;
                     VarExp *ve = new VarExp(loc, v);
                     ve->type = e->type;
 
@@ -1098,7 +1098,7 @@ Lnomatch:
                 ti = init ? init->syntaxCopy() : NULL;
 
             VarDeclaration *v = new VarDeclaration(loc, arg->type, id, ti);
-            v->storage_class |= storage_class;
+            v->storage_class |= STCtemp | storage_class;
             if (arg->storageClass & STCparameter)
                 v->storage_class |= arg->storageClass;
             //printf("declaring field %s of type %s\n", v->toChars(), v->type->toChars());

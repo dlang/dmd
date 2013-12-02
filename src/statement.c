@@ -441,6 +441,7 @@ Statement *ExpStatement::scopeCode(Scope *sc, Statement **sentry, Statement **se
                         Identifier *id = Lexer::uniqueId("__runDtor");
                         ExpInitializer *ie = new ExpInitializer(loc, new IntegerExp(1));
                         VarDeclaration *rd = new VarDeclaration(loc, Type::tint32, id, ie);
+                        rd->storage_class |= STCtemp;
                         *sentry = new ExpStatement(loc, rd);
                         v->rundtor = rd;
 
@@ -1695,7 +1696,7 @@ Lagain:
                 if (dim == 2 && i == 0)
                 {
                     var = new VarDeclaration(loc, arg->type->mutableOf(), Lexer::uniqueId("__key"), NULL);
-                    var->storage_class |= STCforeach;
+                    var->storage_class |= STCtemp | STCforeach;
                     if (var->storage_class & (STCref | STCout))
                         var->storage_class |= STCnodtor;
 
@@ -1764,6 +1765,7 @@ Lagain:
             Identifier *id = Lexer::uniqueId("__aggr");
             ExpInitializer *ie = new ExpInitializer(loc, new SliceExp(loc, aggr, NULL, NULL));
             VarDeclaration *tmp = new VarDeclaration(loc, tab->nextOf()->arrayOf(), id, ie);
+            tmp->storage_class |= STCtemp;
 
             Expression *tmp_length = new DotIdExp(loc, new VarExp(loc, tmp), Id::length);
 
@@ -1771,6 +1773,7 @@ Lagain:
             {
                 Identifier *idkey = Lexer::uniqueId("__key");
                 key = new VarDeclaration(loc, Type::tsize_t, idkey, NULL);
+                key->storage_class |= STCtemp;
             }
             if (op == TOKforeach_reverse)
                 key->init = new ExpInitializer(loc, tmp_length);
@@ -1908,6 +1911,7 @@ Lagain:
              */
             Identifier *rid = Identifier::generateId("__r");
             VarDeclaration *r = new VarDeclaration(loc, NULL, rid, new ExpInitializer(loc, aggr));
+            r->storage_class |= STCtemp;
             Statement *init = new ExpStatement(loc, r);
 
             // !__r.empty
@@ -1940,7 +1944,7 @@ Lagain:
                 Identifier *id = Lexer::uniqueId("__front");
                 ExpInitializer *ei = new ExpInitializer(loc, einit);
                 VarDeclaration *vd = new VarDeclaration(loc, NULL, id, ei);
-                vd->storage_class |= STCctfe | STCref | STCforeach;
+                vd->storage_class |= STCtemp | STCctfe | STCref | STCforeach;
 
                 makeargs = new ExpStatement(loc, new DeclarationExp(loc, vd));
 
@@ -2081,6 +2085,7 @@ Lagain:
 
                     Initializer *ie = new ExpInitializer(Loc(), new IdentifierExp(Loc(), id));
                     VarDeclaration *v = new VarDeclaration(Loc(), arg->type, arg->ident, ie);
+                    v->storage_class |= STCtemp;
                     s = new ExpStatement(Loc(), v);
                     body = new CompoundStatement(loc, s, body);
                 }
@@ -2462,10 +2467,12 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
 
     ExpInitializer *ie = new ExpInitializer(loc, (op == TOKforeach) ? lwr : upr);
     key = new VarDeclaration(loc, arg->type->mutableOf(), Lexer::uniqueId("__key"), ie);
+    key->storage_class |= STCtemp;
 
     Identifier *id = Lexer::uniqueId("__limit");
     ie = new ExpInitializer(loc, (op == TOKforeach) ? upr : lwr);
     VarDeclaration *tmp = new VarDeclaration(loc, arg->type, id, ie);
+    tmp->storage_class |= STCtemp;
 
     Statements *cs = new Statements();
     // Keep order of evaluation as lwr, then upr
@@ -2517,7 +2524,7 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
     {
         ie = new ExpInitializer(loc, new IdentifierExp(loc, key->ident));
         VarDeclaration *v = new VarDeclaration(loc, arg->type, arg->ident, ie);
-        v->storage_class |= STCforeach | (arg->storageClass & STCref);
+        v->storage_class |= STCtemp | STCforeach | (arg->storageClass & STCref);
         body = new CompoundStatement(loc, new ExpStatement(loc, v), body);
     }
     if (arg->storageClass & STCref)
@@ -3893,6 +3900,8 @@ Statement *ReturnStatement::semantic(Scope *sc)
                 if (!fd->outId)
                     fd->outId = Id::result;
                 VarDeclaration *v = new VarDeclaration(loc, tret, fd->outId, NULL);
+                if (fd->outId == Id::result)
+                    v->storage_class |= STCtemp;
                 v->noscope = 1;
                 v->storage_class |= STCresult;
                 if (tf->isref)
@@ -4285,6 +4294,7 @@ Statement *SynchronizedStatement::semantic(Scope *sc)
         Identifier *id = Lexer::uniqueId("__sync");
         ExpInitializer *ie = new ExpInitializer(loc, exp);
         VarDeclaration *tmp = new VarDeclaration(loc, exp->type, id, ie);
+        tmp->storage_class |= STCtemp;
 
         Statements *cs = new Statements();
         cs->push(new ExpStatement(loc, tmp));
@@ -4317,7 +4327,7 @@ Statement *SynchronizedStatement::semantic(Scope *sc)
         Identifier *id = Lexer::uniqueId("__critsec");
         Type *t = new TypeSArray(Type::tint8, new IntegerExp(Target::ptrsize + Target::critsecsize()));
         VarDeclaration *tmp = new VarDeclaration(loc, t, id, NULL);
-        tmp->storage_class |= STCgshared | STCstatic;
+        tmp->storage_class |= STCtemp | STCgshared | STCstatic;
 
         Statements *cs = new Statements();
         cs->push(new ExpStatement(loc, tmp));
@@ -4454,6 +4464,7 @@ Statement *WithStatement::semantic(Scope *sc)
             {
                 init = new ExpInitializer(loc, exp);
                 wthis = new VarDeclaration(loc, exp->type, Lexer::uniqueId("__withtmp"), init);
+                wthis->storage_class |= STCtemp;
                 exp = new CommaExp(loc, new DeclarationExp(loc, wthis), new VarExp(loc, wthis));
                 exp = exp->semantic(sc);
             }
@@ -4900,6 +4911,7 @@ Statement *OnScopeStatement::scopeCode(Scope *sc, Statement **sentry, Statement 
 
             ExpInitializer *ie = new ExpInitializer(loc, new IntegerExp(Loc(), 0, Type::tbool));
             VarDeclaration *v = new VarDeclaration(loc, Type::tbool, id, ie);
+            v->storage_class |= STCtemp;
             *sentry = new ExpStatement(loc, v);
 
             Expression *e = new IntegerExp(Loc(), 1, Type::tbool);

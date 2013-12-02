@@ -1005,6 +1005,8 @@ void dwarf_func_term(Symbol *sfunc)
    //printf("dwarf_func_term(sfunc = '%s')\n", sfunc->Sident);
 
 #if MARS
+    if (sfunc->Sflags & SFLnodebug)
+        return;
     const char* filename = sfunc->Sfunc->Fstartline.Sfilename;
     if (!filename)
         return;
@@ -1121,16 +1123,21 @@ void dwarf_func_term(Symbol *sfunc)
         unsigned autocode = 0;
         SYMIDX si;
         for (si = 0; si < globsym.top; si++)
-        {   symbol *sa = globsym.tab[si];
+        {
+            symbol *sa = globsym.tab[si];
+#if MARS
+            if (sa->Sflags & SFLnodebug) continue;
+#endif
 
             static unsigned char formal[] =
             {
                 DW_TAG_formal_parameter,
                 0,
-                DW_AT_name,     DW_FORM_string,
-                DW_AT_type,     DW_FORM_ref4,
-                DW_AT_location, DW_FORM_block1,
-                0,              0,
+                DW_AT_name,       DW_FORM_string,
+                DW_AT_type,       DW_FORM_ref4,
+                DW_AT_artificial, DW_FORM_flag,
+                DW_AT_location,   DW_FORM_block1,
+                0,                0,
             };
 
             switch (sa->Sclass)
@@ -1222,7 +1229,12 @@ void dwarf_func_term(Symbol *sfunc)
         if (haveparameters)
         {
             for (si = 0; si < globsym.top; si++)
-            {   symbol *sa = globsym.tab[si];
+            {
+                symbol *sa = globsym.tab[si];
+#if MARS
+                if (sa->Sflags & SFLnodebug) continue;
+#endif
+
                 unsigned vcode;
 
                 switch (sa->Sclass)
@@ -1238,12 +1250,14 @@ void dwarf_func_term(Symbol *sfunc)
                     case SCbprel:
                         vcode = autocode;
                     L1:
-                    {   unsigned soffset;
+                    {
+                        unsigned soffset;
                         unsigned tidx = dwarf_typidx(sa->Stype);
 
                         infobuf->writeuLEB128(vcode);           // abbreviation code
                         infobuf->writeString(sa->Sident);       // DW_AT_name
                         infobuf->write32(tidx);                 // DW_AT_type
+                        infobuf->writeByte(sa->Sflags & SFLartifical ? 1 : 0); // DW_FORM_tag
                         soffset = infobuf->size();
                         infobuf->writeByte(2);                  // DW_FORM_block1
                         if (sa->Sfl == FLreg || sa->Sclass == SCpseudo)

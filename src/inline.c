@@ -1700,7 +1700,7 @@ Expression *FuncDeclaration::expandInline(InlineScanState *iss,
              *   this.field = foo();   // inside constructor
              */
             vret = new VarDeclaration(loc, eret->type, Lexer::uniqueId("_satmp"), NULL);
-            vret->storage_class |= STCforeach | STCref;
+            vret->storage_class |= STCtemp | STCforeach | STCref;
             vret->linkage = LINKd;
             vret->parent = iss->fd;
 
@@ -1774,7 +1774,7 @@ Expression *FuncDeclaration::expandInline(InlineScanState *iss,
             Identifier* tmp = Identifier::generateId("__nrvoretval");
             VarDeclaration* vd = new VarDeclaration(loc, nrvo_var->type, tmp, NULL);
             assert(!tf->isref);
-            vd->storage_class = STCtemp;
+            vd->storage_class = STCtemp | STCrvalue;
             vd->linkage = tf->linkage;
             vd->parent = iss->fd;
 
@@ -1797,7 +1797,7 @@ Expression *FuncDeclaration::expandInline(InlineScanState *iss,
             ei = new ExpInitializer(arg->loc, arg);
 
             vto = new VarDeclaration(vfrom->loc, vfrom->type, vfrom->ident, ei);
-            vto->storage_class |= vfrom->storage_class & (STCin | STCout | STClazy | STCref);
+            vto->storage_class |= vfrom->storage_class & (STCtemp | STCin | STCout | STClazy | STCref);
             vto->linkage = vfrom->linkage;
             vto->parent = iss->fd;
             //printf("vto = '%s', vto->storage_class = x%x\n", vto->toChars(), vto->storage_class);
@@ -1870,7 +1870,7 @@ Expression *FuncDeclaration::expandInline(InlineScanState *iss,
 
             Identifier* tmp = Identifier::generateId("__inlineretval");
             VarDeclaration* vd = new VarDeclaration(loc, tf->next, tmp, ei);
-            vd->storage_class = (tf->isref ? STCref : 0) | STCtemp;
+            vd->storage_class = (tf->isref ? STCref : 0) | STCtemp | STCrvalue;
             vd->linkage = tf->linkage;
             vd->parent = iss->fd;
 

@@ -1311,7 +1311,7 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
             VarDeclaration *v = new VarDeclaration(loc, Type::tsize_t, Id::dollar, NULL);
             Expression *e = new IntegerExp(Loc(), td->objects->dim, Type::tsize_t);
             v->init = new ExpInitializer(Loc(), e);
-            v->storage_class |= STCstatic | STCconst;
+            v->storage_class |= STCtemp | STCstatic | STCconst;
             v->semantic(sc);
             return v;
         }
@@ -1322,7 +1322,7 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
             VarDeclaration *v = new VarDeclaration(loc, Type::tsize_t, Id::dollar, NULL);
             Expression *e = new IntegerExp(Loc(), type->arguments->dim, Type::tsize_t);
             v->init = new ExpInitializer(Loc(), e);
-            v->storage_class |= STCstatic | STCconst;
+            v->storage_class |= STCtemp | STCstatic | STCconst;
             v->semantic(sc);
             return v;
         }
@@ -1387,7 +1387,7 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
                  */
                 Expression *e = new IntegerExp(Loc(), ((TupleExp *)ce)->exps->dim, Type::tsize_t);
                 v = new VarDeclaration(loc, Type::tsize_t, Id::dollar, new ExpInitializer(Loc(), e));
-                v->storage_class |= STCstatic | STCconst;
+                v->storage_class |= STCtemp | STCstatic | STCconst;
             }
             else if (ce->type && (t = ce->type->toBasetype()) != NULL &&
                      (t->ty == Tstruct || t->ty == Tclass))
@@ -1456,6 +1456,7 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
                 if (t && t->ty == Tfunction)
                     e = new CallExp(e->loc, e);
                 v = new VarDeclaration(loc, NULL, Id::dollar, new ExpInitializer(Loc(), e));
+                v->storage_class |= STCtemp;
             }
             else
             {   /* For arrays, $ will either be a compile-time constant
@@ -1466,7 +1467,7 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
                 VoidInitializer *e = new VoidInitializer(Loc());
                 e->type = Type::tsize_t;
                 v = new VarDeclaration(loc, Type::tsize_t, Id::dollar, e);
-                v->storage_class |= STCctfe; // it's never a true static variable
+                v->storage_class |= STCtemp | STCctfe; // it's never a true static variable
             }
             *pvar = v;
         }

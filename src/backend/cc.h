@@ -1224,6 +1224,7 @@ struct Symbol
         #define SFLnodebug      0x20000 // don't generate debug info
         #define SFLwasstatic    0x800000 // was an uninitialized static
         #define SFLweak         0x1000000 // resolve to NULL if not found
+        #define SFLartifical    0x4000000 // compiler generated symbol
 
         // CPP
         #define SFLnodtor       0x10    // set if destructor for Symbol is already called
