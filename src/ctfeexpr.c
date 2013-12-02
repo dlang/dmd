@@ -2065,6 +2065,9 @@ bool isCtfeValueValid(Expression *newval)
     if (newval->op == TOKfunction)
         return true; // function literal or delegate literal
 
+    if (newval->op == TOKvector)
+        return true; // vector literal
+
     if (newval->op == TOKdelegate)
     {
         Expression *dge = ((DelegateExp *)newval)->e1;
