@@ -1240,8 +1240,9 @@ StaticCtorDeclaration *Parser::parseStaticCtor()
     nextToken();
     check(TOKlparen);
     check(TOKrparen);
+    StorageClass stc = parsePostfix();
 
-    StaticCtorDeclaration *f = new StaticCtorDeclaration(loc, Loc());
+    StaticCtorDeclaration *f = new StaticCtorDeclaration(loc, Loc(), stc);
     parseContracts(f);
     return f;
 }
@@ -1261,8 +1262,9 @@ SharedStaticCtorDeclaration *Parser::parseSharedStaticCtor()
     nextToken();
     check(TOKlparen);
     check(TOKrparen);
+    StorageClass stc = parsePostfix();
 
-    SharedStaticCtorDeclaration *f = new SharedStaticCtorDeclaration(loc, Loc());
+    SharedStaticCtorDeclaration *f = new SharedStaticCtorDeclaration(loc, Loc(), stc);
     parseContracts(f);
     return f;
 }
