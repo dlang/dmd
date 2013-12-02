@@ -2957,6 +2957,28 @@ void test11533c()
 }
 
 /******************************************/
+// 11662
+
+template func11662a(T)
+{
+    alias Type = T*;
+    void func11662a(Type data) {}
+}
+
+template func11662b(T) if (!is(T == class))
+{
+    alias Type = T*;
+    void func11662b(Type data) {}
+}
+
+void test11662()
+{
+    int* p;
+    func11662a!int(p);
+    func11662b!int(p);
+}
+
+/******************************************/
 
 int main()
 {
@@ -3051,6 +3073,7 @@ int main()
     test11533a();
     test11533b();
     test11533c();
+    test11662();
 
     printf("Success\n");
     return 0;
