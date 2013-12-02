@@ -4126,13 +4126,7 @@ Expression *TypeSArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
             e->error("%s is not an expression", e->toChars());
             return new ErrorExp();
         }
-        if (size(e->loc) == 0)
-            e = new NullExp(e->loc, next->pointerTo());
-        else
-        {
-            e = new IndexExp(e->loc, e, new IntegerExp(0));
-            e = new AddrExp(e->loc, e);
-        }
+        e = e->castTo(sc, e->type->nextOf()->pointerTo());
     }
     else
     {
