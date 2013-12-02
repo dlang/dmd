@@ -287,13 +287,14 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, NeedInterpret needI
         ExpInitializer *ie = new ExpInitializer(loc, e);
         return ie->semantic(sc, t, needInterpret);
     }
-    else if (t->ty == Tdelegate && value.dim == 0)
+    else if ((t->ty == Tdelegate || t->ty == Tpointer && t->nextOf()->ty == Tfunction) && value.dim == 0)
     {
+        TOK tok = (t->ty == Tdelegate) ? TOKdelegate : TOKfunction;
         /* Rewrite as empty delegate literal { }
          */
         Parameters *arguments = new Parameters;
         Type *tf = new TypeFunction(arguments, NULL, 0, LINKd);
-        FuncLiteralDeclaration *fd = new FuncLiteralDeclaration(loc, Loc(), tf, TOKdelegate, NULL);
+        FuncLiteralDeclaration *fd = new FuncLiteralDeclaration(loc, Loc(), tf, tok, NULL);
         fd->fbody = new CompoundStatement(loc, new Statements());
         fd->endloc = loc;
         Expression *e = new FuncExp(loc, fd);
