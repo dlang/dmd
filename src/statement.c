@@ -5124,8 +5124,11 @@ bool GotoStatement::checkLabel()
         return true;
     }
 
-    VarDeclaration *last = lastVar;
     VarDeclaration *vd = label->statement->lastVar;
+    if (!vd || vd->isDataseg() || (vd->storage_class & STCmanifest))
+        return false;
+
+    VarDeclaration *last = lastVar;
     while (last && last != vd)
         last = last->lastVar;
     if (last == vd)
