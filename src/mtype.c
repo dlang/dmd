@@ -7186,7 +7186,10 @@ void TypeTypeof::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
     {
         inuse = 2;
         error(loc, "circular typeof definition");
-        goto Lerr;
+    Lerr:
+        *pt = Type::terror;
+        inuse--;
+        return;
     }
     inuse++;
 
@@ -7268,11 +7271,6 @@ void TypeTypeof::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
     }
     if (*pt)
         (*pt) = (*pt)->addMod(mod);
-    inuse--;
-    return;
-
-Lerr:
-    *pt = Type::terror;
     inuse--;
     return;
 }

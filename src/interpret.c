@@ -1796,11 +1796,11 @@ Expression *TryCatchStatement::interpret(InterState *istate)
                     InterState istatex = *istate;
                     istatex.start = istate->gotoTarget; // set starting statement
                     istatex.gotoTarget = NULL;
-                    Expression *ex = ca->handler->interpret(&istatex);
+                    Expression *eh = ca->handler->interpret(&istatex);
                     if (!istatex.start)
                     {
                         istate->gotoTarget = NULL;
-                        e = ex;
+                        e = eh;
                     }
                 }
             }

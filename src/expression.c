@@ -1420,16 +1420,18 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             if (tf->varargs == 2 && i + 1 == nparams)
             {
                 //printf("\t\tvarargs == 2, p->type = '%s'\n", p->type->toChars());
-                MATCH m;
-                if ((m = arg->implicitConvTo(p->type)) != MATCHnomatch)
                 {
-                    if (p->type->nextOf() && arg->implicitConvTo(p->type->nextOf()) >= m)
-                        goto L2;
-                    else if (nargs != nparams)
-                    {   error(loc, "expected %llu function arguments, not %llu", (ulonglong)nparams, (ulonglong)nargs);
-                        return Type::terror;
+                    MATCH m;
+                    if ((m = arg->implicitConvTo(p->type)) != MATCHnomatch)
+                    {
+                        if (p->type->nextOf() && arg->implicitConvTo(p->type->nextOf()) >= m)
+                            goto L2;
+                        else if (nargs != nparams)
+                        {   error(loc, "expected %llu function arguments, not %llu", (ulonglong)nparams, (ulonglong)nargs);
+                            return Type::terror;
+                        }
+                        goto L1;
                     }
-                    goto L1;
                 }
              L2:
                 Type *tb = p->type->toBasetype();
@@ -10235,6 +10237,7 @@ Lagain:
     e = this;
 
     Type *t = e1->type->toBasetype();
+    AggregateDeclaration *ad = isAggregate(t);
     if (t->ty == Tpointer)
     {
         if (!lwr || !upr)
@@ -10250,7 +10253,7 @@ Lagain:
     else if (t->ty == Tsarray)
     {
     }
-    else if (AggregateDeclaration *ad = isAggregate(t))
+    else if (ad)
     {
         if (search_function(ad, Id::slice))
         {
@@ -10290,7 +10293,16 @@ Lagain:
     else if (t == Type::terror)
         goto Lerr;
     else
-        goto Lerror;
+    {
+    Lerror:
+        if (e1->op == TOKerror)
+            return e1;
+        error("%s cannot be sliced with []",
+            t->ty == Tvoid ? e1->toChars() : t->toChars());
+    Lerr:
+        e = new ErrorExp();
+        return e;
+    }
 
     {
     Scope *sc2 = sc;
@@ -10386,19 +10398,6 @@ Lagain:
     if (type->equals(t))
         type = e1->type;
 
-    return e;
-
-Lerror:
-    if (e1->op == TOKerror)
-        return e1;
-    char *s;
-    if (t->ty == Tvoid)
-        s = e1->toChars();
-    else
-        s = t->toChars();
-    error("%s cannot be sliced with []", s);
-Lerr:
-    e = new ErrorExp();
     return e;
 }
 

@@ -184,24 +184,18 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
             break;
         }
 
-        // The line is file.buffer[linestart..i]
-        char *line;
-        size_t len;
-        char *pn;
-
-        line = (char *)&file.buffer[linestart];
-        len = i - linestart;
-
         buf.reset();
 
         // First, expand the macros.
         // Macros are bracketed by % characters.
 
-        for (size_t k = 0; k < len; k++)
+        for (size_t k = 0; k < i - linestart; k++)
         {
+            // The line is file.buffer[linestart..i]
+            char *line = (char *)&file.buffer[linestart];
             if (line[k] == '%')
             {
-                for (size_t j = k + 1; j < len; j++)
+                for (size_t j = k + 1; j < i - linestart; j++)
                 {
                     if (line[j] == '%')
                     {
@@ -264,6 +258,7 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
 
             case '[':           // look for [Environment]
                 p = skipspace(p + 1);
+                char *pn;
                 for (pn = p; isalnum((utf8_t)*pn); pn++)
                     ;
                 if (pn - p == envsectionnamelen &&
@@ -278,7 +273,7 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
             default:
                 if (envsection)
                 {
-                    pn = p;
+                    char *pn = p;
 
                     // Convert name to upper case;
                     // remove spaces bracketing =
