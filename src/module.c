@@ -84,7 +84,7 @@ Module::Module(const char *filename, Identifier *ident, int doDocComment, int do
 
     macrotable = NULL;
     escapetable = NULL;
-    safe = FALSE;
+    safe = false;
     doppelganger = 0;
     cov = NULL;
     covb = NULL;
@@ -1001,7 +1001,7 @@ void Module::runDeferredSemantic3()
 
 /************************************
  * Recursively look at every module this module imports,
- * return TRUE if it imports m.
+ * return true if it imports m.
  * Can be used to detect circular imports.
  */
 
@@ -1017,7 +1017,7 @@ int Module::imports(Module *m)
     for (size_t i = 0; i < aimports.dim; i++)
     {   Module *mi = aimports[i];
         if (mi == m)
-            return TRUE;
+            return true;
         if (!mi->insearch)
         {
             mi->insearch = 1;
@@ -1026,7 +1026,7 @@ int Module::imports(Module *m)
                 return r;
         }
     }
-    return FALSE;
+    return false;
 }
 
 /*************************************

@@ -487,7 +487,7 @@ void FuncDeclaration::semantic(Scope *sc)
         vi = cd->baseClass ? findVtblIndex((Dsymbols*)&cd->baseClass->vtbl, cd->baseClass->vtbl.dim)
                            : -1;
 
-        doesoverride = FALSE;
+        doesoverride = false;
         switch (vi)
         {
             case (size_t)-1:
@@ -542,7 +542,7 @@ void FuncDeclaration::semantic(Scope *sc)
 
                 if (fdc == this)
                 {
-                    doesoverride = TRUE;
+                    doesoverride = true;
                     break;
                 }
 
@@ -562,7 +562,7 @@ void FuncDeclaration::semantic(Scope *sc)
                 if (fdv->isFinalFunc())
                     error("cannot override final function %s", fdv->toPrettyChars());
 
-                doesoverride = TRUE;
+                doesoverride = true;
                 if (!isOverride())
                     ::deprecation(loc, "overriding base class function without using override attribute is deprecated (%s overrides %s)", toPrettyChars(), fdv->toPrettyChars());
 
@@ -1638,7 +1638,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                     e = new AssignExp(Loc(), e1, e);
                     e->type = t;
                     a->push(new ExpStatement(Loc(), e));
-                    p->isargptr = TRUE;
+                    p->isargptr = true;
                 }
 #endif
             }
@@ -1728,7 +1728,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                         if (f->isnothrow && (global.errors != nothrowErrors) )
                             ::error(loc, "%s '%s' is nothrow yet may throw", kind(), toPrettyChars());
                         if (flags & FUNCFLAGnothrowInprocess && blockexit & BEthrow)
-                            f->isnothrow = FALSE;
+                            f->isnothrow = false;
                         if (fbody->blockExit(f->isnothrow) == BEfallthru)
                             fbody = new CompoundStatement(Loc(), fbody, s);
                         else
@@ -2390,7 +2390,7 @@ bool FuncDeclaration::overloadInsert(Dsymbol *s)
         if (overnext)
             return overnext->overloadInsert(td);
         overnext = td;
-        return TRUE;
+        return true;
     }
     FuncDeclaration *fd = s->isFuncDeclaration();
     if (!fd)
@@ -2412,7 +2412,7 @@ bool FuncDeclaration::overloadInsert(Dsymbol *s)
         !isFuncAliasDeclaration())
     {
         //printf("\tfalse: conflict %s\n", kind());
-        return FALSE;
+        return false;
     }
 #endif
 
@@ -3208,7 +3208,7 @@ PURE FuncDeclaration::isPureBypassingInference()
 /**************************************
  * The function is doing something impure,
  * so mark it as impure.
- * If there's a purity error, return TRUE.
+ * If there's a purity error, return true.
  */
 bool FuncDeclaration::setImpure()
 {
@@ -3217,8 +3217,8 @@ bool FuncDeclaration::setImpure()
         flags &= ~FUNCFLAGpurityInprocess;
     }
     else if (isPure())
-        return TRUE;
-    return FALSE;
+        return true;
+    return false;
 }
 
 bool FuncDeclaration::isSafe()
@@ -3248,7 +3248,7 @@ bool FuncDeclaration::isTrusted()
 /**************************************
  * The function is doing something unsave,
  * so mark it as unsafe.
- * If there's a safe error, return TRUE.
+ * If there's a safe error, return true.
  */
 bool FuncDeclaration::setUnsafe()
 {
@@ -3258,8 +3258,8 @@ bool FuncDeclaration::setUnsafe()
         ((TypeFunction *)type)->trust = TRUSTsystem;
     }
     else if (isSafe())
-        return TRUE;
-    return FALSE;
+        return true;
+    return false;
 }
 
 /**************************************
@@ -3984,7 +3984,7 @@ void CtorDeclaration::semantic(Scope *sc)
                 storage_class |= STCdisable;
                 fbody = NULL;
             }
-            sd->noDefaultCtor = TRUE;
+            sd->noDefaultCtor = true;
         }
         else
         {
@@ -4054,7 +4054,7 @@ void PostBlitDeclaration::semantic(Scope *sc)
         ad->postblits.push(this);
 
     if (!type)
-        type = new TypeFunction(NULL, Type::tvoid, FALSE, LINKd, storage_class);
+        type = new TypeFunction(NULL, Type::tvoid, false, LINKd, storage_class);
 
     sc = sc->push();
     sc->stc &= ~STCstatic;              // not static
@@ -4130,7 +4130,7 @@ void DtorDeclaration::semantic(Scope *sc)
         ad->dtors.push(this);
 
     if (!type)
-        type = new TypeFunction(NULL, Type::tvoid, FALSE, LINKd, storage_class);
+        type = new TypeFunction(NULL, Type::tvoid, false, LINKd, storage_class);
 
     sc = sc->push();
     sc->stc &= ~STCstatic;              // not a static destructor
@@ -4210,7 +4210,7 @@ void StaticCtorDeclaration::semantic(Scope *sc)
     }
 
     if (!type)
-        type = new TypeFunction(NULL, Type::tvoid, FALSE, LINKd);
+        type = new TypeFunction(NULL, Type::tvoid, false, LINKd);
 
     /* If the static ctor appears within a template instantiation,
      * it could get called multiple times by the module constructors
@@ -4264,7 +4264,7 @@ bool StaticCtorDeclaration::isVirtual()
 
 bool StaticCtorDeclaration::hasStaticCtorOrDtor()
 {
-    return TRUE;
+    return true;
 }
 
 bool StaticCtorDeclaration::addPreInvariant()
@@ -4341,7 +4341,7 @@ void StaticDtorDeclaration::semantic(Scope *sc)
     }
 
     if (!type)
-        type = new TypeFunction(NULL, Type::tvoid, FALSE, LINKd, storage_class);
+        type = new TypeFunction(NULL, Type::tvoid, false, LINKd, storage_class);
 
     /* If the static ctor appears within a template instantiation,
      * it could get called multiple times by the module constructors
@@ -4397,7 +4397,7 @@ bool StaticDtorDeclaration::isVirtual()
 
 bool StaticDtorDeclaration::hasStaticCtorOrDtor()
 {
-    return TRUE;
+    return true;
 }
 
 bool StaticDtorDeclaration::addPreInvariant()
@@ -4481,7 +4481,7 @@ void InvariantDeclaration::semantic(Scope *sc)
         ad->invs.push(this);
     }
     if (!type)
-        type = new TypeFunction(NULL, Type::tvoid, FALSE, LINKd, storage_class);
+        type = new TypeFunction(NULL, Type::tvoid, false, LINKd, storage_class);
 
     sc = sc->push();
     sc->stc &= ~STCstatic;              // not a static invariant
@@ -4564,7 +4564,7 @@ void UnitTestDeclaration::semantic(Scope *sc)
     if (global.params.useUnitTests)
     {
         if (!type)
-            type = new TypeFunction(NULL, Type::tvoid, FALSE, LINKd);
+            type = new TypeFunction(NULL, Type::tvoid, false, LINKd);
         Scope *sc2 = sc->push();
         sc2->linkage = LINKd;
         FuncDeclaration::semantic(sc2);

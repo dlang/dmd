@@ -125,7 +125,7 @@ dt_t *ArrayInitializer::toDt()
             tadim = ta->dim->toInteger();
             if (dim < tadim)
             {
-                if (edefault->isBool(FALSE))
+                if (edefault->isBool(false))
                     // pad out end of array
                     pdtend = dtnzeros(pdtend, size * (tadim - dim));
                 else

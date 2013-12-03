@@ -77,7 +77,7 @@ void StaticAssert::semantic2(Scope *sc)
     {
         errorSupplemental(loc, "while evaluating: static assert(%s)", exp->toChars());
     }
-    else if (e->isBool(FALSE))
+    else if (e->isBool(false))
     {
         if (msg)
         {
@@ -105,7 +105,7 @@ void StaticAssert::semantic2(Scope *sc)
         if (!global.gag)
               fatal();
     }
-    else if (!e->isBool(TRUE))
+    else if (!e->isBool(true))
     {
         error("(%s) is not evaluatable at compile time", exp->toChars());
     }

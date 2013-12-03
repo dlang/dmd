@@ -81,7 +81,7 @@ int lambdaCanThrow(Expression *e, void *param)
             {
                 if (pct->mustnot)
                     e->error("'%s' is not nothrow", ce->f ? ce->f->toPrettyChars() : ce->e1->toChars());
-                pct->can = TRUE;
+                pct->can = true;
             }
             break;
         }
@@ -97,7 +97,7 @@ int lambdaCanThrow(Expression *e, void *param)
                 {
                     if (pct->mustnot)
                         e->error("constructor %s is not nothrow", ne->member->toChars());
-                    pct->can = TRUE;
+                    pct->can = true;
                 }
             }
             // regard storage allocation failures as not recoverable
@@ -126,7 +126,7 @@ int lambdaCanThrow(Expression *e, void *param)
             {
                 if (pct->mustnot)
                     e->error("'%s' is not nothrow", sd->postblit->toPrettyChars());
-                pct->can = TRUE;
+                pct->can = true;
             }
             break;
         }

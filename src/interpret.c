@@ -1142,7 +1142,7 @@ Expression *IfStatement::interpret(InterState *istate)
     {
         if (isTrueBool(e))
             e = ifbody ? ifbody->interpret(istate) : NULL;
-        else if (e->isBool(FALSE))
+        else if (e->isBool(false))
             e = elsebody ? elsebody->interpret(istate) : NULL;
         else
         {
@@ -1515,7 +1515,7 @@ Expression *DoStatement::interpret(InterState *istate)
         if (isTrueBool(e))
         {
         }
-        else if (e->isBool(FALSE))
+        else if (e->isBool(false))
         {   e = NULL;
             break;
         }
@@ -1552,7 +1552,7 @@ Expression *ForStatement::interpret(InterState *istate)
             {   e = EXP_CANT_INTERPRET;
                 break;
             }
-            if (e->isBool(FALSE))
+            if (e->isBool(false))
             {   e = NULL;
                 break;
             }
@@ -4436,7 +4436,7 @@ Expression *BinExp::interpretFourPointerRelation(InterState *istate, CtfeGoal go
     if ( !pointToSameMemoryBlock(agg1, agg2)
          && agg1->op != TOKnull && agg2->op != TOKnull)
     {   // Here it is either CANT_INTERPRET,
-        // or an IsInside comparison returning FALSE.
+        // or an IsInside comparison returning false.
         p3 = p3->interpret(istate);
         if (p3 == EXP_CANT_INTERPRET)
             return p3;
@@ -4523,7 +4523,7 @@ Expression *AndAndExp::interpret(InterState *istate, CtfeGoal goal)
     int result;
     if (e != EXP_CANT_INTERPRET)
     {
-        if (e->isBool(FALSE))
+        if (e->isBool(false))
             result = 0;
         else if (isTrueBool(e))
         {
@@ -4535,7 +4535,7 @@ Expression *AndAndExp::interpret(InterState *istate, CtfeGoal goal)
                 assert(type->ty == Tvoid);
                 return NULL;
             }
-            if (e->isBool(FALSE))
+            if (e->isBool(false))
                 result = 0;
             else if (isTrueBool(e))
                 result = 1;
@@ -4576,7 +4576,7 @@ Expression *OrOrExp::interpret(InterState *istate, CtfeGoal goal)
     {
         if (isTrueBool(e))
             result = 1;
-        else if (e->isBool(FALSE))
+        else if (e->isBool(false))
         {
             e = e2->interpret(istate);
             if (exceptionOrCantInterpret(e))
@@ -4589,7 +4589,7 @@ Expression *OrOrExp::interpret(InterState *istate, CtfeGoal goal)
             }
             if (e != EXP_CANT_INTERPRET)
             {
-                if (e->isBool(FALSE))
+                if (e->isBool(false))
                     result = 0;
                 else if (isTrueBool(e))
                     result = 1;
@@ -4952,7 +4952,7 @@ Expression *CondExp::interpret(InterState *istate, CtfeGoal goal)
         return e;
     if (isTrueBool(e))
         e = e1->interpret(istate, goal);
-    else if (e->isBool(FALSE))
+    else if (e->isBool(false))
         e = e2->interpret(istate, goal);
     else
     {
@@ -5592,7 +5592,7 @@ Expression *AssertExp::interpret(InterState *istate, CtfeGoal goal)
     if (isTrueBool(e1))
     {
     }
-    else if (e1->isBool(FALSE))
+    else if (e1->isBool(false))
     {
         if (msg)
         {

@@ -726,7 +726,7 @@ VarDeclaration::VarDeclaration(Loc loc, Type *type, Identifier *id, Initializer 
     this->loc = loc;
     offset = 0;
     noscope = 0;
-    isargptr = FALSE;
+    isargptr = false;
     alignment = 0;
     ctorinit = 0;
     aliassym = NULL;
@@ -1181,7 +1181,7 @@ Lnomatch:
                 tbn->ty == Tclass  && ((TypeClass  *)tbn)->sym->noDefaultCtor)
             {
                 if (!isThisDeclaration() && !init)
-                    aad->noDefaultCtor = TRUE;
+                    aad->noDefaultCtor = true;
             }
 #else
             if (storage_class & (STCconst | STCimmutable) && init)
@@ -1199,7 +1199,7 @@ Lnomatch:
                     (tbn->ty == Tclass  && ((TypeClass  *)tbn)->sym->noDefaultCtor))
                 {
                     if (!isThisDeclaration() && !init)
-                        aad->noDefaultCtor = TRUE;
+                        aad->noDefaultCtor = true;
                 }
             }
 #endif

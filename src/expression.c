@@ -2359,7 +2359,7 @@ void Expression::checkPurity(Scope *sc, VarDeclaration *v)
              * Therefore, this function and all its immediately enclosing
              * functions must be pure.
              */
-            bool msg = FALSE;
+            bool msg = false;
             for (Dsymbol *s = sc->func; s; s = s->toParent2())
             {
                 FuncDeclaration *ff = s->isFuncDeclaration();
@@ -2369,7 +2369,7 @@ void Expression::checkPurity(Scope *sc, VarDeclaration *v)
                 if (ff->setImpure() && !msg && strcmp(v->ident->toChars(), "__gate"))
                 {   error("pure function '%s' cannot access mutable static data '%s'",
                         sc->func->toPrettyChars(), v->toChars());
-                    msg = TRUE;                     // only need the innermost message
+                    msg = true;                     // only need the innermost message
                 }
             }
         }
@@ -2548,12 +2548,12 @@ Expression *Expression::deref()
 }
 
 /********************************
- * Does this expression statically evaluate to a boolean TRUE or FALSE?
+ * Does this expression statically evaluate to a boolean true or false?
  */
 
 int Expression::isBool(int result)
 {
-    return FALSE;
+    return false;
 }
 
 /********************************
@@ -2562,7 +2562,7 @@ int Expression::isBool(int result)
 
 int Expression::isBit()
 {
-    return FALSE;
+    return false;
 }
 
 /****************************************
@@ -3667,7 +3667,7 @@ Lerr:
 
 int ThisExp::isBool(int result)
 {
-    return result ? TRUE : FALSE;
+    return result ? true : false;
 }
 
 void ThisExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -3822,7 +3822,7 @@ Expression *NullExp::semantic(Scope *sc)
 
 int NullExp::isBool(int result)
 {
-    return result ? FALSE : TRUE;
+    return result ? false : true;
 }
 
 StringExp *NullExp::toString()
@@ -4107,7 +4107,7 @@ int StringExp::compare(RootObject *obj)
 
 int StringExp::isBool(int result)
 {
-    return result ? TRUE : FALSE;
+    return result ? true : false;
 }
 
 
@@ -5633,7 +5633,7 @@ Expression *SymOffExp::semantic(Scope *sc)
 
 int SymOffExp::isBool(int result)
 {
-    return result ? TRUE : FALSE;
+    return result ? true : false;
 }
 
 void SymOffExp::checkEscape()
@@ -6693,7 +6693,7 @@ Expression *IsExp::semantic(Scope *sc)
     }
     else if (tspec && !id && !(parameters && parameters->dim))
     {
-        /* Evaluate to TRUE if targ matches tspec
+        /* Evaluate to true if targ matches tspec
          * is(targ == tspec)
          * is(targ : tspec)
          */
@@ -6715,8 +6715,8 @@ Expression *IsExp::semantic(Scope *sc)
     }
     else if (tspec)
     {
-        /* Evaluate to TRUE if targ matches tspec.
-         * If TRUE, declare id as an alias for the specialized type.
+        /* Evaluate to true if targ matches tspec.
+         * If true, declare id as an alias for the specialized type.
          * is(targ == tspec, tpl)
          * is(targ : tspec, tpl)
          * is(targ id == tspec)
@@ -6769,7 +6769,7 @@ Expression *IsExp::semantic(Scope *sc)
     }
     else if (id)
     {
-        /* Declare id as an alias for type targ. Evaluate to TRUE
+        /* Declare id as an alias for type targ. Evaluate to true
          * is(targ id)
          */
         tded = targ;
@@ -7385,7 +7385,7 @@ Expression *AssertExp::semantic(Scope *sc)
         msg = msg->implicitCastTo(sc, Type::tchar->constOf()->arrayOf());
         msg = msg->optimize(WANTvalue);
     }
-    if (e1->isBool(FALSE))
+    if (e1->isBool(false))
     {
         FuncDeclaration *fd = sc->parent->isFuncDeclaration();
         if (fd)
@@ -7978,7 +7978,7 @@ int modifyFieldVar(Loc loc, Scope *sc, VarDeclaration *var, Expression *e1)
         {
             var->ctorinit = 1;
             //printf("setting ctorinit\n");
-            int result = TRUE;
+            int result = true;
             if (var->isField() && sc->fieldinit && !sc->intypeof)
             {
                 assert(e1);
@@ -7999,14 +7999,14 @@ int modifyFieldVar(Loc loc, Scope *sc, VarDeclaration *var, Expression *e1)
                 if (fi & CSXthis_ctor)
                 {
                     if (var->type->isMutable() && e1->type->isMutable())
-                        result = FALSE;
+                        result = false;
                     else
                         ::error(loc, "multiple field %s initialization", var->toChars());
                 }
                 else if (sc->noctor || fi & CSXlabel)
                 {
                     if (!mustInit && var->type->isMutable() && e1->type->isMutable())
-                        result = FALSE;
+                        result = false;
                     else
                         ::error(loc, "field %s initializing not allowed in loops or after labels", var->toChars());
                 }
@@ -8023,7 +8023,7 @@ int modifyFieldVar(Loc loc, Scope *sc, VarDeclaration *var, Expression *e1)
         }
         break;
     }
-    return FALSE;
+    return false;
 }
 
 int DotVarExp::checkModifiable(Scope *sc, int flag)
@@ -9707,7 +9707,7 @@ Expression *NotExp::semantic(Scope *sc)
 
 int NotExp::isBit()
 {
-    return TRUE;
+    return true;
 }
 
 
@@ -9736,7 +9736,7 @@ Expression *BoolExp::semantic(Scope *sc)
 
 int BoolExp::isBit()
 {
-    return TRUE;
+    return true;
 }
 
 /************************************************************/
@@ -13062,7 +13062,7 @@ Expression *OrOrExp::semantic(Scope *sc)
         /* If in static if, don't evaluate e2 if we don't have to.
          */
         e1 = e1->optimize(WANTflags);
-        if (e1->isBool(TRUE))
+        if (e1->isBool(true))
         {
             return new IntegerExp(loc, 1, Type::tboolean);
         }
@@ -13099,7 +13099,7 @@ Expression *OrOrExp::checkToBoolean(Scope *sc)
 
 int OrOrExp::isBit()
 {
-    return TRUE;
+    return true;
 }
 
 
@@ -13126,7 +13126,7 @@ Expression *AndAndExp::semantic(Scope *sc)
         /* If in static if, don't evaluate e2 if we don't have to.
          */
         e1 = e1->optimize(WANTflags);
-        if (e1->isBool(FALSE))
+        if (e1->isBool(false))
         {
             return new IntegerExp(loc, 0, Type::tboolean);
         }
@@ -13163,7 +13163,7 @@ Expression *AndAndExp::checkToBoolean(Scope *sc)
 
 int AndAndExp::isBit()
 {
-    return TRUE;
+    return true;
 }
 
 
@@ -13215,7 +13215,7 @@ Expression *InExp::semantic(Scope *sc)
 
 int InExp::isBit()
 {
-    return FALSE;
+    return false;
 }
 
 
@@ -13341,7 +13341,7 @@ Expression *CmpExp::semantic(Scope *sc)
 
 int CmpExp::isBit()
 {
-    return TRUE;
+    return true;
 }
 
 
@@ -13365,17 +13365,17 @@ int needDirectEq(Type *t1, Type *t2)
          (t2n->ty == Tchar || t2n->ty == Twchar || t2n->ty == Tdchar)) ||
         (t1n->ty == Tvoid || t2n->ty == Tvoid))
     {
-        return FALSE;
+        return false;
     }
 
     if (t1n->constOf() != t2n->constOf())
-        return TRUE;
+        return true;
 
     Type *t = t1n;
     while (t->toBasetype()->nextOf())
         t = t->nextOf()->toBasetype();
     if (t->ty != Tstruct)
-        return FALSE;
+        return false;
 
     return ((TypeStruct *)t)->sym->hasIdentityEquals;
 }
@@ -13553,7 +13553,7 @@ Expression *EqualExp::semantic(Scope *sc)
 
 int EqualExp::isBit()
 {
-    return TRUE;
+    return true;
 }
 
 
@@ -13592,7 +13592,7 @@ Expression *IdentityExp::semantic(Scope *sc)
 
 int IdentityExp::isBit()
 {
-    return TRUE;
+    return true;
 }
 
 
