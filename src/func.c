@@ -2370,6 +2370,8 @@ int FuncDeclaration::findVtblIndex(Dsymbols *vtbl, int dim)
 bool FuncDeclaration::overloadInsert(Dsymbol *s)
 {
     //printf("FuncDeclaration::overloadInsert(s = %s) this = %s\n", s->toChars(), toChars());
+    assert(s != this);
+
     AliasDeclaration *ad = s->isAliasDeclaration();
     if (ad)
     {
