@@ -116,17 +116,24 @@ else version ( FreeBSD )
 }
 else version( Android )
 {
-    struct fenv_t
+    version(X86)
     {
-        ushort   __control;
-        ushort   __mxcsr_hi;
-        ushort   __status;
-        ushort   __mxcsr_lo;
-        uint     __tag;
-        byte[16] __other;
+        struct fenv_t
+        {
+            ushort   __control;
+            ushort   __mxcsr_hi;
+            ushort   __status;
+            ushort   __mxcsr_lo;
+            uint     __tag;
+            byte[16] __other;
+        }
+    
+        alias ushort fexcept_t;
     }
-
-    alias ushort fexcept_t;
+    else
+    {
+        static assert(false, "Architecture not supported.");
+    }
 }
 else
 {

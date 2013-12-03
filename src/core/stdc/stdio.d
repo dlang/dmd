@@ -26,6 +26,10 @@ private
   {
     import core.sys.posix.sys.types;
   }
+  else version (Android)
+  {
+    import core.sys.posix.sys.types;
+  }
 }
 
 extern (C):
@@ -235,6 +239,8 @@ else version( linux )
 }
 else version( OSX )
 {
+    alias int fpos_t;
+
     align (1) struct _iobuf
     {
         ubyte*    _p;
@@ -265,6 +271,8 @@ else version( OSX )
 }
 else version( FreeBSD )
 {
+    alias int fpos_t;
+
     align (1) struct _iobuf
     {
         ubyte*          _p;
@@ -319,6 +327,8 @@ else version (Solaris)
 }
 else version( Android )
 {
+    alias off_t fpos_t;
+
     align(1) struct _iobuf
     {
         ubyte*    _p;
@@ -514,8 +524,6 @@ else
 {
     static assert( false, "Unsupported platform" );
 }
-
-alias int fpos_t;
 
 int remove(in char* filename);
 int rename(in char* from, in char* to);
