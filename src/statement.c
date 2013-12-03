@@ -4319,7 +4319,8 @@ Statement *SynchronizedStatement::semantic(Scope *sc)
 #endif
     }
     else
-    {   /* Generate our own critical section, then rewrite as:
+    {
+        /* Generate our own critical section, then rewrite as:
          *  __gshared byte[CriticalSection.sizeof] critsec;
          *  _d_criticalenter(critsec.ptr);
          *  try { body } finally { _d_criticalexit(critsec.ptr); }
@@ -4331,6 +4332,13 @@ Statement *SynchronizedStatement::semantic(Scope *sc)
 
         Statements *cs = new Statements();
         cs->push(new ExpStatement(loc, tmp));
+
+        /* This is just a dummy variable for "goto skips declaration" error.
+         * Backend optimizer could remove this unused variable.
+         */
+        VarDeclaration *v = new VarDeclaration(loc, Type::tvoidptr, Lexer::uniqueId("__sync"), NULL);
+        v->semantic(sc);
+        cs->push(new ExpStatement(loc, v));
 
         Parameters* args = new Parameters;
         args->push(new Parameter(STCin, t->pointerTo(), NULL, NULL));
@@ -5116,8 +5124,11 @@ bool GotoStatement::checkLabel()
         return true;
     }
 
-    VarDeclaration *last = lastVar;
     VarDeclaration *vd = label->statement->lastVar;
+    if (!vd || vd->isDataseg() || (vd->storage_class & STCmanifest))
+        return false;
+
+    VarDeclaration *last = lastVar;
     while (last && last != vd)
         last = last->lastVar;
     if (last == vd)

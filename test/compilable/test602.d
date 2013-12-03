@@ -381,3 +381,13 @@ static assert(!__traits(compiles, (bool b)
     if (b)
         goto label;
 }));
+
+/***************************************************/
+
+int test11659()
+{
+    goto LABEL;
+    enum expr = "0";
+ LABEL:
+    return mixin(expr);
+}
