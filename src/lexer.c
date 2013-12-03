@@ -2388,89 +2388,91 @@ __out (result)
 }
 __body
 #endif /* __DMC__ */
-{   int dblstate;
-    unsigned c;
-    char hex;                   // is this a hexadecimal-floating-constant?
-    TOK result;
-
+{
     //printf("Lexer::inreal()\n");
+
     stringbuffer.reset();
-    dblstate = 0;
-    hex = 0;
-Lnext:
+    unsigned char *pstart = p;
+    char hex = 0;
+    unsigned c = *p++;
+
+    // Leading '0x'
+    if (c == '0')
+    {
+        c = *p++;
+        if (c == 'x' || c == 'X')
+        {
+            hex = true;
+            c = *p++;
+        }
+    }
+
+    // Digits to left of '.'
     while (1)
     {
-        // Get next char from input
-        c = *p++;
-        //printf("dblstate = %d, c = '%c'\n", dblstate, c);
-        while (1)
+        if (c == '.')
         {
-            switch (dblstate)
-            {
-                case 0:                 // opening state
-                    if (c == '0')
-                        dblstate = 9;
-                    else if (c == '.')
-                        dblstate = 3;
-                    else
-                        dblstate = 1;
-                    break;
-
-                case 9:
-                    dblstate = 1;
-                    if (c == 'X' || c == 'x')
-                    {   hex++;
-                        break;
-                    }
-                case 1:                 // digits to left of .
-                case 3:                 // digits to right of .
-                case 7:                 // continuing exponent digits
-                    if (!isdigit(c) && !(hex && isxdigit(c)))
-                    {
-                        if (c == '_')
-                            goto Lnext; // ignore embedded '_'
-                        dblstate++;
-                        continue;
-                    }
-                    break;
-
-                case 2:                 // no more digits to left of .
-                    if (c == '.')
-                    {   dblstate++;
-                        break;
-                    }
-                case 4:                 // no more digits to right of .
-                    if ((c == 'E' || c == 'e') ||
-                        hex && (c == 'P' || c == 'p'))
-                    {   dblstate = 5;
-                        hex = 0;        // exponent is always decimal
-                        break;
-                    }
-                    if (hex)
-                        error("binary-exponent-part required");
-                    goto done;
-
-                case 5:                 // looking immediately to right of E
-                    dblstate++;
-                    if (c == '-' || c == '+')
-                        break;
-                case 6:                 // 1st exponent digit expected
-                    if (!isdigit(c))
-                        error("exponent expected");
-                    dblstate++;
-                    break;
-
-                case 8:                 // past end of exponent digits
-                    goto done;
-            }
+            c = *p++;
             break;
         }
-        stringbuffer.writeByte(c);
+        if (isdigit(c) || (hex && isxdigit(c)) || c == '_')
+        {
+            c = *p++;
+            continue;
+        }
+        break;
     }
-done:
-    p--;
+
+    // Digits to right of '.'
+    while (1)
+    {
+        if (isdigit(c) || (hex && isxdigit(c)) || c == '_')
+        {
+            c = *p++;
+            continue;
+        }
+        break;
+    }
+
+    if (c == 'e' || c == 'E' || (hex && (c == 'p' || c == 'P')))
+    {
+        c = *p++;
+        if (c == '-' || c == '+')
+        {
+            c = *p++;
+        }
+        bool anyexp;
+        while (1)
+        {
+            if (isdigit(c) || (hex && isxdigit(c)))
+            {
+                anyexp = true;
+                c = *p++;
+                continue;
+            }
+            if (c == '_')
+            {
+                c = *p++;
+                continue;
+            }
+            if (!anyexp)
+                error("missing exponent");
+            break;
+        }
+    }
+    else if (hex)
+        error("exponent required for hex float");
+    --p;
+    while (pstart < p)
+    {
+        if (*pstart != '_')
+            stringbuffer.writeByte(*pstart);
+        ++pstart;
+    }
 
     stringbuffer.writeByte(0);
+
+    TOK result;
 
 #if _WIN32 && __DMC__
     const char *save = __locale_decpoint;
