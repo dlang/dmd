@@ -1003,13 +1003,6 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
 
 /******************************** Statement ***************************/
 
-#define START()                         \
-    if (istate->start)                  \
-    {   if (istate->start != this)      \
-            return NULL;                \
-        istate->start = NULL;           \
-    }
-
 /***********************************
  * Interpret the statement.
  * Returns:
@@ -1023,7 +1016,12 @@ Expression *Statement::interpret(InterState *istate)
 #if LOG
     printf("%s Statement::interpret()\n", loc.toChars());
 #endif
-    START()
+    if (istate->start)
+    {   if (istate->start != this)
+            return NULL;
+        istate->start = NULL;
+    }
+
     error("Statement %s cannot be interpreted at compile time", this->toChars());
     return EXP_CANT_INTERPRET;
 }
@@ -1033,7 +1031,12 @@ Expression *ExpStatement::interpret(InterState *istate)
 #if LOG
     printf("%s ExpStatement::interpret(%s)\n", loc.toChars(), exp ? exp->toChars() : "");
 #endif
-    START()
+    if (istate->start)
+    {   if (istate->start != this)
+            return NULL;
+        istate->start = NULL;
+    }
+
     if (exp)
     {
         Expression *e = exp->interpret(istate, ctfeNeedNothing);
@@ -1351,7 +1354,12 @@ Expression *ReturnStatement::interpret(InterState *istate)
 #if LOG
     printf("%s ReturnStatement::interpret(%s)\n", loc.toChars(), exp ? exp->toChars() : "");
 #endif
-    START()
+    if (istate->start)
+    {   if (istate->start != this)
+            return NULL;
+        istate->start = NULL;
+    }
+
     if (!exp)
         return EXP_VOID_INTERPRET;
     assert(istate && istate->fd && istate->fd->type);
@@ -1412,7 +1420,12 @@ Expression *BreakStatement::interpret(InterState *istate)
 #if LOG
     printf("%s BreakStatement::interpret()\n", loc.toChars());
 #endif
-    START()
+    if (istate->start)
+    {   if (istate->start != this)
+            return NULL;
+        istate->start = NULL;
+    }
+
     if (ident)
     {
         LabelDsymbol *label = istate->fd->searchLabel(ident);
@@ -1442,7 +1455,12 @@ Expression *ContinueStatement::interpret(InterState *istate)
 #if LOG
     printf("%s ContinueStatement::interpret()\n", loc.toChars());
 #endif
-    START()
+    if (istate->start)
+    {   if (istate->start != this)
+            return NULL;
+        istate->start = NULL;
+    }
+
     if (ident)
     {
         LabelDsymbol *label = istate->fd->searchLabel(ident);
@@ -1706,7 +1724,12 @@ Expression *GotoStatement::interpret(InterState *istate)
 #if LOG
     printf("%s GotoStatement::interpret()\n", loc.toChars());
 #endif
-    START()
+    if (istate->start)
+    {   if (istate->start != this)
+            return NULL;
+        istate->start = NULL;
+    }
+
     assert(label && label->statement);
     istate->gotoTarget = label->statement;
     return EXP_GOTO_INTERPRET;
@@ -1717,7 +1740,12 @@ Expression *GotoCaseStatement::interpret(InterState *istate)
 #if LOG
     printf("%s GotoCaseStatement::interpret()\n", loc.toChars());
 #endif
-    START()
+    if (istate->start)
+    {   if (istate->start != this)
+            return NULL;
+        istate->start = NULL;
+    }
+
     assert(cs);
     istate->gotoTarget = cs;
     return EXP_GOTO_INTERPRET;
@@ -1728,7 +1756,12 @@ Expression *GotoDefaultStatement::interpret(InterState *istate)
 #if LOG
     printf("%s GotoDefaultStatement::interpret()\n", loc.toChars());
 #endif
-    START()
+    if (istate->start)
+    {   if (istate->start != this)
+            return NULL;
+        istate->start = NULL;
+    }
+
     assert(sw && sw->sdefault);
     istate->gotoTarget = sw->sdefault;
     return EXP_GOTO_INTERPRET;
@@ -1885,7 +1918,12 @@ Expression *ThrowStatement::interpret(InterState *istate)
 #if LOG
     printf("%s ThrowStatement::interpret()\n", loc.toChars());
 #endif
-    START()
+    if (istate->start)
+    {   if (istate->start != this)
+            return NULL;
+        istate->start = NULL;
+    }
+
     Expression *e = exp->interpret(istate);
     if (exceptionOrCantInterpret(e))
         return e;
@@ -1909,7 +1947,12 @@ Expression *WithStatement::interpret(InterState *istate)
     if (exp->op == TOKimport || exp->op == TOKtype)
         return body ? body->interpret(istate) : EXP_VOID_INTERPRET;
 
-    START()
+    if (istate->start)
+    {   if (istate->start != this)
+            return NULL;
+        istate->start = NULL;
+    }
+
     Expression *e = exp->interpret(istate);
     if (exceptionOrCantInterpret(e))
         return e;
@@ -1947,7 +1990,12 @@ Expression *AsmStatement::interpret(InterState *istate)
 #if LOG
     printf("%s AsmStatement::interpret()\n", loc.toChars());
 #endif
-    START()
+    if (istate->start)
+    {   if (istate->start != this)
+            return NULL;
+        istate->start = NULL;
+    }
+
     error("asm statements cannot be interpreted at compile time");
     return EXP_CANT_INTERPRET;
 }
@@ -1958,7 +2006,12 @@ Expression *ImportStatement::interpret(InterState *istate)
 #if LOG
     printf("ImportStatement::interpret()\n");
 #endif
-    START();
+    if (istate->start)
+    {   if (istate->start != this)
+            return NULL;
+        istate->start = NULL;
+    }
+;
     return NULL;
 }
 #endif
