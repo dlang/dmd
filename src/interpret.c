@@ -2492,11 +2492,11 @@ Expression *DeclarationExp::interpret(InterState *istate, CtfeGoal goal)
         }
         else if (s->isTupleDeclaration() && !v->init)
             e = NULL;
-        else if (v->isStatic() && !v->init)
+        else if (v->isStatic())
             e = NULL;   // Just ignore static variables which aren't read or written yet
         else
         {
-            error("Static variable %s cannot be modified at compile time", v->toChars());
+            error("Variable %s cannot be modified at compile time", v->toChars());
             e = EXP_CANT_INTERPRET;
         }
     }
