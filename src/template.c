@@ -2349,7 +2349,11 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
         if (td->semanticRun == PASSinit)
         {
             ::error(loc, "forward reference to template %s", td->toChars());
-            goto Lerror;
+        Lerror:
+            m->lastf = NULL;
+            m->count = 0;
+            m->last = MATCHnomatch;
+            return 1;
         }
         FuncDeclaration *f;
         f = td->onemember ? td->onemember/*->toAlias()*/->isFuncDeclaration() : NULL;
@@ -2515,12 +2519,6 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
             continue;
         }
         return 0;
-
-      Lerror:
-        m->lastf = NULL;
-        m->count = 0;
-        m->last = MATCHnomatch;
-        return 1;
     }
   };
     ParamDeduce p;

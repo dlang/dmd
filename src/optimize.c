@@ -569,7 +569,10 @@ Expression *CastExp::optimize(int result, bool keepLvalue)
         e1->type->implicitConvTo(type) >= MATCHconst)
     {
         if (X) printf(" returning2 %s\n", e1->toChars());
-        goto L1;
+    L1: // Returning e1 with changing its type
+        Expression *e = (e1old == e1 ? e1->copy() : e1);
+        e->type = type;
+        return e;
     }
 
     /* The first test here is to prevent infinite loops
@@ -627,10 +630,6 @@ Expression *CastExp::optimize(int result, bool keepLvalue)
     else
         e = this;
     if (X) printf(" returning6 %s\n", e->toChars());
-    return e;
-L1: // Returning e1 with changing its type
-    e = (e1old == e1 ? e1->copy() : e1);
-    e->type = type;
     return e;
 #undef X
 }
