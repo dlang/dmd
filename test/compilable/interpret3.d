@@ -6096,3 +6096,15 @@ bool test11627()
     return true;
 }
 static assert(test11627());
+
+/**************************************************
+    11664 - ignore function local static variables
+**************************************************/
+
+bool test11664()
+{
+    static int x;
+    static int y = 1;
+    return true;
+}
+static assert(test11664());
