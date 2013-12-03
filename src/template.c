@@ -966,9 +966,9 @@ MATCH TemplateDeclaration::matchWithInstance(Scope *sc, TemplateInstance *ti,
             goto Lnomatch;
 
         e = e->ctfeInterpret();
-        if (e->isBool(TRUE))
+        if (e->isBool(true))
             ;
-        else if (e->isBool(FALSE))
+        else if (e->isBool(false))
             goto Lnomatch;
         else
         {
@@ -2035,9 +2035,9 @@ Lmatch:
             goto Lnomatch;
 
         e = e->ctfeInterpret();
-        if (e->isBool(TRUE))
+        if (e->isBool(true))
             ;
-        else if (e->isBool(FALSE))
+        else if (e->isBool(false))
             goto Lnomatch;
         else
         {
@@ -2737,7 +2737,7 @@ FuncDeclaration *TemplateDeclaration::doHeaderInstantiation(Scope *sc,
 
 bool TemplateDeclaration::hasStaticCtorOrDtor()
 {
-    return FALSE;               // don't scan uninstantiated templates
+    return false;               // don't scan uninstantiated templates
 }
 
 void TemplateDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
