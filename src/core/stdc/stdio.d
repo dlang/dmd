@@ -182,6 +182,8 @@ enum
 
 version( Win32 )
 {
+    alias int fpos_t; //check this
+
     struct _iobuf
     {
         char* _ptr;
@@ -196,6 +198,8 @@ version( Win32 )
 }
 else version( Win64 )
 {
+    alias int fpos_t; //check this
+
     struct _iobuf
     {
         char* _ptr;
@@ -210,6 +214,7 @@ else version( Win64 )
 }
 else version( linux )
 {
+    alias int fpos_t; //this is probably wrong, fix this
     alias _iobuf = _IO_FILE;
 
     align(1) struct _IO_FILE
@@ -239,7 +244,7 @@ else version( linux )
 }
 else version( OSX )
 {
-    alias int fpos_t;
+    alias int fpos_t; //check this
 
     align (1) struct _iobuf
     {
@@ -271,7 +276,7 @@ else version( OSX )
 }
 else version( FreeBSD )
 {
-    alias int fpos_t;
+    alias int fpos_t; //check this
 
     align (1) struct _iobuf
     {
@@ -310,6 +315,8 @@ else version( FreeBSD )
 }
 else version (Solaris)
 {
+    alias int fpos_t; //check this
+
     align (1) struct _iobuf
     {
         char* _ptr;
