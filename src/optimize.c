@@ -1096,7 +1096,7 @@ Expression *AndAndExp::optimize(int result, bool keepLvalue)
     if (e1->op == TOKerror)
         return e1;
     e = this;
-    if (e1->isBool(FALSE))
+    if (e1->isBool(false))
     {
         if (type->toBasetype()->ty == Tvoid)
             e = e2;
@@ -1122,7 +1122,7 @@ Expression *AndAndExp::optimize(int result, bool keepLvalue)
 
                 e = new IntegerExp(loc, n1 && n2, type);
             }
-            else if (e1->isBool(TRUE))
+            else if (e1->isBool(true))
             {
                 if (type->toBasetype()->ty == Tvoid)
                     e = e2;
@@ -1140,7 +1140,7 @@ Expression *OrOrExp::optimize(int result, bool keepLvalue)
     if (e1->op == TOKerror)
         return e1;
     e = this;
-    if (e1->isBool(TRUE))
+    if (e1->isBool(true))
     {   // Replace with (e1, 1)
         e = new CommaExp(loc, e1, new IntegerExp(loc, 1, type));
         e->type = type;
@@ -1162,7 +1162,7 @@ Expression *OrOrExp::optimize(int result, bool keepLvalue)
 
                 e = new IntegerExp(loc, n1 || n2, type);
             }
-            else if (e1->isBool(FALSE))
+            else if (e1->isBool(false))
             {
                 if (type->toBasetype()->ty == Tvoid)
                     e = e2;
@@ -1207,9 +1207,9 @@ Expression *CondExp::optimize(int result, bool keepLvalue)
 {   Expression *e;
 
     econd = econd->optimize(WANTflags);
-    if (econd->isBool(TRUE))
+    if (econd->isBool(true))
         e = e1->optimize(result, keepLvalue);
-    else if (econd->isBool(FALSE))
+    else if (econd->isBool(false))
         e = e2->optimize(result, keepLvalue);
     else
     {   e1 = e1->optimize(result, keepLvalue);

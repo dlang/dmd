@@ -186,7 +186,7 @@ bool Dsymbol::hasPointers()
 bool Dsymbol::hasStaticCtorOrDtor()
 {
     //printf("Dsymbol::hasStaticCtorOrDtor() %s\n", toChars());
-    return FALSE;
+    return false;
 }
 
 void Dsymbol::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion)
@@ -1095,10 +1095,10 @@ bool ScopeDsymbol::hasStaticCtorOrDtor()
         {   Dsymbol *member = (*members)[i];
 
             if (member->hasStaticCtorOrDtor())
-                return TRUE;
+                return true;
         }
     }
-    return FALSE;
+    return false;
 }
 
 /***************************************

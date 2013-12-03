@@ -1749,12 +1749,12 @@ ClassDeclaration *Type::isClassHandle()
 
 int Type::isscope()
 {
-    return FALSE;
+    return false;
 }
 
 int Type::isString()
 {
-    return FALSE;
+    return false;
 }
 
 /**************************
@@ -1767,7 +1767,7 @@ int Type::isString()
  */
 int Type::isAssignable()
 {
-    return TRUE;
+    return true;
 }
 
 int Type::checkBoolean()
@@ -1776,12 +1776,12 @@ int Type::checkBoolean()
 }
 
 /********************************
- * TRUE if when type goes out of scope, it needs a destructor applied.
+ * true if when type goes out of scope, it needs a destructor applied.
  * Only applies to value types, not ref types.
  */
 int Type::needsDestruction()
 {
-    return FALSE;
+    return false;
 }
 
 /*********************************
@@ -2361,7 +2361,7 @@ Expression *Type::toExpression()
 int Type::hasPointers()
 {
     //printf("Type::hasPointers() %s, %d\n", toChars(), ty);
-    return FALSE;
+    return false;
 }
 
 /*************************************
@@ -3477,7 +3477,7 @@ TypeBasic *TypeVector::elementType()
 
 int TypeVector::checkBoolean()
 {
-    return FALSE;
+    return false;
 }
 
 char *TypeVector::toChars()
@@ -4293,11 +4293,11 @@ int TypeSArray::hasPointers()
      * may be a variable length struct.
      */
     //if (dim->toInteger() == 0)
-        //return FALSE;
+        //return false;
 
     if (next->ty == Tvoid)
         // Arrays of void contain arbitrary data, which may include pointers
-        return TRUE;
+        return true;
     else
         return next->hasPointers();
 }
@@ -4525,12 +4525,12 @@ int TypeDArray::isZeroInit(Loc loc)
 
 int TypeDArray::checkBoolean()
 {
-    return TRUE;
+    return true;
 }
 
 int TypeDArray::hasPointers()
 {
-    return TRUE;
+    return true;
 }
 
 
@@ -4799,12 +4799,12 @@ Expression *TypeAArray::defaultInit(Loc loc)
 
 int TypeAArray::isZeroInit(Loc loc)
 {
-    return TRUE;
+    return true;
 }
 
 int TypeAArray::checkBoolean()
 {
-    return TRUE;
+    return true;
 }
 
 Expression *TypeAArray::toExpression()
@@ -4825,7 +4825,7 @@ Expression *TypeAArray::toExpression()
 
 int TypeAArray::hasPointers()
 {
-    return TRUE;
+    return true;
 }
 
 MATCH TypeAArray::implicitConvTo(Type *to)
@@ -5062,7 +5062,7 @@ int TypePointer::isZeroInit(Loc loc)
 
 int TypePointer::hasPointers()
 {
-    return TRUE;
+    return true;
 }
 
 
@@ -5635,9 +5635,9 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
     if (sc->stc & STCpure)
         tf->purity = PUREfwdref;
     if (sc->stc & STCnothrow)
-        tf->isnothrow = TRUE;
+        tf->isnothrow = true;
     if (sc->stc & STCref)
-        tf->isref = TRUE;
+        tf->isref = true;
 
     if (sc->stc & STCsafe)
         tf->trust = TRUSTsafe;
@@ -5647,7 +5647,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
         tf->trust = TRUSTtrusted;
 
     if (sc->stc & STCproperty)
-        tf->isproperty = TRUE;
+        tf->isproperty = true;
 
     tf->linkage = sc->linkage;
 #if 0
@@ -5667,7 +5667,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
             }
         }
 #endif
-    bool wildreturn = FALSE;
+    bool wildreturn = false;
     if (tf->next)
     {
         sc = sc->push();
@@ -5695,7 +5695,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
             }
         }
         else if (tb->ty == Tvoid)
-            tf->isref = FALSE;                  // rewrite "ref void" as just "void"
+            tf->isref = false;                  // rewrite "ref void" as just "void"
         else if (tb->ty == Terror)
             errors = true;
         if (tf->next->isscope() && !(sc->flags & SCOPEctor))
@@ -5705,10 +5705,10 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
         }
         if (tf->next->hasWild() &&
             !(tf->next->ty == Tpointer && tf->next->nextOf()->ty == Tfunction || tf->next->ty == Tdelegate))
-            wildreturn = TRUE;
+            wildreturn = true;
     }
 
-    bool wildparams = FALSE;
+    bool wildparams = false;
     if (tf->parameters)
     {
         /* Create a scope for evaluating the default arguments for the parameters
@@ -5774,7 +5774,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
             if (t->hasWild() &&
                 !(t->ty == Tpointer && t->nextOf()->ty == Tfunction || t->ty == Tdelegate))
             {
-                wildparams = TRUE;
+                wildparams = true;
                 //if (tf->next && !wildreturn)
                 //    error(loc, "inout on parameter means inout must be on return type as well (if from D1 code, replace with 'ref')");
             }
@@ -5870,7 +5870,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
         argsc->pop();
     }
     if (tf->isWild())
-        wildparams = TRUE;
+        wildparams = true;
 
     if (wildreturn && !wildparams)
     {
@@ -6274,7 +6274,7 @@ Type *TypeFunction::reliesOnTident(TemplateParameters *tparams)
 }
 
 /********************************************
- * Return TRUE if there are lazy parameters.
+ * Return true if there are lazy parameters.
  */
 bool TypeFunction::hasLazyParameters()
 {
@@ -6282,9 +6282,9 @@ bool TypeFunction::hasLazyParameters()
     for (size_t i = 0; i < dim; i++)
     {   Parameter *fparam = Parameter::getNth(parameters, i);
         if (fparam->storageClass & STClazy)
-            return TRUE;
+            return true;
     }
-    return FALSE;
+    return false;
 }
 
 /***************************
@@ -6302,12 +6302,12 @@ bool TypeFunction::parameterEscapes(Parameter *p)
      * escaping.
      */
     if (p->storageClass & (STCscope | STClazy))
-        return FALSE;
+        return false;
 
     /* If haven't inferred the return type yet, assume it escapes
      */
     if (!nextOf())
-        return TRUE;
+        return true;
 
     if (purity > PUREweak)
     {   /* With pure functions, we need only be concerned if p escapes
@@ -6318,13 +6318,13 @@ bool TypeFunction::parameterEscapes(Parameter *p)
         {   /* The result has no references, so p could not be escaping
              * that way.
              */
-            return FALSE;
+            return false;
         }
     }
 
     /* Assume it escapes in the absence of better information.
      */
-    return TRUE;
+    return true;
 }
 
 Expression *TypeFunction::defaultInit(Loc loc)
@@ -6463,7 +6463,7 @@ int TypeDelegate::isZeroInit(Loc loc)
 
 int TypeDelegate::checkBoolean()
 {
-    return TRUE;
+    return true;
 }
 
 Expression *TypeDelegate::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
@@ -6504,7 +6504,7 @@ Expression *TypeDelegate::dotExp(Scope *sc, Expression *e, Identifier *ident, in
 
 int TypeDelegate::hasPointers()
 {
-    return TRUE;
+    return true;
 }
 
 
@@ -7657,7 +7657,7 @@ Expression *TypeEnum::defaultInit(Loc loc)
 
 int TypeEnum::isZeroInit(Loc loc)
 {
-    return sym->getDefaultValue(loc)->isBool(FALSE);
+    return sym->getDefaultValue(loc)->isBool(false);
 }
 
 int TypeEnum::hasPointers()
@@ -7935,7 +7935,7 @@ int TypeTypedef::isZeroInit(Loc loc)
         if (sym->init->isVoidInitializer())
             return 1;           // initialize voids to 0
         Expression *e = sym->init->toExpression();
-        if (e && e->isBool(FALSE))
+        if (e && e->isBool(false))
             return 1;
         return 0;               // assume not
     }
@@ -8355,7 +8355,7 @@ int TypeStruct::isZeroInit(Loc loc)
 
 int TypeStruct::checkBoolean()
 {
-    return FALSE;
+    return false;
 }
 
 int TypeStruct::needsDestruction()
@@ -8380,7 +8380,7 @@ bool TypeStruct::needsNested()
 
 int TypeStruct::isAssignable()
 {
-    int assignable = TRUE;
+    int assignable = true;
     unsigned offset;
 
     /* If any of the fields are const or invariant,
@@ -8403,7 +8403,7 @@ int TypeStruct::isAssignable()
         else
         {
             if (!assignable)
-                return FALSE;
+                return false;
         }
         assignable = v->type->isMutable() && v->type->isAssignable();
         offset = v->offset;
@@ -8424,9 +8424,9 @@ int TypeStruct::hasPointers()
         Dsymbol *sm = s->fields[i];
         Declaration *d = sm->isDeclaration();
         if (d->storage_class & STCref || d->hasPointers())
-            return TRUE;
+            return true;
     }
-    return FALSE;
+    return false;
 }
 
 MATCH TypeStruct::implicitConvTo(Type *to)
@@ -9102,12 +9102,12 @@ int TypeClass::isZeroInit(Loc loc)
 
 int TypeClass::checkBoolean()
 {
-    return TRUE;
+    return true;
 }
 
 int TypeClass::hasPointers()
 {
-    return TRUE;
+    return true;
 }
 
 /***************************** TypeTuple *****************************/
@@ -9506,7 +9506,7 @@ MATCH TypeNull::implicitConvTo(Type *to)
 
 int TypeNull::checkBoolean()
 {
-    return TRUE;
+    return true;
 }
 
 void TypeNull::toDecoBuffer(OutBuffer *buf, int flag)

@@ -121,7 +121,7 @@ AggregateDeclaration::AggregateDeclaration(Loc loc, Identifier *id)
     ctor = NULL;
     defaultCtor = NULL;
     aliasthis = NULL;
-    noDefaultCtor = FALSE;
+    noDefaultCtor = false;
     dtor = NULL;
     getRTInfo = NULL;
 }

@@ -571,10 +571,10 @@ bool isPointer(Type *t)
     return tb->ty == Tpointer && tb->nextOf()->ty != Tfunction;
 }
 
-// For CTFE only. Returns true if 'e' is TRUE or a non-null pointer.
+// For CTFE only. Returns true if 'e' is true or a non-null pointer.
 int isTrueBool(Expression *e)
 {
-    return e->isBool(TRUE) || ((e->type->ty == Tpointer || e->type->ty == Tclass)
+    return e->isBool(true) || ((e->type->ty == Tpointer || e->type->ty == Tclass)
         && e->op != TOKnull);
 }
 

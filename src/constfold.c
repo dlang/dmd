@@ -1308,7 +1308,7 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
             Expression *ex = Equal(TOKequal, Type::tbool, ekey, e2);
             if (ex == EXP_CANT_INTERPRET)
                 return ex;
-            if (ex->isBool(TRUE))
+            if (ex->isBool(true))
             {   e = (*ae->values)[i];
                 e->type = type;
                 e->loc = loc;

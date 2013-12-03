@@ -105,7 +105,7 @@ Dsymbols *Parser::parseModule()
     {
         Loc loc = token.loc;
         const utf8_t *comment = token.blockComment;
-        bool safe = FALSE;
+        bool safe = false;
 
         nextToken();
 #if 0
@@ -119,7 +119,7 @@ Dsymbols *Parser::parseModule()
             Identifier *id = token.ident;
 
             if (id == Id::system)
-                safe = TRUE;
+                safe = true;
             else
                 error("(safe) expected, not %s", id->toChars());
             nextToken();
@@ -4000,7 +4000,7 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
             if (peekNext() == TOKswitch)
             {
                 nextToken();
-                isfinal = TRUE;
+                isfinal = true;
                 goto Lswitch;
             }
             goto Ldeclaration;
@@ -4549,7 +4549,7 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
         }
 
         case TOKswitch:
-            isfinal = FALSE;
+            isfinal = false;
             goto Lswitch;
 
         Lswitch:
@@ -5039,11 +5039,11 @@ int Parser::isDeclaration(Token *t, int needId, TOK endtok, Token **pt)
 
 Lis:
     //printf("\tis declaration, t = %s\n", t->toChars());
-    return TRUE;
+    return true;
 
 Lisnot:
     //printf("\tis not declaration\n");
-    return FALSE;
+    return false;
 }
 
 int Parser::isBasicType(Token **pt)
@@ -5161,11 +5161,11 @@ int Parser::isBasicType(Token **pt)
     }
     *pt = t;
     //printf("is\n");
-    return TRUE;
+    return true;
 
 Lfalse:
     //printf("is not\n");
-    return FALSE;
+    return false;
 }
 
 int Parser::isDeclarator(Token **pt, int *haveId, int *haveTpl, TOK endtok)
@@ -5176,11 +5176,11 @@ int Parser::isDeclarator(Token **pt, int *haveId, int *haveTpl, TOK endtok)
     //printf("Parser::isDeclarator()\n");
     //t->print();
     if (t->value == TOKassign)
-        return FALSE;
+        return false;
 
     while (1)
     {
-        parens = FALSE;
+        parens = false;
         switch (t->value)
         {
             case TOKmul:
@@ -5203,22 +5203,22 @@ int Parser::isDeclarator(Token **pt, int *haveId, int *haveTpl, TOK endtok)
                     // [ expression ]
                     // [ expression .. expression ]
                     if (!isExpression(&t))
-                        return FALSE;
+                        return false;
                     if (t->value == TOKslice)
                     {   t = peek(t);
                         if (!isExpression(&t))
-                            return FALSE;
+                            return false;
                     }
                     if (t->value != TOKrbracket)
-                        return FALSE;
+                        return false;
                     t = peek(t);
                 }
                 continue;
 
             case TOKidentifier:
                 if (*haveId)
-                    return FALSE;
-                *haveId = TRUE;
+                    return false;
+                *haveId = true;
                 t = peek(t);
                 break;
 
@@ -5226,7 +5226,7 @@ int Parser::isDeclarator(Token **pt, int *haveId, int *haveTpl, TOK endtok)
                 t = peek(t);
 
                 if (t->value == TOKrparen)
-                    return FALSE;               // () is not a declarator
+                    return false;               // () is not a declarator
 
                 /* Regard ( identifier ) as not a declarator
                  * BUG: what about ( *identifier ) in
@@ -5237,21 +5237,21 @@ int Parser::isDeclarator(Token **pt, int *haveId, int *haveTpl, TOK endtok)
                 if (t->value == TOKidentifier)
                 {   Token *t2 = peek(t);
                     if (t2->value == TOKrparen)
-                        return FALSE;
+                        return false;
                 }
 
 
                 if (!isDeclarator(&t, haveId, NULL, TOKrparen))
-                    return FALSE;
+                    return false;
                 t = peek(t);
-                parens = TRUE;
+                parens = true;
                 break;
 
             case TOKdelegate:
             case TOKfunction:
                 t = peek(t);
                 if (!isParameters(&t))
-                    return FALSE;
+                    return false;
                 skipAttributes(t, &t);
                 continue;
             default: break;
@@ -5265,7 +5265,7 @@ int Parser::isDeclarator(Token **pt, int *haveId, int *haveTpl, TOK endtok)
         {
 #if CARRAYDECL
             case TOKlbracket:
-                parens = FALSE;
+                parens = false;
                 t = peek(t);
                 if (t->value == TOKrbracket)
                 {
@@ -5279,25 +5279,25 @@ int Parser::isDeclarator(Token **pt, int *haveId, int *haveTpl, TOK endtok)
                 {
                     // [ expression ]
                     if (!isExpression(&t))
-                        return FALSE;
+                        return false;
                     if (t->value != TOKrbracket)
-                        return FALSE;
+                        return false;
                     t = peek(t);
                 }
                 continue;
 #endif
 
             case TOKlparen:
-                parens = FALSE;
+                parens = false;
                 if (Token *tk = peekPastParen(t))
                 {   if (tk->value == TOKlparen)
-                    {   if (!haveTpl) return FALSE;
+                    {   if (!haveTpl) return false;
                         *haveTpl = 1;
                         t = tk;
                     }
                 }
                 if (!isParameters(&t))
-                    return FALSE;
+                    return false;
                 while (1)
                 {
                     switch (t->value)
@@ -5336,14 +5336,14 @@ int Parser::isDeclarator(Token **pt, int *haveId, int *haveTpl, TOK endtok)
                 // The !parens is to disallow unnecessary parentheses
                 if (!parens && (endtok == TOKreserved || endtok == t->value))
                 {   *pt = t;
-                    return TRUE;
+                    return true;
                 }
-                return FALSE;
+                return false;
             case TOKif:
-                return haveTpl ? TRUE : FALSE;
+                return haveTpl ? true : false;
 
             default:
-                return FALSE;
+                return false;
         }
     }
 }
@@ -5355,7 +5355,7 @@ int Parser::isParameters(Token **pt)
 
     //printf("isParameters()\n");
     if (t->value != TOKlparen)
-        return FALSE;
+        return false;
 
     t = peek(t);
     for (;1; t = peek(t))
@@ -5391,7 +5391,7 @@ int Parser::isParameters(Token **pt)
                 {
                     t = peek(t);
                     if (!isDeclaration(t, 0, TOKrparen, &t))
-                        return FALSE;
+                        return false;
                     t = peek(t);        // skip past closing ')'
                     goto L2;
                 }
@@ -5408,23 +5408,23 @@ int Parser::isParameters(Token **pt)
                 if (t->value == TOKassign)
                 {   t = peek(t);
                     if (!isExpression(&t))
-                        return FALSE;
+                        return false;
                 }
                 goto L3;
 #endif
 
             default:
             {   if (!isBasicType(&t))
-                    return FALSE;
+                    return false;
             L2:
-                int tmp = FALSE;
+                int tmp = false;
                 if (t->value != TOKdotdotdot &&
                     !isDeclarator(&t, &tmp, NULL, TOKreserved))
-                    return FALSE;
+                    return false;
                 if (t->value == TOKassign)
                 {   t = peek(t);
                     if (!isExpression(&t))
-                        return FALSE;
+                        return false;
                 }
                 if (t->value == TOKdotdotdot)
                 {
@@ -5441,10 +5441,10 @@ int Parser::isParameters(Token **pt)
         break;
     }
     if (t->value != TOKrparen)
-        return FALSE;
+        return false;
     t = peek(t);
     *pt = t;
-    return TRUE;
+    return true;
 }
 
 int Parser::isExpression(Token **pt)
@@ -5492,7 +5492,7 @@ int Parser::isExpression(Token **pt)
             case TOKrcurly:
                 if (--curlynest >= 0)
                     continue;
-                return FALSE;
+                return false;
 
             case TOKslice:
                 if (brnest)
@@ -5502,10 +5502,10 @@ int Parser::isExpression(Token **pt)
             case TOKsemicolon:
                 if (curlynest)
                     continue;
-                return FALSE;
+                return false;
 
             case TOKeof:
-                return FALSE;
+                return false;
 
             default:
                 continue;
@@ -5514,7 +5514,7 @@ int Parser::isExpression(Token **pt)
     }
 
     *pt = t;
-    return TRUE;
+    return true;
 }
 
 /*******************************************
