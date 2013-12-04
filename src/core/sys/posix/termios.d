@@ -145,38 +145,8 @@ version( linux )
         tcflag_t   c_lflag;
         cc_t       c_line;
         cc_t[NCCS] c_cc;
-    }
-
-    struct termios2
-    {
-        tcflag_t   c_iflag;
-        tcflag_t   c_oflag;
-        tcflag_t   c_cflag;
-        tcflag_t   c_lflag;
-        cc_t       c_line;
-        cc_t[NCCS] c_cc;
         speed_t    c_ispeed;
         speed_t    c_ospeed;
-    }
-
-    struct winsize
-    {
-        ushort ws_row;
-        ushort ws_col;
-        ushort ws_xpixel;
-        ushort ws_ypixel;
-    }
-
-    enum NCC = 8;
-
-    struct termio
-    {
-        ushort c_iflag;
-        ushort c_oflag;
-        ushort c_cflag;
-        ushort c_lflag;
-        ubyte c_line;
-        ubyte[NCC] c_cc;
     }
 
     enum VEOF       = 4;
