@@ -174,6 +174,39 @@ unittest
 }
 
 // ------------------------------------
+// insert import declaration between documented function and unittests
+
+///
+void fooImport() {}
+import core.stdc.stdio;
+/// test
+unittest { fooImport(); }
+
+///
+void fooStaticImport() {}
+static import core.stdc.stdlib;
+/// test
+unittest { fooStaticImport(); }
+
+///
+void fooPublicImport() {}
+public import core.stdc.string;
+/// test
+unittest { fooPublicImport(); }
+
+///
+void fooSelectiveImport() {}
+import core.stdc.ctype : isalpha;
+/// test
+unittest { fooSelectiveImport(); }
+
+///
+void fooRenamedImport() {}
+import io = core.stdc.stdio;
+/// test
+unittest { fooRenamedImport(); }
+
+// ------------------------------------
 // 9474
 
 ///
