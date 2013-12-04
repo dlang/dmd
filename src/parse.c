@@ -178,7 +178,6 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
 {
     Dsymbol *s;
     Dsymbols *a;
-    Dsymbols *aelse;
     PROT prot;
     StorageClass stc;
     StorageClass storageClass;
@@ -349,16 +348,17 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
                 else if (token.value == TOKif)
                 {
                     condition = parseStaticIfCondition();
+                    Dsymbols *athen;
                     if (token.value == TOKcolon)
-                        a = parseBlock(pLastDecl);
+                        athen = parseBlock(pLastDecl);
                     else
                     {
                         Loc lookingForElseSave = lookingForElse;
                         lookingForElse = token.loc;
-                        a = parseBlock(pLastDecl);
+                        athen = parseBlock(pLastDecl);
                         lookingForElse = lookingForElseSave;
                     }
-                    aelse = NULL;
+                    Dsymbols *aelse = NULL;
                     if (token.value == TOKelse)
                     {
                         Loc elseloc = token.loc;
@@ -366,8 +366,7 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
                         aelse = parseBlock(pLastDecl);
                         checkDanglingElse(elseloc);
                     }
-                    s = new StaticIfDeclaration(condition, a, aelse);
-                    break;
+                    s = new StaticIfDeclaration(condition, athen, aelse);
                 }
                 else if (token.value == TOKimport)
                 {
@@ -659,11 +658,10 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
                 else
                     check(TOKrparen);           // pragma(identifier)
 
-                if (token.value == TOKsemicolon)
-                    a = NULL;
-                else
-                    a = parseBlock(pLastDecl);
-                s = new PragmaDeclaration(loc, ident, args, a);
+                Dsymbols *a2 = NULL;
+                if (token.value != TOKsemicolon)
+                    a2 = parseBlock(pLastDecl);
+                s = new PragmaDeclaration(loc, ident, args, a2);
                 break;
             }
 
@@ -716,16 +714,17 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
 
             Lcondition:
             {
+                Dsymbols *athen;
                 if (token.value == TOKcolon)
-                    a = parseBlock(pLastDecl);
+                    athen = parseBlock(pLastDecl);
                 else
                 {
                     Loc lookingForElseSave = lookingForElse;
                     lookingForElse = token.loc;
-                    a = parseBlock(pLastDecl);
+                    athen = parseBlock(pLastDecl);
                     lookingForElse = lookingForElseSave;
                 }
-                aelse = NULL;
+                Dsymbols *aelse = NULL;
                 if (token.value == TOKelse)
                 {
                     Loc elseloc = token.loc;
@@ -733,7 +732,7 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
                     aelse = parseBlock(pLastDecl);
                     checkDanglingElse(elseloc);
                 }
-                s = new ConditionalDeclaration(condition, a, aelse);
+                s = new ConditionalDeclaration(condition, athen, aelse);
                 break;
             }
 
