@@ -218,8 +218,9 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
             }
 
             case TOKimport:
-                s = parseImport(decldefs, 0);
-                break;
+                a = parseImport();
+                decldefs->append(a);
+                continue;
 
             case TOKtemplate:
                 s = (Dsymbol *)parseTemplateDeclaration();
@@ -338,14 +339,15 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
                 return decldefs;
 
             case TOKstatic:
-                nextToken();
-                if (token.value == TOKthis)
+            {
+                TOK next = peekNext();
+                if (next == TOKthis)
                     s = parseStaticCtor();
-                else if (token.value == TOKtilde)
+                else if (next == TOKtilde)
                     s = parseStaticDtor();
-                else if (token.value == TOKassert)
+                else if (next == TOKassert)
                     s = parseStaticAssert();
-                else if (token.value == TOKif)
+                else if (next == TOKif)
                 {
                     condition = parseStaticIfCondition();
                     Dsymbols *athen;
@@ -368,16 +370,20 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
                     }
                     s = new StaticIfDeclaration(condition, athen, aelse);
                 }
-                else if (token.value == TOKimport)
+                else if (next == TOKimport)
                 {
-                    s = parseImport(decldefs, 1);
+                    a = parseImport();
+                    decldefs->append(a);
+                    continue;
                 }
                 else
                 {
+                    nextToken();
                     stc = STCstatic;
                     goto Lstc2;
                 }
                 break;
+            }
 
             case TOKconst:
                 if (peekNext() == TOKlparen)
@@ -962,6 +968,7 @@ Dsymbols *Parser::parseBlock(Dsymbol **pLastDecl)
 
 /**********************************
  * Parse a static assertion.
+ * Current token is 'static'.
  */
 
 StaticAssert *Parser::parseStaticAssert()
@@ -971,6 +978,7 @@ StaticAssert *Parser::parseStaticAssert()
     Expression *msg = NULL;
 
     //printf("parseStaticAssert()\n");
+    nextToken();
     nextToken();
     check(TOKlparen);
     exp = parseAssignExp();
@@ -1145,7 +1153,7 @@ Condition *Parser::parseVersionCondition()
  *          body
  *      else
  *          body
- * Current token is 'if'.
+ * Current token is 'static'.
  */
 
 Condition *Parser::parseStaticIfCondition()
@@ -1154,6 +1162,7 @@ Condition *Parser::parseStaticIfCondition()
     Condition *condition;
     Loc loc = token.loc;
 
+    nextToken();
     nextToken();
     if (token.value == TOKlparen)
     {
@@ -1265,13 +1274,14 @@ DtorDeclaration *Parser::parseDtor()
 /*****************************************
  * Parse a static constructor definition:
  *      static this() { body }
- * Current token is 'this'.
+ * Current token is 'static'.
  */
 
 StaticCtorDeclaration *Parser::parseStaticCtor()
 {
     Loc loc = token.loc;
 
+    nextToken();
     nextToken();
     check(TOKlparen);
     check(TOKrparen);
@@ -1305,13 +1315,14 @@ SharedStaticCtorDeclaration *Parser::parseSharedStaticCtor()
 /*****************************************
  * Parse a static destructor definition:
  *      static ~this() { body }
- * Current token is '~'.
+ * Current token is 'static'.
  */
 
 StaticDtorDeclaration *Parser::parseStaticDtor()
 {
     Loc loc = token.loc;
 
+    nextToken();
     nextToken();
     check(TOKthis);
     check(TOKlparen);
@@ -2428,9 +2439,14 @@ Objects *Parser::parseTemplateSingleArgument()
     return tiargs;
 }
 
-Import *Parser::parseImport(Dsymbols *decldefs, int isstatic)
+Dsymbols *Parser::parseImport()
 {
+    Dsymbols *decldefs = new Dsymbols();
     Identifier *aliasid = NULL;
+
+    int isstatic = token.value == TOKstatic;
+    if (isstatic)
+        nextToken();
 
     //printf("Parser::parseImport()\n");
     do
@@ -2514,7 +2530,7 @@ Import *Parser::parseImport(Dsymbols *decldefs, int isstatic)
         nextToken();
     }
 
-    return NULL;
+    return decldefs;
 }
 
 Type *Parser::parseType(Identifier **pident, TemplateParameters **tpl)
@@ -4046,20 +4062,17 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
             Token *t = peek(&token);
             if (t->value == TOKassert)
             {
-                nextToken();
                 s = new StaticAssertStatement(parseStaticAssert());
                 break;
             }
             if (t->value == TOKif)
             {
-                nextToken();
                 cond = parseStaticIfCondition();
                 goto Lcondition;
             }
             if (t->value == TOKimport)
-            {   nextToken();
-                Dsymbols *imports = new Dsymbols();
-                parseImport(imports, 1);                // static import ...
+            {
+                Dsymbols *imports = parseImport();
                 s = new ImportStatement(loc, imports);
                 if (flags & PSscope)
                     s = new ScopeStatement(loc, s);
@@ -5009,8 +5022,7 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
 
         case TOKimport:
         {
-            Dsymbols *imports = new Dsymbols();
-            parseImport(imports, 0);
+            Dsymbols *imports = parseImport();
             s = new ImportStatement(loc, imports);
             if (flags & PSscope)
                 s = new ScopeStatement(loc, s);

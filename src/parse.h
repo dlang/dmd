@@ -108,7 +108,7 @@ public:
     EnumDeclaration *parseEnum();
     Dsymbol *parseAggregate();
     BaseClasses *parseBaseClasses();
-    Import *parseImport(Dsymbols *decldefs, int isstatic);
+    Dsymbols *parseImport();
     Type *parseType(Identifier **pident = NULL, TemplateParameters **tpl = NULL);
     Type *parseBasicType();
     Type *parseBasicType2(Type *t);
