@@ -3332,12 +3332,6 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, const utf8_t *co
         return a;
     }
 
-    if (udas)
-    {
-        // Need to improve this
-//      error("user defined attributes not allowed for local declarations");
-    }
-
     /* Look for auto initializers:
      *  storage_class identifier = initializer;
      *  storage_class identifier(...) = initializer;
@@ -3347,12 +3341,14 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, const utf8_t *co
         skipParensIf(peek(&token), &tk) &&
         tk->value == TOKassign)
     {
+        Dsymbols *a = parseAutoDeclarations(storage_class, comment);
         if (udas)
         {
-            // Need to improve this
-            error("user defined attributes not allowed for auto declarations");
+            Dsymbol *s = new UserAttributeDeclaration(udas, a);
+            a = new Dsymbols();
+            a->push(s);
         }
-        return parseAutoDeclarations(storage_class, comment);
+        return a;
     }
 
     /* Look for return type inference for template functions.

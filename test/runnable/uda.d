@@ -425,6 +425,15 @@ static ~this() @(10) @(20) {}
 shared static ~this() @(10) @(20) {}
 
 /************************************************/
+// 11679
+
+void test11679()
+{
+    @(10) @(20) auto var = 1;
+    static assert([__traits(getAttributes, var)] == [10, 20]);
+}
+
+/************************************************/
 // 11844
 
 auto make_encode11844(T, string name)()
