@@ -381,7 +381,7 @@ static assert(__traits(getAttributes, x10208_13)[0] == 130); // Error -> OK
 static assert(__traits(getAttributes, x10208_14)[0] == 140); // Error -> OK
 
 /************************************************/
-// 11677
+// 11677, 11678
 
 bool test_uda(alias func)() @safe
 {
@@ -400,6 +400,29 @@ bool test_uda(alias func)() @safe
 static assert(test_uda!func11677a());
 static assert(test_uda!func11677b());
 static assert(test_uda!func11677c());
+
+void func11678a() @safe @(10) @(20) {}  // OK <- NG
+void func11678b() @(10) @safe @(20) {}  // OK <- NG
+void func11678c() @(10) @(20) @safe {}  // OK <- NG
+
+static assert(test_uda!func11678a());
+static assert(test_uda!func11678b());
+static assert(test_uda!func11678c());
+
+/************************************************/
+// 11678
+
+class C11678
+{
+    this() @(10) @(20) {}
+    ~this() @(10) @(20) {}
+}
+
+//static this() @(10) @(20) {}
+static ~this() @(10) @(20) {}
+
+//shared static this() @(10) @(20) {}
+shared static ~this() @(10) @(20) {}
 
 /************************************************/
 // 11844

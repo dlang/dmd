@@ -861,9 +861,9 @@ StorageClass Parser::parseAttribute(Expressions **pudas)
  * Parse const/immutable/shared/inout/nothrow/pure postfix
  */
 
-StorageClass Parser::parsePostfix()
+StorageClass Parser::parsePostfix(Expressions **pudas)
 {
-    StorageClass stc = 0;
+    StorageClass stc = STCundefined;
 
     while (1)
     {
@@ -882,8 +882,18 @@ StorageClass Parser::parsePostfix()
                 Expressions *udas = NULL;
                 stc |= parseAttribute(&udas);
                 if (udas)
-                    // BUG: Should fix this
-                    error("user defined attributes cannot appear as postfixes");
+                {
+                    if (pudas)
+                        *pudas = UserAttributeDeclaration::concat(*pudas, udas);
+                    else
+                    {
+                        // Disallow:
+                        //      void function() @uda fp;
+                        //      () @uda { return 1; }
+                        error("user defined attributes cannot appear as postfixes");
+                    }
+                    continue;
+                }
                 break;
             }
 
@@ -1197,6 +1207,7 @@ Condition *Parser::parseStaticIfCondition()
 
 Dsymbol *Parser::parseCtor()
 {
+    Expressions *udas = NULL;
     Loc loc = token.loc;
 
     nextToken();
@@ -1206,10 +1217,17 @@ Dsymbol *Parser::parseCtor()
         nextToken();
         nextToken();
         check(TOKrparen);
-        StorageClass stc = parsePostfix();
+
+        StorageClass stc = parsePostfix(&udas);
         PostBlitDeclaration *f = new PostBlitDeclaration(loc, Loc(), stc, Id::_postblit);
-        parseContracts(f);
-        return f;
+        Dsymbol *s = parseContracts(f);
+        if (udas)
+        {
+            Dsymbols *a = new Dsymbols();
+            a->push(f);
+            s = new UserAttributeDeclaration(udas, a);
+        }
+        return s;
     }
 
     /* Look ahead to see if:
@@ -1223,7 +1241,7 @@ Dsymbol *Parser::parseCtor()
 
         int varargs;
         Parameters *parameters = parseParameters(&varargs);
-        StorageClass stc = parsePostfix();
+        StorageClass stc = parsePostfix(&udas);
 
         Expression *constraint = tpl ? parseConstraint() : NULL;
 
@@ -1231,11 +1249,17 @@ Dsymbol *Parser::parseCtor()
         tf = tf->addSTC(stc);
 
         CtorDeclaration *f = new CtorDeclaration(loc, Loc(), stc, tf);
-        parseContracts(f);
+        Dsymbol *s = parseContracts(f);
+        if (udas)
+        {
+            Dsymbols *a = new Dsymbols();
+            a->push(f);
+            s = new UserAttributeDeclaration(udas, a);
+        }
 
         // Wrap a template around it
         Dsymbols *decldefs = new Dsymbols();
-        decldefs->push(f);
+        decldefs->push(s);
         TemplateDeclaration *tempdecl =
             new TemplateDeclaration(loc, f->ident, tpl, constraint, decldefs);
         return tempdecl;
@@ -1245,13 +1269,19 @@ Dsymbol *Parser::parseCtor()
      */
     int varargs;
     Parameters *parameters = parseParameters(&varargs);
-    StorageClass stc = parsePostfix();
+    StorageClass stc = parsePostfix(&udas);
     Type *tf = new TypeFunction(parameters, NULL, varargs, linkage, stc);   // RetrunType -> auto
     tf = tf->addSTC(stc);
 
     CtorDeclaration *f = new CtorDeclaration(loc, Loc(), stc, tf);
-    parseContracts(f);
-    return f;
+    Dsymbol *s = parseContracts(f);
+    if (udas)
+    {
+        Dsymbols *a = new Dsymbols();
+        a->push(f);
+        s = new UserAttributeDeclaration(udas, a);
+    }
+    return s;
 }
 
 /*****************************************
@@ -1260,9 +1290,9 @@ Dsymbol *Parser::parseCtor()
  * Current token is '~'.
  */
 
-DtorDeclaration *Parser::parseDtor()
+Dsymbol *Parser::parseDtor()
 {
-    DtorDeclaration *f;
+    Expressions *udas = NULL;
     Loc loc = token.loc;
 
     nextToken();
@@ -1270,10 +1300,16 @@ DtorDeclaration *Parser::parseDtor()
     check(TOKlparen);
     check(TOKrparen);
 
-    StorageClass stc = parsePostfix();
-    f = new DtorDeclaration(loc, Loc(), stc, Id::dtor);
-    parseContracts(f);
-    return f;
+    StorageClass stc = parsePostfix(&udas);
+    DtorDeclaration *f = new DtorDeclaration(loc, Loc(), stc, Id::dtor);
+    Dsymbol *s = parseContracts(f);
+    if (udas)
+    {
+        Dsymbols *a = new Dsymbols();
+        a->push(f);
+        s = new UserAttributeDeclaration(udas, a);
+    }
+    return s;
 }
 
 /*****************************************
@@ -1282,8 +1318,9 @@ DtorDeclaration *Parser::parseDtor()
  * Current token is 'static'.
  */
 
-StaticCtorDeclaration *Parser::parseStaticCtor()
+Dsymbol *Parser::parseStaticCtor()
 {
+    //Expressions *udas = NULL;
     Loc loc = token.loc;
 
     nextToken();
@@ -1291,9 +1328,16 @@ StaticCtorDeclaration *Parser::parseStaticCtor()
     check(TOKlparen);
     check(TOKrparen);
 
+    //StorageClass stc = parsePostfix(&udas);
     StaticCtorDeclaration *f = new StaticCtorDeclaration(loc, Loc());
-    parseContracts(f);
-    return f;
+    Dsymbol *s = parseContracts(f);
+    //if (udas)
+    //{
+    //    Dsymbols *a = new Dsymbols();
+    //    a->push(f);
+    //    s = new UserAttributeDeclaration(udas, a);
+    //}
+    return s;
 }
 
 /*****************************************
@@ -1302,8 +1346,9 @@ StaticCtorDeclaration *Parser::parseStaticCtor()
  * Current token is 'shared'.
  */
 
-SharedStaticCtorDeclaration *Parser::parseSharedStaticCtor()
+Dsymbol *Parser::parseSharedStaticCtor()
 {
+    //Expressions *udas = NULL;
     Loc loc = token.loc;
 
     nextToken();
@@ -1312,9 +1357,16 @@ SharedStaticCtorDeclaration *Parser::parseSharedStaticCtor()
     check(TOKlparen);
     check(TOKrparen);
 
+    //StorageClass stc = parsePostfix(&udas);
     SharedStaticCtorDeclaration *f = new SharedStaticCtorDeclaration(loc, Loc());
-    parseContracts(f);
-    return f;
+    Dsymbol *s = parseContracts(f);
+    //if (udas)
+    //{
+    //    Dsymbols *a = new Dsymbols();
+    //    a->push(f);
+    //    s = new UserAttributeDeclaration(udas, a);
+    //}
+    return s;
 }
 
 /*****************************************
@@ -1323,8 +1375,9 @@ SharedStaticCtorDeclaration *Parser::parseSharedStaticCtor()
  * Current token is 'static'.
  */
 
-StaticDtorDeclaration *Parser::parseStaticDtor()
+Dsymbol *Parser::parseStaticDtor()
 {
+    Expressions *udas = NULL;
     Loc loc = token.loc;
 
     nextToken();
@@ -1332,13 +1385,20 @@ StaticDtorDeclaration *Parser::parseStaticDtor()
     check(TOKthis);
     check(TOKlparen);
     check(TOKrparen);
-    StorageClass stc = parsePostfix();
+
+    StorageClass stc = parsePostfix(&udas);
     if (stc & STCshared)
         error("to create a 'shared' static destructor, move 'shared' in front of the declaration");
 
     StaticDtorDeclaration *f = new StaticDtorDeclaration(loc, Loc(), stc);
-    parseContracts(f);
-    return f;
+    Dsymbol *s = parseContracts(f);
+    if (udas)
+    {
+        Dsymbols *a = new Dsymbols();
+        a->push(f);
+        s = new UserAttributeDeclaration(udas, a);
+    }
+    return s;
 }
 
 /*****************************************
@@ -1347,8 +1407,9 @@ StaticDtorDeclaration *Parser::parseStaticDtor()
  * Current token is 'shared'.
  */
 
-SharedStaticDtorDeclaration *Parser::parseSharedStaticDtor()
+Dsymbol *Parser::parseSharedStaticDtor()
 {
+    Expressions *udas = NULL;
     Loc loc = token.loc;
 
     nextToken();
@@ -1357,13 +1418,20 @@ SharedStaticDtorDeclaration *Parser::parseSharedStaticDtor()
     check(TOKthis);
     check(TOKlparen);
     check(TOKrparen);
-    StorageClass stc = parsePostfix();
+
+    StorageClass stc = parsePostfix(&udas);
     if (stc & STCshared)
         error("static destructor is 'shared' already");
 
     SharedStaticDtorDeclaration *f = new SharedStaticDtorDeclaration(loc, Loc(), stc);
-    parseContracts(f);
-    return f;
+    Dsymbol *s = parseContracts(f);
+    if (udas)
+    {
+        Dsymbols *a = new Dsymbols();
+        a->push(f);
+        s = new UserAttributeDeclaration(udas, a);
+    }
+    return s;
 }
 
 /*****************************************
@@ -2807,7 +2875,7 @@ Type *Parser::parseBasicType2(Type *t)
                 nextToken();
                 arguments = parseParameters(&varargs);
 
-                StorageClass stc = parsePostfix();
+                StorageClass stc = parsePostfix(NULL);
                 TypeFunction *tf = new TypeFunction(arguments, t, varargs, linkage, stc);
                 if (stc & (STCconst | STCimmutable | STCshared | STCwild))
                 {
@@ -2834,7 +2902,7 @@ Type *Parser::parseBasicType2(Type *t)
 }
 
 Type *Parser::parseDeclarator(Type *t, Identifier **pident,
-        TemplateParameters **tpl, StorageClass storage_class, int* pdisable)
+        TemplateParameters **tpl, StorageClass storage_class, int* pdisable, Expressions **pudas)
 {
     //printf("parseDeclarator(tpl = %p)\n", tpl);
     t = parseBasicType2(t);
@@ -2970,7 +3038,7 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident,
 
                 /* Parse const/immutable/shared/inout/nothrow/pure postfix
                  */
-                StorageClass stc = parsePostfix();
+                StorageClass stc = parsePostfix(pudas);
                 stc |= storage_class;   // merge prefix storage classes
                 Type *tf = new TypeFunction(arguments, t, varargs, linkage, stc);
                 tf = tf->addSTC(stc);
@@ -3007,7 +3075,6 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident,
 Dsymbols *Parser::parseDeclarations(StorageClass storage_class, const utf8_t *comment)
 {
     StorageClass stc;
-    int disable;
     Type *ts;
     Type *t;
     Type *tfirst;
@@ -3317,9 +3384,10 @@ L2:
     {
         loc = token.loc;
         TemplateParameters *tpl = NULL;
+        int disable;
 
         ident = NULL;
-        t = parseDeclarator(ts, &ident, &tpl, storage_class, &disable);
+        t = parseDeclarator(ts, &ident, &tpl, storage_class, &disable, &udas);
         assert(t);
         if (!tfirst)
             tfirst = t;
@@ -3412,9 +3480,9 @@ L2:
             addComment(f, comment);
             if (tpl)
                 constraint = parseConstraint();
-            parseContracts(f);
-            addComment(f, NULL);
-            Dsymbol *s = f;
+            Dsymbol *s = parseContracts(f);
+            addComment(s, NULL);
+
             /* A template parameter list means it's a function template
              */
             if (tpl)
@@ -3577,7 +3645,7 @@ Dsymbols *Parser::parseAutoDeclarations(StorageClass storageClass, const utf8_t 
  * Parse contracts following function declaration.
  */
 
-void Parser::parseContracts(FuncDeclaration *f)
+FuncDeclaration *Parser::parseContracts(FuncDeclaration *f)
 {
     LINK linksave = linkage;
 
@@ -3682,6 +3750,8 @@ L1:
     }
 
     linkage = linksave;
+
+    return f;
 }
 
 /*****************************************
@@ -6315,7 +6385,7 @@ Expression *Parser::parsePrimaryExp()
                     // (parameters) => expression
                     // (parameters) { statements... }
                     parameters = parseParameters(&varargs, &tpl);
-                    stc = parsePostfix();
+                    stc = parsePostfix(NULL);
                     if (stc & (STCconst | STCimmutable | STCshared | STCwild))
                         error("const/immutable/shared/inout attributes are only valid for non-static member functions");
                     break;
