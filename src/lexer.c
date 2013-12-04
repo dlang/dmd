@@ -1957,249 +1957,128 @@ unsigned Lexer::wchar(unsigned u)
 
 TOK Lexer::number(Token *t)
 {
-    // We use a state machine to collect numbers
-    enum STATE { STATE_initial, STATE_0, STATE_decimal, STATE_octal, STATE_octale,
-        STATE_hex, STATE_binary, STATE_hex0, STATE_binary0,
-        STATE_hexh, STATE_error };
-    enum STATE state;
-
-    enum FLAGS
-    {   FLAGS_decimal  = 1,             // decimal
-        FLAGS_unsigned = 2,             // u or U suffix
-        FLAGS_long     = 4,             // l or L suffix
-    };
-    enum FLAGS flags = FLAGS_decimal;
-
-    int base;
-    unsigned c;
-    unsigned char *start;
-    TOK result;
-
-    //printf("Lexer::number()\n");
-    state = STATE_initial;
-    base = 0;
+    int base = 10;
     stringbuffer.reset();
-    start = p;
-    while (1)
+    unsigned char *start = p;
+    unsigned c;
+
+    c = *p;
+    if (c == '0')
     {
+        stringbuffer.writeByte(c);
+        ++p;
         c = *p;
-        switch (state)
+        switch (c)
         {
-            case STATE_initial:         // opening state
-                if (c == '0')
-                    state = STATE_0;
-                else
-                    state = STATE_decimal;
+            case '0': case '1': case '2': case '3':
+            case '4': case '5': case '6': case '7':
+                stringbuffer.writeByte(c);
+                ++p;
+                base = 8;
                 break;
 
-            case STATE_0:
-                flags = (FLAGS) (flags & ~FLAGS_decimal);
-                switch (c)
-                {
-#if ZEROH
-                    case 'H':                   // 0h
-                    case 'h':
-                        goto hexh;
-#endif
-                    case 'X':
-                    case 'x':
-                        state = STATE_hex0;
-                        break;
-
-                    case '.':
-                        if (p[1] == '.')        // .. is a separate token
-                            goto done;
-                    case 'i':
-                    case 'f':
-                    case 'F':
-                        goto real;
-#if ZEROH
-                    case 'E':
-                    case 'e':
-                        goto case_hex;
-#endif
-                    case 'B':
-                    case 'b':
-                        state = STATE_binary0;
-                        break;
-
-                    case '0': case '1': case '2': case '3':
-                    case '4': case '5': case '6': case '7':
-                        state = STATE_octal;
-                        break;
-
-#if ZEROH
-                    case '8': case '9': case 'A':
-                    case 'C': case 'D': case 'F':
-                    case 'a': case 'c': case 'd': case 'f':
-                    case_hex:
-                        state = STATE_hexh;
-                        break;
-#endif
-                    case '_':
-                        state = STATE_octal;
-                        p++;
-                        continue;
-
-                    case 'L':
-                        if (p[1] == 'i')
-                            goto real;
-                        goto done;
-
-                    default:
-                        goto done;
-                }
+            case 'x':
+            case 'X':
+                stringbuffer.writeByte(c);
+                ++p;
+                base = 16;
                 break;
 
-            case STATE_decimal:         // reading decimal number
-                if (!isdigit(c))
-                {
-#if ZEROH
-                    if (ishex(c)
-                        || c == 'H' || c == 'h'
-                       )
-                        goto hexh;
-#endif
-                    if (c == '_')               // ignore embedded _
-                    {   p++;
-                        continue;
-                    }
-                    if (c == '.' && p[1] != '.')
-                    {
-#if DMDV2
-                        if (isalpha(p[1]) || p[1] == '_')
-                            goto done;
-#endif
-                        goto real;
-                    }
-                    else if (c == 'i' || c == 'f' || c == 'F' ||
-                             c == 'e' || c == 'E')
-                    {
-            real:       // It's a real number. Back up and rescan as a real
-                        p = start;
-                        return inreal(t);
-                    }
-                    else if (c == 'L' && p[1] == 'i')
-                        goto real;
-                    goto done;
-                }
+            case 'b':
+            case 'B':
+                stringbuffer.writeByte(c);
+                ++p;
+                base = 2;
                 break;
 
-            case STATE_hex0:            // reading hex number
-            case STATE_hex:
-                if (!ishex(c))
-                {
-                    if (c == '_')               // ignore embedded _
-                    {   p++;
-                        continue;
-                    }
-                    if (c == '.' && p[1] != '.')
-                        goto real;
-                    if (c == 'P' || c == 'p' || c == 'i')
-                        goto real;
-                    if (state == STATE_hex0)
-                        error("Hex digit expected, not '%c'", c);
-                    goto done;
-                }
-                state = STATE_hex;
+            case '.':
+                if (p[1] == '.')        // .. is a separate token
+                    goto Ldone;
+            case 'i':
+            case 'f':
+            case 'F':
+                goto Lreal;
+
+            case '_':
+                ++p;
+                base = 8;
                 break;
 
-#if ZEROH
-            hexh:
-                state = STATE_hexh;
-            case STATE_hexh:            // parse numbers like 0FFh
-                if (!ishex(c))
-                {
-                    if (c == 'H' || c == 'h')
-                    {
-                        p++;
-                        base = 16;
-                        goto done;
-                    }
-                    else
-                    {
-                        // Check for something like 1E3 or 0E24
-                        if (memchr((char *)stringbuffer.data, 'E', stringbuffer.offset) ||
-                            memchr((char *)stringbuffer.data, 'e', stringbuffer.offset))
-                            goto real;
-                        error("Hex digit expected, not '%c'", c);
-                        goto done;
-                    }
-                }
-                break;
-#endif
-
-            case STATE_octal:           // reading octal number
-            case STATE_octale:          // reading octal number with non-octal digits
-                if (!isoctal(c))
-                {
-#if ZEROH
-                    if (ishex(c)
-                        || c == 'H' || c == 'h'
-                       )
-                        goto hexh;
-#endif
-                    if (c == '_')               // ignore embedded _
-                    {   p++;
-                        continue;
-                    }
-                    if (c == '.' && p[1] != '.')
-                        goto real;
-                    if (c == 'i')
-                        goto real;
-                    if (isdigit(c))
-                    {
-                        state = STATE_octale;
-                    }
-                    else
-                        goto done;
-                }
-                break;
-
-            case STATE_binary0:         // starting binary number
-            case STATE_binary:          // reading binary number
-                if (c != '0' && c != '1')
-                {
-#if ZEROH
-                    if (ishex(c)
-                        || c == 'H' || c == 'h'
-                       )
-                        goto hexh;
-#endif
-                    if (c == '_')               // ignore embedded _
-                    {   p++;
-                        continue;
-                    }
-                    if (state == STATE_binary0)
-                    {   error("binary digit expected");
-                        state = STATE_error;
-                        break;
-                    }
-                    else
-                        goto done;
-                }
-                state = STATE_binary;
-                break;
-
-            case STATE_error:           // for error recovery
-                if (!isdigit(c))        // scan until non-digit
-                    goto done;
+            case 'L':
+                if (p[1] == 'i')
+                    goto Lreal;
                 break;
 
             default:
-                assert(0);
+                break;
+        }
+    }
+
+    while (1)
+    {
+        c = *p;
+        switch (c)
+        {
+            case '0': case '1':
+                ++p;
+                break;
+
+            case '2': case '3':
+            case '4': case '5': case '6': case '7':
+                if (base == 2)
+                    error("binary digit expected");
+                ++p;
+                break;
+
+            case '8': case '9':
+                ++p;
+                if (base < 10)
+                    error("radix %d digit expected", base);
+                break;
+
+            case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
+            case 'A': case 'B': case 'C': case 'D': case 'E': case 'F':
+                ++p;
+                if (base != 16)
+                {
+                    if (c == 'e' || c == 'E' || c == 'f' || c == 'F')
+                        goto Lreal;
+                    error("radix %d digit expected", base);
+                }
+                break;
+
+            case 'L':
+                if (p[1] == 'i')
+                    goto Lreal;
+                goto Ldone;
+
+            case '.':
+                if (p[1] == '.')
+                    goto Ldone;
+            case 'p':
+            case 'P':
+            case 'i':
+            Lreal:
+                p = start;
+                return inreal(t);
+
+            case '_':
+                ++p;
+                continue;
+
+            default:
+                goto Ldone;
         }
         stringbuffer.writeByte(c);
-        p++;
     }
-done:
-    stringbuffer.writeByte(0);          // terminate string
-    if (state == STATE_octale)
-        error("Octal digit expected");
 
+Ldone:
+    stringbuffer.writeByte(0);          // terminate string
+
+    TOK result;
     uinteger_t n;                       // unsigned >=64 bit integer type
 
-    if (stringbuffer.offset == 2 && (state == STATE_decimal || state == STATE_0))
+    if (stringbuffer.offset == 2 && base <= 10)
         n = stringbuffer.data[0] - '0';
     else
     {
@@ -2255,6 +2134,16 @@ done:
     }
 
     // Parse trailing 'u', 'U', 'l' or 'L' in any combination
+
+    enum FLAGS
+    {
+        FLAGS_none     = 0,
+        FLAGS_decimal  = 1,             // decimal
+        FLAGS_unsigned = 2,             // u or U suffix
+        FLAGS_long     = 4,             // L suffix
+    };
+    enum FLAGS flags = (base == 10) ? FLAGS_decimal : FLAGS_none;
+
     const unsigned char *psuffix = p;
     while (1)
     {   unsigned char f;
@@ -2282,10 +2171,11 @@ done:
     }
 
 #if DMDV2
-    if (state == STATE_octal && n >= 8)
+    if (base == 8 && n >= 8)
         deprecation("octal literals 0%llo%.*s are deprecated, use std.conv.octal!%llo%.*s instead",
                 n, p - psuffix, psuffix, n, p - psuffix, psuffix);
 #endif
+
 
     switch (flags)
     {
