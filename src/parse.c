@@ -176,23 +176,35 @@ Lerr:
 
 Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
 {
-    Dsymbol *s;
-    Dsymbols *a;
     PROT prot;
     StorageClass stc;
-    StorageClass storageClass;
     Condition *condition;
-    const utf8_t *comment;
     Dsymbol *lastDecl = NULL;   // used to link unittest to its previous declaration
     if (!pLastDecl)
         pLastDecl = &lastDecl;
+
+    LINK linksave = linkage;    // save global state
 
     //printf("Parser::parseDeclDefs()\n");
     Dsymbols *decldefs = new Dsymbols();
     do
     {
-        comment = token.blockComment;
-        storageClass = STCundefined;
+        // parse result
+        Dsymbol *s = NULL;
+        Dsymbols *a = NULL;
+        const utf8_t *comment = token.blockComment;
+
+        // For complex attributes
+        StorageClass storageClass = STCundefined;
+        Expression *depmsg = NULL;
+        LINK link = LINKdefault;
+        PROT protection = PROTundefined;
+        unsigned alignment = 0;
+        Expressions *udas = NULL;
+
+        linkage = linksave;
+
+    Lagain:
         switch (token.value)
         {
             case TOKenum:
@@ -219,8 +231,8 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
 
             case TOKimport:
                 a = parseImport();
-                decldefs->append(a);
-                continue;
+                // keep pLastDecl
+                break;
 
             case TOKtemplate:
                 s = (Dsymbol *)parseTemplateDeclaration();
@@ -279,9 +291,9 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
             case TOKinterface:
             Ldeclaration:
                 a = parseDeclarations(STCundefined, NULL);
-                if (a->dim) *pLastDecl = (*a)[a->dim-1];
-                decldefs->append(a);
-                continue;
+                if (a && a->dim)
+                    *pLastDecl = (*a)[a->dim-1];
+                break;
 
             case TOKthis:
                 if (peekNext() == TOKdot)
@@ -321,7 +333,8 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
 
             case TOKunittest:
                 s = parseUnitTest();
-                if (*pLastDecl) (*pLastDecl)->ddocUnittest = (UnitTestDeclaration *)s;
+                if (*pLastDecl)
+                    (*pLastDecl)->ddocUnittest = (UnitTestDeclaration *)s;
                 break;
 
             case TOKnew:
@@ -332,8 +345,24 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
                 s = parseDelete();
                 break;
 
-            case TOKeof:
+            case TOKcolon:
+            case TOKlcurly:
+                if (storageClass != STCundefined ||
+                    depmsg != NULL ||
+                    link != LINKdefault ||
+                    protection != PROTundefined ||
+                    alignment != 0 ||
+                    udas != NULL)
+                {
+                    a = parseBlock(pLastDecl);
+                    // keep pLastDecl
+                    break;
+                }
+                error("Declaration expected, not '%s'",token.toChars());
+                goto Lerror;
+
             case TOKrcurly:
+            case TOKeof:
                 if (once)
                     error("Declaration expected, not '%s'", token.toChars());
                 return decldefs;
@@ -373,14 +402,12 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
                 else if (next == TOKimport)
                 {
                     a = parseImport();
-                    decldefs->append(a);
-                    continue;
+                    // keep pLastDecl
                 }
                 else
                 {
-                    nextToken();
                     stc = STCstatic;
-                    goto Lstc2;
+                    goto Lstc;
                 }
                 break;
             }
@@ -444,77 +471,15 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
                 stc = parseAttribute(&exps);
                 if (stc)
                     goto Lstc;                  // it's a predefined attribute
-                a = parseBlock(pLastDecl);
-                s = new UserAttributeDeclaration(exps, a);
-                break;
+                udas = UserAttributeDeclaration::concat(udas, exps);
+                goto Lagain;
             }
-
             Lstc:
                 if (storageClass & stc)
                     error("redundant storage class '%s'", Token::toChars(token.value));
                 composeStorageClass(storageClass | stc);
-                nextToken();
-            Lstc2:
                 storageClass |= stc;
-                switch (token.value)
-                {
-                    case TOKshared:
-                        // Look for "shared static this" or "shared static ~this"
-                        if (peekNext() == TOKstatic)
-                        {
-                            TOK next2 = peekNext2();
-                            if (next2 == TOKthis || next2 == TOKtilde)
-                                break;
-                        }
-                    case TOKconst:
-                    case TOKinvariant:
-                    case TOKimmutable:
-                    case TOKwild:
-                        // If followed by a (, it is not a storage class
-                        if (peek(&token)->value == TOKlparen)
-                            break;
-                        if (token.value == TOKconst)
-                            stc = STCconst;
-                        else if (token.value == TOKshared)
-                            stc = STCshared;
-                        else if (token.value == TOKwild)
-                            stc = STCwild;
-                        else
-                        {
-                            if (token.value == TOKinvariant)
-                                error("use 'immutable' instead of 'invariant'");
-                            stc = STCimmutable;
-                        }
-                        goto Lstc;
-                    case TOKdeprecated:
-                        if (peek(&token)->value == TOKlparen)
-                            break;
-                        stc = STCdeprecated;
-                        goto Lstc;
-                    case TOKfinal:        stc = STCfinal;        goto Lstc;
-                    case TOKvirtual:      stc = STCvirtual;      goto Lstc;
-                    case TOKauto:         stc = STCauto;         goto Lstc;
-                    case TOKscope:        stc = STCscope;        goto Lstc;
-                    case TOKoverride:     stc = STCoverride;     goto Lstc;
-                    case TOKabstract:     stc = STCabstract;     goto Lstc;
-                    case TOKsynchronized: stc = STCsynchronized; goto Lstc;
-                    case TOKnothrow:      stc = STCnothrow;      goto Lstc;
-                    case TOKpure:         stc = STCpure;         goto Lstc;
-                    case TOKref:          stc = STCref;          goto Lstc;
-                    case TOKgshared:      stc = STCgshared;      goto Lstc;
-                    //case TOKmanifest:   stc = STCmanifest;     goto Lstc;
-                    case TOKat:
-                    {
-                        Expressions *udas = NULL;
-                        stc = parseAttribute(&udas);
-                        if (udas)
-                            // BUG: Should fix this
-                            error("user defined attributes must be first");
-                        goto Lstc;
-                    }
-                    default:
-                        break;
-                }
+                nextToken();
 
                 Token *tk;
 
@@ -527,9 +492,10 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
                     tk->value == TOKassign)
                 {
                     a = parseAutoDeclarations(storageClass, comment);
-                    if (a->dim) *pLastDecl = (*a)[a->dim-1];
-                    decldefs->append(a);
-                    continue;
+                    storageClass = STCundefined;
+                    if (a && a->dim)
+                        *pLastDecl = (*a)[a->dim-1];
+                    break;
                 }
 
                 /* Look for return type inference for template functions.
@@ -545,13 +511,12 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
                    )
                 {
                     a = parseDeclarations(storageClass, comment);
-                    if (a->dim) *pLastDecl = (*a)[a->dim-1];
-                    decldefs->append(a);
-                    continue;
+                    storageClass = STCundefined;
+                    if (a && a->dim)
+                        *pLastDecl = (*a)[a->dim-1];
+                    break;
                 }
-                a = parseBlock(pLastDecl);
-                s = new StorageClassDeclaration(storageClass, a);
-                break;
+                goto Lagain;
 
             case TOKdeprecated:
             {
@@ -564,18 +529,18 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
                 check(TOKlparen);
                 Expression *e = parseAssignExp();
                 check(TOKrparen);
-                a = parseBlock(pLastDecl);
-                s = new DeprecatedDeclaration(e, a);
-                break;
+                if (depmsg)
+                    error("conflicting storage class 'deprecated(%s)' and 'deprecated(%s)'", e->toChars(), depmsg->toChars());
+                depmsg = e;
+                goto Lagain;
             }
 
             case TOKlbracket:
             {
                 warning(token.loc, "use @(attributes) instead of [attributes]");
                 Expressions *exps = parseArguments();
-                a = parseBlock(pLastDecl);
-                s = new UserAttributeDeclaration(exps, a);
-                break;
+                udas = UserAttributeDeclaration::concat(udas, exps);
+                goto Lagain;
             }
 
             case TOKextern:
@@ -585,12 +550,12 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
                     stc = STCextern;
                     goto Lstc;
                 }
-                LINK linksave = linkage;
-                linkage = parseLinkage();
-                a = parseBlock(pLastDecl);
-                s = new LinkDeclaration(linkage, a);
-                linkage = linksave;
-                break;
+                LINK l = parseLinkage();
+                if (link != LINKdefault)
+                    error("conflicting storage class 'extern(%d)' and 'extern(%d)'", l, link);
+                link = l;
+                linkage = l;
+                goto Lagain;
             }
 
             case TOKprivate:    prot = PROTprivate;     goto Lprot;
@@ -599,21 +564,11 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
             case TOKpublic:     prot = PROTpublic;      goto Lprot;
             case TOKexport:     prot = PROTexport;      goto Lprot;
             Lprot:
+                if (protection != PROTundefined)
+                    error("redundant protection attribute '%s'", Token::toChars(token.value));
                 nextToken();
-                switch (token.value)
-                {
-                    case TOKprivate:
-                    case TOKpackage:
-                    case TOKprotected:
-                    case TOKpublic:
-                    case TOKexport:
-                        error("redundant protection attribute");
-                        break;
-                    default: break;
-                }
-                a = parseBlock(pLastDecl);
-                s = new ProtDeclaration(prot, a);
-                break;
+                protection = prot;
+                goto Lagain;
 
             case TOKalign:
             {
@@ -640,9 +595,10 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
                 else
                     n = STRUCTALIGN_DEFAULT;             // default
 
-                a = parseBlock(pLastDecl);
-                s = new AlignDeclaration(n, a);
-                break;
+                if (alignment != 0)
+                    error("conflict alignment attribute align(%d) and align(%d)", n, alignment);
+                alignment = n;
+                goto Lagain;
             }
 
             case TOKpragma:
@@ -756,14 +712,63 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
                 s = NULL;
                 continue;
         }
+
+        if (s)
+        {
+            if (!s->isAttribDeclaration())
+                *pLastDecl = s;
+        }
+
+        if (storageClass != STCundefined)
+        {
+            if (s)
+                a = new Dsymbols(), a->push(s);
+            s = new StorageClassDeclaration(storageClass, a);
+        }
+        if (depmsg)
+        {
+            if (s)
+                a = new Dsymbols(), a->push(s);
+            s = new DeprecatedDeclaration(depmsg, a);
+        }
+        if (link != LINKdefault)
+        {
+            if (s)
+                a = new Dsymbols(), a->push(s);
+            s = new LinkDeclaration(link, a);
+        }
+        if (protection != PROTundefined)
+        {
+            if (s)
+                a = new Dsymbols(), a->push(s);
+            s = new ProtDeclaration(protection, a);
+        }
+        if (alignment != 0)
+        {
+            if (s)
+                a = new Dsymbols(), a->push(s);
+            s = new AlignDeclaration(alignment, a);
+        }
+        if (udas)
+        {
+            if (s)
+                a = new Dsymbols(), a->push(s);
+            s = new UserAttributeDeclaration(udas, a);
+        }
+
         if (s)
         {
             decldefs->push(s);
             addComment(s, comment);
-            if (!s->isAttribDeclaration())
-                *pLastDecl = s;
+        }
+        else if (a && a->dim)
+        {
+            decldefs->append(a);
         }
     } while (!once);
+
+    linkage = linksave;
+
     return decldefs;
 }
 

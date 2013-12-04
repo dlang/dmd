@@ -381,6 +381,27 @@ static assert(__traits(getAttributes, x10208_13)[0] == 130); // Error -> OK
 static assert(__traits(getAttributes, x10208_14)[0] == 140); // Error -> OK
 
 /************************************************/
+// 11677
+
+bool test_uda(alias func)() @safe
+{
+    alias Tuple!(__traits(getAttributes, func)) udas;
+    static assert([udas] == [10, 20]);
+
+    func(); // @safe attribute check
+
+    return true;
+}
+
+@(10) @(20) @safe void func11677a() {}  // OK
+@safe @(10) @(20) void func11677b() {}  // OK <- NG
+@(10) @safe @(20) void func11677c() {}  // OK <- NG
+
+static assert(test_uda!func11677a());
+static assert(test_uda!func11677b());
+static assert(test_uda!func11677c());
+
+/************************************************/
 // 11844
 
 auto make_encode11844(T, string name)()
