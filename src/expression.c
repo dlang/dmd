@@ -10002,6 +10002,8 @@ Expression *CastExp::semantic(Scope *sc)
 
         if (tob->ty == Tclass && t1b->isTypeBasic())
             goto Lfail;
+        if (tob->isTypeBasic() && t1b->ty == Tclass)
+            goto Lfail;
     }
     else if (!to)
     {   error("cannot cast tuple");
