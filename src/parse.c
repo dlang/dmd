@@ -290,7 +290,7 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
             case TOKclass:
             case TOKinterface:
             Ldeclaration:
-                a = parseDeclarations(STCundefined, NULL);
+                a = parseDeclarations(false, STCundefined, NULL);
                 if (a && a->dim)
                     *pLastDecl = (*a)[a->dim-1];
                 break;
@@ -472,7 +472,7 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
                 if (stc)
                     goto Lstc;                  // it's a predefined attribute
                 udas = UserAttributeDeclaration::concat(udas, exps);
-                goto Lagain;
+                goto Lautodecl;
             }
             Lstc:
                 if (storageClass & stc)
@@ -481,6 +481,7 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
                 storageClass |= stc;
                 nextToken();
 
+            Lautodecl:
                 Token *tk;
 
                 /* Look for auto initializers:
@@ -510,7 +511,7 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
                      tk->value == TOKbody)
                    )
                 {
-                    a = parseDeclarations(storageClass, comment);
+                    a = parseDeclarations(true, storageClass, comment);
                     storageClass = STCundefined;
                     if (a && a->dim)
                         *pLastDecl = (*a)[a->dim-1];
@@ -3072,7 +3073,7 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident,
  * Return array of Declaration *'s.
  */
 
-Dsymbols *Parser::parseDeclarations(StorageClass storage_class, const utf8_t *comment)
+Dsymbols *Parser::parseDeclarations(bool autodecl, StorageClass storage_class, const utf8_t *comment)
 {
     StorageClass stc;
     Type *ts;
@@ -3090,8 +3091,9 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, const utf8_t *co
     if (!comment)
         comment = token.blockComment;
 
-    if (storage_class)
-    {   ts = NULL;              // infer type
+    if (autodecl)
+    {
+        ts = NULL;              // infer type
         goto L2;
     }
 
@@ -3199,7 +3201,6 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, const utf8_t *co
         default: break;
     }
 
-    storage_class = STCundefined;
     while (1)
     {
         switch (token.value)
@@ -3336,7 +3337,7 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, const utf8_t *co
      *  storage_class identifier = initializer;
      *  storage_class identifier(...) = initializer;
      */
-    if (storage_class &&
+    if ((storage_class || udas) &&
         token.value == TOKidentifier &&
         skipParensIf(peek(&token), &tk) &&
         tk->value == TOKassign)
@@ -3353,7 +3354,7 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, const utf8_t *co
 
     /* Look for return type inference for template functions.
      */
-    if (storage_class &&
+    if ((storage_class || udas) &&
         token.value == TOKidentifier &&
         skipParens(peek(&token), &tk) &&
         skipAttributes(tk, &tk) &&
@@ -4198,7 +4199,7 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
         case TOKinterface:
         Ldeclaration:
         {
-            Dsymbols *a = parseDeclarations(STCundefined, NULL);
+            Dsymbols *a = parseDeclarations(false, STCundefined, NULL);
             if (a->dim > 1)
             {
                 Statements *as = new Statements();
