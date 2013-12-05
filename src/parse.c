@@ -4020,6 +4020,7 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
         case TOKimmutable:
         case TOKshared:
         case TOKwild:
+        case TOKdeprecated:
         case TOKnothrow:
         case TOKpure:
         case TOKref:
