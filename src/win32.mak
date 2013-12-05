@@ -176,8 +176,9 @@ BACKOBJ= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
 GCOBJS=rmem.obj
 # Removed garbage collector (look in history)
 #GCOBJS=dmgcmem.obj bits.obj win32.obj gc.obj
-ROOTOBJS= man.obj root.obj port.obj \
-	stringtable.obj response.obj async.obj speller.obj aav.obj \
+ROOTOBJS= man.obj port.obj \
+	stringtable.obj response.obj async.obj speller.obj aav.obj outbuffer.obj \
+	object.obj filename.obj file.obj \
 	$(GCOBJS)
 
 # D front end
@@ -233,9 +234,10 @@ TKSRCC=	$(TK)\filespec.c $(TK)\mem.c $(TK)\vec.c $(TK)\list.c
 TKSRC= $(TK)\filespec.h $(TK)\mem.h $(TK)\list.h $(TK)\vec.h $(TKSRCC)
 
 # Root package
-ROOTSRCC=$(ROOT)\root.c $(ROOT)\rmem.c $(ROOT)\stringtable.c \
+ROOTSRCC=$(ROOT)\rmem.c $(ROOT)\stringtable.c \
 	$(ROOT)\man.c $(ROOT)\port.c $(ROOT)\async.c $(ROOT)\response.c \
-	$(ROOT)\speller.c $(ROOT)\aav.c $(ROOT)\longdouble.c $(ROOT)\dmgcmem.c
+	$(ROOT)\speller.c $(ROOT)\aav.c $(ROOT)\longdouble.c $(ROOT)\dmgcmem.c \
+	$(ROOT)\outbuffer.c $(ROOT)\object.c $(ROOT)\filename.c $(ROOT)\file.c
 ROOTSRC= $(ROOT)\root.h \
 	$(ROOT)\rmem.h $(ROOT)\port.h \
 	$(ROOT)\stringtable.h \
@@ -243,6 +245,11 @@ ROOTSRC= $(ROOT)\root.h \
 	$(ROOT)\speller.h \
 	$(ROOT)\aav.h \
 	$(ROOT)\longdouble.h \
+	$(ROOT)\outbuffer.h \
+	$(ROOT)\object.h \
+	$(ROOT)\filename.h \
+	$(ROOT)\file.h \
+	$(ROOT)\array.h \
 	$(ROOTSRCC)
 # Removed garbage collector bits (look in history)
 #	$(ROOT)\gc\bits.c $(ROOT)\gc\gc.c $(ROOT)\gc\gc.h $(ROOT)\gc\mscbitops.h \
@@ -644,9 +651,6 @@ rmem.obj : $(ROOT)\rmem.c
 port.obj : $(ROOT)\port.c
 	$(CC) -c $(CFLAGS) $(ROOT)\port.c
 
-root.obj : $(ROOT)\root.c
-	$(CC) -c $(CFLAGS) $(ROOT)\root.c
-
 response.obj : $(ROOT)\response.c
 	$(CC) -c $(CFLAGS) $(ROOT)\response.c
 
@@ -655,6 +659,18 @@ speller.obj : $(ROOT)\speller.h $(ROOT)\speller.c
 
 stringtable.obj : $(ROOT)\stringtable.c
 	$(CC) -c $(CFLAGS) $(ROOT)\stringtable.c
+
+outbuffer.obj : $(ROOT)\outbuffer.c
+	$(CC) -c $(CFLAGS) $(ROOT)\outbuffer.c
+
+object.obj : $(ROOT)\object.c
+	$(CC) -c $(CFLAGS) $(ROOT)\object.c
+
+filename.obj : $(ROOT)\filename.c
+	$(CC) -c $(CFLAGS) $(ROOT)\filename.c
+
+file.obj : $(ROOT)\file.c
+	$(CC) -c $(CFLAGS) $(ROOT)\file.c
 
 # Root/GC -- Removed (look in history)
 #
