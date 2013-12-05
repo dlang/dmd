@@ -32,23 +32,53 @@ version( Windows )
 }
 else version( linux )
 {
-    struct fenv_t
+    // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/x86/fpu/bits/fenv.h
+    version (X86)
     {
-        ushort __control_word;
-        ushort __unused1;
-        ushort __status_word;
-        ushort __unused2;
-        ushort __tags;
-        ushort __unused3;
-        uint   __eip;
-        ushort __cs_selector;
-        ushort __opcode;
-        uint   __data_offset;
-        ushort __data_selector;
-        ushort __unused5;
-    }
+        struct fenv_t
+        {
+            ushort __control_word;
+            ushort __unused1;
+            ushort __status_word;
+            ushort __unused2;
+            ushort __tags;
+            ushort __unused3;
+            uint   __eip;
+            ushort __cs_selector;
+            ushort __opcode;
+            uint   __data_offset;
+            ushort __data_selector;
+            ushort __unused5;
+        }
 
-    alias int fexcept_t;
+        alias fexcept_t = ushort;
+    }
+    // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/x86/fpu/bits/fenv.h
+    else version (X86_64)
+    {
+        struct fenv_t
+        {
+            ushort __control_word;
+            ushort __unused1;
+            ushort __status_word;
+            ushort __unused2;
+            ushort __tags;
+            ushort __unused3;
+            uint   __eip;
+            ushort __cs_selector;
+            ushort __opcode;
+            uint   __data_offset;
+            ushort __data_selector;
+            ushort __unused5;
+            uint   __mxcsr;
+        }
+
+        alias fexcept_t = ushort;
+    }
+    else
+    {
+        static assert(0, "Unimplemented architecture");
+    }
 }
 else version ( OSX )
 {
