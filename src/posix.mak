@@ -91,7 +91,7 @@ DMD_OBJS = \
 	identifier.o impcnvtab.o import.o inifile.o init.o inline.o \
 	lexer.o link.o mangle.o mars.o rmem.o module.o msc.o mtype.o \
 	nteh.o cppmangle.o opover.o optimize.o os.o out.o outbuf.o \
-	parse.o ph2.o root.o rtlsym.o s2ir.o scope.o statement.o \
+	parse.o ph2.o rtlsym.o s2ir.o scope.o statement.o \
 	stringtable.o struct.o csymbol.o template.o tk.o tocsym.o todt.o \
 	type.o typinf.o util2.o var.o version.o strtold.o utf.o staticassert.o \
 	toobj.o toctype.o toelfdebug.o entity.o doc.o macro.o \
@@ -100,7 +100,7 @@ DMD_OBJS = \
 	man.o arrayop.o port.o response.o async.o json.o speller.o aav.o unittests.o \
 	imphint.o argtypes.o ti_pvoid.o apply.o sapply.o sideeffect.o \
 	intrange.o canthrow.o target.o \
-	pdata.o cv8.o backconfig.o divcoeff.o \
+	pdata.o cv8.o backconfig.o divcoeff.o outbuffer.o object.o filename.o file.o \
 	$(TARGET_OBJS)
 
 ifeq (OSX,$(OS))
@@ -152,7 +152,8 @@ SRC = win32.mak posix.mak \
 	$C/ph2.c $C/util2.c \
 	$(TK)/filespec.h $(TK)/mem.h $(TK)/list.h $(TK)/vec.h \
 	$(TK)/filespec.c $(TK)/mem.c $(TK)/vec.c $(TK)/list.c \
-	$(ROOT)/root.h $(ROOT)/root.c \
+	$(ROOT)/root.h \
+	$(ROOT)/arrah.h \
 	$(ROOT)/rmem.h $(ROOT)/rmem.c $(ROOT)/port.h $(ROOT)/port.c \
 	$(ROOT)/man.c \
 	$(ROOT)/stringtable.h $(ROOT)/stringtable.c \
@@ -160,6 +161,10 @@ SRC = win32.mak posix.mak \
 	$(ROOT)/aav.h $(ROOT)/aav.c \
 	$(ROOT)/longdouble.h $(ROOT)/longdouble.c \
 	$(ROOT)/speller.h $(ROOT)/speller.c \
+	$(ROOT)/outbuffer.h $(ROOT)/outbuffer.c \
+	$(ROOT)/object.h $(ROOT)/object.c \
+	$(ROOT)/filename.h $(ROOT)/filename.c \
+	$(ROOT)/file.h $(ROOT)/file.c \
 	$(TARGET_CH)
 
 
@@ -401,6 +406,12 @@ evalu8.o: $C/evalu8.c
 expression.o: expression.c expression.h
 	$(CC) -c $(CFLAGS) $<
 
+file.o : $(ROOT)/file.c $(ROOT)/file.h
+	$(CC) -c $(CFLAGS) -I$(ROOT) $<
+
+filename.o : $(ROOT)/filename.c  $(ROOT)/filename.h
+	$(CC) -c $(CFLAGS) -I$(ROOT) $<
+
 func.o: func.c
 	$(CC) -c $(CFLAGS) $<
 
@@ -515,6 +526,9 @@ mtype.o: mtype.c
 nteh.o: $C/nteh.c $C/rtlsym.h
 	$(CC) -c $(MFLAGS) $<
 
+object.o : $(ROOT)/object.c $(ROOT)/object.h
+	$(CC) -c $(CFLAGS) -I$(ROOT) $<
+
 opover.o: opover.c
 	$(CC) -c $(CFLAGS) $<
 
@@ -529,6 +543,9 @@ out.o: $C/out.c
 
 outbuf.o: $C/outbuf.c $C/outbuf.h
 	$(CC) -c $(MFLAGS) $<
+
+outbuffer.o : $(ROOT)/outbuffer.c $(ROOT)/outbuffer.h
+	$(CC) -c $(CFLAGS) -I$(ROOT) $<
 
 parse.o: parse.c
 	$(CC) -c $(CFLAGS) $<
@@ -549,9 +566,6 @@ ptrntab.o: $C/ptrntab.c $C/iasm.h
 	$(CC) -c $(MFLAGS) $<
 
 response.o: $(ROOT)/response.c
-	$(CC) -c $(GFLAGS) -I$(ROOT) $<
-
-root.o: $(ROOT)/root.c
 	$(CC) -c $(GFLAGS) -I$(ROOT) $<
 
 rtlsym.o: $C/rtlsym.c $C/rtlsym.h
