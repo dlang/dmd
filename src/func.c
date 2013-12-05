@@ -4529,13 +4529,9 @@ void InvariantDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 static Identifier *unitTestId(Loc loc)
 {
-    char name[24];
-#if __DMC__ || _MSC_VER
-    _snprintf(name, 24, "__unittestL%u_", loc.linnum);
-#else
-    snprintf(name, 24, "__unittestL%u_", loc.linnum);
-#endif
-    return Lexer::uniqueId(name);
+    OutBuffer buf;
+    buf.printf("__unittestL%u_", loc.linnum);
+    return Lexer::uniqueId(buf.toChars());
 }
 
 UnitTestDeclaration::UnitTestDeclaration(Loc loc, Loc endloc, char *codedoc)
