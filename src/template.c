@@ -7589,7 +7589,7 @@ void TemplateMixin::semantic(Scope *sc)
     for (size_t i = 0; i < members->dim; i++)
     {
         Dsymbol *s = (*members)[i];
-        s->addMember(argscope, this, i);
+        s->addMember(argscope, this, i != 0);
         //printf("sc->parent = %p, sc->scopesym = %p\n", sc->parent, sc->scopesym);
         //printf("s->parent = %s\n", s->parent->toChars());
     }
