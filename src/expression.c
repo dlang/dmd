@@ -2802,7 +2802,7 @@ void IntegerExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
                 }
             case Tchar:
             {
-                unsigned o = buf->offset;
+                size_t o = buf->offset;
                 if (v == '\'')
                     buf->writestring("'\\''");
                 else if (isprint((int)v) && v != '\\')
@@ -3089,8 +3089,8 @@ void realToMangleBuffer(OutBuffer *buf, real_t value)
     else
     {
         char buffer[36];
-        int n = ld_sprint(buffer, 'A', value);
-        assert(n > 0 && n < sizeof(buffer) / sizeof(buffer[0]));
+        size_t n = ld_sprint(buffer, 'A', value);
+        assert(n < sizeof(buffer) / sizeof(buffer[0]));
         for (int i = 0; i < n; i++)
         {   char c = buffer[i];
 
@@ -4161,7 +4161,7 @@ unsigned StringExp::charAt(uinteger_t i)
 void StringExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writeByte('"');
-    unsigned o = buf->offset;
+    size_t o = buf->offset;
     for (size_t i = 0; i < len; i++)
     {   unsigned c = charAt(i);
 
@@ -6011,7 +6011,7 @@ void FuncExp::genIdent(Scope *sc)
             symtab = sc->parent->isScopeDsymbol()->symtab;
         L1:
             assert(symtab);
-            int num = _aaLen(symtab->tab) + 1;
+            int num = (int)_aaLen(symtab->tab) + 1;
             Identifier *id = Lexer::uniqueId(s, num);
             fd->ident = id;
             if (td) td->ident = id;
@@ -10153,7 +10153,7 @@ Expression *VectorExp::semantic(Scope *sc)
     assert(tb->ty == Tvector);
     TypeVector *tv = (TypeVector *)tb;
     Type *te = tv->elementType();
-    dim = (size_t)(tv->size(loc) / te->size(loc));
+    dim = (int)(tv->size(loc) / te->size(loc));
     return this;
 }
 
