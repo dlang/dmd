@@ -941,7 +941,7 @@ Expression *Cmp(TOK op, Type *type, Expression *e1, Expression *e2)
 
         int cmp = memcmp(es1->string, es2->string, sz * len);
         if (cmp == 0)
-            cmp = es1->len - es2->len;
+            cmp = (int)(es1->len - es2->len);
 
         switch (op)
         {
