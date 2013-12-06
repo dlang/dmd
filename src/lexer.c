@@ -1834,6 +1834,7 @@ TOK Lexer::number(Token *t)
     const utf8_t *start = p;
     unsigned c;
     uinteger_t n = 0;                       // unsigned >=64 bit integer type
+    int d;
 
     c = *p;
     if (c == '0')
@@ -1894,7 +1895,6 @@ TOK Lexer::number(Token *t)
 
     while (1)
     {
-        int d;
         c = *p;
         switch (c)
         {
