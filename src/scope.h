@@ -94,7 +94,7 @@ struct Scope
 
     unsigned callSuper;         // primitive flow analysis for constructors
     unsigned *fieldinit;
-    unsigned fieldinit_dim;
+    size_t fieldinit_dim;
 
     structalign_t structalign;       // alignment for struct members
     LINK linkage;          // linkage for external functions
@@ -110,7 +110,7 @@ struct Scope
     Expressions *userAttributes;        // user defined attributes
 
     DocComment *lastdc;         // documentation comment for last symbol at this scope
-    unsigned lastoffset;        // offset in docbuf of where to insert next dec
+    size_t lastoffset;        // offset in docbuf of where to insert next dec
     OutBuffer *docbuf;          // buffer for documentation output
 
     static Scope *freelist;
