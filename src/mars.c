@@ -256,15 +256,9 @@ void verrorPrint(Loc loc, const char *header, const char *format, va_list ap,
         fprintf(stderr, "%s ", p1);
     if (p2)
         fprintf(stderr, "%s ", p2);
-#if _MSC_VER
-    // MS doesn't recognize %zu format
     OutBuffer tmp;
     tmp.vprintf(format, ap);
-    fprintf(stderr, "%s", tmp.toChars());
-#else
-    vfprintf(stderr, format, ap);
-#endif
-    fprintf(stderr, "\n");
+    fprintf(stderr, "%s\n", tmp.toChars());
     fflush(stderr);
 }
 
