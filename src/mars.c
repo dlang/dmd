@@ -1609,7 +1609,7 @@ Language changes listed by -transition=id:\n\
 
         if (name && name[0] == '-' && name[1] == 0)
         {   // Write to stdout; assume it succeeds
-            int n = fwrite(buf.data, 1, buf.offset, stdout);
+            size_t n = fwrite(buf.data, 1, buf.offset, stdout);
             assert(n == buf.offset);        // keep gcc happy about return values
         }
         else
