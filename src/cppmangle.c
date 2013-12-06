@@ -410,11 +410,17 @@ void TypeTypedef::toCppMangle(OutBuffer *buf, CppMangleState *cms)
 
 void TypeClass::toCppMangle(OutBuffer *buf, CppMangleState *cms)
 {
-    if (!cms->substitute(buf, this))
-    {   buf->writeByte('P');
+    if (!cms->exist(this))
+    {
+        buf->writeByte('P');
+
         if (!cms->substitute(buf, sym))
             cpp_mangle_name(buf, cms, sym);
+
+        cms->store(this);
     }
+    else
+        cms->substitute(buf, this);
 }
 
 struct ArgsCppMangleCtx
