@@ -2105,7 +2105,7 @@ TOK Lexer::inreal(Token *t)
     assert(*p == '.' || isdigit(*p));
 #endif
     stringbuffer.reset();
-    const unsigned char *pstart = p;
+    const utf8_t *pstart = p;
     char hex = 0;
     unsigned c = *p++;
 
