@@ -75,7 +75,7 @@ int ClassReferenceExp::getFieldIndex(Type *fieldtype, unsigned fieldoffset)
         VarDeclaration *v2 = s->isVarDeclaration();
         if (fieldoffset == v2->offset &&
             fieldtype->size() == v2->type->size())
-        {   return value->elements->dim - fieldsSoFar - cd->fields.dim + (j-fieldsSoFar);
+        {   return (int)(value->elements->dim - fieldsSoFar - cd->fields.dim + (j-fieldsSoFar));
         }
     }
     return -1;
@@ -95,7 +95,7 @@ int ClassReferenceExp::findFieldIndexByName(VarDeclaration *v)
         Dsymbol *s = cd->fields[j - fieldsSoFar];
         VarDeclaration *v2 = s->isVarDeclaration();
         if (v == v2)
-        {   return value->elements->dim - fieldsSoFar - cd->fields.dim + (j-fieldsSoFar);
+        {   return (int)(value->elements->dim - fieldsSoFar - cd->fields.dim + (j-fieldsSoFar));
         }
     }
     return -1;
@@ -1468,7 +1468,7 @@ int ctfeRawCmp(Loc loc, Expression *e1, Expression *e2)
         AssocArrayLiteralExp *es1 = (AssocArrayLiteralExp *)e1;
         AssocArrayLiteralExp *es2 = (AssocArrayLiteralExp *)e2;
 
-        int dim = es1->keys->dim;
+        size_t dim = es1->keys->dim;
         if (es2->keys->dim != dim)
             return 1;
 
@@ -1891,7 +1891,7 @@ Expressions *changeOneElement(Expressions *oldelems, size_t indexToChange, Expre
 // Create a new struct literal, which is the same as se except that se.field[offset] = elem
 Expression * modifyStructField(Type *type, StructLiteralExp *se, size_t offset, Expression *newval)
 {
-    int fieldi = se->getFieldIndex(newval->type, offset);
+    int fieldi = se->getFieldIndex(newval->type, (unsigned)offset);
     if (fieldi == -1)
         return EXP_CANT_INTERPRET;
     /* Create new struct literal reflecting updated fieldi
@@ -2193,8 +2193,7 @@ void showCtfeExpr(Expression *e, int level)
         {   Expression *z = NULL;
             Dsymbol *s = NULL;
             if (i > 15) {
-                int nelements = elements->dim;
-                printf("...(total %d elements)\n", nelements);
+                printf("...(total %d elements)\n", (int)elements->dim);
                 return;
             }
             if (sd)
