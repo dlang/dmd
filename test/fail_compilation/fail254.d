@@ -1,11 +1,26 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail254.d(12): Error: integer overflow
-fail_compilation/fail254.d(13): Error: integer overflow
-fail_compilation/fail254.d(14): Error: integer overflow
-fail_compilation/fail254.d(15): Error: integer overflow
-fail_compilation/fail254.d(16): Error: integer overflow
+fail_compilation/fail254.d(27): Error: integer overflow
+fail_compilation/fail254.d(27): Error: integer overflow
+fail_compilation/fail254.d(27): Error: integer overflow
+fail_compilation/fail254.d(27): Error: integer overflow
+fail_compilation/fail254.d(27): Error: integer overflow
+fail_compilation/fail254.d(27): Error: integer overflow
+fail_compilation/fail254.d(27): Error: integer overflow
+fail_compilation/fail254.d(27): Error: integer overflow
+fail_compilation/fail254.d(27): Error: integer overflow
+fail_compilation/fail254.d(27): Error: integer overflow
+fail_compilation/fail254.d(27): Error: integer overflow
+fail_compilation/fail254.d(27): Error: integer overflow
+fail_compilation/fail254.d(27): Error: integer overflow
+fail_compilation/fail254.d(27): Error: integer overflow
+fail_compilation/fail254.d(27): Error: integer overflow
+fail_compilation/fail254.d(27): Error: integer overflow
+fail_compilation/fail254.d(28): Error: integer overflow
+fail_compilation/fail254.d(29): Error: integer overflow
+fail_compilation/fail254.d(30): Error: integer overflow
+fail_compilation/fail254.d(31): Error: integer overflow
 ---
 */
 
