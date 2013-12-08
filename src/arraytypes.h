@@ -24,7 +24,7 @@ typedef Array<class Expression> Expressions;
 
 typedef Array<class Statement> Statements;
 
-typedef Array<class BaseClass> BaseClasses;
+typedef Array<struct BaseClass> BaseClasses;
 
 typedef Array<class ClassDeclaration> ClassDeclarations;
 
