@@ -315,6 +315,10 @@ Expression *TraitsExp::semantic(Scope *sc)
     {
         return isFuncX(&isFuncFinalFunction);
     }
+    else if (ident == Id::isOverrideFunction)
+    {
+        return isFuncX(&isFuncOverrideFunction);
+    }
     else if (ident == Id::isStaticFunction)
     {
         return isFuncX(&isFuncStaticFunction);
@@ -533,6 +537,27 @@ Expression *TraitsExp::semantic(Scope *sc)
         }
         return new IntegerExp(loc, cd->structsize, Type::tsize_t);
     }
+    else if (ident == Id::getAliasThis)
+    {
+        if (dim != 1)
+            goto Ldimerror;
+        RootObject *o = (*args)[0];
+        Dsymbol *s = getDsymbol(o);
+        AggregateDeclaration *ad;
+        if (!s || (ad = s->isAggregateDeclaration()) == NULL)
+        {
+            error("argument is not an aggregate type");
+            goto Lfalse;
+        }
+
+        Expressions *exps = new Expressions();
+        if (ad->aliasthis)
+            exps->push(new StringExp(loc, ad->aliasthis->ident->toChars()));
+
+        Expression *e = new TupleExp(loc, exps);
+        e = e->semantic(sc);
+        return e;
+    }
     else if (ident == Id::getAttributes)
     {
         if (dim != 1)
@@ -570,7 +595,8 @@ Expression *TraitsExp::semantic(Scope *sc)
         }
         Import *import;
         if ((import = s->isImport()) != NULL)
-        {   // Bugzilla 9692
+        {
+            // Bugzilla 9692
             sd = import->mod;
         }
         else if ((sd = s->isScopeDsymbol()) == NULL)
@@ -717,7 +743,8 @@ Expression *TraitsExp::semantic(Scope *sc)
         goto Ltrue;
     }
     else if (ident == Id::isSame)
-    {   /* Determine if two symbols are the same
+    {
+        /* Determine if two symbols are the same
          */
         if (dim != 2)
             goto Ldimerror;
@@ -744,7 +771,8 @@ Expression *TraitsExp::semantic(Scope *sc)
             printf("%s %s\n", s1->kind(), s1->toChars());
 #endif
         if (!s1 && !s2)
-        {   Expression *ea1 = isExpression(o1);
+        {
+            Expression *ea1 = isExpression(o1);
             Expression *ea2 = isExpression(o2);
             if (ea1 && ea2)
             {
@@ -806,10 +834,6 @@ Expression *TraitsExp::semantic(Scope *sc)
         TupleExp *tup = new TupleExp(loc, unitTests);
         return tup->semantic(sc);
     }
-    else if (ident == Id::isOverrideFunction)
-    {
-        return isFuncX(&isFuncOverrideFunction);
-    }
     else if(ident == Id::getVirtualIndex)
     {
         if (dim != 1)
@@ -827,7 +851,8 @@ Expression *TraitsExp::semantic(Scope *sc)
         return new IntegerExp(loc, fd->vtblIndex, Type::tptrdiff_t);
     }
     else
-    {   error("unrecognized trait %s", ident->toChars());
+    {
+        error("unrecognized trait %s", ident->toChars());
         goto Lfalse;
     }
 

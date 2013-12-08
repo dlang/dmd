@@ -322,6 +322,7 @@ Msgtable msgtable[] =
     { "isVirtualMethod" },
     { "isAbstractFunction" },
     { "isFinalFunction" },
+    { "isOverrideFunction" },
     { "isStaticFunction" },
     { "isRef" },
     { "isOut" },
@@ -340,9 +341,9 @@ Msgtable msgtable[] =
     { "isSame" },
     { "compiles" },
     { "parameters" },
+    { "getAliasThis" },
     { "getAttributes" },
     { "getUnitTests" },
-    { "isOverrideFunction" },
     { "getVirtualIndex" }
 };
 
