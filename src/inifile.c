@@ -57,7 +57,7 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
     char *filename;
     OutBuffer buf;
     int envsection = 0;
-    int envsectionnamelen = strlen(envsectionname);
+    size_t envsectionnamelen = strlen(envsectionname);
 
 #if LOG
     printf("inifile(argv0 = '%s', inifile = '%s')\n", argv0, inifile);

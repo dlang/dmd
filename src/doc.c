@@ -632,9 +632,9 @@ void ScopeDsymbol::emitMemberComments(Scope *sc)
         else if (isTemplateDeclaration())
             m = "$(DDOC_TEMPLATE_MEMBERS \n";
 
-        unsigned offset1 = buf->offset;         // save starting offset
+        size_t offset1 = buf->offset;         // save starting offset
         buf->writestring(m);
-        unsigned offset2 = buf->offset;         // to see if we write anything
+        size_t offset2 = buf->offset;         // to see if we write anything
         sc = sc->push(this);
         for (size_t i = 0; i < members->dim; i++)
         {
@@ -1772,7 +1772,7 @@ int cmp(const char *stringz, const void *s, size_t slen)
     size_t len1 = strlen(stringz);
 
     if (len1 != slen)
-        return len1 - slen;
+        return (int)(len1 - slen);
     return memcmp(stringz, s, slen);
 }
 
@@ -1781,7 +1781,7 @@ int icmp(const char *stringz, const void *s, size_t slen)
     size_t len1 = strlen(stringz);
 
     if (len1 != slen)
-        return len1 - slen;
+        return (int)(len1 - slen);
     return Port::memicmp(stringz, (char *)s, slen);
 }
 
@@ -2536,5 +2536,5 @@ int utfStride(const utf8_t *p)
         return 1;
     size_t i = 0;
     utf_decodeChar(p, 4, &i, &c);       // ignore errors, but still consume input
-    return i;
+    return (int)i;
 }

@@ -431,7 +431,7 @@ void FuncDeclaration::semantic(Scope *sc)
     cd = parent->isClassDeclaration();
     if (cd)
     {
-        size_t vi;
+        int vi;
         if (isCtorDeclaration())
         {
 //          ctor = (CtorDeclaration *)this;
@@ -484,13 +484,13 @@ void FuncDeclaration::semantic(Scope *sc)
         /* Find index of existing function in base class's vtbl[] to override
          * (the index will be the same as in cd's current vtbl[])
          */
-        vi = cd->baseClass ? findVtblIndex((Dsymbols*)&cd->baseClass->vtbl, cd->baseClass->vtbl.dim)
+        vi = cd->baseClass ? findVtblIndex((Dsymbols*)&cd->baseClass->vtbl, (int)cd->baseClass->vtbl.dim)
                            : -1;
 
         doesoverride = false;
         switch (vi)
         {
-            case (size_t)-1:
+            case -1:
         Lintro:
                 /* Didn't find one, so
                  * This is an 'introducing' function which gets a new
@@ -524,13 +524,13 @@ void FuncDeclaration::semantic(Scope *sc)
                     // Append to end of vtbl[]
                     //printf("\tintroducing function\n");
                     introducing = 1;
-                    vi = cd->vtbl.dim;
+                    vi = (int)cd->vtbl.dim;
                     cd->vtbl.push(this);
                     vtblIndex = vi;
                 }
                 break;
 
-            case (size_t)-2:    // can't determine because of fwd refs
+            case -2:    // can't determine because of fwd refs
                 cd->sizeok = SIZEOKfwd; // can't finish due to forward reference
                 Module::dprogress = dprogress_save;
                 return;
@@ -620,13 +620,13 @@ void FuncDeclaration::semantic(Scope *sc)
         for (size_t i = 0; i < cd->interfaces_dim; i++)
         {
             BaseClass *b = cd->interfaces[i];
-            vi = findVtblIndex((Dsymbols *)&b->base->vtbl, b->base->vtbl.dim);
+            vi = findVtblIndex((Dsymbols *)&b->base->vtbl, (int)b->base->vtbl.dim);
             switch (vi)
             {
-                case (size_t)-1:
+                case -1:
                     break;
 
-                case (size_t)-2:
+                case -2:
                     cd->sizeok = SIZEOKfwd;     // can't finish due to forward reference
                     Module::dprogress = dprogress_save;
                     return;

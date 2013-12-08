@@ -186,7 +186,7 @@ void CtfeStack::push(VarDeclaration *v)
         return;
     }
     savedId.push((void *)(size_t)(v->ctfeAdrOnStack));
-    v->ctfeAdrOnStack = values.dim;
+    v->ctfeAdrOnStack = (int)values.dim;
     vars.push(v);
     values.push(NULL);
 }
@@ -213,7 +213,7 @@ void CtfeStack::popAll(size_t stackpointer)
     for (size_t i = stackpointer; i < values.dim; ++i)
     {
         VarDeclaration *v = vars[i];
-        v->ctfeAdrOnStack = (size_t)(savedId[i]);
+        v->ctfeAdrOnStack = (int)(size_t)(savedId[i]);
     }
     values.setDim(stackpointer);
     vars.setDim(stackpointer);
@@ -227,7 +227,7 @@ void CtfeStack::saveGlobalConstant(VarDeclaration *v, Expression *e)
 #else
      assert( v->init && v->isConst() && !v->isCTFE());
 #endif
-     v->ctfeAdrOnStack = globalValues.dim;
+     v->ctfeAdrOnStack = (int)globalValues.dim;
      globalValues.push(e);
 }
 
@@ -911,7 +911,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
                  * Note that v might be v2! So we need to save v2's index
                  * before pushing.
                  */
-                size_t oldadr = v2->ctfeAdrOnStack;
+                int oldadr = v2->ctfeAdrOnStack;
                 ctfeStack.push(v);
                 v->ctfeAdrOnStack = oldadr;
                 assert(v2->hasValue());
@@ -6094,7 +6094,7 @@ Expression *interpret_aaApply(InterState *istate, Expression *aa, Expression *de
 
     assert(fd && fd->fbody);
     assert(fd->parameters);
-    int numParams = fd->parameters->dim;
+    size_t numParams = fd->parameters->dim;
     assert(numParams == 1 || numParams == 2);
 
     Parameter *valueArg = Parameter::getNth(((TypeFunction *)fd->type)->parameters, numParams - 1);
@@ -6160,7 +6160,7 @@ Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *del
 
     assert(fd && fd->fbody);
     assert(fd->parameters);
-    int numParams = fd->parameters->dim;
+    size_t numParams = fd->parameters->dim;
     assert(numParams == 1 || numParams==2);
     Type *charType = (*fd->parameters)[numParams-1]->type;
     Type *indexType = numParams == 2 ? (*fd->parameters)[0]->type
@@ -6393,7 +6393,7 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
     FuncDeclaration *fd, Expressions *arguments, Expression *pthis)
 {
     Expression *e = NULL;
-    int nargs = arguments ? arguments->dim : 0;
+    size_t nargs = arguments ? arguments->dim : 0;
 #if DMDV2
     if (pthis && isAssocArray(pthis->type))
     {

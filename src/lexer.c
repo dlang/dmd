@@ -540,7 +540,7 @@ void Lexer::scan(Token *t)
                             break;
                     }
                 } while (*p == '\\');
-                t->len = stringbuffer.offset;
+                t->len = (unsigned)stringbuffer.offset;
                 stringbuffer.writeByte(0);
                 t->ustring = (utf8_t *)mem.malloc(stringbuffer.offset);
                 memcpy(t->ustring, stringbuffer.data, stringbuffer.offset);
@@ -631,7 +631,7 @@ void Lexer::scan(Token *t)
                      Lstr:
                         t->value = TOKstring;
                         t->postfix = 0;
-                        t->len = strlen((char *)t->ustring);
+                        t->len = (unsigned)strlen((char *)t->ustring);
                     }
                     else if (id == Id::VERSIONX)
                     {   unsigned major = 0;
@@ -1326,7 +1326,7 @@ TOK Lexer::wysiwygStringConstant(Token *t, int tc)
             case '`':
                 if (c == tc)
                 {
-                    t->len = stringbuffer.offset;
+                    t->len = (unsigned)stringbuffer.offset;
                     stringbuffer.writeByte(0);
                     t->ustring = (utf8_t *)mem.malloc(stringbuffer.offset);
                     memcpy(t->ustring, stringbuffer.data, stringbuffer.offset);
@@ -1397,7 +1397,7 @@ TOK Lexer::hexStringConstant(Token *t)
                 {   error("odd number (%d) of hex characters in hex string", n);
                     stringbuffer.writeByte(v);
                 }
-                t->len = stringbuffer.offset;
+                t->len = (unsigned)stringbuffer.offset;
                 stringbuffer.writeByte(0);
                 t->ustring = (utf8_t *)mem.malloc(stringbuffer.offset);
                 memcpy(t->ustring, stringbuffer.data, stringbuffer.offset);
@@ -1581,7 +1581,7 @@ Ldone:
         error("delimited string must end in %s\"", hereid->toChars());
     else
         error("delimited string must end in %c\"", delimright);
-    t->len = stringbuffer.offset;
+    t->len = (unsigned)stringbuffer.offset;
     stringbuffer.writeByte(0);
     t->ustring = (utf8_t *)mem.malloc(stringbuffer.offset);
     memcpy(t->ustring, stringbuffer.data, stringbuffer.offset);
@@ -1635,7 +1635,7 @@ TOK Lexer::tokenStringConstant(Token *t)
     }
 
 Ldone:
-    t->len = p - 1 - pstart;
+    t->len = (unsigned)(p - 1 - pstart);
     t->ustring = (utf8_t *)mem.malloc(t->len + 1);
     memcpy(t->ustring, pstart, t->len);
     t->ustring[t->len] = 0;
@@ -1694,7 +1694,7 @@ TOK Lexer::escapeStringConstant(Token *t, int wide)
                 break;
 
             case '"':
-                t->len = stringbuffer.offset;
+                t->len = (unsigned)stringbuffer.offset;
                 stringbuffer.writeByte(0);
                 t->ustring = (utf8_t *)mem.malloc(stringbuffer.offset);
                 memcpy(t->ustring, stringbuffer.data, stringbuffer.offset);
