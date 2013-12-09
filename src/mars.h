@@ -241,7 +241,7 @@ struct Compiler
 };
 
 typedef unsigned structalign_t;
-#define STRUCTALIGN_DEFAULT ~0  // magic value means "match whatever the underlying C compiler does"
+#define STRUCTALIGN_DEFAULT ((structalign_t) ~0)  // magic value means "match whatever the underlying C compiler does"
 // other values are all powers of 2
 
 struct Ungag
