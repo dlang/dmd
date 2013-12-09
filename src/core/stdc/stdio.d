@@ -187,7 +187,9 @@ else version( Win64 )
 }
 else version( linux )
 {
-    align(1) struct _iobuf
+    alias _iobuf = _IO_FILE;
+
+    align(1) struct _IO_FILE
     {
         int     _flags;
         char*   _read_ptr;
