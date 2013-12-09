@@ -737,6 +737,9 @@ void TemplateDeclaration::makeParamNamesVisibleInConstraint(Scope *paramscope, E
         onemember->toAlias()->isFuncDeclaration() : NULL;
     if (fd)
     {
+        if (!fd->type->reliesOnTident(parameters))
+            return;
+
         /*
             Making parameters is similar to FuncDeclaration::semantic3
          */
@@ -751,7 +754,10 @@ void TemplateDeclaration::makeParamNamesVisibleInConstraint(Scope *paramscope, E
 
         // Resolve parameter types and 'auto ref's.
         tf->fargs = fargs;
-        tf = (TypeFunction *)tf->semantic(loc, paramscope);
+        Type *t = tf->semantic(loc, paramscope);
+        if (t->ty != Tfunction)
+            return;
+        tf = (TypeFunction *)t;
 
         Parameters *fparameters = tf->parameters;
         int fvarargs = tf->varargs;
