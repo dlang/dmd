@@ -317,7 +317,7 @@ Expression *copyLiteral(Expression *e)
             || e->op == TOKvar || e->op == TOKdotvar
             || e->op == TOKint64 || e->op == TOKfloat64
             || e->op == TOKchar || e->op == TOKcomplex80
-            || e->op == TOKvoid)
+            || e->op == TOKvoid || e->op == TOKvector)
     {
         // Simple value types
         Expression *r = e->copy();  // keep e1 for DelegateExp and DotVarExp
