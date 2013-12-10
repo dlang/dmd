@@ -28,7 +28,7 @@ private
   }
   else version (Android)
   {
-    import core.sys.posix.sys.types;
+    import core.sys.posix.sys.types: off_t;
   }
 }
 
@@ -125,7 +125,6 @@ else version ( FreeBSD )
         ubyte *_base;
         int _size;
     }
-    alias _iobuf __sFILE;
 
     union __mbstate_t // <sys/_types.h>
     {
@@ -195,6 +194,8 @@ version( Win32 )
         int   _bufsiz;
         char* __tmpnum;
     }
+
+    alias shared(_iobuf) FILE;
 }
 else version( Win64 )
 {
@@ -211,13 +212,14 @@ else version( Win64 )
         int   _bufsiz;
         char* _tmpfname;
     }
+
+    alias shared(_iobuf) FILE;
 }
 else version( linux )
 {
     alias int fpos_t; //this is probably wrong, fix this
-    alias _iobuf = _IO_FILE;
 
-    align(1) struct _IO_FILE
+    struct _IO_FILE
     {
         int     _flags;
         char*   _read_ptr;
@@ -232,7 +234,7 @@ else version( linux )
         char*   _backup_base;
         char*   _save_end;
         void*   _markers;
-        _iobuf* _chain;
+        _IO_FILE* _chain;
         int     _fileno;
         int     _blksize;
         int     _old_offset;
@@ -241,12 +243,14 @@ else version( linux )
         char[1] _shortbuf;
         void*   _lock;
     }
+
+    alias shared(_IO_FILE) FILE;
 }
 else version( OSX )
 {
     alias int fpos_t; //check this
 
-    align (1) struct _iobuf
+    struct __sFILE
     {
         ubyte*    _p;
         int       _r;
@@ -273,12 +277,14 @@ else version( OSX )
         int       _blksize;
         fpos_t    _offset;
     }
+
+    alias shared(__sFILE) FILE;
 }
 else version( FreeBSD )
 {
     alias int fpos_t; //check this
 
-    align (1) struct _iobuf
+    struct __SFILE
     {
         ubyte*          _p;
         int             _r;
@@ -289,10 +295,10 @@ else version( FreeBSD )
         int             _lbfsize;
 
         void*           _cookie;
-        int     function(void*)                 _close;
-        int     function(void*, char*, int)     _read;
-        fpos_t  function(void*, fpos_t, int)    _seek;
-        int     function(void*, in char*, int)  _write;
+        int*     function(void*)                 _close;
+        int*     function(void*, char*, int)     _read;
+        fpos_t*  function(void*, fpos_t, int)    _seek;
+        int*     function(void*, in char*, int)  _write;
 
         __sbuf          _ub;
         ubyte*          _up;
@@ -312,12 +318,14 @@ else version( FreeBSD )
         int             _orientation;
         __mbstate_t     _mbstate;
     }
+
+    alias shared(__sFILE) FILE;
 }
 else version (Solaris)
 {
     alias int fpos_t; //check this
 
-    align (1) struct _iobuf
+    struct _iobuf
     {
         char* _ptr;
         int _cnt;
@@ -331,12 +339,14 @@ else version (Solaris)
                         // __xf_nocheck:1
                         // __filler:10
     }
+
+    alias shared(_iobuf) FILE;
 }
 else version( Android )
 {
     alias off_t fpos_t;
 
-    align(1) struct _iobuf
+    struct __sFILE
     {
         ubyte*    _p;
         int       _r;
@@ -364,14 +374,13 @@ else version( Android )
         int       _blksize;
         fpos_t    _offset;
     }
+
+    alias shared(__sFILE) FILE;
 }
 else
 {
     static assert( false, "Unsupported platform" );
 }
-
-
-alias shared(_iobuf) FILE;
 
 enum
 {
