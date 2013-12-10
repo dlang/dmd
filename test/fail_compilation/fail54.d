@@ -1,3 +1,10 @@
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail54.d(22): Error: incompatible types for ((0) == (Exception)): cannot use '==' with types
+---
+*/
+
 // $HeadURL$
 // $Date$
 // $Author$
@@ -10,6 +17,7 @@
 
 module dstress.nocompile.bug_mtype_507_C;
 
-void test(){
-	0==Exception;
+void test()
+{
+    0 == Exception;
 }

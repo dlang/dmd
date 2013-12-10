@@ -1,13 +1,23 @@
-class Quux {
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail143.d(23): Error: need 'this' for 'next' of type 'uint()'
+fail_compilation/fail143.d(30): Error: template instance fail143.Foo!int error instantiating
+---
+*/
+
+class Quux
+{
     uint x;
 
-    final uint next ()
+    final uint next()
     {
         return x;
     }
 }
 
-template Foo(T) {
+template Foo(T)
+{
     void bar()
     {
         int r = Quux.next;
@@ -24,4 +34,3 @@ int main(char[][] args)
 
     return 0;
 }
-

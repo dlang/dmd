@@ -1,6 +1,13 @@
-import std.stdio;
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail150.d(22): Error: e.new is only for allocating nested classes
+---
+*/
 
-class class1
+//import std.stdio;
+
+class Class1
 {
 }
 
@@ -10,9 +17,8 @@ class Foo
 
 int main(char[][] argv)
 {
-    class1 myclass = new class1;
+    Class1 myclass = new Class1;
 
     myclass.new Foo();
     return 0;
 }
-

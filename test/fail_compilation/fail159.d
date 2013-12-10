@@ -1,3 +1,9 @@
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail159.d(24): Error: static assert  (foo(S(1, 5), S(1, 4)) == 0) is false
+---
+*/
 
 struct S
 {

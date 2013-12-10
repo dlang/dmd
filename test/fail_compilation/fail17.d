@@ -1,6 +1,6 @@
-struct A (T)
+struct A(T)
 {
-       mixin B! (T, A! (T));
+    mixin B!(T, A!(T));
 }
 
 A!(int) x;
