@@ -244,6 +244,7 @@ else version( linux )
         void*   _lock;
     }
 
+    alias _IO_FILE _iobuf; //remove later
     alias shared(_IO_FILE) FILE;
 }
 else version( OSX )
@@ -278,6 +279,7 @@ else version( OSX )
         fpos_t    _offset;
     }
 
+    alias __sFILE _iobuf; //remove later
     alias shared(__sFILE) FILE;
 }
 else version( FreeBSD )
@@ -319,6 +321,7 @@ else version( FreeBSD )
         __mbstate_t     _mbstate;
     }
 
+    alias __sFILE _iobuf; //remove later
     alias shared(__sFILE) FILE;
 }
 else version (Solaris)
@@ -375,6 +378,7 @@ else version( Android )
         fpos_t    _offset;
     }
 
+    alias __sFILE _iobuf; //remove later
     alias shared(__sFILE) FILE;
 }
 else
