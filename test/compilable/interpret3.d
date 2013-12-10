@@ -2723,6 +2723,15 @@ static assert({
 }());
 
 /**************************************************
+    8365 - block assignment of enum arrays
+**************************************************/
+
+enum E8365 { first = 7, second, third, fourth }
+static assert({ E8365[2] x; return x[0]; }() == E8365.first);
+static assert({ E8365[2][2] x; return x[0][0]; }() == E8365.first);
+static assert({ E8365[2][2][2] x; return x[0][0][0]; }() == E8365.first);
+
+/**************************************************
     4448 - labelled break + continue
 **************************************************/
 
