@@ -483,13 +483,13 @@ int AggregateDeclaration::firstFieldInUnion(int indx)
 {
     if (isUnionDeclaration())
         return 0;
-    VarDeclaration * vd = fields[indx];
+    VarDeclaration *vd = fields[indx];
     int firstNonZero = indx; // first index in the union with non-zero size
     for (; ;)
     {
         if (indx == 0)
             return firstNonZero;
-        VarDeclaration * v = fields[indx - 1];
+        VarDeclaration *v = fields[indx - 1];
         if (v->offset != vd->offset)
             return firstNonZero;
         --indx;
@@ -508,7 +508,7 @@ int AggregateDeclaration::firstFieldInUnion(int indx)
  */
 int AggregateDeclaration::numFieldsInUnion(int firstIndex)
 {
-    VarDeclaration * vd = fields[firstIndex];
+    VarDeclaration *vd = fields[firstIndex];
     /* If it is a zero-length field, AND we can't find an earlier non-zero
      * sized field with the same offset, we assume it's not part of a union.
      */
@@ -518,7 +518,7 @@ int AggregateDeclaration::numFieldsInUnion(int firstIndex)
     int count = 1;
     for (size_t i = firstIndex+1; i < fields.dim; ++i)
     {
-        VarDeclaration * v = fields[i];
+        VarDeclaration *v = fields[i];
         // If offsets are different, they are not in the same union
         if (v->offset != vd->offset)
             break;
@@ -684,13 +684,13 @@ void StructDeclaration::semantic(Scope *sc)
     finalizeSize(sc2);
 
     if (sizeok == SIZEOKfwd)
-    {   // semantic() failed because of forward references.
+    {
+        // semantic() failed because of forward references.
         // Unwind what we did, and defer it for later
         for (size_t i = 0; i < fields.dim; i++)
-        {   Dsymbol *s = fields[i];
-            VarDeclaration *vd = s->isVarDeclaration();
-            if (vd)
-                vd->offset = 0;
+        {
+            VarDeclaration *vd = fields[i];
+            vd->offset = 0;
         }
         fields.setDim(0);
         structsize = 0;
@@ -714,9 +714,8 @@ void StructDeclaration::semantic(Scope *sc)
     zeroInit = 1;
     for (size_t i = 0; i < fields.dim; i++)
     {
-        Dsymbol *s = fields[i];
-        VarDeclaration *vd = s->isVarDeclaration();
-        if (vd && !vd->isDataseg())
+        VarDeclaration *vd = fields[i];
+        if (!vd->isDataseg())
         {
             if (vd->init)
             {
@@ -871,9 +870,7 @@ bool StructDeclaration::isPOD()
      */
     for (size_t i = 0; i < fields.dim; i++)
     {
-        Dsymbol *s = fields[i];
-        VarDeclaration *v = s->isVarDeclaration();
-        assert(v && v->isField());
+        VarDeclaration *v = fields[i];
         if (v->storage_class & STCref)
             continue;
         Type *tv = v->type->baseElemOf();

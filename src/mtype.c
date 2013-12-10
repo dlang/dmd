@@ -8368,9 +8368,8 @@ bool TypeStruct::needsNested()
 
     for (size_t i = 0; i < sym->fields.dim; i++)
     {
-        Dsymbol *s = sym->fields[i];
-        VarDeclaration *vd = s->isVarDeclaration();
-        if (vd && !vd->isDataseg() && vd->type->needsNested())
+        VarDeclaration *v = sym->fields[i];
+        if (!v->isDataseg() && v->type->needsNested())
             return true;
     }
     return false;
@@ -8419,8 +8418,7 @@ int TypeStruct::hasPointers()
     sym->size(Loc());               // give error for forward references
     for (size_t i = 0; i < s->fields.dim; i++)
     {
-        Dsymbol *sm = s->fields[i];
-        Declaration *d = sm->isDeclaration();
+        Declaration *d = s->fields[i];
         if (d->storage_class & STCref || d->hasPointers())
             return true;
     }

@@ -321,7 +321,8 @@ TypeTuple *TypeStruct::toArgTypes()
 #if 1
         t1 = NULL;
         for (size_t i = 0; i < sym->fields.dim; i++)
-        {   VarDeclaration *f = sym->fields[i];
+        {
+            VarDeclaration *f = sym->fields[i];
             //printf("f->type = %s\n", f->type->toChars());
 
             TypeTuple *tup = f->type->toArgTypes();
@@ -401,7 +402,8 @@ TypeTuple *TypeStruct::toArgTypes()
         }
 #else
         if (sym->fields.dim == 1)
-        {   VarDeclaration *f = sym->fields[0];
+        {
+            VarDeclaration *f = sym->fields[0];
             //printf("f->type = %s\n", f->type->toChars());
             TypeTuple *tup = f->type->toArgTypes();
             if (tup)

@@ -131,9 +131,7 @@ int StructDeclaration::needOpAssign()
      */
     for (size_t i = 0; i < fields.dim; i++)
     {
-        Dsymbol *s = fields[i];
-        VarDeclaration *v = s->isVarDeclaration();
-        assert(v && v->isField());
+        VarDeclaration *v = fields[i];
         if (v->storage_class & STCref)
             continue;
         Type *tv = v->type->baseElemOf();
@@ -207,9 +205,7 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
     {
         for (size_t i = 0; i < fields.dim; i++)
         {
-            Dsymbol *s = fields[i];
-            VarDeclaration *v = s->isVarDeclaration();
-            assert(v && v->isField());
+            VarDeclaration *v = fields[i];
             if (v->storage_class & STCref)
                 continue;
             Type *tv = v->type->baseElemOf();
@@ -277,9 +273,7 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
         //printf("\tmemberwise copy\n");
         for (size_t i = 0; i < fields.dim; i++)
         {
-            Dsymbol *s = fields[i];
-            VarDeclaration *v = s->isVarDeclaration();
-            assert(v && v->isField());
+            VarDeclaration *v = fields[i];
             // this.v = s.v;
             AssignExp *ec = new AssignExp(loc,
                 new DotVarExp(loc, new ThisExp(loc), v, 0),
@@ -365,9 +359,7 @@ int StructDeclaration::needOpEquals()
      */
     for (size_t i = 0; i < fields.dim; i++)
     {
-        Dsymbol *s = fields[i];
-        VarDeclaration *v = s->isVarDeclaration();
-        assert(v && v->isField());
+        VarDeclaration *v = fields[i];
         if (v->storage_class & STCref)
             continue;
         Type *tv = v->type->toBasetype();
@@ -774,9 +766,7 @@ FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
     Expression *e = NULL;
     for (size_t i = 0; i < fields.dim; i++)
     {
-        Dsymbol *s = fields[i];
-        VarDeclaration *v = s->isVarDeclaration();
-        assert(v && v->isField());
+        VarDeclaration *v = fields[i];
         if (v->storage_class & STCref)
             continue;
         Type *tv = v->type->toBasetype();
@@ -887,9 +877,7 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
     Expression *e = NULL;
     for (size_t i = 0; i < fields.dim; i++)
     {
-        Dsymbol *s = fields[i];
-        VarDeclaration *v = s->isVarDeclaration();
-        assert(v && v->isField());
+        VarDeclaration *v = fields[i];
         if (v->storage_class & STCref)
             continue;
         Type *tv = v->type->toBasetype();

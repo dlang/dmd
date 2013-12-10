@@ -658,8 +658,8 @@ void ClassDeclaration::semantic(Scope *sc)
         // Unwind what we did, and defer it for later
         for (size_t i = 0; i < fields.dim; i++)
         {
-            if (VarDeclaration *v = fields[i])
-                v->offset = 0;
+            VarDeclaration *v = fields[i];
+            v->offset = 0;
         }
         fields.setDim(0);
         structsize = 0;
@@ -693,7 +693,7 @@ void ClassDeclaration::semantic(Scope *sc)
         // A class object is always created by constructor, so this check is legitimate.
         for (size_t i = 0; i < fields.dim; i++)
         {
-            VarDeclaration *v = fields[i]->isVarDeclaration();
+            VarDeclaration *v = fields[i];
             if (v->storage_class & STCnodefaultctor)
                 ::error(v->loc, "field %s must be initialized in constructor", v->toChars());
         }

@@ -277,11 +277,13 @@ type *TypeClass::toCtype()
      * (after setting ctype to avoid infinite recursion)
      */
     if (global.params.symdebug)
+    {
         for (size_t i = 0; i < sym->fields.dim; i++)
-        {   VarDeclaration *v = sym->fields[i];
-
+        {
+            VarDeclaration *v = sym->fields[i];
             symbol_struct_addField(t->Ttag, v->ident->toChars(), v->type->toCtype(), v->offset);
         }
+    }
 
     return ctype;
 }

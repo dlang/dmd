@@ -2942,9 +2942,7 @@ Expression *NewExp::interpret(InterState *istate, CtfeGoal goal)
             fieldsSoFar -= c->fields.dim;
             for (size_t i = 0; i < c->fields.dim; i++)
             {
-                Dsymbol *s = c->fields[i];
-                VarDeclaration *v = s->isVarDeclaration();
-                assert(v);
+                VarDeclaration *v = c->fields[i];
                 Expression *m;
                 if (v->init)
                 {

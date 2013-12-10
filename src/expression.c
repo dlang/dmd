@@ -4813,9 +4813,7 @@ int StructLiteralExp::getFieldIndex(Type *type, unsigned offset)
     {
         for (size_t i = 0; i < sd->fields.dim; i++)
         {
-            Dsymbol *s = sd->fields[i];
-            VarDeclaration *v = s->isVarDeclaration();
-            assert(v);
+            VarDeclaration *v = sd->fields[i];
 
             if (offset == v->offset &&
                 type->size() == v->type->size())

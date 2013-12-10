@@ -5128,9 +5128,7 @@ elem *StructLiteralExp::toElem(IRState *irs)
         size_t offset = 0;
         for (size_t i = 0; i < sd->fields.dim; i++)
         {
-            Dsymbol *s = sd->fields[i];
-            VarDeclaration *v = s->isVarDeclaration();
-            assert(v);
+            VarDeclaration *v = sd->fields[i];
 
             e = el_combine(e, fillHole(stmp, &offset, v->offset, sd->structsize));
             size_t vend = v->offset + v->type->size();
@@ -5150,9 +5148,7 @@ elem *StructLiteralExp::toElem(IRState *irs)
             if (!el)
                 continue;
 
-            Dsymbol *s = sd->fields[i];
-            VarDeclaration *v = s->isVarDeclaration();
-            assert(v);
+            VarDeclaration *v = sd->fields[i];
             assert(!v->isThisDeclaration() || el->op == TOKnull);
 
             elem *e1;
@@ -5209,9 +5205,7 @@ elem *StructLiteralExp::toElem(IRState *irs)
     {
         // Initialize the hidden 'this' pointer
         assert(sd->fields.dim);
-        Dsymbol *s = sd->fields[sd->fields.dim - 1];
-        ThisDeclaration *v = s->isThisDeclaration();
-        assert(v);
+        ThisDeclaration *v = sd->fields[sd->fields.dim - 1]->isThisDeclaration();
 
         elem *e1;
         if (tybasic(stmp->Stype->Tty) == TYnptr)
