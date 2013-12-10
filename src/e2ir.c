@@ -50,6 +50,7 @@ elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
 elem *eval_Darray(IRState *irs, Expression *e, bool alwaysCopy = false);
 elem *array_toPtr(Type *t, elem *e);
 elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi);
+elem *ExpressionsToStaticArray(IRState *irs, Loc loc, Expressions *exps, symbol **psym);
 
 #define el_setLoc(e,loc)        ((e)->Esrcpos.Sfilename = (char *)(loc).filename, \
                                  (e)->Esrcpos.Slinnum = (loc).linnum)
@@ -4852,7 +4853,6 @@ elem *tree_insert(Elems *args, size_t low, size_t high)
 elem *ArrayLiteralExp::toElem(IRState *irs)
 {   elem *e;
     size_t dim;
-    elem *earg = NULL;
 
     //printf("ArrayLiteralExp::toElem() %s, type = %s\n", toChars(), type->toChars());
     Type *tb = type->toBasetype();
@@ -4860,7 +4860,13 @@ elem *ArrayLiteralExp::toElem(IRState *irs)
     {   // Convert void[n] to ubyte[n]
         tb = TypeSArray::makeType(loc, Type::tuns8, ((TypeSArray *)tb)->dim->toUInteger());
     }
-    if (elements)
+    if (tb->ty == Tsarray && elements && elements->dim)
+    {
+        Symbol *sdata;
+        e = ExpressionsToStaticArray(irs, loc, elements, &sdata);
+        e = el_combine(e, el_ptr(sdata));
+    }
+    else if (elements)
     {
         /* Instead of passing the initializers on the stack, allocate the
          * array and assign the members inline.
@@ -4923,7 +4929,6 @@ elem *ArrayLiteralExp::toElem(IRState *irs)
     }
 
     el_setLoc(e,loc);
-    e = el_combine(earg, e);
     return e;
 }
 
