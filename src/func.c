@@ -2644,7 +2644,6 @@ MATCH FuncDeclaration::leastAsSpecialized(FuncDeclaration *g)
     TypeFunction *tg = (TypeFunction *)g->type;
     size_t nfparams = Parameter::dim(tf->parameters);
     size_t ngparams = Parameter::dim(tg->parameters);
-    MATCH match = MATCHexact;
 
     /* If both functions have a 'this' pointer, and the mods are not
      * the same and g's is not const, then this is less specialized.
@@ -2653,16 +2652,12 @@ MATCH FuncDeclaration::leastAsSpecialized(FuncDeclaration *g)
     {
         if (isCtorDeclaration())
         {
-            if (MODimplicitConv(tg->mod, tf->mod))
-                match = MATCHconst;
-            else
+            if (!MODimplicitConv(tg->mod, tf->mod))
                 return MATCHnomatch;
         }
         else
         {
-            if (MODimplicitConv(tf->mod, tg->mod))
-                    match = MATCHconst;
-            else
+            if (!MODimplicitConv(tf->mod, tg->mod))
                 return MATCHnomatch;
         }
     }

@@ -8446,7 +8446,6 @@ Expression *CallExp::syntaxCopy()
 Expression *CallExp::semantic(Scope *sc)
 {
     Type *t1;
-    int istemp;
     Objects *tiargs = NULL;     // initial list of template arguments
     Expression *ethis = NULL;
     Type *tthis = NULL;
@@ -8576,7 +8575,6 @@ Ldotti:
         }
     }
 
-    istemp = 0;
 Lagain:
     //printf("Lagain: %s\n", toChars());
     f = NULL;
