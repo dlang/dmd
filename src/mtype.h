@@ -293,7 +293,7 @@ public:
     Type *aliasthisOf();
     int checkAliasThisRec();
     virtual Type *makeConst();
-    virtual Type *makeInvariant();
+    virtual Type *makeImmutable();
     virtual Type *makeShared();
     virtual Type *makeSharedConst();
     virtual Type *makeWild();
@@ -376,7 +376,7 @@ public:
     int hasWild();
     Type *nextOf();
     Type *makeConst();
-    Type *makeInvariant();
+    Type *makeImmutable();
     Type *makeShared();
     Type *makeSharedConst();
     Type *makeWild();

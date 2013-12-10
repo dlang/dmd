@@ -447,7 +447,7 @@ Type *Type::immutableOf()
         assert(ito->isImmutable());
         return ito;
     }
-    Type *t = makeInvariant();
+    Type *t = makeImmutable();
     t = t->merge();
     t->fixTo(this);
     //printf("\t%p\n", t);
@@ -964,7 +964,7 @@ Type *Type::makeConst()
     return t;
 }
 
-Type *Type::makeInvariant()
+Type *Type::makeImmutable()
 {
     if (ito) return ito;
     Type *t = this->nullAttributes();
@@ -1026,7 +1026,7 @@ Type *Type::addSTC(StorageClass stc)
             t = t->makeConst();
     }
     if (stc & STCimmutable)
-        t = t->makeInvariant();
+        t = t->makeImmutable();
     if (stc & STCshared)
     {   if (t->isConst())
             t = t->makeSharedConst();
@@ -2506,14 +2506,14 @@ Type *TypeNext::makeConst()
     return t;
 }
 
-Type *TypeNext::makeInvariant()
+Type *TypeNext::makeImmutable()
 {
-    //printf("TypeNext::makeInvariant() %s\n", toChars());
+    //printf("TypeNext::makeImmutable() %s\n", toChars());
     if (ito)
     {   assert(ito->isImmutable());
         return ito;
     }
-    TypeNext *t = (TypeNext *)Type::makeInvariant();
+    TypeNext *t = (TypeNext *)Type::makeImmutable();
     if (ty != Tfunction && next->ty != Tfunction &&
         //(next->deco || next->ty == Tfunction) &&
         !next->isImmutable())

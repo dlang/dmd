@@ -284,7 +284,7 @@ void FuncDeclaration::semantic(Scope *sc)
             case STCimmutable | STCconst | STCshared | STCwild:
             case STCimmutable | STCshared | STCwild:
                 // Don't use toInvariant(), as that will do a merge()
-                type = type->makeInvariant();
+                type = type->makeImmutable();
                 break;
 
             case STCconst:
