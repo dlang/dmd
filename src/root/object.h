@@ -29,7 +29,6 @@ class RootObject
 {
 public:
     RootObject() { }
-    virtual ~RootObject() { }
 
     virtual bool equals(RootObject *o);
 
