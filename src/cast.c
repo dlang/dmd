@@ -1013,7 +1013,7 @@ Type *SliceExp::toStaticArrayType()
         if (lwr->isConst() && upr->isConst())
         {
             size_t len = (size_t)(upr->toUInteger() - lwr->toUInteger());
-            return TypeSArray::makeType(loc, type->toBasetype()->nextOf(), len);
+            return type->toBasetype()->nextOf()->sarrayOf(len);
         }
     }
     return NULL;

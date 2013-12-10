@@ -1694,7 +1694,7 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
 
         if (type->toBasetype()->ty == Tsarray)
         {
-            e->type = TypeSArray::makeType(loc, t1->nextOf(), es1->elements->dim);
+            e->type = t1->nextOf()->sarrayOf(es1->elements->dim);
         }
         else
             e->type = type;
@@ -1718,7 +1718,7 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
 
         if (type->toBasetype()->ty == Tsarray)
         {
-            e->type = TypeSArray::makeType(loc, t1->nextOf(), es->elements->dim);
+            e->type = t1->nextOf()->sarrayOf(es->elements->dim);
         }
         else
             e->type = type;
@@ -1740,7 +1740,7 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
 
         if (type->toBasetype()->ty == Tsarray)
         {
-            e->type = TypeSArray::makeType(loc, e2->type, es1->elements->dim);
+            e->type = e2->type->sarrayOf(es1->elements->dim);
         }
         else
             e->type = type;
@@ -1756,7 +1756,7 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
 
         if (type->toBasetype()->ty == Tsarray)
         {
-            e->type = TypeSArray::makeType(loc, e1->type, es2->elements->dim);
+            e->type = e1->type->sarrayOf(es2->elements->dim);
         }
         else
             e->type = type;

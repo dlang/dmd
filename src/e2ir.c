@@ -4857,8 +4857,9 @@ elem *ArrayLiteralExp::toElem(IRState *irs)
     //printf("ArrayLiteralExp::toElem() %s, type = %s\n", toChars(), type->toChars());
     Type *tb = type->toBasetype();
     if (tb->ty == Tsarray && tb->nextOf()->toBasetype()->ty == Tvoid)
-    {   // Convert void[n] to ubyte[n]
-        tb = TypeSArray::makeType(loc, Type::tuns8, ((TypeSArray *)tb)->dim->toUInteger());
+    {
+        // Convert void[n] to ubyte[n]
+        tb = Type::tuns8->sarrayOf(((TypeSArray *)tb)->dim->toUInteger());
     }
     if (tb->ty == Tsarray && elements && elements->dim)
     {
@@ -4960,7 +4961,7 @@ elem *ExpressionsToStaticArray(IRState *irs, Loc loc, Expressions *exps, symbol 
             szelem = telem->size();
             te = telem->toCtype();
 
-            tsarray = TypeSArray::makeType(loc, telem, dim);
+            tsarray = telem->sarrayOf(dim);
             stmp = symbol_genauto(tsarray->toCtype());
             *psym = stmp;
         }
