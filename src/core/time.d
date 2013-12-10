@@ -3254,25 +3254,7 @@ string numToString(long value) @safe pure nothrow
 }
 
 
-/+ A copy of std.traits.Unqual. +/
-private template _Unqual(T)
-{
-    version (none) // Error: recursive alias declaration @@@BUG1308@@@
-    {
-             static if (is(T U ==     const U)) alias _Unqual!U _Unqual;
-        else static if (is(T U == immutable U)) alias _Unqual!U _Unqual;
-        else static if (is(T U ==    shared U)) alias _Unqual!U _Unqual;
-        else                                    alias        T _Unqual;
-    }
-    else // workaround
-    {
-             static if (is(T U == shared(const U))) alias U _Unqual;
-        else static if (is(T U ==        const U )) alias U _Unqual;
-        else static if (is(T U ==    immutable U )) alias U _Unqual;
-        else static if (is(T U ==       shared U )) alias U _Unqual;
-        else                                        alias T _Unqual;
-    }
-}
+private alias _Unqual(T) = typeof(cast()T.init);
 
 unittest
 {
