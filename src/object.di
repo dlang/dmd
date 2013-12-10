@@ -375,16 +375,6 @@ extern (C)
     void _aaRangePopFront(ref AARange r);
 }
 
-private template _Unqual(T)
-{
-         static if (is(T U == shared(const U))) alias U _Unqual;
-    else static if (is(T U ==        const U )) alias U _Unqual;
-    else static if (is(T U ==    immutable U )) alias U _Unqual;
-    else static if (is(T U ==        inout U )) alias U _Unqual;
-    else static if (is(T U ==       shared U )) alias U _Unqual;
-    else                                        alias T _Unqual;
-}
-
 struct AssociativeArray(Key, Value)
 {
 private:
