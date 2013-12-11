@@ -9867,7 +9867,7 @@ void DeleteExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 CastExp::CastExp(Loc loc, Expression *e, Type *t)
         : UnaExp(loc, TOKcast, sizeof(CastExp), e)
 {
-    to = t;
+    this->to = t;
     this->mod = (unsigned char)~0;
 }
 
@@ -9876,7 +9876,7 @@ CastExp::CastExp(Loc loc, Expression *e, Type *t)
 CastExp::CastExp(Loc loc, Expression *e, unsigned char mod)
         : UnaExp(loc, TOKcast, sizeof(CastExp), e)
 {
-    to = NULL;
+    this->to = NULL;
     this->mod = mod;
 }
 
@@ -9924,7 +9924,7 @@ Expression *CastExp::semantic(Scope *sc)
         if (to->ty == Tvoid)
             goto Lsafe;
 
-        if (!to->equals(e1->type))
+        if (!to->equals(e1->type) && mod == (unsigned char)~0)
         {
             Expression *e = op_overload(sc);
             if (e)
