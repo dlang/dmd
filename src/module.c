@@ -94,15 +94,7 @@ Module::Module(const char *filename, Identifier *ident, int doDocComment, int do
 
     srcfilename = FileName::defaultExt(filename, global.mars_ext);
 
-#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
-    /* Allow 'script' D source files to have no extension.
-     */
-    bool allow_no_extension = true;
-#else
-    bool allow_no_extension = false;
-#endif
-    if (allow_no_extension &&
-        global.params.run &&
+    if (global.run_noext && global.params.run &&
         !FileName::ext(filename) &&
         FileName::exists(srcfilename) == 0 &&
         FileName::exists(filename) == 1)

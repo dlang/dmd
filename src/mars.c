@@ -120,6 +120,15 @@ void Global::init()
 #error "fix this"
 #endif
 
+#if TARGET_WINDOS
+    run_noext = false;
+#elif TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+    // Allow 'script' D source files to have no extension.
+    run_noext = true;
+#else
+#error "fix this"
+#endif
+
     copyright = "Copyright (c) 1999-2013 by Digital Mars";
     written = "written by Walter Bright";
     version = "v"
