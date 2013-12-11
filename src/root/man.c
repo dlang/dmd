@@ -26,7 +26,7 @@ void browse(const char *url)
 
 #endif
 
-#if linux || __FreeBSD__ || __OpenBSD__ || __sun
+#if __linux__ || __FreeBSD__ || __OpenBSD__ || __sun
 
 #include        <sys/types.h>
 #include        <sys/wait.h>

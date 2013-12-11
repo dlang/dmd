@@ -15,7 +15,7 @@
 #include <limits.h>
 #include <string.h>
 
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
 #include <errno.h>
 #endif
 
@@ -574,7 +574,7 @@ int tryMain(size_t argc, const char *argv[])
 
 #if _WIN32
     inifilename = inifile(argv[0], "sc.ini", "Environment");
-#elif linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#elif __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
     inifilename = inifile(argv[0], "dmd.conf", "Environment");
 #else
 #error "fix this"
@@ -986,7 +986,7 @@ Language changes listed by -transition=id:\n\
 #if _WIN32
                 browse("http://dlang.org/dmd-windows.html");
 #endif
-#if linux
+#if __linux__
                 browse("http://dlang.org/dmd-linux.html");
 #endif
 #if __APPLE__
