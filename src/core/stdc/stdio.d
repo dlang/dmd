@@ -261,10 +261,11 @@ else version( OSX )
         __sbuf    _bf;
         int       _lbfsize;
 
-        int* function(void*)                    _close;
-        int* function(void*, char*, int)        _read;
-        fpos_t* function(void*, fpos_t, int)    _seek;
-        int* function(void*, char *, int)       _write;
+        void*     _cookie;
+        int     function(void*)                    _close;
+        int     function(void*, char*, int)        _read;
+        fpos_t  function(void*, fpos_t, int)       _seek;
+        int     function(void*, char *, int)       _write;
 
         __sbuf    _ub;
         __sFILEX* _extra;
@@ -286,7 +287,7 @@ else version( FreeBSD )
 {
     alias int fpos_t; //check this
 
-    struct __SFILE
+    struct __sFILE
     {
         ubyte*          _p;
         int             _r;
@@ -297,10 +298,10 @@ else version( FreeBSD )
         int             _lbfsize;
 
         void*           _cookie;
-        int*     function(void*)                 _close;
-        int*     function(void*, char*, int)     _read;
-        fpos_t*  function(void*, fpos_t, int)    _seek;
-        int*     function(void*, in char*, int)  _write;
+        int     function(void*)                 _close;
+        int     function(void*, char*, int)     _read;
+        fpos_t  function(void*, fpos_t, int)    _seek;
+        int     function(void*, in char*, int)  _write;
 
         __sbuf          _ub;
         ubyte*          _up;
@@ -360,10 +361,10 @@ else version( Android )
         int       _lbfsize;
 
         void*     _cookie;
-        int*      function(void*)                    _close;
-        int*      function(void*, char*, int)        _read;
-        fpos_t*   function(void*, fpos_t, int)       _seek;
-        int*      function(void*, in char*, int)     _write;
+        int      function(void*)                    _close;
+        int      function(void*, char*, int)        _read;
+        fpos_t   function(void*, fpos_t, int)       _seek;
+        int      function(void*, in char*, int)     _write;
 
         __sbuf    _ext;
         ubyte*    _up;
