@@ -3522,7 +3522,7 @@ Dsymbols *Parser::parseAutoDeclarations(StorageClass storageClass, const utf8_t 
         else
 		{
             ArrayInitializer* ai = init->isArrayInitializer();
-            if (ai && token.value == TOKidentifier  && strcmp(token.toChars(), "s") == 0)
+            if (ai && token.value == TOKidentifier && strcmp(token.toChars(), "s") == 0)
             {
                 nextToken();
                 
