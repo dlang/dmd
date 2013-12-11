@@ -187,6 +187,7 @@ bool VersionCondition::isPredefined(const char *ident)
         "ARM_SoftFP",
         "ARM_HardFloat",
         "AArch64",
+        "Epiphany",
         "PPC",
         "PPC_SoftFloat",
         "PPC_HardFloat",
