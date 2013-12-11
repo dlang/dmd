@@ -3429,15 +3429,15 @@ L2:
                    {
                         nextToken(); // jump over 's'
 
-                        ArrayInitializer* ai = init->isArrayInitializer();
-                        if (ai && t->ty == Tarray)
-                        {
-                            // printf("Make static...\n");
-                            TypeDArray* td = (TypeDArray*) t;
-                            assert(td != NULL);
+                        // ArrayInitializer* ai = init->isArrayInitializer();
+                        // if (ai && t->ty == Tarray)
+                        // {
+                        //     // printf("Make static...\n");
+                        //     TypeDArray* td = (TypeDArray*) t;
+                        //     assert(td != NULL);
 
-                            t = new TypeSArray(td->next, new IntegerExp(ai->value.dim));
-                        }
+                        //     t = new TypeSArray(td->next, new IntegerExp(ai->value.dim));
+                        // }
                     }
                 }
             }
