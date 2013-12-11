@@ -6149,15 +6149,18 @@ Expression *DeclarationExp::semantic(Scope *sc)
         if (ad)
         {
             if (ad->decl && ad->decl->dim == 1)
-            {   s = (*ad->decl)[0];
+            {
+                s = (*ad->decl)[0];
                 continue;
             }
         }
         break;
     }
 
-    if (s->isVarDeclaration())
-    {   // Do semantic() on initializer first, so:
+    VarDeclaration *v = s->isVarDeclaration();
+    if (v)
+    {
+        // Do semantic() on initializer first, so:
         //      int a = a;
         // will be illegal.
         declaration->semantic(sc);
@@ -6170,14 +6173,17 @@ Expression *DeclarationExp::semantic(Scope *sc)
     if (s->ident)
     {
         if (!sc->insert(s))
-        {   error("declaration %s is already defined", s->toPrettyChars());
+        {
+            error("declaration %s is already defined", s->toPrettyChars());
             return new ErrorExp();
         }
         else if (sc->func)
         {
-            if ( (s->isFuncDeclaration() || s->isTypedefDeclaration() ||
-                s->isAggregateDeclaration() || s->isEnumDeclaration() ||
-                s->isInterfaceDeclaration()) &&
+            if ((s->isFuncDeclaration() ||
+                 s->isTypedefDeclaration() ||
+                 s->isAggregateDeclaration() ||
+                 s->isEnumDeclaration() ||
+                 v && v->isDataseg()) &&    // Bugzilla 11720
                 !sc->func->localsymtab->insert(s))
             {
                 error("declaration %s is already defined in another scope in %s",
@@ -6185,11 +6191,11 @@ Expression *DeclarationExp::semantic(Scope *sc)
                 return new ErrorExp();
             }
             else
-            {   // Disallow shadowing
-
+            {
+                // Disallow shadowing
                 for (Scope *scx = sc->enclosing; scx && scx->func == sc->func; scx = scx->enclosing)
-                {   Dsymbol *s2;
-
+                {
+                    Dsymbol *s2;
                     if (scx->scopesym && scx->scopesym->symtab &&
                         (s2 = scx->scopesym->symtab->lookup(s->ident)) != NULL &&
                         s != s2)
