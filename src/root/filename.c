@@ -667,11 +667,11 @@ void FileName::ensurePathToNameExists(const char *name)
  */
 const char *FileName::canonicalName(const char *name)
 {
-#if linux
+#if __linux__
     // Lovely glibc extension to do it for us
     return canonicalize_file_name(name);
 #elif POSIX
-  #if _POSIX_VERSION >= 200809L || defined (linux)
+  #if _POSIX_VERSION >= 200809L || defined (__linux__)
     // NULL destination buffer is allowed and preferred
     return realpath(name, NULL);
   #else

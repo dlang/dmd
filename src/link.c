@@ -22,13 +22,13 @@
 #endif
 #endif
 
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
 #include        <sys/types.h>
 #include        <sys/wait.h>
 #include        <unistd.h>
 #endif
 
-#if linux || __APPLE__
+#if __linux__ || __APPLE__
     #define HAS_POSIX_SPAWN 1
     #include        <spawn.h>
     #if __APPLE__
@@ -83,7 +83,7 @@ void writeFilename(OutBuffer *buf, const char *filename)
     writeFilename(buf, filename, strlen(filename));
 }
 
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
 
 /*****************************
  * As it forwards the linker error message to stderr, checks for the presence
@@ -430,7 +430,7 @@ int runLINK()
         }
         return status;
     }
-#elif linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#elif __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
     pid_t childpid;
     int status;
 
@@ -448,7 +448,7 @@ int runLINK()
     // add the "-dynamiclib" flag
     if (global.params.dll)
         argv.push("-dynamiclib");
-#elif linux || __FreeBSD__ || __OpenBSD__ || __sun
+#elif __linux__ || __FreeBSD__ || __OpenBSD__ || __sun
     if (global.params.dll)
         argv.push("-shared");
 #endif
@@ -630,7 +630,7 @@ int runLINK()
 //    argv.push("-ldruntime");
     argv.push("-lpthread");
     argv.push("-lm");
-#if linux
+#if __linux__
     // Changes in ld for Ubuntu 11.10 require this to appear after phobos2
     argv.push("-lrt");
 #endif
@@ -855,7 +855,7 @@ int runProgram()
         ex = global.params.exefile;
     // spawnlp returns intptr_t in some systems, not int
     return spawnv(0,ex,argv.tdata());
-#elif linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#elif __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
     pid_t childpid;
     int status;
 
