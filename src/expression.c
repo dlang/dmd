@@ -4392,6 +4392,41 @@ void ArrayLiteralExp::toMangleBuffer(OutBuffer *buf)
     }
 }
 
+/************************ StaticArrayLiteralExp ************************************/
+
+// [ e1, e2, e3, ... ]s
+StaticArrayLiteralExp::StaticArrayLiteralExp(Loc loc, Expressions *elements)
+    : ArrayLiteralExp(loc, elements)
+{
+
+}
+
+StaticArrayLiteralExp::StaticArrayLiteralExp(Loc loc, Expression *e)
+    : ArrayLiteralExp(loc, e)
+{
+
+}
+
+StaticArrayLiteralExp::StaticArrayLiteralExp(ArrayLiteralExp* ale)
+: ArrayLiteralExp(ale->loc, ale->elements)
+{
+
+}
+
+Expression *StaticArrayLiteralExp::semantic(Scope *sc)
+{
+    Expression* e = ArrayLiteralExp::semantic(sc);
+
+    TypeDArray* td = (TypeDArray*) type;
+    if (td != NULL)
+    {
+        TypeSArray* ts = new TypeSArray(td->next, new IntegerExp(elements->dim));
+        type = ts->merge();
+    }
+
+    return e;
+}
+
 /************************ AssocArrayLiteralExp ************************************/
 
 // [ key0 : value0, key1 : value1, ... ]
