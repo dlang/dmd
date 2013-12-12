@@ -264,6 +264,8 @@ struct Global
     const char *hdr_ext;        // for D 'header' import files
     const char *json_ext;       // for JSON files
     const char *map_ext;        // for .map files
+    bool run_noext;             // allow -run sources without extensions.
+
     const char *copyright;
     const char *written;
     const char *main_d;         // dummy filename for dummy main()
