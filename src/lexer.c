@@ -1835,6 +1835,7 @@ TOK Lexer::number(Token *t)
     unsigned c;
     uinteger_t n = 0;                       // unsigned >=64 bit integer type
     int d;
+    bool err = false;
 
     c = *p;
     if (c == '0')
@@ -1905,16 +1906,22 @@ TOK Lexer::number(Token *t)
 
             case '2': case '3':
             case '4': case '5': case '6': case '7':
-                if (base == 2)
+                if (base == 2 && !err)
+                {
                     error("binary digit expected");
+                    err = true;
+                }
                 ++p;
                 d = c - '0';
                 break;
 
             case '8': case '9':
                 ++p;
-                if (base < 10)
+                if (base < 10 && !err)
+                {
                     error("radix %d digit expected", base);
+                    err = true;
+                }
                 d = c - '0';
                 break;
 
@@ -1925,7 +1932,11 @@ TOK Lexer::number(Token *t)
                 {
                     if (c == 'e' || c == 'E' || c == 'f' || c == 'F')
                         goto Lreal;
-                    error("radix %d digit expected", base);
+                    if (!err)
+                    {
+                        error("radix %d digit expected", base);
+                        err = true;
+                    }
                 }
                 if (c >= 'a')
                     d = c + 10 - 'a';
@@ -1966,16 +1977,19 @@ TOK Lexer::number(Token *t)
         }
 
         uinteger_t n2 = n * base;
-        if (n2 / base != n || n2 + d < n)
+        if ((n2 / base != n || n2 + d < n) && !err)
         {
             error("integer overflow");
+            err = true;
         }
         n = n2 + d;
 
         if (sizeof(n) > 8 &&
-            n > 0xFFFFFFFFFFFFFFFFULL)  // if n needs more than 64 bits
+            n > 0xFFFFFFFFFFFFFFFFULL &&    // if n needs more than 64 bits
+            !err)
         {
             error("integer overflow");
+            err = true;
         }
     }
 
@@ -2006,8 +2020,11 @@ Ldone:
                 f = FLAGS_long;
             L1:
                 p++;
-                if (flags & f)
+                if ((flags & f) && !err)
+                {
                     error("unrecognized token");
+                    err = true;
+                }
                 flags = (FLAGS) (flags | f);
                 continue;
             default:
@@ -2028,26 +2045,31 @@ Ldone:
              * First that fits: int, uint, long, ulong
              */
             if (n & 0x8000000000000000LL)
-                    result = TOKuns64v;
+                result = TOKuns64v;
             else if (n & 0xFFFFFFFF00000000LL)
-                    result = TOKint64v;
+                result = TOKint64v;
             else if (n & 0x80000000)
-                    result = TOKuns32v;
+                result = TOKuns32v;
             else
-                    result = TOKint32v;
+                result = TOKint32v;
             break;
 
         case FLAGS_decimal:
             /* First that fits: int, long, long long
              */
             if (n & 0x8000000000000000LL)
-            {       error("signed integer overflow");
-                    result = TOKuns64v;
+            {
+                if (!err)
+                {
+                    error("signed integer overflow");
+                    err = true;
+                }
+                result = TOKuns64v;
             }
             else if (n & 0xFFFFFFFF80000000LL)
-                    result = TOKint64v;
+                result = TOKint64v;
             else
-                    result = TOKint32v;
+                result = TOKint32v;
             break;
 
         case FLAGS_unsigned:
@@ -2055,25 +2077,30 @@ Ldone:
             /* First that fits: uint, ulong
              */
             if (n & 0xFFFFFFFF00000000LL)
-                    result = TOKuns64v;
+                result = TOKuns64v;
             else
-                    result = TOKuns32v;
+                result = TOKuns32v;
             break;
 
         case FLAGS_decimal | FLAGS_long:
             if (n & 0x8000000000000000LL)
-            {       error("signed integer overflow");
-                    result = TOKuns64v;
+            {
+                if (!err)
+                {
+                    error("signed integer overflow");
+                    err = true;
+                }
+                result = TOKuns64v;
             }
             else
-                    result = TOKint64v;
+                result = TOKint64v;
             break;
 
         case FLAGS_long:
             if (n & 0x8000000000000000LL)
-                    result = TOKuns64v;
+                result = TOKuns64v;
             else
-                    result = TOKint64v;
+                result = TOKint64v;
             break;
 
         case FLAGS_unsigned | FLAGS_long:
