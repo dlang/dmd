@@ -2348,6 +2348,38 @@ void test9525()
 }
 
 /*******************************************/
+// 11718
+
+struct Ty11718(alias sym) {}
+
+auto fn11718(T)(T a)   { return Ty11718!(a).mangleof; }
+auto fn11718(T)() { T a; return Ty11718!(a).mangleof; }
+
+void test11718()
+{
+    string TyName(string tail)()
+    {
+        enum s = "__T7Ty11718" ~ tail;
+        enum int len = s.length;
+        return "S6nested" ~ len.stringof ~ s;
+    }
+    string fnName(string paramPart)()
+    {
+        enum s = "_D6nested36__T7fn11718T"~
+                 "S6nested9test11718FZv1AZ7fn11718"~paramPart~"1a"~
+                 "S6nested9test11718FZv1A";
+        enum int len = s.length;
+        return len.stringof ~ s;
+    }
+    enum result1 = TyName!("S" ~ fnName!("F"~"S6nested9test11718FZv1A"~"Z") ~ "Z") ~ "7Ty11718";
+    enum result2 = TyName!("S" ~ fnName!("F"~""                       ~"Z") ~ "Z") ~ "7Ty11718";
+
+    struct A {}
+    static assert(fn11718(A.init) == result1);
+    static assert(fn11718!A()     == result2);
+}
+
+/*******************************************/
 
 /+
 auto fun8863(T)(T* ret) { *ret = T(); }

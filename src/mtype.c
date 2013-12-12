@@ -5374,16 +5374,19 @@ Lnotcovariant:
 }
 
 void TypeFunction::toDecoBuffer(OutBuffer *buf, int flag)
-{   unsigned char mc;
-
+{
     //printf("TypeFunction::toDecoBuffer() this = %p %s\n", this, toChars());
     //static int nest; if (++nest == 50) *(char*)0=0;
     if (inuse)
-    {   inuse = 2;              // flag error to caller
+    {
+        inuse = 2;              // flag error to caller
         return;
     }
     inuse++;
+
     MODtoDecoBuffer(buf, mod);
+
+    unsigned char mc;
     switch (linkage)
     {
         case LINKd:             mc = 'F';       break;
@@ -5395,6 +5398,7 @@ void TypeFunction::toDecoBuffer(OutBuffer *buf, int flag)
             assert(0);
     }
     buf->writeByte(mc);
+
     if (purity || isnothrow || isproperty || isref || trust)
     {
         if (purity)
@@ -5416,11 +5420,12 @@ void TypeFunction::toDecoBuffer(OutBuffer *buf, int flag)
             default: break;
         }
     }
+
     // Write argument types
     Parameter::argsToDecoBuffer(buf, parameters);
     //if (buf->data[buf->offset - 1] == '@') halt();
     buf->writeByte('Z' - varargs);      // mark end of arg list
-    if(next != NULL)
+    if (next != NULL)
         next->toDecoBuffer(buf);
     inuse--;
 }
