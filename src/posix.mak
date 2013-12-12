@@ -46,9 +46,19 @@ TK=tk
 ROOT=root
 
 # Use make MODEL=32 or MODEL=64 to force the architecture
-ifneq (x,x$(MODEL))
-    MODEL_FLAG=-m$(MODEL)
+MODEL:=
+uname_M:=$(shell uname -m)
+ifeq (x86_64,$(uname_M))
+	MODEL:=64
 endif
+ifeq (i686,$(uname_M))
+	MODEL:=32
+endif
+ifeq (,$(MODEL))
+	$(error Cannot figure 32/64 model from uname -m: $(uname_M))
+endif
+
+MODEL_FLAG:=-m$(MODEL)
 
 ifeq (OSX,$(OS))
     export MACOSX_DEPLOYMENT_TARGET=10.3
