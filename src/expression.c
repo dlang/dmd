@@ -812,7 +812,7 @@ Expression *resolveUFCS(Scope *sc, CallExp *ce)
                 if (isDotOpDispatch(ey))
                 {
                     unsigned errors = global.startGagging();
-                    e = ce->semantic(sc);
+                    e = ce->syntaxCopy()->semantic(sc);
                     if (global.endGagging(errors))
                     {}  /* fall down to UFCS */
                     else
