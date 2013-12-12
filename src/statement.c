@@ -96,6 +96,7 @@ void Statement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->printf("Statement::toCBuffer()");
     buf->writenl();
+    assert(0);
 }
 
 Statement *Statement::semantic(Scope *sc)
@@ -289,6 +290,7 @@ Statements *Statement::flatten(Scope *sc)
 ErrorStatement::ErrorStatement()
     : Statement(Loc())
 {
+    assert(global.gaggedErrors || global.errors);
 }
 
 Statement *ErrorStatement::syntaxCopy()
