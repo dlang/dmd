@@ -2673,6 +2673,15 @@ Type *Parser::parseBasicType2(Type *t)
                 //     int[3][1] a;
                 // is (array[1] of array[3] of int)
                 nextToken();
+
+                const bool auto_dim_sarray = token.value == TOKdollar /// Type[$]
+                    && t->ty == TOKcall
+                    && peekNext() == TOKrbracket;
+                if (auto_dim_sarray) /// Type[$]
+                {
+                    goto Lauto_dim_sarray;
+                }
+
                 if (token.value == TOKrbracket)
                 {
                     t = new TypeDArray(t);                      // []
@@ -2688,9 +2697,23 @@ Type *Parser::parseBasicType2(Type *t)
                 }
                 else
                 {
+                    Lauto_dim_sarray:
+
                     //printf("it's type[expression]\n");
                     inBrackets++;
-                    Expression *e = parseAssignExp();           // [ expression ]
+                    Expression *e = NULL;
+
+                    if (auto_dim_sarray)
+                    {
+                        nextToken(); /// jump over '$'
+
+                        e = new IntegerExp(-1);
+                    }
+                    else
+                    {
+                        e = parseAssignExp();           // [ expression ]
+                    }
+
                     if (token.value == TOKslice)
                     {
                         nextToken();
@@ -3243,6 +3266,19 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, const utf8_t *co
         }
         return parseAutoDeclarations(storage_class, comment);
     }
+    else if (storage_class &&
+        stc == STCauto &&
+        token.value == TOKlbracket &&
+        peekNext() == TOKdollar)
+    {
+        if (udas)
+        {
+            // Need to improve this
+            error("user defined attributes not allowed for auto declarations");
+        }
+
+        return parseAutoDeclarations(storage_class, comment);
+    }
 
     /* Look for return type inference for template functions.
      */
@@ -3419,6 +3455,41 @@ L2:
             {
                 nextToken();
                 init = parseInitializer();
+
+                if (t->ty == Tsarray)
+                {
+                    TypeSArray* tsa = (TypeSArray*) t;
+                    assert(tsa != NULL);
+
+                    IntegerExp* sdim = (IntegerExp*) tsa->dim;
+                    if (sdim != NULL && sdim->value == -1)
+                    {
+                        ArrayInitializer* ai = init->isArrayInitializer();
+                        if (ai == NULL)
+                        {
+                            bool err = true;
+
+                            ExpInitializer* ei = init->isExpInitializer();
+                            SliceExp* se = ei == NULL ? NULL : (SliceExp*) ei->exp;
+                            if (se != NULL)
+                            {
+                                uinteger_t upr = se->upr == NULL ? 0 : se->upr->toUInteger();
+                                uinteger_t lwr = se->lwr == NULL ? 0 : se->lwr->toUInteger();
+
+                                if (upr > lwr)
+                                {
+                                    err = false;
+                                    sdim->value = upr - lwr;
+                                }
+                            }
+                            
+                            if (err)
+                                error(token.loc, "Cannot determine dimension for '%s' from '%s'.", ident->toChars(), init->toChars());
+                        }
+                        else
+                            sdim->value = ai->value.dim;
+                    }
+                }
             }
 
             VarDeclaration *v = new VarDeclaration(loc, t, ident, init);
@@ -3470,6 +3541,23 @@ Dsymbols *Parser::parseAutoDeclarations(StorageClass storageClass, const utf8_t 
 {
     Dsymbols *a = new Dsymbols;
 
+    bool auto_dim_sarray = false;
+    if (token.value == TOKlbracket &&
+        peekNext() == TOKdollar &&
+        storageClass & STCauto)
+    {
+        check(TOKlbracket);
+        check(TOKdollar);
+        check(TOKrbracket);
+
+        if (token.value != TOKidentifier)
+        {
+            error(token.loc, "Expected identifier, not %s.", token.toChars());
+        }
+
+        auto_dim_sarray = true;
+    }
+
     while (1)
     {
         Loc loc = token.loc;
@@ -3483,6 +3571,38 @@ Dsymbols *Parser::parseAutoDeclarations(StorageClass storageClass, const utf8_t 
         a->push(v);
         if (token.value == TOKsemicolon)
         {
+            if (auto_dim_sarray)
+            {
+                ArrayInitializer* ai = init->isArrayInitializer();
+                Expression* e = NULL;
+
+                if (ai == NULL)
+                {
+                    error(token.loc, "Cannot determine type for '%s' from '%s'.", ident->toChars(), init->toChars());
+
+                    break;
+                }
+                else
+                {
+                    e = ai->toExpression();
+                    init = new ExpInitializer(e->loc, e);
+                }
+
+                Type* type = init->inferType(NULL);
+
+                if (type != NULL)
+                {
+                    TypeDArray* td = (TypeDArray*) type;
+                    if (td != NULL)
+                    {
+                        v->type = new TypeSArray(td->next, new IntegerExp(ai->value.dim));
+
+                        if (v->storage_class & STCauto)
+                            v->storage_class &= ~STCauto;
+                    }
+                }
+            }
+
             nextToken();
             addComment(v, comment);
         }
