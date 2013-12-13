@@ -2661,6 +2661,7 @@ Type *Parser::parseBasicType2(Type *t)
     //printf("parseBasicType2()\n");
     while (1)
     {
+        bool auto_dim_sarray = false;
         switch (token.value)
         {
             case TOKmul:
@@ -2674,7 +2675,7 @@ Type *Parser::parseBasicType2(Type *t)
                 // is (array[1] of array[3] of int)
                 nextToken();
 
-                const bool auto_dim_sarray = token.value == TOKdollar /// Type[$]
+                auto_dim_sarray = token.value == TOKdollar /// Type[$]
                     && t->ty == TOKcall
                     && peekNext() == TOKrbracket;
                 if (auto_dim_sarray) /// Type[$]
