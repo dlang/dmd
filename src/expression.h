@@ -492,6 +492,15 @@ public:
     Expression *inlineScan(InlineScanState *iss);
 };
 
+class StaticArrayLiteralExp : public ArrayLiteralExp
+{
+public:
+    StaticArrayLiteralExp(Loc loc, Expressions *elements);
+    StaticArrayLiteralExp(Loc loc, Expression *e);
+    StaticArrayLiteralExp(ArrayLiteralExp* ale);
+    Expression *semantic(Scope *sc);
+};
+
 class AssocArrayLiteralExp : public Expression
 {
 public:

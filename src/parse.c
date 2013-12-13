@@ -3419,6 +3419,27 @@ L2:
             {
                 nextToken();
                 init = parseInitializer();
+				
+                if ((t->ty == Tarray || t->ty == Tsarray))
+                {
+                   /*printf("\tType: %s, Identifier: %s, Init: %s [t->ty = %d]. Next token = %s.",
+                        t->toChars(), ident->toChars(), init->toChars(), t->ty, token.toChars());*/
+
+                   if (token.value == TOKidentifier && strcmp(token.toChars(), "s") == 0)
+                   {
+                        nextToken(); // jump over 's'
+
+                        // ArrayInitializer* ai = init->isArrayInitializer();
+                        // if (ai && t->ty == Tarray)
+                        // {
+                        //     // printf("Make static...\n");
+                        //     TypeDArray* td = (TypeDArray*) t;
+                        //     assert(td != NULL);
+
+                        //     t = new TypeSArray(td->next, new IntegerExp(ai->value.dim));
+                        // }
+                    }
+                }
             }
 
             VarDeclaration *v = new VarDeclaration(loc, t, ident, init);
@@ -3499,7 +3520,32 @@ Dsymbols *Parser::parseAutoDeclarations(StorageClass storageClass, const utf8_t 
                 error("Identifier expected following comma");
         }
         else
-            error("semicolon expected following auto declaration, not '%s'", token.toChars());
+		{
+            ArrayInitializer* ai = init->isArrayInitializer();
+            if (ai && token.value == TOKidentifier && strcmp(token.toChars(), "s") == 0)
+            {
+                nextToken();
+                
+                Expression *e = init->toExpression();
+                init = new ExpInitializer(e->loc, e);
+                Type* type = init->inferType(NULL);
+
+                // printf("\t > %s :: %s :: %s.\n", v->toChars(), ai->toChars(), type->toChars());
+                /// Auto infer type
+                if (type != NULL)
+                {
+                    TypeDArray* td = (TypeDArray*) type;
+                    if (td != NULL)
+                    {
+                        v->type = new TypeSArray(td->next, new IntegerExp(ai->value.dim));
+
+                        if (v->storage_class & STCauto)
+                            v->storage_class &= ~STCauto;
+                    }
+                }
+            } else
+				error("semicolon expected following auto declaration, not '%s'", token.toChars());
+		}
         break;
     }
     return a;
@@ -3724,7 +3770,8 @@ Initializer *Parser::parseInitializer()
                             if (t->value != TOKsemicolon &&
                                 t->value != TOKcomma &&
                                 t->value != TOKrbracket &&
-                                t->value != TOKrcurly)
+                                t->value != TOKrcurly
+								&& (t->value != TOKidentifier && strcmp(t->toChars(), "s") != 0)) // avoid [number, ...]s
                                 goto Lexpression;
                             break;
                         }
@@ -6922,8 +6969,18 @@ Expressions *Parser::parseArguments()
         nextToken();
         while (token.value != endtok && token.value != TOKeof)
         {
-                arg = parseAssignExp();
-                arguments->push(arg);
+            arg = parseAssignExp();
+            if (token.value == TOKidentifier && strcmp(token.toChars(), "s") == 0)
+            {
+                ArrayLiteralExp* ale = (ArrayLiteralExp*) arg;
+                if (ale != NULL)
+                {
+                    nextToken();
+                    // printf("\t :: %s\n", ale->toChars());
+                    arg = new StaticArrayLiteralExp(ale);
+                }
+            }
+            arguments->push(arg);
                 if (token.value == endtok)
                     break;
                 check(TOKcomma);
