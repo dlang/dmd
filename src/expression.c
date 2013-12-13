@@ -1422,7 +1422,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                 //printf("\t\tvarargs == 2, p->type = '%s'\n", p->type->toChars());
                 {
                     MATCH m;
-                    if ((m = arg->implicitConvTo(p->type)) != MATCHnomatch)
+                    if ((m = arg->implicitConvTo(p->type)) > MATCHnomatch)
                     {
                         if (p->type->nextOf() && arg->implicitConvTo(p->type->nextOf()) >= m)
                             goto L2;
@@ -6736,7 +6736,7 @@ Expression *IsExp::semantic(Scope *sc)
         MATCH m = targ->deduceType(sc, tspec, parameters, &dedtypes);
         //printf("targ: %s\n", targ->toChars());
         //printf("tspec: %s\n", tspec->toChars());
-        if (m == MATCHnomatch ||
+        if (m <= MATCHnomatch ||
             (m != MATCHexact && tok == TOKequal))
         {
             goto Lno;
@@ -6757,7 +6757,7 @@ Expression *IsExp::semantic(Scope *sc)
                 Declaration *s = NULL;
 
                 m = tp->matchArg(loc, sc, &tiargs, i, parameters, &dedtypes, &s);
-                if (m == MATCHnomatch)
+                if (m <= MATCHnomatch)
                     goto Lno;
                 s->semantic(sc);
                 if (sc->sd)

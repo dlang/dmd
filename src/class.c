@@ -1064,8 +1064,8 @@ FuncDeclaration *ClassDeclaration::findFunc(Identifier *ident, TypeFunction *tf)
 
                 {
                 // Function type matcing: exact > covariant
-                int m1 = tf->equals(fd     ->type) ? MATCHexact : MATCHnomatch;
-                int m2 = tf->equals(fdmatch->type) ? MATCHexact : MATCHnomatch;
+                MATCH m1 = tf->equals(fd     ->type) ? MATCHexact : MATCHnomatch;
+                MATCH m2 = tf->equals(fdmatch->type) ? MATCHexact : MATCHnomatch;
                 if (m1 > m2)
                     goto Lfd;
                 else if (m1 < m2)
@@ -1073,8 +1073,8 @@ FuncDeclaration *ClassDeclaration::findFunc(Identifier *ident, TypeFunction *tf)
                 }
 
                 {
-                int m1 = (tf->mod == fd     ->type->mod) ? MATCHexact : MATCHnomatch;
-                int m2 = (tf->mod == fdmatch->type->mod) ? MATCHexact : MATCHnomatch;
+                MATCH m1 = (tf->mod == fd     ->type->mod) ? MATCHexact : MATCHnomatch;
+                MATCH m2 = (tf->mod == fdmatch->type->mod) ? MATCHexact : MATCHnomatch;
                 if (m1 > m2)
                     goto Lfd;
                 else if (m1 < m2)
@@ -1083,8 +1083,8 @@ FuncDeclaration *ClassDeclaration::findFunc(Identifier *ident, TypeFunction *tf)
 
                 {
                 // The way of definition: non-mixin > mixin
-                int m1 = fd     ->parent->isClassDeclaration() ? MATCHexact : MATCHnomatch;
-                int m2 = fdmatch->parent->isClassDeclaration() ? MATCHexact : MATCHnomatch;
+                MATCH m1 = fd     ->parent->isClassDeclaration() ? MATCHexact : MATCHnomatch;
+                MATCH m2 = fdmatch->parent->isClassDeclaration() ? MATCHexact : MATCHnomatch;
                 if (m1 > m2)
                     goto Lfd;
                 else if (m1 < m2)

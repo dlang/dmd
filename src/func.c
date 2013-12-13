@@ -2681,7 +2681,7 @@ MATCH FuncDeclaration::leastAsSpecialized(FuncDeclaration *g)
     }
 
     MATCH m = (MATCH) tg->callMatch(NULL, &args, 1);
-    if (m)
+    if (m > MATCHnomatch)
     {
         /* A variadic parameter list is less specialized than a
          * non-variadic one.
@@ -2755,7 +2755,7 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
             m.lastf->functionSemantic();
         return m.lastf;
     }
-    if (m.last != MATCHnomatch && (flags & 2) && !tthis && m.lastf->needThis())
+    if (m.last > MATCHnomatch && (flags & 2) && !tthis && m.lastf->needThis())
     {
         return m.lastf;
     }
@@ -2764,7 +2764,7 @@ Lerror:
     /* Failed to find a best match.
      * Do nothing or print error.
      */
-    if (m.last == MATCHnomatch && (flags & 1))
+    if (m.last <= MATCHnomatch && (flags & 1))
     {   // if do not print error messages
         return NULL;    // no match
     }

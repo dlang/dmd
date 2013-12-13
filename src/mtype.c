@@ -4171,7 +4171,7 @@ MATCH TypeSArray::implicitConvTo(Type *to)
         if (!MODimplicitConv(next->mod, tp->next->mod))
             return MATCHnomatch;
 
-        if (tp->next->ty == Tvoid || next->constConv(tp->next) != MATCHnomatch)
+        if (tp->next->ty == Tvoid || next->constConv(tp->next) > MATCHnomatch)
         {
             return MATCHconvert;
         }
@@ -4192,7 +4192,7 @@ MATCH TypeSArray::implicitConvTo(Type *to)
         }
 
         MATCH m = next->constConv(ta->next);
-        if (m != MATCHnomatch)
+        if (m > MATCHnomatch)
         {
             return MATCHconvert;
         }
@@ -4500,7 +4500,7 @@ MATCH TypeDArray::implicitConvTo(Type *to)
         }
 
         MATCH m = next->constConv(ta->next);
-        if (m != MATCHnomatch)
+        if (m > MATCHnomatch)
         {
             if (m == MATCHexact && mod != to->mod)
                 m = MATCHconst;
@@ -4852,7 +4852,7 @@ MATCH TypeAArray::implicitConvTo(Type *to)
 
         MATCH m = next->constConv(ta->next);
         MATCH mi = index->constConv(ta->index);
-        if (m != MATCHnomatch && mi != MATCHnomatch)
+        if (m > MATCHnomatch && mi > MATCHnomatch)
         {
             return MODimplicitConv(mod, to->mod) ? MATCHconst : MATCHnomatch;
         }
@@ -5020,7 +5020,7 @@ MATCH TypePointer::implicitConvTo(Type *to)
         }
 
         MATCH m = next->constConv(tp->next);
-        if (m != MATCHnomatch)
+        if (m > MATCHnomatch)
         {
             if (m == MATCHexact && mod != to->mod)
                 m = MATCHconst;
@@ -8463,12 +8463,12 @@ MATCH TypeStruct::implicitConvTo(Type *to)
                         ;
                     else if (v->offset == offset)
                     {
-                        if (m)
+                        if (m > MATCHnomatch)
                             continue;
                     }
                     else
                     {
-                        if (!m)
+                        if (m <= MATCHnomatch)
                             return m;
                     }
 
@@ -8482,7 +8482,7 @@ MATCH TypeStruct::implicitConvTo(Type *to)
                     MATCH mf = tvf->implicitConvTo(tv);
                     //printf("\t%s => %s, match = %d\n", v->type->toChars(), tv->toChars(), mf);
 
-                    if (mf == MATCHnomatch)
+                    if (mf <= MATCHnomatch)
                         return mf;
                     if (mf < m)         // if field match is worse
                         m = mf;
@@ -9004,7 +9004,7 @@ MATCH TypeClass::implicitConvTo(Type *to)
 {
     //printf("TypeClass::implicitConvTo(to = '%s') %s\n", to->toChars(), toChars());
     MATCH m = constConv(to);
-    if (m != MATCHnomatch)
+    if (m > MATCHnomatch)
         return m;
 
     ClassDeclaration *cdto = to->isClassHandle();
@@ -9483,7 +9483,7 @@ MATCH TypeNull::implicitConvTo(Type *to)
     //printf("from: %s\n", toChars());
     //printf("to  : %s\n", to->toChars());
     MATCH m = Type::implicitConvTo(to);
-    if (m)
+    if (m != MATCHnomatch)
         return m;
 
     // NULL implicitly converts to any pointer type or dynamic array
