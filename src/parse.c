@@ -2706,7 +2706,7 @@ Type *Parser::parseBasicType2(Type *t)
                     if (auto_dim_sarray)
                     {
                         nextToken(); /// jump over '$'
-                        e = new IntegerExp(-1);
+                        e = new DollarExp(token.loc);
                     }
                     else
                     {
@@ -3454,41 +3454,6 @@ L2:
             {
                 nextToken();
                 init = parseInitializer();
-
-                if (t->ty == Tsarray)
-                {
-                    TypeSArray* tsa = (TypeSArray*) t;
-                    assert(tsa != NULL);
-
-                    IntegerExp* sdim = (IntegerExp*) tsa->dim;
-                    if (sdim != NULL && sdim->value == -1)
-                    {
-                        ArrayInitializer* ai = init->isArrayInitializer();
-                        if (ai == NULL)
-                        {
-                            bool err = true;
-
-                            ExpInitializer* ei = init->isExpInitializer();
-                            SliceExp* se = ei == NULL ? NULL : (SliceExp*) ei->exp;
-                            if (se != NULL)
-                            {
-                                uinteger_t upr = se->upr == NULL ? 0 : se->upr->toUInteger();
-                                uinteger_t lwr = se->lwr == NULL ? 0 : se->lwr->toUInteger();
-
-                                if (upr > lwr)
-                                {
-                                    err = false;
-                                    sdim->value = upr - lwr;
-                                }
-                            }
-                            
-                            if (err)
-                                error(token.loc, "Cannot determine dimension for '%s' from '%s'.", ident->toChars(), init->toChars());
-                        }
-                        else
-                            sdim->value = ai->value.dim;
-                    }
-                }
             }
 
             VarDeclaration *v = new VarDeclaration(loc, t, ident, init);
@@ -3572,60 +3537,10 @@ Dsymbols *Parser::parseAutoDeclarations(StorageClass storageClass, const utf8_t 
         {
             if (auto_dim_sarray)
             {
-                ArrayInitializer* ai = init->isArrayInitializer();
-                Expression* e = NULL;
+                v->type = new TypeSArray(NULL, new DollarExp(token.loc));
 
-                if (ai == NULL)
-                {
-                    bool err = true;
-
-                    ExpInitializer* ei = init->isExpInitializer();
-                    SliceExp* se = ei == NULL ? NULL : (SliceExp*) ei->exp;
-                    if (se != NULL)
-                    {
-                        uinteger_t upr = se->upr == NULL ? 0 : se->upr->toUInteger();
-                        uinteger_t lwr = se->lwr == NULL ? 0 : se->lwr->toUInteger();
- 
-                        if (upr > lwr)
-                        {
-                            // Rewrite auto[$] sarr = darr[s .. e]; with typeof(darr[0])[e - s] = darr[s .. e];
-                            IndexExp* ie = new IndexExp(loc, se->e1, new IntegerExp(0));
-                            Type* teo = new TypeTypeof(loc, ie);
-                            v->type = new TypeSArray(teo, new IntegerExp(upr - lwr));
-
-                            if (v->storage_class & STCauto)
-                                v->storage_class &= ~STCauto;
-
-                            err = false;
-                        }
-                    }
-
-                    if (err)
-                    {
-                        error(token.loc, "Cannot determine type for '%s' from '%s'.", ident->toChars(), init->toChars());
-                    }
-
-                    break;
-                }
-                else
-                {
-                    e = ai->toExpression();
-                    init = new ExpInitializer(e->loc, e);
-                }
-
-                Type* type = init->inferType(NULL);
-
-                if (type != NULL)
-                {
-                    TypeDArray* td = (TypeDArray*) type;
-                    if (td != NULL)
-                    {
-                        v->type = new TypeSArray(td->next, new IntegerExp(ai->value.dim));
-
-                        if (v->storage_class & STCauto)
-                            v->storage_class &= ~STCauto;
-                    }
-                }
+                if (v->storage_class & STCauto)
+                    v->storage_class &= ~STCauto;
             }
 
             nextToken();
