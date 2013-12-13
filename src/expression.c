@@ -13292,6 +13292,12 @@ Expression *CmpExp::semantic(Scope *sc)
 
     type = Type::tboolean;
 
+    if (op == TOKunord || op == TOKlg || op == TOKleg || op == TOKule ||
+        op == TOKul || op == TOKuge || op == TOKug || op == TOKue)
+    {
+        warning("use std.math.isNaN to deal with NaN operands rather than floating point operator '%s'", Token::toChars(op));
+    }
+
     // Special handling for array comparisons
     t1 = e1->type->toBasetype();
     t2 = e2->type->toBasetype();
