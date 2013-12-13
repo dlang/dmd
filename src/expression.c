@@ -2030,10 +2030,11 @@ void Expression::deprecation(const char *format, ...)
     }
 }
 
-int Expression::rvalue()
+int Expression::rvalue(bool allowVoid)
 {
-    if (type && type->toBasetype()->ty == Tvoid)
-    {   error("expression %s is void and has no value", toChars());
+    if (!allowVoid && type && type->toBasetype()->ty == Tvoid)
+    {
+        error("expression %s is void and has no value", toChars());
 #if 0
         dump(0);
         halt();
@@ -4931,7 +4932,7 @@ Expression *TypeExp::semantic(Scope *sc)
     return e;
 }
 
-int TypeExp::rvalue()
+int TypeExp::rvalue(bool allowVoid)
 {
     error("type %s has no value", toChars());
     return 0;
@@ -5095,7 +5096,7 @@ void TemplateExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writestring(td->toChars());
 }
 
-int TemplateExp::rvalue()
+int TemplateExp::rvalue(bool allowVoid)
 {
     error("template %s has no value", toChars());
     return 0;

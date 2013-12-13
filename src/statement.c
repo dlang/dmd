@@ -3726,6 +3726,8 @@ Statement *ReturnStatement::semantic(Scope *sc)
             exp = exp->inferType(fld->treq->nextOf()->nextOf());
         exp = exp->semantic(sc);
         exp = resolveProperties(sc, exp);
+        if (!exp->rvalue(true)) // don't make error for void expression
+            exp = new ErrorExp();
         if (exp->op == TOKcall)
             exp = valueNoDtor(exp);
 
