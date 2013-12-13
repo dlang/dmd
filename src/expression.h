@@ -136,7 +136,7 @@ public:
     void error(const char *format, ...);
     void warning(const char *format, ...);
     void deprecation(const char *format, ...);
-    virtual int rvalue();
+    virtual int rvalue(bool allowVoid = false);
 
     static Expression *combine(Expression *e1, Expression *e2);
     static Expressions *arraySyntaxCopy(Expressions *exps);
@@ -589,7 +589,7 @@ public:
     TypeExp(Loc loc, Type *type);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
-    int rvalue();
+    int rvalue(bool allowVoid = false);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Expression *optimize(int result, bool keepLvalue = false);
     elem *toElem(IRState *irs);
@@ -614,7 +614,7 @@ public:
     FuncDeclaration *fd;
 
     TemplateExp(Loc loc, TemplateDeclaration *td, FuncDeclaration *fd = NULL);
-    int rvalue();
+    int rvalue(bool allowVoid = false);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
