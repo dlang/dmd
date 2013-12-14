@@ -10104,8 +10104,16 @@ Lsafe:
             ((TypeAArray *)tfrom)->getImpl();
         if (t->ty == Taarray)
             ((TypeAArray *)t)->getImpl();
-        Expression *e = e1->castTo(sc, to);
-        return e;
+
+        if (to->ty == Tvoid)
+        {
+            type = to;
+            return this;
+        }
+        else
+        {
+            return e1->castTo(sc, to);
+        }
     }
 
 Lfail:
