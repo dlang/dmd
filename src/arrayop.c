@@ -315,7 +315,7 @@ bool isArrayOpValid(Expression *e)
     Type *tb = e->type->toBasetype();
 
     BinExp *be;
-    if ( (tb->ty == Tarray) || (tb->ty == Tsarray) )
+    if (tb->ty == Tarray || tb->ty == Tsarray)
     {
         switch (e->op)
         {

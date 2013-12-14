@@ -1829,14 +1829,11 @@ elem *NegExp::toElem(IRState *irs)
 {
     elem *e = e1->toElem(irs);
     Type *tb1 = e1->type->toBasetype();
+
+    assert(tb1->ty != Tarray && tb1->ty != Tsarray);
+
     switch (tb1->ty)
     {
-        case Tarray:
-        case Tsarray:
-            error("Array operation %s not implemented", toChars());
-            e = el_long(type->totym(), 0);  // error recovery
-            break;
-
         case Tvector:
         {   // rewrite (-e) as (0-e)
             elem *ez = el_calloc();
@@ -1866,17 +1863,13 @@ elem *ComExp::toElem(IRState *irs)
     Type *tb1 = this->e1->type->toBasetype();
     tym_t ty = type->totym();
 
+    assert(tb1->ty != Tarray && tb1->ty != Tsarray);
+
     elem *e;
     switch (tb1->ty)
     {
         case Tbool:
             e = el_bin(OPxor, ty, e1, el_long(ty, 1));
-            break;
-
-        case Tarray:
-        case Tsarray:
-            error("Array operation %s not implemented", toChars());
-            e = el_long(type->totym(), 0);  // error recovery
             break;
 
         case Tvector:
@@ -2077,15 +2070,10 @@ elem *BinExp::toElemBin(IRState *irs,int op)
     Type *tb1 = e1->type->toBasetype();
     Type *tb2 = e2->type->toBasetype();
 
-    if ((tb1->ty == Tarray || tb1->ty == Tsarray ||
-         tb2->ty == Tarray || tb2->ty == Tsarray) &&
-        tb2->ty != Tvoid &&
-        op != OPeq && op != OPandand && op != OPoror
-       )
-    {
-        error("Array operation %s not implemented", toChars());
-        return el_long(type->totym(), 0);  // error recovery
-    }
+    assert(!((tb1->ty == Tarray || tb1->ty == Tsarray ||
+              tb2->ty == Tarray || tb2->ty == Tsarray) &&
+             tb2->ty != Tvoid &&
+             op != OPeq && op != OPandand && op != OPoror));
 
     tym_t tym = type->totym();
 
@@ -2208,11 +2196,7 @@ elem *ModExp::toElem(IRState *irs)
     Type *tb1 = e1->type->toBasetype();
     Type *tb2 = e2->type->toBasetype();
 
-    if (tb1->ty == Tarray || tb1->ty == Tsarray)
-    {
-        error("Array operation %s not implemented", toChars());
-        return el_long(type->totym(), 0);  // error recovery
-    }
+    assert(tb1->ty != Tarray && tb1->ty != Tsarray);
 
     elem *e;
 
@@ -3322,10 +3306,9 @@ elem *XorAssignExp::toElem(IRState *irs)
 elem *PowAssignExp::toElem(IRState *irs)
 {
     Type *tb1 = e1->type->toBasetype();
-    if (tb1->ty == Tarray || tb1->ty == Tsarray)
-        error("Array operation %s not implemented", toChars());
-    else
-        error("must import std.math to use ^^ operator");
+    assert(tb1->ty != Tarray && tb1->ty != Tsarray);
+
+    error("must import std.math to use ^^ operator");
     return el_long(type->totym(), 0);  // error recovery
 }
 
@@ -3383,10 +3366,9 @@ elem *XorExp::toElem(IRState *irs)
 elem *PowExp::toElem(IRState *irs)
 {
     Type *tb1 = e1->type->toBasetype();
-    if (tb1->ty == Tarray || tb1->ty == Tsarray)
-        error("Array operation %s not implemented", toChars());
-    else
-        error("must import std.math to use ^^ operator");
+    assert(tb1->ty != Tarray && tb1->ty != Tsarray);
+
+    error("must import std.math to use ^^ operator");
     return el_long(type->totym(), 0);  // error recovery
 }
 
