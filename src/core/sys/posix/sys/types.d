@@ -180,17 +180,17 @@ else version( Android )
 {
     version(X86)
     {
-        alias ulong     blkcnt_t;
-        alias ulong     blksize_t;
+        alias c_ulong   blkcnt_t;
+        alias c_ulong   blksize_t;
         alias uint      dev_t;
         alias uint      gid_t;
-        alias ulong     ino_t;
+        alias c_ulong   ino_t;
         alias ushort    mode_t;
         alias ushort    nlink_t;
-        alias long      off_t;
+        alias c_long    off_t;
         alias int       pid_t;
-        alias long      ssize_t;
-        alias long      time_t;
+        alias c_long    ssize_t;
+        alias c_long    time_t;
         alias uint      uid_t;
     }
     else
@@ -283,13 +283,13 @@ else version( Android )
 {
     version(X86)
     {
-        alias ulong    fsblkcnt_t;
-        alias ulong    fsfilcnt_t;
-        alias long     clock_t;
+        alias c_ulong  fsblkcnt_t;
+        alias c_ulong  fsfilcnt_t;
+        alias c_long   clock_t;
         alias uint     id_t;
         alias int      key_t;
-        alias long     suseconds_t;
-        alias long     useconds_t;
+        alias c_long   suseconds_t;
+        alias c_long   useconds_t;
     }
     else
     {
@@ -751,16 +751,16 @@ else version( Android )
         int value; //volatile
     }
 
-    alias long pthread_condattr_t;
-    alias int  pthread_key_t;
+    alias c_long pthread_condattr_t;
+    alias int    pthread_key_t;
 
     struct pthread_mutex_t
     {
         int value; //volatile
     }
 
-    alias long pthread_mutexattr_t;
-    alias int pthread_once_t; //volatile
+    alias c_long pthread_mutexattr_t;
+    alias int    pthread_once_t; //volatile
 
     struct pthread_rwlock_t
     {
@@ -773,8 +773,8 @@ else version( Android )
         void*[4]         reserved;
     }
 
-    alias int pthread_rwlockattr_t;
-    alias long pthread_t;
+    alias int    pthread_rwlockattr_t;
+    alias c_long pthread_t;
 }
 else
 {
