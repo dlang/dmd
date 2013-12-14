@@ -1018,6 +1018,7 @@ void PragmaDeclaration::semantic(Scope *sc)
                 StringExp *se = e->toString();
                 if (se)
                 {
+                    se = se->toUTF8(sc);
                     fprintf(stderr, "%.*s", (int)se->len, (char *)se->string);
                 }
                 else
