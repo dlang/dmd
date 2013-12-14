@@ -110,10 +110,10 @@ void source_name(OutBuffer *buf, Dsymbol *s)
 
 void prefix_name(OutBuffer *buf, CppMangleState *cms, Dsymbol *s)
 {
-    if (!cms->substitute(buf, s))
+    if (!s->isModule() && !cms->substitute(buf, s))
     {
         Dsymbol *p = s->toParent();
-        if (p && !p->isModule())
+        if (p)
         {
             prefix_name(buf, cms, p);
         }
@@ -123,10 +123,36 @@ void prefix_name(OutBuffer *buf, CppMangleState *cms, Dsymbol *s)
 
 void cpp_mangle_name(OutBuffer *buf, CppMangleState *cms, Dsymbol *s)
 {
+    const size_t MAXNS = 16;
+    const char* ns[MAXNS];
+    int nscount = 0;
+    for (int t = 0; s->userAttributes && t < s->userAttributes->dim; ++t)
+    {   Expression* exp = (*s->userAttributes)[t];
+        if (exp->op == TOKstructliteral)
+        {   StructLiteralExp* sle = (StructLiteralExp*)exp;
+            if (0 == strcmp(sle->sd->ident->toChars(), "namespace"))
+            {   if (sle->elements && sle->elements->dim == 1 && (*sle->elements)[0]->op == TOKstring)
+                {
+                    StringExp* se = (StringExp*)(*sle->elements)[0];
+                    if (se->sz != 1)
+                        s->error("C++ namespaces must be ASCII");
+                    // TODO: handle "::"
+                    assert(nscount < MAXNS);
+                    ns[nscount++] = (const char*)se->string;
+                }
+            }
+        }
+    }
+
     Dsymbol *p = s->toParent();
-    if (p && !p->isModule())
+    if ((p && !p->isModule()) || nscount)
     {
         buf->writeByte('N');
+
+        for (int t = 0; t < nscount; ++t)
+        {
+            buf->printf("%d%s", strlen(ns[t]), ns[t]);
+        }
 
         FuncDeclaration *fd = s->isFuncDeclaration();
         VarDeclaration *vd = s->isVarDeclaration();
@@ -168,7 +194,7 @@ char *cpp_mangle(Dsymbol *s)
     cms.components.setDim(0);
 
     OutBuffer buf;
-    buf.writestring("__Z" + !global.params.isOSX);      // "_Z" for OSX
+    buf.writestring("__Z" + !global.params.isOSX);      // "__Z" for OSX
 
     cpp_mangle_name(&buf, &cms, s);
 
