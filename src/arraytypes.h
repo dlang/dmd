@@ -72,8 +72,6 @@ typedef Array<class TemplateInstance> TemplateInstances;
 
 //typedef Array<char> Strings;
 
-typedef Array<void> Voids;
-
 typedef Array<struct block> Blocks;
 
 typedef Array<struct Symbol> Symbols;

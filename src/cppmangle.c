@@ -41,17 +41,17 @@
 
 struct CppMangleState
 {
-    static Voids components;
+    static Objects components;
 
-    int substitute(OutBuffer *buf, void *p);
-    int exist(void *p);
-    void store(void *p);
+    int substitute(OutBuffer *buf, RootObject *p);
+    int exist(RootObject *p);
+    void store(RootObject *p);
 };
 
-Voids CppMangleState::components;
+Objects CppMangleState::components;
 
 
-void writeBase36(OutBuffer *buf, unsigned i)
+void writeBase36(OutBuffer *buf, size_t i)
 {
     if (i >= 36)
     {
@@ -66,7 +66,7 @@ void writeBase36(OutBuffer *buf, unsigned i)
         assert(0);
 }
 
-int CppMangleState::substitute(OutBuffer *buf, void *p)
+int CppMangleState::substitute(OutBuffer *buf, RootObject *p)
 {
     for (size_t i = 0; i < components.dim; i++)
     {
@@ -85,7 +85,7 @@ int CppMangleState::substitute(OutBuffer *buf, void *p)
     return 0;
 }
 
-int CppMangleState::exist(void *p)
+int CppMangleState::exist(RootObject *p)
 {
     for (size_t i = 0; i < components.dim; i++)
     {
@@ -97,7 +97,7 @@ int CppMangleState::exist(void *p)
     return 0;
 }
 
-void CppMangleState::store(void *p)
+void CppMangleState::store(RootObject *p)
 {
     components.push(p);
 }
