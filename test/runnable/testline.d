@@ -11,7 +11,7 @@ import core.exception;
 
 int main(){
 	try{
-		#line 1 ""
+		#line 1
 		assert(0);
 	}catch(AssertError o){
 		checkFileSpec(o);
