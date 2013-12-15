@@ -739,7 +739,7 @@ int dwarf_line_addfile(const char* filename)
 
     Abuf abuf;
     abuf.buf = (const unsigned char*)filename;
-    abuf.length = strlen(filename)-1;
+    abuf.length = strlen(filename);
 
     unsigned *pidx = (unsigned *)infoFileName_table->get(&abuf);
     if (!*pidx)                 // if no idx assigned yet
