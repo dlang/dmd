@@ -1161,7 +1161,7 @@ Lnomatch:
         {
 #if PULL93
             assert(!(storage_class & (STCextern | STCstatic | STCtls | STCgshared)));
-            if (storage_class & (STCconst | STCimmutable) && init &&
+            if (storage_class & (STCconst | STCimmutable) && init && !init->isVoidInitializer() &&
                 global.params.vfield)
             {
                 const char *p = loc.toChars();
@@ -1176,7 +1176,7 @@ Lnomatch:
                     aad->noDefaultCtor = true;
             }
 #else
-            if (storage_class & (STCconst | STCimmutable) && init)
+            if (storage_class & (STCconst | STCimmutable) && init && !init->isVoidInitializer())
             {
                 StorageClass stc = storage_class & (STCconst | STCimmutable);
                 warning(loc, "%s field with initializer should be static, __gshared, or an enum",
