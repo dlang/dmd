@@ -1305,6 +1305,32 @@ void test_isOverrideFunction ()
 }
 
 /********************************************************/
+// 11711 - Add __traits(getAliasThis)
+
+alias TypeTuple(T...) = T;
+
+void test11711()
+{
+    struct S1
+    {
+        string var;
+        alias var this;
+    }
+    static assert(__traits(getAliasThis, S1) == TypeTuple!("var"));
+    static assert(is(typeof(__traits(getMember, S1.init, __traits(getAliasThis, S1)[0]))
+                == string));
+
+    struct S2
+    {
+        TypeTuple!(int, string) var;
+        alias var this;
+    }
+    static assert(__traits(getAliasThis, S2) == TypeTuple!("var"));
+    static assert(is(typeof(__traits(getMember, S2.init, __traits(getAliasThis, S2)[0]))
+                == TypeTuple!(int, string)));
+}
+
+/********************************************************/
 
 int main()
 {

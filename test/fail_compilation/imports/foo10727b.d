@@ -1,6 +1,6 @@
 struct CirBuff(T)
 {
-    import std.traits : isArray;
+    import imports.stdtraits10727 : isArray;
     CirBuff!T opAssign(R)(R) if (isArray!R)
     {}
 
