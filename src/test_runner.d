@@ -20,19 +20,19 @@ bool tester()
 
     if (auto fp = getModuleInfo(name).unitTest)
     {
-        printf("Testing %.*s:", cast(int)name.length, name.ptr);
-
         try
         {
             immutable t0 = TickDuration.currSystemTick;
             fp();
             immutable t1 = TickDuration.currSystemTick;
-            printf(" OK (took %dms)\n", (t1 - t0).msecs);
+            printf("%.3fs PASS %.*s\n", (t1 - t0).msecs / 1000.,
+                cast(int)name.length, name.ptr);
         }
         catch (Throwable e)
         {
             auto msg = e.toString();
-            printf(" FAIL\n%.*s", cast(int)msg.length, msg.ptr);
+            printf("****** FAIL %.*s\n%.*s\n", cast(int)name.length, name.ptr,
+                cast(int)msg.length, msg.ptr);
             return false;
         }
     }
