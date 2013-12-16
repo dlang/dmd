@@ -59,9 +59,9 @@ void writeBase36(OutBuffer *buf, size_t i)
         i %= 36;
     }
     if (i < 10)
-        buf->writeByte(i + '0');
+        buf->writeByte((char)(i + '0'));
     else if (i < 36)
-        buf->writeByte(i - 10 + 'A');
+        buf->writeByte((char)(i - 10 + 'A'));
     else
         assert(0);
 }
