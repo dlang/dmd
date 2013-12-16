@@ -1089,36 +1089,37 @@ void Lexer::scan(Token *t)
                     t->value = TOKxor;       // ^
                 return;
 
-#define SINGLE(c,tok) case c: p++; t->value = tok; return;
+            case '(': p++; t->value = TOKlparen; return;
+            case ')': p++; t->value = TOKrparen; return;
+            case '[': p++; t->value = TOKlbracket; return;
+            case ']': p++; t->value = TOKrbracket; return;
+            case '{': p++; t->value = TOKlcurly; return;
+            case '}': p++; t->value = TOKrcurly; return;
+            case '?': p++; t->value = TOKquestion; return;
+            case ',': p++; t->value = TOKcomma; return;
+            case ';': p++; t->value = TOKsemicolon; return;
+            case ':': p++; t->value = TOKcolon; return;
+            case '$': p++; t->value = TOKdollar; return;
+            case '@': p++; t->value = TOKat; return;
 
-            SINGLE('(', TOKlparen)
-            SINGLE(')', TOKrparen)
-            SINGLE('[', TOKlbracket)
-            SINGLE(']', TOKrbracket)
-            SINGLE('{', TOKlcurly)
-            SINGLE('}', TOKrcurly)
-            SINGLE('?', TOKquestion)
-            SINGLE(',', TOKcomma)
-            SINGLE(';', TOKsemicolon)
-            SINGLE(':', TOKcolon)
-            SINGLE('$', TOKdollar)
-            SINGLE('@', TOKat)
-#undef SINGLE
-
-#define DOUBLE(c1,tok1,c2,tok2)         \
-            case c1:                    \
-                p++;                    \
-                if (*p == c2)           \
-                {   p++;                \
-                    t->value = tok2;    \
-                }                       \
-                else                    \
-                    t->value = tok1;    \
+            case '*':
+                p++;
+                if (*p == '=')
+                {   p++;
+                    t->value = TOKmulass;
+                }
+                else
+                    t->value = TOKmul;
                 return;
-
-            DOUBLE('*', TOKmul, '=', TOKmulass)
-            DOUBLE('%', TOKmod, '=', TOKmodass)
-#undef DOUBLE
+            case '%':
+                p++;
+                if (*p == '=')
+                {   p++;
+                    t->value = TOKmodass;
+                }
+                else
+                    t->value = TOKmod;
+                return;
 
             case '#':
             {
