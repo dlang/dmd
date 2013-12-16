@@ -561,7 +561,6 @@ public:
     Expression *syntaxCopy();
     int apply(apply_fp_t fp, void *param);
     Expression *semantic(Scope *sc);
-    Expression *fill(bool ctorinit);
     Expression *getField(Type *type, unsigned offset);
     int getFieldIndex(Type *type, unsigned offset);
     elem *toElem(IRState *irs);

@@ -485,6 +485,23 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
                 return e->semantic(sc);
             }
         }
+        else if (e1->op == TOKdotvar)
+        {
+            // Check for reading overlapped pointer field in @safe code.
+            VarDeclaration *v = ((DotVarExp *)e1)->var->isVarDeclaration();
+            if (v && v->overlapped &&
+                sc->func && !sc->intypeof)
+            {
+                AggregateDeclaration *ad = v->toParent2()->isAggregateDeclaration();
+                if (ad && e1->type->hasPointers() &&
+                    sc->func->setUnsafe())
+                {
+                    e1->error("field %s.%s cannot be accessed in @safe code because it overlaps with a pointer",
+                        ad->toChars(), v->toChars());
+                    return new ErrorExp();
+                }
+            }
+        }
         else if (e1->op == TOKdotexp)
         {
             e1->error("expression has no value");
@@ -4606,17 +4623,15 @@ Expression *StructLiteralExp::semantic(Scope *sc)
 
     /* Fill out remainder of elements[] with default initializers for fields[]
      */
-    Expression *e = fill(false);
-    if (e->op == TOKerror)
+    if (!sd->fill(loc, elements, false))
     {
         /* An error in the initializer needs to be recorded as an error
          * in the enclosing function or template, since the initializer
          * will be part of the stuct declaration.
          */
         global.increaseErrorCount();
-        return e;
+        return new ErrorExp();
     }
-    assert(e == this);
     type = stype ? stype : sd->type;
     return this;
 }
@@ -4636,115 +4651,6 @@ Expression *StructLiteralExp::addDtorHook(Scope *sc)
         Expression *e = new CommaExp(loc, ae, new VarExp(loc, tmp));
         e = e->semantic(sc);
         return e;
-    }
-    return this;
-}
-
-Expression *StructLiteralExp::fill(bool ctorinit)
-{
-    assert(sd && sd->sizeok == SIZEOKdone);
-    size_t nfields = sd->fields.dim - sd->isNested();
-
-    size_t dim = elements->dim;
-    elements->setDim(nfields);
-    for (size_t i = dim; i < nfields; i++)
-        (*elements)[i] = NULL;
-
-    // Fill in missing any elements with default initializers
-    for (size_t i = 0; i < nfields; i++)
-    {
-        if ((*elements)[i])
-            continue;
-        VarDeclaration *vd = sd->fields[i];
-        VarDeclaration *vx = vd;
-        if (vd->init && vd->init->isVoidInitializer())
-            vx = NULL;
-        // Find overlapped fields with the hole [vd->offset .. vd->offset->size()].
-        size_t fieldi = i;
-        for (size_t j = 0; j < nfields; j++)
-        {
-            if (i == j)
-                continue;
-            VarDeclaration *v2 = sd->fields[j];
-            if (v2->init && v2->init->isVoidInitializer())
-                continue;
-
-            bool overlap = (vd->offset < v2->offset + v2->type->size() &&
-                            v2->offset < vd->offset + vd->type->size());
-            if (!overlap)
-                continue;
-
-            sd->hasUnions = 1;  // note that directly unrelated...
-
-            if ((*elements)[j])
-            {
-                vx = NULL;
-                break;
-            }
-
-#if 1
-            /* Prefer first found non-void-initialized field
-             * union U { int a; int b = 2; }
-             * U u;    // Error: overlapping initialization for field a and b
-             */
-            if (!vx)
-                vx = v2, fieldi = j;
-            else if (v2->init)
-            {
-                error("overlapping initialization for field %s and %s",
-                    v2->toChars(), vd->toChars());
-            }
-#else   // fix Bugzilla 1432
-            /* Prefer explicitly initialized field
-             * union U { int a; int b = 2; }
-             * U u;    // OK (u.b == 2)
-             */
-            if (!vx || !vx->init && v2->init)
-                vx = v2, fieldi = j;
-            else if (vx != vd &&
-                !(vx->offset < v2->offset + v2->type->size() &&
-                  v2->offset < vx->offset + vx->type->size()))
-            {
-                // Both vx and v2 fills vd, but vx and v2 does not overlap
-            }
-            else if (vx->init && v2->init)
-            {
-                error("overlapping default initialization for field %s and %s",
-                    v2->toChars(), vd->toChars());
-            }
-            else
-                assert(vx->init || !vx->init && !v2->init);
-#endif
-        }
-        if (vx)
-        {
-            Expression *e;
-            if (vx->init)
-            {
-                assert(!vx->init->isVoidInitializer());
-                e = vx->getConstInitializer(false);
-            }
-            else
-            {
-                if ((vx->storage_class & STCnodefaultctor) && !ctorinit)
-                {
-                    error("field %s.%s must be initialized because it has no default constructor",
-                            sd->type->toChars(), vx->toChars());
-                }
-                if (vx->type->needsNested() && ctorinit)
-                    e = vx->type->defaultInit(loc);
-                else
-                    e = vx->type->defaultInitLiteral(loc);
-            }
-            (*elements)[fieldi] = e;
-        }
-    }
-
-    for (size_t i = 0; i < elements->dim; i++)
-    {
-        Expression *e = (*elements)[i];
-        if (e && e->op == TOKerror)
-            return e;
     }
     return this;
 }
@@ -7925,19 +7831,6 @@ Expression *DotVarExp::semantic(Scope *sc)
                 return e;
             }
         }
-        Dsymbol *s;
-        if (sc->func && !sc->intypeof && t1->hasPointers() &&
-            (s = t1->toDsymbol(sc)) != NULL)
-        {
-            AggregateDeclaration *ad = s->isAggregateDeclaration();
-            if (ad && ad->hasUnions)
-            {
-                if (sc->func->setUnsafe())
-                {   error("union %s containing pointers are not allowed in @safe functions", t1->toChars());
-                    goto Lerr;
-                }
-            }
-        }
     }
 
     //printf("-DotVarExp::semantic('%s')\n", toChars());
@@ -8705,10 +8598,10 @@ Lagain:
                 ExpInitializer *ei = NULL;
                 if (t1->needsNested())
                 {
-                    StructLiteralExp *sle = new StructLiteralExp(loc, (StructDeclaration *)ad, NULL, e1->type);
-                    Expression *e = sle->fill(true);
-                    if (e->op == TOKerror)
-                        return e;
+                    StructDeclaration *sd = (StructDeclaration *)ad;
+                    StructLiteralExp *sle = new StructLiteralExp(loc, sd, NULL, e1->type);
+                    if (!sd->fill(loc, sle->elements, true))
+                        return new ErrorExp();
                     sle->type = type;
                     ei = new ExpInitializer(loc, sle);
                 }

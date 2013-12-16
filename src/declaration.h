@@ -265,6 +265,7 @@ public:
     short onstack;              // 1: it has been allocated on the stack
                                 // 2: on stack, run destructor anyway
     int canassign;              // it can be assigned to
+    bool overlapped;            // if it is a field and has overlapping
     Dsymbol *aliassym;          // if redone as alias to another symbol
     VarDeclaration *lastVar;    // Linked list of variables for goto-skips-init detection
 

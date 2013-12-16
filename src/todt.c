@@ -649,13 +649,12 @@ void StructDeclaration::toDt(dt_t **pdt)
 {
     //printf("StructDeclaration::toDt(), this='%s'\n", toChars());
     StructLiteralExp *sle = new StructLiteralExp(loc, this, NULL);
-    Expression *e = sle->fill(true);
-    if (e == sle)
-    {
-        //printf("sd->toDt sle = %s\n", sle->toChars());
-        sle->type = type;
-        sle->toDt(pdt);
-    }
+    if (!fill(loc, sle->elements, true))
+        assert(0);
+
+    //printf("sd->toDt sle = %s\n", sle->toChars());
+    sle->type = type;
+    sle->toDt(pdt);
 }
 
 /* ================================================================= */

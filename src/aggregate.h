@@ -51,7 +51,6 @@ public:
     Type *handle;               // 'this' type
     unsigned structsize;        // size of struct
     unsigned alignsize;         // size of struct for alignment purposes
-    int hasUnions;              // set if aggregate has overlapping fields
     VarDeclarations fields;     // VarDeclaration fields
     Sizeok sizeok;         // set when structsize contains valid data
     Dsymbol *deferred;          // any deferred semantic2() or semantic3() symbol
@@ -166,6 +165,7 @@ public:
     const char *mangle(bool isv = false);
     const char *kind();
     void finalizeSize(Scope *sc);
+    bool fill(Loc loc, Expressions *elements, bool ctorinit);
     bool isPOD();
     int needOpAssign();
     int needOpEquals();

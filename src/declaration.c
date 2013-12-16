@@ -733,6 +733,7 @@ VarDeclaration::VarDeclaration(Loc loc, Type *type, Identifier *id, Initializer 
     aliassym = NULL;
     onstack = 0;
     canassign = 0;
+    overlapped = false;
     lastVar = NULL;
     ctfeAdrOnStack = -1;
     rundtor = NULL;
@@ -899,7 +900,7 @@ void VarDeclaration::semantic(Scope *sc)
     //printf("sc->stc = %x\n", sc->stc);
     //printf("storage_class = x%x\n", storage_class);
 
-    // Safety checks
+    // Calculate type size + safety checks
     if (sc->func && !sc->intypeof)
     {
         if (storage_class & STCgshared)
@@ -907,22 +908,12 @@ void VarDeclaration::semantic(Scope *sc)
             if (sc->func->setUnsafe())
                 error("__gshared not allowed in safe functions; use shared");
         }
-        if (init && init->isVoidInitializer() && type->hasPointers())
+        if (type->hasPointers())    // get type size
         {
-            if (sc->func->setUnsafe())
-                error("void initializers for pointers not allowed in safe functions");
-        }
-        if (type->hasPointers() && type->toDsymbol(sc))
-        {
-            Dsymbol *s = type->toDsymbol(sc);
-            if (s)
+            if (init && init->isVoidInitializer())
             {
-                AggregateDeclaration *ad2 = s->isAggregateDeclaration();
-                if (ad2 && ad2->hasUnions)
-                {
-                    if (sc->func->setUnsafe())
-                        error("unions containing pointers are not allowed in @safe functions");
-                }
+                if (sc->func->setUnsafe())
+                    error("void initializers for pointers not allowed in safe functions");
             }
         }
     }
