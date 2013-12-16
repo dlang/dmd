@@ -6855,25 +6855,20 @@ Expression *Parser::parseAssignExp()
         loc = token.loc;
         switch (token.value)
         {
-#define X(tok,ector) \
-            case tok:  nextToken(); e2 = parseAssignExp(); e = new ector(loc,e,e2); continue;
-
-            X(TOKassign,    AssignExp);
-            X(TOKaddass,    AddAssignExp);
-            X(TOKminass,    MinAssignExp);
-            X(TOKmulass,    MulAssignExp);
-            X(TOKdivass,    DivAssignExp);
-            X(TOKmodass,    ModAssignExp);
-            X(TOKpowass,    PowAssignExp);
-            X(TOKandass,    AndAssignExp);
-            X(TOKorass,     OrAssignExp);
-            X(TOKxorass,    XorAssignExp);
-            X(TOKshlass,    ShlAssignExp);
-            X(TOKshrass,    ShrAssignExp);
-            X(TOKushrass,   UshrAssignExp);
-            X(TOKcatass,    CatAssignExp);
-
-#undef X
+            case TOKassign:   nextToken(); e2 = parseAssignExp(); e = new AssignExp(loc,e,e2); continue;
+            case TOKaddass:   nextToken(); e2 = parseAssignExp(); e = new AddAssignExp(loc,e,e2); continue;
+            case TOKminass:   nextToken(); e2 = parseAssignExp(); e = new MinAssignExp(loc,e,e2); continue;
+            case TOKmulass:   nextToken(); e2 = parseAssignExp(); e = new MulAssignExp(loc,e,e2); continue;
+            case TOKdivass:   nextToken(); e2 = parseAssignExp(); e = new DivAssignExp(loc,e,e2); continue;
+            case TOKmodass:   nextToken(); e2 = parseAssignExp(); e = new ModAssignExp(loc,e,e2); continue;
+            case TOKpowass:   nextToken(); e2 = parseAssignExp(); e = new PowAssignExp(loc,e,e2); continue;
+            case TOKandass:   nextToken(); e2 = parseAssignExp(); e = new AndAssignExp(loc,e,e2); continue;
+            case TOKorass:    nextToken(); e2 = parseAssignExp(); e = new OrAssignExp(loc,e,e2); continue;
+            case TOKxorass:   nextToken(); e2 = parseAssignExp(); e = new XorAssignExp(loc,e,e2); continue;
+            case TOKshlass:   nextToken(); e2 = parseAssignExp(); e = new ShlAssignExp(loc,e,e2); continue;
+            case TOKshrass:   nextToken(); e2 = parseAssignExp(); e = new ShrAssignExp(loc,e,e2); continue;
+            case TOKushrass:  nextToken(); e2 = parseAssignExp(); e = new UshrAssignExp(loc,e,e2); continue;
+            case TOKcatass:   nextToken(); e2 = parseAssignExp(); e = new CatAssignExp(loc,e,e2); continue;
             default:
                 break;
         }
