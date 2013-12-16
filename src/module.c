@@ -181,10 +181,6 @@ void Module::deleteObjFile()
         docfile->remove();
 }
 
-Module::~Module()
-{
-}
-
 const char *Module::kind()
 {
     return "module";
