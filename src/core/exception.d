@@ -221,7 +221,7 @@ class OutOfMemoryError : Error
 
     @trusted override const string toString()
     {
-        return msg.ptr ? (cast()super).toString() : "Memory allocation failed";
+        return msg.length ? (cast()super).toString() : "Memory allocation failed";
     }
 }
 
@@ -262,7 +262,7 @@ class InvalidMemoryOperationError : Error
 
     @trusted override const string toString()
     {
-        return msg.ptr ? (cast()super).toString() : "Invalid memory operation";
+        return msg.length ? (cast()super).toString() : "Invalid memory operation";
     }
 }
 
