@@ -18,7 +18,7 @@
 #include        <ctype.h>
 #include        <time.h>
 
-#if _WIN32 || linux
+#if _WIN32 || __linux__
 #include        <malloc.h>
 #endif
 

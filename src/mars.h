@@ -35,7 +35,7 @@ Macros defined by the compiler, not the code:
         _WIN32          Microsoft NT, Windows 95, Windows 98, Win32s,
                         Windows 2000, Win XP, Vista
         _WIN64          Windows for AMD64
-        linux           Linux
+        __linux__       Linux
         __APPLE__       Mac OSX
         __FreeBSD__     FreeBSD
         __OpenBSD__     OpenBSD
