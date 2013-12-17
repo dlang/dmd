@@ -2182,10 +2182,10 @@ TOK Lexer::inreal(Token *t)
         {
             c = *p++;
         }
-        bool anyexp;
+        bool anyexp = false;
         while (1)
         {
-            if (isdigit(c) || (hex && isxdigit(c)))
+            if (isdigit(c))
             {
                 anyexp = true;
                 c = *p++;
