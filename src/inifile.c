@@ -95,7 +95,7 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
                 filename = (char *)FileName::replaceName(argv0, inifile);
                 if (!FileName::exists(filename))
                 {
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
 #if __GLIBC__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun   // This fix by Thomas Kuehne
                     /* argv0 might be a symbolic link,
                      * so try again looking past it to the real path
@@ -110,7 +110,7 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
                     if (real_argv0)
                     {
                         filename = (char *)FileName::replaceName(real_argv0, inifile);
-#if linux
+#if __linux__
                         free(real_argv0);
 #endif
                         if (FileName::exists(filename))

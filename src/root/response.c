@@ -20,7 +20,7 @@
 #include <io.h>
 #endif
 
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <fcntl.h>
