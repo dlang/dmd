@@ -1580,11 +1580,11 @@ export BOOL SwitchToThread();
 
 export
 {
-LONG  InterlockedIncrement(LPLONG lpAddend);
-LONG  InterlockedDecrement(LPLONG lpAddend);
-LONG  InterlockedExchange(LPLONG Target, LONG Value);
-LONG  InterlockedExchangeAdd(LPLONG Addend, LONG Value);
-PVOID InterlockedCompareExchange(PVOID *Destination, PVOID Exchange, PVOID Comperand);
+LONG InterlockedIncrement(LPLONG lpAddend);
+LONG InterlockedDecrement(LPLONG lpAddend);
+LONG InterlockedExchange(LPLONG Target, LONG Value);
+LONG InterlockedExchangeAdd(LPLONG Addend, LONG Value);
+LONG InterlockedCompareExchange(LONG *Destination, LONG Exchange, LONG Comperand);
 
 void InitializeCriticalSection(CRITICAL_SECTION * lpCriticalSection);
 void EnterCriticalSection(CRITICAL_SECTION * lpCriticalSection);
