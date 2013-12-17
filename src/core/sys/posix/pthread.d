@@ -652,32 +652,32 @@ else
 // Timeouts (TMO)
 //
 /*
-int pthread_mutex_timedlock(pthread_mutex_t*, timespec*);
+int pthread_mutex_timedlock(pthread_mutex_t*, in timespec*);
 int pthread_rwlock_timedrdlock(pthread_rwlock_t*, in timespec*);
 int pthread_rwlock_timedwrlock(pthread_rwlock_t*, in timespec*);
 */
 
 version( linux )
 {
-    int pthread_mutex_timedlock(pthread_mutex_t*, timespec*);
+    int pthread_mutex_timedlock(pthread_mutex_t*, in timespec*);
     int pthread_rwlock_timedrdlock(pthread_rwlock_t*, in timespec*);
     int pthread_rwlock_timedwrlock(pthread_rwlock_t*, in timespec*);
 }
 else version( OSX )
 {
-    int pthread_mutex_timedlock(pthread_mutex_t*, timespec*);
+    int pthread_mutex_timedlock(pthread_mutex_t*, in timespec*);
     int pthread_rwlock_timedrdlock(pthread_rwlock_t*, in timespec*);
     int pthread_rwlock_timedwrlock(pthread_rwlock_t*, in timespec*);
 }
 else version( FreeBSD )
 {
-    int pthread_mutex_timedlock(pthread_mutex_t*, timespec*);
+    int pthread_mutex_timedlock(pthread_mutex_t*, in timespec*);
     int pthread_rwlock_timedrdlock(pthread_rwlock_t*, in timespec*);
     int pthread_rwlock_timedwrlock(pthread_rwlock_t*, in timespec*);
 }
 else version (Solaris)
 {
-    int pthread_mutex_timedlock(pthread_mutex_t*, timespec*);
+    int pthread_mutex_timedlock(pthread_mutex_t*, in timespec*);
     int pthread_rwlock_timedrdlock(pthread_rwlock_t*, in timespec*);
     int pthread_rwlock_timedwrlock(pthread_rwlock_t*, in timespec*);
 }
