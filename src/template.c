@@ -6615,24 +6615,6 @@ bool TemplateInstance::hasNestedArgs(Objects *args, bool isstatic)
         Expression *ea = isExpression(o);
         Dsymbol *sa = isDsymbol(o);
         Tuple *va = isTuple(o);
-#define FIXBUG8863 0
-#if FIXBUG8863
-        /* This does fix 8863, but it causes other complex
-         * failures in Phobos unittests and the test suite.
-         * Not sure why.
-         */
-        Type *ta = isType(o);
-        if (ta && !sa)
-        {
-            Dsymbol *s = ta->toDsymbol(NULL);
-            if (s)
-            {
-                sa = s;
-                goto Lsa;
-            }
-        }
-        else
-#endif
         if (ea)
         {
             if (ea->op == TOKvar)
@@ -6682,9 +6664,6 @@ bool TemplateInstance::hasNestedArgs(Objects *args, bool isstatic)
             Declaration *d = sa->isDeclaration();
             if ((td && td->literal) ||
                 (ti && ti->enclosing) ||
-#if FIXBUG8863
-                (ad && ad->isNested()) ||
-#endif
                 (d && !d->isDataseg() &&
                  !(d->storage_class & STCmanifest) &&
                  (!d->isFuncDeclaration() || d->isFuncDeclaration()->isNested()) &&
