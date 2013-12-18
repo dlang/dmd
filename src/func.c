@@ -3141,11 +3141,6 @@ bool FuncDeclaration::isFinalFunc()
          ((cd = toParent()->isClassDeclaration()) != NULL && cd->storage_class & STCfinal)));
     if (cd)
         printf("\tmember of %s\n", cd->toChars());
-#if 0
-        !(isStatic() || protection == PROTprivate || protection == PROTpackage) &&
-        (cd = toParent()->isClassDeclaration()) != NULL &&
-        cd->storage_class & STCfinal);
-#endif
 #endif
     return isMember() &&
         (Declaration::isFinal() ||
