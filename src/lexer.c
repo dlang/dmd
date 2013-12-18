@@ -2009,12 +2009,18 @@ Ldone:
     // Parse trailing 'u', 'U', 'l' or 'L' in any combination
     const utf8_t *psuffix = p;
     while (1)
-    {   utf8_t f;
-
+    {
+        utf8_t f;
         switch (*p)
-        {   case 'U':
+        {
+            case 'U':
             case 'u':
                 f = FLAGS_unsigned;
+                goto L1;
+
+            case 'l':
+                f = FLAGS_long;
+                error("Lower case integer suffix 'l' is not allowed. Please use 'L' instead");
                 goto L1;
 
             case 'L':
