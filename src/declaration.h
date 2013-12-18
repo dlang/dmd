@@ -544,9 +544,7 @@ enum BUILTIN
     BUILTINbsr,                 // core.bitop.bsr
     BUILTINbsf,                 // core.bitop.bsf
     BUILTINbswap,               // core.bitop.bswap
-#ifdef IN_GCC
     BUILTINgcc,                 // GCC builtin
-#endif
 };
 
 Expression *eval_builtin(Loc loc, BUILTIN builtin, Expressions *arguments);
