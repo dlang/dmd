@@ -858,14 +858,15 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
                 --evaluatingArgs;
                 if (earg == EXP_CANT_INTERPRET)
                     return earg;
+#if DMDV2
                 /* Struct literals are passed by value, but we don't need to
                  * copy them if they are passed as const
                  */
-                if (earg->op == TOKstructliteral
-#if DMDV2
-                    && !(arg->storageClass & (STCconst | STCimmutable))
+                bool needcopy = !(arg->storageClass & (STCconst | STCimmutable));
+#else
+                bool needcopy = true;
 #endif
-                )
+                if (earg->op == TOKstructliteral && needcopy)
                     earg = copyLiteral(earg);
             }
             if (earg->op == TOKthrownexception)
@@ -2319,11 +2320,12 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
                 return EXP_CANT_INTERPRET;
         }
 
-        if ((v->isConst() || v->isImmutable() || v->storage_class & STCmanifest)
-            && v->init && !v->hasValue() && !v->isCTFE())
+        bool doinit = (v->isConst() || v->isImmutable() || v->storage_class & STCmanifest)
+                      && !v->hasValue();
 #else
-        if (v->isConst() && v->init && !v->isCTFE())
+        bool doinit = v->isConst();
 #endif
+        if (doinit && v->init && !v->isCTFE())
         {
             if(v->scope)
                 v->init = v->init->semantic(v->scope, v->type, INITinterpret); // might not be run on aggregate members
@@ -2511,6 +2513,11 @@ Expression *DeclarationExp::interpret(InterState *istate, CtfeGoal goal)
         if (!(v->isDataseg() || v->storage_class & STCmanifest) || v->isCTFE())
             ctfeStack.push(v);
         Dsymbol *s = v->toAlias();
+#if DMDV2
+        bool constinit = (v->isConst() || v->isImmutable());
+#else
+        bool constinit = v->isConst();
+#endif
         if (s == v && !v->isStatic() && v->init)
         {
             ExpInitializer *ie = v->init->isExpInitializer();
@@ -2533,11 +2540,7 @@ Expression *DeclarationExp::interpret(InterState *istate, CtfeGoal goal)
         {   // Zero-length arrays don't need an initializer
             e = v->type->defaultInitLiteral(loc);
         }
-#if DMDV2
-        else if (s == v && (v->isConst() || v->isImmutable()) && v->init)
-#else
-        else if (s == v && v->isConst() && v->init)
-#endif
+        else if (s == v && constinit && v->init)
         {   e = v->init->toExpression();
             if (!e)
                 e = EXP_CANT_INTERPRET;
