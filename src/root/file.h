@@ -43,33 +43,15 @@ struct File
 
     int read();
 
-    /* Write file, either succeed or fail
-     * with error message & exit.
-     */
-
-    void readv();
-
     /* Read file, return !=0 if error
      */
 
     int mmread();
 
-    /* Write file, either succeed or fail
-     * with error message & exit.
-     */
-
-    void mmreadv();
-
     /* Write file, return !=0 if error
      */
 
     int write();
-
-    /* Write file, either succeed or fail
-     * with error message & exit.
-     */
-
-    void writev();
 
     /* Return !=0 if file exists.
      *  0:      file doesn't exist
@@ -81,12 +63,6 @@ struct File
      */
 
     int append();
-
-    /* Append to file, either succeed or fail
-     * with error message & exit.
-     */
-
-    void appendv();
 
     /* Return !=0 if file exists.
      *  0:      file doesn't exist
@@ -120,8 +96,6 @@ struct File
         this->buffer = (unsigned char *)buffer;
         this->len = len;
     }
-
-    void checkoffset(size_t offset, size_t nbytes);
 
     void remove();              // delete file
 };

@@ -242,7 +242,7 @@ void Module::gendocfile()
         {
             FileName f((*global.params.ddocfiles)[i]);
             File file(&f);
-            file.readv();
+            readFile(loc, &file);
             // BUG: convert file contents to UTF-8 before use
 
             //printf("file: '%.*s'\n", file.len, file.buffer);
@@ -347,8 +347,8 @@ void Module::gendocfile()
     assert(docfile);
     docfile->setbuffer(buf.data, buf.offset);
     docfile->ref = 1;
-    FileName::ensurePathToNameExists(docfile->toChars());
-    docfile->writev();
+    ensurePathToNameExists(Loc(), docfile->toChars());
+    writeFile(loc, docfile);
 #else
     /* Remove all the escape sequences from buf2
      */
@@ -370,8 +370,8 @@ void Module::gendocfile()
     // Transfer image to file
     docfile->setbuffer(buf2.data, buf2.offset);
     docfile->ref = 1;
-    FileName::ensurePathToNameExists(docfile->toChars());
-    docfile->writev();
+    ensurePathToNameExists(Loc(), docfile->toChars());
+    writeFile(loc, docfile);
 #endif
 }
 

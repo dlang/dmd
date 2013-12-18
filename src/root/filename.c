@@ -40,25 +40,6 @@
 #include <utime.h>
 #endif
 
-
-/**************************************
- * Print error message and exit.
- */
-
-void error(const char *format, ...)
-{
-    va_list ap;
-
-    va_start(ap, format);
-    printf("Error: ");
-    vprintf(format, ap);
-    va_end( ap );
-    printf("\n");
-    fflush(stdout);
-
-    exit(EXIT_FAILURE);
-}
-
 /****************************** FileName ********************************/
 
 FileName::FileName(const char *str)
@@ -442,26 +423,6 @@ int FileName::equalsExt(const char *name, const char *ext)
 }
 
 /*************************************
- * Copy file from this to to.
- */
-
-void FileName::CopyTo(FileName *to)
-{
-    File file(this);
-
-#if _WIN32
-    file.touchtime = mem.malloc(sizeof(WIN32_FIND_DATAA));      // keep same file time
-#elif POSIX
-    file.touchtime = mem.malloc(sizeof(struct stat)); // keep same file time
-#else
-    assert(0);
-#endif
-    file.readv();
-    file.name = to;
-    file.writev();
-}
-
-/*************************************
  * Search Path for file.
  * Input:
  *      cwd     if !=0, search current directory before searching path
@@ -604,7 +565,7 @@ int FileName::exists(const char *name)
 #endif
 }
 
-void FileName::ensurePathExists(const char *path)
+int FileName::ensurePathExists(const char *path)
 {
     //printf("FileName::ensurePathExists(%s)\n", path ? path : "");
     if (path && *path)
@@ -619,11 +580,13 @@ void FileName::ensurePathExists(const char *path)
                 if ((len > 2 && p[-1] == ':' && strcmp(path + 2, p) == 0) ||
                     len == strlen(p))
                 {   mem.free((void *)p);
-                    return;
+                    return 0;
                 }
 #endif
-                ensurePathExists(p);
+                int r = ensurePathExists(p);
                 mem.free((void *)p);
+                if (r)
+                    return r;
             }
 #if _WIN32
             char sep = '\\';
@@ -645,21 +608,13 @@ void FileName::ensurePathExists(const char *path)
                      * this directory
                      */
                     if (errno != EEXIST)
-                        error("cannot create directory %s", path);
+                        return 1;
                 }
             }
         }
     }
+    return 0;
 }
-
-void FileName::ensurePathToNameExists(const char *name)
-{
-    const char *pt = path(name);
-    if (*pt)
-        ensurePathExists(pt);
-    free(pt);
-}
-
 
 /******************************************
  * Return canonical version of name in a malloc'd buffer.

@@ -63,8 +63,8 @@ void Module::genhdrfile()
     hdrfile->setbuffer(hdrbufr.data, hdrbufr.offset);
     hdrbufr.data = NULL;
 
-    FileName::ensurePathToNameExists(hdrfile->toChars());
-    hdrfile->writev();
+    ensurePathToNameExists(Loc(), hdrfile->toChars());
+    writeFile(loc, hdrfile);
 }
 
 

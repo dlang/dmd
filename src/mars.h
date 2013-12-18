@@ -440,6 +440,10 @@ void obj_end(Library *library, File *objfile);
 void obj_append(Dsymbol *s);
 void obj_write_deferred(Library *library);
 
+void readFile(Loc loc, File *f);
+void writeFile(Loc loc, File *f);
+void ensurePathToNameExists(Loc loc, const char *name);
+
 const char *importHint(const char *s);
 /// Little helper function for writting out deps.
 void escapePath(OutBuffer *buf, const char *fname);

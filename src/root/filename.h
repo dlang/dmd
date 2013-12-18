@@ -46,12 +46,10 @@ struct FileName
 
     int equalsExt(const char *ext);
 
-    void CopyTo(FileName *to);
     static const char *searchPath(Strings *path, const char *name, int cwd);
     static const char *safeSearchPath(Strings *path, const char *name);
     static int exists(const char *name);
-    static void ensurePathExists(const char *path);
-    static void ensurePathToNameExists(const char *name);
+    static int ensurePathExists(const char *path);
     static const char *canonicalName(const char *name);
 
     static void free(const char *str);

@@ -319,6 +319,40 @@ void vdeprecation(Loc loc, const char *format, va_list ap,
         verrorPrint(loc, header, format, ap, p1, p2);
 }
 
+void readFile(Loc loc, File *f)
+{
+    if (f->read())
+    {
+        error(loc, "Error reading file '%s'", f->name->toChars());
+        fatal();
+    }
+}
+
+void writeFile(Loc loc, File *f)
+{
+    if (f->write())
+    {
+        error(loc, "Error writing file '%s'", f->name->toChars());
+        fatal();
+    }
+}
+
+void ensurePathToNameExists(Loc loc, const char *name)
+{
+    const char *pt = FileName::path(name);
+    int r = 0;
+    if (*pt)
+    {
+        if (FileName::ensurePathExists(pt))
+        {
+            error(loc, "cannot create directory %s", pt);
+            fatal();
+        }
+    }
+    FileName::free(pt);
+}
+
+
 /***************************************
  * Call this after printing out fatal error messages to clean up and exit
  * the compiler.
@@ -1562,7 +1596,7 @@ Language changes listed by -transition=id:\n\
         {
             File deps(global.params.moduleDepsFile);
             deps.setbuffer((void*)ob->data, ob->offset);
-            deps.writev();
+            writeFile(Loc(), &deps);
         }
         else
             printf("%.*s", (int)ob->offset, ob->data);
@@ -1638,13 +1672,13 @@ Language changes listed by -transition=id:\n\
                 jsonfilename = FileName::forceExt(n, global.json_ext);
             }
 
-            FileName::ensurePathToNameExists(jsonfilename);
+            ensurePathToNameExists(Loc(), jsonfilename);
 
             File *jsonfile = new File(jsonfilename);
 
             jsonfile->setbuffer(buf.data, buf.offset);
             jsonfile->ref = 1;
-            jsonfile->writev();
+            writeFile(Loc(), jsonfile);
         }
     }
 

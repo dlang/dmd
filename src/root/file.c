@@ -37,8 +37,6 @@
 #include "array.h"
 #include "port.h"
 
-void error(const char *format, ...);
-
 /****************************** File ********************************/
 
 File::File(const FileName *n)
@@ -385,36 +383,6 @@ err:
 #endif
 }
 
-/**************************************
- */
-
-void File::readv()
-{
-    if (read())
-        error("Error reading file '%s'",name->toChars());
-}
-
-/**************************************
- */
-
-void File::mmreadv()
-{
-    if (mmread())
-        readv();
-}
-
-void File::writev()
-{
-    if (write())
-        error("Error writing file '%s'",name->toChars());
-}
-
-void File::appendv()
-{
-    if (write())
-        error("Error appending to file '%s'",name->toChars());
-}
-
 /*******************************************
  * Return !=0 if file exists.
  *      0:      file doesn't exist
@@ -537,12 +505,6 @@ void File::stat()
 #else
     assert(0);
 #endif
-}
-
-void File::checkoffset(size_t offset, size_t nbytes)
-{
-    if (offset > len || offset + nbytes > len)
-        error("Corrupt file '%s': offset x%llx off end of file",toChars(),(ulonglong)offset);
 }
 
 char *File::toChars()
