@@ -5469,18 +5469,16 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 #endif
 
         //if (scx && scx->scopesym) printf("3: scx is %s %s\n", scx->scopesym->kind(), scx->scopesym->toChars());
+        /* The problem is if A imports B, and B imports A, and both A
+         * and B instantiate the same template, does the compilation of A
+         * or the compilation of B do the actual instantiation?
+         *
+         * see bugzilla 2500.
+         *
+         * && !scx->module->selfImports()
+         */
         if (scx && scx->scopesym && scx->scopesym->members &&
-            !scx->scopesym->isTemplateMixin()
-#if 0 // removed because it bloated compile times
-            /* The problem is if A imports B, and B imports A, and both A
-             * and B instantiate the same template, does the compilation of A
-             * or the compilation of B do the actual instantiation?
-             *
-             * see bugzilla 2500.
-             */
-            && !scx->module->selfImports()
-#endif
-           )
+            !scx->scopesym->isTemplateMixin())
         {
             /* A module can have explicit template instance and its alias
              * in module scope (e,g, `alias Base64Impl!('+', '/') Base64;`).
