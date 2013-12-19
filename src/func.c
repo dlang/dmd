@@ -2855,6 +2855,8 @@ Lerror:
         TypeFunction *t2 = (TypeFunction *)m.nextf->type;
         TemplateInstance *lastti = m.lastf->parent->isTemplateInstance();
         TemplateInstance *nextti = m.nextf->parent->isTemplateInstance();
+        if (lastti && lastti->name != m.lastf->ident) lastti = NULL;
+        if (nextti && nextti->name != m.nextf->ident) nextti = NULL;
         Dsymbol *lasts = lastti ? (Dsymbol *)lastti->tempdecl : (Dsymbol *)m.lastf;
         Dsymbol *nexts = nextti ? (Dsymbol *)nextti->tempdecl : (Dsymbol *)m.nextf;
         const char *lastprms = lastti ? "" : Parameter::argsTypesToChars(t1->parameters, t1->varargs);
