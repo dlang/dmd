@@ -2632,14 +2632,8 @@ Type *Parser::parseBasicType()
             // const(type)
             nextToken();
             check(TOKlparen);
-            t = parseType();
+            t = parseType()->addSTC(STCconst);
             check(TOKrparen);
-            if (t->isImmutable())
-                ;
-            else if (t->isShared())
-                t = t->makeSharedConst();
-            else
-                t = t->makeConst();
             break;
 
         case TOKinvariant:
@@ -2648,39 +2642,24 @@ Type *Parser::parseBasicType()
             // invariant(type)
             nextToken();
             check(TOKlparen);
-            t = parseType();
+            t = parseType()->addSTC(STCimmutable);
             check(TOKrparen);
-            t = t->makeImmutable();
             break;
 
         case TOKshared:
             // shared(type)
             nextToken();
             check(TOKlparen);
-            t = parseType();
+            t = parseType()->addSTC(STCshared);
             check(TOKrparen);
-            if (t->isImmutable())
-                ;
-            else if (t->isConst())
-                t = t->makeSharedConst();
-            else if (t->isWild())
-                t = t->makeSharedWild();
-            else
-                t = t->makeShared();
             break;
 
         case TOKwild:
             // wild(type)
             nextToken();
             check(TOKlparen);
-            t = parseType();
+            t = parseType()->addSTC(STCwild);
             check(TOKrparen);
-            if (t->isImmutable()/* || t->isConst()*/)
-                ;
-            else if (t->isShared())
-                t = t->makeSharedWild();
-            else
-                t = t->makeWild();
             break;
 
         default:
