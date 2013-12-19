@@ -191,7 +191,10 @@ Scope *Scope::pop()
             size_t dim = fieldinit_dim;
             for (size_t i = 0; i < dim; i++)
                 enclosing->fieldinit[i] |= fieldinit[i];
+            /* Workaround regression @@@BUG11777@@@.
+            Probably this memory is used in future.
             mem.free(fieldinit);
+            */
             fieldinit = NULL;
         }
     }
