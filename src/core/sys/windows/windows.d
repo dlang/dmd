@@ -2436,6 +2436,40 @@ struct WNDCLASSA {
 alias WNDCLASSA* PWNDCLASSA, NPWNDCLASSA, LPWNDCLASSA;
 alias WNDCLASSA WNDCLASS;
 
+
+struct WNDCLASSEXW {
+    UINT        cbSize;
+    /* Win 3.x */
+    UINT        style;
+    WNDPROC     lpfnWndProc;
+    int         cbClsExtra;
+    int         cbWndExtra;
+    HINSTANCE   hInstance;
+    HICON       hIcon;
+    HCURSOR     hCursor;
+    HBRUSH      hbrBackground;
+    LPCWSTR     lpszMenuName;
+    LPCWSTR     lpszClassName;
+    /* Win 4.0 */
+    HICON       hIconSm;
+}
+
+
+struct WNDCLASSW {
+    UINT        style;
+    WNDPROC     lpfnWndProc;
+    int         cbClsExtra;
+    int         cbWndExtra;
+    HINSTANCE   hInstance;
+    HICON       hIcon;
+    HCURSOR     hCursor;
+    HBRUSH      hbrBackground;
+    LPCWSTR     lpszMenuName;
+    LPCWSTR     lpszClassName;
+}
+alias WNDCLASSW* PWNDCLASSW, NPWNDCLASSW, LPWNDCLASSW;
+
+
 /*
  * Window Styles
  */
@@ -2612,6 +2646,8 @@ enum : HWND
 
 export ATOM RegisterClassA(in WNDCLASSA *lpWndClass);
 export ATOM RegisterClassExA(in WNDCLASSEXA *lpWndClass);
+export ATOM RegisterClassW(in WNDCLASSW *lpWndClass);
+export ATOM RegisterClassExW(in WNDCLASSEXW *lpWndClass);
 
 export HWND CreateWindowExA(
     DWORD dwExStyle,
@@ -2643,6 +2679,39 @@ HWND CreateWindowA(
 {
     return CreateWindowExA(0, lpClassName, lpWindowName, dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
 }
+
+
+export HWND CreateWindowExW(
+    DWORD dwExStyle,
+    LPCWSTR lpClassName,
+    LPCWSTR lpWindowName,
+    DWORD dwStyle,
+    int X,
+    int Y,
+    int nWidth,
+    int nHeight,
+    HWND hWndParent,
+    HMENU hMenu,
+    HINSTANCE hInstance,
+    LPVOID lpParam);
+
+
+HWND CreateWindowW(
+    LPCWSTR lpClassName,
+    LPCWSTR lpWindowName,
+    DWORD dwStyle,
+    int X,
+    int Y,
+    int nWidth,
+    int nHeight,
+    HWND hWndParent ,
+    HMENU hMenu,
+    HINSTANCE hInstance,
+    LPVOID lpParam)
+{
+    return CreateWindowExW(0, lpClassName, lpWindowName, dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
+}
+
 
 /*
  * Message structure
