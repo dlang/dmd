@@ -6497,56 +6497,57 @@ Expression *Parser::parseUnaryExp()
             /* Look for cast(), cast(const), cast(immutable),
              * cast(shared), cast(shared const), cast(wild), cast(shared wild)
              */
-            unsigned char m;
+            unsigned char m = 0;
+            while (1)
+            {
+                switch (token.value)
+                {
+                    case TOKconst:
+                        if (peekNext() == TOKlparen)
+                            break;              // const as type constructor
+                        m |= MODconst;          // const as storage class
+                        nextToken();
+                        continue;
+
+                    case TOKinvariant:
+                    case TOKimmutable:
+                        if (peekNext() == TOKlparen)
+                            break;
+                        if (token.value == TOKinvariant)
+                            error("use 'immutable' instead of 'invariant'");
+                        m |= MODimmutable;
+                        nextToken();
+                        continue;
+
+                    case TOKshared:
+                        if (peekNext() == TOKlparen)
+                            break;
+                        m |= MODshared;
+                        nextToken();
+                        continue;
+
+                    case TOKwild:
+                        if (peekNext() == TOKlparen)
+                            break;
+                        m |= MODwild;
+                        nextToken();
+                        continue;
+
+                    default:
+                        break;
+                }
+                break;
+            }
             if (token.value == TOKrparen)
             {
-                m = 0;
-                goto Lmod1;
-            }
-            else if (token.value == TOKconst && peekNext() == TOKrparen)
-            {
-                m = MODconst;
-                goto Lmod2;
-            }
-            else if ((token.value == TOKimmutable || token.value == TOKinvariant) && peekNext() == TOKrparen)
-            {
-                if (token.value == TOKinvariant)
-                    error("use 'immutable' instead of 'invariant'");
-                m = MODimmutable;
-                goto Lmod2;
-            }
-            else if (token.value == TOKshared && peekNext() == TOKrparen)
-            {
-                m = MODshared;
-                goto Lmod2;
-            }
-            else if (token.value == TOKwild && peekNext() == TOKrparen)
-            {
-                m = MODwild;
-                goto Lmod2;
-            }
-            else if (token.value == TOKwild && peekNext() == TOKshared && peekNext2() == TOKrparen ||
-                     token.value == TOKshared && peekNext() == TOKwild && peekNext2() == TOKrparen)
-            {
-                m = MODshared | MODwild;
-                goto Lmod3;
-            }
-            else if (token.value == TOKconst && peekNext() == TOKshared && peekNext2() == TOKrparen ||
-                     token.value == TOKshared && peekNext() == TOKconst && peekNext2() == TOKrparen)
-            {
-                m = MODshared | MODconst;
-              Lmod3:
-                nextToken();
-              Lmod2:
-                nextToken();
-              Lmod1:
                 nextToken();
                 e = parseUnaryExp();
                 e = new CastExp(loc, e, m);
             }
             else
             {
-                Type *t = parseType();          // ( type )
+                Type *t = parseType();  // cast( type )
+                t = t->addMod(m);       // cast( const type )
                 check(TOKrparen);
                 e = parseUnaryExp();
                 e = new CastExp(loc, e, t);
