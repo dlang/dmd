@@ -235,11 +235,11 @@ void LibOMF::addObject(const char *module_name, void *buf, size_t buflen)
     if (!buf)
     {   assert(module_name);
         FileName f((char *)module_name);
-        File file(&f);
-        readFile(Loc(), &file);
-        buf = file.buffer;
-        buflen = file.len;
-        file.ref = 1;
+        File *file = new File(&f);
+        readFile(Loc(), file);
+        buf = file->buffer;
+        buflen = file->len;
+        file->ref = 1;
     }
 
     unsigned g_page_size;
