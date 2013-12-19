@@ -2464,74 +2464,62 @@ Import *Parser::parseImport(Dsymbols *decldefs, int isstatic)
 }
 
 Type *Parser::parseType(Identifier **pident, TemplateParameters **tpl)
-{   Type *t;
-
+{
     /* Take care of the storage class prefixes that
      * serve as type attributes:
-     *  const shared, shared const, const, invariant, shared
+     *               const type
+     *           immutable type
+     *              shared type
+     *               inout type
+     *        shared const type
+     *        shared inout type
      */
-    if (token.value == TOKconst && peekNext() == TOKshared && peekNext2() != TOKlparen ||
-        token.value == TOKshared && peekNext() == TOKconst && peekNext2() != TOKlparen)
+    StorageClass stc = 0;
+    while (1)
     {
-        nextToken();
-        nextToken();
-        /* shared const type
-         */
-        t = parseType(pident, tpl);
-        t = t->makeSharedConst();
-        return t;
+        switch (token.value)
+        {
+            case TOKconst:
+                if (peekNext() == TOKlparen)
+                    break;              // const as type constructor
+                stc |= STCconst;        // const as storage class
+                nextToken();
+                continue;
+
+            case TOKinvariant:
+            case TOKimmutable:
+                if (peekNext() == TOKlparen)
+                    break;
+                if (token.value == TOKinvariant)
+                    error("use 'immutable' instead of 'invariant'");
+                stc |= STCimmutable;
+                nextToken();
+                continue;
+
+            case TOKshared:
+                if (peekNext() == TOKlparen)
+                    break;
+                stc |= STCshared;
+                nextToken();
+                continue;
+
+            case TOKwild:
+                if (peekNext() == TOKlparen)
+                    break;
+                stc |= STCwild;
+                nextToken();
+                continue;
+
+            default:
+                break;
+        }
+        break;
     }
-    else if (token.value == TOKwild && peekNext() == TOKshared && peekNext2() != TOKlparen ||
-        token.value == TOKshared && peekNext() == TOKwild && peekNext2() != TOKlparen)
-    {
-        nextToken();
-        nextToken();
-        /* shared wild type
-         */
-        t = parseType(pident, tpl);
-        t = t->makeSharedWild();
-        return t;
-    }
-    else if (token.value == TOKconst && peekNext() != TOKlparen)
-    {
-        nextToken();
-        /* const type
-         */
-        t = parseType(pident, tpl);
-        t = t->makeConst();
-        return t;
-    }
-    else if ((token.value == TOKinvariant || token.value == TOKimmutable) &&
-             peekNext() != TOKlparen)
-    {
-        nextToken();
-        /* invariant type
-         */
-        t = parseType(pident, tpl);
-        t = t->makeImmutable();
-        return t;
-    }
-    else if (token.value == TOKshared && peekNext() != TOKlparen)
-    {
-        nextToken();
-        /* shared type
-         */
-        t = parseType(pident, tpl);
-        t = t->makeShared();
-        return t;
-    }
-    else if (token.value == TOKwild && peekNext() != TOKlparen)
-    {
-        nextToken();
-        /* wild type
-         */
-        t = parseType(pident, tpl);
-        t = t->makeWild();
-        return t;
-    }
-    else
-        t = parseBasicType();
+
+    Type *t;
+    t = parseBasicType();
     t = parseDeclarator(t, pident, tpl);
+    t = t->addSTC(stc);
     return t;
 }
 
