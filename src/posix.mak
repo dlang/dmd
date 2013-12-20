@@ -41,19 +41,17 @@ GIT=git
 #PROFILE=-pg
 
 WARNINGS=-Wno-deprecated -Wstrict-aliasing
+MMD=-MMD -MF $(basename $@).deps
 
 ifneq (,$(DEBUG))
-	GFLAGS:=$(WARNINGS) -D__pascal= -fno-exceptions -g -g3 -DDEBUG=1 -DUNITTEST $(COV) $(PROFILE)
+	GFLAGS=$(WARNINGS) -D__pascal= -fno-exceptions -g -g3 -DDEBUG=1 -DUNITTEST $(COV) $(PROFILE) $(MMD)
 else
-	GFLAGS:=$(WARNINGS) -D__pascal= -fno-exceptions -O2 $(PROFILE)
+	GFLAGS=$(WARNINGS) -D__pascal= -fno-exceptions -O2 $(PROFILE) $(MMD)
 endif
 
 OS_UPCASE:=$(shell echo $(OS) | tr '[a-z]' '[A-Z]')
 CFLAGS = $(GFLAGS) -I$(ROOT) -DMARS=1 -DTARGET_$(OS_UPCASE)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1
 MFLAGS = $(GFLAGS) -I$C -I$(TK) -I$(ROOT) -DMARS=1 -DTARGET_$(OS_UPCASE)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1 -DDMDV2=1
-
-CH= $C/cc.h $C/global.h $C/oper.h $C/code.h $C/type.h \
-	$C/dt.h $C/cgcv.h $C/el.h $C/obj.h $(TARGET_CH)
 
 DMD_OBJS = \
 	access.o attrib.o bcomplex.o blockopt.o \
@@ -143,6 +141,8 @@ SRC = win32.mak posix.mak osmodel.mak \
 	$(TARGET_CH)
 
 
+DMD_DEPS:=$(DMD_OBJS:.o=.deps)
+
 all: dmd
 
 dmd: $(DMD_OBJS)
@@ -152,7 +152,7 @@ clean:
 	rm -f $(DMD_OBJS) dmd optab.o id.o impcnvgen idgen id.c id.h \
 	impcnvtab.c optabgen debtab.c optab.c cdxxx.c elxxx.c fltables.c \
 	tytab.c verstr.h core \
-	*.cov *.gcda *.gcno
+	*.cov *.deps *.gcda *.gcno
 
 ######## optabgen generates some source
 
@@ -204,7 +204,7 @@ $(shell test \"$(VERSION)\" != "`cat verstr.h 2> /dev/null`" \
 
 $(DMD_OBJS) : $(idgen_output) $(optabgen_output) $(impcnvgen_output)
 
-aa.o: $C/aa.c $C/aa.h $C/tinfo.h
+aa.o: $C/aa.c
 	$(CC) -c $(MFLAGS) -I. $<
 
 aav.o: $(ROOT)/aav.c
@@ -264,10 +264,10 @@ cgcs.o: $C/cgcs.c
 cgcv.o: $C/cgcv.c
 	$(CC) -c $(MFLAGS) $<
 
-cgelem.o: $C/cgelem.c $C/rtlsym.h elxxx.c
+cgelem.o: $C/cgelem.c elxxx.c
 	$(CC) -c $(MFLAGS) -I. $<
 
-cgen.o: $C/cgen.c $C/rtlsym.h
+cgen.o: $C/cgen.c
 	$(CC) -c $(MFLAGS) $<
 
 cgobj.o: $C/cgobj.c
@@ -276,7 +276,7 @@ cgobj.o: $C/cgobj.c
 cgreg.o: $C/cgreg.c
 	$(CC) -c $(MFLAGS) $<
 
-cgsched.o: $C/cgsched.c $C/rtlsym.h
+cgsched.o: $C/cgsched.c
 	$(CC) -c $(MFLAGS) $<
 
 cgxmm.o: $C/cgxmm.c
@@ -288,13 +288,13 @@ class.o: class.c
 clone.o: clone.c
 	$(CC) -c $(CFLAGS) $<
 
-cod1.o: $C/cod1.c $C/rtlsym.h
+cod1.o: $C/cod1.c
 	$(CC) -c $(MFLAGS) $<
 
-cod2.o: $C/cod2.c $C/rtlsym.h
+cod2.o: $C/cod2.c
 	$(CC) -c $(MFLAGS) $<
 
-cod3.o: $C/cod3.c $C/rtlsym.h
+cod3.o: $C/cod3.c
 	$(CC) -c $(MFLAGS) $<
 
 cod4.o: $C/cod4.c
@@ -309,10 +309,10 @@ code.o: $C/code.c
 constfold.o: constfold.c
 	$(CC) -c $(CFLAGS) $<
 
-ctfeexpr.o: ctfeexpr.c ctfe.h
+ctfeexpr.o: ctfeexpr.c
 	$(CC) -c $(CFLAGS) $<
 
-irstate.o: irstate.c irstate.h
+irstate.o: irstate.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) $<
 
 csymbol.o: $C/symbol.c
@@ -345,25 +345,25 @@ doc.o: doc.c
 dsymbol.o: dsymbol.c
 	$(CC) -c $(CFLAGS) $<
 
-dt.o: $C/dt.c $C/dt.h
+dt.o: $C/dt.c
 	$(CC) -c $(MFLAGS) $<
 
 dump.o: dump.c
 	$(CC) -c $(CFLAGS) $<
 
-dwarf.o: $C/dwarf.c $C/dwarf.h
+dwarf.o: $C/dwarf.c
 	$(CC) -c $(MFLAGS) -I. $<
 
-e2ir.o: e2ir.c $C/rtlsym.h expression.h toir.h
+e2ir.o: e2ir.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) $<
 
 ee.o: $C/ee.c
 	$(CC) -c $(MFLAGS) $<
 
-eh.o: eh.c $C/cc.h $C/code.h $C/type.h $C/dt.h
+eh.o: eh.c
 	$(CC) -c $(MFLAGS) $<
 
-el.o: $C/el.c $C/rtlsym.h $C/el.h
+el.o: $C/el.c
 	$(CC) -c $(MFLAGS) $<
 
 elfobj.o: $C/elfobj.c
@@ -378,13 +378,13 @@ enum.o: enum.c
 evalu8.o: $C/evalu8.c
 	$(CC) -c $(MFLAGS) $<
 
-expression.o: expression.c expression.h
+expression.o: expression.c
 	$(CC) -c $(CFLAGS) $<
 
-file.o : $(ROOT)/file.c $(ROOT)/file.h
+file.o : $(ROOT)/file.c
 	$(CC) -c $(CFLAGS) -I$(ROOT) $<
 
-filename.o : $(ROOT)/filename.c  $(ROOT)/filename.h
+filename.o : $(ROOT)/filename.c
 	$(CC) -c $(CFLAGS) -I$(ROOT) $<
 
 func.o: func.c
@@ -399,13 +399,13 @@ gflow.o: $C/gflow.c
 #globals.o: globals.c
 #	$(CC) -c $(CFLAGS) $<
 
-glocal.o: $C/glocal.c $C/rtlsym.h
+glocal.o: $C/glocal.c
 	$(CC) -c $(MFLAGS) $<
 
 gloop.o: $C/gloop.c
 	$(CC) -c $(MFLAGS) $<
 
-glue.o: glue.c $(CH) $C/rtlsym.h mars.h module.h
+glue.o: glue.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) $<
 
 go.o: $C/go.c
@@ -417,16 +417,16 @@ gother.o: $C/gother.c
 hdrgen.o: hdrgen.c
 	$(CC) -c $(CFLAGS) $<
 
-iasm.o: iasm.c $(CH) $C/iasm.h
+iasm.o: iasm.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) -fexceptions $<
 
-id.o: id.c id.h
+id.o: id.c
 	$(CC) -c $(CFLAGS) $<
 
 identifier.o: identifier.c
 	$(CC) -c $(CFLAGS) $<
 
-impcnvtab.o: impcnvtab.c mtype.h
+impcnvtab.o: impcnvtab.c
 	$(CC) -c $(CFLAGS) -I$(ROOT) $<
 
 imphint.o: imphint.c
@@ -444,11 +444,11 @@ init.o: init.c
 inline.o: inline.c
 	$(CC) -c $(CFLAGS) $<
 
-interpret.o: interpret.c ctfe.h
+interpret.o: interpret.c
 	$(CC) -c $(CFLAGS) $<
 
-intrange.o: intrange.h intrange.c
-	$(CC) -c $(CFLAGS) intrange.c
+intrange.o: intrange.c
+	$(CC) -c $(CFLAGS) $<
 
 json.o: json.c
 	$(CC) -c $(CFLAGS) $<
@@ -456,13 +456,13 @@ json.o: json.c
 lexer.o: lexer.c
 	$(CC) -c $(CFLAGS) $<
 
-libelf.o: libelf.c $C/melf.h
+libelf.o: libelf.c
 	$(CC) -c $(CFLAGS) -I$C $<
 
-libmach.o: libmach.c $C/mach.h
+libmach.o: libmach.c
 	$(CC) -c $(CFLAGS) -I$C $<
 
-libmscoff.o: libmscoff.c $C/mscoff.h
+libmscoff.o: libmscoff.c
 	$(CC) -c $(CFLAGS) -I$C $<
 
 link.o: link.c
@@ -489,19 +489,19 @@ rmem.o: $(ROOT)/rmem.c
 module.o: module.c
 	$(CC) -c $(CFLAGS) -I$C $<
 
-mscoffobj.o: $C/mscoffobj.c $C/mscoff.h
+mscoffobj.o: $C/mscoffobj.c
 	$(CC) -c $(MFLAGS) $<
 
-msc.o: msc.c $(CH) mars.h
+msc.o: msc.c
 	$(CC) -c $(MFLAGS) $<
 
 mtype.o: mtype.c
 	$(CC) -c $(CFLAGS) $<
 
-nteh.o: $C/nteh.c $C/rtlsym.h
+nteh.o: $C/nteh.c
 	$(CC) -c $(MFLAGS) $<
 
-object.o : $(ROOT)/object.c $(ROOT)/object.h
+object.o : $(ROOT)/object.c
 	$(CC) -c $(CFLAGS) -I$(ROOT) $<
 
 opover.o: opover.c
@@ -516,10 +516,10 @@ os.o: $C/os.c
 out.o: $C/out.c
 	$(CC) -c $(MFLAGS) $<
 
-outbuf.o: $C/outbuf.c $C/outbuf.h
+outbuf.o: $C/outbuf.c
 	$(CC) -c $(MFLAGS) $<
 
-outbuffer.o : $(ROOT)/outbuffer.c $(ROOT)/outbuffer.h
+outbuffer.o : $(ROOT)/outbuffer.c
 	$(CC) -c $(CFLAGS) -I$(ROOT) $<
 
 parse.o: parse.c
@@ -537,25 +537,25 @@ platform_stub.o: $C/platform_stub.c
 port.o: $(ROOT)/port.c
 	$(CC) -c $(GFLAGS) -I$(ROOT) $<
 
-ptrntab.o: $C/ptrntab.c $C/iasm.h
+ptrntab.o: $C/ptrntab.c
 	$(CC) -c $(MFLAGS) $<
 
 response.o: $(ROOT)/response.c
 	$(CC) -c $(GFLAGS) -I$(ROOT) $<
 
-rtlsym.o: $C/rtlsym.c $C/rtlsym.h
+rtlsym.o: $C/rtlsym.c
 	$(CC) -c $(MFLAGS) $<
 
 sapply.o: sapply.c
 	$(CC) -c $(CFLAGS) $<
 
-s2ir.o: s2ir.c $C/rtlsym.h statement.h visitor.h
+s2ir.o: s2ir.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) $<
 
-scanelf.o: scanelf.c $C/melf.h
+scanelf.o: scanelf.c
 	$(CC) -c $(CFLAGS) -I$C $<
 
-scanmach.o: scanmach.c $C/mach.h
+scanmach.o: scanmach.c
 	$(CC) -c $(CFLAGS) -I$C $<
 
 scope.o: scope.c
@@ -570,7 +570,7 @@ speller.o: $(ROOT)/speller.c
 statement.o: statement.c
 	$(CC) -c $(CFLAGS) $<
 
-staticassert.o: staticassert.c staticassert.h
+staticassert.o: staticassert.c
 	$(CC) -c $(CFLAGS) $<
 
 stringtable.o: $(ROOT)/stringtable.c
@@ -582,37 +582,37 @@ strtold.o: $C/strtold.c
 struct.o: struct.c
 	$(CC) -c $(CFLAGS) $<
 
-target.o: target.c target.h
+target.o: target.c
 	$(CC) -c $(CFLAGS) $<
 
 template.o: template.c
 	$(CC) -c $(CFLAGS) $<
 
-ti_achar.o: $C/ti_achar.c $C/tinfo.h
+ti_achar.o: $C/ti_achar.c
 	$(CC) -c $(MFLAGS) -I. $<
 
-ti_pvoid.o: $C/ti_pvoid.c $C/tinfo.h
+ti_pvoid.o: $C/ti_pvoid.c
 	$(CC) -c $(MFLAGS) -I. $<
 
 tk.o: tk.c
 	$(CC) -c $(MFLAGS) $<
 
-tocsym.o: tocsym.c $(CH) mars.h module.h
+tocsym.o: tocsym.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) $<
 
-toctype.o: toctype.c $(CH) $C/rtlsym.h mars.h module.h
+toctype.o: toctype.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) $<
 
-todt.o: todt.c mtype.h expression.h $C/dt.h
+todt.o: todt.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) $<
 
-toelfdebug.o: toelfdebug.c $(CH) mars.h
+toelfdebug.o: toelfdebug.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) $<
 
-toir.o: toir.c $C/rtlsym.h expression.h toir.h
+toir.o: toir.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) $<
 
-toobj.o: toobj.c $(CH) mars.h module.h
+toobj.o: toobj.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) $<
 
 traits.o: traits.c
@@ -621,13 +621,13 @@ traits.o: traits.c
 type.o: $C/type.c
 	$(CC) -c $(MFLAGS) $<
 
-typinf.o: typinf.c $(CH) mars.h module.h mtype.h
+typinf.o: typinf.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) $<
 
 util2.o: $C/util2.c
 	$(CC) -c $(MFLAGS) $<
 
-utf.o: utf.c utf.h
+utf.o: utf.c
 	$(CC) -c $(CFLAGS) $<
 
 unittests.o: unittests.c
@@ -638,6 +638,8 @@ var.o: $C/var.c optab.c tytab.c
 
 version.o: version.c
 	$(CC) -c $(CFLAGS) $<
+
+-include $(DMD_DEPS)
 
 ######################################################
 
