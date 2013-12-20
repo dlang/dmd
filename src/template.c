@@ -3193,7 +3193,8 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
                 // foo(U:U)                wild(T)          => wild(T)
                 // foo(U:U)                wild(shared(T))  => wild(shared(T))
                 if (!at)
-                {   (*dedtypes)[i] = tt;
+                {
+                    (*dedtypes)[i] = tt;
                     goto Lexact;
                 }
                 break;
@@ -3212,7 +3213,8 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
                 // foo(U:wild(shared(U)))  wild(shared(T))  => T
                 tt = mutableOf()->unSharedOf();
                 if (!at)
-                {   (*dedtypes)[i] = tt;
+                {
+                    (*dedtypes)[i] = tt;
                     goto Lexact;
                 }
                 break;
@@ -3230,7 +3232,8 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
                 // foo(U:const(U))         wild(shared(T))  => shared(T)
                 tt = mutableOf();
                 if (!at)
-                {   (*dedtypes)[i] = tt;
+                {
+                    (*dedtypes)[i] = tt;
                     goto Lconst;
                 }
                 break;
@@ -3243,7 +3246,8 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
                 // foo(U:shared(U))        wild(shared(T))  => wild(T)
                 tt = unSharedOf();
                 if (!at)
-                {   (*dedtypes)[i] = tt;
+                {
+                    (*dedtypes)[i] = tt;
                     goto Lconst;
                 }
                 break;
@@ -3251,7 +3255,8 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
             case X(MODconst,             MODshared):
                 // foo(U:const(U))         shared(T)        => shared(T)
                 if (!at)
-                {   (*dedtypes)[i] = tt;
+                {
+                    (*dedtypes)[i] = tt;
                     goto Lconst;
                 }
                 break;
@@ -3395,7 +3400,8 @@ MATCH TypeVector::deduceType(Scope *sc, Type *tparam, TemplateParameters *parame
     printf("\ttparam = %d, ", tparam->ty); tparam->print();
 #endif
     if (tparam->ty == Tvector)
-    {   TypeVector *tp = (TypeVector *)tparam;
+    {
+        TypeVector *tp = (TypeVector *)tparam;
         return basetype->deduceType(sc, tp->basetype, parameters, dedtypes, wildmatch);
     }
     return Type::deduceType(sc, tparam, parameters, dedtypes, wildmatch);
@@ -3425,9 +3431,8 @@ MATCH TypeSArray::deduceType(Scope *sc, Type *tparam, TemplateParameters *parame
     if (tparam)
     {
         if (tparam->ty == Tarray)
-        {   MATCH m;
-
-            m = next->deduceType(sc, tparam->nextOf(), parameters, dedtypes, wildmatch);
+        {
+            MATCH m = next->deduceType(sc, tparam->nextOf(), parameters, dedtypes, wildmatch);
             if (m == MATCHexact)
                 m = MATCHconvert;
             return m;
@@ -3635,7 +3640,8 @@ MATCH TypeInstance::deduceType(Scope *sc,
         //printf("tempinst->tempdecl = %p\n", tempdecl);
         //printf("tp->tempinst->tempdecl = %p\n", tp->tempinst->tempdecl);
         if (!tp->tempinst->tempdecl)
-        {   //printf("tp->tempinst->name = '%s'\n", tp->tempinst->name->toChars());
+        {
+            //printf("tp->tempinst->name = '%s'\n", tp->tempinst->name->toChars());
             if (!tp->tempinst->name->equals(tempinst->name))
             {
                 /* Handle case of:
@@ -3643,7 +3649,8 @@ MATCH TypeInstance::deduceType(Scope *sc,
                  */
                 size_t i = templateIdentifierLookup(tp->tempinst->name, parameters);
                 if (i == IDX_NOTFOUND)
-                {   /* Didn't find it as a parameter identifier. Try looking
+                {
+                    /* Didn't find it as a parameter identifier. Try looking
                      * it up and seeing if is an alias. See Bugzilla 1454
                      */
                     TypeIdentifier *tid = new TypeIdentifier(Loc(), tp->tempinst->name);
@@ -3655,7 +3662,8 @@ MATCH TypeInstance::deduceType(Scope *sc,
                     {
                         s = t->toDsymbol(sc);
                         if (s)
-                        {   TemplateInstance *ti = s->parent->isTemplateInstance();
+                        {
+                            TemplateInstance *ti = s->parent->isTemplateInstance();
                             s = ti ? ti->tempdecl : NULL;
                         }
                     }
@@ -3868,7 +3876,8 @@ MATCH TypeStruct::deduceType(Scope *sc, Type *tparam, TemplateParameters *parame
          */
         TypeInstance *tpi = (TypeInstance *)tparam;
         if (tpi->idents.dim)
-        {   RootObject *id = tpi->idents[tpi->idents.dim - 1];
+        {
+            RootObject *id = tpi->idents[tpi->idents.dim - 1];
             if (id->dyncast() == DYNCAST_IDENTIFIER && sym->ident->equals((Identifier *)id))
             {
                 Type *tparent = sym->parent->getType();
@@ -4047,7 +4056,7 @@ MATCH TypeClass::deduceType(Scope *sc, Type *tparam, TemplateParameters *paramet
         best->setDim(dedtypes->dim);
 
         ClassDeclaration *s = sym;
-        while(s && s->baseclasses->dim > 0)
+        while (s && s->baseclasses->dim > 0)
         {
             // Test the base class
             deduceBaseClassParameters((*s->baseclasses)[0],

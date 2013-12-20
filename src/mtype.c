@@ -421,7 +421,8 @@ Type *Type::constOf()
     if (mod == MODconst)
         return this;
     if (cto)
-    {   assert(cto->mod == MODconst);
+    {
+        assert(cto->mod == MODconst);
         return cto;
     }
     Type *t = makeConst();
@@ -439,9 +440,7 @@ Type *Type::immutableOf()
 {
     //printf("Type::immutableOf() %p %s\n", this, toChars());
     if (isImmutable())
-    {
         return this;
-    }
     if (ito)
     {
         assert(ito->isImmutable());
@@ -463,14 +462,16 @@ Type *Type::mutableOf()
     //printf("Type::mutableOf() %p, %s\n", this, toChars());
     Type *t = this;
     if (isConst())
-    {   if (isShared())
+    {
+        if (isShared())
             t = sto;            // shared const => shared
         else
             t = cto;            // const => naked
         assert(!t || t->isMutable());
     }
     else if (isImmutable())
-    {   t = ito;                // immutable => naked
+    {
+        t = ito;                // immutable => naked
         assert(!t || (t->isMutable() && !t->isShared()));
     }
     else if (isWild())
@@ -497,9 +498,7 @@ Type *Type::sharedOf()
 {
     //printf("Type::sharedOf() %p, %s\n", this, toChars());
     if (mod == MODshared)
-    {
         return this;
-    }
     if (sto)
     {
         assert(sto->isShared());
@@ -516,9 +515,7 @@ Type *Type::sharedConstOf()
 {
     //printf("Type::sharedConstOf() %p, %s\n", this, toChars());
     if (mod == (MODshared | MODconst))
-    {
         return this;
-    }
     if (scto)
     {
         assert(scto->mod == (MODshared | MODconst));
@@ -582,9 +579,7 @@ Type *Type::wildOf()
 {
     //printf("Type::wildOf() %p %s\n", this, toChars());
     if (mod == MODwild)
-    {
         return this;
-    }
     if (wto)
     {
         assert(wto->isWild());
@@ -601,9 +596,7 @@ Type *Type::sharedWildOf()
 {
     //printf("Type::sharedWildOf() %p, %s\n", this, toChars());
     if (mod == (MODshared | MODwild))
-    {
         return this;
-    }
     if (swto)
     {
         assert(swto->mod == (MODshared | MODwild));
@@ -612,7 +605,7 @@ Type *Type::sharedWildOf()
     Type *t = makeSharedWild();
     t = t->merge();
     t->fixTo(this);
-    //printf("\t%p\n", t);
+    //printf("\t%p %s\n", t, t->toChars());
     return t;
 }
 
@@ -917,7 +910,8 @@ void Type::check()
 
     Type *tn = nextOf();
     if (tn && ty != Tfunction && tn->ty != Tfunction && ty != Tenum)
-    {   // Verify transitivity
+    {
+        // Verify transitivity
         switch (mod)
         {
             case 0:
@@ -1104,10 +1098,10 @@ Type *Type::castMod(unsigned mod)
  */
 
 Type *Type::addMod(unsigned mod)
-{   Type *t = this;
-
+{
     /* Add anything to immutable, and it remains immutable
      */
+    Type *t = this;
     if (!t->isImmutable())
     {
         //printf("addMod(%x) %s\n", mod, toChars());
@@ -1176,7 +1170,8 @@ Type *Type::addStorageClass(StorageClass stc)
     if (stc & STCimmutable)
         mod = MODimmutable;
     else
-    {   if (stc & (STCconst | STCin))
+    {
+        if (stc & (STCconst | STCin))
             mod = MODconst;
         else if (stc & STCwild)         // const takes precedence over wild
             mod |= MODwild;
@@ -1209,9 +1204,8 @@ Type *Type::referenceTo()
     if (ty == Terror)
         return this;
     if (!rto)
-    {   Type *t;
-
-        t = new TypeReference(this);
+    {
+        Type *t = new TypeReference(this);
         rto = t->merge();
     }
     return rto;
@@ -1222,9 +1216,8 @@ Type *Type::arrayOf()
     if (ty == Terror)
         return this;
     if (!arrayof)
-    {   Type *t;
-
-        t = new TypeDArray(this);
+    {
+        Type *t = new TypeDArray(this);
         arrayof = t->merge();
     }
     return arrayof;
@@ -1446,7 +1439,8 @@ void MODtoDecoBuffer(OutBuffer *buf, unsigned char mod)
 void MODtoBuffer(OutBuffer *buf, unsigned char mod)
 {
     switch (mod)
-    {   case 0:
+    {
+        case 0:
             break;
 
         case MODimmutable:
@@ -1460,6 +1454,7 @@ void MODtoBuffer(OutBuffer *buf, unsigned char mod)
         case MODshared | MODconst:
             buf->writestring(Token::tochars[TOKshared]);
             buf->writeByte(' ');
+            /* fall through */
         case MODconst:
             buf->writestring(Token::tochars[TOKconst]);
             break;
@@ -1467,9 +1462,11 @@ void MODtoBuffer(OutBuffer *buf, unsigned char mod)
         case MODshared | MODwild:
             buf->writestring(Token::tochars[TOKshared]);
             buf->writeByte(' ');
+            /* fall through */
         case MODwild:
             buf->writestring(Token::tochars[TOKwild]);
             break;
+
         default:
             assert(0);
     }
@@ -1508,7 +1505,8 @@ void Type::toDecoBuffer(OutBuffer *buf, int flag)
  */
 
 char *Type::toChars()
-{   OutBuffer buf;
+{
+    OutBuffer buf;
     buf.reserve(16);
     HdrGenState hgs;
 
@@ -1521,7 +1519,8 @@ void Type::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
 {
     toCBuffer2(buf, hgs, 0);
     if (ident)
-    {   buf->writeByte(' ');
+    {
+        buf->writeByte(' ');
         buf->writestring(ident->toChars());
     }
 }
@@ -1529,7 +1528,8 @@ void Type::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
 void Type::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 {
     if (mod != this->mod)
-    {   toCBuffer3(buf, hgs, mod);
+    {
+        toCBuffer3(buf, hgs, mod);
         return;
     }
     buf->writestring(toChars());
@@ -2511,22 +2511,21 @@ Type *TypeNext::makeConst()
 {
     //printf("TypeNext::makeConst() %p, %s\n", this, toChars());
     if (cto)
-    {   assert(cto->mod == MODconst);
+    {
+        assert(cto->mod == MODconst);
         return cto;
     }
     TypeNext *t = (TypeNext *)Type::makeConst();
     if (ty != Tfunction && next->ty != Tfunction &&
-        //(next->deco || next->ty == Tfunction) &&
         !next->isImmutable() && !next->isConst())
-    {   if (next->isShared())
+    {
+        if (next->isShared())
             t->next = next->sharedConstOf();
         else
             t->next = next->constOf();
     }
     if (ty == Taarray)
-    {
         ((TypeAArray *)t)->impl = NULL;         // lazily recompute it
-    }
     //printf("TypeNext::makeConst() returns %p, %s\n", t, t->toChars());
     return t;
 }
@@ -2535,19 +2534,19 @@ Type *TypeNext::makeImmutable()
 {
     //printf("TypeNext::makeImmutable() %s\n", toChars());
     if (ito)
-    {   assert(ito->isImmutable());
+    {
+        assert(ito->isImmutable());
         return ito;
     }
     TypeNext *t = (TypeNext *)Type::makeImmutable();
     if (ty != Tfunction && next->ty != Tfunction &&
-        //(next->deco || next->ty == Tfunction) &&
         !next->isImmutable())
-    {   t->next = next->immutableOf();
+    {
+        t->next = next->immutableOf();
     }
     if (ty == Taarray)
-    {
         ((TypeAArray *)t)->impl = NULL;         // lazily recompute it
-    }
+    //printf("TypeNext::makeImmutable() returns %p, %s\n", t, t->toChars());
     return t;
 }
 
@@ -2555,12 +2554,12 @@ Type *TypeNext::makeShared()
 {
     //printf("TypeNext::makeShared() %s\n", toChars());
     if (sto)
-    {   assert(sto->mod == MODshared);
+    {
+        assert(sto->mod == MODshared);
         return sto;
     }
     TypeNext *t = (TypeNext *)Type::makeShared();
     if (ty != Tfunction && next->ty != Tfunction &&
-        //(next->deco || next->ty == Tfunction) &&
         !next->isImmutable() && !next->isShared())
     {
         if (next->isConst())
@@ -2571,9 +2570,7 @@ Type *TypeNext::makeShared()
             t->next = next->sharedOf();
     }
     if (ty == Taarray)
-    {
         ((TypeAArray *)t)->impl = NULL;         // lazily recompute it
-    }
     //printf("TypeNext::makeShared() returns %p, %s\n", t, t->toChars());
     return t;
 }
@@ -2582,20 +2579,18 @@ Type *TypeNext::makeSharedConst()
 {
     //printf("TypeNext::makeSharedConst() %s\n", toChars());
     if (scto)
-    {   assert(scto->mod == (MODshared | MODconst));
+    {
+        assert(scto->mod == (MODshared | MODconst));
         return scto;
     }
     TypeNext *t = (TypeNext *)Type::makeSharedConst();
     if (ty != Tfunction && next->ty != Tfunction &&
-        //(next->deco || next->ty == Tfunction) &&
         !next->isImmutable() && !next->isSharedConst())
     {
         t->next = next->sharedConstOf();
     }
     if (ty == Taarray)
-    {
         ((TypeAArray *)t)->impl = NULL;         // lazily recompute it
-    }
     //printf("TypeNext::makeSharedConst() returns %p, %s\n", t, t->toChars());
     return t;
 }
@@ -2604,12 +2599,12 @@ Type *TypeNext::makeWild()
 {
     //printf("TypeNext::makeWild() %s\n", toChars());
     if (wto)
-    {   assert(wto->mod == MODwild);
+    {
+        assert(wto->mod == MODwild);
         return wto;
     }
     TypeNext *t = (TypeNext *)Type::makeWild();
     if (ty != Tfunction && next->ty != Tfunction &&
-        //(next->deco || next->ty == Tfunction) &&
         !next->isImmutable() && !next->isConst() && !next->isWild())
     {
         if (next->isShared())
@@ -2618,9 +2613,7 @@ Type *TypeNext::makeWild()
             t->next = next->wildOf();
     }
     if (ty == Taarray)
-    {
         ((TypeAArray *)t)->impl = NULL;         // lazily recompute it
-    }
     //printf("TypeNext::makeWild() returns %p, %s\n", t, t->toChars());
     return t;
 }
@@ -2629,12 +2622,12 @@ Type *TypeNext::makeSharedWild()
 {
     //printf("TypeNext::makeSharedWild() %s\n", toChars());
     if (swto)
-    {   assert(swto->isSharedWild());
+    {
+        assert(swto->isSharedWild());
         return swto;
     }
     TypeNext *t = (TypeNext *)Type::makeSharedWild();
     if (ty != Tfunction && next->ty != Tfunction &&
-        //(next->deco || next->ty == Tfunction) &&
         !next->isImmutable() && !next->isSharedConst())
     {
         if (next->isConst())
@@ -2643,9 +2636,7 @@ Type *TypeNext::makeSharedWild()
             t->next = next->sharedWildOf();
     }
     if (ty == Taarray)
-    {
         ((TypeAArray *)t)->impl = NULL;         // lazily recompute it
-    }
     //printf("TypeNext::makeSharedWild() returns %p, %s\n", t, t->toChars());
     return t;
 }
@@ -2659,9 +2650,7 @@ Type *TypeNext::makeMutable()
         t->next = next->mutableOf();
     }
     if (ty == Taarray)
-    {
         ((TypeAArray *)t)->impl = NULL;         // lazily recompute it
-    }
     //printf("TypeNext::makeMutable() returns %p, %s\n", t, t->toChars());
     return t;
 }
@@ -6077,7 +6066,8 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
         }
     }
     if (wildmatch)
-    {   /* Calculate wild matching modifier
+    {
+        /* Calculate wild matching modifier
          */
         if (wildmatch & MODconst || wildmatch & (wildmatch - 1))
             wildmatch = MODconst;
