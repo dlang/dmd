@@ -139,7 +139,7 @@ SRC = win32.mak posix.mak \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c \
 	argtypes.c apply.c sapply.c sideeffect.c \
 	intrange.h intrange.c canthrow.c target.c target.h \
-	scanmscoff.c scanomf.c ctfe.h ctfeexpr.c \
+	scanmscoff.c scanomf.c ctfe.h ctfeexpr.c visitor.h \
 	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.c \
 	$C/global.h $C/code.h $C/type.h $C/dt.h $C/cgcv.h \
 	$C/el.h $C/iasm.h $C/rtlsym.h \
@@ -584,7 +584,7 @@ rtlsym.o: $C/rtlsym.c $C/rtlsym.h
 sapply.o: sapply.c
 	$(CC) -c $(CFLAGS) $<
 
-s2ir.o: s2ir.c $C/rtlsym.h statement.h
+s2ir.o: s2ir.c $C/rtlsym.h statement.h visitor.h
 	$(CC) -c $(MFLAGS) -I$(ROOT) $<
 
 scanelf.o: scanelf.c $C/melf.h

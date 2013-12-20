@@ -41,6 +41,7 @@ void slist_reset();
 void clearStringTab();
 
 elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
+void Statement_toIR(Statement *s, IRState *irs);
 
 #define STATICCTOR      0
 
@@ -1033,7 +1034,7 @@ void FuncDeclaration::toObjFile(int multiobj)
         }
 #endif
 
-        sbody->toIR(&irs);
+        Statement_toIR(sbody, &irs);
         bx.curblock->BC = BCret;
 
         f->Fstartblock = bx.startblock;
