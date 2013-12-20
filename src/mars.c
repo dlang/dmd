@@ -540,7 +540,8 @@ int main(size_t argc, char *argv[])
     is64bit = parse_arch(dflags_argc, dflags_argv, is64bit);
     global.params.is64bit = is64bit;
 
-    inifile(argv[0], inifilename, is64bit ? "Environment64" : "Environment32");
+    if (inifilename != NULL)
+        inifile(argv[0], inifilename, is64bit ? "Environment64" : "Environment32");
 
     getenv_setargv("DFLAGS", &argc, &argv);
 
