@@ -859,12 +859,12 @@ void Type::check()
             if (swto) assert(swto->mod == (MODshared | MODwild));
             break;
 
-        case MODimmutable:
+        case MODwild:
             if (cto) assert(cto->mod == MODconst);
-            if (ito) assert(ito->mod == 0);
+            if (ito) assert(ito->mod == MODimmutable);
             if (sto) assert(sto->mod == MODshared);
             if (scto) assert(scto->mod == (MODshared | MODconst));
-            if (wto) assert(wto->mod == MODwild);
+            if (wto) assert(wto->mod == 0);
             if (swto) assert(swto->mod == (MODshared | MODwild));
             break;
 
@@ -886,15 +886,6 @@ void Type::check()
             if (swto) assert(swto->mod == (MODshared | MODwild));
             break;
 
-        case MODwild:
-            if (cto) assert(cto->mod == MODconst);
-            if (ito) assert(ito->mod == MODimmutable);
-            if (sto) assert(sto->mod == MODshared);
-            if (scto) assert(scto->mod == (MODshared | MODconst));
-            if (wto) assert(wto->mod == 0);
-            if (swto) assert(swto->mod == (MODshared | MODwild));
-            break;
-
         case MODshared | MODwild:
             if (cto) assert(cto->mod == MODconst);
             if (ito) assert(ito->mod == MODimmutable);
@@ -902,6 +893,15 @@ void Type::check()
             if (scto) assert(scto->mod == (MODshared | MODconst));
             if (wto) assert(wto->mod == MODwild);
             if (swto) assert(swto->mod == 0);
+            break;
+
+        case MODimmutable:
+            if (cto) assert(cto->mod == MODconst);
+            if (ito) assert(ito->mod == 0);
+            if (sto) assert(sto->mod == MODshared);
+            if (scto) assert(scto->mod == (MODshared | MODconst));
+            if (wto) assert(wto->mod == MODwild);
+            if (swto) assert(swto->mod == (MODshared | MODwild));
             break;
 
         default:
@@ -921,8 +921,8 @@ void Type::check()
                 assert(tn->mod & MODimmutable || tn->mod & MODconst);
                 break;
 
-            case MODimmutable:
-                assert(tn->mod == MODimmutable);
+            case MODwild:
+                assert(tn->mod);
                 break;
 
             case MODshared:
@@ -933,12 +933,12 @@ void Type::check()
                 assert(tn->mod & MODimmutable || tn->mod & (MODshared | MODconst));
                 break;
 
-            case MODwild:
-                assert(tn->mod);
-                break;
-
             case MODshared | MODwild:
                 assert(tn->mod == MODimmutable || tn->mod == (MODshared | MODconst) || tn->mod == (MODshared | MODwild));
+                break;
+
+            case MODimmutable:
+                assert(tn->mod == MODimmutable);
                 break;
 
             default:
@@ -1065,8 +1065,8 @@ Type *Type::castMod(unsigned mod)
             t = unSharedOf()->constOf();
             break;
 
-        case MODimmutable:
-            t = immutableOf();
+        case MODwild:
+            t = unSharedOf()->wildOf();
             break;
 
         case MODshared:
@@ -1077,12 +1077,12 @@ Type *Type::castMod(unsigned mod)
             t = sharedConstOf();
             break;
 
-        case MODwild:
-            t = unSharedOf()->wildOf();
-            break;
-
         case MODshared | MODwild:
             t = sharedWildOf();
+            break;
+
+        case MODimmutable:
+            t = immutableOf();
             break;
 
         default:
@@ -1117,8 +1117,13 @@ Type *Type::addMod(unsigned mod)
                     t = constOf();
                 break;
 
-            case MODimmutable:
-                t = immutableOf();
+            case MODwild:
+                if (isConst())
+                    ;
+                else if (isShared())
+                    t = sharedWildOf();
+                else
+                    t = wildOf();
                 break;
 
             case MODshared:
@@ -1134,20 +1139,15 @@ Type *Type::addMod(unsigned mod)
                 t = sharedConstOf();
                 break;
 
-            case MODwild:
-                if (isConst())
-                    ;
-                else if (isShared())
-                    t = sharedWildOf();
-                else
-                    t = wildOf();
-                break;
-
             case MODshared | MODwild:
                 if (isConst())
                     t = sharedConstOf();
                 else
                     t = sharedWildOf();
+                break;
+
+            case MODimmutable:
+                t = immutableOf();
                 break;
 
             default:

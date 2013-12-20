@@ -277,32 +277,32 @@ void FuncDeclaration::semantic(Scope *sc)
         {
             case STCimmutable:
             case STCimmutable | STCconst:
-            case STCimmutable | STCconst | STCshared:
-            case STCimmutable | STCshared:
             case STCimmutable | STCwild:
-            case STCimmutable | STCconst | STCwild:
-            case STCimmutable | STCconst | STCshared | STCwild:
+            case STCimmutable | STCwild | STCconst:
+            case STCimmutable | STCshared:
+            case STCimmutable | STCshared | STCconst:
             case STCimmutable | STCshared | STCwild:
+            case STCimmutable | STCshared | STCwild | STCconst:
                 // Don't use immutableOf(), as that will do a merge()
                 type = type->makeImmutable();
                 break;
 
             case STCconst:
-            case STCconst | STCwild:
+            case STCwild | STCconst:
                 type = type->makeConst();
                 break;
 
-            case STCshared | STCconst:
-            case STCshared | STCconst | STCwild:
-                type = type->makeSharedConst();
+            case STCwild:
+                type = type->makeWild();
                 break;
 
             case STCshared:
                 type = type->makeShared();
                 break;
 
-            case STCwild:
-                type = type->makeWild();
+            case STCshared | STCconst:
+            case STCshared | STCwild | STCconst:
+                type = type->makeSharedConst();
                 break;
 
             case STCshared | STCwild:

@@ -149,15 +149,15 @@ type *TypeStruct::toCtype()
             case MODwild:
                 t->Tty |= mTYconst;
                 break;
-            case MODimmutable:
-                t->Tty |= mTYimmutable;
-                break;
             case MODshared:
                 t->Tty |= mTYshared;
                 break;
-            case MODshared | MODwild:
             case MODshared | MODconst:
+            case MODshared | MODwild:
                 t->Tty |= mTYshared | mTYconst;
+                break;
+            case MODimmutable:
+                t->Tty |= mTYimmutable;
                 break;
             default:
                 assert(0);
@@ -218,15 +218,15 @@ type *TypeEnum::toCtype()
             case MODwild:
                 t->Tty |= mTYconst;
                 break;
-            case MODimmutable:
-                t->Tty |= mTYimmutable;
-                break;
             case MODshared:
                 t->Tty |= mTYshared;
                 break;
-            case MODshared | MODwild:
             case MODshared | MODconst:
+            case MODshared | MODwild:
                 t->Tty |= mTYshared | mTYconst;
+                break;
+            case MODimmutable:
+                t->Tty |= mTYimmutable;
                 break;
             default:
                 assert(0);

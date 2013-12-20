@@ -3116,25 +3116,23 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
         Type *tt = this;
         Type *at = (Type *)(*dedtypes)[i];
 
-        // 7*7 == 49 cases
-
         #define X(U,T)  ((U) << 4) | (T)
 
         if (wildmatch && (tparam->mod & MODwild))
         {
             switch (X(tparam->mod, mod))
             {
-                case X(MODwild,              0):
-                case X(MODwild,              MODshared):
-                case X(MODwild,              MODconst):
-                case X(MODwild,              MODconst | MODshared):
-                case X(MODwild,              MODimmutable):
-                case X(MODwild,              MODwild):
-                case X(MODwild,              MODwild | MODshared):
-                case X(MODwild | MODshared,  MODshared):
-                case X(MODwild | MODshared,  MODconst | MODshared):
-                case X(MODwild | MODshared,  MODimmutable):
-                case X(MODwild | MODshared,  MODwild | MODshared):
+                case X(MODwild,                     0):
+                case X(MODwild,                     MODconst):
+                case X(MODwild,                     MODwild):
+                case X(MODwild,                     MODshared):
+                case X(MODwild,                     MODshared | MODconst):
+                case X(MODwild,                     MODshared | MODwild):
+                case X(MODwild,                     MODimmutable):
+                case X(MODshared | MODwild,         MODshared):
+                case X(MODshared | MODwild,         MODshared | MODconst):
+                case X(MODshared | MODwild,         MODshared | MODwild):
+                case X(MODshared | MODwild,         MODimmutable):
 
                     if (!at)
                     {
@@ -3176,22 +3174,24 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
             }
         }
 
+        // 7*7 == 49 cases
+
         switch (X(tparam->mod, mod))
         {
             case X(0, 0):
             case X(0, MODconst):
-            case X(0, MODimmutable):
-            case X(0, MODshared):
-            case X(0, MODconst | MODshared):
             case X(0, MODwild):
-            case X(0, MODwild | MODshared):
-                // foo(U:U)                T                => T
-                // foo(U:U)                const(T)         => const(T)
-                // foo(U:U)                immutable(T)     => immutable(T)
-                // foo(U:U)                shared(T)        => shared(T)
-                // foo(U:U)                const(shared(T)) => const(shared(T))
-                // foo(U:U)                wild(T)          => wild(T)
-                // foo(U:U)                wild(shared(T))  => wild(shared(T))
+            case X(0, MODshared):
+            case X(0, MODshared | MODconst):
+            case X(0, MODshared | MODwild):
+            case X(0, MODimmutable):
+                // foo(U)                       T                       => T
+                // foo(U)                       const(T)                => const(T)
+                // foo(U)                       inout(T)                => inout(T)
+                // foo(U)                       shared(T)               => shared(T)
+                // foo(U)                       shared(const(T))        => shared(const(T))
+                // foo(U)                       shared(inout(T))        => shared(inout(T))
+                // foo(U)                       immutable(T)            => immutable(T)
                 if (!at)
                 {
                     (*dedtypes)[i] = tt;
@@ -3199,18 +3199,18 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
                 }
                 break;
 
-            case X(MODconst,             MODconst):
-            case X(MODimmutable,         MODimmutable):
-            case X(MODshared,            MODshared):
-            case X(MODconst | MODshared, MODconst | MODshared):
-            case X(MODwild,              MODwild):
-            case X(MODwild | MODshared,  MODwild | MODshared):
-                // foo(U:const(U))         const(T)         => T
-                // foo(U:immutable(U))     immutable(T)     => T
-                // foo(U:shared(U))        shared(T)        => T
-                // foo(U:const(shared(U))) const(shared(T)) => T
-                // foo(U:wild(U))          wild(T)          => T
-                // foo(U:wild(shared(U)))  wild(shared(T))  => T
+            case X(MODconst,                    MODconst):
+            case X(MODwild,                     MODwild):
+            case X(MODshared,                   MODshared):
+            case X(MODshared | MODconst,        MODshared | MODconst):
+            case X(MODshared | MODwild,         MODshared | MODwild):
+            case X(MODimmutable,                MODimmutable):
+                // foo(const(U))                const(T)                => T
+                // foo(inout(U))                inout(T)                => T
+                // foo(shared(U))               shared(T)               => T
+                // foo(shared(const(U)))        shared(const(T))        => T
+                // foo(shared(inout(U)))        shared(inout(T))        => T
+                // foo(immutable(U))            immutable(T)            => T
                 tt = mutableOf()->unSharedOf();
                 if (!at)
                 {
@@ -3219,17 +3219,18 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
                 }
                 break;
 
-            case X(MODconst,             0):
-            case X(MODconst,             MODimmutable):
-            case X(MODconst,             MODconst | MODshared):
-            case X(MODconst | MODshared, MODimmutable):
-            case X(MODconst,             MODwild):
-            case X(MODconst,             MODwild | MODshared):
-                // foo(U:const(U))         T                => T
-                // foo(U:const(U))         immutable(T)     => T
-                // foo(U:const(U))         const(shared(T)) => shared(T)
-                // foo(U:const(shared(U))) immutable(T)     => T
-                // foo(U:const(U))         wild(shared(T))  => shared(T)
+            case X(MODconst,                    0):
+            case X(MODconst,                    MODwild):
+            case X(MODconst,                    MODshared | MODconst):
+            case X(MODconst,                    MODshared | MODwild):
+            case X(MODconst,                    MODimmutable):
+            case X(MODshared | MODconst,        MODimmutable):
+                // foo(const(U))                T                       => T
+                // foo(const(U))                inout(T)                => T
+                // foo(const(U))                shared(const(T))        => shared(T)
+                // foo(const(U))                shared(inout(T))        => shared(T)
+                // foo(const(U))                immutable(T)            => T
+                // foo(shared(const(U)))        immutable(T)            => T
                 tt = mutableOf();
                 if (!at)
                 {
@@ -3238,12 +3239,21 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
                 }
                 break;
 
-            case X(MODshared,            MODconst | MODshared):
-            case X(MODconst | MODshared, MODshared):
-            case X(MODshared,            MODwild | MODshared):
-                // foo(U:shared(U))        const(shared(T)) => const(T)
-                // foo(U:const(shared(U))) shared(T)        => T
-                // foo(U:shared(U))        wild(shared(T))  => wild(T)
+            case X(MODconst,                    MODshared):
+                // foo(const(U))                shared(T)               => shared(T)
+                if (!at)
+                {
+                    (*dedtypes)[i] = tt;
+                    goto Lconst;
+                }
+                break;
+
+            case X(MODshared,                   MODshared | MODconst):
+            case X(MODshared,                   MODshared | MODwild):
+            case X(MODshared | MODconst,        MODshared):
+                // foo(shared(U))               shared(const(T))        => const(T)
+                // foo(shared(U))               shared(inout(T))        => inout(T)
+                // foo(shared(const(U)))        shared(T)               => T
                 tt = unSharedOf();
                 if (!at)
                 {
@@ -3252,71 +3262,59 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
                 }
                 break;
 
-            case X(MODconst,             MODshared):
-                // foo(U:const(U))         shared(T)        => shared(T)
-                if (!at)
-                {
-                    (*dedtypes)[i] = tt;
-                    goto Lconst;
-                }
-                break;
-
-            case X(MODimmutable,         0):
-            case X(MODimmutable,         MODconst):
-            case X(MODimmutable,         MODshared):
-            case X(MODimmutable,         MODconst | MODshared):
-            case X(MODshared,            0):
-            case X(MODshared,            MODconst):
-            case X(MODshared,            MODimmutable):
-            case X(MODconst | MODshared, 0):
-            case X(MODconst | MODshared, MODconst):
-            case X(MODimmutable,         MODwild):
-            case X(MODshared,            MODwild):
-            case X(MODconst | MODshared, MODwild):
-            case X(MODwild,              0):
-            case X(MODwild,              MODconst):
-            case X(MODwild,              MODimmutable):
-            case X(MODwild,              MODshared):
-            case X(MODwild,              MODconst | MODshared):
-            case X(MODwild | MODshared,  0):
-            case X(MODwild | MODshared,  MODconst):
-            case X(MODwild | MODshared,  MODimmutable):
-            case X(MODwild | MODshared,  MODshared):
-            case X(MODwild | MODshared,  MODconst | MODshared):
-            case X(MODwild | MODshared,  MODwild):
-            case X(MODimmutable,         MODwild | MODshared):
-            case X(MODconst | MODshared, MODwild | MODshared):
-            case X(MODwild,              MODwild | MODshared):
-                // foo(U:immutable(U))     T                => nomatch
-                // foo(U:immutable(U))     const(T)         => nomatch
-                // foo(U:immutable(U))     shared(T)        => nomatch
-                // foo(U:immutable(U))     const(shared(T)) => nomatch
-                // foo(U:const(U))         shared(T)        => nomatch
-                // foo(U:shared(U))        T                => nomatch
-                // foo(U:shared(U))        const(T)         => nomatch
-                // foo(U:shared(U))        immutable(T)     => nomatch
-                // foo(U:const(shared(U))) T                => nomatch
-                // foo(U:const(shared(U))) const(T)         => nomatch
-                // foo(U:immutable(U))     wild(T)          => nomatch
-                // foo(U:shared(U))        wild(T)          => nomatch
-                // foo(U:const(shared(U))) wild(T)          => nomatch
-                // foo(U:wild(U))          T                => nomatch
-                // foo(U:wild(U))          const(T)         => nomatch
-                // foo(U:wild(U))          immutable(T)     => nomatch
-                // foo(U:wild(U))          shared(T)        => nomatch
-                // foo(U:wild(U))          const(shared(T)) => nomatch
-                // foo(U:wild(shared(U)))  T                => nomatch
-                // foo(U:wild(shared(U)))  const(T)         => nomatch
-                // foo(U:wild(shared(U)))  immutable(T)     => nomatch
-                // foo(U:wild(shared(U)))  shared(T)        => nomatch
-                // foo(U:wild(shared(U)))  const(shared(T)) => nomatch
-                // foo(U:wild(shared(U)))  wild(T)          => nomatch
-                // foo(U:immutable(U))     wild(shared(T))  => nomatch
-                // foo(U:const(shared(U))) wild(shared(T))  => nomatch
-                // foo(U:wild(U))          wild(shared(T))  => nomatch
-                //if (!at)
-                    goto Lnomatch;
-                break;
+            case X(MODwild,                     0):
+            case X(MODwild,                     MODconst):
+            case X(MODwild,                     MODimmutable):
+            case X(MODwild,                     MODshared):
+            case X(MODwild,                     MODshared | MODconst):
+            case X(MODwild,                     MODshared | MODwild):
+            case X(MODshared,                   0):
+            case X(MODshared,                   MODconst):
+            case X(MODshared,                   MODwild):
+            case X(MODshared,                   MODimmutable):
+            case X(MODshared | MODconst,        0):
+            case X(MODshared | MODconst,        MODconst):
+            case X(MODshared | MODconst,        MODwild):
+            case X(MODshared | MODconst,        MODshared | MODwild):
+            case X(MODshared | MODwild,         0):
+            case X(MODshared | MODwild,         MODconst):
+            case X(MODshared | MODwild,         MODwild):
+            case X(MODshared | MODwild,         MODimmutable):
+            case X(MODshared | MODwild,         MODshared):
+            case X(MODshared | MODwild,         MODshared | MODconst):
+            case X(MODimmutable,                0):
+            case X(MODimmutable,                MODconst):
+            case X(MODimmutable,                MODwild):
+            case X(MODimmutable,                MODshared):
+            case X(MODimmutable,                MODshared | MODconst):
+            case X(MODimmutable,                MODshared | MODwild):
+                // foo(inout(U))                T                       => nomatch
+                // foo(inout(U))                const(T)                => nomatch
+                // foo(inout(U))                immutable(T)            => nomatch
+                // foo(inout(U))                shared(T)               => nomatch
+                // foo(inout(U))                shared(const(T))        => nomatch
+                // foo(inout(U))                shared(inout(T))        => nomatch
+                // foo(shared(U))               T                       => nomatch
+                // foo(shared(U))               const(T)                => nomatch
+                // foo(shared(U))               inout(T)                => nomatch
+                // foo(shared(U))               immutable(T)            => nomatch
+                // foo(shared(const(U)))        T                       => nomatch
+                // foo(shared(const(U)))        const(T)                => nomatch
+                // foo(shared(const(U)))        inout(T)                => nomatch
+                // foo(shared(const(U)))        shared(inout(T))        => nomatch
+                // foo(shared(inout(U)))        T                       => nomatch
+                // foo(shared(inout(U)))        const(T)                => nomatch
+                // foo(shared(inout(U)))        inout(T)                => nomatch
+                // foo(shared(inout(U)))        immutable(T)            => nomatch
+                // foo(shared(inout(U)))        shared(T)               => nomatch
+                // foo(shared(inout(U)))        shared(const(T))        => nomatch
+                // foo(immutable(U))            T                       => nomatch
+                // foo(immutable(U))            const(T)                => nomatch
+                // foo(immutable(U))            inout(T)                => nomatch
+                // foo(immutable(U))            shared(T)               => nomatch
+                // foo(immutable(U))            shared(const(T))        => nomatch
+                // foo(immutable(U))            shared(inout(T))        => nomatch
+                goto Lnomatch;
 
             default:
                 assert(0);

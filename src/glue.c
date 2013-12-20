@@ -1290,15 +1290,15 @@ unsigned Type::totym()
         case MODwild:
             t |= mTYconst;
             break;
-        case MODimmutable:
-            t |= mTYimmutable;
-            break;
         case MODshared:
             t |= mTYshared;
             break;
-        case MODshared | MODwild:
         case MODshared | MODconst:
+        case MODshared | MODwild:
             t |= mTYshared | mTYconst;
+            break;
+        case MODimmutable:
+            t |= mTYimmutable;
             break;
         default:
             assert(0);
