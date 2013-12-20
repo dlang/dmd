@@ -3224,12 +3224,14 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
             case X(MODconst,                    MODshared | MODconst):
             case X(MODconst,                    MODshared | MODwild):
             case X(MODconst,                    MODimmutable):
+            case X(MODwild,                     MODshared | MODwild):
             case X(MODshared | MODconst,        MODimmutable):
                 // foo(const(U))                T                       => T
                 // foo(const(U))                inout(T)                => T
                 // foo(const(U))                shared(const(T))        => shared(T)
                 // foo(const(U))                shared(inout(T))        => shared(T)
                 // foo(const(U))                immutable(T)            => T
+                // foo(inout(U))                shared(inout(T))        => shared(T)
                 // foo(shared(const(U)))        immutable(T)            => T
                 tt = mutableOf();
                 if (!at)
@@ -3262,12 +3264,21 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
                 }
                 break;
 
+            case X(MODshared | MODconst,        MODshared | MODwild):
+                // foo(shared(const(U)))        shared(inout(T))        => T
+                tt = unSharedOf()->mutableOf();
+                if (!at)
+                {
+                    (*dedtypes)[i] = tt;
+                    goto Lconst;
+                }
+                break;
+
             case X(MODwild,                     0):
             case X(MODwild,                     MODconst):
             case X(MODwild,                     MODimmutable):
             case X(MODwild,                     MODshared):
             case X(MODwild,                     MODshared | MODconst):
-            case X(MODwild,                     MODshared | MODwild):
             case X(MODshared,                   0):
             case X(MODshared,                   MODconst):
             case X(MODshared,                   MODwild):
@@ -3275,7 +3286,6 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
             case X(MODshared | MODconst,        0):
             case X(MODshared | MODconst,        MODconst):
             case X(MODshared | MODconst,        MODwild):
-            case X(MODshared | MODconst,        MODshared | MODwild):
             case X(MODshared | MODwild,         0):
             case X(MODshared | MODwild,         MODconst):
             case X(MODshared | MODwild,         MODwild):
@@ -3293,7 +3303,6 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
                 // foo(inout(U))                immutable(T)            => nomatch
                 // foo(inout(U))                shared(T)               => nomatch
                 // foo(inout(U))                shared(const(T))        => nomatch
-                // foo(inout(U))                shared(inout(T))        => nomatch
                 // foo(shared(U))               T                       => nomatch
                 // foo(shared(U))               const(T)                => nomatch
                 // foo(shared(U))               inout(T)                => nomatch
@@ -3301,7 +3310,6 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
                 // foo(shared(const(U)))        T                       => nomatch
                 // foo(shared(const(U)))        const(T)                => nomatch
                 // foo(shared(const(U)))        inout(T)                => nomatch
-                // foo(shared(const(U)))        shared(inout(T))        => nomatch
                 // foo(shared(inout(U)))        T                       => nomatch
                 // foo(shared(inout(U)))        const(T)                => nomatch
                 // foo(shared(inout(U)))        inout(T)                => nomatch
