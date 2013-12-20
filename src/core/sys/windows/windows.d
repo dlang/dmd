@@ -2288,6 +2288,37 @@ struct LOGPALETTE {
 }
 alias LOGPALETTE* PLOGPALETTE, NPLOGPALETTE, LPLOGPALETTE;
 
+/* Pixel format descriptor flags */
+enum
+{
+    /* pixel types */
+    PFD_TYPE_RGBA = 0,
+    PFD_TYPE_COLORINDEX = 1,
+
+    /* layer types */
+    PFD_MAIN_PLANE = 0,
+    PFD_OVERLAY_PLANE = 1,
+    PFD_UNDERLAY_PLANE = -1,
+
+    /* PIXELFORMATDESCRIPTOR flags */
+    PFD_DOUBLEBUFFER = 0x00000001,
+    PFD_STEREO = 0x00000002,
+    PFD_DRAW_TO_WINDOW = 0x00000004,
+    PFD_DRAW_TO_BITMAP = 0x00000008,
+    PFD_SUPPORT_GDI = 0x00000010,
+    PFD_SUPPORT_OPENGL = 0x00000020,
+    PFD_GENERIC_FORMAT = 0x00000040,
+    PFD_NEED_PALETTE = 0x00000080,
+    PFD_NEED_SYSTEM_PALETTE = 0x00000100,
+    PFD_SWAP_EXCHANGE = 0x00000200,
+    PFD_SWAP_COPY = 0x00000400,
+    PFD_SWAP_LAYER_BUFFERS = 0x00000800,
+    PFD_GENERIC_ACCELERATED = 0x00001000,
+    PFD_SUPPORT_DIRECTDRAW = 0x00002000,
+    PFD_DIRECT3D_ACCELERATED = 0x00004000,
+    PFD_SUPPORT_COMPOSITION = 0x00008000
+}
+
 /* Pixel format descriptor */
 struct PIXELFORMATDESCRIPTOR
 {
@@ -2320,7 +2351,6 @@ struct PIXELFORMATDESCRIPTOR
 }
 alias PIXELFORMATDESCRIPTOR* PPIXELFORMATDESCRIPTOR, LPPIXELFORMATDESCRIPTOR;
 
-
 export
 {
  BOOL   RoundRect(HDC, int, int, int, int, int, int);
@@ -2346,6 +2376,8 @@ export
  COLORREF   SetPixel(HDC, int, int, COLORREF);
  BOOL     SetPixelV(HDC, int, int, COLORREF);
  BOOL    SetPixelFormat(HDC, int, PIXELFORMATDESCRIPTOR *);
+ int     ChoosePixelFormat(HDC, PIXELFORMATDESCRIPTOR *);
+ BOOL    SwapBuffers(HDC);
  int     SetPolyFillMode(HDC, int);
  BOOL    StretchBlt(HDC, int, int, int, int, HDC, int, int, int, int, DWORD);
  BOOL    SetRectRgn(HRGN, int, int, int, int);
@@ -2729,9 +2761,12 @@ alias MSG* PMSG, NPMSG, LPMSG;
 export
 {
  BOOL GetMessageA(LPMSG lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax);
+ BOOL GetMessageW(LPMSG lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax);
  BOOL TranslateMessage(MSG *lpMsg);
  LONG DispatchMessageA(MSG *lpMsg);
+ LONG DispatchMessageW(MSG *lpMsg);
  BOOL PeekMessageA(MSG *lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax, UINT wRemoveMsg);
+ BOOL PeekMessageW(MSG *lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax, UINT wRemoveMsg);
  HWND GetFocus();
 }
 
