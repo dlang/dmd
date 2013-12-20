@@ -1411,8 +1411,8 @@ void test82(inout(int) _ = 0)
     static assert(typeof(e).stringof == "inout(const(char)*)");
 
     pragma(msg, typeof(*e));
-    static assert(is(typeof(*e) == const(char)));
-    static assert(typeof(*e).stringof == "const(char)");
+    static assert(is(typeof(*e) == inout(const(char))));
+    static assert(typeof(*e).stringof == "inout(const(char))");
 
     inout const(char)* f;
     static assert(is(typeof(e) == typeof(f)));
@@ -1435,11 +1435,11 @@ void test82(inout(int) _ = 0)
 
     inout(const(char)) k;
     pragma(msg, typeof(k));
-    static assert(typeof(k).stringof == "const(char)");
+    static assert(typeof(k).stringof == "inout(const(char))");
 
     const(inout(char)) l;
     pragma(msg, typeof(l));
-    static assert(typeof(l).stringof == "const(char)");
+    static assert(typeof(l).stringof == "inout(const(char))");
 
     shared(const(char)) m;
     pragma(msg, typeof(m));
@@ -2617,6 +2617,78 @@ void test6912()
 }
 
 /************************************/
+// 6930
+
+void test6930a()
+{
+    inout(const int) f1(inout(const int) i) { return i; }
+              int mi;
+        const int ci;
+    immutable int ii;
+    static assert(is(typeof(f1(mi)) ==     const(int)));
+    static assert(is(typeof(f1(ci)) ==     const(int)));
+    static assert(is(typeof(f1(ii)) == immutable(int)));
+
+    inout(const int)* f2(inout(const int)* p) { return p; }
+              int * mp;
+        const(int)* cp;
+    immutable(int)* ip;
+    static assert(is(typeof(f2(mp)) ==     const(int)*));
+    static assert(is(typeof(f2(cp)) ==     const(int)*));
+    static assert(is(typeof(f2(ip)) == immutable(int)*));
+
+    inout(const int)[] f3(inout(const int)[] a) { return a; }
+              int [] ma;
+        const(int)[] ca;
+    immutable(int)[] ia;
+    static assert(is(typeof(f3(ma)) ==     const(int)[]));
+    static assert(is(typeof(f3(ca)) ==     const(int)[]));
+    static assert(is(typeof(f3(ia)) == immutable(int)[]));
+
+    inout(const int[1]) f4(inout(const int[1]) sa) { return sa; }
+              int[1] msa;
+        const int[1] csa;
+    immutable int[1] isa;
+    static assert(is(typeof(f4(msa)) ==     const(int)[1]));
+    static assert(is(typeof(f4(csa)) ==     const(int)[1]));
+    static assert(is(typeof(f4(isa)) == immutable(int)[1]));
+
+    inout(const int)[string] f5(inout(const int)[string] aa) { return aa; }
+              int [string] maa;
+        const(int)[string] caa;
+    immutable(int)[string] iaa;
+    static assert(is(typeof(f5(maa)) ==     const(int)[string]));
+    static assert(is(typeof(f5(caa)) ==     const(int)[string]));
+    static assert(is(typeof(f5(iaa)) == immutable(int)[string]));
+}
+
+inout(const(int[])) foo6930(inout(int)[] x)
+{
+    bool condition = cast(bool)(x.length / 2);
+    return condition ? x : new immutable(int[])(2);
+}
+
+void test6930b(inout int = 0)
+{
+    alias T1 = inout(shared(const(int)));
+    static assert(T1.stringof == "shared(inout(const(int)))");
+    static assert(is(T1 == shared) && is(T1 == const) && is(T1 == inout));
+
+    alias T2 = const(shared(inout(int)[]));
+    static assert(T2.stringof == "shared(const(inout(int)[]))");
+    static assert(is(T2 == shared) && is(T2 == const) && !is(T2 == inout) && is(typeof(T2.init[0]) == inout));
+
+              int [] ma;
+        const(int)[] ca;
+    immutable(int)[] ia;
+        inout(int)[] wa;
+    static assert(is(typeof(foo6930(ma)) ==       const int[]));
+    static assert(is(typeof(foo6930(ca)) ==       const int[]));
+    static assert(is(typeof(foo6930(ia)) ==   immutable int[]));
+    static assert(is(typeof(foo6930(wa)) == inout const int[]));
+}
+
+/************************************/
 // 6941
 
 static assert((const(shared(int[])[])).stringof == "const(shared(int[])[])");	// fail
@@ -3512,9 +3584,9 @@ void test11768(inout int = 0)
 {
     const(inout(char)) k1;
     inout(const(char)) k2;
-    static assert(typeof(k1).stringof == "const(char)");    // OK
-    static assert(typeof(k2).stringof == "const(char)");    // fails
-    static assert(is(typeof(k1) == typeof(k2)));            // fails
+    static assert(typeof(k1).stringof == "inout(const(char))"); // OK
+    static assert(typeof(k2).stringof == "inout(const(char))"); // fails
+    static assert(is(typeof(k1) == typeof(k2)));                // fails
 }
 
 /************************************/
@@ -3621,6 +3693,8 @@ int main()
     test6866();
     test6870();
     test6912();
+    test6930a();
+    test6930b();
     test6939();
     test6940();
     test6982();

@@ -2471,8 +2471,10 @@ Type *Parser::parseType(Identifier **pident, TemplateParameters **tpl)
      *           immutable type
      *              shared type
      *               inout type
+     *         inout const type
      *        shared const type
      *        shared inout type
+     *  shared inout const type
      */
     StorageClass stc = 0;
     while (1)

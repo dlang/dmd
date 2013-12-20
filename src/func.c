@@ -119,7 +119,6 @@ void FuncDeclaration::semantic(Scope *sc)
     AggregateDeclaration *ad;
     ClassDeclaration *cd;
     InterfaceDeclaration *id;
-    bool doesoverride;
 
 #if 0
     printf("FuncDeclaration::semantic(sc = %p, this = %p, '%s', linkage = %d)\n", sc, this, toPrettyChars(), sc->linkage);
@@ -288,7 +287,6 @@ void FuncDeclaration::semantic(Scope *sc)
                 break;
 
             case STCconst:
-            case STCwild | STCconst:
                 type = type->makeConst();
                 break;
 
@@ -296,17 +294,24 @@ void FuncDeclaration::semantic(Scope *sc)
                 type = type->makeWild();
                 break;
 
+            case STCwild | STCconst:
+                type = type->makeWildConst();
+                break;
+
             case STCshared:
                 type = type->makeShared();
                 break;
 
             case STCshared | STCconst:
-            case STCshared | STCwild | STCconst:
                 type = type->makeSharedConst();
                 break;
 
             case STCshared | STCwild:
                 type = type->makeSharedWild();
+                break;
+
+            case STCshared | STCwild | STCconst:
+                type = type->makeSharedWildConst();
                 break;
 
             case 0:
@@ -487,7 +492,7 @@ void FuncDeclaration::semantic(Scope *sc)
         vi = cd->baseClass ? findVtblIndex((Dsymbols*)&cd->baseClass->vtbl, (int)cd->baseClass->vtbl.dim)
                            : -1;
 
-        doesoverride = false;
+        bool doesoverride = false;
         switch (vi)
         {
             case -1:

@@ -1288,6 +1288,7 @@ unsigned Type::totym()
             break;
         case MODconst:
         case MODwild:
+        case MODwildconst:
             t |= mTYconst;
             break;
         case MODshared:
@@ -1295,6 +1296,7 @@ unsigned Type::totym()
             break;
         case MODshared | MODconst:
         case MODshared | MODwild:
+        case MODshared | MODwildconst:
             t |= mTYshared | mTYconst;
             break;
         case MODimmutable:
