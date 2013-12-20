@@ -1901,11 +1901,11 @@ MATCH Type::constConv(Type *to)
  * Return MOD bits matching this type to wild parameter type (tprm).
  */
 
-unsigned Type::wildConvTo(Type *tprm)
+unsigned Type::deduceWild(Type *t, bool isRef)
 {
-    //printf("Type::wildConvTo this = '%s', tprm = '%s'\n", toChars(), tprm->toChars());
+    //printf("Type::deduceWild this = '%s', tprm = '%s'\n", toChars(), tprm->toChars());
 
-    if (tprm->isWild() && implicitConvTo(tprm->substWildTo(MODconst)))
+    if (t->isWild())
     {
         if (isWild())
             return MODwild;
@@ -1919,6 +1919,37 @@ unsigned Type::wildConvTo(Type *tprm)
             assert(0);
     }
     return 0;
+}
+
+Type *Type::unqualify(unsigned m)
+{
+    Type *t = mutableOf()->unSharedOf();
+
+    Type *tn = nextOf();
+    if (tn && tn->ty != Tfunction/*!(ty == Tpointer && tn->ty == Tfunction)*/)
+    {
+        Type *utn = tn->unqualify(m);
+        if (utn != tn)
+        {
+            if (ty == Tpointer)
+                t = utn->pointerTo();
+            else if (ty == Tarray)
+                t = utn->arrayOf();
+            else if (ty == Tsarray)
+                t = new TypeSArray(utn, ((TypeSArray *)this)->dim);
+            else if (ty == Taarray)
+            {
+                t = new TypeAArray(utn, ((TypeAArray *)this)->index);
+                ((TypeAArray *)t)->sc = ((TypeAArray *)this)->sc;   // duplicate scope
+            }
+            else
+                assert(0);
+
+            t = t->merge();
+        }
+    }
+    t = t->addMod(mod & ~m);
+    return t;
 }
 
 Type *Type::substWildTo(unsigned mod)
@@ -2682,20 +2713,38 @@ MATCH TypeNext::constConv(Type *to)
     return m;
 }
 
-unsigned TypeNext::wildConvTo(Type *tprm)
+unsigned TypeNext::deduceWild(Type *t, bool isRef)
 {
     if (ty == Tfunction)
         return 0;
 
-    unsigned mod = 0;
-    Type *tn = tprm->nextOf();
-    if (!tn)
-        return 0;
-    mod = next->wildConvTo(tn);
-    if (!mod)
-        mod = Type::wildConvTo(tprm);
+    unsigned wm;
 
-    return mod;
+    Type *tn = t->nextOf();
+    if (!isRef && (ty == Tarray || ty == Tpointer) && tn)
+    {
+        wm = next->deduceWild(tn, true);
+        if (!wm && t->isWild() &&
+            (tn->mod == MODimmutable ||
+             (tn->mod & MODshared ^ MODshared) == (next->mod & MODshared ^ MODshared)))
+        {
+            // Check pseudo inout + const in tail part (workaround for issue 6930)
+            // Example:
+            //      this: immutable(char)[]
+            //      t: inout(const(char)[])
+            wm = next->mod & ~MODshared;
+            if (wm == 0)
+                wm = MODmutable;
+        }
+    }
+    else
+    {
+        wm = Type::deduceWild(t, isRef);
+        if (!wm && tn)
+            wm = next->deduceWild(tn, true);
+    }
+
+    return wm;
 }
 
 
@@ -4486,7 +4535,7 @@ MATCH TypeDArray::implicitConvTo(Type *to)
         if (!MODimplicitConv(next->mod, ta->next->mod))
             return MATCHnomatch;        // not const-compatible
 
-        // Check head inout conversion:
+        // Check head inout conversion (workaround for issue 6930):
         //       T [] -> inout(const(T)[])
         // const(T)[] -> inout(const(T)[])
         if (isMutable() && ta->isWild())
@@ -4844,7 +4893,7 @@ MATCH TypeAArray::implicitConvTo(Type *to)
         if (!MODimplicitConv(index->mod, ta->index->mod))
             return MATCHnomatch;        // not const-compatible
 
-        // Check head inout conversion:
+        // Check head inout conversion (workaround for issue 6930):
         //       V [K] -> inout(const(V)[K])
         // const(V)[K] -> inout(const(V)[K])
         if (isMutable() && ta->isWild())
@@ -5006,7 +5055,7 @@ MATCH TypePointer::implicitConvTo(Type *to)
         if (!MODimplicitConv(next->mod, tp->next->mod))
             return MATCHnomatch;        // not const-compatible
 
-        // Check head inout conversion:
+        // Check head inout conversion (workaround for issue 6930):
         //       T * -> inout(const(T)*)
         // const(T)* -> inout(const(T)*)
         if (isMutable() && tp->isWild())
@@ -6055,14 +6104,13 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
         Parameter *p = Parameter::getNth(parameters, u);
         Expression *arg = (*args)[u];
         assert(arg);
+        Type *tprm = p->type;
+        Type *targ = arg->type;
 
-        if (!(p->storageClass & STClazy && p->type->ty == Tvoid && arg->type->ty != Tvoid))
+        if (!(p->storageClass & STClazy && tprm->ty == Tvoid && targ->ty != Tvoid))
         {
-            unsigned mod = arg->type->wildConvTo(p->type);
-            if (mod)
-            {
-                wildmatch |= mod;
-            }
+            bool isRef = (p->storageClass & (STCref | STCout)) != 0;
+            wildmatch |= targ->deduceWild(tprm, isRef);
         }
     }
     if (wildmatch)
@@ -8519,21 +8567,21 @@ MATCH TypeStruct::constConv(Type *to)
     return MATCHnomatch;
 }
 
-unsigned TypeStruct::wildConvTo(Type *tprm)
+unsigned TypeStruct::deduceWild(Type *t, bool isRef)
 {
-    if (ty == tprm->ty && sym == ((TypeStruct *)tprm)->sym)
-        return Type::wildConvTo(tprm);
+    if (ty == t->ty && sym == ((TypeStruct *)t)->sym)
+        return Type::deduceWild(t, isRef);
 
-    unsigned mod = 0;
+    unsigned wm = 0;
 
     if (sym->aliasthis && !(att & RECtracing))
     {
         att = (AliasThisRec)(att | RECtracing);
-        mod = aliasthisOf()->wildConvTo(tprm);
+        wm = aliasthisOf()->deduceWild(t, isRef);
         att = (AliasThisRec)(att & ~RECtracing);
     }
 
-    return mod;
+    return wm;
 }
 
 Type *TypeStruct::toHeadMutable()
@@ -9062,27 +9110,22 @@ MATCH TypeClass::constConv(Type *to)
     return MATCHnomatch;
 }
 
-unsigned TypeClass::wildConvTo(Type *tprm)
+unsigned TypeClass::deduceWild(Type *t, bool isRef)
 {
-    Type *tcprm = tprm->substWildTo(MODconst);
+    ClassDeclaration *cd = t->isClassHandle();
+    if (cd && (sym == cd || cd->isBaseOf(sym, NULL)))
+        return Type::deduceWild(t, isRef);
 
-    if (constConv(tcprm))
-        return Type::wildConvTo(tprm);
-
-    ClassDeclaration *cdprm = tcprm->isClassHandle();
-    if (cdprm && cdprm->isBaseOf(sym, NULL))
-        return Type::wildConvTo(tprm);
-
-    unsigned mod = 0;
+    unsigned wm = 0;
 
     if (sym->aliasthis && !(att & RECtracing))
     {
         att = (AliasThisRec)(att | RECtracing);
-        mod = aliasthisOf()->wildConvTo(tprm);
+        wm = aliasthisOf()->deduceWild(t, isRef);
         att = (AliasThisRec)(att & ~RECtracing);
     }
 
-    return mod;
+    return wm;
 }
 
 Type *TypeClass::toHeadMutable()

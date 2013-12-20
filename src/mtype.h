@@ -305,8 +305,11 @@ public:
     virtual int isBaseOf(Type *t, int *poffset);
     virtual MATCH implicitConvTo(Type *to);
     virtual MATCH constConv(Type *to);
-    virtual unsigned wildConvTo(Type *tprm);
+    virtual unsigned deduceWild(Type *t, bool isRef);
     virtual Type *substWildTo(unsigned mod);
+
+    Type *unqualify(unsigned m);
+
     virtual Type *toHeadMutable();
     virtual ClassDeclaration *isClassHandle();
     virtual Expression *getProperty(Loc loc, Identifier *ident, int flag);
@@ -319,7 +322,7 @@ public:
     virtual int isZeroInit(Loc loc = Loc());                // if initializer is 0
     virtual dt_t **toDt(dt_t **pdt);
     Identifier *getTypeInfoIdent(int internal);
-    virtual MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
+    virtual MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL);
     virtual void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
     Expression *getInternalTypeInfo(Scope *sc);
     Expression *getTypeInfo(Scope *sc);
@@ -384,7 +387,7 @@ public:
     Type *makeSharedWild();
     Type *makeMutable();
     MATCH constConv(Type *to);
-    unsigned wildConvTo(Type *tprm);
+    unsigned deduceWild(Type *t, bool isRef);
     void transitive();
 };
 
@@ -440,7 +443,7 @@ public:
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     void toDecoBuffer(OutBuffer *buf, int flag);
     void toJson(JsonOut *json);
-    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
+    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL);
     Type *reliesOnTident(TemplateParameters *tparams);
 #if CPP_MANGLE
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
@@ -496,7 +499,7 @@ public:
     Expression *voidInitLiteral(VarDeclaration *var);
     dt_t **toDt(dt_t **pdt);
     dt_t **toDtElem(dt_t **pdt, Expression *e);
-    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
+    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     Expression *toExpression();
     int hasPointers();
@@ -532,7 +535,7 @@ public:
     MATCH implicitConvTo(Type *to);
     Expression *defaultInit(Loc loc);
     int builtinTypeInfo();
-    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
+    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
     TypeTuple *toArgTypes();
@@ -564,7 +567,7 @@ public:
     void toJson(JsonOut *json);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     Expression *defaultInit(Loc loc);
-    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
+    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL);
     int isZeroInit(Loc loc);
     int checkBoolean();
     TypeInfoDeclaration *getTypeInfoDeclaration();
@@ -680,7 +683,7 @@ public:
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     void toJson(JsonOut *json);
     void attributesToCBuffer(OutBuffer *buf, int mod);
-    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
+    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     Type *reliesOnTident(TemplateParameters *tparams = NULL);
     bool hasLazyParameters();
@@ -762,7 +765,7 @@ public:
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
     Dsymbol *toDsymbol(Scope *sc);
     Type *semantic(Loc loc, Scope *sc);
-    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
+    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL);
     Type *reliesOnTident(TemplateParameters *tparams = NULL);
     Expression *toExpression();
 };
@@ -785,7 +788,7 @@ public:
     Type *semantic(Loc loc, Scope *sc);
     Dsymbol *toDsymbol(Scope *sc);
     Type *reliesOnTident(TemplateParameters *tparams = NULL);
-    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
+    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL);
     Expression *toExpression();
 };
 
@@ -826,7 +829,7 @@ enum AliasThisRec
     RECyes = 1,     // alias this has recursive dependency
     RECfwdref = 2,  // not yet known
 
-    RECtracing = 0x4, // mark in progress of implicitConvTo/wildConvTo
+    RECtracing = 0x4, // mark in progress of implicitConvTo/deduceWild
 };
 
 class TypeStruct : public Type
@@ -857,13 +860,13 @@ public:
     int needsDestruction();
     bool needsNested();
     dt_t **toDt(dt_t **pdt);
-    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
+    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
     TypeTuple *toArgTypes();
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);
-    unsigned wildConvTo(Type *tprm);
+    unsigned deduceWild(Type *t, bool isRef);
     Type *toHeadMutable();
 #if CPP_MANGLE
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
@@ -907,7 +910,7 @@ public:
     Type *toBasetype();
     Expression *defaultInit(Loc loc);
     int isZeroInit(Loc loc);
-    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
+    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
     TypeTuple *toArgTypes();
@@ -957,7 +960,7 @@ public:
     Expression *defaultInitLiteral(Loc loc);
     int isZeroInit(Loc loc);
     dt_t **toDt(dt_t **pdt);
-    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
+    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
     TypeTuple *toArgTypes();
@@ -991,11 +994,11 @@ public:
     int isBaseOf(Type *t, int *poffset);
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);
-    unsigned wildConvTo(Type *tprm);
+    unsigned deduceWild(Type *t, bool isRef);
     Type *toHeadMutable();
     Expression *defaultInit(Loc loc);
     int isZeroInit(Loc loc);
-    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
+    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL);
     int isscope();
     int checkBoolean();
     TypeInfoDeclaration *getTypeInfoDeclaration();

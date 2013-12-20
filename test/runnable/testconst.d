@@ -1694,6 +1694,167 @@ void test3748()
 }
 
 /************************************/
+
+void test3748a(inout int = 1)
+{
+                 int[]    ma;
+           inout(int[])   wa;
+           const(int[])   ca;
+       immutable(int[])   ia;
+          shared(int[])   sa;
+    shared(inout(int[])) swa;
+    shared(const(int[])) sca;
+
+    static foo1(E)(inout(E[]) a) { return E.init; }
+    static assert( is( typeof(foo1( ma)) == int));
+    static assert( is( typeof(foo1( wa)) == int));
+    static assert( is( typeof(foo1( ca)) == int));
+    static assert( is( typeof(foo1( ia)) == int));
+    static assert( is( typeof(foo1( sa)) == shared int));
+    static assert( is( typeof(foo1(swa)) == shared int));
+    static assert( is( typeof(foo1(sca)) == shared int));
+
+    static foo2(E)(shared inout(E[]) a) { return E.init; }
+    static assert(!is( typeof(foo2( ma)) ));
+    static assert(!is( typeof(foo2( wa)) ));
+    static assert(!is( typeof(foo2( ca)) ));
+    static assert( is( typeof(foo2( ia)) == int));
+    static assert( is( typeof(foo2( sa)) == int));
+    static assert( is( typeof(foo2(swa)) == int));
+    static assert( is( typeof(foo2(sca)) == int));
+}
+
+void test3748b(inout int = 1)
+{
+    // Top of the parameter type is non-ref & qualified
+    static        inout(int[])  foo1(       inout(int[])  a);
+    static shared(inout(int[])) bar1(shared(inout(int[])) a);
+
+    // Top of the parameter type is non-ref & un-qualified
+    static        inout(int) [] foo2(       inout(int) [] a);
+    static shared(inout(int))[] bar2(shared(inout(int))[] a);
+
+    // Top of the argument type is qualified
+                 int[]    ma1;
+           inout(int[])   wa1;
+           const(int[])   ca1;
+          shared(int[])   sa1;
+    shared(inout(int[])) swa1;
+    shared(const(int[])) sca1;
+       immutable(int[])   ia1;
+
+    // Top of the argument type is un-qualified
+                 int  []  ma2;
+           inout(int) []  wa2;
+           const(int) []  ca2;
+          shared(int) []  sa2;
+    shared(inout(int))[] swa2;
+    shared(const(int))[] sca2;
+       immutable(int) []  ia2;
+
+    // --> non-ref qualified param VS qualified arg
+    static assert( is( typeof(foo1( ma1)) == typeof( ma1) ));
+    static assert( is( typeof(foo1( wa1)) == typeof( wa1) ));
+    static assert( is( typeof(foo1( ca1)) == typeof( ca1) ));
+    static assert( is( typeof(bar1( sa1)) == typeof( sa1) ));
+    static assert( is( typeof(bar1(swa1)) == typeof(swa1) ));
+    static assert( is( typeof(bar1(sca1)) == typeof(sca1) ));
+    static assert( is( typeof(foo1( ia1)) == typeof( ia1) ));
+
+    // --> non-ref un-qualified param VS qualified arg
+    static assert( is( typeof(foo2( ma1)) == typeof( ma2) ));
+    static assert( is( typeof(foo2( wa1)) == typeof( wa2) ));
+    static assert( is( typeof(foo2( ca1)) == typeof( ca2) ));
+    static assert( is( typeof(bar2( sa1)) == typeof( sa2) ));
+    static assert( is( typeof(bar2(swa1)) == typeof(swa2) ));
+    static assert( is( typeof(bar2(sca1)) == typeof(sca2) ));
+    static assert( is( typeof(foo2( ia1)) == typeof( ia2) ));
+
+    // --> non-ref qualified param VS un-qualified arg
+    static assert( is( typeof(foo1( ma2)) == typeof( ma1) ));
+    static assert( is( typeof(foo1( wa2)) ));
+    static assert( is( typeof(foo1( ca2)) ));
+    static assert( is( typeof(bar1( sa2)) == typeof( sa1) ));
+    static assert( is( typeof(bar1(swa2)) ));
+    static assert( is( typeof(bar1(sca2)) ));
+    static assert( is( typeof(foo1( ia2)) ));
+
+    // --> non-ref un-qualified param VS un-qualified arg
+    static assert( is( typeof(foo2( ma2)) == typeof( ma2) ));
+    static assert( is( typeof(foo2( wa2)) == typeof( wa2) ));
+    static assert( is( typeof(foo2( ca2)) == typeof( ca2) ));
+    static assert( is( typeof(bar2( sa2)) == typeof( sa2) ));
+    static assert( is( typeof(bar2(swa2)) == typeof(swa2) ));
+    static assert( is( typeof(bar2(sca2)) == typeof(sca2) ));
+    static assert( is( typeof(foo2( ia2)) == typeof( ia2) ));
+}
+
+void test3748c(inout int = 1)
+{
+    // Top of the parameter type is ref & qualified
+    static        inout(int[])  foo1(ref        inout(int[])  a);
+    static shared(inout(int[])) bar1(ref shared(inout(int[])) a);
+
+    // Top of the parameter type is ref & un-qualified
+    static        inout(int) [] foo2(ref        inout(int) [] a);
+    static shared(inout(int))[] bar2(ref shared(inout(int))[] a);
+
+    // Top of the argument type is qualified
+                 int[]    ma1;
+           inout(int[])   wa1;
+           const(int[])   ca1;
+          shared(int[])   sa1;
+    shared(inout(int[])) swa1;
+    shared(const(int[])) sca1;
+       immutable(int[])   ia1;
+
+    // Top of the argument type is un-qualified
+                 int  []  ma2;
+           inout(int) []  wa2;
+           const(int) []  ca2;
+          shared(int) []  sa2;
+    shared(inout(int))[] swa2;
+    shared(const(int))[] sca2;
+       immutable(int) []  ia2;
+
+    // --> ref qualified param VS qualified arg
+    static assert( is( typeof(foo1( ma1)) == typeof( ma1) ));
+    static assert( is( typeof(foo1( wa1)) == typeof( wa1) ));
+    static assert( is( typeof(foo1( ca1)) == typeof( ca1) ));
+    static assert( is( typeof(bar1( sa1)) == typeof( sa1) ));
+    static assert( is( typeof(bar1(swa1)) == typeof(swa1) ));
+    static assert( is( typeof(bar1(sca1)) == typeof(sca1) ));
+    static assert( is( typeof(foo1( ia1)) == typeof( ia1) ));
+
+    // --> ref un-qualified param VS qualified arg
+    static assert( is( typeof(foo2( ma1)) == typeof( ma2) ));
+    static assert(!is( typeof(foo2( wa1)) ));
+    static assert(!is( typeof(foo2( ca1)) ));
+    static assert(!is( typeof(bar2( sa1)) ));
+    static assert(!is( typeof(bar2(swa1)) ));
+    static assert(!is( typeof(bar2(sca1)) ));
+    static assert(!is( typeof(foo2( ia1)) ));
+
+    // --> ref qualified param VS un-qualified arg
+    static assert( is( typeof(foo1( ma2)) == typeof( ma1) ));
+    static assert(!is( typeof(foo1( wa2)) ));
+    static assert(!is( typeof(foo1( ca2)) ));  // why this is OK? --> [*]
+    static assert(!is( typeof(bar1( sa2)) ));
+    static assert(!is( typeof(bar1(swa2)) ));
+    static assert(!is( typeof(bar1(sca2)) ));
+    static assert(!is( typeof(foo1( ia2)) ));
+
+    // --> ref un-qualified param VS un-qualified arg
+    static assert( is( typeof(foo2( ma2)) == typeof( ma2) ));
+    static assert( is( typeof(foo2( wa2)) == typeof( wa2) ));
+    static assert( is( typeof(foo2( ca2)) == typeof( ca2) ));
+    static assert( is( typeof(bar2( sa2)) == typeof( sa2) ));
+    static assert( is( typeof(bar2(swa2)) == typeof(swa2) ));
+    static assert( is( typeof(bar2(sca2)) == typeof(sca2) ));
+    static assert( is( typeof(foo2( ia2)) == typeof( ia2) ));
+}
+
+/************************************/
 // 4968
 
 void test4968()
