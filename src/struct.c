@@ -15,6 +15,7 @@
 #include "aggregate.h"
 #include "scope.h"
 #include "mtype.h"
+#include "init.h"
 #include "declaration.h"
 #include "module.h"
 #include "id.h"
@@ -105,7 +106,6 @@ AggregateDeclaration::AggregateDeclaration(Loc loc, Identifier *id)
     handle = NULL;
     structsize = 0;             // size of struct
     alignsize = 0;              // size of struct for alignment purposes
-    hasUnions = 0;
     sizeok = SIZEOKnone;        // size not determined yet
     deferred = NULL;
     isdeprecated = false;
@@ -483,13 +483,13 @@ int AggregateDeclaration::firstFieldInUnion(int indx)
 {
     if (isUnionDeclaration())
         return 0;
-    VarDeclaration * vd = fields[indx];
+    VarDeclaration *vd = fields[indx];
     int firstNonZero = indx; // first index in the union with non-zero size
     for (; ;)
     {
         if (indx == 0)
             return firstNonZero;
-        VarDeclaration * v = fields[indx - 1];
+        VarDeclaration *v = fields[indx - 1];
         if (v->offset != vd->offset)
             return firstNonZero;
         --indx;
@@ -508,7 +508,7 @@ int AggregateDeclaration::firstFieldInUnion(int indx)
  */
 int AggregateDeclaration::numFieldsInUnion(int firstIndex)
 {
-    VarDeclaration * vd = fields[firstIndex];
+    VarDeclaration *vd = fields[firstIndex];
     /* If it is a zero-length field, AND we can't find an earlier non-zero
      * sized field with the same offset, we assume it's not part of a union.
      */
@@ -518,7 +518,7 @@ int AggregateDeclaration::numFieldsInUnion(int firstIndex)
     int count = 1;
     for (size_t i = firstIndex+1; i < fields.dim; ++i)
     {
-        VarDeclaration * v = fields[i];
+        VarDeclaration *v = fields[i];
         // If offsets are different, they are not in the same union
         if (v->offset != vd->offset)
             break;
@@ -684,13 +684,13 @@ void StructDeclaration::semantic(Scope *sc)
     finalizeSize(sc2);
 
     if (sizeok == SIZEOKfwd)
-    {   // semantic() failed because of forward references.
+    {
+        // semantic() failed because of forward references.
         // Unwind what we did, and defer it for later
         for (size_t i = 0; i < fields.dim; i++)
-        {   Dsymbol *s = fields[i];
-            VarDeclaration *vd = s->isVarDeclaration();
-            if (vd)
-                vd->offset = 0;
+        {
+            VarDeclaration *vd = fields[i];
+            vd->offset = 0;
         }
         fields.setDim(0);
         structsize = 0;
@@ -714,9 +714,8 @@ void StructDeclaration::semantic(Scope *sc)
     zeroInit = 1;
     for (size_t i = 0; i < fields.dim; i++)
     {
-        Dsymbol *s = fields[i];
-        VarDeclaration *vd = s->isVarDeclaration();
-        if (vd && !vd->isDataseg())
+        VarDeclaration *vd = fields[i];
+        if (!vd->isDataseg())
         {
             if (vd->init)
             {
@@ -847,6 +846,133 @@ void StructDeclaration::finalizeSize(Scope *sc)
         structsize = (structsize + alignment - 1) & ~(alignment - 1);
 
     sizeok = SIZEOKdone;
+
+    // Calculate fields[i]->overlapped
+    fill(loc, NULL, true);
+}
+
+bool StructDeclaration::fill(Loc loc, Expressions *elements, bool ctorinit)
+{
+    assert(sizeok == SIZEOKdone);
+    size_t nfields = fields.dim - isNested();
+
+    if (elements)
+    {
+        size_t dim = elements->dim;
+        elements->setDim(nfields);
+        for (size_t i = dim; i < nfields; i++)
+            (*elements)[i] = NULL;
+    }
+
+    // Fill in missing any elements with default initializers
+    for (size_t i = 0; i < nfields; i++)
+    {
+        if (elements && (*elements)[i])
+            continue;
+        VarDeclaration *vd = fields[i];
+        VarDeclaration *vx = vd;
+        if (vd->init && vd->init->isVoidInitializer())
+            vx = NULL;
+        // Find overlapped fields with the hole [vd->offset .. vd->offset->size()].
+        size_t fieldi = i;
+        for (size_t j = 0; j < nfields; j++)
+        {
+            if (i == j)
+                continue;
+            VarDeclaration *v2 = fields[j];
+            bool overlap = (vd->offset < v2->offset + v2->type->size() &&
+                            v2->offset < vd->offset + vd->type->size());
+            if (!overlap)
+                continue;
+
+            if (elements)
+            {
+                if ((*elements)[j])
+                {
+                    vx = NULL;
+                    break;
+                }
+            }
+            else
+            {
+                vd->overlapped = true;
+            }
+            if (v2->init && v2->init->isVoidInitializer())
+                continue;
+
+            if (elements)
+            {
+                /* Prefer first found non-void-initialized field
+                 * union U { int a; int b = 2; }
+                 * U u;    // Error: overlapping initialization for field a and b
+                 */
+                if (!vx)
+                    vx = v2, fieldi = j;
+                else if (v2->init)
+                {
+                    ::error(loc, "overlapping initialization for field %s and %s",
+                        v2->toChars(), vd->toChars());
+                }
+            }
+            else
+            {
+                // Will fix Bugzilla 1432 by enabling this path always
+
+                /* Prefer explicitly initialized field
+                 * union U { int a; int b = 2; }
+                 * U u;    // OK (u.b == 2)
+                 */
+                if (!vx || !vx->init && v2->init)
+                    vx = v2, fieldi = j;
+                else if (vx != vd &&
+                    !(vx->offset < v2->offset + v2->type->size() &&
+                      v2->offset < vx->offset + vx->type->size()))
+                {
+                    // Both vx and v2 fills vd, but vx and v2 does not overlap
+                }
+                else if (vx->init && v2->init)
+                {
+                    ::error(loc, "overlapping default initialization for field %s and %s",
+                        v2->toChars(), vd->toChars());
+                }
+                else
+                    assert(vx->init || !vx->init && !v2->init);
+            }
+        }
+        if (elements && vx)
+        {
+            Expression *e;
+            if (vx->init)
+            {
+                assert(!vx->init->isVoidInitializer());
+                e = vx->getConstInitializer(false);
+            }
+            else
+            {
+                if ((vx->storage_class & STCnodefaultctor) && !ctorinit)
+                {
+                    ::error(loc, "field %s.%s must be initialized because it has no default constructor",
+                            type->toChars(), vx->toChars());
+                }
+                if (vx->type->needsNested() && ctorinit)
+                    e = vx->type->defaultInit(loc);
+                else
+                    e = vx->type->defaultInitLiteral(loc);
+            }
+            (*elements)[fieldi] = e;
+        }
+    }
+
+    if (elements)
+    {
+        for (size_t i = 0; i < elements->dim; i++)
+        {
+            Expression *e = (*elements)[i];
+            if (e && e->op == TOKerror)
+                return false;
+        }
+    }
+    return true;
 }
 
 /***************************************
@@ -871,9 +997,7 @@ bool StructDeclaration::isPOD()
      */
     for (size_t i = 0; i < fields.dim; i++)
     {
-        Dsymbol *s = fields[i];
-        VarDeclaration *v = s->isVarDeclaration();
-        assert(v && v->isField());
+        VarDeclaration *v = fields[i];
         if (v->storage_class & STCref)
             continue;
         Type *tv = v->type->baseElemOf();
@@ -924,7 +1048,6 @@ const char *StructDeclaration::kind()
 UnionDeclaration::UnionDeclaration(Loc loc, Identifier *id)
     : StructDeclaration(loc, id)
 {
-    hasUnions = 1;
 }
 
 Dsymbol *UnionDeclaration::syntaxCopy(Dsymbol *s)

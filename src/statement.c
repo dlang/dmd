@@ -96,6 +96,7 @@ void Statement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->printf("Statement::toCBuffer()");
     buf->writenl();
+    assert(0);
 }
 
 Statement *Statement::semantic(Scope *sc)
@@ -289,6 +290,7 @@ Statements *Statement::flatten(Scope *sc)
 ErrorStatement::ErrorStatement()
     : Statement(Loc())
 {
+    assert(global.gaggedErrors || global.errors);
 }
 
 Statement *ErrorStatement::syntaxCopy()
@@ -710,6 +712,13 @@ Statement *CompoundStatement::semantic(Scope *sc)
                     }
                 }
             }
+            else
+            {
+                /* Remove NULL statements from the list.
+                 */
+                statements->remove(i);
+                continue;
+            }
         }
         i++;
     }
@@ -816,7 +825,7 @@ int CompoundStatement::blockExit(bool mustNotThrow)
                     else
                     {
                         const char *gototype = s->isCaseStatement() ? "case" : "default";
-                        s->error("switch case fallthrough - use 'goto %s;' if intended", gototype);
+                        s->warning("switch case fallthrough - use 'goto %s;' if intended", gototype);
                     }
                 }
             }
@@ -3724,6 +3733,8 @@ Statement *ReturnStatement::semantic(Scope *sc)
             exp = exp->inferType(fld->treq->nextOf()->nextOf());
         exp = exp->semantic(sc);
         exp = resolveProperties(sc, exp);
+        if (!exp->rvalue(true)) // don't make error for void expression
+            exp = new ErrorExp();
         if (exp->op == TOKcall)
             exp = valueNoDtor(exp);
 
@@ -4554,8 +4565,9 @@ Statement *TryCatchStatement::syntaxCopy()
 Statement *TryCatchStatement::semantic(Scope *sc)
 {
     body = body->semanticScope(sc, NULL /*this*/, NULL);
+    assert(body);
 
-    /* Even if body is NULL, still do semantic analysis on catches
+    /* Even if body is empty, still do semantic analysis on catches
      */
     bool catchErrors = false;
     for (size_t i = 0; i < catches->dim; i++)
@@ -4582,16 +4594,8 @@ Statement *TryCatchStatement::semantic(Scope *sc)
     if (catchErrors)
         return new ErrorStatement();
 
-    if (!body)
-        return NULL;
-
     if (body->isErrorStatement())
         return body;
-
-    if (!body->hasCode())
-    {
-        return NULL;
-    }
 
     /* If the try body never throws, we can eliminate any catches
      * of recoverable exceptions.
@@ -4614,7 +4618,7 @@ Statement *TryCatchStatement::semantic(Scope *sc)
     }
 
     if (catches->dim == 0)
-        return body;
+        return body->hasCode() ? body : NULL;
 
     return this;
 }

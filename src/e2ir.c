@@ -50,6 +50,7 @@ elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
 elem *eval_Darray(IRState *irs, Expression *e, bool alwaysCopy = false);
 elem *array_toPtr(Type *t, elem *e);
 elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi);
+elem *ExpressionsToStaticArray(IRState *irs, Loc loc, Expressions *exps, symbol **psym);
 
 #define el_setLoc(e,loc)        ((e)->Esrcpos.Sfilename = (char *)(loc).filename, \
                                  (e)->Esrcpos.Slinnum = (loc).linnum)
@@ -1828,14 +1829,11 @@ elem *NegExp::toElem(IRState *irs)
 {
     elem *e = e1->toElem(irs);
     Type *tb1 = e1->type->toBasetype();
+
+    assert(tb1->ty != Tarray && tb1->ty != Tsarray);
+
     switch (tb1->ty)
     {
-        case Tarray:
-        case Tsarray:
-            error("Array operation %s not implemented", toChars());
-            e = el_long(type->totym(), 0);  // error recovery
-            break;
-
         case Tvector:
         {   // rewrite (-e) as (0-e)
             elem *ez = el_calloc();
@@ -1865,17 +1863,13 @@ elem *ComExp::toElem(IRState *irs)
     Type *tb1 = this->e1->type->toBasetype();
     tym_t ty = type->totym();
 
+    assert(tb1->ty != Tarray && tb1->ty != Tsarray);
+
     elem *e;
     switch (tb1->ty)
     {
         case Tbool:
             e = el_bin(OPxor, ty, e1, el_long(ty, 1));
-            break;
-
-        case Tarray:
-        case Tsarray:
-            error("Array operation %s not implemented", toChars());
-            e = el_long(type->totym(), 0);  // error recovery
             break;
 
         case Tvector:
@@ -2076,15 +2070,10 @@ elem *BinExp::toElemBin(IRState *irs,int op)
     Type *tb1 = e1->type->toBasetype();
     Type *tb2 = e2->type->toBasetype();
 
-    if ((tb1->ty == Tarray || tb1->ty == Tsarray ||
-         tb2->ty == Tarray || tb2->ty == Tsarray) &&
-        tb2->ty != Tvoid &&
-        op != OPeq && op != OPandand && op != OPoror
-       )
-    {
-        error("Array operation %s not implemented", toChars());
-        return el_long(type->totym(), 0);  // error recovery
-    }
+    assert(!((tb1->ty == Tarray || tb1->ty == Tsarray ||
+              tb2->ty == Tarray || tb2->ty == Tsarray) &&
+             tb2->ty != Tvoid &&
+             op != OPeq && op != OPandand && op != OPoror));
 
     tym_t tym = type->totym();
 
@@ -2207,11 +2196,7 @@ elem *ModExp::toElem(IRState *irs)
     Type *tb1 = e1->type->toBasetype();
     Type *tb2 = e2->type->toBasetype();
 
-    if (tb1->ty == Tarray || tb1->ty == Tsarray)
-    {
-        error("Array operation %s not implemented", toChars());
-        return el_long(type->totym(), 0);  // error recovery
-    }
+    assert(tb1->ty != Tarray && tb1->ty != Tsarray);
 
     elem *e;
 
@@ -3321,10 +3306,9 @@ elem *XorAssignExp::toElem(IRState *irs)
 elem *PowAssignExp::toElem(IRState *irs)
 {
     Type *tb1 = e1->type->toBasetype();
-    if (tb1->ty == Tarray || tb1->ty == Tsarray)
-        error("Array operation %s not implemented", toChars());
-    else
-        error("must import std.math to use ^^ operator");
+    assert(tb1->ty != Tarray && tb1->ty != Tsarray);
+
+    error("must import std.math to use ^^ operator");
     return el_long(type->totym(), 0);  // error recovery
 }
 
@@ -3382,10 +3366,9 @@ elem *XorExp::toElem(IRState *irs)
 elem *PowExp::toElem(IRState *irs)
 {
     Type *tb1 = e1->type->toBasetype();
-    if (tb1->ty == Tarray || tb1->ty == Tsarray)
-        error("Array operation %s not implemented", toChars());
-    else
-        error("must import std.math to use ^^ operator");
+    assert(tb1->ty != Tarray && tb1->ty != Tsarray);
+
+    error("must import std.math to use ^^ operator");
     return el_long(type->totym(), 0);  // error recovery
 }
 
@@ -4852,15 +4835,21 @@ elem *tree_insert(Elems *args, size_t low, size_t high)
 elem *ArrayLiteralExp::toElem(IRState *irs)
 {   elem *e;
     size_t dim;
-    elem *earg = NULL;
 
     //printf("ArrayLiteralExp::toElem() %s, type = %s\n", toChars(), type->toChars());
     Type *tb = type->toBasetype();
     if (tb->ty == Tsarray && tb->nextOf()->toBasetype()->ty == Tvoid)
-    {   // Convert void[n] to ubyte[n]
-        tb = TypeSArray::makeType(loc, Type::tuns8, ((TypeSArray *)tb)->dim->toUInteger());
+    {
+        // Convert void[n] to ubyte[n]
+        tb = Type::tuns8->sarrayOf(((TypeSArray *)tb)->dim->toUInteger());
     }
-    if (elements)
+    if (tb->ty == Tsarray && elements && elements->dim)
+    {
+        Symbol *sdata;
+        e = ExpressionsToStaticArray(irs, loc, elements, &sdata);
+        e = el_combine(e, el_ptr(sdata));
+    }
+    else if (elements)
     {
         /* Instead of passing the initializers on the stack, allocate the
          * array and assign the members inline.
@@ -4923,7 +4912,6 @@ elem *ArrayLiteralExp::toElem(IRState *irs)
     }
 
     el_setLoc(e,loc);
-    e = el_combine(earg, e);
     return e;
 }
 
@@ -4955,7 +4943,7 @@ elem *ExpressionsToStaticArray(IRState *irs, Loc loc, Expressions *exps, symbol 
             szelem = telem->size();
             te = telem->toCtype();
 
-            tsarray = TypeSArray::makeType(loc, telem, dim);
+            tsarray = telem->sarrayOf(dim);
             stmp = symbol_genauto(tsarray->toCtype());
             *psym = stmp;
         }
@@ -5128,9 +5116,7 @@ elem *StructLiteralExp::toElem(IRState *irs)
         size_t offset = 0;
         for (size_t i = 0; i < sd->fields.dim; i++)
         {
-            Dsymbol *s = sd->fields[i];
-            VarDeclaration *v = s->isVarDeclaration();
-            assert(v);
+            VarDeclaration *v = sd->fields[i];
 
             e = el_combine(e, fillHole(stmp, &offset, v->offset, sd->structsize));
             size_t vend = v->offset + v->type->size();
@@ -5150,9 +5136,7 @@ elem *StructLiteralExp::toElem(IRState *irs)
             if (!el)
                 continue;
 
-            Dsymbol *s = sd->fields[i];
-            VarDeclaration *v = s->isVarDeclaration();
-            assert(v);
+            VarDeclaration *v = sd->fields[i];
             assert(!v->isThisDeclaration() || el->op == TOKnull);
 
             elem *e1;
@@ -5209,9 +5193,7 @@ elem *StructLiteralExp::toElem(IRState *irs)
     {
         // Initialize the hidden 'this' pointer
         assert(sd->fields.dim);
-        Dsymbol *s = sd->fields[sd->fields.dim - 1];
-        ThisDeclaration *v = s->isThisDeclaration();
-        assert(v);
+        ThisDeclaration *v = sd->fields[sd->fields.dim - 1]->isThisDeclaration();
 
         elem *e1;
         if (tybasic(stmp->Stype->Tty) == TYnptr)

@@ -149,9 +149,9 @@ void LibMSCoff::write()
     libbuf.extractData();
 
 
-    FileName::ensurePathToNameExists(libfile->name->toChars());
+    ensurePathToNameExists(Loc(), libfile->name->toChars());
 
-    libfile->writev();
+    writeFile(Loc(), libfile);
 }
 
 /*****************************************************************************/
@@ -343,7 +343,7 @@ void LibMSCoff::addObject(const char *module_name, void *buf, size_t buflen)
     {   assert(module_name[0]);
         FileName f((char *)module_name);
         File file(&f);
-        file.readv();
+        readFile(Loc(), &file);
         buf = file.buffer;
         buflen = file.len;
         file.ref = 1;

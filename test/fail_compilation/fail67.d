@@ -1,3 +1,9 @@
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail67.d(22): Error: can only initialize const member y inside constructor
+---
+*/
 
 class C
 {
@@ -5,7 +11,7 @@ class C
 
     this()
     {
-	y = 7;
+        y = 7;
     }
 }
 

@@ -435,7 +435,16 @@
     <ClCompile Include="root\rmem.c">
       <Filter>src\root</Filter>
     </ClCompile>
-    <ClCompile Include="root\root.c">
+    <ClCompile Include="root\file.c">
+      <Filter>src\root</Filter>
+    </ClCompile>
+    <ClCompile Include="root\filename.c">
+      <Filter>src\root</Filter>
+    </ClCompile>
+    <ClCompile Include="root\object.c">
+      <Filter>src\root</Filter>
+    </ClCompile>
+    <ClCompile Include="root\outbuffer.c">
       <Filter>src\root</Filter>
     </ClCompile>
     <ClCompile Include="root\speller.c">

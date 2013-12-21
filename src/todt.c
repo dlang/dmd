@@ -649,13 +649,12 @@ void StructDeclaration::toDt(dt_t **pdt)
 {
     //printf("StructDeclaration::toDt(), this='%s'\n", toChars());
     StructLiteralExp *sle = new StructLiteralExp(loc, this, NULL);
-    Expression *e = sle->fill(true);
-    if (e == sle)
-    {
-        //printf("sd->toDt sle = %s\n", sle->toChars());
-        sle->type = type;
-        sle->toDt(pdt);
-    }
+    if (!fill(loc, sle->elements, true))
+        assert(0);
+
+    //printf("sd->toDt sle = %s\n", sle->toChars());
+    sle->type = type;
+    sle->toDt(pdt);
 }
 
 /* ================================================================= */
@@ -665,6 +664,12 @@ dt_t **Type::toDt(dt_t **pdt)
     //printf("Type::toDt()\n");
     Expression *e = defaultInit();
     return e->toDt(pdt);
+}
+
+dt_t **TypeVector::toDt(dt_t **pdt)
+{
+    assert(basetype->ty == Tsarray);
+    return ((TypeSArray *)basetype)->toDtElem(pdt, NULL);
 }
 
 dt_t **TypeSArray::toDt(dt_t **pdt)

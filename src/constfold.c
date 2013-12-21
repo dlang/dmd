@@ -941,7 +941,7 @@ Expression *Cmp(TOK op, Type *type, Expression *e1, Expression *e2)
 
         int cmp = memcmp(es1->string, es2->string, sz * len);
         if (cmp == 0)
-            cmp = es1->len - es2->len;
+            cmp = (int)(es1->len - es2->len);
 
         switch (op)
         {
@@ -1183,10 +1183,8 @@ Expression *Cast(Type *type, Type *to, Expression *e1)
         assert(sd);
         Expressions *elements = new Expressions;
         for (size_t i = 0; i < sd->fields.dim; i++)
-        {   Dsymbol *s = sd->fields[i];
-            VarDeclaration *v = s->isVarDeclaration();
-            assert(v);
-
+        {
+            VarDeclaration *v = sd->fields[i];
             Expression *exp = new IntegerExp(0);
             exp = Cast(v->type, v->type, exp);
             if (exp == EXP_CANT_INTERPRET)
@@ -1696,7 +1694,7 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
 
         if (type->toBasetype()->ty == Tsarray)
         {
-            e->type = TypeSArray::makeType(loc, t1->nextOf(), es1->elements->dim);
+            e->type = t1->nextOf()->sarrayOf(es1->elements->dim);
         }
         else
             e->type = type;
@@ -1720,7 +1718,7 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
 
         if (type->toBasetype()->ty == Tsarray)
         {
-            e->type = TypeSArray::makeType(loc, t1->nextOf(), es->elements->dim);
+            e->type = t1->nextOf()->sarrayOf(es->elements->dim);
         }
         else
             e->type = type;
@@ -1742,7 +1740,7 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
 
         if (type->toBasetype()->ty == Tsarray)
         {
-            e->type = TypeSArray::makeType(loc, e2->type, es1->elements->dim);
+            e->type = e2->type->sarrayOf(es1->elements->dim);
         }
         else
             e->type = type;
@@ -1758,7 +1756,7 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
 
         if (type->toBasetype()->ty == Tsarray)
         {
-            e->type = TypeSArray::makeType(loc, e1->type, es2->elements->dim);
+            e->type = e1->type->sarrayOf(es2->elements->dim);
         }
         else
             e->type = type;

@@ -18,11 +18,11 @@
 #include        <fcntl.h>
 #include        <ctype.h>
 
-#if __DMC__ || linux
+#if __DMC__ || __linux__
 #include        <malloc.h>
 #endif
 
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
 #include        <signal.h>
 #include        <unistd.h>
 #include        <errno.h>
@@ -572,7 +572,7 @@ void dwarf_initfile(const char *filename)
         linebuf->writeString((char *)list_ptr(pl));
         linebuf->writeByte(0);
     }
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
     for (pl = pathsyslist; pl; pl = list_next(pl))
     {
         linebuf->writeString((char *)list_ptr(pl));

@@ -562,7 +562,7 @@ Expression *BinExp::op_overload(Scope *sc)
                     m.nextf->type->toChars(),
                     m.lastf->toChars());
         }
-        else if (m.last == MATCHnomatch)
+        else if (m.last <= MATCHnomatch)
         {
             m.lastf = m.anyf;
             if (tiargs)
@@ -576,7 +576,7 @@ Expression *BinExp::op_overload(Scope *sc)
             // Rewrite (e1 ++ e2) as e1.postinc()
             // Rewrite (e1 -- e2) as e1.postdec()
             e = build_overload(loc, sc, e1, NULL, m.lastf ? m.lastf : s);
-        else if (lastf && m.lastf == lastf || !s_r && m.last == MATCHnomatch)
+        else if (lastf && m.lastf == lastf || !s_r && m.last <= MATCHnomatch)
             // Rewrite (e1 op e2) as e1.opfunc(e2)
             e = build_overload(loc, sc, e1, e2, m.lastf ? m.lastf : s);
         else
@@ -638,13 +638,13 @@ L1:
                         m.nextf->type->toChars(),
                         m.lastf->toChars());
             }
-            else if (m.last == MATCHnomatch)
+            else if (m.last <= MATCHnomatch)
             {
                 m.lastf = m.anyf;
             }
 
             Expression *e;
-            if (lastf && m.lastf == lastf || !s && m.last == MATCHnomatch)
+            if (lastf && m.lastf == lastf || !s && m.last <= MATCHnomatch)
                 // Rewrite (e1 op e2) as e1.opfunc_r(e2)
                 e = build_overload(loc, sc, e1, e2, m.lastf ? m.lastf : s_r);
             else
@@ -805,13 +805,13 @@ Expression *BinExp::compare_overload(Scope *sc, Identifier *id)
                     m.lastf->toChars());
             }
         }
-        else if (m.last == MATCHnomatch)
+        else if (m.last <= MATCHnomatch)
         {
             m.lastf = m.anyf;
         }
 
         Expression *e;
-        if (lastf && m.lastf == lastf || !s_r && m.last == MATCHnomatch)
+        if (lastf && m.lastf == lastf || !s_r && m.last <= MATCHnomatch)
             // Rewrite (e1 op e2) as e1.opfunc(e2)
             e = build_overload(loc, sc, e1, e2, m.lastf ? m.lastf : s);
         else
@@ -1099,7 +1099,7 @@ Expression *BinAssignExp::op_overload(Scope *sc)
                     m.nextf->type->toChars(),
                     m.lastf->toChars());
         }
-        else if (m.last == MATCHnomatch)
+        else if (m.last <= MATCHnomatch)
         {
             m.lastf = m.anyf;
             if (tiargs)

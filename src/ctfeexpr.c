@@ -55,7 +55,8 @@ VarDeclaration *ClassReferenceExp::getFieldAt(unsigned index)
     ClassDeclaration *cd = originalClass();
     unsigned fieldsSoFar = 0;
     while (index - fieldsSoFar >= cd->fields.dim)
-    {   fieldsSoFar += cd->fields.dim;
+    {
+        fieldsSoFar += cd->fields.dim;
         cd = cd->baseClass;
     }
     return cd->fields[index - fieldsSoFar];
@@ -67,15 +68,17 @@ int ClassReferenceExp::getFieldIndex(Type *fieldtype, unsigned fieldoffset)
     ClassDeclaration *cd = originalClass();
     unsigned fieldsSoFar = 0;
     for (size_t j = 0; j < value->elements->dim; j++)
-    {   while (j - fieldsSoFar >= cd->fields.dim)
-        {   fieldsSoFar += cd->fields.dim;
+    {
+        while (j - fieldsSoFar >= cd->fields.dim)
+        {
+            fieldsSoFar += cd->fields.dim;
             cd = cd->baseClass;
         }
-        Dsymbol *s = cd->fields[j - fieldsSoFar];
-        VarDeclaration *v2 = s->isVarDeclaration();
+        VarDeclaration *v2 = cd->fields[j - fieldsSoFar];
         if (fieldoffset == v2->offset &&
             fieldtype->size() == v2->type->size())
-        {   return value->elements->dim - fieldsSoFar - cd->fields.dim + (j-fieldsSoFar);
+        {
+            return (int)(value->elements->dim - fieldsSoFar - cd->fields.dim + (j-fieldsSoFar));
         }
     }
     return -1;
@@ -88,14 +91,16 @@ int ClassReferenceExp::findFieldIndexByName(VarDeclaration *v)
     ClassDeclaration *cd = originalClass();
     size_t fieldsSoFar = 0;
     for (size_t j = 0; j < value->elements->dim; j++)
-    {   while (j - fieldsSoFar >= cd->fields.dim)
-        {   fieldsSoFar += cd->fields.dim;
+    {
+        while (j - fieldsSoFar >= cd->fields.dim)
+        {
+            fieldsSoFar += cd->fields.dim;
             cd = cd->baseClass;
         }
-        Dsymbol *s = cd->fields[j - fieldsSoFar];
-        VarDeclaration *v2 = s->isVarDeclaration();
+        VarDeclaration *v2 = cd->fields[j - fieldsSoFar];
         if (v == v2)
-        {   return value->elements->dim - fieldsSoFar - cd->fields.dim + (j-fieldsSoFar);
+        {
+            return (int)(value->elements->dim - fieldsSoFar - cd->fields.dim + (j-fieldsSoFar));
         }
     }
     return -1;
@@ -283,9 +288,7 @@ Expression *copyLiteral(Expression *e)
             Expression *m = (*oldelems)[i];
             // We need the struct definition to detect block assignment
             AggregateDeclaration *sd = se->sd;
-            Dsymbol *s = sd->fields[i];
-            VarDeclaration *v = s->isVarDeclaration();
-            assert(v);
+            VarDeclaration *v = sd->fields[i];
             // If it is a void assignment, use the default initializer
             if (!m)
                 m = v->type->voidInitLiteral(v);
@@ -317,7 +320,7 @@ Expression *copyLiteral(Expression *e)
             || e->op == TOKvar || e->op == TOKdotvar
             || e->op == TOKint64 || e->op == TOKfloat64
             || e->op == TOKchar || e->op == TOKcomplex80
-            || e->op == TOKvoid)
+            || e->op == TOKvoid || e->op == TOKvector)
     {
         // Simple value types
         Expression *r = e->copy();  // keep e1 for DelegateExp and DotVarExp
@@ -1468,7 +1471,7 @@ int ctfeRawCmp(Loc loc, Expression *e1, Expression *e2)
         AssocArrayLiteralExp *es1 = (AssocArrayLiteralExp *)e1;
         AssocArrayLiteralExp *es2 = (AssocArrayLiteralExp *)e2;
 
-        int dim = es1->keys->dim;
+        size_t dim = es1->keys->dim;
         if (es2->keys->dim != dim)
             return 1;
 
@@ -1846,7 +1849,7 @@ void recursiveBlockAssign(ArrayLiteralExp *ae, Expression *val, bool wantRef)
 {
     assert( ae->type->ty == Tsarray || ae->type->ty == Tarray);
 #if DMDV2
-    Type *desttype = ((TypeArray *)ae->type)->next->castMod(0);
+    Type *desttype = ((TypeArray *)ae->type)->next->toBasetype()->castMod(0);
     bool directblk = (val->type->toBasetype()->castMod(0))->equals(desttype);
 #else
     Type *desttype = ((TypeArray *)ae->type)->next;
@@ -1891,7 +1894,7 @@ Expressions *changeOneElement(Expressions *oldelems, size_t indexToChange, Expre
 // Create a new struct literal, which is the same as se except that se.field[offset] = elem
 Expression * modifyStructField(Type *type, StructLiteralExp *se, size_t offset, Expression *newval)
 {
-    int fieldi = se->getFieldIndex(newval->type, offset);
+    int fieldi = se->getFieldIndex(newval->type, (unsigned)offset);
     if (fieldi == -1)
         return EXP_CANT_INTERPRET;
     /* Create new struct literal reflecting updated fieldi
@@ -2065,6 +2068,9 @@ bool isCtfeValueValid(Expression *newval)
     if (newval->op == TOKfunction)
         return true; // function literal or delegate literal
 
+    if (newval->op == TOKvector)
+        return true; // vector literal
+
     if (newval->op == TOKdelegate)
     {
         Expression *dge = ((DelegateExp *)newval)->e1;
@@ -2188,39 +2194,40 @@ void showCtfeExpr(Expression *e, int level)
         size_t fieldsSoFar = 0;
         for (size_t i = 0; i < elements->dim; i++)
         {   Expression *z = NULL;
-            Dsymbol *s = NULL;
+            VarDeclaration *v = NULL;
             if (i > 15) {
-                int nelements = elements->dim;
-                printf("...(total %d elements)\n", nelements);
+                printf("...(total %d elements)\n", (int)elements->dim);
                 return;
             }
             if (sd)
-            {   s = sd->fields[i];
+            {
+                v = sd->fields[i];
                 z = (*elements)[i];
             }
             else if (cd)
-            {   while (i - fieldsSoFar >= cd->fields.dim)
-                {   fieldsSoFar += cd->fields.dim;
+            {
+                while (i - fieldsSoFar >= cd->fields.dim)
+                {
+                    fieldsSoFar += cd->fields.dim;
                     cd = cd->baseClass;
                     for (int j = level; j>0; --j) printf(" ");
                     printf(" BASE CLASS: %s\n", cd->toChars());
                 }
-                s = cd->fields[i - fieldsSoFar];
+                v = cd->fields[i - fieldsSoFar];
                 assert((elements->dim + i) >= (fieldsSoFar + cd->fields.dim));
                 size_t indx = (elements->dim - fieldsSoFar)- cd->fields.dim + i;
                 assert(indx < elements->dim);
                 z = (*elements)[indx];
             }
-            if (!z) {
+            if (!z)
+            {
                 for (int j = level; j>0; --j) printf(" ");
                 printf(" void\n");
                 continue;
             }
 
-            if (s)
+            if (v)
             {
-                VarDeclaration *v = s->isVarDeclaration();
-                assert(v);
                 // If it is a void assignment, use the default initializer
                 if ((v->type->ty != z->type->ty) && v->type->ty == Tsarray)
                 {
@@ -2269,7 +2276,7 @@ Expression *TypeStruct::voidInitLiteral(VarDeclaration *var)
     exps->setDim(sym->fields.dim);
     for (size_t i = 0; i < sym->fields.dim; i++)
     {
-        (*exps)[i] = sym->fields[i]->type->voidInitLiteral(var);
+        (*exps)[i] = sym->fields[i]->type->voidInitLiteral(sym->fields[i]);
     }
     StructLiteralExp *se = new StructLiteralExp(var->loc, sym, exps);
     se->type = this;

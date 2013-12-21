@@ -114,7 +114,10 @@ L1:
         if (!fd->inferRetType)
             printf("%s\n", fd->toChars());
 #endif
-        assert(fd && fd->inferRetType);
+        assert(fd && fd->inferRetType && fd->type->ty == Tfunction);
+        TypeFunction *tf = (TypeFunction *)sthis->type;
+        assert(tf->next == NULL);
+        tf->toDecoBuffer(&buf, 0);
     }
 
     id = buf.toChars();

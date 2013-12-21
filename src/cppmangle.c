@@ -41,17 +41,17 @@
 
 struct CppMangleState
 {
-    static Voids components;
+    static Objects components;
 
-    int substitute(OutBuffer *buf, void *p);
-    int exist(void *p);
-    void store(void *p);
+    int substitute(OutBuffer *buf, RootObject *p);
+    int exist(RootObject *p);
+    void store(RootObject *p);
 };
 
-Voids CppMangleState::components;
+Objects CppMangleState::components;
 
 
-void writeBase36(OutBuffer *buf, unsigned i)
+void writeBase36(OutBuffer *buf, size_t i)
 {
     if (i >= 36)
     {
@@ -59,14 +59,14 @@ void writeBase36(OutBuffer *buf, unsigned i)
         i %= 36;
     }
     if (i < 10)
-        buf->writeByte(i + '0');
+        buf->writeByte((char)(i + '0'));
     else if (i < 36)
-        buf->writeByte(i - 10 + 'A');
+        buf->writeByte((char)(i - 10 + 'A'));
     else
         assert(0);
 }
 
-int CppMangleState::substitute(OutBuffer *buf, void *p)
+int CppMangleState::substitute(OutBuffer *buf, RootObject *p)
 {
     for (size_t i = 0; i < components.dim; i++)
     {
@@ -85,7 +85,7 @@ int CppMangleState::substitute(OutBuffer *buf, void *p)
     return 0;
 }
 
-int CppMangleState::exist(void *p)
+int CppMangleState::exist(RootObject *p)
 {
     for (size_t i = 0; i < components.dim; i++)
     {
@@ -97,7 +97,7 @@ int CppMangleState::exist(void *p)
     return 0;
 }
 
-void CppMangleState::store(void *p)
+void CppMangleState::store(RootObject *p)
 {
     components.push(p);
 }
@@ -168,7 +168,7 @@ char *cpp_mangle(Dsymbol *s)
     cms.components.setDim(0);
 
     OutBuffer buf;
-    buf.writestring("__Z" + !global.params.isOSX);      // "_Z" for OSX
+    buf.writestring(global.params.isOSX ? "__Z" : "_Z");
 
     cpp_mangle_name(&buf, &cms, s);
 
@@ -410,11 +410,17 @@ void TypeTypedef::toCppMangle(OutBuffer *buf, CppMangleState *cms)
 
 void TypeClass::toCppMangle(OutBuffer *buf, CppMangleState *cms)
 {
-    if (!cms->substitute(buf, this))
-    {   buf->writeByte('P');
+    if (!cms->exist(this))
+    {
+        buf->writeByte('P');
+
         if (!cms->substitute(buf, sym))
             cpp_mangle_name(buf, cms, sym);
+
+        cms->store(this);
     }
+    else
+        cms->substitute(buf, this);
 }
 
 struct ArgsCppMangleCtx

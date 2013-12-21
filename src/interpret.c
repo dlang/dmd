@@ -186,7 +186,7 @@ void CtfeStack::push(VarDeclaration *v)
         return;
     }
     savedId.push((void *)(size_t)(v->ctfeAdrOnStack));
-    v->ctfeAdrOnStack = values.dim;
+    v->ctfeAdrOnStack = (int)values.dim;
     vars.push(v);
     values.push(NULL);
 }
@@ -213,7 +213,7 @@ void CtfeStack::popAll(size_t stackpointer)
     for (size_t i = stackpointer; i < values.dim; ++i)
     {
         VarDeclaration *v = vars[i];
-        v->ctfeAdrOnStack = (size_t)(savedId[i]);
+        v->ctfeAdrOnStack = (int)(size_t)(savedId[i]);
     }
     values.setDim(stackpointer);
     vars.setDim(stackpointer);
@@ -227,7 +227,7 @@ void CtfeStack::saveGlobalConstant(VarDeclaration *v, Expression *e)
 #else
      assert( v->init && v->isConst() && !v->isCTFE());
 #endif
-     v->ctfeAdrOnStack = globalValues.dim;
+     v->ctfeAdrOnStack = (int)globalValues.dim;
      globalValues.push(e);
 }
 
@@ -858,14 +858,15 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
                 --evaluatingArgs;
                 if (earg == EXP_CANT_INTERPRET)
                     return earg;
+#if DMDV2
                 /* Struct literals are passed by value, but we don't need to
                  * copy them if they are passed as const
                  */
-                if (earg->op == TOKstructliteral
-#if DMDV2
-                    && !(arg->storageClass & (STCconst | STCimmutable))
+                bool needcopy = !(arg->storageClass & (STCconst | STCimmutable));
+#else
+                bool needcopy = true;
 #endif
-                )
+                if (earg->op == TOKstructliteral && needcopy)
                     earg = copyLiteral(earg);
             }
             if (earg->op == TOKthrownexception)
@@ -911,7 +912,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
                  * Note that v might be v2! So we need to save v2's index
                  * before pushing.
                  */
-                size_t oldadr = v2->ctfeAdrOnStack;
+                int oldadr = v2->ctfeAdrOnStack;
                 ctfeStack.push(v);
                 v->ctfeAdrOnStack = oldadr;
                 assert(v2->hasValue());
@@ -1290,6 +1291,7 @@ Expression *scrubReturnValue(Loc loc, Expression *e)
             return EXP_CANT_INTERPRET;
         if (!scrubArray(loc, aae->values))
             return EXP_CANT_INTERPRET;
+        aae->type = toBuiltinAAType(aae->type);
     }
     return e;
 }
@@ -1829,11 +1831,11 @@ Expression *TryCatchStatement::interpret(InterState *istate)
                     InterState istatex = *istate;
                     istatex.start = istate->gotoTarget; // set starting statement
                     istatex.gotoTarget = NULL;
-                    Expression *ex = ca->handler->interpret(&istatex);
+                    Expression *eh = ca->handler->interpret(&istatex);
                     if (!istatex.start)
                     {
                         istate->gotoTarget = NULL;
-                        e = ex;
+                        e = eh;
                     }
                 }
             }
@@ -2318,11 +2320,12 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
                 return EXP_CANT_INTERPRET;
         }
 
-        if ((v->isConst() || v->isImmutable() || v->storage_class & STCmanifest)
-            && v->init && !v->hasValue() && !v->isCTFE())
+        bool doinit = (v->isConst() || v->isImmutable() || v->storage_class & STCmanifest)
+                      && !v->hasValue();
 #else
-        if (v->isConst() && v->init && !v->isCTFE())
+        bool doinit = v->isConst();
 #endif
+        if (doinit && v->init && !v->isCTFE())
         {
             if(v->scope)
                 v->init = v->init->semantic(v->scope, v->type, INITinterpret); // might not be run on aggregate members
@@ -2510,6 +2513,11 @@ Expression *DeclarationExp::interpret(InterState *istate, CtfeGoal goal)
         if (!(v->isDataseg() || v->storage_class & STCmanifest) || v->isCTFE())
             ctfeStack.push(v);
         Dsymbol *s = v->toAlias();
+#if DMDV2
+        bool constinit = (v->isConst() || v->isImmutable());
+#else
+        bool constinit = v->isConst();
+#endif
         if (s == v && !v->isStatic() && v->init)
         {
             ExpInitializer *ie = v->init->isExpInitializer();
@@ -2532,11 +2540,7 @@ Expression *DeclarationExp::interpret(InterState *istate, CtfeGoal goal)
         {   // Zero-length arrays don't need an initializer
             e = v->type->defaultInitLiteral(loc);
         }
-#if DMDV2
-        else if (s == v && (v->isConst() || v->isImmutable()) && v->init)
-#else
-        else if (s == v && v->isConst() && v->init)
-#endif
+        else if (s == v && constinit && v->init)
         {   e = v->init->toExpression();
             if (!e)
                 e = EXP_CANT_INTERPRET;
@@ -2545,11 +2549,11 @@ Expression *DeclarationExp::interpret(InterState *istate, CtfeGoal goal)
         }
         else if (s->isTupleDeclaration() && !v->init)
             e = NULL;
-        else if (v->isStatic() && !v->init)
+        else if (v->isStatic())
             e = NULL;   // Just ignore static variables which aren't read or written yet
         else
         {
-            error("Static variable %s cannot be modified at compile time", v->toChars());
+            error("Variable %s cannot be modified at compile time", v->toChars());
             e = EXP_CANT_INTERPRET;
         }
     }
@@ -2942,9 +2946,7 @@ Expression *NewExp::interpret(InterState *istate, CtfeGoal goal)
             fieldsSoFar -= c->fields.dim;
             for (size_t i = 0; i < c->fields.dim; i++)
             {
-                Dsymbol *s = c->fields[i];
-                VarDeclaration *v = s->isVarDeclaration();
-                assert(v);
+                VarDeclaration *v = c->fields[i];
                 Expression *m;
                 if (v->init)
                 {
@@ -3256,10 +3258,9 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         {
             desttype = ((TypeArray *)desttype)->next;
 #if DMDV2
-            if (srctype->equals(desttype->castMod(0)))
-#else
-            if (srctype->equals(desttype))
+            desttype = desttype->toBasetype()->castMod(0);
 #endif
+            if (srctype->equals(desttype))
             {
                 isBlockAssignment = true;
                 break;
@@ -3940,7 +3941,7 @@ bool interpretAssignToIndex(InterState *istate, Loc loc,
      */
     if (aggregate->op == TOKindex || aggregate->op == TOKdotvar ||
         aggregate->op == TOKslice || aggregate->op == TOKcall ||
-        aggregate->op == TOKstar)
+        aggregate->op == TOKstar || aggregate->op == TOKcast)
     {
         aggregate = aggregate->interpret(istate, ctfeNeedLvalue);
         if (exceptionOrCantInterpret(aggregate))
@@ -4143,9 +4144,8 @@ Expression *interpretAssignToSlice(InterState *istate, CtfeGoal goal, Loc loc,
     /* The only possible slicable LValue aggregates are array literals,
      * and slices of array literals.
      */
-
     if (aggregate->op == TOKindex || aggregate->op == TOKdotvar ||
-        aggregate->op == TOKslice ||
+        aggregate->op == TOKslice || aggregate->op == TOKcast ||
         aggregate->op == TOKstar  || aggregate->op == TOKcall)
     {
         aggregate = aggregate->interpret(istate, ctfeNeedLvalue);
@@ -4309,7 +4309,7 @@ Expression *interpretAssignToSlice(InterState *istate, CtfeGoal goal, Loc loc,
         assert( existingAE->type->ty == Tsarray ||
                 existingAE->type->ty == Tarray);
 #if DMDV2
-        Type *desttype = ((TypeArray *)existingAE->type)->next->castMod(0);
+        Type *desttype = ((TypeArray *)existingAE->type)->next->toBasetype()->castMod(0);
         bool directblk = (e2->type->toBasetype()->castMod(0))->equals(desttype);
 #else
         Type *desttype = ((TypeArray *)existingAE->type)->next;
@@ -5885,41 +5885,56 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
         #endif
         if (ex->op == TOKaddress)
             ex = ((AddrExp *)ex)->e1;
+
         VarDeclaration *v = var->isVarDeclaration();
         if (!v)
         {
             error("CTFE internal error: %s", toChars());
             return EXP_CANT_INTERPRET;
         }
-        if (ex->op == TOKnull && ex->type->toBasetype()->ty == Tclass)
-        {   error("class '%s' is null and cannot be dereferenced", e1->toChars());
-            return EXP_CANT_INTERPRET;
-        }
         if (ex->op == TOKnull)
-        {   error("dereference of null pointer '%s'", e1->toChars());
+        {
+            if (ex->type->toBasetype()->ty == Tclass)
+                error("class '%s' is null and cannot be dereferenced", e1->toChars());
+            else
+                error("dereference of null pointer '%s'", e1->toChars());
             return EXP_CANT_INTERPRET;
         }
         if (ex->op == TOKstructliteral || ex->op == TOKclassreference)
         {
-            StructLiteralExp *se = ex->op == TOKclassreference ? ((ClassReferenceExp *)ex)->value : (StructLiteralExp *)ex;
-            /* We don't know how to deal with overlapping fields
-             */
+            StructLiteralExp *se;
+            int i;
+
+            // We can't use getField, because it makes a copy
+            if (ex->op == TOKclassreference)
+            {
+                se = ((ClassReferenceExp *)ex)->value;
+                i  = ((ClassReferenceExp *)ex)->findFieldIndexByName(v);
+            }
+            else
+            {
+                se = (StructLiteralExp *)ex;
+                i  = findFieldIndexByName(se->sd, v);
+            }
+#if DMDV1
             if (se->sd->hasUnions)
-            {   error("Unions with overlapping fields are not yet supported in CTFE");
+            {
+                error("Unions with overlapping fields are not yet supported in CTFE");
                 return EXP_CANT_INTERPRET;
             }
-            // We can't use getField, because it makes a copy
-            int i = -1;
-            if (ex->op == TOKclassreference)
-                i = ((ClassReferenceExp *)ex)->findFieldIndexByName(v);
-            else
-                i = findFieldIndexByName(se->sd, v);
+#endif
             if (i == -1)
             {
                 error("couldn't find field %s of type %s in %s", v->toChars(), type->toChars(), se->toChars());
                 return EXP_CANT_INTERPRET;
             }
             e = (*se->elements)[i];
+            if (!e)
+            {
+                error("Internal Compiler Error: Null field %s", v->toChars());
+                return EXP_CANT_INTERPRET;
+            }
+
             if (goal == ctfeNeedLvalue || goal == ctfeNeedLvalueRef)
             {
                 // If it is an lvalue literal, return it...
@@ -5942,11 +5957,6 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
                 e->type = type;
                 return e;
             }
-            if (!e)
-            {
-                error("Internal Compiler Error: Null field %s", v->toChars());
-                return EXP_CANT_INTERPRET;
-            }
             // If it is an rvalue literal, return it...
             if (e->op == TOKstructliteral || e->op == TOKarrayliteral ||
                 e->op == TOKassocarrayliteral || e->op == TOKstring)
@@ -5954,15 +5964,24 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
             if (e->op == TOKvoid)
             {
                 VoidInitExp *ve = (VoidInitExp *)e;
-                error("cannot read uninitialized variable %s in CTFE", ve->var->toChars());
+                const char *s = ve->var->toChars();
+#if DMDV2
+                if (v->overlapped)
+                {
+                    error("Reinterpretation through overlapped field %s is not allowed in CTFE", s);
+                    return EXP_CANT_INTERPRET;
+                }
+#endif
+                error("cannot read uninitialized variable %s in CTFE", s);
                 return EXP_CANT_INTERPRET;
             }
-            if ( isPointer(type) )
+            if (isPointer(type))
             {
                 return paintTypeOntoLiteral(type, e);
             }
             if (e->op == TOKvar)
-            {   // Don't typepaint twice, since that might cause an erroneous copy
+            {
+                // Don't typepaint twice, since that might cause an erroneous copy
                 e = getVarExp(loc, istate, ((VarExp *)e)->var, goal);
                 if (e != EXP_CANT_INTERPRET && e->op != TOKthrownexception)
                     e = paintTypeOntoLiteral(type, e);
@@ -6094,7 +6113,7 @@ Expression *interpret_aaApply(InterState *istate, Expression *aa, Expression *de
 
     assert(fd && fd->fbody);
     assert(fd->parameters);
-    int numParams = fd->parameters->dim;
+    size_t numParams = fd->parameters->dim;
     assert(numParams == 1 || numParams == 2);
 
     Parameter *valueArg = Parameter::getNth(((TypeFunction *)fd->type)->parameters, numParams - 1);
@@ -6160,7 +6179,7 @@ Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *del
 
     assert(fd && fd->fbody);
     assert(fd->parameters);
-    int numParams = fd->parameters->dim;
+    size_t numParams = fd->parameters->dim;
     assert(numParams == 1 || numParams==2);
     Type *charType = (*fd->parameters)[numParams-1]->type;
     Type *indexType = numParams == 2 ? (*fd->parameters)[0]->type
@@ -6393,7 +6412,7 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
     FuncDeclaration *fd, Expressions *arguments, Expression *pthis)
 {
     Expression *e = NULL;
-    int nargs = arguments ? arguments->dim : 0;
+    size_t nargs = arguments ? arguments->dim : 0;
 #if DMDV2
     if (pthis && isAssocArray(pthis->type))
     {

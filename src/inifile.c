@@ -57,7 +57,7 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
     char *filename;
     OutBuffer buf;
     int envsection = 0;
-    int envsectionnamelen = strlen(envsectionname);
+    size_t envsectionnamelen = strlen(envsectionname);
 
 #if LOG
     printf("inifile(argv0 = '%s', inifile = '%s')\n", argv0, inifile);
@@ -95,7 +95,7 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
                 filename = (char *)FileName::replaceName(argv0, inifile);
                 if (!FileName::exists(filename))
                 {
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
 #if __GLIBC__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun   // This fix by Thomas Kuehne
                     /* argv0 might be a symbolic link,
                      * so try again looking past it to the real path
@@ -110,7 +110,7 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
                     if (real_argv0)
                     {
                         filename = (char *)FileName::replaceName(real_argv0, inifile);
-#if linux
+#if __linux__
                         free(real_argv0);
 #endif
                         if (FileName::exists(filename))
@@ -184,24 +184,18 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
             break;
         }
 
-        // The line is file.buffer[linestart..i]
-        char *line;
-        size_t len;
-        char *pn;
-
-        line = (char *)&file.buffer[linestart];
-        len = i - linestart;
-
         buf.reset();
 
         // First, expand the macros.
         // Macros are bracketed by % characters.
 
-        for (size_t k = 0; k < len; k++)
+        for (size_t k = 0; k < i - linestart; k++)
         {
+            // The line is file.buffer[linestart..i]
+            char *line = (char *)&file.buffer[linestart];
             if (line[k] == '%')
             {
-                for (size_t j = k + 1; j < len; j++)
+                for (size_t j = k + 1; j < i - linestart; j++)
                 {
                     if (line[j] == '%')
                     {
@@ -264,6 +258,7 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
 
             case '[':           // look for [Environment]
                 p = skipspace(p + 1);
+                char *pn;
                 for (pn = p; isalnum((utf8_t)*pn); pn++)
                     ;
                 if (pn - p == envsectionnamelen &&
@@ -278,7 +273,7 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
             default:
                 if (envsection)
                 {
-                    pn = p;
+                    char *pn = p;
 
                     // Convert name to upper case;
                     // remove spaces bracketing =

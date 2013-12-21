@@ -23,7 +23,7 @@
     Host operating system:
         _WIN32          Microsoft NT, Windows 95, Windows 98, Win32s, Windows 2000
         _WIN64          Windows for AMD64
-        linux           Linux
+        __linux__       Linux
         __APPLE__       Mac OSX
         __FreeBSD__     FreeBSD
         __OpenBSD__     OpenBSD
@@ -166,7 +166,7 @@ One and only one of these macros must be set by the makefile:
 
 // Set to 1 using the makefile
 #ifndef TARGET_LINUX
-#if 0 //linux
+#if 0 //__linux__
 #define TARGET_LINUX    1
 #else
 #define TARGET_LINUX    0               // target is a linux executable
@@ -271,7 +271,7 @@ typedef long double longdouble;
 
 // Precompiled header variations
 #define MEMORYHX        (_WINDLL && _WIN32)     // HX and SYM files are cached in memory
-#define MMFIO           (_WIN32 || linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun)  // if memory mapped files
+#define MMFIO           (_WIN32 || __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun)  // if memory mapped files
 #define LINEARALLOC     _WIN32  // if we can reserve address ranges
 
 // H_STYLE takes on one of these precompiled header methods
@@ -612,7 +612,7 @@ typedef int bool;
 Written by Walter Bright\n\
 *****BETA TEST VERSION*****"
 #else
-#if linux
+#if __linux__
 #define COPYRIGHT "Copyright (C) Digital Mars 2000-2013.  All Rights Reserved.\n\
 Written by Walter Bright, Linux version by Pat Nelson"
 #else

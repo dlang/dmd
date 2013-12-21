@@ -283,8 +283,8 @@ void FuncDeclaration::semantic(Scope *sc)
             case STCimmutable | STCconst | STCwild:
             case STCimmutable | STCconst | STCshared | STCwild:
             case STCimmutable | STCshared | STCwild:
-                // Don't use toInvariant(), as that will do a merge()
-                type = type->makeInvariant();
+                // Don't use immutableOf(), as that will do a merge()
+                type = type->makeImmutable();
                 break;
 
             case STCconst:
@@ -431,7 +431,7 @@ void FuncDeclaration::semantic(Scope *sc)
     cd = parent->isClassDeclaration();
     if (cd)
     {
-        size_t vi;
+        int vi;
         if (isCtorDeclaration())
         {
 //          ctor = (CtorDeclaration *)this;
@@ -484,13 +484,13 @@ void FuncDeclaration::semantic(Scope *sc)
         /* Find index of existing function in base class's vtbl[] to override
          * (the index will be the same as in cd's current vtbl[])
          */
-        vi = cd->baseClass ? findVtblIndex((Dsymbols*)&cd->baseClass->vtbl, cd->baseClass->vtbl.dim)
+        vi = cd->baseClass ? findVtblIndex((Dsymbols*)&cd->baseClass->vtbl, (int)cd->baseClass->vtbl.dim)
                            : -1;
 
         doesoverride = false;
         switch (vi)
         {
-            case (size_t)-1:
+            case -1:
         Lintro:
                 /* Didn't find one, so
                  * This is an 'introducing' function which gets a new
@@ -524,13 +524,13 @@ void FuncDeclaration::semantic(Scope *sc)
                     // Append to end of vtbl[]
                     //printf("\tintroducing function\n");
                     introducing = 1;
-                    vi = cd->vtbl.dim;
+                    vi = (int)cd->vtbl.dim;
                     cd->vtbl.push(this);
                     vtblIndex = vi;
                 }
                 break;
 
-            case (size_t)-2:    // can't determine because of fwd refs
+            case -2:    // can't determine because of fwd refs
                 cd->sizeok = SIZEOKfwd; // can't finish due to forward reference
                 Module::dprogress = dprogress_save;
                 return;
@@ -620,13 +620,13 @@ void FuncDeclaration::semantic(Scope *sc)
         for (size_t i = 0; i < cd->interfaces_dim; i++)
         {
             BaseClass *b = cd->interfaces[i];
-            vi = findVtblIndex((Dsymbols *)&b->base->vtbl, b->base->vtbl.dim);
+            vi = findVtblIndex((Dsymbols *)&b->base->vtbl, (int)b->base->vtbl.dim);
             switch (vi)
             {
-                case (size_t)-1:
+                case -1:
                     break;
 
-                case (size_t)-2:
+                case -2:
                     cd->sizeok = SIZEOKfwd;     // can't finish due to forward reference
                     Module::dprogress = dprogress_save;
                     return;
@@ -1354,8 +1354,8 @@ void FuncDeclaration::semantic3(Scope *sc)
                 if (!(sc2->callSuper & CSXthis_ctor))
                 {
                     for (size_t i = 0; i < ad2->fields.dim; i++)
-                    {   VarDeclaration *v = ad2->fields[i];
-
+                    {
+                        VarDeclaration *v = ad2->fields[i];
                         if (v->ctorinit == 0)
                         {
                             /* Current bugs in the flow analysis:
@@ -2370,6 +2370,8 @@ int FuncDeclaration::findVtblIndex(Dsymbols *vtbl, int dim)
 bool FuncDeclaration::overloadInsert(Dsymbol *s)
 {
     //printf("FuncDeclaration::overloadInsert(s = %s) this = %s\n", s->toChars(), toChars());
+    assert(s != this);
+
     AliasDeclaration *ad = s->isAliasDeclaration();
     if (ad)
     {
@@ -2387,6 +2389,8 @@ bool FuncDeclaration::overloadInsert(Dsymbol *s)
     TemplateDeclaration *td = s->isTemplateDeclaration();
     if (td)
     {
+        if (!td->funcroot)
+            td->funcroot = this;
         if (overnext)
             return overnext->overloadInsert(td);
         overnext = td;
@@ -2642,7 +2646,6 @@ MATCH FuncDeclaration::leastAsSpecialized(FuncDeclaration *g)
     TypeFunction *tg = (TypeFunction *)g->type;
     size_t nfparams = Parameter::dim(tf->parameters);
     size_t ngparams = Parameter::dim(tg->parameters);
-    MATCH match = MATCHexact;
 
     /* If both functions have a 'this' pointer, and the mods are not
      * the same and g's is not const, then this is less specialized.
@@ -2651,16 +2654,12 @@ MATCH FuncDeclaration::leastAsSpecialized(FuncDeclaration *g)
     {
         if (isCtorDeclaration())
         {
-            if (MODimplicitConv(tg->mod, tf->mod))
-                match = MATCHconst;
-            else
+            if (!MODimplicitConv(tg->mod, tf->mod))
                 return MATCHnomatch;
         }
         else
         {
-            if (MODimplicitConv(tf->mod, tg->mod))
-                    match = MATCHconst;
-            else
+            if (!MODimplicitConv(tf->mod, tg->mod))
                 return MATCHnomatch;
         }
     }
@@ -2684,7 +2683,7 @@ MATCH FuncDeclaration::leastAsSpecialized(FuncDeclaration *g)
     }
 
     MATCH m = (MATCH) tg->callMatch(NULL, &args, 1);
-    if (m)
+    if (m > MATCHnomatch)
     {
         /* A variadic parameter list is less specialized than a
          * non-variadic one.
@@ -2758,7 +2757,7 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
             m.lastf->functionSemantic();
         return m.lastf;
     }
-    if (m.last != MATCHnomatch && (flags & 2) && !tthis && m.lastf->needThis())
+    if (m.last > MATCHnomatch && (flags & 2) && !tthis && m.lastf->needThis())
     {
         return m.lastf;
     }
@@ -2767,7 +2766,7 @@ Lerror:
     /* Failed to find a best match.
      * Do nothing or print error.
      */
-    if (m.last == MATCHnomatch && (flags & 1))
+    if (m.last <= MATCHnomatch && (flags & 1))
     {   // if do not print error messages
         return NULL;    // no match
     }
@@ -2858,6 +2857,8 @@ Lerror:
         TypeFunction *t2 = (TypeFunction *)m.nextf->type;
         TemplateInstance *lastti = m.lastf->parent->isTemplateInstance();
         TemplateInstance *nextti = m.nextf->parent->isTemplateInstance();
+        if (lastti && lastti->name != m.lastf->ident) lastti = NULL;
+        if (nextti && nextti->name != m.nextf->ident) nextti = NULL;
         Dsymbol *lasts = lastti ? (Dsymbol *)lastti->tempdecl : (Dsymbol *)m.lastf;
         Dsymbol *nexts = nextti ? (Dsymbol *)nextti->tempdecl : (Dsymbol *)m.nextf;
         const char *lastprms = lastti ? "" : Parameter::argsTypesToChars(t1->parameters, t1->varargs);
@@ -3144,11 +3145,6 @@ bool FuncDeclaration::isFinalFunc()
          ((cd = toParent()->isClassDeclaration()) != NULL && cd->storage_class & STCfinal)));
     if (cd)
         printf("\tmember of %s\n", cd->toChars());
-#if 0
-        !(isStatic() || protection == PROTprivate || protection == PROTpackage) &&
-        (cd = toParent()->isClassDeclaration()) != NULL &&
-        cd->storage_class & STCfinal);
-#endif
 #endif
     return isMember() &&
         (Declaration::isFinal() ||
@@ -4527,13 +4523,9 @@ void InvariantDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 static Identifier *unitTestId(Loc loc)
 {
-    char name[24];
-#if __DMC__ || _MSC_VER
-    _snprintf(name, 24, "__unittestL%u_", loc.linnum);
-#else
-    snprintf(name, 24, "__unittestL%u_", loc.linnum);
-#endif
-    return Lexer::uniqueId(name);
+    OutBuffer buf;
+    buf.printf("__unittestL%u_", loc.linnum);
+    return Lexer::uniqueId(buf.toChars());
 }
 
 UnitTestDeclaration::UnitTestDeclaration(Loc loc, Loc endloc, char *codedoc)

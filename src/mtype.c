@@ -447,7 +447,7 @@ Type *Type::immutableOf()
         assert(ito->isImmutable());
         return ito;
     }
-    Type *t = makeInvariant();
+    Type *t = makeImmutable();
     t = t->merge();
     t->fixTo(this);
     //printf("\t%p\n", t);
@@ -964,7 +964,7 @@ Type *Type::makeConst()
     return t;
 }
 
-Type *Type::makeInvariant()
+Type *Type::makeImmutable()
 {
     if (ito) return ito;
     Type *t = this->nullAttributes();
@@ -1026,7 +1026,7 @@ Type *Type::addSTC(StorageClass stc)
             t = t->makeConst();
     }
     if (stc & STCimmutable)
-        t = t->makeInvariant();
+        t = t->makeImmutable();
     if (stc & STCshared)
     {   if (t->isConst())
             t = t->makeSharedConst();
@@ -1216,6 +1216,19 @@ Type *Type::arrayOf()
         arrayof = t->merge();
     }
     return arrayof;
+}
+
+// Make corresponding static array type without semantic
+Type *Type::sarrayOf(dinteger_t dim)
+{
+    assert(deco);
+    Type *t = new TypeSArray(this, new IntegerExp(Loc(), dim, Type::tindex));
+
+    // according to TypeSArray::semantic()
+    t = t->addMod(mod);
+    t = t->merge();
+
+    return t;
 }
 
 Type *Type::aliasthisOf()
@@ -2506,14 +2519,14 @@ Type *TypeNext::makeConst()
     return t;
 }
 
-Type *TypeNext::makeInvariant()
+Type *TypeNext::makeImmutable()
 {
-    //printf("TypeNext::makeInvariant() %s\n", toChars());
+    //printf("TypeNext::makeImmutable() %s\n", toChars());
     if (ito)
     {   assert(ito->isImmutable());
         return ito;
     }
-    TypeNext *t = (TypeNext *)Type::makeInvariant();
+    TypeNext *t = (TypeNext *)Type::makeImmutable();
     if (ty != Tfunction && next->ty != Tfunction &&
         //(next->deco || next->ty == Tfunction) &&
         !next->isImmutable())
@@ -4069,19 +4082,6 @@ Lerror:
     return Type::terror;
 }
 
-// Make corresponding static array type without semantic
-Type *TypeSArray::makeType(Loc loc, Type *tn, dinteger_t dim)
-{
-    assert(tn->deco);
-    Type *t = new TypeSArray(tn, new IntegerExp(loc, dim, Type::tindex));
-
-    // according to TypeSArray::semantic()
-    t = t->addMod(tn->mod);
-    t = t->merge();
-
-    return t;
-}
-
 void TypeSArray::toDecoBuffer(OutBuffer *buf, int flag)
 {
     Type::toDecoBuffer(buf, flag);
@@ -4171,7 +4171,7 @@ MATCH TypeSArray::implicitConvTo(Type *to)
         if (!MODimplicitConv(next->mod, tp->next->mod))
             return MATCHnomatch;
 
-        if (tp->next->ty == Tvoid || next->constConv(tp->next) != MATCHnomatch)
+        if (tp->next->ty == Tvoid || next->constConv(tp->next) > MATCHnomatch)
         {
             return MATCHconvert;
         }
@@ -4192,7 +4192,7 @@ MATCH TypeSArray::implicitConvTo(Type *to)
         }
 
         MATCH m = next->constConv(ta->next);
-        if (m != MATCHnomatch)
+        if (m > MATCHnomatch)
         {
             return MATCHconvert;
         }
@@ -4500,7 +4500,7 @@ MATCH TypeDArray::implicitConvTo(Type *to)
         }
 
         MATCH m = next->constConv(ta->next);
-        if (m != MATCHnomatch)
+        if (m > MATCHnomatch)
         {
             if (m == MATCHexact && mod != to->mod)
                 m = MATCHconst;
@@ -4852,7 +4852,7 @@ MATCH TypeAArray::implicitConvTo(Type *to)
 
         MATCH m = next->constConv(ta->next);
         MATCH mi = index->constConv(ta->index);
-        if (m != MATCHnomatch && mi != MATCHnomatch)
+        if (m > MATCHnomatch && mi > MATCHnomatch)
         {
             return MODimplicitConv(mod, to->mod) ? MATCHconst : MATCHnomatch;
         }
@@ -5020,7 +5020,7 @@ MATCH TypePointer::implicitConvTo(Type *to)
         }
 
         MATCH m = next->constConv(tp->next);
-        if (m != MATCHnomatch)
+        if (m > MATCHnomatch)
         {
             if (m == MATCHexact && mod != to->mod)
                 m = MATCHconst;
@@ -5374,16 +5374,19 @@ Lnotcovariant:
 }
 
 void TypeFunction::toDecoBuffer(OutBuffer *buf, int flag)
-{   unsigned char mc;
-
+{
     //printf("TypeFunction::toDecoBuffer() this = %p %s\n", this, toChars());
     //static int nest; if (++nest == 50) *(char*)0=0;
     if (inuse)
-    {   inuse = 2;              // flag error to caller
+    {
+        inuse = 2;              // flag error to caller
         return;
     }
     inuse++;
+
     MODtoDecoBuffer(buf, mod);
+
+    unsigned char mc;
     switch (linkage)
     {
         case LINKd:             mc = 'F';       break;
@@ -5395,6 +5398,7 @@ void TypeFunction::toDecoBuffer(OutBuffer *buf, int flag)
             assert(0);
     }
     buf->writeByte(mc);
+
     if (purity || isnothrow || isproperty || isref || trust)
     {
         if (purity)
@@ -5416,11 +5420,12 @@ void TypeFunction::toDecoBuffer(OutBuffer *buf, int flag)
             default: break;
         }
     }
+
     // Write argument types
     Parameter::argsToDecoBuffer(buf, parameters);
     //if (buf->data[buf->offset - 1] == '@') halt();
     buf->writeByte('Z' - varargs);      // mark end of arg list
-    if(next != NULL)
+    if (next != NULL)
         next->toDecoBuffer(buf);
     inuse--;
 }
@@ -6131,7 +6136,7 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
                     {
                         Type *tn = tprmb->nextOf()->castMod(targb->nextOf()->mod);
                         dinteger_t dim = ((StringExp *)arg)->len;
-                        targb = TypeSArray::makeType(Loc(), tn, dim);
+                        targb = tn->sarrayOf(dim);
                     }
                 }
                 else if (arg->op == TOKslice && tprmb->ty == Tsarray)
@@ -6141,7 +6146,7 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
                     {
                         Type *tn = targb->nextOf();
                         dinteger_t dim = ((TypeSArray *)tprmb)->dim->toUInteger();
-                        targb = TypeSArray::makeType(Loc(), tn, dim);
+                        targb = tn->sarrayOf(dim);
                     }
                 }
                 else
@@ -7186,7 +7191,10 @@ void TypeTypeof::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
     {
         inuse = 2;
         error(loc, "circular typeof definition");
-        goto Lerr;
+    Lerr:
+        *pt = Type::terror;
+        inuse--;
+        return;
     }
     inuse++;
 
@@ -7268,11 +7276,6 @@ void TypeTypeof::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
     }
     if (*pt)
         (*pt) = (*pt)->addMod(mod);
-    inuse--;
-    return;
-
-Lerr:
-    *pt = Type::terror;
     inuse--;
     return;
 }
@@ -8370,9 +8373,8 @@ bool TypeStruct::needsNested()
 
     for (size_t i = 0; i < sym->fields.dim; i++)
     {
-        Dsymbol *s = sym->fields[i];
-        VarDeclaration *vd = s->isVarDeclaration();
-        if (vd && !vd->isDataseg() && vd->type->needsNested())
+        VarDeclaration *v = sym->fields[i];
+        if (!v->isDataseg() && v->type->needsNested())
             return true;
     }
     return false;
@@ -8421,8 +8423,7 @@ int TypeStruct::hasPointers()
     sym->size(Loc());               // give error for forward references
     for (size_t i = 0; i < s->fields.dim; i++)
     {
-        Dsymbol *sm = s->fields[i];
-        Declaration *d = sm->isDeclaration();
+        Declaration *d = s->fields[i];
         if (d->storage_class & STCref || d->hasPointers())
             return true;
     }
@@ -8467,12 +8468,12 @@ MATCH TypeStruct::implicitConvTo(Type *to)
                         ;
                     else if (v->offset == offset)
                     {
-                        if (m)
+                        if (m > MATCHnomatch)
                             continue;
                     }
                     else
                     {
-                        if (!m)
+                        if (m <= MATCHnomatch)
                             return m;
                     }
 
@@ -8486,7 +8487,7 @@ MATCH TypeStruct::implicitConvTo(Type *to)
                     MATCH mf = tvf->implicitConvTo(tv);
                     //printf("\t%s => %s, match = %d\n", v->type->toChars(), tv->toChars(), mf);
 
-                    if (mf == MATCHnomatch)
+                    if (mf <= MATCHnomatch)
                         return mf;
                     if (mf < m)         // if field match is worse
                         m = mf;
@@ -9008,7 +9009,7 @@ MATCH TypeClass::implicitConvTo(Type *to)
 {
     //printf("TypeClass::implicitConvTo(to = '%s') %s\n", to->toChars(), toChars());
     MATCH m = constConv(to);
-    if (m != MATCHnomatch)
+    if (m > MATCHnomatch)
         return m;
 
     ClassDeclaration *cdto = to->isClassHandle();
@@ -9487,7 +9488,7 @@ MATCH TypeNull::implicitConvTo(Type *to)
     //printf("from: %s\n", toChars());
     //printf("to  : %s\n", to->toChars());
     MATCH m = Type::implicitConvTo(to);
-    if (m)
+    if (m != MATCHnomatch)
         return m;
 
     // NULL implicitly converts to any pointer type or dynamic array

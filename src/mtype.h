@@ -290,10 +290,11 @@ public:
     Type *pointerTo();
     Type *referenceTo();
     Type *arrayOf();
+    Type *sarrayOf(dinteger_t dim);
     Type *aliasthisOf();
     int checkAliasThisRec();
     virtual Type *makeConst();
-    virtual Type *makeInvariant();
+    virtual Type *makeImmutable();
     virtual Type *makeShared();
     virtual Type *makeSharedConst();
     virtual Type *makeWild();
@@ -376,7 +377,7 @@ public:
     int hasWild();
     Type *nextOf();
     Type *makeConst();
-    Type *makeInvariant();
+    Type *makeImmutable();
     Type *makeShared();
     Type *makeSharedConst();
     Type *makeWild();
@@ -454,6 +455,7 @@ public:
     Expression *defaultInitLiteral(Loc loc);
     TypeBasic *elementType();
     int isZeroInit(Loc loc);
+    dt_t **toDt(dt_t **pdt);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     TypeTuple *toArgTypes();
 
@@ -504,8 +506,6 @@ public:
 #if CPP_MANGLE
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
-
-    static Type *makeType(Loc loc, Type *tn, dinteger_t dim);
 
     type *toCtype();
     type *toCParamtype();

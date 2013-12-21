@@ -1211,6 +1211,39 @@ void test11359()
 }
 
 /************************************************/
+// 11730
+
+struct SysTime11730
+{
+    ref SysTime11730 opAssign(SysTime11730 rhs)
+    {
+        assert(0);
+    }
+}
+
+struct Nullable11730(T)
+{
+    T _value;
+
+    void opAssign()(T value)
+    {
+        assert(0);
+    }
+
+    @property ref inout(T) get() inout
+    {
+        assert(0);
+    }
+    alias get this;
+}
+
+void test11730()
+{
+    Nullable11730!SysTime11730[string] map;
+    map["foo"] = Nullable11730!SysTime11730();
+}
+
+/************************************************/
 
 int main()
 {
@@ -1258,6 +1291,7 @@ int main()
     test5520();
     test6799();
     test11359();
+    test11730();
 
     printf("Success\n");
     return 0;

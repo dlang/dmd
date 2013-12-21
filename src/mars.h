@@ -35,7 +35,7 @@ Macros defined by the compiler, not the code:
         _WIN32          Microsoft NT, Windows 95, Windows 98, Win32s,
                         Windows 2000, Win XP, Vista
         _WIN64          Windows for AMD64
-        linux           Linux
+        __linux__       Linux
         __APPLE__       Mac OSX
         __FreeBSD__     FreeBSD
         __OpenBSD__     OpenBSD
@@ -241,7 +241,7 @@ struct Compiler
 };
 
 typedef unsigned structalign_t;
-#define STRUCTALIGN_DEFAULT ~0  // magic value means "match whatever the underlying C compiler does"
+#define STRUCTALIGN_DEFAULT ((structalign_t) ~0)  // magic value means "match whatever the underlying C compiler does"
 // other values are all powers of 2
 
 struct Ungag
@@ -264,6 +264,8 @@ struct Global
     const char *hdr_ext;        // for D 'header' import files
     const char *json_ext;       // for JSON files
     const char *map_ext;        // for .map files
+    bool run_noext;             // allow -run sources without extensions.
+
     const char *copyright;
     const char *written;
     const char *main_d;         // dummy filename for dummy main()
@@ -415,10 +417,13 @@ void vdeprecation(Loc loc, const char *format, va_list ap, const char *p1 = NULL
 
 #if defined(__GNUC__) || defined(__clang__)
 __attribute__((noreturn))
+void fatal();
 #elif _MSC_VER
 __declspec(noreturn)
-#endif
 void fatal();
+#else
+void fatal();
+#endif
 
 void err_nomem();
 int runLINK();
@@ -434,6 +439,10 @@ void obj_start(char *srcfile);
 void obj_end(Library *library, File *objfile);
 void obj_append(Dsymbol *s);
 void obj_write_deferred(Library *library);
+
+void readFile(Loc loc, File *f);
+void writeFile(Loc loc, File *f);
+void ensurePathToNameExists(Loc loc, const char *name);
 
 const char *importHint(const char *s);
 /// Little helper function for writting out deps.

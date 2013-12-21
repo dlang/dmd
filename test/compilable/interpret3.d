@@ -2723,6 +2723,15 @@ static assert({
 }());
 
 /**************************************************
+    8365 - block assignment of enum arrays
+**************************************************/
+
+enum E8365 { first = 7, second, third, fourth }
+static assert({ E8365[2] x; return x[0]; }() == E8365.first);
+static assert({ E8365[2][2] x; return x[0][0]; }() == E8365.first);
+static assert({ E8365[2][2][2] x; return x[0][0][0]; }() == E8365.first);
+
+/**************************************************
     4448 - labelled break + continue
 **************************************************/
 
@@ -3188,6 +3197,26 @@ bool bug4021() {
     return true;
 }
 static assert(bug4021());
+
+/**************************************************
+    11629 crash on AA.rehash
+**************************************************/
+
+struct Base11629
+{
+    alias T = ubyte, Char = char;
+    alias String = immutable(Char)[];
+
+    const Char[T] toChar;
+
+    this(int _dummy)
+    {
+        Char[T] toCharTmp = [0:'A'];
+
+        toChar = toCharTmp.rehash;
+    }
+}
+enum ct11629 = Base11629(4);
 
 /**************************************************
     3512 foreach(dchar; string)
@@ -5837,6 +5866,33 @@ string f10782()
 mixin(f10782());
 
 /**************************************************
+    11510 support overlapped field access in CTFE
+**************************************************/
+
+struct S11510
+{
+    union
+    {
+        size_t x;
+        int* y; // pointer field
+    }
+}
+bool test11510()
+{
+    S11510 s;
+
+    s.y = [1,2,3].ptr;            // writing overlapped pointer field is OK
+    assert(s.y[0..3] == [1,2,3]); // reading valid field is OK
+
+    s.x = 10;
+    assert(s.x == 10);
+
+    // There's no reinterpretation between S.x and S.y
+    return true;
+}
+static assert(test11510());
+
+/**************************************************
     11534 - subtitude inout
 **************************************************/
 
@@ -6096,3 +6152,15 @@ bool test11627()
     return true;
 }
 static assert(test11627());
+
+/**************************************************
+    11664 - ignore function local static variables
+**************************************************/
+
+bool test11664()
+{
+    static int x;
+    static int y = 1;
+    return true;
+}
+static assert(test11664());

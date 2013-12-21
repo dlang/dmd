@@ -15,7 +15,7 @@
 #include <limits.h>
 #include <string.h>
 
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
 #include <errno.h>
 #endif
 
@@ -116,6 +116,15 @@ void Global::init()
     dll_ext  = "so";
 #elif TARGET_OSX
     dll_ext = "dylib";
+#else
+#error "fix this"
+#endif
+
+#if TARGET_WINDOS
+    run_noext = false;
+#elif TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+    // Allow 'script' D source files to have no extension.
+    run_noext = true;
 #else
 #error "fix this"
 #endif
@@ -256,15 +265,9 @@ void verrorPrint(Loc loc, const char *header, const char *format, va_list ap,
         fprintf(stderr, "%s ", p1);
     if (p2)
         fprintf(stderr, "%s ", p2);
-#if _MSC_VER
-    // MS doesn't recognize %zu format
     OutBuffer tmp;
     tmp.vprintf(format, ap);
-    fprintf(stderr, "%s", tmp.toChars());
-#else
-    vfprintf(stderr, format, ap);
-#endif
-    fprintf(stderr, "\n");
+    fprintf(stderr, "%s\n", tmp.toChars());
     fflush(stderr);
 }
 
@@ -315,6 +318,40 @@ void vdeprecation(Loc loc, const char *format, va_list ap,
     else if (global.params.useDeprecated == 2 && !global.gag)
         verrorPrint(loc, header, format, ap, p1, p2);
 }
+
+void readFile(Loc loc, File *f)
+{
+    if (f->read())
+    {
+        error(loc, "Error reading file '%s'", f->name->toChars());
+        fatal();
+    }
+}
+
+void writeFile(Loc loc, File *f)
+{
+    if (f->write())
+    {
+        error(loc, "Error writing file '%s'", f->name->toChars());
+        fatal();
+    }
+}
+
+void ensurePathToNameExists(Loc loc, const char *name)
+{
+    const char *pt = FileName::path(name);
+    int r = 0;
+    if (*pt)
+    {
+        if (FileName::ensurePathExists(pt))
+        {
+            error(loc, "cannot create directory %s", pt);
+            fatal();
+        }
+    }
+    FileName::free(pt);
+}
+
 
 /***************************************
  * Call this after printing out fatal error messages to clean up and exit
@@ -580,7 +617,7 @@ int tryMain(size_t argc, const char *argv[])
 
 #if _WIN32
     inifilename = inifile(argv[0], "sc.ini", "Environment");
-#elif linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#elif __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
     inifilename = inifile(argv[0], "dmd.conf", "Environment");
 #else
 #error "fix this"
@@ -992,7 +1029,7 @@ Language changes listed by -transition=id:\n\
 #if _WIN32
                 browse("http://dlang.org/dmd-windows.html");
 #endif
-#if linux
+#if __linux__
                 browse("http://dlang.org/dmd-linux.html");
 #endif
 #if __APPLE__
@@ -1559,7 +1596,7 @@ Language changes listed by -transition=id:\n\
         {
             File deps(global.params.moduleDepsFile);
             deps.setbuffer((void*)ob->data, ob->offset);
-            deps.writev();
+            writeFile(Loc(), &deps);
         }
         else
             printf("%.*s", (int)ob->offset, ob->data);
@@ -1609,7 +1646,7 @@ Language changes listed by -transition=id:\n\
 
         if (name && name[0] == '-' && name[1] == 0)
         {   // Write to stdout; assume it succeeds
-            int n = fwrite(buf.data, 1, buf.offset, stdout);
+            size_t n = fwrite(buf.data, 1, buf.offset, stdout);
             assert(n == buf.offset);        // keep gcc happy about return values
         }
         else
@@ -1635,13 +1672,13 @@ Language changes listed by -transition=id:\n\
                 jsonfilename = FileName::forceExt(n, global.json_ext);
             }
 
-            FileName::ensurePathToNameExists(jsonfilename);
+            ensurePathToNameExists(Loc(), jsonfilename);
 
             File *jsonfile = new File(jsonfilename);
 
             jsonfile->setbuffer(buf.data, buf.offset);
             jsonfile->ref = 1;
-            jsonfile->writev();
+            writeFile(Loc(), jsonfile);
         }
     }
 

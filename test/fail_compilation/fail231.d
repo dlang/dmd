@@ -1,9 +1,17 @@
- // bug951   -- File but no line number. func.c
 /*
-bug.d: constructor bug.Derived.this no match for implicit super() call in const
+TEST_OUTPUT:
+---
+fail_compilation/fail231.d(15): Error: class fail231.Derived Cannot implicitly generate a default ctor when base class fail231.Base is missing a default ctor
+---
 */
-class Base {
+
+// Issue 951 - Missing line number: no constructor provided for a class derived from a class with no default constructor
+
+class Base
+{
     this(int x) {}
 }
 
-class Derived : Base {}
+class Derived : Base
+{
+}
