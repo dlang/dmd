@@ -291,19 +291,6 @@ Expression *NotExp::optimize(int result, bool keepLvalue)
     return e;
 }
 
-Expression *BoolExp::optimize(int result, bool keepLvalue)
-{   Expression *e;
-
-    e1 = e1->optimize(result);
-    if (e1->isConst() == 1)
-    {
-        e = Bool(type, e1);
-    }
-    else
-        e = this;
-    return e;
-}
-
 Expression *SymOffExp::optimize(int result, bool keepLvalue)
 {
     assert(var);
@@ -1123,9 +1110,7 @@ Expression *AndAndExp::optimize(int result, bool keepLvalue)
             }
             else if (e1->isBool(true))
             {
-                if (type->toBasetype()->ty == Tvoid)
-                    e = e2;
-                else e = new BoolExp(loc, e2, type);
+                e = e2;
             }
         }
     }
@@ -1163,10 +1148,7 @@ Expression *OrOrExp::optimize(int result, bool keepLvalue)
             }
             else if (e1->isBool(false))
             {
-                if (type->toBasetype()->ty == Tvoid)
-                    e = e2;
-                else
-                    e = new BoolExp(loc, e2, type);
+                e = e2;
             }
         }
     }

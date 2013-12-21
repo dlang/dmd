@@ -9629,33 +9629,6 @@ int NotExp::isBit()
 
 /************************************************************/
 
-BoolExp::BoolExp(Loc loc, Expression *e, Type *t)
-        : UnaExp(loc, TOKtobool, sizeof(BoolExp), e)
-{
-    type = t;
-}
-
-Expression *BoolExp::semantic(Scope *sc)
-{
-    if (!type)
-    {   // Note there is no operator overload
-        UnaExp::semantic(sc);
-        e1 = resolveProperties(sc, e1);
-        e1 = e1->checkToBoolean(sc);
-        if (e1->type == Type::terror)
-            return e1;
-        type = Type::tboolean;
-    }
-    return this;
-}
-
-int BoolExp::isBit()
-{
-    return true;
-}
-
-/************************************************************/
-
 DeleteExp::DeleteExp(Loc loc, Expression *e)
         : UnaExp(loc, TOKdelete, sizeof(DeleteExp), e)
 {
