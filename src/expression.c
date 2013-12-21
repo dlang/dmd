@@ -2577,15 +2577,6 @@ int Expression::isBool(int result)
     return false;
 }
 
-/********************************
- * Does this expression result in either a 1 or a 0?
- */
-
-int Expression::isBit()
-{
-    return false;
-}
-
 /****************************************
  * Resolve __FILE__, __LINE__, __MODULE__, __FUNCTION__, __PRETTY_FUNCTION__ to loc.
  */
@@ -9620,13 +9611,6 @@ Expression *NotExp::semantic(Scope *sc)
     return this;
 }
 
-int NotExp::isBit()
-{
-    return true;
-}
-
-
-
 /************************************************************/
 
 DeleteExp::DeleteExp(Loc loc, Expression *e)
@@ -13072,12 +13056,6 @@ Expression *OrOrExp::checkToBoolean(Scope *sc)
     return this;
 }
 
-int OrOrExp::isBit()
-{
-    return true;
-}
-
-
 /************************************************************/
 
 AndAndExp::AndAndExp(Loc loc, Expression *e1, Expression *e2)
@@ -13136,12 +13114,6 @@ Expression *AndAndExp::checkToBoolean(Scope *sc)
     return this;
 }
 
-int AndAndExp::isBit()
-{
-    return true;
-}
-
-
 /************************************************************/
 
 InExp::InExp(Loc loc, Expression *e1, Expression *e2)
@@ -13187,12 +13159,6 @@ Expression *InExp::semantic(Scope *sc)
     }
     return this;
 }
-
-int InExp::isBit()
-{
-    return false;
-}
-
 
 /************************************************************/
 
@@ -13319,12 +13285,6 @@ Expression *CmpExp::semantic(Scope *sc)
     //printf("CmpExp: %s, type = %s\n", e->toChars(), e->type->toChars());
     return e;
 }
-
-int CmpExp::isBit()
-{
-    return true;
-}
-
 
 /************************************************************/
 
@@ -13532,13 +13492,6 @@ Expression *EqualExp::semantic(Scope *sc)
     return e;
 }
 
-int EqualExp::isBit()
-{
-    return true;
-}
-
-
-
 /************************************************************/
 
 IdentityExp::IdentityExp(TOK op, Loc loc, Expression *e1, Expression *e2)
@@ -13570,12 +13523,6 @@ Expression *IdentityExp::semantic(Scope *sc)
 
     return this;
 }
-
-int IdentityExp::isBit()
-{
-    return true;
-}
-
 
 /****************************************************************/
 

@@ -190,7 +190,6 @@ public:
 
     virtual int isConst();
     virtual int isBool(int result);
-    virtual int isBit();
     bool hasSideEffect();
     void discardValue();
     void useValue();
@@ -1169,7 +1168,6 @@ public:
     NotExp(Loc loc, Expression *e);
     Expression *semantic(Scope *sc);
     Expression *optimize(int result, bool keepLvalue = false);
-    int isBit();
     elem *toElem(IRState *irs);
 };
 
@@ -1708,7 +1706,6 @@ public:
     OrOrExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
     Expression *checkToBoolean(Scope *sc);
-    int isBit();
     Expression *optimize(int result, bool keepLvalue = false);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     elem *toElem(IRState *irs);
@@ -1720,7 +1717,6 @@ public:
     AndAndExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
     Expression *checkToBoolean(Scope *sc);
-    int isBit();
     Expression *optimize(int result, bool keepLvalue = false);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     elem *toElem(IRState *irs);
@@ -1732,7 +1728,6 @@ public:
     CmpExp(TOK op, Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
     Expression *optimize(int result, bool keepLvalue = false);
-    int isBit();
 
     // For operator overloading
     int isCommutative();
@@ -1748,7 +1743,6 @@ public:
     InExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
-    int isBit();
 
     // For operator overloading
     Identifier *opId();
@@ -1774,7 +1768,6 @@ public:
     EqualExp(TOK op, Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
     Expression *optimize(int result, bool keepLvalue = false);
-    int isBit();
 
     // For operator overloading
     int isCommutative();
@@ -1791,7 +1784,6 @@ class IdentityExp : public BinExp
 public:
     IdentityExp(TOK op, Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
-    int isBit();
     Expression *optimize(int result, bool keepLvalue = false);
     elem *toElem(IRState *irs);
 };
