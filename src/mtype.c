@@ -7642,6 +7642,8 @@ MATCH TypeEnum::constConv(Type *to)
     if (ty == to->ty && sym == ((TypeEnum *)to)->sym &&
         MODimplicitConv(mod, to->mod))
         return MATCHconst;
+    else if (sym->memtype->constConv(to))
+        return MATCHconst;
     return MATCHnomatch;
 }
 
