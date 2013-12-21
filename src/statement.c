@@ -2923,6 +2923,68 @@ Statement *PragmaStatement::semantic(Scope *sc)
             fprintf(stderr, "\n");
         }
     }
+    else if (ident == Id::error)
+    {
+        if (args)
+        {
+            for (size_t i = 0; i < args->dim; i++)
+            {
+                Expression *e = (*args)[i];
+
+                sc = sc->startCTFE();
+                e = e->semantic(sc);
+                e = resolveProperties(sc, e);
+                sc = sc->endCTFE();
+                // pragma(msg) is allowed to contain types as well as expressions
+                e = ctfeInterpretForPragmaMsg(e);
+                if (e->op == TOKerror)
+                {   errorSupplemental(loc, "while evaluating pragma(error, %s)", (*args)[i]->toChars());
+                    goto Lerror;
+                }
+                StringExp *se = e->toString();
+                if (se)
+                {
+                    errorPragma((char *)se->string);
+                }
+                else
+                {
+                    errorPragma(e->toChars());
+                }
+            }
+            fprintf(stderr, "\n");
+        }
+    }
+    else if (ident == Id::warning)
+    {
+        if (args)
+        {
+            for (size_t i = 0; i < args->dim; i++)
+            {
+                Expression *e = (*args)[i];
+
+                sc = sc->startCTFE();
+                e = e->semantic(sc);
+                e = resolveProperties(sc, e);
+                sc = sc->endCTFE();
+                // pragma(msg) is allowed to contain types as well as expressions
+                e = ctfeInterpretForPragmaMsg(e);
+                if (e->op == TOKerror)
+                {   errorSupplemental(loc, "while evaluating pragma(error, %s)", (*args)[i]->toChars());
+                    goto Lerror;
+                }
+                StringExp *se = e->toString();
+                if (se)
+                {
+                    warningPragma((char *)se->string);
+                }
+                else
+                {
+                    warningPragma(e->toChars());
+                }
+            }
+            fprintf(stderr, "\n");
+        }
+    }
     else if (ident == Id::lib)
     {
 #if 1
@@ -3035,6 +3097,21 @@ void PragmaStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     }
 }
 
+void PragmaStatement::warningPragma(const char *format, ...)
+{
+    va_list ap;
+    va_start(ap, format);
+    ::vwarning(loc, format, ap);
+    va_end(ap);
+}
+
+void PragmaStatement::errorPragma(const char *format, ...)
+{
+    va_list ap;
+    va_start(ap, format);
+    ::verror(loc, format, ap);
+    va_end(ap);
+}
 
 /******************************** StaticAssertStatement ***************************/
 
