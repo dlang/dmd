@@ -1435,7 +1435,7 @@ void test82(inout(int) _ = 0)
 
     inout(const(char)) k;
     pragma(msg, typeof(k));
-    static assert(typeof(k).stringof == "inout(char)");
+    static assert(typeof(k).stringof == "const(char)");
 
     const(inout(char)) l;
     pragma(msg, typeof(l));
@@ -3345,6 +3345,18 @@ void test11489(inout int = 0)
 }
 
 /************************************/
+// 11768
+
+void test11768(inout int = 0)
+{
+    const(inout(char)) k1;
+    inout(const(char)) k2;
+    static assert(typeof(k1).stringof == "const(char)");    // OK
+    static assert(typeof(k2).stringof == "const(char)");    // fails
+    static assert(is(typeof(k1) == typeof(k2)));            // fails
+}
+
+/************************************/
 
 int main()
 {
@@ -3470,6 +3482,7 @@ int main()
     test9461();
     test9209();
     test11226();
+    test11768();
 
     printf("Success\n");
     return 0;

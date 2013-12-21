@@ -1017,27 +1017,39 @@ Type *Type::makeMutable()
  */
 
 Type *Type::addSTC(StorageClass stc)
-{   Type *t = this;
-
-    if (stc & STCconst)
-    {   if (t->isShared())
-            t = t->makeSharedConst();
-        else
-            t = t->makeConst();
-    }
-    if (stc & STCimmutable)
+{
+    Type *t = this;
+    if (t->isImmutable())
+        ;
+    else if (stc & STCimmutable)
+    {
         t = t->makeImmutable();
-    if (stc & STCshared)
-    {   if (t->isConst())
-            t = t->makeSharedConst();
-        else
-            t = t->makeShared();
     }
-    if (stc & STCwild)
-    {   if (t->isShared())
-            t = t->makeSharedWild();
-        else
-            t = t->makeWild();
+    else
+    {
+        if ((stc & STCshared) && !t->isShared())
+        {
+            if (t->isWild())
+                t = t->makeSharedWild();
+            else if (t->isConst())
+                t = t->makeSharedConst();
+            else
+                t = t->makeShared();
+        }
+        if ((stc & STCconst) && !t->isConst())
+        {
+            if (t->isShared())
+                t = t->makeSharedConst();
+            else
+                t = t->makeConst();
+        }
+        if ((stc & STCwild) && !t->isWild() && !t->isConst())
+        {
+            if (t->isShared())
+                t = t->makeSharedWild();
+            else
+                t = t->makeWild();
+        }
     }
     return t;
 }
