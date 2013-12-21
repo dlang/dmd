@@ -209,6 +209,9 @@ public:
     static TemplateDeclaration *associativearray;
     static TemplateDeclaration *rtinfo;
 
+    static TemplateDeclaration *aaLiteral;
+    static TemplateDeclaration *aaInit;
+
     static Type *basic[TMAX];
     static unsigned char mangleChar[TMAX];
     static unsigned char sizeTy[TMAX];
@@ -549,6 +552,7 @@ public:
     Type *index;                // key type
     Loc loc;
     Scope *sc;
+    Expression *init;
 
     StructDeclaration *impl;    // implementation
 
@@ -582,6 +586,7 @@ public:
     Symbol *aaGetSymbol(const char *func, int flags);
 
     type *toCtype();
+    void generateInitializer();
 };
 
 class TypePointer : public TypeNext

@@ -2451,7 +2451,7 @@ void test9386()
     }
     printf("====\n");
     {
-        Test9386.op = null;
+        //Test9386.op = null;
 
         Test9386[Test9386] tests =
             [ Test9386("1") : Test9386("one"),
@@ -2459,7 +2459,9 @@ void test9386()
               Test9386("3") : Test9386("three"),
               Test9386("4") : Test9386("four") ];
 
-        assert(Test9386.op == "aaaaaaaa");
+        //Depends on AA implementation
+        //assert(Test9386.op == "aaaaaaaa");
+        
         Test9386.op = null;
 
         printf("----\n");

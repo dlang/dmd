@@ -317,6 +317,12 @@ dt_t **ComplexExp::toDt(dt_t **pdt)
 dt_t **NullExp::toDt(dt_t **pdt)
 {
     assert(type);
+    if (type->ty == Taarray)
+    {
+        TypeAArray *atype = (TypeAArray *)type;
+        assert(atype->init);
+        return atype->init->toDt(pdt);
+    }
     return dtnzeros(pdt, type->size());
 }
 
@@ -394,6 +400,14 @@ dt_t **ArrayLiteralExp::toDt(dt_t **pdt)
             assert(0);
     }
     return pdt;
+}
+
+dt_t **AssocArrayLiteralExp::toDt(dt_t **pdt)
+{
+    //printf("AssocArrayLiteralExp::toDt() '%s', type = %s\n", toChars(), type->toChars());
+    assert(init);
+    Expression *ret = init->ctfeInterpret();
+    return ret->toDt(pdt);
 }
 
 dt_t **StructLiteralExp::toDt(dt_t **pdt)

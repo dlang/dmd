@@ -497,6 +497,9 @@ public:
     Expressions *keys;
     Expressions *values;
     bool ownedByCtfe;   // true = created in CTFE
+    Scope *semsc;
+    FuncDeclaration *aaliteral;
+    Expression *init;
 
     AssocArrayLiteralExp(Loc loc, Expressions *keys, Expressions *values);
 
@@ -515,6 +518,9 @@ public:
 
     Expression *doInline(InlineDoState *ids);
     Expression *inlineScan(InlineScanState *iss);
+    void prepareInitializer(Scope *sc);
+    void toObjectCodeExp();
+    dt_t **toDt(dt_t **pdt);
 };
 
 // scrubReturnValue is running

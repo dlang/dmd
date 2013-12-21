@@ -955,6 +955,7 @@ Expression *AssocArrayLiteralExp::doInline(InlineDoState *ids)
     ce = (AssocArrayLiteralExp *)copy();
     ce->keys = arrayExpressiondoInline(keys, ids);
     ce->values = arrayExpressiondoInline(values, ids);
+    ce->toObjectCodeExp();
     return ce;
 }
 

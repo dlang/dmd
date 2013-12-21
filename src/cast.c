@@ -1663,6 +1663,8 @@ Expression *AssocArrayLiteralExp::castTo(Scope *sc, Type *t)
             (*e->keys)[i] = ex;
         }
         e->type = t;
+        assert(e->op == TOKassocarrayliteral);
+        ((AssocArrayLiteralExp *)e)->prepareInitializer(sc);
         return e;
     }
     return e->Expression::castTo(sc, t);
