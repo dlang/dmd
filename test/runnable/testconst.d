@@ -1411,8 +1411,8 @@ void test82(inout(int) _ = 0)
     static assert(typeof(e).stringof == "inout(const(char)*)");
 
     pragma(msg, typeof(*e));
-    static assert(is(typeof(*e) == const(char)));
-    static assert(typeof(*e).stringof == "const(char)");
+    static assert(is(typeof(*e) == inout(const(char))));
+    static assert(typeof(*e).stringof == "inout(const(char))");
 
     inout const(char)* f;
     static assert(is(typeof(e) == typeof(f)));
@@ -1435,11 +1435,11 @@ void test82(inout(int) _ = 0)
 
     inout(const(char)) k;
     pragma(msg, typeof(k));
-    static assert(typeof(k).stringof == "inout(char)");
+    static assert(typeof(k).stringof == "inout(const(char))");
 
     const(inout(char)) l;
     pragma(msg, typeof(l));
-    static assert(typeof(l).stringof == "const(char)");
+    static assert(typeof(l).stringof == "inout(const(char))");
 
     shared(const(char)) m;
     pragma(msg, typeof(m));
@@ -1691,6 +1691,167 @@ void test3748()
     static assert(is(typeof(v6) == immutable(int)*));
 
     getXRef(s.c, s.c) = 3;
+}
+
+/************************************/
+
+void test3748a(inout int = 1)
+{
+                 int[]    ma;
+           inout(int[])   wa;
+           const(int[])   ca;
+       immutable(int[])   ia;
+          shared(int[])   sa;
+    shared(inout(int[])) swa;
+    shared(const(int[])) sca;
+
+    static foo1(E)(inout(E[]) a) { return E.init; }
+    static assert( is( typeof(foo1( ma)) == int));
+    static assert( is( typeof(foo1( wa)) == int));
+    static assert( is( typeof(foo1( ca)) == int));
+    static assert( is( typeof(foo1( ia)) == int));
+    static assert( is( typeof(foo1( sa)) == shared int));
+    static assert( is( typeof(foo1(swa)) == shared int));
+    static assert( is( typeof(foo1(sca)) == shared int));
+
+    static foo2(E)(shared inout(E[]) a) { return E.init; }
+    static assert(!is( typeof(foo2( ma)) ));
+    static assert(!is( typeof(foo2( wa)) ));
+    static assert(!is( typeof(foo2( ca)) ));
+    static assert( is( typeof(foo2( ia)) == int));
+    static assert( is( typeof(foo2( sa)) == int));
+    static assert( is( typeof(foo2(swa)) == int));
+    static assert( is( typeof(foo2(sca)) == int));
+}
+
+void test3748b(inout int = 1)
+{
+    // Top of the parameter type is non-ref & qualified
+    static        inout(int[])  foo1(       inout(int[])  a);
+    static shared(inout(int[])) bar1(shared(inout(int[])) a);
+
+    // Top of the parameter type is non-ref & un-qualified
+    static        inout(int) [] foo2(       inout(int) [] a);
+    static shared(inout(int))[] bar2(shared(inout(int))[] a);
+
+    // Top of the argument type is qualified
+                 int[]    ma1;
+           inout(int[])   wa1;
+           const(int[])   ca1;
+          shared(int[])   sa1;
+    shared(inout(int[])) swa1;
+    shared(const(int[])) sca1;
+       immutable(int[])   ia1;
+
+    // Top of the argument type is un-qualified
+                 int  []  ma2;
+           inout(int) []  wa2;
+           const(int) []  ca2;
+          shared(int) []  sa2;
+    shared(inout(int))[] swa2;
+    shared(const(int))[] sca2;
+       immutable(int) []  ia2;
+
+    // --> non-ref qualified param VS qualified arg
+    static assert( is( typeof(foo1( ma1)) == typeof( ma1) ));
+    static assert( is( typeof(foo1( wa1)) == typeof( wa1) ));
+    static assert( is( typeof(foo1( ca1)) == typeof( ca1) ));
+    static assert( is( typeof(bar1( sa1)) == typeof( sa1) ));
+    static assert( is( typeof(bar1(swa1)) == typeof(swa1) ));
+    static assert( is( typeof(bar1(sca1)) == typeof(sca1) ));
+    static assert( is( typeof(foo1( ia1)) == typeof( ia1) ));
+
+    // --> non-ref un-qualified param VS qualified arg
+    static assert( is( typeof(foo2( ma1)) == typeof( ma2) ));
+    static assert( is( typeof(foo2( wa1)) == typeof( wa2) ));
+    static assert( is( typeof(foo2( ca1)) == typeof( ca2) ));
+    static assert( is( typeof(bar2( sa1)) == typeof( sa2) ));
+    static assert( is( typeof(bar2(swa1)) == typeof(swa2) ));
+    static assert( is( typeof(bar2(sca1)) == typeof(sca2) ));
+    static assert( is( typeof(foo2( ia1)) == typeof( ia2) ));
+
+    // --> non-ref qualified param VS un-qualified arg
+    static assert( is( typeof(foo1( ma2)) == typeof( ma1) ));
+    static assert( is( typeof(foo1( wa2)) ));
+    static assert( is( typeof(foo1( ca2)) ));
+    static assert( is( typeof(bar1( sa2)) == typeof( sa1) ));
+    static assert( is( typeof(bar1(swa2)) ));
+    static assert( is( typeof(bar1(sca2)) ));
+    static assert( is( typeof(foo1( ia2)) ));
+
+    // --> non-ref un-qualified param VS un-qualified arg
+    static assert( is( typeof(foo2( ma2)) == typeof( ma2) ));
+    static assert( is( typeof(foo2( wa2)) == typeof( wa2) ));
+    static assert( is( typeof(foo2( ca2)) == typeof( ca2) ));
+    static assert( is( typeof(bar2( sa2)) == typeof( sa2) ));
+    static assert( is( typeof(bar2(swa2)) == typeof(swa2) ));
+    static assert( is( typeof(bar2(sca2)) == typeof(sca2) ));
+    static assert( is( typeof(foo2( ia2)) == typeof( ia2) ));
+}
+
+void test3748c(inout int = 1)
+{
+    // Top of the parameter type is ref & qualified
+    static        inout(int[])  foo1(ref        inout(int[])  a);
+    static shared(inout(int[])) bar1(ref shared(inout(int[])) a);
+
+    // Top of the parameter type is ref & un-qualified
+    static        inout(int) [] foo2(ref        inout(int) [] a);
+    static shared(inout(int))[] bar2(ref shared(inout(int))[] a);
+
+    // Top of the argument type is qualified
+                 int[]    ma1;
+           inout(int[])   wa1;
+           const(int[])   ca1;
+          shared(int[])   sa1;
+    shared(inout(int[])) swa1;
+    shared(const(int[])) sca1;
+       immutable(int[])   ia1;
+
+    // Top of the argument type is un-qualified
+                 int  []  ma2;
+           inout(int) []  wa2;
+           const(int) []  ca2;
+          shared(int) []  sa2;
+    shared(inout(int))[] swa2;
+    shared(const(int))[] sca2;
+       immutable(int) []  ia2;
+
+    // --> ref qualified param VS qualified arg
+    static assert( is( typeof(foo1( ma1)) == typeof( ma1) ));
+    static assert( is( typeof(foo1( wa1)) == typeof( wa1) ));
+    static assert( is( typeof(foo1( ca1)) == typeof( ca1) ));
+    static assert( is( typeof(bar1( sa1)) == typeof( sa1) ));
+    static assert( is( typeof(bar1(swa1)) == typeof(swa1) ));
+    static assert( is( typeof(bar1(sca1)) == typeof(sca1) ));
+    static assert( is( typeof(foo1( ia1)) == typeof( ia1) ));
+
+    // --> ref un-qualified param VS qualified arg
+    static assert( is( typeof(foo2( ma1)) == typeof( ma2) ));
+    static assert(!is( typeof(foo2( wa1)) ));
+    static assert(!is( typeof(foo2( ca1)) ));
+    static assert(!is( typeof(bar2( sa1)) ));
+    static assert(!is( typeof(bar2(swa1)) ));
+    static assert(!is( typeof(bar2(sca1)) ));
+    static assert(!is( typeof(foo2( ia1)) ));
+
+    // --> ref qualified param VS un-qualified arg
+    static assert( is( typeof(foo1( ma2)) == typeof( ma1) ));
+    static assert(!is( typeof(foo1( wa2)) ));
+    static assert(!is( typeof(foo1( ca2)) ));  // why this is OK? --> [*]
+    static assert(!is( typeof(bar1( sa2)) ));
+    static assert(!is( typeof(bar1(swa2)) ));
+    static assert(!is( typeof(bar1(sca2)) ));
+    static assert(!is( typeof(foo1( ia2)) ));
+
+    // --> ref un-qualified param VS un-qualified arg
+    static assert( is( typeof(foo2( ma2)) == typeof( ma2) ));
+    static assert( is( typeof(foo2( wa2)) == typeof( wa2) ));
+    static assert( is( typeof(foo2( ca2)) == typeof( ca2) ));
+    static assert( is( typeof(bar2( sa2)) == typeof( sa2) ));
+    static assert( is( typeof(bar2(swa2)) == typeof(swa2) ));
+    static assert( is( typeof(bar2(sca2)) == typeof(sca2) ));
+    static assert( is( typeof(foo2( ia2)) == typeof( ia2) ));
 }
 
 /************************************/
@@ -2453,6 +2614,78 @@ void test6912()
     static assert( is(     inout(inout(int)*) :           const(int)*  ));
     static assert( is(           inout(int)*  :     inout(const(int)*) ));
     static assert( is(     inout(inout(int)*) :     inout(const(int)*) ));
+}
+
+/************************************/
+// 6930
+
+void test6930a()
+{
+    inout(const int) f1(inout(const int) i) { return i; }
+              int mi;
+        const int ci;
+    immutable int ii;
+    static assert(is(typeof(f1(mi)) ==     const(int)));
+    static assert(is(typeof(f1(ci)) ==     const(int)));
+    static assert(is(typeof(f1(ii)) == immutable(int)));
+
+    inout(const int)* f2(inout(const int)* p) { return p; }
+              int * mp;
+        const(int)* cp;
+    immutable(int)* ip;
+    static assert(is(typeof(f2(mp)) ==     const(int)*));
+    static assert(is(typeof(f2(cp)) ==     const(int)*));
+    static assert(is(typeof(f2(ip)) == immutable(int)*));
+
+    inout(const int)[] f3(inout(const int)[] a) { return a; }
+              int [] ma;
+        const(int)[] ca;
+    immutable(int)[] ia;
+    static assert(is(typeof(f3(ma)) ==     const(int)[]));
+    static assert(is(typeof(f3(ca)) ==     const(int)[]));
+    static assert(is(typeof(f3(ia)) == immutable(int)[]));
+
+    inout(const int[1]) f4(inout(const int[1]) sa) { return sa; }
+              int[1] msa;
+        const int[1] csa;
+    immutable int[1] isa;
+    static assert(is(typeof(f4(msa)) ==     const(int)[1]));
+    static assert(is(typeof(f4(csa)) ==     const(int)[1]));
+    static assert(is(typeof(f4(isa)) == immutable(int)[1]));
+
+    inout(const int)[string] f5(inout(const int)[string] aa) { return aa; }
+              int [string] maa;
+        const(int)[string] caa;
+    immutable(int)[string] iaa;
+    static assert(is(typeof(f5(maa)) ==     const(int)[string]));
+    static assert(is(typeof(f5(caa)) ==     const(int)[string]));
+    static assert(is(typeof(f5(iaa)) == immutable(int)[string]));
+}
+
+inout(const(int[])) foo6930(inout(int)[] x)
+{
+    bool condition = cast(bool)(x.length / 2);
+    return condition ? x : new immutable(int[])(2);
+}
+
+void test6930b(inout int = 0)
+{
+    alias T1 = inout(shared(const(int)));
+    static assert(T1.stringof == "shared(inout(const(int)))");
+    static assert(is(T1 == shared) && is(T1 == const) && is(T1 == inout));
+
+    alias T2 = const(shared(inout(int)[]));
+    static assert(T2.stringof == "shared(const(inout(int)[]))");
+    static assert(is(T2 == shared) && is(T2 == const) && !is(T2 == inout) && is(typeof(T2.init[0]) == inout));
+
+              int [] ma;
+        const(int)[] ca;
+    immutable(int)[] ia;
+        inout(int)[] wa;
+    static assert(is(typeof(foo6930(ma)) ==       const int[]));
+    static assert(is(typeof(foo6930(ca)) ==       const int[]));
+    static assert(is(typeof(foo6930(ia)) ==   immutable int[]));
+    static assert(is(typeof(foo6930(wa)) == inout const int[]));
 }
 
 /************************************/
@@ -3345,6 +3578,18 @@ void test11489(inout int = 0)
 }
 
 /************************************/
+// 11768
+
+void test11768(inout int = 0)
+{
+    const(inout(char)) k1;
+    inout(const(char)) k2;
+    static assert(typeof(k1).stringof == "inout(const(char))"); // OK
+    static assert(typeof(k2).stringof == "inout(const(char))"); // fails
+    static assert(is(typeof(k1) == typeof(k2)));                // fails
+}
+
+/************************************/
 
 int main()
 {
@@ -3448,6 +3693,8 @@ int main()
     test6866();
     test6870();
     test6912();
+    test6930a();
+    test6930b();
     test6939();
     test6940();
     test6982();
@@ -3470,6 +3717,7 @@ int main()
     test9461();
     test9209();
     test11226();
+    test11768();
 
     printf("Success\n");
     return 0;

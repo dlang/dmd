@@ -115,6 +115,7 @@ extern int Tptrdiff_t;
 #define MODimmutable 4  // type is immutable
 #define MODshared    2  // type is shared
 #define MODwild      8  // type is wild
+#define MODwildconst (MODwild | MODconst)  // type is wild const
 #define MODmutable   0x10       // type is mutable (only used in wildcard matching)
 
 class Type : public RootObject
@@ -131,12 +132,14 @@ public:
      * Naked == no MOD bits
      */
 
-    Type *cto;          // MODconst ? naked version of this type : const version
-    Type *ito;          // MODimmutable ? naked version of this type : immutable version
-    Type *sto;          // MODshared ? naked version of this type : shared mutable version
-    Type *scto;         // MODshared|MODconst ? naked version of this type : shared const version
-    Type *wto;          // MODwild ? naked version of this type : wild version
-    Type *swto;         // MODshared|MODwild ? naked version of this type : shared wild version
+    Type *cto;          // MODconst                 ? naked version of this type : const version
+    Type *ito;          // MODimmutable             ? naked version of this type : immutable version
+    Type *sto;          // MODshared                ? naked version of this type : shared mutable version
+    Type *scto;         // MODshared | MODconst     ? naked version of this type : shared const version
+    Type *wto;          // MODwild                  ? naked version of this type : wild version
+    Type *wcto;         // MODwildconst             ? naked version of this type : wild const version
+    Type *swto;         // MODshared | MODwild      ? naked version of this type : shared wild version
+    Type *swcto;        // MODshared | MODwildconst ? naked version of this type : shared wild const version
 
     Type *pto;          // merged pointer to this type
     Type *rto;          // reference to this type
@@ -264,14 +267,15 @@ public:
     virtual int isAssignable();
     virtual int checkBoolean(); // if can be converted to boolean value
     virtual void checkDeprecated(Loc loc, Scope *sc);
-    int isConst()       { return mod & MODconst; }
-    int isImmutable()   { return mod & MODimmutable; }
-    int isMutable()     { return !(mod & (MODconst | MODimmutable | MODwild)); }
-    int isShared()      { return mod & MODshared; }
-    int isSharedConst() { return mod == (MODshared | MODconst); }
-    int isWild()        { return mod & MODwild; }
-    int isSharedWild()  { return mod == (MODshared | MODwild); }
-    int isNaked()       { return mod == 0; }
+    bool isConst()       { return (mod & MODconst) != 0; }
+    bool isImmutable()   { return (mod & MODimmutable) != 0; }
+    bool isMutable()     { return (mod & (MODconst | MODimmutable | MODwild)) == 0; }
+    bool isShared()      { return (mod & MODshared) != 0; }
+    bool isSharedConst() { return (mod & (MODshared | MODconst)) == (MODshared | MODconst); }
+    bool isWild()        { return (mod & MODwild) != 0; }
+    bool isWildConst()   { return (mod & MODwildconst) == MODwildconst; }
+    bool isSharedWild()  { return (mod & (MODshared | MODwild)) == (MODshared | MODwild); }
+    bool isNaked()       { return mod == 0; }
     Type *nullAttributes();
     Type *constOf();
     Type *immutableOf();
@@ -280,7 +284,9 @@ public:
     Type *sharedConstOf();
     Type *unSharedOf();
     Type *wildOf();
+    Type *wildConstOf();
     Type *sharedWildOf();
+    Type *sharedWildConstOf();
     void fixTo(Type *t);
     void check();
     Type *addSTC(StorageClass stc);
@@ -298,15 +304,20 @@ public:
     virtual Type *makeShared();
     virtual Type *makeSharedConst();
     virtual Type *makeWild();
+    virtual Type *makeWildConst();
     virtual Type *makeSharedWild();
+    virtual Type *makeSharedWildConst();
     virtual Type *makeMutable();
     virtual Dsymbol *toDsymbol(Scope *sc);
     virtual Type *toBasetype();
     virtual int isBaseOf(Type *t, int *poffset);
     virtual MATCH implicitConvTo(Type *to);
     virtual MATCH constConv(Type *to);
-    virtual unsigned wildConvTo(Type *tprm);
+    virtual unsigned deduceWild(Type *t, bool isRef);
     virtual Type *substWildTo(unsigned mod);
+
+    Type *unqualify(unsigned m);
+
     virtual Type *toHeadMutable();
     virtual ClassDeclaration *isClassHandle();
     virtual Expression *getProperty(Loc loc, Identifier *ident, int flag);
@@ -319,7 +330,7 @@ public:
     virtual int isZeroInit(Loc loc = Loc());                // if initializer is 0
     virtual dt_t **toDt(dt_t **pdt);
     Identifier *getTypeInfoIdent(int internal);
-    virtual MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
+    virtual MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL);
     virtual void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
     Expression *getInternalTypeInfo(Scope *sc);
     Expression *getTypeInfo(Scope *sc);
@@ -381,10 +392,12 @@ public:
     Type *makeShared();
     Type *makeSharedConst();
     Type *makeWild();
+    Type *makeWildConst();
     Type *makeSharedWild();
+    Type *makeSharedWildConst();
     Type *makeMutable();
     MATCH constConv(Type *to);
-    unsigned wildConvTo(Type *tprm);
+    unsigned deduceWild(Type *t, bool isRef);
     void transitive();
 };
 
@@ -440,7 +453,7 @@ public:
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     void toDecoBuffer(OutBuffer *buf, int flag);
     void toJson(JsonOut *json);
-    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
+    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL);
     Type *reliesOnTident(TemplateParameters *tparams);
 #if CPP_MANGLE
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
@@ -496,7 +509,7 @@ public:
     Expression *voidInitLiteral(VarDeclaration *var);
     dt_t **toDt(dt_t **pdt);
     dt_t **toDtElem(dt_t **pdt, Expression *e);
-    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
+    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     Expression *toExpression();
     int hasPointers();
@@ -532,7 +545,7 @@ public:
     MATCH implicitConvTo(Type *to);
     Expression *defaultInit(Loc loc);
     int builtinTypeInfo();
-    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
+    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
     TypeTuple *toArgTypes();
@@ -564,7 +577,7 @@ public:
     void toJson(JsonOut *json);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     Expression *defaultInit(Loc loc);
-    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
+    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL);
     int isZeroInit(Loc loc);
     int checkBoolean();
     TypeInfoDeclaration *getTypeInfoDeclaration();
@@ -664,7 +677,7 @@ public:
     LINK linkage;  // calling convention
     TRUST trust;   // level of trust
     PURE purity;   // PURExxxx
-    bool iswild;        // is inout function
+    unsigned char iswild;   // bit0: inout on params, bit1: inout on qualifier
     Expressions *fargs; // function arguments
 
     int inuse;
@@ -680,7 +693,7 @@ public:
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     void toJson(JsonOut *json);
     void attributesToCBuffer(OutBuffer *buf, int mod);
-    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
+    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     Type *reliesOnTident(TemplateParameters *tparams = NULL);
     bool hasLazyParameters();
@@ -762,7 +775,7 @@ public:
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
     Dsymbol *toDsymbol(Scope *sc);
     Type *semantic(Loc loc, Scope *sc);
-    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
+    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL);
     Type *reliesOnTident(TemplateParameters *tparams = NULL);
     Expression *toExpression();
 };
@@ -785,7 +798,7 @@ public:
     Type *semantic(Loc loc, Scope *sc);
     Dsymbol *toDsymbol(Scope *sc);
     Type *reliesOnTident(TemplateParameters *tparams = NULL);
-    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
+    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL);
     Expression *toExpression();
 };
 
@@ -826,7 +839,7 @@ enum AliasThisRec
     RECyes = 1,     // alias this has recursive dependency
     RECfwdref = 2,  // not yet known
 
-    RECtracing = 0x4, // mark in progress of implicitConvTo/wildConvTo
+    RECtracing = 0x4, // mark in progress of implicitConvTo/deduceWild
 };
 
 class TypeStruct : public Type
@@ -857,13 +870,13 @@ public:
     int needsDestruction();
     bool needsNested();
     dt_t **toDt(dt_t **pdt);
-    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
+    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
     TypeTuple *toArgTypes();
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);
-    unsigned wildConvTo(Type *tprm);
+    unsigned deduceWild(Type *t, bool isRef);
     Type *toHeadMutable();
 #if CPP_MANGLE
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
@@ -907,7 +920,7 @@ public:
     Type *toBasetype();
     Expression *defaultInit(Loc loc);
     int isZeroInit(Loc loc);
-    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
+    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
     TypeTuple *toArgTypes();
@@ -957,7 +970,7 @@ public:
     Expression *defaultInitLiteral(Loc loc);
     int isZeroInit(Loc loc);
     dt_t **toDt(dt_t **pdt);
-    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
+    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
     TypeTuple *toArgTypes();
@@ -991,11 +1004,11 @@ public:
     int isBaseOf(Type *t, int *poffset);
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);
-    unsigned wildConvTo(Type *tprm);
+    unsigned deduceWild(Type *t, bool isRef);
     Type *toHeadMutable();
     Expression *defaultInit(Loc loc);
     int isZeroInit(Loc loc);
-    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
+    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL);
     int isscope();
     int checkBoolean();
     TypeInfoDeclaration *getTypeInfoDeclaration();

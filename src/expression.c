@@ -1529,11 +1529,8 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
         L1:
             if (!(p->storageClass & STClazy && p->type->ty == Tvoid))
             {
-                unsigned mod = arg->type->wildConvTo(p->type);
-                if (mod)
-                {
-                    wildmatch |= mod;
-                }
+                bool isRef = (p->storageClass & (STCref | STCout)) != 0;
+                wildmatch |= arg->type->deduceWild(p->type, isRef);
             }
         }
         if (done)

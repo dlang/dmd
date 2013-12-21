@@ -119,7 +119,6 @@ void FuncDeclaration::semantic(Scope *sc)
     AggregateDeclaration *ad;
     ClassDeclaration *cd;
     InterfaceDeclaration *id;
-    bool doesoverride;
 
 #if 0
     printf("FuncDeclaration::semantic(sc = %p, this = %p, '%s', linkage = %d)\n", sc, this, toPrettyChars(), sc->linkage);
@@ -277,36 +276,42 @@ void FuncDeclaration::semantic(Scope *sc)
         {
             case STCimmutable:
             case STCimmutable | STCconst:
-            case STCimmutable | STCconst | STCshared:
-            case STCimmutable | STCshared:
             case STCimmutable | STCwild:
-            case STCimmutable | STCconst | STCwild:
-            case STCimmutable | STCconst | STCshared | STCwild:
+            case STCimmutable | STCwild | STCconst:
+            case STCimmutable | STCshared:
+            case STCimmutable | STCshared | STCconst:
             case STCimmutable | STCshared | STCwild:
+            case STCimmutable | STCshared | STCwild | STCconst:
                 // Don't use immutableOf(), as that will do a merge()
                 type = type->makeImmutable();
                 break;
 
             case STCconst:
-            case STCconst | STCwild:
                 type = type->makeConst();
-                break;
-
-            case STCshared | STCconst:
-            case STCshared | STCconst | STCwild:
-                type = type->makeSharedConst();
-                break;
-
-            case STCshared:
-                type = type->makeShared();
                 break;
 
             case STCwild:
                 type = type->makeWild();
                 break;
 
+            case STCwild | STCconst:
+                type = type->makeWildConst();
+                break;
+
+            case STCshared:
+                type = type->makeShared();
+                break;
+
+            case STCshared | STCconst:
+                type = type->makeSharedConst();
+                break;
+
             case STCshared | STCwild:
                 type = type->makeSharedWild();
+                break;
+
+            case STCshared | STCwild | STCconst:
+                type = type->makeSharedWildConst();
                 break;
 
             case 0:
@@ -487,7 +492,7 @@ void FuncDeclaration::semantic(Scope *sc)
         vi = cd->baseClass ? findVtblIndex((Dsymbols*)&cd->baseClass->vtbl, (int)cd->baseClass->vtbl.dim)
                            : -1;
 
-        doesoverride = false;
+        bool doesoverride = false;
         switch (vi)
         {
             case -1:

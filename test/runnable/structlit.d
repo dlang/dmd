@@ -463,7 +463,7 @@ void test15b()
         this(int[] m, const int[] c, immutable int[] i) inout pure
         {
             static assert(!__traits(compiles, marr = m));
-            carr = c;
+            static assert(!__traits(compiles, carr = c));  // cannot implicitly convertible const(int[]) to inout(const(int[]))
             iarr = i;
         }
     }
