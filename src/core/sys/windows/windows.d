@@ -508,6 +508,8 @@ BOOL   MoveFileA(in char *from, in char *to);
 BOOL   MoveFileW(LPCWSTR lpExistingFileName, LPCWSTR lpNewFileName);
 BOOL   ReadFile(HANDLE hFile, void *lpBuffer, DWORD nNumberOfBytesToRead,
     DWORD *lpNumberOfBytesRead, OVERLAPPED *lpOverlapped);
+BOOL   SetFileAttributesA(in LPCSTR lpFileName, DWORD dwFileAttributes);
+BOOL   SetFileAttributesW(in LPCWSTR lpFileName, DWORD dwFileAttributes);
 DWORD  SetFilePointer(HANDLE hFile, LONG lDistanceToMove,
     LONG *lpDistanceToMoveHigh, DWORD dwMoveMethod);
 BOOL   WriteFile(HANDLE hFile, in void *lpBuffer, DWORD nNumberOfBytesToWrite,
