@@ -889,6 +889,39 @@ void test9235b()
 
 /***************************************************/
 
+class InputStream11785
+{
+    long read(ubyte* bytes, long len)
+    {
+        return 0;
+    }
+    void read(T)(ref T val)
+    {
+        read(cast(ubyte*)&val, cast(long)val.sizeof);
+    }
+}
+
+long read11785(ubyte* bytes, long len)
+{
+    return 0;
+}
+void read11785(T)(ref T val)
+{
+    read11785(cast(ubyte*)&val, cast(long)val.sizeof);
+}
+
+void test11785()
+{
+    int v;
+
+    read11785(v);
+
+    auto input = new InputStream11785();
+    input.read(v);
+}
+
+/***************************************************/
+
 int main()
 {
     test1528a();
@@ -914,6 +947,7 @@ int main()
     test8441c();
     test9235a();
     //test9235b();
+    test11785();
 
     printf("Success\n");
     return 0;

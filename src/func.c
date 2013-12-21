@@ -2389,6 +2389,8 @@ bool FuncDeclaration::overloadInsert(Dsymbol *s)
     TemplateDeclaration *td = s->isTemplateDeclaration();
     if (td)
     {
+        if (!td->funcroot)
+            td->funcroot = this;
         if (overnext)
             return overnext->overloadInsert(td);
         overnext = td;
