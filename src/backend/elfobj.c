@@ -3435,7 +3435,7 @@ static void obj_rtinit()
 
             // relocation
             if (I64)
-                reltype = (config.flags3 & CFG3pic) ? R_X86_64_64 : R_X86_64_32;
+                reltype = R_X86_64_64;
             else
                 reltype = RI_TYPE_SYM32;
 
