@@ -1168,9 +1168,11 @@ void Obj::term(const char *objfilename)
         if (pseg->SDbuf && pseg->SDbuf->size())
         {
             //printf(" - size %d\n",pseg->SDbuf->size());
-            sechdr->sh_size = pseg->SDbuf->size();
-            fobjbuf->write(pseg->SDbuf->buf, sechdr->sh_size);
-            foffset += sechdr->sh_size;
+            const size_t size = pseg->SDbuf->size();
+            fobjbuf->write(pseg->SDbuf->buf, size);
+            const long nfoffset = elf_align(sechdr->sh_addralign, foffset + size);
+            sechdr->sh_size = nfoffset - foffset;
+            foffset = nfoffset;
         }
         //printf(" assigned offset %d, size %d\n",foffset,sechdr->sh_size);
     }
@@ -3433,7 +3435,7 @@ static void obj_rtinit()
 
             // relocation
             if (I64)
-                reltype = (config.flags3 & CFG3pic) ? R_X86_64_64 : R_X86_64_32;
+                reltype = R_X86_64_64;
             else
                 reltype = RI_TYPE_SYM32;
 
