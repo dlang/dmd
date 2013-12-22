@@ -156,7 +156,7 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
     File file(filename);
 
     if (file.read())
-        return filename;                        // error reading file
+        return NULL;                        // error reading file
 
     // Parse into lines
     int eof = 0;
