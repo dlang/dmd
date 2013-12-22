@@ -35,12 +35,6 @@
 #include "lib.h"
 #include "json.h"
 
-#if WINDOWS_SEH
-#include <windows.h>
-long __cdecl __ehfilter(LPEXCEPTION_POINTERS ep);
-#endif
-
-
 int response_expand(size_t *pargc, const char ***pargv);
 void browse(const char *url);
 void getenv_setargv(const char *envvar, size_t *pargc, const char** *pargv);
@@ -1774,19 +1768,9 @@ Language changes listed by -transition=id:\n\
 int main(int argc, const char *argv[])
 {
     int status = -1;
-#if WINDOWS_SEH
-  __try
-  {
+
     status = tryMain(argc, argv);
-  }
-  __except (__ehfilter(GetExceptionInformation()))
-  {
-    printf("Stack overflow\n");
-    fatal();
-  }
-#else
-  status = tryMain(argc, argv);
-#endif
+
     return status;
 }
 
@@ -1937,19 +1921,3 @@ static bool parse_arch(size_t argc, const char** argv, bool is64bit)
     }
     return is64bit;
 }
-
-#if WINDOWS_SEH
-
-long __cdecl __ehfilter(LPEXCEPTION_POINTERS ep)
-{
-    //printf("%x\n", ep->ExceptionRecord->ExceptionCode);
-    if (ep->ExceptionRecord->ExceptionCode == STATUS_STACK_OVERFLOW)
-    {
-#if 1 //ndef DEBUG
-        return EXCEPTION_EXECUTE_HANDLER;
-#endif
-    }
-    return EXCEPTION_CONTINUE_SEARCH;
-}
-
-#endif

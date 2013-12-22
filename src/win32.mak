@@ -305,7 +305,7 @@ root.lib : $(ROOTOBJS)
 LIBS= frontend.lib glue.lib backend.lib root.lib
 
 $(TARGETEXE): mars.obj $(LIBS) win32.mak
-	$(CC) -o$(TARGETEXE) mars.obj $(LIBS) -cpp -mn -Ar $(LFLAGS)
+	$(CC) -o$(TARGETEXE) mars.obj $(LIBS) -cpp -mn -Ar -L/STACK:8388608 $(LFLAGS)
 
 ############################ Maintenance Targets #############################
 
