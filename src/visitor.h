@@ -45,6 +45,32 @@ class LabelStatement;
 class AsmStatement;
 class ImportStatement;
 
+class Type;
+class TypeError;
+class TypeNext;
+class TypeBasic;
+class TypeVector;
+class TypeArray;
+class TypeSArray;
+class TypeDArray;
+class TypeAArray;
+class TypePointer;
+class TypeReference;
+class TypeFunction;
+class TypeDelegate;
+class TypeQualified;
+class TypeIdentifier;
+class TypeInstance;
+class TypeTypeof;
+class TypeReturn;
+class TypeStruct;
+class TypeEnum;
+class TypeTypedef;
+class TypeClass;
+class TypeTuple;
+class TypeSlice;
+class TypeNull;
+
 class Visitor
 {
 public:
@@ -88,6 +114,32 @@ public:
     virtual void visit(LabelStatement *s) { visit((Statement *)s); }
     virtual void visit(AsmStatement *s) { visit((Statement *)s); }
     virtual void visit(ImportStatement *s) { visit((Statement *)s); }
+
+    virtual void visit(Type *t) { assert(0); }
+    virtual void visit(TypeError *t) { visit((Type *)t); }
+    virtual void visit(TypeNext *t) { visit((Type *)t); }
+    virtual void visit(TypeBasic *t) { visit((Type *)t); }
+    virtual void visit(TypeVector *t) { visit((Type *)t); }
+    virtual void visit(TypeArray *t) { visit((TypeNext *)t); }
+    virtual void visit(TypeSArray *t) { visit((TypeArray *)t); }
+    virtual void visit(TypeDArray *t) { visit((TypeArray *)t); }
+    virtual void visit(TypeAArray *t) { visit((TypeArray *)t); }
+    virtual void visit(TypePointer *t) { visit((TypeNext *)t); }
+    virtual void visit(TypeReference *t) { visit((TypeNext *)t); }
+    virtual void visit(TypeFunction *t) { visit((TypeFunction *)t); }
+    virtual void visit(TypeDelegate *t) { visit((TypeNext *)t); }
+    virtual void visit(TypeQualified *t) { visit((Type *)t); }
+    virtual void visit(TypeIdentifier *t) { visit((TypeQualified *)t); }
+    virtual void visit(TypeInstance *t) { visit((TypeQualified *)t); }
+    virtual void visit(TypeTypeof *t) { visit((TypeQualified *)t); }
+    virtual void visit(TypeReturn *t) { visit((TypeQualified *)t); }
+    virtual void visit(TypeStruct *t) { visit((Type *)t); }
+    virtual void visit(TypeEnum *t) { visit((Type *)t); }
+    virtual void visit(TypeTypedef *t) { visit((Type *)t); }
+    virtual void visit(TypeClass *t) { visit((Type *)t); }
+    virtual void visit(TypeTuple *t) { visit((Type *)t); }
+    virtual void visit(TypeSlice *t) { visit((TypeNext *)t); }
+    virtual void visit(TypeNull *t) { visit((Type *)t); }
 };
 
 #endif /* DMD_VISITOR_H */

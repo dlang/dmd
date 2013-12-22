@@ -25,7 +25,7 @@
 #include "module.h"
 
 #if CPP_MANGLE
-char *cpp_mangle(Dsymbol *s);
+char *toCppMangle(Dsymbol *s);
 #endif
 
 /******************************************************************************
@@ -148,7 +148,7 @@ const char *Declaration::mangle(bool isv)
 
                 case LINKcpp:
 #if CPP_MANGLE
-                    p = cpp_mangle(this);
+                    p = toCppMangle(this);
 #else
                     // Windows C++ mangling is done by C++ back end
                     p = ident->toChars();
