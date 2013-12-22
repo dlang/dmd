@@ -20,6 +20,7 @@
 
 #include "arraytypes.h"
 #include "expression.h"
+#include "visitor.h"
 
 struct Scope;
 class Identifier;
@@ -358,6 +359,7 @@ public:
 
     // For eliminating dynamic_cast
     virtual TypeBasic *isTypeBasic();
+    virtual void accept(Visitor *v) { v->visit(this); }
 };
 
 class TypeError : public Type
@@ -374,6 +376,7 @@ public:
     Expression *defaultInit(Loc loc);
     Expression *defaultInitLiteral(Loc loc);
     TypeTuple *toArgTypes();
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class TypeNext : public Type
@@ -399,6 +402,7 @@ public:
     MATCH constConv(Type *to);
     unsigned deduceWild(Type *t, bool isRef);
     void transitive();
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class TypeBasic : public Type
@@ -434,6 +438,7 @@ public:
 
     // For eliminating dynamic_cast
     TypeBasic *isTypeBasic();
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class TypeVector : public Type
@@ -473,6 +478,7 @@ public:
     TypeTuple *toArgTypes();
 
     type *toCtype();
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class TypeArray : public TypeNext
@@ -480,6 +486,7 @@ class TypeArray : public TypeNext
 public:
     TypeArray(TY ty, Type *next);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 // Static array, one with a fixed dimension
@@ -522,6 +529,7 @@ public:
 
     type *toCtype();
     type *toCParamtype();
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 // Dynamic array, no dimension
@@ -554,6 +562,7 @@ public:
 #endif
 
     type *toCtype();
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class TypeAArray : public TypeArray
@@ -595,6 +604,7 @@ public:
     Symbol *aaGetSymbol(const char *func, int flags);
 
     type *toCtype();
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class TypePointer : public TypeNext
@@ -620,6 +630,7 @@ public:
 #endif
 
     type *toCtype();
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class TypeReference : public TypeNext
@@ -638,6 +649,7 @@ public:
 #if CPP_MANGLE
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 enum RET
@@ -711,6 +723,7 @@ public:
     unsigned totym();
 
     Expression *defaultInit(Loc loc);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class TypeDelegate : public TypeNext
@@ -739,6 +752,7 @@ public:
 #endif
 
     type *toCtype();
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class TypeQualified : public Type
@@ -757,6 +771,7 @@ public:
     d_uns64 size(Loc loc);
     void resolveHelper(Loc loc, Scope *sc, Dsymbol *s, Dsymbol *scopesym,
         Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class TypeIdentifier : public TypeQualified
@@ -778,6 +793,7 @@ public:
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL);
     Type *reliesOnTident(TemplateParameters *tparams = NULL);
     Expression *toExpression();
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 /* Similar to TypeIdentifier, but with a TemplateInstance as the root
@@ -800,6 +816,7 @@ public:
     Type *reliesOnTident(TemplateParameters *tparams = NULL);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL);
     Expression *toExpression();
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class TypeTypeof : public TypeQualified
@@ -817,6 +834,7 @@ public:
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
     Type *semantic(Loc loc, Scope *sc);
     d_uns64 size(Loc loc);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class TypeReturn : public TypeQualified
@@ -830,6 +848,7 @@ public:
     Type *semantic(Loc loc, Scope *sc);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     void toJson(JsonOut *json);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 // Whether alias this dependency is recursive or not.
@@ -883,6 +902,7 @@ public:
 #endif
 
     type *toCtype();
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class TypeEnum : public Type
@@ -930,6 +950,7 @@ public:
 #endif
 
     type *toCtype();
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class TypeTypedef : public Type
@@ -981,6 +1002,7 @@ public:
 
     type *toCtype();
     type *toCParamtype();
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class TypeClass : public Type
@@ -1022,6 +1044,7 @@ public:
     type *toCtype();
 
     Symbol *toSymbol();
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class TypeTuple : public Type
@@ -1045,6 +1068,7 @@ public:
     Expression *getProperty(Loc loc, Identifier *ident, int flag);
     Expression *defaultInit(Loc loc);
     TypeInfoDeclaration *getTypeInfoDeclaration();
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class TypeSlice : public TypeNext
@@ -1060,6 +1084,7 @@ public:
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     void toJson(JsonOut *json);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class TypeNull : public Type
@@ -1078,6 +1103,7 @@ public:
 
     d_uns64 size(Loc loc);
     Expression *defaultInit(Loc loc);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 /**************************************************************/
