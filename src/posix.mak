@@ -1,26 +1,5 @@
-OS:=
-uname_S:=$(shell uname -s)
-ifeq (Darwin,$(uname_S))
-        OS:=OSX
-endif
-ifeq (Linux,$(uname_S))
-	OS:=LINUX
-endif
-ifeq (FreeBSD,$(uname_S))
-	OS:=FREEBSD
-endif
-ifeq (OpenBSD,$(uname_S))
-	OS:=OPENBSD
-endif
-ifeq (Solaris,$(uname_S))
-	OS:=SOLARIS
-endif
-ifeq (SunOS,$(uname_S))
-	OS:=SOLARIS
-endif
-ifeq (,$(OS))
-	$(error Unrecognized or unsupported OS for uname: $(uname_S))
-endif
+# get OS and MODEL
+include osmodel.mak
 
 ifeq (,$(TARGET_CPU))
     $(info no cpu specified, assuming X86)
@@ -45,27 +24,12 @@ C=backend
 TK=tk
 ROOT=root
 
-# Use make MODEL=32 or MODEL=64 to force the architecture
-MODEL:=
-uname_M:=$(shell uname -m)
-ifeq (x86_64,$(uname_M))
-	MODEL:=64
-endif
-ifeq (i686,$(uname_M))
-	MODEL:=32
-endif
-ifeq (,$(MODEL))
-	$(error Cannot figure 32/64 model from uname -m: $(uname_M))
-endif
-
-MODEL_FLAG:=-m$(MODEL)
-
-ifeq (OSX,$(OS))
+ifeq (osx,$(OS))
     export MACOSX_DEPLOYMENT_TARGET=10.3
 endif
 LDFLAGS=-lm -lstdc++ -lpthread
 
-#ifeq (OSX,$(OS))
+#ifeq (osx,$(OS))
 #	HOST_CC=clang++
 #else
 	HOST_CC=g++
@@ -84,8 +48,9 @@ else
 	GFLAGS:=$(WARNINGS) -D__pascal= -fno-exceptions -O2 $(PROFILE)
 endif
 
-CFLAGS = $(GFLAGS) -I$(ROOT) -DMARS=1 -DTARGET_$(OS)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1
-MFLAGS = $(GFLAGS) -I$C -I$(TK) -I$(ROOT) -DMARS=1 -DTARGET_$(OS)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1 -DDMDV2=1
+OS_UPCASE:=$(shell echo $(OS) | tr '[a-z]' '[A-Z]')
+CFLAGS = $(GFLAGS) -I$(ROOT) -DMARS=1 -DTARGET_$(OS_UPCASE)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1
+MFLAGS = $(GFLAGS) -I$C -I$(TK) -I$(ROOT) -DMARS=1 -DTARGET_$(OS_UPCASE)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1 -DDMDV2=1
 
 CH= $C/cc.h $C/global.h $C/oper.h $C/code.h $C/type.h \
 	$C/dt.h $C/cgcv.h $C/el.h $C/obj.h $(TARGET_CH)
@@ -113,13 +78,13 @@ DMD_OBJS = \
 	pdata.o cv8.o backconfig.o divcoeff.o outbuffer.o object.o filename.o file.o \
 	$(TARGET_OBJS)
 
-ifeq (OSX,$(OS))
+ifeq (osx,$(OS))
     DMD_OBJS += libmach.o scanmach.o machobj.o
 else
     DMD_OBJS += libelf.o scanelf.o elfobj.o
 endif
 
-SRC = win32.mak posix.mak \
+SRC = win32.mak posix.mak osmodel.mak \
 	mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c \
 	identifier.c mtype.c expression.c optimize.c template.h \
 	template.c lexer.c declaration.c cast.c cond.h cond.c link.c \
@@ -722,7 +687,7 @@ gcov:
 	gcov irstate.c
 	gcov json.c
 	gcov lexer.c
-ifeq (OSX,$(OS))
+ifeq (osx,$(OS))
 	gcov libmach.c
 else
 	gcov libelf.c

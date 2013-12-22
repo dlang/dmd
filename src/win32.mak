@@ -263,7 +263,7 @@ CH= $C\cc.h $C\global.h $C\oper.h $C\code.h $C\code_x86.h $C\type.h $C\dt.h $C\c
 	$C\el.h $C\iasm.h $C\obj.h
 
 # Makefiles
-MAKEFILES=win32.mak posix.mak
+MAKEFILES=win32.mak posix.mak osmodel.mak
 
 # Unit tests
 TESTS=UTFTest.exe # LexerTest.exe
