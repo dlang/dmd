@@ -1885,7 +1885,6 @@ Expression *expType(Type *type, Expression *e);
 Expression *Neg(Type *type, Expression *e1);
 Expression *Com(Type *type, Expression *e1);
 Expression *Not(Type *type, Expression *e1);
-Expression *Bool(Type *type, Expression *e1);
 Expression *Cast(Type *type, Type *to, Expression *e1);
 Expression *ArrayLength(Type *type, Expression *e1);
 Expression *Ptr(Type *type, Expression *e1);

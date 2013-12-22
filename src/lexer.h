@@ -78,7 +78,6 @@ enum TOK
         TOKequal,       TOKnotequal,
         TOKidentity,    TOKnotidentity,
         TOKindex,       TOKis,
-        TOKtobool,
 
 // 60
         // NCEG floating point compares
