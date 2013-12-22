@@ -1202,8 +1202,9 @@ TemplateDeclaration *getFuncTemplateDecl(Dsymbol *s)
  * Preprocess arguments to function.
  */
 
-void preFunctionParameters(Loc loc, Scope *sc, Expressions *exps)
+bool preFunctionParameters(Loc loc, Scope *sc, Expressions *exps)
 {
+    bool err = false;
     if (exps)
     {
         expandTuples(exps);
@@ -1216,10 +1217,12 @@ void preFunctionParameters(Loc loc, Scope *sc, Expressions *exps)
             {
                 arg->error("cannot pass type %s as a function argument", arg->toChars());
                 arg = new ErrorExp();
+                err = true;
             }
             (*exps)[i] =  arg;
         }
     }
+    return err;
 }
 
 /************************************************
@@ -5091,9 +5094,11 @@ Lagain:
     //printf("tb: %s, deco = %s\n", tb->toChars(), tb->deco);
 
     arrayExpressionSemantic(newargs, sc);
-    preFunctionParameters(loc, sc, newargs);
+    if (preFunctionParameters(loc, sc, newargs))
+        goto Lerr;
     arrayExpressionSemantic(arguments, sc);
-    preFunctionParameters(loc, sc, arguments);
+    if (preFunctionParameters(loc, sc, arguments))
+        goto Lerr;
 
     nargs = arguments ? arguments->dim : 0;
 
