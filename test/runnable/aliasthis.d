@@ -1551,6 +1551,33 @@ void test11261()
 }
 
 /***************************************************/
+// 11800
+
+struct A11800
+{
+    B11800 b;
+    alias b this;
+}
+
+struct B11800
+{
+    static struct Value {}
+    Value value;
+    alias value this;
+
+    void foo(ref const B11800 rhs)
+    {
+    }
+}
+
+void test11800()
+{
+    A11800 a;
+    B11800 b;
+    b.foo(a);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -1600,6 +1627,7 @@ int main()
     test10004();
     test10180();
     test10456();
+    test11800();
 
     printf("Success\n");
     return 0;

@@ -1078,20 +1078,21 @@ Expression *Expression::castTo(Scope *sc, Type *t)
         else
         {
             if (typeb->ty == Tstruct)
-            {   TypeStruct *ts = (TypeStruct *)typeb;
+            {
+                TypeStruct *ts = (TypeStruct *)typeb;
                 if (!(tb->ty == Tstruct && ts->sym == ((TypeStruct *)tb)->sym) &&
                     ts->sym->aliasthis)
-                {   /* Forward the cast to our alias this member, rewrite to:
+                {
+                    /* Forward the cast to our alias this member, rewrite to:
                      *   cast(to)e1.aliasthis
                      */
-                    Expression *e1 = resolveAliasThis(sc, this);
-                    Expression *e2 = new CastExp(loc, e1, tb);
-                    e2 = e2->semantic(sc);
-                    return e2;
+                    Expression *ex = resolveAliasThis(sc, this);
+                    return ex->castTo(sc, t);
                 }
             }
             else if (typeb->ty == Tclass)
-            {   TypeClass *ts = (TypeClass *)typeb;
+            {
+                TypeClass *ts = (TypeClass *)typeb;
                 if (ts->sym->aliasthis)
                 {
                     if (tb->ty == Tclass)
