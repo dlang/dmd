@@ -13273,10 +13273,11 @@ Expression *CmpExp::semantic(Scope *sc)
         if (!e->type->isscalar() && e->type->equals(e1->type))
         {
             error("recursive opCmp expansion");
-            e = new ErrorExp();
+            return new ErrorExp();
         }
-        else if (e->op == TOKcall)
-        {   e = new CmpExp(op, loc, e, new IntegerExp(loc, 0, Type::tint32));
+        if (e->op == TOKcall)
+        {
+            e = new CmpExp(op, loc, e, new IntegerExp(loc, 0, Type::tint32));
             e = e->semantic(sc);
         }
         return e;
@@ -13297,12 +13298,6 @@ Expression *CmpExp::semantic(Scope *sc)
 
     type = Type::tboolean;
 
-    if (op == TOKunord || op == TOKlg || op == TOKleg || op == TOKule ||
-        op == TOKul || op == TOKuge || op == TOKug || op == TOKue)
-    {
-        warning("use std.math.isNaN to deal with NaN operands rather than floating point operator '%s'", Token::toChars(op));
-    }
-
     // Special handling for array comparisons
     t1 = e1->type->toBasetype();
     t2 = e2->type->toBasetype();
@@ -13314,7 +13309,10 @@ Expression *CmpExp::semantic(Scope *sc)
         if (t1next->implicitConvTo(t2next) < MATCHconst &&
             t2next->implicitConvTo(t1next) < MATCHconst &&
             (t1next->ty != Tvoid && t2next->ty != Tvoid))
+        {
             error("array comparison type mismatch, %s vs %s", t1next->toChars(), t2next->toChars());
+            return new ErrorExp();
+        }
         e = this;
     }
     else if (t1->ty == Tstruct || t2->ty == Tstruct ||
@@ -13324,25 +13322,73 @@ Expression *CmpExp::semantic(Scope *sc)
             error("need member function opCmp() for %s %s to compare", t2->toDsymbol(sc)->kind(), t2->toChars());
         else
             error("need member function opCmp() for %s %s to compare", t1->toDsymbol(sc)->kind(), t1->toChars());
-        e = new ErrorExp();
+        return new ErrorExp();
     }
     else if (t1->iscomplex() || t2->iscomplex())
     {
         error("compare not defined for complex operands");
-        e = new ErrorExp();
+        return new ErrorExp();
     }
     else if (t1->ty == Taarray || t2->ty == Taarray)
     {
         error("%s is not defined for associative arrays", Token::toChars(op));
-        e = new ErrorExp();
+        return new ErrorExp();
     }
     else if (t1->ty == Tvector)
+    {
         return incompatibleTypes();
+    }
     else
-    {   if (!e1->rvalue() || !e2->rvalue())
+    {
+        if (!e1->rvalue() || !e2->rvalue())
             return new ErrorExp();
         e = this;
     }
+
+    TOK altop;
+    switch (op)
+    {
+        // Refer rel_integral[] table
+        case TOKunord:  altop = TOKerror;       break;
+        case TOKlg:     altop = TOKnotequal;    break;
+        case TOKleg:    altop = TOKerror;       break;
+        case TOKule:    altop = TOKle;          break;
+        case TOKul:     altop = TOKlt;          break;
+        case TOKuge:    altop = TOKge;          break;
+        case TOKug:     altop = TOKgt;          break;
+        case TOKue:     altop = TOKequal;       break;
+        default:        altop = TOKreserved;    break;
+    }
+    if (altop == TOKerror &&
+        (t1->ty == Tarray || t1->ty == Tsarray ||
+         t2->ty == Tarray || t2->ty == Tsarray))
+    {
+        error("'%s' is not defined for array comparisons", Token::toChars(op));
+        return new ErrorExp();
+    }
+    if (altop != TOKreserved)
+    {
+        if (!t1->isfloating())
+        {
+            if (altop == TOKerror)
+            {
+                const char *s = op == TOKunord ? "false" : "true";
+                warning("floating point operator '%s' always returns %s for non-floating comparisons",
+                    Token::toChars(op), s);
+            }
+            else
+            {
+                warning("use '%s' for non-floating comparisons rather than floating point operator '%s'",
+                    Token::toChars(altop), Token::toChars(op));
+            }
+        }
+        else
+        {
+            warning("use std.math.isNaN to deal with NaN operands rather than floating point operator '%s'",
+                Token::toChars(op));
+        }
+    }
+
     //printf("CmpExp: %s, type = %s\n", e->toChars(), e->type->toChars());
     return e;
 }
