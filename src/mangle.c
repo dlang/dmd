@@ -116,8 +116,10 @@ L1:
 #endif
         assert(fd && fd->inferRetType && fd->type->ty == Tfunction);
         TypeFunction *tf = (TypeFunction *)sthis->type;
-        assert(tf->next == NULL);
+        Type *tn = tf->next;
+        tf->next = NULL;    // do not mangle undetermined return type
         tf->toDecoBuffer(&buf, 0);
+        tf->next = tn;
     }
 
     id = buf.toChars();

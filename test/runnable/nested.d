@@ -2380,6 +2380,28 @@ void test11718()
 }
 
 /*******************************************/
+// 11776
+
+struct S11776(alias fun) { }
+
+void test11776()
+{
+    auto g = ()
+    {
+        if (1)
+            return; // fill tf->next
+        if (1)
+        {
+            auto s = S11776!(a => 1)();
+            static assert(typeof(s).mangleof ==
+                "S"~"6nested"~"57"~(
+                    "__T"~"6S11776"~"S43"~("6nested"~"9test11776"~"FZv"~"9__lambda1MFZ"~"9__lambda1")~"Z"
+                )~"6S11776");
+        }
+    };
+}
+
+/*******************************************/
 
 /+
 auto fun8863(T)(T* ret) { *ret = T(); }
