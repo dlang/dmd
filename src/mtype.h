@@ -253,9 +253,6 @@ public:
     void modToBuffer(OutBuffer *buf);
     char *modToChars();
     virtual void toJson(JsonOut *json);
-#if CPP_MANGLE
-    virtual void toCppMangle(OutBuffer *buf, CppMangleState *cms);
-#endif
     virtual bool isintegral();
     virtual bool isfloating();   // real, imaginary, or complex
     virtual bool isreal();
@@ -420,9 +417,6 @@ public:
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     char *toChars();
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
-#if CPP_MANGLE
-    void toCppMangle(OutBuffer *buf, CppMangleState *cms);
-#endif
     bool isintegral();
     bool isfloating();
     bool isreal();
@@ -460,9 +454,6 @@ public:
     void toJson(JsonOut *json);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL);
     Type *reliesOnTident(TemplateParameters *tparams);
-#if CPP_MANGLE
-    void toCppMangle(OutBuffer *buf, CppMangleState *cms);
-#endif
     bool isintegral();
     bool isfloating();
     bool isscalar();
@@ -523,9 +514,6 @@ public:
     int needsDestruction();
     bool needsNested();
     TypeTuple *toArgTypes();
-#if CPP_MANGLE
-    void toCppMangle(OutBuffer *buf, CppMangleState *cms);
-#endif
 
     type *toCtype();
     type *toCParamtype();
@@ -557,9 +545,6 @@ public:
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
     TypeTuple *toArgTypes();
-#if CPP_MANGLE
-    void toCppMangle(OutBuffer *buf, CppMangleState *cms);
-#endif
 
     type *toCtype();
     void accept(Visitor *v) { v->visit(this); }
@@ -596,9 +581,6 @@ public:
     TypeTuple *toArgTypes();
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);
-#if CPP_MANGLE
-    void toCppMangle(OutBuffer *buf, CppMangleState *cms);
-#endif
 
     // Back end
     Symbol *aaGetSymbol(const char *func, int flags);
@@ -625,9 +607,6 @@ public:
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
     TypeTuple *toArgTypes();
-#if CPP_MANGLE
-    void toCppMangle(OutBuffer *buf, CppMangleState *cms);
-#endif
 
     type *toCtype();
     void accept(Visitor *v) { v->visit(this); }
@@ -646,9 +625,6 @@ public:
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     Expression *defaultInit(Loc loc);
     int isZeroInit(Loc loc);
-#if CPP_MANGLE
-    void toCppMangle(OutBuffer *buf, CppMangleState *cms);
-#endif
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -709,9 +685,6 @@ public:
     TypeInfoDeclaration *getTypeInfoDeclaration();
     Type *reliesOnTident(TemplateParameters *tparams = NULL);
     bool hasLazyParameters();
-#if CPP_MANGLE
-    void toCppMangle(OutBuffer *buf, CppMangleState *cms);
-#endif
     bool parameterEscapes(Parameter *p);
     Type *addStorageClass(StorageClass stc);
 
@@ -747,9 +720,6 @@ public:
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     int hasPointers();
     TypeTuple *toArgTypes();
-#if CPP_MANGLE
-    void toCppMangle(OutBuffer *buf, CppMangleState *cms);
-#endif
 
     type *toCtype();
     void accept(Visitor *v) { v->visit(this); }
@@ -897,9 +867,6 @@ public:
     MATCH constConv(Type *to);
     unsigned deduceWild(Type *t, bool isRef);
     Type *toHeadMutable();
-#if CPP_MANGLE
-    void toCppMangle(OutBuffer *buf, CppMangleState *cms);
-#endif
 
     type *toCtype();
     void accept(Visitor *v) { v->visit(this); }
@@ -945,9 +912,6 @@ public:
     int hasPointers();
     TypeTuple *toArgTypes();
     Type *nextOf();
-#if CPP_MANGLE
-    void toCppMangle(OutBuffer *buf, CppMangleState *cms);
-#endif
 
     type *toCtype();
     void accept(Visitor *v) { v->visit(this); }
@@ -996,9 +960,6 @@ public:
     int hasPointers();
     TypeTuple *toArgTypes();
     int hasWild();
-#if CPP_MANGLE
-    void toCppMangle(OutBuffer *buf, CppMangleState *cms);
-#endif
 
     type *toCtype();
     type *toCParamtype();
@@ -1037,9 +998,6 @@ public:
     int hasPointers();
     TypeTuple *toArgTypes();
     int builtinTypeInfo();
-#if CPP_MANGLE
-    void toCppMangle(OutBuffer *buf, CppMangleState *cms);
-#endif
 
     type *toCtype();
 
@@ -1126,9 +1084,6 @@ public:
     int dyncast() { return DYNCAST_PARAMETER; } // kludge for template.isType()
     static Parameters *arraySyntaxCopy(Parameters *args);
     static char *argsTypesToChars(Parameters *args, int varargs);
-#if CPP_MANGLE
-    static void argsCppMangle(OutBuffer *buf, CppMangleState *cms, Parameters *arguments, int varargs);
-#endif
     static void argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Parameters *arguments, int varargs);
     static void argsToDecoBuffer(OutBuffer *buf, Parameters *arguments);
     static int isTPL(Parameters *arguments);
