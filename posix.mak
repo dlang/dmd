@@ -32,18 +32,14 @@ endif
 
 ifeq (,$(MODEL))
   uname_M:=$(shell uname -m)
-  ifeq (x86_64,$(uname_M))
-    MODEL=64
-  else
-    ifeq (i686,$(uname_M))
-      MODEL=32
-    else
-      ifeq (i386,$(uname_M))
-        MODEL=32
-      else
-        $(error Cannot figure 32/64 model from uname -m: $(uname_M))
-      endif
-    endif
+  ifneq (,$(findstring $(uname_M),x86_64 amd64))
+    MODEL:=64
+  endif
+  ifneq (,$(findstring $(uname_M),i386 i586 i686))
+    MODEL:=32
+  endif
+  ifeq (,$(MODEL))
+    $(error Cannot figure 32/64 model from uname -m: $(uname_M))
   endif
 endif
 
