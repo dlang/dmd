@@ -1168,9 +1168,11 @@ void Obj::term(const char *objfilename)
         if (pseg->SDbuf && pseg->SDbuf->size())
         {
             //printf(" - size %d\n",pseg->SDbuf->size());
-            sechdr->sh_size = pseg->SDbuf->size();
-            fobjbuf->write(pseg->SDbuf->buf, sechdr->sh_size);
-            foffset += sechdr->sh_size;
+            const size_t size = pseg->SDbuf->size();
+            fobjbuf->write(pseg->SDbuf->buf, size);
+            const long nfoffset = elf_align(sechdr->sh_addralign, foffset + size);
+            sechdr->sh_size = nfoffset - foffset;
+            foffset = nfoffset;
         }
         //printf(" assigned offset %d, size %d\n",foffset,sechdr->sh_size);
     }
