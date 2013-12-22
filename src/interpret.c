@@ -3009,7 +3009,9 @@ Expression *UnaExp::interpret(InterState *istate,  CtfeGoal goal)
     case TOKneg:    e = Neg(type, e1); break;
     case TOKtilde:  e = Com(type, e1); break;
     case TOKnot:    e = Not(type, e1); break;
+#if DMDV1
     case TOKtobool: e = Bool(type, e1); break;
+#endif
     case TOKvector: e = this; break; // do nothing
     default: assert(0);
     }

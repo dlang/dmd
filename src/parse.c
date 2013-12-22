@@ -7222,7 +7222,6 @@ void initPrecedence()
     precedence[TOKneg] = PREC_unary;
     precedence[TOKuadd] = PREC_unary;
     precedence[TOKnot] = PREC_unary;
-    precedence[TOKtobool] = PREC_add;
     precedence[TOKtilde] = PREC_unary;
     precedence[TOKdelete] = PREC_unary;
     precedence[TOKnew] = PREC_unary;
