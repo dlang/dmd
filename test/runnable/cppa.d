@@ -226,6 +226,19 @@ void test10()
 
 /****************************************/
 
+extern extern(C++) void test11797a(ulong n);
+extern extern(C++) void test11797b(long n);
+extern extern(C++) void test11797c(size_t n);
+
+void test11797()
+{
+    test11797a(0);
+    test11797b(0);
+    test11797c(0);
+}
+
+/****************************************/
+
 void main()
 {
     test1();
@@ -238,6 +251,7 @@ void main()
     test8();
     test9();
     test10();
+    test11797();
 
     printf("Success\n");
 }

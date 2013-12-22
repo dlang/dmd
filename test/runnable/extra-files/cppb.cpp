@@ -1,6 +1,7 @@
 
 #include <stdio.h>
 #include <assert.h>
+#include <stdint.h>
 
 /**************************************/
 
@@ -156,3 +157,16 @@ enum MyEnumType { onemember };
 void foo10(const MyEnumType s, const MyEnumType t) { }
 
 
+/**************************************/
+
+void test11797a(uint64_t n)
+{
+}
+
+void test11797b(int64_t n)
+{
+}
+
+void test11797c(size_t n)
+{
+}

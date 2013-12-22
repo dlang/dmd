@@ -237,7 +237,7 @@ void TypeBasic::toCppMangle(OutBuffer *buf, CppMangleState *cms)
         case Tuns32:    c = 'j';        break;
         case Tfloat32:  c = 'f';        break;
         case Tint64:    c = 'x';        break;
-        case Tuns64:    c = 'y';        break;
+        case Tuns64:    c = global.params.is64bit ? 'm' : 'y'; break;
         case Tfloat64:  c = 'd';        break;
         case Tfloat80:  c = 'e';        break;
         case Tbool:     c = 'b';        break;
