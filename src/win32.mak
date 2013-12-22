@@ -197,7 +197,7 @@ SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
 	clone.c lib.h arrayop.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c argtypes.c \
 	apply.c sapply.c sideeffect.c ctfe.h \
-	intrange.h intrange.c canthrow.c target.c target.h
+	intrange.h intrange.c canthrow.c target.c target.h visitor.h
 
 # Glue layer
 GLUESRC= glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \
@@ -607,7 +607,7 @@ typinf.obj : $(CH) $(TOTALH) $C\rtlsym.h mars.h module.h typinf.c
 todt.obj : mtype.h expression.h $C\dt.h todt.c
 	$(CC) -c -I$(ROOT) $(MFLAGS) todt
 
-s2ir.obj : $C\rtlsym.h statement.h s2ir.c
+s2ir.obj : $C\rtlsym.h statement.h s2ir.c visitor.h
 	$(CC) -c -I$(ROOT) $(MFLAGS) s2ir
 
 e2ir.obj : $C\rtlsym.h expression.h toir.h e2ir.c
