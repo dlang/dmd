@@ -156,168 +156,6 @@ Symbol* ClassReferenceExp::toSymbol()
     return NULL;
 }
 
-// s2ir
-
-void Statement::toIR(IRState *irs)
-{
-    assert(0);
-}
-
-void OnScopeStatement::toIR(IRState *irs)
-{
-    assert(0);
-}
-
-void IfStatement::toIR(IRState *irs)
-{
-    assert(0);
-}
-
-void PragmaStatement::toIR(IRState *irs)
-{
-    assert(0);
-}
-
-void WhileStatement::toIR(IRState *irs)
-{
-    assert(0);
-}
-
-void DoStatement::toIR(IRState *irs)
-{
-    assert(0);
-}
-
-void ForStatement::toIR(IRState *irs)
-{
-    assert(0);
-}
-
-void ForeachStatement::toIR(IRState *irs)
-{
-    assert(0);
-}
-
-void ForeachRangeStatement::toIR(IRState *irs)
-{
-    assert(0);
-}
-
-void BreakStatement::toIR(IRState *irs)
-{
-    assert(0);
-}
-
-void ContinueStatement::toIR(IRState *irs)
-{
-    assert(0);
-}
-
-void GotoStatement::toIR(IRState *irs)
-{
-    assert(0);
-}
-
-void LabelStatement::toIR(IRState *irs)
-{
-    assert(0);
-}
-
-void SwitchStatement::toIR(IRState *irs)
-{
-    assert(0);
-}
-
-void CaseStatement::toIR(IRState *irs)
-{
-    assert(0);
-}
-
-void DefaultStatement::toIR(IRState *irs)
-{
-    assert(0);
-}
-
-void GotoDefaultStatement::toIR(IRState *irs)
-{
-    assert(0);
-}
-
-void GotoCaseStatement::toIR(IRState *irs)
-{
-    assert(0);
-}
-
-void SwitchErrorStatement::toIR(IRState *irs)
-{
-    assert(0);
-}
-
-void ReturnStatement::toIR(IRState *irs)
-{
-    assert(0);
-}
-
-void ExpStatement::toIR(IRState *irs)
-{
-    assert(0);
-}
-
-void DtorExpStatement::toIR(IRState *irs)
-{
-    assert(0);
-}
-
-void CompoundStatement::toIR(IRState *irs)
-{
-    assert(0);
-}
-
-void UnrolledLoopStatement::toIR(IRState *irs)
-{
-    assert(0);
-}
-
-void ScopeStatement::toIR(IRState *irs)
-{
-    assert(0);
-}
-
-void WithStatement::toIR(IRState *irs)
-{
-    assert(0);
-}
-
-void ThrowStatement::toIR(IRState *irs)
-{
-    assert(0);
-}
-
-void TryCatchStatement::toIR(IRState *irs)
-{
-    assert(0);
-}
-
-void TryFinallyStatement::toIR(IRState *irs)
-{
-    assert(0);
-}
-
-void SynchronizedStatement::toIR(IRState *irs)
-{
-    assert(0);
-}
-
-void AsmStatement::toIR(IRState *irs)
-{
-    assert(0);
-}
-
-void ImportStatement::toIR(IRState *irs)
-{
-    assert(0);
-}
-
 // todt
 
 dt_t *Initializer::toDt()
@@ -450,6 +288,12 @@ void StructDeclaration::toDt(dt_t **pdt)
 }
 
 dt_t **Type::toDt(dt_t **pdt)
+{
+    assert(0);
+    return NULL;
+}
+
+dt_t **TypeVector::toDt(dt_t **pdt)
 {
     assert(0);
     return NULL;
