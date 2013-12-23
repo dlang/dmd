@@ -3754,6 +3754,12 @@ elem *PtrExp::toElem(IRState *irs)
     return e;
 }
 
+elem *BoolExp::toElem(IRState *irs)
+{
+    elem *e1 = this->e1->toElem(irs);
+    return el_una(OPbool,type->totym(),e1);
+}
+
 elem *DeleteExp::toElem(IRState *irs)
 {   elem *e;
     int rtl;

@@ -1171,6 +1171,15 @@ public:
     elem *toElem(IRState *irs);
 };
 
+class BoolExp : public UnaExp
+{
+public:
+    BoolExp(Loc loc, Expression *e, Type *type);
+    Expression *semantic(Scope *sc);
+    Expression *optimize(int result, bool keepLvalue = false);
+    elem *toElem(IRState *irs);
+};
+
 class DeleteExp : public UnaExp
 {
 public:
@@ -1885,6 +1894,7 @@ Expression *expType(Type *type, Expression *e);
 Expression *Neg(Type *type, Expression *e1);
 Expression *Com(Type *type, Expression *e1);
 Expression *Not(Type *type, Expression *e1);
+Expression *Bool(Type *type, Expression *e1);
 Expression *Cast(Type *type, Type *to, Expression *e1);
 Expression *ArrayLength(Type *type, Expression *e1);
 Expression *Ptr(Type *type, Expression *e1);
