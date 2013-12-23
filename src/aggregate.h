@@ -103,7 +103,6 @@ public:
     void searchCtor();
 
     void emitComment(Scope *sc);
-    void toJson(JsonOut *json);
     void toDocBuffer(OutBuffer *buf, Scope *sc);
 
     FuncDeclaration *hasIdentityOpAssign(Scope *sc);

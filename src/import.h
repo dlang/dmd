@@ -63,7 +63,6 @@ public:
     Dsymbol *search(Loc loc, Identifier *ident, int flags);
     bool overloadInsert(Dsymbol *s);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    void toJson(JsonOut *json);
 
     Import *isImport() { return this; }
     void accept(Visitor *v) { v->visit(this); }

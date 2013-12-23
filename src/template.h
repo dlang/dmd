@@ -91,8 +91,6 @@ public:
     char *toChars();
 
     void emitComment(Scope *sc);
-    void toJson(JsonOut *json);
-    virtual void jsonProperties(JsonOut *json);
     PROT prot();
 //    void toDocBuffer(OutBuffer *buf);
 
@@ -378,7 +376,6 @@ public:
     void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
     char *toChars();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    void toJson(JsonOut *json);
 
     void toObjFile(int multiobj);                       // compile to .obj file
 

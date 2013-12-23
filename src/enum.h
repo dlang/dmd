@@ -65,7 +65,6 @@ public:
     Type *getMemtype(Loc loc);
 
     void emitComment(Scope *sc);
-    void toJson(JsonOut *json);
     void toDocBuffer(OutBuffer *buf, Scope *sc);
 
     EnumDeclaration *isEnumDeclaration() { return this; }
@@ -102,7 +101,6 @@ public:
     Expression *getVarExp(Loc loc, Scope *sc);
 
     void emitComment(Scope *sc);
-    void toJson(JsonOut *json);
     void toDocBuffer(OutBuffer *buf, Scope *sc);
 
     EnumMember *isEnumMember() { return this; }

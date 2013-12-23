@@ -56,7 +56,6 @@ public:
     void checkCtorConstInit();
     void addLocalClass(ClassDeclarations *);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    void toJson(JsonOut *json);
     AttribDeclaration *isAttribDeclaration() { return this; }
 
     void toObjFile(int multiobj);                       // compile to .obj file
@@ -182,7 +181,6 @@ public:
     Dsymbols *include(Scope *sc, ScopeDsymbol *s);
     void addComment(const utf8_t *comment);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    void toJson(JsonOut *json);
     void importAll(Scope *sc);
     void setScope(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }

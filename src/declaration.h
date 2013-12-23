@@ -138,8 +138,6 @@ public:
     Dsymbol *search(Loc loc, Identifier *ident, int flags);
 
     void emitComment(Scope *sc);
-    void toJson(JsonOut *json);
-    virtual void jsonProperties(JsonOut *json);
     void toDocBuffer(OutBuffer *buf, Scope *sc);
 
     const char *mangle(bool isv = false);
@@ -209,7 +207,6 @@ public:
     const char *kind();
     Type *getType();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    void toJson(JsonOut *json);
     Type *htype;
     Type *hbasetype;
 
@@ -295,7 +292,6 @@ public:
     void semantic2(Scope *sc);
     const char *kind();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    void toJson(JsonOut *json);
     Type *htype;
     Initializer *hinit;
     AggregateDeclaration *isThis();
@@ -351,7 +347,6 @@ public:
     void semantic(Scope *sc);
 
     void emitComment(Scope *sc);
-    void toJson(JsonOut *json);
 
     Symbol *toSymbol();
     void accept(Visitor *v) { v->visit(this); }
@@ -368,7 +363,6 @@ public:
     char *toChars();
 
     void emitComment(Scope *sc);
-    void toJson(JsonOut *json);
 
     Symbol *toSymbol();
     void toObjFile(int multiobj);                       // compile to .obj file
@@ -672,7 +666,6 @@ public:
 
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void bodyToCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    void toJson(JsonOut *json);
     int overrides(FuncDeclaration *fd);
     int findVtblIndex(Dsymbols *vtbl, int dim);
     bool overloadInsert(Dsymbol *s);
@@ -810,7 +803,6 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    void toJson(JsonOut *json);
     bool isVirtual();
     bool addPreInvariant();
     bool addPostInvariant();

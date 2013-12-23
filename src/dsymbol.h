@@ -73,7 +73,6 @@ class DeleteDeclaration;
 struct HdrGenState;
 class OverloadSet;
 struct AA;
-struct JsonOut;
 #ifdef IN_GCC
 typedef union tree_node TYPE;
 #else
@@ -175,8 +174,6 @@ public:
     virtual void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
     virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     virtual void toDocBuffer(OutBuffer *buf, Scope *sc);
-    virtual void toJson(JsonOut *json);
-    virtual void jsonProperties(JsonOut *json);
     virtual unsigned size(Loc loc);
     virtual bool isforwardRef();
     virtual void defineRef(Dsymbol *s);
