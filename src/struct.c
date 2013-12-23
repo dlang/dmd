@@ -981,6 +981,7 @@ bool StructDeclaration::fill(Loc loc, Expressions *elements, bool ctorinit)
  * This is defined as:
  *      not nested
  *      no postblits, constructors, destructors, or assignment operators
+ *      no private or protected fields
  *      no fields that are themselves non-POD
  * The idea being these are compatible with C structs.
  */
@@ -999,8 +1000,14 @@ bool StructDeclaration::isPOD()
     for (size_t i = 0; i < fields.dim; i++)
     {
         VarDeclaration *v = fields[i];
+        if (v->prot() != PROTpublic)
+        {
+            ispod = ISPODno;
+            break;
+        }
         if (v->storage_class & STCref)
             continue;
+
         Type *tv = v->type->baseElemOf();
         if (tv->ty == Tstruct)
         {
