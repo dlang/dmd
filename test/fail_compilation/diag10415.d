@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag10415.d(34): Error: c.x is not an lvalue
+fail_compilation/diag10415.d(34): Error: function diag10415.C.x () const is not callable using argument types (int) const
 fail_compilation/diag10415.d(37): Error: d.x is not an lvalue
 ---
 */
