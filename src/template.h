@@ -112,6 +112,7 @@ public:
     bool isOverloadable();
 
     void makeParamNamesVisibleInConstraint(Scope *paramscope, Expressions *fargs);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class TemplateParameter
@@ -356,6 +357,7 @@ public:
 
     TemplateInstance *isTemplateInstance() { return this; }
     AliasDeclaration *isAliasDeclaration();
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class TemplateMixin : public TemplateInstance
@@ -383,6 +385,7 @@ public:
     bool findTemplateDeclaration(Scope *sc);
 
     TemplateMixin *isTemplateMixin() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 Expression *isExpression(RootObject *o);

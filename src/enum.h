@@ -76,6 +76,7 @@ public:
 
     Symbol *sinit;
     Symbol *toInitializer();
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 
@@ -105,6 +106,7 @@ public:
     void toDocBuffer(OutBuffer *buf, Scope *sc);
 
     EnumMember *isEnumMember() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 #endif /* DMD_ENUM_H */

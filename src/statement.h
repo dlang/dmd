@@ -941,6 +941,7 @@ public:
 
     LabelDsymbol(Identifier *ident);
     LabelDsymbol *isLabel();
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class AsmStatement : public Statement

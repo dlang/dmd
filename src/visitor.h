@@ -71,6 +71,89 @@ class TypeTuple;
 class TypeSlice;
 class TypeNull;
 
+class Dsymbol;
+
+class StaticAssert;
+class DebugSymbol;
+class VersionSymbol;
+class EnumMember;
+class Import;
+class OverloadSet;
+class LabelDsymbol;
+class AliasThis;
+
+class AttribDeclaration;
+class StorageClassDeclaration;
+class DeprecatedDeclaration;
+class LinkDeclaration;
+class ProtDeclaration;
+class AlignDeclaration;
+class AnonDeclaration;
+class PragmaDeclaration;
+class ConditionalDeclaration;
+class StaticIfDeclaration;
+class CompileDeclaration;
+class UserAttributeDeclaration;
+
+class ScopeDsymbol;
+class TemplateDeclaration;
+class TemplateInstance;
+class TemplateMixin;
+class EnumDeclaration;
+class Package;
+class Module;
+class WithScopeSymbol;
+class ArrayScopeSymbol;
+
+class AggregateDeclaration;
+class StructDeclaration;
+class UnionDeclaration;
+class ClassDeclaration;
+class InterfaceDeclaration;
+
+class Declaration;
+class TupleDeclaration;
+class TypedefDeclaration;
+class AliasDeclaration;
+class VarDeclaration;
+class SymbolDeclaration;
+class ClassInfoDeclaration;
+class ThisDeclaration;
+
+class TypeInfoDeclaration;
+class TypeInfoStructDeclaration;
+class TypeInfoClassDeclaration;
+class TypeInfoInterfaceDeclaration;
+class TypeInfoTypedefDeclaration;
+class TypeInfoPointerDeclaration;
+class TypeInfoArrayDeclaration;
+class TypeInfoStaticArrayDeclaration;
+class TypeInfoAssociativeArrayDeclaration;
+class TypeInfoEnumDeclaration;
+class TypeInfoFunctionDeclaration;
+class TypeInfoDelegateDeclaration;
+class TypeInfoTupleDeclaration;
+class TypeInfoConstDeclaration;
+class TypeInfoInvariantDeclaration;
+class TypeInfoSharedDeclaration;
+class TypeInfoWildDeclaration;
+class TypeInfoVectorDeclaration;
+
+class FuncDeclaration;
+class FuncAliasDeclaration;
+class FuncLiteralDeclaration;
+class CtorDeclaration;
+class PostBlitDeclaration;
+class DtorDeclaration;
+class StaticCtorDeclaration;
+class SharedStaticCtorDeclaration;
+class StaticDtorDeclaration;
+class SharedStaticDtorDeclaration;
+class InvariantDeclaration;
+class UnitTestDeclaration;
+class NewDeclaration;
+class DeleteDeclaration;
+
 class Visitor
 {
 public:
@@ -140,6 +223,89 @@ public:
     virtual void visit(TypeTuple *t) { visit((Type *)t); }
     virtual void visit(TypeSlice *t) { visit((TypeNext *)t); }
     virtual void visit(TypeNull *t) { visit((Type *)t); }
+
+    virtual void visit(Dsymbol *s) { assert(0); }
+
+    virtual void visit(StaticAssert *s) { visit((Dsymbol *)s); }
+    virtual void visit(DebugSymbol *s) { visit((Dsymbol *)s); }
+    virtual void visit(VersionSymbol *s) { visit((Dsymbol *)s); }
+    virtual void visit(EnumMember *s) { visit((Dsymbol *)s); }
+    virtual void visit(Import *s) { visit((Dsymbol *)s); }
+    virtual void visit(OverloadSet *s) { visit((Dsymbol *)s); }
+    virtual void visit(LabelDsymbol *s) { visit((Dsymbol *)s); }
+    virtual void visit(AliasThis *s) { visit((Dsymbol *)s); }
+
+    virtual void visit(AttribDeclaration *s) { visit((Dsymbol *)s); }
+    virtual void visit(StorageClassDeclaration *s) { visit((AttribDeclaration *)s); }
+    virtual void visit(DeprecatedDeclaration *s) { visit((StorageClassDeclaration *)s); }
+    virtual void visit(LinkDeclaration *s) { visit((AttribDeclaration *)s); }
+    virtual void visit(ProtDeclaration *s) { visit((AttribDeclaration *)s); }
+    virtual void visit(AlignDeclaration *s) { visit((AttribDeclaration *)s); }
+    virtual void visit(AnonDeclaration *s) { visit((AttribDeclaration *)s); }
+    virtual void visit(PragmaDeclaration *s) { visit((AttribDeclaration *)s); }
+    virtual void visit(ConditionalDeclaration *s) { visit((AttribDeclaration *)s); }
+    virtual void visit(StaticIfDeclaration *s) { visit((ConditionalDeclaration *)s); }
+    virtual void visit(CompileDeclaration *s) { visit((AttribDeclaration *)s); }
+    virtual void visit(UserAttributeDeclaration *s) { visit((AttribDeclaration *)s); }
+
+    virtual void visit(ScopeDsymbol *s) { visit((Dsymbol *)s); }
+    virtual void visit(TemplateDeclaration *s) { visit((ScopeDsymbol *)s); }
+    virtual void visit(TemplateInstance *s) { visit((ScopeDsymbol *)s); }
+    virtual void visit(TemplateMixin *s) { visit((TemplateInstance *)s); }
+    virtual void visit(EnumDeclaration *s) { visit((ScopeDsymbol *)s); }
+    virtual void visit(Package *s) { visit((ScopeDsymbol *)s); }
+    virtual void visit(Module *s) { visit((Package *)s); }
+    virtual void visit(WithScopeSymbol *s) { visit((ScopeDsymbol *)s); }
+    virtual void visit(ArrayScopeSymbol *s) { visit((ScopeDsymbol *)s); }
+
+    virtual void visit(AggregateDeclaration *s) { visit((ScopeDsymbol *)s); }
+    virtual void visit(StructDeclaration *s) { visit((AggregateDeclaration *)s); }
+    virtual void visit(UnionDeclaration *s) { visit((StructDeclaration *)s); }
+    virtual void visit(ClassDeclaration *s) { visit((AggregateDeclaration *)s); }
+    virtual void visit(InterfaceDeclaration *s) { visit((ClassDeclaration *)s); }
+
+    virtual void visit(Declaration *s) { visit((Dsymbol *)s); }
+    virtual void visit(TupleDeclaration *s) { visit((Declaration *)s); }
+    virtual void visit(TypedefDeclaration *s) { visit((Declaration *)s); }
+    virtual void visit(AliasDeclaration *s) { visit((Declaration *)s); }
+    virtual void visit(VarDeclaration *s) { visit((Declaration *)s); }
+    virtual void visit(SymbolDeclaration *s) { visit((Declaration *)s); }
+    virtual void visit(ClassInfoDeclaration *s) { visit((VarDeclaration *)s); }
+    virtual void visit(ThisDeclaration *s) { visit((VarDeclaration *)s); }
+
+    virtual void visit(TypeInfoDeclaration *s) { visit((VarDeclaration *)s); }
+    virtual void visit(TypeInfoStructDeclaration *s) { visit((TypeInfoDeclaration *)s); }
+    virtual void visit(TypeInfoClassDeclaration *s) { visit((TypeInfoDeclaration *)s); }
+    virtual void visit(TypeInfoInterfaceDeclaration *s) { visit((TypeInfoDeclaration *)s); }
+    virtual void visit(TypeInfoTypedefDeclaration *s) { visit((TypeInfoDeclaration *)s); }
+    virtual void visit(TypeInfoPointerDeclaration *s) { visit((TypeInfoDeclaration *)s); }
+    virtual void visit(TypeInfoArrayDeclaration *s) { visit((TypeInfoDeclaration *)s); }
+    virtual void visit(TypeInfoStaticArrayDeclaration *s) { visit((TypeInfoDeclaration *)s); }
+    virtual void visit(TypeInfoAssociativeArrayDeclaration *s) { visit((TypeInfoDeclaration *)s); }
+    virtual void visit(TypeInfoEnumDeclaration *s) { visit((TypeInfoDeclaration *)s); }
+    virtual void visit(TypeInfoFunctionDeclaration *s) { visit((TypeInfoDeclaration *)s); }
+    virtual void visit(TypeInfoDelegateDeclaration *s) { visit((TypeInfoDeclaration *)s); }
+    virtual void visit(TypeInfoTupleDeclaration *s) { visit((TypeInfoDeclaration *)s); }
+    virtual void visit(TypeInfoConstDeclaration *s) { visit((TypeInfoDeclaration *)s); }
+    virtual void visit(TypeInfoInvariantDeclaration *s) { visit((TypeInfoDeclaration *)s); }
+    virtual void visit(TypeInfoSharedDeclaration *s) { visit((TypeInfoDeclaration *)s); }
+    virtual void visit(TypeInfoWildDeclaration *s) { visit((TypeInfoDeclaration *)s); }
+    virtual void visit(TypeInfoVectorDeclaration *s) { visit((TypeInfoDeclaration *)s); }
+
+    virtual void visit(FuncDeclaration *s) { visit((Declaration *)s); }
+    virtual void visit(FuncAliasDeclaration *s) { visit((FuncDeclaration *)s); }
+    virtual void visit(FuncLiteralDeclaration *s) { visit((FuncDeclaration *)s); }
+    virtual void visit(CtorDeclaration *s) { visit((FuncDeclaration *)s); }
+    virtual void visit(PostBlitDeclaration *s) { visit((FuncDeclaration *)s); }
+    virtual void visit(DtorDeclaration *s) { visit((FuncDeclaration *)s); }
+    virtual void visit(StaticCtorDeclaration *s) { visit((FuncDeclaration *)s); }
+    virtual void visit(SharedStaticCtorDeclaration *s) { visit((StaticCtorDeclaration *)s); }
+    virtual void visit(StaticDtorDeclaration *s) { visit((FuncDeclaration *)s); }
+    virtual void visit(SharedStaticDtorDeclaration *s) { visit((StaticDtorDeclaration *)s); }
+    virtual void visit(InvariantDeclaration *s) { visit((FuncDeclaration *)s); }
+    virtual void visit(UnitTestDeclaration *s) { visit((FuncDeclaration *)s); }
+    virtual void visit(NewDeclaration *s) { visit((FuncDeclaration *)s); }
+    virtual void visit(DeleteDeclaration *s) { visit((FuncDeclaration *)s); }
 };
 
 #endif /* DMD_VISITOR_H */

@@ -54,6 +54,7 @@ public:
 
     virtual void semantic(Scope *) { }
     Dsymbol *search(Loc loc, Identifier *ident, int flags);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class Module : public Package
@@ -175,6 +176,7 @@ public:
     void genmoduleinfo();
 
     Module *isModule() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 
