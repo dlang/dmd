@@ -103,7 +103,6 @@ public:
     void searchCtor();
 
     void emitComment(Scope *sc);
-    void toJson(JsonOut *json);
     void toDocBuffer(OutBuffer *buf, Scope *sc);
 
     FuncDeclaration *hasIdentityOpAssign(Scope *sc);
@@ -125,6 +124,7 @@ public:
     Symbol *toInitializer();
 
     AggregateDeclaration *isAggregateDeclaration() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 struct StructFlags
@@ -184,6 +184,7 @@ public:
     void toDebug();                     // to symbolic debug info
 
     StructDeclaration *isStructDeclaration() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class UnionDeclaration : public StructDeclaration
@@ -194,6 +195,7 @@ public:
     const char *kind();
 
     UnionDeclaration *isUnionDeclaration() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 struct BaseClass
@@ -312,6 +314,7 @@ public:
     Symbol *vtblsym;
 
     ClassDeclaration *isClassDeclaration() { return (ClassDeclaration *)this; }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class InterfaceDeclaration : public ClassDeclaration
@@ -332,6 +335,7 @@ public:
     Symbol *toSymbol();
 
     InterfaceDeclaration *isInterfaceDeclaration() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 #endif /* DMD_AGGREGATE_H */

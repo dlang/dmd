@@ -138,8 +138,6 @@ public:
     Dsymbol *search(Loc loc, Identifier *ident, int flags);
 
     void emitComment(Scope *sc);
-    void toJson(JsonOut *json);
-    virtual void jsonProperties(JsonOut *json);
     void toDocBuffer(OutBuffer *buf, Scope *sc);
 
     const char *mangle(bool isv = false);
@@ -170,6 +168,7 @@ public:
     PROT prot();
 
     Declaration *isDeclaration() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 /**************************************************************/
@@ -189,6 +188,7 @@ public:
     bool needThis();
 
     TupleDeclaration *isTupleDeclaration() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 /**************************************************************/
@@ -207,7 +207,6 @@ public:
     const char *kind();
     Type *getType();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    void toJson(JsonOut *json);
     Type *htype;
     Type *hbasetype;
 
@@ -221,6 +220,7 @@ public:
 
     Symbol *sinit;
     Symbol *toInitializer();
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 /**************************************************************/
@@ -248,6 +248,7 @@ public:
     void toDocBuffer(OutBuffer *buf, Scope *sc);
 
     AliasDeclaration *isAliasDeclaration() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 /**************************************************************/
@@ -291,7 +292,6 @@ public:
     void semantic2(Scope *sc);
     const char *kind();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    void toJson(JsonOut *json);
     Type *htype;
     Initializer *hinit;
     AggregateDeclaration *isThis();
@@ -316,6 +316,7 @@ public:
     const char *mangle(bool isv = false);
     // Eliminate need for dynamic_cast
     VarDeclaration *isVarDeclaration() { return (VarDeclaration *)this; }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 /**************************************************************/
@@ -333,6 +334,7 @@ public:
 
     // Eliminate need for dynamic_cast
     SymbolDeclaration *isSymbolDeclaration() { return (SymbolDeclaration *)this; }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class ClassInfoDeclaration : public VarDeclaration
@@ -345,9 +347,9 @@ public:
     void semantic(Scope *sc);
 
     void emitComment(Scope *sc);
-    void toJson(JsonOut *json);
 
     Symbol *toSymbol();
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class TypeInfoDeclaration : public VarDeclaration
@@ -361,13 +363,13 @@ public:
     char *toChars();
 
     void emitComment(Scope *sc);
-    void toJson(JsonOut *json);
 
     Symbol *toSymbol();
     void toObjFile(int multiobj);                       // compile to .obj file
     virtual void toDt(dt_t **pdt);
 
     TypeInfoDeclaration *isTypeInfoDeclaration() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class TypeInfoStructDeclaration : public TypeInfoDeclaration
@@ -376,6 +378,7 @@ public:
     TypeInfoStructDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class TypeInfoClassDeclaration : public TypeInfoDeclaration
@@ -385,6 +388,7 @@ public:
     Symbol *toSymbol();
 
     void toDt(dt_t **pdt);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class TypeInfoInterfaceDeclaration : public TypeInfoDeclaration
@@ -393,6 +397,7 @@ public:
     TypeInfoInterfaceDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class TypeInfoTypedefDeclaration : public TypeInfoDeclaration
@@ -401,6 +406,7 @@ public:
     TypeInfoTypedefDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class TypeInfoPointerDeclaration : public TypeInfoDeclaration
@@ -409,6 +415,7 @@ public:
     TypeInfoPointerDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class TypeInfoArrayDeclaration : public TypeInfoDeclaration
@@ -417,6 +424,7 @@ public:
     TypeInfoArrayDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class TypeInfoStaticArrayDeclaration : public TypeInfoDeclaration
@@ -425,6 +433,7 @@ public:
     TypeInfoStaticArrayDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class TypeInfoAssociativeArrayDeclaration : public TypeInfoDeclaration
@@ -433,6 +442,7 @@ public:
     TypeInfoAssociativeArrayDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class TypeInfoEnumDeclaration : public TypeInfoDeclaration
@@ -441,6 +451,7 @@ public:
     TypeInfoEnumDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class TypeInfoFunctionDeclaration : public TypeInfoDeclaration
@@ -449,6 +460,7 @@ public:
     TypeInfoFunctionDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class TypeInfoDelegateDeclaration : public TypeInfoDeclaration
@@ -457,6 +469,7 @@ public:
     TypeInfoDelegateDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class TypeInfoTupleDeclaration : public TypeInfoDeclaration
@@ -465,6 +478,7 @@ public:
     TypeInfoTupleDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class TypeInfoConstDeclaration : public TypeInfoDeclaration
@@ -473,6 +487,7 @@ public:
     TypeInfoConstDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class TypeInfoInvariantDeclaration : public TypeInfoDeclaration
@@ -481,6 +496,7 @@ public:
     TypeInfoInvariantDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class TypeInfoSharedDeclaration : public TypeInfoDeclaration
@@ -489,6 +505,7 @@ public:
     TypeInfoSharedDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class TypeInfoWildDeclaration : public TypeInfoDeclaration
@@ -497,6 +514,7 @@ public:
     TypeInfoWildDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class TypeInfoVectorDeclaration : public TypeInfoDeclaration
@@ -505,6 +523,7 @@ public:
     TypeInfoVectorDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 /**************************************************************/
@@ -515,6 +534,7 @@ public:
     ThisDeclaration(Loc loc, Type *t);
     Dsymbol *syntaxCopy(Dsymbol *);
     ThisDeclaration *isThisDeclaration() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 enum ILS
@@ -646,7 +666,6 @@ public:
 
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void bodyToCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    void toJson(JsonOut *json);
     int overrides(FuncDeclaration *fd);
     int findVtblIndex(Dsymbols *vtbl, int dim);
     bool overloadInsert(Dsymbol *s);
@@ -716,6 +735,7 @@ public:
     FuncDeclaration *isFuncDeclaration() { return this; }
 
     virtual FuncDeclaration *toAliasFunc() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
@@ -738,6 +758,7 @@ public:
     const char *mangle(bool isv = false);
 
     FuncDeclaration *toAliasFunc();
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class FuncLiteralDeclaration : public FuncDeclaration
@@ -756,6 +777,7 @@ public:
     FuncLiteralDeclaration *isFuncLiteralDeclaration() { return this; }
     const char *kind();
     const char *toPrettyChars();
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class CtorDeclaration : public FuncDeclaration
@@ -771,6 +793,7 @@ public:
     bool addPostInvariant();
 
     CtorDeclaration *isCtorDeclaration() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class PostBlitDeclaration : public FuncDeclaration
@@ -780,7 +803,6 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    void toJson(JsonOut *json);
     bool isVirtual();
     bool addPreInvariant();
     bool addPostInvariant();
@@ -788,6 +810,7 @@ public:
     void emitComment(Scope *sc);
 
     PostBlitDeclaration *isPostBlitDeclaration() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class DtorDeclaration : public FuncDeclaration
@@ -807,6 +830,7 @@ public:
     void emitComment(Scope *sc);
 
     DtorDeclaration *isDtorDeclaration() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class StaticCtorDeclaration : public FuncDeclaration
@@ -825,6 +849,7 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     StaticCtorDeclaration *isStaticCtorDeclaration() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class SharedStaticCtorDeclaration : public StaticCtorDeclaration
@@ -835,6 +860,7 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     SharedStaticCtorDeclaration *isSharedStaticCtorDeclaration() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class StaticDtorDeclaration : public FuncDeclaration
@@ -855,6 +881,7 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     StaticDtorDeclaration *isStaticDtorDeclaration() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class SharedStaticDtorDeclaration : public StaticDtorDeclaration
@@ -865,6 +892,7 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     SharedStaticDtorDeclaration *isSharedStaticDtorDeclaration() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class InvariantDeclaration : public FuncDeclaration
@@ -880,6 +908,7 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     InvariantDeclaration *isInvariantDeclaration() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class UnitTestDeclaration : public FuncDeclaration
@@ -898,6 +927,7 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     UnitTestDeclaration *isUnitTestDeclaration() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class NewDeclaration : public FuncDeclaration
@@ -916,6 +946,7 @@ public:
     bool addPostInvariant();
 
     NewDeclaration *isNewDeclaration() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 
@@ -934,6 +965,7 @@ public:
     bool addPreInvariant();
     bool addPostInvariant();
     DeleteDeclaration *isDeleteDeclaration() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 #endif /* DMD_DECLARATION_H */

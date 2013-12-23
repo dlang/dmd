@@ -20,6 +20,7 @@
 
 #include "mars.h"
 #include "arraytypes.h"
+#include "visitor.h"
 
 class Identifier;
 struct Scope;
@@ -72,7 +73,6 @@ class DeleteDeclaration;
 struct HdrGenState;
 class OverloadSet;
 struct AA;
-struct JsonOut;
 #ifdef IN_GCC
 typedef union tree_node TYPE;
 #else
@@ -174,8 +174,6 @@ public:
     virtual void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
     virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     virtual void toDocBuffer(OutBuffer *buf, Scope *sc);
-    virtual void toJson(JsonOut *json);
-    virtual void jsonProperties(JsonOut *json);
     virtual unsigned size(Loc loc);
     virtual bool isforwardRef();
     virtual void defineRef(Dsymbol *s);
@@ -259,6 +257,7 @@ public:
     virtual SymbolDeclaration *isSymbolDeclaration() { return NULL; }
     virtual AttribDeclaration *isAttribDeclaration() { return NULL; }
     virtual OverloadSet *isOverloadSet() { return NULL; }
+    virtual void accept(Visitor *v) { v->visit(this); }
 };
 
 // Dsymbol that generates a scope
@@ -295,6 +294,7 @@ public:
     static int foreach(Scope *sc, Dsymbols *members, ForeachDg dg, void *ctx, size_t *pn=NULL);
 
     ScopeDsymbol *isScopeDsymbol() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 // With statement scope
@@ -308,6 +308,7 @@ public:
     Dsymbol *search(Loc loc, Identifier *ident, int flags);
 
     WithScopeSymbol *isWithScopeSymbol() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 // Array Index/Slice scope
@@ -326,6 +327,7 @@ public:
     Dsymbol *search(Loc loc, Identifier *ident, int flags);
 
     ArrayScopeSymbol *isArrayScopeSymbol() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 // Overload Sets
@@ -339,6 +341,7 @@ public:
     void push(Dsymbol *s);
     OverloadSet *isOverloadSet() { return this; }
     const char *kind();
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 // Table of Dsymbol's

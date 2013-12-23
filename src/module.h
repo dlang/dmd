@@ -54,6 +54,7 @@ public:
 
     virtual void semantic(Scope *) { }
     Dsymbol *search(Loc loc, Identifier *ident, int flags);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class Module : public Package
@@ -115,8 +116,6 @@ public:
     static Module *load(Loc loc, Identifiers *packages, Identifier *ident);
 
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    void toJson(JsonOut *json);
-    void jsonProperties(JsonOut *json);
     const char *kind();
     File *setOutfile(const char *name, const char *dir, const char *arg, const char *ext);
     void setDocfile();
@@ -175,6 +174,7 @@ public:
     void genmoduleinfo();
 
     Module *isModule() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 

@@ -91,8 +91,6 @@ public:
     char *toChars();
 
     void emitComment(Scope *sc);
-    void toJson(JsonOut *json);
-    virtual void jsonProperties(JsonOut *json);
     PROT prot();
 //    void toDocBuffer(OutBuffer *buf);
 
@@ -112,6 +110,7 @@ public:
     bool isOverloadable();
 
     void makeParamNamesVisibleInConstraint(Scope *paramscope, Expressions *fargs);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class TemplateParameter
@@ -356,6 +355,7 @@ public:
 
     TemplateInstance *isTemplateInstance() { return this; }
     AliasDeclaration *isAliasDeclaration();
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class TemplateMixin : public TemplateInstance
@@ -376,13 +376,13 @@ public:
     void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
     char *toChars();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    void toJson(JsonOut *json);
 
     void toObjFile(int multiobj);                       // compile to .obj file
 
     bool findTemplateDeclaration(Scope *sc);
 
     TemplateMixin *isTemplateMixin() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 Expression *isExpression(RootObject *o);
