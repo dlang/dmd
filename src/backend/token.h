@@ -369,6 +369,7 @@ void token_term(void);
 void pragma_process();
 int pragma_search(const char *id);
 macro_t * macfind(void);
+macro_t *macdefined(const char *id, unsigned hash);
 void listident(void);
 void pragma_term(void);
 macro_t *defmac(const char *name , const char *text);
