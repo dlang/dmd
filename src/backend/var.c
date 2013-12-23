@@ -138,9 +138,10 @@ char     *foutdir = NULL,       // directory to place output files in
 
 #if SPP || SCPP
 phstring_t fdeplist;
+phstring_t pathlist;            // include paths
 #endif
 
-list_t pathlist;                /* include paths                        */
+int pathsysi;                   // -isystem= index
 list_t headers;                 /* pre-include files                    */
 
 /* Data from lexical analyzer: */
