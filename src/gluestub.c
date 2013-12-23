@@ -889,6 +889,12 @@ elem *PtrExp::toElem(IRState *irs)
     return NULL;
 }
 
+elem *BoolExp::toElem(IRState *irs)
+{
+    assert(0);
+    return NULL;
+}
+
 elem *DeleteExp::toElem(IRState *irs)
 {
     assert(0);
