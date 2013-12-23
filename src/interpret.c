@@ -2948,6 +2948,11 @@ Expression *NewExp::interpret(InterState *istate, CtfeGoal goal)
             {
                 VarDeclaration *v = c->fields[i];
                 Expression *m;
+                if (v->inuse)
+                {
+                    error("circular reference to '%s'", v->toPrettyChars());
+                    return EXP_CANT_INTERPRET;
+                }
                 if (v->init)
                 {
                     if (v->init->isVoidInitializer())
