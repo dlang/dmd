@@ -116,6 +116,14 @@ Expression *Not(Type *type, Expression *e1)
     return e;
 }
 
+Expression *Bool(Type *type, Expression *e1)
+{   Expression *e;
+    Loc loc = e1->loc;
+
+    e = new IntegerExp(loc, e1->isBool(1), type);
+    return e;
+}
+
 Expression *Add(Type *type, Expression *e1, Expression *e2)
 {   Expression *e;
     Loc loc = e1->loc;
