@@ -1077,6 +1077,15 @@ const char *Package::kind()
     return "package";
 }
 
+Module *Package::isPackageMod()
+{
+    if (isPkgMod == PKGmodule)
+    {
+        return mod;
+    }
+    return NULL;
+}
+
 /****************************************************
  * Input:
  *      packages[]      the pkg1.pkg2 of pkg1.pkg2.mod

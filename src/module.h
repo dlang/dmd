@@ -55,6 +55,8 @@ public:
     virtual void semantic(Scope *) { }
     Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
     void accept(Visitor *v) { v->visit(this); }
+
+    Module *isPackageMod();
 };
 
 class Module : public Package

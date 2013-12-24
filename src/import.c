@@ -141,11 +141,11 @@ void Import::load(Scope *sc)
                     else
                         assert(p->isPkgMod == PKGmodule);
                 }
-                else if (p->isPkgMod == PKGmodule)
+                else
                 {
-                    mod = p->mod;
+                    mod = p->isPackageMod();
                 }
-                if (p->isPkgMod != PKGmodule)
+                if (!mod)
                 {
                     ::error(loc, "can only import from a module, not from package %s.%s",
                         p->toPrettyChars(), id->toChars());
