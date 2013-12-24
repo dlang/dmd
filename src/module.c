@@ -57,6 +57,7 @@ Module::Module(const char *filename, Identifier *ident, int doDocComment, int do
     numlines = 0;
     members = NULL;
     isDocFile = 0;
+    isPackageFile = false;
     needmoduleinfo = 0;
     selfimports = 0;
     insearch = 0;
@@ -331,6 +332,8 @@ void Module::parse()
     char *srcname = srcfile->name->toChars();
     //printf("Module::parse(srcname = '%s')\n", srcname);
 
+    isPackageFile = (strcmp(srcfile->name->name(), "package.d") == 0);
+
     utf8_t *buf = (utf8_t *)srcfile->buffer;
     size_t buflen = srcfile->len;
 
@@ -557,8 +560,7 @@ void Module::parse()
 
     // Insert module into the symbol table
     Dsymbol *s = this;
-    bool isPackageMod = strcmp(srcfile->name->name(), "package.d") == 0;
-    if (isPackageMod)
+    if (isPackageFile)
     {
         /* If the source tree is as follows:
          *     pkg/
@@ -602,7 +604,7 @@ void Module::parse()
         }
         else if (Package *pkg = prev->isPackage())
         {
-            if (pkg->isPkgMod == PKGunknown && isPackageMod)
+            if (pkg->isPkgMod == PKGunknown && isPackageFile)
             {
                 /* If the previous inserted Package is not yet determined as package.d,
                  * link it to the actual module.

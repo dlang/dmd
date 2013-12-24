@@ -83,6 +83,7 @@ public:
     unsigned errors;    // if any errors in file
     unsigned numlines;  // number of lines in source file
     int isDocFile;      // if it is a documentation input file, not D source
+    bool isPackageFile; // if it is a package.d
     int needmoduleinfo;
 
     int selfimports;            // 0: don't know, 1: does not, 2: does
