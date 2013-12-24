@@ -3,7 +3,9 @@
 // EXTRA_SOURCE: extra-files/pkg_import3a/package.d
 // EXTRA_SOURCE: extra-files/pkg_import3a/mod.d
 
+/******************************************/
 // Test1
+
 class Test1A
 {
     import pkg_import3a;        // foo()==1, bar()==2
@@ -62,7 +64,9 @@ class Test1C
     }
 }
 
+/******************************************/
 // Test2 symbol name in pkg_import3b/package.d conflicts with sibling module name which under the pkg_import3b.
+
 class Test2A
 {
     import pkg_import3b;        // foo()==1, bar()==2, int mod;
@@ -121,3 +125,61 @@ class Test2C
         }
     }
 }
+
+/******************************************/
+// from compilable/test7491.d
+
+struct Struct3
+{
+    import object;
+    import imports.imp3a;
+    import renamed = imports.imp3b;
+}
+
+struct AliasThis3
+{
+    Struct3 _struct;
+    alias _struct this;
+}
+
+class Base3
+{
+    import object;
+    import imports.imp3a;
+    import renamed = imports.imp3b;
+}
+
+class Derived3 : Base3
+{
+}
+
+interface Interface3
+{
+    import object;
+    import imports.imp3a;
+    import renamed = imports.imp3b;
+}
+
+class Impl3 : Interface3
+{
+}
+
+// The package/module names 'object', 'imports', and 'renamed' should not be accessible through type names
+static assert(!__traits(compiles, Struct3.object));
+static assert(!__traits(compiles, Struct3.imports));
+static assert(!__traits(compiles, Struct3.renamed));
+static assert(!__traits(compiles, AliasThis3.object));
+static assert(!__traits(compiles, AliasThis3.imports));
+static assert(!__traits(compiles, AliasThis3.renamed));
+static assert(!__traits(compiles, Base3.object));
+static assert(!__traits(compiles, Base3.imports));
+static assert(!__traits(compiles, Base3.renamed));
+static assert(!__traits(compiles, Derived3.object));
+static assert(!__traits(compiles, Derived3.imports));
+static assert(!__traits(compiles, Derived3.renamed));
+static assert(!__traits(compiles, Interface3.object));
+static assert(!__traits(compiles, Interface3.imports));
+static assert(!__traits(compiles, Interface3.renamed));
+static assert(!__traits(compiles, Impl3.object));
+static assert(!__traits(compiles, Impl3.imports));
+static assert(!__traits(compiles, Impl3.renamed));

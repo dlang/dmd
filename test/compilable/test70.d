@@ -1,10 +1,11 @@
-import imports.test70 : foo;
+// PERMUTE_ARGS:
 
-void foo(int) // overloads with selective import
-{
-}
+import imports.test70 : foo;
+void foo(int) {}
+// selective import does not create local alias implicitly
 
 void bar()
 {
-    foo();
+    static assert(!__traits(compiles, foo()));
+    foo(1);
 }
