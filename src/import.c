@@ -182,7 +182,8 @@ void Import::importAll(Scope *sc)
     {
         load(sc);
         if (mod)                // if successfully loaded module
-        {   mod->importAll(NULL);
+        {
+            mod->importAll(NULL);
 
             if (!isstatic && !aliasId && !names.dim)
             {
@@ -199,29 +200,21 @@ void Import::semantic(Scope *sc)
     //printf("Import::semantic('%s')\n", toPrettyChars());
 
     if (scope)
-    {   sc = scope;
+    {
+        sc = scope;
         scope = NULL;
     }
 
     // Load if not already done so
     if (!mod)
-    {   load(sc);
+    {
+        load(sc);
         if (mod)
             mod->importAll(NULL);
     }
 
     if (mod)
     {
-#if 0
-        if (mod->loc.linnum != 0)
-        {   /* If the line number is not 0, then this is not
-             * a 'root' module, i.e. it was not specified on the command line.
-             */
-            mod->importedFrom = sc->module->importedFrom;
-            assert(mod->importedFrom);
-        }
-#endif
-
         // Modules need a list of each imported module
         //printf("%s imports %s\n", sc->module->toChars(), mod->toChars());
         sc->module->aimports.push(mod);
@@ -243,7 +236,8 @@ void Import::semantic(Scope *sc)
         mod->semantic();
 
         if (mod->needmoduleinfo)
-        {   //printf("module4 %s because of %s\n", sc->module->toChars(), mod->toChars());
+        {
+            //printf("module4 %s because of %s\n", sc->module->toChars(), mod->toChars());
             sc->module->needmoduleinfo = 1;
         }
 
@@ -364,7 +358,8 @@ void Import::semantic2(Scope *sc)
     {
         mod->semantic2();
         if (mod->needmoduleinfo)
-        {   //printf("module5 %s because of %s\n", sc->module->toChars(), mod->toChars());
+        {
+            //printf("module5 %s because of %s\n", sc->module->toChars(), mod->toChars());
             sc->module->needmoduleinfo = 1;
         }
     }
@@ -418,7 +413,8 @@ Dsymbol *Import::search(Loc loc, Identifier *ident, int flags)
     //printf("%s.Import::search(ident = '%s', flags = x%x)\n", toChars(), ident->toChars(), flags);
 
     if (!pkg)
-    {   load(NULL);
+    {
+        load(NULL);
         mod->semantic();
     }
 

@@ -935,7 +935,8 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
                          * need to check s once)
                          */
                         if (s2->isOverloadable() && (a || s->isOverloadable()))
-                        {   if (!a)
+                        {
+                            if (!a)
                             {
                                 a = new OverloadSet(s->ident);
                                 a->parent = this;
@@ -943,7 +944,8 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
                             /* Don't add to a[] if s2 is alias of previous sym
                              */
                             for (size_t j = 0; j < a->a.dim; j++)
-                            {   Dsymbol *s3 = a->a[j];
+                            {
+                                Dsymbol *s3 = a->a[j];
                                 if (s2->toAlias() == s3->toAlias())
                                 {
                                     if (s3->isDeprecated() ||
@@ -998,7 +1000,8 @@ void ScopeDsymbol::importScope(Dsymbol *s, PROT protection)
         else
         {
             for (size_t i = 0; i < imports->dim; i++)
-            {   Dsymbol *ss = (*imports)[i];
+            {
+                Dsymbol *ss = (*imports)[i];
                 if (ss == s)                    // if already imported
                 {
                     if (protection > prots[i])
@@ -1519,7 +1522,3 @@ Dsymbol *DsymbolTable::update(Dsymbol *s)
     *ps = s;
     return s;
 }
-
-
-
-

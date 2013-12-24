@@ -1179,22 +1179,17 @@ Expression *build_overload(Loc loc, Scope *sc, Expression *ethis, Expression *ea
 
 Dsymbol *search_function(ScopeDsymbol *ad, Identifier *funcid)
 {
-    Dsymbol *s;
-    FuncDeclaration *fd;
-    TemplateDeclaration *td;
-
-    s = ad->search(Loc(), funcid, 0);
+    Dsymbol *s = ad->search(Loc(), funcid, 0);
     if (s)
-    {   Dsymbol *s2;
-
+    {
         //printf("search_function: s = '%s'\n", s->kind());
-        s2 = s->toAlias();
+        Dsymbol *s2 = s->toAlias();
         //printf("search_function: s2 = '%s'\n", s2->kind());
-        fd = s2->isFuncDeclaration();
+        FuncDeclaration *fd = s2->isFuncDeclaration();
         if (fd && fd->type->ty == Tfunction)
             return fd;
 
-        td = s2->isTemplateDeclaration();
+        TemplateDeclaration *td = s2->isTemplateDeclaration();
         if (td)
             return td;
     }
@@ -1263,7 +1258,8 @@ int ForeachStatement::inferAggregate(Scope *sc, Dsymbol *&sapply)
                 }
 
                 if (Dsymbol *shead = ad->search(Loc(), idfront, 0))
-                {   // range aggregate
+                {
+                    // range aggregate
                     break;
                 }
 

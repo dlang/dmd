@@ -269,7 +269,7 @@ public:
     DsymbolTable *symtab;       // members[] sorted into table
 
     Dsymbols *imports;          // imported Dsymbol's
-    PROT *prots;       // array of PROT, one for each import
+    PROT *prots;                // array of PROT, one for each import
 
     ScopeDsymbol();
     ScopeDsymbol(Identifier *id);

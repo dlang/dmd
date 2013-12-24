@@ -702,7 +702,7 @@ void ClassDeclaration::semantic(Scope *sc)
     inv = buildInv(sc);
 
     // Can be in base class
-    aggNew    = (NewDeclaration *)search(Loc(), Id::classNew, 0);
+    aggNew    =    (NewDeclaration *)search(Loc(), Id::classNew, 0);
     aggDelete = (DeleteDeclaration *)search(Loc(), Id::classDelete, 0);
 
     // If this class has no constructor, but base class has a default
