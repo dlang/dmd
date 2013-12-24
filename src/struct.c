@@ -532,7 +532,7 @@ int AggregateDeclaration::numFieldsInUnion(int firstIndex)
  */
 void AggregateDeclaration::searchCtor()
 {
-    ctor = search(Loc(), Id::ctor, 0);
+    ctor = search(Loc(), Id::ctor);
     if (ctor)
     {
         if (!(ctor->isCtorDeclaration() ||
@@ -760,8 +760,8 @@ void StructDeclaration::semantic(Scope *sc)
     /* Look for special member functions.
      */
     searchCtor();
-    aggNew =       (NewDeclaration *)search(Loc(), Id::classNew,       0);
-    aggDelete = (DeleteDeclaration *)search(Loc(), Id::classDelete,    0);
+    aggNew =       (NewDeclaration *)search(Loc(), Id::classNew);
+    aggDelete = (DeleteDeclaration *)search(Loc(), Id::classDelete);
 
     TypeTuple *tup = type->toArgTypes();
     size_t dim = tup->arguments->dim;

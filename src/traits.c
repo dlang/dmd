@@ -461,7 +461,7 @@ Expression *TraitsExp::semantic(Scope *sc)
         {
             if (sym)
             {
-                Dsymbol *sm = sym->search(loc, id, 0);
+                Dsymbol *sm = sym->search(loc, id);
                 if (sm)
                     goto Ltrue;
             }

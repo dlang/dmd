@@ -1912,7 +1912,7 @@ Lagain:
             {   idfront = Id::Fback;
                 idpopFront = Id::FpopBack;
             }
-            Dsymbol *sfront = ad->search(Loc(), idfront, 0);
+            Dsymbol *sfront = ad->search(Loc(), idfront);
             if (!sfront)
                 goto Lapply;
 
@@ -5346,7 +5346,8 @@ Statement *ImportStatement::syntaxCopy()
     Dsymbols *m = new Dsymbols();
     m->setDim(imports->dim);
     for (size_t i = 0; i < imports->dim; i++)
-    {   Dsymbol *s = (*imports)[i];
+    {
+        Dsymbol *s = (*imports)[i];
         (*m)[i] = s->syntaxCopy(NULL);
     }
     return new ImportStatement(loc, m);
@@ -5355,7 +5356,8 @@ Statement *ImportStatement::syntaxCopy()
 Statement *ImportStatement::semantic(Scope *sc)
 {
     for (size_t i = 0; i < imports->dim; i++)
-    {   Import *s = (*imports)[i]->isImport();
+    {
+        Import *s = (*imports)[i]->isImport();
 
         for (size_t j = 0; j < s->names.dim; j++)
         {
@@ -5392,7 +5394,8 @@ int ImportStatement::blockExit(bool mustNotThrow)
 void ImportStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     for (size_t i = 0; i < imports->dim; i++)
-    {   Dsymbol *s = (*imports)[i];
+    {
+        Dsymbol *s = (*imports)[i];
         s->toCBuffer(buf, hgs);
     }
 }

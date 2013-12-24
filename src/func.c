@@ -504,7 +504,8 @@ void FuncDeclaration::semantic(Scope *sc)
 
                 // Verify this doesn't override previous final function
                 if (cd->baseClass)
-                {   Dsymbol *s = cd->baseClass->search(loc, ident, 0);
+                {
+                    Dsymbol *s = cd->baseClass->search(loc, ident);
                     if (s)
                     {
                         FuncDeclaration *f2 = s->isFuncDeclaration();

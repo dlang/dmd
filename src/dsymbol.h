@@ -112,6 +112,16 @@ enum PASS
     PASSobj,            // toObjFile() run
 };
 
+/* Flags for symbol search
+ */
+enum
+{
+    IgnoreNone              = 0x00, // default
+    IgnorePrivateMembers    = 0x01, // don't find private members
+    IgnoreErrors            = 0x02, // don't give error messages
+    IgnoreAmbiguous         = 0x04, // return NULL if ambiguous
+};
+
 typedef int (*Dsymbol_apply_ft_t)(Dsymbol *, void *);
 
 class Dsymbol : public RootObject
@@ -167,7 +177,7 @@ public:
     virtual void semantic2(Scope *sc);
     virtual void semantic3(Scope *sc);
     virtual void inlineScan();
-    virtual Dsymbol *search(Loc loc, Identifier *ident, int flags);
+    virtual Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
     Dsymbol *search_correct(Identifier *id);
     Dsymbol *searchX(Loc loc, Scope *sc, RootObject *id);
     virtual bool overloadInsert(Dsymbol *s);
@@ -269,12 +279,12 @@ public:
     DsymbolTable *symtab;       // members[] sorted into table
 
     Dsymbols *imports;          // imported Dsymbol's
-    PROT *prots;       // array of PROT, one for each import
+    PROT *prots;                // array of PROT, one for each import
 
     ScopeDsymbol();
     ScopeDsymbol(Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *s);
-    Dsymbol *search(Loc loc, Identifier *ident, int flags);
+    Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
     void importScope(Dsymbol *s, PROT protection);
     bool isforwardRef();
     void defineRef(Dsymbol *s);
@@ -305,7 +315,7 @@ public:
     WithStatement *withstate;
 
     WithScopeSymbol(WithStatement *withstate);
-    Dsymbol *search(Loc loc, Identifier *ident, int flags);
+    Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
 
     WithScopeSymbol *isWithScopeSymbol() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -324,7 +334,7 @@ public:
     ArrayScopeSymbol(Scope *sc, Expression *e);
     ArrayScopeSymbol(Scope *sc, TypeTuple *t);
     ArrayScopeSymbol(Scope *sc, TupleDeclaration *td);
-    Dsymbol *search(Loc loc, Identifier *ident, int flags);
+    Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
 
     ArrayScopeSymbol *isArrayScopeSymbol() { return this; }
     void accept(Visitor *v) { v->visit(this); }

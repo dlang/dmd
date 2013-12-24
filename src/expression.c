@@ -689,7 +689,7 @@ Expression *searchUFCS(Scope *sc, UnaExp *ue, Identifier *ident)
     {
         if (!scx->scopesym)
             continue;
-        s = scx->scopesym->search(loc, ident, 0);
+        s = scx->scopesym->search(loc, ident);
         if (s)
         {
             // overload set contains only module scope symbols.
@@ -819,7 +819,7 @@ Expression *resolveUFCS(Scope *sc, CallExp *ce)
                 TypeAArray *taa = (TypeAArray *)t;
                 assert(taa->ty == Taarray);
                 StructDeclaration *sd = taa->getImpl();
-                Dsymbol *s = sd->search(Loc(), ident, 2);
+                Dsymbol *s = sd->search(Loc(), ident, IgnoreErrors);
                 if (s)
                     return NULL;
             }
@@ -7495,7 +7495,7 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
          * the current module should have access to its own imports.
          */
         Dsymbol *s = ie->sds->search(loc, ident,
-            (ie->sds->isModule() && ie->sds != sc->module) ? 1 : 0);
+            (ie->sds->isModule() && ie->sds != sc->module) ? IgnorePrivateMembers : IgnoreNone);
         if (s)
         {
             /* Check for access before resolving aliases because public
@@ -8574,7 +8574,7 @@ Lagain:
             {
                 if (ad->scope)
                     ad->semantic(ad->scope);
-                else if (!ad->ctor && ad->search(Loc(), Id::ctor, 0))
+                else if (!ad->ctor && ad->search(Loc(), Id::ctor))
                 {
                     // The constructor hasn't been found yet, see bug 8741
                     // This can happen if we are inferring type from

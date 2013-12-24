@@ -60,7 +60,7 @@ public:
     void semantic2(Scope *sc);
     Dsymbol *toAlias();
     int addMember(Scope *sc, ScopeDsymbol *s, int memnum);
-    Dsymbol *search(Loc loc, Identifier *ident, int flags);
+    Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
     bool overloadInsert(Dsymbol *s);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
