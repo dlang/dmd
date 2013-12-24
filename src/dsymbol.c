@@ -898,9 +898,8 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
         //printf("\ts = '%s.%s'\n",toChars(),s1->toChars());
         return s1;
     }
-    else if (!imports)
-        return NULL;
-    else
+
+    if (imports)
     {
         Dsymbol *s = NULL;
         OverloadSet *a = NULL;
@@ -994,24 +993,26 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
             }
         }
 
-        /* Build special symbol if we had multiple finds
-         */
-        if (a)
-        {   assert(s);
-            a->push(s);
-            s = a;
-        }
-
         if (s)
         {
+            /* Build special symbol if we had multiple finds
+             */
+            if (a)
+            {
+                a->push(s);
+                s = a;
+            }
+
             if (!(flags & IgnoreErrors) && s->prot() == PROTprivate && !s->parent->isTemplateMixin())
             {
                 if (!s->isImport())
                     error(loc, "%s %s is private", s->kind(), s->toPrettyChars());
             }
+            return s;
         }
-        return s;
     }
+
+    return s1;
 }
 
 void ScopeDsymbol::importScope(Dsymbol *s, PROT protection)
