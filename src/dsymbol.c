@@ -386,9 +386,7 @@ void Dsymbol::inlineScan()
 /*********************************************
  * Search for ident as member of s.
  * Input:
- *      flags:  1       don't find private members
- *              2       don't give error messages
- *              4       return NULL if ambiguous
+ *      flags:  (see IgnoreXXX declared in dsymbol.h)
  * Returns:
  *      NULL if not found
  */
@@ -418,7 +416,7 @@ void *symbol_search_fp(void *arg, const char *seed)
     assert(id);
 
     Dsymbol *s = (Dsymbol *)arg;
-    return (void *)s->search(Loc(), id, 4|2);
+    return (void *)s->search(Loc(), id, IgnoreErrors | IgnoreAmbiguous);
 }
 
 Dsymbol *Dsymbol::search_correct(Identifier *ident)
@@ -445,7 +443,7 @@ Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, RootObject *id)
     switch (id->dyncast())
     {
         case DYNCAST_IDENTIFIER:
-            sm = s->search(loc, (Identifier *)id, 0);
+            sm = s->search(loc, (Identifier *)id);
             break;
 
         case DYNCAST_DSYMBOL:
@@ -453,7 +451,7 @@ Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, RootObject *id)
             //printf("\ttemplate instance id\n");
             Dsymbol *st = (Dsymbol *)id;
             TemplateInstance *ti = st->isTemplateInstance();
-            sm = s->search(loc, ti->name, 0);
+            sm = s->search(loc, ti->name);
             if (!sm)
             {
                 sm = s->search_correct(ti->name);
@@ -883,7 +881,7 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
         for (size_t i = 0; i < imports->dim; i++)
         {
             // If private import, don't search it
-            if (flags & 1 && prots[i] == PROTprivate)
+            if ((flags & IgnorePrivateMembers) && prots[i] == PROTprivate)
                 continue;
 
             Dsymbol *ss = (*imports)[i];
@@ -891,7 +889,7 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
             //printf("\tscanning import '%s', prots = %d, isModule = %p, isImport = %p\n", ss->toChars(), prots[i], ss->isModule(), ss->isImport());
             /* Don't find private members if ss is a module
              */
-            Dsymbol *s2 = ss->search(loc, ident, ss->isModule() ? 1 : 0);
+            Dsymbol *s2 = ss->search(loc, ident, ss->isModule() ? IgnorePrivateMembers : IgnoreNone);
             if (!s)
                 s = s2;
             else if (s2 && s != s2)
@@ -958,9 +956,9 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
                         Lcontinue:
                             continue;
                         }
-                        if (flags & 4)          // if return NULL on ambiguity
+                        if (flags & IgnoreAmbiguous)    // if return NULL on ambiguity
                             return NULL;
-                        if (!(flags & 2))
+                        if (!(flags & IgnoreErrors))
                             ScopeDsymbol::multiplyDefined(loc, s, s2);
                         break;
                     }
@@ -978,7 +976,7 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
 
         if (s)
         {
-            if (!(flags & 2) && s->prot() == PROTprivate && !s->parent->isTemplateMixin())
+            if (!(flags & IgnoreErrors) && s->prot() == PROTprivate && !s->parent->isTemplateMixin())
             {
                 if (!s->isImport())
                     error(loc, "%s %s is private", s->kind(), s->toPrettyChars());
@@ -1260,7 +1258,7 @@ Dsymbol *WithScopeSymbol::search(Loc loc, Identifier *ident, int flags)
         }
         if (s)
         {
-            s = s->search(loc, ident, 0);
+            s = s->search(loc, ident);
             if (s)
                 return s;
         }
@@ -1408,7 +1406,7 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
                 }
                 assert(ad);
 
-                Dsymbol *s = ad->search(loc, Id::opDollar, 0);
+                Dsymbol *s = ad->search(loc, Id::opDollar);
                 if (!s)  // no dollar exists -- search in higher scope
                     return NULL;
                 s = s->toAlias();

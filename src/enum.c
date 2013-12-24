@@ -475,7 +475,8 @@ Dsymbol *EnumDeclaration::search(Loc loc, Identifier *ident, int flags)
         semantic(scope);
 
     if (!members || !symtab || scope)
-    {   error("is forward referenced when looking for '%s'", ident->toChars());
+    {
+        error("is forward referenced when looking for '%s'", ident->toChars());
         //*(char*)0=0;
         return NULL;
     }

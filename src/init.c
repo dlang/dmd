@@ -208,7 +208,7 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, NeedInterpret needI
         {
             if (Identifier *id = field[i])
             {
-                Dsymbol *s = sd->search(loc, id, 0);
+                Dsymbol *s = sd->search(loc, id);
                 if (!s)
                 {
                     s = sd->search_correct(id);

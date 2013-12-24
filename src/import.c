@@ -254,7 +254,7 @@ void Import::semantic(Scope *sc)
         {   AliasDeclaration *ad = aliasdecls[i];
 
             //printf("\tImport alias semantic('%s')\n", s->toChars());
-            if (mod->search(loc, names[i], 0))
+            if (mod->search(loc, names[i]))
             {
                 ad->semantic(sc);
             }

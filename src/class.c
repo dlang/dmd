@@ -702,8 +702,8 @@ void ClassDeclaration::semantic(Scope *sc)
     inv = buildInv(sc);
 
     // Can be in base class
-    aggNew    =    (NewDeclaration *)search(Loc(), Id::classNew, 0);
-    aggDelete = (DeleteDeclaration *)search(Loc(), Id::classDelete, 0);
+    aggNew    =    (NewDeclaration *)search(Loc(), Id::classNew);
+    aggDelete = (DeleteDeclaration *)search(Loc(), Id::classDelete);
 
     // If this class has no constructor, but base class has a default
     // ctor, create a constructor:
@@ -999,7 +999,7 @@ int isf(void *param, Dsymbol *s)
 int ClassDeclaration::isFuncHidden(FuncDeclaration *fd)
 {
     //printf("ClassDeclaration::isFuncHidden(class = %s, fd = %s)\n", toChars(), fd->toChars());
-    Dsymbol *s = search(Loc(), fd->ident, 4|2);
+    Dsymbol *s = search(Loc(), fd->ident, IgnoreAmbiguous | IgnoreErrors);
     if (!s)
     {
         //printf("not found\n");

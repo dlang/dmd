@@ -1912,7 +1912,7 @@ Lagain:
             {   idfront = Id::Fback;
                 idpopFront = Id::FpopBack;
             }
-            Dsymbol *sfront = ad->search(Loc(), idfront, 0);
+            Dsymbol *sfront = ad->search(Loc(), idfront);
             if (!sfront)
                 goto Lapply;
 

@@ -135,7 +135,7 @@ public:
     unsigned size(Loc loc);
     int checkModify(Loc loc, Scope *sc, Type *t, Expression *e1, int flag);
 
-    Dsymbol *search(Loc loc, Identifier *ident, int flags);
+    Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
 
     void emitComment(Scope *sc);
     void toDocBuffer(OutBuffer *buf, Scope *sc);

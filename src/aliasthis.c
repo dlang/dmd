@@ -76,7 +76,7 @@ void AliasThis::semantic(Scope *sc)
     if (ad)
     {
         assert(ad->members);
-        Dsymbol *s = ad->search(loc, ident, 0);
+        Dsymbol *s = ad->search(loc, ident);
         if (!s)
         {
             s = sc->search(loc, ident, NULL);
