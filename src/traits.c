@@ -404,6 +404,9 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         Dsymbol *s = getDsymbol(o);
         if (s)
         {
+            //printf("s = %s %s\n", s->kind(), s->toChars());
+            if (Import *imp = s->isImport())
+                s = imp->mod;
             if (FuncDeclaration *fd = s->isFuncDeclaration())   // Bugzilla 8943
                 s = fd->toAliasFunc();
             if (!s->isImport())  // Bugzilla 8922

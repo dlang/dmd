@@ -29,6 +29,7 @@
 #include "parse.h"
 #include "template.h"
 #include "attrib.h"
+#include "module.h"
 #include "import.h"
 
 bool walkPostorder(Statement *s, StoppableVisitor *v);
@@ -4792,32 +4793,9 @@ Statement *ImportStatement::semantic(Scope *sc)
     {
         Import *s = (*imports)[i]->isImport();
 
-        if (!s->aliasdecls.dim)
-        {
-            for (size_t j = 0; j < s->names.dim; j++)
-            {
-                Identifier *name = s->names[j];
-                Identifier *alias = s->aliases[j];
-
-                if (!alias)
-                    alias = name;
-
-                TypeIdentifier *tname = new TypeIdentifier(s->loc, name);
-                AliasDeclaration *ad = new AliasDeclaration(s->loc, alias, tname);
-                ad->import = s;
-
-                s->aliasdecls.push(ad);
-            }
-        }
-
         s->semantic(sc);
         s->semantic2(sc);
         sc->insert(s);
-
-        for (size_t j = 0; j < s->aliasdecls.dim; j++)
-        {
-            sc->insert(s->aliasdecls[j]);
-        }
     }
     return this;
 }

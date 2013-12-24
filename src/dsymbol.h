@@ -123,6 +123,10 @@ enum
     IgnorePrivateMembers    = 0x01, // don't find private members
     IgnoreErrors            = 0x02, // don't give error messages
     IgnoreAmbiguous         = 0x04, // return NULL if ambiguous
+    IgnoreImportedFQN       = 0x08, // don't find imported FQNs
+    IgnorePrivateImports    = 0x10, // don't find privately imported symbols
+
+    IgnorePrivateSymbols    = IgnorePrivateMembers | IgnorePrivateImports,
 };
 
 typedef int (*Dsymbol_apply_ft_t)(Dsymbol *, void *);
@@ -278,6 +282,8 @@ public:
 
     Dsymbols *imports;          // imported Dsymbol's
     PROT *prots;                // array of PROT, one for each import
+
+    DsymbolTable *pkgtab;       // accessible packages/modules from this scope
 
     ScopeDsymbol();
     ScopeDsymbol(Identifier *id);

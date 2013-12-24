@@ -24,6 +24,7 @@
 #include "expression.h"
 #include "scope.h"
 #include "module.h"
+#include "import.h"
 #include "aggregate.h"
 #include "declaration.h"
 #include "dsymbol.h"
@@ -6544,6 +6545,12 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
                 sa = ((ScopeExp *)ea)->sds;
                 goto Ldsym;
             }
+            if (ea->op == TOKdsymbol)
+            {
+                sa = ((DsymbolExp *)ea)->s->isImport();
+                assert(sa);
+                goto Ldsym;
+            }
             if (ea->op == TOKfunction)
             {
                 FuncExp *fe = (FuncExp *)ea;
@@ -6587,6 +6594,11 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
         {
         Ldsym:
             //printf("dsym %s %s\n", sa->kind(), sa->toChars());
+            if (Import *imp = sa->isImport())
+            {
+                if (sc->module == imp->mod)
+                    sa = imp->mod;
+            }
             TupleDeclaration *d = sa->toAlias()->isTupleDeclaration();
             if (d)
             {
