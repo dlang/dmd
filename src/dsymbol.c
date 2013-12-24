@@ -899,7 +899,8 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
     {
         //printf("\ts = '%s.%s', prot = %d\n", toChars(), s1->toChars(), s1->prot());
         // The found symbol which has private access should be invisible
-        if ((flags & IgnorePrivateMembers) && !s1->isOverloadable() && s1->prot() == PROTprivate)
+        // FIXME: Issue 10604 - Not consistent access check for overloaded symbols
+        if ((flags & IgnorePrivateMembers) && /*!s1->isOverloadable() && */s1->prot() == PROTprivate)
             s1 = NULL;
         return s1;
     }
@@ -1006,7 +1007,8 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
                 s = a;
             }
 
-            if (!(flags & IgnoreErrors) && !s->isOverloadable() &&
+            // FIXME: Issue 10604 - Not consistent access check for overloaded symbols
+            if (!(flags & IgnoreErrors) /*&& !s->isOverloadable()*/ &&
                 s->prot() == PROTprivate && !s->parent->isTemplateMixin())
             {
                 if (!s->isImport())
