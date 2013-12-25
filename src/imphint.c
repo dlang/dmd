@@ -32,6 +32,7 @@ const char *importHint(const char *s)
         "std.stdio",
         "std.math",
         "core.vararg",
+        NULL
     };
     static const char *names[] =
     {
@@ -41,14 +42,15 @@ const char *importHint(const char *s)
         "__va_argsave_t", NULL,
     };
     int m = 0;
-    for (int n = 0; n < sizeof(names)/sizeof(names[0]); n++)
+    for (int n = 0; modules[m]; n++)
     {
         const char *p = names[n];
         if (p == NULL)
-        {   m++;
+        {
+            m++;
             continue;
         }
-        assert(m < sizeof(modules)/sizeof(modules[0]));
+        assert(modules[m]);
         if (strcmp(s, p) == 0)
             return modules[m];
     }

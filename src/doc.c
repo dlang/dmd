@@ -1398,9 +1398,9 @@ void Section::write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
         {       "AUTHORS", "BUGS", "COPYRIGHT", "DATE",
                 "DEPRECATED", "EXAMPLES", "HISTORY", "LICENSE",
                 "RETURNS", "SEE_ALSO", "STANDARDS", "THROWS",
-                "VERSION" };
+                "VERSION", NULL };
 
-        for (size_t i = 0; i < sizeof(table) / sizeof(table[0]); i++)
+        for (size_t i = 0; table[i]; i++)
         {
             if (icmp(table[i], name, namelen) == 0)
             {
@@ -1933,9 +1933,9 @@ Lno:
 
 int isKeyword(utf8_t *p, size_t len)
 {
-    static const char *table[] = { "true", "false", "null" };
+    static const char *table[] = { "true", "false", "null", NULL };
 
-    for (int i = 0; i < sizeof(table) / sizeof(table[0]); i++)
+    for (int i = 0; table[i]; i++)
     {
         if (cmp(table[i], p, len) == 0)
             return 1;

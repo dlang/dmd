@@ -234,9 +234,10 @@ bool VersionCondition::isPredefined(const char *ident)
         "assert",
         "all",
         "none",
+        NULL
     };
 
-    for (unsigned i = 0; i < sizeof(reserved) / sizeof(reserved[0]); i++)
+    for (unsigned i = 0; reserved[i]; i++)
     {
         if (strcmp(ident, reserved[i]) == 0)
             return true;

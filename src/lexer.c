@@ -53,7 +53,7 @@ inline bool isidchar(utf8_t c) { return (cmtable[c] & CMidchar) != 0; }
 
 static void cmtable_init()
 {
-    for (unsigned c = 0; c < sizeof(cmtable) / sizeof(cmtable[0]); c++)
+    for (unsigned c = 0; c < 256; c++)
     {
         if ('0' <= c && c <= '7')
             cmtable[c] |= CMoctal;
@@ -2622,10 +2622,12 @@ Identifier *Lexer::idPool(const char *s)
  */
 
 Identifier *Lexer::uniqueId(const char *s, int num)
-{   char buffer[32];
+{
+    const size_t BUFFER_LEN = 32;
+    char buffer[BUFFER_LEN];
     size_t slen = strlen(s);
 
-    assert(slen + sizeof(num) * 3 + 1 <= sizeof(buffer) / sizeof(buffer[0]));
+    assert(slen + sizeof(num) * 3 + 1 <= BUFFER_LEN);
     sprintf(buffer, "%s%d", s, num);
     return idPool(buffer);
 }
@@ -2644,6 +2646,7 @@ struct Keyword
     TOK value;
 };
 
+static size_t nkeywords;
 static Keyword keywords[] =
 {
 //    { "",             TOK     },
@@ -2775,11 +2778,12 @@ static Keyword keywords[] =
     {   "__PRETTY_FUNCTION__", TOKprettyfunc   },
     {   "shared",       TOKshared       },
     {   "immutable",    TOKimmutable    },
+    {   NULL,           TOKreserved     }
 };
 
 int Token::isKeyword()
 {
-    for (size_t u = 0; u < sizeof(keywords) / sizeof(keywords[0]); u++)
+    for (size_t u = 0; u < nkeywords; u++)
     {
         if (keywords[u].value == value)
             return 1;
@@ -2789,17 +2793,15 @@ int Token::isKeyword()
 
 void Lexer::initKeywords()
 {
-    size_t nkeywords = sizeof(keywords) / sizeof(keywords[0]);
-
     stringtable._init(6151);
 
     cmtable_init();
 
-    for (size_t u = 0; u < nkeywords; u++)
+    for (nkeywords = 0; keywords[nkeywords].name; nkeywords++)
     {
         //printf("keyword[%d] = '%s'\n",u, keywords[u].name);
-        const char *s = keywords[u].name;
-        TOK v = keywords[u].value;
+        const char *s = keywords[nkeywords].name;
+        TOK v = keywords[nkeywords].value;
         StringValue *sv = stringtable.insert(s, strlen(s));
         sv->ptrvalue = (char *)new Identifier(sv->toDchars(),v);
 

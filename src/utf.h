@@ -20,7 +20,8 @@ typedef unsigned short  utf16_t;
 typedef unsigned int    utf32_t;
 typedef utf32_t         dchar_t;
 
-static utf16_t const ALPHA_TABLE[][2] =
+#define ALPHA_TABLE_LENGTH 245
+static utf16_t const ALPHA_TABLE[ALPHA_TABLE_LENGTH][2] =
 {
     { 0x00AA, 0x00AA }, { 0x00B5, 0x00B5 }, { 0x00B7, 0x00B7 }, { 0x00BA, 0x00BA },
     { 0x00C0, 0x00D6 }, { 0x00D8, 0x00F6 }, { 0x00F8, 0x01F5 }, { 0x01FA, 0x0217 },

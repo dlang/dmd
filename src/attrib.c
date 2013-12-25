@@ -508,9 +508,10 @@ const char *StorageClassDeclaration::stcToChars(char tmp[], StorageClass& stc)
         { STCtrusted,      TOKat,       "trusted" },
         { STCsystem,       TOKat,       "system" },
         { STCdisable,      TOKat,       "disable" },
+        { 0,               TOKreserved }
     };
 
-    for (int i = 0; i < sizeof(table)/sizeof(table[0]); i++)
+    for (int i = 0; table[i].stc; i++)
     {
         StorageClass tbl = table[i].stc;
         assert(tbl & STCStorageClass);
@@ -538,11 +539,13 @@ const char *StorageClassDeclaration::stcToChars(char tmp[], StorageClass& stc)
 void StorageClassDeclaration::stcToCBuffer(OutBuffer *buf, StorageClass stc)
 {
     while (stc)
-    {   char tmp[20];
+    {
+        const size_t BUFFER_LEN = 20;
+        char tmp[BUFFER_LEN];
         const char *p = stcToChars(tmp, stc);
         if (!p)
             break;
-        assert(strlen(p) < sizeof(tmp) / sizeof(tmp[0]));
+        assert(strlen(p) < BUFFER_LEN);
         buf->writestring(p);
         buf->writeByte(' ');
     }

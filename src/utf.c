@@ -82,8 +82,7 @@ bool utf_isValidDchar(dchar_t c)
 
 bool isUniAlpha(dchar_t c)
 {
-    static size_t const END = sizeof(ALPHA_TABLE) / sizeof(ALPHA_TABLE[0]);
-    size_t high = END - 1;
+    size_t high = ALPHA_TABLE_LENGTH - 1;
     // Shortcut search if c is out of range
     size_t low
         = (c < ALPHA_TABLE[0][0] || ALPHA_TABLE[high][1] < c) ? high + 1 : 0;

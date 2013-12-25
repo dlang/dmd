@@ -280,9 +280,9 @@ void Type::init()
           Timaginary32, Timaginary64, Timaginary80,
           Tcomplex32, Tcomplex64, Tcomplex80,
           Tbool,
-          Tchar, Twchar, Tdchar };
+          Tchar, Twchar, Tdchar, Terror };
 
-    for (size_t i = 0; i < sizeof(basetab) / sizeof(basetab[0]); i++)
+    for (size_t i = 0; basetab[i] != Terror; i++)
     {   Type *t = new TypeBasic(basetab[i]);
         t = t->merge();
         basic[basetab[i]] = t;

@@ -2189,7 +2189,8 @@ Lagain:
                   "wc","cc","wd",
                   "dc","dw","dd"
                 };
-                char fdname[7+1+2+ sizeof(dim)*3 + 1];
+                const size_t BUFFER_LEN = 7+1+2+ sizeof(dim)*3 + 1;
+                char fdname[BUFFER_LEN];
                 int flag;
 
                 switch (tn->ty)
@@ -2208,7 +2209,7 @@ Lagain:
                 }
                 const char *r = (op == TOKforeach_reverse) ? "R" : "";
                 int j = sprintf(fdname, "_aApply%s%.*s%llu", r, 2, fntab[flag], (ulonglong)dim);
-                assert(j < sizeof(fdname) / sizeof(fdname[0]));
+                assert(j < BUFFER_LEN);
 
                 FuncDeclaration *fdapply;
                 TypeDelegate *dgty;
