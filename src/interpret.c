@@ -2352,7 +2352,7 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
             {
                 if (e && !e->type)
                     e->type = v->type;
-                if (e)
+                if (e && e->op != TOKerror)
                 {
                     v->inuse++;
                     e = e->interpret(istate, ctfeNeedAnyValue);
