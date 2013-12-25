@@ -2953,14 +2953,15 @@ char *RealExp::toChars()
     of 256 (3 characters). The string will be "-M.MMMMe-4932".
     (ie, 8 chars more than mantissa). Plus one for trailing \0.
     Plus one for rounding. */
-    char buffer[sizeof(value) * 3 + 8 + 1 + 1];
+    const size_t BUFFER_LEN = sizeof(value) * 3 + 8 + 1 + 1;
+    char buffer[BUFFER_LEN];
 
     ld_sprint(buffer, 'g', value);
 
     if (type->isimaginary())
         strcat(buffer, "i");
 
-    assert(strlen(buffer) < sizeof(buffer) / sizeof(buffer[0]));
+    assert(strlen(buffer) < BUFFER_LEN);
     return mem.strdup(buffer);
 }
 
