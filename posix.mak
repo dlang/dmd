@@ -180,8 +180,11 @@ $(DRUNTIME): $(OBJS) $(SRCS)
 	$(DMD) -lib -of$(DRUNTIME) -Xfdruntime.json $(DFLAGS) $(SRCS) $(OBJS)
 
 UT_MODULES:=$(patsubst src/%.d,$(OBJDIR)/%,$(SRCS))
-ADDITIONAL_TESTS:=test/init_fini test/exceptions
-ADDITIONAL_TESTS+=$(if $(findstring $(OS),linux),test/shared,)
+HAS_ADDITIONAL_TESTS:=$(shell test -d test && echo 1)
+ifeq ($(HAS_ADDITIONAL_TESTS),1)
+	ADDITIONAL_TESTS:=test/init_fini test/exceptions
+	ADDITIONAL_TESTS+=$(if $(findstring $(OS),linux),test/shared,)
+endif
 
 unittest : $(UT_MODULES) $(addsuffix /.run,$(ADDITIONAL_TESTS))
 	@echo done
