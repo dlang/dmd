@@ -2644,6 +2644,7 @@ struct Keyword
     TOK value;
 };
 
+static size_t nkeywords;
 static Keyword keywords[] =
 {
 //    { "",             TOK     },
@@ -2775,11 +2776,12 @@ static Keyword keywords[] =
     {   "__PRETTY_FUNCTION__", TOKprettyfunc   },
     {   "shared",       TOKshared       },
     {   "immutable",    TOKimmutable    },
+    {   NULL,           TOKreserved     }
 };
 
 int Token::isKeyword()
 {
-    for (size_t u = 0; u < sizeof(keywords) / sizeof(keywords[0]); u++)
+    for (size_t u = 0; u < nkeywords; u++)
     {
         if (keywords[u].value == value)
             return 1;
@@ -2789,17 +2791,15 @@ int Token::isKeyword()
 
 void Lexer::initKeywords()
 {
-    size_t nkeywords = sizeof(keywords) / sizeof(keywords[0]);
-
     stringtable._init(6151);
 
     cmtable_init();
 
-    for (size_t u = 0; u < nkeywords; u++)
+    for (nkeywords = 0; keywords[nkeywords].name; nkeywords++)
     {
         //printf("keyword[%d] = '%s'\n",u, keywords[u].name);
-        const char *s = keywords[u].name;
-        TOK v = keywords[u].value;
+        const char *s = keywords[nkeywords].name;
+        TOK v = keywords[nkeywords].value;
         StringValue *sv = stringtable.insert(s, strlen(s));
         sv->ptrvalue = (char *)new Identifier(sv->toDchars(),v);
 
