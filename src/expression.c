@@ -3042,9 +3042,10 @@ void floatToBuffer(OutBuffer *buf, Type *type, real_t value)
      * "-1.18973e+4932\0".length == 17
      * "-0xf.fffffffffffffffp+16380\0".length == 28
      */
-    char buffer[32];
+    const size_t BUFFER_LEN = 32;
+    char buffer[BUFFER_LEN];
     ld_sprint(buffer, 'g', value);
-    assert(strlen(buffer) < sizeof(buffer) / sizeof(buffer[0]));
+    assert(strlen(buffer) < BUFFER_LEN);
 
     real_t r = Port::strtold(buffer, NULL);
     if (r != value)                     // if exact duplication
