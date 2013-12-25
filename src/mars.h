@@ -62,13 +62,7 @@ the target object file format:
 #include <stdio.h>
 #include <stdint.h>
 #include <stdarg.h>
-
-#ifdef __DMC__
-#ifdef DEBUG
-#undef assert
-#define assert(e) (static_cast<void>((e) || (printf("assert %s(%d) %s\n", __FILE__, __LINE__, #e), halt())))
-#endif
-#endif
+#include <assert.h>
 
 #ifdef DEBUG
 #define UNITTEST 1
