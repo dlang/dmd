@@ -53,7 +53,7 @@ inline bool isidchar(utf8_t c) { return (cmtable[c] & CMidchar) != 0; }
 
 static void cmtable_init()
 {
-    for (unsigned c = 0; c < sizeof(cmtable) / sizeof(cmtable[0]); c++)
+    for (unsigned c = 0; c < 256; c++)
     {
         if ('0' <= c && c <= '7')
             cmtable[c] |= CMoctal;
