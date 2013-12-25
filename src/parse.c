@@ -3930,7 +3930,9 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
                 Identifier *ident = token.ident;
                 nextToken();
                 nextToken();
-                if (token.value == TOKlcurly)
+                if (token.value == TOKrcurly)
+                    s = NULL;
+                else if (token.value == TOKlcurly)
                     s = parseStatement(PScurly | PSscope);
                 else
                     s = parseStatement(PSsemi_ok);
