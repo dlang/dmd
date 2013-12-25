@@ -70,9 +70,6 @@ the target object file format:
 #endif
 #endif
 
-#ifdef DEBUG
-#define UNITTEST 1
-#endif
 void unittests();
 
 #define DMDV1   0
