@@ -2622,10 +2622,12 @@ Identifier *Lexer::idPool(const char *s)
  */
 
 Identifier *Lexer::uniqueId(const char *s, int num)
-{   char buffer[32];
+{
+    const size_t BUFFER_LEN = 32;
+    char buffer[BUFFER_LEN];
     size_t slen = strlen(s);
 
-    assert(slen + sizeof(num) * 3 + 1 <= sizeof(buffer) / sizeof(buffer[0]));
+    assert(slen + sizeof(num) * 3 + 1 <= BUFFER_LEN);
     sprintf(buffer, "%s%d", s, num);
     return idPool(buffer);
 }
