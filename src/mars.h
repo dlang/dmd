@@ -89,17 +89,10 @@ void unittests();
 // Set if C++ mangling is done by the front end
 #define CPP_MANGLE (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
 
-/* Other targets are TARGET_LINUX, TARGET_OSX, TARGET_FREEBSD, TARGET_OPENBSD and
- * TARGET_SOLARIS, which are
- * set on the command line via the compiler makefile.
- */
-
-#if _WIN32
-#ifndef TARGET_WINDOS
-#define TARGET_WINDOS 1         // Windows dmd generates Windows targets
-#endif
+// All targets are set on the command line via the compiler makefile.
+#if TARGET_WINDOS
 #ifndef OMFOBJ
-#define OMFOBJ TARGET_WINDOS
+#define OMFOBJ 1
 #endif
 #endif
 
