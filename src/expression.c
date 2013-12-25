@@ -3150,15 +3150,16 @@ ComplexExp::ComplexExp(Loc loc, complex_t value, Type *type)
 
 char *ComplexExp::toChars()
 {
-    char buffer[sizeof(value) * 3 + 8 + 1];
+    const size_t BUFFER_LEN = sizeof(value) * 3 + 8 + 1 + 1;
+    char buffer[BUFFER_LEN];
 
-    char buf1[sizeof(value) * 3 + 8 + 1];
-    char buf2[sizeof(value) * 3 + 8 + 1];
+    char buf1[BUFFER_LEN];
+    char buf2[BUFFER_LEN];
 
     ld_sprint(buf1, 'g', creall(value));
     ld_sprint(buf2, 'g', cimagl(value));
     sprintf(buffer, "(%s+%si)", buf1, buf2);
-    assert(strlen(buffer) < sizeof(buffer) / sizeof(buffer[0]));
+    assert(strlen(buffer) < BUFFER_LEN);
     return mem.strdup(buffer);
 }
 
