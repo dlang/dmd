@@ -508,9 +508,10 @@ const char *StorageClassDeclaration::stcToChars(char tmp[], StorageClass& stc)
         { STCtrusted,      TOKat,       "trusted" },
         { STCsystem,       TOKat,       "system" },
         { STCdisable,      TOKat,       "disable" },
+        { 0,               TOKreserved }
     };
 
-    for (int i = 0; i < sizeof(table)/sizeof(table[0]); i++)
+    for (int i = 0; table[i].stc; i++)
     {
         StorageClass tbl = table[i].stc;
         assert(tbl & STCStorageClass);
