@@ -339,10 +339,11 @@ public:
 
             while (stc)
             {
-                char tmp[20];
+                const size_t BUFFER_LEN = 20;
+                char tmp[BUFFER_LEN];
                 const char *p = StorageClassDeclaration::stcToChars(tmp, stc);
                 assert(p);
-                assert(strlen(p) < sizeof(tmp) / sizeof(tmp[0]));
+                assert(strlen(p) < BUFFER_LEN);
                 if (p[0] == '@')
                 {
                     indent();
