@@ -539,11 +539,13 @@ const char *StorageClassDeclaration::stcToChars(char tmp[], StorageClass& stc)
 void StorageClassDeclaration::stcToCBuffer(OutBuffer *buf, StorageClass stc)
 {
     while (stc)
-    {   char tmp[20];
+    {
+        const size_t BUFFER_LEN = 20;
+        char tmp[BUFFER_LEN];
         const char *p = stcToChars(tmp, stc);
         if (!p)
             break;
-        assert(strlen(p) < sizeof(tmp) / sizeof(tmp[0]));
+        assert(strlen(p) < BUFFER_LEN);
         buf->writestring(p);
         buf->writeByte(' ');
     }
