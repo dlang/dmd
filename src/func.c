@@ -2803,33 +2803,29 @@ Lerror:
 
     if (!m.lastf && !(flags & 1))   // no match
     {
-        if (td)
+        if (td && !fd)  // all of overloads are template
         {
-            if (!fd)    // all of overloads are template
-            {
-                ::error(loc, "%s %s.%s does not match any function template declaration. Candidates are:",
-                        td->kind(), td->parent->toPrettyChars(), td->ident->toChars());
+            ::error(loc, "%s %s.%s cannot deduce function from argument types !(%s)%s, candidates are:",
+                    td->kind(), td->parent->toPrettyChars(), td->ident->toChars(),
+                    tiargsBuf.toChars(), fargsBuf.toChars());
 
-                // Display candidate template functions
-                int numToDisplay = 5; // sensible number to display
-                for (TemplateDeclaration *tdx = td; tdx; tdx = tdx->overnext)
+            // Display candidate template functions
+            int numToDisplay = 5; // sensible number to display
+            for (TemplateDeclaration *tdx = td; tdx; tdx = tdx->overnext)
+            {
+                ::errorSupplemental(tdx->loc, "%s", tdx->toPrettyChars());
+                if (!global.params.verbose && --numToDisplay == 0 && tdx->overnext)
                 {
-                    ::errorSupplemental(tdx->loc, "%s", tdx->toPrettyChars());
-                    if (!global.params.verbose && --numToDisplay == 0)
-                    {
-                        // Too many overloads to sensibly display.
-                        // Just show count of remaining overloads.
-                        int remaining = 0;
-                        for (; tdx; tdx = tdx->overnext)
-                            ++remaining;
-                        if (remaining > 0)
-                            ::errorSupplemental(loc, "... (%d more, -v to show) ...", remaining);
-                        break;
-                    }
+                    // Too many overloads to sensibly display.
+                    // Just show count of remaining overloads.
+                    int remaining = 0;
+                    for (TemplateDeclaration *tdy = tdx->overnext; tdy; tdy = tdy->overnext)
+                        ++remaining;
+                    if (remaining > 0)
+                        ::errorSupplemental(loc, "... (%d more, -v to show) ...", remaining);
+                    break;
                 }
             }
-            td->error(loc, "cannot deduce template function from argument types !(%s)%s",
-                  tiargsBuf.toChars(), fargsBuf.toChars());
         }
         else
         {
