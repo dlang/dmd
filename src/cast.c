@@ -22,9 +22,6 @@
 #include "scope.h"
 #include "id.h"
 
-//#define DUMP .dump(__PRETTY_FUNCTION__, this)
-#define DUMP
-
 /* ==================== implicitCast ====================== */
 
 /**************************************
@@ -144,8 +141,8 @@ MATCH Expression::implicitConvTo(Type *t)
      */
     if (type->isintegral() && t->isintegral() &&
         type->isTypeBasic() && t->isTypeBasic())
-    {   IntRange src = this->getIntRange() DUMP;
-        IntRange target = IntRange::fromType(t) DUMP;
+    {   IntRange src = this->getIntRange();
+        IntRange target = IntRange::fromType(t);
         if (target.contains(src))
             return MATCHconvert;
     }
@@ -2885,31 +2882,31 @@ uinteger_t getMask(uinteger_t v)
 }
 IntRange Expression::getIntRange()
 {
-    return IntRange::fromType(type) DUMP;
+    return IntRange::fromType(type);
 }
 
 IntRange IntegerExp::getIntRange()
 {
-    return IntRange(SignExtendedNumber(value)).cast(type) DUMP;
+    return IntRange(SignExtendedNumber(value)).cast(type);
 }
 
 IntRange CastExp::getIntRange()
 {
-    return e1->getIntRange().cast(type) DUMP;
+    return e1->getIntRange().cast(type);
 }
 
 IntRange AddExp::getIntRange()
 {
     IntRange ir1 = e1->getIntRange();
     IntRange ir2 = e2->getIntRange();
-    return IntRange(ir1.imin + ir2.imin, ir1.imax + ir2.imax).cast(type) DUMP;
+    return IntRange(ir1.imin + ir2.imin, ir1.imax + ir2.imax).cast(type);
 }
 
 IntRange MinExp::getIntRange()
 {
     IntRange ir1 = e1->getIntRange();
     IntRange ir2 = e2->getIntRange();
-    return IntRange(ir1.imin - ir2.imax, ir1.imax - ir2.imin).cast(type) DUMP;
+    return IntRange(ir1.imin - ir2.imax, ir1.imax - ir2.imin).cast(type);
 }
 
 IntRange DivExp::getIntRange()
@@ -2919,7 +2916,7 @@ IntRange DivExp::getIntRange()
 
     // Should we ignore the possibility of div-by-0???
     if (ir2.containsZero())
-        return Expression::getIntRange() DUMP;
+        return Expression::getIntRange();
 
     // [a,b] / [c,d] = [min (a/c, a/d, b/c, b/d), max (a/c, a/d, b/c, b/d)]
     SignExtendedNumber bdy[4];
@@ -2927,7 +2924,7 @@ IntRange DivExp::getIntRange()
     bdy[1] = ir1.imin / ir2.imax;
     bdy[2] = ir1.imax / ir2.imin;
     bdy[3] = ir1.imax / ir2.imax;
-    return IntRange::fromNumbers4(bdy).cast(type) DUMP;
+    return IntRange::fromNumbers4(bdy).cast(type);
 }
 
 IntRange MulExp::getIntRange()
@@ -2941,7 +2938,7 @@ IntRange MulExp::getIntRange()
     bdy[1] = ir1.imin * ir2.imax;
     bdy[2] = ir1.imax * ir2.imin;
     bdy[3] = ir1.imax * ir2.imax;
-    return IntRange::fromNumbers4(bdy).cast(type) DUMP;
+    return IntRange::fromNumbers4(bdy).cast(type);
 }
 
 IntRange ModExp::getIntRange()
@@ -2966,7 +2963,7 @@ IntRange ModExp::getIntRange()
 
     // Modding on 0 is invalid anyway.
     if (!irDen.imin.negative)
-        return Expression::getIntRange() DUMP;
+        return Expression::getIntRange();
 
     ++ irDen.imin;
     irDen.imax = -irDen.imin;
@@ -2984,7 +2981,7 @@ IntRange ModExp::getIntRange()
     else if (irNum.imax > irDen.imax)
         irNum.imax = irDen.imax;
 
-    return irNum.cast(type) DUMP;
+    return irNum.cast(type);
 }
 
 // The algorithms for &, |, ^ are not yet the best! Sometimes they will produce
@@ -3065,7 +3062,7 @@ IntRange AndExp::getIntRange()
     if (has1neg && has2neg)
         result.unionOrAssign(unsignedBitwiseAnd(ir1neg, ir2neg), /*ref*/hasResult);
     assert(hasResult);
-    return result.cast(type) DUMP;
+    return result.cast(type);
 }
 
 IntRange OrExp::getIntRange()
@@ -3091,7 +3088,7 @@ IntRange OrExp::getIntRange()
         result.unionOrAssign(unsignedBitwiseOr(ir1neg, ir2neg), /*ref*/hasResult);
 
     assert(hasResult);
-    return result.cast(type) DUMP;
+    return result.cast(type);
 }
 
 IntRange XorExp::getIntRange()
@@ -3117,7 +3114,7 @@ IntRange XorExp::getIntRange()
         result.unionOrAssign(unsignedBitwiseXor(ir1neg, ir2neg), /*ref*/hasResult);
 
     assert(hasResult);
-    return result.cast(type) DUMP;
+    return result.cast(type);
 }
 
 IntRange ShlExp::getIntRange()
@@ -3131,7 +3128,7 @@ IntRange ShlExp::getIntRange()
     SignExtendedNumber lower = ir1.imin << (ir1.imin.negative ? ir2.imax : ir2.imin);
     SignExtendedNumber upper = ir1.imax << (ir1.imax.negative ? ir2.imin : ir2.imax);
 
-    return IntRange(lower, upper).cast(type) DUMP;
+    return IntRange(lower, upper).cast(type);
 }
 
 IntRange ShrExp::getIntRange()
@@ -3145,7 +3142,7 @@ IntRange ShrExp::getIntRange()
     SignExtendedNumber lower = ir1.imin >> (ir1.imin.negative ? ir2.imin : ir2.imax);
     SignExtendedNumber upper = ir1.imax >> (ir1.imax.negative ? ir2.imax : ir2.imin);
 
-    return IntRange(lower, upper).cast(type) DUMP;
+    return IntRange(lower, upper).cast(type);
 }
 
 IntRange UshrExp::getIntRange()
@@ -3156,25 +3153,25 @@ IntRange UshrExp::getIntRange()
     if (ir2.imin.negative)
         ir2 = IntRange(SignExtendedNumber(0), SignExtendedNumber(64));
 
-    return IntRange(ir1.imin >> ir2.imax, ir1.imax >> ir2.imin).cast(type) DUMP;
+    return IntRange(ir1.imin >> ir2.imax, ir1.imax >> ir2.imin).cast(type);
 
 }
 
 IntRange CommaExp::getIntRange()
 {
-    return e2->getIntRange() DUMP;
+    return e2->getIntRange();
 }
 
 IntRange ComExp::getIntRange()
 {
     IntRange ir = e1->getIntRange();
     return IntRange(SignExtendedNumber(~ir.imax.value, !ir.imax.negative),
-                    SignExtendedNumber(~ir.imin.value, !ir.imin.negative)).cast(type) DUMP;
+                    SignExtendedNumber(~ir.imin.value, !ir.imin.negative)).cast(type);
 }
 
 IntRange NegExp::getIntRange()
 {
     IntRange ir = e1->getIntRange();
-    return IntRange(-ir.imax, -ir.imin).cast(type) DUMP;
+    return IntRange(-ir.imax, -ir.imin).cast(type);
 }
 
