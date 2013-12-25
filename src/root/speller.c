@@ -247,11 +247,12 @@ void unittest_speller()
         { "hello", "ehlxxlo", "n" },
         { "hello", "heaao", "y" },
         { "_123456789_123456789_123456789_123456789", "_123456789_123456789_123456789_12345678", "y" },
+        { NULL, NULL, NULL }
     };
     //printf("unittest_speller()\n");
     const void *p = speller("hello", &speller_test, (void *)"hell", idchars);
     assert(p != NULL);
-    for (int i = 0; i < sizeof(cases)/sizeof(cases[0]); i++)
+    for (int i = 0; cases[i][0]; i++)
     {
         //printf("case [%d]\n", i);
         void *p = speller(cases[i][0], &speller_test, (void *)cases[i][1], idchars);
