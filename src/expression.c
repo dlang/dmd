@@ -3101,9 +3101,10 @@ void realToMangleBuffer(OutBuffer *buf, real_t value)
         buf->writestring(value < 0 ? "NINF" : "INF");
     else
     {
-        char buffer[36];
+        const size_t BUFFER_LEN = 36;
+        char buffer[BUFFER_LEN];
         size_t n = ld_sprint(buffer, 'A', value);
-        assert(n < sizeof(buffer) / sizeof(buffer[0]));
+        assert(n < BUFFER_LEN);
         for (int i = 0; i < n; i++)
         {   char c = buffer[i];
 
