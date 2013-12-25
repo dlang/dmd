@@ -3930,7 +3930,10 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
                 Identifier *ident = token.ident;
                 nextToken();
                 nextToken();
-                s = parseStatement(PSsemi_ok);
+                if (token.value == TOKlcurly)
+                    s = parseStatement(PScurly | PSscope);
+                else
+                    s = parseStatement(PSsemi_ok);
                 s = new LabelStatement(loc, ident, s);
                 break;
             }

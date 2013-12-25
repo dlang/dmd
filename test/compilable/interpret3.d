@@ -2738,16 +2738,18 @@ static assert({ E8365[2][2][2] x; return x[0][0][0]; }() == E8365.first);
 int bug4448()
 {
     int n=2;
-    L1:{ switch(n)
+    L1: do
     {
-       case 5:
-        return 7;
-       default:
-       n = 5;
-       break L1;
-    }
-    int w = 7;
-    }
+        switch(n)
+        {
+        case 5:
+            return 7;
+        default:
+            n = 5;
+            break L1;
+        }
+        int w = 7;
+    } while (0);
     return 3;
 }
 
