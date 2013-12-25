@@ -2756,25 +2756,33 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
 
     functionResolve(&m, s, loc, sc, tiargs, tthis, fargs);
 
-    if (m.count == 1)   // exactly one match
+    if (m.last > MATCHnomatch && m.lastf)
     {
-        assert(m.lastf);
-        if (!(flags & 1))
-            m.lastf->functionSemantic();
-        return m.lastf;
-    }
-    if (m.last > MATCHnomatch && (flags & 2) && !tthis && m.lastf->needThis())
-    {
-        return m.lastf;
+        if (m.count == 1)   // exactly one match
+        {
+            if (!(flags & 1))
+                m.lastf->functionSemantic();
+            return m.lastf;
+        }
+        if ((flags & 2) && !tthis && m.lastf->needThis())
+        {
+            return m.lastf;
+        }
     }
 
 Lerror:
     /* Failed to find a best match.
      * Do nothing or print error.
      */
-    if (m.last <= MATCHnomatch && (flags & 1))
-    {   // if do not print error messages
-        return NULL;    // no match
+    if (m.last <= MATCHnomatch)
+    {
+        // error was caused on matched function
+        if (m.count == 1)
+            return m.lastf;
+
+        // if do not print error messages
+        if (flags & 1)
+            return NULL;    // no match
     }
 
     HdrGenState hgs;
