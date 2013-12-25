@@ -55,11 +55,6 @@ the target object file format:
     It is expected that the compiler for each platform will be able
     to generate 32 and 64 bit code from the same compiler binary.
 
-    Target object module format:
-        OMFOBJ          Intel Object Module Format, used on Windows
-        ELFOBJ          Elf Object Module Format, used on linux, FreeBSD, OpenBSD and Solaris
-        MACHOBJ         Mach-O Object Module Format, used on Mac OSX
-
     There are currently no macros for byte endianness order.
  */
 
@@ -88,26 +83,6 @@ void unittests();
 
 // Set if C++ mangling is done by the front end
 #define CPP_MANGLE (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
-
-// All targets are set on the command line via the compiler makefile.
-#if TARGET_WINDOS
-#ifndef OMFOBJ
-#define OMFOBJ 1
-#endif
-#endif
-
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-#ifndef ELFOBJ
-#define ELFOBJ 1
-#endif
-#endif
-
-#if TARGET_OSX
-#ifndef MACHOBJ
-#define MACHOBJ 1
-#endif
-#endif
-
 
 struct OutBuffer;
 
