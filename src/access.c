@@ -423,6 +423,11 @@ void accessCheck(Loc loc, Scope *sc, Expression *e, Declaration *d)
         printf("accessCheck(%s)\n", d->toPrettyChars());
     }
 #endif
+    if(d->isUnitTestDeclaration()) 
+    {
+        // Unittests are always accessible.
+        return;
+    }
     if (!e)
     {
         if (d->prot() == PROTprivate && d->getAccessModule() != sc->module ||
