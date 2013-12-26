@@ -4976,6 +4976,7 @@ RootObject *TemplateValueParameter::defaultArg(Loc loc, Scope *sc)
         e = e->semantic(sc);
         e = resolveProperties(sc, e);
         e = e->resolveLoc(loc, sc);
+        e = e->optimize(WANTvalue);
     }
     return e;
 }
