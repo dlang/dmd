@@ -58,9 +58,9 @@ private:
     */
     Expressions values;   // values on the stack
     VarDeclarations vars; // corresponding variables
-    Array<void> savedId; // id of the previous state of that var
+    Array<void *> savedId; // id of the previous state of that var
 
-    Array<void> frames;  // all previous frame pointers
+    Array<void *> frames;  // all previous frame pointers
     Expressions savedThis;   // all previous values of localThis
 
     /* Global constants get saved here after evaluation, so we never

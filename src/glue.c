@@ -45,7 +45,7 @@ void Statement_toIR(Statement *s, IRState *irs);
 
 #define STATICCTOR      0
 
-typedef Array<symbol> symbols;
+typedef Array<symbol *> symbols;
 
 elem *eictor;
 symbol *ictorlocalgot;
