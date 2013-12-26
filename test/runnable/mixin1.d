@@ -1234,6 +1234,32 @@ class C11487
 }
 
 /*******************************************/
+// 11767
+
+mixin template M11767()
+{
+    struct S11767 {}
+}
+mixin M11767!();
+mixin M11767!();    // OK
+static assert(!__traits(compiles, S11767));
+
+void test11767()
+{
+    mixin M11767!();
+    alias S1 = S11767;
+    {
+        mixin M11767!();
+        alias S2 = S11767;
+        static assert(!is(S1 == S2));
+        static assert(S1.mangleof == "S6mixin19test11767FZv8__mixin16S11767");
+        static assert(S2.mangleof == "S6mixin19test11767FZv8__mixin26S11767");
+    }
+    mixin M11767!();
+    static assert(!__traits(compiles, S11767));
+}
+
+/*******************************************/
 
 int main()
 {
@@ -1282,6 +1308,7 @@ int main()
     test2740();
     test42();
     test9417();
+    test11767();
 
     printf("Success\n");
     return 0;

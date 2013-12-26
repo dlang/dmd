@@ -7491,7 +7491,31 @@ void TemplateMixin::semantic(Scope *sc)
     assert(tempdecl);
 
     if (!ident)
-        ident = genIdent(tiargs);
+    {
+        /* Assign scope local unique identifier, as same as lambdas.
+         */
+        const char *s = "__mixin";
+
+        DsymbolTable *symtab;
+        if (FuncDeclaration *func = sc->parent->isFuncDeclaration())
+        {
+            symtab = func->localsymtab;
+            if (symtab)
+            {
+                // Inside template constraint, symtab is not set yet.
+                goto L1;
+            }
+        }
+        else
+        {
+            symtab = sc->parent->isScopeDsymbol()->symtab;
+        L1:
+            assert(symtab);
+            int num = (int)_aaLen(symtab->tab) + 1;
+            ident = Lexer::uniqueId(s, num);
+            symtab->insert(this);
+        }
+    }
 
     inst = this;
     parent = sc->parent;
@@ -7815,7 +7839,7 @@ void TemplateMixin::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     tqual->toCBuffer(buf, NULL, hgs);
     toCBufferTiargs(buf, hgs);
 
-    if (ident)
+    if (ident && memcmp(ident->string, "__mixin", 7) != 0)
     {
         buf->writebyte(' ');
         buf->writestring(ident->toChars());
