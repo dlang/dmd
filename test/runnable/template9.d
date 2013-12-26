@@ -2973,6 +2973,24 @@ void test11533c()
 }
 
 /******************************************/
+// 11818
+
+enum E11818 { e0, e1 }
+
+struct SortedRange11818
+{
+    void fun(E11818 e = true ? E11818.e0 : E11818.e1)()
+    {
+    }
+}
+
+void test11818()
+{
+    SortedRange11818 s;
+    s.fun();
+}
+
+/******************************************/
 
 int main()
 {
@@ -3067,6 +3085,7 @@ int main()
     test11533a();
     test11533b();
     test11533c();
+    test11818();
 
     printf("Success\n");
     return 0;
