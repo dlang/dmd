@@ -277,7 +277,6 @@ extern Global global;
 #include "complex_t.h"
 
 // Be careful not to care about sign when using dinteger_t
-//typedef uint64_t integer_t;
 typedef uint64_t dinteger_t;    // use this instead of integer_t to
                                 // avoid conflicts with system #include's
 

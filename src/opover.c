@@ -14,10 +14,6 @@
 #include <assert.h>
 #include <string.h>                     // memset()
 
-#ifdef __APPLE__
-#define integer_t dmd_integer_t
-#endif
-
 #include "rmem.h"
 
 //#include "port.h"
