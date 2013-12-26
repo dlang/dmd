@@ -993,6 +993,7 @@ public:
 
     TypeTuple(Parameters *arguments);
     TypeTuple(Expressions *exps);
+    static TypeTuple *create(Parameters *arguments);
     TypeTuple();
     TypeTuple(Type *t1);
     TypeTuple(Type *t1, Type *t2);

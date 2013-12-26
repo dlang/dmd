@@ -777,7 +777,7 @@ Expression *createTypeInfoArray(Scope *sc, Expression *exps[], size_t dim)
     {   Parameter *arg = new Parameter(STCin, exps[i]->type, NULL, NULL);
         (*args)[i] = arg;
     }
-    TypeTuple *tup = new TypeTuple(args);
+    TypeTuple *tup = TypeTuple::create(args);
     Expression *e = tup->getTypeInfo(sc);
     e = e->optimize(WANTvalue);
     assert(e->op == TOKsymoff);         // should be SymOffExp

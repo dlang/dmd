@@ -9315,6 +9315,11 @@ TypeTuple::TypeTuple(Expressions *exps)
     //printf("TypeTuple() %p, %s\n", this, toChars());
 }
 
+TypeTuple *TypeTuple::create(Parameters *arguments)
+{
+    return new TypeTuple(arguments);
+}
+
 /*******************************************
  * Type tuple with 0, 1 or 2 types in it.
  */
