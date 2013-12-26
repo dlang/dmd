@@ -243,7 +243,7 @@ public:
     dt_t **toDt(dt_t **pdt);
 };
 
-class ErrorExp : public IntegerExp
+class ErrorExp : public Expression
 {
 public:
     ErrorExp();

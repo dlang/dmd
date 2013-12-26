@@ -2922,9 +2922,9 @@ void IntegerExp::toMangleBuffer(OutBuffer *buf)
  */
 
 ErrorExp::ErrorExp()
-    : IntegerExp(Loc(), 0, Type::terror)
+    : Expression(Loc(), TOKerror, sizeof(ErrorExp))
 {
-    op = TOKerror;
+    type = Type::terror;
 }
 
 Expression *ErrorExp::toLvalue(Scope *sc, Expression *e)
