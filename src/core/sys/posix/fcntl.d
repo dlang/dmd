@@ -80,6 +80,14 @@ version( linux )
     enum F_SETFD        = 2;
     enum F_GETFL        = 3;
     enum F_SETFL        = 4;
+  version(X86_64)
+  {
+    static assert(off_t.sizeof == 8);
+    enum F_GETLK        = 5;
+    enum F_SETLK        = 6;
+    enum F_SETLKW       = 7;
+  }
+  else
   static if( __USE_FILE_OFFSET64 )
   {
     enum F_GETLK        = 12;
