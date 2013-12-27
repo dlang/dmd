@@ -13,7 +13,7 @@ compilable/sw_transition_field.d(21): sw_transition_field.S2!(immutable(int)).S2
 compilable/sw_transition_field.d(21): sw_transition_field.S2!(const(int)).S2.f is const field
 ---
 */
-
+// REQUIRED_ARGS: -d
 struct S1
 {
     immutable int ix = 1;

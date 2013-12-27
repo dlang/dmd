@@ -5,7 +5,7 @@ fail_compilation/ice4094.d(11): Error: circular reference to 'ice4094.Zug!0.Zug.
 fail_compilation/ice4094.d(19): Error: template instance ice4094.Zug!0 error instantiating
 ---
 */
-
+// REQUIRED_ARGS: -d
 struct Zug(int Z)
 {
     const bahn = Bug4094!(0).hof.bahn;
