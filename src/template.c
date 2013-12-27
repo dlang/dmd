@@ -3761,11 +3761,11 @@ MATCH TypeInstance::deduceType(Scope *sc,
                     /* Didn't find it as a parameter identifier. Try looking
                      * it up and seeing if is an alias. See Bugzilla 1454
                      */
-                    TypeIdentifier *tid = new TypeIdentifier(Loc(), tp->tempinst->name);
+                    TypeIdentifier *tid = new TypeIdentifier(tp->loc, tp->tempinst->name);
                     Type *t;
                     Expression *e;
                     Dsymbol *s;
-                    tid->resolve(Loc(), sc, &e, &t, &s);
+                    tid->resolve(tp->loc, sc, &e, &t, &s);
                     if (t)
                     {
                         s = t->toDsymbol(sc);
@@ -3921,7 +3921,7 @@ MATCH TypeInstance::deduceType(Scope *sc,
             L1:
                 if (j == IDX_NOTFOUND)
                 {
-                    t2->resolve(loc, sc, &e2, &t2, &s2);
+                    t2->resolve(((TypeIdentifier *)t2)->loc, sc, &e2, &t2, &s2);
                     if (e2)
                         goto Le;
                     goto Lnomatch;
@@ -3940,7 +3940,7 @@ MATCH TypeInstance::deduceType(Scope *sc,
                 j = templateParameterLookup(t2, parameters);
                 if (j == IDX_NOTFOUND)
                 {
-                    t2->resolve(loc, sc, &e2, &t2, &s2);
+                    t2->resolve(((TypeIdentifier *)t2)->loc, sc, &e2, &t2, &s2);
                     if (s2)
                         goto Ls;
                     goto Lnomatch;
