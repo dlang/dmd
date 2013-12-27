@@ -74,7 +74,6 @@ void unittests();
 
 #define DMDV1   0
 #define DMDV2   1       // Version 2.0 features
-#define SNAN_DEFAULT_INIT 1 // if floats are default initialized to signalling NaN
 #define MODULEINFO_IS_STRUCT 1   // if ModuleInfo is a struct rather than a class
 #define PULL93  0       // controversial pull #93 for bugzilla 3449
 
