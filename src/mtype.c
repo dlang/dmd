@@ -3454,25 +3454,17 @@ Expression *TypeBasic::defaultInit(Loc loc)
         case Tfloat32:
         case Tfloat64:
         case Tfloat80:
-#if SNAN_DEFAULT_INIT
             return new RealExp(loc, Port::snan, this);
-#else
-            return getProperty(loc, Id::nan);
-#endif
 
         case Tcomplex32:
         case Tcomplex64:
         case Tcomplex80:
-#if SNAN_DEFAULT_INIT
         {   // Can't use fvalue + I*fvalue (the im part becomes a quiet NaN).
             complex_t cvalue;
             ((real_t *)&cvalue)[0] = Port::snan;
             ((real_t *)&cvalue)[1] = Port::snan;
             return new ComplexExp(loc, cvalue, this);
         }
-#else
-            return getProperty(loc, Id::nan);
-#endif
 
         case Tvoid:
             error(loc, "void does not have a default initializer");
