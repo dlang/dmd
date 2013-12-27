@@ -142,7 +142,7 @@ FRONTOBJ= enum.obj struct.obj dsymbol.obj import.obj id.obj \
 	staticassert.obj identifier.obj mtype.obj expression.obj \
 	optimize.obj template.obj lexer.obj declaration.obj cast.obj \
 	init.obj func.obj utf.obj parse.obj statement.obj \
-	constfold.obj version.obj inifile.obj \
+	constfold.obj version.obj inifile.obj cppmangle.obj \
 	module.obj scope.obj dump.obj cond.obj inline.obj opover.obj \
 	entity.obj class.obj mangle.obj attrib.obj impcnvtab.obj \
 	link.obj access.obj doc.obj macro.obj hdrgen.obj delegatize.obj \
@@ -700,6 +700,7 @@ class.obj : $(TOTALH) enum.h class.c
 clone.obj : $(TOTALH) clone.c
 constfold.obj : $(TOTALH) expression.h constfold.c
 cond.obj : $(TOTALH) identifier.h declaration.h cond.h cond.c
+cppmangle.obj : $(TOTALH) mtype.h declaration.h mars.h
 declaration.obj : $(TOTALH) identifier.h attrib.h declaration.h declaration.c expression.h
 delegatize.obj : $(TOTALH) delegatize.c
 doc.obj : $(TOTALH) doc.h doc.c

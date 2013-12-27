@@ -77,9 +77,6 @@ void unittests();
 #define MODULEINFO_IS_STRUCT 1   // if ModuleInfo is a struct rather than a class
 #define PULL93  0       // controversial pull #93 for bugzilla 3449
 
-// Set if C++ mangling is done by the front end
-#define CPP_MANGLE (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
-
 struct OutBuffer;
 
 // Can't include arraytypes.h here, need to declare these directly.

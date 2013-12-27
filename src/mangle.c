@@ -24,9 +24,7 @@
 #include "id.h"
 #include "module.h"
 
-#if CPP_MANGLE
 char *toCppMangle(Dsymbol *s);
-#endif
 
 /******************************************************************************
  *  isv     : for the enclosing auto functions of an inner class/struct type.
@@ -147,12 +145,7 @@ const char *Declaration::mangle(bool isv)
                     goto Lret;
 
                 case LINKcpp:
-#if CPP_MANGLE
                     p = toCppMangle(this);
-#else
-                    // Windows C++ mangling is done by C++ back end
-                    p = ident->toChars();
-#endif
                     goto Lret;
 
                 case LINKdefault:

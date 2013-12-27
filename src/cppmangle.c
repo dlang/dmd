@@ -26,7 +26,7 @@
 #include "import.h"
 #include "aggregate.h"
 
-#if CPP_MANGLE
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
 
 /* Do mangling for C++ linkage.
  * Follows Itanium C++ ABI 1.86
@@ -466,6 +466,14 @@ char *toCppMangle(Dsymbol *s)
         v.argsCppMangle(tf->parameters, tf->varargs);
     }
     return v.finish();
+}
+
+#else
+
+char *toCppMangle(Dsymbol *s)
+{
+    // Windows C++ mangling is done by C++ back end
+    return s->ident->toChars();
 }
 
 #endif
