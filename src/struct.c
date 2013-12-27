@@ -566,10 +566,8 @@ StructDeclaration::StructDeclaration(Loc loc, Identifier *id)
     // For forward references
     type = new TypeStruct(this);
 
-#if MODULEINFO_IS_STRUCT
     if (id == Id::ModuleInfo && !Module::moduleinfo)
         Module::moduleinfo = this;
-#endif
 }
 
 Dsymbol *StructDeclaration::syntaxCopy(Dsymbol *s)

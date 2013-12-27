@@ -207,11 +207,6 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
                 error("%s", msg);
             errorException = this;
         }
-
-#if !MODULEINFO_IS_STRUCT
-        if (id == Id::ModuleInfo && !Module::moduleinfo)
-            Module::moduleinfo = this;
-#endif
     }
 
     com = 0;
