@@ -7,7 +7,7 @@ fail_compilation/fail260.d(45):        instantiated from here: opMultVectors!(St
 fail_compilation/fail260.d(45): Error: template instance fail260.Static!(1, 4).Static.opMultVectors!(Static!(4, 1)) error instantiating
 ---
 */
-
+// REQUIRED_ARGS: -d
 struct Static(uint width2, uint height2)
 {
     immutable width = width2;
