@@ -618,7 +618,6 @@ void ClassDeclaration::toDt2(dt_t **pdt, ClassDeclaration *cd)
     for (size_t i = 0; i < vtblInterfaces->dim; i++)
     {   BaseClass *b = (*vtblInterfaces)[i];
 
-#if 1 || INTERFACE_VIRTUAL
         for (ClassDeclaration *cd2 = cd; 1; cd2 = cd2->baseClass)
         {
             assert(cd2);
@@ -631,11 +630,6 @@ void ClassDeclaration::toDt2(dt_t **pdt, ClassDeclaration *cd)
                 break;
             }
         }
-#else
-        csymoffset = baseVtblOffset(b);
-        assert(csymoffset != ~0);
-        dtxoff(pdt, csym, csymoffset);
-#endif
         offset = b->offset + Target::ptrsize;
     }
 
@@ -912,7 +906,6 @@ dt_t **ClassReferenceExp::toDt2(dt_t **pdt, ClassDeclaration *cd, Dts *dts)
     for (size_t i = 0; i < cd->vtblInterfaces->dim; i++)
     {   BaseClass *b = (*cd->vtblInterfaces)[i];
 
-#if 1 || INTERFACE_VIRTUAL
         for (ClassDeclaration *cd2 = originalClass(); 1; cd2 = cd2->baseClass)
         {
             assert(cd2);
@@ -925,11 +918,6 @@ dt_t **ClassReferenceExp::toDt2(dt_t **pdt, ClassDeclaration *cd, Dts *dts)
                 break;
             }
         }
-#else
-        csymoffset = baseVtblOffset(b);
-        assert(csymoffset != ~0);
-        dtxoff(pdt, csym, csymoffset);
-#endif
         offset = b->offset + Target::ptrsize;
     }
 

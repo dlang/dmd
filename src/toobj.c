@@ -511,51 +511,6 @@ void ClassDeclaration::toObjFile(int multiobj)
         }
     }
 
-#if INTERFACE_VIRTUAL
-    // Put out the overriding interface vtbl[]s.
-    // This must be mirrored with ClassDeclaration::baseVtblOffset()
-    //printf("putting out overriding interface vtbl[]s for '%s' at offset x%x\n", toChars(), offset);
-    for (size_t i = 0; i < vtblInterfaces->dim; i++)
-    {   BaseClass *b = (*vtblInterfaces)[i];
-        ClassDeclaration *cd;
-
-        for (cd = this->baseClass; cd; cd = cd->baseClass)
-        {
-            for (size_t k = 0; k < cd->vtblInterfaces->dim; k++)
-            {   BaseClass *bs = (*cd->vtblInterfaces)[k];
-
-                if (b->base == bs->base)
-                {
-                    //printf("\toverriding vtbl[] for %s\n", b->base->toChars());
-                    ClassDeclaration *id = b->base;
-
-                    size_t j = 0;
-                    if (id->vtblOffset())
-                    {
-                        // First entry is ClassInfo reference
-                        //dtxoff(&dt, id->toSymbol(), 0, TYnptr);
-
-                        // First entry is struct Interface reference
-                        dtxoff(&dt, cd->toSymbol(), classinfo_size + k * (4 * Target::ptrsize), TYnptr);
-                        j = 1;
-                    }
-
-                    for (; j < id->vtbl.dim; j++)
-                    {
-                        assert(j < b->vtbl.dim);
-                        FuncDeclaration *fd = b->vtbl[j];
-                        if (fd)
-                            dtxoff(&dt, fd->toThunkSymbol(bs->offset), 0, TYnptr);
-                        else
-                            dtsize_t(&dt, 0);
-                    }
-                }
-            }
-        }
-    }
-#endif
-
-
     csym->Sdt = dt;
     // ClassInfo cannot be const data, because we use the monitor on it
     outdata(csym);
@@ -662,28 +617,6 @@ unsigned ClassDeclaration::baseVtblOffset(BaseClass *bc)
             }
         }
     }
-
-#if INTERFACE_VIRTUAL
-    for (size_t i = 0; i < vtblInterfaces->dim; i++)
-    {   BaseClass *b = (*vtblInterfaces)[i];
-        ClassDeclaration *cd;
-
-        for (cd = this->baseClass; cd; cd = cd->baseClass)
-        {
-            //printf("\tbase class %s\n", cd->toChars());
-            for (size_t k = 0; k < cd->vtblInterfaces->dim; k++)
-            {   BaseClass *bs = (*cd->vtblInterfaces)[k];
-
-                if (bc == bs)
-                {   //printf("\tcsymoffset = x%x\n", csymoffset);
-                    return csymoffset;
-                }
-                if (b->base == bs->base)
-                    csymoffset += bs->base->vtbl.dim * Target::ptrsize;
-            }
-        }
-    }
-#endif
 
     return ~0;
 }
