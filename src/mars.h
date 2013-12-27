@@ -324,12 +324,6 @@ struct Loc
     bool equals(const Loc& loc);
 };
 
-#define INTERFACE_OFFSET        0       // if 1, put classinfo as first entry
-                                        // in interface vtbl[]'s
-#define INTERFACE_VIRTUAL       0       // 1 means if an interface appears
-                                        // in the inheritance graph multiple
-                                        // times, only one is used
-
 enum LINK
 {
     LINKdefault,
