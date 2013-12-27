@@ -7819,12 +7819,9 @@ Expression *DotVarExp::semantic(Scope *sc)
             accessCheck(loc, sc, e1, var);
 
             VarDeclaration *v = var->isVarDeclaration();
-            if (!PULL93 || v && (v->isDataseg() || (v->storage_class & STCmanifest)))
-            {
-                Expression *e = expandVar(WANTvalue, v);
-                if (e)
-                    return e;
-            }
+            Expression *e = expandVar(WANTvalue, v);
+            if (e)
+                return e;
 
             if (v && v->isDataseg())     // fix bugzilla 8238
             {
