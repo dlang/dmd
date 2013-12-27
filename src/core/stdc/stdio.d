@@ -20,6 +20,7 @@ private
     import core.stdc.config;
     import core.stdc.stddef; // for size_t
     import core.stdc.stdarg; // for va_list
+    import core.stdc.stdint : intptr_t;
 
   version (FreeBSD)
   {
@@ -639,6 +640,9 @@ else version( Win64 )
 
     int _lock_file(FILE *fp);
     int _unlock_file(FILE *fp);
+
+    intptr_t _get_osfhandle(int fd);
+    int _open_osfhandle(intptr_t osfhandle, int flags);
 }
 else version( linux )
 {
