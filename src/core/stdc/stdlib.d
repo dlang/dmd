@@ -73,6 +73,13 @@ else version (MinGW)
     real __mingw_strtold(in char* nptr, char** endptr);
     alias __mingw_strtold strtold;
 }
+else version (Android)
+{
+    real strtold(in char* nptr, char** endptr)
+    {   // Fake it again till we make it
+        return strtod(nptr, endptr);
+    }
+}
 else
 {
     real strtold(in char* nptr, char** endptr);
