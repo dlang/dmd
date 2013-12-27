@@ -211,9 +211,11 @@ enum
     ERROR_ACCESS_DENIED =              5,
     ERROR_INVALID_HANDLE =             6,
     ERROR_NO_MORE_FILES =              18,
+    ERROR_LOCK_VIOLATION =             33,
     ERROR_INSUFFICIENT_BUFFER =        122,
     ERROR_MORE_DATA =          234,
     ERROR_NO_MORE_ITEMS =          259,
+    ERROR_IO_PENDING =                 997,
 }
 
 enum
@@ -358,6 +360,7 @@ struct OVERLAPPED {
     }
     HANDLE hEvent;
 }
+alias OVERLAPPED* LPOVERLAPPED;
 
 struct SECURITY_ATTRIBUTES {
     DWORD nLength;
@@ -3768,3 +3771,10 @@ enum
 }
 
 enum CREATE_UNICODE_ENVIRONMENT = 0x400;
+
+BOOL LockFile(HANDLE hFile, DWORD dwFileOffsetLow, DWORD dwFileOffsetHigh, DWORD nNumberOfBytesToLockLow, DWORD nNumberOfBytesToLockHigh);
+BOOL UnlockFile(HANDLE hFile, DWORD dwFileOffsetLow, DWORD dwFileOffsetHigh, DWORD nNumberOfBytesToUnlockLow, DWORD nNumberOfBytesToUnlockHigh);
+BOOL LockFileEx(HANDLE hFile, DWORD dwFlags, DWORD dwReserved, DWORD nNumberOfBytesToLockLow, DWORD nNumberOfBytesToLockHigh, LPOVERLAPPED lpOverlapped);
+BOOL UnlockFileEx(HANDLE hFile, DWORD dwReserved, DWORD nNumberOfBytesToUnlockLow, DWORD nNumberOfBytesToUnlockHigh, LPOVERLAPPED lpOverlapped);
+enum LOCKFILE_FAIL_IMMEDIATELY = 1;
+enum LOCKFILE_EXCLUSIVE_LOCK   = 2;
