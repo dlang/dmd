@@ -7828,7 +7828,7 @@ Expression *DotVarExp::semantic(Scope *sc)
                 // (e1, v)
                 accessCheck(loc, sc, e1, v);
                 VarExp *ve = new VarExp(loc, v);
-                Expression *e = new CommaExp(loc, e1, ve);
+                e = new CommaExp(loc, e1, ve);
                 e = e->semantic(sc);
                 return e;
             }
