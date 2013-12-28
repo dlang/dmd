@@ -729,18 +729,10 @@ int tryMain(size_t argc, const char *argv[])
                 {
                     if (strcmp(p + 12, "?") == 0)
                     {
-#if PULL93
-                        printf("\
-Language changes listed by -transition=id:\n\
-  =field,3449    do list all non-mutable fields occupies object instance\n\
-  =tls           do list all variables going into thread local storage\n\
-");
-#else
                         printf("\
 Language changes listed by -transition=id:\n\
   =tls           do list all variables going into thread local storage\n\
 ");
-#endif
                         return EXIT_FAILURE;
                     }
                     if (isdigit((utf8_t)p[12]))
@@ -763,10 +755,6 @@ Language changes listed by -transition=id:\n\
                     {
                         if (strcmp(p + 12, "tls") == 0)
                             global.params.vtls = 1;
-#if PULL93
-                        if (strcmp(p + 12, "field") == 0)
-                            global.params.vfield = 1;
-#endif
                     }
                     else
                         goto Lerror;

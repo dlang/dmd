@@ -1159,23 +1159,6 @@ Lnomatch:
         AggregateDeclaration *aad = parent->isAggregateDeclaration();
         if (aad)
         {
-#if PULL93
-            assert(!(storage_class & (STCextern | STCstatic | STCtls | STCgshared)));
-            if (storage_class & (STCconst | STCimmutable) && init && !init->isVoidInitializer() &&
-                global.params.vfield)
-            {
-                const char *p = loc.toChars();
-                const char *s = (storage_class & STCimmutable) ? "immutable" : "const";
-                fprintf(global.stdmsg, "%s: %s.%s is %s field\n", p ? p : "", ad->toPrettyChars(), toChars(), s);
-            }
-            storage_class |= STCfield;
-            if (tbn->ty == Tstruct && ((TypeStruct *)tbn)->sym->noDefaultCtor ||
-                tbn->ty == Tclass  && ((TypeClass  *)tbn)->sym->noDefaultCtor)
-            {
-                if (!isThisDeclaration() && !init)
-                    aad->noDefaultCtor = true;
-            }
-#else
             if (storage_class & (STCconst | STCimmutable) && init && !init->isVoidInitializer())
             {
                 StorageClass stc = storage_class & (STCconst | STCimmutable);
@@ -1194,7 +1177,6 @@ Lnomatch:
                         aad->noDefaultCtor = true;
                 }
             }
-#endif
         }
 
         InterfaceDeclaration *id = parent->isInterfaceDeclaration();
@@ -1757,10 +1739,8 @@ AggregateDeclaration *VarDeclaration::isThis()
     if (!(storage_class & (STCstatic | STCextern | STCmanifest | STCtemplateparameter |
                            STCtls | STCgshared | STCctfe)))
     {
-#if !PULL93
         if ((storage_class & (STCconst | STCimmutable | STCwild)) && init)
             return NULL;
-#endif
         for (Dsymbol *s = this; s; s = s->parent)
         {
             ad = s->isMember();
