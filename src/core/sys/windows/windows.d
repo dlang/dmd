@@ -213,6 +213,7 @@ enum
     ERROR_NO_MORE_FILES =              18,
     ERROR_LOCK_VIOLATION =             33,
     ERROR_INSUFFICIENT_BUFFER =        122,
+    ERROR_ALREADY_EXISTS =             183,
     ERROR_MORE_DATA =          234,
     ERROR_NO_MORE_ITEMS =          259,
     ERROR_IO_PENDING =                 997,
