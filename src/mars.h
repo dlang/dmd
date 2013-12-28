@@ -75,9 +75,6 @@ void unittests();
 #define DMDV1   0
 #define DMDV2   1       // Version 2.0 features
 
-// Set if C++ mangling is done by the front end
-#define CPP_MANGLE (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
-
 struct OutBuffer;
 
 // Can't include arraytypes.h here, need to declare these directly.
