@@ -536,16 +536,6 @@ Expression *Pow(Type *type, Expression *e1, Expression *e2)
         {
             e = new RealExp(loc, Port::ldbl_nan, type);
         }
-        else if (e2->toReal() == 0.5)
-        {
-            // Special case: call sqrt directly.
-            Expressions args;
-            args.setDim(1);
-            args[0] = e1;
-            e = eval_builtin(loc, BUILTINsqrt, &args);
-            if (!e)
-                e = EXP_CANT_INTERPRET;
-        }
         else
             e = EXP_CANT_INTERPRET;
     }

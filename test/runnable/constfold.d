@@ -3,7 +3,7 @@
 static assert(__LINE__ == 3); // fails as __LINE__ is 2
 
 import std.stdio;
-import std.math : signbit;
+import std.math : signbit, sqrt;
 
 
 /************************************/
