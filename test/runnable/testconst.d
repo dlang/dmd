@@ -533,16 +533,8 @@ struct S40
 
 void test40()
 {
-  version (PULL93)
-  {
     assert(S40.sizeof == 8);
     assert(S40.init.b == 3);
-  }
-  else
-  {
-    assert(S40.sizeof == 4);
-    assert(S40.b == 3);
-  }
 }
 
 /************************************/
@@ -574,14 +566,7 @@ class C42
 {
     int a = ctfe() - 2;
     const int b;
-  version (PULL93)
-  {
-    enum int c = ctfe();
-  }
-  else
-  {
     const int c = ctfe();
-  }
     static const int d;
     static const int e = ctfe() + 2;
 
@@ -599,14 +584,7 @@ class C42
 void test42()
 {
     printf("%d\n", C42.classinfo.init.length);
-  version (PULL93)
-  {
     assert(C42.classinfo.init.length == 12 + (void*).sizeof + (void*).sizeof);
-  }
-  else
-  {
-    assert(C42.classinfo.init.length == 8 + (void*).sizeof + (void*).sizeof);
-  }
     C42 c = new C42;
     assert(c.a == 1);
     assert(c.b == 2);
@@ -617,11 +595,8 @@ void test42()
     const(int)*p;
     p = &c.b;
     assert(*p == 2);
-  version (PULL93)
-  {
     p = &c.c;
     assert(*p == 3);
-  }
     p = &c.d;
     assert(*p == 4);
     p = &c.e;
