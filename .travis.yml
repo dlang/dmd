@@ -4,5 +4,5 @@ compiler:
   - clang
 branches:
   only:
-    - master
+    - dmd-1.x
 script: make -C src -f posix.mak
