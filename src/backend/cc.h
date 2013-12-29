@@ -1488,7 +1488,6 @@ typedef struct Sfile
     symlist_t SFtemp_ft;        // template_ftlist
     symlist_t SFtemp_class;     // template_class_list
     Symbol   *SFtagsymdefs;     // list of tag names (C only)
-    char     *SFinc_once_id;    // macro include guard identifier
     unsigned SFhashval;         // hash of file name
 } Sfile;
 
