@@ -442,10 +442,6 @@ MATCH StringExp::implicitConvTo(Type *t)
     printf("StringExp::implicitConvTo(this=%s, committed=%d, type=%s, t=%s)\n",
         toChars(), committed, type->toChars(), t->toChars());
 #endif
-    if (!committed && t->ty == Tpointer && t->nextOf()->ty == Tvoid)
-    {
-        return MATCHnomatch;
-    }
     if (type->ty == Tsarray || type->ty == Tarray || type->ty == Tpointer)
     {
         TY tyn = type->nextOf()->ty;
@@ -497,6 +493,8 @@ MATCH StringExp::implicitConvTo(Type *t)
                                 return (postfix == 'w' ? m : MATCHconvert);
                             case Tdchar:
                                 return (postfix == 'd' ? m : MATCHconvert);
+                            case Tvoid:
+                                return MATCHconvert;
                         }
                     }
                     break;
@@ -1250,12 +1248,6 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
 
     //printf("StringExp::castTo(t = %s), '%s' committed = %d\n", t->toChars(), toChars(), committed);
 
-    if (!committed && t->ty == Tpointer && t->nextOf()->ty == Tvoid)
-    {
-        error("cannot convert string literal to void*");
-        return new ErrorExp();
-    }
-
     StringExp *se = this;
     if (!committed)
     {   se = (StringExp *)copy();
@@ -1280,6 +1272,13 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
         {   se = (StringExp *)copy();
             copied = 1;
         }
+        se->type = t;
+        return se;
+    }
+    if (t->ty == Tpointer && t->nextOf()->ty == Tvoid)
+    {
+        if (!copied)
+            se = (StringExp *)copy();
         se->type = t;
         return se;
     }
