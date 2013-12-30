@@ -130,6 +130,7 @@ public:
     int isParameters(Token **pt);
     int isExpression(Token **pt);
     int skipParens(Token *t, Token **pt);
+    int skipParensIf(Token *t, Token **pt);
     int skipAttributes(Token *t, Token **pt);
 
     Expression *parseExpression();
