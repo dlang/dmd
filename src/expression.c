@@ -4422,6 +4422,34 @@ AssocArrayLiteralExp::AssocArrayLiteralExp(Loc loc,
     this->ownedByCtfe = false;
 }
 
+bool AssocArrayLiteralExp::equals(RootObject *o)
+{
+    if (this == o)
+        return true;
+    if (o && o->dyncast() == DYNCAST_EXPRESSION &&
+        ((Expression *)o)->op == TOKassocarrayliteral)
+    {
+        AssocArrayLiteralExp *ae = (AssocArrayLiteralExp *)o;
+        if (keys->dim != ae->keys->dim)
+            return false;
+        size_t count = 0;
+        for (size_t i = 0; i < keys->dim; i++)
+        {
+            for (size_t j = 0; j < ae->keys->dim; j++)
+            {
+                if ((*keys)[i]->equals((*ae->keys)[j]))
+                {
+                    if (!(*values)[i]->equals((*ae->values)[j]))
+                        return false;
+                    ++count;
+                }
+            }
+        }
+        return count == keys->dim;
+    }
+    return false;
+}
+
 Expression *AssocArrayLiteralExp::syntaxCopy()
 {
     return new AssocArrayLiteralExp(loc,

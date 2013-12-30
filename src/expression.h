@@ -499,7 +499,7 @@ public:
     bool ownedByCtfe;   // true = created in CTFE
 
     AssocArrayLiteralExp(Loc loc, Expressions *keys, Expressions *values);
-
+    bool equals(RootObject *o);
     Expression *syntaxCopy();
     int apply(apply_fp_t fp, void *param);
     Expression *semantic(Scope *sc);

@@ -2991,6 +2991,30 @@ void test11818()
 }
 
 /******************************************/
+// 11843
+
+void test11843()
+{
+    struct Foo
+    {
+        int x[string];
+    }
+
+    struct Bar(alias foo) {}
+
+    enum bar1 = Bar!(Foo(["a": 1]))();
+    enum bar2 = Bar!(Foo(["a": 1]))();
+    static assert(is(typeof(bar1) == typeof(bar2)));
+
+    enum foo1 = Foo(["a": 1]);
+    enum foo2 = Foo(["b": -1]);
+    static assert(!__traits(isSame, foo1, foo2));
+    enum bar3 = Bar!foo1();
+    enum bar4 = Bar!foo2();
+    static assert(!is(typeof(bar3) == typeof(bar4)));
+}
+
+/******************************************/
 
 int main()
 {
@@ -3086,6 +3110,7 @@ int main()
     test11533b();
     test11533c();
     test11818();
+    test11843();
 
     printf("Success\n");
     return 0;
