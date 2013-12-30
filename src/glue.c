@@ -673,12 +673,31 @@ void FuncDeclaration::toObjFile(int multiobj)
 #else
     s->Sclass = SCglobal;
 #endif
+    /* auto return functions can be written out multiple times just like templates, because:
+     * 1. "auto" means semantic3() must be run on the function body
+     * 2. if there's a template function instantiated by the function body, it gets instantiated
+     * 3. if the template refers to local symbols, it becomes a nested function template
+     * 4. -allinst causes the template function instantiations to be written out
+     * 5. nested functions require their enclosing functions to be written out, i.e. the auto
+     *    function
+     * See bugzilla 11447 for an example.
+     */
+    if (inferRetType)
+        s->Sclass = SCcomdat;
     for (Dsymbol *p = parent; p; p = p->parent)
     {
         if (p->isTemplateInstance())
         {
             s->Sclass = SCcomdat;
             break;
+        }
+        if (FuncDeclaration *fd = p->isFuncDeclaration())
+        {
+            if (fd->inferRetType)
+            {
+                s->Sclass = SCcomdat;
+                break;
+            }
         }
     }
 

@@ -906,6 +906,14 @@ void VarDeclaration::toObjFile(int multiobj)
                     s->Sclass = SCcomdat;
                     break;
                 }
+                if (FuncDeclaration *fd = parent->isFuncDeclaration())
+                {
+                    if (fd->inferRetType)
+                    {
+                        s->Sclass = SCcomdat;
+                        break;
+                    }
+                }
                 parent = parent->parent;
             } while (parent);
         }
