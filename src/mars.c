@@ -459,6 +459,7 @@ Usage:\n\
 extern signed char tyalignsize[];
 
 static Module *entrypoint = NULL;
+static Module *rootHasMain = NULL;
 
 /************************************
  * Generate C main() in response to seeing D main().
@@ -494,7 +495,7 @@ void genCmain(Scope *sc)
 
     char v = global.params.verbose;
     global.params.verbose = 0;
-    m->importedFrom = sc->module;
+    m->importedFrom = m;
     m->importAll(NULL);
     m->semantic();
     m->semantic2();
@@ -502,6 +503,7 @@ void genCmain(Scope *sc)
     global.params.verbose = v;
 
     entrypoint = m;
+    rootHasMain = sc->module;
 }
 
 int tryMain(size_t argc, const char *argv[])
@@ -1676,7 +1678,7 @@ Language changes listed by -transition=id:\n\
             if (global.params.verbose)
                 fprintf(global.stdmsg, "code      %s\n", m->toChars());
             m->genobjfile(0);
-            if (entrypoint && m == entrypoint->importedFrom)
+            if (entrypoint && m == rootHasMain)
                 entrypoint->genobjfile(0);
             if (!global.errors && global.params.doDocComments)
                 m->gendocfile();
@@ -1697,7 +1699,7 @@ Language changes listed by -transition=id:\n\
             {
                 obj_start(m->srcfile->toChars());
                 m->genobjfile(global.params.multiobj);
-                if (entrypoint && m == entrypoint->importedFrom)
+                if (entrypoint && m == rootHasMain)
                     entrypoint->genobjfile(global.params.multiobj);
                 obj_end(library, m->objfile);
                 obj_write_deferred(library);
