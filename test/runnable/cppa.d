@@ -197,6 +197,36 @@ void test9()
 }
 
 /****************************************/
+
+
+struct A11802;
+struct B11802;
+
+extern(C++) class C11802
+{
+    int x;
+    void fun(A11802*) { x += 2; }
+    void fun(B11802*) { x *= 2; }
+}
+
+extern(C++) class D11802 : C11802
+{
+    override void fun(A11802*) { x += 3; }
+    override void fun(B11802*) { x *= 3; }
+}
+
+extern(C++) void test11802x(D11802);
+
+void test11802()
+{
+    auto x = new D11802();
+    x.x = 0;
+    test11802x(x);
+    assert(x.x == 9);
+}
+
+
+/****************************************/
 // 5148
 
 extern (C++)
@@ -236,6 +266,7 @@ void main()
     test6();
     test7();
     test8();
+    test11802();
     test9();
     test10();
 

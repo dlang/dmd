@@ -526,12 +526,36 @@ void FuncDeclaration::semantic(Scope *sc)
                 }
                 else
                 {
-                    // Append to end of vtbl[]
                     //printf("\tintroducing function\n");
                     introducing = 1;
-                    vi = (int)cd->vtbl.dim;
-                    cd->vtbl.push(this);
-                    vtblIndex = vi;
+                    if (cd->cpp && Target::reverseCppOverloads)
+                    {
+                        // with dmc, overloaded functions are grouped and in reverse order
+                        vtblIndex = (int)cd->vtbl.dim;
+                        for (size_t i = 0; i < cd->vtbl.dim; i++)
+                        {
+                            if (cd->vtbl[i]->ident == ident && cd->vtbl[i]->parent == parent)
+                            {
+                                vtblIndex = (int)i;
+                                break;
+                            }
+                        }
+                        // shift all existing functions back
+                        for (size_t i = cd->vtbl.dim; i > vtblIndex; i--)
+                        {
+                            FuncDeclaration *fd = cd->vtbl[i-1]->isFuncDeclaration();
+                            assert(fd);
+                            fd->vtblIndex++;
+                        }
+                        cd->vtbl.insert(vtblIndex, this);
+                    }
+                    else
+                    {
+                        // Append to end of vtbl[]
+                        vi = (int)cd->vtbl.dim;
+                        cd->vtbl.push(this);
+                        vtblIndex = vi;
+                    }
                 }
                 break;
 
