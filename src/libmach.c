@@ -79,7 +79,7 @@ class LibMach : public Library
     Loc loc;
 };
 
-Library *Library::factory()
+Library *LibMach_factory()
 {
     return new LibMach();
 }

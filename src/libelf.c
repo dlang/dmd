@@ -69,7 +69,7 @@ class LibElf : public Library
     Loc loc;
 };
 
-Library *Library::factory()
+Library *LibElf_factory()
 {
     return new LibElf();
 }
