@@ -79,9 +79,9 @@ class LibOMF : public Library
     Loc loc;
 };
 
-Library *Library::factory()
+Library *LibOMF_factory()
 {
-    return global.params.is64bit ? LibMSCoff_factory() : new LibOMF();
+    return new LibOMF();
 }
 
 LibOMF::LibOMF()
