@@ -642,7 +642,7 @@ void ClassDeclaration::toDt2(dt_t **pdt, ClassDeclaration *cd)
 void StructDeclaration::toDt(dt_t **pdt)
 {
     //printf("StructDeclaration::toDt(), this='%s'\n", toChars());
-    StructLiteralExp *sle = new StructLiteralExp(loc, this, NULL);
+    StructLiteralExp *sle = StructLiteralExp::create(loc, this, NULL);
     if (!fill(loc, sle->elements, true))
         assert(0);
 

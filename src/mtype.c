@@ -4724,6 +4724,11 @@ TypeAArray::TypeAArray(Type *t, Type *index)
     this->sc = NULL;
 }
 
+TypeAArray *TypeAArray::create(Type *t, Type *index)
+{
+    return new TypeAArray(t, index);
+}
+
 const char *TypeAArray::kind()
 {
     return "aarray";
@@ -5343,6 +5348,11 @@ TypeFunction::TypeFunction(Parameters *parameters, Type *treturn, int varargs, L
         this->trust = TRUSTsystem;
     if (stc & STCtrusted)
         this->trust = TRUSTtrusted;
+}
+
+TypeFunction *TypeFunction::create(Parameters *parameters, Type *treturn, int varargs, LINK linkage, StorageClass stc)
+{
+    return new TypeFunction(parameters, treturn, varargs, linkage, stc);
 }
 
 const char *TypeFunction::kind()
@@ -9702,6 +9712,11 @@ Parameter::Parameter(StorageClass storageClass, Type *type, Identifier *ident, E
     this->ident = ident;
     this->storageClass = storageClass;
     this->defaultArg = defaultArg;
+}
+
+Parameter *Parameter::create(StorageClass storageClass, Type *type, Identifier *ident, Expression *defaultArg)
+{
+    return new Parameter(storageClass, type, ident, defaultArg);
 }
 
 Parameter *Parameter::syntaxCopy()

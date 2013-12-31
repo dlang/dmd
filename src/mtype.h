@@ -555,6 +555,7 @@ public:
     StructDeclaration *impl;    // implementation
 
     TypeAArray(Type *t, Type *index);
+    static TypeAArray *create(Type *t, Type *index);
     const char *kind();
     Type *syntaxCopy();
     d_uns64 size(Loc loc);
@@ -663,6 +664,7 @@ public:
     int inuse;
 
     TypeFunction(Parameters *parameters, Type *treturn, int varargs, LINK linkage, StorageClass stc = 0);
+    static TypeFunction *create(Parameters *parameters, Type *treturn, int varargs, LINK linkage, StorageClass stc = 0);
     const char *kind();
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
@@ -1057,6 +1059,7 @@ public:
     Expression *defaultArg;
 
     Parameter(StorageClass storageClass, Type *type, Identifier *ident, Expression *defaultArg);
+    static Parameter *create(StorageClass storageClass, Type *type, Identifier *ident, Expression *defaultArg);
     Parameter *syntaxCopy();
     Type *isLazyArray();
     void toDecoBuffer(OutBuffer *buf);
