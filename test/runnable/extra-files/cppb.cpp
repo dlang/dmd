@@ -96,6 +96,31 @@ bar5* newBar()
 
 /**************************************/
 
+struct A11802;
+struct B11802;
+
+class C11802
+{
+public:
+    virtual void fun(A11802 *);
+    virtual void fun(B11802 *);
+};
+
+class D11802 : public C11802
+{
+public:
+    void fun(A11802 *);
+    void fun(B11802 *);
+};
+
+void test11802x(D11802 *c)
+{
+    c->fun((A11802 *)0);
+    c->fun((B11802 *)0);
+}
+
+/**************************************/
+
 typedef struct
 {
     int i;
