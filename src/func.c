@@ -2756,25 +2756,33 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
 
     functionResolve(&m, s, loc, sc, tiargs, tthis, fargs);
 
-    if (m.count == 1)   // exactly one match
+    if (m.last > MATCHnomatch && m.lastf)
     {
-        assert(m.lastf);
-        if (!(flags & 1))
-            m.lastf->functionSemantic();
-        return m.lastf;
-    }
-    if (m.last > MATCHnomatch && (flags & 2) && !tthis && m.lastf->needThis())
-    {
-        return m.lastf;
+        if (m.count == 1)   // exactly one match
+        {
+            if (!(flags & 1))
+                m.lastf->functionSemantic();
+            return m.lastf;
+        }
+        if ((flags & 2) && !tthis && m.lastf->needThis())
+        {
+            return m.lastf;
+        }
     }
 
 Lerror:
     /* Failed to find a best match.
      * Do nothing or print error.
      */
-    if (m.last <= MATCHnomatch && (flags & 1))
-    {   // if do not print error messages
-        return NULL;    // no match
+    if (m.last <= MATCHnomatch)
+    {
+        // error was caused on matched function
+        if (m.count == 1)
+            return m.lastf;
+
+        // if do not print error messages
+        if (flags & 1)
+            return NULL;    // no match
     }
 
     HdrGenState hgs;
@@ -2803,33 +2811,29 @@ Lerror:
 
     if (!m.lastf && !(flags & 1))   // no match
     {
-        if (td)
+        if (td && !fd)  // all of overloads are template
         {
-            if (!fd)    // all of overloads are template
-            {
-                ::error(loc, "%s %s.%s does not match any function template declaration. Candidates are:",
-                        td->kind(), td->parent->toPrettyChars(), td->ident->toChars());
+            ::error(loc, "%s %s.%s cannot deduce function from argument types !(%s)%s, candidates are:",
+                    td->kind(), td->parent->toPrettyChars(), td->ident->toChars(),
+                    tiargsBuf.toChars(), fargsBuf.toChars());
 
-                // Display candidate template functions
-                int numToDisplay = 5; // sensible number to display
-                for (TemplateDeclaration *tdx = td; tdx; tdx = tdx->overnext)
+            // Display candidate template functions
+            int numToDisplay = 5; // sensible number to display
+            for (TemplateDeclaration *tdx = td; tdx; tdx = tdx->overnext)
+            {
+                ::errorSupplemental(tdx->loc, "%s", tdx->toPrettyChars());
+                if (!global.params.verbose && --numToDisplay == 0 && tdx->overnext)
                 {
-                    ::errorSupplemental(tdx->loc, "%s", tdx->toPrettyChars());
-                    if (!global.params.verbose && --numToDisplay == 0)
-                    {
-                        // Too many overloads to sensibly display.
-                        // Just show count of remaining overloads.
-                        int remaining = 0;
-                        for (; tdx; tdx = tdx->overnext)
-                            ++remaining;
-                        if (remaining > 0)
-                            ::errorSupplemental(loc, "... (%d more, -v to show) ...", remaining);
-                        break;
-                    }
+                    // Too many overloads to sensibly display.
+                    // Just show count of remaining overloads.
+                    int remaining = 0;
+                    for (TemplateDeclaration *tdy = tdx->overnext; tdy; tdy = tdy->overnext)
+                        ++remaining;
+                    if (remaining > 0)
+                        ::errorSupplemental(loc, "... (%d more, -v to show) ...", remaining);
+                    break;
                 }
             }
-            td->error(loc, "cannot deduce template function from argument types !(%s)%s",
-                  tiargsBuf.toChars(), fargsBuf.toChars());
         }
         else
         {

@@ -1,9 +1,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail95.d(20): Error: template fail95.A does not match any function template declaration. Candidates are:
-fail_compilation/fail95.d(12):        fail95.A(alias T)(T)
-fail_compilation/fail95.d(20): Error: template fail95.A(alias T)(T) cannot deduce template function from argument types !()(int)
+fail_compilation/fail95.d(19): Error: template fail95.A cannot deduce function from argument types !()(int), candidates are:
+fail_compilation/fail95.d(11):        fail95.A(alias T)(T)
 ---
 */
 

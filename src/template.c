@@ -2491,11 +2491,12 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
          */
         assert(p.td_best->scope);
         if (!sc) sc = p.td_best->scope; // workaround for Type::aliasthisOf
-        TemplateInstance *ti;
-        ti = new TemplateInstance(loc, p.td_best, p.tdargs);
+
+        TemplateInstance *ti = new TemplateInstance(loc, p.td_best, p.tdargs);
         ti->semantic(sc, fargs);
+
         m->lastf = ti->toAlias()->isFuncDeclaration();
-        if (!m->lastf)
+        if (ti->errors || !m->lastf)
             goto Lerror;
 
         // look forward instantiated overload function
@@ -2514,7 +2515,11 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
             goto Lerror;
         assert(tf->ty == Tfunction);
         if (!tf->callMatch(p.tthis_best, fargs))
+        {
+            m->lastf = NULL;
+            m->count = 0;
             goto Lerror;
+        }
 
         if (FuncLiteralDeclaration *fld = m->lastf->isFuncLiteralDeclaration())
         {
@@ -2549,8 +2554,7 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
     else
     {
     Lerror:
-        m->lastf = NULL;
-        m->count = 0;
+        // Keep m->lastf and m->count as-is.
         m->last = MATCHnomatch;
     }
 }
