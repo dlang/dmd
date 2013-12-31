@@ -48,6 +48,11 @@ File::File(const FileName *n)
     name = (FileName *)n;
 }
 
+File *File::create(const char *n)
+{
+    return new File(n);
+}
+
 File::File(const char *n)
 {
     ref = 0;

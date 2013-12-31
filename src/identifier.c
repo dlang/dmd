@@ -25,6 +25,11 @@ Identifier::Identifier(const char *string, int value)
     this->len = strlen(string);
 }
 
+Identifier *Identifier::create(const char *string, int value)
+{
+    return new Identifier(string, value);
+}
+
 bool Identifier::equals(RootObject *o)
 {
     return this == o || memcmp(string,o->toChars(),len+1) == 0;

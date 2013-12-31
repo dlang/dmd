@@ -32,6 +32,7 @@ struct File
     FileName *name;             // name of our file
 
     File(const char *);
+    static File *create(const char *);
     File(const FileName *);
     ~File();
 

@@ -72,6 +72,11 @@ Dsymbol::Dsymbol(Identifier *ident)
     this->ddocUnittest = NULL;
 }
 
+Dsymbol *Dsymbol::create(Identifier *ident)
+{
+    return new Dsymbol(ident);
+}
+
 bool Dsymbol::equals(RootObject *o)
 {
     if (this == o)

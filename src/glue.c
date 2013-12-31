@@ -46,6 +46,8 @@ void Statement_toIR(Statement *s, IRState *irs);
 #define STATICCTOR      0
 
 typedef Array<symbol *> symbols;
+Dsymbols *Dsymbols_create();
+Expressions *Expressions_create();
 
 elem *eictor;
 symbol *ictorlocalgot;
@@ -118,10 +120,10 @@ void obj_write_deferred(Library *library)
         else
         {
             idbuf.data = NULL;
-            Identifier *id = new Identifier(idstr, TOKidentifier);
+            Identifier *id = Identifier::create(idstr, TOKidentifier);
 
-            Module *md = new Module(mname, id, 0, 0);
-            md->members = new Dsymbols();
+            Module *md = Module::create(mname, id, 0, 0);
+            md->members = Dsymbols_create();
             md->members->push(s);   // its only 'member' is s
             md->doppelganger = 1;       // identify this module as doppelganger
             md->md = m->md;
@@ -147,7 +149,7 @@ void obj_write_deferred(Library *library)
         fname = (char *)namebuf.extractData();
 
         //printf("writing '%s'\n", fname);
-        File *objfile = new File(fname);
+        File *objfile = File::create(fname);
         obj_end(library, objfile);
     }
     obj_symbols_towrite.dim = 0;
@@ -1001,29 +1003,29 @@ void FuncDeclaration::toObjFile(int multiobj)
              *   finally
              *     _c_trace_epi();
              */
-            StringExp *se = new StringExp(Loc(), s->Sident);
-            se->type = new TypeDArray(Type::tchar->immutableOf());
+            StringExp *se = StringExp::create(Loc(), s->Sident);
+            se->type = Type::tstring;
             se->type = se->type->semantic(Loc(), NULL);
-            Expressions *exps = new Expressions();
+            Expressions *exps = Expressions_create();
             exps->push(se);
             FuncDeclaration *fdpro = FuncDeclaration::genCfunc(NULL, Type::tvoid, "trace_pro");
-            Expression *ec = new VarExp(Loc(), fdpro);
-            Expression *e = new CallExp(Loc(), ec, exps);
+            Expression *ec = VarExp::create(Loc(), fdpro);
+            Expression *e = CallExp::create(Loc(), ec, exps);
             e->type = Type::tvoid;
-            Statement *sp = new ExpStatement(loc, e);
+            Statement *sp = ExpStatement::create(loc, e);
 
             FuncDeclaration *fdepi = FuncDeclaration::genCfunc(NULL, Type::tvoid, "_c_trace_epi");
-            ec = new VarExp(Loc(), fdepi);
-            e = new CallExp(Loc(), ec);
+            ec = VarExp::create(Loc(), fdepi);
+            e = CallExp::create(Loc(), ec);
             e->type = Type::tvoid;
-            Statement *sf = new ExpStatement(loc, e);
+            Statement *sf = ExpStatement::create(loc, e);
 
             Statement *stf;
             if (sbody->blockExit(tf->isnothrow) == BEfallthru)
-                stf = new CompoundStatement(Loc(), sbody, sf);
+                stf = CompoundStatement::create(Loc(), sbody, sf);
             else
-                stf = new TryFinallyStatement(Loc(), sbody, sf);
-            sbody = new CompoundStatement(Loc(), sp, stf);
+                stf = TryFinallyStatement::create(Loc(), sbody, sf);
+            sbody = CompoundStatement::create(Loc(), sp, stf);
         }
 
         buildClosure(&irs);

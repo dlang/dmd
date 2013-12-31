@@ -172,6 +172,7 @@ public:
 
     ExpStatement(Loc loc, Expression *exp);
     ExpStatement(Loc loc, Dsymbol *s);
+    static ExpStatement *create(Loc loc, Expression *exp);
     Statement *syntaxCopy();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Statement *semantic(Scope *sc);
@@ -225,6 +226,7 @@ public:
     CompoundStatement(Loc loc, Statements *s);
     CompoundStatement(Loc loc, Statement *s1);
     CompoundStatement(Loc loc, Statement *s1, Statement *s2);
+    static CompoundStatement *create(Loc loc, Statement *s1, Statement *s2);
     Statement *syntaxCopy();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Statement *semantic(Scope *sc);
@@ -814,6 +816,7 @@ public:
     Statement *finalbody;
 
     TryFinallyStatement(Loc loc, Statement *body, Statement *finalbody);
+    static TryFinallyStatement *create(Loc loc, Statement *body, Statement *finalbody);
     Statement *syntaxCopy();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Statement *semantic(Scope *sc);
@@ -940,6 +943,7 @@ public:
     LabelStatement *statement;
 
     LabelDsymbol(Identifier *ident);
+    static LabelDsymbol *create(Identifier *ident);
     LabelDsymbol *isLabel();
     void accept(Visitor *v) { v->visit(this); }
 };

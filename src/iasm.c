@@ -3670,7 +3670,7 @@ STATIC code *asm_db_parse(OP *pop)
 
             case TOKidentifier:
             {
-                Expression *e = new IdentifierExp(asmstate.loc, asmtok->ident);
+                Expression *e = IdentifierExp::create(asmstate.loc, asmtok->ident);
                 Scope *sc = asmstate.sc->startCTFE();
                 e = e->semantic(sc);
                 sc->endCTFE();
@@ -3747,7 +3747,7 @@ int asm_getnum()
 
         case TOKidentifier:
         {
-            Expression *e = new IdentifierExp(asmstate.loc, asmtok->ident);
+            Expression *e = IdentifierExp::create(asmstate.loc, asmtok->ident);
             Scope *sc = asmstate.sc->startCTFE();
             e = e->semantic(sc);
             sc->endCTFE();
@@ -4449,13 +4449,13 @@ STATIC OPND *asm_primary_exp()
                     {   Expression *e;
                         VarExp *v;
 
-                        e = new IdentifierExp(asmstate.loc, id);
+                        e = IdentifierExp::create(asmstate.loc, id);
                         while (1)
                         {
                             asm_token();
                             if (tok_value == TOKidentifier)
                             {
-                                e = new DotIdExp(asmstate.loc, e, asmtok->ident);
+                                e = DotIdExp::create(asmstate.loc, e, asmtok->ident);
                                 asm_token();
                                 if (tok_value != TOKdot)
                                     break;
@@ -4725,8 +4725,8 @@ Statement *AsmStatement::semantic(Scope *sc)
     {
         asmstate.bInit = TRUE;
         init_optab();
-        asmstate.psDollar = new LabelDsymbol(Id::__dollar);
-        asmstate.psLocalsize = new Dsymbol(Id::__LOCAL_SIZE);
+        asmstate.psDollar = LabelDsymbol::create(Id::__dollar);
+        asmstate.psLocalsize = Dsymbol::create(Id::__LOCAL_SIZE);
     }
 
     asmstate.loc = loc;

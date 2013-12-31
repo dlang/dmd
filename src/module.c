@@ -125,6 +125,11 @@ Module::Module(const char *filename, Identifier *ident, int doDocComment, int do
     symfile = new File(symfilename);
 }
 
+Module *Module::create(const char *filename, Identifier *ident, int doDocComment, int doHdrGen)
+{
+    return new Module(filename, ident, doDocComment, doHdrGen);
+}
+
 void Module::setDocfile()
 {
     docfile = setOutfile(global.params.docname, global.params.docdir, arg, global.doc_ext);

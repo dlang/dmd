@@ -142,6 +142,7 @@ public:
 
     Dsymbol();
     Dsymbol(Identifier *);
+    static Dsymbol *create(Identifier *);
     char *toChars();
     Loc& getLoc();
     char *locToChars();
