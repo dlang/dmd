@@ -4820,6 +4820,19 @@ printf("index->ito->ito = x%x\n", index->ito->ito);
             error(loc, "can't have associative array key of %s", index->toBasetype()->toChars());
         case Terror:
             return Type::terror;
+        case Tstruct:
+        {
+            /* AA's need opCmp. Issue error if not correctly set up.
+             */
+            TypeStruct *ts = (TypeStruct *)index->toBasetype();
+            if (ts->sym->xcmp == ts->sym->xerrcmp)
+            {
+                error(loc, "associative array key type %s does not have 'const int opCmp(ref const %s)' member function",
+                        index->toBasetype()->toChars(), ts->sym->toChars());
+                return Type::terror;
+            }
+            break;
+        }
     }
     next = next->semantic(loc,sc)->merge2();
     transitive();
