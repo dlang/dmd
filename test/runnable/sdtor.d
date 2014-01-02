@@ -2415,6 +2415,11 @@ struct Test9386
         printf("Deleted %.*s\n", name.length, name.ptr);
         op ~= "c";
     }
+
+    const int opCmp(ref const Test9386 t)
+    {
+	return op[0] - t.op[0];
+    }
 }
 
 void test9386()
