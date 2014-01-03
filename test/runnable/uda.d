@@ -350,6 +350,26 @@ static assert(__traits(getAttributes, x10208_13)[0] == 130); // Error -> OK
 static assert(__traits(getAttributes, x10208_14)[0] == 140); // Error -> OK
 
 /************************************************/
+// 11844
+
+auto make_encode11844(T, string name)()
+{
+    return mixin("function(T self) { return self.encodeField!\""~ name ~ "\"();}");
+}
+
+class FileData11844
+{
+    ulong _member;
+
+    @make_encode11844!(FileData11844, "member")()
+    ulong member() const { return _member; }
+
+    ubyte[] encodeField(string key)() { return [1,2,3]; }
+}
+
+static assert(__traits(getAttributes, FileData11844.member)[0](new FileData11844()) == [1,2,3]);
+
+/************************************************/
 
 int main()
 {
