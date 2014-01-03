@@ -42,6 +42,13 @@ enum Sizeok
     SIZEOKfwd,          // error in computing size of aggregate
 };
 
+enum StructPOD
+{
+    ISPODno,            // struct is not POD
+    ISPODyes,           // struct is POD
+    ISPODfwd,           // POD not yet computed
+};
+
 class AggregateDeclaration : public ScopeDsymbol
 {
 public:
@@ -152,6 +159,7 @@ public:
     static FuncDeclaration *xerrcmp;     // object.xopCmp
 
     structalign_t alignment;    // alignment applied outside of the struct
+    StructPOD ispod;            // if struct is POD
 
     // For 64 bit Efl function call/return ABI
     Type *arg1type;
