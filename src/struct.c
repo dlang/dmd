@@ -560,6 +560,7 @@ StructDeclaration::StructDeclaration(Loc loc, Identifier *id)
     xeq = NULL;
     xcmp = NULL;
     alignment = 0;
+    ispod = ISPODfwd;
     arg1type = NULL;
     arg2type = NULL;
 
@@ -978,7 +979,7 @@ bool StructDeclaration::fill(Loc loc, Expressions *elements, bool ctorinit)
  * This is defined as:
  *      not nested
  *      no postblits, constructors, destructors, or assignment operators
- *      no fields with with any of those
+ *      no fields that are themselves non-POD
  * The idea being these are compatible with C structs.
  *
  * Note that D struct constructors can mean POD, since there is always default
@@ -987,12 +988,16 @@ bool StructDeclaration::fill(Loc loc, Expressions *elements, bool ctorinit)
  */
 bool StructDeclaration::isPOD()
 {
-    if (enclosing || cpctor || postblit || ctor || dtor)
-        return false;
+    // If we've already determined whether this struct is POD.
+    if (ispod != ISPODfwd)
+        return (ispod == ISPODyes);
 
-    /* Recursively check any fields have a constructor.
-     * We should cache the results of this.
-     */
+    ispod = ISPODyes;
+
+    if (enclosing || cpctor || postblit || ctor || dtor)
+        ispod = ISPODno;
+
+    // Recursively check all fields are POD.
     for (size_t i = 0; i < fields.dim; i++)
     {
         VarDeclaration *v = fields[i];
@@ -1004,10 +1009,14 @@ bool StructDeclaration::isPOD()
             TypeStruct *ts = (TypeStruct *)tv;
             StructDeclaration *sd = ts->sym;
             if (!sd->isPOD())
-                return false;
+            {
+                ispod = ISPODno;
+                break;
+            }
         }
     }
-    return true;
+
+    return (ispod == ISPODyes);
 }
 
 void StructDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
