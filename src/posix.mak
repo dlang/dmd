@@ -646,7 +646,7 @@ version.o: version.c
 install: all
 	mkdir -p $(INSTALL_DIR)/bin
 	cp dmd $(INSTALL_DIR)/bin/dmd
-	cp dmd.conf.default $(INSTALL_DIR)/bin/dmd.conf
+	cp ../ini/$(OS)/bin$(MODEL)/dmd.conf $(INSTALL_DIR)/bin/dmd.conf
 	cp backendlicense.txt $(INSTALL_DIR)/dmd-backendlicense.txt
 	cp artistic.txt $(INSTALL_DIR)/dmd-artistic.txt
 
