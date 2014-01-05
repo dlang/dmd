@@ -34,6 +34,10 @@
 
 #define LOG     0
 
+#ifndef SYSCONFDIR
+#define SYSCONFDIR "/etc/"
+#endif
+
 char *skipspace(const char *p);
 
 
@@ -72,7 +76,7 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
          *      o current directory
          *      o home directory
          *      o directory off of argv0
-         *      o /etc/
+         *      o SYSCONFDIR (default=/etc/)
          */
         if (FileName::exists(inifile))
         {
@@ -136,7 +140,7 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
                     // Search /etc/ for inifile
                 Letc:
 #endif
-                    filename = (char *)FileName::combine((char *)"/etc/", inifile);
+                    filename = (char *)FileName::combine((char *)SYSCONFDIR, inifile);
 
                 Ldone:
                     ;
