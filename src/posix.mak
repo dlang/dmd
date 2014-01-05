@@ -436,7 +436,7 @@ import.o: import.c
 	$(CC) -c $(CFLAGS) $<
 
 inifile.o: inifile.c
-	$(CC) -c $(CFLAGS) $<
+	$(CC) -c $(CFLAGS) -DSYSCONFDIR='"$(SYSCONFDIR)"' $<
 
 init.o: init.c
 	$(CC) -c $(CFLAGS) $<
