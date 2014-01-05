@@ -5929,6 +5929,54 @@ void test8395()
 }
 
 /***************************************************/
+// 5749
+
+void test5749()
+{
+    static struct A
+    {
+        A foo(int x, int i)
+        {
+            //printf("this = %p, %d: i=%d\n", &this, x, i);
+            assert(i == x);
+            return this;
+        }
+        A bar(int x, ref int i)
+        {
+            //printf("this = %p, %d: i=%d\n", &this, x, i);
+            assert(i == x);
+            return this;
+        }
+    }
+
+    static     int inc1(ref int i) { return ++i; }
+    static ref int inc2(ref int i) { return ++i; }
+
+    int i;
+    A a;
+    //printf("&a = %p\n", &a);
+
+    i = 0;  a.foo(1, ++i).foo(2, ++i);          // OK <-- 2 1
+    i = 0;  a.bar(1, ++i).bar(2, ++i);          // OK <-- 2 2
+    i = 0;  a.foo(1, inc1(i)).foo(2, inc1(i));  // OK <-- 2 1
+    i = 0;  a.bar(1, inc2(i)).bar(2, inc2(i));  // OK <-- 2 2
+    //printf("\n");
+
+    A getVal() { static A a; return a; }
+    i = 0;  getVal().foo(1, ++i).foo(2, ++i);           // OK <-- 2 1
+    i = 0;  getVal().bar(1, ++i).bar(2, ++i);           // OK <-- 2 2
+    i = 0;  getVal().foo(1, inc1(i)).foo(2, inc1(i));   // OK <-- 2 1
+    i = 0;  getVal().bar(1, inc2(i)).bar(2, inc2(i));   // OK <-- 2 2
+    //printf("\n");
+
+    ref A getRef() { static A a; return a; }
+    i = 0;  getRef().foo(1, ++i).foo(2, ++i);           // OK <-- 2 1
+    i = 0;  getRef().bar(1, ++i).bar(2, ++i);           // OK <-- 2 2
+    i = 0;  getRef().foo(1, inc1(i)).foo(2, inc1(i));   // OK <-- 2 1
+    i = 0;  getRef().bar(1, inc2(i)).bar(2, inc2(i));   // OK <-- 2 2
+}
+
+/***************************************************/
 // 8396
 
 void test8396()
@@ -7086,6 +7134,7 @@ int main()
     test159();
     test8283();
     test8395();
+    test5749();
     test8396();
     test160();
     test8665();

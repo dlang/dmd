@@ -3646,8 +3646,34 @@ elem *CallExp::toElem(IRState *irs)
         {   StructLiteralExp *sle = (StructLiteralExp *)dve->e1;
             sle->sinit = NULL;          // don't modify initializer
         }
+
         ec = dve->e1->toElem(irs);
         ectype = dve->e1->type->toBasetype();
+
+        if (arguments && arguments->dim && ec->Eoper != OPvar)
+        {
+            if (ec->Eoper == OPind && el_sideeffect(ec->E1))
+            {
+                /* Rewrite (*exp)(arguments) as:
+                 * tmp = exp, (*tmp)(arguments)
+                 */
+                elem *ec1 = ec->E1;
+                Symbol *stmp = symbol_genauto(type_fake(ec1->Ety));
+                eeq = el_bin(OPeq, ec->Ety, el_var(stmp), ec1);
+                ec->E1 = el_var(stmp);
+            }
+            else if (tybasic(ec->Ety) != TYnptr)
+            {
+                /* Rewrite (exp)(arguments) as:
+                 * tmp=&exp, (*tmp)(arguments)
+                 */
+                ec = addressElem(ec, ectype);
+
+                Symbol *stmp = symbol_genauto(type_fake(ec->Ety));
+                eeq = el_bin(OPeq, ec->Ety, el_var(stmp), ec);
+                ec = el_una(OPind, ectype->totym(), el_var(stmp));
+            }
+        }
     }
     else if (e1->op == TOKvar)
     {
@@ -3693,7 +3719,8 @@ elem *CallExp::toElem(IRState *irs)
              * we need to solve this generally.
              */
             if (ec->Eoper == OPind && el_sideeffect(ec->E1))
-            {   /* Rewrite (*exp)(arguments) as:
+            {
+                /* Rewrite (*exp)(arguments) as:
                  * tmp=exp, (*tmp)(arguments)
                  */
                 elem *ec1 = ec->E1;
@@ -3702,7 +3729,8 @@ elem *CallExp::toElem(IRState *irs)
                 ec->E1 = el_var(stmp);
             }
             else if (tybasic(ec->Ety) == TYdelegate && el_sideeffect(ec))
-            {   /* Rewrite (exp)(arguments) as:
+            {
+                /* Rewrite (exp)(arguments) as:
                  * tmp=exp, (tmp)(arguments)
                  */
                 Symbol *stmp = symbol_genauto(type_fake(ec->Ety));
