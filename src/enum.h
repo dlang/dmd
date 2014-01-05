@@ -47,6 +47,7 @@ private:
 public:
     bool isdeprecated;
     bool added;
+    int inuse;
 
     EnumDeclaration(Loc loc, Identifier *id, Type *memtype);
     Dsymbol *syntaxCopy(Dsymbol *s);
