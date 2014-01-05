@@ -158,7 +158,7 @@ public:
     Dsymbol *pastMixin();
     Dsymbol *toParent();
     Dsymbol *toParent2();
-    TemplateInstance *inTemplateInstance();
+    TemplateInstance *isInstantiated();
     TemplateInstance *isSpeculative();
     Ungag ungagSpeculative();
 

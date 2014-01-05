@@ -105,6 +105,8 @@ Msgtable msgtable[] =
     { "_match" },
     { "destroy" },
     { "postblit" },
+    { "xopEquals", "__xopEquals" },
+    { "xopCmp", "__xopCmp" },
 
     { "LINE", "__LINE__" },
     { "FILE", "__FILE__" },

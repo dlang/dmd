@@ -218,7 +218,7 @@ void ClassDeclaration::toObjFile(int multiobj)
     assert(!scope);     // semantic() should have been run to completion
 
     scclass = SCglobal;
-    if (inTemplateInstance())
+    if (isInstantiated())
         scclass = SCcomdat;
 
     // Put out the members
@@ -641,7 +641,7 @@ void InterfaceDeclaration::toObjFile(int multiobj)
         toDebug();
 
     scclass = SCglobal;
-    if (inTemplateInstance())
+    if (isInstantiated())
         scclass = SCcomdat;
 
     // Put out the members
@@ -823,7 +823,7 @@ void StructDeclaration::toObjFile(int multiobj)
         {
             // Generate static initializer
             toInitializer();
-            if (inTemplateInstance())
+            if (isInstantiated())
             {
                 sinit->Sclass = SCcomdat;
             }
@@ -993,7 +993,7 @@ void TypedefDeclaration::toObjFile(int multiobj)
     else
     {
         enum_SC scclass = SCglobal;
-        if (inTemplateInstance())
+        if (isInstantiated())
             scclass = SCcomdat;
 
         // Generate static initializer
@@ -1033,7 +1033,7 @@ void EnumDeclaration::toObjFile(int multiobj)
     else
     {
         enum_SC scclass = SCglobal;
-        if (inTemplateInstance())
+        if (isInstantiated())
             scclass = SCcomdat;
 
         // Generate static initializer

@@ -499,6 +499,7 @@ FuncDeclaration *StructDeclaration::buildXopEquals(Scope *sc)
 
     if (!xerreq)
     {
+        // object._xopEquals
         Identifier *id = Lexer::idPool("_xopEquals");
         Expression *e = new IdentifierExp(loc, Id::empty);
         e = new DotIdExp(loc, e, Id::object);
@@ -523,7 +524,7 @@ FuncDeclaration *StructDeclaration::buildXopEquals(Scope *sc)
     TypeFunction *tf = new TypeFunction(parameters, Type::tbool, 0, LINKd);
     tf = (TypeFunction *)tf->semantic(loc, sc);
 
-    Identifier *id = Lexer::idPool("__xopEquals");
+    Identifier *id = Id::xopEquals;
     FuncDeclaration *fop = new FuncDeclaration(declLoc, Loc(), id, STCstatic, tf);
 
     Expression *e1 = new IdentifierExp(loc, Id::p);
@@ -625,6 +626,7 @@ FuncDeclaration *StructDeclaration::buildXopCmp(Scope *sc)
 
     if (!xerrcmp)
     {
+        // object._xopCmp
         Identifier *id = Lexer::idPool("_xopCmp");
         Expression *e = new IdentifierExp(loc, Id::empty);
         e = new DotIdExp(loc, e, Id::object);
@@ -649,7 +651,7 @@ FuncDeclaration *StructDeclaration::buildXopCmp(Scope *sc)
     TypeFunction *tf = new TypeFunction(parameters, Type::tint32, 0, LINKd);
     tf = (TypeFunction *)tf->semantic(loc, sc);
 
-    Identifier *id = Lexer::idPool("__xopCmp");
+    Identifier *id = Id::xopCmp;
     FuncDeclaration *fop = new FuncDeclaration(declLoc, Loc(), id, STCstatic, tf);
 
     Expression *e1 = new IdentifierExp(loc, Id::p);

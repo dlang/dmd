@@ -34,6 +34,8 @@ bool inNonRoot(Dsymbol *s)
     {
         if (TemplateInstance *ti = s->isTemplateInstance())
         {
+            if (ti->isTemplateMixin())
+                continue;
             if (!ti->instantiatingModule || !ti->instantiatingModule->isRoot())
                 return true;
             return false;
