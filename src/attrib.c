@@ -1667,7 +1667,13 @@ Dsymbol *UserAttributeDeclaration::syntaxCopy(Dsymbol *s)
 void UserAttributeDeclaration::semantic(Scope *sc)
 {
     //printf("UserAttributeDeclaration::semantic() %p\n", this);
-    atts = arrayExpressionSemantic(atts, sc);
+
+    /* Bugzilla 11844: Delay semantic analysis for UDAs.
+     * If attrs needs CTFE or template instantiation, they may not have
+     * valid scope yet for their fwdref resolution.
+     * Therefore running semantic analysis here is too early.
+     */
+    //atts = arrayExpressionSemantic(atts, sc);
 
     if (decl)
     {
