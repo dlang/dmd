@@ -2973,6 +2973,61 @@ void test11533c()
 }
 
 /******************************************/
+// 11553
+
+struct Pack11553(T ...)
+{
+    alias Unpack = T;
+    enum length = T.length;
+}
+
+template isPack11553(TList ...)
+{
+    static if (TList.length == 1 && is(Pack11553!(TList[0].Unpack) == TList[0]))
+    {
+        enum isPack11553 = true;
+    }
+    else
+    {
+        enum isPack11553 = false;
+    }
+}
+
+template PartialApply11553(alias T, uint argLoc, Arg ...)
+    if (Arg.length == 1)
+{
+    template PartialApply11553(L ...)
+    {
+        alias PartialApply11553 = T!(L[0 .. argLoc], Arg, L[argLoc .. $]);
+    }
+}
+
+template _hasLength11553(size_t len, T)
+{
+    static if (T.length == len)
+    {
+        enum _hasLength11553 = true;
+    }
+    else
+    {
+        enum _hasLength11553 = false;
+    }
+}
+
+alias _hasLength11553(size_t len) = PartialApply11553!(._hasLength11553, 0, len);
+
+
+alias hl11553 = _hasLength11553!1;
+
+// this segfaults
+static if (!isPack11553!hl11553) { pragma(msg, "All good 1"); }
+
+// these are fine
+static if ( hl11553!(Pack11553!(5))) { pragma(msg, "All good 2"); }
+
+static if (!hl11553!(Pack11553!( ))) { pragma(msg, "All good 3"); }
+
+/******************************************/
 // 11818
 
 enum E11818 { e0, e1 }
