@@ -117,8 +117,17 @@ void EnumDeclaration::semantic(Scope *sc)
     if (!members && !memtype)               // enum ident;
         return;
 
-    if (semanticRun > PASSinit)
+    if (semanticRun >= PASSsemanticdone)
         return;             // semantic() already completed
+    if (semanticRun == PASSsemantic)
+    {
+        assert(memtype);
+        ::error(loc, "circular reference to enum base type %s", memtype->toChars());
+        errors = true;
+        semanticRun = PASSsemanticdone;
+        return;
+    }
+    semanticRun = PASSsemantic;
 
     if (!symtab)
         symtab = new DsymbolTable();
@@ -167,6 +176,7 @@ void EnumDeclaration::semantic(Scope *sc)
                 scope->module->addDeferredSemantic(this);
                 Module::dprogress = dprogress_save;
                 //printf("\tdeferring %s\n", toChars());
+                semanticRun = PASSinit;
                 return;
             }
         }
