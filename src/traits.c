@@ -261,8 +261,9 @@ Expression *TraitsExp::semantic(Scope *sc)
             error("type expected as second argument of __traits %s instead of %s", ident->toChars(), o->toChars());
             goto Lfalse;
         }
-        if (t->toBasetype()->ty == Tstruct
-              && ((sd = (StructDeclaration *)(((TypeStruct *)t->toBasetype())->sym)) != NULL))
+        Type *tb = t->baseElemOf();
+        if (tb->ty == Tstruct
+            && ((sd = (StructDeclaration *)(((TypeStruct *)tb)->sym)) != NULL))
         {
             if (sd->isPOD())
                 goto Ltrue;
