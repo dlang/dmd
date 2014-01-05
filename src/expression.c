@@ -10302,8 +10302,6 @@ Lagain:
         lwr = resolveProperties(sc2, lwr);
         if (t->ty == Ttuple) sc2 = sc2->endCTFE();
         lwr = lwr->implicitCastTo(sc2, Type::tsize_t);
-        if (lwr->type == Type::terror)
-            goto Lerr;
     }
     if (upr)
     {
@@ -10312,8 +10310,11 @@ Lagain:
         upr = resolveProperties(sc2, upr);
         if (t->ty == Ttuple) sc2 = sc2->endCTFE();
         upr = upr->implicitCastTo(sc2, Type::tsize_t);
-        if (upr->type == Type::terror)
-            goto Lerr;
+    }
+    if (lwr && lwr->type == Type::terror ||
+        upr && upr->type == Type::terror)
+    {
+        goto Lerr;
     }
 
     if (sc2 != sc)
