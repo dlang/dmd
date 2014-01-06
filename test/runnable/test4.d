@@ -466,10 +466,10 @@ int testx14(int x)
     }
 }
 
-class bar
+synchronized class bar
 {
     int y;
-    synchronized int sync(int x)
+    int sync(int x)
     {
 	printf("in sync(%d) = %d\n", x, y + 3);
 	return y + 3;
@@ -913,9 +913,9 @@ void test34()
 
 /* ================================ */
 
-class X35
+synchronized class X35
 {
-    final synchronized void foo()
+    final void foo()
     {
 	for(;;)
 	{
@@ -975,7 +975,7 @@ void test38()
 	assert(!b[0]);
 	assert(!b[1]);
 	assert(b[2]);
-	
+
 	assert(&a != &b);
     }
 }
@@ -1102,11 +1102,11 @@ class Check46
 
 	void add(byte b){
 		assert(0);
-	}	
+	}
 
 	alias sum write;
 	alias add write;
-	
+
 	void test(){
 		byte[] buffer;
 		write(buffer);
@@ -1408,12 +1408,12 @@ void test57()
 	writef("%-5s: ", name);
 	foreach(bit b; x)
 	    writef("%d",b);
-	writefln("");        
+	writefln("");
     }
 
     bit[] a;
     bit[] b;
-    
+
     a.length = 7;
     a[0] = 0;
     a[1] = 1;
@@ -1422,12 +1422,12 @@ void test57()
     a[4] = 0;
     a[5] = 1;
     a[6] = 0;
-    
+
     displayb("a", a);
-    
+
     b ~= a;
     displayb("b1", b);
-    
+
     b ~= a;
     displayb("b2", b);
 
@@ -1437,10 +1437,10 @@ void test57()
 	assert(b[i+7] == a[i]);
     }
 
-    b.length = 0;    
+    b.length = 0;
     b ~= a;
     displayb("b3", b);
-    
+
     b.length = b.length + 7;
     for(int i = 0; i < a.length; i++)
         b[i+7] = a[i];

@@ -11,7 +11,7 @@ class Abc : Throwable
     static int x;
     int a,b,c;
 
-    synchronized void test()
+    shared void test()
     {
         printf("test 1\n");
         x |= 1;
