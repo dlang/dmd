@@ -1341,7 +1341,8 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(FuncDeclaration *f, Loc l
                 tuple_dim = nfargs - argi - rem;
                 t->objects.setDim(tuple_dim);
                 for (size_t i = 0; i < tuple_dim; i++)
-                {   Expression *farg = (*fargs)[argi + i];
+                {
+                    Expression *farg = (*fargs)[argi + i];
 
                     // Check invalid arguments to detect errors early.
                     if (farg->op == TOKerror || farg->type->ty == Terror)
@@ -1350,159 +1351,23 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(FuncDeclaration *f, Loc l
                     if (!(fparam->storageClass & STClazy) && farg->type->ty == Tvoid)
                         goto Lnomatch;
 
-                    unsigned mod = farg->type->mod;
                     Type *tt;
                     MATCH m;
 
-                    #define X(U,T)  ((U) << 4) | (T)
                     if (tid->mod & MODwild)
                     {
-                        switch (X(tid->mod, mod))
+                        unsigned wm = farg->type->deduceWildHelper(&tt, tid);
+                        if (wm)
                         {
-                            case X(MODwild,              MODwild):
-                            case X(MODwild | MODshared,  MODwild | MODshared):
-                            case X(MODwild,              0):
-                            case X(MODwild,              MODconst):
-                            case X(MODwild,              MODimmutable):
-                            case X(MODwild | MODshared,  MODshared):
-                            case X(MODwild | MODshared,  MODconst | MODshared):
-                                if (mod & MODwild)
-                                    wildmatch |= MODwild;
-                                else if (mod == 0)
-                                    wildmatch |= MODmutable;
-                                else
-                                    wildmatch |= (mod & ~MODshared);
-                                tt = farg->type->mutableOf();
-                                m = MATCHconst;
-                                goto Lx;
-
-                            default:
-                                break;
+                            wildmatch |= wm;
+                            m = MATCHconst;
+                            goto Lx;
                         }
                     }
 
-                    switch (X(tid->mod, mod))
-                    {
-                        case X(0, 0):
-                        case X(0, MODconst):
-                        case X(0, MODimmutable):
-                        case X(0, MODshared):
-                        case X(0, MODconst | MODshared):
-                        case X(0, MODwild):
-                        case X(0, MODwild | MODshared):
-                            // foo(U:U)                T                => T
-                            // foo(U:U)                const(T)         => const(T)
-                            // foo(U:U)                immutable(T)     => immutable(T)
-                            // foo(U:U)                shared(T)        => shared(T)
-                            // foo(U:U)                const(shared(T)) => const(shared(T))
-                            // foo(U:U)                wild(T)          => wild(T)
-                            // foo(U:U)                wild(shared(T))  => wild(shared(T))
-                            tt = farg->type;
-                            m = MATCHexact;
-                            break;
-
-                        case X(MODconst, MODconst):
-                        case X(MODimmutable, MODimmutable):
-                        case X(MODshared, MODshared):
-                        case X(MODconst | MODshared, MODconst | MODshared):
-                        case X(MODwild, MODwild):
-                        case X(MODwild | MODshared, MODwild | MODshared):
-                            // foo(U:const(U))         const(T)         => T
-                            // foo(U:immutable(U))     immutable(T)     => T
-                            // foo(U:shared(U))        shared(T)        => T
-                            // foo(U:const(shared(U))) const(shared(T)) => T
-                            // foo(U:wild(U))          wild(T)          => T
-                            // foo(U:wild(shared(U)))  wild(shared(T))  => T
-                            tt = farg->type->mutableOf()->unSharedOf();
-                            m = MATCHexact;
-                            break;
-
-                        case X(MODconst, 0):
-                        case X(MODconst, MODimmutable):
-                        case X(MODconst, MODconst | MODshared):
-                        case X(MODconst | MODshared, MODimmutable):
-                        case X(MODconst, MODwild):
-                        case X(MODconst, MODwild | MODshared):
-                            // foo(U:const(U))         T                => T
-                            // foo(U:const(U))         immutable(T)     => T
-                            // foo(U:const(U))         const(shared(T)) => shared(T)
-                            // foo(U:const(shared(U))) immutable(T)     => T
-                            // foo(U:const(U))         wild(shared(T))  => shared(T)
-                            tt = farg->type->mutableOf();
-                            m = MATCHconst;
-                            break;
-
-                        case X(MODshared, MODconst | MODshared):
-                        case X(MODconst | MODshared, MODshared):
-                        case X(MODshared, MODwild | MODshared):
-                            // foo(U:shared(U))        const(shared(T)) => const(T)
-                            // foo(U:const(shared(U))) shared(T)        => T
-                            // foo(U:shared(U))        wild(shared(T))  => wild(T)
-                            tt = farg->type->unSharedOf();
-                            m = MATCHconst;
-                            break;
-
-                        case X(MODimmutable,         0):
-                        case X(MODimmutable,         MODconst):
-                        case X(MODimmutable,         MODshared):
-                        case X(MODimmutable,         MODconst | MODshared):
-                        case X(MODconst,             MODshared):
-                        case X(MODshared,            0):
-                        case X(MODshared,            MODconst):
-                        case X(MODshared,            MODimmutable):
-                        case X(MODconst | MODshared, 0):
-                        case X(MODconst | MODshared, MODconst):
-                        case X(MODimmutable,         MODwild):
-                        case X(MODshared,            MODwild):
-                        case X(MODconst | MODshared, MODwild):
-                        case X(MODwild,              0):
-                        case X(MODwild,              MODconst):
-                        case X(MODwild,              MODimmutable):
-                        case X(MODwild,              MODshared):
-                        case X(MODwild,              MODconst | MODshared):
-                        case X(MODwild | MODshared,  0):
-                        case X(MODwild | MODshared,  MODconst):
-                        case X(MODwild | MODshared,  MODimmutable):
-                        case X(MODwild | MODshared,  MODshared):
-                        case X(MODwild | MODshared,  MODconst | MODshared):
-                        case X(MODwild | MODshared,  MODwild):
-                        case X(MODimmutable,         MODwild | MODshared):
-                        case X(MODconst | MODshared, MODwild | MODshared):
-                        case X(MODwild,              MODwild | MODshared):
-                            // foo(U:immutable(U))     T                => nomatch
-                            // foo(U:immutable(U))     const(T)         => nomatch
-                            // foo(U:immutable(U))     shared(T)        => nomatch
-                            // foo(U:immutable(U))     const(shared(T)) => nomatch
-                            // foo(U:const(U))         shared(T)        => nomatch
-                            // foo(U:shared(U))        T                => nomatch
-                            // foo(U:shared(U))        const(T)         => nomatch
-                            // foo(U:shared(U))        immutable(T)     => nomatch
-                            // foo(U:const(shared(U))) T                => nomatch
-                            // foo(U:const(shared(U))) const(T)         => nomatch
-                            // foo(U:immutable(U))     wild(T)          => nomatch
-                            // foo(U:shared(U))        wild(T)          => nomatch
-                            // foo(U:const(shared(U))) wild(T)          => nomatch
-                            // foo(U:wild(U))          T                => nomatch
-                            // foo(U:wild(U))          const(T)         => nomatch
-                            // foo(U:wild(U))          immutable(T)     => nomatch
-                            // foo(U:wild(U))          shared(T)        => nomatch
-                            // foo(U:wild(U))          const(shared(T)) => nomatch
-                            // foo(U:wild(shared(U)))  T                => nomatch
-                            // foo(U:wild(shared(U)))  const(T)         => nomatch
-                            // foo(U:wild(shared(U)))  immutable(T)     => nomatch
-                            // foo(U:wild(shared(U)))  shared(T)        => nomatch
-                            // foo(U:wild(shared(U)))  const(shared(T)) => nomatch
-                            // foo(U:wild(shared(U)))  wild(T)          => nomatch
-                            // foo(U:immutable(U))     wild(shared(T))  => nomatch
-                            // foo(U:const(shared(U))) wild(shared(T))  => nomatch
-                            // foo(U:wild(U))          wild(shared(T))  => nomatch
-                            m = MATCHnomatch;
-                            break;
-
-                        default:
-                            assert(0);
-                    }
-                    #undef X
+                    m = farg->type->deduceTypeHelper(&tt, tid);
+                    if (!m)
+                        goto Lnomatch;
 
                 Lx:
                     if (m <= MATCHnomatch)
