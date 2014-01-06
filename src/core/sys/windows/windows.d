@@ -522,6 +522,7 @@ DWORD  GetModuleFileNameA(HMODULE hModule, LPSTR lpFilename, DWORD nSize);
 DWORD  GetModuleFileNameW(HMODULE hModule, LPWSTR lpFilename, DWORD nSize);
 HANDLE GetStdHandle(DWORD nStdHandle);
 BOOL   SetStdHandle(DWORD nStdHandle, HANDLE hHandle);
+HWND GetConsoleWindow();
 }
 
 struct MEMORYSTATUS {
@@ -3764,6 +3765,7 @@ BOOL GetHandleInformation(HANDLE hObject, LPDWORD lpdwFlags);
 BOOL SetHandleInformation(HANDLE hObject, DWORD dwMask, DWORD dwFlags);
 BOOL TerminateProcess(HANDLE hProcess, UINT uExitCode);
 LPWSTR* CommandLineToArgvW(LPCWSTR lpCmdLine, int* pNumArgs);
+LPWSTR GetCommandLineW();
 
 enum
 {
@@ -3779,3 +3781,5 @@ BOOL LockFileEx(HANDLE hFile, DWORD dwFlags, DWORD dwReserved, DWORD nNumberOfBy
 BOOL UnlockFileEx(HANDLE hFile, DWORD dwReserved, DWORD nNumberOfBytesToUnlockLow, DWORD nNumberOfBytesToUnlockHigh, LPOVERLAPPED lpOverlapped);
 enum LOCKFILE_FAIL_IMMEDIATELY = 1;
 enum LOCKFILE_EXCLUSIVE_LOCK   = 2;
+
+BOOL IsDebuggerPresent();
