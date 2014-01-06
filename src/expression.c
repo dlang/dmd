@@ -4537,6 +4537,13 @@ Lagain:
             ti->inst->errors = true;
             return new ErrorExp();
         }
+        if (ti->withsym && ti->withsym->withstate->wthis)
+        {
+            Expression *e = new VarExp(loc, ti->withsym->withstate->wthis);
+            e = new DotTemplateInstanceExp(loc, e, ti);
+            ti->withsym = NULL;
+            return e->semantic(sc);
+        }
         if (ti->needsTypeInference(sc))
         {
             if (TemplateDeclaration *td = ti->tempdecl->isTemplateDeclaration())
@@ -7431,6 +7438,12 @@ DotTemplateInstanceExp::DotTemplateInstanceExp(Loc loc, Expression *e, Identifie
     this->ti->tiargs = tiargs;
 }
 
+DotTemplateInstanceExp::DotTemplateInstanceExp(Loc loc, Expression *e, TemplateInstance *ti)
+        : UnaExp(loc, TOKdotti, sizeof(DotTemplateInstanceExp), e)
+{
+    this->ti = ti;
+}
+
 Expression *DotTemplateInstanceExp::syntaxCopy()
 {
     DotTemplateInstanceExp *de = new DotTemplateInstanceExp(loc,
@@ -7839,7 +7852,8 @@ Expression *CallExp::semantic(Scope *sc)
      *  foo!(tiargs)(funcargs)
      */
     if (e1->op == TOKimport && !e1->type)
-    {   ScopeExp *se = (ScopeExp *)e1;
+    {
+        ScopeExp *se = (ScopeExp *)e1;
         TemplateInstance *ti = se->sds->isTemplateInstance();
         if (ti && !ti->semanticRun)
         {
@@ -7852,6 +7866,13 @@ Expression *CallExp::semantic(Scope *sc)
                 ti->inst = ti;
                 ti->inst->errors = true;
                 return new ErrorExp();
+            }
+            if (ti->withsym && ti->withsym->withstate->wthis)
+            {
+                e1 = new VarExp(e1->loc, ti->withsym->withstate->wthis);
+                e1 = new DotTemplateInstanceExp(e1->loc, e1, ti);
+                ti->withsym = NULL;
+                goto Ldotti;
             }
             if (ti->needsTypeInference(sc, 1))
             {
@@ -7878,7 +7899,8 @@ Expression *CallExp::semantic(Scope *sc)
      */
 Ldotti:
     if (e1->op == TOKdotti && !e1->type)
-    {   DotTemplateInstanceExp *se = (DotTemplateInstanceExp *)e1;
+    {
+        DotTemplateInstanceExp *se = (DotTemplateInstanceExp *)e1;
         TemplateInstance *ti = se->ti;
         if (!ti->semanticRun)
         {

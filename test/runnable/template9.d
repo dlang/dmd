@@ -3085,6 +3085,37 @@ void test11843()
 }
 
 /******************************************/
+// 11872
+
+class Foo11872
+{
+    auto test(int v)() {}
+    auto test(int v)(string) {}
+
+    template Bar(T)
+    {
+        void test(T) {}
+    }
+}
+
+void test11872()
+{
+    auto foo = new Foo11872();
+
+    with (foo)
+    {
+        // ScopeExp(ti) -> DotTemplateInstanceExp(wthis, ti)
+        foo.test!2();   // works
+        test!2();       // works <- fails
+        test!2;         // works <- fails
+
+        // ScopeExp(ti) -> DotTemplateInstanceExp(wthis, ti) -> DotExp(wthis, ScopeExp)
+        foo.Bar!int.test(1);    // works
+        Bar!int.test(1);        // works <- fails
+    }
+}
+
+/******************************************/
 // 12077
 
 struct S12077(A) {}
@@ -3242,6 +3273,7 @@ int main()
     test11533c();
     test11818();
     test11843();
+    test11872();
     test12122();
     test12207();
 
