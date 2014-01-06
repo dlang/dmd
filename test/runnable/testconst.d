@@ -2689,6 +2689,22 @@ void test6930b(inout int = 0)
 }
 
 /************************************/
+// 11868
+
+void f11868(A...)(A) { }
+
+void g11868(inout(const(int))[] arr)
+{
+    f11868(arr[0]);
+}
+
+void test11868()
+{
+    auto arr = [1,2,3];
+    g11868(arr);
+}
+
+/************************************/
 // 6941
 
 static assert((const(shared(int[])[])).stringof == "const(shared(int[])[])");	// fail
@@ -3695,6 +3711,7 @@ int main()
     test6912();
     test6930a();
     test6930b();
+    test11868();
     test6939();
     test6940();
     test6982();
