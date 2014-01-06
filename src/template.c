@@ -5285,7 +5285,6 @@ TemplateInstance::TemplateInstance(Loc loc, Identifier *ident)
     this->argsym = NULL;
     this->aliasdecl = NULL;
     this->semantictiargsdone = false;
-    this->withsym = NULL;
     this->nest = 0;
     this->havetempdecl = false;
     this->enclosing = NULL;
@@ -5316,7 +5315,6 @@ TemplateInstance::TemplateInstance(Loc loc, TemplateDeclaration *td, Objects *ti
     this->argsym = NULL;
     this->aliasdecl = NULL;
     this->semantictiargsdone = true;
-    this->withsym = NULL;
     this->nest = 0;
     this->havetempdecl = true;
     this->enclosing = NULL;
@@ -5477,7 +5475,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
      * then run semantic on each argument (place results in tiargs[]),
      * last find most specialized template from overload list/set.
      */
-    if (!findTemplateDeclaration(sc) ||
+    if (!findTemplateDeclaration(sc, NULL) ||
         !semanticTiargs(sc) ||
         !findBestMatch(sc, fargs))
     {
@@ -5922,8 +5920,11 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
  * Find template declaration corresponding to template instance.
  */
 
-bool TemplateInstance::findTemplateDeclaration(Scope *sc)
+bool TemplateInstance::findTemplateDeclaration(Scope *sc, WithScopeSymbol **pwithsym)
 {
+    if (pwithsym)
+        *pwithsym = NULL;
+
     if (havetempdecl)
         return true;
 
@@ -5952,7 +5953,8 @@ bool TemplateInstance::findTemplateDeclaration(Scope *sc)
         if (s->parent)
             printf("s->parent = '%s'\n", s->parent->toChars());
 #endif
-        withsym = scopesym->isWithScopeSymbol();
+        if (pwithsym)
+            *pwithsym = scopesym->isWithScopeSymbol();
 
         /* We might have found an alias within a template when
          * we really want the template.

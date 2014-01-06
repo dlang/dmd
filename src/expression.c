@@ -4530,18 +4530,18 @@ Lagain:
     TemplateInstance *ti = sds->isTemplateInstance();
     if (ti)
     {
-        if (!ti->findTemplateDeclaration(sc) ||
+        WithScopeSymbol *withsym;
+        if (!ti->findTemplateDeclaration(sc, &withsym) ||
             !ti->semanticTiargs(sc))
         {
             ti->inst = ti;
             ti->inst->errors = true;
             return new ErrorExp();
         }
-        if (ti->withsym && ti->withsym->withstate->wthis)
+        if (withsym && withsym->withstate->wthis)
         {
-            Expression *e = new VarExp(loc, ti->withsym->withstate->wthis);
+            Expression *e = new VarExp(loc, withsym->withstate->wthis);
             e = new DotTemplateInstanceExp(loc, e, ti);
-            ti->withsym = NULL;
             return e->semantic(sc);
         }
         if (ti->needsTypeInference(sc))
@@ -4584,10 +4584,10 @@ Lagain:
                 Expression *e;
 
                 //printf("s = %s, '%s'\n", s->kind(), s->toChars());
-                if (ti->withsym && ti->withsym->withstate->wthis)
+                if (withsym && withsym->withstate->wthis)
                 {
                     // Same as wthis.s
-                    e = new VarExp(loc, ti->withsym->withstate->wthis);
+                    e = new VarExp(loc, withsym->withstate->wthis);
                     e = new DotVarExp(loc, e, s->isDeclaration());
                 }
                 else
@@ -7860,18 +7860,18 @@ Expression *CallExp::semantic(Scope *sc)
             /* Attempt to instantiate ti. If that works, go with it.
              * If not, go with partial explicit specialization.
              */
-            if (!ti->findTemplateDeclaration(sc) ||
+            WithScopeSymbol *withsym;
+            if (!ti->findTemplateDeclaration(sc, &withsym) ||
                 !ti->semanticTiargs(sc))
             {
                 ti->inst = ti;
                 ti->inst->errors = true;
                 return new ErrorExp();
             }
-            if (ti->withsym && ti->withsym->withstate->wthis)
+            if (withsym && withsym->withstate->wthis)
             {
-                e1 = new VarExp(e1->loc, ti->withsym->withstate->wthis);
+                e1 = new VarExp(e1->loc, withsym->withstate->wthis);
                 e1 = new DotTemplateInstanceExp(e1->loc, e1, ti);
-                ti->withsym = NULL;
                 goto Ldotti;
             }
             if (ti->needsTypeInference(sc, 1))

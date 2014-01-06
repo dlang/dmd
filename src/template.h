@@ -314,7 +314,6 @@ public:
     TemplateInstance *tinst;            // enclosing template instance
     ScopeDsymbol *argsym;               // argument symbol table
     AliasDeclaration *aliasdecl;        // !=NULL if instance is an alias for its sole member
-    WithScopeSymbol *withsym;           // if a member of a with statement
     int nest;                           // for recursion detection
     bool semantictiargsdone;            // has semanticTiargs() been done?
     bool havetempdecl;                  // if used second constructor
@@ -348,7 +347,7 @@ public:
     void toObjFile(int multiobj);                       // compile to .obj file
 
     // Internal
-    bool findTemplateDeclaration(Scope *sc);
+    bool findTemplateDeclaration(Scope *sc, WithScopeSymbol **pwithsym);
     bool updateTemplateDeclaration(Scope *sc, Dsymbol *s);
     static void semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int flags);
     bool semanticTiargs(Scope *sc);
