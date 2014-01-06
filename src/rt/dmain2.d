@@ -26,25 +26,9 @@ private
 version (Windows)
 {
     private import core.stdc.wchar_;
+    private import core.sys.windows.windows;
 
-    extern (Windows) nothrow
-    {
-        alias int function() FARPROC;
-        FARPROC    GetProcAddress(void*, in char*);
-        void*      LoadLibraryA(in char*);
-        void*      LoadLibraryW(in wchar_t*);
-        int        FreeLibrary(void*);
-        void*      LocalFree(void*);
-        wchar_t*   GetCommandLineW();
-        wchar_t**  CommandLineToArgvW(in wchar_t*, int*);
-        export int WideCharToMultiByte(uint, uint, in wchar_t*, int, char*, int, in char*, int*);
-        export int MultiByteToWideChar(uint, uint, in char*, int, wchar_t*, int);
-        int        IsDebuggerPresent();
-        HWND       GetConsoleWindow();
-    }
     pragma(lib, "shell32.lib"); // needed for CommandLineToArgvW
-    enum CP_UTF8 = 65001;
-    alias void* HWND;
 }
 
 version (FreeBSD)
@@ -495,17 +479,14 @@ private void printThrowable(Throwable t)
                 // Avoid static user32.dll dependency for console applications
                 // by loading it dynamically as needed
                 auto user32 = LoadLibraryW("user32.dll");
-                if (!user32) return;
-
-                alias extern(Windows) int function(
-                    HWND, in wchar_t*, in wchar_t*, uint) PMessageBoxW;
-                auto MessageBoxW = cast(PMessageBoxW)
-                    GetProcAddress(user32, "MessageBoxW");
-                if (!MessageBoxW) return;
-
-                enum MB_ICONERROR = 0x10;
-                MessageBoxW(null, buf.get(), caption.get(), MB_ICONERROR);
-
+                if (user32)
+                {
+                    alias typeof(&MessageBoxW) PMessageBoxW;
+                    auto pMessageBoxW = cast(PMessageBoxW)
+                        GetProcAddress(user32, "MessageBoxW");
+                    if (pMessageBoxW)
+                        pMessageBoxW(null, buf.get(), caption.get(), MB_ICONERROR);
+                }
                 FreeLibrary(user32);
                 caption.free();
                 buf.free();
