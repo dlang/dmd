@@ -405,6 +405,34 @@ void test7()
 }
 
 /***************************************************/
+// 11875 - endless recursion in Type::deduceType
+
+struct T1(C)
+{
+    C c;
+}
+
+class D1 { D2 c; alias c this; }
+class D2 { D1 c; alias c this; }
+
+static assert(!is(D1 == D2));
+static if(is(T1!D1 == T1!D, D))
+    static assert(is(D == D1));
+static if(is(D1 == T1!D, D)) // this used to freeze dmd
+    static assert(false);
+
+// test that types in recursion are still detected
+class D3 { T2!D2 c; alias c this; }
+
+struct T2(C)
+{
+    C c;
+    alias c this;
+}
+static assert(is(D3 : T2!D, D) && is(D == D2));
+
+
+/***************************************************/
 // 2781
 
 struct Tuple2781a(T...) {

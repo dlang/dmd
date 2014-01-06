@@ -817,8 +817,10 @@ enum AliasThisRec
     RECno = 0,      // no alias this recursion
     RECyes = 1,     // alias this has recursive dependency
     RECfwdref = 2,  // not yet known
+    RECtypeMask = 3,// mask to read no/yes/fwdref
 
     RECtracing = 0x4, // mark in progress of implicitConvTo/deduceWild
+    RECtracingDT = 0x8, // mark in progress of deduceType
 };
 
 class TypeStruct : public Type
@@ -849,6 +851,7 @@ public:
     bool needsNested();
     dt_t **toDt(dt_t **pdt);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL);
+    MATCH deduceTypeNoRecursion(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
     TypeTuple *toArgTypes();
@@ -978,6 +981,7 @@ public:
     Expression *defaultInit(Loc loc);
     int isZeroInit(Loc loc);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL);
+    MATCH deduceTypeNoRecursion(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm);
     int isscope();
     int checkBoolean();
     TypeInfoDeclaration *getTypeInfoDeclaration();
