@@ -644,6 +644,20 @@ void FuncDeclaration::toObjFile(int multiobj)
         }
     }
 
+    if (isNested())
+    {
+        /* The enclosing function must have its code generated first,
+         * so defer this code generation until ancestors are completed.
+         */
+        FuncDeclaration *fd = toAliasFunc();
+        FuncDeclaration *fdp = fd->toParent2()->isFuncDeclaration();
+        if (fdp && fdp->semanticRun < PASSobj)
+        {
+            fdp->deferred.push(fd);
+            return;
+        }
+    }
+
     // start code generation
     semanticRun = PASSobj;
 
@@ -693,31 +707,9 @@ void FuncDeclaration::toObjFile(int multiobj)
 
     if (isNested())
     {
-
-//      if (!(config.flags3 & CFG3pic))
-//          s->Sclass = SCstatic;
+        //if (!(config.flags3 & CFG3pic))
+        //    s->Sclass = SCstatic;
         f->Fflags3 |= Fnested;
-
-        /* The enclosing function must have its code generated first,
-         * so we know things like where its local symbols are stored.
-         */
-        FuncDeclaration *fdp = toAliasFunc()->toParent2()->isFuncDeclaration();
-        // Bug 8016 - only include the function if it is a template instance
-        Dsymbol * owner = NULL;
-        if (fdp)
-        {
-            //printf("fdp = %s %s\n", fdp->kind(), fdp->toChars());
-            owner =  fdp->toParent2();
-            if (owner && fdp->semanticRun == PASSsemantic3done &&
-                !fdp->isUnitTestDeclaration())
-            {
-                /* Can't do unittest's out of order, they are order dependent in that their
-                 * execution is done in lexical order, and some modules (std.datetime *cough*
-                 * *cough*) rely on this.
-                 */
-                fdp->toObjFile(multiobj);
-            }
-        }
     }
     else
     {
