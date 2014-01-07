@@ -1339,13 +1339,13 @@ int Type::checkAliasThisRec()
     else
         return 0;
 
-    AliasThisRec flag = (AliasThisRec)(*pflag & ~RECtracing);
+    AliasThisRec flag = (AliasThisRec)(*pflag & RECtypeMask);
     if (flag == RECfwdref)
     {
         Type *att = aliasthisOf();
         flag = att && att->implicitConvTo(this) ? RECyes : RECno;
     }
-    *pflag = (AliasThisRec)(flag | (*pflag & RECtracing));
+    *pflag = (AliasThisRec)(flag | (*pflag & ~RECtypeMask));
     return flag == RECyes;
 }
 
