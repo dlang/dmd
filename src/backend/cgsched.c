@@ -2862,7 +2862,7 @@ code *peephole(code *cstart,regm_t scratch)
 
     //printf("peephole\n");
     for (c = cstart; c; c = c1)
-    {   unsigned char rmi;
+    {
         unsigned char rmn;
 
         //c->print();
@@ -2909,36 +2909,30 @@ code *peephole(code *cstart,regm_t scratch)
 
         }
 
-        rmi = c->Irm;
-
         // Do:
         //      MOV     reg,[ESP]       =>      PUSH    reg
         //      ADD     ESP,4           =>      NOP
-        if (I32 && c->Iop == 0x8B && (rmi & 0xC7) == modregrm(0,0,4) &&
+        if (I32 && c->Iop == 0x8B && (c->Irm & 0xC7) == modregrm(0,0,4) &&
             c->Isib == modregrm(0,4,SP) &&
             c1->Iop == 0x83 && (c1->Irm & 0xC7) == modregrm(3,0,SP) &&
             !(c1->Iflags & CFpsw) && c1->IFL2 == FLconst && c1->IEV2.Vint == 4)
-        {   unsigned reg = (rmi >> 3) & 7;
+        {   unsigned reg = (c->Irm >> 3) & 7;
             c->Iop = 0x58 + reg;
             c1->Iop = NOP;
-            continue;
-        }
-
-        if ((rmi & 0xC0) != 0xC0)
-        {
             continue;
         }
 
         // Combine two SUBs of the same register
         if (c->Iop == c1->Iop &&
             c->Iop == 0x83 &&
-            (rmi & modregrm(3,0,7)) == (c1->Irm & modregrm(3,0,7)) &&
+            (c->Irm & 0xC0) == 0xC0 &&
+            (c->Irm & modregrm(3,0,7)) == (c1->Irm & modregrm(3,0,7)) &&
             !(c1->Iflags & CFpsw) &&
             c->IFL2 == FLconst && c1->IFL2 == FLconst
            )
         {   int i = (signed char)c->IEV2.Vint;
             int i1 = (signed char)c1->IEV2.Vint;
-            switch ((rmi & modregrm(0,7,0)) | ((c1->Irm & modregrm(0,7,0)) >> 3))
+            switch ((c->Irm & modregrm(0,7,0)) | ((c1->Irm & modregrm(0,7,0)) >> 3))
             {
                 case (0 << 3) | 0:              // ADD, ADD
                 case (5 << 3) | 5:              // SUB, SUB
@@ -2959,13 +2953,13 @@ code *peephole(code *cstart,regm_t scratch)
             }
         }
 
-        if (c->Iop == 0x8B)                     // MOV r1,EA
-        {   r1 = (rmi >> 3) & 7;
-            r2 = rmi & 7;
+        if (c->Iop == 0x8B && (c->Irm & 0xC0) == 0xC0)    // MOV r1,r2
+        {   r1 = (c->Irm >> 3) & 7;
+            r2 = c->Irm & 7;
         }
-        else if (c->Iop == 0x89)                // MOV EA,r2
-        {   r1 = rmi & 7;
-            r2 = (rmi >> 3) & 7;
+        else if (c->Iop == 0x89 && (c->Irm & 0xC0) == 0xC0)   // MOV r1,r2
+        {   r1 = c->Irm & 7;
+            r2 = (c->Irm >> 3) & 7;
         }
         else
         {

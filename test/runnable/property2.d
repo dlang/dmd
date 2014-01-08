@@ -313,6 +313,151 @@ void test7275()
 }
 
 /*****************************************/
+// 7538
+
+void test7538()
+{
+    struct P
+    {
+        @property long pr() { return 1; }
+        @property void pr(int) {}
+
+        @property long a1()() { return 1; }
+        @property void a1()(int) {}
+        template a2() { @property long a2() { return 1; } }
+        template a2() { @property void a2(int) {} }
+        template a3() { long a3() @property { return 1; } }
+        template a3() { void a3(int) @property {} }
+
+      static
+      {
+        @property long b1()() { return 1; }
+        @property void b1()(int) {}
+        template b2() { @property long b2() { return 1; } }
+        template b2() { @property void b2(int) {} }
+        template b3() { long b3() @property { return 1; } }
+        template b3() { void b3(int) @property {} }
+      }
+
+        @property long c1(T)()    { return 1; }
+        @property long c1(T)(int) { return 1; }
+        template c2(T) { @property long c2() { return 1; } }
+        template c2(T) { @property void c2(int) {} }
+        template c3(T) { long c3() @property { return 1; } }
+        template c3(T) { void c3(int) @property {} }
+
+      static
+      {
+        @property long d1(T)() { return 1; }
+        @property void d1(T)(int) {}
+        template d2(T) { @property long d2() { return 1; } }
+        template d2(T) { @property void d2(int) {} }
+        template d3(T) { long d3() @property { return 1; } }
+        template d3(T) { void d3(int) @property {} }
+      }
+
+        void test()
+        {
+            // TOKvar
+            static assert(is(typeof(pr) == long));
+
+            // TOKtemplate
+            static assert(is(typeof(b1) == long));
+            static assert(is(typeof(b2) == long));
+            static assert(is(typeof(b3) == long));
+
+            // TOKimport
+            static assert(is(typeof(d1!int) == long));
+            static assert(is(typeof(d2!int) == long));
+            static assert(is(typeof(d3!int) == long));
+        }
+    }
+    P p;
+    {
+        // TOKdotvar
+        static assert(is(typeof(p.pr) == long));
+
+        // TOKdottd
+        static assert(is(typeof(p.a1) == long));
+        static assert(is(typeof(p.a2) == long));
+        static assert(is(typeof(p.a3) == long));
+
+        // TOKimport
+        static assert(is(typeof(P.b1) == long));
+        static assert(is(typeof(P.b2) == long));
+        static assert(is(typeof(P.b3) == long));
+
+        // TOKdotti;
+        static assert(is(typeof(p.c1!int) == long));
+        static assert(is(typeof(p.c2!int) == long));
+        static assert(is(typeof(p.c3!int) == long));
+    }
+
+    struct F
+    {
+        long fn() { return 1; }
+        void fn(int) {}
+
+        long a1()() { return 1; }
+        void a1()(int) {}
+        template a2() { long a2() { return 1; } }
+        template a2() { void a2(int) {} }
+
+      static
+      {
+        long b1()() { return 1; }
+        void b1()(int) {}
+        template b2() { long b2() { return 1; } }
+        template b2() { void b2(int) {} }
+      }
+
+        long c1(T)()    { return 1; }
+        long c1(T)(int) { return 1; }
+        template c2(T) { long c2() { return 1; } }
+        template c2(T) { void c2(int) {} }
+
+      static
+      {
+        long d1(T)() { return 1; }
+        void d1(T)(int) {}
+        template d2(T) { long d2() { return 1; } }
+        template d2(T) { void d2(int) {} }
+      }
+
+        void test()
+        {
+            // TOKvar
+            static assert( is(typeof(fn) == function));
+
+            // TOKtemplate
+            static assert(!is(typeof(b1) == long));
+            static assert(!is(typeof(b2) == long));
+
+            // TOKimport
+            static assert(!is(typeof(d1!int) == long));
+            static assert(!is(typeof(d2!int) == long));
+        }
+    }
+    F f;
+    {
+        // TOKdotvar
+        static assert(is( typeof(f.fn) == function));
+
+        // TOKdottd
+        static assert(!is(typeof(f.a1) == long));
+        static assert(!is(typeof(f.a2) == long));
+
+        // TOKimport
+        static assert(!is(typeof(F.b1) == long));
+        static assert(!is(typeof(F.b2) == long));
+
+        // TOKdotti;
+        static assert(!is(typeof(f.c1!int) == long));
+        static assert(!is(typeof(f.c2!int) == long));
+    }
+}
+
+/*****************************************/
 // 8251
 
 struct S8251
@@ -374,6 +519,7 @@ mixin template Getter10103()
 {
     @property auto foo() { return v; }
     @property auto bar()() { return v; }
+    @property auto baz(T)() { return v; }
 
     static @property auto goo() { return 1; }
 }
@@ -382,6 +528,7 @@ mixin template Setter10103()
 {
     @property void foo(int x) { v = x; }
     @property void bar()(int x) { v = x; }
+    @property void baz(T)(int x) { v = x; }
 
     static @property void goo(int x) {}
 }
@@ -402,6 +549,9 @@ void test10103()
 
     f.bar;
     f.bar = 3;
+
+    f.baz!int;
+    f.baz!int = 3;
 
     Foo10103.goo = 3;
 }
@@ -451,6 +601,7 @@ int main()
     test7174();
     test7274();
     test7275();
+    test7538();
     test8251();
     test10103();
     test10197();

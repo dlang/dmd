@@ -307,7 +307,7 @@ void func8()
   scope a= new D8();
 }
 
-T func9(T)()
+T func9(T)() if (true)
 {
     T i;
     scope(exit) i= 1;
@@ -374,6 +374,17 @@ void foo6591()()
 }
 
 
+// 8081
+version(unittest) {
+    pure nothrow unittest {}
+    pure nothrow unittest {}
+
+    public unittest {}
+    extern(C) unittest {}
+    align unittest {}
+}
+
+
 // 10334
 
 template Foo10334(T) if (Bar10334!()) {}                ///
@@ -393,6 +404,8 @@ template Foo10334(T) if (Bar10334!(Baz10334!())) {}     ///
 template Foo10334(T) if (Bar10334!(Baz10334!T)) {}      ///
 template Foo10334(T) if (Bar10334!(Baz10334!100)) {}    ///
 template Foo10334(T) if (Bar10334!(.foo)) {}            ///
+template Foo10334(T) if (Bar10334!(const int)) {}       ///
+template Foo10334(T) if (Bar10334!(shared T)) {}        ///
 
 template Test10334(T...) {}     ///
 mixin Test10334!int a;          ///

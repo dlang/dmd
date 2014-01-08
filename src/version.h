@@ -17,7 +17,7 @@
 
 #include "dsymbol.h"
 
-class OutBuffer;
+struct OutBuffer;
 struct HdrGenState;
 
 class DebugSymbol : public Dsymbol
@@ -33,6 +33,7 @@ public:
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     const char *kind();
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class VersionSymbol : public Dsymbol
@@ -48,6 +49,7 @@ public:
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     const char *kind();
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 #endif /* DMD_VERSION_H */

@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2012 by Digital Mars
+// Copyright (c) 1999-2013 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -53,6 +53,8 @@ public:
     Package *isPackage() { return this; }
 
     virtual void semantic(Scope *) { }
+    Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class Module : public Package
@@ -62,6 +64,7 @@ public:
     static DsymbolTable *modules;       // symbol table of all modules
     static Modules amodules;            // array of all modules
     static Dsymbols deferred;   // deferred Dsymbol's needing semantic() run on them
+    static Dsymbols deferred3;  // deferred Dsymbol's needing semantic3() run on them
     static unsigned dprogress;  // progress resolving the deferred list
     static void init();
 
@@ -84,15 +87,7 @@ public:
     int selfImports();          // returns !=0 if module imports itself
 
     int insearch;
-    Identifier *searchCacheIdent;
-    Dsymbol *searchCacheSymbol; // cached value of search
-    int searchCacheFlags;       // cached flags
 
-    int semanticstarted;        // has semantic() been started?
-    int semanticRun;            // has semantic() been done?
-    int root;                   // != 0 if this is a 'root' module,
-                                // i.e. a module that will be taken all the
-                                // way to an object file
     Module *importedFrom;       // module from command line we're imported from,
                                 // i.e. a module that will be taken all the
                                 // way to an object file
@@ -111,19 +106,17 @@ public:
 
     Macro *macrotable;          // document comment macros
     Escape *escapetable;        // document comment escapes
-    bool safe;                  // TRUE if module is marked as 'safe'
+    bool safe;                  // true if module is marked as 'safe'
 
     size_t nameoffset;          // offset of module name from start of ModuleInfo
     size_t namelen;             // length of module name in characters
 
-    Module(char *arg, Identifier *ident, int doDocComment, int doHdrGen);
-    ~Module();
+    Module(const char *arg, Identifier *ident, int doDocComment, int doHdrGen);
+    static Module* create(const char *arg, Identifier *ident, int doDocComment, int doHdrGen);
 
     static Module *load(Loc loc, Identifiers *packages, Identifier *ident);
 
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    void toJson(JsonOut *json);
-    void jsonProperties(JsonOut *json);
     const char *kind();
     File *setOutfile(const char *name, const char *dir, const char *arg, const char *ext);
     void setDocfile();
@@ -139,13 +132,17 @@ public:
     void gensymfile();
     void gendocfile();
     int needModuleInfo();
-    Dsymbol *search(Loc loc, Identifier *ident, int flags);
-    Dsymbol *symtabInsert(Dsymbol *s);
+    Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
     void deleteObjFile();
-    void addDeferredSemantic(Dsymbol *s);
+    static void addDeferredSemantic(Dsymbol *s);
     static void runDeferredSemantic();
-    static void clearCache();
+    static void addDeferredSemantic3(Dsymbol *s);
+    static void runDeferredSemantic3();
     int imports(Module *m);
+
+    bool isRoot() { return this->importedFrom == this; }
+                                // true if the module source file is directly
+                                // listed in command line.
 
     // Back end
 
@@ -178,16 +175,18 @@ public:
     void genmoduleinfo();
 
     Module *isModule() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 
 struct ModuleDeclaration
 {
+    Loc loc;
     Identifier *id;
     Identifiers *packages;            // array of Identifier's representing packages
     bool safe;
 
-    ModuleDeclaration(Identifiers *packages, Identifier *id, bool safe);
+    ModuleDeclaration(Loc loc, Identifiers *packages, Identifier *id, bool safe);
 
     char *toChars();
 };

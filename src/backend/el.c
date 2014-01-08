@@ -331,18 +331,70 @@ elem *el_combines(void **args, int length)
                     el_combines(args + mid, length - mid));
 }
 
+/**************************************
+ * Return number of op nodes
+ */
+
+size_t el_opN(elem *e, unsigned op)
+{
+    if (e->Eoper == op)
+    {
+        return el_opN(e->E1, op) + el_opN(e->E2, op);
+    }
+    else
+        return 1;
+}
+
+/******************************************
+ * Fill an array with the ops.
+ */
+
+void el_opArray(elem ***parray, elem *e, unsigned op)
+{
+    if (e->Eoper == op)
+    {
+        el_opArray(parray, e->E1, op);
+        el_opArray(parray, e->E2, op);
+    }
+    else
+    {
+        **parray = e;
+        ++(*parray);
+    }
+}
+
+void el_opFree(elem *e, unsigned op)
+{
+    if (e->Eoper == op)
+    {
+        el_opFree(e->E1, op);
+        el_opFree(e->E2, op);
+        e->E1 = NULL;
+        e->E2 = NULL;
+        el_free(e);
+    }
+}
+
+/*****************************************
+ * Do an array of parameters as a tree
+ */
+
+elem *el_opCombine(elem **args, size_t length, unsigned op, unsigned ty)
+{
+    if (length == 0)
+        return NULL;
+    if (length == 1)
+        return args[0];
+    return el_bin(op, ty, el_opCombine(args, length - 1, op, ty), args[length - 1]);
+}
+
 /***************************************
  * Return a list of the parameters.
  */
 
 int el_nparams(elem *e)
 {
-    if (e->Eoper == OPparam)
-    {
-        return el_nparams(e->E1) + el_nparams(e->E2);
-    }
-    else
-        return 1;
+    return el_opN(e, OPparam);
 }
 
 /******************************************
@@ -1741,7 +1793,7 @@ int el_noreturn(elem *e)
     {   elem_debug(e);
         switch (e->Eoper)
         {   case OPcomma:
-                if (result |= el_noreturn(e->E1))
+                if ((result |= el_noreturn(e->E1)) != 0)
                     break;
                 e = e->E2;
                 continue;
@@ -3038,142 +3090,9 @@ void elem_print(elem *e)
                 dbg_printf(" '%s',%lld\n",e->EV.ss.Vstring,(unsigned long long)e->EV.ss.Voffset);
                 break;
             case OPconst:
-                tym = tybasic(typemask(e));
-            case_tym:
-                switch (tym)
-                {   case TYbool:
-                    case TYchar:
-                    case TYschar:
-                    case TYuchar:
-                        dbg_printf("%d ",e->EV.Vuchar);
-                        break;
-#if JHANDLE
-                    case TYjhandle:
-#endif
-#if TARGET_SEGMENTED
-                    case TYsptr:
-                    case TYcptr:
-#endif
-                    case TYnullptr:
-                    case TYnptr:
-                        if (NPTRSIZE == LONGSIZE)
-                            goto L1;
-                        if (NPTRSIZE == SHORTSIZE)
-                            goto L3;
-                        if (NPTRSIZE == LLONGSIZE)
-                            goto L2;
-                        assert(0);
-                        break;
-                    case TYenum:
-                        if (PARSER)
-                        {   tym = e->ET->Tnext->Tty;
-                            goto case_tym;
-                        }
-                    case TYint:
-                    case TYuint:
-                    case TYvoid:        /* in case (void)(1)    */
-                        if (tysize[TYint] == LONGSIZE)
-                            goto L1;
-                    case TYshort:
-                    case TYwchar_t:
-                    case TYushort:
-                    case TYchar16:
-                    L3:
-                        dbg_printf("%d ",e->EV.Vint);
-                        break;
-                    case TYlong:
-                    case TYulong:
-                    case TYdchar:
-#if TARGET_SEGMENTED
-                    case TYfptr:
-                    case TYvptr:
-                    case TYhptr:
-#endif
-                    L1:
-                        dbg_printf("%dL ",e->EV.Vlong);
-                        break;
-
-                    case TYllong:
-                    L2:
-                        dbg_printf("%lldLL ",e->EV.Vllong);
-                        break;
-
-                    case TYullong:
-                        dbg_printf("%lluLL ",e->EV.Vullong);
-                        break;
-
-                    case TYcent:
-                    case TYucent:
-                        dbg_printf("%lluLL+%lluLL ", e->EV.Vcent.msw, e->EV.Vcent.lsw);
-                        break;
-
-                    case TYfloat:
-                        dbg_printf("%gf ",(double)e->EV.Vfloat);
-                        break;
-                    case TYdouble:
-                    case TYdouble_alias:
-                        dbg_printf("%g ",(double)e->EV.Vdouble);
-                        break;
-                    case TYldouble:
-                    {
-#if _MSC_VER
-                        char buffer[3 + 3 * sizeof(targ_ldouble) + 1];
-                        ld_sprint(buffer, 'g', e->EV.Vldouble);
-                        dbg_printf("%s ", buffer);
-#else
-                        dbg_printf("%Lg ", e->EV.Vldouble);
-#endif
-                        break;
-                    }
-                    case TYifloat:
-                        dbg_printf("%gfi ", (double)e->EV.Vfloat);
-                        break;
-
-                    case TYidouble:
-                        dbg_printf("%gi ", (double)e->EV.Vdouble);
-                        break;
-
-                    case TYildouble:
-                        dbg_printf("%gLi ", (double)e->EV.Vldouble);
-                        break;
-
-                    case TYcfloat:
-                        dbg_printf("%gf+%gfi ", (double)e->EV.Vcfloat.re, (double)e->EV.Vcfloat.im);
-                        break;
-
-                    case TYcdouble:
-                        dbg_printf("%g+%gi ", (double)e->EV.Vcdouble.re, (double)e->EV.Vcdouble.im);
-                        break;
-
-                    case TYcldouble:
-                        dbg_printf("%gL+%gLi ", (double)e->EV.Vcldouble.re, (double)e->EV.Vcldouble.im);
-                        break;
-
-                    case TYfloat4:
-                    case TYdouble2:
-                    case TYschar16:
-                    case TYuchar16:
-                    case TYshort8:
-                    case TYushort8:
-                    case TYlong4:
-                    case TYulong4:
-                    case TYllong2:
-                    case TYullong2:
-                        dbg_printf("%llxLL+%llxLL ", e->EV.Vcent.msw, e->EV.Vcent.lsw);
-                        break;
-
-#if !MARS
-                    case TYident:
-                        dbg_printf("'%s' ", e->ET->Tident);
-                        break;
-#endif
-
-                    default:
-                        dbg_printf("Invalid type ");
-                        WRTYxx(typemask(e));
-                        /*assert(0);*/
-                }
+                elem_print_const(e);
                 break;
+
             default:
                 break;
         }
@@ -3181,6 +3100,146 @@ void elem_print(elem *e)
   }
 ret:
   nestlevel--;
+}
+
+void elem_print_const(elem *e)
+{
+    assert(e->Eoper == OPconst);
+    tym_t tym = tybasic(typemask(e));
+case_tym:
+    switch (tym)
+    {   case TYbool:
+        case TYchar:
+        case TYschar:
+        case TYuchar:
+            dbg_printf("%d ",e->EV.Vuchar);
+            break;
+#if JHANDLE
+        case TYjhandle:
+#endif
+#if TARGET_SEGMENTED
+        case TYsptr:
+        case TYcptr:
+#endif
+        case TYnullptr:
+        case TYnptr:
+            if (NPTRSIZE == LONGSIZE)
+                goto L1;
+            if (NPTRSIZE == SHORTSIZE)
+                goto L3;
+            if (NPTRSIZE == LLONGSIZE)
+                goto L2;
+            assert(0);
+            break;
+        case TYenum:
+            if (PARSER)
+            {   tym = e->ET->Tnext->Tty;
+                goto case_tym;
+            }
+        case TYint:
+        case TYuint:
+        case TYvoid:        /* in case (void)(1)    */
+            if (tysize[TYint] == LONGSIZE)
+                goto L1;
+        case TYshort:
+        case TYwchar_t:
+        case TYushort:
+        case TYchar16:
+        L3:
+            dbg_printf("%d ",e->EV.Vint);
+            break;
+        case TYlong:
+        case TYulong:
+        case TYdchar:
+#if TARGET_SEGMENTED
+        case TYfptr:
+        case TYvptr:
+        case TYhptr:
+#endif
+        L1:
+            dbg_printf("%dL ",e->EV.Vlong);
+            break;
+
+        case TYllong:
+        L2:
+            dbg_printf("%lldLL ",e->EV.Vllong);
+            break;
+
+        case TYullong:
+            dbg_printf("%lluLL ",e->EV.Vullong);
+            break;
+
+        case TYcent:
+        case TYucent:
+            dbg_printf("%lluLL+%lluLL ", e->EV.Vcent.msw, e->EV.Vcent.lsw);
+            break;
+
+        case TYfloat:
+            dbg_printf("%gf ",(double)e->EV.Vfloat);
+            break;
+        case TYdouble:
+        case TYdouble_alias:
+            dbg_printf("%g ",(double)e->EV.Vdouble);
+            break;
+        case TYldouble:
+        {
+#if _MSC_VER
+            char buffer[3 + 3 * sizeof(targ_ldouble) + 1];
+            ld_sprint(buffer, 'g', e->EV.Vldouble);
+            dbg_printf("%s ", buffer);
+#else
+            dbg_printf("%Lg ", e->EV.Vldouble);
+#endif
+            break;
+        }
+        case TYifloat:
+            dbg_printf("%gfi ", (double)e->EV.Vfloat);
+            break;
+
+        case TYidouble:
+            dbg_printf("%gi ", (double)e->EV.Vdouble);
+            break;
+
+        case TYildouble:
+            dbg_printf("%gLi ", (double)e->EV.Vldouble);
+            break;
+
+        case TYcfloat:
+            dbg_printf("%gf+%gfi ", (double)e->EV.Vcfloat.re, (double)e->EV.Vcfloat.im);
+            break;
+
+        case TYcdouble:
+            dbg_printf("%g+%gi ", (double)e->EV.Vcdouble.re, (double)e->EV.Vcdouble.im);
+            break;
+
+        case TYcldouble:
+            dbg_printf("%gL+%gLi ", (double)e->EV.Vcldouble.re, (double)e->EV.Vcldouble.im);
+            break;
+
+        case TYfloat4:
+        case TYdouble2:
+        case TYschar16:
+        case TYuchar16:
+        case TYshort8:
+        case TYushort8:
+        case TYlong4:
+        case TYulong4:
+        case TYllong2:
+        case TYullong2:
+            dbg_printf("%llxLL+%llxLL ", e->EV.Vcent.msw, e->EV.Vcent.lsw);
+            break;
+
+#if !MARS
+        case TYident:
+            dbg_printf("'%s' ", e->ET->Tident);
+            break;
+#endif
+
+        default:
+            dbg_printf("Invalid type ");
+            WRTYxx(typemask(e));
+            /*assert(0);*/
+    }
 }
 
 #endif

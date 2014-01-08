@@ -27,26 +27,12 @@
 
 const char *importHint(const char *s)
 {
-#if DMDV1
-    static const char *modules[] =
-    {   "std.c.stdio",
-        "std.stdio",
-        "std.math",
-        "std.c.stdarg",
-    };
-    static const char *names[] =
-    {
-        "printf", NULL,
-        "writefln", NULL,
-        "sin", "cos", "sqrt", "fabs", NULL,
-        "__va_argsave_t", NULL,
-    };
-#else
     static const char *modules[] =
     {   "core.stdc.stdio",
         "std.stdio",
         "std.math",
         "core.vararg",
+        NULL
     };
     static const char *names[] =
     {
@@ -55,16 +41,16 @@ const char *importHint(const char *s)
         "sin", "cos", "sqrt", "fabs", NULL,
         "__va_argsave_t", NULL,
     };
-#endif
     int m = 0;
-    for (int n = 0; n < sizeof(names)/sizeof(names[0]); n++)
+    for (int n = 0; modules[m]; n++)
     {
         const char *p = names[n];
         if (p == NULL)
-        {   m++;
+        {
+            m++;
             continue;
         }
-        assert(m < sizeof(modules)/sizeof(modules[0]));
+        assert(modules[m]);
         if (strcmp(s, p) == 0)
             return modules[m];
     }

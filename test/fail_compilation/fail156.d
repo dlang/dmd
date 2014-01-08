@@ -1,4 +1,11 @@
-// PERMUTE_ARGS: -d -dw
+// REQUIRED_ARGS: -d
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail156.d(33): Error: overlapping initialization for y
+fail_compilation/fail156.d(40): Error: overlapping initialization for y
+---
+*/
 
 typedef int myint = 4;
 
@@ -6,13 +13,13 @@ struct S
 {
     int i;
     union
-    {	int x = 2;
-	int y;
+    {
+        int x = 2;
+        int y;
     }
     int j = 3;
     myint k;
 }
-
 
 void main()
 {
@@ -29,4 +36,11 @@ void main()
     assert(t.y == 6);
     assert(t.j == 3);
     assert(t.k == 4);
+
+    S u = S( 1, 5, 6 );
+    assert(u.i == 1);
+    assert(u.x == 5);
+    assert(u.y == 5);
+    assert(u.j == 3);
+    assert(u.k == 4);
 }

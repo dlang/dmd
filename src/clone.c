@@ -76,6 +76,7 @@ FuncDeclaration *AggregateDeclaration::hasIdentityOpAssign(Scope *sc)
         unsigned oldspec = global.speculativeGag;   // template opAssign fbody makes it.
         global.speculativeGag = global.gag;
         sc = sc->push();
+        sc->tinst = NULL;
         sc->speculative = true;
 
         for (size_t i = 0; i < 2; i++)
@@ -130,18 +131,13 @@ int StructDeclaration::needOpAssign()
      */
     for (size_t i = 0; i < fields.dim; i++)
     {
-        Dsymbol *s = fields[i];
-        VarDeclaration *v = s->isVarDeclaration();
-        assert(v && v->isField());
+        VarDeclaration *v = fields[i];
         if (v->storage_class & STCref)
             continue;
-        Type *tv = v->type->toBasetype();
-        while (tv->ty == Tsarray)
-        {   TypeSArray *ta = (TypeSArray *)tv;
-            tv = tv->nextOf()->toBasetype();
-        }
+        Type *tv = v->type->baseElemOf();
         if (tv->ty == Tstruct)
-        {   TypeStruct *ts = (TypeStruct *)tv;
+        {
+            TypeStruct *ts = (TypeStruct *)tv;
             StructDeclaration *sd = ts->sym;
             if (sd->needOpAssign())
                 goto Lneed;
@@ -164,7 +160,7 @@ Lneed:
  * Note that s will be constructed onto the stack, and probably
  * copy-constructed in caller site.
  *
- * If S has copy copy construction and/or destructor, 
+ * If S has copy copy construction and/or destructor,
  * the body will make bit-wise object swap:
  *          S __tmp = this; // bit copy
  *          this = s;       // bit copy
@@ -192,19 +188,48 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
         return NULL;
 
     //printf("StructDeclaration::buildOpAssign() %s\n", toChars());
-    StorageClass stc = STCundefined;
+    StorageClass stc = STCsafe | STCnothrow | STCpure;
     Loc declLoc = this->loc;
     Loc loc = Loc();    // internal code should have no loc to prevent coverage
 
+    if (dtor || postblit)
+    {
+        if (dtor)
+        {
+            stc = mergeFuncAttrs(stc, dtor->storage_class);
+            if (stc & STCsafe)
+                stc = (stc & ~STCsafe) | STCtrusted;
+        }
+    }
+    else
+    {
+        for (size_t i = 0; i < fields.dim; i++)
+        {
+            VarDeclaration *v = fields[i];
+            if (v->storage_class & STCref)
+                continue;
+            Type *tv = v->type->baseElemOf();
+            if (tv->ty == Tstruct)
+            {
+                TypeStruct *ts = (TypeStruct *)tv;
+                StructDeclaration *sd = ts->sym;
+                if (FuncDeclaration *f = sd->hasIdentityOpAssign(sc))
+                    stc = mergeFuncAttrs(stc, f->storage_class);
+            }
+        }
+    }
+
     Parameters *fparams = new Parameters;
     fparams->push(new Parameter(STCnodtor, type, Id::p, NULL));
-    Type *ftype = new TypeFunction(fparams, handle, FALSE, LINKd);
-    ((TypeFunction *)ftype)->isref = 1;
+    Type *tf = new TypeFunction(fparams, handle, 0, LINKd, stc | STCref);
 
-    FuncDeclaration *fop = new FuncDeclaration(declLoc, Loc(), Id::assign, stc, ftype);
+    FuncDeclaration *fop = new FuncDeclaration(declLoc, Loc(), Id::assign, stc, tf);
 
     Expression *e = NULL;
-    if (dtor || postblit)
+    if (stc & STCdisable)
+    {
+    }
+    else if (dtor || postblit)
     {
         /* Do swap this and rhs
          *    tmp = this; this = s; tmp.dtor();
@@ -217,7 +242,7 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
         {
             tmp = new VarDeclaration(loc, type, idtmp, new VoidInitializer(loc));
             tmp->noscope = 1;
-            tmp->storage_class |= STCctfe;
+            tmp->storage_class |= STCtemp | STCctfe;
             e = new DeclarationExp(loc, tmp);
             ec = new AssignExp(loc,
                 new VarExp(loc, tmp),
@@ -248,9 +273,7 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
         //printf("\tmemberwise copy\n");
         for (size_t i = 0; i < fields.dim; i++)
         {
-            Dsymbol *s = fields[i];
-            VarDeclaration *v = s->isVarDeclaration();
-            assert(v && v->isField());
+            VarDeclaration *v = fields[i];
             // this.v = s.v;
             AssignExp *ec = new AssignExp(loc,
                 new DotVarExp(loc, new ThisExp(loc), v, 0),
@@ -258,15 +281,18 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
             e = Expression::combine(e, ec);
         }
     }
-    Statement *s1 = new ExpStatement(loc, e);
+    if (e)
+    {
+        Statement *s1 = new ExpStatement(loc, e);
 
-    /* Add:
-     *   return this;
-     */
-    e = new ThisExp(loc);
-    Statement *s2 = new ReturnStatement(loc, e);
+        /* Add:
+         *   return this;
+         */
+        e = new ThisExp(loc);
+        Statement *s2 = new ReturnStatement(loc, e);
 
-    fop->fbody = new CompoundStatement(loc, s1, s2);
+        fop->fbody = new CompoundStatement(loc, s1, s2);
+    }
 
     Dsymbol *s = fop;
 #if 1   // workaround until fixing issue 1528
@@ -278,7 +304,7 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
         Dsymbols *decldefs = new Dsymbols();
         decldefs->push(s);
         TemplateDeclaration *tempdecl =
-            new TemplateDeclaration(assign->loc, fop->ident, tpl, NULL, decldefs, 0);
+            new TemplateDeclaration(assign->loc, fop->ident, tpl, NULL, decldefs);
         s = tempdecl;
     }
 #endif
@@ -333,9 +359,7 @@ int StructDeclaration::needOpEquals()
      */
     for (size_t i = 0; i < fields.dim; i++)
     {
-        Dsymbol *s = fields[i];
-        VarDeclaration *v = s->isVarDeclaration();
-        assert(v && v->isField());
+        VarDeclaration *v = fields[i];
         if (v->storage_class & STCref)
             continue;
         Type *tv = v->type->toBasetype();
@@ -347,12 +371,10 @@ int StructDeclaration::needOpEquals()
             goto Lneed;
         if (tv->ty == Tclass)
             goto Lneed;
-        while (tv->ty == Tsarray)
-        {   TypeSArray *ta = (TypeSArray *)tv;
-            tv = tv->nextOf()->toBasetype();
-        }
+        tv = tv->baseElemOf();
         if (tv->ty == Tstruct)
-        {   TypeStruct *ts = (TypeStruct *)tv;
+        {
+            TypeStruct *ts = (TypeStruct *)tv;
             StructDeclaration *sd = ts->sym;
             if (sd->needOpEquals())
                 goto Lneed;
@@ -394,6 +416,7 @@ FuncDeclaration *AggregateDeclaration::hasIdentityOpEquals(Scope *sc)
             unsigned oldspec = global.speculativeGag;   // template opAssign fbody makes it.
             global.speculativeGag = global.gag;
             sc = sc->push();
+            sc->tinst = NULL;
             sc->speculative = true;
 
             for (size_t j = 0; j < 2; j++)
@@ -449,9 +472,49 @@ FuncDeclaration *StructDeclaration::buildOpEquals(Scope *sc)
 FuncDeclaration *StructDeclaration::buildXopEquals(Scope *sc)
 {
     if (!needOpEquals())
-        return NULL;
+        return NULL;        // bitwise comparison would work
 
     //printf("StructDeclaration::buildXopEquals() %s\n", toChars());
+    if (Dsymbol *eq = search_function(this, Id::eq))
+    {
+        if (FuncDeclaration *fd = eq->isFuncDeclaration())
+        {
+            TypeFunction *tfeqptr;
+            {
+                Scope scx;
+
+                /* const bool opEquals(ref const S s);
+                 */
+                Parameters *parameters = new Parameters;
+                parameters->push(new Parameter(STCref | STCconst, type, NULL, NULL));
+                tfeqptr = new TypeFunction(parameters, Type::tbool, 0, LINKd);
+                tfeqptr->mod = MODconst;
+                tfeqptr = (TypeFunction *)tfeqptr->semantic(Loc(), &scx);
+            }
+            fd = fd->overloadExactMatch(tfeqptr);
+            if (fd)
+                return fd;
+        }
+    }
+
+    if (!xerreq)
+    {
+        // object._xopEquals
+        Identifier *id = Lexer::idPool("_xopEquals");
+        Expression *e = new IdentifierExp(loc, Id::empty);
+        e = new DotIdExp(loc, e, Id::object);
+        e = new DotIdExp(loc, e, id);
+        e = e->semantic(sc);
+        Dsymbol *s = getDsymbol(e);
+        if (!s)
+        {
+            ::error(Loc(), "ICE: %s not found in object module. You must update druntime", id->toChars());
+            fatal();
+        }
+        assert(s);
+        xerreq = s->isFuncDeclaration();
+    }
+
     Loc declLoc = Loc();    // loc is unnecessary so __xopEquals is never called directly
     Loc loc = Loc();        // loc is unnecessary so errors are gagged
 
@@ -461,7 +524,7 @@ FuncDeclaration *StructDeclaration::buildXopEquals(Scope *sc)
     TypeFunction *tf = new TypeFunction(parameters, Type::tbool, 0, LINKd);
     tf = (TypeFunction *)tf->semantic(loc, sc);
 
-    Identifier *id = Lexer::idPool("__xopEquals");
+    Identifier *id = Id::xopEquals;
     FuncDeclaration *fop = new FuncDeclaration(declLoc, Loc(), id, STCstatic, tf);
 
     Expression *e1 = new IdentifierExp(loc, Id::p);
@@ -470,42 +533,144 @@ FuncDeclaration *StructDeclaration::buildXopEquals(Scope *sc)
 
     fop->fbody = new ReturnStatement(loc, e);
 
-    size_t index = members->dim;
-    members->push(fop);
-
-    unsigned errors = global.startGagging();    // Do not report errors, even if the
-    unsigned oldspec = global.speculativeGag;   // template opAssign fbody makes it.
-    global.speculativeGag = global.gag;
+    unsigned errors = global.startGagging();    // Do not report errors
     Scope *sc2 = sc->push();
     sc2->stc = 0;
     sc2->linkage = LINKd;
-    sc2->speculative = true;
 
     fop->semantic(sc2);
     fop->semantic2(sc2);
-    fop->semantic3(sc2);
 
     sc2->pop();
-    global.speculativeGag = oldspec;
     if (global.endGagging(errors))    // if errors happened
-    {
-        members->remove(index);
-
-        if (!xerreq)
-        {
-            Expression *e = new IdentifierExp(loc, Id::empty);
-            e = new DotIdExp(loc, e, Id::object);
-            e = new DotIdExp(loc, e, Lexer::idPool("_xopEquals"));
-            e = e->semantic(sc);
-            Dsymbol *s = getDsymbol(e);
-            FuncDeclaration *fd = s->isFuncDeclaration();
-
-            xerreq = fd;
-        }
         fop = xerreq;
+
+    return fop;
+}
+
+/******************************************
+ * Build __xopCmp for TypeInfo_Struct
+ *      static bool __xopCmp(ref const S p, ref const S q)
+ *      {
+ *          return p.opCmp(q);
+ *      }
+ *
+ * This is called by TypeInfo.compare(p1, p2). If the struct does not support
+ * const objects comparison, it will throw "not implemented" Error in runtime.
+ */
+
+FuncDeclaration *StructDeclaration::buildXopCmp(Scope *sc)
+{
+    //printf("StructDeclaration::buildXopCmp() %s\n", toChars());
+    if (Dsymbol *cmp = search_function(this, Id::cmp))
+    {
+        if (FuncDeclaration *fd = cmp->isFuncDeclaration())
+        {
+            TypeFunction *tfcmpptr;
+            {
+                Scope scx;
+
+                /* const int opCmp(ref const S s);
+                 */
+                Parameters *parameters = new Parameters;
+                parameters->push(new Parameter(STCref | STCconst, type, NULL, NULL));
+                tfcmpptr = new TypeFunction(parameters, Type::tint32, 0, LINKd);
+                tfcmpptr->mod = MODconst;
+                tfcmpptr = (TypeFunction *)tfcmpptr->semantic(Loc(), &scx);
+            }
+            fd = fd->overloadExactMatch(tfcmpptr);
+            if (fd)
+                return fd;
+        }
     }
     else
-        fop->addMember(sc, this, 1);
+    {
+#if 0   // FIXME: doesn't work for recursive alias this
+        /* Check opCmp member exists.
+         * Consider 'alias this', but except opDispatch.
+         */
+        Expression *e = new DsymbolExp(loc, this);
+        e = new DotIdExp(loc, e, Id::cmp);
+        Scope *sc2 = sc->push();
+        e = e->trySemantic(sc2);
+        sc2->pop();
+        if (e)
+        {
+            Dsymbol *s = NULL;
+            switch (e->op)
+            {
+                case TOKoverloadset:    s = ((OverExp *)e)->vars;       break;
+                case TOKimport:         s = ((ScopeExp *)e)->sds;       break;
+                case TOKvar:            s = ((VarExp *)e)->var;         break;
+                default:                break;
+            }
+            if (!s || s->ident != Id::cmp)
+                e = NULL;   // there's no valid member 'opCmp'
+        }
+        if (!e)
+            return NULL;    // bitwise comparison would work
+        /* Essentially, a struct which does not define opCmp is not comparable.
+         * At this time, typeid(S).compare might be correct that throwing "not implement" Error.
+         * But implementing it would break existing code, such as:
+         *
+         * struct S { int value; }  // no opCmp
+         * int[S] aa;   // Currently AA key uses bitwise comparison
+         *              // (It's default behavior of TypeInfo_Strust.compare).
+         *
+         * Not sure we should fix this inconsistency, so just keep current behavior.
+         */
+#else
+        return NULL;
+#endif
+    }
+
+    if (!xerrcmp)
+    {
+        // object._xopCmp
+        Identifier *id = Lexer::idPool("_xopCmp");
+        Expression *e = new IdentifierExp(loc, Id::empty);
+        e = new DotIdExp(loc, e, Id::object);
+        e = new DotIdExp(loc, e, id);
+        e = e->semantic(sc);
+        Dsymbol *s = getDsymbol(e);
+        if (!s)
+        {
+            ::error(Loc(), "ICE: %s not found in object module. You must update druntime", id->toChars());
+            fatal();
+        }
+        assert(s);
+        xerrcmp = s->isFuncDeclaration();
+    }
+
+    Loc declLoc = Loc();    // loc is unnecessary so __xopCmp is never called directly
+    Loc loc = Loc();        // loc is unnecessary so errors are gagged
+
+    Parameters *parameters = new Parameters;
+    parameters->push(new Parameter(STCref | STCconst, type, Id::p, NULL));
+    parameters->push(new Parameter(STCref | STCconst, type, Id::q, NULL));
+    TypeFunction *tf = new TypeFunction(parameters, Type::tint32, 0, LINKd);
+    tf = (TypeFunction *)tf->semantic(loc, sc);
+
+    Identifier *id = Id::xopCmp;
+    FuncDeclaration *fop = new FuncDeclaration(declLoc, Loc(), id, STCstatic, tf);
+
+    Expression *e1 = new IdentifierExp(loc, Id::p);
+    Expression *e2 = new IdentifierExp(loc, Id::q);
+    Expression *e = new CallExp(loc, new DotIdExp(loc, e1, Id::cmp), e2);
+
+    fop->fbody = new ReturnStatement(loc, e);
+
+    unsigned errors = global.startGagging();    // Do not report errors
+    Scope *sc2 = sc->push();
+    sc2->stc = 0;
+    sc2->linkage = LINKd;
+
+    fop->semantic(sc2);
+    fop->semantic2(sc2);
+
+    sc2->pop();
+    if (global.endGagging(errors))    // if errors happened
+        fop = xerrcmp;
 
     return fop;
 }
@@ -542,14 +707,14 @@ FuncDeclaration *StructDeclaration::buildCpCtor(Scope *sc)
 
     stc = mergeFuncAttrs(stc, postblit->storage_class);
     if (stc & STCsafe)  // change to @trusted for unsafe casts
-        stc = stc & ~STCsafe | STCtrusted;
+        stc = (stc & ~STCsafe) | STCtrusted;
 
     Parameters *fparams = new Parameters;
     fparams->push(new Parameter(STCref, type->constOf(), Id::p, NULL));
-    Type *ftype = new TypeFunction(fparams, Type::tvoid, 0, LINKd, stc);
-    ftype->mod = MODconst;
+    Type *tf = new TypeFunction(fparams, Type::tvoid, 0, LINKd, stc);
+    tf->mod = MODconst;
 
-    FuncDeclaration *fcp = new FuncDeclaration(declLoc, Loc(), Id::cpctor, stc, ftype);
+    FuncDeclaration *fcp = new FuncDeclaration(declLoc, Loc(), Id::cpctor, stc, tf);
 
     if (!(stc & STCdisable))
     {
@@ -593,7 +758,6 @@ FuncDeclaration *StructDeclaration::buildCpCtor(Scope *sc)
  * and the ordering changes (runs forward instead of backwards).
  */
 
-#if DMDV2
 FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
 {
     //printf("StructDeclaration::buildPostBlit() %s\n", toChars());
@@ -604,20 +768,20 @@ FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
     Expression *e = NULL;
     for (size_t i = 0; i < fields.dim; i++)
     {
-        Dsymbol *s = fields[i];
-        VarDeclaration *v = s->isVarDeclaration();
-        assert(v && v->isField());
+        VarDeclaration *v = fields[i];
         if (v->storage_class & STCref)
             continue;
         Type *tv = v->type->toBasetype();
         dinteger_t dim = 1;
         while (tv->ty == Tsarray)
-        {   TypeSArray *ta = (TypeSArray *)tv;
-            dim *= ((TypeSArray *)tv)->dim->toInteger();
-            tv = tv->nextOf()->toBasetype();
+        {
+            TypeSArray *tsa = (TypeSArray *)tv;
+            dim *= tsa->dim->toInteger();
+            tv = tsa->next->toBasetype();
         }
         if (tv->ty == Tstruct)
-        {   TypeStruct *ts = (TypeStruct *)tv;
+        {
+            TypeStruct *ts = (TypeStruct *)tv;
             StructDeclaration *sd = ts->sym;
             if (sd->postblit && dim)
             {
@@ -697,8 +861,6 @@ FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
     }
 }
 
-#endif
-
 /*****************************************
  * Create inclusive destructor for struct/class by aggregating
  * all the destructors in dtors[] with the destructors for
@@ -715,23 +877,22 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
     Loc loc = Loc();    // internal code should have no loc to prevent coverage
 
     Expression *e = NULL;
-#if DMDV2
     for (size_t i = 0; i < fields.dim; i++)
     {
-        Dsymbol *s = fields[i];
-        VarDeclaration *v = s->isVarDeclaration();
-        assert(v && v->isField());
+        VarDeclaration *v = fields[i];
         if (v->storage_class & STCref)
             continue;
         Type *tv = v->type->toBasetype();
         dinteger_t dim = 1;
         while (tv->ty == Tsarray)
-        {   TypeSArray *ta = (TypeSArray *)tv;
-            dim *= ((TypeSArray *)tv)->dim->toInteger();
-            tv = tv->nextOf()->toBasetype();
+        {
+            TypeSArray *tsa = (TypeSArray *)tv;
+            dim *= tsa->dim->toInteger();
+            tv = tsa->next->toBasetype();
         }
         if (tv->ty == Tstruct)
-        {   TypeStruct *ts = (TypeStruct *)tv;
+        {
+            TypeStruct *ts = (TypeStruct *)tv;
             StructDeclaration *sd = ts->sym;
             if (sd->dtor && dim)
             {
@@ -777,7 +938,6 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
         members->push(dd);
         dd->semantic(sc);
     }
-#endif
 
     switch (dtors.dim)
     {

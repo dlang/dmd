@@ -1,0 +1,45 @@
+.TH DMD.CONF 5 "2006-03-12" "Digital Mars" "Digital Mars D"
+.SH NAME
+dmd.conf \- configuration file for
+\BR dmd (1)
+
+.SH SYNOPSIS
+.I /etc/dmd.conf
+
+.SH DESCRIPTION
+dmd will look for the initialization file
+.I dmd.conf
+in the directory \fI/etc\fR. If found, environment variable
+settings in the file will override any existing settings.
+.PP
+
+This is handy to make dmd independent of programs with
+conflicting use of environment variables.
+
+.SH SYNTAX
+Environment variables follow the [Environment] section
+heading, in name=value pairs. Comments are lines that start
+with ;.
+.PP
+
+.SH EXAMPLE
+.PD 0.5
+; dmd.conf file for dmd
+.LP
+; Names enclosed by %% are searched for in the existing environment
+.LP
+; and inserted. The special name %@P% is replaced with the path
+.LP
+; to this file.
+.LP
+[Environment]
+.LP
+DFLAGS="-I%@P%/../src/phobos"
+.PD
+
+.SH FILES
+.I /etc/dmd.conf
+
+.SH "SEE ALSO"
+.BR dmd (1)
+.BR rdmd (1)

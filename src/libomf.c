@@ -37,8 +37,8 @@ struct ObjSymbol
 
 #include "arraytypes.h"
 
-typedef Array<ObjModule> ObjModules;
-typedef Array<ObjSymbol> ObjSymbols;
+typedef Array<ObjModule *> ObjModules;
+typedef Array<ObjSymbol *> ObjSymbols;
 
 class LibOMF : public Library
 {
@@ -50,12 +50,12 @@ class LibOMF : public Library
     StringTable tab;
 
     LibOMF();
-    void setFilename(char *dir, char *filename);
+    void setFilename(const char *dir, const char *filename);
     void addObject(const char *module_name, void *buf, size_t buflen);
     void addLibrary(void *buf, size_t buflen);
     void write();
 
-    void addSymbol(ObjModule *om, char *name, int pickAny = 0);
+    void addSymbol(ObjModule *om, const char *name, int pickAny = 0);
   private:
     void scanObjModule(ObjModule *om);
     unsigned short numDictPages(unsigned padding);
@@ -79,9 +79,9 @@ class LibOMF : public Library
     Loc loc;
 };
 
-Library *Library::factory()
+Library *LibOMF_factory()
 {
-    return global.params.is64bit ? LibMSCoff_factory() : new LibOMF();
+    return new LibOMF();
 }
 
 LibOMF::LibOMF()
@@ -96,7 +96,7 @@ LibOMF::LibOMF()
  * Add default library file name extension.
  */
 
-void LibOMF::setFilename(char *dir, char *filename)
+void LibOMF::setFilename(const char *dir, const char *filename)
 {
     const char *arg = filename;
     if (!arg || !*arg)
@@ -119,7 +119,7 @@ void LibOMF::setFilename(char *dir, char *filename)
 void LibOMF::write()
 {
     if (global.params.verbose)
-        printf("library   %s\n", libfile->name->toChars());
+        fprintf(global.stdmsg, "library   %s\n", libfile->name->toChars());
 
     OutBuffer libbuf;
     WriteLibToBuffer(&libbuf);
@@ -129,9 +129,9 @@ void LibOMF::write()
     libbuf.extractData();
 
 
-    FileName::ensurePathToNameExists(libfile->name->toChars());
+    ensurePathToNameExists(Loc(), libfile->name->toChars());
 
-    libfile->writev();
+    writeFile(Loc(), libfile);
 }
 
 /*****************************************************************************/
@@ -159,7 +159,7 @@ struct ObjModule
 unsigned OMFObjSize(const void *base, unsigned length, const char *name);
 void writeOMFObj(OutBuffer *buf, const void *base, unsigned length, const char *name);
 
-void LibOMF::addSymbol(ObjModule *om, char *name, int pickAny)
+void LibOMF::addSymbol(ObjModule *om, const char *name, int pickAny)
 {
 #if LOG
     printf("LibOMF::addSymbol(%s, %s, %d)\n", om->name, name, pickAny);
@@ -208,7 +208,7 @@ void LibOMF::scanObjModule(ObjModule *om)
             this->om = om;
         }
 
-        static void addSymbol(void *pctx, char *name, int pickAny)
+        static void addSymbol(void *pctx, const char *name, int pickAny)
         {
             ((Context *)pctx)->lib->addSymbol(((Context *)pctx)->om, name, pickAny);
         }
@@ -216,7 +216,7 @@ void LibOMF::scanObjModule(ObjModule *om)
 
     Context ctx(this, om);
 
-    extern void scanOmfObjModule(void*, void (*pAddSymbol)(void*, char*, int), void *, size_t, const char *, Loc loc);
+    extern void scanOmfObjModule(void*, void (*pAddSymbol)(void*, const char*, int), void *, size_t, const char *, Loc loc);
     scanOmfObjModule(&ctx, &Context::addSymbol, om->base, om->length, om->name, loc);
 }
 
@@ -236,7 +236,7 @@ void LibOMF::addObject(const char *module_name, void *buf, size_t buflen)
     {   assert(module_name);
         FileName f((char *)module_name);
         File file(&f);
-        file.readv();
+        readFile(Loc(), &file);
         buf = file.buffer;
         buflen = file.len;
         file.ref = 1;
@@ -305,7 +305,7 @@ void LibOMF::addObject(const char *module_name, void *buf, size_t buflen)
             this->lib = lib;
             this->pstart = pstart;
             this->pagesize = pagesize;
-            this->firstmodule = false;
+            this->firstmodule = true;
             this->islibrary = islibrary;
             this->module_name = module_name;
         }

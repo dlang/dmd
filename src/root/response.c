@@ -20,7 +20,7 @@
 #include <io.h>
 #endif
 
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <fcntl.h>
@@ -68,17 +68,17 @@ struct Narg
 {
     size_t argc;      // arg count
     size_t argvmax;   // dimension of nargv[]
-    char **argv;
+    const char **argv;
 };
 
-static int addargp(struct Narg *n, char *p)
+static int addargp(struct Narg *n, const char *p)
 {
     /* The 2 is to always allow room for a NULL argp at the end   */
     if (n->argc + 2 > n->argvmax)
     {
         n->argvmax = n->argc + 2;
-        char **ap = n->argv;
-        ap = (char **) realloc(ap,n->argvmax * sizeof(char *));
+        const char **ap = n->argv;
+        ap = (const char **) realloc(ap,n->argvmax * sizeof(char *));
         if (!ap)
         {   if (n->argv)
                 free(n->argv);
@@ -91,10 +91,10 @@ static int addargp(struct Narg *n, char *p)
     return 0;
 }
 
-int response_expand(size_t *pargc, char ***pargv)
+int response_expand(size_t *pargc, const char ***pargv)
 {
     struct Narg n;
-    char *cp;
+    const char *cp;
     int recurse = 0;
 
     n.argc = 0;
@@ -290,7 +290,7 @@ int response_expand(size_t *pargc, char ***pargv)
     if (n.argvmax == 0)
     {
         n.argvmax = 1;
-        n.argv = (char **) calloc(n.argvmax, sizeof(char *));
+        n.argv = (const char **) calloc(n.argvmax, sizeof(char *));
         if (!n.argv)
             return 1;
     }

@@ -195,6 +195,18 @@ void testsizes()
 
 ///////////////////////
 
+size_t cond11565(size_t val)
+{
+    return val ? size_t.max : 0;
+}
+
+void test11565()
+{
+    assert(cond11565(true) == size_t.max);
+}
+
+///////////////////////
+
 int array1[3] = [1:1,2,0:3];
 
 void testarrayinit()
@@ -728,6 +740,322 @@ void testdocond()
 }
 
 ////////////////////////////////////////////////////////////////////////
+
+struct S8658
+{
+    int[16385] a;
+}
+
+void foo8658(S8658 s)
+{
+    int x;
+}
+
+void test8658()
+{
+    S8658 s;
+    for(int i = 0; i < 1000; i++)
+        foo8658(s);
+}
+
+////////////////////////////////////////////////////////////////////////
+
+uint neg(uint i)
+{
+    return ~i + 1;
+}
+
+uint com(uint i)
+{
+    return -i - 1;
+}
+
+float com(float i)
+{
+    return -i - 1;
+}
+
+uint com2(uint i)
+{
+    return -(i + 1);
+}
+
+void testnegcom()
+{
+    assert(neg(3) == -3);
+    assert(com(3) == -4);
+    assert(com(3.0f) == -4.0f);
+    assert(com2(3) == -4);
+}
+
+////////////////////////////////////////////////////////////////////////
+
+int oror1(char c)
+{
+    return ((((((((((cast(int) c <= 32 || cast(int) c == 46) || cast(int) c == 44)
+		 || cast(int) c == 58) || cast(int) c == 59) || cast(int) c == 60)
+	      || cast(int) c == 62) || cast(int) c == 34) || cast(int) c == 92)
+	   || cast(int) c == 39) != 0);
+}
+
+int oror2(char c)
+{
+    return ((((((((((c <= 32 || c == 46) || c == 44)
+		 || c == 58) || c == 59) || c == 60)
+	         || c == 62) || c == 34) || c == 92)
+	         || c == 39) != 0);
+}
+
+void testoror()
+{
+    assert(oror1(0) == 1);
+    assert(oror1(32) == 1);
+    assert(oror1(46) == 1);
+    assert(oror1(44) == 1);
+    assert(oror1(58) == 1);
+    assert(oror1(59) == 1);
+    assert(oror1(60) == 1);
+    assert(oror1(62) == 1);
+    assert(oror1(34) == 1);
+    assert(oror1(92) == 1);
+    assert(oror1(39) == 1);
+    assert(oror1(33) == 0);
+    assert(oror1(61) == 0);
+    assert(oror1(93) == 0);
+    assert(oror1(255) == 0);
+
+    assert(oror2(0) == 1);
+    assert(oror2(32) == 1);
+    assert(oror2(46) == 1);
+    assert(oror2(44) == 1);
+    assert(oror2(58) == 1);
+    assert(oror2(59) == 1);
+    assert(oror2(60) == 1);
+    assert(oror2(62) == 1);
+    assert(oror2(34) == 1);
+    assert(oror2(92) == 1);
+    assert(oror2(39) == 1);
+    assert(oror2(33) == 0);
+    assert(oror2(61) == 0);
+    assert(oror2(93) == 0);
+    assert(oror2(255) == 0);
+}
+
+////////////////////////////////////////////////////////////////////////
+
+bool bt1(int p, int a, int b)
+{
+    return p && ((1 << b) & a);
+}
+
+bool bt2(int p, long a, long b)
+{
+    return p && ((1L << b) & a);
+}
+
+void testbt()
+{
+    assert(bt1(1,7,2) == 1);
+    assert(bt1(1,7,3) == 0);
+
+    assert(bt2(1,0x7_0000_0000,2+32) == 1);
+    assert(bt2(1,0x7_0000_0000,3+32) == 0);
+}
+
+////////////////////////////////////////////////////////////////////////
+
+int andand1(int c)
+{
+    return (c > 32 && c != 46 && c != 44
+		   && c != 58 && c != 59
+		   && c != 60 && c != 62
+                   && c != 34 && c != 92
+	           && c != 39) != 0;
+}
+
+bool andand2(long c)
+{
+    return (c > 32 && c != 46 && c != 44
+		   && c != 58 && c != 59
+		   && c != 60 && c != 62
+                   && c != 34 && c != 92
+	           && c != 39) != 0;
+}
+
+int foox3() { return 1; }
+
+int andand3(uint op)
+{
+    if (foox3() &&
+	op != 7 &&
+	op != 3 &&
+	op != 18 &&
+	op != 30 &&
+	foox3())
+	return 3;
+    return 4;
+}
+
+
+void testandand()
+{
+    assert(andand1(0) == 0);
+    assert(andand1(32) == 0);
+    assert(andand1(46) == 0);
+    assert(andand1(44) == 0);
+    assert(andand1(58) == 0);
+    assert(andand1(59) == 0);
+    assert(andand1(60) == 0);
+    assert(andand1(62) == 0);
+    assert(andand1(34) == 0);
+    assert(andand1(92) == 0);
+    assert(andand1(39) == 0);
+    assert(andand1(33) == 1);
+    assert(andand1(61) == 1);
+    assert(andand1(93) == 1);
+    assert(andand1(255) == 1);
+
+    assert(andand2(0) == false);
+    assert(andand2(32) == false);
+    assert(andand2(46) == false);
+    assert(andand2(44) == false);
+    assert(andand2(58) == false);
+    assert(andand2(59) == false);
+    assert(andand2(60) == false);
+    assert(andand2(62) == false);
+    assert(andand2(34) == false);
+    assert(andand2(92) == false);
+    assert(andand2(39) == false);
+    assert(andand2(33) == true);
+    assert(andand2(61) == true);
+    assert(andand2(93) == true);
+    assert(andand2(255) == true);
+
+    assert(andand3(6) == 3);
+    assert(andand3(30) == 4);
+}
+
+////////////////////////////////////////////////////////////////////////
+
+bool bittest11508(char c)
+{
+    return c=='_' || c=='-' || c=='+' || c=='.';
+}
+
+void testbittest()
+{
+    assert(bittest11508('_'));
+}
+
+////////////////////////////////////////////////////////////////////////
+
+uint or1(ubyte x)
+{
+    return x | (x<<8) | (x<<16) | (x<<24) | (x * 3);
+}
+
+void testor_combine()
+{
+    printf("%x\n", or1(1));
+    assert(or1(5) == 5 * (0x1010101 | 3));
+}
+
+////////////////////////////////////////////////////////////////////////
+
+
+int shrshl(int i) {
+  return ((i+1)>>1)<<1;
+}
+
+void testshrshl()
+{
+    assert(shrshl(6) == 6);
+    assert(shrshl(7) == 8);
+}
+
+////////////////////////////////////////////////////////////////////////
+
+struct S1 
+{ 
+    cdouble val; 
+}
+
+void formatTest(S1 s, double re, double im)
+{
+    assert(s.val.re == re);
+    assert(s.val.im == im);
+}
+
+void test10639()
+{
+    S1 s = S1(3+2.25i);
+    formatTest(s, 3, 2.25);
+}
+
+////////////////////////////////////////////////////////////////////////
+
+bool bt10715(in uint[] ary, size_t bitnum)
+{
+    return !!(ary[bitnum >> 5] & 1 << (bitnum & 31)); // uses bt
+}
+
+bool neg_bt10715(in uint[] ary, size_t bitnum)
+{
+    return !(ary[bitnum >> 5] & 1 << (bitnum & 31)); // does not use bt
+}
+
+void test10715()
+{
+    static uint[2]  a1 = [0x1001_1100, 0x0220_0012];
+
+    if ( bt10715(a1,30)) assert(0);
+    if (!bt10715(a1,8))  assert(0);
+    if ( bt10715(a1,30+32)) assert(0);
+    if (!bt10715(a1,1+32))  assert(0);
+
+    if (!neg_bt10715(a1,30)) assert(0);
+    if ( neg_bt10715(a1,8))  assert(0);
+    if (!neg_bt10715(a1,30+32)) assert(0);
+    if ( neg_bt10715(a1,1+32))  assert(0);
+}
+
+////////////////////////////////////////////////////////////////////////
+
+int foo10678(char[5] txt)
+{
+    return txt[0] + txt[1] + txt[4];
+}
+
+void test10678()
+{
+    char[5] hello = void;
+    hello[0] = 8;
+    hello[1] = 9;
+    hello[4] = 10;
+    int i = foo10678(hello);
+    assert(i == 27);
+}
+
+////////////////////////////////////////////////////////////////////////
+
+void bug7565( double x) { assert(x == 3); }
+
+void test7565()
+{
+   double y = 3;
+   bug7565( y++ );
+   assert(y == 4);
+}
+
+////////////////////////////////////////////////////////////////////////
+
+int bug8525(int[] devt)
+{
+    return devt[$ - 1];
+}
+
+
+////////////////////////////////////////////////////////////////////////
  
 int main()
 {
@@ -741,9 +1069,22 @@ int main()
     testarrayinit();
     testU();
     testulldiv();
+    testbittest();
+    test8658();
     testfastudiv();
     testfastdiv();
     testdocond();
+    testnegcom();
+    test11565();
+    testoror();
+    testbt();
+    testandand();
+    testor_combine();
+    testshrshl();
+    test10639();
+    test10715();
+    test10678();
+    test7565();
     printf("Success\n");
     return 0;
 }

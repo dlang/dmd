@@ -40,6 +40,29 @@ void test5689()
 
 // ------------------
 
+class Foo10617
+{
+    void foo() nothrow pure @safe
+    in { }
+    out { }
+    body { }
+}
+
+// ------------------
+
+class C10953
+{
+    void func() nothrow pure @safe
+    in {} out {} body {}
+}
+class D10953 : C10953
+{
+    override void func()    // inherits attributes of Foo.func
+    in {} out {} body {}
+}
+
+// ------------------
+
 void main()
 {
     test1();

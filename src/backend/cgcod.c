@@ -404,7 +404,9 @@ tryagain:
         for (block* b = startblock; b; b = b->Bnext)
         {
             if (b->BC == BCjmptab || b->BC == BCswitch)
-            {   b->Btableoffset = swoffset;     /* offset of sw tab */
+            {
+                swoffset = align(0,swoffset);
+                b->Btableoffset = swoffset;     /* offset of sw tab */
                 swoffset += b->Btablesize;
             }
             jmpaddr(b->Bcode);          /* assign jump addresses        */
@@ -677,9 +679,37 @@ Lagain:
         Fast.size -= 5 * 4;
 #endif
 #endif
-    Fast.size = -align(REGSIZE,-Fast.size + Fast.offset);
+
+    /* Despite what the comment above says, aligning Fast section to size greater
+     * than REGSIZE does not break contract implementation. Fast.offset and
+     * Fast.alignment must be the same for the overriding and
+     * the overriden function, since they have the same parameters. Fast.size
+     * must be the same because otherwise, contract inheritance wouldn't work
+     * even if we didn't align Fast section to size greater than REGSIZE. Therefore,
+     * the only way aligning the section could cause problems with contract
+     * inheritance is if bias (declared below) differed for the overriden
+     * and the overriding function.
+     *
+     * Bias depends on Para.size and needframe. The value of Para.size depends on
+     * whether the function is an interrupt handler and whether it is a farfunc.
+     * DMD does not have _interrupt attribute and D does not make a distinction
+     * between near and far functions, so Para.size should always be 2 * REGSIZE
+     * for D.
+     *
+     * The value of needframe depends on a global setting that is only set
+     * during backend's initialization and on function flag Ffakeeh. On Windows,
+     * that flag is always set for virtual functions, for which contracts are
+     * defined and on other platforms, it is never set. Because of that
+     * the value of neadframe should always be the same for the overriden
+     * and the overriding function, and so bias should be the same too.
+    */
 
     int bias = Para.size + (needframe ? 0 : REGSIZE);
+    if (Fast.alignment < REGSIZE)
+        Fast.alignment = REGSIZE;
+
+    Fast.size = alignsection(Fast.size - Fast.offset, Fast.alignment, bias);
+
     if (Auto.alignment < REGSIZE)
         Auto.alignment = REGSIZE;       // necessary because localsize must be REGSIZE aligned
     Auto.size = alignsection(Fast.size - Auto.offset, Auto.alignment, bias);
@@ -2161,8 +2191,8 @@ STATIC code * comsub(elem *e,regm_t *pretregs)
     //printf("comsub(e = %p, *pretregs = %s)\n",e,regm_str(*pretregs));
     elem_debug(e);
 #ifdef DEBUG
-    if (e->Ecomsub > e->Ecount)
-        elem_print(e);
+    //if (e->Ecomsub > e->Ecount)
+        //elem_print(e);
 #endif
     assert(e->Ecomsub <= e->Ecount);
 
@@ -2199,7 +2229,7 @@ if (debugw)
 {
 printf("comsub(e=%p): *pretregs=%s, emask=%s, csemask=%s, regcon.cse.mval=%s, regcon.mvar=%s\n",
         e,regm_str(*pretregs),regm_str(emask),regm_str(csemask),regm_str(regcon.cse.mval),regm_str(regcon.mvar));
-if (regcon.cse.mval & 1) elem_print(regcon.cse.value[i]);
+if (regcon.cse.mval & 1) elem_print(regcon.cse.value[0]);
 }
 #endif
 

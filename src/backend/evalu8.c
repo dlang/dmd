@@ -2041,7 +2041,9 @@ elem * evalu8(elem *e, goal_t goal)
     int flags;
 
     if (!ignore_exceptions &&
-        (config.flags4 & CFG4fastfloat) == 0 && testFE())
+        (config.flags4 & CFG4fastfloat) == 0 && testFE() &&
+        (HAVE_FLOAT_EXCEPT || tyfloating(tym) || tyfloating(tybasic(typemask(e))))
+       )
     {
         // Exceptions happened. Do not fold the constants.
         *e = esave;

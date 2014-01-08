@@ -204,7 +204,7 @@ void AttribDeclaration::inlineScan()
     }
 }
 
-void AttribDeclaration::addComment(unsigned char *comment)
+void AttribDeclaration::addComment(const utf8_t *comment)
 {
     //printf("AttribDeclaration::addComment %s\n", comment);
     if (comment)
@@ -285,10 +285,10 @@ bool AttribDeclaration::hasStaticCtorOrDtor()
         {
             Dsymbol *s = (*d)[i];
             if (s->hasStaticCtorOrDtor())
-                return TRUE;
+                return true;
         }
     }
-    return FALSE;
+    return false;
 }
 
 const char *AttribDeclaration::kind()
@@ -489,7 +489,7 @@ const char *StorageClassDeclaration::stcToChars(char tmp[], StorageClass& stc)
     {
         StorageClass stc;
         TOK tok;
-        Identifier *id;
+        const char *id;
     };
 
     static SCstring table[] =
@@ -508,24 +508,24 @@ const char *StorageClassDeclaration::stcToChars(char tmp[], StorageClass& stc)
         { STCalias,        TOKalias },
         { STCout,          TOKout },
         { STCin,           TOKin },
-#if DMDV2
         { STCmanifest,     TOKenum },
         { STCimmutable,    TOKimmutable },
         { STCshared,       TOKshared },
         { STCnothrow,      TOKnothrow },
+        { STCwild,         TOKwild },
         { STCpure,         TOKpure },
         { STCref,          TOKref },
         { STCtls },
         { STCgshared,      TOKgshared },
-        { STCproperty,     TOKat,       Id::property },
-        { STCsafe,         TOKat,       Id::safe },
-        { STCtrusted,      TOKat,       Id::trusted },
-        { STCsystem,       TOKat,       Id::system },
-        { STCdisable,      TOKat,       Id::disable },
-#endif
+        { STCproperty,     TOKat,       "property" },
+        { STCsafe,         TOKat,       "safe" },
+        { STCtrusted,      TOKat,       "trusted" },
+        { STCsystem,       TOKat,       "system" },
+        { STCdisable,      TOKat,       "disable" },
+        { 0,               TOKreserved }
     };
 
-    for (int i = 0; i < sizeof(table)/sizeof(table[0]); i++)
+    for (int i = 0; table[i].stc; i++)
     {
         StorageClass tbl = table[i].stc;
         assert(tbl & STCStorageClass);
@@ -536,15 +536,13 @@ const char *StorageClassDeclaration::stcToChars(char tmp[], StorageClass& stc)
                 return "__thread";
 
             TOK tok = table[i].tok;
-#if DMDV2
             if (tok == TOKat)
             {
                 tmp[0] = '@';
-                strcpy(tmp + 1, table[i].id->toChars());
+                strcpy(tmp + 1, table[i].id);
                 return tmp;
             }
             else
-#endif
                 return Token::toChars(tok);
         }
     }
@@ -555,11 +553,13 @@ const char *StorageClassDeclaration::stcToChars(char tmp[], StorageClass& stc)
 void StorageClassDeclaration::stcToCBuffer(OutBuffer *buf, StorageClass stc)
 {
     while (stc)
-    {   char tmp[20];
+    {
+        const size_t BUFFER_LEN = 20;
+        char tmp[BUFFER_LEN];
         const char *p = stcToChars(tmp, stc);
         if (!p)
             break;
-        assert(strlen(p) < sizeof(tmp) / sizeof(tmp[0]));
+        assert(strlen(p) < BUFFER_LEN);
         buf->writestring(p);
         buf->writeByte(' ');
     }
@@ -749,6 +749,12 @@ void ProtDeclaration::semantic(Scope *sc)
     }
 }
 
+void ProtDeclaration::emitComment(Scope *sc)
+{
+    if (protection != PROTprivate)
+        AttribDeclaration::emitComment(sc);
+}
+
 void ProtDeclaration::protectionToCBuffer(OutBuffer *buf, PROT protection)
 {
     const char *p;
@@ -814,7 +820,7 @@ void AlignDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /********************************* AnonDeclaration ****************************/
 
-AnonDeclaration::AnonDeclaration(Loc loc, int isunion, Dsymbols *decl)
+AnonDeclaration::AnonDeclaration(Loc loc, bool isunion, Dsymbols *decl)
         : AttribDeclaration(decl)
 {
     this->loc = loc;
@@ -1016,8 +1022,11 @@ void PragmaDeclaration::semantic(Scope *sc)
             {
                 Expression *e = (*args)[i];
 
-                e = e->ctfeSemantic(sc);
+                sc = sc->startCTFE();
+                e = e->semantic(sc);
                 e = resolveProperties(sc, e);
+                sc = sc->endCTFE();
+
                 // pragma(msg) is allowed to contain types as well as expressions
                 e = ctfeInterpretForPragmaMsg(e);
                 if (e->op == TOKerror)
@@ -1027,6 +1036,7 @@ void PragmaDeclaration::semantic(Scope *sc)
                 StringExp *se = e->toString();
                 if (se)
                 {
+                    se = se->toUTF8(sc);
                     fprintf(stderr, "%.*s", (int)se->len, (char *)se->string);
                 }
                 else
@@ -1044,8 +1054,11 @@ void PragmaDeclaration::semantic(Scope *sc)
         {
             Expression *e = (*args)[0];
 
-            e = e->ctfeSemantic(sc);
+            sc = sc->startCTFE();
+            e = e->semantic(sc);
             e = resolveProperties(sc, e);
+            sc = sc->endCTFE();
+
             e = e->ctfeInterpret();
             (*args)[0] = e;
             if (e->op == TOKerror)
@@ -1053,20 +1066,21 @@ void PragmaDeclaration::semantic(Scope *sc)
             StringExp *se = e->toString();
             if (!se)
                 error("string expected for library name, not '%s'", e->toChars());
-            else 
+            else
             {
                 char *name = (char *)mem.malloc(se->len + 1);
                 memcpy(name, se->string, se->len);
                 name[se->len] = 0;
                 if (global.params.verbose)
-                    printf("library   %s\n", name);
+                    fprintf(global.stdmsg, "library   %s\n", name);
                 if (global.params.moduleDeps && !global.params.moduleDepsFile)
                 {
                     OutBuffer *ob = global.params.moduleDeps;
+                    Module* imod = sc->instantiatingModule ? sc->instantiatingModule : sc->module;
                     ob->writestring("depsLib ");
-                    ob->writestring(sc->module->toPrettyChars());
+                    ob->writestring(imod->toPrettyChars());
                     ob->writestring(" (");
-                    escapePath(ob, sc->module->srcfile->toChars());
+                    escapePath(ob, imod->srcfile->toChars());
                     ob->writestring(") : ");
                     ob->writestring((char *) name);
                     ob->writenl();
@@ -1076,7 +1090,6 @@ void PragmaDeclaration::semantic(Scope *sc)
         }
         goto Lnodecl;
     }
-#if DMDV2
     else if (ident == Id::startaddress)
     {
         if (!args || args->dim != 1)
@@ -1084,8 +1097,12 @@ void PragmaDeclaration::semantic(Scope *sc)
         else
         {
             Expression *e = (*args)[0];
-            e = e->ctfeSemantic(sc);
+
+            sc = sc->startCTFE();
+            e = e->semantic(sc);
             e = resolveProperties(sc, e);
+            sc = sc->endCTFE();
+
             e = e->ctfeInterpret();
             (*args)[0] = e;
             Dsymbol *sa = getDsymbol(e);
@@ -1094,7 +1111,6 @@ void PragmaDeclaration::semantic(Scope *sc)
         }
         goto Lnodecl;
     }
-#endif
 #if DMD_OBJC
     else if (ident == Id::objc_takestringliteral)
     {
@@ -1191,7 +1207,7 @@ void PragmaDeclaration::semantic(Scope *sc)
         Expression *e = (Expression *)args->data[0];
 
         e = e->semantic(sc);
-        e = e->optimize(WANTvalue | WANTinterpret);
+        e = e->optimize(WANTvalue);
         if (e->op == TOKstring)
         {
             StringExp *se = (StringExp *)e;
@@ -1259,7 +1275,7 @@ void PragmaDeclaration::semantic(Scope *sc)
              */
             for (size_t i = 0; i < se->len; )
             {
-                unsigned char *p = (unsigned char *)se->string;
+                utf8_t *p = (utf8_t *)se->string;
                 dchar_t c = p[i];
                 if (c < 0x80)
                 {
@@ -1278,7 +1294,7 @@ void PragmaDeclaration::semantic(Scope *sc)
                     }
                 }
 
-                if (const char* msg = utf_decodeChar((unsigned char *)se->string, se->len, &i, &c))
+                if (const char* msg = utf_decodeChar((utf8_t *)se->string, se->len, &i, &c))
                 {
                     error("%s", msg);
                     break;
@@ -1299,25 +1315,29 @@ void PragmaDeclaration::semantic(Scope *sc)
         {
             /* Print unrecognized pragmas
              */
-            printf("pragma    %s", ident->toChars());
+            fprintf(global.stdmsg, "pragma    %s", ident->toChars());
             if (args)
             {
                 for (size_t i = 0; i < args->dim; i++)
                 {
                     Expression *e = (*args)[i];
-                    e = e->ctfeSemantic(sc);
+
+                    sc = sc->startCTFE();
+                    e = e->semantic(sc);
                     e = resolveProperties(sc, e);
+                    sc = sc->endCTFE();
+
                     e = e->ctfeInterpret();
                     if (i == 0)
-                        printf(" (");
+                        fprintf(global.stdmsg, " (");
                     else
-                        printf(",");
-                    printf("%s", e->toChars());
+                        fprintf(global.stdmsg, ",");
+                    fprintf(global.stdmsg, "%s", e->toChars());
                 }
                 if (args->dim)
-                    printf(")");
+                    fprintf(global.stdmsg, ")");
             }
-            printf("\n");
+            fprintf(global.stdmsg, "\n");
         }
         goto Lnodecl;
     }
@@ -1412,8 +1432,13 @@ bool ConditionalDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
         Dsymbols *d = condition->include(NULL, NULL) ? decl : elsedecl;
         return Dsymbol::oneMembers(d, ps, ident);
     }
-    *ps = NULL;
-    return true;
+    else
+    {
+        bool res = (Dsymbol::oneMembers(    decl, ps, ident) && *ps == NULL &&
+                    Dsymbol::oneMembers(elsedecl, ps, ident) && *ps == NULL);
+        *ps = NULL;
+        return res;
+    }
 }
 
 void ConditionalDeclaration::emitComment(Scope *sc)
@@ -1477,7 +1502,7 @@ void ConditionalDeclaration::importAll(Scope *sc)
     }
 }
 
-void ConditionalDeclaration::addComment(unsigned char *comment)
+void ConditionalDeclaration::addComment(const utf8_t *comment)
 {
     /* Because addComment is called by the parser, if we called
      * include() it would define a version before it was used.
@@ -1689,9 +1714,13 @@ Dsymbol *CompileDeclaration::syntaxCopy(Dsymbol *s)
 int CompileDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 {
     //printf("CompileDeclaration::addMember(sc = %p, sd = %p, memnum = %d)\n", sc, sd, memnum);
+    if (compiled)
+        return 1;
+
     this->sd = sd;
     if (memnum == 0)
-    {   /* No members yet, so parse the mixin now
+    {
+        /* No members yet, so parse the mixin now
          */
         compileIt(sc);
         memnum |= AttribDeclaration::addMember(sc, sd, memnum);
@@ -1703,22 +1732,27 @@ int CompileDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 void CompileDeclaration::compileIt(Scope *sc)
 {
     //printf("CompileDeclaration::compileIt(loc = %d) %s\n", loc.linnum, exp->toChars());
-    exp = exp->ctfeSemantic(sc);
+    sc = sc->startCTFE();
+    exp = exp->semantic(sc);
     exp = resolveProperties(sc, exp);
+    sc = sc->endCTFE();
     exp = exp->ctfeInterpret();
     StringExp *se = exp->toString();
     if (!se)
-    {   exp->error("argument to mixin must be a string, not (%s)", exp->toChars());
+    {
+        exp->error("argument to mixin must be a string, not (%s)", exp->toChars());
     }
     else
     {
         se = se->toUTF8(sc);
-        Parser p(sc->module, (unsigned char *)se->string, se->len, 0);
-        p.loc = loc;
+        Parser p(loc, sc->module, (utf8_t *)se->string, se->len, 0);
         p.nextToken();
+        unsigned errors = global.errors;
         decl = p.parseDeclDefs(0);
         if (p.token.value != TOKeof)
             exp->error("incomplete mixin declaration (%s)", se->toChars());
+        if (global.errors != errors)
+            decl = NULL;
     }
 }
 
@@ -1731,6 +1765,15 @@ void CompileDeclaration::semantic(Scope *sc)
         compileIt(sc);
         AttribDeclaration::addMember(sc, sd, 0);
         compiled = 1;
+
+        if (scope && decl)
+        {
+            for (size_t i = 0; i < decl->dim; i++)
+            {
+                Dsymbol *s = (*decl)[i];
+                s->setScope(scope);
+            }
+        }
     }
     AttribDeclaration::semantic(sc);
 }
@@ -1769,7 +1812,13 @@ Dsymbol *UserAttributeDeclaration::syntaxCopy(Dsymbol *s)
 void UserAttributeDeclaration::semantic(Scope *sc)
 {
     //printf("UserAttributeDeclaration::semantic() %p\n", this);
-    atts = arrayExpressionSemantic(atts, sc);
+
+    /* Bugzilla 11844: Delay semantic analysis for UDAs.
+     * If attrs needs CTFE or template instantiation, they may not have
+     * valid scope yet for their fwdref resolution.
+     * Therefore running semantic analysis here is too early.
+     */
+    //atts = arrayExpressionSemantic(atts, sc);
 
     if (decl)
     {

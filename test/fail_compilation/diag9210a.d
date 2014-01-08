@@ -4,7 +4,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/imports/diag9210b.d(6): Error: undefined identifier A, did you mean interface B?
+fail_compilation/imports/diag9210b.d(6): Error: undefined identifier A
 ---
 */
 

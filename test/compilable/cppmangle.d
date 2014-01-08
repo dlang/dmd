@@ -6,8 +6,7 @@ version(linux):
 
 import std.c.stdio;
 
-extern (C++)
-        int foob(int i, int j, int k);
+extern (C++) int foob(int i, int j, int k);
 
 class C
 {
@@ -23,7 +22,7 @@ class C
 
 
 extern (C++)
-        int foo(int i, int j, int k)
+int foo(int i, int j, int k)
 {
     printf("i = %d\n", i);
     printf("j = %d\n", j);
@@ -51,7 +50,8 @@ static assert(C.bar.mangleof == "_ZN1C3barEiii");
 
 /****************************************/
 
-extern (C++) interface D
+extern (C++)
+interface D
 {
     int bar(int i, int j, int k);
 }
@@ -72,7 +72,8 @@ static assert (D.bar.mangleof == "_ZN1D3barEiii");
 
 extern (C++) int callE(E);
 
-extern (C++) interface E
+extern (C++)
+interface E
 {
     int bar(int i, int j, int k);
 }
@@ -265,4 +266,24 @@ static assert(test10058i.mangleof == "_Z10test10058iPFPvS_ES1_S_");
 static assert(test10058j.mangleof == "_Z10test10058jPFPvS_ES1_S1_");
 static assert(test10058k.mangleof == "_Z10test10058kPFPvS_EPFS_PKvE");
 static assert(test10058l.mangleof == "_Z10test10058lPFPvS_EPFS_PKvEPFS3_S_E");
+
+/**************************************/
+// 11696
+
+class Expression;
+struct Loc;
+
+extern(C++)
+class CallExp
+{
+    static void test11696a(Loc, Expression, Expression);
+    static void test11696b(Loc, Expression, Expression*);
+    static void test11696c(Loc, Expression*, Expression);
+    static void test11696d(Loc, Expression*, Expression*);
+}
+
+static assert(CallExp.test11696a.mangleof == "_ZN7CallExp10test11696aE3LocP10ExpressionS2_");
+static assert(CallExp.test11696b.mangleof == "_ZN7CallExp10test11696bE3LocP10ExpressionPS2_");
+static assert(CallExp.test11696c.mangleof == "_ZN7CallExp10test11696cE3LocPP10ExpressionS2_");
+static assert(CallExp.test11696d.mangleof == "_ZN7CallExp10test11696dE3LocPP10ExpressionS3_");
 

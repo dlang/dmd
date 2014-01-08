@@ -41,10 +41,13 @@ void slist_reset();
 void clearStringTab();
 
 elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
+void Statement_toIR(Statement *s, IRState *irs);
 
 #define STATICCTOR      0
 
-typedef Array<symbol> symbols;
+typedef Array<symbol *> symbols;
+Dsymbols *Dsymbols_create();
+Expressions *Expressions_create();
 
 elem *eictor;
 symbol *ictorlocalgot;
@@ -105,23 +108,32 @@ void obj_write_deferred(Library *library)
         OutBuffer idbuf;
         idbuf.printf("%s.%d", m ? m->ident->toChars() : mname, count);
         char *idstr = idbuf.toChars();
-        idbuf.data = NULL;
-        Identifier *id = new Identifier(idstr, TOKidentifier);
 
-        Module *md = new Module(mname, id, 0, 0);
-        md->members = new Dsymbols();
-        md->members->push(s);   // its only 'member' is s
-        if (m)
+        if(!m)
         {
+            // it doesn't make sense to make up a module if we don't know where to put the symbol
+            //  so output it into it's own object file without ModuleInfo
+            objmod->initfile(idstr, NULL, mname);
+            s->toObjFile(0);
+            objmod->termfile();
+        }
+        else
+        {
+            idbuf.data = NULL;
+            Identifier *id = Identifier::create(idstr, TOKidentifier);
+
+            Module *md = Module::create(mname, id, 0, 0);
+            md->members = Dsymbols_create();
+            md->members->push(s);   // its only 'member' is s
             md->doppelganger = 1;       // identify this module as doppelganger
             md->md = m->md;
             md->aimports.push(m);       // it only 'imports' m
             md->massert = m->massert;
             md->munittest = m->munittest;
             md->marray = m->marray;
-        }
 
-        md->genobjfile(0);
+            md->genobjfile(0);
+        }
 
         /* Set object file name to be source name with sequence number,
          * as mangled symbol names get way too long.
@@ -137,7 +149,7 @@ void obj_write_deferred(Library *library)
         fname = (char *)namebuf.extractData();
 
         //printf("writing '%s'\n", fname);
-        File *objfile = new File(fname);
+        File *objfile = File::create(fname);
         obj_end(library, objfile);
     }
     obj_symbols_towrite.dim = 0;
@@ -250,10 +262,10 @@ void obj_end(Library *library, File *objfile)
         objfile->setbuffer(objbuf.buf, objbuf.p - objbuf.buf);
         objbuf.buf = NULL;
 
-        FileName::ensurePathToNameExists(objfilename);
+        ensurePathToNameExists(Loc(), objfilename);
 
         //printf("write obj %s\n", objfilename);
-        objfile->writev();
+        writeFile(Loc(), objfile);
     }
     objbuf.pend = NULL;
     objbuf.p = NULL;
@@ -281,6 +293,22 @@ void Module::genobjfile(int multiobj)
     //EEcontext *ee = env->getEEcontext();
 
     //printf("Module::genobjfile(multiobj = %d) %s\n", multiobj, toChars());
+
+    if (ident == Id::entrypoint)
+    {
+        char v = global.params.verbose;
+        global.params.verbose = 0;
+
+        for (size_t i = 0; i < members->dim; i++)
+        {
+            Dsymbol *member = (*members)[i];
+            //printf("toObjFile %s %s\n", member->kind(), member->toChars());
+            member->toObjFile(global.params.multiobj);
+        }
+
+        global.params.verbose = v;
+        return;
+    }
 
     lastmname = srcfile->toChars();
 
@@ -423,10 +451,8 @@ void Module::genobjfile(int multiobj)
         sctor = callFuncsAndGates(this, &sctors, &ectorgates, "__modctor");
         sdtor = callFuncsAndGates(this, &sdtors, NULL, "__moddtor");
 
-#if DMDV2
         ssharedctor = callFuncsAndGates(this, &ssharedctors, (StaticDtorDeclarations *)&esharedctorgates, "__modsharedctor");
         sshareddtor = callFuncsAndGates(this, &sshareddtors, NULL, "__modshareddtor");
-#endif
         stest = callFuncsAndGates(this, &stests, NULL, "__modtest");
 
         if (doppelganger)
@@ -518,6 +544,8 @@ void Module::genobjfile(int multiobj)
 
 /* ================================================================== */
 
+bool inNonRoot(Dsymbol *s);
+
 void FuncDeclaration::toObjFile(int multiobj)
 {
     FuncDeclaration *func = this;
@@ -526,6 +554,7 @@ void FuncDeclaration::toObjFile(int multiobj)
     int has_arguments;
 
     //printf("FuncDeclaration::toObjFile(%p, %s.%s)\n", func, parent->toChars(), func->toChars());
+
     //if (type) printf("type = %s\n", func->type->toChars());
 #if 0
     //printf("line = %d\n",func->getWhere() / LINEINC);
@@ -572,10 +601,74 @@ void FuncDeclaration::toObjFile(int multiobj)
         return;
     }
     assert(semanticRun == PASSsemantic3done);
+    assert(ident != Id::empty);
+
+    if (!isInstantiated() && inNonRoot(this))
+        return;
+
+    /* Skip generating code if this part of a TemplateInstance that is instantiated
+     * only by non-root modules (i.e. modules not listed on the command line).
+     */
+    TemplateInstance *ti = isInstantiated();
+    if (!global.params.useUnitTests &&
+        !global.params.allInst &&
+        /* The issue is that if the importee is compiled with a different -debug
+         * setting than the importer, the importer may believe it exists
+         * in the compiled importee when it does not, when the instantiation
+         * is behind a conditional debug declaration.
+         */
+        !global.params.debuglevel &&     // workaround for Bugzilla 11239
+        ti && ti->instantiatingModule && !ti->instantiatingModule->isRoot())
+    {
+        Module *mi = ti->instantiatingModule;
+
+        // If mi imports any root modules, we still need to generate the code.
+        for (size_t i = 0; i < Module::amodules.dim; ++i)
+        {
+            Module *m = Module::amodules[i];
+            m->insearch = 0;
+        }
+        bool importsRoot = false;
+        for (size_t i = 0; i < Module::amodules.dim; ++i)
+        {
+            Module *m = Module::amodules[i];
+            if (m->isRoot() && mi->imports(m))
+            {
+                importsRoot = true;
+                break;
+            }
+        }
+        for (size_t i = 0; i < Module::amodules.dim; ++i)
+        {
+            Module *m = Module::amodules[i];
+            m->insearch = 0;
+        }
+        if (!importsRoot)
+        {
+            //printf("instantiated by %s   %s\n", ti->instantiatingModule->toChars(), ti->toChars());
+            return;
+        }
+    }
+
+    if (isNested())
+    {
+        /* The enclosing function must have its code generated first,
+         * so defer this code generation until ancestors are completed.
+         */
+        FuncDeclaration *fd = toAliasFunc();
+        FuncDeclaration *fdp = fd->toParent2()->isFuncDeclaration();
+        if (fdp && fdp->semanticRun < PASSobj)
+        {
+            fdp->deferred.push(fd);
+            return;
+        }
+    }
+
+    // start code generation
     semanticRun = PASSobj;
 
     if (global.params.verbose)
-        printf("function  %s\n",func->toPrettyChars());
+        fprintf(global.stdmsg, "function  %s\n",func->toPrettyChars());
 
     Symbol *s = func->toSymbol();
     func_t *f = s->Sfunc;
@@ -620,31 +713,9 @@ void FuncDeclaration::toObjFile(int multiobj)
 
     if (isNested())
     {
-//      if (!(config.flags3 & CFG3pic))
-//          s->Sclass = SCstatic;
+        //if (!(config.flags3 & CFG3pic))
+        //    s->Sclass = SCstatic;
         f->Fflags3 |= Fnested;
-
-        /* The enclosing function must have its code generated first,
-         * so we know things like where its local symbols are stored.
-         */
-        FuncDeclaration *fdp = toAliasFunc()->toParent2()->isFuncDeclaration();
-        // Bug 8016 - only include the function if it is a template instance
-        Dsymbol * owner = NULL;
-        if (fdp)
-        {   owner =  fdp->toParent();
-            while (owner && !owner->isTemplateInstance())
-                owner = owner->toParent();
-        }
-
-        if (owner && fdp && fdp->semanticRun == PASSsemantic3done &&
-            !fdp->isUnitTestDeclaration())
-        {
-            /* Can't do unittest's out of order, they are order dependent in that their
-             * execution is done in lexical order, and some modules (std.datetime *cough*
-             * *cough*) rely on this.
-             */
-            fdp->toObjFile(multiobj);
-        }
     }
     else
     {
@@ -728,6 +799,7 @@ void FuncDeclaration::toObjFile(int multiobj)
 #endif
     }
 
+    symtab_t *symtabsave = cstate.CSpsymtab;
     cstate.CSpsymtab = &f->Flocsym;
 
     // Find module m for this function
@@ -768,11 +840,7 @@ void FuncDeclaration::toObjFile(int multiobj)
         sprintf(hiddenparam,"__HID%d",++hiddenparami);
         shidden = symbol_name(hiddenparam,SCparameter,thidden);
         shidden->Sflags |= SFLtrue | SFLfree;
-#if DMDV1
-        if (func->nrvo_can && func->nrvo_var && func->nrvo_var->nestedref)
-#else
         if (func->nrvo_can && func->nrvo_var && func->nrvo_var->nestedrefs.dim)
-#endif
             type_setcv(&shidden->Stype, shidden->Stype->Tty | mTYvolatile);
         irs.shidden = shidden;
         this->shidden = shidden;
@@ -819,12 +887,10 @@ void FuncDeclaration::toObjFile(int multiobj)
     if (parameters)
     {
         for (size_t i = 0; i < parameters->dim; i++)
-        {   VarDeclaration *v = (*parameters)[i];
-            if (v->csym)
-            {
-                error("compiler error, parameter '%s', bugzilla 2962?", v->toChars());
-                assert(0);
-            }
+        {
+            VarDeclaration *v = (*parameters)[i];
+            //printf("param[%d] = %p, %s\n", i, v, v->toChars());
+            assert(!v->csym);
             params[pi + i] = v->toSymbol();
         }
         pi += parameters->dim;
@@ -953,34 +1019,32 @@ void FuncDeclaration::toObjFile(int multiobj)
              *   finally
              *     _c_trace_epi();
              */
-            StringExp *se = new StringExp(Loc(), s->Sident);
-            se->type = new TypeDArray(Type::tchar->immutableOf());
+            StringExp *se = StringExp::create(Loc(), s->Sident);
+            se->type = Type::tstring;
             se->type = se->type->semantic(Loc(), NULL);
-            Expressions *exps = new Expressions();
+            Expressions *exps = Expressions_create();
             exps->push(se);
-            FuncDeclaration *fdpro = FuncDeclaration::genCfunc(Type::tvoid, "trace_pro");
-            Expression *ec = new VarExp(Loc(), fdpro);
-            Expression *e = new CallExp(Loc(), ec, exps);
+            FuncDeclaration *fdpro = FuncDeclaration::genCfunc(NULL, Type::tvoid, "trace_pro");
+            Expression *ec = VarExp::create(Loc(), fdpro);
+            Expression *e = CallExp::create(Loc(), ec, exps);
             e->type = Type::tvoid;
-            Statement *sp = new ExpStatement(loc, e);
+            Statement *sp = ExpStatement::create(loc, e);
 
-            FuncDeclaration *fdepi = FuncDeclaration::genCfunc(Type::tvoid, "_c_trace_epi");
-            ec = new VarExp(Loc(), fdepi);
-            e = new CallExp(Loc(), ec);
+            FuncDeclaration *fdepi = FuncDeclaration::genCfunc(NULL, Type::tvoid, "_c_trace_epi");
+            ec = VarExp::create(Loc(), fdepi);
+            e = CallExp::create(Loc(), ec);
             e->type = Type::tvoid;
-            Statement *sf = new ExpStatement(loc, e);
+            Statement *sf = ExpStatement::create(loc, e);
 
             Statement *stf;
             if (sbody->blockExit(tf->isnothrow) == BEfallthru)
-                stf = new CompoundStatement(Loc(), sbody, sf);
+                stf = CompoundStatement::create(Loc(), sbody, sf);
             else
-                stf = new TryFinallyStatement(Loc(), sbody, sf);
-            sbody = new CompoundStatement(Loc(), sp, stf);
+                stf = TryFinallyStatement::create(Loc(), sbody, sf);
+            sbody = CompoundStatement::create(Loc(), sp, stf);
         }
 
-#if DMDV2
         buildClosure(&irs);
-#endif
 
 #if TARGET_WINDOS
         if (func->isSynchronized() && cd && config.flags2 & CFG2seh &&
@@ -993,7 +1057,7 @@ void FuncDeclaration::toObjFile(int multiobj)
         }
 #endif
 
-        sbody->toIR(&irs);
+        Statement_toIR(sbody, &irs);
         bx.curblock->BC = BCret;
 
         f->Fstartblock = bx.startblock;
@@ -1014,20 +1078,16 @@ void FuncDeclaration::toObjFile(int multiobj)
     }
 
     // If static constructor
-#if DMDV2
     if (isSharedStaticCtorDeclaration())        // must come first because it derives from StaticCtorDeclaration
     {
         ssharedctors.push(s);
     }
-    else
-#endif
-    if (isStaticCtorDeclaration())
+    else if (isStaticCtorDeclaration())
     {
         sctors.push(s);
     }
 
     // If static destructor
-#if DMDV2
     if (isSharedStaticDtorDeclaration())        // must come first because it derives from StaticDtorDeclaration
     {
         SharedStaticDtorDeclaration *f = isSharedStaticDtorDeclaration();
@@ -1040,9 +1100,7 @@ void FuncDeclaration::toObjFile(int multiobj)
 
         sshareddtors.shift(s);
     }
-    else
-#endif
-    if (isStaticDtorDeclaration())
+    else if (isStaticDtorDeclaration())
     {
         StaticDtorDeclaration *f = isStaticDtorDeclaration();
         assert(f);
@@ -1062,9 +1120,16 @@ void FuncDeclaration::toObjFile(int multiobj)
     }
 
     if (global.errors)
+    {
+        // Restore symbol table
+        cstate.CSpsymtab = symtabsave;
         return;
+    }
 
     writefunc(s);
+    // Restore symbol table
+    cstate.CSpsymtab = symtabsave;
+
     if (isExport())
         objmod->export_symbol(s, Para.offset);
 
@@ -1101,13 +1166,11 @@ void FuncDeclaration::toObjFile(int multiobj)
     if (ident && memcmp(ident->toChars(), "_STD", 4) == 0)
         objmod->staticdtor(s);
 #endif
-#if DMDV2
     if (irs.startaddress)
     {
         //printf("Setting start address\n");
         objmod->startaddress(irs.startaddress);
     }
-#endif
 }
 
 bool onlyOneMain(Loc loc)
@@ -1245,7 +1308,6 @@ unsigned Type::totym()
             assert(0);
     }
 
-#if DMDV2
     // Add modifiers
     switch (mod)
     {
@@ -1253,22 +1315,23 @@ unsigned Type::totym()
             break;
         case MODconst:
         case MODwild:
+        case MODwildconst:
             t |= mTYconst;
-            break;
-        case MODimmutable:
-            t |= mTYimmutable;
             break;
         case MODshared:
             t |= mTYshared;
             break;
-        case MODshared | MODwild:
         case MODshared | MODconst:
+        case MODshared | MODwild:
+        case MODshared | MODwildconst:
             t |= mTYshared | mTYconst;
+            break;
+        case MODimmutable:
+            t |= mTYimmutable;
             break;
         default:
             assert(0);
     }
-#endif
 
     return t;
 }
@@ -1306,10 +1369,8 @@ unsigned TypeFunction::totym()
             printf("linkage = %d\n", linkage);
             assert(0);
     }
-#if DMDV2
     if (isnothrow)
         tyf |= mTYnothrow;
-#endif
     return tyf;
 }
 

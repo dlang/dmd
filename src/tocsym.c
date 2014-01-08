@@ -43,6 +43,7 @@ void slist_add(Symbol *s);
 void slist_reset();
 
 Classsym *fake_classsym(Identifier *id);
+Symbols *Symbols_create();
 
 /********************************* SymbolDeclaration ****************************/
 
@@ -130,12 +131,16 @@ Symbol *Dsymbol::toImport(Symbol *sym)
         if (config.exe == EX_WIN64)
             sprintf(id,"__imp_%s",n);
         else
-        sprintf(id,"_imp__%s@%lu",n,(unsigned long)type_paramsize(sym->Stype));
+            sprintf(id,"_imp__%s@%lu",n,(unsigned long)type_paramsize(sym->Stype));
     }
     else if (sym->Stype->Tmangle == mTYman_d)
-        sprintf(id,"_imp_%s",n);
+    {
+        sprintf(id,(config.exe == EX_WIN64) ? "__imp_%s" : "_imp_%s",n);
+    }
     else
-        sprintf(id,"_imp__%s",n);
+    {
+        sprintf(id,(config.exe == EX_WIN64) ? "__imp__%s" : "_imp__%s",n);
+    }
     t = type_alloc(TYnptr | mTYconst);
     t->Tnext = sym->Stype;
     t->Tnext->Tcount++;
@@ -168,6 +173,8 @@ Symbol *VarDeclaration::toSymbol()
             id = ident->toChars();
         Symbol *s = symbol_calloc(id);
         s->Salignment = alignment;
+        if (storage_class & STCtemp)
+            s->Sflags |= SFLartifical;
 
         if (storage_class & (STCout | STCref))
         {
@@ -214,7 +221,7 @@ Symbol *VarDeclaration::toSymbol()
                 if (global.params.vtls)
                 {
                     char *p = loc.toChars();
-                    fprintf(stderr, "%s: %s is thread local\n", p ? p : "", toChars());
+                    fprintf(global.stdmsg, "%s: %s is thread local\n", p ? p : "", toChars());
                     if (p)
                         mem.free(p);
                 }
@@ -276,7 +283,7 @@ Symbol *VarDeclaration::toSymbol()
             {
                 m = mTYman_cpp;
 
-                s->Sflags = SFLpublic;
+                s->Sflags |= SFLpublic;
                 Dsymbol *parent = toParent();
                 ClassDeclaration *cd = parent->isClassDeclaration();
                 if (cd)
@@ -350,11 +357,8 @@ Symbol *FuncDeclaration::toSymbol()
         TYPE *t;
         const char *id;
 
-#if 0
-        id = ident->toChars();
-#else
-        id = mangle();
-#endif
+        id = mangleExact();
+
         //printf("FuncDeclaration::toSymbol(%s %s)\n", kind(), toChars());
         //printf("\tid = '%s'\n", id);
         //printf("\ttype = %s\n", type->toChars());
@@ -466,24 +470,9 @@ Symbol *FuncDeclaration::toSymbol()
 
 Symbol *FuncDeclaration::toThunkSymbol(int offset)
 {
-    Symbol *sthunk;
-
     toSymbol();
 
-#if 0
-    char *id;
-    char *n;
-    type *t;
-
-    n = sym->Sident;
-    id = (char *) alloca(8 + 5 + strlen(n) + 1);
-    sprintf(id,"_thunk%d__%s", offset, n);
-    s = symbol_calloc(id);
-    slist_add(s);
-    s->Stype = csym->Stype;
-    s->Stype->Tcount++;
-#endif
-    sthunk = symbol_generate(SCstatic, csym->Stype);
+    Symbol *sthunk = symbol_generate(SCstatic, csym->Stype);
     sthunk->Sflags |= SFLimplem;
     cod3_thunk(sthunk, csym, 0, TYnptr, -offset, -1, 0);
     return sthunk;
@@ -713,47 +702,30 @@ Symbol *Module::toModuleArray()
  */
 
 Symbol *TypeAArray::aaGetSymbol(const char *func, int flags)
-#if __DMC__
-    __in
-    {
-        assert(func);
+{
+#ifdef DEBUG
         assert((flags & ~1) == 0);
-    }
-    __out (result)
-    {
-        assert(result);
-    }
-    __body
 #endif
-    {
+
         // Dumb linear symbol table - should use associative array!
         static Symbols *sarray = NULL;
 
         //printf("aaGetSymbol(func = '%s', flags = %d, key = %p)\n", func, flags, key);
-#if 0
-        OutBuffer buf;
-        key->toKeyBuffer(&buf);
-
-        sz = next->size();              // it's just data, so we only care about the size
-        sz = (sz + 3) & ~3;             // reduce proliferation of library routines
-        char *id = (char *)alloca(3 + strlen(func) + buf.offset + sizeof(sz) * 3 + 1);
-        buf.writeByte(0);
-        if (flags & 1)
-            sprintf(id, "_aa%s%s%d", func, buf.data, sz);
-        else
-            sprintf(id, "_aa%s%s", func, buf.data);
-#else
         char *id = (char *)alloca(3 + strlen(func) + 1);
         sprintf(id, "_aa%s", func);
-#endif
         if (!sarray)
-            sarray = new Symbols();
+            sarray = Symbols_create();
 
         // See if symbol is already in sarray
         for (size_t i = 0; i < sarray->dim; i++)
         {   Symbol *s = (*sarray)[i];
             if (strcmp(id, s->Sident) == 0)
+            {
+#ifdef DEBUG
+                assert(s);
+#endif
                 return s;                       // use existing Symbol
+            }
         }
 
         // Create new Symbol
@@ -770,7 +742,7 @@ Symbol *TypeAArray::aaGetSymbol(const char *func, int flags)
 
         sarray->push(s);                        // remember it
         return s;
-    }
+}
 
 /*****************************************************/
 /*                   CTFE stuff                      */

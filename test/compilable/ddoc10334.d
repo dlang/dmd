@@ -20,6 +20,8 @@ template Foo10334(T) if (Bar10334!(Baz10334!())) {}     ///
 template Foo10334(T) if (Bar10334!(Baz10334!T)) {}      ///
 template Foo10334(T) if (Bar10334!(Baz10334!100)) {}    ///
 template Foo10334(T) if (Bar10334!(.foo)) {}            ///
+template Foo10334(T) if (Bar10334!(const int)) {}       ///
+template Foo10334(T) if (Bar10334!(shared T)) {}        ///
 
 template Test10334(T...) {}     ///
 mixin Test10334!int a;          ///

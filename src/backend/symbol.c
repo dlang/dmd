@@ -330,18 +330,18 @@ Funcsym *symbol_funcalias(Funcsym *sf)
  */
 
 symbol * symbol_generate(int sclass,type *t)
-{   char name[10];
+{
     static int tmpnum;
+    char name[4 + sizeof(tmpnum) * 3 + 1];
 
     //printf("symbol_generate(_TMP%d)\n", tmpnum);
     sprintf(name,"_TMP%d",tmpnum++);
-#ifdef DEBUG
     symbol *s = symbol_name(name,sclass,t);
     //symbol_print(s);
-    return s;
-#else
-    return symbol_name(name,sclass,t);
+#if MARS
+    s->Sflags |= SFLnodebug | SFLartifical;
 #endif
+    return s;
 }
 
 /****************************************

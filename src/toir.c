@@ -15,7 +15,6 @@
 #include        <stdio.h>
 #include        <string.h>
 #include        <time.h>
-//#include        <complex.h>
 
 #include        "lexer.h"
 #include        "expression.h"
@@ -73,6 +72,7 @@ elem *incUsageElem(IRState *irs, Loc loc)
     unsigned *p = irs->blx->module->covb;
     if (p)      // covb can be NULL if it has already been written out to its .obj file
     {
+        assert(linnum < irs->blx->module->numlines);
         p += linnum / (sizeof(*p) * 8);
         *p |= 1 << (linnum & (sizeof(*p) * 8 - 1));
     }
@@ -108,12 +108,9 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
     {   /* Going down one nesting level, i.e. we're calling
          * a nested function from its enclosing function.
          */
-#if DMDV2
         if (irs->sclosure)
             ethis = el_var(irs->sclosure);
-        else
-#endif
-        if (irs->sthis)
+        else if (irs->sthis)
         {   // We have a 'this' pointer for the current function
             ethis = el_var(irs->sthis);
 
@@ -249,7 +246,6 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
  * Returns:
  *      *(ey + ad.vthis.offset) = this;
  */
-#if DMDV2
 elem *setEthis(Loc loc, IRState *irs, elem *ey, AggregateDeclaration *ad)
 {
     elem *ethis;
@@ -306,7 +302,6 @@ elem *setEthis(Loc loc, IRState *irs, elem *ey, AggregateDeclaration *ad)
     ey = el_bin(OPeq, TYnptr, ey, ethis);
     return ey;
 }
-#endif
 
 /*******************************************
  * Convert intrinsic function to operator.
@@ -319,32 +314,6 @@ int intrinsic_op(char *name)
     //printf("intrinsic_op(%s)\n", name);
     static const char *std_namearray[] =
     {
-#if DMDV1
-        "4math3cosFeZe",
-        "4math3sinFeZe",
-        "4math4fabsFeZe",
-        "4math4rintFeZe",
-        "4math4sqrtFdZd",
-        "4math4sqrtFeZe",
-        "4math4sqrtFfZf",
-        "4math4yl2xFeeZe",
-        "4math5ldexpFeiZe",
-        "4math6rndtolFeZl",
-        "4math6yl2xp1FeeZe",
-
-        "9intrinsic3bsfFkZi",
-        "9intrinsic3bsrFkZi",
-        "9intrinsic3btcFPkkZi",
-        "9intrinsic3btrFPkkZi",
-        "9intrinsic3btsFPkkZi",
-        "9intrinsic3inpFkZh",
-        "9intrinsic4inplFkZk",
-        "9intrinsic4inpwFkZt",
-        "9intrinsic4outpFkhZh",
-        "9intrinsic5bswapFkZk",
-        "9intrinsic5outplFkkZk",
-        "9intrinsic5outpwFktZt",
-#elif DMDV2
         /* The names are mangled differently because of the pure and
          * nothrow attributes.
          */
@@ -359,36 +328,9 @@ int intrinsic_op(char *name)
         "4math5ldexpFNaNbNfeiZe",
         "4math6rndtolFNaNbNfeZl",
         "4math6yl2xp1FNaNbNfeeZe",
-#endif
     };
     static const char *std_namearray64[] =
     {
-#if DMDV1
-        "4math3cosFeZe",
-        "4math3sinFeZe",
-        "4math4fabsFeZe",
-        "4math4rintFeZe",
-        "4math4sqrtFdZd",
-        "4math4sqrtFeZe",
-        "4math4sqrtFfZf",
-        "4math4yl2xFeeZe",
-        "4math5ldexpFeiZe",
-        "4math6rndtolFeZl",
-        "4math6yl2xp1FeeZe",
-
-        "9intrinsic3bsfFkZi",
-        "9intrinsic3bsrFkZi",
-        "9intrinsic3btcFPmmZi",
-        "9intrinsic3btrFPmmZi",
-        "9intrinsic3btsFPmmZi",
-        "9intrinsic3inpFkZh",
-        "9intrinsic4inplFkZk",
-        "9intrinsic4inpwFkZt",
-        "9intrinsic4outpFkhZh",
-        "9intrinsic5bswapFkZk",
-        "9intrinsic5outplFkkZk",
-        "9intrinsic5outpwFktZt",
-#elif DMDV2
         /* The names are mangled differently because of the pure and
          * nothrow attributes.
          */
@@ -403,7 +345,6 @@ int intrinsic_op(char *name)
         "4math5ldexpFNaNbNfeiZe",
         "4math6rndtolFNaNbNfeZl",
         "4math6yl2xp1FNaNbNfeeZe",
-#endif
     };
     static unsigned char std_ioptab[] =
     {
@@ -420,7 +361,6 @@ int intrinsic_op(char *name)
         OPyl2xp1,
     };
 
-#ifdef DMDV2
     static const char *core_namearray[] =
     {
         "4math3cosFNaNbNfeZe",
@@ -447,9 +387,9 @@ int intrinsic_op(char *name)
 
         "5bitop3bsfFNaNbNfkZi",
         "5bitop3bsrFNaNbNfkZi",
-        "5bitop3btcFNaNbNfPkkZi",
-        "5bitop3btrFNaNbNfPkkZi",
-        "5bitop3btsFNaNbNfPkkZi",
+        "5bitop3btcFNaNbPkkZi",
+        "5bitop3btrFNaNbPkkZi",
+        "5bitop3btsFNaNbPkkZi",
         "5bitop3inpFNbkZh",
         "5bitop4inplFNbkZk",
         "5bitop4inpwFNbkZt",
@@ -484,9 +424,9 @@ int intrinsic_op(char *name)
 
         "5bitop3bsfFNaNbNfmZi",
         "5bitop3bsrFNaNbNfmZi",
-        "5bitop3btcFNaNbNfPmmZi",
-        "5bitop3btrFNaNbNfPmmZi",
-        "5bitop3btsFNaNbNfPmmZi",
+        "5bitop3btcFNaNbPmmZi",
+        "5bitop3btrFNaNbPmmZi",
+        "5bitop3btsFNaNbPmmZi",
         "5bitop3inpFNbkZh",
         "5bitop4inplFNbkZk",
         "5bitop4inpwFNbkZt",
@@ -532,7 +472,6 @@ int intrinsic_op(char *name)
         OPoutp,
         OPoutp,
     };
-#endif
 
 #ifdef DEBUG
     assert(sizeof(std_namearray) == sizeof(std_namearray64));
@@ -554,7 +493,6 @@ int intrinsic_op(char *name)
             assert(0);
         }
     }
-#ifdef DMDV2
     assert(sizeof(core_namearray) == sizeof(core_namearray64));
     assert(sizeof(core_namearray) / sizeof(char *) == sizeof(core_ioptab));
     for (size_t i = 0; i < sizeof(core_namearray) / sizeof(char *) - 1; i++)
@@ -575,7 +513,6 @@ int intrinsic_op(char *name)
         }
     }
 #endif
-#endif
     size_t length = strlen(name);
 
     if (length > 10 &&
@@ -585,7 +522,6 @@ int intrinsic_op(char *name)
         int i = binary(name + 6, I64 ? std_namearray64 : std_namearray, sizeof(std_namearray) / sizeof(char *));
         return (i == -1) ? i : std_ioptab[i];
     }
-#ifdef DMDV2
     if (length > 12 &&
         (name[8] == 'm' || name[8] == 'b' || name[8] == 's') &&
         !memcmp(name, "_D4core", 7))
@@ -593,7 +529,6 @@ int intrinsic_op(char *name)
         int i = binary(name + 7, I64 ? core_namearray64 : core_namearray, sizeof(core_namearray) / sizeof(char *));
         return (i == -1) ? i : core_ioptab[i];
     }
-#endif
 #endif
 
     return -1;
@@ -665,7 +600,6 @@ elem *resolveLengthVar(VarDeclaration *lengthVar, elem **pe, Type *t1)
  * than the current frame pointer.
  */
 
-#if DMDV2
 
 void FuncDeclaration::buildClosure(IRState *irs)
 {
@@ -673,7 +607,6 @@ void FuncDeclaration::buildClosure(IRState *irs)
     {   // Generate closure on the heap
         // BUG: doesn't capture variadic arguments passed to this function
 
-#if DMDV2
         /* BUG: doesn't handle destructors for the local variables.
          * The way to do it is to make the closure variables the fields
          * of a class object:
@@ -686,7 +619,6 @@ void FuncDeclaration::buildClosure(IRState *irs)
          *        ~this() { call destructor }
          *    }
          */
-#endif
         //printf("FuncDeclaration::buildClosure() %s\n", toChars());
         Symbol *sclosure;
         sclosure = symbol_name("__closptr",SCauto,Type::tvoidptr->toCtype());
@@ -700,7 +632,6 @@ void FuncDeclaration::buildClosure(IRState *irs)
             //printf("closure var %s\n", v->toChars());
             assert(v->isVarDeclaration());
 
-#if DMDV2
             if (v->needsAutoDtor())
                 /* Because the value needs to survive the end of the scope!
                  */
@@ -711,14 +642,12 @@ void FuncDeclaration::buildClosure(IRState *irs)
                  * message at compile time rather than memory corruption at runtime
                  */
                 v->error("cannot reference variadic arguments from closure");
-#endif
             /* Align and allocate space for v in the closure
              * just like AggregateDeclaration::addField() does.
              */
             unsigned memsize;
             unsigned memalignsize;
             structalign_t xalign;
-#if DMDV2
             if (v->storage_class & STClazy)
             {
                 /* Lazy variables are really delegates,
@@ -741,7 +670,6 @@ void FuncDeclaration::buildClosure(IRState *irs)
                 xalign = STRUCTALIGN_DEFAULT;
             }
             else
-#endif
             {
                 memsize = v->type->size();
                 memalignsize = v->type->alignsize();
@@ -791,17 +719,13 @@ void FuncDeclaration::buildClosure(IRState *irs)
             bool win64ref = ISWIN64REF(v);
             if (win64ref)
             {
-#if DMDV2
                 if (v->storage_class & STClazy)
                     tym = TYdelegate;
-#endif
             }
             else if (ISREF(v, NULL))
                 tym = TYnptr;   // reference parameters are just pointers
-#if DMDV2
             else if (v->storage_class & STClazy)
                 tym = TYdelegate;
-#endif
             ex = el_bin(OPadd, TYnptr, el_var(sclosure), el_long(TYsize_t, v->offset));
             ex = el_una(OPind, tym, ex);
             elem *ev = el_var(v->toSymbol());
@@ -829,7 +753,6 @@ void FuncDeclaration::buildClosure(IRState *irs)
     }
 }
 
-#endif
 
 /***************************
  * Determine return style of function - whether in registers or
@@ -839,13 +762,11 @@ void FuncDeclaration::buildClosure(IRState *irs)
 RET TypeFunction::retStyle()
 {
     //printf("TypeFunction::retStyle() %s\n", toChars());
-#if DMDV2
     if (isref)
     {
         //printf("  ref RETregs\n");
         return RETregs;                 // returns a pointer
     }
-#endif
 
     Type *tn = next->toBasetype();
     //printf("tn = %s\n", tn->toChars());
@@ -853,20 +774,17 @@ RET TypeFunction::retStyle()
     Type *tns = tn;
 
     if (global.params.isWindows && global.params.is64bit)
-    {   // http://msdn.microsoft.com/en-us/library/7572ztz4(v=vs.80)
+    {
+        // http://msdn.microsoft.com/en-us/library/7572ztz4(v=vs.80)
+        if (tns->ty == Tcomplex32)
+            return RETstack;
         if (tns->isscalar())
             return RETregs;
 
-        if (tns->ty == Tsarray)
-        {
-            do
-            {
-                tns = tns->nextOf()->toBasetype();
-            } while (tns->ty == Tsarray);
-        }
-
+        tns = tns->baseElemOf();
         if (tns->ty == Tstruct)
-        {   StructDeclaration *sd = ((TypeStruct *)tns)->sym;
+        {
+            StructDeclaration *sd = ((TypeStruct *)tns)->sym;
             if (!sd->isPOD() || sz >= 8)
                 return RETstack;
         }
@@ -878,11 +796,7 @@ RET TypeFunction::retStyle()
 Lagain:
     if (tns->ty == Tsarray)
     {
-        do
-        {
-            tns = tns->nextOf()->toBasetype();
-        } while (tns->ty == Tsarray);
-
+        tns = tns->baseElemOf();
         if (tns->ty != Tstruct)
         {
 L2:

@@ -128,9 +128,9 @@ BFLAGS=
 ##### Implementation variables (do not modify)
 
 # Compile flags
-CFLAGS=-I$(INCLUDE) $(OPT) $(CFLAGS) $(DEBUG) -cpp -DDM_TARGET_CPU_X86=1
+CFLAGS=-I$(INCLUDE) $(OPT) $(CFLAGS) $(DEBUG) -cpp -DTARGET_WINDOS=1 -DDM_TARGET_CPU_X86=1
 # Compile flags for modules with backend/toolkit dependencies
-MFLAGS=-I$C;$(TK) $(OPT) -DMARS -cpp $(DEBUG) -e -wx -DDM_TARGET_CPU_X86=1
+MFLAGS=-I$C;$(TK) $(OPT) -DMARS -cpp $(DEBUG) -e -wx -DTARGET_WINDOS=1 -DDM_TARGET_CPU_X86=1
 # Recursive make
 DMDMAKE=$(MAKE) -fwin32.mak C=$C TK=$(TK) ROOT=$(ROOT)
 
@@ -142,7 +142,7 @@ FRONTOBJ= enum.obj struct.obj dsymbol.obj import.obj id.obj \
 	staticassert.obj identifier.obj mtype.obj expression.obj \
 	optimize.obj template.obj lexer.obj declaration.obj cast.obj \
 	init.obj func.obj utf.obj parse.obj statement.obj \
-	constfold.obj version.obj inifile.obj \
+	constfold.obj version.obj inifile.obj cppmangle.obj \
 	module.obj scope.obj dump.obj cond.obj inline.obj opover.obj \
 	entity.obj class.obj mangle.obj attrib.obj impcnvtab.obj \
 	link.obj access.obj doc.obj macro.obj hdrgen.obj delegatize.obj \
@@ -176,8 +176,9 @@ BACKOBJ= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
 GCOBJS=rmem.obj
 # Removed garbage collector (look in history)
 #GCOBJS=dmgcmem.obj bits.obj win32.obj gc.obj
-ROOTOBJS= man.obj root.obj port.obj \
-	stringtable.obj response.obj async.obj speller.obj aav.obj \
+ROOTOBJS= man.obj port.obj \
+	stringtable.obj response.obj async.obj speller.obj aav.obj outbuffer.obj \
+	object.obj filename.obj file.obj \
 	$(GCOBJS)
 
 # D front end
@@ -196,7 +197,7 @@ SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
 	clone.c lib.h arrayop.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c argtypes.c \
 	apply.c sapply.c sideeffect.c ctfe.h \
-	intrange.h intrange.c canthrow.c target.c target.h
+	intrange.h intrange.c canthrow.c target.c target.h visitor.h
 
 # Glue layer
 GLUESRC= glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \
@@ -233,9 +234,10 @@ TKSRCC=	$(TK)\filespec.c $(TK)\mem.c $(TK)\vec.c $(TK)\list.c
 TKSRC= $(TK)\filespec.h $(TK)\mem.h $(TK)\list.h $(TK)\vec.h $(TKSRCC)
 
 # Root package
-ROOTSRCC=$(ROOT)\root.c $(ROOT)\rmem.c $(ROOT)\stringtable.c \
+ROOTSRCC=$(ROOT)\rmem.c $(ROOT)\stringtable.c \
 	$(ROOT)\man.c $(ROOT)\port.c $(ROOT)\async.c $(ROOT)\response.c \
-	$(ROOT)\speller.c $(ROOT)\aav.c $(ROOT)\longdouble.c $(ROOT)\dmgcmem.c
+	$(ROOT)\speller.c $(ROOT)\aav.c $(ROOT)\longdouble.c \
+	$(ROOT)\outbuffer.c $(ROOT)\object.c $(ROOT)\filename.c $(ROOT)\file.c
 ROOTSRC= $(ROOT)\root.h \
 	$(ROOT)\rmem.h $(ROOT)\port.h \
 	$(ROOT)\stringtable.h \
@@ -243,6 +245,11 @@ ROOTSRC= $(ROOT)\root.h \
 	$(ROOT)\speller.h \
 	$(ROOT)\aav.h \
 	$(ROOT)\longdouble.h \
+	$(ROOT)\outbuffer.h \
+	$(ROOT)\object.h \
+	$(ROOT)\filename.h \
+	$(ROOT)\file.h \
+	$(ROOT)\array.h \
 	$(ROOTSRCC)
 # Removed garbage collector bits (look in history)
 #	$(ROOT)\gc\bits.c $(ROOT)\gc\gc.c $(ROOT)\gc\gc.h $(ROOT)\gc\mscbitops.h \
@@ -256,7 +263,7 @@ CH= $C\cc.h $C\global.h $C\oper.h $C\code.h $C\code_x86.h $C\type.h $C\dt.h $C\c
 	$C\el.h $C\iasm.h $C\obj.h
 
 # Makefiles
-MAKEFILES=win32.mak posix.mak
+MAKEFILES=win32.mak posix.mak osmodel.mak
 
 # Unit tests
 TESTS=UTFTest.exe # LexerTest.exe
@@ -273,13 +280,13 @@ release:
 	$(DMDMAKE) clean
 
 debdmd:
-	$(DMDMAKE) "OPT=" "DEBUG=-D -g -DUNITTEST" "LFLAGS=-L/ma/co" $(TARGETEXE)
+	$(DMDMAKE) "OPT=" "DEBUG=-D -g -DUNITTEST" "LFLAGS=-L/ma/co/la" $(TARGETEXE)
 
 reldmd:
-	$(DMDMAKE) "OPT=-o" "DEBUG=" "LFLAGS=-L/delexe" $(TARGETEXE)
+	$(DMDMAKE) "OPT=-o" "DEBUG=" "LFLAGS=-L/delexe/la" $(TARGETEXE)
 
 trace:
-	$(DMDMAKE) "OPT=-o" "DEBUG=-gt -Nc" "LFLAGS=-L/ma/co/delexe" $(TARGETEXE)
+	$(DMDMAKE) "OPT=-o" "DEBUG=-gt -Nc" "LFLAGS=-L/ma/co/delexe/la" $(TARGETEXE)
 
 ################################ Libraries ##################################
 
@@ -298,7 +305,7 @@ root.lib : $(ROOTOBJS)
 LIBS= frontend.lib glue.lib backend.lib root.lib
 
 $(TARGETEXE): mars.obj $(LIBS) win32.mak
-	$(CC) -o$(TARGETEXE) mars.obj $(LIBS) -cpp -mn -Ar $(LFLAGS)
+	$(CC) -o$(TARGETEXE) mars.obj $(LIBS) -cpp -mn -Ar -L/STACK:8388608 $(LFLAGS)
 
 ############################ Maintenance Targets #############################
 
@@ -320,7 +327,6 @@ install-copy:
 	$(MD) $(INSTALL)\src\dmd\tk
 	$(MD) $(INSTALL)\src\dmd\backend
 	$(CP) $(TARGETEXE)          $(INSTALL)\windows\bin\$(TARGETEXE)
-	$(CP) phobos\phobos.lib     $(INSTALL)\windows\lib\phobos.lib
 	$(CP) $(SRCS)               $(INSTALL)\src\dmd
 	$(CP) $(GLUESRC)            $(INSTALL)\src\dmd
 	$(CP) $(ROOTSRC)            $(INSTALL)\src\dmd\root
@@ -601,7 +607,7 @@ typinf.obj : $(CH) $(TOTALH) $C\rtlsym.h mars.h module.h typinf.c
 todt.obj : mtype.h expression.h $C\dt.h todt.c
 	$(CC) -c -I$(ROOT) $(MFLAGS) todt
 
-s2ir.obj : $C\rtlsym.h statement.h s2ir.c
+s2ir.obj : $C\rtlsym.h statement.h s2ir.c visitor.h
 	$(CC) -c -I$(ROOT) $(MFLAGS) s2ir
 
 e2ir.obj : $C\rtlsym.h expression.h toir.h e2ir.c
@@ -645,9 +651,6 @@ rmem.obj : $(ROOT)\rmem.c
 port.obj : $(ROOT)\port.c
 	$(CC) -c $(CFLAGS) $(ROOT)\port.c
 
-root.obj : $(ROOT)\root.c
-	$(CC) -c $(CFLAGS) $(ROOT)\root.c
-
 response.obj : $(ROOT)\response.c
 	$(CC) -c $(CFLAGS) $(ROOT)\response.c
 
@@ -656,6 +659,18 @@ speller.obj : $(ROOT)\speller.h $(ROOT)\speller.c
 
 stringtable.obj : $(ROOT)\stringtable.c
 	$(CC) -c $(CFLAGS) $(ROOT)\stringtable.c
+
+outbuffer.obj : $(ROOT)\outbuffer.c
+	$(CC) -c $(CFLAGS) $(ROOT)\outbuffer.c
+
+object.obj : $(ROOT)\object.c
+	$(CC) -c $(CFLAGS) $(ROOT)\object.c
+
+filename.obj : $(ROOT)\filename.c
+	$(CC) -c $(CFLAGS) $(ROOT)\filename.c
+
+file.obj : $(ROOT)\file.c
+	$(CC) -c $(CFLAGS) $(ROOT)\file.c
 
 # Root/GC -- Removed (look in history)
 #
@@ -685,6 +700,7 @@ class.obj : $(TOTALH) enum.h class.c
 clone.obj : $(TOTALH) clone.c
 constfold.obj : $(TOTALH) expression.h constfold.c
 cond.obj : $(TOTALH) identifier.h declaration.h cond.h cond.c
+cppmangle.obj : $(TOTALH) mtype.h declaration.h mars.h
 declaration.obj : $(TOTALH) identifier.h attrib.h declaration.h declaration.c expression.h
 delegatize.obj : $(TOTALH) delegatize.c
 doc.obj : $(TOTALH) doc.h doc.c

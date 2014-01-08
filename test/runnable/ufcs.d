@@ -683,6 +683,19 @@ void test9946()
 }
 
 /*******************************************/
+// 10618
+
+template Temp10618(T)
+{
+    size_t len = 1;
+}
+void test10618()
+{
+    auto arr = new int[Temp10618!int.len];
+    assert(arr.length == 1);
+}
+
+/*******************************************/
 // 10003
 
 void foo10003(void *p) {}
@@ -740,6 +753,48 @@ void bar10166(alias handler, T)(T t, int i)
 void buzz10166() {}
 
 /*******************************************/
+// 10526
+
+struct S10526
+{
+    int opDispatch(string s, A...)(A args)
+    if (s[0..3] == "foo")
+    {
+        return 1;
+    }
+}
+int bar10526(X)(X) { return 2; }
+int baz10526(T, X)(X) { return 3; }
+
+void test10526()
+{
+    S10526 s;
+
+    // with parenthesis
+    assert(s.foo10526() == 1);
+    assert(s.bar10526() == 2);
+    assert(s.baz10526!string() == 3);
+
+    // without parenthesis
+    assert(s.foo10526 == 1);
+    assert(s.bar10526 == 2);
+    assert(s.baz10526!string == 3);
+}
+
+/********************************************************/
+// 10609
+
+int foo10609(int x) { return x; }
+
+void test10609()
+{
+    int x = 1;
+    static assert(__traits(compiles, foo10609(x)));
+    static assert(__traits(compiles, 1.foo10609 ));
+    static assert(__traits(compiles, x.foo10609 ));
+}
+
+/*******************************************/
 
 int main()
 {
@@ -763,9 +818,11 @@ int main()
     test9014();
     test9590();
     test9946();
+    test10618();
     test10003();
     test10041();
     test10047();
+    test10526();
 
     printf("Success\n");
     return 0;

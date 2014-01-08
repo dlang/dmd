@@ -51,7 +51,6 @@ typep_t tsptrdiff, tssize;
 
 targ_size_t type_size(type *t)
 {   targ_size_t s;
-    unsigned long u;
     tym_t tyb;
 
     type_debug(t);
@@ -88,6 +87,7 @@ targ_size_t type_size(type *t)
                 s = 1;
                 break;
             case TYarray:
+            {
                 if (t->Tflags & TFsizeunknown)
                 {
 #if SCPP
@@ -101,12 +101,18 @@ targ_size_t type_size(type *t)
                     break;
                 }
                 s = type_size(t->Tnext);
-                u = t->Tdim * (unsigned long) s;
-#if TX86 && SCPP
+                unsigned long u = t->Tdim * (unsigned long) s;
+#if SCPP
                 type_chksize(u);
+#elif MARS
+                if (t->Tdim && ((u / t->Tdim) != s || (long)u < 0))
+                    assert(0);          // overflow should have been detected in front end
+#else
+                assert(0);
 #endif
                 s = u;
                 break;
+            }
             case TYstruct:
                 t = t->Ttag->Stype;     /* find main instance           */
                                         /* (for const struct X)         */

@@ -17,11 +17,11 @@
 #include        <fcntl.h>
 #include        <ctype.h>
 
-#if _WIN32 || linux
+#if _WIN32 || __linux__
 #include        <malloc.h>
 #endif
 
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
 #include        <signal.h>
 #include        <unistd.h>
 #endif
@@ -2151,6 +2151,7 @@ int Obj::external(Symbol *s)
     symbol_debug(s);
     extern_symbuf->write(&s, sizeof(s));
     s->Sxtrnnum = 1;
+    return 0;
 }
 
 /*******************************

@@ -513,6 +513,47 @@ void test9633()
 }
 
 /********************************************************/
+// 11245
+
+struct Vec11245
+{
+    float[2] f;
+}
+
+class Bar11245
+{
+    void func()
+    {
+        pragma(msg, "====");
+        float[Vec11245.f.length] newVal;
+    }
+}
+
+/********************************************************/
+// 11614
+
+struct Tuple11614(T...)
+{
+    T field;
+    alias field this;
+}
+
+struct Foo11614
+{
+    alias Tuple11614!(int) NEW_ARGS;
+
+    NEW_ARGS args;
+
+    void foo()
+    {
+        static if (NEW_ARGS.length == 1)
+        {}
+        else
+            static assert(0);
+    }
+}
+
+/********************************************************/
 
 int main()
 {

@@ -245,81 +245,81 @@ struct CtorTest6174(Data)
         // As long as you don't try to rewrite values beyond the indirections,
         // an assignment will always be succeeded inside constructor.
 
-        static assert( __traits(compiles, { data        = a;        }));    // OK
+        static assert( is(typeof( data        = a         )));    // OK
       static if (is(Data == struct))
       {
-        static assert( __traits(compiles, { data.x      = 1;        }));    // OK
-        static assert( __traits(compiles, { data.y      = 2;        }));    // OK
+        static assert( is(typeof( data.x      = 1         )));    // OK
+        static assert( is(typeof( data.y      = 2         )));    // OK
       }
-        static assert(!__traits(compiles, { *pdata      = a;        }));    // NG
-        static assert( __traits(compiles, { *&data      = a;        }));    // OK
+        static assert(!is(typeof( *pdata      = a         )));    // NG
+        static assert( is(typeof( *&data      = a         )));    // OK
 
-        static assert( __traits(compiles, { sa1         = [a,a];    }));    // OK
-        static assert( __traits(compiles, { sa1[0]      = a;        }));    // OK
-        static assert( __traits(compiles, { sa1[]       = a;        }));    // OK
-        static assert( __traits(compiles, { sa1[][]     = a;        }));    // OK
+        static assert( is(typeof( sa1         = [a,a]     )));    // OK
+        static assert( is(typeof( sa1[0]      = a         )));    // OK
+        static assert( is(typeof( sa1[]       = a         )));    // OK
+        static assert( is(typeof( sa1[][]     = a         )));    // OK
 
-        static assert( __traits(compiles, { sa2         = [[a,a]];  }));    // OK
-        static assert( __traits(compiles, { sa2[0][0]   = a;        }));    // OK
-        static assert( __traits(compiles, { sa2[][0][]  = a;        }));    // OK
-        static assert( __traits(compiles, { sa2[0][][0] = a;        }));    // OK
+        static assert( is(typeof( sa2         = [[a,a]]   )));    // OK
+        static assert( is(typeof( sa2[0][0]   = a         )));    // OK
+        static assert( is(typeof( sa2[][0][]  = a         )));    // OK
+        static assert( is(typeof( sa2[0][][0] = a         )));    // OK
 
-        static assert( __traits(compiles, { sa3         = [[a],[]]; }));    // OK
-        static assert( __traits(compiles, { sa3[0]      = [a,a];    }));    // OK
-        static assert(!__traits(compiles, { sa3[0][0]   = a;        }));    // NG
-        static assert( __traits(compiles, { sa3[]       = [a];      }));    // OK
-        static assert( __traits(compiles, { sa3[][0]    = [a];      }));    // OK
-        static assert(!__traits(compiles, { sa3[][0][0] = a;        }));    // NG
+        static assert( is(typeof( sa3         = [[a],[]]  )));    // OK
+        static assert( is(typeof( sa3[0]      = [a,a]     )));    // OK
+        static assert(!is(typeof( sa3[0][0]   = a         )));    // NG
+        static assert( is(typeof( sa3[]       = [a]       )));    // OK
+        static assert( is(typeof( sa3[][0]    = [a]       )));    // OK
+        static assert(!is(typeof( sa3[][0][0] = a         )));    // NG
 
-        static assert( __traits(compiles, { da1         = [a,a];    }));    // OK
-        static assert(!__traits(compiles, { da1[0]      = a;        }));    // NG
-        static assert(!__traits(compiles, { da1[]       = a;        }));    // NG
+        static assert( is(typeof( da1         = [a,a]     )));    // OK
+        static assert(!is(typeof( da1[0]      = a         )));    // NG
+        static assert(!is(typeof( da1[]       = a         )));    // NG
 
-        static assert( __traits(compiles, { da2         = [[a,a]];  }));    // OK
-        static assert(!__traits(compiles, { da2[0][0]   = a;        }));    // NG
-        static assert(!__traits(compiles, { da2[]       = [a,a];    }));    // NG
-        static assert(!__traits(compiles, { da2[][0]    = a;        }));    // NG
-        static assert(!__traits(compiles, { da2[0][]    = a;        }));    // NG
+        static assert( is(typeof( da2         = [[a,a]]   )));    // OK
+        static assert(!is(typeof( da2[0][0]   = a         )));    // NG
+        static assert(!is(typeof( da2[]       = [a,a]     )));    // NG
+        static assert(!is(typeof( da2[][0]    = a         )));    // NG
+        static assert(!is(typeof( da2[0][]    = a         )));    // NG
     }
     void func(Data a)
     {
         auto pdata = &data;
 
-        static assert(!__traits(compiles, { data        = a;        }));    // NG
+        static assert(!is(typeof( data        = a         )));    // NG
       static if (is(Data == struct))
       {
-        static assert(!__traits(compiles, { data.x      = 1;        }));    // NG
-        static assert(!__traits(compiles, { data.y      = 2;        }));    // NG
+        static assert(!is(typeof( data.x      = 1         )));    // NG
+        static assert(!is(typeof( data.y      = 2         )));    // NG
       }
-        static assert(!__traits(compiles, { *pdata      = a;        }));    // NG
-        static assert(!__traits(compiles, { *&data      = a;        }));    // NG
+        static assert(!is(typeof( *pdata      = a         )));    // NG
+        static assert(!is(typeof( *&data      = a         )));    // NG
 
-        static assert(!__traits(compiles, { sa1         = [a,a];    }));    // NG
-        static assert(!__traits(compiles, { sa1[0]      = a;        }));    // NG
-        static assert(!__traits(compiles, { sa1[]       = a;        }));    // NG
-        static assert(!__traits(compiles, { sa1[][]     = a;        }));    // NG
+        static assert(!is(typeof( sa1         = [a,a]     )));    // NG
+        static assert(!is(typeof( sa1[0]      = a         )));    // NG
+        static assert(!is(typeof( sa1[]       = a         )));    // NG
+        static assert(!is(typeof( sa1[][]     = a         )));    // NG
 
-        static assert(!__traits(compiles, { sa2         = [[a,a]];  }));    // NG
-        static assert(!__traits(compiles, { sa2[0][0]   = a;        }));    // NG
-        static assert(!__traits(compiles, { sa2[][0][]  = a;        }));    // NG
-        static assert(!__traits(compiles, { sa2[0][][0] = a;        }));    // NG
+        static assert(!is(typeof( sa2         = [[a,a]]   )));    // NG
+        static assert(!is(typeof( sa2[0][0]   = a         )));    // NG
+        static assert(!is(typeof( sa2[][0][]  = a         )));    // NG
+        static assert(!is(typeof( sa2[0][][0] = a         )));    // NG
 
-        static assert(!__traits(compiles, { sa3         = [[a],[]]; }));    // NG
-        static assert(!__traits(compiles, { sa3[0]      = [a,a];    }));    // NG
-        static assert(!__traits(compiles, { sa3[0][0]   = a;        }));    // NG
-        static assert(!__traits(compiles, { sa3[]       = [a];      }));    // NG
-        static assert(!__traits(compiles, { sa3[][0]    = [a];      }));    // NG
-        static assert(!__traits(compiles, { sa3[][0][0] = a;        }));    // NG
+        static assert(!is(typeof( sa3         = [[a],[]]  )));    // NG
+        static assert(!is(typeof( sa3[0]      = [a,a]     )));    // NG
+        static assert(!is(typeof( sa3[0][0]   = a         )));    // NG
+        static assert(!is(typeof( sa3[]       = [a]       )));    // NG
+        static assert(!is(typeof( sa3[][0]    = [a]       )));    // NG
+        static assert(!is(typeof( sa3[][0][0] = a         )));    // NG
 
-        static assert(!__traits(compiles, { da1         = [a,a];    }));    // NG
-        static assert(!__traits(compiles, { da1[0]      = a;        }));    // NG
-        static assert(!__traits(compiles, { da1[]       = a;        }));    // NG
+        static assert(!is(typeof( da1         = [a,a]     )));    // NG
+        static assert(!is(typeof( da1[0]      = a         )));    // NG
+        static assert(!is(typeof( da1[]       = a         )));    // NG
 
-        static assert(!__traits(compiles, { da2         = [[a,a]];  }));    // NG
-        static assert(!__traits(compiles, { da2[0][0]   = a;        }));    // NG
-        static assert(!__traits(compiles, { da2[]       = [a,a];    }));    // NG
-        static assert(!__traits(compiles, { da2[][0]    = a;        }));    // NG
-        static assert(!__traits(compiles, { da2[0][]    = a;        }));    // NG
+        static assert(!is(typeof( da2         = [[a,a]]   )));    // NG
+        static assert(!is(typeof( da2[0][0]   = a         )));    // NG
+        static assert(!is(typeof( da2[]       = [a,a]     )));    // NG
+        static assert(!is(typeof( da2[][0]    = a         )));    // NG
+        static assert(!is(typeof( da2[0][]    = a         )));    // NG
     }
 }
 
@@ -334,11 +334,12 @@ struct Foo6174
 {
     const char cc;
     const char[1] array;
+    const char[1] arr;
     this(char c)
     {
         cc = c;       // OK
         array = [c];  // line 12, Err
-        array[0] = c; // line 12, Err
+        arr[0] = c;   // line 12, Err
     }
 }
 void test6174a()
@@ -391,16 +392,16 @@ void test6174b()
         {
             // If F has an identity `opAssign`,it is used even for initializing.
             // Otherwise, initializing  will always succeed, by bypassing const qualifier.
-            static assert(__traits(compiles, f = F()) == (
+            static assert(is(typeof( f = F() )) == (
                             F.assignKind == none ||
                             F.assignKind == unrelated ||
-                            F.assignKind == mutable && !fieldConst ||
+                            F.assignKind == mutable ||
                             F.assignKind == constant));
 
-            static assert(__traits(compiles,   w = 1000) == true);
-            static assert(__traits(compiles, f.x = 1000) == true);
-            static assert(__traits(compiles, f.y = 1000) == true);
-            static assert(__traits(compiles,   z = 1000) == true);
+            static assert(is(typeof(   w = 1000 )) == true);
+            static assert(is(typeof( f.x = 1000 )) == true);
+            static assert(is(typeof( f.y = 1000 )) == true);
+            static assert(is(typeof(   z = 1000 )) == true);
         }
         void func()
         {
@@ -614,8 +615,7 @@ void test6216d()
     S s;
     const(S) cs;
     s = s;
-    static assert(!__traits(compiles, s = cs));
-                // copying cx, const(S) to S is not possible
+    s = cs;
     //assert(cnt == 4);
     static assert(!__traits(compiles, cs = cs));
                 // built-in opAssin is only allowed with mutable object
@@ -810,6 +810,26 @@ struct S9658
 }
 
 /***************************************************/
+// 11187
+
+void test11187()
+{
+    static struct X
+    {
+        int[] arr;
+    }
+    static struct S
+    {
+        const(X) cx;
+    }
+    static assert(is(typeof((const S).init.cx.arr) == const(int[])));
+    static assert(is(typeof((      S).init.cx.arr) == const(int[])));
+    const S sc;
+    S sm = sc;
+    static assert(is(const S : S));
+}
+
+/***************************************************/
 
 int main()
 {
@@ -831,6 +851,7 @@ int main()
     test6336();
     test9154();
     test9416();
+    test11187();
 
     printf("Success\n");
     return 0;

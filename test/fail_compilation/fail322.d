@@ -1,4 +1,12 @@
-void main() {
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail322.d(10): Error: function fail322.digestToString2 (ref char[16] digest) is not callable using argument types (string)
+---
+*/
+
+void main()
+{
     digestToString2("1234567890123456");
 }
 

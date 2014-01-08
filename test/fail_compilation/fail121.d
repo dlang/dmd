@@ -3,8 +3,8 @@
 
 struct myobject
 {
-    TypeInfo objecttype; 
-    void * offset;
+    TypeInfo objecttype;
+    void* offset;
 }
 
 myobject[] list;

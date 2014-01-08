@@ -126,7 +126,7 @@ enum TOK
         TOKfloat32, TOKfloat64, TOKfloat80,
         TOKimaginary32, TOKimaginary64, TOKimaginary80,
         TOKcomplex32, TOKcomplex64, TOKcomplex80,
-        TOKchar, TOKwchar, TOKdchar, TOKbit, TOKbool,
+        TOKchar, TOKwchar, TOKdchar, TOKbool,
 
 // 152
         // Aggregates
@@ -157,7 +157,7 @@ enum TOK
         TOKargTypes,
         TOKref,
         TOKmacro,
-#if DMDV2
+
         TOKparameters,
         TOKtraits,
         TOKoverloadset,
@@ -176,7 +176,6 @@ enum TOK
         TOKgoesto,
         TOKvector,
         TOKpound,
-#endif
 
 #if DMD_OBJC
         TOKobjcclsref, // Objective-C class reference
@@ -191,53 +190,14 @@ enum TOK
 
 #define TOKwild TOKinout
 
-#define BASIC_TYPES                     \
-        TOKwchar: case TOKdchar:                \
-        case TOKbit: case TOKbool: case TOKchar:        \
-        case TOKint8: case TOKuns8:             \
-        case TOKint16: case TOKuns16:           \
-        case TOKint32: case TOKuns32:           \
-        case TOKint64: case TOKuns64:           \
-        case TOKint128: case TOKuns128: \
-        case TOKfloat32: case TOKfloat64: case TOKfloat80:              \
-        case TOKimaginary32: case TOKimaginary64: case TOKimaginary80:  \
-        case TOKcomplex32: case TOKcomplex64: case TOKcomplex80:        \
-        case TOKvoid
-
-#define BASIC_TYPES_X(t)                                        \
-        TOKvoid:         t = Type::tvoid;  goto LabelX;         \
-        case TOKint8:    t = Type::tint8;  goto LabelX;         \
-        case TOKuns8:    t = Type::tuns8;  goto LabelX;         \
-        case TOKint16:   t = Type::tint16; goto LabelX;         \
-        case TOKuns16:   t = Type::tuns16; goto LabelX;         \
-        case TOKint32:   t = Type::tint32; goto LabelX;         \
-        case TOKuns32:   t = Type::tuns32; goto LabelX;         \
-        case TOKint64:   t = Type::tint64; goto LabelX;         \
-        case TOKuns64:   t = Type::tuns64; goto LabelX;         \
-        case TOKint128:  t = Type::tint128; goto LabelX;        \
-        case TOKuns128:  t = Type::tuns128; goto LabelX;        \
-        case TOKfloat32: t = Type::tfloat32; goto LabelX;       \
-        case TOKfloat64: t = Type::tfloat64; goto LabelX;       \
-        case TOKfloat80: t = Type::tfloat80; goto LabelX;       \
-        case TOKimaginary32: t = Type::timaginary32; goto LabelX;       \
-        case TOKimaginary64: t = Type::timaginary64; goto LabelX;       \
-        case TOKimaginary80: t = Type::timaginary80; goto LabelX;       \
-        case TOKcomplex32: t = Type::tcomplex32; goto LabelX;   \
-        case TOKcomplex64: t = Type::tcomplex64; goto LabelX;   \
-        case TOKcomplex80: t = Type::tcomplex80; goto LabelX;   \
-        case TOKbool:    t = Type::tbool;    goto LabelX;       \
-        case TOKchar:    t = Type::tchar;    goto LabelX;       \
-        case TOKwchar:   t = Type::twchar; goto LabelX; \
-        case TOKdchar:   t = Type::tdchar; goto LabelX; \
-        LabelX
-
 struct Token
 {
     Token *next;
-    unsigned char *ptr;         // pointer to first character of this token within buffer
+    Loc loc;
+    const utf8_t *ptr;         // pointer to first character of this token within buffer
     TOK value;
-    unsigned char *blockComment; // doc comment string prior to this token
-    unsigned char *lineComment;  // doc comment for previous token
+    const utf8_t *blockComment; // doc comment string prior to this token
+    const utf8_t *lineComment;  // doc comment for previous token
     union
     {
         // Integers
@@ -247,23 +207,16 @@ struct Token
         d_uns64 uns64value;
 
         // Floats
-#ifdef IN_GCC
-        // real_t float80value; // can't use this in a union!
-#else
         d_float80 float80value;
-#endif
 
         struct
-        {   unsigned char *ustring;     // UTF8 string
+        {   utf8_t *ustring;     // UTF8 string
             unsigned len;
             unsigned char postfix;      // 'c', 'w', 'd'
         };
 
         Identifier *ident;
     };
-#ifdef IN_GCC
-    real_t float80value; // can't use this in a union!
-#endif
 
     static const char *tochars[TOKMAX];
     static void *operator new(size_t sz);
@@ -284,11 +237,11 @@ public:
     static OutBuffer stringbuffer;
     static Token *freelist;
 
-    Loc loc;                    // for error messages
+    Loc scanloc;                // for error messages
 
-    unsigned char *base;        // pointer to start of buffer
-    unsigned char *end;         // past end of buffer
-    unsigned char *p;           // current character
+    const utf8_t *base;        // pointer to start of buffer
+    const utf8_t *end;         // past end of buffer
+    const utf8_t *p;           // current character
     Token token;
     Module *mod;
     int doDocComment;           // collect doc comment information
@@ -296,7 +249,7 @@ public:
     int commentToken;           // !=0 means comments are TOKcomment's
 
     Lexer(Module *mod,
-        unsigned char *base, size_t begoffset, size_t endoffset,
+        const utf8_t *base, size_t begoffset, size_t endoffset,
         int doDocComment, int commentToken);
 
     static void initKeywords();
@@ -313,10 +266,8 @@ public:
     unsigned escapeSequence();
     TOK wysiwygStringConstant(Token *t, int tc);
     TOK hexStringConstant(Token *t);
-#if DMDV2
     TOK delimitedStringConstant(Token *t);
     TOK tokenStringConstant(Token *t);
-#endif
     TOK escapeStringConstant(Token *t, int wide);
     TOK charConstant(Token *t, int wide);
     void stringPostfix(Token *t);
@@ -329,10 +280,8 @@ public:
     unsigned decodeUTF();
     void getDocComment(Token *t, unsigned lineComment);
 
-    static int isValidIdentifier(char *p);
-    static unsigned char *combineComments(unsigned char *c1, unsigned char *c2);
-
-    Loc tokenLoc();
+    static int isValidIdentifier(const char *p);
+    static const utf8_t *combineComments(const utf8_t *c1, const utf8_t *c2);
 };
 
 #endif /* DMD_LEXER_H */

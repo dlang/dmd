@@ -709,12 +709,6 @@ void test4()
 
 void main()
 {
-        /* TODO Tests are disabled on win64
-         * because it corrupts 5/6/7 byte structs
-         */
-        version(Win64)
-                return;
-
         D_test1();
         D_test2();
 

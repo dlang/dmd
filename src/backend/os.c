@@ -25,7 +25,7 @@
 #include <sys\stat.h>
 #endif
 
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -666,7 +666,7 @@ int os_file_exists(const char *name)
     if (!find)
         return 0;
     return (find->attribute & FA_DIREC) ? 2 : 1;
-#elif linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#elif __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
     struct stat buf;
 
     return stat(name,&buf) == 0;        /* file exists if stat succeeded */
@@ -743,7 +743,7 @@ char *file_8dot3name(const char *filename)
 
 int file_write(char *name, void *buffer, unsigned len)
 {
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
     int fd;
     ssize_t numwritten;
 
@@ -819,7 +819,7 @@ err:
 
 int file_createdirs(char *name)
 {
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
     return 1;
 #endif
 #if _WIN32
@@ -858,3 +858,106 @@ Lfail:
 #endif
 }
 
+/***********************************
+ * Return size of OS critical section.
+ * NOTE: can't use the sizeof() calls directly since cross compiling is
+ * supported and would end up using the host sizes rather than the target
+ * sizes.
+ */
+
+#if DMDV1
+
+#if _WIN32
+int os_critsecsize32()
+{
+    return 24;  // sizeof(CRITICAL_SECTION) for 32 bit Windows
+}
+
+int os_critsecsize64()
+{
+    return 40;  // sizeof(CRITICAL_SECTION) for 64 bit Windows
+}
+#endif
+
+#if __linux__
+int os_critsecsize32()
+{
+    return 24; // sizeof(pthread_mutex_t) on 32 bit
+}
+
+int os_critsecsize64()
+{
+    return 40; // sizeof(pthread_mutex_t) on 64 bit
+}
+#endif
+
+#if __FreeBSD__
+int os_critsecsize32()
+{
+    return 4; // sizeof(pthread_mutex_t) on 32 bit
+}
+
+int os_critsecsize64()
+{
+    return 8; // sizeof(pthread_mutex_t) on 64 bit
+}
+#endif
+
+#if __OpenBSD__
+int os_critsecsize32()
+{
+    return 4; // sizeof(pthread_mutex_t) on 32 bit
+}
+
+int os_critsecsize64()
+{
+    assert(0);
+    return 8; // sizeof(pthread_mutex_t) on 64 bit
+}
+#endif
+
+#if __APPLE__
+int os_critsecsize32()
+{
+#if __LP64__    // check for bit rot
+    assert(sizeof(pthread_mutex_t) == 64);
+#else
+    assert(sizeof(pthread_mutex_t) == 44);
+#endif
+    return 44;
+}
+
+int os_critsecsize64()
+{
+    return 64;
+}
+#endif
+
+
+#if __sun
+int os_critsecsize32()
+{
+    return sizeof(pthread_mutex_t);
+}
+
+int os_critsecsize64()
+{
+    assert(0);
+    return 0;
+}
+#endif
+
+/* This is the magic program to get the size on Posix systems: */
+
+#if 0
+#include <stdio.h>
+#include <pthread.h>
+
+int main()
+{
+    printf("%d\n", (int)sizeof(pthread_mutex_t));
+    return 0;
+}
+#endif
+
+#endif

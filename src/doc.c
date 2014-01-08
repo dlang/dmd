@@ -47,10 +47,10 @@ struct Escape
 class Section
 {
 public:
-    unsigned char *name;
+    const utf8_t *name;
     size_t namelen;
 
-    unsigned char *body;
+    const utf8_t *body;
     size_t bodylen;
 
     int nooutput;
@@ -70,7 +70,7 @@ public:
     void write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf);
 };
 
-typedef Array<Section> Sections;
+typedef Array<Section *> Sections;
 
 struct DocComment
 {
@@ -86,31 +86,33 @@ struct DocComment
        summary(NULL), copyright(NULL), macros(NULL), pmacrotable(NULL), pescapetable(NULL)
     { }
 
-    static DocComment *parse(Scope *sc, Dsymbol *s, unsigned char *comment);
-    static void parseMacros(Escape **pescapetable, Macro **pmacrotable, unsigned char *m, size_t mlen);
-    static void parseEscapes(Escape **pescapetable, unsigned char *textstart, size_t textlen);
+    static DocComment *parse(Scope *sc, Dsymbol *s, const utf8_t *comment);
+    static void parseMacros(Escape **pescapetable, Macro **pmacrotable, const utf8_t *m, size_t mlen);
+    static void parseEscapes(Escape **pescapetable, const utf8_t *textstart, size_t textlen);
 
-    void parseSections(unsigned char *comment);
+    void parseSections(const utf8_t *comment);
     void writeSections(Scope *sc, Dsymbol *s, OutBuffer *buf);
 };
 
 
-int cmp(const char *stringz, void *s, size_t slen);
-int icmp(const char *stringz, void *s, size_t slen);
-int isDitto(unsigned char *comment);
-unsigned char *skipwhitespace(unsigned char *p);
+int cmp(const char *stringz, const void *s, size_t slen);
+int icmp(const char *stringz, const void *s, size_t slen);
+int isDitto(const utf8_t *comment);
+const utf8_t *skipwhitespace(const utf8_t *p);
 size_t skiptoident(OutBuffer *buf, size_t i);
 size_t skippastident(OutBuffer *buf, size_t i);
 size_t skippastURL(OutBuffer *buf, size_t i);
 void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset);
 void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset, bool anchor = true);
 void highlightCode2(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset);
-Parameter *isFunctionParameter(Dsymbol *s, unsigned char *p, size_t len);
+TypeFunction *isTypeFunction(Dsymbol *s);
+Parameter *isFunctionParameter(Dsymbol *s, const utf8_t *p, size_t len);
+TemplateParameter *isTemplateParameter(Dsymbol *s, const utf8_t *p, size_t len);
 
-int isIdStart(unsigned char *p);
-int isIdTail(unsigned char *p);
-int isIndentWS(unsigned char *p);
-int utfStride(unsigned char *p);
+int isIdStart(const utf8_t *p);
+int isIdTail(const utf8_t *p);
+int isIndentWS(const utf8_t *p);
+int utfStride(const utf8_t *p);
 
 static const char ddoc_default[] = "\
 DDOC =  <html><head>\n\
@@ -228,7 +230,7 @@ void Module::gendocfile()
     {   mbuf_done = 1;
 
         // Use our internal default
-        mbuf.write(ddoc_default, sizeof(ddoc_default) - 1);
+        mbuf.write(ddoc_default, strlen(ddoc_default));
 
         // Override with DDOCFILE specified in the sc.ini file
         char *p = getenv("DDOCFILE");
@@ -240,14 +242,14 @@ void Module::gendocfile()
         {
             FileName f((*global.params.ddocfiles)[i]);
             File file(&f);
-            file.readv();
+            readFile(loc, &file);
             // BUG: convert file contents to UTF-8 before use
 
             //printf("file: '%.*s'\n", file.len, file.buffer);
             mbuf.write(file.buffer, file.len);
         }
     }
-    DocComment::parseMacros(&escapetable, &macrotable, mbuf.data, mbuf.offset);
+    DocComment::parseMacros(&escapetable, &macrotable, (utf8_t *)mbuf.data, mbuf.offset);
 
     Scope *sc = Scope::createGlobal(this);      // create root scope
     sc->docbuf = &buf;
@@ -260,7 +262,7 @@ void Module::gendocfile()
 
     // Set the title to be the name of the module
     {   const char *p = toPrettyChars();
-        Macro::define(&macrotable, (unsigned char *)"TITLE", 5, (unsigned char *)p, strlen(p));
+        Macro::define(&macrotable, (utf8_t *)"TITLE", 5, (utf8_t *)p, strlen(p));
     }
 
     // Set time macros
@@ -268,20 +270,20 @@ void Module::gendocfile()
         time(&t);
         char *p = ctime(&t);
         p = mem.strdup(p);
-        Macro::define(&macrotable, (unsigned char *)"DATETIME", 8, (unsigned char *)p, strlen(p));
-        Macro::define(&macrotable, (unsigned char *)"YEAR", 4, (unsigned char *)p + 20, 4);
+        Macro::define(&macrotable, (utf8_t *)"DATETIME", 8, (utf8_t *)p, strlen(p));
+        Macro::define(&macrotable, (utf8_t *)"YEAR", 4, (utf8_t *)p + 20, 4);
     }
 
     char *srcfilename = srcfile->toChars();
-    Macro::define(&macrotable, (unsigned char *)"SRCFILENAME", 11, (unsigned char *)srcfilename, strlen(srcfilename));
+    Macro::define(&macrotable, (utf8_t *)"SRCFILENAME", 11, (utf8_t *)srcfilename, strlen(srcfilename));
 
     char *docfilename = docfile->toChars();
-    Macro::define(&macrotable, (unsigned char *)"DOCFILENAME", 11, (unsigned char *)docfilename, strlen(docfilename));
+    Macro::define(&macrotable, (utf8_t *)"DOCFILENAME", 11, (utf8_t *)docfilename, strlen(docfilename));
 
     if (dc->copyright)
     {
         dc->copyright->nooutput = 1;
-        Macro::define(&macrotable, (unsigned char *)"COPYRIGHT", 9, dc->copyright->body, dc->copyright->bodylen);
+        Macro::define(&macrotable, (utf8_t *)"COPYRIGHT", 9, dc->copyright->body, dc->copyright->bodylen);
     }
 
     buf.printf("$(DDOC_COMMENT Generated by Ddoc from %s)\n", srcfile->toChars());
@@ -303,7 +305,7 @@ void Module::gendocfile()
     }
 
     //printf("BODY= '%.*s'\n", buf.offset, buf.data);
-    Macro::define(&macrotable, (unsigned char *)"BODY", 4, buf.data, buf.offset);
+    Macro::define(&macrotable, (utf8_t *)"BODY", 4, (utf8_t *)buf.data, buf.offset);
 
     OutBuffer buf2;
     buf2.writestring("$(DDOC)\n");
@@ -317,10 +319,10 @@ void Module::gendocfile()
     {
         buf.setsize(0);
         buf.reserve(buf2.offset);
-        unsigned char *p = buf2.data;
+        utf8_t *p = (utf8_t *)buf2.data;
         for (size_t j = 0; j < buf2.offset; j++)
         {
-            unsigned char c = p[j];
+            utf8_t c = p[j];
             if (c == 0xFF && j + 1 < buf2.offset)
             {
                 j++;
@@ -345,13 +347,13 @@ void Module::gendocfile()
     assert(docfile);
     docfile->setbuffer(buf.data, buf.offset);
     docfile->ref = 1;
-    FileName::ensurePathToNameExists(docfile->toChars());
-    docfile->writev();
+    ensurePathToNameExists(Loc(), docfile->toChars());
+    writeFile(loc, docfile);
 #else
     /* Remove all the escape sequences from buf2
      */
     {   size_t i = 0;
-        unsigned char *p = buf2.data;
+        utf8_t *p = buf2.data;
         for (size_t j = 0; j < buf2.offset; j++)
         {
             if (p[j] == 0xFF && j + 1 < buf2.offset)
@@ -368,8 +370,8 @@ void Module::gendocfile()
     // Transfer image to file
     docfile->setbuffer(buf2.data, buf2.offset);
     docfile->ref = 1;
-    FileName::ensurePathToNameExists(docfile->toChars());
-    docfile->writev();
+    ensurePathToNameExists(Loc(), docfile->toChars());
+    writeFile(loc, docfile);
 #endif
 }
 
@@ -384,7 +386,7 @@ void escapeDdocString(OutBuffer *buf, size_t start)
 {
     for (size_t u = start; u < buf->offset; u++)
     {
-        unsigned char c = buf->data[u];
+        utf8_t c = buf->data[u];
         switch(c)
         {
             case '$':
@@ -414,13 +416,20 @@ void escapeDdocString(OutBuffer *buf, size_t start)
 
  * Fix by replacing unmatched ( with $(LPAREN) and unmatched ) with $(RPAREN).
  */
-void escapeStrayParenthesis(OutBuffer *buf, size_t start, Loc loc)
+void escapeStrayParenthesis(OutBuffer *buf, size_t start, Dsymbol *s)
 {
     unsigned par_open = 0;
+    Loc loc = s->loc;
+
+    if (Module *m = s->isModule())
+    {
+        if (m->md)
+            loc = m->md->loc;
+    }
 
     for (size_t u = start; u < buf->offset; u++)
     {
-        unsigned char c = buf->data[u];
+        utf8_t c = buf->data[u];
         switch(c)
         {
             case '(':
@@ -455,7 +464,7 @@ void escapeStrayParenthesis(OutBuffer *buf, size_t start, Loc loc)
     {   par_open = 0;
         for (size_t u = buf->offset; u > start;)
         {   u--;
-            unsigned char c = buf->data[u];
+            utf8_t c = buf->data[u];
             switch(c)
             {
                 case ')':
@@ -537,13 +546,13 @@ void emitUnittestComment(Scope *sc, Dsymbol *s, size_t ofs)
 {
     OutBuffer *buf = sc->docbuf;
 
-    for (UnitTestDeclaration *utd = s->unittest; utd; utd = utd->unittest)
+    for (UnitTestDeclaration *utd = s->ddocUnittest; utd; utd = utd->ddocUnittest)
     {
         if (utd->protection == PROTprivate || !utd->comment || !utd->fbody)
             continue;
 
         // Strip whitespaces to avoid showing empty summary
-        unsigned char *c = utd->comment;
+        const utf8_t *c = utd->comment;
         while (*c == ' ' || *c == '\t' || *c == '\n' || *c == '\r') ++c;
 
         OutBuffer codebuf;
@@ -598,7 +607,7 @@ void Dsymbol::emitDitto(Scope *sc)
     sc->lastoffset += b.offset;
 
     Dsymbol *s = this;
-    if (!s->unittest && parent)
+    if (!s->ddocUnittest && parent)
         s = parent->isTemplateDeclaration();
     if (s)
         emitUnittestComment(sc, s, strlen(ddoc_decl_dd_e));
@@ -623,9 +632,9 @@ void ScopeDsymbol::emitMemberComments(Scope *sc)
         else if (isTemplateDeclaration())
             m = "$(DDOC_TEMPLATE_MEMBERS \n";
 
-        unsigned offset1 = buf->offset;         // save starting offset
+        size_t offset1 = buf->offset;         // save starting offset
         buf->writestring(m);
-        unsigned offset2 = buf->offset;         // to see if we write anything
+        size_t offset2 = buf->offset;         // to see if we write anything
         sc = sc->push(this);
         for (size_t i = 0; i < members->dim; i++)
         {
@@ -656,9 +665,7 @@ void emitProtection(OutBuffer *buf, PROT prot)
 void Dsymbol::emitComment(Scope *sc)               { }
 void InvariantDeclaration::emitComment(Scope *sc)  { }
 void UnitTestDeclaration::emitComment(Scope *sc)   { }
-#if DMDV2
 void PostBlitDeclaration::emitComment(Scope *sc)   { }
-#endif
 void DtorDeclaration::emitComment(Scope *sc)       { }
 void StaticCtorDeclaration::emitComment(Scope *sc) { }
 void StaticDtorDeclaration::emitComment(Scope *sc) { }
@@ -737,7 +744,7 @@ void TemplateDeclaration::emitComment(Scope *sc)
     if (prot() == PROTprivate)
         return;
 
-    unsigned char *com = comment;
+    const utf8_t *com = comment;
     int hasmembers = 1;
 
     Dsymbol *ss = this;
@@ -887,14 +894,15 @@ void prefix(OutBuffer *buf, Dsymbol *s)
         else if (d->isAbstract())
             buf->writestring("abstract ");
 
-        if (d->isConst())
-            buf->writestring("const ");
-#if DMDV2
-        if (d->isImmutable())
-            buf->writestring("immutable ");
-#endif
-        if (d->isSynchronized())
-            buf->writestring("synchronized ");
+        if (!d->isFuncDeclaration())  // toCBufferWithAttributes handles this
+        {
+            if (d->isConst())
+                buf->writestring("const ");
+            if (d->isImmutable())
+                buf->writestring("immutable ");
+            if (d->isSynchronized())
+                buf->writestring("synchronized ");
+        }
     }
 }
 
@@ -1069,17 +1077,6 @@ void FuncDeclaration::toDocBuffer(OutBuffer *buf, Scope *sc)
     }
 }
 
-#if DMDV1
-void CtorDeclaration::toDocBuffer(OutBuffer *buf, Scope *sc)
-{
-    HdrGenState hgs;
-
-    buf->writestring("this");
-    Parameter::argsToCBuffer(buf, &hgs, arguments, varargs);
-    buf->writestring(";\n");
-}
-#endif
-
 void AggregateDeclaration::toDocBuffer(OutBuffer *buf, Scope *sc)
 {
     if (ident)
@@ -1136,7 +1133,7 @@ void ClassDeclaration::toDocBuffer(OutBuffer *buf, Scope *sc)
         }
         else
         {
-            if (isAbstract())
+            if (!isInterfaceDeclaration() && isAbstract())
                 buf->writestring("abstract ");
             buf->printf("%s %s", kind(), toChars());
         }
@@ -1198,7 +1195,7 @@ void EnumMember::toDocBuffer(OutBuffer *buf, Scope *sc)
 
 /********************************* DocComment *********************************/
 
-DocComment *DocComment::parse(Scope *sc, Dsymbol *s, unsigned char *comment)
+DocComment *DocComment::parse(Scope *sc, Dsymbol *s, const utf8_t *comment)
 {
     //printf("parse(%s): '%s'\n", s->toChars(), comment);
     if (sc->lastdc && isDitto(comment))
@@ -1235,21 +1232,22 @@ DocComment *DocComment::parse(Scope *sc, Dsymbol *s, unsigned char *comment)
  * then (*pcomment)[0 .. idlen] is the identifier.
  */
 
-void DocComment::parseSections(unsigned char *comment)
-{   unsigned char *p;
-    unsigned char *pstart;
-    unsigned char *pend;
-    unsigned char *idstart;
+void DocComment::parseSections(const utf8_t *comment)
+{
+    const utf8_t *p;
+    const utf8_t *pstart;
+    const utf8_t *pend;
+    const utf8_t *idstart;
     size_t idlen;
 
-    unsigned char *name = NULL;
+    const utf8_t *name = NULL;
     size_t namelen = 0;
 
     //printf("parseSections('%s')\n", comment);
     p = comment;
     while (*p)
     {
-        unsigned char *pstart0 = p;
+        const utf8_t *pstart0 = p;
         p = skipwhitespace(p);
         pstart = p;
         pend = p;
@@ -1284,7 +1282,7 @@ void DocComment::parseSections(unsigned char *comment)
 
             if (!inCode && isIdStart(p))
             {
-                unsigned char *q = p + utfStride(p);
+                const utf8_t *q = p + utfStride(p);
                 while (isIdTail(q))
                     q += utfStride(q);
                 if (*q == ':')  // identifier: ends it
@@ -1358,7 +1356,7 @@ void DocComment::parseSections(unsigned char *comment)
 void DocComment::writeSections(Scope *sc, Dsymbol *s, OutBuffer *buf)
 {
     //printf("DocComment::writeSections()\n");
-    if (sections.dim || s->unittest)
+    if (sections.dim || s->ddocUnittest)
     {
         buf->writestring("$(DDOC_SECTIONS \n");
         for (size_t i = 0; i < sections.dim; i++)
@@ -1374,12 +1372,12 @@ void DocComment::writeSections(Scope *sc, Dsymbol *s, OutBuffer *buf)
                 buf->writestring("$(DDOC_SUMMARY ");
                     size_t o = buf->offset;
                     buf->write(sec->body, sec->bodylen);
-                    escapeStrayParenthesis(buf, o, s->loc);
+                    escapeStrayParenthesis(buf, o, s);
                     highlightText(sc, s, buf, o);
                 buf->writestring(")\n");
             }
         }
-        if (s->unittest)
+        if (s->ddocUnittest)
             emitUnittestComment(sc, s, 0);
         buf->writestring(")\n");
     }
@@ -1400,9 +1398,9 @@ void Section::write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
         {       "AUTHORS", "BUGS", "COPYRIGHT", "DATE",
                 "DEPRECATED", "EXAMPLES", "HISTORY", "LICENSE",
                 "RETURNS", "SEE_ALSO", "STANDARDS", "THROWS",
-                "VERSION" };
+                "VERSION", NULL };
 
-        for (size_t i = 0; i < sizeof(table) / sizeof(table[0]); i++)
+        for (size_t i = 0; table[i]; i++)
         {
             if (icmp(table[i], name, namelen) == 0)
             {
@@ -1416,10 +1414,10 @@ void Section::write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
             buf->writestring("$(DDOC_SECTION_H ");
             size_t o = buf->offset;
             for (size_t u = 0; u < namelen; u++)
-            {   unsigned char c = name[u];
+            {   utf8_t c = name[u];
                 buf->writeByte((c == '_') ? ' ' : c);
             }
-            escapeStrayParenthesis(buf, o, s->loc);
+            escapeStrayParenthesis(buf, o, s);
             buf->writestring(":)\n");
     }
     else
@@ -1429,7 +1427,7 @@ void Section::write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
   L1:
     size_t o = buf->offset;
     buf->write(body, bodylen);
-    escapeStrayParenthesis(buf, o, s->loc);
+    escapeStrayParenthesis(buf, o, s);
     highlightText(sc, s, buf, o);
     buf->writestring(")\n");
 }
@@ -1439,20 +1437,20 @@ void Section::write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
 
 void ParamSection::write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
 {
-    unsigned char *p = body;
+    const utf8_t *p = body;
     size_t len = bodylen;
-    unsigned char *pend = p + len;
+    const utf8_t *pend = p + len;
 
-    unsigned char *tempstart;
+    const utf8_t *tempstart;
     size_t templen;
 
-    unsigned char *namestart;
+    const utf8_t *namestart;
     size_t namelen = 0;       // !=0 if line continuation
 
-    unsigned char *textstart;
+    const utf8_t *textstart;
     size_t textlen;
 
-    size_t o;
+    size_t o, paramcount = 0;
     Parameter *arg;
 
     buf->writestring("$(DDOC_PARAMS \n");
@@ -1502,23 +1500,37 @@ void ParamSection::write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
 
         L1:
             //printf("param '%.*s' = '%.*s'\n", namelen, namestart, textlen, textstart);
+            ++paramcount;
             HdrGenState hgs;
             buf->writestring("$(DDOC_PARAM_ROW ");
                 buf->writestring("$(DDOC_PARAM_ID ");
                     o = buf->offset;
                     arg = isFunctionParameter(s, namestart, namelen);
                     if (arg && arg->type && arg->ident)
+                    {
                         arg->type->toCBuffer(buf, arg->ident, &hgs);
+                    }
                     else
+                    {
+                        if (isTemplateParameter(s, namestart, namelen))
+                        {
+                            // 10236: Don't count template parameters for params check
+                            --paramcount;
+                        }
+                        else if (!arg)
+                        {
+                            warning(s->loc, "Ddoc: function declaration has no parameter '%.*s'", namelen, namestart);
+                        }
                         buf->write(namestart, namelen);
-                    escapeStrayParenthesis(buf, o, s->loc);
+                    }
+                    escapeStrayParenthesis(buf, o, s);
                     highlightCode(sc, s, buf, o, false);
                 buf->writestring(")\n");
 
                 buf->writestring("$(DDOC_PARAM_DESC ");
                     o = buf->offset;
                     buf->write(textstart, textlen);
-                    escapeStrayParenthesis(buf, o, s->loc);
+                    escapeStrayParenthesis(buf, o, s);
                     highlightText(sc, s, buf, o);
                 buf->writestring(")");
             buf->writestring(")\n");
@@ -1551,6 +1563,16 @@ void ParamSection::write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
     if (namelen)
         goto L1;                // write out last one
     buf->writestring(")\n");
+
+    TypeFunction *tf = isTypeFunction(s);
+    if (tf)
+    {
+        size_t pcount = tf->parameters ? tf->parameters->dim : 0;
+        if (pcount != paramcount)
+        {
+            warning(s->loc, "Ddoc: parameter count mismatch");
+        }
+    }
 }
 
 /***************************************************
@@ -1570,19 +1592,19 @@ void MacroSection::write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
  *      name2 = value2
  */
 
-void DocComment::parseMacros(Escape **pescapetable, Macro **pmacrotable, unsigned char *m, size_t mlen)
+void DocComment::parseMacros(Escape **pescapetable, Macro **pmacrotable, const utf8_t *m, size_t mlen)
 {
-    unsigned char *p = m;
+    const utf8_t *p = m;
     size_t len = mlen;
-    unsigned char *pend = p + len;
+    const utf8_t *pend = p + len;
 
-    unsigned char *tempstart;
+    const utf8_t *tempstart;
     size_t templen;
 
-    unsigned char *namestart;
+    const utf8_t *namestart;
     size_t namelen = 0;       // !=0 if line continuation
 
-    unsigned char *textstart;
+    const utf8_t *textstart;
     size_t textlen;
 
     while (p < pend)
@@ -1695,7 +1717,7 @@ Ldone:
  * by whitespace and/or commas.
  */
 
-void DocComment::parseEscapes(Escape **pescapetable, unsigned char *textstart, size_t textlen)
+void DocComment::parseEscapes(Escape **pescapetable, const utf8_t *textstart, size_t textlen)
 {   Escape *escapetable = *pescapetable;
 
     if (!escapetable)
@@ -1704,8 +1726,8 @@ void DocComment::parseEscapes(Escape **pescapetable, unsigned char *textstart, s
         *pescapetable = escapetable;
     }
     //printf("parseEscapes('%.*s') pescapetable = %p\n", textlen, textstart, pescapetable);
-    unsigned char *p = textstart;
-    unsigned char *pend = p + textlen;
+    const utf8_t *p = textstart;
+    const utf8_t *pend = p + textlen;
 
     while (1)
     {
@@ -1719,9 +1741,9 @@ void DocComment::parseEscapes(Escape **pescapetable, unsigned char *textstart, s
         }
         if (p[0] != '/' || p[2] != '/')
             return;
-        unsigned char c = p[1];
+        utf8_t c = p[1];
         p += 3;
-        unsigned char *start = p;
+        const utf8_t *start = p;
         while (1)
         {
             if (p >= pend)
@@ -1745,21 +1767,21 @@ void DocComment::parseEscapes(Escape **pescapetable, unsigned char *textstart, s
  * Return < 0, ==0, > 0
  */
 
-int cmp(const char *stringz, void *s, size_t slen)
+int cmp(const char *stringz, const void *s, size_t slen)
 {
     size_t len1 = strlen(stringz);
 
     if (len1 != slen)
-        return len1 - slen;
+        return (int)(len1 - slen);
     return memcmp(stringz, s, slen);
 }
 
-int icmp(const char *stringz, void *s, size_t slen)
+int icmp(const char *stringz, const void *s, size_t slen)
 {
     size_t len1 = strlen(stringz);
 
     if (len1 != slen)
-        return len1 - slen;
+        return (int)(len1 - slen);
     return Port::memicmp(stringz, (char *)s, slen);
 }
 
@@ -1767,13 +1789,13 @@ int icmp(const char *stringz, void *s, size_t slen)
  * Return !=0 if comment consists entirely of "ditto".
  */
 
-int isDitto(unsigned char *comment)
+int isDitto(const utf8_t *comment)
 {
     if (comment)
     {
-        unsigned char *p = skipwhitespace(comment);
+        const utf8_t *p = skipwhitespace(comment);
 
-        if (Port::memicmp((char *)p, "ditto", 5) == 0 && *skipwhitespace(p + 5) == 0)
+        if (Port::memicmp((const char *)p, "ditto", 5) == 0 && *skipwhitespace(p + 5) == 0)
             return 1;
     }
     return 0;
@@ -1783,7 +1805,7 @@ int isDitto(unsigned char *comment)
  * Skip white space.
  */
 
-unsigned char *skipwhitespace(unsigned char *p)
+const utf8_t *skipwhitespace(const utf8_t *p)
 {
     for (; 1; p++)
     {   switch (*p)
@@ -1812,7 +1834,7 @@ size_t skiptoident(OutBuffer *buf, size_t i)
     {   dchar_t c;
 
         size_t oi = i;
-        if (utf_decodeChar((unsigned char *)buf->data, buf->offset, &i, &c))
+        if (utf_decodeChar((utf8_t *)buf->data, buf->offset, &i, &c))
             /* Ignore UTF errors, but still consume input
              */
             break;
@@ -1839,7 +1861,7 @@ size_t skippastident(OutBuffer *buf, size_t i)
     {   dchar_t c;
 
         size_t oi = i;
-        if (utf_decodeChar((unsigned char *)buf->data, buf->offset, &i, &c))
+        if (utf_decodeChar((utf8_t *)buf->data, buf->offset, &i, &c))
             /* Ignore UTF errors, but still consume input
              */
             break;
@@ -1867,7 +1889,7 @@ size_t skippastident(OutBuffer *buf, size_t i)
 
 size_t skippastURL(OutBuffer *buf, size_t i)
 {   size_t length = buf->offset - i;
-    unsigned char *p = &buf->data[i];
+    utf8_t *p = (utf8_t *)&buf->data[i];
     size_t j;
     unsigned sawdot = 0;
 
@@ -1883,7 +1905,7 @@ size_t skippastURL(OutBuffer *buf, size_t i)
         goto Lno;
 
     for (; j < length; j++)
-    {   unsigned char c = p[j];
+    {   utf8_t c = p[j];
         if (isalnum(c))
             continue;
         if (c == '-' || c == '_' || c == '?' ||
@@ -1909,11 +1931,11 @@ Lno:
 /****************************************************
  */
 
-int isKeyword(unsigned char *p, size_t len)
+int isKeyword(utf8_t *p, size_t len)
 {
-    static const char *table[] = { "true", "false", "null" };
+    static const char *table[] = { "true", "false", "null", NULL };
 
-    for (int i = 0; i < sizeof(table) / sizeof(table[0]); i++)
+    for (int i = 0; table[i]; i++)
     {
         if (cmp(table[i], p, len) == 0)
             return 1;
@@ -1924,9 +1946,16 @@ int isKeyword(unsigned char *p, size_t len)
 /****************************************************
  */
 
-Parameter *isFunctionParameter(Dsymbol *s, unsigned char *p, size_t len)
+TypeFunction *isTypeFunction(Dsymbol *s)
 {
     FuncDeclaration *f = s->isFuncDeclaration();
+
+    /* Check whether s refers to an eponymous function template.
+     */
+    if (f == NULL && s->isTemplateDeclaration() && s->isTemplateDeclaration()->onemember)
+    {
+        f = s->isTemplateDeclaration()->onemember->isFuncDeclaration();
+    }
 
     /* f->type may be NULL for template members.
      */
@@ -1940,15 +1969,45 @@ Parameter *isFunctionParameter(Dsymbol *s, unsigned char *p, size_t len)
         else
             tf = (TypeFunction *)f->type;
 
-        if (tf->parameters)
-        {
-            for (size_t k = 0; k < tf->parameters->dim; k++)
-            {   Parameter *arg = (*tf->parameters)[k];
+        return tf;
+    }
+    return NULL;
+}
 
-                if (arg->ident && cmp(arg->ident->toChars(), p, len) == 0)
-                {
-                    return arg;
-                }
+/****************************************************
+ */
+
+Parameter *isFunctionParameter(Dsymbol *s, const utf8_t *p, size_t len)
+{
+    TypeFunction *tf = isTypeFunction(s);
+    if (tf && tf->parameters)
+    {
+        for (size_t k = 0; k < tf->parameters->dim; k++)
+        {
+            Parameter *arg = (*tf->parameters)[k];
+            if (arg->ident && cmp(arg->ident->toChars(), p, len) == 0)
+            {
+                return arg;
+            }
+        }
+    }
+    return NULL;
+}
+
+/****************************************************
+ */
+
+TemplateParameter *isTemplateParameter(Dsymbol *s, const utf8_t *p, size_t len)
+{
+    TemplateDeclaration *td = s->isTemplateDeclaration();
+    if (td && td->origParameters)
+    {
+        for (size_t k = 0; k < td->origParameters->dim; k++)
+        {
+            TemplateParameter *arg = (*td->origParameters)[k];
+            if (arg->ident && cmp(arg->ident->toChars(), p, len) == 0)
+            {
+                return arg;
             }
         }
     }
@@ -1964,7 +2023,7 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
     //printf("highlightText()\n");
     const char *sid = s->ident->toChars();
     FuncDeclaration *f = s->isFuncDeclaration();
-    unsigned char *p;
+    utf8_t *p;
     const char *se;
 
     int leadingBlank = 1;
@@ -1976,7 +2035,7 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
     size_t iLineStart = offset;
 
     for (size_t i = offset; i < buf->offset; i++)
-    {   unsigned char c = buf->data[i];
+    {   utf8_t c = buf->data[i];
 
      Lcont:
         switch (c)
@@ -1989,9 +2048,9 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
                 if (!sc->module->isDocFile &&
                     !inCode && i == iLineStart && i + 1 < buf->offset)    // if "\n\n"
                 {
-                    static char blankline[] = "$(DDOC_BLANKLINE)\n";
+                    static const char blankline[] = "$(DDOC_BLANKLINE)\n";
 
-                    i = buf->insert(i, blankline, sizeof(blankline) - 1);
+                    i = buf->insert(i, blankline, strlen(blankline));
                 }
                 leadingBlank = 1;
                 iLineStart = i + 1;
@@ -2001,7 +2060,7 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
                 leadingBlank = 0;
                 if (inCode)
                     break;
-                p = &buf->data[i];
+                p = (utf8_t *)&buf->data[i];
                 se = sc->module->escapetable->escapeChar('<');
 
                 if (se && strcmp(se, "&lt;") == 0)
@@ -2075,7 +2134,7 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
                 leadingBlank = 0;
                 if (inCode)
                     break;
-                p = &buf->data[i];
+                p = (utf8_t *)&buf->data[i];
                 if (p[1] == '#' || isalpha(p[1]))
                     break;                      // already a character entity
                 // Replace '&' with '&amp;' character entity
@@ -2147,20 +2206,20 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
 
                         // Remove leading indentations from all lines
                         bool lineStart = true;
-                        unsigned char *endp = codebuf.data + codebuf.offset;
-                        for (unsigned char *p = codebuf.data; p < endp; )
+                        utf8_t *endp = (utf8_t *)codebuf.data + codebuf.offset;
+                        for (p = (utf8_t *)codebuf.data; p < endp; )
                         {
                             if (lineStart)
                             {
                                 size_t j = codeIndent;
-                                unsigned char *q = p;
+                                utf8_t *q = p;
                                 while (j-- > 0 && q < endp && isIndentWS(q))
                                     ++q;
-                                codebuf.remove(p - codebuf.data, q - p);
-                                assert(codebuf.data <= p);
-                                assert(p < codebuf.data + codebuf.offset);
+                                codebuf.remove(p - (utf8_t *)codebuf.data, q - p);
+                                assert((utf8_t *)codebuf.data <= p);
+                                assert(p < (utf8_t *)codebuf.data + codebuf.offset);
                                 lineStart = false;
-                                endp = codebuf.data + codebuf.offset; // update
+                                endp = (utf8_t *)codebuf.data + codebuf.offset; // update
                                 continue;
                             }
                             if (*p == '\n')
@@ -2175,11 +2234,11 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
                         i -= 2; // in next loop, c should be '\n'
                     }
                     else
-                    {   static char pre[] = "$(D_CODE \n";
+                    {   static const char pre[] = "$(D_CODE \n";
 
                         inCode = 1;
                         codeIndent = istart - iLineStart;  // save indent count
-                        i = buf->insert(i, pre, sizeof(pre) - 1);
+                        i = buf->insert(i, pre, strlen(pre));
                         iCodeStart = i;
                         i--;            // place i on >
                         leadingBlank = true;
@@ -2190,7 +2249,7 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
             default:
                 leadingBlank = 0;
                 if (!sc->module->isDocFile &&
-                    !inCode && isIdStart(&buf->data[i]))
+                    !inCode && isIdStart((utf8_t *)&buf->data[i]))
                 {
                     size_t j = skippastident(buf, i);
                     if (j > i)
@@ -2213,14 +2272,14 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
                                 i = buf->bracket(i, "$(DDOC_PSYMBOL ", j, ")") - 1;
                                 break;
                             }
-                            else if (isKeyword(buf->data + i, j - i))
+                            else if (isKeyword((utf8_t *)buf->data + i, j - i))
                             {
                                 i = buf->bracket(i, "$(DDOC_KEYWORD ", j, ")") - 1;
                                 break;
                             }
                             else
                             {
-                                if (f && isFunctionParameter(f, buf->data + i, j - i))
+                                if (f && isFunctionParameter(f, (utf8_t *)buf->data + i, j - i))
                                 {
                                     //printf("highlighting arg '%s', i = %d, j = %d\n", arg->ident->toChars(), i, j);
                                     i = buf->bracket(i, "$(DDOC_PARAM ", j, ")") - 1;
@@ -2258,7 +2317,7 @@ void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset, bool an
 
     //printf("highlightCode(s = '%s', kind = %s)\n", sid, s->kind());
     for (size_t i = offset; i < buf->offset; i++)
-    {   unsigned char c = buf->data[i];
+    {   utf8_t c = buf->data[i];
         const char *se;
 
         se = sc->module->escapetable->escapeChar(c);
@@ -2269,7 +2328,7 @@ void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset, bool an
             i = buf->insert(i, se, len);
             i--;                // point to ';'
         }
-        else if (isIdStart(&buf->data[i]))
+        else if (isIdStart((utf8_t *)&buf->data[i]))
         {
             size_t j = skippastident(buf, i);
             if (j > i)
@@ -2281,7 +2340,7 @@ void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset, bool an
                 }
                 else if (f)
                 {
-                    if (isFunctionParameter(f, buf->data + i, j - i))
+                    if (isFunctionParameter(f, (utf8_t *)buf->data + i, j - i))
                     {
                         //printf("highlighting arg '%s', i = %d, j = %d\n", arg->ident->toChars(), i, j);
                         i = buf->bracket(i, "$(DDOC_PARAM ", j, ")") - 1;
@@ -2297,7 +2356,7 @@ void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset, bool an
 /****************************************
  */
 
-void highlightCode3(Scope *sc, OutBuffer *buf, unsigned char *p, unsigned char *pend)
+void highlightCode3(Scope *sc, OutBuffer *buf, const utf8_t *p, const utf8_t *pend)
 {
     for (; p < pend; p++)
     {   const char *s = sc->module->escapetable->escapeChar(*p);
@@ -2315,13 +2374,13 @@ void highlightCode3(Scope *sc, OutBuffer *buf, unsigned char *p, unsigned char *
 
 void highlightCode2(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
 {
-    char *sid = s->ident->toChars();
+    const char *sid = s->ident->toChars();
     FuncDeclaration *f = s->isFuncDeclaration();
     unsigned errorsave = global.errors;
-    Lexer lex(NULL, buf->data, 0, buf->offset - 1, 0, 1);
+    Lexer lex(NULL, (utf8_t *)buf->data, 0, buf->offset - 1, 0, 1);
     Token tok;
     OutBuffer res;
-    unsigned char *lastp = buf->data;
+    const utf8_t *lastp = (utf8_t *)buf->data;
     const char *highlight;
 
     if (s->isModule() && ((Module *)s)->isDocFile)
@@ -2369,10 +2428,16 @@ void highlightCode2(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
                 break;
         }
         if (highlight)
+        {
             res.writestring(highlight);
-        highlightCode3(sc, &res, tok.ptr, lex.p);
-        if (highlight)
+            size_t o = res.offset;
+            highlightCode3(sc, &res, tok.ptr, lex.p);
+            if (tok.value == TOKcomment || tok.value == TOKstring)
+                escapeDdocString(&res, o);  // Bugzilla 7656, 7715, and 10519
             res.writeByte(')');
+        }
+        else
+            highlightCode3(sc, &res, tok.ptr, lex.p);
         if (tok.value == TOKeof)
             break;
         lastp = lex.p;
@@ -2417,7 +2482,7 @@ const char *Escape::escapeChar(unsigned c)
  * Determine if p points to the start of an identifier.
  */
 
-int isIdStart(unsigned char *p)
+int isIdStart(const utf8_t *p)
 {
     unsigned c = *p;
     if (isalpha(c) || c == '_')
@@ -2436,7 +2501,7 @@ int isIdStart(unsigned char *p)
  * Determine if p points to the rest of an identifier.
  */
 
-int isIdTail(unsigned char *p)
+int isIdTail(const utf8_t *p)
 {
     unsigned c = *p;
     if (isalnum(c) || c == '_')
@@ -2455,7 +2520,7 @@ int isIdTail(unsigned char *p)
  * Determine if p points to the indentation space.
  */
 
-int isIndentWS(unsigned char *p)
+int isIndentWS(const utf8_t *p)
 {
     return (*p == ' ') || (*p == '\t');
 }
@@ -2464,12 +2529,12 @@ int isIndentWS(unsigned char *p)
  * Return number of bytes in UTF character.
  */
 
-int utfStride(unsigned char *p)
+int utfStride(const utf8_t *p)
 {
     unsigned c = *p;
     if (c < 0x80)
         return 1;
     size_t i = 0;
     utf_decodeChar(p, 4, &i, &c);       // ignore errors, but still consume input
-    return i;
+    return (int)i;
 }

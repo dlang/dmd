@@ -21,9 +21,7 @@ int main(string[] args)
     }
 
     string url = args[1];
-    int i;
-
-    i = indexOf(url, "://");
+    auto i = indexOf(url, "://");
 
     if (i != -1)
     {

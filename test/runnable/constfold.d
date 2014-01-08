@@ -3,7 +3,7 @@
 static assert(__LINE__ == 3); // fails as __LINE__ is 2
 
 import std.stdio;
-import std.math : signbit;
+import std.math : signbit, sqrt;
 
 
 /************************************/
@@ -634,6 +634,20 @@ void test9058()
 }
 
 /************************************/
+// 11159
+void test11159()
+{
+    import std.math : pow;
+    enum ulong
+        e_2_pow_64 = 2uL^^64,
+        e_10_pow_19 = 10uL^^19,
+        e_10_pow_20 = 10uL^^20;
+    assert(e_2_pow_64 == pow(2uL, 64));
+    assert(e_10_pow_19 == pow(10uL, 19));
+    assert(e_10_pow_20 == pow(10uL, 20));
+}
+
+/************************************/
 
 int main()
 {
@@ -644,6 +658,7 @@ int main()
     test8400();
     test8939();
     test9058();
+    test11159();
 
     printf("Success\n");
     return 0;

@@ -2415,6 +2415,11 @@ struct Test9386
         printf("Deleted %.*s\n", name.length, name.ptr);
         op ~= "c";
     }
+
+    const int opCmp(ref const Test9386 t)
+    {
+	return op[0] - t.op[0];
+    }
 }
 
 void test9386()
@@ -2822,6 +2827,313 @@ void test10160()
 }
 
 /**********************************/
+// 10094
+
+void test10094()
+{
+    static void* p;
+    const string[4] i2s = ()
+    {
+        string[4] tmp;
+        p = &tmp[0];
+        for (int i = 0; i < 4; ++i)
+        {
+            char[1] buf = [cast(char)('0' + i)];
+            string str = buf.idup;
+            tmp[i] = str;
+        }
+        return tmp; // NRVO should work
+    }();
+    assert(p == cast(void*)&i2s[0]);
+    assert(i2s == ["0", "1", "2", "3"]);
+}
+
+/**********************************/
+// 10079
+
+// dtor || postblit
+struct S10079a
+{
+    this(this) pure nothrow @safe {}
+}
+struct S10079b
+{
+    ~this() pure nothrow @safe {}
+}
+struct S10079c
+{
+    this(this) pure nothrow @safe {}
+    ~this() pure nothrow @safe {}
+}
+struct S10079d
+{
+    this(this) {}
+}
+struct S10079e
+{
+    this(this) {}
+    ~this() pure nothrow @safe {}
+}
+
+// memberwise
+struct S10079f
+{
+    S10079a a;
+    S10079b b;
+    S10079c c;
+    S10079d d;
+    S10079e e;
+}
+
+void check10079(S)(ref S s) pure nothrow @safe { s = S(); }
+
+// Assignment is pure, nothrow, and @safe in all cases.
+static assert(__traits(compiles, &check10079!S10079a));
+static assert(__traits(compiles, &check10079!S10079b));
+static assert(__traits(compiles, &check10079!S10079c));
+static assert(__traits(compiles, &check10079!S10079d));
+static assert(__traits(compiles, &check10079!S10079e));
+static assert(__traits(compiles, &check10079!S10079f));
+
+/**********************************/
+// 10244
+
+void test10244()
+{
+    static struct Foo
+    {
+        string _str;
+        long _num;
+
+        template DeclareConstructor(string fieldName)
+        {
+            enum code =
+                `this(typeof(_` ~ fieldName ~ `) value)` ~
+                `{ this._` ~ fieldName ~ ` = value; }`;
+            mixin(code);
+        }
+
+        mixin DeclareConstructor!"str";
+        mixin DeclareConstructor!"num";
+    }
+
+    Foo value1 = Foo("D");
+    Foo value2 = Foo(128);
+    assert(value1._str == "D");
+    assert(value2._num == 128);
+}
+
+/**********************************/
+// 10694
+
+struct Foo10694 { ~this() { } }
+
+void test10694() pure
+{
+    static Foo10694 i1;
+    __gshared Foo10694 i2;
+    void foo() pure
+    {
+        static Foo10694 j1;
+        __gshared Foo10694 j2;
+    }
+}
+
+/**********************************/
+// 10787
+
+int global10787;
+
+static ~this() nothrow pure @safe
+{
+    int* p;
+    static assert(!__traits(compiles, ++p));
+    static assert(!__traits(compiles, ++global10787));
+}
+
+shared static ~this() nothrow pure @safe
+{
+    int* p;
+    static assert(!__traits(compiles, ++p));
+    static assert(!__traits(compiles, ++global10787));
+}
+
+/**********************************/
+// 10789
+
+struct S10789
+{
+    static int count;
+    int value;
+
+    this(int)  { value = ++count; }
+    ~this()    { --count; }
+    this(this) { value = ++count; assert(value == 3); }
+}
+
+S10789 fun10789a(bool isCondExp)(bool cond)
+{
+    S10789 s1 = S10789(42), s2 = S10789(24);
+    assert(S10789.count == 2);
+    static if (isCondExp)
+    {
+        return cond ? s1 : s2;
+    }
+    else
+    {
+        if (cond)
+            return s1;
+        else
+            return s2;
+    }
+}
+
+auto fun10789b(bool isCondExp)(bool cond)
+{
+    S10789 s1 = S10789(42), s2 = S10789(24);
+    assert(S10789.count == 2);
+    static if (isCondExp)
+    {
+        return cond ? s1 : s2;
+    }
+    else
+    {
+        if (cond)
+            return s1;
+        else
+            return s2;
+    }
+}
+
+void test10789()
+{
+    foreach (fun; TypeTuple!(fun10789a, fun10789b))
+    foreach (isCondExp; TypeTuple!(false, true))
+    {
+        {
+            S10789 s = fun!isCondExp(true);
+            assert(S10789.count == 1);
+            assert(s.value == 3);
+        }
+        assert(S10789.count == 0);
+        {
+            S10789 s = fun!isCondExp(false);
+            assert(S10789.count == 1);
+            assert(s.value == 3);
+        }
+        assert(S10789.count == 0);
+    }
+}
+
+/**********************************/
+// 11134
+
+void test11134()
+{
+    void test(S)()
+    {
+        S s;
+        S[2] sa;
+        S[2][] dsa = [[S(), S()]];
+        dsa.reserve(dsa.length + 2);    // avoid postblit calls by GC
+
+        S.count = 0;
+        dsa ~= sa;
+        assert(S.count == 2);
+
+        S.count = 0;
+        dsa ~= [s, s];
+        assert(S.count == 2);
+    }
+
+    static struct SS
+    {
+        static int count;
+        this(this) { ++count; }
+    }
+    test!SS();
+
+    struct NS
+    {
+        static int count;
+        this(this) { ++count; }
+    }
+    test!NS();
+}
+
+/**********************************/
+// 11197
+
+struct S11197a
+{
+    this(bool) {}
+    this(this) {}
+}
+
+struct S11197b
+{
+    //this(bool) {}
+    this(this) {}
+}
+
+void test11197()
+{
+    S11197a[][string] aa1;
+    aa1["test"] ~= S11197a.init;
+
+    S11197b[][string] aa2;
+    aa2["test"] ~= S11197b.init;
+}
+
+/**********************************/
+
+struct S7474 {
+  float x;
+  ~this() {}
+}
+
+void fun7474(T...)() { T x; }
+void test7474() { fun7474!S7474(); }
+
+/**********************************/
+// 11286
+
+struct A11286
+{
+    ~this() {}
+}
+
+A11286 getA11286() pure nothrow
+{
+    return A11286();
+}
+
+void test11286()
+{
+    A11286 a = getA11286();
+}
+
+/**********************************/
+// 11505
+
+struct Foo11505
+{
+    Bar11505 b;
+}
+
+struct Bar11505
+{
+    ~this() @safe { }
+    void* p;
+}
+
+void test11505()
+{
+    Foo11505 f;
+    f = Foo11505();
+}
+
+/**********************************/
 
 int main()
 {
@@ -2911,6 +3223,14 @@ int main()
     test9907();
     test9985();
     test9994();
+    test10094();
+    test10244();
+    test10694();
+    test10789();
+    test11134();
+    test11197();
+    test7474();
+    test11505();
 
     printf("Success\n");
     return 0;

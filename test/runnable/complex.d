@@ -2,6 +2,7 @@
 
 import std.stdio;
 import std.math;
+import core.stdc.stdio;
 
 /***************************************/
 
@@ -308,6 +309,59 @@ void test7591()
 
 /***************************************/
 
+void foo8966(cfloat x)
+{
+    assert(x.re == 3.0f);
+}
+
+__gshared cfloat[] a8966;
+
+void test8966()
+{
+    a8966 = new cfloat[2];
+    a8966[0] = 3.0f + 1.0fi;
+    foo8966(a8966[0]);
+}
+
+/***************************************/
+
+void formatTest2(cfloat s, double re, double im)
+{
+    assert(s.re == re);
+    assert(s.im == im);
+}
+
+cfloat getcf()
+{
+    return 2 + 1i;
+}
+
+void test10677()
+{
+    formatTest2( getcf(), 2, 1 );
+}
+
+/***************************************/
+
+void test7806()
+{
+    for (idouble i = -2i; i <= 2i; i += .125i)
+        for (double r = -2; r <= 2; r += .0625)
+        {
+            cdouble c = r + i;
+            printf("%g %gi\n", c.re, c.im);
+        }
+}
+
+/***************************************/
+
+void test7976() {
+    creal[] a = new creal[2];
+    auto b = a[0] = a[1];
+}
+
+/***************************************/
+
 int main(char[][] args)
 {
 
@@ -329,6 +383,10 @@ int main(char[][] args)
     test7594();
     test7593();
     test7591();
+    test8966();
+    test10677();
+    test7806();
+    test7976();
 
     printf("Success!\n");
     return 0;

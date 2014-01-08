@@ -2916,8 +2916,8 @@ void test38()
 
 void test39()
 {
-    goto end;
     const byte z = 35;
+    goto end;
     asm { db z; }
     end: ;
 }
@@ -4648,6 +4648,69 @@ L1:     pop     EAX;
     }
 }
 
+/* ======================= SHA ========================== */
+
+void test60()
+{
+    ubyte* p;
+    byte   m8;
+    short m16;
+    int   m32;
+    M64   m64;
+    M128 m128;
+    static ubyte data[] =
+    [
+0x0F,       0x3A, 0xCC, 0xD1, 0x01,           // sha1rnds4 XMM2, XMM1, 1;
+0x0F,       0x3A, 0xCC, 0x10, 0x01,           // sha1rnds4 XMM2, [RAX], 1;
+0x0F,       0x38, 0xC8, 0xD1,                 // sha1nexte XMM2, XMM1;
+0x0F,       0x38, 0xC8, 0x10,                 // sha1nexte XMM2, [RAX];
+0x0F,       0x38, 0xC9, 0xD1,                 // sha1msg1 XMM2, XMM1;
+0x0F,       0x38, 0xC9, 0x10,                 // sha1msg1 XMM2, [RAX];
+0x0F,       0x38, 0xCA, 0xD1,                 // sha1msg2 XMM2, XMM1;
+0x0F,       0x38, 0xCA, 0x10,                 // sha1msg2 XMM2, [RAX];
+0x0F,       0x38, 0xCB, 0xD1,                 // sha256rnds2 XMM2, XMM1;
+0x0F,       0x38, 0xCB, 0x10,                 // sha256rnds2 XMM2, [RAX];
+0x0F,       0x38, 0xCC, 0xD1,                 // sha256msg1 XMM2, XMM1;
+0x0F,       0x38, 0xCC, 0x10,                 // sha256msg1 XMM2, [RAX];
+0x0F,       0x38, 0xCD, 0xD1,                 // sha256msg2 XMM2, XMM1;
+0x0F,       0x38, 0xCD, 0x10,                 // sha256msg2 XMM2, [RAX];
+    ];
+
+    asm
+    {
+        call  L1;
+
+        sha1rnds4 XMM2, XMM1, 1;
+        sha1rnds4 XMM2, [EAX], 1;
+
+        sha1nexte XMM2, XMM1;
+        sha1nexte XMM2, [EAX];
+
+        sha1msg1 XMM2, XMM1;
+        sha1msg1 XMM2, [EAX];
+
+        sha1msg2 XMM2, XMM1;
+        sha1msg2 XMM2, [EAX];
+
+        sha256rnds2 XMM2, XMM1;
+        sha256rnds2 XMM2, [EAX];
+
+        sha256msg1 XMM2, XMM1;
+        sha256msg1 XMM2, [EAX];
+
+        sha256msg2 XMM2, XMM1;
+        sha256msg2 XMM2, [EAX];
+
+L1:     pop     EAX;
+        mov     p[EBP],EAX;
+    }
+
+    foreach (ref i, b; data)
+    {
+        //printf("data[%d] = 0x%02x, should be 0x%02x\n", i, p[i], b);
+        assert(p[i] == b);
+    }
+}
 
 void test9866()
 {
@@ -4705,6 +4768,16 @@ L1:     pop     EAX;
         assert(p[i] == b);
     }
     assert(p[data.length] == 0x58); // pop EAX
+}
+
+/****************************************************/
+
+void test5012()
+{
+    void bar() {}
+    asm {
+        mov EAX, bar;
+    }
 }
 
 /****************************************************/
@@ -4776,6 +4849,7 @@ int main()
     test57();
     test58();
     test59();
+    test60();
     test9866();
   }
     printf("Success\n");

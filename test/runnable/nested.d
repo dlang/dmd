@@ -1543,6 +1543,31 @@ void test7428(){
 }
 
 /*******************************************/
+// 4612
+
+struct S4612a(alias x)
+{
+    void* func() { void* p = &x; return p; }
+}
+
+struct S4612b(alias x)
+{
+    int i;
+    void* func() { void* p = &x; return p; }
+}
+
+void test4612()
+{
+    int a;
+
+    auto sa = S4612a!a();
+    assert(sa.func() == &a);
+
+    auto sb = S4612b!(a)();
+    assert(sb.func() == &a);
+}
+
+/*******************************************/
 
 struct S4841(alias pred)
 {
@@ -2323,6 +2348,60 @@ void test9525()
 }
 
 /*******************************************/
+// 11718
+
+struct Ty11718(alias sym) {}
+
+auto fn11718(T)(T a)   { return Ty11718!(a).mangleof; }
+auto fn11718(T)() { T a; return Ty11718!(a).mangleof; }
+
+void test11718()
+{
+    string TyName(string tail)()
+    {
+        enum s = "__T7Ty11718" ~ tail;
+        enum int len = s.length;
+        return "S6nested" ~ len.stringof ~ s;
+    }
+    string fnName(string paramPart)()
+    {
+        enum s = "_D6nested36__T7fn11718T"~
+                 "S6nested9test11718FZv1AZ7fn11718"~paramPart~"1a"~
+                 "S6nested9test11718FZv1A";
+        enum int len = s.length;
+        return len.stringof ~ s;
+    }
+    enum result1 = TyName!("S" ~ fnName!("F"~"S6nested9test11718FZv1A"~"Z") ~ "Z") ~ "7Ty11718";
+    enum result2 = TyName!("S" ~ fnName!("F"~""                       ~"Z") ~ "Z") ~ "7Ty11718";
+
+    struct A {}
+    static assert(fn11718(A.init) == result1);
+    static assert(fn11718!A()     == result2);
+}
+
+/*******************************************/
+// 11776
+
+struct S11776(alias fun) { }
+
+void test11776()
+{
+    auto g = ()
+    {
+        if (1)
+            return; // fill tf->next
+        if (1)
+        {
+            auto s = S11776!(a => 1)();
+            static assert(typeof(s).mangleof ==
+                "S"~"6nested"~"57"~(
+                    "__T"~"6S11776"~"S43"~("6nested"~"9test11776"~"FZv"~"9__lambda1MFZ"~"9__lambda1")~"Z"
+                )~"6S11776");
+        }
+    };
+}
+
+/*******************************************/
 
 /+
 auto fun8863(T)(T* ret) { *ret = T(); }
@@ -2443,6 +2522,72 @@ void test9244()
 }
 
 /*******************************************/
+// 10495
+
+struct X10495
+{
+    @disable this();
+}
+
+struct Y10495(alias f)
+{
+    void g() {}
+}
+
+class C10495
+{
+    X10495 s = X10495.init;
+
+    void h()
+    {
+        Y10495!(a => a) st;
+    }
+}
+
+/*******************************************/
+// 11385
+
+auto map11385(alias fun, R)(R range)
+{
+    return MapResult11385!(fun, R)(range);
+}
+struct MapResult11385(alias fun, R)
+{
+    R range;
+    auto front() { return fun(range[0]); }
+}
+void test11385()
+{
+    //import std.algorithm;
+    static auto fun1(T)(T a) { return a * 2; }
+           auto fun2(T)(T a) { return a * 2; }
+    [1].map11385!(a=>fun1(a));   // OK
+    [1].map11385!(a=>fun2(a));   // NG:XXX is a nested function and cannot be accessed from XXX
+}
+
+/*******************************************/
+
+void xmap(alias g)(int t)
+{
+    g(t);
+}
+
+enum foo11297 = function (int x)
+   {
+//	int bar(int y) { return x; } xmap!bar(7);
+        xmap!(y => x)(7);
+   };
+
+void xreduce(alias f)()
+{
+    f(4);
+}
+
+void test11297() {
+    xreduce!foo11297();
+}
+
+/*******************************************/
 
 int main()
 {
@@ -2503,6 +2648,7 @@ int main()
     test55();
     test4401();
     test7428();
+    test4612();
     test4841();
     test7199();
     test7965();
@@ -2527,6 +2673,8 @@ int main()
     test8832();
     test9315();
     test9244();
+    test11385();
+    test11297();
 
     printf("Success\n");
     return 0;

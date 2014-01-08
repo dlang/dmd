@@ -1,5 +1,5 @@
 // Copyright (C) 1994-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2013 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -33,25 +33,20 @@ Outbuffer::Outbuffer()
     p = NULL;
     len = 0;
     inc = 0;
-}
-
-Outbuffer::Outbuffer(size_t bufinc)
-{
-    buf = NULL;
-    pend = NULL;
-    p = NULL;
-    len = 0;
-    inc = bufinc;
+    origbuf = NULL;
 }
 
 Outbuffer::~Outbuffer()
 {
+    if (buf != origbuf)
+    {
 #if MEM_DEBUG
-    mem_free(buf);
+        mem_free(buf);
 #else
-    if (buf)
-        free(buf);
+        if (buf)
+            free(buf);
 #endif
+    }
 }
 
 void Outbuffer::reset()
@@ -59,43 +54,57 @@ void Outbuffer::reset()
     p = buf;
 }
 
-// Reserve nbytes in buffer
-void Outbuffer::reserve(size_t nbytes)
+// Enlarge buffer size so there's at least nbytes available
+void Outbuffer::enlarge(size_t nbytes)
 {
-    if (pend - p < nbytes)
-    {   size_t oldlen = len;
-        size_t used = p - buf;
+    size_t oldlen = len;
+    size_t used = p - buf;
 
-        if (inc > nbytes)
-        {
-            len = used + inc;
+    if (inc > nbytes)
+    {
+        len = used + inc;
+    }
+    else
+    {
+        len = used + nbytes;
+        if (len < 2 * oldlen)
+        {   len = 2 * oldlen;
+            if (len < 8)
+                len = 8;
         }
-        else
-        {
-            len = used + nbytes;
-            if (len < 2 * oldlen)
-            {   len = 2 * oldlen;
-                if (len < 8)
-                    len = 8;
-            }
-        }
+    }
 #if MEM_DEBUG
+    if (buf == origbuf)
+    {
+        buf = (unsigned char *) mem_malloc(len);
+        if (buf)
+            memcpy(buf, origbuf, oldlen);
+    }
+    else
         buf = (unsigned char *)mem_realloc(buf, len);
 #else
-        if (buf)
-            buf = (unsigned char *) realloc(buf,len);
-        else
-            buf = (unsigned char *) malloc(len);
-#endif
-        if (!buf)
+    if (buf)
+    {
+        if (buf == origbuf)
         {
-            fprintf(stderr, "Fatal Error: Out of memory");
-            exit(EXIT_FAILURE);
+            buf = (unsigned char *) malloc(len);
+            if (buf)
+                memcpy(buf, origbuf, oldlen);
         }
-
-        pend = buf + len;
-        p = buf + used;
+        else
+            buf = (unsigned char *) realloc(buf,len);
     }
+    else
+        buf = (unsigned char *) malloc(len);
+#endif
+    if (!buf)
+    {
+        fprintf(stderr, "Fatal Error: Out of memory");
+        exit(EXIT_FAILURE);
+    }
+
+    pend = buf + len;
+    p = buf + used;
 }
 
 // Position buffer for output at a specified location and size.
@@ -134,16 +143,6 @@ void *Outbuffer::writezeros(size_t len)
     void *pstart = memset(p,0,len);
     p += len;
     return pstart;
-}
-
-/**
- * Writes an 8 bit byte.
- */
-void Outbuffer::writeByte(int v)
-{
-    if (pend == p)
-        reserve(1);
-    *p++ = v;
 }
 
 /**

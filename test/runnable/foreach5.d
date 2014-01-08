@@ -655,6 +655,113 @@ loop_with_dtors:
 }
 
 /***************************************/
+// 10475
+
+void test10475a()
+{
+    struct DirIterator
+    {
+        int _store = 42;
+        ~this() { assert(0); }
+    }
+
+    DirIterator dirEntries()
+    {
+        throw new Exception("");
+    }
+
+    try
+    {
+        for (DirIterator c = dirEntries(); true; ) {}
+        assert(0);
+    }
+    catch (Exception e)
+    {
+        assert(e.next is null);
+    }
+}
+
+void test10475b()
+{
+    uint g;
+    struct S
+    {
+        uint flag;
+        ~this() { g |= flag; }
+    }
+
+    S thrown()
+    {
+        throw new Exception("");
+    }
+
+    g = 0x0;
+    try
+    {
+        for (auto x = S(0x1), y = S(0x2), z = thrown(); true; ) {}
+        assert(0);
+    }
+    catch (Exception e)
+    {
+        assert(e.next is null);
+    }
+    assert(g == 0x3);
+
+    g = 0x0;
+    try
+    {
+        for (auto x = S(0x1), y = thrown(), z = S(0x2); true; ) {}
+        assert(0);
+    }
+    catch (Exception e)
+    {
+        assert(e.next is null);
+    }
+    assert(g == 0x1);
+
+    g = 0x0;
+    try
+    {
+        for (auto x = thrown(), y = S(0x1), z = S(0x2); true; ) {}
+        assert(0);
+    }
+    catch (Exception e)
+    {
+        assert(e.next is null);
+    }
+    assert(g == 0x0);
+}
+
+/***************************************/
+// 11291
+
+void test11291()
+{
+    struct Tuple(T...)
+    {
+        T field;
+        alias field this;
+    }
+    struct zip
+    {
+        string[] s1, s2;
+
+        bool empty() { return true; }
+        auto front() { return Tuple!(string, string)(s1[0], s2[0]); }
+        void popFront() {}
+    }
+
+    foreach (const a, const b; zip(["foo"], ["bar"]))
+    {
+        static assert(is(typeof(a) == const string));
+        static assert(is(typeof(b) == const string));
+
+        static assert(!__traits(compiles, a = "something"));
+        static assert(!__traits(compiles, b = "something"));
+    }
+}
+
+/***************************************/
 
 int main()
 {
@@ -675,6 +782,9 @@ int main()
     test7814();
     test6652();
     test9068();
+    test10475a();
+    test10475b();
+    test11291();
 
     printf("Success\n");
     return 0;

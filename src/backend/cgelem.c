@@ -14,6 +14,8 @@
 #include        <stdio.h>
 #include        <string.h>
 #include        <time.h>
+#include        <stdlib.h>
+
 #include        "cc.h"
 #include        "oper.h"
 #include        "global.h"
@@ -397,6 +399,15 @@ STATIC elem *fixconvop(elem *e)
             ecomma->E2 = e;
             ecomma->Ety = e->Ety;
             return optelem(ecomma, GOALvalue);
+        }
+
+        if (e->E1->Eoper == OPd_f && OTconv(e->E1->E1->Eoper) && tyintegral(tyme))
+        {   e1 = e->E1;
+            e->E1 = e1->E1;
+            e->E2 = el_una(OPf_d, e->E1->Ety, e->E2);
+            e1->E1 = NULL;
+            el_free(e1);
+            return fixconvop(e);
         }
 
         tycop = e->E1->Ety;
@@ -907,6 +918,15 @@ L1:
         goto ret;
   }
 
+    // Replace (~e1 + 1) with (-e1)
+    if (e1->Eoper == OPcom && e2->Eoper == OPconst && el_tolong(e2) == 1)
+    {
+        e = el_selecte1(e);
+        e->Eoper = OPneg;
+        e = optelem(e, goal);
+        goto ret;
+    }
+
     // Replace ((e11 - e12) + e2) with ((e11 + e2) - e12)
     // (this should increase the number of LEA possibilities)
     sz = tysize(e->Ety);
@@ -1041,11 +1061,9 @@ L1:
 
   if (OPTIMIZER)
   {
-  elem *e1;
-  tym_t tym;
 
-  tym = e->Ety;
-  e1 = e->E1;
+  tym_t tym = e->Ety;
+  elem *e1 = e->E1;
   if (e2->Eoper == OPrelconst)
   {     if (e1->Eoper == OPrelconst && e1->EV.sp.Vsym == e2->EV.sp.Vsym)
         {       e->Eoper = OPconst;
@@ -1094,16 +1112,25 @@ L1:
        || tybasic(tym) == TYsptr
 #endif
       ))
-  {     elem *tmp;
-
+  {
         e->Eoper = OPadd;
         e1->Eoper = OPmin;
         e2->Eoper = OPmin;
-        tmp = e1->E2;
+        elem *tmp = e1->E2;
         e1->E2 = e2->E1;
         e2->E1 = tmp;
         return optelem(e,GOALvalue);
   }
+
+    // Replace (-e1 - 1) with (~e1)
+    if (e1->Eoper == OPneg && e2->Eoper == OPconst && tyintegral(tym) && el_tolong(e2) == 1)
+    {
+        e = el_selecte1(e);
+        e->Eoper = OPcom;
+        e = optelem(e, goal);
+        return e;
+    }
+
   }
 
 #if TX86 && !(MARS)
@@ -1411,6 +1438,23 @@ STATIC elem * elbitwise(elem *e, goal_t goal)
                 return optelem(e,goal);
             }
         }
+
+        /* Replace:
+         *  (1 << a) & b
+         * with:
+         *  b btst a
+         */
+        if (e1->Eoper == OPshl &&
+            ELCONST(e1->E1,1))
+        {
+            e->Eoper = OPbtst;
+            e->Ety = OPbool;
+            e->E1 = e2;
+            e->E2 = e1->E2;
+            e1->E2 = NULL;
+            el_free(e1);
+            return optelem(e, goal);
+        }
     }
 
     return e;
@@ -1488,6 +1532,32 @@ STATIC elem *elor(elem *e, goal_t goal)
             el_tolong(e2->E2->E1) == sz * 8 &&
             el_match5(e1->E1, e2->E1) &&
             el_match5(e1->E2, e2->E2->E2) &&
+            !el_sideeffect(e)
+           )
+        {
+            e1->Eoper = OPror;
+            return el_selecte1(e);
+        }
+        // rotate left by a constant
+        if (e1->Eoper == OPshl && e2->Eoper == OPshr &&
+            tyuns(e2->E1->Ety) &&
+            e1->E2->Eoper == OPconst &&
+            e2->E2->Eoper == OPconst &&
+            el_tolong(e2->E2) == sz * 8 - el_tolong(e1->E2) &&
+            el_match5(e1->E1, e2->E1) &&
+            !el_sideeffect(e)
+           )
+        {
+            e1->Eoper = OProl;
+            return el_selecte1(e);
+        }
+        // rotate right by a constant
+        if (e1->Eoper == OPshr && e2->Eoper == OPshl &&
+            tyuns(e2->E1->Ety) &&
+            e1->E2->Eoper == OPconst &&
+            e2->E2->Eoper == OPconst &&
+            el_tolong(e2->E2) == sz * 8 - el_tolong(e1->E2) &&
+            el_match5(e1->E1, e2->E1) &&
             !el_sideeffect(e)
            )
         {
@@ -1594,6 +1664,70 @@ STATIC elem *elor(elem *e, goal_t goal)
   L1:
     ;
 
+    if (OPTIMIZER)
+    {
+        /* Replace:
+         *   i | (i << c1) | (i << c2) | (i * c3) ...
+         * with:
+         *   i * (1 + (1 << c1) + (1 << c2) + c3 ...)
+         */
+        elem *ops[8];    // 8 bytes in a 64 bit register, not likely to need more
+        int opsi = 0;
+        elem *ei = NULL;
+        targ_ullong bits = 0;
+        if (fillinops(ops, &opsi, sizeof(ops)/sizeof(ops[0]), OPor, e) && opsi > 1)
+        {
+            for (int i = 0; i < opsi; ++i)
+            {
+                elem *eq = ops[i];
+                if (eq->Eoper == OPshl && eq->E2->Eoper == OPconst)
+                {
+                    bits |= 1ULL << el_tolong(eq->E2);
+                    eq = eq->E1;
+                }
+                else if (eq->Eoper == OPmul && eq->E2->Eoper == OPconst)
+                {
+                    bits |= el_tolong(eq->E2);
+                    eq = eq->E1;
+                }
+                else
+                    bits |= 1;
+                if (el_sideeffect(eq))
+                    goto L2;
+                if (ei)
+                {
+                    if (!el_match(ei, eq))
+                        goto L2;
+                }
+                else
+                {
+                    ei = eq;
+                }
+            }
+            tym_t ty = e->Ety;
+
+            // Free unused nodes
+            el_opFree(e, OPor);
+            for (int i = 0; i < opsi; ++i)
+            {
+                elem *eq = ops[i];
+                if ((eq->Eoper == OPshl || eq->Eoper == OPmul) &&
+                    eq->E2->Eoper == OPconst)
+                {
+                    if (eq->E1 == ei)
+                        eq->E1 = NULL;
+                }
+                if (eq != ei)
+                    el_free(eq);
+            }
+
+            e = el_bin(OPmul, ty, ei, el_long(ty, bits));
+            return e;
+        }
+
+      L2: ;
+    }
+
     return elbitwise(e, goal);
 }
 
@@ -1661,14 +1795,14 @@ STATIC elem * elnot(elem *e, goal_t goal)
                   }
                   e1->Eoper = op;
 
-            L1: e = optelem(el_selecte1(e),GOALvalue);
+            L1: e = optelem(el_selecte1(e), goal);
             }
             else if (tybasic(e1->Ety) == TYbool && tysize(e->Ety) == 1)
             {
                 // !e1 => (e1 ^ 1)
                 e->Eoper = OPxor;
                 e->E2 = el_long(e1->Ety,1);
-                e = optelem(e,GOALvalue);
+                e = optelem(e, goal);
             }
 #if 0
 // Can't use this because what if OPd_s32?
@@ -1709,7 +1843,7 @@ STATIC elem * elnot(elem *e, goal_t goal)
             e1->Ety = e->Ety;
             e1->E1 = e1->E2;            // b
             e1->E2 = NULL;
-            e = optelem(e,GOALvalue);
+            e = optelem(e, goal);
             break;
   }
   return e;
@@ -2299,6 +2433,187 @@ L1:
     return e;
 }
 
+/**********************************************
+ * Try to rewrite sequence of || and && with faster operations, such as BT.
+ * Returns:
+ *      false   nothing changed
+ *      true    *pe is rewritten
+ */
+
+STATIC bool optim_loglog(elem **pe)
+{
+    if (I16)
+        return false;
+    elem *e = *pe;
+    int op = e->Eoper;
+    assert(op == OPandand || op == OPoror);
+    size_t n = el_opN(e, op);
+    if (n <= 3)
+        return false;
+    unsigned ty = e->Ety;
+    elem **array = (elem **)malloc(n * sizeof(elem *));
+    assert(array);
+    elem **p = array;
+    el_opArray(&p, e, op);
+
+    bool any = false;
+    size_t first, last;
+    targ_ullong emin, emax;
+    int cmpop = op == OPandand ? OPne : OPeqeq;
+    for (size_t i = 0; i < n; ++i)
+    {
+        elem *eq = array[i];
+        if (eq->Eoper == cmpop &&
+            eq->E2->Eoper == OPconst &&
+            tyintegral(eq->E2->Ety) &&
+            !el_sideeffect(eq->E1))
+        {
+            targ_ullong m = el_tolong(eq->E2);
+            if (any)
+            {
+                if (el_match(array[first]->E1, eq->E1))
+                {
+                    last = i;
+                    if (m < emin)
+                        emin = m;
+                    if (m > emax)
+                        emax = m;
+                }
+                else if (last - first > 2)
+                    break;
+                else
+                {
+                    first = last = i;
+                    emin = emax = m;
+                }
+            }
+            else
+            {
+                any = true;
+                first = last = i;
+                emin = emax = m;
+            }
+        }
+        else if (any && last - first > 2)
+            break;
+        else
+            any = false;
+    }
+
+    //printf("n = %d, count = %d, min = %d, max = %d\n", (int)n, last - first + 1, (int)emin, (int)emax);
+    if (any && last - first > 2 && emax - emin < REGSIZE * 8)
+    {
+        /**
+         * Transforms expressions of the form x==c1 || x==c2 || x==c3 || ... into a single
+         * comparison by using a bitmapped representation of data, as follows. First, the
+         * smallest constant of c1, c2, ... (call it min) is subtracted from all constants
+         * and also from x (this step may be elided if all constants are small enough). Then,
+         * the test is expressed as
+         *   (1 << (x-min)) | ((1 << (c1-min)) | (1 << (c2-min)) | ...)
+         * The test is guarded for overflow (x must be no larger than the largest of c1, c2, ...).
+         * Since each constant is encoded as a displacement in a bitmap, hitting any bit yields
+         * true for the expression.
+         *
+         * I.e. replace:
+         *   e==c1 || e==c2 || e==c3 ...
+         * with:
+         *   (e - emin) <= (emax - emin) && (1 << (int)(e - emin)) & bits
+         * where bits is:
+         *   (1<<(c1-emin)) | (1<<(c2-emin)) | (1<<(c3-emin)) ...
+         *
+         * For the case of:
+         *  x!=c1 && x!=c2 && x!=c3 && ...
+         * using De Morgan's theorem, rewrite as:
+         *   (e - emin) > (emax - emin) || ((1 << (int)(e - emin)) & ~bits)
+         */
+
+        // Delete all the || nodes that are no longer referenced
+        el_opFree(e, op);
+
+        if (emax < 32)                  // if everything fits in a 32 bit register
+            emin = 0;                   // no need for bias
+
+        // Compute bit mask
+        targ_ullong bits = 0;
+        for (size_t i = first; i <= last; ++i)
+        {
+            elem *eq = array[i];
+            if (0 && eq->E2->Eoper != OPconst)
+            {
+                printf("eq = %p, eq->E2 = %p\n", eq, eq->E2);
+                printf("first = %d, i = %d, last = %d, Eoper = %d\n", (int)first, (int)i, (int)last, eq->E2->Eoper);
+                printf("any = %d, n = %d, count = %d, min = %d, max = %d\n", any, (int)n, (int)(last - first + 1), (int)emin, (int)emax);
+            }
+            assert(eq->E2->Eoper == OPconst);
+            bits |= (targ_ullong)1 << (el_tolong(eq->E2) - emin);
+        }
+        //printf("n = %d, count = %d, min = %d, max = %d\n", (int)n, last - first + 1, (int)emin, (int)emax);
+        //printf("bits = x%llx\n", bits);
+
+        if (op == OPandand)
+            bits = ~bits;
+
+        unsigned tyc = array[first]->E1->Ety;
+
+        elem *ex = el_bin(OPmin, tyc, array[first]->E1, el_long(tyc,emin));
+        ex = el_bin(op == OPandand ? OPgt : OPle, TYbool, ex, el_long(touns(tyc), emax - emin));
+        elem *ey = el_bin(OPmin, tyc, array[first + 1]->E1, el_long(tyc,emin));
+
+        tym_t tybits = TYuint;
+        if ((emax - emin) >= 32)
+        {
+            assert(I64);                // need 64 bit BT
+            tybits = TYullong;
+        }
+
+        // Shift count must be an int
+        switch (tysize(tyc))
+        {
+            case 1:
+                ey = el_una(OPu8_16,TYint,ey);
+            case 2:
+                ey = el_una(OPu16_32,TYint,ey);
+                break;
+            case 4:
+                break;
+            case 8:
+                ey = el_una(OP64_32,TYint,ey);
+                break;
+            default:
+                assert(0);
+        }
+#if 1
+        ey = el_bin(OPbtst,TYbool,el_long(tybits,bits),ey);
+#else
+        ey = el_bin(OPshl,tybits,el_long(tybits,1),ey);
+        ey = el_bin(OPand,tybits,ey,el_long(tybits,bits));
+#endif
+        ex = el_bin(op == OPandand ? OPoror : OPandand, ty, ex, ey);
+
+        /* Free unneeded nodes
+         */
+        array[first]->E1 = NULL;
+        el_free(array[first]);
+        array[first + 1]->E1 = NULL;
+        el_free(array[first + 1]);
+        for (size_t i = first + 2; i <= last; ++i)
+            el_free(array[i]);
+
+        array[first] = ex;
+
+        for (size_t i = first + 1; i + (last - first) < n; ++i)
+            array[i] = array[i + (last - first)];
+        n -= last - first;
+        (*pe) = el_opCombine(array, n, op, ty);
+
+        free(array);
+        return true;
+    }
+
+    free(array);
+    return false;
+}
+
 STATIC elem * elandand(elem *e, goal_t goal)
 {
     elem *e1 = e->E1;
@@ -2651,15 +2966,34 @@ STATIC elem * eladdr(elem *e, goal_t goal)
         e = optelem(e,GOALvalue);
         break;
     }
+    case OPinfo:
+        // Replace &(e1 info e2) with (e1 info &e2)
+        e = el_selecte1(e);
+        e->E2 = el_una(OPaddr,tym,e->E2);
+        e = optelem(e,GOALvalue);
+        break;
   }
   return e;
 }
+
+/*******************************************
+ */
 
 STATIC elem * elneg(elem *e, goal_t goal)
 {
     if (e->E1->Eoper == OPneg)
     {   e = el_selecte1(e);
         e = el_selecte1(e);
+    }
+    /* Convert -(e1 + c) to (-e1 - c)
+     */
+    else if (e->E1->Eoper == OPadd && e->E1->E2->Eoper == OPconst)
+    {
+        e->Eoper = OPmin;
+        e->E2 = e->E1->E2;
+        e->E1->Eoper = OPneg;
+        e->E1->E2 = NULL;
+        e = optelem(e,goal);
     }
     else
         e = evalu8(e, goal);
@@ -2727,8 +3061,6 @@ elem * elstruct(elem *e, goal_t goal)
         return optelem(e, goal);
     }
 
-    //printf("\tnumbytes = %d\n", (int)e->Enumbytes);
-
     if (!e->ET)
         return e;
     //printf("\tnumbytes = %d\n", (int)type_size(e->ET));
@@ -2745,6 +3077,7 @@ elem * elstruct(elem *e, goal_t goal)
     }
 
     unsigned sz = type_size(e->ET);
+    //printf("\tsz = %d\n", (int)sz);
     switch ((int)sz)
     {
         case 1:  tym = TYchar;   goto L1;
@@ -2759,7 +3092,7 @@ elem * elstruct(elem *e, goal_t goal)
         case 6:
         case 7:  tym = TYllong;
         L2:
-            if (config.exe == EX_WIN64)
+            if (e->Eoper == OPstrpar && config.exe == EX_WIN64)
             {
                  goto L1;
             }
@@ -4167,6 +4500,22 @@ STATIC elem *elshl(elem *e, goal_t goal)
     {   e->E1->Ety = e->Ety;
         e = el_selecte1(e);             // (0 << e2) => 0
     }
+    if (OPTIMIZER &&
+        e->E2->Eoper == OPconst &&
+        (e->E1->Eoper == OPshr || e->E1->Eoper == OPashr) &&
+        e->E1->E2->Eoper == OPconst &&
+        el_tolong(e->E2) == el_tolong(e->E1->E2))
+    {   /* Rewrite:
+         *  (x >> c) << c)
+         * with:
+         *  x & ~((1 << c) - 1);
+         */
+        targ_ullong c = el_tolong(e->E2);
+        e = el_selecte1(e);
+        e = el_selecte1(e);
+        e = el_bin(OPand, e->Ety, e, el_long(e->Ety, ~((1ULL << c) - 1)));
+        return optelem(e, goal);
+    }
     return e;
 }
 
@@ -4597,9 +4946,20 @@ beg:
                 }
                 goto Llog;
 
+            case OPoror:
+                if (rightgoal)
+                    rightgoal = GOALflags;
+                if (OPTIMIZER && optim_loglog(&e))
+                    goto beg;
+                goto Llog;
+
             case OPandand:
-            case OPoror:        /* case (c || f()) with no goal         */
-            Llog:
+                if (rightgoal)
+                    rightgoal = GOALflags;
+                if (OPTIMIZER && optim_loglog(&e))
+                    goto beg;
+
+            Llog:               // case (c log f()) with no goal
                 if (goal || el_sideeffect(e->E2))
                     leftgoal = GOALflags;
                 break;
@@ -4862,7 +5222,7 @@ beg:
             return optelem(e,GOALnone);
         }
 
-        e1 = e->E1 = optelem(e->E1,op == OPbool ? GOALflags : GOALvalue);
+        e1 = e->E1 = optelem(e->E1,(op == OPbool || op == OPnot) ? GOALflags : GOALvalue);
         if (e1->Eoper == OPconst)
         {
 #if TARGET_SEGMENTED

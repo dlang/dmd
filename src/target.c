@@ -17,6 +17,7 @@ int Target::ptrsize;
 int Target::realsize;
 int Target::realpad;
 int Target::realalignsize;
+bool Target::reverseCppOverloads;
 
 
 void Target::init()
@@ -43,6 +44,7 @@ void Target::init()
         realsize = 10;
         realpad = 0;
         realalignsize = 2;
+        reverseCppOverloads = !global.params.is64bit;
     }
     else
         assert(0);
@@ -95,7 +97,7 @@ unsigned Target::alignsize(Type* type)
         default:
             break;
     }
-    return type->size(Loc());
+    return (unsigned)type->size(Loc());
 }
 
 /******************************
@@ -123,7 +125,10 @@ unsigned Target::critsecsize()
     else if (global.params.isLinux)
     {
         // sizeof(pthread_mutex_t) for Linux.
-        return global.params.isLP64 ? 40 : 24;
+        if (global.params.is64bit)
+            return global.params.isLP64 ? 40 : 32;
+        else
+            return global.params.isLP64 ? 40 : 24;
     }
     else if (global.params.isFreeBSD)
     {
@@ -145,7 +150,7 @@ unsigned Target::critsecsize()
         // sizeof(pthread_mutex_t) for Solaris.
         return 24;
     }
-    else
-        assert(0);
+    assert(0);
+    return 0;
 }
 

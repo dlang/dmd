@@ -54,8 +54,8 @@ int ObjSymbol_cmp(const void *p, const void *q)
 
 #include "arraytypes.h"
 
-typedef Array<ObjModule> ObjModules;
-typedef Array<ObjSymbol> ObjSymbols;
+typedef Array<ObjModule *> ObjModules;
+typedef Array<ObjSymbol *> ObjSymbols;
 
 class LibMSCoff : public Library
 {
@@ -67,7 +67,7 @@ class LibMSCoff : public Library
     StringTable tab;
 
     LibMSCoff();
-    void setFilename(char *dir, char *filename);
+    void setFilename(const char *dir, const char *filename);
     void addObject(const char *module_name, void *buf, size_t buflen);
     void addLibrary(void *buf, size_t buflen);
     void write();
@@ -112,7 +112,7 @@ LibMSCoff::LibMSCoff()
  * Add default library file name extension.
  */
 
-void LibMSCoff::setFilename(char *dir, char *filename)
+void LibMSCoff::setFilename(const char *dir, const char *filename)
 {
 #if LOG
     printf("LibMSCoff::setFilename(dir = '%s', filename = '%s')\n",
@@ -139,7 +139,7 @@ void LibMSCoff::setFilename(char *dir, char *filename)
 void LibMSCoff::write()
 {
     if (global.params.verbose)
-        printf("library   %s\n", libfile->name->toChars());
+        fprintf(global.stdmsg, "library   %s\n", libfile->name->toChars());
 
     OutBuffer libbuf;
     WriteLibToBuffer(&libbuf);
@@ -149,9 +149,9 @@ void LibMSCoff::write()
     libbuf.extractData();
 
 
-    FileName::ensurePathToNameExists(libfile->name->toChars());
+    ensurePathToNameExists(Loc(), libfile->name->toChars());
 
-    libfile->writev();
+    writeFile(Loc(), libfile);
 }
 
 /*****************************************************************************/
@@ -343,7 +343,7 @@ void LibMSCoff::addObject(const char *module_name, void *buf, size_t buflen)
     {   assert(module_name[0]);
         FileName f((char *)module_name);
         File file(&f);
-        file.readv();
+        readFile(Loc(), &file);
         buf = file.buffer;
         buflen = file.len;
         file.ref = 1;

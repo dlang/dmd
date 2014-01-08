@@ -302,6 +302,10 @@ long os_file_size(int fd);
 char *file_8dot3name(const char *filename);
 int file_write(char *name, void *buffer, unsigned len);
 int file_createdirs(char *name);
+#if DMDV1
+int os_critsecsize32();
+int os_critsecsize64();
+#endif
 
 #ifdef PSEUDO_REGS
 /* pseudo.c */

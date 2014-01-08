@@ -11,6 +11,8 @@
 #include <string.h>
 #include <ctype.h>
 
+#include "port.h"
+
 /*********************************************
  * Convert from named entity to its encoding.
  * For reference:
@@ -2372,7 +2374,7 @@ static NameId* namesTable[] = {
         namesS, namesT, namesU, namesV, namesW, namesX, namesY, namesZ, NULL
 };
 
-int HtmlNamedEntity(unsigned char *p, size_t length)
+int HtmlNamedEntity(const utf8_t *p, size_t length)
 {
     int tableIndex = tolower(*p) - 'a';
     if (tableIndex >= 0 && tableIndex < 26)

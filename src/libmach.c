@@ -45,8 +45,8 @@ struct ObjSymbol
 
 #include "arraytypes.h"
 
-typedef Array<ObjModule> ObjModules;
-typedef Array<ObjSymbol> ObjSymbols;
+typedef Array<ObjModule *> ObjModules;
+typedef Array<ObjSymbol *> ObjSymbols;
 
 class LibMach : public Library
 {
@@ -58,7 +58,7 @@ class LibMach : public Library
     StringTable tab;
 
     LibMach();
-    void setFilename(char *dir, char *filename);
+    void setFilename(const char *dir, const char *filename);
     void addObject(const char *module_name, void *buf, size_t buflen);
     void addLibrary(void *buf, size_t buflen);
     void write();
@@ -79,7 +79,7 @@ class LibMach : public Library
     Loc loc;
 };
 
-Library *Library::factory()
+Library *LibMach_factory()
 {
     return new LibMach();
 }
@@ -96,7 +96,7 @@ LibMach::LibMach()
  * Add default library file name extension.
  */
 
-void LibMach::setFilename(char *dir, char *filename)
+void LibMach::setFilename(const char *dir, const char *filename)
 {
 #if LOG
     printf("LibMach::setFilename(dir = '%s', filename = '%s')\n",
@@ -123,7 +123,7 @@ void LibMach::setFilename(char *dir, char *filename)
 void LibMach::write()
 {
     if (global.params.verbose)
-        printf("library   %s\n", libfile->name->toChars());
+        fprintf(global.stdmsg, "library   %s\n", libfile->name->toChars());
 
     OutBuffer libbuf;
     WriteLibToBuffer(&libbuf);
@@ -133,9 +133,9 @@ void LibMach::write()
     libbuf.extractData();
 
 
-    FileName::ensurePathToNameExists(libfile->name->toChars());
+    ensurePathToNameExists(Loc(), libfile->name->toChars());
 
-    libfile->writev();
+    writeFile(Loc(), libfile);
 }
 
 /*****************************************************************************/
@@ -323,7 +323,7 @@ void LibMach::addObject(const char *module_name, void *buf, size_t buflen)
     {   assert(module_name[0]);
         FileName f((char *)module_name);
         File file(&f);
-        file.readv();
+        readFile(Loc(), &file);
         buf = file.buffer;
         buflen = file.len;
         file.ref = 1;

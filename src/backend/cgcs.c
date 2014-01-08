@@ -36,9 +36,15 @@ typedef struct HCS
 
 static hcs *hcstab = NULL;              /* array of hcs's               */
 static unsigned hcsmax = 0;             /* max index into hcstab[]      */
-static unsigned hcstop;                 /* # of entries in hcstab[]     */
-static unsigned touchstari;
-static unsigned touchfunci[2];
+
+struct HCSArray
+{
+    unsigned top;                  // # of entries in hcstab[]
+    unsigned touchstari;
+    unsigned touchfunci[2];
+};
+
+static HCSArray hcsarray;
 
 // Use a bit vector for quick check if expression is possibly in hcstab[].
 // This results in much faster compiles when hcstab[] gets big.
@@ -105,10 +111,10 @@ void comsubs()
                 bln = blc->Bnext;
         }
         vec_clear(csvec);
-        hcstop = 0;
-        touchstari = 0;
-        touchfunci[0] = 0;
-        touchfunci[1] = 0;
+        hcsarray.top = 0;
+        hcsarray.touchstari = 0;
+        hcsarray.touchfunci[0] = 0;
+        hcsarray.touchfunci[1] = 0;
         bln = bl;
         while (n--)                     // while more blocks in EBB
         {
@@ -152,7 +158,8 @@ void cgcs_term()
  */
 
 STATIC void ecom(elem **pe)
-{ int i,op,hcstopsave;
+{ int i,op;
+  HCSArray hcsarraySave;
   unsigned hash;
   elem *e,*ehash;
   tym_t tym;
@@ -235,19 +242,20 @@ STATIC void ecom(elem **pe)
     case OPandand:
     case OPoror:
         ecom(&e->E1);
-        hcstopsave = hcstop;
+        hcsarraySave = hcsarray;
         ecom(&e->E2);
-        hcstop = hcstopsave;            /* no common subs by E2         */
+        hcsarray = hcsarraySave;        // no common subs by E2
         return;                         /* if comsub then logexp() will */
                                         /* break                        */
     case OPcond:
         ecom(&e->E1);
-        hcstopsave = hcstop;
-        ecom(&e->E2->E1);               /* left condition               */
-        hcstop = hcstopsave;            /* no common subs by E2         */
-        ecom(&e->E2->E2);               /* right condition              */
-        hcstop = hcstopsave;            /* no common subs by E2         */
-        return;                         /* can't be a common sub        */
+        hcsarraySave = hcsarray;
+        ecom(&e->E2->E1);               // left condition
+        hcsarray = hcsarraySave;        // no common subs by E2
+        ecom(&e->E2->E2);               // right condition
+        hcsarray = hcsarraySave;        // no common subs by E2
+        return;                         // can't be a common sub
+
     case OPcall:
     case OPcallns:
         ecom(&e->E2);                   /* eval right first             */
@@ -399,7 +407,7 @@ STATIC void ecom(elem **pe)
   int csveci = hash % CSVECDIM;
   if (vec_testbit(csveci,csvec))
   {
-    for (i = hcstop; i--;)
+    for (i = hcsarray.top; i--;)
     {
 #ifdef DEBUG
         if (debugx)
@@ -472,7 +480,7 @@ STATIC unsigned cs_comphash(elem *e)
  */
 
 STATIC void addhcstab(elem *e,int hash)
-{ unsigned h = hcstop;
+{ unsigned h = hcsarray.top;
 
   if (h >= hcsmax)                      /* need to reallocate table     */
   {
@@ -485,11 +493,11 @@ STATIC void addhcstab(elem *e,int hash)
 #else
         hcstab = (hcs *) MEM_PARF_REALLOC(hcstab,hcsmax*sizeof(hcs));
 #endif
-        //printf("hcstab = %p; hcstop = %d, hcsmax = %d\n",hcstab,hcstop,hcsmax);
+        //printf("hcstab = %p; hcsarray.top = %d, hcsmax = %d\n",hcstab,hcsarray.top,hcsmax);
   }
   hcstab[h].Helem = e;
   hcstab[h].Hhash = hash;
-  hcstop++;
+  hcsarray.top++;
 }
 
 /***************************
@@ -500,8 +508,7 @@ STATIC void addhcstab(elem *e,int hash)
  */
 
 STATIC void touchlvalue(elem *e)
-{ register int i;
-
+{
   if (e->Eoper == OPind)                /* if indirect store            */
   {
         /* NOTE: Some types of array assignments do not need
@@ -513,12 +520,16 @@ STATIC void touchlvalue(elem *e)
         return;
   }
 
-  for (i = hcstop; --i >= 0;)
-  {     if (hcstab[i].Helem &&
+    for (int i = hcsarray.top; --i >= 0;)
+    {   if (hcstab[i].Helem &&
             hcstab[i].Helem->EV.sp.Vsym == e->EV.sp.Vsym)
                 hcstab[i].Helem = NULL;
-  }
+    }
 
+#ifdef DEBUG
+    if (!(e->Eoper == OPvar || e->Eoper == OPrelconst))
+        elem_print(e);
+#endif
     assert(e->Eoper == OPvar || e->Eoper == OPrelconst);
     switch (e->EV.sp.Vsym->Sclass)
     {
@@ -565,15 +576,15 @@ STATIC void touchlvalue(elem *e)
  */
 
 STATIC void touchfunc(int flag)
-{ register hcs *pe,*petop;
-  register elem *he;
+{
 
-  //printf("touchfunc(%d)\n", flag);
-  petop = &hcstab[hcstop];
-  //pe = &hcstab[0]; printf("pe = %p, petop = %p\n",pe,petop);
-  for (pe = &hcstab[0]; pe < petop; pe++)
-  //for (pe = &hcstab[touchfunci[flag]]; pe < petop; pe++)
-  {     he = pe->Helem;
+    //printf("touchfunc(%d)\n", flag);
+    hcs *petop = &hcstab[hcsarray.top];
+    //pe = &hcstab[0]; printf("pe = %p, petop = %p\n",pe,petop);
+    assert(hcsarray.touchfunci[flag] <= hcsarray.top);
+    for (hcs *pe = &hcstab[hcsarray.touchfunci[flag]]; pe < petop; pe++)
+    {
+        elem *he = pe->Helem;
         if (!he)
                 continue;
         switch (he->Eoper)
@@ -627,8 +638,8 @@ STATIC void touchfunc(int flag)
                 pe->Helem = NULL;
                 break;
         }
-  }
-  touchfunci[flag] = hcstop;
+    }
+    hcsarray.touchfunci[flag] = hcsarray.top;
 }
 
 
@@ -641,12 +652,12 @@ STATIC void touchstar()
 { register int i;
   register elem *e;
 
-  for (i = touchstari; i < hcstop; i++)
+  for (i = hcsarray.touchstari; i < hcsarray.top; i++)
   {     e = hcstab[i].Helem;
         if (e && (e->Eoper == OPind || e->Eoper == OPbt) )
                 hcstab[i].Helem = NULL;
   }
-  touchstari = hcstop;
+  hcsarray.touchstari = hcsarray.top;
 }
 
 #if TARGET_SEGMENTED
@@ -660,7 +671,7 @@ STATIC void touchaccess(elem *ev)
   register elem *e;
 
   ev = ev->E1;
-  for (i = 0; i < hcstop; i++)
+  for (i = 0; i < hcsarray.top; i++)
   {     e = hcstab[i].Helem;
         /* Invalidate any previous handle pointer accesses that */
         /* are not accesses of ev.                              */

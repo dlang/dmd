@@ -133,6 +133,8 @@ unsigned cv4_memfunctypidx(FuncDeclaration *fd)
     return cv4_typidx(t);
 }
 
+#define CV4_NAMELENMAX 0x3b9f                   // found by trial and error
+
 unsigned cv4_Denum(EnumDeclaration *e)
 {
     //dbg_printf("cv4_Denum(%s)\n", e->toChars());
@@ -159,7 +161,7 @@ unsigned cv4_Denum(EnumDeclaration *e)
                 {
                     /* Optlink dies on longer ones, so just truncate
                      */
-                    if (fnamelen > 0xB000)          // 0xB000 found by trial and error
+                    if (fnamelen > CV4_NAMELENMAX)
                     {   fnamelen = fnamelen1;       // back up
                         break;                      // and skip the rest
                     }
@@ -474,6 +476,11 @@ void StructDeclaration::toDebug()
     {   Dsymbol *s = (*members)[i];
         s->apply(&cv_mem_count, &mc);
     }
+    if (config.fulltypes != CV8 && mc.fnamelen > CV4_NAMELENMAX)
+    {   // Too long, fail gracefully
+        mc.nfields = 0;
+        mc.fnamelen = 2;
+    }
     unsigned nfields = mc.nfields;
     unsigned fnamelen = mc.fnamelen;
 
@@ -486,9 +493,12 @@ void StructDeclaration::toDebug()
     // And fill it in
     TOWORD(p,config.fulltypes == CV8 ? LF_FIELDLIST_V2 : LF_FIELDLIST);
     p += 2;
-    for (size_t i = 0; i < members->dim; i++)
-    {   Dsymbol *s = (*members)[i];
-        s->apply(&cv_mem_p, &p);
+    if (nfields)
+    {
+        for (size_t i = 0; i < members->dim; i++)
+        {   Dsymbol *s = (*members)[i];
+            s->apply(&cv_mem_p, &p);
+        }
     }
 
     //dbg_printf("fnamelen = %d, p-dt->data = %d\n",fnamelen,p-dt->data);
@@ -564,11 +574,7 @@ void ClassDeclaration::toDebug()
 //    if (st->Sopeq && !(st->Sopeq->Sfunc->Fflags & Fnodebug))
 //      property |= 0x20;               // class has overloaded assignment
 
-#if DMDV1
-    const char *id = toPrettyChars();
-#else
     const char *id = isCPPinterface() ? ident->toChars() : toPrettyChars();
-#endif
     unsigned leaf = config.fulltypes == CV8 ? LF_CLASS_V3 : LF_CLASS;
 
     unsigned numidx = (leaf == LF_CLASS_V3) ? 18 : 12;
@@ -665,6 +671,11 @@ void ClassDeclaration::toDebug()
     {   Dsymbol *s = (*members)[i];
         s->apply(&cv_mem_count, &mc);
     }
+    if (config.fulltypes != CV8 && mc.fnamelen > CV4_NAMELENMAX)
+    {   // Too long, fail gracefully
+        mc.nfields = 0;
+        mc.fnamelen = 2;
+    }
     unsigned nfields = mc.nfields;
     unsigned fnamelen = mc.fnamelen;
 
@@ -679,43 +690,46 @@ void ClassDeclaration::toDebug()
     TOWORD(p,config.fulltypes == CV8 ? LF_FIELDLIST_V2 : LF_FIELDLIST);
     p += 2;
 
-    if (addInBaseClasses)
+    if (nfields)        // if we didn't overflow
     {
-        // Add in base classes
-        for (size_t i = 0; i < baseclasses->dim; i++)
-        {   BaseClass *bc = (*baseclasses)[i];
+        if (addInBaseClasses)
+        {
+            // Add in base classes
+            for (size_t i = 0; i < baseclasses->dim; i++)
+            {   BaseClass *bc = (*baseclasses)[i];
 
-            idx_t typidx = cv4_typidx(bc->base->type->toCtype()->Tnext);
-            unsigned attribute = PROTtoATTR(bc->protection);
+                idx_t typidx = cv4_typidx(bc->base->type->toCtype()->Tnext);
+                unsigned attribute = PROTtoATTR(bc->protection);
 
-            unsigned elementlen;
-            switch (config.fulltypes)
-            {
-                case CV8:
-                    TOWORD(p, LF_BCLASS_V2);
-                    TOWORD(p + 2,attribute);
-                    TOLONG(p + 4,typidx);
-                    elementlen = 8;
-                    break;
+                unsigned elementlen;
+                switch (config.fulltypes)
+                {
+                    case CV8:
+                        TOWORD(p, LF_BCLASS_V2);
+                        TOWORD(p + 2,attribute);
+                        TOLONG(p + 4,typidx);
+                        elementlen = 8;
+                        break;
 
-                case CV4:
-                    TOWORD(p, LF_BCLASS);
-                    TOWORD(p + 2,typidx);
-                    TOWORD(p + 4,attribute);
-                    elementlen = 6;
-                    break;
+                    case CV4:
+                        TOWORD(p, LF_BCLASS);
+                        TOWORD(p + 2,typidx);
+                        TOWORD(p + 4,attribute);
+                        elementlen = 6;
+                        break;
+                }
+
+                cv4_storenumeric(p + elementlen, bc->offset);
+                elementlen += cv4_numericbytes(bc->offset);
+                elementlen = cv_align(p + elementlen, elementlen);
+                p += elementlen;
             }
-
-            cv4_storenumeric(p + elementlen, bc->offset);
-            elementlen += cv4_numericbytes(bc->offset);
-            elementlen = cv_align(p + elementlen, elementlen);
-            p += elementlen;
         }
-    }
 
-    for (size_t i = 0; i < members->dim; i++)
-    {   Dsymbol *s = (*members)[i];
-        s->apply(&cv_mem_p, &p);
+        for (size_t i = 0; i < members->dim; i++)
+        {   Dsymbol *s = (*members)[i];
+            s->apply(&cv_mem_p, &p);
+        }
     }
 
     //dbg_printf("fnamelen = %d, p-dt->data = %d\n",fnamelen,p-dt->data);

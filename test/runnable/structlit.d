@@ -463,7 +463,7 @@ void test15b()
         this(int[] m, const int[] c, immutable int[] i) inout pure
         {
             static assert(!__traits(compiles, marr = m));
-            carr = c;
+            static assert(!__traits(compiles, carr = c));  // cannot implicitly convertible const(int[]) to inout(const(int[]))
             iarr = i;
         }
     }
@@ -851,6 +851,134 @@ void test6937()
 }
 
 /********************************************/
+// 3991
+
+union X3991
+{
+    int   a = void;
+    dchar b = void;
+}
+
+union Y3991
+{
+    int   a = void;
+    dchar b = 'a';
+}
+
+union Z3991
+{
+    int   a = 123;
+    dchar b = void;
+}
+
+void test3991()
+{
+    X3991 x;
+
+    Y3991 y;
+    assert(y.b == 'a');
+
+    Z3991 z;
+    assert(z.a == 123);
+}
+
+/********************************************/
+// 7727
+
+union U7727A1 { int i;       double d;       }
+union U7727A2 { int i = 123; double d;       }
+//union U7727A3 { int i;       double d = 2.5; }
+
+union U7727B1 { double d;       int i;       }
+union U7727B2 { double d = 2.5; int i;       }
+//union U7727B3 { double d;       int i = 123; }
+
+void test7727()
+{
+    import core.stdc.math : isnan;
+
+    { U7727A1 u;                assert(u.i == 0); }
+    { U7727A1 u = { i: 1024 };  assert(u.i == 1024); }
+    { U7727A1 u = { d: 1.225 }; assert(u.d == 1.225); }
+  static assert(!__traits(compiles,
+    { U7727A1 u = { i: 1024, d: 1.225 }; }
+  ));
+
+    { U7727A2 u;                assert(u.i == 123); }
+    { U7727A2 u = { i: 1024 };  assert(u.i == 1024); }
+    { U7727A2 u = { d: 1.225 }; assert(u.d == 1.225); }
+  static assert(!__traits(compiles,
+    { U7727A2 u = { i: 1024, d: 1.225 }; }
+  ));
+
+// Blocked by issue 1432
+//    { U7727A3 u;                assert(u.d == 2.5); }
+//    { U7727A3 u = { i: 1024 };  assert(u.i == 1024); }
+//    { U7727A3 u = { d: 1.225 }; assert(u.d == 1.225); }
+//  static assert(!__traits(compiles,
+//    { U7727A3 u = { i: 1024, d: 1.225 }; }
+//  ));
+
+    { U7727B1 u;                assert(isnan(u.d)); }
+    { U7727B1 u = { i: 1024 };  assert(u.i == 1024); }
+    { U7727B1 u = { d: 1.225 }; assert(u.d == 1.225); }
+  static assert(!__traits(compiles,
+    { U7727B1 u = { i: 1024, d: 1.225 }; }
+  ));
+
+    { U7727B2 u;                assert(u.d == 2.5); }
+    { U7727B2 u = { i: 1024 };  assert(u.i == 1024); }
+    { U7727B2 u = { d: 1.225 }; assert(u.d == 1.225); }
+  static assert(!__traits(compiles,
+    { U7727B2 u = { i: 1024, d: 1.225 }; }
+  ));
+
+// Blocked by issue 1432
+//    { U7727B3 u;                assert(u.i == 123); }
+//    { U7727B3 u = { i: 1024 };  assert(u.i == 1024); }
+//    { U7727B3 u = { d: 1.225 }; assert(u.d == 1.225); }
+//  static assert(!__traits(compiles,
+//    { U7727B3 u = { i: 1024, d: 1.225 }; }
+//  ));
+
+
+    test7727a();
+    test7727b();
+}
+
+// --------
+
+struct Foo7727a
+{
+    ushort bar2;
+}
+struct Foo7727b
+{
+    union
+    {
+        ubyte[2] bar1;
+        ushort bar2;
+    }
+}
+
+void test7727a()
+{
+    immutable Foo7727a foo1 = { bar2: 100 }; // OK
+    immutable Foo7727b foo2 = { bar2: 100 }; // OK <-- error
+}
+
+// --------
+
+struct S7727 { int i; double d; }
+union U7727 { int i; double d; }
+
+void test7727b()
+{
+    S7727 s = { d: 5 }; // OK
+    U7727 u = { d: 5 }; // OK <-- Error: is not a static and cannot have static initializer
+}
+
+/********************************************/
 // 7929
 
 void test7929()
@@ -1003,6 +1131,135 @@ enum  Date9775 date9775e1 = Date9775(2012, 12, 21);
 enum           date9775e2 = Date9775(2012, 12, 21);
 
 /********************************************/
+// 11105
+
+struct S11105
+{
+    int[2][1] a21;
+}
+
+void test11105()
+{
+    S11105 s = S11105([1, 2]);
+}
+
+/********************************************/
+// 11147
+
+struct V11147
+{
+    union
+    {
+        struct
+        {
+            float x = 0;
+            float y = 0;
+            float z = 0;
+        }
+        struct
+        {
+            float r;
+            float g;
+            float b;
+        }
+    }
+}
+
+void test11147()
+{
+    auto v = V11147.init;
+    assert(v.x == 0f);
+    assert(v.y == 0f);
+    assert(v.z == 0f);
+    assert(v.r == 0f);
+    assert(v.g == 0f);
+    assert(v.b == 0f);
+}
+
+/********************************************/
+// 11256
+
+struct S11256 { @disable this(); }
+
+struct Z11256a(Ranges...)
+{
+    Ranges ranges;
+    this(Ranges rs) { ranges = rs; }
+}
+struct Z11256b(Ranges...)
+{
+    Ranges ranges = Ranges.init;    // Internal error: e2ir.c 5321
+    this(Ranges rs) { ranges = rs; }
+}
+struct Z11256c(Ranges...)
+{
+    Ranges ranges = void;           // todt.c(475) v->type->ty == Tsarray && vsz == 0
+    this(Ranges rs) { ranges = rs; }
+}
+
+struct F11256(alias pred)
+{
+    this(int[] = null) { }
+}
+
+Z!Ranges z11256(alias Z, Ranges...)(Ranges ranges)
+{
+    return Z!Ranges(ranges);
+}
+
+void test11256()
+{
+    z11256!Z11256a(S11256.init, F11256!(gv => true)());
+    z11256!Z11256b(S11256.init, F11256!(gv => true)());
+    z11256!Z11256c(S11256.init, F11256!(gv => true)());
+}
+
+/********************************************/
+// 11269
+
+struct Atom
+{
+    union
+    {
+        int i;
+        struct
+        {
+            ulong first, rest;
+        }
+        struct
+        {
+            uint a, b;
+        }
+    }
+}
+
+void test11269()
+{
+    Atom a1;
+    Atom a2 = {i:1, rest:10, b:2};
+}
+
+/********************************************/
+// 11427
+
+struct S11427
+{
+    union
+    {
+        ubyte a;
+        int x;
+    }
+    void[] arr;
+}
+
+int foo11427() @safe
+{
+    S11427 s1 = S11427();
+    S11427 s2;
+    return 0;
+}
+
+/********************************************/
 
 int main()
 {
@@ -1032,6 +1289,8 @@ int main()
     test5889();
     test4247();
     test6937();
+    test3991();
+    test7727();
     test7929();
     test7021();
     test8763();
@@ -1039,6 +1298,9 @@ int main()
     test9116();
     test9293();
     test9566();
+    test11105();
+    test11147();
+    test11256();
 
     printf("Success\n");
     return 0;

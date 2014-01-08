@@ -25,8 +25,8 @@ public:
     size_t len;
 
     Identifier(const char *string, int value);
+    static Identifier* create(const char *string, int value);
     bool equals(RootObject *o);
-    hash_t hashCode();
     int compare(RootObject *o);
     void print();
     char *toChars();

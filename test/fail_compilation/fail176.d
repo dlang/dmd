@@ -1,3 +1,9 @@
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail176.d(13): Error: cannot modify immutable expression b[1]
+---
+*/
 
 void foo()
 {

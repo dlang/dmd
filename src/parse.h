@@ -72,18 +72,19 @@ public:
     int inBrackets;             // inside [] of array index or slice
     Loc lookingForElse;         // location of lonely if looking for an else
 
-    Parser(Module *module, unsigned char *base, size_t length, int doDocComment);
+    Parser(Loc loc, Module *module, const utf8_t *base, size_t length, int doDocComment);
+    Parser(Module *module, const utf8_t *base, size_t length, int doDocComment);
 
     Dsymbols *parseModule();
     Dsymbols *parseDeclDefs(int once, Dsymbol **pLastDecl = NULL);
-    Dsymbols *parseAutoDeclarations(StorageClass storageClass, unsigned char *comment);
+    Dsymbols *parseAutoDeclarations(StorageClass storageClass, const utf8_t *comment);
     Dsymbols *parseBlock(Dsymbol **pLastDecl);
     void composeStorageClass(StorageClass stc);
     StorageClass parseAttribute(Expressions **pexps);
     StorageClass parsePostfix();
     StorageClass parseTypeCtor();
     Expression *parseConstraint();
-    TemplateDeclaration *parseTemplateDeclaration(int ismixin);
+    TemplateDeclaration *parseTemplateDeclaration(bool ismixin = false);
     TemplateParameters *parseTemplateParameterList(int flag = 0);
     Dsymbol *parseMixin();
     Objects *parseTemplateArgumentList();
@@ -115,14 +116,14 @@ public:
     Type *parseBasicType();
     Type *parseBasicType2(Type *t);
     Type *parseDeclarator(Type *t, Identifier **pident, TemplateParameters **tpl = NULL, StorageClass storage_class = 0, int* pdisable = NULL);
-    Dsymbols *parseDeclarations(StorageClass storage_class, unsigned char *comment);
+    Dsymbols *parseDeclarations(StorageClass storage_class, const utf8_t *comment);
 #if DMD_OBJC
     ObjcSelector *parseObjCSelector();
 #endif
     void parseContracts(FuncDeclaration *f);
     void checkDanglingElse(Loc elseloc);
     /** endPtr used for documented unittests */
-    Statement *parseStatement(int flags, unsigned char** endPtr = NULL);
+    Statement *parseStatement(int flags, const utf8_t** endPtr = NULL);
     Initializer *parseInitializer();
     Expression *parseDefaultInitExp();
     void check(Loc loc, TOK value);
@@ -135,6 +136,7 @@ public:
     int isParameters(Token **pt);
     int isExpression(Token **pt);
     int skipParens(Token *t, Token **pt);
+    int skipParensIf(Token *t, Token **pt);
     int skipAttributes(Token *t, Token **pt);
 
     Expression *parseExpression();
@@ -144,10 +146,6 @@ public:
     Expression *parseMulExp();
     Expression *parseAddExp();
     Expression *parseShiftExp();
-#if DMDV1
-    Expression *parseRelExp();
-    Expression *parseEqualExp();
-#endif
     Expression *parseCmpExp();
     Expression *parseAndExp();
     Expression *parseXorExp();
@@ -161,7 +159,7 @@ public:
 
     Expression *parseNewExp(Expression *thisexp);
 
-    void addComment(Dsymbol *s, unsigned char *blockComment);
+    void addComment(Dsymbol *s, const utf8_t *blockComment);
 };
 
 // Operator precedence - greater values are higher precedence

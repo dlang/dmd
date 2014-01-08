@@ -44,7 +44,7 @@
     <ClCompile>
       <AdditionalIncludeDirectories>.\root;.\tk;.\backend;.;vcbuild;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions Condition="'$(Configuration)'=='Debug'">DEBUG;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <PreprocessorDefinitions Condition="'$(Configuration)'=='Release'">NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Configuration)'=='Release'">NDEBUG;TARGET_WINDOS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary Condition="'$(Configuration)'=='Debug'">MultiThreadedDebug</RuntimeLibrary>
       <RuntimeLibrary Condition="'$(Configuration)'=='Release'">MultiThreaded</RuntimeLibrary>
       <Optimization Condition="'$(Configuration)'=='Release'">MaxSpeed</Optimization>
@@ -226,7 +226,10 @@
     <ClCompile Include="root\port.c" />
     <ClCompile Include="root\response.c" />
     <ClCompile Include="root\rmem.c" />
-    <ClCompile Include="root\root.c" />
+    <ClCompile Include="root\file.c" />
+    <ClCompile Include="root\filename.c" />
+    <ClCompile Include="root\object.c" />
+    <ClCompile Include="root\outbuffer.c" />
     <ClCompile Include="root\speller.c" />
     <ClCompile Include="root\stringtable.c" />
     <CustomBuild Include="idgen.c">

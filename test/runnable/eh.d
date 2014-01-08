@@ -23,29 +23,29 @@ void foo(int x)
 L6:
     try
     {
-	printf("try 1\n");
-	y += 4;
-	if (y == 5)
-	    goto L6;
-	y += 3;
+        printf("try 1\n");
+        y += 4;
+        if (y == 5)
+            goto L6;
+        y += 3;
     }
     finally
     {
-	y += 5;
-	printf("finally 1\n");
+        y += 5;
+        printf("finally 1\n");
     }
     try
     {
-	printf("try 2\n");
-	y = 1;
-	if (y == 4)
-	    goto L6;
-	y++;
+        printf("try 2\n");
+        y = 1;
+        if (y == 4)
+            goto L6;
+        y++;
     }
     catch (Abc c)
     {
-	printf("catch 2\n");
-	y = 2 + c.i;
+        printf("catch 2\n");
+        y = 2 + c.i;
     }
     y++;
     printf("done\n");
@@ -58,13 +58,13 @@ class IntException : Exception
 {
     this(int i)
     {
-	m_i = i;
+        m_i = i;
     super("");
     }
 
     int getValue()
     {
-	return m_i;
+        return m_i;
     }
 
     int m_i;
@@ -73,35 +73,35 @@ class IntException : Exception
 
 void test2()
 {
-    int	cIterations	=	10;
+    int     cIterations =   10;
 
-    int	i;
-    long	total_x		=	0;
-    long	total_nox	=	0;
+    int     i;
+    long    total_x     =   0;
+    long    total_nox   =   0;
 
     for(int WARMUPS = 2; WARMUPS-- > 0; )
     {
-	for(total_x = 0, i = 0; i < cIterations; ++i)
-	{
-	    total_nox += fn2_nox();
-	}
+        for(total_x = 0, i = 0; i < cIterations; ++i)
+        {
+            total_nox += fn2_nox();
+        }
 printf("foo\n");
 
-	for(total_nox = 0, i = 0; i < cIterations; ++i)
-	{
+        for(total_nox = 0, i = 0; i < cIterations; ++i)
+        {
 printf("i = %d\n", i);
-	    try
-	    {
-		int z = 1;
+            try
+            {
+                int z = 1;
 
-		throw new IntException(z);
-	    }
-	    catch(IntException x)
-	    {
+                throw new IntException(z);
+            }
+            catch(IntException x)
+            {
 printf("catch, i = %d\n", i);
-		total_x += x.getValue();
-	    }
-	}
+                total_x += x.getValue();
+            }
+        }
     }
 
     printf("iterations %d totals: %ld, %ld\n", cIterations, total_x, total_nox);
@@ -123,22 +123,22 @@ void test3()
     }
     finally
     {
-	printf("a\n");
-	assert(x == 0);
-	x++;
+        printf("a\n");
+        assert(x == 0);
+        x++;
     }
     printf("--\n");
     assert(x == 1);
     try
     {
-	printf("tb\n");
-	assert(x == 1);
+        printf("tb\n");
+        assert(x == 1);
     }
     finally
     {
-	printf("b\n");
-	assert(x == 1);
-	x++;
+        printf("b\n");
+        assert(x == 1);
+        x++;
     }
     assert(x == 2);
 }
@@ -147,123 +147,123 @@ void test3()
 
 class Tester
 {
-	this(void delegate() dg_) { dg = dg_; }
-	void delegate() dg;
-	void stuff() { dg(); }
+    this(void delegate() dg_) { dg = dg_; }
+    void delegate() dg;
+    void stuff() { dg(); }
 }
 
 void test4()
 {
-	printf("Starting test\n");
+    printf("Starting test\n");
 
-	int a = 0;
-	int b = 0;
-	int c = 0;
-	int d = 0;
+    int a = 0;
+    int b = 0;
+    int c = 0;
+    int d = 0;
 
-	try
-	{
-		a++;
-		throw new Exception("test1");
-		a++;
-	}
-	catch(Exception e)
-	{
-		auto es = e.toString();
+    try
+    {
+        a++;
+        throw new Exception("test1");
+        a++;
+    }
+    catch(Exception e)
+    {
+        auto es = e.toString();
                 printf("%.*s\n", es.length, es.ptr);
-		b++;
-	}
-	finally
-	{
-		c++;
-	}
+        b++;
+    }
+    finally
+    {
+        c++;
+    }
 
-	printf("initial test.\n");
+    printf("initial test.\n");
 
-	assert(a == 1);
-	assert(b == 1);
-	assert(c == 1);
+    assert(a == 1);
+    assert(b == 1);
+    assert(c == 1);
 
-	printf("pass\n");
+    printf("pass\n");
 
-	Tester t = new Tester(
-	delegate void()
-	{
-		try
-		{
-			a++;
-			throw new Exception("test2");
-			a++;
-		}
-		catch(Exception e)
-		{
-			b++;
-			throw e;
-			b++;
-		}
-	});
+    Tester t = new Tester(
+    delegate void()
+    {
+        try
+        {
+            a++;
+            throw new Exception("test2");
+            a++;
+        }
+        catch(Exception e)
+        {
+            b++;
+            throw e;
+            b++;
+        }
+    });
 
-	try
-	{
-		c++;
-		t.stuff();
-		c++;
-	}
-	catch(Exception e)
-	{
-		d++;
-		string es = e.toString;
-		printf("%.*s\n", es.length, es.ptr);
-	}
+    try
+    {
+        c++;
+        t.stuff();
+        c++;
+    }
+    catch(Exception e)
+    {
+        d++;
+        string es = e.toString;
+        printf("%.*s\n", es.length, es.ptr);
+    }
 
-	assert(a == 2);
-	assert(b == 2);
-	assert(c == 2);
-	assert(d == 1);
+    assert(a == 2);
+    assert(b == 2);
+    assert(c == 2);
+    assert(d == 1);
 
 
-	int q0 = 0;
-	int q1 = 0;
-	int q2 = 0;
-	int q3 = 0;
-	
-	Tester t2 = new Tester(
-	delegate void()
-	{
-		try
-		{
-			q0++;
-			throw new Exception("test3");
-			q0++;
-		}
-		catch(Exception e)
-		{
-			printf("Never called.\n");
-			q1++;
-			throw e;
-			q1++;
-		}
-	});
+    int q0 = 0;
+    int q1 = 0;
+    int q2 = 0;
+    int q3 = 0;
 
-	try
-	{
-		q2++;
-		t2.stuff();
-		q2++;
-	}
-	catch(Exception e)
-	{
-		q3++;
+    Tester t2 = new Tester(
+    delegate void()
+    {
+        try
+        {
+            q0++;
+            throw new Exception("test3");
+            q0++;
+        }
+        catch(Exception e)
+        {
+            printf("Never called.\n");
+            q1++;
+            throw e;
+            q1++;
+        }
+    });
+
+    try
+    {
+        q2++;
+        t2.stuff();
+        q2++;
+    }
+    catch(Exception e)
+    {
+        q3++;
                 string es = e.toString;
-		printf("%.*s\n", es.length, es.ptr);
-	}
+        printf("%.*s\n", es.length, es.ptr);
+    }
 
-	assert(q0 == 1);
-	assert(q1 == 1);
-	assert(q2 == 1);
-	assert(q3 == 1);
+    assert(q0 == 1);
+    assert(q1 == 1);
+    assert(q2 == 1);
+    assert(q3 == 1);
 
-	printf("Passed!\n");
+    printf("Passed!\n");
 }
 
 /****************************************************/
@@ -274,47 +274,48 @@ void test5()
     int i = 3;
     while(i--)
     {
-	try
-	{
-	    printf("i: %d\n", i);
-	    result ~= 't';
-	    if (i == 1)
-		continue;
-	}
-	finally
-	{
-	    printf("finally\n");
-	    result ~= cast(char)('a' + i);
-	}
+        try
+        {
+            printf("i: %d\n", i);
+            result ~= 't';
+            if (i == 1)
+                continue;
+        }
+        finally
+        {
+            printf("finally\n");
+            result ~= cast(char)('a' + i);
+        }
     }
     printf("--- %.*s", result.length, result.ptr);
     if (result != "tctbta")
-	assert(0);
+        assert(0);
 }
 
 /****************************************************/
 
 void test6()
-{   char[] result;
+{
+    char[] result;
 
     while (true)
     {
         try
         {
             printf("one\n");
-	    result ~= 'a';
+            result ~= 'a';
             break;
         }
         finally
         {
             printf("two\n");
-	    result ~= 'b';
+            result ~= 'b';
         }
     }
     printf("three\n");
     result ~= 'c';
     if (result != "abc")
-	assert(0);
+        assert(0);
 }
 
 /****************************************************/
@@ -323,29 +324,29 @@ string a7;
 
 void doScan(int i)
 {
-  a7 ~= "a";
-  try
-  {
+    a7 ~= "a";
     try
     {
-	a7 ~= "b";
-        return;
+        try
+        {
+            a7 ~= "b";
+            return;
+        }
+        finally
+        {
+            a7 ~= "c";
+        }
     }
     finally
     {
-      a7 ~= "c";
+        a7 ~= "d";
     }
-  }
-  finally
-  {
-    a7 ~= "d";
-  }
 }
 
 void test7()
 {
-        doScan(0);
-	assert(a7 == "abcd");
+    doScan(0);
+    assert(a7 == "abcd");
 }
 
 
@@ -356,7 +357,7 @@ int result1513;
 
 void bug1513a()
 {
-     throw new Exception("d");        
+     throw new Exception("d");
 }
 
 void bug1513b()
@@ -371,11 +372,10 @@ void bug1513b()
         {
             result1513 |=4;
            throw new Exception("f");
-            
         }
     }
     catch(Exception e)
-    { 
+    {
         assert(e.msg == "d");
         assert(e.next.msg == "f");
         assert(!e.next.next);
@@ -395,7 +395,7 @@ void bug1513c()
             result1513 |= 1;
             throw new Exception("b");
         }
-    }    
+    }
     finally
     {
         bug1513b();
@@ -408,8 +408,8 @@ void bug1513()
 {
     result1513 = 0;
     try
-    {        
-        bug1513c();        
+    {
+        bug1513c();
     }
     catch(Exception e)
     {
@@ -459,7 +459,7 @@ void doublecollide()
             assert(e.next.next.msg == "x");
             assert(e.next.next.next.msg == "y");
             assert(!e.next.next.next.next);
-    }        
+    }
 }
 
 void collidetwo()
@@ -489,7 +489,7 @@ void collideMixed()
         try
         {
             try
-            {                
+            {
                 throw new Exception("e");
             }
             finally
@@ -497,7 +497,7 @@ void collideMixed()
                 throw new Error("t");
             }
         }
-        catch(Exception f) 
+        catch(Exception f)
         {    // Doesn't catch, because Error is chained to it.
             works += 2;
         }
@@ -558,7 +558,7 @@ void multicollide()
         assert(e.next.next.msg == "x");
         assert(e.next.next.next.msg == "y");
         assert(!e.next.next.next.next);
-    }        
+    }
 }
 
 /****************************************************/
@@ -580,7 +580,7 @@ void test9568()
 
 /****************************************************/
 
-void test8()
+void test8a()
 {
   int a;
   goto L2;    // L2 is not addressable.
@@ -588,12 +588,49 @@ void test8()
   try {
       a += 2;
   }
-  catch (Exception e) {
+  catch (Exception) {
       a += 3;
 L2: ;
       a += 100;
   }
   assert(a == 100);
+}
+
+void test8b()
+{
+  int a;
+  goto L2;    // L2 is not addressable.
+
+  try {
+  }
+  catch (Exception) {
+      a += 3;
+L2: ;
+      a += 100;
+  }
+  assert(a == 100);
+}
+
+void test8c()
+{
+  int a;
+  goto L2;    // L2 is not addressable.
+
+  try
+    static assert(true);
+  catch (Exception) {
+      a += 3;
+L2: ;
+      a += 100;
+  }
+  assert(a == 100);
+}
+
+void test8()
+{
+  test8a();
+  test8b();
+  test8c();
 }
 
 /****************************************************/
@@ -618,6 +655,52 @@ void test9()
 }
 
 /****************************************************/
+// 10964
+
+void test10964()
+{
+    static struct S
+    {
+        this(this)
+        {
+            throw new Exception("BOOM!");
+        }
+    }
+
+    S    ss;
+    S[1] sa;
+    int result;
+
+    result = 0;
+    try
+    {
+        ss = ss;
+    }
+    catch (Exception e) result = 1;
+    catch (Error     e) result = 2;
+    catch (Throwable e) result = 3;
+    assert(result == 1);
+
+    try
+    {
+        sa = ss;
+    }
+    catch (Exception e) result = 1;
+    catch (Error     e) result = 2;
+    catch (Throwable e) result = 3;
+    assert(result == 1);
+
+    try
+    {
+        sa = sa;
+    }
+    catch (Exception e) result = 1;
+    catch (Error     e) result = 2;
+    catch (Throwable e) result = 3;
+    assert(result == 1);
+}
+
+/****************************************************/
 
 int main()
 {
@@ -629,7 +712,7 @@ int main()
     test5();
     test6();
     test7();
-    
+
     bug1513();
     doublecollide();
     collideMixed();
@@ -638,6 +721,7 @@ int main()
 
     test8();
     test9();
+    test10964();
 
     printf("finish\n");
     return 0;

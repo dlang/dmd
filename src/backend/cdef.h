@@ -23,7 +23,7 @@
     Host operating system:
         _WIN32          Microsoft NT, Windows 95, Windows 98, Win32s, Windows 2000
         _WIN64          Windows for AMD64
-        linux           Linux
+        __linux__       Linux
         __APPLE__       Mac OSX
         __FreeBSD__     FreeBSD
         __OpenBSD__     OpenBSD
@@ -146,9 +146,9 @@ One and only one of these macros must be set by the makefile:
 #ifndef CDEF_H
 #define CDEF_H  1
 
-#define VERSION "8.55.0"        // for banner and imbedding in .OBJ file
-#define VERSIONHEX "0x855"      // for __DMC__ macro
-#define VERSIONINT 0x855        // for precompiled headers and DLL version
+#define VERSION "8.58.0"        // for banner and imbedding in .OBJ file
+#define VERSIONHEX "0x858"      // for __DMC__ macro
+#define VERSIONINT 0x858        // for precompiled headers and DLL version
 
 
 /***********************************
@@ -166,7 +166,11 @@ One and only one of these macros must be set by the makefile:
 
 // Set to 1 using the makefile
 #ifndef TARGET_LINUX
+#if 0 //__linux__
+#define TARGET_LINUX    1
+#else
 #define TARGET_LINUX    0               // target is a linux executable
+#endif
 #endif
 
 // Set to 1 using the makefile
@@ -219,6 +223,7 @@ One and only one of these macros must be set by the makefile:
 #define CPP_COMMENT             1       // allow C++ style comments
 
 // C/C++ Language Features
+#define IMPLIED_PRAGMA_ONCE     1       // include guards count as #pragma once
 #define PSEUDO_REGS             1
 #define INLINE_ASM              1       // support inline assembler
 #define HIDDENPARAM_1ST_ARG     1
@@ -266,7 +271,7 @@ typedef long double longdouble;
 
 // Precompiled header variations
 #define MEMORYHX        (_WINDLL && _WIN32)     // HX and SYM files are cached in memory
-#define MMFIO           (_WIN32 || linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun)  // if memory mapped files
+#define MMFIO           (_WIN32 || __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun)  // if memory mapped files
 #define LINEARALLOC     _WIN32  // if we can reserve address ranges
 
 // H_STYLE takes on one of these precompiled header methods
@@ -311,9 +316,6 @@ typedef long double longdouble;
 //      1: old style
 //      2: new style
 #define NTEXCEPTIONS            2
-
-// indivisible file I/O
-#define INDIVFILEIO             1
 
 #define NEWSTATICDTOR           1       // support new style static destructors
 
@@ -555,11 +557,12 @@ typedef targ_uns        targ_size_t;    /* size_t for the target machine */
 #define MAXLL           0x7FFFFFFF
 #endif
 
+#define Smodel 0        /* 64k code, 64k data, or flat model           */
+
 #ifndef MEMMODELS
 #define LARGEDATA       (config.memmodel & 6)
 #define LARGECODE       (config.memmodel & 5)
 
-#define Smodel 0        /* 64k code, 64k data           */
 #define Mmodel 1        /* large code, 64k data         */
 #define Cmodel 2        /* 64k code, large data         */
 #define Lmodel 3        /* large code, large data       */
@@ -609,7 +612,7 @@ typedef int bool;
 Written by Walter Bright\n\
 *****BETA TEST VERSION*****"
 #else
-#if linux
+#if __linux__
 #define COPYRIGHT "Copyright (C) Digital Mars 2000-2013.  All Rights Reserved.\n\
 Written by Walter Bright, Linux version by Pat Nelson"
 #else

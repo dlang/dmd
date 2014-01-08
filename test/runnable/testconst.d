@@ -1411,8 +1411,8 @@ void test82(inout(int) _ = 0)
     static assert(typeof(e).stringof == "inout(const(char)*)");
 
     pragma(msg, typeof(*e));
-    static assert(is(typeof(*e) == const(char)));
-    static assert(typeof(*e).stringof == "const(char)");
+    static assert(is(typeof(*e) == inout(const(char))));
+    static assert(typeof(*e).stringof == "inout(const(char))");
 
     inout const(char)* f;
     static assert(is(typeof(e) == typeof(f)));
@@ -1435,11 +1435,11 @@ void test82(inout(int) _ = 0)
 
     inout(const(char)) k;
     pragma(msg, typeof(k));
-    static assert(typeof(k).stringof == "inout(char)");
+    static assert(typeof(k).stringof == "inout(const(char))");
 
     const(inout(char)) l;
     pragma(msg, typeof(l));
-    static assert(typeof(l).stringof == "const(char)");
+    static assert(typeof(l).stringof == "inout(const(char))");
 
     shared(const(char)) m;
     pragma(msg, typeof(m));
@@ -1691,6 +1691,167 @@ void test3748()
     static assert(is(typeof(v6) == immutable(int)*));
 
     getXRef(s.c, s.c) = 3;
+}
+
+/************************************/
+
+void test3748a(inout int = 1)
+{
+                 int[]    ma;
+           inout(int[])   wa;
+           const(int[])   ca;
+       immutable(int[])   ia;
+          shared(int[])   sa;
+    shared(inout(int[])) swa;
+    shared(const(int[])) sca;
+
+    static foo1(E)(inout(E[]) a) { return E.init; }
+    static assert( is( typeof(foo1( ma)) == int));
+    static assert( is( typeof(foo1( wa)) == int));
+    static assert( is( typeof(foo1( ca)) == int));
+    static assert( is( typeof(foo1( ia)) == int));
+    static assert( is( typeof(foo1( sa)) == shared int));
+    static assert( is( typeof(foo1(swa)) == shared int));
+    static assert( is( typeof(foo1(sca)) == shared int));
+
+    static foo2(E)(shared inout(E[]) a) { return E.init; }
+    static assert(!is( typeof(foo2( ma)) ));
+    static assert(!is( typeof(foo2( wa)) ));
+    static assert(!is( typeof(foo2( ca)) ));
+    static assert( is( typeof(foo2( ia)) == int));
+    static assert( is( typeof(foo2( sa)) == int));
+    static assert( is( typeof(foo2(swa)) == int));
+    static assert( is( typeof(foo2(sca)) == int));
+}
+
+void test3748b(inout int = 1)
+{
+    // Top of the parameter type is non-ref & qualified
+    static        inout(int[])  foo1(       inout(int[])  a);
+    static shared(inout(int[])) bar1(shared(inout(int[])) a);
+
+    // Top of the parameter type is non-ref & un-qualified
+    static        inout(int) [] foo2(       inout(int) [] a);
+    static shared(inout(int))[] bar2(shared(inout(int))[] a);
+
+    // Top of the argument type is qualified
+                 int[]    ma1;
+           inout(int[])   wa1;
+           const(int[])   ca1;
+          shared(int[])   sa1;
+    shared(inout(int[])) swa1;
+    shared(const(int[])) sca1;
+       immutable(int[])   ia1;
+
+    // Top of the argument type is un-qualified
+                 int  []  ma2;
+           inout(int) []  wa2;
+           const(int) []  ca2;
+          shared(int) []  sa2;
+    shared(inout(int))[] swa2;
+    shared(const(int))[] sca2;
+       immutable(int) []  ia2;
+
+    // --> non-ref qualified param VS qualified arg
+    static assert( is( typeof(foo1( ma1)) == typeof( ma1) ));
+    static assert( is( typeof(foo1( wa1)) == typeof( wa1) ));
+    static assert( is( typeof(foo1( ca1)) == typeof( ca1) ));
+    static assert( is( typeof(bar1( sa1)) == typeof( sa1) ));
+    static assert( is( typeof(bar1(swa1)) == typeof(swa1) ));
+    static assert( is( typeof(bar1(sca1)) == typeof(sca1) ));
+    static assert( is( typeof(foo1( ia1)) == typeof( ia1) ));
+
+    // --> non-ref un-qualified param VS qualified arg
+    static assert( is( typeof(foo2( ma1)) == typeof( ma2) ));
+    static assert( is( typeof(foo2( wa1)) == typeof( wa2) ));
+    static assert( is( typeof(foo2( ca1)) == typeof( ca2) ));
+    static assert( is( typeof(bar2( sa1)) == typeof( sa2) ));
+    static assert( is( typeof(bar2(swa1)) == typeof(swa2) ));
+    static assert( is( typeof(bar2(sca1)) == typeof(sca2) ));
+    static assert( is( typeof(foo2( ia1)) == typeof( ia2) ));
+
+    // --> non-ref qualified param VS un-qualified arg
+    static assert( is( typeof(foo1( ma2)) == typeof( ma1) ));
+    static assert( is( typeof(foo1( wa2)) ));
+    static assert( is( typeof(foo1( ca2)) ));
+    static assert( is( typeof(bar1( sa2)) == typeof( sa1) ));
+    static assert( is( typeof(bar1(swa2)) ));
+    static assert( is( typeof(bar1(sca2)) ));
+    static assert( is( typeof(foo1( ia2)) ));
+
+    // --> non-ref un-qualified param VS un-qualified arg
+    static assert( is( typeof(foo2( ma2)) == typeof( ma2) ));
+    static assert( is( typeof(foo2( wa2)) == typeof( wa2) ));
+    static assert( is( typeof(foo2( ca2)) == typeof( ca2) ));
+    static assert( is( typeof(bar2( sa2)) == typeof( sa2) ));
+    static assert( is( typeof(bar2(swa2)) == typeof(swa2) ));
+    static assert( is( typeof(bar2(sca2)) == typeof(sca2) ));
+    static assert( is( typeof(foo2( ia2)) == typeof( ia2) ));
+}
+
+void test3748c(inout int = 1)
+{
+    // Top of the parameter type is ref & qualified
+    static        inout(int[])  foo1(ref        inout(int[])  a);
+    static shared(inout(int[])) bar1(ref shared(inout(int[])) a);
+
+    // Top of the parameter type is ref & un-qualified
+    static        inout(int) [] foo2(ref        inout(int) [] a);
+    static shared(inout(int))[] bar2(ref shared(inout(int))[] a);
+
+    // Top of the argument type is qualified
+                 int[]    ma1;
+           inout(int[])   wa1;
+           const(int[])   ca1;
+          shared(int[])   sa1;
+    shared(inout(int[])) swa1;
+    shared(const(int[])) sca1;
+       immutable(int[])   ia1;
+
+    // Top of the argument type is un-qualified
+                 int  []  ma2;
+           inout(int) []  wa2;
+           const(int) []  ca2;
+          shared(int) []  sa2;
+    shared(inout(int))[] swa2;
+    shared(const(int))[] sca2;
+       immutable(int) []  ia2;
+
+    // --> ref qualified param VS qualified arg
+    static assert( is( typeof(foo1( ma1)) == typeof( ma1) ));
+    static assert( is( typeof(foo1( wa1)) == typeof( wa1) ));
+    static assert( is( typeof(foo1( ca1)) == typeof( ca1) ));
+    static assert( is( typeof(bar1( sa1)) == typeof( sa1) ));
+    static assert( is( typeof(bar1(swa1)) == typeof(swa1) ));
+    static assert( is( typeof(bar1(sca1)) == typeof(sca1) ));
+    static assert( is( typeof(foo1( ia1)) == typeof( ia1) ));
+
+    // --> ref un-qualified param VS qualified arg
+    static assert( is( typeof(foo2( ma1)) == typeof( ma2) ));
+    static assert(!is( typeof(foo2( wa1)) ));
+    static assert(!is( typeof(foo2( ca1)) ));
+    static assert(!is( typeof(bar2( sa1)) ));
+    static assert(!is( typeof(bar2(swa1)) ));
+    static assert(!is( typeof(bar2(sca1)) ));
+    static assert(!is( typeof(foo2( ia1)) ));
+
+    // --> ref qualified param VS un-qualified arg
+    static assert( is( typeof(foo1( ma2)) == typeof( ma1) ));
+    static assert(!is( typeof(foo1( wa2)) ));
+    static assert(!is( typeof(foo1( ca2)) ));  // why this is OK? --> [*]
+    static assert(!is( typeof(bar1( sa2)) ));
+    static assert(!is( typeof(bar1(swa2)) ));
+    static assert(!is( typeof(bar1(sca2)) ));
+    static assert(!is( typeof(foo1( ia2)) ));
+
+    // --> ref un-qualified param VS un-qualified arg
+    static assert( is( typeof(foo2( ma2)) == typeof( ma2) ));
+    static assert( is( typeof(foo2( wa2)) == typeof( wa2) ));
+    static assert( is( typeof(foo2( ca2)) == typeof( ca2) ));
+    static assert( is( typeof(bar2( sa2)) == typeof( sa2) ));
+    static assert( is( typeof(bar2(swa2)) == typeof(swa2) ));
+    static assert( is( typeof(bar2(sca2)) == typeof(sca2) ));
+    static assert( is( typeof(foo2( ia2)) == typeof( ia2) ));
 }
 
 /************************************/
@@ -2456,6 +2617,94 @@ void test6912()
 }
 
 /************************************/
+// 6930
+
+void test6930a()
+{
+    inout(const int) f1(inout(const int) i) { return i; }
+              int mi;
+        const int ci;
+    immutable int ii;
+    static assert(is(typeof(f1(mi)) ==     const(int)));
+    static assert(is(typeof(f1(ci)) ==     const(int)));
+    static assert(is(typeof(f1(ii)) == immutable(int)));
+
+    inout(const int)* f2(inout(const int)* p) { return p; }
+              int * mp;
+        const(int)* cp;
+    immutable(int)* ip;
+    static assert(is(typeof(f2(mp)) ==     const(int)*));
+    static assert(is(typeof(f2(cp)) ==     const(int)*));
+    static assert(is(typeof(f2(ip)) == immutable(int)*));
+
+    inout(const int)[] f3(inout(const int)[] a) { return a; }
+              int [] ma;
+        const(int)[] ca;
+    immutable(int)[] ia;
+    static assert(is(typeof(f3(ma)) ==     const(int)[]));
+    static assert(is(typeof(f3(ca)) ==     const(int)[]));
+    static assert(is(typeof(f3(ia)) == immutable(int)[]));
+
+    inout(const int[1]) f4(inout(const int[1]) sa) { return sa; }
+              int[1] msa;
+        const int[1] csa;
+    immutable int[1] isa;
+    static assert(is(typeof(f4(msa)) ==     const(int)[1]));
+    static assert(is(typeof(f4(csa)) ==     const(int)[1]));
+    static assert(is(typeof(f4(isa)) == immutable(int)[1]));
+
+    inout(const int)[string] f5(inout(const int)[string] aa) { return aa; }
+              int [string] maa;
+        const(int)[string] caa;
+    immutable(int)[string] iaa;
+    static assert(is(typeof(f5(maa)) ==     const(int)[string]));
+    static assert(is(typeof(f5(caa)) ==     const(int)[string]));
+    static assert(is(typeof(f5(iaa)) == immutable(int)[string]));
+}
+
+inout(const(int[])) foo6930(inout(int)[] x)
+{
+    bool condition = cast(bool)(x.length / 2);
+    return condition ? x : new immutable(int[])(2);
+}
+
+void test6930b(inout int = 0)
+{
+    alias T1 = inout(shared(const(int)));
+    static assert(T1.stringof == "shared(inout(const(int)))");
+    static assert(is(T1 == shared) && is(T1 == const) && is(T1 == inout));
+
+    alias T2 = const(shared(inout(int)[]));
+    static assert(T2.stringof == "shared(const(inout(int)[]))");
+    static assert(is(T2 == shared) && is(T2 == const) && !is(T2 == inout) && is(typeof(T2.init[0]) == inout));
+
+              int [] ma;
+        const(int)[] ca;
+    immutable(int)[] ia;
+        inout(int)[] wa;
+    static assert(is(typeof(foo6930(ma)) ==       const int[]));
+    static assert(is(typeof(foo6930(ca)) ==       const int[]));
+    static assert(is(typeof(foo6930(ia)) ==   immutable int[]));
+    static assert(is(typeof(foo6930(wa)) == inout const int[]));
+}
+
+/************************************/
+// 11868
+
+void f11868(A...)(A) { }
+
+void g11868(inout(const(int))[] arr)
+{
+    f11868(arr[0]);
+}
+
+void test11868()
+{
+    auto arr = [1,2,3];
+    g11868(arr);
+}
+
+/************************************/
 // 6941
 
 static assert((const(shared(int[])[])).stringof == "const(shared(int[])[])");	// fail
@@ -2910,6 +3159,16 @@ void test8688()
 }
 
 /************************************/
+// 10946 (regression by fixing bug 8688, from 2.061)
+
+enum xlen10946 = 4;
+alias immutable(char)[xlen10946] e3;
+alias immutable(char[xlen10946]) e4; // NG -> OK
+immutable vlen10946 = 4;
+alias immutable(char)[vlen10946] i3;
+alias immutable(char[vlen10946]) i4; // NG -> OK
+
+/************************************/
 // 9046
 
 void test9046()
@@ -2989,6 +3248,361 @@ void bar9209(const S9209*) {}
 void test9209() {
     const f = new S9209(1);
     bar9209(f);
+}
+
+/************************************/
+// 10758
+
+struct X10758
+{
+static:
+        inout(int)   screwUpVal(ref inout(int) wx) { return wx; }
+    ref inout(int)   screwUpRef(ref inout(int) wx) { return wx; }
+        inout(int)*  screwUpPtr(ref inout(int) wx) { return &wx; }
+        inout(int)[] screwUpArr(ref inout(int) wx) { return (&wx)[0 .. 1]; }
+}
+
+struct S10758
+{
+    int x;
+        inout(int)   screwUpVal(ref inout(int) _) inout { return x; }
+    ref inout(int)   screwUpRef(ref inout(int) _) inout { return x; }
+        inout(int)*  screwUpPtr(ref inout(int) _) inout { return &x; }
+        inout(int)[] screwUpArr(ref inout(int) _) inout { return (&x)[0 .. 1]; }
+}
+
+void test10758(ref inout(int) wx, inout(int)* wp, inout(int)[] wa, inout(S10758) ws)
+{
+        inout(int)   screwUpVal(inout(int) _) { return wx; }
+    ref inout(int)   screwUpRef(inout(int) _) { return wx; }
+        inout(int)*  screwUpPtr(inout(int) _) { return &wx; }
+        inout(int)[] screwUpArr(inout(int) _) { return (&wx)[0 .. 1]; }
+
+    struct NS
+    {
+            inout(int)   screwUpVal() inout { return wx; }
+        ref inout(int)   screwUpRef() inout { return wx; }
+            inout(int)*  screwUpPtr() inout { return &wx; }
+            inout(int)[] screwUpArr() inout { return (&wx)[0 .. 1]; }
+    }
+
+              int  mx = 1;
+        const(int) cx = 1;
+    immutable(int) ix = 1;
+
+    // nested inout function may return an inout reference of the context,
+    // so substitude inout to mutable or immutable should be disallowed.
+    {
+        // value return does not leak any inout reference, so safe.
+        screwUpVal(mx);
+        screwUpVal(ix);
+        screwUpVal(wx);
+        screwUpVal(cx);
+
+        static assert(!__traits(compiles, screwUpRef(mx)));
+        static assert(!__traits(compiles, screwUpRef(ix)));
+        screwUpRef(wx);
+        screwUpRef(cx);
+
+        static assert(!__traits(compiles, screwUpPtr(mx)));
+        static assert(!__traits(compiles, screwUpPtr(ix)));
+        screwUpPtr(wx);
+        screwUpPtr(cx);
+
+        static assert(!__traits(compiles, screwUpArr(mx)));
+        static assert(!__traits(compiles, screwUpArr(ix)));
+        screwUpArr(cx);
+        screwUpArr(wx);
+    }
+
+    // inout method of the nested struct may return an inout reference of the context,
+    {
+        (          NS()).screwUpVal();
+        (immutable NS()).screwUpVal();
+        (    inout NS()).screwUpVal();
+        (    const NS()).screwUpVal();
+
+        static assert(!__traits(compiles, (          NS()).screwUpRef()));
+        static assert(!__traits(compiles, (immutable NS()).screwUpRef()));
+        (inout NS()).screwUpRef();
+        (const NS()).screwUpRef();
+
+        static assert(!__traits(compiles, (          NS()).screwUpPtr()));
+        static assert(!__traits(compiles, (immutable NS()).screwUpPtr()));
+        (inout NS()).screwUpPtr();
+        (const NS()).screwUpPtr();
+
+        static assert(!__traits(compiles, (          NS()).screwUpArr()));
+        static assert(!__traits(compiles, (immutable NS()).screwUpArr()));
+        (inout NS()).screwUpArr();
+        (const NS()).screwUpArr();
+    }
+
+    // function pointer holds no context, so there's no screw up.
+    {
+        auto fp_screwUpVal = &X10758.screwUpVal;
+        fp_screwUpVal(mx);
+        fp_screwUpVal(ix);
+        fp_screwUpVal(wx);
+        fp_screwUpVal(cx);
+
+        auto fp_screwUpRef = &X10758.screwUpRef;
+        fp_screwUpRef(mx);
+        fp_screwUpRef(ix);
+        fp_screwUpRef(wx);
+        fp_screwUpRef(cx);
+
+        auto fp_screwUpPtr = &X10758.screwUpVal;
+        fp_screwUpPtr(mx);
+        fp_screwUpPtr(ix);
+        fp_screwUpPtr(wx);
+        fp_screwUpPtr(cx);
+
+        auto fp_screwUpArr = &X10758.screwUpVal;
+        fp_screwUpArr(mx);
+        fp_screwUpArr(ix);
+        fp_screwUpArr(wx);
+        fp_screwUpArr(cx);
+    }
+
+    // inout delegate behaves same as nested functions.
+    {
+        auto dg_screwUpVal = &ws.screwUpVal;
+        dg_screwUpVal(mx);
+        dg_screwUpVal(ix);
+        dg_screwUpVal(wx);
+        dg_screwUpVal(cx);
+
+        auto dg_screwUpRef = &ws.screwUpRef;
+        static assert(!__traits(compiles, dg_screwUpRef(mx)));
+        static assert(!__traits(compiles, dg_screwUpRef(ix)));
+        dg_screwUpRef(wx);
+        dg_screwUpRef(cx);
+
+        auto dg_screwUpPtr = &ws.screwUpPtr;
+        static assert(!__traits(compiles, dg_screwUpPtr(mx)));
+        static assert(!__traits(compiles, dg_screwUpPtr(ix)));
+        dg_screwUpPtr(wx);
+        dg_screwUpPtr(cx);
+
+        auto dg_screwUpArr = &ws.screwUpArr;
+        static assert(!__traits(compiles, dg_screwUpArr(mx)));
+        static assert(!__traits(compiles, dg_screwUpArr(ix)));
+        dg_screwUpArr(cx);
+        dg_screwUpArr(wx);
+    }
+}
+
+/************************************/
+// 10761
+
+inout(int)* function(inout(int)*) fptr10761(inout(int)*)
+{
+    static inout(int)* screwUp(inout(int)* x) { return x; }
+    auto fp = &screwUp;
+    static assert(is(typeof(fp) == inout(int)* function(inout(int)*)));
+    return fp;
+}
+
+inout(int)* delegate(inout(int)*) nest10761(inout(int)* x)
+{
+    inout(int)* screwUp(inout(int)* _) { return x; }
+    auto dg = &screwUp;
+    static assert(is(typeof(dg) == inout(int)* delegate(inout(int)*)));
+    return dg;
+}
+
+struct S10761
+{
+    int x;
+    inout(int)* screwUp() inout { return &x; }
+}
+
+inout(int)* delegate() inout memfn10761(inout(int)* x)
+{
+    auto s = new inout S10761(1);
+    auto dg = &s.screwUp;
+    static assert(is(typeof(dg) == inout(int)* delegate() inout));
+    return dg;
+}
+
+void test10761()
+{
+              int  mx = 1;
+        const(int) cx = 1;
+    immutable(int) ix = 1;
+
+    // inout substitution has no effect on function pointer type
+    {
+        auto fp_m = fptr10761(&mx);
+        auto fp_c = fptr10761(&cx);
+        auto fp_i = fptr10761(&ix);
+        alias FP = inout(int)* function(inout(int)*);
+        static assert(is(typeof(fp_m) == FP));
+        static assert(is(typeof(fp_c) == FP));
+        static assert(is(typeof(fp_i) == FP));
+    }
+
+    // inout substitution on delegate type should always
+    // modify inout to const.
+    {
+        auto dg_m = nest10761(&mx);
+        auto dg_c = nest10761(&cx);
+        auto dg_i = nest10761(&ix);
+        alias DG = const(int)* delegate(const(int)*);
+        static assert(is(typeof(dg_m) == DG));
+        static assert(is(typeof(dg_c) == DG));
+        static assert(is(typeof(dg_i) == DG));
+    }
+
+    // same as above
+    {
+        auto dg_m = memfn10761(&mx);
+        auto dg_c = memfn10761(&cx);
+        auto dg_i = memfn10761(&ix);
+        alias DG = const(int)* delegate() const;
+        static assert(is(typeof(dg_m) == DG));
+        static assert(is(typeof(dg_c) == DG));
+        static assert(is(typeof(dg_i) == DG));
+    }
+}
+
+/************************************/
+// 11226
+
+void test11226()
+{
+    typeof(null) m;
+    const typeof(null) c = m;
+    immutable typeof(null) i = m;
+
+    m = m, m = c, m = i;
+    assert(m == c);
+    assert(m == i);
+    assert(c == i);
+    static assert(is(typeof(true ? m : m) ==           typeof(null)));
+    static assert(is(typeof(true ? m : c) ==     const typeof(null)));
+    static assert(is(typeof(true ? m : i) ==     const typeof(null)));
+    static assert(is(typeof(true ? c : m) ==     const typeof(null)));
+    static assert(is(typeof(true ? c : c) ==     const typeof(null)));
+    static assert(is(typeof(true ? c : i) ==     const typeof(null)));
+    static assert(is(typeof(true ? i : m) ==     const typeof(null)));
+    static assert(is(typeof(true ? i : c) ==     const typeof(null)));
+    static assert(is(typeof(true ? i : i) == immutable typeof(null)));
+
+    static assert(typeof(m).stringof ==           "typeof(null)" );
+    static assert(typeof(c).stringof ==     "const(typeof(null))");
+    static assert(typeof(i).stringof == "immutable(typeof(null))");
+}
+
+/************************************/
+// 11257
+
+struct R11257
+{
+    union
+    {
+        const(Object) original;
+        Object stripped;
+    }
+}
+void test11257()
+{
+    const(R11257) cr;
+    R11257 mr = cr;  // Error: cannot implicitly convert expression (cr) of type const(R) to R
+}
+
+/************************************/
+// 11215
+
+shared(inout(void)**) f11215(inout int);
+
+static assert(is(typeof(f11215(0)) == shared(void**)));
+static assert(is(typeof(f11215((const int).init)) == shared(const(void)**)));
+
+/************************************/
+// 11489
+
+void test11489(inout int = 0)
+{
+    static class B {}
+    static class D : B {}
+
+                 D [] dm;
+           const(D)[] dc;
+           inout(D)[] dw;
+          shared(D)[] dsm;
+    shared(const D)[] dsc;
+    shared(inout D)[] dsw;
+       immutable(D)[] di;
+
+    static assert(!__traits(compiles, {              B [] b = dm; }));
+    static assert( __traits(compiles, {        const(B)[] b = dm; }));
+    static assert(!__traits(compiles, {        inout(B)[] b = dm; }));
+    static assert(!__traits(compiles, {       shared(B)[] b = dm; }));
+    static assert(!__traits(compiles, { shared(const B)[] b = dm; }));
+    static assert(!__traits(compiles, { shared(inout B)[] b = dm; }));
+    static assert(!__traits(compiles, {    immutable(B)[] b = dm; }));
+
+    static assert(!__traits(compiles, {              B [] b = dc; }));
+    static assert( __traits(compiles, {        const(B)[] b = dc; }));
+    static assert(!__traits(compiles, {        inout(B)[] b = dc; }));
+    static assert(!__traits(compiles, {       shared(B)[] b = dc; }));
+    static assert(!__traits(compiles, { shared(const B)[] b = dc; }));
+    static assert(!__traits(compiles, { shared(inout B)[] b = dc; }));
+    static assert(!__traits(compiles, {    immutable(B)[] b = dc; }));
+
+    static assert(!__traits(compiles, {              B [] b = dw; }));
+    static assert( __traits(compiles, {        const(B)[] b = dw; }));
+    static assert(!__traits(compiles, {        inout(B)[] b = dw; }));
+    static assert(!__traits(compiles, {       shared(B)[] b = dw; }));
+    static assert(!__traits(compiles, { shared(const B)[] b = dw; }));
+    static assert(!__traits(compiles, { shared(inout B)[] b = dw; }));
+    static assert(!__traits(compiles, {    immutable(B)[] b = dw; }));
+
+    static assert(!__traits(compiles, {              B [] b = dsm; }));
+    static assert(!__traits(compiles, {        const(B)[] b = dsm; }));
+    static assert(!__traits(compiles, {        inout(B)[] b = dsm; }));
+    static assert(!__traits(compiles, {       shared(B)[] b = dsm; }));
+    static assert( __traits(compiles, { shared(const B)[] b = dsm; }));
+    static assert(!__traits(compiles, { shared(inout B)[] b = dsm; }));
+    static assert(!__traits(compiles, {    immutable(B)[] b = dsm; }));
+
+    static assert(!__traits(compiles, {              B [] b = dsc; }));
+    static assert(!__traits(compiles, {        const(B)[] b = dsc; }));
+    static assert(!__traits(compiles, {        inout(B)[] b = dsc; }));
+    static assert(!__traits(compiles, {       shared(B)[] b = dsc; }));
+    static assert( __traits(compiles, { shared(const B)[] b = dsc; }));
+    static assert(!__traits(compiles, { shared(inout B)[] b = dsc; }));
+    static assert(!__traits(compiles, {    immutable(B)[] b = dsc; }));
+
+    static assert(!__traits(compiles, {              B [] b = dsw; }));
+    static assert(!__traits(compiles, {        const(B)[] b = dsw; }));
+    static assert(!__traits(compiles, {        inout(B)[] b = dsw; }));
+    static assert(!__traits(compiles, {       shared(B)[] b = dsw; }));
+    static assert( __traits(compiles, { shared(const B)[] b = dsw; }));
+    static assert(!__traits(compiles, { shared(inout B)[] b = dsw; }));
+    static assert(!__traits(compiles, {    immutable(B)[] b = dsw; }));
+
+    static assert(!__traits(compiles, {              B [] b = di; }));
+    static assert( __traits(compiles, {        const(B)[] b = di; }));
+    static assert(!__traits(compiles, {        inout(B)[] b = di; }));
+    static assert(!__traits(compiles, {       shared(B)[] b = di; }));
+    static assert( __traits(compiles, { shared(const B)[] b = di; }));
+    static assert(!__traits(compiles, { shared(inout B)[] b = di; }));
+    static assert( __traits(compiles, {    immutable(B)[] b = di; }));
+}
+
+/************************************/
+// 11768
+
+void test11768(inout int = 0)
+{
+    const(inout(char)) k1;
+    inout(const(char)) k2;
+    static assert(typeof(k1).stringof == "inout(const(char))"); // OK
+    static assert(typeof(k2).stringof == "inout(const(char))"); // fails
+    static assert(is(typeof(k1) == typeof(k2)));                // fails
 }
 
 /************************************/
@@ -3095,6 +3709,9 @@ int main()
     test6866();
     test6870();
     test6912();
+    test6930a();
+    test6930b();
+    test11868();
     test6939();
     test6940();
     test6982();
@@ -3116,6 +3733,8 @@ int main()
     test9090();
     test9461();
     test9209();
+    test11226();
+    test11768();
 
     printf("Success\n");
     return 0;

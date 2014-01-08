@@ -34,6 +34,7 @@ DsymbolTable *Module::modules;
 Modules Module::amodules;
 
 Dsymbols Module::deferred; // deferred Dsymbol's needing semantic() run on them
+Dsymbols Module::deferred3;
 unsigned Module::dprogress;
 
 const char *lookForSourceFile(const char *filename);
@@ -43,7 +44,7 @@ void Module::init()
     modules = new DsymbolTable();
 }
 
-Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen)
+Module::Module(const char *filename, Identifier *ident, int doDocComment, int doHdrGen)
         : Package(ident)
 {
     const char *srcfilename;
@@ -59,11 +60,6 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
     needmoduleinfo = 0;
     selfimports = 0;
     insearch = 0;
-    searchCacheIdent = NULL;
-    searchCacheSymbol = NULL;
-    searchCacheFlags = 0;
-    semanticstarted = 0;
-    semanticRun = 0;
     decldefs = NULL;
     massert = NULL;
     munittest = NULL;
@@ -75,7 +71,6 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
     sshareddtor = NULL;
     stest = NULL;
     sfilename = NULL;
-    root = 0;
     importedFrom = NULL;
     srcfile = NULL;
     docfile = NULL;
@@ -89,7 +84,7 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
 
     macrotable = NULL;
     escapetable = NULL;
-    safe = FALSE;
+    safe = false;
     doppelganger = 0;
     cov = NULL;
     covb = NULL;
@@ -98,7 +93,16 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
     namelen = 0;
 
     srcfilename = FileName::defaultExt(filename, global.mars_ext);
-    if (!FileName::equalsExt(srcfilename, global.mars_ext) &&
+
+    if (global.run_noext && global.params.run &&
+        !FileName::ext(filename) &&
+        FileName::exists(srcfilename) == 0 &&
+        FileName::exists(filename) == 1)
+    {
+        FileName::free(srcfilename);
+        srcfilename = FileName::removeExt(filename);    // just does a mem.strdup(filename)
+    }
+    else if (!FileName::equalsExt(srcfilename, global.mars_ext) &&
         !FileName::equalsExt(srcfilename, global.hdr_ext) &&
         !FileName::equalsExt(srcfilename, "dd"))
     {
@@ -119,6 +123,11 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
 
     //objfile = new File(objfilename);
     symfile = new File(symfilename);
+}
+
+Module *Module::create(const char *filename, Identifier *ident, int doDocComment, int doHdrGen)
+{
+    return new Module(filename, ident, doDocComment, doHdrGen);
 }
 
 void Module::setDocfile()
@@ -177,10 +186,6 @@ void Module::deleteObjFile()
         docfile->remove();
 }
 
-Module::~Module()
-{
-}
-
 const char *Module::kind()
 {
     return "module";
@@ -227,15 +232,15 @@ Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
 
     if (global.params.verbose)
     {
-        printf("import    ");
+        fprintf(global.stdmsg, "import    ");
         if (packages)
         {
             for (size_t i = 0; i < packages->dim; i++)
             {   Identifier *pid = (*packages)[i];
-                printf("%s.", pid->toChars());
+                fprintf(global.stdmsg, "%s.", pid->toChars());
             }
         }
-        printf("%s\t(%s)\n", ident->toChars(), m->srcfile->toChars());
+        fprintf(global.stdmsg, "%s\t(%s)\n", ident->toChars(), m->srcfile->toChars());
     }
 
     if (!m->read(loc))
@@ -262,7 +267,15 @@ bool Module::read(Loc loc)
         }
         else
         {
-            error(loc, "is in file '%s' which cannot be read", srcfile->toChars());
+            // if module is not named 'package' but we're trying to read 'package.d', we're looking for a package module
+            bool isPackageMod = (strcmp(toChars(), "package") != 0) &&
+                                (strcmp(srcfile->name->name(), "package.d") == 0);
+
+            if (isPackageMod)
+                ::error(loc, "importing package '%s' requires a 'package.d' file which cannot be found in '%s'",
+                    toChars(), srcfile->toChars());
+            else
+                error(loc, "is in file '%s' which cannot be read", srcfile->toChars());
         }
 
         if (!global.gag)
@@ -272,7 +285,7 @@ bool Module::read(Loc loc)
             {
                 for (size_t i = 0; i < global.path->dim; i++)
                 {
-                    char *p = (*global.path)[i];
+                    const char *p = (*global.path)[i];
                     fprintf(stderr, "import path[%llu] = %s\n", (ulonglong)i, p);
                 }
             }
@@ -318,7 +331,7 @@ void Module::parse()
     char *srcname = srcfile->name->toChars();
     //printf("Module::parse(srcname = '%s')\n", srcname);
 
-    unsigned char *buf = srcfile->buffer;
+    utf8_t *buf = (utf8_t *)srcfile->buffer;
     size_t buflen = srcfile->len;
 
     if (buflen >= 2)
@@ -368,7 +381,7 @@ void Module::parse()
                 }
                 dbuf.writeByte(0);              // add 0 as sentinel for scanner
                 buflen = dbuf.offset - 1;       // don't include sentinel in count
-                buf = (unsigned char *) dbuf.extractData();
+                buf = (utf8_t *) dbuf.extractData();
             }
             else
             {   // UTF-16LE (X86)
@@ -421,7 +434,7 @@ void Module::parse()
                 }
                 dbuf.writeByte(0);              // add 0 as sentinel for scanner
                 buflen = dbuf.offset - 1;       // don't include sentinel in count
-                buf = (unsigned char *) dbuf.extractData();
+                buf = (utf8_t *) dbuf.extractData();
             }
         }
         else if (buf[0] == 0xFE && buf[1] == 0xFF)
@@ -493,24 +506,26 @@ void Module::parse()
             setDocfile();
         return;
     }
-    Parser p(this, buf, buflen, docfile != NULL);
-    p.nextToken();
-    members = p.parseModule();
+    {
+        Parser p(this, buf, buflen, docfile != NULL);
+        p.nextToken();
+        members = p.parseModule();
+        md = p.md;
+        numlines = p.scanloc.linnum;
+    }
 
     if (srcfile->ref == 0)
         ::free(srcfile->buffer);
     srcfile->buffer = NULL;
     srcfile->len = 0;
 
-    md = p.md;
-    numlines = p.loc.linnum;
-
     /* The symbol table into which the module is to be inserted.
      */
     DsymbolTable *dst;
 
     if (md)
-    {   /* A ModuleDeclaration, md, was provided.
+    {
+        /* A ModuleDeclaration, md, was provided.
          * The ModuleDeclaration sets the packages this module appears in, and
          * the name of this module.
          */
@@ -518,17 +533,18 @@ void Module::parse()
         this->safe = md->safe;
         Package *ppack = NULL;
         dst = Package::resolve(md->packages, &this->parent, &ppack);
-#if 0
-        if (ppack && ppack->isModule())
+        assert(dst);
+
+        Module *m = ppack ? ppack->isModule() : NULL;
+        if (m && strcmp(m->srcfile->name->name(), "package.d") != 0)
         {
-            error(loc, "package name '%s' in file %s conflicts with usage as a module name in file %s",
-                ppack->toChars(), srcname, ppack->isModule()->srcfile->toChars());
-            dst = modules;
+            ::error(md->loc, "package name '%s' conflicts with usage as a module name in file %s",
+                ppack->toPrettyChars(), m->srcfile->toChars());
         }
-#endif
     }
     else
-    {   /* The name of the module is set to the source file name.
+    {
+        /* The name of the module is set to the source file name.
          * There are no packages.
          */
         dst = modules;          // and so this module goes into global module symbol table
@@ -556,7 +572,7 @@ void Module::parse()
          * If both are used in one compilation, 'pkg' as a module (== pkg/package.d)
          * and a package name 'pkg' will conflict each other.
          *
-         * To avoid the confliction,
+         * To avoid the conflict:
          * 1. If preceding package name insertion had occurred by Package::resolve,
          *    later package.d loading will change Package::isPkgMod to PKGmodule and set Package::mod.
          * 2. Otherwise, 'package.d' wrapped by 'Package' is inserted to the internal tree in here.
@@ -575,8 +591,7 @@ void Module::parse()
          */
         Dsymbol *prev = dst->lookup(ident);
         assert(prev);
-        Module *mprev = prev->isModule();
-        if (mprev)
+        if (Module *mprev = prev->isModule())
         {
             if (strcmp(srcname, mprev->srcfile->toChars()) == 0)
                 error(loc, "from file %s must be imported as module '%s'",
@@ -585,10 +600,8 @@ void Module::parse()
                 error(loc, "from file %s conflicts with another module %s from file %s",
                     srcname, mprev->toChars(), mprev->srcfile->toChars());
         }
-        else
+        else if (Package *pkg = prev->isPackage())
         {
-            Package *pkg = prev->isPackage();
-            assert(pkg);
             if (pkg->isPkgMod == PKGunknown && isPackageMod)
             {
                 /* If the previous inserted Package is not yet determined as package.d,
@@ -601,6 +614,8 @@ void Module::parse()
                 error(pkg->loc, "from file %s conflicts with package name %s",
                     srcname, pkg->toChars());
         }
+        else
+            assert(global.errors);
     }
     else
     {
@@ -658,7 +673,8 @@ void Module::importAll(Scope *prevsc)
      */
     setScope(sc);               // remember module scope for semantic
     for (size_t i = 0; i < members->dim; i++)
-    {   Dsymbol *s = (*members)[i];
+    {
+        Dsymbol *s = (*members)[i];
         s->setScope(sc);
     }
 
@@ -674,18 +690,18 @@ void Module::importAll(Scope *prevsc)
 
 void Module::semantic()
 {
-    if (semanticstarted)
+    if (semanticRun != PASSinit)
         return;
 
     //printf("+Module::semantic(this = %p, '%s'): parent = %p\n", this, toChars(), parent);
-    semanticstarted = 1;
+    semanticRun = PASSsemantic;
 
     // Note that modules get their own scope, from scratch.
     // This is so regardless of where in the syntax a module
     // gets imported, it is unaffected by context.
     Scope *sc = scope;                  // see if already got one from importAll()
     if (!sc)
-    {   printf("test2\n");
+    {
         Scope::createGlobal(this);      // create root scope
     }
 
@@ -702,7 +718,8 @@ void Module::semantic()
     // Add all symbols into module's symbol table
     symtab = new DsymbolTable();
     for (size_t i = 0; i < members->dim; i++)
-    {   Dsymbol *s = (Dsymbol *)members->data[i];
+    {
+        Dsymbol *s = (Dsymbol *)members->data[i];
         s->addMember(NULL, sc->scopesym, 1);
     }
 
@@ -712,22 +729,16 @@ void Module::semantic()
      * before any semantic() on any of them.
      */
     for (size_t i = 0; i < members->dim; i++)
-    {   Dsymbol *s = (Dsymbol *)members->data[i];
+    {
+        Dsymbol *s = (Dsymbol *)members->data[i];
         s->setScope(sc);
     }
 #endif
 
-    // Do semantic() on members that don't depend on others
-    for (size_t i = 0; i < members->dim; i++)
-    {   Dsymbol *s = (*members)[i];
-
-        //printf("\tModule('%s'): '%s'.semantic0()\n", toChars(), s->toChars());
-        s->semantic0(sc);
-    }
-
     // Pass 1 semantic routines: do public side of the definition
     for (size_t i = 0; i < members->dim; i++)
-    {   Dsymbol *s = (*members)[i];
+    {
+        Dsymbol *s = (*members)[i];
 
         //printf("\tModule('%s'): '%s'.semantic()\n", toChars(), s->toChars());
         s->semantic(sc);
@@ -735,10 +746,11 @@ void Module::semantic()
     }
 
     if (!scope)
-    {   sc = sc->pop();
+    {
+        sc = sc->pop();
         sc->pop();              // 2 pops because Scope::createGlobal() created 2
     }
-    semanticRun = semanticstarted;
+    semanticRun = PASSsemanticdone;
     //printf("-Module::semantic(this = %p, '%s'): parent = %p\n", this, toChars(), parent);
 }
 
@@ -755,12 +767,9 @@ void Module::semantic2()
         return;
     }
     //printf("Module::semantic2('%s'): parent = %p\n", toChars(), parent);
-    if (semanticRun == 0)       // semantic() not completed yet - could be recursive call
+    if (semanticRun != PASSsemanticdone)       // semantic() not completed yet - could be recursive call
         return;
-    if (semanticstarted >= 2)
-        return;
-    assert(semanticstarted == 1);
-    semanticstarted = 2;
+    semanticRun = PASSsemantic2;
 
     // Note that modules get their own scope, from scratch.
     // This is so regardless of where in the syntax a module
@@ -770,25 +779,23 @@ void Module::semantic2()
 
     // Pass 2 semantic routines: do initializers and function bodies
     for (size_t i = 0; i < members->dim; i++)
-    {   Dsymbol *s;
-
-        s = (*members)[i];
+    {
+        Dsymbol *s = (*members)[i];
         s->semantic2(sc);
     }
 
     sc = sc->pop();
     sc->pop();
-    semanticRun = semanticstarted;
+    semanticRun = PASSsemantic2done;
     //printf("-Module::semantic2('%s'): parent = %p\n", toChars(), parent);
 }
 
 void Module::semantic3()
 {
     //printf("Module::semantic3('%s'): parent = %p\n", toChars(), parent);
-    if (semanticstarted >= 3)
+    if (semanticRun != PASSsemantic2done)
         return;
-    assert(semanticstarted == 2);
-    semanticstarted = 3;
+    semanticRun = PASSsemantic3;
 
     // Note that modules get their own scope, from scratch.
     // This is so regardless of where in the syntax a module
@@ -798,24 +805,22 @@ void Module::semantic3()
 
     // Pass 3 semantic routines: do initializers and function bodies
     for (size_t i = 0; i < members->dim; i++)
-    {   Dsymbol *s;
-
-        s = (*members)[i];
+    {
+        Dsymbol *s = (*members)[i];
         //printf("Module %s: %s.semantic3()\n", toChars(), s->toChars());
         s->semantic3(sc);
     }
 
     sc = sc->pop();
     sc->pop();
-    semanticRun = semanticstarted;
+    semanticRun = PASSsemantic3done;
 }
 
 void Module::inlineScan()
 {
-    if (semanticstarted >= 4)
+    if (semanticRun != PASSsemantic3done)
         return;
-    assert(semanticstarted == 3);
-    semanticstarted = 4;
+    semanticRun = PASSinline;
 
     // Note that modules get their own scope, from scratch.
     // This is so regardless of where in the syntax a module
@@ -823,13 +828,13 @@ void Module::inlineScan()
     //printf("Module = %p\n", sc.scopesym);
 
     for (size_t i = 0; i < members->dim; i++)
-    {   Dsymbol *s = (*members)[i];
+    {
+        Dsymbol *s = (*members)[i];
         //if (global.params.verbose)
-            //printf("inline scan symbol %s\n", s->toChars());
-
+        //    fprintf(global.stdmsg, "inline scan symbol %s\n", s->toChars());
         s->inlineScan();
     }
-    semanticRun = semanticstarted;
+    semanticRun = PASSinlinedone;
 }
 
 /****************************************************
@@ -846,8 +851,8 @@ void Module::gensymfile()
     buf.writenl();
 
     for (size_t i = 0; i < members->dim; i++)
-    {   Dsymbol *s = (*members)[i];
-
+    {
+        Dsymbol *s = (*members)[i];
         s->toCBuffer(&buf, &hgs);
     }
 
@@ -855,7 +860,7 @@ void Module::gensymfile()
     symfile->setbuffer(buf.data, buf.offset);
     buf.data = NULL;
 
-    symfile->writev();
+    writeFile(loc, symfile);
 }
 
 /**********************************
@@ -880,36 +885,13 @@ Dsymbol *Module::search(Loc loc, Identifier *ident, int flags)
     Dsymbol *s;
     if (insearch)
         s = NULL;
-    else if (searchCacheIdent == ident && searchCacheFlags == flags)
-    {
-        s = searchCacheSymbol;
-        //printf("%s Module::search('%s', flags = %d) insearch = %d searchCacheSymbol = %s\n", toChars(), ident->toChars(), flags, insearch, searchCacheSymbol ? searchCacheSymbol->toChars() : "null");
-    }
     else
     {
         insearch = 1;
         s = ScopeDsymbol::search(loc, ident, flags);
         insearch = 0;
-
-        searchCacheIdent = ident;
-        searchCacheSymbol = s;
-        searchCacheFlags = flags;
     }
     return s;
-}
-
-Dsymbol *Module::symtabInsert(Dsymbol *s)
-{
-    searchCacheIdent = NULL;       // symbol is inserted, so invalidate cache
-    return Package::symtabInsert(s);
-}
-
-void Module::clearCache()
-{
-    for (size_t i = 0; i < amodules.dim; i++)
-    {   Module *m = amodules[i];
-        m->searchCacheIdent = NULL;
-    }
 }
 
 /*******************************************
@@ -986,9 +968,36 @@ void Module::runDeferredSemantic()
     //printf("-Module::runDeferredSemantic(), len = %d\n", deferred.dim);
 }
 
+void Module::addDeferredSemantic3(Dsymbol *s)
+{
+    // Don't add it if it is already there
+    for (size_t i = 0; i < deferred3.dim; i++)
+    {
+        Dsymbol *sd = deferred3[i];
+        if (sd == s)
+            return;
+    }
+    deferred3.push(s);
+}
+
+void Module::runDeferredSemantic3()
+{
+    Dsymbols *a = &Module::deferred3;
+    for (size_t i = 0; i < a->dim; i++)
+    {
+        Dsymbol *s = (*a)[i];
+        //printf("[%d] %s semantic3a\n", i, s->toPrettyChars());
+
+        s->semantic3(NULL);
+
+        if (global.errors)
+            break;
+    }
+}
+
 /************************************
  * Recursively look at every module this module imports,
- * return TRUE if it imports m.
+ * return true if it imports m.
  * Can be used to detect circular imports.
  */
 
@@ -997,14 +1006,16 @@ int Module::imports(Module *m)
     //printf("%s Module::imports(%s)\n", toChars(), m->toChars());
 #if 0
     for (size_t i = 0; i < aimports.dim; i++)
-    {   Module *mi = (Module *)aimports.data[i];
+    {
+        Module *mi = (Module *)aimports.data[i];
         printf("\t[%d] %s\n", i, mi->toChars());
     }
 #endif
     for (size_t i = 0; i < aimports.dim; i++)
-    {   Module *mi = aimports[i];
+    {
+        Module *mi = aimports[i];
         if (mi == m)
-            return TRUE;
+            return true;
         if (!mi->insearch)
         {
             mi->insearch = 1;
@@ -1013,7 +1024,7 @@ int Module::imports(Module *m)
                 return r;
         }
     }
-    return FALSE;
+    return false;
 }
 
 /*************************************
@@ -1026,7 +1037,8 @@ int Module::selfImports()
     if (!selfimports)
     {
         for (size_t i = 0; i < amodules.dim; i++)
-        {   Module *mi = amodules[i];
+        {
+            Module *mi = amodules[i];
             //printf("\t[%d] %s\n", i, mi->toChars());
             mi->insearch = 0;
         }
@@ -1034,7 +1046,8 @@ int Module::selfImports()
         selfimports = imports(this) + 1;
 
         for (size_t i = 0; i < amodules.dim; i++)
-        {   Module *mi = amodules[i];
+        {
+            Module *mi = amodules[i];
             //printf("\t[%d] %s\n", i, mi->toChars());
             mi->insearch = 0;
         }
@@ -1045,8 +1058,9 @@ int Module::selfImports()
 
 /* =========================== ModuleDeclaration ===================== */
 
-ModuleDeclaration::ModuleDeclaration(Identifiers *packages, Identifier *id, bool safe)
+ModuleDeclaration::ModuleDeclaration(Loc loc, Identifiers *packages, Identifier *id, bool safe)
 {
+    this->loc = loc;
     this->packages = packages;
     this->id = id;
     this->safe = safe;
@@ -1059,8 +1073,8 @@ char *ModuleDeclaration::toChars()
     if (packages && packages->dim)
     {
         for (size_t i = 0; i < packages->dim; i++)
-        {   Identifier *pid = (*packages)[i];
-
+        {
+            Identifier *pid = (*packages)[i];
             buf.writestring(pid->toChars());
             buf.writeByte('.');
         }
@@ -1107,8 +1121,8 @@ DsymbolTable *Package::resolve(Identifiers *packages, Dsymbol **pparent, Package
     if (packages)
     {
         for (size_t i = 0; i < packages->dim; i++)
-        {   Identifier *pid = (*packages)[i];
-
+        {
+            Identifier *pid = (*packages)[i];
             Package *pkg;
             Dsymbol *p = dst->lookup(pid);
             if (!p)
@@ -1126,19 +1140,22 @@ DsymbolTable *Package::resolve(Identifiers *packages, Dsymbol **pparent, Package
                 // to be checked at a higher level, where a nice error message
                 // can be generated.
                 // dot net needs modules and packages with same name
+
+                // But we still need a symbol table for it
+                if (!pkg->symtab)
+                    pkg->symtab = new DsymbolTable();
             }
             parent = pkg;
             dst = pkg->symtab;
             if (ppkg && !*ppkg)
                 *ppkg = pkg;
-#if 0
             if (pkg->isModule())
-            {   // Return the module so that a nice error message can be generated
+            {
+                // Return the module so that a nice error message can be generated
                 if (ppkg)
                     *ppkg = (Package *)p;
                 break;
             }
-#endif
         }
     }
     if (pparent)
@@ -1146,6 +1163,20 @@ DsymbolTable *Package::resolve(Identifiers *packages, Dsymbol **pparent, Package
     return dst;
 }
 
+Dsymbol *Package::search(Loc loc, Identifier *ident, int flags)
+{
+    if (!isModule() && mod)
+    {
+        // Prefer full package name.
+        Dsymbol *s = symtab ? symtab->lookup(ident) : NULL;
+        if (s)
+            return s;
+        //printf("[%s] through pkdmod: %s\n", loc.toChars(), toChars());
+        return mod->search(loc, ident, flags);
+    }
+
+    return ScopeDsymbol::search(loc, ident, flags);
+}
 
 /* ===========================  ===================== */
 
@@ -1178,8 +1209,12 @@ const char *lookForSourceFile(const char *filename)
     {
         /* The filename exists and it's a directory.
          * Therefore, the result should be: filename/package.d
+         * iff filename/package.d is a file
          */
-        return FileName::combine(filename, "package.d");
+        const char *n = FileName::combine(filename, "package.d");
+        if (FileName::exists(n) == 1)
+            return n;
+        FileName::free(n);
     }
 
     if (FileName::absolute(filename))
@@ -1206,7 +1241,12 @@ const char *lookForSourceFile(const char *filename)
         n = FileName::combine(p, b);
         FileName::free(b);
         if (FileName::exists(n) == 2)
-            return FileName::combine(n, "package.d");
+        {
+            const char *n2 = FileName::combine(n, "package.d");
+            if (FileName::exists(n2) == 1)
+                return n2;
+            FileName::free(n2);
+        }
         FileName::free(n);
     }
     return NULL;

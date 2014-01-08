@@ -64,24 +64,24 @@ template Foo3(T, A...)
 {
     int Foo3(T t, A a)
     {
-	printf("A.length = %d\n", A.length);
-	assert(A.length == 2);
-	printf("a.length = %d\n", a.length);
-	assert(a.length == 2);
-	printf("%d %d %d\n", t, a);
-	bar3(a);
-	assert([a] == [2, 3]);
-	assert([cast(double)a] == [2.0, 3.0]);
-	assert(a[0] == 2);
-	assert(a[1] == 3);
-	assert(a[$ - 2] == 2);
-	assert(a[$ - 1] == 3);
-	static if (1 || a[6])
-	    assert(1);
-	assert([a[]] == [2, 3]);
-	assert([a[0 .. $]] == [2, 3]);
-	assert([a[0 .. $ - 1]] == [2]);
-	return 3;
+        printf("A.length = %d\n", A.length);
+        assert(A.length == 2);
+        printf("a.length = %d\n", a.length);
+        assert(a.length == 2);
+        printf("%d %d %d\n", t, a);
+        bar3(a);
+        assert([a] == [2, 3]);
+        assert([cast(double)a] == [2.0, 3.0]);
+        assert(a[0] == 2);
+        assert(a[1] == 3);
+        assert(a[$ - 2] == 2);
+        assert(a[$ - 1] == 3);
+        static if (1 || a[6])
+            assert(1);
+        assert([a[]] == [2, 3]);
+        assert([a[0 .. $]] == [2, 3]);
+        assert([a[0 .. $ - 1]] == [2]);
+        return 3;
     }
 }
 
@@ -102,16 +102,16 @@ void foo4(A...)()
     aa = null;
     foreach (a; A)
     {
-	printf("%d\n", a);
-	aa ~= a;
+        printf("%d\n", a);
+        aa ~= a;
     }
     assert(aa == [7,4,9]);
 
     aa = null;
     foreach (int a; A)
     {
-	printf("%d\n", a);
-	aa ~= a;
+        printf("%d\n", a);
+        aa ~= a;
     }
     assert(aa == [7,4,9]);
 
@@ -119,9 +119,9 @@ void foo4(A...)()
     aa = null;
     foreach (int i, a; A)
     {
-	printf("[%d]: %d\n", i, a);
-	ai ~= i;
-	aa ~= a;
+        printf("[%d]: %d\n", i, a);
+        ai ~= i;
+        aa ~= a;
     }
     assert(ai == [0,1,2]);
     assert(aa == [7,4,9]);
@@ -130,9 +130,9 @@ void foo4(A...)()
     aa = null;
     foreach_reverse (uint i, a; A)
     {
-	printf("[%d]: %d\n", i, a);
-	ai ~= i;
-	aa ~= a;
+        printf("[%d]: %d\n", i, a);
+        ai ~= i;
+        aa ~= a;
     }
     assert(ai == [2,1,0]);
     assert(aa == [9,4,7]);
@@ -141,9 +141,9 @@ void foo4(A...)()
     aa = null;
     foreach_reverse (i, a; A)
     {
-	printf("[%d]: %d\n", i, a);
-	ai ~= i;
-	aa ~= a;
+        printf("[%d]: %d\n", i, a);
+        ai ~= i;
+        aa ~= a;
     }
     assert(ai == [2,1,0]);
     assert(aa == [9,4,7]);
@@ -152,12 +152,12 @@ void foo4(A...)()
     aa = null;
     foreach (int i, a; A)
     {
-	printf("[%d]: %d\n", i, a);
-	ai ~= i;
-	aa ~= a;
-	if (i == 1)
-	    break;
-	continue;
+        printf("[%d]: %d\n", i, a);
+        ai ~= i;
+        aa ~= a;
+        if (i == 1)
+            break;
+        continue;
     }
     assert(ai == [0,1]);
     assert(aa == [7,4]);
@@ -173,7 +173,7 @@ void test4()
 void print5(A...)(A a)
 {
     foreach(b; a)
-	writeln(b);
+        writeln(b);
 }
 
 void test5()
@@ -187,7 +187,7 @@ void test5()
 void print6(A...)(A a)
 {
     foreach(b; a)
-	writeln(b);
+        writeln(b);
 }
 
 void test6()
@@ -251,9 +251,9 @@ void print10(A...)(A a)
 {
     static if (a.length)
     {
-	writeln(a[0]);
-	static if (a.length > 1)
-	    print10(a[1 .. $]);
+        writeln(a[0]);
+        static if (a.length > 1)
+            print10(a[1 .. $]);
     }
 }
 
@@ -268,7 +268,7 @@ void test10()
 void print11(A...)(A a)
 {
     foreach(b; A)
-	writeln(typeid(b));
+        writeln(typeid(b));
 }
 
 void test11()
@@ -449,11 +449,11 @@ void test23()
 void returnAndArgs(T, U...) (T delegate(U) dg)
 {
     static if (U.length == 0)
-	assert(dg() == 0);
+        assert(dg() == 0);
     else static if (U.length == 1)
-	assert(dg(false) == 1);
+        assert(dg(false) == 1);
     else
-	assert(dg(false, 63L) == 2);
+        assert(dg(false, 63L) == 2);
 }
 
 void test24()
@@ -523,11 +523,11 @@ void test26()
     writeln(typeid(typeof(t2)));
     version (D_Version2)
     {
-	assert(std.string.format("%s", typeid(typeof(t2))) == "(int,int,immutable(char)[],immutable(char)[])");
+        assert(std.string.format("%s", typeid(typeof(t2))) == "(int,int,immutable(char)[],immutable(char)[])");
     }
     else
     {
-	assert(std.string.format("%s", typeid(typeof(t2))) == "(int,int,char[2],char[3])");
+        assert(std.string.format("%s", typeid(typeof(t2))) == "(int,int,char[2],char[3])");
     }
 }
 
@@ -538,7 +538,7 @@ void test27()
 
     int bar(int x, long z)
     {
-	return x + y;
+        return x + y;
     }
 
     auto dg = &bar;
@@ -558,14 +558,14 @@ void test28()
 
     foreach (int i, T; TL)
     {
-	writeln(typeid(T));
-	switch (i)
-	{
-	    case 0:	assert(is(T == int));	 break;
-	    case 1:	assert(is(T == long));	 break;
-	    case 2:	assert(is(T == double)); break;
-	    default:	assert(0);
-	}
+        writeln(typeid(T));
+        switch (i)
+        {
+            case 0: assert(is(T == int));    break;
+            case 1: assert(is(T == long));   break;
+            case 2: assert(is(T == double)); break;
+            default:assert(0);
+        }
     }
 }
 
@@ -577,19 +577,19 @@ void test29()
 
     struct Foo
     {
-	static TL tl;
+        static TL tl;
 
-	void bar()
-	{
-	    writeln(tl);
-	    assert(std.string.format("%s%s%s", tl) == "00nan");
+        void bar()
+        {
+            writeln(tl);
+            assert(std.string.format("%s%s%s", tl) == "00nan");
 
-	    tl[0] = 3;
-	    tl[1] = 5;
-	    tl[2] = 6.8;
-	    writeln(tl);
-	    assert(std.string.format("%s%s%s", tl) == "356.8");
-	}
+            tl[0] = 3;
+            tl[1] = 5;
+            tl[2] = 6.8;
+            writeln(tl);
+            assert(std.string.format("%s%s%s", tl) == "356.8");
+        }
     }
 
     Foo foo;
@@ -604,19 +604,19 @@ void test30()
 
     struct Foo
     {
-	TL tl;
+        TL tl;
 
-	void bar()
-	{
-	    writeln(tl);
-	    assert(std.string.format("%s%s%s", tl) == "00nan");
+        void bar()
+        {
+            writeln(tl);
+            assert(std.string.format("%s%s%s", tl) == "00nan");
 
-	    tl[0] = 3;
-	    tl[1] = 5;
-	    tl[2] = 6.8;
-	    writeln(tl);
-	    assert(std.string.format("%s%s%s", tl) == "356.8");
-	}
+            tl[0] = 3;
+            tl[1] = 5;
+            tl[2] = 6.8;
+            writeln(tl);
+            assert(std.string.format("%s%s%s", tl) == "356.8");
+        }
     }
 
     Foo foo;
@@ -631,7 +631,7 @@ void test31()
 
     struct Foo
     {
-	TL tl;
+        TL tl;
     }
 
     Foo foo;
@@ -841,44 +841,44 @@ import std.stdio;
 template Format(A...)
 {
     static if (A.length == 0)
-	const string Format = "";
+        const string Format = "";
     else static if (is(typeof(A[0]) : string))
-	const string Format = FormatString!(A[0], A[1..$]);
-	//const string Format = FormatString!(A[0]);
+        const string Format = FormatString!(A[0], A[1..$]);
+        //const string Format = FormatString!(A[0]);
     else
-	const string Format = ToString!(A[0]) ~ Format!(A[1..$]);
+        const string Format = ToString!(A[0]) ~ Format!(A[1..$]);
 }
 
 template FormatString(string F, A...)
 {
     static if (F.length == 0)
-	const string FormatString = Format!(A);
+        const string FormatString = Format!(A);
     else static if (F.length == 1)
-	const string FormatString = F[0] ~ Format!(A);
+        const string FormatString = F[0] ~ Format!(A);
     else static if (F[0..2] == "%s")
-	const string FormatString = ToString!(A[0]) ~ FormatString!(F[2..$],A[1..$]);
+        const string FormatString = ToString!(A[0]) ~ FormatString!(F[2..$],A[1..$]);
     else static if (F[0..2] == "%%")
-	const string FormatString = "%" ~ FormatString!(F[2..$],A);
+        const string FormatString = "%" ~ FormatString!(F[2..$],A);
     else static if (F[0] == '%')
-	static assert(0, "unrecognized format %" ~ F[1]);
+        static assert(0, "unrecognized format %" ~ F[1]);
     else
-	const string FormatString = F[0] ~ FormatString!(F[1..$],A);
+        const string FormatString = F[0] ~ FormatString!(F[1..$],A);
 }
 
 template ToString(ulong U)
 {
     static if (U < 10)
-	const string ToString = "" ~ cast(char)(U + '0');
+        const string ToString = "" ~ cast(char)(U + '0');
     else
-	const string ToString = ToString!(U / 10) ~ ToString!(U % 10);
+        const string ToString = ToString!(U / 10) ~ ToString!(U % 10);
 }
 
 template ToString(long I)
 {
     static if (I < 0)
-	const string ToString = "-" ~ ToString!(cast(ulong)(-I));
+        const string ToString = "-" ~ ToString!(cast(ulong)(-I));
     else
-	const string ToString = ToString!(cast(uint)I);
+        const string ToString = ToString!(cast(uint)I);
 }
 
 template ToString(uint U)
@@ -939,8 +939,8 @@ template LIT(char c)
 {
     int LIT(int i)
     {
-	printf("LIT!(%c)(%d)\n", c, i);
-	return i + 1;
+        printf("LIT!(%c)(%d)\n", c, i);
+        return i + 1;
     }
 }
 
@@ -948,11 +948,11 @@ int SEQ(pred...)(int i)
 {
     static if (pred.length == 2)
     {
-	return pred[0](1) + pred[1](2);
+        return pred[0](1) + pred[1](2);
     }
     else
     {
-	return SEQ!(SEQ!(pred[0], pred[1]), pred[2..$])(i);
+        return SEQ!(SEQ!(pred[0], pred[1]), pred[2..$])(i);
     }
 }
 
@@ -1044,7 +1044,7 @@ void test47()
 
 template Tuple48(E...)
 {
-        alias E Tuple48;
+    alias E Tuple48;
 }
 
 void VarArg48(T...)(T args)
@@ -1053,9 +1053,9 @@ void VarArg48(T...)(T args)
 
 void test48()
 {
-        VarArg48( );
-        VarArg48( Tuple48!(1,2,3) );
-        VarArg48( Tuple48!()      );
+    VarArg48( );
+    VarArg48( Tuple48!(1,2,3) );
+    VarArg48( Tuple48!()      );
 }
 
 /***************************************/
@@ -1210,8 +1210,8 @@ private template implicitlyConverts(U, V)
 }
 
 T to56(T, S)(S s)
-	if (!implicitlyConverts!(S, T) /*&& isSomeString!(T)
-            && isSomeString!(S)*/)
+    if (!implicitlyConverts!(S, T) /*&& isSomeString!(T)
+        && isSomeString!(S)*/)
 {
     return T.init;
 }
@@ -1279,14 +1279,14 @@ void test59()
     double[] a = [ 3.0, 4, 7, 11, 3, 2, 5 ];
     static double sum(double a, double b) {return a + b;}
     auto r = reduce!((a, b) { return a + b; },
-            (a, b) { return a + b; })(a);
+                     (a, b) { return a + b; })(a);
 }
 
 /***************************************/
 
 template tuple60(T...)
 {
-        alias T tuple60;
+    alias T tuple60;
 }
 
 template Foo60(S : void delegate(tuple60!(int))) {}
@@ -1315,9 +1315,9 @@ void test61()
 
 void test62()
 {
-    auto t = [	std.typecons.tuple(1, 2),
-		std.typecons.tuple(4, 1),
-		std.typecons.tuple(5, 100) ];
+    auto t = [  std.typecons.tuple(1, 2),
+                std.typecons.tuple(4, 1),
+                std.typecons.tuple(5, 100) ];
 }
 
 /***************************************/
@@ -1515,6 +1515,80 @@ void test7263()
 }
 
 /***************************************/
+// 8244
+
+TypeTuple!(int,int)[] x8244;
+static assert(is(typeof(x8244) == TypeTuple!(int, int)));
+
+/***************************************/
+// 9017
+
+template X9017(Args...)
+{
+    static if(__traits(compiles, { enum e = Args; }))
+        enum e = Args;
+}
+alias X9017!0 x9017;
+static assert(x9017.e[0] == 0);
+
+void test9017()
+{
+    enum tup1 = TypeTuple!(11, 22);
+    enum tup2 = TypeTuple!("one", "two");
+    static assert(tup1 == TypeTuple!(11, 22));
+    static assert(tup2 == TypeTuple!("one", "two"));
+    static assert(tup1[0] == 11 && tup1[1] == 22);
+    static assert(tup2[0] == "one" && tup2[1] == "two");
+
+    shared const tup3 = TypeTuple!(10, 3.14);
+    immutable    tup4 = TypeTuple!("a", [1,2]);
+    static assert(is(typeof(tup3[0]) == shared const int));
+    static assert(is(typeof(tup3[1]) == shared const double));
+    static assert(is(typeof(tup4[0]) == immutable string));
+    static assert(is(typeof(tup4[1]) == immutable int[]));
+}
+
+/***************************************/
+// 10279
+
+void foo10279(int[][] strs...) @trusted { }
+void bar10279() @safe { foo10279(); }
+
+/***************************************/
+// 10414
+
+void foo10414(void delegate()[] ...) { }
+
+void bar10414() { }
+
+void test10414()
+{
+    foo10414
+    (
+        { bar10414(); },
+        { bar10414(); },
+    );
+}
+
+/***************************************/
+// 10722
+
+struct S10722
+{
+    int x;
+}
+
+template GetSomething10722(S...)
+{
+    alias GetSomething = int;
+}
+
+void test10722()
+{
+    alias X10722 = GetSomething10722!(S10722.tupleof[0]);
+}
+
+/***************************************/
 
 int main()
 {
@@ -1590,6 +1664,8 @@ int main()
     test6530();
     test7233();
     test7263();
+    test9017();
+    test10414();
 
     printf("Success\n");
     return 0;

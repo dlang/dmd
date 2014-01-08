@@ -482,6 +482,47 @@ void test9442()
 }
 
 /******************************************************/
+// 10451
+
+struct Foo10451;
+
+struct Bar10451
+{
+    Foo10451*[] foos;
+}
+
+void test10451()
+{
+    Foo10451*[] foos = [];
+    foos ~= null;
+    foos = new Foo10451*[2];
+}
+
+/******************************************************/
+// 11010
+
+struct S11010 { S11010* p; }
+
+class C11010 { C11010 p; }
+class D11010 : C11010 {}
+
+void test11010()
+{
+    TypeInfo ti;
+
+    S11010 s;
+    ti = typeid(s.p);
+    assert(cast(TypeInfo_Pointer)ti !is null);
+    assert(ti.toString() == "testtypeid.S11010*");
+
+    C11010 c = new C11010();
+    c.p = new D11010();
+    ti = typeid(c.p);
+    assert(cast(TypeInfo_Class)ti !is null);
+    assert(ti.toString() == "testtypeid.D11010");
+}
+
+/******************************************************/
 
 int main()
 {
@@ -521,6 +562,8 @@ int main()
     test36();
     test37();
     test9442();
+    test10451();
+    test11010();
 
     return 0;
 }

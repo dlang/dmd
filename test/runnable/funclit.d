@@ -823,6 +823,103 @@ void test10288() @safe pure nothrow
 }
 
 /***************************************************/
+// 10666
+
+struct S10666
+{
+    int val;
+    ~this() {}
+}
+
+void foo10666(S10666 s1)
+{
+    S10666 s2;
+
+    /* Even if closureVars(s1 and s2) are accessed by directly called lambdas,
+     * they won't escape the scope of this function.
+     */
+    auto x1 = (){ return s1.val; }();   // OK
+    auto x2 = (){ return s2.val; }();   // OK
+}
+
+/***************************************************/
+// 11081
+
+T ifThrown11081(E : Throwable, T)(T delegate(E) errorHandler)
+{
+    return errorHandler();
+}
+
+void test11081()
+{
+    static if (__traits(compiles, ifThrown11081!Exception(e => 0)))
+    {
+    }
+    static if (__traits(compiles, ifThrown11081!Exception(e => 0)))
+    {
+    }
+}
+
+/***************************************************/
+// 11220
+
+int parsePrimaryExp11220(int x)
+{
+    parseAmbig11220!( (parsed){ x += 1; } )();
+    return 1;
+}
+
+typeof(handler(1)) parseAmbig11220(alias handler)()
+{
+    return handler(parsePrimaryExp11220(1));
+}
+
+/***************************************************/
+// 11230
+
+template map11230(fun...)
+{
+    auto map11230(Range)(Range r)
+    {
+        return MapResult11230!(fun, Range)(r);
+    }
+}
+
+struct MapResult11230(alias fun, R)
+{
+    R _input;
+    this(R input) { _input = input; }
+}
+
+class A11230 { A11230[] as; }
+class B11230 { A11230[] as; }
+class C11230 : A11230 {}
+
+C11230 visit11230(A11230 a)
+{
+    a.as.map11230!(a => visit11230);
+    return null;
+}
+C11230 visit11230(B11230 b)
+{
+    b.as.map11230!(a => visit11230);
+    return null;
+}
+C11230 visit11230()
+{
+    return null;
+}
+
+/***************************************************/
+// 11661
+
+void test11661()
+{
+    void delegate() dg = {};  // OK
+    void function() fp = {};  // OK <- NG
+}
+
+/***************************************************/
 
 int main()
 {
@@ -869,6 +966,7 @@ int main()
     test9628();
     test9928();
     test10288();
+    test11661();
 
     printf("Success\n");
     return 0;

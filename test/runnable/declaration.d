@@ -114,6 +114,24 @@ void test7239()
 }
 
 /***************************************************/
+struct S10635
+{
+    string str;
+
+    this(string[] v) { str = v[0]; }
+    this(string[string] v) { str = v.keys[0]; }
+}
+
+S10635 s10635a = ["getnonce"];
+S10635 s10635b = ["getnonce" : "str"];
+
+void test10635()
+{
+    S10635 sa = ["getnonce"];
+    S10635 sb = ["getnonce" : "str"];
+}
+
+/***************************************************/
 // 8123
 
 void test8123()

@@ -18,10 +18,6 @@
 
 Mem mem;
 
-void Mem::init()
-{
-}
-
 char *Mem::strdup(const char *s)
 {
     char *p;
@@ -118,25 +114,62 @@ void Mem::error()
     exit(EXIT_FAILURE);
 }
 
-void Mem::fullcollect()
-{
-}
-
-void Mem::mark(void *pointer)
-{
-    (void) pointer;             // necessary for VC /W4
-}
-
-void Mem::setStackBottom(void *bottom)
-{
-}
-
-void Mem::addroots(char* pStart, char* pEnd)
-{
-}
-
-
 /* =================================================== */
+
+#if 1
+
+/* Allocate, but never release
+ */
+
+// Allocate a little less than 64kB because the C runtime adds some overhead that
+// causes the actual memory block to be larger than 64kB otherwise. E.g. the dmc
+// runtime rounds the size up to 128kB, but the remaining space in the chunk is less
+// than 64kB, so it cannot be used by another chunk.
+#define CHUNK_SIZE (4096 * 16 - 64)
+
+static size_t heapleft = 0;
+static void *heapp;
+
+void * operator new(size_t m_size)
+{
+    // 16 byte alignment is better (and sometimes needed) for doubles
+    m_size = (m_size + 15) & ~15;
+
+    // The layout of the code is selected so the most common case is straight through
+    if (m_size <= heapleft)
+    {
+     L1:
+        heapleft -= m_size;
+        void *p = heapp;
+        heapp = (void *)((char *)heapp + m_size);
+        return p;
+    }
+
+    if (m_size > CHUNK_SIZE)
+    {
+        void *p = malloc(m_size);
+        if (p)
+            return p;
+        printf("Error: out of memory\n");
+        exit(EXIT_FAILURE);
+        return p;
+    }
+
+    heapleft = CHUNK_SIZE;
+    heapp = malloc(CHUNK_SIZE);
+    if (!heapp)
+    {
+        printf("Error: out of memory\n");
+        exit(EXIT_FAILURE);
+    }
+    goto L1;
+}
+
+void operator delete(void *p)
+{
+}
+
+#else
 
 void * operator new(size_t m_size)
 {
@@ -153,4 +186,4 @@ void operator delete(void *p)
     free(p);
 }
 
-
+#endif

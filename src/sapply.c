@@ -36,7 +36,7 @@ bool Statement::apply(sapply_fp_t fp, void *param)
 /******************************
  * Perform apply() on an t if not null
  */
-#define scondApply(t, fp, param) (t ? t->apply(fp, param) : 0)
+#define scondApply(t, fp, param) (t ? t->apply(fp, param) : false)
 
 
 
@@ -101,13 +101,11 @@ bool ForeachStatement::apply(sapply_fp_t fp, void *param)
            (*fp)(this, param);
 }
 
-#if DMDV2
 bool ForeachRangeStatement::apply(sapply_fp_t fp, void *param)
 {
     return scondApply(body, fp, param) ||
            (*fp)(this, param);
 }
-#endif
 
 bool IfStatement::apply(sapply_fp_t fp, void *param)
 {
@@ -141,13 +139,11 @@ bool CaseStatement::apply(sapply_fp_t fp, void *param)
            (*fp)(this, param);
 }
 
-#if DMDV2
 bool CaseRangeStatement::apply(sapply_fp_t fp, void *param)
 {
     return scondApply(statement, fp, param) ||
            (*fp)(this, param);
 }
-#endif
 
 bool DefaultStatement::apply(sapply_fp_t fp, void *param)
 {
@@ -176,7 +172,7 @@ bool TryCatchStatement::apply(sapply_fp_t fp, void *param)
     for (size_t i = 0; i < catches->dim; i++)
     {   Catch *c = (*catches)[i];
 
-        bool r = scondApply(c->handler, fp, param);
+        r = scondApply(c->handler, fp, param);
         if (r)
             return r;
     }

@@ -1,12 +1,9 @@
-template Foo(T)
+struct Foo(T)
 {
-	struct Foo
+	shared static this()
 	{
-		shared static this()
-		{
-		}
-		static this()
-		{
-		}
+	}
+	static this()
+	{
 	}
 }

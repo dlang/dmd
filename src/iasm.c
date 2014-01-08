@@ -2237,8 +2237,9 @@ STATIC int asm_isNonZeroInt(OPND *o)
 STATIC int asm_is_fpreg(char *szReg)
 {
 #if 1
-        return(szReg[2] == '\0' && szReg[0] == 'S' &&
-                szReg[1] == 'T');
+        return(szReg[0] == 'S' &&
+               szReg[1] == 'T' &&
+               szReg[2] == 0);
 #else
         return(szReg[2] == '\0' && (szReg[0] == 's' || szReg[0] == 'S') &&
                 (szReg[1] == 't' || szReg[1] == 'T'));
@@ -2449,11 +2450,8 @@ STATIC void asm_merge_symbol(OPND *o1, Dsymbol *s)
             o1->disp += v->offset;
             goto L2;
         }
-        if ((v->isConst()
-#if DMDV2
-                || v->isImmutable() || v->storage_class & STCmanifest
-#endif
-            ) && !v->type->isfloating() && v->init)
+        if ((v->isConst() || v->isImmutable() || v->storage_class & STCmanifest) &&
+            !v->type->isfloating() && v->init)
         {   ExpInitializer *ei = v->init->isExpInitializer();
 
             if (ei)
@@ -2615,6 +2613,7 @@ STATIC void asm_make_modrm_byte(
             {
                 pc->IFL1 = FLfunc;
                 pc->IEVdsym1 = d;
+                pc->Iflags |= CFoff;
                 pc->IEVoffset1 = popnd->disp;
             }
             else
@@ -3670,8 +3669,11 @@ STATIC code *asm_db_parse(OP *pop)
                 break;
 
             case TOKidentifier:
-            {   Expression *e = new IdentifierExp(asmstate.loc, asmtok->ident);
-                e = e->ctfeSemantic(asmstate.sc);
+            {
+                Expression *e = IdentifierExp::create(asmstate.loc, asmtok->ident);
+                Scope *sc = asmstate.sc->startCTFE();
+                e = e->semantic(sc);
+                sc->endCTFE();
                 e = e->ctfeInterpret();
                 if (e->op == TOKint64)
                 {   dt.ul = e->toInteger();
@@ -3744,17 +3746,18 @@ int asm_getnum()
             break;
 
         case TOKidentifier:
-            Expression *e;
-
-            e = new IdentifierExp(asmstate.loc, asmtok->ident);
-            e = e->ctfeSemantic(asmstate.sc);
+        {
+            Expression *e = IdentifierExp::create(asmstate.loc, asmtok->ident);
+            Scope *sc = asmstate.sc->startCTFE();
+            e = e->semantic(sc);
+            sc->endCTFE();
             e = e->ctfeInterpret();
             i = e->toInteger();
             v = (int) i;
             if (v != i)
                 asmerr(EM_num);
             break;
-
+        }
         default:
             asmerr(EM_num);
             v = 0;              // no uninitialized values
@@ -3977,6 +3980,8 @@ STATIC OPND *asm_rel_exp()
                         case TOKle:
                             o1->disp = o1->disp <= o2->disp;
                             break;
+                        default:
+                            assert(0);
                     }
                 }
                 else
@@ -4403,14 +4408,17 @@ STATIC OPND *asm_primary_exp()
                 {
                     asm_token();
                     if (tok_value == TOKlparen)
-                    {   unsigned n;
-
+                    {
                         asm_token();
+                        if (tok_value == TOKint32v)
+                        {
+                            unsigned n = (unsigned)asmtok->uns64value;
+                            if (n > 7)
+                                asmerr(EM_bad_operand);
+                            else
+                                o1->base = &(aregFp[n]);
+                        }
                         asm_chktok(TOKint32v, EM_num);
-                        n = (unsigned)asmtok->uns64value;
-                        if (n > 7)
-                            asmerr(EM_bad_operand);
-                        o1->base = &(aregFp[n]);
                         asm_chktok(TOKrparen, EM_rpar);
                     }
                     else
@@ -4441,13 +4449,13 @@ STATIC OPND *asm_primary_exp()
                     {   Expression *e;
                         VarExp *v;
 
-                        e = new IdentifierExp(asmstate.loc, id);
+                        e = IdentifierExp::create(asmstate.loc, id);
                         while (1)
                         {
                             asm_token();
                             if (tok_value == TOKidentifier)
                             {
-                                e = new DotIdExp(asmstate.loc, e, asmtok->ident);
+                                e = DotIdExp::create(asmstate.loc, e, asmtok->ident);
                                 asm_token();
                                 if (tok_value != TOKdot)
                                     break;
@@ -4458,7 +4466,9 @@ STATIC OPND *asm_primary_exp()
                                 break;
                             }
                         }
-                        e = e->ctfeSemantic(asmstate.sc);
+                        Scope *sc = asmstate.sc->startCTFE();
+                        e = e->semantic(sc);
+                        sc->endCTFE();
                         e = e->ctfeInterpret();
                         if (e->isConst())
                         {
@@ -4556,6 +4566,9 @@ STATIC OPND *asm_primary_exp()
                 o1->s = asmstate.psLocalsize;
                 o1->ptype = Type::tint32;
                 asm_token();
+                break;
+
+             default:
                 break;
         }
 Lret:
@@ -4673,10 +4686,8 @@ Statement *AsmStatement::semantic(Scope *sc)
     //printf("AsmStatement::semantic()\n");
 
     assert(sc->func);
-#if DMDV2
     if (sc->func->setUnsafe())
         error("inline assembler not allowed in @safe function %s", sc->func->toChars());
-#endif
 
     OP *o;
     OPND *o1 = NULL,*o2 = NULL, *o3 = NULL, *o4 = NULL;
@@ -4687,9 +4698,6 @@ Statement *AsmStatement::semantic(Scope *sc)
     FuncDeclaration *fd = sc->parent->isFuncDeclaration();
 
     assert(fd);
-#if DMDV1
-    fd->inlineAsm = 1;
-#endif
 
     if (!tokens)
         return NULL;
@@ -4717,8 +4725,8 @@ Statement *AsmStatement::semantic(Scope *sc)
     {
         asmstate.bInit = TRUE;
         init_optab();
-        asmstate.psDollar = new LabelDsymbol(Id::__dollar);
-        asmstate.psLocalsize = new Dsymbol(Id::__LOCAL_SIZE);
+        asmstate.psDollar = LabelDsymbol::create(Id::__dollar);
+        asmstate.psLocalsize = Dsymbol::create(Id::__LOCAL_SIZE);
     }
 
     asmstate.loc = loc;

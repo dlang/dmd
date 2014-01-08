@@ -1,4 +1,4 @@
-// 402
+// Issue 402 - compiler crash with mixin and forward reference
 
 template Foo(alias b)
 {

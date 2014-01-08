@@ -222,6 +222,38 @@ void test3825()
     bug8070();
 }
 
+void test3825x()
+{
+    static int ctor, cpctor, dtor;
+
+    static struct S
+    {
+        this(int)  { ++ctor; }
+        this(this) { ++cpctor; }
+        ~this()    { ++dtor; }
+    }
+
+    {
+        auto value = S(1);
+        assert(ctor==1 && cpctor==0 && dtor==0);
+
+        ref getRef(ref S s = value) { return s; }
+        auto getVal() { return value; }
+        int[S] aa;
+
+        aa[value] = 10;
+        assert(ctor==1 && cpctor==0 && dtor==0);
+
+        aa[getRef()] += 1;
+        assert(ctor==1 && cpctor==0 && dtor==0);
+
+        aa[getVal()] += 1;
+        assert(ctor==1 && cpctor==1 && dtor==1);
+    }
+    assert(ctor==1 && cpctor==1 && dtor==2);
+    assert(ctor + cpctor == dtor);
+}
+
 /************************************************/
 // 10106
 
@@ -252,6 +284,7 @@ int main()
     test1899();
     test4523();
     test3825();
+    test3825x();
 
     printf("Success\n");
     return 0;

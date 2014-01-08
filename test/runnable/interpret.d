@@ -2766,6 +2766,36 @@ struct S5117b
 }
 
 /************************************************/
+// 6439
+
+struct A6439
+{
+    this(uint a, uint b)
+    {
+        begin = a;
+        end = b;
+    }
+    union
+    {
+        struct
+        {
+            uint begin, end;
+        }
+        uint[2] arr;
+    }
+}
+
+void test6439()
+{
+    enum y = A6439(10, 20);
+    A6439 y2 = A6439(10, 20);
+    assert(y2.begin == y.begin && y2.end == y.end);  //passes
+    assert(y.arr != [0,0]);
+    assert(y.arr == [10,20]);
+    assert(y.arr == y2.arr);
+}
+
+/************************************************/
 // from tests/fail_compilation/fail147
 
 static assert(!is(typeof(Compileable!(
@@ -3083,6 +3113,40 @@ void test9954()
 }
 
 /************************************************/
+// 10483
+
+struct Bug10483
+{
+    int val[3][4];
+}
+
+struct Outer10483
+{
+    Bug10483 p = Bug10483(67);
+}
+
+int k10483a = Outer10483.init.p.val[2][2];   // ICE(expression.c)
+
+void test10483()
+{
+    int k10483b = Outer10483.init.p.val[2][2]; // Segfault (backend/type.c)
+}
+
+/************************************************/
+
+struct S10669 { uint x; }
+
+static const S10669 iid0_10669 = S10669(0);
+
+class C10669
+{
+    static const S10669 iid1_10669 = S10669(1);
+};
+
+const S10669 IID0_10669 = iid0_10669;
+const S10669 IID1_10669 = C10669.iid1_10669;
+
+/************************************************/
 
 TypeInfo getTi()
 {
@@ -3094,6 +3158,22 @@ auto t112 = getTi();
 void test112()
 {
     assert(t112.toString() == "int");
+}
+
+/************************************************/
+// 10687
+
+enum Foo10687 : uint { A, B, C, D, E }
+immutable uint[5][] m10687 = [[0, 1, 2, 3, 4]];
+
+void test10687()
+{
+    static immutable uint[5] a1 = [0, 1, 2, 3, 4];
+    auto   a2 = cast(immutable(Foo10687[5]))a1;
+    static a3 = cast(immutable(Foo10687[5]))a1;
+
+    auto   foos1 = cast(immutable(Foo10687[5][]))m10687;
+    static foos2 = cast(immutable(Foo10687[5][]))m10687;
 }
 
 /************************************************/
@@ -3209,6 +3289,7 @@ int main()
     //test108(); 
     test109();
     test112();
+    test6439();
     test6504();
     test8818();
     test9954();    

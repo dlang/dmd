@@ -15,18 +15,32 @@
 #pragma once
 #endif /* __DMC__ */
 
+Library *LibMSCoff_factory();
+Library *LibOMF_factory();
+Library *LibElf_factory();
+Library *LibMach_factory();
+
 class Library
 {
   public:
-    static Library *factory();
+    static Library *factory()
+    {
+#if TARGET_WINDOS
+        return global.params.is64bit ? LibMSCoff_factory() : LibOMF_factory();
+#elif TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+        return LibElf_factory();
+#elif TARGET_OSX
+        return LibMach_factory();
+#else
+        assert(0); // unsupported system
+#endif
+    }
 
-    virtual void setFilename(char *dir, char *filename) = 0;
+    virtual void setFilename(const char *dir, const char *filename) = 0;
     virtual void addObject(const char *module_name, void *buf, size_t buflen) = 0;
     virtual void addLibrary(void *buf, size_t buflen) = 0;
     virtual void write() = 0;
 };
-
-Library *LibMSCoff_factory();
 
 #endif /* DMD_LIB_H */
 

@@ -56,118 +56,8 @@ dt_t *VoidInitializer::toDt()
 dt_t *StructInitializer::toDt()
 {
     //printf("StructInitializer::toDt('%s')\n", toChars());
-    Dts dts;
-    dts.setDim(ad->fields.dim);
-    dts.zero();
-
-    for (size_t i = 0; i < vars.dim; i++)
-    {
-        VarDeclaration *v = vars[i];
-        Initializer *val = value[i];
-
-        //printf("vars[%d] = %s\n", i, v->toChars());
-
-        for (size_t j = 0; 1; j++)
-        {
-            assert(j < dts.dim);
-            //printf(" adfield[%d] = %s\n", j, (ad->fields[j])->toChars());
-            if (ad->fields[j] == v)
-            {
-                if (dts[j])
-                    error(loc, "field %s of %s already initialized", v->toChars(), ad->toChars());
-                dts[j] = val->toDt();
-                break;
-            }
-        }
-    }
-
-    dt_t *dt = NULL;
-    dt_t **pdtend = &dt;
-    unsigned offset = 0;
-    for (size_t j = 0; j < dts.dim; j++)
-    {
-        VarDeclaration *v = ad->fields[j];
-
-        dt_t *d = dts[j];
-        if (!d)
-        {   // An instance specific initializer was not provided.
-            // Look to see if there's a default initializer from the
-            // struct definition
-            if (v->init && v->init->isVoidInitializer())
-                ;
-            else if (v->init)
-            {
-                d = v->init->toDt();
-            }
-            else if (v->offset >= offset)
-            {
-                unsigned k;
-                unsigned offset2 = v->offset + v->type->size();
-                // Make sure this field does not overlap any explicitly
-                // initialized field.
-                for (k = j + 1; 1; k++)
-                {
-                    if (k == dts.dim)           // didn't find any overlap
-                    {
-                        v->type->toDt(&d);
-                        break;
-                    }
-                    VarDeclaration *v2 = ad->fields[k];
-
-                    if (v2->offset < offset2 && dts[k])
-                        break;                  // overlap
-                }
-            }
-        }
-        if (d)
-        {
-            if (v->offset < offset)
-                error(loc, "duplicate union initialization for %s", v->toChars());
-            else
-            {   unsigned sz = dt_size(d);
-                unsigned vsz = v->type->size();
-                unsigned voffset = v->offset;
-
-                if (sz > vsz)
-                {   assert(v->type->ty == Tsarray && vsz == 0);
-                    error(loc, "zero length array %s has non-zero length initializer", v->toChars());
-                }
-
-                unsigned dim = 1;
-                for (Type *vt = v->type->toBasetype();
-                     vt->ty == Tsarray;
-                     vt = vt->nextOf()->toBasetype())
-                {   TypeSArray *tsa = (TypeSArray *)vt;
-                    dim *= tsa->dim->toInteger();
-                }
-                //printf("sz = %d, dim = %d, vsz = %d\n", sz, dim, vsz);
-                assert(sz == vsz || sz * dim <= vsz);
-
-                for (size_t i = 0; i < dim; i++)
-                {
-                    if (offset < voffset)
-                        pdtend = dtnzeros(pdtend, voffset - offset);
-                    if (!d)
-                    {
-                        if (v->init)
-                            d = v->init->toDt();
-                        else
-                            v->type->toDt(&d);
-                    }
-                    pdtend = dtcat(pdtend, d);
-                    d = NULL;
-                    offset = voffset + sz;
-                    voffset += vsz / dim;
-                    if (sz == vsz)
-                        break;
-                }
-            }
-        }
-    }
-    if (offset < ad->structsize)
-        dtnzeros(pdtend, ad->structsize - offset);
-
-    return dt;
+    assert(0);
+    return NULL;
 }
 
 
@@ -235,7 +125,7 @@ dt_t *ArrayInitializer::toDt()
             tadim = ta->dim->toInteger();
             if (dim < tadim)
             {
-                if (edefault->isBool(FALSE))
+                if (edefault->isBool(false))
                     // pad out end of array
                     pdtend = dtnzeros(pdtend, size * (tadim - dim));
                 else
@@ -509,101 +399,47 @@ dt_t **ArrayLiteralExp::toDt(dt_t **pdt)
 dt_t **StructLiteralExp::toDt(dt_t **pdt)
 {
     //printf("StructLiteralExp::toDt() %s, ctfe = %d\n", toChars(), ownedByCtfe);
+    assert(sd->fields.dim - sd->isNested() <= elements->dim);
 
-    /* For elements[], construct a corresponding array dts[] the elements
-     * of which are the initializers.
-     * Nulls in elements[] become nulls in dts[].
-     */
-    Dts dts;
-    dts.setDim(sd->fields.dim);
-    dts.zero();
-    assert(elements->dim <= sd->fields.dim);
+    unsigned offset = 0;
     for (size_t i = 0; i < elements->dim; i++)
     {
         Expression *e = (*elements)[i];
         if (!e)
             continue;
-        dt_t *dt = NULL;
-        e->toDt(&dt);           // convert e to an initializer dt
-        dts[i] = dt;
-    }
 
-    unsigned offset = 0;
-    for (size_t j = 0; j < dts.dim; j++)
-    {
-        VarDeclaration *v = sd->fields[j];
+        VarDeclaration *vd = NULL;
+        size_t k;
+        for (size_t j = i; j < elements->dim; j++)
+        {
+            VarDeclaration *v2 = sd->fields[j];
+            if (v2->offset < offset || (*elements)[j] == NULL)
+                continue;
 
-        dt_t *d = dts[j];
-        if (!d)
-        {   /* An instance specific initializer was not provided.
-             * If there is no overlap with any explicit initializer in dts[],
-             * supply a default initializer.
-             */
-            if (v->offset >= offset)
+            // find the nearest field
+            if (!vd)
+                vd = v2, k = j;
+            else if (v2->offset < vd->offset)
             {
-                unsigned offset2 = v->offset + v->type->size();
-                for (size_t k = j + 1; 1; k++)
-                {
-                    if (k == dts.dim)           // didn't find any overlap
-                    {
-                        // Set d to be the default initializer
-                        if (v->init)
-                            d = v->init->toDt();
-                        else
-                            v->type->toDt(&d);
-                        break;
-                    }
-                    VarDeclaration *v2 = sd->fields[k];
-
-                    if (v2->offset < offset2 && dts[k])
-                        break;                  // overlap
-                }
+                // Each elements should have no overlapping
+                assert(!(vd->offset < v2->offset + v2->type->size() &&
+                         v2->offset < vd->offset + vd->type->size()));
+                vd = v2, k = j;
             }
         }
-        if (d)
+        if (vd)
         {
-            if (v->offset < offset)
-                error("duplicate union initialization for %s", v->toChars());
+            if (offset < vd->offset)
+                pdt = dtnzeros(pdt, vd->offset - offset);
+            e = (*elements)[k];
+
+            Type *tb = vd->type->toBasetype();
+            if (tb->ty == Tsarray)
+                ((TypeSArray *)tb)->toDtElem(pdt, e);
             else
-            {   unsigned sz = dt_size(d);
-                unsigned vsz = v->type->size();
-                unsigned voffset = v->offset;
+                e->toDt(pdt);           // convert e to an initializer dt
 
-                if (sz > vsz)
-                {   assert(v->type->ty == Tsarray && vsz == 0);
-                    error("zero length array %s has non-zero length initializer", v->toChars());
-                }
-
-                size_t dim = 1;
-                Type *vt;
-                for (vt = v->type->toBasetype();
-                     vt->ty == Tsarray;
-                     vt = vt->nextOf()->toBasetype())
-                {   TypeSArray *tsa = (TypeSArray *)vt;
-                    dim *= tsa->dim->toInteger();
-                }
-                //printf("sz = %d, dim = %d, vsz = %d\n", sz, dim, vsz);
-                assert(sz == vsz || sz * dim <= vsz);
-
-                for (size_t i = 0; i < dim; i++)
-                {
-                    if (offset < voffset)
-                        pdt = dtnzeros(pdt, voffset - offset);
-                    if (!d)
-                    {
-                        if (v->init)
-                            d = v->init->toDt();
-                        else
-                            vt->toDt(&d);
-                    }
-                    pdt = dtcat(pdt, d);
-                    d = NULL;
-                    offset = voffset + sz;
-                    voffset += vsz / dim;
-                    if (sz == vsz)
-                        break;
-                }
-            }
+            offset = vd->offset + vd->type->size();
         }
     }
     if (offset < sd->structsize)
@@ -708,7 +544,8 @@ void ClassDeclaration::toDt(dt_t **pdt)
 
     // Put in first two members, the vtbl[] and the monitor
     dtxoff(pdt, toVtblSymbol(), 0);
-    dtsize_t(pdt, 0);                    // monitor
+    if (!cpp)
+        dtsize_t(pdt, 0);                    // monitor
 
     // Put in the rest
     toDt2(pdt, this);
@@ -781,7 +618,6 @@ void ClassDeclaration::toDt2(dt_t **pdt, ClassDeclaration *cd)
     for (size_t i = 0; i < vtblInterfaces->dim; i++)
     {   BaseClass *b = (*vtblInterfaces)[i];
 
-#if 1 || INTERFACE_VIRTUAL
         for (ClassDeclaration *cd2 = cd; 1; cd2 = cd2->baseClass)
         {
             assert(cd2);
@@ -794,11 +630,6 @@ void ClassDeclaration::toDt2(dt_t **pdt, ClassDeclaration *cd)
                 break;
             }
         }
-#else
-        csymoffset = baseVtblOffset(b);
-        assert(csymoffset != ~0);
-        dtxoff(pdt, csym, csymoffset);
-#endif
         offset = b->offset + Target::ptrsize;
     }
 
@@ -811,58 +642,13 @@ void ClassDeclaration::toDt2(dt_t **pdt, ClassDeclaration *cd)
 void StructDeclaration::toDt(dt_t **pdt)
 {
     //printf("StructDeclaration::toDt(), this='%s'\n", toChars());
-    unsigned offset = 0;
+    StructLiteralExp *sle = StructLiteralExp::create(loc, this, NULL);
+    if (!fill(loc, sle->elements, true))
+        assert(0);
 
-    // Note equivalence of this loop to class's
-    for (size_t i = 0; i < fields.dim; i++)
-    {
-        VarDeclaration *v = fields[i];
-        //printf("\tfield '%s' voffset %d, offset = %d\n", v->toChars(), v->offset, offset);
-        dt_t *dt = NULL;
-        int sz;
-
-        if (v->storage_class & STCref)
-        {
-            sz = Target::ptrsize;
-            if (v->offset >= offset)
-                dtnzeros(&dt, sz);
-        }
-        else
-        {
-            sz = v->type->size();
-            Initializer *init = v->init;
-            if (init)
-            {   //printf("\t\thas initializer %s\n", init->toChars());
-                ExpInitializer *ei = init->isExpInitializer();
-                Type *tb = v->type->toBasetype();
-                if (init->isVoidInitializer())
-                    ;
-                else if (ei && tb->ty == Tsarray)
-                    ((TypeSArray *)tb)->toDtElem(&dt, ei->exp);
-                else
-                    dt = init->toDt();
-            }
-            else if (v->offset >= offset)
-                v->type->toDt(&dt);
-        }
-        if (dt)
-        {
-            if (v->offset < offset)
-                error("overlapping initialization for struct %s.%s", toChars(), v->toChars());
-            else
-            {
-                if (offset < v->offset)
-                    dtnzeros(pdt, v->offset - offset);
-                dtcat(pdt, dt);
-                offset = v->offset + sz;
-            }
-        }
-    }
-
-    if (offset < structsize)
-        dtnzeros(pdt, structsize - offset);
-
-    dt_optimize(*pdt);
+    //printf("sd->toDt sle = %s\n", sle->toChars());
+    sle->type = type;
+    sle->toDt(pdt);
 }
 
 /* ================================================================= */
@@ -872,6 +658,12 @@ dt_t **Type::toDt(dt_t **pdt)
     //printf("Type::toDt()\n");
     Expression *e = defaultInit();
     return e->toDt(pdt);
+}
+
+dt_t **TypeVector::toDt(dt_t **pdt)
+{
+    assert(basetype->ty == Tsarray);
+    return ((TypeSArray *)basetype)->toDtElem(pdt, NULL);
 }
 
 dt_t **TypeSArray::toDt(dt_t **pdt)
@@ -889,8 +681,8 @@ dt_t **TypeSArray::toDtElem(dt_t **pdt, Expression *e)
         Type *tnext = next;
         Type *tbn = tnext->toBasetype();
         while (tbn->ty == Tsarray && (!e || tbn != e->type->nextOf()))
-        {   TypeSArray *tsa = (TypeSArray *)tbn;
-
+        {
+            TypeSArray *tsa = (TypeSArray *)tbn;
             len *= tsa->dim->toInteger();
             tnext = tbn->nextOf();
             tbn = tnext->toBasetype();
@@ -947,8 +739,8 @@ dt_t **TypeTypedef::toDt(dt_t **pdt)
 
 dt_t **ClassReferenceExp::toDt(dt_t **pdt)
 {
-    InterfaceDeclaration* to = ((TypeClass*)type)->sym->isInterfaceDeclaration();
-    
+    InterfaceDeclaration* to = ((TypeClass *)type)->sym->isInterfaceDeclaration();
+
     if (to) //Static typeof this literal is an interface. We must add offset to symbol
     {
         ClassDeclaration *from = originalClass();
@@ -956,7 +748,7 @@ dt_t **ClassReferenceExp::toDt(dt_t **pdt)
         int isbase = to->isBaseOf(from, &off);
         assert(isbase);
         return toDtI(pdt, off);
-    }      
+    }
     return toDtI(pdt, 0);
 }
 
@@ -977,7 +769,7 @@ dt_t **ClassReferenceExp::toInstanceDt(dt_t **pdt)
 #endif
     dt_t *d = NULL;
     dt_t **pdtend = &d;
- 
+
     Dts dts;
     dts.setDim(value->elements->dim);
     dts.zero();
@@ -1027,7 +819,7 @@ dt_t **ClassReferenceExp::toDt2(dt_t **pdt, ClassDeclaration *cd, Dts *dts)
         int idx = findFieldIndexByName(v);
         assert(idx != -1);
         dt_t *d = (*dts)[idx];
-                
+
         if (!d)
         {
             dt_t *dt = NULL;
@@ -1069,12 +861,12 @@ dt_t **ClassReferenceExp::toDt2(dt_t **pdt, ClassDeclaration *cd, Dts *dts)
               unsigned sz = dt_size(d);
               unsigned vsz = v->type->size();
               unsigned voffset = v->offset;
-              
+
               if (sz > vsz)
               {   assert(v->type->ty == Tsarray && vsz == 0);
                   error("zero length array %s has non-zero length initializer", v->toChars());
               }
-              
+
               size_t dim = 1;
               Type *vt;
               for (vt = v->type->toBasetype();
@@ -1085,7 +877,7 @@ dt_t **ClassReferenceExp::toDt2(dt_t **pdt, ClassDeclaration *cd, Dts *dts)
               }
               //printf("sz = %d, dim = %d, vsz = %d\n", sz, dim, vsz);
               assert(sz == vsz || sz * dim <= vsz);
-              
+
               for (size_t i = 0; i < dim; i++)
               {
                   if (offset < voffset)
@@ -1114,7 +906,6 @@ dt_t **ClassReferenceExp::toDt2(dt_t **pdt, ClassDeclaration *cd, Dts *dts)
     for (size_t i = 0; i < cd->vtblInterfaces->dim; i++)
     {   BaseClass *b = (*cd->vtblInterfaces)[i];
 
-#if 1 || INTERFACE_VIRTUAL
         for (ClassDeclaration *cd2 = originalClass(); 1; cd2 = cd2->baseClass)
         {
             assert(cd2);
@@ -1127,11 +918,6 @@ dt_t **ClassReferenceExp::toDt2(dt_t **pdt, ClassDeclaration *cd, Dts *dts)
                 break;
             }
         }
-#else
-        csymoffset = baseVtblOffset(b);
-        assert(csymoffset != ~0);
-        dtxoff(pdt, csym, csymoffset);
-#endif
         offset = b->offset + Target::ptrsize;
     }
 

@@ -268,30 +268,6 @@
         "originalType" : "Object",
        }
       ]
-     },
-     {
-      "name" : "__xopEquals",
-      "kind" : "function",
-      "storageClass" : [
-       "static"
-      ],
-      "deco" : "FKxS4json4Foo2KxS4json4Foo2Zb",
-      "parameters" : [
-       {
-        "name" : "p",
-        "deco" : "xS4json4Foo2",
-        "storageClass" : [
-         "ref"
-        ]
-       },
-       {
-        "name" : "q",
-        "deco" : "xS4json4Foo2",
-        "storageClass" : [
-         "ref"
-        ]
-       }
-      ]
      }
     ]
    },
@@ -373,7 +349,7 @@
    {
     "name" : "S",
     "kind" : "struct",
-    "line" : 83,
+    "line" : 82,
     "members" : [
      {
       "kind" : "template",
@@ -446,7 +422,7 @@
    {
     "name" : "C_9755",
     "kind" : "class",
-    "line" : 93,
+    "line" : 92,
     "members" : [
      {
       "kind" : "template",

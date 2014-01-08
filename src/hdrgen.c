@@ -10,7 +10,6 @@
 
 // Routines to emit header files
 
-#define PRETTY_PRINT
 #define TEST_EMIT_ALL  0        // For Testing
 
 #define LOG 0
@@ -18,9 +17,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-#if __DMC__
-#include <complex.h>
-#endif
 
 #include "rmem.h"
 
@@ -66,8 +62,8 @@ void Module::genhdrfile()
     hdrfile->setbuffer(hdrbufr.data, hdrbufr.offset);
     hdrbufr.data = NULL;
 
-    FileName::ensurePathToNameExists(hdrfile->toChars());
-    hdrfile->writev();
+    ensurePathToNameExists(Loc(), hdrfile->toChars());
+    writeFile(loc, hdrfile);
 }
 
 

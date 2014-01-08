@@ -20,9 +20,10 @@
 #include "arraytypes.h"
 #include "dsymbol.h"
 #include "lexer.h"
+#include "visitor.h"
 
-class OutBuffer;
-class Scope;
+struct OutBuffer;
+struct Scope;
 class Expression;
 class LabelDsymbol;
 class Identifier;
@@ -36,6 +37,7 @@ struct Token;
 struct InlineCostState;
 struct InlineDoState;
 struct InlineScanState;
+class ErrorStatement;
 class ReturnStatement;
 class CompoundStatement;
 class Parameter;
@@ -105,7 +107,6 @@ public:
     void warning(const char *format, ...);
     void deprecation(const char *format, ...);
     virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    virtual ScopeStatement *isScopeStatement() { return NULL; }
     virtual Statement *semantic(Scope *sc);
     Statement *semanticScope(Scope *sc, Statement *sbreak, Statement *scontinue);
     Statement *semanticNoScope(Scope *sc);
@@ -131,10 +132,9 @@ public:
     virtual Statement *doInlineStatement(InlineDoState *ids);
     virtual Statement *inlineScan(InlineScanState *iss);
 
-    // Back end
-    virtual void toIR(IRState *irs);
-
     // Avoid dynamic_cast
+    virtual ErrorStatement *isErrorStatement() { return NULL; }
+    virtual ScopeStatement *isScopeStatement() { return NULL; }
     virtual ExpStatement *isExpStatement() { return NULL; }
     virtual CompoundStatement *isCompoundStatement() { return NULL; }
     virtual ReturnStatement *isReturnStatement() { return NULL; }
@@ -142,6 +142,22 @@ public:
     virtual CaseStatement *isCaseStatement() { return NULL; }
     virtual DefaultStatement *isDefaultStatement() { return NULL; }
     virtual LabelStatement *isLabelStatement() { return NULL; }
+    virtual void accept(Visitor *v) { v->visit(this); }
+};
+
+/** Any Statement that fails semantic() or has a component that is an ErrorExp or
+ * a TypeError should return an ErrorStatement from semantic().
+ */
+class ErrorStatement : public Statement
+{
+public:
+    ErrorStatement();
+    Statement *syntaxCopy();
+    Statement *semantic(Scope *sc);
+    int blockExit(bool mustNotThrow);
+
+    ErrorStatement *isErrorStatement() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class PeelStatement : public Statement
@@ -152,6 +168,7 @@ public:
     PeelStatement(Statement *s);
     Statement *semantic(Scope *sc);
     bool apply(sapply_fp_t fp, void *param);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class ExpStatement : public Statement
@@ -161,6 +178,7 @@ public:
 
     ExpStatement(Loc loc, Expression *exp);
     ExpStatement(Loc loc, Dsymbol *s);
+    static ExpStatement *create(Loc loc, Expression *exp);
     Statement *syntaxCopy();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Statement *semantic(Scope *sc);
@@ -175,9 +193,8 @@ public:
     Statement *doInlineStatement(InlineDoState *ids);
     Statement *inlineScan(InlineScanState *iss);
 
-    void toIR(IRState *irs);
-
     ExpStatement *isExpStatement() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class DtorExpStatement : public ExpStatement
@@ -190,7 +207,7 @@ public:
 
     DtorExpStatement(Loc loc, Expression *exp, VarDeclaration *v);
     Statement *syntaxCopy();
-    void toIR(IRState *irs);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class CompileStatement : public Statement
@@ -204,6 +221,7 @@ public:
     Statements *flatten(Scope *sc);
     Statement *semantic(Scope *sc);
     int blockExit(bool mustNotThrow);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class CompoundStatement : public Statement
@@ -214,6 +232,7 @@ public:
     CompoundStatement(Loc loc, Statements *s);
     CompoundStatement(Loc loc, Statement *s1);
     CompoundStatement(Loc loc, Statement *s1, Statement *s2);
+    static CompoundStatement *create(Loc loc, Statement *s1, Statement *s2);
     Statement *syntaxCopy();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Statement *semantic(Scope *sc);
@@ -231,9 +250,8 @@ public:
     Statement *doInlineStatement(InlineDoState *ids);
     Statement *inlineScan(InlineScanState *iss);
 
-    void toIR(IRState *irs);
-
     CompoundStatement *isCompoundStatement() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class CompoundDeclarationStatement : public CompoundStatement
@@ -242,6 +260,7 @@ public:
     CompoundDeclarationStatement(Loc loc, Statements *s);
     Statement *syntaxCopy();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 /* The purpose of this is so that continue will go to the next
@@ -268,7 +287,7 @@ public:
     Statement *doInlineStatement(InlineDoState *ids);
     Statement *inlineScan(InlineScanState *iss);
 
-    void toIR(IRState *irs);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class ScopeStatement : public Statement
@@ -280,6 +299,7 @@ public:
     Statement *syntaxCopy();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     ScopeStatement *isScopeStatement() { return this; }
+    ReturnStatement *isReturnStatement();
     Statement *semantic(Scope *sc);
     bool hasBreak();
     bool hasContinue();
@@ -294,7 +314,7 @@ public:
     Statement *doInlineStatement(InlineDoState *ids);
     Statement *inlineScan(InlineScanState *iss);
 
-    void toIR(IRState *irs);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class WhileStatement : public Statement
@@ -316,7 +336,7 @@ public:
 
     Statement *inlineScan(InlineScanState *iss);
 
-    void toIR(IRState *irs);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class DoStatement : public Statement
@@ -338,7 +358,7 @@ public:
 
     Statement *inlineScan(InlineScanState *iss);
 
-    void toIR(IRState *irs);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class ForStatement : public Statement
@@ -348,7 +368,6 @@ public:
     Expression *condition;
     Expression *increment;
     Statement *body;
-    int nest;
 
     // When wrapped in try/finally clauses, this points to the outermost one,
     // which may have an associated label. Internal break/continue statements
@@ -357,7 +376,6 @@ public:
 
     ForStatement(Loc loc, Statement *init, Expression *condition, Expression *increment, Statement *body);
     Statement *syntaxCopy();
-    Statement *semanticInit(Scope *sc, Statements *ainit, size_t i);
     Statement *semantic(Scope *sc);
     Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
     Statement *getRelatedLabeled() { return relatedLabeled ? relatedLabeled : this; }
@@ -373,7 +391,7 @@ public:
     Statement *inlineScan(InlineScanState *iss);
     Statement *doInlineStatement(InlineDoState *ids);
 
-    void toIR(IRState *irs);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class ForeachStatement : public Statement
@@ -390,7 +408,7 @@ public:
     FuncDeclaration *func;      // function we're lexically in
 
     Statements *cases;          // put breaks, continues, gotos and returns here
-    CompoundStatements *gotos;  // forward referenced goto's go here
+    ScopeStatements *gotos;     // forward referenced goto's go here
 
     ForeachStatement(Loc loc, TOK op, Parameters *arguments, Expression *aggr, Statement *body);
     Statement *syntaxCopy();
@@ -408,10 +426,9 @@ public:
 
     Statement *inlineScan(InlineScanState *iss);
 
-    void toIR(IRState *irs);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
-#if DMDV2
 class ForeachRangeStatement : public Statement
 {
 public:
@@ -437,9 +454,8 @@ public:
 
     Statement *inlineScan(InlineScanState *iss);
 
-    void toIR(IRState *irs);
+    void accept(Visitor *v) { v->visit(this); }
 };
-#endif
 
 class IfStatement : public Statement
 {
@@ -466,7 +482,7 @@ public:
     Statement *doInlineStatement(InlineDoState *ids);
     Statement *inlineScan(InlineScanState *iss);
 
-    void toIR(IRState *irs);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class ConditionalStatement : public Statement
@@ -484,6 +500,7 @@ public:
     bool apply(sapply_fp_t fp, void *param);
 
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class PragmaStatement : public Statement
@@ -501,7 +518,7 @@ public:
 
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
-    void toIR(IRState *irs);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class StaticAssertStatement : public Statement
@@ -515,6 +532,7 @@ public:
     int blockExit(bool mustNotThrow);
 
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class SwitchStatement : public Statement
@@ -543,7 +561,7 @@ public:
 
     Statement *inlineScan(InlineScanState *iss);
 
-    void toIR(IRState *irs);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class CaseStatement : public Statement
@@ -569,10 +587,9 @@ public:
 
     Statement *inlineScan(InlineScanState *iss);
 
-    void toIR(IRState *irs);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
-#if DMDV2
 
 class CaseRangeStatement : public Statement
 {
@@ -586,9 +603,9 @@ public:
     Statement *semantic(Scope *sc);
     bool apply(sapply_fp_t fp, void *param);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
-#endif
 
 class DefaultStatement : public Statement
 {
@@ -611,7 +628,7 @@ public:
 
     Statement *inlineScan(InlineScanState *iss);
 
-    void toIR(IRState *irs);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class GotoDefaultStatement : public Statement
@@ -627,7 +644,7 @@ public:
     int blockExit(bool mustNotThrow);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
-    void toIR(IRState *irs);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class GotoCaseStatement : public Statement
@@ -644,7 +661,7 @@ public:
     int blockExit(bool mustNotThrow);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
-    void toIR(IRState *irs);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class SwitchErrorStatement : public Statement
@@ -655,7 +672,7 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void ctfeCompile(CompiledCtfeFunction *ccf);
 
-    void toIR(IRState *irs);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class ReturnStatement : public Statement
@@ -677,9 +694,8 @@ public:
     Statement *doInlineStatement(InlineDoState *ids);
     Statement *inlineScan(InlineScanState *iss);
 
-    void toIR(IRState *irs);
-
     ReturnStatement *isReturnStatement() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class BreakStatement : public Statement
@@ -695,7 +711,7 @@ public:
     int blockExit(bool mustNotThrow);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
-    void toIR(IRState *irs);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class ContinueStatement : public Statement
@@ -711,7 +727,7 @@ public:
     int blockExit(bool mustNotThrow);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
-    void toIR(IRState *irs);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class SynchronizedStatement : public Statement
@@ -735,7 +751,7 @@ public:
 // Back end
     elem *esync;
     SynchronizedStatement(Loc loc, elem *esync, Statement *body);
-    void toIR(IRState *irs);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class WithStatement : public Statement
@@ -756,7 +772,7 @@ public:
 
     Statement *inlineScan(InlineScanState *iss);
 
-    void toIR(IRState *irs);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class TryCatchStatement : public Statement
@@ -777,8 +793,8 @@ public:
 
     Statement *inlineScan(InlineScanState *iss);
 
-    void toIR(IRState *irs);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class Catch : public RootObject
@@ -809,6 +825,7 @@ public:
 #endif
 
     TryFinallyStatement(Loc loc, Statement *body, Statement *finalbody);
+    static TryFinallyStatement *create(Loc loc, Statement *body, Statement *finalbody);
     Statement *syntaxCopy();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Statement *semantic(Scope *sc);
@@ -822,7 +839,7 @@ public:
 
     Statement *inlineScan(InlineScanState *iss);
 
-    void toIR(IRState *irs);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class OnScopeStatement : public Statement
@@ -842,7 +859,7 @@ public:
     bool apply(sapply_fp_t fp, void *param);
     void ctfeCompile(CompiledCtfeFunction *ccf);
 
-    void toIR(IRState *irs);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class ThrowStatement : public Statement
@@ -862,7 +879,7 @@ public:
 
     Statement *inlineScan(InlineScanState *iss);
 
-    void toIR(IRState *irs);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class DebugStatement : public Statement
@@ -876,6 +893,7 @@ public:
     Statements *flatten(Scope *sc);
     bool apply(sapply_fp_t fp, void *param);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class GotoStatement : public Statement
@@ -884,16 +902,19 @@ public:
     Identifier *ident;
     LabelDsymbol *label;
     TryFinallyStatement *tf;
+    VarDeclaration *lastVar;
+    FuncDeclaration *fd;
 
     GotoStatement(Loc loc, Identifier *ident);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
+    bool checkLabel();
     int blockExit(bool mustNotThrow);
     Expression *interpret(InterState *istate);
     void ctfeCompile(CompiledCtfeFunction *ccf);
 
-    void toIR(IRState *irs);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class LabelStatement : public Statement
@@ -902,6 +923,8 @@ public:
     Identifier *ident;
     Statement *statement;
     TryFinallyStatement *tf;
+    Statement *gotoTarget;      // interpret
+    VarDeclaration *lastVar;
     block *lblock;              // back end
 
     Blocks *fwdrefs;            // forward references to this LabelStatement
@@ -920,7 +943,7 @@ public:
     Statement *inlineScan(InlineScanState *iss);
     LabelStatement *isLabelStatement() { return this; }
 
-    void toIR(IRState *irs);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class LabelDsymbol : public Dsymbol
@@ -929,7 +952,9 @@ public:
     LabelStatement *statement;
 
     LabelDsymbol(Identifier *ident);
+    static LabelDsymbol *create(Identifier *ident);
     LabelDsymbol *isLabel();
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class AsmStatement : public Statement
@@ -956,7 +981,7 @@ public:
     //Expression *doInline(InlineDoState *ids);
     //Statement *inlineScan(InlineScanState *iss);
 
-    void toIR(IRState *irs);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class ImportStatement : public Statement
@@ -978,7 +1003,7 @@ public:
     Expression *doInline(InlineDoState *ids);
     Statement *doInlineStatement(InlineDoState *ids);
 
-    void toIR(IRState *irs);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 #if DMD_OBJC
@@ -1006,7 +1031,7 @@ struct ObjcExceptionBridge : Statement
     
     Expression *interpret(InterState *istate);
     
-    void toIR(IRState *irs);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 #endif

@@ -562,7 +562,7 @@ noprop:
  */
 
 list_t listrds(vec_t IN,elem *e,vec_t f)
-{   list_t rdlist;
+{
     unsigned i;
     unsigned unambig;
     Symbol *s;
@@ -572,7 +572,7 @@ list_t listrds(vec_t IN,elem *e,vec_t f)
 
     //printf("listrds: "); WReqn(e); printf("\n");
     assert(IN);
-    rdlist = NULL;
+    list_t rdlist = NULL;
     assert(e->Eoper == OPvar);
     s = e->EV.sp.Vsym;
     ty = e->Ety;
@@ -583,12 +583,10 @@ list_t listrds(vec_t IN,elem *e,vec_t f)
     if (f)
         vec_clear(f);
     foreach (i, deftop, IN)
-    {   elem *d;
-        unsigned op;
-
-        d = defnod[i].DNelem;
+    {
+        elem *d = defnod[i].DNelem;
         //dbg_printf("\tlooking at "); WReqn(d); dbg_printf("\n");
-        op = d->Eoper;
+        unsigned op = d->Eoper;
         if (op == OPasm)                // assume ASM elems define everything
             goto listit;
         if (OTassign(op))
@@ -616,7 +614,7 @@ list_t listrds(vec_t IN,elem *e,vec_t f)
         if (f)
             vec_setbit(i,f);
         else
-            list_append(&rdlist,d);     // add the definition node
+            list_prepend(&rdlist,d);     // add the definition node
     }
     return rdlist;
 }
@@ -1317,9 +1315,9 @@ STATIC void accumda(elem *n,vec_t DEAD, vec_t POSS)
                         POSS[i] = tmp1 | tmp2;
                 }
 #else
-                {       DEAD[i] |= POSS[i] & Dl[i] & Dr[i] |
-                                   ~POSS[i] & (Dl[i] | Dr[i]);
-                        POSS[i] = Pl[i] & Pr[i] | ~POSS[i] & (Pl[i] | Pr[i]);
+                {       DEAD[i] |= (POSS[i] & Dl[i] & Dr[i]) |
+                                   (~POSS[i] & (Dl[i] | Dr[i]));
+                        POSS[i] = (Pl[i] & Pr[i]) | (~POSS[i] & (Pl[i] | Pr[i]));
                 }
 #endif
                 vec_free(Pl); vec_free(Pr); vec_free(Dl); vec_free(Dr);

@@ -109,7 +109,9 @@ struct ElfObj : Obj
     static int getsegment(const char *name, const char *suffix,
         int type, int flags, int align);
     static void addrel(int seg, targ_size_t offset, unsigned type,
-                        unsigned symidx, targ_size_t val);
+                       unsigned symidx, targ_size_t val);
+    static size_t writerel(int targseg, size_t offset, unsigned type,
+                           unsigned symidx, targ_size_t val);
 };
 
 struct MachObj : Obj

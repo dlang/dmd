@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2013 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -27,62 +27,71 @@ class VarDeclaration;
 class EnumDeclaration : public ScopeDsymbol
 {
 public:
-    /* enum ident : memtype { ... }
+    /* The separate, and distinct, cases are:
+     *  1. enum { ... }
+     *  2. enum : memtype { ... }
+     *  3. enum id { ... }
+     *  4. enum id : memtype { ... }
+     *  5. enum id : memtype;
+     *  6. enum id;
      */
     Type *type;                 // the TypeEnum
     Type *memtype;              // type of the members
     PROT protection;
 
-#if DMDV1
-    dinteger_t maxval;
-    dinteger_t minval;
-    dinteger_t defaultval;      // default initializer
-#else
+private:
     Expression *maxval;
     Expression *minval;
     Expression *defaultval;     // default initializer
-#endif
+
+public:
     bool isdeprecated;
-    int isdone;                 // 0: not done
-                                // 1: semantic() successfully completed
+    bool added;
+    int inuse;
 
     EnumDeclaration(Loc loc, Identifier *id, Type *memtype);
     Dsymbol *syntaxCopy(Dsymbol *s);
     int addMember(Scope *sc, ScopeDsymbol *sd, int memnum);
     void setScope(Scope *sc);
-    void semantic0(Scope *sc);
     void semantic(Scope *sc);
-    bool oneMember(Dsymbol **ps, Identifier *ident = NULL);
+    bool oneMember(Dsymbol **ps, Identifier *ident);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Type *getType();
     const char *kind();
-#if DMDV2
-    Dsymbol *search(Loc, Identifier *ident, int flags);
-#endif
+    Dsymbol *search(Loc, Identifier *ident, int flags = IgnoreNone);
     bool isDeprecated();                // is Dsymbol deprecated?
+    PROT prot();
+    Expression *getMaxMinValue(Loc loc, Identifier *id);
+    Expression *getDefaultValue(Loc loc);
+    Type *getMemtype(Loc loc);
 
     void emitComment(Scope *sc);
-    void toJson(JsonOut *json);
     void toDocBuffer(OutBuffer *buf, Scope *sc);
 
     EnumDeclaration *isEnumDeclaration() { return this; }
 
-    bool objFileDone;  // if toObjFile was already called
     void toObjFile(int multiobj);                       // compile to .obj file
     void toDebug();
     int cvMember(unsigned char *p);
 
     Symbol *sinit;
     Symbol *toInitializer();
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 
 class EnumMember : public Dsymbol
 {
 public:
-    EnumDeclaration *ed;
+    /* Can take the following forms:
+     *  1. id
+     *  2. id = value
+     *  3. type id = value
+     */
     Expression *value;
     Type *type;
+
+    EnumDeclaration *ed;
     VarDeclaration *vd;
 
     EnumMember(Loc loc, Identifier *id, Expression *value, Type *type);
@@ -93,10 +102,10 @@ public:
     Expression *getVarExp(Loc loc, Scope *sc);
 
     void emitComment(Scope *sc);
-    void toJson(JsonOut *json);
     void toDocBuffer(OutBuffer *buf, Scope *sc);
 
     EnumMember *isEnumMember() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 #endif /* DMD_ENUM_H */

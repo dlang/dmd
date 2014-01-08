@@ -1,3 +1,10 @@
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail53.d(25): Error: function object.Object.opEquals (Object o) is not callable using argument types (int)
+---
+*/
+
 // $HeadURL$
 // $Date$
 // $Author$
@@ -11,11 +18,13 @@
 
 module dstress.nocompile.bug_mtype_507_A;
 
-int main(){
-	Object o;
-	int i;
-	if(i==o){
-		return -1;
-	}
-	return 0;
+int main()
+{
+    Object o;
+    int i;
+    if (i == o)
+    {
+        return -1;
+    }
+    return 0;
 }

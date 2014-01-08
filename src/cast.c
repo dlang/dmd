@@ -22,9 +22,6 @@
 #include "scope.h"
 #include "id.h"
 
-//#define DUMP .dump(__PRETTY_FUNCTION__, this)
-#define DUMP
-
 /* ==================== implicitCast ====================== */
 
 /**************************************
@@ -39,45 +36,12 @@ Expression *Expression::implicitCastTo(Scope *sc, Type *t)
     MATCH match = implicitConvTo(t);
     if (match)
     {
-#if DMDV1
-        TY tyfrom = type->toBasetype()->ty;
-        TY tyto = t->toBasetype()->ty;
-        if (global.params.warnings &&
-            Type::impcnvWarn[tyfrom][tyto] &&
-            op != TOKint64)
-        {
-            Expression *e = optimize(WANTflags | WANTvalue);
-
-            if (e->op == TOKint64)
-                return e->implicitCastTo(sc, t);
-            if (tyfrom == Tint32 &&
-                (op == TOKadd || op == TOKmin ||
-                 op == TOKand || op == TOKor || op == TOKxor)
-               )
-            {
-                /* This is really only a semi-kludge fix,
-                 * we really should look at the operands of op
-                 * and see if they are narrower types.
-                 * For example, b=b|b and b=b|7 and s=b+b should be allowed,
-                 * but b=b|i should be an error.
-                 */
-                ;
-            }
-            else
-            {
-                warning("implicit conversion of expression (%s) of type %s to %s can cause loss of data",
-                    toChars(), type->toChars(), t->toChars());
-            }
-        }
-#endif
-#if DMDV2
         if (match == MATCHconst && type->constConv(t))
         {
             Expression *e = copy();
             e->type = t;
             return e;
         }
-#endif
         return castTo(sc, t);
     }
 
@@ -163,7 +127,7 @@ MATCH Expression::implicitConvTo(Type *t)
         type = Type::terror;
     }
     Expression *e = optimize(WANTvalue | WANTflags);
-    if (e->type == t)
+    if (e->type->equals(t))
         return MATCHexact;
     if (e != this)
     {   //printf("\toptimized to %s of type %s\n", e->toChars(), e->type->toChars());
@@ -177,10 +141,9 @@ MATCH Expression::implicitConvTo(Type *t)
      */
     if (type->isintegral() && t->isintegral() &&
         type->isTypeBasic() && t->isTypeBasic())
-    {   IntRange src = this->getIntRange() DUMP;
-        IntRange targetUnsigned = IntRange::fromType(t, /*isUnsigned*/true) DUMP;
-        IntRange targetSigned = IntRange::fromType(t, /*isUnsigned*/false) DUMP;
-        if (targetUnsigned.contains(src) || targetSigned.contains(src))
+    {   IntRange src = this->getIntRange();
+        IntRange target = IntRange::fromType(t);
+        if (target.contains(src))
             return MATCHconvert;
     }
 
@@ -226,6 +189,8 @@ MATCH IntegerExp::implicitConvTo(Type *t)
     if (t->ty == Tvector)
     {   TypeVector *tv = (TypeVector *)t;
         TypeBasic *tb = tv->elementType();
+        if (tb->ty == Tvoid)
+            goto Lno;
         toty = tb->ty;
     }
 
@@ -351,8 +316,8 @@ MATCH IntegerExp::implicitConvTo(Type *t)
             }
             else
             {
-                f = (float)(long long)value;
-                if (f != (long long)value)
+                f = (float)(sinteger_t)value;
+                if (f != (sinteger_t)value)
                     goto Lno;
             }
             goto Lyes;
@@ -369,8 +334,8 @@ MATCH IntegerExp::implicitConvTo(Type *t)
             }
             else
             {
-                f = (double)(long long)value;
-                if (f != (long long)value)
+                f = (double)(sinteger_t)value;
+                if (f != (sinteger_t)value)
                     goto Lno;
             }
             goto Lyes;
@@ -387,8 +352,8 @@ MATCH IntegerExp::implicitConvTo(Type *t)
             }
             else
             {
-                f = ldouble((long long)value);
-                if (f != (long long)value)
+                f = ldouble((sinteger_t)value);
+                if (f != (sinteger_t)value)
                     goto Lno;
             }
             goto Lyes;
@@ -442,7 +407,6 @@ MATCH NullExp::implicitConvTo(Type *t)
     return Expression::implicitConvTo(t);
 }
 
-#if DMDV2
 MATCH StructLiteralExp::implicitConvTo(Type *t)
 {
 #if 0
@@ -471,7 +435,6 @@ MATCH StructLiteralExp::implicitConvTo(Type *t)
     }
     return m;
 }
-#endif
 
 MATCH StringExp::implicitConvTo(Type *t)
 {
@@ -652,6 +615,27 @@ MATCH AssocArrayLiteralExp::implicitConvTo(Type *t)
     }
     else
         return Expression::implicitConvTo(t);
+}
+
+Expression *CallExp::implicitCastTo(Scope *sc, Type *t)
+{
+    //printf("CallExp::implicitCastTo(%s of type %s) => %s\n", toChars(), type->toChars(), t->toChars());
+
+    /* Allow the result of strongly pure functions to
+     * convert to immutable
+     */
+    if (f && f->isolateReturn() &&
+        type->immutableOf()->equals(t->immutableOf()))
+    {
+        /* Avoid emitting CastExp for:
+         *  T[] make() pure { ...  }
+         *  immutable T[] arr = make();  // unique return
+         */
+        Expression *e = copy();
+        e->type = t;
+        return e;
+    }
+    return Expression::implicitCastTo(sc, t);
 }
 
 MATCH CallExp::implicitConvTo(Type *t)
@@ -1002,8 +986,8 @@ MATCH NewExp::implicitConvTo(Type *t)
             goto Lnomatch;
 
         for (size_t i = 0; i < cd->fields.dim; i++)
-        {   Dsymbol *sm = cd->fields[i];
-            Declaration *d = sm->isDeclaration();
+        {
+            Declaration *d = cd->fields[i];
             if (d->storage_class & STCref || d->hasPointers())
                 goto Lnomatch;
         }
@@ -1052,8 +1036,8 @@ MATCH NewExp::implicitConvTo(Type *t)
                 goto Lnomatch;
 
             for (size_t i = 0; i < sd->fields.dim; i++)
-            {   Dsymbol *sm = sd->fields[i];
-                Declaration *d = sm->isDeclaration();
+            {
+                Declaration *d = sd->fields[i];
                 if (d->storage_class & STCref || d->hasPointers())
                     goto Lnomatch;
             }
@@ -1080,9 +1064,8 @@ Type *SliceExp::toStaticArrayType()
         Expression *upr = this->upr->optimize(WANTvalue);
         if (lwr->isConst() && upr->isConst())
         {
-            size_t len = upr->toUInteger() - lwr->toUInteger();
-            return new TypeSArray(type->toBasetype()->nextOf(),
-                        new IntegerExp(Loc(), len, Type::tindex));
+            size_t len = (size_t)(upr->toUInteger() - lwr->toUInteger());
+            return type->toBasetype()->nextOf()->sarrayOf(len);
         }
     }
     return NULL;
@@ -1119,7 +1102,7 @@ Expression *Expression::castTo(Scope *sc, Type *t)
     printf("Expression::castTo(this=%s, type=%s, t=%s)\n",
         toChars(), type->toChars(), t->toChars());
 #endif
-    if (type == t)
+    if (type->equals(t))
         return this;
     if (op == TOKvar)
     {
@@ -1133,7 +1116,7 @@ Expression *Expression::castTo(Scope *sc, Type *t)
     Expression *e = this;
     Type *tb = t->toBasetype();
     Type *typeb = type->toBasetype();
-    if (tb != typeb)
+    if (!tb->equals(typeb))
     {
         // Do (type *) cast of (type [dim])
         if (tb->ty == Tpointer &&
@@ -1142,36 +1125,26 @@ Expression *Expression::castTo(Scope *sc, Type *t)
         {
             //printf("Converting [dim] to *\n");
 
-            if (typeb->size(loc) == 0)
-                e = new NullExp(loc);
-            else
-                e = new AddrExp(loc, e);
+            e = new AddrExp(loc, e);
         }
-#if 0
-        else if (tb->ty == Tdelegate && type->ty != Tdelegate)
-        {
-            TypeDelegate *td = (TypeDelegate *)tb;
-            TypeFunction *tf = (TypeFunction *)td->nextOf();
-            return toDelegate(sc, tf->nextOf());
-        }
-#endif
         else
         {
             if (typeb->ty == Tstruct)
-            {   TypeStruct *ts = (TypeStruct *)typeb;
+            {
+                TypeStruct *ts = (TypeStruct *)typeb;
                 if (!(tb->ty == Tstruct && ts->sym == ((TypeStruct *)tb)->sym) &&
                     ts->sym->aliasthis)
-                {   /* Forward the cast to our alias this member, rewrite to:
+                {
+                    /* Forward the cast to our alias this member, rewrite to:
                      *   cast(to)e1.aliasthis
                      */
-                    Expression *e1 = resolveAliasThis(sc, this);
-                    Expression *e2 = new CastExp(loc, e1, tb);
-                    e2 = e2->semantic(sc);
-                    return e2;
+                    Expression *ex = resolveAliasThis(sc, this);
+                    return ex->castTo(sc, t);
                 }
             }
             else if (typeb->ty == Tclass)
-            {   TypeClass *ts = (TypeClass *)typeb;
+            {
+                TypeClass *ts = (TypeClass *)typeb;
                 if (ts->sym->aliasthis)
                 {
                     if (tb->ty == Tclass)
@@ -1201,9 +1174,9 @@ Expression *Expression::castTo(Scope *sc, Type *t)
                 e = e->semantic(sc);
                 return e;
             }
-            else if (typeb->implicitConvTo(tb) == MATCHconst && t == type->constOf())
+            else if (typeb->implicitConvTo(tb) == MATCHconst && t->equals(type->constOf()))
             {
-                Expression *e = copy();
+                e = copy();
                 e->type = t;
                 return e;
             }
@@ -1228,8 +1201,9 @@ Expression *ErrorExp::castTo(Scope *sc, Type *t)
 
 
 Expression *RealExp::castTo(Scope *sc, Type *t)
-{   Expression *e = this;
-    if (type != t)
+{
+    Expression *e = this;
+    if (!type->equals(t))
     {
         if ((type->isreal() && t->isreal()) ||
             (type->isimaginary() && t->isimaginary())
@@ -1245,8 +1219,9 @@ Expression *RealExp::castTo(Scope *sc, Type *t)
 
 
 Expression *ComplexExp::castTo(Scope *sc, Type *t)
-{   Expression *e = this;
-    if (type != t)
+{
+    Expression *e = this;
+    if (!type->equals(t))
     {
         if (type->iscomplex() && t->iscomplex())
         {   e = copy();
@@ -1261,8 +1236,8 @@ Expression *ComplexExp::castTo(Scope *sc, Type *t)
 
 Expression *NullExp::castTo(Scope *sc, Type *t)
 {
-    //printf("NullExp::castTo(t = %p)\n", t);
-    if (type == t)
+    //printf("NullExp::castTo(t = %s) %s\n", t->toChars(), toChars());
+    if (type->equals(t))
     {
         committed = 1;
         return this;
@@ -1273,7 +1248,7 @@ Expression *NullExp::castTo(Scope *sc, Type *t)
     Type *tb = t->toBasetype();
 #if 0
     e->type = type->toBasetype();
-    if (tb != e->type)
+    if (!tb->equals(e->type))
     {
         // NULL implicitly converts to any pointer type or dynamic array
         if (e->type->ty == Tpointer && e->type->nextOf()->ty == Tvoid &&
@@ -1307,6 +1282,10 @@ Expression *NullExp::castTo(Scope *sc, Type *t)
         return e->Expression::castTo(sc, t);
     }
 #endif
+    if (tb->ty == Tsarray || tb->ty == Tstruct)
+    {
+        error("cannot cast null to %s", t->toChars());
+    }
     e->type = t;
     return e;
 }
@@ -1342,7 +1321,7 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
         copied = 1;
     }
 
-    if (type == t)
+    if (type->equals(t))
     {
         return se;
     }
@@ -1389,7 +1368,7 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
 #endif
 
     Type *typeb = type->toBasetype();
-    if (typeb == tb)
+    if (typeb->equals(tb))
     {
         if (!copied)
         {   se = (StringExp *)copy();
@@ -1408,6 +1387,16 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
         se->len = (len * sz) / se->sz;
         se->committed = 1;
         se->type = t;
+
+        /* Assure space for terminating 0
+         */
+        if ((se->len + 1) * se->sz > (len + 1) * sz)
+        {
+            void *s = (void *)mem.malloc((se->len + 1) * se->sz);
+            memcpy(s, se->string, se->len * se->sz);
+            memset((char *)s + se->len * se->sz, 0, se->sz);
+            se->string = s;
+        }
         return se;
     }
 
@@ -1457,7 +1446,7 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
         case X(Tchar, Twchar):
             for (size_t u = 0; u < len;)
             {   unsigned c;
-                const char *p = utf_decodeChar((unsigned char *)se->string, len, &u, &c);
+                const char *p = utf_decodeChar((utf8_t *)se->string, len, &u, &c);
                 if (p)
                     error("%s", p);
                 else
@@ -1470,7 +1459,7 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
         case X(Tchar, Tdchar):
             for (size_t u = 0; u < len;)
             {   unsigned c;
-                const char *p = utf_decodeChar((unsigned char *)se->string, len, &u, &c);
+                const char *p = utf_decodeChar((utf8_t *)se->string, len, &u, &c);
                 if (p)
                     error("%s", p);
                 buffer.write4(c);
@@ -1559,7 +1548,7 @@ L2:
     // See if need to truncate or extend the literal
     if (tb->ty == Tsarray)
     {
-        dinteger_t dim2 = ((TypeSArray *)tb)->dim->toInteger();
+        size_t dim2 = (size_t)((TypeSArray *)tb)->dim->toInteger();
 
         //printf("dim from = %d, to = %d\n", (int)se->len, (int)dim2);
 
@@ -1569,7 +1558,7 @@ L2:
             // Copy when changing the string literal
             size_t newsz = se->sz;
             size_t d = (dim2 < se->len) ? dim2 : se->len;
-            void *s = (unsigned char *)mem.malloc((dim2 + 1) * newsz);
+            void *s = (void *)mem.malloc((dim2 + 1) * newsz);
             memcpy(s, se->string, d * newsz);
             // Extend with 0, add terminating 0
             memset((char *)s + d * newsz, 0, (dim2 + 1 - d) * newsz);
@@ -1598,7 +1587,7 @@ Expression *AddrExp::castTo(Scope *sc, Type *t)
 
     tb = t->toBasetype();
     type = type->toBasetype();
-    if (tb != type)
+    if (!tb->equals(type))
     {
         // Look for pointers to functions where the functions are overloaded.
 
@@ -1665,6 +1654,9 @@ Expression *AddrExp::castTo(Scope *sc, Type *t)
 
 Expression *TupleExp::castTo(Scope *sc, Type *t)
 {
+    if (type->equals(t))
+        return this;
+
     TupleExp *e = (TupleExp *)copy();
     e->e0 = e0 ? e0->copy() : NULL;
     e->exps = (Expressions *)exps->copy();
@@ -1785,7 +1777,7 @@ Expression *SymOffExp::castTo(Scope *sc, Type *t)
     Expression *e;
     Type *tb = t->toBasetype();
     Type *typeb = type->toBasetype();
-    if (tb != typeb)
+    if (!tb->equals(typeb))
     {
         // Look for pointers to functions where the functions are overloaded.
         FuncDeclaration *f;
@@ -1845,12 +1837,10 @@ Expression *SymOffExp::castTo(Scope *sc, Type *t)
                         e = new SymOffExp(loc, f, 0);
                         e->type = t;
                     }
-#if DMDV2
 #if DMD_OBJC
                     if (tb->ty != Tobjcselector)
 #endif
                         f->tookAddressOf++;
-#endif
                     return e;
                 }
             }
@@ -1871,12 +1861,12 @@ Expression *DelegateExp::castTo(Scope *sc, Type *t)
     printf("DelegateExp::castTo(this=%s, type=%s, t=%s)\n",
         toChars(), type->toChars(), t->toChars());
 #endif
-    static char msg[] = "cannot form delegate due to covariant return type";
+    static const char msg[] = "cannot form delegate due to covariant return type";
 
     Expression *e = this;
     Type *tb = t->toBasetype();
     Type *typeb = type->toBasetype();
-    if (tb != typeb || hasOverloads)
+    if (!tb->equals(typeb) || hasOverloads)
     {
         // Look for delegates to functions where the functions are overloaded.
         FuncDeclaration *f;
@@ -2009,7 +1999,7 @@ Expression *CondExp::castTo(Scope *sc, Type *t)
 {
     Expression *e = this;
 
-    if (type != t)
+    if (!type->equals(t))
     {
         if (1 || e1->op == TOKstring || e2->op == TOKstring)
         {   e = new CondExp(loc, econd, e1->castTo(sc, t), e2->castTo(sc, t));
@@ -2140,7 +2130,8 @@ Expression *FuncExp::inferType(Type *to, int flag, Scope *sc, TemplateParameters
     {
         if (to->ty == Tdelegate ||
             to->ty == Tpointer && to->nextOf()->ty == Tfunction)
-        {   fd->treq = to;
+        {
+            fd->treq = to;
         }
         return this;
     }
@@ -2160,7 +2151,8 @@ Expression *FuncExp::inferType(Type *to, int flag, Scope *sc, TemplateParameters
     }
 
     if (td)
-    {   /// Parameter types inference from
+    {
+        // Parameter types inference from 'to'
         assert(td->scope);
         if (t->ty == Tfunction)
         {
@@ -2180,10 +2172,12 @@ Expression *FuncExp::inferType(Type *to, int flag, Scope *sc, TemplateParameters
                 {
                     TemplateParameter *tp = (*td->parameters)[i];
                     for (size_t u = 0; u < dim; u++)
-                    {   Parameter *p = Parameter::getNth(tfl->parameters, u);
+                    {
+                        Parameter *p = Parameter::getNth(tfl->parameters, u);
                         if (p->type->ty == Tident &&
                             ((TypeIdentifier *)p->type)->ident == tp->ident)
-                        {   p = Parameter::getNth(tfv->parameters, u);
+                        {
+                            p = Parameter::getNth(tfv->parameters, u);
                             Type *tprm = p->type;
                             if (tprm->reliesOnTident(tparams))
                                 goto L1;
@@ -2211,7 +2205,8 @@ Expression *FuncExp::inferType(Type *to, int flag, Scope *sc, TemplateParameters
                 fld->treq = NULL;
 
                 if (e->op == TOKfunction)
-                {   FuncExp *fe = (FuncExp *)e;
+                {
+                    FuncExp *fe = (FuncExp *)e;
                     assert(fe->td == NULL);
                     e = fe->inferType(to, flag);
                 }
@@ -2240,7 +2235,8 @@ Expression *FuncExp::inferType(Type *to, int flag, Scope *sc, TemplateParameters
     }
 L1:
     if (!flag && !e)
-    {   error("cannot infer function literal type from %s", to->toChars());
+    {
+        error("cannot infer function literal type from %s", to->toChars());
         e = new ErrorExp();
     }
     return e;
@@ -2407,13 +2403,13 @@ Lagain:
 
         if (t1b->ty == ty1)     // if no promotions
         {
-            if (t1 == t2)
+            if (t1->equals(t2))
             {
                 t = t1;
                 goto Lret;
             }
 
-            if (t1b == t2b)
+            if (t1b->equals(t2b))
             {
                 t = t1b;
                 goto Lret;
@@ -2435,7 +2431,10 @@ Lagain:
     t1 = t1b;
     t2 = t2b;
 
-    if (t1 == t2)
+    if (t1->ty == Ttuple || t2->ty == Ttuple)
+        goto Lincompatible;
+
+    if (t1->equals(t2))
     {
         // merging can not result in new enum type
         if (t->ty == Tenum)
@@ -2448,7 +2447,7 @@ Lagain:
         Type *t1n = t1->nextOf();
         Type *t2n = t2->nextOf();
 
-        if (t1n == t2n)
+        if (t1n->equals(t2n))
             ;
         else if (t1n->ty == Tvoid)      // pointers to void are always compatible
             t = t2;
@@ -2872,6 +2871,15 @@ Lcc:
         e2 = e2->castTo(sc, t);
         goto Lagain;
     }
+    else if (t1->ty == Tnull && t2->ty == Tnull)
+    {
+        unsigned char mod = MODmerge(t1->mod, t2->mod);
+
+        t = t1->castMod(mod);
+        e1 = e1->castTo(sc, t);
+        e2 = e2->castTo(sc, t);
+        goto Lret;
+    }
     else if (e1->isArrayOperand() && t1->ty == Tarray &&
              e2->implicitConvTo(t1->nextOf()))
     {   // T[] op T
@@ -2942,6 +2950,8 @@ Expression *BinExp::typeCombine(Scope *sc)
             goto Lerror;
         else if (t1->ty == Tclass && t2->ty == Tclass)
             goto Lerror;
+        else if (t1->ty == Taarray && t2->ty == Taarray)
+            goto Lerror;
     }
 
     if (!typeMerge(sc, this, &type, &e1, &e2))
@@ -3006,8 +3016,8 @@ Expression *Expression::integralPromotions(Scope *sc)
 
 int arrayTypeCompatible(Loc loc, Type *t1, Type *t2)
 {
-    t1 = t1->toBasetype();
-    t2 = t2->toBasetype();
+    t1 = t1->toBasetype()->merge2();
+    t2 = t2->toBasetype()->merge2();
 
     if ((t1->ty == Tarray || t1->ty == Tsarray || t1->ty == Tpointer) &&
         (t2->ty == Tarray || t2->ty == Tsarray || t2->ty == Tpointer))
@@ -3065,31 +3075,31 @@ uinteger_t getMask(uinteger_t v)
 }
 IntRange Expression::getIntRange()
 {
-    return IntRange::fromType(type) DUMP;
+    return IntRange::fromType(type);
 }
 
 IntRange IntegerExp::getIntRange()
 {
-    return IntRange(value).cast(type) DUMP;
+    return IntRange(SignExtendedNumber(value)).cast(type);
 }
 
 IntRange CastExp::getIntRange()
 {
-    return e1->getIntRange().cast(type) DUMP;
+    return e1->getIntRange().cast(type);
 }
 
 IntRange AddExp::getIntRange()
 {
     IntRange ir1 = e1->getIntRange();
     IntRange ir2 = e2->getIntRange();
-    return IntRange(ir1.imin + ir2.imin, ir1.imax + ir2.imax).cast(type) DUMP;
+    return IntRange(ir1.imin + ir2.imin, ir1.imax + ir2.imax).cast(type);
 }
 
 IntRange MinExp::getIntRange()
 {
     IntRange ir1 = e1->getIntRange();
     IntRange ir2 = e2->getIntRange();
-    return IntRange(ir1.imin - ir2.imax, ir1.imax - ir2.imin).cast(type) DUMP;
+    return IntRange(ir1.imin - ir2.imax, ir1.imax - ir2.imin).cast(type);
 }
 
 IntRange DivExp::getIntRange()
@@ -3099,16 +3109,15 @@ IntRange DivExp::getIntRange()
 
     // Should we ignore the possibility of div-by-0???
     if (ir2.containsZero())
-        return Expression::getIntRange() DUMP;
+        return Expression::getIntRange();
 
     // [a,b] / [c,d] = [min (a/c, a/d, b/c, b/d), max (a/c, a/d, b/c, b/d)]
-    SignExtendedNumber bdy[4] = {
-        ir1.imin / ir2.imin,
-        ir1.imin / ir2.imax,
-        ir1.imax / ir2.imin,
-        ir1.imax / ir2.imax
-    };
-    return IntRange::fromNumbers4(bdy).cast(type) DUMP;
+    SignExtendedNumber bdy[4];
+    bdy[0] = ir1.imin / ir2.imin;
+    bdy[1] = ir1.imin / ir2.imax;
+    bdy[2] = ir1.imax / ir2.imin;
+    bdy[3] = ir1.imax / ir2.imax;
+    return IntRange::fromNumbers4(bdy).cast(type);
 }
 
 IntRange MulExp::getIntRange()
@@ -3117,13 +3126,12 @@ IntRange MulExp::getIntRange()
     IntRange ir2 = e2->getIntRange();
 
     // [a,b] * [c,d] = [min (ac, ad, bc, bd), max (ac, ad, bc, bd)]
-    SignExtendedNumber bdy[4] = {
-        ir1.imin * ir2.imin,
-        ir1.imin * ir2.imax,
-        ir1.imax * ir2.imin,
-        ir1.imax * ir2.imax
-    };
-    return IntRange::fromNumbers4(bdy).cast(type) DUMP;
+    SignExtendedNumber bdy[4];
+    bdy[0] = ir1.imin * ir2.imin;
+    bdy[1] = ir1.imin * ir2.imax;
+    bdy[2] = ir1.imax * ir2.imin;
+    bdy[3] = ir1.imax * ir2.imax;
+    return IntRange::fromNumbers4(bdy).cast(type);
 }
 
 IntRange ModExp::getIntRange()
@@ -3148,7 +3156,7 @@ IntRange ModExp::getIntRange()
 
     // Modding on 0 is invalid anyway.
     if (!irDen.imin.negative)
-        return Expression::getIntRange() DUMP;
+        return Expression::getIntRange();
 
     ++ irDen.imin;
     irDen.imax = -irDen.imin;
@@ -3166,7 +3174,7 @@ IntRange ModExp::getIntRange()
     else if (irNum.imax > irDen.imax)
         irNum.imax = irDen.imax;
 
-    return irNum.cast(type) DUMP;
+    return irNum.cast(type);
 }
 
 // The algorithms for &, |, ^ are not yet the best! Sometimes they will produce
@@ -3247,7 +3255,7 @@ IntRange AndExp::getIntRange()
     if (has1neg && has2neg)
         result.unionOrAssign(unsignedBitwiseAnd(ir1neg, ir2neg), /*ref*/hasResult);
     assert(hasResult);
-    return result.cast(type) DUMP;
+    return result.cast(type);
 }
 
 IntRange OrExp::getIntRange()
@@ -3273,7 +3281,7 @@ IntRange OrExp::getIntRange()
         result.unionOrAssign(unsignedBitwiseOr(ir1neg, ir2neg), /*ref*/hasResult);
 
     assert(hasResult);
-    return result.cast(type) DUMP;
+    return result.cast(type);
 }
 
 IntRange XorExp::getIntRange()
@@ -3299,7 +3307,7 @@ IntRange XorExp::getIntRange()
         result.unionOrAssign(unsignedBitwiseXor(ir1neg, ir2neg), /*ref*/hasResult);
 
     assert(hasResult);
-    return result.cast(type) DUMP;
+    return result.cast(type);
 }
 
 IntRange ShlExp::getIntRange()
@@ -3313,7 +3321,7 @@ IntRange ShlExp::getIntRange()
     SignExtendedNumber lower = ir1.imin << (ir1.imin.negative ? ir2.imax : ir2.imin);
     SignExtendedNumber upper = ir1.imax << (ir1.imax.negative ? ir2.imin : ir2.imax);
 
-    return IntRange(lower, upper).cast(type) DUMP;
+    return IntRange(lower, upper).cast(type);
 }
 
 IntRange ShrExp::getIntRange()
@@ -3327,7 +3335,7 @@ IntRange ShrExp::getIntRange()
     SignExtendedNumber lower = ir1.imin >> (ir1.imin.negative ? ir2.imin : ir2.imax);
     SignExtendedNumber upper = ir1.imax >> (ir1.imax.negative ? ir2.imax : ir2.imin);
 
-    return IntRange(lower, upper).cast(type) DUMP;
+    return IntRange(lower, upper).cast(type);
 }
 
 IntRange UshrExp::getIntRange()
@@ -3338,25 +3346,25 @@ IntRange UshrExp::getIntRange()
     if (ir2.imin.negative)
         ir2 = IntRange(SignExtendedNumber(0), SignExtendedNumber(64));
 
-    return IntRange(ir1.imin >> ir2.imax, ir1.imax >> ir2.imin).cast(type) DUMP;
+    return IntRange(ir1.imin >> ir2.imax, ir1.imax >> ir2.imin).cast(type);
 
 }
 
 IntRange CommaExp::getIntRange()
 {
-    return e2->getIntRange() DUMP;
+    return e2->getIntRange();
 }
 
 IntRange ComExp::getIntRange()
 {
     IntRange ir = e1->getIntRange();
     return IntRange(SignExtendedNumber(~ir.imax.value, !ir.imax.negative),
-                    SignExtendedNumber(~ir.imin.value, !ir.imin.negative)).cast(type) DUMP;
+                    SignExtendedNumber(~ir.imin.value, !ir.imin.negative)).cast(type);
 }
 
 IntRange NegExp::getIntRange()
 {
     IntRange ir = e1->getIntRange();
-    return IntRange(-ir.imax, -ir.imin).cast(type) DUMP;
+    return IntRange(-ir.imax, -ir.imin).cast(type);
 }
 

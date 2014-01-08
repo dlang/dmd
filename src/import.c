@@ -182,7 +182,8 @@ void Import::importAll(Scope *sc)
     {
         load(sc);
         if (mod)                // if successfully loaded module
-        {   mod->importAll(NULL);
+        {
+            mod->importAll(NULL);
 
             if (!isstatic && !aliasId && !names.dim)
             {
@@ -199,29 +200,21 @@ void Import::semantic(Scope *sc)
     //printf("Import::semantic('%s')\n", toPrettyChars());
 
     if (scope)
-    {   sc = scope;
+    {
+        sc = scope;
         scope = NULL;
     }
 
     // Load if not already done so
     if (!mod)
-    {   load(sc);
+    {
+        load(sc);
         if (mod)
             mod->importAll(NULL);
     }
 
     if (mod)
     {
-#if 0
-        if (mod->loc.linnum != 0)
-        {   /* If the line number is not 0, then this is not
-             * a 'root' module, i.e. it was not specified on the command line.
-             */
-            mod->importedFrom = sc->module->importedFrom;
-            assert(mod->importedFrom);
-        }
-#endif
-
         // Modules need a list of each imported module
         //printf("%s imports %s\n", sc->module->toChars(), mod->toChars());
         sc->module->aimports.push(mod);
@@ -243,7 +236,8 @@ void Import::semantic(Scope *sc)
         mod->semantic();
 
         if (mod->needmoduleinfo)
-        {   //printf("module4 %s because of %s\n", sc->module->toChars(), mod->toChars());
+        {
+            //printf("module4 %s because of %s\n", sc->module->toChars(), mod->toChars());
             sc->module->needmoduleinfo = 1;
         }
 
@@ -260,7 +254,7 @@ void Import::semantic(Scope *sc)
         {   AliasDeclaration *ad = aliasdecls[i];
 
             //printf("\tImport alias semantic('%s')\n", s->toChars());
-            if (mod->search(loc, names[i], 0))
+            if (mod->search(loc, names[i]))
             {
                 ad->semantic(sc);
             }
@@ -278,7 +272,10 @@ void Import::semantic(Scope *sc)
 
     if (global.params.moduleDeps != NULL &&
         // object self-imports itself, so skip that (Bugzilla 7547)
-        !(id == Id::object && sc->module->ident == Id::object))
+        !(id == Id::object && sc->module->ident == Id::object) &&
+        // don't list pseudo modules __entrypoint.d, __main.d (Bugzilla 11117, 11164)
+        sc->module->ident != Id::entrypoint &&
+        strcmp(sc->module->ident->string, "__main") != 0)
     {
         /* The grammar of the file is:
          *      ImportDeclaration
@@ -286,7 +283,7 @@ void Import::semantic(Scope *sc)
          *      ModuleAliasIdentifier ] "\n"
          *
          *      BasicImportDeclaration
-         *          ::= ModuleFullyQualifiedName " (" FilePath ") : " Protection
+         *          ::= ModuleFullyQualifiedName " (" FilePath ") : " Protection|"string"
          *              " [ " static" ] : " ModuleFullyQualifiedName " (" FilePath ")"
          *
          *      FilePath
@@ -294,11 +291,12 @@ void Import::semantic(Scope *sc)
          */
 
         OutBuffer *ob = global.params.moduleDeps;
+        Module* imod = sc->instantiatingModule ? sc->instantiatingModule : sc->module;
         if (!global.params.moduleDepsFile)
             ob->writestring("depsImport ");
-        ob->writestring(sc->module->toPrettyChars());
+        ob->writestring(imod->toPrettyChars());
         ob->writestring(" (");
-        escapePath(ob, sc->module->srcfile->toChars());
+        escapePath(ob,  imod->srcfile->toChars());
         ob->writestring(") : ");
 
         // use protection instead of sc->protection because it couldn't be
@@ -360,7 +358,8 @@ void Import::semantic2(Scope *sc)
     {
         mod->semantic2();
         if (mod->needmoduleinfo)
-        {   //printf("module5 %s because of %s\n", sc->module->toChars(), mod->toChars());
+        {
+            //printf("module5 %s because of %s\n", sc->module->toChars(), mod->toChars());
             sc->module->needmoduleinfo = 1;
         }
     }
@@ -414,7 +413,8 @@ Dsymbol *Import::search(Loc loc, Identifier *ident, int flags)
     //printf("%s.Import::search(ident = '%s', flags = x%x)\n", toChars(), ident->toChars(), flags);
 
     if (!pkg)
-    {   load(NULL);
+    {
+        load(NULL);
         mod->semantic();
     }
 

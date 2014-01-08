@@ -110,7 +110,7 @@ static unsigned short parseIdx(unsigned char **pp)
  *      loc             location to use for error printing
  */
 
-void scanOmfObjModule(void* pctx, void (*pAddSymbol)(void* pctx, char* name, int pickAny),
+void scanOmfObjModule(void* pctx, void (*pAddSymbol)(void* pctx, const char* name, int pickAny),
     void *base, size_t buflen, const char *module_name, Loc loc)
 {
 #if LOG
@@ -255,7 +255,7 @@ void scanOmfObjModule(void* pctx, void (*pAddSymbol)(void* pctx, char* name, int
     }
 Ret:
     for (size_t u = 1; u < names.dim; u++)
-        free(names[u]);
+        free((void *)names[u]);
 }
 
 /*************************************************

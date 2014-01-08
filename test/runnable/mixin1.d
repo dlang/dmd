@@ -1042,6 +1042,20 @@ void test2245()
 }
 
 /*******************************************/
+// 2481
+
+template M2481() { int i; }
+class Z2481a { struct { mixin M2481!(); } }
+class Z2481b { struct { int i; } }
+
+void test2481()
+{
+    Z2481a z1;
+    Z2481b z2;
+    static assert(z1.i.offsetof == z2.i.offsetof);
+}
+
+/*******************************************/
 // 2740
 
 interface IFooable2740
@@ -1128,6 +1142,27 @@ void test42()
 }
 
 /*******************************************/
+// 7744
+
+class ZeroOrMore7744(Expr)
+{
+    enum name = "ZeroOrMore7744!("~Expr.name~")";
+}
+class Range7744(char begin, char end)
+{
+    enum name = "Range7744!("~begin~","~end~")";
+}
+
+mixin(q{
+    class RubySource7744 : ZeroOrMore7744!(DecLiteral7744)
+    {
+    }
+    class DecLiteral7744 : Range7744!('0','9')
+    {
+    }
+});
+
+/*******************************************/
 // 8032
 
 mixin template T8032()
@@ -1169,6 +1204,59 @@ void test9417()
     {
         mixin Foo9417;
     }
+}
+
+/*******************************************/
+// 11487
+
+template X11487()
+{
+    struct R()
+    {
+        C11487 c;
+
+        ~this()
+        {
+            static assert(is(typeof(c.front) == void));
+        }
+    }
+    template Mix(alias R)
+    {
+        R!() range;
+        @property front() inout {}
+    }
+}
+
+class C11487
+{
+    alias X11487!() M;
+    mixin M.Mix!(M.R);
+}
+
+/*******************************************/
+// 11767
+
+mixin template M11767()
+{
+    struct S11767 {}
+}
+mixin M11767!();
+mixin M11767!();    // OK
+static assert(!__traits(compiles, S11767));
+
+void test11767()
+{
+    mixin M11767!();
+    alias S1 = S11767;
+    {
+        mixin M11767!();
+        alias S2 = S11767;
+        static assert(!is(S1 == S2));
+        static assert(S1.mangleof == "S6mixin19test11767FZv8__mixin16S11767");
+        static assert(S2.mangleof == "S6mixin19test11767FZv8__mixin26S11767");
+    }
+    mixin M11767!();
+    static assert(!__traits(compiles, S11767));
 }
 
 /*******************************************/
@@ -1220,6 +1308,7 @@ int main()
     test2740();
     test42();
     test9417();
+    test11767();
 
     printf("Success\n");
     return 0;

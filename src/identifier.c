@@ -25,9 +25,9 @@ Identifier::Identifier(const char *string, int value)
     this->len = strlen(string);
 }
 
-hash_t Identifier::hashCode()
+Identifier *Identifier::create(const char *string, int value)
 {
-    return String::calcHash(string);
+    return new Identifier(string, value);
 }
 
 bool Identifier::equals(RootObject *o)

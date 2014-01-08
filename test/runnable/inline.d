@@ -3,6 +3,8 @@ import std.stdio;
 
 // Test function inlining
 
+debug = NRVO;
+
 /************************************/
 
 int foo(int i)
@@ -55,8 +57,8 @@ void test2()
 
 struct Foo3
 {
-	int bar() { return y + 3; }
-	int y = 4;
+    int bar() { return y + 3; }
+    int y = 4;
 }
 
 void test3()
@@ -108,13 +110,13 @@ struct Struct
 {
     real foo()
     {
-	return 0;
+        return 0;
     }
 
     void bar(out Struct Q)
     {
-	if (foo() < 0)
-	    Q = this; 
+        if (foo() < 0)
+            Q = this; 
     }
 }
 
@@ -142,6 +144,21 @@ void test7()
 }
 
 /************************************/
+
+// 10833
+string fun10833(T...)()
+{
+    foreach (v ; T)
+        return v;
+    assert(0);
+}
+
+void test10833()
+{
+    auto a = fun10833!("bar")();
+}
+
+/************************************/
 // Bugzilla 4825
 
 int a8() {
@@ -158,6 +175,92 @@ void test8() {
         auto e = b8();
     }
     static const int f = b8();
+}
+
+/************************************/
+// 4841
+
+auto fun4841a()
+{
+    int i = 42;
+    struct Result
+    {
+        this(int u) {}
+        auto bar()
+        {
+            // refer context of fun4841a
+            return i;
+        }
+    }
+    return Result();
+}
+void test4841a()
+{
+    auto t = fun4841a();
+    auto x = t.bar();
+    assert(x == 42);
+}
+
+auto fun4841b()
+{
+    int i = 40;
+    auto foo()  // hasNestedFrameRefs() == false
+    {
+        //
+        struct Result
+        {
+            this(int u) {}
+            auto bar()
+            {
+                // refer context of fun4841b
+                return i + 2;
+            }
+        }
+        return Result();
+    }
+    return foo();
+}
+void test4841b()
+{
+    auto t = fun4841b();
+    assert(cast(void*)t.tupleof[$-1] !is null);     // Result to fun4841b
+    auto x = t.bar();
+    assert(x == 42);
+}
+
+auto fun4841c()
+{
+    int i = 40;
+    auto foo()  // hasNestedFrameRefs() == true
+    {
+        int g = 2;
+        struct Result
+        {
+            this(int u) {}
+            auto bar()
+            {
+                // refer context of fun4841c and foo
+                return i + g;
+            }
+        }
+        return Result();
+    }
+    return foo();
+}
+void test4841c()
+{
+    auto t = fun4841c();
+    assert(  cast(void*)t.tupleof[$-1] !is null);   // Result to foo
+    assert(*cast(void**)t.tupleof[$-1] !is null);   // foo to fun4841c
+    auto x = t.bar();
+    assert(x == 42);
+}
+
+void test4841()
+{
+    test4841a();
+    test4841b();
+    test4841c();
 }
 
 /************************************/
@@ -183,7 +286,150 @@ struct Task
     }
 }
 
+void test9356()
+{
+    static inout(char)[] bar (inout(char)[] a)
+    {
+        return a;
+    }
+
+    string result;
+    result ~= bar("abc");
+    assert(result == "abc");
+}
+
 /************************************/
+// 11223
+
+struct Tuple11223(T...)
+{
+    T values;
+
+    void opAssign(Tuple11223 rhs)
+    {
+        if (0)
+            values = rhs.values;
+        else
+            assert(1);
+    }
+}
+
+void test11223()
+{
+    Tuple11223!string tmp;
+    tmp = Tuple11223!string();
+}
+
+/************************************/
+// 11314
+
+struct Tuple11314(T...)
+{
+    T values;
+
+    void opAssign(typeof(this) rhs)
+    {
+        if (0)
+            values[] = rhs.values[];
+        else
+            assert(1);
+    }
+}
+
+struct S11314 {}
+
+void test11314()
+{
+    Tuple11314!S11314 t;
+    t = Tuple11314!S11314(S11314.init);
+}
+
+/************************************/
+// 11224
+
+S11224* ptr11224;
+
+struct S11224
+{
+    this(int)
+    {
+        ptr11224 = &this;
+        /*printf("ctor &this = %p\n", &this);*/
+    }
+    int num;
+}
+S11224 foo11224()
+{
+    S11224 s = S11224(1);
+    //printf("foo  &this = %p\n", &s);
+    assert(ptr11224 is &s);
+    return s;
+}
+void test11224()
+{
+    auto s = foo11224();
+    //printf("main &this = %p\n", &s);
+    assert(ptr11224 is &s);
+}
+
+/************************************/
+// 11322
+
+bool b11322;
+uint n11322;
+
+ref uint fun11322()
+{
+    if (b11322)
+        return n11322;
+    else
+        return n11322;
+}
+
+void test11322()
+{
+    fun11322()++;
+    assert(n11322 == 1);
+    fun11322() *= 5;
+    assert(n11322 == 5);
+}
+
+/************************************/
+// 11394
+
+debug(NRVO) static void* p11394a, p11394b, p11394c;
+
+static int[3] make11394(in int x) pure
+{
+    typeof(return) a;
+    a[0] = x;
+    a[1] = x + 1;
+    a[2] = x + 2;
+    debug(NRVO) p11394a = cast(void*)a.ptr;
+    return a;
+}
+
+struct Bar11394
+{
+    immutable int[3] arr;
+
+    this(int x)
+    {
+        this.arr = make11394(x);    // NRVO should work
+        debug(NRVO) p11394b = cast(void*)this.arr.ptr;
+    }
+}
+
+void test11394()
+{
+    auto b = Bar11394(5);
+    debug(NRVO) p11394c = cast(void*)b.arr.ptr;
+  //debug(NRVO) printf("p1 = %p\np2 = %p\np3 = %p\n", p11394a, p11394b, p11394c);
+    debug(NRVO) assert(p11394a == p11394b);
+    debug(NRVO) assert(p11394b == p11394c);
+}
+
+/**********************************/
 
 int main()
 {
@@ -192,9 +438,16 @@ int main()
     test3();
     test4();
     test5();
+    test9356();
     test6();
     test7();
     test8();
+    test4841();
+    test11223();
+    test11314();
+    test11224();
+    test11322();
+    test11394();
 
     printf("Success\n");
     return 0;

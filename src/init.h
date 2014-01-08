@@ -18,7 +18,7 @@
 
 class Identifier;
 class Expression;
-class Scope;
+struct Scope;
 class Type;
 struct dt_t;
 class AggregateDeclaration;
@@ -89,9 +89,6 @@ class StructInitializer : public Initializer
 public:
     Identifiers field;  // of Identifier *'s
     Initializers value; // parallel array of Initializer *'s
-
-    VarDeclarations vars;       // parallel array of VarDeclaration *'s
-    AggregateDeclaration *ad;   // which aggregate this is for
 
     StructInitializer(Loc loc);
     Initializer *syntaxCopy();

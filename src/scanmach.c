@@ -167,10 +167,12 @@ void scanMachObjModule(void* pctx, void (*pAddSymbol)(void* pctx, char* name, in
                     ; //printf(" N_STAB");
                 else
                 {
+#if 0
                     if (s->n_type & N_PEXT)
                         ;
                     if (s->n_type & N_EXT)
                         ;
+#endif
                     switch (s->n_type & N_TYPE)
                     {
                         case N_UNDF:
@@ -208,10 +210,12 @@ void scanMachObjModule(void* pctx, void (*pAddSymbol)(void* pctx, char* name, in
                     ; //printf(" N_STAB");
                 else
                 {
+#if 0
                     if (s->n_type & N_PEXT)
                         ;
                     if (s->n_type & N_EXT)
                         ;
+#endif
                     switch (s->n_type & N_TYPE)
                     {
                         case N_UNDF:

@@ -277,5 +277,17 @@ void foo(){}
 unittest {  }
 
 // ------------------------------------
+// Issue 10519
+
+///
+bool balancedParens10519(string, char, char) { return true; }
+///
+unittest
+{
+    auto s = "1 + (2 * (3 + 1 / 2)";
+    assert(!balancedParens10519(s, '(', ')'));
+}
+
+// ------------------------------------
 
 void main() { }

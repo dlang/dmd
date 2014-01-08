@@ -1,11 +1,19 @@
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail352.d(18): Error: cannot infer argument types
+---
+*/
 
-struct Range {
+struct Range
+{
     bool empty;
     int front() { return 0; }
     void popFront() { empty = true; }
 }
 
-void main() {
+void main()
+{
     // no index for range foreach
     foreach(i, v; Range()) {}
 }

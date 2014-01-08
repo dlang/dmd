@@ -103,6 +103,150 @@ void test6()
 }
 
 /**********************************************/
+// 2407
+
+int i2407;
+
+void add2407() { ++i2407; }
+void sub2407() { --i2407; }
+
+enum EF2407f : void function()
+{
+    a = &add2407,
+    s = &sub2407,
+}
+
+enum EF2407s
+{
+    a = &add2407,
+    s = &sub2407,
+}
+
+enum
+{
+    a2407 = &add2407,
+    s2407 = &sub2407,
+}
+
+enum : void function()
+{
+    at2407 = &add2407,
+    st2407 = &sub2407,
+}
+
+enum EEF2407 : EF2407s
+{
+    a = EF2407s.a,
+    s = EF2407s.s,
+}
+
+void test2407()
+{
+    alias i2407 i;
+
+    EF2407f.a();
+    assert(i == 1);
+    EF2407f.s();
+    assert(i == 0);
+
+    EF2407s.a();
+    assert(i == 1);
+    EF2407s.s();
+    assert(i == 0);
+
+    a2407();
+    assert(i == 1);
+    s2407();
+    assert(i == 0);
+
+    at2407();
+    assert(i == 1);
+    st2407();
+    assert(i == 0);
+
+    EEF2407.a();
+    assert(i == 1);
+    EEF2407.s();
+    assert(i == 0);
+
+    EEF2407.init();
+    assert(i == 1);
+
+    struct S { int i; }
+    enum ES : S
+    {
+        a = S(1),
+        b = S(3),
+        c = S(2),
+    }
+    static assert(ES.init == S(1));
+    static assert(!__traits(compiles, ES.min));
+    static assert(!__traits(compiles, ES.max));
+
+    enum EES : ES
+    {
+        a = ES.a,
+        b = ES.b,
+        c = ES.c,
+    }
+    static assert(EES.init == ES.init);
+    static assert(EES.init == S(1));
+    static assert(!__traits(compiles, EES.min));
+    static assert(!__traits(compiles, EES.max));
+
+    ES es = ES.c;
+    assert(es.i == 2);
+    es = ES.b;
+    assert(es.i == 3);
+
+    class C { this(int i) { this.i = i; } int i; }
+    enum EC : C
+    {
+        a = new C(42),
+        b = null,
+        c = new C(1),
+        d = new C(33),
+    }
+    static assert(EC.init.i == (new C(42)).i);
+    static assert(!__traits(compiles, EC.min));
+    static assert(!__traits(compiles, EC.max));
+
+    EC ec = EC.d;
+    assert(ec.i == 33);
+    ec = EC.b;
+    assert(ec is null);
+}
+
+/**********************************************/
+// 3096
+
+void test3096()
+{
+    template Tuple(T...) { alias Tuple = T; }
+
+    template Base(E)
+    {
+        static if(is(E B == enum))
+            alias Base = B;
+    }
+
+    template GetEnum(T)
+    {
+        enum GetEnum { v = T.init }
+    }
+
+    struct S { }
+    class C { }
+
+    foreach (Type; Tuple!(char, wchar, dchar, byte, ubyte,
+                          short, ushort, int, uint, long,
+                          ulong, float, double, real, S, C))
+    {
+        static assert(is(Base!(GetEnum!Type) == Type));
+    }
+}
+
+/**********************************************/
 // 7719
 
 enum foo7719 = bar7719;
@@ -150,6 +294,124 @@ void test10113()
 }
 
 /**********************************************/
+// 10503
+
+@property int octal10503(string num)()
+{
+    return num.length;
+}
+
+enum
+{
+    A10503 = octal10503!"2000000",
+    B10503 = octal10503!"4000",
+}
+
+/**********************************************/
+// 10505
+
+enum
+{
+    a10505 = true,
+    b10505 = 10.0f,
+    c10505 = false,
+    d10505 = 10,
+    e10505 = null
+}
+
+static assert(is(typeof(a10505) == bool));
+static assert(is(typeof(b10505) == float));
+static assert(is(typeof(c10505) == bool));
+static assert(is(typeof(d10505) == int));
+static assert(is(typeof(e10505) == typeof(null)));
+
+/**********************************************/
+// 10561
+
+void test10561()
+{
+    template Tuple(T...) { alias Tuple = T; }
+
+    foreach (Type; Tuple!(char, wchar, dchar, byte, ubyte,
+                          short, ushort, int, uint, long,
+                          ulong, float, double, real))
+    {
+        enum : Type { v = 0, w = 0, x, y = x }
+        static assert(is(typeof(v) == Type));
+        static assert(is(typeof(w) == Type));
+        static assert(is(typeof(x) == Type));
+        static assert(is(typeof(y) == Type));
+    }
+
+    class B { }
+    class D : B { }
+    enum : B { a = new D, b = new B, c = null }
+    static assert(is(typeof(a) == B));
+    static assert(is(typeof(b) == B));
+    static assert(is(typeof(c) == B));
+
+    struct S { this(int) { } }
+    enum : S { d = S(1), e = S(2) }
+    static assert(is(typeof(d) == S));
+    static assert(is(typeof(e) == S));
+
+    enum : float[] { f = [], g = [1.0, 2.0], h = [1.0f] }
+    static assert(is(typeof(f) == float[]));
+    static assert(is(typeof(g) == float[]));
+    static assert(is(typeof(h) == float[]));
+}
+
+/**********************************************/
+// 10612
+
+int[E10612] ie10612;
+E10612[int] ei10612;
+E10612[E10612] ee10612;
+
+enum E10612 { a }
+
+/**********************************************/
+// 10788
+
+enum v10788 = e10788;
+enum : int { e10788 }
+
+/**********************************************/
+
+class C7
+{
+    enum Policy
+    {
+        PREFER_READERS,
+        PREFER_WRITERS
+    }
+
+    void foo1( Policy policy = Policy.PREFER_READERS ) { }
+    void foo2( Policy policy = Policy.PREFER_WRITERS ) { }
+}
+
+/**********************************************/
+
+void test8()
+{
+    enum E
+    {
+        A = B,
+        E = D + 7,
+        B = 3,
+        C,
+        D,
+    }
+
+    assert(E.A == 3);
+    assert(E.B == 3);
+    assert(E.C == 4);
+    assert(E.D == 5);
+    assert(E.E == 12);
+    assert(E.max == 12);
+}
+
+/**********************************************/
 
 int main()
 {
@@ -159,10 +421,11 @@ int main()
     test4();
     test5();
     test6();
+    test2407();
     test10113();
+    test10561();
+    test8();
 
     printf("Success\n");
     return 0;
 }
-
-

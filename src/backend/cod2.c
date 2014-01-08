@@ -682,7 +682,7 @@ code *cdorth(elem *e,regm_t *pretregs)
                     }
                 }
                 rval = reghasvalue(byte ? BYTEREGS : ALLREGS,i,&rreg);
-                cs.IEV2.Vint = i;
+                cs.IEV2.Vsize_t = i;
         L3:
                 op1 ^= byte;
                 cs.Iflags |= word;
@@ -1068,7 +1068,8 @@ code *cdmul(elem *e,regm_t *pretregs)
                 gen2(cg,0x03,grex | modregrmx(3,DX,reg));           // ADD EDX,R1
             genmovreg(cg, AX, reg);                                 // MOV EAX,R1
             genc2(cg,0xC1,grex | modregrm(3,7,AX),sz * 8 - 1);      // SAR EAX,31
-            genc2(cg,0xC1,grex | modregrm(3,7,DX),shpost);          // SAR EDX,shpost
+            if (shpost)
+                genc2(cg,0xC1,grex | modregrm(3,7,DX),shpost);      // SAR EDX,shpost
             if (neg && oper == OPdiv)
             {   gen2(cg,0x2B,grex | modregrm(3,AX,DX));             // SUB EAX,EDX
                 r3 = AX;
@@ -1941,7 +1942,11 @@ code *cdcond(elem *e,regm_t *pretregs)
         }
 
         if (v1 == 0 && v2 == ~(targ_size_t)0)
+        {
             c = gen2(c,0xF6 + (opcode & 1),grex | modregrmx(3,2,reg));  // NOT reg
+            if (I64 && sz2 == REGSIZE)
+                code_orrex(c, REX_W);
+        }
         else
         {
             v1 -= v2;
@@ -2783,7 +2788,7 @@ code *cdind(elem *e,regm_t *pretregs)
                 cs.Iop = 0x81 ^ byte;
                 cs.Irm |= modregrm(0,7,0);
                 cs.IFL2 = FLconst;
-                cs.IEV2.Vint = 0;
+                cs.IEV2.Vsize_t = 0;
                 ce = gen(CNIL,&cs);             /* CMP [idx],0          */
         }
         else if (!I16 && sz == REGSIZE + 2)      // if far pointer

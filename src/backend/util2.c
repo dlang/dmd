@@ -55,6 +55,9 @@ void util_assert(const char *file, int line)
     fflush(stdout);
     printf("Internal error: %s %d\n",file,line);
     err_exit();
+#if __clang__
+    __builtin_unreachable();
+#endif
 }
 
 /****************************
@@ -104,6 +107,8 @@ static void __cdecl controlc_handler(void)
  * Trap control C interrupts.
  */
 
+#if !MARS
+
 void _STI_controlc()
 {
     //printf("_STI_controlc()\n");
@@ -117,6 +122,7 @@ void _STD_controlc()
     controlc_close();
 }
 
+#endif
 
 /***********************************
  * Send progress report.
@@ -136,7 +142,7 @@ void util_progress(int linnum)
 
 #endif
 
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun || _MSC_VER
+#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun || _MSC_VER
 void util_progress()
 {
 }

@@ -201,7 +201,8 @@ void *spellerX(const char *seed, size_t seedlen, fp_speller_t fp, void *fparg,
 void *speller(const char *seed, fp_speller_t fp, void *fparg, const char *charset)
 {
     size_t seedlen = strlen(seed);
-    for (int distance = 0; distance < 2; distance++)
+    size_t maxdist = seedlen < 3 ? seedlen - 1 : 2;
+    for (int distance = 0; distance < maxdist; distance++)
     {   void *p = spellerX(seed, seedlen, fp, fparg, charset, distance);
         if (p)
             return p;
@@ -246,11 +247,12 @@ void unittest_speller()
         { "hello", "ehlxxlo", "n" },
         { "hello", "heaao", "y" },
         { "_123456789_123456789_123456789_123456789", "_123456789_123456789_123456789_12345678", "y" },
+        { NULL, NULL, NULL }
     };
     //printf("unittest_speller()\n");
     const void *p = speller("hello", &speller_test, (void *)"hell", idchars);
     assert(p != NULL);
-    for (int i = 0; i < sizeof(cases)/sizeof(cases[0]); i++)
+    for (int i = 0; cases[i][0]; i++)
     {
         //printf("case [%d]\n", i);
         void *p = speller(cases[i][0], &speller_test, (void *)cases[i][1], idchars);

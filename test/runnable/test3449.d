@@ -1,3 +1,7 @@
+
+/******************************************/
+// 3449
+
 version (PULL93)
 {
 template TypeTuple(T...) { alias TypeTuple = T; }
@@ -33,7 +37,7 @@ static assert(!__traits(compiles, { static assert(mg2 == 1); }));
                                     static assert(ig2 == 1);    // possible
 
 // For aggregate fields, compiler behavior will be changed.
-void main()
+void test3449()
 {
     static struct S(T)
     {
@@ -86,7 +90,26 @@ void main()
     }
 }
 }
-else
+
+/******************************************/
+// 10643
+
+struct S10643
 {
-    void main() { }
+    const int[1000] x = void;
+
+    this(int n)
+    {
+        x[] = n;
+    }
+}
+static assert(S10643.sizeof == int.sizeof * 1000);
+
+/******************************************/
+
+int main()
+{
+    version(PULL93) test3449();
+
+    return 0;
 }

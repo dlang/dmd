@@ -1,4 +1,3 @@
-
 // Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
@@ -17,6 +16,7 @@
 
 double Port::nan = NAN;
 longdouble Port::ldbl_nan = NAN;
+longdouble Port::snan;
 
 double Port::infinity = INFINITY;
 longdouble Port::ldbl_infinity = INFINITY;
@@ -24,6 +24,23 @@ longdouble Port::ldbl_infinity = INFINITY;
 double Port::dbl_max = DBL_MAX;
 double Port::dbl_min = DBL_MIN;
 longdouble Port::ldbl_max = LDBL_MAX;
+
+struct PortInitializer
+{
+    PortInitializer();
+};
+
+static PortInitializer portinitializer;
+
+PortInitializer::PortInitializer()
+{
+    union
+    {   unsigned int ui[4];
+        longdouble     ld;
+    } snan = {{ 0, 0xA0000000, 0x7FFF, 0 }};
+
+    Port::snan = snan.ld;
+}
 
 int Port::isNan(double r)
 {
@@ -59,6 +76,14 @@ int Port::isInfinity(double r)
 longdouble Port::fmodl(longdouble x, longdouble y)
 {
     return ::fmodl(x, y);
+}
+
+int Port::fequal(longdouble x, longdouble y)
+{
+    /* In some cases, the REALPAD bytes get garbage in them,
+     * so be sure and ignore them.
+     */
+    return memcmp(&x, &y, 10) == 0;
 }
 
 char *Port::strupr(char *s)
@@ -125,6 +150,7 @@ longdouble Port::strtold(const char *buffer, char **endp)
 
 double Port::nan;
 longdouble Port::ldbl_nan;
+longdouble Port::snan;
 
 double Port::infinity;
 longdouble Port::ldbl_infinity;
@@ -149,6 +175,7 @@ PortInitializer::PortInitializer()
 
     Port::nan = nan.d;
     Port::ldbl_nan = ld_qnan;
+    Port::snan = ld_snan;
     Port::infinity = std::numeric_limits<double>::infinity();
     Port::ldbl_infinity = ld_inf;
 }
@@ -186,6 +213,14 @@ int Port::isInfinity(double r)
 longdouble Port::fmodl(longdouble x, longdouble y)
 {
     return ::fmodl(x, y);
+}
+
+int Port::fequal(longdouble x, longdouble y)
+{
+    /* In some cases, the REALPAD bytes get garbage in them,
+     * so be sure and ignore them.
+     */
+    return memcmp(&x, &y, 10) == 0;
 }
 
 char *Port::strupr(char *s)
@@ -229,6 +264,7 @@ longdouble Port::strtold(const char *p, char **endp)
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <ctype.h>
 #include <wchar.h>
 #include <float.h>
@@ -236,6 +272,7 @@ longdouble Port::strtold(const char *p, char **endp)
 
 double Port::nan;
 longdouble Port::ldbl_nan;
+longdouble Port::snan;
 
 static double zero = 0;
 double Port::infinity = 1 / zero;
@@ -269,6 +306,13 @@ PortInitializer::PortInitializer()
 
     Port::ldbl_nan = ldbl_nan.ld;
     assert(!signbit(Port::ldbl_nan));
+
+    union
+    {   unsigned int ui[4];
+        longdouble     ld;
+    } snan = {{ 0, 0xA0000000, 0x7FFF, 0 }};
+
+    Port::snan = snan.ld;
 }
 
 int Port::isNan(double r)
@@ -305,6 +349,14 @@ int Port::isInfinity(double r)
 longdouble Port::fmodl(longdouble x, longdouble y)
 {
     return ::fmodl(x, y);
+}
+
+int Port::fequal(longdouble x, longdouble y)
+{
+    /* In some cases, the REALPAD bytes get garbage in them,
+     * so be sure and ignore them.
+     */
+    return memcmp(&x, &y, 10) == 0;
 }
 
 char *Port::strupr(char *s)
@@ -379,10 +431,10 @@ longdouble Port::strtold(const char *p, char **endp)
 
 #endif
 
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
+#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__
 
 #include <math.h>
-#if linux
+#if __linux__
 #include <bits/nan.h>
 #include <bits/mathdef.h>
 #endif
@@ -394,6 +446,7 @@ longdouble Port::strtold(const char *p, char **endp)
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <ctype.h>
 #include <wchar.h>
 #include <float.h>
@@ -401,6 +454,7 @@ longdouble Port::strtold(const char *p, char **endp)
 
 double Port::nan;
 longdouble Port::ldbl_nan;
+longdouble Port::snan;
 
 static double zero = 0;
 double Port::infinity = 1 / zero;
@@ -435,6 +489,13 @@ PortInitializer::PortInitializer()
     Port::ldbl_nan = ldbl_nan.ld;
     assert(!signbit(Port::ldbl_nan));
 
+    union
+    {   unsigned int ui[4];
+        longdouble     ld;
+    } snan = {{ 0, 0xA0000000, 0x7FFF, 0 }};
+
+    Port::snan = snan.ld;
+
 #if __FreeBSD__ && __i386__
     // LDBL_MAX comes out as infinity. Fix.
     static unsigned char x[sizeof(longdouble)] =
@@ -453,7 +514,7 @@ int Port::isNan(double r)
 #else
     return __inline_isnan(r);
 #endif
-#elif __OpenBSD__
+#elif __FreeBSD__ || __OpenBSD__
     return isnan(r);
 #else
     #undef isnan
@@ -469,7 +530,7 @@ int Port::isNan(longdouble r)
 #else
     return __inline_isnan(r);
 #endif
-#elif __OpenBSD__
+#elif __FreeBSD__ || __OpenBSD__
     return isnan(r);
 #else
     #undef isnan
@@ -497,7 +558,7 @@ int Port::isInfinity(double r)
 {
 #if __APPLE__
     return fpclassify(r) == FP_INFINITE;
-#elif __OpenBSD__
+#elif __FreeBSD__ || __OpenBSD__
     return isinf(r);
 #else
     #undef isinf
@@ -507,11 +568,19 @@ int Port::isInfinity(double r)
 
 longdouble Port::fmodl(longdouble x, longdouble y)
 {
-#if __FreeBSD__ || __OpenBSD__
+#if __FreeBSD__ && __FreeBSD_version < 800000 || __OpenBSD__
     return ::fmod(x, y);        // hack for now, fix later
 #else
     return ::fmodl(x, y);
 #endif
+}
+
+int Port::fequal(longdouble x, longdouble y)
+{
+    /* In some cases, the REALPAD bytes get garbage in them,
+     * so be sure and ignore them.
+     */
+    return memcmp(&x, &y, 10) == 0;
 }
 
 char *Port::strupr(char *s)
@@ -595,6 +664,7 @@ longdouble Port::strtold(const char *p, char **endp)
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <ctype.h>
 #include <wchar.h>
 #include <float.h>
@@ -602,6 +672,7 @@ longdouble Port::strtold(const char *p, char **endp)
 
 double Port::nan;
 longdouble Port::ldbl_nan;
+longdouble Port::snan;
 
 static double zero = 0;
 double Port::infinity = 1 / zero;
@@ -635,6 +706,13 @@ PortInitializer::PortInitializer()
 
     Port::ldbl_nan = ldbl_nan.ld;
     assert(!signbit(Port::ldbl_nan));
+
+    union
+    {   unsigned int ui[4];
+        longdouble     ld;
+    } snan = {{ 0, 0xA0000000, 0x7FFF, 0 }};
+
+    Port::snan = snan.ld;
 }
 
 int Port::isNan(double r)
@@ -671,6 +749,14 @@ int Port::isInfinity(double r)
 longdouble Port::fmodl(longdouble x, longdouble y)
 {
     return ::fmodl(x, y);
+}
+
+int Port::fequal(longdouble x, longdouble y)
+{
+    /* In some cases, the REALPAD bytes get garbage in them,
+     * so be sure and ignore them.
+     */
+    return memcmp(&x, &y, 10) == 0;
 }
 
 char *Port::strupr(char *s)

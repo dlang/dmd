@@ -34,6 +34,10 @@
 
 #define LOG     0
 
+#ifndef SYSCONFDIR
+#define SYSCONFDIR "/etc/"
+#endif
+
 char *skipspace(const char *p);
 
 
@@ -57,7 +61,7 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
     char *filename;
     OutBuffer buf;
     int envsection = 0;
-    int envsectionnamelen = strlen(envsectionname);
+    size_t envsectionnamelen = strlen(envsectionname);
 
 #if LOG
     printf("inifile(argv0 = '%s', inifile = '%s')\n", argv0, inifile);
@@ -72,7 +76,7 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
          *      o current directory
          *      o home directory
          *      o directory off of argv0
-         *      o /etc/
+         *      o SYSCONFDIR (default=/etc/)
          */
         if (FileName::exists(inifile))
         {
@@ -95,7 +99,7 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
                 filename = (char *)FileName::replaceName(argv0, inifile);
                 if (!FileName::exists(filename))
                 {
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
 #if __GLIBC__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun   // This fix by Thomas Kuehne
                     /* argv0 might be a symbolic link,
                      * so try again looking past it to the real path
@@ -110,7 +114,7 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
                     if (real_argv0)
                     {
                         filename = (char *)FileName::replaceName(real_argv0, inifile);
-#if linux
+#if __linux__
                         free(real_argv0);
 #endif
                         if (FileName::exists(filename))
@@ -136,7 +140,7 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
                     // Search /etc/ for inifile
                 Letc:
 #endif
-                    filename = (char *)FileName::combine((char *)"/etc/", inifile);
+                    filename = (char *)FileName::combine((char *)SYSCONFDIR, inifile);
 
                 Ldone:
                     ;
@@ -184,24 +188,18 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
             break;
         }
 
-        // The line is file.buffer[linestart..i]
-        char *line;
-        size_t len;
-        char *pn;
-
-        line = (char *)&file.buffer[linestart];
-        len = i - linestart;
-
         buf.reset();
 
         // First, expand the macros.
         // Macros are bracketed by % characters.
 
-        for (size_t k = 0; k < len; k++)
+        for (size_t k = 0; k < i - linestart; k++)
         {
+            // The line is file.buffer[linestart..i]
+            char *line = (char *)&file.buffer[linestart];
             if (line[k] == '%')
             {
-                for (size_t j = k + 1; j < len; j++)
+                for (size_t j = k + 1; j < i - linestart; j++)
                 {
                     if (line[j] == '%')
                     {
@@ -264,7 +262,8 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
 
             case '[':           // look for [Environment]
                 p = skipspace(p + 1);
-                for (pn = p; isalnum((unsigned char)*pn); pn++)
+                char *pn;
+                for (pn = p; isalnum((utf8_t)*pn); pn++)
                     ;
                 if (pn - p == envsectionnamelen &&
                     Port::memicmp(p, envsectionname, envsectionnamelen) == 0 &&
@@ -278,19 +277,19 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
             default:
                 if (envsection)
                 {
-                    pn = p;
+                    char *pn = p;
 
                     // Convert name to upper case;
                     // remove spaces bracketing =
                     for (p = pn; *p; p++)
-                    {   if (islower((unsigned char)*p))
+                    {   if (islower((utf8_t)*p))
                             *p &= ~0x20;
-                        else if (isspace((unsigned char)*p))
+                        else if (isspace((utf8_t)*p))
                             memmove(p, p + 1, strlen(p));
                         else if (*p == '=')
                         {
                             p++;
-                            while (isspace((unsigned char)*p))
+                            while (isspace((utf8_t)*p))
                                 memmove(p, p + 1, strlen(p));
                             break;
                         }
@@ -318,7 +317,7 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
 
 char *skipspace(const char *p)
 {
-    while (isspace((unsigned char)*p))
+    while (isspace((utf8_t)*p))
         p++;
     return (char *)p;
 }

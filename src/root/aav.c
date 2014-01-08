@@ -14,20 +14,17 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include <assert.h>
 
 #include "aav.h"
 
-static const size_t prime_list[] = {
-              31UL,
-              97UL,            389UL,
-            1543UL,           6151UL,
-           24593UL,          98317UL,
-          393241UL,        1572869UL,
-         6291469UL,       25165843UL,
-       100663319UL,      402653189UL,
-      1610612741UL,     4294967291UL,
-};
+
+inline size_t hash(size_t a)
+{
+    a ^= (a >> 20) ^ (a >> 12);
+    return a ^ (a >> 7) ^ (a >> 4);
+}
 
 struct aaA
 {
@@ -42,9 +39,9 @@ struct AA
     size_t b_length;
     size_t nodes;       // total number of aaA nodes
     aaA* binit[4];      // initial value of b[]
-};
 
-static const AA bbinit = { NULL, };
+    aaA aafirst;        // a lot of these AA's have only one entry
+};
 
 /****************************************************
  * Determine number of entries in associative array.
@@ -67,16 +64,20 @@ Value* _aaGet(AA** paa, Key key)
 
     if (!*paa)
     {   AA *a = new AA();
-        *a = bbinit;
         a->b = a->binit;
         a->b_length = sizeof(a->binit) / sizeof(a->binit[0]);
+        a->nodes = 0;
+        a->binit[0] = NULL;
+        a->binit[1] = NULL;
+        a->binit[2] = NULL;
+        a->binit[3] = NULL;
         *paa = a;
         assert((*paa)->b_length == 4);
     }
     //printf("paa = %p, *paa = %p\n", paa, *paa);
 
     assert((*paa)->b_length);
-    size_t i = (size_t)key % (*paa)->b_length;
+    size_t i = hash((size_t)key) & ((*paa)->b_length - 1);
     aaA** pe = &(*paa)->b[i];
     aaA *e;
     while ((e = *pe) != NULL)
@@ -88,15 +89,17 @@ Value* _aaGet(AA** paa, Key key)
 
     // Not found, create new elem
     //printf("create new one\n");
-    e = new aaA();
+
+    size_t nodes = ++(*paa)->nodes;
+    e = (nodes != 1) ? new aaA() : &(*paa)->aafirst;
+    //e = new aaA();
     e->next = NULL;
     e->key = key;
     e->value = NULL;
     *pe = e;
 
-    size_t nodes = ++(*paa)->nodes;
-    //printf("length = %d, nodes = %d\n", paa.a.b.length, nodes);
-    if (nodes > (*paa)->b_length * 4)
+    //printf("length = %d, nodes = %d\n", (*paa)->b_length, nodes);
+    if (nodes > (*paa)->b_length * 2)
     {
         //printf("rehash\n");
         _aaRehash(paa);
@@ -114,14 +117,11 @@ Value* _aaGet(AA** paa, Key key)
 Value _aaGetRvalue(AA* aa, Key key)
 {
     //printf("_aaGetRvalue(key = %p)\n", key);
-    if (!aa)
-        return NULL;
-
-    size_t len = aa->b_length;
-
-    if (len)
+    if (aa)
     {
-        size_t i = (size_t)key % len;
+        size_t i;
+        size_t len = aa->b_length;
+        i = hash((size_t)key) & (len-1);
         aaA* e = aa->b[i];
         while (e)
         {
@@ -143,39 +143,33 @@ void _aaRehash(AA** paa)
     //printf("Rehash\n");
     if (*paa)
     {
-        AA newb = bbinit;
         AA *aa = *paa;
-        size_t len = _aaLen(*paa);
-        if (len)
-        {   size_t i;
-
-            for (i = 0; i < sizeof(prime_list)/sizeof(prime_list[0]) - 1; i++)
-            {
-                if (len <= prime_list[i])
-                    break;
-            }
-            len = prime_list[i];
-            newb.b = new aaA*[len];
-            memset(newb.b, 0, len * sizeof(aaA*));
-            newb.b_length = len;
+        if (aa)
+        {
+            size_t len = aa->b_length;
+            if (len == 4)
+                len = 32;
+            else
+                len *= 4;
+            aaA** newb = new aaA*[len];
+            memset(newb, 0, len * sizeof(aaA*));
 
             for (size_t k = 0; k < aa->b_length; k++)
             {   aaA *e = aa->b[k];
                 while (e)
                 {   aaA* enext = e->next;
-                    size_t j = (size_t)e->key % len;
-                    e->next = newb.b[j];
-                    newb.b[j] = e;
+                    size_t j = hash((size_t)e->key) & (len-1);
+                    e->next = newb[j];
+                    newb[j] = e;
                     e = enext;
                 }
             }
             if (aa->b != aa->binit)
                 delete[] aa->b;
 
-            newb.nodes = aa->nodes;
+            aa->b = newb;
+            aa->b_length = len;
         }
-
-        **paa = newb;
     }
 }
 

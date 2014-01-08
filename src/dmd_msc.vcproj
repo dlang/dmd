@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9.00"
+	Version="9,00"
 	Name="dmd_msc"
 	ProjectGUID="{BAE0389D-7D3F-4D5E-AE0E-C871776E8432}"
 	RootNamespace="dmd"
@@ -194,7 +194,7 @@
 				FavorSizeOrSpeed="1"
 				OmitFramePointers="true"
 				AdditionalIncludeDirectories=".\root;.\tk;.\backend;.;vcbuild"
-				PreprocessorDefinitions="NDEBUG"
+				PreprocessorDefinitions="NDEBUG;TARGET_WINDOS=1"
 				RuntimeLibrary="0"
 				StructMemberAlignment="1"
 				BufferSecurityCheck="false"
@@ -1343,6 +1343,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\root\array.h"
+					>
+				</File>
+				<File
 					RelativePath=".\root\async.c"
 					>
 				</File>
@@ -1351,40 +1355,20 @@
 					>
 				</File>
 				<File
-					RelativePath=".\root\dmgcmem.c"
+					RelativePath=".\root\file.c"
 					>
-					<FileConfiguration
-						Name="Debug|Win32"
-						ExcludedFromBuild="true"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-						/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Debug|x64"
-						ExcludedFromBuild="true"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-						/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Release|Win32"
-						ExcludedFromBuild="true"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-						/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Release|x64"
-						ExcludedFromBuild="true"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-						/>
-					</FileConfiguration>
+				</File>
+				<File
+					RelativePath=".\root\file.h"
+					>
+				</File>
+				<File
+					RelativePath=".\root\filename.c"
+					>
+				</File>
+				<File
+					RelativePath=".\root\filename.h"
+					>
 				</File>
 				<File
 					RelativePath=".\root\longdouble.c"
@@ -1396,6 +1380,22 @@
 				</File>
 				<File
 					RelativePath=".\root\man.c"
+					>
+				</File>
+				<File
+					RelativePath=".\root\object.c"
+					>
+				</File>
+				<File
+					RelativePath=".\root\object.h"
+					>
+				</File>
+				<File
+					RelativePath=".\root\outbuffer.c"
+					>
+				</File>
+				<File
+					RelativePath=".\root\outbuffer.h"
 					>
 				</File>
 				<File
@@ -1419,10 +1419,6 @@
 					>
 				</File>
 				<File
-					RelativePath=".\root\root.c"
-					>
-				</File>
-				<File
 					RelativePath=".\root\root.h"
 					>
 				</File>
@@ -1442,174 +1438,6 @@
 					RelativePath=".\root\stringtable.h"
 					>
 				</File>
-				<Filter
-					Name="gc"
-					>
-					<File
-						RelativePath=".\root\gc\bits.c"
-						>
-						<FileConfiguration
-							Name="Debug|Win32"
-							ExcludedFromBuild="true"
-							>
-							<Tool
-								Name="VCCLCompilerTool"
-							/>
-						</FileConfiguration>
-						<FileConfiguration
-							Name="Debug|x64"
-							ExcludedFromBuild="true"
-							>
-							<Tool
-								Name="VCCLCompilerTool"
-							/>
-						</FileConfiguration>
-						<FileConfiguration
-							Name="Release|Win32"
-							ExcludedFromBuild="true"
-							>
-							<Tool
-								Name="VCCLCompilerTool"
-							/>
-						</FileConfiguration>
-						<FileConfiguration
-							Name="Release|x64"
-							ExcludedFromBuild="true"
-							>
-							<Tool
-								Name="VCCLCompilerTool"
-							/>
-						</FileConfiguration>
-					</File>
-					<File
-						RelativePath=".\root\gc\bits.h"
-						>
-					</File>
-					<File
-						RelativePath=".\root\gc\gc.c"
-						>
-						<FileConfiguration
-							Name="Debug|Win32"
-							ExcludedFromBuild="true"
-							>
-							<Tool
-								Name="VCCLCompilerTool"
-							/>
-						</FileConfiguration>
-						<FileConfiguration
-							Name="Debug|x64"
-							ExcludedFromBuild="true"
-							>
-							<Tool
-								Name="VCCLCompilerTool"
-							/>
-						</FileConfiguration>
-						<FileConfiguration
-							Name="Release|Win32"
-							ExcludedFromBuild="true"
-							>
-							<Tool
-								Name="VCCLCompilerTool"
-							/>
-						</FileConfiguration>
-						<FileConfiguration
-							Name="Release|x64"
-							ExcludedFromBuild="true"
-							>
-							<Tool
-								Name="VCCLCompilerTool"
-							/>
-						</FileConfiguration>
-					</File>
-					<File
-						RelativePath=".\root\gc\gc.h"
-						>
-					</File>
-					<File
-						RelativePath=".\root\gc\gccbitops.h"
-						>
-					</File>
-					<File
-						RelativePath=".\root\gc\mscbitops.h"
-						>
-					</File>
-					<File
-						RelativePath=".\root\gc\os.h"
-						>
-					</File>
-					<File
-						RelativePath=".\root\gc\testgc.c"
-						>
-						<FileConfiguration
-							Name="Debug|Win32"
-							ExcludedFromBuild="true"
-							>
-							<Tool
-								Name="VCCLCompilerTool"
-							/>
-						</FileConfiguration>
-						<FileConfiguration
-							Name="Debug|x64"
-							ExcludedFromBuild="true"
-							>
-							<Tool
-								Name="VCCLCompilerTool"
-							/>
-						</FileConfiguration>
-						<FileConfiguration
-							Name="Release|Win32"
-							ExcludedFromBuild="true"
-							>
-							<Tool
-								Name="VCCLCompilerTool"
-							/>
-						</FileConfiguration>
-						<FileConfiguration
-							Name="Release|x64"
-							ExcludedFromBuild="true"
-							>
-							<Tool
-								Name="VCCLCompilerTool"
-							/>
-						</FileConfiguration>
-					</File>
-					<File
-						RelativePath=".\root\gc\win32.c"
-						>
-						<FileConfiguration
-							Name="Debug|Win32"
-							ExcludedFromBuild="true"
-							>
-							<Tool
-								Name="VCCLCompilerTool"
-							/>
-						</FileConfiguration>
-						<FileConfiguration
-							Name="Debug|x64"
-							ExcludedFromBuild="true"
-							>
-							<Tool
-								Name="VCCLCompilerTool"
-							/>
-						</FileConfiguration>
-						<FileConfiguration
-							Name="Release|Win32"
-							ExcludedFromBuild="true"
-							>
-							<Tool
-								Name="VCCLCompilerTool"
-							/>
-						</FileConfiguration>
-						<FileConfiguration
-							Name="Release|x64"
-							ExcludedFromBuild="true"
-							>
-							<Tool
-								Name="VCCLCompilerTool"
-							/>
-						</FileConfiguration>
-					</File>
-				</Filter>
 			</Filter>
 			<Filter
 				Name="gen"

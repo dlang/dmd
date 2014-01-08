@@ -55,11 +55,16 @@ void StaticAssert::semantic2(Scope *sc)
     ScopeDsymbol *sd = new ScopeDsymbol();
     sc = sc->push(sd);
     sc->flags |= SCOPEstaticassert;
-    Expression *e = exp->ctfeSemantic(sc);
+
+    sc = sc->startCTFE();
+    Expression *e = exp->semantic(sc);
     e = resolveProperties(sc, e);
+    sc = sc->endCTFE();
+    sc = sc->pop();
+
     // Simplify expression, to make error messages nicer if CTFE fails
     e = e->optimize(0);
-    sc = sc->pop();
+
     if (!e->type->checkBoolean())
     {
         if (e->type->toBasetype() != Type::terror)
@@ -72,14 +77,17 @@ void StaticAssert::semantic2(Scope *sc)
     {
         errorSupplemental(loc, "while evaluating: static assert(%s)", exp->toChars());
     }
-    else if (e->isBool(FALSE))
+    else if (e->isBool(false))
     {
         if (msg)
-        {   HdrGenState hgs;
+        {
+            HdrGenState hgs;
             OutBuffer buf;
 
-            msg = msg->ctfeSemantic(sc);
+            sc = sc->startCTFE();
+            msg = msg->semantic(sc);
             msg = resolveProperties(sc, msg);
+            sc = sc->endCTFE();
             msg = msg->ctfeInterpret();
             hgs.console = 1;
             StringExp * s = msg->toString();
@@ -97,7 +105,7 @@ void StaticAssert::semantic2(Scope *sc)
         if (!global.gag)
               fatal();
     }
-    else if (!e->isBool(TRUE))
+    else if (!e->isBool(true))
     {
         error("(%s) is not evaluatable at compile time", exp->toChars());
     }

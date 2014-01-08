@@ -20,8 +20,6 @@
 
 /**************************************************************/
 
-#if DMDV2
-
 class AliasThis : public Dsymbol
 {
 public:
@@ -35,8 +33,7 @@ public:
     const char *kind();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     AliasThis *isAliasThis() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
 };
-
-#endif
 
 #endif

@@ -541,8 +541,11 @@ typedef struct block
         // CODGEN
         struct
         {
-            targ_size_t Btablesize;     // BCswitch, BCjmptab
-            targ_size_t Btableoffset;   // BCswitch, BCjmptab
+            // For BCswitch, BCjmptab
+            targ_size_t Btablesize;     // size of generated table
+            targ_size_t Btableoffset;   // offset to start of table
+            targ_size_t Btablebase;     // offset to instruction pointer base
+
             targ_size_t Boffset;        // code offset of start of this block
             targ_size_t Bsize;          // code size of this block
             con_t       Bregcon;        // register state at block exit
@@ -550,6 +553,7 @@ typedef struct block
 
             #define Btablesize          _BLU._UD.Btablesize
             #define Btableoffset        _BLU._UD.Btableoffset
+            #define Btablebase          _BLU._UD.Btablebase
             #define Boffset             _BLU._UD.Boffset
             #define Bsize               _BLU._UD.Bsize
 //          #define Bcode               _BLU._UD.Bcode
@@ -1220,6 +1224,7 @@ struct Symbol
         #define SFLnodebug      0x20000 // don't generate debug info
         #define SFLwasstatic    0x800000 // was an uninitialized static
         #define SFLweak         0x1000000 // resolve to NULL if not found
+        #define SFLartifical    0x4000000 // compiler generated symbol
 
         // CPP
         #define SFLnodtor       0x10    // set if destructor for Symbol is already called
@@ -1484,6 +1489,7 @@ typedef struct Sfile
     symlist_t SFtemp_ft;        // template_ftlist
     symlist_t SFtemp_class;     // template_class_list
     Symbol   *SFtagsymdefs;     // list of tag names (C only)
+    char     *SFinc_once_id;    // macro include guard identifier
     unsigned SFhashval;         // hash of file name
 } Sfile;
 
@@ -1496,7 +1502,11 @@ typedef struct Srcfiles
 {
 //  Sfile *arr;         // array of Sfiles
     Sfile **pfiles;     // parallel array of pointers into arr[]
+#if SPP
+    #define SRCFILES_MAX (2*512*4)      // no precompiled headers for SPP
+#else
     #define SRCFILES_MAX (2*512)
+#endif
     unsigned dim;       // dimension of array
     unsigned idx;       // # used in array
 } Srcfiles;

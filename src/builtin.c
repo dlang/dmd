@@ -24,117 +24,96 @@
 #include "id.h"
 #include "module.h"
 
-#if DMDV2
+StringTable builtins;
 
-/**********************************
- * Determine if function is a builtin one that we can
- * evaluate at compile time.
- */
-BUILTIN FuncDeclaration::isBuiltin()
+void add_builtin(const char *mangle, builtin_fp fp)
 {
-    static const char FeZe [] = "FNaNbNfeZe";      // @safe pure nothrow real function(real)
-    static const char FeZe2[] = "FNaNbNeeZe";      // @trusted pure nothrow real function(real)
-    static const char FuintZint[] = "FNaNbNfkZi";  // @safe pure nothrow int function(uint)
-    static const char FuintZuint[] = "FNaNbNfkZk"; // @safe pure nothrow uint function(uint)
-    //static const char FulongZulong[] = "FNaNbkZk"; // pure nothrow int function(ulong)
-    static const char FulongZint[] = "FNaNbNfmZi"; // @safe pure nothrow int function(uint)
-    static const char FrealrealZreal [] = "FNaNbNfeeZe";  // @safe pure nothrow real function(real, real)
-    static const char FrealZlong [] = "FNaNbNfeZl";  // @safe pure nothrow long function(real)
-
-    //printf("FuncDeclaration::isBuiltin() %s, %d\n", toChars(), builtin);
-    if (builtin == BUILTINunknown)
-    {
-        builtin = BUILTINnot;
-        if (parent && parent->isModule())
-        {
-            // If it's in the std.math package
-            if (parent->ident == Id::math &&
-                parent->parent && (parent->parent->ident == Id::std || parent->parent->ident == Id::core) &&
-                !parent->parent->parent)
-            {
-                //printf("deco = %s\n", type->deco);
-                if (strcmp(type->deco, FeZe) == 0 || strcmp(type->deco, FeZe2) == 0)
-                {
-                    if (ident == Id::sin)
-                        builtin = BUILTINsin;
-                    else if (ident == Id::cos)
-                        builtin = BUILTINcos;
-                    else if (ident == Id::tan)
-                        builtin = BUILTINtan;
-                    else if (ident == Id::_sqrt)
-                        builtin = BUILTINsqrt;
-                    else if (ident == Id::fabs)
-                        builtin = BUILTINfabs;
-                    else if (ident == Id::expm1)
-                        builtin = BUILTINexpm1;
-                    else if (ident == Id::exp2)
-                        builtin = BUILTINexp2;
-                    //printf("builtin = %d\n", builtin);
-                }
-                // if float or double versions
-                else if (strcmp(type->deco, "FNaNbNfdZd") == 0 ||
-                         strcmp(type->deco, "FNaNbNffZf") == 0)
-                {
-                    if (ident == Id::_sqrt)
-                        builtin = BUILTINsqrt;
-                }
-                else if (strcmp(type->deco, FrealrealZreal) == 0)
-                {
-                    if (ident == Id::atan2)
-                        builtin = BUILTINatan2;
-                    else if (ident == Id::yl2x)
-                        builtin = BUILTINyl2x;
-                    else if (ident == Id::yl2xp1)
-                        builtin = BUILTINyl2xp1;
-                }
-                else if (strcmp(type->deco, FrealZlong) == 0 && ident == Id::rndtol)
-                    builtin = BUILTINrndtol;
-            }
-            if (parent->ident == Id::bitop &&
-                parent->parent && parent->parent->ident == Id::core &&
-                !parent->parent->parent)
-            {
-                //printf("deco = %s\n", type->deco);
-                if (strcmp(type->deco, FuintZint) == 0 || strcmp(type->deco, FulongZint) == 0)
-                {
-                    if (ident == Id::bsf)
-                        builtin = BUILTINbsf;
-                    else if (ident == Id::bsr)
-                        builtin = BUILTINbsr;
-                }
-                else if (strcmp(type->deco, FuintZuint) == 0)
-                {
-                    if (ident == Id::bswap)
-                        builtin = BUILTINbswap;
-                }
-            }
-        }
-    }
-    return builtin;
+    builtins.insert(mangle, strlen(mangle))->ptrvalue = (void *)fp;
 }
 
-int eval_bsf(uinteger_t n)
+builtin_fp builtin_lookup(const char *mangle)
 {
+    if (StringValue *sv = builtins.lookup(mangle, strlen(mangle)))
+        return (builtin_fp)sv->ptrvalue;
+    return NULL;
+}
+
+Expression *eval_unimp(Loc loc, FuncDeclaration *fd, Expressions *arguments)
+{
+    return NULL;
+}
+
+Expression *eval_sin(Loc loc, FuncDeclaration *fd, Expressions *arguments)
+{
+    Expression *arg0 = (*arguments)[0];
+    assert(arg0->op == TOKfloat64);
+    return new RealExp(loc, sinl(arg0->toReal()), arg0->type);
+}
+
+Expression *eval_cos(Loc loc, FuncDeclaration *fd, Expressions *arguments)
+{
+    Expression *arg0 = (*arguments)[0];
+    assert(arg0->op == TOKfloat64);
+    return new RealExp(loc, cosl(arg0->toReal()), arg0->type);
+}
+
+Expression *eval_tan(Loc loc, FuncDeclaration *fd, Expressions *arguments)
+{
+    Expression *arg0 = (*arguments)[0];
+    assert(arg0->op == TOKfloat64);
+    return new RealExp(loc, tanl(arg0->toReal()), arg0->type);
+}
+
+Expression *eval_sqrt(Loc loc, FuncDeclaration *fd, Expressions *arguments)
+{
+    Expression *arg0 = (*arguments)[0];
+    assert(arg0->op == TOKfloat64);
+    return new RealExp(loc, sqrtl(arg0->toReal()), arg0->type);
+}
+
+Expression *eval_fabs(Loc loc, FuncDeclaration *fd, Expressions *arguments)
+{
+    Expression *arg0 = (*arguments)[0];
+    assert(arg0->op == TOKfloat64);
+    return new RealExp(loc, fabsl(arg0->toReal()), arg0->type);
+}
+
+Expression *eval_bsf(Loc loc, FuncDeclaration *fd, Expressions *arguments)
+{
+    Expression *arg0 = (*arguments)[0];
+    assert(arg0->op == TOKint64);
+    uinteger_t n = arg0->toInteger();
+    if (n == 0)
+        error(loc, "bsf(0) is undefined");
     n = (n ^ (n - 1)) >> 1;  // convert trailing 0s to 1, and zero rest
     int k = 0;
     while( n )
     {   ++k;
         n >>=1;
     }
-    return k;
+    return new IntegerExp(loc, k, Type::tint32);
 }
 
-int eval_bsr(uinteger_t n)
-{   int k= 0;
-    while(n>>=1)
+Expression *eval_bsr(Loc loc, FuncDeclaration *fd, Expressions *arguments)
+{
+    Expression *arg0 = (*arguments)[0];
+    assert(arg0->op == TOKint64);
+    uinteger_t n = arg0->toInteger();
+    if (n == 0)
+        error(loc, "bsr(0) is undefined");
+    int k = 0;
+    while(n >>= 1)
     {
         ++k;
     }
-    return k;
+    return new IntegerExp(loc, k, Type::tint32);
 }
 
-uinteger_t eval_bswap(Expression *arg0)
-{   uinteger_t n = arg0->toInteger();
+Expression *eval_bswap(Loc loc, FuncDeclaration *fd, Expressions *arguments)
+{
+    Expression *arg0 = (*arguments)[0];
+    assert(arg0->op == TOKint64);
+    uinteger_t n = arg0->toInteger();
     #define BYTEMASK  0x00FF00FF00FF00FFLL
     #define SHORTMASK 0x0000FFFF0000FFFFLL
     #define INTMASK 0x0000FFFF0000FFFFLL
@@ -146,7 +125,99 @@ uinteger_t eval_bswap(Expression *arg0)
     // If 64 bits, we need to swap high and low uints
     if (ty == Tint64 || ty == Tuns64)
         n = ((n >> 32) & INTMASK) | ((n & INTMASK) << 32);
-    return n;
+    return new IntegerExp(loc, n, arg0->type);
+}
+
+void builtin_init()
+{
+    builtins._init(45);
+
+    // @safe pure nothrow real function(real)
+    add_builtin("_D4core4math3sinFNaNbNfeZe", &eval_sin);
+    add_builtin("_D4core4math3cosFNaNbNfeZe", &eval_cos);
+    add_builtin("_D4core4math3tanFNaNbNfeZe", &eval_tan);
+    add_builtin("_D4core4math4sqrtFNaNbNfeZe", &eval_sqrt);
+    add_builtin("_D4core4math4fabsFNaNbNfeZe", &eval_fabs);
+    add_builtin("_D4core4math5expm1FNaNbNfeZe", &eval_unimp);
+    add_builtin("_D4core4math4exp21FNaNbNfeZe", &eval_unimp);
+
+    // @trusted pure nothrow real function(real)
+    add_builtin("_D4core4math3sinFNaNbNeeZe", &eval_sin);
+    add_builtin("_D4core4math3cosFNaNbNeeZe", &eval_cos);
+    add_builtin("_D4core4math3tanFNaNbNeeZe", &eval_tan);
+    add_builtin("_D4core4math4sqrtFNaNbNeeZe", &eval_sqrt);
+    add_builtin("_D4core4math4fabsFNaNbNeeZe", &eval_fabs);
+    add_builtin("_D4core4math5expm1FNaNbNeeZe", &eval_unimp);
+    add_builtin("_D4core4math4exp21FNaNbNeeZe", &eval_unimp);
+
+    // @safe pure nothrow double function(double)
+    add_builtin("_D4core4math4sqrtFNaNbNfdZd", &eval_sqrt);
+    // @safe pure nothrow float function(float)
+    add_builtin("_D4core4math4sqrtFNaNbNffZf", &eval_sqrt);
+
+    // @safe pure nothrow real function(real, real)
+    add_builtin("_D4core4math5atan2FNaNbNfeeZe", &eval_unimp);
+    add_builtin("_D4core4math4yl2xFNaNbNfeeZe", &eval_unimp);
+    add_builtin("_D4core4math6yl2xp1FNaNbNfeeZe", &eval_unimp);
+
+    // @safe pure nothrow long function(real)
+    add_builtin("_D4core4math6rndtolFNaNbNfeZl", &eval_unimp);
+
+    // @safe pure nothrow real function(real)
+    add_builtin("_D3std4math3sinFNaNbNfeZe", &eval_sin);
+    add_builtin("_D3std4math3cosFNaNbNfeZe", &eval_cos);
+    add_builtin("_D3std4math3tanFNaNbNfeZe", &eval_tan);
+    add_builtin("_D3std4math4sqrtFNaNbNfeZe", &eval_sqrt);
+    add_builtin("_D3std4math4fabsFNaNbNfeZe", &eval_fabs);
+    add_builtin("_D3std4math5expm1FNaNbNfeZe", &eval_unimp);
+    add_builtin("_D3std4math4exp21FNaNbNfeZe", &eval_unimp);
+
+    // @trusted pure nothrow real function(real)
+    add_builtin("_D3std4math3sinFNaNbNeeZe", &eval_sin);
+    add_builtin("_D3std4math3cosFNaNbNeeZe", &eval_cos);
+    add_builtin("_D3std4math3tanFNaNbNeeZe", &eval_tan);
+    add_builtin("_D3std4math4sqrtFNaNbNeeZe", &eval_sqrt);
+    add_builtin("_D3std4math4fabsFNaNbNeeZe", &eval_fabs);
+    add_builtin("_D3std4math5expm1FNaNbNeeZe", &eval_unimp);
+    add_builtin("_D3std4math4exp21FNaNbNeeZe", &eval_unimp);
+
+    // @safe pure nothrow double function(double)
+    add_builtin("_D3std4math4sqrtFNaNbNfdZd", &eval_sqrt);
+    // @safe pure nothrow float function(float)
+    add_builtin("_D3std4math4sqrtFNaNbNffZf", &eval_sqrt);
+
+    // @safe pure nothrow real function(real, real)
+    add_builtin("_D3std4math5atan2FNaNbNfeeZe", &eval_unimp);
+    add_builtin("_D3std4math4yl2xFNaNbNfeeZe", &eval_unimp);
+    add_builtin("_D3std4math6yl2xp1FNaNbNfeeZe", &eval_unimp);
+
+    // @safe pure nothrow long function(real)
+    add_builtin("_D3std4math6rndtolFNaNbNfeZl", &eval_unimp);
+
+    // @safe pure nothrow int function(uint)
+    add_builtin("_D4core5bitop3bsfFNaNbNfkZi", &eval_bsf);
+    add_builtin("_D4core5bitop3bsrFNaNbNfkZi", &eval_bsr);
+
+    // @safe pure nothrow int function(ulong)
+    add_builtin("_D4core5bitop3bsfFNaNbNfmZi", &eval_bsf);
+    add_builtin("_D4core5bitop3bsrFNaNbNfmZi", &eval_bsr);
+
+    // @safe pure nothrow uint function(uint)
+    add_builtin("_D4core5bitop5bswapFNaNbNfkZk", &eval_bswap);
+}
+
+/**********************************
+ * Determine if function is a builtin one that we can
+ * evaluate at compile time.
+ */
+BUILTIN FuncDeclaration::isBuiltin()
+{
+    if (builtin == BUILTINunknown)
+    {
+        builtin_fp fp = builtin_lookup(mangleExact());
+        builtin = fp ? BUILTINyes : BUILTINno;
+    }
+    return builtin;
 }
 
 /**************************************
@@ -154,73 +225,13 @@ uinteger_t eval_bswap(Expression *arg0)
  * Return result; NULL if cannot evaluate it.
  */
 
-Expression *eval_builtin(Loc loc, BUILTIN builtin, Expressions *arguments)
+Expression *eval_builtin(Loc loc, FuncDeclaration *fd, Expressions *arguments)
 {
-    assert(arguments && arguments->dim);
-    Expression *arg0 = (*arguments)[0];
-    Expression *e = NULL;
-    switch (builtin)
+    if (fd->builtin == BUILTINyes)
     {
-        case BUILTINsin:
-            if (arg0->op == TOKfloat64)
-                e = new RealExp(Loc(), sinl(arg0->toReal()), arg0->type);
-            break;
-
-        case BUILTINcos:
-            if (arg0->op == TOKfloat64)
-                e = new RealExp(Loc(), cosl(arg0->toReal()), arg0->type);
-            break;
-
-        case BUILTINtan:
-            if (arg0->op == TOKfloat64)
-                e = new RealExp(Loc(), tanl(arg0->toReal()), arg0->type);
-            break;
-
-        case BUILTINsqrt:
-            if (arg0->op == TOKfloat64)
-                e = new RealExp(Loc(), sqrtl(arg0->toReal()), arg0->type);
-            break;
-
-        case BUILTINfabs:
-            if (arg0->op == TOKfloat64)
-                e = new RealExp(Loc(), fabsl(arg0->toReal()), arg0->type);
-            break;
-        // These math intrinsics are not yet implemented
-        case BUILTINatan2:
-            break;
-        case BUILTINrndtol:
-            break;
-        case BUILTINexpm1:
-            break;
-        case BUILTINexp2:
-            break;
-        case BUILTINyl2x:
-            break;
-        case BUILTINyl2xp1:
-            break;
-        case BUILTINbsf:
-            if (arg0->op == TOKint64)
-            {   if (arg0->toInteger()==0)
-                    error(loc, "bsf(0) is undefined");
-                else
-                    e = new IntegerExp(loc, eval_bsf(arg0->toInteger()), Type::tint32);
-            }
-            break;
-        case BUILTINbsr:
-            if (arg0->op == TOKint64)
-            {   if (arg0->toInteger()==0)
-                    error(loc, "bsr(0) is undefined");
-                else
-                    e = new IntegerExp(loc, eval_bsr(arg0->toInteger()), Type::tint32);
-            }
-            break;
-        case BUILTINbswap:
-            if (arg0->op == TOKint64)
-                e = new IntegerExp(loc, eval_bswap(arg0), arg0->type);
-            break;
-        default: break;
+        builtin_fp fp = builtin_lookup(fd->mangleExact());
+        assert(fp);
+        return fp(loc, fd, arguments);
     }
-    return e;
+    return NULL;
 }
-
-#endif

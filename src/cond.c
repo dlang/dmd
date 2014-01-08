@@ -34,11 +34,11 @@ int findCondition(Strings *ids, Identifier *ident)
             const char *id = (*ids)[i];
 
             if (strcmp(id, ident->toChars()) == 0)
-                return TRUE;
+                return true;
         }
     }
 
-    return FALSE;
+    return false;
 }
 
 /* ============================================================ */
@@ -85,18 +85,18 @@ DebugCondition::DebugCondition(Module *mod, unsigned level, Identifier *ident)
 }
 
 // Helper for printing dependency information
-void printDepsConditional(Scope *sc, DVCondition* condition, const char* depType) 
+void printDepsConditional(Scope *sc, DVCondition* condition, const char* depType)
 {
     if (!global.params.moduleDeps || global.params.moduleDepsFile)
         return;
     OutBuffer *ob = global.params.moduleDeps;
-    Module* md = sc && sc->module ? sc->module : condition->mod;
-    if (!md)
+    Module* imod = sc ? (sc->instantiatingModule ? sc->instantiatingModule : sc->module) : condition->mod;
+    if (!imod)
         return;
     ob->writestring(depType);
-    ob->writestring(md->toPrettyChars());
+    ob->writestring(imod->toPrettyChars());
     ob->writestring(" (");
-    escapePath(ob, md->srcfile->toChars());
+    escapePath(ob, imod->srcfile->toChars());
     ob->writestring(") : ");
     if (condition->ident)
         ob->printf("%s\n", condition->ident->toChars());
@@ -187,6 +187,7 @@ bool VersionCondition::isPredefined(const char *ident)
         "ARM_SoftFP",
         "ARM_HardFloat",
         "AArch64",
+        "Epiphany",
         "PPC",
         "PPC_SoftFloat",
         "PPC_HardFloat",
@@ -233,9 +234,10 @@ bool VersionCondition::isPredefined(const char *ident)
         "assert",
         "all",
         "none",
+        NULL
     };
 
-    for (unsigned i = 0; i < sizeof(reserved) / sizeof(reserved[0]); i++)
+    for (unsigned i = 0; reserved[i]; i++)
     {
         if (strcmp(ident, reserved[i]) == 0)
             return true;
@@ -335,9 +337,7 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
         {
             error(loc, (nest > 1000) ? "unresolvable circular static if expression"
                                      : "error evaluating static if expression");
-            if (!global.gag)
-                inc = 2;                // so we don't see the error message again
-            return 0;
+            goto Lerror;
         }
 
         if (!sc)
@@ -351,33 +351,42 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
         sc = sc->push(sc->scopesym);
         sc->sd = s;                     // s gets any addMember()
         sc->flags |= SCOPEstaticif;
-        Expression *e = exp->ctfeSemantic(sc);
+
+        sc = sc->startCTFE();
+        Expression *e = exp->semantic(sc);
         e = resolveProperties(sc, e);
+        sc = sc->endCTFE();
+
         sc->pop();
+        --nest;
+
         if (!e->type->checkBoolean())
         {
             if (e->type->toBasetype() != Type::terror)
                 exp->error("expression %s of type %s does not have a boolean value", exp->toChars(), e->type->toChars());
-            inc = 0;
-            return 0;
+            goto Lerror;
         }
         e = e->ctfeInterpret();
-        --nest;
         if (e->op == TOKerror)
-        {   exp = e;
-            inc = 0;
+        {
+            goto Lerror;
         }
-        else if (e->isBool(TRUE))
+        else if (e->isBool(true))
             inc = 1;
-        else if (e->isBool(FALSE))
+        else if (e->isBool(false))
             inc = 2;
         else
         {
             e->error("expression %s is not constant or does not evaluate to a bool", e->toChars());
-            inc = 2;
+            goto Lerror;
         }
     }
     return (inc == 1);
+
+Lerror:
+    if (!global.gag)
+        inc = 2;                // so we don't see the error message again
+    return 0;
 }
 
 void StaticIfCondition::toCBuffer(OutBuffer *buf, HdrGenState *hgs)

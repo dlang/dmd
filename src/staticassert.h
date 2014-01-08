@@ -37,6 +37,7 @@ public:
     void toObjFile(int multiobj);
     const char *kind();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 #endif
