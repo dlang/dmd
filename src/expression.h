@@ -895,6 +895,7 @@ public:
     int isunsigned();
     Expression *incompatibleTypes();
     void dump(int indent);
+    MATCH implicitConvToCommon(Type *t);
 
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     Expression *interpretCommon(InterState *istate, CtfeGoal goal, fp_t fp);
@@ -1524,6 +1525,7 @@ public:
     Expression *semantic(Scope *sc);
     Expression *optimize(int result, bool keepLvalue = false);
     IntRange getIntRange();
+    MATCH implicitConvTo(Type *t);
 
     // For operator overloading
     int isCommutative();
@@ -1540,6 +1542,7 @@ public:
     Expression *semantic(Scope *sc);
     Expression *optimize(int result, bool keepLvalue = false);
     IntRange getIntRange();
+    MATCH implicitConvTo(Type *t);
 
     // For operator overloading
     Identifier *opId();
