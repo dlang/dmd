@@ -2736,9 +2736,12 @@ alias MSG* PMSG, NPMSG, LPMSG;
 export
 {
  BOOL GetMessageA(LPMSG lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax);
+ BOOL GetMessageW(LPMSG lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax);
  BOOL TranslateMessage(MSG *lpMsg);
  LONG DispatchMessageA(MSG *lpMsg);
+ LONG DispatchMessageW(MSG *lpMsg);
  BOOL PeekMessageA(MSG *lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax, UINT wRemoveMsg);
+ BOOL PeekMessageW(MSG *lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax, UINT wRemoveMsg);
  HWND GetFocus();
 }
 
@@ -3783,3 +3786,21 @@ enum LOCKFILE_FAIL_IMMEDIATELY = 1;
 enum LOCKFILE_EXCLUSIVE_LOCK   = 2;
 
 BOOL IsDebuggerPresent();
+
+LPSTR lstrcatA(LPSTR lpString1, LPCSTR lpString2);
+LPWSTR lstrcatW(LPWSTR lpString1, LPCWSTR lpString2);
+
+int lstrcmp(LPCSTR lpString1, LPCSTR lpString2);
+int lstrcmp(LPCWSTR lpString1,LPCWSTR lpString2);
+
+int lstrcmpi(LPCSTR lpString1, LPCSTR lpString2);
+int lstrcmpi(LPCWSTR lpString1,LPCWSTR lpString2);
+
+LPSTR lstrcpyA(LPSTR lpString1, LPCSTR lpString2);
+LPWSTR lstrcpyW(LPWSTR lpString1, LPCWSTR lpString2);
+
+LPSTR lstrcpynA(LPSTR lpString1, LPCSTR lpString2, int iMaxLength);
+LPWSTR lstrcpynW(LPWSTR lpString1, LPCWSTR lpString2, int iMaxLength);
+
+int lstrlenA(LPCSTR lpString);
+int lstrlenW(LPCWSTR lpString);
