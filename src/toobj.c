@@ -1052,6 +1052,9 @@ void TypeInfoDeclaration::toObjFile(int multiobj)
 {
     //printf("TypeInfoDeclaration::toObjFile(%p '%s') protection %d\n", this, toChars(), protection);
 
+    if (global.params.betterC)
+        return;
+
     if (multiobj)
     {
         obj_append(this);
