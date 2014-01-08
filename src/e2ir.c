@@ -1908,9 +1908,8 @@ elem *NotExp::toElem(IRState *irs)
  */
 
 elem *HaltExp::toElem(IRState *irs)
-{   elem *e;
-
-    e = el_calloc();
+{
+    elem *e = el_calloc();
     e->Ety = TYvoid;
     e->Eoper = OPhalt;
     el_setLoc(e,loc);
@@ -1921,44 +1920,59 @@ elem *HaltExp::toElem(IRState *irs)
  */
 
 elem *AssertExp::toElem(IRState *irs)
-{   elem *e;
+{
+    //printf("AssertExp::toElem() %s\n", toChars());
+    if (!global.params.useAssert)
+    {
+        elem *e = el_long(TYint, 0);
+        el_setLoc(e,loc);
+        return e;
+    }
+
+    elem *e = e1->toElem(irs);
     elem *ea;
     Type *t1 = e1->type->toBasetype();
 
-    //printf("AssertExp::toElem() %s\n", toChars());
-    if (global.params.useAssert)
+    symbol *ts = NULL;
+    elem *einv = NULL;
+
+    FuncDeclaration *inv;
+
+    // If e1 is a class object, call the class invariant on it
+    if (global.params.useInvariants && t1->ty == Tclass &&
+        !((TypeClass *)t1)->sym->isInterfaceDeclaration() &&
+        !((TypeClass *)t1)->sym->isCPPclass())
     {
-        e = e1->toElem(irs);
-        symbol *ts = NULL;
-        elem *einv = NULL;
+        ts = symbol_genauto(t1->toCtype());
+        int rtl;
+        if (global.params.isLinux || global.params.isFreeBSD || global.params.isSolaris ||
+            I64 && global.params.isWindows)
+            rtl = RTLSYM__DINVARIANT;
+        else
+            rtl = RTLSYM_DINVARIANT;
+        einv = el_bin(OPcall, TYvoid, el_var(rtlsym[rtl]), el_var(ts));
+    }
+    // If e1 is a struct object, call the struct invariant on it
+    else if (global.params.useInvariants &&
+        t1->ty == Tpointer &&
+        t1->nextOf()->ty == Tstruct &&
+        (inv = ((TypeStruct *)t1->nextOf())->sym->inv) != NULL)
+    {
+        ts = symbol_genauto(t1->toCtype());
+        einv = callfunc(loc, irs, 1, inv->type->nextOf(), el_var(ts), e1->type, inv, inv->type, NULL, NULL);
+    }
 
-        FuncDeclaration *inv;
-
-        // If e1 is a class object, call the class invariant on it
-        if (global.params.useInvariants && t1->ty == Tclass &&
-            !((TypeClass *)t1)->sym->isInterfaceDeclaration() &&
-            !((TypeClass *)t1)->sym->isCPPclass())
-        {
-            ts = symbol_genauto(t1->toCtype());
-            int rtl;
-            if (global.params.isLinux || global.params.isFreeBSD || global.params.isSolaris ||
-                I64 && global.params.isWindows)
-                rtl = RTLSYM__DINVARIANT;
-            else
-                rtl = RTLSYM_DINVARIANT;
-            einv = el_bin(OPcall, TYvoid, el_var(rtlsym[rtl]), el_var(ts));
-        }
-        // If e1 is a struct object, call the struct invariant on it
-        else if (global.params.useInvariants &&
-            t1->ty == Tpointer &&
-            t1->nextOf()->ty == Tstruct &&
-            (inv = ((TypeStruct *)t1->nextOf())->sym->inv) != NULL)
-        {
-            ts = symbol_genauto(t1->toCtype());
-            einv = callfunc(loc, irs, 1, inv->type->nextOf(), el_var(ts), e1->type, inv, inv->type, NULL, NULL);
-        }
-
-        // Construct: (e1 || ModuleAssert(line))
+    // Construct: (e1 || ModuleAssert(line))
+    if (global.params.betterC)
+    {
+        // Use HLT for assertion failure.
+        ea = el_calloc();
+        ea->Ety = TYvoid;
+        ea->Eoper = OPhalt;
+        el_setLoc(ea, loc);
+    }
+    else
+    {
         Module *m = irs->blx->module;
         char *mname = m->srcfile->toChars();
 
@@ -2031,19 +2045,18 @@ elem *AssertExp::toElem(IRState *irs)
             ea = el_bin(OPcall,TYvoid,el_var(sassert),
                 el_long(TYint, loc.linnum));
         }
-        if (einv)
-        {   // tmp = e, e || assert, e->inv
-            elem *eassign = el_bin(OPeq, e->Ety, el_var(ts), e);
-            e = el_combine(eassign, el_bin(OPoror, TYvoid, el_var(ts), ea));
-            e = el_combine(e, einv);
-        }
-        else
-            e = el_bin(OPoror,TYvoid,e,ea);
+    }
+
+    if (einv)
+    {
+        // tmp = e, e || assert, e->inv
+        elem *eassign = el_bin(OPeq, e->Ety, el_var(ts), e);
+        e = el_combine(eassign, el_bin(OPoror, TYvoid, el_var(ts), ea));
+        e = el_combine(e, einv);
     }
     else
-    {   // BUG: should replace assert(0); with a HLT instruction
-        e = el_long(TYint, 0);
-    }
+        e = el_bin(OPoror, TYvoid, e, ea);
+
     el_setLoc(e,loc);
     return e;
 }
@@ -2825,16 +2838,26 @@ elem *AssignExp::toElem(IRState *irs)
                 c1 = el_bin(OPandand, TYint, c1, c2);
 
                 // Construct: (c1 || ModuleArray(line))
-                Symbol *sassert;
-
-                sassert = irs->blx->module->toModuleArray();
-                ea = el_bin(OPcall,TYvoid,el_var(sassert), el_long(TYint, loc.linnum));
+                if (global.params.betterC)
+                {
+                    // Use HLT for range violation.
+                    ea = el_calloc();
+                    ea->Ety = TYvoid;
+                    ea->Eoper = OPhalt;
+                    el_setLoc(ea, loc);
+                }
+                else
+                {
+                    Symbol *sassert = irs->blx->module->toModuleArray();
+                    ea = el_bin(OPcall,TYvoid,el_var(sassert), el_long(TYint, loc.linnum));
+                }
                 eb = el_bin(OPoror,TYvoid,c1,ea);
                 einit = el_combine(einit, eb);
             }
 
             if (elwr)
-            {   elem *elwr2;
+            {
+                elem *elwr2;
 
                 el_free(enbytes);
                 elwr2 = el_copytree(elwr);
@@ -4681,10 +4704,19 @@ elem *SliceExp::toElem(IRState *irs)
 
             L2:
                 // Construct: (c1 || ModuleArray(line))
-                Symbol *sassert;
-
-                sassert = irs->blx->module->toModuleArray();
-                ea = el_bin(OPcall,TYvoid,el_var(sassert), el_long(TYint, loc.linnum));
+                if (global.params.betterC)
+                {
+                    // Use HLT for range violation.
+                    ea = el_calloc();
+                    ea->Ety = TYvoid;
+                    ea->Eoper = OPhalt;
+                    el_setLoc(ea, loc);
+                }
+                else
+                {
+                    Symbol *sassert = irs->blx->module->toModuleArray();
+                    ea = el_bin(OPcall,TYvoid,el_var(sassert), el_long(TYint, loc.linnum));
+                }
                 eb = el_bin(OPoror,TYvoid,c1,ea);
                 elwr = el_combine(elwr, eb);
 
@@ -4718,7 +4750,8 @@ elem *SliceExp::toElem(IRState *irs)
 }
 
 elem *IndexExp::toElem(IRState *irs)
-{   elem *e;
+{
+    elem *e;
     elem *n1 = e1->toElem(irs);
     elem *eb = NULL;
 
@@ -4806,11 +4839,20 @@ elem *IndexExp::toElem(IRState *irs)
                 n2x = el_bin(OPlt, TYint, n2x, elength);
 
                 // Construct: (n2x || ModuleAssert(line))
-                Symbol *sassert;
-
-                sassert = irs->blx->module->toModuleArray();
-                ea = el_bin(OPcall,TYvoid,el_var(sassert),
-                    el_long(TYint, loc.linnum));
+                if (global.params.betterC)
+                {
+                    // Use HLT for range violation.
+                    ea = el_calloc();
+                    ea->Ety = TYvoid;
+                    ea->Eoper = OPhalt;
+                    el_setLoc(ea, loc);
+                }
+                else
+                {
+                    Symbol *sassert = irs->blx->module->toModuleArray();
+                    ea = el_bin(OPcall,TYvoid,el_var(sassert),
+                        el_long(TYint, loc.linnum));
+                }
                 eb = el_bin(OPoror,TYvoid,n2x,ea);
             }
         }

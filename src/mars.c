@@ -511,9 +511,9 @@ int tryMain(size_t argc, const char *argv[])
     Strings files;
     Strings libmodules;
     size_t argcstart = argc;
-    int setdebuglib = 0;
     char noboundscheck = 0;
-        int setdefaultlib = 0;
+    int setdebuglib = 0;
+    int setdefaultlib = 0;
     const char *inifilename = NULL;
     global.init();
 
@@ -1105,7 +1105,8 @@ Language changes listed by -transition=id:\n\
 #endif
 
     if (global.params.release)
-    {   global.params.useInvariants = 0;
+    {
+        global.params.useInvariants = 0;
         global.params.useIn = 0;
         global.params.useOut = 0;
         global.params.useAssert = 0;
