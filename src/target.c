@@ -17,6 +17,7 @@ int Target::ptrsize;
 int Target::realsize;
 int Target::realpad;
 int Target::realalignsize;
+int Target::maxalignsize;
 bool Target::reverseCppOverloads;
 
 
@@ -25,6 +26,7 @@ void Target::init()
     // These have default values for 32 bit code, they get
     // adjusted for 64 bit code.
     ptrsize = 4;
+    maxalignsize = 16;
 
     if (global.params.isLinux || global.params.isFreeBSD
         || global.params.isOpenBSD || global.params.isSolaris)
