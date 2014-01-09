@@ -290,7 +290,10 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
                     {   if (islower((unsigned char)*p))
                             *p &= ~0x20;
                         else if (isspace((unsigned char)*p))
+                        {
                             memmove(p, p + 1, strlen(p));
+                            p--;
+                        }
                         else if (*p == '=')
                         {
                             p++;
