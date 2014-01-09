@@ -1,0 +1,54 @@
+.TH DMD1.CONF 5 "2006-03-12" "Digital Mars" "Digital Mars D"
+.SH NAME
+dmd1.conf \- configuration file for
+.BR dmd (1)
+
+.SH SYNOPSIS
+.I /etc/dmd1.conf
+
+.SH DESCRIPTION
+dmd will look for the initialization file
+.I dmd1.conf
+in the directory \fI/etc\fR. If found, environment
+variable settings in the file will override any existing settings.
+If not found, the file
+.I dmd.conf
+will be searched and readed in the same way, but this is only for
+backwards compatibility and deprecated, now
+.I dmd.conf
+is reserved for the D2 compiler).
+.PP
+
+This is handy to make dmd independent of programs with
+conflicting use of environment variables.
+
+.SH SYNTAX
+Environment variables follow the [Environment] section heading, in
+name=value pairs. Comments are lines that start with ;.
+.PP
+
+.SH EXAMPLE
+.PD 0.5
+; dmd1.conf file for dmd
+.LP
+; Names enclosed by %% are searched for in the existing environment
+.LP
+; and inserted. The special name %@P% is replaced with the path
+.LP
+; to this file.
+.LP
+[Environment]
+.LP
+PHOBOS_ROOT?=%@P%/..
+.LP
+DFLAGS="-I%PHOBOS_ROOT%/src/phobos"
+.PD
+
+.SH FILES
+.I /etc/dmd1.conf
+.br
+.I /etc/dmd.conf
+
+.SH "SEE ALSO"
+.BR dmd (1)
+.BR rdmd (1)
