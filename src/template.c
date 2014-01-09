@@ -782,8 +782,7 @@ MATCH TemplateDeclaration::matchWithInstance(Scope *sc, TemplateInstance *ti,
     ScopeDsymbol *paramsym = new ScopeDsymbol();
     paramsym->parent = scope->parent;
     Scope *paramscope = scope->push(paramsym);
-    Module *mi = ti->instantiatingModule ? ti->instantiatingModule : sc->instantiatingModule;
-    paramscope->instantiatingModule = mi;
+    paramscope->tinst = ti;
     paramscope->callsc = sc;
     paramscope->stc = 0;
 
@@ -1089,16 +1088,15 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(FuncDeclaration *f, Loc l
     if (errors || f->errors)
         return MATCHnomatch;
 
+    TemplateInstance *ti = new TemplateInstance(loc, this, NULL);
+    ti->tinst = getInstantiating(sc);
+    ti->instantiatingModule = sc->instantiatingModule();
+
     // Set up scope for parameters
     ScopeDsymbol *paramsym = new ScopeDsymbol();
     paramsym->parent = scope->parent;
     Scope *paramscope = scope->push(paramsym);
-
-    paramscope->instantiatingModule = sc->instantiatingModule;
-    Module *mi = sc->instantiatingModule ? sc->instantiatingModule : sc->module;
-    if (!sc->instantiatingModule || sc->instantiatingModule->isRoot())
-        paramscope->instantiatingModule = mi;
-
+    paramscope->tinst = ti;
     paramscope->callsc = sc;
     paramscope->stc = 0;
 
@@ -2518,7 +2516,8 @@ FuncDeclaration *TemplateDeclaration::doHeaderInstantiation(Scope *sc,
 
     assert(scope);
     TemplateInstance *ti = new TemplateInstance(loc, this, tdargs);
-    ti->tinst = sc->tinst;
+    ti->tinst = getInstantiating(sc);
+    ti->instantiatingModule = sc->instantiatingModule();
     {
         ti->tdtypes.setDim(parameters->dim);
         if (matchWithInstance(sc, ti, &ti->tdtypes, fargs, 2) <= MATCHnomatch)
@@ -2535,13 +2534,11 @@ FuncDeclaration *TemplateDeclaration::doHeaderInstantiation(Scope *sc,
         fd = new FuncDeclaration(fd->loc, fd->endloc, fd->ident, fd->storage_class, fd->type->syntaxCopy());
     fd->parent = ti;
 
-    Module *mi = sc->instantiatingModule ? sc->instantiatingModule : sc->module;
-
     Scope *scope = this->scope;
     ti->argsym = new ScopeDsymbol();
     ti->argsym->parent = scope->parent;
     scope = scope->push(ti->argsym);
-    scope->instantiatingModule = mi;
+    scope->tinst = ti;
 
     bool hasttp = false;
 
@@ -2905,6 +2902,21 @@ void TemplateDeclaration::removeInstance(TemplateInstance *handle)
         }
     }
     --numinstances;
+}
+
+/*******************************************
+ * Returns template instance which instantiating this template declaration.
+ */
+
+TemplateInstance *TemplateDeclaration::getInstantiating(Scope *sc)
+{
+    /* If this is instantiated declaration in root module, Return it.
+     */
+    TemplateInstance *tinst = isInstantiated();
+    if (tinst && (!tinst->instantiatingModule || tinst->instantiatingModule->isRoot()))
+        return tinst;
+
+    return sc->tinst;
 }
 
 /* ======================== Type ============================================ */
@@ -5367,19 +5379,9 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     printf("Scope\n");
     for (Scope *scx = sc; scx; scx = scx->enclosing)
     {
-        printf("\t%s parent %s instantiatingModule %p\n", scx->module ? scx->module->toChars() : "null", scx->parent ? scx->parent->toChars() : "null", scx->instantiatingModule);
+        printf("\t%s parent %s\n", scx->module ? scx->module->toChars() : "null", scx->parent ? scx->parent->toChars() : "null");
     }
 #endif
-
-    Module *mi = sc->instantiatingModule ? sc->instantiatingModule : sc->module;
-
-    /* If a TemplateInstance is ever instantiated by non-root modules,
-     * we do not have to generate code for it,
-     * because it will be generated when the non-root module is compiled.
-     */
-    if (!instantiatingModule || instantiatingModule->isRoot())
-        instantiatingModule = mi;
-    //printf("mi = %s\n", mi->toChars());
 
 #if LOG
     printf("\n+TemplateInstance::semantic('%s', this=%p)\n", toChars(), this);
@@ -5394,6 +5396,16 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 
     // get the enclosing template instance from the scope tinst
     tinst = sc->tinst;
+
+    Module *mi = sc->instantiatingModule();
+
+    /* If a TemplateInstance is ever instantiated by non-root modules,
+     * we do not have to generate code for it,
+     * because it will be generated when the non-root module is compiled.
+     */
+    if (!instantiatingModule || instantiatingModule->isRoot())
+        instantiatingModule = mi;
+    //printf("mi = %s\n", mi->toChars());
 
     if (semanticRun != PASSinit)
     {
@@ -5620,7 +5632,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     argsym = new ScopeDsymbol();
     argsym->parent = scope->parent;
     scope = scope->push(argsym);
-    scope->instantiatingModule = mi;
+    scope->tinst = this;
     //scope->stc = 0;
 
     // Declare each template parameter as an alias for the argument type
@@ -6946,7 +6958,6 @@ void TemplateInstance::semantic2(Scope *sc)
         sc = tempdecl->scope;
         assert(sc);
         sc = sc->push(argsym);
-        sc->instantiatingModule = instantiatingModule;
         sc = sc->push(this);
         sc->tinst = this;
         for (size_t i = 0; i < members->dim; i++)
@@ -6978,7 +6989,6 @@ void TemplateInstance::semantic3(Scope *sc)
     {
         sc = tempdecl->scope;
         sc = sc->push(argsym);
-        sc->instantiatingModule = instantiatingModule;
         sc = sc->push(this);
         sc->tinst = this;
         int needGagging = (speculative && !global.gag);
@@ -7716,7 +7726,6 @@ void TemplateMixin::semantic3(Scope *sc)
     if (members)
     {
         sc = sc->push(argsym);
-        sc->instantiatingModule = instantiatingModule;
         sc = sc->push(this);
         for (size_t i = 0; i < members->dim; i++)
         {

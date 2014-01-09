@@ -546,9 +546,9 @@ TypeAArray *toBuiltinAAType(Type *t)
     assert(t->ty == Tstruct);
     StructDeclaration *sym = ((TypeStruct *)t)->sym;
     assert(sym->ident == Id::AssociativeArray);
-    TemplateInstance *tinst = sym->parent->isTemplateInstance();
-    assert(tinst);
-    return new TypeAArray((Type *)(*tinst->tiargs)[1], (Type *)(*tinst->tiargs)[0]);
+    TemplateInstance *ti = sym->parent->isTemplateInstance();
+    assert(ti);
+    return new TypeAArray((Type *)(*ti->tiargs)[1], (Type *)(*ti->tiargs)[0]);
 #else
     assert(0);
     return NULL;

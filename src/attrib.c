@@ -1061,7 +1061,7 @@ void PragmaDeclaration::semantic(Scope *sc)
                 if (global.params.moduleDeps && !global.params.moduleDepsFile)
                 {
                     OutBuffer *ob = global.params.moduleDeps;
-                    Module* imod = sc->instantiatingModule ? sc->instantiatingModule : sc->module;
+                    Module *imod = sc->instantiatingModule();
                     ob->writestring("depsLib ");
                     ob->writestring(imod->toPrettyChars());
                     ob->writestring(" (");

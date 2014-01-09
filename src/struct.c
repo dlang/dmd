@@ -169,7 +169,7 @@ void AggregateDeclaration::semantic3(Scope *sc)
             Expression *e = new DsymbolExp(Loc(), s, 0);
 
             Scope *sc2 = ti->tempdecl->scope->startCTFE();
-            sc2->instantiatingModule = sc->instantiatingModule ? sc->instantiatingModule : sc->module;
+            sc2->tinst = sc->tinst;
             e = e->semantic(sc2);
             sc2->endCTFE();
 

@@ -7283,7 +7283,7 @@ Expression *FileExp::semantic(Scope *sc)
     if (global.params.moduleDeps != NULL)
     {
         OutBuffer *ob = global.params.moduleDeps;
-        Module* imod = sc->instantiatingModule ? sc->instantiatingModule : sc->module;
+        Module* imod = sc->instantiatingModule();
 
         if (!global.params.moduleDepsFile)
             ob->writestring("depsFile ");

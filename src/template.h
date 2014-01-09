@@ -105,6 +105,8 @@ public:
     TemplateInstance *addInstance(TemplateInstance *ti);
     void removeInstance(TemplateInstance *handle);
 
+    TemplateInstance *getInstantiating(Scope *sc);
+
     TemplateDeclaration *isTemplateDeclaration() { return this; }
 
     TemplateTupleParameter *isVariadic();
