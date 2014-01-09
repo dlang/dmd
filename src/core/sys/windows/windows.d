@@ -2775,8 +2775,8 @@ export
  BOOL GetMessageA(LPMSG lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax);
  BOOL GetMessageW(LPMSG lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax);
  BOOL TranslateMessage(MSG *lpMsg);
- LONG DispatchMessageA(MSG *lpMsg);
- LONG DispatchMessageW(MSG *lpMsg);
+ LONG DispatchMessageA(in MSG *lpMsg);
+ LONG DispatchMessageW(in MSG *lpMsg);
  BOOL PeekMessageA(MSG *lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax, UINT wRemoveMsg);
  BOOL PeekMessageW(MSG *lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax, UINT wRemoveMsg);
  HWND GetFocus();
