@@ -1145,7 +1145,7 @@ void TemplateInstance::toObjFile(int multiobj)
 #if LOG
     printf("TemplateInstance::toObjFile('%s', this = %p)\n", toChars(), this);
 #endif
-    if (!errors && members)
+    if (!isError(this) && members)
     {
         if (multiobj)
             // Append to list of object files to be written later
