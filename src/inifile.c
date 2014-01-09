@@ -294,6 +294,20 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
                             memmove(p, p + 1, strlen(p));
                             p--;
                         }
+                        else if (p[0] == '?' && p[1] == '=')
+                        {
+                            *p = '\0';
+                            if (getenv(p))
+                            {
+                                pn = NULL;
+                                break;
+                            }
+                            // remove the '?' and resume parsing starting from
+                            // '=' again so the regular variable format is
+                            // parsed
+                            memmove(p, p + 1, strlen(p + 1) + 1);
+                            p--;
+                        }
                         else if (*p == '=')
                         {
                             p++;
@@ -303,11 +317,14 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
                         }
                     }
 
-                    putenv(strdup(pn));
+                    if (pn)
+                    {
+                        putenv(strdup(pn));
 #if LOG
-                    printf("\tputenv('%s')\n", pn);
-                    //printf("getenv(\"TEST\") = '%s'\n",getenv("TEST"));
+                        printf("\tputenv('%s')\n", pn);
+                        //printf("getenv(\"TEST\") = '%s'\n",getenv("TEST"));
 #endif
+                    }
                 }
                 break;
         }
