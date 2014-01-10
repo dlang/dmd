@@ -97,14 +97,15 @@ int isError(RootObject *o)
         return (t->ty == Terror);
     Expression *e = isExpression(o);
     if (e)
-        return (e->op == TOKerror || !e->type || e->type->ty== Terror);
+        return (e->op == TOKerror || !e->type || e->type->ty == Terror);
     Tuple *v = isTuple(o);
     if (v)
         return arrayObjectIsError(&v->objects);
     Dsymbol *s = isDsymbol(o);
+    assert(s);
     if (s->errors)
         return 1;
-    return s && s->parent ? isError(s->parent) : 0;
+    return s->parent ? isError(s->parent) : 0;
 }
 
 /**************************************
@@ -3163,6 +3164,7 @@ MATCH Type::deduceTypeHelper(Type **at, Type *tparam)
 
         default:
             assert(0);
+            return MATCHnomatch; // silence compiler warning about missing return
     }
     #undef X
 }
