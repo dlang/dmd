@@ -104,7 +104,7 @@ int isError(RootObject *o)
     Dsymbol *s = isDsymbol(o);
     if (s->errors)
         return 1;
-    return 0;
+    return s && s->parent ? isError(s->parent) : 0;
 }
 
 /**************************************
