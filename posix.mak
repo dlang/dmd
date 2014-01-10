@@ -116,16 +116,16 @@ endif
 doc: $(DOCS)
 
 $(DOCDIR)/object.html : src/object_.d
-	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $<
+	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
 $(DOCDIR)/core_%.html : src/core/%.di
-	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $<
+	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
 $(DOCDIR)/core_%.html : src/core/%.d
-	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $<
+	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
 $(DOCDIR)/core_sync_%.html : src/core/sync/%.d
-	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $<
+	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
 ######################## Header .di file generation ##############################
 
