@@ -2421,7 +2421,7 @@ Identifier *Type::getTypeInfoIdent(int internal)
     buf.writeByte(0);
 
     // Allocate buffer on stack, fail over to using malloc()
-    char namebuf[40];
+    char namebuf[128];
     size_t namelen = 19 + sizeof(len) * 3 + len + 1;
     char *name = namelen <= sizeof(namebuf) ? namebuf : (char *)malloc(namelen);
     assert(name);
