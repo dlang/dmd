@@ -949,19 +949,24 @@ Expression *resolveUFCSProperties(Scope *sc, Expression *e1, Expression *e2 = NU
  * Perform semantic() on an array of Expressions.
  */
 
-Expressions *arrayExpressionSemantic(Expressions *exps, Scope *sc)
+bool arrayExpressionSemantic(Expressions *exps, Scope *sc)
 {
+    bool err = false;
     if (exps)
     {
         for (size_t i = 0; i < exps->dim; i++)
-        {   Expression *e = (*exps)[i];
+        {
+            Expression *e = (*exps)[i];
             if (e)
-            {   e = e->semantic(sc);
+            {
+                e = e->semantic(sc);
                 (*exps)[i] = e;
+                if (e->op == TOKerror)
+                    err = true;
             }
         }
     }
-    return exps;
+    return err;
 }
 
 
@@ -992,15 +997,18 @@ void expandTuples(Expressions *exps)
     if (exps)
     {
         for (size_t i = 0; i < exps->dim; i++)
-        {   Expression *arg = (*exps)[i];
+        {
+            Expression *arg = (*exps)[i];
             if (!arg)
                 continue;
 
             // Look for tuple with 0 members
             if (arg->op == TOKtype)
-            {   TypeExp *e = (TypeExp *)arg;
+            {
+                TypeExp *e = (TypeExp *)arg;
                 if (e->type->toBasetype()->ty == Ttuple)
-                {   TypeTuple *tt = (TypeTuple *)e->type->toBasetype();
+                {
+                    TypeTuple *tt = (TypeTuple *)e->type->toBasetype();
 
                     if (!tt->arguments || tt->arguments->dim == 0)
                     {
@@ -1212,7 +1220,8 @@ bool preFunctionParameters(Loc loc, Scope *sc, Expressions *exps)
         expandTuples(exps);
 
         for (size_t i = 0; i < exps->dim; i++)
-        {   Expression *arg = (*exps)[i];
+        {
+            Expression *arg = (*exps)[i];
 
             arg = resolveProperties(sc, arg);
             if (arg->op == TOKtype)
@@ -4341,7 +4350,8 @@ Expression *ArrayLiteralExp::semantic(Scope *sc)
     /* Perhaps an empty array literal [ ] should be rewritten as null?
      */
 
-    arrayExpressionSemantic(elements, sc);    // run semantic() on each element
+    if (arrayExpressionSemantic(elements, sc))  // run semantic() on each element
+        return new ErrorExp();
     expandTuples(elements);
 
     Type *t0;
@@ -4354,7 +4364,8 @@ Expression *ArrayLiteralExp::semantic(Scope *sc)
     /* Disallow array literals of type void being used.
      */
     if (elements->dim > 0 && t0->ty == Tvoid)
-    {   error("%s of type %s has no value", toChars(), type->toChars());
+    {
+        error("%s of type %s has no value", toChars(), type->toChars());
         return new ErrorExp();
     }
 
@@ -4480,8 +4491,10 @@ Expression *AssocArrayLiteralExp::semantic(Scope *sc)
         return this;
 
     // Run semantic() on each element
-    arrayExpressionSemantic(keys, sc);
-    arrayExpressionSemantic(values, sc);
+    bool err_keys = arrayExpressionSemantic(keys, sc);
+    bool err_vals = arrayExpressionSemantic(values, sc);
+    if (err_keys || err_vals)
+        return new ErrorExp();
     expandTuples(keys);
     expandTuples(values);
     if (keys->dim != values->dim)
@@ -4612,7 +4625,8 @@ Expression *StructLiteralExp::semantic(Scope *sc)
         return new ErrorExp();
     size_t nfields = sd->fields.dim - sd->isNested();
 
-    elements = arrayExpressionSemantic(elements, sc);   // run semantic() on each element
+    if (arrayExpressionSemantic(elements, sc))  // run semantic() on each element
+        return new ErrorExp();
     expandTuples(elements);
     size_t offset = 0;
     for (size_t i = 0; i < elements->dim; i++)
@@ -5146,12 +5160,16 @@ Lagain:
     tb = type->toBasetype();
     //printf("tb: %s, deco = %s\n", tb->toChars(), tb->deco);
 
-    arrayExpressionSemantic(newargs, sc);
-    if (preFunctionParameters(loc, sc, newargs))
+    if (arrayExpressionSemantic(newargs, sc) ||
+        preFunctionParameters(loc, sc, newargs))
+    {
         goto Lerr;
-    arrayExpressionSemantic(arguments, sc);
-    if (preFunctionParameters(loc, sc, arguments))
+    }
+    if (arrayExpressionSemantic(arguments, sc) ||
+        preFunctionParameters(loc, sc, arguments))
+    {
         goto Lerr;
+    }
 
     nargs = arguments ? arguments->dim : 0;
 
@@ -7356,6 +7374,10 @@ Expression *AssertExp::semantic(Scope *sc)
         msg = msg->implicitCastTo(sc, Type::tchar->constOf()->arrayOf());
         msg = msg->optimize(WANTvalue);
     }
+    if (e1->op == TOKerror)
+        return e1;
+    if (msg && msg->op == TOKerror)
+        return msg;
     if (e1->isBool(false))
     {
         FuncDeclaration *fd = sc->parent->isFuncDeclaration();
@@ -7363,7 +7385,8 @@ Expression *AssertExp::semantic(Scope *sc)
             fd->hasReturnExp |= 4;
 
         if (!global.params.useAssert)
-        {   Expression *e = new HaltExp(loc);
+        {
+            Expression *e = new HaltExp(loc);
             e = e->semantic(sc);
             return e;
         }
@@ -8442,9 +8465,11 @@ Expression *CallExp::semantic(Scope *sc)
 
     if (e1->op == TOKfunction)
     {
-        FuncExp *fe = (FuncExp *)e1;
-        arguments = arrayExpressionSemantic(arguments, sc);
+        arrayExpressionSemantic(arguments, sc);
         preFunctionParameters(loc, sc, arguments);
+
+        // Run e1 semantic even if arguments have any errors
+        FuncExp *fe = (FuncExp *)e1;
         e1 = fe->semantic(sc, arguments);
         if (e1->op == TOKerror)
             return e1;
@@ -8623,19 +8648,12 @@ Lagain:
 
     t1 = NULL;
     if (e1->type)
+    {
         t1 = e1->type->toBasetype();
 
-    arguments = arrayExpressionSemantic(arguments, sc);
-    preFunctionParameters(loc, sc, arguments);
-
-    // Check for call operator overload
-    if (t1)
-    {
-        AggregateDeclaration *ad;
         if (t1->ty == Tstruct)
         {
-            ad = ((TypeStruct *)t1)->sym;
-
+            AggregateDeclaration *ad = ((TypeStruct *)t1)->sym;
             if (ad->sizeok == SIZEOKnone)
             {
                 if (ad->scope)
@@ -8649,6 +8667,24 @@ Lagain:
                     return new ErrorExp();
                 }
             }
+        }
+    }
+
+    if (e1->op == TOKerror)
+        return e1;
+    if (arrayExpressionSemantic(arguments, sc) ||
+        preFunctionParameters(loc, sc, arguments))
+    {
+        return new ErrorExp();
+    }
+
+    // Check for call operator overload
+    if (t1)
+    {
+        AggregateDeclaration *ad;
+        if (t1->ty == Tstruct)
+        {
+            ad = ((TypeStruct *)t1)->sym;
 
             // First look for constructor
             if (e1->op == TOKtype && ad->ctor && (ad->noDefaultCtor || arguments && arguments->dim))
@@ -8722,30 +8758,6 @@ Lagain:
             e = new CallExp(loc, e, arguments);
             e = e->semantic(sc);
             return e;
-        }
-    }
-
-    // If there was an error processing any argument, or the call,
-    // return an error without trying to resolve the function call.
-    if (arguments && arguments->dim)
-    {
-        for (size_t k = 0; k < arguments->dim; k++)
-        {   Expression *checkarg = (*arguments)[k];
-            if (checkarg->op == TOKerror)
-                return checkarg;
-        }
-    }
-    if (e1->op == TOKerror)
-        return e1;
-
-    // If there was an error processing any template argument,
-    // return an error without trying to resolve the template.
-    if (tiargs && tiargs->dim)
-    {
-        for (size_t k = 0; k < tiargs->dim; k++)
-        {   RootObject *o = (*tiargs)[k];
-            if (isError(o))
-                return new ErrorExp();
         }
     }
 

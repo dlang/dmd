@@ -1676,7 +1676,7 @@ void UserAttributeDeclaration::semantic(Scope *sc)
      * valid scope yet for their fwdref resolution.
      * Therefore running semantic analysis here is too early.
      */
-    //atts = arrayExpressionSemantic(atts, sc);
+    //arrayExpressionSemantic(atts, sc);
 
     if (decl)
     {
