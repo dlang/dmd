@@ -6591,6 +6591,9 @@ Type *TypeDelegate::semantic(Loc loc, Scope *sc)
         return this;
     }
     next = next->semantic(loc,sc);
+    if (next->ty != Tfunction)
+        return terror;
+
     /* In order to deal with Bugzilla 4028, perhaps default arguments should
      * be removed from next before the merge.
      */

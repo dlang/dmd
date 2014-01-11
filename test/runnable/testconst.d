@@ -1495,9 +1495,13 @@ void test82(inout(int) _ = 0)
 void test83(inout(int) _ = 0)
 {
     static assert( __traits(compiles, typeid(int* function(inout int))));
+    static assert( __traits(compiles, typeid(int* delegate(inout int))));
     static assert(!__traits(compiles, typeid(inout(int*) function(int))));
+    static assert(!__traits(compiles, typeid(inout(int*) delegate(int))));
     static assert(!__traits(compiles, typeid(inout(int*) function())));
+    static assert(!__traits(compiles, typeid(inout(int*) delegate())));
     inout(int*) function(inout(int)) fp;
+    inout(int*) delegate(inout(int)) dg;
 }
 
 /************************************/

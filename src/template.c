@@ -676,7 +676,7 @@ void TemplateDeclaration::makeParamNamesVisibleInConstraint(Scope *paramscope, E
      */
     FuncDeclaration *fd = onemember && onemember->toAlias() ?
         onemember->toAlias()->isFuncDeclaration() : NULL;
-    if (fd)
+    if (fd && fd->type->ty == Tfunction)
     {
         /*
             Making parameters is similar to FuncDeclaration::semantic3
@@ -684,6 +684,7 @@ void TemplateDeclaration::makeParamNamesVisibleInConstraint(Scope *paramscope, E
         paramscope->parent = fd;
 
         TypeFunction *tf = (TypeFunction *)fd->type->syntaxCopy();
+        assert(tf->ty == Tfunction);
 
         // Shouldn't run semantic on default arguments and return type.
         for (size_t i = 0; i<tf->parameters->dim; i++)
@@ -693,6 +694,8 @@ void TemplateDeclaration::makeParamNamesVisibleInConstraint(Scope *paramscope, E
         // Resolve parameter types and 'auto ref's.
         tf->fargs = fargs;
         tf = (TypeFunction *)tf->semantic(loc, paramscope);
+        if (tf->ty != Tfunction)
+            return;
 
         Parameters *fparameters = tf->parameters;
         int fvarargs = tf->varargs;
@@ -2221,6 +2224,9 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
             if (!fd)
                 return 0;
 
+            if (fd->type->ty != Tfunction)
+                goto Lerror;
+
             Type *tthis_fd = fd->needThis() && !fd->isCtorDeclaration() ? tthis : NULL;
 
             TypeFunction *tf = (TypeFunction *)fd->type;
@@ -2247,6 +2253,9 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
         //printf("td = %s\n", td->toChars());
         for (size_t ovi = 0; f; f = f->overnext0, ovi++)
         {
+            if (f->type->ty != Tfunction || f->errors)
+                goto Lerror;
+
             Objects dedtypes;
             FuncDeclaration *fd = NULL;
             int x = td->deduceFunctionTemplateMatch(f, loc, sc, tiargs, tthis, fargs, &dedtypes);
