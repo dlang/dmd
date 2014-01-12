@@ -618,7 +618,7 @@ Expression *CallExp::implicitCastTo(Scope *sc, Type *t)
      * convert to immutable
      */
     if (f && f->isolateReturn() &&
-        type->immutableOf()->equals(t->immutableOf()))
+        type->immutableOf()->equals(t))
     {
         /* Avoid emitting CastExp for:
          *  T[] make() pure { ...  }
