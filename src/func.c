@@ -3425,7 +3425,7 @@ bool FuncDeclaration::parametersIntersect(Type *t)
     }
     if (AggregateDeclaration *ad = isCtorDeclaration() ? NULL : isThis())
     {
-        Type *tthis = ad ? ad->getType()->addMod(tf->mod) : NULL;
+        Type *tthis = ad->getType()->addMod(tf->mod);
         //printf("\ttthis = %s\n", tthis->toChars());
         if (traverseIndirections(tthis, t))
             return false;
