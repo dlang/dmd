@@ -1202,14 +1202,7 @@ unsigned Type::totym()
         case Tbool:     t = TYbool;     break;
         case Tchar:     t = TYchar;     break;
         case Twchar:    t = TYwchar_t;  break;
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         case Tdchar:    t = TYdchar;    break;
-#else
-        case Tdchar:
-                t = (global.params.symdebug == 1) ? TYdchar : TYulong;
-                break;
-#endif
-
         case Taarray:   t = TYaarray;   break;
         case Tclass:
         case Treference:

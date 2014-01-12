@@ -45,8 +45,6 @@ void out_config_init(
         bool verbose,   // verbose compile
         bool optimize,  // optimize code
         int symdebug,   // add symbolic debug information
-                        // 1: D
-                        // 2: fake it with C symbolic debug info
         bool alwaysframe,       // always create standard function frame
         bool stackstomp // add stack stomping code
         )
@@ -186,7 +184,7 @@ void out_config_init(
     {
 #if SYMDEB_DWARF
         configv.addlinenumbers = 1;
-        config.fulltypes = (symdebug == 1) ? CVDWARF_D : CVDWARF_C;
+        config.fulltypes = CVDWARF_D;
 #endif
 #if SYMDEB_CODEVIEW
         if (model == 64)
