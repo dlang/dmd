@@ -849,7 +849,7 @@ MATCH TemplateDeclaration::matchWithInstance(Scope *sc, TemplateInstance *ti,
          */
 
         int nmatches = 0;
-        for (Previous *p = previous; p; p = p->prev)
+        for (TemplatePrevious *p = previous; p; p = p->prev)
         {
             if (arrayObjectMatch(p->dedargs, dedtypes))
             {
@@ -867,7 +867,7 @@ MATCH TemplateDeclaration::matchWithInstance(Scope *sc, TemplateInstance *ti,
              */
         }
 
-        Previous pr;
+        TemplatePrevious pr;
         pr.prev = previous;
         pr.sc = paramscope;
         pr.dedargs = dedtypes;
@@ -1780,7 +1780,7 @@ Lmatch:
          * Recursive attempts are regarded as a constraint failure.
          */
         int nmatches = 0;
-        for (Previous *p = previous; p; p = p->prev)
+        for (TemplatePrevious *p = previous; p; p = p->prev)
         {
             if (arrayObjectMatch(p->dedargs, dedargs))
             {
@@ -1798,7 +1798,7 @@ Lmatch:
              */
         }
 
-        Previous pr;
+        TemplatePrevious pr;
         pr.prev = previous;
         pr.sc = paramscope;
         pr.dedargs = dedargs;
@@ -2181,7 +2181,7 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
                 Objects dedtypesX;  // empty tiargs
 
                 // Bugzilla 11553: Check for recursive instantiation of tdx.
-                for (TemplateDeclaration::Previous *p = tdx->previous; p; p = p->prev)
+                for (TemplatePrevious *p = tdx->previous; p; p = p->prev)
                 {
                     if (arrayObjectMatch(p->dedargs, &dedtypesX))
                     {
@@ -2202,7 +2202,7 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
                      */
                 }
 
-                TemplateDeclaration::Previous pr;
+                TemplatePrevious pr;
                 pr.prev = tdx->previous;
                 pr.sc = sc;
                 pr.dedargs = &dedtypesX;
