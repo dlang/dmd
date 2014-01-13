@@ -2328,6 +2328,9 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
             if (!fd)
                 return 0;
 
+            if (fd->errors)
+                goto Lerror;
+
             Type *tthis_fd = fd->needThis() && !fd->isCtorDeclaration() ? tthis : NULL;
 
             TypeFunction *tf = (TypeFunction *)fd->type;
@@ -2531,9 +2534,9 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
         p.tthis_best = m->lastf->needThis() && !m->lastf->isCtorDeclaration() ? tthis : NULL;
 
         TypeFunction *tf = (TypeFunction *)m->lastf->type;
-        if (tf->ty == Terror)
-            goto Lerror;
         assert(tf->ty == Tfunction);
+        if (tf->next == Type::terror)
+            goto Lerror;
         if (!tf->callMatch(p.tthis_best, fargs))
         {
             m->count = 0;
@@ -2657,7 +2660,8 @@ FuncDeclaration *TemplateDeclaration::doHeaderInstantiation(
 
     scx = scx->pop();
 
-    return fd->type->ty == Tfunction ? fd : NULL;
+    assert(fd->type->ty == Tfunction);
+    return ((TypeFunction *)fd->type)->next == Type::terror ? NULL : fd;
 }
 
 bool TemplateDeclaration::hasStaticCtorOrDtor()

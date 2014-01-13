@@ -4899,6 +4899,12 @@ Type *TypePointer::semantic(Loc loc, Scope *sc)
     Type *n = next->semantic(loc, sc);
     switch (n->toBasetype()->ty)
     {
+        case Tfunction:
+        {
+            if (((TypeFunction *)n)->next == terror)
+                return terror;  // propagate error
+            break;
+        }
         case Ttuple:
             error(loc, "can't have pointer to %s", n->toChars());
         case Terror:
@@ -5677,7 +5683,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
     }
 
     if (errors)
-        return terror;
+        tf->next = terror;  // use tf->next to propagate errors from TypeFunction::semantic
 
     if (tf->next)
         tf->deco = tf->merge()->deco;
@@ -6185,6 +6191,12 @@ Type *TypeDelegate::semantic(Loc loc, Scope *sc)
 #if 0
     return merge();
 #else
+    assert(next->ty == Tfunction);
+    {
+        if (((TypeFunction *)next)->next == terror)
+            return terror;  // propagate error
+    }
+
     /* Don't return merge(), because arg identifiers and default args
      * can be different
      * even though the types match

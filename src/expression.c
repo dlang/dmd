@@ -8466,8 +8466,6 @@ Lagain:
         error("function expected before (), not '%s'", e1->toChars());
         return new ErrorExp();
     }
-    else if (t1->ty == Terror)
-        return new ErrorExp();
     else if (t1->ty != Tfunction)
     {
         TypeFunction *tf;
@@ -8578,6 +8576,11 @@ Lagain:
             e1 = e;
         }
         t1 = tf;
+    }
+    else if (t1->nextOf() == Type::terror)
+    {
+        assert(t1->ty == Tfunction);
+        return new ErrorExp();
     }
     else if (e1->op == TOKvar)
     {
