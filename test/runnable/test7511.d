@@ -326,6 +326,23 @@ void test10329() pure nothrow @safe
 }
 
 /**********************************/
+// 11896
+
+class Foo11896(T = int)
+{
+    static if (!__traits(isVirtualMethod, zoo)) {} else { Undefined x; }
+
+    static void bar() {}
+    static void bar(Foo11896 foo) {}
+
+    static void zoo()
+    {
+        bar(new Foo11896);
+    }
+}
+Foo11896!(int) baz;
+
+/**********************************/
 
 int main()
 {

@@ -2038,6 +2038,8 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
         // explicitly specified tiargs never match to non template function
         if (tiargs && tiargs->dim > 0)
             return 0;
+        if (fd->scope && fd->semanticRun < PASSsemanticdone)
+            fd->semantic(fd->scope);
 
         //printf("fd = %s %s\n", fd->toChars(), fd->type->toChars());
         m->anyf = fd;
