@@ -417,7 +417,7 @@ struct DebugInfoHeader
 
 static DebugInfoHeader debuginfo_init =
 {       0,      // total_length
-        2,      // version
+        3,      // version
         0,      // abbrev_offset
         4       // address_size
 };
