@@ -3304,7 +3304,7 @@ Type *getIndirection(Type *t)
  * a const(int) reference can point to a pre-existing int, but not the other
  * way round.
  */
-int traverseIndirections(Type *ta, Type *tb, void *p = NULL, bool reversePass = false)
+bool traverseIndirections(Type *ta, Type *tb, void *p = NULL, bool reversePass = false)
 {
     Type *source = ta;
     Type *target = tb;
@@ -3315,9 +3315,9 @@ int traverseIndirections(Type *ta, Type *tb, void *p = NULL, bool reversePass = 
     }
 
     if (source->constConv(target))
-        return 1;
+        return true;
     else if (target->ty == Tvoid && MODimplicitConv(source->mod, target->mod))
-        return 1;
+        return true;
 
     // No direct match, so try breaking up one of the types (starting with tb).
     Type *tbb = tb->toBasetype()->baseElemOf();
@@ -3335,7 +3335,7 @@ int traverseIndirections(Type *ta, Type *tb, void *p = NULL, bool reversePass = 
     if (tb->ty == Tclass || tb->ty == Tstruct)
     {
         for (Ctxt *c = ctxt; c; c = c->prev)
-            if (tb == c->type) return 0;
+            if (tb == c->type) return false;
         Ctxt c;
         c.prev = ctxt;
         c.type = tb;
@@ -3347,26 +3347,26 @@ int traverseIndirections(Type *ta, Type *tb, void *p = NULL, bool reversePass = 
             Type *tprmi = v->type->addMod(tb->mod);
             //printf("\ttb = %s, tprmi = %s\n", tb->toChars(), tprmi->toChars());
             if (traverseIndirections(ta, tprmi, &c, reversePass))
-                return 1;
+                return true;
         }
     }
     else if (tb->ty == Tarray || tb->ty == Taarray || tb->ty == Tpointer)
     {
         Type *tind = tb->nextOf();
         if (traverseIndirections(ta, tind, ctxt, reversePass))
-            return 1;
+            return true;
     }
     else if (tb->hasPointers())
     {
         // FIXME: function pointer/delegate types should be considered.
-        return 1;
+        return true;
     }
 
     // Still no match, so try breaking up ta if we have note done so yet.
     if (!reversePass)
         return traverseIndirections(tb, ta, ctxt, true);
 
-    return 0;
+    return false;
 }
 
 /********************************************
