@@ -3299,25 +3299,30 @@ Type *getIndirection(Type *t)
  * which has been constructed with a reference A to a value of type ta
  * available, can alias memory reachable from A based on the types involved
  * (either directly or via any number of indirections).
+ *
+ * Note that this relation is not symmetric in the two arguments. For example,
+ * a const(int) reference can point to a pre-existing int, but not the other
+ * way round.
  */
-int traverseIndirections(Type *ta, Type *tb, void *p = NULL, bool a2b = true)
+int traverseIndirections(Type *ta, Type *tb, void *p = NULL, bool reversePass = false)
 {
-    if (a2b)    // check ta appears in tb
+    Type *source = ta;
+    Type *target = tb;
+    if (reversePass)
     {
-        //printf("\ttraverse(1) %s appears in %s\n", ta->toChars(), tb->toChars());
-        if (ta->constConv(tb))
-            return 1;
-        else if (tb->ty == Tvoid && MODimplicitConv(ta->mod, tb->mod))
-            return 1;
+        source = tb;
+        target = ta;
     }
-    else    // check tb appears in ta
-    {
-        //printf("\ttraverse(2) %s appears in %s\n", tb->toChars(), ta->toChars());
-        if (tb->constConv(ta))
-            return 1;
-        else if (ta->ty == Tvoid && MODimplicitConv(tb->mod, ta->mod))
-            return 1;
-    }
+
+    if (source->constConv(target))
+        return 1;
+    else if (target->ty == Tvoid && MODimplicitConv(source->mod, target->mod))
+        return 1;
+
+    // No direct match, so try breaking up one of the types (starting with tb).
+    Type *tbb = tb->toBasetype()->baseElemOf();
+    if (tbb != tb)
+        return traverseIndirections(ta, tbb, p, reversePass);
 
     // context date to detect circular look up
     struct Ctxt
@@ -3326,10 +3331,6 @@ int traverseIndirections(Type *ta, Type *tb, void *p = NULL, bool a2b = true)
         Type *type;
     };
     Ctxt *ctxt = (Ctxt *)p;
-
-    Type *tbb = tb->toBasetype()->baseElemOf();
-    if (tbb != tb)
-        return traverseIndirections(ta, tbb, ctxt, a2b);
 
     if (tb->ty == Tclass || tb->ty == Tstruct)
     {
@@ -3345,14 +3346,14 @@ int traverseIndirections(Type *ta, Type *tb, void *p = NULL, bool a2b = true)
             VarDeclaration *v = sym->fields[i];
             Type *tprmi = v->type->addMod(tb->mod);
             //printf("\ttb = %s, tprmi = %s\n", tb->toChars(), tprmi->toChars());
-            if (traverseIndirections(ta, tprmi, &c, a2b))
+            if (traverseIndirections(ta, tprmi, &c, reversePass))
                 return 1;
         }
     }
     else if (tb->ty == Tarray || tb->ty == Taarray || tb->ty == Tpointer)
     {
         Type *tind = tb->nextOf();
-        if (traverseIndirections(ta, tind, ctxt, a2b))
+        if (traverseIndirections(ta, tind, ctxt, reversePass))
             return 1;
     }
     else if (tb->hasPointers())
@@ -3360,8 +3361,10 @@ int traverseIndirections(Type *ta, Type *tb, void *p = NULL, bool a2b = true)
         // FIXME: function pointer/delegate types should be considered.
         return 1;
     }
-    if (a2b)
-        return traverseIndirections(tb, ta, ctxt, false);
+
+    // Still no match, so try breaking up ta if we have note done so yet.
+    if (!reversePass)
+        return traverseIndirections(tb, ta, ctxt, true);
 
     return 0;
 }
