@@ -49,6 +49,12 @@ public:
     int dyncast() { return DYNCAST_TUPLE; } // kludge for template.isType()
 };
 
+struct TemplatePrevious
+{
+    TemplatePrevious *prev;
+    Scope *sc;
+    Objects *dedargs;
+};
 
 class TemplateDeclaration : public ScopeDsymbol
 {
@@ -73,12 +79,7 @@ public:
     bool isstatic;              // this is static template declaration
     PROT protection;
 
-    struct Previous
-    {   Previous *prev;
-        Scope *sc;
-        Objects *dedargs;
-    };
-    Previous *previous;         // threaded list of previous instantiation attempts on stack
+    TemplatePrevious *previous;         // threaded list of previous instantiation attempts on stack
 
     TemplateDeclaration(Loc loc, Identifier *id, TemplateParameters *parameters,
         Expression *constraint, Dsymbols *decldefs, bool ismixin = false, bool literal = false);
