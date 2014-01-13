@@ -3295,9 +3295,11 @@ Type *getIndirection(Type *t)
 }
 
 /**************************************
- * Traverse this and t, and then check the indirections convertibility.
+ * Returns true if memory reachable through a reference B to a value of type tb,
+ * which has been constructed with a reference A to a value of type ta
+ * available, can alias memory reachable from A based on the types involved
+ * (either directly or via any number of indirections).
  */
-
 int traverseIndirections(Type *ta, Type *tb, void *p = NULL, bool a2b = true)
 {
     if (a2b)    // check ta appears in tb
@@ -3305,8 +3307,6 @@ int traverseIndirections(Type *ta, Type *tb, void *p = NULL, bool a2b = true)
         //printf("\ttraverse(1) %s appears in %s\n", ta->toChars(), tb->toChars());
         if (ta->constConv(tb))
             return 1;
-        else if (ta->immutableOf()->equals(tb->immutableOf()))
-            return 0;
         else if (tb->ty == Tvoid && MODimplicitConv(ta->mod, tb->mod))
             return 1;
     }
@@ -3315,8 +3315,6 @@ int traverseIndirections(Type *ta, Type *tb, void *p = NULL, bool a2b = true)
         //printf("\ttraverse(2) %s appears in %s\n", tb->toChars(), ta->toChars());
         if (tb->constConv(ta))
             return 1;
-        else if (tb->immutableOf()->equals(ta->immutableOf()))
-            return 0;
         else if (ta->ty == Tvoid && MODimplicitConv(tb->mod, ta->mod))
             return 1;
     }
@@ -3329,11 +3327,10 @@ int traverseIndirections(Type *ta, Type *tb, void *p = NULL, bool a2b = true)
     };
     Ctxt *ctxt = (Ctxt *)p;
 
-    Type *tbb = tb->toBasetype();
+    Type *tbb = tb->toBasetype()->baseElemOf();
     if (tbb != tb)
         return traverseIndirections(ta, tbb, ctxt, a2b);
 
-    tb = tb->baseElemOf();
     if (tb->ty == Tclass || tb->ty == Tstruct)
     {
         for (Ctxt *c = ctxt; c; c = c->prev)
@@ -3347,11 +3344,6 @@ int traverseIndirections(Type *ta, Type *tb, void *p = NULL, bool a2b = true)
         {
             VarDeclaration *v = sym->fields[i];
             Type *tprmi = v->type->addMod(tb->mod);
-            if (!(v->storage_class & STCref))
-                tprmi = getIndirection(tprmi);
-            if (!tprmi)
-                continue;
-
             //printf("\ttb = %s, tprmi = %s\n", tb->toChars(), tprmi->toChars());
             if (traverseIndirections(ta, tprmi, &c, a2b))
                 return 1;
