@@ -12,6 +12,7 @@
 #include <string.h>                     // strlen()
 
 #include "root.h"
+#include "rmem.h"
 #include "speller.h"
 
 #include "mars.h"

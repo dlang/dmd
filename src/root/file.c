@@ -36,6 +36,7 @@
 #include "filename.h"
 #include "array.h"
 #include "port.h"
+#include "rmem.h"
 
 /****************************** File ********************************/
 

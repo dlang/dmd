@@ -19,8 +19,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "rmem.h"
 #include "object.h"
+#include "rmem.h"
 
 template <typename TYPE>
 struct Array
