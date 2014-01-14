@@ -262,9 +262,9 @@ void test9178()
 }
 
 /************************************************/
-// 9741
+// 9652
 
-struct Bug9741
+struct Bug9652
 {
     pragma(msg, __traits(getAttributes, enum_field));
     alias Tuple!(__traits(getAttributes, enum_field)) Tenum_field;
@@ -273,7 +273,7 @@ struct Bug9741
     static assert(Tenum_field[0] == 10);
     static assert(__traits(getAttributes, enum_field)[0] == 10);
     static assert(__traits(getProtection, enum_field) == "private");
-    static assert(__traits(isSame, __traits(parent, enum_field), Bug9741));
+    static assert(__traits(isSame, __traits(parent, enum_field), Bug9652));
     static assert(__traits(isSame, enum_field, enum_field));
 
     pragma(msg, __traits(getAttributes, anon_enum_member));
@@ -283,7 +283,7 @@ struct Bug9741
     static assert(Tanon_enum_member[0] == 20);
     static assert(__traits(getAttributes, anon_enum_member)[0] == 20);
     static assert(__traits(getProtection, anon_enum_member) == "private");
-    static assert(__traits(isSame, __traits(parent, anon_enum_member), Bug9741));
+    static assert(__traits(isSame, __traits(parent, anon_enum_member), Bug9652));
     static assert(__traits(isSame, anon_enum_member, anon_enum_member));
 
     pragma(msg, __traits(getAttributes, Foo.enum_member));
@@ -302,7 +302,7 @@ struct Bug9741
     static assert(Tanon_enum_member_2[0] == 40);
     static assert(__traits(getAttributes, anon_enum_member_2)[0] == 40);
     static assert(__traits(getProtection, anon_enum_member_2) == "private");
-    static assert(__traits(isSame, __traits(parent, anon_enum_member_2), Bug9741));
+    static assert(__traits(isSame, __traits(parent, anon_enum_member_2), Bug9652));
     static assert(__traits(isSame, anon_enum_member_2, anon_enum_member_2));
 
     template Bug(alias X, bool is_exp)
@@ -316,6 +316,17 @@ struct Bug9741
     enum dummy1 = Bug!(5, true);
     enum dummy2 = Bug!(en, false);
 }
+
+/************************************************/
+// 9741
+
+import imports.a9741;
+
+struct A9741 {}
+
+alias X9741 = ShowAttributes!(B9741);
+
+@A9741 struct B9741 {}
 
 /************************************************/
 // 10208

@@ -145,6 +145,11 @@ void EnumDeclaration::semantic(Scope *sc)
     if (sc->stc & STCdeprecated)
         isdeprecated = true;
     userAttributes = sc->userAttributes;
+    if (userAttributes)
+    {
+        userAttributesScope = sc;
+        userAttributesScope->setNoFree();
+    }
 
     parent = sc->parent;
     protection = sc->protection;
@@ -723,6 +728,7 @@ Expression *EnumMember::getVarExp(Loc loc, Scope *sc)
         vd->protection = ed->isAnonymous() ? ed->protection : PROTpublic;
         vd->parent = ed->isAnonymous() ? ed->parent : ed;
         vd->userAttributes = ed->isAnonymous() ? ed->userAttributes : NULL;
+        vd->userAttributesScope = ed->isAnonymous() ? ed->userAttributesScope : NULL;
     }
     Expression *e = new VarExp(loc, vd);
     return e->semantic(sc);

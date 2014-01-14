@@ -320,9 +320,9 @@ Dsymbol *TypedefDeclaration::syntaxCopy(Dsymbol *s)
 void TypedefDeclaration::semantic(Scope *sc)
 {
     //printf("TypedefDeclaration::semantic(%s) sem = %d\n", toChars(), sem);
-    userAttributes = sc->userAttributes;
     if (sem == SemanticStart)
-    {   sem = SemanticIn;
+    {
+        sem = SemanticIn;
         parent = sc->parent;
         int errors = global.errors;
         Type *savedbasetype = basetype;
@@ -348,6 +348,11 @@ void TypedefDeclaration::semantic(Scope *sc)
         }
         storage_class |= sc->stc & STCdeprecated;
         userAttributes = sc->userAttributes;
+        if (userAttributes)
+        {
+            userAttributesScope = sc;
+            userAttributesScope->setNoFree();
+        }
     }
     else if (sem == SemanticIn)
     {
@@ -487,6 +492,11 @@ void AliasDeclaration::semantic(Scope *sc)
     storage_class |= sc->stc & STCdeprecated;
     protection = sc->protection;
     userAttributes = sc->userAttributes;
+    if (userAttributes)
+    {
+        userAttributesScope = sc;
+        userAttributesScope->setNoFree();
+    }
 
     // Given:
     //  alias foo.bar.abc def;
@@ -815,6 +825,11 @@ void VarDeclaration::semantic(Scope *sc)
         error("extern symbols cannot have initializers");
 
     userAttributes = sc->userAttributes;
+    if (userAttributes)
+    {
+        userAttributesScope = sc;
+        userAttributesScope->setNoFree();
+    }
 
     AggregateDeclaration *ad = isThis();
     if (ad)

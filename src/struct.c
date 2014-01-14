@@ -631,6 +631,11 @@ void StructDeclaration::semantic(Scope *sc)
     if (sc->stc & STCabstract)
         error("structs, unions cannot be abstract");
     userAttributes = sc->userAttributes;
+    if (userAttributes)
+    {
+        userAttributesScope = sc;
+        userAttributesScope->setNoFree();
+    }
 
     if (sizeok == SIZEOKnone)            // if not already done the addMember step
     {
