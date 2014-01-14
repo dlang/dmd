@@ -191,6 +191,11 @@ void FuncDeclaration::semantic(Scope *sc)
         linkage = sc->linkage;
     protection = sc->protection;
     userAttributes = sc->userAttributes;
+    if (userAttributes)
+    {
+        userAttributesScope = sc;
+        userAttributesScope->setNoFree();
+    }
 
     if (!originalType)
         originalType = type->syntaxCopy();
@@ -3850,6 +3855,7 @@ FuncAliasDeclaration::FuncAliasDeclaration(FuncDeclaration *funcalias, bool hasO
         this->hasOverloads = false;
     }
     userAttributes = funcalias->userAttributes;
+    userAttributesScope = funcalias->userAttributesScope;
 }
 
 const char *FuncAliasDeclaration::kind()

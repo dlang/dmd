@@ -52,6 +52,7 @@ Dsymbol::Dsymbol()
     this->errors = false;
     this->depmsg = NULL;
     this->userAttributes = NULL;
+    this->userAttributesScope = NULL;
     this->ddocUnittest = NULL;
 }
 
@@ -69,6 +70,7 @@ Dsymbol::Dsymbol(Identifier *ident)
     this->errors = false;
     this->depmsg = NULL;
     this->userAttributes = NULL;
+    this->userAttributesScope = NULL;
     this->ddocUnittest = NULL;
 }
 
@@ -346,6 +348,8 @@ void Dsymbol::setScope(Scope *sc)
     scope = sc;
     if (sc->depmsg)
         depmsg = sc->depmsg;
+    if (userAttributes)
+        userAttributesScope = sc;
 }
 
 void Dsymbol::importAll(Scope *sc)

@@ -291,6 +291,11 @@ void ClassDeclaration::semantic(Scope *sc)
         isdeprecated = true;
     }
     userAttributes = sc->userAttributes;
+    if (userAttributes)
+    {
+        userAttributesScope = sc;
+        userAttributesScope->setNoFree();
+    }
 
     if (sc->linkage == LINKcpp)
         cpp = 1;
@@ -1281,6 +1286,11 @@ void InterfaceDeclaration::semantic(Scope *sc)
         isdeprecated = true;
     }
     userAttributes = sc->userAttributes;
+    if (userAttributes)
+    {
+        userAttributesScope = sc;
+        userAttributesScope->setNoFree();
+    }
 
     // Expand any tuples in baseclasses[]
     for (size_t i = 0; i < baseclasses->dim; )
