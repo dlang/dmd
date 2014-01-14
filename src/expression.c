@@ -5888,16 +5888,22 @@ Expression *TupleExp::semantic(Scope *sc)
         e0 = e0->semantic(sc);
 
     // Run semantic() on each argument
+    bool err = false;
     for (size_t i = 0; i < exps->dim; i++)
-    {   Expression *e = (*exps)[i];
-
+    {
+        Expression *e = (*exps)[i];
         e = e->semantic(sc);
         if (!e->type)
-        {   error("%s has no value", e->toChars());
-            return new ErrorExp();
+        {
+            error("%s has no value", e->toChars());
+            err = true;
         }
+        else if (e->op == TOKerror)
+            err = true;
         (*exps)[i] = e;
     }
+    if (err)
+        return new ErrorExp();
 
     expandTuples(exps);
     type = new TypeTuple(exps);
