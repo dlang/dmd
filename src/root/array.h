@@ -210,6 +210,7 @@ struct Array
         if (a)
         {
             size_t d = a->dim;
+            assert(d != 0);
             reserve(d);
             if (dim != index)
                 memmove(data + index + d, data + index, (dim - index) * sizeof(*data));

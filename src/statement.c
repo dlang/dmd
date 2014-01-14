@@ -747,7 +747,7 @@ Statement *CompoundStatement::semantic(Scope *sc)
          * (eg. CaseRangeStatement), so flatten it here.
          */
         Statements *flt = s->flatten(sc);
-        if (flt)
+        if (flt && flt->dim != 0)
         {
             statements->remove(i);
             statements->insert(i, flt);
