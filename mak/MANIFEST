@@ -5,6 +5,7 @@ MANIFEST=\
 	posix.mak \
 	win32.mak \
 	win64.mak \
+	project.ddoc \
 	\
 	mak\COPY \
 	mak\DOCS \
