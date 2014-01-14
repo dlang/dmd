@@ -175,13 +175,13 @@ extern (C) wchar[] _adReverseWchar(wchar[] a)
                 break;
 
             if (stridelo == stridehi)
-            {   int stmp;
+            {
+                wchar[2] stmp;
 
                 assert(stridelo == 2);
-                assert(stmp.sizeof == 2 * (*lo).sizeof);
-                stmp = *cast(int*)lo;
-                *cast(int*)lo = *cast(int*)hi;
-                *cast(int*)hi = stmp;
+                stmp = lo[0 .. 2];
+                lo[0 .. 2] = hi[0 .. 2];
+                hi[0 .. 2] = stmp;
                 lo += stridelo;
                 hi--;
                 continue;
