@@ -1967,8 +1967,14 @@ Lagain:
 
                 makeargs = new ExpStatement(loc, new DeclarationExp(loc, vd));
 
+                Declaration *d = sfront->isDeclaration();
+                if (FuncDeclaration *f = d->isFuncDeclaration())
+                {
+                    if (!f->functionSemantic())
+                        goto Lrangeerr;
+                }
                 Expression *ve = new VarExp(loc, vd);
-                ve->type = sfront->isDeclaration()->type;
+                ve->type = d->type;
                 if (ve->type->toBasetype()->ty == Tfunction)
                     ve->type = ve->type->toBasetype()->nextOf();
                 if (!ve->type || ve->type->ty == Terror)
