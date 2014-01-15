@@ -671,7 +671,7 @@ bool TemplateDeclaration::overloadInsert(Dsymbol *s)
  * Declare all the function parameters as variables
  * and add them to the scope
  */
-void TemplateDeclaration::makeParamNamesVisibleInConstraint(Scope *paramscope, Expressions *fargs)
+void TemplateDeclaration::makeParamNamesVisibleInConstraint(Scope *scx, Expressions *fargs)
 {
     /* We do this ONLY if there is only one function in the template.
      */
@@ -682,30 +682,29 @@ void TemplateDeclaration::makeParamNamesVisibleInConstraint(Scope *paramscope, E
         /*
             Making parameters is similar to FuncDeclaration::semantic3
          */
-        paramscope->parent = fd;
+        scx->parent = fd;
 
         TypeFunction *tf = (TypeFunction *)fd->type->syntaxCopy();
         assert(tf->ty == Tfunction);
 
         // Shouldn't run semantic on default arguments and return type.
-        for (size_t i = 0; i<tf->parameters->dim; i++)
+        for (size_t i = 0; i < tf->parameters->dim; i++)
             (*tf->parameters)[i]->defaultArg = NULL;
         tf->next = NULL;
 
         // Resolve parameter types and 'auto ref's.
         tf->fargs = fargs;
-        tf = (TypeFunction *)tf->semantic(loc, paramscope);
+        tf = (TypeFunction *)tf->semantic(loc, scx);
         if (tf->ty != Tfunction)
             return;
 
         Parameters *fparameters = tf->parameters;
         int fvarargs = tf->varargs;
 
-        size_t nfparams = Parameter::dim(fparameters); // Num function parameters
+        size_t nfparams = Parameter::dim(fparameters);
         for (size_t i = 0; i < nfparams; i++)
         {
             Parameter *fparam = Parameter::getNth(fparameters, i);
-            // Remove addMod same as func.d L1065 of FuncDeclaration::semantic3
             fparam->storageClass &= (STCin | STCout | STCref | STClazy | STCfinal | STC_TYPECTOR | STCnodtor);
             fparam->storageClass |= STCparameter;
             if (fvarargs == 2 && i + 1 == nfparams)
@@ -718,13 +717,102 @@ void TemplateDeclaration::makeParamNamesVisibleInConstraint(Scope *paramscope, E
                 continue;                       // don't add it, if it has no name
             VarDeclaration *v = new VarDeclaration(loc, fparam->type, fparam->ident, NULL);
             v->storage_class = fparam->storageClass;
-            v->semantic(paramscope);
-            if (!paramscope->insert(v))
+            v->semantic(scx);
+            if (!scx->insert(v))
                 error("parameter %s.%s is already defined", toChars(), v->toChars());
             else
                 v->parent = fd;
         }
     }
+}
+
+/****************************
+ * Check to see if constraint is satisfied.
+ */
+bool TemplateDeclaration::evaluateConstraint(Scope *sc, Scope *paramscope, Objects *dedtypes, FuncDeclaration *fd, Expressions *fargs)
+{
+    makeParamNamesVisibleInConstraint(paramscope, fargs);
+    Expression *e = constraint->syntaxCopy();
+
+    /* Detect recursive attempts to instantiate this template declaration,
+     * Bugzilla 4072
+     *  void foo(T)(T x) if (is(typeof(foo(x)))) { }
+     *  static assert(!is(typeof(foo(7))));
+     * Recursive attempts are regarded as a constraint failure.
+     */
+    /* There's a chicken-and-egg problem here. We don't know yet if this template
+     * instantiation will be a local one (enclosing is set), and we won't know until
+     * after selecting the correct template. Thus, function we're nesting inside
+     * is not on the sc scope chain, and this can cause errors in FuncDeclaration::getLevel().
+     * Workaround the problem by setting a flag to relax the checking on frame errors.
+     */
+
+    int nmatches = 0;
+    for (TemplatePrevious *p = previous; p; p = p->prev)
+    {
+        if (arrayObjectMatch(p->dedargs, dedtypes))
+        {
+            //printf("recursive, no match p->sc=%p %p %s\n", p->sc, this, this->toChars());
+            /* It must be a subscope of p->sc, other scope chains are not recursive
+             * instantiations.
+             */
+            for (Scope *scx = sc; scx; scx = scx->enclosing)
+            {
+                if (scx == p->sc)
+                    return false;
+            }
+        }
+        /* BUG: should also check for ref param differences
+         */
+    }
+
+    TemplatePrevious pr;
+    pr.prev = previous;
+    pr.sc = paramscope;
+    pr.dedargs = dedtypes;
+    previous = &pr;                 // add this to threaded list
+
+    int nerrors = global.errors;
+
+    Dsymbol *s = parent;
+    while (s->isTemplateInstance() || s->isTemplateMixin())
+        s = s->parent;
+    AggregateDeclaration *ad = s->isAggregateDeclaration();
+    VarDeclaration *vthissave;
+    if (fd && ad)
+    {
+        vthissave = fd->vthis;
+        fd->vthis = fd->declareThis(paramscope, ad);
+    }
+
+    Scope *scx = paramscope->startCTFE();
+    scx->flags |= SCOPEstaticif;
+
+    e = e->semantic(scx);
+    e = resolveProperties(scx, e);
+
+    scx = scx->endCTFE();
+
+    if (fd && fd->vthis)
+        fd->vthis = vthissave;
+
+    previous = pr.prev;             // unlink from threaded list
+
+    if (nerrors != global.errors)   // if any errors from evaluating the constraint, no match
+        return false;
+    if (e->op == TOKerror)
+        return false;
+
+    e = e->ctfeInterpret();
+    if (e->isBool(true))
+        ;
+    else if (e->isBool(false))
+        return false;
+    else
+    {
+        e->error("constraint %s is not constant or does not evaluate to a bool", e->toChars());
+    }
+    return true;
 }
 
 /***************************************
@@ -840,83 +928,10 @@ MATCH TemplateDeclaration::matchWithInstance(Scope *sc, TemplateInstance *ti,
 
     if (m > MATCHnomatch && constraint && !flag)
     {
-        /* Check to see if constraint is satisfied.
-         */
-        makeParamNamesVisibleInConstraint(paramscope, fargs);
-        Expression *e = constraint->syntaxCopy();
-
-        /* There's a chicken-and-egg problem here. We don't know yet if this template
-         * instantiation will be a local one (enclosing is set), and we won't know until
-         * after selecting the correct template. Thus, function we're nesting inside
-         * is not on the sc scope chain, and this can cause errors in FuncDeclaration::getLevel().
-         * Workaround the problem by setting a flag to relax the checking on frame errors.
-         */
-
-        int nmatches = 0;
-        for (TemplatePrevious *p = previous; p; p = p->prev)
-        {
-            if (arrayObjectMatch(p->dedargs, dedtypes))
-            {
-                //printf("recursive, no match p->sc=%p %p %s\n", p->sc, this, this->toChars());
-                /* It must be a subscope of p->sc, other scope chains are not recursive
-                 * instantiations.
-                 */
-                for (Scope *scx = sc; scx; scx = scx->enclosing)
-                {
-                    if (scx == p->sc)
-                        goto Lnomatch;
-                }
-            }
-            /* BUG: should also check for ref param differences
-             */
-        }
-
-        TemplatePrevious pr;
-        pr.prev = previous;
-        pr.sc = paramscope;
-        pr.dedargs = dedtypes;
-        previous = &pr;                 // add this to threaded list
-
-        int nerrors = global.errors;
-
         FuncDeclaration *fd = onemember && onemember->toAlias() ?
             onemember->toAlias()->isFuncDeclaration() : NULL;
-        Dsymbol *s = parent;
-        while (s->isTemplateInstance() || s->isTemplateMixin())
-            s = s->parent;
-        AggregateDeclaration *ad = s->isAggregateDeclaration();
-        VarDeclaration *vthissave;
-        if (fd && ad)
-        {
-            vthissave = fd->vthis;
-            fd->vthis = fd->declareThis(paramscope, ad);
-        }
-
-        Scope *scx = paramscope->startCTFE();
-        scx->flags |= SCOPEstaticif;
-        e = e->semantic(scx);
-        e = resolveProperties(scx, e);
-        scx = scx->endCTFE();
-
-        if (fd && fd->vthis)
-            fd->vthis = vthissave;
-
-        previous = pr.prev;             // unlink from threaded list
-
-        if (nerrors != global.errors)   // if any errors from evaluating the constraint, no match
+        if (!evaluateConstraint(sc, paramscope, dedtypes, fd, fargs))
             goto Lnomatch;
-        if (e->op == TOKerror)
-            goto Lnomatch;
-
-        e = e->ctfeInterpret();
-        if (e->isBool(true))
-            ;
-        else if (e->isBool(false))
-            goto Lnomatch;
-        else
-        {
-            e->error("constraint %s is not constant or does not evaluate to a bool", e->toChars());
-        }
     }
 
 #if LOGM
@@ -1788,81 +1803,8 @@ Lmatch:
 
     if (constraint)
     {
-        /* Check to see if constraint is satisfied.
-         * Most of this code appears twice; this is a good candidate for refactoring.
-         */
-        makeParamNamesVisibleInConstraint(paramscope, fargs);
-        Expression *e = constraint->syntaxCopy();
-
-        /* Detect recursive attempts to instantiate this template declaration,
-         * Bugzilla 4072
-         *  void foo(T)(T x) if (is(typeof(foo(x)))) { }
-         *  static assert(!is(typeof(foo(7))));
-         * Recursive attempts are regarded as a constraint failure.
-         */
-        int nmatches = 0;
-        for (TemplatePrevious *p = previous; p; p = p->prev)
-        {
-            if (arrayObjectMatch(p->dedargs, dedargs))
-            {
-                //printf("recursive, no match p->sc=%p %p %s\n", p->sc, this, this->toChars());
-                /* It must be a subscope of p->sc, other scope chains are not recursive
-                 * instantiations.
-                 */
-                for (Scope *scx = sc; scx; scx = scx->enclosing)
-                {
-                    if (scx == p->sc)
-                        goto Lnomatch;
-                }
-            }
-            /* BUG: should also check for ref param differences
-             */
-        }
-
-        TemplatePrevious pr;
-        pr.prev = previous;
-        pr.sc = paramscope;
-        pr.dedargs = dedargs;
-        previous = &pr;                 // add this to threaded list
-
-        int nerrors = global.errors;
-
-        Dsymbol *s = parent;
-        while (s->isTemplateInstance() || s->isTemplateMixin())
-            s = s->parent;
-        AggregateDeclaration *ad = s->isAggregateDeclaration();
-        VarDeclaration *vthissave;
-        if (fd && ad)
-        {
-            vthissave = fd->vthis;
-            fd->vthis = fd->declareThis(paramscope, ad);
-        }
-
-        Scope *scx = paramscope->startCTFE();
-        scx->flags |= SCOPEstaticif;
-        e = e->semantic(scx);
-        e = resolveProperties(scx, e);
-        scx->endCTFE();
-
-        if (fd && fd->vthis)
-            fd->vthis = vthissave;
-
-        previous = pr.prev;             // unlink from threaded list
-
-        if (nerrors != global.errors)   // if any errors from evaluating the constraint, no match
+        if (!evaluateConstraint(sc, paramscope, dedargs, fd, fargs))
             goto Lnomatch;
-        if (e->op == TOKerror)
-            goto Lnomatch;
-
-        e = e->ctfeInterpret();
-        if (e->isBool(true))
-            ;
-        else if (e->isBool(false))
-            goto Lnomatch;
-        else
-        {
-            e->error("constraint %s is not constant or does not evaluate to a bool", e->toChars());
-        }
     }
 
 #if 0

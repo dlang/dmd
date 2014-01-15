@@ -95,6 +95,8 @@ public:
     PROT prot();
 //    void toDocBuffer(OutBuffer *buf);
 
+    bool evaluateConstraint(Scope *sc, Scope *paramscope, Objects *dedtypes, FuncDeclaration *fd, Expressions *fargs);
+
     MATCH matchWithInstance(Scope *sc, TemplateInstance *ti, Objects *atypes, Expressions *fargs, int flag);
     MATCH leastAsSpecialized(Scope *sc, TemplateDeclaration *td2, Expressions *fargs);
 
