@@ -608,7 +608,6 @@ int tryMain(size_t argc, const char *argv[])
 #endif
 
     VersionCondition::addPredefinedGlobalIdent("LittleEndian");
-    //VersionCondition::addPredefinedGlobalIdent("D_Bits");
     VersionCondition::addPredefinedGlobalIdent("D_Version2");
     VersionCondition::addPredefinedGlobalIdent("all");
 
