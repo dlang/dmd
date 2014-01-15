@@ -2880,6 +2880,8 @@ unsigned TypeNext::deduceWild(Type *t, bool isRef)
     if (!isRef && (ty == Tarray || ty == Tpointer) && tn)
     {
         wm = next->deduceWild(tn, true);
+        if (!wm)
+            wm = Type::deduceWild(t, true);
     }
     else
     {

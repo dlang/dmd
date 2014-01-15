@@ -2709,6 +2709,28 @@ void test11868()
 }
 
 /************************************/
+// 11924
+
+inout(StringType) localize11924(StringType)(inout StringType str, string locale)
+{
+    return str;
+}
+
+struct S11924
+{
+    static menuItem_1(ARGS...)()
+    {
+        enum itemTitle = ARGS;
+    }
+
+    static content_left_1()
+    {
+        menuItem!(localize11924("Home", ""));
+    }
+    alias menuItem = menuItem_1;
+}
+
+/************************************/
 // 6941
 
 static assert((const(shared(int[])[])).stringof == "const(shared(int[])[])");	// fail
