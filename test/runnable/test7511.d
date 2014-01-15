@@ -328,19 +328,69 @@ void test10329() pure nothrow @safe
 /**********************************/
 // 11896
 
-class Foo11896(T = int)
+class Foo11896a(T = int)
 {
     static if (!__traits(isVirtualMethod, zoo)) {} else { Undefined x; }
 
     static void bar() {}
-    static void bar(Foo11896 foo) {}
+    static void bar(Foo11896a foo) {}
 
     static void zoo()
     {
-        bar(new Foo11896);
+        bar(new Foo11896a);
     }
 }
-Foo11896!(int) baz;
+Foo11896a!(int) baz11896a;
+
+// ----
+
+Frop11896b!(int) frop11896b;
+
+mixin template baz11896b()
+{
+    public void bar11896b() {}
+}
+
+mixin baz11896b;
+
+class Foo11896b(T)
+{
+    static if (! __traits(isVirtualMethod, zoo)) {}
+
+    static void zoo()
+    {
+        bar11896b();
+    }
+}
+
+class Frop11896b(T) : Foo11896b!T {}
+
+// ----
+
+static bool flag11896c = false;
+
+class Bar11896c {}
+
+class Foo11896c(T = Bar11896c)
+{
+    static if (! __traits(isVirtualMethod, foo)) {}
+    alias Foo11896c!(T) this_type;
+    this()
+    {
+        flag11896c = true;
+    }
+    static public this_type foo()
+    {
+        auto c = new this_type();
+        return flag11896c ? c : null;
+    }
+}
+
+void test11896c()
+{
+    alias Foo11896c!Bar11896c FooBar;
+    assert(FooBar.foo() !is null);
+}
 
 /**********************************/
 
@@ -353,6 +403,7 @@ int main()
     test9952();
     test10373();
     test10329();
+    test11896c();
 
     printf("Success\n");
     return 0;
