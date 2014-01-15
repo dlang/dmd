@@ -2649,8 +2649,6 @@ struct Keyword
 static size_t nkeywords;
 static Keyword keywords[] =
 {
-//    { "",             TOK     },
-
     {   "this",         TOKthis         },
     {   "super",        TOKsuper        },
     {   "assert",       TOKassert       },

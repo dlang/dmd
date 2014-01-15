@@ -211,8 +211,7 @@ void FuncDeclaration::semantic(Scope *sc)
          * to be inferred first.
          */
         if (tf->trust == TRUSTdefault &&
-            !(//isFuncLiteralDeclaration() ||
-              isInstantiated()))
+            !isInstantiated())
         {
             for (Dsymbol *p = sc->func; p; p = p->toParent2())
             {
