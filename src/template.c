@@ -4495,45 +4495,6 @@ Lnomatch:
     return 0;
 }
 
-/* Bugzilla 6538: In template constraint, each function parameters, 'this',
- * and 'super' is *pseudo* symbol. If it is passed to other template through
- * alias/tuple parameter, it will cause an error. Because such symbol
- * does not have the actual entity yet.
- *
- * Example:
- *  template Sym(alias A) { enum Sym = true; }
- *  struct S {
- *    void foo() if (Sym!(this)) {} // Sym!(this) always make an error,
- *  }                               // because Sym template cannot
- *  void main() { S s; s.foo(); }   // access to the valid 'this' symbol.
- */
-bool isPseudoDsymbol(RootObject *o)
-{
-    Dsymbol *s = isDsymbol(o);
-    Expression *e = isExpression(o);
-    if (e && e->op == TOKvar) s = ((VarExp *)e)->var->isVarDeclaration();
-    if (e && e->op == TOKthis) s = ((ThisExp *)e)->var->isThisDeclaration();
-    if (e && e->op == TOKsuper) s = ((SuperExp *)e)->var->isThisDeclaration();
-
-    if (s && s->parent)
-    {
-        s = s->toAlias();
-        VarDeclaration *v = s->isVarDeclaration();
-        TupleDeclaration *t = s->isTupleDeclaration();
-        if (v || t)
-        {
-            FuncDeclaration *fd = s->parent->isFuncDeclaration();
-            if (fd && fd->parent && fd->parent->isTemplateDeclaration())
-            {
-                const char *str = (e && e->op == TOKsuper) ? "super" : s->toChars();
-                ::error(s->loc, "cannot take a not yet instantiated symbol '%s' inside template constraint", str);
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
 MATCH TemplateAliasParameter::matchArg(Scope *sc, RootObject *oarg,
         size_t i, TemplateParameters *parameters, Objects *dedtypes,
         Declaration **psparam)
@@ -6133,10 +6094,6 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
                     ea = new ErrorExp();
             }
             //printf("-[%d] ea = %s %s\n", j, Token::toChars(ea->op), ea->toChars());
-            if (!flags && isPseudoDsymbol(ea))
-            {   (*tiargs)[j] = new ErrorExp();
-                continue;
-            }
             if (ea->op == TOKtuple)
             {
                 // Expand tuple
@@ -6207,10 +6164,6 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
         {
         Ldsym:
             //printf("dsym %s %s\n", sa->kind(), sa->toChars());
-            if (!flags && isPseudoDsymbol(sa))
-            {   (*tiargs)[j] = new ErrorExp();
-                continue;
-            }
             TupleDeclaration *d = sa->toAlias()->isTupleDeclaration();
             if (d)
             {
