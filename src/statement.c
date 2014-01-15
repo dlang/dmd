@@ -734,7 +734,7 @@ Statement *CompoundStatement::semantic(Scope *sc)
     }
     for (size_t i = 0; i < statements->dim; ++i)
     {
-    L1:
+    Lagain:
         Statement *s = (*statements)[i];
         if (!s)
             continue;
@@ -751,7 +751,9 @@ Statement *CompoundStatement::semantic(Scope *sc)
         {
             statements->remove(i);
             statements->insert(i, flt);
-            goto L1;
+            if (statements->dim <= i)
+                break;
+            goto Lagain;
         }
     }
     if (statements->dim == 1)
