@@ -1,4 +1,5 @@
 *.[oa]
+src/verstr.h
 src/cdxxx.c
 src/debtab.c
 src/dmd
