@@ -2160,7 +2160,7 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
             return 1;
         }
         FuncDeclaration *f;
-        f = td->onemember ? td->onemember/*->toAlias()*/->isFuncDeclaration() : NULL;
+        f = td->onemember ? td->onemember->isFuncDeclaration() : NULL;
         if (!f)
         {
             if (!tiargs)
@@ -2545,7 +2545,7 @@ FuncDeclaration *TemplateDeclaration::doHeaderInstantiation(Scope *sc,
 
     Scope *sc2;
     sc2 = scope->push(ti);
-    sc2->parent = /*enclosing ? sc->parent :*/ ti;
+    sc2->parent = ti;
     sc2->tinst = ti;
 
     {
@@ -5684,7 +5684,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     Scope *sc2;
     sc2 = scope->push(this);
     //printf("enclosing = %d, sc->parent = %s\n", enclosing, sc->parent->toChars());
-    sc2->parent = /*enclosing ? sc->parent :*/ this;
+    sc2->parent = this;
     sc2->tinst = this;
     sc2->speculative = speculative;
     if (enclosing && tempdecl->isstatic)

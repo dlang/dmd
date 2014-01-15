@@ -31,8 +31,8 @@ class TemplateInstance;
 
 #if __GNUC__
 // Requires a full definition for PROT and LINK
-#include "dsymbol.h"    // PROT
-#include "mars.h"       // LINK
+#include "dsymbol.h"
+#include "mars.h"
 #else
 enum LINK;
 enum PROT;
