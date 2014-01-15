@@ -1664,7 +1664,7 @@ EnumDeclaration *Parser::parseEnum()
             loc = token.loc;
 
             Type *type = NULL;
-            Identifier *ident;
+            Identifier *ident = NULL;
             Token *tp = peek(&token);
             if (token.value == TOKidentifier &&
                 (tp->value == TOKassign || tp->value == TOKcomma || tp->value == TOKrcurly))
@@ -1687,7 +1687,8 @@ EnumDeclaration *Parser::parseEnum()
                 value = parseAssignExp();
             }
             else
-            {   value = NULL;
+            {
+                value = NULL;
                 if (type)
                     error("if type, there must be an initializer");
             }
@@ -1698,7 +1699,8 @@ EnumDeclaration *Parser::parseEnum()
             if (token.value == TOKrcurly)
                 ;
             else
-            {   addComment(em, comment);
+            {
+                addComment(em, comment);
                 comment = NULL;
                 check(TOKcomma);
             }
@@ -1706,7 +1708,8 @@ EnumDeclaration *Parser::parseEnum()
             comment = token.blockComment;
 
             if (token.value == TOKeof)
-            {   error("premature end of file");
+            {
+                error("premature end of file");
                 break;
             }
         }
