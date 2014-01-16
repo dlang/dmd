@@ -18,7 +18,7 @@ class Module;
 struct Scope;
 class ScopeDsymbol;
 class DebugCondition;
-#include "lexer.h" // dmdhg
+#include "lexer.h"
 enum TOK;
 struct HdrGenState;
 
