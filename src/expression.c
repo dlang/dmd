@@ -8260,7 +8260,7 @@ Lagain:
 
         // Do overload resolution
         f = resolveFuncCall(loc, sc, s, tiargs, ue1 ? ue1->type : NULL, arguments);
-        if (!f || f->errors || f->type->ty == Terror)
+        if (!f || f->errors)
             return new ErrorExp();
 
         if (f->needThis())
