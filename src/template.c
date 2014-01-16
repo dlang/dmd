@@ -2328,9 +2328,6 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
             if (!fd)
                 return 0;
 
-            if (fd->type->ty != Tfunction)
-                goto Lerror;
-
             Type *tthis_fd = fd->needThis() && !fd->isCtorDeclaration() ? tthis : NULL;
 
             TypeFunction *tf = (TypeFunction *)fd->type;
@@ -2356,9 +2353,6 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
         //printf("td = %s\n", td->toChars());
         for (size_t ovi = 0; f; f = f->overnext0, ovi++)
         {
-            if (f->type->ty != Tfunction || f->errors)
-                goto Lerror;
-
             /* This is a 'dummy' instance to evaluate constraint properly.
              */
             TemplateInstance *ti = new TemplateInstance(loc, td, tiargs);

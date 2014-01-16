@@ -2217,8 +2217,6 @@ void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
                 outerfunc->toParent2()->isFuncDeclaration())
         {
             outerfunc = outerfunc->toParent2()->isFuncDeclaration();
-            if (outerfunc->type->ty == Terror)
-                return;
         }
 
         // Find the closest pure parent of the called function
@@ -2237,8 +2235,6 @@ void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
                 calledparent->toParent2()->isFuncDeclaration())
         {
             calledparent = calledparent->toParent2()->isFuncDeclaration();
-            if (calledparent->type->ty == Terror)
-                return;
         }
 
         /* Both escape!allocator and escapeImpl!allocator are impure at [a],
