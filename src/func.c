@@ -1895,7 +1895,7 @@ bool FuncDeclaration::functionSemantic()
     if (isInstantiated() && !isVirtualMethod() &&
         !(ti = parent->isTemplateInstance(), ti && !ti->isTemplateMixin() && ti->name != ident))
     {
-        AggregateDeclaration *ad = isThis();
+        AggregateDeclaration *ad = isMember2();
         if (ad && ad->sizeok != SIZEOKdone)
         {
             /* Currently dmd cannot resolve forward references per methods,
