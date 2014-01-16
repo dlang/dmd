@@ -3389,9 +3389,26 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
         MATCH m = implicitConvTo(tparam);
         if (m == MATCHnomatch)
         {
-            Type *at = aliasthisOf();
-            if (at)
-                m = at->deduceType(sc, tparam, parameters, dedtypes, wm);
+            if (ty == Tclass)
+            {
+                TypeClass *tc = (TypeClass *)this;
+                if (tc->sym->aliasthis && !(tc->att & RECtracingDT))
+                {
+                    tc->att = (AliasThisRec)(tc->att | RECtracingDT);
+                    m = aliasthisOf()->deduceType(sc, tparam, parameters, dedtypes, wm);
+                    tc->att = (AliasThisRec)(tc->att & ~RECtracingDT);
+                }
+            }
+            else if (ty == Tstruct)
+            {
+                TypeStruct *ts = (TypeStruct *)this;
+                if (ts->sym->aliasthis && !(ts->att & RECtracingDT))
+                {
+                    ts->att = (AliasThisRec)(ts->att | RECtracingDT);
+                    m = aliasthisOf()->deduceType(sc, tparam, parameters, dedtypes, wm);
+                    ts->att = (AliasThisRec)(ts->att & ~RECtracingDT);
+                }
+            }
         }
         return m;
     }
@@ -3876,26 +3893,6 @@ Lnomatch:
 
 MATCH TypeStruct::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm)
 {
-    MATCH m;
-    if (sym->aliasthis)
-    {
-        if (att & RECtracingDT)
-            m = MATCHnomatch;
-        else
-        {
-            att = (AliasThisRec)(att | RECtracingDT);
-            m = deduceTypeNoRecursion(sc, tparam, parameters, dedtypes, wm);
-            att = (AliasThisRec)(att & ~RECtracingDT);
-        }
-    }
-    else
-        m = deduceTypeNoRecursion(sc, tparam, parameters, dedtypes, wm);
-
-    return m;
-}
-
-MATCH TypeStruct::deduceTypeNoRecursion(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm)
-{
     //printf("TypeStruct::deduceType()\n");
     //printf("\tthis->parent   = %s, ", sym->parent->toChars()); print();
     //printf("\ttparam = %d, ", tparam->ty); tparam->print();
@@ -4040,26 +4037,6 @@ void deduceBaseClassParameters(BaseClass *b,
 }
 
 MATCH TypeClass::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm)
-{
-    MATCH m;
-    if (sym->aliasthis)
-    {
-        if (att & RECtracingDT)
-            m = MATCHnomatch;
-        else
-        {
-            att = (AliasThisRec)(att | RECtracingDT);
-            m = deduceTypeNoRecursion(sc, tparam, parameters, dedtypes, wm);
-            att = (AliasThisRec)(att & ~RECtracingDT);
-        }
-    }
-    else
-        m = deduceTypeNoRecursion(sc, tparam, parameters, dedtypes, wm);
-
-    return m;
-}
-
-MATCH TypeClass::deduceTypeNoRecursion(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm)
 {
     //printf("TypeClass::deduceType(this = %s)\n", toChars());
 

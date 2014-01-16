@@ -407,30 +407,49 @@ void test7()
 /***************************************************/
 // 11875 - endless recursion in Type::deduceType
 
-struct T1(C)
+struct T11875x(C)
 {
     C c;
 }
-
-class D1 { D2 c; alias c this; }
-class D2 { D1 c; alias c this; }
-
-static assert(!is(D1 == D2));
-static if(is(T1!D1 == T1!D, D))
-    static assert(is(D == D1));
-static if(is(D1 == T1!D, D)) // this used to freeze dmd
-    static assert(false);
+class D11875a { D11875b c; alias c this; }
+class D11875b { D11875a c; alias c this; }
+static assert(!is(D11875a == D11875b));
+static assert( is(T11875x!D11875a == T11875x!D, D) && is(D == D11875a));
+static assert(!is(D11875a == T11875x!D, D));    // this used to freeze dmd
 
 // test that types in recursion are still detected
-class D3 { T2!D2 c; alias c this; }
-
-struct T2(C)
+struct T11875y(C)
 {
     C c;
     alias c this;
 }
-static assert(is(D3 : T2!D, D) && is(D == D2));
+class D11875c { T11875y!D11875b c; alias c this; }
+static assert(is(D11875c : T11875y!D, D) && is(D == D11875b));
 
+/***************************************************/
+// 11930
+
+class BarObj11930 {}
+
+struct Bar11930
+{
+    BarObj11930 _obj;
+    alias _obj this;
+}
+
+BarObj11930 getBarObj11930(T)(T t)
+{
+    static if (is(T unused : BarObj11930))
+        return t;
+    else
+        static assert(false, "Can not get BarObj from " ~ T.stringof);
+}
+
+void test11930()
+{
+    Bar11930 b;
+    getBarObj11930(b);
+}
 
 /***************************************************/
 // 2781
