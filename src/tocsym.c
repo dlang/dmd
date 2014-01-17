@@ -44,6 +44,7 @@ void slist_reset();
 
 Classsym *fake_classsym(Identifier *id);
 Symbols *Symbols_create();
+type *Type_toCtype(Type *t);
 
 /********************************* SymbolDeclaration ****************************/
 
@@ -179,7 +180,7 @@ Symbol *VarDeclaration::toSymbol()
         if (storage_class & (STCout | STCref))
         {
             // should be TYref, but problems in back end
-            t = type_pointer(type->toCtype());
+            t = type_pointer(Type_toCtype(type));
         }
         else if (storage_class & STClazy)
         {
@@ -194,17 +195,17 @@ Symbol *VarDeclaration::toSymbol()
             if (config.exe == EX_WIN64 && type->size(Loc()) > REGSIZE)
             {
                 // should be TYref, but problems in back end
-                t = type_pointer(type->toCtype());
+                t = type_pointer(Type_toCtype(type));
             }
             else
             {
-                t = type->toCParamtype();
+                t = Type_toCtype(type);
                 t->Tcount++;
             }
         }
         else
         {
-            t = type->toCtype();
+            t = Type_toCtype(type);
             t->Tcount++;
         }
 
@@ -287,13 +288,13 @@ Symbol *VarDeclaration::toSymbol()
                 ClassDeclaration *cd = parent->isClassDeclaration();
                 if (cd)
                 {
-                    ::type *tc = cd->type->toCtype();
+                    ::type *tc = Type_toCtype(cd->type);
                     s->Sscope = tc->Tnext->Ttag;
                 }
                 StructDeclaration *sd = parent->isStructDeclaration();
                 if (sd)
                 {
-                    ::type *ts = sd->type->toCtype();
+                    ::type *ts = Type_toCtype(sd->type);
                     s->Sscope = ts->Ttag;
                 }
                 break;
@@ -383,7 +384,7 @@ Symbol *FuncDeclaration::toSymbol()
             {   f->Fendline.Slinnum = loc.linnum;
                 f->Fendline.Sfilename = (char *)loc.filename;
             }
-            t = type->toCtype();
+            t = Type_toCtype(type);
         }
 
         mangle_t msave = t->Tmangle;
@@ -427,13 +428,13 @@ Symbol *FuncDeclaration::toSymbol()
                     ClassDeclaration *cd = parent->isClassDeclaration();
                     if (cd)
                     {
-                        ::type *tc = cd->type->toCtype();
+                        ::type *tc = Type_toCtype(cd->type);
                         s->Sscope = tc->Tnext->Ttag;
                     }
                     StructDeclaration *sd = parent->isStructDeclaration();
                     if (sd)
                     {
-                        ::type *ts = sd->type->toCtype();
+                        ::type *ts = Type_toCtype(sd->type);
                         s->Sscope = ts->Ttag;
                     }
                     if (isCtorDeclaration())
@@ -730,7 +731,7 @@ Symbol *TypeAArray::aaGetSymbol(const char *func, int flags)
         s->Ssymnum = -1;
         symbol_func(s);
 
-        type *t = type_function(TYnfunc, NULL, 0, false, next->toCtype());
+        type *t = type_function(TYnfunc, NULL, 0, false, Type_toCtype(next));
         t->Tmangle = mTYman_c;
         s->Stype = t;
 

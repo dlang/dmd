@@ -351,8 +351,6 @@ public:
 
     // For backend
     virtual unsigned totym();
-    virtual type *toCtype();
-    virtual type *toCParamtype();
     virtual Symbol *toSymbol();
 
     // For eliminating dynamic_cast
@@ -468,7 +466,6 @@ public:
     TypeInfoDeclaration *getTypeInfoDeclaration();
     TypeTuple *toArgTypes();
 
-    type *toCtype();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -514,8 +511,6 @@ public:
     bool needsNested();
     TypeTuple *toArgTypes();
 
-    type *toCtype();
-    type *toCParamtype();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -544,7 +539,6 @@ public:
     int hasPointers();
     TypeTuple *toArgTypes();
 
-    type *toCtype();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -583,7 +577,6 @@ public:
     // Back end
     Symbol *aaGetSymbol(const char *func, int flags);
 
-    type *toCtype();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -605,7 +598,6 @@ public:
     int hasPointers();
     TypeTuple *toArgTypes();
 
-    type *toCtype();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -686,7 +678,6 @@ public:
 
     Type *substWildTo(unsigned mod);
     MATCH callMatch(Type *tthis, Expressions *toargs, int flag = 0);
-    type *toCtype();
     RET retStyle();
 
     unsigned totym();
@@ -716,7 +707,6 @@ public:
     int hasPointers();
     TypeTuple *toArgTypes();
 
-    type *toCtype();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -859,7 +849,6 @@ public:
     unsigned deduceWild(Type *t, bool isRef);
     Type *toHeadMutable();
 
-    type *toCtype();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -903,7 +892,6 @@ public:
     TypeTuple *toArgTypes();
     Type *nextOf();
 
-    type *toCtype();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -950,8 +938,6 @@ public:
     TypeTuple *toArgTypes();
     int hasWild();
 
-    type *toCtype();
-    type *toCParamtype();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -986,8 +972,6 @@ public:
     int hasPointers();
     TypeTuple *toArgTypes();
     int builtinTypeInfo();
-
-    type *toCtype();
 
     Symbol *toSymbol();
     void accept(Visitor *v) { v->visit(this); }

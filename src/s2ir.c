@@ -55,6 +55,7 @@ elem *incUsageElem(IRState *irs, Loc loc);
 StructDeclaration *needsPostblit(Type *t);
 elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
 Blocks *Blocks_create();
+type *Type_toCtype(Type *t);
 
 #define elem_setLoc(e,loc)      ((e)->Esrcpos.Sfilename = (char *)(loc).filename, \
                                  (e)->Esrcpos.Slinnum = (loc).linnum)
@@ -794,7 +795,7 @@ public:
                     op = (tybasic(ety) == TYstruct) ? OPstreq : OPeq;
                     es = el_bin(op, ety, es, e);
                     if (op == OPstreq)
-                        es->ET = s->exp->type->toCtype();
+                        es->ET = Type_toCtype(s->exp->type);
                 }
                 e = el_var(irs->shidden);
                 e = el_bin(OPcomma, e->Ety, es, e);

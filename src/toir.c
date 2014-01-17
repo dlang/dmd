@@ -49,6 +49,7 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 bool ISREF(Declaration *var, Type *tb);
 bool ISWIN64REF(Declaration *var);
 
+type *Type_toCtype(Type *t);
 
 /*********************************************
  * Produce elem which increments the usage count for a particular line.
@@ -621,7 +622,7 @@ void FuncDeclaration::buildClosure(IRState *irs)
          */
         //printf("FuncDeclaration::buildClosure() %s\n", toChars());
         Symbol *sclosure;
-        sclosure = symbol_name("__closptr",SCauto,Type::tvoidptr->toCtype());
+        sclosure = symbol_name("__closptr",SCauto,Type_toCtype(Type::tvoidptr));
         sclosure->Sflags |= SFLtrue | SFLfree;
         symbol_add(sclosure);
         irs->sclosure = sclosure;
@@ -734,11 +735,11 @@ void FuncDeclaration::buildClosure(IRState *irs)
                 ev->Ety = TYnptr;
                 ev = el_una(OPind, tym, ev);
                 if (tybasic(ev->Ety) == TYstruct || tybasic(ev->Ety) == TYarray)
-                    ev->ET = v->type->toCtype();
+                    ev->ET = Type_toCtype(v->type);
             }
             if (tybasic(ex->Ety) == TYstruct || tybasic(ex->Ety) == TYarray)
             {
-                ::type *t = v->type->toCtype();
+                ::type *t = Type_toCtype(v->type);
                 ex->ET = t;
                 ex = el_bin(OPstreq, tym, ex, ev);
                 ex->ET = t;
