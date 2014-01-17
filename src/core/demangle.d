@@ -305,7 +305,7 @@ private struct Demangle
 
     void match( const(char)[] val )
     {
-        foreach( e; val )
+        foreach(char e; val )
         {
             test( e );
             next();
@@ -478,7 +478,7 @@ private struct Demangle
             error( "LName must be at least 1 character" );
         if( '_' != tok() && !isAlpha( tok() ) )
             error( "Invalid character in LName" );
-        foreach( e; buf[pos + 1 .. pos + n] )
+        foreach(char e; buf[pos + 1 .. pos + n] )
         {
             if( '_' != e && !isAlpha( e ) && !isDigit( e ) )
                 error( "Invalid character in LName" );
