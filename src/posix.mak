@@ -54,32 +54,60 @@ CFLAGS = $(GFLAGS) -I$(ROOT) -DMARS=1 -DTARGET_$(OS_UPCASE)=1 -DDM_TARGET_CPU_$(
 MFLAGS = $(GFLAGS) -I$C -I$(TK) -I$(ROOT) -DMARS=1 -DTARGET_$(OS_UPCASE)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1 -DDMDV2=1
 
 DMD_OBJS = \
-	access.o attrib.o bcomplex.o blockopt.o \
-	cast.o code.o cg.o cgcod.o cgcs.o cgelem.o cgen.o \
-	cgreg.o class.o cod5.o \
-	constfold.o irstate.o cond.o debug.o \
-	declaration.o dsymbol.o dt.o dump.o e2ir.o ee.o eh.o el.o \
-	dwarf.o enum.o evalu8.o expression.o func.o gdag.o gflow.o \
-	glocal.o gloop.o glue.o go.o gother.o iasm.o id.o \
+	access.o attrib.o \
+	cast.o \
+	class.o \
+	constfold.o cond.o \
+	declaration.o dsymbol.o dump.o \
+	enum.o expression.o func.o \
+	id.o \
 	identifier.o impcnvtab.o import.o inifile.o init.o inline.o \
-	lexer.o link.o mangle.o mars.o rmem.o module.o msc.o mtype.o \
-	nteh.o cppmangle.o opover.o optimize.o os.o out.o outbuf.o \
-	parse.o ph2.o rtlsym.o s2ir.o scope.o statement.o \
-	stringtable.o struct.o csymbol.o template.o tk.o tocsym.o todt.o \
-	type.o typinf.o util2.o var.o version.o strtold.o utf.o staticassert.o \
-	toobj.o toctype.o toelfdebug.o entity.o doc.o macro.o \
-	hdrgen.o delegatize.o aa.o ti_achar.o toir.o interpret.o traits.o \
+	lexer.o link.o mangle.o mars.o module.o mtype.o \
+	cppmangle.o opover.o optimize.o \
+	parse.o scope.o statement.o \
+	struct.o template.o \
+	version.o strtold.o utf.o staticassert.o \
+	entity.o doc.o macro.o \
+	hdrgen.o delegatize.o interpret.o traits.o \
 	builtin.o ctfeexpr.o clone.o aliasthis.o \
-	man.o arrayop.o port.o response.o async.o json.o speller.o aav.o unittests.o \
-	imphint.o argtypes.o ti_pvoid.o apply.o sapply.o sideeffect.o \
-	intrange.o canthrow.o target.o \
-	pdata.o cv8.o backconfig.o divcoeff.o outbuffer.o object.o filename.o file.o \
+	arrayop.o async.o json.o unittests.o \
+	imphint.o argtypes.o apply.o sapply.o sideeffect.o \
+	intrange.o canthrow.o target.o
+
+ROOT_OBJS = \
+	rmem.o port.o man.o stringtable.o response.o \
+	aav.o speller.o outbuffer.o object.o \
+	filename.o file.o
+
+GLUE_OBJS = \
+	glue.o msc.o s2ir.o todt.o e2ir.o tocsym.o \
+	toobj.o toctype.o toelfdebug.o toir.o \
+	irstate.o typinf.o iasm.o
+
+ifeq (osx,$(OS))
+    GLUE_OBJS += libmach.o scanmach.o
+else
+    GLUE_OBJS += libelf.o scanelf.o
+endif
+
+#GLUE_OBJS=gluestub.o
+
+BACK_OBJS = go.o gdag.o gother.o gflow.o gloop.o var.o el.o \
+	glocal.o os.o nteh.o evalu8.o cgcs.o \
+	rtlsym.o cgelem.o cgen.o cgreg.o out.o \
+	blockopt.o cg.o type.o dt.o \
+	debug.o code.o ee.o csymbol.o \
+	cgcod.o cod5.o outbuf.o \
+	bcomplex.o aa.o ti_achar.o \
+	ti_pvoid.o pdata.o cv8.o backconfig.o \
+	divcoeff.o dwarf.o \
+	ph2.o util2.o eh.o tk.o \
 	$(TARGET_OBJS)
 
 ifeq (osx,$(OS))
-    DMD_OBJS += libmach.o scanmach.o machobj.o
+	BACK_OBJS += machobj.o
 else
-    DMD_OBJS += libelf.o scanelf.o elfobj.o
+	BACK_OBJS += elfobj.o
 endif
 
 SRC = win32.mak posix.mak osmodel.mak \
@@ -87,22 +115,44 @@ SRC = win32.mak posix.mak osmodel.mak \
 	identifier.c mtype.c expression.c optimize.c template.h \
 	template.c lexer.c declaration.c cast.c cond.h cond.c link.c \
 	aggregate.h parse.c statement.c constfold.c version.h version.c \
-	inifile.c iasm.c module.c scope.c dump.c init.h init.c attrib.h \
-	attrib.c opover.c class.c mangle.c tocsym.c func.c inline.c \
-	access.c complex_t.h irstate.h irstate.c glue.c msc.c tk.c \
-	s2ir.c todt.c e2ir.c identifier.h parse.h \
+	inifile.c module.c scope.c dump.c init.h init.c attrib.h \
+	attrib.c opover.c class.c mangle.c func.c inline.c \
+	access.c complex_t.h \
+	identifier.h parse.h \
 	scope.h enum.h import.h mars.h module.h mtype.h dsymbol.h \
-	declaration.h lexer.h expression.h irstate.h statement.h eh.c \
+	declaration.h lexer.h expression.h statement.h \
 	utf.h utf.c staticassert.h staticassert.c \
-	typinf.c toobj.c toctype.c tocvdebug.c toelfdebug.c entity.c \
+	entity.c \
 	doc.h doc.c macro.h macro.c hdrgen.h hdrgen.c arraytypes.h \
-	delegatize.c toir.h toir.c interpret.c traits.c cppmangle.c \
-	builtin.c clone.c lib.h libomf.c libelf.c libmach.c arrayop.c \
-	libmscoff.c scanelf.c scanmach.c \
+	delegatize.c interpret.c traits.c cppmangle.c \
+	builtin.c clone.c lib.h arrayop.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c \
 	argtypes.c apply.c sapply.c sideeffect.c \
 	intrange.h intrange.c canthrow.c target.c target.h \
-	scanmscoff.c scanomf.c ctfe.h ctfeexpr.c visitor.h \
+	scanmscoff.c scanomf.c ctfe.h ctfeexpr.c \
+	ctfe.h ctfeexpr.c visitor.h
+
+ROOT_SRC = $(ROOT)/root.h \
+	$(ROOT)/array.h \
+	$(ROOT)/rmem.h $(ROOT)/rmem.c $(ROOT)/port.h $(ROOT)/port.c \
+	$(ROOT)/man.c \
+	$(ROOT)/stringtable.h $(ROOT)/stringtable.c \
+	$(ROOT)/response.c $(ROOT)/async.h $(ROOT)/async.c \
+	$(ROOT)/aav.h $(ROOT)/aav.c \
+	$(ROOT)/longdouble.h $(ROOT)/longdouble.c \
+	$(ROOT)/speller.h $(ROOT)/speller.c \
+	$(ROOT)/outbuffer.h $(ROOT)/outbuffer.c \
+	$(ROOT)/object.h $(ROOT)/object.c \
+	$(ROOT)/filename.h $(ROOT)/filename.c \
+	$(ROOT)/file.h $(ROOT)/file.c
+
+GLUE_SRC = glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \
+	toobj.c toctype.c tocvdebug.c toir.h toir.c \
+	libmscoff.c scanmscoff.c irstate.h irstate.c typinf.c iasm.c \
+	toelfdebug.c libomf.c scanomf.c libelf.c scanelf.c libmach.c scanmach.c \
+	tk.c eh.c gluestub.c
+
+BACK_SRC = \
 	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.c \
 	$C/global.h $C/code.h $C/type.h $C/dt.h $C/cgcv.h \
 	$C/el.h $C/iasm.h $C/rtlsym.h \
@@ -123,36 +173,36 @@ SRC = win32.mak posix.mak osmodel.mak \
 	$C/xmm.h $C/obj.h $C/pdata.c $C/cv8.c $C/backconfig.c $C/divcoeff.c \
 	$C/md5.c $C/md5.h \
 	$C/ph2.c $C/util2.c \
-	$(TK)/filespec.h $(TK)/mem.h $(TK)/list.h $(TK)/vec.h \
-	$(TK)/filespec.c $(TK)/mem.c $(TK)/vec.c $(TK)/list.c \
-	$(ROOT)/root.h \
-	$(ROOT)/arrah.h \
-	$(ROOT)/rmem.h $(ROOT)/rmem.c $(ROOT)/port.h $(ROOT)/port.c \
-	$(ROOT)/man.c \
-	$(ROOT)/stringtable.h $(ROOT)/stringtable.c \
-	$(ROOT)/response.c $(ROOT)/async.h $(ROOT)/async.c \
-	$(ROOT)/aav.h $(ROOT)/aav.c \
-	$(ROOT)/longdouble.h $(ROOT)/longdouble.c \
-	$(ROOT)/speller.h $(ROOT)/speller.c \
-	$(ROOT)/outbuffer.h $(ROOT)/outbuffer.c \
-	$(ROOT)/object.h $(ROOT)/object.c \
-	$(ROOT)/filename.h $(ROOT)/filename.c \
-	$(ROOT)/file.h $(ROOT)/file.c \
 	$(TARGET_CH)
 
+TK_SRC = \
+	$(TK)/filespec.h $(TK)/mem.h $(TK)/list.h $(TK)/vec.h \
+	$(TK)/filespec.c $(TK)/mem.c $(TK)/vec.c $(TK)/list.c
 
 DMD_DEPS:=$(DMD_OBJS:.o=.deps)
 
 all: dmd
 
-dmd: $(DMD_OBJS)
-	$(HOST_CC) -o dmd $(MODEL_FLAG) $(COV) $(PROFILE) $(DMD_OBJS) $(LDFLAGS)
+frontend.a: $(DMD_OBJS)
+	ar rcs frontend.a $(DMD_OBJS)
+
+root.a: $(ROOT_OBJS)
+	ar rcs root.a $(ROOT_OBJS)
+
+glue.a: $(GLUE_OBJS)
+	ar rcs glue.a $(GLUE_OBJS)
+
+backend.a: $(BACK_OBJS)
+	ar rcs backend.a $(BACK_OBJS)
+
+dmd: frontend.a root.a glue.a backend.a
+	$(HOST_CC) -o dmd $(MODEL_FLAG) $(COV) $(PROFILE) frontend.a root.a glue.a backend.a $(LDFLAGS)
 
 clean:
-	rm -f $(DMD_OBJS) dmd optab.o id.o impcnvgen idgen id.c id.h \
+	rm -f $(DMD_OBJS) $(ROOT_OBJS) $(GLUE_OBJS) $(BACK_OBJS) dmd optab.o id.o impcnvgen idgen id.c id.h \
 	impcnvtab.c optabgen debtab.c optab.c cdxxx.c elxxx.c fltables.c \
 	tytab.c verstr.h core \
-	*.cov *.deps *.gcda *.gcno
+	*.cov *.deps *.gcda *.gcno *.a
 
 ######## optabgen generates some source
 
@@ -202,7 +252,8 @@ $(shell test \"$(VERSION)\" != "`cat verstr.h 2> /dev/null`" \
 
 #########
 
-$(DMD_OBJS) : $(idgen_output) $(optabgen_output) $(impcnvgen_output)
+$(DMD_OBJS) $(GLUE_OBJS) : $(idgen_output) $(impcnvgen_output)
+$(BACK_OBJS) : $(optabgen_output)
 
 aa.o: $C/aa.c
 	$(CC) -c $(MFLAGS) -I. $<
@@ -731,4 +782,4 @@ endif
 
 zip:
 	-rm -f dmdsrc.zip
-	zip dmdsrc $(SRC)
+	zip dmdsrc $(SRC) $(ROOT_SRC) $(GLUE_SRC) $(BACK_SRC) $(TK_SRC)
