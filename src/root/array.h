@@ -49,8 +49,7 @@ struct Array
 
     char *toChars()
     {
-        char **buf = (char **)malloc(dim * sizeof(char *));
-        assert(buf);
+        char **buf = (char **)mem.malloc(dim * sizeof(char *));
         size_t len = 2;
         for (size_t u = 0; u < dim; u++)
         {
@@ -71,7 +70,7 @@ struct Array
         }
         *p++ = ']';
         *p = 0;
-        free(buf);
+        mem.free(buf);
         return str;
     }
 
