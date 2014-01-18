@@ -74,7 +74,7 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
     ctfeCode = NULL;
     isArrayOp = 0;
     dArrayOp = NULL;
-    semantic3Errors = 0;
+    semantic3Errors = false;
     fes = NULL;
     introducing = 0;
     tintro = NULL;
@@ -971,7 +971,7 @@ void FuncDeclaration::semantic3(Scope *sc)
     if (semanticRun >= PASSsemantic3)
         return;
     semanticRun = PASSsemantic3;
-    semantic3Errors = 0;
+    semantic3Errors = false;
 
     if (!type || type->ty != Tfunction)
         return;
@@ -1855,22 +1855,12 @@ void FuncDeclaration::semantic3(Scope *sc)
         sc = sc->pop();
     }
 
-    if (global.gag && global.errors != nerrors)
-    {
-        /* Errors happened when compiling this function.
-         */
-        semanticRun = PASSsemanticdone; // Ensure errors get reported again
-        /* Except that re-running semantic3() doesn't always produce errors a second
-         * time through.
-         * See Bugzilla 8348
-         * Need a better way to deal with this than gagging.
-         */
-    }
-    else
-    {
-        semanticRun = PASSsemantic3done;
-        semantic3Errors = global.errors - nerrors;
-    }
+    /* If this function had speculatively instantiated, error reproduction will be
+     * done by TemplateInstance::semantic.
+     * Otherwise, error gagging should be temporarily ungagged by functionSemantic3.
+     */
+    semanticRun = PASSsemantic3done;
+    semantic3Errors = (global.errors != nerrors);
     if (type->ty == Terror)
         errors = true;
     //printf("-FuncDeclaration::semantic3('%s.%s', sc = %p, loc = %s)\n", parent->toChars(), toChars(), sc, loc.toChars());
