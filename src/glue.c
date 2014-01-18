@@ -584,7 +584,8 @@ void FuncDeclaration::toObjFile(int multiobj)
         return;
 
     if (multiobj && !isStaticDtorDeclaration() && !isStaticCtorDeclaration())
-    {   obj_append(this);
+    {
+        obj_append(this);
         return;
     }
 
@@ -843,7 +844,8 @@ void FuncDeclaration::toObjFile(int multiobj)
         this->shidden = shidden;
     }
     else
-    {   // Register return style cannot make nrvo.
+    {
+        // Register return style cannot make nrvo.
         // Auto functions keep the nrvo_can flag up to here,
         // so we should eliminate it before entering backend.
         nrvo_can = 0;
@@ -867,7 +869,8 @@ void FuncDeclaration::toObjFile(int multiobj)
     Symbol *paramsbuf[10];
     Symbol **params = paramsbuf;    // allocate on stack if possible
     if (pi + 2 > 10)                // allow extra 2 for sthis and shidden
-    {   params = (Symbol **)malloc((pi + 2) * sizeof(Symbol *));
+    {
+        params = (Symbol **)malloc((pi + 2) * sizeof(Symbol *));
         assert(params);
     }
 
@@ -891,7 +894,8 @@ void FuncDeclaration::toObjFile(int multiobj)
     }
 
     if (reverse)
-    {   // Reverse params[] entries
+    {
+        // Reverse params[] entries
         for (size_t i = 0; i < pi/2; i++)
         {
             Symbol *sptmp = params[i];
@@ -938,7 +942,8 @@ void FuncDeclaration::toObjFile(int multiobj)
     }
 
     for (size_t i = 0; i < pi; i++)
-    {   Symbol *sp = params[i];
+    {
+        Symbol *sp = params[i];
         sp->Sclass = SCparameter;
         sp->Sflags &= ~SFLspill;
         sp->Sfl = FLpara;
@@ -951,7 +956,8 @@ void FuncDeclaration::toObjFile(int multiobj)
         FuncParamRegs fpr(tyf);
 
         for (size_t i = 0; i < pi; i++)
-        {   Symbol *sp = params[i];
+        {
+            Symbol *sp = params[i];
             if (fpr.alloc(sp->Stype, sp->Stype->Tty, &sp->Spreg, &sp->Spreg2))
             {
                 sp->Sclass = (config.exe == EX_WIN64) ? SCshadowreg : SCfastpar;
@@ -988,7 +994,8 @@ void FuncDeclaration::toObjFile(int multiobj)
          * 3. what to do when writing out .di files, or other pretty printing
          */
         if (global.params.trace)
-        {   /* Wrap the entire function body in:
+        {
+            /* Wrap the entire function body in:
              *   trace_pro("funcname");
              *   try
              *     body;
@@ -1069,7 +1076,8 @@ void FuncDeclaration::toObjFile(int multiobj)
         SharedStaticDtorDeclaration *f = isSharedStaticDtorDeclaration();
         assert(f);
         if (f->vgate)
-        {   /* Increment destructor's vgate at construction time
+        {
+            /* Increment destructor's vgate at construction time
              */
             esharedctorgates.push(f);
         }
@@ -1081,7 +1089,8 @@ void FuncDeclaration::toObjFile(int multiobj)
         StaticDtorDeclaration *f = isStaticDtorDeclaration();
         assert(f);
         if (f->vgate)
-        {   /* Increment destructor's vgate at construction time
+        {
+            /* Increment destructor's vgate at construction time
              */
             ectorgates.push(f);
         }
