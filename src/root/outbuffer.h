@@ -15,7 +15,6 @@
 #include <string.h>
 #include <assert.h>
 #include "port.h"
-#include "rmem.h"
 
 #if __DMC__
 #pragma once

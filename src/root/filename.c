@@ -15,6 +15,7 @@
 #include "outbuffer.h"
 #include "array.h"
 #include "file.h"
+#include "rmem.h"
 
 #if defined (__sun)
 #include <alloca.h>

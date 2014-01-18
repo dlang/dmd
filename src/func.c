@@ -26,6 +26,7 @@
 #include "hdrgen.h"
 #include "target.h"
 #include "parse.h"
+#include "rmem.h"
 
 void functionToCBuffer2(TypeFunction *t, OutBuffer *buf, HdrGenState *hgs, int mod, const char *kind);
 void genCmain(Scope *sc);
