@@ -32,7 +32,6 @@ class Dsymbol;
 class Import;
 class Module;
 class ScopeDsymbol;
-struct InlineCostState;
 struct InlineDoState;
 struct InlineScanState;
 class Expression;
@@ -195,7 +194,6 @@ public:
     void useValue();
     bool canThrow(bool mustNotThrow);
 
-    virtual int inlineCost3(InlineCostState *ics);
     virtual Expression *doInline(InlineDoState *ids);
     virtual Expression *inlineScan(InlineScanState *iss);
     Expression *inlineCopy(Scope *sc);
@@ -359,7 +357,6 @@ public:
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
 
-    int inlineCost3(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
     //Expression *inlineScan(InlineScanState *iss);
 
@@ -588,7 +585,6 @@ public:
     MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
 
-    int inlineCost3(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
     Expression *inlineScan(InlineScanState *iss);
     void accept(Visitor *v) { v->visit(this); }
@@ -662,7 +658,6 @@ public:
     elem *toElem(IRState *irs);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
-    //int inlineCost3(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
     //Expression *inlineScan(InlineScanState *iss);
     void accept(Visitor *v) { v->visit(this); }
@@ -743,7 +738,6 @@ public:
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     dt_t **toDt(dt_t **pdt);
 
-    int inlineCost3(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
     //Expression *inlineScan(InlineScanState *iss);
     void accept(Visitor *v) { v->visit(this); }
@@ -787,7 +781,6 @@ public:
     elem *toElem(IRState *irs);
     dt_t **toDt(dt_t **pdt);
 
-    int inlineCost3(InlineCostState *ics);
     //Expression *doInline(InlineDoState *ids);
     //Expression *inlineScan(InlineScanState *iss);
     void accept(Visitor *v) { v->visit(this); }
@@ -807,7 +800,6 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     elem *toElem(IRState *irs);
 
-    int inlineCost3(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
     Expression *inlineScan(InlineScanState *iss);
     void accept(Visitor *v) { v->visit(this); }
@@ -1076,7 +1068,6 @@ public:
     Expression *castTo(Scope *sc, Type *t);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
-    int inlineCost3(InlineCostState *ics);
     elem *toElem(IRState *irs);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1121,7 +1112,6 @@ public:
     Expression *implicitCastTo(Scope *sc, Type *t);
     MATCH implicitConvTo(Type *t);
 
-    int inlineCost3(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
     Expression *inlineScan(InlineScanState *iss);
     Expression *inlineScan(InlineScanState *iss, Expression *eret);

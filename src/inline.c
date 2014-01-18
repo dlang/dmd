@@ -31,14 +31,6 @@
  * if it is too complex to be worth inlining or not.
  */
 
-struct InlineCostState
-{
-    int nested;
-    int hasthis;
-    int hdrscan;    // !=0 if inline scan for 'header' content
-    FuncDeclaration *fd;
-};
-
 const int COST_MAX = 250;
 const int STATEMENT_COST = 0x1000;
 const int STATEMENT_COST_MAX = 250 * 0x1000;
@@ -49,285 +41,299 @@ const int STATEMENT_COST_MAX = 250 * 0x1000;
 
 bool tooCostly(int cost) { return ((cost & (STATEMENT_COST - 1)) >= COST_MAX); }
 
-int expressionInlineCost(Expression *e, InlineCostState *ics);
-
-int Statement::inlineCost(InlineCostState *ics)
+class InlineCostVisitor : public Visitor
 {
-    //printf("Statement::inlineCost = %d\n", COST_MAX);
-    //printf("%p\n", isScopeStatement());
-    //printf("%s\n", toChars());
-    return COST_MAX;            // default is we can't inline it
-}
-
-int ExpStatement::inlineCost(InlineCostState *ics)
-{
-    return expressionInlineCost(exp, ics);
-    //return exp ? exp->inlineCost(ics) : 0;
-}
-
-int CompoundStatement::inlineCost(InlineCostState *ics)
-{   int cost = 0;
-
-    for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s = (*statements)[i];
-        if (s)
-        {
-            cost += s->inlineCost(ics);
-            if (tooCostly(cost))
-                break;
-        }
-    }
-    //printf("CompoundStatement::inlineCost = %d\n", cost);
-    return cost;
-}
-
-int UnrolledLoopStatement::inlineCost(InlineCostState *ics)
-{   int cost = 0;
-
-    for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s = (*statements)[i];
-        if (s)
-        {
-            cost += s->inlineCost(ics);
-            if (tooCostly(cost))
-                break;
-        }
-    }
-    return cost;
-}
-
-int ScopeStatement::inlineCost(InlineCostState *ics)
-{
-    return statement ? 1 + statement->inlineCost(ics) : 1;
-}
-
-int IfStatement::inlineCost(InlineCostState *ics)
-{
+public:
+    int nested;
+    int hasthis;
+    int hdrscan;    // !=0 if inline scan for 'header' content
+    FuncDeclaration *fd;
     int cost;
 
-    /* Can't declare variables inside ?: expressions, so
-     * we cannot inline if a variable is declared.
-     */
-    if (arg)
-        return COST_MAX;
-
-    cost = expressionInlineCost(condition, ics);
-
-    /* Specifically allow:
-     *  if (condition)
-     *      return exp1;
-     *  else
-     *      return exp2;
-     * Otherwise, we can't handle return statements nested in if's.
-     */
-
-    if (elsebody && ifbody &&
-        ifbody->isReturnStatement() &&
-        elsebody->isReturnStatement())
+    InlineCostVisitor()
     {
-        cost += ifbody->inlineCost(ics);
-        cost += elsebody->inlineCost(ics);
-        //printf("cost = %d\n", cost);
+        nested = 0;
+        hasthis = 0;
+        hdrscan = 0;
+        fd = NULL;
+        cost = 0;
     }
-    else
+
+    void visit(Statement *s)
     {
-        ics->nested += 1;
-        if (ifbody)
-            cost += ifbody->inlineCost(ics);
-        if (elsebody)
-            cost += elsebody->inlineCost(ics);
-        ics->nested -= 1;
+        //printf("Statement::inlineCost = %d\n", COST_MAX);
+        //printf("%p\n", s->isScopeStatement());
+        //printf("%s\n", s->toChars());
+        cost += COST_MAX;            // default is we can't inline it
     }
-    //printf("IfStatement::inlineCost = %d\n", cost);
-    return cost;
-}
 
-int ReturnStatement::inlineCost(InlineCostState *ics)
-{
-    // Can't handle return statements nested in if's
-    if (ics->nested)
-        return COST_MAX;
-    return expressionInlineCost(exp, ics);
-}
-
-int ImportStatement::inlineCost(InlineCostState *ics)
-{
-    return 0;
-}
-
-int ForStatement::inlineCost(InlineCostState *ics)
-{
-    //return COST_MAX;
-    int cost = STATEMENT_COST;
-    if (init)
-        cost += init->inlineCost(ics);
-    if (condition)
-        cost += expressionInlineCost(condition, ics);
-    if (increment)
-        cost += expressionInlineCost(increment, ics);
-    if (body)
-        cost += body->inlineCost(ics);
-    //printf("ForStatement: inlineCost = %d\n", cost);
-    return cost;
-}
-
-
-/* -------------------------- */
-
-struct ICS2
-{
-    int cost;
-    InlineCostState *ics;
-};
-
-int lambdaInlineCost(Expression *e, void *param)
-{
-    ICS2 *ics2 = (ICS2 *)param;
-    ics2->cost += e->inlineCost3(ics2->ics);
-    return (ics2->cost >= COST_MAX);
-}
-
-int expressionInlineCost(Expression *e, InlineCostState *ics)
-{
-    //printf("expressionInlineCost()\n");
-    //e->print();
-    ICS2 ics2;
-    ics2.cost = 0;
-    ics2.ics = ics;
-    if (e)
-        e->apply(&lambdaInlineCost, &ics2);
-    return ics2.cost;
-}
-
-int Expression::inlineCost3(InlineCostState *ics)
-{
-    return 1;
-}
-
-int VarExp::inlineCost3(InlineCostState *ics)
-{
-    //printf("VarExp::inlineCost3() %s\n", toChars());
-    Type *tb = type->toBasetype();
-    if (tb->ty == Tstruct)
+    void visit(ExpStatement *s)
     {
-        StructDeclaration *sd = ((TypeStruct *)tb)->sym;
-        if (sd->isNested())
-            /* An inner struct will be nested inside another function hierarchy than where
-             * we're inlining into, so don't inline it.
-             * At least not until we figure out how to 'move' the struct to be nested
-             * locally. Example:
-             *   struct S(alias pred) { void unused_func(); }
-             *   void abc() { int w; S!(w) m; }
-             *   void bar() { abc(); }
-             */
-            return COST_MAX;
+        expressionInlineCost(s->exp);
     }
-    FuncDeclaration *fd = var->isFuncDeclaration();
-    if (fd && fd->isNested())           // see Bugzilla 7199 for test case
-        return COST_MAX;
-    return 1;
-}
 
-int ThisExp::inlineCost3(InlineCostState *ics)
-{
-    //printf("ThisExp::inlineCost3() %s\n", toChars());
-    FuncDeclaration *fd = ics->fd;
-    if (!fd)
-        return COST_MAX;
-    if (!ics->hdrscan)
-        if (fd->isNested() || !ics->hasthis)
-            return COST_MAX;
-    return 1;
-}
-
-int StructLiteralExp::inlineCost3(InlineCostState *ics)
-{
-    //printf("StructLiteralExp::inlineCost3() %s\n", toChars());
-    if (sd->isNested())
-        return COST_MAX;
-    return 1;
-}
-
-int FuncExp::inlineCost3(InlineCostState *ics)
-{
-    //printf("FuncExp::inlineCost3()\n");
-    // Right now, this makes the function be output to the .obj file twice.
-    return COST_MAX;
-}
-
-int DelegateExp::inlineCost3(InlineCostState *ics)
-{
-    //printf("DelegateExp::inlineCost3()\n");
-    return COST_MAX;
-}
-
-int DeclarationExp::inlineCost3(InlineCostState *ics)
-{   int cost = 0;
-    VarDeclaration *vd;
-
-    //printf("DeclarationExp::inlineCost3()\n");
-    vd = declaration->isVarDeclaration();
-    if (vd)
+    void visit(CompoundStatement *s)
     {
-        TupleDeclaration *td = vd->toAlias()->isTupleDeclaration();
-        if (td)
+        for (size_t i = 0; i < s->statements->dim; i++)
         {
-#if 1
-            return COST_MAX;    // finish DeclarationExp::doInline
-#else
-            for (size_t i = 0; i < td->objects->dim; i++)
-            {   RootObject *o = (*td->objects)[i];
-                if (o->dyncast() != DYNCAST_EXPRESSION)
-                    return COST_MAX;
-                Expression *eo = (Expression *)o;
-                if (eo->op != TOKdsymbol)
-                    return COST_MAX;
-            }
-            return td->objects->dim;
-#endif
-        }
-        if (!ics->hdrscan && vd->isDataseg())
-            return COST_MAX;
-        cost += 1;
-
-        if (vd->edtor)                  // if destructor required
-            return COST_MAX;            // needs work to make this work
-        // Scan initializer (vd->init)
-        if (vd->init)
-        {
-            ExpInitializer *ie = vd->init->isExpInitializer();
-
-            if (ie)
+            Statement *s2 = (*s->statements)[i];
+            if (s2)
             {
-                cost += expressionInlineCost(ie->exp, ics);
+                s2->accept(this);
+                if (tooCostly(cost))
+                    break;
             }
         }
     }
 
-    // These can contain functions, which when copied, get output twice.
-    if (declaration->isStructDeclaration() ||
-        declaration->isClassDeclaration() ||
-        declaration->isFuncDeclaration() ||
-        declaration->isTypedefDeclaration() ||
-        declaration->isAttribDeclaration() ||
-        declaration->isTemplateMixin())
-        return COST_MAX;
+    void visit(UnrolledLoopStatement *s)
+    {
+        for (size_t i = 0; i < s->statements->dim; i++)
+        {
+            Statement *s2 = (*s->statements)[i];
+            if (s2)
+            {
+                s2->accept(this);
+                if (tooCostly(cost))
+                    break;
+            }
+        }
+    }
 
-    //printf("DeclarationExp::inlineCost3('%s')\n", toChars());
-    return cost;
-}
+    void visit(ScopeStatement *s)
+    {
+        cost++;
+        if (s->statement)
+            s->statement->accept(this);
+    }
 
-int CallExp::inlineCost3(InlineCostState *ics)
-{
-    //printf("CallExp::inlineCost3() %s\n", toChars());
-    // Bugzilla 3500: super.func() calls must be devirtualized, and the inliner
-    // can't handle that at present.
-    if (e1->op == TOKdotvar && ((DotVarExp *)e1)->e1->op == TOKsuper)
-        return COST_MAX;
+    void visit(IfStatement *s)
+    {
+        /* Can't declare variables inside ?: expressions, so
+         * we cannot inline if a variable is declared.
+         */
+        if (s->arg)
+        {
+            cost = COST_MAX;
+            return;
+        }
 
-    return 1;
-}
+        expressionInlineCost(s->condition);
 
+        /* Specifically allow:
+         *  if (condition)
+         *      return exp1;
+         *  else
+         *      return exp2;
+         * Otherwise, we can't handle return statements nested in if's.
+         */
+
+        if (s->elsebody && s->ifbody &&
+            s->ifbody->isReturnStatement() &&
+            s->elsebody->isReturnStatement())
+        {
+            s->ifbody->accept(this);
+            s->elsebody->accept(this);
+            //printf("cost = %d\n", cost);
+        }
+        else
+        {
+            nested += 1;
+            if (s->ifbody)
+                s->ifbody->accept(this);
+            if (s->elsebody)
+                s->elsebody->accept(this);
+            nested -= 1;
+        }
+        //printf("IfStatement::inlineCost = %d\n", cost);
+    }
+
+    void visit(ReturnStatement *s)
+    {
+        // Can't handle return statements nested in if's
+        if (nested)
+        {
+            cost = COST_MAX;
+        }
+        else
+        {
+            expressionInlineCost(s->exp);
+        }
+    }
+
+    void visit(ImportStatement *s)
+    {
+    }
+
+    void visit(ForStatement *s)
+    {
+        cost += STATEMENT_COST;
+        if (s->init)
+            s->init->accept(this);
+        if (s->condition)
+            s->condition->accept(this);
+        if (s->increment)
+            s->increment->accept(this);
+        if (s->body)
+            s->body->accept(this);
+        //printf("ForStatement: inlineCost = %d\n", cost);
+    }
+
+    /* -------------------------- */
+
+    static int lambdaInlineCost(Expression *e, void *param)
+    {
+        InlineCostVisitor *v = (InlineCostVisitor *)param;
+        e->accept(v);
+        return (v->cost >= COST_MAX);
+    }
+
+    void expressionInlineCost(Expression *e)
+    {
+        //printf("expressionInlineCost()\n");
+        //e->print();
+        if (e)
+            e->apply(&lambdaInlineCost, this);
+    }
+
+    void visit(Expression *e)
+    {
+        cost++;
+    }
+
+    void visit(VarExp *e)
+    {
+        //printf("VarExp::inlineCost3() %s\n", toChars());
+        Type *tb = e->type->toBasetype();
+        if (tb->ty == Tstruct)
+        {
+            StructDeclaration *sd = ((TypeStruct *)tb)->sym;
+            if (sd->isNested())
+            {
+                /* An inner struct will be nested inside another function hierarchy than where
+                 * we're inlining into, so don't inline it.
+                 * At least not until we figure out how to 'move' the struct to be nested
+                 * locally. Example:
+                 *   struct S(alias pred) { void unused_func(); }
+                 *   void abc() { int w; S!(w) m; }
+                 *   void bar() { abc(); }
+                 */
+                cost = COST_MAX;
+                return;
+            }
+        }
+        FuncDeclaration *fd = e->var->isFuncDeclaration();
+        if (fd && fd->isNested())           // see Bugzilla 7199 for test case
+            cost = COST_MAX;
+        else
+            cost++;
+    }
+
+    void visit(ThisExp *e)
+    {
+        //printf("ThisExp::inlineCost3() %s\n", toChars());
+        if (!fd)
+        {
+            cost = COST_MAX;
+            return;
+        }
+        if (!hdrscan)
+        {
+            if (fd->isNested() || !hasthis)
+            {
+                cost = COST_MAX;
+                return;
+            }
+        }
+        cost++;
+    }
+
+    void visit(StructLiteralExp *e)
+    {
+        //printf("StructLiteralExp::inlineCost3() %s\n", toChars());
+        if (e->sd->isNested())
+            cost = COST_MAX;
+        else
+            cost++;
+    }
+
+    void visit(FuncExp *e)
+    {
+        //printf("FuncExp::inlineCost3()\n");
+        // Right now, this makes the function be output to the .obj file twice.
+        cost = COST_MAX;
+    }
+
+    void visit(DelegateExp *e)
+    {
+        //printf("DelegateExp::inlineCost3()\n");
+        cost = COST_MAX;
+    }
+
+    void visit(DeclarationExp *e)
+    {
+        //printf("DeclarationExp::inlineCost3()\n");
+        VarDeclaration *vd = e->declaration->isVarDeclaration();
+        if (vd)
+        {
+            TupleDeclaration *td = vd->toAlias()->isTupleDeclaration();
+            if (td)
+            {
+                cost = COST_MAX;    // finish DeclarationExp::doInline
+                return;
+            }
+            if (!hdrscan && vd->isDataseg())
+            {
+                cost = COST_MAX;
+                return;
+            }
+            cost += 1;
+
+            if (vd->edtor)
+            {
+                // if destructor required
+                // needs work to make this work
+                cost = COST_MAX;
+                return;
+            }
+            // Scan initializer (vd->init)
+            if (vd->init)
+            {
+                ExpInitializer *ie = vd->init->isExpInitializer();
+
+                if (ie)
+                {
+                    expressionInlineCost(ie->exp);
+                }
+            }
+        }
+
+        // These can contain functions, which when copied, get output twice.
+        if (e->declaration->isStructDeclaration() ||
+            e->declaration->isClassDeclaration() ||
+            e->declaration->isFuncDeclaration() ||
+            e->declaration->isTypedefDeclaration() ||
+            e->declaration->isAttribDeclaration() ||
+            e->declaration->isTemplateMixin())
+        {
+            cost = COST_MAX;
+            return;
+        }
+
+        //printf("DeclarationExp::inlineCost3('%s')\n", toChars());
+    }
+
+    void visit(CallExp *e)
+    {
+        //printf("CallExp::inlineCost3() %s\n", toChars());
+        // Bugzilla 3500: super.func() calls must be devirtualized, and the inliner
+        // can't handle that at present.
+        if (e->e1->op == TOKdotvar && ((DotVarExp *)e->e1)->e1->op == TOKsuper)
+            cost = COST_MAX;
+        else
+            cost++;
+    }
+};
 
 /* ======================== Perform the inlining ============================== */
 
@@ -1507,7 +1513,6 @@ void FuncDeclaration::inlineScan()
 
 int FuncDeclaration::canInline(int hasthis, int hdrscan, int statementsToo)
 {
-    InlineCostState ics;
     int cost;
 
 #define CANINLINE_LOG 0
@@ -1602,11 +1607,14 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan, int statementsToo)
     }
 #endif
 
-    memset(&ics, 0, sizeof(ics));
-    ics.hasthis = hasthis;
-    ics.fd = this;
-    ics.hdrscan = hdrscan;
-    cost = fbody->inlineCost(&ics);
+    {
+        InlineCostVisitor icv;
+        icv.hasthis = hasthis;
+        icv.fd = this;
+        icv.hdrscan = hdrscan;
+        fbody->accept(&icv);
+        cost = icv.cost;
+    }
 #if CANINLINE_LOG
     printf("cost = %d for %s\n", cost, toChars());
 #endif
@@ -1628,11 +1636,12 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan, int statementsToo)
         if (inlineStatusExp == ILSuninitialized)
         {
             // Need to redo cost computation, as some statements or expressions have been inlined
-            memset(&ics, 0, sizeof(ics));
-            ics.hasthis = hasthis;
-            ics.fd = this;
-            ics.hdrscan = hdrscan;
-            cost = fbody->inlineCost(&ics);
+            InlineCostVisitor icv;
+            icv.hasthis = hasthis;
+            icv.fd = this;
+            icv.hdrscan = hdrscan;
+            fbody->accept(&icv);
+            cost = icv.cost;
         #if CANINLINE_LOG
             printf("recomputed cost = %d for %s\n", cost, toChars());
         #endif
@@ -1927,11 +1936,10 @@ Expression *Expression::inlineCopy(Scope *sc)
         }
     }
 
-    InlineCostState ics;
-
-    memset(&ics, 0, sizeof(ics));
-    ics.hdrscan = 1;                    // so DeclarationExp:: will work on 'statics' which are not
-    int cost = expressionInlineCost(this, &ics);
+    InlineCostVisitor icv;
+    icv.hdrscan = 1;
+    icv.expressionInlineCost(this);
+    int cost = icv.cost;
     if (cost >= COST_MAX)
     {   error("cannot inline default argument %s", toChars());
         return new ErrorExp();
