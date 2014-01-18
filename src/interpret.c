@@ -4913,9 +4913,9 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
     }
     else if (eresult == EXP_VOID_INTERPRET)
         ;
-    else
+    else if (eresult->op != TOKthrownexception)
     {
-        eresult->type = type;
+        eresult = paintTypeOntoLiteral(type, eresult);
         eresult->loc = loc;
     }
     return eresult;
