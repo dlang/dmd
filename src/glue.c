@@ -599,64 +599,25 @@ void FuncDeclaration::toObjFile(int multiobj)
     assert(semanticRun == PASSsemantic3done);
     assert(ident != Id::empty);
 
-    if (!isInstantiated() && inNonRoot())
+    if (!needsCodegen())
         return;
 
-    /* Skip generating code if this part of a TemplateInstance that is instantiated
-     * only by non-root modules (i.e. modules not listed on the command line).
-     */
-    TemplateInstance *ti = isInstantiated();
-    if (!global.params.useUnitTests &&
-        !global.params.allInst &&
-        /* The issue is that if the importee is compiled with a different -debug
-         * setting than the importer, the importer may believe it exists
-         * in the compiled importee when it does not, when the instantiation
-         * is behind a conditional debug declaration.
-         */
-        !global.params.debuglevel &&     // workaround for Bugzilla 11239
-        ti && ti->instantiatingModule && !ti->instantiatingModule->isRoot())
-    {
-        Module *mi = ti->instantiatingModule;
-
-        // If mi imports any root modules, we still need to generate the code.
-        for (size_t i = 0; i < Module::amodules.dim; ++i)
-        {
-            Module *m = Module::amodules[i];
-            m->insearch = 0;
-        }
-        bool importsRoot = false;
-        for (size_t i = 0; i < Module::amodules.dim; ++i)
-        {
-            Module *m = Module::amodules[i];
-            if (m->isRoot() && mi->imports(m))
-            {
-                importsRoot = true;
-                break;
-            }
-        }
-        for (size_t i = 0; i < Module::amodules.dim; ++i)
-        {
-            Module *m = Module::amodules[i];
-            m->insearch = 0;
-        }
-        if (!importsRoot)
-        {
-            //printf("instantiated by %s   %s\n", ti->instantiatingModule->toChars(), ti->toChars());
-            return;
-        }
-    }
-
+    FuncDeclaration *fdp = func->toParent2()->isFuncDeclaration();
     if (isNested())
     {
-        /* The enclosing function must have its code generated first,
-         * so defer this code generation until ancestors are completed.
-         */
-        FuncDeclaration *fd = toAliasFunc();
-        FuncDeclaration *fdp = fd->toParent2()->isFuncDeclaration();
         if (fdp && fdp->semanticRun < PASSobj)
         {
-            fdp->deferred.push(fd);
-            return;
+            if (fdp->semantic3Errors)
+                return;
+
+            /* Can't do unittest's out of order, they are order dependent in that their
+             * execution is done in lexical order.
+             */
+            if (fdp->isUnitTestDeclaration())
+            {
+                fdp->deferred.push(func);
+                return;
+            }
         }
     }
 
@@ -712,6 +673,14 @@ void FuncDeclaration::toObjFile(int multiobj)
         //if (!(config.flags3 & CFG3pic))
         //    s->Sclass = SCstatic;
         f->Fflags3 |= Fnested;
+
+        /* The enclosing function must have its code generated first,
+         * in order to calculate correct frame pointer offset.
+         */
+        if (fdp && fdp->semanticRun < PASSobj)
+        {
+            fdp->toObjFile(multiobj);
+        }
     }
     else
     {
@@ -1119,22 +1088,6 @@ void FuncDeclaration::toObjFile(int multiobj)
     for (size_t i = 0; i < irs.deferToObj->dim; i++)
     {
         Dsymbol *s = (*irs.deferToObj)[i];
-
-        FuncDeclaration *fd = s->isFuncDeclaration();
-        if (fd)
-        {   FuncDeclaration *fdp = fd->toParent2()->isFuncDeclaration();
-            if (fdp && fdp->semanticRun < PASSobj)
-            {   /* Bugzilla 7595
-                 * FuncDeclaration::buildClosure() relies on nested functions
-                 * being toObjFile'd after the outer function. Otherwise, the
-                 * v->offset's for the closure variables are wrong.
-                 * So, defer fd until after fdp is done.
-                 */
-                fdp->deferred.push(fd);
-                continue;
-            }
-        }
-
         s->toObjFile(0);
     }
 
