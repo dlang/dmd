@@ -52,6 +52,7 @@ elem *array_toPtr(Type *t, elem *e);
 elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi);
 elem *ExpressionsToStaticArray(IRState *irs, Loc loc, Expressions *exps, symbol **psym);
 VarDeclarations *VarDeclarations_create();
+type *Type_toCtype(Type *t);
 
 #define el_setLoc(e,loc)        ((e)->Esrcpos.Sfilename = (char *)(loc).filename, \
                                  (e)->Esrcpos.Slinnum = (loc).linnum)
@@ -227,7 +228,7 @@ elem *callfunc(Loc loc,
             Type *tret = tf->next;
             if (tret->toBasetype()->ty == Tstruct ||
                 tret->toBasetype()->ty == Tsarray)
-                tc = tret->toCtype();
+                tc = Type_toCtype(tret);
             else
                 tc = type_fake(tret->totym());
             Symbol *stmp = symbol_genauto(tc);
@@ -409,7 +410,7 @@ if (I32) assert(tysize[TYnptr] == 4);
 
     if (tybasic(tyret) == TYstruct)
     {
-        e->ET = tret->toCtype();
+        e->ET = Type_toCtype(tret);
     }
     e = el_combine(eside, e);
     return e;
@@ -434,11 +435,11 @@ elem *addressElem(elem *e, Type *t, bool alwaysCopy)
         // Convert to ((tmp=e2),tmp)
         TY ty;
         if (t && ((ty = t->toBasetype()->ty) == Tstruct || ty == Tsarray))
-            tx = t->toCtype();
+            tx = Type_toCtype(t);
         else if (tybasic(e2->Ety) == TYstruct)
         {
             assert(t);                  // don't know of a case where this can be NULL
-            tx = t->toCtype();
+            tx = Type_toCtype(t);
         }
         else
             tx = type_fake(e2->Ety);
@@ -453,7 +454,7 @@ elem *addressElem(elem *e, Type *t, bool alwaysCopy)
         {
             eeq->Eoper = OPstreq;
             eeq->Ejty = eeq->Ety = TYstruct;
-            eeq->ET = t ? t->toCtype() : tx;
+            eeq->ET = t ? Type_toCtype(t) : tx;
         }
         *pe = el_bin(OPcomma,e2->Ety,eeq,el_var(stmp));
     }
@@ -904,7 +905,7 @@ elem *SymbolExp::toElem(IRState *irs)
         if (op == TOKvar)
         {   e = el_una(OPind, type->totym(), e);
             if (tybasic(e->Ety) == TYstruct)
-                e->ET = type->toCtype();
+                e->ET = Type_toCtype(type);
             el_setLoc(e, loc);
         }
         if (ISREF(var, tb) && !ISWIN64REF(var))
@@ -967,16 +968,16 @@ L1:
         e->Ejty = e->Ety = tym;
         if (tybasic(tym) == TYstruct)
         {
-            e->ET = type->toCtype();
+            e->ET = Type_toCtype(type);
         }
         else if (tybasic(tym) == TYarray)
         {
             e->Ejty = e->Ety = TYstruct;
-            e->ET = type->toCtype();
+            e->ET = Type_toCtype(type);
         }
         else if (tysimd(tym))
         {
-            e->ET = type->toCtype();
+            e->ET = Type_toCtype(type);
         }
     }
     el_setLoc(e,loc);
@@ -1254,7 +1255,7 @@ elem *ThisExp::toElem(IRState *irs)
 
     if (type->ty == Tstruct)
     {   ethis = el_una(OPind, TYstruct, ethis);
-        ethis->ET = type->toCtype();
+        ethis->ET = Type_toCtype(type);
     }
     el_setLoc(ethis,loc);
     return ethis;
@@ -1603,7 +1604,7 @@ elem *NewExp::toElem(IRState *irs)
 
             ex = el_una(OPind, TYstruct, ex);
             ex = el_bin(OPstreq, TYnptr, ex, ei);
-            ex->ET = tclass->toCtype()->Tnext;
+            ex->ET = Type_toCtype(tclass)->Tnext;
             ex = el_una(OPaddr, TYnptr, ex);
             ectype = tclass;
         }
@@ -1715,7 +1716,7 @@ elem *NewExp::toElem(IRState *irs)
                  */
                 ex = el_una(OPind, TYstruct, ex);
                 ex = el_bin(OPstreq, TYnptr, ex, ei);
-                ex->ET = tclass->toCtype();
+                ex->ET = Type_toCtype(tclass);
                 ex = el_una(OPaddr, TYnptr, ex);
             }
             ectype = tclass;
@@ -1939,7 +1940,7 @@ elem *AssertExp::toElem(IRState *irs)
             !((TypeClass *)t1)->sym->isInterfaceDeclaration() &&
             !((TypeClass *)t1)->sym->isCPPclass())
         {
-            ts = symbol_genauto(t1->toCtype());
+            ts = symbol_genauto(Type_toCtype(t1));
             int rtl;
             if (global.params.isLinux || global.params.isFreeBSD || global.params.isSolaris ||
                 I64 && global.params.isWindows)
@@ -1954,7 +1955,7 @@ elem *AssertExp::toElem(IRState *irs)
             t1->nextOf()->ty == Tstruct &&
             (inv = ((TypeStruct *)t1->nextOf())->sym->inv) != NULL)
         {
-            ts = symbol_genauto(t1->toCtype());
+            ts = symbol_genauto(Type_toCtype(t1));
             einv = callfunc(loc, irs, 1, inv->type->nextOf(), el_var(ts), e1->type, inv, inv->type, NULL, NULL);
         }
 
@@ -2644,11 +2645,11 @@ elem *AssignExp::toElem(IRState *irs)
 
                 elem *e1 = el_var(stmp);
                 e1 = el_una(OPind, tsa->totym(), e1);
-                e1->ET = tsa->toCtype();
+                e1->ET = Type_toCtype(tsa);
                 elem *e2 = el_long(tsa->totym(), 0);
 
                 elem *ex = el_bin(OPstreq, TYstruct, e1, e2);
-                ex->ET = tsa->toCtype();
+                ex->ET = Type_toCtype(tsa);
                 e = el_combine(e, ex);
                 goto Lret;
             #endif
@@ -2683,11 +2684,11 @@ elem *AssignExp::toElem(IRState *irs)
                 {
                     e1 = el_una(OPind, ty, e1);
                     if (tybasic(ty) == TYstruct)
-                        e1->ET = tn->toCtype();
+                        e1->ET = Type_toCtype(tn);
                     ex = el_bin(OPeq, e1->Ety, e1, en->toElem(irs));
                     if (tybasic(ty) == TYstruct)
                     {   ex->Eoper = OPstreq;
-                        ex->ET = tn->toCtype();
+                        ex->ET = Type_toCtype(tn);
                     }
                 }
                 else
@@ -3056,7 +3057,7 @@ elem *AssignExp::toElem(IRState *irs)
             {
                 elem *e2 = this->e2->toElem(irs);
                 e = el_bin(OPstreq,tym,e1,e2);
-                e->ET = this->e1->type->toCtype();
+                e->ET = Type_toCtype(this->e1->type);
                 if (type_size(e->ET) == 0)
                     e->Eoper = OPcomma;
             }
@@ -3147,18 +3148,18 @@ elem *CatAssignExp::toElem(IRState *irs)
                 // Do this because of:
                 //    a ~= a[$-1]
                 // because $ changes its value
-                symbol *s2 = symbol_genauto(tb2->toCtype());
+                symbol *s2 = symbol_genauto(Type_toCtype(tb2));
                 e2x = el_bin(OPeq, e2->Ety, el_var(s2), e2);
                 if (tybasic(e2->Ety) == TYstruct)
                 {
                     e2x->Eoper = OPstreq;
-                    e2x->ET = tb1n->toCtype();
+                    e2x->ET = Type_toCtype(tb1n);
                 }
                 else if (tybasic(e2->Ety) == TYarray)
                 {
                     e2x->Eoper = OPstreq;
                     e2x->Ejty = e2x->Ety = TYstruct;
-                    e2x->ET = tb1n->toCtype();
+                    e2x->ET = Type_toCtype(tb1n);
                 }
                 e2 = el_var(s2);
             }
@@ -3168,7 +3169,7 @@ elem *CatAssignExp::toElem(IRState *irs)
             elem *ep = el_param(e1, this->e1->type->getTypeInfo(NULL)->toElem(irs));
             ep = el_param(el_long(TYsize_t, 1), ep);
             e = el_bin(OPcall, TYdarray, el_var(rtlsym[RTLSYM_ARRAYAPPENDCTX]), ep);
-            symbol *stmp = symbol_genauto(tb1->toCtype());
+            symbol *stmp = symbol_genauto(Type_toCtype(tb1));
             e = el_bin(OPeq, TYdarray, el_var(stmp), e);
 
             // Assign e2 to last element in stmp[]
@@ -3185,13 +3186,13 @@ elem *CatAssignExp::toElem(IRState *irs)
             if (tybasic(e2->Ety) == TYstruct)
             {
                 eeq->Eoper = OPstreq;
-                eeq->ET = tb1n->toCtype();
+                eeq->ET = Type_toCtype(tb1n);
             }
             else if (tybasic(e2->Ety) == TYarray)
             {
                 eeq->Eoper = OPstreq;
                 eeq->Ejty = eeq->Ety = TYstruct;
-                eeq->ET = tb1n->toCtype();
+                eeq->ET = Type_toCtype(tb1n);
             }
 
             e = el_combine(e2x, e);
@@ -3457,7 +3458,7 @@ elem *CondExp::toElem(IRState *irs)
 
     elem *e = el_bin(OPcond, ty, ec, el_bin(OPcolon, ty, eleft, eright));
     if (tybasic(ty) == TYstruct)
-        e->ET = e1->type->toCtype();
+        e->ET = Type_toCtype(e1->type);
     el_setLoc(e, loc);
     return e;
 }
@@ -3502,7 +3503,7 @@ elem *DotVarExp::toElem(IRState *irs)
     e = el_una(OPind, type->totym(), e);
     if (tybasic(e->Ety) == TYstruct)
     {
-        e->ET = type->toCtype();
+        e->ET = Type_toCtype(type);
     }
     el_setLoc(e,loc);
     return e;
@@ -3756,7 +3757,7 @@ elem *AddrExp::toElem(IRState *irs)
         //printf("StructLiteralExp(%p); origin:%p\n", sl, sl->origin);
         //printf("sl->toSymbol() (%p)\n", sl->toSymbol());
         elem *e = el_ptr(sl->origin->toSymbol());
-        e->ET = type->toCtype();
+        e->ET = Type_toCtype(type);
         el_setLoc(e,loc);
         return e;
     }
@@ -3777,7 +3778,7 @@ elem *PtrExp::toElem(IRState *irs)
     e = el_una(OPind,type->totym(),e);
     if (tybasic(e->Ety) == TYstruct)
     {
-        e->ET = type->toCtype();
+        e->ET = Type_toCtype(type);
     }
     el_setLoc(e,loc);
     return e;
@@ -4704,7 +4705,7 @@ elem *SliceExp::toElem(IRState *irs)
         {   assert(tb->ty == Tsarray);
             e = el_una(OPind, type->totym(), eptr);
             if (tybasic(e->Ety) == TYstruct)
-                e->ET = type->toCtype();
+                e->ET = Type_toCtype(type);
         }
         e = el_combine(elwr, e);
         e = el_combine(einit, e);
@@ -4775,7 +4776,7 @@ elem *IndexExp::toElem(IRState *irs)
         }
         e = el_una(OPind, type->totym(), e);
         if (tybasic(e->Ety) == TYstruct)
-            e->ET = type->toCtype();
+            e->ET = Type_toCtype(type);
     }
     else
     {
@@ -4824,7 +4825,7 @@ elem *IndexExp::toElem(IRState *irs)
             e = el_una(OPind, type->totym(), e);
             if (tybasic(e->Ety) == TYstruct || tybasic(e->Ety) == TYarray)
             {   e->Ety = TYstruct;
-                e->ET = type->toCtype();
+                e->ET = Type_toCtype(type);
             }
         }
 
@@ -4891,11 +4892,11 @@ elem *ArrayLiteralExp::toElem(IRState *irs)
         e = el_param(e, type->getTypeInfo(NULL)->toElem(irs));
         // call _d_arrayliteralTX(ti, dim)
         e = el_bin(OPcall,TYnptr,el_var(rtlsym[RTLSYM_ARRAYLITERALTX]),e);
-        Symbol *stmp = symbol_genauto(Type::tvoid->pointerTo()->toCtype());
+        Symbol *stmp = symbol_genauto(Type_toCtype(Type::tvoid->pointerTo()));
         e = el_bin(OPeq,TYnptr,el_var(stmp),e);
 
         targ_size_t sz = tb->nextOf()->size();      // element size
-        ::type *te = tb->nextOf()->toCtype();       // element type
+        ::type *te = Type_toCtype(tb->nextOf());       // element type
         for (size_t i = 0; i < dim; i++)
         {   Expression *el = (*elements)[i];
 
@@ -4937,7 +4938,7 @@ elem *ArrayLiteralExp::toElem(IRState *irs)
     else
     {
         e = el_una(OPind,TYstruct,e);
-        e->ET = type->toCtype();
+        e->ET = Type_toCtype(type);
     }
 
     el_setLoc(e,loc);
@@ -4970,10 +4971,10 @@ elem *ExpressionsToStaticArray(IRState *irs, Loc loc, Expressions *exps, symbol 
         {
             telem = el->type;
             szelem = telem->size();
-            te = telem->toCtype();
+            te = Type_toCtype(telem);
 
             tsarray = telem->sarrayOf(dim);
-            stmp = symbol_genauto(tsarray->toCtype());
+            stmp = symbol_genauto(Type_toCtype(tsarray));
             *psym = stmp;
         }
 
@@ -5112,7 +5113,7 @@ elem *StructLiteralExp::toElem(IRState *irs)
     if (sinit)
     {
         elem *e = el_var(sinit);
-        e->ET = sd->type->toCtype();
+        e->ET = Type_toCtype(sd->type);
         el_setLoc(e,loc);
 
         if (sym)
@@ -5132,7 +5133,7 @@ elem *StructLiteralExp::toElem(IRState *irs)
     }
 
     // struct symbol to initialize with the literal
-    Symbol *stmp = sym ? sym : symbol_genauto(sd->type->toCtype());
+    Symbol *stmp = sym ? sym : symbol_genauto(Type_toCtype(sd->type));
 
     elem *e = NULL;
 
@@ -5206,12 +5207,12 @@ elem *StructLiteralExp::toElem(IRState *irs)
                 tym_t ty = v->type->totym();
                 e1 = el_una(OPind, ty, e1);
                 if (tybasic(ty) == TYstruct)
-                    e1->ET = v->type->toCtype();
+                    e1->ET = Type_toCtype(v->type);
                 e1 = el_bin(OPeq, ty, e1, ep);
                 if (tybasic(ty) == TYstruct)
                 {
                     e1->Eoper = OPstreq;
-                    e1->ET = v->type->toCtype();
+                    e1->ET = Type_toCtype(v->type);
                 }
             }
             e = el_combine(e, e1);
@@ -5242,7 +5243,7 @@ elem *StructLiteralExp::toElem(IRState *irs)
     }
 
     elem *ev = el_var(stmp);
-    ev->ET = sd->type->toCtype();
+    ev->ET = Type_toCtype(sd->type);
     e = el_combine(e, ev);
     el_setLoc(e,loc);
     return e;

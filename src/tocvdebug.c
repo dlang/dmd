@@ -35,6 +35,8 @@
 #include "outbuf.h"
 #include "irstate.h"
 
+type *Type_toCtype(Type *t);
+
 /* The CV4 debug format is defined in:
  *      "CV4 Symbolic Debug Information Specification"
  *      rev 3.1 March 5, 1993
@@ -72,7 +74,7 @@ unsigned cv4_memfunctypidx(FuncDeclaration *fd)
 {
     //printf("cv4_memfunctypidx(fd = '%s')\n", fd->toChars());
 
-    type *t = fd->type->toCtype();
+    type *t = Type_toCtype(fd->type);
     AggregateDeclaration *ad = fd->isMember2();
     if (ad)
     {
@@ -84,7 +86,7 @@ unsigned cv4_memfunctypidx(FuncDeclaration *fd)
         else
         {
             assert(ad->handle);
-            thisidx = cv4_typidx(ad->handle->toCtype());
+            thisidx = cv4_typidx(Type_toCtype(ad->handle));
         }
 
         unsigned nparam;
@@ -101,7 +103,7 @@ unsigned cv4_memfunctypidx(FuncDeclaration *fd)
                 unsigned char *p = d->data;
                 TOWORD(p,LF_MFUNCTION);
                 TOWORD(p + 2,cv4_typidx(t->Tnext));
-                TOWORD(p + 4,cv4_typidx(ad->type->toCtype()));
+                TOWORD(p + 4,cv4_typidx(Type_toCtype(ad->type)));
                 TOWORD(p + 6,thisidx);
                 p[8] = call;
                 p[9] = 0;                               // reserved
@@ -116,7 +118,7 @@ unsigned cv4_memfunctypidx(FuncDeclaration *fd)
                 unsigned char *p = d->data;
                 TOWORD(p,0x1009);
                 TOLONG(p + 2,cv4_typidx(t->Tnext));
-                TOLONG(p + 6,cv4_typidx(ad->type->toCtype()));
+                TOLONG(p + 6,cv4_typidx(Type_toCtype(ad->type)));
                 TOLONG(p + 10,thisidx);
                 p[14] = call;
                 p[15] = 0;                               // reserved
@@ -175,7 +177,7 @@ unsigned cv4_Denum(EnumDeclaration *e)
     const char *id = e->toPrettyChars();
     unsigned len;
     debtyp_t *d;
-    unsigned memtype = e->memtype ? cv4_typidx(e->memtype->toCtype()) : 0;
+    unsigned memtype = e->memtype ? cv4_typidx(Type_toCtype(e->memtype)) : 0;
     switch (config.fulltypes)
     {
         case CV8:
@@ -297,7 +299,7 @@ void TypedefDeclaration::toDebug()
             return;
 
         const char *id = toPrettyChars();
-        idx_t typidx = cv4_typidx(basetype->toCtype());
+        idx_t typidx = cv4_typidx(Type_toCtype(basetype));
         if (config.fulltypes == CV8)
             cv8_udt(id, typidx);
         else
@@ -698,7 +700,7 @@ void ClassDeclaration::toDebug()
             for (size_t i = 0; i < baseclasses->dim; i++)
             {   BaseClass *bc = (*baseclasses)[i];
 
-                idx_t typidx = cv4_typidx(bc->base->type->toCtype()->Tnext);
+                idx_t typidx = cv4_typidx(Type_toCtype(bc->base->type)->Tnext);
                 unsigned attribute = PROTtoATTR(bc->protection);
 
                 unsigned elementlen;
@@ -836,7 +838,7 @@ int TypedefDeclaration::cvMember(unsigned char *p)
 {
     //printf("TypedefDeclaration::cvMember() '%s'\n", toChars());
 
-    return ::cvMember(p, toChars(), cv4_typidx(basetype->toCtype()));
+    return ::cvMember(p, toChars(), cv4_typidx(Type_toCtype(basetype)));
 }
 
 
@@ -988,7 +990,7 @@ int VarDeclaration::cvMember(unsigned char *p)
     }
     else
     {
-        idx_t typidx = cv_typidx(type->toCtype());
+        idx_t typidx = cv_typidx(Type_toCtype(type));
         unsigned attribute = PROTtoATTR(prot());
         assert((attribute & ~3) == 0);
         switch (config.fulltypes)
