@@ -575,7 +575,7 @@ void DeprecatedDeclaration::setScope(Scope *sc)
 {
     assert(msg);
     char *depmsg = NULL;
-    StringExp *se = msg->toString();
+    StringExp *se = msg->toStringExp();
     if (se)
         depmsg = (char *)se->string;
     else
@@ -1018,7 +1018,7 @@ void PragmaDeclaration::semantic(Scope *sc)
                 {   errorSupplemental(loc, "while evaluating pragma(msg, %s)", (*args)[i]->toChars());
                     return;
                 }
-                StringExp *se = e->toString();
+                StringExp *se = e->toStringExp();
                 if (se)
                 {
                     se = se->toUTF8(sc);
@@ -1048,7 +1048,7 @@ void PragmaDeclaration::semantic(Scope *sc)
             (*args)[0] = e;
             if (e->op == TOKerror)
                 goto Lnodecl;
-            StringExp *se = e->toString();
+            StringExp *se = e->toStringExp();
             if (!se)
                 error("string expected for library name, not '%s'", e->toChars());
             else
@@ -1111,7 +1111,7 @@ void PragmaDeclaration::semantic(Scope *sc)
             if (e->op == TOKerror)
                 goto Lnodecl;
 
-            StringExp *se = e->toString();
+            StringExp *se = e->toStringExp();
 
             if (!se)
             {
@@ -1213,7 +1213,7 @@ Ldecl:
 
             if (ident == Id::mangle)
             {
-                StringExp *e = (*args)[0]->toString();
+                StringExp *e = (*args)[0]->toStringExp();
 
                 char *name = (char *)mem.malloc(e->len + 1);
                 memcpy(name, e->string, e->len);
@@ -1595,7 +1595,7 @@ void CompileDeclaration::compileIt(Scope *sc)
     exp = resolveProperties(sc, exp);
     sc = sc->endCTFE();
     exp = exp->ctfeInterpret();
-    StringExp *se = exp->toString();
+    StringExp *se = exp->toStringExp();
     if (!se)
     {
         exp->error("argument to mixin must be a string, not (%s)", exp->toChars());

@@ -162,7 +162,7 @@ char *ThrownExceptionExp::toChars()
 void ThrownExceptionExp::generateUncaughtError()
 {
     Expression *e = (*thrown->value->elements)[0];
-    StringExp* se = e->toString();
+    StringExp* se = e->toStringExp();
     thrown->error("Uncaught CTFE exception %s(%s)", thrown->type->toChars(), se ? se->toChars() : e->toChars());
 
     /* Also give the line where the throw statement was. We won't have it

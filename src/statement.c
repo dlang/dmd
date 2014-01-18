@@ -521,7 +521,7 @@ Statements *CompileStatement::flatten(Scope *sc)
     Statements *a = new Statements();
     if (exp->op != TOKerror)
     {
-        StringExp *se = exp->toString();
+        StringExp *se = exp->toStringExp();
         if (!se)
            error("argument to mixin must be a string, not (%s)", exp->toChars());
         else
@@ -2931,7 +2931,7 @@ Statement *PragmaStatement::semantic(Scope *sc)
                 {   errorSupplemental(loc, "while evaluating pragma(msg, %s)", (*args)[i]->toChars());
                     goto Lerror;
                 }
-                StringExp *se = e->toString();
+                StringExp *se = e->toStringExp();
                 if (se)
                 {
                     fprintf(stderr, "%.*s", (int)se->len, (char *)se->string);
@@ -2962,7 +2962,7 @@ Statement *PragmaStatement::semantic(Scope *sc)
 
             e = e->ctfeInterpret();
             (*args)[0] = e;
-            StringExp *se = e->toString();
+            StringExp *se = e->toStringExp();
             if (!se)
                 error("string expected for library name, not '%s'", e->toChars());
             else if (global.params.verbose)
