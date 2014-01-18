@@ -5920,6 +5920,38 @@ enum test11534 = () {
 }();
 
 /**************************************************
+    11941 - Regression of 11534 fix
+**************************************************/
+
+void takeConst11941(const string[]) {}
+string[] identity11941(string[] x) { return x; }
+
+bool test11941a()
+{
+    struct S { string[] a; }
+    S s;
+
+    takeConst11941(identity11941(s.a));
+    s.a ~= [];
+
+    return true;
+}
+static assert(test11941a());
+
+bool test11941b()
+{
+    struct S { string[] a; }
+    S s;
+
+    takeConst11941(identity11941(s.a));
+    s.a ~= "foo"; /* Error refers to this line (15), */
+    string[] b = s.a[]; /* but only when this is here. */
+
+    return true;
+}
+static assert(test11941b());
+
+/**************************************************
     11540 - goto label + try-catch-finally / with statement
 **************************************************/
 
