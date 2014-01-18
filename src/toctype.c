@@ -38,95 +38,67 @@ type *Type_toCtype(Type *t);
 class ToCtypeVisitor : public Visitor
 {
 public:
-    type *result;
-
     ToCtypeVisitor() {}
 
     void visit(Type *t)
     {
-        if (!t->ctype)
-        {
-            t->ctype = type_fake(t->totym());
-            t->ctype->Tcount++;
-        }
-        result = t->ctype;
+        t->ctype = type_fake(t->totym());
+        t->ctype->Tcount++;
     }
 
     void visit(TypeSArray *t)
     {
-        if (!t->ctype)
-            t->ctype = type_static_array(t->dim->toInteger(), Type_toCtype(t->next));
-        result = t->ctype;
+        t->ctype = type_static_array(t->dim->toInteger(), Type_toCtype(t->next));
     }
 
     void visit(TypeDArray *t)
     {
-        if (!t->ctype)
-        {
-            t->ctype = type_dyn_array(Type_toCtype(t->next));
-            t->ctype->Tident = t->toChars(); // needed to generate sensible debug info for cv8
-        }
-        result = t->ctype;
+        t->ctype = type_dyn_array(Type_toCtype(t->next));
+        t->ctype->Tident = t->toChars(); // needed to generate sensible debug info for cv8
     }
 
     void visit(TypeAArray *t)
     {
-        if (!t->ctype)
-            t->ctype = type_assoc_array(Type_toCtype(t->index), Type_toCtype(t->next));
-        result = t->ctype;
+        t->ctype = type_assoc_array(Type_toCtype(t->index), Type_toCtype(t->next));
     }
 
     void visit(TypePointer *t)
     {
         //printf("TypePointer::toCtype() %s\n", t->toChars());
-        if (!t->ctype)
-            t->ctype = type_pointer(Type_toCtype(t->next));
-        result = t->ctype;
+        t->ctype = type_pointer(Type_toCtype(t->next));
     }
 
     void visit(TypeFunction *t)
     {
-        if (!t->ctype)
+        size_t nparams = Parameter::dim(t->parameters);
+
+        type *tmp[10];
+        type **ptypes = tmp;
+        if (nparams > 10)
+            ptypes = (type **)malloc(sizeof(type*) * nparams);
+
+        for (size_t i = 0; i < nparams; i++)
         {
-            size_t nparams = Parameter::dim(t->parameters);
-
-            type *tmp[10];
-            type **ptypes = tmp;
-            if (nparams > 10)
-                ptypes = (type **)malloc(sizeof(type*) * nparams);
-
-            for (size_t i = 0; i < nparams; i++)
-            {
-                Parameter *arg = Parameter::getNth(t->parameters, i);
-                type *tp = Type_toCtype(arg->type);
-                if (arg->storageClass & (STCout | STCref))
-                    tp = type_allocn(TYref, tp);
-                ptypes[i] = tp;
-            }
-
-            t->ctype = type_function(t->totym(), ptypes, nparams, t->varargs == 1, Type_toCtype(t->next));
-
-            if (nparams > 10)
-                free(ptypes);
+            Parameter *arg = Parameter::getNth(t->parameters, i);
+            type *tp = Type_toCtype(arg->type);
+            if (arg->storageClass & (STCout | STCref))
+                tp = type_allocn(TYref, tp);
+            ptypes[i] = tp;
         }
-        result = t->ctype;
+
+        t->ctype = type_function(t->totym(), ptypes, nparams, t->varargs == 1, Type_toCtype(t->next));
+
+        if (nparams > 10)
+            free(ptypes);
     }
 
     void visit(TypeDelegate *t)
     {
-        if (!t->ctype)
-            t->ctype = type_delegate(Type_toCtype(t->next));
-        result = t->ctype;
+        t->ctype = type_delegate(Type_toCtype(t->next));
     }
 
     void visit(TypeStruct *t)
     {
-        if (t->ctype)
-        {
-            result = t->ctype;
-            return;
-        }
-
         //printf("TypeStruct::toCtype() '%s'\n", t->sym->toChars());
         Type *tm = t->mutableOf();
         if (tm->ctype)
@@ -187,17 +159,10 @@ public:
         }
 
         //printf("t = %p, Tflags = x%x\n", ctype, ctype->Tflags);
-        result = t->ctype;
     }
 
     void visit(TypeEnum *t)
     {
-        if (t->ctype)
-        {
-            result = t->ctype;
-            return;
-        }
-
         //printf("TypeEnum::toCtype() '%s'\n", t->sym->toChars());
         Type *tm = t->mutableOf();
         if (tm->ctype && tybasic(tm->ctype->Tty) == TYenum)
@@ -246,23 +211,16 @@ public:
         }
 
         //printf("t = %p, Tflags = x%x\n", t, t->Tflags);
-        result = t->ctype;
     }
 
     void visit(TypeTypedef *t)
     {
-        result = Type_toCtype(t->sym->basetype);
+        t->ctype = Type_toCtype(t->sym->basetype);
     }
 
     void visit(TypeClass *t)
     {
         //printf("TypeClass::toCtype() %s\n", toChars());
-        if (t->ctype)
-        {
-            result = t->ctype;
-            return;
-        }
-
         type *tc = type_struct_class(t->sym->toPrettyChars(), t->sym->alignsize, t->sym->structsize,
                 NULL,
                 NULL,
@@ -283,14 +241,15 @@ public:
                 symbol_struct_addField(tc->Ttag, v->ident->toChars(), Type_toCtype(v->type), v->offset);
             }
         }
-
-        result = t->ctype;
     }
 };
 
 type *Type_toCtype(Type *t)
 {
-    ToCtypeVisitor v;
-    t->accept(&v);
-    return v.result;
+    if (!t->ctype)
+    {
+        ToCtypeVisitor v;
+        t->accept(&v);
+    }
+    return t->ctype;
 }
