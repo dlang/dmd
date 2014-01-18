@@ -541,8 +541,6 @@ void Module::genobjfile(int multiobj)
 
 /* ================================================================== */
 
-bool inNonRoot(Dsymbol *s);
-
 void FuncDeclaration::toObjFile(int multiobj)
 {
     FuncDeclaration *func = this;
@@ -601,7 +599,7 @@ void FuncDeclaration::toObjFile(int multiobj)
     assert(semanticRun == PASSsemantic3done);
     assert(ident != Id::empty);
 
-    if (!isInstantiated() && inNonRoot(this))
+    if (!isInstantiated() && inNonRoot())
         return;
 
     /* Skip generating code if this part of a TemplateInstance that is instantiated

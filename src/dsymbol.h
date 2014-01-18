@@ -216,6 +216,8 @@ public:
     virtual void emitComment(Scope *sc);
     void emitDitto(Scope *sc);
 
+    bool inNonRoot();
+
     // Backend
 
     virtual Symbol *toSymbol();                 // to backend symbol
