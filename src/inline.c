@@ -190,7 +190,7 @@ int lambdaInlineCost(Expression *e, void *param)
 int expressionInlineCost(Expression *e, InlineCostState *ics)
 {
     //printf("expressionInlineCost()\n");
-    //e->dump(0);
+    //e->print();
     ICS2 ics2;
     ics2.cost = 0;
     ics2.ics = ics;
@@ -1839,7 +1839,7 @@ Expression *FuncDeclaration::expandInline(InlineScanState *iss,
         inlineNest--;
         //eb->type->print();
         //eb->print();
-        //eb->dump(0);
+        //eb->print();
 
         // Bugzilla 11322:
         if (tf->isref)

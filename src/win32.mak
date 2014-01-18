@@ -143,7 +143,7 @@ FRONTOBJ= enum.obj struct.obj dsymbol.obj import.obj id.obj \
 	optimize.obj template.obj lexer.obj declaration.obj cast.obj \
 	init.obj func.obj utf.obj parse.obj statement.obj \
 	constfold.obj version.obj inifile.obj cppmangle.obj \
-	module.obj scope.obj dump.obj cond.obj inline.obj opover.obj \
+	module.obj scope.obj cond.obj inline.obj opover.obj \
 	entity.obj class.obj mangle.obj attrib.obj impcnvtab.obj \
 	link.obj access.obj doc.obj macro.obj hdrgen.obj delegatize.obj \
 	interpret.obj ctfeexpr.obj traits.obj aliasthis.obj \
@@ -187,7 +187,7 @@ SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
 	template.h template.c lexer.c declaration.c cast.c \
 	cond.h cond.c link.c aggregate.h staticassert.h parse.c statement.c \
 	constfold.c version.h version.c inifile.c staticassert.c \
-	module.c scope.c dump.c init.h init.c attrib.h attrib.c opover.c \
+	module.c scope.c init.h init.c attrib.h attrib.c opover.c \
 	class.c mangle.c func.c inline.c access.c complex_t.h cppmangle.c \
 	identifier.h parse.h scope.h enum.h import.h \
 	mars.h module.h mtype.h dsymbol.h \

@@ -764,7 +764,6 @@ Dsymbol *VarDeclaration::syntaxCopy(Dsymbol *s)
         if (this->init)
         {   init = this->init->syntaxCopy();
             //init->isExpInitializer()->exp->print();
-            //init->isExpInitializer()->exp->dump(0);
         }
 
         sv = new VarDeclaration(loc, type ? type->syntaxCopy() : NULL, ident, init);
@@ -1573,7 +1572,7 @@ void VarDeclaration::semantic2(Scope *sc)
         ExpInitializer *ei = init->isExpInitializer();
         if (ei)
         {
-            ei->exp->dump(0);
+            ei->exp->print();
             printf("type = %p\n", ei->exp->type);
         }
 #endif

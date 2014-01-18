@@ -178,7 +178,7 @@ dt_t **Expression::toDt(dt_t **pdt)
 {
 #if 0
     printf("Expression::toDt() %d\n", op);
-    dump(0);
+    print();
 #endif
     error("non-constant expression %s", toChars());
     pdt = dtnzeros(pdt, 1);

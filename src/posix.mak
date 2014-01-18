@@ -58,7 +58,7 @@ DMD_OBJS = \
 	cast.o \
 	class.o \
 	constfold.o cond.o \
-	declaration.o dsymbol.o dump.o \
+	declaration.o dsymbol.o \
 	enum.o expression.o func.o \
 	id.o \
 	identifier.o impcnvtab.o import.o inifile.o init.o inline.o \
@@ -115,7 +115,7 @@ SRC = win32.mak posix.mak osmodel.mak \
 	identifier.c mtype.c expression.c optimize.c template.h \
 	template.c lexer.c declaration.c cast.c cond.h cond.c link.c \
 	aggregate.h parse.c statement.c constfold.c version.h version.c \
-	inifile.c module.c scope.c dump.c init.h init.c attrib.h \
+	inifile.c module.c scope.c init.h init.c attrib.h \
 	attrib.c opover.c class.c mangle.c func.c inline.c \
 	access.c complex_t.h \
 	identifier.h parse.h \
@@ -398,9 +398,6 @@ dsymbol.o: dsymbol.c
 
 dt.o: $C/dt.c
 	$(CC) -c $(MFLAGS) $<
-
-dump.o: dump.c
-	$(CC) -c $(CFLAGS) $<
 
 dwarf.o: $C/dwarf.c
 	$(CC) -c $(MFLAGS) -I. $<
@@ -721,7 +718,6 @@ gcov:
 	gcov delegatize.c
 	gcov doc.c
 	gcov dsymbol.c
-	gcov dump.c
 	gcov e2ir.c
 	gcov eh.c
 	gcov entity.c
