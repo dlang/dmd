@@ -505,14 +505,16 @@ void TemplateDeclaration::semantic(Scope *sc)
             Type::rtinfo = this;
     }
 
-    if (/*global.params.useArrayBounds &&*/ sc->module)
+    // global.params.useArrayBounds &&
+    if (sc->module)
     {
         // Generate this function as it may be used
         // when template is instantiated in other modules
         sc->module->toModuleArray();
     }
 
-    if (/*global.params.useAssert &&*/ sc->module)
+    // global.params.useAssert &&
+    if (sc->module)
     {
         // Generate this function as it may be used
         // when template is instantiated in other modules
