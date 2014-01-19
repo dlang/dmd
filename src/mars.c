@@ -1274,7 +1274,6 @@ Language changes listed by -transition=id:\n\
     bool firstmodule = true;
     for (size_t i = 0; i < files.dim; i++)
     {
-        ;
         const char *name;
 
         const char *p = files[i];
