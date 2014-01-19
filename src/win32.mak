@@ -39,10 +39,6 @@
 # LFLAGS.  The difference between CFLAGS and OPT is that CFLAGS primarily
 # applies to front-end files, while OPT applies to essentially all C++ sources.
 #
-# Pre-compiled headers may be enabled via the PREC variable.  This configuration
-# has not been tested recently.  If you enable pre-compiled headers, you should
-# update the TOTALH variable as mentioned in the accompanying comment.
-#
 # Targets:
 #
 # defaulttarget - debug dmd
@@ -66,8 +62,6 @@
 
 # DMC directory
 DMCROOT=$(DM_HOME)\dm
-# STLPort directory
-STLPORT=$(DMCROOT)\stlport\stlport
 # DMD source directories
 C=backend
 TK=tk
@@ -117,9 +111,6 @@ CFLAGS=
 OPT=
 # Debug flags
 DEBUG=-gl -D -DUNITTEST
-# Precompiled Header support
-# To enable, use: PREC=-H -HItotal.h -HO
-PREC=
 # Linker flags (prefix with -L)
 LFLAGS=
 # Librarian flags
@@ -257,7 +248,6 @@ ROOTSRC= $(ROOT)\root.h \
 #	$(ROOT)\gc\win32.c
 
 # Header files
-#TOTALH=total.sym # Use with pre-compiled headers
 TOTALH=id.h
 CH= $C\cc.h $C\global.h $C\oper.h $C\code.h $C\code_x86.h $C\type.h $C\dt.h $C\cgcv.h \
 	$C\el.h $C\iasm.h $C\obj.h
@@ -311,7 +301,6 @@ $(TARGETEXE): mars.obj $(LIBS) win32.mak
 
 clean:
 	$(DEL) *.obj
-	$(DEL) total.sym
 	$(DEL) msgs.h msgs.c
 	$(DEL) elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c
 	$(DEL) impcnvtab.c
@@ -398,17 +387,10 @@ verstr.h : ..\VERSION
 
 # Default rules
 .c.obj:
-	$(CC) -c $(CFLAGS) $(PREC) $*
+	$(CC) -c $(CFLAGS) $*
 
 .asm.obj:
 	$(CC) -c $(CFLAGS) $*
-
-# Pre-compiled header
-total.sym : $(ROOT)\root.h mars.h lexer.h parse.h enum.h dsymbol.h \
-	mtype.h expression.h attrib.h init.h cond.h version.h \
-	declaration.h statement.h scope.h import.h module.h id.h \
-	template.h aggregate.h arraytypes.h lib.h total.h
-	$(CC) -c $(CFLAGS) -HFtotal.sym total.h
 
 # Generated source
 impcnvtab.obj : mtype.h impcnvtab.c
@@ -539,13 +521,13 @@ imphint.obj : imphint.c
 	$(CC) -c $(CFLAGS) $*
 
 mars.obj : $(TOTALH) module.h mars.h mars.c verstr.h
-	$(CC) -c $(CFLAGS) $(PREC) $* -Ae
+	$(CC) -c $(CFLAGS) $* -Ae
 
 md5.obj : $C\md5.h $C\md5.c
 	$(CC) -c $(MFLAGS) $C\md5
 
 module.obj : $(TOTALH) module.c
-	$(CC) -c $(CFLAGS) -I$C $(PREC) module.c
+	$(CC) -c $(CFLAGS) -I$C module.c
 
 msc.obj : $(CH) mars.h msc.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) msc
@@ -620,7 +602,7 @@ tocsym.obj : $(CH) $(TOTALH) mars.h module.h tocsym.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) tocsym
 
 unittests.obj : $(TOTALH) unittests.c
-	$(CC) -c $(CFLAGS) $(PREC) $*
+	$(CC) -c $(CFLAGS) $*
 
 util2.obj : $C\util2.c
 	$(CC) -c $(MFLAGS) $C\util2
