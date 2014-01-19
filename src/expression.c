@@ -1813,10 +1813,10 @@ void expToCBuffer(OutBuffer *buf, HdrGenState *hgs, Expression *e, PREC pr)
     assert(pr != PREC_zero);
 
     //if (precedence[e->op] == 0) e->print();
+    /* Despite precedence, we don't allow a<b<c expressions.
+     * They must be parenthesized.
+     */
     if (precedence[e->op] < pr ||
-        /* Despite precedence, we don't allow a<b<c expressions.
-         * They must be parenthesized.
-         */
         (pr == PREC_rel && precedence[e->op] == pr))
     {
         buf->writeByte('(');
@@ -6043,8 +6043,8 @@ Expression *FuncExp::semantic(Scope *sc)
         else
         {
             fd->semantic2(sc);
+            // no errors or need to infer return type
             if ( (olderrors == global.errors) ||
-                // need to infer return type
                 (fd->type && fd->type->ty == Tfunction && !fd->type->nextOf()))
             {
                 fd->semantic3(sc);
@@ -6228,11 +6228,12 @@ Expression *DeclarationExp::semantic(Scope *sc)
         }
         else if (sc->func)
         {
+            // Bugzilla 11720 - include Dataseg variables
             if ((s->isFuncDeclaration() ||
                  s->isTypedefDeclaration() ||
                  s->isAggregateDeclaration() ||
                  s->isEnumDeclaration() ||
-                 v && v->isDataseg()) &&    // Bugzilla 11720
+                 v && v->isDataseg()) &&
                 !sc->func->localsymtab->insert(s))
             {
                 error("declaration %s is already defined in another scope in %s",
@@ -9394,11 +9395,11 @@ Expression *AddrExp::semantic(Scope *sc)
             FuncDeclaration *f = ve->var->isFuncDeclaration();
             if (f)
             {
+                /* Because nested functions cannot be overloaded,
+                 * mark here that we took its address because castTo()
+                 * may not be called with an exact match.
+                 */
                 if (!ve->hasOverloads ||
-                    /* Because nested functions cannot be overloaded,
-                     * mark here that we took its address because castTo()
-                     * may not be called with an exact match.
-                     */
                     f->isNested())
                     f->tookAddressOf++;
                 if (f->isNested())
@@ -11351,7 +11352,7 @@ Ltupleassign:
             {
                 CallExp *ce;
                 DotVarExp *dve;
-                if (sd->ctor &&            // there are constructors
+                if (sd->ctor &&
                     e2->op == TOKcall &&
                     (ce = (CallExp *)e2, ce->e1->op == TOKdotvar) &&
                     (dve = (DotVarExp *)ce->e1, dve->var->isCtorDeclaration()) &&
@@ -11871,7 +11872,7 @@ Ltupleassign:
     {
         if (0 && global.params.warnings && !global.gag && op == TOKassign &&
             t1->ty == Tarray && t2->ty == Tsarray &&
-            e2->op != TOKslice && //e2->op != TOKarrayliteral &&
+            e2->op != TOKslice &&
             t2->implicitConvTo(t1))
         {   // Disallow ar[] = sa (Converted to ar[] = sa[])
             // Disallow da   = sa (Converted to da   = sa[])

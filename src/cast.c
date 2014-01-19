@@ -787,7 +787,8 @@ MATCH FuncExp::implicitConvTo(Type *t)
         /* MATCHconst:   Conversion from implicit to explicit function pointer
          * MATCHconvert: Conversion from impliict funciton pointer to delegate
          */
-        if (fd->tok == TOKreserved &&   // fbody doesn't have a frame pointer
+        // fbody doesn't have a frame pointer
+        if (fd->tok == TOKreserved &&
             (type->equals(t) || type->nextOf()->covariant(t->nextOf()) == 1))
         {
             return t->ty == Tpointer ? MATCHconst : MATCHconvert;
@@ -1561,11 +1562,11 @@ Expression *ArrayLiteralExp::castTo(Scope *sc, Type *t)
     ArrayLiteralExp *e = this;
     Type *typeb = type->toBasetype();
     Type *tb = t->toBasetype();
+    // Not trying to convert non-void[] to void[]
+    // Not trying to convert void[n] to others
     if ((tb->ty == Tarray || tb->ty == Tsarray) &&
         (typeb->ty == Tarray || typeb->ty == Tsarray) &&
-        // Not trying to convert non-void[] to void[]
         !(tb->nextOf()->toBasetype()->ty == Tvoid && typeb->nextOf()->toBasetype()->ty != Tvoid) &&
-        // Not trying to convert void[n] to others
         !(typeb->ty == Tsarray && typeb->nextOf()->toBasetype()->ty == Tvoid))
     {
         if (tb->ty == Tsarray)
@@ -1773,7 +1774,8 @@ Expression *FuncExp::castTo(Scope *sc, Type *t)
             return e->castTo(sc, t);
         if (!e->type->equals(t) && e->type->implicitConvTo(t))
         {
-            assert(t->ty == Tpointer && t->nextOf()->ty == Tvoid || // Bugzilla 9928
+            // Bugzilla 9928
+            assert(t->ty == Tpointer && t->nextOf()->ty == Tvoid ||
                    e->type->nextOf()->covariant(t->nextOf()) == 1);
             e = e->copy();
             e->type = t;
@@ -2333,7 +2335,6 @@ Lagain:
     }
     else if ((t1->ty == Tsarray || t1->ty == Tarray) &&
              (e2->op == TOKnull && t2->ty == Tpointer && t2->nextOf()->ty == Tvoid ||
-              // if e2 is void[]
               e2->op == TOKarrayliteral && t2->ty == Tsarray && t2->nextOf()->ty == Tvoid && ((TypeSArray *)t2)->dim->toInteger() == 0 ||
               isVoidArrayLiteral(e2, t1))
             )

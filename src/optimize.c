@@ -909,7 +909,7 @@ Expression *PowExp::optimize(int result, bool keepLvalue)
     }
 
     if (e1->op == TOKint64 && e1->toInteger() > 0 &&
-        !((e1->toInteger() - 1) & e1->toInteger()) && // is power of two
+        !((e1->toInteger() - 1) & e1->toInteger()) &&
         e2->type->isintegral() && e2->type->isunsigned())
     {
         dinteger_t i = e1->toInteger();

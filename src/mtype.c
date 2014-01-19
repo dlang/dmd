@@ -171,9 +171,9 @@ bool Type::equals(RootObject *o)
 {
     Type *t = (Type *)o;
     //printf("Type::equals(%s, %s)\n", toChars(), t->toChars());
-    if (this == o ||
-        ((t && deco == t->deco) &&               // deco strings are unique
-          deco != NULL))                         // and semantic() has been run
+    // deco strings are unique
+    // and semantic() has been run
+    if (this == o || ((t && deco == t->deco) && deco != NULL))
     {
         //printf("deco = '%s', t->deco = '%s'\n", deco, t->deco);
         return true;
