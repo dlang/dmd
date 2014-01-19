@@ -1647,16 +1647,20 @@ int canInline(FuncDeclaration *fd, int hasthis, int hdrscan, int statementsToo)
     //      return;
     // to:
     //      return this;
+    // ensure() has magic properties the inliner loses
+    // require() has magic properties too
+    // see bug 7699
+    // no nested references to this frame
     if (!fd->fbody ||
-        fd->ident == Id::ensure ||  // ensure() has magic properties the inliner loses
-        (fd->ident == Id::require &&             // require() has magic properties too
-         fd->toParent()->isFuncDeclaration() &&  // see bug 7699
+        fd->ident == Id::ensure ||
+        (fd->ident == Id::require &&
+         fd->toParent()->isFuncDeclaration() &&
          fd->toParent()->isFuncDeclaration()->needThis()) ||
         !hdrscan &&
         (
         fd->isSynchronized() ||
         fd->isImportedSymbol() ||
-        fd->hasNestedFrameRefs() ||      // no nested references to this frame
+        fd->hasNestedFrameRefs() ||
         (fd->isVirtual() && !fd->isFinalFunc())
        ))
     {
