@@ -747,7 +747,8 @@ Language changes listed by -transition=id:\n\
                         num = strtol(p + 12, (char **)&p, 10);
                         if (*p || errno || num > INT_MAX)
                             goto Lerror;
-                        switch (num)    // Bugzilla issue number
+                        // Bugzilla issue number
+                        switch (num)
                         {
                             case 3449:
                                 global.params.vfield = 1;
