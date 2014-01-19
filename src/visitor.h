@@ -154,6 +154,121 @@ class UnitTestDeclaration;
 class NewDeclaration;
 class DeleteDeclaration;
 
+class Initializer;
+class VoidInitializer;
+class ErrorInitializer;
+class StructInitializer;
+class ArrayInitializer;
+class ExpInitializer;
+
+class Expression;
+class IntegerExp;
+class ErrorExp;
+class RealExp;
+class ComplexExp;
+class IdentifierExp;
+class DollarExp;
+class DsymbolExp;
+class ThisExp;
+class SuperExp;
+class NullExp;
+class StringExp;
+class TupleExp;
+class ArrayLiteralExp;
+class AssocArrayLiteralExp;
+class StructLiteralExp;
+class TypeExp;
+class ScopeExp;
+class TemplateExp;
+class NewExp;
+class NewAnonClassExp;
+class SymbolExp;
+class SymOffExp;
+class VarExp;
+class OverExp;
+class FuncExp;
+class DeclarationExp;
+class TypeidExp;
+class TraitsExp;
+class HaltExp;
+class IsExp;
+class UnaExp;
+class BinExp;
+class BinAssignExp;
+class CompileExp;
+class FileExp;
+class AssertExp;
+class DotIdExp;
+class DotTemplateExp;
+class DotVarExp;
+class DotTemplateInstanceExp;
+class DelegateExp;
+class DotTypeExp;
+class CallExp;
+class AddrExp;
+class PtrExp;
+class NegExp;
+class UAddExp;
+class ComExp;
+class NotExp;
+class BoolExp;
+class DeleteExp;
+class CastExp;
+class VectorExp;
+class SliceExp;
+class ArrayLengthExp;
+class ArrayExp;
+class DotExp;
+class CommaExp;
+class IndexExp;
+class PostExp;
+class PreExp;
+class AssignExp;
+class ConstructExp;
+class AddAssignExp;
+class MinAssignExp;
+class MulAssignExp;
+class DivAssignExp;
+class ModAssignExp;
+class AndAssignExp;
+class OrAssignExp;
+class XorAssignExp;
+class PowAssignExp;
+class ShlAssignExp;
+class ShrAssignExp;
+class UshrAssignExp;
+class CatAssignExp;
+class AddExp;
+class MinExp;
+class CatExp;
+class MulExp;
+class DivExp;
+class ModExp;
+class PowExp;
+class ShlExp;
+class ShrExp;
+class UshrExp;
+class AndExp;
+class OrExp;
+class XorExp;
+class OrOrExp;
+class AndAndExp;
+class CmpExp;
+class InExp;
+class RemoveExp;
+class EqualExp;
+class IdentityExp;
+class CondExp;
+class DefaultInitExp;
+class FileInitExp;
+class LineInitExp;
+class ModuleInitExp;
+class FuncInitExp;
+class PrettyFuncInitExp;
+class ClassReferenceExp;
+class VoidInitExp;
+class ThrownExceptionExp;
+
 class Visitor
 {
 public:
@@ -306,6 +421,121 @@ public:
     virtual void visit(UnitTestDeclaration *s) { visit((FuncDeclaration *)s); }
     virtual void visit(NewDeclaration *s) { visit((FuncDeclaration *)s); }
     virtual void visit(DeleteDeclaration *s) { visit((FuncDeclaration *)s); }
+
+    virtual void visit(Initializer *i) { assert(0); }
+    virtual void visit(VoidInitializer *i) { visit((Initializer *)i); }
+    virtual void visit(ErrorInitializer *i) { visit((Initializer *)i); }
+    virtual void visit(StructInitializer *i) { visit((Initializer *)i); }
+    virtual void visit(ArrayInitializer *i) { visit((Initializer *)i); }
+    virtual void visit(ExpInitializer *i) { visit((Initializer *)i); }
+
+    virtual void visit(Expression *e) { assert(0); }
+    virtual void visit(IntegerExp *e) { visit((Expression *)e); }
+    virtual void visit(ErrorExp *e) { visit((Expression *)e); }
+    virtual void visit(RealExp *e) { visit((Expression *)e); }
+    virtual void visit(ComplexExp *e) { visit((Expression *)e); }
+    virtual void visit(IdentifierExp *e) { visit((Expression *)e); }
+    virtual void visit(DollarExp *e) { visit((IdentifierExp *)e); }
+    virtual void visit(DsymbolExp *e) { visit((Expression *)e); }
+    virtual void visit(ThisExp *e) { visit((Expression *)e); }
+    virtual void visit(SuperExp *e) { visit((ThisExp *)e); }
+    virtual void visit(NullExp *e) { visit((Expression *)e); }
+    virtual void visit(StringExp *e) { visit((Expression *)e); }
+    virtual void visit(TupleExp *e) { visit((Expression *)e); }
+    virtual void visit(ArrayLiteralExp *e) { visit((Expression *)e); }
+    virtual void visit(AssocArrayLiteralExp *e) { visit((Expression *)e); }
+    virtual void visit(StructLiteralExp *e) { visit((Expression *)e); }
+    virtual void visit(TypeExp *e) { visit((Expression *)e); }
+    virtual void visit(ScopeExp *e) { visit((Expression *)e); }
+    virtual void visit(TemplateExp *e) { visit((Expression *)e); }
+    virtual void visit(NewExp *e) { visit((Expression *)e); }
+    virtual void visit(NewAnonClassExp *e) { visit((Expression *)e); }
+    virtual void visit(SymbolExp *e) { visit((Expression *)e); }
+    virtual void visit(SymOffExp *e) { visit((SymbolExp *)e); }
+    virtual void visit(VarExp *e) { visit((SymbolExp *)e); }
+    virtual void visit(OverExp *e) { visit((Expression *)e); }
+    virtual void visit(FuncExp *e) { visit((Expression *)e); }
+    virtual void visit(DeclarationExp *e) { visit((Expression *)e); }
+    virtual void visit(TypeidExp *e) { visit((Expression *)e); }
+    virtual void visit(TraitsExp *e) { visit((Expression *)e); }
+    virtual void visit(HaltExp *e) { visit((Expression *)e); }
+    virtual void visit(IsExp *e) { visit((Expression *)e); }
+    virtual void visit(UnaExp *e) { visit((Expression *)e); }
+    virtual void visit(BinExp *e) { visit((Expression *)e); }
+    virtual void visit(BinAssignExp *e) { visit((BinExp *)e); }
+    virtual void visit(CompileExp *e) { visit((UnaExp *)e); }
+    virtual void visit(FileExp *e) { visit((UnaExp *)e); }
+    virtual void visit(AssertExp *e) { visit((UnaExp *)e); }
+    virtual void visit(DotIdExp *e) { visit((UnaExp *)e); }
+    virtual void visit(DotTemplateExp *e) { visit((UnaExp *)e); }
+    virtual void visit(DotVarExp *e) { visit((UnaExp *)e); }
+    virtual void visit(DotTemplateInstanceExp *e) { visit((UnaExp *)e); }
+    virtual void visit(DelegateExp *e) { visit((UnaExp *)e); }
+    virtual void visit(DotTypeExp *e) { visit((UnaExp *)e); }
+    virtual void visit(CallExp *e) { visit((UnaExp *)e); }
+    virtual void visit(AddrExp *e) { visit((UnaExp *)e); }
+    virtual void visit(PtrExp *e) { visit((UnaExp *)e); }
+    virtual void visit(NegExp *e) { visit((UnaExp *)e); }
+    virtual void visit(UAddExp *e) { visit((UnaExp *)e); }
+    virtual void visit(ComExp *e) { visit((UnaExp *)e); }
+    virtual void visit(NotExp *e) { visit((UnaExp *)e); }
+    virtual void visit(BoolExp *e) { visit((UnaExp *)e); }
+    virtual void visit(DeleteExp *e) { visit((UnaExp *)e); }
+    virtual void visit(CastExp *e) { visit((UnaExp *)e); }
+    virtual void visit(VectorExp *e) { visit((UnaExp *)e); }
+    virtual void visit(SliceExp *e) { visit((UnaExp *)e); }
+    virtual void visit(ArrayLengthExp *e) { visit((UnaExp *)e); }
+    virtual void visit(ArrayExp *e) { visit((UnaExp *)e); }
+    virtual void visit(DotExp *e) { visit((BinExp *)e); }
+    virtual void visit(CommaExp *e) { visit((BinExp *)e); }
+    virtual void visit(IndexExp *e) { visit((BinExp *)e); }
+    virtual void visit(PostExp *e) { visit((BinExp *)e); }
+    virtual void visit(PreExp *e) { visit((UnaExp *)e); }
+    virtual void visit(AssignExp *e) { visit((BinExp *)e); }
+    virtual void visit(ConstructExp *e) { visit((AssignExp *)e); }
+    virtual void visit(AddAssignExp *e) { visit((BinAssignExp *)e); }
+    virtual void visit(MinAssignExp *e) { visit((BinAssignExp *)e); }
+    virtual void visit(MulAssignExp *e) { visit((BinAssignExp *)e); }
+    virtual void visit(DivAssignExp *e) { visit((BinAssignExp *)e); }
+    virtual void visit(ModAssignExp *e) { visit((BinAssignExp *)e); }
+    virtual void visit(AndAssignExp *e) { visit((BinAssignExp *)e); }
+    virtual void visit(OrAssignExp *e) { visit((BinAssignExp *)e); }
+    virtual void visit(XorAssignExp *e) { visit((BinAssignExp *)e); }
+    virtual void visit(PowAssignExp *e) { visit((BinAssignExp *)e); }
+    virtual void visit(ShlAssignExp *e) { visit((BinAssignExp *)e); }
+    virtual void visit(ShrAssignExp *e) { visit((BinAssignExp *)e); }
+    virtual void visit(UshrAssignExp *e) { visit((BinAssignExp *)e); }
+    virtual void visit(CatAssignExp *e) { visit((BinAssignExp *)e); }
+    virtual void visit(AddExp *e) { visit((BinExp *)e); }
+    virtual void visit(MinExp *e) { visit((BinExp *)e); }
+    virtual void visit(CatExp *e) { visit((BinExp *)e); }
+    virtual void visit(MulExp *e) { visit((BinExp *)e); }
+    virtual void visit(DivExp *e) { visit((BinExp *)e); }
+    virtual void visit(ModExp *e) { visit((BinExp *)e); }
+    virtual void visit(PowExp *e) { visit((BinExp *)e); }
+    virtual void visit(ShlExp *e) { visit((BinExp *)e); }
+    virtual void visit(ShrExp *e) { visit((BinExp *)e); }
+    virtual void visit(UshrExp *e) { visit((BinExp *)e); }
+    virtual void visit(AndExp *e) { visit((BinExp *)e); }
+    virtual void visit(OrExp *e) { visit((BinExp *)e); }
+    virtual void visit(XorExp *e) { visit((BinExp *)e); }
+    virtual void visit(OrOrExp *e) { visit((BinExp *)e); }
+    virtual void visit(AndAndExp *e) { visit((BinExp *)e); }
+    virtual void visit(CmpExp *e) { visit((BinExp *)e); }
+    virtual void visit(InExp *e) { visit((BinExp *)e); }
+    virtual void visit(RemoveExp *e) { visit((BinExp *)e); }
+    virtual void visit(EqualExp *e) { visit((BinExp *)e); }
+    virtual void visit(IdentityExp *e) { visit((BinExp *)e); }
+    virtual void visit(CondExp *e) { visit((BinExp *)e); }
+    virtual void visit(DefaultInitExp *e) { visit((Expression *)e); }
+    virtual void visit(FileInitExp *e) { visit((DefaultInitExp *)e); }
+    virtual void visit(LineInitExp *e) { visit((DefaultInitExp *)e); }
+    virtual void visit(ModuleInitExp *e) { visit((DefaultInitExp *)e); }
+    virtual void visit(FuncInitExp *e) { visit((DefaultInitExp *)e); }
+    virtual void visit(PrettyFuncInitExp *e) { visit((DefaultInitExp *)e); }
+    virtual void visit(ClassReferenceExp *e) { visit((Expression *)e); }
+    virtual void visit(VoidInitExp *e) { visit((Expression *)e); }
+    virtual void visit(ThrownExceptionExp *e) { visit((Expression *)e); }
 };
 
 #endif /* DMD_VISITOR_H */

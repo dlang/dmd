@@ -55,6 +55,7 @@ public:
     dt_t **toInstanceDt(dt_t **pdt);
     dt_t **toDt2(dt_t **pdt, ClassDeclaration *cd, Dts *dts);
     elem *toElem(IRState *irs);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 /// Return index of the field, or -1 if not found
@@ -72,6 +73,7 @@ public:
     VoidInitExp(VarDeclaration *var, Type *type);
     char *toChars();
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 
@@ -87,6 +89,7 @@ public:
     char *toChars();
     /// Generate an error message when this exception is not caught
     void generateUncaughtError();
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 

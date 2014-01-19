@@ -34,7 +34,6 @@ class VarDeclaration;
 class Condition;
 class Module;
 struct Token;
-struct InlineCostState;
 struct InlineDoState;
 struct InlineScanState;
 class ErrorStatement;
@@ -121,7 +120,6 @@ public:
     virtual void ctfeCompile(CompiledCtfeFunction *ccf);
     virtual Statement *last();
 
-    virtual int inlineCost(InlineCostState *ics);
     virtual Expression *doInline(InlineDoState *ids);
     virtual Statement *doInlineStatement(InlineDoState *ids);
     virtual Statement *inlineScan(InlineScanState *iss);
@@ -182,7 +180,6 @@ public:
     bool hasCodeImpl();
     Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
 
-    int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
     Statement *doInlineStatement(InlineDoState *ids);
     Statement *inlineScan(InlineScanState *iss);
@@ -239,7 +236,6 @@ public:
     void ctfeCompile(CompiledCtfeFunction *ccf);
     Statement *last();
 
-    int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
     Statement *doInlineStatement(InlineDoState *ids);
     Statement *inlineScan(InlineScanState *iss);
@@ -276,7 +272,6 @@ public:
     void ctfeCompile(CompiledCtfeFunction *ccf);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
-    int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
     Statement *doInlineStatement(InlineDoState *ids);
     Statement *inlineScan(InlineScanState *iss);
@@ -303,7 +298,6 @@ public:
     bool apply(sapply_fp_t fp, void *param);
     void ctfeCompile(CompiledCtfeFunction *ccf);
 
-    int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
     Statement *doInlineStatement(InlineDoState *ids);
     Statement *inlineScan(InlineScanState *iss);
@@ -381,7 +375,6 @@ public:
     void ctfeCompile(CompiledCtfeFunction *ccf);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
-    int inlineCost(InlineCostState *ics);
     Statement *inlineScan(InlineScanState *iss);
     Statement *doInlineStatement(InlineDoState *ids);
 
@@ -471,7 +464,6 @@ public:
     int blockExit(bool mustNotThrow);
     IfStatement *isIfStatement() { return this; }
 
-    int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
     Statement *doInlineStatement(InlineDoState *ids);
     Statement *inlineScan(InlineScanState *iss);
@@ -683,7 +675,6 @@ public:
     Expression *interpret(InterState *istate);
     void ctfeCompile(CompiledCtfeFunction *ccf);
 
-    int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
     Statement *doInlineStatement(InlineDoState *ids);
     Statement *inlineScan(InlineScanState *iss);
@@ -968,7 +959,6 @@ public:
 
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
-    //int inlineCost(InlineCostState *ics);
     //Expression *doInline(InlineDoState *ids);
     //Statement *inlineScan(InlineScanState *iss);
 
@@ -990,7 +980,6 @@ public:
 
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
-    int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
     Statement *doInlineStatement(InlineDoState *ids);
 
