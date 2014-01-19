@@ -4491,8 +4491,8 @@ int TypeSArray::hasPointers()
     //if (dim->toInteger() == 0)
         //return false;
 
+    // Arrays of void contain arbitrary data, which may include pointers
     if (next->ty == Tvoid)
-        // Arrays of void contain arbitrary data, which may include pointers
         return true;
     else
         return next->hasPointers();
@@ -6313,8 +6313,7 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
         else
         {
             //printf("%s of type %s implicitConvTo %s\n", arg->toChars(), targ->toChars(), tprm->toChars());
-            if (flag)
-                // for partial ordering, value is an irrelevant mockup, just look at the type
+            if (flag) // for partial ordering, value is an irrelevant mockup, just look at the type
                 m = targ->implicitConvTo(tprm);
             else
                 m = arg->implicitConvTo(tprm);

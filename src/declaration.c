@@ -1264,9 +1264,11 @@ Lnomatch:
         if (!init)
         {
             if (isField())
+            {
                 /* For fields, we'll check the constructor later to make sure it is initialized
                  */
                 storage_class |= STCnodefaultctor;
+            }
             else if (storage_class & STCparameter)
                 ;
             else

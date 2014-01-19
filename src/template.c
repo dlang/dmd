@@ -3685,8 +3685,7 @@ MATCH TypeInstance::deduceType(Scope *sc,
             if (i < tempinst->tiargs->dim)
                 o1 = (*tempinst->tiargs)[i];
             else if (i < tempinst->tdtypes.dim && i < tp->tempinst->tiargs->dim)
-                // Pick up default arg
-                o1 = tempinst->tdtypes[i];
+                o1 = tempinst->tdtypes[i]; // Pick up default arg
             else if (i >= tp->tempinst->tiargs->dim)
                 break;
 
@@ -4999,8 +4998,7 @@ MATCH TemplateTupleParameter::matchArg(Loc loc, Scope *sc, Objects *tiargs,
     Tuple *ovar;
 
     if ((*dedtypes)[i] && isTuple((*dedtypes)[i]))
-        // It was already been deduced
-        ovar = isTuple((*dedtypes)[i]);
+        ovar = isTuple((*dedtypes)[i]); // It has already been deduced
     else if (i + 1 == tiargs->dim && isTuple((*tiargs)[i]))
         ovar = isTuple((*tiargs)[i]);
     else
