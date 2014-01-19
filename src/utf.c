@@ -67,12 +67,16 @@ char const UTF16_DECODE_INVALID_CODE_POINT[]= "Invalid code point decoded";
 bool utf_isValidDchar(dchar_t c)
 {
     // TODO: Whether non-char code points should be rejected is pending review
-    return c <= 0x10FFFF                        // largest character code point
-        && !(0xD800 <= c && c <= 0xDFFF)        // surrogate pairs
-        && (c & 0xFFFFFE) != 0x00FFFE           // non-characters
-//        && (c & 0xFFFE) != 0xFFFE               // non-characters
-//        && !(0x00FDD0 <= c && c <= 0x00FDEF)    // non-characters
-        ;
+    // largest character code point
+    if (c > 0x10FFFF)
+        return false;
+    // surrogate pairs
+    if (0xD800 <= c && c <= 0xDFFF)
+        return false;
+    // non-characters
+    if ((c & 0xFFFFFE) == 0x00FFFE)
+        return false;
+    return true;
 }
 
 /*******************************

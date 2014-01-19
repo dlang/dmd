@@ -2853,7 +2853,7 @@ uinteger_t getMask(uinteger_t v)
     v |= v >> 8;
     v |= v >> 16;
     v |= v >> 32;
-    return v /* | 0xff*/;
+    return v;
 }
 IntRange Expression::getIntRange()
 {

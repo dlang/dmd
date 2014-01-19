@@ -3284,12 +3284,11 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
     bool wantRef = false;
     bool wantLvalueRef = false;
 
+     //  e = *x is never a reference, because *x is always a value
     if (!fp && this->e1->type->toBasetype()->equals(this->e2->type->toBasetype()) &&
         (e1->type->toBasetype()->ty == Tarray || isAssocArray(e1->type)
              || e1->type->toBasetype()->ty == Tclass)
-         //  e = *x is never a reference, because *x is always a value
-         && this->e2->op != TOKstar
-        )
+         && this->e2->op != TOKstar)
     {
 #if DMDV2
         wantRef = true;

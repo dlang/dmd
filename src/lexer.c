@@ -1893,15 +1893,11 @@ TOK Lexer::number(Token *t)
                 break;
 
             case '.':
-                if (p[1] == '.' ||                      // if ".."
-                    (isalpha(p[1]) || p[1] == '_' ||    // if ".identifier"
-                      (p[1] & 0x80)                     // if ".unicode"
-                    )
-                   )
-                {
-                    goto Ldone;         // regard . as start of separate token
-                }
-                goto Lreal;
+                if (p[1] == '.')
+                    goto Ldone; // if ".."
+                if (isalpha(p[1]) || p[1] == '_' || p[1] & 0x80)
+                    goto Ldone; // if ".identifier" or ".unicode"
+                goto Lreal; // '.' is part of current token
 
             case 'i':
             case 'f':
@@ -1979,16 +1975,11 @@ TOK Lexer::number(Token *t)
                 goto Ldone;
 
             case '.':
-                if (p[1] == '.' ||                      // if ".."
-                    base == 10 &&
-                    (isalpha(p[1]) || p[1] == '_' ||    // if ".identifier"
-                      (p[1] & 0x80)                     // if ".unicode"
-                    )
-                   )
-                {
-                    goto Ldone;         // regard . as start of separate token
-                }
-                goto Lreal;             // otherwise as part of a floating point literal
+                if (p[1] == '.')
+                    goto Ldone; // if ".."
+                if (base == 10 && (isalpha(p[1]) || p[1] == '_' || p[1] & 0x80))
+                    goto Ldone; // if ".identifier" or ".unicode"
+                goto Lreal; // otherwise as part of a floating point literal
 
             case 'p':
             case 'P':
