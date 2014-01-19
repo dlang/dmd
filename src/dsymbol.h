@@ -163,7 +163,8 @@ public:
     TemplateInstance *isSpeculative();
     Ungag ungagSpeculative();
 
-    int dyncast() { return DYNCAST_DSYMBOL; }   // kludge for template.isSymbol()
+    // kludge for template.isSymbol()
+    int dyncast() { return DYNCAST_DSYMBOL; }
 
     static Dsymbols *arraySyntaxCopy(Dsymbols *a);
 
