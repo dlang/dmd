@@ -2025,7 +2025,7 @@ Expression *Expression::interpret(InterState *istate, CtfeGoal goal)
 #if LOG
     printf("%s Expression::interpret() %s\n", loc.toChars(), toChars());
     printf("type = %s\n", type->toChars());
-    dump(0);
+    print();
 #endif
     error("Cannot interpret %s at compile time", toChars());
     return EXP_CANT_INTERPRET;

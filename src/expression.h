@@ -132,7 +132,6 @@ public:
 
     void print();
     char *toChars();
-    virtual void dump(int indent);
     void error(const char *format, ...);
     void warning(const char *format, ...);
     void deprecation(const char *format, ...);
@@ -227,7 +226,6 @@ public:
     Expression *semantic(Scope *sc);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     char *toChars();
-    void dump(int indent);
     IntRange getIntRange();
     dinteger_t toInteger();
     real_t toReal();
@@ -313,7 +311,6 @@ public:
     static IdentifierExp *create(Loc loc, Identifier *ident);
     Expression *semantic(Scope *sc);
     char *toChars();
-    void dump(int indent);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
@@ -334,7 +331,6 @@ public:
     DsymbolExp(Loc loc, Dsymbol *s, bool hasOverloads = false);
     Expression *semantic(Scope *sc);
     char *toChars();
-    void dump(int indent);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
@@ -713,7 +709,6 @@ public:
     Expression *semantic(Scope *sc);
     Expression *optimize(int result, bool keepLvalue = false);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
-    void dump(int indent);
     char *toChars();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void checkEscape();
@@ -860,7 +855,6 @@ public:
     Expression *semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Expression *optimize(int result, bool keepLvalue = false);
-    void dump(int indent);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     Expression *resolveLoc(Loc loc, Scope *sc);
 
@@ -894,7 +888,6 @@ public:
     Expression *optimize(int result, bool keepLvalue = false);
     int isunsigned();
     Expression *incompatibleTypes();
-    void dump(int indent);
 
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     Expression *interpretCommon(InterState *istate, CtfeGoal goal, fp_t fp);
@@ -986,7 +979,6 @@ public:
     Expression *semanticX(Scope *sc);
     Expression *semanticY(Scope *sc, int flag);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    void dump(int i);
 };
 
 class DotTemplateExp : public UnaExp
@@ -1013,7 +1005,6 @@ public:
     Expression *optimize(int result, bool keepLvalue = false);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    void dump(int indent);
     elem *toElem(IRState *irs);
 };
 
@@ -1028,7 +1019,6 @@ public:
     Expression *semantic(Scope *sc);
     Expression *semanticY(Scope *sc, int flag);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    void dump(int indent);
 };
 
 class DelegateExp : public UnaExp
@@ -1043,7 +1033,6 @@ public:
     MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    void dump(int indent);
 
     int inlineCost3(InlineCostState *ics);
     elem *toElem(IRState *irs);
@@ -1081,7 +1070,6 @@ public:
     Expression *optimize(int result, bool keepLvalue = false);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    void dump(int indent);
     elem *toElem(IRState *irs);
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
@@ -1264,7 +1252,6 @@ public:
     Expression *castTo(Scope *sc, Type *t);
     Expression *optimize(int result, bool keepLvalue = false);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
-    void dump(int indent);
     elem *toElem(IRState *irs);
     void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
     Expression *buildArrayLoop(Parameters *fparams);

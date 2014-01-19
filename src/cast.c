@@ -2163,7 +2163,7 @@ bool isVoidArrayLiteral(Expression *e, Type *other)
 int typeMerge(Scope *sc, Expression *e, Type **pt, Expression **pe1, Expression **pe2)
 {
     //printf("typeMerge() %s op %s\n", (*pe1)->toChars(), (*pe2)->toChars());
-    //e->dump(0);
+    //e->print();
 
     MATCH m;
     Expression *e1 = *pe1;
@@ -2230,7 +2230,7 @@ Lagain:
         e1 = e1->castTo(sc, t1);
         e2 = e2->castTo(sc, t2);
         //printf("after typeCombine():\n");
-        //dump(0);
+        //print();
         //printf("ty = %d, ty1 = %d, ty2 = %d\n", ty, ty1, ty2);
         goto Lret;
     }
@@ -2726,7 +2726,7 @@ Lret:
     if (e2->type) printf("\tt2 = %s\n", e2->type->toChars());
     printf("\ttype = %s\n", t->toChars());
 #endif
-    //dump(0);
+    //print();
     return 1;
 
 

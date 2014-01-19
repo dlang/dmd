@@ -493,7 +493,7 @@ Expression *TraitsExp::semantic(Scope *sc)
 
             /* Create tuple of functions of e
              */
-            //e->dump(0);
+            //e->print();
             Expressions *exps = new Expressions();
             FuncDeclaration *f;
             if (e->op == TOKvar)

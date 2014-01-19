@@ -2267,7 +2267,7 @@ elem *CmpExp::toElem(IRState *irs)
         case TOKug:     eop = OPug;     break;
         case TOKue:     eop = OPue;     break;
         default:
-            dump(0);
+            print();
             assert(0);
     }
     if (!t1->isfloating())
@@ -2338,7 +2338,7 @@ elem *EqualExp::toElem(IRState *irs)
         case TOKequal:          eop = OPeqeq;   break;
         case TOKnotequal:       eop = OPne;     break;
         default:
-            dump(0);
+            print();
             assert(0);
     }
 
@@ -2477,7 +2477,7 @@ elem *IdentityExp::toElem(IRState *irs)
         case TOKidentity:       eop = OPeqeq;   break;
         case TOKnotidentity:    eop = OPne;     break;
         default:
-            dump(0);
+            print();
             assert(0);
     }
 

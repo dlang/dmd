@@ -3966,7 +3966,6 @@ Statement *ReturnStatement::semantic(Scope *sc)
         }
         else
         {
-            //exp->dump(0);
             //exp->print();
             exp->checkEscape();
         }

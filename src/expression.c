@@ -1826,7 +1826,7 @@ void expToCBuffer(OutBuffer *buf, HdrGenState *hgs, Expression *e, PREC pr)
     assert(precedence[e->op] != PREC_zero);
     assert(pr != PREC_zero);
 
-    //if (precedence[e->op] == 0) e->dump(0);
+    //if (precedence[e->op] == 0) e->print();
     if (precedence[e->op] < pr ||
         /* Despite precedence, we don't allow a<b<c expressions.
          * They must be parenthesized.
@@ -1938,7 +1938,7 @@ void Expression::init()
 Expression *Expression::syntaxCopy()
 {
     //printf("Expression::syntaxCopy()\n");
-    //dump(0);
+    //print();
     return copy();
 }
 
@@ -1954,7 +1954,7 @@ Expression *Expression::copy()
 #ifdef DEBUG
         fprintf(stderr, "No expression copy for: %s\n", toChars());
         printf("op = %d\n", op);
-        dump(0);
+        print();
 #endif
         assert(0);
     }
@@ -2056,7 +2056,7 @@ int Expression::rvalue(bool allowVoid)
     {
         error("expression %s is void and has no value", toChars());
 #if 0
-        dump(0);
+        print();
         halt();
 #endif
         if (!global.gag)
@@ -2490,7 +2490,7 @@ Expression *Expression::checkToBoolean(Scope *sc)
 
 #ifdef DEBUG
     if (!type)
-        dump(0);
+        print();
     assert(type);
 #endif
 
