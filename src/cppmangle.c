@@ -74,7 +74,6 @@ class CppMangleVisitor : public Visitor
                 return 1;
             }
         }
-        components.push(p);
         return 0;
     }
 
@@ -107,10 +106,10 @@ class CppMangleVisitor : public Visitor
         {
             Dsymbol *p = s->toParent();
             if (p && !p->isModule())
-            {
                 prefix_name(p);
-            }
+
             source_name(s);
+            store(s);
         }
     }
 
@@ -166,8 +165,10 @@ public:
          * u <source-name>
          */
         if (!substitute(t))
-        {   assert(t->deco);
+        {
+            assert(t->deco);
             buf.printf("u%d%s", strlen(t->deco), t->deco);
+            store(t);
         }
     }
 
@@ -232,6 +233,7 @@ public:
         {
             if (substitute(t))
                 return;
+            store(t);
         }
 
         if (t->isConst())
@@ -250,6 +252,7 @@ public:
         {
             buf.writestring("U8__vector");
             t->basetype->accept(this);
+            store(t);
         }
     }
 
@@ -259,6 +262,7 @@ public:
         {
             buf.printf("A%llu_", t->dim ? t->dim->toInteger() : 0);
             t->next->accept(this);
+            store(t);
         }
     }
 
@@ -347,7 +351,10 @@ public:
                 buf.writeByte('K');
 
             if (!substitute(t->sym))
+            {
                 cpp_mangle_name(t->sym);
+                store(t->sym);
+            }
 
             if (t->isConst())
                 store(t);
@@ -364,7 +371,10 @@ public:
                 buf.writeByte('K');
 
             if (!substitute(t->sym))
+            {
                 cpp_mangle_name(t->sym);
+                store(t->sym);
+            }
 
             if (t->isConst())
                 store(t);
@@ -385,7 +395,10 @@ public:
             buf.writeByte('P');
 
             if (!substitute(t->sym))
+            {
                 cpp_mangle_name(t->sym);
+                store(t->sym);
+            }
 
             store(t);
         }
