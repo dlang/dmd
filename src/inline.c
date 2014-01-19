@@ -193,7 +193,7 @@ public:
         //printf("expressionInlineCost()\n");
         //e->print();
         if (e)
-            e->apply(&lambdaInlineCost, this);
+            e->apply(&lambdaInlineCost, (void *)this);
     }
 
     void visit(Expression *e)
