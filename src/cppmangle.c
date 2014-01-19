@@ -90,15 +90,13 @@ class CppMangleVisitor : public Visitor
 
     void prefix_name(Dsymbol *s)
     {
-        if (!substitute(s))
-        {
-            Dsymbol *p = s->toParent();
-            if (p && !p->isModule())
-                prefix_name(p);
-
-            source_name(s);
-            store(s);
-        }
+        if (substitute(s))
+            return;
+        Dsymbol *p = s->toParent();
+        if (p && !p->isModule())
+            prefix_name(p);
+        source_name(s);
+        store(s);
     }
 
 public:
@@ -152,12 +150,11 @@ public:
          * C++ analog.
          * u <source-name>
          */
-        if (!substitute(t))
-        {
-            assert(t->deco);
-            buf.printf("u%d%s", strlen(t->deco), t->deco);
-            store(t);
-        }
+        if (substitute(t))
+            return;
+        assert(t->deco);
+        buf.printf("u%d%s", strlen(t->deco), t->deco);
+        store(t);
     }
 
     void visit(TypeBasic *t)
@@ -236,22 +233,20 @@ public:
 
     void visit(TypeVector *t)
     {
-        if (!substitute(t))
-        {
-            buf.writestring("U8__vector");
-            t->basetype->accept(this);
-            store(t);
-        }
+        if (substitute(t))
+            return;
+        buf.writestring("U8__vector");
+        t->basetype->accept(this);
+        store(t);
     }
 
     void visit(TypeSArray *t)
     {
-        if (!substitute(t))
-        {
-            buf.printf("A%llu_", t->dim ? t->dim->toInteger() : 0);
-            t->next->accept(this);
-            store(t);
-        }
+        if (substitute(t))
+            return;
+        buf.printf("A%llu_", t->dim ? t->dim->toInteger() : 0);
+        t->next->accept(this);
+        store(t);
     }
 
     void visit(TypeDArray *t)
@@ -266,22 +261,20 @@ public:
 
     void visit(TypePointer *t)
     {
-        if (!substitute(t))
-        {
-            buf.writeByte('P');
-            t->next->accept(this);
-            store(t);
-        }
+        if (substitute(t))
+            return;
+        buf.writeByte('P');
+        t->next->accept(this);
+        store(t);
     }
 
     void visit(TypeReference *t)
     {
-        if (!substitute(t))
-        {
-            buf.writeByte('R');
-            t->next->accept(this);
-            store(t);
-        }
+        if (substitute(t))
+            return;
+        buf.writeByte('R');
+        t->next->accept(this);
+        store(t);
     }
 
     void visit(TypeFunction *t)
@@ -308,16 +301,15 @@ public:
             TypeFunctions for non-static member functions, and non-static
             member functions of different classes.
          */
-        if (!substitute(t))
-        {
-            buf.writeByte('F');
-            if (t->linkage == LINKc)
-                buf.writeByte('Y');
-            t->next->accept(this);
-            argsCppMangle(t->parameters, t->varargs);
-            buf.writeByte('E');
-            store(t);
-        }
+        if (substitute(t))
+            return;
+        buf.writeByte('F');
+        if (t->linkage == LINKc)
+            buf.writeByte('Y');
+        t->next->accept(this);
+        argsCppMangle(t->parameters, t->varargs);
+        buf.writeByte('E');
+        store(t);
     }
 
     void visit(TypeDelegate *t)
@@ -327,38 +319,32 @@ public:
 
     void visit(TypeStruct *t)
     {
-        if (!substitute(t))
+        if (substitute(t))
+            return;
+        if (t->isConst())
+            buf.writeByte('K');
+        if (!substitute(t->sym))
         {
-            if (t->isConst())
-                buf.writeByte('K');
-
-            if (!substitute(t->sym))
-            {
-                cpp_mangle_name(t->sym);
-                store(t->sym);
-            }
-
-            if (t->isConst())
-                store(t);
+            cpp_mangle_name(t->sym);
+            store(t->sym);
         }
+        if (t->isConst())
+            store(t);
     }
 
     void visit(TypeEnum *t)
     {
-        if (!substitute(t))
+        if (substitute(t))
+            return;
+        if (t->isConst())
+            buf.writeByte('K');
+        if (!substitute(t->sym))
         {
-            if (t->isConst())
-                buf.writeByte('K');
-
-            if (!substitute(t->sym))
-            {
-                cpp_mangle_name(t->sym);
-                store(t->sym);
-            }
-
-            if (t->isConst())
-                store(t);
+            cpp_mangle_name(t->sym);
+            store(t->sym);
         }
+        if (t->isConst())
+            store(t);
     }
 
     void visit(TypeTypedef *t)
@@ -368,18 +354,15 @@ public:
 
     void visit(TypeClass *t)
     {
-        if (!substitute(t))
+        if (substitute(t))
+            return;
+        buf.writeByte('P');
+        if (!substitute(t->sym))
         {
-            buf.writeByte('P');
-
-            if (!substitute(t->sym))
-            {
-                cpp_mangle_name(t->sym);
-                store(t->sym);
-            }
-
-            store(t);
+            cpp_mangle_name(t->sym);
+            store(t->sym);
         }
+        store(t);
     }
 
     struct ArgsCppMangleCtx
