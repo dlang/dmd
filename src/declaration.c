@@ -1386,9 +1386,9 @@ Lnomatch:
                         onstack = 2;
                 }
             }
-            // or a delegate that doesn't escape a reference to the function
             else if (ei->exp->op == TOKfunction)
             {
+                // or a delegate that doesn't escape a reference to the function
                 FuncDeclaration *f = ((FuncExp *)ei->exp)->fd;
                 f->tookAddressOf--;
             }

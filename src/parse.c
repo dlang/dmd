@@ -1091,15 +1091,15 @@ Condition *Parser::parseVersionCondition()
     if (token.value == TOKlparen)
     {
         nextToken();
-        if (token.value == TOKidentifier)
-            id = token.ident;
-        else if (token.value == TOKint32v || token.value == TOKint64v)
-            level = (unsigned)token.uns64value;
         /* Allow:
          *    version (unittest)
          *    version (assert)
          * even though they are keywords
          */
+        if (token.value == TOKidentifier)
+            id = token.ident;
+        else if (token.value == TOKint32v || token.value == TOKint64v)
+            level = (unsigned)token.uns64value;
         else if (token.value == TOKunittest)
             id = Lexer::idPool(Token::toChars(TOKunittest));
         else if (token.value == TOKassert)
@@ -2894,11 +2894,11 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident, TemplateParameters *
                         // Gather template parameter list
                         *tpl = parseTemplateParameterList();
                     }
-                    /* or (...) =,
-                     * i.e. a variable template declaration
-                     */
                     else if (tk->value == TOKassign)
                     {
+                        /* or (...) =,
+                         * i.e. a variable template declaration
+                         */
                         //printf("variable template declaration\n");
                         *tpl = parseTemplateParameterList();
                         break;
@@ -4445,11 +4445,11 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
                 check(TOKassign);
                 arg = new Parameter(storageClass, at, ai, NULL);
             }
-            // Check for " ident;"
             else if (storageClass == 0 &&
                      token.value == TOKidentifier &&
                      peek(&token)->value == TOKsemicolon)
             {
+                // Check for " ident;"
                 arg = new Parameter(0, NULL, token.ident, NULL);
                 nextToken();
                 nextToken();

@@ -819,10 +819,9 @@ Expression *resolveUFCS(Scope *sc, CallExp *ce)
                 {
                     unsigned errors = global.startGagging();
                     e = ce->syntaxCopy()->semantic(sc);
-                    if (global.endGagging(errors))
-                    {}  /* fall down to UFCS */
-                    else
+                    if (!global.endGagging(errors))
                         return e;
+                    /* fall down to UFCS */
                 }
                 else
                     return NULL;
@@ -1658,13 +1657,13 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                 {   FuncExp *fe = (FuncExp *)a;
                     fe->fd->tookAddressOf = 0;
                 }
-
-                /* For passing a delegate to a scoped parameter,
-                 * this doesn't count as taking the address of it.
-                 * We only worry about 'escaping' references to the function.
-                 */
                 else if (a->op == TOKdelegate)
-                {   DelegateExp *de = (DelegateExp *)a;
+                {
+                    /* For passing a delegate to a scoped parameter,
+                     * this doesn't count as taking the address of it.
+                     * We only worry about 'escaping' references to the function.
+                     */
+                    DelegateExp *de = (DelegateExp *)a;
                     if (de->e1->op == TOKvar)
                     {   VarExp *ve = (VarExp *)de->e1;
                         FuncDeclaration *f = ve->var->isFuncDeclaration();
@@ -11780,11 +11779,11 @@ Ltupleassign:
             assert(op != TOKassign);
         //error("cannot assign to static array %s", e1->toChars());
     }
-    // Check element-wise assignment.
     else if (e1->op == TOKslice &&
              (t2->ty == Tarray || t2->ty == Tsarray) &&
              t2->nextOf()->implicitConvTo(t1->nextOf()))
     {
+        // Check element-wise assignment.
         /* If assigned elements number is known at compile time,
          * check the mismatch.
          */

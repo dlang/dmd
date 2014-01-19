@@ -5458,7 +5458,9 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 
     // Copy the syntax trees from the TemplateDeclaration
     if (members && speculative && !errors)
-    {}  // Don't copy again so they were previously created.
+    {
+        // Don't copy again so they were previously created.
+    }
     else
         members = Dsymbol::arraySyntaxCopy(tempdecl->members);
 
@@ -7421,7 +7423,9 @@ void TemplateMixin::semantic(Scope *sc)
 
     // Copy the syntax trees from the TemplateDeclaration
     if (scx && members && !errors)
-    {}  // Don't copy again so they were previously created.
+    {
+        // Don't copy again so they were previously created.
+    }
     else
         members = Dsymbol::arraySyntaxCopy(tempdecl->members);
     if (!members)

@@ -250,8 +250,6 @@ MATCH IntegerExp::implicitConvTo(Type *t)
         case Tint8:
             if (ty == Tuns64 && value & ~0x7FUL)
                 goto Lno;
-            //else if (ty == Tint64 && 0x7FUL < value && value < ~0x7FUL)
-            //    goto Lno;
             else if ((signed char)value != value)
                 goto Lno;
             goto Lyes;
@@ -268,8 +266,6 @@ MATCH IntegerExp::implicitConvTo(Type *t)
         case Tint16:
             if (ty == Tuns64 && value & ~0x7FFFUL)
                 goto Lno;
-            //else if (ty == Tint64 && 0x7FFFUL < value && value < ~0x7FFFUL)
-            //    goto Lno;
             else if ((short)value != value)
                 goto Lno;
             goto Lyes;
@@ -288,8 +284,6 @@ MATCH IntegerExp::implicitConvTo(Type *t)
             }
             else if (ty == Tuns64 && value & ~0x7FFFFFFFUL)
                 goto Lno;
-            //else if (ty == Tint64 && 0x7FFFFFFFUL < value && value < ~0x7FFFFFFFUL)
-            //    goto Lno;
             else if ((int)value != value)
                 goto Lno;
             goto Lyes;
@@ -2382,14 +2376,14 @@ Lagain:
             goto Lt2;
         goto Lt1;
     }
-    /* If one is mutable and the other invariant, then retry
-     * with both of them as const
-     */
     else if ((t1->ty == Tsarray || t1->ty == Tarray || t1->ty == Tpointer) &&
              (t2->ty == Tsarray || t2->ty == Tarray || t2->ty == Tpointer) &&
              t1->nextOf()->mod != t2->nextOf()->mod
             )
     {
+        /* If one is mutable and the other invariant, then retry
+         * with both of them as const
+         */
         Type *t1n = t1->nextOf();
         Type *t2n = t2->nextOf();
         unsigned char mod;

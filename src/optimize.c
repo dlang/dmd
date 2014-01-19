@@ -857,17 +857,17 @@ Expression *PowExp::optimize(int result, bool keepLvalue)
     {
         e = new CommaExp(loc, e2, e1);
     }
-    // Replace -1 ^^ x by (x&1) ? -1 : 1, where x is integral
     else if (e2->type->isintegral() && e1->op == TOKint64 && (sinteger_t)e1->toInteger() == -1L)
     {
+        // Replace -1 ^^ x by (x&1) ? -1 : 1, where x is integral
         Type* resultType = type;
         e = new AndExp(loc, e2, new IntegerExp(loc, 1, e2->type));
         e = new CondExp(loc, e, new IntegerExp(loc, -1L, resultType), new IntegerExp(loc, 1L, resultType));
     }
-    // Replace x ^^ 0 or x^^0.0 by (x, 1)
     else if ((e2->op == TOKint64 && e2->toInteger() == 0) ||
              (e2->op == TOKfloat64 && e2->toReal() == 0.0))
     {
+        // Replace x ^^ 0 or x^^0.0 by (x, 1)
         if (e1->type->isintegral())
             e = new IntegerExp(loc, 1, e1->type);
         else
@@ -875,20 +875,20 @@ Expression *PowExp::optimize(int result, bool keepLvalue)
 
         e = new CommaExp(loc, e1, e);
     }
-    // Replace x ^^ 1 or x^^1.0 by (x)
     else if ((e2->op == TOKint64 && e2->toInteger() == 1) ||
              (e2->op == TOKfloat64 && e2->toReal() == 1.0))
     {
+        // Replace x ^^ 1 or x^^1.0 by (x)
         e = e1;
     }
-    // Replace x ^^ -1.0 by (1.0 / x)
     else if ((e2->op == TOKfloat64 && e2->toReal() == -1.0))
     {
+        // Replace x ^^ -1.0 by (1.0 / x)
         e = new DivExp(loc, new RealExp(loc, ldouble(1.0), e2->type), e1);
     }
-    // All other negative integral powers are illegal
     else if ((e1->type->isintegral()) && (e2->op == TOKint64) && (sinteger_t)e2->toInteger() < 0)
     {
+        // All other negative integral powers are illegal
         error("cannot raise %s to a negative integer power. Did you mean (cast(real)%s)^^%s ?",
               e1->type->toBasetype()->toChars(), e1->toChars(), e2->toChars());
         e = new ErrorExp();

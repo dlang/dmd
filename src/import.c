@@ -52,15 +52,21 @@ Import::Import(Loc loc, Identifiers *packages, Identifier *id, Identifier *alias
     this->mod = NULL;
 
     // Set symbol name (bracketed)
-    // import [cstdio] = std.stdio;
     if (aliasId)
+    {
+        // import [cstdio] = std.stdio;
         this->ident = aliasId;
-    // import [std].stdio;
+    }
     else if (packages && packages->dim)
+    {
+        // import [std].stdio;
         this->ident = (*packages)[0];
-    // import [foo];
+    }
     else
+    {
+        // import [foo];
         this->ident = id;
+    }
 }
 
 void Import::addAlias(Identifier *name, Identifier *alias)
