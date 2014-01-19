@@ -3035,13 +3035,13 @@ IntRange AndExp::getIntRange()
     IntRange result;
     bool hasResult = false;
     if (has1pos && has2pos)
-        result.unionOrAssign(unsignedBitwiseAnd(ir1pos, ir2pos), /*ref*/hasResult);
+        result.unionOrAssign(unsignedBitwiseAnd(ir1pos, ir2pos), hasResult);
     if (has1pos && has2neg)
-        result.unionOrAssign(unsignedBitwiseAnd(ir1pos, ir2neg), /*ref*/hasResult);
+        result.unionOrAssign(unsignedBitwiseAnd(ir1pos, ir2neg), hasResult);
     if (has1neg && has2pos)
-        result.unionOrAssign(unsignedBitwiseAnd(ir1neg, ir2pos), /*ref*/hasResult);
+        result.unionOrAssign(unsignedBitwiseAnd(ir1neg, ir2pos), hasResult);
     if (has1neg && has2neg)
-        result.unionOrAssign(unsignedBitwiseAnd(ir1neg, ir2neg), /*ref*/hasResult);
+        result.unionOrAssign(unsignedBitwiseAnd(ir1neg, ir2neg), hasResult);
     assert(hasResult);
     return result.cast(type);
 }
@@ -3060,13 +3060,13 @@ IntRange OrExp::getIntRange()
     IntRange result;
     bool hasResult = false;
     if (has1pos && has2pos)
-        result.unionOrAssign(unsignedBitwiseOr(ir1pos, ir2pos), /*ref*/hasResult);
+        result.unionOrAssign(unsignedBitwiseOr(ir1pos, ir2pos), hasResult);
     if (has1pos && has2neg)
-        result.unionOrAssign(unsignedBitwiseOr(ir1pos, ir2neg), /*ref*/hasResult);
+        result.unionOrAssign(unsignedBitwiseOr(ir1pos, ir2neg), hasResult);
     if (has1neg && has2pos)
-        result.unionOrAssign(unsignedBitwiseOr(ir1neg, ir2pos), /*ref*/hasResult);
+        result.unionOrAssign(unsignedBitwiseOr(ir1neg, ir2pos), hasResult);
     if (has1neg && has2neg)
-        result.unionOrAssign(unsignedBitwiseOr(ir1neg, ir2neg), /*ref*/hasResult);
+        result.unionOrAssign(unsignedBitwiseOr(ir1neg, ir2neg), hasResult);
 
     assert(hasResult);
     return result.cast(type);
@@ -3086,13 +3086,13 @@ IntRange XorExp::getIntRange()
     IntRange result;
     bool hasResult = false;
     if (has1pos && has2pos)
-        result.unionOrAssign(unsignedBitwiseXor(ir1pos, ir2pos), /*ref*/hasResult);
+        result.unionOrAssign(unsignedBitwiseXor(ir1pos, ir2pos), hasResult);
     if (has1pos && has2neg)
-        result.unionOrAssign(unsignedBitwiseXor(ir1pos, ir2neg), /*ref*/hasResult);
+        result.unionOrAssign(unsignedBitwiseXor(ir1pos, ir2neg), hasResult);
     if (has1neg && has2pos)
-        result.unionOrAssign(unsignedBitwiseXor(ir1neg, ir2pos), /*ref*/hasResult);
+        result.unionOrAssign(unsignedBitwiseXor(ir1neg, ir2pos), hasResult);
     if (has1neg && has2neg)
-        result.unionOrAssign(unsignedBitwiseXor(ir1neg, ir2neg), /*ref*/hasResult);
+        result.unionOrAssign(unsignedBitwiseXor(ir1neg, ir2neg), hasResult);
 
     assert(hasResult);
     return result.cast(type);
