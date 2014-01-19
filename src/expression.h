@@ -198,11 +198,6 @@ public:
     virtual Expression *inlineScan(InlineScanState *iss);
     Expression *inlineCopy(Scope *sc);
 
-    // For operator overloading
-    virtual int isCommutative();
-    virtual Identifier *opId();
-    virtual Identifier *opId_r();
-
     // For array ops
     virtual void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
     virtual Expression *buildArrayLoop(Parameters *fparams);
@@ -1149,8 +1144,6 @@ public:
     Expression *optimize(int result, bool keepLvalue = false);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
 
-    // For operator overloading
-    Identifier *opId();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -1164,9 +1157,6 @@ public:
     Expression *buildArrayLoop(Parameters *fparams);
     IntRange getIntRange();
 
-    // For operator overloading
-    Identifier *opId();
-
     elem *toElem(IRState *irs);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1177,8 +1167,6 @@ public:
     UAddExp(Loc loc, Expression *e);
     Expression *semantic(Scope *sc);
 
-    // For operator overloading
-    Identifier *opId();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -1191,9 +1179,6 @@ public:
     void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
     Expression *buildArrayLoop(Parameters *fparams);
     IntRange getIntRange();
-
-    // For operator overloading
-    Identifier *opId();
 
     elem *toElem(IRState *irs);
     void accept(Visitor *v) { v->visit(this); }
@@ -1252,7 +1237,6 @@ public:
     elem *toElem(IRState *irs);
 
     // For operator overloading
-    Identifier *opId();
     Expression *op_overload(Scope *sc);
     dt_t **toDt(dt_t **pdt);
     void accept(Visitor *v) { v->visit(this); }
@@ -1338,7 +1322,6 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     // For operator overloading
-    Identifier *opId();
     Expression *op_overload(Scope *sc);
 
     Expression *doInline(InlineDoState *ids);
@@ -1411,7 +1394,6 @@ public:
     Expression *semantic(Scope *sc);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    Identifier *opId();    // For operator overloading
     elem *toElem(IRState *irs);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1436,7 +1418,6 @@ public:
     Expression *semantic(Scope *sc);
     Expression *checkToBoolean(Scope *sc);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
-    Identifier *opId();    // For operator overloading
     void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
     Expression *buildArrayLoop(Parameters *fparams);
 
@@ -1457,7 +1438,6 @@ class AddAssignExp : public BinAssignExp
 {
 public:
     AddAssignExp(Loc loc, Expression *e1, Expression *e2);
-    Identifier *opId();    /* For operator overloading */
     elem *toElem(IRState *irs);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1466,7 +1446,6 @@ class MinAssignExp : public BinAssignExp
 {
 public:
     MinAssignExp(Loc loc, Expression *e1, Expression *e2);
-    Identifier *opId();    /* For operator overloading */
     elem *toElem(IRState *irs);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1475,7 +1454,6 @@ class MulAssignExp : public BinAssignExp
 {
 public:
     MulAssignExp(Loc loc, Expression *e1, Expression *e2);
-    Identifier *opId();    /* For operator overloading */
     elem *toElem(IRState *irs);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1484,7 +1462,6 @@ class DivAssignExp : public BinAssignExp
 {
 public:
     DivAssignExp(Loc loc, Expression *e1, Expression *e2);
-    Identifier *opId();    /* For operator overloading */
     elem *toElem(IRState *irs);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1493,7 +1470,6 @@ class ModAssignExp : public BinAssignExp
 {
 public:
     ModAssignExp(Loc loc, Expression *e1, Expression *e2);
-    Identifier *opId();    /* For operator overloading */
     elem *toElem(IRState *irs);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1502,7 +1478,6 @@ class AndAssignExp : public BinAssignExp
 {
 public:
     AndAssignExp(Loc loc, Expression *e1, Expression *e2);
-    Identifier *opId();    /* For operator overloading */
     elem *toElem(IRState *irs);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1511,7 +1486,6 @@ class OrAssignExp : public BinAssignExp
 {
 public:
     OrAssignExp(Loc loc, Expression *e1, Expression *e2);
-    Identifier *opId();    /* For operator overloading */
     elem *toElem(IRState *irs);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1520,7 +1494,6 @@ class XorAssignExp : public BinAssignExp
 {
 public:
     XorAssignExp(Loc loc, Expression *e1, Expression *e2);
-    Identifier *opId();    /* For operator overloading */
     elem *toElem(IRState *irs);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1530,7 +1503,6 @@ class PowAssignExp : public BinAssignExp
 public:
     PowAssignExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
-    Identifier *opId();    /* For operator overloading */
     elem *toElem(IRState *irs);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1539,7 +1511,6 @@ class ShlAssignExp : public BinAssignExp
 {
 public:
     ShlAssignExp(Loc loc, Expression *e1, Expression *e2);
-    Identifier *opId();    /* For operator overloading */
     elem *toElem(IRState *irs);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1548,7 +1519,6 @@ class ShrAssignExp : public BinAssignExp
 {
 public:
     ShrAssignExp(Loc loc, Expression *e1, Expression *e2);
-    Identifier *opId();    /* For operator overloading */
     elem *toElem(IRState *irs);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1557,7 +1527,6 @@ class UshrAssignExp : public BinAssignExp
 {
 public:
     UshrAssignExp(Loc loc, Expression *e1, Expression *e2);
-    Identifier *opId();    /* For operator overloading */
     elem *toElem(IRState *irs);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1567,7 +1536,6 @@ class CatAssignExp : public BinAssignExp
 public:
     CatAssignExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
-    Identifier *opId();    /* For operator overloading */
     elem *toElem(IRState *irs);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1579,11 +1547,6 @@ public:
     Expression *semantic(Scope *sc);
     Expression *optimize(int result, bool keepLvalue = false);
     IntRange getIntRange();
-
-    // For operator overloading
-    int isCommutative();
-    Identifier *opId();
-    Identifier *opId_r();
 
     elem *toElem(IRState *irs);
     void accept(Visitor *v) { v->visit(this); }
@@ -1597,10 +1560,6 @@ public:
     Expression *optimize(int result, bool keepLvalue = false);
     IntRange getIntRange();
 
-    // For operator overloading
-    Identifier *opId();
-    Identifier *opId_r();
-
     elem *toElem(IRState *irs);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1612,10 +1571,6 @@ public:
     Expression *semantic(Scope *sc);
     Expression *optimize(int result, bool keepLvalue = false);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
-
-    // For operator overloading
-    Identifier *opId();
-    Identifier *opId_r();
 
     elem *toElem(IRState *irs);
     void accept(Visitor *v) { v->visit(this); }
@@ -1629,11 +1584,6 @@ public:
     Expression *optimize(int result, bool keepLvalue = false);
     IntRange getIntRange();
 
-    // For operator overloading
-    int isCommutative();
-    Identifier *opId();
-    Identifier *opId_r();
-
     elem *toElem(IRState *irs);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1645,10 +1595,6 @@ public:
     Expression *semantic(Scope *sc);
     Expression *optimize(int result, bool keepLvalue = false);
     IntRange getIntRange();
-
-    // For operator overloading
-    Identifier *opId();
-    Identifier *opId_r();
 
     elem *toElem(IRState *irs);
     void accept(Visitor *v) { v->visit(this); }
@@ -1662,10 +1608,6 @@ public:
     Expression *optimize(int result, bool keepLvalue = false);
     IntRange getIntRange();
 
-    // For operator overloading
-    Identifier *opId();
-    Identifier *opId_r();
-
     elem *toElem(IRState *irs);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1676,10 +1618,6 @@ public:
     PowExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
     Expression *optimize(int result, bool keepLvalue = false);
-
-    // For operator overloading
-    Identifier *opId();
-    Identifier *opId_r();
 
     elem *toElem(IRState *irs);
     void accept(Visitor *v) { v->visit(this); }
@@ -1693,10 +1631,6 @@ public:
     Expression *optimize(int result, bool keepLvalue = false);
     IntRange getIntRange();
 
-    // For operator overloading
-    Identifier *opId();
-    Identifier *opId_r();
-
     elem *toElem(IRState *irs);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1708,10 +1642,6 @@ public:
     Expression *semantic(Scope *sc);
     Expression *optimize(int result, bool keepLvalue = false);
     IntRange getIntRange();
-
-    // For operator overloading
-    Identifier *opId();
-    Identifier *opId_r();
 
     elem *toElem(IRState *irs);
     void accept(Visitor *v) { v->visit(this); }
@@ -1725,10 +1655,6 @@ public:
     Expression *optimize(int result, bool keepLvalue = false);
     IntRange getIntRange();
 
-    // For operator overloading
-    Identifier *opId();
-    Identifier *opId_r();
-
     elem *toElem(IRState *irs);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1740,11 +1666,6 @@ public:
     Expression *semantic(Scope *sc);
     Expression *optimize(int result, bool keepLvalue = false);
     IntRange getIntRange();
-
-    // For operator overloading
-    int isCommutative();
-    Identifier *opId();
-    Identifier *opId_r();
 
     elem *toElem(IRState *irs);
     void accept(Visitor *v) { v->visit(this); }
@@ -1759,11 +1680,6 @@ public:
     MATCH implicitConvTo(Type *t);
     IntRange getIntRange();
 
-    // For operator overloading
-    int isCommutative();
-    Identifier *opId();
-    Identifier *opId_r();
-
     elem *toElem(IRState *irs);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1776,11 +1692,6 @@ public:
     Expression *optimize(int result, bool keepLvalue = false);
     MATCH implicitConvTo(Type *t);
     IntRange getIntRange();
-
-    // For operator overloading
-    int isCommutative();
-    Identifier *opId();
-    Identifier *opId_r();
 
     elem *toElem(IRState *irs);
     void accept(Visitor *v) { v->visit(this); }
@@ -1818,8 +1729,6 @@ public:
     Expression *optimize(int result, bool keepLvalue = false);
 
     // For operator overloading
-    int isCommutative();
-    Identifier *opId();
     Expression *op_overload(Scope *sc);
 
     elem *toElem(IRState *irs);
@@ -1832,10 +1741,6 @@ public:
     InExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
-
-    // For operator overloading
-    Identifier *opId();
-    Identifier *opId_r();
 
     elem *toElem(IRState *irs);
     void accept(Visitor *v) { v->visit(this); }
@@ -1861,8 +1766,6 @@ public:
     Expression *optimize(int result, bool keepLvalue = false);
 
     // For operator overloading
-    int isCommutative();
-    Identifier *opId();
     Expression *op_overload(Scope *sc);
 
     elem *toElem(IRState *irs);

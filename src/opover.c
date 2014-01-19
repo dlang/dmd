@@ -39,19 +39,78 @@ static int inferApplyArgTypesY(TypeFunction *tf, Parameters *arguments, int flag
  * to fit operator overload.
  */
 
-int Expression::isCommutative()
+bool isCommutative(Expression *e)
 {
-    return false;       // default is no reverse
+    class CommutativeVisitor : public Visitor
+    {
+    public:
+        bool result;
+        void visit(Expression *e) { result = false; }
+        void visit(AddExp *e)     { result = true; }
+        void visit(MulExp *e)     { result = true; }
+        void visit(AndExp *e)     { result = true; }
+        void visit(OrExp *e)      { result = true; }
+        void visit(XorExp *e)     { result = true; }
+        void visit(EqualExp *e)   { result = true; }
+        void visit(CmpExp *e)     { result = true; }
+    };
+    CommutativeVisitor v;
+    e->accept(&v);
+    return v.result;
 }
 
 /***********************************
  * Get Identifier for operator overload.
  */
 
-Identifier *Expression::opId()
+static Identifier *opId(Expression *e)
 {
-    assert(0);
-    return NULL;
+    class OpIdVisitor : public Visitor
+    {
+    public:
+        Identifier *id;
+        void visit(Expression *e)    { assert(0); }
+        void visit(UAddExp *e)       { id = Id::uadd; }
+        void visit(NegExp *e)        { id = Id::neg; }
+        void visit(ComExp *e)        { id = Id::com; }
+        void visit(CastExp *e)       { id = Id::cast; }
+        void visit(InExp *e)         { id = Id::opIn; }
+        void visit(PostExp *e)       { id = (e->op == TOKplusplus) ? Id::postinc : Id::postdec; }
+        void visit(AddExp *e)        { id = Id::add; }
+        void visit(MinExp *e)        { id = Id::sub; }
+        void visit(MulExp *e)        { id = Id::mul; }
+        void visit(DivExp *e)        { id = Id::div; }
+        void visit(ModExp *e)        { id = Id::mod; }
+        void visit(PowExp *e)        { id = Id::pow; }
+        void visit(ShlExp *e)        { id = Id::shl; }
+        void visit(ShrExp *e)        { id = Id::shr; }
+        void visit(UshrExp *e)       { id = Id::ushr; }
+        void visit(AndExp *e)        { id = Id::iand; }
+        void visit(OrExp *e)         { id = Id::ior; }
+        void visit(XorExp *e)        { id = Id::ixor; }
+        void visit(CatExp *e)        { id = Id::cat; }
+        void visit(AssignExp *e)     { id = Id::assign; }
+        void visit(AddAssignExp *e)  { id = Id::addass; }
+        void visit(MinAssignExp *e)  { id = Id::subass; }
+        void visit(MulAssignExp *e)  { id = Id::mulass; }
+        void visit(DivAssignExp *e)  { id = Id::divass; }
+        void visit(ModAssignExp *e)  { id = Id::modass; }
+        void visit(AndAssignExp *e)  { id = Id::andass; }
+        void visit(OrAssignExp *e)   { id = Id::orass; }
+        void visit(XorAssignExp *e)  { id = Id::xorass; }
+        void visit(ShlAssignExp *e)  { id = Id::shlass; }
+        void visit(ShrAssignExp *e)  { id = Id::shrass; }
+        void visit(UshrAssignExp *e) { id = Id::ushrass; }
+        void visit(CatAssignExp *e)  { id = Id::catass; }
+        void visit(PowAssignExp *e)  { id = Id::powass; }
+        void visit(EqualExp *e)      { id = Id::eq; }
+        void visit(CmpExp *e)        { id = Id::cmp; }
+        void visit(ArrayExp *e)      { id = Id::index; }
+        void visit(PtrExp *e)        { id = Id::opStar; }
+    };
+    OpIdVisitor v;
+    e->accept(&v);
+    return v.id;
 }
 
 /***********************************
@@ -59,95 +118,32 @@ Identifier *Expression::opId()
  * NULL if not supported for this operator.
  */
 
-Identifier *Expression::opId_r()
+static Identifier *opId_r(Expression *e)
 {
-    return NULL;
+    class OpIdRVisitor : public Visitor
+    {
+    public:
+        Identifier *id;
+        void visit(Expression *e) { id = NULL; }
+        void visit(InExp *e)      { id = Id::opIn_r; }
+        void visit(AddExp *e)     { id = Id::add_r; }
+        void visit(MinExp *e)     { id = Id::sub_r; }
+        void visit(MulExp *e)     { id = Id::mul_r; }
+        void visit(DivExp *e)     { id = Id::div_r; }
+        void visit(ModExp *e)     { id = Id::mod_r; }
+        void visit(PowExp *e)     { id = Id::pow_r; }
+        void visit(ShlExp *e)     { id = Id::shl_r; }
+        void visit(ShrExp *e)     { id = Id::shr_r; }
+        void visit(UshrExp *e)    { id = Id::ushr_r; }
+        void visit(AndExp *e)     { id = Id::iand_r; }
+        void visit(OrExp *e)      { id = Id::ior_r; }
+        void visit(XorExp *e)     { id = Id::ixor_r; }
+        void visit(CatExp *e)     { id = Id::cat_r; }
+    };
+    OpIdRVisitor v;
+    e->accept(&v);
+    return v.id;
 }
-
-/************************* Operators *****************************/
-
-Identifier *UAddExp::opId()   { return Id::uadd; }
-
-Identifier *NegExp::opId()   { return Id::neg; }
-
-Identifier *ComExp::opId()   { return Id::com; }
-
-Identifier *CastExp::opId()   { return Id::cast; }
-
-Identifier *InExp::opId()     { return Id::opIn; }
-Identifier *InExp::opId_r()     { return Id::opIn_r; }
-
-Identifier *PostExp::opId() { return (op == TOKplusplus)
-                                ? Id::postinc
-                                : Id::postdec; }
-
-int AddExp::isCommutative()  { return true; }
-Identifier *AddExp::opId()   { return Id::add; }
-Identifier *AddExp::opId_r() { return Id::add_r; }
-
-Identifier *MinExp::opId()   { return Id::sub; }
-Identifier *MinExp::opId_r() { return Id::sub_r; }
-
-int MulExp::isCommutative()  { return true; }
-Identifier *MulExp::opId()   { return Id::mul; }
-Identifier *MulExp::opId_r() { return Id::mul_r; }
-
-Identifier *DivExp::opId()   { return Id::div; }
-Identifier *DivExp::opId_r() { return Id::div_r; }
-
-Identifier *ModExp::opId()   { return Id::mod; }
-Identifier *ModExp::opId_r() { return Id::mod_r; }
-
-Identifier *PowExp::opId()   { return Id::pow; }
-Identifier *PowExp::opId_r() { return Id::pow_r; }
-
-Identifier *ShlExp::opId()   { return Id::shl; }
-Identifier *ShlExp::opId_r() { return Id::shl_r; }
-
-Identifier *ShrExp::opId()   { return Id::shr; }
-Identifier *ShrExp::opId_r() { return Id::shr_r; }
-
-Identifier *UshrExp::opId()   { return Id::ushr; }
-Identifier *UshrExp::opId_r() { return Id::ushr_r; }
-
-int AndExp::isCommutative()  { return true; }
-Identifier *AndExp::opId()   { return Id::iand; }
-Identifier *AndExp::opId_r() { return Id::iand_r; }
-
-int OrExp::isCommutative()  { return true; }
-Identifier *OrExp::opId()   { return Id::ior; }
-Identifier *OrExp::opId_r() { return Id::ior_r; }
-
-int XorExp::isCommutative()  { return true; }
-Identifier *XorExp::opId()   { return Id::ixor; }
-Identifier *XorExp::opId_r() { return Id::ixor_r; }
-
-Identifier *CatExp::opId()   { return Id::cat; }
-Identifier *CatExp::opId_r() { return Id::cat_r; }
-
-Identifier *    AssignExp::opId()  { return Id::assign;  }
-Identifier * AddAssignExp::opId()  { return Id::addass;  }
-Identifier * MinAssignExp::opId()  { return Id::subass;  }
-Identifier * MulAssignExp::opId()  { return Id::mulass;  }
-Identifier * DivAssignExp::opId()  { return Id::divass;  }
-Identifier * ModAssignExp::opId()  { return Id::modass;  }
-Identifier * AndAssignExp::opId()  { return Id::andass;  }
-Identifier *  OrAssignExp::opId()  { return Id::orass;   }
-Identifier * XorAssignExp::opId()  { return Id::xorass;  }
-Identifier * ShlAssignExp::opId()  { return Id::shlass;  }
-Identifier * ShrAssignExp::opId()  { return Id::shrass;  }
-Identifier *UshrAssignExp::opId()  { return Id::ushrass; }
-Identifier * CatAssignExp::opId()  { return Id::catass;  }
-Identifier * PowAssignExp::opId()  { return Id::powass;  }
-
-int EqualExp::isCommutative()  { return true; }
-Identifier *EqualExp::opId()   { return Id::eq; }
-
-int CmpExp::isCommutative()  { return true; }
-Identifier *CmpExp::opId()   { return Id::cmp; }
-
-Identifier *ArrayExp::opId()    { return Id::index; }
-Identifier *PtrExp::opId()      { return Id::opStar; }
 
 /************************************
  * If type is a class or struct, return the symbol for it,
@@ -309,7 +305,7 @@ Expression *UnaExp::op_overload(Scope *sc)
         Dsymbol *fd = NULL;
 #if 1 // Old way, kept for compatibility with D1
         if (op != TOKpreplusplus && op != TOKpreminusminus)
-        {   fd = search_function(ad, opId());
+        {   fd = search_function(ad, opId(this));
             if (fd)
             {
                 if (op == TOKarray)
@@ -369,7 +365,7 @@ Expression *ArrayExp::op_overload(Scope *sc)
     AggregateDeclaration *ad = isAggregate(e1->type);
     if (ad)
     {
-        Dsymbol *fd = search_function(ad, opId());
+        Dsymbol *fd = search_function(ad, opId(this));
         if (fd)
         {
             /* Rewrite op e1[arguments] as:
@@ -452,8 +448,8 @@ Expression *BinExp::op_overload(Scope *sc)
 {
     //printf("BinExp::op_overload() (%s)\n", toChars());
 
-    Identifier *id = opId();
-    Identifier *id_r = opId_r();
+    Identifier *id = opId(this);
+    Identifier *id_r = opId_r(this);
 
     Expressions args1;
     Expressions args2;
@@ -583,7 +579,7 @@ Expression *BinExp::op_overload(Scope *sc)
 
 L1:
 #if 1 // Retained for D1 compatibility
-    if (isCommutative() && !tiargs)
+    if (isCommutative(this) && !tiargs)
     {
         s = NULL;
         s_r = NULL;
@@ -1034,7 +1030,7 @@ Expression *BinAssignExp::op_overload(Scope *sc)
     if (e1->type->ty == Terror || e2->type->ty == Terror)
         return new ErrorExp();
 
-    Identifier *id = opId();
+    Identifier *id = opId(this);
 
     Expressions args2;
 
