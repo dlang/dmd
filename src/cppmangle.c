@@ -77,18 +77,6 @@ class CppMangleVisitor : public Visitor
         return 0;
     }
 
-    int exist(RootObject *p)
-    {
-        for (size_t i = 0; i < components.dim; i++)
-        {
-            if (p == components[i])
-            {
-                return 1;
-            }
-        }
-        return 0;
-    }
-
     void store(RootObject *p)
     {
         components.push(p);
@@ -278,26 +266,22 @@ public:
 
     void visit(TypePointer *t)
     {
-        if (!exist(t))
+        if (!substitute(t))
         {
             buf.writeByte('P');
             t->next->accept(this);
             store(t);
         }
-        else
-            substitute(t);
     }
 
     void visit(TypeReference *t)
     {
-        if (!exist(t))
+        if (!substitute(t))
         {
             buf.writeByte('R');
             t->next->accept(this);
             store(t);
         }
-        else
-            substitute(t);
     }
 
     void visit(TypeFunction *t)
@@ -324,7 +308,7 @@ public:
             TypeFunctions for non-static member functions, and non-static
             member functions of different classes.
          */
-        if (!exist(t))
+        if (!substitute(t))
         {
             buf.writeByte('F');
             if (t->linkage == LINKc)
@@ -334,8 +318,6 @@ public:
             buf.writeByte('E');
             store(t);
         }
-        else
-            substitute(t);
     }
 
     void visit(TypeDelegate *t)
@@ -345,7 +327,7 @@ public:
 
     void visit(TypeStruct *t)
     {
-        if (!exist(t))
+        if (!substitute(t))
         {
             if (t->isConst())
                 buf.writeByte('K');
@@ -359,13 +341,11 @@ public:
             if (t->isConst())
                 store(t);
         }
-        else
-            substitute(t);
     }
 
     void visit(TypeEnum *t)
     {
-        if (!exist(t))
+        if (!substitute(t))
         {
             if (t->isConst())
                 buf.writeByte('K');
@@ -379,8 +359,6 @@ public:
             if (t->isConst())
                 store(t);
         }
-        else
-            substitute(t);
     }
 
     void visit(TypeTypedef *t)
@@ -390,7 +368,7 @@ public:
 
     void visit(TypeClass *t)
     {
-        if (!exist(t))
+        if (!substitute(t))
         {
             buf.writeByte('P');
 
@@ -402,8 +380,6 @@ public:
 
             store(t);
         }
-        else
-            substitute(t);
     }
 
     struct ArgsCppMangleCtx
