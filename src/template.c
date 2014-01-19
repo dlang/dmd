@@ -1835,6 +1835,7 @@ Lmatch:
         printf("\tdedargs[%d] = %d, %s\n", i, t->dyncast(), t->toChars());
     }
 #endif
+    ti->tiargs = &ti->tdtypes;  // for better error message
 
     paramscope->pop();
     //printf("\tmatch %d\n", match);
@@ -2319,7 +2320,7 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
 
           Lambig:   // td_best and td are ambiguous
             //printf("Lambig\n");
-            m->nextf = fd;  // Caution! m->nextf isn't complete instantiated fd, so must not call toPrettyChars()
+            m->nextf = fd;
             m->count++;
             continue;
 
