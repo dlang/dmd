@@ -31,6 +31,8 @@
 #include "attrib.h"
 #include "import.h"
 
+bool walkPostorder(Statement *s, StoppableVisitor *v);
+
 Identifier *fixupLabelName(Scope *sc, Identifier *ident)
 {
     unsigned flags = (sc->flags & SCOPEcontract);
@@ -170,70 +172,57 @@ bool Statement::hasContinue()
 
 bool Statement::usesEH()
 {
-    struct UsesEH
+    class UsesEH : public StoppableVisitor
     {
-        static bool lambdaUsesEH(Statement *s, void *param)
-        {
-            return s->usesEHimpl();
-        }
+    public:
+        void visit(Statement *s)             {}
+        void visit(TryCatchStatement *s)     { stop = true; }
+        void visit(TryFinallyStatement *s)   { stop = true; }
+        void visit(OnScopeStatement *s)      { stop = true; }
+        void visit(SynchronizedStatement *s) { stop = true; }
     };
 
     UsesEH ueh;
-    return apply(&UsesEH::lambdaUsesEH, &ueh);
+    return walkPostorder(this, &ueh);
 }
-
-bool Statement::usesEHimpl()             { return false; }
-bool TryCatchStatement::usesEHimpl()     { return true; }
-bool TryFinallyStatement::usesEHimpl()   { return true; }
-bool OnScopeStatement::usesEHimpl()      { return true; }
-bool SynchronizedStatement::usesEHimpl() { return true; }
 
 /* ============================================== */
 // true if statement 'comes from' somewhere else, like a goto
 
 bool Statement::comeFrom()
 {
-    struct ComeFrom
+    class ComeFrom : public StoppableVisitor
     {
-        static bool lambdaComeFrom(Statement *s, void *param)
-        {
-            return s->comeFromImpl();
-        }
+    public:
+        void visit(Statement *s)        {}
+        void visit(CaseStatement *s)    { stop = true; }
+        void visit(DefaultStatement *s) { stop = true; }
+        void visit(LabelStatement *s)   { stop = true; }
+        void visit(AsmStatement *s)     { stop = true; }
     };
 
     ComeFrom cf;
-    return apply(&ComeFrom::lambdaComeFrom, &cf);
+    return walkPostorder(this, &cf);
 }
-
-bool Statement::comeFromImpl()        { return false; }
-bool CaseStatement::comeFromImpl()    { return true; }
-bool DefaultStatement::comeFromImpl() { return true; }
-bool LabelStatement::comeFromImpl()   { return true; }
-bool AsmStatement::comeFromImpl()     { return true; }
 
 /* ============================================== */
 // Return true if statement has executable code.
 
 bool Statement::hasCode()
 {
-    struct HasCode
+    class HasCode : public StoppableVisitor
     {
-        static bool lambdaHasCode(Statement *s, void *param)
-        {
-            return s->hasCodeImpl();
-        }
+    public:
+        void visit(Statement *s)         { stop = true; }
+        void visit(ExpStatement *s)      { stop = s->exp != NULL; }
+        void visit(CompoundStatement *s) {}
+        void visit(ScopeStatement *s)    {}
+        void visit(ImportStatement *s)   {}
     };
 
     HasCode hc;
-    return apply(&HasCode::lambdaHasCode, &hc);
+    return walkPostorder(this, &hc);
 }
-
-bool Statement::hasCodeImpl()         { return true; }
-bool ExpStatement::hasCodeImpl()      { return exp != NULL; }
-bool CompoundStatement::hasCodeImpl() { return false; }
-bool ScopeStatement::hasCodeImpl()    { return false; }
-bool ImportStatement::hasCodeImpl()   { return false; }
-
 
 /* ============================================== */
 
