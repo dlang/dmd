@@ -541,8 +541,6 @@ void Module::genobjfile(int multiobj)
 
 /* ================================================================== */
 
-bool inNonRoot(Dsymbol *s);
-
 void FuncDeclaration::toObjFile(int multiobj)
 {
     FuncDeclaration *func = this;
@@ -584,7 +582,8 @@ void FuncDeclaration::toObjFile(int multiobj)
         return;
 
     if (multiobj && !isStaticDtorDeclaration() && !isStaticCtorDeclaration())
-    {   obj_append(this);
+    {
+        obj_append(this);
         return;
     }
 
@@ -600,64 +599,25 @@ void FuncDeclaration::toObjFile(int multiobj)
     assert(semanticRun == PASSsemantic3done);
     assert(ident != Id::empty);
 
-    if (!isInstantiated() && inNonRoot(this))
+    if (!needsCodegen())
         return;
 
-    /* Skip generating code if this part of a TemplateInstance that is instantiated
-     * only by non-root modules (i.e. modules not listed on the command line).
-     */
-    TemplateInstance *ti = isInstantiated();
-    if (!global.params.useUnitTests &&
-        !global.params.allInst &&
-        /* The issue is that if the importee is compiled with a different -debug
-         * setting than the importer, the importer may believe it exists
-         * in the compiled importee when it does not, when the instantiation
-         * is behind a conditional debug declaration.
-         */
-        !global.params.debuglevel &&     // workaround for Bugzilla 11239
-        ti && ti->instantiatingModule && !ti->instantiatingModule->isRoot())
-    {
-        Module *mi = ti->instantiatingModule;
-
-        // If mi imports any root modules, we still need to generate the code.
-        for (size_t i = 0; i < Module::amodules.dim; ++i)
-        {
-            Module *m = Module::amodules[i];
-            m->insearch = 0;
-        }
-        bool importsRoot = false;
-        for (size_t i = 0; i < Module::amodules.dim; ++i)
-        {
-            Module *m = Module::amodules[i];
-            if (m->isRoot() && mi->imports(m))
-            {
-                importsRoot = true;
-                break;
-            }
-        }
-        for (size_t i = 0; i < Module::amodules.dim; ++i)
-        {
-            Module *m = Module::amodules[i];
-            m->insearch = 0;
-        }
-        if (!importsRoot)
-        {
-            //printf("instantiated by %s   %s\n", ti->instantiatingModule->toChars(), ti->toChars());
-            return;
-        }
-    }
-
+    FuncDeclaration *fdp = func->toParent2()->isFuncDeclaration();
     if (isNested())
     {
-        /* The enclosing function must have its code generated first,
-         * so defer this code generation until ancestors are completed.
-         */
-        FuncDeclaration *fd = toAliasFunc();
-        FuncDeclaration *fdp = fd->toParent2()->isFuncDeclaration();
         if (fdp && fdp->semanticRun < PASSobj)
         {
-            fdp->deferred.push(fd);
-            return;
+            if (fdp->semantic3Errors)
+                return;
+
+            /* Can't do unittest's out of order, they are order dependent in that their
+             * execution is done in lexical order.
+             */
+            if (fdp->isUnitTestDeclaration())
+            {
+                fdp->deferred.push(func);
+                return;
+            }
         }
     }
 
@@ -713,6 +673,14 @@ void FuncDeclaration::toObjFile(int multiobj)
         //if (!(config.flags3 & CFG3pic))
         //    s->Sclass = SCstatic;
         f->Fflags3 |= Fnested;
+
+        /* The enclosing function must have its code generated first,
+         * in order to calculate correct frame pointer offset.
+         */
+        if (fdp && fdp->semanticRun < PASSobj)
+        {
+            fdp->toObjFile(multiobj);
+        }
     }
     else
     {
@@ -843,7 +811,8 @@ void FuncDeclaration::toObjFile(int multiobj)
         this->shidden = shidden;
     }
     else
-    {   // Register return style cannot make nrvo.
+    {
+        // Register return style cannot make nrvo.
         // Auto functions keep the nrvo_can flag up to here,
         // so we should eliminate it before entering backend.
         nrvo_can = 0;
@@ -867,7 +836,8 @@ void FuncDeclaration::toObjFile(int multiobj)
     Symbol *paramsbuf[10];
     Symbol **params = paramsbuf;    // allocate on stack if possible
     if (pi + 2 > 10)                // allow extra 2 for sthis and shidden
-    {   params = (Symbol **)malloc((pi + 2) * sizeof(Symbol *));
+    {
+        params = (Symbol **)malloc((pi + 2) * sizeof(Symbol *));
         assert(params);
     }
 
@@ -891,7 +861,8 @@ void FuncDeclaration::toObjFile(int multiobj)
     }
 
     if (reverse)
-    {   // Reverse params[] entries
+    {
+        // Reverse params[] entries
         for (size_t i = 0; i < pi/2; i++)
         {
             Symbol *sptmp = params[i];
@@ -938,7 +909,8 @@ void FuncDeclaration::toObjFile(int multiobj)
     }
 
     for (size_t i = 0; i < pi; i++)
-    {   Symbol *sp = params[i];
+    {
+        Symbol *sp = params[i];
         sp->Sclass = SCparameter;
         sp->Sflags &= ~SFLspill;
         sp->Sfl = FLpara;
@@ -951,7 +923,8 @@ void FuncDeclaration::toObjFile(int multiobj)
         FuncParamRegs fpr(tyf);
 
         for (size_t i = 0; i < pi; i++)
-        {   Symbol *sp = params[i];
+        {
+            Symbol *sp = params[i];
             if (fpr.alloc(sp->Stype, sp->Stype->Tty, &sp->Spreg, &sp->Spreg2))
             {
                 sp->Sclass = (config.exe == EX_WIN64) ? SCshadowreg : SCfastpar;
@@ -988,7 +961,8 @@ void FuncDeclaration::toObjFile(int multiobj)
          * 3. what to do when writing out .di files, or other pretty printing
          */
         if (global.params.trace)
-        {   /* Wrap the entire function body in:
+        {
+            /* Wrap the entire function body in:
              *   trace_pro("funcname");
              *   try
              *     body;
@@ -1069,7 +1043,8 @@ void FuncDeclaration::toObjFile(int multiobj)
         SharedStaticDtorDeclaration *f = isSharedStaticDtorDeclaration();
         assert(f);
         if (f->vgate)
-        {   /* Increment destructor's vgate at construction time
+        {
+            /* Increment destructor's vgate at construction time
              */
             esharedctorgates.push(f);
         }
@@ -1081,7 +1056,8 @@ void FuncDeclaration::toObjFile(int multiobj)
         StaticDtorDeclaration *f = isStaticDtorDeclaration();
         assert(f);
         if (f->vgate)
-        {   /* Increment destructor's vgate at construction time
+        {
+            /* Increment destructor's vgate at construction time
              */
             ectorgates.push(f);
         }
@@ -1112,22 +1088,6 @@ void FuncDeclaration::toObjFile(int multiobj)
     for (size_t i = 0; i < irs.deferToObj->dim; i++)
     {
         Dsymbol *s = (*irs.deferToObj)[i];
-
-        FuncDeclaration *fd = s->isFuncDeclaration();
-        if (fd)
-        {   FuncDeclaration *fdp = fd->toParent2()->isFuncDeclaration();
-            if (fdp && fdp->semanticRun < PASSobj)
-            {   /* Bugzilla 7595
-                 * FuncDeclaration::buildClosure() relies on nested functions
-                 * being toObjFile'd after the outer function. Otherwise, the
-                 * v->offset's for the closure variables are wrong.
-                 * So, defer fd until after fdp is done.
-                 */
-                fdp->deferred.push(fd);
-                continue;
-            }
-        }
-
         s->toObjFile(0);
     }
 

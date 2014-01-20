@@ -106,7 +106,6 @@ Expression *Type::getInternalTypeInfo(Scope *sc)
 }
 
 
-bool inNonRoot(Dsymbol *s);
 FuncDeclaration *search_toHash(StructDeclaration *sd);
 FuncDeclaration *search_toString(StructDeclaration *sd);
 
@@ -159,9 +158,9 @@ Expression *Type::getTypeInfo(Scope *sc)
                          sd->xcmp && sd->xcmp != sd->xerrcmp ||
                          search_toHash(sd) ||
                          search_toString(sd)
-                        ) && inNonRoot(sd))
+                        ) && sd->inNonRoot())
                     {
-                        //printf("deferred sem3 for TypeInfo - sd = %s, inNonRoot = %d\n", sd->toChars(), inNonRoot(sd));
+                        //printf("deferred sem3 for TypeInfo - sd = %s, inNonRoot = %d\n", sd->toChars(), sd->inNonRoot());
                         Module::addDeferredSemantic3(sd);
                     }
                 }

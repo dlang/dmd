@@ -74,7 +74,7 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
     ctfeCode = NULL;
     isArrayOp = 0;
     dArrayOp = NULL;
-    semantic3Errors = 0;
+    semantic3Errors = false;
     fes = NULL;
     introducing = 0;
     tintro = NULL;
@@ -971,7 +971,7 @@ void FuncDeclaration::semantic3(Scope *sc)
     if (semanticRun >= PASSsemantic3)
         return;
     semanticRun = PASSsemantic3;
-    semantic3Errors = 0;
+    semantic3Errors = false;
 
     if (!type || type->ty != Tfunction)
         return;
@@ -1855,22 +1855,12 @@ void FuncDeclaration::semantic3(Scope *sc)
         sc = sc->pop();
     }
 
-    if (global.gag && global.errors != nerrors)
-    {
-        /* Errors happened when compiling this function.
-         */
-        semanticRun = PASSsemanticdone; // Ensure errors get reported again
-        /* Except that re-running semantic3() doesn't always produce errors a second
-         * time through.
-         * See Bugzilla 8348
-         * Need a better way to deal with this than gagging.
-         */
-    }
-    else
-    {
-        semanticRun = PASSsemantic3done;
-        semantic3Errors = global.errors - nerrors;
-    }
+    /* If this function had speculatively instantiated, error reproduction will be
+     * done by TemplateInstance::semantic.
+     * Otherwise, error gagging should be temporarily ungagged by functionSemantic3.
+     */
+    semanticRun = PASSsemantic3done;
+    semantic3Errors = (global.errors != nerrors);
     if (type->ty == Terror)
         errors = true;
     //printf("-FuncDeclaration::semantic3('%s.%s', sc = %p, loc = %s)\n", parent->toChars(), toChars(), sc, loc.toChars());
@@ -3807,6 +3797,83 @@ bool FuncDeclaration::hasNestedFrameRefs()
     }
 
     return false;
+}
+
+/***********************************************
+ * Returns true if this function is not defined in non-root module, nor
+ * obviously instantiated in non-root module.
+ *
+ * Note: ti->instantiatingModule does not stabilize until semantic analysis is completed,
+ * so don't call this function during semantic analysis to return precise result.
+ */
+
+bool FuncDeclaration::needsCodegen()
+{
+    assert(semanticRun == PASSsemantic3done);
+
+    if (!isInstantiated() && inNonRoot())
+        return false;
+
+    if (global.params.useUnitTests ||
+        global.params.allInst ||
+        /* The issue is that if the importee is compiled with a different -debug
+         * setting than the importer, the importer may believe it exists
+         * in the compiled importee when it does not, when the instantiation
+         * is behind a conditional debug declaration.
+         */
+        global.params.debuglevel)       // workaround for Bugzilla 11239
+    {
+        return true;
+    }
+
+    FuncDeclaration *fd = this;
+Lagain:
+    TemplateInstance *ti = fd->isInstantiated();
+    if (ti && ti->instantiatingModule && !ti->instantiatingModule->isRoot())
+    {
+        Module *mi = ti->instantiatingModule;
+
+        // If mi imports any root modules, we still need to generate the code.
+        for (size_t i = 0; i < Module::amodules.dim; ++i)
+        {
+            Module *m = Module::amodules[i];
+            m->insearch = 0;
+        }
+        bool importsRoot = false;
+        for (size_t i = 0; i < Module::amodules.dim; ++i)
+        {
+            Module *m = Module::amodules[i];
+            if (m->isRoot() && mi->imports(m))
+            {
+                importsRoot = true;
+                break;
+            }
+        }
+        for (size_t i = 0; i < Module::amodules.dim; ++i)
+        {
+            Module *m = Module::amodules[i];
+            m->insearch = 0;
+        }
+        if (!importsRoot)
+        {
+            //printf("instantiated by %s   %s\n", ti->instantiatingModule->toChars(), ti->toChars());
+            return false;
+        }
+    }
+
+    if (fd->isNested())
+    {
+        /* Bugzilla 11863: The enclosing function must have its code generated first.
+         * Therefore if parent is instantiated in non-root, this function also prevent
+         * code generation.
+         */
+        fd = fd->toParent2()->isFuncDeclaration();
+        if (fd)
+            goto Lagain;
+    }
+    //if (AggregateDeclaration *ad = fd->isMember2()) { ... }
+
+    return true;
 }
 
 /*********************************************
