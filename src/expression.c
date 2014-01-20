@@ -9307,7 +9307,7 @@ Expression *AddrExp::semantic(Scope *sc)
             {
                 //assert(ti->needsTypeInference(sc));
                 ti->semantic(sc);
-                if (!ti->inst)                  // if template failed to expand
+                if (!ti->inst || ti->errors)    // if template failed to expand
                     return new ErrorExp;
                 Dsymbol *s = ti->inst->toAlias();
                 FuncDeclaration *f = s->isFuncDeclaration();
@@ -9323,7 +9323,7 @@ Expression *AddrExp::semantic(Scope *sc)
             {
                 //assert(ti->needsTypeInference(sc));
                 ti->semantic(sc);
-                if (!ti->inst)                  // if template failed to expand
+                if (!ti->inst || ti->errors)    // if template failed to expand
                     return new ErrorExp;
                 Dsymbol *s = ti->inst->toAlias();
                 FuncDeclaration *f = s->isFuncDeclaration();
