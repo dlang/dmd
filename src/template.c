@@ -6684,6 +6684,22 @@ bool TemplateInstance::hasNestedArgs(Objects *args, bool isstatic)
                 if (isstatic)
                 {
                     Dsymbol *dparent = sa->toParent2();
+                    if (dparent->isAggregateDeclaration())
+                    {
+                        /* If 'sa' is a field or a member function, to capture the object reference
+                         * 'dparent' should appear in lexical scope of this template declaration.
+                         * If not, there is no way to supply context to the template instance, so
+                         * we can elide 'enclosing' pointer.
+                         */
+                        Dsymbol *p = tempdecl->parent;
+                        for (; p; p = p->parent)
+                        {
+                            if (p == dparent)
+                                break;
+                        }
+                        if (!p)
+                            continue;
+                    }
                     if (!enclosing)
                         enclosing = dparent;
                     else if (enclosing != dparent)

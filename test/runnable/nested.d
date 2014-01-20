@@ -2574,7 +2574,7 @@ void xmap(alias g)(int t)
 
 enum foo11297 = function (int x)
    {
-//	int bar(int y) { return x; } xmap!bar(7);
+        //int bar(int y) { return x; } xmap!bar(7);
         xmap!(y => x)(7);
    };
 
@@ -2585,6 +2585,19 @@ void xreduce(alias f)()
 
 void test11297() {
     xreduce!foo11297();
+}
+
+/*******************************************/
+// 11946
+
+static int f11946(A...)() { return 0; }
+       int g11946(A...)() { return 0; }
+
+struct S11946
+{
+    int x;
+    enum y = f11946!x();
+    enum z = g11946!x();    //  enhancement 7805
 }
 
 /*******************************************/
