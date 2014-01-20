@@ -454,6 +454,24 @@ void test10049()
 }
 
 /******************************************/
+
+struct T11955(T...) { T field; alias field this; }
+
+alias X11955 = uint;
+
+struct S11955
+{
+    enum empty = false;
+    T11955!(uint, uint) front;
+    void popFront() {}
+}
+
+void test11955()
+{
+    foreach(X11955 i, v; S11955()) {}
+}
+
+/******************************************/
 // 6652
 
 void test6652()
