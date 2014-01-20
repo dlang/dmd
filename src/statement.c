@@ -5442,6 +5442,20 @@ Statement *ObjcExceptionBridge::semantic(Scope *sc)
     }
     else if (mode == THROWd)
     {
+        if (global.params.is64bit)
+        {
+            // Rewrite as this:
+            //
+            // body;
+
+            Statements* newBody = new Statements();
+            newBody->push(new PeelStatement(body));
+
+            wrapped = new CompoundStatement(loc, newBody);
+            wrapped = wrapped->semantic(sc);
+            return this;
+        }
+
         // Rewrite as this (Apple Objective-C Legacy Runtime ABI):
         //
         // size_t[__edatalen] __dobjc_ex_data;
