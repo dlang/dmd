@@ -25,31 +25,6 @@
 FuncDeclaration *StructDeclaration::xerreq;     // object.xopEquals
 FuncDeclaration *StructDeclaration::xerrcmp;    // object.xopCmp
 
-bool inNonRoot(Dsymbol *s)
-{
-    if (!s || !s->parent)
-        return false;
-    s = s->parent;
-    for (; s; s = s->parent)
-    {
-        if (TemplateInstance *ti = s->isTemplateInstance())
-        {
-            if (ti->isTemplateMixin())
-                continue;
-            if (!ti->instantiatingModule || !ti->instantiatingModule->isRoot())
-                return true;
-            return false;
-        }
-        else if (Module *m = s->isModule())
-        {
-            if (!m->isRoot())
-                return true;
-            break;
-        }
-    }
-    return false;
-}
-
 /***************************************
  * Search toHash member function for TypeInfo_Struct.
  *      const hash_t toHash();
