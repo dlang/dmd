@@ -14,19 +14,18 @@
 //      id.h
 //      id.c
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
+import core.stdc.stdio;
+import core.stdc.stdlib;
+import core.stdc.string;
 
 struct Msgtable
 {
-        const char *ident;      // name to use in DMD source
-        const char *name;       // name in D executable
+    const(char)* ident;      // name to use in DMD source
+    const(char)* name;       // name in D executable
 };
 
-Msgtable msgtable[] =
-{
+Msgtable[] msgtable =
+[
     { "IUnknown" },
     { "Object" },
     { "object" },
@@ -43,7 +42,6 @@ Msgtable msgtable[] =
     { "require", "__require" },
     { "ensure", "__ensure" },
     { "init" },
-    { "size" },
     { "__sizeof", "sizeof" },
     { "__xalignof", "alignof" },
     { "mangleof" },
@@ -71,12 +69,10 @@ Msgtable msgtable[] =
     { "withSym", "__withSym" },
     { "result", "__result" },
     { "returnLabel", "__returnLabel" },
-    { "delegate" },
     { "line" },
     { "empty", "" },
     { "p" },
     { "q" },
-    { "coverage", "__coverage" },
     { "__vptr" },
     { "__monitor" },
 
@@ -102,7 +98,6 @@ Msgtable msgtable[] =
     { "_arguments_typeinfo" },
     { "_arguments" },
     { "_argptr" },
-    { "_match" },
     { "destroy" },
     { "postblit" },
     { "xopEquals", "__xopEquals" },
@@ -216,8 +211,6 @@ Msgtable msgtable[] =
     { "sliceass", "opSliceAssign" },
     { "call",    "opCall" },
     { "cast",    "opCast" },
-    { "match",   "opMatch" },
-    { "next",    "opNext" },
     { "opIn" },
     { "opIn_r" },
     { "opStar" },
@@ -276,7 +269,6 @@ Msgtable msgtable[] =
     { "getmembers", "getMembers" },
 
     // Special functions
-    { "__alloca", "alloca" }, // has to be mapped because alloca is #defined if _MSC_VER
     { "main" },
     { "WinMain" },
     { "DllMain" },
@@ -347,18 +339,16 @@ Msgtable msgtable[] =
     { "getAttributes" },
     { "getUnitTests" },
     { "getVirtualIndex" }
-};
+];
 
 
-int main()
+void main()
 {
-    FILE *fp;
-    unsigned i;
-
     {
-        fp = fopen("id.h","w");
+        auto fp = fopen("id.h","w");
         if (!fp)
-        {   printf("can't open id.h\n");
+        {
+            printf("can't open id.h\n");
             exit(EXIT_FAILURE);
         }
 
@@ -369,9 +359,9 @@ int main()
         fprintf(fp, "struct Id\n");
         fprintf(fp, "{\n");
 
-        for (i = 0; i < sizeof(msgtable) / sizeof(msgtable[0]); i++)
-        {   const char *id = msgtable[i].ident;
-
+        foreach(i, v; msgtable)
+        {
+            auto id = v.ident;
             fprintf(fp,"    static Identifier *%s;\n", id);
         }
 
@@ -383,9 +373,10 @@ int main()
     }
 
     {
-        fp = fopen("id.c","w");
+        auto fp = fopen("id.c","w");
         if (!fp)
-        {   printf("can't open id.c\n");
+        {
+            printf("can't open id.c\n");
             exit(EXIT_FAILURE);
         }
 
@@ -394,9 +385,10 @@ int main()
         fprintf(fp, "#include \"identifier.h\"\n");
         fprintf(fp, "#include \"lexer.h\"\n");
 
-        for (i = 0; i < sizeof(msgtable) / sizeof(msgtable[0]); i++)
-        {   const char *id = msgtable[i].ident;
-            const char *p = msgtable[i].name;
+        foreach(i, v; msgtable)
+        {
+            auto id = v.ident;
+            auto p = v.name;
 
             if (!p)
                 p = id;
@@ -406,9 +398,10 @@ int main()
         fprintf(fp, "void Id::initialize()\n");
         fprintf(fp, "{\n");
 
-        for (i = 0; i < sizeof(msgtable) / sizeof(msgtable[0]); i++)
-        {   const char *id = msgtable[i].ident;
-            const char *p = msgtable[i].name;
+        foreach(i, v; msgtable)
+        {
+            auto id = v.ident;
+            auto p = v.name;
 
             if (!p)
                 p = id;
@@ -419,6 +412,4 @@ int main()
 
         fclose(fp);
     }
-
-    return EXIT_SUCCESS;
 }
