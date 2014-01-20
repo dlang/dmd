@@ -2008,7 +2008,7 @@ Lagain:
                 #endif
                     if (!arg->type)
                         arg->type = exp->type;
-                    arg->type = arg->type->addStorageClass(arg->storageClass);
+                    arg->type = arg->type->addStorageClass(arg->storageClass)->semantic(loc, sc);
                     if (!exp->implicitConvTo(arg->type))
                         goto Lrangeerr;
 
