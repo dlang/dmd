@@ -30,21 +30,17 @@ struct Array
 
   private:
     size_t allocdim;
-    #define SMALLARRAYCAP       1
-    TYPE smallarray[SMALLARRAYCAP];    // inline storage for small arrays
 
   public:
     Array()
     {
-        data = SMALLARRAYCAP ? &smallarray[0] : NULL;
+        data =  NULL;
         dim = 0;
-        allocdim = SMALLARRAYCAP;
+        allocdim = 0;
     }
 
     ~Array()
     {
-        if (data != &smallarray[0])
-            mem.free(data);
     }
 
     char *toChars()
@@ -81,20 +77,8 @@ struct Array
         {
             if (allocdim == 0)
             {   // Not properly initialized, someone memset it to zero
-                if (nentries <= SMALLARRAYCAP)
-                {   allocdim = SMALLARRAYCAP;
-                    data = SMALLARRAYCAP ? &smallarray[0] : NULL;
-                }
-                else
-                {   allocdim = nentries;
-                    data = (TYPE *)mem.malloc(allocdim * sizeof(*data));
-                }
-            }
-            else if (allocdim == SMALLARRAYCAP)
-            {
-                allocdim = dim + nentries;
+                allocdim = nentries;
                 data = (TYPE *)mem.malloc(allocdim * sizeof(*data));
-                memcpy(data, &smallarray[0], dim * sizeof(*data));
             }
             else
             {   allocdim = dim + nentries;
@@ -110,24 +94,6 @@ struct Array
             reserve(newdim - dim);
         }
         dim = newdim;
-    }
-
-    void fixDim()
-    {
-        if (dim != allocdim)
-        {
-            if (allocdim >= SMALLARRAYCAP)
-            {
-                if (dim <= SMALLARRAYCAP)
-                {
-                    memcpy(&smallarray[0], data, dim * sizeof(*data));
-                    mem.free(data);
-                }
-                else
-                    data = (TYPE *)mem.realloc(data, dim * sizeof(*data));
-            }
-            allocdim = dim;
-        }
     }
 
     TYPE pop()
