@@ -22,6 +22,8 @@
 #include "scope.h"
 #include "id.h"
 
+bool isCommutative(Expression *e);
+
 /* ==================== implicitCast ====================== */
 
 /**************************************
@@ -2701,7 +2703,7 @@ Lcc:
 
         //printf("test %s\n", e->toChars());
         e1 = e1->optimize(WANTvalue);
-        if (e && e->isCommutative() && e1->isConst())
+        if (e && isCommutative(e) && e1->isConst())
         {   /* Swap operands to minimize number of functions generated
              */
             //printf("swap %s\n", e->toChars());
