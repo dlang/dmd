@@ -1,5 +1,4 @@
 INSTALL_DIR=$(PWD)/../install
-SYSCONFDIR="/etc/"
 
 .PHONY: all clean test install
 
