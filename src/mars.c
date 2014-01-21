@@ -391,7 +391,7 @@ extern "C"
 }
 #endif
 
-int main(size_t argc, char *argv[])
+int main(int iargc, char *argv[])
 {
     mem.init();                         // initialize storage allocator
     mem.setStackBottom(&argv);
@@ -404,6 +404,7 @@ int main(size_t argc, char *argv[])
     char *p;
     Module *m;
     int status = EXIT_SUCCESS;
+    size_t argc = iargc;
     size_t argcstart = argc;
     int setdebuglib = 0;
     int setdefaultlib = 0;
