@@ -3186,6 +3186,12 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, const utf8_t *co
             a = new Dsymbols();
             a->push(s);
         }
+        if (link != linkage)
+        {
+            s = new LinkDeclaration(link, a);
+            a = new Dsymbols();
+            a->push(s);
+        }
         if (udas)
         {
             s = new UserAttributeDeclaration(udas, a);
