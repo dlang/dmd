@@ -2905,18 +2905,7 @@ void IntegerExp::toMangleBuffer(OutBuffer *buf)
     if ((sinteger_t)value < 0)
         buf->printf("N%lld", -value);
     else
-    {
-        /* This is an awful hack to maintain backwards compatibility.
-         * There really always should be an 'i' before a number, but
-         * there wasn't in earlier implementations, so to maintain
-         * backwards compatibility it is only done if necessary to disambiguate.
-         * See bugzilla 3029
-         */
-        if (buf->offset > 0 && isdigit(buf->data[buf->offset - 1]))
-            buf->writeByte('i');
-
-        buf->printf("%lld", value);
-    }
+        buf->printf("i%lld", value);
 }
 
 /******************************** ErrorExp **************************/
