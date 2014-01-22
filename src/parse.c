@@ -4052,9 +4052,8 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
         case TOKclass:
         case TOKinterface:
         Ldeclaration:
-        {   Dsymbols *a;
-
-            a = parseDeclarations(STCundefined, NULL);
+        {
+            Dsymbols *a = parseDeclarations(STCundefined, NULL);
             if (a->dim > 1)
             {
                 Statements *as = new Statements();
@@ -4073,7 +4072,7 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
                 s = new ExpStatement(loc, d);
             }
             else
-                assert(0);
+                s = new ExpStatement(loc, (Expression *)NULL);
             if (flags & PSscope)
                 s = new ScopeStatement(loc, s);
             break;
