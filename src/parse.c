@@ -3397,16 +3397,13 @@ L2:
                 nextToken();
                 init = parseInitializer();
             }
-            else
-                assert(!tpl);
 
             VarDeclaration *v = new VarDeclaration(loc, t, ident, init);
             v->storage_class = storage_class;
             Dsymbol *s = v;
 
-            if (tpl)
+            if (tpl && init)
             {
-                assert(init);
                 Dsymbols *a2 = new Dsymbols();
                 a2->push(s);
                 TemplateDeclaration *tempdecl =
