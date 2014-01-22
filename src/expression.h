@@ -87,7 +87,6 @@ Expression *resolveAliasThis(Scope *sc, Expression *e);
 Expression *callCpCtor(Scope *sc, Expression *e);
 Expression *resolveOpDollar(Scope *sc, ArrayExp *ae);
 Expression *resolveOpDollar(Scope *sc, SliceExp *se);
-Expressions *arrayExpressionSemantic(Expressions *exps, Scope *sc);
 
 AggregateDeclaration *isAggregate(Type *t);
 
