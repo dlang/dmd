@@ -3389,7 +3389,7 @@ L2:
             addComment(s, comment);
             a->push(s);
         }
-        else
+        else if (ident)
         {
             Initializer *init = NULL;
             if (token.value == TOKassign)
