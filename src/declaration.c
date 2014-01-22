@@ -723,6 +723,7 @@ VarDeclaration::VarDeclaration(Loc loc, Type *type, Identifier *id, Initializer 
     : Declaration(id)
 {
     //printf("VarDeclaration('%s')\n", id->toChars());
+    assert(id);
 #ifdef DEBUG
     if (!type && !init)
     {   printf("VarDeclaration('%s')\n", id->toChars());
