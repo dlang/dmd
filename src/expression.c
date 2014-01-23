@@ -1399,14 +1399,16 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
     if (tthis && tf->isWild() && !isCtorCall)
     {
         Type *t = tthis;
-        if (t->isWild())
-            wildmatch |= MODwild;
+        if (t->isImmutable())
+            wildmatch = MODimmutable;
+        else if (t->isWildConst())
+            wildmatch = MODwildconst;
+        else if (t->isWild())
+            wildmatch = MODwild;
         else if (t->isConst())
-            wildmatch |= MODconst;
-        else if (t->isImmutable())
-            wildmatch |= MODimmutable;
+            wildmatch = MODconst;
         else
-            wildmatch |= MODmutable;
+            wildmatch = MODmutable;
     }
 
     int done = 0;
@@ -1535,68 +1537,58 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             if (!(p->storageClass & STClazy && p->type->ty == Tvoid))
             {
                 bool isRef = (p->storageClass & (STCref | STCout)) != 0;
-                wildmatch |= arg->type->deduceWild(p->type, isRef);
+                if (unsigned char wm = arg->type->deduceWild(p->type, isRef))
+                {
+                    if (wildmatch)
+                        wildmatch = MODmerge(wildmatch, wm);
+                    else
+                        wildmatch = wm;
+                    //printf("[%d] p = %s, a = %s, wm = %d, wildmatch = %d\n", i, p->type->toChars(), arg->type->toChars(), wm, wildmatch);
+                }
             }
         }
         if (done)
             break;
     }
-    if (wildmatch)
+    if ((wildmatch == MODmutable || wildmatch == MODimmutable) &&
+        tf->next->hasWild() &&
+        (tf->isref || !tf->next->implicitConvTo(tf->next->immutableOf())))
     {
-        /* Calculate wild matching modifier
-         */
-        if (wildmatch & MODconst || wildmatch & (wildmatch - 1))
-            wildmatch = MODconst;
-        else if (wildmatch & MODimmutable)
-            wildmatch = MODimmutable;
-        else if (wildmatch & MODwild)
-            wildmatch = MODwild;
-        else
+        if (fd)
         {
-            assert(wildmatch & MODmutable);
-            wildmatch = MODmutable;
+            /* If the called function may return the reference to
+             * outer inout data, it should be rejected.
+             *
+             * void foo(ref inout(int) x) {
+             *   ref inout(int) bar(inout(int)) { return x; }
+             *   struct S { ref inout(int) bar() inout { return x; } }
+             *   bar(int.init) = 1;  // bad!
+             *   S().bar() = 1;      // bad!
+             * }
+             */
+            FuncDeclaration *f;
+            if (AggregateDeclaration *ad = fd->isThis())
+            {
+                f = ad->toParent2()->isFuncDeclaration();
+                goto Linoutnest;
+            }
+            else if (fd->isNested())
+            {
+                f = fd->toParent2()->isFuncDeclaration();
+            Linoutnest:
+                for (; f; f = f->toParent2()->isFuncDeclaration())
+                {
+                    if (((TypeFunction *)f->type)->iswild)
+                        goto Linouterr;
+                }
+            }
         }
-
-        if ((wildmatch == MODmutable || wildmatch == MODimmutable) &&
-            tf->next->hasWild() &&
-            (tf->isref || !tf->next->implicitConvTo(tf->next->immutableOf())))
+        else if (tf->isWild())
         {
-            if (fd)
-            {
-                /* If the called function may return the reference to
-                 * outer inout data, it should be rejected.
-                 *
-                 * void foo(ref inout(int) x) {
-                 *   ref inout(int) bar(inout(int)) { return x; }
-                 *   struct S { ref inout(int) bar() inout { return x; } }
-                 *   bar(int.init) = 1;  // bad!
-                 *   S().bar() = 1;      // bad!
-                 * }
-                 */
-                FuncDeclaration *f;
-                if (AggregateDeclaration *ad = fd->isThis())
-                {
-                    f = ad->toParent2()->isFuncDeclaration();
-                    goto Linoutnest;
-                }
-                else if (fd->isNested())
-                {
-                    f = fd->toParent2()->isFuncDeclaration();
-                Linoutnest:
-                    for (; f; f = f->toParent2()->isFuncDeclaration())
-                    {
-                        if (((TypeFunction *)f->type)->iswild)
-                            goto Linouterr;
-                    }
-                }
-            }
-            else if (tf->isWild())
-            {
-            Linouterr:
-                const char *s = wildmatch == MODmutable ? "mutable" : MODtoChars(wildmatch);
-                error(loc, "modify inout to %s is not allowed inside inout function", s);
-                return Type::terror;
-            }
+        Linouterr:
+            const char *s = wildmatch == MODmutable ? "mutable" : MODtoChars(wildmatch);
+            error(loc, "modify inout to %s is not allowed inside inout function", s);
+            return Type::terror;
         }
     }
 
