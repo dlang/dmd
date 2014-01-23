@@ -2731,6 +2731,32 @@ struct S11924
 }
 
 /************************************/
+// 11966
+
+inout(char)[] stripped11966 (inout(char)[] path)
+{
+    return path;
+}
+
+struct PathParser11966
+{
+    inout(const(char))[] path() inout
+    {
+        return null;
+    }
+
+    inout(const(char))[] pop() inout
+    {
+        return stripped11966(path);
+    }
+}
+
+void test11966()
+{
+    auto a = PathParser11966().pop();
+}
+
+/************************************/
 // 6941
 
 static assert((const(shared(int[])[])).stringof == "const(shared(int[])[])");	// fail

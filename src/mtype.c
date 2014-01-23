@@ -1434,8 +1434,8 @@ unsigned char MODmerge(unsigned char mod1, unsigned char mod2)
         mod1 &= ~MODshared;
         mod2 &= ~MODshared;
     }
-    if (mod1 == 0 || mod1 == MODconst ||
-        mod2 == 0 || mod2 == MODconst)
+    if (mod1 == 0 || mod1 == MODmutable || mod1 == MODconst ||
+        mod2 == 0 || mod2 == MODmutable || mod2 == MODconst)
     {
         // If either type is mutable or const, the result will be const.
         result |= MODconst;
@@ -1977,12 +1977,14 @@ unsigned Type::deduceWild(Type *t, bool isRef)
 
     if (t->isWild())
     {
-        if (isWild())
+        if (isImmutable())
+            return MODimmutable;
+        else if (isWildConst())
+            return MODwildconst;
+        else if (isWild())
             return MODwild;
         else if (isConst())
             return MODconst;
-        else if (isImmutable())
-            return MODimmutable;
         else if (isMutable())
             return MODmutable;
         else
@@ -2068,20 +2070,28 @@ Type *Type::substWildTo(unsigned mod)
 L1:
     if (isWild())
     {
-        if (mod & MODconst)
-            t = t->constOf();
-        else if (mod & MODimmutable)
-            t = t->immutableOf();
-        else if (mod & MODwild)
+        if (mod == MODimmutable)
         {
-            if (isConst())
+            t = t->immutableOf();
+        }
+        else if (mod == MODwildconst)
+        {
+            t = t->wildConstOf();
+        }
+        else if (mod == MODwild)
+        {
+            if (isWildConst())
                 t = t->wildConstOf();
             else
                 t = t->wildOf();
         }
+        else if (mod == MODconst)
+        {
+            t = t->constOf();
+        }
         else
         {
-            if (isConst())
+            if (isWildConst())
                 t = t->constOf();
             else
                 t = t->mutableOf();
