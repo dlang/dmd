@@ -11759,6 +11759,8 @@ Ltupleassign:
         if (op == TOKassign)
             e1 = e1->modifiableLvalue(sc, e1old);
     }
+    if (e1->op == TOKerror)
+        return e1;
 
     Type *t2 = e2->type->toBasetype();
 
