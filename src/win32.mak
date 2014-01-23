@@ -77,6 +77,10 @@ SCPDIR=..\backup
 
 # C++ compiler
 CC=dmc
+# D compiler
+# DC=dmd
+# Lib for D runtime
+DRUNTIME=phobos.lib
 # Make program
 MAKE=make
 # Librarian
@@ -107,10 +111,13 @@ TARGET=dmd
 TARGETEXE=$(TARGET).exe
 # Custom compile flags
 CFLAGS=
+DFLAGS=
 # Custom compile flags for all modules
 OPT=
+DOPT=
 # Debug flags
 DEBUG=-gl -D -DUNITTEST
+DDEBUG=-g -debug -unittest
 # Linker flags (prefix with -L)
 LFLAGS=
 # Librarian flags
@@ -120,10 +127,11 @@ BFLAGS=
 
 # Compile flags
 CFLAGS=-I$(INCLUDE) $(OPT) $(CFLAGS) $(DEBUG) -cpp -DTARGET_WINDOS=1 -DDM_TARGET_CPU_X86=1
+DFLAGS=$(DFLAGS) $(DDEBUG) $(DOPT)
 # Compile flags for modules with backend/toolkit dependencies
 MFLAGS=-I$C;$(TK) $(OPT) -DMARS -cpp $(DEBUG) -e -wx -DTARGET_WINDOS=1 -DDM_TARGET_CPU_X86=1
 # Recursive make
-DMDMAKE=$(MAKE) -fwin32.mak C=$C TK=$(TK) ROOT=$(ROOT)
+DMDMAKE=$(MAKE) -fwin32.mak C=$C TK=$(TK) ROOT=$(ROOT) DC=$(DC)
 
 ############################### Rule Variables ###############################
 
@@ -174,7 +182,7 @@ ROOTOBJS= man.obj port.obj \
 
 # D front end
 SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
-	utf.c entity.c identifier.c mtype.c expression.c optimize.c \
+	utf.c entity.d identifier.c mtype.c expression.c optimize.c \
 	template.h template.c lexer.c declaration.c cast.c \
 	cond.h cond.c link.c aggregate.h staticassert.h parse.c statement.c \
 	constfold.c version.h version.c inifile.c staticassert.c \
@@ -270,13 +278,13 @@ release:
 	$(DMDMAKE) clean
 
 debdmd:
-	$(DMDMAKE) "OPT=" "DEBUG=-D -g -DUNITTEST" "LFLAGS=-L/ma/co/la" $(TARGETEXE)
+	$(DMDMAKE) "OPT=" "DEBUG=-D -g -DUNITTEST" "LFLAGS=-L/ma/co/la" "DOPT=" "DDEBUG=-g" $(TARGETEXE)
 
 reldmd:
-	$(DMDMAKE) "OPT=-o" "DEBUG=" "LFLAGS=-L/delexe/la" $(TARGETEXE)
+	$(DMDMAKE) "OPT=-o" "DEBUG=" "DOPT=-O -inline -release" "DDEBUG=" "LFLAGS=-L/delexe/la" $(TARGETEXE)
 
 trace:
-	$(DMDMAKE) "OPT=-o" "DEBUG=-gt -Nc" "LFLAGS=-L/ma/co/delexe/la" $(TARGETEXE)
+	$(DMDMAKE) "OPT=-o" "DEBUG=-gt -Nc" "DOPT=-O" "DDEBUG=-g" "LFLAGS=-L/ma/co/delexe/la" $(TARGETEXE)
 
 ################################ Libraries ##################################
 
@@ -295,7 +303,7 @@ root.lib : $(ROOTOBJS)
 LIBS= frontend.lib glue.lib backend.lib root.lib
 
 $(TARGETEXE): mars.obj $(LIBS) win32.mak
-	$(CC) -o$(TARGETEXE) mars.obj $(LIBS) -cpp -mn -Ar -L/STACK:8388608 $(LFLAGS)
+	$(DC) -of$(TARGETEXE) mars.obj $(LIBS) phobos.lib -L/STACK:8388608
 
 ############################ Maintenance Targets #############################
 
@@ -489,6 +497,9 @@ eh.obj : $C\cc.h $C\code.h $C\type.h $C\dt.h eh.c
 
 el.obj : $C\rtlsym.h $C\el.h $C\el.c
 	$(CC) -c $(MFLAGS) $C\el
+
+entity.obj:
+	$(DC) -c $(DFLAGS) entity.d
 
 evalu8.obj : $C\evalu8.c
 	$(CC) -c $(MFLAGS) $C\evalu8

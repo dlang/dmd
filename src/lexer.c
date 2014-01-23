@@ -30,7 +30,7 @@
 #include "id.h"
 #include "module.h"
 
-extern int HtmlNamedEntity(const utf8_t *p, size_t length);
+extern "C" int HtmlNamedEntity(const utf8_t *p, size_t length);
 
 #define LS 0x2028       // UTF line separator
 #define PS 0x2029       // UTF paragraph separator

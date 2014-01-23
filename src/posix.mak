@@ -27,7 +27,7 @@ ROOT=root
 ifeq (osx,$(OS))
     export MACOSX_DEPLOYMENT_TARGET=10.3
 endif
-LDFLAGS=-lm -lstdc++ -lpthread
+LDFLAGS=-L-lm -L-lstdc++ -L-lpthread
 
 #ifeq (osx,$(OS))
 #	HOST_CC=clang++
@@ -35,6 +35,7 @@ LDFLAGS=-lm -lstdc++ -lpthread
 	HOST_CC=g++
 #endif
 CC=$(HOST_CC) $(MODEL_FLAG)
+DC?=dmd
 GIT=git
 
 #COV=-fprofile-arcs -ftest-coverage
@@ -45,12 +46,15 @@ MMD=-MMD -MF $(basename $@).deps
 
 ifneq (,$(DEBUG))
 	GFLAGS=$(WARNINGS) -D__pascal= -fno-exceptions -g -g3 -DDEBUG=1 -DUNITTEST $(COV) $(PROFILE) $(MMD)
+	GDFLAGS=-g -debug -unittest
 else
 	GFLAGS=$(WARNINGS) -D__pascal= -fno-exceptions -O2 $(PROFILE) $(MMD)
+	GDFLAGS=-O -inline -release
 endif
 
 OS_UPCASE:=$(shell echo $(OS) | tr '[a-z]' '[A-Z]')
 CFLAGS = $(GFLAGS) -I$(ROOT) -DMARS=1 -DTARGET_$(OS_UPCASE)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1
+DFLAGS = $(GDFLAGS)
 MFLAGS = $(GFLAGS) -I$C -I$(TK) -I$(ROOT) -DMARS=1 -DTARGET_$(OS_UPCASE)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1 -DDMDV2=1
 
 DMD_OBJS = \
@@ -122,7 +126,7 @@ SRC = win32.mak posix.mak osmodel.mak \
 	scope.h enum.h import.h mars.h module.h mtype.h dsymbol.h \
 	declaration.h lexer.h expression.h statement.h \
 	utf.h utf.c staticassert.h staticassert.c \
-	entity.c \
+	entity.d \
 	doc.h doc.c macro.h macro.c hdrgen.h hdrgen.c arraytypes.h \
 	delegatize.c interpret.c traits.c cppmangle.c \
 	builtin.c clone.c lib.h arrayop.c \
@@ -196,7 +200,7 @@ backend.a: $(BACK_OBJS)
 	ar rcs backend.a $(BACK_OBJS)
 
 dmd: frontend.a root.a glue.a backend.a
-	$(HOST_CC) -o dmd $(MODEL_FLAG) $(COV) $(PROFILE) frontend.a root.a glue.a backend.a $(LDFLAGS)
+	$(DC) -ofdmd $(MODEL_FLAG) $(COV) $(PROFILE) mars.o frontend.a root.a glue.a backend.a $(LDFLAGS)
 
 clean:
 	rm -f $(DMD_OBJS) $(ROOT_OBJS) $(GLUE_OBJS) $(BACK_OBJS) dmd optab.o id.o impcnvgen idgen id.c id.h \
@@ -417,8 +421,8 @@ el.o: $C/el.c
 elfobj.o: $C/elfobj.c
 	$(CC) -c $(MFLAGS) $<
 
-entity.o: entity.c
-	$(CC) -c $(CFLAGS) $<
+entity.o: entity.d
+	$(DC) -c $(DFLAGS) $<
 
 enum.o: enum.c
 	$(CC) -c $(CFLAGS) $<
