@@ -19,6 +19,8 @@ else
 endif
 
 INSTALL_DIR=../../install
+# can be set to override the default /etc/
+SYSCONFDIR=/etc/
 
 C=backend
 TK=tk

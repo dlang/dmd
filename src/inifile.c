@@ -34,10 +34,6 @@
 
 #define LOG     0
 
-#ifndef SYSCONFDIR
-#define SYSCONFDIR "/etc/"
-#endif
-
 char *skipspace(const char *p);
 
 
@@ -139,9 +135,12 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
                     }
                     // Search /etc/ for inifile
                 Letc:
+#ifndef SYSCONFDIR
+# error SYSCONFDIR not defined
 #endif
+                    assert(SYSCONFDIR != NULL && strlen(SYSCONFDIR));
                     filename = (char *)FileName::combine((char *)SYSCONFDIR, inifile);
-
+#endif // __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
                 Ldone:
                     ;
                 }
