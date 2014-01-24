@@ -1081,14 +1081,15 @@ void PragmaDeclaration::semantic(Scope *sc)
             error("function name expected for start address");
         else
         {
+            /* Bugzilla 11980:
+             * resolveProperties and ctfeInterpret call are not necessary.
+             */
             Expression *e = (*args)[0];
 
             sc = sc->startCTFE();
             e = e->semantic(sc);
-            e = resolveProperties(sc, e);
             sc = sc->endCTFE();
 
-            e = e->ctfeInterpret();
             (*args)[0] = e;
             Dsymbol *sa = getDsymbol(e);
             if (!sa || !sa->isFuncDeclaration())
