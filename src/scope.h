@@ -66,7 +66,6 @@ struct Scope
     Scope *enclosing;           // enclosing Scope
 
     Module *module;             // Root module
-    Module *instantiatingModule; // top level module that started a chain of template instantiations
     ScopeDsymbol *scopesym;     // current symbol
     ScopeDsymbol *sd;           // if in static if, and declaring new symbols,
                                 // sd gets the addMember()
@@ -131,6 +130,8 @@ struct Scope
 
     unsigned *saveFieldInit();
     void mergeFieldInit(Loc loc, unsigned *cses);
+
+    Module *instantiatingModule();
 
     Dsymbol *search(Loc loc, Identifier *ident, Dsymbol **pscopesym);
     Dsymbol *search_correct(Identifier *ident);

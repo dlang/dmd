@@ -567,6 +567,9 @@ void FuncDeclaration::toObjFile(int multiobj)
     if (semanticRun >= PASSobj) // if toObjFile() already run
         return;
 
+    if (type && type->ty == Tfunction && ((TypeFunction *)type)->next == NULL)
+        return;
+
     // If errors occurred compiling it, such as bugzilla 6118
     if (type && type->ty == Tfunction && ((TypeFunction *)type)->next->ty == Terror)
         return;

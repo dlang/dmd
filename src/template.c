@@ -544,8 +544,7 @@ void TemplateDeclaration::semantic(Scope *sc)
     if (!parent)
         parent = sc->parent;
 
-    isstatic = toParent()->isModule() ||
-               toParent()->isFuncDeclaration() && (scope->stc & STCstatic);
+    isstatic = toParent()->isModule() || (scope->stc & STCstatic);
 
     protection = sc->protection;
 
@@ -668,44 +667,73 @@ bool TemplateDeclaration::overloadInsert(Dsymbol *s)
 }
 
 /****************************
- * Declare all the function parameters as variables
- * and add them to the scope
+ * Check to see if constraint is satisfied.
  */
-void TemplateDeclaration::makeParamNamesVisibleInConstraint(Scope *paramscope, Expressions *fargs)
+bool TemplateDeclaration::evaluateConstraint(
+        TemplateInstance *ti, Scope *sc, Scope *paramscope,
+        Objects *dedtypes, FuncDeclaration *fd)
 {
-    /* We do this ONLY if there is only one function in the template.
+    /* Detect recursive attempts to instantiate this template declaration,
+     * Bugzilla 4072
+     *  void foo(T)(T x) if (is(typeof(foo(x)))) { }
+     *  static assert(!is(typeof(foo(7))));
+     * Recursive attempts are regarded as a constraint failure.
      */
-    FuncDeclaration *fd = onemember && onemember->toAlias() ?
-        onemember->toAlias()->isFuncDeclaration() : NULL;
-    if (fd && fd->type->ty == Tfunction)
-    {
-        /*
-            Making parameters is similar to FuncDeclaration::semantic3
-         */
-        paramscope->parent = fd;
+    /* There's a chicken-and-egg problem here. We don't know yet if this template
+     * instantiation will be a local one (enclosing is set), and we won't know until
+     * after selecting the correct template. Thus, function we're nesting inside
+     * is not on the sc scope chain, and this can cause errors in FuncDeclaration::getLevel().
+     * Workaround the problem by setting a flag to relax the checking on frame errors.
+     */
 
-        TypeFunction *tf = (TypeFunction *)fd->type->syntaxCopy();
+    int nmatches = 0;
+    for (TemplatePrevious *p = previous; p; p = p->prev)
+    {
+        if (arrayObjectMatch(p->dedargs, dedtypes))
+        {
+            //printf("recursive, no match p->sc=%p %p %s\n", p->sc, this, this->toChars());
+            /* It must be a subscope of p->sc, other scope chains are not recursive
+             * instantiations.
+             */
+            for (Scope *scx = sc; scx; scx = scx->enclosing)
+            {
+                if (scx == p->sc)
+                    return false;
+            }
+        }
+        /* BUG: should also check for ref param differences
+         */
+    }
+
+    TemplatePrevious pr;
+    pr.prev    = previous;
+    pr.sc      = paramscope;
+    pr.dedargs = dedtypes;
+    previous = &pr;                 // add this to threaded list
+
+    int nerrors = global.errors;
+
+    Scope *scx = paramscope->push(ti);
+    scx->parent = ti;
+    scx->tinst = ti;
+
+    if (fd)
+    {
+        /* Declare all the function parameters as variables and add them to the scope
+         * Making parameters is similar to FuncDeclaration::semantic3
+         */
+        TypeFunction *tf = (TypeFunction *)fd->type;
         assert(tf->ty == Tfunction);
 
-        // Shouldn't run semantic on default arguments and return type.
-        for (size_t i = 0; i<tf->parameters->dim; i++)
-            (*tf->parameters)[i]->defaultArg = NULL;
-        tf->next = NULL;
-
-        // Resolve parameter types and 'auto ref's.
-        tf->fargs = fargs;
-        tf = (TypeFunction *)tf->semantic(loc, paramscope);
-        if (tf->ty != Tfunction)
-            return;
+        scx->parent = fd;
 
         Parameters *fparameters = tf->parameters;
         int fvarargs = tf->varargs;
 
-        size_t nfparams = Parameter::dim(fparameters); // Num function parameters
+        size_t nfparams = Parameter::dim(fparameters);
         for (size_t i = 0; i < nfparams; i++)
         {
             Parameter *fparam = Parameter::getNth(fparameters, i);
-            // Remove addMod same as func.d L1065 of FuncDeclaration::semantic3
             fparam->storageClass &= (STCin | STCout | STCref | STClazy | STCfinal | STC_TYPECTOR | STCnodtor);
             fparam->storageClass |= STCparameter;
             if (fvarargs == 2 && i + 1 == nfparams)
@@ -718,13 +746,47 @@ void TemplateDeclaration::makeParamNamesVisibleInConstraint(Scope *paramscope, E
                 continue;                       // don't add it, if it has no name
             VarDeclaration *v = new VarDeclaration(loc, fparam->type, fparam->ident, NULL);
             v->storage_class = fparam->storageClass;
-            v->semantic(paramscope);
-            if (!paramscope->insert(v))
+            v->semantic(scx);
+            if (!scx->insert(v))
                 error("parameter %s.%s is already defined", toChars(), v->toChars());
             else
                 v->parent = fd;
         }
+        if (isstatic)
+            fd->storage_class |= STCstatic;
+
+        fd->vthis = fd->declareThis(scx, fd->isThis());
     }
+
+    Expression *e = constraint->syntaxCopy();
+
+    scx = scx->startCTFE();
+    scx->flags |= SCOPEstaticif;
+
+    //printf("\tscx->parent = %s %s\n", scx->parent->kind(), scx->parent->toPrettyChars());
+    e = e->semantic(scx);
+    e = resolveProperties(scx, e);
+
+    scx = scx->endCTFE();
+
+    scx = scx->pop();
+    previous = pr.prev;             // unlink from threaded list
+
+    if (nerrors != global.errors)   // if any errors from evaluating the constraint, no match
+        return false;
+    if (e->op == TOKerror)
+        return false;
+
+    e = e->ctfeInterpret();
+    if (e->isBool(true))
+        ;
+    else if (e->isBool(false))
+        return false;
+    else
+    {
+        e->error("constraint %s is not constant or does not evaluate to a bool", e->toChars());
+    }
+    return true;
 }
 
 /***************************************
@@ -741,21 +803,21 @@ void TemplateDeclaration::makeParamNamesVisibleInConstraint(Scope *paramscope, E
 
 MATCH TemplateDeclaration::matchWithInstance(Scope *sc, TemplateInstance *ti,
         Objects *dedtypes, Expressions *fargs, int flag)
-{   MATCH m;
-    size_t dedtypes_dim = dedtypes->dim;
-
+{
 #define LOGM 0
 #if LOGM
     printf("\n+TemplateDeclaration::matchWithInstance(this = %s, ti = %s, flag = %d)\n", toChars(), ti->toChars(), flag);
 #endif
-
 #if 0
-    printf("dedtypes->dim = %d, parameters->dim = %d\n", dedtypes_dim, parameters->dim);
+    printf("dedtypes->dim = %d, parameters->dim = %d\n", dedtypes->dim, parameters->dim);
     if (ti->tiargs->dim)
         printf("ti->tiargs->dim = %d, [0] = %p\n",
             ti->tiargs->dim,
             (*ti->tiargs)[0]);
 #endif
+    MATCH m;
+    size_t dedtypes_dim = dedtypes->dim;
+
     dedtypes->zero();
 
     if (errors)
@@ -776,13 +838,13 @@ MATCH TemplateDeclaration::matchWithInstance(Scope *sc, TemplateInstance *ti,
     assert(dedtypes_dim == parameters_dim);
     assert(dedtypes_dim >= ti->tiargs->dim || variadic);
 
-    // Set up scope for parameters
     assert(scope);
+
+    // Set up scope for template parameters
     ScopeDsymbol *paramsym = new ScopeDsymbol();
     paramsym->parent = scope->parent;
     Scope *paramscope = scope->push(paramsym);
-    Module *mi = ti->instantiatingModule ? ti->instantiatingModule : sc->instantiatingModule;
-    paramscope->instantiatingModule = mi;
+    paramscope->tinst = ti;
     paramscope->callsc = sc;
     paramscope->stc = 0;
 
@@ -831,7 +893,8 @@ MATCH TemplateDeclaration::matchWithInstance(Scope *sc, TemplateInstance *ti,
         for (size_t i = 0; i < dedtypes_dim; i++)
         {
             if (!(*dedtypes)[i])
-            {   assert(i < ti->tiargs->dim);
+            {
+                assert(i < ti->tiargs->dim);
                 (*dedtypes)[i] = (Type *)(*ti->tiargs)[i];
             }
         }
@@ -839,83 +902,39 @@ MATCH TemplateDeclaration::matchWithInstance(Scope *sc, TemplateInstance *ti,
 
     if (m > MATCHnomatch && constraint && !flag)
     {
-        /* Check to see if constraint is satisfied.
-         */
-        makeParamNamesVisibleInConstraint(paramscope, fargs);
-        Expression *e = constraint->syntaxCopy();
-
-        /* There's a chicken-and-egg problem here. We don't know yet if this template
-         * instantiation will be a local one (enclosing is set), and we won't know until
-         * after selecting the correct template. Thus, function we're nesting inside
-         * is not on the sc scope chain, and this can cause errors in FuncDeclaration::getLevel().
-         * Workaround the problem by setting a flag to relax the checking on frame errors.
-         */
-
-        int nmatches = 0;
-        for (TemplatePrevious *p = previous; p; p = p->prev)
-        {
-            if (arrayObjectMatch(p->dedargs, dedtypes))
-            {
-                //printf("recursive, no match p->sc=%p %p %s\n", p->sc, this, this->toChars());
-                /* It must be a subscope of p->sc, other scope chains are not recursive
-                 * instantiations.
-                 */
-                for (Scope *scx = sc; scx; scx = scx->enclosing)
-                {
-                    if (scx == p->sc)
-                        goto Lnomatch;
-                }
-            }
-            /* BUG: should also check for ref param differences
-             */
-        }
-
-        TemplatePrevious pr;
-        pr.prev = previous;
-        pr.sc = paramscope;
-        pr.dedargs = dedtypes;
-        previous = &pr;                 // add this to threaded list
-
-        int nerrors = global.errors;
-
-        FuncDeclaration *fd = onemember && onemember->toAlias() ?
-            onemember->toAlias()->isFuncDeclaration() : NULL;
-        Dsymbol *s = parent;
-        while (s->isTemplateInstance() || s->isTemplateMixin())
-            s = s->parent;
-        AggregateDeclaration *ad = s->isAggregateDeclaration();
-        VarDeclaration *vthissave;
-        if (fd && ad)
-        {
-            vthissave = fd->vthis;
-            fd->vthis = fd->declareThis(paramscope, ad);
-        }
-
-        Scope *scx = paramscope->startCTFE();
-        scx->flags |= SCOPEstaticif;
-        e = e->semantic(scx);
-        e = resolveProperties(scx, e);
-        scx = scx->endCTFE();
-
-        if (fd && fd->vthis)
-            fd->vthis = vthissave;
-
-        previous = pr.prev;             // unlink from threaded list
-
-        if (nerrors != global.errors)   // if any errors from evaluating the constraint, no match
-            goto Lnomatch;
-        if (e->op == TOKerror)
-            goto Lnomatch;
-
-        e = e->ctfeInterpret();
-        if (e->isBool(true))
-            ;
-        else if (e->isBool(false))
-            goto Lnomatch;
+        // minimum requred settings
+        ti->symtab = new DsymbolTable();
+        //ti->parent = this->parent;
+        if (ti->hasNestedArgs(ti->tiargs, this->isstatic))  // TODO: should gag error
+            ti->parent = ti->enclosing;
         else
+            ti->parent = this->parent;
+
+        // Similar to doHeaderInstantiation
+        FuncDeclaration *fd = onemember ? onemember->isFuncDeclaration() : NULL;
+        if (fd)
         {
-            e->error("constraint %s is not constant or does not evaluate to a bool", e->toChars());
+            assert(fd->type->ty == Tfunction);
+            TypeFunction *tf = (TypeFunction *)fd->type->syntaxCopy();
+
+            fd = new FuncDeclaration(fd->loc, fd->endloc, fd->ident, fd->storage_class, tf);
+            fd->parent = ti;
+            fd->inferRetType = true;
+
+            // Shouldn't run semantic on default arguments and return type.
+            for (size_t i = 0; i < tf->parameters->dim; i++)
+                (*tf->parameters)[i]->defaultArg = NULL;
+            tf->next = NULL;
+
+            // Resolve parameter types and 'auto ref's.
+            tf->fargs = fargs;
+            fd->type = tf->semantic(loc, paramscope);
+            if (fd->type->ty != Tfunction)
+                goto Lnomatch;
         }
+
+        if (!evaluateConstraint(ti, sc, paramscope, dedtypes, fd))
+            goto Lnomatch;
     }
 
 #if LOGM
@@ -1032,22 +1051,23 @@ MATCH TemplateDeclaration::leastAsSpecialized(Scope *sc, TemplateDeclaration *td
 /*************************************************
  * Match function arguments against a specific template function.
  * Input:
- *      loc             instantiation location
+ *      ti
  *      sc              instantiation scope
- *      tiargs          Expression/Type initial list of template arguments
+ *      fd
  *      tthis           'this' argument if !NULL
  *      fargs           arguments to function
  * Output:
- *      dedargs         Expression/Type deduced template arguments
+ *      fd              Partially instantiated function declaration
+ *      ti->tdtypes     Expression/Type deduced template arguments
  * Returns:
  *      match level
  *          bit 0-3     Match template parameters by inferred template arguments
  *          bit 4-7     Match template parameters by initial template arguments
  */
 
-MATCH TemplateDeclaration::deduceFunctionTemplateMatch(FuncDeclaration *f, Loc loc, Scope *sc, Objects *tiargs,
-        Type *tthis, Expressions *fargs,
-        Objects *dedargs)
+MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
+        TemplateInstance *ti, Scope *sc,
+        FuncDeclaration *&fd, Type *tthis, Expressions *fargs)
 {
     size_t nfparams;
     size_t nfargs;
@@ -1056,17 +1076,21 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(FuncDeclaration *f, Loc l
     size_t tuple_dim = 0;
     MATCH match = MATCHexact;
     MATCH matchTiargs = MATCHexact;
-    FuncDeclaration *fd = f;
     Parameters *fparameters;            // function parameter list
     int fvarargs;                       // function varargs
     Objects dedtypes;   // for T:T*, the dedargs is the T*, dedtypes is the T
     unsigned wildmatch = 0;
     TemplateParameters *inferparams = parameters;
 
+    Loc loc = ti->loc;
+    Objects *tiargs = ti->tiargs;
+    Objects *dedargs = &ti->tdtypes;
+
 #if 0
     printf("\nTemplateDeclaration::deduceFunctionTemplateMatch() %s\n", toChars());
     for (size_t i = 0; i < (fargs ? fargs->dim : 0); i++)
-    {   Expression *e = (*fargs)[i];
+    {
+        Expression *e = (*fargs)[i];
         printf("\tfarg[%d] is %s, type is %s\n", i, e->toChars(), e->type->toChars());
     }
     printf("fd = %s\n", fd->toChars());
@@ -1083,19 +1107,14 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(FuncDeclaration *f, Loc l
     dedtypes.setDim(parameters->dim);
     dedtypes.zero();
 
-    if (errors || f->errors)
+    if (errors || fd->errors)
         return MATCHnomatch;
 
     // Set up scope for parameters
     ScopeDsymbol *paramsym = new ScopeDsymbol();
-    paramsym->parent = scope->parent;
+    paramsym->parent = scope->parent;   // should use hasnestedArgs and enclosing?
     Scope *paramscope = scope->push(paramsym);
-
-    paramscope->instantiatingModule = sc->instantiatingModule;
-    Module *mi = sc->instantiatingModule ? sc->instantiatingModule : sc->module;
-    if (!sc->instantiatingModule || sc->instantiatingModule->isRoot())
-        paramscope->instantiatingModule = mi;
-
+    paramscope->tinst = ti;
     paramscope->callsc = sc;
     paramscope->stc = 0;
 
@@ -1115,14 +1134,15 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(FuncDeclaration *f, Loc l
 
     ntargs = 0;
     if (tiargs)
-    {   // Set initial template arguments
-
+    {
+        // Set initial template arguments
         ntargs = tiargs->dim;
         size_t n = parameters->dim;
         if (tp)
             n--;
         if (ntargs > n)
-        {   if (!tp)
+        {
+            if (!tp)
                 goto Lnomatch;
 
             /* The extra initial template arguments
@@ -1147,11 +1167,10 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(FuncDeclaration *f, Loc l
         memcpy(dedargs->tdata(), tiargs->tdata(), n * sizeof(*dedargs->tdata()));
 
         for (size_t i = 0; i < n; i++)
-        {   assert(i < parameters->dim);
-            MATCH m;
+        {
+            assert(i < parameters->dim);
             Declaration *sparam = NULL;
-
-            m = (*parameters)[i]->matchArg(loc, paramscope, dedargs, i, parameters, &dedtypes, &sparam);
+            MATCH m = (*parameters)[i]->matchArg(loc, paramscope, dedargs, i, parameters, &dedtypes, &sparam);
             //printf("\tdeduceType m = %d\n", m);
             if (m <= MATCHnomatch)
                 goto Lnomatch;
@@ -1246,7 +1265,8 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(FuncDeclaration *f, Loc l
         {
             TemplateThisParameter *ttp = (*parameters)[i]->isTemplateThisParameter();
             if (ttp)
-            {   hasttp = true;
+            {
+                hasttp = true;
 
                 Type *t = new TypeIdentifier(Loc(), ttp->ident);
                 MATCH m = tthis->deduceType(paramscope, t, parameters, &dedtypes);
@@ -1432,7 +1452,8 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(FuncDeclaration *f, Loc l
         if (argi >= nfargs)                // if not enough arguments
         {
             if (fparam->defaultArg)
-            {   /* Default arguments do not participate in template argument
+            {
+                /* Default arguments do not participate in template argument
                  * deduction.
                  */
                 goto Lmatch;
@@ -1483,7 +1504,8 @@ Lretry:
             /* Allow implicit function literals to delegate conversion
              */
             if (farg->op == TOKfunction)
-            {   FuncExp *fe = (FuncExp *)farg;
+            {
+                FuncExp *fe = (FuncExp *)farg;
                 Expression *e = fe->inferType(prmtype, 1, paramscope, inferparams);
                 if (!e)
                     goto Lvarargs;
@@ -1522,7 +1544,8 @@ Lretry:
             /* If no match, see if there's a conversion to a delegate
              */
             if (m == MATCHnomatch)
-            {   Type *tbp = prmtype->toBasetype();
+            {
+                Type *tbp = prmtype->toBasetype();
                 Type *tba = farg->type->toBasetype();
                 if (tbp->ty == Tdelegate)
                 {
@@ -1563,14 +1586,16 @@ Lretry:
                     {
                     }
                     else if (farg->op == TOKslice && argtype->ty == Tsarray)
-                    {   // Allow conversion from T[lwr .. upr] to ref T[upr-lwr]
+                    {
+                        // Allow conversion from T[lwr .. upr] to ref T[upr-lwr]
                     }
                     else
                         goto Lnomatch;
                 }
             }
             if (m > MATCHnomatch && (fparam->storageClass & STCout))
-            {   if (!farg->isLvalue())
+            {
+                if (!farg->isLvalue())
                     goto Lnomatch;
             }
             if (m == MATCHnomatch && (fparam->storageClass & STClazy) && prmtype->ty == Tvoid &&
@@ -1578,7 +1603,8 @@ Lretry:
                 m = MATCHconvert;
 
             if (m != MATCHnomatch)
-            {   if (m < match)
+            {
+                if (m < match)
                     match = m;          // pick worst match
                 argi++;
                 continue;
@@ -1600,20 +1626,24 @@ Lretry:
             // 6764 fix - TypeAArray may be TypeSArray have not yet run semantic().
             case Tsarray:
             case Taarray:
-            {   // Perhaps we can do better with this, see TypeFunction::callMatch()
+            {
+                // Perhaps we can do better with this, see TypeFunction::callMatch()
                 if (tb->ty == Tsarray)
-                {   TypeSArray *tsa = (TypeSArray *)tb;
+                {
+                    TypeSArray *tsa = (TypeSArray *)tb;
                     dinteger_t sz = tsa->dim->toInteger();
                     if (sz != nfargs - argi)
                         goto Lnomatch;
                 }
                 else if (tb->ty == Taarray)
-                {   TypeAArray *taa = (TypeAArray *)tb;
+                {
+                    TypeAArray *taa = (TypeAArray *)tb;
                     Expression *dim = new IntegerExp(loc, nfargs - argi, Type::tsize_t);
 
                     size_t i = templateParameterLookup(taa->index, parameters);
                     if (i == IDX_NOTFOUND)
-                    {   Expression *e;
+                    {
+                        Expression *e;
                         Type *t;
                         Dsymbol *s;
                         taa->index->resolve(loc, sc, &e, &t, &s);
@@ -1626,7 +1656,8 @@ Lretry:
                             goto Lnomatch;
                     }
                     else
-                    {   // This code matches code in TypeInstance::deduceType()
+                    {
+                        // This code matches code in TypeInstance::deduceType()
                         TemplateParameter *tprm = (*parameters)[i];
                         TemplateValueParameter *tvp = tprm->isTemplateValueParameter();
                         if (!tvp)
@@ -1650,15 +1681,16 @@ Lretry:
                 /* fall through */
             }
             case Tarray:
-            {   TypeArray *ta = (TypeArray *)tb;
+            {
+                TypeArray *ta = (TypeArray *)tb;
                 for (; argi < nfargs; argi++)
                 {
                     Expression *arg = (*fargs)[argi];
                     assert(arg);
 
                     if (arg->op == TOKfunction)
-                    {   FuncExp *fe = (FuncExp *)arg;
-
+                    {
+                        FuncExp *fe = (FuncExp *)arg;
                         Expression *e = fe->inferType(tb->nextOf(), 1, paramscope, inferparams);
                         if (!e)
                             goto Lnomatch;
@@ -1673,7 +1705,8 @@ Lretry:
                     if (tret)
                     {
                         if (ta->next->equals(arg->type))
-                        {   m = MATCHexact;
+                        {
+                            m = MATCHexact;
                         }
                         else
                         {
@@ -1730,7 +1763,8 @@ Lmatch:
             if (oded)
             {
                 if (tparam->specialization() || !tparam->isTemplateTypeParameter())
-                {   /* The specialization can work as long as afterwards
+                {
+                    /* The specialization can work as long as afterwards
                      * the oded == oarg
                      */
                     (*dedargs)[i] = oded;
@@ -1750,13 +1784,15 @@ Lmatch:
                 }
             }
             else
-            {   oded = tparam->defaultArg(loc, paramscope);
+            {
+                oded = tparam->defaultArg(loc, paramscope);
                 if (!oded)
                 {
                     if (tp &&                           // if tuple parameter and
                         fptupindex == IDX_NOTFOUND &&   // tuple parameter was not in function parameter list and
                         ntargs == dedargs->dim - 1)     // we're one argument short (i.e. no tuple argument)
-                    {   // make tuple argument an empty tuple
+                    {
+                        // make tuple argument an empty tuple
                         oded = (RootObject *)new Tuple();
                     }
                     else
@@ -1768,91 +1804,38 @@ Lmatch:
         }
     }
 
+    // Partially instantiate function for constraint and fd->leastAsSpecialized()
+    {
+        assert(paramsym);
+        Scope *sc1 = scope->push(paramsym);
+        sc1->tinst = ti;
+
+        Scope *sc2 = sc1->push(ti);
+        sc2->parent = ti;
+        sc2->tinst = ti;
+
+        fd = doHeaderInstantiation(ti, sc2, fd, tthis, fargs);
+
+        sc2->pop();
+        sc1->pop();
+
+        if (!fd)
+            goto Lnomatch;
+    }
     if (constraint)
     {
-        /* Check to see if constraint is satisfied.
-         * Most of this code appears twice; this is a good candidate for refactoring.
-         */
-        makeParamNamesVisibleInConstraint(paramscope, fargs);
-        Expression *e = constraint->syntaxCopy();
-
-        /* Detect recursive attempts to instantiate this template declaration,
-         * Bugzilla 4072
-         *  void foo(T)(T x) if (is(typeof(foo(x)))) { }
-         *  static assert(!is(typeof(foo(7))));
-         * Recursive attempts are regarded as a constraint failure.
-         */
-        int nmatches = 0;
-        for (TemplatePrevious *p = previous; p; p = p->prev)
-        {
-            if (arrayObjectMatch(p->dedargs, dedargs))
-            {
-                //printf("recursive, no match p->sc=%p %p %s\n", p->sc, this, this->toChars());
-                /* It must be a subscope of p->sc, other scope chains are not recursive
-                 * instantiations.
-                 */
-                for (Scope *scx = sc; scx; scx = scx->enclosing)
-                {
-                    if (scx == p->sc)
-                        goto Lnomatch;
-                }
-            }
-            /* BUG: should also check for ref param differences
-             */
-        }
-
-        TemplatePrevious pr;
-        pr.prev = previous;
-        pr.sc = paramscope;
-        pr.dedargs = dedargs;
-        previous = &pr;                 // add this to threaded list
-
-        int nerrors = global.errors;
-
-        Dsymbol *s = parent;
-        while (s->isTemplateInstance() || s->isTemplateMixin())
-            s = s->parent;
-        AggregateDeclaration *ad = s->isAggregateDeclaration();
-        VarDeclaration *vthissave;
-        if (fd && ad)
-        {
-            vthissave = fd->vthis;
-            fd->vthis = fd->declareThis(paramscope, ad);
-        }
-
-        Scope *scx = paramscope->startCTFE();
-        scx->flags |= SCOPEstaticif;
-        e = e->semantic(scx);
-        e = resolveProperties(scx, e);
-        scx->endCTFE();
-
-        if (fd && fd->vthis)
-            fd->vthis = vthissave;
-
-        previous = pr.prev;             // unlink from threaded list
-
-        if (nerrors != global.errors)   // if any errors from evaluating the constraint, no match
+        if (!evaluateConstraint(ti, sc, paramscope, dedargs, fd))
             goto Lnomatch;
-        if (e->op == TOKerror)
-            goto Lnomatch;
-
-        e = e->ctfeInterpret();
-        if (e->isBool(true))
-            ;
-        else if (e->isBool(false))
-            goto Lnomatch;
-        else
-        {
-            e->error("constraint %s is not constant or does not evaluate to a bool", e->toChars());
-        }
     }
 
 #if 0
     for (i = 0; i < dedargs->dim; i++)
-    {   Type *t = (*dedargs)[i];
+    {
+        Type *t = (*dedargs)[i];
         printf("\tdedargs[%d] = %d, %s\n", i, t->dyncast(), t->toChars());
     }
 #endif
+    ti->tiargs = &ti->tdtypes;  // for better error message
 
     paramscope->pop();
     //printf("\tmatch %d\n", match);
@@ -1985,14 +1968,17 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
     printf("functionResolve() dstart = %s\n", dstart->toChars());
     printf("    tiargs:\n");
     if (tiargs)
-    {   for (size_t i = 0; i < tiargs->dim; i++)
-        {   RootObject *arg = (*tiargs)[i];
+    {
+        for (size_t i = 0; i < tiargs->dim; i++)
+        {
+            RootObject *arg = (*tiargs)[i];
             printf("\t%s\n", arg->toChars());
         }
     }
     printf("    fargs:\n");
     for (size_t i = 0; i < (fargs ? fargs->dim : 0); i++)
-    {   Expression *arg = (*fargs)[i];
+    {
+        Expression *arg = (*fargs)[i];
         printf("\t%s %s\n", arg->type->toChars(), arg->toChars());
         //printf("\tty = %d\n", arg->type->ty);
     }
@@ -2015,8 +2001,8 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
                         // 2: not @property
     size_t ov_index;
     TemplateDeclaration *td_best;
+    TemplateInstance *ti_best;
     MATCH ta_last;
-    Objects *tdargs;
     Type *tthis_best;
 
     static int fp(void *param, Dsymbol *s)
@@ -2061,7 +2047,8 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
             if (MODimplicitConv(tf->mod, tthis_fd->mod) ||
                 tf->isWild() && tf->isShared() == tthis_fd->isShared() ||
                 fd->isolateReturn()/* && tf->isShared() == tthis_fd->isShared()*/)
-            {   // Uniquely constructed object can ignore shared qualifier.
+            {
+                // Uniquely constructed object can ignore shared qualifier.
                 // TODO: Is this appropriate?
                 tthis_fd = NULL;
             }
@@ -2119,13 +2106,13 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
 
         LfIsBetter:
             td_best = NULL;
+            ti_best = NULL;
             ta_last = MATCHexact;
             m->last = mfa;
             m->lastf = fd;
             tthis_best = tthis_fd;
             ov_index = 0;
             m->count = 1;
-            tdargs->setDim(0);
             return 0;
         }
         return 0;
@@ -2238,6 +2225,7 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
             // td is the new best match
             assert(td->scope);
             td_best = td;
+            ti_best = NULL;
             property = 0;   // (backward compatibility)
             ta_last = mta;
             m->last = mfa;
@@ -2246,8 +2234,6 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
             ov_index = 0;
             m->nextf = NULL;
             m->count = 1;
-            tdargs->setDim(dedtypes.dim);
-            memcpy(tdargs->tdata(), dedtypes.tdata(), tdargs->dim * sizeof(void *));
             return 0;
         }
 
@@ -2257,26 +2243,30 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
             if (f->type->ty != Tfunction || f->errors)
                 goto Lerror;
 
-            Objects dedtypes;
-            FuncDeclaration *fd = NULL;
-            int x = td->deduceFunctionTemplateMatch(f, loc, sc, tiargs, tthis, fargs, &dedtypes);
+            TemplateInstance *ti = new TemplateInstance(loc, td, tiargs);
+            ti->tinst = td->getInstantiating(sc);
+            ti->instantiatingModule = sc->instantiatingModule();
+            ti->parent = td->parent;    // Maybe calculating valid 'enclosing' is unnecessary.
+            ti->semantictiargsdone = true;
+            ti->symtab = new DsymbolTable();
+
+            FuncDeclaration *fd = f;
+            int x = td->deduceFunctionTemplateMatch(ti, sc, fd, tthis, fargs);
             MATCH mta = (MATCH)(x >> 4);
             MATCH mfa = (MATCH)(x & 0xF);
             //printf("match:t/f = %d/%d\n", mta, mfa);
-            if (mfa <= MATCHnomatch)               // if no match
+            if (!fd)
+                goto Lerror;
+            if (mfa == MATCHnomatch)
                 continue;
 
-            Type *tthis_fd = NULL;
-            if (f->isCtorDeclaration())
+            Type *tthis_fd = fd->needThis() ? tthis : NULL;
+
+            if (fd->isCtorDeclaration())
             {
                 // Constructor call requires additional check.
-                // For that, do instantiate in early stage.
-                fd = td->doHeaderInstantiation(sc, &dedtypes, tthis, fargs);
-                if (!fd)
-                    goto Lerror;
 
                 TypeFunction *tf = (TypeFunction *)fd->type;
-                tthis_fd = fd->needThis() ? tthis : NULL;
                 if (tthis_fd)
                 {
                     assert(tf->next);
@@ -2306,22 +2296,7 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
                 if (c1 > c2) goto Ltd;
                 if (c1 < c2) goto Ltd_best;
             }
-
-            if (!m->lastf)
-            {
-                assert(td_best);
-                m->lastf = td_best->doHeaderInstantiation(sc, tdargs, tthis, fargs);
-                if (!m->lastf) goto Lerror;
-                tthis_best = m->lastf->needThis() ? tthis : NULL;
-            }
-            if (!fd)
-            {
-                fd = td->doHeaderInstantiation(sc, &dedtypes, tthis, fargs);
-                if (!fd) goto Lerror;
-                tthis_fd = fd->needThis() ? tthis : NULL;
-            }
             assert(fd && m->lastf);
-
             {
                 // Disambiguate by tf->callMatch
                 TypeFunction *tf1 = (TypeFunction *)fd->type;
@@ -2345,7 +2320,7 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
 
           Lambig:   // td_best and td are ambiguous
             //printf("Lambig\n");
-            m->nextf = fd;  // Caution! m->nextf isn't complete instantiated fd, so must not call toPrettyChars()
+            m->nextf = fd;
             m->count++;
             continue;
 
@@ -2357,6 +2332,7 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
             //printf("Ltd\n");
             assert(td->scope);
             td_best = td;
+            ti_best = ti;
             property = 0;   // (backward compatibility)
             ta_last = mta;
             m->last = mfa;
@@ -2365,8 +2341,6 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
             ov_index = ovi;
             m->nextf = NULL;
             m->count = 1;
-            tdargs->setDim(dedtypes.dim);
-            memcpy(tdargs->tdata(), dedtypes.tdata(), tdargs->dim * sizeof(void *));
             continue;
         }
         return 0;
@@ -2385,8 +2359,8 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
     p.property   = 0;
     p.ov_index   = 0;
     p.td_best    = NULL;
+    p.ti_best    = NULL;
     p.ta_last    = m->last != MATCHnomatch ? MATCHexact : MATCHnomatch;
-    p.tdargs     = new Objects();
     p.tthis_best = NULL;
 
     FuncDeclaration *fd = dstart->isFuncDeclaration();
@@ -2396,10 +2370,10 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
     overloadApply(dstart, &p, &ParamDeduce::fp);
 
     //printf("td_best = %p, m->lastf = %p\n", p.td_best, m->lastf);
-    if (p.td_best)
+    if (p.td_best && p.ti_best)
     {
         // Matches to template function
-        if (!p.td_best->onemember || !p.td_best->onemember->toAlias()->isFuncDeclaration())
+        if (!p.td_best->onemember || !p.td_best->onemember->isFuncDeclaration())
             return; // goto Lerror?
 
         /* The best match is td_best with arguments tdargs.
@@ -2408,7 +2382,7 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
         assert(p.td_best->scope);
         if (!sc) sc = p.td_best->scope; // workaround for Type::aliasthisOf
 
-        TemplateInstance *ti = new TemplateInstance(loc, p.td_best, p.tdargs);
+        TemplateInstance *ti = new TemplateInstance(loc, p.td_best, &p.ti_best->tdtypes);  // TODO?
         ti->semantic(sc, fargs);
 
         m->lastf = ti->toAlias()->isFuncDeclaration();
@@ -2478,112 +2452,80 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
 /*************************************************
  * Limited function template instantiation for using fd->leastAsSpecialized()
  */
-FuncDeclaration *TemplateDeclaration::doHeaderInstantiation(Scope *sc,
-        Objects *tdargs, Type *tthis, Expressions *fargs)
+FuncDeclaration *TemplateDeclaration::doHeaderInstantiation(
+        TemplateInstance *ti, Scope *sc2,
+        FuncDeclaration *fd, Type *tthis, Expressions *fargs)
 {
-    FuncDeclaration *fd = onemember->toAlias()->isFuncDeclaration();
-    if (!fd)
-        return NULL;
-
+    assert(fd);
 #if 0
     printf("doHeaderInstantiation this = %s\n", toChars());
-    for (size_t i = 0; i < tdargs->dim; ++i)
-        printf("\ttdargs[%d] = %s\n", i, ((RootObject *)tdargs->data[i])->toChars());
 #endif
 
-    assert(scope);
-    TemplateInstance *ti = new TemplateInstance(loc, this, tdargs);
-    ti->tinst = sc->tinst;
-    {
-        ti->tdtypes.setDim(parameters->dim);
-        if (matchWithInstance(sc, ti, &ti->tdtypes, fargs, 2) <= MATCHnomatch)
-            return NULL;
-    }
-
-    ti->parent = parent;
-
     // function body and contracts are not need
-    //fd = fd->syntaxCopy(NULL)->isFuncDeclaration();
     if (fd->isCtorDeclaration())
         fd = new CtorDeclaration(fd->loc, fd->endloc, fd->storage_class, fd->type->syntaxCopy());
     else
         fd = new FuncDeclaration(fd->loc, fd->endloc, fd->ident, fd->storage_class, fd->type->syntaxCopy());
     fd->parent = ti;
 
-    Module *mi = sc->instantiatingModule ? sc->instantiatingModule : sc->module;
-
-    Scope *scope = this->scope;
-    ti->argsym = new ScopeDsymbol();
-    ti->argsym->parent = scope->parent;
-    scope = scope->push(ti->argsym);
-    scope->instantiatingModule = mi;
-
-    bool hasttp = false;
-
-    Scope *paramscope = scope->push();
-    paramscope->stc = 0;
-    ti->declareParameters(paramscope);
-    paramscope->pop();
+    assert(fd->type->ty == Tfunction);
+    TypeFunction *tf = (TypeFunction *)fd->type;
+    tf->fargs = fargs;
 
     if (tthis)
     {
         // Match 'tthis' to any TemplateThisParameter's
+        bool hasttp = false;
         for (size_t i = 0; i < parameters->dim; i++)
-        {   TemplateParameter *tp = (*parameters)[i];
+        {
+            TemplateParameter *tp = (*parameters)[i];
             TemplateThisParameter *ttp = tp->isTemplateThisParameter();
             if (ttp)
                 hasttp = true;
         }
-    }
-    {
-        TypeFunction *tf = (TypeFunction *)fd->type;
-        if (tf && tf->ty == Tfunction)
-            tf->fargs = fargs;
-    }
-
-    Scope *sc2;
-    sc2 = scope->push(ti);
-    sc2->parent = ti;
-    sc2->tinst = ti;
-
-    {
-        Scope *scx = sc2;
-        scx = scx->push();
-
         if (hasttp)
-            fd->type = fd->type->addMod(tthis->mod);
-        //printf("tthis = %s, fdtype = %s\n", tthis->toChars(), fd->type->toChars());
-        if (fd->isCtorDeclaration())
-        {
-            scx->flags |= SCOPEctor;
-
-            Dsymbol *parent = toParent2();
-            Type *tret;
-            AggregateDeclaration *ad = parent->isAggregateDeclaration();
-            if (!ad || parent->isUnionDeclaration())
-            {
-                tret = Type::tvoid;
-            }
-            else
-            {   tret = ad->handle;
-                assert(tret);
-                tret = tret->addStorageClass(fd->storage_class | scx->stc);
-                tret = tret->addMod(fd->type->mod);
-            }
-            ((TypeFunction *)fd->type)->next = tret;
-            if (ad && ad->isStructDeclaration())
-                ((TypeFunction *)fd->type)->isref = 1;
-            //printf("fd->type = %s\n", fd->type->toChars());
-        }
-        fd->type = fd->type->addSTC(scx->stc);
-        fd->type = fd->type->semantic(fd->loc, scx);
-        scx = scx->pop();
+            tf = (TypeFunction *)tf->addMod(tthis->mod);
     }
+
+    Scope *scx = sc2->push();
+
+    // Shouldn't run semantic on default arguments and return type.
+    for (size_t i = 0; i < tf->parameters->dim; i++)
+        (*tf->parameters)[i]->defaultArg = NULL;
+    if (fd->isCtorDeclaration())
+    {
+        // For constructors, emitting return type is necessary for
+        // isolateReturn() in functionResolve.
+        scx->flags |= SCOPEctor;
+
+        Dsymbol *parent = toParent2();
+        Type *tret;
+        AggregateDeclaration *ad = parent->isAggregateDeclaration();
+        if (!ad || parent->isUnionDeclaration())
+        {
+            tret = Type::tvoid;
+        }
+        else
+        {
+            tret = ad->handle;
+            assert(tret);
+            tret = tret->addStorageClass(fd->storage_class | scx->stc);
+            tret = tret->addMod(tf->mod);
+        }
+        tf->next = tret;
+        if (ad && ad->isStructDeclaration())
+            tf->isref = 1;
+        //printf("tf = %s\n", tf->toChars());
+    }
+    else
+        tf->next = NULL;
+    fd->type = tf;
+    fd->type = fd->type->addSTC(scx->stc);
+    fd->type = fd->type->semantic(fd->loc, scx);
     //printf("\t[%s] fd->type = %s, mod = %x, ", loc.toChars(), fd->type->toChars(), fd->type->mod);
     //printf("fd->needThis() = %d\n", fd->needThis());
 
-    sc2->pop();
-    scope->pop();
+    scx = scx->pop();
 
     return fd->type->ty == Tfunction ? fd : NULL;
 }
@@ -2747,9 +2689,6 @@ char *TemplateDeclaration::toChars()
 
     if (onemember)
     {
-        /* Bugzilla 9406:
-         * onemember->toAlias() might run semantic, so should not call it in stringizing
-         */
         FuncDeclaration *fd = onemember->isFuncDeclaration();
         if (fd && fd->type)
         {
@@ -2878,6 +2817,21 @@ void TemplateDeclaration::removeInstance(TemplateInstance *handle)
         }
     }
     --numinstances;
+}
+
+/*******************************************
+ * Returns template instance which instantiating this template declaration.
+ */
+
+TemplateInstance *TemplateDeclaration::getInstantiating(Scope *sc)
+{
+    /* If this is instantiated declaration in root module, Return it.
+     */
+    TemplateInstance *tinst = isInstantiated();
+    if (tinst && (!tinst->instantiatingModule || tinst->instantiatingModule->isRoot()))
+        return tinst;
+
+    return sc->tinst;
 }
 
 /* ======================== Type ============================================ */
@@ -4542,45 +4496,6 @@ Lnomatch:
     return 0;
 }
 
-/* Bugzilla 6538: In template constraint, each function parameters, 'this',
- * and 'super' is *pseudo* symbol. If it is passed to other template through
- * alias/tuple parameter, it will cause an error. Because such symbol
- * does not have the actual entity yet.
- *
- * Example:
- *  template Sym(alias A) { enum Sym = true; }
- *  struct S {
- *    void foo() if (Sym!(this)) {} // Sym!(this) always make an error,
- *  }                               // because Sym template cannot
- *  void main() { S s; s.foo(); }   // access to the valid 'this' symbol.
- */
-bool isPseudoDsymbol(RootObject *o)
-{
-    Dsymbol *s = isDsymbol(o);
-    Expression *e = isExpression(o);
-    if (e && e->op == TOKvar) s = ((VarExp *)e)->var->isVarDeclaration();
-    if (e && e->op == TOKthis) s = ((ThisExp *)e)->var->isThisDeclaration();
-    if (e && e->op == TOKsuper) s = ((SuperExp *)e)->var->isThisDeclaration();
-
-    if (s && s->parent)
-    {
-        s = s->toAlias();
-        VarDeclaration *v = s->isVarDeclaration();
-        TupleDeclaration *t = s->isTupleDeclaration();
-        if (v || t)
-        {
-            FuncDeclaration *fd = s->parent->isFuncDeclaration();
-            if (fd && fd->parent && fd->parent->isTemplateDeclaration())
-            {
-                const char *str = (e && e->op == TOKsuper) ? "super" : s->toChars();
-                ::error(s->loc, "cannot take a not yet instantiated symbol '%s' inside template constraint", str);
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
 MATCH TemplateAliasParameter::matchArg(Scope *sc, RootObject *oarg,
         size_t i, TemplateParameters *parameters, Objects *dedtypes,
         Declaration **psparam)
@@ -5340,19 +5255,9 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     printf("Scope\n");
     for (Scope *scx = sc; scx; scx = scx->enclosing)
     {
-        printf("\t%s parent %s instantiatingModule %p\n", scx->module ? scx->module->toChars() : "null", scx->parent ? scx->parent->toChars() : "null", scx->instantiatingModule);
+        printf("\t%s parent %s\n", scx->module ? scx->module->toChars() : "null", scx->parent ? scx->parent->toChars() : "null");
     }
 #endif
-
-    Module *mi = sc->instantiatingModule ? sc->instantiatingModule : sc->module;
-
-    /* If a TemplateInstance is ever instantiated by non-root modules,
-     * we do not have to generate code for it,
-     * because it will be generated when the non-root module is compiled.
-     */
-    if (!instantiatingModule || instantiatingModule->isRoot())
-        instantiatingModule = mi;
-    //printf("mi = %s\n", mi->toChars());
 
 #if LOG
     printf("\n+TemplateInstance::semantic('%s', this=%p)\n", toChars(), this);
@@ -5367,6 +5272,16 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 
     // get the enclosing template instance from the scope tinst
     tinst = sc->tinst;
+
+    Module *mi = sc->instantiatingModule();
+
+    /* If a TemplateInstance is ever instantiated by non-root modules,
+     * we do not have to generate code for it,
+     * because it will be generated when the non-root module is compiled.
+     */
+    if (!instantiatingModule || instantiatingModule->isRoot())
+        instantiatingModule = mi;
+    //printf("mi = %s\n", mi->toChars());
 
     if (semanticRun != PASSinit)
     {
@@ -5593,8 +5508,8 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     argsym = new ScopeDsymbol();
     argsym->parent = scope->parent;
     scope = scope->push(argsym);
-    scope->instantiatingModule = mi;
-//    scope->stc = 0;
+    scope->tinst = this;
+    //scope->stc = 0;
 
     // Declare each template parameter as an alias for the argument type
     Scope *paramscope = scope->push();
@@ -6119,14 +6034,17 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
 
         Ltype:
             if (ta->ty == Ttuple)
-            {   // Expand tuple
+            {
+                // Expand tuple
                 TypeTuple *tt = (TypeTuple *)ta;
                 size_t dim = tt->arguments->dim;
                 tiargs->remove(j);
                 if (dim)
-                {   tiargs->reserve(dim);
+                {
+                    tiargs->reserve(dim);
                     for (size_t i = 0; i < dim; i++)
-                    {   Parameter *arg = (*tt->arguments)[i];
+                    {
+                        Parameter *arg = (*tt->arguments)[i];
                         if (flags & 2 && arg->ident)
                             tiargs->insert(j + i, arg);
                         else
@@ -6161,7 +6079,8 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
                 }
             }
             else if (ea->op == TOKvar)
-            {   /* This test is to skip substituting a const var with
+            {
+                /* This test is to skip substituting a const var with
                  * its initializer. The problem is the initializer won't
                  * match with an 'alias' parameter. Instead, do the
                  * const substitution in TemplateValueParameter::matchArg().
@@ -6176,17 +6095,15 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
                     ea = new ErrorExp();
             }
             //printf("-[%d] ea = %s %s\n", j, Token::toChars(ea->op), ea->toChars());
-            if (!flags && isPseudoDsymbol(ea))
-            {   (*tiargs)[j] = new ErrorExp();
-                continue;
-            }
             if (ea->op == TOKtuple)
-            {   // Expand tuple
+            {
+                // Expand tuple
                 TupleExp *te = (TupleExp *)ea;
                 size_t dim = te->exps->dim;
                 tiargs->remove(j);
                 if (dim)
-                {   tiargs->reserve(dim);
+                {
+                    tiargs->reserve(dim);
                     for (size_t i = 0; i < dim; i++)
                         tiargs->insert(j + i, (*te->exps)[i]);
                 }
@@ -6196,42 +6113,50 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
             (*tiargs)[j] = ea;
 
             if (ea->op == TOKtype)
-            {   ta = ea->type;
+            {
+                ta = ea->type;
                 goto Ltype;
             }
             if (ea->op == TOKimport)
-            {   sa = ((ScopeExp *)ea)->sds;
+            {
+                sa = ((ScopeExp *)ea)->sds;
                 goto Ldsym;
             }
             if (ea->op == TOKfunction)
-            {   FuncExp *fe = (FuncExp *)ea;
+            {
+                FuncExp *fe = (FuncExp *)ea;
                 /* A function literal, that is passed to template and
                  * already semanticed as function pointer, never requires
                  * outer frame. So convert it to global function is valid.
                  */
                 if (fe->fd->tok == TOKreserved && fe->type->ty == Tpointer)
-                {   // change to non-nested
+                {
+                    // change to non-nested
                     fe->fd->tok = TOKfunction;
                     fe->fd->vthis = NULL;
                 }
                 else if (fe->td)
-                {   /* If template argument is a template lambda,
+                {
+                    /* If template argument is a template lambda,
                      * get template declaration itself. */
                     //sa = fe->td;
                     //goto Ldsym;
                 }
             }
             if (ea->op == TOKdotvar)
-            {   // translate expression to dsymbol.
+            {
+                // translate expression to dsymbol.
                 sa = ((DotVarExp *)ea)->var;
                 goto Ldsym;
             }
             if (ea->op == TOKtemplate)
-            {   sa = ((TemplateExp *)ea)->td;
+            {
+                sa = ((TemplateExp *)ea)->td;
                 goto Ldsym;
             }
             if (ea->op == TOKdottd)
-            {   // translate expression to dsymbol.
+            {
+                // translate expression to dsymbol.
                 sa = ((DotTemplateExp *)ea)->td;
                 goto Ldsym;
             }
@@ -6240,13 +6165,10 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
         {
         Ldsym:
             //printf("dsym %s %s\n", sa->kind(), sa->toChars());
-            if (!flags && isPseudoDsymbol(sa))
-            {   (*tiargs)[j] = new ErrorExp();
-                continue;
-            }
             TupleDeclaration *d = sa->toAlias()->isTupleDeclaration();
             if (d)
-            {   // Expand tuple
+            {
+                // Expand tuple
                 size_t dim = d->objects->dim;
                 tiargs->remove(j);
                 tiargs->insert(j, d->objects);
@@ -6904,7 +6826,6 @@ void TemplateInstance::semantic2(Scope *sc)
         sc = tempdecl->scope;
         assert(sc);
         sc = sc->push(argsym);
-        sc->instantiatingModule = instantiatingModule;
         sc = sc->push(this);
         sc->tinst = this;
         for (size_t i = 0; i < members->dim; i++)
@@ -6936,7 +6857,6 @@ void TemplateInstance::semantic3(Scope *sc)
     {
         sc = tempdecl->scope;
         sc = sc->push(argsym);
-        sc->instantiatingModule = instantiatingModule;
         sc = sc->push(this);
         sc->tinst = this;
         int needGagging = (speculative && !global.gag);
@@ -7674,7 +7594,6 @@ void TemplateMixin::semantic3(Scope *sc)
     if (members)
     {
         sc = sc->push(argsym);
-        sc->instantiatingModule = instantiatingModule;
         sc = sc->push(this);
         for (size_t i = 0; i < members->dim; i++)
         {

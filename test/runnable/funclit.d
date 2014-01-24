@@ -793,6 +793,48 @@ void test9928()
 }
 
 /***************************************************/
+// 10133
+
+ptrdiff_t countUntil10133(alias pred, R)(R haystack)
+{
+    typeof(return) i;
+
+    alias T = dchar;
+
+    foreach (T elem; haystack)
+    {
+        if (pred(elem)) return i;
+        ++i;
+    }
+
+    return -1;
+}
+
+bool func10133(string s)() if (countUntil10133!(x => x == 'x')(s) == 1)
+{
+    return true;
+}
+
+bool func10133a(string s)() if (countUntil10133!(x => s == "x")(s) != -1)
+{
+    return true;
+}
+bool func10133b(string s)() if (countUntil10133!(x => s == "x")(s) != -1)
+{
+    return true;
+}
+
+void test10133()
+{
+    func10133!("ax")();
+
+    func10133a!("x")();
+    static assert(!is(typeof(func10133a!("ax")())));
+    static assert(!is(typeof(func10133b!("ax")())));
+    func10133b!("x")();
+}
+
+/***************************************************/
 // 10288
 
 T foo10288(T)(T x)
@@ -965,6 +1007,7 @@ int main()
     test9415();
     test9628();
     test9928();
+    test10133();
     test10288();
     test11661();
 

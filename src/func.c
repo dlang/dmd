@@ -2876,26 +2876,16 @@ Lerror:
     }
     else if (m.nextf)
     {
-        /* CAUTION: m.lastf and m.nextf might be incompletely instantiated functions
-         * (created by doHeaderInstantiation), so call toPrettyChars will segfault.
-         */
-        assert(m.lastf);
-        TypeFunction *t1 = (TypeFunction *)m.lastf->type;
-        TypeFunction *t2 = (TypeFunction *)m.nextf->type;
-        TemplateInstance *lastti = m.lastf->parent->isTemplateInstance();
-        TemplateInstance *nextti = m.nextf->parent->isTemplateInstance();
-        if (lastti && lastti->name != m.lastf->ident) lastti = NULL;
-        if (nextti && nextti->name != m.nextf->ident) nextti = NULL;
-        Dsymbol *lasts = lastti ? (Dsymbol *)lastti->tempdecl : (Dsymbol *)m.lastf;
-        Dsymbol *nexts = nextti ? (Dsymbol *)nextti->tempdecl : (Dsymbol *)m.nextf;
-        const char *lastprms = lastti ? "" : Parameter::argsTypesToChars(t1->parameters, t1->varargs);
-        const char *nextprms = nextti ? "" : Parameter::argsTypesToChars(t2->parameters, t2->varargs);
+        TypeFunction *tf1 = (TypeFunction *)m.lastf->type;
+        TypeFunction *tf2 = (TypeFunction *)m.nextf->type;
+        const char *lastprms = Parameter::argsTypesToChars(tf1->parameters, tf1->varargs);
+        const char *nextprms = Parameter::argsTypesToChars(tf2->parameters, tf2->varargs);
         ::error(loc, "%s.%s called with argument types %s matches both:\n"
                      "\t%s(%d): %s%s\nand:\n\t%s(%d): %s%s",
                 s->parent->toPrettyChars(), s->ident->toChars(),
                 fargsBuf.toChars(),
-                lasts->loc.filename, lasts->loc.linnum, lasts->toChars(), lastprms,
-                nexts->loc.filename, nexts->loc.linnum, nexts->toChars(), nextprms);
+                m.lastf->loc.filename, m.lastf->loc.linnum, m.lastf->toPrettyChars(), lastprms,
+                m.nextf->loc.filename, m.nextf->loc.linnum, m.nextf->toPrettyChars(), nextprms);
     }
     return NULL;
 }
