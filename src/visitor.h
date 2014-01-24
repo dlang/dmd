@@ -272,7 +272,7 @@ class ThrownExceptionExp;
 class Visitor
 {
 public:
-    virtual void visit(Statement *s) { assert(0); }
+    virtual void visit(Statement *) { assert(0); }
     virtual void visit(ErrorStatement *s) { visit((Statement *)s); }
     virtual void visit(PeelStatement *s) { visit((Statement *)s); }
     virtual void visit(ExpStatement *s) { visit((Statement *)s); }
@@ -313,7 +313,7 @@ public:
     virtual void visit(AsmStatement *s) { visit((Statement *)s); }
     virtual void visit(ImportStatement *s) { visit((Statement *)s); }
 
-    virtual void visit(Type *t) { assert(0); }
+    virtual void visit(Type *) { assert(0); }
     virtual void visit(TypeError *t) { visit((Type *)t); }
     virtual void visit(TypeNext *t) { visit((Type *)t); }
     virtual void visit(TypeBasic *t) { visit((Type *)t); }
@@ -339,7 +339,7 @@ public:
     virtual void visit(TypeSlice *t) { visit((TypeNext *)t); }
     virtual void visit(TypeNull *t) { visit((Type *)t); }
 
-    virtual void visit(Dsymbol *s) { assert(0); }
+    virtual void visit(Dsymbol *) { assert(0); }
 
     virtual void visit(StaticAssert *s) { visit((Dsymbol *)s); }
     virtual void visit(DebugSymbol *s) { visit((Dsymbol *)s); }
@@ -422,14 +422,14 @@ public:
     virtual void visit(NewDeclaration *s) { visit((FuncDeclaration *)s); }
     virtual void visit(DeleteDeclaration *s) { visit((FuncDeclaration *)s); }
 
-    virtual void visit(Initializer *i) { assert(0); }
+    virtual void visit(Initializer *) { assert(0); }
     virtual void visit(VoidInitializer *i) { visit((Initializer *)i); }
     virtual void visit(ErrorInitializer *i) { visit((Initializer *)i); }
     virtual void visit(StructInitializer *i) { visit((Initializer *)i); }
     virtual void visit(ArrayInitializer *i) { visit((Initializer *)i); }
     virtual void visit(ExpInitializer *i) { visit((Initializer *)i); }
 
-    virtual void visit(Expression *e) { assert(0); }
+    virtual void visit(Expression *) { assert(0); }
     virtual void visit(IntegerExp *e) { visit((Expression *)e); }
     virtual void visit(ErrorExp *e) { visit((Expression *)e); }
     virtual void visit(RealExp *e) { visit((Expression *)e); }
