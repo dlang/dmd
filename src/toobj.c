@@ -1147,6 +1147,24 @@ void TemplateInstance::toObjFile(int multiobj)
 #endif
     if (!isError(this) && members)
     {
+        FuncDeclaration *fd = enclosing ? enclosing->isFuncDeclaration() : NULL;
+        if (fd && fd->fbody == NULL)
+        {
+            /* Prevent codegen if enclosing is an artificially instantiated function.
+             */
+            return;
+        }
+
+        TemplateDeclaration *tempdecl = this->tempdecl->isTemplateDeclaration();
+        assert(tempdecl);
+        if (tempdecl->literal && tempdecl->ident == Id::empty)
+        {
+            /* Bugzilla 10313: Template lambdas that instantiated in template constraint
+             * cannot appear in runnable code block. So, this skip won't cause linker failure.
+             */
+            return;
+        }
+
         if (multiobj)
             // Append to list of object files to be written later
             obj_append(this);

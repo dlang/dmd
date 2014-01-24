@@ -291,7 +291,7 @@ void Import::semantic(Scope *sc)
          */
 
         OutBuffer *ob = global.params.moduleDeps;
-        Module* imod = sc->instantiatingModule ? sc->instantiatingModule : sc->module;
+        Module* imod = sc->instantiatingModule();
         if (!global.params.moduleDepsFile)
             ob->writestring("depsImport ");
         ob->writestring(imod->toPrettyChars());
