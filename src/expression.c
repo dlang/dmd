@@ -159,15 +159,6 @@ FuncDeclaration *hasThis(Scope *sc)
     FuncDeclaration *fdthis = p ? p->isFuncDeclaration() : NULL;
     //printf("fdthis = %p, '%s'\n", fdthis, fdthis ? fdthis->toChars() : "");
 
-    /* Special case for inside template constraint
-     */
-    if (fdthis && (sc->flags & SCOPEstaticif) && fdthis->parent->isTemplateDeclaration())
-    {
-        //TemplateDeclaration *td = fdthis->parent->isTemplateDeclaration();
-        //printf("[%s] td = %s, fdthis->vthis = %p\n", td->loc.toChars(), td->toChars(), fdthis->vthis);
-        return fdthis->vthis ? fdthis : NULL;
-    }
-
     // Go upwards until we find the enclosing member function
     FuncDeclaration *fd = fdthis;
     while (1)
@@ -234,11 +225,6 @@ bool isNeedThisScope(Scope *sc, Declaration *d)
                 continue;
             if (f->isMember2())
                 break;
-            if (TemplateDeclaration *td = f->parent->isTemplateDeclaration())
-            {
-                if ((td->scope->stc & STCstatic) && td->isMember())
-                    break;  // no valid 'this'
-            }
         }
     }
     return true;
@@ -3683,6 +3669,11 @@ Expression *ThisExp::semantic(Scope *sc)
     var = fd->vthis;
     assert(var->parent);
     type = var->type;
+    if (TemplateInstance *ti = fd->parent->isTemplateInstance())
+    {
+        if (ti->members == NULL)
+            type = type->mutableOf();
+    }
     var->isVarDeclaration()->checkNestedReference(sc, loc);
     if (!sc->intypeof)
         sc->callSuper |= CSXthis;
@@ -3774,9 +3765,8 @@ Expression *SuperExp::semantic(Scope *sc)
     if (!fd)
         goto Lerr;
 
-    assert(fd->vthis);
     var = fd->vthis;
-    assert(var->parent);
+    assert(var && var->parent);
 
     s = fd->toParent();
     while (s && s->isTemplateInstance())
@@ -3791,12 +3781,17 @@ Expression *SuperExp::semantic(Scope *sc)
     if (!cd->baseClass)
     {
         error("no base class for %s", cd->toChars());
-        type = fd->vthis->type;
+        type = var->type;
     }
     else
     {
         type = cd->baseClass->type;
         type = type->castMod(var->type->mod);
+    }
+    if (TemplateInstance *ti = fd->parent->isTemplateInstance())
+    {
+        if (ti->members == NULL)
+            type = type->mutableOf();
     }
 
     var->isVarDeclaration()->checkNestedReference(sc, loc);
@@ -7293,7 +7288,7 @@ Expression *FileExp::semantic(Scope *sc)
     if (global.params.moduleDeps != NULL)
     {
         OutBuffer *ob = global.params.moduleDeps;
-        Module* imod = sc->instantiatingModule ? sc->instantiatingModule : sc->module;
+        Module* imod = sc->instantiatingModule();
 
         if (!global.params.moduleDepsFile)
             ob->writestring("depsFile ");
