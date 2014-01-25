@@ -554,6 +554,27 @@ struct Foo11614
 }
 
 /********************************************************/
+// 11993
+
+struct S11993
+{
+    void foo()() const
+    if (is(typeof(this) == const(S11993)))
+    {}
+
+    const void bar()()
+    if (is(typeof(this) == const(S11993)))
+    {}
+}
+
+void test11993()
+{
+    S11993 s;
+    s.foo();
+    s.bar();
+}
+
+/********************************************************/
 
 int main()
 {
