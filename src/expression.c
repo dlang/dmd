@@ -5939,6 +5939,7 @@ FuncExp::FuncExp(Loc loc, FuncLiteralDeclaration *fd, TemplateDeclaration *td)
     this->fd = fd;
     this->td = td;
     tok = fd->tok;  // save original kind of function/delegate/(infer)
+    assert(fd->fbody);
 }
 
 void FuncExp::genIdent(Scope *sc)

@@ -3513,6 +3513,8 @@ void Parser::parseContracts(FuncDeclaration *f)
 {
     LINK linksave = linkage;
 
+    bool literal = f->isFuncLiteralDeclaration();
+
     // The following is irrelevant, as it is overridden by sc->linkage in
     // TypeFunction::semantic
     linkage = LINKd;            // nested functions have D linkage
@@ -3530,12 +3532,6 @@ L1:
             nextToken();
             f->fbody = parseStatement(PScurly);
             f->endloc = endloc;
-            break;
-
-        case TOKsemicolon:
-            if (f->frequire || f->fensure)
-                error("missing body { ... } after in or out");
-            nextToken();
             break;
 
 #if 0   // Do we want this for function declarations, so we can do:
@@ -3589,11 +3585,34 @@ L1:
             f->fensure = parseStatement(PScurly | PSscope);
             goto L1;
 
+        case TOKsemicolon:
+            if (!literal)
+            {
+                if (f->frequire || f->fensure)
+                    error("missing body { ... } after in or out");
+                nextToken();
+                break;
+            }
+            /* fall through */
+
         default:
-            if (!f->frequire && !f->fensure)            // allow these even with no body
+            if (literal)
+            {
+                error("missing %s{ ... } for function literal",
+                    (f->frequire || f->fensure) ? "body " : "");
+            }
+            else if (!f->frequire && !f->fensure)   // allow these even with no body
+            {
                 error("semicolon expected following function declaration");
+            }
             break;
     }
+    if (literal && !f->fbody)
+    {
+        // Set empty function body for error recovery
+        f->fbody = new CompoundStatement(Loc(), (Statement *)NULL);
+    }
+
     linkage = linksave;
 }
 
