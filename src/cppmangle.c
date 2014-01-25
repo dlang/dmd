@@ -377,7 +377,10 @@ class CppMangleVisitor : public Visitor
         }
         if (t->ty == Tsarray)
         {   // Mangle static arrays as pointers
-            t = t->nextOf()->pointerTo();
+            t->error(Loc(), "ICE: Unable to pass static array to extern(C++) function.");
+            t->error(Loc(), "Use pointer instead.");
+            assert(0);
+            //t = t->nextOf()->pointerTo();
         }
 
         /* If it is a basic, enum or struct type,

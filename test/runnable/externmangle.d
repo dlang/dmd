@@ -110,7 +110,7 @@ else
     void test24(int function(int,int));
 
     void test25(int[291][6][5]* arr);
-    int test26(int[291][6][5] arr);
+    int test26(int[291][6]* arr);
 
     void test27(int, ...);
     void test28(int);
@@ -171,7 +171,7 @@ else
         int[291][6][5] arr;
         arr[1][1][1] = 42;
         test25(&arr);
-        assert(test26(arr) == 42);
+        assert(test26(&arr[0]) == 42);
         
         test27(3,4,5);
         test28(3);
