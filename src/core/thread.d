@@ -2982,7 +2982,14 @@ private
             version = AsmExternal;
         }
     }
-
+    else version( ARM )
+    {
+        version( Posix )
+        {
+            version = AsmARM_Posix;
+            version = AsmExternal;
+        }
+    }
 
     version( Posix )
     {
@@ -3377,6 +3384,14 @@ private
  * Status registers are not saved by the current implementations. This means
  * floating point exception status bits (overflow, divide by 0), rounding mode
  * and similar stuff is set per-thread, not per Fiber!
+ *
+ * Warning:
+ * On ARM FPU registers are not saved if druntime was compiled as ARM_SoftFloat.
+ * If such a build is used on a ARM_SoftFP system which actually has got a FPU
+ * and other libraries are using the FPU registers (other code is compiled
+ * as ARM_SoftFP) this can cause problems. Druntime must be compiled as
+ * ARM_SoftFP in this case.
+ *
  * Example:
  * ----------------------------------------------------------------------
  *
@@ -4170,6 +4185,38 @@ private:
             (cast(ubyte*)pstack - SZ)[0 .. SZ] = 0;
             pstack -= ABOVE;
             *cast(size_t*)(pstack - SZ_RA) = cast(size_t)&fiber_entryPoint;
+        }
+        else version( AsmARM_Posix )
+        {
+            /* We keep the FP registers and the return address below
+             * the stack pointer, so they don't get scanned by the
+             * GC. The last frame before swapping the stack pointer is
+             * organized like the following.
+             *
+             *   |  |-----------|<= 'frame starts here'
+             *   |  |     fp    | (the actual frame pointer, r11 isn't
+             *   |  |   r10-r4  |  updated and still points to the previous frame)
+             *   |  |-----------|<= stack pointer
+             *   |  |     lr    |
+             *   |  | 4byte pad |
+             *   |  |   d15-d8  |(if FP supported)
+             *   |  |-----------|
+             *   Y
+             *   stack grows down: The pointer value here is smaller than some lines above
+             */
+            // frame pointer can be zero, r10-r4 also zero initialized
+            version( StackGrowsDown )
+                pstack -= int.sizeof * 8;
+            else
+                static assert(false, "Only full descending stacks supported on ARM");
+
+            // link register
+            push( cast(size_t) &fiber_entryPoint );
+            /*
+             * We do not push padding and d15-d8 as those are zero initialized anyway
+             * Position the stack pointer above the lr register
+             */
+            pstack += int.sizeof * 1;
         }
         else static if( __traits( compiles, ucontext_t ) )
         {
