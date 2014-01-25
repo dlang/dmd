@@ -1380,7 +1380,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
 
                     if (tid->mod & MODwild)
                     {
-                        unsigned wm = farg->type->deduceWildHelper(&tt, tid);
+                        unsigned char wm = farg->type->deduceWildHelper(&tt, tid);
                         if (wm)
                         {
                             wildmatch |= wm;
@@ -2863,7 +2863,7 @@ size_t templateParameterLookup(Type *tparam, TemplateParameters *parameters)
     return IDX_NOTFOUND;
 }
 
-unsigned Type::deduceWildHelper(Type **at, Type *tparam)
+unsigned char Type::deduceWildHelper(Type **at, Type *tparam)
 {
     assert(tparam->mod & MODwild);
     *at = NULL;
@@ -2888,10 +2888,10 @@ unsigned Type::deduceWildHelper(Type **at, Type *tparam)
         case X(MODshared | MODwildconst,    MODshared | MODconst):
         case X(MODshared | MODwildconst,    MODimmutable):
         {
-            unsigned wm = (mod & ~MODshared);
+            unsigned char wm = (mod & ~MODshared);
             if (wm == 0)
                 wm = MODmutable;
-            unsigned m = (mod & (MODconst | MODimmutable)) | (tparam->mod & mod & MODshared);
+            unsigned char m = (mod & (MODconst | MODimmutable)) | (tparam->mod & mod & MODshared);
             *at = unqualify(m);
             return wm;
         }
@@ -3254,7 +3254,7 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
 
         if (wm && (tparam->mod & MODwild))
         {
-            unsigned wx = deduceWildHelper(&tt, tparam);
+            unsigned char wx = deduceWildHelper(&tt, tparam);
             if (wx)
             {
                 if (!at)
