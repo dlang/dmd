@@ -309,7 +309,7 @@ public:
     virtual int isBaseOf(Type *t, int *poffset);
     virtual MATCH implicitConvTo(Type *to);
     virtual MATCH constConv(Type *to);
-    virtual unsigned deduceWild(Type *t, bool isRef);
+    virtual unsigned char deduceWild(Type *t, bool isRef);
     virtual Type *substWildTo(unsigned mod);
 
     Type *unqualify(unsigned m);
@@ -343,7 +343,7 @@ public:
     virtual int needsDestruction();
     virtual bool needsNested();
 
-    unsigned deduceWildHelper(Type **at, Type *tparam);
+    unsigned char deduceWildHelper(Type **at, Type *tparam);
     MATCH deduceTypeHelper(Type **at, Type *tparam);
 
     static void error(Loc loc, const char *format, ...);
@@ -396,7 +396,7 @@ public:
     Type *makeSharedWildConst();
     Type *makeMutable();
     MATCH constConv(Type *to);
-    unsigned deduceWild(Type *t, bool isRef);
+    unsigned char deduceWild(Type *t, bool isRef);
     void transitive();
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -846,7 +846,7 @@ public:
     TypeTuple *toArgTypes();
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);
-    unsigned deduceWild(Type *t, bool isRef);
+    unsigned char deduceWild(Type *t, bool isRef);
     Type *toHeadMutable();
 
     void accept(Visitor *v) { v->visit(this); }
@@ -961,7 +961,7 @@ public:
     int isBaseOf(Type *t, int *poffset);
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);
-    unsigned deduceWild(Type *t, bool isRef);
+    unsigned char deduceWild(Type *t, bool isRef);
     Type *toHeadMutable();
     Expression *defaultInit(Loc loc);
     int isZeroInit(Loc loc);

@@ -1971,7 +1971,7 @@ MATCH Type::constConv(Type *to)
  * Return MOD bits matching this type to wild parameter type (tprm).
  */
 
-unsigned Type::deduceWild(Type *t, bool isRef)
+unsigned char Type::deduceWild(Type *t, bool isRef)
 {
     //printf("Type::deduceWild this = '%s', tprm = '%s'\n", toChars(), tprm->toChars());
 
@@ -2879,12 +2879,12 @@ MATCH TypeNext::constConv(Type *to)
     return m;
 }
 
-unsigned TypeNext::deduceWild(Type *t, bool isRef)
+unsigned char TypeNext::deduceWild(Type *t, bool isRef)
 {
     if (ty == Tfunction)
         return 0;
 
-    unsigned wm;
+    unsigned char wm;
 
     Type *tn = t->nextOf();
     if (!isRef && (ty == Tarray || ty == Tpointer) && tn)
@@ -6208,7 +6208,7 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
 {
     //printf("TypeFunction::callMatch() %s\n", toChars());
     MATCH match = MATCHexact;           // assume exact match
-    unsigned wildmatch = 0;
+    unsigned char wildmatch = 0;
 
     if (tthis)
     {   Type *t = tthis;
@@ -8723,12 +8723,12 @@ MATCH TypeStruct::constConv(Type *to)
     return MATCHnomatch;
 }
 
-unsigned TypeStruct::deduceWild(Type *t, bool isRef)
+unsigned char TypeStruct::deduceWild(Type *t, bool isRef)
 {
     if (ty == t->ty && sym == ((TypeStruct *)t)->sym)
         return Type::deduceWild(t, isRef);
 
-    unsigned wm = 0;
+    unsigned char wm = 0;
 
     if (sym->aliasthis && !(att & RECtracing))
     {
@@ -9266,13 +9266,13 @@ MATCH TypeClass::constConv(Type *to)
     return MATCHnomatch;
 }
 
-unsigned TypeClass::deduceWild(Type *t, bool isRef)
+unsigned char TypeClass::deduceWild(Type *t, bool isRef)
 {
     ClassDeclaration *cd = t->isClassHandle();
     if (cd && (sym == cd || cd->isBaseOf(sym, NULL)))
         return Type::deduceWild(t, isRef);
 
-    unsigned wm = 0;
+    unsigned char wm = 0;
 
     if (sym->aliasthis && !(att & RECtracing))
     {
