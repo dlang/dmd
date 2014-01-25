@@ -12,10 +12,66 @@
     are a few functions that also allow "nsecs", but very little actually
     has precision greater than hnsecs.
 
+    $(BOOKTABLE Cheat Sheet,
+    $(TR $(TH Symbol) $(TH Description))
+    $(LEADINGROW Types)
+    $(TR $(TDNW $(LREF Duration)) $(TD Represents a duration of time of weeks
+    or less (kept internally as hnsecs). (e.g. 22 days or 700 seconds).))
+    $(TR $(TDNW $(LREF TickDuration)) $(TD Represents a duration of time in
+    system clock ticks, using the highest precision that the system provides.))
+    $(TR $(TDNW $(LREF FracSec)) $(TD Represents fractional seconds
+    (portions of time smaller than a second).))
+    $(LEADINGROW Functions)
+    $(TR $(TDNW $(LREF convert)) $(TD Generic way of converting between two
+    time units.))
+    $(TR $(TDNW $(LREF dur)) $(TD Allow constructing a $(LREF Duration) from
+    the given time units with the given length.))
+    $(TR $(TDNW $(LREF weeks)$(NBSP)$(LREF days)$(NBSP)$(LREF hours)$(BR)
+    $(LREF minutes)$(NBSP)$(LREF seconds)$(NBSP)$(LREF msecs)$(BR)
+    $(LREF usecs)$(NBSP)$(LREF hnsecs)$(NBSP)$(LREF nsecs))
+    $(TD Short-hands for $(D dur).))
+    $(TR $(TDNW $(LREF abs)) $(TD Returns the absolute value of a duration.))
+    )
+
+    $(BOOKTABLE Conversions,
+    $(TR $(TH )
+     $(TH From $(LREF Duration))
+     $(TH From $(LREF TickDuration))
+     $(TH From $(LREF FracSec))
+     $(TH From units)
+    )
+    $(TR $(TD $(B To $(LREF Duration)))
+     $(TD -)
+     $(TD $(D tickDuration.)$(SXREF conv, to)$(D !Duration()))
+     $(TD -)
+     $(TD $(D dur!"msecs"(5)) or $(D 5.msecs()))
+    )
+    $(TR $(TD $(B To $(LREF TickDuration)))
+     $(TD $(D duration.)$(SXREF conv, to)$(D !TickDuration()))
+     $(TD -)
+     $(TD -)
+     $(TD $(D TickDuration.from!"msecs"(msecs)))
+    )
+    $(TR $(TD $(B To $(LREF FracSec)))
+     $(TD $(D duration.fracSec))
+     $(TD -)
+     $(TD -)
+     $(TD $(D FracSec.from!"msecs"(msecs)))
+    )
+    $(TR $(TD $(B To units))
+     $(TD $(D duration.total!"days"))
+     $(TD $(D tickDuration.msecs))
+     $(TD $(D fracSec.msecs))
+     $(TD $(D convert!("days", "msecs")(msecs)))
+    ))
+
     Copyright: Copyright 2010 - 2012
     License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
     Authors:   Jonathan M Davis and Kato Shoichi
     Source:    $(DRUNTIMESRC core/_time.d)
+    Macros:
+    NBSP=&nbsp;
+    SXREF=<a href="std_$1.html#$2">$(D $2)</a>
  +/
 module core.time;
 
