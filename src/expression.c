@@ -3660,11 +3660,6 @@ Expression *ThisExp::semantic(Scope *sc)
     var = fd->vthis;
     assert(var->parent);
     type = var->type;
-    if (TemplateInstance *ti = fd->parent->isTemplateInstance())
-    {
-        if (ti->members == NULL)
-            type = type->mutableOf();
-    }
     var->isVarDeclaration()->checkNestedReference(sc, loc);
     if (!sc->intypeof)
         sc->callSuper |= CSXthis;
@@ -3778,11 +3773,6 @@ Expression *SuperExp::semantic(Scope *sc)
     {
         type = cd->baseClass->type;
         type = type->castMod(var->type->mod);
-    }
-    if (TemplateInstance *ti = fd->parent->isTemplateInstance())
-    {
-        if (ti->members == NULL)
-            type = type->mutableOf();
     }
 
     var->isVarDeclaration()->checkNestedReference(sc, loc);
