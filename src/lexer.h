@@ -111,7 +111,7 @@ enum TOK
         TOKcharv, TOKwcharv, TOKdcharv,
 
         // Leaf operators
-        TOKidentifier,  TOKstring,
+        TOKidentifier,  TOKstring, TOKxstring,
         TOKthis,        TOKsuper,
         TOKhalt,        TOKtuple,
         TOKerror,
