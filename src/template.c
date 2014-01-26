@@ -7096,8 +7096,7 @@ char *TemplateInstance::toChars()
     char *s;
 
     toCBuffer(&buf, &hgs);
-    s = buf.toChars();
-    buf.data = NULL;
+    s = buf.extractString();
     return s;
 }
 
@@ -7676,8 +7675,7 @@ char *TemplateMixin::toChars()
     char *s;
 
     TemplateInstance::toCBuffer(&buf, &hgs);
-    s = buf.toChars();
-    buf.data = NULL;
+    s = buf.extractString();
     return s;
 }
 

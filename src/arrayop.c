@@ -396,7 +396,6 @@ Expression *BinExp::arrayOp(Scope *sc)
      */
     buf.writestring(type->toBasetype()->nextOf()->toBasetype()->mutableOf()->deco);
 
-    buf.writeByte(0);
     char *name = buf.toChars();
     Identifier *ident = Lexer::idPool(name);
 
