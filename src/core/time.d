@@ -771,6 +771,9 @@ public:
     /++
         Returns a $(LREF TickDuration) with the same number of hnsecs as this
         $(D Duration).
+        Note that the conventional way to convert between $(D Duration) and
+        $(D TickDuration) is using $(XREF conv, to), e.g.:
+        $(D duration.to!TickDuration())
       +/
     TickDuration opCast(T)() @safe const pure nothrow
         if(is(_Unqual!T == TickDuration))
@@ -1729,6 +1732,9 @@ struct TickDuration
     /++
         Returns a $(LREF Duration) with the same number of hnsecs as this
         $(D TickDuration).
+        Note that the conventional way to convert between $(D TickDuration)
+        and $(D Duration) is using $(XREF conv, to), e.g.:
+        $(D tickDuration.to!Duration())
       +/
     Duration opCast(T)() @safe const pure nothrow
         if(is(_Unqual!T == Duration))
