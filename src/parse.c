@@ -3519,7 +3519,7 @@ void Parser::parseContracts(FuncDeclaration *f)
 {
     LINK linksave = linkage;
 
-    bool literal = f->isFuncLiteralDeclaration();
+    bool literal = f->isFuncLiteralDeclaration() != NULL;
 
     // The following is irrelevant, as it is overridden by sc->linkage in
     // TypeFunction::semantic
@@ -3604,8 +3604,8 @@ L1:
         default:
             if (literal)
             {
-                error("missing %s{ ... } for function literal",
-                    (f->frequire || f->fensure) ? "body " : "");
+                const char *sbody = (f->frequire || f->fensure) ? "body " : "";
+                error("missing %s{ ... } for function literal", sbody);
             }
             else if (!f->frequire && !f->fensure)   // allow these even with no body
             {
