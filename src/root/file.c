@@ -86,7 +86,7 @@ int File::read()
     if (len)
         return 0;               // already read the file
 #if POSIX
-    off_t size;
+    size_t size;
     ssize_t numread;
     int fd;
     struct stat buf;
@@ -112,7 +112,7 @@ int File::read()
         printf("\tfstat error, errno = %d\n",errno);
         goto err2;
     }
-    size = buf.st_size;
+    size = (size_t)buf.st_size;
     buffer = (unsigned char *) ::malloc(size + 2);
     if (!buffer)
     {
