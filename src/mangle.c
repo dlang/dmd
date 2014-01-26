@@ -170,11 +170,12 @@ Lret:
 #ifdef DEBUG
         size_t len = strlen(p);
         assert(len > 0);
-        //printf("mangle: '%s' => '%s'\n", toChars(), p);
         for (size_t i = 0; i < len; i++)
         {
             assert(p[i] == '_' ||
                    p[i] == '@' ||
+                   p[i] == '?' ||
+                   p[i] == '$' ||
                    isalnum(p[i]) || p[i] & 0x80);
         }
 #endif

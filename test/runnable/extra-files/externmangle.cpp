@@ -1,4 +1,3 @@
-
 #include <stdint.h>
 
 template<class X>
@@ -157,7 +156,7 @@ void test24(int(*)(int,int))
 {
 }
 
-void test25(int(* arr)[5][6][291])
+void test25(int arr[2][5][6][291])
 {
 }
 
@@ -201,8 +200,56 @@ unsigned long testlongmangle(int32_t a, uint32_t b, long c, unsigned long d)
     return a + b + c + d;
 }
 #else
-unsigned long long testlongmangle(int32_t a, uint32_t b, long long c, unsigned long long d)
+unsigned long long testlongmangle(int a, unsigned int b, long long c, unsigned long long d)
 {
     return a + b + c + d;
 }
 #endif
+
+int test31[2][2][2] = {1, 1, 1, 1, 1, 1, 1, 1};
+int *test32 = 0;
+
+
+
+class Expression;
+
+typedef int (*apply_fp_t)(Expression*, void*);
+
+class Expression
+{
+    int type;
+public:
+    int apply(apply_fp_t fp, apply_fp_t fp2, void *param);
+    int getType();
+    static Expression* create(int v);
+    static void dispose(Expression*&);
+};
+
+int Expression::apply(apply_fp_t fp, apply_fp_t fp2, void *param)
+{
+    return fp(this, param) * fp2(this, param);
+}
+
+int Expression::getType()
+{
+    return type;
+}
+
+Expression* Expression::create(int v)
+{
+    Expression *e = new Expression();
+    e->type = v;
+    return e;
+}
+
+void Expression::dispose(Expression *&e)
+{
+    if (e)
+        delete e;
+    e = 0;
+}
+
+/*int test34(int v[0][0][0])
+{
+    return 0;
+}*/

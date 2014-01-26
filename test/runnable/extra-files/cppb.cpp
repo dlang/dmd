@@ -29,15 +29,15 @@ class D
   public:
     virtual int bar(int i, int j, int k)
     {
-	printf("this = %p\n", this);
-	assert(this == dthis);
-	printf("D.bar: i = %d\n", i);
-	printf("D.bar: j = %d\n", j);
-	printf("D.bar: k = %d\n", k);
-	assert(i == 9);
-	assert(j == 10);
-	assert(k == 11);
-	return 8;
+    printf("this = %p\n", this);
+    assert(this == dthis);
+    printf("D.bar: i = %d\n", i);
+    printf("D.bar: j = %d\n", j);
+    printf("D.bar: k = %d\n", k);
+    assert(i == 9);
+    assert(j == 10);
+    assert(k == 11);
+    return 8;
     }
 };
 
@@ -127,11 +127,36 @@ typedef struct
     double d;
 } S6;
 
+union S6_2
+{
+    int i;
+    double d;
+};
+
+enum S6_3
+{
+    A, B
+};
+
+
 S6 foo6(void)
 {
     S6 s;
     s.i = 42;
     s.d = 2.5;
+    return s;
+}
+
+S6_2 foo6_2(void)
+{
+    S6_2 s;
+    s.i = 42;
+    return s;
+}
+
+S6_3 foo6_3(void)
+{
+    S6_3 s = A;
     return s;
 }
 
@@ -173,6 +198,7 @@ void foobar9(elem9*, elem9*) { }
 void foo10(const char*, const char*) { }
 void foo10(const int, const int) { }
 void foo10(const char, const char) { }
+void foo10(bool, bool) { }
 
 struct MyStructType { };
 void foo10(const MyStructType s, const MyStructType t) { }

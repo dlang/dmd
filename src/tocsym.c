@@ -276,32 +276,16 @@ Symbol *VarDeclaration::toSymbol()
                 break;
 
             case LINKd:
+            case LINKcpp:
                 m = mTYman_d;
                 break;
-
-            case LINKcpp:
-            {
-                m = mTYman_cpp;
-
-                s->Sflags |= SFLpublic;
-                Dsymbol *parent = toParent();
-                ClassDeclaration *cd = parent->isClassDeclaration();
-                if (cd)
-                {
-                    ::type *tc = Type_toCtype(cd->type);
-                    s->Sscope = tc->Tnext->Ttag;
-                }
-                StructDeclaration *sd = parent->isStructDeclaration();
-                if (sd)
-                {
-                    ::type *ts = Type_toCtype(sd->type);
-                    s->Sscope = ts->Ttag;
-                }
-                break;
-            }
             default:
                 printf("linkage = %d\n", linkage);
                 assert(0);
+        }
+        if (linkage == LINKcpp)
+        {
+            s->Sflags |= SFLpublic;
         }
         type_setmangle(&t, m);
         s->Stype = t;
@@ -413,41 +397,27 @@ Symbol *FuncDeclaration::toSymbol()
                 case LINKd:
                     t->Tmangle = mTYman_d;
                     break;
-
                 case LINKcpp:
-                {   t->Tmangle = mTYman_cpp;
+                    s->Sflags |= SFLpublic;
                     if (isThis() && !global.params.is64bit && global.params.isWindows)
                     {
                         if (((TypeFunction *)type)->varargs == 1)
+                        {
                             t->Tty = TYnfunc;
+                        }
                         else
+                        {
                             t->Tty = TYmfunc;
+                        }
                     }
-                    s->Sflags |= SFLpublic;
-                    Dsymbol *parent = toParent();
-                    ClassDeclaration *cd = parent->isClassDeclaration();
-                    if (cd)
-                    {
-                        ::type *tc = Type_toCtype(cd->type);
-                        s->Sscope = tc->Tnext->Ttag;
-                    }
-                    StructDeclaration *sd = parent->isStructDeclaration();
-                    if (sd)
-                    {
-                        ::type *ts = Type_toCtype(sd->type);
-                        s->Sscope = ts->Ttag;
-                    }
-                    if (isCtorDeclaration())
-                        s->Sfunc->Fflags |= Fctor;
-                    if (isDtorDeclaration())
-                        s->Sfunc->Fflags |= Fdtor;
+                    t->Tmangle = mTYman_d;
                     break;
-                }
                 default:
                     printf("linkage = %d\n", linkage);
                     assert(0);
             }
         }
+
         if (msave)
             assert(msave == t->Tmangle);
         //printf("Tty = %x, mangle = x%x\n", t->Tty, t->Tmangle);
