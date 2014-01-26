@@ -6772,8 +6772,7 @@ Identifier *TemplateInstance::genIdent(Objects *args)
             assert(0);
     }
     buf.writeByte('Z');
-    id = buf.toChars();
-    //buf.data = NULL;                          // we can free the string after call to idPool()
+    id = buf.peekString();
     //printf("\tgenIdent = %s\n", id);
     return Lexer::idPool(id);
 }

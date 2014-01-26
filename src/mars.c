@@ -261,7 +261,7 @@ void verrorPrint(Loc loc, const char *header, const char *format, va_list ap,
         fprintf(stderr, "%s ", p2);
     OutBuffer tmp;
     tmp.vprintf(format, ap);
-    fprintf(stderr, "%s\n", tmp.toChars());
+    fprintf(stderr, "%s\n", tmp.peekString());
     fflush(stderr);
 }
 

@@ -247,7 +247,7 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
             buf.offset--;
 
         {
-        char *p = buf.toChars();
+        char *p = buf.peekString();
 
         // The expanded line is in p.
         // Now parse it for meaning.

@@ -9036,7 +9036,7 @@ Lagain:
             //printf("tf = %s, args = %s\n", tf->deco, (*arguments)[0]->type->deco);
             ::error(loc, "%s %s %s is not callable using argument types %s",
                 p, e1->toChars(), Parameter::argsTypesToChars(tf->parameters, tf->varargs),
-                buf.toChars());
+                buf.peekString());
 
             return new ErrorExp();
         }
@@ -9101,7 +9101,7 @@ Lagain:
                 //printf("tf = %s, args = %s\n", tf->deco, (*arguments)[0]->type->deco);
                 ::error(loc, "%s %s is not callable using argument types %s",
                     e1->toChars(), Parameter::argsTypesToChars(tf->parameters, tf->varargs),
-                    buf.toChars());
+                    buf.peekString());
 
                 return new ErrorExp();
             }

@@ -256,7 +256,7 @@ int runLINK()
             cmdbuf.writestring("lib\\x64\"");
         }
 
-        char *p = cmdbuf.toChars();
+        char *p = cmdbuf.peekString();
 
         const char *lnkfilename = NULL;
         size_t plen = strlen(p);
@@ -282,8 +282,7 @@ int runLINK()
                 OutBuffer linkcmdbuf;
                 linkcmdbuf.writestring(vcinstalldir);
                 linkcmdbuf.writestring("bin\\amd64\\link");
-                linkcmd = linkcmdbuf.toChars();
-                linkcmdbuf.extractData();
+                linkcmd = linkcmdbuf.extractString();
             }
             else
                 linkcmd = "link";
@@ -403,7 +402,7 @@ int runLINK()
         }
         cmdbuf.writeByte(';');
 
-        char *p = cmdbuf.toChars();
+        char *p = cmdbuf.peekString();
 
         const char *lnkfilename = NULL;
         size_t plen = strlen(p);
