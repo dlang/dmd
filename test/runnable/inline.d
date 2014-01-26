@@ -356,6 +356,10 @@ struct S11224
         ptr11224 = &this;
         /*printf("ctor &this = %p\n", &this);*/
     }
+    this(this)
+    {
+        /*printf("cpctor &this = %p\n", &this);*/
+    }
     int num;
 }
 S11224 foo11224()
