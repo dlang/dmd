@@ -59,6 +59,15 @@ public:
         cost = 0;
     }
 
+    InlineCostVisitor(InlineCostVisitor *icv)
+    {
+        nested = icv->nested;
+        hasthis = icv->hasthis;
+        hdrscan = icv->hdrscan;
+        fd = icv->fd;
+        cost = 0;   // zero start for subsequent AST
+    }
+
     void visit(Statement *s)
     {
         //printf("Statement::inlineCost = %d\n", COST_MAX);
@@ -74,30 +83,34 @@ public:
 
     void visit(CompoundStatement *s)
     {
+        InlineCostVisitor icv(this);
         for (size_t i = 0; i < s->statements->dim; i++)
         {
             Statement *s2 = (*s->statements)[i];
             if (s2)
             {
-                s2->accept(this);
-                if (tooCostly(cost))
+                s2->accept(&icv);
+                if (tooCostly(icv.cost))
                     break;
             }
         }
+        cost += icv.cost;
     }
 
     void visit(UnrolledLoopStatement *s)
     {
+        InlineCostVisitor icv(this);
         for (size_t i = 0; i < s->statements->dim; i++)
         {
             Statement *s2 = (*s->statements)[i];
             if (s2)
             {
-                s2->accept(this);
-                if (tooCostly(cost))
+                s2->accept(&icv);
+                if (tooCostly(icv.cost))
                     break;
             }
         }
+        cost += icv.cost;
     }
 
     void visit(ScopeStatement *s)
@@ -193,7 +206,11 @@ public:
         //printf("expressionInlineCost()\n");
         //e->print();
         if (e)
-            e->apply(&lambdaInlineCost, (void *)this);
+        {
+            InlineCostVisitor icv(this);
+            e->apply(&lambdaInlineCost, (void *)&icv);
+            cost += icv.cost;
+        }
     }
 
     void visit(Expression *e)
@@ -287,7 +304,6 @@ public:
                 cost = COST_MAX;
                 return;
             }
-            cost += 1;
 
             if (vd->edtor)
             {
@@ -306,6 +322,7 @@ public:
                     expressionInlineCost(ie->exp);
                 }
             }
+            cost += 1;
         }
 
         // These can contain functions, which when copied, get output twice.
