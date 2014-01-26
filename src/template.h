@@ -134,6 +134,16 @@ public:
     Loc loc;
     Identifier *ident;
 
+    /* True if this is a part of precedent parameter specialization pattern.
+     *
+     *  template A(T : X!TL, alias X, TL...) {}
+     *  // X and TL are dependent template parameter
+     *
+     * A dependent template parameter should return MATCHexact in matchArg()
+     * to respect the match level of the corresponding precedent parameter.
+     */
+    bool dependent;
+
     Declaration *sparam;
 
     TemplateParameter(Loc loc, Identifier *ident);

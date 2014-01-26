@@ -579,6 +579,42 @@ void TemplateDeclaration::semantic(Scope *sc)
         }
     }
 
+    /* Calculate TemplateParameter::dependent
+     */
+    TemplateParameters tparams;
+    tparams.setDim(1);
+    for (size_t i = 0; i < parameters->dim; i++)
+    {
+        TemplateParameter *tp = (*parameters)[i];
+        tparams[0] = tp;
+
+        for (size_t j = 0; j < parameters->dim; j++)
+        {
+            // Skip cases like: X(T : T)
+            if (i == j)
+                continue;
+
+            if (TemplateTypeParameter *ttp = (*parameters)[j]->isTemplateTypeParameter())
+            {
+                Type *t = ttp->specType;
+                if (t && t->reliesOnTident(&tparams))
+                    tp->dependent = true;
+            }
+            else if (TemplateAliasParameter *tap = (*parameters)[j]->isTemplateAliasParameter())
+            {
+                Type *t = tap->specType;
+                if (t && t->reliesOnTident(&tparams))
+                    tp->dependent = true;
+                else if (tap->specAlias)
+                {
+                    t = isType(tap->specAlias);
+                    if (t && t->reliesOnTident(&tparams))
+                        tp->dependent = true;
+                }
+            }
+        }
+    }
+
     paramscope->pop();
 
     // Compute again
@@ -4189,6 +4225,7 @@ TemplateParameter::TemplateParameter(Loc loc, Identifier *ident)
 {
     this->loc = loc;
     this->ident = ident;
+    this->dependent = false;
     this->sparam = NULL;
 }
 
@@ -4393,7 +4430,7 @@ MATCH TemplateTypeParameter::matchArg(Scope *sc, RootObject *oarg,
     if (psparam)
         *psparam = new AliasDeclaration(loc, ident, ta);
     //printf("\tm = %d\n", m);
-    return m;
+    return dependent ? MATCHexact : m;
 
 Lnomatch:
     if (psparam)
@@ -4599,6 +4636,7 @@ MATCH TemplateAliasParameter::matchArg(Scope *sc, RootObject *oarg,
         Declaration **psparam)
 {
     //printf("TemplateAliasParameter::matchArg()\n");
+    MATCH m = MATCHexact;
     RootObject *sa = getDsymbol(oarg);
     Expression *ea = isExpression(oarg);
     if (ea && (ea->op == TOKthis || ea->op == TOKsuper))
@@ -4607,6 +4645,9 @@ MATCH TemplateAliasParameter::matchArg(Scope *sc, RootObject *oarg,
         sa = ((ScopeExp *)ea)->sds;
     if (sa)
     {
+        if (((Dsymbol *)sa)->isAggregateDeclaration())
+            m = MATCHconvert;
+
         /* specType means the alias must be a declaration with a type
          * that matches specType.
          */
@@ -4630,6 +4671,11 @@ MATCH TemplateAliasParameter::matchArg(Scope *sc, RootObject *oarg,
                     goto Lnomatch;
             }
         }
+        else if (sa && sa == TemplateTypeParameter::tdummy)
+        {
+            // Bugzilla 2025: Aggregate Types should preferentially
+            // match to the template type parameter.
+        }
         else
             goto Lnomatch;
     }
@@ -4645,8 +4691,8 @@ MATCH TemplateAliasParameter::matchArg(Scope *sc, RootObject *oarg,
             if (!ti || !ta)
                 goto Lnomatch;
             Type *t = new TypeInstance(Loc(), ti);
-            MATCH m = deduceType(t, sc, ta, parameters, dedtypes);
-            if (m <= MATCHnomatch)
+            MATCH m2 = deduceType(t, sc, ta, parameters, dedtypes);
+            if (m2 <= MATCHnomatch)
                 goto Lnomatch;
         }
     }
@@ -4665,6 +4711,10 @@ MATCH TemplateAliasParameter::matchArg(Scope *sc, RootObject *oarg,
         {
             *psparam = new AliasDeclaration(loc, ident, s);
         }
+        else if (Type *t = isType(sa))
+        {
+            *psparam = new AliasDeclaration(loc, ident, t);
+        }
         else
         {
             assert(ea);
@@ -4677,7 +4727,7 @@ MATCH TemplateAliasParameter::matchArg(Scope *sc, RootObject *oarg,
             *psparam = v;
         }
     }
-    return MATCHexact;
+    return dependent ? MATCHexact : m;
 
 Lnomatch:
     if (psparam)
@@ -4962,7 +5012,7 @@ MATCH TemplateValueParameter::matchArg(Scope *sc, RootObject *oarg,
         sparam->storage_class = STCmanifest;
         *psparam = sparam;
     }
-    return m;
+    return dependent ? MATCHexact : m;
 
 Lnomatch:
     //printf("\tno match\n");
@@ -5124,7 +5174,7 @@ MATCH TemplateTupleParameter::matchArg(Scope *sc, RootObject *oarg,
 
     if (psparam)
         *psparam = new TupleDeclaration(loc, ident, &ovar->objects);
-    return MATCHexact;
+    return dependent ? MATCHexact : MATCHconvert;
 }
 
 
