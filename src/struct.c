@@ -960,13 +960,9 @@ bool StructDeclaration::fill(Loc loc, Expressions *elements, bool ctorinit)
  * Return true if struct is POD (Plain Old Data).
  * This is defined as:
  *      not nested
- *      no postblits, constructors, destructors, or assignment operators
+ *      no postblits, destructors, or assignment operators
  *      no fields that are themselves non-POD
  * The idea being these are compatible with C structs.
- *
- * Note that D struct constructors can mean POD, since there is always default
- * construction with no ctor, but that interferes with OPstrpar which wants it
- * on the stack in memory, not in registers.
  */
 bool StructDeclaration::isPOD()
 {
@@ -976,7 +972,7 @@ bool StructDeclaration::isPOD()
 
     ispod = ISPODyes;
 
-    if (enclosing || cpctor || postblit || ctor || dtor)
+    if (enclosing || cpctor || postblit || dtor)
         ispod = ISPODno;
 
     // Recursively check all fields are POD.
