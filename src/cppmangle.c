@@ -336,11 +336,7 @@ class CppMangleVisitor : public Visitor
             if (d->type->isConst())
                 buf.writeByte('K');
             prefix_name(p);
-            if (d->isCtorDeclaration())
-            {
-                buf.writestring("C1");
-            }
-            else if (d->isDtorDeclaration())
+            if (d->isDtorDeclaration())
             {
                 buf.writestring("D1");
             }
@@ -482,7 +478,7 @@ public:
             case Tint64:    c = 'x';        break;
             case Tuns64:    c = 'y';        break;
             case Tfloat64:  c = 'd';        break;
-            case Tfloat80:  c = (Target::realsize == 16) ? 'g' : 'e'; break;
+            case Tfloat80:  c = (Target::realsize - Target::realpad == 16) ? 'g' : 'e'; break;
             case Tbool:     c = 'b';        break;
             case Tchar:     c = 'c';        break;
             case Twchar:    c = 't';        break;

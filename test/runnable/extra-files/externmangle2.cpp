@@ -77,22 +77,6 @@ void test34(Test34<Test34A::foo> arg)
 {
 }
 
-
-struct Test35
-{
-    Test35(int);
-    ~Test35();
-    
-    int f;
-};
-
-Test35::Test35(int arg)
-{
-    f = arg;
-}
-
-Test35::~Test35(){}
-
 int test36= 36;
 
 template <int& XREF>

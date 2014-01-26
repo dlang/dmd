@@ -72,16 +72,6 @@ else
     void test34(Test34!(Test34A.foo) arg);
     */
 
-    struct Test35
-    {
-        this(int);
-        
-        //mangle is correct but there is error with TypeInfo
-        //~this();
-
-        int f;
-    };
-
     __gshared extern int test36;
 
     /*
@@ -137,11 +127,6 @@ else
         //test33(null, Test33!(test33a, test33a)(), null);
         
         //test34(Test34!(Test34A.foo)());
-
-        auto t35 = Test35(35);
-        assert(t35.f == 35);
-
-        //auto t35_dtor = &t35.__dtor;
         
         assert(test36 == 36);
         
