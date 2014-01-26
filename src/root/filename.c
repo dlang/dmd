@@ -145,8 +145,7 @@ Strings *FileName::splitPath(const char *path)
             }
             if (buf.offset)             // if path is not empty
             {
-                buf.writeByte(0);       // to asciiz
-                array->push(buf.extractData());
+                array->push(buf.extractString());
             }
         } while (c);
     }

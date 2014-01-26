@@ -407,6 +407,14 @@ void OutBuffer::remove(size_t offset, size_t nbytes)
 
 char *OutBuffer::toChars()
 {
-    writeByte(0);
+    if (!offset || data[offset-1] != '\0')
+        writeByte(0);
     return (char *)data;
+}
+
+char *OutBuffer::extractString()
+{
+    if (!offset || data[offset-1] != '\0')
+        writeByte(0);
+    return extractData();
 }

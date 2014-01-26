@@ -70,8 +70,7 @@ char *Initializer::toChars()
 
     OutBuffer buf;
     toCBuffer(&buf, &hgs);
-    buf.writeByte(0);
-    return buf.extractData();
+    return buf.extractString();
 }
 
 /********************************** ErrorInitializer ***************************/

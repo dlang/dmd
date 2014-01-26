@@ -2704,8 +2704,7 @@ char *TemplateDeclaration::toChars()
         constraint->toCBuffer(&buf, &hgs);
         buf.writeByte(')');
     }
-    buf.writeByte(0);
-    return (char *)buf.extractData();
+    return buf.extractString();
 }
 
 PROT TemplateDeclaration::prot()

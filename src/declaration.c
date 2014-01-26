@@ -1084,8 +1084,7 @@ Lnomatch:
 
             OutBuffer buf;
             buf.printf("_%s_field_%llu", ident->toChars(), (ulonglong)i);
-            buf.writeByte(0);
-            const char *name = (const char *)buf.extractData();
+            const char *name = buf.extractString();
             Identifier *id = Lexer::idPool(name);
 
             Initializer *ti;
@@ -2191,8 +2190,7 @@ char *TypeInfoDeclaration::toChars()
     buf.writestring("typeid(");
     buf.writestring(tinfo->toChars());
     buf.writeByte(')');
-    buf.writeByte(0);
-    return buf.extractData();
+    return buf.extractString();
 }
 
 /***************************** TypeInfoConstDeclaration **********************/

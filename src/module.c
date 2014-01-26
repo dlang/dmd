@@ -1080,8 +1080,7 @@ char *ModuleDeclaration::toChars()
         }
     }
     buf.writestring(id->toChars());
-    buf.writeByte(0);
-    return (char *)buf.extractData();
+    return buf.extractString();
 }
 
 /* =========================== Package ===================== */

@@ -3065,8 +3065,7 @@ const char *FuncDeclaration::toFullSignature()
     OutBuffer buf;
     HdrGenState hgs;
     functionToCBuffer2((TypeFunction *)type, &buf, &hgs, 0, toChars());
-    buf.writeByte(0);
-    return buf.extractData();
+    return buf.extractString();
 }
 
 bool FuncDeclaration::isMain()

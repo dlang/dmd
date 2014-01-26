@@ -1546,8 +1546,7 @@ char *MODtoChars(unsigned char mod)
     OutBuffer buf;
     buf.reserve(16);
     MODtoBuffer(&buf, mod);
-    buf.writeByte(0);
-    return buf.extractData();
+    return buf.extractString();
 }
 
 /********************************
@@ -1576,8 +1575,7 @@ char *Type::toChars()
     HdrGenState hgs;
 
     toCBuffer(&buf, NULL, &hgs);
-    buf.writeByte(0);
-    return buf.extractData();
+    return buf.extractString();
 }
 
 void Type::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
@@ -1652,8 +1650,7 @@ char *Type::modToChars()
     OutBuffer buf;
     buf.reserve(16);
     modToBuffer(&buf);
-    buf.writeByte(0);
-    return buf.extractData();
+    return buf.extractString();
 }
 
 /************************************

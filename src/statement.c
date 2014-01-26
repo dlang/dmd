@@ -44,9 +44,8 @@ Identifier *fixupLabelName(Scope *sc, Identifier *ident)
         const char *prefix = flags == SCOPErequire ? "__in_" : "__out_";
         OutBuffer buf;
         buf.printf("%s%s", prefix, ident->toChars());
-        buf.writeByte(0);
 
-        const char *name = (const char *)buf.extractData();
+        const char *name = buf.extractString();
         ident = Lexer::idPool(name);
     }
     return ident;
@@ -88,8 +87,7 @@ char *Statement::toChars()
 
     OutBuffer buf;
     toCBuffer(&buf, &hgs);
-    buf.writeByte(0);
-    return buf.extractData();
+    return buf.extractString();
 }
 
 void Statement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)

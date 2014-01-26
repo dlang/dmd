@@ -1998,10 +1998,7 @@ char *Expression::toChars()
 
     OutBuffer buf;
     toCBuffer(&buf, &hgs);
-    buf.writeByte(0);
-    char *p = (char *)buf.data;
-    buf.data = NULL;
-    return p;
+    return buf.extractString();
 }
 
 void Expression::error(const char *format, ...)
@@ -13940,8 +13937,7 @@ Expression *PrettyFuncInitExp::resolveLoc(Loc loc, Scope *sc)
         HdrGenState hgs;
         OutBuffer buf;
         functionToCBuffer2((TypeFunction *)fd->type, &buf, &hgs, 0, funcStr);
-        buf.writeByte(0);
-        s = (const char *)buf.extractData();
+        s = buf.extractString();
     }
     else
     {
