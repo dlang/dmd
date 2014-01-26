@@ -73,7 +73,7 @@ void Module::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     {
         buf->writestring("module ");
         buf->writestring(md->toChars());
-        buf->writebyte(';');
+        buf->writeByte(';');
         buf->writenl();
     }
 

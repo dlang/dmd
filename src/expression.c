@@ -4363,13 +4363,13 @@ StringExp *ArrayLiteralExp::toStringExp()
                 Expression *ch = (*elements)[i];
                 if (ch->op != TOKint64)
                     return NULL;
-                     if (sz == 1) buf.writebyte((unsigned)ch->toInteger());
+                     if (sz == 1) buf.writeByte((unsigned)ch->toInteger());
                 else if (sz == 2) buf.writeword((unsigned)ch->toInteger());
                 else              buf.write4((unsigned)ch->toInteger());
             }
         }
         char prefix;
-             if (sz == 1) { prefix = 'c'; buf.writebyte(0); }
+             if (sz == 1) { prefix = 'c'; buf.writeByte(0); }
         else if (sz == 2) { prefix = 'w'; buf.writeword(0); }
         else              { prefix = 'd'; buf.write4(0); }
 
@@ -13940,7 +13940,7 @@ Expression *PrettyFuncInitExp::resolveLoc(Loc loc, Scope *sc)
         HdrGenState hgs;
         OutBuffer buf;
         functionToCBuffer2((TypeFunction *)fd->type, &buf, &hgs, 0, funcStr);
-        buf.writebyte(0);
+        buf.writeByte(0);
         s = (const char *)buf.extractData();
     }
     else

@@ -321,14 +321,14 @@ void Import::semantic(Scope *sc)
             escapePath(ob, mod->srcfile->toChars());
         else
             ob->writestring("???");
-        ob->writebyte(')');
+        ob->writeByte(')');
 
         for (size_t i = 0; i < names.dim; i++)
         {
             if (i == 0)
-                ob->writebyte(':');
+                ob->writeByte(':');
             else
-                ob->writebyte(',');
+                ob->writeByte(',');
 
             Identifier *name = names[i];
             Identifier *alias = aliases[i];

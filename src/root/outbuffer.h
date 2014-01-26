@@ -45,7 +45,6 @@ struct OutBuffer
     void prependstring(const char *string);
     void writenl();                     // write newline
     void writeByte(unsigned b);
-    void writebyte(unsigned b) { writeByte(b); }
     void writeUTF8(unsigned b);
     void prependbyte(unsigned b);
     void writewchar(unsigned w);

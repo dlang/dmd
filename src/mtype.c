@@ -1546,7 +1546,7 @@ char *MODtoChars(unsigned char mod)
     OutBuffer buf;
     buf.reserve(16);
     MODtoBuffer(&buf, mod);
-    buf.writebyte(0);
+    buf.writeByte(0);
     return buf.extractData();
 }
 
@@ -1576,7 +1576,7 @@ char *Type::toChars()
     HdrGenState hgs;
 
     toCBuffer(&buf, NULL, &hgs);
-    buf.writebyte(0);
+    buf.writeByte(0);
     return buf.extractData();
 }
 
@@ -1652,7 +1652,7 @@ char *Type::modToChars()
     OutBuffer buf;
     buf.reserve(16);
     modToBuffer(&buf);
-    buf.writebyte(0);
+    buf.writeByte(0);
     return buf.extractData();
 }
 
@@ -9784,7 +9784,7 @@ char *Parameter::argsTypesToChars(Parameters *args, int varargs)
     HdrGenState hgs;
     argsToCBuffer(&buf, &hgs, args, varargs);
 
-    buf.writebyte(0);
+    buf.writeByte(0);
     return buf.extractData();
 }
 

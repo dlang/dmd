@@ -2062,9 +2062,9 @@ void FuncDeclaration::bodyToCBuffer(OutBuffer *buf, HdrGenState *hgs)
             buf->writestring("out");
             if (outId)
             {
-                buf->writebyte('(');
+                buf->writeByte('(');
                 buf->writestring(outId->toChars());
-                buf->writebyte(')');
+                buf->writeByte(')');
             }
             buf->writenl();
             fensure->toCBuffer(buf, hgs);
@@ -2076,12 +2076,12 @@ void FuncDeclaration::bodyToCBuffer(OutBuffer *buf, HdrGenState *hgs)
             buf->writenl();
         }
 
-        buf->writebyte('{');
+        buf->writeByte('{');
         buf->writenl();
         buf->level++;
         fbody->toCBuffer(buf, hgs);
         buf->level--;
-        buf->writebyte('}');
+        buf->writeByte('}');
         buf->writenl();
 
         hgs->tpltMember = savetlpt;

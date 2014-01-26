@@ -2651,7 +2651,7 @@ void TemplateDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     {
         hgs->tpltMember++;
         buf->writenl();
-        buf->writebyte('{');
+        buf->writeByte('{');
         buf->writenl();
         buf->level++;
         for (size_t i = 0; i < members->dim; i++)
@@ -2660,7 +2660,7 @@ void TemplateDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
             s->toCBuffer(buf, hgs);
         }
         buf->level--;
-        buf->writebyte('}');
+        buf->writeByte('}');
         buf->writenl();
         hgs->tpltMember--;
     }
@@ -7691,10 +7691,10 @@ void TemplateMixin::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
     if (ident && memcmp(ident->string, "__mixin", 7) != 0)
     {
-        buf->writebyte(' ');
+        buf->writeByte(' ');
         buf->writestring(ident->toChars());
     }
-    buf->writebyte(';');
+    buf->writeByte(';');
     buf->writenl();
 }
 
