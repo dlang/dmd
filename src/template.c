@@ -4359,7 +4359,8 @@ MATCH TemplateTypeParameter::matchArg(Scope *sc, RootObject *oarg,
         //printf("\tcalling deduceType(): ta is %s, specType is %s\n", ta->toChars(), specType->toChars());
         MATCH m2 = deduceType(ta, sc, specType, parameters, dedtypes);
         if (m2 <= MATCHnomatch)
-        {   //printf("\tfailed deduceType\n");
+        {
+            //printf("\tfailed deduceType\n");
             goto Lnomatch;
         }
 
@@ -4371,11 +4372,13 @@ MATCH TemplateTypeParameter::matchArg(Scope *sc, RootObject *oarg,
     else
     {
         if ((*dedtypes)[i])
-        {   // Must match already deduced type
+        {
+            // Must match already deduced type
             Type *t = (Type *)(*dedtypes)[i];
 
             if (!t->equals(ta))
-            {   //printf("t = %s ta = %s\n", t->toChars(), ta->toChars());
+            {
+                //printf("t = %s ta = %s\n", t->toChars(), ta->toChars());
                 goto Lnomatch;
             }
         }
@@ -4436,10 +4439,8 @@ void TemplateTypeParameter::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 void *TemplateTypeParameter::dummyArg()
 {
-    Type *t;
-    if (specType)
-        t = specType;
-    else
+    Type *t = specType;
+    if (!t)
     {
         // Use this for alias-parameter's too (?)
         if (!tdummy)
@@ -4610,7 +4611,8 @@ MATCH TemplateAliasParameter::matchArg(Scope *sc, RootObject *oarg,
          * that matches specType.
          */
         if (specType)
-        {   Declaration *d = ((Dsymbol *)sa)->isDeclaration();
+        {
+            Declaration *d = ((Dsymbol *)sa)->isDeclaration();
             if (!d)
                 goto Lnomatch;
             if (!d->type->equals(specType))
@@ -4621,7 +4623,8 @@ MATCH TemplateAliasParameter::matchArg(Scope *sc, RootObject *oarg,
     {
         sa = oarg;
         if (ea)
-        {   if (specType)
+        {
+            if (specType)
             {
                 if (!ea->type->equals(specType))
                     goto Lnomatch;
@@ -4648,9 +4651,9 @@ MATCH TemplateAliasParameter::matchArg(Scope *sc, RootObject *oarg,
         }
     }
     else if ((*dedtypes)[i])
-    {   // Must match already deduced symbol
+    {
+        // Must match already deduced symbol
         RootObject *si = (*dedtypes)[i];
-
         if (!sa || si != sa)
             goto Lnomatch;
     }
@@ -4717,9 +4720,8 @@ void TemplateAliasParameter::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 
 void *TemplateAliasParameter::dummyArg()
-{   RootObject *s;
-
-    s = specAlias;
+{
+    RootObject *s = specAlias;
     if (!s)
     {
         if (!sdummy)
@@ -4999,9 +5001,8 @@ void TemplateValueParameter::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 
 void *TemplateValueParameter::dummyArg()
-{   Expression *e;
-
-    e = specValue;
+{
+    Expression *e = specValue;
     if (!e)
     {
         // Create a dummy value
