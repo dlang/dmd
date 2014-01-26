@@ -46,9 +46,9 @@ WARNINGS=-Wno-deprecated -Wstrict-aliasing
 MMD=-MMD -MF $(basename $@).deps
 
 ifneq (,$(DEBUG))
-	GFLAGS=$(WARNINGS) -D__pascal= -fno-exceptions -g -g3 -DDEBUG=1 -DUNITTEST $(COV) $(PROFILE) $(MMD)
+	GFLAGS=$(WARNINGS) -D__pascal= -fno-exceptions -g -g3 -DDEBUG=1 -DUNITTEST $(COV) $(PROFILE) $(MMD) -fno-rtti
 else
-	GFLAGS=$(WARNINGS) -D__pascal= -fno-exceptions -O2 $(PROFILE) $(MMD)
+	GFLAGS=$(WARNINGS) -D__pascal= -fno-exceptions -O2 $(PROFILE) $(MMD) -fno-rtti
 endif
 
 OS_UPCASE:=$(shell echo $(OS) | tr '[a-z]' '[A-Z]')
