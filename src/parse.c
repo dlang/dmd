@@ -2353,6 +2353,7 @@ Objects *Parser::parseTemplateArgument()
         case TOKwcharv:
         case TOKdcharv:
         case TOKstring:
+        case TOKxstring:
         case TOKfile:
         case TOKline:
         case TOKmodulestring:
@@ -3968,6 +3969,7 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
         case TOKtrue:
         case TOKfalse:
         case TOKstring:
+        case TOKxstring:
         case TOKlparen:
         case TOKcast:
         case TOKmul:
@@ -5171,6 +5173,7 @@ int Parser::isBasicType(Token **pt)
                         case TOKwcharv:
                         case TOKdcharv:
                         case TOKstring:
+                        case TOKxstring:
                         case TOKfile:
                         case TOKline:
                         case TOKmodulestring:
@@ -5924,6 +5927,7 @@ Expression *Parser::parsePrimaryExp()
             break;
 
         case TOKstring:
+        case TOKxstring:
         {
             // cat adjacent strings
             utf8_t *s = token.ustring;
@@ -5932,7 +5936,8 @@ Expression *Parser::parsePrimaryExp()
             while (1)
             {
                 nextToken();
-                if (token.value == TOKstring)
+                if (token.value == TOKstring ||
+                    token.value == TOKxstring)
                 {
                     if (token.postfix)
                     {   if (token.postfix != postfix)
