@@ -41,6 +41,8 @@ extern bool obj_includelib(const char *name);
 void obj_startaddress(Symbol *s);
 void obj_lzext(Symbol *s1,Symbol *s2);
 
+void TypeInfo_toDt(dt_t **pdt, TypeInfoDeclaration *d);
+
 /* ================================================================== */
 
 // Put out instance of ModuleInfo for this Module
@@ -1062,7 +1064,7 @@ void TypeInfoDeclaration::toObjFile(int multiobj)
     s->Sclass = SCcomdat;
     s->Sfl = FLdata;
 
-    toDt(&s->Sdt);
+    TypeInfo_toDt(&s->Sdt, this);
 
     dt_optimize(s->Sdt);
 
