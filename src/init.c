@@ -70,8 +70,7 @@ char *Initializer::toChars()
 
     OutBuffer buf;
     toCBuffer(&buf, &hgs);
-    buf.writebyte(0);
-    return buf.extractData();
+    return buf.extractString();
 }
 
 /********************************** ErrorInitializer ***************************/
@@ -318,7 +317,7 @@ Expression *StructInitializer::toExpression(Type *t)
 void StructInitializer::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     //printf("StructInitializer::toCBuffer()\n");
-    buf->writebyte('{');
+    buf->writeByte('{');
     for (size_t i = 0; i < field.dim; i++)
     {
         if (i > 0)
@@ -327,13 +326,13 @@ void StructInitializer::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         if (id)
         {
             buf->writestring(id->toChars());
-            buf->writebyte(':');
+            buf->writeByte(':');
         }
         Initializer *iz = value[i];
         if (iz)
             iz->toCBuffer(buf, hgs);
     }
-    buf->writebyte('}');
+    buf->writeByte('}');
 }
 
 /********************************** ArrayInitializer ************************************/
@@ -703,7 +702,7 @@ Laa:
 
 void ArrayInitializer::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    buf->writebyte('[');
+    buf->writeByte('[');
     for (size_t i = 0; i < index.dim; i++)
     {
         if (i > 0)
@@ -712,13 +711,13 @@ void ArrayInitializer::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         if (ex)
         {
             ex->toCBuffer(buf, hgs);
-            buf->writebyte(':');
+            buf->writeByte(':');
         }
         Initializer *iz = value[i];
         if (iz)
             iz->toCBuffer(buf, hgs);
     }
-    buf->writebyte(']');
+    buf->writeByte(']');
 }
 
 

@@ -97,7 +97,6 @@ Identifier *Identifier::generateId(const char *prefix, size_t i)
     buf.writestring(prefix);
     buf.printf("%llu", (ulonglong)i);
 
-    char *id = buf.toChars();
-    buf.data = NULL;
+    char *id = buf.peekString();
     return Lexer::idPool(id);
 }

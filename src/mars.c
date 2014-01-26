@@ -179,8 +179,7 @@ char *Loc::toChars()
 
     if (linnum)
         buf.printf("(%d)", linnum);
-    buf.writeByte(0);
-    return (char *)buf.extractData();
+    return buf.extractString();
 }
 
 Loc::Loc(Module *mod, unsigned linnum)
@@ -262,7 +261,7 @@ void verrorPrint(Loc loc, const char *header, const char *format, va_list ap,
         fprintf(stderr, "%s ", p2);
     OutBuffer tmp;
     tmp.vprintf(format, ap);
-    fprintf(stderr, "%s\n", tmp.toChars());
+    fprintf(stderr, "%s\n", tmp.peekString());
     fflush(stderr);
 }
 
@@ -1883,9 +1882,9 @@ void escapePath(OutBuffer *buf, const char *fname)
             case '(':
             case ')':
             case '\\':
-                buf->writebyte('\\');
+                buf->writeByte('\\');
             default:
-                buf->writebyte(*fname);
+                buf->writeByte(*fname);
                 break;
         }
         fname++;

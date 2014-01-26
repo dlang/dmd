@@ -262,7 +262,7 @@ void FuncDeclaration::semantic(Scope *sc)
         {
             OutBuffer buf;
             MODtoBuffer(&buf, tf->mod);
-            error("without 'this' cannot be %s", buf.toChars());
+            error("without 'this' cannot be %s", buf.peekString());
             tf->mod = 0;    // remove qualifiers
         }
 
@@ -2062,9 +2062,9 @@ void FuncDeclaration::bodyToCBuffer(OutBuffer *buf, HdrGenState *hgs)
             buf->writestring("out");
             if (outId)
             {
-                buf->writebyte('(');
+                buf->writeByte('(');
                 buf->writestring(outId->toChars());
-                buf->writebyte(')');
+                buf->writeByte(')');
             }
             buf->writenl();
             fensure->toCBuffer(buf, hgs);
@@ -2076,12 +2076,12 @@ void FuncDeclaration::bodyToCBuffer(OutBuffer *buf, HdrGenState *hgs)
             buf->writenl();
         }
 
-        buf->writebyte('{');
+        buf->writeByte('{');
         buf->writenl();
         buf->level++;
         fbody->toCBuffer(buf, hgs);
         buf->level--;
-        buf->writebyte('}');
+        buf->writeByte('}');
         buf->writenl();
 
         hgs->tpltMember = savetlpt;
@@ -2833,7 +2833,7 @@ Lerror:
         {
             ::error(loc, "%s %s.%s cannot deduce function from argument types !(%s)%s, candidates are:",
                     td->kind(), td->parent->toPrettyChars(), td->ident->toChars(),
-                    tiargsBuf.toChars(), fargsBuf.toChars());
+                    tiargsBuf.peekString(), fargsBuf.peekString());
 
             // Display candidate template functions
             int numToDisplay = 5; // sensible number to display
@@ -2863,7 +2863,7 @@ Lerror:
                 MODMatchToBuffer(&thisBuf, tthis->mod, tf->mod);
                 MODMatchToBuffer(&funcBuf, tf->mod, tthis->mod);
                 ::error(loc, "%smethod %s is not callable using a %sobject",
-                    funcBuf.toChars(), fd->toPrettyChars(), thisBuf.toChars());
+                    funcBuf.peekString(), fd->toPrettyChars(), thisBuf.peekString());
             }
             else
             {
@@ -2871,7 +2871,7 @@ Lerror:
                 fd->error(loc, "%s%s is not callable using argument types %s",
                     Parameter::argsTypesToChars(tf->parameters, tf->varargs),
                     tf->modToChars(),
-                    fargsBuf.toChars());
+                    fargsBuf.peekString());
             }
         }
     }
@@ -2884,7 +2884,7 @@ Lerror:
         ::error(loc, "%s.%s called with argument types %s matches both:\n"
                      "\t%s(%d): %s%s\nand:\n\t%s(%d): %s%s",
                 s->parent->toPrettyChars(), s->ident->toChars(),
-                fargsBuf.toChars(),
+                fargsBuf.peekString(),
                 m.lastf->loc.filename, m.lastf->loc.linnum, m.lastf->toPrettyChars(), lastprms,
                 m.nextf->loc.filename, m.nextf->loc.linnum, m.nextf->toPrettyChars(), nextprms);
     }
@@ -3065,8 +3065,7 @@ const char *FuncDeclaration::toFullSignature()
     OutBuffer buf;
     HdrGenState hgs;
     functionToCBuffer2((TypeFunction *)type, &buf, &hgs, 0, toChars());
-    buf.writeByte(0);
-    return buf.extractData();
+    return buf.extractString();
 }
 
 bool FuncDeclaration::isMain()
@@ -4621,7 +4620,7 @@ static Identifier *unitTestId(Loc loc)
 {
     OutBuffer buf;
     buf.printf("__unittestL%u_", loc.linnum);
-    return Lexer::uniqueId(buf.toChars());
+    return Lexer::uniqueId(buf.peekString());
 }
 
 UnitTestDeclaration::UnitTestDeclaration(Loc loc, Loc endloc, char *codedoc)

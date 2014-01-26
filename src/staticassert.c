@@ -96,7 +96,7 @@ void StaticAssert::semantic2(Scope *sc)
                 msg = s;
             }
             msg->toCBuffer(&buf, &hgs);
-            error("%s", buf.toChars());
+            error("%s", buf.peekString());
         }
         else
             error("(%s) is false", exp->toChars());

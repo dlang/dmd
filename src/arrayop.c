@@ -396,8 +396,7 @@ Expression *BinExp::arrayOp(Scope *sc)
      */
     buf.writestring(type->toBasetype()->nextOf()->toBasetype()->mutableOf()->deco);
 
-    buf.writeByte(0);
-    char *name = buf.toChars();
+    char *name = buf.peekString();
     Identifier *ident = Lexer::idPool(name);
 
     ArrayOp **pOp = (ArrayOp **)_aaGet(&arrayfuncs, ident);

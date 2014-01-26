@@ -419,8 +419,7 @@ public:
         {
             mangle_function(fd);
         }
-        buf.writeByte(0);
-        return (char *)buf.extractData();
+        return buf.extractString();
     }
 
     void visit(Type *t)

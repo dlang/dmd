@@ -120,8 +120,7 @@ L1:
         tf->next = tn;
     }
 
-    id = buf.toChars();
-    buf.data = NULL;
+    id = buf.extractString();
     return id;
 }
 
@@ -163,8 +162,7 @@ const char *Declaration::mangle(bool isv)
         OutBuffer buf;
         buf.writestring("_D");
         buf.writestring(p);
-        p = buf.toChars();
-        buf.data = NULL;
+        p = buf.extractString();
         }
         //printf("Declaration::mangle(this = %p, '%s', parent = '%s', linkage = %d) = %s\n", this, toChars(), parent ? parent->toChars() : "null", linkage, p);
 
@@ -336,8 +334,7 @@ const char *TemplateInstance::mangle(bool isv)
         }
     }
     buf.printf("%llu%s", (ulonglong)strlen(id), id);
-    id = buf.toChars();
-    buf.data = NULL;
+    id = buf.extractString();
     //printf("TemplateInstance::mangle() %s = %s\n", toChars(), id);
     return id;
 }
@@ -365,8 +362,7 @@ const char *Dsymbol::mangle(bool isv)
         buf.writestring(p);
     }
     buf.printf("%llu%s", (ulonglong)strlen(id), id);
-    id = buf.toChars();
-    buf.data = NULL;
+    id = buf.extractString();
     //printf("Dsymbol::mangle() %s = %s\n", toChars(), id);
     return id;
 }

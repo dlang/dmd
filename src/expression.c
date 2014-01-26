@@ -1998,10 +1998,7 @@ char *Expression::toChars()
 
     OutBuffer buf;
     toCBuffer(&buf, &hgs);
-    buf.writeByte(0);
-    char *p = (char *)buf.data;
-    buf.data = NULL;
-    return p;
+    return buf.extractString();
 }
 
 void Expression::error(const char *format, ...)
@@ -4363,13 +4360,13 @@ StringExp *ArrayLiteralExp::toStringExp()
                 Expression *ch = (*elements)[i];
                 if (ch->op != TOKint64)
                     return NULL;
-                     if (sz == 1) buf.writebyte((unsigned)ch->toInteger());
+                     if (sz == 1) buf.writeByte((unsigned)ch->toInteger());
                 else if (sz == 2) buf.writeword((unsigned)ch->toInteger());
                 else              buf.write4((unsigned)ch->toInteger());
             }
         }
         char prefix;
-             if (sz == 1) { prefix = 'c'; buf.writebyte(0); }
+             if (sz == 1) { prefix = 'c'; buf.writeByte(0); }
         else if (sz == 2) { prefix = 'w'; buf.writeword(0); }
         else              { prefix = 'd'; buf.write4(0); }
 
@@ -9039,7 +9036,7 @@ Lagain:
             //printf("tf = %s, args = %s\n", tf->deco, (*arguments)[0]->type->deco);
             ::error(loc, "%s %s %s is not callable using argument types %s",
                 p, e1->toChars(), Parameter::argsTypesToChars(tf->parameters, tf->varargs),
-                buf.toChars());
+                buf.peekString());
 
             return new ErrorExp();
         }
@@ -9104,7 +9101,7 @@ Lagain:
                 //printf("tf = %s, args = %s\n", tf->deco, (*arguments)[0]->type->deco);
                 ::error(loc, "%s %s is not callable using argument types %s",
                     e1->toChars(), Parameter::argsTypesToChars(tf->parameters, tf->varargs),
-                    buf.toChars());
+                    buf.peekString());
 
                 return new ErrorExp();
             }
@@ -13940,8 +13937,7 @@ Expression *PrettyFuncInitExp::resolveLoc(Loc loc, Scope *sc)
         HdrGenState hgs;
         OutBuffer buf;
         functionToCBuffer2((TypeFunction *)fd->type, &buf, &hgs, 0, funcStr);
-        buf.writebyte(0);
-        s = (const char *)buf.extractData();
+        s = buf.extractString();
     }
     else
     {

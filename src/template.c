@@ -2651,7 +2651,7 @@ void TemplateDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     {
         hgs->tpltMember++;
         buf->writenl();
-        buf->writebyte('{');
+        buf->writeByte('{');
         buf->writenl();
         buf->level++;
         for (size_t i = 0; i < members->dim; i++)
@@ -2660,7 +2660,7 @@ void TemplateDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
             s->toCBuffer(buf, hgs);
         }
         buf->level--;
-        buf->writebyte('}');
+        buf->writeByte('}');
         buf->writenl();
         hgs->tpltMember--;
     }
@@ -2704,8 +2704,7 @@ char *TemplateDeclaration::toChars()
         constraint->toCBuffer(&buf, &hgs);
         buf.writeByte(')');
     }
-    buf.writeByte(0);
-    return (char *)buf.extractData();
+    return buf.extractString();
 }
 
 PROT TemplateDeclaration::prot()
@@ -6773,8 +6772,7 @@ Identifier *TemplateInstance::genIdent(Objects *args)
             assert(0);
     }
     buf.writeByte('Z');
-    id = buf.toChars();
-    //buf.data = NULL;                          // we can free the string after call to idPool()
+    id = buf.peekString();
     //printf("\tgenIdent = %s\n", id);
     return Lexer::idPool(id);
 }
@@ -7097,8 +7095,7 @@ char *TemplateInstance::toChars()
     char *s;
 
     toCBuffer(&buf, &hgs);
-    s = buf.toChars();
-    buf.data = NULL;
+    s = buf.extractString();
     return s;
 }
 
@@ -7677,8 +7674,7 @@ char *TemplateMixin::toChars()
     char *s;
 
     TemplateInstance::toCBuffer(&buf, &hgs);
-    s = buf.toChars();
-    buf.data = NULL;
+    s = buf.extractString();
     return s;
 }
 
@@ -7691,10 +7687,10 @@ void TemplateMixin::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
     if (ident && memcmp(ident->string, "__mixin", 7) != 0)
     {
-        buf->writebyte(' ');
+        buf->writeByte(' ');
         buf->writestring(ident->toChars());
     }
-    buf->writebyte(';');
+    buf->writeByte(';');
     buf->writenl();
 }
 

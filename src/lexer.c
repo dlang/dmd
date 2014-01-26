@@ -176,8 +176,7 @@ const char *Token::toChars()
             buf.writeByte('"');
             if (postfix)
                 buf.writeByte(postfix);
-            buf.writeByte(0);
-            p = (char *)buf.extractData();
+            p = buf.extractString();
         }
             break;
 
