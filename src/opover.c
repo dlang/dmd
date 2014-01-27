@@ -1364,6 +1364,12 @@ int ForeachStatement::inferApplyArgTypes(Scope *sc, Dsymbol *&sapply)
             if (!arg->type && tab->ty != Ttuple)
             {
                 arg->type = tab->nextOf();      // value type
+                if ((arg->storageClass & STCref) == 0 &&
+                    (arg->type->toBasetype()->ty == Tchar || arg->type->toBasetype()->ty == Twchar))
+                {
+                    // Infer the value for char[] and wchar[] as dchar
+                    arg->type = Type::tdchar;
+                }
                 arg->type = arg->type->addStorageClass(arg->storageClass);
             }
             break;
