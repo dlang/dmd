@@ -141,6 +141,8 @@ Expression *Type::getTypeInfo(Scope *sc)
                     StructDeclaration *sd = ((TypeStruct *)this)->sym;
                     if ((sd->xeq  && sd->xeq  != sd->xerreq  ||
                          sd->xcmp && sd->xcmp != sd->xerrcmp ||
+                         (sd->postblit && !(sd->postblit->storage_class & STCdisable)) ||
+                         sd->dtor ||
                          search_toHash(sd) ||
                          search_toString(sd)
                         ) && sd->inNonRoot())
