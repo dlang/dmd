@@ -1625,6 +1625,56 @@ void test11800()
 }
 
 /***************************************************/
+// 12008
+
+struct RefCounted12008(T)
+{
+    struct RefCountedStore
+    {
+        private struct Impl
+        {
+            T _payload;
+        }
+
+        private void initialize(A...)(auto ref A args)
+        {
+            import core.memory;
+        }
+
+        void ensureInitialized()
+        {
+            initialize();
+        }
+
+    }
+    RefCountedStore _refCounted;
+
+    void opAssign(T rhs)
+    {
+    }
+
+    int refCountedPayload()
+    {
+        _refCounted.ensureInitialized();
+        return 0;
+    }
+
+    int refCountedPayload() inout;
+
+    alias refCountedPayload this;
+}
+
+struct SharedInput12008
+{
+    Group12008 unused;
+}
+
+struct Group12008
+{
+    RefCounted12008!SharedInput12008 _allGroups;
+}
+
+/***************************************************/
 
 int main()
 {
