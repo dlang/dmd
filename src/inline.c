@@ -1015,7 +1015,6 @@ Expression *CondExp::doInline(InlineDoState *ids)
     return ce;
 }
 
-
 /* ========== Walk the parse trees, and inline expand functions ============= */
 
 /* Walk the trees, looking for functions to inline.
@@ -1027,238 +1026,209 @@ struct InlineScanState
     FuncDeclaration *fd;        // function being scanned
 };
 
-Statement *Statement::inlineScan(InlineScanState *iss)
-{
-    return this;
-}
+void inlineScan(Statement **s, InlineScanState *iss);
 
-Statement *ExpStatement::inlineScan(InlineScanState *iss)
+class InlineScanVisitor : public Visitor
 {
-#if LOG
-    printf("ExpStatement::inlineScan(%s)\n", toChars());
-#endif
-    if (exp)
+public:
+    InlineScanState *iss;
+    Statement *result;
+
+    InlineScanVisitor(InlineScanState *iss)
     {
-        exp = exp->inlineScan(iss);
+        this->iss = iss;
+        this->result = NULL;
+    }
 
-        /* See if we can inline as a statement rather than as
-         * an Expression.
-         */
-        if (exp && exp->op == TOKcall)
+    void visit(Statement *s)
+    {
+    }
+
+    void visit(ExpStatement *s)
+    {
+    #if LOG
+        printf("ExpStatement::inlineScan(%s)\n", s->toChars());
+    #endif
+        if (s->exp)
         {
-            CallExp *ce = (CallExp *)exp;
-            if (ce->e1->op == TOKvar)
-            {
-                VarExp *ve = (VarExp *)ce->e1;
-                FuncDeclaration *fd = ve->var->isFuncDeclaration();
+            s->exp = s->exp->inlineScan(iss);
 
-                if (fd && fd != iss->fd && fd->canInline(0, 0, 1))
+            /* See if we can inline as a statement rather than as
+             * an Expression.
+             */
+            if (s->exp && s->exp->op == TOKcall)
+            {
+                CallExp *ce = (CallExp *)s->exp;
+                if (ce->e1->op == TOKvar)
                 {
-                    Statement *s;
-                    fd->expandInline(iss, NULL, NULL, ce->arguments, &s);
-                    return s;
+                    VarExp *ve = (VarExp *)ce->e1;
+                    FuncDeclaration *fd = ve->var->isFuncDeclaration();
+
+                    if (fd && fd != iss->fd && fd->canInline(0, 0, 1))
+                    {
+                        fd->expandInline(iss, NULL, NULL, ce->arguments, &result);
+                    }
                 }
             }
         }
     }
-    return this;
-}
 
-Statement *CompoundStatement::inlineScan(InlineScanState *iss)
-{
-    for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s =  (*statements)[i];
-        if (s)
-            (*statements)[i] = s->inlineScan(iss);
-    }
-    return this;
-}
-
-Statement *UnrolledLoopStatement::inlineScan(InlineScanState *iss)
-{
-    for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s =  (*statements)[i];
-        if (s)
-            (*statements)[i] = s->inlineScan(iss);
-    }
-    return this;
-}
-
-Statement *ScopeStatement::inlineScan(InlineScanState *iss)
-{
-    if (statement)
-        statement = statement->inlineScan(iss);
-    return this;
-}
-
-Statement *WhileStatement::inlineScan(InlineScanState *iss)
-{
-    condition = condition->inlineScan(iss);
-    body = body ? body->inlineScan(iss) : NULL;
-    return this;
-}
-
-
-Statement *DoStatement::inlineScan(InlineScanState *iss)
-{
-    body = body ? body->inlineScan(iss) : NULL;
-    condition = condition->inlineScan(iss);
-    return this;
-}
-
-
-Statement *ForStatement::inlineScan(InlineScanState *iss)
-{
-    if (init)
-        init = init->inlineScan(iss);
-    if (condition)
-        condition = condition->inlineScan(iss);
-    if (increment)
-        increment = increment->inlineScan(iss);
-    if (body)
-        body = body->inlineScan(iss);
-    return this;
-}
-
-
-Statement *ForeachStatement::inlineScan(InlineScanState *iss)
-{
-    aggr = aggr->inlineScan(iss);
-    if (body)
-        body = body->inlineScan(iss);
-    return this;
-}
-
-
-Statement *ForeachRangeStatement::inlineScan(InlineScanState *iss)
-{
-    lwr = lwr->inlineScan(iss);
-    upr = upr->inlineScan(iss);
-    if (body)
-        body = body->inlineScan(iss);
-    return this;
-}
-
-
-Statement *IfStatement::inlineScan(InlineScanState *iss)
-{
-    condition = condition->inlineScan(iss);
-    if (ifbody)
-        ifbody = ifbody->inlineScan(iss);
-    if (elsebody)
-        elsebody = elsebody->inlineScan(iss);
-    return this;
-}
-
-
-Statement *SwitchStatement::inlineScan(InlineScanState *iss)
-{
-    //printf("SwitchStatement::inlineScan()\n");
-    condition = condition->inlineScan(iss);
-    body = body ? body->inlineScan(iss) : NULL;
-    if (sdefault)
-        sdefault = (DefaultStatement *)sdefault->inlineScan(iss);
-    if (cases)
+    void visit(CompoundStatement *s)
     {
-        for (size_t i = 0; i < cases->dim; i++)
-        {   CaseStatement *s;
-
-            s =  (*cases)[i];
-            (*cases)[i] = (CaseStatement *)s->inlineScan(iss);
+        for (size_t i = 0; i < s->statements->dim; i++)
+        {
+            inlineScan(&(*s->statements)[i]);
         }
     }
-    return this;
-}
 
-
-Statement *CaseStatement::inlineScan(InlineScanState *iss)
-{
-    //printf("CaseStatement::inlineScan()\n");
-    exp = exp->inlineScan(iss);
-    if (statement)
-        statement = statement->inlineScan(iss);
-    return this;
-}
-
-
-Statement *DefaultStatement::inlineScan(InlineScanState *iss)
-{
-    if (statement)
-        statement = statement->inlineScan(iss);
-    return this;
-}
-
-
-Statement *ReturnStatement::inlineScan(InlineScanState *iss)
-{
-    //printf("ReturnStatement::inlineScan()\n");
-    if (exp)
-        exp = exp->inlineScan(iss);
-    return this;
-}
-
-
-Statement *SynchronizedStatement::inlineScan(InlineScanState *iss)
-{
-    if (exp)
-        exp = exp->inlineScan(iss);
-    if (body)
-        body = body->inlineScan(iss);
-    return this;
-}
-
-
-Statement *WithStatement::inlineScan(InlineScanState *iss)
-{
-    if (exp)
-        exp = exp->inlineScan(iss);
-    if (body)
-        body = body->inlineScan(iss);
-    return this;
-}
-
-
-Statement *TryCatchStatement::inlineScan(InlineScanState *iss)
-{
-    if (body)
-        body = body->inlineScan(iss);
-    if (catches)
+    void visit(UnrolledLoopStatement *s)
     {
-        for (size_t i = 0; i < catches->dim; i++)
-        {   Catch *c = (*catches)[i];
-
-            if (c->handler)
-                c->handler = c->handler->inlineScan(iss);
+        for (size_t i = 0; i < s->statements->dim; i++)
+        {
+            inlineScan(&(*s->statements)[i]);
         }
     }
-    return this;
-}
 
+    void visit(ScopeStatement *s)
+    {
+        inlineScan(&s->statement);
+    }
 
-Statement *TryFinallyStatement::inlineScan(InlineScanState *iss)
-{
-    if (body)
-        body = body->inlineScan(iss);
-    if (finalbody)
-        finalbody = finalbody->inlineScan(iss);
-    return this;
-}
+    void visit(WhileStatement *s)
+    {
+        s->condition = s->condition->inlineScan(iss);
+        inlineScan(&s->body);
+    }
 
+    void visit(DoStatement *s)
+    {
+        inlineScan(&s->body);
+        s->condition = s->condition->inlineScan(iss);
+    }
 
-Statement *ThrowStatement::inlineScan(InlineScanState *iss)
-{
-    if (exp)
-        exp = exp->inlineScan(iss);
-    return this;
-}
+    void visit(ForStatement *s)
+    {
+        inlineScan(&s->init);
+        if (s->condition)
+            s->condition = s->condition->inlineScan(iss);
+        if (s->increment)
+            s->increment = s->increment->inlineScan(iss);
+        inlineScan(&s->body);
+    }
 
+    void visit(ForeachStatement *s)
+    {
+        s->aggr = s->aggr->inlineScan(iss);
+        inlineScan(&s->body);
+    }
 
-Statement *LabelStatement::inlineScan(InlineScanState *iss)
-{
-    if (statement)
-        statement = statement->inlineScan(iss);
-    return this;
-}
+    void visit(ForeachRangeStatement *s)
+    {
+        s->lwr = s->lwr->inlineScan(iss);
+        s->upr = s->upr->inlineScan(iss);
+        inlineScan(&s->body);
+    }
+
+    void visit(IfStatement *s)
+    {
+        s->condition = s->condition->inlineScan(iss);
+        inlineScan(&s->ifbody);
+        inlineScan(&s->elsebody);
+    }
+
+    void visit(SwitchStatement *s)
+    {
+        //printf("SwitchStatement::inlineScan()\n");
+        s->condition = s->condition->inlineScan(iss);
+        inlineScan(&s->body);
+        Statement *sdefault = s->sdefault;
+        inlineScan(&sdefault);
+        s->sdefault = (DefaultStatement *)sdefault;
+        if (s->cases)
+        {
+            for (size_t i = 0; i < s->cases->dim; i++)
+            {
+                Statement *scase = (*s->cases)[i];
+                inlineScan(&scase);
+                (*s->cases)[i] = (CaseStatement *)scase;
+            }
+        }
+    }
+
+    void visit(CaseStatement *s)
+    {
+        //printf("CaseStatement::inlineScan()\n");
+        s->exp = s->exp->inlineScan(iss);
+        inlineScan(&s->statement);
+    }
+
+    void visit(DefaultStatement *s)
+    {
+        inlineScan(&s->statement);
+    }
+
+    void visit(ReturnStatement *s)
+    {
+        //printf("ReturnStatement::inlineScan()\n");
+        if (s->exp)
+            s->exp = s->exp->inlineScan(iss);
+    }
+
+    void visit(SynchronizedStatement *s)
+    {
+        if (s->exp)
+            s->exp = s->exp->inlineScan(iss);
+        inlineScan(&s->body);
+    }
+
+    void visit(WithStatement *s)
+    {
+        if (s->exp)
+            s->exp = s->exp->inlineScan(iss);
+        inlineScan(&s->body);
+    }
+
+    void visit(TryCatchStatement *s)
+    {
+        inlineScan(&s->body);
+        if (s->catches)
+        {
+            for (size_t i = 0; i < s->catches->dim; i++)
+            {
+                Catch *c = (*s->catches)[i];
+                inlineScan(&c->handler);
+            }
+        }
+    }
+
+    void visit(TryFinallyStatement *s)
+    {
+        inlineScan(&s->body);
+        inlineScan(&s->finalbody);
+    }
+
+    void visit(ThrowStatement *s)
+    {
+        if (s->exp)
+            s->exp = s->exp->inlineScan(iss);
+    }
+
+    void visit(LabelStatement *s)
+    {
+        inlineScan(&s->statement);
+    }
+
+    void inlineScan(Statement **s)
+    {
+        if (!*s) return;
+        Statement *save = result;
+        result = NULL;
+        (*s)->accept(this);
+        if (result)
+            *s = result;
+        result = save;
+    }
+};
 
 /* -------------------------- */
 
@@ -1523,7 +1493,8 @@ void FuncDeclaration::inlineScan()
     if (fbody && !naked)
     {
         inlineNest++;
-        fbody = fbody->inlineScan(&iss);
+        InlineScanVisitor v(&iss);
+        v.inlineScan(&fbody);
         inlineNest--;
     }
 }
