@@ -215,6 +215,20 @@ void AggregateDeclaration::semantic3(Scope *sc)
             {
                 ftohash->semantic3(ftohash->scope);
             }
+
+            if (sd->postblit &&
+                sd->postblit->scope &&
+                sd->postblit->semanticRun < PASSsemantic3done)
+            {
+                sd->postblit->semantic3(sd->postblit->scope);
+            }
+
+            if (sd->dtor &&
+                sd->dtor->scope &&
+                sd->dtor->semanticRun < PASSsemantic3done)
+            {
+                sd->dtor->semantic3(sd->dtor->scope);
+            }
         }
     }
 }
