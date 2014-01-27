@@ -3801,8 +3801,15 @@ bool FuncDeclaration::needsCodegen()
 {
     assert(semanticRun == PASSsemantic3done);
 
-    if (!isInstantiated() && inNonRoot())
-        return false;
+    for (FuncDeclaration *fd = this; fd; )
+    {
+        if (!fd->isInstantiated() && fd->inNonRoot())
+            return false;
+        if (fd->isNested())
+            fd = fd->toParent2()->isFuncDeclaration();
+        else
+            break;
+    }
 
     if (global.params.useUnitTests ||
         global.params.allInst ||
