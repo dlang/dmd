@@ -81,9 +81,6 @@
     <ClCompile Include="dsymbol.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="dump.c">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="e2ir.c">
       <Filter>src</Filter>
     </ClCompile>
