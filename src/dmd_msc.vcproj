@@ -444,10 +444,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\dump.c"
-				>
-			</File>
-			<File
 				RelativePath=".\e2ir.c"
 				>
 			</File>

@@ -94,7 +94,6 @@
     <ClCompile Include="delegatize.c" />
     <ClCompile Include="doc.c" />
     <ClCompile Include="dsymbol.c" />
-    <ClCompile Include="dump.c" />
     <ClCompile Include="e2ir.c" />
     <ClCompile Include="eh.c" />
     <ClCompile Include="entity.c" />
