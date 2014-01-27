@@ -1026,18 +1026,18 @@ struct InlineScanState
     FuncDeclaration *fd;        // function being scanned
 };
 
-void inlineScan(Statement **s, InlineScanState *iss);
-
 class InlineScanVisitor : public Visitor
 {
 public:
     InlineScanState *iss;
     Statement *result;
+    Expression *eresult;
 
     InlineScanVisitor(InlineScanState *iss)
     {
         this->iss = iss;
         this->result = NULL;
+        this->eresult = NULL;
     }
 
     void visit(Statement *s)
@@ -1051,7 +1051,7 @@ public:
     #endif
         if (s->exp)
         {
-            s->exp = s->exp->inlineScan(iss);
+            inlineScan(&s->exp);
 
             /* See if we can inline as a statement rather than as
              * an Expression.
@@ -1096,42 +1096,40 @@ public:
 
     void visit(WhileStatement *s)
     {
-        s->condition = s->condition->inlineScan(iss);
+        inlineScan(&s->condition);
         inlineScan(&s->body);
     }
 
     void visit(DoStatement *s)
     {
         inlineScan(&s->body);
-        s->condition = s->condition->inlineScan(iss);
+        inlineScan(&s->condition);
     }
 
     void visit(ForStatement *s)
     {
         inlineScan(&s->init);
-        if (s->condition)
-            s->condition = s->condition->inlineScan(iss);
-        if (s->increment)
-            s->increment = s->increment->inlineScan(iss);
+        inlineScan(&s->condition);
+        inlineScan(&s->increment);
         inlineScan(&s->body);
     }
 
     void visit(ForeachStatement *s)
     {
-        s->aggr = s->aggr->inlineScan(iss);
+        inlineScan(&s->aggr);
         inlineScan(&s->body);
     }
 
     void visit(ForeachRangeStatement *s)
     {
-        s->lwr = s->lwr->inlineScan(iss);
-        s->upr = s->upr->inlineScan(iss);
+        inlineScan(&s->lwr);
+        inlineScan(&s->upr);
         inlineScan(&s->body);
     }
 
     void visit(IfStatement *s)
     {
-        s->condition = s->condition->inlineScan(iss);
+        inlineScan(&s->condition);
         inlineScan(&s->ifbody);
         inlineScan(&s->elsebody);
     }
@@ -1139,7 +1137,7 @@ public:
     void visit(SwitchStatement *s)
     {
         //printf("SwitchStatement::inlineScan()\n");
-        s->condition = s->condition->inlineScan(iss);
+        inlineScan(&s->condition);
         inlineScan(&s->body);
         Statement *sdefault = s->sdefault;
         inlineScan(&sdefault);
@@ -1158,7 +1156,7 @@ public:
     void visit(CaseStatement *s)
     {
         //printf("CaseStatement::inlineScan()\n");
-        s->exp = s->exp->inlineScan(iss);
+        inlineScan(&s->exp);
         inlineScan(&s->statement);
     }
 
@@ -1170,21 +1168,18 @@ public:
     void visit(ReturnStatement *s)
     {
         //printf("ReturnStatement::inlineScan()\n");
-        if (s->exp)
-            s->exp = s->exp->inlineScan(iss);
+        inlineScan(&s->exp);
     }
 
     void visit(SynchronizedStatement *s)
     {
-        if (s->exp)
-            s->exp = s->exp->inlineScan(iss);
+        inlineScan(&s->exp);
         inlineScan(&s->body);
     }
 
     void visit(WithStatement *s)
     {
-        if (s->exp)
-            s->exp = s->exp->inlineScan(iss);
+        inlineScan(&s->exp);
         inlineScan(&s->body);
     }
 
@@ -1209,8 +1204,7 @@ public:
 
     void visit(ThrowStatement *s)
     {
-        if (s->exp)
-            s->exp = s->exp->inlineScan(iss);
+        inlineScan(&s->exp);
     }
 
     void visit(LabelStatement *s)
@@ -1222,261 +1216,234 @@ public:
     {
         if (!*s) return;
         Statement *save = result;
-        result = NULL;
+        result = *s;
         (*s)->accept(this);
-        if (result)
-            *s = result;
+        *s = result;
         result = save;
     }
+
+    /* -------------------------- */
+
+    void arrayInlineScan(Expressions *arguments)
+    {
+        if (arguments)
+        {
+            for (size_t i = 0; i < arguments->dim; i++)
+            {
+                inlineScan(&(*arguments)[i]);
+            }
+        }
+    }
+
+    void visit(Expression *e)
+    {
+    }
+
+    Expression *scanVar(Dsymbol *s)
+    {
+        //printf("scanVar(%s %s)\n", s->kind(), s->toPrettyChars());
+        VarDeclaration *vd = s->isVarDeclaration();
+        if (vd)
+        {
+            TupleDeclaration *td = vd->toAlias()->isTupleDeclaration();
+            if (td)
+            {
+                for (size_t i = 0; i < td->objects->dim; i++)
+                {
+                    DsymbolExp *se = (DsymbolExp *)(*td->objects)[i];
+                    assert(se->op == TOKdsymbol);
+                    scanVar(se->s);    // TODO
+                }
+            }
+            else if (vd->init)
+            {
+                if (ExpInitializer *ie = vd->init->isExpInitializer())
+                {
+                    Expression *e = ie->exp;
+                    inlineScan(&e);
+                    if (vd->init != ie)     // DeclareExp with vd appears in e
+                        return e;
+                    ie->exp = e;
+                }
+            }
+        }
+        else
+        {
+            s->inlineScan();
+        }
+        return NULL;
+    }
+
+    void visit(DeclarationExp *e)
+    {
+        //printf("DeclarationExp::inlineScan()\n");
+        Expression *ed = scanVar(e->declaration);
+        if (ed)
+            eresult = ed;
+    }
+
+    void visit(UnaExp *e)
+    {
+        inlineScan(&e->e1);
+    }
+
+    void visit(AssertExp *e)
+    {
+        inlineScan(&e->e1);
+        inlineScan(&e->msg);
+    }
+
+    void visit(BinExp *e)
+    {
+        inlineScan(&e->e1);
+        inlineScan(&e->e2);
+    }
+
+    void visit(AssignExp *e)
+    {
+        if (e->op == TOKconstruct && e->e2->op == TOKcall)
+        {
+            CallExp *ce = (CallExp *)e->e2;
+            if (ce->f && ce->f->nrvo_var)   // NRVO
+            {
+                if (e->e1->op == TOKvar)
+                {
+                    /* Inlining:
+                     *   S s = foo();   // initializing by rvalue
+                     *   S s = S(1);    // constrcutor call
+                     */
+                    Declaration *d = ((VarExp *)e->e1)->var;
+                    if (d->storage_class & (STCout | STCref))  // refinit
+                        goto L1;
+                }
+                else
+                {
+                    /* Inlining:
+                     *   this.field = foo();   // inside constructor
+                     */
+                    inlineScan(&e->e1);
+                }
+
+                visitCallExp(ce, e->e1);
+                if (eresult)
+                {
+                    //printf("call with nrvo: %s ==> %s\n", e->toChars(), eresult->toChars());
+                    return;
+                }
+            }
+        }
+    L1:
+        visit((BinExp *)e);
+    }
+
+    void visit(CallExp *e)
+    {
+        visitCallExp(e, NULL);
+    }
+
+    void visitCallExp(CallExp *e, Expression *eret)
+    {
+        //printf("CallExp::inlineScan()\n");
+        inlineScan(&e->e1);
+        arrayInlineScan(e->arguments);
+
+        if (e->e1->op == TOKvar)
+        {
+            VarExp *ve = (VarExp *)e->e1;
+            FuncDeclaration *fd = ve->var->isFuncDeclaration();
+
+            if (fd && fd != iss->fd && fd->canInline(0, 0, 0))
+            {
+                eresult = fd->expandInline(iss, eret, NULL, e->arguments, NULL);
+            }
+        }
+        else if (e->e1->op == TOKdotvar)
+        {
+            DotVarExp *dve = (DotVarExp *)e->e1;
+            FuncDeclaration *fd = dve->var->isFuncDeclaration();
+
+            if (fd && fd != iss->fd && fd->canInline(1, 0, 0))
+            {
+                if (dve->e1->op == TOKcall &&
+                    dve->e1->type->toBasetype()->ty == Tstruct)
+                {
+                    /* To create ethis, we'll need to take the address
+                     * of dve->e1, but this won't work if dve->e1 is
+                     * a function call.
+                     */
+                    ;
+                }
+                else
+                    eresult = fd->expandInline(iss, eret, dve->e1, e->arguments, NULL);
+            }
+        }
+
+        if (eresult && e->type->ty != Tvoid)
+            eresult->type = e->type;
+    }
+
+    void visit(SliceExp *e)
+    {
+        inlineScan(&e->e1);
+        inlineScan(&e->lwr);
+        inlineScan(&e->upr);
+    }
+
+    void visit(TupleExp *e)
+    {
+        //printf("TupleExp::inlineScan()\n");
+        inlineScan(&e->e0);
+        arrayInlineScan(e->exps);
+    }
+
+    void visit(ArrayLiteralExp *e)
+    {
+        //printf("ArrayLiteralExp::inlineScan()\n");
+        arrayInlineScan(e->elements);
+    }
+
+    void visit(AssocArrayLiteralExp *e)
+    {
+        //printf("AssocArrayLiteralExp::inlineScan()\n");
+        arrayInlineScan(e->keys);
+        arrayInlineScan(e->values);
+    }
+
+    void visit(StructLiteralExp *e)
+    {
+        //printf("StructLiteralExp::inlineScan()\n");
+        if (e->stageflags & stageInlineScan) return;
+        int old = e->stageflags;
+        e->stageflags |= stageInlineScan;
+        arrayInlineScan(e->elements);
+        e->stageflags = old;
+    }
+
+    void visit(ArrayExp *e)
+    {
+        //printf("ArrayExp::inlineScan()\n");
+        inlineScan(&e->e1);
+        arrayInlineScan(e->arguments);
+    }
+
+    void visit(CondExp *e)
+    {
+        inlineScan(&e->econd);
+        inlineScan(&e->e1);
+        inlineScan(&e->e2);
+    }
+
+    void inlineScan(Expression **e)
+    {
+        if (!*e) return;
+        Expression *save = eresult;
+        eresult = *e;
+        (*e)->accept(this);
+        *e = eresult;
+        eresult = save;
+    }
+
 };
-
-/* -------------------------- */
-
-void arrayInlineScan(InlineScanState *iss, Expressions *arguments)
-{
-    if (arguments)
-    {
-        for (size_t i = 0; i < arguments->dim; i++)
-        {   Expression *e = (*arguments)[i];
-
-            if (e)
-            {
-                e = e->inlineScan(iss);
-                (*arguments)[i] = e;
-            }
-        }
-    }
-}
-
-Expression *Expression::inlineScan(InlineScanState *iss)
-{
-    return this;
-}
-
-Expression *scanVar(Dsymbol *s, InlineScanState *iss)
-{
-    //printf("scanVar(%s %s)\n", s->kind(), s->toPrettyChars());
-    VarDeclaration *vd = s->isVarDeclaration();
-    if (vd)
-    {
-        TupleDeclaration *td = vd->toAlias()->isTupleDeclaration();
-        if (td)
-        {
-            for (size_t i = 0; i < td->objects->dim; i++)
-            {
-                DsymbolExp *se = (DsymbolExp *)(*td->objects)[i];
-                assert(se->op == TOKdsymbol);
-                scanVar(se->s, iss);    // TODO
-            }
-        }
-        else if (vd->init)
-        {
-            if (ExpInitializer *ie = vd->init->isExpInitializer())
-            {
-                Expression *e = ie->exp->inlineScan(iss);
-                if (vd->init != ie)     // DeclareExp with vd appears in e
-                    return e;
-                ie->exp = e;
-            }
-        }
-    }
-    else
-    {
-        s->inlineScan();
-    }
-    return NULL;
-}
-
-Expression *DeclarationExp::inlineScan(InlineScanState *iss)
-{
-    //printf("DeclarationExp::inlineScan()\n");
-    Expression *e = scanVar(declaration, iss);
-    return e ? e : this;
-}
-
-Expression *UnaExp::inlineScan(InlineScanState *iss)
-{
-    e1 = e1->inlineScan(iss);
-    return this;
-}
-
-Expression *AssertExp::inlineScan(InlineScanState *iss)
-{
-    e1 = e1->inlineScan(iss);
-    if (msg)
-        msg = msg->inlineScan(iss);
-    return this;
-}
-
-Expression *BinExp::inlineScan(InlineScanState *iss)
-{
-    e1 = e1->inlineScan(iss);
-    e2 = e2->inlineScan(iss);
-    return this;
-}
-
-Expression *AssignExp::inlineScan(InlineScanState *iss)
-{
-    if (op == TOKconstruct && e2->op == TOKcall)
-    {
-        CallExp *ce = (CallExp *)e2;
-        if (ce->f && ce->f->nrvo_var)   // NRVO
-        {
-            if (e1->op == TOKvar)
-            {
-                /* Inlining:
-                 *   S s = foo();   // initializing by rvalue
-                 *   S s = S(1);    // constrcutor call
-                 */
-                Declaration *d = ((VarExp *)e1)->var;
-                if (d->storage_class & (STCout | STCref))  // refinit
-                    goto L1;
-            }
-            else
-            {
-                /* Inlining:
-                 *   this.field = foo();   // inside constructor
-                 */
-                e1 = e1->inlineScan(iss);
-            }
-
-            Expression *e = ce->inlineScan(iss, e1);
-            if (e != ce)
-            {
-                //printf("call with nrvo: %s ==> %s\n", toChars(), e->toChars());
-                return e;
-            }
-        }
-    }
-L1:
-    return BinExp::inlineScan(iss);
-}
-
-Expression *CallExp::inlineScan(InlineScanState *iss)
-{
-    return inlineScan(iss, NULL);
-}
-
-Expression *CallExp::inlineScan(InlineScanState *iss, Expression *eret)
-{
-    Expression *e = this;
-
-    //printf("CallExp::inlineScan()\n");
-    e1 = e1->inlineScan(iss);
-    arrayInlineScan(iss, arguments);
-
-    if (e1->op == TOKvar)
-    {
-        VarExp *ve = (VarExp *)e1;
-        FuncDeclaration *fd = ve->var->isFuncDeclaration();
-
-        if (fd && fd != iss->fd && fd->canInline(0, 0, 0))
-        {
-            e = fd->expandInline(iss, eret, NULL, arguments, NULL);
-        }
-    }
-    else if (e1->op == TOKdotvar)
-    {
-        DotVarExp *dve = (DotVarExp *)e1;
-        FuncDeclaration *fd = dve->var->isFuncDeclaration();
-
-        if (fd && fd != iss->fd && fd->canInline(1, 0, 0))
-        {
-            if (dve->e1->op == TOKcall &&
-                dve->e1->type->toBasetype()->ty == Tstruct)
-            {
-                /* To create ethis, we'll need to take the address
-                 * of dve->e1, but this won't work if dve->e1 is
-                 * a function call.
-                 */
-                ;
-            }
-            else
-                e = fd->expandInline(iss, eret, dve->e1, arguments, NULL);
-        }
-    }
-
-    if (e && type->ty != Tvoid)
-        e->type = type;
-    return e;
-}
-
-
-Expression *SliceExp::inlineScan(InlineScanState *iss)
-{
-    e1 = e1->inlineScan(iss);
-    if (lwr)
-        lwr = lwr->inlineScan(iss);
-    if (upr)
-        upr = upr->inlineScan(iss);
-    return this;
-}
-
-
-Expression *TupleExp::inlineScan(InlineScanState *iss)
-{   Expression *e = this;
-
-    //printf("TupleExp::inlineScan()\n");
-    if (e0)
-        e0->inlineScan(iss);
-    arrayInlineScan(iss, exps);
-
-    return e;
-}
-
-
-Expression *ArrayLiteralExp::inlineScan(InlineScanState *iss)
-{   Expression *e = this;
-
-    //printf("ArrayLiteralExp::inlineScan()\n");
-    arrayInlineScan(iss, elements);
-
-    return e;
-}
-
-
-Expression *AssocArrayLiteralExp::inlineScan(InlineScanState *iss)
-{   Expression *e = this;
-
-    //printf("AssocArrayLiteralExp::inlineScan()\n");
-    arrayInlineScan(iss, keys);
-    arrayInlineScan(iss, values);
-
-    return e;
-}
-
-
-Expression *StructLiteralExp::inlineScan(InlineScanState *iss)
-{   Expression *e = this;
-
-    //printf("StructLiteralExp::inlineScan()\n");
-    if(stageflags & stageInlineScan) return e;
-    int old = stageflags;
-    stageflags |= stageInlineScan;
-    arrayInlineScan(iss, elements);
-    stageflags = old;
-    return e;
-}
-
-
-Expression *ArrayExp::inlineScan(InlineScanState *iss)
-{   Expression *e = this;
-
-    //printf("ArrayExp::inlineScan()\n");
-    e1 = e1->inlineScan(iss);
-    arrayInlineScan(iss, arguments);
-
-    return e;
-}
-
-
-Expression *CondExp::inlineScan(InlineScanState *iss)
-{
-    econd = econd->inlineScan(iss);
-    e1 = e1->inlineScan(iss);
-    e2 = e2->inlineScan(iss);
-    return this;
-}
 
 
 /* ==========  =============== */
