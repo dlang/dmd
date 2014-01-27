@@ -44,6 +44,7 @@ class CppMangleVisitor : public Visitor
 {
     Objects components;
     OutBuffer buf;
+    bool is_top_level;
 
     void writeBase36(size_t i)
     {
@@ -120,6 +121,7 @@ class CppMangleVisitor : public Visitor
                 if (!is_var_arg)
                 {
                     TemplateDeclaration *td = ti->tempdecl->isTemplateDeclaration();
+                    assert(td);
                     tp = (*td->parameters)[i];
                     tv = tp->isTemplateValueParameter();
                     tt = tp->isTemplateTupleParameter();
@@ -141,7 +143,7 @@ class CppMangleVisitor : public Visitor
                     // <expr-primary> ::= L <type> <value number> E                   # integer literal
                     if (tv->valType->isintegral())
                     {
-                        Expression* e = isExpression(o);
+                        Expression *e = isExpression(o);
                         assert(e);
                         buf.writeByte('L');
                         tv->valType->accept(this);
@@ -175,8 +177,8 @@ class CppMangleVisitor : public Visitor
                 }
                 else if (tp->isTemplateAliasParameter())
                 {
-                    Dsymbol* d = isDsymbol(o);
-                    Expression* e = isExpression(o);
+                    Dsymbol *d = isDsymbol(o);
+                    Expression *e = isExpression(o);
                     if (!d && !e)
                     {
                         s->error("ICE: %s is unsupported parameter for C++ template: (%s)", o->toChars());
@@ -382,6 +384,7 @@ class CppMangleVisitor : public Visitor
         /* If it is a basic, enum or struct type,
          * then don't mark it const
          */
+        mangler->is_top_level = true;
         if ((t->ty == Tenum || t->ty == Tstruct || t->ty == Tpointer || t->isTypeBasic()) && t->isConst())
             t->mutableOf()->accept(mangler);
         else
@@ -407,7 +410,7 @@ public:
     {
     }
 
-    char* mangleOf(Dsymbol *s)
+    char *mangleOf(Dsymbol *s)
     {
         VarDeclaration *vd = s->isVarDeclaration();
         FuncDeclaration *fd = s->isFuncDeclaration();
@@ -415,9 +418,13 @@ public:
         {
             mangle_variable(vd, false);
         }
-        else
+        else if (fd)
         {
             mangle_function(fd);
+        }
+        else
+        {
+            assert(0);
         }
         return buf.extractString();
     }
@@ -437,6 +444,7 @@ public:
 
     void visit(TypeBasic *t)
     {
+        is_top_level = false;
         /* ABI spec says:
          * v        void
          * w        wchar_t
@@ -523,6 +531,7 @@ public:
 
     void visit(TypeVector *t)
     {
+        is_top_level = false;
         if (substitute(t)) return;
         store(t);
         if (t->isImmutable() || t->isShared())
@@ -536,13 +545,14 @@ public:
         //buf.printf("Dv%llu_", ((TypeSArray *)t->basetype)->dim->toInteger());// -- Gnu ABI v.4
         buf.writestring("U8__vector"); //-- Gnu ABI v.3
         t->basetype->nextOf()->accept(this);
-        
+
     }
 
     void visit(TypeSArray *t)
     {
+        is_top_level = false;
         if (!substitute(t))
-        store(t);
+            store(t);
         if (t->isImmutable() || t->isShared())
         {
             visit((Type *)t);
@@ -551,7 +561,7 @@ public:
             buf.writeByte('K');
         buf.printf("A%llu_", t->dim ? t->dim->toInteger() : 0);
         t->next->accept(this);
-        
+
     }
 
     void visit(TypeDArray *t)
@@ -566,6 +576,7 @@ public:
 
     void visit(TypePointer *t)
     {
+        is_top_level = false;
         if (substitute(t)) return;
         if (t->isImmutable() || t->isShared())
         {
@@ -582,6 +593,7 @@ public:
 
     void visit(TypeReference *t)
     {
+        is_top_level = false;
         if (substitute(t)) return;
         buf.writeByte('R');
         t->next->accept(this);
@@ -590,6 +602,7 @@ public:
 
     void visit(TypeFunction *t)
     {
+        is_top_level = false;
         /*
          *  <function-type> ::= F [Y] <bare-function-type> E
          *  <bare-function-type> ::= <signature type>+
@@ -634,6 +647,7 @@ public:
 
     void visit(TypeStruct *t)
     {
+        is_top_level = false;
         if (substitute(t)) return;
         if (t->isImmutable() || t->isShared())
         {
@@ -659,18 +673,19 @@ public:
 
     void visit(TypeEnum *t)
     {
+        is_top_level = false;
         if (substitute(t)) return;
         if (t->isShared())
             buf.writeByte('V');
         if (t->isConst())
             buf.writeByte('K');
-        
+
         if (!substitute(t->sym))
         {
             cpp_mangle_name(t->sym);
             store(t->sym);
         }
-        
+
         if (t->isImmutable() || t->isShared())
         {
             visit((Type *)t);
@@ -678,7 +693,7 @@ public:
 
         if (t->isConst())
             store(t);
-        
+
     }
 
     void visit(TypeTypedef *t)
@@ -693,7 +708,9 @@ public:
         {
             visit((Type *)t);
         }
-        
+        if (t->isConst() && !is_top_level)
+            buf.writeByte('K');
+        is_top_level = false;
         buf.writeByte('P');
         if (t->isConst())
             buf.writeByte('K');
@@ -723,4 +740,3 @@ char *toCppMangle(Dsymbol *s)
 }
 
 #endif
-

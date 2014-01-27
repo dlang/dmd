@@ -142,12 +142,12 @@ int Test20::test20 = 20;
 int Test20::test21 = 21;
 int Test20::test22 = 22;
 
-int test23(Test10**, Test10*, Test10***, const Test10*)
+int test23(Test10**, Test10*, Test10***, Test10 const *const)
 {
     return 1;
 }
 
-int test23b(const Test10**, const Test10*, Test10*)
+int test23b(Test10 const *const *const,  Test10 const* const, Test10*)
 {
     return 1;
 }
