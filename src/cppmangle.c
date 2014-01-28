@@ -285,7 +285,6 @@ class CppMangleVisitor : public Visitor
             source_name(s);
     }
 
-
     void mangle_variable(VarDeclaration *d, bool is_temp_arg_ref)
     {
 
@@ -318,7 +317,6 @@ class CppMangleVisitor : public Visitor
             }
         }
     }
-
 
     void mangle_function(FuncDeclaration *d)
     {
@@ -389,7 +387,7 @@ class CppMangleVisitor : public Visitor
             t->mutableOf()->accept(mangler);
         else
             t->accept(mangler);
-
+        mangler->is_top_level = false;
         return 0;
     }
 
@@ -406,7 +404,7 @@ class CppMangleVisitor : public Visitor
 
 public:
     CppMangleVisitor()
-        : buf(), components()
+        : buf(), components(), is_top_level(false)
     {
     }
 
@@ -444,7 +442,6 @@ public:
 
     void visit(TypeBasic *t)
     {
-        is_top_level = false;
         /* ABI spec says:
          * v        void
          * w        wchar_t
@@ -516,9 +513,6 @@ public:
             }
         }
 
-        if (t->isShared())
-            buf.writeByte('V'); //shared -> volatile
-
         if (t->isConst())
             buf.writeByte('K');
 
@@ -545,7 +539,6 @@ public:
         //buf.printf("Dv%llu_", ((TypeSArray *)t->basetype)->dim->toInteger());// -- Gnu ABI v.4
         buf.writestring("U8__vector"); //-- Gnu ABI v.3
         t->basetype->nextOf()->accept(this);
-
     }
 
     void visit(TypeSArray *t)
@@ -561,7 +554,6 @@ public:
             buf.writeByte('K');
         buf.printf("A%llu_", t->dim ? t->dim->toInteger() : 0);
         t->next->accept(this);
-
     }
 
     void visit(TypeDArray *t)
@@ -587,8 +579,6 @@ public:
         buf.writeByte('P');
         t->next->accept(this);
         store(t);
-
-
     }
 
     void visit(TypeReference *t)
@@ -636,8 +626,6 @@ public:
         argsCppMangle(t->parameters, t->varargs);
         buf.writeByte('E');
         store(t);
-
-
     }
 
     void visit(TypeDelegate *t)
@@ -675,8 +663,6 @@ public:
     {
         is_top_level = false;
         if (substitute(t)) return;
-        if (t->isShared())
-            buf.writeByte('V');
         if (t->isConst())
             buf.writeByte('K');
 
@@ -693,7 +679,6 @@ public:
 
         if (t->isConst())
             store(t);
-
     }
 
     void visit(TypeTypedef *t)

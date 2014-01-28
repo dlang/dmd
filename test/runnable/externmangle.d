@@ -46,7 +46,7 @@ else
 
         struct Boo(X)
         {
-            struct Xoo(Y) 
+            struct Xoo(Y)
             {
                 Y* v;
             };
@@ -85,7 +85,7 @@ else
 
         private void test14();
         public void test15();
-        protected void test16();   
+        protected void test16();
 
         private static void test17();
         public static void test18();
@@ -106,7 +106,7 @@ else
 
     int test23(Test10*, Test10, Test10**, const(Test10));
     int test23b(const Test10*, const Test10, Test10);
-    
+
     void test24(int function(int,int));
 
     void test25(int[291][6][5]* arr);
@@ -128,7 +128,7 @@ else
     {
         public static void imports(Module);
         public static int dim(Array!Module*);
-    }; 
+    };
 
     void main()
     {
@@ -140,13 +140,13 @@ else
         Goo goo;
         goo.test6(Goo.Foo!(Goo.Boo!(Goo.Foo!(void)))());
         goo.test7(Goo.Boo!(void).Xoo!(int)());
-        
+
         test8(P1.Mem!int(), P2.Mem!int());
         test9(Foo!(int**)(), Foo!(int*)(), null, null);
-        
+
         auto t10 = Test10Ctor();
         scope(exit) Test10Dtor(t10);
-        
+
         t10.test10();
         t10.test11();
         t10.test12();
@@ -157,28 +157,28 @@ else
         t10.test17();
         t10.test18();
         t10.test19();
-        
+
         assert(Test20.test20 == 20);
         assert(Test20.test21 == 21);
         assert(Test20.test22 == 22);
-        
+
         assert(test23(null, null, null, null) == 1);
         assert(test23b(null, null, null) == 1);
-        
+
         extern(C++) static int cb(int a, int b){return a+b;}
-        
+
         test24(&cb);
         int[291][6][5] arr;
         arr[1][1][1] = 42;
         test25(&arr);
         assert(test26(&arr[0]) == 42);
-        
+
         test27(3,4,5);
         test28(3);
-        
+
         test29(3.14f);
         test30(3.14f);
-        
+
         auto t32 = &Module.imports;
         Array!Module arr2;
         arr2.dim = 20;
