@@ -29,7 +29,6 @@
 #include "rmem.h"
 
 void functionToCBuffer2(TypeFunction *t, OutBuffer *buf, HdrGenState *hgs, int mod, const char *kind);
-void genCmain(Scope *sc);
 
 /********************************* FuncDeclaration ****************************/
 
@@ -937,7 +936,7 @@ Ldone:
     }
 
     if (fbody && isMain() && sc->module->isRoot())
-        genCmain(sc);
+        genCmain(sc, this);
 
     assert(type->ty != Terror || errors);
 }
@@ -3510,6 +3509,62 @@ FuncDeclaration *FuncDeclaration::genCfunc(Parameters *args, Type *treturn, Iden
         st->insert(fd);
     }
     return fd;
+}
+
+/************************************
+ * Generate C main() in response to seeing D main().
+ * This used to be in druntime, but contained a reference to _Dmain
+ * which didn't work when druntime was made into a dll and was linked
+ * to a program, such as a C++ program, that didn't have a _Dmain.
+ */
+
+void genCmain(Scope *sc, FuncDeclaration *mainfd)
+{
+    // int _d_run_main(int argc, char **argv, void* mainFunc);
+    Parameters *runmainargs = new Parameters;
+    runmainargs->push(new Parameter(0, Type::tint32, NULL, NULL));
+    runmainargs->push(new Parameter(0, Type::tchar->pointerTo()->pointerTo(), NULL, NULL));
+    runmainargs->push(new Parameter(0, Type::tvoidptr, NULL, NULL));
+    FuncDeclaration *runmain = FuncDeclaration::genCfunc(runmainargs, Type::tint32, "_d_run_main");
+
+    Identifier *argc = Lexer::idPool("argc");
+    Identifier *argv = Lexer::idPool("argv");
+
+    Parameters *mainargs = new Parameters;
+    mainargs->push(new Parameter(0, Type::tint32, argc, NULL));
+    mainargs->push(new Parameter(0, Type::tchar->pointerTo()->pointerTo(), argv, NULL));
+    Type *maintype = new TypeFunction(mainargs, Type::tint32, 0, LINKc, 0);
+
+    // int main(int argc, char **argv) { return _d_run_main(argc, argv, &_Dmain); }
+    Expressions *args = new Expressions();
+    args->push(new IdentifierExp(Loc(), argc));
+    args->push(new IdentifierExp(Loc(), argv));
+    args->push(new AddrExp(Loc(), new VarExp(Loc(), mainfd)));
+    FuncDeclaration *main = new FuncDeclaration(Loc(), Loc(), Id::main, 0, maintype);
+    main->fbody = new ReturnStatement(Loc(), new CallExp(Loc(), new VarExp(Loc(), runmain), args));
+
+    sc = sc->push();
+    sc->parent = sc->module->importedFrom;
+    sc->stc = 0;
+
+    char v = global.params.verbose;
+    global.params.verbose = 0;
+
+    sc->module->importedFrom->members->push(main);
+    main->addMember(sc, sc->module->importedFrom, 1);
+    main->semantic(sc);
+
+    // Solaris, for unknown reasons, requires both a main() and an _main()
+#if TARGET_SOLARIS
+    FuncDeclaration *solarisMain = main->syntaxCopy(NULL);
+    sc->module->importedFrom->members->push(solarisMain);
+    solarisMain->addMember(sc, sc->module->importedFrom, 1);
+    solarisMain->semantic(sc);
+#endif
+
+    global.params.verbose = v;
+
+    sc->pop();
 }
 
 const char *FuncDeclaration::kind()
