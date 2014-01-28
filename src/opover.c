@@ -1569,7 +1569,7 @@ void inferApplyArgTypesZ(TemplateDeclaration *tstart, Parameters *arguments)
             error("forward reference to template %s", td->toChars());
             return;
         }
-        if (!td->onemember || !td->onemember->isFuncDeclaration())
+        if (!td->onemember || !td->onemember->toAlias()->isFuncDeclaration())
         {
             error("is not a function template");
             return;

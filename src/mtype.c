@@ -4909,11 +4909,8 @@ StructDeclaration *TypeAArray::getImpl()
         TemplateInstance *ti = dti->ti;
 #endif
         // Instantiate on the root module of import dependency graph.
-        Module *mi = sc->module->importedFrom;
-        Scope *scx = sc->push(mi);
-        scx->module = mi;
-        scx->tinst = NULL;
-        assert(scx->instantiatingModule() == mi);
+        Scope *scx = sc->push(sc->module->importedFrom);
+        scx->instantiatingModule = sc->module->importedFrom;
         ti->semantic(scx);
         ti->semantic2(scx);
         ti->semantic3(scx);
