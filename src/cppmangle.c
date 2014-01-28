@@ -104,9 +104,9 @@ class CppMangleVisitor : public Visitor
         {
             if (!substitute(ti->tempdecl))
             {
-                store(ti->tempdecl);
                 name = ti->name->toChars();
                 buf.printf("%d%s", strlen(name), name);
+                store(ti->tempdecl);
             }
             buf.writeByte('I');
             bool is_var_arg = false;
@@ -236,7 +236,6 @@ class CppMangleVisitor : public Visitor
     {
         if (!substitute(s))
         {
-            store(s);
             Dsymbol *p = s->toParent();
             if (p && p->isTemplateInstance())
             {
@@ -256,6 +255,7 @@ class CppMangleVisitor : public Visitor
                 prefix_name(p);
             }
             source_name(s);
+            store(s);
         }
     }
 
@@ -499,23 +499,16 @@ public:
         if (p || t->isConst())
         {
             if (substitute(t))
-            {
                 return;
-            }
-            else
-            {
-                store(t);
-            }
+            if (t->isConst())
+                buf.writeByte('K');
+            if (p)
+                buf.writeByte(p);
+            store(t);
         }
 
         if (t->isShared())
             buf.writeByte('V'); //shared -> volatile
-
-        if (t->isConst())
-            buf.writeByte('K');
-
-        if (p)
-            buf.writeByte(p);
 
         buf.writeByte(c);
     }
@@ -524,7 +517,6 @@ public:
     void visit(TypeVector *t)
     {
         if (substitute(t)) return;
-        store(t);
         if (t->isImmutable() || t->isShared())
         {
             visit((Type *)t);
@@ -536,13 +528,13 @@ public:
         //buf.printf("Dv%llu_", ((TypeSArray *)t->basetype)->dim->toInteger());// -- Gnu ABI v.4
         buf.writestring("U8__vector"); //-- Gnu ABI v.3
         t->basetype->nextOf()->accept(this);
-        
+        store(t);
     }
 
     void visit(TypeSArray *t)
     {
-        if (!substitute(t))
-        store(t);
+        if (substitute(t))
+            return;
         if (t->isImmutable() || t->isShared())
         {
             visit((Type *)t);
@@ -551,7 +543,7 @@ public:
             buf.writeByte('K');
         buf.printf("A%llu_", t->dim ? t->dim->toInteger() : 0);
         t->next->accept(this);
-        
+        store(t);
     }
 
     void visit(TypeDArray *t)
