@@ -605,11 +605,11 @@ void test15()
     struct S
     {
         const bool opEquals(T)(const(T) rhs)
-        if (!is(T == S))
+        if (!is(T == typeof(this)))
         { return false; }
 
         @disable const bool opEquals(T)(const(T) rhs)
-        if (is(T == S))
+        if (is(T == typeof(this)))
         { return false; }
     }
 
