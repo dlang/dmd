@@ -154,3 +154,13 @@ unsigned Target::critsecsize()
     return 0;
 }
 
+/***********************************
+ * For a target-specific types, return a string containing the
+ * C++ mangling for the type. In all other cases, return NULL.
+ */
+
+const char *Target::mangle(Type *type)
+{
+    return NULL;
+}
+
