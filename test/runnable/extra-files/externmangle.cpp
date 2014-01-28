@@ -1,4 +1,5 @@
 
+#include <stdint.h>
 
 template<class X>
 struct Foo 
@@ -193,3 +194,15 @@ int Module::dim(Array<Module*>* arr)
 {
     return arr->dim;
 }
+
+#if _LP64
+unsigned long testlongmangle(int32_t a, uint32_t b, long c, unsigned long d)
+{
+    return a + b + c + d;
+}
+#else
+unsigned long long testlongmangle(int32_t a, uint32_t b, long long c, unsigned long long d)
+{
+    return a + b + c + d;
+}
+#endif

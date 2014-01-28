@@ -23,6 +23,7 @@ struct Target
     static int realpad;         // 'padding' added to the CPU real size to bring it up to realsize
     static int realalignsize;   // alignment for reals
     static bool reverseCppOverloads; // with dmc, overloaded functions are grouped and in reverse order
+    static int longsize;        // size of a C 'long' or 'unsigned long' type
 
     static void init();
     static unsigned alignsize(Type* type);

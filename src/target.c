@@ -18,6 +18,7 @@ int Target::realsize;
 int Target::realpad;
 int Target::realalignsize;
 bool Target::reverseCppOverloads;
+int Target::longsize;
 
 
 void Target::init()
@@ -32,12 +33,14 @@ void Target::init()
         realsize = 12;
         realpad = 2;
         realalignsize = 4;
+        longsize = 4;
     }
     else if (global.params.isOSX)
     {
         realsize = 16;
         realpad = 6;
         realalignsize = 16;
+        longsize = 4;
     }
     else if (global.params.isWindows)
     {
@@ -45,6 +48,7 @@ void Target::init()
         realpad = 0;
         realalignsize = 2;
         reverseCppOverloads = !global.params.is64bit;
+        longsize = 4;
     }
     else
         assert(0);
@@ -56,6 +60,11 @@ void Target::init()
             realsize = 16;
             realpad = 6;
             realalignsize = 16;
+            longsize = 8;
+        }
+        else if (global.params.isOSX)
+        {
+            longsize = 8;
         }
     }
 
