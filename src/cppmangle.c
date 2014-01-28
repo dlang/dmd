@@ -424,15 +424,15 @@ public:
 
     void visit(Type *t)
     {
-        if (t->isImmutable() || t->isShared())
+        /* Make this the 'vendor extended type' when there is no
+         * C++ analog.
+         * u <source-name>
+         */
+        if (!substitute(t))
         {
-            t->error(Loc(), "ICE: shared or immutable types can not be mapped to C++ (%s)", t->toChars());
+            assert(t->deco);
+            buf.printf("u%d%s", strlen(t->deco), t->deco);
         }
-        else
-        {
-            t->error(Loc(), "ICE: Unsupported type %s\n", t->toChars());
-        }
-        assert(0); //Assert, because this error should be handled in frontend
     }
 
     void visit(TypeBasic *t)
@@ -492,10 +492,6 @@ public:
 
             default:        visit((Type *)t); return;
         }
-        if (t->isImmutable() || t->isShared())
-        {
-            visit((Type *)t);
-        }
         if (p || t->isConst())
         {
             if (substitute(t))
@@ -507,9 +503,6 @@ public:
                 store(t);
             }
         }
-
-        if (t->isShared())
-            buf.writeByte('V'); //shared -> volatile
 
         if (t->isConst())
             buf.writeByte('K');
@@ -523,12 +516,9 @@ public:
 
     void visit(TypeVector *t)
     {
-        if (substitute(t)) return;
+        if (substitute(t))
+            return;
         store(t);
-        if (t->isImmutable() || t->isShared())
-        {
-            visit((Type *)t);
-        }
         if (t->isConst())
             buf.writeByte('K');
         assert(t->basetype && t->basetype->ty == Tsarray);
@@ -536,22 +526,16 @@ public:
         //buf.printf("Dv%llu_", ((TypeSArray *)t->basetype)->dim->toInteger());// -- Gnu ABI v.4
         buf.writestring("U8__vector"); //-- Gnu ABI v.3
         t->basetype->nextOf()->accept(this);
-        
     }
 
     void visit(TypeSArray *t)
     {
         if (!substitute(t))
-        store(t);
-        if (t->isImmutable() || t->isShared())
-        {
-            visit((Type *)t);
-        }
+            store(t);
         if (t->isConst())
             buf.writeByte('K');
         buf.printf("A%llu_", t->dim ? t->dim->toInteger() : 0);
         t->next->accept(this);
-        
     }
 
     void visit(TypeDArray *t)
@@ -566,23 +550,19 @@ public:
 
     void visit(TypePointer *t)
     {
-        if (substitute(t)) return;
-        if (t->isImmutable() || t->isShared())
-        {
-            visit((Type *)t);
-        }
+        if (substitute(t))
+            return;
         if (t->isConst())
             buf.writeByte('K');
         buf.writeByte('P');
         t->next->accept(this);
         store(t);
-
-
     }
 
     void visit(TypeReference *t)
     {
-        if (substitute(t)) return;
+        if (substitute(t))
+            return;
         buf.writeByte('R');
         t->next->accept(this);
         store(t);
@@ -612,7 +592,8 @@ public:
             TypeFunctions for non-static member functions, and non-static
             member functions of different classes.
          */
-        if (substitute(t)) return;
+        if (substitute(t))
+            return;
         buf.writeByte('F');
         if (t->linkage == LINKc)
             buf.writeByte('Y');
@@ -623,8 +604,6 @@ public:
         argsCppMangle(t->parameters, t->varargs);
         buf.writeByte('E');
         store(t);
-
-
     }
 
     void visit(TypeDelegate *t)
@@ -634,11 +613,8 @@ public:
 
     void visit(TypeStruct *t)
     {
-        if (substitute(t)) return;
-        if (t->isImmutable() || t->isShared())
-        {
-            visit((Type *)t);
-        }
+        if (substitute(t))
+            return;
         if (t->isConst())
             buf.writeByte('K');
 
@@ -646,11 +622,6 @@ public:
         {
             cpp_mangle_name(t->sym);
             store(t->sym);
-        }
-
-        if (t->isImmutable() || t->isShared())
-        {
-            visit((Type *)t);
         }
 
         if (t->isConst())
@@ -659,26 +630,17 @@ public:
 
     void visit(TypeEnum *t)
     {
-        if (substitute(t)) return;
-        if (t->isShared())
-            buf.writeByte('V');
+        if (substitute(t))
+            return;
         if (t->isConst())
             buf.writeByte('K');
-        
         if (!substitute(t->sym))
         {
             cpp_mangle_name(t->sym);
             store(t->sym);
         }
-        
-        if (t->isImmutable() || t->isShared())
-        {
-            visit((Type *)t);
-        }
-
         if (t->isConst())
             store(t);
-        
     }
 
     void visit(TypeTypedef *t)
@@ -688,12 +650,8 @@ public:
 
     void visit(TypeClass *t)
     {
-        if (substitute(t)) return;
-        if (t->isImmutable() || t->isShared())
-        {
-            visit((Type *)t);
-        }
-        
+        if (substitute(t))
+            return;
         buf.writeByte('P');
         if (t->isConst())
             buf.writeByte('K');
