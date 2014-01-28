@@ -678,8 +678,8 @@ void Declaration::emitComment(Scope *sc)
     //printf("Declaration::emitComment(%p '%s'), comment = '%s'\n", this, toChars(), comment);
     //printf("type = %p\n", type);
 
-    if (protection == PROTprivate || !ident ||
-        (!type && !isCtorDeclaration() && !isAliasDeclaration()))
+    if (protection == PROTprivate || sc->protection == PROTprivate ||
+        !ident || (!type && !isCtorDeclaration() && !isAliasDeclaration()))
         return;
     if (!comment)
         return;
@@ -710,7 +710,7 @@ void Declaration::emitComment(Scope *sc)
 void AggregateDeclaration::emitComment(Scope *sc)
 {
     //printf("AggregateDeclaration::emitComment() '%s'\n", toChars());
-    if (prot() == PROTprivate)
+    if (prot() == PROTprivate || sc->protection == PROTprivate)
         return;
     if (!comment)
         return;
@@ -741,7 +741,7 @@ void AggregateDeclaration::emitComment(Scope *sc)
 void TemplateDeclaration::emitComment(Scope *sc)
 {
     //printf("TemplateDeclaration::emitComment() '%s', kind = %s\n", toChars(), kind());
-    if (prot() == PROTprivate)
+    if (prot() == PROTprivate || sc->protection == PROTprivate)
         return;
 
     const utf8_t *com = comment;
@@ -796,10 +796,11 @@ void TemplateDeclaration::emitComment(Scope *sc)
 
 void EnumDeclaration::emitComment(Scope *sc)
 {
-    if (prot() == PROTprivate)
+    if (prot() == PROTprivate || sc->protection == PROTprivate)
         return;
-//    if (!comment)
-    {   if (isAnonymous() && members)
+    //if (!comment)
+    {
+        if (isAnonymous() && members)
         {
             for (size_t i = 0; i < members->dim; i++)
             {
@@ -840,7 +841,7 @@ void EnumDeclaration::emitComment(Scope *sc)
 void EnumMember::emitComment(Scope *sc)
 {
     //printf("EnumMember::emitComment(%p '%s'), comment = '%s'\n", this, toChars(), comment);
-    if (prot() == PROTprivate)
+    if (prot() == PROTprivate || sc->protection == PROTprivate)
         return;
     if (!comment)
         return;
