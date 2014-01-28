@@ -239,7 +239,8 @@ void AttribDeclaration::emitComment(Scope *sc)
     if (d)
     {
         for (size_t i = 0; i < d->dim; i++)
-        {   Dsymbol *s = (*d)[i];
+        {
+            Dsymbol *s = (*d)[i];
             //printf("AttribDeclaration::emitComment %s\n", s->toChars());
             s->emitComment(sc);
         }
@@ -736,8 +737,13 @@ void ProtDeclaration::semantic(Scope *sc)
 
 void ProtDeclaration::emitComment(Scope *sc)
 {
-    if (protection != PROTprivate)
+    if (decl)
+    {
+        sc = sc->push();
+        sc->protection = protection;
         AttribDeclaration::emitComment(sc);
+        sc = sc->pop();
+    }
 }
 
 void ProtDeclaration::protectionToCBuffer(OutBuffer *buf, PROT protection)
@@ -1314,7 +1320,8 @@ void ConditionalDeclaration::emitComment(Scope *sc)
          */
         Dsymbols *d = decl ? decl : elsedecl;
         for (size_t i = 0; i < d->dim; i++)
-        {   Dsymbol *s = (*d)[i];
+        {
+            Dsymbol *s = (*d)[i];
             s->emitComment(sc);
         }
     }

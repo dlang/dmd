@@ -14,8 +14,17 @@ struct S1(T)
 private:
     int x;
 
+private:
     ///
+    int y;
+
+    ///
+public:
     int b;
+
+public:
+    ///
+    int c;
 }
 
 
@@ -30,6 +39,13 @@ struct S2(T)
 
     ///
     int b;
+
+    ///
+    public int c;
+
+    public
+    ///
+    int d;
 }
 
 
@@ -44,4 +60,37 @@ struct S3(T)
 
     ///
     int b;
+
+    ///
+    private
+    {
+        int y;
+
+        public
+        {
+            int c;
+        }
+    }
+
+    private
+    {
+        int z;
+
+        ///
+        public
+        {
+            int d;
+        }
+    }
+
+    private
+    {
+        int w;
+
+        public
+        {
+            ///
+            int e;
+        }
+    }
 }
