@@ -4140,6 +4140,22 @@ int classtest3()
 static assert(classtest3());
 
 /**************************************************
+    12016 class cast and qualifier reinterpret
+**************************************************/
+
+class B12016 { }
+
+class C12016 : B12016 { }
+
+bool f12016(immutable B12016 b)
+{
+    assert(b);
+    return true;
+}
+
+static assert(f12016(new immutable C12016));
+
+/**************************************************
     11587 AA compare
 **************************************************/
 
