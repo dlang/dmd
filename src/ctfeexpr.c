@@ -1754,10 +1754,11 @@ Expression *ctfeCast(Loc loc, Type *type, Type *to, Expression *e)
     if (e->op == TOKnull)
         return paintTypeOntoLiteral(to, e);
     if (e->op == TOKclassreference)
-    {   // Disallow reinterpreting class casts. Do this by ensuring that
+    {
+        // Disallow reinterpreting class casts. Do this by ensuring that
         // the original class can implicitly convert to the target class
         ClassDeclaration *originalClass = ((ClassReferenceExp *)e)->originalClass();
-        if (originalClass->type->implicitConvTo(to))
+        if (originalClass->type->implicitConvTo(to->mutableOf()))
             return paintTypeOntoLiteral(to, e);
         else
             return new NullExp(loc, to);
