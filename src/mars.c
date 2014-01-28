@@ -459,54 +459,6 @@ Usage:\n\
 
 extern signed char tyalignsize[];
 
-static Module *entrypoint = NULL;
-static Module *rootHasMain = NULL;
-
-/************************************
- * Generate C main() in response to seeing D main().
- * This used to be in druntime, but contained a reference to _Dmain
- * which didn't work when druntime was made into a dll and was linked
- * to a program, such as a C++ program, that didn't have a _Dmain.
- */
-
-void genCmain(Scope *sc)
-{
-    if (entrypoint)
-        return;
-
-    /* The D code to be generated is provided as D source code in the form of a string.
-     * Note that Solaris, for unknown reasons, requires both a main() and an _main()
-     */
-    static const utf8_t cmaincode[] = "extern(C) {\n\
-        int _d_run_main(int argc, char **argv, void* mainFunc);\n\
-        int _Dmain(char[][] args);\n\
-        int main(int argc, char **argv) { return _d_run_main(argc, argv, &_Dmain); }\n\
-        version (Solaris) int _main(int argc, char** argv) { return main(argc, argv); }\n\
-        }\n\
-        ";
-
-    Identifier *id = Id::entrypoint;
-    Module *m = new Module("__entrypoint.d", id, 0, 0);
-
-    Parser p(m, cmaincode, strlen((const char *)cmaincode), 0);
-    p.scanloc = Loc();
-    p.nextToken();
-    m->members = p.parseModule();
-    assert(p.token.value == TOKeof);
-
-    char v = global.params.verbose;
-    global.params.verbose = 0;
-    m->importedFrom = m;
-    m->importAll(NULL);
-    m->semantic();
-    m->semantic2();
-    m->semantic3();
-    global.params.verbose = v;
-
-    entrypoint = m;
-    rootHasMain = sc->module;
-}
-
 int tryMain(size_t argc, const char *argv[])
 {
     Strings files;
@@ -1678,8 +1630,6 @@ Language changes listed by -transition=id:\n\
             if (global.params.verbose)
                 fprintf(global.stdmsg, "code      %s\n", m->toChars());
             m->genobjfile(0);
-            if (entrypoint && m == rootHasMain)
-                entrypoint->genobjfile(0);
             if (!global.errors && global.params.doDocComments)
                 m->gendocfile();
         }
@@ -1699,8 +1649,6 @@ Language changes listed by -transition=id:\n\
             {
                 obj_start(m->srcfile->toChars());
                 m->genobjfile(global.params.multiobj);
-                if (entrypoint && m == rootHasMain)
-                    entrypoint->genobjfile(global.params.multiobj);
                 obj_end(library, m->objfile);
                 obj_write_deferred(library);
             }
