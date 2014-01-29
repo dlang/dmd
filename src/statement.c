@@ -4738,7 +4738,13 @@ void Catch::semantic(Scope *sc)
     sc = sc->push(sym);
 
     if (!type)
-        type = new TypeIdentifier(Loc(), Id::Throwable);
+    {
+        // reference .object.Throwable
+        TypeIdentifier *tid = new TypeIdentifier(Loc(), Id::empty);
+        tid->addIdent(Id::object);
+        tid->addIdent(Id::Throwable);
+        type = tid;
+    }
     type = type->semantic(loc, sc);
     ClassDeclaration *cd = type->toBasetype()->isClassHandle();
     if (!cd || ((cd != ClassDeclaration::throwable) && !ClassDeclaration::throwable->isBaseOf(cd, NULL)))
