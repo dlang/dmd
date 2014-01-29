@@ -43,8 +43,6 @@ void out_config_init(
         bool verbose,   // verbose compile
         bool optimize,  // optimize code
         int symdebug,   // add symbolic debug information
-                        // 1: D
-                        // 2: fake it with C symbolic debug info
         bool alwaysframe,       // always create standard function frame
         bool stackstomp         // add stack stomping code
         );
