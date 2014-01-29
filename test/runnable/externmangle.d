@@ -130,6 +130,8 @@ else
         public static int dim(Array!Module*);
     }; 
 
+    ulong testlongmangle(int a, uint b, long c, ulong d);
+
     void main()
     {
         test1(Foo!int());
@@ -183,5 +185,7 @@ else
         Array!Module arr2;
         arr2.dim = 20;
         assert(Module.dim(&arr2) == 20);
+
+        assert(testlongmangle(1, 2, 3, 4) == 10);
     }
 }

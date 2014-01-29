@@ -474,8 +474,8 @@ public:
             case Tint32:    c = 'i';        break;
             case Tuns32:    c = 'j';        break;
             case Tfloat32:  c = 'f';        break;
-            case Tint64:    c = 'x';        break;
-            case Tuns64:    c = 'y';        break;
+            case Tint64:    c = (Target::longsize == 8 ? 'l' : 'x'); break;
+            case Tuns64:    c = (Target::longsize == 8 ? 'm' : 'y'); break;
             case Tfloat64:  c = 'd';        break;
             case Tfloat80:  c = (Target::realsize - Target::realpad == 16) ? 'g' : 'e'; break;
             case Tbool:     c = 'b';        break;
