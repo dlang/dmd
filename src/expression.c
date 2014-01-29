@@ -3396,15 +3396,7 @@ Expression *DsymbolExp::semantic(Scope *sc)
 #endif
 
 Lagain:
-    EnumMember *em;
     Expression *e;
-    VarDeclaration *v;
-    FuncDeclaration *f;
-    FuncLiteralDeclaration *fld;
-    OverloadSet *o;
-    Import *imp;
-    Package *pkg;
-    Type *t;
 
     //printf("DsymbolExp:: %p '%s' is a symbol\n", this, toChars());
     //printf("s = '%s', s->kind = '%s'\n", s->toChars(), s->kind());
@@ -3416,40 +3408,36 @@ Lagain:
     if (s != olds && !s->isFuncDeclaration())
         checkDeprecated(sc, s);
 
-    // BUG: This should happen after overload resolution for functions, not before
-    if (s->needThis())
+    if (s->needThis() && hasThis(sc))
     {
-        if (hasThis(sc) && !s->isFuncDeclaration())
+        // For functions, this should happen after overload resolution
+        if (!s->isFuncDeclaration())
         {
             // Supply an implicit 'this', as in
             //    this.ident
-
-            DotVarExp *de;
-
-            de = new DotVarExp(loc, new ThisExp(loc), s->isDeclaration());
+            DotVarExp *de = new DotVarExp(loc, new ThisExp(loc), s->isDeclaration());
             return de->semantic(sc);
         }
     }
 
-    em = s->isEnumMember();
-    if (em)
+    if (EnumMember *em = s->isEnumMember())
     {
         return em->getVarExp(loc, sc);
     }
-    v = s->isVarDeclaration();
-    if (v)
+    if (VarDeclaration *v = s->isVarDeclaration())
     {
         //printf("Identifier '%s' is a variable, type '%s'\n", toChars(), v->type->toChars());
         if (!type)
-        {   if ((!v->type || !v->type->deco) && v->scope)
+        {
+            if ((!v->type || !v->type->deco) && v->scope)
                 v->semantic(v->scope);
             type = v->type;
             if (!v->type)
-            {   error("forward reference of %s %s", s->kind(), s->toChars());
+            {
+                error("forward reference of %s %s", s->kind(), s->toChars());
                 return new ErrorExp();
             }
         }
-
         if ((v->storage_class & STCmanifest) && v->init)
         {
             if (v->scope)
@@ -3461,7 +3449,8 @@ Lagain:
             }
             e = v->init->toExpression(v->type);
             if (!e)
-            {   error("cannot make expression out of initializer for %s", v->toChars());
+            {
+                error("cannot make expression out of initializer for %s", v->toChars());
                 return new ErrorExp();
             }
             e = e->copy();
@@ -3475,14 +3464,13 @@ Lagain:
         e = e->semantic(sc);
         return e->deref();
     }
-    fld = s->isFuncLiteralDeclaration();
-    if (fld)
-    {   //printf("'%s' is a function literal\n", fld->toChars());
+    if (FuncLiteralDeclaration *fld = s->isFuncLiteralDeclaration())
+    {
+        //printf("'%s' is a function literal\n", fld->toChars());
         e = new FuncExp(loc, fld);
         return e->semantic(sc);
     }
-    f = s->isFuncDeclaration();
-    if (f)
+    if (FuncDeclaration *f = s->isFuncDeclaration())
     {
         f = f->toAliasFunc();
         if (!f->functionSemantic())
@@ -3497,56 +3485,49 @@ Lagain:
         fd->type = f->type;
         return new VarExp(loc, fd, hasOverloads);
     }
-    o = s->isOverloadSet();
-    if (o)
-    {   //printf("'%s' is an overload set\n", o->toChars());
+    if (OverloadSet *o = s->isOverloadSet())
+    {
+        //printf("'%s' is an overload set\n", o->toChars());
         return new OverExp(loc, o);
     }
-    imp = s->isImport();
-    if (imp)
+
+    if (Import *imp = s->isImport())
     {
         if (!imp->pkg)
-        {   error("forward reference of import %s", imp->toChars());
+        {
+            error("forward reference of import %s", imp->toChars());
             return new ErrorExp();
         }
         ScopeExp *ie = new ScopeExp(loc, imp->pkg);
         return ie->semantic(sc);
     }
-    pkg = s->isPackage();
-    if (pkg)
+    if (Package *pkg = s->isPackage())
     {
-        ScopeExp *ie;
-
-        ie = new ScopeExp(loc, pkg);
+        ScopeExp *ie = new ScopeExp(loc, pkg);
         return ie->semantic(sc);
     }
-    Module *mod = s->isModule();
-    if (mod)
+    if (Module *mod = s->isModule())
     {
-        ScopeExp *ie;
-
-        ie = new ScopeExp(loc, mod);
+        ScopeExp *ie = new ScopeExp(loc, mod);
         return ie->semantic(sc);
     }
 
-    t = s->getType();
-    if (t)
+    if (Type *t = s->getType())
     {
         TypeExp *te = new TypeExp(loc, t);
         return te->semantic(sc);
     }
 
-    TupleDeclaration *tup = s->isTupleDeclaration();
-    if (tup)
+    if (TupleDeclaration *tup = s->isTupleDeclaration())
     {
         e = new TupleExp(loc, tup);
         e = e->semantic(sc);
         return e;
     }
 
-    TemplateInstance *ti = s->isTemplateInstance();
-    if (ti)
-    {   if (!ti->semanticRun)
+    if (TemplateInstance *ti = s->isTemplateInstance())
+    {
+        if (!ti->semanticRun)
             ti->semantic(sc);
         s = ti->toAlias();
         if (!s->isTemplateInstance())
@@ -3557,9 +3538,7 @@ Lagain:
         e = e->semantic(sc);
         return e;
     }
-
-    TemplateDeclaration *td = s->isTemplateDeclaration();
-    if (td)
+    if (TemplateDeclaration *td = s->isTemplateDeclaration())
     {
         Dsymbol *p = td->toParent2();
         FuncDeclaration *fdthis = hasThis(sc);
