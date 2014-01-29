@@ -3408,6 +3408,17 @@ Lagain:
     if (s != olds && !s->isFuncDeclaration())
         checkDeprecated(sc, s);
 
+    if (VarDeclaration *v = s->isVarDeclaration())
+    {
+        /* Bugzilla 12023: forward reference should be resolved
+         * before 's->needThis()' is called.
+         */
+        if ((!v->type || !v->type->deco) && v->scope)
+        {
+            v->semantic(v->scope);
+            s = v->toAlias();   // Need this if 'v' is a tuple variable
+        }
+    }
     if (s->needThis() && hasThis(sc))
     {
         // For functions, this should happen after overload resolution
@@ -3429,8 +3440,6 @@ Lagain:
         //printf("Identifier '%s' is a variable, type '%s'\n", toChars(), v->type->toChars());
         if (!type)
         {
-            if ((!v->type || !v->type->deco) && v->scope)
-                v->semantic(v->scope);
             type = v->type;
             if (!v->type)
             {
