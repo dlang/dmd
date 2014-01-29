@@ -3,6 +3,8 @@ module mixin1;
 
 import std.stdio;
 
+alias TypeTuple(T...) = T;
+
 /*******************************************/
 
 mixin template Foo(T)
@@ -1260,6 +1262,47 @@ void test11767()
 }
 
 /*******************************************/
+// 12023
+
+void Delete12023(Object obj) {}
+
+template MessageCode12023()
+{
+    alias typeof(this) C;
+
+    struct MessageDeinitHelper
+    {
+        C m_outer;
+
+        ~this()
+        {
+            m_outer.DoDeinitMessaging();
+        }
+    }
+
+    CToClient toClient = null;
+    TypeTuple!(CToClient) toClients;
+
+    class CToClient {}
+
+    void DoDeinitMessaging()
+    {
+        Delete12023(toClient);
+        Delete12023(toClients);
+    }
+}
+
+class TurretCannon12023(ProjectileClass)
+{
+    mixin MessageCode12023;
+}
+
+void test12023()
+{
+    auto tc = new TurretCannon12023!Object();
+}
+
+/*******************************************/
 
 int main()
 {
@@ -1309,6 +1352,7 @@ int main()
     test42();
     test9417();
     test11767();
+    test12023();
 
     printf("Success\n");
     return 0;
