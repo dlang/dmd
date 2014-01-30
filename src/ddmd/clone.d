@@ -636,7 +636,10 @@ extern (C++) FuncDeclaration buildXopCmp(StructDeclaration sd, Scope* sc)
     fop.generated = true;
     Expression e1 = new IdentifierExp(loc, Id.p);
     Expression e2 = new IdentifierExp(loc, Id.q);
-    Expression e = new CallExp(loc, new DotIdExp(loc, e2, Id.cmp), e1);
+    static if (IN_GCC)
+        Expression e = new CallExp(loc, new DotIdExp(loc, e1, Id.cmp), e2);
+    else
+        Expression e = new CallExp(loc, new DotIdExp(loc, e2, Id.cmp), e1);
     fop.fbody = new ReturnStatement(loc, e);
     uint errors = global.startGagging(); // Do not report errors
     Scope* sc2 = sc.push();

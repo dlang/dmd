@@ -1475,8 +1475,8 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
              */
 
             // Fat Value types
-            const(bool) tob_isFV = (tob.ty == Tstruct || tob.ty == Tsarray);
-            const(bool) t1b_isFV = (t1b.ty == Tstruct || t1b.ty == Tsarray);
+            const(bool) tob_isFV = (tob.ty == Tstruct || tob.ty == Tsarray || tob.ty == Tvector);
+            const(bool) t1b_isFV = (t1b.ty == Tstruct || t1b.ty == Tsarray || t1b.ty == Tvector);
 
             // Fat Reference types
             const(bool) tob_isFR = (tob.ty == Tarray || tob.ty == Tdelegate);
@@ -1487,8 +1487,8 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             const(bool) t1b_isR = (t1b_isFR || t1b.ty == Tpointer || t1b.ty == Taarray || t1b.ty == Tclass);
 
             // Arithmetic types (== valueable basic types)
-            const(bool) tob_isA = (tob.isintegral() || tob.isfloating());
-            const(bool) t1b_isA = (t1b.isintegral() || t1b.isfloating());
+            const(bool) tob_isA = ((tob.isintegral() || tob.isfloating()) && tob.ty != Tvector);
+            const(bool) t1b_isA = ((t1b.isintegral() || t1b.isfloating()) && t1b.ty != Tvector);
 
             if (AggregateDeclaration t1ad = isAggregate(t1b))
             {
