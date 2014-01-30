@@ -186,7 +186,7 @@ struct ObjcSelector
     Symbol *toNameSymbol();
     Symbol *toRefSymbol();
     elem *toElem();
-    bool usesVTableDispatch () { return mangledStringValue != NULL; }
+    bool usesVTableDispatch () { return false; }//mangledStringValue != NULL; }
 
     static ObjcSelector *lookup(ObjcSelectorBuilder *builder);
     static ObjcSelector *lookup(const char *s);
