@@ -2,16 +2,16 @@
 #include <stdint.h>
 
 template<class X>
-struct Foo 
+struct Foo
 {
-	X *v;
+    X *v;
 };
 
 template<class X>
-struct Boo 
+struct Boo
 {
-	X *v;
-}; 
+    X *v;
+};
 
 void test1(Foo<int> arg1)
 {
@@ -26,7 +26,7 @@ template<int X, int Y>
 struct Test3
 {
 
-}; 
+};
 
 void test3(Test3<3,3> arg1)
 {
@@ -43,26 +43,26 @@ void test5(Foo<int*> arg1, Boo<int*> arg2, Boo<int*> arg3)
 struct Goo
 {
 
-	template<class X>
-	struct Foo 
-	{
-		X* v;
-	};
+    template<class X>
+    struct Foo
+    {
+        X* v;
+    };
 
-	template<class X>
-	struct Boo 
-	{
-		template<class Y>
-		struct Xoo 
-		{
-			Y* v;
-		};
-		X* v;
-	}; 
+    template<class X>
+    struct Boo
+    {
+        template<class Y>
+        struct Xoo
+        {
+            Y* v;
+        };
+        X* v;
+    };
 
 
-	void test6(Foo<Boo<Foo<void> > > arg1);
-	void test7(Boo<void>::Xoo<int> arg1);
+    void test6(Foo<Boo<Foo<void> > > arg1);
+    void test7(Boo<void>::Xoo<int> arg1);
 };
 
 void Goo::test6(Goo::Foo<Goo::Boo<Goo::Foo<void> > > arg1)
@@ -75,18 +75,18 @@ void Goo::test7(Goo::Boo<void>::Xoo<int> arg1)
 
 struct P1
 {
-	template<class T>
-	struct Mem
-	{
-	};
+    template<class T>
+    struct Mem
+    {
+    };
 };
 
 struct P2
 {
-	template<class T>
-	struct Mem
-	{
-	};
+    template<class T>
+    struct Mem
+    {
+    };
 };
 
 void test8(P1::Mem<int>, P2::Mem<int>){}
@@ -103,7 +103,7 @@ class Test10
 
     private: virtual void test14();
     public: virtual void test15();
-    protected: virtual void test16();   
+    protected: virtual void test16();
 
     private: static void test17();
     public: static void test18();
@@ -123,14 +123,14 @@ void Test10Dtor(Test10*& ptr)
 
 void Test10::test10(){}
 void Test10::test11(){}
-void Test10::test12(){} 
-void Test10::test13() const{} 
+void Test10::test12(){}
+void Test10::test13() const{}
 void Test10::test14(){}
 void Test10::test15(){}
-void Test10::test16(){} 
+void Test10::test16(){}
 void Test10::test17(){}
 void Test10::test18(){}
-void Test10::test19(){} 
+void Test10::test19(){}
 
 struct Test20
 {
@@ -143,12 +143,12 @@ int Test20::test20 = 20;
 int Test20::test21 = 21;
 int Test20::test22 = 22;
 
-int test23(Test10**, Test10*, Test10***, const Test10*)
+int test23(Test10**, Test10*, Test10***, Test10 const *const)
 {
     return 1;
 }
 
-int test23b(const Test10**, const Test10*, Test10*)
+int test23b(Test10 const *const *const,  Test10 const* const, Test10*)
 {
     return 1;
 }
@@ -180,10 +180,10 @@ struct Array
 
 class Module
 {
-public: 
+public:
     static void imports(Module*);
     static int dim(Array<Module*>*);
-}; 
+};
 
 
 void Module::imports(Module*)

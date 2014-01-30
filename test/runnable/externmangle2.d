@@ -12,13 +12,13 @@ else
 
     struct Test32NS1
     {
-        struct Foo(X) 
+        struct Foo(X)
         {
             X *v;
         }
 
 
-        struct Bar(X) 
+        struct Bar(X)
         {
             X *v;
         }
@@ -27,7 +27,7 @@ else
 
     struct Test32NS2
     {
-        struct Foo(X) 
+        struct Foo(X)
         {
             X *v;
         }
@@ -103,12 +103,24 @@ else
 
     version(none)
     {
-        version(Posix) //Only for g++ with -std=c++0x
+        version(Posix) //Only for g++ with -std=c++0x and Visual Studio 2013+
         {
 
             struct Test40(T, V...)
             {
-                
+
+            }
+
+            void test40(Test40!(int, double, void))
+            {
+            }
+        }
+        else version(Win64) //Only for g++ with -std=c++0x and Visual Studio 2013+
+        {
+
+            struct Test40(T, V...)
+            {
+
             }
 
             void test40(Test40!(int, double, void))
@@ -116,6 +128,16 @@ else
             }
         }
     }
+
+
+    __gshared extern const XXX test41;
+    struct Test42
+    {
+        __gshared extern const XXX test42;
+    }
+    __gshared extern int[4] test43;
+    const(XXX) test44();
+
     void main()
     {
         test32a(Test32!(Test32NS1.Foo, Test32NS1.Foo)());
@@ -125,14 +147,18 @@ else
 
         //test33a(null, null);
         //test33(null, Test33!(test33a, test33a)(), null);
-        
+
         //test34(Test34!(Test34A.foo)());
-        
+
         assert(test36 == 36);
-        
+
         //test37(Test37!(test36)());
         //test38(Test37!(Test37A.t38)());
         test39(Test39.T39A!(.T39A)());
-        
+
+        assert(test41 is null);
+        assert(Test42.test42 is null);
+        assert(test43 == [1, 2, 3, 4]);
+        auto ptr = &test44;
     }
 }

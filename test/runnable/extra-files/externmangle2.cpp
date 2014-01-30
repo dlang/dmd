@@ -1,33 +1,33 @@
 
 struct Test32NS1
 {
-	template<class X>
-	struct Foo 
-	{
-		X *v;
-	};
+    template<class X>
+    struct Foo
+    {
+        X *v;
+    };
 
-	template<class X>
-	struct Bar 
-	{
-		X *v;
-	};
+    template<class X>
+    struct Bar
+    {
+        X *v;
+    };
 
 };
 
 struct Test32NS2
 {
-	template<class X>
-	struct Foo 
-	{
-		X *v;
-	};
+    template<class X>
+    struct Foo
+    {
+        X *v;
+    };
 };
 
 template <template <class X> class Y, template <class X> class Z>
 struct Test32
 {
-	Y<int>* field;
+    Y<int>* field;
 };
 
 
@@ -101,10 +101,10 @@ void test38(Test37<Test37A::t38> arg)
 
 struct Test39
 {
-	template <class X>
-	struct T39A
-	{
-	};
+    template <class X>
+    struct T39A
+    {
+    };
 };
 
 struct T39A
@@ -115,14 +115,31 @@ void test39(Test39::T39A< ::T39A >)
 {
 }
 
-#if 0 //only for g++ with -std=c++0x
-    #ifdef __GNUG__
-        template<class... VarArg> struct Test40
-        {
-        };
+#if 0 //only for g++ with -std=c++0x and Visual C++ >= 2013
+    #if defined(__GNUG__) || (defined(_MSC_VER) && _MSC_VER >= 1200)
+    template<class... VarArg> struct Test40
+    {
+    };
 
-        void test40(Test40<int, double, void> arg)
-        {
-        }
+    void test40(Test40<int, double, void> arg)
+    {
+    }
     #endif
+
+
 #endif
+
+
+extern XXX const * const  test41 = 0;
+
+namespace Test42
+{
+    extern XXX const * const  test42 = 0;
+}
+
+int test43[4] = {1, 2, 3, 4};
+
+XXX const* const test44()
+{
+    return new XXX;
+}
