@@ -29,6 +29,7 @@ struct Target
     static unsigned alignsize(Type* type);
     static unsigned fieldalign(Type* type);
     static unsigned critsecsize();
+    static const char *mangle(Type *type);
 };
 
 #endif

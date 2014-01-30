@@ -25,7 +25,6 @@
 #include "enum.h"
 #include "import.h"
 #include "aggregate.h"
-#include "target.h"
 
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
 
@@ -482,7 +481,7 @@ public:
             case Tint64:    c = (Target::longsize == 8 ? 'l' : 'x'); break;
             case Tuns64:    c = (Target::longsize == 8 ? 'm' : 'y'); break;
             case Tfloat64:  c = 'd';        break;
-            case Tfloat80:  c = (Target::realsize - Target::realpad == 16) ? 'g' : 'e'; break;
+            case Tfloat80:  c = 'e';        break;
             case Tbool:     c = 'b';        break;
             case Tchar:     c = 'c';        break;
             case Twchar:    c = 't';        break;
