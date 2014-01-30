@@ -1004,6 +1004,11 @@ MATCH TemplateDeclaration::leastAsSpecialized(Scope *sc, TemplateDeclaration *td
      */
 
     TemplateInstance ti(Loc(), ident);      // create dummy template instance
+    ti.tinst = this->getInstantiating(sc);
+    if (ti.tinst)
+        ti.instantiatingModule = ti.tinst->instantiatingModule;
+    else
+        ti.instantiatingModule = sc->instantiatingModule();
     // Set type arguments to dummy template instance to be types
     // generated from the parameters to this template declaration
     ti.tiargs = new Objects();
@@ -2149,6 +2154,11 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
             if (!tiargs)
                 tiargs = new Objects();
             TemplateInstance *ti = new TemplateInstance(loc, td, tiargs);
+            ti->tinst = td->getInstantiating(sc);
+            if (ti->tinst)
+                ti->instantiatingModule = ti->tinst->instantiatingModule;
+            else
+                ti->instantiatingModule = sc->instantiatingModule();
 
             Objects dedtypes;
             dedtypes.setDim(td->parameters->dim);
@@ -2243,7 +2253,10 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
 
             TemplateInstance *ti = new TemplateInstance(loc, td, tiargs);
             ti->tinst = td->getInstantiating(sc);
-            ti->instantiatingModule = sc->instantiatingModule();
+            if (ti->tinst)
+                ti->instantiatingModule = ti->tinst->instantiatingModule;
+            else
+                ti->instantiatingModule = sc->instantiatingModule();
             ti->parent = td->parent;    // Maybe calculating valid 'enclosing' is unnecessary.
             ti->semantictiargsdone = true;
             ti->symtab = new DsymbolTable();
@@ -6484,6 +6497,12 @@ bool TemplateInstance::needsTypeInference(Scope *sc, int flag)
 
         if (!flag)
         {
+            ti->tinst = td->getInstantiating(sc);
+            if (ti->tinst)
+                ti->instantiatingModule = ti->tinst->instantiatingModule;
+            else
+                ti->instantiatingModule = sc->instantiatingModule();
+
             /* Calculate the need for overload resolution.
              * When only one template can match with tiargs, inference is not necessary.
              */
