@@ -51,6 +51,36 @@ static char *prefixSymbolName(const char *name, size_t name_len, const char *pre
     return sname;
 }
 
+static char* buildIVarName (ClassDeclaration* cdecl, VarDeclaration* ivar)
+{
+    const char* className = cdecl->ident->string;
+    size_t classLength = cdecl->ident->len;
+    const char* ivarName = ivar->ident->string;
+    size_t ivarLength = ivar->ident->len;
+
+    // Ensure we have a long-enough buffer for the symbol name. Previous buffer is reused.
+    static const char* prefix = "_OBJC_IVAR_$_";
+    static size_t prefixLength = 13;
+    static char* name;
+    static size_t length;
+    size_t requiredLength = prefixLength + classLength + 1 + ivarLength;
+
+    if (requiredLength + 1 >= length)
+    {
+        length = requiredLength + 12;
+        name = (char*) realloc(name, length);
+    }
+
+    // Create symbol name _OBJC_IVAR_$_<ClassName>.<IvarName>
+    memmove(name, prefix, prefixLength);
+    memmove(name + prefixLength, className, classLength);
+    memmove(name + prefixLength + classLength + 1, ivarName, ivarLength);
+    name[prefixLength + classLength] = '.';
+    name[requiredLength] = 0;
+
+    return name;
+}
+
 static int seg_list[SEG_MAX] = {0};
 
 static int objc_getsegment(enum ObjcSegment segid)
@@ -76,6 +106,7 @@ static int objc_getsegment(enum ObjcSegment segid)
         seg[SEGmessage_refs] = MachObj::getsegment("__objc_msgrefs", "__DATA", align, S_COALESCED);
         seg[SEGobjc_const] = MachObj::getsegment("__objc_const", "__DATA", align, S_REGULAR);
         seg[SEGinst_meth] = MachObj::getsegment("__objc_const", "__DATA", align, S_ATTR_NO_DEAD_STRIP);
+        seg[SEGobjc_ivar] = MachObj::getsegment("__objc_ivar", "__DATA", align, S_REGULAR);
     }
 
     else
@@ -136,6 +167,7 @@ StringTable *ObjcSymbols::smethvarnametable = NULL;
 StringTable *ObjcSymbols::smethvarreftable = NULL;
 StringTable *ObjcSymbols::smethvartypetable = NULL;
 StringTable *ObjcSymbols::sprototable = NULL;
+StringTable *ObjcSymbols::sivarOffsetTable = NULL;
 
 static StringTable *initStringTable(StringTable *stringtable)
 {
@@ -167,6 +199,7 @@ void ObjcSymbols::init()
     smethvarreftable = initStringTable(smethvarreftable);
     smethvartypetable = initStringTable(smethvartypetable);
     sprototable = initStringTable(sprototable);
+    sivarOffsetTable = initStringTable(sivarOffsetTable);
 
     // also wipe out segment numbers
     for (int s = 0; s < SEG_MAX; ++s)
@@ -613,6 +646,32 @@ Symbol *ObjcSymbols::getMethVarType(FuncDeclaration *func)
 Symbol *ObjcSymbols::getMethVarType(Dsymbol *s)
 {
     return getMethVarType(&s, 1);
+}
+
+Symbol *ObjcSymbols::getIVarOffset(ClassDeclaration* cdecl, VarDeclaration* ivar)
+{
+    assert(global.params.isObjcNonFragileAbi);
+    hassymbols = 1;
+
+    StringValue* stringValue = sivarOffsetTable->update(ivar->ident->string, ivar->ident->len);
+    Symbol* symbol = (Symbol*) stringValue->ptrvalue;
+
+    if (symbol)
+        return symbol;
+
+    dt_t* dt = NULL;
+    dtsize_t(&dt, ivar->offset);
+
+    size_t symbolPrefixLength;
+    const char* name = buildIVarName(cdecl, ivar);
+    symbol = symbol_name(name, SCstatic, type_fake(TYnptr));
+    symbol->Sdt = dt;
+    symbol->Sseg = objc_getsegment(SEGobjc_ivar);
+
+    stringValue->ptrvalue = symbol;
+    outdata(symbol);
+
+    return  symbol;
 }
 
 Symbol *ObjcSymbols::getMessageReference(ObjcSelector* selector, Type* returnType, bool hasHiddenArg)
@@ -1154,8 +1213,6 @@ Symbol *ObjcClassDeclaration::getMetaclass()
 
 Symbol *ObjcClassDeclaration::getIVarList()
 {
-    if (global.params.isObjcNonFragileAbi)
-        return NULL;
     if (ismeta)
         return NULL;
     if (cdecl->fields.dim == 0)
@@ -1163,6 +1220,10 @@ Symbol *ObjcClassDeclaration::getIVarList()
 
     size_t ivarcount = cdecl->fields.dim;
     dt_t *dt = NULL;
+
+    if (global.params.isObjcNonFragileAbi)
+        dtdword(&dt, global.params.is64bit ? 32 : 20); // sizeof(_ivar_t)
+
     dtdword(&dt, ivarcount); // method count
     for (size_t i = 0; i < ivarcount; ++i)
     {
@@ -1170,12 +1231,26 @@ Symbol *ObjcClassDeclaration::getIVarList()
         assert(ivar);
         assert((ivar->storage_class & STCstatic) == 0);
 
+        if (global.params.isObjcNonFragileAbi)
+            dtxoff(&dt, ObjcSymbols::getIVarOffset(cdecl, ivar), 0, TYnptr); // pointer to ivar offset
+
         dtxoff(&dt, ObjcSymbols::getMethVarName(ivar->ident), 0, TYnptr); // ivar name
         dtxoff(&dt, ObjcSymbols::getMethVarType(ivar), 0, TYnptr); // ivar type string
-        dtdword(&dt, ivar->offset); // ivar offset
+
+        if (global.params.isObjcNonFragileAbi)
+        {
+            dtdword(&dt, ivar->alignment);
+            dtdword(&dt, ivar->size(ivar->loc));
+        }
+
+        else
+            dtdword(&dt, ivar->offset); // ivar offset
     }
 
-    char *sname = prefixSymbolName(cdecl->objcident->string, cdecl->objcident->len, "L_OBJC_INSTANCE_VARIABLES_", 26);
+    const char* prefix = global.params.isObjcNonFragileAbi ? "l_OBJC_$_INSTANCE_VARIABLES_" : "L_OBJC_INSTANCE_VARIABLES_";
+    size_t prefixLength = global.params.isObjcNonFragileAbi ? 28 : 26;
+    char *sname = prefixSymbolName(cdecl->objcident->string, cdecl->objcident->len, prefix, prefixLength);
+
     Symbol *sym = symbol_name(sname, SCstatic, type_fake(TYnptr));
     sym->Sdt = dt;
     sym->Sseg = objc_getsegment(SEGinstance_vars);
