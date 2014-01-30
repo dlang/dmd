@@ -1461,15 +1461,11 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
                         dim = 0; // slices are currently always one-dimensional
                     }
 
-                    Objects *tdargs = new Objects();
+                    Objects *tiargs = new Objects();
                     Expression *edim = new IntegerExp(Loc(), dim, Type::tsize_t);
                     edim = edim->semantic(sc);
-                    tdargs->push(edim);
-
-                    //TemplateInstance *ti = new TemplateInstance(loc, td, tdargs);
-                    //ti->semantic(sc);
-
-                    e = new DotTemplateInstanceExp(loc, ce, td->ident, tdargs);
+                    tiargs->push(edim);
+                    e = new DotTemplateInstanceExp(loc, ce, td->ident, tiargs);
                 }
                 else
                 {   /* opDollar exists, but it's not a template.

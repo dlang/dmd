@@ -990,6 +990,12 @@ Lret:
 
 MATCH TemplateDeclaration::leastAsSpecialized(Scope *sc, TemplateDeclaration *td2, Expressions *fargs)
 {
+#define LOG_LEASTAS     0
+
+#if LOG_LEASTAS
+    printf("%s.leastAsSpecialized(%s)\n", toChars(), td2->toChars());
+#endif
+
     /* This works by taking the template parameters to this template
      * declaration and feeding them to td2 as if it were a template
      * instance.
@@ -998,14 +1004,6 @@ MATCH TemplateDeclaration::leastAsSpecialized(Scope *sc, TemplateDeclaration *td
      */
 
     TemplateInstance ti(Loc(), ident);      // create dummy template instance
-    Objects dedtypes;
-
-#define LOG_LEASTAS     0
-
-#if LOG_LEASTAS
-    printf("%s.leastAsSpecialized(%s)\n", toChars(), td2->toChars());
-#endif
-
     // Set type arguments to dummy template instance to be types
     // generated from the parameters to this template declaration
     ti.tiargs = new Objects();
@@ -1022,7 +1020,7 @@ MATCH TemplateDeclaration::leastAsSpecialized(Scope *sc, TemplateDeclaration *td
     }
 
     // Temporary Array to hold deduced types
-    //dedtypes.setDim(parameters->dim);
+    Objects dedtypes;
     dedtypes.setDim(td2->parameters->dim);
 
     // Attempt a type deduction
