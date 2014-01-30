@@ -113,6 +113,9 @@ struct Param
     bool isOpenBSD;     // generate code for OpenBSD
     bool isSolaris;     // generate code for Solaris
     bool mscoff;        // for Win32: write COFF object files instead of OMF
+#if DMD_OBJC
+    bool isObjcNonFragileAbi; // When interfacing with Objective-C the non fragile ABI is used
+#endif
     char useDeprecated; // 0: don't allow use of deprecated features
                         // 1: silently allow use of deprecated features
                         // 2: warn about the use of deprecated features

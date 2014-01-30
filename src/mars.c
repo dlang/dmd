@@ -1212,6 +1212,12 @@ Language changes listed by -transition=id:\n\
 
 #if DMD_OBJC
 	VersionCondition::addPredefinedGlobalIdent("D_ObjC");
+
+    if (global.params.isOSX && global.params.is64bit /* && isArm*/)
+    {
+        global.params.isObjcNonFragileAbi = 1;
+        VersionCondition::addPredefinedGlobalIdent("D_ObjCNonFragileABI");
+    }
 #endif
 
     VersionCondition::addPredefinedGlobalIdent("D_HardFloat");
@@ -1224,6 +1230,7 @@ Language changes listed by -transition=id:\n\
     Expression::init();
 #if DMD_OBJC
     ObjcSymbols::init();
+    ObjcSelector::init();
 #endif
     initPrecedence();
     builtin_init();

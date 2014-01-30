@@ -241,7 +241,17 @@ elem *callfunc(Loc loc,
 
 #if DMD_OBJC
     if (fd && fd->objcSelector && !esel)
-        esel = fd->objcSelector->toElem();
+    {
+        if (fd->objcSelector->usesVTableDispatch())
+        {
+            elem* messageReference = el_var(ObjcSymbols::getMessageReference(fd->objcSelector, tret, ehidden != 0));
+            esel = addressElem(messageReference, t);
+        }
+
+        else
+            esel = fd->objcSelector->toElem();
+    }
+
     if (esel)
     {   // using objc-style "virtual" call
         // add hidden argument (second to 'this') for selector used by dispatch function
@@ -342,7 +352,7 @@ elem *callfunc(Loc loc,
                 assert(cd /* call to objc_msgSendSuper with no class delcaration */);
 
                 // FIXME: faking delegate type and objc_super types
-                elem *eclassref = el_var(ObjcSymbols::getClassReference(cd->ident));
+                elem *eclassref = el_var(ObjcSymbols::getClassReference(cd->ident, cd->objcextern));
                 elem *esuper = el_pair(TYdelegate, ethis, eclassref);
 
                 ethis = addressElem(esuper, t); // get a pointer to our objc_super struct
@@ -352,7 +362,11 @@ elem *callfunc(Loc loc,
                 // make objc-style "virtual" call using dispatch function
                 assert(ethis);
                 Type *tret = tf->next;
-                ec = el_var(ObjcSymbols::getMsgSend(tret, ehidden != 0));
+
+                if (fd->objcSelector->usesVTableDispatch())
+                    ec = el_var(ObjcSymbols::getMsgSendFixup(tret, ehidden != 0));
+                else
+                    ec = el_var(ObjcSymbols::getMsgSend(tret, ehidden != 0));
             }
         }
         else
@@ -1487,7 +1501,7 @@ elem *toElem(Expression *e, IRState *irs)
                     if (ne->objcalloc)
                     {
                         // Call allocator func with class reference
-                        ex = el_var(ObjcSymbols::getClassReference(cd->ident));
+                        ex = el_var(ObjcSymbols::getClassReference(cd->ident, cd->objcextern));
                         ex = callfunc(ne->loc, irs, 0, ne->type, ex, ne->objcalloc->type,
                                       ne->objcalloc, ne->objcalloc->type, NULL, ne->newargs);
                     }
@@ -4134,7 +4148,7 @@ elem *toElem(Expression *e, IRState *irs)
                     if (cdto->isInterfaceDeclaration())
                         esym = el_ptr(ObjcSymbols::getProtocolSymbol(cdto));
                     else
-                        esym = el_var(ObjcSymbols::getClassReference(cdto->ident));
+                        esym = el_var(ObjcSymbols::getClassReference(cdto->ident, cdto->objcextern));
 
                     elem *ep = el_param(esym, e);
                     e = el_bin(OPcall, TYnptr, el_var(rtlsym[rtl]), ep);
