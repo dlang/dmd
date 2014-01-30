@@ -8729,7 +8729,7 @@ unsigned char TypeStruct::deduceWild(Type *t, bool isRef)
 
     unsigned char wm = 0;
 
-    if (sym->aliasthis && !(att & RECtracing))
+    if (t->hasWild() && sym->aliasthis && !(att & RECtracing))
     {
         att = (AliasThisRec)(att | RECtracing);
         wm = aliasthisOf()->deduceWild(t, isRef);
@@ -9273,7 +9273,7 @@ unsigned char TypeClass::deduceWild(Type *t, bool isRef)
 
     unsigned char wm = 0;
 
-    if (sym->aliasthis && !(att & RECtracing))
+    if (t->hasWild() && sym->aliasthis && !(att & RECtracing))
     {
         att = (AliasThisRec)(att | RECtracing);
         wm = aliasthisOf()->deduceWild(t, isRef);
