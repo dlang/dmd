@@ -14,6 +14,7 @@
 #include <string.h>                     // memcpy()
 
 #include "rmem.h"
+#include "target.h"
 
 #include "init.h"
 #include "declaration.h"
@@ -795,7 +796,12 @@ void AlignDeclaration::semantic(Scope *sc)
     //printf("\tAlignDeclaration::semantic '%s'\n",toChars());
     if (decl)
     {
-        semanticNewSc(sc, sc->stc, sc->linkage, sc->protection, sc->explicitProtection, salign);
+        unsigned alignsize;
+        if (salign == STRUCTALIGN_DEFAULT)
+            alignsize = Target::maxalignsize;
+        else
+            alignsize = salign;
+        semanticNewSc(sc, sc->stc, sc->linkage, sc->protection, sc->explicitProtection, alignsize);
     }
 }
 
