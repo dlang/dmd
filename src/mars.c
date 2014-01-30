@@ -705,7 +705,10 @@ int tryMain(size_t argc, const char *argv[])
             else if (strcmp(p + 1, "g") == 0)
                 global.params.symdebug = 1;
             else if (strcmp(p + 1, "gc") == 0)
+            {
+                deprecation(Loc(), "-gc has been deprecated, use -g instead");
                 global.params.symdebug = 2;
+            }
             else if (strcmp(p + 1, "gs") == 0)
                 global.params.alwaysframe = 1;
             else if (strcmp(p + 1, "gx") == 0)
