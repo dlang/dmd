@@ -3134,6 +3134,53 @@ void test11505()
 }
 
 /**********************************/
+// 12045
+
+struct S12045
+{
+    static string dtor;
+    static void* ptr;
+    string val;
+
+    this(this) { assert(0); }
+    ~this() { dtor ~= val; }
+}
+
+auto makeS12045(bool thrown)
+{
+    auto s1 = S12045("1");
+    auto s2 = S12045("2");
+    S12045.ptr = &s1;
+
+    if (thrown)
+        throw new Exception("");
+
+    return s1;  // NRVO
+}
+
+void test12045()
+{
+    S12045.dtor = null;
+    try
+    {
+        S12045 s = makeS12045(true);
+        assert(0);
+    }
+    catch (Exception e)
+    {
+        assert(S12045.dtor == "21");
+    }
+
+    S12045.dtor = null;
+    {
+        S12045 s = makeS12045(false);
+        assert(S12045.dtor == "2");
+        assert(S12045.ptr is &s);   // NRVO
+    }
+    assert(S12045.dtor == "21");
+}
+
+/**********************************/
 
 int main()
 {
@@ -3231,6 +3278,7 @@ int main()
     test11197();
     test7474();
     test11505();
+    test12045();
 
     printf("Success\n");
     return 0;

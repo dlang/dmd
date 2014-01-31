@@ -1327,6 +1327,41 @@ void FuncDeclaration::semantic3(Scope *sc)
                     //printf("[%d] %s %s\n", i, exp->type->toChars(), exp->toChars());
                     (*returns)[i]->exp = exp;
                 }
+                if (nrvo_can && nrvo_var && nrvo_var->edtor)
+                {
+                    /* Normally local variable dtors are called regardless exceptions.
+                     * But for nrvo_var, its dtor should be called only when exception is thrown.
+                     *
+                     * Rewrite:
+                     *      try { s->body; } finally { nrvo_var->edtor; }
+                     *      // equivalent with:
+                     *      //    s->body; scope(exit) nrvo_var->edtor;
+                     * as:
+                     *      try { s->body; } catch(__o) { nrvo_var->edtor; throw __o; }
+                     *      // equivalent with:
+                     *      //    s->body; scope(failure) nrvo_var->edtor;
+                     */
+                    Identifier *id = Lexer::uniqueId("__o");
+
+                    Statement *sexception = new DtorExpStatement(Loc(), nrvo_var->edtor, nrvo_var);
+                    Statement *handler = sexception;
+                    if (sexception->blockExit(false) & BEfallthru)
+                    {
+                        handler = new ThrowStatement(Loc(), new IdentifierExp(Loc(), id));
+                        ((ThrowStatement *)handler)->internalThrow = true;
+                        handler = new CompoundStatement(Loc(), sexception, handler);
+                    }
+
+                    Catches *catches = new Catches();
+                    Catch *ctch = new Catch(Loc(), NULL, id, handler);
+                    ctch->internalCatch = true;
+                    ctch->semantic(sc2);    // Run semantic to resolve identifier '__o'
+                    catches->push(ctch);
+
+                    nrvo_dtor = new TryCatchStatement(Loc(), NULL, catches);
+                }
+                else
+                    nrvo_dtor = NULL;
             }
             assert(type == f);
 

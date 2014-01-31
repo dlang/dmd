@@ -851,18 +851,9 @@ public:
     {
         //printf("DtorExpStatement::toIR(), exp = %s\n", exp ? exp->toChars() : "");
 
-        FuncDeclaration *fd = irs->getFunc();
-        assert(fd);
-        if (fd->nrvo_can && fd->nrvo_var == s->var)
-            /* Do not call destructor, because var is returned as the nrvo variable.
-             * This is done at this stage because nrvo can be turned off at a
-             * very late stage in semantic analysis.
-             */
-            ;
-        else
-        {
-            visit((ExpStatement *)s);
-        }
+        //FuncDeclaration *fd = irs->getFunc();
+        //assert(fd);
+        visit((ExpStatement *)s);
     }
 
     /**************************************
@@ -1099,6 +1090,24 @@ public:
     void visit(TryFinallyStatement *s)
     {
         //printf("TryFinallyStatement::toIR()\n");
+
+        if (s->finalbody)
+        {
+            DtorExpStatement *des = s->finalbody->isDtorExpStatement();
+            if (des)
+            {
+                FuncDeclaration *fd = irs->getFunc();
+                assert(fd);
+                if (fd->nrvo_can && fd->nrvo_var == des->var)
+                {
+                    assert(fd->nrvo_dtor);
+                    TryCatchStatement *tcs = (TryCatchStatement *)fd->nrvo_dtor;
+                    tcs->body = s->body;
+                    Statement_toIR(tcs, irs);
+                    return;
+                }
+            }
+        }
 
         Blockx *blx = irs->blx;
 
