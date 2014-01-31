@@ -818,6 +818,11 @@ private
         version( Posix )
             version = NoUcontext;
     }
+    else version( ARM )
+    {
+        version( Posix )
+            version = NoUcontext;
+    }
 
     version( Posix )
     {

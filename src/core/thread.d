@@ -2982,7 +2982,14 @@ private
             version = AsmExternal;
         }
     }
-
+    else version( ARM )
+    {
+        version( Posix )
+        {
+            version = AsmARM_Posix;
+            version = AsmExternal;
+        }
+    }
 
     version( Posix )
     {
@@ -3067,7 +3074,7 @@ private
         obj.switchOut();
     }
 
-
+  // Look above the definition of 'class Fiber' for some information about the implementation of this routine
   version( AsmExternal )
     extern (C) void fiber_switchContext( void** oldp, void* newp );
   else
@@ -3238,7 +3245,128 @@ private
 ///////////////////////////////////////////////////////////////////////////////
 // Fiber
 ///////////////////////////////////////////////////////////////////////////////
-
+/*
+ * Documentation of Fiber internals:
+ *
+ * The main routines to implement when porting Fibers to new architectures are
+ * fiber_switchContext and initStack. Some version constants have to be defined
+ * for the new platform as well, search for "Fiber Platform Detection and Memory Allocation".
+ * These must be kept in sync with thread.di as well! You might also want to verify
+ * the Fiber size for the new platform in thread.d and thread.di. Search for
+ * "enum FiberSize"
+ *
+ * Fibers are based on a concept called 'Context'. A Context describes the execution
+ * state of a Fiber or main thread which is fully described by the stack, some
+ * registers and a return address at which the Fiber/Thread should continue executing.
+ * Please note that not only each Fiber has a Context, but each thread also has got a
+ * Context which describes the threads stack and state. If you call Fiber fib; fib.call
+ * the first time in a thread you switch from Threads Context into the Fibers Context.
+ * If you call fib.yield in that Fiber you switch out of the Fibers context and back
+ * into the Thread Context. (However, this is not always the case. You can call a Fiber
+ * from within another Fiber, then you switch Contexts between the Fibers and the Thread
+ * Context is not involved)
+ *
+ * In all current implementations the registers and the return address are actually
+ * saved on a Contexts stack.
+ *
+ * The fiber_switchContext routine has got two parameters:
+ * void** a:  This is the _location_ where we have to store the current stack pointer,
+ *            the stack pointer of the currently executing Context (Fiber or Thread).
+ * void*  b:  This is the pointer to the stack of the Context which we want to switch into.
+ *            Note that we get the same pointer here as the one we stored into the void** a
+ *            in a previous call to fiber_switchContext.
+ *
+ * In the simplest case, a fiber_switchContext rountine looks like this:
+ * fiber_switchContext:
+ *     push {return Address}
+ *     push {registers}
+ *     copy {stack pointer} into {location pointed to by a}
+ *     //We have now switch to the stack of a different Context!
+ *     copy {b} into {stack pointer}
+ *     pop {registers}
+ *     pop {return Address}
+ *     jump to {return Address}
+ *
+ * The GC uses the value returned in parameter a to scan the Fibers stack. It scans from
+ * the stack base to that value. As the GC dislikes false pointers we can actually optimize
+ * this a little: By storing registers which can not contain references to memory managed
+ * by the GC outside of the region marked by the stack base pointer and the stack pointer
+ * saved in fiber_switchContext we can prevent the GC from scanning them.
+ * Such registers are usually floating point registers and the return address. In order to
+ * implement this, we return a modified stack pointer from fiber_switchContext. However,
+ * we have to remember that when we restore the registers from the stack!
+ * 
+ * --------------------------- <= Stack Base
+ * |          Frame          | <= Many other stack frames
+ * |          Frame          |
+ * |-------------------------| <= The last stack frame. This one is created by fiber_switchContext
+ * | registers with pointers |
+ * |                         | <= Stack pointer. GC stops scanning here
+ * |   return address        |
+ * |floating point registers |
+ * --------------------------- <= Real Stack End
+ *
+ * fiber_switchContext:
+ *     push {registers with pointers}
+ *     copy {stack pointer} into {location pointed to by a}
+ *     push {return Address}
+ *     push {Floating point registers}
+ *     //We have now switch to the stack of a different Context!
+ *     copy {b} into {stack pointer}
+ *     //We now have to adjust the stack pointer to point to 'Real Stack End' so we can pop
+ *     //the FP registers
+ *     //+ or - depends on if your stack grows downwards or upwards
+ *     {stack pointer} = {stack pointer} +- ({FPRegisters}.sizeof + {return address}.sizeof}
+ *     pop {Floating point registers}
+ *     pop {return Address}
+ *     pop {registers with pointers}
+ *     jump to {return Address}
+ *
+ * So the question now is which registers need to be saved? This depends on the specific
+ * architecture ABI of course, but here are some general guidelines:
+ * - If a register is callee-save (if the callee modifies the register it must saved and
+ *   restored by the callee) it needs to be saved/restored in switchContext
+ * - If a register is caller-save it needn't be saved/restored. (Calling fiber_switchContext
+ *   is a function call and the compiler therefore already must save these registers before
+ *   calling fiber_switchContext)
+ * - Argument registers used for passing parameters to functions needn't be saved/restored
+ * - The return register needn't be saved/restored (fiber_switchContext hasn't got a return type)
+ * - All scratch registers needn't be saved/restored
+ * - The link register usually needn't be saved/restored (but sometimes it must be cleared -
+ *   see below for details)
+ * - The frame pointer register - if it exists - is usually callee-save
+ * - All current implementations do not save control registers
+ *
+ * What happens on the first switch into a Fiber? We never saved a state for this fiber before,
+ * but the initial state is prepared in the initStack routine. (This routine will also be called
+ * when a Fiber is being resetted). initStack must produce exactly the same stack layout as the
+ * part of fiber_switchContext which saves the registers. Pay special attention to set the stack
+ * pointer correctly if you use the GC optimization mentioned before. the return Address saved in
+ * initStack must be the address of fiber_entrypoint.
+ *
+ * There's now a small but important difference between the first context switch into a fiber and
+ * further context switches. On the first switch, Fiber.call is used and the returnAddress in
+ * fiber_switchContext will point to fiber_entrypoint. The important thing here is that this jump
+ * is a _function call_, we call fiber_entrypoint by jumping before it's function prologue. On later
+ * calls, the user used yield() in a function, and therefore the return address points into a user
+ * function, after the yield call. So here the jump in fiber_switchContext is a _function return_,
+ * not a function call!
+ *
+ * The most important result of this is that on entering a function, i.e. fiber_entrypoint, we
+ * would have to provide a return address / set the link register once fiber_entrypoint
+ * returns. Now fiber_entrypoint does never return and therefore the actual value of the return
+ * address / link register is never read/used and therefore doesn't matter. When fiber_switchContext
+ * performs a _function return_ the value in the link register doesn't matter either.
+ * However, the link register will still be saved to the stack in fiber_entrypoint and some
+ * exception handling / stack unwinding code might read it from this stack location and crash.
+ * The exact solution depends on your architecture, but see the ARM implementation for a way
+ * to deal with this issue.
+ *
+ * The ARM implementation is meant to be used as a kind of documented example implementation.
+ * Look there for a concrete example.
+ * 
+ * FIXME: fiber_entrypoint might benefit from a @noreturn attribute, but D doesn't have one.
+ */
 
 /**
  * This class provides a cooperative concurrency mechanism integrated with the
@@ -3251,6 +3379,18 @@ private
  * may be freely passed between threads so long as they are not currently
  * executing.  Like threads, a new fiber thread may be created using either
  * derivation or composition, as in the following example.
+ *
+ * Warning:
+ * Status registers are not saved by the current implementations. This means
+ * floating point exception status bits (overflow, divide by 0), rounding mode
+ * and similar stuff is set per-thread, not per Fiber!
+ *
+ * Warning:
+ * On ARM FPU registers are not saved if druntime was compiled as ARM_SoftFloat.
+ * If such a build is used on a ARM_SoftFP system which actually has got a FPU
+ * and other libraries are using the FPU registers (other code is compiled
+ * as ARM_SoftFP) this can cause problems. Druntime must be compiled as
+ * ARM_SoftFP in this case.
  *
  * Example:
  * ----------------------------------------------------------------------
@@ -3824,6 +3964,7 @@ private:
 
     //
     // Initialize the allocated stack.
+    // Look above the definition of 'class Fiber' for some information about the implementation of this routine
     //
     final void initStack()
     in
@@ -4044,6 +4185,38 @@ private:
             (cast(ubyte*)pstack - SZ)[0 .. SZ] = 0;
             pstack -= ABOVE;
             *cast(size_t*)(pstack - SZ_RA) = cast(size_t)&fiber_entryPoint;
+        }
+        else version( AsmARM_Posix )
+        {
+            /* We keep the FP registers and the return address below
+             * the stack pointer, so they don't get scanned by the
+             * GC. The last frame before swapping the stack pointer is
+             * organized like the following.
+             *
+             *   |  |-----------|<= 'frame starts here'
+             *   |  |     fp    | (the actual frame pointer, r11 isn't
+             *   |  |   r10-r4  |  updated and still points to the previous frame)
+             *   |  |-----------|<= stack pointer
+             *   |  |     lr    |
+             *   |  | 4byte pad |
+             *   |  |   d15-d8  |(if FP supported)
+             *   |  |-----------|
+             *   Y
+             *   stack grows down: The pointer value here is smaller than some lines above
+             */
+            // frame pointer can be zero, r10-r4 also zero initialized
+            version( StackGrowsDown )
+                pstack -= int.sizeof * 8;
+            else
+                static assert(false, "Only full descending stacks supported on ARM");
+
+            // link register
+            push( cast(size_t) &fiber_entryPoint );
+            /*
+             * We do not push padding and d15-d8 as those are zero initialized anyway
+             * Position the stack pointer above the lr register
+             */
+            pstack += int.sizeof * 1;
         }
         else static if( __traits( compiles, ucontext_t ) )
         {
