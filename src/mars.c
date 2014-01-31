@@ -215,24 +215,24 @@ void verrorPrint(Loc loc, const char *header, const char *format, va_list ap,
         char *p = loc.toChars();
 
         if (*p)
-            fprintf(stdmsg, "%s: ", p);
+            fprintf(stderr, "%s: ", p);
         mem.free(p);
 
-        fputs(header, stdmsg);
+        fputs(header, stderr);
         if (p1)
-            fprintf(stdmsg, "%s ", p1);
+            fprintf(stderr, "%s ", p1);
         if (p2)
-            fprintf(stdmsg, "%s ", p2);
+            fprintf(stderr, "%s ", p2);
 #if _MSC_VER
         // MS doesn't recognize %zu format
         OutBuffer tmp;
         tmp.vprintf(format, ap);
-        fprintf(stdmsg, "%s", tmp.toChars());
+        fprintf(stderr, "%s", tmp.toChars());
 #else
-        vfprintf(stdmsg, format, ap);
+        vfprintf(stderr, format, ap);
 #endif
-        fprintf(stdmsg, "\n");
-        fflush(stdmsg);
+        fprintf(stderr, "\n");
+        fflush(stderr);
 }
 
 // header is "Error: " by default (see mars.h)
