@@ -745,7 +745,8 @@ Language changes listed by -transition=id:\n\
                         num = strtol(p + 12, (char **)&p, 10);
                         if (*p || errno || num > INT_MAX)
                             goto Lerror;
-                        switch (num)    // Bugzilla issue number
+                        // Bugzilla issue number
+                        switch (num)
                         {
                             case 3449:
                                 global.params.vfield = 1;
@@ -998,9 +999,10 @@ Language changes listed by -transition=id:\n\
                     global.params.moduleDepsFile = p + 1 + 5;
                     if (!global.params.moduleDepsFile[0])
                         goto Lnoarg;
-                } // Else output to stdout.
+                }
                 else if (p[5]!='\0')
                 {
+                    // Else output to stdout.
                     goto Lerror;
                 }
                 global.params.moduleDeps = new OutBuffer;
@@ -1272,7 +1274,6 @@ Language changes listed by -transition=id:\n\
     bool firstmodule = true;
     for (size_t i = 0; i < files.dim; i++)
     {
-        ;
         const char *name;
 
         const char *p = files[i];

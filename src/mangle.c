@@ -290,7 +290,6 @@ const char *ClassDeclaration::mangle(bool isv)
             parent = NULL;
     }
     else if (ident == Id::TypeInfo   ||
-//      ident == Id::Exception ||
         ident == Id::TypeInfo_Struct   ||
         ident == Id::TypeInfo_Class    ||
         ident == Id::TypeInfo_Typedef  ||

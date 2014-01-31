@@ -217,8 +217,9 @@ struct BaseClass
                                         // making up the vtbl[]
 
     size_t baseInterfaces_dim;
-    BaseClass *baseInterfaces;          // if BaseClass is an interface, these
-                                        // are a copy of the InterfaceDeclaration::interfaces
+    // if BaseClass is an interface, these
+    // are a copy of the InterfaceDeclaration::interfaces
+    BaseClass *baseInterfaces;
 
     BaseClass();
     BaseClass(Type *type, PROT protection);

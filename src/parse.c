@@ -298,11 +298,9 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
                 if (t->value == TOKlparen)
                 {
                     if (peek(t)->value == TOKrparen)
-                        // invariant() forms start of class invariant
-                        s = parseInvariant();
+                        s = parseInvariant(); // invariant() forms start of class invariant
                     else
-                        // invariant(type)
-                        goto Ldeclaration;
+                        goto Ldeclaration; // invariant(type)
                 }
                 else
                 {
@@ -1091,15 +1089,15 @@ Condition *Parser::parseVersionCondition()
     if (token.value == TOKlparen)
     {
         nextToken();
-        if (token.value == TOKidentifier)
-            id = token.ident;
-        else if (token.value == TOKint32v || token.value == TOKint64v)
-            level = (unsigned)token.uns64value;
         /* Allow:
          *    version (unittest)
          *    version (assert)
          * even though they are keywords
          */
+        if (token.value == TOKidentifier)
+            id = token.ident;
+        else if (token.value == TOKint32v || token.value == TOKint64v)
+            level = (unsigned)token.uns64value;
         else if (token.value == TOKunittest)
             id = Lexer::idPool(Token::toChars(TOKunittest));
         else if (token.value == TOKassert)
@@ -1544,7 +1542,8 @@ Parameters *Parser::parseParameters(int *pvarargs, TemplateParameters **tpl)
                 default:
                 Ldefault:
                 {   stc = storageClass & (STCin | STCout | STCref | STClazy);
-                    if (stc & (stc - 1) &&        // if stc is not a power of 2
+                    // if stc is not a power of 2
+                    if (stc & (stc - 1) &&
                         !(stc == (STCin | STCref)))
                         error("incompatible parameter storage classes");
                     if ((storageClass & STCscope) && (storageClass & (STCref | STCout)))
@@ -2041,7 +2040,7 @@ TemplateParameters *Parser::parseTemplateParameterList(int flag)
                     else
                         def = parseCondExp();
                 }
-                tp = new TemplateAliasParameter(loc/*todo*/, tp_ident, spectype, spec, def);
+                tp = new TemplateAliasParameter(loc, tp_ident, spectype, spec, def);
             }
             else if (t->value == TOKcolon || t->value == TOKassign ||
                      t->value == TOKcomma || t->value == TOKrparen)
@@ -2123,7 +2122,7 @@ TemplateParameters *Parser::parseTemplateParameterList(int flag)
                     nextToken();
                     tp_defaultvalue = parseDefaultInitExp();
                 }
-                tp = new TemplateValueParameter(loc/*todo*/, tp_ident, tp_valtype, tp_specvalue, tp_defaultvalue);
+                tp = new TemplateValueParameter(loc, tp_ident, tp_valtype, tp_specvalue, tp_defaultvalue);
             }
             tpl->push(tp);
             if (token.value != TOKcomma)
@@ -2580,11 +2579,9 @@ Type *Parser::parseBasicType()
                 TemplateInstance *tempinst = new TemplateInstance(loc, id);
                 nextToken();
                 if (token.value == TOKlparen)
-                    // ident!(template_arguments)
-                    tempinst->tiargs = parseTemplateArgumentList();
+                    tempinst->tiargs = parseTemplateArgumentList(); // ident!(template_arguments)
                 else
-                    // ident!template_argument
-                    tempinst->tiargs = parseTemplateArgument();
+                    tempinst->tiargs = parseTemplateArgument(); // ident!template_argument
                 tid = new TypeInstance(loc, tempinst);
                 goto Lident2;
             }
@@ -2607,11 +2604,9 @@ Type *Parser::parseBasicType()
                     TemplateInstance *tempinst = new TemplateInstance(loc, id);
                     nextToken();
                     if (token.value == TOKlparen)
-                        // ident!(template_arguments)
-                        tempinst->tiargs = parseTemplateArgumentList();
+                        tempinst->tiargs = parseTemplateArgumentList(); // ident!(template_arguments)
                     else
-                        // ident!template_argument
-                        tempinst->tiargs = parseTemplateArgument();
+                        tempinst->tiargs = parseTemplateArgument(); // ident!template_argument
                     tid->addInst(tempinst);
                 }
                 else
@@ -2793,9 +2788,10 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident, TemplateParameters *
             break;
 
         case TOKlparen:
-            if (peekNext() == TOKmul ||                 // like: T (*fp)();
-                peekNext() == TOKlparen                 // like: T ((*fp))();
-                /* || peekNext() == TOKlbracket*/)      // like: T ([] a)
+            // like: T (*fp)();
+            // like: T ((*fp))();
+            if (peekNext() == TOKmul ||
+                peekNext() == TOKlparen)
             {
                 /* Parse things with parentheses around the identifier, like:
                  *  int (*ident[3])[]
@@ -2894,11 +2890,11 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident, TemplateParameters *
                         // Gather template parameter list
                         *tpl = parseTemplateParameterList();
                     }
-                    /* or (...) =,
-                     * i.e. a variable template declaration
-                     */
                     else if (tk->value == TOKassign)
                     {
+                        /* or (...) =,
+                         * i.e. a variable template declaration
+                         */
                         //printf("variable template declaration\n");
                         *tpl = parseTemplateParameterList();
                         break;
@@ -3029,7 +3025,7 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, const utf8_t *co
                         Dsymbols *a2 = new Dsymbols();
                         a2->push(s);
                         TemplateDeclaration *tempdecl =
-                            new TemplateDeclaration(loc, ident, tpl, NULL/*constraint*/, a2);
+                            new TemplateDeclaration(loc, ident, tpl, NULL, a2);
                         s = tempdecl;
                     }
                     a->push(s);
@@ -3408,7 +3404,7 @@ L2:
                 Dsymbols *a2 = new Dsymbols();
                 a2->push(s);
                 TemplateDeclaration *tempdecl =
-                    new TemplateDeclaration(loc, ident, tpl, NULL/*constraint*/, a2, 0);
+                    new TemplateDeclaration(loc, ident, tpl, NULL, a2, 0);
                 s = tempdecl;
             }
 
@@ -3482,7 +3478,7 @@ Dsymbols *Parser::parseAutoDeclarations(StorageClass storageClass, const utf8_t 
             Dsymbols *a2 = new Dsymbols();
             a2->push(v);
             TemplateDeclaration *tempdecl =
-                new TemplateDeclaration(loc, ident, tpl, NULL/*constraint*/, a2, 0);
+                new TemplateDeclaration(loc, ident, tpl, NULL, a2, 0);
             s = tempdecl;
         }
 
@@ -4445,11 +4441,11 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
                 check(TOKassign);
                 arg = new Parameter(storageClass, at, ai, NULL);
             }
-            // Check for " ident;"
             else if (storageClass == 0 &&
                      token.value == TOKidentifier &&
                      peek(&token)->value == TOKsemicolon)
             {
+                // Check for " ident;"
                 arg = new Parameter(0, NULL, token.ident, NULL);
                 nextToken();
                 nextToken();
@@ -4547,7 +4543,7 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
             {
                 Loc lookingForElseSave = lookingForElse;
                 lookingForElse = loc;
-                ifbody = parseStatement(0 /*PSsemi*/);
+                ifbody = parseStatement(0);
                 lookingForElse = lookingForElseSave;
             }
             elsebody = NULL;
@@ -4555,7 +4551,7 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
             {
                 Loc elseloc = token.loc;
                 nextToken();
-                elsebody = parseStatement(0 /*PSsemi*/);
+                elsebody = parseStatement(0);
                 checkDanglingElse(elseloc);
             }
             s = new ConditionalStatement(loc, cond, ifbody, elsebody);
@@ -5783,11 +5779,9 @@ Expression *Parser::parsePrimaryExp()
                 tempinst = new TemplateInstance(loc, id);
                 nextToken();
                 if (token.value == TOKlparen)
-                    // ident!(template_arguments)
-                    tempinst->tiargs = parseTemplateArgumentList();
+                    tempinst->tiargs = parseTemplateArgumentList(); // ident!(template_arguments)
                 else
-                    // ident!template_argument
-                    tempinst->tiargs = parseTemplateArgument();
+                    tempinst->tiargs = parseTemplateArgument(); // ident!template_argument
                 e = new ScopeExp(loc, tempinst);
             }
             else
@@ -6348,11 +6342,9 @@ Expression *Parser::parsePostExp(Expression *e)
                         Objects *tiargs;
                         nextToken();
                         if (token.value == TOKlparen)
-                            // ident!(template_arguments)
-                            tiargs = parseTemplateArgumentList();
+                            tiargs = parseTemplateArgumentList(); // ident!(template_arguments)
                         else
-                            // ident!template_argument
-                            tiargs = parseTemplateArgument();
+                            tiargs = parseTemplateArgument(); // ident!template_argument
                         e = new DotTemplateInstanceExp(loc, e, id, tiargs);
                     }
                     else

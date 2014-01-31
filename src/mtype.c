@@ -171,9 +171,9 @@ bool Type::equals(RootObject *o)
 {
     Type *t = (Type *)o;
     //printf("Type::equals(%s, %s)\n", toChars(), t->toChars());
-    if (this == o ||
-        ((t && deco == t->deco) &&               // deco strings are unique
-          deco != NULL))                         // and semantic() has been run
+    // deco strings are unique
+    // and semantic() has been run
+    if (this == o || ((t && deco == t->deco) && deco != NULL))
     {
         //printf("deco = '%s', t->deco = '%s'\n", deco, t->deco);
         return true;
@@ -1997,7 +1997,7 @@ Type *Type::unqualify(unsigned m)
     Type *t = mutableOf()->unSharedOf();
 
     Type *tn = nextOf();
-    if (tn && tn->ty != Tfunction/*!(ty == Tpointer && tn->ty == Tfunction)*/)
+    if (tn && tn->ty != Tfunction)
     {
         Type *utn = tn->unqualify(m);
         if (utn != tn)
@@ -3954,8 +3954,9 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
         e = e->castTo(sc, n->arrayOf());        // convert to dynamic array
         arguments = new Expressions();
         arguments->push(e);
+        // don't convert to dynamic array
         arguments->push(n->ty == Tsarray
-                    ? n->getTypeInfo(sc)        // don't convert to dynamic array
+                    ? n->getTypeInfo(sc)
                     : n->getInternalTypeInfo(sc));
         e = new CallExp(e->loc, ec, arguments);
         e->type = next->arrayOf();
@@ -4492,8 +4493,8 @@ int TypeSArray::hasPointers()
     //if (dim->toInteger() == 0)
         //return false;
 
+    // Arrays of void contain arbitrary data, which may include pointers
     if (next->ty == Tvoid)
-        // Arrays of void contain arbitrary data, which may include pointers
         return true;
     else
         return next->hasPointers();
@@ -4760,7 +4761,7 @@ Type *TypeAArray::syntaxCopy()
 
 d_uns64 TypeAArray::size(Loc loc)
 {
-    return Target::ptrsize /* * 2*/;
+    return Target::ptrsize;
 }
 
 
@@ -6314,8 +6315,7 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
         else
         {
             //printf("%s of type %s implicitConvTo %s\n", arg->toChars(), targ->toChars(), tprm->toChars());
-            if (flag)
-                // for partial ordering, value is an irrelevant mockup, just look at the type
+            if (flag) // for partial ordering, value is an irrelevant mockup, just look at the type
                 m = targ->implicitConvTo(tprm);
             else
                 m = arg->implicitConvTo(tprm);

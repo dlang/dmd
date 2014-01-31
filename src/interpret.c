@@ -98,12 +98,14 @@ struct InterState
     InterState *caller;         // calling function's InterState
     FuncDeclaration *fd;        // function being interpreted
     Statement *start;           // if !=NULL, start execution at this statement
-    Statement *gotoTarget;      /* target of EXP_GOTO_INTERPRET result; also
-                                 * target of labelled EXP_BREAK_INTERPRET or
-                                 * EXP_CONTINUE_INTERPRET. (NULL if no label).
-                                 */
-    bool awaitingLvalueReturn;  // Support for ref return values:
-           // Any return to this function should return an lvalue.
+    /* target of EXP_GOTO_INTERPRET result; also
+     * target of labelled EXP_BREAK_INTERPRET or
+     * EXP_CONTINUE_INTERPRET. (NULL if no label).
+     */
+    Statement *gotoTarget;
+    // Support for ref return values:
+    // Any return to this function should return an lvalue.
+    bool awaitingLvalueReturn;
     InterState();
 };
 
@@ -3284,12 +3286,11 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
     bool wantRef = false;
     bool wantLvalueRef = false;
 
+     //  e = *x is never a reference, because *x is always a value
     if (!fp && this->e1->type->toBasetype()->equals(this->e2->type->toBasetype()) &&
         (e1->type->toBasetype()->ty == Tarray || isAssocArray(e1->type)
              || e1->type->toBasetype()->ty == Tclass)
-         //  e = *x is never a reference, because *x is always a value
-         && this->e2->op != TOKstar
-        )
+         && this->e2->op != TOKstar)
     {
 #if DMDV2
         wantRef = true;
@@ -4325,8 +4326,10 @@ Expression *interpretAssignToSlice(InterState *istate, CtfeGoal goal, Loc loc,
         for (size_t j = 0; j < upperbound-lowerbound; j++)
         {
             if (!directblk)
+            {
                 // Multidimensional array block assign
                 recursiveBlockAssign((ArrayLiteralExp *)(*w)[(size_t)(j+firstIndex)], newval, wantRef);
+            }
             else
             {
                 if (wantRef || cow)

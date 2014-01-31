@@ -250,11 +250,11 @@ void Scope::mergeCallSuper(Loc loc, unsigned cs)
              (bRet && !bAny && aAny))
         {   ok = false;
         }
-        // If one branch has called a ctor and then exited, anything the
-        // other branch has done is OK (except returning without a
-        // ctor call, but we already checked that).
         else if (aRet && aAll)
         {
+            // If one branch has called a ctor and then exited, anything the
+            // other branch has done is OK (except returning without a
+            // ctor call, but we already checked that).
             callSuper |= cs & (CSXany_ctor | CSXlabel);
         }
         else if (bRet && bAll)
@@ -347,11 +347,11 @@ printf("L%d fieldInit = x%x, fi = x%x\n", __LINE__, fieldInit, fi);
         {   ok = false;
 printf("L%d\n", __LINE__);
         }
-        // If one branch has called a ctor and then exited, anything the
-        // other branch has done is OK (except returning without a
-        // ctor call, but we already checked that).
         else if (aRet && aAll)
         {
+            // If one branch has called a ctor and then exited, anything the
+            // other branch has done is OK (except returning without a
+            // ctor call, but we already checked that).
             //fieldInit |= fi & (CSXany_ctor | CSXlabel);
 printf("L%d -> fieldInit = x%x\n", __LINE__, fieldInit);
         }

@@ -819,10 +819,9 @@ Expression *resolveUFCS(Scope *sc, CallExp *ce)
                 {
                     unsigned errors = global.startGagging();
                     e = ce->syntaxCopy()->semantic(sc);
-                    if (global.endGagging(errors))
-                    {}  /* fall down to UFCS */
-                    else
+                    if (!global.endGagging(errors))
                         return e;
+                    /* fall down to UFCS */
                 }
                 else
                     return NULL;
@@ -1658,13 +1657,13 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                 {   FuncExp *fe = (FuncExp *)a;
                     fe->fd->tookAddressOf = 0;
                 }
-
-                /* For passing a delegate to a scoped parameter,
-                 * this doesn't count as taking the address of it.
-                 * We only worry about 'escaping' references to the function.
-                 */
                 else if (a->op == TOKdelegate)
-                {   DelegateExp *de = (DelegateExp *)a;
+                {
+                    /* For passing a delegate to a scoped parameter,
+                     * this doesn't count as taking the address of it.
+                     * We only worry about 'escaping' references to the function.
+                     */
+                    DelegateExp *de = (DelegateExp *)a;
                     if (de->e1->op == TOKvar)
                     {   VarExp *ve = (VarExp *)de->e1;
                         FuncDeclaration *f = ve->var->isFuncDeclaration();
@@ -1814,10 +1813,10 @@ void expToCBuffer(OutBuffer *buf, HdrGenState *hgs, Expression *e, PREC pr)
     assert(pr != PREC_zero);
 
     //if (precedence[e->op] == 0) e->print();
+    /* Despite precedence, we don't allow a<b<c expressions.
+     * They must be parenthesized.
+     */
     if (precedence[e->op] < pr ||
-        /* Despite precedence, we don't allow a<b<c expressions.
-         * They must be parenthesized.
-         */
         (pr == PREC_rel && precedence[e->op] == pr))
     {
         buf->writeByte('(');
@@ -2327,8 +2326,9 @@ void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
 
         // If the caller has a pure parent, then either the called func must be pure,
         // OR, they must have the same pure parent.
-        if (/*outerfunc->isPure() &&*/    // comment out because we deduce purity now
-            !f->isPure() && calledparent != outerfunc &&
+        // comment out because we deduce purity now
+        // outerfunc->isPure() &&
+        if (!f->isPure() && calledparent != outerfunc &&
             !(sc->flags & SCOPEctfe))
         {
             if (outerfunc->setImpure())
@@ -2353,97 +2353,101 @@ void Expression::checkPurity(Scope *sc, VarDeclaration *v)
     /* Look for purity and safety violations when accessing variable v
      * from current function.
      */
-    if (sc->func &&
-        !sc->intypeof &&             // allow violations inside typeof(expression)
-        !(sc->flags & SCOPEdebug) && // allow violations inside debug conditionals
-        v->ident != Id::ctfe &&      // magic variable never violates pure and safe
-        !v->isImmutable() &&         // always safe and pure to access immutables...
-        !(v->isConst() && !v->isRef() && (v->isDataseg() || v->isParameter()) &&
-          v->type->implicitConvTo(v->type->immutableOf())) &&
-            // or const global/parameter values which have no mutable indirections
-        !(v->storage_class & STCmanifest) // ...or manifest constants
-       )
+    if (!sc->func)
+        return;
+    if (sc->intypeof)
+        return; // allow violations inside typeof(expression)
+    if (sc->flags & SCOPEdebug)
+        return; // allow violations inside debug conditionals
+    if (v->ident == Id::ctfe)
+        return; // magic variable never violates pure and safe
+    if (v->isImmutable())
+        return; // always safe and pure to access immutables...
+    if (v->isConst() && !v->isRef() && (v->isDataseg() || v->isParameter()) &&
+        v->type->implicitConvTo(v->type->immutableOf()))
+        return; // or const global/parameter values which have no mutable indirections
+    if (v->storage_class & STCmanifest)
+        return; // ...or manifest constants
+
+    if (v->isDataseg())
     {
-        if (v->isDataseg())
-        {
-            /* Accessing global mutable state.
-             * Therefore, this function and all its immediately enclosing
-             * functions must be pure.
-             */
-            bool msg = false;
-            for (Dsymbol *s = sc->func; s; s = s->toParent2())
-            {
-                FuncDeclaration *ff = s->isFuncDeclaration();
-                if (!ff)
-                    break;
-                // Accessing implicit generated __gate is pure.
-                if (ff->setImpure() && !msg && strcmp(v->ident->toChars(), "__gate"))
-                {   error("pure function '%s' cannot access mutable static data '%s'",
-                        sc->func->toPrettyChars(), v->toChars());
-                    msg = true;                     // only need the innermost message
-                }
-            }
-        }
-        else
-        {
-            /* Bugzilla 10981: Special case for the contracts of pure virtual function.
-             * Rewrite:
-             *  tret foo(int i) pure
-             *  in { assert(i); } out { assert(i); } body { ... }
-             *
-             * as:
-             *  tret foo(int i) pure {
-             *    void __require() pure { assert(i); }  // allow accessing to i
-             *    void __ensure() pure { assert(i); }   // allow accessing to i
-             *    __require();
-             *    ...
-             *    __ensure();
-             *  }
-             */
-            if ((sc->func->ident == Id::require || sc->func->ident == Id::ensure) &&
-                v->isParameter() && sc->func->parent == v->parent)
-            {
-                return;
-            }
-
-            /* Given:
-             * void f()
-             * { int fx;
-             *   pure void g()
-             *   {  int gx;
-             *      void h()
-             *      {  int hx;
-             *         void i() { }
-             *      }
-             *   }
-             * }
-             * i() can modify hx and gx but not fx
-             */
-
-            Dsymbol *vparent = v->toParent2();
-            for (Dsymbol *s = sc->func; s; s = s->toParent2())
-            {
-                if (s == vparent)
-                        break;
-                FuncDeclaration *ff = s->isFuncDeclaration();
-                if (!ff)
-                    break;
-                if (ff->setImpure())
-                {   error("pure nested function '%s' cannot access mutable data '%s'",
-                        ff->toChars(), v->toChars());
-                    break;
-                }
-            }
-        }
-
-        /* Do not allow safe functions to access __gshared data
+        /* Accessing global mutable state.
+         * Therefore, this function and all its immediately enclosing
+         * functions must be pure.
          */
-        if (v->storage_class & STCgshared)
+        bool msg = false;
+        for (Dsymbol *s = sc->func; s; s = s->toParent2())
         {
-            if (sc->func->setUnsafe())
-                error("safe function '%s' cannot access __gshared data '%s'",
-                    sc->func->toChars(), v->toChars());
+            FuncDeclaration *ff = s->isFuncDeclaration();
+            if (!ff)
+                break;
+            // Accessing implicit generated __gate is pure.
+            if (ff->setImpure() && !msg && strcmp(v->ident->toChars(), "__gate"))
+            {   error("pure function '%s' cannot access mutable static data '%s'",
+                    sc->func->toPrettyChars(), v->toChars());
+                msg = true;                     // only need the innermost message
+            }
         }
+    }
+    else
+    {
+        /* Bugzilla 10981: Special case for the contracts of pure virtual function.
+         * Rewrite:
+         *  tret foo(int i) pure
+         *  in { assert(i); } out { assert(i); } body { ... }
+         *
+         * as:
+         *  tret foo(int i) pure {
+         *    void __require() pure { assert(i); }  // allow accessing to i
+         *    void __ensure() pure { assert(i); }   // allow accessing to i
+         *    __require();
+         *    ...
+         *    __ensure();
+         *  }
+         */
+        if ((sc->func->ident == Id::require || sc->func->ident == Id::ensure) &&
+            v->isParameter() && sc->func->parent == v->parent)
+        {
+            return;
+        }
+
+        /* Given:
+         * void f()
+         * { int fx;
+         *   pure void g()
+         *   {  int gx;
+         *      void h()
+         *      {  int hx;
+         *         void i() { }
+         *      }
+         *   }
+         * }
+         * i() can modify hx and gx but not fx
+         */
+
+        Dsymbol *vparent = v->toParent2();
+        for (Dsymbol *s = sc->func; s; s = s->toParent2())
+        {
+            if (s == vparent)
+                    break;
+            FuncDeclaration *ff = s->isFuncDeclaration();
+            if (!ff)
+                break;
+            if (ff->setImpure())
+            {   error("pure nested function '%s' cannot access mutable data '%s'",
+                    ff->toChars(), v->toChars());
+                break;
+            }
+        }
+    }
+
+    /* Do not allow safe functions to access __gshared data
+     */
+    if (v->storage_class & STCgshared)
+    {
+        if (sc->func->setUnsafe())
+            error("safe function '%s' cannot access __gshared data '%s'",
+                sc->func->toChars(), v->toChars());
     }
 }
 
@@ -6028,8 +6032,8 @@ Expression *FuncExp::semantic(Scope *sc)
         else
         {
             fd->semantic2(sc);
+            // no errors or need to infer return type
             if ( (olderrors == global.errors) ||
-                // need to infer return type
                 (fd->type && fd->type->ty == Tfunction && !fd->type->nextOf()))
             {
                 fd->semantic3(sc);
@@ -6213,11 +6217,12 @@ Expression *DeclarationExp::semantic(Scope *sc)
         }
         else if (sc->func)
         {
+            // Bugzilla 11720 - include Dataseg variables
             if ((s->isFuncDeclaration() ||
                  s->isTypedefDeclaration() ||
                  s->isAggregateDeclaration() ||
                  s->isEnumDeclaration() ||
-                 v && v->isDataseg()) &&    // Bugzilla 11720
+                 v && v->isDataseg()) &&
                 !sc->func->localsymtab->insert(s))
             {
                 error("declaration %s is already defined in another scope in %s",
@@ -7457,7 +7462,7 @@ Expression *DotIdExp::semanticX(Scope *sc)
             (*exps)[i] = e;
         }
         // Don't evaluate te->e0 in runtime
-        Expression *e = new TupleExp(loc, /*te->e0*/NULL, exps);
+        Expression *e = new TupleExp(loc, NULL, exps);
         e = e->semantic(sc);
         return e;
     }
@@ -8919,11 +8924,14 @@ Lagain:
                 continue;
             FuncDeclaration *f2 = resolveFuncCall(loc, sc, s, tiargs, tthis, arguments, 1);
             if (f2)
-            {   if (f)
+            {
+                if (f)
+                {
                     /* Error if match in more than one overload set,
                      * even if one is a 'better' match than the other.
                      */
                     ScopeDsymbol::multiplyDefined(loc, f, f2);
+                }
                 else
                     f = f2;
             }
@@ -9231,12 +9239,14 @@ Expression *CallExp::addDtorHook(Scope *sc)
 void CallExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     if (e1->op == TOKtype)
+    {
         /* Avoid parens around type to prevent forbidden cast syntax:
          *   (sometype)(arg1)
          * This is ok since types in constructor calls
          * can never depend on parens anyway
          */
         e1->toCBuffer(buf, hgs);
+    }
     else
         expToCBuffer(buf, hgs, e1, precedence[op]);
     buf->writeByte('(');
@@ -9374,11 +9384,11 @@ Expression *AddrExp::semantic(Scope *sc)
             FuncDeclaration *f = ve->var->isFuncDeclaration();
             if (f)
             {
+                /* Because nested functions cannot be overloaded,
+                 * mark here that we took its address because castTo()
+                 * may not be called with an exact match.
+                 */
                 if (!ve->hasOverloads ||
-                    /* Because nested functions cannot be overloaded,
-                     * mark here that we took its address because castTo()
-                     * may not be called with an exact match.
-                     */
                     f->isNested())
                     f->tookAddressOf++;
                 if (f->isNested())
@@ -11331,7 +11341,7 @@ Ltupleassign:
             {
                 CallExp *ce;
                 DotVarExp *dve;
-                if (sd->ctor &&            // there are constructors
+                if (sd->ctor &&
                     e2->op == TOKcall &&
                     (ce = (CallExp *)e2, ce->e1->op == TOKdotvar) &&
                     (dve = (DotVarExp *)ce->e1, dve->var->isCtorDeclaration()) &&
@@ -11768,11 +11778,11 @@ Ltupleassign:
             assert(op != TOKassign);
         //error("cannot assign to static array %s", e1->toChars());
     }
-    // Check element-wise assignment.
     else if (e1->op == TOKslice &&
              (t2->ty == Tarray || t2->ty == Tsarray) &&
              t2->nextOf()->implicitConvTo(t1->nextOf()))
     {
+        // Check element-wise assignment.
         /* If assigned elements number is known at compile time,
          * check the mismatch.
          */
@@ -11851,7 +11861,7 @@ Ltupleassign:
     {
         if (0 && global.params.warnings && !global.gag && op == TOKassign &&
             t1->ty == Tarray && t2->ty == Tsarray &&
-            e2->op != TOKslice && //e2->op != TOKarrayliteral &&
+            e2->op != TOKslice &&
             t2->implicitConvTo(t1))
         {   // Disallow ar[] = sa (Converted to ar[] = sa[])
             // Disallow da   = sa (Converted to da   = sa[])
@@ -13451,7 +13461,7 @@ Expression *EqualExp::semantic(Scope *sc)
             VarExp *ve1 = (VarExp *)ae1->e1;
             VarExp *ve2 = (VarExp *)ae2->e1;
 
-            if (ve1->var == ve2->var /*|| ve1->var->toSymbol() == ve2->var->toSymbol()*/)
+            if (ve1->var == ve2->var)
             {
                 // They are the same, result is 'true' for ==, 'false' for !=
                 e = new IntegerExp(loc, (op == TOKequal), Type::tboolean);

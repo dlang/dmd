@@ -73,7 +73,8 @@ the target object file format:
 void unittests();
 
 #define DMDV1   0
-#define DMDV2   1       // Version 2.0 features
+// Version 2.0 features
+#define DMDV2   1
 
 struct OutBuffer;
 

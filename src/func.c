@@ -393,30 +393,6 @@ void FuncDeclaration::semantic(Scope *sc)
         {
             goto Ldone;
         }
-#if 0
-        // Verify no constructors, destructors, etc.
-        if (isCtorDeclaration()
-            //||isDtorDeclaration()
-            //|| isInvariantDeclaration()
-            //|| isUnitTestDeclaration()
-           )
-        {
-            error("special member functions not allowed for %ss", sd->kind());
-        }
-
-        if (isInvariantDeclaration())
-            sd->invs.push(this);
-
-        if (!sd->aggNew)
-            sd->aggNew = isNewDeclaration();
-
-        if (isDelete())
-        {
-            if (sd->aggDelete)
-                error("multiple delete's for struct %s", sd->toChars());
-            sd->aggDelete = (DeleteDeclaration *)(this);
-        }
-#endif
     }
 
     id = parent->isInterfaceDeclaration();
@@ -1662,8 +1638,10 @@ void FuncDeclaration::semantic3(Scope *sc)
                         }
                     }
                     else if (p->storage_class & STClazy)
+                    {
                         // If the last parameter is lazy, it's the size of a delegate
                         offset += Target::ptrsize * 2;
+                    }
                     else
                         offset += p->type->size();
                     offset = (offset + Target::ptrsize - 1) & ~(Target::ptrsize - 1);  // assume stack aligns on pointer size
@@ -2434,7 +2412,8 @@ bool FuncDeclaration::overloadInsert(Dsymbol *s)
     {   printf("type = %s\n", type->toChars());
         printf("fd->type = %s\n", fd->type->toChars());
     }
-    if (type && fd->type &&      // can be NULL for overloaded constructors
+    // fd->type can be NULL for overloaded constructors
+    if (type && fd->type &&
         fd->type->covariant(type) &&
         fd->type->mod == type->mod &&
         !isFuncAliasDeclaration())
@@ -3451,7 +3430,6 @@ bool FuncDeclaration::addPreInvariant()
     AggregateDeclaration *ad = isThis();
     ClassDeclaration *cd = ad ? ad->isClassDeclaration() : NULL;
     return (ad && !(cd && cd->isCPPclass()) &&
-            //ad->isClassDeclaration() &&
             global.params.useInvariants &&
             (protection == PROTprotected || protection == PROTpublic || protection == PROTexport) &&
             !naked &&
@@ -3464,7 +3442,6 @@ bool FuncDeclaration::addPostInvariant()
     ClassDeclaration *cd = ad ? ad->isClassDeclaration() : NULL;
     return (ad && !(cd && cd->isCPPclass()) &&
             ad->inv &&
-            //ad->isClassDeclaration() &&
             global.params.useInvariants &&
             (protection == PROTprotected || protection == PROTpublic || protection == PROTexport) &&
             !naked &&

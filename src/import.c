@@ -52,15 +52,21 @@ Import::Import(Loc loc, Identifiers *packages, Identifier *id, Identifier *alias
     this->mod = NULL;
 
     // Set symbol name (bracketed)
-    // import [cstdio] = std.stdio;
     if (aliasId)
+    {
+        // import [cstdio] = std.stdio;
         this->ident = aliasId;
-    // import [std].stdio;
+    }
     else if (packages && packages->dim)
+    {
+        // import [std].stdio;
         this->ident = (*packages)[0];
-    // import [foo];
+    }
     else
+    {
+        // import [foo];
         this->ident = id;
+    }
 }
 
 void Import::addAlias(Identifier *name, Identifier *alias)
@@ -270,10 +276,10 @@ void Import::semantic(Scope *sc)
         sc = sc->pop();
     }
 
+    // object self-imports itself, so skip that (Bugzilla 7547)
+    // don't list pseudo modules __entrypoint.d, __main.d (Bugzilla 11117, 11164)
     if (global.params.moduleDeps != NULL &&
-        // object self-imports itself, so skip that (Bugzilla 7547)
         !(id == Id::object && sc->module->ident == Id::object) &&
-        // don't list pseudo modules __entrypoint.d, __main.d (Bugzilla 11117, 11164)
         sc->module->ident != Id::entrypoint &&
         strcmp(sc->module->ident->string, "__main") != 0)
     {

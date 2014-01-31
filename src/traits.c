@@ -617,9 +617,9 @@ Expression *TraitsExp::semantic(Scope *sc)
                 //printf("\t[%i] %s %s\n", i, sm->kind(), sm->toChars());
                 if (sm->ident)
                 {
-                    if (sm->ident != Id::ctor &&        // backword compatibility
-                        sm->ident != Id::dtor &&        // backword compatibility
-                        sm->ident != Id::_postblit &&   // backword compatibility
+                    if (sm->ident != Id::ctor &&
+                        sm->ident != Id::dtor &&
+                        sm->ident != Id::_postblit &&
                         memcmp(sm->ident->string, "__", 2) == 0)
                     {
                         return 0;

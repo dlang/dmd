@@ -250,8 +250,6 @@ MATCH IntegerExp::implicitConvTo(Type *t)
         case Tint8:
             if (ty == Tuns64 && value & ~0x7FUL)
                 goto Lno;
-            //else if (ty == Tint64 && 0x7FUL < value && value < ~0x7FUL)
-            //    goto Lno;
             else if ((signed char)value != value)
                 goto Lno;
             goto Lyes;
@@ -268,8 +266,6 @@ MATCH IntegerExp::implicitConvTo(Type *t)
         case Tint16:
             if (ty == Tuns64 && value & ~0x7FFFUL)
                 goto Lno;
-            //else if (ty == Tint64 && 0x7FFFUL < value && value < ~0x7FFFUL)
-            //    goto Lno;
             else if ((short)value != value)
                 goto Lno;
             goto Lyes;
@@ -288,8 +284,6 @@ MATCH IntegerExp::implicitConvTo(Type *t)
             }
             else if (ty == Tuns64 && value & ~0x7FFFFFFFUL)
                 goto Lno;
-            //else if (ty == Tint64 && 0x7FFFFFFFUL < value && value < ~0x7FFFFFFFUL)
-            //    goto Lno;
             else if ((int)value != value)
                 goto Lno;
             goto Lyes;
@@ -683,11 +677,14 @@ MATCH AddrExp::implicitConvTo(Type *t)
                 FuncDeclaration *f2 = s->isFuncDeclaration();
                 assert(f2);
                 if (f2->overloadExactMatch(t->nextOf()))
-                {   if (f)
+                {
+                    if (f)
+                    {
                         /* Error if match in more than one overload set,
                          * even if one is a 'better' match than the other.
                          */
                         ScopeDsymbol::multiplyDefined(loc, f, f2);
+                    }
                     else
                         f = f2;
                     result = MATCHexact;
@@ -790,7 +787,8 @@ MATCH FuncExp::implicitConvTo(Type *t)
         /* MATCHconst:   Conversion from implicit to explicit function pointer
          * MATCHconvert: Conversion from impliict funciton pointer to delegate
          */
-        if (fd->tok == TOKreserved &&   // fbody doesn't have a frame pointer
+        // fbody doesn't have a frame pointer
+        if (fd->tok == TOKreserved &&
             (type->equals(t) || type->nextOf()->covariant(t->nextOf()) == 1))
         {
             return t->ty == Tpointer ? MATCHconst : MATCHconvert;
@@ -1487,11 +1485,14 @@ Expression *AddrExp::castTo(Scope *sc, Type *t)
                 FuncDeclaration *f2 = s->isFuncDeclaration();
                 assert(f2);
                 if (f2->overloadExactMatch(t->nextOf()))
-                {   if (f)
+                {
+                    if (f)
+                    {
                         /* Error if match in more than one overload set,
                          * even if one is a 'better' match than the other.
                          */
                         ScopeDsymbol::multiplyDefined(loc, f, f2);
+                    }
                     else
                         f = f2;
                 }
@@ -1561,11 +1562,11 @@ Expression *ArrayLiteralExp::castTo(Scope *sc, Type *t)
     ArrayLiteralExp *e = this;
     Type *typeb = type->toBasetype();
     Type *tb = t->toBasetype();
+    // Not trying to convert non-void[] to void[]
+    // Not trying to convert void[n] to others
     if ((tb->ty == Tarray || tb->ty == Tsarray) &&
         (typeb->ty == Tarray || typeb->ty == Tsarray) &&
-        // Not trying to convert non-void[] to void[]
         !(tb->nextOf()->toBasetype()->ty == Tvoid && typeb->nextOf()->toBasetype()->ty != Tvoid) &&
-        // Not trying to convert void[n] to others
         !(typeb->ty == Tsarray && typeb->nextOf()->toBasetype()->ty == Tvoid))
     {
         if (tb->ty == Tsarray)
@@ -1773,7 +1774,8 @@ Expression *FuncExp::castTo(Scope *sc, Type *t)
             return e->castTo(sc, t);
         if (!e->type->equals(t) && e->type->implicitConvTo(t))
         {
-            assert(t->ty == Tpointer && t->nextOf()->ty == Tvoid || // Bugzilla 9928
+            // Bugzilla 9928
+            assert(t->ty == Tpointer && t->nextOf()->ty == Tvoid ||
                    e->type->nextOf()->covariant(t->nextOf()) == 1);
             e = e->copy();
             e->type = t;
@@ -2333,7 +2335,6 @@ Lagain:
     }
     else if ((t1->ty == Tsarray || t1->ty == Tarray) &&
              (e2->op == TOKnull && t2->ty == Tpointer && t2->nextOf()->ty == Tvoid ||
-              // if e2 is void[]
               e2->op == TOKarrayliteral && t2->ty == Tsarray && t2->nextOf()->ty == Tvoid && ((TypeSArray *)t2)->dim->toInteger() == 0 ||
               isVoidArrayLiteral(e2, t1))
             )
@@ -2382,14 +2383,14 @@ Lagain:
             goto Lt2;
         goto Lt1;
     }
-    /* If one is mutable and the other invariant, then retry
-     * with both of them as const
-     */
     else if ((t1->ty == Tsarray || t1->ty == Tarray || t1->ty == Tpointer) &&
              (t2->ty == Tsarray || t2->ty == Tarray || t2->ty == Tpointer) &&
              t1->nextOf()->mod != t2->nextOf()->mod
             )
     {
+        /* If one is mutable and the other invariant, then retry
+         * with both of them as const
+         */
         Type *t1n = t1->nextOf();
         Type *t2n = t2->nextOf();
         unsigned char mod;
@@ -2859,7 +2860,7 @@ uinteger_t getMask(uinteger_t v)
     v |= v >> 8;
     v |= v >> 16;
     v |= v >> 32;
-    return v /* | 0xff*/;
+    return v;
 }
 IntRange Expression::getIntRange()
 {
@@ -3035,13 +3036,13 @@ IntRange AndExp::getIntRange()
     IntRange result;
     bool hasResult = false;
     if (has1pos && has2pos)
-        result.unionOrAssign(unsignedBitwiseAnd(ir1pos, ir2pos), /*ref*/hasResult);
+        result.unionOrAssign(unsignedBitwiseAnd(ir1pos, ir2pos), hasResult);
     if (has1pos && has2neg)
-        result.unionOrAssign(unsignedBitwiseAnd(ir1pos, ir2neg), /*ref*/hasResult);
+        result.unionOrAssign(unsignedBitwiseAnd(ir1pos, ir2neg), hasResult);
     if (has1neg && has2pos)
-        result.unionOrAssign(unsignedBitwiseAnd(ir1neg, ir2pos), /*ref*/hasResult);
+        result.unionOrAssign(unsignedBitwiseAnd(ir1neg, ir2pos), hasResult);
     if (has1neg && has2neg)
-        result.unionOrAssign(unsignedBitwiseAnd(ir1neg, ir2neg), /*ref*/hasResult);
+        result.unionOrAssign(unsignedBitwiseAnd(ir1neg, ir2neg), hasResult);
     assert(hasResult);
     return result.cast(type);
 }
@@ -3060,13 +3061,13 @@ IntRange OrExp::getIntRange()
     IntRange result;
     bool hasResult = false;
     if (has1pos && has2pos)
-        result.unionOrAssign(unsignedBitwiseOr(ir1pos, ir2pos), /*ref*/hasResult);
+        result.unionOrAssign(unsignedBitwiseOr(ir1pos, ir2pos), hasResult);
     if (has1pos && has2neg)
-        result.unionOrAssign(unsignedBitwiseOr(ir1pos, ir2neg), /*ref*/hasResult);
+        result.unionOrAssign(unsignedBitwiseOr(ir1pos, ir2neg), hasResult);
     if (has1neg && has2pos)
-        result.unionOrAssign(unsignedBitwiseOr(ir1neg, ir2pos), /*ref*/hasResult);
+        result.unionOrAssign(unsignedBitwiseOr(ir1neg, ir2pos), hasResult);
     if (has1neg && has2neg)
-        result.unionOrAssign(unsignedBitwiseOr(ir1neg, ir2neg), /*ref*/hasResult);
+        result.unionOrAssign(unsignedBitwiseOr(ir1neg, ir2neg), hasResult);
 
     assert(hasResult);
     return result.cast(type);
@@ -3086,13 +3087,13 @@ IntRange XorExp::getIntRange()
     IntRange result;
     bool hasResult = false;
     if (has1pos && has2pos)
-        result.unionOrAssign(unsignedBitwiseXor(ir1pos, ir2pos), /*ref*/hasResult);
+        result.unionOrAssign(unsignedBitwiseXor(ir1pos, ir2pos), hasResult);
     if (has1pos && has2neg)
-        result.unionOrAssign(unsignedBitwiseXor(ir1pos, ir2neg), /*ref*/hasResult);
+        result.unionOrAssign(unsignedBitwiseXor(ir1pos, ir2neg), hasResult);
     if (has1neg && has2pos)
-        result.unionOrAssign(unsignedBitwiseXor(ir1neg, ir2pos), /*ref*/hasResult);
+        result.unionOrAssign(unsignedBitwiseXor(ir1neg, ir2pos), hasResult);
     if (has1neg && has2neg)
-        result.unionOrAssign(unsignedBitwiseXor(ir1neg, ir2neg), /*ref*/hasResult);
+        result.unionOrAssign(unsignedBitwiseXor(ir1neg, ir2neg), hasResult);
 
     assert(hasResult);
     return result.cast(type);

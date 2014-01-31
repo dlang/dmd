@@ -43,8 +43,10 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
     static const char msg[] = "only object.d can define this reserved class name";
 
     if (baseclasses)
+    {
         // Actually, this is a transfer
         this->baseclasses = baseclasses;
+    }
     else
         this->baseclasses = new BaseClasses();
     baseClass = NULL;

@@ -54,8 +54,8 @@ int isDruntimeArrayOp(Identifier *ident)
     static const char *libArrayopFuncs[] =
     {
         "_arrayExpSliceAddass_a",
-        "_arrayExpSliceAddass_d",           // T[]+=T
-        "_arrayExpSliceAddass_f",           // T[]+=T
+        "_arrayExpSliceAddass_d",
+        "_arrayExpSliceAddass_f",
         "_arrayExpSliceAddass_g",
         "_arrayExpSliceAddass_h",
         "_arrayExpSliceAddass_i",
@@ -65,12 +65,12 @@ int isDruntimeArrayOp(Identifier *ident)
         "_arrayExpSliceAddass_u",
         "_arrayExpSliceAddass_w",
 
-        "_arrayExpSliceDivass_d",           // T[]/=T
-        "_arrayExpSliceDivass_f",           // T[]/=T
+        "_arrayExpSliceDivass_d",
+        "_arrayExpSliceDivass_f",
 
         "_arrayExpSliceMinSliceAssign_a",
-        "_arrayExpSliceMinSliceAssign_d",   // T[]=T-T[]
-        "_arrayExpSliceMinSliceAssign_f",   // T[]=T-T[]
+        "_arrayExpSliceMinSliceAssign_d",
+        "_arrayExpSliceMinSliceAssign_f",
         "_arrayExpSliceMinSliceAssign_g",
         "_arrayExpSliceMinSliceAssign_h",
         "_arrayExpSliceMinSliceAssign_i",
@@ -81,8 +81,8 @@ int isDruntimeArrayOp(Identifier *ident)
         "_arrayExpSliceMinSliceAssign_w",
 
         "_arrayExpSliceMinass_a",
-        "_arrayExpSliceMinass_d",           // T[]-=T
-        "_arrayExpSliceMinass_f",           // T[]-=T
+        "_arrayExpSliceMinass_d",
+        "_arrayExpSliceMinass_f",
         "_arrayExpSliceMinass_g",
         "_arrayExpSliceMinass_h",
         "_arrayExpSliceMinass_i",
@@ -92,8 +92,8 @@ int isDruntimeArrayOp(Identifier *ident)
         "_arrayExpSliceMinass_u",
         "_arrayExpSliceMinass_w",
 
-        "_arrayExpSliceMulass_d",           // T[]*=T
-        "_arrayExpSliceMulass_f",           // T[]*=T
+        "_arrayExpSliceMulass_d",
+        "_arrayExpSliceMulass_f",
         "_arrayExpSliceMulass_i",
         "_arrayExpSliceMulass_k",
         "_arrayExpSliceMulass_s",
@@ -102,8 +102,8 @@ int isDruntimeArrayOp(Identifier *ident)
         "_arrayExpSliceMulass_w",
 
         "_arraySliceExpAddSliceAssign_a",
-        "_arraySliceExpAddSliceAssign_d",   // T[]=T[]+T
-        "_arraySliceExpAddSliceAssign_f",   // T[]=T[]+T
+        "_arraySliceExpAddSliceAssign_d",
+        "_arraySliceExpAddSliceAssign_f",
         "_arraySliceExpAddSliceAssign_g",
         "_arraySliceExpAddSliceAssign_h",
         "_arraySliceExpAddSliceAssign_i",
@@ -113,12 +113,12 @@ int isDruntimeArrayOp(Identifier *ident)
         "_arraySliceExpAddSliceAssign_u",
         "_arraySliceExpAddSliceAssign_w",
 
-        "_arraySliceExpDivSliceAssign_d",   // T[]=T[]/T
-        "_arraySliceExpDivSliceAssign_f",   // T[]=T[]/T
+        "_arraySliceExpDivSliceAssign_d",
+        "_arraySliceExpDivSliceAssign_f",
 
         "_arraySliceExpMinSliceAssign_a",
-        "_arraySliceExpMinSliceAssign_d",   // T[]=T[]-T
-        "_arraySliceExpMinSliceAssign_f",   // T[]=T[]-T
+        "_arraySliceExpMinSliceAssign_d",
+        "_arraySliceExpMinSliceAssign_f",
         "_arraySliceExpMinSliceAssign_g",
         "_arraySliceExpMinSliceAssign_h",
         "_arraySliceExpMinSliceAssign_i",
@@ -128,12 +128,12 @@ int isDruntimeArrayOp(Identifier *ident)
         "_arraySliceExpMinSliceAssign_u",
         "_arraySliceExpMinSliceAssign_w",
 
-        "_arraySliceExpMulSliceAddass_d",   // T[] += T[]*T
+        "_arraySliceExpMulSliceAddass_d",
         "_arraySliceExpMulSliceAddass_f",
         "_arraySliceExpMulSliceAddass_r",
 
-        "_arraySliceExpMulSliceAssign_d",   // T[]=T[]*T
-        "_arraySliceExpMulSliceAssign_f",   // T[]=T[]*T
+        "_arraySliceExpMulSliceAssign_d",
+        "_arraySliceExpMulSliceAssign_f",
         "_arraySliceExpMulSliceAssign_i",
         "_arraySliceExpMulSliceAssign_k",
         "_arraySliceExpMulSliceAssign_s",
@@ -141,26 +141,26 @@ int isDruntimeArrayOp(Identifier *ident)
         "_arraySliceExpMulSliceAssign_u",
         "_arraySliceExpMulSliceAssign_w",
 
-        "_arraySliceExpMulSliceMinass_d",   // T[] -= T[]*T
+        "_arraySliceExpMulSliceMinass_d",
         "_arraySliceExpMulSliceMinass_f",
         "_arraySliceExpMulSliceMinass_r",
 
         "_arraySliceSliceAddSliceAssign_a",
-        "_arraySliceSliceAddSliceAssign_d", // T[]=T[]+T[]
-        "_arraySliceSliceAddSliceAssign_f", // T[]=T[]+T[]
+        "_arraySliceSliceAddSliceAssign_d",
+        "_arraySliceSliceAddSliceAssign_f",
         "_arraySliceSliceAddSliceAssign_g",
         "_arraySliceSliceAddSliceAssign_h",
         "_arraySliceSliceAddSliceAssign_i",
         "_arraySliceSliceAddSliceAssign_k",
-        "_arraySliceSliceAddSliceAssign_r", // T[]=T[]+T[]
+        "_arraySliceSliceAddSliceAssign_r",
         "_arraySliceSliceAddSliceAssign_s",
         "_arraySliceSliceAddSliceAssign_t",
         "_arraySliceSliceAddSliceAssign_u",
         "_arraySliceSliceAddSliceAssign_w",
 
         "_arraySliceSliceAddass_a",
-        "_arraySliceSliceAddass_d",         // T[]+=T[]
-        "_arraySliceSliceAddass_f",         // T[]+=T[]
+        "_arraySliceSliceAddass_d",
+        "_arraySliceSliceAddass_f",
         "_arraySliceSliceAddass_g",
         "_arraySliceSliceAddass_h",
         "_arraySliceSliceAddass_i",
@@ -171,21 +171,21 @@ int isDruntimeArrayOp(Identifier *ident)
         "_arraySliceSliceAddass_w",
 
         "_arraySliceSliceMinSliceAssign_a",
-        "_arraySliceSliceMinSliceAssign_d", // T[]=T[]-T[]
-        "_arraySliceSliceMinSliceAssign_f", // T[]=T[]-T[]
+        "_arraySliceSliceMinSliceAssign_d",
+        "_arraySliceSliceMinSliceAssign_f",
         "_arraySliceSliceMinSliceAssign_g",
         "_arraySliceSliceMinSliceAssign_h",
         "_arraySliceSliceMinSliceAssign_i",
         "_arraySliceSliceMinSliceAssign_k",
-        "_arraySliceSliceMinSliceAssign_r", // T[]=T[]-T[]
+        "_arraySliceSliceMinSliceAssign_r",
         "_arraySliceSliceMinSliceAssign_s",
         "_arraySliceSliceMinSliceAssign_t",
         "_arraySliceSliceMinSliceAssign_u",
         "_arraySliceSliceMinSliceAssign_w",
 
         "_arraySliceSliceMinass_a",
-        "_arraySliceSliceMinass_d",         // T[]-=T[]
-        "_arraySliceSliceMinass_f",         // T[]-=T[]
+        "_arraySliceSliceMinass_d",
+        "_arraySliceSliceMinass_f",
         "_arraySliceSliceMinass_g",
         "_arraySliceSliceMinass_h",
         "_arraySliceSliceMinass_i",
@@ -195,8 +195,8 @@ int isDruntimeArrayOp(Identifier *ident)
         "_arraySliceSliceMinass_u",
         "_arraySliceSliceMinass_w",
 
-        "_arraySliceSliceMulSliceAssign_d", // T[]=T[]*T[]
-        "_arraySliceSliceMulSliceAssign_f", // T[]=T[]*T[]
+        "_arraySliceSliceMulSliceAssign_d",
+        "_arraySliceSliceMulSliceAssign_f",
         "_arraySliceSliceMulSliceAssign_i",
         "_arraySliceSliceMulSliceAssign_k",
         "_arraySliceSliceMulSliceAssign_s",
@@ -204,8 +204,8 @@ int isDruntimeArrayOp(Identifier *ident)
         "_arraySliceSliceMulSliceAssign_u",
         "_arraySliceSliceMulSliceAssign_w",
 
-        "_arraySliceSliceMulass_d",         // T[]*=T[]
-        "_arraySliceSliceMulass_f",         // T[]*=T[]
+        "_arraySliceSliceMulass_d",
+        "_arraySliceSliceMulass_f",
         "_arraySliceSliceMulass_i",
         "_arraySliceSliceMulass_k",
         "_arraySliceSliceMulass_s",
@@ -245,7 +245,7 @@ ArrayOp *buildArrayOp(Identifier *ident, BinExp *exp, Scope *sc, Loc loc)
      *  return p;
      */
 
-    Parameter *p = (*fparams)[0 /*fparams->dim - 1*/];
+    Parameter *p = (*fparams)[0];
     // foreach (i; 0 .. p.length)
     Statement *s1 = new ForeachRangeStatement(Loc(), TOKforeach,
         new Parameter(0, NULL, Id::p, NULL),

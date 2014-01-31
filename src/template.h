@@ -117,21 +117,20 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
+/* For type-parameter:
+ *  template Foo(ident)             // specType is set to NULL
+ *  template Foo(ident : specType)
+ * For value-parameter:
+ *  template Foo(valType ident)     // specValue is set to NULL
+ *  template Foo(valType ident : specValue)
+ * For alias-parameter:
+ *  template Foo(alias ident)
+ * For this-parameter:
+ *  template Foo(this ident)
+ */
 class TemplateParameter
 {
 public:
-    /* For type-parameter:
-     *  template Foo(ident)             // specType is set to NULL
-     *  template Foo(ident : specType)
-     * For value-parameter:
-     *  template Foo(valType ident)     // specValue is set to NULL
-     *  template Foo(valType ident : specValue)
-     * For alias-parameter:
-     *  template Foo(alias ident)
-     * For this-parameter:
-     *  template Foo(this ident)
-     */
-
     Loc loc;
     Identifier *ident;
 
@@ -167,12 +166,12 @@ public:
     virtual void *dummyArg() = 0;
 };
 
+/* Syntax:
+ *  ident : specType = defaultType
+ */
 class TemplateTypeParameter : public TemplateParameter
 {
 public:
-    /* Syntax:
-     *  ident : specType = defaultType
-     */
     Type *specType;     // type parameter: if !=NULL, this is the type specialization
     Type *defaultType;
 
@@ -193,13 +192,12 @@ public:
     void *dummyArg();
 };
 
+/* Syntax:
+ *  this ident : specType = defaultType
+ */
 class TemplateThisParameter : public TemplateTypeParameter
 {
 public:
-    /* Syntax:
-     *  this ident : specType = defaultType
-     */
-
     TemplateThisParameter(Loc loc, Identifier *ident, Type *specType, Type *defaultType);
 
     TemplateThisParameter *isTemplateThisParameter();
@@ -207,13 +205,12 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 
+/* Syntax:
+ *  valType ident : specValue = defaultValue
+ */
 class TemplateValueParameter : public TemplateParameter
 {
 public:
-    /* Syntax:
-     *  valType ident : specValue = defaultValue
-     */
-
     Type *valType;
     Expression *specValue;
     Expression *defaultValue;
@@ -235,13 +232,12 @@ public:
     void *dummyArg();
 };
 
+/* Syntax:
+ *  specType ident : specAlias = defaultAlias
+ */
 class TemplateAliasParameter : public TemplateParameter
 {
 public:
-    /* Syntax:
-     *  specType ident : specAlias = defaultAlias
-     */
-
     Type *specType;
     RootObject *specAlias;
     RootObject *defaultAlias;
@@ -263,13 +259,12 @@ public:
     void *dummyArg();
 };
 
+/* Syntax:
+ *  ident ...
+ */
 class TemplateTupleParameter : public TemplateParameter
 {
 public:
-    /* Syntax:
-     *  ident ...
-     */
-
     TemplateTupleParameter(Loc loc, Identifier *ident);
 
     TemplateTupleParameter *isTemplateTupleParameter();
@@ -286,14 +281,14 @@ public:
     void *dummyArg();
 };
 
+/* Given:
+ *  foo!(args) =>
+ *      name = foo
+ *      tiargs = args
+ */
 class TemplateInstance : public ScopeDsymbol
 {
 public:
-    /* Given:
-     *  foo!(args) =>
-     *      name = foo
-     *      tiargs = args
-     */
     Identifier *name;
     Objects *tiargs;            // Array of Types/Expressions of template
                                 // instance arguments [int*, char, 10*10]
