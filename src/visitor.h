@@ -538,4 +538,11 @@ public:
     virtual void visit(ThrownExceptionExp *e) { visit((Expression *)e); }
 };
 
+class StoppableVisitor : public Visitor
+{
+public:
+    bool stop;
+    StoppableVisitor() : stop(false) {}
+};
+
 #endif /* DMD_VISITOR_H */
