@@ -847,18 +847,6 @@ public:
     /**************************************
      */
 
-    void visit(DtorExpStatement *s)
-    {
-        //printf("DtorExpStatement::toIR(), exp = %s\n", exp ? exp->toChars() : "");
-
-        //FuncDeclaration *fd = irs->getFunc();
-        //assert(fd);
-        visit((ExpStatement *)s);
-    }
-
-    /**************************************
-     */
-
     void visit(CompoundStatement *s)
     {
         if (s->statements)
@@ -1090,24 +1078,6 @@ public:
     void visit(TryFinallyStatement *s)
     {
         //printf("TryFinallyStatement::toIR()\n");
-
-        if (s->finalbody)
-        {
-            DtorExpStatement *des = s->finalbody->isDtorExpStatement();
-            if (des)
-            {
-                FuncDeclaration *fd = irs->getFunc();
-                assert(fd);
-                if (fd->nrvo_can && fd->nrvo_var == des->var)
-                {
-                    assert(fd->nrvo_dtor);
-                    TryCatchStatement *tcs = (TryCatchStatement *)fd->nrvo_dtor;
-                    tcs->body = s->body;
-                    Statement_toIR(tcs, irs);
-                    return;
-                }
-            }
-        }
 
         Blockx *blx = irs->blx;
 
