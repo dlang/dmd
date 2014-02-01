@@ -1733,7 +1733,7 @@ Lagain:
                         }
                     }
                     TypeSArray *ta = tab->ty == Tsarray ? (TypeSArray *)tab : NULL;
-                    if (ta && !IntRange::fromType(var->type).contains(ta->dim->getIntRange()))
+                    if (ta && !IntRange::fromType(var->type).contains(getIntRange(ta->dim)))
                     {
                         error("index type '%s' cannot cover index range 0..%llu", arg->type->toChars(), ta->dim->toInteger());
                     }

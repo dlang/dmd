@@ -90,6 +90,7 @@ Expression *resolveOpDollar(Scope *sc, SliceExp *se);
 Expressions *arrayExpressionSemantic(Expressions *exps, Scope *sc);
 
 AggregateDeclaration *isAggregate(Type *t);
+IntRange getIntRange(Expression *e);
 
 /* Run CTFE on the expression, but allow the expression to be a TypeExp
  * or a tuple containing a TypeExp. (This is required by pragma(msg)).
@@ -153,7 +154,6 @@ public:
     virtual Expression *modifiableLvalue(Scope *sc, Expression *e);
     virtual Expression *implicitCastTo(Scope *sc, Type *t);
     virtual MATCH implicitConvTo(Type *t);
-    virtual IntRange getIntRange();
     virtual Expression *castTo(Scope *sc, Type *t);
     virtual Expression *inferType(Type *t, int flag = 0, Scope *sc = NULL, TemplateParameters *tparams = NULL);
     virtual void checkEscape();
@@ -226,7 +226,6 @@ public:
     Expression *semantic(Scope *sc);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     char *toChars();
-    IntRange getIntRange();
     dinteger_t toInteger();
     real_t toReal();
     real_t toImaginary();
@@ -1162,7 +1161,6 @@ public:
     Expression *optimize(int result, bool keepLvalue = false);
     void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
     Expression *buildArrayLoop(Parameters *fparams);
-    IntRange getIntRange();
 
     // For operator overloading
     Identifier *opId();
@@ -1190,7 +1188,6 @@ public:
     Expression *optimize(int result, bool keepLvalue = false);
     void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
     Expression *buildArrayLoop(Parameters *fparams);
-    IntRange getIntRange();
 
     // For operator overloading
     Identifier *opId();
@@ -1242,7 +1239,6 @@ public:
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     MATCH implicitConvTo(Type *t);
-    IntRange getIntRange();
     Expression *optimize(int result, bool keepLvalue = false);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     void checkEscape();
@@ -1365,7 +1361,6 @@ public:
     void checkEscape();
     void checkEscapeRef();
     int checkModifiable(Scope *sc, int flag);
-    IntRange getIntRange();
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
@@ -1578,7 +1573,6 @@ public:
     AddExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
     Expression *optimize(int result, bool keepLvalue = false);
-    IntRange getIntRange();
 
     // For operator overloading
     int isCommutative();
@@ -1595,7 +1589,6 @@ public:
     MinExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
     Expression *optimize(int result, bool keepLvalue = false);
-    IntRange getIntRange();
 
     // For operator overloading
     Identifier *opId();
@@ -1627,7 +1620,6 @@ public:
     MulExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
     Expression *optimize(int result, bool keepLvalue = false);
-    IntRange getIntRange();
 
     // For operator overloading
     int isCommutative();
@@ -1644,7 +1636,6 @@ public:
     DivExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
     Expression *optimize(int result, bool keepLvalue = false);
-    IntRange getIntRange();
 
     // For operator overloading
     Identifier *opId();
@@ -1660,7 +1651,6 @@ public:
     ModExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
     Expression *optimize(int result, bool keepLvalue = false);
-    IntRange getIntRange();
 
     // For operator overloading
     Identifier *opId();
@@ -1691,7 +1681,6 @@ public:
     ShlExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
     Expression *optimize(int result, bool keepLvalue = false);
-    IntRange getIntRange();
 
     // For operator overloading
     Identifier *opId();
@@ -1707,7 +1696,6 @@ public:
     ShrExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
     Expression *optimize(int result, bool keepLvalue = false);
-    IntRange getIntRange();
 
     // For operator overloading
     Identifier *opId();
@@ -1723,7 +1711,6 @@ public:
     UshrExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
     Expression *optimize(int result, bool keepLvalue = false);
-    IntRange getIntRange();
 
     // For operator overloading
     Identifier *opId();
@@ -1739,7 +1726,6 @@ public:
     AndExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
     Expression *optimize(int result, bool keepLvalue = false);
-    IntRange getIntRange();
 
     // For operator overloading
     int isCommutative();
@@ -1757,7 +1743,6 @@ public:
     Expression *semantic(Scope *sc);
     Expression *optimize(int result, bool keepLvalue = false);
     MATCH implicitConvTo(Type *t);
-    IntRange getIntRange();
 
     // For operator overloading
     int isCommutative();
@@ -1775,7 +1760,6 @@ public:
     Expression *semantic(Scope *sc);
     Expression *optimize(int result, bool keepLvalue = false);
     MATCH implicitConvTo(Type *t);
-    IntRange getIntRange();
 
     // For operator overloading
     int isCommutative();
