@@ -1038,6 +1038,25 @@ void test10678()
 
 ////////////////////////////////////////////////////////////////////////
 
+struct S12051
+{
+    this(char c)
+    {
+        assert(c == 'P' || c == 'M');
+    }
+}
+
+void test12051()
+{
+    auto ip = ["abc"];
+    foreach (i, s; ip)
+    {
+        S12051(i < ip.length ? 'P' : 'M');
+    }
+}
+
+////////////////////////////////////////////////////////////////////////
+
 void bug7565( double x) { assert(x == 3); }
 
 void test7565()
@@ -1073,6 +1092,7 @@ int main()
     test8658();
     testfastudiv();
     testfastdiv();
+    test12051();
     testdocond();
     testnegcom();
     test11565();
