@@ -201,10 +201,37 @@ public:
     FuncDeclaration *fd;
     Scope *sc;
 
+    void visit(ReturnStatement *s)
+    {
+        Expression *exp = s->exp;
+        if (exp)
+        {
+            TypeFunction *tf = (TypeFunction *)fd->type;
+
+            /* Bugzilla 10789:
+             * If NRVO is not possible, all returned lvalues should call their postblits.
+             */
+            if (!fd->nrvo_can && !tf->isref && exp->isLvalue())
+                exp = callCpCtor(sc, exp);
+
+            /* Bugzilla 8665:
+             * If auto function has multiple return statements, returned values
+             * should be fixed to the determined return type.
+             */
+            if (!fd->tintro && !tf->next->immutableOf()->equals(exp->type->immutableOf()))
+            {
+                exp = exp->castTo(sc, tf->next);
+                exp = exp->optimize(WANTvalue);
+            }
+
+            s->exp = exp;
+        }
+    }
     void visit(TryFinallyStatement *s)
     {
         DtorExpStatement *des;
-        if (s->finalbody && (des = s->finalbody->isDtorExpStatement()) != NULL &&
+        if (fd->nrvo_can &&
+            s->finalbody && (des = s->finalbody->isDtorExpStatement()) != NULL &&
             fd->nrvo_var == des->var)
         {
             /* Normally local variable dtors are called regardless exceptions.
@@ -305,7 +332,6 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
     tookAddressOf = 0;
     requiresClosure = false;
     flags = 0;
-    returns = NULL;
     gotos = NULL;
 }
 
@@ -1525,28 +1551,12 @@ void FuncDeclaration::semantic3(Scope *sc)
                     //type = type->semantic(loc, sc);   // Removed with 6902
                 }
             }
-            if (returns && f->next->ty != Tvoid)
+            if (f->next->ty != Tvoid)
             {
-                for (size_t i = 0; i < returns->dim; i++)
-                {
-                    Expression *exp = (*returns)[i]->exp;
-                    if (!nrvo_can && !f->isref && exp->isLvalue())
-                        exp = callCpCtor(sc2, exp);
-                    if (!tintro && !f->next->immutableOf()->equals(exp->type->immutableOf()))
-                    {
-                        exp = exp->castTo(sc2, f->next);
-                        exp = exp->optimize(WANTvalue);
-                    }
-                    //printf("[%d] %s %s\n", i, exp->type->toChars(), exp->toChars());
-                    (*returns)[i]->exp = exp;
-                }
-                if (nrvo_can && nrvo_var && nrvo_var->edtor)
-                {
-                    NrvoWalker nw;
-                    nw.fd = this;
-                    nw.sc = sc2;
-                    fbody->accept(&nw);
-                }
+                NrvoWalker nw;
+                nw.fd = this;
+                nw.sc = sc2;
+                fbody->accept(&nw);
             }
             assert(type == f);
 
