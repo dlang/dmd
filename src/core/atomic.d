@@ -69,7 +69,7 @@ version( CoreDdoc )
      *  The result of the operation.
      */
     HeadUnshared!(T) atomicOp(string op, T, V1)( ref shared T val, V1 mod ) nothrow
-        if( __traits( compiles, mixin( "val" ~ op ~ "mod" ) ) )
+        if( __traits( compiles, mixin( "*cast(T*)&val" ~ op ~ "mod" ) ) )
     {
         return HeadUnshared!(T).init;
     }
@@ -155,7 +155,7 @@ version( CoreDdoc )
 else version( AsmX86_32 )
 {
     HeadUnshared!(T) atomicOp(string op, T, V1)( ref shared T val, V1 mod ) nothrow
-        if( __traits( compiles, mixin( "val" ~ op ~ "mod" ) ) )
+        if( __traits( compiles, mixin( "*cast(T*)&val" ~ op ~ "mod" ) ) )
     in
     {
         // NOTE: 32 bit x86 systems support 8 byte CAS, which only requires
@@ -633,7 +633,7 @@ else version( AsmX86_32 )
 else version( AsmX86_64 )
 {
     HeadUnshared!(T) atomicOp(string op, T, V1)( ref shared T val, V1 mod ) nothrow
-        if( __traits( compiles, mixin( "val" ~ op ~ "mod" ) ) )
+        if( __traits( compiles, mixin( "*cast(T*)&val" ~ op ~ "mod" ) ) )
     in
     {
         // NOTE: 32 bit x86 systems support 8 byte CAS, which only requires
