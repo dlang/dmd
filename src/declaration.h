@@ -24,7 +24,6 @@ class Statement;
 class LabelDsymbol;
 class Initializer;
 class Module;
-struct InlineScanState;
 class ForeachStatement;
 class FuncDeclaration;
 class ExpInitializer;
@@ -698,9 +697,7 @@ public:
     virtual bool addPostInvariant();
     Expression *interpret(InterState *istate, Expressions *arguments, Expression *thisexp = NULL);
     void ctfeCompile();
-    void inlineScan();
     int canInline(int hasthis, int hdrscan, int statementsToo);
-    Expression *expandInline(InlineScanState *iss, Expression *eret, Expression *ethis, Expressions *arguments, Statement **ps);
     const char *kind();
     void toDocBuffer(OutBuffer *buf, Scope *sc);
     FuncDeclaration *isUnique();
@@ -913,7 +910,6 @@ public:
     bool addPreInvariant();
     bool addPostInvariant();
     void emitComment(Scope *sc);
-    void inlineScan();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     UnitTestDeclaration *isUnitTestDeclaration() { return this; }

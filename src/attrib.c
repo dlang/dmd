@@ -190,20 +190,6 @@ void AttribDeclaration::semantic3(Scope *sc)
     }
 }
 
-void AttribDeclaration::inlineScan()
-{
-    Dsymbols *d = include(NULL, NULL);
-
-    if (d)
-    {
-        for (size_t i = 0; i < d->dim; i++)
-        {   Dsymbol *s = (*d)[i];
-            //printf("AttribDeclaration::inlineScan %s\n", s->toChars());
-            s->inlineScan();
-        }
-    }
-}
-
 void AttribDeclaration::addComment(const utf8_t *comment)
 {
     //printf("AttribDeclaration::addComment %s\n", comment);

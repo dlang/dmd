@@ -33,7 +33,6 @@ class Import;
 class Module;
 class ScopeDsymbol;
 struct InlineDoState;
-struct InlineScanState;
 class Expression;
 class Declaration;
 class AggregateDeclaration;

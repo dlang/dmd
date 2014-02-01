@@ -45,7 +45,6 @@ public:
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
     void semantic3(Scope *sc);
-    void inlineScan();
     void addComment(const utf8_t *comment);
     void emitComment(Scope *sc);
     const char *kind();

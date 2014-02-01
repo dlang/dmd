@@ -35,7 +35,6 @@ class Condition;
 class Module;
 struct Token;
 struct InlineDoState;
-struct InlineScanState;
 class ErrorStatement;
 class ReturnStatement;
 class CompoundStatement;

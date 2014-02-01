@@ -328,7 +328,6 @@ public:
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
     void semantic3(Scope *sc);
-    void inlineScan();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toCBufferTiargs(OutBuffer *buf, HdrGenState *hgs);
     Dsymbol *toAlias();                 // resolve real symbol
@@ -372,7 +371,6 @@ public:
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
     void semantic3(Scope *sc);
-    void inlineScan();
     const char *kind();
     bool oneMember(Dsymbol **ps, Identifier *ident);
     int apply(Dsymbol_apply_ft_t fp, void *param);
