@@ -347,12 +347,7 @@ void TypedefDeclaration::semantic(Scope *sc)
             return;
         }
         storage_class |= sc->stc & STCdeprecated;
-        userAttributes = sc->userAttributes;
-        if (userAttributes)
-        {
-            userAttributesScope = sc;
-            userAttributesScope->setNoFree();
-        }
+        userAttribDecl = sc->userAttribDecl;
     }
     else if (sem == SemanticIn)
     {
@@ -366,7 +361,8 @@ void TypedefDeclaration::semantic2(Scope *sc)
 {
     //printf("TypedefDeclaration::semantic2(%s) sem = %d\n", toChars(), sem);
     if (sem == SemanticDone)
-    {   sem = Semantic2Done;
+    {
+        sem = Semantic2Done;
         basetype->alignment();          // used to detect circular typedef declarations
         if (init)
         {
@@ -491,12 +487,7 @@ void AliasDeclaration::semantic(Scope *sc)
 
     storage_class |= sc->stc & STCdeprecated;
     protection = sc->protection;
-    userAttributes = sc->userAttributes;
-    if (userAttributes)
-    {
-        userAttributesScope = sc;
-        userAttributesScope->setNoFree();
-    }
+    userAttribDecl = sc->userAttribDecl;
 
     // Given:
     //  alias foo.bar.abc def;
@@ -824,12 +815,7 @@ void VarDeclaration::semantic(Scope *sc)
     if (storage_class & STCextern && init)
         error("extern symbols cannot have initializers");
 
-    userAttributes = sc->userAttributes;
-    if (userAttributes)
-    {
-        userAttributesScope = sc;
-        userAttributesScope->setNoFree();
-    }
+    userAttribDecl = sc->userAttribDecl;
 
     AggregateDeclaration *ad = isThis();
     if (ad)
@@ -1567,7 +1553,8 @@ void VarDeclaration::semantic2(Scope *sc)
         }
     }
     if (init && !toParent()->isFuncDeclaration())
-    {   inuse++;
+    {
+        inuse++;
 #if 0
         ExpInitializer *ei = init->isExpInitializer();
         if (ei)

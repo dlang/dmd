@@ -1661,35 +1661,79 @@ Dsymbol *UserAttributeDeclaration::syntaxCopy(Dsymbol *s)
     return new UserAttributeDeclaration(atts, Dsymbol::arraySyntaxCopy(decl));
 }
 
-void UserAttributeDeclaration::semantic(Scope *sc)
+void UserAttributeDeclaration::setScope(Scope *sc)
 {
-    //printf("UserAttributeDeclaration::semantic() %p\n", this);
-
-    /* Bugzilla 11844: Delay semantic analysis for UDAs.
-     * If attrs needs CTFE or template instantiation, they may not have
-     * valid scope yet for their fwdref resolution.
-     * Therefore running semantic analysis here is too early.
-     */
-    //arrayExpressionSemantic(atts, sc);
-
+    //printf("UserAttributeDeclaration::setScope() %p\n", this);
     if (decl)
     {
+        Dsymbol::setScope(sc);  // for forward reference of UDAs
+
         Scope *newsc = sc;
-#if 1
         if (atts && atts->dim)
         {
             // create new one for changes
-            newsc = new Scope(*sc);
-            newsc->flags &= ~SCOPEfree;
-
-            // Create new uda that is the concatenation of the previous
-            newsc->userAttributes = concat(newsc->userAttributes, atts);
+            newsc = sc->push();
+            newsc->userAttribDecl = this;
         }
-#endif
         for (size_t i = 0; i < decl->dim; i++)
-        {   Dsymbol *s = (*decl)[i];
+        {
+            Dsymbol *s = (*decl)[i];
+            s->setScope(newsc); // yes, the only difference from semantic()
+        }
+        if (newsc != sc)
+        {
+            sc->offset = newsc->offset;
+            newsc->pop();
+        }
+    }
+}
 
+void UserAttributeDeclaration::semantic(Scope *sc)
+{
+    //printf("UserAttributeDeclaration::semantic() %p\n", this);
+    if (decl)
+    {
+        Scope *newsc = sc;
+        if (atts && atts->dim)
+        {
+            // create new one for changes
+            newsc = sc->push();
+            newsc->userAttribDecl = this;
+        }
+        for (size_t i = 0; i < decl->dim; i++)
+        {
+            Dsymbol *s = (*decl)[i];
             s->semantic(newsc);
+        }
+        if (newsc != sc)
+        {
+            sc->offset = newsc->offset;
+            newsc->pop();
+        }
+    }
+}
+
+void UserAttributeDeclaration::semantic2(Scope *sc)
+{
+    if (decl)
+    {
+        Scope *newsc = sc;
+        if (atts && atts->dim)
+        {
+            if (scope)
+            {
+                scope = NULL;
+                arrayExpressionSemantic(atts, sc);  // run semantic
+            }
+
+            // create new one for changes
+            newsc = sc->push();
+            newsc->userAttribDecl = this;
+        }
+        for (size_t i = 0; i < decl->dim; i++)
+        {
+            Dsymbol *s = (*decl)[i];
+            s->semantic2(newsc);
         }
         if (newsc != sc)
         {
@@ -1718,43 +1762,22 @@ Expressions *UserAttributeDeclaration::concat(Expressions *udas1, Expressions *u
     return udas;
 }
 
-void UserAttributeDeclaration::setScope(Scope *sc)
+Expressions *UserAttributeDeclaration::getAttributes()
 {
-    //printf("UserAttributeDeclaration::setScope() %p\n", this);
-    if (decl)
+    if (scope)
     {
-        Scope *newsc = sc;
-#if 1
-        if (atts && atts->dim)
-        {
-            // create new one for changes
-            newsc = new Scope(*sc);
-            newsc->flags &= ~SCOPEfree;
-
-            // Append new atts to old one
-            if (!newsc->userAttributes || newsc->userAttributes->dim == 0)
-                newsc->userAttributes = atts;
-            else
-            {
-                // Create a tuple that combines them
-                Expressions *exps = new Expressions();
-                exps->push(new TupleExp(Loc(), newsc->userAttributes));
-                exps->push(new TupleExp(Loc(), atts));
-                newsc->userAttributes = exps;
-            }
-        }
-#endif
-        for (size_t i = 0; i < decl->dim; i++)
-        {   Dsymbol *s = (*decl)[i];
-
-            s->setScope(newsc); // yes, the only difference from semantic()
-        }
-        if (newsc != sc)
-        {
-            sc->offset = newsc->offset;
-            newsc->pop();
-        }
+        Scope *sc = scope;
+        scope = NULL;
+        arrayExpressionSemantic(atts, sc);
     }
+
+    Expressions *exps = new Expressions();
+    if (userAttribDecl)
+        exps->push(new TupleExp(Loc(), userAttribDecl->getAttributes()));
+    if (atts && atts->dim)
+        exps->push(new TupleExp(Loc(), atts));
+
+    return exps;
 }
 
 void UserAttributeDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)

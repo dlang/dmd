@@ -576,12 +576,9 @@ Expression *TraitsExp::semantic(Scope *sc)
             goto Lfalse;
         }
         //printf("getAttributes %s, attrs = %p, scope = %p\n", s->toChars(), s->userAttributes, s->userAttributesScope);
-        Expressions *exps;
-        if (!s->userAttributes)
-            s->userAttributes = new Expressions();
-        Scope *sc2 = s->userAttributesScope ? s->userAttributesScope : sc;
-        TupleExp *tup = new TupleExp(loc, s->userAttributes);
-        return tup->semantic(sc2);
+        UserAttributeDeclaration *udad = s->userAttribDecl;
+        TupleExp *tup = new TupleExp(loc, udad ? udad->getAttributes() : new Expressions());
+        return tup->semantic(sc);
     }
     else if (ident == Id::allMembers || ident == Id::derivedMembers)
     {

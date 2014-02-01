@@ -119,7 +119,8 @@ void AggregateDeclaration::semantic2(Scope *sc)
 {
     //printf("AggregateDeclaration::semantic2(%s)\n", toChars());
     if (scope && members)
-    {   error("has forward references");
+    {
+        error("has forward references");
         return;
     }
     if (members)
@@ -605,12 +606,7 @@ void StructDeclaration::semantic(Scope *sc)
     assert(!isAnonymous());
     if (sc->stc & STCabstract)
         error("structs, unions cannot be abstract");
-    userAttributes = sc->userAttributes;
-    if (userAttributes)
-    {
-        userAttributesScope = sc;
-        userAttributesScope->setNoFree();
-    }
+    userAttribDecl = sc->userAttribDecl;
 
     if (sizeok == SIZEOKnone)            // if not already done the addMember step
     {
@@ -631,7 +627,7 @@ void StructDeclaration::semantic(Scope *sc)
     sc2->protection = PROTpublic;
     sc2->explicitProtection = 0;
     sc2->structalign = STRUCTALIGN_DEFAULT;
-    sc2->userAttributes = NULL;
+    sc2->userAttribDecl = NULL;
 
     /* Set scope so if there are forward references, we still might be able to
      * resolve individual members like enums.
