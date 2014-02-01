@@ -525,7 +525,7 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
                      tk->value == TOKlcurly ||
                      tk->value == TOKin ||
                      tk->value == TOKout ||
-                     tk->value == TOKbody)
+                     (tk->value == TOKidentifier && tk->ident == Id::body))
                    )
                 {
                     a = parseDeclarations(storageClass, comment);
@@ -3248,7 +3248,7 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, const utf8_t *co
          tk->value == TOKlcurly ||
          tk->value == TOKin ||
          tk->value == TOKout ||
-         tk->value == TOKbody)
+         (tk->value == TOKidentifier && tk->ident == Id::body))
        )
     {
         ts = NULL;
@@ -3546,7 +3546,9 @@ L1:
             f->endloc = endloc;
             break;
 
-        case TOKbody:
+        case TOKidentifier:
+            if (token.ident != Id::body)
+                goto _default;
             nextToken();
             f->fbody = parseStatement(PScurly);
             f->endloc = endloc;
@@ -3614,6 +3616,7 @@ L1:
             /* fall through */
 
         default:
+        _default:
             if (literal)
             {
                 const char *sbody = (f->frequire || f->fensure) ? "body " : "";
@@ -5405,6 +5408,10 @@ int Parser::isDeclarator(Token **pt, int *haveId, int *haveTpl, TOK endtok)
                 continue;
 
             // Valid tokens that follow a declaration
+            case TOKidentifier:
+                if (t->ident != Id::body)
+                    goto _default;
+                /* fall through */
             case TOKrparen:
             case TOKrbracket:
             case TOKassign:
@@ -5414,7 +5421,6 @@ int Parser::isDeclarator(Token **pt, int *haveId, int *haveTpl, TOK endtok)
             case TOKlcurly:
             case TOKin:
             case TOKout:
-            case TOKbody:
                 // The !parens is to disallow unnecessary parentheses
                 if (!parens && (endtok == TOKreserved || endtok == t->value))
                 {   *pt = t;
@@ -5425,6 +5431,7 @@ int Parser::isDeclarator(Token **pt, int *haveId, int *haveTpl, TOK endtok)
                 return haveTpl ? true : false;
 
             default:
+            _default:
                 return false;
         }
     }
