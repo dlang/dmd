@@ -29,8 +29,9 @@
  *      t delegate() { return expr; }
  */
 
-int lambdaSetParent(Expression *e, void *param);
-int lambdaCheckForNestedRef(Expression *e, void *param);
+bool walkPostorder(Expression *e, StoppableVisitor *v);
+void lambdaSetParent(Expression *e, Scope *sc);
+void lambdaCheckForNestedRef(Expression *e, Scope *sc);
 
 Expression *Expression::toDelegate(Scope *sc, Type *t)
 {
@@ -46,8 +47,8 @@ Expression *Expression::toDelegate(Scope *sc, Type *t)
     sc = sc->push();
     sc->parent = fld;           // set current function to be the delegate
     e = this;
-    e->apply(&lambdaSetParent, sc);
-    e->apply(&lambdaCheckForNestedRef, sc);
+    lambdaSetParent(e, sc);
+    lambdaCheckForNestedRef(e, sc);
     sc = sc->pop();
     Statement *s;
     if (t->ty == Tvoid)
@@ -63,83 +64,85 @@ Expression *Expression::toDelegate(Scope *sc, Type *t)
 /******************************************
  * Patch the parent of declarations to be the new function literal.
  */
-int lambdaSetParent(Expression *e, void *param)
+void lambdaSetParent(Expression *e, Scope *sc)
 {
-    Scope *sc = (Scope *)param;
-    /* We could use virtual functions instead of a switch,
-     * but it doesn't seem worth the bother.
-     */
-    switch (e->op)
+    class LambdaSetParent : public StoppableVisitor
     {
-        case TOKdeclaration:
-        {   DeclarationExp *de = (DeclarationExp *)e;
-            de->declaration->parent = sc->parent;
-            break;
+        Scope *sc;
+    public:
+        LambdaSetParent(Scope *sc) : sc(sc) {}
+
+        void visit(Expression *)
+        {
         }
 
-        case TOKindex:
-        {   IndexExp *de = (IndexExp *)e;
-            if (de->lengthVar)
-            {   //printf("lengthVar\n");
-                de->lengthVar->parent = sc->parent;
+        void visit(DeclarationExp *e)
+        {
+            e->declaration->parent = sc->parent;
+        }
+
+        void visit(IndexExp *e)
+        {
+            if (e->lengthVar)
+            {
+                //printf("lengthVar\n");
+                e->lengthVar->parent = sc->parent;
             }
-            break;
         }
 
-        case TOKslice:
-        {   SliceExp *se = (SliceExp *)e;
-            if (se->lengthVar)
-            {   //printf("lengthVar\n");
-                se->lengthVar->parent = sc->parent;
+        void visit(SliceExp *e)
+        {
+            if (e->lengthVar)
+            {
+                //printf("lengthVar\n");
+                e->lengthVar->parent = sc->parent;
             }
-            break;
         }
+    };
 
-        default:
-            break;
-    }
-     return 0;
+    LambdaSetParent lsp(sc);
+    walkPostorder(e, &lsp);
 }
 
 /*******************************************
  * Look for references to variables in a scope enclosing the new function literal.
  */
-int lambdaCheckForNestedRef(Expression *e, void *param)
+void lambdaCheckForNestedRef(Expression *e, Scope *sc)
 {
-    Scope *sc = (Scope *)param;
-    /* We could use virtual functions instead of a switch,
-     * but it doesn't seem worth the bother.
-     */
-    switch (e->op)
+    class LambdaCheckForNestedRef : public StoppableVisitor
     {
-        case TOKsymoff:
-        {   SymOffExp *se = (SymOffExp *)e;
-            VarDeclaration *v = se->var->isVarDeclaration();
-            if (v)
-                v->checkNestedReference(sc, Loc());
-            break;
+        Scope *sc;
+    public:
+        LambdaCheckForNestedRef(Scope *sc) : sc(sc) {}
+
+        void visit(Expression *)
+        {
         }
 
-        case TOKvar:
-        {   VarExp *ve = (VarExp *)e;
-            VarDeclaration *v = ve->var->isVarDeclaration();
+        void visit(SymOffExp *e)
+        {
+            VarDeclaration *v = e->var->isVarDeclaration();
             if (v)
                 v->checkNestedReference(sc, Loc());
-            break;
         }
 
-        case TOKthis:
-        case TOKsuper:
-        {   ThisExp *te = (ThisExp *)e;
-            VarDeclaration *v = te->var->isVarDeclaration();
+        void visit(VarExp *e)
+        {
+            VarDeclaration *v = e->var->isVarDeclaration();
             if (v)
                 v->checkNestedReference(sc, Loc());
-            break;
         }
 
-        case TOKdeclaration:
-        {   DeclarationExp *de = (DeclarationExp *)e;
-            VarDeclaration *v = de->declaration->isVarDeclaration();
+        void visit(ThisExp *e)
+        {
+            VarDeclaration *v = e->var->isVarDeclaration();
+            if (v)
+                v->checkNestedReference(sc, Loc());
+        }
+
+        void visit(DeclarationExp *e)
+        {
+            VarDeclaration *v = e->declaration->isVarDeclaration();
             if (v)
             {
                 v->checkNestedReference(sc, Loc());
@@ -154,16 +157,15 @@ int lambdaCheckForNestedRef(Expression *e, void *param)
                  * checking the declaration initializer too.
                  */
                 if (v->init && v->init->isExpInitializer())
-                {   Expression *ie = v->init->toExpression();
-                    ie->apply (&lambdaCheckForNestedRef, param);
+                {
+                    Expression *ie = v->init->toExpression();
+                    lambdaCheckForNestedRef(ie, sc);
                 }
             }
-            break;
         }
+    };
 
-        default:
-            break;
-    }
-    return 0;
+    LambdaCheckForNestedRef lcnr(sc);
+    walkPostorder(e, &lcnr);
 }
 
