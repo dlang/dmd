@@ -26,6 +26,7 @@
 
 extern int binary(const char *p , const char **tab, int high);
 void buildArrayIdent(Expression *e, OutBuffer *buf, Expressions *arguments);
+Expression *buildArrayLoop(Expression *e, Parameters *fparams);
 
 /**************************************
  * Hash table of array op functions already generated or known about.
@@ -232,7 +233,7 @@ int isDruntimeArrayOp(Identifier *ident)
 ArrayOp *buildArrayOp(Identifier *ident, BinExp *exp, Scope *sc, Loc loc)
 {
     Parameters *fparams = new Parameters();
-    Expression *loopbody = exp->buildArrayLoop(fparams);
+    Expression *loopbody = buildArrayLoop(exp, fparams);
 
     ArrayOp *op = new ArrayOp;
     if (isDruntimeArrayOp(ident))
@@ -578,135 +579,153 @@ void buildArrayIdent(Expression *e, OutBuffer *buf, Expressions *arguments)
  * and build the parameter list.
  */
 
-Expression *Expression::buildArrayLoop(Parameters *fparams)
+Expression *buildArrayLoop(Expression *e, Parameters *fparams)
 {
-    Identifier *id = Identifier::generateId("c", fparams->dim);
-    Parameter *param = new Parameter(0, type, id, NULL);
-    fparams->shift(param);
-    Expression *e = new IdentifierExp(Loc(), id);
-    return e;
-}
-
-Expression *CastExp::buildArrayLoop(Parameters *fparams)
-{
-    Type *tb = type->toBasetype();
-    if (tb->ty == Tarray || tb->ty == Tsarray)
+    class BuildArrayLoopVisitor : public Visitor
     {
-        return e1->buildArrayLoop(fparams);
-    }
-    else
-        return Expression::buildArrayLoop(fparams);
-}
+        Parameters *fparams;
+        Expression *result;
 
-Expression *ArrayLiteralExp::buildArrayLoop(Parameters *fparams)
-{
-    Identifier *id = Identifier::generateId("p", fparams->dim);
-    Parameter *param = new Parameter(STCconst, type, id, NULL);
-    fparams->shift(param);
-    Expression *e = new IdentifierExp(Loc(), id);
-    Expressions *arguments = new Expressions();
-    Expression *index = new IdentifierExp(Loc(), Id::p);
-    arguments->push(index);
-    e = new ArrayExp(Loc(), e, arguments);
-    return e;
-}
+    public:
+        BuildArrayLoopVisitor(Parameters *fparams)
+            : fparams(fparams), result(NULL)
+        {
+        }
 
-Expression *SliceExp::buildArrayLoop(Parameters *fparams)
-{
-    Identifier *id = Identifier::generateId("p", fparams->dim);
-    Parameter *param = new Parameter(STCconst, type, id, NULL);
-    fparams->shift(param);
-    Expression *e = new IdentifierExp(Loc(), id);
-    Expressions *arguments = new Expressions();
-    Expression *index = new IdentifierExp(Loc(), Id::p);
-    arguments->push(index);
-    e = new ArrayExp(Loc(), e, arguments);
-    return e;
-}
+        void visit(Expression *e)
+        {
+            Identifier *id = Identifier::generateId("c", fparams->dim);
+            Parameter *param = new Parameter(0, e->type, id, NULL);
+            fparams->shift(param);
+            result = new IdentifierExp(Loc(), id);
+        }
 
-Expression *AssignExp::buildArrayLoop(Parameters *fparams)
-{
-    /* Evaluate assign expressions right to left
-     */
-    Expression *ex2 = e2->buildArrayLoop(fparams);
-    /* Need the cast because:
-     *   b = c + p[i];
-     * where b is a byte fails because (c + p[i]) is an int
-     * which cannot be implicitly cast to byte.
-     */
-    ex2 = new CastExp(Loc(), ex2, e1->type->nextOf());
-    Expression *ex1 = e1->buildArrayLoop(fparams);
-    Parameter *param = (*fparams)[0];
-    param->storageClass = 0;
-    Expression *e = new AssignExp(Loc(), ex1, ex2);
-    return e;
-}
+        void visit(CastExp *e)
+        {
+            Type *tb = e->type->toBasetype();
+            if (tb->ty == Tarray || tb->ty == Tsarray)
+            {
+                e->e1->accept(this);
+            }
+            else
+                visit((Expression *)e);
+        }
 
-Expression *BinAssignExp::buildArrayLoop(Parameters *fparams)
-{
-    /* Evaluate assign expressions right to left
-     */
-    Expression *ex2 = e2->buildArrayLoop(fparams);
-    Expression *ex1 = e1->buildArrayLoop(fparams);
-    Parameter *param = (*fparams)[0];
-    param->storageClass = 0;
-    Expression *e;
-    switch(op)
-    {
-    case TOKaddass: return new AddAssignExp(loc, ex1, ex2);
-    case TOKminass: return new MinAssignExp(loc, ex1, ex2);
-    case TOKmulass: return new MulAssignExp(loc, ex1, ex2);
-    case TOKdivass: return new DivAssignExp(loc, ex1, ex2);
-    case TOKmodass: return new ModAssignExp(loc, ex1, ex2);
-    case TOKxorass: return new XorAssignExp(loc, ex1, ex2);
-    case TOKandass: return new AndAssignExp(loc, ex1, ex2);
-    case TOKorass:  return new OrAssignExp(loc, ex1, ex2);
-    case TOKpowass: return new PowAssignExp(loc, ex1, ex2);
-    default:
-        assert(0);
-        return NULL;
-    }
-}
+        void visit(ArrayLiteralExp *e)
+        {
+            Identifier *id = Identifier::generateId("p", fparams->dim);
+            Parameter *param = new Parameter(STCconst, e->type, id, NULL);
+            fparams->shift(param);
+            Expression *ie = new IdentifierExp(Loc(), id);
+            Expressions *arguments = new Expressions();
+            Expression *index = new IdentifierExp(Loc(), Id::p);
+            arguments->push(index);
+            result = new ArrayExp(Loc(), ie, arguments);
+        }
 
-Expression *NegExp::buildArrayLoop(Parameters *fparams)
-{
-    Expression *ex1 = e1->buildArrayLoop(fparams);
-    Expression *e = new NegExp(Loc(), ex1);
-    return e;
-}
+        void visit(SliceExp *e)
+        {
+            Identifier *id = Identifier::generateId("p", fparams->dim);
+            Parameter *param = new Parameter(STCconst, e->type, id, NULL);
+            fparams->shift(param);
+            Expression *ie = new IdentifierExp(Loc(), id);
+            Expressions *arguments = new Expressions();
+            Expression *index = new IdentifierExp(Loc(), Id::p);
+            arguments->push(index);
+            result = new ArrayExp(Loc(), ie, arguments);
+        }
 
-Expression *ComExp::buildArrayLoop(Parameters *fparams)
-{
-    Expression *ex1 = e1->buildArrayLoop(fparams);
-    Expression *e = new ComExp(Loc(), ex1);
-    return e;
-}
+        void visit(AssignExp *e)
+        {
+            /* Evaluate assign expressions right to left
+             */
+            Expression *ex2 = buildArrayLoop(e->e2);
+            /* Need the cast because:
+             *   b = c + p[i];
+             * where b is a byte fails because (c + p[i]) is an int
+             * which cannot be implicitly cast to byte.
+             */
+            ex2 = new CastExp(Loc(), ex2, e->e1->type->nextOf());
+            Expression *ex1 = buildArrayLoop(e->e1);
+            Parameter *param = (*fparams)[0];
+            param->storageClass = 0;
+            result = new AssignExp(Loc(), ex1, ex2);
+        }
 
-Expression *BinExp::buildArrayLoop(Parameters *fparams)
-{
-    switch(op)
-    {
-    case TOKadd:
-    case TOKmin:
-    case TOKmul:
-    case TOKdiv:
-    case TOKmod:
-    case TOKxor:
-    case TOKand:
-    case TOKor:
-    case TOKpow:
-    {
-        /* Evaluate assign expressions left to right
-         */
-        BinExp *e = (BinExp *)copy();
-        e->e1 = e->e1->buildArrayLoop(fparams);
-        e->e2 = e->e2->buildArrayLoop(fparams);
-        e->type = NULL;
-        return e;
-    }
-    default:
-        return Expression::buildArrayLoop(fparams);
-    }
+        void visit(BinAssignExp *e)
+        {
+            /* Evaluate assign expressions right to left
+             */
+            Expression *ex2 = buildArrayLoop(e->e2);
+            Expression *ex1 = buildArrayLoop(e->e1);
+            Parameter *param = (*fparams)[0];
+            param->storageClass = 0;
+            switch(e->op)
+            {
+            case TOKaddass: result = new AddAssignExp(e->loc, ex1, ex2); return;
+            case TOKminass: result = new MinAssignExp(e->loc, ex1, ex2); return;
+            case TOKmulass: result = new MulAssignExp(e->loc, ex1, ex2); return;
+            case TOKdivass: result = new DivAssignExp(e->loc, ex1, ex2); return;
+            case TOKmodass: result = new ModAssignExp(e->loc, ex1, ex2); return;
+            case TOKxorass: result = new XorAssignExp(e->loc, ex1, ex2); return;
+            case TOKandass: result = new AndAssignExp(e->loc, ex1, ex2); return;
+            case TOKorass:  result = new OrAssignExp(e->loc, ex1, ex2); return;
+            case TOKpowass: result = new PowAssignExp(e->loc, ex1, ex2); return;
+            default:
+                assert(0);
+            }
+        }
+
+        void visit(NegExp *e)
+        {
+            Expression *ex1 = buildArrayLoop(e->e1);
+            result = new NegExp(Loc(), ex1);
+        }
+
+        void visit(ComExp *e)
+        {
+            Expression *ex1 = buildArrayLoop(e->e1);
+            result = new ComExp(Loc(), ex1);
+        }
+
+        void visit(BinExp *e)
+        {
+            switch(e->op)
+            {
+            case TOKadd:
+            case TOKmin:
+            case TOKmul:
+            case TOKdiv:
+            case TOKmod:
+            case TOKxor:
+            case TOKand:
+            case TOKor:
+            case TOKpow:
+            {
+                /* Evaluate assign expressions left to right
+                 */
+                BinExp *be = (BinExp *)e->copy();
+                be->e1 = buildArrayLoop(be->e1);
+                be->e2 = buildArrayLoop(be->e2);
+                be->type = NULL;
+                result = be;
+                return;
+            }
+            default:
+                visit((Expression *)e);
+                return;
+            }
+        }
+
+        Expression *buildArrayLoop(Expression *e)
+        {
+            e->accept(this);
+            return result;
+        }
+    };
+
+    BuildArrayLoopVisitor v(fparams);
+    return v.buildArrayLoop(e);
 }
 
 /***********************************************

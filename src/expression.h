@@ -196,7 +196,6 @@ public:
     Expression *inlineCopy(Scope *sc);
 
     // For array ops
-    virtual Expression *buildArrayLoop(Parameters *fparams);
     int isArrayOperand();
 
     // Back end
@@ -479,8 +478,6 @@ public:
     Expression *castTo(Scope *sc, Type *t);
     Expression *inferType(Type *t, int flag = 0, Scope *sc = NULL, TemplateParameters *tparams = NULL);
     dt_t **toDt(dt_t **pdt);
-
-    Expression *buildArrayLoop(Parameters *fparams);
 
     Expression *doInline(InlineDoState *ids);
     void accept(Visitor *v) { v->visit(this); }
@@ -905,8 +902,6 @@ public:
     Expression *compare_overload(Scope *sc, Identifier *id);
     Expression *reorderSettingAAElem(Scope *sc);
 
-    Expression *buildArrayLoop(Parameters *fparams);
-
     elem *toElemBin(IRState *irs, int op);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -925,8 +920,6 @@ public:
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
 
     Expression *op_overload(Scope *sc);
-
-    Expression *buildArrayLoop(Parameters *fparams);
 
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *ex);
@@ -1129,7 +1122,6 @@ public:
     NegExp(Loc loc, Expression *e);
     Expression *semantic(Scope *sc);
     Expression *optimize(int result, bool keepLvalue = false);
-    Expression *buildArrayLoop(Parameters *fparams);
 
     elem *toElem(IRState *irs);
     void accept(Visitor *v) { v->visit(this); }
@@ -1150,7 +1142,6 @@ public:
     ComExp(Loc loc, Expression *e);
     Expression *semantic(Scope *sc);
     Expression *optimize(int result, bool keepLvalue = false);
-    Expression *buildArrayLoop(Parameters *fparams);
 
     elem *toElem(IRState *irs);
     void accept(Visitor *v) { v->visit(this); }
@@ -1203,7 +1194,6 @@ public:
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     void checkEscape();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    Expression *buildArrayLoop(Parameters *fparams);
     elem *toElem(IRState *irs);
 
     // For operator overloading
@@ -1252,7 +1242,6 @@ public:
     Expression *optimize(int result, bool keepLvalue = false);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     elem *toElem(IRState *irs);
-    Expression *buildArrayLoop(Parameters *fparams);
 
     Expression *doInline(InlineDoState *ids);
     void accept(Visitor *v) { v->visit(this); }
@@ -1384,7 +1373,6 @@ public:
     Expression *semantic(Scope *sc);
     Expression *checkToBoolean(Scope *sc);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
-    Expression *buildArrayLoop(Parameters *fparams);
 
     elem *toElem(IRState *irs);
     void accept(Visitor *v) { v->visit(this); }
