@@ -196,7 +196,6 @@ public:
     Expression *inlineCopy(Scope *sc);
 
     // For array ops
-    virtual void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
     virtual Expression *buildArrayLoop(Parameters *fparams);
     int isArrayOperand();
 
@@ -481,7 +480,6 @@ public:
     Expression *inferType(Type *t, int flag = 0, Scope *sc = NULL, TemplateParameters *tparams = NULL);
     dt_t **toDt(dt_t **pdt);
 
-    void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
     Expression *buildArrayLoop(Parameters *fparams);
 
     Expression *doInline(InlineDoState *ids);
@@ -907,7 +905,6 @@ public:
     Expression *compare_overload(Scope *sc, Identifier *id);
     Expression *reorderSettingAAElem(Scope *sc);
 
-    void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
     Expression *buildArrayLoop(Parameters *fparams);
 
     elem *toElemBin(IRState *irs, int op);
@@ -929,7 +926,6 @@ public:
 
     Expression *op_overload(Scope *sc);
 
-    void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
     Expression *buildArrayLoop(Parameters *fparams);
 
     int isLvalue();
@@ -1133,7 +1129,6 @@ public:
     NegExp(Loc loc, Expression *e);
     Expression *semantic(Scope *sc);
     Expression *optimize(int result, bool keepLvalue = false);
-    void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
     Expression *buildArrayLoop(Parameters *fparams);
 
     elem *toElem(IRState *irs);
@@ -1155,7 +1150,6 @@ public:
     ComExp(Loc loc, Expression *e);
     Expression *semantic(Scope *sc);
     Expression *optimize(int result, bool keepLvalue = false);
-    void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
     Expression *buildArrayLoop(Parameters *fparams);
 
     elem *toElem(IRState *irs);
@@ -1209,7 +1203,6 @@ public:
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     void checkEscape();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
     Expression *buildArrayLoop(Parameters *fparams);
     elem *toElem(IRState *irs);
 
@@ -1259,7 +1252,6 @@ public:
     Expression *optimize(int result, bool keepLvalue = false);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     elem *toElem(IRState *irs);
-    void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
     Expression *buildArrayLoop(Parameters *fparams);
 
     Expression *doInline(InlineDoState *ids);
@@ -1392,7 +1384,6 @@ public:
     Expression *semantic(Scope *sc);
     Expression *checkToBoolean(Scope *sc);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
-    void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
     Expression *buildArrayLoop(Parameters *fparams);
 
     elem *toElem(IRState *irs);

@@ -25,6 +25,7 @@
 #include "init.h"
 
 extern int binary(const char *p , const char **tab, int high);
+void buildArrayIdent(Expression *e, OutBuffer *buf, Expressions *arguments);
 
 /**************************************
  * Hash table of array op functions already generated or known about.
@@ -389,7 +390,7 @@ Expression *BinExp::arrayOp(Scope *sc)
      */
     OutBuffer buf;
     buf.writestring("_array");
-    buildArrayIdent(&buf, arguments);
+    buildArrayIdent(this, &buf, arguments);
     buf.writeByte('_');
 
     /* Append deco of array element type
@@ -454,105 +455,122 @@ Expression *BinAssignExp::arrayOp(Scope *sc)
  * and build the argument list to pass to it.
  */
 
-void Expression::buildArrayIdent(OutBuffer *buf, Expressions *arguments)
+void buildArrayIdent(Expression *e, OutBuffer *buf, Expressions *arguments)
 {
-    buf->writestring("Exp");
-    arguments->shift(this);
-}
-
-void CastExp::buildArrayIdent(OutBuffer *buf, Expressions *arguments)
-{
-    Type *tb = type->toBasetype();
-    if (tb->ty == Tarray || tb->ty == Tsarray)
+    class BuildArrayIdentVisitor : public Visitor
     {
-        e1->buildArrayIdent(buf, arguments);
-    }
-    else
-        Expression::buildArrayIdent(buf, arguments);
-}
+        OutBuffer *buf;
+        Expressions *arguments;
+    public:
+        BuildArrayIdentVisitor(OutBuffer *buf, Expressions *arguments)
+            : buf(buf), arguments(arguments)
+        {
+        }
 
-void ArrayLiteralExp::buildArrayIdent(OutBuffer *buf, Expressions *arguments)
-{
-    buf->writestring("Slice");
-    arguments->shift(this);
-}
+        void visit(Expression *e)
+        {
+            buf->writestring("Exp");
+            arguments->shift(e);
+        }
 
-void SliceExp::buildArrayIdent(OutBuffer *buf, Expressions *arguments)
-{
-    buf->writestring("Slice");
-    arguments->shift(this);
-}
+        void visit(CastExp *e)
+        {
+            Type *tb = e->type->toBasetype();
+            if (tb->ty == Tarray || tb->ty == Tsarray)
+            {
+                e->e1->accept(this);
+            }
+            else
+                visit((Expression *)e);
+        }
 
-void AssignExp::buildArrayIdent(OutBuffer *buf, Expressions *arguments)
-{
-    /* Evaluate assign expressions right to left
-     */
-    e2->buildArrayIdent(buf, arguments);
-    e1->buildArrayIdent(buf, arguments);
-    buf->writestring("Assign");
-}
+        void visit(ArrayLiteralExp *e)
+        {
+            buf->writestring("Slice");
+            arguments->shift(e);
+        }
 
-void BinAssignExp::buildArrayIdent(OutBuffer *buf, Expressions *arguments)
-{
-    /* Evaluate assign expressions right to left
-     */
-    e2->buildArrayIdent(buf, arguments);
-    e1->buildArrayIdent(buf, arguments);
-    const char *s;
-    switch(op)
-    {
-    case TOKaddass: s = "Addass"; break;
-    case TOKminass: s = "Subass"; break;
-    case TOKmulass: s = "Mulass"; break;
-    case TOKdivass: s = "Divass"; break;
-    case TOKmodass: s = "Modass"; break;
-    case TOKxorass: s = "Xorass"; break;
-    case TOKandass: s = "Andass"; break;
-    case TOKorass:  s = "Orass";  break;
-    case TOKpowass: s = "Powass"; break;
-    default: assert(0);
-    }
-    buf->writestring(s);
-}
+        void visit(SliceExp *e)
+        {
+            buf->writestring("Slice");
+            arguments->shift(e);
+        }
 
-void NegExp::buildArrayIdent(OutBuffer *buf, Expressions *arguments)
-{
-    e1->buildArrayIdent(buf, arguments);
-    buf->writestring("Neg");
-}
+        void visit(AssignExp *e)
+        {
+            /* Evaluate assign expressions right to left
+             */
+            e->e2->accept(this);
+            e->e1->accept(this);
+            buf->writestring("Assign");
+        }
 
-void ComExp::buildArrayIdent(OutBuffer *buf, Expressions *arguments)
-{
-    e1->buildArrayIdent(buf, arguments);
-    buf->writestring("Com");
-}
+        void visit(BinAssignExp *e)
+        {
+            /* Evaluate assign expressions right to left
+             */
+            e->e2->accept(this);
+            e->e1->accept(this);
+            const char *s;
+            switch(e->op)
+            {
+            case TOKaddass: s = "Addass"; break;
+            case TOKminass: s = "Subass"; break;
+            case TOKmulass: s = "Mulass"; break;
+            case TOKdivass: s = "Divass"; break;
+            case TOKmodass: s = "Modass"; break;
+            case TOKxorass: s = "Xorass"; break;
+            case TOKandass: s = "Andass"; break;
+            case TOKorass:  s = "Orass";  break;
+            case TOKpowass: s = "Powass"; break;
+            default: assert(0);
+            }
+            buf->writestring(s);
+        }
 
-void BinExp::buildArrayIdent(OutBuffer *buf, Expressions *arguments)
-{
-    /* Evaluate assign expressions left to right
-     */
-    const char *s = NULL;
-    switch(op)
-    {
-    case TOKadd: s = "Add"; break;
-    case TOKmin: s = "Sub"; break;
-    case TOKmul: s = "Mul"; break;
-    case TOKdiv: s = "Div"; break;
-    case TOKmod: s = "Mod"; break;
-    case TOKxor: s = "Xor"; break;
-    case TOKand: s = "And"; break;
-    case TOKor:  s = "Or";  break;
-    case TOKpow: s = "Pow"; break;
-    default: break;
-    }
-    if (s)
-    {
-        e1->buildArrayIdent(buf, arguments);
-        e2->buildArrayIdent(buf, arguments);
-        buf->writestring(s);
-    }
-    else
-        Expression::buildArrayIdent(buf, arguments);
+        void visit(NegExp *e)
+        {
+            e->e1->accept(this);
+            buf->writestring("Neg");
+        }
+
+        void visit(ComExp *e)
+        {
+            e->e1->accept(this);
+            buf->writestring("Com");
+        }
+
+        void visit(BinExp *e)
+        {
+            /* Evaluate assign expressions left to right
+             */
+            const char *s = NULL;
+            switch(e->op)
+            {
+            case TOKadd: s = "Add"; break;
+            case TOKmin: s = "Sub"; break;
+            case TOKmul: s = "Mul"; break;
+            case TOKdiv: s = "Div"; break;
+            case TOKmod: s = "Mod"; break;
+            case TOKxor: s = "Xor"; break;
+            case TOKand: s = "And"; break;
+            case TOKor:  s = "Or";  break;
+            case TOKpow: s = "Pow"; break;
+            default: break;
+            }
+            if (s)
+            {
+                e->e1->accept(this);
+                e->e2->accept(this);
+                buf->writestring(s);
+            }
+            else
+                visit((Expression *)e);
+        }
+    };
+
+    BuildArrayIdentVisitor v(buf, arguments);
+    e->accept(&v);
 }
 
 /******************************************
