@@ -25,6 +25,8 @@
 #include "init.h"
 
 extern int binary(const char *p , const char **tab, int high);
+void buildArrayIdent(Expression *e, OutBuffer *buf, Expressions *arguments);
+Expression *buildArrayLoop(Expression *e, Parameters *fparams);
 
 /**************************************
  * Hash table of array op functions already generated or known about.
@@ -231,7 +233,7 @@ int isDruntimeArrayOp(Identifier *ident)
 ArrayOp *buildArrayOp(Identifier *ident, BinExp *exp, Scope *sc, Loc loc)
 {
     Parameters *fparams = new Parameters();
-    Expression *loopbody = exp->buildArrayLoop(fparams);
+    Expression *loopbody = buildArrayLoop(exp, fparams);
 
     ArrayOp *op = new ArrayOp;
     if (isDruntimeArrayOp(ident))
@@ -363,21 +365,21 @@ bool isArrayOpValid(Expression *e)
  * Construct the array operation expression.
  */
 
-Expression *BinExp::arrayOp(Scope *sc)
+Expression *arrayOp(BinExp *e, Scope *sc)
 {
     //printf("BinExp::arrayOp() %s\n", toChars());
 
-    Type *tb = type->toBasetype();
+    Type *tb = e->type->toBasetype();
     assert(tb->ty == Tarray || tb->ty == Tsarray);
     Type *tbn = tb->nextOf()->toBasetype();
     if (tbn->ty == Tvoid)
     {
-        error("Cannot perform array operations on void[] arrays");
+        e->error("Cannot perform array operations on void[] arrays");
         return new ErrorExp();
     }
-    if (!isArrayOpValid(this))
+    if (!isArrayOpValid(e))
     {
-        error("invalid array operation %s (did you forget a [] ?)", toChars());
+        e->error("invalid array operation %s (did you forget a [] ?)", e->toChars());
         return new ErrorExp();
     }
 
@@ -389,12 +391,12 @@ Expression *BinExp::arrayOp(Scope *sc)
      */
     OutBuffer buf;
     buf.writestring("_array");
-    buildArrayIdent(&buf, arguments);
+    buildArrayIdent(e, &buf, arguments);
     buf.writeByte('_');
 
     /* Append deco of array element type
      */
-    buf.writestring(type->toBasetype()->nextOf()->toBasetype()->mutableOf()->deco);
+    buf.writestring(e->type->toBasetype()->nextOf()->toBasetype()->mutableOf()->deco);
 
     char *name = buf.peekString();
     Identifier *ident = Lexer::idPool(name);
@@ -403,7 +405,7 @@ Expression *BinExp::arrayOp(Scope *sc)
     ArrayOp *op = *pOp;
 
     if (!op)
-        op = buildArrayOp(ident, this, sc, loc);
+        op = buildArrayOp(ident, e, sc, e->loc);
 
     if (op->dFunc && op->dFunc->errors)
     {
@@ -415,38 +417,38 @@ Expression *BinExp::arrayOp(Scope *sc)
         else
             fmt = "invalid array operation '%s' for element type %s";
 
-        error(fmt, toChars(), tbn->toChars());
+        e->error(fmt, e->toChars(), tbn->toChars());
         return new ErrorExp();
     }
 
     *pOp = op;
 
     FuncDeclaration *fd = op->cFunc ? op->cFunc : op->dFunc;
-    Expression *ec = new VarExp(loc, fd);
-    Expression *e = new CallExp(loc, ec, arguments);
+    Expression *ev = new VarExp(e->loc, fd);
+    Expression *ec = new CallExp(e->loc, ev, arguments);
 
-    return e->semantic(sc);
+    return ec->semantic(sc);
 }
 
-Expression *BinAssignExp::arrayOp(Scope *sc)
+Expression *arrayOp(BinAssignExp *e, Scope *sc)
 {
     //printf("BinAssignExp::arrayOp() %s\n", toChars());
 
     /* Check that the elements of e1 can be assigned to
      */
-    Type *tn = e1->type->toBasetype()->nextOf();
+    Type *tn = e->e1->type->toBasetype()->nextOf();
 
     if (tn && (!tn->isMutable() || !tn->isAssignable()))
     {
-        error("slice %s is not mutable", e1->toChars());
+        e->error("slice %s is not mutable", e->e1->toChars());
         return new ErrorExp();
     }
-    if (e1->op == TOKarrayliteral)
+    if (e->e1->op == TOKarrayliteral)
     {
-        return e1->modifiableLvalue(sc, e1);
+        return e->e1->modifiableLvalue(sc, e->e1);
     }
 
-    return BinExp::arrayOp(sc);
+    return arrayOp((BinExp *)e, sc);
 }
 
 /******************************************
@@ -454,105 +456,122 @@ Expression *BinAssignExp::arrayOp(Scope *sc)
  * and build the argument list to pass to it.
  */
 
-void Expression::buildArrayIdent(OutBuffer *buf, Expressions *arguments)
+void buildArrayIdent(Expression *e, OutBuffer *buf, Expressions *arguments)
 {
-    buf->writestring("Exp");
-    arguments->shift(this);
-}
-
-void CastExp::buildArrayIdent(OutBuffer *buf, Expressions *arguments)
-{
-    Type *tb = type->toBasetype();
-    if (tb->ty == Tarray || tb->ty == Tsarray)
+    class BuildArrayIdentVisitor : public Visitor
     {
-        e1->buildArrayIdent(buf, arguments);
-    }
-    else
-        Expression::buildArrayIdent(buf, arguments);
-}
+        OutBuffer *buf;
+        Expressions *arguments;
+    public:
+        BuildArrayIdentVisitor(OutBuffer *buf, Expressions *arguments)
+            : buf(buf), arguments(arguments)
+        {
+        }
 
-void ArrayLiteralExp::buildArrayIdent(OutBuffer *buf, Expressions *arguments)
-{
-    buf->writestring("Slice");
-    arguments->shift(this);
-}
+        void visit(Expression *e)
+        {
+            buf->writestring("Exp");
+            arguments->shift(e);
+        }
 
-void SliceExp::buildArrayIdent(OutBuffer *buf, Expressions *arguments)
-{
-    buf->writestring("Slice");
-    arguments->shift(this);
-}
+        void visit(CastExp *e)
+        {
+            Type *tb = e->type->toBasetype();
+            if (tb->ty == Tarray || tb->ty == Tsarray)
+            {
+                e->e1->accept(this);
+            }
+            else
+                visit((Expression *)e);
+        }
 
-void AssignExp::buildArrayIdent(OutBuffer *buf, Expressions *arguments)
-{
-    /* Evaluate assign expressions right to left
-     */
-    e2->buildArrayIdent(buf, arguments);
-    e1->buildArrayIdent(buf, arguments);
-    buf->writestring("Assign");
-}
+        void visit(ArrayLiteralExp *e)
+        {
+            buf->writestring("Slice");
+            arguments->shift(e);
+        }
 
-void BinAssignExp::buildArrayIdent(OutBuffer *buf, Expressions *arguments)
-{
-    /* Evaluate assign expressions right to left
-     */
-    e2->buildArrayIdent(buf, arguments);
-    e1->buildArrayIdent(buf, arguments);
-    const char *s;
-    switch(op)
-    {
-    case TOKaddass: s = "Addass"; break;
-    case TOKminass: s = "Subass"; break;
-    case TOKmulass: s = "Mulass"; break;
-    case TOKdivass: s = "Divass"; break;
-    case TOKmodass: s = "Modass"; break;
-    case TOKxorass: s = "Xorass"; break;
-    case TOKandass: s = "Andass"; break;
-    case TOKorass:  s = "Orass";  break;
-    case TOKpowass: s = "Powass"; break;
-    default: assert(0);
-    }
-    buf->writestring(s);
-}
+        void visit(SliceExp *e)
+        {
+            buf->writestring("Slice");
+            arguments->shift(e);
+        }
 
-void NegExp::buildArrayIdent(OutBuffer *buf, Expressions *arguments)
-{
-    e1->buildArrayIdent(buf, arguments);
-    buf->writestring("Neg");
-}
+        void visit(AssignExp *e)
+        {
+            /* Evaluate assign expressions right to left
+             */
+            e->e2->accept(this);
+            e->e1->accept(this);
+            buf->writestring("Assign");
+        }
 
-void ComExp::buildArrayIdent(OutBuffer *buf, Expressions *arguments)
-{
-    e1->buildArrayIdent(buf, arguments);
-    buf->writestring("Com");
-}
+        void visit(BinAssignExp *e)
+        {
+            /* Evaluate assign expressions right to left
+             */
+            e->e2->accept(this);
+            e->e1->accept(this);
+            const char *s;
+            switch(e->op)
+            {
+            case TOKaddass: s = "Addass"; break;
+            case TOKminass: s = "Subass"; break;
+            case TOKmulass: s = "Mulass"; break;
+            case TOKdivass: s = "Divass"; break;
+            case TOKmodass: s = "Modass"; break;
+            case TOKxorass: s = "Xorass"; break;
+            case TOKandass: s = "Andass"; break;
+            case TOKorass:  s = "Orass";  break;
+            case TOKpowass: s = "Powass"; break;
+            default: assert(0);
+            }
+            buf->writestring(s);
+        }
 
-void BinExp::buildArrayIdent(OutBuffer *buf, Expressions *arguments)
-{
-    /* Evaluate assign expressions left to right
-     */
-    const char *s = NULL;
-    switch(op)
-    {
-    case TOKadd: s = "Add"; break;
-    case TOKmin: s = "Sub"; break;
-    case TOKmul: s = "Mul"; break;
-    case TOKdiv: s = "Div"; break;
-    case TOKmod: s = "Mod"; break;
-    case TOKxor: s = "Xor"; break;
-    case TOKand: s = "And"; break;
-    case TOKor:  s = "Or";  break;
-    case TOKpow: s = "Pow"; break;
-    default: break;
-    }
-    if (s)
-    {
-        e1->buildArrayIdent(buf, arguments);
-        e2->buildArrayIdent(buf, arguments);
-        buf->writestring(s);
-    }
-    else
-        Expression::buildArrayIdent(buf, arguments);
+        void visit(NegExp *e)
+        {
+            e->e1->accept(this);
+            buf->writestring("Neg");
+        }
+
+        void visit(ComExp *e)
+        {
+            e->e1->accept(this);
+            buf->writestring("Com");
+        }
+
+        void visit(BinExp *e)
+        {
+            /* Evaluate assign expressions left to right
+             */
+            const char *s = NULL;
+            switch(e->op)
+            {
+            case TOKadd: s = "Add"; break;
+            case TOKmin: s = "Sub"; break;
+            case TOKmul: s = "Mul"; break;
+            case TOKdiv: s = "Div"; break;
+            case TOKmod: s = "Mod"; break;
+            case TOKxor: s = "Xor"; break;
+            case TOKand: s = "And"; break;
+            case TOKor:  s = "Or";  break;
+            case TOKpow: s = "Pow"; break;
+            default: break;
+            }
+            if (s)
+            {
+                e->e1->accept(this);
+                e->e2->accept(this);
+                buf->writestring(s);
+            }
+            else
+                visit((Expression *)e);
+        }
+    };
+
+    BuildArrayIdentVisitor v(buf, arguments);
+    e->accept(&v);
 }
 
 /******************************************
@@ -560,157 +579,119 @@ void BinExp::buildArrayIdent(OutBuffer *buf, Expressions *arguments)
  * and build the parameter list.
  */
 
-Expression *Expression::buildArrayLoop(Parameters *fparams)
+Expression *buildArrayLoop(Expression *e, Parameters *fparams)
 {
-    Identifier *id = Identifier::generateId("c", fparams->dim);
-    Parameter *param = new Parameter(0, type, id, NULL);
-    fparams->shift(param);
-    Expression *e = new IdentifierExp(Loc(), id);
-    return e;
-}
-
-Expression *CastExp::buildArrayLoop(Parameters *fparams)
-{
-    Type *tb = type->toBasetype();
-    if (tb->ty == Tarray || tb->ty == Tsarray)
+    class BuildArrayLoopVisitor : public Visitor
     {
-        return e1->buildArrayLoop(fparams);
-    }
-    else
-        return Expression::buildArrayLoop(fparams);
-}
+        Parameters *fparams;
+        Expression *result;
 
-Expression *ArrayLiteralExp::buildArrayLoop(Parameters *fparams)
-{
-    Identifier *id = Identifier::generateId("p", fparams->dim);
-    Parameter *param = new Parameter(STCconst, type, id, NULL);
-    fparams->shift(param);
-    Expression *e = new IdentifierExp(Loc(), id);
-    Expressions *arguments = new Expressions();
-    Expression *index = new IdentifierExp(Loc(), Id::p);
-    arguments->push(index);
-    e = new ArrayExp(Loc(), e, arguments);
-    return e;
-}
-
-Expression *SliceExp::buildArrayLoop(Parameters *fparams)
-{
-    Identifier *id = Identifier::generateId("p", fparams->dim);
-    Parameter *param = new Parameter(STCconst, type, id, NULL);
-    fparams->shift(param);
-    Expression *e = new IdentifierExp(Loc(), id);
-    Expressions *arguments = new Expressions();
-    Expression *index = new IdentifierExp(Loc(), Id::p);
-    arguments->push(index);
-    e = new ArrayExp(Loc(), e, arguments);
-    return e;
-}
-
-Expression *AssignExp::buildArrayLoop(Parameters *fparams)
-{
-    /* Evaluate assign expressions right to left
-     */
-    Expression *ex2 = e2->buildArrayLoop(fparams);
-    /* Need the cast because:
-     *   b = c + p[i];
-     * where b is a byte fails because (c + p[i]) is an int
-     * which cannot be implicitly cast to byte.
-     */
-    ex2 = new CastExp(Loc(), ex2, e1->type->nextOf());
-    Expression *ex1 = e1->buildArrayLoop(fparams);
-    Parameter *param = (*fparams)[0];
-    param->storageClass = 0;
-    Expression *e = new AssignExp(Loc(), ex1, ex2);
-    return e;
-}
-
-Expression *BinAssignExp::buildArrayLoop(Parameters *fparams)
-{
-    /* Evaluate assign expressions right to left
-     */
-    Expression *ex2 = e2->buildArrayLoop(fparams);
-    Expression *ex1 = e1->buildArrayLoop(fparams);
-    Parameter *param = (*fparams)[0];
-    param->storageClass = 0;
-    Expression *e;
-    switch(op)
-    {
-    case TOKaddass: return new AddAssignExp(loc, ex1, ex2);
-    case TOKminass: return new MinAssignExp(loc, ex1, ex2);
-    case TOKmulass: return new MulAssignExp(loc, ex1, ex2);
-    case TOKdivass: return new DivAssignExp(loc, ex1, ex2);
-    case TOKmodass: return new ModAssignExp(loc, ex1, ex2);
-    case TOKxorass: return new XorAssignExp(loc, ex1, ex2);
-    case TOKandass: return new AndAssignExp(loc, ex1, ex2);
-    case TOKorass:  return new OrAssignExp(loc, ex1, ex2);
-    case TOKpowass: return new PowAssignExp(loc, ex1, ex2);
-    default:
-        assert(0);
-        return NULL;
-    }
-}
-
-Expression *NegExp::buildArrayLoop(Parameters *fparams)
-{
-    Expression *ex1 = e1->buildArrayLoop(fparams);
-    Expression *e = new NegExp(Loc(), ex1);
-    return e;
-}
-
-Expression *ComExp::buildArrayLoop(Parameters *fparams)
-{
-    Expression *ex1 = e1->buildArrayLoop(fparams);
-    Expression *e = new ComExp(Loc(), ex1);
-    return e;
-}
-
-Expression *BinExp::buildArrayLoop(Parameters *fparams)
-{
-    switch(op)
-    {
-    case TOKadd:
-    case TOKmin:
-    case TOKmul:
-    case TOKdiv:
-    case TOKmod:
-    case TOKxor:
-    case TOKand:
-    case TOKor:
-    case TOKpow:
-    {
-        /* Evaluate assign expressions left to right
-         */
-        BinExp *e = (BinExp *)copy();
-        e->e1 = e->e1->buildArrayLoop(fparams);
-        e->e2 = e->e2->buildArrayLoop(fparams);
-        e->type = NULL;
-        return e;
-    }
-    default:
-        return Expression::buildArrayLoop(fparams);
-    }
-}
-
-/***********************************************
- * Test if operand is a valid array op operand.
- */
-
-int Expression::isArrayOperand()
-{
-    //printf("Expression::isArrayOperand() %s\n", toChars());
-    if (op == TOKslice)
-        return 1;
-    if (op == TOKarrayliteral)
-    {
-        Type *t = type->toBasetype();
-        while (t->ty == Tarray || t->ty == Tsarray)
-            t = t->nextOf()->toBasetype();
-        return (t->ty != Tvoid);
-    }
-    if (type->toBasetype()->ty == Tarray)
-    {
-        switch (op)
+    public:
+        BuildArrayLoopVisitor(Parameters *fparams)
+            : fparams(fparams), result(NULL)
         {
+        }
+
+        void visit(Expression *e)
+        {
+            Identifier *id = Identifier::generateId("c", fparams->dim);
+            Parameter *param = new Parameter(0, e->type, id, NULL);
+            fparams->shift(param);
+            result = new IdentifierExp(Loc(), id);
+        }
+
+        void visit(CastExp *e)
+        {
+            Type *tb = e->type->toBasetype();
+            if (tb->ty == Tarray || tb->ty == Tsarray)
+            {
+                e->e1->accept(this);
+            }
+            else
+                visit((Expression *)e);
+        }
+
+        void visit(ArrayLiteralExp *e)
+        {
+            Identifier *id = Identifier::generateId("p", fparams->dim);
+            Parameter *param = new Parameter(STCconst, e->type, id, NULL);
+            fparams->shift(param);
+            Expression *ie = new IdentifierExp(Loc(), id);
+            Expressions *arguments = new Expressions();
+            Expression *index = new IdentifierExp(Loc(), Id::p);
+            arguments->push(index);
+            result = new ArrayExp(Loc(), ie, arguments);
+        }
+
+        void visit(SliceExp *e)
+        {
+            Identifier *id = Identifier::generateId("p", fparams->dim);
+            Parameter *param = new Parameter(STCconst, e->type, id, NULL);
+            fparams->shift(param);
+            Expression *ie = new IdentifierExp(Loc(), id);
+            Expressions *arguments = new Expressions();
+            Expression *index = new IdentifierExp(Loc(), Id::p);
+            arguments->push(index);
+            result = new ArrayExp(Loc(), ie, arguments);
+        }
+
+        void visit(AssignExp *e)
+        {
+            /* Evaluate assign expressions right to left
+             */
+            Expression *ex2 = buildArrayLoop(e->e2);
+            /* Need the cast because:
+             *   b = c + p[i];
+             * where b is a byte fails because (c + p[i]) is an int
+             * which cannot be implicitly cast to byte.
+             */
+            ex2 = new CastExp(Loc(), ex2, e->e1->type->nextOf());
+            Expression *ex1 = buildArrayLoop(e->e1);
+            Parameter *param = (*fparams)[0];
+            param->storageClass = 0;
+            result = new AssignExp(Loc(), ex1, ex2);
+        }
+
+        void visit(BinAssignExp *e)
+        {
+            /* Evaluate assign expressions right to left
+             */
+            Expression *ex2 = buildArrayLoop(e->e2);
+            Expression *ex1 = buildArrayLoop(e->e1);
+            Parameter *param = (*fparams)[0];
+            param->storageClass = 0;
+            switch(e->op)
+            {
+            case TOKaddass: result = new AddAssignExp(e->loc, ex1, ex2); return;
+            case TOKminass: result = new MinAssignExp(e->loc, ex1, ex2); return;
+            case TOKmulass: result = new MulAssignExp(e->loc, ex1, ex2); return;
+            case TOKdivass: result = new DivAssignExp(e->loc, ex1, ex2); return;
+            case TOKmodass: result = new ModAssignExp(e->loc, ex1, ex2); return;
+            case TOKxorass: result = new XorAssignExp(e->loc, ex1, ex2); return;
+            case TOKandass: result = new AndAssignExp(e->loc, ex1, ex2); return;
+            case TOKorass:  result = new OrAssignExp(e->loc, ex1, ex2); return;
+            case TOKpowass: result = new PowAssignExp(e->loc, ex1, ex2); return;
+            default:
+                assert(0);
+            }
+        }
+
+        void visit(NegExp *e)
+        {
+            Expression *ex1 = buildArrayLoop(e->e1);
+            result = new NegExp(Loc(), ex1);
+        }
+
+        void visit(ComExp *e)
+        {
+            Expression *ex1 = buildArrayLoop(e->e1);
+            result = new ComExp(Loc(), ex1);
+        }
+
+        void visit(BinExp *e)
+        {
+            switch(e->op)
+            {
             case TOKadd:
             case TOKmin:
             case TOKmul:
@@ -719,24 +700,80 @@ int Expression::isArrayOperand()
             case TOKxor:
             case TOKand:
             case TOKor:
-            case TOKassign:
-            case TOKaddass:
-            case TOKminass:
-            case TOKmulass:
-            case TOKdivass:
-            case TOKmodass:
-            case TOKxorass:
-            case TOKandass:
-            case TOKorass:
             case TOKpow:
-            case TOKpowass:
-            case TOKneg:
-            case TOKtilde:
-                return 1;
-
+            {
+                /* Evaluate assign expressions left to right
+                 */
+                BinExp *be = (BinExp *)e->copy();
+                be->e1 = buildArrayLoop(be->e1);
+                be->e2 = buildArrayLoop(be->e2);
+                be->type = NULL;
+                result = be;
+                return;
+            }
             default:
-                break;
+                visit((Expression *)e);
+                return;
+            }
+        }
+
+        Expression *buildArrayLoop(Expression *e)
+        {
+            e->accept(this);
+            return result;
+        }
+    };
+
+    BuildArrayLoopVisitor v(fparams);
+    return v.buildArrayLoop(e);
+}
+
+/***********************************************
+ * Test if operand is a valid array op operand.
+ */
+
+bool isArrayOperand(Expression *e)
+{
+    //printf("Expression::isArrayOperand() %s\n", e->toChars());
+    if (e->op == TOKslice)
+        return true;
+    if (e->op == TOKarrayliteral)
+    {
+        Type *t = e->type->toBasetype();
+        while (t->ty == Tarray || t->ty == Tsarray)
+            t = t->nextOf()->toBasetype();
+        return (t->ty != Tvoid);
+    }
+    if (e->type->toBasetype()->ty == Tarray)
+    {
+        switch (e->op)
+        {
+        case TOKadd:
+        case TOKmin:
+        case TOKmul:
+        case TOKdiv:
+        case TOKmod:
+        case TOKxor:
+        case TOKand:
+        case TOKor:
+        case TOKassign:
+        case TOKaddass:
+        case TOKminass:
+        case TOKmulass:
+        case TOKdivass:
+        case TOKmodass:
+        case TOKxorass:
+        case TOKandass:
+        case TOKorass:
+        case TOKpow:
+        case TOKpowass:
+        case TOKneg:
+        case TOKtilde:
+            return true;
+
+        default:
+            break;
         }
     }
-    return 0;
+    return false;
 }

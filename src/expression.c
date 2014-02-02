@@ -7036,7 +7036,7 @@ Expression *BinAssignExp::semantic(Scope *sc)
         if (e->op == TOKerror)
             return e;
         type = e1->type;
-        return arrayOp(sc);
+        return arrayOp(this, sc);
     }
 
     e1 = e1->semantic(sc);
@@ -11878,7 +11878,7 @@ Ltupleassign:
          e2->op == TOKtilde || e2->op == TOKneg))
     {
         type = e1->type;
-        return arrayOp(sc);
+        return arrayOp(this, sc);
     }
 
     if (e1->op == TOKvar &&
@@ -12107,7 +12107,7 @@ Expression *PowAssignExp::semantic(Scope *sc)
              (tb2->isintegral() || tb2->isfloating()))
         {
             type = e1->type;
-            return arrayOp(sc);
+            return arrayOp(this, sc);
         }
     }
     else

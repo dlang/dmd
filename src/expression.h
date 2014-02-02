@@ -89,6 +89,9 @@ Expression *resolveOpDollar(Scope *sc, SliceExp *se);
 
 AggregateDeclaration *isAggregate(Type *t);
 IntRange getIntRange(Expression *e);
+bool isArrayOperand(Expression *e);
+Expression *arrayOp(BinExp *e, Scope *sc);
+Expression *arrayOp(BinAssignExp *e, Scope *sc);
 
 /* Run CTFE on the expression, but allow the expression to be a TypeExp
  * or a tuple containing a TypeExp. (This is required by pragma(msg)).
@@ -194,11 +197,6 @@ public:
 
     virtual Expression *doInline(InlineDoState *ids);
     Expression *inlineCopy(Scope *sc);
-
-    // For array ops
-    virtual void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
-    virtual Expression *buildArrayLoop(Parameters *fparams);
-    int isArrayOperand();
 
     // Back end
     virtual elem *toElem(IRState *irs);
@@ -480,9 +478,6 @@ public:
     Expression *castTo(Scope *sc, Type *t);
     Expression *inferType(Type *t, int flag = 0, Scope *sc = NULL, TemplateParameters *tparams = NULL);
     dt_t **toDt(dt_t **pdt);
-
-    void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
-    Expression *buildArrayLoop(Parameters *fparams);
 
     Expression *doInline(InlineDoState *ids);
     void accept(Visitor *v) { v->visit(this); }
@@ -899,16 +894,12 @@ public:
     Expression *interpretCompareCommon(InterState *istate, CtfeGoal goal, fp2_t fp);
     Expression *interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_t fp, int post = 0);
     Expression *interpretFourPointerRelation(InterState *istate, CtfeGoal goal);
-    virtual Expression *arrayOp(Scope *sc);
 
     Expression *doInline(InlineDoState *ids);
 
     Expression *op_overload(Scope *sc);
     Expression *compare_overload(Scope *sc, Identifier *id);
     Expression *reorderSettingAAElem(Scope *sc);
-
-    void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
-    Expression *buildArrayLoop(Parameters *fparams);
 
     elem *toElemBin(IRState *irs, int op);
     void accept(Visitor *v) { v->visit(this); }
@@ -923,14 +914,10 @@ public:
     }
 
     Expression *semantic(Scope *sc);
-    Expression *arrayOp(Scope *sc);
 
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
 
     Expression *op_overload(Scope *sc);
-
-    void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
-    Expression *buildArrayLoop(Parameters *fparams);
 
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *ex);
@@ -1133,8 +1120,6 @@ public:
     NegExp(Loc loc, Expression *e);
     Expression *semantic(Scope *sc);
     Expression *optimize(int result, bool keepLvalue = false);
-    void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
-    Expression *buildArrayLoop(Parameters *fparams);
 
     elem *toElem(IRState *irs);
     void accept(Visitor *v) { v->visit(this); }
@@ -1155,8 +1140,6 @@ public:
     ComExp(Loc loc, Expression *e);
     Expression *semantic(Scope *sc);
     Expression *optimize(int result, bool keepLvalue = false);
-    void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
-    Expression *buildArrayLoop(Parameters *fparams);
 
     elem *toElem(IRState *irs);
     void accept(Visitor *v) { v->visit(this); }
@@ -1209,8 +1192,6 @@ public:
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     void checkEscape();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
-    Expression *buildArrayLoop(Parameters *fparams);
     elem *toElem(IRState *irs);
 
     // For operator overloading
@@ -1259,8 +1240,6 @@ public:
     Expression *optimize(int result, bool keepLvalue = false);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     elem *toElem(IRState *irs);
-    void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
-    Expression *buildArrayLoop(Parameters *fparams);
 
     Expression *doInline(InlineDoState *ids);
     void accept(Visitor *v) { v->visit(this); }
@@ -1392,8 +1371,6 @@ public:
     Expression *semantic(Scope *sc);
     Expression *checkToBoolean(Scope *sc);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
-    void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
-    Expression *buildArrayLoop(Parameters *fparams);
 
     elem *toElem(IRState *irs);
     void accept(Visitor *v) { v->visit(this); }
