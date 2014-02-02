@@ -30,7 +30,7 @@
 
 static Expression *expandInline(FuncDeclaration *fd, FuncDeclaration *parent,
     Expression *eret, Expression *ethis, Expressions *arguments, Statement **ps);
-
+bool walkPostorder(Expression *e, StoppableVisitor *v);
 
 /* ========== Compute cost of inlining =============== */
 
@@ -201,21 +201,28 @@ public:
 
     /* -------------------------- */
 
-    static int lambdaInlineCost(Expression *e, void *param)
-    {
-        InlineCostVisitor *v = (InlineCostVisitor *)param;
-        e->accept(v);
-        return (v->cost >= COST_MAX);
-    }
-
     void expressionInlineCost(Expression *e)
     {
         //printf("expressionInlineCost()\n");
         //e->print();
         if (e)
         {
+            class LambdaInlineCost : public StoppableVisitor
+            {
+                InlineCostVisitor *icv;
+            public:
+                LambdaInlineCost(InlineCostVisitor *icv) : icv(icv) {}
+
+                void visit(Expression *e)
+                {
+                    e->accept(icv);
+                    stop = icv->cost >= COST_MAX;
+                }
+            };
+
             InlineCostVisitor icv(this);
-            e->apply(&lambdaInlineCost, (void *)&icv);
+            LambdaInlineCost lic(&icv);
+            walkPostorder(e, &lic);
             cost += icv.cost;
         }
     }
