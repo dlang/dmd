@@ -23,92 +23,97 @@
 #include "scope.h"
 #include "attrib.h"
 
-int lambdaHasSideEffect(Expression *e, void *param);
+bool walkPostorder(Expression *e, StoppableVisitor *v);
+bool lambdaHasSideEffect(Expression *e);
 
 /********************************************
  * Determine if Expression has any side effects.
  */
 
-bool Expression::hasSideEffect()
+bool hasSideEffect(Expression *e)
 {
-    bool has = false;
-    apply(&lambdaHasSideEffect, &has);
-    return has;
-}
-
-int lambdaHasSideEffect(Expression *e, void *param)
-{
-    bool *phas = (bool *)param;
-    switch (e->op)
+    class LambdaHasSideEffect : public StoppableVisitor
     {
-        // Sort the cases by most frequently used first
-        case TOKassign:
-        case TOKplusplus:
-        case TOKminusminus:
-        case TOKdeclaration:
-        case TOKconstruct:
-        case TOKblit:
-        case TOKaddass:
-        case TOKminass:
-        case TOKcatass:
-        case TOKmulass:
-        case TOKdivass:
-        case TOKmodass:
-        case TOKshlass:
-        case TOKshrass:
-        case TOKushrass:
-        case TOKandass:
-        case TOKorass:
-        case TOKxorass:
-        case TOKpowass:
-        case TOKin:
-        case TOKremove:
-        case TOKassert:
-        case TOKhalt:
-        case TOKdelete:
-        case TOKnew:
-        case TOKnewanonclass:
-            *phas = true;
-            break;
+    public:
+        LambdaHasSideEffect() {}
 
-        case TOKcall:
-        {   CallExp *ce = (CallExp *)e;
-
-            /* Calling a function or delegate that is pure nothrow
-             * has no side effects.
-             */
-            if (ce->e1->type)
+        void visit(Expression *e)
+        {
+            switch (e->op)
             {
-                Type *t = ce->e1->type->toBasetype();
-                if ((t->ty == Tfunction && ((TypeFunction *)t)->purity > PUREweak &&
-                                           ((TypeFunction *)t)->isnothrow)
-                    ||
-                    (t->ty == Tdelegate && ((TypeFunction *)((TypeDelegate *)t)->next)->purity > PUREweak &&
-                                           ((TypeFunction *)((TypeDelegate *)t)->next)->isnothrow)
-                   )
+            // Sort the cases by most frequently used first
+            case TOKassign:
+            case TOKplusplus:
+            case TOKminusminus:
+            case TOKdeclaration:
+            case TOKconstruct:
+            case TOKblit:
+            case TOKaddass:
+            case TOKminass:
+            case TOKcatass:
+            case TOKmulass:
+            case TOKdivass:
+            case TOKmodass:
+            case TOKshlass:
+            case TOKshrass:
+            case TOKushrass:
+            case TOKandass:
+            case TOKorass:
+            case TOKxorass:
+            case TOKpowass:
+            case TOKin:
+            case TOKremove:
+            case TOKassert:
+            case TOKhalt:
+            case TOKdelete:
+            case TOKnew:
+            case TOKnewanonclass:
+                // stop walking if we determine this expression has side effects
+                stop = true;
+                break;
+
+            case TOKcall:
+            {
+                CallExp *ce = (CallExp *)e;
+                /* Calling a function or delegate that is pure nothrow
+                 * has no side effects.
+                 */
+                if (ce->e1->type)
                 {
+                    Type *t = ce->e1->type->toBasetype();
+                    if ((t->ty == Tfunction && ((TypeFunction *)t)->purity > PUREweak &&
+                                               ((TypeFunction *)t)->isnothrow)
+                        ||
+                        (t->ty == Tdelegate && ((TypeFunction *)((TypeDelegate *)t)->next)->purity > PUREweak &&
+                                               ((TypeFunction *)((TypeDelegate *)t)->next)->isnothrow)
+                       )
+                    {
+                    }
+                    else
+                        stop = true;
                 }
-                else
-                    *phas = true;
+                break;
             }
-            break;
+
+            case TOKcast:
+            {
+                CastExp *ce = (CastExp *)e;
+                /* if:
+                 *  cast(classtype)func()  // because it may throw
+                 */
+                if (ce->to->ty == Tclass && ce->e1->op == TOKcall && ce->e1->type->ty == Tclass)
+                    stop = true;
+                break;
+            }
+
+            default:
+                break;
+            }
         }
+    };
 
-        case TOKcast:
-        {   CastExp *ce = (CastExp *)e;
-
-            /* if:
-             *  cast(classtype)func()  // because it may throw
-             */
-            if (ce->to->ty == Tclass && ce->e1->op == TOKcall && ce->e1->type->ty == Tclass)
-                *phas = true;
-            break;
-        }
-
-        default:
-            break;
-    }
-    return *phas; // stop walking if we determine this expression has side effects
+    LambdaHasSideEffect v;
+    return walkPostorder(e, &v);
 }
 
 
@@ -118,8 +123,7 @@ int lambdaHasSideEffect(Expression *e, void *param)
  */
 void Expression::discardValue()
 {
-    bool has = false;
-    lambdaHasSideEffect(this, &has);
+    bool has = hasSideEffect(this);
     if (!has)
     {
         switch (op)
@@ -201,7 +205,7 @@ void Expression::discardValue()
                  * Ideally any tuple elements with no side effects should raise an error,
                  * this needs more investigation as to what is the right thing to do.
                  */
-                if (!hasSideEffect())
+                if (!hasSideEffect(this))
                     goto Ldefault;
                 break;
 
