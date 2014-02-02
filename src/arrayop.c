@@ -365,21 +365,21 @@ bool isArrayOpValid(Expression *e)
  * Construct the array operation expression.
  */
 
-Expression *BinExp::arrayOp(Scope *sc)
+Expression *arrayOp(BinExp *e, Scope *sc)
 {
     //printf("BinExp::arrayOp() %s\n", toChars());
 
-    Type *tb = type->toBasetype();
+    Type *tb = e->type->toBasetype();
     assert(tb->ty == Tarray || tb->ty == Tsarray);
     Type *tbn = tb->nextOf()->toBasetype();
     if (tbn->ty == Tvoid)
     {
-        error("Cannot perform array operations on void[] arrays");
+        e->error("Cannot perform array operations on void[] arrays");
         return new ErrorExp();
     }
-    if (!isArrayOpValid(this))
+    if (!isArrayOpValid(e))
     {
-        error("invalid array operation %s (did you forget a [] ?)", toChars());
+        e->error("invalid array operation %s (did you forget a [] ?)", e->toChars());
         return new ErrorExp();
     }
 
@@ -391,12 +391,12 @@ Expression *BinExp::arrayOp(Scope *sc)
      */
     OutBuffer buf;
     buf.writestring("_array");
-    buildArrayIdent(this, &buf, arguments);
+    buildArrayIdent(e, &buf, arguments);
     buf.writeByte('_');
 
     /* Append deco of array element type
      */
-    buf.writestring(type->toBasetype()->nextOf()->toBasetype()->mutableOf()->deco);
+    buf.writestring(e->type->toBasetype()->nextOf()->toBasetype()->mutableOf()->deco);
 
     char *name = buf.peekString();
     Identifier *ident = Lexer::idPool(name);
@@ -405,7 +405,7 @@ Expression *BinExp::arrayOp(Scope *sc)
     ArrayOp *op = *pOp;
 
     if (!op)
-        op = buildArrayOp(ident, this, sc, loc);
+        op = buildArrayOp(ident, e, sc, e->loc);
 
     if (op->dFunc && op->dFunc->errors)
     {
@@ -417,38 +417,38 @@ Expression *BinExp::arrayOp(Scope *sc)
         else
             fmt = "invalid array operation '%s' for element type %s";
 
-        error(fmt, toChars(), tbn->toChars());
+        e->error(fmt, e->toChars(), tbn->toChars());
         return new ErrorExp();
     }
 
     *pOp = op;
 
     FuncDeclaration *fd = op->cFunc ? op->cFunc : op->dFunc;
-    Expression *ec = new VarExp(loc, fd);
-    Expression *e = new CallExp(loc, ec, arguments);
+    Expression *ev = new VarExp(e->loc, fd);
+    Expression *ec = new CallExp(e->loc, ev, arguments);
 
-    return e->semantic(sc);
+    return ec->semantic(sc);
 }
 
-Expression *BinAssignExp::arrayOp(Scope *sc)
+Expression *arrayOp(BinAssignExp *e, Scope *sc)
 {
     //printf("BinAssignExp::arrayOp() %s\n", toChars());
 
     /* Check that the elements of e1 can be assigned to
      */
-    Type *tn = e1->type->toBasetype()->nextOf();
+    Type *tn = e->e1->type->toBasetype()->nextOf();
 
     if (tn && (!tn->isMutable() || !tn->isAssignable()))
     {
-        error("slice %s is not mutable", e1->toChars());
+        e->error("slice %s is not mutable", e->e1->toChars());
         return new ErrorExp();
     }
-    if (e1->op == TOKarrayliteral)
+    if (e->e1->op == TOKarrayliteral)
     {
-        return e1->modifiableLvalue(sc, e1);
+        return e->e1->modifiableLvalue(sc, e->e1);
     }
 
-    return BinExp::arrayOp(sc);
+    return arrayOp((BinExp *)e, sc);
 }
 
 /******************************************
@@ -732,48 +732,48 @@ Expression *buildArrayLoop(Expression *e, Parameters *fparams)
  * Test if operand is a valid array op operand.
  */
 
-int Expression::isArrayOperand()
+bool isArrayOperand(Expression *e)
 {
-    //printf("Expression::isArrayOperand() %s\n", toChars());
-    if (op == TOKslice)
-        return 1;
-    if (op == TOKarrayliteral)
+    //printf("Expression::isArrayOperand() %s\n", e->toChars());
+    if (e->op == TOKslice)
+        return true;
+    if (e->op == TOKarrayliteral)
     {
-        Type *t = type->toBasetype();
+        Type *t = e->type->toBasetype();
         while (t->ty == Tarray || t->ty == Tsarray)
             t = t->nextOf()->toBasetype();
         return (t->ty != Tvoid);
     }
-    if (type->toBasetype()->ty == Tarray)
+    if (e->type->toBasetype()->ty == Tarray)
     {
-        switch (op)
+        switch (e->op)
         {
-            case TOKadd:
-            case TOKmin:
-            case TOKmul:
-            case TOKdiv:
-            case TOKmod:
-            case TOKxor:
-            case TOKand:
-            case TOKor:
-            case TOKassign:
-            case TOKaddass:
-            case TOKminass:
-            case TOKmulass:
-            case TOKdivass:
-            case TOKmodass:
-            case TOKxorass:
-            case TOKandass:
-            case TOKorass:
-            case TOKpow:
-            case TOKpowass:
-            case TOKneg:
-            case TOKtilde:
-                return 1;
+        case TOKadd:
+        case TOKmin:
+        case TOKmul:
+        case TOKdiv:
+        case TOKmod:
+        case TOKxor:
+        case TOKand:
+        case TOKor:
+        case TOKassign:
+        case TOKaddass:
+        case TOKminass:
+        case TOKmulass:
+        case TOKdivass:
+        case TOKmodass:
+        case TOKxorass:
+        case TOKandass:
+        case TOKorass:
+        case TOKpow:
+        case TOKpowass:
+        case TOKneg:
+        case TOKtilde:
+            return true;
 
-            default:
-                break;
+        default:
+            break;
         }
     }
-    return 0;
+    return false;
 }

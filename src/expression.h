@@ -89,6 +89,9 @@ Expression *resolveOpDollar(Scope *sc, SliceExp *se);
 
 AggregateDeclaration *isAggregate(Type *t);
 IntRange getIntRange(Expression *e);
+bool isArrayOperand(Expression *e);
+Expression *arrayOp(BinExp *e, Scope *sc);
+Expression *arrayOp(BinAssignExp *e, Scope *sc);
 
 /* Run CTFE on the expression, but allow the expression to be a TypeExp
  * or a tuple containing a TypeExp. (This is required by pragma(msg)).
@@ -194,9 +197,6 @@ public:
 
     virtual Expression *doInline(InlineDoState *ids);
     Expression *inlineCopy(Scope *sc);
-
-    // For array ops
-    int isArrayOperand();
 
     // Back end
     virtual elem *toElem(IRState *irs);
@@ -894,7 +894,6 @@ public:
     Expression *interpretCompareCommon(InterState *istate, CtfeGoal goal, fp2_t fp);
     Expression *interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_t fp, int post = 0);
     Expression *interpretFourPointerRelation(InterState *istate, CtfeGoal goal);
-    virtual Expression *arrayOp(Scope *sc);
 
     Expression *doInline(InlineDoState *ids);
 
@@ -915,7 +914,6 @@ public:
     }
 
     Expression *semantic(Scope *sc);
-    Expression *arrayOp(Scope *sc);
 
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
 
