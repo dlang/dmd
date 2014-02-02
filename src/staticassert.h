@@ -32,7 +32,6 @@ public:
     int addMember(Scope *sc, ScopeDsymbol *sd, int memnum);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
-    void inlineScan();
     bool oneMember(Dsymbol **ps, Identifier *ident);
     void toObjFile(int multiobj);
     const char *kind();

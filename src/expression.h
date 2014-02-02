@@ -33,7 +33,6 @@ class Import;
 class Module;
 class ScopeDsymbol;
 struct InlineDoState;
-struct InlineScanState;
 class Expression;
 class Declaration;
 class AggregateDeclaration;
@@ -194,7 +193,6 @@ public:
     bool canThrow(bool mustNotThrow);
 
     virtual Expression *doInline(InlineDoState *ids);
-    virtual Expression *inlineScan(InlineScanState *iss);
     Expression *inlineCopy(Scope *sc);
 
     // For array ops
@@ -351,7 +349,6 @@ public:
     Expression *modifiableLvalue(Scope *sc, Expression *e);
 
     Expression *doInline(InlineDoState *ids);
-    //Expression *inlineScan(InlineScanState *iss);
 
     elem *toElem(IRState *irs);
     void accept(Visitor *v) { v->visit(this); }
@@ -365,7 +362,6 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     Expression *doInline(InlineDoState *ids);
-    //Expression *inlineScan(InlineScanState *iss);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -457,7 +453,6 @@ public:
     elem *toElem(IRState *irs);
 
     Expression *doInline(InlineDoState *ids);
-    Expression *inlineScan(InlineScanState *iss);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -490,7 +485,6 @@ public:
     Expression *buildArrayLoop(Parameters *fparams);
 
     Expression *doInline(InlineDoState *ids);
-    Expression *inlineScan(InlineScanState *iss);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -517,7 +511,6 @@ public:
     Expression *inferType(Type *t, int flag = 0, Scope *sc = NULL, TemplateParameters *tparams = NULL);
 
     Expression *doInline(InlineDoState *ids);
-    Expression *inlineScan(InlineScanState *iss);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -579,7 +572,6 @@ public:
     Expression *castTo(Scope *sc, Type *t);
 
     Expression *doInline(InlineDoState *ids);
-    Expression *inlineScan(InlineScanState *iss);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -652,7 +644,6 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     Expression *doInline(InlineDoState *ids);
-    //Expression *inlineScan(InlineScanState *iss);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -732,7 +723,6 @@ public:
     dt_t **toDt(dt_t **pdt);
 
     Expression *doInline(InlineDoState *ids);
-    //Expression *inlineScan(InlineScanState *iss);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -775,7 +765,6 @@ public:
     dt_t **toDt(dt_t **pdt);
 
     //Expression *doInline(InlineDoState *ids);
-    //Expression *inlineScan(InlineScanState *iss);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -794,7 +783,6 @@ public:
     elem *toElem(IRState *irs);
 
     Expression *doInline(InlineDoState *ids);
-    Expression *inlineScan(InlineScanState *iss);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -876,7 +864,6 @@ public:
     Expression *resolveLoc(Loc loc, Scope *sc);
 
     Expression *doInline(InlineDoState *ids);
-    Expression *inlineScan(InlineScanState *iss);
 
     virtual Expression *op_overload(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
@@ -915,7 +902,6 @@ public:
     virtual Expression *arrayOp(Scope *sc);
 
     Expression *doInline(InlineDoState *ids);
-    Expression *inlineScan(InlineScanState *iss);
 
     Expression *op_overload(Scope *sc);
     Expression *compare_overload(Scope *sc, Identifier *id);
@@ -985,7 +971,6 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     Expression *doInline(InlineDoState *ids);
-    Expression *inlineScan(InlineScanState *iss);
 
     elem *toElem(IRState *irs);
     void accept(Visitor *v) { v->visit(this); }
@@ -1105,8 +1090,6 @@ public:
     MATCH implicitConvTo(Type *t);
 
     Expression *doInline(InlineDoState *ids);
-    Expression *inlineScan(InlineScanState *iss);
-    Expression *inlineScan(InlineScanState *iss, Expression *eret);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -1280,7 +1263,6 @@ public:
     Expression *buildArrayLoop(Parameters *fparams);
 
     Expression *doInline(InlineDoState *ids);
-    Expression *inlineScan(InlineScanState *iss);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -1319,7 +1301,6 @@ public:
     Expression *op_overload(Scope *sc);
 
     Expression *doInline(InlineDoState *ids);
-    Expression *inlineScan(InlineScanState *iss);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -1413,8 +1394,6 @@ public:
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
     Expression *buildArrayLoop(Parameters *fparams);
-
-    Expression *inlineScan(InlineScanState *iss);
 
     elem *toElem(IRState *irs);
     void accept(Visitor *v) { v->visit(this); }
@@ -1792,7 +1771,6 @@ public:
     Expression *inferType(Type *t, int flag = 0, Scope *sc = NULL, TemplateParameters *tparams = NULL);
 
     Expression *doInline(InlineDoState *ids);
-    Expression *inlineScan(InlineScanState *iss);
 
     elem *toElem(IRState *irs);
     void accept(Visitor *v) { v->visit(this); }

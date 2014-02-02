@@ -6978,21 +6978,6 @@ void TemplateInstance::printInstantiationTrace()
     }
 }
 
-void TemplateInstance::inlineScan()
-{
-#if LOG
-    printf("TemplateInstance::inlineScan('%s')\n", toChars());
-#endif
-    if (!errors && members)
-    {
-        for (size_t i = 0; i < members->dim; i++)
-        {
-            Dsymbol *s = (*members)[i];
-            s->inlineScan();
-        }
-    }
-}
-
 void TemplateInstance::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     Identifier *id = name;
@@ -7617,11 +7602,6 @@ void TemplateMixin::semantic3(Scope *sc)
         sc = sc->pop();
         sc->pop();
     }
-}
-
-void TemplateMixin::inlineScan()
-{
-    TemplateInstance::inlineScan();
 }
 
 const char *TemplateMixin::kind()

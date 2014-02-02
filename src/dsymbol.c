@@ -383,15 +383,6 @@ void Dsymbol::semantic3(Scope *sc)
     // Most Dsymbols have no further semantic analysis needed
 }
 
-/*************************************
- * Look for function inlining possibilities.
- */
-
-void Dsymbol::inlineScan()
-{
-    // Most Dsymbols aren't functions
-}
-
 /*********************************************
  * Search for ident as member of s.
  * Input:

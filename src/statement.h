@@ -35,7 +35,6 @@ class Condition;
 class Module;
 struct Token;
 struct InlineDoState;
-struct InlineScanState;
 class ErrorStatement;
 class ReturnStatement;
 class CompoundStatement;
@@ -116,7 +115,6 @@ public:
 
     virtual Expression *doInline(InlineDoState *ids);
     virtual Statement *doInlineStatement(InlineDoState *ids);
-    virtual Statement *inlineScan(InlineScanState *iss);
 
     // Avoid dynamic_cast
     virtual ErrorStatement *isErrorStatement() { return NULL; }
@@ -174,7 +172,6 @@ public:
 
     Expression *doInline(InlineDoState *ids);
     Statement *doInlineStatement(InlineDoState *ids);
-    Statement *inlineScan(InlineScanState *iss);
 
     ExpStatement *isExpStatement() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -228,7 +225,6 @@ public:
 
     Expression *doInline(InlineDoState *ids);
     Statement *doInlineStatement(InlineDoState *ids);
-    Statement *inlineScan(InlineScanState *iss);
 
     CompoundStatement *isCompoundStatement() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -263,7 +259,6 @@ public:
 
     Expression *doInline(InlineDoState *ids);
     Statement *doInlineStatement(InlineDoState *ids);
-    Statement *inlineScan(InlineScanState *iss);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -287,7 +282,6 @@ public:
 
     Expression *doInline(InlineDoState *ids);
     Statement *doInlineStatement(InlineDoState *ids);
-    Statement *inlineScan(InlineScanState *iss);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -308,8 +302,6 @@ public:
     void ctfeCompile(CompiledCtfeFunction *ccf);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
-    Statement *inlineScan(InlineScanState *iss);
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -328,8 +320,6 @@ public:
     Expression *interpret(InterState *istate);
     void ctfeCompile(CompiledCtfeFunction *ccf);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-
-    Statement *inlineScan(InlineScanState *iss);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -359,7 +349,6 @@ public:
     void ctfeCompile(CompiledCtfeFunction *ccf);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
-    Statement *inlineScan(InlineScanState *iss);
     Statement *doInlineStatement(InlineDoState *ids);
 
     void accept(Visitor *v) { v->visit(this); }
@@ -394,8 +383,6 @@ public:
     void ctfeCompile(CompiledCtfeFunction *ccf);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
-    Statement *inlineScan(InlineScanState *iss);
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -421,8 +408,6 @@ public:
     void ctfeCompile(CompiledCtfeFunction *ccf);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
-    Statement *inlineScan(InlineScanState *iss);
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -447,7 +432,6 @@ public:
 
     Expression *doInline(InlineDoState *ids);
     Statement *doInlineStatement(InlineDoState *ids);
-    Statement *inlineScan(InlineScanState *iss);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -523,8 +507,6 @@ public:
     void ctfeCompile(CompiledCtfeFunction *ccf);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
-    Statement *inlineScan(InlineScanState *iss);
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -546,8 +528,6 @@ public:
     void ctfeCompile(CompiledCtfeFunction *ccf);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     CaseStatement *isCaseStatement() { return this; }
-
-    Statement *inlineScan(InlineScanState *iss);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -584,8 +564,6 @@ public:
     void ctfeCompile(CompiledCtfeFunction *ccf);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     DefaultStatement *isDefaultStatement() { return this; }
-
-    Statement *inlineScan(InlineScanState *iss);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -650,7 +628,6 @@ public:
 
     Expression *doInline(InlineDoState *ids);
     Statement *doInlineStatement(InlineDoState *ids);
-    Statement *inlineScan(InlineScanState *iss);
 
     ReturnStatement *isReturnStatement() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -702,8 +679,6 @@ public:
     int blockExit(bool mustNotThrow);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
-    Statement *inlineScan(InlineScanState *iss);
-
 // Back end
     elem *esync;
     SynchronizedStatement(Loc loc, elem *esync, Statement *body);
@@ -725,8 +700,6 @@ public:
     Expression *interpret(InterState *istate);
     void ctfeCompile(CompiledCtfeFunction *ccf);
 
-    Statement *inlineScan(InlineScanState *iss);
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -743,8 +716,6 @@ public:
     int blockExit(bool mustNotThrow);
     Expression *interpret(InterState *istate);
     void ctfeCompile(CompiledCtfeFunction *ccf);
-
-    Statement *inlineScan(InlineScanState *iss);
 
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void accept(Visitor *v) { v->visit(this); }
@@ -785,8 +756,6 @@ public:
     Expression *interpret(InterState *istate);
     void ctfeCompile(CompiledCtfeFunction *ccf);
 
-    Statement *inlineScan(InlineScanState *iss);
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -822,8 +791,6 @@ public:
     int blockExit(bool mustNotThrow);
     Expression *interpret(InterState *istate);
     void ctfeCompile(CompiledCtfeFunction *ccf);
-
-    Statement *inlineScan(InlineScanState *iss);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -883,7 +850,6 @@ public:
     void ctfeCompile(CompiledCtfeFunction *ccf);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
-    Statement *inlineScan(InlineScanState *iss);
     LabelStatement *isLabelStatement() { return this; }
 
     void accept(Visitor *v) { v->visit(this); }
@@ -920,7 +886,6 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     //Expression *doInline(InlineDoState *ids);
-    //Statement *inlineScan(InlineScanState *iss);
 
     void accept(Visitor *v) { v->visit(this); }
 };

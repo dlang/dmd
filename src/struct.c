@@ -233,20 +233,6 @@ void AggregateDeclaration::semantic3(Scope *sc)
     }
 }
 
-void AggregateDeclaration::inlineScan()
-{
-    //printf("AggregateDeclaration::inlineScan(%s)\n", toChars());
-    if (members)
-    {
-        for (size_t i = 0; i < members->dim; i++)
-        {
-            Dsymbol *s = (*members)[i];
-            //printf("inline scan aggregate symbol '%s'\n", s->toChars());
-            s->inlineScan();
-        }
-    }
-}
-
 unsigned AggregateDeclaration::size(Loc loc)
 {
     //printf("AggregateDeclaration::size() %s, scope = %p\n", toChars(), scope);

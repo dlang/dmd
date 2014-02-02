@@ -47,6 +47,8 @@ void printCtfePerformanceStats();
 
 static bool parse_arch(size_t argc, const char** argv, bool is64bit);
 
+void inlineScan(Module *m);
+
 /** Normalize path by turning forward slashes into backslashes */
 void toWinPath(char *src)
 {
@@ -1596,7 +1598,7 @@ Language changes listed by -transition=id:\n\
             Module *m = modules[i];
             if (global.params.verbose)
                 fprintf(global.stdmsg, "inline scan %s\n", m->toChars());
-            m->inlineScan();
+            inlineScan(m);
         }
     }
 

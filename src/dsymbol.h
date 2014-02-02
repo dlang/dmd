@@ -178,7 +178,6 @@ public:
     virtual void semantic(Scope *sc);
     virtual void semantic2(Scope *sc);
     virtual void semantic3(Scope *sc);
-    virtual void inlineScan();
     virtual Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
     Dsymbol *search_correct(Identifier *id);
     Dsymbol *searchX(Loc loc, Scope *sc, RootObject *id);
