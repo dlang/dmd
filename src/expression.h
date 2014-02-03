@@ -131,7 +131,8 @@ public:
     virtual Expression *semantic(Scope *sc);
     Expression *trySemantic(Scope *sc);
 
-    int dyncast() { return DYNCAST_EXPRESSION; }        // kludge for template.isExpression()
+    // kludge for template.isExpression()
+    int dyncast() { return DYNCAST_EXPRESSION; }
 
     void print();
     char *toChars();
@@ -533,16 +534,20 @@ public:
     int fillHoles;              // fill alignment 'holes' with zero
     bool ownedByCtfe;           // true = created in CTFE
 
-    StructLiteralExp *origin;   // pointer to the origin instance of the expression.
-                                // once a new expression is created, origin is set to 'this'.
-                                // anytime when an expression copy is created, 'origin' pointer is set to
-                                // 'origin' pointer value of the original expression.
+    // pointer to the origin instance of the expression.
+    // once a new expression is created, origin is set to 'this'.
+    // anytime when an expression copy is created, 'origin' pointer is set to
+    // 'origin' pointer value of the original expression.
+    StructLiteralExp *origin;
 
-    StructLiteralExp *inlinecopy; // those fields need to prevent a infinite recursion when one field of struct initialized with 'this' pointer.
-    int stageflags;               // anytime when recursive function is calling, 'stageflags' marks with bit flag of
-                                  // current stage and unmarks before return from this function.
-                                  // 'inlinecopy' uses similar 'stageflags' and from multiple evaluation 'doInline'
-                                  // (with infinite recursion) of this expression.
+    // those fields need to prevent a infinite recursion when one field of struct initialized with 'this' pointer.
+    StructLiteralExp *inlinecopy;
+
+    // anytime when recursive function is calling, 'stageflags' marks with bit flag of
+    // current stage and unmarks before return from this function.
+    // 'inlinecopy' uses similar 'stageflags' and from multiple evaluation 'doInline'
+    // (with infinite recursion) of this expression.
+    int stageflags;
 
     StructLiteralExp(Loc loc, StructDeclaration *sd, Expressions *elements, Type *stype = NULL);
     static StructLiteralExp *create(Loc loc, StructDeclaration *sd, void *elements, Type *stype = NULL);
