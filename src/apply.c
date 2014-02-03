@@ -156,7 +156,7 @@ int Expression::apply(apply_fp_t fp, void *param)
         }
         void visit(Expression *e)
         {
-            stop = (*fp)(e, param);
+            stop = (*fp)(e, param) != 0;
         }
     };
 
