@@ -74,7 +74,6 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
     inlineNest = 0;
     ctfeCode = NULL;
     isArrayOp = 0;
-    dArrayOp = NULL;
     semantic3Errors = false;
     fes = NULL;
     introducing = 0;
