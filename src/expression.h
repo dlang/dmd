@@ -92,6 +92,7 @@ IntRange getIntRange(Expression *e);
 bool isArrayOperand(Expression *e);
 Expression *arrayOp(BinExp *e, Scope *sc);
 Expression *arrayOp(BinAssignExp *e, Scope *sc);
+bool hasSideEffect(Expression *e);
 
 /* Run CTFE on the expression, but allow the expression to be a TypeExp
  * or a tuple containing a TypeExp. (This is required by pragma(msg)).
@@ -126,7 +127,7 @@ public:
     static void init();
     Expression *copy();
     virtual Expression *syntaxCopy();
-    virtual int apply(apply_fp_t fp, void *param);
+    int apply(apply_fp_t fp, void *param);
     virtual Expression *semantic(Scope *sc);
     Expression *trySemantic(Scope *sc);
 
@@ -190,7 +191,6 @@ public:
 
     virtual int isConst();
     virtual int isBool(int result);
-    bool hasSideEffect();
     void discardValue();
     void useValue();
     bool canThrow(bool mustNotThrow);
@@ -440,7 +440,6 @@ public:
     TupleExp(Loc loc, Expressions *exps);
     TupleExp(Loc loc, TupleDeclaration *tup);
     Expression *syntaxCopy();
-    int apply(apply_fp_t fp, void *param);
     bool equals(RootObject *o);
     Expression *semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -464,7 +463,6 @@ public:
     ArrayLiteralExp(Loc loc, Expression *e);
 
     Expression *syntaxCopy();
-    int apply(apply_fp_t fp, void *param);
     bool equals(RootObject *o);
     Expression *semantic(Scope *sc);
     int isBool(int result);
@@ -493,7 +491,6 @@ public:
     AssocArrayLiteralExp(Loc loc, Expressions *keys, Expressions *values);
     bool equals(RootObject *o);
     Expression *syntaxCopy();
-    int apply(apply_fp_t fp, void *param);
     Expression *semantic(Scope *sc);
     int isBool(int result);
     elem *toElem(IRState *irs);
@@ -551,7 +548,6 @@ public:
     static StructLiteralExp *create(Loc loc, StructDeclaration *sd, void *elements, Type *stype = NULL);
     bool equals(RootObject *o);
     Expression *syntaxCopy();
-    int apply(apply_fp_t fp, void *param);
     Expression *semantic(Scope *sc);
     Expression *getField(Type *type, unsigned offset);
     int getFieldIndex(Type *type, unsigned offset);
@@ -630,7 +626,6 @@ public:
     NewExp(Loc loc, Expression *thisexp, Expressions *newargs,
         Type *newtype, Expressions *arguments);
     Expression *syntaxCopy();
-    int apply(apply_fp_t fp, void *param);
     Expression *semantic(Scope *sc);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     Expression *optimize(int result, bool keepLvalue = false);
@@ -655,7 +650,6 @@ public:
     NewAnonClassExp(Loc loc, Expression *thisexp, Expressions *newargs,
         ClassDeclaration *cd, Expressions *arguments);
     Expression *syntaxCopy();
-    int apply(apply_fp_t fp, void *param);
     Expression *semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void accept(Visitor *v) { v->visit(this); }
@@ -851,7 +845,6 @@ public:
 
     UnaExp(Loc loc, TOK op, int size, Expression *e1);
     Expression *syntaxCopy();
-    int apply(apply_fp_t fp, void *param);
     Expression *semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Expression *optimize(int result, bool keepLvalue = false);
@@ -878,7 +871,6 @@ public:
 
     BinExp(Loc loc, TOK op, int size, Expression *e1, Expression *e2);
     Expression *syntaxCopy();
-    int apply(apply_fp_t fp, void *param);
     Expression *semantic(Scope *sc);
     Expression *semanticp(Scope *sc);
     Expression *checkComplexOpAssign(Scope *sc);
@@ -952,7 +944,6 @@ public:
 
     AssertExp(Loc loc, Expression *e, Expression *msg = NULL);
     Expression *syntaxCopy();
-    int apply(apply_fp_t fp, void *param);
     Expression *semantic(Scope *sc);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -1065,7 +1056,6 @@ public:
     static CallExp *create(Loc loc, Expression *e, Expression *earg1);
 
     Expression *syntaxCopy();
-    int apply(apply_fp_t fp, void *param);
     Expression *semantic(Scope *sc);
     Expression *optimize(int result, bool keepLvalue = false);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
@@ -1224,7 +1214,6 @@ public:
 
     SliceExp(Loc loc, Expression *e1, Expression *lwr, Expression *upr);
     Expression *syntaxCopy();
-    int apply(apply_fp_t fp, void *param);
     Expression *semantic(Scope *sc);
     void checkEscape();
     void checkEscapeRef();
@@ -1270,7 +1259,6 @@ public:
 
     ArrayExp(Loc loc, Expression *e1, Expressions *arguments);
     Expression *syntaxCopy();
-    int apply(apply_fp_t fp, void *param);
     Expression *semantic(Scope *sc);
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
@@ -1731,7 +1719,6 @@ public:
 
     CondExp(Loc loc, Expression *econd, Expression *e1, Expression *e2);
     Expression *syntaxCopy();
-    int apply(apply_fp_t fp, void *param);
     Expression *semantic(Scope *sc);
     Expression *optimize(int result, bool keepLvalue = false);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);

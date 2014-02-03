@@ -7766,7 +7766,7 @@ Expression *DotVarExp::semantic(Scope *sc)
             Expressions *exps = new Expressions;
             Expression *e0 = NULL;
             Expression *ev = e1;
-            if (sc->func && e1->hasSideEffect())
+            if (sc->func && hasSideEffect(e1))
             {
                 Identifier *id = Lexer::uniqueId("__tup");
                 ExpInitializer *ei = new ExpInitializer(e1->loc, e1);
@@ -11467,7 +11467,7 @@ Ltupleassign:
                 Expression *ea = ie->e1;
                 Expression *ek = ie->e2;
                 Expression *ev = e2;
-                if (ea->hasSideEffect())
+                if (hasSideEffect(ea))
                 {
                     VarDeclaration *v = new VarDeclaration(loc, ie->e1->type,
                         Lexer::uniqueId("__aatmp"), new ExpInitializer(loc, ie->e1));
@@ -11478,7 +11478,7 @@ Ltupleassign:
                     e0 = combine(e0, new DeclarationExp(loc, v));
                     ea = new VarExp(loc, v);
                 }
-                if (ek->hasSideEffect())
+                if (hasSideEffect(ek))
                 {
                     VarDeclaration *v = new VarDeclaration(loc, ie->e2->type,
                         Lexer::uniqueId("__aakey"), new ExpInitializer(loc, ie->e2));
@@ -11489,7 +11489,7 @@ Ltupleassign:
                     e0 = combine(e0, new DeclarationExp(loc, v));
                     ek = new VarExp(loc, v);
                 }
-                if (ev->hasSideEffect())
+                if (hasSideEffect(ev))
                 {
                     VarDeclaration *v = new VarDeclaration(loc, e2->type,
                         Lexer::uniqueId("__aaval"), new ExpInitializer(loc, e2));
@@ -13941,7 +13941,7 @@ Expression *PrettyFuncInitExp::resolveLoc(Loc loc, Scope *sc)
 Expression *extractOpDollarSideEffect(Scope *sc, UnaExp *ue)
 {
     Expression *e0 = NULL;
-    if (ue->e1->hasSideEffect())
+    if (hasSideEffect(ue->e1))
     {
         /* Even if opDollar is needed, 'ue->e1' should be evaluate only once. So
          * Rewrite:
@@ -14072,7 +14072,7 @@ Expression *BinExp::reorderSettingAAElem(Scope *sc)
      *     __aatmp[__aakey] op= __aaval;  // assignment
      */
     Expression *ec = NULL;
-    if (ie->e1->hasSideEffect())
+    if (hasSideEffect(ie->e1))
     {
         Identifier *id = Lexer::uniqueId("__aatmp");
         VarDeclaration *vd = new VarDeclaration(ie->e1->loc, ie->e1->type, id, new ExpInitializer(ie->e1->loc, ie->e1));
@@ -14083,7 +14083,7 @@ Expression *BinExp::reorderSettingAAElem(Scope *sc)
         ec = de;
         ie->e1 = new VarExp(ie->e1->loc, vd);
     }
-    if (ie->e2->hasSideEffect())
+    if (hasSideEffect(ie->e2))
     {
         Identifier *id = Lexer::uniqueId("__aakey");
         VarDeclaration *vd = new VarDeclaration(ie->e2->loc, ie->e2->type, id, new ExpInitializer(ie->e2->loc, ie->e2));

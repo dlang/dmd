@@ -939,7 +939,7 @@ Expression *CommaExp::optimize(int result, bool keepLvalue)
     e2 = e2->optimize(result, keepLvalue);
     if (e1->op == TOKerror)
         return e1;
-    if (!e1 || e1->op == TOKint64 || e1->op == TOKfloat64 || !e1->hasSideEffect())
+    if (!e1 || e1->op == TOKint64 || e1->op == TOKfloat64 || !hasSideEffect(e1))
     {
         e = e2;
         if (e)

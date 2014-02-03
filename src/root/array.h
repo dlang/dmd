@@ -236,21 +236,6 @@ struct Array
         memcpy(a->data, data, dim * sizeof(*data));
         return a;
     }
-
-    typedef int (*Array_apply_ft_t)(TYPE, void *);
-    int apply(Array_apply_ft_t fp, void *param)
-    {
-        for (size_t i = 0; i < dim; i++)
-        {   TYPE e = (*this)[i];
-
-            if (e)
-            {
-                if (e->apply(fp, param))
-                    return 1;
-            }
-        }
-        return 0;
-    }
 };
 
 #endif
