@@ -4569,7 +4569,7 @@ Statement *TryCatchStatement::syntaxCopy()
 
 Statement *TryCatchStatement::semantic(Scope *sc)
 {
-    body = body->semanticScope(sc, NULL /*this*/, NULL);
+    body = body->semanticScope(sc, NULL, NULL);
     assert(body);
 
     /* Even if body is empty, still do semantic analysis on catches

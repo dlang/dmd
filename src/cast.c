@@ -2863,7 +2863,7 @@ IntRange getIntRange(Expression *e)
             v |= v >> 8;
             v |= v >> 16;
             v |= v >> 32;
-            return v /* | 0xff*/;
+            return v;
         }
 
         // The algorithms for &, |, ^ are not yet the best! Sometimes they will produce

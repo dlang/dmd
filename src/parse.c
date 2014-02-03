@@ -2041,7 +2041,7 @@ TemplateParameters *Parser::parseTemplateParameterList(int flag)
                     else
                         def = parseCondExp();
                 }
-                tp = new TemplateAliasParameter(loc/*todo*/, tp_ident, spectype, spec, def);
+                tp = new TemplateAliasParameter(loc, tp_ident, spectype, spec, def);
             }
             else if (t->value == TOKcolon || t->value == TOKassign ||
                      t->value == TOKcomma || t->value == TOKrparen)
@@ -2123,7 +2123,7 @@ TemplateParameters *Parser::parseTemplateParameterList(int flag)
                     nextToken();
                     tp_defaultvalue = parseDefaultInitExp();
                 }
-                tp = new TemplateValueParameter(loc/*todo*/, tp_ident, tp_valtype, tp_specvalue, tp_defaultvalue);
+                tp = new TemplateValueParameter(loc, tp_ident, tp_valtype, tp_specvalue, tp_defaultvalue);
             }
             tpl->push(tp);
             if (token.value != TOKcomma)
@@ -2794,8 +2794,7 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident, TemplateParameters *
 
         case TOKlparen:
             if (peekNext() == TOKmul ||                 // like: T (*fp)();
-                peekNext() == TOKlparen                 // like: T ((*fp))();
-                /* || peekNext() == TOKlbracket*/)      // like: T ([] a)
+                peekNext() == TOKlparen)                // like: T ((*fp))();
             {
                 /* Parse things with parentheses around the identifier, like:
                  *  int (*ident[3])[]
@@ -3029,7 +3028,7 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, const utf8_t *co
                         Dsymbols *a2 = new Dsymbols();
                         a2->push(s);
                         TemplateDeclaration *tempdecl =
-                            new TemplateDeclaration(loc, ident, tpl, NULL/*constraint*/, a2);
+                            new TemplateDeclaration(loc, ident, tpl, NULL, a2);
                         s = tempdecl;
                     }
                     a->push(s);
@@ -3408,7 +3407,7 @@ L2:
                 Dsymbols *a2 = new Dsymbols();
                 a2->push(s);
                 TemplateDeclaration *tempdecl =
-                    new TemplateDeclaration(loc, ident, tpl, NULL/*constraint*/, a2, 0);
+                    new TemplateDeclaration(loc, ident, tpl, NULL, a2, 0);
                 s = tempdecl;
             }
 
@@ -3482,7 +3481,7 @@ Dsymbols *Parser::parseAutoDeclarations(StorageClass storageClass, const utf8_t 
             Dsymbols *a2 = new Dsymbols();
             a2->push(v);
             TemplateDeclaration *tempdecl =
-                new TemplateDeclaration(loc, ident, tpl, NULL/*constraint*/, a2, 0);
+                new TemplateDeclaration(loc, ident, tpl, NULL, a2, 0);
             s = tempdecl;
         }
 
