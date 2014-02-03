@@ -597,7 +597,6 @@ public:
     CompiledCtfeFunction *ctfeCode;     // Compiled code for interpreter
     int inlineNest;                     // !=0 if nested inline
     bool isArrayOp;                     // true if array operation
-    FuncDeclaration *dArrayOp;          // D version of array op for ctfe
     bool semantic3Errors;               // true if errors in semantic3
                                         // this function's frame ptr
     ForeachStatement *fes;              // if foreach body, this is the foreach
