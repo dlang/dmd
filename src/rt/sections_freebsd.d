@@ -65,12 +65,9 @@ void initSections()
 
     version (X86_64)
     {
-        auto pbeg = cast(void*)&etext;
-        auto pend = cast(void*)&_deh_end;
+        auto pbeg = cast(void*)&__progname; // first .data symbols
+        auto pend = cast(void*)&_end;
         _sections._gcRanges[0] = pbeg[0 .. pend - pbeg];
-        pbeg = cast(void*)&__progname;
-        pend = cast(void*)&_end;
-        _sections._gcRanges[1] = pbeg[0 .. pend - pbeg];
     }
     else
     {
