@@ -2809,8 +2809,10 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident, TemplateParameters *
             break;
 
         case TOKlparen:
-            if (peekNext() == TOKmul ||                 // like: T (*fp)();
-                peekNext() == TOKlparen)                // like: T ((*fp))();
+            // like: T (*fp)();
+            // like: T ((*fp))();
+            if (peekNext() == TOKmul ||
+                peekNext() == TOKlparen)
             {
                 /* Parse things with parentheses around the identifier, like:
                  *  int (*ident[3])[]
