@@ -4547,7 +4547,7 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
             {
                 Loc lookingForElseSave = lookingForElse;
                 lookingForElse = loc;
-                ifbody = parseStatement(0 /*PSsemi*/);
+                ifbody = parseStatement(0);
                 lookingForElse = lookingForElseSave;
             }
             elsebody = NULL;
@@ -4555,7 +4555,7 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
             {
                 Loc elseloc = token.loc;
                 nextToken();
-                elsebody = parseStatement(0 /*PSsemi*/);
+                elsebody = parseStatement(0);
                 checkDanglingElse(elseloc);
             }
             s = new ConditionalStatement(loc, cond, ifbody, elsebody);

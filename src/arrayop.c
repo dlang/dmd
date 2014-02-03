@@ -247,7 +247,7 @@ ArrayOp *buildArrayOp(Identifier *ident, BinExp *exp, Scope *sc, Loc loc)
      *  return p;
      */
 
-    Parameter *p = (*fparams)[0 /*fparams->dim - 1*/];
+    Parameter *p = (*fparams)[0];
     // foreach (i; 0 .. p.length)
     Statement *s1 = new ForeachRangeStatement(Loc(), TOKforeach,
         new Parameter(0, NULL, Id::p, NULL),
