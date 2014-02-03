@@ -393,30 +393,6 @@ void FuncDeclaration::semantic(Scope *sc)
         {
             goto Ldone;
         }
-#if 0
-        // Verify no constructors, destructors, etc.
-        if (isCtorDeclaration()
-            //||isDtorDeclaration()
-            //|| isInvariantDeclaration()
-            //|| isUnitTestDeclaration()
-           )
-        {
-            error("special member functions not allowed for %ss", sd->kind());
-        }
-
-        if (isInvariantDeclaration())
-            sd->invs.push(this);
-
-        if (!sd->aggNew)
-            sd->aggNew = isNewDeclaration();
-
-        if (isDelete())
-        {
-            if (sd->aggDelete)
-                error("multiple delete's for struct %s", sd->toChars());
-            sd->aggDelete = (DeleteDeclaration *)(this);
-        }
-#endif
     }
 
     id = parent->isInterfaceDeclaration();
