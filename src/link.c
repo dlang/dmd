@@ -158,8 +158,10 @@ int runLINK()
             const char *basename = FileName::removeExt(FileName::name(p));
             const char *ext = FileName::ext(p);
             if (ext && !strchr(basename, '.'))
+            {
                 // Write name sans extension (but not if a double extension)
                 writeFilename(&cmdbuf, p, ext - p - 1);
+            }
             else
                 writeFilename(&cmdbuf, p);
             FileName::free(basename);
@@ -310,8 +312,10 @@ int runLINK()
             const char *basename = FileName::removeExt(FileName::name(p));
             const char *ext = FileName::ext(p);
             if (ext && !strchr(basename, '.'))
+            {
                 // Write name sans extension (but not if a double extension)
                 writeFilename(&cmdbuf, p, ext - p - 1);
+            }
             else
                 writeFilename(&cmdbuf, p);
             FileName::free(basename);

@@ -1662,8 +1662,10 @@ void FuncDeclaration::semantic3(Scope *sc)
                         }
                     }
                     else if (p->storage_class & STClazy)
+                    {
                         // If the last parameter is lazy, it's the size of a delegate
                         offset += Target::ptrsize * 2;
+                    }
                     else
                         offset += p->type->size();
                     offset = (offset + Target::ptrsize - 1) & ~(Target::ptrsize - 1);  // assume stack aligns on pointer size

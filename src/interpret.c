@@ -4327,8 +4327,10 @@ Expression *interpretAssignToSlice(InterState *istate, CtfeGoal goal, Loc loc,
         for (size_t j = 0; j < upperbound-lowerbound; j++)
         {
             if (!directblk)
+            {
                 // Multidimensional array block assign
                 recursiveBlockAssign((ArrayLiteralExp *)(*w)[(size_t)(j+firstIndex)], newval, wantRef);
+            }
             else
             {
                 if (wantRef || cow)
