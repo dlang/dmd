@@ -1997,7 +1997,7 @@ Type *Type::unqualify(unsigned m)
     Type *t = mutableOf()->unSharedOf();
 
     Type *tn = nextOf();
-    if (tn && tn->ty != Tfunction/*!(ty == Tpointer && tn->ty == Tfunction)*/)
+    if (tn && tn->ty != Tfunction)
     {
         Type *utn = tn->unqualify(m);
         if (utn != tn)
@@ -4760,7 +4760,7 @@ Type *TypeAArray::syntaxCopy()
 
 d_uns64 TypeAArray::size(Loc loc)
 {
-    return Target::ptrsize /* * 2*/;
+    return Target::ptrsize;
 }
 
 

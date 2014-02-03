@@ -13451,7 +13451,7 @@ Expression *EqualExp::semantic(Scope *sc)
             VarExp *ve1 = (VarExp *)ae1->e1;
             VarExp *ve2 = (VarExp *)ae2->e1;
 
-            if (ve1->var == ve2->var /*|| ve1->var->toSymbol() == ve2->var->toSymbol()*/)
+            if (ve1->var == ve2->var)
             {
                 // They are the same, result is 'true' for ==, 'false' for !=
                 e = new IntegerExp(loc, (op == TOKequal), Type::tboolean);
