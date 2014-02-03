@@ -242,7 +242,6 @@ void unittest_speller()
         { "hello", "ehllo",  "y" },
         { "hello", "helol",  "y" },
         { "hello", "abcd",  "n" },
-        //{ "ehllo", "helol", "y" },
         { "hello", "helxxlo", "y" },
         { "hello", "ehlxxlo", "n" },
         { "hello", "heaao", "y" },
