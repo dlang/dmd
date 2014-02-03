@@ -16,7 +16,6 @@
 
 #include "rmem.h"
 
-//#include "port.h"
 #include "mtype.h"
 #include "init.h"
 #include "expression.h"
