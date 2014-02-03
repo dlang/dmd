@@ -7457,7 +7457,7 @@ Expression *DotIdExp::semanticX(Scope *sc)
             (*exps)[i] = e;
         }
         // Don't evaluate te->e0 in runtime
-        Expression *e = new TupleExp(loc, /*te->e0*/NULL, exps);
+        Expression *e = new TupleExp(loc, NULL, exps);
         e = e->semantic(sc);
         return e;
     }
