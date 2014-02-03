@@ -1795,11 +1795,15 @@ Lagain:
 
             Expression *cond;
             if (op == TOKforeach_reverse)
+            {
                 // key--
                 cond = new PostExp(TOKminusminus, loc, new VarExp(loc, key));
+            }
             else
+            {
                 // key < tmp.length
                 cond = new CmpExp(TOKlt, loc, new VarExp(loc, key), tmp_length);
+            }
 
             Expression *increment = NULL;
             if (op == TOKforeach)
@@ -2251,8 +2255,10 @@ Lagain:
                 exps->push(flde);
                 if (aggr->op == TOKdelegate &&
                     ((DelegateExp *)aggr)->func->isNested())
+                {
                     // See Bugzilla 3560
                     e = new CallExp(loc, ((DelegateExp *)aggr)->e1, exps);
+                }
                 else
                     e = new CallExp(loc, aggr, exps);
                 e = e->semantic(sc);
@@ -2280,8 +2286,10 @@ Lagain:
             }
 
             if (!cases->dim)
+            {
                 // Easy case, a clean exit from the loop
                 s = new ExpStatement(loc, e);
+            }
             else
             {   // Construct a switch statement around the return value
                 // of the apply function.
@@ -2508,20 +2516,28 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
     {
         cond = new PostExp(TOKminusminus, loc, new VarExp(loc, key));
         if (arg->type->isscalar())
+        {
             // key-- > tmp
             cond = new CmpExp(TOKgt, loc, cond, new VarExp(loc, tmp));
+        }
         else
+        {
             // key-- != tmp
             cond = new EqualExp(TOKnotequal, loc, cond, new VarExp(loc, tmp));
+        }
     }
     else
     {
         if (arg->type->isscalar())
+        {
             // key < tmp
             cond = new CmpExp(TOKlt, loc, new VarExp(loc, key), new VarExp(loc, tmp));
+        }
         else
+        {
             // key != tmp
             cond = new EqualExp(TOKnotequal, loc, new VarExp(loc, key), new VarExp(loc, tmp));
+        }
     }
 
     Expression *increment = NULL;
@@ -3775,8 +3791,10 @@ Statement *ReturnStatement::semantic(Scope *sc)
             VarDeclaration *v = ve->var->isVarDeclaration();
 
             if (tf->isref)
+            {
                 // Function returns a reference
                 fd->nrvo_can = 0;
+            }
             else if (!v || v->isOut() || v->isRef())
                 fd->nrvo_can = 0;
             else if (fd->nrvo_var == NULL)

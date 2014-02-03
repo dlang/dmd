@@ -683,11 +683,14 @@ MATCH AddrExp::implicitConvTo(Type *t)
                 FuncDeclaration *f2 = s->isFuncDeclaration();
                 assert(f2);
                 if (f2->overloadExactMatch(t->nextOf()))
-                {   if (f)
+                {
+                    if (f)
+                    {
                         /* Error if match in more than one overload set,
                          * even if one is a 'better' match than the other.
                          */
                         ScopeDsymbol::multiplyDefined(loc, f, f2);
+                    }
                     else
                         f = f2;
                     result = MATCHexact;
@@ -1487,11 +1490,14 @@ Expression *AddrExp::castTo(Scope *sc, Type *t)
                 FuncDeclaration *f2 = s->isFuncDeclaration();
                 assert(f2);
                 if (f2->overloadExactMatch(t->nextOf()))
-                {   if (f)
+                {
+                    if (f)
+                    {
                         /* Error if match in more than one overload set,
                          * even if one is a 'better' match than the other.
                          */
                         ScopeDsymbol::multiplyDefined(loc, f, f2);
+                    }
                     else
                         f = f2;
                 }

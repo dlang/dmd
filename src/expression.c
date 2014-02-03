@@ -8919,11 +8919,14 @@ Lagain:
                 continue;
             FuncDeclaration *f2 = resolveFuncCall(loc, sc, s, tiargs, tthis, arguments, 1);
             if (f2)
-            {   if (f)
+            {
+                if (f)
+                {
                     /* Error if match in more than one overload set,
                      * even if one is a 'better' match than the other.
                      */
                     ScopeDsymbol::multiplyDefined(loc, f, f2);
+                }
                 else
                     f = f2;
             }
@@ -9231,12 +9234,14 @@ Expression *CallExp::addDtorHook(Scope *sc)
 void CallExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     if (e1->op == TOKtype)
+    {
         /* Avoid parens around type to prevent forbidden cast syntax:
          *   (sometype)(arg1)
          * This is ok since types in constructor calls
          * can never depend on parens anyway
          */
         e1->toCBuffer(buf, hgs);
+    }
     else
         expToCBuffer(buf, hgs, e1, precedence[op]);
     buf->writeByte('(');

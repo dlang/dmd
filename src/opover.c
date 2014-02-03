@@ -562,17 +562,23 @@ Expression *BinExp::op_overload(Scope *sc)
 
         Expression *e;
         if (op == TOKplusplus || op == TOKminusminus)
+        {
             // Kludge because operator overloading regards e++ and e--
             // as unary, but it's implemented as a binary.
             // Rewrite (e1 ++ e2) as e1.postinc()
             // Rewrite (e1 -- e2) as e1.postdec()
             e = build_overload(loc, sc, e1, NULL, m.lastf ? m.lastf : s);
+        }
         else if (lastf && m.lastf == lastf || !s_r && m.last <= MATCHnomatch)
+        {
             // Rewrite (e1 op e2) as e1.opfunc(e2)
             e = build_overload(loc, sc, e1, e2, m.lastf ? m.lastf : s);
+        }
         else
+        {
             // Rewrite (e1 op e2) as e2.opfunc_r(e1)
             e = build_overload(loc, sc, e2, e1, m.lastf ? m.lastf : s_r);
+        }
         return e;
     }
 
@@ -636,11 +642,15 @@ L1:
 
             Expression *e;
             if (lastf && m.lastf == lastf || !s && m.last <= MATCHnomatch)
+            {
                 // Rewrite (e1 op e2) as e1.opfunc_r(e2)
                 e = build_overload(loc, sc, e1, e2, m.lastf ? m.lastf : s_r);
+            }
             else
+            {
                 // Rewrite (e1 op e2) as e2.opfunc(e1)
                 e = build_overload(loc, sc, e2, e1, m.lastf ? m.lastf : s);
+            }
 
             // When reversing operands of comparison operators,
             // need to reverse the sense of the op
@@ -803,10 +813,13 @@ Expression *BinExp::compare_overload(Scope *sc, Identifier *id)
 
         Expression *e;
         if (lastf && m.lastf == lastf || !s_r && m.last <= MATCHnomatch)
+        {
             // Rewrite (e1 op e2) as e1.opfunc(e2)
             e = build_overload(loc, sc, e1, e2, m.lastf ? m.lastf : s);
+        }
         else
-        {   // Rewrite (e1 op e2) as e2.opfunc_r(e1)
+        {
+            // Rewrite (e1 op e2) as e2.opfunc_r(e1)
             e = build_overload(loc, sc, e2, e1, m.lastf ? m.lastf : s_r);
 
             // When reversing operands of comparison operators,
