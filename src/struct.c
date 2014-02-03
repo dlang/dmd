@@ -311,11 +311,14 @@ bool AggregateDeclaration::isExport()
 /****************************
  * Do byte or word alignment as necessary.
  * Align sizes of 0, as we may not know array sizes yet.
+ *
+ * alignment: struct alignment that is in effect
+ * size: alignment requirement of field
  */
 
 void AggregateDeclaration::alignmember(
-        structalign_t alignment,   // struct alignment that is in effect
-        unsigned size,             // alignment requirement of field
+        structalign_t alignment,
+        unsigned size,
         unsigned *poffset)
 {
     //printf("alignment = %d, size = %d, offset = %d\n",alignment,size,offset);
@@ -347,15 +350,23 @@ void AggregateDeclaration::alignmember(
  * Place a member (mem) into an aggregate (agg), which can be a struct, union or class
  * Returns:
  *      offset to place field at
+ *
+ * nextoffset:    next location in aggregate
+ * memsize:       size of member
+ * memalignsize:  size of member for alignment purposes
+ * alignment:     alignment in effect for this member
+ * paggsize:      size of aggregate (updated)
+ * paggalignsize: size of aggregate for alignment purposes (updated)
+ * isunion:       the aggregate is a union
  */
 unsigned AggregateDeclaration::placeField(
-        unsigned *nextoffset,   // next location in aggregate
-        unsigned memsize,       // size of member
-        unsigned memalignsize,  // size of member for alignment purposes
-        structalign_t alignment, // alignment in effect for this member
-        unsigned *paggsize,     // size of aggregate (updated)
-        unsigned *paggalignsize, // size of aggregate for alignment purposes (updated)
-        bool isunion            // the aggregate is a union
+        unsigned *nextoffset,
+        unsigned memsize,
+        unsigned memalignsize,
+        structalign_t alignment,
+        unsigned *paggsize,
+        unsigned *paggalignsize,
+        bool isunion
         )
 {
     unsigned ofs = *nextoffset;
