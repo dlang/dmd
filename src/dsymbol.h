@@ -151,6 +151,7 @@ public:
     Dsymbol(Identifier *);
     static Dsymbol *create(Identifier *);
     char *toChars();
+    virtual char *toPrettyCharsHelper(); // helper to print fully qualified (template) arguments
     Loc& getLoc();
     char *locToChars();
     bool equals(RootObject *o);
@@ -175,7 +176,7 @@ public:
     static Dsymbols *arraySyntaxCopy(Dsymbols *a);
 
     virtual Identifier *getIdent();
-    virtual const char *toPrettyChars();
+    virtual const char *toPrettyChars(bool QualifyTypes = false);
     virtual const char *kind();
     virtual Dsymbol *toAlias();                 // resolve real symbol
     virtual int apply(Dsymbol_apply_ft_t fp, void *param);

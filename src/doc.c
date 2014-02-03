@@ -1298,7 +1298,8 @@ void toDocBuffer(Dsymbol *s, OutBuffer *buf, Scope *sc)
                 if (ed->memtype)
                 {
                     buf->writestring(": $(DDOC_ENUM_BASETYPE ");
-                    ed->memtype->toCBuffer(buf, NULL, NULL);
+                    HdrGenState hgs;
+                    ed->memtype->toCBuffer(buf, NULL, &hgs);
                     buf->writestring(")");
                 }
                 buf->writestring(";\n");

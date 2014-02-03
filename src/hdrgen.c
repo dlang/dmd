@@ -936,18 +936,18 @@ public:
     {
         TemplateInstance *ti = t->sym->parent->isTemplateInstance();
         if (ti && ti->toAlias() == t->sym)
-            buf->writestring(ti->toChars());
+            buf->writestring((hgs->fullQualification) ? ti->toPrettyChars() : ti->toChars());
         else
-            buf->writestring(t->sym->toChars());
+            buf->writestring((hgs->fullQualification) ? t->sym->toPrettyChars() : t->sym->toChars());
     }
 
     void visit(TypeClass *t)
     {
         TemplateInstance *ti = t->sym->parent->isTemplateInstance();
         if (ti && ti->toAlias() == t->sym)
-            buf->writestring(ti->toChars());
+            buf->writestring((hgs->fullQualification) ? ti->toPrettyChars() : ti->toChars());
         else
-            buf->writestring(t->sym->toChars());
+            buf->writestring((hgs->fullQualification) ? t->sym->toPrettyChars() : t->sym->toChars());
     }
 
     void visit(TypeTuple *t)
