@@ -415,7 +415,7 @@ Usage:\n\
   -deps          print module dependencies (imports/file/version/debug/lib)\n\
   -deps=filename write module dependencies to filename (only imports)\n%s\
   -g             add symbolic debug info\n\
-  -gc            add symbolic debug info, pretend to be C\n\
+  -gc            add symbolic debug info, optimize for non D debuggers\n\
   -gs            always emit stack frame\n\
   -gx            add stack stomp code\n\
   -H             generate 'header' file\n\
