@@ -83,5 +83,3 @@ void Module::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         s->toCBuffer(buf, hgs);
     }
 }
-
-/*************************************/

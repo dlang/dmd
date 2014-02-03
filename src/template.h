@@ -46,7 +46,8 @@ class Tuple : public RootObject
 public:
     Objects objects;
 
-    int dyncast() { return DYNCAST_TUPLE; } // kludge for template.isType()
+    // kludge for template.isType()
+    int dyncast() { return DYNCAST_TUPLE; }
 };
 
 struct TemplatePrevious
@@ -93,7 +94,6 @@ public:
 
     void emitComment(Scope *sc);
     PROT prot();
-//    void toDocBuffer(OutBuffer *buf);
 
     bool evaluateConstraint(TemplateInstance *ti, Scope *sc, Scope *paramscope, Objects *dedtypes, FuncDeclaration *fd);
 
@@ -290,19 +290,21 @@ class TemplateInstance : public ScopeDsymbol
 {
 public:
     Identifier *name;
-    Objects *tiargs;            // Array of Types/Expressions of template
-                                // instance arguments [int*, char, 10*10]
 
-    Objects tdtypes;            // Array of Types/Expressions corresponding
-                                // to TemplateDeclaration.parameters
-                                // [int, char, 100]
+    // Array of Types/Expressions of template
+    // instance arguments [int*, char, 10*10]
+    Objects *tiargs;
+
+    // Array of Types/Expressions corresponding
+    // to TemplateDeclaration.parameters
+    // [int, char, 100]
+    Objects tdtypes;
 
     Dsymbol *tempdecl;                  // referenced by foo.bar.abc
     TemplateInstance *inst;             // refer to existing instance
     TemplateInstance *tinst;            // enclosing template instance
     ScopeDsymbol *argsym;               // argument symbol table
-    AliasDeclaration *aliasdecl;        // !=NULL if instance is an alias for its
-                                        // sole member
+    AliasDeclaration *aliasdecl;        // !=NULL if instance is an alias for its sole member
     WithScopeSymbol *withsym;           // if a member of a with statement
     int nest;                           // for recursion detection
     bool semantictiargsdone;            // has semanticTiargs() been done?
