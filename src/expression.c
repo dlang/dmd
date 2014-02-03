@@ -2269,99 +2269,103 @@ void Expression::checkPurity(Scope *sc, VarDeclaration *v)
     /* Look for purity and safety violations when accessing variable v
      * from current function.
      */
-    if (sc->func &&
-        !sc->intypeof &&             // allow violations inside typeof(expression)
-        !(sc->flags & SCOPEdebug) && // allow violations inside debug conditionals
-        !(sc->flags & SCOPEctfe) &&  // allow violations inside compile-time evaluated expressions
-        v->ident != Id::ctfe &&      // magic variable never violates pure and safe
-        !v->isImmutable() &&         // always safe and pure to access immutables...
-        !(v->isConst() && !v->isRef() && (v->isDataseg() || v->isParameter()) &&
-          v->type->implicitConvTo(v->type->immutableOf())) &&
-            // or const global/parameter values which have no mutable indirections
-        !(v->storage_class & STCmanifest) && // ...or manifest constants
-        !v->needThis()               // ...or 'unreal' var access
-       )
+    if (!sc->func)
+        return;
+    if (sc->intypeof)
+        return; // allow violations inside typeof(expression)
+    if (sc->flags & SCOPEdebug)
+        return; // allow violations inside debug conditionals
+    if (sc->flags & SCOPEctfe)
+        return; // allow violations inside compile-time evaluated expressions
+    if (v->ident == Id::ctfe)
+        return; // magic variable never violates pure and safe
+    if (v->isImmutable())
+        return; // always safe and pure to access immutables...
+    if (v->isConst() && !v->isRef() && (v->isDataseg() || v->isParameter()) &&
+        v->type->implicitConvTo(v->type->immutableOf()))
+        return; // or const global/parameter values which have no mutable indirections
+    if (v->storage_class & STCmanifest)
+        return; // ...or manifest constants
+
+    if (v->isDataseg())
     {
-        if (v->isDataseg())
-        {
-            /* Accessing global mutable state.
-             * Therefore, this function and all its immediately enclosing
-             * functions must be pure.
-             */
-            bool msg = false;
-            for (Dsymbol *s = sc->func; s; s = s->toParent2())
-            {
-                FuncDeclaration *ff = s->isFuncDeclaration();
-                if (!ff)
-                    break;
-                // Accessing implicit generated __gate is pure.
-                if (ff->setImpure() && !msg && strcmp(v->ident->toChars(), "__gate"))
-                {   error("pure function '%s' cannot access mutable static data '%s'",
-                        sc->func->toPrettyChars(), v->toChars());
-                    msg = true;                     // only need the innermost message
-                }
-            }
-        }
-        else
-        {
-            /* Bugzilla 10981: Special case for the contracts of pure virtual function.
-             * Rewrite:
-             *  tret foo(int i) pure
-             *  in { assert(i); } out { assert(i); } body { ... }
-             *
-             * as:
-             *  tret foo(int i) pure {
-             *    void __require() pure { assert(i); }  // allow accessing to i
-             *    void __ensure() pure { assert(i); }   // allow accessing to i
-             *    __require();
-             *    ...
-             *    __ensure();
-             *  }
-             */
-            if ((sc->func->ident == Id::require || sc->func->ident == Id::ensure) &&
-                v->isParameter() && sc->func->parent == v->parent)
-            {
-                return;
-            }
-
-            /* Given:
-             * void f()
-             * { int fx;
-             *   pure void g()
-             *   {  int gx;
-             *      void h()
-             *      {  int hx;
-             *         void i() { }
-             *      }
-             *   }
-             * }
-             * i() can modify hx and gx but not fx
-             */
-
-            Dsymbol *vparent = v->toParent2();
-            for (Dsymbol *s = sc->func; s; s = s->toParent2())
-            {
-                if (s == vparent)
-                    break;
-                FuncDeclaration *ff = s->isFuncDeclaration();
-                if (!ff)
-                    break;
-                if (ff->setImpure())
-                {   error("pure nested function '%s' cannot access mutable data '%s'",
-                        ff->toChars(), v->toChars());
-                    break;
-                }
-            }
-        }
-
-        /* Do not allow safe functions to access __gshared data
+        /* Accessing global mutable state.
+         * Therefore, this function and all its immediately enclosing
+         * functions must be pure.
          */
-        if (v->storage_class & STCgshared)
+        bool msg = false;
+        for (Dsymbol *s = sc->func; s; s = s->toParent2())
         {
-            if (sc->func->setUnsafe())
-                error("safe function '%s' cannot access __gshared data '%s'",
-                    sc->func->toChars(), v->toChars());
+            FuncDeclaration *ff = s->isFuncDeclaration();
+            if (!ff)
+                break;
+            // Accessing implicit generated __gate is pure.
+            if (ff->setImpure() && !msg && strcmp(v->ident->toChars(), "__gate"))
+            {   error("pure function '%s' cannot access mutable static data '%s'",
+                    sc->func->toPrettyChars(), v->toChars());
+                msg = true;                     // only need the innermost message
+            }
         }
+    }
+    else
+    {
+        /* Bugzilla 10981: Special case for the contracts of pure virtual function.
+         * Rewrite:
+         *  tret foo(int i) pure
+         *  in { assert(i); } out { assert(i); } body { ... }
+         *
+         * as:
+         *  tret foo(int i) pure {
+         *    void __require() pure { assert(i); }  // allow accessing to i
+         *    void __ensure() pure { assert(i); }   // allow accessing to i
+         *    __require();
+         *    ...
+         *    __ensure();
+         *  }
+         */
+        if ((sc->func->ident == Id::require || sc->func->ident == Id::ensure) &&
+            v->isParameter() && sc->func->parent == v->parent)
+        {
+            return;
+        }
+
+        /* Given:
+         * void f()
+         * { int fx;
+         *   pure void g()
+         *   {  int gx;
+         *      void h()
+         *      {  int hx;
+         *         void i() { }
+         *      }
+         *   }
+         * }
+         * i() can modify hx and gx but not fx
+         */
+
+        Dsymbol *vparent = v->toParent2();
+        for (Dsymbol *s = sc->func; s; s = s->toParent2())
+        {
+            if (s == vparent)
+                break;
+            FuncDeclaration *ff = s->isFuncDeclaration();
+            if (!ff)
+                break;
+            if (ff->setImpure())
+            {   error("pure nested function '%s' cannot access mutable data '%s'",
+                    ff->toChars(), v->toChars());
+                break;
+            }
+        }
+    }
+
+    /* Do not allow safe functions to access __gshared data
+     */
+    if (v->storage_class & STCgshared)
+    {
+        if (sc->func->setUnsafe())
+            error("safe function '%s' cannot access __gshared data '%s'",
+                sc->func->toChars(), v->toChars());
     }
 }
 
