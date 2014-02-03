@@ -231,7 +231,8 @@ public:
     Type *copy();
     virtual Type *syntaxCopy();
     bool equals(RootObject *o);
-    int dyncast() { return DYNCAST_TYPE; } // kludge for template.isType()
+    // kludge for template.isType()
+    int dyncast() { return DYNCAST_TYPE; }
     int covariant(Type *t, StorageClass *pstc = NULL);
     char *toChars();
     static char needThisPrefix();
@@ -714,8 +715,9 @@ class TypeQualified : public Type
 {
 public:
     Loc loc;
-    Objects idents;         // array of Identifier and TypeInstance,
-                            // representing ident.ident!tiargs.ident. ... etc.
+    // array of Identifier and TypeInstance,
+    // representing ident.ident!tiargs.ident. ... etc.
+    Objects idents;
 
     TypeQualified(TY ty, Loc loc);
     void syntaxCopyHelper(TypeQualified *t);
@@ -1052,7 +1054,8 @@ public:
     Parameter *syntaxCopy();
     Type *isLazyArray();
     void toDecoBuffer(OutBuffer *buf);
-    int dyncast() { return DYNCAST_PARAMETER; } // kludge for template.isType()
+    // kludge for template.isType()
+    int dyncast() { return DYNCAST_PARAMETER; }
     static Parameters *arraySyntaxCopy(Parameters *args);
     static char *argsTypesToChars(Parameters *args, int varargs);
     static void argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Parameters *arguments, int varargs);
