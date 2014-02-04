@@ -966,7 +966,7 @@ int arrayExpressionCanThrow(Expressions *exps, bool mustNotThrow)
     {
         for (size_t i = 0; i < exps->dim; i++)
         {   Expression *e = (*exps)[i];
-            if (e && e->canThrow(mustNotThrow))
+            if (e && canThrow(e, mustNotThrow))
                 return 1;
         }
     }
