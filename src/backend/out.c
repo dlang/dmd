@@ -519,7 +519,9 @@ void out_readonly(symbol *s)
      * they require dynamic relocations of the read-only segment.
      * Instead use the .data.rel.ro section. See Bugzilla 11171.
      */
-    if (!(config.flags3 & CFG3pic && dtpointers(s->Sdt)))
+    if (config.flags3 & CFG3pic && dtpointers(s->Sdt))
+        s->Sseg = CDATAREL;
+    else
         s->Sseg = CDATA;
 #endif
 #if MACHOBJ
