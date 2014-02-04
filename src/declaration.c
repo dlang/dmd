@@ -891,8 +891,89 @@ void VarDeclaration::semantic(Scope *sc)
     }
     else
     {
+        if (type->ty == Tsarray)
+        {
+            TypeSArray* ts = (TypeSArray*) type;
+            /// Type[$]
+            if (ts->dim->op == TOKidentifier)
+            {
+                DollarExp* dexp = (DollarExp*) ts->dim;
+                if (dexp->ident == Id::dollar)
+                {
+                    ArrayInitializer *ai = init->isArrayInitializer();
+                    if (ai)
+                    {
+                        ts->dim = new IntegerExp(ai->value.dim);
+                        /// auto[$]
+                        if (ts->next == NULL)
+                        {
+                            Expression *e = NULL;
+                            if (ai->isAssociativeArray())
+                                e = ai->toAssocArrayLiteral();
+                            else
+                                e = init->toExpression();
+
+                            if (!e)
+                            {
+                                error("cannot infer type from initializer");
+                                e = new ErrorExp();
+                            }
+
+                            init = new ExpInitializer(e->loc, e);
+                            Type* te = init->inferType(sc);
+                            ts->next = te->nextOf();
+                        }
+                    }
+                    else
+                    {
+                        bool err = true;
+
+                        ExpInitializer* ei = init->isExpInitializer();
+                        SliceExp* se = ei == NULL ? NULL : (SliceExp*) ei->exp;
+                        if (se != NULL)
+                        {
+                            uinteger_t upr = 0, lwr = 0;
+
+                            Expression* exp = se->semantic(sc);
+                            if (exp && exp->op == TOKslice)
+                            {
+                                se = (SliceExp*) exp;
+                                if (se->upr && se->lwr)
+                                {
+                                    if (se->upr->op == TOKcast)
+                                        upr = ((CastExp*) se->upr)->e1->toUInteger();
+                                    if (se->lwr->op == TOKcast)
+                                        lwr = ((CastExp*) se->lwr)->e1->toUInteger();
+                                }
+                            }
+
+                            if (upr > lwr)
+                            {
+                                ts->dim = new IntegerExp(upr - lwr);
+                                err = false;
+                            }
+                        }
+                        
+                        if (err)
+                        {
+                            error(dexp->loc, "Cannot determine dimension for '%s' from '%s'.", ident->toChars(), init->toChars());
+                            ts->dim = new IntegerExp(0);
+                        }
+
+                        // auto[$]
+                        if (ts->next == NULL)
+                        {
+                            Type* te = init->inferType(sc);
+                            ts->next = te->nextOf();
+                        }
+                    }
+                }
+            }
+        }
+
         if (!originalType)
             originalType = type->syntaxCopy();
+
         inuse++;
         type = type->semantic(loc, sc);
         inuse--;
