@@ -400,7 +400,7 @@ int ExpStatement::blockExit(bool mustNotThrow)
             if (a->e1->isBool(false))   // if it's an assert(0)
                 return BEhalt;
         }
-        if (exp->canThrow(mustNotThrow))
+        if (canThrow(exp, mustNotThrow))
             result |= BEthrow;
     }
     return result;
@@ -1230,7 +1230,7 @@ int DoStatement::blockExit(bool mustNotThrow)
         result = BEfallthru;
     if (result & BEfallthru)
     {
-        if (condition->canThrow(mustNotThrow))
+        if (canThrow(condition, mustNotThrow))
             result |= BEthrow;
         if (!(result & BEbreak) && condition->isBool(true))
             result &= ~BEfallthru;
@@ -1374,7 +1374,7 @@ int ForStatement::blockExit(bool mustNotThrow)
             return result;
     }
     if (condition)
-    {   if (condition->canThrow(mustNotThrow))
+    {   if (canThrow(condition, mustNotThrow))
             result |= BEthrow;
         if (condition->isBool(true))
             result &= ~BEfallthru;
@@ -1389,7 +1389,7 @@ int ForStatement::blockExit(bool mustNotThrow)
             result |= BEfallthru;
         result |= r & ~(BEfallthru | BEbreak | BEcontinue);
     }
-    if (increment && increment->canThrow(mustNotThrow))
+    if (increment && canThrow(increment, mustNotThrow))
         result |= BEthrow;
     return result;
 }
@@ -2356,7 +2356,7 @@ bool ForeachStatement::hasContinue()
 int ForeachStatement::blockExit(bool mustNotThrow)
 {   int result = BEfallthru;
 
-    if (aggr->canThrow(mustNotThrow))
+    if (canThrow(aggr, mustNotThrow))
         result |= BEthrow;
 
     if (body)
@@ -2720,7 +2720,7 @@ int IfStatement::blockExit(bool mustNotThrow)
     //printf("IfStatement::blockExit(%p)\n", this);
 
     int result = BEnone;
-    if (condition->canThrow(mustNotThrow))
+    if (canThrow(condition, mustNotThrow))
         result |= BEthrow;
     if (condition->isBool(true))
     {
@@ -3260,7 +3260,7 @@ bool SwitchStatement::hasBreak()
 
 int SwitchStatement::blockExit(bool mustNotThrow)
 {   int result = BEnone;
-    if (condition->canThrow(mustNotThrow))
+    if (canThrow(condition, mustNotThrow))
         result |= BEthrow;
 
     if (body)
@@ -4050,7 +4050,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
 int ReturnStatement::blockExit(bool mustNotThrow)
 {   int result = BEreturn;
 
-    if (exp && exp->canThrow(mustNotThrow))
+    if (exp && canThrow(exp, mustNotThrow))
         result |= BEthrow;
     return result;
 }
@@ -4552,7 +4552,7 @@ void WithStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 int WithStatement::blockExit(bool mustNotThrow)
 {
     int result = BEnone;
-    if (exp->canThrow(mustNotThrow))
+    if (canThrow(exp, mustNotThrow))
         result = BEthrow;
     if (body)
         result |= body->blockExit(mustNotThrow);
