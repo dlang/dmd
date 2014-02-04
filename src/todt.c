@@ -31,145 +31,153 @@
 #include        "target.h"
 #include        "ctfe.h"
 #include        "arraytypes.h"
+#include        "visitor.h"
 // Back end
 #include        "dt.h"
+
 /* ================================================================ */
 
-dt_t *Initializer::toDt()
+dt_t *Initializer_toDt(Initializer *init)
 {
-    assert(0);
-    return NULL;
-}
-
-
-dt_t *VoidInitializer::toDt()
-{   /* Void initializers are set to 0, just because we need something
-     * to set them to in the static data segment.
-     */
-    dt_t *dt = NULL;
-
-    dtnzeros(&dt, type->size());
-    return dt;
-}
-
-
-dt_t *StructInitializer::toDt()
-{
-    //printf("StructInitializer::toDt('%s')\n", toChars());
-    assert(0);
-    return NULL;
-}
-
-
-dt_t *ArrayInitializer::toDt()
-{
-    //printf("ArrayInitializer::toDt('%s')\n", toChars());
-    Type *tb = type->toBasetype();
-    if (tb->ty == Tvector)
-        tb = ((TypeVector *)tb)->basetype;
-
-    Type *tn = tb->nextOf()->toBasetype();
-
-    //printf("\tdim = %d\n", dim);
-    Dts dts;
-    dts.setDim(dim);
-    dts.zero();
-
-    unsigned size = tn->size();
-
-    unsigned length = 0;
-    for (size_t i = 0; i < index.dim; i++)
+    class InitToDt : public Visitor
     {
-        Expression *idx = index[i];
-        if (idx)
-            length = idx->toInteger();
-        //printf("\tindex[%d] = %p, length = %u, dim = %u\n", i, idx, length, dim);
+    public:
+        dt_t *result;
 
-        assert(length < dim);
-        Initializer *val = value[i];
-        dt_t *dt = val->toDt();
-        if (dts[length])
-            error(loc, "duplicate initializations for index %d", length);
-        dts[length] = dt;
-        length++;
-    }
-
-    Expression *edefault = tb->nextOf()->defaultInit();
-
-    size_t n = 1;
-    for (Type *tbn = tn; tbn->ty == Tsarray; tbn = tbn->nextOf()->toBasetype())
-    {   TypeSArray *tsa = (TypeSArray *)tbn;
-
-        n *= tsa->dim->toInteger();
-    }
-
-    dt_t *d = NULL;
-    dt_t **pdtend = &d;
-    for (size_t i = 0; i < dim; i++)
-    {
-        dt_t *dt = dts[i];
-        if (dt)
-            pdtend = dtcat(pdtend, dt);
-        else
+        InitToDt()
+            : result(NULL)
         {
-            for (size_t j = 0; j < n; j++)
-                pdtend = edefault->toDt(pdtend);
         }
-    }
-    switch (tb->ty)
-    {
-        case Tsarray:
-        {   size_t tadim;
-            TypeSArray *ta = (TypeSArray *)tb;
 
-            tadim = ta->dim->toInteger();
-            if (dim < tadim)
+        void visit(Initializer *)
+        {
+            assert(0);
+        }
+
+        void visit(VoidInitializer *vi)
+        {
+            /* Void initializers are set to 0, just because we need something
+             * to set them to in the static data segment.
+             */
+            dtnzeros(&result, vi->type->size());
+        }
+
+        void visit(StructInitializer *si)
+        {
+            //printf("StructInitializer::toDt('%s')\n", si->toChars());
+            assert(0);
+        }
+
+        void visit(ArrayInitializer *ai)
+        {
+            //printf("ArrayInitializer::toDt('%s')\n", ai->toChars());
+            Type *tb = ai->type->toBasetype();
+            if (tb->ty == Tvector)
+                tb = ((TypeVector *)tb)->basetype;
+
+            Type *tn = tb->nextOf()->toBasetype();
+
+            //printf("\tdim = %d\n", ai->dim);
+            Dts dts;
+            dts.setDim(ai->dim);
+            dts.zero();
+
+            unsigned size = tn->size();
+
+            unsigned length = 0;
+            for (size_t i = 0; i < ai->index.dim; i++)
             {
-                if (edefault->isBool(false))
-                    // pad out end of array
-                    pdtend = dtnzeros(pdtend, size * (tadim - dim));
+                Expression *idx = ai->index[i];
+                if (idx)
+                    length = idx->toInteger();
+                //printf("\tindex[%d] = %p, length = %u, dim = %u\n", i, idx, length, ai->dim);
+
+                assert(length < ai->dim);
+                dt_t *dt = Initializer_toDt(ai->value[i]);
+                if (dts[length])
+                    error(ai->loc, "duplicate initializations for index %d", length);
+                dts[length] = dt;
+                length++;
+            }
+
+            Expression *edefault = tb->nextOf()->defaultInit();
+
+            size_t n = 1;
+            for (Type *tbn = tn; tbn->ty == Tsarray; tbn = tbn->nextOf()->toBasetype())
+            {
+                TypeSArray *tsa = (TypeSArray *)tbn;
+                n *= tsa->dim->toInteger();
+            }
+
+            dt_t **pdtend = &result;
+            for (size_t i = 0; i < ai->dim; i++)
+            {
+                dt_t *dt = dts[i];
+                if (dt)
+                    pdtend = dtcat(pdtend, dt);
                 else
                 {
-                    for (size_t i = dim; i < tadim; i++)
-                    {   for (size_t j = 0; j < n; j++)
-                            pdtend = edefault->toDt(pdtend);
-                    }
+                    for (size_t j = 0; j < n; j++)
+                        pdtend = edefault->toDt(pdtend);
                 }
             }
-            else if (dim > tadim)
+            switch (tb->ty)
             {
-                error(loc, "too many initializers, %d, for array[%d]", dim, tadim);
+                case Tsarray:
+                {
+                    TypeSArray *ta = (TypeSArray *)tb;
+                    size_t tadim = ta->dim->toInteger();
+                    if (ai->dim < tadim)
+                    {
+                        if (edefault->isBool(false))
+                        {
+                            // pad out end of array
+                            pdtend = dtnzeros(pdtend, size * (tadim - ai->dim));
+                        }
+                        else
+                        {
+                            for (size_t i = ai->dim; i < tadim; i++)
+                            {
+                                for (size_t j = 0; j < n; j++)
+                                    pdtend = edefault->toDt(pdtend);
+                            }
+                        }
+                    }
+                    else if (ai->dim > tadim)
+                    {
+                        error(ai->loc, "too many initializers, %d, for array[%d]", ai->dim, tadim);
+                    }
+                    break;
+                }
+
+                case Tpointer:
+                case Tarray:
+                {
+                    dt_t *dtarray = result;
+                    result = NULL;
+                    if (tb->ty == Tarray)
+                        dtsize_t(&result, ai->dim);
+                    dtdtoff(&result, dtarray, 0);
+                    break;
+                }
+
+                default:
+                    assert(0);
             }
-            break;
         }
 
-        case Tpointer:
-        case Tarray:
+        void visit(ExpInitializer *ei)
         {
-            dt_t *dtarray = d;
-            d = NULL;
-            if (tb->ty == Tarray)
-                dtsize_t(&d, dim);
-            dtdtoff(&d, dtarray, 0);
-            break;
+            //printf("ExpInitializer::toDt() %s\n", ei->exp->toChars());
+            ei->exp = ei->exp->optimize(WANTvalue);
+            ei->exp->toDt(&result);
         }
+    };
 
-        default:
-            assert(0);
-    }
-    return d;
-}
-
-
-
-dt_t *ExpInitializer::toDt()
-{
-    //printf("ExpInitializer::toDt() %s\n", exp->toChars());
-    dt_t *dt = NULL;
-
-    exp = exp->optimize(WANTvalue);
-    exp->toDt(&dt);
-    return dt;
+    InitToDt v;
+    init->accept(&v);
+    assert(v.result);
+    return v.result;
 }
 
 /* ================================================================ */
@@ -481,7 +489,7 @@ dt_t **VarExp::toDt(dt_t **pdt)
             return pdt;
         }
         v->inuse++;
-        *pdt = v->init->toDt();
+        *pdt = Initializer_toDt(v->init);
         v->inuse--;
         return pdt;
     }
@@ -592,7 +600,7 @@ void ClassDeclaration::toDt2(dt_t **pdt, ClassDeclaration *cd)
             else if (ei && tb->ty == Tsarray)
                 ((TypeSArray *)tb)->toDtElem(&dt, ei->exp);
             else
-                dt = init->toDt();
+                dt = Initializer_toDt(init);
         }
         else if (v->offset >= offset)
         {   //printf("\t\tdefault initializer\n");
@@ -723,7 +731,7 @@ dt_t **TypeTypedef::toDt(dt_t **pdt)
 {
     if (sym->init)
     {
-        dt_t *dt = sym->init->toDt();
+        dt_t *dt = Initializer_toDt(sym->init);
 
         pdt = dtend(pdt);
         *pdt = dt;
@@ -833,7 +841,7 @@ dt_t **ClassReferenceExp::toDt2(dt_t **pdt, ClassDeclaration *cd, Dts *dts)
                 else if (ei && tb->ty == Tsarray)
                     ((TypeSArray *)tb)->toDtElem(&dt, ei->exp);
                 else
-                    dt = init->toDt();
+                    dt = Initializer_toDt(init);
             }
             else if (v->offset >= offset)
             {   //printf("\t\tdefault initializer\n");
@@ -885,7 +893,7 @@ dt_t **ClassReferenceExp::toDt2(dt_t **pdt, ClassDeclaration *cd, Dts *dts)
                   if (!d)
                   {
                       if (v->init)
-                          d = v->init->toDt();
+                          d = Initializer_toDt(v->init);
                       else
                           vt->toDt(&d);
                   }
