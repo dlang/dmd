@@ -3936,6 +3936,23 @@ static assert( is(typeof(compiles!(test7876(11)))));
 static assert(!is(typeof(compiles!(test7876(10)))));
 
 /**************************************************
+    11824
+**************************************************/
+
+int f11824(T)()
+{
+    T[] arr = new T[](1);
+    T* getAddr(ref T a)
+    {
+        return &a;
+    }
+    getAddr(arr[0]);
+    return 1;
+}
+static assert(f11824!int());        // OK
+static assert(f11824!(int[])());    // OK <- NG
+
+/**************************************************
     6817 if converted to &&, only with -inline
 **************************************************/
 static assert({
