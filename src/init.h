@@ -21,7 +21,6 @@ class Identifier;
 class Expression;
 struct Scope;
 class Type;
-struct dt_t;
 class AggregateDeclaration;
 class ErrorInitializer;
 class VoidInitializer;
@@ -48,8 +47,6 @@ public:
 
     static Initializers *arraySyntaxCopy(Initializers *ai);
 
-    virtual dt_t *toDt();
-
     virtual ErrorInitializer   *isErrorInitializer() { return NULL; }
     virtual VoidInitializer    *isVoidInitializer() { return NULL; }
     virtual StructInitializer  *isStructInitializer()  { return NULL; }
@@ -68,8 +65,6 @@ public:
     Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
     Expression *toExpression(Type *t = NULL);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-
-    dt_t *toDt();
 
     virtual VoidInitializer *isVoidInitializer() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -101,8 +96,6 @@ public:
     Expression *toExpression(Type *t = NULL);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
-    dt_t *toDt();
-
     StructInitializer *isStructInitializer() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -126,8 +119,6 @@ public:
     Expression *toAssocArrayLiteral();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
-    dt_t *toDt();
-
     ArrayInitializer *isArrayInitializer() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -144,8 +135,6 @@ public:
     Type *inferType(Scope *sc);
     Expression *toExpression(Type *t = NULL);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-
-    dt_t *toDt();
 
     virtual ExpInitializer *isExpInitializer() { return this; }
     void accept(Visitor *v) { v->visit(this); }
