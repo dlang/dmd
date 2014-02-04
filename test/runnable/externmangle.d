@@ -139,6 +139,35 @@ interface Expression
 }
 
 //int test34(int[0][0]*);
+version(Win64){}
+else
+{
+    int test35(real arg);
+}
+
+const(char)* test36(const(char)*);
+
+final class Test37
+{
+    static Test37 create()
+    {
+        return new Test37;
+    }
+    
+    bool test()
+    {
+        return true;
+    }
+}
+
+bool test37();
+
+interface Test38
+{
+     final int test(int, ...);
+     public static Test38 create();
+     public static void dispose(ref Test38);
+}
 
 void main()
 {
@@ -214,4 +243,15 @@ void main()
     Expression.dispose(ee);
     assert(ee is null);
     //assert(test34(null) == 0);
+    version(Win64){}
+    else
+    {
+        assert(test35(3.14L) == 3);
+    }
+    const char* hello = "hello";
+    assert(test36(hello) == hello);
+    assert(test37());
+    auto t38 = Test38.create();
+    assert(t38.test(1, 2, 3) == 1);
+    Test38.dispose(t38);
 }

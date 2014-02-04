@@ -253,3 +253,54 @@ void Expression::dispose(Expression *&e)
 {
     return 0;
 }*/
+
+#ifndef _MSC_VER
+    int test35(long double arg)
+    {
+        return (int)arg;
+    }
+#endif
+
+const char *test36(const char *arg)
+{
+    return arg;
+}
+
+class Test37
+{
+public:
+    static Test37 *create();
+    bool test();
+};
+
+bool test37()
+{
+    Test37 *o = Test37::create();
+    return o->test();
+}
+
+class Test38
+{
+public:
+     int test(int, ...);
+     static Test38* create();
+     static void dispose(Test38*&);
+};
+
+int Test38::test(int a, ...)
+{
+    return a;
+}
+
+Test38* Test38::create()
+{
+    Test38 *t = new Test38();
+    return t;
+}
+
+void Test38::dispose(Test38 *&t)
+{
+    if (t)
+        delete t;
+    t = 0;
+}

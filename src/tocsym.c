@@ -276,17 +276,17 @@ Symbol *VarDeclaration::toSymbol()
                 break;
 
             case LINKd:
+                m = mTYman_d;
+                break;
             case LINKcpp:
+                s->Sflags |= SFLpublic;
                 m = mTYman_d;
                 break;
             default:
                 printf("linkage = %d\n", linkage);
                 assert(0);
         }
-        if (linkage == LINKcpp)
-        {
-            s->Sflags |= SFLpublic;
-        }
+
         type_setmangle(&t, m);
         s->Stype = t;
 

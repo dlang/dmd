@@ -726,23 +726,28 @@ class VisualCPPMangler : public Visitor
 {
     const char *saved_idents[VC_SAVED_IDENT_CNT];
     Type *saved_types[VC_SAVED_TYPE_CNT];
+
+
+    enum Flags
+    {
+        IS_NOT_TOP_TYPE    = 0x1,
+        MANGLE_RETURN_TYPE = 0x2, // return type shouldn't be saved and substituted in arguments
+        IGNORE_CONST       = 0x4, // in some cases we should ignore CV-modifiers, like array:
+        IS_DMC             = 0x8
+    };
     // when we mangling one argument, we can call visit several times (for base types of arg type)
     // but we must save only arg type:
     // For example: if we have an int** argument, we should save "int**" but visit will be called for "int**", "int*", "int"
     // This flag is set up by the visit(NextType, ) function  and should be reset when the arg type output is finished.
-    bool is_not_top_type;
 
-    // in some cases we should ignore CV-modifiers, like array:
-    bool ignore_const;
+    int flags;
     OutBuffer buf;
-    bool is_dmc;
 
     VisualCPPMangler(VisualCPPMangler *rvl)
         : buf(),
-        is_dmc(rvl->is_dmc),
-        is_not_top_type(false),
-        ignore_const(false)
+        flags(0)
     {
+        flags |= (rvl->flags & IS_DMC);
         memcpy(&saved_idents, &rvl->saved_idents, sizeof(const char*) * VC_SAVED_IDENT_CNT);
         memcpy(&saved_types, &rvl->saved_types, sizeof(Type*) * VC_SAVED_TYPE_CNT);
     }
@@ -750,10 +755,12 @@ public:
 
     VisualCPPMangler(bool isdmc)
         : buf(),
-        is_dmc(isdmc),
-        is_not_top_type(false),
-        ignore_const(false)
+        flags(0)
     {
+        if (isdmc)
+        {
+            flags |= IS_DMC;
+        }
         memset(&saved_idents, 0, sizeof(const char*) * VC_SAVED_IDENT_CNT);
         memset(&saved_types, 0, sizeof(Type*) * VC_SAVED_TYPE_CNT);
     }
@@ -773,14 +780,14 @@ public:
 
     void visit(TypeBasic *type)
     {
-        //printf("visit(TypeBasic); is_not_top_type = %d\n", (int)is_not_top_type);
+        //printf("visit(TypeBasic); is_not_top_type = %d\n", (int)(flags & IS_NOT_TOP_TYPE));
         if (type->isImmutable() || type->isShared())
         {
             visit((Type*)type);
             return;
         }
 
-        if (type->isConst() && (is_not_top_type || is_dmc))
+        if (type->isConst() && ((flags & IS_NOT_TOP_TYPE) || (flags & IS_DMC)))
         {
             if (checkTypeSaved(type)) return;
         }
@@ -792,62 +799,62 @@ public:
         mangleModifier(type);
         switch (type->ty)
         {
-        case Tvoid:     buf.writeByte('X');        break;
-        case Tint8:     buf.writeByte('C');        break;
-        case Tuns8:     buf.writeByte('E');        break;
-        case Tint16:    buf.writeByte('F');        break;
-        case Tuns16:    buf.writeByte('G');        break;
-        case Tint32:    buf.writeByte('H');        break;
-        case Tuns32:    buf.writeByte('I');        break;
-        case Tfloat32:  buf.writeByte('M');        break;
-        case Tint64:    buf.writestring("_J");     break;
-        case Tuns64:    buf.writestring("_K");     break;
-        case Tfloat64:  buf.writeByte('N');        break;
-        case Tbool:     buf.writestring("_N");     break;
-        case Tchar:     buf.writeByte('D');        break;
-        case Twchar:    buf.writeByte('G');        break; // unsigned short
+            case Tvoid:     buf.writeByte('X');        break;
+            case Tint8:     buf.writeByte('C');        break;
+            case Tuns8:     buf.writeByte('E');        break;
+            case Tint16:    buf.writeByte('F');        break;
+            case Tuns16:    buf.writeByte('G');        break;
+            case Tint32:    buf.writeByte('H');        break;
+            case Tuns32:    buf.writeByte('I');        break;
+            case Tfloat32:  buf.writeByte('M');        break;
+            case Tint64:    buf.writestring("_J");     break;
+            case Tuns64:    buf.writestring("_K");     break;
+            case Tfloat64:  buf.writeByte('N');        break;
+            case Tbool:     buf.writestring("_N");     break;
+            case Tchar:     buf.writeByte('D');        break;
+            case Twchar:    buf.writeByte('G');        break; // unsigned short
 
-        case Tfloat80:
-            if (is_dmc)
-                buf.writestring("_T"); // Intel long double
-            else
-                buf.writestring("_Z"); // DigitalMars long double
-            break;
+            case Tfloat80:
+                if (flags & IS_DMC)
+                    buf.writestring("_Z"); // DigitalMars long double
+                else
+                    buf.writestring("_T"); // Intel long double
+                break;
 
-        case Tdchar:
-            if (is_dmc)
-                buf.writestring("_W"); // Visual C++ wchar_t
-            else
-                buf.writestring("_Y"); // DigitalMars wchar_t
-            break;
+            case Tdchar:
+                if (flags & IS_DMC)
+                    buf.writestring("_Y"); // DigitalMars wchar_t
+                else
+                    buf.writestring("_W"); // Visual C++ wchar_t
+                break;
 
-        default:        visit((Type*)type); return;
+            default:        visit((Type*)type); return;
         }
-        is_not_top_type = false;
-        ignore_const = false;
+        flags &= ~IS_NOT_TOP_TYPE;
+        flags &= ~IGNORE_CONST;
     }
 
     void visit(TypeVector *type)
     {
-        //printf("visit(TypeVector); is_not_top_type = %d\n", (int)is_not_top_type);
+        //printf("visit(TypeVector); is_not_top_type = %d\n", (int)(flags & IS_NOT_TOP_TYPE));
         if (checkTypeSaved(type)) return;
         buf.writestring("T__m128@@"); // may be better as __m128i or __m128d?
-        is_not_top_type = false;
-        ignore_const = false;
+        flags &= ~IS_NOT_TOP_TYPE;
+        flags &= ~IGNORE_CONST;
     }
 
     void visit(TypeSArray *type)
     {
         // This method can be called only for static variable type mangling.
-        //printf("visit(TypeSArray); is_not_top_type = %d\n", (int)is_not_top_type);
+        //printf("visit(TypeSArray); is_not_top_type = %d\n", (int)(flags & IS_NOT_TOP_TYPE));
         if (checkTypeSaved(type)) return;
         // first dimension always mangled as const pointer
-        if (is_dmc)
+        if (flags & IS_DMC)
             buf.writeByte('Q');
         else
             buf.writeByte('P');
 
-        is_not_top_type = true;
+        flags |= IS_NOT_TOP_TYPE;
         assert(type->next);
         if (type->next->ty == Tsarray)
         {
@@ -863,7 +870,7 @@ public:
     // There is not way to map int C++ (*arr)[2][1] to D
     void visit(TypePointer *type)
     {
-        //printf("visit(TypePointer); is_not_top_type = %d\n", (int)is_not_top_type);
+        //printf("visit(TypePointer); is_not_top_type = %d\n", (int)(flags & IS_NOT_TOP_TYPE));
         if (type->isImmutable() || type->isShared())
         {
             visit((Type*)type);
@@ -886,8 +893,9 @@ public:
 
             buf.writeByte('6'); // pointer to a function
             buf.writestring(arg);
-            is_not_top_type = false;
-            ignore_const = false;
+            flags &= ~IS_NOT_TOP_TYPE;
+            flags &= ~IGNORE_CONST;
+            return;
         }
         else if (type->next->ty == Tsarray)
         {
@@ -895,23 +903,24 @@ public:
                 return;
             mangleModifier(type);
 
-            if (type->isConst() || !is_dmc)
+            if (type->isConst() || !(flags & IS_DMC))
                 buf.writeByte('Q'); // const
             else
                 buf.writeByte('P'); // mutable
 
             if (global.params.is64bit)
                 buf.writeByte('E');
-            is_not_top_type = true;
+            flags |= IS_NOT_TOP_TYPE;
 
             mangleArray((TypeSArray*)type->next);
+            return;
         }
         else
         {
             if (checkTypeSaved(type))
                 return;
             mangleModifier(type);
-            
+
             if (type->isConst())
             {
                 buf.writeByte('Q'); // const
@@ -920,10 +929,10 @@ public:
             {
                 buf.writeByte('P'); // mutable
             }
-            
+
             if (global.params.is64bit)
                 buf.writeByte('E');
-            is_not_top_type = true;
+            flags |= IS_NOT_TOP_TYPE;
             type->next->accept(this);
         }
     }
@@ -939,12 +948,11 @@ public:
             return;
         }
 
-
         buf.writeByte('A'); // mutable
 
         if (global.params.is64bit)
             buf.writeByte('E');
-        is_not_top_type = true;
+        flags |= IS_NOT_TOP_TYPE;
         assert(type->next);
         if (type->next->ty == Tsarray)
         {
@@ -965,68 +973,68 @@ public:
     void visit(TypeStruct *type)
     {
         if (checkTypeSaved(type)) return;
-        //printf("visit(TypeStruct); is_not_top_type = %d\n", (int)is_not_top_type);
+        //printf("visit(TypeStruct); is_not_top_type = %d\n", (int)(flags & IS_NOT_TOP_TYPE));
         mangleModifier(type);
         if (type->sym->isUnionDeclaration())
             buf.writeByte('T');
         else
             buf.writeByte('U');
         mangleIdent(type->sym);
-        is_not_top_type = false;
-        ignore_const = false;
+        flags &= ~IS_NOT_TOP_TYPE;
+        flags &= ~IGNORE_CONST;
     }
 
     void visit(TypeEnum *type)
     {
-        //printf("visit(TypeEnum); is_not_top_type = %d\n", (int)is_not_top_type);
+        //printf("visit(TypeEnum); is_not_top_type = %d\n", (int)(flags & IS_NOT_TOP_TYPE));
         if (checkTypeSaved(type)) return;
         mangleModifier(type);
         buf.writeByte('W');
 
         switch (type->sym->memtype->ty)
         {
-        case Tchar:
-        case Tint8:
-            buf.writeByte('0');
-            break;
-        case Tuns8:
-            buf.writeByte('1');
-            break;
-        case Tint16:
-            buf.writeByte('2');
-            break;
-        case Tuns16:
-            buf.writeByte('3');
-            break;
-        case Tint32:
-            buf.writeByte('4');
-            break;
-        case Tuns32:
-            buf.writeByte('5');
-            break;
-        case Tint64:
-            buf.writeByte('6');
-            break;
-        case Tuns64:
-            buf.writeByte('7');
-            break;
-        default:
-            visit((Type*)type);
-            break;
+            case Tchar:
+            case Tint8:
+                buf.writeByte('0');
+                break;
+            case Tuns8:
+                buf.writeByte('1');
+                break;
+            case Tint16:
+                buf.writeByte('2');
+                break;
+            case Tuns16:
+                buf.writeByte('3');
+                break;
+            case Tint32:
+                buf.writeByte('4');
+                break;
+            case Tuns32:
+                buf.writeByte('5');
+                break;
+            case Tint64:
+                buf.writeByte('6');
+                break;
+            case Tuns64:
+                buf.writeByte('7');
+                break;
+            default:
+                visit((Type*)type);
+                break;
         }
 
         mangleIdent(type->sym);
-        is_not_top_type = false;
-        ignore_const = false;
+        flags &= ~IS_NOT_TOP_TYPE;
+        flags &= ~IGNORE_CONST;
     }
 
     // D class mangled as pointer to C++ class
     // const(Object) mangled as Object const* const
     void visit(TypeClass *type)
     {
-        //printf("visit(TypeClass); is_not_top_type = %d\n", (int)is_not_top_type);
+        //printf("visit(TypeClass); is_not_top_type = %d\n", (int)(flags & IS_NOT_TOP_TYPE));
         if (checkTypeSaved(type)) return;
-        if (is_not_top_type)
+        if (flags & IS_NOT_TOP_TYPE)
             mangleModifier(type);
 
         if (type->isConst())
@@ -1037,14 +1045,14 @@ public:
         if (global.params.is64bit)
             buf.writeByte('E');
 
-        is_not_top_type = true;
+        flags |= IS_NOT_TOP_TYPE;
         mangleModifier(type);
 
         buf.writeByte('V');
 
         mangleIdent(type->sym);
-        is_not_top_type = false;
-        ignore_const = false;
+        flags &= ~IS_NOT_TOP_TYPE;
+        flags &= ~IGNORE_CONST;
     }
 
     char *mangleOf(Dsymbol *s)
@@ -1076,35 +1084,37 @@ private:
 
         if (d->needThis()) // <flags> ::= <virtual/protection flag> <const/volatile flag> <calling convention flag>
         {
-            // private non-final method can be not isVirtual() but we should mangle it as virtual
-            if (!d->isFinal() && d->isThis()->isClassDeclaration())
+            if ((d->isVirtual() && d->vtblIndex != -1) || 
+                (d->protection == PROTprivate &&   //Pivate methods can be non-virtual in D but mangled as virtual in C++
+                d->isThis()->isClassDeclaration() && 
+                !d->isFinal() && !(d->isThis()->isClassDeclaration()->storage_class & STCfinal)))
             {
                 switch (d->protection)
                 {
-                case PROTprivate:
-                    buf.writeByte('E');
-                    break;
-                case PROTprotected:
-                    buf.writeByte('M');
-                    break;
-                default:
-                    buf.writeByte('U');
-                    break;
+                    case PROTprivate:
+                        buf.writeByte('E');
+                        break;
+                    case PROTprotected:
+                        buf.writeByte('M');
+                        break;
+                    default:
+                        buf.writeByte('U');
+                        break;
                 }
             }
             else
             {
                 switch (d->protection)
                 {
-                case PROTprivate:
-                    buf.writeByte('A');
-                    break;
-                case PROTprotected:
-                    buf.writeByte('I');
-                    break;
-                default:
-                    buf.writeByte('Q');
-                    break;
+                    case PROTprivate:
+                        buf.writeByte('A');
+                        break;
+                    case PROTprotected:
+                        buf.writeByte('I');
+                        break;
+                    default:
+                        buf.writeByte('Q');
+                        break;
                 }
             }
             if (global.params.is64bit)
@@ -1122,15 +1132,15 @@ private:
         {                        // <flags> ::= <virtual/protection flag> <calling convention flag>
             switch (d->protection)
             {
-            case PROTprivate:
-                buf.writeByte('C');
-                break;
-            case PROTprotected:
-                buf.writeByte('K');
-                break;
-            default:
-                buf.writeByte('S');
-                break;
+                case PROTprivate:
+                    buf.writeByte('C');
+                    break;
+                case PROTprotected:
+                    buf.writeByte('K');
+                    break;
+                default:
+                    buf.writeByte('S');
+                    break;
             }
         }
         else // top-level function
@@ -1164,15 +1174,15 @@ private:
         {
             switch (d->protection)
             {
-            case PROTprivate:
-                buf.writeByte('0');
-                break;
-            case PROTprotected:
-                buf.writeByte('1');
-                break;
-            default:
-                buf.writeByte('2');
-                break;
+                case PROTprivate:
+                    buf.writeByte('0');
+                    break;
+                case PROTprotected:
+                    buf.writeByte('1');
+                    break;
+                default:
+                    buf.writeByte('2');
+                    break;
             }
         }
 
@@ -1217,13 +1227,13 @@ private:
         }
         if (TemplateInstance *ti = sym->isTemplateInstance())
         {
-            VisualCPPMangler tmp(is_dmc);
+            VisualCPPMangler tmp((flags & IS_DMC) ? true : false);
             tmp.buf.writeByte('?');
             tmp.buf.writeByte('$');
             tmp.buf.writestring(ti->name->toChars());
             tmp.saved_idents[0] = ti->name->toChars();
             tmp.buf.writeByte('@');
-            if (is_dmc)
+            if (flags & IS_DMC)
             {
                 tmp.mangleIdent(sym->parent, true);
                 is_dmc_template = true;
@@ -1307,7 +1317,7 @@ private:
                     else if (e && e->op == TOKvar && ((VarExp*)e)->var->isVarDeclaration())
                     {
                         tmp.buf.writeByte('$');
-                        if (is_dmc)
+                        if (flags & IS_DMC)
                             tmp.buf.writeByte('1');
                         else
                             tmp.buf.writeByte('E');
@@ -1317,7 +1327,7 @@ private:
                     {
 
                         Dsymbol *ds = d->isTemplateDeclaration()->onemember;
-                        if (is_dmc)
+                        if (flags & IS_DMC)
                         {
                             tmp.buf.writeByte('V');
                         }
@@ -1481,7 +1491,8 @@ private:
 
     bool checkTypeSaved(Type *type)
     {
-        if (is_not_top_type) return false;
+        if (flags & IS_NOT_TOP_TYPE) return false;
+        if (flags & MANGLE_RETURN_TYPE) return false;
         for (size_t i = 0; i < VC_SAVED_TYPE_CNT; i++)
         {
             if (!saved_types[i]) // no saved same type
@@ -1492,8 +1503,8 @@ private:
             if (saved_types[i]->equals(type)) // ok, we've found same type. use index instead of type
             {
                 buf.writeByte(i + '0');
-                is_not_top_type = false;
-                ignore_const = false;
+                flags &= ~IS_NOT_TOP_TYPE;
+                flags &= ~IGNORE_CONST;
                 return true;
             }
         }
@@ -1502,7 +1513,7 @@ private:
 
     void mangleModifier(Type *type)
     {
-        if (ignore_const) return;
+        if (flags & IGNORE_CONST) return;
         if (type->isImmutable() || type->isShared())
         {
             visit((Type*)type);
@@ -1510,12 +1521,12 @@ private:
         }
         if (type->isConst())
         {
-            if (is_not_top_type)
+            if (flags & IS_NOT_TOP_TYPE)
                 buf.writeByte('B'); // const
-            else if (is_dmc && type->ty != Tpointer)
-                buf.writestring("_O");
+                else if ((flags & IS_DMC) && type->ty != Tpointer)
+                    buf.writestring("_O");
         }
-        else if (is_not_top_type)
+        else if (flags & IS_NOT_TOP_TYPE)
             buf.writeByte('A'); // mutable
     }
 
@@ -1538,7 +1549,7 @@ private:
             mangleNumber(sa->dim ? sa->dim->toInteger() : 0);
             cur = cur->nextOf();
         }
-        ignore_const = true;
+        flags |= IGNORE_CONST;
         cur->accept(this);
     }
 
@@ -1554,28 +1565,28 @@ private:
         {
             switch (type->linkage)
             {
-            case LINKc:
-                tmp.buf.writeByte('A');
-                break;
-            case LINKcpp:
-                if (needthis)
-                    tmp.buf.writeByte('E'); // thiscall
-                else
-                    tmp.buf.writeByte('A'); // cdecl
-                break;
-            case LINKwindows:
-                tmp.buf.writeByte('G'); // stdcall
-                break;
-            case LINKpascal:
-                tmp.buf.writeByte('C');
-                break;
-            default:
-                tmp.visit((Type*)type);
-                break;
+                case LINKc:
+                    tmp.buf.writeByte('A');
+                    break;
+                case LINKcpp:
+                    if (needthis && type->varargs != 1)
+                        tmp.buf.writeByte('E'); // thiscall
+                    else
+                        tmp.buf.writeByte('A'); // cdecl
+                    break;
+                case LINKwindows:
+                    tmp.buf.writeByte('G'); // stdcall
+                    break;
+                case LINKpascal:
+                    tmp.buf.writeByte('C');
+                    break;
+                default:
+                    tmp.visit((Type*)type);
+                    break;
             }
         }
 
-        tmp.is_not_top_type = false;
+        tmp.flags &= ~IS_NOT_TOP_TYPE;
         if (noreturn)
         {
             tmp.buf.writeByte('@');
@@ -1585,13 +1596,15 @@ private:
             Type *rettype = type->next;
             if (type->isref)
                 rettype = rettype->referenceTo();
-            ignore_const = false;
+            flags &= ~IGNORE_CONST;
             if (rettype->ty == Tstruct || rettype->ty == Tenum)
             {
                 tmp.buf.writeByte('?');
                 tmp.buf.writeByte('A');
             }
+            tmp.flags |= MANGLE_RETURN_TYPE;
             rettype->accept(&tmp);
+            tmp.flags &= ~MANGLE_RETURN_TYPE;
         }
         if (!type->parameters || !type->parameters->dim)
         {
@@ -1627,7 +1640,9 @@ private:
     {
         Type *t = p->type;
         if (p->storageClass & (STCout | STCref))
+        {
             t = t->referenceTo();
+        }
         else if (p->storageClass & STClazy)
         {
             // Mangle as delegate
@@ -1641,8 +1656,8 @@ private:
             t->error(Loc(), "Use pointer instead.");
             assert(0);
         }
-        is_not_top_type = false;
-        ignore_const = false;
+        flags &= ~IS_NOT_TOP_TYPE;
+        flags &= ~IGNORE_CONST;
         t->accept(this);
     }
 };
