@@ -4684,12 +4684,19 @@ MATCH TemplateAliasParameter::matchArg(Scope *sc, RootObject *oarg,
     {
         if (sa == sdummy)
             goto Lnomatch;
-        if (sa != specAlias && isDsymbol(sa))
+        Dsymbol *sx = isDsymbol(sa);
+        if (sa != specAlias && sx)
         {
-            TemplateInstance *ti = isDsymbol(sa)->isTemplateInstance();
             Type *ta = isType(specAlias);
-            if (!ti || !ta)
+            if (!ta)
                 goto Lnomatch;
+
+            TemplateInstance *ti = sx->isTemplateInstance();
+            if (!ti && sx->parent)
+                ti = sx->parent->isTemplateInstance();
+            if (!ti)
+                goto Lnomatch;
+
             Type *t = new TypeInstance(Loc(), ti);
             MATCH m2 = deduceType(t, sc, ta, parameters, dedtypes);
             if (m2 <= MATCHnomatch)

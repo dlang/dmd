@@ -3121,6 +3121,18 @@ void test11843()
 }
 
 /******************************************/
+// 12077
+
+struct S12077(A) {}
+
+alias T12077(alias T : Base!Args, alias Base, Args...) = Base;
+static assert(__traits(isSame, T12077!(S12077!int), S12077));
+
+alias U12077(alias T : Base!Args, alias Base, Args...) = Base;
+alias U12077(      T : Base!Args, alias Base, Args...) = Base;
+static assert(__traits(isSame, U12077!(S12077!int), S12077));
+
+/******************************************/
 // 12122
 
 enum N12122 = 1;
