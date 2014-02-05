@@ -1626,7 +1626,7 @@ void VarDeclaration::semantic2(Scope *sc)
             ExpInitializer *ei = init->isExpInitializer();
             if (ei && ei->exp->op == TOKaddress && ((AddrExp *)ei->exp)->e1->op == TOKstructliteral)
             {
-                error("is a pointer to mutable struct. Only pointers to const, immutable or shared struct thread local variable are allowed are allowed, not %s", type->toChars());
+                error("is a pointer to mutable struct. Only pointers to const, immutable or shared struct thread local variable are allowed, not %s", type->toChars());
             }
         }
     }
