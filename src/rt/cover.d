@@ -417,7 +417,9 @@ void splitLines( char[] buf, ref char[][] lines )
             lines ~= buf[beg .. pos];
             beg = pos + 1;
             if( buf[pos] == '\r' && pos < buf.length - 1 && buf[pos + 1] == '\n' )
-                ++pos, ++beg;
+            {
+                ++pos; ++beg;
+            }
             continue;
         default:
             continue;

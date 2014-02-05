@@ -1373,7 +1373,7 @@ class Throwable : Object
 
         if (msg.ptr)
         {
-            sink(": "), sink(msg);
+            sink(": "); sink(msg);
         }
         if (info)
         {

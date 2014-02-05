@@ -540,19 +540,16 @@ code point. The code is returned in character count, not in bytes.
 
 ubyte codeLength(C)(dchar c)
 {
-
     static if (C.sizeof == 1)
     {
-        return
-            c <= 0x7F ? 1
-            : c <= 0x7FF ? 2
-            : c <= 0xFFFF ? 3
-            : c <= 0x10FFFF ? 4
-            : (assert(false), 6);
-}
-
+        if (c <= 0x7F) return 1;
+        if (c <= 0x7FF) return 2;
+        if (c <= 0xFFFF) return 3;
+        if (c <= 0x10FFFF) return 4;
+        assert(false);
+    }
     else static if (C.sizeof == 2)
-{
+    {
         return c <= 0xFFFF ? 1 : 2;
     }
     else
