@@ -1,4 +1,3 @@
-
 #include <stdint.h>
 
 template<class X>
@@ -157,7 +156,7 @@ void test24(int(*)(int,int))
 {
 }
 
-void test25(int(* arr)[5][6][291])
+void test25(int arr[2][5][6][291])
 {
 }
 
@@ -201,8 +200,107 @@ unsigned long testlongmangle(int32_t a, uint32_t b, long c, unsigned long d)
     return a + b + c + d;
 }
 #else
-unsigned long long testlongmangle(int32_t a, uint32_t b, long long c, unsigned long long d)
+unsigned long long testlongmangle(int a, unsigned int b, long long c, unsigned long long d)
 {
     return a + b + c + d;
 }
 #endif
+
+int test31[2][2][2] = {1, 1, 1, 1, 1, 1, 1, 1};
+int *test32 = 0;
+
+
+
+class Expression;
+
+typedef int (*apply_fp_t)(Expression*, void*);
+
+class Expression
+{
+    int type;
+public:
+    int apply(apply_fp_t fp, apply_fp_t fp2, void *param);
+    int getType();
+    static Expression* create(int v);
+    static void dispose(Expression*&);
+};
+
+int Expression::apply(apply_fp_t fp, apply_fp_t fp2, void *param)
+{
+    return fp(this, param) * fp2(this, param);
+}
+
+int Expression::getType()
+{
+    return type;
+}
+
+Expression* Expression::create(int v)
+{
+    Expression *e = new Expression();
+    e->type = v;
+    return e;
+}
+
+void Expression::dispose(Expression *&e)
+{
+    if (e)
+        delete e;
+    e = 0;
+}
+
+/*int test34(int v[0][0][0])
+{
+    return 0;
+}*/
+
+#ifndef _MSC_VER
+    int test35(long double arg)
+    {
+        return (int)arg;
+    }
+#endif
+
+const char *test36(const char *arg)
+{
+    return arg;
+}
+
+class Test37
+{
+public:
+    static Test37 *create();
+    bool test();
+};
+
+bool test37()
+{
+    Test37 *o = Test37::create();
+    return o->test();
+}
+
+class Test38
+{
+public:
+     int test(int, ...);
+     static Test38* create();
+     static void dispose(Test38*&);
+};
+
+int Test38::test(int a, ...)
+{
+    return a;
+}
+
+Test38* Test38::create()
+{
+    Test38 *t = new Test38();
+    return t;
+}
+
+void Test38::dispose(Test38 *&t)
+{
+    if (t)
+        delete t;
+    t = 0;
+}

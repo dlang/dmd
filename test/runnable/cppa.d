@@ -1,17 +1,5 @@
 // EXTRA_CPP_SOURCES: cppb.cpp
 
-version (Win64)
-{
-// Name mangling isn't compatible with VC yet
-pragma(mangle, "?foo@@YAHHHH@Z")
-int foo(int i, int j, int k) { return 0; }
-
-void main() {}
-
-}
-else
-{
-
 import std.c.stdio;
 
 extern (C++)
@@ -139,7 +127,21 @@ extern(C++)
         int i;
         double d;
     }
+
+    union S6_2
+    {
+        int i;
+        double d;
+    }
+
+    enum S6_3
+    {
+        A, B
+    }
+
     S6 foo6();
+    S6_2 foo6_2();
+    S6_3 foo6_3();
 }
 
 extern (C) int foosize6();
@@ -154,6 +156,8 @@ version (X86)
     assert(f.i == 42);
     printf("f.d = %g\n", f.d);
     assert(f.d == 2.5);
+    assert(foo6_2().i == 42);
+    assert(foo6_3() == S6_3.A);
 }
 }
 
@@ -175,7 +179,7 @@ void test7()
 
 /****************************************/
 
-extern (C++) void foo8(const char *);
+extern (C++) void foo8(const(char)*);
 
 void test8()
 {
@@ -222,7 +226,13 @@ void test11802()
     auto x = new D11802();
     x.x = 0;
     test11802x(x);
-    assert(x.x == 9);
+    version(Win64)
+    {
+    }
+    else
+    {
+        assert(x.x == 9);
+    }
 }
 
 
@@ -231,9 +241,10 @@ void test11802()
 
 extern (C++)
 {
-    void foo10(const char*, const char*);
+    void foo10(const(char)*, const(char)*);
     void foo10(const int, const int);
     void foo10(const char, const char);
+    void foo10(bool, bool);
 
     struct MyStructType { }
     void foo10(const MyStructType s, const MyStructType t);
@@ -271,5 +282,4 @@ void main()
     test10();
 
     printf("Success\n");
-}
 }
