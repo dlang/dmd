@@ -727,18 +727,20 @@ class VisualCPPMangler : public Visitor
     const char *saved_idents[VC_SAVED_IDENT_CNT];
     Type *saved_types[VC_SAVED_TYPE_CNT];
 
+    // IS_NOT_TOP_TYPE: when we mangling one argument, we can call visit several times (for base types of arg type)
+    // but we must save only arg type:
+    // For example: if we have an int** argument, we should save "int**" but visit will be called for "int**", "int*", "int"
+    // This flag is set up by the visit(NextType, ) function  and should be reset when the arg type output is finished.
+    // MANGLE_RETURN_TYPE: return type shouldn't be saved and substituted in arguments
+    // IGNORE_CONST: in some cases we should ignore CV-modifiers.
 
     enum Flags
     {
         IS_NOT_TOP_TYPE    = 0x1,
-        MANGLE_RETURN_TYPE = 0x2, // return type shouldn't be saved and substituted in arguments
-        IGNORE_CONST       = 0x4, // in some cases we should ignore CV-modifiers, like array:
+        MANGLE_RETURN_TYPE = 0x2,
+        IGNORE_CONST       = 0x4,
         IS_DMC             = 0x8
     };
-    // when we mangling one argument, we can call visit several times (for base types of arg type)
-    // but we must save only arg type:
-    // For example: if we have an int** argument, we should save "int**" but visit will be called for "int**", "int*", "int"
-    // This flag is set up by the visit(NextType, ) function  and should be reset when the arg type output is finished.
 
     int flags;
     OutBuffer buf;
@@ -881,10 +883,13 @@ public:
         if (type->next->ty == Tfunction)
         {
             const char *arg = mangleFunctionType((TypeFunction*)type->next); // compute args before checking to save; args should be saved before function type
-            if (checkTypeSaved(type))  // If we've mangled this function early, previous call is meaningless.
-                return;                // However we should do it before checking to save types of function arguments before function type saving.
-                                       // If this function was already mangled, types of all it arguments are save too, thus previous can't save
-                                       // anything if function is saved.
+
+            // If we've mangled this function early, previous call is meaningless.
+            // However we should do it before checking to save types of function arguments before function type saving.
+            // If this function was already mangled, types of all it arguments are save too, thus previous can't save
+            // anything if function is saved.
+            if (checkTypeSaved(type))
+                return;
 
             if (type->isConst())
                 buf.writeByte('Q'); // const
@@ -1084,9 +1089,11 @@ private:
 
         if (d->needThis()) // <flags> ::= <virtual/protection flag> <const/volatile flag> <calling convention flag>
         {
-            if ((d->isVirtual() && d->vtblIndex != -1) || 
-                (d->protection == PROTprivate &&   //Pivate methods can be non-virtual in D but mangled as virtual in C++
-                d->isThis()->isClassDeclaration() && 
+
+            //Pivate methods can be non-virtual in D but mangled as virtual in C++
+            if ((d->isVirtual() && d->vtblIndex != -1) ||
+                (d->protection == PROTprivate &&
+                d->isThis()->isClassDeclaration() &&
                 !d->isFinal() && !(d->isThis()->isClassDeclaration()->storage_class & STCfinal)))
             {
                 switch (d->protection)
