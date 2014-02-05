@@ -1089,12 +1089,8 @@ private:
 
         if (d->needThis()) // <flags> ::= <virtual/protection flag> <const/volatile flag> <calling convention flag>
         {
-
-            //Pivate methods can be non-virtual in D but mangled as virtual in C++
-            if ((d->isVirtual() && d->vtblIndex != -1) ||
-                (d->protection == PROTprivate &&
-                d->isThis()->isClassDeclaration() &&
-                !d->isFinal() && !(d->isThis()->isClassDeclaration()->storage_class & STCfinal)))
+            // Pivate methods always non-virtual in D and it should be mangled as non-virtual in C++
+            if (d->isVirtual() && d->vtblIndex != -1)
             {
                 switch (d->protection)
                 {
