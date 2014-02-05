@@ -158,36 +158,6 @@ Symbol* ClassReferenceExp::toSymbol()
 
 // todt
 
-dt_t *Initializer::toDt()
-{
-    assert(0);
-    return NULL;
-}
-
-dt_t *VoidInitializer::toDt()
-{
-    assert(0);
-    return NULL;
-}
-
-dt_t *StructInitializer::toDt()
-{
-    assert(0);
-    return NULL;
-}
-
-dt_t *ArrayInitializer::toDt()
-{
-    assert(0);
-    return NULL;
-}
-
-dt_t *ExpInitializer::toDt()
-{
-    assert(0);
-    return NULL;
-}
-
 dt_t **Expression::toDt(dt_t **pdt)
 {
     assert(0);
@@ -285,42 +255,6 @@ void ClassDeclaration::toDt2(dt_t **pdt, ClassDeclaration *cd)
 void StructDeclaration::toDt(dt_t **pdt)
 {
     assert(0);
-}
-
-dt_t **Type::toDt(dt_t **pdt)
-{
-    assert(0);
-    return NULL;
-}
-
-dt_t **TypeVector::toDt(dt_t **pdt)
-{
-    assert(0);
-    return NULL;
-}
-
-dt_t **TypeSArray::toDt(dt_t **pdt)
-{
-    assert(0);
-    return NULL;
-}
-
-dt_t **TypeSArray::toDtElem(dt_t **pdt, Expression *e)
-{
-    assert(0);
-    return NULL;
-}
-
-dt_t **TypeStruct::toDt(dt_t **pdt)
-{
-    assert(0);
-    return NULL;
-}
-
-dt_t **TypeTypedef::toDt(dt_t **pdt)
-{
-    assert(0);
-    return NULL;
 }
 
 dt_t **ClassReferenceExp::toDt(dt_t **pdt)
@@ -1052,96 +986,6 @@ TypeInfoDeclaration *TypeTuple::getTypeInfoDeclaration()
     return NULL;
 }
 
-void TypeInfoDeclaration::toDt(dt_t **pdt)
-{
-    assert(0);
-}
-
-void TypeInfoConstDeclaration::toDt(dt_t **pdt)
-{
-    assert(0);
-}
-
-void TypeInfoInvariantDeclaration::toDt(dt_t **pdt)
-{
-    assert(0);
-}
-
-void TypeInfoSharedDeclaration::toDt(dt_t **pdt)
-{
-    assert(0);
-}
-
-void TypeInfoWildDeclaration::toDt(dt_t **pdt)
-{
-    assert(0);
-}
-
-void TypeInfoTypedefDeclaration::toDt(dt_t **pdt)
-{
-    assert(0);
-}
-
-void TypeInfoEnumDeclaration::toDt(dt_t **pdt)
-{
-    assert(0);
-}
-
-void TypeInfoPointerDeclaration::toDt(dt_t **pdt)
-{
-    assert(0);
-}
-
-void TypeInfoArrayDeclaration::toDt(dt_t **pdt)
-{
-    assert(0);
-}
-
-void TypeInfoStaticArrayDeclaration::toDt(dt_t **pdt)
-{
-    assert(0);
-}
-
-void TypeInfoVectorDeclaration::toDt(dt_t **pdt)
-{
-    assert(0);
-}
-
-void TypeInfoAssociativeArrayDeclaration::toDt(dt_t **pdt)
-{
-    assert(0);
-}
-
-void TypeInfoFunctionDeclaration::toDt(dt_t **pdt)
-{
-    assert(0);
-}
-
-void TypeInfoDelegateDeclaration::toDt(dt_t **pdt)
-{
-    assert(0);
-}
-
-void TypeInfoStructDeclaration::toDt(dt_t **pdt)
-{
-    assert(0);
-}
-
-void TypeInfoClassDeclaration::toDt(dt_t **pdt)
-{
-    assert(0);
-}
-
-void TypeInfoInterfaceDeclaration::toDt(dt_t **pdt)
-{
-    assert(0);
-}
-
-void TypeInfoTupleDeclaration::toDt(dt_t **pdt)
-{
-    assert(0);
-}
-
 int Type::builtinTypeInfo()
 {
     assert(0);
@@ -1254,7 +1098,25 @@ RET TypeFunction::retStyle()
 
 // lib
 
-Library *Library::factory()
+Library *LibMSCoff_factory()
+{
+    assert(0);
+    return NULL;
+}
+
+Library *LibOMF_factory()
+{
+    assert(0);
+    return NULL;
+}
+
+Library *LibElf_factory()
+{
+    assert(0);
+    return NULL;
+}
+
+Library *LibMach_factory()
 {
     assert(0);
     return NULL;
