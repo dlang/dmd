@@ -1684,7 +1684,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             if (tf->linkage != LINKd)
             {
                 // Promote bytes, words, etc., to ints
-                arg = arg->integralPromotions(sc);
+                arg = integralPromotions(arg, sc);
 
                 // Promote floats to doubles
                 switch (arg->type->ty)
@@ -12865,7 +12865,7 @@ Expression *ShlExp::semantic(Scope *sc)
         if (e1->type->toBasetype()->ty == Tvector ||
             e2->type->toBasetype()->ty == Tvector)
             return incompatibleTypes();
-        e1 = e1->integralPromotions(sc);
+        e1 = integralPromotions(e1, sc);
         e2 = e2->castTo(sc, Type::tshiftcnt);
         type = e1->type;
     }
@@ -12892,7 +12892,7 @@ Expression *ShrExp::semantic(Scope *sc)
         if (e1->type->toBasetype()->ty == Tvector ||
             e2->type->toBasetype()->ty == Tvector)
             return incompatibleTypes();
-        e1 = e1->integralPromotions(sc);
+        e1 = integralPromotions(e1, sc);
         e2 = e2->castTo(sc, Type::tshiftcnt);
         type = e1->type;
     }
@@ -12919,7 +12919,7 @@ Expression *UshrExp::semantic(Scope *sc)
         if (e1->type->toBasetype()->ty == Tvector ||
             e2->type->toBasetype()->ty == Tvector)
             return incompatibleTypes();
-        e1 = e1->integralPromotions(sc);
+        e1 = integralPromotions(e1, sc);
         e2 = e2->castTo(sc, Type::tshiftcnt);
         type = e1->type;
     }
