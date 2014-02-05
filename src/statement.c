@@ -661,22 +661,24 @@ Statement *CompoundStatement::semantic(Scope *sc)
 
                         Identifier *id = Lexer::uniqueId("__o");
 
-                        Statement *handler = sexception;
+                        Statement *handler = new PeelStatement(sexception);
                         if (sexception->blockExit(false) & BEfallthru)
-                        {   handler = new ThrowStatement(Loc(), new IdentifierExp(Loc(), id));
-                            ((ThrowStatement *)handler)->internalThrow = true;
-                            handler = new CompoundStatement(Loc(), sexception, handler);
+                        {
+                            ThrowStatement *ts = new ThrowStatement(Loc(), new IdentifierExp(Loc(), id));
+                            ts->internalThrow = true;
+                            handler = new CompoundStatement(Loc(), handler, ts);
                         }
 
                         Catches *catches = new Catches();
                         Catch *ctch = new Catch(Loc(), NULL, id, handler);
                         ctch->internalCatch = true;
                         catches->push(ctch);
-                        s = new TryCatchStatement(Loc(), body, catches);
 
+                        s = new TryCatchStatement(Loc(), body, catches);
                         if (sfinally)
                             s = new TryFinallyStatement(Loc(), s, sfinally);
                         s = s->semantic(sc);
+
                         statements->setDim(i + 1);
                         statements->push(s);
                         break;
@@ -5397,23 +5399,20 @@ Statement *ImportStatement::semantic(Scope *sc)
     for (size_t i = 0; i < imports->dim; i++)
     {
         Import *s = (*imports)[i]->isImport();
-
-        if (!s->aliasdecls.dim)
+        assert(!s->aliasdecls.dim);
+        for (size_t j = 0; j < s->names.dim; j++)
         {
-            for (size_t j = 0; j < s->names.dim; j++)
-            {
-                Identifier *name = s->names[j];
-                Identifier *alias = s->aliases[j];
+            Identifier *name = s->names[j];
+            Identifier *alias = s->aliases[j];
 
-                if (!alias)
-                    alias = name;
+            if (!alias)
+                alias = name;
 
-                TypeIdentifier *tname = new TypeIdentifier(s->loc, name);
-                AliasDeclaration *ad = new AliasDeclaration(s->loc, alias, tname);
-                ad->import = s;
+            TypeIdentifier *tname = new TypeIdentifier(s->loc, name);
+            AliasDeclaration *ad = new AliasDeclaration(s->loc, alias, tname);
+            ad->import = s;
 
-                s->aliasdecls.push(ad);
-            }
+            s->aliasdecls.push(ad);
         }
 
         s->semantic(sc);
