@@ -14,9 +14,9 @@ private void* xrealloc(void* ptr, size_t sz)
 {
     import core.exception;
 
-    if (!sz) return .free(ptr), null;
+    if (!sz) { .free(ptr); return null; }
     if (auto nptr = .realloc(ptr, sz)) return nptr;
-    .free(ptr), onOutOfMemoryError();
+    .free(ptr); onOutOfMemoryError();
     assert(0);
 }
 
