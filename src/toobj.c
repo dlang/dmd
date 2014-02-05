@@ -43,6 +43,7 @@ void obj_lzext(Symbol *s1,Symbol *s2);
 
 void TypeInfo_toDt(dt_t **pdt, TypeInfoDeclaration *d);
 dt_t *Initializer_toDt(Initializer *init);
+dt_t **Type_toDt(Type *t, dt_t **pdt);
 
 /* ================================================================== */
 
@@ -948,7 +949,7 @@ void VarDeclaration::toObjFile(int multiobj)
         }
         else
         {
-            type->toDt(&s->Sdt);
+            Type_toDt(type, &s->Sdt);
         }
         dt_optimize(s->Sdt);
 
