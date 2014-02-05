@@ -2142,6 +2142,7 @@ code *asm_genloc(Loc loc, code *c)
 
         memset(&srcpos, 0, sizeof(srcpos));
         srcpos.Slinnum = loc.linnum;
+        srcpos.Scharnum = loc.charnum;
         srcpos.Sfilename = (char *)loc.filename;
         pcLin = genlinnum(NULL, srcpos);
         c = cat(pcLin, c);

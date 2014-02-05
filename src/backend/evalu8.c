@@ -61,7 +61,7 @@
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
-extern void error(const char *filename, unsigned linnum, const char *format, ...);
+extern void error(const char *filename, unsigned linnum, unsigned charnum, const char *format, ...);
 
 #if __DMC__
     #define HAVE_FLOAT_EXCEPT 1
@@ -1407,7 +1407,7 @@ elem * evalu8(elem *e, goal_t goal)
 #if SCPP
                 synerr(EM_divby0);
 #else // MARS
-                //error(e->Esrcpos.Sfilename, e->Esrcpos.Slinnum, "divide by zero");
+                //error(e->Esrcpos.Sfilename, e->Esrcpos.Slinnum, e->Esrcpos.Scharnum, "divide by zero");
 #endif
                 break;
         }
@@ -2029,7 +2029,8 @@ elem * evalu8(elem *e, goal_t goal)
          */
         if (l1 >= 0 && l1 < 4096)
         {
-            error(e->Esrcpos.Sfilename, e->Esrcpos.Slinnum, "dereference of null pointer");
+            error(e->Esrcpos.Sfilename, e->Esrcpos.Slinnum, e->Esrcpos.Scharnum,
+                "dereference of null pointer");
             e->E1->EV.Vlong = 4096;     // suppress redundant messages
         }
 #endif

@@ -55,7 +55,8 @@ VarDeclarations *VarDeclarations_create();
 type *Type_toCtype(Type *t);
 
 #define el_setLoc(e,loc)        ((e)->Esrcpos.Sfilename = (char *)(loc).filename, \
-                                 (e)->Esrcpos.Slinnum = (loc).linnum)
+                                 (e)->Esrcpos.Slinnum = (loc).linnum, \
+                                 (e)->Esrcpos.Scharnum = (loc).charnum)
 
 /* If variable var of type typ is a reference
  */

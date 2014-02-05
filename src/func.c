@@ -2882,11 +2882,11 @@ Lerror:
         const char *lastprms = Parameter::argsTypesToChars(tf1->parameters, tf1->varargs);
         const char *nextprms = Parameter::argsTypesToChars(tf2->parameters, tf2->varargs);
         ::error(loc, "%s.%s called with argument types %s matches both:\n"
-                     "\t%s(%d): %s%s\nand:\n\t%s(%d): %s%s",
+                     "\t%s: %s%s\nand:\n\t%s: %s%s",
                 s->parent->toPrettyChars(), s->ident->toChars(),
                 fargsBuf.peekString(),
-                m.lastf->loc.filename, m.lastf->loc.linnum, m.lastf->toPrettyChars(), lastprms,
-                m.nextf->loc.filename, m.nextf->loc.linnum, m.nextf->toPrettyChars(), nextprms);
+                m.lastf->loc.toChars(), m.lastf->toPrettyChars(), lastprms,
+                m.nextf->loc.toChars(), m.nextf->toPrettyChars(), nextprms);
     }
     return NULL;
 }

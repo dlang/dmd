@@ -108,6 +108,7 @@ void LibElf::setFilename(const char *dir, const char *filename)
 
     loc.filename = libfile->name->toChars();
     loc.linnum = 0;
+    loc.charnum = 0;
 }
 
 void LibElf::write()

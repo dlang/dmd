@@ -94,6 +94,7 @@ struct Param
     bool trace;         // insert profiling hooks
     char quiet;         // suppress non-error messages
     char verbose;       // verbose compile
+    char showColumns;   // print character (column) numbers in diagnostics
     char vtls;          // identify thread local variables
     char vfield;        // identify non-mutable field variables
     char symdebug;      // insert debug symbolic information
@@ -305,14 +306,16 @@ struct Loc
 {
     const char *filename;
     unsigned linnum;
+    unsigned charnum;
 
     Loc()
     {
         linnum = 0;
+        charnum = 0;
         filename = NULL;
     }
 
-    Loc(Module *mod, unsigned linnum);
+    Loc(Module *mod, unsigned linnum, unsigned charnum);
 
     char *toChars();
     bool equals(const Loc& loc);

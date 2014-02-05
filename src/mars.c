@@ -178,19 +178,26 @@ char *Loc::toChars()
     }
 
     if (linnum)
-        buf.printf("(%d)", linnum);
+    {
+        buf.printf("(%d", linnum);
+        if (global.params.showColumns && charnum)
+            buf.printf(",%d", charnum);
+        buf.writeByte(')');
+    }
     return buf.extractString();
 }
 
-Loc::Loc(Module *mod, unsigned linnum)
+Loc::Loc(Module *mod, unsigned linnum, unsigned charnum)
 {
     this->linnum = linnum;
+    this->charnum = charnum;
     this->filename = mod ? mod->srcfile->toChars() : NULL;
 }
 
 bool Loc::equals(const Loc& loc)
 {
-    return linnum == loc.linnum && FileName::equals(filename, loc.filename);
+    return (!global.params.showColumns || charnum == loc.charnum) &&
+        linnum == loc.linnum && FileName::equals(filename, loc.filename);
 }
 
 /**************************************
@@ -205,10 +212,11 @@ void error(Loc loc, const char *format, ...)
     va_end( ap );
 }
 
-void error(const char *filename, unsigned linnum, const char *format, ...)
+void error(const char *filename, unsigned linnum, unsigned charnum, const char *format, ...)
 {   Loc loc;
     loc.filename = (char *)filename;
     loc.linnum = linnum;
+    loc.charnum = charnum;
     va_list ap;
     va_start(ap, format);
     verror(loc, format, ap);
@@ -447,6 +455,7 @@ Usage:\n\
   -transition=?  list all language changes\n\
   -unittest      compile in unit tests\n\
   -v             verbose\n\
+  -vcolumns      print character (column) numbers in diagnostics\n\
   -version=level compile in version code >= level\n\
   -version=ident compile in version code identified by ident\n\
   -vtls          list all variables going into thread local storage\n\
@@ -724,6 +733,8 @@ int tryMain(size_t argc, const char *argv[])
                 global.params.verbose = 1;
             else if (strcmp(p + 1, "vtls") == 0)
                 global.params.vtls = 1;
+            else if (strcmp(p + 1, "vcolumns") == 0)
+                global.params.showColumns = 1;
             else if (memcmp(p + 1, "transition", 10) == 0)
             {
                 // Parse:

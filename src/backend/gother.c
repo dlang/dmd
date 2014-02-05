@@ -29,7 +29,7 @@
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
-extern void error(const char *filename, unsigned linnum, const char *format, ...);
+extern void error(const char *filename, unsigned linnum, unsigned charnum, const char *format, ...);
 
 STATIC void rd_free_elem(elem *e);
 STATIC void rd_compute();
@@ -427,7 +427,8 @@ STATIC void chkrd(elem *n,list_t rdlist)
             auto y = x;
         }
      */
-    error(n->Esrcpos.Sfilename, n->Esrcpos.Slinnum, "variable %s used before set", sv->Sident);
+    error(n->Esrcpos.Sfilename, n->Esrcpos.Slinnum, n->Esrcpos.Scharnum,
+        "variable %s used before set", sv->Sident);
 #endif
 
     sv->Sflags |= SFLnord;              // no redundant messages
