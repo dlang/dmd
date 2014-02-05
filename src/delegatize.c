@@ -33,9 +33,10 @@ bool walkPostorder(Expression *e, StoppableVisitor *v);
 void lambdaSetParent(Expression *e, Scope *sc);
 void lambdaCheckForNestedRef(Expression *e, Scope *sc);
 
-Expression *Expression::toDelegate(Scope *sc, Type *t)
+Expression *toDelegate(Expression *e, Scope *sc, Type *t)
 {
-    //printf("Expression::toDelegate(t = %s) %s\n", t->toChars(), toChars());
+    //printf("Expression::toDelegate(t = %s) %s\n", t->toChars(), e->toChars());
+    Loc loc = e->loc;
     Type *tw = t->semantic(loc, sc);
     Type *tc = t->substWildTo(MODconst)->semantic(loc, sc);
     TypeFunction *tf = new TypeFunction(NULL, tc, 0, LINKd);
@@ -43,10 +44,8 @@ Expression *Expression::toDelegate(Scope *sc, Type *t)
     (tf = (TypeFunction *)tf->semantic(loc, sc))->next = tw;    // hack for bug7757
     FuncLiteralDeclaration *fld =
         new FuncLiteralDeclaration(loc, loc, tf, TOKdelegate, NULL);
-    Expression *e;
     sc = sc->push();
     sc->parent = fld;           // set current function to be the delegate
-    e = this;
     lambdaSetParent(e, sc);
     lambdaCheckForNestedRef(e, sc);
     sc = sc->pop();

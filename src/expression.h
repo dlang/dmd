@@ -87,6 +87,7 @@ Expression *callCpCtor(Scope *sc, Expression *e);
 Expression *resolveOpDollar(Scope *sc, ArrayExp *ae);
 Expression *resolveOpDollar(Scope *sc, SliceExp *se);
 
+Expression *toDelegate(Expression *e, Scope *sc, Type *t);
 AggregateDeclaration *isAggregate(Type *t);
 IntRange getIntRange(Expression *e);
 bool isArrayOperand(Expression *e);
@@ -180,8 +181,6 @@ public:
     Expression *addressOf(Scope *sc);
     Expression *deref();
     Expression *integralPromotions(Scope *sc);
-
-    Expression *toDelegate(Scope *sc, Type *t);
 
     Expression *optimize(int result, bool keepLvalue = false)
     {

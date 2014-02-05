@@ -1485,7 +1485,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                                 if (tret->toBasetype()->ty == Tvoid ||
                                     a->implicitConvTo(tret))
                                 {
-                                    a = a->toDelegate(sc, tret);
+                                    a = toDelegate(a, sc, tret);
                                 }
                             }
 
@@ -1633,7 +1633,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             else if (p->storageClass & STClazy)
             {
                 // Convert lazy argument to a delegate
-                arg = arg->toDelegate(sc, p->type);
+                arg = toDelegate(arg, sc, p->type);
             }
             else
             {
