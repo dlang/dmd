@@ -325,7 +325,6 @@ public:
     virtual Expression *defaultInitLiteral(Loc loc);
     virtual Expression *voidInitLiteral(VarDeclaration *var);
     virtual int isZeroInit(Loc loc = Loc());                // if initializer is 0
-    virtual dt_t **toDt(dt_t **pdt);
     Identifier *getTypeInfoIdent(int internal);
     virtual MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL);
     virtual void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
@@ -463,7 +462,6 @@ public:
     Expression *defaultInitLiteral(Loc loc);
     TypeBasic *elementType();
     int isZeroInit(Loc loc);
-    dt_t **toDt(dt_t **pdt);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     TypeTuple *toArgTypes();
 
@@ -502,8 +500,6 @@ public:
     Expression *defaultInit(Loc loc);
     Expression *defaultInitLiteral(Loc loc);
     Expression *voidInitLiteral(VarDeclaration *var);
-    dt_t **toDt(dt_t **pdt);
-    dt_t **toDtElem(dt_t **pdt, Expression *e);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     Expression *toExpression();
@@ -841,7 +837,6 @@ public:
     int checkBoolean();
     int needsDestruction();
     bool needsNested();
-    dt_t **toDt(dt_t **pdt);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
@@ -933,7 +928,6 @@ public:
     Expression *defaultInit(Loc loc);
     Expression *defaultInitLiteral(Loc loc);
     int isZeroInit(Loc loc);
-    dt_t **toDt(dt_t **pdt);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();

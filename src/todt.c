@@ -35,6 +35,9 @@
 // Back end
 #include        "dt.h"
 
+dt_t **Type_toDt(Type *t, dt_t **pdt);
+dt_t **toDtElem(TypeSArray *tsa, dt_t **pdt, Expression *e);
+
 /* ================================================================ */
 
 dt_t *Initializer_toDt(Initializer *init)
@@ -443,7 +446,7 @@ dt_t **StructLiteralExp::toDt(dt_t **pdt)
 
             Type *tb = vd->type->toBasetype();
             if (tb->ty == Tsarray)
-                ((TypeSArray *)tb)->toDtElem(pdt, e);
+                toDtElem(((TypeSArray *)tb), pdt, e);
             else
                 e->toDt(pdt);           // convert e to an initializer dt
 
@@ -598,13 +601,13 @@ void ClassDeclaration::toDt2(dt_t **pdt, ClassDeclaration *cd)
             if (init->isVoidInitializer())
                 ;
             else if (ei && tb->ty == Tsarray)
-                ((TypeSArray *)tb)->toDtElem(&dt, ei->exp);
+                toDtElem(((TypeSArray *)tb), &dt, ei->exp);
             else
                 dt = Initializer_toDt(init);
         }
         else if (v->offset >= offset)
         {   //printf("\t\tdefault initializer\n");
-            v->type->toDt(&dt);
+            Type_toDt(v->type, &dt);
         }
         if (dt)
         {
@@ -661,32 +664,70 @@ void StructDeclaration::toDt(dt_t **pdt)
 
 /* ================================================================= */
 
-dt_t **Type::toDt(dt_t **pdt)
+dt_t **Type_toDt(Type *t, dt_t **pdt)
 {
-    //printf("Type::toDt()\n");
-    Expression *e = defaultInit();
-    return e->toDt(pdt);
+    class TypeToDt : public Visitor
+    {
+    public:
+        dt_t **pdt;
+
+        TypeToDt(dt_t **pdt)
+            : pdt(pdt)
+        {
+        }
+
+        void visit(Type *t)
+        {
+            //printf("Type::toDt()\n");
+            Expression *e = t->defaultInit();
+            pdt = e->toDt(pdt);
+        }
+
+        void visit(TypeVector *t)
+        {
+            assert(t->basetype->ty == Tsarray);
+            pdt = toDtElem((TypeSArray *)t->basetype, pdt, NULL);
+        }
+
+        void visit(TypeSArray *t)
+        {
+            pdt = toDtElem(t, pdt, NULL);
+        }
+
+        void visit(TypeStruct *t)
+        {
+            t->sym->toDt(pdt);
+        }
+
+        void visit(TypeTypedef *t)
+        {
+            if (t->sym->init)
+            {
+                dt_t *dt = Initializer_toDt(t->sym->init);
+
+                pdt = dtend(pdt);
+                *pdt = dt;
+            }
+            else
+            {
+                Type_toDt(t->sym->basetype, pdt);
+            }
+        }
+    };
+
+    TypeToDt v(pdt);
+    t->accept(&v);
+    return v.pdt;
 }
 
-dt_t **TypeVector::toDt(dt_t **pdt)
-{
-    assert(basetype->ty == Tsarray);
-    return ((TypeSArray *)basetype)->toDtElem(pdt, NULL);
-}
-
-dt_t **TypeSArray::toDt(dt_t **pdt)
-{
-    return toDtElem(pdt, NULL);
-}
-
-dt_t **TypeSArray::toDtElem(dt_t **pdt, Expression *e)
+dt_t **toDtElem(TypeSArray *tsa, dt_t **pdt, Expression *e)
 {
     //printf("TypeSArray::toDtElem()\n");
-    size_t len = dim->toInteger();
+    size_t len = tsa->dim->toInteger();
     if (len)
     {
         pdt = dtend(pdt);
-        Type *tnext = next;
+        Type *tnext = tsa->next;
         Type *tbn = tnext->toBasetype();
         while (tbn->ty == Tsarray && (!e || tbn != e->type->nextOf()))
         {
@@ -710,7 +751,8 @@ dt_t **TypeSArray::toDtElem(dt_t **pdt, Expression *e)
             for (size_t i = 1; i < len; i++)
             {
                 if (tbn->ty == Tstruct)
-                {   pdt = tnext->toDt(pdt);
+                {
+                    pdt = Type_toDt(tnext, pdt);
                     pdt = dtend(pdt);
                 }
                 else
@@ -718,26 +760,6 @@ dt_t **TypeSArray::toDtElem(dt_t **pdt, Expression *e)
             }
         }
     }
-    return pdt;
-}
-
-dt_t **TypeStruct::toDt(dt_t **pdt)
-{
-    sym->toDt(pdt);
-    return pdt;
-}
-
-dt_t **TypeTypedef::toDt(dt_t **pdt)
-{
-    if (sym->init)
-    {
-        dt_t *dt = Initializer_toDt(sym->init);
-
-        pdt = dtend(pdt);
-        *pdt = dt;
-        return pdt;
-    }
-    sym->basetype->toDt(pdt);
     return pdt;
 }
 
@@ -839,13 +861,13 @@ dt_t **ClassReferenceExp::toDt2(dt_t **pdt, ClassDeclaration *cd, Dts *dts)
                 if (init->isVoidInitializer())
                     ;
                 else if (ei && tb->ty == Tsarray)
-                    ((TypeSArray *)tb)->toDtElem(&dt, ei->exp);
+                    toDtElem((TypeSArray *)tb, &dt, ei->exp);
                 else
                     dt = Initializer_toDt(init);
             }
             else if (v->offset >= offset)
             {   //printf("\t\tdefault initializer\n");
-                v->type->toDt(&dt);
+                Type_toDt(v->type, &dt);
             }
             if (dt)
             {
@@ -895,7 +917,7 @@ dt_t **ClassReferenceExp::toDt2(dt_t **pdt, ClassDeclaration *cd, Dts *dts)
                       if (v->init)
                           d = Initializer_toDt(v->init);
                       else
-                          vt->toDt(&d);
+                          Type_toDt(vt, &d);
                   }
                   pdt = dtcat(pdt, d);
                   d = NULL;
