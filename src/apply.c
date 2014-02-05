@@ -142,24 +142,3 @@ bool walkPostorder(Expression *e, StoppableVisitor *v)
     e->accept(&pv);
     return v->stop;
 }
-
-int Expression::apply(apply_fp_t fp, void *param)
-{
-    class ApplyFpVisitor : public StoppableVisitor
-    {
-        apply_fp_t fp;
-        void *param;
-    public:
-        ApplyFpVisitor(apply_fp_t fp, void *param)
-            : fp(fp), param(param)
-        {
-        }
-        void visit(Expression *e)
-        {
-            stop = (*fp)(e, param) != 0;
-        }
-    };
-
-    ApplyFpVisitor v(fp, param);
-    return walkPostorder(this, &v);
-}

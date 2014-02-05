@@ -31,6 +31,8 @@
 #include "port.h"
 #include "ctfe.h"
 
+bool walkPostorder(Expression *e, StoppableVisitor *v);
+
 #define LOG     0
 #define LOGASSIGN 0
 #define LOGCOMPILE 0
@@ -290,66 +292,88 @@ struct CompiledCtfeFunction
         //printf("%s CTFE declare %s\n", v->loc.toChars(), v->toChars());
         ++numVars;
     }
-    static int walkAllVars(Expression *e, void *_this);
+
     void onExpression(Expression *e)
     {
-        e->apply(&walkAllVars, this);
+        class VarWalker : public StoppableVisitor
+        {
+        public:
+            CompiledCtfeFunction *ccf;
+
+            VarWalker(CompiledCtfeFunction *ccf)
+                : ccf(ccf)
+            {
+            }
+
+            void visit(Expression *e)
+            {
+            }
+
+            void visit(ErrorExp *e)
+            {
+                // Currently there's a front-end bug: silent errors
+                // can occur inside delegate literals inside is(typeof()).
+                // Suppress the check in this case.
+                if (global.gag && ccf->func)
+                {
+                    stop = 1;
+                    return;
+                }
+
+                e->error("CTFE internal error: ErrorExp in %s\n", ccf->func ? ccf->func->loc.toChars() : ccf->callingloc.toChars());
+                assert(0);
+            }
+
+            void visit(DeclarationExp *e)
+            {
+                VarDeclaration *v = e->declaration->isVarDeclaration();
+                if (!v)
+                    return;
+                TupleDeclaration *td = v->toAlias()->isTupleDeclaration();
+                if (td)
+                {
+                    if (!td->objects)
+                        return;
+                    for(size_t i= 0; i < td->objects->dim; ++i)
+                    {
+                        RootObject *o = td->objects->tdata()[i];
+                        Expression *ex = isExpression(o);
+                        DsymbolExp *s = (ex && ex->op == TOKdsymbol) ? (DsymbolExp *)ex : NULL;
+                        assert(s);
+                        VarDeclaration *v2 = s->s->isVarDeclaration();
+                        assert(v2);
+                        if (!v2->isDataseg() || v2->isCTFE())
+                            ccf->onDeclaration(v2);
+                    }
+                }
+                else if (!(v->isDataseg() || v->storage_class & STCmanifest) || v->isCTFE())
+                    ccf->onDeclaration(v);
+                Dsymbol *s = v->toAlias();
+                if (s == v && !v->isStatic() && v->init)
+                {
+                    ExpInitializer *ie = v->init->isExpInitializer();
+                    if (ie)
+                        ccf->onExpression(ie->exp);
+                }
+            }
+
+            void visit(IndexExp *e)
+            {
+                if (e->lengthVar)
+                    ccf->onDeclaration(e->lengthVar);
+            }
+
+            void visit(SliceExp *e)
+            {
+                if (e->lengthVar)
+                    ccf->onDeclaration(e->lengthVar);
+            }
+        };
+
+        VarWalker v(this);
+        walkPostorder(e, &v);
     }
 };
-
-int CompiledCtfeFunction::walkAllVars(Expression *e, void *_this)
-{
-    CompiledCtfeFunction *ccf = (CompiledCtfeFunction *)_this;
-    if (e->op == TOKerror)
-    {
-        // Currently there's a front-end bug: silent errors
-        // can occur inside delegate literals inside is(typeof()).
-        // Suppress the check in this case.
-        if (global.gag && ccf->func)
-            return 1;
-
-        e->error("CTFE internal error: ErrorExp in %s\n", ccf->func ? ccf->func->loc.toChars() : ccf->callingloc.toChars());
-        assert(0);
-    }
-    if (e->op == TOKdeclaration)
-    {
-        DeclarationExp *decl = (DeclarationExp *)e;
-        VarDeclaration *v = decl->declaration->isVarDeclaration();
-        if (!v)
-            return 0;
-        TupleDeclaration *td = v->toAlias()->isTupleDeclaration();
-        if (td)
-        {
-            if (!td->objects)
-                return 0;
-            for(size_t i= 0; i < td->objects->dim; ++i)
-            {
-                RootObject *o = td->objects->tdata()[i];
-                Expression *ex = isExpression(o);
-                DsymbolExp *s = (ex && ex->op == TOKdsymbol) ? (DsymbolExp *)ex : NULL;
-                assert(s);
-                VarDeclaration *v2 = s->s->isVarDeclaration();
-                assert(v2);
-                if (!v2->isDataseg() || v2->isCTFE())
-                    ccf->onDeclaration(v2);
-            }
-        }
-        else if (!(v->isDataseg() || v->storage_class & STCmanifest) || v->isCTFE())
-            ccf->onDeclaration(v);
-        Dsymbol *s = v->toAlias();
-        if (s == v && !v->isStatic() && v->init)
-        {
-            ExpInitializer *ie = v->init->isExpInitializer();
-            if (ie)
-                ccf->onExpression(ie->exp);
-        }
-    }
-    else if (e->op == TOKindex && ((IndexExp *)e)->lengthVar)
-        ccf->onDeclaration( ((IndexExp *)e)->lengthVar);
-    else if (e->op == TOKslice && ((SliceExp *)e)->lengthVar)
-        ccf->onDeclaration( ((SliceExp *)e)->lengthVar);
-    return 0;
-}
 
 void Statement::ctfeCompile(CompiledCtfeFunction *ccf)
 {
