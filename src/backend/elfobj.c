@@ -3271,7 +3271,7 @@ static void obj_rtinit()
         buf->writeByte(0);
         off += 4;
 
-        if (!I64)
+        if (config.flags3 & CFG3pic && I32)
         {   // see cod3_load_got() for reference
             // push EBX
             buf->writeByte(0x50 + BX);
@@ -3426,7 +3426,7 @@ static void obj_rtinit()
 
 #endif // REQUIRE_DSO_REGISTRY
 
-        if (!I64)
+        if (config.flags3 & CFG3pic && I32)
         {   // mov EBX,[EBP-4-align]
             buf->writeByte(0x8B);
             buf->writeByte(modregrm(1,BX,BP));
