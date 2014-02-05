@@ -199,6 +199,7 @@ DDOC_BLANKLINE  = $(BR)$(BR)\n\
 \n\
 DDOC_ANCHOR     = <a name=\"$1\"></a>\n\
 DDOC_PSYMBOL    = $(U $0)\n\
+DDOC_PSUPER_SYMBOL = $(U $0)\n\
 DDOC_KEYWORD    = $(B $0)\n\
 DDOC_PARAM      = $(I $0)\n\
 \n\
@@ -1156,7 +1157,7 @@ void ClassDeclaration::toDocBuffer(OutBuffer *buf, Scope *sc)
             emitProtection(buf, bc->protection);
             if (bc->base)
             {
-                buf->writestring(bc->base->toPrettyChars());
+                buf->printf("$(DDOC_PSUPER_SYMBOL %s)", bc->base->toPrettyChars());
             }
             else
             {
