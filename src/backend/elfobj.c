@@ -3289,27 +3289,45 @@ static void obj_rtinit()
             off += ElfObj::writerel(codseg, off, RI_TYPE_GOTPC, Obj::external(Obj::getGOTsym()), 3);
         }
 
-        int reltype = I64 ? R_X86_64_PC32 : RI_TYPE_SYM32;
+        int reltype;
+        if (config.flags3 & CFG3pic)
+            reltype = I64 ? R_X86_64_PC32 : RI_TYPE_GOTOFF;
+        else
+            reltype = I64 ? R_X86_64_32 : RI_TYPE_SYM32;
+
         const IDXSYM syms[] = {dso_rec, minfo_beg, minfo_end, deh_beg, deh_end};
+
         for (size_t i = sizeof(syms) / sizeof(syms[0]); i--; )
         {
             const IDXSYM sym = syms[i];
 
-            if (I64)
-            {  // lea RAX, sym[RIP]
-                buf->writeByte(REX | REX_W);
-                buf->writeByte(0x8D);
-                buf->writeByte(modregrm(0,AX,5));
-                off += 3;
-                off += ElfObj::writerel(codseg, off, reltype, syms[i], -4);
+            if (config.flags3 & CFG3pic)
+            {
+                if (I64)
+                {
+                    // lea RAX, sym[RIP]
+                    buf->writeByte(REX | REX_W);
+                    buf->writeByte(0x8D);
+                    buf->writeByte(modregrm(0,AX,5));
+                    off += 3;
+                    off += ElfObj::writerel(codseg, off, reltype, syms[i], -4);
+                }
+                else
+                {
+                    // lea EAX, sym[EBX]
+                    buf->writeByte(0x8D);
+                    buf->writeByte(modregrm(2,AX,BX));
+                    off += 2;
+                    off += ElfObj::writerel(codseg, off, reltype, syms[i], 0);
+                }
             }
             else
-            {  // mov EAX, sym
+            {
+                // mov EAX, sym
                 buf->writeByte(0xB8 + AX);
                 off += 1;
                 off += ElfObj::writerel(codseg, off, reltype, syms[i], 0);
             }
-
             // push RAX
             buf->writeByte(0x50 + AX);
             off += 1;
