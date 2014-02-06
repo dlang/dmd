@@ -1403,8 +1403,13 @@ Expression *CallExp::inlineScan(InlineScanState *iss, Expression *eret)
         }
     }
 
-    if (e && type->ty != Tvoid)
+    if (e && type->ty != Tvoid &&
+        !type->equals(e->type) &&
+        e->type->hasWild() && !type->hasWild())
+    {
+        e = e->copy();
         e->type = type;
+    }
     return e;
 }
 

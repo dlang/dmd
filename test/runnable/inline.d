@@ -299,6 +299,16 @@ void test9356()
 }
 
 /************************************/
+// 12079
+
+void test12079()
+{
+    string[string][string] foo;
+
+    foo.get("bar", null).get("baz", null);
+}
+
+/************************************/
 // 11223
 
 struct Tuple11223(T...)
