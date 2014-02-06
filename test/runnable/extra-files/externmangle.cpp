@@ -100,7 +100,7 @@ class Test10
     protected: void test12();
     public: void test13() const;
 
-    private: virtual void test14();
+    private: void test14(); // Private methods in D are always non-virtual
     public: virtual void test15();
     protected: virtual void test16();
 
