@@ -8653,8 +8653,11 @@ Lagain:
             ad = ((TypeStruct *)t1)->sym;
 
             // First look for constructor
-            if (e1->op == TOKtype && ad->ctor && (ad->noDefaultCtor || arguments && arguments->dim))
+            if (e1->op == TOKtype && ad->ctor)
             {
+                if (!ad->noDefaultCtor && !(arguments && arguments->dim))
+                    goto Lx;
+
                 // Create variable that will get constructed
                 Identifier *idtmp = Lexer::uniqueId("__ctmp");
 
@@ -8710,6 +8713,7 @@ Lagain:
 
             /* It's a struct literal
              */
+        Lx:
             Expression *e = new StructLiteralExp(loc, (StructDeclaration *)ad, arguments, e1->type);
             e = e->semantic(sc);
             return e;
