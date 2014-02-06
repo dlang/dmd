@@ -1389,8 +1389,13 @@ public:
             }
         }
 
-        if (eresult && e->type->ty != Tvoid)
+        if (eresult && e->type->ty != Tvoid &&
+            !e->type->equals(eresult->type) &&
+            eresult->type->hasWild() && !e->type->hasWild())
+        {
+            eresult = eresult->copy();
             eresult->type = e->type;
+        }
     }
 
     void visit(SliceExp *e)
