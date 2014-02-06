@@ -88,6 +88,7 @@ Expression *resolveOpDollar(Scope *sc, ArrayExp *ae);
 Expression *resolveOpDollar(Scope *sc, SliceExp *se);
 Expression *integralPromotions(Expression *e, Scope *sc);
 
+int isConst(Expression *e);
 Expression *toDelegate(Expression *e, Scope *sc, Type *t);
 AggregateDeclaration *isAggregate(Type *t);
 IntRange getIntRange(Expression *e);
@@ -194,7 +195,7 @@ public:
     // Implementation of CTFE for this expression
     virtual Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
 
-    virtual int isConst();
+    int isConst() { return ::isConst(this); }
     virtual int isBool(int result);
     void discardValue();
     void useValue();
@@ -224,7 +225,6 @@ public:
     real_t toReal();
     real_t toImaginary();
     complex_t toComplex();
-    int isConst();
     int isBool(int result);
     MATCH implicitConvTo(Type *t);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -264,7 +264,6 @@ public:
     real_t toImaginary();
     complex_t toComplex();
     Expression *castTo(Scope *sc, Type *t);
-    int isConst();
     int isBool(int result);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toMangleBuffer(OutBuffer *buf);
@@ -289,7 +288,6 @@ public:
     real_t toImaginary();
     complex_t toComplex();
     Expression *castTo(Scope *sc, Type *t);
-    int isConst();
     int isBool(int result);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toMangleBuffer(OutBuffer *buf);
@@ -376,7 +374,6 @@ public:
     bool equals(RootObject *o);
     Expression *semantic(Scope *sc);
     int isBool(int result);
-    int isConst();
     StringExp *toStringExp();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toMangleBuffer(OutBuffer *buf);
@@ -681,7 +678,6 @@ public:
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     void checkEscape();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    int isConst();
     int isBool(int result);
     Expression *doInline(InlineDoState *ids);
     MATCH implicitConvTo(Type *t);
