@@ -3135,7 +3135,7 @@ Statement *SwitchStatement::semantic(Scope *sc)
     }
     else
     {
-        condition = condition->integralPromotions(sc);
+        condition = integralPromotions(condition, sc);
         if (condition->op != TOKerror && !condition->type->isintegral())
             error("'%s' must be of integral or string type, it is a %s", condition->toChars(), condition->type->toChars());
     }

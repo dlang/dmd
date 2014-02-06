@@ -2161,8 +2161,8 @@ int typeMerge(Scope *sc, Expression *e, Type **pt, Expression **pe1, Expression 
     if (e->op != TOKquestion ||
         t1b->ty != t2b->ty && (t1b->isTypeBasic() && t2b->isTypeBasic()))
     {
-        e1 = e1->integralPromotions(sc);
-        e2 = e2->integralPromotions(sc);
+        e1 = integralPromotions(e1, sc);
+        e2 = integralPromotions(e2, sc);
     }
 
     Type *t1 = e1->type;
@@ -2648,8 +2648,8 @@ Lcc:
     {
         if (t1->ty != t2->ty)
         {
-            e1 = e1->integralPromotions(sc);
-            e2 = e2->integralPromotions(sc);
+            e1 = integralPromotions(e1, sc);
+            e2 = integralPromotions(e2, sc);
             t1 = e1->type;  t1b = t1->toBasetype();
             t2 = e2->type;  t2b = t2->toBasetype();
         }
@@ -2770,15 +2770,13 @@ Lerror:
  * Don't convert <array of> to <pointer to>
  */
 
-Expression *Expression::integralPromotions(Scope *sc)
+Expression *integralPromotions(Expression *e, Scope *sc)
 {
-    Expression *e = this;
-
     //printf("integralPromotions %s %s\n", e->toChars(), e->type->toChars());
-    switch (type->toBasetype()->ty)
+    switch (e->type->toBasetype()->ty)
     {
         case Tvoid:
-            error("void has no value");
+            e->error("void has no value");
             return new ErrorExp();
 
         case Tint8:

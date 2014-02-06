@@ -86,6 +86,7 @@ Expression *resolveAliasThis(Scope *sc, Expression *e);
 Expression *callCpCtor(Scope *sc, Expression *e);
 Expression *resolveOpDollar(Scope *sc, ArrayExp *ae);
 Expression *resolveOpDollar(Scope *sc, SliceExp *se);
+Expression *integralPromotions(Expression *e, Scope *sc);
 
 AggregateDeclaration *isAggregate(Type *t);
 IntRange getIntRange(Expression *e);
@@ -179,7 +180,6 @@ public:
     Expression *checkToPointer();
     Expression *addressOf(Scope *sc);
     Expression *deref();
-    Expression *integralPromotions(Scope *sc);
 
     Expression *toDelegate(Scope *sc, Type *t);
 
