@@ -22,6 +22,8 @@
 #include "statement.h"
 #include "template.h"
 
+TypeTuple *toArgTypes(Type *t);
+
 FuncDeclaration *StructDeclaration::xerreq;     // object.xopEquals
 FuncDeclaration *StructDeclaration::xerrcmp;    // object.xopCmp
 
@@ -755,7 +757,7 @@ void StructDeclaration::semantic(Scope *sc)
     aggNew =       (NewDeclaration *)search(Loc(), Id::classNew);
     aggDelete = (DeleteDeclaration *)search(Loc(), Id::classDelete);
 
-    TypeTuple *tup = type->toArgTypes();
+    TypeTuple *tup = toArgTypes(type);
     size_t dim = tup->arguments->dim;
     if (dim >= 1)
     {   assert(dim <= 2);

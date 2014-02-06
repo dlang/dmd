@@ -42,6 +42,7 @@ bool isArrayOpValid(Expression *e);
 Expression *createTypeInfoArray(Scope *sc, Expression *args[], size_t dim);
 Expression *expandVar(int result, VarDeclaration *v);
 void functionToCBuffer2(TypeFunction *t, OutBuffer *buf, HdrGenState *hgs, int mod, const char *kind);
+TypeTuple *toArgTypes(Type *t);
 
 #define LOGSEMANTIC     0
 
@@ -6622,7 +6623,7 @@ Expression *IsExp::semantic(Scope *sc)
                  * The results of this are highly platform dependent, and intended
                  * primarly for use in implementing va_arg().
                  */
-                tded = targ->toArgTypes();
+                tded = toArgTypes(targ);
                 if (!tded)
                     goto Lno;           // not valid for a parameter
                 break;

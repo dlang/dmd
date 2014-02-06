@@ -336,7 +336,6 @@ public:
     virtual int hasWild();
     virtual Expression *toExpression();
     virtual int hasPointers();
-    virtual TypeTuple *toArgTypes();
     virtual Type *nextOf();
     Type *baseElemOf();
     uinteger_t sizemask();
@@ -371,7 +370,6 @@ public:
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     Expression *defaultInit(Loc loc);
     Expression *defaultInitLiteral(Loc loc);
-    TypeTuple *toArgTypes();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -427,7 +425,6 @@ public:
     Expression *defaultInit(Loc loc);
     int isZeroInit(Loc loc);
     int builtinTypeInfo();
-    TypeTuple *toArgTypes();
 
     // For eliminating dynamic_cast
     TypeBasic *isTypeBasic();
@@ -463,7 +460,6 @@ public:
     TypeBasic *elementType();
     int isZeroInit(Loc loc);
     TypeInfoDeclaration *getTypeInfoDeclaration();
-    TypeTuple *toArgTypes();
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -506,7 +502,6 @@ public:
     int hasPointers();
     int needsDestruction();
     bool needsNested();
-    TypeTuple *toArgTypes();
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -534,7 +529,6 @@ public:
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
-    TypeTuple *toArgTypes();
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -567,7 +561,6 @@ public:
     Type *reliesOnTident(TemplateParameters *tparams);
     Expression *toExpression();
     int hasPointers();
-    TypeTuple *toArgTypes();
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);
 
@@ -593,7 +586,6 @@ public:
     int isZeroInit(Loc loc);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
-    TypeTuple *toArgTypes();
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -702,7 +694,6 @@ public:
     TypeInfoDeclaration *getTypeInfoDeclaration();
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     int hasPointers();
-    TypeTuple *toArgTypes();
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -840,7 +831,6 @@ public:
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
-    TypeTuple *toArgTypes();
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);
     unsigned char deduceWild(Type *t, bool isRef);
@@ -886,7 +876,6 @@ public:
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
-    TypeTuple *toArgTypes();
     Type *nextOf();
 
     void accept(Visitor *v) { v->visit(this); }
@@ -931,7 +920,6 @@ public:
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
-    TypeTuple *toArgTypes();
     int hasWild();
 
     void accept(Visitor *v) { v->visit(this); }
@@ -966,7 +954,6 @@ public:
     int checkBoolean();
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
-    TypeTuple *toArgTypes();
     int builtinTypeInfo();
 
     Symbol *toSymbol();
