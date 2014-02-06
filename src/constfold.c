@@ -40,35 +40,24 @@ Expression *expType(Type *type, Expression *e)
 
 /* ================================== isConst() ============================== */
 
-int Expression::isConst()
+int isConst(Expression *e)
 {
-    //printf("Expression::isConst(): %s\n", toChars());
+    //printf("Expression::isConst(): %s\n", e->toChars());
+    switch(e->op)
+    {
+        case TOKint64:
+        case TOKfloat64:
+        case TOKcomplex80:
+            return 1;
+        case TOKnull:
+            return 0;
+        case TOKsymoff:
+            return 2;
+        default:
+            return 0;
+    }
+    assert(0);
     return 0;
-}
-
-int IntegerExp::isConst()
-{
-    return 1;
-}
-
-int RealExp::isConst()
-{
-    return 1;
-}
-
-int ComplexExp::isConst()
-{
-    return 1;
-}
-
-int NullExp::isConst()
-{
-    return 0;
-}
-
-int SymOffExp::isConst()
-{
-    return 2;
 }
 
 /* =============================== constFold() ============================== */
