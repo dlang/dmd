@@ -747,21 +747,16 @@ Expression *DeclarationExp::doInline(InlineDoState *ids)
                     if (vd == ids->from[i])
                     {
                         vto = (VarDeclaration *)ids->to[i];
-                        if ((vd->storage_class & STCref) == 0 &&
-                            (vto->storage_class & STCref))
+                        Expression *e;
+                        if (vd->init && !vd->init->isVoidInitializer())
                         {
-                            Expression *e;
-                            if (vd->init && !vd->init->isVoidInitializer())
-                            {
-                                e = vd->init->toExpression();
-                                assert(e);
-                                e = e->doInline(ids);
-                            }
-                            else
-                                e = new IntegerExp(vd->init->loc, 0, Type::tint32);
-                            return e;
+                            e = vd->init->toExpression();
+                            assert(e);
+                            e = e->doInline(ids);
                         }
-                        goto L1;
+                        else
+                            e = new IntegerExp(vd->init->loc, 0, Type::tint32);
+                        return e;
                     }
                 }
             }
@@ -1783,6 +1778,10 @@ Expression *FuncDeclaration::expandInline(InlineScanState *iss,
 
             ids.from.push(nrvo_var);
             ids.to.push(vd);
+
+            Expression *de = new DeclarationExp(Loc(), vd);
+            de->type = Type::tvoid;
+            e = Expression::combine(e, de);
         }
     }
     if (arguments && arguments->dim)
@@ -1893,7 +1892,7 @@ Expression *FuncDeclaration::expandInline(InlineScanState *iss,
             //fprintf(stderr, "CallExp::inlineScan: e = "); e->print();
         }
     }
-    //printf("%s->expandInline = { %s }\n", toChars(), e->toChars());
+    //printf("%s->expandInline = { %s }\n", fd->toChars(), e->toChars());
 
     // Need to reevaluate whether parent can now be inlined
     // in expressions, as we might have inlined statements
