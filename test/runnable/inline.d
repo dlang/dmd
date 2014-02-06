@@ -444,6 +444,42 @@ void test11394()
 }
 
 /**********************************/
+// 12080
+
+class TZ12080 {}
+
+struct ST12080
+{
+    ST12080 opBinary()() const pure nothrow
+    {
+        auto retval = ST12080();
+        return retval;  // NRVO
+    }
+
+    long  _stdTime;
+    immutable TZ12080 _timezone;
+}
+
+class Foo12080
+{
+
+    ST12080 bar;
+    bool quux;
+
+    public ST12080 sysTime()
+    out {}
+    body
+    {
+        if (quux)
+            return ST12080();
+
+        return bar.opBinary();
+        // returned value is set to __result
+        // --> Inliner wrongly created the second DeclarationExp for __result.
+    }
+}
+
+/**********************************/
 
 int main()
 {
