@@ -56,9 +56,9 @@ void test2c()
     }
 
     Foo2c foo2c;
-    Foo2c foo2c_3 = Foo2c(1);                       // user ctor call
+    Foo2c foo2c_2 = Foo2c(1);                       // user ctor call
     static assert(!__traits(compiles, Foo2c(1,2))); // user ctor hides static opCall.
-    static assert(!__traits(compiles, Foo2c()));    // static opCall hides literal syntax.
+    Foo2c foo2c_3 = Foo2c();                        // literal syntax
 
     static assert(!__traits(compiles, foo2c(1)));
     foo2c(1,2);                                     // static opCall from instance
@@ -76,8 +76,8 @@ void test3()
     }
 
     Foo3 foo3;
+    Foo3 foo3_2 = Foo3();                           // literal syntax (default construction)
     Foo3 foo3_3 = Foo3(1);                          // user ctor call
-    static assert(!__traits(compiles, Foo3()));     // instance opCall hides literal syntax...right?
 
     assert(foo3(1) == 0);                           // instance opCall
     static assert(!__traits(compiles, foo3()));
@@ -95,9 +95,9 @@ void test3c()
     }
 
     Foo3c foo3c;
+    Foo3c foo3c_2 = Foo3c();                        // literal syntax (default construction)
     Foo3c foo3c_3 = Foo3c(1);                       // user ctor call
     static assert(!__traits(compiles, Foo3c(1,2))); // user ctor hides static opCall
-    static assert(!__traits(compiles, Foo3c()));    // static opCall hides literal syntax
 
     assert(foo3c(1,2) == Foo3c.init);               // static opCall from instance
     assert(foo3c(1) == 0);                          // instance opCall
@@ -117,11 +117,46 @@ void test4()
     Foo4 foo4;
     Foo4 foo4_4 = Foo4(1,2);                        // static opCall
     static assert(!__traits(compiles, Foo4(1)));
-    static assert(!__traits(compiles, Foo4()));     // static opCall hides literal syntax
+    static assert(!__traits(compiles, Foo4()));     // static opCall without constructor hides literal syntax
 
     assert(foo4(1,2) == Foo4.init);                 // static opCall from instance
     assert(foo4(1) == 0);                           // instance opCall
     static assert(!__traits(compiles, foo4()));
+}
+
+/**************************************/
+// 12070
+
+void test12070()
+{
+    static string result;
+
+    struct S
+    {
+        this(T...)(T)
+        {
+            result ~= "c" ~ cast(char)('0' + T.length);
+        }
+
+        void opCall(A...)(A)
+        {
+            result ~= "x" ~ cast(char)('0' + A.length);
+        }
+    }
+
+    auto s0 = S();
+    s0();
+    s0(1);
+    s0(1, 2);
+    assert(result == "x0x1x2");
+
+    result = null;
+
+    auto s1 = S(1);
+    s1();
+    s1('a');
+    s1('a', 'b');
+    assert(result == "c1x0x1x2");
 }
 
 /**************************************/
@@ -135,4 +170,5 @@ void main()
     test3();
     test3c();
     test4();
+    test12070();
 }
