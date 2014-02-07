@@ -24,7 +24,7 @@
 #include "attrib.h"
 
 bool walkPostorder(Expression *e, StoppableVisitor *v);
-bool lambdaHasSideEffect(Expression *e);
+void discardValue(Expression *e);
 
 /********************************************
  * Determine if Expression has any side effects.
@@ -121,94 +121,95 @@ bool hasSideEffect(Expression *e)
  * The result of this expression will be discarded.
  * Complain if the operation has no side effects (and hence is meaningless).
  */
-void Expression::discardValue()
+void discardValue(Expression *e)
 {
-    bool has = hasSideEffect(this);
-    if (!has)
+    if (hasSideEffect(e))
+        return;
+    switch (e->op)
     {
-        switch (op)
+        case TOKcast:
         {
-            case TOKcast:
-            {   CastExp *ce = (CastExp *)this;
-                if (ce->to->equals(Type::tvoid))
-                {   /*
-                     * Don't complain about an expression with no effect if it was cast to void
-                     */
-                    break;
-                }
-                goto Ldefault;          // complain
-            }
-
-            case TOKerror:
-                break;
-
-            case TOKcall:
-                /* Don't complain about calling functions with no effect,
-                 * because purity and nothrow are inferred, and because some of the
-                 * runtime library depends on it. Needs more investigation.
+            CastExp *ce = (CastExp *)e;
+            if (ce->to->equals(Type::tvoid))
+            {
+                /*
+                 * Don't complain about an expression with no effect if it was cast to void
                  */
-                break;
-
-            case TOKimport:
-                error("%s has no effect", toChars());
-                break;
-
-            case TOKandand:
-            {   AndAndExp *aae = (AndAndExp *)this;
-                aae->e2->discardValue();
-                break;
+                return;
             }
-
-            case TOKoror:
-            {   OrOrExp *ooe = (OrOrExp *)this;
-                ooe->e2->discardValue();
-                break;
-            }
-
-            case TOKquestion:
-            {   CondExp *ce = (CondExp *)this;
-                ce->e1->discardValue();
-                ce->e2->discardValue();
-                break;
-            }
-
-            case TOKcomma:
-            {   CommaExp *ce = (CommaExp *)this;
-
-                /* Check for compiler-generated code of the form  auto __tmp, e, __tmp;
-                 * In such cases, only check e for side effect (it's OK for __tmp to have
-                 * no side effect).
-                 * See Bugzilla 4231 for discussion
-                 */
-                CommaExp* firstComma = ce;
-                while (firstComma->e1->op == TOKcomma)
-                    firstComma = (CommaExp *)firstComma->e1;
-                if (firstComma->e1->op == TOKdeclaration &&
-                    ce->e2->op == TOKvar &&
-                    ((DeclarationExp *)firstComma->e1)->declaration == ((VarExp*)ce->e2)->var)
-                {
-                    break;
-                }
-                // Don't check e1 until we cast(void) the a,b code generation
-                //ce->e1->discardValue();
-                ce->e2->discardValue();
-                break;
-            }
-
-            case TOKtuple:
-                /* Pass without complaint if any of the tuple elements have side effects.
-                 * Ideally any tuple elements with no side effects should raise an error,
-                 * this needs more investigation as to what is the right thing to do.
-                 */
-                if (!hasSideEffect(this))
-                    goto Ldefault;
-                break;
-
-            default:
-            Ldefault:
-                error("%s has no effect in expression (%s)",
-                    Token::toChars(op), toChars());
-                break;
+            break;          // complain
         }
+
+        case TOKerror:
+            return;
+
+        case TOKcall:
+            /* Don't complain about calling functions with no effect,
+             * because purity and nothrow are inferred, and because some of the
+             * runtime library depends on it. Needs more investigation.
+             */
+            return;
+
+        case TOKimport:
+            e->error("%s has no effect", e->toChars());
+            return;
+
+        case TOKandand:
+        {
+            AndAndExp *aae = (AndAndExp *)e;
+            discardValue(aae->e2);
+            return;
+        }
+
+        case TOKoror:
+        {
+            OrOrExp *ooe = (OrOrExp *)e;
+            discardValue(ooe->e2);
+            return;
+        }
+
+        case TOKquestion:
+        {
+            CondExp *ce = (CondExp *)e;
+            discardValue(ce->e1);
+            discardValue(ce->e2);
+            return;
+        }
+
+        case TOKcomma:
+        {
+            CommaExp *ce = (CommaExp *)e;
+            /* Check for compiler-generated code of the form  auto __tmp, e, __tmp;
+             * In such cases, only check e for side effect (it's OK for __tmp to have
+             * no side effect).
+             * See Bugzilla 4231 for discussion
+             */
+            CommaExp* firstComma = ce;
+            while (firstComma->e1->op == TOKcomma)
+                firstComma = (CommaExp *)firstComma->e1;
+            if (firstComma->e1->op == TOKdeclaration &&
+                ce->e2->op == TOKvar &&
+                ((DeclarationExp *)firstComma->e1)->declaration == ((VarExp*)ce->e2)->var)
+            {
+                return;
+            }
+            // Don't check e1 until we cast(void) the a,b code generation
+            //discardValue(ce->e1);
+            discardValue(ce->e2);
+            return;
+        }
+
+        case TOKtuple:
+            /* Pass without complaint if any of the tuple elements have side effects.
+             * Ideally any tuple elements with no side effects should raise an error,
+             * this needs more investigation as to what is the right thing to do.
+             */
+            if (!hasSideEffect(e))
+                break;
+            return;
+
+        default:
+            break;
     }
+    e->error("%s has no effect in expression (%s)", Token::toChars(e->op), e->toChars());
 }
