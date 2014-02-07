@@ -1586,11 +1586,13 @@ void Obj::ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym)
 
     symbol *ehtab_entry = symbol_generate(SCstatic,type_alloc(TYint));
     symbol_keep(ehtab_entry);
-    ElfObj::getsegment(".deh_beg", NULL, SHT_PROGDEF, SHF_ALLOC, NPTRSIZE);
-    int seg = ElfObj::getsegment(".deh_eh", NULL, SHT_PROGDEF, SHF_ALLOC, NPTRSIZE);
+
+    const int shf_flags = SHF_ALLOC | (config.flags3 & CFG3pic ? SHF_WRITE : 0);
+    ElfObj::getsegment(".deh_beg", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
+    int seg = ElfObj::getsegment(".deh_eh", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
     ehtab_entry->Sseg = seg;
     Outbuffer *buf = SegData[seg]->SDbuf;
-    ElfObj::getsegment(".deh_end", NULL, SHT_PROGDEF, SHF_ALLOC, NPTRSIZE);
+    ElfObj::getsegment(".deh_end", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
     ehtab_entry->Stype->Tmangle = mTYman_c;
     ehsym->Stype->Tmangle = mTYman_c;
 
@@ -1608,16 +1610,17 @@ void Obj::ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym)
 
 void Obj::ehsections()
 {
-    int sec = ElfObj::getsegment(".deh_beg", NULL, SHT_PROGDEF, SHF_ALLOC, NPTRSIZE);
+    const int shf_flags = SHF_ALLOC | (config.flags3 & CFG3pic ? SHF_WRITE : 0);
+    int sec = ElfObj::getsegment(".deh_beg", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
     //Obj::bytes(sec, 0, 4, NULL);
 
     IDXSTR namidx = Obj::addstr(symtab_strings,"_deh_beg");
     elf_addsym(namidx, 0, 4, STT_OBJECT, STB_GLOBAL, MAP_SEG2SECIDX(sec));
     //elf_addsym(namidx, 0, 4, STT_OBJECT, STB_GLOBAL, MAP_SEG2SECIDX(sec));
 
-    ElfObj::getsegment(".deh_eh", NULL, SHT_PROGDEF, SHF_ALLOC, NPTRSIZE);
+    ElfObj::getsegment(".deh_eh", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
 
-    sec = ElfObj::getsegment(".deh_end", NULL, SHT_PROGDEF, SHF_ALLOC, NPTRSIZE);
+    sec = ElfObj::getsegment(".deh_end", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
     namidx = Obj::addstr(symtab_strings,"_deh_end");
     elf_addsym(namidx, 0, 4, STT_OBJECT, STB_GLOBAL, MAP_SEG2SECIDX(sec));
 
@@ -3100,9 +3103,10 @@ void Obj::moduleinfo(Symbol *scc)
     const int CFflags = I64 ? (CFoffset64 | CFoff) : CFoff;
 
     {
-        ElfObj::getsegment(".minfo_beg", NULL, SHT_PROGDEF, SHF_ALLOC, NPTRSIZE);
-        const int seg = ElfObj::getsegment(".minfo", NULL, SHT_PROGDEF, SHF_ALLOC, NPTRSIZE);
-        ElfObj::getsegment(".minfo_end", NULL, SHT_PROGDEF, SHF_ALLOC, NPTRSIZE);
+        const int shf_flags = SHF_ALLOC | (config.flags3 & CFG3pic ? SHF_WRITE : 0);
+        ElfObj::getsegment(".minfo_beg", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
+        const int seg = ElfObj::getsegment(".minfo", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
+        ElfObj::getsegment(".minfo_end", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
         SegData[seg]->SDoffset +=
             reftoident(seg, SegData[seg]->SDoffset, scc, 0, CFflags);
     }
@@ -3165,21 +3169,23 @@ static void obj_rtinit()
     int seg;
 
     {
-    seg = ElfObj::getsegment(".deh_beg", NULL, SHT_PROGDEF, SHF_ALLOC, NPTRSIZE);
+    const int shf_flags = SHF_ALLOC | (config.flags3 & CFG3pic ? SHF_WRITE : 0);
+
+    seg = ElfObj::getsegment(".deh_beg", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
     deh_beg = MAP_SEG2SYMIDX(seg);
 
-    ElfObj::getsegment(".deh_eh", NULL, SHT_PROGDEF, SHF_ALLOC, NPTRSIZE);
+    ElfObj::getsegment(".deh_eh", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
 
-    seg = ElfObj::getsegment(".deh_end", NULL, SHT_PROGDEF, SHF_ALLOC, NPTRSIZE);
+    seg = ElfObj::getsegment(".deh_end", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
     deh_end = MAP_SEG2SYMIDX(seg);
 
 
-    seg = ElfObj::getsegment(".minfo_beg", NULL, SHT_PROGDEF, SHF_ALLOC, NPTRSIZE);
+    seg = ElfObj::getsegment(".minfo_beg", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
     minfo_beg = MAP_SEG2SYMIDX(seg);
 
-    ElfObj::getsegment(".minfo", NULL, SHT_PROGDEF, SHF_ALLOC, NPTRSIZE);
+    ElfObj::getsegment(".minfo", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
 
-    seg = ElfObj::getsegment(".minfo_end", NULL, SHT_PROGDEF, SHF_ALLOC, NPTRSIZE);
+    seg = ElfObj::getsegment(".minfo_end", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
     minfo_end = MAP_SEG2SYMIDX(seg);
     }
 

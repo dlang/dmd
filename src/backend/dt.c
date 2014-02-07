@@ -390,6 +390,25 @@ bool dtallzeros(const dt_t *dt)
     return dt->dt == DT_azeros && !dt->DTnext;
 }
 
+/************************************
+ * Return true if dt contains pointers (requires relocations).
+ */
+
+bool dtpointers(const dt_t *dtstart)
+{
+    for (const dt_t *dt = dtstart; dt; dt = dt->DTnext)
+    {
+        switch (dt->dt)
+        {
+        case DT_abytes:
+        case DT_xoff:
+        case DT_coff:
+            return true;
+        }
+    }
+    return false;
+}
+
 /***********************************
  * Turn DT_azeros into DTcommon
  */

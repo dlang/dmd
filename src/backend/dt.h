@@ -27,6 +27,7 @@ void init_common(Symbol *);
 unsigned dt_size(const dt_t *dtstart);
 dt_t **dtend(dt_t** pdt);
 bool dtallzeros(const dt_t *dt);
+bool dtpointers(const dt_t *dt);
 void dt2common(dt_t **pdt);
 
 #endif /* DT_H */

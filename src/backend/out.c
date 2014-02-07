@@ -515,7 +515,12 @@ void out_readonly(symbol *s)
 {
     // The default is DATA
 #if ELFOBJ
-    s->Sseg = CDATA;
+    /* Cannot have pointers in CDATA when compiling PIC code, because
+     * they require dynamic relocations of the read-only segment.
+     * Instead use the .data.rel.ro section. See Bugzilla 11171.
+     */
+    if (!(config.flags3 & CFG3pic && dtpointers(s->Sdt)))
+        s->Sseg = CDATA;
 #endif
 #if MACHOBJ
     /* Because of PIC and CDATA being in the _TEXT segment;
