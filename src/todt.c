@@ -185,364 +185,399 @@ dt_t *Initializer_toDt(Initializer *init)
 
 /* ================================================================ */
 
-dt_t **Expression::toDt(dt_t **pdt)
+dt_t **Expression_toDt(Expression *e, dt_t **pdt)
 {
-#if 0
-    printf("Expression::toDt() %d\n", op);
-    print();
-#endif
-    error("non-constant expression %s", toChars());
-    pdt = dtnzeros(pdt, 1);
-    return pdt;
-}
-
-dt_t **CastExp::toDt(dt_t **pdt)
-{
-#if 0
-    printf("CastExp::toDt() %d from %s to %s\n", op, e1->type->toChars(), type->toChars());
-#endif
-    if (e1->type->ty == Tclass && type->ty == Tclass)
+    class ExpToDt : public Visitor
     {
-        if (((TypeClass*)type)->sym->isInterfaceDeclaration())//casting from class to interface
+    public:
+        dt_t **pdt;
+
+        ExpToDt(dt_t **pdt)
+            : pdt(pdt)
         {
-            assert(e1->op == TOKclassreference);
-            ClassDeclaration *from = ((ClassReferenceExp*)e1)->originalClass();
-            InterfaceDeclaration* to = ((TypeClass*)type)->sym->isInterfaceDeclaration();
-            int off = 0;
-            int isbase = to->isBaseOf(from, &off);
-            assert(isbase);
-            return ((ClassReferenceExp*)e1)->toDtI(pdt, off);
         }
-        else //casting from class to class
+
+        void visit(Expression *e)
         {
-            return e1->toDt(pdt);
-        }
-    }
-    return UnaExp::toDt(pdt);
-}
-
-dt_t **AddrExp::toDt(dt_t **pdt)
-{
-#if 0
-    printf("AddrExp::toDt() %d\n", op);
-#endif
-    if (e1->op == TOKstructliteral)
-    {
-        StructLiteralExp* sl = (StructLiteralExp*)e1;
-        dtxoff(pdt, sl->toSymbol(), 0);
-        return pdt;
-    }
-    return UnaExp::toDt(pdt);
-}
-
-
-dt_t **IntegerExp::toDt(dt_t **pdt)
-{
-    //printf("IntegerExp::toDt() %d\n", op);
-    unsigned sz = type->size();
-    if (value == 0)
-        pdt = dtnzeros(pdt, sz);
-    else
-        pdt = dtnbytes(pdt, sz, (char *)&value);
-    return pdt;
-}
-
-static char zeropad[6];
-
-dt_t **RealExp::toDt(dt_t **pdt)
-{
-    //printf("RealExp::toDt(%Lg)\n", value);
-    switch (type->toBasetype()->ty)
-    {
-        case Tfloat32:
-        case Timaginary32:
-        {   d_float32 fvalue = value;
-            pdt = dtnbytes(pdt,4,(char *)&fvalue);
-            break;
+        #if 0
+            printf("Expression::toDt() %d\n", e->op);
+            print();
+        #endif
+            e->error("non-constant expression %s", e->toChars());
+            pdt = dtnzeros(pdt, 1);
         }
 
-        case Tfloat64:
-        case Timaginary64:
-        {   d_float64 dvalue = value;
-            pdt = dtnbytes(pdt,8,(char *)&dvalue);
-            break;
-        }
-
-        case Tfloat80:
-        case Timaginary80:
-        {   d_float80 evalue = value;
-            pdt = dtnbytes(pdt,Target::realsize - Target::realpad,(char *)&evalue);
-            pdt = dtnbytes(pdt,Target::realpad,zeropad);
-            assert(Target::realpad <= sizeof(zeropad));
-            break;
-        }
-
-        default:
-            printf("%s\n", toChars());
-            type->print();
-            assert(0);
-            break;
-    }
-    return pdt;
-}
-
-dt_t **ComplexExp::toDt(dt_t **pdt)
-{
-    //printf("ComplexExp::toDt() '%s'\n", toChars());
-
-    switch (type->toBasetype()->ty)
-    {
-        case Tcomplex32:
-        {   d_float32 fvalue = creall(value);
-            pdt = dtnbytes(pdt,4,(char *)&fvalue);
-            fvalue = cimagl(value);
-            pdt = dtnbytes(pdt,4,(char *)&fvalue);
-            break;
-        }
-
-        case Tcomplex64:
-        {   d_float64 dvalue = creall(value);
-            pdt = dtnbytes(pdt,8,(char *)&dvalue);
-            dvalue = cimagl(value);
-            pdt = dtnbytes(pdt,8,(char *)&dvalue);
-            break;
-        }
-
-        case Tcomplex80:
-        {   d_float80 evalue = creall(value);
-            pdt = dtnbytes(pdt,Target::realsize - Target::realpad,(char *)&evalue);
-            pdt = dtnbytes(pdt,Target::realpad,zeropad);
-            evalue = cimagl(value);
-            pdt = dtnbytes(pdt,Target::realsize - Target::realpad,(char *)&evalue);
-            pdt = dtnbytes(pdt,Target::realpad,zeropad);
-            break;
-        }
-
-        default:
-            assert(0);
-            break;
-    }
-    return pdt;
-}
-
-dt_t **NullExp::toDt(dt_t **pdt)
-{
-    assert(type);
-    return dtnzeros(pdt, type->size());
-}
-
-dt_t **StringExp::toDt(dt_t **pdt)
-{
-    //printf("StringExp::toDt() '%s', type = %s\n", toChars(), type->toChars());
-    Type *t = type->toBasetype();
-
-    // BUG: should implement some form of static string pooling
-    switch (t->ty)
-    {
-        case Tarray:
-            dtsize_t(pdt, len);
-            pdt = dtabytes(pdt, 0, (len + 1) * sz, (char *)string);
-            break;
-
-        case Tsarray:
+        void visit(CastExp *e)
         {
-            TypeSArray *tsa = (TypeSArray *)t;
-
-            pdt = dtnbytes(pdt, len * sz, (const char *)string);
-            if (tsa->dim)
+        #if 0
+            printf("CastExp::toDt() %d from %s to %s\n", e->op, e->e1->type->toChars(), e->type->toChars());
+        #endif
+            if (e->e1->type->ty == Tclass && e->type->ty == Tclass)
             {
-                dinteger_t dim = tsa->dim->toInteger();
-                if (len < dim)
+                if (((TypeClass *)e->type)->sym->isInterfaceDeclaration()) // casting from class to interface
                 {
-                    // Pad remainder with 0
-                    pdt = dtnzeros(pdt, (dim - len) * tsa->next->size());
+                    assert(e->e1->op == TOKclassreference);
+                    ClassDeclaration *from = ((ClassReferenceExp *)e->e1)->originalClass();
+                    InterfaceDeclaration *to = ((TypeClass *)e->type)->sym->isInterfaceDeclaration();
+                    int off = 0;
+                    int isbase = to->isBaseOf(from, &off);
+                    assert(isbase);
+                    pdt = ((ClassReferenceExp*)e->e1)->toDtI(pdt, off);
+                    return;
+                }
+                else //casting from class to class
+                {
+                    pdt = e->e1->toDt(pdt);
+                    return;
                 }
             }
-            break;
+            visit((UnaExp *)e);
         }
-        case Tpointer:
-            pdt = dtabytes(pdt, 0, (len + 1) * sz, (char *)string);
-            break;
 
-        default:
-            printf("StringExp::toDt(type = %s)\n", type->toChars());
-            assert(0);
-    }
-    return pdt;
-}
-
-dt_t **ArrayLiteralExp::toDt(dt_t **pdt)
-{
-    //printf("ArrayLiteralExp::toDt() '%s', type = %s\n", toChars(), type->toChars());
-
-    dt_t *d = NULL;
-    dt_t **pdtend = &d;
-    for (size_t i = 0; i < elements->dim; i++)
-    {   Expression *e = (*elements)[i];
-
-        pdtend = e->toDt(pdtend);
-    }
-    Type *t = type->toBasetype();
-
-    switch (t->ty)
-    {
-        case Tsarray:
-            pdt = dtcat(pdt, d);
-            break;
-
-        case Tpointer:
-        case Tarray:
-            if (t->ty == Tarray)
-                dtsize_t(pdt, elements->dim);
-            if (d)
-                dtdtoff(pdt, d, 0);
-            else
-                dtsize_t(pdt, 0);
-
-            break;
-
-        default:
-            assert(0);
-    }
-    return pdt;
-}
-
-dt_t **StructLiteralExp::toDt(dt_t **pdt)
-{
-    //printf("StructLiteralExp::toDt() %s, ctfe = %d\n", toChars(), ownedByCtfe);
-    assert(sd->fields.dim - sd->isNested() <= elements->dim);
-
-    unsigned offset = 0;
-    for (size_t i = 0; i < elements->dim; i++)
-    {
-        Expression *e = (*elements)[i];
-        if (!e)
-            continue;
-
-        VarDeclaration *vd = NULL;
-        size_t k;
-        for (size_t j = i; j < elements->dim; j++)
+        void visit(AddrExp *e)
         {
-            VarDeclaration *v2 = sd->fields[j];
-            if (v2->offset < offset || (*elements)[j] == NULL)
-                continue;
-
-            // find the nearest field
-            if (!vd)
-                vd = v2, k = j;
-            else if (v2->offset < vd->offset)
+        #if 0
+            printf("AddrExp::toDt() %d\n", e->op);
+        #endif
+            if (e->e1->op == TOKstructliteral)
             {
-                // Each elements should have no overlapping
-                assert(!(vd->offset < v2->offset + v2->type->size() &&
-                         v2->offset < vd->offset + vd->type->size()));
-                vd = v2, k = j;
+                StructLiteralExp* sl = (StructLiteralExp *)e->e1;
+                dtxoff(pdt, sl->toSymbol(), 0);
+                return;
+            }
+            visit((UnaExp *)e);
+        }
+
+        void visit(IntegerExp *e)
+        {
+            //printf("IntegerExp::toDt() %d\n", e->op);
+            unsigned sz = e->type->size();
+            if (e->value == 0)
+                pdt = dtnzeros(pdt, sz);
+            else
+                pdt = dtnbytes(pdt, sz, (char *)&e->value);
+        }
+
+        void visit(RealExp *e)
+        {
+            //printf("RealExp::toDt(%Lg)\n", e->value);
+            static char zeropad[6];
+            switch (e->type->toBasetype()->ty)
+            {
+                case Tfloat32:
+                case Timaginary32:
+                {
+                    d_float32 fvalue = e->value;
+                    pdt = dtnbytes(pdt,4,(char *)&fvalue);
+                    break;
+                }
+
+                case Tfloat64:
+                case Timaginary64:
+                {
+                    d_float64 dvalue = e->value;
+                    pdt = dtnbytes(pdt,8,(char *)&dvalue);
+                    break;
+                }
+
+                case Tfloat80:
+                case Timaginary80:
+                {
+                    d_float80 evalue = e->value;
+                    pdt = dtnbytes(pdt,Target::realsize - Target::realpad,(char *)&evalue);
+                    pdt = dtnbytes(pdt,Target::realpad,zeropad);
+                    assert(Target::realpad <= sizeof(zeropad));
+                    break;
+                }
+
+                default:
+                    printf("%s\n", e->toChars());
+                    e->type->print();
+                    assert(0);
+                    break;
             }
         }
-        if (vd)
+
+        void visit(ComplexExp *e)
         {
-            if (offset < vd->offset)
-                pdt = dtnzeros(pdt, vd->offset - offset);
-            e = (*elements)[k];
+            //printf("ComplexExp::toDt() '%s'\n", e->toChars());
+            static char zeropad[6];
+            switch (e->type->toBasetype()->ty)
+            {
+                case Tcomplex32:
+                {
+                    d_float32 fvalue = creall(e->value);
+                    pdt = dtnbytes(pdt,4,(char *)&fvalue);
+                    fvalue = cimagl(e->value);
+                    pdt = dtnbytes(pdt,4,(char *)&fvalue);
+                    break;
+                }
 
-            Type *tb = vd->type->toBasetype();
-            if (tb->ty == Tsarray)
-                toDtElem(((TypeSArray *)tb), pdt, e);
-            else
-                e->toDt(pdt);           // convert e to an initializer dt
+                case Tcomplex64:
+                {
+                    d_float64 dvalue = creall(e->value);
+                    pdt = dtnbytes(pdt,8,(char *)&dvalue);
+                    dvalue = cimagl(e->value);
+                    pdt = dtnbytes(pdt,8,(char *)&dvalue);
+                    break;
+                }
 
-            offset = vd->offset + vd->type->size();
+                case Tcomplex80:
+                {
+                    d_float80 evalue = creall(e->value);
+                    pdt = dtnbytes(pdt,Target::realsize - Target::realpad,(char *)&evalue);
+                    pdt = dtnbytes(pdt,Target::realpad,zeropad);
+                    evalue = cimagl(e->value);
+                    pdt = dtnbytes(pdt,Target::realsize - Target::realpad,(char *)&evalue);
+                    pdt = dtnbytes(pdt,Target::realpad,zeropad);
+                    break;
+                }
+
+                default:
+                    assert(0);
+                    break;
+            }
         }
-    }
-    if (offset < sd->structsize)
-        pdt = dtnzeros(pdt, sd->structsize - offset);
 
-    return pdt;
-}
-
-
-dt_t **SymOffExp::toDt(dt_t **pdt)
-{
-    //printf("SymOffExp::toDt('%s')\n", var->toChars());
-    assert(var);
-    if (!(var->isDataseg() || var->isCodeseg()) ||
-        var->needThis() ||
-        var->isThreadlocal())
-    {
-#if 0
-        printf("SymOffExp::toDt()\n");
-#endif
-        error("non-constant expression %s", toChars());
-        return pdt;
-    }
-    return dtxoff(pdt, var->toSymbol(), offset);
-}
-
-dt_t **VarExp::toDt(dt_t **pdt)
-{
-    //printf("VarExp::toDt() %d\n", op);
-    pdt = dtend(pdt);
-
-    VarDeclaration *v = var->isVarDeclaration();
-    if (v && (v->isConst() || v->isImmutable()) &&
-        type->toBasetype()->ty != Tsarray && v->init)
-    {
-        if (v->inuse)
+        void visit(NullExp *e)
         {
-            error("recursive reference %s", toChars());
-            return pdt;
+            assert(e->type);
+            pdt = dtnzeros(pdt, e->type->size());
         }
-        v->inuse++;
-        *pdt = Initializer_toDt(v->init);
-        v->inuse--;
-        return pdt;
-    }
-    SymbolDeclaration *sd = var->isSymbolDeclaration();
-    if (sd && sd->dsym)
-    {
-        sd->dsym->toDt(pdt);
-        return pdt;
-    }
-#if 0
-    printf("VarExp::toDt(), kind = %s\n", var->kind());
-#endif
-    error("non-constant expression %s", toChars());
-    pdt = dtnzeros(pdt, 1);
-    return pdt;
-}
 
-dt_t **FuncExp::toDt(dt_t **pdt)
-{
-    //printf("FuncExp::toDt() %d\n", op);
-    if (fd->tok == TOKreserved && type->ty == Tpointer)
-    {   // change to non-nested
-        fd->tok = TOKfunction;
-        fd->vthis = NULL;
-    }
-    Symbol *s = fd->toSymbol();
-    if (fd->isNested())
-    {   error("non-constant nested delegate literal expression %s", toChars());
-        return NULL;
-    }
-    fd->toObjFile(0);
-    return dtxoff(pdt, s, 0);
-}
-
-dt_t **VectorExp::toDt(dt_t **pdt)
-{
-    //printf("VectorExp::toDt() %s\n", toChars());
-    for (size_t i = 0; i < dim; i++)
-    {   Expression *elem;
-
-        if (e1->op == TOKarrayliteral)
+        void visit(StringExp *e)
         {
-            ArrayLiteralExp *ea = (ArrayLiteralExp *)e1;
-            elem = (*ea->elements)[i];
+            //printf("StringExp::toDt() '%s', type = %s\n", e->toChars(), e->type->toChars());
+            Type *t = e->type->toBasetype();
+
+            // BUG: should implement some form of static string pooling
+            switch (t->ty)
+            {
+                case Tarray:
+                    dtsize_t(pdt, e->len);
+                    pdt = dtabytes(pdt, 0, (e->len + 1) * e->sz, (char *)e->string);
+                    break;
+
+                case Tsarray:
+                {
+                    TypeSArray *tsa = (TypeSArray *)t;
+
+                    pdt = dtnbytes(pdt, e->len * e->sz, (const char *)e->string);
+                    if (tsa->dim)
+                    {
+                        dinteger_t dim = tsa->dim->toInteger();
+                        if (e->len < dim)
+                        {
+                            // Pad remainder with 0
+                            pdt = dtnzeros(pdt, (dim - e->len) * tsa->next->size());
+                        }
+                    }
+                    break;
+                }
+                case Tpointer:
+                    pdt = dtabytes(pdt, 0, (e->len + 1) * e->sz, (char *)e->string);
+                    break;
+
+                default:
+                    printf("StringExp::toDt(type = %s)\n", e->type->toChars());
+                    assert(0);
+            }
         }
-        else
-            elem = e1;
-        pdt = elem->toDt(pdt);
-    }
-    return pdt;
+
+        void visit(ArrayLiteralExp *e)
+        {
+            //printf("ArrayLiteralExp::toDt() '%s', type = %s\n", e->toChars(), e->type->toChars());
+
+            dt_t *d = NULL;
+            dt_t **pdtend = &d;
+            for (size_t i = 0; i < e->elements->dim; i++)
+            {
+                pdtend = (*e->elements)[i]->toDt(pdtend);
+            }
+            Type *t = e->type->toBasetype();
+
+            switch (t->ty)
+            {
+                case Tsarray:
+                    pdt = dtcat(pdt, d);
+                    break;
+
+                case Tpointer:
+                case Tarray:
+                    if (t->ty == Tarray)
+                        dtsize_t(pdt, e->elements->dim);
+                    if (d)
+                        dtdtoff(pdt, d, 0);
+                    else
+                        dtsize_t(pdt, 0);
+
+                    break;
+
+                default:
+                    assert(0);
+            }
+        }
+
+        void visit(StructLiteralExp *se)
+        {
+            //printf("StructLiteralExp::toDt() %s, ctfe = %d\n", toChars(), ownedByCtfe);
+            assert(se->sd->fields.dim - se->sd->isNested() <= se->elements->dim);
+
+            unsigned offset = 0;
+            for (size_t i = 0; i < se->elements->dim; i++)
+            {
+                Expression *e = (*se->elements)[i];
+                if (!e)
+                    continue;
+
+                VarDeclaration *vd = NULL;
+                size_t k;
+                for (size_t j = i; j < se->elements->dim; j++)
+                {
+                    VarDeclaration *v2 = se->sd->fields[j];
+                    if (v2->offset < offset || (*se->elements)[j] == NULL)
+                        continue;
+
+                    // find the nearest field
+                    if (!vd)
+                    {
+                        vd = v2;
+                        k = j;
+                    }
+                    else if (v2->offset < vd->offset)
+                    {
+                        // Each elements should have no overlapping
+                        assert(!(vd->offset < v2->offset + v2->type->size() &&
+                                 v2->offset < vd->offset + vd->type->size()));
+                        vd = v2;
+                        k = j;
+                    }
+                }
+                if (vd)
+                {
+                    if (offset < vd->offset)
+                        pdt = dtnzeros(pdt, vd->offset - offset);
+                    e = (*se->elements)[k];
+
+                    Type *tb = vd->type->toBasetype();
+                    if (tb->ty == Tsarray)
+                        toDtElem(((TypeSArray *)tb), pdt, e);
+                    else
+                        e->toDt(pdt);           // convert e to an initializer dt
+
+                    offset = vd->offset + vd->type->size();
+                }
+            }
+            if (offset < se->sd->structsize)
+                pdt = dtnzeros(pdt, se->sd->structsize - offset);
+        }
+
+        void visit(SymOffExp *e)
+        {
+            //printf("SymOffExp::toDt('%s')\n", e->var->toChars());
+            assert(e->var);
+            if (!(e->var->isDataseg() || e->var->isCodeseg()) ||
+                e->var->needThis() ||
+                e->var->isThreadlocal())
+            {
+        #if 0
+                printf("SymOffExp::toDt()\n");
+        #endif
+                e->error("non-constant expression %s", e->toChars());
+                return;
+            }
+            pdt =  dtxoff(pdt, e->var->toSymbol(), e->offset);
+        }
+
+        void visit(VarExp *e)
+        {
+            //printf("VarExp::toDt() %d\n", e->op);
+            pdt = dtend(pdt);
+
+            VarDeclaration *v = e->var->isVarDeclaration();
+            if (v && (v->isConst() || v->isImmutable()) &&
+                e->type->toBasetype()->ty != Tsarray && v->init)
+            {
+                if (v->inuse)
+                {
+                    e->error("recursive reference %s", e->toChars());
+                    return;
+                }
+                v->inuse++;
+                *pdt = Initializer_toDt(v->init);
+                v->inuse--;
+                return;
+            }
+            SymbolDeclaration *sd = e->var->isSymbolDeclaration();
+            if (sd && sd->dsym)
+            {
+                sd->dsym->toDt(pdt);
+                return;
+            }
+        #if 0
+            printf("VarExp::toDt(), kind = %s\n", e->var->kind());
+        #endif
+            e->error("non-constant expression %s", e->toChars());
+            pdt = dtnzeros(pdt, 1);
+        }
+
+        void visit(FuncExp *e)
+        {
+            //printf("FuncExp::toDt() %d\n", e->op);
+            if (e->fd->tok == TOKreserved && e->type->ty == Tpointer)
+            {
+                // change to non-nested
+                e->fd->tok = TOKfunction;
+                e->fd->vthis = NULL;
+            }
+            Symbol *s = e->fd->toSymbol();
+            if (e->fd->isNested())
+            {
+                e->error("non-constant nested delegate literal expression %s", e->toChars());
+                pdt = NULL;
+                return;
+            }
+            e->fd->toObjFile(0);
+            pdt = dtxoff(pdt, s, 0);
+        }
+
+        void visit(VectorExp *e)
+        {
+            //printf("VectorExp::toDt() %s\n", e->toChars());
+            for (size_t i = 0; i < e->dim; i++)
+            {
+                Expression *elem;
+                if (e->e1->op == TOKarrayliteral)
+                {
+                    ArrayLiteralExp *ea = (ArrayLiteralExp *)e->e1;
+                    elem = (*ea->elements)[i];
+                }
+                else
+                    elem = e->e1;
+                pdt = elem->toDt(pdt);
+            }
+        }
+
+        void visit(ClassReferenceExp *e)
+        {
+            InterfaceDeclaration* to = ((TypeClass *)e->type)->sym->isInterfaceDeclaration();
+
+            if (to) //Static typeof this literal is an interface. We must add offset to symbol
+            {
+                ClassDeclaration *from = e->originalClass();
+                int off = 0;
+                int isbase = to->isBaseOf(from, &off);
+                assert(isbase);
+                pdt = e->toDtI(pdt, off);
+                return;
+            }
+            pdt = e->toDtI(pdt, 0);
+        }
+    };
+
+    ExpToDt v(pdt);
+    e->accept(&v);
+    return v.pdt;
 }
 
 /* ================================================================= */
@@ -766,21 +801,6 @@ dt_t **toDtElem(TypeSArray *tsa, dt_t **pdt, Expression *e)
 /*****************************************************/
 /*                   CTFE stuff                      */
 /*****************************************************/
-
-dt_t **ClassReferenceExp::toDt(dt_t **pdt)
-{
-    InterfaceDeclaration* to = ((TypeClass *)type)->sym->isInterfaceDeclaration();
-
-    if (to) //Static typeof this literal is an interface. We must add offset to symbol
-    {
-        ClassDeclaration *from = originalClass();
-        int off = 0;
-        int isbase = to->isBaseOf(from, &off);
-        assert(isbase);
-        return toDtI(pdt, off);
-    }
-    return toDtI(pdt, 0);
-}
 
 dt_t **ClassReferenceExp::toDtI(dt_t **pdt, int off)
 {

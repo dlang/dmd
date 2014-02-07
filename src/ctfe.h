@@ -49,7 +49,6 @@ public:
     /// Return index of the field, or -1 if not found
     /// Same as getFieldIndex, but checks for a direct match with the VarDeclaration
     int findFieldIndexByName(VarDeclaration *v);
-    dt_t **toDt(dt_t **pdt);
     dt_t **toDtI(dt_t **pdt, int offset);
     Symbol* toSymbol();
     dt_t **toInstanceDt(dt_t **pdt);

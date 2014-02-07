@@ -99,6 +99,7 @@ Expression *arrayOp(BinAssignExp *e, Scope *sc);
 bool hasSideEffect(Expression *e);
 bool canThrow(Expression *e, bool mustNotThrow);
 Expression *Expression_optimize(Expression *e, int result, bool keepLvalue);
+dt_t **Expression_toDt(Expression *e, dt_t **pdt);
 
 /* Run CTFE on the expression, but allow the expression to be a TypeExp
  * or a tuple containing a TypeExp. (This is required by pragma(msg)).
@@ -206,7 +207,7 @@ public:
     // Back end
     virtual elem *toElem(IRState *irs);
     elem *toElemDtor(IRState *irs);
-    virtual dt_t **toDt(dt_t **pdt);
+    virtual dt_t **toDt(dt_t **pdt) { return ::Expression_toDt(this, pdt); }
     virtual void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -231,7 +232,6 @@ public:
     void toMangleBuffer(OutBuffer *buf);
     Expression *toLvalue(Scope *sc, Expression *e);
     elem *toElem(IRState *irs);
-    dt_t **toDt(dt_t **pdt);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -268,7 +268,6 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toMangleBuffer(OutBuffer *buf);
     elem *toElem(IRState *irs);
-    dt_t **toDt(dt_t **pdt);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -292,7 +291,6 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toMangleBuffer(OutBuffer *buf);
     elem *toElem(IRState *irs);
-    dt_t **toDt(dt_t **pdt);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -381,7 +379,6 @@ public:
     Expression *castTo(Scope *sc, Type *t);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     elem *toElem(IRState *irs);
-    dt_t **toDt(dt_t **pdt);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -418,7 +415,6 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toMangleBuffer(OutBuffer *buf);
     elem *toElem(IRState *irs);
-    dt_t **toDt(dt_t **pdt);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -474,7 +470,6 @@ public:
     MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
     Expression *inferType(Type *t, int flag = 0, Scope *sc = NULL, TemplateParameters *tparams = NULL);
-    dt_t **toDt(dt_t **pdt);
 
     Expression *doInline(InlineDoState *ids);
     void accept(Visitor *v) { v->visit(this); }
@@ -558,7 +553,6 @@ public:
     void toMangleBuffer(OutBuffer *buf);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     Expression *addDtorHook(Scope *sc);
-    dt_t **toDt(dt_t **pdt);
     Symbol *toSymbol();
     MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
@@ -683,7 +677,6 @@ public:
     MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
 
-    dt_t **toDt(dt_t **pdt);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -705,7 +698,6 @@ public:
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
-    dt_t **toDt(dt_t **pdt);
 
     Expression *doInline(InlineDoState *ids);
     void accept(Visitor *v) { v->visit(this); }
@@ -747,7 +739,6 @@ public:
     char *toChars();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     elem *toElem(IRState *irs);
-    dt_t **toDt(dt_t **pdt);
 
     //Expression *doInline(InlineDoState *ids);
     void accept(Visitor *v) { v->visit(this); }
@@ -1072,7 +1063,6 @@ public:
     MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
-    dt_t **toDt(dt_t **pdt);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -1171,7 +1161,6 @@ public:
 
     // For operator overloading
     Expression *op_overload(Scope *sc);
-    dt_t **toDt(dt_t **pdt);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -1186,7 +1175,6 @@ public:
     Expression *semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     elem *toElem(IRState *irs);
-    dt_t **toDt(dt_t **pdt);
     void accept(Visitor *v) { v->visit(this); }
 };
 
