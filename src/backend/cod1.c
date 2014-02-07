@@ -3086,17 +3086,10 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
 #if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
             if (s == tls_get_addr_sym)
             {
-                if (I32)
+                if (I64)
                 {
-                    /* Append a NOP so GNU linker has patch room
+                    /* Prepend 66 66 48 so GNU linker has patch room
                      */
-                    ce = gen1(ce, 0x90);        // NOP
-                    code_orflag(ce, CFvolatile);    // don't schedule it
-                }
-                else
-                {   /* Prepend 66 66 48 so GNU linker has patch room
-                     */
-                    assert(I64);
                     ce->Irex = REX | REX_W;
                     ce = cat(gen1(CNIL, 0x66), ce);
                     ce = cat(gen1(CNIL, 0x66), ce);
