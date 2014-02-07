@@ -289,5 +289,33 @@ unittest
 }
 
 // ------------------------------------
+// Issue 12097
+
+/// declaration
+struct S12097
+{
+    /// method
+    void foo() {}
+}
+
+/// ditto
+void f12097() {}
+
+/// ddoc code 1
+unittest
+{
+    int a = 1;
+}
+
+/// ditto
+struct T12097(T) {}
+
+/// ddoc code 2
+unittest
+{
+    int[] arr;
+}
+
+// ------------------------------------
 
 void main() { }
