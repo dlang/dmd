@@ -379,7 +379,7 @@ Statement *ExpStatement::semantic(Scope *sc)
         exp = exp->semantic(sc);
         exp = exp->addDtorHook(sc);
         exp = resolveProperties(sc, exp);
-        exp->discardValue();
+        discardValue(exp);
         exp = exp->optimize(0);
         if (exp->op == TOKerror)
             return new ErrorStatement();

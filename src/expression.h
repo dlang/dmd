@@ -88,6 +88,7 @@ Expression *callCpCtor(Scope *sc, Expression *e);
 Expression *resolveOpDollar(Scope *sc, ArrayExp *ae);
 Expression *resolveOpDollar(Scope *sc, SliceExp *se);
 Expression *integralPromotions(Expression *e, Scope *sc);
+void discardValue(Expression *e);
 
 int isConst(Expression *e);
 Expression *toDelegate(Expression *e, Scope *sc, Type *t);
@@ -199,7 +200,6 @@ public:
 
     int isConst() { return ::isConst(this); }
     virtual int isBool(int result);
-    void discardValue();
 
     virtual Expression *doInline(InlineDoState *ids);
     Expression *inlineCopy(Scope *sc);
