@@ -224,11 +224,7 @@ void CtfeStack::popAll(size_t stackpointer)
 
 void CtfeStack::saveGlobalConstant(VarDeclaration *v, Expression *e)
 {
-#if DMDV2
      assert( v->init && (v->isConst() || v->isImmutable() || v->storage_class & STCmanifest) && !v->isCTFE());
-#else
-     assert( v->init && v->isConst() && !v->isCTFE());
-#endif
      v->ctfeAdrOnStack = (int)globalValues.dim;
      globalValues.push(e);
 }
@@ -615,7 +611,6 @@ void LabelStatement::ctfeCompile(CompiledCtfeFunction *ccf)
         statement->ctfeCompile(ccf);
 }
 
-#if DMDV2
 void ImportStatement::ctfeCompile(CompiledCtfeFunction *ccf)
 {
 #if LOGCOMPILE
@@ -632,8 +627,6 @@ void ForeachRangeStatement::ctfeCompile(CompiledCtfeFunction *ccf)
     // rewritten for ForStatement
     assert(0);
 }
-
-#endif
 
 void AsmStatement::ctfeCompile(CompiledCtfeFunction *ccf)
 {
@@ -860,15 +853,10 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
                 --evaluatingArgs;
                 if (earg == EXP_CANT_INTERPRET)
                     return earg;
-#if DMDV2
                 /* Struct literals are passed by value, but we don't need to
                  * copy them if they are passed as const
                  */
-                bool needcopy = !(arg->storageClass & (STCconst | STCimmutable));
-#else
-                bool needcopy = true;
-#endif
-                if (earg->op == TOKstructliteral && needcopy)
+                if (earg->op == TOKstructliteral && !(arg->storageClass & (STCconst | STCimmutable)))
                     earg = copyLiteral(earg);
             }
             if (earg->op == TOKthrownexception)
@@ -1381,7 +1369,7 @@ Expression *ReturnStatement::interpret(InterState *istate)
     if (!exp)
         return EXP_VOID_INTERPRET;
     assert(istate && istate->fd && istate->fd->type);
-#if DMDV2
+
     /* If the function returns a ref AND it's been called from an assignment,
      * we need to return an lvalue. Otherwise, just do an (rvalue) interpret.
      */
@@ -1403,7 +1391,7 @@ Expression *ReturnStatement::interpret(InterState *istate)
             return EXP_CANT_INTERPRET;
         }
     }
-#endif
+
     // We need to treat pointers specially, because TOKsymoff can be used to
     // return a value OR a pointer
     Expression *e;
@@ -1634,13 +1622,11 @@ Expression *ForeachStatement::interpret(InterState *istate)
     return NULL;
 }
 
-#if DMDV2
 Expression *ForeachRangeStatement::interpret(InterState *istate)
 {
     assert(0);                  // rewritten to ForStatement
     return NULL;
 }
-#endif
 
 Expression *SwitchStatement::interpret(InterState *istate)
 {
@@ -1873,7 +1859,6 @@ ThrownExceptionExp *chainExceptions(ThrownExceptionExp *oldest, ThrownExceptionE
 #if LOG
     printf("Collided exceptions %s %s\n", oldest->thrown->toChars(), newest->thrown->toChars());
 #endif
-#if DMDV2
     // Little sanity check to make sure it's really a Throwable
     ClassReferenceExp *boss = oldest->thrown;
     assert((*boss->value->elements)[4]->type->ty == Tclass);
@@ -1891,10 +1876,6 @@ ThrownExceptionExp *chainExceptions(ThrownExceptionExp *oldest, ThrownExceptionE
     }
     (*boss->value->elements)[4] = collateral;
     return oldest;
-#else
-    // for D1, the newest exception just clobbers the older one
-    return newest;
-#endif
 }
 
 
@@ -2018,7 +1999,6 @@ Expression *AsmStatement::interpret(InterState *istate)
     return EXP_CANT_INTERPRET;
 }
 
-#if DMDV2
 Expression *ImportStatement::interpret(InterState *istate)
 {
 #if LOG
@@ -2032,7 +2012,6 @@ Expression *ImportStatement::interpret(InterState *istate)
 ;
     return NULL;
 }
-#endif
 
 /******************************** Expression ***************************/
 
@@ -2323,7 +2302,6 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
     SymbolDeclaration *s = d->isSymbolDeclaration();
     if (v)
     {
-#if DMDV2
         /* Magic variable __ctfe always returns true when interpreting
          */
         if (v->ident == Id::ctfe)
@@ -2336,12 +2314,9 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
                 return EXP_CANT_INTERPRET;
         }
 
-        bool doinit = (v->isConst() || v->isImmutable() || v->storage_class & STCmanifest)
-                      && !v->hasValue();
-#else
-        bool doinit = v->isConst();
-#endif
-        if (doinit && v->init && !v->isCTFE())
+        if ((v->isConst() || v->isImmutable() || v->storage_class & STCmanifest) &&
+            !v->hasValue() &&
+            v->init && !v->isCTFE())
         {
             if(v->scope)
                 v->init = v->init->semantic(v->scope, v->type, INITinterpret); // might not be run on aggregate members
@@ -2529,11 +2504,6 @@ Expression *DeclarationExp::interpret(InterState *istate, CtfeGoal goal)
         if (!(v->isDataseg() || v->storage_class & STCmanifest) || v->isCTFE())
             ctfeStack.push(v);
         Dsymbol *s = v->toAlias();
-#if DMDV2
-        bool constinit = (v->isConst() || v->isImmutable());
-#else
-        bool constinit = v->isConst();
-#endif
         if (s == v && !v->isStatic() && v->init)
         {
             ExpInitializer *ie = v->init->isExpInitializer();
@@ -2556,7 +2526,7 @@ Expression *DeclarationExp::interpret(InterState *istate, CtfeGoal goal)
         {   // Zero-length arrays don't need an initializer
             e = v->type->defaultInitLiteral(loc);
         }
-        else if (s == v && constinit && v->init)
+        else if (s == v && (v->isConst() || v->isImmutable()) && v->init)
         {   e = v->init->toExpression();
             if (!e)
                 e = EXP_CANT_INTERPRET;
@@ -2706,12 +2676,10 @@ Expression *ArrayLiteralExp::interpret(InterState *istate, CtfeGoal goal)
         ae->type = type;
         return copyLiteral(ae);
     }
-#if DMDV2
     if (((TypeNext *)type)->next->mod & (MODconst | MODimmutable))
     {   // If it's immutable, we don't need to dup it
         return this;
     }
-#endif
     return copyLiteral(this);
 }
 
@@ -2929,7 +2897,6 @@ Expression *NewExp::interpret(InterState *istate, CtfeGoal goal)
     if (newtype->toBasetype()->ty == Tstruct)
     {
         Expression *se = newtype->defaultInitLiteral(loc);
-#if DMDV2
         if (member)
         {
             int olderrors = global.errors;
@@ -2940,10 +2907,6 @@ Expression *NewExp::interpret(InterState *istate, CtfeGoal goal)
                 return EXP_CANT_INTERPRET;
             }
         }
-#else   // The above code would fail on D1 because it doesn't use STRUCTTHISREF,
-        // but that's OK because D1 doesn't have struct constructors anyway.
-        assert(!member);
-#endif
         Expression *e = new AddrExp(loc, copyLiteral(se));
         e->type = type;
         return e;
@@ -3180,9 +3143,7 @@ Expression *BinExp::interpret(InterState *istate, CtfeGoal goal)
     case TOKand:  return interpretCommon(istate, goal, &And);
     case TOKor:   return interpretCommon(istate, goal, &Or);
     case TOKxor:  return interpretCommon(istate, goal, &Xor);
-#if DMDV2
     case TOKpow:  return interpretCommon(istate, goal, &Pow);
-#endif
     case TOKequal:
     case TOKnotequal:
         return interpretCompareCommon(istate, goal, &ctfeEqual);
@@ -3270,17 +3231,11 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
     {
         // a[] = e can have const e. So we compare the naked types.
         Type *desttype = e1->type->toBasetype();
-#if DMDV2
         Type *srctype = e2->type->toBasetype()->castMod(0);
-#else
-        Type *srctype = e2->type->toBasetype();
-#endif
         while ( desttype->ty == Tsarray || desttype->ty == Tarray)
         {
             desttype = ((TypeArray *)desttype)->next;
-#if DMDV2
             desttype = desttype->toBasetype()->castMod(0);
-#endif
             if (srctype->equals(desttype))
             {
                 isBlockAssignment = true;
@@ -3307,24 +3262,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
          && this->e2->op != TOKstar
         )
     {
-#if DMDV2
         wantRef = true;
-#else
-        /* D1 doesn't have const in the type system. But there is still a
-         * vestigal const in the form of static const variables.
-         * Problematic code like:
-         *    const int [] x = [1,2,3];
-         *    int [] y = x;
-         * can be dealt with by making this a non-ref assign (y = x.dup).
-         * Otherwise it's a big mess.
-         */
-        VarDeclaration * targetVar = findParentVar(e2);
-        if (!(targetVar && targetVar->isConst()))
-            wantRef = true;
-        // slice assignment of static arrays is not reference assignment
-        if ((e1->op==TOKslice) && ((SliceExp *)e1)->e1->type->ty == Tsarray)
-            wantRef = false;
-#endif
         // If it is assignment from a ref parameter, it's not a ref assignment
         if (this->e2->op == TOKvar)
         {
@@ -4329,13 +4267,8 @@ Expression *interpretAssignToSlice(InterState *istate, CtfeGoal goal, Loc loc,
         Expressions * w = existingAE->elements;
         assert( existingAE->type->ty == Tsarray ||
                 existingAE->type->ty == Tarray);
-#if DMDV2
         Type *desttype = ((TypeArray *)existingAE->type)->next->toBasetype()->castMod(0);
         bool directblk = (e2->type->toBasetype()->castMod(0))->equals(desttype);
-#else
-        Type *desttype = ((TypeArray *)existingAE->type)->next;
-        bool directblk = (e2->type->toBasetype())->equals(desttype);
-#endif
         bool cow = !(newval->op == TOKstructliteral || newval->op == TOKarrayliteral
             || newval->op == TOKstring);
         for (size_t j = 0; j < upperbound-lowerbound; j++)
@@ -4389,9 +4322,7 @@ Expression *BinAssignExp::interpret(InterState *istate, CtfeGoal goal)
     case TOKandass:  return interpretAssignCommon(istate, goal, &And);
     case TOKorass:   return interpretAssignCommon(istate, goal, &Or);
     case TOKxorass:  return interpretAssignCommon(istate, goal, &Xor);
-#if DMDV2
     case TOKpowass:  return interpretAssignCommon(istate, goal, &Pow);
-#endif
     default:
         assert(0);
         return NULL;
@@ -5479,13 +5410,11 @@ Expression *CastExp::interpret(InterState *istate, CtfeGoal goal)
     {
         Type *pointee = ((TypePointer *)type)->next;
         // Implement special cases of normally-unsafe casts
-#if DMDV2
         if (pointee->ty == Taarray && e1->op == TOKaddress
             && isAssocArray(((AddrExp*)e1)->e1->type))
         {   // cast from template AA pointer to true AA pointer is OK.
             return paintTypeOntoLiteral(to, e1);
         }
-#endif
         if (e1->op == TOKint64)
         {   // Happens with Windows HANDLEs, for example.
             return paintTypeOntoLiteral(to, e1);
@@ -5646,21 +5575,7 @@ Expression *AssertExp::interpret(InterState *istate, CtfeGoal goal)
 #if LOG
     printf("%s AssertExp::interpret() %s\n", loc.toChars(), toChars());
 #endif
-#if DMDV2
     e1 = this->e1->interpret(istate);
-#else
-    // Deal with pointers (including compiler-inserted assert(&this, "null this"))
-    if ( isPointer(this->e1->type) )
-    {
-        e1 = this->e1->interpret(istate, ctfeNeedLvalue);
-        if (exceptionOrCantInterpret(e1))
-            return e1;
-        if (e1->op != TOKnull)
-            return new IntegerExp(loc, 1, Type::tbool);
-    }
-    else
-        e1 = this->e1->interpret(istate);
-#endif
     if (exceptionOrCantInterpret(e1))
         return e1;
     if (isTrueBool(e1))
@@ -5731,15 +5646,6 @@ Expression *PtrExp::interpret(InterState *istate, CtfeGoal goal)
     }
     else
     {
-#if DMDV2
-#else // this is required for D1, where structs return *this instead of 'this'.
-        if (e1->op == TOKthis)
-        {
-            if (ctfeStack.getThis())
-                return ctfeStack.getThis()->interpret(istate);
-            goto Ldone;
-        }
-#endif
         // Check for .classinfo, which is lowered in the semantic pass into **(class).
         if (e1->op == TOKstar && e1->type->ty == Tpointer && isTypeInfo_Class(e1->type->nextOf()))
         {
@@ -5897,13 +5803,11 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
         return ex;
     if (ex != EXP_CANT_INTERPRET)
     {
-        #if DMDV2
         // Special case for template AAs: AA.var returns the AA itself.
         //  ie AA.p  ----> AA. This is a hack, to get around the
         // corresponding hack in the AA druntime implementation.
         if (isAssocArray(ex->type))
             return ex;
-        #endif
         if (ex->op == TOKaddress)
             ex = ((AddrExp *)ex)->e1;
 
@@ -5937,13 +5841,6 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
                 se = (StructLiteralExp *)ex;
                 i  = findFieldIndexByName(se->sd, v);
             }
-#if DMDV1
-            if (se->sd->hasUnions)
-            {
-                error("Unions with overlapping fields are not yet supported in CTFE");
-                return EXP_CANT_INTERPRET;
-            }
-#endif
             if (i == -1)
             {
                 error("couldn't find field %s of type %s in %s", v->toChars(), type->toChars(), se->toChars());
@@ -5986,13 +5883,11 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
             {
                 VoidInitExp *ve = (VoidInitExp *)e;
                 const char *s = ve->var->toChars();
-#if DMDV2
                 if (v->overlapped)
                 {
                     error("Reinterpretation through overlapped field %s is not allowed in CTFE", s);
                     return EXP_CANT_INTERPRET;
                 }
-#endif
                 error("cannot read uninitialized variable %s in CTFE", s);
                 return EXP_CANT_INTERPRET;
             }
@@ -6434,7 +6329,6 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
 {
     Expression *e = NULL;
     size_t nargs = arguments ? arguments->dim : 0;
-#if DMDV2
     if (pthis && isAssocArray(pthis->type))
     {
         if (fd->ident == Id::length &&  nargs==0)
@@ -6476,30 +6370,6 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
         if (nargs==3 && isAssocArray(firstarg->type) &&!strcmp(fd->ident->string, "_aaApply2"))
             return interpret_aaApply(istate, firstarg, (Expression *)(arguments->data[2]));
     }
-#endif
-#if DMDV1
-    if (!pthis)
-    {
-        Expression *firstarg =  nargs > 0 ? (Expression *)(arguments->data[0]) : NULL;
-        if (firstarg && firstarg->type->toBasetype()->ty == Taarray)
-        {
-            TypeAArray *firstAAtype = (TypeAArray *)firstarg->type;
-            if (fd->ident == Id::aaLen && nargs == 1)
-                return interpret_length(istate, firstarg);
-            else if (fd->ident == Id::aaKeys)
-                return interpret_keys(istate, firstarg, new DArray(firstAAtype->index));
-            else if (fd->ident == Id::aaValues)
-                return interpret_values(istate, firstarg, new DArray(firstAAtype->nextOf()));
-            else if (nargs==2 && fd->ident == Id::aaRehash)
-                return firstarg->interpret(istate, ctfeNeedLvalue); //no-op
-            else if (nargs==3 && !strcmp(fd->ident->string, "_aaApply"))
-                return interpret_aaApply(istate, firstarg, (Expression *)(arguments->data[2]));
-            else if (nargs==3 && !strcmp(fd->ident->string, "_aaApply2"))
-                return interpret_aaApply(istate, firstarg, (Expression *)(arguments->data[2]));
-        }
-    }
-#endif
-#if DMDV2
     if (pthis && !fd->fbody && fd->isCtorDeclaration() && fd->parent && fd->parent->parent && fd->parent->parent->ident == Id::object)
     {
         if (pthis->op == TOKclassreference && fd->parent->ident == Id::Throwable)
@@ -6517,7 +6387,6 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
             return EXP_VOID_INTERPRET;
         }
     }
-#endif
     if (nargs == 1 && !pthis &&
         (fd->ident == Id::criticalenter || fd->ident == Id::criticalexit))
     {   // Support synchronized{} as a no-op
