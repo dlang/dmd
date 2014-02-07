@@ -64,8 +64,6 @@ struct elem;
 
 void initPrecedence();
 
-typedef int (*apply_fp_t)(Expression *, void *);
-
 Expression *resolveProperties(Scope *sc, Expression *e);
 Expression *resolvePropertiesOnly(Scope *sc, Expression *e1);
 void accessCheck(Loc loc, Scope *sc, Expression *e, Declaration *d);
@@ -134,7 +132,6 @@ public:
     static void init();
     Expression *copy();
     virtual Expression *syntaxCopy();
-    int apply(apply_fp_t fp, void *param);
     virtual Expression *semantic(Scope *sc);
     Expression *trySemantic(Scope *sc);
 
