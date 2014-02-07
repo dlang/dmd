@@ -32,6 +32,7 @@ AggregateDeclaration *Module::moduleinfo;
 Module *Module::rootModule;
 DsymbolTable *Module::modules;
 Modules Module::amodules;
+Modules Module::buildModules;
 
 Dsymbols Module::deferred; // deferred Dsymbol's needing semantic() run on them
 Dsymbols Module::deferred3;
@@ -191,6 +192,48 @@ const char *Module::kind()
     return "module";
 }
 
+bool isModuleFiltered(Identifiers *packages, Identifier *ident)
+{
+    char *fullName = ident->toChars();
+    if (packages && packages->dim)
+    {
+        OutBuffer buf;
+        for (size_t i = 0; i < packages->dim; i++)
+        {
+            Identifier *pid = (*packages)[i];
+            buf.writestring(pid->toChars());
+            buf.writeByte('.');
+        }
+
+        buf.writestring(fullName);
+        buf.writeByte(0);
+        fullName = (char *)buf.extractData();
+    }
+
+    bool filtered = false;
+    for (size_t i = 0; i < global.params.excludeList->dim; i++)
+    {
+        const char *filter = (*global.params.excludeList)[i];
+
+        size_t len = strlen(filter);
+        if (filter[len - 1] == '*')  // wildcard
+        {
+            if (memcmp(fullName, filter, len - 1) == 0)
+            {
+                //printf("-- found: %s filter: %s\n", fullName, filter);
+                return true;
+            }
+        }
+        else if (strcmp(fullName, filter) == 0)
+        {
+            //printf("-- found: %s filter: %s\n", fullName, filter);
+            return true;
+        }
+    }
+
+    return false;
+}
+
 Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
 {   Module *m;
     char *filename;
@@ -251,6 +294,18 @@ Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
 #ifdef IN_GCC
     d_gcc_magic_module(m);
 #endif
+
+    // don't build interface file
+    bool isInterfaceFile = FileName::exists(FileName::forceExt(filename, global.hdr_ext));
+
+    if (global.params.buildRecurse && !isInterfaceFile)
+    {
+        if (!isModuleFiltered(packages, ident))
+        {
+            buildModules.push(m);
+            m->importedFrom = m;    // m->isRoot() == true
+        }
+    }
 
     return m;
 }
