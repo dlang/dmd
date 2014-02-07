@@ -4562,6 +4562,7 @@ Lagain:
                 goto Lagain;
 
         case X(Tnull, Tarray):
+        case X(Tnull, Taarray):
             goto Lzero;
 
         /* ============================= */
