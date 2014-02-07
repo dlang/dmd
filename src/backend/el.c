@@ -1472,11 +1472,7 @@ elem * el_var(symbol *s)
     //printf("el_var(s = '%s')\n", s->Sident);
     //printf("%x\n", s->Stype->Tty);
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-    // OSX is currently always pic
     if (config.flags3 & CFG3pic &&
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-        (!(s->Stype->Tty & mTYthread) || I64) &&
-#endif
         !tyfunc(s->ty()))
         // Position Independent Code
         return el_picvar(s);

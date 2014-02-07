@@ -2974,7 +2974,8 @@ int Obj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
                             if (config.flags3 & CFG3pic)
                             {
                                 if (s->Sclass == SCstatic || s->Sclass == SClocstat)
-                                    relinfo = R_X86_64_TLSGD;  // TLS_GD?
+                                    // Could use 'local dynamic (LD)' to optimize multiple local TLS reads
+                                    relinfo = R_X86_64_TLSGD;
                                 else
                                     relinfo = R_X86_64_TLSGD;
                             }
@@ -2991,9 +2992,10 @@ int Obj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
                             if (config.flags3 & CFG3pic)
                             {
                                 if (s->Sclass == SCstatic)
-                                    relinfo = R_386_TLS_LE;  // TLS_GD?
+                                    // Could use 'local dynamic (LD)' to optimize multiple local TLS reads
+                                    relinfo = R_386_TLS_GD;
                                 else
-                                    relinfo = R_386_TLS_IE;
+                                    relinfo = R_386_TLS_GD;
                             }
                             else
                             {
