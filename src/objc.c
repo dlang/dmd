@@ -53,8 +53,8 @@ static char *prefixSymbolName(const char *name, size_t name_len, const char *pre
 
 static char* buildIVarName (ClassDeclaration* cdecl, VarDeclaration* ivar)
 {
-    const char* className = cdecl->ident->string;
-    size_t classLength = cdecl->ident->len;
+    const char* className = cdecl->objcident->string;
+    size_t classLength = cdecl->objcident->len;
     const char* ivarName = ivar->ident->string;
     size_t ivarLength = ivar->ident->len;
 
@@ -102,6 +102,7 @@ static int objc_getsegment(enum ObjcSegment segid)
         seg[SEGclassname] = MachObj::getsegment("__objc_classname", "__TEXT", align, S_CSTRING_LITERALS);
         seg[SEGclass] = MachObj::getsegment("__objc_data", "__DATA", align, S_REGULAR);
         seg[SEGmeta_class] = MachObj::getsegment("__objc_data", "__DATA", align, S_REGULAR);
+        seg[SEGmodule_info] = MachObj::getsegment("__objc_classlist", "__DATA", align, S_REGULAR | S_ATTR_NO_DEAD_STRIP);
 
         seg[SEGmessage_refs] = MachObj::getsegment("__objc_msgrefs", "__DATA", align, S_COALESCED);
         seg[SEGobjc_const] = MachObj::getsegment("__objc_const", "__DATA", align, S_REGULAR);
@@ -120,6 +121,7 @@ static int objc_getsegment(enum ObjcSegment segid)
         seg[SEGclass] = MachObj::getsegment("__class", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
         seg[SEGmeta_class] = MachObj::getsegment("__meta_class", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
         seg[SEGinst_meth] = MachObj::getsegment("__inst_meth", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
+        seg[SEGmodule_info] = MachObj::getsegment("__module_info", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
     }
 
     seg[SEGcat_cls_meth] = MachObj::getsegment("__cat_cls_meth", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
@@ -135,7 +137,6 @@ static int objc_getsegment(enum ObjcSegment segid)
     seg[SEGcategory] = MachObj::getsegment("__category", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
     seg[SEGclass_vars] = MachObj::getsegment("__class_vars", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
     seg[SEGinstance_vars] = MachObj::getsegment("__instance_vars", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
-    seg[SEGmodule_info] = MachObj::getsegment("__module_info", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
     seg[SEGsymbols] = MachObj::getsegment("__symbols", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
     seg[SEGprotocol_ext] = MachObj::getsegment("__protocol_ext", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
     seg[SEGclass_ext] = MachObj::getsegment("__class_ext", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
@@ -349,18 +350,35 @@ Symbol *ObjcSymbols::getModuleInfo(ClassDeclarations *cls, ClassDeclarations *ca
     assert(!smodinfo); // only allow once per object file
 
     dt_t *dt = NULL;
-    dtdword(&dt, 7);  // version
-    dtdword(&dt, 16); // size
-    dtxoff(&dt, ObjcSymbols::getCString("", 0, "L_CLASS_NAME_"), 0, TYnptr); // name
-    dtxoff(&dt, ObjcSymbols::getSymbolMap(cls, cat), 0, TYnptr); // symtabs
 
-    smodinfo = symbol_name("L_OBJC_MODULE_INFO", SCstatic, type_allocn(TYarray, tschar));
-    smodinfo->Sdt = dt;
-    smodinfo->Sseg = objc_getsegment(SEGmodule_info);
-    outdata(smodinfo);
+    if (global.params.isObjcNonFragileAbi)
+    {
+        for (size_t i = 0; i < cls->dim; i++)
+            dtxoff(&dt, ObjcSymbols::getClassName((*cls)[i]), 0, TYnptr);
 
-    if (!global.params.isObjcNonFragileAbi)
-        ObjcSymbols::getImageInfo(); // make sure we also generate image info
+        for (size_t i = 0; i < cat->dim; i++)
+            dtxoff(&dt, ObjcSymbols::getClassName((*cat)[i]), 0, TYnptr);
+
+        smodinfo = symbol_name("L_OBJC_LABEL_CLASS_$", SCstatic, type_allocn(TYarray, tschar));
+        smodinfo->Sdt = dt;
+        smodinfo->Sseg = objc_getsegment(SEGmodule_info);
+        outdata(smodinfo);
+    }
+
+    else
+    {
+        dtdword(&dt, 7);  // version
+        dtdword(&dt, 16); // size
+        dtxoff(&dt, ObjcSymbols::getCString("", 0, "L_CLASS_NAME_"), 0, TYnptr); // name
+        dtxoff(&dt, ObjcSymbols::getSymbolMap(cls, cat), 0, TYnptr); // symtabs
+
+        smodinfo = symbol_name("L_OBJC_MODULE_INFO", SCstatic, type_allocn(TYarray, tschar));
+        smodinfo->Sdt = dt;
+        smodinfo->Sseg = objc_getsegment(SEGmodule_info);
+        outdata(smodinfo);
+    }
+
+    ObjcSymbols::getImageInfo(); // make sure we also generate image info
 
     return smodinfo;
 }
@@ -391,29 +409,28 @@ Symbol *ObjcSymbols::getSymbolMap(ClassDeclarations *cls, ClassDeclarations *cat
     return ssymmap;
 }
 
-Symbol *ObjcSymbols::getClassName(const char *s, size_t len, bool external)
+Symbol *ObjcSymbols::getClassName(ObjcClassDeclaration* objcClass)
 {
     hassymbols = 1;
+    ClassDeclaration* cdecl = objcClass->cdecl;
+    const char* s = cdecl->objcident->string;
+    size_t len = cdecl->objcident->len;
+
+    if (global.params.isObjcNonFragileAbi)
+    {
+        const char* prefix = objcClass->ismeta ? "_OBJC_METACLASS_$_" : "_OBJC_CLASS_$_";
+        const size_t prefixLength = objcClass->ismeta ? 18 : 14;
+        s = prefixSymbolName(s, len, prefix, prefixLength);
+        len += prefixLength;
+    }
 
     StringValue *sv = sclassnametable->update(s, len);
     Symbol *sy = (Symbol *) sv->ptrvalue;
     if (!sy)
     {
         if (global.params.isObjcNonFragileAbi)
-        {
-            char* sname = prefixSymbolName(s, len, "_OBJC_CLASS_$_", 14);
-            sy = getGlobal(sname);
+            sy = getGlobal(s);
 
-            if (!external)
-            {
-                dt_t *dt = NULL;
-                dtdword(&dt, 0);
-
-                sy = symbol_name(sname, SCstatic, type_allocn(TYarray, tschar));
-                sy->Sdt = dt;
-                sy->Sseg = objc_getsegment(SEGclass);
-            }
-        }
         else
         {
             static size_t classnamecount = 0;
@@ -425,6 +442,12 @@ Symbol *ObjcSymbols::getClassName(const char *s, size_t len, bool external)
         sv->ptrvalue = sy;
     }
     return sy;
+}
+
+Symbol *ObjcSymbols::getClassName(ClassDeclaration* cdecl, bool meta)
+{
+    ObjcClassDeclaration objcClass(cdecl, meta);
+    return ObjcSymbols::getClassName(&objcClass);
 }
 
 Symbol *ObjcSymbols::getClassNameRo(Identifier* ident)
@@ -451,15 +474,11 @@ Symbol *ObjcSymbols::getClassNameRo(const char *s, size_t len)
     return sy;
 }
 
-Symbol *ObjcSymbols::getClassName(Identifier *ident, bool external)
-{
-    return getClassName(ident->string, ident->len, external);
-}
-
-
-Symbol *ObjcSymbols::getClassReference(const char *s, size_t len, bool external)
+Symbol *ObjcSymbols::getClassReference(ClassDeclaration* cdecl)
 {
     hassymbols = 1;
+    const char* s = cdecl->objcident->string;
+    size_t len = cdecl->objcident->len;
 
     StringValue *sv = sclassreftable->update(s, len);
     Symbol *sy = (Symbol *) sv->ptrvalue;
@@ -467,14 +486,14 @@ Symbol *ObjcSymbols::getClassReference(const char *s, size_t len, bool external)
     {
         // create data
         dt_t *dt = NULL;
-        Symbol *sclsname = getClassName(s, len, external);
+        Symbol *sclsname = getClassName(cdecl);
         dtxoff(&dt, sclsname, 0, TYnptr);
 
         // find segment for class references
         int seg = objc_getsegment(SEGcls_refs);
 
         static size_t classrefcount = 0;
-        const char* prefix = global.params.is64bit ? "L_OBJC_CLASSLIST_REFERENCES_$_" : "L_OBJC_CLASS_REFERENCES_%lu";
+        const char* prefix = global.params.isObjcNonFragileAbi ? "L_OBJC_CLASSLIST_REFERENCES_$_" : "L_OBJC_CLASS_REFERENCES_%lu";
 
         char namestr[42];
         sprintf(namestr, prefix, classrefcount++);
@@ -487,13 +506,6 @@ Symbol *ObjcSymbols::getClassReference(const char *s, size_t len, bool external)
     }
     return sy;
 }
-
-Symbol *ObjcSymbols::getClassReference(Identifier *ident, bool external)
-{
-    return getClassReference(ident->string, ident->len, external);
-}
-
-
 
 Symbol *ObjcSymbols::getMethVarName(const char *s, size_t len)
 {
@@ -1123,23 +1135,18 @@ void ObjcClassDeclaration::toObjFile(int multiobj)
     dt_t *dt = NULL;
     toDt(&dt);
 
-    char *sname;
-    const char* prefix;
-    size_t prefixLength;
-
-    if (!ismeta)
-    {
-        prefix = global.params.isObjcNonFragileAbi ? "_OBJC_CLASS_$_" : "L_OBJC_CLASS_";
-        prefixLength = global.params.isObjcNonFragileAbi ? 14 : 13;
-    }
+    if (global.params.isObjcNonFragileAbi)
+        symbol = ObjcSymbols::getClassName(this);
     else
     {
-        prefix = global.params.isObjcNonFragileAbi ? "_OBJC_METACLASS_$_" : "L_OBJC_METACLASS_";
-        prefixLength = global.params.isObjcNonFragileAbi ? 18 : 17;
+        char *sname;
+        if (!ismeta)
+            sname = prefixSymbolName(cdecl->objcident->string, cdecl->objcident->len, "L_OBJC_CLASS_", 13);
+        else
+            sname = prefixSymbolName(cdecl->objcident->string, cdecl->objcident->len, "L_OBJC_METACLASS_", 17);
+        symbol = symbol_name(sname, SCstatic, type_fake(TYnptr));
     }
 
-    sname = prefixSymbolName(cdecl->objcident->string, cdecl->objcident->len, prefix, prefixLength);
-    symbol = symbol_name(sname, SCstatic, type_fake(TYnptr));
     symbol->Sdt = dt;
     symbol->Sseg = objc_getsegment((!ismeta ? SEGclass : SEGmeta_class));
     outdata(symbol);
@@ -1161,7 +1168,7 @@ void ObjcClassDeclaration::toDt(dt_t **pdt)
     if (global.params.isObjcNonFragileAbi)
     {
         dtxoff(pdt, getMetaclass(), 0, TYnptr); // pointer to metaclass
-        dtxoff(pdt, ObjcSymbols::getClassName(cdecl->baseClass->objcident, cdecl->baseClass->objcextern), 0, TYnptr); // name of superclass
+        dtxoff(pdt, ObjcSymbols::getClassName(cdecl->baseClass, ismeta), 0, TYnptr); // pointer to superclass
         dtxoff(pdt, ObjcSymbols::getEmptyCache(), 0, TYnptr);
         dtxoff(pdt, ObjcSymbols::getEmptyVTable(), 0, TYnptr);
         dtxoff(pdt, getClassRo(), 0, TYnptr);
@@ -1170,8 +1177,8 @@ void ObjcClassDeclaration::toDt(dt_t **pdt)
     else
     {
         dtxoff(pdt, getMetaclass(), 0, TYnptr); // pointer to metaclass
-        dtxoff(pdt, ObjcSymbols::getClassName(cdecl->baseClass->objcident, cdecl->baseClass->objcextern), 0, TYnptr); // name of superclass
-        dtxoff(pdt, ObjcSymbols::getClassName(cdecl->objcident, cdecl->objcextern), 0, TYnptr); // name of class
+        dtxoff(pdt, ObjcSymbols::getClassName(cdecl->baseClass), 0, TYnptr); // name of superclass
+        dtxoff(pdt, ObjcSymbols::getClassName(cdecl), 0, TYnptr); // name of class
         dtdword(pdt, 0); // version (for serialization)
         dtdword(pdt, !ismeta ? 1 : 2); // info flags (0x1: regular class; 0x2: metaclass)
         dtdword(pdt, !ismeta ? cdecl->size(cdecl->loc) : 48); // instance size in bytes
@@ -1207,7 +1214,7 @@ Symbol *ObjcClassDeclaration::getMetaclass()
         ClassDeclaration *metadecl = cdecl;
         while (metadecl->baseClass)
             metadecl = metadecl->baseClass;
-        return ObjcSymbols::getClassName(metadecl->objcident, metadecl->objcextern);
+        return ObjcSymbols::getClassName(metadecl, true);
     }
 }
 
@@ -1361,11 +1368,11 @@ Symbol *ObjcClassDeclaration::getClassRo()
     dt_t* dt = NULL;
 
     dtdword(&dt, generateFlags()); // flags
-    dtdword(&dt, 8); // instance start
-    dtdword(&dt, ismeta ? 48 : cdecl->size(cdecl->loc)); // instance size in bytes
-    dtdword(&dt, 4); // reserved, only for 64bit targets
+    dtdword(&dt, ismeta ? 40 : cdecl->size(cdecl->loc)); // instance start
+    dtdword(&dt, ismeta ? 40 : cdecl->size(cdecl->loc)); // instance size in bytes
+    dtdword(&dt, 0); // reserved, only for 64bit targets
 
-    dtdword(&dt, 0);
+    dtsize_t(&dt, 0);
     dtxoff(&dt, ObjcSymbols::getClassNameRo(cdecl->objcident), 0,TYnptr); // name of class
 
     Symbol* methods = getMethodList();
@@ -1431,7 +1438,7 @@ void ObjcProtocolDeclaration::toObjFile(int multiobj)
 void ObjcProtocolDeclaration::toDt(dt_t **pdt)
 {
     dtdword(pdt, 0); // isa pointer, initialized by the runtime
-    dtxoff(pdt, ObjcSymbols::getClassName(idecl->objcident, idecl->objcextern), 0, TYnptr); // protocol name
+    dtxoff(pdt, ObjcSymbols::getClassName(idecl), 0, TYnptr); // protocol name
 
     Symbol *protocols = getProtocolList();
     if (protocols)  dtxoff(pdt, protocols, 0, TYnptr); // protocol list

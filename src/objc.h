@@ -25,6 +25,7 @@ struct FuncDeclaration;
 struct ClassDeclaration;
 struct InterfaceDeclaration;
 struct ObjcSelector;
+struct ObjcClassDeclaration;
 
 enum ObjcSegment
 {
@@ -106,12 +107,11 @@ struct ObjcSymbols
     static Symbol *getModuleInfo(ClassDeclarations *cls, ClassDeclarations *cat);
     static Symbol *getSymbolMap(ClassDeclarations *cls, ClassDeclarations *cat);
 
-    static Symbol *getClassName(const char *str, size_t len, bool external);
-    static Symbol *getClassName(Identifier *ident, bool external);
+    static Symbol *getClassName(ObjcClassDeclaration* cdecl);
+    static Symbol *getClassName(ClassDeclaration* cdecl, bool meta = false);
     static Symbol *getClassNameRo(const char *str, size_t len);
     static Symbol *getClassNameRo(Identifier* ident);
-    static Symbol *getClassReference(const char *str, size_t len, bool external);
-    static Symbol *getClassReference(Identifier *ident, bool external);
+    static Symbol *getClassReference(ClassDeclaration* cdecl);
     static Symbol *getClassListReference(const char *s, size_t len);
     static Symbol *getClassListReference(Identifier *ident);
 
@@ -253,7 +253,6 @@ struct ObjcClassDeclaration
     Symbol *getMethodList();
     Symbol *getProtocolList();
     Symbol *getClassRo();
-    Symbol *getMetaclassRo();
     uint32_t generateFlags ();
 };
 

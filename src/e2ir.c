@@ -352,7 +352,7 @@ elem *callfunc(Loc loc,
                 assert(cd /* call to objc_msgSendSuper with no class delcaration */);
 
                 // FIXME: faking delegate type and objc_super types
-                elem *eclassref = el_var(ObjcSymbols::getClassReference(cd->ident, cd->objcextern));
+                elem *eclassref = el_var(ObjcSymbols::getClassReference(cd));
                 elem *esuper = el_pair(TYdelegate, ethis, eclassref);
 
                 ethis = addressElem(esuper, t); // get a pointer to our objc_super struct
@@ -1501,7 +1501,7 @@ elem *toElem(Expression *e, IRState *irs)
                     if (ne->objcalloc)
                     {
                         // Call allocator func with class reference
-                        ex = el_var(ObjcSymbols::getClassReference(cd->ident, cd->objcextern));
+                        ex = el_var(ObjcSymbols::getClassReference(cd));
                         ex = callfunc(ne->loc, irs, 0, ne->type, ex, ne->objcalloc->type,
                                       ne->objcalloc, ne->objcalloc->type, NULL, ne->newargs);
                     }
@@ -4148,7 +4148,7 @@ elem *toElem(Expression *e, IRState *irs)
                     if (cdto->isInterfaceDeclaration())
                         esym = el_ptr(ObjcSymbols::getProtocolSymbol(cdto));
                     else
-                        esym = el_var(ObjcSymbols::getClassReference(cdto->ident, cdto->objcextern));
+                        esym = el_var(ObjcSymbols::getClassReference(cdto));
 
                     elem *ep = el_param(esym, e);
                     e = el_bin(OPcall, TYnptr, el_var(rtlsym[rtl]), ep);
