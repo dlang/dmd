@@ -946,39 +946,6 @@ void test6711()
         i = 42;
     }
     assert(c.i == 42);
-
-    struct Foo
-    {
-        string[string] strs;
-        alias strs this;
-    }
-
-    struct Bar
-    {
-        Foo f;
-        alias f this;
-    }
-
-    void test(T)()
-    {
-        T f;
-        f = ["first" : "a", "second" : "b"];
-        with (f)
-        {
-            assert(length == 2);
-            rehash;
-            auto vs = values;
-            assert(vs == ["a", "b"] || vs == ["b", "a"]);
-            auto ks = keys;
-            assert(ks == ["first", "second"] || ks == ["second", "first"]);
-            foreach (k; byKey) { }
-            foreach (v; byValue) { }
-            assert(get("a", "default") == "default");
-        }
-    }
-
-    test!Foo;
-    test!Bar;
 }
 
 /**********************************************/

@@ -1279,10 +1279,7 @@ Dsymbol *WithScopeSymbol::search(Loc loc, Identifier *ident, int flags)
         else
         {
             Type *t = e->type->toBasetype();
-            if (t->ty == Taarray)
-                s = ((TypeAArray *)t)->getImpl();
-            else
-                s = t->toDsymbol(NULL);
+            s = t->toDsymbol(NULL);
         }
         if (s)
         {

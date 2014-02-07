@@ -1880,11 +1880,7 @@ Lagain:
                 error("only one or two arguments for associative array foreach");
                 goto Lerror2;
             }
-
-            /* This only works if Key or Value is a static array.
-             */
-            tab = taa->getImpl()->type;
-            goto Lagain;
+            goto Lapply;
 
         case Tclass:
         case Tstruct:

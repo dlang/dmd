@@ -508,21 +508,12 @@ StringExp *createBlockDuplicatedStringLiteral(Loc loc, Type *type,
     return se;
 }
 
-// Return true if t is an AA, or AssociativeArray!(key, value)
+// Return true if t is an AA
 bool isAssocArray(Type *t)
 {
     t = t->toBasetype();
     if (t->ty == Taarray)
         return true;
-    if (t->ty != Tstruct)
-        return false;
-    StructDeclaration *sym = ((TypeStruct *)t)->sym;
-    if (sym->ident == Id::AssociativeArray && sym->parent &&
-        sym->parent->parent &&
-        sym->parent->parent->ident == Id::object)
-    {
-        return true;
-    }
     return false;
 }
 
@@ -532,12 +523,8 @@ TypeAArray *toBuiltinAAType(Type *t)
     t = t->toBasetype();
     if (t->ty == Taarray)
         return (TypeAArray *)t;
-    assert(t->ty == Tstruct);
-    StructDeclaration *sym = ((TypeStruct *)t)->sym;
-    assert(sym->ident == Id::AssociativeArray);
-    TemplateInstance *ti = sym->parent->isTemplateInstance();
-    assert(ti);
-    return new TypeAArray((Type *)(*ti->tiargs)[1], (Type *)(*ti->tiargs)[0]);
+    assert(0);
+    return NULL;
 }
 
 /************** TypeInfo operations ************************************/
@@ -591,6 +578,10 @@ bool isSafePointerCast(Type *srcPointee, Type *destPointee)
 
     // it's OK to cast to void*
     if (destPointee->ty == Tvoid)
+        return true;
+
+    // It's OK to cast from V[K] to void*
+    if (srcPointee->ty == Taarray && destPointee == Type::tvoidptr)
         return true;
 
     // It's OK if they are the same size (static array of) integers, eg:

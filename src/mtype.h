@@ -209,7 +209,6 @@ public:
     static ClassDeclaration *typeinfoshared;
     static ClassDeclaration *typeinfowild;
 
-    static TemplateDeclaration *associativearray;
     static TemplateDeclaration *rtinfo;
 
     static Type *basic[TMAX];
@@ -540,15 +539,12 @@ public:
     Loc loc;
     Scope *sc;
 
-    StructDeclaration *impl;    // implementation
-
     TypeAArray(Type *t, Type *index);
     static TypeAArray *create(Type *t, Type *index);
     const char *kind();
     Type *syntaxCopy();
     d_uns64 size(Loc loc);
     Type *semantic(Loc loc, Scope *sc);
-    StructDeclaration *getImpl();
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
     void toDecoBuffer(OutBuffer *buf, int flag);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);

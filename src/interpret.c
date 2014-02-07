@@ -5452,11 +5452,6 @@ Expression *CastExp::interpret(InterState *istate, CtfeGoal goal)
     {
         Type *pointee = ((TypePointer *)type)->next;
         // Implement special cases of normally-unsafe casts
-        if (pointee->ty == Taarray && e1->op == TOKaddress
-            && isAssocArray(((AddrExp*)e1)->e1->type))
-        {   // cast from template AA pointer to true AA pointer is OK.
-            return paintTypeOntoLiteral(to, e1);
-        }
         if (e1->op == TOKint64)
         {   // Happens with Windows HANDLEs, for example.
             return paintTypeOntoLiteral(to, e1);
@@ -5845,11 +5840,6 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
         return ex;
     if (ex != EXP_CANT_INTERPRET)
     {
-        // Special case for template AAs: AA.var returns the AA itself.
-        //  ie AA.p  ----> AA. This is a hack, to get around the
-        // corresponding hack in the AA druntime implementation.
-        if (isAssocArray(ex->type))
-            return ex;
         if (ex->op == TOKaddress)
             ex = ((AddrExp *)ex)->e1;
 
@@ -6371,17 +6361,6 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
 {
     Expression *e = NULL;
     size_t nargs = arguments ? arguments->dim : 0;
-    if (pthis && isAssocArray(pthis->type))
-    {
-        if (fd->ident == Id::length &&  nargs==0)
-            return interpret_length(istate, pthis);
-        else if (fd->ident == Id::keys && nargs==0)
-            return interpret_keys(istate, pthis, returnedArrayType(fd));
-        else if (fd->ident == Id::values && nargs==0)
-            return interpret_values(istate, pthis, returnedArrayType(fd));
-        else if (fd->ident == Id::rehash && nargs==0)
-            return pthis->interpret(istate, ctfeNeedLvalue);  // rehash is a no-op
-    }
     if (!pthis)
     {
         if (fd->isBuiltin() == BUILTINyes)
@@ -6403,14 +6382,25 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
             }
         }
     }
-
     if (!pthis)
     {
         Expression *firstarg =  nargs > 0 ? (Expression *)(arguments->data[0]) : NULL;
-        if (nargs==3 && isAssocArray(firstarg->type) && !strcmp(fd->ident->string, "_aaApply"))
-            return interpret_aaApply(istate, firstarg, (Expression *)(arguments->data[2]));
-        if (nargs==3 && isAssocArray(firstarg->type) &&!strcmp(fd->ident->string, "_aaApply2"))
-            return interpret_aaApply(istate, firstarg, (Expression *)(arguments->data[2]));
+        if (firstarg && firstarg->type->toBasetype()->ty == Taarray)
+        {
+            TypeAArray *firstAAtype = (TypeAArray *)firstarg->type;
+            if (fd->ident == Id::aaLen && nargs == 1)
+                return interpret_length(istate, firstarg);
+            else if (nargs==3 && !strcmp(fd->ident->string, "_aaApply"))
+                return interpret_aaApply(istate, firstarg, (Expression *)(arguments->data[2]));
+            else if (nargs==3 && !strcmp(fd->ident->string, "_aaApply2"))
+                return interpret_aaApply(istate, firstarg, (Expression *)(arguments->data[2]));
+            else if (nargs==1 && !strcmp(fd->ident->string, "keys") && !strcmp(fd->toParent2()->ident->string, "object"))
+                return interpret_keys(istate, firstarg, firstAAtype->index->arrayOf());
+            else if (nargs==1 && !strcmp(fd->ident->string, "values") && !strcmp(fd->toParent2()->ident->string, "object"))
+                return interpret_values(istate, firstarg, firstAAtype->nextOf()->arrayOf());
+            else if (nargs==1 && !strcmp(fd->ident->string, "rehash") && !strcmp(fd->toParent2()->ident->string, "object"))
+                return firstarg->interpret(istate, ctfeNeedLvalue);
+        }
     }
     if (pthis && !fd->fbody && fd->isCtorDeclaration() && fd->parent && fd->parent->parent && fd->parent->parent->ident == Id::object)
     {
