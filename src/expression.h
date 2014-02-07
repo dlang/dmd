@@ -199,7 +199,6 @@ public:
     int isConst() { return ::isConst(this); }
     virtual int isBool(int result);
     void discardValue();
-    void useValue();
 
     virtual Expression *doInline(InlineDoState *ids);
     Expression *inlineCopy(Scope *sc);
