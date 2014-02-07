@@ -134,7 +134,6 @@ void Expression::discardValue()
                 {   /*
                      * Don't complain about an expression with no effect if it was cast to void
                      */
-                    ce->e1->useValue();
                     break;
                 }
                 goto Ldefault;          // complain
@@ -156,21 +155,18 @@ void Expression::discardValue()
 
             case TOKandand:
             {   AndAndExp *aae = (AndAndExp *)this;
-                aae->e1->useValue();
                 aae->e2->discardValue();
                 break;
             }
 
             case TOKoror:
             {   OrOrExp *ooe = (OrOrExp *)this;
-                ooe->e1->useValue();
                 ooe->e2->discardValue();
                 break;
             }
 
             case TOKquestion:
             {   CondExp *ce = (CondExp *)this;
-                ce->econd->useValue();
                 ce->e1->discardValue();
                 ce->e2->discardValue();
                 break;
@@ -191,7 +187,6 @@ void Expression::discardValue()
                     ce->e2->op == TOKvar &&
                     ((DeclarationExp *)firstComma->e1)->declaration == ((VarExp*)ce->e2)->var)
                 {
-                    ce->e1->useValue();
                     break;
                 }
                 // Don't check e1 until we cast(void) the a,b code generation
@@ -216,39 +211,4 @@ void Expression::discardValue()
                 break;
         }
     }
-    else
-    {
-        useValue();
-    }
 }
-
-/* This isn't used yet because the only way an expression has an unused sub-expression
- * is with the CommaExp, and that currently generates messages from rewrites into comma
- * expressions. Needs more investigation.
- */
-void Expression::useValue()
-{
-#if 0
-    // Disabled because need to cast(void) the a,b code generation
-    void *p;
-    apply(&lambdaUseValue, &p);
-#endif
-}
-
-#if 0
-int lambdaUseValue(Expression *e, void *param)
-{
-    switch (e->op)
-    {
-        case TOKcomma:
-        {   CommaExp *ce = (CommaExp *)e;
-            discardValue(ce->E1);
-            break;
-        }
-
-        default:
-            break;
-    }
-    return 0;
-}
-#endif
