@@ -190,12 +190,7 @@ void FuncDeclaration::semantic(Scope *sc)
     else
         linkage = sc->linkage;
     protection = sc->protection;
-    userAttributes = sc->userAttributes;
-    if (userAttributes)
-    {
-        userAttributesScope = sc;
-        userAttributesScope->setNoFree();
-    }
+    userAttribDecl = sc->userAttribDecl;
 
     if (!originalType)
         originalType = type->syntaxCopy();
@@ -1048,7 +1043,7 @@ void FuncDeclaration::semantic3(Scope *sc)
         sc2->tf = NULL;
         sc2->noctor = 0;
         sc2->speculative = sc->speculative || isSpeculative() != NULL;
-        sc2->userAttributes = NULL;
+        sc2->userAttribDecl = NULL;
         if (sc2->intypeof == 1) sc2->intypeof = 2;
         sc2->fieldinit = NULL;
         sc2->fieldinit_dim = 0;
@@ -3917,8 +3912,7 @@ FuncAliasDeclaration::FuncAliasDeclaration(FuncDeclaration *funcalias, bool hasO
         assert(!funcalias->isFuncAliasDeclaration());
         this->hasOverloads = false;
     }
-    userAttributes = funcalias->userAttributes;
-    userAttributesScope = funcalias->userAttributesScope;
+    userAttribDecl = funcalias->userAttribDecl;
 }
 
 const char *FuncAliasDeclaration::kind()
