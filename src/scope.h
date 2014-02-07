@@ -110,7 +110,8 @@ struct Scope
     UserAttributeDeclaration *userAttribDecl;   // user defined attributes
 
     DocComment *lastdc;         // documentation comment for last symbol at this scope
-    size_t lastoffset;        // offset in docbuf of where to insert next dec
+    size_t lastoffset;          // offset in docbuf of where to insert next dec (for ditto)
+    size_t lastoffset2;         // offset in docbuf of where to insert next dec (for unittest)
     OutBuffer *docbuf;          // buffer for documentation output
 
     static Scope *freelist;

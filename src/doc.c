@@ -572,7 +572,9 @@ void emitUnittestComment(Scope *sc, Dsymbol *s, size_t ofs)
         }
 
         codebuf.writestring(")");
-        buf->insert(buf->offset - ofs, codebuf.data, codebuf.offset);
+        buf->insert(ofs, codebuf.data, codebuf.offset);
+        ofs += codebuf.offset;
+        sc->lastoffset2 = ofs;
     }
 }
 
@@ -606,12 +608,13 @@ void Dsymbol::emitDitto(Scope *sc)
     buf->spread(sc->lastoffset, b.offset);
     memcpy(buf->data + sc->lastoffset, b.data, b.offset);
     sc->lastoffset += b.offset;
+    sc->lastoffset2 += b.offset;
 
     Dsymbol *s = this;
     if (!s->ddocUnittest && parent)
         s = parent->isTemplateDeclaration();
     if (s)
-        emitUnittestComment(sc, s, strlen(ddoc_decl_dd_e));
+        emitUnittestComment(sc, s, sc->lastoffset2);
 }
 
 void ScopeDsymbol::emitMemberComments(Scope *sc)
@@ -1380,7 +1383,8 @@ void DocComment::writeSections(Scope *sc, Dsymbol *s, OutBuffer *buf)
             }
         }
         if (s->ddocUnittest)
-            emitUnittestComment(sc, s, 0);
+            emitUnittestComment(sc, s, buf->offset);
+        sc->lastoffset2 = buf->offset;
         buf->writestring(")\n");
     }
     else
