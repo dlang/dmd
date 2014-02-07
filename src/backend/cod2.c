@@ -4180,21 +4180,40 @@ code *getoffset(elem *e,unsigned reg)
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     {
       L5:
-        if (I64 && config.flags3 & CFG3pic)
+        if (config.flags3 & CFG3pic)
         {
-            /* Generate:
-             *   LEA DI,s@TLSGD[RIP]
-             */
-            assert(reg == DI);
-            code css;
-            css.Irex = REX | REX_W;
-            css.Iop = 0x8D;             // LEA
-            css.Irm = modregrm(0,DI,5);
-            css.Iflags = CFopsize;
-            css.IFL1 = fl;
-            css.IEVsym1 = e->EV.sp.Vsym;
-            css.IEVoffset1 = e->EV.sp.Voffset;
-            c = gen(NULL, &css);
+            if (I64)
+            {
+                /* Generate:
+                 *   LEA DI,s@TLSGD[RIP]
+                 */
+                assert(reg == DI);
+                code css;
+                css.Irex = REX | REX_W;
+                css.Iop = 0x8D;             // LEA
+                css.Irm = modregrm(0,DI,5);
+                css.Iflags = CFopsize;
+                css.IFL1 = fl;
+                css.IEVsym1 = e->EV.sp.Vsym;
+                css.IEVoffset1 = e->EV.sp.Voffset;
+                c = gen(NULL, &css);
+            }
+            else
+            {
+                /* Generate:
+                 *   LEA EAX,s@TLSGD[1*EBX+0]
+                 */
+                assert(reg == AX);
+                c = load_localgot();
+                code css;
+                css.Iop = 0x8D;             // LEA
+                css.Irm = modregrm(0,AX,4);
+                css.Isib = modregrm(0,BX,5);
+                css.IFL1 = fl;
+                css.IEVsym1 = e->EV.sp.Vsym;
+                css.IEVoffset1 = e->EV.sp.Voffset;
+                c = gen(c, &css);
+            }
             return c;
         }
         /* Generate:
