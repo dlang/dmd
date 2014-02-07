@@ -1182,15 +1182,29 @@ bool stopPointersEscaping(Loc loc, Expression *e)
 {
     if (!e->type->hasPointers())
         return true;
-    if ( isPointer(e->type) )
+    if (isPointer(e->type))
     {
         Expression *x = e;
         if (e->op == TOKaddress)
             x = ((AddrExp *)e)->e1;
-        if (x->op == TOKvar && ((VarExp *)x)->var->isVarDeclaration() &&
-            ctfeStack.isInCurrentFrame( ((VarExp *)x)->var->isVarDeclaration() ) )
-        {   error(loc, "returning a pointer to a local stack variable");
-            return false;
+        VarDeclaration *v;
+        while (x->op == TOKvar &&
+            (v = ((VarExp *)x)->var->isVarDeclaration()) != NULL)
+        {
+            if (v->storage_class & STCref)
+            {
+                x = v->getValue();
+                if (e->op == TOKaddress)
+                    ((AddrExp *)e)->e1 = x;
+                continue;
+            }
+            if (ctfeStack.isInCurrentFrame(v))
+            {
+                error(loc, "returning a pointer to a local stack variable");
+                return false;
+            }
+            else
+                break;
         }
         // TODO: If it is a TOKdotvar or TOKindex, we should check that it is not
         // pointing to a local struct or static array.

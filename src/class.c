@@ -290,12 +290,7 @@ void ClassDeclaration::semantic(Scope *sc)
     {
         isdeprecated = true;
     }
-    userAttributes = sc->userAttributes;
-    if (userAttributes)
-    {
-        userAttributesScope = sc;
-        userAttributesScope->setNoFree();
-    }
+    userAttribDecl = sc->userAttribDecl;
 
     if (sc->linkage == LINKcpp)
         cpp = 1;
@@ -611,7 +606,7 @@ void ClassDeclaration::semantic(Scope *sc)
             sc->offset = Target::ptrsize * 2;   // allow room for __vptr and __monitor
         alignsize = Target::ptrsize;
     }
-    sc->userAttributes = NULL;
+    sc->userAttribDecl = NULL;
     structsize = sc->offset;
     Scope scsave = *sc;
     size_t members_dim = members->dim;
@@ -1285,12 +1280,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
     {
         isdeprecated = true;
     }
-    userAttributes = sc->userAttributes;
-    if (userAttributes)
-    {
-        userAttributesScope = sc;
-        userAttributesScope->setNoFree();
-    }
+    userAttribDecl = sc->userAttribDecl;
 
     // Expand any tuples in baseclasses[]
     for (size_t i = 0; i < baseclasses->dim; )
@@ -1439,7 +1429,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
     sc->explicitProtection = 0;
 //    structalign = sc->structalign;
     sc->offset = Target::ptrsize * 2;
-    sc->userAttributes = NULL;
+    sc->userAttribDecl = NULL;
     structsize = sc->offset;
     inuse++;
 

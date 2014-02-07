@@ -51,8 +51,7 @@ Dsymbol::Dsymbol()
     this->semanticRun = PASSinit;
     this->errors = false;
     this->depmsg = NULL;
-    this->userAttributes = NULL;
-    this->userAttributesScope = NULL;
+    this->userAttribDecl = NULL;
     this->ddocUnittest = NULL;
 }
 
@@ -69,8 +68,7 @@ Dsymbol::Dsymbol(Identifier *ident)
     this->semanticRun = PASSinit;
     this->errors = false;
     this->depmsg = NULL;
-    this->userAttributes = NULL;
-    this->userAttributesScope = NULL;
+    this->userAttribDecl = NULL;
     this->ddocUnittest = NULL;
 }
 
@@ -348,8 +346,9 @@ void Dsymbol::setScope(Scope *sc)
     scope = sc;
     if (sc->depmsg)
         depmsg = sc->depmsg;
-    if (userAttributes)
-        userAttributesScope = sc;
+
+    if (!userAttribDecl)
+        userAttribDecl = sc->userAttribDecl;
 }
 
 void Dsymbol::importAll(Scope *sc)
