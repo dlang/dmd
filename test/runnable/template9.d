@@ -2508,6 +2508,16 @@ void test9977()
 }
 
 /******************************************/
+
+enum T8848a(int[] a) = a;
+enum T8848b(int[int] b) = b;
+enum T8848c(void* c) = c;
+
+static assert(T8848a!([1,2,3]) == [1,2,3]);
+static assert(T8848b!([1:2,3:4]) == [1:2,3:4]);
+static assert(T8848c!(null) == null);
+
+/******************************************/
 // 9990
 
 auto initS9990() { return "hi"; }
