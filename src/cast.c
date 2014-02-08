@@ -589,7 +589,10 @@ MATCH implicitConvTo(Expression *e, Type *t)
                 TypeSArray *tbase = (TypeSArray *)tv->basetype;
                 assert(tbase->ty == Tsarray);
                 if (e->elements->dim != tbase->dim->toInteger())
+                {
+                    result = MATCHnomatch;
                     return;
+                }
 
                 Type *telement = tv->elementType();
                 for (size_t i = 0; i < e->elements->dim; i++)
