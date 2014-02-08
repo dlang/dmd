@@ -403,6 +403,36 @@ void test6659c()
 }
 
 /***************************************/
+
+// 10221
+
+void test10221()
+{
+    // All of these should work, but most are too slow.  Just check they compile.
+    foreach(char i; char.min..char.max+1) {}
+    if (0) foreach(wchar i; wchar.min..wchar.max+1) {}
+    if (0) foreach(dchar i; dchar.min..dchar.max+1) {}
+    foreach(byte i; byte.min..byte.max+1) {}
+    foreach(ubyte i; ubyte.min..ubyte.max+1) {}
+    if (0) foreach(short i; short.min..short.max+1) {}
+    if (0) foreach(ushort i; ushort.min..ushort.max+1) {}
+    if (0) foreach(int i; int.min..int.max+1U) {}
+    if (0) foreach(uint i; uint.min..uint.max+1L) {}
+    if (0) foreach(long i; long.min..long.max+1UL) {}
+
+    foreach_reverse(char i; char.min..char.max+1) { assert(i == typeof(i).max); break; }
+    foreach_reverse(wchar i; wchar.min..wchar.max+1) { assert(i == typeof(i).max); break; }
+    foreach_reverse(dchar i; dchar.min..dchar.max+1) { assert(i == typeof(i).max); break; }
+    foreach_reverse(byte i; byte.min..byte.max+1) { assert(i == typeof(i).max); break; }
+    foreach_reverse(ubyte i; ubyte.min..ubyte.max+1) { assert(i == typeof(i).max); break; }
+    foreach_reverse(short i; short.min..short.max+1) { assert(i == typeof(i).max); break; }
+    foreach_reverse(ushort i; ushort.min..ushort.max+1) { assert(i == typeof(i).max); break; }
+    foreach_reverse(int i; int.min..int.max+1U) { assert(i == typeof(i).max); break; }
+    foreach_reverse(uint i; uint.min..uint.max+1L) { assert(i == typeof(i).max); break; }
+    foreach_reverse(long i; long.min..long.max+1UL) { assert(i == typeof(i).max); break; }
+}
+
+/***************************************/
 // 7814
 
 struct File7814
@@ -792,6 +822,7 @@ int main()
     test4090b();
     test5605();
     test7004();
+    test10221();
     test7406();
     test6659();
     test6659a();
