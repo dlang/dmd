@@ -230,6 +230,7 @@ public:
     static Token *freelist;
 
     Loc scanloc;                // for error messages
+    Loc trueloc;         // cannot be changed using #line
 
     const utf8_t *base;        // pointer to start of buffer
     const utf8_t *end;         // past end of buffer
