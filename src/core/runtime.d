@@ -496,7 +496,7 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
                     //       these for readability.  The alternative would be to
                     //       exclude the first N frames that are in a list of
                     //       mangled function names.
-                    static enum FIRSTFRAME = 4;
+                    static enum FIRSTFRAME = 5;
                 }
                 else
                 {
