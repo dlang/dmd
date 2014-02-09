@@ -746,7 +746,7 @@ Symbol *ObjcSymbols::getStringLiteral(const void *str, size_t len, size_t sz)
     // Objective-C NSString literal (also good for CFString)
     static size_t strcount = 0;
     char namestr[24];
-    sprintf(namestr, "L_STR_LITERAL_%lu", strcount++);
+    sprintf(namestr, "l_.str%lu", strcount);
     Symbol *sstr;
     if (sz == 1)
         sstr = getCString((const char *)str, len, namestr);
@@ -756,10 +756,15 @@ Symbol *ObjcSymbols::getStringLiteral(const void *str, size_t len, size_t sz)
     dt_t *dt = NULL;
     dtxoff(&dt, getStringLiteralClassRef(), 0, TYnptr);
     dtdword(&dt, sz == 1 ? 1992 : 2000);
-    dtxoff(&dt, sstr, 0, TYnptr);
-    dtdword(&dt, len);
 
-    Symbol *si = symbol_generate(SCstatic,type_allocn(TYarray, tschar));
+    if (global.params.isObjcNonFragileAbi)
+        dtdword(&dt, 0); // .space 4
+
+    dtxoff(&dt, sstr, 0, TYnptr);
+    dtsize_t(&dt, len);
+
+    sprintf(namestr, "L__unnamed_cfstring_%lu", strcount++);
+    Symbol *si = symbol_name(namestr, SCstatic, type_fake(TYnptr));
     si->Sdt = dt;
     si->Sseg = objc_getsegment(SEGcfstring);
     outdata(si);
