@@ -37,6 +37,8 @@
 #include "mtype.h"
 #include "utf.h"
 
+void functionToBufferFull(TypeFunction *tf, OutBuffer *buf, Identifier *ident, HdrGenState* hgs, TypeFunction *attrs, TemplateDeclaration *td);
+
 struct Escape
 {
     const char *strings[256];
@@ -899,7 +901,7 @@ void prefix(OutBuffer *buf, Dsymbol *s)
         else if (d->isAbstract())
             buf->writestring("abstract ");
 
-        if (!d->isFuncDeclaration())  // toCBufferWithAttributes handles this
+        if (!d->isFuncDeclaration())  // functionToBufferFull handles this
         {
             if (d->isConst())
                 buf->writestring("const ");
@@ -928,7 +930,7 @@ void declarationToDocBuffer(Declaration *decl, OutBuffer *buf, TemplateDeclarati
             if (origType->ty == Tfunction)
             {
                 TypeFunction *attrType = (TypeFunction*)(decl->ident == Id::ctor ? origType : decl->type);
-                ((TypeFunction*)origType)->toCBufferWithAttributes(buf, decl->ident, &hgs, attrType, td);
+                functionToBufferFull(((TypeFunction*)origType), buf, decl->ident, &hgs, attrType, td);
             }
             else
                 origType->toCBuffer(buf, decl->ident, &hgs);
