@@ -88,7 +88,7 @@ char *Statement::toChars()
     HdrGenState hgs;
 
     OutBuffer buf;
-    toCBuffer(&buf, &hgs);
+    ::toCBuffer(this, &buf, &hgs);
     return buf.extractString();
 }
 

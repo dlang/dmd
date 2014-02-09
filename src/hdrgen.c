@@ -137,7 +137,7 @@ public:
         {
             Statement *sx = (*s->statements)[i];
             if (sx)
-                sx->toCBuffer(buf, hgs);
+                sx->accept(this);
         }
     }
 
@@ -205,7 +205,7 @@ public:
         {
             Statement *sx = (*s->statements)[i];
             if (sx)
-                sx->toCBuffer(buf, hgs);
+                sx->accept(this);
         }
 
         buf->level--;
@@ -220,7 +220,7 @@ public:
         buf->level++;
 
         if (s->statement)
-            s->statement->toCBuffer(buf, hgs);
+            s->statement->accept(this);
 
         buf->level--;
         buf->writeByte('}');
@@ -234,7 +234,7 @@ public:
         buf->writeByte(')');
         buf->writenl();
         if (s->body)
-            s->body->toCBuffer(buf, hgs);
+            s->body->accept(this);
     }
 
     void visit(DoStatement *s)
@@ -242,7 +242,7 @@ public:
         buf->writestring("do");
         buf->writenl();
         if (s->body)
-            s->body->toCBuffer(buf, hgs);
+            s->body->accept(this);
         buf->writestring("while (");
         s->condition->toCBuffer(buf, hgs);
         buf->writestring(");");
@@ -255,7 +255,7 @@ public:
         if (s->init)
         {
             hgs->FLinit.init++;
-            s->init->toCBuffer(buf, hgs);
+            s->init->accept(this);
             hgs->FLinit.init--;
         }
         else
@@ -276,7 +276,7 @@ public:
         buf->writeByte('{');
         buf->writenl();
         buf->level++;
-        s->body->toCBuffer(buf, hgs);
+        s->body->accept(this);
         buf->level--;
         buf->writeByte('}');
         buf->writenl();
@@ -306,7 +306,7 @@ public:
         buf->writenl();
         buf->level++;
         if (s->body)
-            s->body->toCBuffer(buf, hgs);
+            s->body->accept(this);
         buf->level--;
         buf->writeByte('}');
         buf->writenl();
@@ -332,7 +332,7 @@ public:
         buf->writenl();
         buf->level++;
         if (s->body)
-            s->body->toCBuffer(buf, hgs);
+            s->body->accept(this);
         buf->level--;
         buf->writeByte('}');
         buf->writenl();
@@ -357,7 +357,7 @@ public:
         buf->writenl();
         if (!s->ifbody->isScopeStatement())
             buf->level++;
-        s->ifbody->toCBuffer(buf, hgs);
+        s->ifbody->accept(this);
         if (!s->ifbody->isScopeStatement())
             buf->level--;
         if (s->elsebody)
@@ -366,7 +366,7 @@ public:
             buf->writenl();
             if (!s->elsebody->isScopeStatement())
                 buf->level++;
-            s->elsebody->toCBuffer(buf, hgs);
+            s->elsebody->accept(this);
             if (!s->elsebody->isScopeStatement())
                 buf->level--;
         }
@@ -380,7 +380,7 @@ public:
         buf->writenl();
         buf->level++;
         if (s->ifbody)
-            s->ifbody->toCBuffer(buf, hgs);
+            s->ifbody->accept(this);
         buf->level--;
         buf->writeByte('}');
         buf->writenl();
@@ -391,7 +391,7 @@ public:
             buf->writeByte('{');
             buf->level++;
             buf->writenl();
-            s->elsebody->toCBuffer(buf, hgs);
+            s->elsebody->accept(this);
             buf->level--;
             buf->writeByte('}');
             buf->writenl();
@@ -416,7 +416,7 @@ public:
             buf->writenl();
             buf->level++;
 
-            s->body->toCBuffer(buf, hgs);
+            s->body->accept(this);
 
             buf->level--;
             buf->writeByte('}');
@@ -447,14 +447,14 @@ public:
                 buf->writeByte('{');
                 buf->writenl();
                 buf->level++;
-                s->body->toCBuffer(buf, hgs);
+                s->body->accept(this);
                 buf->level--;
                 buf->writeByte('}');
                 buf->writenl();
             }
             else
             {
-                s->body->toCBuffer(buf, hgs);
+                s->body->accept(this);
             }
         }
     }
@@ -465,7 +465,7 @@ public:
         s->exp->toCBuffer(buf, hgs);
         buf->writeByte(':');
         buf->writenl();
-        s->statement->toCBuffer(buf, hgs);
+        s->statement->accept(this);
     }
 
     void visit(CaseRangeStatement *s)
@@ -476,14 +476,14 @@ public:
         s->last->toCBuffer(buf, hgs);
         buf->writeByte(':');
         buf->writenl();
-        s->statement->toCBuffer(buf, hgs);
+        s->statement->accept(this);
     }
 
     void visit(DefaultStatement *s)
     {
         buf->writestring("default:");
         buf->writenl();
-        s->statement->toCBuffer(buf, hgs);
+        s->statement->accept(this);
     }
 
     void visit(GotoDefaultStatement *s)
@@ -555,7 +555,7 @@ public:
         if (s->body)
         {
             buf->writeByte(' ');
-            s->body->toCBuffer(buf, hgs);
+            s->body->accept(this);
         }
     }
 
@@ -566,7 +566,7 @@ public:
         buf->writestring(")");
         buf->writenl();
         if (s->body)
-            s->body->toCBuffer(buf, hgs);
+            s->body->accept(this);
     }
 
     void visit(TryCatchStatement *s)
@@ -574,11 +574,11 @@ public:
         buf->writestring("try");
         buf->writenl();
         if (s->body)
-            s->body->toCBuffer(buf, hgs);
+            s->body->accept(this);
         for (size_t i = 0; i < s->catches->dim; i++)
         {
             Catch *c = (*s->catches)[i];
-            c->toCBuffer(buf, hgs);
+            visit(c);
         }
     }
 
@@ -589,7 +589,7 @@ public:
         buf->writeByte('{');
         buf->writenl();
         buf->level++;
-        s->body->toCBuffer(buf, hgs);
+        s->body->accept(this);
         buf->level--;
         buf->writeByte('}');
         buf->writenl();
@@ -598,7 +598,7 @@ public:
         buf->writeByte('{');
         buf->writenl();
         buf->level++;
-        s->finalbody->toCBuffer(buf, hgs);
+        s->finalbody->accept(this);
         buf->level--;
         buf->writeByte('}');
         buf->writenl();
@@ -608,7 +608,7 @@ public:
     {
         buf->writestring(Token::toChars(s->tok));
         buf->writeByte(' ');
-        s->statement->toCBuffer(buf, hgs);
+        s->statement->accept(this);
     }
 
     void visit(ThrowStatement *s)
@@ -623,7 +623,7 @@ public:
     {
         if (s->statement)
         {
-            s->statement->toCBuffer(buf, hgs);
+            s->statement->accept(this);
         }
     }
 
@@ -641,7 +641,7 @@ public:
         buf->writeByte(':');
         buf->writenl();
         if (s->statement)
-            s->statement->toCBuffer(buf, hgs);
+            s->statement->accept(this);
     }
 
     void visit(AsmStatement *s)
@@ -697,21 +697,15 @@ public:
         buf->writenl();
         buf->level++;
         if (c->handler)
-            c->handler->toCBuffer(buf, hgs);
+            c->handler->accept(this);
         buf->level--;
         buf->writeByte('}');
         buf->writenl();
     }
 };
 
-void Statement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+void toCBuffer(Statement *s, OutBuffer *buf, HdrGenState *hgs)
 {
     PrettyPrintVisitor v(buf, hgs);
-    accept(&v);
-}
-
-void Catch::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    PrettyPrintVisitor v(buf, hgs);
-    v.visit(this);
+    s->accept(&v);
 }

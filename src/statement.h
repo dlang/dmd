@@ -82,6 +82,8 @@ enum BE
     BEany = (BEfallthru | BEthrow | BEreturn | BEgoto | BEhalt),
 };
 
+void toCBuffer(Statement *s, OutBuffer *buf, HdrGenState *hgs);
+
 class Statement : public RootObject
 {
 public:
@@ -96,7 +98,6 @@ public:
     void error(const char *format, ...);
     void warning(const char *format, ...);
     void deprecation(const char *format, ...);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     virtual Statement *semantic(Scope *sc);
     Statement *semanticScope(Scope *sc, Statement *sbreak, Statement *scontinue);
     Statement *semanticNoScope(Scope *sc);
@@ -686,7 +687,6 @@ public:
     Catch *syntaxCopy();
     void semantic(Scope *sc);
     int blockExit(bool mustNotThrow);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 
 class TryFinallyStatement : public Statement
