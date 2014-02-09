@@ -967,21 +967,21 @@ void toCBuffer(Statement *s, OutBuffer *buf, HdrGenState *hgs)
     s->accept(&v);
 }
 
-void Type::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
+void toCBuffer(Type *t, OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
 {
-    if (ty == Tfunction)
+    if (t->ty == Tfunction)
     {
-        TypeFunction *tf = (TypeFunction *)this;
+        TypeFunction *tf = (TypeFunction *)t;
         functionToBufferFull(tf, buf, ident, hgs, tf, NULL);
         return;
     }
-    if (ty == Terror)
+    if (t->ty == Terror)
     {
         buf->writestring("_error_");
         return;
     }
 
-    toBufferShort(this, buf, hgs);
+    toBufferShort(t, buf, hgs);
     if (ident)
     {
         buf->writeByte(' ');

@@ -44,6 +44,7 @@
 #include "hdrgen.h"
 
 FuncDeclaration *hasThis(Scope *sc);
+void toCBuffer(Type *t, OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
 
 #define LOGDOTEXP       0       // log ::dotExp()
 #define LOGDEFAULTINIT  0       // log ::defaultInit()
@@ -1577,6 +1578,11 @@ char *Type::toChars()
 
     toCBuffer(&buf, NULL, &hgs);
     return buf.extractString();
+}
+
+void Type::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
+{
+    ::toCBuffer(this, buf, ident, hgs);
 }
 
 /*********************************
