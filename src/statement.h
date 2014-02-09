@@ -82,6 +82,8 @@ enum BE
     BEany = (BEfallthru | BEthrow | BEreturn | BEgoto | BEhalt),
 };
 
+void toCBuffer(Statement *s, OutBuffer *buf, HdrGenState *hgs);
+
 class Statement : public RootObject
 {
 public:
@@ -96,7 +98,6 @@ public:
     void error(const char *format, ...);
     void warning(const char *format, ...);
     void deprecation(const char *format, ...);
-    virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     virtual Statement *semantic(Scope *sc);
     Statement *semanticScope(Scope *sc, Statement *sbreak, Statement *scontinue);
     Statement *semanticNoScope(Scope *sc);
@@ -162,7 +163,6 @@ public:
     ExpStatement(Loc loc, Dsymbol *s);
     static ExpStatement *create(Loc loc, Expression *exp);
     Statement *syntaxCopy();
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Statement *semantic(Scope *sc);
     Expression *interpret(InterState *istate);
     int blockExit(bool mustNotThrow);
@@ -195,7 +195,6 @@ public:
 
     CompileStatement(Loc loc, Expression *exp);
     Statement *syntaxCopy();
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Statements *flatten(Scope *sc);
     Statement *semantic(Scope *sc);
     int blockExit(bool mustNotThrow);
@@ -212,7 +211,6 @@ public:
     CompoundStatement(Loc loc, Statement *s1, Statement *s2);
     static CompoundStatement *create(Loc loc, Statement *s1, Statement *s2);
     Statement *syntaxCopy();
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Statement *semantic(Scope *sc);
     int blockExit(bool mustNotThrow);
     Statements *flatten(Scope *sc);
@@ -232,7 +230,6 @@ class CompoundDeclarationStatement : public CompoundStatement
 public:
     CompoundDeclarationStatement(Loc loc, Statements *s);
     Statement *syntaxCopy();
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -251,7 +248,6 @@ public:
     bool hasContinue();
     int blockExit(bool mustNotThrow);
     Expression *interpret(InterState *istate);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     Expression *doInline(InlineDoState *ids);
     Statement *doInlineStatement(InlineDoState *ids);
@@ -266,7 +262,6 @@ public:
 
     ScopeStatement(Loc loc, Statement *s);
     Statement *syntaxCopy();
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     ScopeStatement *isScopeStatement() { return this; }
     ReturnStatement *isReturnStatement();
     Statement *semantic(Scope *sc);
@@ -294,7 +289,6 @@ public:
     bool hasContinue();
     int blockExit(bool mustNotThrow);
     Expression *interpret(InterState *istate);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -312,7 +306,6 @@ public:
     bool hasContinue();
     int blockExit(bool mustNotThrow);
     Expression *interpret(InterState *istate);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -339,7 +332,6 @@ public:
     bool hasContinue();
     int blockExit(bool mustNotThrow);
     Expression *interpret(InterState *istate);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     Statement *doInlineStatement(InlineDoState *ids);
 
@@ -372,7 +364,6 @@ public:
     bool hasContinue();
     int blockExit(bool mustNotThrow);
     Expression *interpret(InterState *istate);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -396,7 +387,6 @@ public:
     bool hasContinue();
     int blockExit(bool mustNotThrow);
     Expression *interpret(InterState *istate);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -415,7 +405,6 @@ public:
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     Expression *interpret(InterState *istate);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     int blockExit(bool mustNotThrow);
     IfStatement *isIfStatement() { return this; }
 
@@ -438,7 +427,6 @@ public:
     Statements *flatten(Scope *sc);
     int blockExit(bool mustNotThrow);
 
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -454,8 +442,6 @@ public:
     Statement *semantic(Scope *sc);
     int blockExit(bool mustNotThrow);
 
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -469,7 +455,6 @@ public:
     Statement *semantic(Scope *sc);
     int blockExit(bool mustNotThrow);
 
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -493,7 +478,6 @@ public:
     bool hasBreak();
     int blockExit(bool mustNotThrow);
     Expression *interpret(InterState *istate);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -513,7 +497,6 @@ public:
     int compare(RootObject *obj);
     int blockExit(bool mustNotThrow);
     Expression *interpret(InterState *istate);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     CaseStatement *isCaseStatement() { return this; }
 
     void accept(Visitor *v) { v->visit(this); }
@@ -530,7 +513,6 @@ public:
     CaseRangeStatement(Loc loc, Expression *first, Expression *last, Statement *s);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -548,7 +530,6 @@ public:
     Statement *semantic(Scope *sc);
     int blockExit(bool mustNotThrow);
     Expression *interpret(InterState *istate);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     DefaultStatement *isDefaultStatement() { return this; }
 
     void accept(Visitor *v) { v->visit(this); }
@@ -564,7 +545,6 @@ public:
     Statement *semantic(Scope *sc);
     Expression *interpret(InterState *istate);
     int blockExit(bool mustNotThrow);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -580,7 +560,6 @@ public:
     Statement *semantic(Scope *sc);
     Expression *interpret(InterState *istate);
     int blockExit(bool mustNotThrow);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -590,7 +569,6 @@ class SwitchErrorStatement : public Statement
 public:
     SwitchErrorStatement(Loc loc);
     int blockExit(bool mustNotThrow);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -603,7 +581,6 @@ public:
 
     ReturnStatement(Loc loc, Expression *exp);
     Statement *syntaxCopy();
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Statement *semantic(Scope *sc);
     int blockExit(bool mustNotThrow);
     Expression *interpret(InterState *istate);
@@ -625,7 +602,6 @@ public:
     Statement *semantic(Scope *sc);
     Expression *interpret(InterState *istate);
     int blockExit(bool mustNotThrow);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -640,7 +616,6 @@ public:
     Statement *semantic(Scope *sc);
     Expression *interpret(InterState *istate);
     int blockExit(bool mustNotThrow);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -657,7 +632,6 @@ public:
     bool hasBreak();
     bool hasContinue();
     int blockExit(bool mustNotThrow);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
 // Back end
     elem *esync;
@@ -675,7 +649,6 @@ public:
     WithStatement(Loc loc, Expression *exp, Statement *body);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     int blockExit(bool mustNotThrow);
     Expression *interpret(InterState *istate);
 
@@ -695,7 +668,6 @@ public:
     int blockExit(bool mustNotThrow);
     Expression *interpret(InterState *istate);
 
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -715,7 +687,6 @@ public:
     Catch *syntaxCopy();
     void semantic(Scope *sc);
     int blockExit(bool mustNotThrow);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 
 class TryFinallyStatement : public Statement
@@ -727,7 +698,6 @@ public:
     TryFinallyStatement(Loc loc, Statement *body, Statement *finalbody);
     static TryFinallyStatement *create(Loc loc, Statement *body, Statement *finalbody);
     Statement *syntaxCopy();
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Statement *semantic(Scope *sc);
     bool hasBreak();
     bool hasContinue();
@@ -746,7 +716,6 @@ public:
     OnScopeStatement(Loc loc, TOK tok, Statement *statement);
     Statement *syntaxCopy();
     int blockExit(bool mustNotThrow);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Statement *semantic(Scope *sc);
     Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
     Expression *interpret(InterState *istate);
@@ -765,7 +734,6 @@ public:
     ThrowStatement(Loc loc, Expression *exp);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     int blockExit(bool mustNotThrow);
     Expression *interpret(InterState *istate);
 
@@ -781,7 +749,6 @@ public:
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     Statements *flatten(Scope *sc);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -801,7 +768,6 @@ public:
     int blockExit(bool mustNotThrow);
     Expression *interpret(InterState *istate);
 
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -823,7 +789,6 @@ public:
     Statements *flatten(Scope *sc);
     int blockExit(bool mustNotThrow);
     Expression *interpret(InterState *istate);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     LabelStatement *isLabelStatement() { return this; }
 
@@ -857,8 +822,6 @@ public:
     int blockExit(bool mustNotThrow);
     Expression *interpret(InterState *istate);
 
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-
     //Expression *doInline(InlineDoState *ids);
 
     void accept(Visitor *v) { v->visit(this); }
@@ -874,8 +837,6 @@ public:
     Statement *semantic(Scope *sc);
     int blockExit(bool mustNotThrow);
     Expression *interpret(InterState *istate);
-
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     Expression *doInline(InlineDoState *ids);
     Statement *doInlineStatement(InlineDoState *ids);

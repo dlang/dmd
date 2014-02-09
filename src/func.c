@@ -28,8 +28,9 @@
 #include "parse.h"
 #include "rmem.h"
 
-void functionToCBuffer2(TypeFunction *t, OutBuffer *buf, HdrGenState *hgs, int mod, const char *kind);
+void functionToBufferWithIdent(TypeFunction *t, OutBuffer *buf, const char *ident);
 void genCmain(Scope *sc);
+void toBufferShort(Type *t, OutBuffer *buf, HdrGenState *hgs);
 
 /********************************* FuncDeclaration ****************************/
 
@@ -2025,7 +2026,7 @@ void FuncDeclaration::bodyToCBuffer(OutBuffer *buf, HdrGenState *hgs)
         {
             buf->writestring("in");
             buf->writenl();
-            frequire->toCBuffer(buf, hgs);
+            ::toCBuffer(frequire, buf, hgs);
         }
 
         // out{}
@@ -2039,7 +2040,7 @@ void FuncDeclaration::bodyToCBuffer(OutBuffer *buf, HdrGenState *hgs)
                 buf->writeByte(')');
             }
             buf->writenl();
-            fensure->toCBuffer(buf, hgs);
+            ::toCBuffer(fensure, buf, hgs);
         }
 
         if (frequire || fensure)
@@ -2051,7 +2052,7 @@ void FuncDeclaration::bodyToCBuffer(OutBuffer *buf, HdrGenState *hgs)
         buf->writeByte('{');
         buf->writenl();
         buf->level++;
-        fbody->toCBuffer(buf, hgs);
+        ::toCBuffer(fbody, buf, hgs);
         buf->level--;
         buf->writeByte('}');
         buf->writenl();
@@ -3035,8 +3036,7 @@ const char *FuncDeclaration::toPrettyChars()
 const char *FuncDeclaration::toFullSignature()
 {
     OutBuffer buf;
-    HdrGenState hgs;
-    functionToCBuffer2((TypeFunction *)type, &buf, &hgs, 0, toChars());
+    functionToBufferWithIdent((TypeFunction *)type, &buf, toChars());
     return buf.extractString();
 }
 
@@ -3953,7 +3953,7 @@ void FuncLiteralDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     TypeFunction *tf = (TypeFunction *)type;
     // Don't print tf->mod, tf->trust, and tf->linkage
     if (!inferRetType && tf->next)
-        tf->next->toCBuffer2(buf, hgs, 0);
+        toBufferShort(tf->next, buf, hgs);
     Parameter::argsToCBuffer(buf, hgs, tf->parameters, tf->varargs);
 
     CompoundStatement *cs = fbody->isCompoundStatement();
