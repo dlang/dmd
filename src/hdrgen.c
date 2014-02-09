@@ -757,7 +757,7 @@ public:
 
     void visit(Type *t)
     {
-        buf->writestring(t->toChars());
+        assert(0);
     }
 
     void visit(TypeBasic *t)
