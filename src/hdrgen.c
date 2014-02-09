@@ -46,6 +46,7 @@ void argsToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *hgs);
 void sizeToCBuffer(OutBuffer *buf, HdrGenState *hgs, Expression *e);
 void trustToBuffer(OutBuffer *buf, TRUST trust);
 void linkageToBuffer(OutBuffer *buf, LINK linkage);
+void functionToBufferFull(TypeFunction *tf, OutBuffer *buf, Identifier *ident, HdrGenState* hgs, TypeFunction *attrs, TemplateDeclaration *td);
 
 void Module::genhdrfile()
 {
@@ -1083,7 +1084,7 @@ void Type::toCBuffer3(OutBuffer *buf, HdrGenState *hgs, unsigned char modMask)
 
 void TypeFunction::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
 {
-    toCBufferWithAttributes(buf, ident, hgs, this, NULL);
+    functionToBufferFull(this, buf, ident, hgs, this, NULL);
 }
 
 void trustToBuffer(OutBuffer *buf, TRUST trust)
@@ -1122,14 +1123,16 @@ void linkageToBuffer(OutBuffer *buf, LINK linkage)
     buf->writestring(") ");
 }
 
-void TypeFunction::toCBufferWithAttributes(OutBuffer *buf, Identifier *ident, HdrGenState* hgs, TypeFunction *attrs, TemplateDeclaration *td)
+// Print the full function signature with correct ident, attributes and template args
+void functionToBufferFull(TypeFunction *tf, OutBuffer *buf, Identifier *ident, HdrGenState* hgs, TypeFunction *attrs, TemplateDeclaration *td)
 {
     //printf("TypeFunction::toCBuffer() this = %p\n", this);
-    if (inuse)
-    {   inuse = 2;              // flag error to caller
+    if (tf->inuse)
+    {
+        tf->inuse = 2;              // flag error to caller
         return;
     }
-    inuse++;
+    tf->inuse++;
 
     /* Use 'storage class' style for attributes
      */
@@ -1158,21 +1161,23 @@ void TypeFunction::toCBufferWithAttributes(OutBuffer *buf, Identifier *ident, Hd
         linkageToBuffer(buf, attrs->linkage);
 
     if (!ident || ident->toHChars2() == ident->toChars())
-    {   if (next)
-            next->toCBuffer2(buf, hgs, 0);
+    {
+        if (tf->next)
+            tf->next->toCBuffer2(buf, hgs, 0);
         else if (hgs->ddoc)
             buf->writestring("auto");
     }
 
     if (ident)
     {
-        if (next || hgs->ddoc)
+        if (tf->next || hgs->ddoc)
             buf->writeByte(' ');
         buf->writestring(ident->toHChars2());
     }
 
     if (td)
-    {   buf->writeByte('(');
+    {
+        buf->writeByte('(');
         for (size_t i = 0; i < td->origParameters->dim; i++)
         {
             TemplateParameter *tp = (*td->origParameters)[i];
@@ -1182,8 +1187,8 @@ void TypeFunction::toCBufferWithAttributes(OutBuffer *buf, Identifier *ident, Hd
         }
         buf->writeByte(')');
     }
-    Parameter::argsToCBuffer(buf, hgs, parameters, varargs);
-    inuse--;
+    Parameter::argsToCBuffer(buf, hgs, tf->parameters, tf->varargs);
+    tf->inuse--;
 }
 
 // ident is inserted before the argument list and will be "function" or "delegate" for a type
