@@ -47,6 +47,7 @@ void sizeToCBuffer(OutBuffer *buf, HdrGenState *hgs, Expression *e);
 void trustToBuffer(OutBuffer *buf, TRUST trust);
 void linkageToBuffer(OutBuffer *buf, LINK linkage);
 void functionToBufferFull(TypeFunction *tf, OutBuffer *buf, Identifier *ident, HdrGenState* hgs, TypeFunction *attrs, TemplateDeclaration *td);
+void toBufferShort(Type *t, OutBuffer *buf, HdrGenState *hgs);
 
 void Module::genhdrfile()
 {
@@ -835,7 +836,7 @@ public:
 
         if (t->next)
         {
-            t->next->toCBuffer2(buf, hgs, 0);
+            visitWithMask(t->next, 0);
             buf->writeByte(' ');
         }
         buf->writestring(ident);
@@ -982,7 +983,7 @@ void Type::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
         return;
     }
 
-    toCBuffer2(buf, hgs, 0);
+    toBufferShort(this, buf, hgs);
     if (ident)
     {
         buf->writeByte(' ');
@@ -990,10 +991,11 @@ void Type::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
     }
 }
 
-void Type::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, unsigned char modMask)
+// Bypass the special printing of function and error types
+void toBufferShort(Type *t, OutBuffer *buf, HdrGenState *hgs)
 {
-    PrettyPrintVisitor v(buf, hgs, NULL, modMask);
-    v.visitWithMask(this, 0);
+    PrettyPrintVisitor v(buf, hgs, NULL, 0);
+    v.visitWithMask(t, 0);
 }
 
 void trustToBuffer(OutBuffer *buf, TRUST trust)
@@ -1072,7 +1074,7 @@ void functionToBufferFull(TypeFunction *tf, OutBuffer *buf, Identifier *ident, H
     if (!ident || ident->toHChars2() == ident->toChars())
     {
         if (tf->next)
-            tf->next->toCBuffer2(buf, hgs, 0);
+            toBufferShort(tf->next, buf, hgs);
         else if (hgs->ddoc)
             buf->writestring("auto");
     }

@@ -30,6 +30,7 @@
 
 void functionToBufferWithIdent(TypeFunction *t, OutBuffer *buf, const char *ident);
 void genCmain(Scope *sc);
+void toBufferShort(Type *t, OutBuffer *buf, HdrGenState *hgs);
 
 /********************************* FuncDeclaration ****************************/
 
@@ -3952,7 +3953,7 @@ void FuncLiteralDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     TypeFunction *tf = (TypeFunction *)type;
     // Don't print tf->mod, tf->trust, and tf->linkage
     if (!inferRetType && tf->next)
-        tf->next->toCBuffer2(buf, hgs, 0);
+        toBufferShort(tf->next, buf, hgs);
     Parameter::argsToCBuffer(buf, hgs, tf->parameters, tf->varargs);
 
     CompoundStatement *cs = fbody->isCompoundStatement();
