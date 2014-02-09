@@ -2025,7 +2025,7 @@ void FuncDeclaration::bodyToCBuffer(OutBuffer *buf, HdrGenState *hgs)
         {
             buf->writestring("in");
             buf->writenl();
-            frequire->toCBuffer(buf, hgs);
+            ::toCBuffer(frequire, buf, hgs);
         }
 
         // out{}
@@ -2039,7 +2039,7 @@ void FuncDeclaration::bodyToCBuffer(OutBuffer *buf, HdrGenState *hgs)
                 buf->writeByte(')');
             }
             buf->writenl();
-            fensure->toCBuffer(buf, hgs);
+            ::toCBuffer(fensure, buf, hgs);
         }
 
         if (frequire || fensure)
@@ -2051,7 +2051,7 @@ void FuncDeclaration::bodyToCBuffer(OutBuffer *buf, HdrGenState *hgs)
         buf->writeByte('{');
         buf->writenl();
         buf->level++;
-        fbody->toCBuffer(buf, hgs);
+        ::toCBuffer(fbody, buf, hgs);
         buf->level--;
         buf->writeByte('}');
         buf->writenl();
