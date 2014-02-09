@@ -695,7 +695,6 @@ public:
     virtual bool addPreInvariant();
     virtual bool addPostInvariant();
     Expression *interpret(InterState *istate, Expressions *arguments, Expression *thisexp = NULL);
-    void ctfeCompile();
     int canInline(int hasthis, int hdrscan, int statementsToo);
     const char *kind();
     void toDocBuffer(OutBuffer *buf, Scope *sc);
