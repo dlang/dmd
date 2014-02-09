@@ -88,16 +88,10 @@ char *Statement::toChars()
     HdrGenState hgs;
 
     OutBuffer buf;
-    toCBuffer(&buf, &hgs);
+    ::toCBuffer(this, &buf, &hgs);
     return buf.extractString();
 }
 
-void Statement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->printf("Statement::toCBuffer()");
-    buf->writenl();
-    assert(0);
-}
 
 Statement *Statement::semantic(Scope *sc)
 {
@@ -337,24 +331,6 @@ Statement *ExpStatement::syntaxCopy()
     return es;
 }
 
-void ExpStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    if (exp)
-    {   exp->toCBuffer(buf, hgs);
-        if (exp->op != TOKdeclaration)
-        {   buf->writeByte(';');
-            if (!hgs->FLinit.init)
-                buf->writenl();
-        }
-    }
-    else
-    {
-        buf->writeByte(';');
-        if (!hgs->FLinit.init)
-            buf->writenl();
-    }
-}
-
 Statement *ExpStatement::semantic(Scope *sc)
 {
     if (exp)
@@ -485,15 +461,6 @@ Statement *CompileStatement::syntaxCopy()
     Expression *e = exp->syntaxCopy();
     CompileStatement *es = new CompileStatement(loc, e);
     return es;
-}
-
-void CompileStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("mixin(");
-    exp->toCBuffer(buf, hgs);
-    buf->writestring(");");
-    if (!hgs->FLinit.init)
-        buf->writenl();
 }
 
 Statements *CompileStatement::flatten(Scope *sc)
@@ -788,15 +755,6 @@ Statement *CompoundStatement::last()
     return s;
 }
 
-void CompoundStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s = (*statements)[i];
-        if (s)
-            s->toCBuffer(buf, hgs);
-    }
-}
-
 int CompoundStatement::blockExit(bool mustNotThrow)
 {
     //printf("CompoundStatement::blockExit(%p) %d\n", this, statements->dim);
@@ -868,59 +826,6 @@ Statement *CompoundDeclarationStatement::syntaxCopy()
     return cs;
 }
 
-void CompoundDeclarationStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    bool anywritten = false;
-    for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s = (*statements)[i];
-        ExpStatement *ds;
-        if (s &&
-            (ds = s->isExpStatement()) != NULL &&
-            ds->exp->op == TOKdeclaration)
-        {
-            DeclarationExp *de = (DeclarationExp *)ds->exp;
-            Declaration *d = de->declaration->isDeclaration();
-            assert(d);
-            VarDeclaration *v = d->isVarDeclaration();
-            if (v)
-            {
-                /* This essentially copies the part of VarDeclaration::toCBuffer()
-                 * that does not print the type.
-                 * Should refactor this.
-                 */
-                if (anywritten)
-                {
-                    buf->writestring(", ");
-                    buf->writestring(v->ident->toChars());
-                }
-                else
-                {
-                    StorageClassDeclaration::stcToCBuffer(buf, v->storage_class);
-                    if (v->type)
-                        v->type->toCBuffer(buf, v->ident, hgs);
-                    else
-                        buf->writestring(v->ident->toChars());
-                }
-
-                if (v->init)
-                {   buf->writestring(" = ");
-                    ExpInitializer *ie = v->init->isExpInitializer();
-                    if (ie && (ie->exp->op == TOKconstruct || ie->exp->op == TOKblit))
-                        ((AssignExp *)ie->exp)->e2->toCBuffer(buf, hgs);
-                    else
-                        v->init->toCBuffer(buf, hgs);
-                }
-            }
-            else
-                d->toCBuffer(buf, hgs);
-            anywritten = true;
-        }
-    }
-    buf->writeByte(';');
-    if (!hgs->FLinit.init)
-        buf->writenl();
-}
-
 /**************************** UnrolledLoopStatement ***************************/
 
 UnrolledLoopStatement::UnrolledLoopStatement(Loc loc, Statements *s)
@@ -968,26 +873,6 @@ Statement *UnrolledLoopStatement::semantic(Scope *sc)
 
     scd->pop();
     return serror ? serror : this;
-}
-
-void UnrolledLoopStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("unrolled {");
-    buf->writenl();
-    buf->level++;
-
-    for (size_t i = 0; i < statements->dim; i++)
-    {
-        Statement *s;
-
-        s = (*statements)[i];
-        if (s)
-            s->toCBuffer(buf, hgs);
-    }
-
-    buf->level--;
-    buf->writeByte('}');
-    buf->writenl();
 }
 
 bool UnrolledLoopStatement::hasBreak()
@@ -1101,21 +986,6 @@ int ScopeStatement::blockExit(bool mustNotThrow)
     return statement ? statement->blockExit(mustNotThrow) : BEfallthru;
 }
 
-
-void ScopeStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writeByte('{');
-    buf->writenl();
-    buf->level++;
-
-    if (statement)
-        statement->toCBuffer(buf, hgs);
-
-    buf->level--;
-    buf->writeByte('}');
-    buf->writenl();
-}
-
 /******************************** WhileStatement ***************************/
 
 WhileStatement::WhileStatement(Loc loc, Expression *c, Statement *b)
@@ -1156,17 +1026,6 @@ int WhileStatement::blockExit(bool mustNotThrow)
 {
     assert(global.errors);
     return BEfallthru;
-}
-
-
-void WhileStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("while (");
-    condition->toCBuffer(buf, hgs);
-    buf->writeByte(')');
-    buf->writenl();
-    if (body)
-        body->toCBuffer(buf, hgs);
 }
 
 /******************************** DoStatement ***************************/
@@ -1237,19 +1096,6 @@ int DoStatement::blockExit(bool mustNotThrow)
     }
     result &= ~(BEbreak | BEcontinue);
     return result;
-}
-
-
-void DoStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("do");
-    buf->writenl();
-    if (body)
-        body->toCBuffer(buf, hgs);
-    buf->writestring("while (");
-    condition->toCBuffer(buf, hgs);
-    buf->writestring(");");
-    buf->writenl();
 }
 
 /******************************** ForStatement ***************************/
@@ -1392,38 +1238,6 @@ int ForStatement::blockExit(bool mustNotThrow)
     if (increment && canThrow(increment, mustNotThrow))
         result |= BEthrow;
     return result;
-}
-
-
-void ForStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("for (");
-    if (init)
-    {
-        hgs->FLinit.init++;
-        init->toCBuffer(buf, hgs);
-        hgs->FLinit.init--;
-    }
-    else
-        buf->writeByte(';');
-    if (condition)
-    {   buf->writeByte(' ');
-        condition->toCBuffer(buf, hgs);
-    }
-    buf->writeByte(';');
-    if (increment)
-    {   buf->writeByte(' ');
-        increment->toCBuffer(buf, hgs);
-    }
-    buf->writeByte(')');
-    buf->writenl();
-    buf->writeByte('{');
-    buf->writenl();
-    buf->level++;
-    body->toCBuffer(buf, hgs);
-    buf->level--;
-    buf->writeByte('}');
-    buf->writenl();
 }
 
 /******************************** ForeachStatement ***************************/
@@ -2366,37 +2180,6 @@ int ForeachStatement::blockExit(bool mustNotThrow)
     return result;
 }
 
-
-void ForeachStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring(Token::toChars(op));
-    buf->writestring(" (");
-    for (size_t i = 0; i < arguments->dim; i++)
-    {
-        Parameter *a = (*arguments)[i];
-        if (i)
-            buf->writestring(", ");
-        if (a->storageClass & STCref)
-            buf->writestring((char*)"ref ");
-        if (a->type)
-            a->type->toCBuffer(buf, a->ident, hgs);
-        else
-            buf->writestring(a->ident->toChars());
-    }
-    buf->writestring("; ");
-    aggr->toCBuffer(buf, hgs);
-    buf->writeByte(')');
-    buf->writenl();
-    buf->writeByte('{');
-    buf->writenl();
-    buf->level++;
-    if (body)
-        body->toCBuffer(buf, hgs);
-    buf->level--;
-    buf->writeByte('}');
-    buf->writenl();
-}
-
 /**************************** ForeachRangeStatement ***************************/
 
 
@@ -2608,34 +2391,6 @@ int ForeachRangeStatement::blockExit(bool mustNotThrow)
     return BEfallthru;
 }
 
-
-void ForeachRangeStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring(Token::toChars(op));
-    buf->writestring(" (");
-
-    if (arg->type)
-        arg->type->toCBuffer(buf, arg->ident, hgs);
-    else
-        buf->writestring(arg->ident->toChars());
-
-    buf->writestring("; ");
-    lwr->toCBuffer(buf, hgs);
-    buf->writestring(" .. ");
-    upr->toCBuffer(buf, hgs);
-    buf->writeByte(')');
-    buf->writenl();
-    buf->writeByte('{');
-    buf->writenl();
-    buf->level++;
-    if (body)
-        body->toCBuffer(buf, hgs);
-    buf->level--;
-    buf->writeByte('}');
-    buf->writenl();
-}
-
-
 /******************************** IfStatement ***************************/
 
 IfStatement::IfStatement(Loc loc, Parameter *arg, Expression *condition, Statement *ifbody, Statement *elsebody)
@@ -2769,41 +2524,6 @@ int IfStatement::blockExit(bool mustNotThrow)
     return result;
 }
 
-
-void IfStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("if (");
-    if (arg)
-    {
-        if (arg->type)
-            arg->type->toCBuffer(buf, arg->ident, hgs);
-        else
-        {
-            buf->writestring("auto ");
-            buf->writestring(arg->ident->toChars());
-        }
-        buf->writestring(" = ");
-    }
-    condition->toCBuffer(buf, hgs);
-    buf->writeByte(')');
-    buf->writenl();
-    if (!ifbody->isScopeStatement())
-        buf->level++;
-    ifbody->toCBuffer(buf, hgs);
-    if (!ifbody->isScopeStatement())
-        buf->level--;
-    if (elsebody)
-    {
-        buf->writestring("else");
-        buf->writenl();
-        if (!elsebody->isScopeStatement())
-            buf->level++;
-        elsebody->toCBuffer(buf, hgs);
-        if (!elsebody->isScopeStatement())
-            buf->level--;
-    }
-}
-
 /******************************** ConditionalStatement ***************************/
 
 ConditionalStatement::ConditionalStatement(Loc loc, Condition *condition, Statement *ifbody, Statement *elsebody)
@@ -2881,34 +2601,6 @@ int ConditionalStatement::blockExit(bool mustNotThrow)
         result |= elsebody->blockExit(mustNotThrow);
     return result;
 }
-
-void ConditionalStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    condition->toCBuffer(buf, hgs);
-    buf->writenl();
-    buf->writeByte('{');
-    buf->writenl();
-    buf->level++;
-    if (ifbody)
-        ifbody->toCBuffer(buf, hgs);
-    buf->level--;
-    buf->writeByte('}');
-    buf->writenl();
-    if (elsebody)
-    {
-        buf->writestring("else");
-        buf->writenl();
-        buf->writeByte('{');
-        buf->level++;
-        buf->writenl();
-        elsebody->toCBuffer(buf, hgs);
-        buf->level--;
-        buf->writeByte('}');
-        buf->writenl();
-    }
-    buf->writenl();
-}
-
 
 /******************************** PragmaStatement ***************************/
 
@@ -3044,38 +2736,6 @@ int PragmaStatement::blockExit(bool mustNotThrow)
     return result;
 }
 
-
-void PragmaStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("pragma (");
-    buf->writestring(ident->toChars());
-    if (args && args->dim)
-    {
-        buf->writestring(", ");
-        argsToCBuffer(buf, args, hgs);
-    }
-    buf->writeByte(')');
-    if (body)
-    {
-        buf->writenl();
-        buf->writeByte('{');
-        buf->writenl();
-        buf->level++;
-
-        body->toCBuffer(buf, hgs);
-
-        buf->level--;
-        buf->writeByte('}');
-        buf->writenl();
-    }
-    else
-    {
-        buf->writeByte(';');
-        buf->writenl();
-    }
-}
-
-
 /******************************** StaticAssertStatement ***************************/
 
 StaticAssertStatement::StaticAssertStatement(StaticAssert *sa)
@@ -3100,12 +2760,6 @@ int StaticAssertStatement::blockExit(bool mustNotThrow)
 {
     return BEfallthru;
 }
-
-void StaticAssertStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    sa->toCBuffer(buf, hgs);
-}
-
 
 /******************************** SwitchStatement ***************************/
 
@@ -3294,32 +2948,6 @@ int SwitchStatement::blockExit(bool mustNotThrow)
     return result;
 }
 
-
-void SwitchStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring(isFinal ? "final switch (" : "switch (");
-    condition->toCBuffer(buf, hgs);
-    buf->writeByte(')');
-    buf->writenl();
-    if (body)
-    {
-        if (!body->isScopeStatement())
-        {
-            buf->writeByte('{');
-            buf->writenl();
-            buf->level++;
-            body->toCBuffer(buf, hgs);
-            buf->level--;
-            buf->writeByte('}');
-            buf->writenl();
-        }
-        else
-        {
-            body->toCBuffer(buf, hgs);
-        }
-    }
-}
-
 /******************************** CaseStatement ***************************/
 
 CaseStatement::CaseStatement(Loc loc, Expression *exp, Statement *s)
@@ -3424,16 +3052,6 @@ int CaseStatement::blockExit(bool mustNotThrow)
     return statement->blockExit(mustNotThrow);
 }
 
-
-void CaseStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("case ");
-    exp->toCBuffer(buf, hgs);
-    buf->writeByte(':');
-    buf->writenl();
-    statement->toCBuffer(buf, hgs);
-}
-
 /******************************** CaseRangeStatement ***************************/
 
 
@@ -3525,18 +3143,6 @@ Statement *CaseRangeStatement::semantic(Scope *sc)
     return s;
 }
 
-void CaseRangeStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("case ");
-    first->toCBuffer(buf, hgs);
-    buf->writestring(": .. case ");
-    last->toCBuffer(buf, hgs);
-    buf->writeByte(':');
-    buf->writenl();
-    statement->toCBuffer(buf, hgs);
-}
-
-
 /******************************** DefaultStatement ***************************/
 
 DefaultStatement::DefaultStatement(Loc loc, Statement *s)
@@ -3582,14 +3188,6 @@ int DefaultStatement::blockExit(bool mustNotThrow)
     return statement->blockExit(mustNotThrow);
 }
 
-
-void DefaultStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("default:");
-    buf->writenl();
-    statement->toCBuffer(buf, hgs);
-}
-
 /******************************** GotoDefaultStatement ***************************/
 
 GotoDefaultStatement::GotoDefaultStatement(Loc loc)
@@ -3615,13 +3213,6 @@ Statement *GotoDefaultStatement::semantic(Scope *sc)
 int GotoDefaultStatement::blockExit(bool mustNotThrow)
 {
     return BEgoto;
-}
-
-
-void GotoDefaultStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("goto default;");
-    buf->writenl();
 }
 
 /******************************** GotoCaseStatement ***************************/
@@ -3664,18 +3255,6 @@ int GotoCaseStatement::blockExit(bool mustNotThrow)
     return BEgoto;
 }
 
-
-void GotoCaseStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("goto case");
-    if (exp)
-    {   buf->writeByte(' ');
-        exp->toCBuffer(buf, hgs);
-    }
-    buf->writeByte(';');
-    buf->writenl();
-}
-
 /******************************** SwitchErrorStatement ***************************/
 
 SwitchErrorStatement::SwitchErrorStatement(Loc loc)
@@ -3687,13 +3266,6 @@ int SwitchErrorStatement::blockExit(bool mustNotThrow)
 {
     // Switch errors are non-recoverable
     return BEhalt;
-}
-
-
-void SwitchErrorStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("SwitchErrorStatement::toCBuffer()");
-    buf->writenl();
 }
 
 /******************************** ReturnStatement ***************************/
@@ -4073,16 +3645,6 @@ int ReturnStatement::blockExit(bool mustNotThrow)
     return result;
 }
 
-
-void ReturnStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->printf("return ");
-    if (exp)
-        exp->toCBuffer(buf, hgs);
-    buf->writeByte(';');
-    buf->writenl();
-}
-
 /******************************** BreakStatement ***************************/
 
 BreakStatement::BreakStatement(Loc loc, Identifier *ident)
@@ -4163,18 +3725,6 @@ int BreakStatement::blockExit(bool mustNotThrow)
 {
     //printf("BreakStatement::blockExit(%p) = x%x\n", this, ident ? BEgoto : BEbreak);
     return ident ? BEgoto : BEbreak;
-}
-
-
-void BreakStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("break");
-    if (ident)
-    {   buf->writeByte(' ');
-        buf->writestring(ident->toChars());
-    }
-    buf->writeByte(';');
-    buf->writenl();
 }
 
 /******************************** ContinueStatement ***************************/
@@ -4266,18 +3816,6 @@ Statement *ContinueStatement::semantic(Scope *sc)
 int ContinueStatement::blockExit(bool mustNotThrow)
 {
     return ident ? BEgoto : BEcontinue;
-}
-
-
-void ContinueStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("continue");
-    if (ident)
-    {   buf->writeByte(' ');
-        buf->writestring(ident->toChars());
-    }
-    buf->writeByte(';');
-    buf->writenl();
 }
 
 /******************************** SynchronizedStatement ***************************/
@@ -4437,22 +3975,6 @@ int SynchronizedStatement::blockExit(bool mustNotThrow)
     return body ? body->blockExit(mustNotThrow) : BEfallthru;
 }
 
-
-void SynchronizedStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("synchronized");
-    if (exp)
-    {   buf->writeByte('(');
-        exp->toCBuffer(buf, hgs);
-        buf->writeByte(')');
-    }
-    if (body)
-    {
-        buf->writeByte(' ');
-        body->toCBuffer(buf, hgs);
-    }
-}
-
 /******************************** WithStatement ***************************/
 
 WithStatement::WithStatement(Loc loc, Expression *exp, Statement *body)
@@ -4555,16 +4077,6 @@ Statement *WithStatement::semantic(Scope *sc)
     }
 
     return this;
-}
-
-void WithStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("with (");
-    exp->toCBuffer(buf, hgs);
-    buf->writestring(")");
-    buf->writenl();
-    if (body)
-        body->toCBuffer(buf, hgs);
 }
 
 int WithStatement::blockExit(bool mustNotThrow)
@@ -4702,20 +4214,6 @@ int TryCatchStatement::blockExit(bool mustNotThrow)
     return result | catchresult;
 }
 
-
-void TryCatchStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("try");
-    buf->writenl();
-    if (body)
-        body->toCBuffer(buf, hgs);
-    for (size_t i = 0; i < catches->dim; i++)
-    {
-        Catch *c = (*catches)[i];
-        c->toCBuffer(buf, hgs);
-    }
-}
-
 /******************************** Catch ***************************/
 
 Catch::Catch(Loc loc, Type *t, Identifier *id, Statement *handler)
@@ -4803,24 +4301,6 @@ int Catch::blockExit(bool mustNotThrow)
     return handler ? handler->blockExit(mustNotThrow) : BEfallthru;
 }
 
-void Catch::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("catch");
-    if (type)
-    {   buf->writeByte('(');
-        type->toCBuffer(buf, ident, hgs);
-        buf->writeByte(')');
-    }
-    buf->writenl();
-    buf->writeByte('{');
-    buf->writenl();
-    buf->level++;
-    if (handler)
-        handler->toCBuffer(buf, hgs);
-    buf->level--;
-    buf->writeByte('}');
-    buf->writenl();
-}
 
 /****************************** TryFinallyStatement ***************************/
 
@@ -4862,28 +4342,6 @@ Statement *TryFinallyStatement::semantic(Scope *sc)
         return s;
     }
     return this;
-}
-
-void TryFinallyStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("try");
-    buf->writenl();
-    buf->writeByte('{');
-    buf->writenl();
-    buf->level++;
-    body->toCBuffer(buf, hgs);
-    buf->level--;
-    buf->writeByte('}');
-    buf->writenl();
-    buf->writestring("finally");
-    buf->writenl();
-    buf->writeByte('{');
-    buf->writenl();
-    buf->level++;
-    finalbody->toCBuffer(buf, hgs);
-    buf->level--;
-    buf->writeByte('}');
-    buf->writenl();
 }
 
 bool TryFinallyStatement::hasBreak()
@@ -4938,13 +4396,6 @@ Statement *OnScopeStatement::semantic(Scope *sc)
 int OnScopeStatement::blockExit(bool mustNotThrow)
 {   // At this point, this statement is just an empty placeholder
     return BEfallthru;
-}
-
-void OnScopeStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring(Token::toChars(tok));
-    buf->writeByte(' ');
-    statement->toCBuffer(buf, hgs);
 }
 
 Statement *OnScopeStatement::scopeCode(Scope *sc, Statement **sentry, Statement **sexception, Statement **sfinally)
@@ -5051,15 +4502,6 @@ int ThrowStatement::blockExit(bool mustNotThrow)
     return BEthrow;
 }
 
-
-void ThrowStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->printf("throw ");
-    exp->toCBuffer(buf, hgs);
-    buf->writeByte(';');
-    buf->writenl();
-}
-
 /******************************** DebugStatement **************************/
 
 DebugStatement::DebugStatement(Loc loc, Statement *statement)
@@ -5102,15 +4544,6 @@ Statements *DebugStatement::flatten(Scope *sc)
 
     return a;
 }
-
-void DebugStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    if (statement)
-    {
-        statement->toCBuffer(buf, hgs);
-    }
-}
-
 
 /******************************** GotoStatement ***************************/
 
@@ -5211,15 +4644,6 @@ int GotoStatement::blockExit(bool mustNotThrow)
     return BEgoto;
 }
 
-
-void GotoStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("goto ");
-    buf->writestring(ident->toChars());
-    buf->writeByte(';');
-    buf->writenl();
-}
-
 /******************************** LabelStatement ***************************/
 
 LabelStatement::LabelStatement(Loc loc, Identifier *ident, Statement *statement)
@@ -5303,17 +4727,6 @@ int LabelStatement::blockExit(bool mustNotThrow)
     return statement ? statement->blockExit(mustNotThrow) : BEfallthru;
 }
 
-
-void LabelStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring(ident->toChars());
-    buf->writeByte(':');
-    buf->writenl();
-    if (statement)
-        statement->toCBuffer(buf, hgs);
-}
-
-
 /******************************** LabelDsymbol ***************************/
 
 LabelDsymbol::LabelDsymbol(Identifier *ident)
@@ -5358,36 +4771,6 @@ int AsmStatement::blockExit(bool mustNotThrow)
         error("asm statements are assumed to throw", toChars());
     // Assume the worst
     return BEfallthru | BEthrow | BEreturn | BEgoto | BEhalt;
-}
-
-void AsmStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("asm { ");
-    Token *t = tokens;
-    buf->level++;
-    while (t)
-    {
-        buf->writestring(t->toChars());
-        if (t->next                         &&
-           t->value != TOKmin               &&
-           t->value != TOKcomma             &&
-           t->next->value != TOKcomma       &&
-           t->value != TOKlbracket          &&
-           t->next->value != TOKlbracket    &&
-           t->next->value != TOKrbracket    &&
-           t->value != TOKlparen            &&
-           t->next->value != TOKlparen      &&
-           t->next->value != TOKrparen      &&
-           t->value != TOKdot               &&
-           t->next->value != TOKdot)
-        {
-            buf->writeByte(' ');
-        }
-        t = t->next;
-    }
-    buf->level--;
-    buf->writestring("; }");
-    buf->writenl();
 }
 
 /************************ ImportStatement ***************************************/
@@ -5449,13 +4832,4 @@ Statement *ImportStatement::semantic(Scope *sc)
 int ImportStatement::blockExit(bool mustNotThrow)
 {
     return BEfallthru;
-}
-
-void ImportStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    for (size_t i = 0; i < imports->dim; i++)
-    {
-        Dsymbol *s = (*imports)[i];
-        s->toCBuffer(buf, hgs);
-    }
 }
