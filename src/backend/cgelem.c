@@ -4931,18 +4931,43 @@ beg:
             case OPcond:
                 if (!goal)
                 {   // Transform x?y:z into x&&y or x||z
-                    if (!el_sideeffect(e->E2->E1))
+                    elem *e2 = e->E2;
+                    if (!el_sideeffect(e2->E1))
                     {   e->Eoper = OPoror;
-                        e->E2 = el_selecte2(e->E2);
+                        e->E2 = el_selecte2(e2);
                         e->Ety = TYint;
                         goto beg;
                     }
-                    else if (!el_sideeffect(e->E2->E2))
+                    else if (!el_sideeffect(e2->E2))
                     {   e->Eoper = OPandand;
-                        e->E2 = el_selecte1(e->E2);
+                        e->E2 = el_selecte1(e2);
                         e->Ety = TYint;
                         goto beg;
                     }
+                    assert(e2->Eoper == OPcolon || e2->Eoper == OPcolon2);
+                    elem *e21 = e2->E1 = optelem(e2->E1, goal);
+                    elem *e22 = e2->E2 = optelem(e2->E2, goal);
+                    if (!e21)
+                    {
+                        if (!e22)
+                        {
+                            e = el_selecte1(e);
+                            goto beg;
+                        }
+                        // Rewrite (e1 ? null : e22) as (e1 || e22)
+                        e->Eoper = OPoror;
+                        e->E2 = el_selecte2(e2);
+                        goto beg;
+                    }
+                    if (!e22)
+                    {
+                        // Rewrite (e1 ? e21 : null) as (e1 && e21)
+                        e->Eoper = OPandand;
+                        e->E2 = el_selecte1(e2);
+                        goto beg;
+                    }
+                    if (!rightgoal)
+                        rightgoal = GOALvalue;
                 }
                 goto Llog;
 
