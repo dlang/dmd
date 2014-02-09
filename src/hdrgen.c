@@ -1172,27 +1172,23 @@ void functionToCBuffer2(TypeFunction *t, OutBuffer *buf, HdrGenState *hgs, unsig
     }
     buf->writestring(kind);
     Parameter::argsToCBuffer(buf, hgs, t->parameters, t->varargs);
-    t->attributesToCBuffer(buf, modMask);
-}
 
-void TypeFunction::attributesToCBuffer(OutBuffer *buf, unsigned char modMask)
-{
     /* Use postfix style for attributes
      */
-    if (modMask != this->mod)
+    if (modMask != t->mod)
     {
-        modToBuffer(buf);
+        t->modToBuffer(buf);
     }
-    if (purity)
+    if (t->purity)
         buf->writestring(" pure");
-    if (isnothrow)
+    if (t->isnothrow)
         buf->writestring(" nothrow");
-    if (isproperty)
+    if (t->isproperty)
         buf->writestring(" @property");
-    if (isref)
+    if (t->isref)
         buf->writestring(" ref");
 
-    switch (trust)
+    switch (t->trust)
     {
         case TRUSTsystem:
             buf->writestring(" @system");
