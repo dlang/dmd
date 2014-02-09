@@ -94,12 +94,10 @@ class PrettyPrintVisitor : public Visitor
 public:
     OutBuffer *buf;
     HdrGenState *hgs;
-
-    Identifier *ident; // for printing "Type ident" of variables/parameters
     unsigned char modMask;
 
-    PrettyPrintVisitor(OutBuffer *buf, HdrGenState *hgs, Identifier *ident, unsigned char modMask)
-        : buf(buf), hgs(hgs), ident(ident), modMask(modMask)
+    PrettyPrintVisitor(OutBuffer *buf, HdrGenState *hgs)
+        : buf(buf), hgs(hgs), modMask(0)
     {
     }
 
@@ -965,7 +963,7 @@ public:
 
 void toCBuffer(Statement *s, OutBuffer *buf, HdrGenState *hgs)
 {
-    PrettyPrintVisitor v(buf, hgs, NULL, 0);
+    PrettyPrintVisitor v(buf, hgs);
     s->accept(&v);
 }
 
@@ -994,7 +992,7 @@ void Type::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
 // Bypass the special printing of function and error types
 void toBufferShort(Type *t, OutBuffer *buf, HdrGenState *hgs)
 {
-    PrettyPrintVisitor v(buf, hgs, NULL, 0);
+    PrettyPrintVisitor v(buf, hgs);
     v.visitWithMask(t, 0);
 }
 
@@ -1106,6 +1104,6 @@ void functionToBufferFull(TypeFunction *tf, OutBuffer *buf, Identifier *ident, H
 void functionToBufferWithIdent(TypeFunction *t, OutBuffer *buf, const char *ident)
 {
     HdrGenState hgs;
-    PrettyPrintVisitor v(buf, &hgs, NULL, 0);
+    PrettyPrintVisitor v(buf, &hgs);
     v.visitFuncIdent(t, ident);
 }
