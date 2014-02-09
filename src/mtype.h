@@ -249,7 +249,6 @@ public:
     Type *merge2();
     void toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, unsigned char modMask);
-    void toCBuffer3(OutBuffer *buf, HdrGenState *hgs, unsigned char modMask);
     void modToBuffer(OutBuffer *buf);
     char *modToChars();
     virtual bool isintegral();

@@ -716,39 +716,59 @@ public:
     {
         unsigned char save = modMask;
         modMask = mod;
-        t->accept(this);
+
+        // Tuples and functions don't use the type constructor syntax
+        if (modMask == t->mod ||
+            t->ty == Tfunction ||
+            t->ty == Ttuple)
+        {
+            t->accept(this);
+        }
+        else
+        {
+            unsigned char m = t->mod & ~(t->mod & modMask);
+            if (m & MODshared)
+            {
+                MODtoBuffer(buf, MODshared);
+                buf->writeByte('(');
+            }
+            if (m & MODwild)
+            {
+                MODtoBuffer(buf, MODwild);
+                buf->writeByte('(');
+            }
+            if (m & (MODconst | MODimmutable))
+            {
+                MODtoBuffer(buf, m & (MODconst | MODimmutable));
+                buf->writeByte('(');
+            }
+
+            t->accept(this);
+
+            if (m & (MODconst | MODimmutable))
+                buf->writeByte(')');
+            if (m & MODwild)
+                buf->writeByte(')');
+            if (m & MODshared)
+                buf->writeByte(')');
+        }
         modMask = save;
     }
 
     void visit(Type *t)
     {
-        if (modMask != t->mod)
-        {
-            t->toCBuffer3(buf, hgs, modMask);
-            return;
-        }
         buf->writestring(t->toChars());
     }
 
     void visit(TypeBasic *t)
     {
         //printf("TypeBasic::toCBuffer2(modMask = %d, t->mod = %d)\n", modMask, t->mod);
-        if (modMask != t->mod)
-        {
-            t->toCBuffer3(buf, hgs, modMask);
-            return;
-        }
         buf->writestring(t->dstring);
     }
 
     void visit(TypeVector *t)
     {
         //printf("TypeVector::toCBuffer2(modMask = %d, t->mod = %d)\n", modMask, t->mod);
-        if (modMask != t->mod)
-        {
-            t->toCBuffer3(buf, hgs, modMask);
-            return;
-        }
         buf->writestring("__vector(");
         visitWithMask(t->basetype, t->mod);
         buf->writestring(")");
@@ -756,11 +776,6 @@ public:
 
     void visit(TypeSArray *t)
     {
-        if (modMask != t->mod)
-        {
-            t->toCBuffer3(buf, hgs, modMask);
-            return;
-        }
         visitWithMask(t->next, t->mod);
         buf->writeByte('[');
         sizeToCBuffer(buf, hgs, t->dim);
@@ -769,11 +784,6 @@ public:
 
     void visit(TypeDArray *t)
     {
-        if (modMask != t->mod)
-        {
-            t->toCBuffer3(buf, hgs, modMask);
-            return;
-        }
         if (t->equals(t->tstring))
             buf->writestring("string");
         else
@@ -785,11 +795,6 @@ public:
 
     void visit(TypeAArray *t)
     {
-        if (modMask != t->mod)
-        {
-            t->toCBuffer3(buf, hgs, modMask);
-            return;
-        }
         visitWithMask(t->next, t->mod);
         buf->writeByte('[');
         visitWithMask(t->index, 0);
@@ -799,11 +804,6 @@ public:
     void visit(TypePointer *t)
     {
         //printf("TypePointer::toCBuffer2() next = %d\n", t->next->ty);
-        if (modMask != t->mod)
-        {
-            t->toCBuffer3(buf, hgs, modMask);
-            return;
-        }
         visitWithMask(t->next, t->mod);
         if (t->next->ty != Tfunction)
             buf->writeByte('*');
@@ -811,11 +811,6 @@ public:
 
     void visit(TypeReference *t)
     {
-        if (modMask != t->mod)
-        {
-            t->toCBuffer3(buf, hgs, modMask);
-            return;
-        }
         visitWithMask(t->next, t->mod);
         buf->writeByte('&');
     }
@@ -870,12 +865,6 @@ public:
 
     void visit(TypeDelegate *t)
     {
-        if (modMask != t->mod)
-        {
-            t->toCBuffer3(buf, hgs, modMask);
-            return;
-        }
-
         visitFuncIdent((TypeFunction *)t->next, "delegate");
     }
 
@@ -898,33 +887,18 @@ public:
 
     void visit(TypeIdentifier *t)
     {
-        if (modMask != t->mod)
-        {
-            t->toCBuffer3(buf, hgs, modMask);
-            return;
-        }
         buf->writestring(t->ident->toChars());
         visitTypeQualifiedHelper(t);
     }
 
     void visit(TypeInstance *t)
     {
-        if (modMask != t->mod)
-        {
-            t->toCBuffer3(buf, hgs, modMask);
-            return;
-        }
         t->tempinst->toCBuffer(buf, hgs);
         visitTypeQualifiedHelper(t);
     }
 
     void visit(TypeTypeof *t)
     {
-        if (modMask != t->mod)
-        {
-            t->toCBuffer3(buf, hgs, modMask);
-            return;
-        }
         buf->writestring("typeof(");
         t->exp->toCBuffer(buf, hgs);
         buf->writeByte(')');
@@ -933,43 +907,23 @@ public:
 
     void visit(TypeReturn *t)
     {
-        if (modMask != t->mod)
-        {
-            t->toCBuffer3(buf, hgs, modMask);
-            return;
-        }
         buf->writestring("typeof(return)");
         visitTypeQualifiedHelper(t);
     }
 
     void visit(TypeEnum *t)
     {
-        if (modMask != t->mod)
-        {
-            t->toCBuffer3(buf, hgs, modMask);
-            return;
-        }
         buf->writestring(t->sym->toChars());
     }
 
     void visit(TypeTypedef *t)
     {
         //printf("TypeTypedef::toCBuffer2() '%s'\n", t->sym->toChars());
-        if (modMask != t->mod)
-        {
-            t->toCBuffer3(buf, hgs, modMask);
-            return;
-        }
         buf->writestring(t->sym->toChars());
     }
 
     void visit(TypeStruct *t)
     {
-        if (modMask != t->mod)
-        {
-            t->toCBuffer3(buf, hgs, modMask);
-            return;
-        }
         TemplateInstance *ti = t->sym->parent->isTemplateInstance();
         if (ti && ti->toAlias() == t->sym)
             buf->writestring(ti->toChars());
@@ -979,11 +933,6 @@ public:
 
     void visit(TypeClass *t)
     {
-        if (modMask != t->mod)
-        {
-            t->toCBuffer3(buf, hgs, modMask);
-            return;
-        }
         TemplateInstance *ti = t->sym->parent->isTemplateInstance();
         if (ti && ti->toAlias() == t->sym)
             buf->writestring(ti->toChars());
@@ -998,11 +947,6 @@ public:
 
     void visit(TypeSlice *t)
     {
-        if (modMask != t->mod)
-        {
-            t->toCBuffer3(buf, hgs, modMask);
-            return;
-        }
         visitWithMask(t->next, t->mod);
 
         buf->writeByte('[');
@@ -1014,11 +958,6 @@ public:
 
     void visit(TypeNull *t)
     {
-        if (modMask != t->mod)
-        {
-            t->toCBuffer3(buf, hgs, modMask);
-            return;
-        }
         buf->writestring("typeof(null)");
     }
 };
@@ -1054,39 +993,7 @@ void Type::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
 void Type::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, unsigned char modMask)
 {
     PrettyPrintVisitor v(buf, hgs, NULL, modMask);
-    accept(&v);
-}
-
-void Type::toCBuffer3(OutBuffer *buf, HdrGenState *hgs, unsigned char modMask)
-{
-    if (modMask != this->mod)
-    {
-        unsigned char m = this->mod & ~(this->mod & modMask);
-        if (m & MODshared)
-        {
-            MODtoBuffer(buf, MODshared);
-            buf->writeByte('(');
-        }
-        if (m & MODwild)
-        {
-            MODtoBuffer(buf, MODwild);
-            buf->writeByte('(');
-        }
-        if (m & (MODconst | MODimmutable))
-        {
-            MODtoBuffer(buf, m & (MODconst | MODimmutable));
-            buf->writeByte('(');
-        }
-
-        toCBuffer2(buf, hgs, this->mod);
-
-        if (m & (MODconst | MODimmutable))
-            buf->writeByte(')');
-        if (m & MODwild)
-            buf->writeByte(')');
-        if (m & MODshared)
-            buf->writeByte(')');
-    }
+    v.visitWithMask(this, 0);
 }
 
 void trustToBuffer(OutBuffer *buf, TRUST trust)
