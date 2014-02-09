@@ -1031,17 +1031,24 @@ void toCBuffer(Statement *s, OutBuffer *buf, HdrGenState *hgs)
 
 void Type::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
 {
+    if (ty == Tfunction)
+    {
+        TypeFunction *tf = (TypeFunction *)this;
+        functionToBufferFull(tf, buf, ident, hgs, tf, NULL);
+        return;
+    }
+    if (ty == Terror)
+    {
+        buf->writestring("_error_");
+        return;
+    }
+
     toCBuffer2(buf, hgs, 0);
     if (ident)
     {
         buf->writeByte(' ');
         buf->writestring(ident->toChars());
     }
-}
-
-void TypeError::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
-{
-    buf->writestring("_error_");
 }
 
 void Type::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, unsigned char modMask)
@@ -1080,11 +1087,6 @@ void Type::toCBuffer3(OutBuffer *buf, HdrGenState *hgs, unsigned char modMask)
         if (m & MODshared)
             buf->writeByte(')');
     }
-}
-
-void TypeFunction::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
-{
-    functionToBufferFull(this, buf, ident, hgs, this, NULL);
 }
 
 void trustToBuffer(OutBuffer *buf, TRUST trust)

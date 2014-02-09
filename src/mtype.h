@@ -247,7 +247,7 @@ public:
     virtual void toDecoBuffer(OutBuffer *buf, int flag = 0);
     Type *merge();
     Type *merge2();
-    virtual void toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
+    void toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, unsigned char modMask);
     void toCBuffer3(OutBuffer *buf, HdrGenState *hgs, unsigned char modMask);
     void modToBuffer(OutBuffer *buf);
@@ -362,8 +362,6 @@ class TypeError : public Type
 public:
     TypeError();
     Type *syntaxCopy();
-
-    void toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
 
     d_uns64 size(Loc loc);
     Expression *getProperty(Loc loc, Identifier *ident, int flag);
@@ -647,7 +645,6 @@ public:
     Type *semantic(Loc loc, Scope *sc);
     void purityLevel();
     void toDecoBuffer(OutBuffer *buf, int flag);
-    void toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     Type *reliesOnTident(TemplateParameters *tparams = NULL);
