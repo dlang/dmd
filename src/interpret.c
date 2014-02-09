@@ -371,324 +371,342 @@ struct CompiledCtfeFunction
     }
 };
 
-void Statement::ctfeCompile(CompiledCtfeFunction *ccf)
+class CtfeCompiler : public Visitor
 {
-#if LOGCOMPILE
-    printf("%s Statement::ctfeCompile %s\n", loc.toChars(), toChars());
-#endif
-    assert(0);
-}
+public:
+    CompiledCtfeFunction *ccf;
 
-void ExpStatement::ctfeCompile(CompiledCtfeFunction *ccf)
-{
-#if LOGCOMPILE
-    printf("%s ExpStatement::ctfeCompile\n", loc.toChars());
-#endif
-    if (exp)
-        ccf->onExpression(exp);
-}
-
-void CompoundStatement::ctfeCompile(CompiledCtfeFunction *ccf)
-{
-#if LOGCOMPILE
-    printf("%s CompoundStatement::ctfeCompile\n", loc.toChars());
-#endif
-    for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s = (*statements)[i];
-        if (s)
-            s->ctfeCompile(ccf);
-    }
-}
-
-void UnrolledLoopStatement::ctfeCompile(CompiledCtfeFunction *ccf)
-{
-#if LOGCOMPILE
-    printf("%s UnrolledLoopStatement::ctfeCompile\n", loc.toChars());
-#endif
-    for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s = (*statements)[i];
-        if (s)
-            s->ctfeCompile(ccf);
-    }
-}
-
-void IfStatement::ctfeCompile(CompiledCtfeFunction *ccf)
-{
-#if LOGCOMPILE
-    printf("%s IfStatement::ctfeCompile\n", loc.toChars());
-#endif
-
-    ccf->onExpression(condition);
-    if (ifbody)
-        ifbody->ctfeCompile(ccf);
-    if (elsebody)
-        elsebody->ctfeCompile(ccf);
-}
-
-void ScopeStatement::ctfeCompile(CompiledCtfeFunction *ccf)
-{
-#if LOGCOMPILE
-    printf("%s ScopeStatement::ctfeCompile\n", loc.toChars());
-#endif
-    if (statement)
-        statement->ctfeCompile(ccf);
-}
-
-void OnScopeStatement::ctfeCompile(CompiledCtfeFunction *ccf)
-{
-#if LOGCOMPILE
-    printf("%s OnScopeStatement::ctfeCompile\n", loc.toChars());
-#endif
-    // rewritten to try/catch/finally
-    assert(0);
-}
-
-void DoStatement::ctfeCompile(CompiledCtfeFunction *ccf)
-{
-#if LOGCOMPILE
-    printf("%s DoStatement::ctfeCompile\n", loc.toChars());
-#endif
-    ccf->onExpression(condition);
-    if (body)
-        body->ctfeCompile(ccf);
-}
-
-void WhileStatement::ctfeCompile(CompiledCtfeFunction *ccf)
-{
-#if LOGCOMPILE
-    printf("%s WhileStatement::ctfeCompile\n", loc.toChars());
-#endif
-    // rewritten to ForStatement
-    assert(0);
-}
-
-void ForStatement::ctfeCompile(CompiledCtfeFunction *ccf)
-{
-#if LOGCOMPILE
-    printf("%s ForStatement::ctfeCompile\n", loc.toChars());
-#endif
-
-    if (init)
-        init->ctfeCompile(ccf);
-    if (condition)
-        ccf->onExpression(condition);
-    if (increment)
-        ccf->onExpression(increment);
-    if (body)
-        body->ctfeCompile(ccf);
-}
-
-void ForeachStatement::ctfeCompile(CompiledCtfeFunction *ccf)
-{
-#if LOGCOMPILE
-    printf("%s ForeachStatement::ctfeCompile\n", loc.toChars());
-#endif
-    // rewritten for ForStatement
-    assert(0);
-}
-
-
-void SwitchStatement::ctfeCompile(CompiledCtfeFunction *ccf)
-{
-#if LOGCOMPILE
-    printf("%s SwitchStatement::ctfeCompile\n", loc.toChars());
-#endif
-    ccf->onExpression(condition);
-    // Note that the body contains the the Case and Default
-    // statements, so we only need to compile the expressions
-    for (size_t i = 0; i < cases->dim; i++)
+    CtfeCompiler(CompiledCtfeFunction *ccf)
+        : ccf(ccf)
     {
-        ccf->onExpression((*cases)[i]->exp);
     }
-    if (body)
-        body->ctfeCompile(ccf);
-}
 
-void CaseStatement::ctfeCompile(CompiledCtfeFunction *ccf)
-{
-#if LOGCOMPILE
-    printf("%s CaseStatement::ctfeCompile\n", loc.toChars());
-#endif
-    if (statement)
-        statement->ctfeCompile(ccf);
-}
-
-void DefaultStatement::ctfeCompile(CompiledCtfeFunction *ccf)
-{
-#if LOGCOMPILE
-    printf("%s DefaultStatement::ctfeCompile\n", loc.toChars());
-#endif
-    if (statement)
-        statement->ctfeCompile(ccf);
-}
-
-void GotoDefaultStatement::ctfeCompile(CompiledCtfeFunction *ccf)
-{
-#if LOGCOMPILE
-    printf("%s GotoDefaultStatement::ctfeCompile\n", loc.toChars());
-#endif
-}
-
-void GotoCaseStatement::ctfeCompile(CompiledCtfeFunction *ccf)
-{
-#if LOGCOMPILE
-    printf("%s GotoCaseStatement::ctfeCompile\n", loc.toChars());
-#endif
-}
-
-void SwitchErrorStatement::ctfeCompile(CompiledCtfeFunction *ccf)
-{
-#if LOGCOMPILE
-    printf("%s SwitchErrorStatement::ctfeCompile\n", loc.toChars());
-#endif
-}
-
-void ReturnStatement::ctfeCompile(CompiledCtfeFunction *ccf)
-{
-#if LOGCOMPILE
-    printf("%s ReturnStatement::ctfeCompile\n", loc.toChars());
-#endif
-    if (exp)
-        ccf->onExpression(exp);
-}
-
-void BreakStatement::ctfeCompile(CompiledCtfeFunction *ccf)
-{
-#if LOGCOMPILE
-    printf("%s BreakStatement::ctfeCompile\n", loc.toChars());
-#endif
-}
-
-void ContinueStatement::ctfeCompile(CompiledCtfeFunction *ccf)
-{
-#if LOGCOMPILE
-    printf("%s ContinueStatement::ctfeCompile\n", loc.toChars());
-#endif
-}
-
-void WithStatement::ctfeCompile(CompiledCtfeFunction *ccf)
-{
-#if LOGCOMPILE
-    printf("%s WithStatement::ctfeCompile\n", loc.toChars());
-#endif
-    // If it is with(Enum) {...}, just execute the body.
-    if (exp->op == TOKimport || exp->op == TOKtype)
-    {}
-    else
+    void visit(Statement *s)
     {
-        ccf->onDeclaration(wthis);
-        ccf->onExpression(exp);
+    #if LOGCOMPILE
+        printf("%s Statement::ctfeCompile %s\n", s->loc.toChars(), s->toChars());
+    #endif
+        assert(0);
     }
-    if (body)
-        body->ctfeCompile(ccf);
-}
 
-void TryCatchStatement::ctfeCompile(CompiledCtfeFunction *ccf)
-{
-#if LOGCOMPILE
-    printf("%s TryCatchStatement::ctfeCompile\n", loc.toChars());
-#endif
-    if (body)
-        body->ctfeCompile(ccf);
-    for (size_t i = 0; i < catches->dim; i++)
+    void visit(ExpStatement *s)
     {
-        Catch *ca = (*catches)[i];
-        if (ca->var)
-            ccf->onDeclaration(ca->var);
-        if (ca->handler)
-            ca->handler->ctfeCompile(ccf);
+    #if LOGCOMPILE
+        printf("%s ExpStatement::ctfeCompile\n", s->loc.toChars());
+    #endif
+        if (s->exp)
+            ccf->onExpression(s->exp);
     }
-}
 
-void TryFinallyStatement::ctfeCompile(CompiledCtfeFunction *ccf)
-{
-#if LOGCOMPILE
-    printf("%s TryFinallyStatement::ctfeCompile\n", loc.toChars());
-#endif
-    if (body)
-        body->ctfeCompile(ccf);
-    if (finalbody)
-        finalbody->ctfeCompile(ccf);
-}
+    void visit(CompoundStatement *s)
+    {
+    #if LOGCOMPILE
+        printf("%s CompoundStatement::ctfeCompile\n", s->loc.toChars());
+    #endif
+        for (size_t i = 0; i < s->statements->dim; i++)
+        {
+            Statement *sx = (*s->statements)[i];
+            if (sx)
+                ctfeCompile(sx);
+        }
+    }
 
-void ThrowStatement::ctfeCompile(CompiledCtfeFunction *ccf)
-{
-#if LOGCOMPILE
-    printf("%s ThrowStatement::ctfeCompile\n", loc.toChars());
-#endif
-    ccf->onExpression(exp);
-}
+    void visit(UnrolledLoopStatement *s)
+    {
+    #if LOGCOMPILE
+        printf("%s UnrolledLoopStatement::ctfeCompile\n", s->loc.toChars());
+    #endif
+        for (size_t i = 0; i < s->statements->dim; i++)
+        {
+            Statement *sx = (*s->statements)[i];
+            if (sx)
+                ctfeCompile(sx);
+        }
+    }
 
-void GotoStatement::ctfeCompile(CompiledCtfeFunction *ccf)
-{
-#if LOGCOMPILE
-    printf("%s GotoStatement::ctfeCompile\n", loc.toChars());
-#endif
-}
+    void visit(IfStatement *s)
+    {
+    #if LOGCOMPILE
+        printf("%s IfStatement::ctfeCompile\n", s->loc.toChars());
+    #endif
 
-void LabelStatement::ctfeCompile(CompiledCtfeFunction *ccf)
-{
-#if LOGCOMPILE
-    printf("%s LabelStatement::ctfeCompile\n", loc.toChars());
-#endif
-    if (statement)
-        statement->ctfeCompile(ccf);
-}
+        ccf->onExpression(s->condition);
+        if (s->ifbody)
+            ctfeCompile(s->ifbody);
+        if (s->elsebody)
+            ctfeCompile(s->elsebody);
+    }
 
-void ImportStatement::ctfeCompile(CompiledCtfeFunction *ccf)
-{
-#if LOGCOMPILE
-    printf("%s ImportStatement::ctfeCompile\n", loc.toChars());
-#endif
-    // Contains no variables or executable code
-}
+    void visit(ScopeStatement *s)
+    {
+    #if LOGCOMPILE
+        printf("%s ScopeStatement::ctfeCompile\n", s->loc.toChars());
+    #endif
+        if (s->statement)
+            ctfeCompile(s->statement);
+    }
 
-void ForeachRangeStatement::ctfeCompile(CompiledCtfeFunction *ccf)
-{
-#if LOGCOMPILE
-    printf("%s ForeachRangeStatement::ctfeCompile\n", loc.toChars());
-#endif
-    // rewritten for ForStatement
-    assert(0);
-}
+    void visit(OnScopeStatement *s)
+    {
+    #if LOGCOMPILE
+        printf("%s OnScopeStatement::ctfeCompile\n", s->loc.toChars());
+    #endif
+        // rewritten to try/catch/finally
+        assert(0);
+    }
 
-void AsmStatement::ctfeCompile(CompiledCtfeFunction *ccf)
-{
-#if LOGCOMPILE
-    printf("%s AsmStatement::ctfeCompile\n", loc.toChars());
-#endif
-    // we can't compile asm statements
-}
+    void visit(DoStatement *s)
+    {
+    #if LOGCOMPILE
+        printf("%s DoStatement::ctfeCompile\n", s->loc.toChars());
+    #endif
+        ccf->onExpression(s->condition);
+        if (s->body)
+            ctfeCompile(s->body);
+    }
+
+    void visit(WhileStatement *s)
+    {
+    #if LOGCOMPILE
+        printf("%s WhileStatement::ctfeCompile\n", s->loc.toChars());
+    #endif
+        // rewritten to ForStatement
+        assert(0);
+    }
+
+    void visit(ForStatement *s)
+    {
+    #if LOGCOMPILE
+        printf("%s ForStatement::ctfeCompile\n", s->loc.toChars());
+    #endif
+
+        if (s->init)
+            ctfeCompile(s->init);
+        if (s->condition)
+            ccf->onExpression(s->condition);
+        if (s->increment)
+            ccf->onExpression(s->increment);
+        if (s->body)
+            ctfeCompile(s->body);
+    }
+
+    void visit(ForeachStatement *s)
+    {
+    #if LOGCOMPILE
+        printf("%s ForeachStatement::ctfeCompile\n", s->loc.toChars());
+    #endif
+        // rewritten for ForStatement
+        assert(0);
+    }
+
+    void visit(SwitchStatement *s)
+    {
+    #if LOGCOMPILE
+        printf("%s SwitchStatement::ctfeCompile\n", s->loc.toChars());
+    #endif
+        ccf->onExpression(s->condition);
+        // Note that the body contains the the Case and Default
+        // statements, so we only need to compile the expressions
+        for (size_t i = 0; i < s->cases->dim; i++)
+        {
+            ccf->onExpression((*s->cases)[i]->exp);
+        }
+        if (s->body)
+            ctfeCompile(s->body);
+    }
+
+    void visit(CaseStatement *s)
+    {
+    #if LOGCOMPILE
+        printf("%s CaseStatement::ctfeCompile\n", s->loc.toChars());
+    #endif
+        if (s->statement)
+            ctfeCompile(s->statement);
+    }
+
+    void visit(DefaultStatement *s)
+    {
+    #if LOGCOMPILE
+        printf("%s DefaultStatement::ctfeCompile\n", s->loc.toChars());
+    #endif
+        if (s->statement)
+            ctfeCompile(s->statement);
+    }
+
+    void visit(GotoDefaultStatement *s)
+    {
+    #if LOGCOMPILE
+        printf("%s GotoDefaultStatement::ctfeCompile\n", s->loc.toChars());
+    #endif
+    }
+
+    void visit(GotoCaseStatement *s)
+    {
+    #if LOGCOMPILE
+        printf("%s GotoCaseStatement::ctfeCompile\n", s->loc.toChars());
+    #endif
+    }
+
+    void visit(SwitchErrorStatement *s)
+    {
+    #if LOGCOMPILE
+        printf("%s SwitchErrorStatement::ctfeCompile\n", s->loc.toChars());
+    #endif
+    }
+
+    void visit(ReturnStatement *s)
+    {
+    #if LOGCOMPILE
+        printf("%s ReturnStatement::ctfeCompile\n", s->loc.toChars());
+    #endif
+        if (s->exp)
+            ccf->onExpression(s->exp);
+    }
+
+    void visit(BreakStatement *s)
+    {
+    #if LOGCOMPILE
+        printf("%s BreakStatement::ctfeCompile\n", s->loc.toChars());
+    #endif
+    }
+
+    void visit(ContinueStatement *s)
+    {
+    #if LOGCOMPILE
+        printf("%s ContinueStatement::ctfeCompile\n", s->loc.toChars());
+    #endif
+    }
+
+    void visit(WithStatement *s)
+    {
+    #if LOGCOMPILE
+        printf("%s WithStatement::ctfeCompile\n", s->loc.toChars());
+    #endif
+        // If it is with(Enum) {...}, just execute the body.
+        if (s->exp->op == TOKimport || s->exp->op == TOKtype)
+        {
+        }
+        else
+        {
+            ccf->onDeclaration(s->wthis);
+            ccf->onExpression(s->exp);
+        }
+        if (s->body)
+            ctfeCompile(s->body);
+    }
+
+    void visit(TryCatchStatement *s)
+    {
+    #if LOGCOMPILE
+        printf("%s TryCatchStatement::ctfeCompile\n", s->loc.toChars());
+    #endif
+        if (s->body)
+            ctfeCompile(s->body);
+        for (size_t i = 0; i < s->catches->dim; i++)
+        {
+            Catch *ca = (*s->catches)[i];
+            if (ca->var)
+                ccf->onDeclaration(ca->var);
+            if (ca->handler)
+                ctfeCompile(ca->handler);
+        }
+    }
+
+    void visit(TryFinallyStatement *s)
+    {
+    #if LOGCOMPILE
+        printf("%s TryFinallyStatement::ctfeCompile\n", s->loc.toChars());
+    #endif
+        if (s->body)
+            ctfeCompile(s->body);
+        if (s->finalbody)
+            ctfeCompile(s->finalbody);
+    }
+
+    void visit(ThrowStatement *s)
+    {
+    #if LOGCOMPILE
+        printf("%s ThrowStatement::ctfeCompile\n", s->loc.toChars());
+    #endif
+        ccf->onExpression(s->exp);
+    }
+
+    void visit(GotoStatement *s)
+    {
+    #if LOGCOMPILE
+        printf("%s GotoStatement::ctfeCompile\n", s->loc.toChars());
+    #endif
+    }
+
+    void visit(LabelStatement *s)
+    {
+    #if LOGCOMPILE
+        printf("%s LabelStatement::ctfeCompile\n", s->loc.toChars());
+    #endif
+        if (s->statement)
+            ctfeCompile(s->statement);
+    }
+
+    void visit(ImportStatement *s)
+    {
+    #if LOGCOMPILE
+        printf("%s ImportStatement::ctfeCompile\n", s->loc.toChars());
+    #endif
+        // Contains no variables or executable code
+    }
+
+    void visit(ForeachRangeStatement *s)
+    {
+    #if LOGCOMPILE
+        printf("%s ForeachRangeStatement::ctfeCompile\n", s->loc.toChars());
+    #endif
+        // rewritten for ForStatement
+        assert(0);
+    }
+
+    void visit(AsmStatement *s)
+    {
+    #if LOGCOMPILE
+        printf("%s AsmStatement::ctfeCompile\n", s->loc.toChars());
+    #endif
+        // we can't compile asm statements
+    }
+
+    void ctfeCompile(Statement *s)
+    {
+        s->accept(this);
+    }
+};
 
 /*************************************
  * Compile this function for CTFE.
  * At present, this merely allocates variables.
  */
-void FuncDeclaration::ctfeCompile()
+void ctfeCompile(FuncDeclaration *fd)
 {
 #if LOGCOMPILE
-    printf("\n%s FuncDeclaration::ctfeCompile %s\n", loc.toChars(), toChars());
+    printf("\n%s FuncDeclaration::ctfeCompile %s\n", fd->loc.toChars(), fd->toChars());
 #endif
-    assert(!ctfeCode);
-    assert(!semantic3Errors);
-    assert(semanticRun == PASSsemantic3done);
+    assert(!fd->ctfeCode);
+    assert(!fd->semantic3Errors);
+    assert(fd->semanticRun == PASSsemantic3done);
 
-    ctfeCode = new CompiledCtfeFunction(this);
-    if (parameters)
+    fd->ctfeCode = new CompiledCtfeFunction(fd);
+    if (fd->parameters)
     {
-        Type *tb = type->toBasetype();
+        Type *tb = fd->type->toBasetype();
         assert(tb->ty == Tfunction);
         TypeFunction *tf = (TypeFunction *)tb;
-        for (size_t i = 0; i < parameters->dim; i++)
+        for (size_t i = 0; i < fd->parameters->dim; i++)
         {
-            Parameter *arg = Parameter::getNth(tf->parameters, i);
-            VarDeclaration *v = (*parameters)[i];
-            ctfeCode->onDeclaration(v);
+            VarDeclaration *v = (*fd->parameters)[i];
+            fd->ctfeCode->onDeclaration(v);
         }
     }
-    if (vresult)
-        ctfeCode->onDeclaration(vresult);
-    fbody->ctfeCompile(ctfeCode);
+    if (fd->vresult)
+        fd->ctfeCode->onDeclaration(fd->vresult);
+    CtfeCompiler v(fd->ctfeCode);
+    v.ctfeCompile(fd->fbody);
 }
 
 /*************************************
@@ -795,7 +813,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
 
     // CTFE-compile the function
     if (!ctfeCode)
-        ctfeCompile();
+        ctfeCompile(this);
 
     Type *tb = type->toBasetype();
     assert(tb->ty == Tfunction);
