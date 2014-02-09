@@ -1050,6 +1050,42 @@ void TypeFunction::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs
     toCBufferWithAttributes(buf, ident, hgs, this, NULL);
 }
 
+void trustToBuffer(OutBuffer *buf, TRUST trust)
+{
+    switch (trust)
+    {
+        case TRUSTsystem:
+            buf->writestring("@system");
+            break;
+
+        case TRUSTtrusted:
+            buf->writestring("@trusted");
+            break;
+
+        case TRUSTsafe:
+            buf->writestring("@safe");
+            break;
+        default: break;
+    }
+}
+
+void linkageToBuffer(OutBuffer *buf, LINK linkage)
+{
+    const char *p = NULL;
+    switch (linkage)
+    {
+        case LINKc:         p = "C";        break;
+        case LINKwindows:   p = "Windows";  break;
+        case LINKpascal:    p = "Pascal";   break;
+        case LINKcpp:       p = "C++";      break;
+        default:
+            assert(0);
+    }
+    buf->writestring("extern (");
+    buf->writestring(p);
+    buf->writestring(") ");
+}
+
 void TypeFunction::toCBufferWithAttributes(OutBuffer *buf, Identifier *ident, HdrGenState* hgs, TypeFunction *attrs, TemplateDeclaration *td)
 {
     //printf("TypeFunction::toCBuffer() this = %p\n", this);
@@ -1076,42 +1112,14 @@ void TypeFunction::toCBufferWithAttributes(OutBuffer *buf, Identifier *ident, Hd
     if (attrs->isref)
         buf->writestring("ref ");
 
-    switch (attrs->trust)
+    if (attrs->trust)
     {
-        case TRUSTsystem:
-            buf->writestring("@system ");
-            break;
-
-        case TRUSTtrusted:
-            buf->writestring("@trusted ");
-            break;
-
-        case TRUSTsafe:
-            buf->writestring("@safe ");
-            break;
-        default: break;
+        trustToBuffer(buf, attrs->trust);
+        buf->writeByte(' ');
     }
 
-    if (hgs->ddoc != 1)
-    {
-        const char *p = NULL;
-        switch (attrs->linkage)
-        {
-            case LINKd:         p = NULL;       break;
-            case LINKc:         p = "C";        break;
-            case LINKwindows:   p = "Windows";  break;
-            case LINKpascal:    p = "Pascal";   break;
-            case LINKcpp:       p = "C++";      break;
-            default:
-                assert(0);
-        }
-        if (!hgs->hdrgen && p)
-        {
-            buf->writestring("extern (");
-            buf->writestring(p);
-            buf->writestring(") ");
-        }
-    }
+    if (attrs->linkage > LINKd && hgs->ddoc != 1 && !hgs->hdrgen)
+        linkageToBuffer(buf, attrs->linkage);
 
     if (!ident || ident->toHChars2() == ident->toChars())
     {   if (next)
@@ -1145,26 +1153,9 @@ void TypeFunction::toCBufferWithAttributes(OutBuffer *buf, Identifier *ident, Hd
 // kind is inserted before the argument list and will usually be "function" or "delegate".
 void functionToCBuffer2(TypeFunction *t, OutBuffer *buf, HdrGenState *hgs, unsigned char modMask, const char *kind)
 {
-    if (hgs->ddoc != 1)
-    {
-        const char *p = NULL;
-        switch (t->linkage)
-        {
-            case LINKd:         p = NULL;       break;
-            case LINKc:         p = "C";        break;
-            case LINKwindows:   p = "Windows";  break;
-            case LINKpascal:    p = "Pascal";   break;
-            case LINKcpp:       p = "C++";      break;
-            default:
-                assert(0);
-        }
-        if (!hgs->hdrgen && p)
-        {
-            buf->writestring("extern (");
-            buf->writestring(p);
-            buf->writestring(") ");
-        }
-    }
+    if (t->linkage > LINKd && hgs->ddoc != 1 && !hgs->hdrgen)
+        linkageToBuffer(buf, t->linkage);
+
     if (t->next)
     {
         t->next->toCBuffer2(buf, hgs, 0);
@@ -1188,19 +1179,9 @@ void functionToCBuffer2(TypeFunction *t, OutBuffer *buf, HdrGenState *hgs, unsig
     if (t->isref)
         buf->writestring(" ref");
 
-    switch (t->trust)
+    if (t->trust)
     {
-        case TRUSTsystem:
-            buf->writestring(" @system");
-            break;
-
-        case TRUSTtrusted:
-            buf->writestring(" @trusted");
-            break;
-
-        case TRUSTsafe:
-            buf->writestring(" @safe");
-            break;
-        default: break;
+        buf->writeByte(' ');
+        trustToBuffer(buf, t->trust);
     }
 }
