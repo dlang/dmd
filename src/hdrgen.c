@@ -710,6 +710,14 @@ public:
 
     ////////////////////////////////////////////////////////////////////////////
 
+    void visitWithMask(Type *t, unsigned char mod)
+    {
+        unsigned char save = modMask;
+        modMask = mod;
+        t->accept(this);
+        modMask = save;
+    }
+
     void visit(Type *t)
     {
         if (modMask != t->mod)
@@ -740,7 +748,7 @@ public:
             return;
         }
         buf->writestring("__vector(");
-        t->basetype->toCBuffer2(buf, hgs, t->mod);
+        visitWithMask(t->basetype, t->mod);
         buf->writestring(")");
     }
 
@@ -751,7 +759,7 @@ public:
             t->toCBuffer3(buf, hgs, modMask);
             return;
         }
-        t->next->toCBuffer2(buf, hgs, t->mod);
+        visitWithMask(t->next, t->mod);
         buf->writeByte('[');
         sizeToCBuffer(buf, hgs, t->dim);
         buf->writeByte(']');
@@ -768,7 +776,7 @@ public:
             buf->writestring("string");
         else
         {
-            t->next->toCBuffer2(buf, hgs, t->mod);
+            visitWithMask(t->next, t->mod);
             buf->writestring("[]");
         }
     }
@@ -780,9 +788,9 @@ public:
             t->toCBuffer3(buf, hgs, modMask);
             return;
         }
-        t->next->toCBuffer2(buf, hgs, t->mod);
+        visitWithMask(t->next, t->mod);
         buf->writeByte('[');
-        t->index->toCBuffer2(buf, hgs, 0);
+        visitWithMask(t->index, 0);
         buf->writeByte(']');
     }
 
@@ -794,7 +802,7 @@ public:
             t->toCBuffer3(buf, hgs, modMask);
             return;
         }
-        t->next->toCBuffer2(buf, hgs, t->mod);
+        visitWithMask(t->next, t->mod);
         if (t->next->ty != Tfunction)
             buf->writeByte('*');
     }
@@ -806,7 +814,7 @@ public:
             t->toCBuffer3(buf, hgs, modMask);
             return;
         }
-        t->next->toCBuffer2(buf, hgs, t->mod);
+        visitWithMask(t->next, t->mod);
         buf->writeByte('&');
     }
 
@@ -941,7 +949,7 @@ public:
             t->toCBuffer3(buf, hgs, modMask);
             return;
         }
-        t->next->toCBuffer2(buf, hgs, t->mod);
+        visitWithMask(t->next, t->mod);
 
         buf->writeByte('[');
         sizeToCBuffer(buf, hgs, t->lwr);
