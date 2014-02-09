@@ -44,7 +44,8 @@
 
 void argsToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *hgs);
 void sizeToCBuffer(OutBuffer *buf, HdrGenState *hgs, Expression *e);
-void functionToCBuffer2(TypeFunction *t, OutBuffer *buf, HdrGenState *hgs, unsigned char modMask, const char *kind);
+void trustToBuffer(OutBuffer *buf, TRUST trust);
+void linkageToBuffer(OutBuffer *buf, LINK linkage);
 
 void Module::genhdrfile()
 {
@@ -827,8 +828,43 @@ public:
             return;
         }
         t->inuse++;
-        functionToCBuffer2(t, buf, hgs, modMask, "function");
+        visitFuncIdent(t, "function");
         t->inuse--;
+    }
+
+    void visitFuncIdent(TypeFunction *t, const char *ident)
+    {
+        if (t->linkage > LINKd && hgs->ddoc != 1 && !hgs->hdrgen)
+            linkageToBuffer(buf, t->linkage);
+
+        if (t->next)
+        {
+            t->next->toCBuffer2(buf, hgs, 0);
+            buf->writeByte(' ');
+        }
+        buf->writestring(ident);
+        Parameter::argsToCBuffer(buf, hgs, t->parameters, t->varargs);
+
+        /* Use postfix style for attributes
+         */
+        if (modMask != t->mod)
+        {
+            t->modToBuffer(buf);
+        }
+        if (t->purity)
+            buf->writestring(" pure");
+        if (t->isnothrow)
+            buf->writestring(" nothrow");
+        if (t->isproperty)
+            buf->writestring(" @property");
+        if (t->isref)
+            buf->writestring(" ref");
+
+        if (t->trust)
+        {
+            buf->writeByte(' ');
+            trustToBuffer(buf, t->trust);
+        }
     }
 
     void visit(TypeDelegate *t)
@@ -839,7 +875,7 @@ public:
             return;
         }
 
-        functionToCBuffer2((TypeFunction *)t->next, buf, hgs, modMask, "delegate");
+        visitFuncIdent((TypeFunction *)t->next, "delegate");
     }
 
     void visitTypeQualifiedHelper(TypeQualified *t)
@@ -1150,38 +1186,10 @@ void TypeFunction::toCBufferWithAttributes(OutBuffer *buf, Identifier *ident, Hd
     inuse--;
 }
 
-// kind is inserted before the argument list and will usually be "function" or "delegate".
-void functionToCBuffer2(TypeFunction *t, OutBuffer *buf, HdrGenState *hgs, unsigned char modMask, const char *kind)
+// ident is inserted before the argument list and will be "function" or "delegate" for a type
+void functionToBufferWithIdent(TypeFunction *t, OutBuffer *buf, const char *ident)
 {
-    if (t->linkage > LINKd && hgs->ddoc != 1 && !hgs->hdrgen)
-        linkageToBuffer(buf, t->linkage);
-
-    if (t->next)
-    {
-        t->next->toCBuffer2(buf, hgs, 0);
-        buf->writeByte(' ');
-    }
-    buf->writestring(kind);
-    Parameter::argsToCBuffer(buf, hgs, t->parameters, t->varargs);
-
-    /* Use postfix style for attributes
-     */
-    if (modMask != t->mod)
-    {
-        t->modToBuffer(buf);
-    }
-    if (t->purity)
-        buf->writestring(" pure");
-    if (t->isnothrow)
-        buf->writestring(" nothrow");
-    if (t->isproperty)
-        buf->writestring(" @property");
-    if (t->isref)
-        buf->writestring(" ref");
-
-    if (t->trust)
-    {
-        buf->writeByte(' ');
-        trustToBuffer(buf, t->trust);
-    }
+    HdrGenState hgs;
+    PrettyPrintVisitor v(buf, &hgs, NULL, 0);
+    v.visitFuncIdent(t, ident);
 }

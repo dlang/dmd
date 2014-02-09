@@ -28,7 +28,7 @@
 #include "parse.h"
 #include "rmem.h"
 
-void functionToCBuffer2(TypeFunction *t, OutBuffer *buf, HdrGenState *hgs, unsigned char mod, const char *kind);
+void functionToBufferWithIdent(TypeFunction *t, OutBuffer *buf, const char *ident);
 void genCmain(Scope *sc);
 
 /********************************* FuncDeclaration ****************************/
@@ -3035,8 +3035,7 @@ const char *FuncDeclaration::toPrettyChars()
 const char *FuncDeclaration::toFullSignature()
 {
     OutBuffer buf;
-    HdrGenState hgs;
-    functionToCBuffer2((TypeFunction *)type, &buf, &hgs, 0, toChars());
+    functionToBufferWithIdent((TypeFunction *)type, &buf, toChars());
     return buf.extractString();
 }
 
