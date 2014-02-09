@@ -41,7 +41,7 @@
 bool isArrayOpValid(Expression *e);
 Expression *createTypeInfoArray(Scope *sc, Expression *args[], size_t dim);
 Expression *expandVar(int result, VarDeclaration *v);
-void functionToCBuffer2(TypeFunction *t, OutBuffer *buf, HdrGenState *hgs, int mod, const char *kind);
+void functionToCBuffer2(TypeFunction *t, OutBuffer *buf, HdrGenState *hgs, unsigned char mod, const char *kind);
 TypeTuple *toArgTypes(Type *t);
 
 #define LOGSEMANTIC     0

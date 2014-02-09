@@ -28,7 +28,7 @@
 #include "parse.h"
 #include "rmem.h"
 
-void functionToCBuffer2(TypeFunction *t, OutBuffer *buf, HdrGenState *hgs, int mod, const char *kind);
+void functionToCBuffer2(TypeFunction *t, OutBuffer *buf, HdrGenState *hgs, unsigned char mod, const char *kind);
 void genCmain(Scope *sc);
 
 /********************************* FuncDeclaration ****************************/

@@ -43,6 +43,8 @@
 #include "hdrgen.h"
 
 void argsToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *hgs);
+void sizeToCBuffer(OutBuffer *buf, HdrGenState *hgs, Expression *e);
+void functionToCBuffer2(TypeFunction *t, OutBuffer *buf, HdrGenState *hgs, unsigned char modMask, const char *kind);
 
 void Module::genhdrfile()
 {
@@ -90,8 +92,11 @@ public:
     OutBuffer *buf;
     HdrGenState *hgs;
 
-    PrettyPrintVisitor(OutBuffer *buf, HdrGenState *hgs)
-        : buf(buf), hgs(hgs)
+    Identifier *ident; // for printing "Type ident" of variables/parameters
+    unsigned char modMask;
+
+    PrettyPrintVisitor(OutBuffer *buf, HdrGenState *hgs, Identifier *ident, unsigned char modMask)
+        : buf(buf), hgs(hgs), ident(ident), modMask(modMask)
     {
     }
 
@@ -702,10 +707,496 @@ public:
         buf->writeByte('}');
         buf->writenl();
     }
+
+    ////////////////////////////////////////////////////////////////////////////
+
+    void visit(Type *t)
+    {
+        if (modMask != t->mod)
+        {
+            t->toCBuffer3(buf, hgs, modMask);
+            return;
+        }
+        buf->writestring(t->toChars());
+    }
+
+    void visit(TypeBasic *t)
+    {
+        //printf("TypeBasic::toCBuffer2(modMask = %d, t->mod = %d)\n", modMask, t->mod);
+        if (modMask != t->mod)
+        {
+            t->toCBuffer3(buf, hgs, modMask);
+            return;
+        }
+        buf->writestring(t->dstring);
+    }
+
+    void visit(TypeVector *t)
+    {
+        //printf("TypeVector::toCBuffer2(modMask = %d, t->mod = %d)\n", modMask, t->mod);
+        if (modMask != t->mod)
+        {
+            t->toCBuffer3(buf, hgs, modMask);
+            return;
+        }
+        buf->writestring("__vector(");
+        t->basetype->toCBuffer2(buf, hgs, t->mod);
+        buf->writestring(")");
+    }
+
+    void visit(TypeSArray *t)
+    {
+        if (modMask != t->mod)
+        {
+            t->toCBuffer3(buf, hgs, modMask);
+            return;
+        }
+        t->next->toCBuffer2(buf, hgs, t->mod);
+        buf->writeByte('[');
+        sizeToCBuffer(buf, hgs, t->dim);
+        buf->writeByte(']');
+    }
+
+    void visit(TypeDArray *t)
+    {
+        if (modMask != t->mod)
+        {
+            t->toCBuffer3(buf, hgs, modMask);
+            return;
+        }
+        if (t->equals(t->tstring))
+            buf->writestring("string");
+        else
+        {
+            t->next->toCBuffer2(buf, hgs, t->mod);
+            buf->writestring("[]");
+        }
+    }
+
+    void visit(TypeAArray *t)
+    {
+        if (modMask != t->mod)
+        {
+            t->toCBuffer3(buf, hgs, modMask);
+            return;
+        }
+        t->next->toCBuffer2(buf, hgs, t->mod);
+        buf->writeByte('[');
+        t->index->toCBuffer2(buf, hgs, 0);
+        buf->writeByte(']');
+    }
+
+    void visit(TypePointer *t)
+    {
+        //printf("TypePointer::toCBuffer2() next = %d\n", t->next->ty);
+        if (modMask != t->mod)
+        {
+            t->toCBuffer3(buf, hgs, modMask);
+            return;
+        }
+        t->next->toCBuffer2(buf, hgs, t->mod);
+        if (t->next->ty != Tfunction)
+            buf->writeByte('*');
+    }
+
+    void visit(TypeReference *t)
+    {
+        if (modMask != t->mod)
+        {
+            t->toCBuffer3(buf, hgs, modMask);
+            return;
+        }
+        t->next->toCBuffer2(buf, hgs, t->mod);
+        buf->writeByte('&');
+    }
+
+    void visit(TypeFunction *t)
+    {
+        //printf("TypeFunction::toCBuffer2() t = %p, ref = %d\n", t, t->isref);
+        if (t->inuse)
+        {
+            t->inuse = 2;              // flag error to caller
+            return;
+        }
+        t->inuse++;
+        functionToCBuffer2(t, buf, hgs, modMask, "function");
+        t->inuse--;
+    }
+
+    void visit(TypeDelegate *t)
+    {
+        if (modMask != t->mod)
+        {
+            t->toCBuffer3(buf, hgs, modMask);
+            return;
+        }
+
+        functionToCBuffer2((TypeFunction *)t->next, buf, hgs, modMask, "delegate");
+    }
+
+    void visit(TypeIdentifier *t)
+    {
+        if (modMask != t->mod)
+        {
+            t->toCBuffer3(buf, hgs, modMask);
+            return;
+        }
+        buf->writestring(t->ident->toChars());
+        t->toCBuffer2Helper(buf, hgs);
+    }
+
+    void visit(TypeInstance *t)
+    {
+        if (modMask != t->mod)
+        {
+            t->toCBuffer3(buf, hgs, modMask);
+            return;
+        }
+        t->tempinst->toCBuffer(buf, hgs);
+        t->toCBuffer2Helper(buf, hgs);
+    }
+
+    void visit(TypeTypeof *t)
+    {
+        if (modMask != t->mod)
+        {
+            t->toCBuffer3(buf, hgs, modMask);
+            return;
+        }
+        buf->writestring("typeof(");
+        t->exp->toCBuffer(buf, hgs);
+        buf->writeByte(')');
+        t->toCBuffer2Helper(buf, hgs);
+    }
+
+    void visit(TypeReturn *t)
+    {
+        if (modMask != t->mod)
+        {
+            t->toCBuffer3(buf, hgs, modMask);
+            return;
+        }
+        buf->writestring("typeof(return)");
+        t->toCBuffer2Helper(buf, hgs);
+    }
+
+    void visit(TypeEnum *t)
+    {
+        if (modMask != t->mod)
+        {
+            t->toCBuffer3(buf, hgs, modMask);
+            return;
+        }
+        buf->writestring(t->sym->toChars());
+    }
+
+    void visit(TypeTypedef *t)
+    {
+        //printf("TypeTypedef::toCBuffer2() '%s'\n", t->sym->toChars());
+        if (modMask != t->mod)
+        {
+            t->toCBuffer3(buf, hgs, modMask);
+            return;
+        }
+        buf->writestring(t->sym->toChars());
+    }
+
+    void visit(TypeStruct *t)
+    {
+        if (modMask != t->mod)
+        {
+            t->toCBuffer3(buf, hgs, modMask);
+            return;
+        }
+        TemplateInstance *ti = t->sym->parent->isTemplateInstance();
+        if (ti && ti->toAlias() == t->sym)
+            buf->writestring(ti->toChars());
+        else
+            buf->writestring(t->sym->toChars());
+    }
+
+    void visit(TypeClass *t)
+    {
+        if (modMask != t->mod)
+        {
+            t->toCBuffer3(buf, hgs, modMask);
+            return;
+        }
+        TemplateInstance *ti = t->sym->parent->isTemplateInstance();
+        if (ti && ti->toAlias() == t->sym)
+            buf->writestring(ti->toChars());
+        else
+            buf->writestring(t->sym->toChars());
+    }
+
+    void visit(TypeTuple *t)
+    {
+        Parameter::argsToCBuffer(buf, hgs, t->arguments, 0);
+    }
+
+    void visit(TypeSlice *t)
+    {
+        if (modMask != t->mod)
+        {
+            t->toCBuffer3(buf, hgs, modMask);
+            return;
+        }
+        t->next->toCBuffer2(buf, hgs, t->mod);
+
+        buf->writeByte('[');
+        sizeToCBuffer(buf, hgs, t->lwr);
+        buf->writestring(" .. ");
+        sizeToCBuffer(buf, hgs, t->upr);
+        buf->writeByte(']');
+    }
+
+    void visit(TypeNull *t)
+    {
+        if (modMask != t->mod)
+        {
+            t->toCBuffer3(buf, hgs, modMask);
+            return;
+        }
+        buf->writestring("typeof(null)");
+    }
 };
 
 void toCBuffer(Statement *s, OutBuffer *buf, HdrGenState *hgs)
 {
-    PrettyPrintVisitor v(buf, hgs);
+    PrettyPrintVisitor v(buf, hgs, NULL, 0);
     s->accept(&v);
+}
+
+void Type::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
+{
+    toCBuffer2(buf, hgs, 0);
+    if (ident)
+    {
+        buf->writeByte(' ');
+        buf->writestring(ident->toChars());
+    }
+}
+
+void TypeError::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
+{
+    buf->writestring("_error_");
+}
+
+void Type::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, unsigned char modMask)
+{
+    PrettyPrintVisitor v(buf, hgs, NULL, modMask);
+    accept(&v);
+}
+
+void Type::toCBuffer3(OutBuffer *buf, HdrGenState *hgs, unsigned char modMask)
+{
+    if (modMask != this->mod)
+    {
+        unsigned char m = this->mod & ~(this->mod & modMask);
+        if (m & MODshared)
+        {
+            MODtoBuffer(buf, MODshared);
+            buf->writeByte('(');
+        }
+        if (m & MODwild)
+        {
+            MODtoBuffer(buf, MODwild);
+            buf->writeByte('(');
+        }
+        if (m & (MODconst | MODimmutable))
+        {
+            MODtoBuffer(buf, m & (MODconst | MODimmutable));
+            buf->writeByte('(');
+        }
+
+        toCBuffer2(buf, hgs, this->mod);
+
+        if (m & (MODconst | MODimmutable))
+            buf->writeByte(')');
+        if (m & MODwild)
+            buf->writeByte(')');
+        if (m & MODshared)
+            buf->writeByte(')');
+    }
+}
+
+void TypeFunction::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
+{
+    toCBufferWithAttributes(buf, ident, hgs, this, NULL);
+}
+
+void TypeFunction::toCBufferWithAttributes(OutBuffer *buf, Identifier *ident, HdrGenState* hgs, TypeFunction *attrs, TemplateDeclaration *td)
+{
+    //printf("TypeFunction::toCBuffer() this = %p\n", this);
+    if (inuse)
+    {   inuse = 2;              // flag error to caller
+        return;
+    }
+    inuse++;
+
+    /* Use 'storage class' style for attributes
+     */
+    if (attrs->mod)
+    {
+        MODtoBuffer(buf, attrs->mod);
+        buf->writeByte(' ');
+    }
+
+    if (attrs->purity)
+        buf->writestring("pure ");
+    if (attrs->isnothrow)
+        buf->writestring("nothrow ");
+    if (attrs->isproperty)
+        buf->writestring("@property ");
+    if (attrs->isref)
+        buf->writestring("ref ");
+
+    switch (attrs->trust)
+    {
+        case TRUSTsystem:
+            buf->writestring("@system ");
+            break;
+
+        case TRUSTtrusted:
+            buf->writestring("@trusted ");
+            break;
+
+        case TRUSTsafe:
+            buf->writestring("@safe ");
+            break;
+        default: break;
+    }
+
+    if (hgs->ddoc != 1)
+    {
+        const char *p = NULL;
+        switch (attrs->linkage)
+        {
+            case LINKd:         p = NULL;       break;
+            case LINKc:         p = "C";        break;
+            case LINKwindows:   p = "Windows";  break;
+            case LINKpascal:    p = "Pascal";   break;
+            case LINKcpp:       p = "C++";      break;
+            default:
+                assert(0);
+        }
+        if (!hgs->hdrgen && p)
+        {
+            buf->writestring("extern (");
+            buf->writestring(p);
+            buf->writestring(") ");
+        }
+    }
+
+    if (!ident || ident->toHChars2() == ident->toChars())
+    {   if (next)
+            next->toCBuffer2(buf, hgs, 0);
+        else if (hgs->ddoc)
+            buf->writestring("auto");
+    }
+
+    if (ident)
+    {
+        if (next || hgs->ddoc)
+            buf->writeByte(' ');
+        buf->writestring(ident->toHChars2());
+    }
+
+    if (td)
+    {   buf->writeByte('(');
+        for (size_t i = 0; i < td->origParameters->dim; i++)
+        {
+            TemplateParameter *tp = (*td->origParameters)[i];
+            if (i)
+                buf->writestring(", ");
+            tp->toCBuffer(buf, hgs);
+        }
+        buf->writeByte(')');
+    }
+    Parameter::argsToCBuffer(buf, hgs, parameters, varargs);
+    inuse--;
+}
+
+// kind is inserted before the argument list and will usually be "function" or "delegate".
+void functionToCBuffer2(TypeFunction *t, OutBuffer *buf, HdrGenState *hgs, unsigned char modMask, const char *kind)
+{
+    if (hgs->ddoc != 1)
+    {
+        const char *p = NULL;
+        switch (t->linkage)
+        {
+            case LINKd:         p = NULL;       break;
+            case LINKc:         p = "C";        break;
+            case LINKwindows:   p = "Windows";  break;
+            case LINKpascal:    p = "Pascal";   break;
+            case LINKcpp:       p = "C++";      break;
+            default:
+                assert(0);
+        }
+        if (!hgs->hdrgen && p)
+        {
+            buf->writestring("extern (");
+            buf->writestring(p);
+            buf->writestring(") ");
+        }
+    }
+    if (t->next)
+    {
+        t->next->toCBuffer2(buf, hgs, 0);
+        buf->writeByte(' ');
+    }
+    buf->writestring(kind);
+    Parameter::argsToCBuffer(buf, hgs, t->parameters, t->varargs);
+    t->attributesToCBuffer(buf, modMask);
+}
+
+void TypeFunction::attributesToCBuffer(OutBuffer *buf, unsigned char modMask)
+{
+    /* Use postfix style for attributes
+     */
+    if (modMask != this->mod)
+    {
+        modToBuffer(buf);
+    }
+    if (purity)
+        buf->writestring(" pure");
+    if (isnothrow)
+        buf->writestring(" nothrow");
+    if (isproperty)
+        buf->writestring(" @property");
+    if (isref)
+        buf->writestring(" ref");
+
+    switch (trust)
+    {
+        case TRUSTsystem:
+            buf->writestring(" @system");
+            break;
+
+        case TRUSTtrusted:
+            buf->writestring(" @trusted");
+            break;
+
+        case TRUSTsafe:
+            buf->writestring(" @safe");
+            break;
+        default: break;
+    }
+}
+
+void TypeQualified::toCBuffer2Helper(OutBuffer *buf, HdrGenState *hgs)
+{
+    for (size_t i = 0; i < idents.dim; i++)
+    {   RootObject *id = idents[i];
+
+        buf->writeByte('.');
+
+        if (id->dyncast() == DYNCAST_DSYMBOL)
+        {
+            TemplateInstance *ti = (TemplateInstance *)id;
+            ti->toCBuffer(buf, hgs);
+        }
+        else
+            buf->writestring(id->toChars());
+    }
 }
