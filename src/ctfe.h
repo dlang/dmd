@@ -195,7 +195,7 @@ bool isFloatIntPaint(Type *to, Type *from);
 // Reinterpret float/int value 'fromVal' as a float/integer of type 'to'.
 Expression *paintFloatInt(Expression *fromVal, Type *to);
 
-/// Return true if t is an AA, or AssociativeArray!(key, value)
+/// Return true if t is an AA
 bool isAssocArray(Type *t);
 
 /// Given a template AA type, extract the corresponding built-in AA type

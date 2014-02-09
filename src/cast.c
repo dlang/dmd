@@ -2688,6 +2688,16 @@ Lcc:
         e2 = e2->castTo(sc, t);
         goto Lret;
     }
+    else if (t2->ty == Tnull &&
+        (t1->ty == Tpointer || t1->ty == Taarray || t1->ty == Tarray))
+    {
+        goto Lt1;
+    }
+    else if (t1->ty == Tnull &&
+        (t2->ty == Tpointer || t2->ty == Taarray || t2->ty == Tarray))
+    {
+        goto Lt2;
+    }
     else if (isArrayOperand(e1) && t1->ty == Tarray &&
              e2->implicitConvTo(t1->nextOf()))
     {   // T[] op T

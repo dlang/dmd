@@ -797,19 +797,6 @@ Expression *resolveUFCS(Scope *sc, CallExp *ce)
 
                 return new RemoveExp(loc, eleft, key);
             }
-            else if (ident == Id::apply || ident == Id::applyReverse)
-            {
-                return NULL;
-            }
-            else
-            {
-                TypeAArray *taa = (TypeAArray *)t;
-                assert(taa->ty == Taarray);
-                StructDeclaration *sd = taa->getImpl();
-                Dsymbol *s = sd->search(Loc(), ident, IgnoreErrors);
-                if (s)
-                    return NULL;
-            }
         }
         else
         {
@@ -10011,16 +9998,7 @@ Expression *CastExp::semantic(Scope *sc)
     }
 
 Lsafe:
-    /* Instantiate AA implementations during semantic analysis.
-     */
     {
-        Type *tfrom = e1->type->toBasetype();
-        Type *t = to->toBasetype();
-        if (tfrom->ty == Taarray)
-            ((TypeAArray *)tfrom)->getImpl();
-        if (t->ty == Taarray)
-            ((TypeAArray *)t)->getImpl();
-
         if (to->ty == Tvoid)
         {
             type = to;

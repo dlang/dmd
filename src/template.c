@@ -499,9 +499,7 @@ void TemplateDeclaration::semantic(Scope *sc)
     // Remember templates defined in module object that we need to know about
     if (sc->module && sc->module->ident == Id::object)
     {
-        if (ident == Id::AssociativeArray)
-            Type::associativearray = this;
-        else if (ident == Id::RTInfo)
+        if (ident == Id::RTInfo)
             Type::rtinfo = this;
     }
 
@@ -3343,10 +3341,6 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
             if (sym->isforwardRef() && !tparam->deco)
                 goto Lnomatch;
         }
-
-        // Can't instantiate AssociativeArray!() without a scope
-        if (tparam->ty == Taarray && !((TypeAArray*)tparam)->sc)
-            ((TypeAArray*)tparam)->sc = sc;
 
         MATCH m = implicitConvTo(tparam);
         if (m == MATCHnomatch)

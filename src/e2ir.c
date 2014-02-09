@@ -3943,11 +3943,6 @@ elem *CastExp::toElem(IRState *irs)
     Type *tfrom = e1->type->toBasetype();
     Type *t = to->toBasetype();         // skip over typedef's
 
-    if (tfrom->ty == Taarray)
-        tfrom = ((TypeAArray*)tfrom)->getImpl()->type;
-    if (t->ty == Taarray)
-        t = ((TypeAArray*)t)->getImpl()->type;
-
     if (t->equals(tfrom))
         goto Lret;
 
@@ -4567,6 +4562,7 @@ Lagain:
                 goto Lagain;
 
         case X(Tnull, Tarray):
+        case X(Tnull, Taarray):
             goto Lzero;
 
         /* ============================= */
@@ -5015,15 +5011,8 @@ elem *AssocArrayLiteralExp::toElem(IRState *irs)
         // call _d_assocarrayliteralTX(TypeInfo_AssociativeArray ti, void[] keys, void[] values)
         // Prefer this to avoid the varargs fiasco in 64 bit code
 
-        Type *ta;
-        if (t->ty == Taarray)
-            ta = t;
-        else
-        {   // It's the AssociativeArray type.
-            // Turn it back into a TypeAArray
-            ta = TypeAArray::create((*values)[0]->type, (*keys)[0]->type);
-            ta = ta->semantic(loc, NULL);
-        }
+        assert(t->ty == Taarray);
+        Type *ta = t;
 
         symbol *skeys = NULL;
         elem *ekeys = ExpressionsToStaticArray(irs, loc, keys, &skeys);

@@ -400,6 +400,25 @@ struct Bug7058
 
 /***************************************************/
 
+void test12094()
+{
+    auto n = null;
+    int *a;
+    int[int] b;
+    int[] c;
+    auto u = true ? null : a;
+    auto v = true ? null : b;
+    auto w = true ? null : c;
+    auto x = true ? n : a;
+    auto y = true ? n : b;
+    auto z = true ? n : c;
+    a = n;
+    b = n;
+    c = n;
+}
+
+/***************************************************/
+
 template test8163(T...)
 {
     struct Point
