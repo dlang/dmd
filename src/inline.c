@@ -1360,7 +1360,9 @@ public:
 
             if (fd && fd != parent && fd->canInline(0, 0, 0))
             {
-                eresult = expandInline(fd, parent, eret, NULL, e->arguments, NULL);
+                Expression *ex = expandInline(fd, parent, eret, NULL, e->arguments, NULL);
+                if (ex)
+                    eresult = ex;
             }
         }
         else if (e->e1->op == TOKdotvar)
@@ -1380,7 +1382,11 @@ public:
                     ;
                 }
                 else
-                    eresult = expandInline(fd, parent, eret, dve->e1, e->arguments, NULL);
+                {
+                    Expression *ex = expandInline(fd, parent, eret, dve->e1, e->arguments, NULL);
+                    if (ex)
+                        eresult = ex;
+                }
             }
         }
 
@@ -1450,6 +1456,7 @@ public:
         Expression *save = eresult;
         eresult = *e;
         (*e)->accept(this);
+        assert(eresult);
         *e = eresult;
         eresult = save;
     }
