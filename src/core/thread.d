@@ -248,13 +248,23 @@ else version( Posix )
             }
             assert( obj );
 
-            assert( obj.m_curr is &obj.m_main );
-            obj.m_main.bstack = getStackBottom();
-            obj.m_main.tstack = obj.m_main.bstack;
-            obj.m_tlsgcdata = rt.tlsgc.init();
+            {
+                // Manually enter and exit critical region, bypassing
+                // thread_enter/exitCriticalRegion() calls.
+                // This is needed to disallow suspending this thread 
+                // until it has been initialized. Manual entry and exit
+                // avoids TLS access (see issue 11981).
+                synchronized(Thread.criticalRegionLock) obj.m_isInCriticalRegion = true;
+                scope( exit ) synchronized(Thread.criticalRegionLock) obj.m_isInCriticalRegion = false;
 
-            obj.m_isRunning = true;
-            Thread.setThis( obj );
+                assert( obj.m_curr is &obj.m_main );
+                obj.m_main.bstack = getStackBottom();
+                obj.m_main.tstack = obj.m_main.bstack;
+                obj.m_tlsgcdata = rt.tlsgc.init();
+
+                obj.m_isRunning = true;
+                Thread.setThis( obj );
+            }
             //Thread.add( obj );
             scope( exit )
             {
