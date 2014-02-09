@@ -842,6 +842,23 @@ public:
         functionToCBuffer2((TypeFunction *)t->next, buf, hgs, modMask, "delegate");
     }
 
+    void visitTypeQualifiedHelper(TypeQualified *t)
+    {
+        for (size_t i = 0; i < t->idents.dim; i++)
+        {
+            RootObject *id = t->idents[i];
+            buf->writeByte('.');
+
+            if (id->dyncast() == DYNCAST_DSYMBOL)
+            {
+                TemplateInstance *ti = (TemplateInstance *)id;
+                ti->toCBuffer(buf, hgs);
+            }
+            else
+                buf->writestring(id->toChars());
+        }
+    }
+
     void visit(TypeIdentifier *t)
     {
         if (modMask != t->mod)
@@ -850,7 +867,7 @@ public:
             return;
         }
         buf->writestring(t->ident->toChars());
-        t->toCBuffer2Helper(buf, hgs);
+        visitTypeQualifiedHelper(t);
     }
 
     void visit(TypeInstance *t)
@@ -861,7 +878,7 @@ public:
             return;
         }
         t->tempinst->toCBuffer(buf, hgs);
-        t->toCBuffer2Helper(buf, hgs);
+        visitTypeQualifiedHelper(t);
     }
 
     void visit(TypeTypeof *t)
@@ -874,7 +891,7 @@ public:
         buf->writestring("typeof(");
         t->exp->toCBuffer(buf, hgs);
         buf->writeByte(')');
-        t->toCBuffer2Helper(buf, hgs);
+        visitTypeQualifiedHelper(t);
     }
 
     void visit(TypeReturn *t)
@@ -885,7 +902,7 @@ public:
             return;
         }
         buf->writestring("typeof(return)");
-        t->toCBuffer2Helper(buf, hgs);
+        visitTypeQualifiedHelper(t);
     }
 
     void visit(TypeEnum *t)
@@ -1189,22 +1206,5 @@ void TypeFunction::attributesToCBuffer(OutBuffer *buf, unsigned char modMask)
             buf->writestring(" @safe");
             break;
         default: break;
-    }
-}
-
-void TypeQualified::toCBuffer2Helper(OutBuffer *buf, HdrGenState *hgs)
-{
-    for (size_t i = 0; i < idents.dim; i++)
-    {   RootObject *id = idents[i];
-
-        buf->writeByte('.');
-
-        if (id->dyncast() == DYNCAST_DSYMBOL)
-        {
-            TemplateInstance *ti = (TemplateInstance *)id;
-            ti->toCBuffer(buf, hgs);
-        }
-        else
-            buf->writestring(id->toChars());
     }
 }
