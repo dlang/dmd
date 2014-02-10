@@ -612,6 +612,7 @@ public:
     #define FUNCFLAGpurityInprocess 1   // working on determining purity
     #define FUNCFLAGsafetyInprocess 2   // working on determining safety
     #define FUNCFLAGnothrowInprocess 4  // working on determining nothrow
+    #define FUNCFLAGgcuseInprocess  8   // working on determining gc usage
 
     FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageClass storage_class, Type *type);
     Dsymbol *syntaxCopy(Dsymbol *);
@@ -631,6 +632,7 @@ public:
     bool overloadInsert(Dsymbol *s);
     FuncDeclaration *overloadExactMatch(Type *t);
     TemplateDeclaration *findTemplateDeclRoot();
+    bool inUnittest();
     MATCH leastAsSpecialized(FuncDeclaration *g);
     LabelDsymbol *searchLabel(Identifier *ident);
     AggregateDeclaration *isThis();
@@ -655,6 +657,9 @@ public:
     bool isSafeBypassingInference();
     bool isTrusted();
     bool setUnsafe();
+    bool isNOGC();
+    bool setGCUse(Loc loc, const char *warn);
+    bool setGCUse();
     bool isolateReturn();
     bool parametersIntersect(Type *t);
     virtual bool isNested();
