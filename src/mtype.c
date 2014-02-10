@@ -2099,6 +2099,8 @@ L1:
                 t = t->mutableOf();
         }
     }
+    if (isConst())
+        t = t->addMod(MODconst);
     if (isShared())
         t = t->addMod(MODshared);
 
