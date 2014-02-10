@@ -1810,7 +1810,7 @@ extern (C) void thread_term()
     version( OSX )
     {
     }
-    version( Posix )
+    else version( Posix )
     {
         pthread_key_delete( Thread.sm_this );
     }
