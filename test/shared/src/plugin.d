@@ -1,10 +1,10 @@
-import core.thread, core.memory;
+import core.thread, core.memory, core.atomic;
 
 shared uint gctor, gdtor, tctor, tdtor;
-shared static this() { ++gctor; }
-shared static ~this() { ++gdtor; }
-static this() { ++tctor; }
-static ~this() { ++tdtor; }
+shared static this() { atomicOp!"+="(gctor, 1); }
+shared static ~this() { atomicOp!"+="(gdtor, 1); }
+static this() { atomicOp!"+="(tctor, 1); }
+static ~this() { atomicOp!"+="(tdtor, 1); }
 
 Thread t;
 
@@ -15,10 +15,10 @@ extern(C) int runTests()
 {
     try
     {
-        assert(gctor == 1);
-        assert(gdtor == 0);
-        assert(tctor >= 1);
-        assert(tdtor >= 0);
+        assert(atomicLoad!(MemoryOrder.acq)(gctor) == 1);
+        assert(atomicLoad!(MemoryOrder.acq)(gdtor) == 0);
+        assert(atomicLoad!(MemoryOrder.acq)(tctor) >= 1);
+        assert(atomicLoad!(MemoryOrder.acq)(tdtor) >= 0);
         // test some runtime functionality
         launchThread();
         GC.collect();
