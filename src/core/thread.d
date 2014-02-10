@@ -1052,7 +1052,6 @@ class Thread
     // Thread Accessors
     ///////////////////////////////////////////////////////////////////////////
 
-
     /**
      * Provides a reference to the calling thread.
      *
@@ -1066,12 +1065,12 @@ class Thread
         // NOTE: This function may not be called until thread_init has
         //       completed.  See thread_suspendAll for more information
         //       on why this might occur.
-        version( Posix )
+        version( OSX )
         {
-            // On Posix, pthread_key_t is explicitly used to
-            // store and access thread reference. This is needed
-            // to avoid TLS access in signal handlers (malloc deadlock)
-            // when using shared libraries, see issue 11981.
+            return sm_this;
+        }
+        else version( Posix )
+        {
             auto t = cast(Thread) pthread_getspecific( sm_this );
             return t;
         }
@@ -1237,9 +1236,13 @@ private:
     //
     // Local storage
     //
-    version( Posix )
+    version( OSX )
     {
-        // On Posix, pthread_key_t is explicitly used to
+        static Thread       sm_this;
+    }
+    else version( Posix )
+    {
+        // On Posix (excluding OSX), pthread_key_t is explicitly used to
         // store and access thread reference. This is needed
         // to avoid TLS access in signal handlers (malloc deadlock)
         // when using shared libraries, see issue 11981.
@@ -1297,12 +1300,12 @@ private:
     //
     static void setThis( Thread t )
     {
-        version( Posix )
+        version( OSX )
+        {
+            sm_this = t;
+        }
+        else version( Posix )
         { 
-            // On Posix, pthread_key_t is explicitly used to
-            // store and access thread reference. This is needed
-            // to avoid TLS access in signal handlers (malloc deadlock)
-            // when using shared libraries, see issue 11981.
             pthread_setspecific( sm_this, cast(void*) t );
         }
         else
@@ -1789,10 +1792,6 @@ extern (C) void thread_init()
         status = sem_init( &suspendCount, 0, 0 );
         assert( status == 0 );
 
-        // On Posix, pthread_key_t is explicitly used to
-        // store and access thread reference. This is needed
-        // to avoid TLS access in signal handlers (malloc deadlock)
-        // when using shared libraries, see issue 11981.
         status = pthread_key_create( &Thread.sm_this, null );
         assert( status == 0 );
     }
@@ -1807,6 +1806,14 @@ extern (C) void thread_init()
 extern (C) void thread_term()
 {
     Thread.termLocks();
+
+    version( OSX )
+    {
+    }
+    version( Posix )
+    {
+        pthread_key_delete( Thread.sm_this );
+    }
 }
 
 
