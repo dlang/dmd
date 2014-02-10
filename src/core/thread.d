@@ -248,23 +248,13 @@ else version( Posix )
             }
             assert( obj );
 
-            {
-                // Manually enter and exit critical region, bypassing
-                // thread_enter/exitCriticalRegion() calls.
-                // This is needed to disallow suspending this thread 
-                // until it has been initialized. Manual entry and exit
-                // avoids TLS access (see issue 11981).
-                synchronized(Thread.criticalRegionLock) obj.m_isInCriticalRegion = true;
-                scope( exit ) synchronized(Thread.criticalRegionLock) obj.m_isInCriticalRegion = false;
+            assert( obj.m_curr is &obj.m_main );
+            obj.m_main.bstack = getStackBottom();
+            obj.m_main.tstack = obj.m_main.bstack;
+            obj.m_tlsgcdata = rt.tlsgc.init();
 
-                assert( obj.m_curr is &obj.m_main );
-                obj.m_main.bstack = getStackBottom();
-                obj.m_main.tstack = obj.m_main.bstack;
-                obj.m_tlsgcdata = rt.tlsgc.init();
-
-                obj.m_isRunning = true;
-                Thread.setThis( obj );
-            }
+            obj.m_isRunning = true;
+            Thread.setThis( obj );
             //Thread.add( obj );
             scope( exit )
             {
@@ -1076,7 +1066,19 @@ class Thread
         // NOTE: This function may not be called until thread_init has
         //       completed.  See thread_suspendAll for more information
         //       on why this might occur.
-        return sm_this;
+        version( Posix )
+        {
+            // On Posix, pthread_key_t is explicitly used to
+            // store and access thread reference. This is needed
+            // to avoid TLS access in signal handlers (malloc deadlock)
+            // when using shared libraries, see issue 11981.
+            auto t = cast(Thread) pthread_getspecific( sm_this );
+            return t;
+        }
+        else
+        {
+            return sm_this;
+        }
     }
 
 
@@ -1235,7 +1237,18 @@ private:
     //
     // Local storage
     //
-    static Thread       sm_this;
+    version( Posix )
+    {
+        // On Posix, pthread_key_t is explicitly used to
+        // store and access thread reference. This is needed
+        // to avoid TLS access in signal handlers (malloc deadlock)
+        // when using shared libraries, see issue 11981.
+        __gshared pthread_key_t sm_this;
+    }
+    else
+    {
+        static Thread       sm_this;
+    }
 
 
     //
@@ -1284,7 +1297,18 @@ private:
     //
     static void setThis( Thread t )
     {
-        sm_this = t;
+        version( Posix )
+        { 
+            // On Posix, pthread_key_t is explicitly used to
+            // store and access thread reference. This is needed
+            // to avoid TLS access in signal handlers (malloc deadlock)
+            // when using shared libraries, see issue 11981.
+            pthread_setspecific( sm_this, cast(void*) t );
+        }
+        else
+        {
+            sm_this = t;
+        }
     }
 
 
@@ -1763,6 +1787,13 @@ extern (C) void thread_init()
         assert( status == 0 );
 
         status = sem_init( &suspendCount, 0, 0 );
+        assert( status == 0 );
+
+        // On Posix, pthread_key_t is explicitly used to
+        // store and access thread reference. This is needed
+        // to avoid TLS access in signal handlers (malloc deadlock)
+        // when using shared libraries, see issue 11981.
+        status = pthread_key_create( &Thread.sm_this, null );
         assert( status == 0 );
     }
     Thread.sm_main = thread_attachThis();
