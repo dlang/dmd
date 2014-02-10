@@ -575,6 +575,7 @@ typedef targ_uns        targ_size_t;    /* size_t for the target machine */
 #define DATA    2       /* initialized data             */
 #define CDATA   3       /* constant data                */
 #define UDATA   4       /* uninitialized data           */
+#define CDATAREL 5      /* constant data with relocs    */
 #define UNKNOWN -1      /* unknown segment              */
 #define DGROUPIDX 1     /* group index of DGROUP        */
 
