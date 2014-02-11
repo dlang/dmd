@@ -29,7 +29,7 @@ version( X86 )
      *
      * Params:
      *  ap      = The argument pointer to initialize.
-     *  paramn  = The identifier of the rightmost parameter in the function
+     *  parmn  = The identifier of the rightmost parameter in the function
      *            parameter list.
      */
     void va_start(T)( out va_list ap, ref T parmn )
