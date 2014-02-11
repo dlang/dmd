@@ -31,84 +31,100 @@ bool isCommutative(Expression *e);
  * Issue error if it can't be done.
  */
 
-Expression *Expression::implicitCastTo(Scope *sc, Type *t)
-{
-    //printf("Expression::implicitCastTo(%s of type %s) => %s\n", toChars(), type->toChars(), t->toChars());
 
-    MATCH match = implicitConvTo(t);
-    if (match)
+Expression *implicitCastTo(Expression *e, Scope *sc, Type *t)
+{
+    class ImplicitCastTo : public Visitor
     {
-        if (match == MATCHconst && type->constConv(t))
+    public:
+        Type *t;
+        Scope *sc;
+        Expression *result;
+
+        ImplicitCastTo(Scope *sc, Type *t)
+            : sc(sc), t(t)
         {
-            Expression *e = copy();
-            e->type = t;
-            return e;
+            result = NULL;
         }
-        return castTo(sc, t);
-    }
 
-    Expression *e = optimize(WANTflags | WANTvalue);
-    if (e != this)
-        return e->implicitCastTo(sc, t);
+        void visit(Expression *e)
+        {
+            //printf("Expression::implicitCastTo(%s of type %s) => %s\n", e->toChars(), e->type->toChars(), t->toChars());
 
-#if 0
-printf("ty = %d\n", type->ty);
-print();
-type->print();
-printf("to:\n");
-t->print();
-printf("%p %p type: %s to: %s\n", type->deco, t->deco, type->deco, t->deco);
-//printf("%p %p %p\n", type->nextOf()->arrayOf(), type, t);
-fflush(stdout);
-#endif
-    if (t->ty != Terror && type->ty != Terror)
-    {
-        if (!t->deco)
-        {   /* Can happen with:
-             *    enum E { One }
-             *    class A
-             *    { static void fork(EDG dg) { dg(E.One); }
-             *      alias void delegate(E) EDG;
-             *    }
-             * Should eventually make it work.
-             */
-            error("forward reference to type %s", t->toChars());
+            MATCH match = e->implicitConvTo(t);
+            if (match)
+            {
+                if (match == MATCHconst && e->type->constConv(t))
+                {
+                    result = e->copy();
+                    result->type = t;
+                    return;
+                }
+                result = e->castTo(sc, t);
+                return;
+            }
+
+            result = e->optimize(WANTflags | WANTvalue);
+            if (result != e)
+            {
+                result->accept(this);
+                return;
+            }
+
+            if (t->ty != Terror && e->type->ty != Terror)
+            {
+                if (!t->deco)
+                {
+                    /* Can happen with:
+                     *    enum E { One }
+                     *    class A
+                     *    { static void fork(EDG dg) { dg(E.One); }
+                     *      alias void delegate(E) EDG;
+                     *    }
+                     * Should eventually make it work.
+                     */
+                    e->error("forward reference to type %s", t->toChars());
+                }
+                else if (t->reliesOnTident())
+                    e->error("forward reference to type %s", t->reliesOnTident()->toChars());
+
+                //printf("type %p ty %d deco %p\n", type, type->ty, type->deco);
+                //type = type->semantic(loc, sc);
+                //printf("type %s t %s\n", type->deco, t->deco);
+                e->error("cannot implicitly convert expression (%s) of type %s to %s",
+                    e->toChars(), e->type->toChars(), t->toChars());
+            }
+            result = new ErrorExp();
         }
-        else if (t->reliesOnTident())
-            error("forward reference to type %s", t->reliesOnTident()->toChars());
 
-//printf("type %p ty %d deco %p\n", type, type->ty, type->deco);
-//type = type->semantic(loc, sc);
-//printf("type %s t %s\n", type->deco, t->deco);
-        error("cannot implicitly convert expression (%s) of type %s to %s",
-            toChars(), type->toChars(), t->toChars());
-    }
-    return new ErrorExp();
-}
+        void visit(StringExp *e)
+        {
+            //printf("StringExp::implicitCastTo(%s of type %s) => %s\n", e->toChars(), e->type->toChars(), t->toChars());
+            unsigned char committed = e->committed;
+            visit((Expression *)e);
+            if (result->op == TOKstring)
+            {
+                // Retain polysemous nature if it started out that way
+                ((StringExp *)result)->committed = e->committed;
+            }
+        }
 
-Expression *StringExp::implicitCastTo(Scope *sc, Type *t)
-{
-    //printf("StringExp::implicitCastTo(%s of type %s) => %s\n", toChars(), type->toChars(), t->toChars());
-    unsigned char committed = this->committed;
-    Expression *e = Expression::implicitCastTo(sc, t);
-    if (e->op == TOKstring)
-    {
-        // Retain polysemous nature if it started out that way
-        ((StringExp *)e)->committed = committed;
-    }
-    return e;
-}
+        void visit(ErrorExp *e)
+        {
+            result = e;
+        }
 
-Expression *ErrorExp::implicitCastTo(Scope *sc, Type *t)
-{
-    return this;
-}
+        void visit(FuncExp *e)
+        {
+            //printf("FuncExp::implicitCastTo type = %p %s, t = %s\n", e->type, e->type ? e->type->toChars() : NULL, t->toChars());
+            visit((Expression *)e->inferType(t));
+        }
+    };
 
-Expression *FuncExp::implicitCastTo(Scope *sc, Type *t)
-{
-    //printf("FuncExp::implicitCastTo type = %p %s, t = %s\n", type, type ? type->toChars() : NULL, t->toChars());
-    return inferType(t)->Expression::implicitCastTo(sc, t);
-}
+    ImplicitCastTo v(sc, t);
+    e->accept(&v);
+    return v.result;
+};
 
 /*******************************************
  * Return !=0 if we can implicitly convert this to type t.
