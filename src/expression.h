@@ -101,6 +101,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue);
 dt_t **Expression_toDt(Expression *e, dt_t **pdt);
 MATCH implicitConvTo(Expression *e, Type *t);
 Expression *implicitCastTo(Expression *e, Scope *sc, Type *t);
+Expression *castTo(Expression *e, Scope *sc, Type *t);
 
 /* Run CTFE on the expression, but allow the expression to be a TypeExp
  * or a tuple containing a TypeExp. (This is required by pragma(msg)).
@@ -170,7 +171,10 @@ public:
     {
         return ::implicitConvTo(this, t);
     }
-    virtual Expression *castTo(Scope *sc, Type *t);
+    Expression *castTo(Scope *sc, Type *t)
+    {
+        return ::castTo(this, sc, t);
+    }
     virtual Expression *inferType(Type *t, int flag = 0, Scope *sc = NULL, TemplateParameters *tparams = NULL);
     virtual void checkEscape();
     virtual void checkEscapeRef();
@@ -244,7 +248,6 @@ class ErrorExp : public Expression
 public:
     ErrorExp();
 
-    Expression *castTo(Scope *sc, Type *t);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Expression *toLvalue(Scope *sc, Expression *e);
     void accept(Visitor *v) { v->visit(this); }
@@ -265,7 +268,6 @@ public:
     real_t toReal();
     real_t toImaginary();
     complex_t toComplex();
-    Expression *castTo(Scope *sc, Type *t);
     int isBool(int result);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toMangleBuffer(OutBuffer *buf);
@@ -288,7 +290,6 @@ public:
     real_t toReal();
     real_t toImaginary();
     complex_t toComplex();
-    Expression *castTo(Scope *sc, Type *t);
     int isBool(int result);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toMangleBuffer(OutBuffer *buf);
@@ -377,7 +378,6 @@ public:
     StringExp *toStringExp();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toMangleBuffer(OutBuffer *buf);
-    Expression *castTo(Scope *sc, Type *t);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     elem *toElem(IRState *irs);
     void accept(Visitor *v) { v->visit(this); }
@@ -404,7 +404,6 @@ public:
     size_t length();
     StringExp *toStringExp();
     StringExp *toUTF8(Scope *sc);
-    Expression *castTo(Scope *sc, Type *t);
     int compare(RootObject *obj);
     int isBool(int result);
     int isLvalue();
@@ -441,7 +440,6 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void checkEscape();
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
-    Expression *castTo(Scope *sc, Type *t);
     elem *toElem(IRState *irs);
 
     Expression *doInline(InlineDoState *ids);
@@ -466,7 +464,6 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toMangleBuffer(OutBuffer *buf);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
-    Expression *castTo(Scope *sc, Type *t);
     Expression *inferType(Type *t, int flag = 0, Scope *sc = NULL, TemplateParameters *tparams = NULL);
 
     Expression *doInline(InlineDoState *ids);
@@ -489,7 +486,6 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toMangleBuffer(OutBuffer *buf);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
-    Expression *castTo(Scope *sc, Type *t);
     Expression *inferType(Type *t, int flag = 0, Scope *sc = NULL, TemplateParameters *tparams = NULL);
 
     Expression *doInline(InlineDoState *ids);
@@ -551,7 +547,6 @@ public:
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     Expression *addDtorHook(Scope *sc);
     Symbol *toSymbol();
-    Expression *castTo(Scope *sc, Type *t);
 
     Expression *doInline(InlineDoState *ids);
     void accept(Visitor *v) { v->visit(this); }
@@ -669,7 +664,6 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     int isBool(int result);
     Expression *doInline(InlineDoState *ids);
-    Expression *castTo(Scope *sc, Type *t);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -726,7 +720,6 @@ public:
     Expression *semantic(Scope *sc);
     Expression *semantic(Scope *sc, Expressions *arguments);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
-    Expression *castTo(Scope *sc, Type *t);
     Expression *inferType(Type *t, int flag = 0, Scope *sc = NULL, TemplateParameters *tparams = NULL);
     char *toChars();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -996,7 +989,6 @@ public:
     DelegateExp(Loc loc, Expression *e, FuncDeclaration *func, bool hasOverloads = false);
     Expression *semantic(Scope *sc);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
-    Expression *castTo(Scope *sc, Type *t);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     elem *toElem(IRState *irs);
@@ -1050,7 +1042,6 @@ public:
     Expression *semantic(Scope *sc);
     void checkEscape();
     elem *toElem(IRState *irs);
-    Expression *castTo(Scope *sc, Type *t);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1185,7 +1176,6 @@ public:
     int isBool(int result);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Type *toStaticArrayType();
-    Expression *castTo(Scope *sc, Type *t);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     elem *toElem(IRState *irs);
 
@@ -1253,7 +1243,6 @@ public:
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     int isBool(int result);
     Expression *addDtorHook(Scope *sc);
-    Expression *castTo(Scope *sc, Type *t);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     elem *toElem(IRState *irs);
     void accept(Visitor *v) { v->visit(this); }
@@ -1664,7 +1653,6 @@ public:
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     Expression *checkToBoolean(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    Expression *castTo(Scope *sc, Type *t);
     Expression *inferType(Type *t, int flag = 0, Scope *sc = NULL, TemplateParameters *tparams = NULL);
 
     Expression *doInline(InlineDoState *ids);
