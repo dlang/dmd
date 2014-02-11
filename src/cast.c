@@ -124,7 +124,7 @@ Expression *implicitCastTo(Expression *e, Scope *sc, Type *t)
     ImplicitCastTo v(sc, t);
     e->accept(&v);
     return v.result;
-};
+}
 
 /*******************************************
  * Return !=0 if we can implicitly convert this to type t.

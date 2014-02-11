@@ -244,7 +244,6 @@ class ErrorExp : public Expression
 public:
     ErrorExp();
 
-    Expression *implicitCastTo(Scope *sc, Type *t);
     Expression *castTo(Scope *sc, Type *t);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Expression *toLvalue(Scope *sc, Expression *e);
@@ -405,7 +404,6 @@ public:
     size_t length();
     StringExp *toStringExp();
     StringExp *toUTF8(Scope *sc);
-    Expression *implicitCastTo(Scope *sc, Type *t);
     Expression *castTo(Scope *sc, Type *t);
     int compare(RootObject *obj);
     int isBool(int result);
@@ -728,7 +726,6 @@ public:
     Expression *semantic(Scope *sc);
     Expression *semantic(Scope *sc, Expressions *arguments);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
-    Expression *implicitCastTo(Scope *sc, Type *t);
     Expression *castTo(Scope *sc, Type *t);
     Expression *inferType(Type *t, int flag = 0, Scope *sc = NULL, TemplateParameters *tparams = NULL);
     char *toChars();
