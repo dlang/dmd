@@ -41,6 +41,7 @@
 size_t templateParameterLookup(Type *tparam, TemplateParameters *parameters);
 int arrayObjectMatch(Objects *oa1, Objects *oa2);
 hash_t arrayObjectHash(Objects *oa1);
+void functionToBufferFull(TypeFunction *tf, OutBuffer *buf, Identifier *ident, HdrGenState* hgs, TypeFunction *attrs, TemplateDeclaration *td);
 
 /********************************************
  * These functions substitute for dynamic_cast. dynamic_cast does not work
@@ -2556,7 +2557,7 @@ void TemplateDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         if (fd && fd->type && fd->type->ty == Tfunction && fd->ident == ident)
         {
             TypeFunction *tf = (TypeFunction *)fd->type;
-            tf->toCBufferWithAttributes(buf, ident, hgs, tf, this);
+            functionToBufferFull(tf, buf, ident, hgs, tf, this);
 
             if (constraint)
             {

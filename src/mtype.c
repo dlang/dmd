@@ -44,7 +44,7 @@
 #include "hdrgen.h"
 
 FuncDeclaration *hasThis(Scope *sc);
-void sizeToCBuffer(OutBuffer *buf, HdrGenState *hgs, Expression *e);
+void toCBuffer(Type *t, OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
 
 #define LOGDOTEXP       0       // log ::dotExp()
 #define LOGDEFAULTINIT  0       // log ::defaultInit()
@@ -1581,54 +1581,7 @@ char *Type::toChars()
 
 void Type::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
 {
-    toCBuffer2(buf, hgs, 0);
-    if (ident)
-    {
-        buf->writeByte(' ');
-        buf->writestring(ident->toChars());
-    }
-}
-
-void Type::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
-{
-    if (mod != this->mod)
-    {
-        toCBuffer3(buf, hgs, mod);
-        return;
-    }
-    buf->writestring(toChars());
-}
-
-void Type::toCBuffer3(OutBuffer *buf, HdrGenState *hgs, int mod)
-{
-    if (mod != this->mod)
-    {
-        unsigned char m = this->mod & ~(this->mod & mod);
-        if (m & MODshared)
-        {
-            MODtoBuffer(buf, MODshared);
-            buf->writeByte('(');
-        }
-        if (m & MODwild)
-        {
-            MODtoBuffer(buf, MODwild);
-            buf->writeByte('(');
-        }
-        if (m & (MODconst | MODimmutable))
-        {
-            MODtoBuffer(buf, m & (MODconst | MODimmutable));
-            buf->writeByte('(');
-        }
-
-        toCBuffer2(buf, hgs, this->mod);
-
-        if (m & (MODconst | MODimmutable))
-            buf->writeByte(')');
-        if (m & MODwild)
-            buf->writeByte(')');
-        if (m & MODshared)
-            buf->writeByte(')');
-    }
+    ::toCBuffer(this, buf, ident, hgs);
 }
 
 /*********************************
@@ -2571,11 +2524,6 @@ Type *TypeError::syntaxCopy()
     return this;
 }
 
-void TypeError::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
-{
-    buf->writestring("_error_");
-}
-
 d_uns64 TypeError::size(Loc loc) { return SIZE_INVALID; }
 Expression *TypeError::getProperty(Loc loc, Identifier *ident, int flag) { return new ErrorExp(); }
 Expression *TypeError::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag) { return new ErrorExp(); }
@@ -3026,16 +2974,6 @@ Type *TypeBasic::syntaxCopy()
 char *TypeBasic::toChars()
 {
     return Type::toChars();
-}
-
-void TypeBasic::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
-{
-    //printf("TypeBasic::toCBuffer2(mod = %d, this->mod = %d)\n", mod, this->mod);
-    if (mod != this->mod)
-    {   toCBuffer3(buf, hgs, mod);
-        return;
-    }
-    buf->writestring(dstring);
 }
 
 d_uns64 TypeBasic::size(Loc loc)
@@ -3675,18 +3613,6 @@ char *TypeVector::toChars()
     return Type::toChars();
 }
 
-void TypeVector::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
-{
-    //printf("TypeVector::toCBuffer2(mod = %d, this->mod = %d)\n", mod, this->mod);
-    if (mod != this->mod)
-    {   toCBuffer3(buf, hgs, mod);
-        return;
-    }
-    buf->writestring("__vector(");
-    basetype->toCBuffer2(buf, hgs, this->mod);
-    buf->writestring(")");
-}
-
 void TypeVector::toDecoBuffer(OutBuffer *buf, int flag)
 {
     if (flag != mod && flag != 0x100)
@@ -4273,18 +4199,6 @@ void TypeSArray::toDecoBuffer(OutBuffer *buf, int flag)
         next->toDecoBuffer(buf,  (flag & 0x100) ? flag : mod);
 }
 
-void TypeSArray::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
-{
-    if (mod != this->mod)
-    {   toCBuffer3(buf, hgs, mod);
-        return;
-    }
-    next->toCBuffer2(buf, hgs, this->mod);
-    buf->writeByte('[');
-    sizeToCBuffer(buf, hgs, dim);
-    buf->writeByte(']');
-}
-
 Expression *TypeSArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
 {
 #if LOGDOTEXP
@@ -4577,20 +4491,6 @@ void TypeDArray::toDecoBuffer(OutBuffer *buf, int flag)
     Type::toDecoBuffer(buf, flag);
     if (next)
         next->toDecoBuffer(buf, (flag & 0x100) ? 0 : mod);
-}
-
-void TypeDArray::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
-{
-    if (mod != this->mod)
-    {   toCBuffer3(buf, hgs, mod);
-        return;
-    }
-    if (equals(tstring))
-        buf->writestring("string");
-    else
-    {   next->toCBuffer2(buf, hgs, this->mod);
-        buf->writestring("[]");
-    }
 }
 
 Expression *TypeDArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
@@ -4905,18 +4805,6 @@ void TypeAArray::toDecoBuffer(OutBuffer *buf, int flag)
     next->toDecoBuffer(buf, (flag & 0x100) ? 0 : mod);
 }
 
-void TypeAArray::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
-{
-    if (mod != this->mod)
-    {   toCBuffer3(buf, hgs, mod);
-        return;
-    }
-    next->toCBuffer2(buf, hgs, this->mod);
-    buf->writeByte('[');
-    index->toCBuffer2(buf, hgs, 0);
-    buf->writeByte(']');
-}
-
 Expression *TypeAArray::defaultInit(Loc loc)
 {
 #if LOGDEFAULTINIT
@@ -5069,18 +4957,6 @@ d_uns64 TypePointer::size(Loc loc)
     return Target::ptrsize;
 }
 
-void TypePointer::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
-{
-    //printf("TypePointer::toCBuffer2() next = %d\n", next->ty);
-    if (mod != this->mod)
-    {   toCBuffer3(buf, hgs, mod);
-        return;
-    }
-    next->toCBuffer2(buf, hgs, this->mod);
-    if (next->ty != Tfunction)
-        buf->writeByte('*');
-}
-
 MATCH TypePointer::implicitConvTo(Type *to)
 {
     //printf("TypePointer::implicitConvTo(to = %s) %s\n", to->toChars(), toChars());
@@ -5210,16 +5086,6 @@ Type *TypeReference::semantic(Loc loc, Scope *sc)
 d_uns64 TypeReference::size(Loc loc)
 {
     return Target::ptrsize;
-}
-
-void TypeReference::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
-{
-    if (mod != this->mod)
-    {   toCBuffer3(buf, hgs, mod);
-        return;
-    }
-    next->toCBuffer2(buf, hgs, this->mod);
-    buf->writeByte('&');
 }
 
 Expression *TypeReference::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
@@ -5537,184 +5403,6 @@ void TypeFunction::toDecoBuffer(OutBuffer *buf, int flag)
     if (next != NULL)
         next->toDecoBuffer(buf);
     inuse--;
-}
-
-void TypeFunction::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
-{
-    toCBufferWithAttributes(buf, ident, hgs, this, NULL);
-}
-
-void TypeFunction::toCBufferWithAttributes(OutBuffer *buf, Identifier *ident, HdrGenState* hgs, TypeFunction *attrs, TemplateDeclaration *td)
-{
-    //printf("TypeFunction::toCBuffer() this = %p\n", this);
-    if (inuse)
-    {   inuse = 2;              // flag error to caller
-        return;
-    }
-    inuse++;
-
-    /* Use 'storage class' style for attributes
-     */
-    if (attrs->mod)
-    {
-        MODtoBuffer(buf, attrs->mod);
-        buf->writeByte(' ');
-    }
-
-    if (attrs->purity)
-        buf->writestring("pure ");
-    if (attrs->isnothrow)
-        buf->writestring("nothrow ");
-    if (attrs->isproperty)
-        buf->writestring("@property ");
-    if (attrs->isref)
-        buf->writestring("ref ");
-
-    switch (attrs->trust)
-    {
-        case TRUSTsystem:
-            buf->writestring("@system ");
-            break;
-
-        case TRUSTtrusted:
-            buf->writestring("@trusted ");
-            break;
-
-        case TRUSTsafe:
-            buf->writestring("@safe ");
-            break;
-        default: break;
-    }
-
-    if (hgs->ddoc != 1)
-    {
-        const char *p = NULL;
-        switch (attrs->linkage)
-        {
-            case LINKd:         p = NULL;       break;
-            case LINKc:         p = "C";        break;
-            case LINKwindows:   p = "Windows";  break;
-            case LINKpascal:    p = "Pascal";   break;
-            case LINKcpp:       p = "C++";      break;
-            default:
-                assert(0);
-        }
-        if (!hgs->hdrgen && p)
-        {
-            buf->writestring("extern (");
-            buf->writestring(p);
-            buf->writestring(") ");
-        }
-    }
-
-    if (!ident || ident->toHChars2() == ident->toChars())
-    {   if (next)
-            next->toCBuffer2(buf, hgs, 0);
-        else if (hgs->ddoc)
-            buf->writestring("auto");
-    }
-
-    if (ident)
-    {
-        if (next || hgs->ddoc)
-            buf->writeByte(' ');
-        buf->writestring(ident->toHChars2());
-    }
-
-    if (td)
-    {   buf->writeByte('(');
-        for (size_t i = 0; i < td->origParameters->dim; i++)
-        {
-            TemplateParameter *tp = (*td->origParameters)[i];
-            if (i)
-                buf->writestring(", ");
-            tp->toCBuffer(buf, hgs);
-        }
-        buf->writeByte(')');
-    }
-    Parameter::argsToCBuffer(buf, hgs, parameters, varargs);
-    inuse--;
-}
-
-// kind is inserted before the argument list and will usually be "function" or "delegate".
-void functionToCBuffer2(TypeFunction *t, OutBuffer *buf, HdrGenState *hgs, int mod, const char *kind)
-{
-    if (hgs->ddoc != 1)
-    {
-        const char *p = NULL;
-        switch (t->linkage)
-        {
-            case LINKd:         p = NULL;       break;
-            case LINKc:         p = "C";        break;
-            case LINKwindows:   p = "Windows";  break;
-            case LINKpascal:    p = "Pascal";   break;
-            case LINKcpp:       p = "C++";      break;
-            default:
-                assert(0);
-        }
-        if (!hgs->hdrgen && p)
-        {
-            buf->writestring("extern (");
-            buf->writestring(p);
-            buf->writestring(") ");
-        }
-    }
-    if (t->next)
-    {
-        t->next->toCBuffer2(buf, hgs, 0);
-        buf->writeByte(' ');
-    }
-    buf->writestring(kind);
-    Parameter::argsToCBuffer(buf, hgs, t->parameters, t->varargs);
-    t->attributesToCBuffer(buf, mod);
-}
-
-void TypeFunction::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
-{
-    //printf("TypeFunction::toCBuffer2() this = %p, ref = %d\n", this, isref);
-    if (inuse)
-    {   inuse = 2;              // flag error to caller
-        return;
-    }
-    inuse++;
-
-    functionToCBuffer2(this, buf, hgs, mod, "function");
-
-    inuse--;
-}
-
-void TypeFunction::attributesToCBuffer(OutBuffer *buf, int mod)
-{
-    /* Use postfix style for attributes
-     */
-    if (mod != this->mod)
-    {
-        modToBuffer(buf);
-    }
-    if (purity)
-        buf->writestring(" pure");
-    if (isnothrow)
-        buf->writestring(" nothrow");
-    if (isproperty)
-        buf->writestring(" @property");
-    if (isref)
-        buf->writestring(" ref");
-
-    switch (trust)
-    {
-        case TRUSTsystem:
-            buf->writestring(" @system");
-            break;
-
-        case TRUSTtrusted:
-            buf->writestring(" @trusted");
-            break;
-
-        case TRUSTsafe:
-            buf->writestring(" @safe");
-            break;
-        default: break;
-    }
 }
 
 Type *TypeFunction::semantic(Loc loc, Scope *sc)
@@ -6557,16 +6245,6 @@ MATCH TypeDelegate::implicitConvTo(Type *to)
     return MATCHnomatch;
 }
 
-void TypeDelegate::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
-{
-    if (mod != this->mod)
-    {   toCBuffer3(buf, hgs, mod);
-        return;
-    }
-
-    functionToCBuffer2((TypeFunction *)next, buf, hgs, mod, "delegate");
-}
-
 Expression *TypeDelegate::defaultInit(Loc loc)
 {
 #if LOGDEFAULTINIT
@@ -6663,23 +6341,6 @@ void TypeQualified::addIdent(Identifier *ident)
 void TypeQualified::addInst(TemplateInstance *inst)
 {
     idents.push(inst);
-}
-
-void TypeQualified::toCBuffer2Helper(OutBuffer *buf, HdrGenState *hgs)
-{
-    for (size_t i = 0; i < idents.dim; i++)
-    {   RootObject *id = idents[i];
-
-        buf->writeByte('.');
-
-        if (id->dyncast() == DYNCAST_DSYMBOL)
-        {
-            TemplateInstance *ti = (TemplateInstance *)id;
-            ti->toCBuffer(buf, hgs);
-        }
-        else
-            buf->writestring(id->toChars());
-    }
 }
 
 d_uns64 TypeQualified::size(Loc loc)
@@ -6933,16 +6594,6 @@ void TypeIdentifier::toDecoBuffer(OutBuffer *buf, int flag)
     buf->printf("%u%s", (unsigned)len, name);
 }
 
-void TypeIdentifier::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
-{
-    if (mod != this->mod)
-    {   toCBuffer3(buf, hgs, mod);
-        return;
-    }
-    buf->writestring(this->ident->toChars());
-    toCBuffer2Helper(buf, hgs);
-}
-
 /*************************************
  * Takes an array of Identifiers and figures out if
  * it represents a Type or an Expression.
@@ -7125,17 +6776,6 @@ Type *TypeInstance::syntaxCopy()
     return t;
 }
 
-
-void TypeInstance::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
-{
-    if (mod != this->mod)
-    {   toCBuffer3(buf, hgs, mod);
-        return;
-    }
-    tempinst->toCBuffer(buf, hgs);
-    toCBuffer2Helper(buf, hgs);
-}
-
 void TypeInstance::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid)
 {
     // Note close similarity to TypeIdentifier::resolve()
@@ -7291,18 +6931,6 @@ Dsymbol *TypeTypeof::toDsymbol(Scope *sc)
     if (t == this)
         return NULL;
     return t->toDsymbol(sc);
-}
-
-void TypeTypeof::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
-{
-    if (mod != this->mod)
-    {   toCBuffer3(buf, hgs, mod);
-        return;
-    }
-    buf->writestring("typeof(");
-    exp->toCBuffer(buf, hgs);
-    buf->writeByte(')');
-    toCBuffer2Helper(buf, hgs);
 }
 
 void TypeTypeof::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid)
@@ -7551,17 +7179,6 @@ Type *TypeReturn::semantic(Loc loc, Scope *sc)
     return t;
 }
 
-void TypeReturn::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
-{
-    if (mod != this->mod)
-    {   toCBuffer3(buf, hgs, mod);
-        return;
-    }
-    buf->writestring("typeof(return)");
-    toCBuffer2Helper(buf, hgs);
-}
-
-
 /***************************** TypeEnum *****************************/
 
 TypeEnum::TypeEnum(EnumDeclaration *sym)
@@ -7625,15 +7242,6 @@ void TypeEnum::toDecoBuffer(OutBuffer *buf, int flag)
     const char *name = sym->mangle();
     Type::toDecoBuffer(buf, flag);
     buf->writestring(name);
-}
-
-void TypeEnum::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
-{
-    if (mod != this->mod)
-    {   toCBuffer3(buf, hgs, mod);
-        return;
-    }
-    buf->writestring(sym->toChars());
 }
 
 Expression *TypeEnum::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
@@ -7852,16 +7460,6 @@ void TypeTypedef::toDecoBuffer(OutBuffer *buf, int flag)
     Type::toDecoBuffer(buf, flag);
     const char *name = sym->mangle();
     buf->writestring(name);
-}
-
-void TypeTypedef::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
-{
-    //printf("TypeTypedef::toCBuffer2() '%s'\n", sym->toChars());
-    if (mod != this->mod)
-    {   toCBuffer3(buf, hgs, mod);
-        return;
-    }
-    buf->writestring(sym->toChars());
 }
 
 Expression *TypeTypedef::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
@@ -8156,20 +7754,6 @@ void TypeStruct::toDecoBuffer(OutBuffer *buf, int flag)
     //printf("TypeStruct::toDecoBuffer('%s') = '%s'\n", toChars(), name);
     Type::toDecoBuffer(buf, flag);
     buf->writestring(name);
-}
-
-void TypeStruct::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
-{
-    if (mod != this->mod)
-    {
-        toCBuffer3(buf, hgs, mod);
-        return;
-    }
-    TemplateInstance *ti = sym->parent->isTemplateInstance();
-    if (ti && ti->toAlias() == sym)
-        buf->writestring(ti->toChars());
-    else
-        buf->writestring(sym->toChars());
 }
 
 Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
@@ -8705,20 +8289,6 @@ void TypeClass::toDecoBuffer(OutBuffer *buf, int flag)
     //printf("TypeClass::toDecoBuffer('%s' flag=%d mod=%x) = '%s'\n", toChars(), flag, mod, name);
     Type::toDecoBuffer(buf, flag);
     buf->writestring(name);
-}
-
-void TypeClass::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
-{
-    if (mod != this->mod)
-    {
-        toCBuffer3(buf, hgs, mod);
-        return;
-    }
-    TemplateInstance *ti = sym->parent->isTemplateInstance();
-    if (ti && ti->toAlias() == sym)
-        buf->writestring(ti->toChars());
-    else
-        buf->writestring(sym->toChars());
 }
 
 Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
@@ -9376,11 +8946,6 @@ Type *TypeTuple::makeConst()
 }
 #endif
 
-void TypeTuple::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
-{
-    Parameter::argsToCBuffer(buf, hgs, arguments, 0);
-}
-
 void TypeTuple::toDecoBuffer(OutBuffer *buf, int flag)
 {
     //printf("TypeTuple::toDecoBuffer() this = %p, %s\n", this, toChars());
@@ -9563,21 +9128,6 @@ void TypeSlice::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol 
     }
 }
 
-void TypeSlice::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
-{
-    if (mod != this->mod)
-    {   toCBuffer3(buf, hgs, mod);
-        return;
-    }
-    next->toCBuffer2(buf, hgs, this->mod);
-
-    buf->writeByte('[');
-    sizeToCBuffer(buf, hgs, lwr);
-    buf->writestring(" .. ");
-    sizeToCBuffer(buf, hgs, upr);
-    buf->writeByte(']');
-}
-
 /***************************** TypeNull *****************************/
 
 TypeNull::TypeNull()
@@ -9628,16 +9178,6 @@ void TypeNull::toDecoBuffer(OutBuffer *buf, int flag)
 {
     //tvoidptr->toDecoBuffer(buf, flag);
     Type::toDecoBuffer(buf, flag);
-}
-
-void TypeNull::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
-{
-    if (mod != this->mod)
-    {
-        toCBuffer3(buf, hgs, mod);
-        return;
-    }
-    buf->writestring("typeof(null)");
 }
 
 d_uns64 TypeNull::size(Loc loc) { return tvoidptr->size(loc); }
