@@ -100,6 +100,7 @@ bool canThrow(Expression *e, bool mustNotThrow);
 Expression *Expression_optimize(Expression *e, int result, bool keepLvalue);
 dt_t **Expression_toDt(Expression *e, dt_t **pdt);
 MATCH implicitConvTo(Expression *e, Type *t);
+Expression *implicitCastTo(Expression *e, Scope *sc, Type *t);
 
 /* Run CTFE on the expression, but allow the expression to be a TypeExp
  * or a tuple containing a TypeExp. (This is required by pragma(msg)).
@@ -161,7 +162,10 @@ public:
     virtual int isLvalue();
     virtual Expression *toLvalue(Scope *sc, Expression *e);
     virtual Expression *modifiableLvalue(Scope *sc, Expression *e);
-    virtual Expression *implicitCastTo(Scope *sc, Type *t);
+    Expression *implicitCastTo(Scope *sc, Type *t)
+    {
+        return ::implicitCastTo(this, sc, t);
+    }
     MATCH implicitConvTo(Type *t)
     {
         return ::implicitConvTo(this, t);
