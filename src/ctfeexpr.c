@@ -40,11 +40,6 @@ Expression *ClassReferenceExp::interpret(InterState *istate, CtfeGoal goal)
     return this;
 }
 
-void ClassReferenceExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring(value->toChars());
-}
-
 ClassDeclaration *ClassReferenceExp::originalClass()
 {
     return value->sd->isClassDeclaration();
