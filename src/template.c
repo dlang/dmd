@@ -6647,7 +6647,7 @@ bool TemplateInstance::hasNestedArgs(Objects *args, bool isstatic)
         }
         else if (va)
         {
-            nested |= hasNestedArgs(&va->objects, isstatic);
+            nested |= (int)hasNestedArgs(&va->objects, isstatic);
         }
     }
     //printf("-TemplateInstance::hasNestedArgs('%s') = %d\n", tempdecl->ident->toChars(), nested);
