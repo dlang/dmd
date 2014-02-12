@@ -40,7 +40,6 @@ public:
     StructLiteralExp *value;
     ClassReferenceExp(Loc loc, StructLiteralExp *lit, Type *type);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     ClassDeclaration *originalClass();
     VarDeclaration *getFieldAt(unsigned index);
 
