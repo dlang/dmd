@@ -1054,830 +1054,866 @@ Type *SliceExp::toStaticArrayType()
  * Assume that the 'this' expression does not have any indirections.
  */
 
-Expression *Expression::castTo(Scope *sc, Type *t)
+Expression *castTo(Expression *e, Scope *sc, Type *t)
 {
-    //printf("Expression::castTo(this=%s, t=%s)\n", toChars(), t->toChars());
-#if 0
-    printf("Expression::castTo(this=%s, type=%s, t=%s)\n",
-        toChars(), type->toChars(), t->toChars());
-#endif
-    if (type->equals(t))
-        return this;
-    if (op == TOKvar)
-    {
-        VarDeclaration *v = ((VarExp *)this)->var->isVarDeclaration();
-        if (v && v->storage_class & STCmanifest)
-        {
-            Expression *e = ctfeInterpret();
-            return e->castTo(sc, t);
-        }
-    }
-    Expression *e = this;
-    Type *tb = t->toBasetype();
-    Type *typeb = type->toBasetype();
-    if (!tb->equals(typeb))
-    {
-        // Do (type *) cast of (type [dim])
-        if (tb->ty == Tpointer &&
-            typeb->ty == Tsarray
-           )
-        {
-            //printf("Converting [dim] to *\n");
 
-            e = new AddrExp(loc, e);
-        }
-        else
+    class CastTo : public Visitor
+    {
+    public:
+        Type *t;
+        Scope *sc;
+        Expression *result;
+
+        CastTo(Scope *sc, Type *t)
+            : sc(sc), t(t)
         {
-            if (typeb->ty == Tstruct)
+            result = NULL;
+        }
+
+        void visit(Expression *e)
+        {
+            //printf("Expression::castTo(this=%s, t=%s)\n", e->toChars(), t->toChars());
+        #if 0
+            printf("Expression::castTo(this=%s, type=%s, t=%s)\n",
+                e->toChars(), e->type->toChars(), t->toChars());
+        #endif
+            if (e->type->equals(t))
             {
-                TypeStruct *ts = (TypeStruct *)typeb;
-                if (!(tb->ty == Tstruct && ts->sym == ((TypeStruct *)tb)->sym) &&
-                    ts->sym->aliasthis)
+                result = e;
+                return;
+            }
+            if (e->op == TOKvar)
+            {
+                VarDeclaration *v = ((VarExp *)e)->var->isVarDeclaration();
+                if (v && v->storage_class & STCmanifest)
                 {
-                    /* Forward the cast to our alias this member, rewrite to:
-                     *   cast(to)e1.aliasthis
-                     */
-                    Expression *ex = resolveAliasThis(sc, this);
-                    return ex->castTo(sc, t);
+                    result = e->ctfeInterpret();
+                    result = result->castTo(sc, t);
+                    return;
                 }
             }
-            else if (typeb->ty == Tclass)
+            result = e;
+            Type *tb = t->toBasetype();
+            Type *typeb = e->type->toBasetype();
+            if (!tb->equals(typeb))
             {
-                TypeClass *ts = (TypeClass *)typeb;
-                if (ts->sym->aliasthis)
+                // Do (type *) cast of (type [dim])
+                if (tb->ty == Tpointer &&
+                    typeb->ty == Tsarray)
                 {
-                    if (tb->ty == Tclass)
+                    //printf("Converting [dim] to *\n");
+                    result = new AddrExp(e->loc, result);
+                }
+                else
+                {
+                    if (typeb->ty == Tstruct)
                     {
-                        ClassDeclaration *cdfrom = typeb->isClassHandle();
-                        ClassDeclaration *cdto   = tb->isClassHandle();
-                        int offset;
-                        if (cdto->isBaseOf(cdfrom, &offset))
-                             goto L1;
+                        TypeStruct *ts = (TypeStruct *)typeb;
+                        if (!(tb->ty == Tstruct && ts->sym == ((TypeStruct *)tb)->sym) &&
+                            ts->sym->aliasthis)
+                        {
+                            /* Forward the cast to our alias this member, rewrite to:
+                             *   cast(to)e1.aliasthis
+                             */
+                            Expression *ex = resolveAliasThis(sc, e);
+                            result = ex->castTo(sc, t);
+                            return;
+                        }
                     }
-                    /* Forward the cast to our alias this member, rewrite to:
-                     *   cast(to)e1.aliasthis
-                     */
-                    Expression *e1 = resolveAliasThis(sc, this);
-                    Expression *e2 = new CastExp(loc, e1, tb);
-                    e2 = e2->semantic(sc);
-                    return e2;
+                    else if (typeb->ty == Tclass)
+                    {
+                        TypeClass *ts = (TypeClass *)typeb;
+                        if (ts->sym->aliasthis)
+                        {
+                            if (tb->ty == Tclass)
+                            {
+                                ClassDeclaration *cdfrom = typeb->isClassHandle();
+                                ClassDeclaration *cdto   = tb->isClassHandle();
+                                int offset;
+                                if (cdto->isBaseOf(cdfrom, &offset))
+                                     goto L1;
+                            }
+                            /* Forward the cast to our alias this member, rewrite to:
+                             *   cast(to)e1.aliasthis
+                             */
+                            Expression *e1 = resolveAliasThis(sc, e);
+                            Expression *e2 = new CastExp(e->loc, e1, tb);
+                            e2 = e2->semantic(sc);
+                            result = e2;
+                            return;
+                        }
+                    }
+                    else if (tb->ty == Tvector && typeb->ty != Tvector)
+                    {
+                        //printf("test1 e = %s, e->type = %s, tb = %s\n", e->toChars(), e->type->toChars(), tb->toChars());
+                        TypeVector *tv = (TypeVector *)tb;
+                        result = new CastExp(e->loc, result, tv->elementType());
+                        result = new VectorExp(e->loc, result, tb);
+                        result = result->semantic(sc);
+                        return;
+                    }
+                    else if (typeb->implicitConvTo(tb) == MATCHconst && t->equals(e->type->constOf()))
+                    {
+                        result = e->copy();
+                        result->type = t;
+                        return;
+                    }
+                L1:
+                    result = new CastExp(e->loc, result, tb);
                 }
-             L1: ;
             }
-            else if (tb->ty == Tvector && typeb->ty != Tvector)
+            else
             {
-                //printf("test1 e = %s, e->type = %s, tb = %s\n", e->toChars(), e->type->toChars(), tb->toChars());
-                TypeVector *tv = (TypeVector *)tb;
-                e = new CastExp(loc, e, tv->elementType());
-                e = new VectorExp(loc, e, tb);
-                e = e->semantic(sc);
-                return e;
+                result = result->copy();  // because of COW for assignment to e->type
             }
-            else if (typeb->implicitConvTo(tb) == MATCHconst && t->equals(type->constOf()))
-            {
-                e = copy();
-                e->type = t;
-                return e;
-            }
-            e = new CastExp(loc, e, tb);
+            assert(result != e);
+            result->type = t;
+            //printf("Returning: %s\n", result->toChars());
         }
-    }
-    else
-    {
-        e = e->copy();  // because of COW for assignment to e->type
-    }
-    assert(e != this);
-    e->type = t;
-    //printf("Returning: %s\n", e->toChars());
-    return e;
-}
 
-
-Expression *ErrorExp::castTo(Scope *sc, Type *t)
-{
-    return this;
-}
-
-
-Expression *RealExp::castTo(Scope *sc, Type *t)
-{
-    Expression *e = this;
-    if (!type->equals(t))
-    {
-        if ((type->isreal() && t->isreal()) ||
-            (type->isimaginary() && t->isimaginary())
-           )
-        {   e = copy();
-            e->type = t;
-        }
-        else
-            e = Expression::castTo(sc, t);
-    }
-    return e;
-}
-
-
-Expression *ComplexExp::castTo(Scope *sc, Type *t)
-{
-    Expression *e = this;
-    if (!type->equals(t))
-    {
-        if (type->iscomplex() && t->iscomplex())
-        {   e = copy();
-            e->type = t;
-        }
-        else
-            e = Expression::castTo(sc, t);
-    }
-    return e;
-}
-
-
-Expression *NullExp::castTo(Scope *sc, Type *t)
-{
-    //printf("NullExp::castTo(t = %s) %s\n", t->toChars(), toChars());
-    if (type->equals(t))
-    {
-        committed = 1;
-        return this;
-    }
-
-    NullExp *e = (NullExp *)copy();
-    e->committed = 1;
-    Type *tb = t->toBasetype();
-#if 0
-    e->type = type->toBasetype();
-    if (!tb->equals(e->type))
-    {
-        // NULL implicitly converts to any pointer type or dynamic array
-        if (e->type->ty == Tpointer && e->type->nextOf()->ty == Tvoid &&
-            (tb->ty == Tpointer || tb->ty == Tarray || tb->ty == Taarray ||
-             tb->ty == Tdelegate))
+        void visit(ErrorExp *e)
         {
-            if (tb->ty == Tdelegate)
-            {   TypeDelegate *td = (TypeDelegate *)tb;
-                TypeFunction *tf = (TypeFunction *)td->nextOf();
+            result = e;
+        }
 
-                if (!tf->varargs &&
-                    !(tf->arguments && tf->arguments->dim)
+        void visit(RealExp *e)
+        {
+            if (!e->type->equals(t))
+            {
+                if ((e->type->isreal() && t->isreal()) ||
+                    (e->type->isimaginary() && t->isimaginary())
                    )
                 {
-                    return Expression::castTo(sc, t);
+                    result = e->copy();
+                    result->type = t;
                 }
+                else
+                    visit((Expression *)e);
+                return;
             }
+            result = e;
         }
-        else
+
+        void visit(ComplexExp *e)
         {
-            //return e->Expression::castTo(sc, t);
+            if (!e->type->equals(t))
+            {
+                if (e->type->iscomplex() && t->iscomplex())
+                {
+                    result = e->copy();
+                    result->type = t;
+                }
+                else
+                    visit((Expression *)e);
+                return;
+            }
+            result = e;
         }
-    }
-#else
-    if (tb->ty == Tvoid)
-    {
-        e->type = type->toBasetype();
-        return e->Expression::castTo(sc, t);
-    }
-#endif
-    if (tb->ty == Tsarray || tb->ty == Tstruct)
-    {
-        error("cannot cast null to %s", t->toChars());
-    }
-    e->type = t;
-    return e;
-}
 
-Expression *StructLiteralExp::castTo(Scope *sc, Type *t)
-{
-    Expression *e = Expression::castTo(sc, t);
-    if (e->op == TOKstructliteral)
-        ((StructLiteralExp *)e)->stype = t; // commit type
-    return e;
-}
-
-Expression *StringExp::castTo(Scope *sc, Type *t)
-{
-    /* This follows copy-on-write; any changes to 'this'
-     * will result in a copy.
-     * The this->string member is considered immutable.
-     */
-    int copied = 0;
-
-    //printf("StringExp::castTo(t = %s), '%s' committed = %d\n", t->toChars(), toChars(), committed);
-
-    if (!committed && t->ty == Tpointer && t->nextOf()->ty == Tvoid)
-    {
-        error("cannot convert string literal to void*");
-        return new ErrorExp();
-    }
-
-    StringExp *se = this;
-    if (!committed)
-    {   se = (StringExp *)copy();
-        se->committed = 1;
-        copied = 1;
-    }
-
-    if (type->equals(t))
-    {
-        return se;
-    }
-
-    Type *tb = t->toBasetype();
-    //printf("\ttype = %s\n", type->toChars());
-    if (tb->ty == Tdelegate && type->toBasetype()->ty != Tdelegate)
-        return Expression::castTo(sc, t);
-
-    Type *typeb = type->toBasetype();
-    if (typeb->equals(tb))
-    {
-        if (!copied)
-        {   se = (StringExp *)copy();
-            copied = 1;
-        }
-        se->type = t;
-        return se;
-    }
-
-    if (committed && tb->ty == Tsarray && typeb->ty == Tarray)
-    {
-        se = (StringExp *)copy();
-        d_uns64 szx = tb->nextOf()->size();
-        assert(szx <= 255);
-        se->sz = (unsigned char)szx;
-        se->len = (len * sz) / se->sz;
-        se->committed = 1;
-        se->type = t;
-
-        /* Assure space for terminating 0
-         */
-        if ((se->len + 1) * se->sz > (len + 1) * sz)
+        void visit(NullExp *e)
         {
-            void *s = (void *)mem.malloc((se->len + 1) * se->sz);
-            memcpy(s, se->string, se->len * se->sz);
-            memset((char *)s + se->len * se->sz, 0, se->sz);
-            se->string = s;
-        }
-        return se;
-    }
-
-    if (tb->ty != Tsarray && tb->ty != Tarray && tb->ty != Tpointer)
-    {   if (!copied)
-        {   se = (StringExp *)copy();
-            copied = 1;
-        }
-        goto Lcast;
-    }
-    if (typeb->ty != Tsarray && typeb->ty != Tarray && typeb->ty != Tpointer)
-    {   if (!copied)
-        {   se = (StringExp *)copy();
-            copied = 1;
-        }
-        goto Lcast;
-    }
-
-    if (typeb->nextOf()->size() == tb->nextOf()->size())
-    {
-        if (!copied)
-        {   se = (StringExp *)copy();
-            copied = 1;
-        }
-        if (tb->ty == Tsarray)
-            goto L2;    // handle possible change in static array dimension
-        se->type = t;
-        return se;
-    }
-
-    if (committed)
-        goto Lcast;
-
-#define X(tf,tt)        ((int)(tf) * 256 + (int)(tt))
-    {
-    OutBuffer buffer;
-    size_t newlen = 0;
-    int tfty = typeb->nextOf()->toBasetype()->ty;
-    int ttty = tb->nextOf()->toBasetype()->ty;
-    switch (X(tfty, ttty))
-    {
-        case X(Tchar, Tchar):
-        case X(Twchar,Twchar):
-        case X(Tdchar,Tdchar):
-            break;
-
-        case X(Tchar, Twchar):
-            for (size_t u = 0; u < len;)
-            {   unsigned c;
-                const char *p = utf_decodeChar((utf8_t *)se->string, len, &u, &c);
-                if (p)
-                    error("%s", p);
-                else
-                    buffer.writeUTF16(c);
-            }
-            newlen = buffer.offset / 2;
-            buffer.writeUTF16(0);
-            goto L1;
-
-        case X(Tchar, Tdchar):
-            for (size_t u = 0; u < len;)
-            {   unsigned c;
-                const char *p = utf_decodeChar((utf8_t *)se->string, len, &u, &c);
-                if (p)
-                    error("%s", p);
-                buffer.write4(c);
-                newlen++;
-            }
-            buffer.write4(0);
-            goto L1;
-
-        case X(Twchar,Tchar):
-            for (size_t u = 0; u < len;)
-            {   unsigned c;
-                const char *p = utf_decodeWchar((unsigned short *)se->string, len, &u, &c);
-                if (p)
-                    error("%s", p);
-                else
-                    buffer.writeUTF8(c);
-            }
-            newlen = buffer.offset;
-            buffer.writeUTF8(0);
-            goto L1;
-
-        case X(Twchar,Tdchar):
-            for (size_t u = 0; u < len;)
-            {   unsigned c;
-                const char *p = utf_decodeWchar((unsigned short *)se->string, len, &u, &c);
-                if (p)
-                    error("%s", p);
-                buffer.write4(c);
-                newlen++;
-            }
-            buffer.write4(0);
-            goto L1;
-
-        case X(Tdchar,Tchar):
-            for (size_t u = 0; u < len; u++)
+            //printf("NullExp::castTo(t = %s) %s\n", t->toChars(), toChars());
+            if (e->type->equals(t))
             {
-                unsigned c = ((unsigned *)se->string)[u];
-                if (!utf_isValidDchar(c))
-                    error("invalid UCS-32 char \\U%08x", c);
-                else
-                    buffer.writeUTF8(c);
-                newlen++;
+                e->committed = 1;
+                result = e;
+                return;
             }
-            newlen = buffer.offset;
-            buffer.writeUTF8(0);
-            goto L1;
 
-        case X(Tdchar,Twchar):
-            for (size_t u = 0; u < len; u++)
+            NullExp *ex = (NullExp *)e->copy();
+            ex->committed = 1;
+            Type *tb = t->toBasetype();
+
+            if (tb->ty == Tvoid)
             {
-                unsigned c = ((unsigned *)se->string)[u];
-                if (!utf_isValidDchar(c))
-                    error("invalid UCS-32 char \\U%08x", c);
-                else
-                    buffer.writeUTF16(c);
-                newlen++;
+                ex->type = e->type->toBasetype();
+                visit((Expression *)ex);
+                return;
             }
-            newlen = buffer.offset / 2;
-            buffer.writeUTF16(0);
-            goto L1;
+            if (tb->ty == Tsarray || tb->ty == Tstruct)
+            {
+                e->error("cannot cast null to %s", t->toChars());
+            }
+            ex->type = t;
+            result = ex;
+        }
 
-        L1:
-            if (!copied)
-            {   se = (StringExp *)copy();
+        void visit(StructLiteralExp *e)
+        {
+            visit((Expression *)e);
+            if (result->op == TOKstructliteral)
+                ((StructLiteralExp *)result)->stype = t; // commit type
+        }
+
+        void visit(StringExp *e)
+        {
+            /* This follows copy-on-write; any changes to 'this'
+             * will result in a copy.
+             * The this->string member is considered immutable.
+             */
+            int copied = 0;
+
+            //printf("StringExp::castTo(t = %s), '%s' committed = %d\n", t->toChars(), e->toChars(), e->committed);
+
+            if (!e->committed && t->ty == Tpointer && t->nextOf()->ty == Tvoid)
+            {
+                e->error("cannot convert string literal to void*");
+                result = new ErrorExp();
+                return;
+            }
+
+            StringExp *se = e;
+            if (!e->committed)
+            {
+                se = (StringExp *)e->copy();
+                se->committed = 1;
                 copied = 1;
             }
-            se->string = buffer.extractData();
-            se->len = newlen;
 
+            if (e->type->equals(t))
             {
+                result = se;
+                return;
+            }
+
+            Type *tb = t->toBasetype();
+            //printf("\ttype = %s\n", e->type->toChars());
+            if (tb->ty == Tdelegate && e->type->toBasetype()->ty != Tdelegate)
+            {
+                visit((Expression *)e);
+                return;
+            }
+
+            Type *typeb = e->type->toBasetype();
+            if (typeb->equals(tb))
+            {
+                if (!copied)
+                {
+                    se = (StringExp *)e->copy();
+                    copied = 1;
+                }
+                se->type = t;
+                result = se;
+                return;
+            }
+
+            if (e->committed && tb->ty == Tsarray && typeb->ty == Tarray)
+            {
+                se = (StringExp *)e->copy();
                 d_uns64 szx = tb->nextOf()->size();
                 assert(szx <= 255);
                 se->sz = (unsigned char)szx;
-            }
-            break;
+                se->len = (e->len * e->sz) / se->sz;
+                se->committed = 1;
+                se->type = t;
 
-        default:
-            assert(typeb->nextOf()->size() != tb->nextOf()->size());
-            goto Lcast;
-    }
-    }
-#undef X
-L2:
-    assert(copied);
-
-    // See if need to truncate or extend the literal
-    if (tb->ty == Tsarray)
-    {
-        size_t dim2 = (size_t)((TypeSArray *)tb)->dim->toInteger();
-
-        //printf("dim from = %d, to = %d\n", (int)se->len, (int)dim2);
-
-        // Changing dimensions
-        if (dim2 != se->len)
-        {
-            // Copy when changing the string literal
-            size_t newsz = se->sz;
-            size_t d = (dim2 < se->len) ? dim2 : se->len;
-            void *s = (void *)mem.malloc((dim2 + 1) * newsz);
-            memcpy(s, se->string, d * newsz);
-            // Extend with 0, add terminating 0
-            memset((char *)s + d * newsz, 0, (dim2 + 1 - d) * newsz);
-            se->string = s;
-            se->len = dim2;
-        }
-    }
-    se->type = t;
-    return se;
-
-Lcast:
-    Expression *e = new CastExp(loc, se, t);
-    e->type = t;        // so semantic() won't be run on e
-    return e;
-}
-
-Expression *AddrExp::castTo(Scope *sc, Type *t)
-{
-    Type *tb;
-
-#if 0
-    printf("AddrExp::castTo(this=%s, type=%s, t=%s)\n",
-        toChars(), type->toChars(), t->toChars());
-#endif
-    Expression *e = this;
-
-    tb = t->toBasetype();
-    type = type->toBasetype();
-    if (!tb->equals(type))
-    {
-        // Look for pointers to functions where the functions are overloaded.
-
-        if (e1->op == TOKoverloadset &&
-            (t->ty == Tpointer || t->ty == Tdelegate) && t->nextOf()->ty == Tfunction)
-        {   OverExp *eo = (OverExp *)e1;
-            FuncDeclaration *f = NULL;
-            for (size_t i = 0; i < eo->vars->a.dim; i++)
-            {   Dsymbol *s = eo->vars->a[i];
-                FuncDeclaration *f2 = s->isFuncDeclaration();
-                assert(f2);
-                if (f2->overloadExactMatch(t->nextOf()))
+                /* Assure space for terminating 0
+                 */
+                if ((se->len + 1) * se->sz > (e->len + 1) * e->sz)
                 {
+                    void *s = (void *)mem.malloc((se->len + 1) * se->sz);
+                    memcpy(s, se->string, se->len * se->sz);
+                    memset((char *)s + se->len * se->sz, 0, se->sz);
+                    se->string = s;
+                }
+                result = se;
+                return;
+            }
+
+            if (tb->ty != Tsarray && tb->ty != Tarray && tb->ty != Tpointer)
+            {
+                if (!copied)
+                {
+                    se = (StringExp *)e->copy();
+                    copied = 1;
+                }
+                goto Lcast;
+            }
+            if (typeb->ty != Tsarray && typeb->ty != Tarray && typeb->ty != Tpointer)
+            {
+                if (!copied)
+                {
+                    se = (StringExp *)e->copy();
+                    copied = 1;
+                }
+                goto Lcast;
+            }
+
+            if (typeb->nextOf()->size() == tb->nextOf()->size())
+            {
+                if (!copied)
+                {
+                    se = (StringExp *)e->copy();
+                    copied = 1;
+                }
+                if (tb->ty == Tsarray)
+                    goto L2;    // handle possible change in static array dimension
+                se->type = t;
+                result = se;
+                return;
+            }
+
+            if (e->committed)
+                goto Lcast;
+
+        #define X(tf,tt)        ((int)(tf) * 256 + (int)(tt))
+            {
+            OutBuffer buffer;
+            size_t newlen = 0;
+            int tfty = typeb->nextOf()->toBasetype()->ty;
+            int ttty = tb->nextOf()->toBasetype()->ty;
+            switch (X(tfty, ttty))
+            {
+                case X(Tchar, Tchar):
+                case X(Twchar,Twchar):
+                case X(Tdchar,Tdchar):
+                    break;
+
+                case X(Tchar, Twchar):
+                    for (size_t u = 0; u < e->len;)
+                    {
+                        unsigned c;
+                        const char *p = utf_decodeChar((utf8_t *)se->string, e->len, &u, &c);
+                        if (p)
+                            e->error("%s", p);
+                        else
+                            buffer.writeUTF16(c);
+                    }
+                    newlen = buffer.offset / 2;
+                    buffer.writeUTF16(0);
+                    goto L1;
+
+                case X(Tchar, Tdchar):
+                    for (size_t u = 0; u < e->len;)
+                    {
+                        unsigned c;
+                        const char *p = utf_decodeChar((utf8_t *)se->string, e->len, &u, &c);
+                        if (p)
+                            e->error("%s", p);
+                        buffer.write4(c);
+                        newlen++;
+                    }
+                    buffer.write4(0);
+                    goto L1;
+
+                case X(Twchar,Tchar):
+                    for (size_t u = 0; u < e->len;)
+                    {
+                        unsigned c;
+                        const char *p = utf_decodeWchar((unsigned short *)se->string, e->len, &u, &c);
+                        if (p)
+                            e->error("%s", p);
+                        else
+                            buffer.writeUTF8(c);
+                    }
+                    newlen = buffer.offset;
+                    buffer.writeUTF8(0);
+                    goto L1;
+
+                case X(Twchar,Tdchar):
+                    for (size_t u = 0; u < e->len;)
+                    {
+                        unsigned c;
+                        const char *p = utf_decodeWchar((unsigned short *)se->string, e->len, &u, &c);
+                        if (p)
+                            e->error("%s", p);
+                        buffer.write4(c);
+                        newlen++;
+                    }
+                    buffer.write4(0);
+                    goto L1;
+
+                case X(Tdchar,Tchar):
+                    for (size_t u = 0; u < e->len; u++)
+                    {
+                        unsigned c = ((unsigned *)se->string)[u];
+                        if (!utf_isValidDchar(c))
+                            e->error("invalid UCS-32 char \\U%08x", c);
+                        else
+                            buffer.writeUTF8(c);
+                        newlen++;
+                    }
+                    newlen = buffer.offset;
+                    buffer.writeUTF8(0);
+                    goto L1;
+
+                case X(Tdchar,Twchar):
+                    for (size_t u = 0; u < e->len; u++)
+                    {
+                        unsigned c = ((unsigned *)se->string)[u];
+                        if (!utf_isValidDchar(c))
+                            e->error("invalid UCS-32 char \\U%08x", c);
+                        else
+                            buffer.writeUTF16(c);
+                        newlen++;
+                    }
+                    newlen = buffer.offset / 2;
+                    buffer.writeUTF16(0);
+                    goto L1;
+
+                L1:
+                    if (!copied)
+                    {
+                        se = (StringExp *)e->copy();
+                        copied = 1;
+                    }
+                    se->string = buffer.extractData();
+                    se->len = newlen;
+
+                    {
+                        d_uns64 szx = tb->nextOf()->size();
+                        assert(szx <= 255);
+                        se->sz = (unsigned char)szx;
+                    }
+                    break;
+
+                default:
+                    assert(typeb->nextOf()->size() != tb->nextOf()->size());
+                    goto Lcast;
+            }
+            }
+        #undef X
+        L2:
+            assert(copied);
+
+            // See if need to truncate or extend the literal
+            if (tb->ty == Tsarray)
+            {
+                size_t dim2 = (size_t)((TypeSArray *)tb)->dim->toInteger();
+
+                //printf("dim from = %d, to = %d\n", (int)se->len, (int)dim2);
+
+                // Changing dimensions
+                if (dim2 != se->len)
+                {
+                    // Copy when changing the string literal
+                    size_t newsz = se->sz;
+                    size_t d = (dim2 < se->len) ? dim2 : se->len;
+                    void *s = (void *)mem.malloc((dim2 + 1) * newsz);
+                    memcpy(s, se->string, d * newsz);
+                    // Extend with 0, add terminating 0
+                    memset((char *)s + d * newsz, 0, (dim2 + 1 - d) * newsz);
+                    se->string = s;
+                    se->len = dim2;
+                }
+            }
+            se->type = t;
+            result = se;
+            return;
+
+        Lcast:
+            result = new CastExp(e->loc, se, t);
+            result->type = t;        // so semantic() won't be run on e
+        }
+
+        void visit(AddrExp *e)
+        {
+            Type *tb;
+
+        #if 0
+            printf("AddrExp::castTo(this=%s, type=%s, t=%s)\n",
+                e->toChars(), e->type->toChars(), t->toChars());
+        #endif
+            result = e;
+
+            tb = t->toBasetype();
+            e->type = e->type->toBasetype();
+            if (!tb->equals(e->type))
+            {
+                // Look for pointers to functions where the functions are overloaded.
+
+                if (e->e1->op == TOKoverloadset &&
+                    (t->ty == Tpointer || t->ty == Tdelegate) && t->nextOf()->ty == Tfunction)
+                {
+                    OverExp *eo = (OverExp *)e->e1;
+                    FuncDeclaration *f = NULL;
+                    for (size_t i = 0; i < eo->vars->a.dim; i++)
+                    {
+                        Dsymbol *s = eo->vars->a[i];
+                        FuncDeclaration *f2 = s->isFuncDeclaration();
+                        assert(f2);
+                        if (f2->overloadExactMatch(t->nextOf()))
+                        {
+                            if (f)
+                            {
+                                /* Error if match in more than one overload set,
+                                 * even if one is a 'better' match than the other.
+                                 */
+                                ScopeDsymbol::multiplyDefined(e->loc, f, f2);
+                            }
+                            else
+                                f = f2;
+                        }
+                    }
                     if (f)
                     {
-                        /* Error if match in more than one overload set,
-                         * even if one is a 'better' match than the other.
-                         */
-                        ScopeDsymbol::multiplyDefined(loc, f, f2);
+                        f->tookAddressOf++;
+                        SymOffExp *se = new SymOffExp(e->loc, f, 0, 0);
+                        se->semantic(sc);
+                        // Let SymOffExp::castTo() do the heavy lifting
+                        visit(se);
+                        return;
                     }
-                    else
-                        f = f2;
                 }
-            }
-            if (f)
-            {   f->tookAddressOf++;
-                SymOffExp *se = new SymOffExp(loc, f, 0, 0);
-                se->semantic(sc);
-                // Let SymOffExp::castTo() do the heavy lifting
-                return se->castTo(sc, t);
-            }
-        }
 
-
-        if (type->ty == Tpointer && type->nextOf()->ty == Tfunction &&
-            tb->ty == Tpointer && tb->nextOf()->ty == Tfunction &&
-            e1->op == TOKvar)
-        {
-            VarExp *ve = (VarExp *)e1;
-            FuncDeclaration *f = ve->var->isFuncDeclaration();
-            if (f)
-            {
-                assert(0);      // should be SymOffExp instead
-                f = f->overloadExactMatch(tb->nextOf());
-                if (f)
+                if (e->type->ty == Tpointer && e->type->nextOf()->ty == Tfunction &&
+                    tb->ty == Tpointer && tb->nextOf()->ty == Tfunction &&
+                    e->e1->op == TOKvar)
                 {
-                    e = new VarExp(loc, f);
-                    e->type = f->type;
-                    e = new AddrExp(loc, e);
-                    e->type = t;
-                    return e;
+                    VarExp *ve = (VarExp *)e->e1;
+                    FuncDeclaration *f = ve->var->isFuncDeclaration();
+                    if (f)
+                    {
+                        assert(0);      // should be SymOffExp instead
+                        f = f->overloadExactMatch(tb->nextOf());
+                        if (f)
+                        {
+                            result = new VarExp(e->loc, f);
+                            result->type = f->type;
+                            result = new AddrExp(e->loc, result);
+                            result->type = t;
+                            return;
+                        }
+                    }
+                }
+                visit((Expression *)e);
+            }
+            result->type = t;
+        }
+
+        void visit(TupleExp *e)
+        {
+            if (e->type->equals(t))
+            {
+                result = e;
+                return;
+            }
+
+            TupleExp *te = (TupleExp *)e->copy();
+            te->e0 = e->e0 ? e->e0->copy() : NULL;
+            te->exps = (Expressions *)e->exps->copy();
+            for (size_t i = 0; i < te->exps->dim; i++)
+            {
+                Expression *ex = (*te->exps)[i];
+                ex = ex->castTo(sc, t);
+                (*te->exps)[i] = ex;
+            }
+            result = te;
+        }
+
+        void visit(ArrayLiteralExp *e)
+        {
+        #if 0
+            printf("ArrayLiteralExp::castTo(this=%s, type=%s, => %s)\n",
+                e->toChars(), e->type->toChars(), t->toChars());
+        #endif
+            if (e->type == t)
+            {
+                result = e;
+                return;
+            }
+            ArrayLiteralExp *ae = e;
+            Type *typeb = e->type->toBasetype();
+            Type *tb = t->toBasetype();
+            if ((tb->ty == Tarray || tb->ty == Tsarray) &&
+                (typeb->ty == Tarray || typeb->ty == Tsarray))
+            {
+                if (tb->nextOf()->toBasetype()->ty == Tvoid && typeb->nextOf()->toBasetype()->ty != Tvoid)
+                {
+                    // Don't do anything to cast non-void[] to void[]
+                }
+                else if (typeb->ty == Tsarray && typeb->nextOf()->toBasetype()->ty == Tvoid)
+                {
+                    // Don't do anything for casting void[n] to others
+                }
+                else
+                {
+                    if (tb->ty == Tsarray)
+                    {
+                        TypeSArray *tsa = (TypeSArray *)tb;
+                        if (e->elements->dim != tsa->dim->toInteger())
+                            goto L1;
+                    }
+
+                    ae = (ArrayLiteralExp *)e->copy();
+                    ae->elements = e->elements->copy();
+                    for (size_t i = 0; i < e->elements->dim; i++)
+                    {
+                        Expression *ex = (*e->elements)[i];
+                        ex = ex->castTo(sc, tb->nextOf());
+                        (*ae->elements)[i] = ex;
+                    }
+                    ae->type = t;
+                    result = ae;
+                    return;
                 }
             }
-        }
-        e = Expression::castTo(sc, t);
-    }
-    e->type = t;
-    return e;
-}
-
-
-Expression *TupleExp::castTo(Scope *sc, Type *t)
-{
-    if (type->equals(t))
-        return this;
-
-    TupleExp *e = (TupleExp *)copy();
-    e->e0 = e0 ? e0->copy() : NULL;
-    e->exps = (Expressions *)exps->copy();
-    for (size_t i = 0; i < e->exps->dim; i++)
-    {   Expression *ex = (*e->exps)[i];
-        ex = ex->castTo(sc, t);
-        (*e->exps)[i] = ex;
-    }
-    return e;
-}
-
-
-Expression *ArrayLiteralExp::castTo(Scope *sc, Type *t)
-{
-#if 0
-    printf("ArrayLiteralExp::castTo(this=%s, type=%s, => %s)\n",
-        toChars(), type->toChars(), t->toChars());
-#endif
-    if (type == t)
-        return this;
-    ArrayLiteralExp *e = this;
-    Type *typeb = type->toBasetype();
-    Type *tb = t->toBasetype();
-    if ((tb->ty == Tarray || tb->ty == Tsarray) &&
-        (typeb->ty == Tarray || typeb->ty == Tsarray) &&
-        // Not trying to convert non-void[] to void[]
-        !(tb->nextOf()->toBasetype()->ty == Tvoid && typeb->nextOf()->toBasetype()->ty != Tvoid) &&
-        // Not trying to convert void[n] to others
-        !(typeb->ty == Tsarray && typeb->nextOf()->toBasetype()->ty == Tvoid))
-    {
-        if (tb->ty == Tsarray)
-        {   TypeSArray *tsa = (TypeSArray *)tb;
-            if (elements->dim != tsa->dim->toInteger())
-                goto L1;
-        }
-
-        e = (ArrayLiteralExp *)copy();
-        e->elements = (Expressions *)elements->copy();
-        for (size_t i = 0; i < elements->dim; i++)
-        {   Expression *ex = (*elements)[i];
-            ex = ex->castTo(sc, tb->nextOf());
-            (*e->elements)[i] = ex;
-        }
-        e->type = t;
-        return e;
-    }
-    if (tb->ty == Tpointer && typeb->ty == Tsarray)
-    {
-        Type *tp = typeb->nextOf()->pointerTo();
-        if (!tp->equals(e->type))
-        {   e = (ArrayLiteralExp *)copy();
-            e->type = tp;
-        }
-    }
-    else if (tb->ty == Tvector &&
-        (typeb->ty == Tarray || typeb->ty == Tsarray))
-    {
-        // Convert array literal to vector type
-        TypeVector *tv = (TypeVector *)tb;
-        TypeSArray *tbase = (TypeSArray *)tv->basetype;
-        assert(tbase->ty == Tsarray);
-        if (elements->dim != tbase->dim->toInteger())
-            goto L1;
-
-        e = (ArrayLiteralExp *)copy();
-        e->elements = (Expressions *)elements->copy();
-        Type *telement = tv->elementType();
-        for (size_t i = 0; i < elements->dim; i++)
-        {   Expression *ex = (*elements)[i];
-            ex = ex->castTo(sc, telement);
-            (*e->elements)[i] = ex;
-        }
-        Expression *ev = new VectorExp(loc, e, tb);
-        ev = ev->semantic(sc);
-        return ev;
-    }
-L1:
-    return e->Expression::castTo(sc, t);
-}
-
-Expression *AssocArrayLiteralExp::castTo(Scope *sc, Type *t)
-{
-    if (type == t)
-        return this;
-    AssocArrayLiteralExp *e = this;
-    Type *typeb = type->toBasetype();
-    Type *tb = t->toBasetype();
-    if (tb->ty == Taarray && typeb->ty == Taarray &&
-        tb->nextOf()->toBasetype()->ty != Tvoid)
-    {
-        e = (AssocArrayLiteralExp *)copy();
-        e->keys = (Expressions *)keys->copy();
-        e->values = (Expressions *)values->copy();
-        assert(keys->dim == values->dim);
-        for (size_t i = 0; i < keys->dim; i++)
-        {   Expression *ex = (*values)[i];
-            ex = ex->castTo(sc, tb->nextOf());
-            (*e->values)[i] = ex;
-
-            ex = (*keys)[i];
-            ex = ex->castTo(sc, ((TypeAArray *)tb)->index);
-            (*e->keys)[i] = ex;
-        }
-        e->type = t;
-        return e;
-    }
-    return e->Expression::castTo(sc, t);
-}
-
-Expression *SymOffExp::castTo(Scope *sc, Type *t)
-{
-#if 0
-    printf("SymOffExp::castTo(this=%s, type=%s, t=%s)\n",
-        toChars(), type->toChars(), t->toChars());
-#endif
-    if (type == t && !hasOverloads)
-        return this;
-    Expression *e;
-    Type *tb = t->toBasetype();
-    Type *typeb = type->toBasetype();
-    if (!tb->equals(typeb))
-    {
-        // Look for pointers to functions where the functions are overloaded.
-        FuncDeclaration *f;
-
-        if (hasOverloads &&
-            typeb->ty == Tpointer && typeb->nextOf()->ty == Tfunction &&
-            (tb->ty == Tpointer || tb->ty == Tdelegate) && tb->nextOf()->ty == Tfunction)
-        {
-            f = var->isFuncDeclaration();
-            if (f)
+            else if (tb->ty == Tpointer && typeb->ty == Tsarray)
             {
-                f = f->overloadExactMatch(tb->nextOf());
+                Type *tp = typeb->nextOf()->pointerTo();
+                if (!tp->equals(ae->type))
+                {
+                    ae = (ArrayLiteralExp *)e->copy();
+                    ae->type = tp;
+                }
+            }
+            else if (tb->ty == Tvector &&
+                (typeb->ty == Tarray || typeb->ty == Tsarray))
+            {
+                // Convert array literal to vector type
+                TypeVector *tv = (TypeVector *)tb;
+                TypeSArray *tbase = (TypeSArray *)tv->basetype;
+                assert(tbase->ty == Tsarray);
+                if (e->elements->dim != tbase->dim->toInteger())
+                    goto L1;
+
+                ae = (ArrayLiteralExp *)e->copy();
+                ae->elements = e->elements->copy();
+                Type *telement = tv->elementType();
+                for (size_t i = 0; i < e->elements->dim; i++)
+                {
+                    Expression *ex = (*e->elements)[i];
+                    ex = ex->castTo(sc, telement);
+                    (*ae->elements)[i] = ex;
+                }
+                Expression *ev = new VectorExp(e->loc, ae, tb);
+                ev = ev->semantic(sc);
+                result = ev;
+                return;
+            }
+        L1:
+            visit((Expression *)ae);
+        }
+
+        void visit(AssocArrayLiteralExp *e)
+        {
+            if (e->type == t)
+            {
+                result = e;
+                return;
+            }
+            Type *typeb = e->type->toBasetype();
+            Type *tb = t->toBasetype();
+            if (tb->ty == Taarray && typeb->ty == Taarray &&
+                tb->nextOf()->toBasetype()->ty != Tvoid)
+            {
+                AssocArrayLiteralExp *ae = (AssocArrayLiteralExp *)e->copy();
+                ae->keys = e->keys->copy();
+                ae->values = e->values->copy();
+                assert(e->keys->dim == e->values->dim);
+                for (size_t i = 0; i < e->keys->dim; i++)
+                {
+                    Expression *ex = (*e->values)[i];
+                    ex = ex->castTo(sc, tb->nextOf());
+                    (*ae->values)[i] = ex;
+
+                    ex = (*e->keys)[i];
+                    ex = ex->castTo(sc, ((TypeAArray *)tb)->index);
+                    (*ae->keys)[i] = ex;
+                }
+                ae->type = t;
+                result = ae;
+                return;
+            }
+            visit((Expression *)e);
+        }
+
+        void visit(SymOffExp *e)
+        {
+        #if 0
+            printf("SymOffExp::castTo(this=%s, type=%s, t=%s)\n",
+                e->toChars(), e->type->toChars(), t->toChars());
+        #endif
+            if (e->type == t && !e->hasOverloads)
+            {
+                result = e;
+                return;
+            }
+            Type *tb = t->toBasetype();
+            Type *typeb = e->type->toBasetype();
+            
+            if (tb->equals(typeb))
+            {
+                result = e->copy();
+                result->type = t;
+                ((SymOffExp *)result)->hasOverloads = false;
+                return;
+            }
+
+            // Look for pointers to functions where the functions are overloaded.
+            if (e->hasOverloads &&
+                typeb->ty == Tpointer && typeb->nextOf()->ty == Tfunction &&
+                (tb->ty == Tpointer || tb->ty == Tdelegate) && tb->nextOf()->ty == Tfunction)
+            {
+                FuncDeclaration *f = e->var->isFuncDeclaration();
+                f = f ? f->overloadExactMatch(tb->nextOf()) : NULL;
                 if (f)
                 {
                     if (tb->ty == Tdelegate)
                     {
                         if (f->needThis() && hasThis(sc))
                         {
-                            e = new DelegateExp(loc, new ThisExp(loc), f);
-                            e = e->semantic(sc);
+                            result = new DelegateExp(e->loc, new ThisExp(e->loc), f);
+                            result = result->semantic(sc);
                         }
                         else if (f->isNested())
                         {
-                            e = new DelegateExp(loc, new IntegerExp(0), f);
-                            e = e->semantic(sc);
+                            result = new DelegateExp(e->loc, new IntegerExp(0), f);
+                            result = result->semantic(sc);
                         }
                         else if (f->needThis())
-                        {   error("no 'this' to create delegate for %s", f->toChars());
-                            return new ErrorExp();
+                        {
+                            e->error("no 'this' to create delegate for %s", f->toChars());
+                            result = new ErrorExp();
+                            return;
                         }
                         else
-                        {   error("cannot cast from function pointer to delegate");
-                            return new ErrorExp();
+                        {
+                            e->error("cannot cast from function pointer to delegate");
+                            result = new ErrorExp();
+                            return;
                         }
                     }
                     else
                     {
-                        e = new SymOffExp(loc, f, 0);
-                        e->type = t;
+                        result = new SymOffExp(e->loc, f, 0);
+                        result->type = t;
                     }
                     f->tookAddressOf++;
-                    return e;
+                    return;
                 }
             }
+            visit((Expression *)e);
         }
-        e = Expression::castTo(sc, t);
-    }
-    else
-    {   e = copy();
-        e->type = t;
-        ((SymOffExp *)e)->hasOverloads = false;
-    }
-    return e;
-}
 
-Expression *DelegateExp::castTo(Scope *sc, Type *t)
-{
-#if 0
-    printf("DelegateExp::castTo(this=%s, type=%s, t=%s)\n",
-        toChars(), type->toChars(), t->toChars());
-#endif
-    static const char msg[] = "cannot form delegate due to covariant return type";
-
-    Expression *e = this;
-    Type *tb = t->toBasetype();
-    Type *typeb = type->toBasetype();
-    if (!tb->equals(typeb) || hasOverloads)
-    {
-        // Look for delegates to functions where the functions are overloaded.
-        FuncDeclaration *f;
-
-        if (typeb->ty == Tdelegate &&
-            tb->ty == Tdelegate)
+        void visit(DelegateExp *e)
         {
-            if (func)
+        #if 0
+            printf("DelegateExp::castTo(this=%s, type=%s, t=%s)\n",
+                e->toChars(), e->type->toChars(), t->toChars());
+        #endif
+            static const char msg[] = "cannot form delegate due to covariant return type";
+
+            Type *tb = t->toBasetype();
+            Type *typeb = e->type->toBasetype();
+            if (!tb->equals(typeb) || e->hasOverloads)
             {
-                f = func->overloadExactMatch(tb->nextOf());
-                if (f)
-                {   int offset;
-                    if (f->tintro && f->tintro->nextOf()->isBaseOf(f->type->nextOf(), &offset) && offset)
-                        error("%s", msg);
-                    f->tookAddressOf++;
-                    e = new DelegateExp(loc, e1, f);
-                    e->type = t;
-                    return e;
+                // Look for delegates to functions where the functions are overloaded.
+                if (typeb->ty == Tdelegate &&
+                    tb->ty == Tdelegate)
+                {
+                    if (e->func)
+                    {
+                        FuncDeclaration *f = e->func->overloadExactMatch(tb->nextOf());
+                        if (f)
+                        {
+                            int offset;
+                            if (f->tintro && f->tintro->nextOf()->isBaseOf(f->type->nextOf(), &offset) && offset)
+                                e->error("%s", msg);
+                            f->tookAddressOf++;
+                            result = new DelegateExp(e->loc, e->e1, f);
+                            result->type = t;
+                            return;
+                        }
+                        if (e->func->tintro)
+                            e->error("%s", msg);
+                    }
                 }
-                if (func->tintro)
-                    error("%s", msg);
+                visit((Expression *)e);
+            }
+            else
+            {
+                int offset;
+                e->func->tookAddressOf++;
+                if (e->func->tintro && e->func->tintro->nextOf()->isBaseOf(e->func->type->nextOf(), &offset) && offset)
+                    e->error("%s", msg);
+                result = e->copy();
+                result->type = t;
             }
         }
-        e = Expression::castTo(sc, t);
-    }
-    else
-    {   int offset;
 
-        func->tookAddressOf++;
-        if (func->tintro && func->tintro->nextOf()->isBaseOf(func->type->nextOf(), &offset) && offset)
-            error("%s", msg);
-        e = copy();
-        e->type = t;
-    }
-    return e;
-}
-
-Expression *FuncExp::castTo(Scope *sc, Type *t)
-{
-    //printf("FuncExp::castTo type = %s, t = %s\n", type->toChars(), t->toChars());
-    Expression *e = inferType(t, 1);
-    if (e)
-    {
-        if (e != this)
-            return e->castTo(sc, t);
-        if (!e->type->equals(t) && e->type->implicitConvTo(t))
+        void visit(FuncExp *e)
         {
-            assert(t->ty == Tpointer && t->nextOf()->ty == Tvoid || // Bugzilla 9928
-                   e->type->nextOf()->covariant(t->nextOf()) == 1);
-            e = e->copy();
-            e->type = t;
-            return e;
+            //printf("FuncExp::castTo type = %s, t = %s\n", type->toChars(), t->toChars());
+            result = e->inferType(t, 1);
+            if (result)
+            {
+                if (result != e)
+                {
+                    result->accept(this);
+                    return;
+                }
+                if (!result->type->equals(t) && result->type->implicitConvTo(t))
+                {
+                    // Bugzilla 9928
+                    assert(t->ty == Tpointer && t->nextOf()->ty == Tvoid ||
+                           result->type->nextOf()->covariant(t->nextOf()) == 1);
+                    result = result->copy();
+                    result->type = t;
+                    return;
+                }
+            }
+            visit((Expression *)e);
         }
-    }
-    return Expression::castTo(sc, t);
-}
 
-Expression *CondExp::castTo(Scope *sc, Type *t)
-{
-    Expression *e = this;
-
-    if (!type->equals(t))
-    {
-        if (1 || e1->op == TOKstring || e2->op == TOKstring)
-        {   e = new CondExp(loc, econd, e1->castTo(sc, t), e2->castTo(sc, t));
-            e->type = t;
+        void visit(CondExp *e)
+        {
+            if (!e->type->equals(t))
+            {
+                result = new CondExp(e->loc, e->econd, e->e1->castTo(sc, t), e->e2->castTo(sc, t));
+                result->type = t;
+                return;
+            }
+            result = e;
         }
-        else
-            e = Expression::castTo(sc, t);
-    }
-    return e;
-}
 
-Expression *CommaExp::castTo(Scope *sc, Type *t)
-{
-    Expression *e2c = e2->castTo(sc, t);
-    Expression *e;
+        void visit(CommaExp *e)
+        {
+            Expression *e2c = e->e2->castTo(sc, t);
 
-    if (e2c != e2)
-    {
-        e = new CommaExp(loc, e1, e2c);
-        e->type = e2c->type;
-    }
-    else
-    {   e = this;
-        e->type = e2->type;
-    }
-    return e;
-}
+            if (e2c != e->e2)
+            {
+                result = new CommaExp(e->loc, e->e1, e2c);
+                result->type = e2c->type;
+            }
+            else
+            {
+                result = e;
+                result->type = e->e2->type;
+            }
+        }
 
-Expression *SliceExp::castTo(Scope *sc, Type *t)
-{
-    Type *typeb = type->toBasetype();
-    Type *tb = t->toBasetype();
-    Expression *e;
-    if (typeb->ty == Tarray && tb->ty == Tsarray)
-    {
-        /* If a SliceExp has Tsarray, it will become lvalue.
-         * That's handled in SliceExp::isLvalue and toLvalue
-         */
-        e = copy();
-        e->type = t;
-    }
-    else if (typeb->ty == Tarray && tb->ty == Tarray &&
-             typeb->nextOf()->constConv(tb->nextOf()) == MATCHconst)
-    {
-        // immutable(T)[] to const(T)[]
-        //           T [] to const(T)[]
-        e = copy();
-        e->type = t;
-    }
-    else
-    {
-        e = Expression::castTo(sc, t);
-    }
-    return e;
+        void visit(SliceExp *e)
+        {
+            Type *typeb = e->type->toBasetype();
+            Type *tb = t->toBasetype();
+
+            if (typeb->ty == Tarray && tb->ty == Tsarray)
+            {
+                /* If a SliceExp has Tsarray, it will become lvalue.
+                 * That's handled in SliceExp::isLvalue and toLvalue
+                 */
+                result = e->copy();
+                result->type = t;
+            }
+            else if (typeb->ty == Tarray && tb->ty == Tarray &&
+                     typeb->nextOf()->constConv(tb->nextOf()) == MATCHconst)
+            {
+                // immutable(T)[] to const(T)[]
+                //           T [] to const(T)[]
+                result = e->copy();
+                result->type = t;
+            }
+            else
+            {
+                visit((Expression *)e);
+            }
+        }
+    };
+
+    CastTo v(sc, t);
+    e->accept(&v);
+    return v.result;
 }
 
 /* ==================== inferType ====================== */
