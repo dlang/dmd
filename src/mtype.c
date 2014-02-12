@@ -7261,7 +7261,22 @@ Expression *TypeEnum::dotExp(Scope *sc, Expression *e, Identifier *ident, int fl
         {
             return getProperty(e->loc, ident, flag);
         }
-        return sym->getMemtype(Loc())->dotExp(sc, e, ident, flag);
+
+        if (flag == 0)
+            flag = 1;  // silence lookup errors for memtype
+
+        Expression *res = sym->getMemtype(Loc())->dotExp(sc, e, ident, flag);
+        if (!res)
+        {
+            Dsymbol *s = sym->search_correct(ident);
+            if (s)
+                e->error("no property '%s' for type '%s'. Did you mean '%s.%s' ?", ident->toChars(), toChars(), toChars(), s->toChars());
+            else
+                e->error("no property '%s' for type '%s'", ident->toChars(), toChars());
+
+            return new ErrorExp();
+        }
+        return res;
     }
     EnumMember *m = s->isEnumMember();
     return m->getVarExp(e->loc, sc);
