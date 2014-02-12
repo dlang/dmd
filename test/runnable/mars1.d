@@ -408,6 +408,19 @@ void testfastudiv()
 
 ////////////////////////////////////////////////////////////////////////
 
+void vfunc() {}
+
+void test12095(int k)
+{
+    int e = 0;
+    e ? k || assert(0) : !e || vfunc();
+    e ? k || assert(0) : e && vfunc();
+    !e ? !e || vfunc() : k || assert(0);
+}
+
+
+////////////////////////////////////////////////////////////////////////
+
 
 int div10(int x)
 {
@@ -1078,6 +1091,7 @@ int main()
     test11565();
     testoror();
     testbt();
+    test12095(0);
     testandand();
     testor_combine();
     testshrshl();

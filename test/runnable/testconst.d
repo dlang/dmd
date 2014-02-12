@@ -2757,6 +2757,20 @@ void test11966()
 }
 
 /************************************/
+// 12089
+
+void foo12089(inout(char[]) a)
+{
+    validate12089(a);
+}
+void validate12089(S)(in S str)
+{
+    decodeImpl12089(str);
+}
+void decodeImpl12089(S)(auto ref S str)
+{}
+
+/************************************/
 // 6941
 
 static assert((const(shared(int[])[])).stringof == "const(shared(int[])[])");	// fail

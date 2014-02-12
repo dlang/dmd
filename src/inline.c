@@ -1374,7 +1374,9 @@ Expression *CallExp::inlineScan(InlineScanState *iss, Expression *eret)
 
         if (fd && fd != iss->fd && fd->canInline(0, 0, 0))
         {
-            e = fd->expandInline(iss, eret, NULL, arguments, NULL);
+            Expression *ex = fd->expandInline(iss, eret, NULL, arguments, NULL);
+            if (ex)
+                e = ex;
         }
     }
     else if (e1->op == TOKdotvar)
@@ -1394,7 +1396,11 @@ Expression *CallExp::inlineScan(InlineScanState *iss, Expression *eret)
                 ;
             }
             else
-                e = fd->expandInline(iss, eret, dve->e1, arguments, NULL);
+            {
+                Expression *ex = fd->expandInline(iss, eret, dve->e1, arguments, NULL);
+                if (ex)
+                    e = ex;
+            }
         }
     }
 
