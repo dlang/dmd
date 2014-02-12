@@ -455,26 +455,26 @@ auto byValue(T : Value[Key], Value, Key)(T *aa)
     return (*aa).byValue();
 }
 
-Key[] keys(T : Value[Key], Value, Key)(T aa)
+Key[] keys(T : Value[Key], Value, Key)(T aa) @property
 {
     auto a = cast(void[])_aaKeys(cast(inout(void)*)aa, Key.sizeof);
     return *cast(Key[]*)&a;
 }
 
-Key[] keys(T : Value[Key], Value, Key)(T *aa)
+Key[] keys(T : Value[Key], Value, Key)(T *aa) @property
 {
-    return (*aa).keys();
+    return (*aa).keys;
 }
 
-Value[] values(T : Value[Key], Value, Key)(T aa)
+Value[] values(T : Value[Key], Value, Key)(T aa) @property
 {
     auto a = cast(void[])_aaValues(cast(inout(void)*)aa, Key.sizeof, Value.sizeof);
     return *cast(Value[]*)&a;
 }
 
-Value[] values(T : Value[Key], Value, Key)(T *aa)
+Value[] values(T : Value[Key], Value, Key)(T *aa) @property
 {
-    return (*aa).values();
+    return (*aa).values;
 }
 
 auto get(T : Value[Key], Value, Key, K, V)(T aa, K key, lazy V defaultValue)
