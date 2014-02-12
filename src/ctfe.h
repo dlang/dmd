@@ -39,7 +39,6 @@ class ClassReferenceExp : public Expression
 public:
     StructLiteralExp *value;
     ClassReferenceExp(Loc loc, StructLiteralExp *lit, Type *type);
-    Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     ClassDeclaration *originalClass();
     VarDeclaration *getFieldAt(unsigned index);
 
@@ -70,7 +69,6 @@ public:
 
     VoidInitExp(VarDeclaration *var, Type *type);
     char *toChars();
-    Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -83,7 +81,6 @@ class ThrownExceptionExp : public Expression
 public:
     ClassReferenceExp *thrown; // the thing being tossed
     ThrownExceptionExp(Loc loc, ClassReferenceExp *victim);
-    Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     char *toChars();
     /// Generate an error message when this exception is not caught
     void generateUncaughtError();

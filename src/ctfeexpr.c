@@ -34,12 +34,6 @@ ClassReferenceExp::ClassReferenceExp(Loc loc, StructLiteralExp *lit, Type *type)
     this->type = type;
 }
 
-Expression *ClassReferenceExp::interpret(InterState *istate, CtfeGoal goal)
-{
-    //printf("ClassReferenceExp::interpret() %s\n", value->toChars());
-    return this;
-}
-
 ClassDeclaration *ClassReferenceExp::originalClass()
 {
     return value->sd->isClassDeclaration();
@@ -115,13 +109,6 @@ char *VoidInitExp::toChars()
     return (char *)"void";
 }
 
-Expression *VoidInitExp::interpret(InterState *istate, CtfeGoal goal)
-{
-    error("CTFE internal error: trying to read uninitialized variable");
-    assert(0);
-    return EXP_CANT_INTERPRET;
-}
-
 // Return index of the field, or -1 if not found
 // Same as getFieldIndex, but checks for a direct match with the VarDeclaration
 int findFieldIndexByName(StructDeclaration *sd, VarDeclaration *v)
@@ -140,12 +127,6 @@ ThrownExceptionExp::ThrownExceptionExp(Loc loc, ClassReferenceExp *victim) : Exp
 {
     this->thrown = victim;
     this->type = victim->type;
-}
-
-Expression *ThrownExceptionExp::interpret(InterState *istate, CtfeGoal)
-{
-    assert(0); // This should never be interpreted
-    return this;
 }
 
 char *ThrownExceptionExp::toChars()
