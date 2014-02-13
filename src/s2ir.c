@@ -39,23 +39,12 @@
 static char __file__[] = __FILE__;      // for tassert.h
 #include        "tassert.h"
 
-elem *callfunc(Loc loc,
-        IRState *irs,
-        int directcall,         // 1: don't do virtual call
-        Type *tret,             // return type
-        elem *ec,               // evaluates to function address
-        Type *ectype,           // original type of ec
-        FuncDeclaration *fd,    // if !=NULL, this is the function being called
-        Type *t,                // TypeDelegate or TypeFunction for this function
-        elem *ehidden,          // if !=NULL, this is the 'hidden' argument
-        Expressions *arguments);
-
 elem *exp2_copytotemp(elem *e);
 elem *incUsageElem(IRState *irs, Loc loc);
-StructDeclaration *needsPostblit(Type *t);
 elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
 Blocks *Blocks_create();
 type *Type_toCtype(Type *t);
+elem *toElemDtor(Expression *e, IRState *irs);
 
 #define elem_setLoc(e,loc)      ((e)->Esrcpos.Sfilename = (char *)(loc).filename, \
                                  (e)->Esrcpos.Slinnum = (loc).linnum)
@@ -168,7 +157,7 @@ public:
         block *bexit = mystate.breakBlock ? mystate.breakBlock : block_calloc();
 
         incUsage(irs, s->loc);
-        e = s->condition->toElemDtor(&mystate);
+        e = toElemDtor(s->condition, &mystate);
         block_appendexp(blx->curblock, e);
         block *bcond = blx->curblock;
         block_next(blx, BCiftrue, NULL);
@@ -244,7 +233,7 @@ public:
 
         block_next(blx, BCgoto, mystate.contBlock);
         incUsage(irs, s->condition->loc);
-        block_appendexp(mystate.contBlock, s->condition->toElemDtor(&mystate));
+        block_appendexp(mystate.contBlock, toElemDtor(s->condition, &mystate));
         block_next(blx, BCiftrue, mystate.breakBlock);
 
     }
@@ -270,7 +259,7 @@ public:
         if (s->condition)
         {
             incUsage(irs, s->condition->loc);
-            block_appendexp(bcond, s->condition->toElemDtor(&mystate));
+            block_appendexp(bcond, toElemDtor(s->condition, &mystate));
             block_next(blx,BCiftrue,NULL);
             bcond->appendSucc(blx->curblock);
             bcond->appendSucc(mystate.breakBlock);
@@ -292,7 +281,7 @@ public:
         if (s->increment)
         {
             incUsage(irs, s->increment->loc);
-            block_appendexp(mystate.contBlock, s->increment->toElemDtor(&mystate));
+            block_appendexp(mystate.contBlock, toElemDtor(s->increment, &mystate));
         }
 
         /* The 'break' block follows the for statement.
@@ -484,7 +473,7 @@ public:
             numcases = s->cases->dim;
 
         incUsage(irs, s->loc);
-        elem *econd = s->condition->toElemDtor(&mystate);
+        elem *econd = toElemDtor(s->condition, &mystate);
         if (s->hasVars)
         {   /* Generate a sequence of if-then-else blocks for the cases.
              */
@@ -498,7 +487,7 @@ public:
             for (size_t i = 0; i < numcases; i++)
             {   CaseStatement *cs = (*s->cases)[i];
 
-                elem *ecase = cs->exp->toElemDtor(&mystate);
+                elem *ecase = toElemDtor(cs->exp, &mystate);
                 elem *e = el_bin(OPeqeq, TYbool, el_copytree(econd), ecase);
                 block *b = blx->curblock;
                 block_appendexp(b, e);
@@ -768,12 +757,12 @@ public:
                     se->sym = irs->shidden;
                     se->soffset = 0;
                     se->fillHoles = 1;
-                    e = s->exp->toElemDtor(irs);
+                    e = toElemDtor(s->exp, irs);
                     memcpy((void*)se, save, sizeof(StructLiteralExp));
 
                 }
                 else
-                    e = s->exp->toElemDtor(irs);
+                    e = toElemDtor(s->exp, irs);
                 assert(e);
 
                 if (s->exp->op == TOKstructliteral ||
@@ -803,11 +792,11 @@ public:
             else if (tf->isref)
             {   // Reference return, so convert to a pointer
                 Expression *ae = s->exp->addressOf(NULL);
-                e = ae->toElemDtor(irs);
+                e = toElemDtor(ae, irs);
             }
             else
             {
-                e = s->exp->toElemDtor(irs);
+                e = toElemDtor(s->exp, irs);
                 assert(e);
             }
             elem_setLoc(e, s->loc);
@@ -841,7 +830,7 @@ public:
         //printf("ExpStatement::toIR(), exp = %s\n", exp ? exp->toChars() : "");
         incUsage(irs, s->loc);
         if (s->exp)
-            block_appendexp(blx->curblock,s->exp->toElemDtor(irs));
+            block_appendexp(blx->curblock,toElemDtor(s->exp, irs));
     }
 
     /**************************************
@@ -969,7 +958,7 @@ public:
             // Perform initialization of with handle
             ie = s->wthis->init->isExpInitializer();
             assert(ie);
-            ei = ie->exp->toElemDtor(irs);
+            ei = toElemDtor(ie->exp, irs);
             e = el_var(sp);
             e = el_bin(OPeq,e->Ety, e, ei);
             elem_setLoc(e, s->loc);
@@ -992,7 +981,7 @@ public:
         Blockx *blx = irs->blx;
 
         incUsage(irs, s->loc);
-        elem *e = s->exp->toElemDtor(irs);
+        elem *e = toElemDtor(s->exp, irs);
         e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_THROWC]),e);
         block_appendexp(blx->curblock, e);
     }
