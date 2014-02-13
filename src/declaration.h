@@ -618,7 +618,6 @@ public:
     VarDeclaration *nrvo_var;           // variable to replace with shidden
     Symbol *shidden;                    // hidden pointer passed to function
 
-    ReturnStatements *returns;
     GotoStatements *gotos;              // Gotos with forward references
 
     BUILTIN builtin;               // set if this is a known, builtin

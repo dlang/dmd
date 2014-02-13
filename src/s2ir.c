@@ -836,27 +836,6 @@ public:
     /**************************************
      */
 
-    void visit(DtorExpStatement *s)
-    {
-        //printf("DtorExpStatement::toIR(), exp = %s\n", exp ? exp->toChars() : "");
-
-        FuncDeclaration *fd = irs->getFunc();
-        assert(fd);
-        if (fd->nrvo_can && fd->nrvo_var == s->var)
-            /* Do not call destructor, because var is returned as the nrvo variable.
-             * This is done at this stage because nrvo can be turned off at a
-             * very late stage in semantic analysis.
-             */
-            ;
-        else
-        {
-            visit((ExpStatement *)s);
-        }
-    }
-
-    /**************************************
-     */
-
     void visit(CompoundStatement *s)
     {
         if (s->statements)

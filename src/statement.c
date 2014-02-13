@@ -3462,10 +3462,6 @@ Statement *ReturnStatement::semantic(Scope *sc)
 
             if (!tf->isref)
                 exp = exp->optimize(WANTvalue);
-
-            if (!fd->returns)
-                fd->returns = new ReturnStatements();
-            fd->returns->push(this);
         }
     }
     else if (fd->inferRetType)

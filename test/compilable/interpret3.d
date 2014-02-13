@@ -5901,6 +5901,40 @@ string f10782()
 mixin(f10782());
 
 /**************************************************
+    10929 NRVO support in CTFE
+**************************************************/
+
+struct S10929
+{
+    this(this)
+    {
+        postblitCount++;
+    }
+    ~this()
+    {
+        dtorCount++;
+    }
+    int payload;
+    int dtorCount;
+    int postblitCount;
+}
+
+auto makeS10929()
+{
+    auto s = S10929(42, 0, 0);
+    return s;
+}
+
+bool test10929()
+{
+    auto s = makeS10929();
+    assert(s.postblitCount == 0);
+    assert(s.dtorCount == 0);
+    return true;
+};
+static assert(test10929());
+
+/**************************************************
     11510 support overlapped field access in CTFE
 **************************************************/
 

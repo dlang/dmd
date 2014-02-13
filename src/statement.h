@@ -126,6 +126,7 @@ public:
     virtual CaseStatement *isCaseStatement() { return NULL; }
     virtual DefaultStatement *isDefaultStatement() { return NULL; }
     virtual LabelStatement *isLabelStatement() { return NULL; }
+    virtual DtorExpStatement *isDtorExpStatement() { return NULL; }
     virtual void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -186,6 +187,8 @@ public:
     DtorExpStatement(Loc loc, Expression *exp, VarDeclaration *v);
     Statement *syntaxCopy();
     void accept(Visitor *v) { v->visit(this); }
+
+    DtorExpStatement *isDtorExpStatement() { return this; }
 };
 
 class CompileStatement : public Statement
