@@ -1951,6 +1951,8 @@ code *cdcond(elem *e,regm_t *pretregs)
         {
             v1 -= v2;
             c = genc2(c,opcode,grex | modregrmx(3,4,reg),v1);   // AND reg,v1-v2
+            if (I64 && sz1 == 1 && reg >= 4)
+                code_orrex(c, REX);
             if (v2 == 1 && !I64)
                 gen1(c,0x40 + reg);                     // INC reg
             else if (v2 == -1L && !I64)
