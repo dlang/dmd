@@ -14,14 +14,14 @@
 </big></dt>
 <dd>This basic case doesn't work very well. The template signature is
  documented twice, but the function signature (argument names and return
- type) is not documented at all. This comment is also repeated twice. <br><br>
+ type) is not documented at all. This comment is also repeated twice.<br><br>
 
 </dd>
 <dt><big><a name="func2"></a>int <u>func2</u>(T, U)(T <i>x</i>, U <i>y</i>);
 <br><a name="func2"></a>int <u>func2</u>(T)(T <i>x</i>);
 </big></dt>
 <dd>This comment is also repeated twice, and the second function signature is
- not very well documented. <br><br>
+ not very well documented.<br><br>
 
 </dd>
 <dt><big><a name="func3"></a>int <u>func3</u>(T, U)(T <i>x</i>, U <i>y</i>);
@@ -60,29 +60,30 @@
 </dd>
 <dt><big><a name="bar6"></a>struct <u>bar6</u>;
 </big></dt>
-<dd>blah <br><br>
+<dd>blah<br><br>
 
 </dd>
 <dt><big><a name="Foo7"></a>struct <u>Foo7</u>(T);
 </big></dt>
-<dd>template bodies <br><br>
+<dd>template bodies<br><br>
 
 <dl><dt><big><a name="bar"></a>void <u>bar</u>();
 </big></dt>
 <dd>Attempt two:  Inside.
+<br><br>
 Attempt one:  Doc outside static if.<br><br>
 
 </dd>
 <dt><big><a name="abc"></a>void <u>abc</u>();
 </big></dt>
-<dd>the <u>abc</u> function should be static <br><br>
+<dd>the <u>abc</u> function should be static<br><br>
 
 </dd>
 </dl>
 </dd>
 <dt><big><a name="Foo8"></a>abstract class <u>Foo8</u>;
 </big></dt>
-<dd>show abstract <br><br>
+<dd>show abstract<br><br>
 
 </dd>
 <dt><big><a name="bug4878"></a>void <u>bug4878</u>(string <i>a</i> = ")");
@@ -105,12 +106,12 @@ Attempt one:  Doc outside static if.<br><br>
 </dd>
 <dt><big><a name="f10"></a>float <u>f10</u>(float <i>a</i>, float <i>b</i>);
 </big></dt>
-<dd>Produces something in (<i>a</i>;<i>b</i>] <br><br>
+<dd>Produces something in (<i>a</i>;<i>b</i>]<br><br>
 
 </dd>
 <dt><big><a name="h10"></a>float <u>h10</u>(float <i>a</i>, float <i>b</i>);
 </big></dt>
-<dd>Produces something in [<i>a</i>;<i>b</i>) <br><br>
+<dd>Produces something in [<i>a</i>;<i>b</i>)<br><br>
 
 </dd>
 <dt><big><a name="bug6090"></a>void <u>bug6090</u>(string f = "$(B b)", char g = ')')(string <i>h</i> = "$(", string <i>i</i> = "$)");
