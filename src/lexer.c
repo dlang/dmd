@@ -2504,6 +2504,30 @@ void Lexer::getDocComment(Token *t, unsigned lineComment)
             break;
     }
 
+    /* Remove leading spaces until start of the comment
+     */
+    int linestart = 0;
+    if (ct == '/')
+    {
+        while (q < qend && (*q == ' ' || *q == '\t'))
+            ++q;
+    }
+    else if (q < qend)
+    {
+        if (*q == '\r')
+        {
+            ++q;
+            if (q < qend && *q == '\n')
+                ++q;
+            linestart = 1;
+        }
+        else if (*q == '\n')
+        {
+            ++q;
+            linestart = 1;
+        }
+    }
+
     /* Remove trailing row of ****'s or ++++'s
      */
     if (ct != '/')
@@ -2519,7 +2543,6 @@ void Lexer::getDocComment(Token *t, unsigned lineComment)
      * Canonicalize it into buf[].
      */
     OutBuffer buf;
-    int linestart = 0;
 
     for (; q < qend; q++)
     {
@@ -2577,6 +2600,14 @@ void Lexer::getDocComment(Token *t, unsigned lineComment)
         buf.writeByte(c);
     }
 
+    /* Trim trailing whitespace (if the last line does not have newline)
+     */
+    if (buf.offset && (buf.data[buf.offset - 1] == ' ' || buf.data[buf.offset - 1] == '\t'))
+    {
+        while (buf.offset && (buf.data[buf.offset - 1] == ' ' || buf.data[buf.offset - 1] == '\t'))
+            buf.offset--;
+    }
+
     // Always end with a newline
     if (!buf.offset || buf.data[buf.offset - 1] != '\n')
         buf.writeByte('\n');
@@ -2608,19 +2639,29 @@ const utf8_t *Lexer::combineComments(const utf8_t *c1, const utf8_t *c2)
     const utf8_t *c = c2;
 
     if (c1)
-    {   c = c1;
+    {
+        c = c1;
         if (c2)
-        {   size_t len1 = strlen((char *)c1);
+        {
+            size_t len1 = strlen((char *)c1);
             size_t len2 = strlen((char *)c2);
 
-            utf8_t *p = (utf8_t *)mem.malloc(len1 + 1 + len2 + 1);
-            memcpy(p, c1, len1);
+            int insertNewLine = 0;
             if (len1 && c1[len1 - 1] != '\n')
-            {   p[len1] = '\n';
-                len1++;
+            {
+                ++len1;
+                insertNewLine = 1;
             }
-            memcpy(p + len1, c2, len2);
-            p[len1 + len2] = 0;
+
+            utf8_t *p = (utf8_t *)mem.malloc(len1 + 1 + len2 + 1);
+            memcpy(p, c1, len1 - insertNewLine);
+            if (insertNewLine)
+                p[len1 - 1] = '\n';
+
+            p[len1] = '\n';
+
+            memcpy(p + len1 + 1, c2, len2);
+            p[len1 + 1 + len2] = 0;
             c = p;
         }
     }

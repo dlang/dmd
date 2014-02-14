@@ -559,7 +559,7 @@ void emitUnittestComment(Scope *sc, Dsymbol *s, size_t ofs)
         while (*c == ' ' || *c == '\t' || *c == '\n' || *c == '\r') ++c;
 
         OutBuffer codebuf;
-        codebuf.writestring("$(DDOC_EXAMPLES \n");
+        codebuf.writestring("$(DDOC_EXAMPLES ");
         size_t o = codebuf.offset;
         codebuf.writestring((char *)c);
 
@@ -625,18 +625,18 @@ void ScopeDsymbol::emitMemberComments(Scope *sc)
     OutBuffer *buf = sc->docbuf;
 
     if (members)
-    {   const char *m = "$(DDOC_MEMBERS \n";
-
+    {
+        const char *m = "$(DDOC_MEMBERS ";
         if (isModule())
-            m = "$(DDOC_MODULE_MEMBERS \n";
+            m = "$(DDOC_MODULE_MEMBERS ";
         else if (isClassDeclaration())
-            m = "$(DDOC_CLASS_MEMBERS \n";
+            m = "$(DDOC_CLASS_MEMBERS ";
         else if (isStructDeclaration())
-            m = "$(DDOC_STRUCT_MEMBERS \n";
+            m = "$(DDOC_STRUCT_MEMBERS ";
         else if (isEnumDeclaration())
-            m = "$(DDOC_ENUM_MEMBERS \n";
+            m = "$(DDOC_ENUM_MEMBERS ";
         else if (isTemplateDeclaration())
-            m = "$(DDOC_TEMPLATE_MEMBERS \n";
+            m = "$(DDOC_TEMPLATE_MEMBERS ";
 
         size_t offset1 = buf->offset;         // save starting offset
         buf->writestring(m);
@@ -1365,7 +1365,7 @@ void DocComment::writeSections(Scope *sc, Dsymbol *s, OutBuffer *buf)
     //printf("DocComment::writeSections()\n");
     if (sections.dim || s->ddocUnittest)
     {
-        buf->writestring("$(DDOC_SECTIONS \n");
+        buf->writestring("$(DDOC_SECTIONS ");
         for (size_t i = 0; i < sections.dim; i++)
         {   Section *sec = sections[i];
 
@@ -1461,7 +1461,7 @@ void ParamSection::write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
     size_t o, paramcount = 0;
     Parameter *arg;
 
-    buf->writestring("$(DDOC_PARAMS \n");
+    buf->writestring("$(DDOC_PARAMS ");
     while (p < pend)
     {
         // Skip to start of macro
@@ -2262,7 +2262,8 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
                         i -= 2; // in next loop, c should be '\n'
                     }
                     else
-                    {   static const char pre[] = "$(D_CODE \n";
+                    {
+                        static const char pre[] = "$(D_CODE ";
 
                         inCode = 1;
                         codeIndent = istart - iLineStart;  // save indent count
