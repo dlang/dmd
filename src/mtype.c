@@ -6286,7 +6286,7 @@ Expression *TypeDelegate::dotExp(Scope *sc, Expression *e, Identifier *ident, in
             e = new CommaExp(e->loc, e, new VarExp(e->loc, tmp));
             e = e->semantic(sc);
         }
-        e = e->addressOf(sc);
+        e = e->addressOf();
         e->type = tvoidptr;
         e = new AddExp(e->loc, e, new IntegerExp(Target::ptrsize));
         e->type = tvoidptr;
@@ -8404,7 +8404,7 @@ L1:
                 if (!sym->vclassinfo)
                     sym->vclassinfo = new TypeInfoClassDeclaration(sym->type);
                 e = new VarExp(e->loc, sym->vclassinfo);
-                e = e->addressOf(sc);
+                e = e->addressOf();
                 e->type = t;    // do this so we don't get redundant dereference
             }
             else

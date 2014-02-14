@@ -1454,7 +1454,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 Expression *v = new ThisExp(Loc());
                 v->type = vthis->type;
                 if (ad->isStructDeclaration())
-                    v = v->addressOf(sc);
+                    v = v->addressOf();
                 Expression *se = new StringExp(Loc(), (char *)"null this");
                 se = se->semantic(sc);
                 se->type = Type::tchar->arrayOf();
@@ -1494,7 +1494,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 Expression *v = new ThisExp(Loc());
                 v->type = vthis->type;
                 if (ad->isStructDeclaration())
-                    v = v->addressOf(sc);
+                    v = v->addressOf();
                 e = new AssertExp(Loc(), v);
             }
             if (e)

@@ -793,8 +793,9 @@ public:
                 e = el_bin(OPcomma, e->Ety, es, e);
             }
             else if (tf->isref)
-            {   // Reference return, so convert to a pointer
-                Expression *ae = s->exp->addressOf(NULL);
+            {
+                // Reference return, so convert to a pointer
+                Expression *ae = s->exp->addressOf();
                 e = toElemDtor(ae, irs);
             }
             else
