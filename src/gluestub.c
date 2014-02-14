@@ -397,28 +397,6 @@ int TypeClass::builtinTypeInfo()
     return 0;
 }
 
-Expression *createTypeInfoArray(Scope *sc, Expression *exps[], size_t dim)
-{
-    /*
-     * Pass a reference to the TypeInfo_Tuple corresponding to the types of the
-     * arguments. Source compatibility is maintained by computing _arguments[]
-     * at the start of the called function by offseting into the TypeInfo_Tuple
-     * reference.
-     */
-    Parameters *args = new Parameters;
-    args->setDim(dim);
-    for (size_t i = 0; i < dim; i++)
-    {   Parameter *arg = new Parameter(STCin, exps[i]->type, NULL, NULL);
-        (*args)[i] = arg;
-    }
-    TypeTuple *tup = new TypeTuple(args);
-    Expression *e = tup->getTypeInfo(sc);
-    e = e->optimize(WANTvalue);
-    assert(e->op == TOKsymoff);         // should be SymOffExp
-
-    return e;
-}
-
 // lib
 
 Library *LibMSCoff_factory()
