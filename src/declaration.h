@@ -272,12 +272,6 @@ public:
     // When interpreting, these point to the value (NULL if value not determinable)
     // The index of this variable on the CTFE stack, -1 if not allocated
     int ctfeAdrOnStack;
-    // The various functions are used only to detect compiler CTFE bugs
-    Expression *getValue();
-    bool hasValue();
-    void setValueNull();
-    void setValueWithoutChecking(Expression *newval);
-    void setValue(Expression *newval);
 
     VarDeclaration *rundtor;    // if !NULL, rundtor is tested at runtime to see
                                 // if the destructor should be run. Used to prevent

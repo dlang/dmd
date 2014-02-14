@@ -943,12 +943,12 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
                 int oldadr = v2->ctfeAdrOnStack;
                 ctfeStack.push(v);
                 v->ctfeAdrOnStack = oldadr;
-                assert(v2->hasValue());
+                assert(hasValue(v2));
             }
             else
             {   // Value parameters and non-trivial references
                 ctfeStack.push(v);
-                v->setValueWithoutChecking(earg);
+                setValueWithoutChecking(v, earg);
             }
 #if LOG || LOGASSIGN
             printf("interpreted arg[%d] = %s\n", i, earg->toChars());
@@ -1221,7 +1221,7 @@ bool stopPointersEscaping(Loc loc, Expression *e)
         {
             if (v->storage_class & STCref)
             {
-                x = v->getValue();
+                x = getValue(v);
                 if (e->op == TOKaddress)
                     ((AddrExp *)e)->e1 = x;
                 continue;
@@ -1861,7 +1861,7 @@ Expression *TryCatchStatement::interpret(InterState *istate)
             if (ca->var)
             {
                 ctfeStack.push(ca->var);
-                ca->var->setValue(ex->thrown);
+                setValue(ca->var, ex->thrown);
             }
             if (ca->handler)
             {
@@ -1999,7 +1999,7 @@ Expression *WithStatement::interpret(InterState *istate)
         e->type = wthis->type;
     }
     ctfeStack.push(wthis);
-    wthis->setValue(e);
+    setValue(wthis, e);
     if (body)
     {
         e = body->interpret(istate);
@@ -2336,7 +2336,7 @@ public:
                     break;
                 if (v->ctfeAdrOnStack == (size_t)-1) // If not on the stack, can't possibly be a ref.
                     break;
-                Expression *val = v->getValue();
+                Expression *val = getValue(v);
                 if (val && (val->op == TOKslice))
                 {
                     SliceExp *se = (SliceExp *)val;
@@ -2377,7 +2377,7 @@ public:
             }
 
             if ((v->isConst() || v->isImmutable() || v->storage_class & STCmanifest) &&
-                !v->hasValue() &&
+                !hasValue(v) &&
                 v->init && !v->isCTFE())
             {
                 if(v->scope)
@@ -2422,7 +2422,7 @@ public:
                         ctfeStack.saveGlobalConstant(v, e);
                 }
             }
-            else if (v->isCTFE() && !v->hasValue())
+            else if (v->isCTFE() && !hasValue(v))
             {
                 if (v->init && v->type->size() != 0)
                 {
@@ -2449,7 +2449,7 @@ public:
             }
             else
             {
-                e = v->hasValue() ? v->getValue() : NULL;
+                e = hasValue(v) ? getValue(v) : NULL;
                 if (!e && !v->isCTFE() && v->isDataseg())
                 {
                     error(loc, "static variable %s cannot be read at compile time", v->toChars());
@@ -2525,7 +2525,7 @@ public:
                 result = EXP_CANT_INTERPRET;
                 return;
             }
-            else if (v && !v->hasValue())
+            else if (v && !hasValue(v))
             {
                 if (!v->isCTFE() && v->isDataseg())
                     e->error("static variable %s cannot be referenced at compile time", v->toChars());
@@ -2534,10 +2534,10 @@ public:
                 result = EXP_CANT_INTERPRET;
                 return;
             }
-            else if (v && v->hasValue() && v->getValue()->op == TOKvar)
+            else if (v && hasValue(v) && getValue(v)->op == TOKvar)
             {
                 // A ref of a reference,  is the original reference
-                result = v->getValue();
+                result = getValue(v);
                 return;
             }
             result = e;
@@ -2592,7 +2592,7 @@ public:
                     result = voidInitLiteral(v->type, v);
                     // There is no AssignExp for void initializers,
                     // so set it here.
-                    v->setValue(result);
+                    setValue(v, result);
                 }
                 else
                 {
@@ -3726,8 +3726,8 @@ public:
         // Unless we have a simple var assignment, we're
         // only modifying part of the variable. So we need to make sure
         // that the parent variable exists.
-        if (e1->op != TOKvar && ultimateVar && !ultimateVar->getValue())
-            ultimateVar->setValue(copyLiteral(ultimateVar->type->defaultInitLiteral(e->loc)));
+        if (e1->op != TOKvar && ultimateVar && !getValue(ultimateVar))
+            setValue(ultimateVar, copyLiteral(ultimateVar->type->defaultInitLiteral(e->loc)));
 
         // ---------------------------------------
         //      Deal with reference assignment
@@ -3927,8 +3927,8 @@ public:
             VarDeclaration *v = ve->var->isVarDeclaration();
             if (wantRef)
             {
-                v->setValueNull();
-                v->setValue(newval);
+                setValueNull(v);
+                setValue(v, newval);
             }
             else if (e1->type->toBasetype()->ty == Tstruct)
             {
@@ -3940,10 +3940,10 @@ public:
                     return;
                 }
                 newval = copyLiteral(newval);
-                if (v->getValue())
-                    assignInPlace(v->getValue(), newval);
+                if (getValue(v))
+                    assignInPlace(getValue(v), newval);
                 else
-                    v->setValue(newval);
+                    setValue(v, newval);
             }
             else
             {
@@ -3951,11 +3951,11 @@ public:
                 if (tyE1 == Tarray || tyE1 == Taarray)
                 {
                     // arr op= arr
-                    v->setValue(newval);
+                    setValue(v, newval);
                 }
                 else
                 {
-                    v->setValue(newval);
+                    setValue(v, newval);
                 }
             }
         }
@@ -4093,7 +4093,7 @@ public:
             {
                 IntegerExp *dollarExp = new IntegerExp(loc, destarraylen, Type::tsize_t);
                 ctfeStack.push(ie->lengthVar);
-                ie->lengthVar->setValue(dollarExp);
+                setValue(ie->lengthVar, dollarExp);
             }
         }
         Expression *index = ie->e2->interpret(istate);
@@ -4189,7 +4189,7 @@ public:
         {
             VarExp *ve = (VarExp *)aggregate;
             VarDeclaration *v = ve->var->isVarDeclaration();
-            aggregate = v->getValue();
+            aggregate = getValue(v);
             if (aggregate->op == TOKnull)
             {
                 // This would be a runtime segfault
@@ -4326,7 +4326,7 @@ public:
         {
             Expression *arraylen = new IntegerExp(loc, dollar, Type::tsize_t);
             ctfeStack.push(sexp->lengthVar);
-            sexp->lengthVar->setValue(arraylen);
+            setValue(sexp->lengthVar, arraylen);
         }
 
         Expression *upper = NULL;
@@ -4395,7 +4395,7 @@ public:
         {
             VarExp *ve = (VarExp *)(aggregate);
             VarDeclaration *v = ve->var->isVarDeclaration();
-            aggregate = v->getValue();
+            aggregate = getValue(v);
         }
         if (aggregate->op == TOKslice)
         {
@@ -4986,8 +4986,8 @@ public:
             if (pe->op == TOKvar)
             {
                 VarDeclaration *vd = ((VarExp *)((PtrExp*)ecall)->e1)->var->isVarDeclaration();
-                if (vd && vd->hasValue() && vd->getValue()->op == TOKsymoff)
-                    fd = ((SymOffExp *)vd->getValue())->var->isFuncDeclaration();
+                if (vd && hasValue(vd) && getValue(vd)->op == TOKsymoff)
+                    fd = ((SymOffExp *)getValue(vd))->var->isFuncDeclaration();
                 else
                 {
                     ecall = getVarExp(e->loc, istate, vd, goal);
@@ -5042,8 +5042,8 @@ public:
         else if (ecall->op == TOKvar)
         {
             VarDeclaration *vd = ((VarExp *)ecall)->var->isVarDeclaration();
-            if (vd && vd->hasValue())
-                ecall = vd->getValue();
+            if (vd && hasValue(vd))
+                ecall = getValue(vd);
             else // Calling a function
                 fd = ((VarExp *)e->e1)->var->isFuncDeclaration();
         }
@@ -5239,11 +5239,11 @@ public:
             VarExp* ve = (VarExp *)e->e2;
             VarDeclaration *v = ve->var->isVarDeclaration();
             ctfeStack.push(v);
-            if (!v->init && !v->getValue())
+            if (!v->init && !getValue(v))
             {
-                v->setValue(copyLiteral(v->type->defaultInitLiteral(e->loc)));
+                setValue(v, copyLiteral(v->type->defaultInitLiteral(e->loc)));
             }
-            if (!v->getValue())
+            if (!getValue(v))
             {
                 Expression *newval = v->init->toExpression();
                 // Bug 4027. Copy constructors are a weird case where the
@@ -5260,7 +5260,7 @@ public:
                 if (newval != EXP_VOID_INTERPRET)
                 {
                     // v isn't necessarily null.
-                    v->setValueWithoutChecking(copyLiteral(newval));
+                    setValueWithoutChecking(v, copyLiteral(newval));
                 }
             }
             if (goal == ctfeNeedLvalue || goal == ctfeNeedLvalueRef)
@@ -5441,7 +5441,7 @@ public:
             uinteger_t dollar = resolveArrayLength(e1);
             Expression *dollarExp = new IntegerExp(e->loc, dollar, Type::tsize_t);
             ctfeStack.push(e->lengthVar);
-            e->lengthVar->setValue(dollarExp);
+            setValue(e->lengthVar, dollarExp);
         }
 
         Expression *e2 = e->e2->interpret(istate);
@@ -5640,7 +5640,7 @@ public:
         {
             IntegerExp *dollarExp = new IntegerExp(e->loc, dollar, Type::tsize_t);
             ctfeStack.push(e->lengthVar);
-            e->lengthVar->setValue(dollarExp);
+            setValue(e->lengthVar, dollarExp);
         }
 
         /* Evaluate lower and upper bounds of slice
@@ -6893,32 +6893,32 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
 /* Setter functions for CTFE variable values.
  * These functions exist to check for compiler CTFE bugs.
  */
-bool VarDeclaration::hasValue()
+bool hasValue(VarDeclaration *vd)
 {
-    if (ctfeAdrOnStack == (size_t)-1)
+    if (vd->ctfeAdrOnStack == (size_t)-1)
         return false;
-    return NULL != getValue();
+    return NULL != getValue(vd);
 }
 
-Expression *VarDeclaration::getValue()
+Expression *getValue(VarDeclaration *vd)
 {
-    return ctfeStack.getValue(this);
+    return ctfeStack.getValue(vd);
 }
 
-void VarDeclaration::setValueNull()
+void setValueNull(VarDeclaration *vd)
 {
-    ctfeStack.setValue(this, NULL);
+    ctfeStack.setValue(vd, NULL);
 }
 
 // Don't check for validity
-void VarDeclaration::setValueWithoutChecking(Expression *newval)
+void setValueWithoutChecking(VarDeclaration *vd, Expression *newval)
 {
-    ctfeStack.setValue(this, newval);
+    ctfeStack.setValue(vd, newval);
 }
 
-void VarDeclaration::setValue(Expression *newval)
+void setValue(VarDeclaration *vd, Expression *newval)
 {
     assert(isCtfeValueValid(newval));
-    ctfeStack.setValue(this, newval);
+    ctfeStack.setValue(vd, newval);
 }
 
