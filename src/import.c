@@ -251,9 +251,9 @@ void Import::semantic(Scope *sc)
         sc->protection = PROTpublic;
 #endif
         for (size_t i = 0; i < aliasdecls.dim; i++)
-        {   AliasDeclaration *ad = aliasdecls[i];
-
-            //printf("\tImport alias semantic('%s')\n", s->toChars());
+        {
+            AliasDeclaration *ad = aliasdecls[i];
+            //printf("\tImport alias semantic('%s')\n", ad->toChars());
             if (mod->search(loc, names[i]))
             {
                 ad->semantic(sc);
@@ -265,6 +265,7 @@ void Import::semantic(Scope *sc)
                     mod->error(loc, "import '%s' not found, did you mean '%s %s'?", names[i]->toChars(), s->kind(), s->toChars());
                 else
                     mod->error(loc, "import '%s' not found", names[i]->toChars());
+                ad->type = Type::terror;
             }
         }
         sc = sc->pop();
