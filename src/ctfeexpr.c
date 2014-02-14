@@ -1978,7 +1978,7 @@ bool isCtfeValueValid(Expression *newval)
         VarExp *ve = (VarExp *)newval;
         VarDeclaration *vv = ve->var->isVarDeclaration();
         // Must not be a reference to a reference
-        if (!(vv && vv->getValue() && vv->getValue()->op == TOKvar))
+        if (!(vv && getValue(vv) && getValue(vv)->op == TOKvar))
             return true;
     }
     if (newval->op == TOKdotvar)
@@ -2112,8 +2112,8 @@ void showCtfeExpr(Expression *e, int level)
     {
         printf("VAR %p %s\n", e, e->toChars());
         VarDeclaration *v = ((VarExp *)e)->var->isVarDeclaration();
-        if (v && v->getValue())
-            showCtfeExpr(v->getValue(), level + 1);
+        if (v && getValue(v))
+            showCtfeExpr(getValue(v), level + 1);
     }
     else if (isPointer(e->type))
     {
