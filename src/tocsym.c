@@ -309,7 +309,32 @@ Symbol *ClassInfoDeclaration::toSymbol()
 Symbol *TypeInfoDeclaration::toSymbol()
 {
     //printf("TypeInfoDeclaration::toSymbol(%s), linkage = %d\n", toChars(), linkage);
-    return VarDeclaration::toSymbol();
+    Symbol *s = VarDeclaration::toSymbol();
+    s->Sclass = SCcomdat;
+    s->Sfl = FLdata;
+    return s;
+}
+
+/*************************************
+ */
+
+Symbol *TypeInfoStructDeclaration::toSymbol()
+{
+    //printf("TypeInfoDeclaration::toSymbol(%s), linkage = %d\n", toChars(), linkage);
+    Symbol *s = VarDeclaration::toSymbol();
+    s->Sclass = SCglobal;
+
+    for (Dsymbol *p = ((TypeStruct *)this->tinfo)->sym->parent; p; p = p->parent)
+    {
+        if (p->isTemplateInstance())
+        {
+            s->Sclass = SCcomdat;
+            break;
+        }
+    }
+
+    s->Sfl = FLdata;
+    return s;
 }
 
 /*************************************

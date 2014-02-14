@@ -733,16 +733,6 @@ void StructDeclaration::semantic(Scope *sc)
 
     xeq = buildXopEquals(sc2);
     xcmp = buildXopCmp(sc2);
-
-    /* Even if the struct is merely imported and its semantic3 is not run,
-     * the TypeInfo object would be speculatively stored in each object
-     * files. To set correct function pointer, run semantic3 for xeq and xcmp.
-     */
-    //if ((xeq && xeq != xerreq || xcmp && xcmp != xerrcmp) && isImportedSym(this))
-    //    Module::addDeferredSemantic3(this);
-    /* Defer requesting semantic3 until TypeInfo generation is actually invoked.
-     * See Type::getTypeInfo().
-     */
     inv = buildInv(sc2);
 
     sc2->pop();
