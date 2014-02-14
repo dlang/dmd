@@ -114,7 +114,6 @@ public:
     virtual Statement *last();
 
     virtual Expression *doInline(InlineDoState *ids);
-    virtual Statement *doInlineStatement(InlineDoState *ids);
 
     // Avoid dynamic_cast
     virtual ErrorStatement *isErrorStatement() { return NULL; }
@@ -170,7 +169,6 @@ public:
     Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
 
     Expression *doInline(InlineDoState *ids);
-    Statement *doInlineStatement(InlineDoState *ids);
 
     ExpStatement *isExpStatement() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -222,7 +220,6 @@ public:
     Statement *last();
 
     Expression *doInline(InlineDoState *ids);
-    Statement *doInlineStatement(InlineDoState *ids);
 
     CompoundStatement *isCompoundStatement() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -253,7 +250,6 @@ public:
     Expression *interpret(InterState *istate);
 
     Expression *doInline(InlineDoState *ids);
-    Statement *doInlineStatement(InlineDoState *ids);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -274,7 +270,6 @@ public:
     Expression *interpret(InterState *istate);
 
     Expression *doInline(InlineDoState *ids);
-    Statement *doInlineStatement(InlineDoState *ids);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -335,8 +330,6 @@ public:
     bool hasContinue();
     int blockExit(bool mustNotThrow);
     Expression *interpret(InterState *istate);
-
-    Statement *doInlineStatement(InlineDoState *ids);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -412,7 +405,6 @@ public:
     IfStatement *isIfStatement() { return this; }
 
     Expression *doInline(InlineDoState *ids);
-    Statement *doInlineStatement(InlineDoState *ids);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -589,7 +581,6 @@ public:
     Expression *interpret(InterState *istate);
 
     Expression *doInline(InlineDoState *ids);
-    Statement *doInlineStatement(InlineDoState *ids);
 
     ReturnStatement *isReturnStatement() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -842,7 +833,6 @@ public:
     Expression *interpret(InterState *istate);
 
     Expression *doInline(InlineDoState *ids);
-    Statement *doInlineStatement(InlineDoState *ids);
 
     void accept(Visitor *v) { v->visit(this); }
 };
