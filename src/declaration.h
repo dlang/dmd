@@ -687,7 +687,6 @@ public:
     virtual bool isFinalFunc();
     virtual bool addPreInvariant();
     virtual bool addPostInvariant();
-    Expression *interpret(InterState *istate, Expressions *arguments, Expression *thisexp = NULL);
     int canInline(int hasthis, int hdrscan, int statementsToo);
     const char *kind();
     void toDocBuffer(OutBuffer *buf, Scope *sc);
