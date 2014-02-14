@@ -201,6 +201,7 @@ extern Config config;
 typedef struct Srcpos
 {
     unsigned Slinnum;           // 0 means no info available
+    unsigned Scharnum;
 #if SPP || SCPP
     struct Sfile **Sfilptr;     // file
     #define srcpos_sfile(p)     (**(p).Sfilptr)

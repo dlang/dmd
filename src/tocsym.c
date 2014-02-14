@@ -359,13 +359,16 @@ Symbol *FuncDeclaration::toSymbol()
             else if (isMember2() && isStatic())
                 f->Fflags |= Fstatic;
             f->Fstartline.Slinnum = loc.linnum;
+            f->Fstartline.Scharnum = loc.charnum;
             f->Fstartline.Sfilename = (char *)loc.filename;
             if (endloc.linnum)
             {   f->Fendline.Slinnum = endloc.linnum;
+                f->Fendline.Scharnum = endloc.charnum;
                 f->Fendline.Sfilename = (char *)endloc.filename;
             }
             else
             {   f->Fendline.Slinnum = loc.linnum;
+                f->Fendline.Scharnum = loc.charnum;
                 f->Fendline.Sfilename = (char *)loc.filename;
             }
             t = Type_toCtype(type);

@@ -1503,10 +1503,10 @@ static Dsymbol *inferApplyArgTypesX(Expression *ethis, FuncDeclaration *fstart, 
     {
         inferApplyArgTypesY((TypeFunction *)p.fd_best->type, arguments);
         if (p.fd_ambig)
-        {   ::error(ethis->loc, "%s.%s matches more than one declaration:\n\t%s(%d):%s\nand:\n\t%s(%d):%s",
+        {   ::error(ethis->loc, "%s.%s matches more than one declaration:\n\t%s:%s\nand:\n\t%s:%s",
                     ethis->toChars(), fstart->ident->toChars(),
-                    p.fd_best ->loc.filename, p.fd_best ->loc.linnum, p.fd_best ->type->toChars(),
-                    p.fd_ambig->loc.filename, p.fd_ambig->loc.linnum, p.fd_ambig->type->toChars());
+                    p.fd_best ->loc.toChars(), p.fd_best ->type->toChars(),
+                    p.fd_ambig->loc.toChars(), p.fd_ambig->type->toChars());
             p.fd_best = NULL;
         }
     }

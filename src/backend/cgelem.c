@@ -27,7 +27,7 @@
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
-extern void error(const char *filename, unsigned linnum, const char *format, ...);
+extern void error(const char *filename, unsigned linnum, unsigned charnum, const char *format, ...);
 
 STATIC elem * optelem(elem *,goal_t);
 STATIC elem * elarray(elem *e);
@@ -2192,7 +2192,7 @@ STATIC elem * elremquo(elem *e, goal_t goal)
 {
 #if 0 && MARS
     if (cnst(e->E2) && !boolres(e->E2))
-        error(e->Esrcpos.Sfilename, e->Esrcpos.Slinnum, "divide by zero\n");
+        error(e->Esrcpos.Sfilename, e->Esrcpos.Slinnum, e->Esrcpos.Scharnum, "divide by zero\n");
 #endif
     return e;
 }
@@ -2229,7 +2229,7 @@ STATIC elem * eldiv(elem *e, goal_t goal)
     {
 #if 0 && MARS
       if (!boolres(e2))
-        error(e->Esrcpos.Sfilename, e->Esrcpos.Slinnum, "divide by zero\n");
+        error(e->Esrcpos.Sfilename, e->Esrcpos.Slinnum, e->Esrcpos.Scharnum, "divide by zero\n");
 #endif
       if (uns)
       { int i;
@@ -5318,8 +5318,7 @@ elem *doptelem(elem *e, goal_t goal)
 
 void postoptelem(elem *e)
 {
-    int linnum = 0;
-    const char *filename = NULL;
+    Srcpos pos = {0};
 
     elem_debug(e);
     while (1)
@@ -5329,10 +5328,8 @@ void postoptelem(elem *e)
             /* This is necessary as the optimizer tends to lose this information
              */
 #if MARS
-            if (e->Esrcpos.Slinnum > linnum)
-            {   linnum = e->Esrcpos.Slinnum;
-                filename = e->Esrcpos.Sfilename;
-            }
+            if (e->Esrcpos.Slinnum > pos.Slinnum)
+                pos = e->Esrcpos;
 #endif
             if (e->Eoper == OPind)
             {
@@ -5340,7 +5337,7 @@ void postoptelem(elem *e)
                 if (e->E1->Eoper == OPconst &&
                     el_tolong(e->E1) >= 0 && el_tolong(e->E1) < 4096)
                 {
-                    error(filename, linnum, "null dereference in function %s", funcsym_p->Sident);
+                    error(pos.Sfilename, pos.Slinnum, pos.Scharnum, "null dereference in function %s", funcsym_p->Sident);
                     e->E1->EV.Vlong = 4096;     // suppress redundant messages
                 }
 #endif
@@ -5352,10 +5349,8 @@ void postoptelem(elem *e)
 #if MARS
             /* This is necessary as the optimizer tends to lose this information
              */
-            if (e->Esrcpos.Slinnum > linnum)
-            {   linnum = e->Esrcpos.Slinnum;
-                filename = e->Esrcpos.Sfilename;
-            }
+            if (e->Esrcpos.Slinnum > pos.Slinnum)
+                pos = e->Esrcpos;
 #endif
             if (e->Eoper == OPparam)
             {

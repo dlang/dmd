@@ -134,6 +134,7 @@ void LibMSCoff::setFilename(const char *dir, const char *filename)
 
     loc.filename = libfile->name->toChars();
     loc.linnum = 0;
+    loc.charnum = 0;
 }
 
 void LibMSCoff::write()

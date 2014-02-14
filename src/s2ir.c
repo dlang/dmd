@@ -47,7 +47,8 @@ type *Type_toCtype(Type *t);
 elem *toElemDtor(Expression *e, IRState *irs);
 
 #define elem_setLoc(e,loc)      ((e)->Esrcpos.Sfilename = (char *)(loc).filename, \
-                                 (e)->Esrcpos.Slinnum = (loc).linnum)
+                                 (e)->Esrcpos.Slinnum = (loc).linnum, \
+                                 (e)->Esrcpos.Scharnum = (loc).charnum)
 
 #define SEH     (TARGET_WINDOS)
 

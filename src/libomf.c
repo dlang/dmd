@@ -69,6 +69,7 @@ class LibOMF : public Library
         {
             loc.filename = libfile->name->toChars();
             loc.linnum = 0;
+            loc.charnum = 0;
         }
         va_list ap;
         va_start(ap, format);
@@ -114,6 +115,7 @@ void LibOMF::setFilename(const char *dir, const char *filename)
 
     loc.filename = libfile->name->toChars();
     loc.linnum = 0;
+    loc.charnum = 0;
 }
 
 void LibOMF::write()

@@ -234,6 +234,7 @@ public:
     const utf8_t *base;        // pointer to start of buffer
     const utf8_t *end;         // past end of buffer
     const utf8_t *p;           // current character
+    const utf8_t *line;        // start of current line
     Token token;
     Module *mod;
     int doDocComment;           // collect doc comment information
@@ -265,6 +266,7 @@ public:
     void stringPostfix(Token *t);
     TOK number(Token *t);
     TOK inreal(Token *t);
+    Loc loc();
     void error(const char *format, ...);
     void error(Loc loc, const char *format, ...);
     void deprecation(const char *format, ...);
@@ -274,6 +276,9 @@ public:
 
     static int isValidIdentifier(const char *p);
     static const utf8_t *combineComments(const utf8_t *c1, const utf8_t *c2);
+
+private:
+    void endOfLine();
 };
 
 #endif /* DMD_LEXER_H */

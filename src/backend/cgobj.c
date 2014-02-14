@@ -34,10 +34,12 @@ struct Loc
 {
     char *filename;
     unsigned linnum;
+    unsigned charnum;
 
-    Loc(int x)
+    Loc(int y, int x)
     {
-        linnum = x;
+        linnum = y;
+        charnum = x;
         filename = NULL;
     }
 };
@@ -364,7 +366,7 @@ void objrecord(unsigned rectyp,const char *record,unsigned reclen)
  *      # of bytes stored
  */
 
-extern void error(const char *filename, unsigned linnum, const char *format, ...);
+extern void error(const char *filename, unsigned linnum, unsigned charnum, const char *format, ...);
 extern void fatal();
 
 void too_many_symbols()
@@ -372,7 +374,7 @@ void too_many_symbols()
 #if SCPP
     err_fatal(EM_too_many_symbols, 0x7FFF);
 #else // MARS
-    error(NULL, 0, "more than %d symbols in object file", 0x7FFF);
+    error(NULL, 0, 0, "more than %d symbols in object file", 0x7FFF);
     fatal();
 #endif
 }
