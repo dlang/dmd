@@ -42,6 +42,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+				Optimization="0"
 				AdditionalIncludeDirectories=".\root;.\tk;.\backend;.;vcbuild"
 				PreprocessorDefinitions="DEBUG,_DEBUG;TARGET_WINDOS=1"
 				RuntimeLibrary="1"
@@ -115,6 +116,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				AdditionalOptions="/TP"
+				Optimization="0"
 				AdditionalIncludeDirectories=".\root;.\tk;.\backend;.;vcbuild"
 				PreprocessorDefinitions="DEBUG,_DEBUG;TARGET_WINDOS=1"
 				RuntimeLibrary="1"
