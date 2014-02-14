@@ -1960,38 +1960,37 @@ static Expression *expandInline(FuncDeclaration *fd, FuncDeclaration *parent,
  * Perform the "inline copying" of a default argument for a function parameter.
  */
 
-Expression *Expression::inlineCopy(Scope *sc)
+Expression *inlineCopy(Expression *e, Scope *sc)
 {
-#if 0
     /* See Bugzilla 2935 for explanation of why just a copy() is broken
      */
-    return copy();
-#else
-    if (op == TOKdelegate)
-    {   DelegateExp *de = (DelegateExp *)this;
+    //return e->copy();
+
+    if (e->op == TOKdelegate)
+    {
+        DelegateExp *de = (DelegateExp *)e;
 
         if (de->func->isNested())
-        {   /* See Bugzilla 4820
+        {
+            /* See Bugzilla 4820
              * Defer checking until later if we actually need the 'this' pointer
              */
-            Expression *e = de->copy();
-            return e;
+            return de->copy();
         }
     }
 
     InlineCostVisitor icv;
     icv.hdrscan = 1;
-    icv.expressionInlineCost(this);
+    icv.expressionInlineCost(e);
     int cost = icv.cost;
     if (cost >= COST_MAX)
-    {   error("cannot inline default argument %s", toChars());
+    {
+        e->error("cannot inline default argument %s", e->toChars());
         return new ErrorExp();
     }
     InlineDoState ids;
     memset(&ids, 0, sizeof(ids));
     ids.parent = sc->parent;
-    Expression *e = doInline(&ids);
-    return e;
-#endif
+    return e->doInline(&ids);
 }
 
