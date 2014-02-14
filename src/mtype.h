@@ -50,6 +50,8 @@ typedef struct TYPE type;
 struct Symbol;
 class TypeTuple;
 
+void semanticTypeInfo(Scope *sc, Type *t);
+
 enum ENUMTY
 {
     Tarray,             // slice array, aka T[]

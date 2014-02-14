@@ -134,22 +134,7 @@ void Type::genTypeInfo(Scope *sc)
                 Module *m = sc->module->importedFrom;
                 m->members->push(t->vtinfo);
 
-                if (ty == Tstruct)
-                {
-                    Dsymbol *s;
-                    StructDeclaration *sd = ((TypeStruct *)this)->sym;
-                    if ((sd->xeq  && sd->xeq  != sd->xerreq  ||
-                         sd->xcmp && sd->xcmp != sd->xerrcmp ||
-                         (sd->postblit && !(sd->postblit->storage_class & STCdisable)) ||
-                         sd->dtor ||
-                         search_toHash(sd) ||
-                         search_toString(sd)
-                        ) && sd->inNonRoot())
-                    {
-                        //printf("deferred sem3 for TypeInfo - sd = %s, inNonRoot = %d\n", sd->toChars(), sd->inNonRoot());
-                        Module::addDeferredSemantic3(sd);
-                    }
-                }
+                semanticTypeInfo(sc, t);
             }
             else                        // if in obj generation pass
             {
@@ -167,7 +152,7 @@ Expression *Type::getTypeInfo(Scope *sc)
     genTypeInfo(sc);
     Expression *e = VarExp::create(Loc(), vtinfo);
     e = e->addressOf(sc);
-    e->type = t->vtinfo->type;          // do this so we don't get redundant dereference
+    e->type = vtinfo->type;     // do this so we don't get redundant dereference
     return e;
 }
 

@@ -1281,8 +1281,7 @@ bool Expression::checkPostblit(Scope *sc, Type *t)
     if (t->ty == Tstruct)
     {
         // Bugzilla 11395: Require TypeInfo generation for array concatenation
-        if (!t->vtinfo)
-            t->getTypeInfo(sc);
+        semanticTypeInfo(sc, t);
 
         StructDeclaration *sd = ((TypeStruct *)t)->sym;
         if (sd->postblit)
