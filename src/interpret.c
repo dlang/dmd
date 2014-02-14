@@ -792,32 +792,32 @@ Expression *ctfeInterpretForPragmaMsg(Expression *e)
  * or EXP_VOID_INTERPRET if function returned void.
  */
 
-Expression *FuncDeclaration::interpret(InterState *istate, Expressions *arguments, Expression *thisarg)
+Expression *interpret(FuncDeclaration *fd, InterState *istate, Expressions *arguments, Expression *thisarg)
 {
 #if LOG
-    printf("\n********\n%s FuncDeclaration::interpret(istate = %p) %s\n", loc.toChars(), istate, toChars());
+    printf("\n********\n%s FuncDeclaration::interpret(istate = %p) %s\n", fd->loc.toChars(), istate, fd->toChars());
 #endif
-    if (semanticRun == PASSsemantic3)
+    if (fd->semanticRun == PASSsemantic3)
     {
-        error("circular dependency. Functions cannot be interpreted while being compiled");
+        fd->error("circular dependency. Functions cannot be interpreted while being compiled");
         return EXP_CANT_INTERPRET;
     }
-    if (!functionSemantic3())
+    if (!fd->functionSemantic3())
         return EXP_CANT_INTERPRET;
-    if (semanticRun < PASSsemantic3done)
+    if (fd->semanticRun < PASSsemantic3done)
         return EXP_CANT_INTERPRET;
 
     // CTFE-compile the function
-    if (!ctfeCode)
-        ctfeCompile(this);
+    if (!fd->ctfeCode)
+        ctfeCompile(fd);
 
-    Type *tb = type->toBasetype();
+    Type *tb = fd->type->toBasetype();
     assert(tb->ty == Tfunction);
     TypeFunction *tf = (TypeFunction *)tb;
     if (tf->varargs && arguments &&
-        ((parameters && arguments->dim != parameters->dim) || (!parameters && arguments->dim)))
+        ((fd->parameters && arguments->dim != fd->parameters->dim) || (!fd->parameters && arguments->dim)))
     {
-        error("C-style variadic functions are not yet implemented in CTFE");
+        fd->error("C-style variadic functions are not yet implemented in CTFE");
         return EXP_CANT_INTERPRET;
     }
 
@@ -825,17 +825,19 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
     // except for delegates. (Note that the 'this' pointer may be null).
     // Func literals report isNested() even if they are in global scope,
     // so we need to check that the parent is a function.
-    if (isNested() && toParent2()->isFuncDeclaration() && !thisarg && istate)
+    if (fd->isNested() && fd->toParent2()->isFuncDeclaration() && !thisarg && istate)
         thisarg = ctfeStack.getThis();
 
     size_t dim = 0;
-    if (needThis() && !thisarg)
-    {   // error, no this. Prevent segfault.
-        error("need 'this' to access member %s", toChars());
+    if (fd->needThis() && !thisarg)
+    {
+        // error, no this. Prevent segfault.
+        fd->error("need 'this' to access member %s", fd->toChars());
         return EXP_CANT_INTERPRET;
     }
     if (thisarg && !istate)
-    {   // Check that 'this' aleady has a value
+    {
+        // Check that 'this' aleady has a value
         if (thisarg->interpret(istate) == EXP_CANT_INTERPRET)
             return EXP_CANT_INTERPRET;
     }
@@ -848,20 +850,22 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
     if (arguments)
     {
         dim = arguments->dim;
-        assert(!dim || (parameters && (parameters->dim == dim)));
+        assert(!dim || (fd->parameters && (fd->parameters->dim == dim)));
 
         /* Evaluate all the arguments to the function,
          * store the results in eargs[]
          */
         eargs.setDim(dim);
         for (size_t i = 0; i < dim; i++)
-        {   Expression *earg = (*arguments)[i];
+        {
+            Expression *earg = (*arguments)[i];
             Parameter *arg = Parameter::getNth(tf->parameters, i);
 
             if (arg->storageClass & (STCout | STCref))
             {
                 if (!istate && (arg->storageClass & STCout))
-                {   // initializing an out parameter involves writing to it.
+                {
+                    // initializing an out parameter involves writing to it.
                     earg->error("global %s cannot be passed as an 'out' parameter at compile time", earg->toChars());
                     return EXP_CANT_INTERPRET;
                 }
@@ -876,7 +880,8 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
             {
             }
             else
-            {   /* Value parameters
+            {
+                /* Value parameters
                  */
                 Type *ta = arg->type->toBasetype();
                 if (ta->ty == Tsarray && earg->op == TOKaddress)
@@ -913,16 +918,17 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
 
     InterState istatex;
     istatex.caller = istate;
-    istatex.fd = this;
+    istatex.fd = fd;
     ctfeStack.startFrame(thisarg);
 
     if (arguments)
     {
 
         for (size_t i = 0; i < dim; i++)
-        {   Expression *earg = eargs[i];
+        {
+            Expression *earg = eargs[i];
             Parameter *arg = Parameter::getNth(tf->parameters, i);
-            VarDeclaration *v = (*parameters)[i];
+            VarDeclaration *v = (*fd->parameters)[i];
 #if LOG
             printf("arg[%d] = %s\n", i, earg->toChars());
 #endif
@@ -932,7 +938,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
                 VarDeclaration *v2 = ve->var->isVarDeclaration();
                 if (!v2)
                 {
-                    error("cannot interpret %s as a ref parameter", ve->toChars());
+                    fd->error("cannot interpret %s as a ref parameter", ve->toChars());
                     return EXP_CANT_INTERPRET;
                 }
                 /* The push() isn't a variable we'll use, it's just a place
@@ -946,7 +952,8 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
                 assert(v2->hasValue());
             }
             else
-            {   // Value parameters and non-trivial references
+            {
+                // Value parameters and non-trivial references
                 ctfeStack.push(v);
                 v->setValueWithoutChecking(earg);
             }
@@ -957,8 +964,8 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
         }
     }
 
-    if (vresult)
-        ctfeStack.push(vresult);
+    if (fd->vresult)
+        ctfeStack.push(fd->vresult);
 
     // Enter the function
     ++CtfeStatus::callDepth;
@@ -969,13 +976,14 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
     while (1)
     {
         if (CtfeStatus::callDepth > CTFE_RECURSION_LIMIT)
-        {   // This is a compiler error. It must not be suppressed.
+        {
+            // This is a compiler error. It must not be suppressed.
             global.gag = 0;
-            error("CTFE recursion limit exceeded");
+            fd->error("CTFE recursion limit exceeded");
             e = EXP_CANT_INTERPRET;
             break;
         }
-        e = fbody->interpret(&istatex);
+        e = fd->fbody->interpret(&istatex);
         if (e == EXP_CANT_INTERPRET)
         {
 #if LOG
@@ -985,7 +993,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
 
         if (istatex.start)
         {
-            error("CTFE internal error: failed to resume at statement %s", istatex.start->toChars());
+            fd->error("CTFE internal error: failed to resume at statement %s", istatex.start->toChars());
             return EXP_CANT_INTERPRET;
         }
 
@@ -1011,7 +1019,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
     ctfeStack.endFrame();
 
     // If fell off the end of a void function, return void
-    if (!e && type->toBasetype()->nextOf()->ty == Tvoid)
+    if (!e && tf->next->ty == Tvoid)
         return EXP_VOID_INTERPRET;
 
     // If result is void, return void
@@ -3024,7 +3032,7 @@ public:
             if (e->member)
             {
                 int olderrors = global.errors;
-                e->member->interpret(istate, e->arguments, se);
+                interpret(e->member, istate, e->arguments, se);
                 if (olderrors != global.errors)
                 {
                     e->error("cannot evaluate %s at compile time", e->toChars());
@@ -3100,7 +3108,7 @@ public:
                     result = EXP_CANT_INTERPRET;
                     return;
                 }
-                Expression *ctorfail = e->member->interpret(istate, e->arguments, eref);
+                Expression *ctorfail = interpret(e->member, istate, e->arguments, eref);
                 if (exceptionOrCantInterpret(ctorfail))
                 {
                     result = ctorfail;
@@ -5193,7 +5201,7 @@ public:
             result = EXP_CANT_INTERPRET;
             return;
         }
-        result = fd->interpret(istate, e->arguments, pthis);
+        result = interpret(fd, istate, e->arguments, pthis);
         if (result == EXP_CANT_INTERPRET)
         {
             // Print a stack trace.
@@ -6526,7 +6534,7 @@ Expression *interpret_aaApply(InterState *istate, Expression *aa, Expression *de
         args[numParams - 1] = evalue;
         if (numParams == 2) args[0] = ekey;
 
-        eresult = fd->interpret(istate, &args, pthis);
+        eresult = interpret(fd, istate, &args, pthis);
         if (exceptionOrCantInterpret(eresult))
             return eresult;
 
@@ -6781,7 +6789,7 @@ Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *del
 
             args[numParams - 1] = val;
 
-            eresult = fd->interpret(istate, &args, pthis);
+            eresult = interpret(fd, istate, &args, pthis);
             if (exceptionOrCantInterpret(eresult))
                 return eresult;
             assert(eresult->op == TOKint64);
