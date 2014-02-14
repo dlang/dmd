@@ -105,6 +105,7 @@ Expression *implicitCastTo(Expression *e, Scope *sc, Type *t);
 Expression *castTo(Expression *e, Scope *sc, Type *t);
 void toCBuffer(Expression *e, OutBuffer *buf, HdrGenState *hgs);
 Expression *ctfeInterpret(Expression *);
+Expression *inlineCopy(Expression *e, Scope *sc);
 
 /* Run CTFE on the expression, but allow the expression to be a TypeExp
  * or a tuple containing a TypeExp. (This is required by pragma(msg)).
@@ -218,7 +219,6 @@ public:
     virtual int isBool(int result);
 
     virtual Expression *doInline(InlineDoState *ids);
-    Expression *inlineCopy(Scope *sc);
 
     // Back end
     elem *toElem(IRState *irs) { return ::toElem(this, irs); }

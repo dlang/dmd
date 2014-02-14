@@ -1419,7 +1419,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                     return Type::terror;
                 }
                 arg = p->defaultArg;
-                arg = arg->inlineCopy(sc);
+                arg = inlineCopy(arg, sc);
                 // __FILE__, __LINE__, __MODULE__, __FUNCTION__, and __PRETTY_FUNCTION__
                 arg = arg->resolveLoc(loc, sc);
                 arguments->push(arg);
