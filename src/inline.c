@@ -387,99 +387,119 @@ struct InlineDoState
 };
 /* -------------------------------------------------------------------- */
 
-Statement *Statement::doInlineStatement(InlineDoState *ids)
+Statement *inlineAsStatement(Statement *s, InlineDoState *ids)
 {
-    assert(0);
-    return NULL;                // default is we can't inline it
-}
+    class InlineAsStatement : public Visitor
+    {
+    public:
+        InlineDoState *ids;
+        Statement *result;
 
-Statement *ExpStatement::doInlineStatement(InlineDoState *ids)
-{
-#if LOG
-    if (exp) printf("ExpStatement::doInlineStatement() '%s'\n", exp->toChars());
-#endif
-    return new ExpStatement(loc, exp ? exp->doInline(ids) : NULL);
-}
-
-Statement *CompoundStatement::doInlineStatement(InlineDoState *ids)
-{
-    //printf("CompoundStatement::doInlineStatement() %d\n", statements->dim);
-    Statements *as = new Statements();
-    as->reserve(statements->dim);
-    for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s = (*statements)[i];
-        if (s)
+        InlineAsStatement(InlineDoState *ids)
+            : ids(ids)
         {
-            as->push(s->doInlineStatement(ids));
-            if (ids->foundReturn)
-                break;
+            result = NULL;
         }
-        else
-            as->push(NULL);
-    }
-    return new CompoundStatement(loc, as);
-}
 
-Statement *UnrolledLoopStatement::doInlineStatement(InlineDoState *ids)
-{
-    //printf("UnrolledLoopStatement::doInlineStatement() %d\n", statements->dim);
-    Statements *as = new Statements();
-    as->reserve(statements->dim);
-    for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s = (*statements)[i];
-        if (s)
+        void visit(Statement *s)
         {
-            as->push(s->doInlineStatement(ids));
-            if (ids->foundReturn)
-                break;
+            assert(0); // default is we can't inline it
         }
-        else
-            as->push(NULL);
-    }
-    return new UnrolledLoopStatement(loc, as);
-}
 
-Statement *ScopeStatement::doInlineStatement(InlineDoState *ids)
-{
-    //printf("ScopeStatement::doInlineStatement() %d\n", statements->dim);
-    return statement ? new ScopeStatement(loc, statement->doInlineStatement(ids)) : this;
-}
+        void visit(ExpStatement *s)
+        {
+        #if LOG
+            if (s->exp) printf("ExpStatement::inlineAsStatement() '%s'\n", s->exp->toChars());
+        #endif
+            result = new ExpStatement(s->loc, s->exp ? s->exp->doInline(ids) : NULL);
+        }
 
-Statement *IfStatement::doInlineStatement(InlineDoState *ids)
-{
-    assert(!arg);
+        void visit(CompoundStatement *s)
+        {
+            //printf("CompoundStatement::inlineAsStatement() %d\n", s->statements->dim);
+            Statements *as = new Statements();
+            as->reserve(s->statements->dim);
+            for (size_t i = 0; i < s->statements->dim; i++)
+            {
+                Statement *sx = (*s->statements)[i];
+                if (sx)
+                {
+                    as->push(inlineAsStatement(sx, ids));
+                    if (ids->foundReturn)
+                        break;
+                }
+                else
+                    as->push(NULL);
+            }
+            result = new CompoundStatement(s->loc, as);
+        }
 
-    Expression *condition = this->condition ? this->condition->doInline(ids) : NULL;
-    Statement *ifbody = this->ifbody ? this->ifbody->doInlineStatement(ids) : NULL;
-    bool bodyReturn = ids->foundReturn;
-    ids->foundReturn = false;
-    Statement *elsebody = this->elsebody ? this->elsebody->doInlineStatement(ids) : NULL;
-    ids->foundReturn = ids->foundReturn && bodyReturn;
+        void visit(UnrolledLoopStatement *s)
+        {
+            //printf("UnrolledLoopStatement::inlineAsStatement() %d\n", s->statements->dim);
+            Statements *as = new Statements();
+            as->reserve(s->statements->dim);
+            for (size_t i = 0; i < s->statements->dim; i++)
+            {
+                Statement *sx = (*s->statements)[i];
+                if (sx)
+                {
+                    as->push(inlineAsStatement(sx, ids));
+                    if (ids->foundReturn)
+                        break;
+                }
+                else
+                    as->push(NULL);
+            }
+            result = new UnrolledLoopStatement(s->loc, as);
+        }
 
+        void visit(ScopeStatement *s)
+        {
+            //printf("ScopeStatement::inlineAsStatement() %d\n", s->statement->dim);
+            result = s->statement ? new ScopeStatement(s->loc, inlineAsStatement(s->statement, ids)) : s;
+        }
 
-    return new IfStatement(loc, arg, condition, ifbody, elsebody);
-}
+        void visit(IfStatement *s)
+        {
+            assert(!s->arg);
 
-Statement *ReturnStatement::doInlineStatement(InlineDoState *ids)
-{
-    //printf("ReturnStatement::doInlineStatement() '%s'\n", exp ? exp->toChars() : "");
-    ids->foundReturn = true;
-    return new ReturnStatement(loc, exp ? exp->doInline(ids) : NULL);
-}
+            Expression *condition = s->condition ? s->condition->doInline(ids) : NULL;
+            Statement *ifbody = s->ifbody ? inlineAsStatement(s->ifbody, ids) : NULL;
+            bool bodyReturn = ids->foundReturn;
+            ids->foundReturn = false;
+            Statement *elsebody = s->elsebody ? inlineAsStatement(s->elsebody, ids) : NULL;
+            ids->foundReturn = ids->foundReturn && bodyReturn;
 
-Statement *ImportStatement::doInlineStatement(InlineDoState *ids)
-{
-    return NULL;
-}
+            result = new IfStatement(s->loc, s->arg, condition, ifbody, elsebody);
+        }
 
-Statement *ForStatement::doInlineStatement(InlineDoState *ids)
-{
-    //printf("ForStatement::doInlineStatement()\n");
-    Statement *init = this->init ? this->init->doInlineStatement(ids) : NULL;
-    Expression *condition = this->condition ? this->condition->doInline(ids) : NULL;
-    Expression *increment = this->increment ? this->increment->doInline(ids) : NULL;
-    Statement *body = this->body ? this->body->doInlineStatement(ids) : NULL;
-    return new ForStatement(loc, init, condition, increment, body);
+        void visit(ReturnStatement *s)
+        {
+            //printf("ReturnStatement::inlineAsStatement() '%s'\n", s->exp ? s->exp->toChars() : "");
+            ids->foundReturn = true;
+            result = new ReturnStatement(s->loc, s->exp ? s->exp->doInline(ids) : NULL);
+        }
+
+        void visit(ImportStatement *s)
+        {
+            result = NULL;
+        }
+
+        void visit(ForStatement *s)
+        {
+            //printf("ForStatement::inlineAsStatement()\n");
+            Statement *init = s->init ? inlineAsStatement(s->init, ids) : NULL;
+            Expression *condition = s->condition ? s->condition->doInline(ids) : NULL;
+            Expression *increment = s->increment ? s->increment->doInline(ids) : NULL;
+            Statement *body = s->body ? inlineAsStatement(s->body, ids) : NULL;
+            result = new ForStatement(s->loc, init, condition, increment, body);
+        }
+    };
+
+    InlineAsStatement v(ids);
+    s->accept(&v);
+    return v.result;
 }
 
 /* -------------------------------------------------------------------- */
@@ -1886,7 +1906,7 @@ static Expression *expandInline(FuncDeclaration *fd, FuncDeclaration *parent,
         if (e)
             as->push(new ExpStatement(Loc(), e));
         fd->inlineNest++;
-        Statement *s = fd->fbody->doInlineStatement(&ids);
+        Statement *s = inlineAsStatement(fd->fbody, &ids);
         as->push(s);
         *ps = new ScopeStatement(Loc(), new CompoundStatement(Loc(), as));
         fd->inlineNest--;
