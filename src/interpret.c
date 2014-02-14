@@ -2589,7 +2589,7 @@ public:
                     result = ie->exp->interpret(istate, goal);
                 else if (v->init->isVoidInitializer())
                 {
-                    result = v->type->voidInitLiteral(v);
+                    result = voidInitLiteral(v->type, v);
                     // There is no AssignExp for void initializers,
                     // so set it here.
                     v->setValue(result);
@@ -2921,7 +2921,7 @@ public:
                     * leave CTFE, causing another memory allocation if we use this
                     * same struct literal again.
                     *
-                    * ex = sd->fields[i]->type->voidInitLiteral(sd->fields[i]);
+                    * ex = voidInitLiteral(sd->fields[i]->type, sd->fields[i]);
                     */
                     ex = NULL;
                 }
@@ -3061,7 +3061,7 @@ public:
                     if (v->init)
                     {
                         if (v->init->isVoidInitializer())
-                            m = v->type->voidInitLiteral(v);
+                            m = voidInitLiteral(v->type, v);
                         else
                             m = v->getConstInitializer(true);
                     }
@@ -4021,7 +4021,7 @@ public:
                         continue;
                     Expression **exp = &(*se->elements)[i];
                     if ((*exp)->op != TOKvoid)
-                        *exp = (*exp)->type->voidInitLiteral(member);
+                        *exp = voidInitLiteral((*exp)->type, member);
                 }
             }
 

@@ -320,7 +320,6 @@ public:
     Expression *noMember(Scope *sc, Expression *e, Identifier *ident, int flag);
     virtual Expression *defaultInit(Loc loc = Loc());
     virtual Expression *defaultInitLiteral(Loc loc);
-    virtual Expression *voidInitLiteral(VarDeclaration *var);
     virtual int isZeroInit(Loc loc = Loc());                // if initializer is 0
     Identifier *getTypeInfoIdent(int internal);
     virtual MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL);
@@ -487,7 +486,6 @@ public:
     MATCH implicitConvTo(Type *to);
     Expression *defaultInit(Loc loc);
     Expression *defaultInitLiteral(Loc loc);
-    Expression *voidInitLiteral(VarDeclaration *var);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     Expression *toExpression();
@@ -796,7 +794,6 @@ public:
     structalign_t alignment();
     Expression *defaultInit(Loc loc);
     Expression *defaultInitLiteral(Loc loc);
-    Expression *voidInitLiteral(VarDeclaration *var);
     int isZeroInit(Loc loc);
     int isAssignable();
     int checkBoolean();

@@ -267,7 +267,7 @@ Expression *copyLiteral(Expression *e)
             VarDeclaration *v = sd->fields[i];
             // If it is a void assignment, use the default initializer
             if (!m)
-                m = v->type->voidInitLiteral(v);
+                m = voidInitLiteral(v->type, v);
             if (m->op == TOKslice)
                 m = resolveSlice(m);
             if ((v->type->ty != m->type->ty) && v->type->ty == Tsarray)
@@ -2182,43 +2182,47 @@ void showCtfeExpr(Expression *e, int level)
 
 /*************************** Void initialization ***************************/
 
-Expression *Type::voidInitLiteral(VarDeclaration *var)
+Expression *voidInitLiteral(Type *t, VarDeclaration *var)
 {
-    return new VoidInitExp(var, this);
-}
-
-Expression *TypeSArray::voidInitLiteral(VarDeclaration *var)
-{
-    Expression *elem = next->voidInitLiteral(var);
-
-    // For aggregate value types (structs, static arrays) we must
-    // create an a separate copy for each element.
-    bool mustCopy = (elem->op == TOKarrayliteral || elem->op == TOKstructliteral);
-
-    Expressions *elements = new Expressions();
-    size_t d = (size_t)dim->toInteger();
-    elements->setDim(d);
-    for (size_t i = 0; i < d; i++)
-    {   if (mustCopy && i > 0)
-            elem  = copyLiteral(elem);
-        (*elements)[i] = elem;
-    }
-    ArrayLiteralExp *ae = new ArrayLiteralExp(var->loc, elements);
-    ae->type = this;
-    ae->ownedByCtfe = true;
-    return ae;
-}
-
-Expression *TypeStruct::voidInitLiteral(VarDeclaration *var)
-{
-    Expressions *exps = new Expressions();
-    exps->setDim(sym->fields.dim);
-    for (size_t i = 0; i < sym->fields.dim; i++)
+    if (t->ty == Tsarray)
     {
-        (*exps)[i] = sym->fields[i]->type->voidInitLiteral(sym->fields[i]);
+        TypeSArray *tsa = (TypeSArray *)t;
+        Expression *elem = voidInitLiteral(tsa->next, var);
+
+        // For aggregate value types (structs, static arrays) we must
+        // create an a separate copy for each element.
+        bool mustCopy = (elem->op == TOKarrayliteral || elem->op == TOKstructliteral);
+
+        Expressions *elements = new Expressions();
+        size_t d = (size_t)tsa->dim->toInteger();
+        elements->setDim(d);
+        for (size_t i = 0; i < d; i++)
+        {
+            if (mustCopy && i > 0)
+                elem  = copyLiteral(elem);
+            (*elements)[i] = elem;
+        }
+        ArrayLiteralExp *ae = new ArrayLiteralExp(var->loc, elements);
+        ae->type = tsa;
+        ae->ownedByCtfe = true;
+        return ae;
     }
-    StructLiteralExp *se = new StructLiteralExp(var->loc, sym, exps);
-    se->type = this;
-    se->ownedByCtfe = true;
-    return se;
+    else if (t->ty == Tstruct)
+    {
+        TypeStruct *ts = (TypeStruct *)t;
+        Expressions *exps = new Expressions();
+        exps->setDim(ts->sym->fields.dim);
+        for (size_t i = 0; i < ts->sym->fields.dim; i++)
+        {
+            (*exps)[i] = voidInitLiteral(ts->sym->fields[i]->type, ts->sym->fields[i]);
+        }
+        StructLiteralExp *se = new StructLiteralExp(var->loc, ts->sym, exps);
+        se->type = ts;
+        se->ownedByCtfe = true;
+        return se;
+    }
+    else
+    {
+        return new VoidInitExp(var, t);
+    }
 }
