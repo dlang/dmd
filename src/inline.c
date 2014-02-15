@@ -849,9 +849,9 @@ Expression *doInline(Expression *e, InlineDoState *ids)
                         }
                         else
                         {
-                            Expression *e = vd->init->toExpression();
-                            assert(e);
-                            vto->init = new ExpInitializer(e->loc, doInline(e, ids));
+                            Expression *ei = vd->init->toExpression();
+                            assert(ei);
+                            vto->init = new ExpInitializer(ei->loc, doInline(ei, ids));
                         }
                     }
                     DeclarationExp *de = (DeclarationExp *)e->copy();
@@ -934,14 +934,11 @@ Expression *doInline(Expression *e, InlineDoState *ids)
                 ids->from.push(vd);
                 ids->to.push(vto);
 
-                ExpInitializer *ie;
-                ExpInitializer *ieto;
                 if (vd->init && !vd->init->isVoidInitializer())
                 {
-                    ie = vd->init->isExpInitializer();
+                    ExpInitializer *ie = vd->init->isExpInitializer();
                     assert(ie);
-                    ieto = new ExpInitializer(ie->loc, doInline(ie->exp, ids));
-                    vto->init = ieto;
+                    vto->init = new ExpInitializer(ie->loc, doInline(ie->exp, ids));;
                 }
 
                 are->lengthVar = vto;
@@ -970,14 +967,11 @@ Expression *doInline(Expression *e, InlineDoState *ids)
                 ids->from.push(vd);
                 ids->to.push(vto);
 
-                ExpInitializer *ie;
-                ExpInitializer *ieto;
                 if (vd->init && !vd->init->isVoidInitializer())
                 {
-                    ie = vd->init->isExpInitializer();
+                    ExpInitializer *ie = vd->init->isExpInitializer();
                     assert(ie);
-                    ieto = new ExpInitializer(ie->loc, doInline(ie->exp, ids));
-                    vto->init = ieto;
+                    vto->init = new ExpInitializer(ie->loc, doInline(ie->exp, ids));;
                 }
 
                 are->lengthVar = vto;
