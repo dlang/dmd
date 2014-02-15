@@ -2377,6 +2377,8 @@ Identifier *Type::getTypeInfoIdent(int internal)
         if (ty == Tarray)
             buf.writeByte(mangleChar[((TypeArray *)this)->next->ty]);
     }
+    else if (deco)
+        buf.writestring(deco);
     else
         toDecoBuffer(&buf);
 
@@ -2390,7 +2392,7 @@ Identifier *Type::getTypeInfoIdent(int internal)
     assert(name);
 
     sprintf(name, "_D%lluTypeInfo_%s6__initZ", (unsigned long long) 9 + len, buf.data);
-    //printf("name = %s\n", name);
+    //printf("%p, deco = %s, name = %s\n", this, deco, name);
     assert(strlen(name) < namelen);     // don't overflow the buffer
 
     size_t off = 0;
