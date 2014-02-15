@@ -822,6 +822,7 @@ void StructDeclaration::toObjFile(int multiobj)
             toDebug();
 
         type->getTypeInfo(NULL);        // generate TypeInfo
+        type->vtinfo->toObjFile(multiobj);
 
         if (1)
         {
@@ -1064,8 +1065,7 @@ void TypeInfoDeclaration::toObjFile(int multiobj)
     }
 
     Symbol *s = toSymbol();
-    s->Sclass = SCcomdat;
-    s->Sfl = FLdata;
+    assert(s->Sclass != SCextern);
 
     TypeInfo_toDt(&s->Sdt, this);
 

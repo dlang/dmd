@@ -370,6 +370,7 @@ class TypeInfoStructDeclaration : public TypeInfoDeclaration
 public:
     TypeInfoStructDeclaration(Type *tinfo);
     static TypeInfoStructDeclaration *create(Type *tinfo);
+    Symbol *toSymbol();
 
     void accept(Visitor *v) { v->visit(this); }
 };
