@@ -329,6 +329,26 @@ alias X9741 = ShowAttributes!(B9741);
 @A9741 struct B9741 {}
 
 /************************************************/
+// 12160
+
+auto before12160(alias Hook)(string) { return 0; }
+
+template checkUDAs12160(alias Func)
+{
+    enum x = __traits(getAttributes, Func).length;
+}
+
+void test12160()
+{
+    int foo() { return 42; }    // OK <- NG
+
+    @before12160!foo("name1")
+    void bar(int name1, double name2) {}
+
+    alias X = checkUDAs12160!(bar);
+}
+
+/************************************************/
 // 10208
 
 @( 10)                enum int x10208_01 =  100;
