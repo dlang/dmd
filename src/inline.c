@@ -385,6 +385,10 @@ struct InlineDoState
     // inline result
     bool foundReturn;
 };
+
+Expression *doInline(Statement *s, InlineDoState *ids);
+Expression *doInline(Expression *e, InlineDoState *ids);
+
 /* -------------------------------------------------------------------- */
 
 Statement *inlineAsStatement(Statement *s, InlineDoState *ids)
@@ -411,7 +415,7 @@ Statement *inlineAsStatement(Statement *s, InlineDoState *ids)
         #if LOG
             if (s->exp) printf("ExpStatement::inlineAsStatement() '%s'\n", s->exp->toChars());
         #endif
-            result = new ExpStatement(s->loc, s->exp ? s->exp->doInline(ids) : NULL);
+            result = new ExpStatement(s->loc, s->exp ? doInline(s->exp, ids) : NULL);
         }
 
         void visit(CompoundStatement *s)
@@ -464,7 +468,7 @@ Statement *inlineAsStatement(Statement *s, InlineDoState *ids)
         {
             assert(!s->arg);
 
-            Expression *condition = s->condition ? s->condition->doInline(ids) : NULL;
+            Expression *condition = s->condition ? doInline(s->condition, ids) : NULL;
             Statement *ifbody = s->ifbody ? inlineAsStatement(s->ifbody, ids) : NULL;
             bool bodyReturn = ids->foundReturn;
             ids->foundReturn = false;
@@ -478,7 +482,7 @@ Statement *inlineAsStatement(Statement *s, InlineDoState *ids)
         {
             //printf("ReturnStatement::inlineAsStatement() '%s'\n", s->exp ? s->exp->toChars() : "");
             ids->foundReturn = true;
-            result = new ReturnStatement(s->loc, s->exp ? s->exp->doInline(ids) : NULL);
+            result = new ReturnStatement(s->loc, s->exp ? doInline(s->exp, ids) : NULL);
         }
 
         void visit(ImportStatement *s)
@@ -490,8 +494,8 @@ Statement *inlineAsStatement(Statement *s, InlineDoState *ids)
         {
             //printf("ForStatement::inlineAsStatement()\n");
             Statement *init = s->init ? inlineAsStatement(s->init, ids) : NULL;
-            Expression *condition = s->condition ? s->condition->doInline(ids) : NULL;
-            Expression *increment = s->increment ? s->increment->doInline(ids) : NULL;
+            Expression *condition = s->condition ? doInline(s->condition, ids) : NULL;
+            Expression *increment = s->increment ? doInline(s->increment, ids) : NULL;
             Statement *body = s->body ? inlineAsStatement(s->body, ids) : NULL;
             result = new ForStatement(s->loc, init, condition, increment, body);
         }
@@ -504,544 +508,552 @@ Statement *inlineAsStatement(Statement *s, InlineDoState *ids)
 
 /* -------------------------------------------------------------------- */
 
-Expression *Statement::doInline(InlineDoState *ids)
+Expression *doInline(Statement *s, InlineDoState *ids)
 {
-    printf("Statement::doInline()\n%s\n", toChars());
-    fflush(stdout);
-    assert(0);
-    return NULL;                // default is we can't inline it
-}
+    class InlineStatement : public Visitor
+    {
+    public:
+        InlineDoState *ids;
+        Expression *result;
 
-Expression *ExpStatement::doInline(InlineDoState *ids)
-{
-#if LOG
-    if (exp) printf("ExpStatement::doInline() '%s'\n", exp->toChars());
-#endif
-    return exp ? exp->doInline(ids) : NULL;
-}
-
-Expression *CompoundStatement::doInline(InlineDoState *ids)
-{
-    Expression *e = NULL;
-
-    //printf("CompoundStatement::doInline() %d\n", statements->dim);
-    for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s =  (*statements)[i];
-        if (s)
+        InlineStatement(InlineDoState *ids)
+            : ids(ids)
         {
-            Expression *e2 = s->doInline(ids);
-            e = Expression::combine(e, e2);
-            if (ids->foundReturn)
-                break;
-
+            result = NULL;
         }
-    }
-    return e;
-}
 
-Expression *UnrolledLoopStatement::doInline(InlineDoState *ids)
-{
-    Expression *e = NULL;
-
-    //printf("UnrolledLoopStatement::doInline() %d\n", statements->dim);
-    for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s =  (*statements)[i];
-        if (s)
+        void visit(Statement *s)
         {
-            Expression *e2 = s->doInline(ids);
-            e = Expression::combine(e, e2);
-            if (ids->foundReturn)
-                break;
+            printf("Statement::doInline()\n%s\n", s->toChars());
+            fflush(stdout);
+            assert(0); // default is we can't inline it
         }
-    }
-    return e;
-}
 
-Expression *ScopeStatement::doInline(InlineDoState *ids)
-{
-    return statement ? statement->doInline(ids) : NULL;
-}
-
-Expression *IfStatement::doInline(InlineDoState *ids)
-{
-    Expression *econd;
-    Expression *e1;
-    Expression *e2;
-    Expression *e;
-
-    assert(!arg);
-    econd = condition->doInline(ids);
-    assert(econd);
-    if (ifbody)
-    {
-        e1 = ifbody->doInline(ids);
-    }
-    else
-        e1 = NULL;
-    bool bodyReturn = ids->foundReturn;
-    ids->foundReturn = false;
-    if (elsebody)
-        e2 = elsebody->doInline(ids);
-    else
-        e2 = NULL;
-    if (e1 && e2)
-    {
-        e = new CondExp(econd->loc, econd, e1, e2);
-        e->type = e1->type;
-        if (e->type->ty == Ttuple)
+        void visit(ExpStatement *s)
         {
-            e1->type = Type::tvoid;
-            e2->type = Type::tvoid;
-            e->type = Type::tvoid;
+        #if LOG
+            if (s->exp) printf("ExpStatement::doInline() '%s'\n", s->exp->toChars());
+        #endif
+            result = s->exp ? doInline(s->exp, ids) : NULL;
         }
-    }
-    else if (e1)
-    {
-        e = new AndAndExp(econd->loc, econd, e1);
-        e->type = Type::tvoid;
-    }
-    else if (e2)
-    {
-        e = new OrOrExp(econd->loc, econd, e2);
-        e->type = Type::tvoid;
-    }
-    else
-    {
-        e = econd;
-    }
-    ids->foundReturn = ids->foundReturn && bodyReturn;
-    return e;
-}
 
-Expression *ReturnStatement::doInline(InlineDoState *ids)
-{
-    //printf("ReturnStatement::doInline() '%s'\n", exp ? exp->toChars() : "");
-    ids->foundReturn = true;
-    return exp ? exp->doInline(ids) : NULL;
-}
+        void visit(CompoundStatement *s)
+        {
+            //printf("CompoundStatement::doInline() %d\n", s->statements->dim);
+            for (size_t i = 0; i < s->statements->dim; i++)
+            {
+                Statement *sx =  (*s->statements)[i];
+                if (sx)
+                {
+                    Expression *e = doInline(sx, ids);
+                    result = Expression::combine(result, e);
+                    if (ids->foundReturn)
+                        break;
 
-Expression *ImportStatement::doInline(InlineDoState *ids)
-{
-    return NULL;
+                }
+            }
+        }
+
+        void visit(UnrolledLoopStatement *s)
+        {
+            //printf("UnrolledLoopStatement::doInline() %d\n", s->statements->dim);
+            for (size_t i = 0; i < s->statements->dim; i++)
+            {
+                Statement *sx =  (*s->statements)[i];
+                if (sx)
+                {
+                    Expression *e = doInline(sx, ids);
+                    result = Expression::combine(result, e);
+                    if (ids->foundReturn)
+                        break;
+
+                }
+            }
+        }
+
+        void visit(ScopeStatement *s)
+        {
+            result = s->statement ? doInline(s->statement, ids) : NULL;
+        }
+
+        void visit(IfStatement *s)
+        {
+            assert(!s->arg);
+            Expression *econd = doInline(s->condition, ids);
+            assert(econd);
+            Expression *e1 = s->ifbody ? doInline(s->ifbody, ids) : NULL;
+            bool bodyReturn = ids->foundReturn;
+            ids->foundReturn = false;
+            Expression *e2 = s->elsebody ? doInline(s->elsebody, ids) : NULL;
+            if (e1 && e2)
+            {
+                result = new CondExp(econd->loc, econd, e1, e2);
+                result->type = e1->type;
+                if (result->type->ty == Ttuple)
+                {
+                    e1->type = Type::tvoid;
+                    e2->type = Type::tvoid;
+                    result->type = Type::tvoid;
+                }
+            }
+            else if (e1)
+            {
+                result = new AndAndExp(econd->loc, econd, e1);
+                result->type = Type::tvoid;
+            }
+            else if (e2)
+            {
+                result = new OrOrExp(econd->loc, econd, e2);
+                result->type = Type::tvoid;
+            }
+            else
+            {
+                result = econd;
+            }
+            ids->foundReturn = ids->foundReturn && bodyReturn;
+        }
+
+        void visit(ReturnStatement *s)
+        {
+            //printf("ReturnStatement::doInline() '%s'\n", s->exp ? s->exp->toChars() : "");
+            ids->foundReturn = true;
+            result = s->exp ? doInline(s->exp, ids) : NULL;
+        }
+
+        void visit(ImportStatement *s)
+        {
+        }
+    };
+
+    InlineStatement v(ids);
+    s->accept(&v);
+    return v.result;
 }
 
 /* --------------------------------------------------------------- */
 
-/******************************
- * Perform doInline() on an array of Expressions.
- */
-
-Expressions *arrayExpressiondoInline(Expressions *a, InlineDoState *ids)
-{   Expressions *newa = NULL;
-
-    if (a)
-    {
-        newa = new Expressions();
-        newa->setDim(a->dim);
-
-        for (size_t i = 0; i < a->dim; i++)
-        {   Expression *e = (*a)[i];
-
-            if (e)
-                e = e->doInline(ids);
-            (*newa)[i] = e;
-        }
-    }
-    return newa;
-}
-
-Expression *Expression::doInline(InlineDoState *ids)
+Expression *doInline(Expression *e, InlineDoState *ids)
 {
-    //printf("Expression::doInline(%s): %s\n", Token::toChars(op), toChars());
-    return copy();
-}
-
-Expression *SymOffExp::doInline(InlineDoState *ids)
-{
-    //printf("SymOffExp::doInline(%s)\n", toChars());
-    for (size_t i = 0; i < ids->from.dim; i++)
+    class InlineExpression : public Visitor
     {
-        if (var == ids->from[i])
+    public:
+        InlineDoState *ids;
+        Expression *result;
+
+        InlineExpression(InlineDoState *ids)
+            : ids(ids)
         {
-            SymOffExp *se = (SymOffExp *)copy();
-            se->var = (Declaration *)ids->to[i];
-            return se;
+            result = NULL;
         }
-    }
-    return this;
-}
 
-Expression *VarExp::doInline(InlineDoState *ids)
-{
-    //printf("VarExp::doInline(%s)\n", toChars());
-    for (size_t i = 0; i < ids->from.dim; i++)
-    {
-        if (var == ids->from[i])
+        /******************************
+         * Perform doInline() on an array of Expressions.
+         */
+        Expressions *arrayExpressiondoInline(Expressions *a)
         {
-            VarExp *ve = (VarExp *)copy();
-            ve->var = (Declaration *)ids->to[i];
-            return ve;
-        }
-    }
-    if (ids->fd && var == ids->fd->vthis)
-    {
-        VarExp *ve = new VarExp(loc, ids->vthis);
-        ve->type = type;
-        return ve;
-    }
+            if (!a)
+                return NULL;
 
-    /* Inlining context pointer access for nested referenced variables.
-     * For example:
-     *      auto fun() {
-     *        int i = 40;
-     *        auto foo() {
-     *          int g = 2;
-     *          struct Result {
-     *            auto bar() { return i + g; }
-     *          }
-     *          return Result();
-     *        }
-     *        return foo();
-     *      }
-     *      auto t = fun();
-     * 'i' and 'g' are nested referenced variables in Result.bar(), so:
-     *      auto x = t.bar();
-     * should be inlined to:
-     *      auto x = *(t.vthis.vthis + i->voffset) + *(t.vthis + g->voffset)
-     */
-    VarDeclaration *v = var->isVarDeclaration();
-    if (v && v->nestedrefs.dim && ids->vthis)
-    {
-        Dsymbol *s = ids->fd;
-        FuncDeclaration *fdv = v->toParent()->isFuncDeclaration();
-        assert(fdv);
-        Expression *ve = new VarExp(loc, ids->vthis);
-        ve->type = ids->vthis->type;
-        while (s != fdv)
-        {
-            FuncDeclaration *f = s->isFuncDeclaration();
-            if (AggregateDeclaration *ad = s->isThis())
+            Expressions *newa = new Expressions();
+            newa->setDim(a->dim);
+
+            for (size_t i = 0; i < a->dim; i++)
             {
-                assert(ad->vthis);
-                ve = new DotVarExp(loc, ve, ad->vthis);
-                ve->type = ad->vthis->type;
-                s = ad->toParent2();
+                Expression *e = (*a)[i];
+                if (e)
+                    e = doInline(e, ids);
+                (*newa)[i] = e;
             }
-            else if (f && f->isNested())
+            return newa;
+        }
+
+        void visit(Expression *e)
+        {
+            //printf("Expression::doInline(%s): %s\n", Token::toChars(e->op), e->toChars());
+            result = e->copy();
+        }
+
+        void visit(SymOffExp *e)
+        {
+            //printf("SymOffExp::doInline(%s)\n", e->toChars());
+            for (size_t i = 0; i < ids->from.dim; i++)
             {
-                assert(f->vthis);
-                if (f->hasNestedFrameRefs())
+                if (e->var == ids->from[i])
                 {
-                    ve = new DotVarExp(loc, ve, f->vthis);
-                    ve->type = f->vthis->type;
+                    SymOffExp *se = (SymOffExp *)e->copy();
+                    se->var = (Declaration *)ids->to[i];
+                    result = se;
+                    return;
                 }
-                s = f->toParent2();
             }
-            else
-                assert(0);
-            assert(s);
+            result = e;
         }
-        ve = new DotVarExp(loc, ve, v);
-        ve->type = v->type;
-        //printf("\t==> ve = %s, type = %s\n", ve->toChars(), ve->type->toChars());
-        return ve;
-    }
 
-    return this;
-}
-
-Expression *ThisExp::doInline(InlineDoState *ids)
-{
-    //if (!ids->vthis)
-        //error("no 'this' when inlining %s", ids->parent->toChars());
-    if (!ids->vthis)
-    {
-        return this;
-    }
-
-    VarExp *ve = new VarExp(loc, ids->vthis);
-    ve->type = type;
-    return ve;
-}
-
-Expression *SuperExp::doInline(InlineDoState *ids)
-{
-    assert(ids->vthis);
-
-    VarExp *ve = new VarExp(loc, ids->vthis);
-    ve->type = type;
-    return ve;
-}
-
-Expression *DeclarationExp::doInline(InlineDoState *ids)
-{
-    //printf("DeclarationExp::doInline(%s)\n", toChars());
-    VarDeclaration *vd = declaration->isVarDeclaration();
-    if (vd)
-    {
-#if 0
-        // Need to figure this out before inlining can work for tuples
-        TupleDeclaration *td = vd->toAlias()->isTupleDeclaration();
-        if (td)
+        void visit(VarExp *e)
         {
-            for (size_t i = 0; i < td->objects->dim; i++)
-            {   DsymbolExp *se = (*td->objects)[i];
-                assert(se->op == TOKdsymbol);
-                se->s;
-            }
-            return st->objects->dim;
-        }
-#endif
-        if (vd->isStatic())
-            ;
-        else
-        {
-            VarDeclaration *vto;
-            if (ids->fd && vd == ids->fd->nrvo_var)
+            //printf("VarExp::doInline(%s)\n", e->toChars());
+            for (size_t i = 0; i < ids->from.dim; i++)
             {
-                for (size_t i = 0; i < ids->from.dim; i++)
+                if (e->var == ids->from[i])
                 {
-                    if (vd == ids->from[i])
+                    VarExp *ve = (VarExp *)e->copy();
+                    ve->var = (Declaration *)ids->to[i];
+                    result = ve;
+                    return;
+                }
+            }
+            if (ids->fd && e->var == ids->fd->vthis)
+            {
+                result = new VarExp(e->loc, ids->vthis);
+                result->type = e->type;
+                return;
+            }
+
+            /* Inlining context pointer access for nested referenced variables.
+             * For example:
+             *      auto fun() {
+             *        int i = 40;
+             *        auto foo() {
+             *          int g = 2;
+             *          struct Result {
+             *            auto bar() { return i + g; }
+             *          }
+             *          return Result();
+             *        }
+             *        return foo();
+             *      }
+             *      auto t = fun();
+             * 'i' and 'g' are nested referenced variables in Result.bar(), so:
+             *      auto x = t.bar();
+             * should be inlined to:
+             *      auto x = *(t.vthis.vthis + i->voffset) + *(t.vthis + g->voffset)
+             */
+            VarDeclaration *v = e->var->isVarDeclaration();
+            if (v && v->nestedrefs.dim && ids->vthis)
+            {
+                Dsymbol *s = ids->fd;
+                FuncDeclaration *fdv = v->toParent()->isFuncDeclaration();
+                assert(fdv);
+                result = new VarExp(e->loc, ids->vthis);
+                result->type = ids->vthis->type;
+                while (s != fdv)
+                {
+                    FuncDeclaration *f = s->isFuncDeclaration();
+                    if (AggregateDeclaration *ad = s->isThis())
                     {
-                        vto = (VarDeclaration *)ids->to[i];
-                        Expression *e;
-                        if (vd->init && !vd->init->isVoidInitializer())
+                        assert(ad->vthis);
+                        result = new DotVarExp(e->loc, result, ad->vthis);
+                        result->type = ad->vthis->type;
+                        s = ad->toParent2();
+                    }
+                    else if (f && f->isNested())
+                    {
+                        assert(f->vthis);
+                        if (f->hasNestedFrameRefs())
                         {
-                            e = vd->init->toExpression();
-                            assert(e);
-                            e = e->doInline(ids);
+                            result = new DotVarExp(e->loc, result, f->vthis);
+                            result->type = f->vthis->type;
+                        }
+                        s = f->toParent2();
+                    }
+                    else
+                        assert(0);
+                    assert(s);
+                }
+                result = new DotVarExp(e->loc, result, v);
+                result->type = v->type;
+                //printf("\t==> result = %s, type = %s\n", result->toChars(), result->type->toChars());
+                return;
+            }
+
+            result = e;
+        }
+
+        void visit(ThisExp *e)
+        {
+            //if (!ids->vthis)
+                //e->error("no 'this' when inlining %s", ids->parent->toChars());
+            if (!ids->vthis)
+            {
+                result = e;
+                return;
+            }
+
+            result = new VarExp(e->loc, ids->vthis);
+            result->type = e->type;
+        }
+
+        void visit(SuperExp *e)
+        {
+            assert(ids->vthis);
+
+            result = new VarExp(e->loc, ids->vthis);
+            result->type = e->type;
+        }
+
+        void visit(DeclarationExp *e)
+        {
+            //printf("DeclarationExp::doInline(%s)\n", e->toChars());
+            if (VarDeclaration *vd = e->declaration->isVarDeclaration())
+            {
+        #if 0
+                // Need to figure this out before inlining can work for tuples
+                TupleDeclaration *td = vd->toAlias()->isTupleDeclaration();
+                if (td)
+                {
+                    for (size_t i = 0; i < td->objects->dim; i++)
+                    {
+                        DsymbolExp *se = (*td->objects)[i];
+                        assert(se->op == TOKdsymbol);
+                        se->s;
+                    }
+                    result = st->objects->dim;
+                    return;
+                }
+        #endif
+                if (!vd->isStatic())
+                {
+                    if (ids->fd && vd == ids->fd->nrvo_var)
+                    {
+                        for (size_t i = 0; i < ids->from.dim; i++)
+                        {
+                            if (vd == ids->from[i])
+                            {
+                                VarDeclaration *vto = (VarDeclaration *)ids->to[i];
+                                if (vd->init && !vd->init->isVoidInitializer())
+                                {
+                                    result = vd->init->toExpression();
+                                    assert(result);
+                                    result = doInline(result, ids);
+                                }
+                                else
+                                    result = new IntegerExp(vd->init->loc, 0, Type::tint32);
+                                return;
+                            }
+                        }
+                    }
+                    VarDeclaration *vto = new VarDeclaration(vd->loc, vd->type, vd->ident, vd->init);
+                    memcpy((void *)vto, (void *)vd, sizeof(VarDeclaration));
+                    vto->parent = ids->parent;
+                    vto->csym = NULL;
+                    vto->isym = NULL;
+
+                    ids->from.push(vd);
+                    ids->to.push(vto);
+
+                    if (vd->init)
+                    {
+                        if (vd->init->isVoidInitializer())
+                        {
+                            vto->init = new VoidInitializer(vd->init->loc);
                         }
                         else
-                            e = new IntegerExp(vd->init->loc, 0, Type::tint32);
-                        return e;
+                        {
+                            Expression *e = vd->init->toExpression();
+                            assert(e);
+                            vto->init = new ExpInitializer(e->loc, doInline(e, ids));
+                        }
                     }
+                    DeclarationExp *de = (DeclarationExp *)e->copy();
+                    de->declaration = vto;
+                    result = de;
+                    return;
                 }
             }
-            vto = new VarDeclaration(vd->loc, vd->type, vd->ident, vd->init);
-            memcpy((void *)vto, (void *)vd, sizeof(VarDeclaration));
-            vto->parent = ids->parent;
-            vto->csym = NULL;
-            vto->isym = NULL;
+            /* This needs work, like DeclarationExp::toElem(), if we are
+             * to handle TemplateMixin's. For now, we just don't inline them.
+             */
+            visit((Expression *)e);
+        }
 
-            ids->from.push(vd);
-            ids->to.push(vto);
+        void visit(NewExp *e)
+        {
+            //printf("NewExp::doInline(): %s\n", e->toChars());
+            NewExp *ne = (NewExp *)e->copy();
 
-        L1:
-            if (vd->init)
+            if (e->thisexp)
+                ne->thisexp = doInline(e->thisexp, ids);
+            ne->newargs = arrayExpressiondoInline(e->newargs);
+            ne->arguments = arrayExpressiondoInline(e->arguments);
+            result = ne;
+        }
+
+        void visit(UnaExp *e)
+        {
+            UnaExp *ue = (UnaExp *)e->copy();
+
+            ue->e1 = doInline(e->e1, ids);
+            result = ue;
+        }
+
+        void visit(AssertExp *e)
+        {
+            AssertExp *ae = (AssertExp *)e->copy();
+
+            ae->e1 = doInline(e->e1, ids);
+            if (e->msg)
+                ae->msg = doInline(e->msg, ids);
+            result = ae;
+        }
+
+        void visit(BinExp *e)
+        {
+            BinExp *be = (BinExp *)e->copy();
+
+            be->e1 = doInline(e->e1, ids);
+            be->e2 = doInline(e->e2, ids);
+            result = be;
+        }
+
+        void visit(CallExp *e)
+        {
+            CallExp *ce = (CallExp *)e->copy();
+
+            ce->e1 = doInline(e->e1, ids);
+            ce->arguments = arrayExpressiondoInline(e->arguments);
+            result = ce;
+        }
+
+        void visit(IndexExp *e)
+        {
+            IndexExp *are = (IndexExp *)e->copy();
+
+            are->e1 = doInline(e->e1, ids);
+
+            if (e->lengthVar)
             {
-                if (vd->init->isVoidInitializer())
+                //printf("lengthVar\n");
+                VarDeclaration *vd = e->lengthVar;
+
+                VarDeclaration *vto = new VarDeclaration(vd->loc, vd->type, vd->ident, vd->init);
+                memcpy((void*)vto, (void*)vd, sizeof(VarDeclaration));
+                vto->parent = ids->parent;
+                vto->csym = NULL;
+                vto->isym = NULL;
+
+                ids->from.push(vd);
+                ids->to.push(vto);
+
+                ExpInitializer *ie;
+                ExpInitializer *ieto;
+                if (vd->init && !vd->init->isVoidInitializer())
                 {
-                    vto->init = new VoidInitializer(vd->init->loc);
+                    ie = vd->init->isExpInitializer();
+                    assert(ie);
+                    ieto = new ExpInitializer(ie->loc, doInline(ie->exp, ids));
+                    vto->init = ieto;
                 }
-                else
-                {
-                    Expression *e = vd->init->toExpression();
-                    assert(e);
-                    vto->init = new ExpInitializer(e->loc, e->doInline(ids));
-                }
+
+                are->lengthVar = vto;
             }
-            DeclarationExp *de = (DeclarationExp *)copy();
-            de->declaration = (Dsymbol *) (void *)vto;
-            return de;
+            are->e2 = doInline(e->e2, ids);
+            result = are;
         }
-    }
-    /* This needs work, like DeclarationExp::toElem(), if we are
-     * to handle TemplateMixin's. For now, we just don't inline them.
-     */
-    return Expression::doInline(ids);
-}
 
-Expression *NewExp::doInline(InlineDoState *ids)
-{
-    //printf("NewExp::doInline(): %s\n", toChars());
-    NewExp *ne = (NewExp *)copy();
-
-    if (thisexp)
-        ne->thisexp = thisexp->doInline(ids);
-    ne->newargs = arrayExpressiondoInline(ne->newargs, ids);
-    ne->arguments = arrayExpressiondoInline(ne->arguments, ids);
-    return ne;
-}
-
-Expression *UnaExp::doInline(InlineDoState *ids)
-{
-    UnaExp *ue = (UnaExp *)copy();
-
-    ue->e1 = e1->doInline(ids);
-    return ue;
-}
-
-Expression *AssertExp::doInline(InlineDoState *ids)
-{
-    AssertExp *ae = (AssertExp *)copy();
-
-    ae->e1 = e1->doInline(ids);
-    if (msg)
-        ae->msg = msg->doInline(ids);
-    return ae;
-}
-
-Expression *BinExp::doInline(InlineDoState *ids)
-{
-    BinExp *be = (BinExp *)copy();
-
-    be->e1 = e1->doInline(ids);
-    be->e2 = e2->doInline(ids);
-    return be;
-}
-
-Expression *CallExp::doInline(InlineDoState *ids)
-{
-    CallExp *ce;
-
-    ce = (CallExp *)copy();
-    ce->e1 = e1->doInline(ids);
-    ce->arguments = arrayExpressiondoInline(arguments, ids);
-    return ce;
-}
-
-
-Expression *IndexExp::doInline(InlineDoState *ids)
-{
-    IndexExp *are = (IndexExp *)copy();
-
-    are->e1 = e1->doInline(ids);
-
-    if (lengthVar)
-    {   //printf("lengthVar\n");
-        VarDeclaration *vd = lengthVar;
-        ExpInitializer *ie;
-        ExpInitializer *ieto;
-        VarDeclaration *vto;
-
-        vto = new VarDeclaration(vd->loc, vd->type, vd->ident, vd->init);
-        memcpy((void*)vto, (void*)vd, sizeof(VarDeclaration));
-        vto->parent = ids->parent;
-        vto->csym = NULL;
-        vto->isym = NULL;
-
-        ids->from.push(vd);
-        ids->to.push(vto);
-
-        if (vd->init && !vd->init->isVoidInitializer())
+        void visit(SliceExp *e)
         {
-            ie = vd->init->isExpInitializer();
-            assert(ie);
-            ieto = new ExpInitializer(ie->loc, ie->exp->doInline(ids));
-            vto->init = ieto;
+            SliceExp *are = (SliceExp *)e->copy();
+
+            are->e1 = doInline(e->e1, ids);
+
+            if (e->lengthVar)
+            {
+                //printf("lengthVar\n");
+                VarDeclaration *vd = e->lengthVar;
+
+                VarDeclaration *vto = new VarDeclaration(vd->loc, vd->type, vd->ident, vd->init);
+                memcpy((void*)vto, (void*)vd, sizeof(VarDeclaration));
+                vto->parent = ids->parent;
+                vto->csym = NULL;
+                vto->isym = NULL;
+
+                ids->from.push(vd);
+                ids->to.push(vto);
+
+                ExpInitializer *ie;
+                ExpInitializer *ieto;
+                if (vd->init && !vd->init->isVoidInitializer())
+                {
+                    ie = vd->init->isExpInitializer();
+                    assert(ie);
+                    ieto = new ExpInitializer(ie->loc, doInline(ie->exp, ids));
+                    vto->init = ieto;
+                }
+
+                are->lengthVar = vto;
+            }
+            if (e->lwr)
+                are->lwr = doInline(e->lwr, ids);
+            if (e->upr)
+                are->upr = doInline(e->upr, ids);
+            result = are;
         }
 
-        are->lengthVar = (VarDeclaration *) (void *)vto;
-    }
-    are->e2 = e2->doInline(ids);
-    return are;
-}
-
-
-Expression *SliceExp::doInline(InlineDoState *ids)
-{
-    SliceExp *are = (SliceExp *)copy();
-
-    are->e1 = e1->doInline(ids);
-
-    if (lengthVar)
-    {   //printf("lengthVar\n");
-        VarDeclaration *vd = lengthVar;
-        ExpInitializer *ie;
-        ExpInitializer *ieto;
-        VarDeclaration *vto;
-
-        vto = new VarDeclaration(vd->loc, vd->type, vd->ident, vd->init);
-        memcpy((void*)vto, (void*)vd, sizeof(VarDeclaration));
-        vto->parent = ids->parent;
-        vto->csym = NULL;
-        vto->isym = NULL;
-
-        ids->from.push(vd);
-        ids->to.push(vto);
-
-        if (vd->init && !vd->init->isVoidInitializer())
+        void visit(TupleExp *e)
         {
-            ie = vd->init->isExpInitializer();
-            assert(ie);
-            ieto = new ExpInitializer(ie->loc, ie->exp->doInline(ids));
-            vto->init = ieto;
+            TupleExp *ce = (TupleExp *)e->copy();
+
+            if (e->e0)
+                ce->e0 = doInline(e->e0, ids);
+            ce->exps = arrayExpressiondoInline(e->exps);
+            result = ce;
         }
 
-        are->lengthVar = (VarDeclaration *) (void *)vto;
-    }
-    if (lwr)
-        are->lwr = lwr->doInline(ids);
-    if (upr)
-        are->upr = upr->doInline(ids);
-    return are;
-}
+        void visit(ArrayLiteralExp *e)
+        {
+            ArrayLiteralExp *ce = (ArrayLiteralExp *)e->copy();
 
+            ce->elements = arrayExpressiondoInline(e->elements);
+            result = ce;
+        }
 
-Expression *TupleExp::doInline(InlineDoState *ids)
-{
-    TupleExp *ce;
+        void visit(AssocArrayLiteralExp *e)
+        {
+            AssocArrayLiteralExp *ce = (AssocArrayLiteralExp *)e->copy();
 
-    ce = (TupleExp *)copy();
-    if (e0)
-        ce->e0 = e0->doInline(ids);
-    ce->exps = arrayExpressiondoInline(exps, ids);
-    return ce;
-}
+            ce->keys = arrayExpressiondoInline(e->keys);
+            ce->values = arrayExpressiondoInline(e->values);
+            result = ce;
+        }
 
+        void visit(StructLiteralExp *e)
+        {
+            if (e->inlinecopy)
+            {
+                result = e->inlinecopy;
+                return;
+            }
+            StructLiteralExp *ce = (StructLiteralExp *)e->copy();
 
-Expression *ArrayLiteralExp::doInline(InlineDoState *ids)
-{
-    ArrayLiteralExp *ce;
+            e->inlinecopy = ce;
+            ce->elements = arrayExpressiondoInline(e->elements);
+            e->inlinecopy = NULL;
+            result = ce;
+        }
 
-    ce = (ArrayLiteralExp *)copy();
-    ce->elements = arrayExpressiondoInline(elements, ids);
-    return ce;
-}
+        void visit(ArrayExp *e)
+        {
+            ArrayExp *ce = (ArrayExp *)e->copy();
 
+            ce->e1 = doInline(e->e1, ids);
+            ce->arguments = arrayExpressiondoInline(e->arguments);
+            result = ce;
+        }
 
-Expression *AssocArrayLiteralExp::doInline(InlineDoState *ids)
-{
-    AssocArrayLiteralExp *ce;
+        void visit(CondExp *e)
+        {
+            CondExp *ce = (CondExp *)e->copy();
 
-    ce = (AssocArrayLiteralExp *)copy();
-    ce->keys = arrayExpressiondoInline(keys, ids);
-    ce->values = arrayExpressiondoInline(values, ids);
-    return ce;
-}
+            ce->econd = doInline(e->econd, ids);
+            ce->e1 = doInline(e->e1, ids);
+            ce->e2 = doInline(e->e2, ids);
+            result = ce;
+        }
+    };
 
-
-Expression *StructLiteralExp::doInline(InlineDoState *ids)
-{
-    if(inlinecopy) return inlinecopy;
-    StructLiteralExp *ce;
-    ce = (StructLiteralExp *)copy();
-    inlinecopy = ce;
-    ce->elements = arrayExpressiondoInline(elements, ids);
-    inlinecopy = NULL;
-    return ce;
-}
-
-
-Expression *ArrayExp::doInline(InlineDoState *ids)
-{
-    ArrayExp *ce;
-
-    ce = (ArrayExp *)copy();
-    ce->e1 = e1->doInline(ids);
-    ce->arguments = arrayExpressiondoInline(arguments, ids);
-    return ce;
-}
-
-
-Expression *CondExp::doInline(InlineDoState *ids)
-{
-    CondExp *ce = (CondExp *)copy();
-
-    ce->econd = econd->doInline(ids);
-    ce->e1 = e1->doInline(ids);
-    ce->e2 = e2->doInline(ids);
-    return ce;
+    InlineExpression v(ids);
+    e->accept(&v);
+    return v.result;
 }
 
 /* ========== Walk the parse trees, and inline expand functions ============= */
@@ -1914,7 +1926,7 @@ static Expression *expandInline(FuncDeclaration *fd, FuncDeclaration *parent,
     else
     {
         fd->inlineNest++;
-        Expression *eb = fd->fbody->doInline(&ids);
+        Expression *eb = doInline(fd->fbody, &ids);
         e = Expression::combine(e, eb);
         fd->inlineNest--;
         //eb->type->print();
@@ -2011,6 +2023,6 @@ Expression *inlineCopy(Expression *e, Scope *sc)
     InlineDoState ids;
     memset(&ids, 0, sizeof(ids));
     ids.parent = sc->parent;
-    return e->doInline(&ids);
+    return doInline(e, &ids);
 }
 

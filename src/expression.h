@@ -32,7 +32,6 @@ class Dsymbol;
 class Import;
 class Module;
 class ScopeDsymbol;
-struct InlineDoState;
 class Expression;
 class Declaration;
 class AggregateDeclaration;
@@ -218,8 +217,6 @@ public:
     int isConst() { return ::isConst(this); }
     virtual int isBool(int result);
 
-    virtual Expression *doInline(InlineDoState *ids);
-
     // Back end
     elem *toElem(IRState *irs) { return ::toElem(this, irs); }
     dt_t **toDt(dt_t **pdt) { return ::Expression_toDt(this, pdt); }
@@ -341,8 +338,6 @@ public:
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
 
-    Expression *doInline(InlineDoState *ids);
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -352,7 +347,6 @@ public:
     SuperExp(Loc loc);
     Expression *semantic(Scope *sc);
 
-    Expression *doInline(InlineDoState *ids);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -423,7 +417,6 @@ public:
     Expression *semantic(Scope *sc);
     void checkEscape();
 
-    Expression *doInline(InlineDoState *ids);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -444,7 +437,6 @@ public:
     void toMangleBuffer(OutBuffer *buf);
     Expression *inferType(Type *t, int flag = 0, Scope *sc = NULL, TemplateParameters *tparams = NULL);
 
-    Expression *doInline(InlineDoState *ids);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -463,7 +455,6 @@ public:
     void toMangleBuffer(OutBuffer *buf);
     Expression *inferType(Type *t, int flag = 0, Scope *sc = NULL, TemplateParameters *tparams = NULL);
 
-    Expression *doInline(InlineDoState *ids);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -520,7 +511,6 @@ public:
     Expression *addDtorHook(Scope *sc);
     Symbol *toSymbol();
 
-    Expression *doInline(InlineDoState *ids);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -580,7 +570,6 @@ public:
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
 
-    Expression *doInline(InlineDoState *ids);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -623,7 +612,6 @@ public:
     Expression *semantic(Scope *sc);
     void checkEscape();
     int isBool(int result);
-    Expression *doInline(InlineDoState *ids);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -645,7 +633,6 @@ public:
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
 
-    Expression *doInline(InlineDoState *ids);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -679,7 +666,6 @@ public:
     Expression *inferType(Type *t, int flag = 0, Scope *sc = NULL, TemplateParameters *tparams = NULL);
     char *toChars();
 
-    //Expression *doInline(InlineDoState *ids);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -694,7 +680,6 @@ public:
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
 
-    Expression *doInline(InlineDoState *ids);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -766,8 +751,6 @@ public:
     Expression *semantic(Scope *sc);
     Expression *resolveLoc(Loc loc, Scope *sc);
 
-    Expression *doInline(InlineDoState *ids);
-
     virtual Expression *op_overload(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -793,8 +776,6 @@ public:
     Expression *typeCombine(Scope *sc);
     int isunsigned();
     Expression *incompatibleTypes();
-
-    Expression *doInline(InlineDoState *ids);
 
     Expression *op_overload(Scope *sc);
     Expression *compare_overload(Scope *sc, Identifier *id);
@@ -847,8 +828,6 @@ public:
     AssertExp(Loc loc, Expression *e, Expression *msg = NULL);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
-
-    Expression *doInline(InlineDoState *ids);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -946,7 +925,6 @@ public:
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *addDtorHook(Scope *sc);
 
-    Expression *doInline(InlineDoState *ids);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -1075,7 +1053,6 @@ public:
     int isBool(int result);
     Type *toStaticArrayType();
 
-    Expression *doInline(InlineDoState *ids);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -1107,7 +1084,6 @@ public:
     // For operator overloading
     Expression *op_overload(Scope *sc);
 
-    Expression *doInline(InlineDoState *ids);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -1151,7 +1127,6 @@ public:
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
-    Expression *doInline(InlineDoState *ids);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1493,8 +1468,6 @@ public:
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     Expression *checkToBoolean(Scope *sc);
     Expression *inferType(Type *t, int flag = 0, Scope *sc = NULL, TemplateParameters *tparams = NULL);
-
-    Expression *doInline(InlineDoState *ids);
 
     void accept(Visitor *v) { v->visit(this); }
 };

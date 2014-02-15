@@ -34,7 +34,6 @@ class VarDeclaration;
 class Condition;
 class Module;
 struct Token;
-struct InlineDoState;
 class ErrorStatement;
 class ReturnStatement;
 class CompoundStatement;
@@ -113,8 +112,6 @@ public:
     virtual Expression *interpret(InterState *istate);
     virtual Statement *last();
 
-    virtual Expression *doInline(InlineDoState *ids);
-
     // Avoid dynamic_cast
     virtual ErrorStatement *isErrorStatement() { return NULL; }
     virtual ScopeStatement *isScopeStatement() { return NULL; }
@@ -168,8 +165,6 @@ public:
     int blockExit(bool mustNotThrow);
     Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
 
-    Expression *doInline(InlineDoState *ids);
-
     ExpStatement *isExpStatement() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -219,8 +214,6 @@ public:
     Expression *interpret(InterState *istate);
     Statement *last();
 
-    Expression *doInline(InlineDoState *ids);
-
     CompoundStatement *isCompoundStatement() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -249,8 +242,6 @@ public:
     int blockExit(bool mustNotThrow);
     Expression *interpret(InterState *istate);
 
-    Expression *doInline(InlineDoState *ids);
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -268,8 +259,6 @@ public:
     bool hasContinue();
     int blockExit(bool mustNotThrow);
     Expression *interpret(InterState *istate);
-
-    Expression *doInline(InlineDoState *ids);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -403,8 +392,6 @@ public:
     Expression *interpret(InterState *istate);
     int blockExit(bool mustNotThrow);
     IfStatement *isIfStatement() { return this; }
-
-    Expression *doInline(InlineDoState *ids);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -579,8 +566,6 @@ public:
     Statement *semantic(Scope *sc);
     int blockExit(bool mustNotThrow);
     Expression *interpret(InterState *istate);
-
-    Expression *doInline(InlineDoState *ids);
 
     ReturnStatement *isReturnStatement() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -816,8 +801,6 @@ public:
     int blockExit(bool mustNotThrow);
     Expression *interpret(InterState *istate);
 
-    //Expression *doInline(InlineDoState *ids);
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -831,8 +814,6 @@ public:
     Statement *semantic(Scope *sc);
     int blockExit(bool mustNotThrow);
     Expression *interpret(InterState *istate);
-
-    Expression *doInline(InlineDoState *ids);
 
     void accept(Visitor *v) { v->visit(this); }
 };
