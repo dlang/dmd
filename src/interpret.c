@@ -1038,1029 +1038,6 @@ Expression *interpret(FuncDeclaration *fd, InterState *istate, Expressions *argu
     return e;
 }
 
-/******************************** Statement ***************************/
-
-/***********************************
- * Interpret the statement.
- * Returns:
- *      NULL    continue to next statement
- *      EXP_CANT_INTERPRET      cannot interpret statement at compile time
- *      !NULL   expression from return statement, or thrown exception
- */
-
-Expression *Statement::interpret(InterState *istate)
-{
-#if LOG
-    printf("%s Statement::interpret()\n", loc.toChars());
-#endif
-    if (istate->start)
-    {   if (istate->start != this)
-            return NULL;
-        istate->start = NULL;
-    }
-
-    error("Statement %s cannot be interpreted at compile time", this->toChars());
-    return EXP_CANT_INTERPRET;
-}
-
-Expression *ExpStatement::interpret(InterState *istate)
-{
-#if LOG
-    printf("%s ExpStatement::interpret(%s)\n", loc.toChars(), exp ? exp->toChars() : "");
-#endif
-    if (istate->start)
-    {   if (istate->start != this)
-            return NULL;
-        istate->start = NULL;
-    }
-
-    if (exp)
-    {
-        Expression *e = exp->interpret(istate, ctfeNeedNothing);
-        if (e == EXP_CANT_INTERPRET)
-        {
-            //printf("-ExpStatement::interpret(): %p\n", e);
-            return EXP_CANT_INTERPRET;
-        }
-        if (e && e!= EXP_VOID_INTERPRET && e->op == TOKthrownexception)
-            return e;
-    }
-    return NULL;
-}
-
-Expression *CompoundStatement::interpret(InterState *istate)
-{   Expression *e = NULL;
-
-#if LOG
-    printf("%s CompoundStatement::interpret()\n", loc.toChars());
-#endif
-    if (istate->start == this)
-        istate->start = NULL;
-    if (statements)
-    {
-        for (size_t i = 0; i < statements->dim; i++)
-        {   Statement *s = (*statements)[i];
-
-            if (s)
-            {
-                e = s->interpret(istate);
-                if (e)
-                    break;
-            }
-        }
-    }
-#if LOG
-    printf("%s -CompoundStatement::interpret() %p\n", loc.toChars(), e);
-#endif
-    return e;
-}
-
-Expression *UnrolledLoopStatement::interpret(InterState *istate)
-{   Expression *e = NULL;
-
-#if LOG
-    printf("%s UnrolledLoopStatement::interpret()\n", loc.toChars());
-#endif
-    if (istate->start == this)
-        istate->start = NULL;
-    if (statements)
-    {
-        for (size_t i = 0; i < statements->dim; i++)
-        {   Statement *s = (*statements)[i];
-
-            e = s->interpret(istate);
-            if (e == EXP_CANT_INTERPRET)
-                break;
-            if (e == EXP_CONTINUE_INTERPRET)
-            {
-                if (istate->gotoTarget && istate->gotoTarget != this)
-                    break; // continue at higher level
-                istate->gotoTarget = NULL;
-                e = NULL;
-                continue;
-            }
-            if (e == EXP_BREAK_INTERPRET)
-            {
-                if (!istate->gotoTarget || istate->gotoTarget == this)
-                {
-                    istate->gotoTarget = NULL;
-                    e = NULL;
-                } // else break at a higher level
-                break;
-            }
-            if (e)
-                break;
-        }
-    }
-    return e;
-}
-
-Expression *IfStatement::interpret(InterState *istate)
-{
-#if LOG
-    printf("%s IfStatement::interpret(%s)\n", loc.toChars(), condition->toChars());
-#endif
-
-    if (istate->start == this)
-        istate->start = NULL;
-    if (istate->start)
-    {
-        Expression *e = NULL;
-        if (ifbody)
-            e = ifbody->interpret(istate);
-        if (exceptionOrCantInterpret(e))
-            return e;
-        if (istate->start && elsebody)
-            e = elsebody->interpret(istate);
-        return e;
-    }
-
-    Expression *e = condition->interpret(istate);
-    assert(e);
-    //if (e == EXP_CANT_INTERPRET) printf("cannot interpret\n");
-    if (e != EXP_CANT_INTERPRET && (e && e->op != TOKthrownexception))
-    {
-        if (isTrueBool(e))
-            e = ifbody ? ifbody->interpret(istate) : NULL;
-        else if (e->isBool(false))
-            e = elsebody ? elsebody->interpret(istate) : NULL;
-        else
-        {
-            e = EXP_CANT_INTERPRET;
-        }
-    }
-    return e;
-}
-
-Expression *ScopeStatement::interpret(InterState *istate)
-{
-#if LOG
-    printf("%s ScopeStatement::interpret()\n", loc.toChars());
-#endif
-    if (istate->start == this)
-        istate->start = NULL;
-    return statement ? statement->interpret(istate) : NULL;
-}
-
-
-/**
-  Given an expression e which is about to be returned from the current
-  function, generate an error if it contains pointers to local variables.
-  Return true if it is safe to return, false if an error was generated.
-
-  Only checks expressions passed by value (pointers to local variables
-  may already be stored in members of classes, arrays, or AAs which
-  were passed as mutable function parameters).
-*/
-bool stopPointersEscapingFromArray(Loc loc, Expressions *elems);
-
-bool stopPointersEscaping(Loc loc, Expression *e)
-{
-    if (!e->type->hasPointers())
-        return true;
-    if (isPointer(e->type))
-    {
-        Expression *x = e;
-        if (e->op == TOKaddress)
-            x = ((AddrExp *)e)->e1;
-        VarDeclaration *v;
-        while (x->op == TOKvar &&
-            (v = ((VarExp *)x)->var->isVarDeclaration()) != NULL)
-        {
-            if (v->storage_class & STCref)
-            {
-                x = getValue(v);
-                if (e->op == TOKaddress)
-                    ((AddrExp *)e)->e1 = x;
-                continue;
-            }
-            if (ctfeStack.isInCurrentFrame(v))
-            {
-                error(loc, "returning a pointer to a local stack variable");
-                return false;
-            }
-            else
-                break;
-        }
-        // TODO: If it is a TOKdotvar or TOKindex, we should check that it is not
-        // pointing to a local struct or static array.
-    }
-    if (e->op == TOKstructliteral)
-    {
-        StructLiteralExp *se = (StructLiteralExp *)e;
-        return stopPointersEscapingFromArray(loc, se->elements);
-    }
-    if (e->op == TOKarrayliteral)
-    {
-        return stopPointersEscapingFromArray(loc, ((ArrayLiteralExp *)e)->elements);
-    }
-    if (e->op == TOKassocarrayliteral)
-    {
-        AssocArrayLiteralExp *aae = (AssocArrayLiteralExp *)e;
-        if (!stopPointersEscapingFromArray(loc, aae->keys))
-            return false;
-        return stopPointersEscapingFromArray(loc, aae->values);
-    }
-    return true;
-}
-
-// Check all members of an array for escaping local variables. Return false if error
-bool stopPointersEscapingFromArray(Loc loc, Expressions *elems)
-{
-    for (size_t i = 0; i < elems->dim; i++)
-    {
-        Expression *m = (*elems)[i];
-        if (!m)
-            continue;
-        if (m)
-            if ( !stopPointersEscaping(loc, m) )
-                return false;
-    }
-    return true;
-}
-
-
-bool scrubArray(Loc loc, Expressions *elems, bool structlit = false);
-
-/* All results destined for use outside of CTFE need to have their CTFE-specific
- * features removed.
- * In particular, all slices must be resolved.
- */
-Expression *scrubReturnValue(Loc loc, Expression *e)
-{
-    if (e->op == TOKclassreference)
-    {
-        StructLiteralExp *se = ((ClassReferenceExp*)e)->value;
-        se->ownedByCtfe = false;
-        if (!(se->stageflags & stageScrub))
-        {
-            int old = se->stageflags;
-            se->stageflags |= stageScrub;
-            if (!scrubArray(loc, se->elements, true))
-                return EXP_CANT_INTERPRET;
-            se->stageflags = old;
-        }
-    }
-    if (e->op == TOKvoid)
-    {
-        error(loc, "uninitialized variable '%s' cannot be returned from CTFE", ((VoidInitExp *)e)->var->toChars());
-        e = new ErrorExp();
-    }
-    if (e->op == TOKslice)
-    {
-        e = resolveSlice(e);
-    }
-    if (e->op == TOKstructliteral)
-    {
-        StructLiteralExp *se = (StructLiteralExp *)e;
-        se->ownedByCtfe = false;
-        if (!(se->stageflags & stageScrub))
-        {
-            int old = se->stageflags;
-            se->stageflags |= stageScrub;
-            if (!scrubArray(loc, se->elements, true))
-                return EXP_CANT_INTERPRET;
-            se->stageflags = old;
-        }
-    }
-    if (e->op == TOKstring)
-    {
-        ((StringExp *)e)->ownedByCtfe = false;
-    }
-    if (e->op == TOKarrayliteral)
-    {
-        ((ArrayLiteralExp *)e)->ownedByCtfe = false;
-        if (!scrubArray(loc, ((ArrayLiteralExp *)e)->elements))
-            return EXP_CANT_INTERPRET;
-    }
-    if (e->op == TOKassocarrayliteral)
-    {
-        AssocArrayLiteralExp *aae = (AssocArrayLiteralExp *)e;
-        aae->ownedByCtfe = false;
-        if (!scrubArray(loc, aae->keys))
-            return EXP_CANT_INTERPRET;
-        if (!scrubArray(loc, aae->values))
-            return EXP_CANT_INTERPRET;
-        aae->type = toBuiltinAAType(aae->type);
-    }
-    return e;
-}
-
-// Return true if every element is either void,
-// or is an array literal or struct literal of void elements.
-bool isEntirelyVoid(Expressions *elems)
-{
-    for (size_t i = 0; i < elems->dim; i++)
-    {
-        Expression *m = (*elems)[i];
-        // It can be NULL for performance reasons,
-        // see StructLiteralExp::interpret().
-        if (!m)
-            continue;
-
-        if (!(m->op == TOKvoid) &&
-            !(m->op == TOKarrayliteral && isEntirelyVoid(((ArrayLiteralExp *)m)->elements)) &&
-            !(m->op == TOKstructliteral && isEntirelyVoid(((StructLiteralExp *)m)->elements)))
-        {
-            return false;
-        }
-    }
-    return true;
-}
-
-// Scrub all members of an array. Return false if error
-bool scrubArray(Loc loc, Expressions *elems, bool structlit)
-{
-    for (size_t i = 0; i < elems->dim; i++)
-    {
-        Expression *m = (*elems)[i];
-        // It can be NULL for performance reasons,
-        // see StructLiteralExp::interpret().
-        if (!m)
-            continue;
-
-        // A struct .init may contain void members.
-        // Static array members are a weird special case (bug 10994).
-        if (structlit &&
-            ((m->op == TOKvoid) ||
-             (m->op == TOKarrayliteral && m->type->ty == Tsarray && isEntirelyVoid(((ArrayLiteralExp *)m)->elements)) ||
-             (m->op == TOKstructliteral && isEntirelyVoid(((StructLiteralExp *)m)->elements)))
-           )
-        {
-                m = NULL;
-        }
-        else
-        {
-            m = scrubReturnValue(loc, m);
-            if (m == EXP_CANT_INTERPRET)
-                return false;
-        }
-        (*elems)[i] = m;
-    }
-    return true;
-}
-
-
-Expression *ReturnStatement::interpret(InterState *istate)
-{
-#if LOG
-    printf("%s ReturnStatement::interpret(%s)\n", loc.toChars(), exp ? exp->toChars() : "");
-#endif
-    if (istate->start)
-    {   if (istate->start != this)
-            return NULL;
-        istate->start = NULL;
-    }
-
-    if (!exp)
-        return EXP_VOID_INTERPRET;
-    assert(istate && istate->fd && istate->fd->type);
-
-    /* If the function returns a ref AND it's been called from an assignment,
-     * we need to return an lvalue. Otherwise, just do an (rvalue) interpret.
-     */
-    if (istate->fd->type && istate->fd->type->ty == Tfunction)
-    {
-        TypeFunction *tf = (TypeFunction *)istate->fd->type;
-        if (tf->isref && istate->caller && istate->caller->awaitingLvalueReturn)
-        {   // We need to return an lvalue
-            Expression *e = exp->interpret(istate, ctfeNeedLvalue);
-            if (e == EXP_CANT_INTERPRET)
-                error("ref return %s is not yet supported in CTFE", exp->toChars());
-            return e;
-        }
-        if (tf->next && (tf->next->ty == Tdelegate) && istate->fd->closureVars.dim > 0)
-        {
-            // To support this, we need to copy all the closure vars
-            // into the delegate literal.
-            error("closures are not yet supported in CTFE");
-            return EXP_CANT_INTERPRET;
-        }
-    }
-
-    // We need to treat pointers specially, because TOKsymoff can be used to
-    // return a value OR a pointer
-    Expression *e;
-    if ( isPointer(exp->type) )
-    {   e = exp->interpret(istate, ctfeNeedLvalue);
-        if (exceptionOrCantInterpret(e))
-            return e;
-    }
-    else
-    {
-        e = exp->interpret(istate);
-        if (exceptionOrCantInterpret(e))
-            return e;
-    }
-
-    // Disallow returning pointers to stack-allocated variables (bug 7876)
-
-    if (!stopPointersEscaping(loc, e))
-        return EXP_CANT_INTERPRET;
-
-    if (needToCopyLiteral(e))
-        e = copyLiteral(e);
-#if LOGASSIGN
-    printf("RETURN %s\n", loc.toChars());
-    showCtfeExpr(e);
-#endif
-    return e;
-}
-
-Expression *BreakStatement::interpret(InterState *istate)
-{
-#if LOG
-    printf("%s BreakStatement::interpret()\n", loc.toChars());
-#endif
-    if (istate->start)
-    {   if (istate->start != this)
-            return NULL;
-        istate->start = NULL;
-    }
-
-    if (ident)
-    {
-        LabelDsymbol *label = istate->fd->searchLabel(ident);
-        assert(label && label->statement);
-        LabelStatement *ls = label->statement;
-        Statement *s;
-        if (ls->gotoTarget)
-            s = ls->gotoTarget;
-        else
-        {
-            s = ls->statement;
-            if (s->isScopeStatement())
-                s = s->isScopeStatement()->statement;
-        }
-        istate->gotoTarget = s;
-        return EXP_BREAK_INTERPRET;
-    }
-    else
-    {
-        istate->gotoTarget = NULL;
-        return EXP_BREAK_INTERPRET;
-    }
-}
-
-Expression *ContinueStatement::interpret(InterState *istate)
-{
-#if LOG
-    printf("%s ContinueStatement::interpret()\n", loc.toChars());
-#endif
-    if (istate->start)
-    {   if (istate->start != this)
-            return NULL;
-        istate->start = NULL;
-    }
-
-    if (ident)
-    {
-        LabelDsymbol *label = istate->fd->searchLabel(ident);
-        assert(label && label->statement);
-        LabelStatement *ls = label->statement;
-        Statement *s;
-        if (ls->gotoTarget)
-            s = ls->gotoTarget;
-        else
-        {
-            s = ls->statement;
-            if (s->isScopeStatement())
-                s = s->isScopeStatement()->statement;
-        }
-        istate->gotoTarget = s;
-        return EXP_CONTINUE_INTERPRET;
-    }
-    else
-        return EXP_CONTINUE_INTERPRET;
-}
-
-Expression *WhileStatement::interpret(InterState *istate)
-{
-#if LOG
-    printf("WhileStatement::interpret()\n");
-#endif
-    assert(0);                  // rewritten to ForStatement
-    return NULL;
-}
-
-Expression *DoStatement::interpret(InterState *istate)
-{
-#if LOG
-    printf("%s DoStatement::interpret()\n", loc.toChars());
-#endif
-    if (istate->start == this)
-        istate->start = NULL;
-    Expression *e;
-
-    while (1)
-    {
-        bool wasGoto = !!istate->start;
-        e = body ? body->interpret(istate) : NULL;
-        if (e == EXP_CANT_INTERPRET)
-            break;
-        if (wasGoto && istate->start)
-            return NULL;
-        if (e == EXP_BREAK_INTERPRET)
-        {
-            if (!istate->gotoTarget || istate->gotoTarget == this)
-            {
-                istate->gotoTarget = NULL;
-                e = NULL;
-            } // else break at a higher level
-            break;
-        }
-        if (e && e != EXP_CONTINUE_INTERPRET)
-            break;
-        if (istate->gotoTarget && istate->gotoTarget != this)
-            break; // continue at a higher level
-
-        istate->gotoTarget = NULL;
-        e = condition->interpret(istate);
-        if (exceptionOrCantInterpret(e))
-            break;
-        if (!e->isConst())
-        {   e = EXP_CANT_INTERPRET;
-            break;
-        }
-        if (isTrueBool(e))
-        {
-        }
-        else if (e->isBool(false))
-        {   e = NULL;
-            break;
-        }
-        else
-            assert(0);
-    }
-    return e;
-}
-
-Expression *ForStatement::interpret(InterState *istate)
-{
-#if LOG
-    printf("%s ForStatement::interpret()\n", loc.toChars());
-#endif
-    if (istate->start == this)
-        istate->start = NULL;
-    Expression *e;
-
-    if (init)
-    {
-        e = init->interpret(istate);
-        if (exceptionOrCantInterpret(e))
-            return e;
-        assert(!e);
-    }
-    while (1)
-    {
-        if (condition && !istate->start)
-        {
-            e = condition->interpret(istate);
-            if (exceptionOrCantInterpret(e))
-                break;
-            if (!e->isConst())
-            {   e = EXP_CANT_INTERPRET;
-                break;
-            }
-            if (e->isBool(false))
-            {   e = NULL;
-                break;
-            }
-            assert( isTrueBool(e) );
-        }
-
-        bool wasGoto = !!istate->start;
-        e = body ? body->interpret(istate) : NULL;
-        if (e == EXP_CANT_INTERPRET)
-            break;
-        if (wasGoto && istate->start)
-            return NULL;
-
-        if (e == EXP_BREAK_INTERPRET)
-        {
-            if (!istate->gotoTarget || istate->gotoTarget == this)
-            {
-                istate->gotoTarget = NULL;
-                e = NULL;
-            } // else break at a higher level
-            break;
-        }
-        if (e && e != EXP_CONTINUE_INTERPRET)
-            break;
-
-        if (istate->gotoTarget && istate->gotoTarget != this)
-            break; // continue at a higher level
-        istate->gotoTarget = NULL;
-
-        if (increment)
-        {
-            e = increment->interpret(istate);
-            if (e == EXP_CANT_INTERPRET)
-                break;
-        }
-    }
-    return e;
-}
-
-Expression *ForeachStatement::interpret(InterState *istate)
-{
-    assert(0);                  // rewritten to ForStatement
-    return NULL;
-}
-
-Expression *ForeachRangeStatement::interpret(InterState *istate)
-{
-    assert(0);                  // rewritten to ForStatement
-    return NULL;
-}
-
-Expression *SwitchStatement::interpret(InterState *istate)
-{
-#if LOG
-    printf("%s SwitchStatement::interpret()\n", loc.toChars());
-#endif
-    if (istate->start == this)
-        istate->start = NULL;
-    Expression *e = NULL;
-
-    if (istate->start)
-    {
-        e = body ? body->interpret(istate) : NULL;
-        if (istate->start)
-            return NULL;
-        if (e == EXP_CANT_INTERPRET)
-            return e;
-        if (e == EXP_BREAK_INTERPRET)
-        {
-            if (!istate->gotoTarget || istate->gotoTarget == this)
-            {
-                istate->gotoTarget = NULL;
-                return NULL;
-            } // else break at a higher level
-        }
-        return e;
-    }
-
-
-    Expression *econdition = condition->interpret(istate);
-    if (exceptionOrCantInterpret(econdition))
-        return econdition;
-
-    Statement *s = NULL;
-    if (cases)
-    {
-        for (size_t i = 0; i < cases->dim; i++)
-        {
-            CaseStatement *cs = (*cases)[i];
-            Expression * caseExp = cs->exp->interpret(istate);
-            if (exceptionOrCantInterpret(caseExp))
-                return caseExp;
-            int eq = ctfeEqual(caseExp->loc, TOKequal, econdition, caseExp);
-            if (eq)
-            {   s = cs;
-                break;
-            }
-        }
-    }
-    if (!s)
-    {   if (hasNoDefault)
-            error("no default or case for %s in switch statement", econdition->toChars());
-        s = sdefault;
-    }
-
-    assert(s);
-    istate->start = s;
-    e = body ? body->interpret(istate) : NULL;
-    assert(!istate->start);
-    if (e == EXP_BREAK_INTERPRET)
-    {
-        if (!istate->gotoTarget || istate->gotoTarget == this)
-        {
-            istate->gotoTarget = NULL;
-            e = NULL;
-        } // else break at a higher level
-    }
-    return e;
-}
-
-Expression *CaseStatement::interpret(InterState *istate)
-{
-#if LOG
-    printf("%s CaseStatement::interpret(%s) this = %p\n", loc.toChars(), exp->toChars(), this);
-#endif
-    if (istate->start == this)
-        istate->start = NULL;
-    if (statement)
-        return statement->interpret(istate);
-    else
-        return NULL;
-}
-
-Expression *DefaultStatement::interpret(InterState *istate)
-{
-#if LOG
-    printf("%s DefaultStatement::interpret()\n", loc.toChars());
-#endif
-    if (istate->start == this)
-        istate->start = NULL;
-    if (statement)
-        return statement->interpret(istate);
-    else
-        return NULL;
-}
-
-Expression *GotoStatement::interpret(InterState *istate)
-{
-#if LOG
-    printf("%s GotoStatement::interpret()\n", loc.toChars());
-#endif
-    if (istate->start)
-    {   if (istate->start != this)
-            return NULL;
-        istate->start = NULL;
-    }
-
-    assert(label && label->statement);
-    istate->gotoTarget = label->statement;
-    return EXP_GOTO_INTERPRET;
-}
-
-Expression *GotoCaseStatement::interpret(InterState *istate)
-{
-#if LOG
-    printf("%s GotoCaseStatement::interpret()\n", loc.toChars());
-#endif
-    if (istate->start)
-    {   if (istate->start != this)
-            return NULL;
-        istate->start = NULL;
-    }
-
-    assert(cs);
-    istate->gotoTarget = cs;
-    return EXP_GOTO_INTERPRET;
-}
-
-Expression *GotoDefaultStatement::interpret(InterState *istate)
-{
-#if LOG
-    printf("%s GotoDefaultStatement::interpret()\n", loc.toChars());
-#endif
-    if (istate->start)
-    {   if (istate->start != this)
-            return NULL;
-        istate->start = NULL;
-    }
-
-    assert(sw && sw->sdefault);
-    istate->gotoTarget = sw->sdefault;
-    return EXP_GOTO_INTERPRET;
-}
-
-Expression *LabelStatement::interpret(InterState *istate)
-{
-#if LOG
-    printf("%s LabelStatement::interpret()\n", loc.toChars());
-#endif
-    if (istate->start == this)
-        istate->start = NULL;
-    return statement ? statement->interpret(istate) : NULL;
-}
-
-
-Expression *TryCatchStatement::interpret(InterState *istate)
-{
-#if LOG
-    printf("%s TryCatchStatement::interpret()\n", loc.toChars());
-#endif
-    if (istate->start == this)
-        istate->start = NULL;
-    if (istate->start)
-    {
-        Expression *e = NULL;
-        if (body)
-            e = body->interpret(istate);
-        for (size_t i = 0; !e && istate->start && i < catches->dim; i++)
-        {
-            Catch *ca = (*catches)[i];
-            if (ca->handler)
-                e = ca->handler->interpret(istate);
-        }
-        return e;
-    }
-
-    Expression *e = body ? body->interpret(istate) : NULL;
-    if (e == EXP_CANT_INTERPRET)
-        return e;
-    if (!exceptionOrCantInterpret(e))
-        return e;
-    // An exception was thrown
-    ThrownExceptionExp *ex = (ThrownExceptionExp *)e;
-    Type *extype = ex->thrown->originalClass()->type;
-    // Search for an appropriate catch clause.
-    for (size_t i = 0; i < catches->dim; i++)
-    {
-        Catch *ca = (*catches)[i];
-        Type *catype = ca->type;
-
-        if (catype->equals(extype) || catype->isBaseOf(extype, NULL))
-        {
-            // Execute the handler
-            if (ca->var)
-            {
-                ctfeStack.push(ca->var);
-                setValue(ca->var, ex->thrown);
-            }
-            if (ca->handler)
-            {
-                e = ca->handler->interpret(istate);
-                if (e == EXP_GOTO_INTERPRET)
-                {
-                    InterState istatex = *istate;
-                    istatex.start = istate->gotoTarget; // set starting statement
-                    istatex.gotoTarget = NULL;
-                    Expression *eh = ca->handler->interpret(&istatex);
-                    if (!istatex.start)
-                    {
-                        istate->gotoTarget = NULL;
-                        e = eh;
-                    }
-                }
-            }
-            else
-                e = NULL;
-            return e;
-        }
-    }
-    return e;
-}
-
-bool isAnErrorException(ClassDeclaration *cd)
-{
-    return cd == ClassDeclaration::errorException || ClassDeclaration::errorException->isBaseOf(cd, NULL);
-}
-
-ThrownExceptionExp *chainExceptions(ThrownExceptionExp *oldest, ThrownExceptionExp *newest)
-{
-#if LOG
-    printf("Collided exceptions %s %s\n", oldest->thrown->toChars(), newest->thrown->toChars());
-#endif
-    // Little sanity check to make sure it's really a Throwable
-    ClassReferenceExp *boss = oldest->thrown;
-    assert((*boss->value->elements)[4]->type->ty == Tclass);
-    ClassReferenceExp *collateral = newest->thrown;
-    if (isAnErrorException(collateral->originalClass())
-        && !isAnErrorException(boss->originalClass()))
-    {   // The new exception bypass the existing chain
-        assert((*collateral->value->elements)[5]->type->ty == Tclass);
-        (*collateral->value->elements)[5] = boss;
-        return newest;
-    }
-    while ((*boss->value->elements)[4]->op == TOKclassreference)
-    {
-        boss = (ClassReferenceExp *)(*boss->value->elements)[4];
-    }
-    (*boss->value->elements)[4] = collateral;
-    return oldest;
-}
-
-
-Expression *TryFinallyStatement::interpret(InterState *istate)
-{
-#if LOG
-    printf("%s TryFinallyStatement::interpret()\n", loc.toChars());
-#endif
-    if (istate->start == this)
-        istate->start = NULL;
-    if (istate->start)
-    {
-        Expression *e = NULL;
-        if (body)
-            e = body->interpret(istate);
-        // Jump into/out from finalbody is disabled in semantic analysis.
-        // and jump inside will be handled by the ScopeStatement == finalbody.
-        return e;
-    }
-
-    Expression *e = body ? body->interpret(istate) : NULL;
-    if (e == EXP_CANT_INTERPRET)
-        return e;
-    Expression *second = finalbody ? finalbody->interpret(istate) : NULL;
-    if (second == EXP_CANT_INTERPRET)
-        return second;
-    if (exceptionOrCantInterpret(second))
-    {   // Check for collided exceptions
-        if (exceptionOrCantInterpret(e))
-            e = chainExceptions((ThrownExceptionExp *)e, (ThrownExceptionExp *)second);
-        else
-            e = second;
-    }
-    return e;
-}
-
-Expression *ThrowStatement::interpret(InterState *istate)
-{
-#if LOG
-    printf("%s ThrowStatement::interpret()\n", loc.toChars());
-#endif
-    if (istate->start)
-    {   if (istate->start != this)
-            return NULL;
-        istate->start = NULL;
-    }
-
-    Expression *e = exp->interpret(istate);
-    if (exceptionOrCantInterpret(e))
-        return e;
-    assert(e->op == TOKclassreference);
-    return new ThrownExceptionExp(loc, (ClassReferenceExp *)e);
-}
-
-Expression *OnScopeStatement::interpret(InterState *istate)
-{
-    assert(0);
-    return EXP_CANT_INTERPRET;
-}
-
-Expression *WithStatement::interpret(InterState *istate)
-{
-#if LOG
-    printf("%s WithStatement::interpret()\n", loc.toChars());
-#endif
-
-    // If it is with(Enum) {...}, just execute the body.
-    if (exp->op == TOKimport || exp->op == TOKtype)
-        return body ? body->interpret(istate) : EXP_VOID_INTERPRET;
-
-    if (istate->start)
-    {   if (istate->start != this)
-            return NULL;
-        istate->start = NULL;
-    }
-
-    Expression *e = exp->interpret(istate);
-    if (exceptionOrCantInterpret(e))
-        return e;
-    if (wthis->type->ty == Tpointer && exp->type->ty != Tpointer)
-    {
-        e = new AddrExp(loc, e);
-        e->type = wthis->type;
-    }
-    ctfeStack.push(wthis);
-    setValue(wthis, e);
-    if (body)
-    {
-        e = body->interpret(istate);
-        if (e == EXP_GOTO_INTERPRET)
-        {
-            InterState istatex = *istate;
-            istatex.start = istate->gotoTarget; // set starting statement
-            istatex.gotoTarget = NULL;
-            Expression *ex = body->interpret(&istatex);
-            if (!istatex.start)
-            {
-                istate->gotoTarget = NULL;
-                e = ex;
-            }
-        }
-    }
-    else
-        e = EXP_VOID_INTERPRET;
-    ctfeStack.pop(wthis);
-    return e;
-}
-
-Expression *AsmStatement::interpret(InterState *istate)
-{
-#if LOG
-    printf("%s AsmStatement::interpret()\n", loc.toChars());
-#endif
-    if (istate->start)
-    {   if (istate->start != this)
-            return NULL;
-        istate->start = NULL;
-    }
-
-    error("asm statements cannot be interpreted at compile time");
-    return EXP_CANT_INTERPRET;
-}
-
-Expression *ImportStatement::interpret(InterState *istate)
-{
-#if LOG
-    printf("ImportStatement::interpret()\n");
-#endif
-    if (istate->start)
-    {   if (istate->start != this)
-            return NULL;
-        istate->start = NULL;
-    }
-;
-    return NULL;
-}
-
-/******************************** Expression ***************************/
-
 class Interpreter : public Visitor
 {
 public:
@@ -2075,12 +1052,979 @@ public:
         result = NULL;
     }
 
+    /******************************** Statement ***************************/
+
+    void visit(Statement *s)
+    {
+    #if LOG
+        printf("%s Statement::interpret()\n", s->loc.toChars());
+    #endif
+        if (istate->start)
+        {
+            if (istate->start != s)
+                return;
+            istate->start = NULL;
+        }
+
+        s->error("Statement %s cannot be interpreted at compile time", s->toChars());
+        result = EXP_CANT_INTERPRET;
+    }
+
+    void visit(ExpStatement *s)
+    {
+    #if LOG
+        printf("%s ExpStatement::interpret(%s)\n", s->loc.toChars(), s->exp ? s->exp->toChars() : "");
+    #endif
+        if (istate->start)
+        {
+            if (istate->start != s)
+                return;
+            istate->start = NULL;
+        }
+
+        if (s->exp)
+        {
+            Expression *e = s->exp->interpret(istate, ctfeNeedNothing);
+            if (e == EXP_CANT_INTERPRET)
+            {
+                //printf("-ExpStatement::interpret(): %p\n", e);
+                result = EXP_CANT_INTERPRET;
+                return;
+            }
+            if (e && e != EXP_VOID_INTERPRET && e->op == TOKthrownexception)
+            {
+                result = e;
+                return;
+            }
+        }
+    }
+
+    void visit(CompoundStatement *s)
+    {
+    #if LOG
+        printf("%s CompoundStatement::interpret()\n", s->loc.toChars());
+    #endif
+        if (istate->start == s)
+            istate->start = NULL;
+        Expression *e = NULL;
+        if (s->statements)
+        {
+            for (size_t i = 0; i < s->statements->dim; i++)
+            {
+                Statement *sx = (*s->statements)[i];
+                if (sx)
+                {
+                    e = sx->interpret(istate);
+                    if (e)
+                        break;
+                }
+            }
+        }
+    #if LOG
+        printf("%s -CompoundStatement::interpret() %p\n", s->loc.toChars(), e);
+    #endif
+        result = e;
+    }
+
+    void visit(UnrolledLoopStatement *s)
+    {
+    #if LOG
+        printf("%s UnrolledLoopStatement::interpret()\n", s->loc.toChars());
+    #endif
+        if (istate->start == s)
+            istate->start = NULL;
+        Expression *e = NULL;
+        if (s->statements)
+        {
+            for (size_t i = 0; i < s->statements->dim; i++)
+            {
+                Statement *sx = (*s->statements)[i];
+
+                e = sx->interpret(istate);
+                if (e == EXP_CANT_INTERPRET)
+                    break;
+                if (e == EXP_CONTINUE_INTERPRET)
+                {
+                    if (istate->gotoTarget && istate->gotoTarget != s)
+                        break; // continue at higher level
+                    istate->gotoTarget = NULL;
+                    e = NULL;
+                    continue;
+                }
+                if (e == EXP_BREAK_INTERPRET)
+                {
+                    if (!istate->gotoTarget || istate->gotoTarget == s)
+                    {
+                        istate->gotoTarget = NULL;
+                        e = NULL;
+                    } // else break at a higher level
+                    break;
+                }
+                if (e)
+                    break;
+            }
+        }
+        result = e;
+    }
+
+    void visit(IfStatement *s)
+    {
+    #if LOG
+        printf("%s IfStatement::interpret(%s)\n", s->loc.toChars(), s->condition->toChars());
+    #endif
+
+        if (istate->start == s)
+            istate->start = NULL;
+        if (istate->start)
+        {
+            Expression *e = NULL;
+            if (s->ifbody)
+                e = s->ifbody->interpret(istate);
+            if (exceptionOrCantInterpret(e))
+            {
+                result = e;
+                return;
+            }
+            if (istate->start && s->elsebody)
+                e = s->elsebody->interpret(istate);
+            result = e;
+            return;
+        }
+
+        Expression *e = s->condition->interpret(istate);
+        assert(e);
+        //if (e == EXP_CANT_INTERPRET) printf("cannot interpret\n");
+        if (e != EXP_CANT_INTERPRET && (e && e->op != TOKthrownexception))
+        {
+            if (isTrueBool(e))
+                e = s->ifbody ? s->ifbody->interpret(istate) : NULL;
+            else if (e->isBool(false))
+                e = s->elsebody ? s->elsebody->interpret(istate) : NULL;
+            else
+            {
+                e = EXP_CANT_INTERPRET;
+            }
+        }
+        result = e;
+    }
+
+    void visit(ScopeStatement *s)
+    {
+    #if LOG
+        printf("%s ScopeStatement::interpret()\n", s->loc.toChars());
+    #endif
+        if (istate->start == s)
+            istate->start = NULL;
+        result = s->statement ? s->statement->interpret(istate) : NULL;
+    }
+
+    /**
+      Given an expression e which is about to be returned from the current
+      function, generate an error if it contains pointers to local variables.
+      Return true if it is safe to return, false if an error was generated.
+
+      Only checks expressions passed by value (pointers to local variables
+      may already be stored in members of classes, arrays, or AAs which
+      were passed as mutable function parameters).
+    */
+
+    static bool stopPointersEscaping(Loc loc, Expression *e)
+    {
+        if (!e->type->hasPointers())
+            return true;
+        if (isPointer(e->type))
+        {
+            Expression *x = e;
+            if (e->op == TOKaddress)
+                x = ((AddrExp *)e)->e1;
+            VarDeclaration *v;
+            while (x->op == TOKvar &&
+                (v = ((VarExp *)x)->var->isVarDeclaration()) != NULL)
+            {
+                if (v->storage_class & STCref)
+                {
+                    x = getValue(v);
+                    if (e->op == TOKaddress)
+                        ((AddrExp *)e)->e1 = x;
+                    continue;
+                }
+                if (ctfeStack.isInCurrentFrame(v))
+                {
+                    error(loc, "returning a pointer to a local stack variable");
+                    return false;
+                }
+                else
+                    break;
+            }
+            // TODO: If it is a TOKdotvar or TOKindex, we should check that it is not
+            // pointing to a local struct or static array.
+        }
+        if (e->op == TOKstructliteral)
+        {
+            StructLiteralExp *se = (StructLiteralExp *)e;
+            return stopPointersEscapingFromArray(loc, se->elements);
+        }
+        if (e->op == TOKarrayliteral)
+        {
+            return stopPointersEscapingFromArray(loc, ((ArrayLiteralExp *)e)->elements);
+        }
+        if (e->op == TOKassocarrayliteral)
+        {
+            AssocArrayLiteralExp *aae = (AssocArrayLiteralExp *)e;
+            if (!stopPointersEscapingFromArray(loc, aae->keys))
+                return false;
+            return stopPointersEscapingFromArray(loc, aae->values);
+        }
+        return true;
+    }
+
+    // Check all members of an array for escaping local variables. Return false if error
+    static bool stopPointersEscapingFromArray(Loc loc, Expressions *elems)
+    {
+        for (size_t i = 0; i < elems->dim; i++)
+        {
+            Expression *m = (*elems)[i];
+            if (!m)
+                continue;
+            if (m)
+                if ( !stopPointersEscaping(loc, m) )
+                    return false;
+        }
+        return true;
+    }
+
+    void visit(ReturnStatement *s)
+    {
+    #if LOG
+        printf("%s ReturnStatement::interpret(%s)\n", s->loc.toChars(), s->exp ? s->exp->toChars() : "");
+    #endif
+        if (istate->start)
+        {
+            if (istate->start != s)
+                return;
+            istate->start = NULL;
+        }
+
+        if (!s->exp)
+        {
+            result = EXP_VOID_INTERPRET;
+            return;
+        }
+        assert(istate && istate->fd && istate->fd->type);
+
+        /* If the function returns a ref AND it's been called from an assignment,
+         * we need to return an lvalue. Otherwise, just do an (rvalue) interpret.
+         */
+        if (istate->fd->type && istate->fd->type->ty == Tfunction)
+        {
+            TypeFunction *tf = (TypeFunction *)istate->fd->type;
+            if (tf->isref && istate->caller && istate->caller->awaitingLvalueReturn)
+            {
+                // We need to return an lvalue
+                Expression *e = s->exp->interpret(istate, ctfeNeedLvalue);
+                if (e == EXP_CANT_INTERPRET)
+                    s->error("ref return %s is not yet supported in CTFE", s->exp->toChars());
+                result = e;
+                return;
+            }
+            if (tf->next && (tf->next->ty == Tdelegate) && istate->fd->closureVars.dim > 0)
+            {
+                // To support this, we need to copy all the closure vars
+                // into the delegate literal.
+                s->error("closures are not yet supported in CTFE");
+                result = EXP_CANT_INTERPRET;
+                return;
+            }
+        }
+
+        // We need to treat pointers specially, because TOKsymoff can be used to
+        // return a value OR a pointer
+        Expression *e;
+        if (isPointer(s->exp->type))
+        {
+            e = s->exp->interpret(istate, ctfeNeedLvalue);
+            if (exceptionOrCantInterpret(e))
+            {
+                result = e;
+                return;
+            }
+        }
+        else
+        {
+            e = s->exp->interpret(istate);
+            if (exceptionOrCantInterpret(e))
+            {
+                result = e;
+                return;
+            }
+        }
+
+        // Disallow returning pointers to stack-allocated variables (bug 7876)
+
+        if (!stopPointersEscaping(s->loc, e))
+        {
+            result = EXP_CANT_INTERPRET;
+            return;
+        }
+
+        if (needToCopyLiteral(e))
+            e = copyLiteral(e);
+    #if LOGASSIGN
+        printf("RETURN %s\n", s->loc.toChars());
+        showCtfeExpr(e);
+    #endif
+        result = e;
+    }
+
+    void visit(BreakStatement *s)
+    {
+    #if LOG
+        printf("%s BreakStatement::interpret()\n", s->loc.toChars());
+    #endif
+        if (istate->start)
+        {
+            if (istate->start != s)
+                return;
+            istate->start = NULL;
+        }
+
+        if (s->ident)
+        {
+            LabelDsymbol *label = istate->fd->searchLabel(s->ident);
+            assert(label && label->statement);
+            LabelStatement *ls = label->statement;
+            Statement *target;
+            if (ls->gotoTarget)
+                target = ls->gotoTarget;
+            else
+            {
+                target = ls->statement;
+                if (target->isScopeStatement())
+                    target = target->isScopeStatement()->statement;
+            }
+            istate->gotoTarget = target;
+            result = EXP_BREAK_INTERPRET;
+            return;
+        }
+        else
+        {
+            istate->gotoTarget = NULL;
+            result = EXP_BREAK_INTERPRET;
+            return;
+        }
+    }
+
+    void visit(ContinueStatement *s)
+    {
+    #if LOG
+        printf("%s ContinueStatement::interpret()\n", s->loc.toChars());
+    #endif
+        if (istate->start)
+        {
+            if (istate->start != s)
+                return;
+            istate->start = NULL;
+        }
+
+        if (s->ident)
+        {
+            LabelDsymbol *label = istate->fd->searchLabel(s->ident);
+            assert(label && label->statement);
+            LabelStatement *ls = label->statement;
+            Statement *target;
+            if (ls->gotoTarget)
+                target = ls->gotoTarget;
+            else
+            {
+                target = ls->statement;
+                if (target->isScopeStatement())
+                    target = target->isScopeStatement()->statement;
+            }
+            istate->gotoTarget = target;
+            result = EXP_CONTINUE_INTERPRET;
+            return;
+        }
+        else
+        {
+            result = EXP_CONTINUE_INTERPRET;
+            return;
+        }
+    }
+
+    void visit(WhileStatement *s)
+    {
+    #if LOG
+        printf("WhileStatement::interpret()\n");
+    #endif
+        assert(0);                  // rewritten to ForStatement
+    }
+
+    void visit(DoStatement *s)
+    {
+    #if LOG
+        printf("%s DoStatement::interpret()\n", s->loc.toChars());
+    #endif
+        if (istate->start == s)
+            istate->start = NULL;
+        Expression *e;
+
+        while (1)
+        {
+            bool wasGoto = !!istate->start;
+            e = s->body ? s->body->interpret(istate) : NULL;
+            if (e == EXP_CANT_INTERPRET)
+                break;
+            if (wasGoto && istate->start)
+                return;
+            if (e == EXP_BREAK_INTERPRET)
+            {
+                if (!istate->gotoTarget || istate->gotoTarget == s)
+                {
+                    istate->gotoTarget = NULL;
+                    e = NULL;
+                } // else break at a higher level
+                break;
+            }
+            if (e && e != EXP_CONTINUE_INTERPRET)
+                break;
+            if (istate->gotoTarget && istate->gotoTarget != s)
+                break; // continue at a higher level
+
+            istate->gotoTarget = NULL;
+            e = s->condition->interpret(istate);
+            if (exceptionOrCantInterpret(e))
+                break;
+            if (!e->isConst())
+            {
+                e = EXP_CANT_INTERPRET;
+                break;
+            }
+            if (isTrueBool(e))
+            {
+            }
+            else if (e->isBool(false))
+            {
+                e = NULL;
+                break;
+            }
+            else
+                assert(0);
+        }
+        result = e;
+    }
+
+    void visit(ForStatement *s)
+    {
+    #if LOG
+        printf("%s ForStatement::interpret()\n", s->loc.toChars());
+    #endif
+        if (istate->start == s)
+            istate->start = NULL;
+        Expression *e;
+
+        if (s->init)
+        {
+            e = s->init->interpret(istate);
+            if (exceptionOrCantInterpret(e))
+            {
+                result = e;
+                return;
+            }
+            assert(!e);
+        }
+        while (1)
+        {
+            if (s->condition && !istate->start)
+            {
+                e = s->condition->interpret(istate);
+                if (exceptionOrCantInterpret(e))
+                    break;
+                if (!e->isConst())
+                {
+                    e = EXP_CANT_INTERPRET;
+                    break;
+                }
+                if (e->isBool(false))
+                {
+                    e = NULL;
+                    break;
+                }
+                assert(isTrueBool(e));
+            }
+
+            bool wasGoto = !!istate->start;
+            e = s->body ? s->body->interpret(istate) : NULL;
+            if (e == EXP_CANT_INTERPRET)
+                break;
+            if (wasGoto && istate->start)
+                return;
+
+            if (e == EXP_BREAK_INTERPRET)
+            {
+                if (!istate->gotoTarget || istate->gotoTarget == s)
+                {
+                    istate->gotoTarget = NULL;
+                    e = NULL;
+                } // else break at a higher level
+                break;
+            }
+            if (e && e != EXP_CONTINUE_INTERPRET)
+                break;
+
+            if (istate->gotoTarget && istate->gotoTarget != s)
+                break; // continue at a higher level
+            istate->gotoTarget = NULL;
+
+            if (s->increment)
+            {
+                e = s->increment->interpret(istate);
+                if (e == EXP_CANT_INTERPRET)
+                    break;
+            }
+        }
+        result = e;
+    }
+
+    void visit(ForeachStatement *s)
+    {
+        assert(0);                  // rewritten to ForStatement
+    }
+
+    void visit(ForeachRangeStatement *s)
+    {
+        assert(0);                  // rewritten to ForStatement
+    }
+
+    void visit(SwitchStatement *s)
+    {
+    #if LOG
+        printf("%s SwitchStatement::interpret()\n", s->loc.toChars());
+    #endif
+        if (istate->start == s)
+            istate->start = NULL;
+        Expression *e = NULL;
+
+        if (istate->start)
+        {
+            e = s->body ? s->body->interpret(istate) : NULL;
+            if (istate->start)
+                return;
+            if (e == EXP_CANT_INTERPRET)
+            {
+                result = e;
+                return;
+            }
+            if (e == EXP_BREAK_INTERPRET)
+            {
+                if (!istate->gotoTarget || istate->gotoTarget == s)
+                {
+                    istate->gotoTarget = NULL;
+                    return;
+                }
+                // else break at a higher level
+            }
+            result = e;
+            return;
+        }
+
+
+        Expression *econdition = s->condition->interpret(istate);
+        if (exceptionOrCantInterpret(econdition))
+        {
+            result = econdition;
+            return;
+        }
+
+        Statement *scase = NULL;
+        if (s->cases)
+        {
+            for (size_t i = 0; i < s->cases->dim; i++)
+            {
+                CaseStatement *cs = (*s->cases)[i];
+                Expression * caseExp = cs->exp->interpret(istate);
+                if (exceptionOrCantInterpret(caseExp))
+                {
+                    result = caseExp;
+                    return;
+                }
+                int eq = ctfeEqual(caseExp->loc, TOKequal, econdition, caseExp);
+                if (eq)
+                {
+                    scase = cs;
+                    break;
+                }
+            }
+        }
+        if (!scase)
+        {
+            if (s->hasNoDefault)
+                s->error("no default or case for %s in switch statement", econdition->toChars());
+            scase = s->sdefault;
+        }
+
+        assert(scase);
+        istate->start = scase;
+        e = s->body ? s->body->interpret(istate) : NULL;
+        assert(!istate->start);
+        if (e == EXP_BREAK_INTERPRET)
+        {
+            if (!istate->gotoTarget || istate->gotoTarget == s)
+            {
+                istate->gotoTarget = NULL;
+                e = NULL;
+            }
+            // else break at a higher level
+        }
+        result = e;
+    }
+
+    void visit(CaseStatement *s)
+    {
+    #if LOG
+        printf("%s CaseStatement::interpret(%s) this = %p\n", s->loc.toChars(), s->exp->toChars(), s);
+    #endif
+        if (istate->start == s)
+            istate->start = NULL;
+        if (s->statement)
+            result = s->statement->interpret(istate);
+    }
+
+    void visit(DefaultStatement *s)
+    {
+    #if LOG
+        printf("%s DefaultStatement::interpret()\n", s->loc.toChars());
+    #endif
+        if (istate->start == s)
+            istate->start = NULL;
+        if (s->statement)
+            result = s->statement->interpret(istate);
+    }
+
+    void visit(GotoStatement *s)
+    {
+    #if LOG
+        printf("%s GotoStatement::interpret()\n", s->loc.toChars());
+    #endif
+        if (istate->start)
+        {
+            if (istate->start != s)
+                return;
+            istate->start = NULL;
+        }
+
+        assert(s->label && s->label->statement);
+        istate->gotoTarget = s->label->statement;
+        result = EXP_GOTO_INTERPRET;
+    }
+
+    void visit(GotoCaseStatement *s)
+    {
+    #if LOG
+        printf("%s GotoCaseStatement::interpret()\n", s->loc.toChars());
+    #endif
+        if (istate->start)
+        {
+            if (istate->start != s)
+                return;
+            istate->start = NULL;
+        }
+
+        assert(s->cs);
+        istate->gotoTarget = s->cs;
+        result = EXP_GOTO_INTERPRET;
+    }
+
+    void visit(GotoDefaultStatement *s)
+    {
+    #if LOG
+        printf("%s GotoDefaultStatement::interpret()\n", s->loc.toChars());
+    #endif
+        if (istate->start)
+        {
+            if (istate->start != s)
+                return;
+            istate->start = NULL;
+        }
+
+        assert(s->sw && s->sw->sdefault);
+        istate->gotoTarget = s->sw->sdefault;
+        result = EXP_GOTO_INTERPRET;
+    }
+
+    void visit(LabelStatement *s)
+    {
+    #if LOG
+        printf("%s LabelStatement::interpret()\n", s->loc.toChars());
+    #endif
+        if (istate->start == s)
+            istate->start = NULL;
+        result = s->statement ? s->statement->interpret(istate) : NULL;
+    }
+
+    void visit(TryCatchStatement *s)
+    {
+    #if LOG
+        printf("%s TryCatchStatement::interpret()\n", s->loc.toChars());
+    #endif
+        if (istate->start == s)
+            istate->start = NULL;
+        if (istate->start)
+        {
+            Expression *e = NULL;
+            if (s->body)
+                e = s->body->interpret(istate);
+            for (size_t i = 0; !e && istate->start && i < s->catches->dim; i++)
+            {
+                Catch *ca = (*s->catches)[i];
+                if (ca->handler)
+                    e = ca->handler->interpret(istate);
+            }
+            result = e;
+            return;
+        }
+
+        Expression *e = s->body ? s->body->interpret(istate) : NULL;
+        if (e == EXP_CANT_INTERPRET)
+        {
+            result = e;
+            return;
+        }
+        if (!exceptionOrCantInterpret(e))
+        {
+            result = e;
+            return;
+        }
+        // An exception was thrown
+        ThrownExceptionExp *ex = (ThrownExceptionExp *)e;
+        Type *extype = ex->thrown->originalClass()->type;
+        // Search for an appropriate catch clause.
+        for (size_t i = 0; i < s->catches->dim; i++)
+        {
+            Catch *ca = (*s->catches)[i];
+            Type *catype = ca->type;
+
+            if (catype->equals(extype) || catype->isBaseOf(extype, NULL))
+            {
+                // Execute the handler
+                if (ca->var)
+                {
+                    ctfeStack.push(ca->var);
+                    setValue(ca->var, ex->thrown);
+                }
+                if (ca->handler)
+                {
+                    e = ca->handler->interpret(istate);
+                    if (e == EXP_GOTO_INTERPRET)
+                    {
+                        InterState istatex = *istate;
+                        istatex.start = istate->gotoTarget; // set starting statement
+                        istatex.gotoTarget = NULL;
+                        Expression *eh = ca->handler->interpret(&istatex);
+                        if (!istatex.start)
+                        {
+                            istate->gotoTarget = NULL;
+                            e = eh;
+                        }
+                    }
+                }
+                else
+                    e = NULL;
+                result = e;
+                return;
+            }
+        }
+        result = e;
+    }
+
+    static bool isAnErrorException(ClassDeclaration *cd)
+    {
+        return cd == ClassDeclaration::errorException || ClassDeclaration::errorException->isBaseOf(cd, NULL);
+    }
+
+    static ThrownExceptionExp *chainExceptions(ThrownExceptionExp *oldest, ThrownExceptionExp *newest)
+    {
+    #if LOG
+        printf("Collided exceptions %s %s\n", oldest->thrown->toChars(), newest->thrown->toChars());
+    #endif
+        // Little sanity check to make sure it's really a Throwable
+        ClassReferenceExp *boss = oldest->thrown;
+        assert((*boss->value->elements)[4]->type->ty == Tclass);
+        ClassReferenceExp *collateral = newest->thrown;
+        if (isAnErrorException(collateral->originalClass())
+            && !isAnErrorException(boss->originalClass()))
+        {   // The new exception bypass the existing chain
+            assert((*collateral->value->elements)[5]->type->ty == Tclass);
+            (*collateral->value->elements)[5] = boss;
+            return newest;
+        }
+        while ((*boss->value->elements)[4]->op == TOKclassreference)
+        {
+            boss = (ClassReferenceExp *)(*boss->value->elements)[4];
+        }
+        (*boss->value->elements)[4] = collateral;
+        return oldest;
+    }
+
+    void visit(TryFinallyStatement *s)
+    {
+    #if LOG
+        printf("%s TryFinallyStatement::interpret()\n", s->loc.toChars());
+    #endif
+        if (istate->start == s)
+            istate->start = NULL;
+        if (istate->start)
+        {
+            Expression *e = NULL;
+            if (s->body)
+                e = s->body->interpret(istate);
+            // Jump into/out from finalbody is disabled in semantic analysis.
+            // and jump inside will be handled by the ScopeStatement == finalbody.
+            result = e;
+            return;
+        }
+
+        Expression *e = s->body ? s->body->interpret(istate) : NULL;
+        if (e == EXP_CANT_INTERPRET)
+        {
+            result = e;
+            return;
+        }
+        Expression *second = s->finalbody ? s->finalbody->interpret(istate) : NULL;
+        if (second == EXP_CANT_INTERPRET)
+        {
+            result = second;
+            return;
+        }
+        if (exceptionOrCantInterpret(second))
+        {
+            // Check for collided exceptions
+            if (exceptionOrCantInterpret(e))
+                e = chainExceptions((ThrownExceptionExp *)e, (ThrownExceptionExp *)second);
+            else
+                e = second;
+        }
+        result = e;
+    }
+
+    void visit(ThrowStatement *s)
+    {
+    #if LOG
+        printf("%s ThrowStatement::interpret()\n", s->loc.toChars());
+    #endif
+        if (istate->start)
+        {
+            if (istate->start != s)
+                return;
+            istate->start = NULL;
+        }
+
+        Expression *e = s->exp->interpret(istate);
+        if (exceptionOrCantInterpret(e))
+        {
+            result = e;
+            return;
+        }
+        assert(e->op == TOKclassreference);
+        result = new ThrownExceptionExp(s->loc, (ClassReferenceExp *)e);
+    }
+
+    void visit(OnScopeStatement *s)
+    {
+        assert(0);
+    }
+
+    void visit(WithStatement *s)
+    {
+    #if LOG
+        printf("%s WithStatement::interpret()\n", s->loc.toChars());
+    #endif
+
+        // If it is with(Enum) {...}, just execute the body.
+        if (s->exp->op == TOKimport || s->exp->op == TOKtype)
+        {
+            result = s->body ? s->body->interpret(istate) : EXP_VOID_INTERPRET;
+            return;
+        }
+
+        if (istate->start)
+        {
+            if (istate->start != s)
+                return;
+            istate->start = NULL;
+        }
+
+        Expression *e = s->exp->interpret(istate);
+        if (exceptionOrCantInterpret(e))
+        {
+            result = e;
+            return;
+        }
+        if (s->wthis->type->ty == Tpointer && s->exp->type->ty != Tpointer)
+        {
+            e = new AddrExp(s->loc, e);
+            e->type = s->wthis->type;
+        }
+        ctfeStack.push(s->wthis);
+        setValue(s->wthis, e);
+        if (s->body)
+        {
+            e = s->body->interpret(istate);
+            if (e == EXP_GOTO_INTERPRET)
+            {
+                InterState istatex = *istate;
+                istatex.start = istate->gotoTarget; // set starting statement
+                istatex.gotoTarget = NULL;
+                Expression *ex = s->body->interpret(&istatex);
+                if (!istatex.start)
+                {
+                    istate->gotoTarget = NULL;
+                    e = ex;
+                }
+            }
+        }
+        else
+            e = EXP_VOID_INTERPRET;
+        ctfeStack.pop(s->wthis);
+        result = e;
+    }
+
+    void visit(AsmStatement *s)
+    {
+    #if LOG
+        printf("%s AsmStatement::interpret()\n", s->loc.toChars());
+    #endif
+        if (istate->start)
+        {
+            if (istate->start != s)
+                return;
+            istate->start = NULL;
+        }
+
+        s->error("asm statements cannot be interpreted at compile time");
+        result = EXP_CANT_INTERPRET;
+    }
+
+    void visit(ImportStatement *s)
+    {
+    #if LOG
+        printf("ImportStatement::interpret()\n");
+    #endif
+        if (istate->start)
+        {
+            if (istate->start != s)
+                return;
+            istate->start = NULL;
+        }
+    }
+
+    /******************************** Expression ***************************/
+
     void visit(Expression *e)
     {
     #if LOG
         printf("%s Expression::interpret() %s\n", e->loc.toChars(), e->toChars());
         printf("type = %s\n", e->type->toChars());
-        print();
+        e->print();
     #endif
         e->error("Cannot interpret %s at compile time", e->toChars());
         result = EXP_CANT_INTERPRET;
@@ -5526,7 +5470,7 @@ public:
     void visit(SliceExp *e)
     {
     #if LOG
-        printf("%s SliceExp::interpret() %s\n", loc.toChars(), toChars());
+        printf("%s SliceExp::interpret() %s\n", e->loc.toChars(), e->toChars());
     #endif
 
         if (e->e1->type->toBasetype()->ty == Tpointer)
@@ -6424,12 +6368,148 @@ public:
 
 };
 
-Expression *Expression::interpret(InterState *istate, CtfeGoal goal)
+Expression *interpret(Expression *e, InterState *istate, CtfeGoal goal)
 {
     Interpreter v(istate, goal);
-    accept(&v);
+    e->accept(&v);
     return v.result;
 }
+
+/***********************************
+ * Interpret the statement.
+ * Returns:
+ *      NULL    continue to next statement
+ *      EXP_CANT_INTERPRET      cannot interpret statement at compile time
+ *      !NULL   expression from return statement, or thrown exception
+ */
+
+Expression *interpret(Statement *s, InterState *istate)
+{
+    Interpreter v(istate, ctfeNeedNothing);
+    s->accept(&v);
+    return v.result;
+}
+
+bool scrubArray(Loc loc, Expressions *elems, bool structlit = false);
+
+/* All results destined for use outside of CTFE need to have their CTFE-specific
+ * features removed.
+ * In particular, all slices must be resolved.
+ */
+Expression *scrubReturnValue(Loc loc, Expression *e)
+{
+    if (e->op == TOKclassreference)
+    {
+        StructLiteralExp *se = ((ClassReferenceExp*)e)->value;
+        se->ownedByCtfe = false;
+        if (!(se->stageflags & stageScrub))
+        {
+            int old = se->stageflags;
+            se->stageflags |= stageScrub;
+            if (!scrubArray(loc, se->elements, true))
+                return EXP_CANT_INTERPRET;
+            se->stageflags = old;
+        }
+    }
+    if (e->op == TOKvoid)
+    {
+        error(loc, "uninitialized variable '%s' cannot be returned from CTFE", ((VoidInitExp *)e)->var->toChars());
+        e = new ErrorExp();
+    }
+    if (e->op == TOKslice)
+    {
+        e = resolveSlice(e);
+    }
+    if (e->op == TOKstructliteral)
+    {
+        StructLiteralExp *se = (StructLiteralExp *)e;
+        se->ownedByCtfe = false;
+        if (!(se->stageflags & stageScrub))
+        {
+            int old = se->stageflags;
+            se->stageflags |= stageScrub;
+            if (!scrubArray(loc, se->elements, true))
+                return EXP_CANT_INTERPRET;
+            se->stageflags = old;
+        }
+    }
+    if (e->op == TOKstring)
+    {
+        ((StringExp *)e)->ownedByCtfe = false;
+    }
+    if (e->op == TOKarrayliteral)
+    {
+        ((ArrayLiteralExp *)e)->ownedByCtfe = false;
+        if (!scrubArray(loc, ((ArrayLiteralExp *)e)->elements))
+            return EXP_CANT_INTERPRET;
+    }
+    if (e->op == TOKassocarrayliteral)
+    {
+        AssocArrayLiteralExp *aae = (AssocArrayLiteralExp *)e;
+        aae->ownedByCtfe = false;
+        if (!scrubArray(loc, aae->keys))
+            return EXP_CANT_INTERPRET;
+        if (!scrubArray(loc, aae->values))
+            return EXP_CANT_INTERPRET;
+        aae->type = toBuiltinAAType(aae->type);
+    }
+    return e;
+}
+
+// Return true if every element is either void,
+// or is an array literal or struct literal of void elements.
+bool isEntirelyVoid(Expressions *elems)
+{
+    for (size_t i = 0; i < elems->dim; i++)
+    {
+        Expression *m = (*elems)[i];
+        // It can be NULL for performance reasons,
+        // see StructLiteralExp::interpret().
+        if (!m)
+            continue;
+
+        if (!(m->op == TOKvoid) &&
+            !(m->op == TOKarrayliteral && isEntirelyVoid(((ArrayLiteralExp *)m)->elements)) &&
+            !(m->op == TOKstructliteral && isEntirelyVoid(((StructLiteralExp *)m)->elements)))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+// Scrub all members of an array. Return false if error
+bool scrubArray(Loc loc, Expressions *elems, bool structlit)
+{
+    for (size_t i = 0; i < elems->dim; i++)
+    {
+        Expression *m = (*elems)[i];
+        // It can be NULL for performance reasons,
+        // see StructLiteralExp::interpret().
+        if (!m)
+            continue;
+
+        // A struct .init may contain void members.
+        // Static array members are a weird special case (bug 10994).
+        if (structlit &&
+            ((m->op == TOKvoid) ||
+             (m->op == TOKarrayliteral && m->type->ty == Tsarray && isEntirelyVoid(((ArrayLiteralExp *)m)->elements)) ||
+             (m->op == TOKstructliteral && isEntirelyVoid(((StructLiteralExp *)m)->elements)))
+           )
+        {
+                m = NULL;
+        }
+        else
+        {
+            m = scrubReturnValue(loc, m);
+            if (m == EXP_CANT_INTERPRET)
+                return false;
+        }
+        (*elems)[i] = m;
+    }
+    return true;
+}
+
 
 /******************************* Special Functions ***************************/
 
