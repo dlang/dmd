@@ -121,6 +121,8 @@ enum CtfeGoal
     ctfeNeedNothing   // The return value is not required
 };
 
+Expression *interpret(Expression *e, InterState *istate, CtfeGoal goal);
+
 #define WANTflags   1
 #define WANTvalue   2
 // Same as WANTvalue, but also expand variables as far as possible
@@ -212,7 +214,10 @@ public:
     {
         return ::ctfeInterpret(this);
     }
-    Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
+    Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue)
+    {
+        return ::interpret(this, istate, goal);
+    }
 
     int isConst() { return ::isConst(this); }
     virtual int isBool(int result);

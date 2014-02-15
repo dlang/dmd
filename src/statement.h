@@ -65,6 +65,8 @@ struct elem;
 #endif
 struct code;
 
+Expression *interpret(Statement *s, InterState *istate);
+
 /* How a statement exits; this is returned by blockExit()
  */
 enum BE
@@ -109,7 +111,10 @@ public:
     bool hasCode();
     virtual Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
     virtual Statements *flatten(Scope *sc);
-    virtual Expression *interpret(InterState *istate);
+    Expression *interpret(InterState *istate)
+    {
+        return ::interpret(this, istate);
+    }
     virtual Statement *last();
 
     // Avoid dynamic_cast
@@ -161,7 +166,6 @@ public:
     static ExpStatement *create(Loc loc, Expression *exp);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
-    Expression *interpret(InterState *istate);
     int blockExit(bool mustNotThrow);
     Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
 
@@ -211,7 +215,6 @@ public:
     int blockExit(bool mustNotThrow);
     Statements *flatten(Scope *sc);
     ReturnStatement *isReturnStatement();
-    Expression *interpret(InterState *istate);
     Statement *last();
 
     CompoundStatement *isCompoundStatement() { return this; }
@@ -240,7 +243,6 @@ public:
     bool hasBreak();
     bool hasContinue();
     int blockExit(bool mustNotThrow);
-    Expression *interpret(InterState *istate);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -258,7 +260,6 @@ public:
     bool hasBreak();
     bool hasContinue();
     int blockExit(bool mustNotThrow);
-    Expression *interpret(InterState *istate);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -275,7 +276,6 @@ public:
     bool hasBreak();
     bool hasContinue();
     int blockExit(bool mustNotThrow);
-    Expression *interpret(InterState *istate);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -292,7 +292,6 @@ public:
     bool hasBreak();
     bool hasContinue();
     int blockExit(bool mustNotThrow);
-    Expression *interpret(InterState *istate);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -318,7 +317,6 @@ public:
     bool hasBreak();
     bool hasContinue();
     int blockExit(bool mustNotThrow);
-    Expression *interpret(InterState *istate);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -348,7 +346,6 @@ public:
     bool hasBreak();
     bool hasContinue();
     int blockExit(bool mustNotThrow);
-    Expression *interpret(InterState *istate);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -371,7 +368,6 @@ public:
     bool hasBreak();
     bool hasContinue();
     int blockExit(bool mustNotThrow);
-    Expression *interpret(InterState *istate);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -389,7 +385,6 @@ public:
     IfStatement(Loc loc, Parameter *arg, Expression *condition, Statement *ifbody, Statement *elsebody);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
-    Expression *interpret(InterState *istate);
     int blockExit(bool mustNotThrow);
     IfStatement *isIfStatement() { return this; }
 
@@ -459,7 +454,6 @@ public:
     Statement *semantic(Scope *sc);
     bool hasBreak();
     int blockExit(bool mustNotThrow);
-    Expression *interpret(InterState *istate);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -478,7 +472,6 @@ public:
     Statement *semantic(Scope *sc);
     int compare(RootObject *obj);
     int blockExit(bool mustNotThrow);
-    Expression *interpret(InterState *istate);
     CaseStatement *isCaseStatement() { return this; }
 
     void accept(Visitor *v) { v->visit(this); }
@@ -511,7 +504,6 @@ public:
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     int blockExit(bool mustNotThrow);
-    Expression *interpret(InterState *istate);
     DefaultStatement *isDefaultStatement() { return this; }
 
     void accept(Visitor *v) { v->visit(this); }
@@ -525,7 +517,6 @@ public:
     GotoDefaultStatement(Loc loc);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
-    Expression *interpret(InterState *istate);
     int blockExit(bool mustNotThrow);
 
     void accept(Visitor *v) { v->visit(this); }
@@ -540,7 +531,6 @@ public:
     GotoCaseStatement(Loc loc, Expression *exp);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
-    Expression *interpret(InterState *istate);
     int blockExit(bool mustNotThrow);
 
     void accept(Visitor *v) { v->visit(this); }
@@ -565,7 +555,6 @@ public:
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     int blockExit(bool mustNotThrow);
-    Expression *interpret(InterState *istate);
 
     ReturnStatement *isReturnStatement() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -579,7 +568,6 @@ public:
     BreakStatement(Loc loc, Identifier *ident);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
-    Expression *interpret(InterState *istate);
     int blockExit(bool mustNotThrow);
 
     void accept(Visitor *v) { v->visit(this); }
@@ -593,7 +581,6 @@ public:
     ContinueStatement(Loc loc, Identifier *ident);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
-    Expression *interpret(InterState *istate);
     int blockExit(bool mustNotThrow);
 
     void accept(Visitor *v) { v->visit(this); }
@@ -629,7 +616,6 @@ public:
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     int blockExit(bool mustNotThrow);
-    Expression *interpret(InterState *istate);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -645,7 +631,6 @@ public:
     Statement *semantic(Scope *sc);
     bool hasBreak();
     int blockExit(bool mustNotThrow);
-    Expression *interpret(InterState *istate);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -681,7 +666,6 @@ public:
     bool hasBreak();
     bool hasContinue();
     int blockExit(bool mustNotThrow);
-    Expression *interpret(InterState *istate);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -697,7 +681,6 @@ public:
     int blockExit(bool mustNotThrow);
     Statement *semantic(Scope *sc);
     Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
-    Expression *interpret(InterState *istate);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -714,7 +697,6 @@ public:
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     int blockExit(bool mustNotThrow);
-    Expression *interpret(InterState *istate);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -745,7 +727,6 @@ public:
     Statement *semantic(Scope *sc);
     bool checkLabel();
     int blockExit(bool mustNotThrow);
-    Expression *interpret(InterState *istate);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -767,7 +748,6 @@ public:
     Statement *semantic(Scope *sc);
     Statements *flatten(Scope *sc);
     int blockExit(bool mustNotThrow);
-    Expression *interpret(InterState *istate);
 
     LabelStatement *isLabelStatement() { return this; }
 
@@ -799,7 +779,6 @@ public:
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     int blockExit(bool mustNotThrow);
-    Expression *interpret(InterState *istate);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -813,7 +792,6 @@ public:
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     int blockExit(bool mustNotThrow);
-    Expression *interpret(InterState *istate);
 
     void accept(Visitor *v) { v->visit(this); }
 };
