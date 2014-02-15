@@ -1693,6 +1693,9 @@ void UserAttributeDeclaration::semantic(Scope *sc)
     //printf("UserAttributeDeclaration::semantic() %p\n", this);
     if (decl)
     {
+        if (!scope)
+            Dsymbol::setScope(sc);  // for function local symbols
+
         Scope *newsc = sc;
         if (atts && atts->dim)
         {
