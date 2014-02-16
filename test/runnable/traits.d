@@ -1114,6 +1114,19 @@ void test9237()
     static assert(__traits(isPOD, POD2_9237));
     static assert(__traits(isPOD, POD3_9237));
 
+    // static array of POD/non-POD types
+    static assert(!__traits(isPOD, NS_9237[2]));
+    static assert(__traits(isPOD, NonNS_9237[2]));
+    static assert(__traits(isPOD, StatNS_9237[2]));
+    static assert(__traits(isPOD, CtorS_9237[2]));
+    static assert(!__traits(isPOD, DtorS_9237[2]));
+    static assert(!__traits(isPOD, PostblitS_9237[2]));
+    static assert(!__traits(isPOD, NonPOD1_9237[2]));
+    static assert(!__traits(isPOD, NonPOD2_9237[2]));
+    static assert(__traits(isPOD, POD1_9237[2]));
+    static assert(__traits(isPOD, POD2_9237[2]));
+    static assert(__traits(isPOD, POD3_9237[2]));
+
     // non-structs are POD types
     static assert(__traits(isPOD, C_9273));
     static assert(__traits(isPOD, int));
