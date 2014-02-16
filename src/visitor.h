@@ -209,7 +209,7 @@ public:
     virtual void visit(TypeAArray *t) { visit((TypeArray *)t); }
     virtual void visit(TypePointer *t) { visit((TypeNext *)t); }
     virtual void visit(TypeReference *t) { visit((TypeNext *)t); }
-    virtual void visit(TypeFunction *t) { visit((TypeFunction *)t); }
+    virtual void visit(TypeFunction *t) { visit((TypeNext *)t); }
     virtual void visit(TypeDelegate *t) { visit((TypeNext *)t); }
     virtual void visit(TypeQualified *t) { visit((Type *)t); }
     virtual void visit(TypeIdentifier *t) { visit((TypeQualified *)t); }
