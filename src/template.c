@@ -3435,36 +3435,41 @@ MATCH TypeSArray::deduceType(Scope *sc, Type *tparam, TemplateParameters *parame
             return m;
         }
 
-        Identifier *id = NULL;
+        TemplateParameter *tp = NULL;
+        Expression *edim = NULL;
+        size_t i;
         if (tparam->ty == Tsarray)
         {
-            TypeSArray *tp = (TypeSArray *)tparam;
-            if (tp->dim->op == TOKvar &&
-                ((VarExp *)tp->dim)->var->storage_class & STCtemplateparameter)
+            TypeSArray *tsa = (TypeSArray *)tparam;
+            if (tsa->dim->op == TOKvar &&
+                ((VarExp *)tsa->dim)->var->storage_class & STCtemplateparameter)
             {
-                id = ((VarExp *)tp->dim)->var->ident;
+                Identifier *id = ((VarExp *)tsa->dim)->var->ident;
+                i = templateIdentifierLookup(id, parameters);
+                assert(i != IDX_NOTFOUND);
+                tp = (*parameters)[i];
             }
-            else if (dim->toInteger() != tp->dim->toInteger())
-                return MATCHnomatch;
+            else
+                edim = tsa->dim;
         }
         else if (tparam->ty == Taarray)
         {
-            TypeAArray *tp = (TypeAArray *)tparam;
-            if (tp->index->ty == Tident &&
-                ((TypeIdentifier *)tp->index)->idents.dim == 0)
+            TypeAArray *taa = (TypeAArray *)tparam;
+            i = templateParameterLookup(taa->index, parameters);
+            if (i != IDX_NOTFOUND)
+                tp = (*parameters)[i];
+            else
             {
-                id = ((TypeIdentifier *)tp->index)->ident;
+                Expression *e;
+                Type *t;
+                Dsymbol *s;
+                taa->index->resolve(Loc(), sc, &e, &t, &s);
+                edim = s ? getValue(s) : getValue(e);
             }
         }
-        if (id)
+        if (tp && tp->matchArg(sc, dim, i, parameters, dedtypes, NULL) ||
+            edim && edim->toInteger() == dim->toInteger())
         {
-            // This code matches code in TypeInstance::deduceType()
-            size_t i = templateIdentifierLookup(id, parameters);
-            if (i == IDX_NOTFOUND)
-                goto Lnomatch;
-            TemplateParameter *tp = (*parameters)[i];
-            if (!tp->matchArg(sc, dim, i, parameters, dedtypes, NULL))
-                goto Lnomatch;
             return next->deduceType(sc, tparam->nextOf(), parameters, dedtypes, wm);
         }
     }
