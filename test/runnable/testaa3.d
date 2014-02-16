@@ -24,6 +24,8 @@ int testLiteral()
         assert(v == 4);
     assert([5 : 4].rehash == [5 : 4]);
     assert([5 : 4][5] == 4);
+    assert([5 : 4].get(5, 2) == 4);
+    assert([5 : 4].get(1, 2) == 2);
     //assert(([5 : 4][3] = 7) == 7);
     assert(*(5 in [5 : 4]) == 4);
     return 1;
@@ -47,10 +49,152 @@ int testVar()
     if (!__ctfe)
     foreach(v; aa.byValue)
         assert(v == 4);
-    // assert(aa.rehash == aa);
+    assert(aa.rehash == aa);
     assert(aa[5] == 4);
+    assert(aa.get(5, 2) == 4);
+    assert(aa.get(1, 2) == 2);
     assert(*(5 in aa) == 4);
     assert((aa[3] = 7) == 7);
+    return 1;
+}
+
+int testVarConst()
+{
+    const aa = [5 : 4];
+    assert(aa.length == 1);
+    assert(aa.values == [4]);
+    assert(aa.keys == [5]);
+    foreach(k, v; aa)
+        assert(k == 5 && v == 4);
+    foreach(v; aa)
+        assert(v == 4);
+    //assert(aa.dup == aa);
+    assert(aa.dup);
+    if (!__ctfe)
+    foreach(k; aa.byKey)
+        assert(k == 5);
+    if (!__ctfe)
+    foreach(v; aa.byValue)
+        assert(v == 4);
+    //assert(aa.rehash == aa);
+    assert(aa[5] == 4);
+    assert(aa.get(5, 2) == 4);
+    assert(aa.get(1, 2) == 2);
+    assert(*(5 in aa) == 4);
+    //assert((aa[3] = 7) == 7);
+    return 1;
+}
+
+int testVarImmutable()
+{
+    immutable aa = [5 : 4];
+    assert(aa.length == 1);
+    assert(aa.values == [4]);
+    assert(aa.keys == [5]);
+    foreach(k, v; aa)
+        assert(k == 5 && v == 4);
+    foreach(v; aa)
+        assert(v == 4);
+    //assert(aa.dup == aa);
+    assert(aa.dup);
+    if (!__ctfe)
+    foreach(k; aa.byKey)
+        assert(k == 5);
+    if (!__ctfe)
+    foreach(v; aa.byValue)
+        assert(v == 4);
+    // assert(aa.rehash == aa);
+    assert(aa[5] == 4);
+    assert(aa.get(5, 2) == 4);
+    assert(aa.get(1, 2) == 2);
+    assert(*(5 in aa) == 4);
+    //assert((aa[3] = 7) == 7);
+    return 1;
+}
+
+int testPointer()
+{
+    auto x = [5 : 4];
+    auto aa = &x;
+    assert(aa.length == 1);
+    assert(aa.values == [4]);
+    assert(aa.keys == [5]);
+    // foreach(k, v; aa)
+        // assert(k == 5 && v == 4);
+    // foreach(v; aa)
+        // assert(v == 4);
+    assert(aa.dup == *aa);
+    assert(aa.dup);
+    if (!__ctfe)
+    foreach(k; aa.byKey)
+        assert(k == 5);
+    if (!__ctfe)
+    foreach(v; aa.byValue)
+        assert(v == 4);
+    if (!__ctfe)
+    assert(aa.rehash == *aa);
+    assert((*aa)[5] == 4);
+    assert(aa.get(5, 2) == 4);
+    assert(aa.get(1, 2) == 2);
+    // assert(*(5 in aa) == 4);
+    if (!__ctfe)
+    assert(((*aa)[3] = 7) == 7);
+    return 1;
+}
+
+int testPointerConst()
+{
+    const x = [5 : 4];
+    const aa = &x;
+    assert(aa.length == 1);
+    assert(aa.values == [4]);
+    assert(aa.keys == [5]);
+    // foreach(k, v; aa)
+        // assert(k == 5 && v == 4);
+    // foreach(v; aa)
+        // assert(v == 4);
+    // assert(aa.dup == *aa);
+    assert(aa.dup);
+    if (!__ctfe)
+    foreach(k; aa.byKey)
+        assert(k == 5);
+    if (!__ctfe)
+    foreach(v; aa.byValue)
+        assert(v == 4);
+    // assert(aa.rehash == aa);
+    assert((*aa)[5] == 4);
+    assert(aa.get(5, 2) == 4);
+    assert(aa.get(1, 2) == 2);
+    // assert(*(5 in aa) == 4);
+    // assert(((*aa)[3] = 7) == 7);
+    return 1;
+}
+
+int testPointerImmutable()
+{
+    immutable x = [5 : 4];
+    auto aa = &x;
+    assert(aa.length == 1);
+    assert(aa.values == [4]);
+    assert(aa.keys == [5]);
+    // foreach(k, v; aa)
+        // assert(k == 5 && v == 4);
+    // foreach(v; aa)
+        // assert(v == 4);
+    // assert(aa.dup == *aa);
+    assert(aa.dup);
+    if (!__ctfe)
+    foreach(k; aa.byKey)
+        assert(k == 5);
+    if (!__ctfe)
+    foreach(v; aa.byValue)
+        assert(v == 4);
+    // assert(aa.rehash == aa);
+    assert((*aa)[5] == 4);
+    assert(aa.get(5, 2) == 4);
+    assert(aa.get(1, 2) == 2);
+    // assert(*(5 in aa) == 4);
+    // assert(((*aa)[3] = 7) == 7);
     return 1;
 }
 
@@ -76,8 +220,10 @@ int testRefx(ref int[int] aa)
     if (!__ctfe)
     foreach(v; aa.byValue)
         assert(v == 4);
-    // assert(aa.rehash == aa);
+    assert(aa.rehash == aa);
     assert(aa[5] == 4);
+    assert(aa.get(5, 2) == 4);
+    assert(aa.get(1, 2) == 2);
     assert((aa[3] = 7) == 7);
     assert(*(5 in aa) == 4);
     return 1;
@@ -102,6 +248,8 @@ int testRet()
         assert(v == 4);
     assert(testRetx().rehash == testRetx());
     assert(testRetx()[5] == 4);
+    assert(testRetx().get(5, 2) == 4);
+    assert(testRetx().get(1, 2) == 2);
     //assert((testRetx()[3] = 7) == 7);
     assert(*(5 in testRetx()) == 4);
     return 1;
@@ -119,6 +267,16 @@ void main()
     static assert(testLiteral());
     assert(testVar());
     static assert(testVar());
+    assert(testVarConst());
+    static assert(testVarConst());
+    assert(testVarImmutable());
+    static assert(testVarImmutable());
+    assert(testPointer());
+    static assert(testPointer());
+    assert(testPointerConst());
+    static assert(testPointerConst());
+    assert(testPointerImmutable());
+    static assert(testPointerImmutable());
     assert(testRef());
     static assert(testRef());
     assert(testRet());
