@@ -248,7 +248,7 @@ void ClassDeclaration::toObjFile(int multiobj)
     //////////////////////////////////////////////
 
     // Put out the TypeInfo
-    type->getTypeInfo(NULL);
+    type->genTypeInfo(NULL);
     //type->vtinfo->toObjFile(multiobj);
 
     //////////////////////////////////////////////
@@ -657,7 +657,7 @@ void InterfaceDeclaration::toObjFile(int multiobj)
     //////////////////////////////////////////////
 
     // Put out the TypeInfo
-    type->getTypeInfo(NULL);
+    type->genTypeInfo(NULL);
     type->vtinfo->toObjFile(multiobj);
 
     //////////////////////////////////////////////
@@ -817,7 +817,7 @@ void StructDeclaration::toObjFile(int multiobj)
         if (global.params.symdebug)
             toDebug();
 
-        type->getTypeInfo(NULL);        // generate TypeInfo
+        type->genTypeInfo(NULL);
 
         if (1)
         {
@@ -985,7 +985,7 @@ void TypedefDeclaration::toObjFile(int multiobj)
     if (global.params.symdebug)
         toDebug();
 
-    type->getTypeInfo(NULL);    // generate TypeInfo
+    type->genTypeInfo(NULL);
 
     TypeTypedef *tc = (TypeTypedef *)type;
     if (type->isZeroInit() || !tc->sym->init)
@@ -1025,7 +1025,7 @@ void EnumDeclaration::toObjFile(int multiobj)
     if (global.params.symdebug)
         toDebug();
 
-    type->getTypeInfo(NULL);    // generate TypeInfo
+    type->genTypeInfo(NULL);
 
     TypeEnum *tc = (TypeEnum *)type;
     if (!tc->sym->members || type->isZeroInit())

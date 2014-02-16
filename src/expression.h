@@ -481,6 +481,7 @@ public:
     void toMangleBuffer(OutBuffer *buf);
     Expression *optimize(int result, bool keepLvalue = false);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
+    Expression *implicitCastTo(Scope *sc, Type *t);
     MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
     Expression *inferType(Type *t, int flag = 0, Scope *sc = NULL, TemplateParameters *tparams = NULL);

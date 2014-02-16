@@ -70,6 +70,79 @@ FuncDeclaration *search_toString(StructDeclaration *sd)
     return fd;
 }
 
+/***************************************
+ * Request additonal semantic analysis for TypeInfo generation.
+ */
+void semanticTypeInfo(Scope *sc, Type *t)
+{
+    class FullTypeInfoVisitor : public Visitor
+    {
+    public:
+        Scope *sc;
+
+        void visit(Type *t)
+        {
+            Type *tb = t->toBasetype();
+            if (tb != t)
+                tb->accept(this);
+        }
+        void visit(TypeNext *t)
+        {
+            if (t->next)
+                t->next->accept(this);
+        }
+        void visit(TypeBasic *t) { }
+        void visit(TypeVector *t)
+        {
+            t->basetype->accept(this);
+        }
+        void visit(TypeAArray *t)
+        {
+            t->index->accept(this);
+            visit((TypeNext *)t);
+        }
+        void visit(TypeFunction *t)
+        {
+            visit((TypeNext *)t);
+            // Currently TypeInfo_Function doesn't store parameter types.
+        }
+        void visit(TypeStruct *t)
+        {
+            Dsymbol *s;
+            StructDeclaration *sd = t->sym;
+            if (sd->members &&
+                (sd->xeq  && sd->xeq  != sd->xerreq  ||
+                 sd->xcmp && sd->xcmp != sd->xerrcmp ||
+                 (sd->postblit && !(sd->postblit->storage_class & STCdisable)) ||
+                 sd->dtor ||
+                 search_toHash(sd) ||
+                 search_toString(sd)
+                ) &&
+                sd->inNonRoot())
+            {
+                //printf("deferred sem3 for TypeInfo - sd = %s, inNonRoot = %d\n", sd->toChars(), sd->inNonRoot());
+                Module::addDeferredSemantic3(sd);
+            }
+        }
+        void visit(TypeClass *t) { }
+        void visit(TypeTuple *t)
+        {
+            if (t->arguments)
+            {
+                for (size_t i = 0; i < t->arguments->dim; i++)
+                {
+                    Type *tprm = (*t->arguments)[i]->type;
+                    if (tprm)
+                        tprm->accept(this);
+                }
+            }
+        }
+    };
+    FullTypeInfoVisitor v;
+    v.sc = sc;
+    t->accept(&v);
+}
+
 /********************************* AggregateDeclaration ****************************/
 
 AggregateDeclaration::AggregateDeclaration(Loc loc, Identifier *id)
@@ -742,7 +815,7 @@ void StructDeclaration::semantic(Scope *sc)
     //if ((xeq && xeq != xerreq || xcmp && xcmp != xerrcmp) && isImportedSym(this))
     //    Module::addDeferredSemantic3(this);
     /* Defer requesting semantic3 until TypeInfo generation is actually invoked.
-     * See Type::getTypeInfo().
+     * See semanticTypeInfo().
      */
     inv = buildInv(sc2);
 
