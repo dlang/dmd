@@ -9,7 +9,8 @@ struct S8 { bool opEquals(T : typeof(this))(T) { return false; } }
 struct S9 { bool opEquals(T : typeof(this))(T) { return false; } }
 
 struct S10 { bool opEquals(T : typeof(this))(T) { return false; } }
-struct S11 { int opCmp(T : typeof(this))(T) { return 0; } }
+struct S11 { bool opEquals(T : typeof(this))(T) { return false; }
+             int opCmp(T : typeof(this))(T) const { return 0; } }
 struct S12 { bool opEquals(T : typeof(this))(T) { return false; } }
 struct S13 { bool opEquals(T : typeof(this))(T) { return false; } }
 struct S14 { bool opEquals(T : typeof(this))(T) { return false; } }
