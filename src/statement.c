@@ -4524,6 +4524,7 @@ Statement *WithStatement::semantic(Scope *sc)
 
     if (body)
     {
+        sym->scope = sc;
         sc = sc->push(sym);
         sc->insert(sym);
         body = body->semantic(sc);
