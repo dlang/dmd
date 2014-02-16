@@ -1382,14 +1382,20 @@ Statement *ForeachStatement::semantic(Scope *sc)
             }
             Dsymbol *var;
             if (te)
-            {   Type *tb = e->type->toBasetype();
+            {
+                Type *tb = e->type->toBasetype();
                 Dsymbol *ds = NULL;
                 if ((tb->ty == Tfunction || tb->ty == Tsarray) && e->op == TOKvar)
                     ds = ((VarExp *)e)->var;
                 else if (e->op == TOKtemplate)
-                    ds =((TemplateExp *)e)->td;
+                    ds = ((TemplateExp *)e)->td;
                 else if (e->op == TOKimport)
-                    ds =((ScopeExp *)e)->sds;
+                    ds = ((ScopeExp *)e)->sds;
+                else if (e->op == TOKfunction)
+                {
+                    FuncExp *fe = (FuncExp *)e;
+                    ds = fe->td ? (Dsymbol *)fe->td : fe->fd;
+                }
 
                 if (ds)
                 {

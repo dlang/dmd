@@ -810,6 +810,34 @@ void test11291()
 }
 
 /***************************************/
+// 12103
+
+alias TypeTuple12103(TL...) = TL;
+
+alias Id12103(alias a) = a;
+
+void test12103()
+{
+    alias fs1 = TypeTuple12103!(() => 0, () => 1);
+    foreach (i, f; fs1)
+    {
+        static assert(f() == i);
+        static assert(Id12103!f() == i);
+        assert(f() == i);
+        assert(Id12103!f() == i);
+    }
+
+    alias fs2 = TypeTuple12103!(x=>x+0, y=>y+1);
+    foreach (i, f; fs2)
+    {
+        static assert(f(0) == i);
+        static assert(Id12103!f(0) == i);
+        assert(f(0) == i);
+        assert(Id12103!f(0) == i);
+    }
+}
+
+/***************************************/
 
 int main()
 {
@@ -834,6 +862,7 @@ int main()
     test10475a();
     test10475b();
     test11291();
+    test12103();
 
     printf("Success\n");
     return 0;
