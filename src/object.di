@@ -384,8 +384,8 @@ Value[Key] rehash(T : Value[Key], Value, Key)(auto ref T aa)
 
 Value[Key] rehash(T : Value[Key], Value, Key)(T* aa)
 {
-    __aaRehash(cast(void**)aa, typeid(Value[Key]));
-    return aa;
+    _aaRehash(cast(void**)aa, typeid(Value[Key]));
+    return *aa;
 }
 
 Value[Key] dup(T : Value[Key], Value, Key)(T aa) if (is(typeof({
