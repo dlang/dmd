@@ -160,6 +160,16 @@ void test12070()
 }
 
 /**************************************/
+// 12124
+
+struct S12124
+{
+    this(int) {}
+    S12124 opCall()() { static assert(0); }
+    // speculative opCall instantiation for diagnostic message should not cause false errors
+}
+
+/**************************************/
 
 void main()
 {

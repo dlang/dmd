@@ -826,6 +826,29 @@ void StructDeclaration::semantic(Scope *sc)
     aggNew =       (NewDeclaration *)search(Loc(), Id::classNew);
     aggDelete = (DeleteDeclaration *)search(Loc(), Id::classDelete);
 
+    if (ctor)
+    {
+        Dsymbol *scall = search(Loc(), Id::call);
+        if (scall)
+        {
+            unsigned errors = global.startGagging();
+            unsigned oldspec = global.speculativeGag;
+            global.speculativeGag = global.gag;
+            sc = sc->push();
+            sc->speculative = true;
+            FuncDeclaration *fcall = resolveFuncCall(loc, sc, scall, NULL, NULL, NULL, 1);
+            sc = sc->pop();
+            global.speculativeGag = oldspec;
+            global.endGagging(errors);
+
+            if (fcall && fcall->isStatic())
+            {
+                error(fcall->loc, "static opCall is hidden by constructors and can never be called");
+                errorSupplemental(fcall->loc, "Please use a factory method instead, or replace all constructors with static opCall.");
+            }
+        }
+    }
+
     TypeTuple *tup = toArgTypes(type);
     size_t dim = tup->arguments->dim;
     if (dim >= 1)
