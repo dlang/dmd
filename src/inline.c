@@ -31,6 +31,7 @@
 static Expression *expandInline(FuncDeclaration *fd, FuncDeclaration *parent,
     Expression *eret, Expression *ethis, Expressions *arguments, Statement **ps);
 bool walkPostorder(Expression *e, StoppableVisitor *v);
+int canInline(FuncDeclaration *fd, int hasthis, int hdrscan, int statementsToo);
 
 /* ========== Compute cost of inlining =============== */
 
@@ -1096,7 +1097,7 @@ public:
                     VarExp *ve = (VarExp *)ce->e1;
                     FuncDeclaration *fd = ve->var->isFuncDeclaration();
 
-                    if (fd && fd != parent && fd->canInline(0, 0, 1))
+                    if (fd && fd != parent && canInline(fd, 0, 0, 1))
                     {
                         expandInline(fd, parent, NULL, NULL, ce->arguments, &result);
                     }
@@ -1384,7 +1385,7 @@ public:
             VarExp *ve = (VarExp *)e->e1;
             FuncDeclaration *fd = ve->var->isFuncDeclaration();
 
-            if (fd && fd != parent && fd->canInline(0, 0, 0))
+            if (fd && fd != parent && canInline(fd, 0, 0, 0))
             {
                 Expression *ex = expandInline(fd, parent, eret, NULL, e->arguments, NULL);
                 if (ex)
@@ -1396,7 +1397,7 @@ public:
             DotVarExp *dve = (DotVarExp *)e->e1;
             FuncDeclaration *fd = dve->var->isFuncDeclaration();
 
-            if (fd && fd != parent && fd->canInline(1, 0, 0))
+            if (fd && fd != parent && canInline(fd, 1, 0, 0))
             {
                 if (dve->e1->op == TOKcall &&
                     dve->e1->type->toBasetype()->ty == Tstruct)
@@ -1583,39 +1584,38 @@ void inlineScan(Module *m)
     m->semanticRun = PASSinlinedone;
 }
 
-int FuncDeclaration::canInline(int hasthis, int hdrscan, int statementsToo)
+int canInline(FuncDeclaration *fd, int hasthis, int hdrscan, int statementsToo)
 {
     int cost;
 
 #define CANINLINE_LOG 0
 
 #if CANINLINE_LOG
-    printf("FuncDeclaration::canInline(hasthis = %d, statementsToo = %d, '%s')\n", hasthis, statementsToo, toPrettyChars());
+    printf("FuncDeclaration::canInline(hasthis = %d, statementsToo = %d, '%s')\n", hasthis, statementsToo, fd->toPrettyChars());
 #endif
 
-    if (needThis() && !hasthis)
+    if (fd->needThis() && !hasthis)
         return 0;
 
-    if (inlineNest || (semanticRun < PASSsemantic3 && !hdrscan))
+    if (fd->inlineNest || (fd->semanticRun < PASSsemantic3 && !hdrscan))
     {
 #if CANINLINE_LOG
-        printf("\t1: no, inlineNest = %d, semanticRun = %d\n", inlineNest, semanticRun);
+        printf("\t1: no, inlineNest = %d, semanticRun = %d\n", fd->inlineNest, fd->semanticRun);
 #endif
         return 0;
     }
 
-#if 1
-    switch (statementsToo ? inlineStatusStmt : inlineStatusExp)
+    switch (statementsToo ? fd->inlineStatusStmt : fd->inlineStatusExp)
     {
         case ILSyes:
 #if CANINLINE_LOG
-            printf("\t1: yes %s\n", toChars());
+            printf("\t1: yes %s\n", fd->toChars());
 #endif
             return 1;
 
         case ILSno:
 #if CANINLINE_LOG
-            printf("\t1: no %s\n", toChars());
+            printf("\t1: no %s\n", fd->toChars());
 #endif
             return 0;
 
@@ -1625,11 +1625,11 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan, int statementsToo)
         default:
             assert(0);
     }
-#endif
 
-    if (type)
-    {   assert(type->ty == Tfunction);
-        TypeFunction *tf = (TypeFunction *)type;
+    if (fd->type)
+    {
+        assert(fd->type->ty == Tfunction);
+        TypeFunction *tf = (TypeFunction *)fd->type;
         if (tf->varargs == 1)   // no variadic parameter lists
             goto Lno;
 
@@ -1638,7 +1638,7 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan, int statementsToo)
          * No statement inlining for non-voids.
          */
         if (tf->next && tf->next->ty != Tvoid &&
-            (!(hasReturnExp & 1) || statementsToo) &&
+            (!(fd->hasReturnExp & 1) || statementsToo) &&
             !hdrscan)
             goto Lno;
     }
@@ -1647,48 +1647,32 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan, int statementsToo)
     //      return;
     // to:
     //      return this;
-    if (
-        !fbody ||
-        ident == Id::ensure ||  // ensure() has magic properties the inliner loses
-        (ident == Id::require &&             // require() has magic properties too
-         toParent()->isFuncDeclaration() &&  // see bug 7699
-         toParent()->isFuncDeclaration()->needThis()) ||
+    if (!fd->fbody ||
+        fd->ident == Id::ensure ||  // ensure() has magic properties the inliner loses
+        (fd->ident == Id::require &&             // require() has magic properties too
+         fd->toParent()->isFuncDeclaration() &&  // see bug 7699
+         fd->toParent()->isFuncDeclaration()->needThis()) ||
         !hdrscan &&
         (
-        isSynchronized() ||
-        isImportedSymbol() ||
-        hasNestedFrameRefs() ||      // no nested references to this frame
-        (isVirtual() && !isFinalFunc())
+        fd->isSynchronized() ||
+        fd->isImportedSymbol() ||
+        fd->hasNestedFrameRefs() ||      // no nested references to this frame
+        (fd->isVirtual() && !fd->isFinalFunc())
        ))
     {
         goto Lno;
     }
 
-#if 0
-    /* If any parameters are Tsarray's (which are passed by reference)
-     * or out parameters (also passed by reference), don't do inlining.
-     */
-    if (parameters)
-    {
-        for (size_t i = 0; i < parameters->dim; i++)
-        {
-            VarDeclaration *v = (*parameters)[i];
-            if (v->type->toBasetype()->ty == Tsarray)
-                goto Lno;
-        }
-    }
-#endif
-
     {
         InlineCostVisitor icv;
         icv.hasthis = hasthis;
-        icv.fd = this;
+        icv.fd = fd;
         icv.hdrscan = hdrscan;
-        fbody->accept(&icv);
+        fd->fbody->accept(&icv);
         cost = icv.cost;
     }
 #if CANINLINE_LOG
-    printf("cost = %d for %s\n", cost, toChars());
+    printf("cost = %d for %s\n", cost, fd->toChars());
 #endif
     if (tooCostly(cost))
         goto Lno;
@@ -1699,24 +1683,24 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan, int statementsToo)
     {
         // Don't modify inlineStatus for header content scan
         if (statementsToo)
-            inlineStatusStmt = ILSyes;
+            fd->inlineStatusStmt = ILSyes;
         else
-            inlineStatusExp = ILSyes;
+            fd->inlineStatusExp = ILSyes;
 
         InlineScanVisitor v;
-        accept(&v);      // Don't scan recursively for header content scan
+        fd->accept(&v);      // Don't scan recursively for header content scan
 
-        if (inlineStatusExp == ILSuninitialized)
+        if (fd->inlineStatusExp == ILSuninitialized)
         {
             // Need to redo cost computation, as some statements or expressions have been inlined
             InlineCostVisitor icv;
             icv.hasthis = hasthis;
-            icv.fd = this;
+            icv.fd = fd;
             icv.hdrscan = hdrscan;
-            fbody->accept(&icv);
+            fd->fbody->accept(&icv);
             cost = icv.cost;
         #if CANINLINE_LOG
-            printf("recomputed cost = %d for %s\n", cost, toChars());
+            printf("recomputed cost = %d for %s\n", cost, fd->toChars());
         #endif
             if (tooCostly(cost))
                 goto Lno;
@@ -1724,25 +1708,26 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan, int statementsToo)
                 goto Lno;
 
             if (statementsToo)
-                inlineStatusStmt = ILSyes;
+                fd->inlineStatusStmt = ILSyes;
             else
-                inlineStatusExp = ILSyes;
+                fd->inlineStatusExp = ILSyes;
         }
     }
 #if CANINLINE_LOG
-    printf("\t2: yes %s\n", toChars());
+    printf("\t2: yes %s\n", fd->toChars());
 #endif
     return 1;
 
 Lno:
     if (!hdrscan)    // Don't modify inlineStatus for header content scan
-    {   if (statementsToo)
-            inlineStatusStmt = ILSno;
+    {
+        if (statementsToo)
+            fd->inlineStatusStmt = ILSno;
         else
-            inlineStatusExp = ILSno;
+            fd->inlineStatusExp = ILSno;
     }
 #if CANINLINE_LOG
-    printf("\t2: no %s\n", toChars());
+    printf("\t2: no %s\n", fd->toChars());
 #endif
     return 0;
 }
