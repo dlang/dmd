@@ -851,36 +851,6 @@ void FuncDeclaration::toObjFile(int multiobj)
     assert(0);
 }
 
-unsigned Type::totym()
-{
-    assert(0);
-    return 0;
-}
-
-unsigned TypeFunction::totym()
-{
-    assert(0);
-    return 0;
-}
-
-Symbol *Type::toSymbol()
-{
-    assert(0);
-    return NULL;
-}
-
-Symbol *TypeClass::toSymbol()
-{
-    assert(0);
-    return NULL;
-}
-
-elem *Module::toEfilename()
-{
-    assert(0);
-    return NULL;
-}
-
 // msc
 
 void backend_init()

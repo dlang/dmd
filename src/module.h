@@ -167,9 +167,6 @@ public:
     Symbol *marray;             // module array bounds function
     Symbol *toModuleArray();    // get module array bounds function
 
-
-    elem *toEfilename();
-
     Symbol *toSymbol();
     void genmoduleinfo();
 

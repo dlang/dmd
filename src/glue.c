@@ -42,6 +42,7 @@ void clearStringTab();
 
 elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
 void Statement_toIR(Statement *s, IRState *irs);
+elem *toEfilename(Module *m);
 
 #define STATICCTOR      0
 
@@ -422,7 +423,7 @@ void Module::genobjfile(int multiobj)
                       el_long(TYuchar, global.params.covPercent),
                       ecov,
                       ebcov,
-                      toEfilename(),
+                      toEfilename(this),
                       NULL);
         e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_DCOVER2]), e);
         eictor = el_combine(e, eictor);
@@ -1331,10 +1332,10 @@ bool onlyOneMain(Loc loc)
  * Return back end type corresponding to D front end type.
  */
 
-unsigned Type::totym()
-{   unsigned t;
-
-    switch (ty)
+unsigned totym(Type *tx)
+{
+    unsigned t;
+    switch (tx->ty)
     {
         case Tvoid:     t = TYvoid;     break;
         case Tint8:     t = TYschar;    break;
@@ -1361,8 +1362,8 @@ unsigned Type::totym()
         case Tdchar:    t = TYdchar;    break;
 #else
         case Tdchar:
-                t = (global.params.symdebug == 1) ? TYdchar : TYulong;
-                break;
+            t = (global.params.symdebug == 1) ? TYdchar : TYulong;
+            break;
 #endif
 
         case Taarray:   t = TYaarray;   break;
@@ -1376,15 +1377,15 @@ unsigned Type::totym()
 
         case Tenum:
         case Ttypedef:
-             t = toBasetype()->totym();
-             break;
+            t = totym(tx->toBasetype());
+            break;
 
         case Tident:
         case Ttypeof:
 #ifdef DEBUG
-            printf("ty = %d, '%s'\n", ty, toChars());
+            printf("ty = %d, '%s'\n", tx->ty, tx->toChars());
 #endif
-            error(Loc(), "forward reference of %s", toChars());
+            error(Loc(), "forward reference of %s", tx->toChars());
             t = TYint;
             break;
 
@@ -1393,10 +1394,12 @@ unsigned Type::totym()
             break;
 
         case Tvector:
-        {   TypeVector *tv = (TypeVector *)this;
+        {
+            TypeVector *tv = (TypeVector *)tx;
             TypeBasic *tb = tv->elementType();
             switch (tb->ty)
-            {   case Tvoid:
+            {
+                case Tvoid:
                 case Tint8:     t = TYschar16;  break;
                 case Tuns8:     t = TYuchar16;  break;
                 case Tint16:    t = TYshort8;   break;
@@ -1417,27 +1420,63 @@ unsigned Type::totym()
                 if (global.params.is64bit || global.params.isOSX)
                     ;
                 else
-                {   error(Loc(), "SIMD vector types not supported on this platform");
+                {
+                    error(Loc(), "SIMD vector types not supported on this platform");
                     once = true;
                 }
                 if (tv->size(Loc()) == 32)
-                {   error(Loc(), "AVX vector types not supported");
+                {
+                    error(Loc(), "AVX vector types not supported");
                     once = true;
                 }
             }
             break;
         }
 
+        case Tfunction:
+        {
+            TypeFunction *tf = (TypeFunction *)tx;
+            switch (tf->linkage)
+            {
+                case LINKwindows:
+                    t = (tf->varargs == 1) ? TYnfunc : TYnsfunc;
+                    break;
+
+                case LINKpascal:
+                    t = (tf->varargs == 1) ? TYnfunc : TYnpfunc;
+                    break;
+
+                case LINKc:
+                case LINKcpp:
+                    t = TYnfunc;
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+                    if (I32 && tf->retStyle() == RETstack)
+                        t = TYhfunc;
+#endif
+                    break;
+
+                case LINKd:
+                    t = (tf->varargs == 1) ? TYnfunc : TYjfunc;
+                    break;
+
+                default:
+                    printf("linkage = %d\n", tf->linkage);
+                    assert(0);
+            }
+            if (tf->isnothrow)
+                t |= mTYnothrow;
+            return t;
+        }
         default:
 #ifdef DEBUG
-            printf("ty = %d, '%s'\n", ty, toChars());
+            printf("ty = %d, '%s'\n", tx->ty, tx->toChars());
             halt();
 #endif
             assert(0);
     }
 
     // Add modifiers
-    switch (mod)
+    switch (tx->mod)
     {
         case 0:
             break;
@@ -1464,80 +1503,42 @@ unsigned Type::totym()
     return t;
 }
 
-unsigned TypeFunction::totym()
-{
-    tym_t tyf;
-
-    //printf("TypeFunction::totym(), linkage = %d\n", linkage);
-    switch (linkage)
-    {
-        case LINKwindows:
-            tyf = (varargs == 1) ? TYnfunc : TYnsfunc;
-            break;
-
-        case LINKpascal:
-            tyf = (varargs == 1) ? TYnfunc : TYnpfunc;
-            break;
-
-        case LINKc:
-        case LINKcpp:
-            tyf = TYnfunc;
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-            if (I32 && retStyle() == RETstack)
-                tyf = TYhfunc;
-#endif
-            break;
-
-        case LINKd:
-            tyf = (varargs == 1) ? TYnfunc : TYjfunc;
-            break;
-
-        default:
-            printf("linkage = %d\n", linkage);
-            assert(0);
-    }
-    if (isnothrow)
-        tyf |= mTYnothrow;
-    return tyf;
-}
-
 /**************************************
  */
 
-Symbol *Type::toSymbol()
+Symbol *toSymbol(Type *t)
 {
+    if (t->ty == Tclass)
+    {
+        return ((TypeClass *)t)->sym->toSymbol();
+    }
     assert(0);
     return NULL;
-}
-
-Symbol *TypeClass::toSymbol()
-{
-    return sym->toSymbol();
 }
 
 /**************************************
  * Generate elem that is a pointer to the module file name.
  */
 
-elem *Module::toEfilename()
-{   elem *efilename;
-
-    if (!sfilename)
+elem *toEfilename(Module *m)
+{
+    elem *efilename;
+    if (!m->sfilename)
     {
         dt_t *dt = NULL;
-        char *id = srcfile->toChars();
+        char *id = m->srcfile->toChars();
         size_t len = strlen(id);
         dtsize_t(&dt, len);
         dtabytes(&dt,TYnptr, 0, len + 1, id);
 
-        sfilename = symbol_generate(SCstatic,type_fake(TYdarray));
-        sfilename->Sdt = dt;
-        sfilename->Sfl = FLdata;
-        out_readonly(sfilename);
-        outdata(sfilename);
+        m->sfilename = symbol_generate(SCstatic,type_fake(TYdarray));
+        m->sfilename->Sdt = dt;
+        m->sfilename->Sfl = FLdata;
+        out_readonly(m->sfilename);
+        outdata(m->sfilename);
     }
 
-    efilename = (config.exe == EX_WIN64) ? el_ptr(sfilename) : el_var(sfilename);
+    efilename = (config.exe == EX_WIN64) ? el_ptr(m->sfilename) : el_var(m->sfilename);
     return efilename;
 }
 

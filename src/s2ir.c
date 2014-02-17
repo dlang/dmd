@@ -45,6 +45,8 @@ elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
 Blocks *Blocks_create();
 type *Type_toCtype(Type *t);
 elem *toElemDtor(Expression *e, IRState *irs);
+Symbol *toSymbol(Type *t);
+unsigned totym(Type *tx);
 
 #define elem_setLoc(e,loc)      ((e)->Esrcpos.Sfilename = (char *)(loc).filename, \
                                  (e)->Esrcpos.Slinnum = (loc).linnum, \
@@ -1027,7 +1029,7 @@ public:
                 cs->var->csym = tryblock->jcatchvar;
             block *bcatch = blx->curblock;
             if (cs->type)
-                bcatch->Bcatchtype = cs->type->toBasetype()->toSymbol();
+                bcatch->Bcatchtype = toSymbol(cs->type->toBasetype());
             tryblock->appendSucc(bcatch);
             block_goto(blx, BCjcatch, NULL);
             if (cs->handler != NULL)
@@ -1039,7 +1041,7 @@ public:
                  */
                 if (cs->var && cs->var->offset)
                 {
-                    tym_t tym = cs->var->type->totym();
+                    tym_t tym = totym(cs->var->type);
                     elem *ex = el_var(irs->sclosure);
                     ex = el_bin(OPadd, TYnptr, ex, el_long(TYsize_t, cs->var->offset));
                     ex = el_una(OPind, tym, ex);

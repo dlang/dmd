@@ -347,10 +347,6 @@ public:
     static void error(Loc loc, const char *format, ...);
     static void warning(Loc loc, const char *format, ...);
 
-    // For backend
-    virtual unsigned totym();
-    virtual Symbol *toSymbol();
-
     // For eliminating dynamic_cast
     virtual TypeBasic *isTypeBasic();
     virtual void accept(Visitor *v) { v->visit(this); }
@@ -651,8 +647,6 @@ public:
     MATCH callMatch(Type *tthis, Expressions *toargs, int flag = 0);
     RET retStyle();
 
-    unsigned totym();
-
     Expression *defaultInit(Loc loc);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -927,7 +921,6 @@ public:
     int hasPointers();
     int builtinTypeInfo();
 
-    Symbol *toSymbol();
     void accept(Visitor *v) { v->visit(this); }
 };
 
