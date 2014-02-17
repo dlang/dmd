@@ -851,12 +851,6 @@ void FuncDeclaration::toObjFile(int multiobj)
     assert(0);
 }
 
-elem *Module::toEfilename()
-{
-    assert(0);
-    return NULL;
-}
-
 // msc
 
 void backend_init()

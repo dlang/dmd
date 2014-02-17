@@ -42,6 +42,7 @@ void clearStringTab();
 
 elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
 void Statement_toIR(Statement *s, IRState *irs);
+elem *toEfilename(Module *m);
 
 #define STATICCTOR      0
 
@@ -422,7 +423,7 @@ void Module::genobjfile(int multiobj)
                       el_long(TYuchar, global.params.covPercent),
                       ecov,
                       ebcov,
-                      toEfilename(),
+                      toEfilename(this),
                       NULL);
         e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_DCOVER2]), e);
         eictor = el_combine(e, eictor);
@@ -1519,25 +1520,25 @@ Symbol *toSymbol(Type *t)
  * Generate elem that is a pointer to the module file name.
  */
 
-elem *Module::toEfilename()
-{   elem *efilename;
-
-    if (!sfilename)
+elem *toEfilename(Module *m)
+{
+    elem *efilename;
+    if (!m->sfilename)
     {
         dt_t *dt = NULL;
-        char *id = srcfile->toChars();
+        char *id = m->srcfile->toChars();
         size_t len = strlen(id);
         dtsize_t(&dt, len);
         dtabytes(&dt,TYnptr, 0, len + 1, id);
 
-        sfilename = symbol_generate(SCstatic,type_fake(TYdarray));
-        sfilename->Sdt = dt;
-        sfilename->Sfl = FLdata;
-        out_readonly(sfilename);
-        outdata(sfilename);
+        m->sfilename = symbol_generate(SCstatic,type_fake(TYdarray));
+        m->sfilename->Sdt = dt;
+        m->sfilename->Sfl = FLdata;
+        out_readonly(m->sfilename);
+        outdata(m->sfilename);
     }
 
-    efilename = (config.exe == EX_WIN64) ? el_ptr(sfilename) : el_var(sfilename);
+    efilename = (config.exe == EX_WIN64) ? el_ptr(m->sfilename) : el_var(m->sfilename);
     return efilename;
 }
 
