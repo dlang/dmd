@@ -349,7 +349,6 @@ public:
 
     // For backend
     virtual unsigned totym();
-    virtual Symbol *toSymbol();
 
     // For eliminating dynamic_cast
     virtual TypeBasic *isTypeBasic();
@@ -927,7 +926,6 @@ public:
     int hasPointers();
     int builtinTypeInfo();
 
-    Symbol *toSymbol();
     void accept(Visitor *v) { v->visit(this); }
 };
 

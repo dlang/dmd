@@ -863,18 +863,6 @@ unsigned TypeFunction::totym()
     return 0;
 }
 
-Symbol *Type::toSymbol()
-{
-    assert(0);
-    return NULL;
-}
-
-Symbol *TypeClass::toSymbol()
-{
-    assert(0);
-    return NULL;
-}
-
 elem *Module::toEfilename()
 {
     assert(0);

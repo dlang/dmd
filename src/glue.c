@@ -1504,15 +1504,14 @@ unsigned TypeFunction::totym()
 /**************************************
  */
 
-Symbol *Type::toSymbol()
+Symbol *toSymbol(Type *t)
 {
+    if (t->ty == Tclass)
+    {
+        return ((TypeClass *)t)->sym->toSymbol();
+    }
     assert(0);
     return NULL;
-}
-
-Symbol *TypeClass::toSymbol()
-{
-    return sym->toSymbol();
 }
 
 /**************************************

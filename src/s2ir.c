@@ -45,6 +45,7 @@ elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
 Blocks *Blocks_create();
 type *Type_toCtype(Type *t);
 elem *toElemDtor(Expression *e, IRState *irs);
+Symbol *toSymbol(Type *t);
 
 #define elem_setLoc(e,loc)      ((e)->Esrcpos.Sfilename = (char *)(loc).filename, \
                                  (e)->Esrcpos.Slinnum = (loc).linnum, \
@@ -1027,7 +1028,7 @@ public:
                 cs->var->csym = tryblock->jcatchvar;
             block *bcatch = blx->curblock;
             if (cs->type)
-                bcatch->Bcatchtype = cs->type->toBasetype()->toSymbol();
+                bcatch->Bcatchtype = toSymbol(cs->type->toBasetype());
             tryblock->appendSucc(bcatch);
             block_goto(blx, BCjcatch, NULL);
             if (cs->handler != NULL)
