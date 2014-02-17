@@ -50,6 +50,7 @@ bool ISREF(Declaration *var, Type *tb);
 bool ISWIN64REF(Declaration *var);
 
 type *Type_toCtype(Type *t);
+unsigned totym(Type *tx);
 
 /*********************************************
  * Produce elem which increments the usage count for a particular line.
@@ -716,7 +717,7 @@ void FuncDeclaration::buildClosure(IRState *irs)
 
             if (!v->isParameter())
                 continue;
-            tym_t tym = v->type->totym();
+            tym_t tym = totym(v->type);
             bool win64ref = ISWIN64REF(v);
             if (win64ref)
             {

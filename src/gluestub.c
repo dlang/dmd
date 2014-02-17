@@ -851,18 +851,6 @@ void FuncDeclaration::toObjFile(int multiobj)
     assert(0);
 }
 
-unsigned Type::totym()
-{
-    assert(0);
-    return 0;
-}
-
-unsigned TypeFunction::totym()
-{
-    assert(0);
-    return 0;
-}
-
 elem *Module::toEfilename()
 {
     assert(0);

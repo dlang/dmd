@@ -26,7 +26,7 @@
 
 void slist_add(Symbol *s);
 void slist_reset();
-
+unsigned totym(Type *tx);
 
 /***************************************
  * Convert from D type to C type.
@@ -42,7 +42,7 @@ public:
 
     void visit(Type *t)
     {
-        t->ctype = type_fake(t->totym());
+        t->ctype = type_fake(totym(t));
         t->ctype->Tcount++;
     }
 
@@ -86,7 +86,7 @@ public:
             ptypes[i] = tp;
         }
 
-        t->ctype = type_function(t->totym(), ptypes, nparams, t->varargs == 1, Type_toCtype(t->next));
+        t->ctype = type_function(totym(t), ptypes, nparams, t->varargs == 1, Type_toCtype(t->next));
 
         if (nparams > 10)
             free(ptypes);
