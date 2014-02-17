@@ -831,7 +831,7 @@ void StructDeclaration::semantic(Scope *sc)
         Dsymbol *scall = search(Loc(), Id::call);
         if (scall)
         {
-            unsigned errors = global.startGagging();
+            unsigned xerrors = global.startGagging();
             unsigned oldspec = global.speculativeGag;
             global.speculativeGag = global.gag;
             sc = sc->push();
@@ -839,7 +839,7 @@ void StructDeclaration::semantic(Scope *sc)
             FuncDeclaration *fcall = resolveFuncCall(loc, sc, scall, NULL, NULL, NULL, 1);
             sc = sc->pop();
             global.speculativeGag = oldspec;
-            global.endGagging(errors);
+            global.endGagging(xerrors);
 
             if (fcall && fcall->isStatic())
             {
