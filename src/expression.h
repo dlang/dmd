@@ -105,6 +105,7 @@ Expression *castTo(Expression *e, Scope *sc, Type *t);
 void toCBuffer(Expression *e, OutBuffer *buf, HdrGenState *hgs);
 Expression *ctfeInterpret(Expression *);
 Expression *inlineCopy(Expression *e, Scope *sc);
+Expression *op_overload(Expression *e, Scope *sc);
 
 /* Run CTFE on the expression, but allow the expression to be a TypeExp
  * or a tuple containing a TypeExp. (This is required by pragma(msg)).
@@ -221,6 +222,10 @@ public:
 
     int isConst() { return ::isConst(this); }
     virtual int isBool(int result);
+    Expression *op_overload(Scope *sc)
+    {
+        return ::op_overload(this, sc);
+    }
 
     // Back end
     elem *toElem(IRState *irs) { return ::toElem(this, irs); }
@@ -756,7 +761,6 @@ public:
     Expression *semantic(Scope *sc);
     Expression *resolveLoc(Loc loc, Scope *sc);
 
-    virtual Expression *op_overload(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -782,8 +786,6 @@ public:
     int isunsigned();
     Expression *incompatibleTypes();
 
-    Expression *op_overload(Scope *sc);
-    Expression *compare_overload(Scope *sc, Identifier *id);
     Expression *reorderSettingAAElem(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
@@ -798,8 +800,6 @@ public:
     }
 
     Expression *semantic(Scope *sc);
-
-    Expression *op_overload(Scope *sc);
 
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *ex);
@@ -1022,8 +1022,6 @@ public:
     Expression *semantic(Scope *sc);
     void checkEscape();
 
-    // For operator overloading
-    Expression *op_overload(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -1085,9 +1083,6 @@ public:
     Expression *semantic(Scope *sc);
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
-
-    // For operator overloading
-    Expression *op_overload(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1409,9 +1404,6 @@ public:
     CmpExp(TOK op, Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
 
-    // For operator overloading
-    Expression *op_overload(Scope *sc);
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -1438,9 +1430,6 @@ class EqualExp : public BinExp
 public:
     EqualExp(TOK op, Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
-
-    // For operator overloading
-    Expression *op_overload(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
 };
