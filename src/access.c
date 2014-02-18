@@ -32,26 +32,25 @@
 /* Code to do access checks
  */
 
-int hasPackageAccess(Scope *sc, Dsymbol *s);
+bool hasPackageAccess(Scope *sc, Dsymbol *s);
+bool hasPrivateAccess(AggregateDeclaration *ad, Dsymbol *smember);
+bool isFriendOf(AggregateDeclaration *ad, AggregateDeclaration *cd);
 
 /****************************************
  * Return PROT access for Dsymbol smember in this declaration.
  */
 
-PROT AggregateDeclaration::getAccess(Dsymbol *smember)
-{
-    return PROTpublic;
-}
-
-PROT StructDeclaration::getAccess(Dsymbol *smember)
+PROT getAccess(AggregateDeclaration *ad, Dsymbol *smember)
 {
     PROT access_ret = PROTnone;
 
 #if LOG
-    printf("+StructDeclaration::getAccess(this = '%s', smember = '%s')\n",
-        toChars(), smember->toChars());
+    printf("+AggregateDeclaration::getAccess(this = '%s', smember = '%s')\n",
+        ad->toChars(), smember->toChars());
 #endif
-    if (smember->toParent() == this)
+
+    assert(ad->isStructDeclaration() || ad->isClassDeclaration());
+    if (smember->toParent() == ad)
     {
         access_ret = smember->prot();
     }
@@ -59,32 +58,13 @@ PROT StructDeclaration::getAccess(Dsymbol *smember)
     {
         access_ret = smember->prot();
     }
-    return access_ret;
-}
-
-PROT ClassDeclaration::getAccess(Dsymbol *smember)
-{
-    PROT access_ret = PROTnone;
-
-#if LOG
-    printf("+ClassDeclaration::getAccess(this = '%s', smember = '%s')\n",
-        toChars(), smember->toChars());
-#endif
-    if (smember->toParent() == this)
+    if (ClassDeclaration *cd = ad->isClassDeclaration())
     {
-        access_ret = smember->prot();
-    }
-    else
-    {
-        if (smember->isDeclaration()->isStatic())
+        for (size_t i = 0; i < cd->baseclasses->dim; i++)
         {
-            access_ret = smember->prot();
-        }
+            BaseClass *b = (*cd->baseclasses)[i];
 
-        for (size_t i = 0; i < baseclasses->dim; i++)
-        {   BaseClass *b = (*baseclasses)[i];
-
-            PROT access = b->base->getAccess(smember);
+            PROT access = getAccess(b->base, smember);
             switch (access)
             {
                 case PROTnone:
@@ -112,9 +92,10 @@ PROT ClassDeclaration::getAccess(Dsymbol *smember)
             }
         }
     }
+
 #if LOG
-    printf("-ClassDeclaration::getAccess(this = '%s', smember = '%s') = %d\n",
-        toChars(), smember->toChars(), access_ret);
+    printf("-AggregateDeclaration::getAccess(this = '%s', smember = '%s') = %d\n",
+        ad->toChars(), smember->toChars(), access_ret);
 #endif
     return access_ret;
 }
@@ -140,8 +121,8 @@ static int accessCheckX(
         sfunc ? sfunc->toChars() : "NULL",
         cdscope ? cdscope->toChars() : "NULL");
 #endif
-    if (dthis->hasPrivateAccess(sfunc) ||
-        dthis->isFriendOf(cdscope))
+    if (hasPrivateAccess(dthis, sfunc) ||
+        isFriendOf(dthis, cdscope))
     {
         if (smember->toParent() == dthis)
             return 1;
@@ -152,7 +133,7 @@ static int accessCheckX(
             {
                 for (size_t i = 0; i < cdthis->baseclasses->dim; i++)
                 {   BaseClass *b = (*cdthis->baseclasses)[i];
-                    PROT access = b->base->getAccess(smember);
+                    PROT access = getAccess(b->base, smember);
                     if (access >= PROTprotected ||
                         accessCheckX(smember, sfunc, b->base, cdscope)
                        )
@@ -186,7 +167,7 @@ static int accessCheckX(
  * type of the 'this' pointer used to access smember.
  */
 
-void AggregateDeclaration::accessCheck(Loc loc, Scope *sc, Dsymbol *smember)
+void accessCheck(AggregateDeclaration *ad, Loc loc, Scope *sc, Dsymbol *smember)
 {
     int result;
 
@@ -196,7 +177,7 @@ void AggregateDeclaration::accessCheck(Loc loc, Scope *sc, Dsymbol *smember)
 
 #if LOG
     printf("AggregateDeclaration::accessCheck() for %s.%s in function %s() in scope %s\n",
-        toChars(), smember->toChars(),
+        ad->toChars(), smember->toChars(),
         f ? f->toChars() : NULL,
         cdscope ? cdscope->toChars() : NULL);
 #endif
@@ -213,26 +194,26 @@ void AggregateDeclaration::accessCheck(Loc loc, Scope *sc, Dsymbol *smember)
     // BUG: should enable this check
     //assert(smember->parent->isBaseOf(this, NULL));
 
-    if (smemberparent == this)
-    {   PROT access2 = smember->prot();
-
+    if (smemberparent == ad)
+    {
+        PROT access2 = smember->prot();
         result = access2 >= PROTpublic ||
-                hasPrivateAccess(f) ||
-                isFriendOf(cdscope) ||
-                (access2 == PROTpackage && hasPackageAccess(sc, this)) ||
-                getAccessModule() == sc->module;
+                hasPrivateAccess(ad, f) ||
+                isFriendOf(ad, cdscope) ||
+                (access2 == PROTpackage && hasPackageAccess(sc, ad)) ||
+                ad->getAccessModule() == sc->module;
 #if LOG
         printf("result1 = %d\n", result);
 #endif
     }
-    else if ((access = this->getAccess(smember)) >= PROTpublic)
+    else if ((access = getAccess(ad, smember)) >= PROTpublic)
     {
         result = 1;
 #if LOG
         printf("result2 = %d\n", result);
 #endif
     }
-    else if (access == PROTpackage && hasPackageAccess(sc, this))
+    else if (access == PROTpackage && hasPackageAccess(sc, ad))
     {
         result = 1;
 #if LOG
@@ -241,14 +222,14 @@ void AggregateDeclaration::accessCheck(Loc loc, Scope *sc, Dsymbol *smember)
     }
     else
     {
-        result = accessCheckX(smember, f, this, cdscope);
+        result = accessCheckX(smember, f, ad, cdscope);
 #if LOG
         printf("result4 = %d\n", result);
 #endif
     }
     if (!result)
     {
-        error(loc, "member %s is not accessible", smember->toChars());
+        ad->error(loc, "member %s is not accessible", smember->toChars());
     }
 }
 
@@ -256,35 +237,35 @@ void AggregateDeclaration::accessCheck(Loc loc, Scope *sc, Dsymbol *smember)
  * Determine if this is the same or friend of cd.
  */
 
-int AggregateDeclaration::isFriendOf(AggregateDeclaration *cd)
+bool isFriendOf(AggregateDeclaration *ad, AggregateDeclaration *cd)
 {
 #if LOG
-    printf("AggregateDeclaration::isFriendOf(this = '%s', cd = '%s')\n", toChars(), cd ? cd->toChars() : "null");
+    printf("AggregateDeclaration::isFriendOf(this = '%s', cd = '%s')\n", ad->toChars(), cd ? cd->toChars() : "null");
 #endif
-    if (this == cd)
-        return 1;
+    if (ad == cd)
+        return true;
 
     // Friends if both are in the same module
     //if (toParent() == cd->toParent())
-    if (cd && getAccessModule() == cd->getAccessModule())
+    if (cd && ad->getAccessModule() == cd->getAccessModule())
     {
 #if LOG
         printf("\tin same module\n");
 #endif
-        return 1;
+        return true;
     }
 
 #if LOG
     printf("\tnot friend\n");
 #endif
-    return 0;
+    return false;
 }
 
 /****************************************
  * Determine if scope sc has package level access to s.
  */
 
-int hasPackageAccess(Scope *sc, Dsymbol *s)
+bool hasPackageAccess(Scope *sc, Dsymbol *s)
 {
 #if LOG
     printf("hasPackageAccess(s = '%s', sc = '%p')\n", s->toChars(), sc);
@@ -322,14 +303,14 @@ int hasPackageAccess(Scope *sc, Dsymbol *s)
 #if LOG
             printf("\ts is in same package as sc\n");
 #endif
-            return 1;
+            return true;
         }
         if (pkg->isPkgMod == PKGmodule && pkg->mod == sc->module)
         {
 #if LOG
             printf("\ts is in same package.d module as sc\n");
 #endif
-            return 1;
+            return true;
         }
         s = sc->module->parent;
         for (; s; s = s->parent)
@@ -339,7 +320,7 @@ int hasPackageAccess(Scope *sc, Dsymbol *s)
 #if LOG
                 printf("\ts is in ancestor package of sc\n");
 #endif
-                return 1;
+                return true;
             }
         }
     }
@@ -347,61 +328,63 @@ int hasPackageAccess(Scope *sc, Dsymbol *s)
 #if LOG
     printf("\tno package access\n");
 #endif
-    return 0;
+    return false;
 }
 
 /**********************************
  * Determine if smember has access to private members of this declaration.
  */
 
-int AggregateDeclaration::hasPrivateAccess(Dsymbol *smember)
+bool hasPrivateAccess(AggregateDeclaration *ad, Dsymbol *smember)
 {
     if (smember)
-    {   AggregateDeclaration *cd = NULL;
+    {
+        AggregateDeclaration *cd = NULL;
         Dsymbol *smemberparent = smember->toParent();
         if (smemberparent)
             cd = smemberparent->isAggregateDeclaration();
 
 #if LOG
         printf("AggregateDeclaration::hasPrivateAccess(class %s, member %s)\n",
-                toChars(), smember->toChars());
+                ad->toChars(), smember->toChars());
 #endif
 
-        if (this == cd)         // smember is a member of this class
+        if (ad == cd)         // smember is a member of this class
         {
 #if LOG
             printf("\tyes 1\n");
 #endif
-            return 1;           // so we get private access
+            return true;           // so we get private access
         }
 
         // If both are members of the same module, grant access
         while (1)
-        {   Dsymbol *sp = smember->toParent();
+        {
+            Dsymbol *sp = smember->toParent();
             if (sp->isFuncDeclaration() && smember->isFuncDeclaration())
                 smember = sp;
             else
                 break;
         }
-        if (!cd && toParent() == smember->toParent())
+        if (!cd && ad->toParent() == smember->toParent())
         {
 #if LOG
             printf("\tyes 2\n");
 #endif
-            return 1;
+            return true;
         }
-        if (!cd && getAccessModule() == smember->getAccessModule())
+        if (!cd && ad->getAccessModule() == smember->getAccessModule())
         {
 #if LOG
             printf("\tyes 3\n");
 #endif
-            return 1;
+            return true;
         }
     }
 #if LOG
     printf("\tno\n");
 #endif
-    return 0;
+    return false;
 }
 
 /****************************************
@@ -415,7 +398,8 @@ void accessCheck(Loc loc, Scope *sc, Expression *e, Declaration *d)
 
 #if LOG
     if (e)
-    {   printf("accessCheck(%s . %s)\n", e->toChars(), d->toChars());
+    {
+        printf("accessCheck(%s . %s)\n", e->toChars(), d->toChars());
         printf("\te->type = %s\n", e->type->toChars());
     }
     else
@@ -447,12 +431,12 @@ void accessCheck(Loc loc, Scope *sc, Expression *e, Declaration *d)
             if (cd2)
                 cd = cd2;
         }
-        cd->accessCheck(loc, sc, d);
+        accessCheck(cd, loc, sc, d);
     }
     else if (e->type->ty == Tstruct)
     {
         // Do access check
         StructDeclaration *cd = (StructDeclaration *)(((TypeStruct *)e->type)->sym);
-        cd->accessCheck(loc, sc, d);
+        accessCheck(cd, loc, sc, d);
     }
 }
