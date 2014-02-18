@@ -1,4 +1,7 @@
 // PERMUTE_ARGS:
+// EXTRA_SOURCES: imports/mangle1.d
+
+import mangle1;
 
 pragma(mangle, "_test1_") int test1;
 
@@ -39,12 +42,11 @@ void test8()
 }
 
 //UTF-8 chars
-__gshared pragma(mangle, "test_эльфийские_письмена_9") ubyte test9_1;
 __gshared extern pragma(mangle, "test_эльфийские_письмена_9") ubyte test9_1_e;
 
 void test9()
 {
-    test9_1 = 42;
+    setTest91();
     assert(test9_1_e == 42);
 }
 
