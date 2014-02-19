@@ -208,31 +208,6 @@ void AttribDeclaration::addComment(const utf8_t *comment)
     }
 }
 
-void AttribDeclaration::emitComment(Scope *sc)
-{
-    //printf("AttribDeclaration::emitComment(sc = %p)\n", sc);
-
-    /* A general problem with this, illustrated by BUGZILLA 2516,
-     * is that attributes are not transmitted through to the underlying
-     * member declarations for template bodies, because semantic analysis
-     * is not done for template declaration bodies
-     * (only template instantiations).
-     * Hence, Ddoc omits attributes from template members.
-     */
-
-    Dsymbols *d = include(NULL, NULL);
-
-    if (d)
-    {
-        for (size_t i = 0; i < d->dim; i++)
-        {
-            Dsymbol *s = (*d)[i];
-            //printf("AttribDeclaration::emitComment %s\n", s->toChars());
-            s->emitComment(sc);
-        }
-    }
-}
-
 void AttribDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion)
 {
     Dsymbols *d = include(NULL, NULL);
@@ -718,17 +693,6 @@ void ProtDeclaration::semantic(Scope *sc)
     if (decl)
     {
         semanticNewSc(sc, sc->stc, sc->linkage, protection, 1, sc->structalign);
-    }
-}
-
-void ProtDeclaration::emitComment(Scope *sc)
-{
-    if (decl)
-    {
-        sc = sc->push();
-        sc->protection = protection;
-        AttribDeclaration::emitComment(sc);
-        sc = sc->pop();
     }
 }
 
@@ -1289,27 +1253,6 @@ bool ConditionalDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
                     Dsymbol::oneMembers(elsedecl, ps, ident) && *ps == NULL);
         *ps = NULL;
         return res;
-    }
-}
-
-void ConditionalDeclaration::emitComment(Scope *sc)
-{
-    //printf("ConditionalDeclaration::emitComment(sc = %p)\n", sc);
-    if (condition->inc)
-    {
-        AttribDeclaration::emitComment(sc);
-    }
-    else if (sc->docbuf)
-    {
-        /* If generating doc comment, be careful because if we're inside
-         * a template, then include(NULL, NULL) will fail.
-         */
-        Dsymbols *d = decl ? decl : elsedecl;
-        for (size_t i = 0; i < d->dim; i++)
-        {
-            Dsymbol *s = (*d)[i];
-            s->emitComment(sc);
-        }
     }
 }
 

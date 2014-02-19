@@ -211,7 +211,6 @@ public:
     virtual void checkCtorConstInit() { }
 
     virtual void addComment(const utf8_t *comment);
-    virtual void emitComment(Scope *sc);
 
     bool inNonRoot();
 

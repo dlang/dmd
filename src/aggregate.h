@@ -117,8 +117,6 @@ public:
     bool isExport();
     void searchCtor();
 
-    void emitComment(Scope *sc);
-
     const char *mangle(bool isv = false);
 
     // For access checking

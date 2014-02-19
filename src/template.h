@@ -92,7 +92,6 @@ public:
     const char *kind();
     char *toChars();
 
-    void emitComment(Scope *sc);
     PROT prot();
 
     bool evaluateConstraint(TemplateInstance *ti, Scope *sc, Scope *paramscope, Objects *dedtypes, FuncDeclaration *fd);

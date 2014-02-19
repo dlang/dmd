@@ -46,7 +46,6 @@ public:
     void semantic2(Scope *sc);
     void semantic3(Scope *sc);
     void addComment(const utf8_t *comment);
-    void emitComment(Scope *sc);
     const char *kind();
     bool oneMember(Dsymbol **ps, Identifier *ident);
     void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
@@ -115,7 +114,6 @@ public:
     void importAll(Scope *sc);
     void setScope(Scope *sc);
     void semantic(Scope *sc);
-    void emitComment(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     static void protectionToCBuffer(OutBuffer *buf, PROT protection);
@@ -176,7 +174,6 @@ public:
     ConditionalDeclaration(Condition *condition, Dsymbols *decl, Dsymbols *elsedecl);
     Dsymbol *syntaxCopy(Dsymbol *s);
     bool oneMember(Dsymbol **ps, Identifier *ident);
-    void emitComment(Scope *sc);
     Dsymbols *include(Scope *sc, ScopeDsymbol *s);
     void addComment(const utf8_t *comment);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);

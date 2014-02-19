@@ -20,6 +20,8 @@
 #include "root.h"
 #include "port.h"
 
+#include "attrib.h"
+#include "cond.h"
 #include "mars.h"
 #include "dsymbol.h"
 #include "macro.h"
@@ -40,6 +42,7 @@
 void functionToBufferFull(TypeFunction *tf, OutBuffer *buf, Identifier *ident, HdrGenState* hgs, TypeFunction *attrs, TemplateDeclaration *td);
 void emitMemberComments(ScopeDsymbol *sds, Scope *sc);
 void toDocBuffer(Dsymbol *s, OutBuffer *buf, Scope *sc);
+void emitComment(Dsymbol *s, Scope *sc);
 
 struct Escape
 {
@@ -647,7 +650,7 @@ void emitMemberComments(ScopeDsymbol *sds, Scope *sc)
         {
             Dsymbol *s = (*sds->members)[i];
             //printf("\ts = '%s'\n", s->toChars());
-            s->emitComment(sc);
+            emitComment(s, sc);
         }
         sc->pop();
         if (buf->offset == offset2)
@@ -669,210 +672,280 @@ void emitProtection(OutBuffer *buf, PROT prot)
         buf->printf("%s ", p);
 }
 
-void Dsymbol::emitComment(Scope *sc)               { }
-void InvariantDeclaration::emitComment(Scope *sc)  { }
-void UnitTestDeclaration::emitComment(Scope *sc)   { }
-void PostBlitDeclaration::emitComment(Scope *sc)   { }
-void DtorDeclaration::emitComment(Scope *sc)       { }
-void StaticCtorDeclaration::emitComment(Scope *sc) { }
-void StaticDtorDeclaration::emitComment(Scope *sc) { }
-void ClassInfoDeclaration::emitComment(Scope *sc)  { }
-void TypeInfoDeclaration::emitComment(Scope *sc)   { }
-
-
-void Declaration::emitComment(Scope *sc)
+void emitComment(Dsymbol *s, Scope *sc)
 {
-    //printf("Declaration::emitComment(%p '%s'), comment = '%s'\n", this, toChars(), comment);
-    //printf("type = %p\n", type);
-
-    if (protection == PROTprivate || sc->protection == PROTprivate ||
-        !ident || (!type && !isCtorDeclaration() && !isAliasDeclaration()))
-        return;
-    if (!comment)
-        return;
-
-    OutBuffer *buf = sc->docbuf;
-    DocComment *dc = DocComment::parse(sc, this, comment);
-    size_t o;
-
-    if (!dc)
+    class EmitComment : public Visitor
     {
-        emitDitto(this, sc);
-        return;
-    }
-    dc->pmacrotable = &sc->module->macrotable;
+    public:
+        Scope *sc;
 
-    buf->writestring(ddoc_decl_s);
-    o = buf->offset;
-    toDocBuffer(this, buf, sc);
-    highlightCode(sc, this, buf, o);
-    sc->lastoffset = buf->offset;
-    buf->writestring(ddoc_decl_e);
-
-    buf->writestring(ddoc_decl_dd_s);
-    dc->writeSections(sc, this, buf);
-    buf->writestring(ddoc_decl_dd_e);
-}
-
-void AggregateDeclaration::emitComment(Scope *sc)
-{
-    //printf("AggregateDeclaration::emitComment() '%s'\n", toChars());
-    if (prot() == PROTprivate || sc->protection == PROTprivate)
-        return;
-    if (!comment)
-        return;
-
-    OutBuffer *buf = sc->docbuf;
-    DocComment *dc = DocComment::parse(sc, this, comment);
-
-    if (!dc)
-    {
-        emitDitto(this, sc);
-        return;
-    }
-    dc->pmacrotable = &sc->module->macrotable;
-
-    buf->writestring(ddoc_decl_s);
-    size_t o = buf->offset;
-    toDocBuffer(this, buf, sc);
-    highlightCode(sc, this, buf, o);
-    sc->lastoffset = buf->offset;
-    buf->writestring(ddoc_decl_e);
-
-    buf->writestring(ddoc_decl_dd_s);
-    dc->writeSections(sc, this, buf);
-    emitMemberComments(this, sc);
-    buf->writestring(ddoc_decl_dd_e);
-}
-
-void TemplateDeclaration::emitComment(Scope *sc)
-{
-    //printf("TemplateDeclaration::emitComment() '%s', kind = %s\n", toChars(), kind());
-    if (prot() == PROTprivate || sc->protection == PROTprivate)
-        return;
-
-    const utf8_t *com = comment;
-    int hasmembers = 1;
-
-    Dsymbol *ss = this;
-
-    if (onemember)
-    {
-        ss = onemember->isAggregateDeclaration();
-        if (!ss)
+        EmitComment(Scope *sc)
+            : sc(sc)
         {
-            ss = onemember->isFuncDeclaration();
-            if (ss)
-            {   hasmembers = 0;
-                if (com != ss->comment)
-                    com = Lexer::combineComments(com, ss->comment);
-            }
-            else
-                ss = this;
         }
-    }
 
-    if (!com)
-        return;
+        void visit(Dsymbol *) {}
+        void visit(InvariantDeclaration *) {}
+        void visit(UnitTestDeclaration *) {}
+        void visit(PostBlitDeclaration *) {}
+        void visit(DtorDeclaration *) {}
+        void visit(StaticCtorDeclaration *) {}
+        void visit(StaticDtorDeclaration *) {}
+        void visit(ClassInfoDeclaration *) {}
+        void visit(TypeInfoDeclaration *) {}
 
-    OutBuffer *buf = sc->docbuf;
-    DocComment *dc = DocComment::parse(sc, this, com);
-    size_t o;
-
-    if (!dc)
-    {
-        emitDitto(ss, sc);
-        return;
-    }
-    dc->pmacrotable = &sc->module->macrotable;
-
-    buf->writestring(ddoc_decl_s);
-    o = buf->offset;
-    toDocBuffer(ss, buf, sc);
-    if (ss == this)
-        highlightCode(sc, this, buf, o);
-    sc->lastoffset = buf->offset;
-    buf->writestring(ddoc_decl_e);
-
-    buf->writestring(ddoc_decl_dd_s);
-    dc->writeSections(sc, this, buf);
-    if (hasmembers)
-        emitMemberComments((ScopeDsymbol *)ss, sc);
-    buf->writestring(ddoc_decl_dd_e);
-}
-
-void EnumDeclaration::emitComment(Scope *sc)
-{
-    if (prot() == PROTprivate || sc->protection == PROTprivate)
-        return;
-    //if (!comment)
-    {
-        if (isAnonymous() && members)
+        void visit(Declaration *d)
         {
-            for (size_t i = 0; i < members->dim; i++)
+            //printf("Declaration::emitComment(%p '%s'), comment = '%s'\n", d, d->toChars(), d->comment);
+            //printf("type = %p\n", d->type);
+
+            if (d->protection == PROTprivate || sc->protection == PROTprivate ||
+                !d->ident || (!d->type && !d->isCtorDeclaration() && !d->isAliasDeclaration()))
+                return;
+            if (!d->comment)
+                return;
+
+            OutBuffer *buf = sc->docbuf;
+            DocComment *dc = DocComment::parse(sc, d, d->comment);
+
+            if (!dc)
             {
-                Dsymbol *s = (*members)[i];
-                s->emitComment(sc);
+                emitDitto(d, sc);
+                return;
             }
-            return;
+            dc->pmacrotable = &sc->module->macrotable;
+
+            buf->writestring(ddoc_decl_s);
+            size_t o = buf->offset;
+            toDocBuffer(d, buf, sc);
+            highlightCode(sc, d, buf, o);
+            sc->lastoffset = buf->offset;
+            buf->writestring(ddoc_decl_e);
+
+            buf->writestring(ddoc_decl_dd_s);
+            dc->writeSections(sc, d, buf);
+            buf->writestring(ddoc_decl_dd_e);
         }
-    }
-    if (!comment)
-        return;
-    if (isAnonymous())
-        return;
 
-    OutBuffer *buf = sc->docbuf;
-    DocComment *dc = DocComment::parse(sc, this, comment);
+        void visit(AggregateDeclaration *ad)
+        {
+            //printf("AggregateDeclaration::emitComment() '%s'\n", ad->toChars());
+            if (ad->prot() == PROTprivate || sc->protection == PROTprivate)
+                return;
+            if (!ad->comment)
+                return;
 
-    if (!dc)
-    {
-        emitDitto(this, sc);
-        return;
-    }
-    dc->pmacrotable = &sc->module->macrotable;
+            OutBuffer *buf = sc->docbuf;
+            DocComment *dc = DocComment::parse(sc, ad, ad->comment);
 
-    buf->writestring(ddoc_decl_s);
-    size_t o = buf->offset;
-    toDocBuffer(this, buf, sc);
-    highlightCode(sc, this, buf, o);
-    sc->lastoffset = buf->offset;
-    buf->writestring(ddoc_decl_e);
+            if (!dc)
+            {
+                emitDitto(ad, sc);
+                return;
+            }
+            dc->pmacrotable = &sc->module->macrotable;
 
-    buf->writestring(ddoc_decl_dd_s);
-    dc->writeSections(sc, this, buf);
-    emitMemberComments(this, sc);
-    buf->writestring(ddoc_decl_dd_e);
-}
+            buf->writestring(ddoc_decl_s);
+            size_t o = buf->offset;
+            toDocBuffer(ad, buf, sc);
+            highlightCode(sc, ad, buf, o);
+            sc->lastoffset = buf->offset;
+            buf->writestring(ddoc_decl_e);
 
-void EnumMember::emitComment(Scope *sc)
-{
-    //printf("EnumMember::emitComment(%p '%s'), comment = '%s'\n", this, toChars(), comment);
-    if (prot() == PROTprivate || sc->protection == PROTprivate)
-        return;
-    if (!comment)
-        return;
+            buf->writestring(ddoc_decl_dd_s);
+            dc->writeSections(sc, ad, buf);
+            emitMemberComments(ad, sc);
+            buf->writestring(ddoc_decl_dd_e);
+        }
 
-    OutBuffer *buf = sc->docbuf;
-    DocComment *dc = DocComment::parse(sc, this, comment);
+        void visit(TemplateDeclaration *td)
+        {
+            //printf("TemplateDeclaration::emitComment() '%s', kind = %s\n", td->toChars(), td->kind());
+            if (td->prot() == PROTprivate || sc->protection == PROTprivate)
+                return;
 
-    if (!dc)
-    {
-        emitDitto(this, sc);
-        return;
-    }
-    dc->pmacrotable = &sc->module->macrotable;
+            const utf8_t *com = td->comment;
+            bool hasmembers = true;
 
-    buf->writestring(ddoc_decl_s);
-    size_t o = buf->offset;
-    toDocBuffer(this, buf, sc);
-    highlightCode(sc, this, buf, o);
-    sc->lastoffset = buf->offset;
-    buf->writestring(ddoc_decl_e);
+            Dsymbol *ss = td;
 
-    buf->writestring(ddoc_decl_dd_s);
-    dc->writeSections(sc, this, buf);
-    buf->writestring(ddoc_decl_dd_e);
+            if (td->onemember)
+            {
+                ss = td->onemember->isAggregateDeclaration();
+                if (!ss)
+                {
+                    ss = td->onemember->isFuncDeclaration();
+                    if (ss)
+                    {
+                        hasmembers = false;
+                        if (com != ss->comment)
+                            com = Lexer::combineComments(com, ss->comment);
+                    }
+                    else
+                        ss = td;
+                }
+            }
+
+            if (!com)
+                return;
+
+            OutBuffer *buf = sc->docbuf;
+            DocComment *dc = DocComment::parse(sc, td, com);
+            size_t o;
+
+            if (!dc)
+            {
+                emitDitto(ss, sc);
+                return;
+            }
+            dc->pmacrotable = &sc->module->macrotable;
+
+            buf->writestring(ddoc_decl_s);
+            o = buf->offset;
+            toDocBuffer(ss, buf, sc);
+            if (ss == td)
+                highlightCode(sc, td, buf, o);
+            sc->lastoffset = buf->offset;
+            buf->writestring(ddoc_decl_e);
+
+            buf->writestring(ddoc_decl_dd_s);
+            dc->writeSections(sc, td, buf);
+            if (hasmembers)
+                emitMemberComments((ScopeDsymbol *)ss, sc);
+            buf->writestring(ddoc_decl_dd_e);
+        }
+
+        void visit(EnumDeclaration *ed)
+        {
+            if (ed->prot() == PROTprivate || sc->protection == PROTprivate)
+                return;
+            if (ed->isAnonymous() && ed->members)
+            {
+                for (size_t i = 0; i < ed->members->dim; i++)
+                {
+                    Dsymbol *s = (*ed->members)[i];
+                    emitComment(s, sc);
+                }
+                return;
+            }
+            if (!ed->comment)
+                return;
+            if (ed->isAnonymous())
+                return;
+
+            OutBuffer *buf = sc->docbuf;
+            DocComment *dc = DocComment::parse(sc, ed, ed->comment);
+
+            if (!dc)
+            {
+                emitDitto(ed, sc);
+                return;
+            }
+            dc->pmacrotable = &sc->module->macrotable;
+
+            buf->writestring(ddoc_decl_s);
+            size_t o = buf->offset;
+            toDocBuffer(ed, buf, sc);
+            highlightCode(sc, ed, buf, o);
+            sc->lastoffset = buf->offset;
+            buf->writestring(ddoc_decl_e);
+
+            buf->writestring(ddoc_decl_dd_s);
+            dc->writeSections(sc, ed, buf);
+            emitMemberComments(ed, sc);
+            buf->writestring(ddoc_decl_dd_e);
+        }
+
+        void visit(EnumMember *em)
+        {
+            //printf("EnumMember::emitComment(%p '%s'), comment = '%s'\n", em, em->toChars(), em->comment);
+            if (em->prot() == PROTprivate || sc->protection == PROTprivate)
+                return;
+            if (!em->comment)
+                return;
+
+            OutBuffer *buf = sc->docbuf;
+            DocComment *dc = DocComment::parse(sc, em, em->comment);
+
+            if (!dc)
+            {
+                emitDitto(em, sc);
+                return;
+            }
+            dc->pmacrotable = &sc->module->macrotable;
+
+            buf->writestring(ddoc_decl_s);
+            size_t o = buf->offset;
+            toDocBuffer(em, buf, sc);
+            highlightCode(sc, em, buf, o);
+            sc->lastoffset = buf->offset;
+            buf->writestring(ddoc_decl_e);
+
+            buf->writestring(ddoc_decl_dd_s);
+            dc->writeSections(sc, em, buf);
+            buf->writestring(ddoc_decl_dd_e);
+        }
+
+        void visit(AttribDeclaration *ad)
+        {
+            //printf("AttribDeclaration::emitComment(sc = %p)\n", sc);
+
+            /* A general problem with this, illustrated by BUGZILLA 2516,
+             * is that attributes are not transmitted through to the underlying
+             * member declarations for template bodies, because semantic analysis
+             * is not done for template declaration bodies
+             * (only template instantiations).
+             * Hence, Ddoc omits attributes from template members.
+             */
+
+            Dsymbols *d = ad->include(NULL, NULL);
+
+            if (d)
+            {
+                for (size_t i = 0; i < d->dim; i++)
+                {
+                    Dsymbol *s = (*d)[i];
+                    //printf("AttribDeclaration::emitComment %s\n", s->toChars());
+                    emitComment(s, sc);
+                }
+            }
+        }
+
+        void visit(ProtDeclaration *pd)
+        {
+            if (pd->decl)
+            {
+                sc = sc->push();
+                sc->protection = pd->protection;
+                visit((AttribDeclaration *)pd);
+                sc = sc->pop();
+            }
+        }
+
+        void visit(ConditionalDeclaration *cd)
+        {
+            //printf("ConditionalDeclaration::emitComment(sc = %p)\n", sc);
+            if (cd->condition->inc)
+            {
+                visit((AttribDeclaration *)cd);
+            }
+            else if (sc->docbuf)
+            {
+                /* If generating doc comment, be careful because if we're inside
+                 * a template, then include(NULL, NULL) will fail.
+                 */
+                Dsymbols *d = cd->decl ? cd->decl : cd->elsedecl;
+                for (size_t i = 0; i < d->dim; i++)
+                {
+                    Dsymbol *s = (*d)[i];
+                    emitComment(s, sc);
+                }
+            }
+        }
+    };
+
+    EmitComment v(sc);
+    s->accept(&v);
 }
 
 /******************************* toDocBuffer **********************************/
