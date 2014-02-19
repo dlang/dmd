@@ -2191,7 +2191,7 @@ Dsymbol *Parser::parseMixin()
             if (token.value == TOKlparen)
                 tiargs = parseTemplateArgumentList();
             else
-                tiargs = parseTemplateArgument();
+                tiargs = parseTemplateSingleArgument();
         }
 
         if (tiargs && token.value == TOKdot)
@@ -2288,9 +2288,9 @@ Objects *Parser::parseTemplateArgumentList()
  *      current token is the arg
  */
 
-Objects *Parser::parseTemplateArgument()
+Objects *Parser::parseTemplateSingleArgument()
 {
-    //printf("parseTemplateArgument()\n");
+    //printf("parseTemplateSingleArgument()\n");
     Objects *tiargs = new Objects();
     Type *ta;
     switch (token.value)
@@ -2583,7 +2583,7 @@ Type *Parser::parseBasicType()
                 else
                 {
                     // ident!template_argument
-                    tempinst->tiargs = parseTemplateArgument();
+                    tempinst->tiargs = parseTemplateSingleArgument();
                 }
                 tid = new TypeInstance(loc, tempinst);
                 goto Lident2;
@@ -2614,7 +2614,7 @@ Type *Parser::parseBasicType()
                     else
                     {
                         // ident!template_argument
-                        tempinst->tiargs = parseTemplateArgument();
+                        tempinst->tiargs = parseTemplateSingleArgument();
                     }
                     tid->addInst(tempinst);
                 }
@@ -5793,7 +5793,7 @@ Expression *Parser::parsePrimaryExp()
                 else
                 {
                     // ident!template_argument
-                    tempinst->tiargs = parseTemplateArgument();
+                    tempinst->tiargs = parseTemplateSingleArgument();
                 }
                 e = new ScopeExp(loc, tempinst);
             }
@@ -6362,7 +6362,7 @@ Expression *Parser::parsePostExp(Expression *e)
                         else
                         {
                             // ident!template_argument
-                            tiargs = parseTemplateArgument();
+                            tiargs = parseTemplateSingleArgument();
                         }
                         e = new DotTemplateInstanceExp(loc, e, id, tiargs);
                     }
