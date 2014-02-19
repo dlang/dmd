@@ -2458,19 +2458,7 @@ Expression *Expression::addressOf()
 {
     //printf("Expression::addressOf()\n");
 #ifdef DEBUG
-    {
-        Expression *e = this;
-        while (e->op == TOKcomma)
-            e = ((CommaExp *)e)->e2;
-
-        /* VarExp::isLvalue() returns false if the variable has STCtemp.
-         * However in glue layer, a variable with STCtemp is address-able.
-         * So currently we cannot directly use e->isLvalue().
-         */
-        assert(e->op == TOKvar && ((VarExp *)e)->var->isVarDeclaration() ||
-               e->op == TOKerror ||
-               e->isLvalue());
-    }
+    assert(op == TOKerror || isLvalue());
 #endif
     Expression *e = new AddrExp(loc, this);
     e->type = type->pointerTo();
