@@ -84,6 +84,7 @@ public:
     TemplateDeclaration *parseTemplateDeclaration(bool ismixin = false);
     TemplateParameters *parseTemplateParameterList(int flag = 0);
     Dsymbol *parseMixin();
+    Objects *parseTemplateArguments();
     Objects *parseTemplateArgumentList();
     Objects *parseTemplateSingleArgument();
     StaticAssert *parseStaticAssert();
