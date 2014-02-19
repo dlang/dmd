@@ -39,6 +39,7 @@
 
 void functionToBufferFull(TypeFunction *tf, OutBuffer *buf, Identifier *ident, HdrGenState* hgs, TypeFunction *attrs, TemplateDeclaration *td);
 void emitMemberComments(ScopeDsymbol *sds, Scope *sc);
+void toDocBuffer(Dsymbol *s, OutBuffer *buf, Scope *sc);
 
 struct Escape
 {
@@ -593,7 +594,7 @@ void emitDitto(Dsymbol *s, Scope *sc)
 
     b.writestring("$(DDOC_DITTO ");
     size_t o = b.offset;
-    s->toDocBuffer(&b, sc);
+    toDocBuffer(s, &b, sc);
     //printf("b: '%.*s'\n", b.offset, b.data);
     /* If 'this' is a function template, then highlightCode() was
      * already run by FuncDeclaration::toDocbuffer().
@@ -702,10 +703,10 @@ void Declaration::emitComment(Scope *sc)
     dc->pmacrotable = &sc->module->macrotable;
 
     buf->writestring(ddoc_decl_s);
-        o = buf->offset;
-        toDocBuffer(buf, sc);
-        highlightCode(sc, this, buf, o);
-        sc->lastoffset = buf->offset;
+    o = buf->offset;
+    toDocBuffer(this, buf, sc);
+    highlightCode(sc, this, buf, o);
+    sc->lastoffset = buf->offset;
     buf->writestring(ddoc_decl_e);
 
     buf->writestring(ddoc_decl_dd_s);
@@ -732,10 +733,10 @@ void AggregateDeclaration::emitComment(Scope *sc)
     dc->pmacrotable = &sc->module->macrotable;
 
     buf->writestring(ddoc_decl_s);
-        size_t o = buf->offset;
-        toDocBuffer(buf, sc);
-        highlightCode(sc, this, buf, o);
-        sc->lastoffset = buf->offset;
+    size_t o = buf->offset;
+    toDocBuffer(this, buf, sc);
+    highlightCode(sc, this, buf, o);
+    sc->lastoffset = buf->offset;
     buf->writestring(ddoc_decl_e);
 
     buf->writestring(ddoc_decl_dd_s);
@@ -786,11 +787,11 @@ void TemplateDeclaration::emitComment(Scope *sc)
     dc->pmacrotable = &sc->module->macrotable;
 
     buf->writestring(ddoc_decl_s);
-        o = buf->offset;
-        ss->toDocBuffer(buf, sc);
-        if (ss == this)
-            highlightCode(sc, this, buf, o);
-        sc->lastoffset = buf->offset;
+    o = buf->offset;
+    toDocBuffer(ss, buf, sc);
+    if (ss == this)
+        highlightCode(sc, this, buf, o);
+    sc->lastoffset = buf->offset;
     buf->writestring(ddoc_decl_e);
 
     buf->writestring(ddoc_decl_dd_s);
@@ -832,10 +833,10 @@ void EnumDeclaration::emitComment(Scope *sc)
     dc->pmacrotable = &sc->module->macrotable;
 
     buf->writestring(ddoc_decl_s);
-        size_t o = buf->offset;
-        toDocBuffer(buf, sc);
-        highlightCode(sc, this, buf, o);
-        sc->lastoffset = buf->offset;
+    size_t o = buf->offset;
+    toDocBuffer(this, buf, sc);
+    highlightCode(sc, this, buf, o);
+    sc->lastoffset = buf->offset;
     buf->writestring(ddoc_decl_e);
 
     buf->writestring(ddoc_decl_dd_s);
@@ -863,10 +864,10 @@ void EnumMember::emitComment(Scope *sc)
     dc->pmacrotable = &sc->module->macrotable;
 
     buf->writestring(ddoc_decl_s);
-        size_t o = buf->offset;
-        toDocBuffer(buf, sc);
-        highlightCode(sc, this, buf, o);
-        sc->lastoffset = buf->offset;
+    size_t o = buf->offset;
+    toDocBuffer(this, buf, sc);
+    highlightCode(sc, this, buf, o);
+    sc->lastoffset = buf->offset;
     buf->writestring(ddoc_decl_e);
 
     buf->writestring(ddoc_decl_dd_s);
@@ -876,329 +877,348 @@ void EnumMember::emitComment(Scope *sc)
 
 /******************************* toDocBuffer **********************************/
 
-void Dsymbol::toDocBuffer(OutBuffer *buf, Scope *sc)
+void toDocBuffer(Dsymbol *s, OutBuffer *buf, Scope *sc)
 {
-    //printf("Dsymbol::toDocbuffer() %s\n", toChars());
-    HdrGenState hgs;
-
-    hgs.ddoc = 1;
-    toCBuffer(buf, &hgs);
-}
-
-void prefix(OutBuffer *buf, Dsymbol *s)
-{
-    if (s->isDeprecated())
-        buf->writestring("deprecated ");
-    Declaration *d = s->isDeclaration();
-    if (d)
+    class ToDocBuffer : public Visitor
     {
-        emitProtection(buf, d->protection);
+    public:
+        OutBuffer *buf;
+        Scope *sc;
 
-        if (d->isStatic())
-            buf->writestring("static ");
-        else if (d->isFinal())
-            buf->writestring("final ");
-        else if (d->isAbstract())
-            buf->writestring("abstract ");
-
-        if (!d->isFuncDeclaration())  // functionToBufferFull handles this
+        ToDocBuffer(OutBuffer *buf, Scope *sc)
+            : buf(buf), sc(sc)
         {
-            if (d->isConst())
-                buf->writestring("const ");
-            if (d->isImmutable())
-                buf->writestring("immutable ");
-            if (d->isSynchronized())
-                buf->writestring("synchronized ");
         }
-    }
-}
 
-void declarationToDocBuffer(Declaration *decl, OutBuffer *buf, TemplateDeclaration *td)
-{
-    //printf("declarationToDocBuffer() %s, originalType = %s, td = %s\n", decl->toChars(), decl->originalType ? decl->originalType->toChars() : "--", td ? td->toChars() : "--");
-    if (decl->ident)
-    {
-        if (decl->isDeprecated())
-            buf->writestring("$(DEPRECATED ");
-
-        prefix(buf, decl);
-
-        if (decl->type)
-        {   HdrGenState hgs;
-            hgs.ddoc = 1;
-            Type *origType = decl->originalType ? decl->originalType : decl->type;
-            if (origType->ty == Tfunction)
-            {
-                TypeFunction *attrType = (TypeFunction*)(decl->ident == Id::ctor ? origType : decl->type);
-                functionToBufferFull(((TypeFunction*)origType), buf, decl->ident, &hgs, attrType, td);
-            }
-            else
-                origType->toCBuffer(buf, decl->ident, &hgs);
-        }
-        else
-            buf->writestring(decl->ident->toChars());
-
-        // emit constraints if declaration is a templated declaration
-        if (td && td->constraint)
+        void visit(Dsymbol *s)
         {
+            //printf("Dsymbol::toDocbuffer() %s\n", s->toChars());
             HdrGenState hgs;
             hgs.ddoc = 1;
-            buf->writestring(" if (");
-            td->constraint->toCBuffer(buf, &hgs);
-            buf->writeByte(')');
+            s->toCBuffer(buf, &hgs);
         }
 
-        if (decl->isDeprecated())
-            buf->writestring(")");
-
-        buf->writestring(";\n");
-    }
-}
-
-void Declaration::toDocBuffer(OutBuffer *buf, Scope *sc)
-{
-    declarationToDocBuffer(this, buf, NULL);
-}
-
-void AliasDeclaration::toDocBuffer(OutBuffer *buf, Scope *sc)
-{
-    //printf("AliasDeclaration::toDocbuffer() %s\n", toChars());
-    if (ident)
-    {
-        if (isDeprecated())
-            buf->writestring("deprecated ");
-
-        emitProtection(buf, protection);
-        buf->printf("alias %s = ", toChars());
-
-        if (Dsymbol *s = aliassym)  // ident alias
+        void prefix(Dsymbol *s)
         {
-            prettyPrintDsymbol(buf, s, parent);
-        }
-        else if (Type *type = getType())  // type alias
-        {
-            if (type->ty == Tclass || type->ty == Tstruct || type->ty == Tenum)
+            if (s->isDeprecated())
+                buf->writestring("deprecated ");
+            Declaration *d = s->isDeclaration();
+            if (d)
             {
-                if (Dsymbol *s = type->toDsymbol(NULL))  // elaborate type
-                    prettyPrintDsymbol(buf, s, parent);
+                emitProtection(buf, d->protection);
+
+                if (d->isStatic())
+                    buf->writestring("static ");
+                else if (d->isFinal())
+                    buf->writestring("final ");
+                else if (d->isAbstract())
+                    buf->writestring("abstract ");
+
+                if (!d->isFuncDeclaration())  // functionToBufferFull handles this
+                {
+                    if (d->isConst())
+                        buf->writestring("const ");
+                    if (d->isImmutable())
+                        buf->writestring("immutable ");
+                    if (d->isSynchronized())
+                        buf->writestring("synchronized ");
+                }
+            }
+        }
+
+        void declarationToDocBuffer(Declaration *decl, TemplateDeclaration *td)
+        {
+            //printf("declarationToDocBuffer() %s, originalType = %s, td = %s\n", decl->toChars(), decl->originalType ? decl->originalType->toChars() : "--", td ? td->toChars() : "--");
+            if (decl->ident)
+            {
+                if (decl->isDeprecated())
+                    buf->writestring("$(DEPRECATED ");
+
+                prefix(decl);
+
+                if (decl->type)
+                {
+                    HdrGenState hgs;
+                    hgs.ddoc = 1;
+                    Type *origType = decl->originalType ? decl->originalType : decl->type;
+                    if (origType->ty == Tfunction)
+                    {
+                        TypeFunction *attrType = (TypeFunction*)(decl->ident == Id::ctor ? origType : decl->type);
+                        functionToBufferFull(((TypeFunction*)origType), buf, decl->ident, &hgs, attrType, td);
+                    }
+                    else
+                        origType->toCBuffer(buf, decl->ident, &hgs);
+                }
                 else
-                    buf->writestring(type->toChars());
+                    buf->writestring(decl->ident->toChars());
+
+                // emit constraints if declaration is a templated declaration
+                if (td && td->constraint)
+                {
+                    HdrGenState hgs;
+                    hgs.ddoc = 1;
+                    buf->writestring(" if (");
+                    td->constraint->toCBuffer(buf, &hgs);
+                    buf->writeByte(')');
+                }
+
+                if (decl->isDeprecated())
+                    buf->writestring(")");
+
+                buf->writestring(";\n");
             }
-            else
+        }
+
+        void visit(Declaration *d)
+        {
+            declarationToDocBuffer(d, NULL);
+        }
+
+        void visit(AliasDeclaration *ad)
+        {
+            //printf("AliasDeclaration::toDocbuffer() %s\n", ad->toChars());
+            if (ad->ident)
             {
-                // simple type
-                buf->writestring(type->toChars());
+                if (ad->isDeprecated())
+                    buf->writestring("deprecated ");
+
+                emitProtection(buf, ad->protection);
+                buf->printf("alias %s = ", ad->toChars());
+
+                if (Dsymbol *s = ad->aliassym)  // ident alias
+                {
+                    prettyPrintDsymbol(s, ad->parent);
+                }
+                else if (Type *type = ad->getType())  // type alias
+                {
+                    if (type->ty == Tclass || type->ty == Tstruct || type->ty == Tenum)
+                    {
+                        if (Dsymbol *s = type->toDsymbol(NULL))  // elaborate type
+                            prettyPrintDsymbol(s, ad->parent);
+                        else
+                            buf->writestring(type->toChars());
+                    }
+                    else
+                    {
+                        // simple type
+                        buf->writestring(type->toChars());
+                    }
+                }
+
+                buf->writestring(";\n");
             }
         }
 
-        buf->writestring(";\n");
-    }
-}
-
-void parentToBuffer(OutBuffer *buf, Dsymbol *s)
-{
-    if (s && !s->isPackage() && !s->isModule())
-    {
-        parentToBuffer(buf, s->parent);
-        buf->writestring(s->toChars());
-        buf->writestring(".");
-    }
-}
-
-bool inSameModule(Dsymbol *s, Dsymbol *p)
-{
-    for ( ; s ; s = s->parent)
-    {
-        if (s->isModule())
-            break;
-    }
-
-    for ( ; p ; p = p->parent)
-    {
-        if (p->isModule())
-            break;
-    }
-
-    return s == p;
-}
-
-void prettyPrintDsymbol(OutBuffer *buf, Dsymbol *s, Dsymbol *parent)
-{
-    if (s->parent && (s->parent == parent))  // in current scope -> naked name
-    {
-        buf->writestring(s->toChars());
-    }
-    else
-    if (!inSameModule(s, parent))  // in another module -> full name
-    {
-        buf->writestring(s->toPrettyChars());
-    }
-    else  // nested in a type in this module -> full name w/o module name
-    {
-        // if alias is nested in a user-type use module-scope lookup
-        if (!parent->isModule() && !parent->isPackage())
-            buf->writestring(".");
-
-        parentToBuffer(buf, s->parent);
-        buf->writestring(s->toChars());
-    }
-}
-
-void TypedefDeclaration::toDocBuffer(OutBuffer *buf, Scope *sc)
-{
-    if (ident)
-    {
-        if (isDeprecated())
-            buf->writestring("deprecated ");
-
-        emitProtection(buf, protection);
-        buf->writestring("typedef ");
-        buf->writestring(toChars());
-        buf->writestring(";\n");
-    }
-}
-
-
-void FuncDeclaration::toDocBuffer(OutBuffer *buf, Scope *sc)
-{
-    //printf("FuncDeclaration::toDocbuffer() %s\n", toChars());
-    if (ident)
-    {
-        TemplateDeclaration *td;
-
-        if (parent &&
-            (td = parent->isTemplateDeclaration()) != NULL &&
-            td->onemember == this)
-        {   /* It's a function template
-             */
-            size_t o = buf->offset;
-
-            declarationToDocBuffer(this, buf, td);
-
-            highlightCode(sc, this, buf, o);
-        }
-        else
+        void parentToBuffer(Dsymbol *s)
         {
-            Declaration::toDocBuffer(buf, sc);
-        }
-    }
-}
-
-void AggregateDeclaration::toDocBuffer(OutBuffer *buf, Scope *sc)
-{
-    if (ident)
-    {
-#if 0
-        emitProtection(buf, protection);
-#endif
-        buf->printf("%s %s", kind(), toChars());
-        buf->writestring(";\n");
-    }
-}
-
-void StructDeclaration::toDocBuffer(OutBuffer *buf, Scope *sc)
-{
-    //printf("StructDeclaration::toDocbuffer() %s\n", toChars());
-    if (ident)
-    {
-#if 0
-        emitProtection(buf, protection);
-#endif
-        TemplateDeclaration *td;
-
-        if (parent &&
-            (td = parent->isTemplateDeclaration()) != NULL &&
-            td->onemember == this)
-        {   size_t o = buf->offset;
-            td->toDocBuffer(buf, sc);
-            highlightCode(sc, this, buf, o);
-        }
-        else
-        {
-            buf->printf("%s %s", kind(), toChars());
-        }
-        buf->writestring(";\n");
-    }
-}
-
-void ClassDeclaration::toDocBuffer(OutBuffer *buf, Scope *sc)
-{
-    //printf("ClassDeclaration::toDocbuffer() %s\n", toChars());
-    if (ident)
-    {
-#if 0
-        emitProtection(buf, protection);
-#endif
-        TemplateDeclaration *td;
-
-        if (parent &&
-            (td = parent->isTemplateDeclaration()) != NULL &&
-            td->onemember == this)
-        {   size_t o = buf->offset;
-            td->toDocBuffer(buf, sc);
-            highlightCode(sc, this, buf, o);
-        }
-        else
-        {
-            if (!isInterfaceDeclaration() && isAbstract())
-                buf->writestring("abstract ");
-            buf->printf("%s %s", kind(), toChars());
-        }
-        int any = 0;
-        for (size_t i = 0; i < baseclasses->dim; i++)
-        {   BaseClass *bc = (*baseclasses)[i];
-
-            if (bc->protection == PROTprivate)
-                continue;
-            if (bc->base && bc->base->ident == Id::Object)
-                continue;
-
-            if (any)
-                buf->writestring(", ");
-            else
-            {   buf->writestring(": ");
-                any = 1;
-            }
-            emitProtection(buf, bc->protection);
-            if (bc->base)
+            if (s && !s->isPackage() && !s->isModule())
             {
-                buf->printf("$(DDOC_PSUPER_SYMBOL %s)", bc->base->toPrettyChars());
-            }
-            else
-            {
-                HdrGenState hgs;
-                bc->type->toCBuffer(buf, NULL, &hgs);
+                parentToBuffer(s->parent);
+                buf->writestring(s->toChars());
+                buf->writestring(".");
             }
         }
-        buf->writestring(";\n");
-    }
-}
 
-
-void EnumDeclaration::toDocBuffer(OutBuffer *buf, Scope *sc)
-{
-    if (ident)
-    {
-        buf->printf("%s %s", kind(), toChars());
-        if (memtype)
+        static bool inSameModule(Dsymbol *s, Dsymbol *p)
         {
-            buf->writestring(": $(DDOC_ENUM_BASETYPE ");
-            HdrGenState *hgs = NULL;
-            memtype->toCBuffer(buf, NULL, hgs);
-            buf->writestring(")");
+            for ( ; s ; s = s->parent)
+            {
+                if (s->isModule())
+                    break;
+            }
+
+            for ( ; p ; p = p->parent)
+            {
+                if (p->isModule())
+                    break;
+            }
+
+            return s == p;
         }
-        buf->writestring(";\n");
-    }
-}
 
-void EnumMember::toDocBuffer(OutBuffer *buf, Scope *sc)
-{
-    if (ident)
-    {
-        buf->writestring(toChars());
-    }
-}
+        void prettyPrintDsymbol(Dsymbol *s, Dsymbol *parent)
+        {
+            if (s->parent && (s->parent == parent))  // in current scope -> naked name
+            {
+                buf->writestring(s->toChars());
+            }
+            else if (!inSameModule(s, parent))  // in another module -> full name
+            {
+                buf->writestring(s->toPrettyChars());
+            }
+            else  // nested in a type in this module -> full name w/o module name
+            {
+                // if alias is nested in a user-type use module-scope lookup
+                if (!parent->isModule() && !parent->isPackage())
+                    buf->writestring(".");
 
+                parentToBuffer(s->parent);
+                buf->writestring(s->toChars());
+            }
+        }
+
+        void visit(TypedefDeclaration *d)
+        {
+            if (d->ident)
+            {
+                if (d->isDeprecated())
+                    buf->writestring("deprecated ");
+
+                emitProtection(buf, d->protection);
+                buf->writestring("typedef ");
+                buf->writestring(d->toChars());
+                buf->writestring(";\n");
+            }
+        }
+
+        void visit(FuncDeclaration *fd)
+        {
+            //printf("FuncDeclaration::toDocbuffer() %s\n", fd->toChars());
+            if (fd->ident)
+            {
+                TemplateDeclaration *td;
+
+                if (fd->parent &&
+                    (td = fd->parent->isTemplateDeclaration()) != NULL &&
+                    td->onemember == fd)
+                {
+                    /* It's a function template
+                     */
+                    size_t o = buf->offset;
+
+                    declarationToDocBuffer(fd, td);
+
+                    highlightCode(sc, fd, buf, o);
+                }
+                else
+                {
+                    visit((Declaration *)fd);
+                }
+            }
+        }
+
+        void visit(AggregateDeclaration *ad)
+        {
+            if (ad->ident)
+            {
+        #if 0
+                emitProtection(buf, ad->protection);
+        #endif
+                buf->printf("%s %s", ad->kind(), ad->toChars());
+                buf->writestring(";\n");
+            }
+        }
+
+        void visit(StructDeclaration *sd)
+        {
+            //printf("StructDeclaration::toDocbuffer() %s\n", sd->toChars());
+            if (sd->ident)
+            {
+        #if 0
+                emitProtection(buf, sd->protection);
+        #endif
+                TemplateDeclaration *td;
+
+                if (sd->parent &&
+                    (td = sd->parent->isTemplateDeclaration()) != NULL &&
+                    td->onemember == sd)
+                {
+                    size_t o = buf->offset;
+                    toDocBuffer(td, buf, sc);
+                    highlightCode(sc, sd, buf, o);
+                }
+                else
+                {
+                    buf->printf("%s %s", sd->kind(), sd->toChars());
+                }
+                buf->writestring(";\n");
+            }
+        }
+
+        void visit(ClassDeclaration *cd)
+        {
+            //printf("ClassDeclaration::toDocbuffer() %s\n", cd->toChars());
+            if (cd->ident)
+            {
+        #if 0
+                emitProtection(buf, cd->protection);
+        #endif
+                TemplateDeclaration *td;
+
+                if (cd->parent &&
+                    (td = cd->parent->isTemplateDeclaration()) != NULL &&
+                    td->onemember == cd)
+                {
+                    size_t o = buf->offset;
+                    toDocBuffer(td, buf, sc);
+                    highlightCode(sc, cd, buf, o);
+                }
+                else
+                {
+                    if (!cd->isInterfaceDeclaration() && cd->isAbstract())
+                        buf->writestring("abstract ");
+                    buf->printf("%s %s", cd->kind(), cd->toChars());
+                }
+                int any = 0;
+                for (size_t i = 0; i < cd->baseclasses->dim; i++)
+                {
+                    BaseClass *bc = (*cd->baseclasses)[i];
+
+                    if (bc->protection == PROTprivate)
+                        continue;
+                    if (bc->base && bc->base->ident == Id::Object)
+                        continue;
+
+                    if (any)
+                        buf->writestring(", ");
+                    else
+                    {
+                        buf->writestring(": ");
+                        any = 1;
+                    }
+                    emitProtection(buf, bc->protection);
+                    if (bc->base)
+                    {
+                        buf->printf("$(DDOC_PSUPER_SYMBOL %s)", bc->base->toPrettyChars());
+                    }
+                    else
+                    {
+                        HdrGenState hgs;
+                        bc->type->toCBuffer(buf, NULL, &hgs);
+                    }
+                }
+                buf->writestring(";\n");
+            }
+        }
+
+        void visit(EnumDeclaration *ed)
+        {
+            if (ed->ident)
+            {
+                buf->printf("%s %s", ed->kind(), ed->toChars());
+                if (ed->memtype)
+                {
+                    buf->writestring(": $(DDOC_ENUM_BASETYPE ");
+                    ed->memtype->toCBuffer(buf, NULL, NULL);
+                    buf->writestring(")");
+                }
+                buf->writestring(";\n");
+            }
+        }
+
+        void visit(EnumMember *em)
+        {
+            if (em->ident)
+            {
+                buf->writestring(em->toChars());
+            }
+        }
+
+    };
+
+    ToDocBuffer v(buf, sc);
+    s->accept(&v);
+}
 
 /********************************* DocComment *********************************/
 

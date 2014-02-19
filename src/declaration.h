@@ -137,7 +137,6 @@ public:
     Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
 
     void emitComment(Scope *sc);
-    void toDocBuffer(OutBuffer *buf, Scope *sc);
 
     const char *mangle(bool isv = false);
     bool isStatic() { return (storage_class & STCstatic) != 0; }
@@ -209,8 +208,6 @@ public:
     Type *htype;
     Type *hbasetype;
 
-    void toDocBuffer(OutBuffer *buf, Scope *sc);
-
     void toObjFile(int multiobj);                       // compile to .obj file
     void toDebug();
 
@@ -242,8 +239,6 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Type *htype;
     Dsymbol *haliassym;
-
-    void toDocBuffer(OutBuffer *buf, Scope *sc);
 
     AliasDeclaration *isAliasDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -687,7 +682,6 @@ public:
     virtual bool addPreInvariant();
     virtual bool addPostInvariant();
     const char *kind();
-    void toDocBuffer(OutBuffer *buf, Scope *sc);
     FuncDeclaration *isUnique();
     void checkNestedReference(Scope *sc, Loc loc);
     bool needsClosure();
