@@ -990,6 +990,7 @@ Expression *op_overload(Expression *e, Scope *sc)
 
                 // Rewrite (e1 op e2) as e1.opOpAssign(e2)
                 result = build_overload(e->loc, sc, e->e1, e->e2, m.lastf ? m.lastf : s);
+                return;
             }
 
         L1:

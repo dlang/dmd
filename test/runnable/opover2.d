@@ -1495,6 +1495,25 @@ void test11311()
 }
 
 /**************************************/
+// 12193
+
+void test12193()
+{
+    struct Foo
+    {
+        bool bar;
+        alias bar this;
+        void opOpAssign(string op)(size_t x)
+        {
+            bar = false;
+        }
+    }
+
+    Foo foo;
+    foo <<= 1;
+}
+
+/**************************************/
 
 int main()
 {
