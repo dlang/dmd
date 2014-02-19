@@ -224,22 +224,6 @@ void test10()
 
 /********************************************************/
 
-class Foo11 {
-    int x = 7;
-    int func() { return x; }
-}
-
-void test11()
-{
-    int delegate() dg;
-    Foo11 f = new Foo11;
-    dg.ptr = cast(void*)f;
-    dg.funcptr = &Foo11.func;
-    assert(dg() == 7);
-}
-
-/********************************************************/
-
 class A12
 {
 public:
@@ -337,7 +321,6 @@ int main()
     test8();
     test9();
     test10();
-    test11();
     test12();
     test13();
     test2472();

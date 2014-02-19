@@ -4319,6 +4319,22 @@ elem *toElem(Expression *e, IRState *irs)
             result = e;
         }
 
+        void visit(DelegatePtrExp *dpe)
+        {
+            elem *e = dpe->e1->toElem(irs);
+            e = el_una(I64 ? OP128_64 : OP64_32, totym(dpe->type), e);
+            el_setLoc(e, dpe->loc);
+            result = e;
+        }
+
+        void visit(DelegateFuncptrExp *dfpe)
+        {
+            elem *e = dfpe->e1->toElem(irs);
+            e = el_una(OPmsw, totym(dfpe->type), e);
+            el_setLoc(e, dfpe->loc);
+            result = e;
+        }
+
         void visit(SliceExp *se)
         {
             //printf("SliceExp::toElem()\n");

@@ -6269,27 +6269,13 @@ Expression *TypeDelegate::dotExp(Scope *sc, Expression *e, Identifier *ident, in
 #endif
     if (ident == Id::ptr)
     {
-        e->type = tvoidptr;
-        return e;
+        e = new DelegatePtrExp(e->loc, e);
+        e = e->semantic(sc);
     }
     else if (ident == Id::funcptr)
     {
-        if (!e->isLvalue())
-        {
-            Identifier *idtmp = Lexer::uniqueId("__dgtmp");
-            VarDeclaration *tmp = new VarDeclaration(e->loc, this, idtmp, new ExpInitializer(Loc(), e));
-            tmp->storage_class |= STCtemp | STCctfe;
-            e = new DeclarationExp(e->loc, tmp);
-            e = new CommaExp(e->loc, e, new VarExp(e->loc, tmp));
-            e = e->semantic(sc);
-        }
-        e = e->addressOf();
-        e->type = tvoidptr;
-        e = new AddExp(e->loc, e, new IntegerExp(Target::ptrsize));
-        e->type = tvoidptr;
-        e = new PtrExp(e->loc, e);
-        e->type = next->pointerTo();
-        return e;
+        e = new DelegateFuncptrExp(e->loc, e);
+        e = e->semantic(sc);
     }
     else
     {

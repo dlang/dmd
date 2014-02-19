@@ -71,6 +71,8 @@ enum TOK
         TOKstructliteral,
         TOKclassreference,
         TOKthrownexception,
+        TOKdelegateptr,
+        TOKdelegatefuncptr,
 
         // Operators
         TOKlt,          TOKgt,
