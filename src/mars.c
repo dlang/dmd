@@ -36,6 +36,7 @@
 #include "json.h"
 #include "declaration.h"
 #include "hdrgen.h"
+#include "doc.h"
 
 int response_expand(size_t *pargc, const char ***pargv);
 void browse(const char *url);
@@ -1464,7 +1465,7 @@ Language changes listed by -transition=id:\n\
         if (m->isDocFile)
         {
             anydocfiles = true;
-            m->gendocfile();
+            gendocfile(m);
 
             // Remove m from list of modules
             modules.remove(modi);
@@ -1695,7 +1696,7 @@ Language changes listed by -transition=id:\n\
             if (entrypoint && m == rootHasMain)
                 entrypoint->genobjfile(0);
             if (!global.errors && global.params.doDocComments)
-                m->gendocfile();
+                gendocfile(m);
         }
         if (!global.errors && modules.dim)
         {
@@ -1726,7 +1727,7 @@ Language changes listed by -transition=id:\n\
             else
             {
                 if (global.params.doDocComments)
-                    m->gendocfile();
+                    gendocfile(m);
             }
         }
     }

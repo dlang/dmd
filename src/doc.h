@@ -16,5 +16,6 @@
 #endif /* __DMC__ */
 
 void escapeDdocString(OutBuffer *buf, size_t start);
+void gendocfile(Module *m);
 
 #endif
