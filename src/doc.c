@@ -38,6 +38,7 @@
 #include "utf.h"
 
 void functionToBufferFull(TypeFunction *tf, OutBuffer *buf, Identifier *ident, HdrGenState* hgs, TypeFunction *attrs, TemplateDeclaration *td);
+void emitMemberComments(ScopeDsymbol *sds, Scope *sc);
 
 struct Escape
 {
@@ -304,7 +305,7 @@ void Module::gendocfile()
     else
     {
         dc->writeSections(sc, this, sc->docbuf);
-        emitMemberComments(sc);
+        emitMemberComments(this, sc);
     }
 
     //printf("BODY= '%.*s'\n", buf.offset, buf.data);
@@ -618,32 +619,32 @@ void emitDitto(Dsymbol *s, Scope *sc)
         emitUnittestComment(sc, p, sc->lastoffset2);
 }
 
-void ScopeDsymbol::emitMemberComments(Scope *sc)
+void emitMemberComments(ScopeDsymbol *sds, Scope *sc)
 {
     //printf("ScopeDsymbol::emitMemberComments() %s\n", toChars());
     OutBuffer *buf = sc->docbuf;
 
-    if (members)
+    if (sds->members)
     {
         const char *m = "$(DDOC_MEMBERS ";
-        if (isModule())
+        if (sds->isModule())
             m = "$(DDOC_MODULE_MEMBERS ";
-        else if (isClassDeclaration())
+        else if (sds->isClassDeclaration())
             m = "$(DDOC_CLASS_MEMBERS ";
-        else if (isStructDeclaration())
+        else if (sds->isStructDeclaration())
             m = "$(DDOC_STRUCT_MEMBERS ";
-        else if (isEnumDeclaration())
+        else if (sds->isEnumDeclaration())
             m = "$(DDOC_ENUM_MEMBERS ";
-        else if (isTemplateDeclaration())
+        else if (sds->isTemplateDeclaration())
             m = "$(DDOC_TEMPLATE_MEMBERS ";
 
         size_t offset1 = buf->offset;         // save starting offset
         buf->writestring(m);
         size_t offset2 = buf->offset;         // to see if we write anything
-        sc = sc->push(this);
-        for (size_t i = 0; i < members->dim; i++)
+        sc = sc->push(sds);
+        for (size_t i = 0; i < sds->members->dim; i++)
         {
-            Dsymbol *s = (*members)[i];
+            Dsymbol *s = (*sds->members)[i];
             //printf("\ts = '%s'\n", s->toChars());
             s->emitComment(sc);
         }
@@ -739,7 +740,7 @@ void AggregateDeclaration::emitComment(Scope *sc)
 
     buf->writestring(ddoc_decl_dd_s);
     dc->writeSections(sc, this, buf);
-    emitMemberComments(sc);
+    emitMemberComments(this, sc);
     buf->writestring(ddoc_decl_dd_e);
 }
 
@@ -795,7 +796,7 @@ void TemplateDeclaration::emitComment(Scope *sc)
     buf->writestring(ddoc_decl_dd_s);
     dc->writeSections(sc, this, buf);
     if (hasmembers)
-        ((ScopeDsymbol *)ss)->emitMemberComments(sc);
+        emitMemberComments((ScopeDsymbol *)ss, sc);
     buf->writestring(ddoc_decl_dd_e);
 }
 
@@ -839,7 +840,7 @@ void EnumDeclaration::emitComment(Scope *sc)
 
     buf->writestring(ddoc_decl_dd_s);
     dc->writeSections(sc, this, buf);
-    emitMemberComments(sc);
+    emitMemberComments(this, sc);
     buf->writestring(ddoc_decl_dd_e);
 }
 
