@@ -213,7 +213,6 @@ public:
 
     virtual void addComment(const utf8_t *comment);
     virtual void emitComment(Scope *sc);
-    void emitDitto(Scope *sc);
 
     bool inNonRoot();
 

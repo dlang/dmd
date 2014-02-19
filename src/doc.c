@@ -584,39 +584,38 @@ void emitUnittestComment(Scope *sc, Dsymbol *s, size_t ofs)
  * Emit doc comment to documentation file
  */
 
-void Dsymbol::emitDitto(Scope *sc)
+void emitDitto(Dsymbol *s, Scope *sc)
 {
     //printf("Dsymbol::emitDitto() %s %s\n", kind(), toChars());
     OutBuffer *buf = sc->docbuf;
-    size_t o;
     OutBuffer b;
 
     b.writestring("$(DDOC_DITTO ");
-        o = b.offset;
-        toDocBuffer(&b, sc);
-        //printf("b: '%.*s'\n", b.offset, b.data);
-        /* If 'this' is a function template, then highlightCode() was
-         * already run by FuncDeclaration::toDocbuffer().
-         */
-        TemplateDeclaration *td;
-        if (parent &&
-            (td = parent->isTemplateDeclaration()) != NULL &&
-            td->onemember == this)
-        {
-        }
-        else
-            highlightCode(sc, this, &b, o);
+    size_t o = b.offset;
+    s->toDocBuffer(&b, sc);
+    //printf("b: '%.*s'\n", b.offset, b.data);
+    /* If 'this' is a function template, then highlightCode() was
+     * already run by FuncDeclaration::toDocbuffer().
+     */
+    TemplateDeclaration *td;
+    if (s->parent &&
+        (td = s->parent->isTemplateDeclaration()) != NULL &&
+        td->onemember == s)
+    {
+    }
+    else
+        highlightCode(sc, s, &b, o);
     b.writeByte(')');
     buf->spread(sc->lastoffset, b.offset);
     memcpy(buf->data + sc->lastoffset, b.data, b.offset);
     sc->lastoffset += b.offset;
     sc->lastoffset2 += b.offset;
 
-    Dsymbol *s = this;
-    if (!s->ddocUnittest && parent)
-        s = parent->isTemplateDeclaration();
-    if (s)
-        emitUnittestComment(sc, s, sc->lastoffset2);
+    Dsymbol *p = s;
+    if (!s->ddocUnittest && s->parent)
+        p = s->parent->isTemplateDeclaration();
+    if (p)
+        emitUnittestComment(sc, p, sc->lastoffset2);
 }
 
 void ScopeDsymbol::emitMemberComments(Scope *sc)
@@ -696,7 +695,7 @@ void Declaration::emitComment(Scope *sc)
 
     if (!dc)
     {
-        emitDitto(sc);
+        emitDitto(this, sc);
         return;
     }
     dc->pmacrotable = &sc->module->macrotable;
@@ -726,7 +725,7 @@ void AggregateDeclaration::emitComment(Scope *sc)
 
     if (!dc)
     {
-        emitDitto(sc);
+        emitDitto(this, sc);
         return;
     }
     dc->pmacrotable = &sc->module->macrotable;
@@ -780,7 +779,7 @@ void TemplateDeclaration::emitComment(Scope *sc)
 
     if (!dc)
     {
-        ss->emitDitto(sc);
+        emitDitto(ss, sc);
         return;
     }
     dc->pmacrotable = &sc->module->macrotable;
@@ -826,7 +825,7 @@ void EnumDeclaration::emitComment(Scope *sc)
 
     if (!dc)
     {
-        emitDitto(sc);
+        emitDitto(this, sc);
         return;
     }
     dc->pmacrotable = &sc->module->macrotable;
@@ -857,7 +856,7 @@ void EnumMember::emitComment(Scope *sc)
 
     if (!dc)
     {
-        emitDitto(sc);
+        emitDitto(this, sc);
         return;
     }
     dc->pmacrotable = &sc->module->macrotable;
