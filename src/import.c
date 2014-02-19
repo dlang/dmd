@@ -416,6 +416,7 @@ Dsymbol *Import::search(Loc loc, Identifier *ident, int flags)
     if (!pkg)
     {
         load(NULL);
+        mod->importAll(NULL);
         mod->semantic();
     }
 
