@@ -2261,6 +2261,22 @@ Objects *Parser::parseTemplateArguments()
         // ident!template_argument
         tiargs = parseTemplateSingleArgument();
     }
+    if (token.value == TOKnot)
+    {
+        TOK tok = peekNext();
+        if (tok != TOKis && tok != TOKin)
+        {
+            error("multiple ! arguments are not allowed");
+        Lagain:
+            nextToken();
+            if (token.value == TOKlparen)
+                parseTemplateArgumentList();
+            else
+                parseTemplateSingleArgument();
+            if (token.value == TOKnot && (tok = peekNext()) != TOKis && tok != TOKin)
+                goto Lagain;
+        }
+    }
     return tiargs;
 }
 
@@ -2387,12 +2403,6 @@ Objects *Parser::parseTemplateSingleArgument()
         default:
             error("template argument expected following !");
             break;
-    }
-    if (token.value == TOKnot)
-    {
-        TOK tok = peekNext();
-        if (tok != TOKis && tok != TOKin)
-            error("multiple ! arguments are not allowed");
     }
     return tiargs;
 }
