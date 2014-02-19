@@ -2245,7 +2245,8 @@ Dsymbol *Parser::parseMixin()
 /******************************************
  * Parse template argument list.
  * Input:
- *      current token is opening '('
+ *      current token is opening '(',
+ *          or ',' for __traits
  * Output:
  *      current token is one after closing ')'
  */
@@ -2253,18 +2254,9 @@ Dsymbol *Parser::parseMixin()
 Objects *Parser::parseTemplateArgumentList()
 {
     //printf("Parser::parseTemplateArgumentList()\n");
-    if (token.value != TOKlparen && token.value != TOKlcurly)
-    {   error("!(TemplateArgumentList) expected following TemplateIdentifier");
-        return new Objects();
-    }
-    return parseTemplateArgumentList2();
-}
-
-Objects *Parser::parseTemplateArgumentList2()
-{
-    //printf("Parser::parseTemplateArgumentList2()\n");
     Objects *tiargs = new Objects();
     TOK endtok = TOKrparen;
+    assert(token.value == TOKlparen || token.value == TOKcomma);
     nextToken();
 
     // Get TemplateArgumentList
@@ -6057,7 +6049,7 @@ Expression *Parser::parsePrimaryExp()
             ident = token.ident;
             nextToken();
             if (token.value == TOKcomma)
-                args = parseTemplateArgumentList2();    // __traits(identifier, args...)
+                args = parseTemplateArgumentList();     // __traits(identifier, args...)
             else
                 check(TOKrparen);               // __traits(identifier)
 

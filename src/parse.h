@@ -85,7 +85,6 @@ public:
     TemplateParameters *parseTemplateParameterList(int flag = 0);
     Dsymbol *parseMixin();
     Objects *parseTemplateArgumentList();
-    Objects *parseTemplateArgumentList2();
     Objects *parseTemplateArgument();
     StaticAssert *parseStaticAssert();
     TypeQualified *parseTypeof();
