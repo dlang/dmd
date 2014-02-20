@@ -2991,7 +2991,7 @@ elem *toElem(Expression *e, IRState *irs)
             Type *tb1 = e->e1->type->toBasetype();
             assert(tb1->ty != Tarray && tb1->ty != Tsarray);
 
-            e->error("must import std.math to use ^^ operator");
+            e->error("^^ operator is not supported");
             result = el_long(totym(e->type), 0);  // error recovery
         }
 
@@ -3047,7 +3047,7 @@ elem *toElem(Expression *e, IRState *irs)
             Type *tb1 = e->e1->type->toBasetype();
             assert(tb1->ty != Tarray && tb1->ty != Tsarray);
 
-            e->error("must import std.math to use ^^ operator");
+            e->error("^^ operator is not supported");
             result = el_long(totym(e->type), 0);  // error recovery
         }
 
