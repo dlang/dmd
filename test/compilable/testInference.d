@@ -375,6 +375,34 @@ pure void test10296()
 }
 
 /***************************************************/
+// 12025
+
+struct Foo12025
+{
+    int[5] bar;
+}
+
+void test12025a() pure
+{
+    enum n1 = typeof(Foo12025.bar).length;  // OK
+    enum n2 =        Foo12025.bar .length;  // OK <- error
+
+    auto x1 = typeof(Foo12025.bar).length;  // OK
+    auto x2 =        Foo12025.bar .length;  // OK <- error
+}
+
+void test12025b() pure
+{
+    static int[5] bar;
+
+    enum n1 = typeof(bar).length;  // OK
+    enum n2 =        bar .length;  // OK <- error
+
+    auto x1 = typeof(bar).length;  // OK
+    auto x2 =        bar .length;  // OK <- error
+}
+
+/***************************************************/
 
 // Add more tests regarding inferences later.
 
