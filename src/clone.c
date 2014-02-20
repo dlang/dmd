@@ -27,8 +27,21 @@
 /*******************************************
  * Merge function attributes pure, nothrow, @safe, and @disable
  */
-StorageClass mergeFuncAttrs(StorageClass s1, StorageClass s2)
+StorageClass mergeFuncAttrs(StorageClass s1, FuncDeclaration *f)
 {
+    StorageClass s2 = (f->storage_class & STCdisable);
+    TypeFunction *tf = (TypeFunction *)f->type;
+    if (tf->trust == TRUSTsafe)
+        s2 |= STCsafe;
+    else if (tf->trust == TRUSTsystem)
+        s2 |= STCsystem;
+    else if (tf->trust == TRUSTtrusted)
+        s2 |= STCtrusted;
+    if (tf->purity != PUREimpure)
+        s2 |= STCpure;
+    if (tf->isnothrow)
+        s2 |= STCnothrow;
+
     StorageClass stc = 0;
     StorageClass sa = s1 & s2;
     StorageClass so = s1 | s2;
@@ -192,7 +205,7 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
     {
         if (sd->dtor)
         {
-            stc = mergeFuncAttrs(stc, sd->dtor->storage_class);
+            stc = mergeFuncAttrs(stc, sd->dtor);
             if (stc & STCsafe)
                 stc = (stc & ~STCsafe) | STCtrusted;
         }
@@ -209,7 +222,7 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
             {
                 TypeStruct *ts = (TypeStruct *)tv;
                 if (FuncDeclaration *f = hasIdentityOpAssign(ts->sym, sc))
-                    stc = mergeFuncAttrs(stc, f->storage_class);
+                    stc = mergeFuncAttrs(stc, f);
             }
         }
     }
@@ -697,7 +710,7 @@ FuncDeclaration *buildCpCtor(StructDeclaration *sd, Scope *sc)
     Loc declLoc = sd->postblit->loc;
     Loc loc = Loc();    // internal code should have no loc to prevent coverage
 
-    stc = mergeFuncAttrs(stc, sd->postblit->storage_class);
+    stc = mergeFuncAttrs(stc, sd->postblit);
     if (stc & STCsafe)  // change to @trusted for unsafe casts
         stc = (stc & ~STCsafe) | STCtrusted;
 
@@ -777,7 +790,7 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
             StructDeclaration *sd2 = ts->sym;
             if (sd2->postblit && dim)
             {
-                stc = mergeFuncAttrs(stc, sd2->postblit->storage_class);
+                stc = mergeFuncAttrs(stc, sd2->postblit);
                 if (stc & STCdisable)
                 {
                     e = NULL;
@@ -835,7 +848,7 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
             for (size_t i = 0; i < sd->postblits.dim; i++)
             {
                 FuncDeclaration *fd = sd->postblits[i];
-                stc = mergeFuncAttrs(stc, fd->storage_class);
+                stc = mergeFuncAttrs(stc, fd);
                 if (stc & STCdisable)
                 {
                     e = NULL;
@@ -889,7 +902,7 @@ FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc)
             StructDeclaration *sd = ts->sym;
             if (sd->dtor && dim)
             {
-                stc = mergeFuncAttrs(stc, sd->dtor->storage_class);
+                stc = mergeFuncAttrs(stc, sd->dtor);
                 if (stc & STCdisable)
                 {
                     e = NULL;
@@ -948,7 +961,7 @@ FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc)
             for (size_t i = 0; i < ad->dtors.dim; i++)
             {
                 FuncDeclaration *fd = ad->dtors[i];
-                stc = mergeFuncAttrs(stc, fd->storage_class);
+                stc = mergeFuncAttrs(stc, fd);
                 if (stc & STCdisable)
                 {
                     e = NULL;
@@ -996,7 +1009,7 @@ FuncDeclaration *buildInv(AggregateDeclaration *ad, Scope *sc)
             StorageClass stcx = 0;
             for (size_t i = 0; i < ad->invs.dim; i++)
             {
-                stc = mergeFuncAttrs(stc, ad->invs[i]->storage_class);
+                stc = mergeFuncAttrs(stc, ad->invs[i]);
                 if (stc & STCdisable)
                 {
                     // What should do?
