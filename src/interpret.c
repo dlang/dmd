@@ -6890,7 +6890,7 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
     size_t nargs = arguments ? arguments->dim : 0;
     if (!pthis)
     {
-        if (fd->isBuiltin() == BUILTINyes)
+        if (isBuiltin(fd) == BUILTINyes)
         {   Expressions args;
             args.setDim(nargs);
             for (size_t i = 0; i < args.dim; i++)
