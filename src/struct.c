@@ -802,7 +802,7 @@ void StructDeclaration::semantic(Scope *sc)
     cpctor = buildCpCtor(sc2);
 
     buildOpAssign(this, sc2);
-    buildOpEquals(sc2);
+    buildOpEquals(this, sc2);
 
     xeq = buildXopEquals(sc2);
     xcmp = buildXopCmp(sc2);

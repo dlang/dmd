@@ -441,11 +441,11 @@ FuncDeclaration *hasIdentityOpEquals(AggregateDeclaration *ad,  Scope *sc)
  * to calculate structural equality. See EqualExp::semantic.
  */
 
-FuncDeclaration *StructDeclaration::buildOpEquals(Scope *sc)
+FuncDeclaration *buildOpEquals(StructDeclaration *sd, Scope *sc)
 {
-    if (FuncDeclaration *f = hasIdentityOpEquals(this, sc))
+    if (FuncDeclaration *f = hasIdentityOpEquals(sd, sc))
     {
-        hasIdentityEquals = 1;
+        sd->hasIdentityEquals = 1;
     }
     return NULL;
 }
