@@ -475,10 +475,6 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
                 }
             }
 
-            ~this()
-            {
-            }
-
             override int opApply( scope int delegate(ref const(char[])) dg ) const
             {
                 return opApply( (ref size_t, ref const(char[]) buf)
@@ -535,7 +531,7 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
         private:
             int     numframes;
             static enum MAXFRAMES = 128;
-            void*[MAXFRAMES]  callstack;
+            void*[MAXFRAMES]  callstack = void;
 
         private:
             const(char)[] fixline( const(char)[] buf, ref char[4096] fixbuf ) const
@@ -597,11 +593,7 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
                 }
 
                 assert(symBeg < buf.length && symEnd < buf.length);
-                if(symBeg == symEnd)
-                {
-                    return buf;
-                }
-                assert(symBeg < symEnd);
+                assert(symBeg <= symEnd);
 
                 enum min = (size_t a, size_t b) => a <= b ? a : b;
                 if (symBeg == symEnd || symBeg >= fixbuf.length)
