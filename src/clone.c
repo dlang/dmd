@@ -170,54 +170,53 @@ Lneed:
  *          ...;
  */
 
-FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
+FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
 {
-    if (FuncDeclaration *f = hasIdentityOpAssign(this, sc))
+    if (FuncDeclaration *f = hasIdentityOpAssign(sd, sc))
     {
-        hasIdentityAssign = 1;
+        sd->hasIdentityAssign = 1;
         return f;
     }
     // Even if non-identity opAssign is defined, built-in identity opAssign
     // will be defined.
 
-    if (!needOpAssign(this))
+    if (!needOpAssign(sd))
         return NULL;
 
     //printf("StructDeclaration::buildOpAssign() %s\n", toChars());
     StorageClass stc = STCsafe | STCnothrow | STCpure;
-    Loc declLoc = this->loc;
+    Loc declLoc = sd->loc;
     Loc loc = Loc();    // internal code should have no loc to prevent coverage
 
-    if (dtor || postblit)
+    if (sd->dtor || sd->postblit)
     {
-        if (dtor)
+        if (sd->dtor)
         {
-            stc = mergeFuncAttrs(stc, dtor->storage_class);
+            stc = mergeFuncAttrs(stc, sd->dtor->storage_class);
             if (stc & STCsafe)
                 stc = (stc & ~STCsafe) | STCtrusted;
         }
     }
     else
     {
-        for (size_t i = 0; i < fields.dim; i++)
+        for (size_t i = 0; i < sd->fields.dim; i++)
         {
-            VarDeclaration *v = fields[i];
+            VarDeclaration *v = sd->fields[i];
             if (v->storage_class & STCref)
                 continue;
             Type *tv = v->type->baseElemOf();
             if (tv->ty == Tstruct)
             {
                 TypeStruct *ts = (TypeStruct *)tv;
-                StructDeclaration *sd = ts->sym;
-                if (FuncDeclaration *f = hasIdentityOpAssign(sd, sc))
+                if (FuncDeclaration *f = hasIdentityOpAssign(ts->sym, sc))
                     stc = mergeFuncAttrs(stc, f->storage_class);
             }
         }
     }
 
     Parameters *fparams = new Parameters;
-    fparams->push(new Parameter(STCnodtor, type, Id::p, NULL));
-    Type *tf = new TypeFunction(fparams, handle, 0, LINKd, stc | STCref);
+    fparams->push(new Parameter(STCnodtor, sd->type, Id::p, NULL));
+    Type *tf = new TypeFunction(fparams, sd->handle, 0, LINKd, stc | STCref);
 
     FuncDeclaration *fop = new FuncDeclaration(declLoc, Loc(), Id::assign, stc, tf);
 
@@ -225,7 +224,7 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
     if (stc & STCdisable)
     {
     }
-    else if (dtor || postblit)
+    else if (sd->dtor || sd->postblit)
     {
         /* Do swap this and rhs
          *    tmp = this; this = s; tmp.dtor();
@@ -234,9 +233,9 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
         Identifier *idtmp = Lexer::uniqueId("__tmp");
         VarDeclaration *tmp;
         AssignExp *ec = NULL;
-        if (dtor)
+        if (sd->dtor)
         {
-            tmp = new VarDeclaration(loc, type, idtmp, new VoidInitializer(loc));
+            tmp = new VarDeclaration(loc, sd->type, idtmp, new VoidInitializer(loc));
             tmp->noscope = 1;
             tmp->storage_class |= STCtemp | STCctfe;
             e = new DeclarationExp(loc, tmp);
@@ -252,12 +251,12 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
                 new IdentifierExp(loc, Id::p));
         ec->op = TOKblit;
         e = Expression::combine(e, ec);
-        if (dtor)
+        if (sd->dtor)
         {
             /* Instead of running the destructor on s, run it
              * on tmp. This avoids needing to copy tmp back in to s.
              */
-            Expression *ec2 = new DotVarExp(loc, new VarExp(loc, tmp), dtor, 0);
+            Expression *ec2 = new DotVarExp(loc, new VarExp(loc, tmp), sd->dtor, 0);
             ec2 = new CallExp(loc, ec2);
             e = Expression::combine(e, ec2);
         }
@@ -267,9 +266,9 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
         /* Do memberwise copy
          */
         //printf("\tmemberwise copy\n");
-        for (size_t i = 0; i < fields.dim; i++)
+        for (size_t i = 0; i < sd->fields.dim; i++)
         {
-            VarDeclaration *v = fields[i];
+            VarDeclaration *v = sd->fields[i];
             // this.v = s.v;
             AssignExp *ec = new AssignExp(loc,
                 new DotVarExp(loc, new ThisExp(loc), v, 0),
@@ -292,7 +291,7 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
 
     Dsymbol *s = fop;
 #if 1   // workaround until fixing issue 1528
-    Dsymbol *assign = search_function(this, Id::assign);
+    Dsymbol *assign = search_function(sd, Id::assign);
     if (assign && assign->isTemplateDeclaration())
     {
         // Wrap a template around the function declaration
@@ -304,9 +303,9 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
         s = tempdecl;
     }
 #endif
-    members->push(s);
-    s->addMember(sc, this, 1);
-    this->hasIdentityAssign = 1;        // temporary mark identity assignable
+    sd->members->push(s);
+    s->addMember(sc, sd, 1);
+    sd->hasIdentityAssign = 1;        // temporary mark identity assignable
 
     unsigned errors = global.startGagging();    // Do not report errors, even if the
     unsigned oldspec = global.speculativeGag;   // template opAssign fbody makes it.
@@ -323,7 +322,8 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
     sc2->pop();
     global.speculativeGag = oldspec;
     if (global.endGagging(errors))    // if errors happened
-    {   // Disable generated opAssign, because some members forbid identity assignment.
+    {
+        // Disable generated opAssign, because some members forbid identity assignment.
         fop->storage_class |= STCdisable;
         fop->fbody = NULL;  // remove fbody which contains the error
     }

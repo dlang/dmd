@@ -801,7 +801,7 @@ void StructDeclaration::semantic(Scope *sc)
     postblit = buildPostBlit(sc2);
     cpctor = buildCpCtor(sc2);
 
-    buildOpAssign(sc2);
+    buildOpAssign(this, sc2);
     buildOpEquals(sc2);
 
     xeq = buildXopEquals(sc2);
