@@ -114,6 +114,7 @@ public:
     Module(const char *arg, Identifier *ident, int doDocComment, int doHdrGen);
     static Module* create(const char *arg, Identifier *ident, int doDocComment, int doHdrGen);
 
+    void setQualifiedObjectFile();  // set qualified filename when -oq is set
     static Module *load(Loc loc, Identifiers *packages, Identifier *ident);
 
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);

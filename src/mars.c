@@ -447,6 +447,7 @@ Usage:\n\
   -odobjdir      write object & library files to directory objdir\n\
   -offilename    name output file to filename\n\
   -op            preserve source path for output files\n\
+  -oq            use fully qualified module name for object file name\n\
   -profile       profile runtime performance of generated code\n\
   -property      enforce property syntax\n\
   -quiet         suppress unnecessary messages\n\
@@ -815,6 +816,12 @@ Language changes listed by -transition=id:\n\
                         if (p[3])
                             goto Lerror;
                         global.params.preservePaths = 1;
+                        break;
+
+                    case 'q':
+                        if (p[3])
+                            goto Lerror;
+                        global.params.qualifyObjects = 1;
                         break;
 
                     case 0:
@@ -1460,6 +1467,9 @@ Language changes listed by -transition=id:\n\
         }
 #endif
         m->parse();
+        if (!m->isDocFile && global.params.qualifyObjects)
+            m->setQualifiedObjectFile();
+
         if (m->isDocFile)
         {
             anydocfiles = true;
