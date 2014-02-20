@@ -461,13 +461,13 @@ FuncDeclaration *buildOpEquals(StructDeclaration *sd, Scope *sc)
  * const objects comparison, it will throw "not implemented" Error in runtime.
  */
 
-FuncDeclaration *StructDeclaration::buildXopEquals(Scope *sc)
+FuncDeclaration *buildXopEquals(StructDeclaration *sd, Scope *sc)
 {
-    if (!needOpEquals(this))
+    if (!needOpEquals(sd))
         return NULL;        // bitwise comparison would work
 
-    //printf("StructDeclaration::buildXopEquals() %s\n", toChars());
-    if (Dsymbol *eq = search_function(this, Id::eq))
+    //printf("StructDeclaration::buildXopEquals() %s\n", sd->toChars());
+    if (Dsymbol *eq = search_function(sd, Id::eq))
     {
         if (FuncDeclaration *fd = eq->isFuncDeclaration())
         {
@@ -478,7 +478,7 @@ FuncDeclaration *StructDeclaration::buildXopEquals(Scope *sc)
                 /* const bool opEquals(ref const S s);
                  */
                 Parameters *parameters = new Parameters;
-                parameters->push(new Parameter(STCref | STCconst, type, NULL, NULL));
+                parameters->push(new Parameter(STCref | STCconst, sd->type, NULL, NULL));
                 tfeqptr = new TypeFunction(parameters, Type::tbool, 0, LINKd);
                 tfeqptr->mod = MODconst;
                 tfeqptr = (TypeFunction *)tfeqptr->semantic(Loc(), &scx);
@@ -489,13 +489,13 @@ FuncDeclaration *StructDeclaration::buildXopEquals(Scope *sc)
         }
     }
 
-    if (!xerreq)
+    if (!sd->xerreq)
     {
         // object._xopEquals
         Identifier *id = Lexer::idPool("_xopEquals");
-        Expression *e = new IdentifierExp(loc, Id::empty);
-        e = new DotIdExp(loc, e, Id::object);
-        e = new DotIdExp(loc, e, id);
+        Expression *e = new IdentifierExp(sd->loc, Id::empty);
+        e = new DotIdExp(sd->loc, e, Id::object);
+        e = new DotIdExp(sd->loc, e, id);
         e = e->semantic(sc);
         Dsymbol *s = getDsymbol(e);
         if (!s)
@@ -504,15 +504,15 @@ FuncDeclaration *StructDeclaration::buildXopEquals(Scope *sc)
             fatal();
         }
         assert(s);
-        xerreq = s->isFuncDeclaration();
+        sd->xerreq = s->isFuncDeclaration();
     }
 
     Loc declLoc = Loc();    // loc is unnecessary so __xopEquals is never called directly
     Loc loc = Loc();        // loc is unnecessary so errors are gagged
 
     Parameters *parameters = new Parameters;
-    parameters->push(new Parameter(STCref | STCconst, type, Id::p, NULL));
-    parameters->push(new Parameter(STCref | STCconst, type, Id::q, NULL));
+    parameters->push(new Parameter(STCref | STCconst, sd->type, Id::p, NULL));
+    parameters->push(new Parameter(STCref | STCconst, sd->type, Id::q, NULL));
     TypeFunction *tf = new TypeFunction(parameters, Type::tbool, 0, LINKd);
     tf = (TypeFunction *)tf->semantic(loc, sc);
 
@@ -535,7 +535,7 @@ FuncDeclaration *StructDeclaration::buildXopEquals(Scope *sc)
 
     sc2->pop();
     if (global.endGagging(errors))    // if errors happened
-        fop = xerreq;
+        fop = sd->xerreq;
 
     return fop;
 }

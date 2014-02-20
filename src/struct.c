@@ -804,7 +804,7 @@ void StructDeclaration::semantic(Scope *sc)
     buildOpAssign(this, sc2);
     buildOpEquals(this, sc2);
 
-    xeq = buildXopEquals(sc2);
+    xeq = buildXopEquals(this, sc2);
     xcmp = buildXopCmp(sc2);
 
     /* Even if the struct is merely imported and its semantic3 is not run,
