@@ -72,7 +72,6 @@ public:
 
     void toObjFile(int multiobj);                       // compile to .obj file
     void toDebug();
-    int cvMember(unsigned char *p);
 
     Symbol *sinit;
     Symbol *toInitializer();
