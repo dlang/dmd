@@ -750,17 +750,17 @@ FuncDeclaration *buildCpCtor(StructDeclaration *sd, Scope *sc)
  * and the ordering changes (runs forward instead of backwards).
  */
 
-FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
+FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
 {
-    //printf("StructDeclaration::buildPostBlit() %s\n", toChars());
+    //printf("StructDeclaration::buildPostBlit() %s\n", sd->toChars());
     StorageClass stc = STCsafe | STCnothrow | STCpure;
-    Loc declLoc = postblits.dim ? postblits[0]->loc : this->loc;
+    Loc declLoc = sd->postblits.dim ? sd->postblits[0]->loc : sd->loc;
     Loc loc = Loc();    // internal code should have no loc to prevent coverage
 
     Expression *e = NULL;
-    for (size_t i = 0; i < fields.dim; i++)
+    for (size_t i = 0; i < sd->fields.dim; i++)
     {
-        VarDeclaration *v = fields[i];
+        VarDeclaration *v = sd->fields[i];
         if (v->storage_class & STCref)
             continue;
         Type *tv = v->type->toBasetype();
@@ -774,10 +774,10 @@ FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
         if (tv->ty == Tstruct)
         {
             TypeStruct *ts = (TypeStruct *)tv;
-            StructDeclaration *sd = ts->sym;
-            if (sd->postblit && dim)
+            StructDeclaration *sd2 = ts->sym;
+            if (sd2->postblit && dim)
             {
-                stc = mergeFuncAttrs(stc, sd->postblit->storage_class);
+                stc = mergeFuncAttrs(stc, sd2->postblit->storage_class);
                 if (stc & STCdisable)
                 {
                     e = NULL;
@@ -790,7 +790,7 @@ FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
 
                 if (v->type->toBasetype()->ty == Tstruct)
                 {   // this.v.postblit()
-                    ex = new DotVarExp(loc, ex, sd->postblit, 0);
+                    ex = new DotVarExp(loc, ex, sd2->postblit, 0);
                     ex = new CallExp(loc, ex);
                 }
                 else
@@ -812,28 +812,29 @@ FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
     /* Build our own "postblit" which executes e
      */
     if (e || (stc & STCdisable))
-    {   //printf("Building __fieldPostBlit()\n");
+    {
+        //printf("Building __fieldPostBlit()\n");
         PostBlitDeclaration *dd = new PostBlitDeclaration(declLoc, Loc(), stc, Lexer::idPool("__fieldPostBlit"));
         dd->fbody = new ExpStatement(loc, e);
-        postblits.shift(dd);
-        members->push(dd);
+        sd->postblits.shift(dd);
+        sd->members->push(dd);
         dd->semantic(sc);
     }
 
-    switch (postblits.dim)
+    switch (sd->postblits.dim)
     {
         case 0:
             return NULL;
 
         case 1:
-            return postblits[0];
+            return sd->postblits[0];
 
         default:
             e = NULL;
             stc = STCsafe | STCnothrow | STCpure;
-            for (size_t i = 0; i < postblits.dim; i++)
+            for (size_t i = 0; i < sd->postblits.dim; i++)
             {
-                FuncDeclaration *fd = postblits[i];
+                FuncDeclaration *fd = sd->postblits[i];
                 stc = mergeFuncAttrs(stc, fd->storage_class);
                 if (stc & STCdisable)
                 {
@@ -847,7 +848,7 @@ FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
             }
             PostBlitDeclaration *dd = new PostBlitDeclaration(declLoc, Loc(), stc, Lexer::idPool("__aggrPostBlit"));
             dd->fbody = new ExpStatement(loc, e);
-            members->push(dd);
+            sd->members->push(dd);
             dd->semantic(sc);
             return dd;
     }

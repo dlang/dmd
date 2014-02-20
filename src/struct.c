@@ -798,7 +798,7 @@ void StructDeclaration::semantic(Scope *sc)
     }
 
     dtor = buildDtor(sc2);
-    postblit = buildPostBlit(sc2);
+    postblit = buildPostBlit(this, sc2);
     cpctor = buildCpCtor(this, sc2);
 
     buildOpAssign(this, sc2);
