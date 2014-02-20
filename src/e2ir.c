@@ -3309,7 +3309,7 @@ elem *PowAssignExp::toElem(IRState *irs)
     Type *tb1 = e1->type->toBasetype();
     assert(tb1->ty != Tarray && tb1->ty != Tsarray);
 
-    error("must import std.math to use ^^ operator");
+    error("^^ operator is not supported");
     return el_long(type->totym(), 0);  // error recovery
 }
 
@@ -3369,7 +3369,7 @@ elem *PowExp::toElem(IRState *irs)
     Type *tb1 = e1->type->toBasetype();
     assert(tb1->ty != Tarray && tb1->ty != Tsarray);
 
-    error("must import std.math to use ^^ operator");
+    error("^^ operator is not supported");
     return el_long(type->totym(), 0);  // error recovery
 }
 
