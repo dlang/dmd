@@ -862,17 +862,17 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
  * and the ordering changes (runs backward instead of forwards).
  */
 
-FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
+FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc)
 {
-    //printf("AggregateDeclaration::buildDtor() %s\n", toChars());
+    //printf("AggregateDeclaration::buildDtor() %s\n", ad->toChars());
     StorageClass stc = STCsafe | STCnothrow | STCpure;
-    Loc declLoc = dtors.dim ? dtors[0]->loc : this->loc;
+    Loc declLoc = ad->dtors.dim ? ad->dtors[0]->loc : ad->loc;
     Loc loc = Loc();    // internal code should have no loc to prevent coverage
 
     Expression *e = NULL;
-    for (size_t i = 0; i < fields.dim; i++)
+    for (size_t i = 0; i < ad->fields.dim; i++)
     {
-        VarDeclaration *v = fields[i];
+        VarDeclaration *v = ad->fields[i];
         if (v->storage_class & STCref)
             continue;
         Type *tv = v->type->toBasetype();
@@ -901,7 +901,8 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
                 ex = new DotVarExp(loc, ex, v, 0);
 
                 if (v->type->toBasetype()->ty == Tstruct)
-                {   // this.v.dtor()
+                {
+                    // this.v.dtor()
                     ex = new DotVarExp(loc, ex, sd->dtor, 0);
                     ex = new CallExp(loc, ex);
                 }
@@ -924,28 +925,29 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
     /* Build our own "destructor" which executes e
      */
     if (e || (stc & STCdisable))
-    {   //printf("Building __fieldDtor()\n");
+    {
+        //printf("Building __fieldDtor()\n");
         DtorDeclaration *dd = new DtorDeclaration(declLoc, Loc(), stc, Lexer::idPool("__fieldDtor"));
         dd->fbody = new ExpStatement(loc, e);
-        dtors.shift(dd);
-        members->push(dd);
+        ad->dtors.shift(dd);
+        ad->members->push(dd);
         dd->semantic(sc);
     }
 
-    switch (dtors.dim)
+    switch (ad->dtors.dim)
     {
         case 0:
             return NULL;
 
         case 1:
-            return dtors[0];
+            return ad->dtors[0];
 
         default:
             e = NULL;
             stc = STCsafe | STCnothrow | STCpure;
-            for (size_t i = 0; i < dtors.dim; i++)
+            for (size_t i = 0; i < ad->dtors.dim; i++)
             {
-                FuncDeclaration *fd = dtors[i];
+                FuncDeclaration *fd = ad->dtors[i];
                 stc = mergeFuncAttrs(stc, fd->storage_class);
                 if (stc & STCdisable)
                 {
@@ -959,7 +961,7 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
             }
             DtorDeclaration *dd = new DtorDeclaration(declLoc, Loc(), stc, Lexer::idPool("__aggrDtor"));
             dd->fbody = new ExpStatement(loc, e);
-            members->push(dd);
+            ad->members->push(dd);
             dd->semantic(sc);
             return dd;
     }

@@ -765,7 +765,7 @@ void ClassDeclaration::semantic(Scope *sc)
     sizeok = SIZEOKdone;
     Module::dprogress++;
 
-    dtor = buildDtor(sc);
+    dtor = buildDtor(this, sc);
     if (FuncDeclaration *f = hasIdentityOpAssign(this, sc))
     {
         if (!(f->storage_class & STCdisable))

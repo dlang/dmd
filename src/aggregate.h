@@ -57,6 +57,7 @@ FuncDeclaration *buildXopEquals(StructDeclaration *sd, Scope *sc);
 FuncDeclaration *buildXopCmp(StructDeclaration *sd, Scope *sc);
 FuncDeclaration *buildCpCtor(StructDeclaration *sd, Scope *sc);
 FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc);
+FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc);
 
 class AggregateDeclaration : public ScopeDsymbol
 {
@@ -110,7 +111,6 @@ public:
     int firstFieldInUnion(int indx); // first field in union that includes indx
     int numFieldsInUnion(int firstIndex); // #fields in union starting at index
     bool isDeprecated();         // is aggregate deprecated?
-    FuncDeclaration *buildDtor(Scope *sc);
     FuncDeclaration *buildInv(Scope *sc);
     bool isNested();
     void makeNested();
