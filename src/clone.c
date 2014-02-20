@@ -684,25 +684,25 @@ FuncDeclaration *buildXopCmp(StructDeclaration *sd, Scope *sc)
  *      - no fields are overlooked
  */
 
-FuncDeclaration *StructDeclaration::buildCpCtor(Scope *sc)
+FuncDeclaration *buildCpCtor(StructDeclaration *sd, Scope *sc)
 {
     /* Copy constructor is only necessary if there is a postblit function,
      * otherwise the code generator will just do a bit copy.
      */
-    if (!postblit)
+    if (!sd->postblit)
         return NULL;
 
     //printf("StructDeclaration::buildCpCtor() %s\n", toChars());
     StorageClass stc = STCsafe | STCnothrow | STCpure;
-    Loc declLoc = postblit->loc;
+    Loc declLoc = sd->postblit->loc;
     Loc loc = Loc();    // internal code should have no loc to prevent coverage
 
-    stc = mergeFuncAttrs(stc, postblit->storage_class);
+    stc = mergeFuncAttrs(stc, sd->postblit->storage_class);
     if (stc & STCsafe)  // change to @trusted for unsafe casts
         stc = (stc & ~STCsafe) | STCtrusted;
 
     Parameters *fparams = new Parameters;
-    fparams->push(new Parameter(STCref, type->constOf(), Id::p, NULL));
+    fparams->push(new Parameter(STCref, sd->type->constOf(), Id::p, NULL));
     Type *tf = new TypeFunction(fparams, Type::tvoid, 0, LINKd, stc);
     tf->mod = MODconst;
 
@@ -713,23 +713,23 @@ FuncDeclaration *StructDeclaration::buildCpCtor(Scope *sc)
         // Build *this = p;
         Expression *e = new ThisExp(loc);
         AssignExp *ea = new AssignExp(loc,
-            new PtrExp(loc, new CastExp(loc, new AddrExp(loc, e), type->mutableOf()->pointerTo())),
-            new PtrExp(loc, new CastExp(loc, new AddrExp(loc, new IdentifierExp(loc, Id::p)), type->mutableOf()->pointerTo()))
+            new PtrExp(loc, new CastExp(loc, new AddrExp(loc, e), sd->type->mutableOf()->pointerTo())),
+            new PtrExp(loc, new CastExp(loc, new AddrExp(loc, new IdentifierExp(loc, Id::p)), sd->type->mutableOf()->pointerTo()))
         );
         ea->op = TOKblit;
         Statement *s = new ExpStatement(loc, ea);
 
         // Build postBlit();
         e = new ThisExp(loc);
-        e = new PtrExp(loc, new CastExp(loc, new AddrExp(loc, e), type->mutableOf()->pointerTo()));
-        e = new DotVarExp(loc, e, postblit, 0);
+        e = new PtrExp(loc, new CastExp(loc, new AddrExp(loc, e), sd->type->mutableOf()->pointerTo()));
+        e = new DotVarExp(loc, e, sd->postblit, 0);
         e = new CallExp(loc, e);
 
         s = new CompoundStatement(loc, s, new ExpStatement(loc, e));
         fcp->fbody = s;
     }
 
-    members->push(fcp);
+    sd->members->push(fcp);
 
     sc = sc->push();
     sc->stc = 0;

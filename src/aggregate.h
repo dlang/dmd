@@ -55,6 +55,7 @@ bool needOpEquals(StructDeclaration *sd);
 FuncDeclaration *buildOpEquals(StructDeclaration *sd, Scope *sc);
 FuncDeclaration *buildXopEquals(StructDeclaration *sd, Scope *sc);
 FuncDeclaration *buildXopCmp(StructDeclaration *sd, Scope *sc);
+FuncDeclaration *buildCpCtor(StructDeclaration *sd, Scope *sc);
 
 class AggregateDeclaration : public ScopeDsymbol
 {
@@ -179,7 +180,6 @@ public:
     bool fill(Loc loc, Expressions *elements, bool ctorinit);
     bool isPOD();
     FuncDeclaration *buildPostBlit(Scope *sc);
-    FuncDeclaration *buildCpCtor(Scope *sc);
     void toDocBuffer(OutBuffer *buf, Scope *sc);
 
     PROT getAccess(Dsymbol *smember);   // determine access to smember
