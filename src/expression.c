@@ -457,6 +457,12 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
         if (e2)
             goto Leprop;
     }
+    if (e1->op == TOKvar)
+    {
+        VarExp *ve = (VarExp *)e1;
+        if (VarDeclaration *v = ve->var->isVarDeclaration())
+            ve->checkPurity(sc, v);
+    }
     if (e2)
         return NULL;
 
@@ -2264,12 +2270,14 @@ void Expression::checkPurity(Scope *sc, VarDeclaration *v)
     if (sc->func &&
         !sc->intypeof &&             // allow violations inside typeof(expression)
         !(sc->flags & SCOPEdebug) && // allow violations inside debug conditionals
+        !(sc->flags & SCOPEctfe) &&  // allow violations inside compile-time evaluated expressions
         v->ident != Id::ctfe &&      // magic variable never violates pure and safe
         !v->isImmutable() &&         // always safe and pure to access immutables...
         !(v->isConst() && !v->isRef() && (v->isDataseg() || v->isParameter()) &&
           v->type->implicitConvTo(v->type->immutableOf())) &&
             // or const global/parameter values which have no mutable indirections
-        !(v->storage_class & STCmanifest) // ...or manifest constants
+        !(v->storage_class & STCmanifest) && // ...or manifest constants
+        !v->needThis()               // ...or 'unreal' var access
        )
     {
         if (v->isDataseg())
@@ -2332,7 +2340,7 @@ void Expression::checkPurity(Scope *sc, VarDeclaration *v)
             for (Dsymbol *s = sc->func; s; s = s->toParent2())
             {
                 if (s == vparent)
-                        break;
+                    break;
                 FuncDeclaration *ff = s->isFuncDeclaration();
                 if (!ff)
                     break;
@@ -5173,7 +5181,6 @@ Expression *VarExp::semantic(Scope *sc)
     {
         hasOverloads = 0;
         v->checkNestedReference(sc, loc);
-        checkPurity(sc, v);
     }
     FuncDeclaration *f = var->isFuncDeclaration();
     if (f)
@@ -6819,6 +6826,12 @@ Expression *DotIdExp::semanticX(Scope *sc)
             default:
                 break;
         }
+    }
+
+    if (e1->op == TOKvar && e1->type->toBasetype()->ty == Tsarray && ident == Id::length)
+    {
+        // bypass checkPurity
+        return e1->type->dotExp(sc, e1, ident, 0);
     }
 
     if (e1->op == TOKdotexp)
