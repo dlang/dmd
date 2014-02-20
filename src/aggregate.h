@@ -152,8 +152,8 @@ class StructDeclaration : public AggregateDeclaration
 {
 public:
     int zeroInit;               // !=0 if initialize with 0 fill
-    int hasIdentityAssign;      // !=0 if has identity opAssign
-    int hasIdentityEquals;      // !=0 if has identity opEquals
+    bool hasIdentityAssign;     // true if has identity opAssign
+    bool hasIdentityEquals;     // true if has identity opEquals
     FuncDeclaration *cpctor;    // generated copy-constructor, if any
     FuncDeclarations postblits; // Array of postblit functions
     FuncDeclaration *postblit;  // aggregate postblit

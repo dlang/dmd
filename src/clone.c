@@ -174,7 +174,7 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
 {
     if (FuncDeclaration *f = hasIdentityOpAssign(sd, sc))
     {
-        sd->hasIdentityAssign = 1;
+        sd->hasIdentityAssign = true;
         return f;
     }
     // Even if non-identity opAssign is defined, built-in identity opAssign
@@ -305,7 +305,7 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
 #endif
     sd->members->push(s);
     s->addMember(sc, sd, 1);
-    sd->hasIdentityAssign = 1;        // temporary mark identity assignable
+    sd->hasIdentityAssign = true;        // temporary mark identity assignable
 
     unsigned errors = global.startGagging();    // Do not report errors, even if the
     unsigned oldspec = global.speculativeGag;   // template opAssign fbody makes it.
@@ -445,7 +445,7 @@ FuncDeclaration *buildOpEquals(StructDeclaration *sd, Scope *sc)
 {
     if (FuncDeclaration *f = hasIdentityOpEquals(sd, sc))
     {
-        sd->hasIdentityEquals = 1;
+        sd->hasIdentityEquals = true;
     }
     return NULL;
 }
@@ -1007,7 +1007,7 @@ FuncDeclaration *buildInv(AggregateDeclaration *ad, Scope *sc)
                 else if (stcx ^ stcy)
                 {
             #if 1   // currently rejects
-                    error(ad->invs[i]->loc, "mixing invariants with shared/synchronized differene is not supported");
+                    ad->error(ad->invs[i]->loc, "mixing invariants with shared/synchronized differene is not supported");
                     e = NULL;
                     break;
             #endif
