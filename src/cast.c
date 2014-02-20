@@ -2818,12 +2818,12 @@ Lt2:
  * Bring leaves to common type.
  */
 
-Expression *BinExp::typeCombine(Scope *sc)
+Expression *typeCombine(BinExp *be, Scope *sc)
 {
-    Type *t1 = e1->type->toBasetype();
-    Type *t2 = e2->type->toBasetype();
+    Type *t1 = be->e1->type->toBasetype();
+    Type *t2 = be->e2->type->toBasetype();
 
-    if (op == TOKmin || op == TOKadd)
+    if (be->op == TOKmin || be->op == TOKadd)
     {
         // struct+struct, and class+class are errors
         if (t1->ty == Tstruct && t2->ty == Tstruct)
@@ -2834,20 +2834,20 @@ Expression *BinExp::typeCombine(Scope *sc)
             goto Lerror;
     }
 
-    if (!typeMerge(sc, this, &type, &e1, &e2))
+    if (!typeMerge(sc, be, &be->type, &be->e1, &be->e2))
         goto Lerror;
     // If the types have no value, return an error
-    if (e1->op == TOKerror)
-        return e1;
-    if (e2->op == TOKerror)
-        return e2;
-    return this;
+    if (be->e1->op == TOKerror)
+        return be->e1;
+    if (be->e2->op == TOKerror)
+        return be->e2;
+    return be;
 
 Lerror:
-    incompatibleTypes();
-    type = Type::terror;
-    e1 = new ErrorExp();
-    e2 = new ErrorExp();
+    be->incompatibleTypes();
+    be->type = Type::terror;
+    be->e1 = new ErrorExp();
+    be->e2 = new ErrorExp();
     return new ErrorExp();
 }
 
