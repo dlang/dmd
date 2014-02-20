@@ -117,7 +117,7 @@ Expression *implicitCastTo(Expression *e, Scope *sc, Type *t)
         void visit(FuncExp *e)
         {
             //printf("FuncExp::implicitCastTo type = %p %s, t = %s\n", e->type, e->type ? e->type->toChars() : NULL, t->toChars());
-            visit((Expression *)e->inferType(t));
+            visit((Expression *)inferType(e, t));
         }
 
         void visit(ArrayLiteralExp *e)
@@ -822,7 +822,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
         void visit(FuncExp *e)
         {
             //printf("FuncExp::implicitConvTo type = %p %s, t = %s\n", e->type, e->type ? e->type->toChars() : NULL, t->toChars());
-            Expression *ex = e->inferType(t, 1);
+            Expression *ex = inferType(e, t, 1);
             if (ex &&
                 (t->ty == Tdelegate ||
                  t->ty == Tpointer && t->nextOf()->ty == Tfunction))
@@ -1844,7 +1844,7 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
         void visit(FuncExp *e)
         {
             //printf("FuncExp::castTo type = %s, t = %s\n", type->toChars(), t->toChars());
-            result = e->inferType(t, 1);
+            result = inferType(e, t, 1);
             if (result)
             {
                 if (result != e)
@@ -1935,191 +1935,226 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
  *      tparams template parameters should be inferred
  */
 
-Expression *Expression::inferType(Type *t, int flag, Scope *sc, TemplateParameters *tparams)
+Expression *inferType(Expression *e, Type *t, int flag, Scope *sc, TemplateParameters *tparams)
 {
-    return this;
-}
-
-Expression *ArrayLiteralExp::inferType(Type *t, int flag, Scope *sc, TemplateParameters *tparams)
-{
-    if (t)
+    class InferType : public Visitor
     {
-        t = t->toBasetype();
-        if (t->ty == Tarray || t->ty == Tsarray)
+    public:
+        Type *t;
+        int flag;
+        Scope *sc;
+        TemplateParameters *tparams;
+        Expression *result;
+
+        InferType(Type *t, int flag, Scope *sc, TemplateParameters *tparams)
+            : t(t), flag(flag), sc(sc), tparams(tparams)
         {
-            Type *tn = t->nextOf();
-            for (size_t i = 0; i < elements->dim; i++)
-            {   Expression *e = (*elements)[i];
-                if (e)
-                {   e = e->inferType(tn, flag, sc, tparams);
-                    (*elements)[i] = e;
-                }
-            }
+            result = NULL;
         }
-    }
-    return this;
-}
 
-Expression *AssocArrayLiteralExp::inferType(Type *t, int flag, Scope *sc, TemplateParameters *tparams)
-{
-    if (t)
-    {
-        t = t->toBasetype();
-        if (t->ty == Taarray)
-        {   TypeAArray *taa = (TypeAArray *)t;
-            Type *ti = taa->index;
-            Type *tv = taa->nextOf();
-            for (size_t i = 0; i < keys->dim; i++)
-            {   Expression *e = (*keys)[i];
-                if (e)
-                {   e = e->inferType(ti, flag, sc, tparams);
-                    (*keys)[i] = e;
-                }
-            }
-            for (size_t i = 0; i < values->dim; i++)
-            {   Expression *e = (*values)[i];
-                if (e)
-                {   e = e->inferType(tv, flag, sc, tparams);
-                    (*values)[i] = e;
-                }
-            }
-        }
-    }
-    return this;
-}
 
-Expression *FuncExp::inferType(Type *to, int flag, Scope *sc, TemplateParameters *tparams)
-{
-    if (!to)
-        return this;
-
-    //printf("FuncExp::interType('%s'), to=%s\n", type?type->toChars():"null", to->toChars());
-
-    if (!type)  // semantic is not yet done
-    {
-        if (to->ty == Tdelegate ||
-            to->ty == Tpointer && to->nextOf()->ty == Tfunction)
+        void visit(Expression *e)
         {
-            fd->treq = to;
+            result = e;
         }
-        return this;
-    }
 
-    Expression *e = NULL;
-
-    Type *t = to;
-    if (t->ty == Tdelegate)
-    {   if (tok == TOKfunction)
-            goto L1;
-        t = t->nextOf();
-    }
-    else if (t->ty == Tpointer && t->nextOf()->ty == Tfunction)
-    {   if (tok == TOKdelegate)
-            goto L1;
-        t = t->nextOf();
-    }
-
-    if (td)
-    {
-        // Parameter types inference from 'to'
-        assert(td->scope);
-        if (t->ty == Tfunction)
+        void visit(ArrayLiteralExp *ale)
         {
-            TypeFunction *tfv = (TypeFunction *)t;
-            TypeFunction *tfl = (TypeFunction *)fd->type;
-            //printf("\ttfv = %s\n", tfv->toChars());
-            //printf("\ttfl = %s\n", tfl->toChars());
-            size_t dim = Parameter::dim(tfl->parameters);
-
-            if (Parameter::dim(tfv->parameters) == dim &&
-                tfv->varargs == tfl->varargs)
+            if (t)
             {
-                Objects *tiargs = new Objects();
-                tiargs->reserve(td->parameters->dim);
-
-                for (size_t i = 0; i < td->parameters->dim; i++)
+                t = t->toBasetype();
+                if (t->ty == Tarray || t->ty == Tsarray)
                 {
-                    TemplateParameter *tp = (*td->parameters)[i];
-                    for (size_t u = 0; u < dim; u++)
+                    Type *tn = t->nextOf();
+                    for (size_t i = 0; i < ale->elements->dim; i++)
                     {
-                        Parameter *p = Parameter::getNth(tfl->parameters, u);
-                        if (p->type->ty == Tident &&
-                            ((TypeIdentifier *)p->type)->ident == tp->ident)
+                        Expression *e = (*ale->elements)[i];
+                        if (e)
                         {
-                            p = Parameter::getNth(tfv->parameters, u);
-                            Type *tprm = p->type;
-                            if (tprm->reliesOnTident(tparams))
-                                goto L1;
-                            if (sc)
-                                tprm = tprm->semantic(loc, sc);
-                            if (tprm->ty == Terror)
-                                goto L1;
-                            tiargs->push(tprm);
-                            u = dim;    // break inner loop
+                            e = inferType(e, tn, flag, sc, tparams);
+                            (*ale->elements)[i] = e;
                         }
                     }
                 }
+            }
+            result = ale;
+        }
 
-                // Set target of return type inference
-                assert(td->onemember);
-                FuncLiteralDeclaration *fld = td->onemember->isFuncLiteralDeclaration();
-                assert(fld);
-                if (!fld->type->nextOf() && tfv->next)
-                    fld->treq = to;
-
-                TemplateInstance *ti = new TemplateInstance(loc, td, tiargs);
-                e = (new ScopeExp(loc, ti))->semantic(td->scope);
-
-                // Reset inference target for the later re-semantic
-                fld->treq = NULL;
-
-                if (e->op == TOKfunction)
+        void visit(AssocArrayLiteralExp *aale)
+        {
+            if (t)
+            {
+                t = t->toBasetype();
+                if (t->ty == Taarray)
                 {
-                    FuncExp *fe = (FuncExp *)e;
-                    assert(fe->td == NULL);
-                    e = fe->inferType(to, flag);
+                    TypeAArray *taa = (TypeAArray *)t;
+                    Type *ti = taa->index;
+                    Type *tv = taa->nextOf();
+                    for (size_t i = 0; i < aale->keys->dim; i++)
+                    {   Expression *e = (*aale->keys)[i];
+                        if (e)
+                        {
+                            e = inferType(e, ti, flag, sc, tparams);
+                            (*aale->keys)[i] = e;
+                        }
+                    }
+                    for (size_t i = 0; i < aale->values->dim; i++)
+                    {
+                        Expression *e = (*aale->values)[i];
+                        if (e)
+                        {   e = inferType(e, tv, flag, sc, tparams);
+                            (*aale->values)[i] = e;
+                        }
+                    }
                 }
             }
+            result = aale;
         }
-    }
-    else if (type)
-    {
-        assert(type != Type::tvoid);   // semantic is already done
 
-        // Allow conversion from implicit function pointer to delegate
-        if (tok == TOKreserved && type->ty == Tpointer &&
-            to->ty == Tdelegate)
+        void visit(FuncExp *fe)
         {
-            Type *typen = type->nextOf();
-            if (typen->deco)
+            if (!t)
             {
-                FuncExp *fe = (FuncExp *)copy();
-                fe->tok = TOKdelegate;
-                fe->type = (new TypeDelegate(typen))->merge();
-                e = fe;
+                result = fe;
+                return;
             }
-        }
-        else
-            e = this;
-    }
-L1:
-    if (!flag && !e)
-    {
-        error("cannot infer function literal type from %s", to->toChars());
-        e = new ErrorExp();
-    }
-    return e;
-}
 
-Expression *CondExp::inferType(Type *t, int flag, Scope *sc, TemplateParameters *tparams)
-{
-    if (t)
-    {
-        t = t->toBasetype();
-        e1 = e1->inferType(t, flag, sc, tparams);
-        e2 = e2->inferType(t, flag, sc, tparams);
-    }
-    return this;
+            //printf("FuncExp::interType('%s'), to=%s\n", fe->type ? fe->type->toChars() : "null", fe->to->toChars());
+
+            if (!fe->type)  // semantic is not yet done
+            {
+                if (t->ty == Tdelegate ||
+                    t->ty == Tpointer && t->nextOf()->ty == Tfunction)
+                {
+                    fe->fd->treq = t;
+                }
+                result = fe;
+                return;
+            }
+
+            Expression *e = NULL;
+
+            Type *to = t;
+            if (to->ty == Tdelegate)
+            {
+                if (fe->tok == TOKfunction)
+                    goto L1;
+                to = to->nextOf();
+            }
+            else if (to->ty == Tpointer && to->nextOf()->ty == Tfunction)
+            {
+                if (fe->tok == TOKdelegate)
+                    goto L1;
+                to = to->nextOf();
+            }
+
+            if (fe->td)
+            {
+                // Parameter types inference from 'to'
+                assert(fe->td->scope);
+                if (to->ty == Tfunction)
+                {
+                    TypeFunction *tfv = (TypeFunction *)to;
+                    TypeFunction *tfl = (TypeFunction *)fe->fd->type;
+                    //printf("\ttfv = %s\n", tfv->toChars());
+                    //printf("\ttfl = %s\n", tfl->toChars());
+                    size_t dim = Parameter::dim(tfl->parameters);
+
+                    if (Parameter::dim(tfv->parameters) == dim &&
+                        tfv->varargs == tfl->varargs)
+                    {
+                        Objects *tiargs = new Objects();
+                        tiargs->reserve(fe->td->parameters->dim);
+
+                        for (size_t i = 0; i < fe->td->parameters->dim; i++)
+                        {
+                            TemplateParameter *tp = (*fe->td->parameters)[i];
+                            for (size_t u = 0; u < dim; u++)
+                            {
+                                Parameter *p = Parameter::getNth(tfl->parameters, u);
+                                if (p->type->ty == Tident &&
+                                    ((TypeIdentifier *)p->type)->ident == tp->ident)
+                                {
+                                    p = Parameter::getNth(tfv->parameters, u);
+                                    Type *tprm = p->type;
+                                    if (tprm->reliesOnTident(tparams))
+                                        goto L1;
+                                    if (sc)
+                                        tprm = tprm->semantic(fe->loc, sc);
+                                    if (tprm->ty == Terror)
+                                        goto L1;
+                                    tiargs->push(tprm);
+                                    u = dim;    // break inner loop
+                                }
+                            }
+                        }
+
+                        // Set target of return type inference
+                        assert(fe->td->onemember);
+                        FuncLiteralDeclaration *fld = fe->td->onemember->isFuncLiteralDeclaration();
+                        assert(fld);
+                        if (!fld->type->nextOf() && tfv->next)
+                            fld->treq = t;
+
+                        TemplateInstance *ti = new TemplateInstance(fe->loc, fe->td, tiargs);
+                        e = (new ScopeExp(fe->loc, ti))->semantic(fe->td->scope);
+
+                        // Reset inference target for the later re-semantic
+                        fld->treq = NULL;
+
+                        if (e->op == TOKfunction)
+                        {
+                            FuncExp *fex = (FuncExp *)e;
+                            assert(fex->td == NULL);
+                            e = inferType(fex, t, flag);
+                        }
+                    }
+                }
+            }
+            else if (fe->type)
+            {
+                assert(fe->type != Type::tvoid);   // semantic is already done
+
+                // Allow conversion from implicit function pointer to delegate
+                if (fe->tok == TOKreserved && fe->type->ty == Tpointer &&
+                    t->ty == Tdelegate)
+                {
+                    Type *typen = fe->type->nextOf();
+                    if (typen->deco)
+                    {
+                        FuncExp *fex = (FuncExp *)fe->copy();
+                        fex->tok = TOKdelegate;
+                        fex->type = (new TypeDelegate(typen))->merge();
+                        e = fex;
+                    }
+                }
+                else
+                    e = fe;
+            }
+        L1:
+            if (!flag && !e)
+            {
+                fe->error("cannot infer function literal type from %s", t->toChars());
+                e = new ErrorExp();
+            }
+            result = e;
+        }
+
+        void visit(CondExp *ce)
+        {
+            if (t)
+            {
+                t = t->toBasetype();
+                ce->e1 = inferType(ce->e1, t, flag, sc, tparams);
+                ce->e2 = inferType(ce->e2, t, flag, sc, tparams);
+            }
+            result = ce;
+        }
+    };
+
+    InferType v(t, flag, sc, tparams);
+    e->accept(&v);
+    return v.result;
 }
 
 /* ==================== ====================== */

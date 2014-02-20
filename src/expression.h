@@ -109,6 +109,7 @@ Expression *op_overload(Expression *e, Scope *sc);
 Type *toStaticArrayType(SliceExp *e);
 Expression *scaleFactor(BinExp *be, Scope *sc);
 Expression *typeCombine(BinExp *be, Scope *sc);
+Expression *inferType(Expression *e, Type *t, int flag = 0, Scope *sc = NULL, TemplateParameters *tparams = NULL);
 
 /* Run CTFE on the expression, but allow the expression to be a TypeExp
  * or a tuple containing a TypeExp. (This is required by pragma(msg)).
@@ -187,7 +188,6 @@ public:
     {
         return ::castTo(this, sc, t);
     }
-    virtual Expression *inferType(Type *t, int flag = 0, Scope *sc = NULL, TemplateParameters *tparams = NULL);
     virtual void checkEscape();
     virtual void checkEscapeRef();
     virtual Expression *resolveLoc(Loc loc, Scope *sc);
@@ -448,7 +448,6 @@ public:
     int isBool(int result);
     StringExp *toStringExp();
     void toMangleBuffer(OutBuffer *buf);
-    Expression *inferType(Type *t, int flag = 0, Scope *sc = NULL, TemplateParameters *tparams = NULL);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -466,7 +465,6 @@ public:
     Expression *semantic(Scope *sc);
     int isBool(int result);
     void toMangleBuffer(OutBuffer *buf);
-    Expression *inferType(Type *t, int flag = 0, Scope *sc = NULL, TemplateParameters *tparams = NULL);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -676,7 +674,6 @@ public:
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     Expression *semantic(Scope *sc, Expressions *arguments);
-    Expression *inferType(Type *t, int flag = 0, Scope *sc = NULL, TemplateParameters *tparams = NULL);
     char *toChars();
 
     void accept(Visitor *v) { v->visit(this); }
@@ -1461,7 +1458,6 @@ public:
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     Expression *checkToBoolean(Scope *sc);
-    Expression *inferType(Type *t, int flag = 0, Scope *sc = NULL, TemplateParameters *tparams = NULL);
 
     void accept(Visitor *v) { v->visit(this); }
 };

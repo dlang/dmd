@@ -1466,7 +1466,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                         {
                             Expression *a = (*arguments)[u];
                             TypeArray *ta = (TypeArray *)tb;
-                            a = a->inferType(ta->next);
+                            a = inferType(a, ta->next);
                             (*arguments)[u] = a;
                             if (tret && !ta->next->equals(a->type))
                             {
@@ -5512,7 +5512,7 @@ Expression *FuncExp::semantic(Scope *sc)
             type = Type::tvoid; // temporary type
 
             if (fd->treq)  // defer type determination
-                e = inferType(fd->treq);
+                e = inferType(this, fd->treq);
             goto Ldone;
         }
 
@@ -10439,7 +10439,7 @@ Expression *AssignExp::semantic(Scope *sc)
     assert(e1->type);
     Type *t1 = e1->type->toBasetype();
 
-    e2 = e2->inferType(t1);
+    e2 = inferType(e2, t1);
 
     e2 = e2->semantic(sc);
     if (e2->op == TOKerror)
@@ -11187,7 +11187,7 @@ Expression *CatAssignExp::semantic(Scope *sc)
     Type *tb1 = e1->type->toBasetype();
     Type *tb1next = tb1->nextOf();
 
-    e2 = e2->inferType(tb1next);
+    e2 = inferType(e2, tb1next);
     if (!e2->rvalue())
         return new ErrorExp();
 

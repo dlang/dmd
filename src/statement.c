@@ -3342,9 +3342,9 @@ Statement *ReturnStatement::semantic(Scope *sc)
 
         FuncLiteralDeclaration *fld = fd->isFuncLiteralDeclaration();
         if (tret)
-            exp = exp->inferType(tbret);
+            exp = inferType(exp, tbret);
         else if (fld && fld->treq)
-            exp = exp->inferType(fld->treq->nextOf()->nextOf());
+            exp = inferType(exp, fld->treq->nextOf()->nextOf());
         exp = exp->semantic(sc);
         exp = resolveProperties(sc, exp);
         if (!exp->rvalue(true)) // don't make error for void expression

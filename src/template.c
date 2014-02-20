@@ -1508,7 +1508,7 @@ Lretry:
             if (farg->op == TOKfunction)
             {
                 FuncExp *fe = (FuncExp *)farg;
-                Expression *e = fe->inferType(prmtype, 1, paramscope, inferparams);
+                Expression *e = inferType(fe, prmtype, 1, paramscope, inferparams);
                 if (!e)
                     goto Lvarargs;
                 farg = e;
@@ -1693,7 +1693,7 @@ Lretry:
                     if (arg->op == TOKfunction)
                     {
                         FuncExp *fe = (FuncExp *)arg;
-                        Expression *e = fe->inferType(tb->nextOf(), 1, paramscope, inferparams);
+                        Expression *e = inferType(fe, tb->nextOf(), 1, paramscope, inferparams);
                         if (!e)
                             goto Lnomatch;
                         arg = e;
