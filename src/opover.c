@@ -1249,27 +1249,28 @@ Dsymbol *search_function(ScopeDsymbol *ad, Identifier *funcid)
 }
 
 
-int ForeachStatement::inferAggregate(Scope *sc, Dsymbol *&sapply)
+bool inferAggregate(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply)
 {
-    Identifier *idapply = (op == TOKforeach) ? Id::apply : Id::applyReverse;
-    Identifier *idfront = (op == TOKforeach) ? Id::Ffront : Id::Fback;
+    Identifier *idapply = (fes->op == TOKforeach) ? Id::apply : Id::applyReverse;
+    Identifier *idfront = (fes->op == TOKforeach) ? Id::Ffront : Id::Fback;
     int sliced = 0;
     Type *tab;
     Type *att = NULL;
-    Expression *org_aggr = aggr;
+    Expression *org_aggr = fes->aggr;
     AggregateDeclaration *ad;
 
     while (1)
     {
-        aggr = aggr->semantic(sc);
-        aggr = resolveProperties(sc, aggr);
-        aggr = aggr->optimize(WANTvalue);
-        if (!aggr->type)
+        fes->aggr = fes->aggr->semantic(sc);
+        fes->aggr = resolveProperties(sc, fes->aggr);
+        fes->aggr = fes->aggr->optimize(WANTvalue);
+        if (!fes->aggr->type)
             goto Lerr;
 
-        tab = aggr->type->toBasetype();
+        tab = fes->aggr->type->toBasetype();
         if (att == tab)
-        {   aggr = org_aggr;
+        {
+            fes->aggr = org_aggr;
             goto Lerr;
         }
         switch (tab->ty)
@@ -1299,10 +1300,12 @@ int ForeachStatement::inferAggregate(Scope *sc, Dsymbol *&sapply)
 
                     Dsymbol *s = search_function(ad, Id::slice);
                     if (s)
-                    {   Expression *rinit = new SliceExp(aggr->loc, aggr, NULL, NULL);
+                    {
+                        Expression *rinit = new SliceExp(fes->aggr->loc, fes->aggr, NULL, NULL);
                         rinit = rinit->trySemantic(sc);
                         if (rinit)                  // if application of [] succeeded
-                        {   aggr = rinit;
+                        {
+                            fes->aggr = rinit;
                             sliced = 1;
                             continue;
                         }
@@ -1319,14 +1322,15 @@ int ForeachStatement::inferAggregate(Scope *sc, Dsymbol *&sapply)
                 {
                     if (!att && tab->checkAliasThisRec())
                         att = tab;
-                    aggr = new DotIdExp(aggr->loc, aggr, ad->aliasthis->ident);
+                    fes->aggr = new DotIdExp(fes->aggr->loc, fes->aggr, ad->aliasthis->ident);
                     continue;
                 }
                 goto Lerr;
 
             case Tdelegate:
-                if (aggr->op == TOKdelegate)
-                {   DelegateExp *de = (DelegateExp *)aggr;
+                if (fes->aggr->op == TOKdelegate)
+                {
+                    DelegateExp *de = (DelegateExp *)fes->aggr;
                     sapply = de->func->isFuncDeclaration();
                 }
                 break;
@@ -1339,10 +1343,10 @@ int ForeachStatement::inferAggregate(Scope *sc, Dsymbol *&sapply)
         }
         break;
     }
-    return 1;
+    return true;
 
 Lerr:
-    return 0;
+    return false;
 }
 
 /*****************************************

@@ -1285,7 +1285,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
     if (func->fes)
         func = func->fes->func;
 
-    if (!inferAggregate(sc, sapply))
+    if (!inferAggregate(this, sc, sapply))
     {
         error("invalid foreach aggregate %s", aggr->toChars());
     Lerror:
