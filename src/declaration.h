@@ -213,7 +213,6 @@ public:
 
     void toObjFile(int multiobj);                       // compile to .obj file
     void toDebug();
-    int cvMember(unsigned char *p);
 
     TypedefDeclaration *isTypedefDeclaration() { return this; }
 
@@ -305,7 +304,6 @@ public:
     Dsymbol *toAlias();
     Symbol *toSymbol();
     void toObjFile(int multiobj);                       // compile to .obj file
-    int cvMember(unsigned char *p);
     const char *mangle(bool isv = false);
     // Eliminate need for dynamic_cast
     VarDeclaration *isVarDeclaration() { return (VarDeclaration *)this; }
@@ -704,7 +702,6 @@ public:
     Symbol *toSymbol();
     Symbol *toThunkSymbol(int offset);  // thunk version
     void toObjFile(int multiobj);                       // compile to .obj file
-    int cvMember(unsigned char *p);
     void buildClosure(IRState *irs);
     bool needsCodegen();
 

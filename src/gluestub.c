@@ -476,36 +476,6 @@ void ClassDeclaration::toDebug()
     assert(0);
 }
 
-int Dsymbol::cvMember(unsigned char *p)
-{
-    assert(0);
-    return 0;
-}
-
-int TypedefDeclaration::cvMember(unsigned char *p)
-{
-    assert(0);
-    return 0;
-}
-
-int EnumDeclaration::cvMember(unsigned char *p)
-{
-    assert(0);
-    return 0;
-}
-
-int FuncDeclaration::cvMember(unsigned char *p)
-{
-    assert(0);
-    return 0;
-}
-
-int VarDeclaration::cvMember(unsigned char *p)
-{
-    assert(0);
-    return 0;
-}
-
 // toir
 
 void FuncDeclaration::buildClosure(IRState *irs)
