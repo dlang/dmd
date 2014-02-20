@@ -1294,7 +1294,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
 
     /* Check for inference errors
      */
-    if (!inferApplyArgTypes(sc, sapply))
+    if (!inferApplyArgTypes(this, sc, sapply))
     {
         //printf("dim = %d, arguments->dim = %d\n", dim, arguments->dim);
         error("cannot uniquely infer foreach argument types");

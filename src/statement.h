@@ -67,6 +67,7 @@ struct code;
 
 Expression *interpret(Statement *s, InterState *istate);
 bool inferAggregate(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply);
+bool inferApplyArgTypes(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply);
 
 /* How a statement exits; this is returned by blockExit()
  */
@@ -342,7 +343,6 @@ public:
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     bool checkForArgTypes();
-    int inferApplyArgTypes(Scope *sc, Dsymbol *&sapply);
     bool hasBreak();
     bool hasContinue();
     int blockExit(bool mustNotThrow);
