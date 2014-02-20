@@ -1492,7 +1492,7 @@ Lretry:
                 else if (farg->op == TOKslice)
                 {
                     SliceExp *se = (SliceExp *)farg;
-                    Type *tsa = se->toStaticArrayType();
+                    Type *tsa = toStaticArrayType(se);
                     if (tsa)
                         argtype = tsa;
                 }

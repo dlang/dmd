@@ -106,6 +106,7 @@ void toCBuffer(Expression *e, OutBuffer *buf, HdrGenState *hgs);
 Expression *ctfeInterpret(Expression *);
 Expression *inlineCopy(Expression *e, Scope *sc);
 Expression *op_overload(Expression *e, Scope *sc);
+Type *toStaticArrayType(SliceExp *e);
 
 /* Run CTFE on the expression, but allow the expression to be a TypeExp
  * or a tuple containing a TypeExp. (This is required by pragma(msg)).
@@ -1054,7 +1055,6 @@ public:
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     int isBool(int result);
-    Type *toStaticArrayType();
 
     void accept(Visitor *v) { v->visit(this); }
 };

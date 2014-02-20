@@ -1029,7 +1029,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
             if (tb->ty == Tsarray && typeb->ty == Tarray &&
                 e->lwr && e->upr)
             {
-                typeb = e->toStaticArrayType();
+                typeb = toStaticArrayType(e);
                 if (typeb)
                     result = typeb->implicitConvTo(t);
             }
@@ -1041,16 +1041,16 @@ MATCH implicitConvTo(Expression *e, Type *t)
     return v.result;
 }
 
-Type *SliceExp::toStaticArrayType()
+Type *toStaticArrayType(SliceExp *e)
 {
-    if (lwr && upr)
+    if (e->lwr && e->upr)
     {
-        Expression *lwr = this->lwr->optimize(WANTvalue);
-        Expression *upr = this->upr->optimize(WANTvalue);
+        Expression *lwr = e->lwr->optimize(WANTvalue);
+        Expression *upr = e->upr->optimize(WANTvalue);
         if (lwr->isConst() && upr->isConst())
         {
             size_t len = (size_t)(upr->toUInteger() - lwr->toUInteger());
-            return type->toBasetype()->nextOf()->sarrayOf(len);
+            return e->type->toBasetype()->nextOf()->sarrayOf(len);
         }
     }
     return NULL;
