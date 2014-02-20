@@ -1249,27 +1249,28 @@ Dsymbol *search_function(ScopeDsymbol *ad, Identifier *funcid)
 }
 
 
-int ForeachStatement::inferAggregate(Scope *sc, Dsymbol *&sapply)
+bool inferAggregate(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply)
 {
-    Identifier *idapply = (op == TOKforeach) ? Id::apply : Id::applyReverse;
-    Identifier *idfront = (op == TOKforeach) ? Id::Ffront : Id::Fback;
+    Identifier *idapply = (fes->op == TOKforeach) ? Id::apply : Id::applyReverse;
+    Identifier *idfront = (fes->op == TOKforeach) ? Id::Ffront : Id::Fback;
     int sliced = 0;
     Type *tab;
     Type *att = NULL;
-    Expression *org_aggr = aggr;
+    Expression *org_aggr = fes->aggr;
     AggregateDeclaration *ad;
 
     while (1)
     {
-        aggr = aggr->semantic(sc);
-        aggr = resolveProperties(sc, aggr);
-        aggr = aggr->optimize(WANTvalue);
-        if (!aggr->type)
+        fes->aggr = fes->aggr->semantic(sc);
+        fes->aggr = resolveProperties(sc, fes->aggr);
+        fes->aggr = fes->aggr->optimize(WANTvalue);
+        if (!fes->aggr->type)
             goto Lerr;
 
-        tab = aggr->type->toBasetype();
+        tab = fes->aggr->type->toBasetype();
         if (att == tab)
-        {   aggr = org_aggr;
+        {
+            fes->aggr = org_aggr;
             goto Lerr;
         }
         switch (tab->ty)
@@ -1299,10 +1300,12 @@ int ForeachStatement::inferAggregate(Scope *sc, Dsymbol *&sapply)
 
                     Dsymbol *s = search_function(ad, Id::slice);
                     if (s)
-                    {   Expression *rinit = new SliceExp(aggr->loc, aggr, NULL, NULL);
+                    {
+                        Expression *rinit = new SliceExp(fes->aggr->loc, fes->aggr, NULL, NULL);
                         rinit = rinit->trySemantic(sc);
                         if (rinit)                  // if application of [] succeeded
-                        {   aggr = rinit;
+                        {
+                            fes->aggr = rinit;
                             sliced = 1;
                             continue;
                         }
@@ -1319,14 +1322,15 @@ int ForeachStatement::inferAggregate(Scope *sc, Dsymbol *&sapply)
                 {
                     if (!att && tab->checkAliasThisRec())
                         att = tab;
-                    aggr = new DotIdExp(aggr->loc, aggr, ad->aliasthis->ident);
+                    fes->aggr = new DotIdExp(fes->aggr->loc, fes->aggr, ad->aliasthis->ident);
                     continue;
                 }
                 goto Lerr;
 
             case Tdelegate:
-                if (aggr->op == TOKdelegate)
-                {   DelegateExp *de = (DelegateExp *)aggr;
+                if (fes->aggr->op == TOKdelegate)
+                {
+                    DelegateExp *de = (DelegateExp *)fes->aggr;
                     sapply = de->func->isFuncDeclaration();
                 }
                 break;
@@ -1339,10 +1343,10 @@ int ForeachStatement::inferAggregate(Scope *sc, Dsymbol *&sapply)
         }
         break;
     }
-    return 1;
+    return true;
 
 Lerr:
-    return 0;
+    return false;
 }
 
 /*****************************************
@@ -1351,29 +1355,30 @@ Lerr:
  * them from the aggregate type.
  */
 
-int ForeachStatement::inferApplyArgTypes(Scope *sc, Dsymbol *&sapply)
+bool inferApplyArgTypes(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply)
 {
-    if (!arguments || !arguments->dim)
-        return 0;
+    if (!fes->arguments || !fes->arguments->dim)
+        return false;
 
     if (sapply)     // prefer opApply
     {
-        for (size_t u = 0; u < arguments->dim; u++)
-        {   Parameter *arg = (*arguments)[u];
+        for (size_t u = 0; u < fes->arguments->dim; u++)
+        {
+            Parameter *arg = (*fes->arguments)[u];
             if (arg->type)
             {
-                arg->type = arg->type->semantic(loc, sc);
+                arg->type = arg->type->semantic(fes->loc, sc);
                 arg->type = arg->type->addStorageClass(arg->storageClass);
             }
         }
 
         Expression *ethis;
-        Type *tab = aggr->type->toBasetype();
+        Type *tab = fes->aggr->type->toBasetype();
         if (tab->ty == Tclass || tab->ty == Tstruct)
-            ethis = aggr;
+            ethis = fes->aggr;
         else
-        {   assert(tab->ty == Tdelegate && aggr->op == TOKdelegate);
-            ethis = ((DelegateExp *)aggr)->e1;
+        {   assert(tab->ty == Tdelegate && fes->aggr->op == TOKdelegate);
+            ethis = ((DelegateExp *)fes->aggr)->e1;
         }
 
         /* Look for like an
@@ -1382,29 +1387,32 @@ int ForeachStatement::inferApplyArgTypes(Scope *sc, Dsymbol *&sapply)
          */
         FuncDeclaration *fd = sapply->isFuncDeclaration();
         if (fd)
-        {   sapply = inferApplyArgTypesX(ethis, fd, arguments);
+        {
+            sapply = inferApplyArgTypesX(ethis, fd, fes->arguments);
         }
 #if 0
         TemplateDeclaration *td = sapply->isTemplateDeclaration();
         if (td)
-        {   inferApplyArgTypesZ(td, arguments);
+        {
+            inferApplyArgTypesZ(td, fes->arguments);
         }
 #endif
-        return sapply ? 1 : 0;
+        return sapply != NULL;
     }
 
     /* Return if no arguments need types.
      */
-    for (size_t u = 0; u < arguments->dim; u++)
-    {   Parameter *arg = (*arguments)[u];
+    for (size_t u = 0; u < fes->arguments->dim; u++)
+    {
+        Parameter *arg = (*fes->arguments)[u];
         if (!arg->type)
             break;
     }
 
     AggregateDeclaration *ad;
 
-    Parameter *arg = (*arguments)[0];
-    Type *taggr = aggr->type;
+    Parameter *arg = (*fes->arguments)[0];
+    Type *taggr = fes->aggr->type;
     assert(taggr);
     Type *tab = taggr->toBasetype();
     switch (tab->ty)
@@ -1412,14 +1420,14 @@ int ForeachStatement::inferApplyArgTypes(Scope *sc, Dsymbol *&sapply)
         case Tarray:
         case Tsarray:
         case Ttuple:
-            if (arguments->dim == 2)
+            if (fes->arguments->dim == 2)
             {
                 if (!arg->type)
                 {
                     arg->type = Type::tsize_t;  // key type
                     arg->type = arg->type->addStorageClass(arg->storageClass);
                 }
-                arg = (*arguments)[1];
+                arg = (*fes->arguments)[1];
             }
             if (!arg->type && tab->ty != Ttuple)
             {
@@ -1429,16 +1437,17 @@ int ForeachStatement::inferApplyArgTypes(Scope *sc, Dsymbol *&sapply)
             break;
 
         case Taarray:
-        {   TypeAArray *taa = (TypeAArray *)tab;
+        {
+            TypeAArray *taa = (TypeAArray *)tab;
 
-            if (arguments->dim == 2)
+            if (fes->arguments->dim == 2)
             {
                 if (!arg->type)
                 {
                     arg->type = taa->index;     // key type
                     arg->type = arg->type->addStorageClass(arg->storageClass);
                 }
-                arg = (*arguments)[1];
+                arg = (*fes->arguments)[1];
             }
             if (!arg->type)
             {
@@ -1457,13 +1466,13 @@ int ForeachStatement::inferApplyArgTypes(Scope *sc, Dsymbol *&sapply)
             goto Laggr;
 
         Laggr:
-            if (arguments->dim == 1)
+            if (fes->arguments->dim == 1)
             {
                 if (!arg->type)
                 {
                     /* Look for a front() or back() overload
                      */
-                    Identifier *id = (op == TOKforeach) ? Id::Ffront : Id::Fback;
+                    Identifier *id = (fes->op == TOKforeach) ? Id::Ffront : Id::Fback;
                     Dsymbol *s = ad->search(Loc(), id);
                     FuncDeclaration *fd = s ? s->isFuncDeclaration() : NULL;
                     if (fd)
@@ -1489,15 +1498,15 @@ int ForeachStatement::inferApplyArgTypes(Scope *sc, Dsymbol *&sapply)
 
         case Tdelegate:
         {
-            if (!inferApplyArgTypesY((TypeFunction *)tab->nextOf(), arguments))
-                return 0;
+            if (!inferApplyArgTypesY((TypeFunction *)tab->nextOf(), fes->arguments))
+                return false;
             break;
         }
 
         default:
             break;              // ignore error, caught later
     }
-    return 1;
+    return true;
 }
 
 static Dsymbol *inferApplyArgTypesX(Expression *ethis, FuncDeclaration *fstart, Parameters *arguments)
