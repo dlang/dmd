@@ -805,7 +805,7 @@ void StructDeclaration::semantic(Scope *sc)
     buildOpEquals(this, sc2);
 
     xeq = buildXopEquals(this, sc2);
-    xcmp = buildXopCmp(sc2);
+    xcmp = buildXopCmp(this, sc2);
 
     /* Even if the struct is merely imported and its semantic3 is not run,
      * the TypeInfo object would be speculatively stored in each object

@@ -551,10 +551,10 @@ FuncDeclaration *buildXopEquals(StructDeclaration *sd, Scope *sc)
  * const objects comparison, it will throw "not implemented" Error in runtime.
  */
 
-FuncDeclaration *StructDeclaration::buildXopCmp(Scope *sc)
+FuncDeclaration *buildXopCmp(StructDeclaration *sd, Scope *sc)
 {
     //printf("StructDeclaration::buildXopCmp() %s\n", toChars());
-    if (Dsymbol *cmp = search_function(this, Id::cmp))
+    if (Dsymbol *cmp = search_function(sd, Id::cmp))
     {
         if (FuncDeclaration *fd = cmp->isFuncDeclaration())
         {
@@ -565,7 +565,7 @@ FuncDeclaration *StructDeclaration::buildXopCmp(Scope *sc)
                 /* const int opCmp(ref const S s);
                  */
                 Parameters *parameters = new Parameters;
-                parameters->push(new Parameter(STCref | STCconst, type, NULL, NULL));
+                parameters->push(new Parameter(STCref | STCconst, sd->type, NULL, NULL));
                 tfcmpptr = new TypeFunction(parameters, Type::tint32, 0, LINKd);
                 tfcmpptr->mod = MODconst;
                 tfcmpptr = (TypeFunction *)tfcmpptr->semantic(Loc(), &scx);
@@ -581,8 +581,8 @@ FuncDeclaration *StructDeclaration::buildXopCmp(Scope *sc)
         /* Check opCmp member exists.
          * Consider 'alias this', but except opDispatch.
          */
-        Expression *e = new DsymbolExp(loc, this);
-        e = new DotIdExp(loc, e, Id::cmp);
+        Expression *e = new DsymbolExp(sd->loc, sd);
+        e = new DotIdExp(sd->loc, e, Id::cmp);
         Scope *sc2 = sc->push();
         e = e->trySemantic(sc2);
         sc2->pop();
@@ -616,13 +616,13 @@ FuncDeclaration *StructDeclaration::buildXopCmp(Scope *sc)
 #endif
     }
 
-    if (!xerrcmp)
+    if (!sd->xerrcmp)
     {
         // object._xopCmp
         Identifier *id = Lexer::idPool("_xopCmp");
-        Expression *e = new IdentifierExp(loc, Id::empty);
-        e = new DotIdExp(loc, e, Id::object);
-        e = new DotIdExp(loc, e, id);
+        Expression *e = new IdentifierExp(sd->loc, Id::empty);
+        e = new DotIdExp(sd->loc, e, Id::object);
+        e = new DotIdExp(sd->loc, e, id);
         e = e->semantic(sc);
         Dsymbol *s = getDsymbol(e);
         if (!s)
@@ -631,15 +631,15 @@ FuncDeclaration *StructDeclaration::buildXopCmp(Scope *sc)
             fatal();
         }
         assert(s);
-        xerrcmp = s->isFuncDeclaration();
+        sd->xerrcmp = s->isFuncDeclaration();
     }
 
     Loc declLoc = Loc();    // loc is unnecessary so __xopCmp is never called directly
     Loc loc = Loc();        // loc is unnecessary so errors are gagged
 
     Parameters *parameters = new Parameters;
-    parameters->push(new Parameter(STCref | STCconst, type, Id::p, NULL));
-    parameters->push(new Parameter(STCref | STCconst, type, Id::q, NULL));
+    parameters->push(new Parameter(STCref | STCconst, sd->type, Id::p, NULL));
+    parameters->push(new Parameter(STCref | STCconst, sd->type, Id::q, NULL));
     TypeFunction *tf = new TypeFunction(parameters, Type::tint32, 0, LINKd);
     tf = (TypeFunction *)tf->semantic(loc, sc);
 
@@ -662,7 +662,7 @@ FuncDeclaration *StructDeclaration::buildXopCmp(Scope *sc)
 
     sc2->pop();
     if (global.endGagging(errors))    // if errors happened
-        fop = xerrcmp;
+        fop = sd->xerrcmp;
 
     return fop;
 }
