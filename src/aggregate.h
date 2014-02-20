@@ -115,8 +115,6 @@ public:
     void emitComment(Scope *sc);
     void toDocBuffer(OutBuffer *buf, Scope *sc);
 
-    FuncDeclaration *hasIdentityOpEquals(Scope *sc);
-
     const char *mangle(bool isv = false);
 
     // For access checking

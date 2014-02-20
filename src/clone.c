@@ -383,25 +383,25 @@ Lneed:
     return true;
 }
 
-FuncDeclaration *AggregateDeclaration::hasIdentityOpEquals(Scope *sc)
+FuncDeclaration *hasIdentityOpEquals(AggregateDeclaration *ad,  Scope *sc)
 {
-    Dsymbol *eq = search_function(this, Id::eq);
+    Dsymbol *eq = search_function(ad, Id::eq);
     if (eq)
     {
         /* check identity opEquals exists
          */
-        Expression *er = new NullExp(loc, NULL);        // dummy rvalue
-        Expression *el = new IdentifierExp(loc, Id::p); // dummy lvalue
+        Expression *er = new NullExp(ad->loc, NULL);        // dummy rvalue
+        Expression *el = new IdentifierExp(ad->loc, Id::p); // dummy lvalue
         Expressions *a = new Expressions();
         a->setDim(1);
         for (size_t i = 0; ; i++)
         {
             Type *tthis;
-            if (i == 0) tthis = type;
-            if (i == 1) tthis = type->constOf();
-            if (i == 2) tthis = type->immutableOf();
-            if (i == 3) tthis = type->sharedOf();
-            if (i == 4) tthis = type->sharedConstOf();
+            if (i == 0) tthis = ad->type;
+            if (i == 1) tthis = ad->type->constOf();
+            if (i == 2) tthis = ad->type->immutableOf();
+            if (i == 3) tthis = ad->type->sharedOf();
+            if (i == 4) tthis = ad->type->sharedConstOf();
             if (i == 5) break;
             FuncDeclaration *f = NULL;
 
@@ -415,7 +415,7 @@ FuncDeclaration *AggregateDeclaration::hasIdentityOpEquals(Scope *sc)
             {
                 (*a)[0] = (j == 0 ? er : el);
                 (*a)[0]->type = tthis;
-                f = resolveFuncCall(loc, sc, eq, NULL, tthis, a, 1);
+                f = resolveFuncCall(ad->loc, sc, eq, NULL, tthis, a, 1);
                 if (f)
                     break;
             }
@@ -443,7 +443,7 @@ FuncDeclaration *AggregateDeclaration::hasIdentityOpEquals(Scope *sc)
 
 FuncDeclaration *StructDeclaration::buildOpEquals(Scope *sc)
 {
-    if (FuncDeclaration *f = hasIdentityOpEquals(sc))
+    if (FuncDeclaration *f = hasIdentityOpEquals(this, sc))
     {
         hasIdentityEquals = 1;
     }
