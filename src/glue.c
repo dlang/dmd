@@ -989,7 +989,7 @@ void FuncDeclaration::toObjFile(int multiobj)
     assert(func->type->ty == Tfunction);
     tf = (TypeFunction *)(func->type);
     has_arguments = (tf->linkage == LINKd) && (tf->varargs == 1);
-    retmethod = tf->retStyle();
+    retmethod = retStyle(tf);
     if (retmethod == RETstack)
     {
         // If function returns a struct, put a pointer to that
@@ -1190,7 +1190,7 @@ void FuncDeclaration::toObjFile(int multiobj)
             sbody = CompoundStatement::create(Loc(), sp, stf);
         }
 
-        buildClosure(&irs);
+        buildClosure(this, &irs);
 
 #if TARGET_WINDOS
         if (func->isSynchronized() && cd && config.flags2 & CFG2seh &&
@@ -1450,7 +1450,7 @@ unsigned totym(Type *tx)
                 case LINKcpp:
                     t = TYnfunc;
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-                    if (I32 && tf->retStyle() == RETstack)
+                    if (I32 && retStyle(tf) == RETstack)
                         t = TYhfunc;
 #endif
                     break;

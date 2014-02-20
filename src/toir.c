@@ -603,10 +603,11 @@ elem *resolveLengthVar(VarDeclaration *lengthVar, elem **pe, Type *t1)
  */
 
 
-void FuncDeclaration::buildClosure(IRState *irs)
+void buildClosure(FuncDeclaration *fd, IRState *irs)
 {
-    if (needsClosure())
-    {   // Generate closure on the heap
+    if (fd->needsClosure())
+    {
+        // Generate closure on the heap
         // BUG: doesn't capture variadic arguments passed to this function
 
         /* BUG: doesn't handle destructors for the local variables.
@@ -623,27 +624,32 @@ void FuncDeclaration::buildClosure(IRState *irs)
          */
         //printf("FuncDeclaration::buildClosure() %s\n", toChars());
         Symbol *sclosure;
-        sclosure = symbol_name("__closptr",SCauto,Type_toCtype(Type::tvoidptr));
+        sclosure = symbol_name("__closptr", SCauto, Type_toCtype(Type::tvoidptr));
         sclosure->Sflags |= SFLtrue | SFLfree;
         symbol_add(sclosure);
         irs->sclosure = sclosure;
 
         unsigned offset = Target::ptrsize;      // leave room for previous sthis
-        for (size_t i = 0; i < closureVars.dim; i++)
-        {   VarDeclaration *v = closureVars[i];
+        for (size_t i = 0; i < fd->closureVars.dim; i++)
+        {
+            VarDeclaration *v = fd->closureVars[i];
             //printf("closure var %s\n", v->toChars());
             assert(v->isVarDeclaration());
 
             if (v->needsAutoDtor())
+            {
                 /* Because the value needs to survive the end of the scope!
                  */
                 v->error("has scoped destruction, cannot build closure");
+            }
             if (v->isargptr)
+            {
                 /* See Bugzilla 2479
                  * This is actually a bug, but better to produce a nice
                  * message at compile time rather than memory corruption at runtime
                  */
                 v->error("cannot reference variadic arguments from closure");
+            }
             /* Align and allocate space for v in the closure
              * just like AggregateDeclaration::addField() does.
              */
@@ -666,7 +672,8 @@ void FuncDeclaration::buildClosure(IRState *irs)
                 xalign = v->alignment;
             }
             else if (ISREF(v, NULL))
-            {    // reference parameters are just pointers
+            {
+                // reference parameters are just pointers
                 memsize = Target::ptrsize;
                 memalignsize = memsize;
                 xalign = STRUCTALIGN_DEFAULT;
@@ -684,16 +691,15 @@ void FuncDeclaration::buildClosure(IRState *irs)
             /* Can't do nrvo if the variable is put in a closure, since
              * what the shidden points to may no longer exist.
              */
-            if (nrvo_can && nrvo_var == v)
+            if (fd->nrvo_can && fd->nrvo_var == v)
             {
-                nrvo_can = 0;
+                fd->nrvo_can = 0;
             }
         }
         // offset is now the size of the closure
 
         // Allocate memory for the closure
-        elem *e;
-        e = el_long(TYsize_t, offset);
+        elem *e = el_long(TYsize_t, offset);
         e = el_bin(OPcall, TYnptr, el_var(rtlsym[RTLSYM_ALLOCMEMORY]), e);
 
         // Assign block of memory to sclosure
@@ -712,8 +718,9 @@ void FuncDeclaration::buildClosure(IRState *irs)
         e = el_combine(e, ex);
 
         // Copy function parameters into closure
-        for (size_t i = 0; i < closureVars.dim; i++)
-        {   VarDeclaration *v = closureVars[i];
+        for (size_t i = 0; i < fd->closureVars.dim; i++)
+        {
+            VarDeclaration *v = fd->closureVars[i];
 
             if (!v->isParameter())
                 continue;
@@ -761,16 +768,16 @@ void FuncDeclaration::buildClosure(IRState *irs)
  * through a hidden pointer to the caller's stack.
  */
 
-RET TypeFunction::retStyle()
+RET retStyle(TypeFunction *tf)
 {
     //printf("TypeFunction::retStyle() %s\n", toChars());
-    if (isref)
+    if (tf->isref)
     {
         //printf("  ref RETregs\n");
         return RETregs;                 // returns a pointer
     }
 
-    Type *tn = next->toBasetype();
+    Type *tn = tf->next->toBasetype();
     //printf("tn = %s\n", tn->toChars());
     d_uns64 sz = tn->size();
     Type *tns = tn;
@@ -802,12 +809,13 @@ Lagain:
         if (tns->ty != Tstruct)
         {
 L2:
-            if (global.params.isLinux && linkage != LINKd && !global.params.is64bit)
+            if (global.params.isLinux && tf->linkage != LINKd && !global.params.is64bit)
                 ;                               // 32 bit C/C++ structs always on stack
             else
             {
                 switch (sz)
-                {   case 1:
+                {
+                    case 1:
                     case 2:
                     case 4:
                     case 8:
@@ -824,8 +832,9 @@ L2:
     }
 
     if (tns->ty == Tstruct)
-    {   StructDeclaration *sd = ((TypeStruct *)tns)->sym;
-        if (global.params.isLinux && linkage != LINKd && !global.params.is64bit)
+    {
+        StructDeclaration *sd = ((TypeStruct *)tns)->sym;
+        if (global.params.isLinux && tf->linkage != LINKd && !global.params.is64bit)
         {
             //printf("  2 RETstack\n");
             return RETstack;            // 32 bit C/C++ structs always on stack
@@ -842,7 +851,8 @@ L2:
         else if (sd->isPOD())
         {
             switch (sz)
-            {   case 1:
+            {
+                case 1:
                 case 2:
                 case 4:
                 case 8:
@@ -861,7 +871,7 @@ L2:
         return RETstack;
     }
     else if ((global.params.isLinux || global.params.isOSX || global.params.isFreeBSD || global.params.isSolaris) &&
-             linkage == LINKc &&
+             tf->linkage == LINKc &&
              tns->iscomplex())
     {
         if (tns->ty == Tcomplex32)

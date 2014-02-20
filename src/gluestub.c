@@ -476,18 +476,6 @@ void ClassDeclaration::toDebug()
     assert(0);
 }
 
-// toir
-
-void FuncDeclaration::buildClosure(IRState *irs)
-{
-    assert(0);
-}
-
-RET TypeFunction::retStyle()
-{
-    return RETregs;
-}
-
 // lib
 
 Library *LibMSCoff_factory()

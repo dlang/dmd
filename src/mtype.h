@@ -610,6 +610,8 @@ enum PURE
     PUREfwdref = 4,     // it's pure, but not known which level yet
 };
 
+RET retStyle(TypeFunction *tf);
+
 class TypeFunction : public TypeNext
 {
 public:
@@ -645,7 +647,6 @@ public:
 
     Type *substWildTo(unsigned mod);
     MATCH callMatch(Type *tthis, Expressions *toargs, int flag = 0);
-    RET retStyle();
 
     Expression *defaultInit(Loc loc);
     void accept(Visitor *v) { v->visit(this); }
