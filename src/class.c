@@ -696,7 +696,7 @@ void ClassDeclaration::semantic(Scope *sc)
         }
     }
 
-    inv = buildInv(sc);
+    inv = buildInv(this, sc);
 
     // Can be in base class
     aggNew    =    (NewDeclaration *)search(Loc(), Id::classNew);
@@ -765,8 +765,8 @@ void ClassDeclaration::semantic(Scope *sc)
     sizeok = SIZEOKdone;
     Module::dprogress++;
 
-    dtor = buildDtor(sc);
-    if (FuncDeclaration *f = hasIdentityOpAssign(sc))
+    dtor = buildDtor(this, sc);
+    if (FuncDeclaration *f = hasIdentityOpAssign(this, sc))
     {
         if (!(f->storage_class & STCdisable))
             error(f->loc, "identity assignment operator overload is illegal");

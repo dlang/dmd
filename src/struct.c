@@ -616,8 +616,8 @@ StructDeclaration::StructDeclaration(Loc loc, Identifier *id)
     : AggregateDeclaration(loc, id)
 {
     zeroInit = 0;       // assume false until we do semantic processing
-    hasIdentityAssign = 0;
-    hasIdentityEquals = 0;
+    hasIdentityAssign = false;
+    hasIdentityEquals = false;
     cpctor = NULL;
     postblit = NULL;
 
@@ -797,15 +797,15 @@ void StructDeclaration::semantic(Scope *sc)
         }
     }
 
-    dtor = buildDtor(sc2);
-    postblit = buildPostBlit(sc2);
-    cpctor = buildCpCtor(sc2);
+    dtor = buildDtor(this, sc2);
+    postblit = buildPostBlit(this, sc2);
+    cpctor = buildCpCtor(this, sc2);
 
-    buildOpAssign(sc2);
-    buildOpEquals(sc2);
+    buildOpAssign(this, sc2);
+    buildOpEquals(this, sc2);
 
-    xeq = buildXopEquals(sc2);
-    xcmp = buildXopCmp(sc2);
+    xeq = buildXopEquals(this, sc2);
+    xcmp = buildXopCmp(this, sc2);
 
     /* Even if the struct is merely imported and its semantic3 is not run,
      * the TypeInfo object would be speculatively stored in each object
@@ -816,7 +816,7 @@ void StructDeclaration::semantic(Scope *sc)
     /* Defer requesting semantic3 until TypeInfo generation is actually invoked.
      * See semanticTypeInfo().
      */
-    inv = buildInv(sc2);
+    inv = buildInv(this, sc2);
 
     sc2->pop();
 

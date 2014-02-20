@@ -12625,7 +12625,7 @@ EqualExp::EqualExp(TOK op, Loc loc, Expression *e1, Expression *e2)
     assert(op == TOKequal || op == TOKnotequal);
 }
 
-int needDirectEq(Scope *sc, Type *t1, Type *t2)
+bool needDirectEq(Scope *sc, Type *t1, Type *t2)
 {
     assert(t1->ty == Tarray || t1->ty == Tsarray);
     assert(t2->ty == Tarray || t2->ty == Tsarray);
@@ -12750,7 +12750,7 @@ Expression *EqualExp::semantic(Scope *sc)
         StructDeclaration *sd = ((TypeStruct *)t1)->sym;
         if (sd == ((TypeStruct *)t2)->sym)
         {
-            if (sd->needOpEquals())
+            if (needOpEquals(sd))
             {
                 this->e1 = new DotIdExp(loc, e1, Id::tupleof);
                 this->e2 = new DotIdExp(loc, e2, Id::tupleof);
