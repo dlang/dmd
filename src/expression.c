@@ -5858,6 +5858,11 @@ Expression *TraitsExp::syntaxCopy()
     return new TraitsExp(loc, ident, TemplateInstance::arraySyntaxCopy(args));
 }
 
+Expression *TraitsExp::semantic(Scope *sc)
+{
+    return semanticTraits(this, sc);
+}
+
 /************************************************************/
 
 HaltExp::HaltExp(Loc loc)

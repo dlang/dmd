@@ -135,20 +135,20 @@ bool isTypeStaticArray(Type *t)      { return t->toBasetype()->ty == Tsarray; }
 bool isTypeAbstractClass(Type *t)    { return t->toBasetype()->ty == Tclass && ((TypeClass *)t->toBasetype())->sym->isAbstract(); }
 bool isTypeFinalClass(Type *t)       { return t->toBasetype()->ty == Tclass && (((TypeClass *)t->toBasetype())->sym->storage_class & STCfinal) != 0; }
 
-Expression *TraitsExp::isTypeX(bool (*fp)(Type *t))
+Expression *isTypeX(TraitsExp *e, bool (*fp)(Type *t))
 {
     int result = 0;
-    if (!args || !args->dim)
+    if (!e->args || !e->args->dim)
         goto Lfalse;
-    for (size_t i = 0; i < args->dim; i++)
+    for (size_t i = 0; i < e->args->dim; i++)
     {
-        Type *t = getType((*args)[i]);
+        Type *t = getType((*e->args)[i]);
         if (!t || !fp(t))
             goto Lfalse;
     }
     result = 1;
 Lfalse:
-    return new IntegerExp(loc, result, Type::tbool);
+    return new IntegerExp(e->loc, result, Type::tbool);
 }
 
 bool isFuncAbstractFunction(FuncDeclaration *f) { return f->isAbstract(); }
@@ -158,14 +158,14 @@ bool isFuncFinalFunction(FuncDeclaration *f) { return f->isFinalFunc(); }
 bool isFuncStaticFunction(FuncDeclaration *f) { return !f->needThis() && !f->isNested(); }
 bool isFuncOverrideFunction(FuncDeclaration *f) { return f->isOverride(); }
 
-Expression *TraitsExp::isFuncX(bool (*fp)(FuncDeclaration *f))
+Expression *isFuncX(TraitsExp *e, bool (*fp)(FuncDeclaration *f))
 {
     int result = 0;
-    if (!args || !args->dim)
+    if (!e->args || !e->args->dim)
         goto Lfalse;
-    for (size_t i = 0; i < args->dim; i++)
+    for (size_t i = 0; i < e->args->dim; i++)
     {
-        Dsymbol *s = getDsymbol((*args)[i]);
+        Dsymbol *s = getDsymbol((*e->args)[i]);
         if (!s)
             goto Lfalse;
         FuncDeclaration *f = s->isFuncDeclaration();
@@ -174,21 +174,21 @@ Expression *TraitsExp::isFuncX(bool (*fp)(FuncDeclaration *f))
     }
     result = 1;
 Lfalse:
-    return new IntegerExp(loc, result, Type::tbool);
+    return new IntegerExp(e->loc, result, Type::tbool);
 }
 
 bool isDeclRef(Declaration *d) { return d->isRef(); }
 bool isDeclOut(Declaration *d) { return d->isOut(); }
 bool isDeclLazy(Declaration *d) { return (d->storage_class & STClazy) != 0; }
 
-Expression *TraitsExp::isDeclX(bool (*fp)(Declaration *d))
+Expression *isDeclX(TraitsExp *e, bool (*fp)(Declaration *d))
 {
     int result = 0;
-    if (!args || !args->dim)
+    if (!e->args || !e->args->dim)
         goto Lfalse;
-    for (size_t i = 0; i < args->dim; i++)
+    for (size_t i = 0; i < e->args->dim; i++)
     {
-        Dsymbol *s = getDsymbol((*args)[i]);
+        Dsymbol *s = getDsymbol((*e->args)[i]);
         if (!s)
             goto Lfalse;
         Declaration *d = s->isDeclaration();
@@ -197,68 +197,68 @@ Expression *TraitsExp::isDeclX(bool (*fp)(Declaration *d))
     }
     result = 1;
 Lfalse:
-    return new IntegerExp(loc, result, Type::tbool);
+    return new IntegerExp(e->loc, result, Type::tbool);
 }
 
-Expression *TraitsExp::semantic(Scope *sc)
+Expression *semanticTraits(TraitsExp *e, Scope *sc)
 {
 #if LOGSEMANTIC
-    printf("TraitsExp::semantic() %s\n", toChars());
+    printf("TraitsExp::semantic() %s\n", e->toChars());
 #endif
-    if (ident != Id::compiles && ident != Id::isSame &&
-        ident != Id::identifier && ident != Id::getProtection)
+    if (e->ident != Id::compiles && e->ident != Id::isSame &&
+        e->ident != Id::identifier && e->ident != Id::getProtection)
     {
-        TemplateInstance::semanticTiargs(loc, sc, args, 1);
+        TemplateInstance::semanticTiargs(e->loc, sc, e->args, 1);
     }
-    size_t dim = args ? args->dim : 0;
+    size_t dim = e->args ? e->args->dim : 0;
     Declaration *d;
 
-    if (ident == Id::isArithmetic)
+    if (e->ident == Id::isArithmetic)
     {
-        return isTypeX(&isTypeArithmetic);
+        return isTypeX(e, &isTypeArithmetic);
     }
-    else if (ident == Id::isFloating)
+    else if (e->ident == Id::isFloating)
     {
-        return isTypeX(&isTypeFloating);
+        return isTypeX(e, &isTypeFloating);
     }
-    else if (ident == Id::isIntegral)
+    else if (e->ident == Id::isIntegral)
     {
-        return isTypeX(&isTypeIntegral);
+        return isTypeX(e, &isTypeIntegral);
     }
-    else if (ident == Id::isScalar)
+    else if (e->ident == Id::isScalar)
     {
-        return isTypeX(&isTypeScalar);
+        return isTypeX(e, &isTypeScalar);
     }
-    else if (ident == Id::isUnsigned)
+    else if (e->ident == Id::isUnsigned)
     {
-        return isTypeX(&isTypeUnsigned);
+        return isTypeX(e, &isTypeUnsigned);
     }
-    else if (ident == Id::isAssociativeArray)
+    else if (e->ident == Id::isAssociativeArray)
     {
-        return isTypeX(&isTypeAssociativeArray);
+        return isTypeX(e, &isTypeAssociativeArray);
     }
-    else if (ident == Id::isStaticArray)
+    else if (e->ident == Id::isStaticArray)
     {
-        return isTypeX(&isTypeStaticArray);
+        return isTypeX(e, &isTypeStaticArray);
     }
-    else if (ident == Id::isAbstractClass)
+    else if (e->ident == Id::isAbstractClass)
     {
-        return isTypeX(&isTypeAbstractClass);
+        return isTypeX(e, &isTypeAbstractClass);
     }
-    else if (ident == Id::isFinalClass)
+    else if (e->ident == Id::isFinalClass)
     {
-        return isTypeX(&isTypeFinalClass);
+        return isTypeX(e, &isTypeFinalClass);
     }
-    else if (ident == Id::isPOD)
+    else if (e->ident == Id::isPOD)
     {
         if (dim != 1)
             goto Ldimerror;
-        RootObject *o = (*args)[0];
+        RootObject *o = (*e->args)[0];
         Type *t = isType(o);
         StructDeclaration *sd;
         if (!t)
         {
-            error("type expected as second argument of __traits %s instead of %s", ident->toChars(), o->toChars());
+            e->error("type expected as second argument of __traits %s instead of %s", e->ident->toChars(), o->toChars());
             goto Lfalse;
         }
         Type *tb = t->baseElemOf();
@@ -272,11 +272,11 @@ Expression *TraitsExp::semantic(Scope *sc)
         }
         goto Ltrue;
     }
-    else if (ident == Id::isNested)
+    else if (e->ident == Id::isNested)
     {
         if (dim != 1)
             goto Ldimerror;
-        RootObject *o = (*args)[0];
+        RootObject *o = (*e->args)[0];
         Dsymbol *s = getDsymbol(o);
         AggregateDeclaration *a;
         FuncDeclaration *f;
@@ -297,61 +297,62 @@ Expression *TraitsExp::semantic(Scope *sc)
                 goto Lfalse;
         }
 
-        error("aggregate or function expected instead of '%s'", o->toChars());
+        e->error("aggregate or function expected instead of '%s'", o->toChars());
         goto Lfalse;
     }
-    else if (ident == Id::isAbstractFunction)
+    else if (e->ident == Id::isAbstractFunction)
     {
-        return isFuncX(&isFuncAbstractFunction);
+        return isFuncX(e, &isFuncAbstractFunction);
     }
-    else if (ident == Id::isVirtualFunction)
+    else if (e->ident == Id::isVirtualFunction)
     {
-        return isFuncX(&isFuncVirtualFunction);
+        return isFuncX(e, &isFuncVirtualFunction);
     }
-    else if (ident == Id::isVirtualMethod)
+    else if (e->ident == Id::isVirtualMethod)
     {
-        return isFuncX(&isFuncVirtualMethod);
+        return isFuncX(e, &isFuncVirtualMethod);
     }
-    else if (ident == Id::isFinalFunction)
+    else if (e->ident == Id::isFinalFunction)
     {
-        return isFuncX(&isFuncFinalFunction);
+        return isFuncX(e, &isFuncFinalFunction);
     }
-    else if (ident == Id::isOverrideFunction)
+    else if (e->ident == Id::isOverrideFunction)
     {
-        return isFuncX(&isFuncOverrideFunction);
+        return isFuncX(e, &isFuncOverrideFunction);
     }
-    else if (ident == Id::isStaticFunction)
+    else if (e->ident == Id::isStaticFunction)
     {
-        return isFuncX(&isFuncStaticFunction);
+        return isFuncX(e, &isFuncStaticFunction);
     }
-    else if (ident == Id::isRef)
+    else if (e->ident == Id::isRef)
     {
-        return isDeclX(&isDeclRef);
+        return isDeclX(e, &isDeclRef);
     }
-    else if (ident == Id::isOut)
+    else if (e->ident == Id::isOut)
     {
-        return isDeclX(&isDeclOut);
+        return isDeclX(e, &isDeclOut);
     }
-    else if (ident == Id::isLazy)
+    else if (e->ident == Id::isLazy)
     {
-        return isDeclX(&isDeclLazy);
+        return isDeclX(e, &isDeclLazy);
     }
-    else if (ident == Id::identifier)
-    {   // Get identifier for symbol as a string literal
-
+    else if (e->ident == Id::identifier)
+    {
+        // Get identifier for symbol as a string literal
         /* Specify 0 for bit 0 of the flags argument to semanticTiargs() so that
          * a symbol should not be folded to a constant.
          * Bit 1 means don't convert Parameter to Type if Parameter has an identifier
          */
-        TemplateInstance::semanticTiargs(loc, sc, args, 2);
+        TemplateInstance::semanticTiargs(e->loc, sc, e->args, 2);
 
         if (dim != 1)
             goto Ldimerror;
-        RootObject *o = (*args)[0];
+        RootObject *o = (*e->args)[0];
         Parameter *po = isParameter(o);
         Identifier *id;
         if (po)
-        {   id = po->ident;
+        {
+            id = po->ident;
             assert(id);
         }
         else
@@ -359,30 +360,30 @@ Expression *TraitsExp::semantic(Scope *sc)
             Dsymbol *s = getDsymbol(o);
             if (!s || !s->ident)
             {
-                error("argument %s has no identifier", o->toChars());
+                e->error("argument %s has no identifier", o->toChars());
                 goto Lfalse;
             }
             id = s->ident;
         }
-        StringExp *se = new StringExp(loc, id->toChars());
+        StringExp *se = new StringExp(e->loc, id->toChars());
         return se->semantic(sc);
     }
-    else if (ident == Id::getProtection)
+    else if (e->ident == Id::getProtection)
     {
         if (dim != 1)
             goto Ldimerror;
 
         Scope *sc2 = sc->push();
         sc2->flags = sc->flags | SCOPEnoaccesscheck;
-        TemplateInstance::semanticTiargs(loc, sc2, args, 1);
+        TemplateInstance::semanticTiargs(e->loc, sc2, e->args, 1);
         sc2->pop();
 
-        RootObject *o = (*args)[0];
+        RootObject *o = (*e->args)[0];
         Dsymbol *s = getDsymbol(o);
         if (!s)
         {
             if (!isError(o))
-                error("argument %s has no protection", o->toChars());
+                e->error("argument %s has no protection", o->toChars());
             goto Lfalse;
         }
         if (s->scope)
@@ -392,14 +393,14 @@ Expression *TraitsExp::semantic(Scope *sc)
         const char *protName = Pprotectionnames[protection];
 
         assert(protName);
-        StringExp *se = new StringExp(loc, (char *) protName);
+        StringExp *se = new StringExp(e->loc, (char *) protName);
         return se->semantic(sc);
     }
-    else if (ident == Id::parent)
+    else if (e->ident == Id::parent)
     {
         if (dim != 1)
             goto Ldimerror;
-        RootObject *o = (*args)[0];
+        RootObject *o = (*e->args)[0];
         Dsymbol *s = getDsymbol(o);
         if (s)
         {
@@ -410,34 +411,37 @@ Expression *TraitsExp::semantic(Scope *sc)
         }
         if (!s || s->isImport())
         {
-            error("argument %s has no parent", o->toChars());
+            e->error("argument %s has no parent", o->toChars());
             goto Lfalse;
         }
-        return (new DsymbolExp(loc, s))->semantic(sc);
+        return (new DsymbolExp(e->loc, s))->semantic(sc);
     }
-    else if (ident == Id::hasMember ||
-             ident == Id::getMember ||
-             ident == Id::getOverloads ||
-             ident == Id::getVirtualMethods ||
-             ident == Id::getVirtualFunctions)
+    else if (e->ident == Id::hasMember ||
+             e->ident == Id::getMember ||
+             e->ident == Id::getOverloads ||
+             e->ident == Id::getVirtualMethods ||
+             e->ident == Id::getVirtualFunctions)
     {
         if (dim != 2)
             goto Ldimerror;
-        RootObject *o = (*args)[0];
-        Expression *e = isExpression((*args)[1]);
-        if (!e)
-        {   error("expression expected as second argument of __traits %s", ident->toChars());
+        RootObject *o = (*e->args)[0];
+        Expression *ex = isExpression((*e->args)[1]);
+        if (!ex)
+        {
+            e->error("expression expected as second argument of __traits %s", e->ident->toChars());
             goto Lfalse;
         }
-        e = e->ctfeInterpret();
-        StringExp *se = e->toStringExp();
+        ex = ex->ctfeInterpret();
+        StringExp *se = ex->toStringExp();
         if (!se || se->length() == 0)
-        {   error("string expected as second argument of __traits %s instead of %s", ident->toChars(), e->toChars());
+        {
+            e->error("string expected as second argument of __traits %s instead of %s", e->ident->toChars(), ex->toChars());
             goto Lfalse;
         }
         se = se->toUTF8(sc);
         if (se->sz != 1)
-        {   error("string must be chars");
+        {
+            e->error("string must be chars");
             goto Lfalse;
         }
         Identifier *id = Lexer::idPool((char *)se->string);
@@ -446,23 +450,25 @@ Expression *TraitsExp::semantic(Scope *sc)
          */
         Dsymbol *sym = getDsymbol(o);
         if (sym)
-        {   e = new DsymbolExp(loc, sym);
-            e = new DotIdExp(loc, e, id);
+        {
+            ex = new DsymbolExp(e->loc, sym);
+            ex = new DotIdExp(e->loc, ex, id);
         }
         else if (Type *t = isType(o))
-            e = typeDotIdExp(loc, t, id);
-        else if (Expression *ex = isExpression(o))
-            e = new DotIdExp(loc, ex, id);
+            ex = typeDotIdExp(e->loc, t, id);
+        else if (Expression *ex2 = isExpression(o))
+            ex = new DotIdExp(e->loc, ex2, id);
         else
-        {   error("invalid first argument");
+        {
+            e->error("invalid first argument");
             goto Lfalse;
         }
 
-        if (ident == Id::hasMember)
+        if (e->ident == Id::hasMember)
         {
             if (sym)
             {
-                Dsymbol *sm = sym->search(loc, id);
+                Dsymbol *sm = sym->search(e->loc, id);
                 if (sm)
                     goto Ltrue;
             }
@@ -470,127 +476,129 @@ Expression *TraitsExp::semantic(Scope *sc)
             /* Take any errors as meaning it wasn't found
              */
             Scope *sc2 = sc->push();
-            e = e->trySemantic(sc2);
+            ex = ex->trySemantic(sc2);
             sc2->pop();
-            if (!e)
+            if (!ex)
                 goto Lfalse;
             else
                 goto Ltrue;
         }
-        else if (ident == Id::getMember)
+        else if (e->ident == Id::getMember)
         {
-            e = e->semantic(sc);
-            return e;
+            ex = ex->semantic(sc);
+            return ex;
         }
-        else if (ident == Id::getVirtualFunctions ||
-                 ident == Id::getVirtualMethods ||
-                 ident == Id::getOverloads)
+        else if (e->ident == Id::getVirtualFunctions ||
+                 e->ident == Id::getVirtualMethods ||
+                 e->ident == Id::getOverloads)
         {
             unsigned errors = global.errors;
-            Expression *ex = e;
-            e = e->semantic(sc);
+            Expression *eorig = ex;
+            ex = ex->semantic(sc);
             if (errors < global.errors)
-                error("%s cannot be resolved", ex->toChars());
+                e->error("%s cannot be resolved", eorig->toChars());
 
-            /* Create tuple of functions of e
+            /* Create tuple of functions of ex
              */
-            //e->print();
+            //ex->print();
             Expressions *exps = new Expressions();
             FuncDeclaration *f;
-            if (e->op == TOKvar)
-            {   VarExp *ve = (VarExp *)e;
+            if (ex->op == TOKvar)
+            {
+                VarExp *ve = (VarExp *)ex;
                 f = ve->var->isFuncDeclaration();
-                e = NULL;
+                ex = NULL;
             }
-            else if (e->op == TOKdotvar)
-            {   DotVarExp *dve = (DotVarExp *)e;
+            else if (ex->op == TOKdotvar)
+            {
+                DotVarExp *dve = (DotVarExp *)ex;
                 f = dve->var->isFuncDeclaration();
                 if (dve->e1->op == TOKdottype || dve->e1->op == TOKthis)
-                    e = NULL;
+                    ex = NULL;
                 else
-                    e = dve->e1;
+                    ex = dve->e1;
             }
             else
                 f = NULL;
             Ptrait p;
             p.exps = exps;
-            p.e1 = e;
-            p.ident = ident;
+            p.e1 = ex;
+            p.ident = e->ident;
             overloadApply(f, &p, &fptraits);
 
-            TupleExp *tup = new TupleExp(loc, exps);
+            TupleExp *tup = new TupleExp(e->loc, exps);
             return tup->semantic(sc);
         }
         else
             assert(0);
     }
-    else if (ident == Id::classInstanceSize)
+    else if (e->ident == Id::classInstanceSize)
     {
         if (dim != 1)
             goto Ldimerror;
-        RootObject *o = (*args)[0];
+        RootObject *o = (*e->args)[0];
         Dsymbol *s = getDsymbol(o);
         ClassDeclaration *cd;
         if (!s || (cd = s->isClassDeclaration()) == NULL)
         {
-            error("first argument is not a class");
+            e->error("first argument is not a class");
             goto Lfalse;
         }
-        return new IntegerExp(loc, cd->structsize, Type::tsize_t);
+        return new IntegerExp(e->loc, cd->structsize, Type::tsize_t);
     }
-    else if (ident == Id::getAliasThis)
+    else if (e->ident == Id::getAliasThis)
     {
         if (dim != 1)
             goto Ldimerror;
-        RootObject *o = (*args)[0];
+        RootObject *o = (*e->args)[0];
         Dsymbol *s = getDsymbol(o);
         AggregateDeclaration *ad;
         if (!s || (ad = s->isAggregateDeclaration()) == NULL)
         {
-            error("argument is not an aggregate type");
+            e->error("argument is not an aggregate type");
             goto Lfalse;
         }
 
         Expressions *exps = new Expressions();
         if (ad->aliasthis)
-            exps->push(new StringExp(loc, ad->aliasthis->ident->toChars()));
+            exps->push(new StringExp(e->loc, ad->aliasthis->ident->toChars()));
 
-        Expression *e = new TupleExp(loc, exps);
-        e = e->semantic(sc);
-        return e;
+        Expression *ex = new TupleExp(e->loc, exps);
+        ex = ex->semantic(sc);
+        return ex;
     }
-    else if (ident == Id::getAttributes)
+    else if (e->ident == Id::getAttributes)
     {
         if (dim != 1)
             goto Ldimerror;
-        RootObject *o = (*args)[0];
+        RootObject *o = (*e->args)[0];
         Dsymbol *s = getDsymbol(o);
         if (!s)
         {
         #if 0
-            Expression *e = isExpression(o);
+            Expression *x = isExpression(o);
             Type *t = isType(o);
-            if (e) printf("e = %s %s\n", Token::toChars(e->op), e->toChars());
+            if (x) printf("e = %s %s\n", Token::toChars(x->op), x->toChars());
             if (t) printf("t = %d %s\n", t->ty, t->toChars());
         #endif
-            error("first argument is not a symbol");
+            e->error("first argument is not a symbol");
             goto Lfalse;
         }
         //printf("getAttributes %s, attrs = %p, scope = %p\n", s->toChars(), s->userAttributes, s->userAttributesScope);
         UserAttributeDeclaration *udad = s->userAttribDecl;
-        TupleExp *tup = new TupleExp(loc, udad ? udad->getAttributes() : new Expressions());
+        TupleExp *tup = new TupleExp(e->loc, udad ? udad->getAttributes() : new Expressions());
         return tup->semantic(sc);
     }
-    else if (ident == Id::allMembers || ident == Id::derivedMembers)
+    else if (e->ident == Id::allMembers || e->ident == Id::derivedMembers)
     {
         if (dim != 1)
             goto Ldimerror;
-        RootObject *o = (*args)[0];
+        RootObject *o = (*e->args)[0];
         Dsymbol *s = getDsymbol(o);
         ScopeDsymbol *sd;
         if (!s)
         {
-            error("argument has no members");
+            e->error("argument has no members");
             goto Lfalse;
         }
         Import *import;
@@ -601,7 +609,7 @@ Expression *TraitsExp::semantic(Scope *sc)
         }
         else if ((sd = s->isScopeDsymbol()) == NULL)
         {
-            error("%s %s has no members", s->kind(), s->toChars());
+            e->error("%s %s has no members", s->kind(), s->toChars());
             goto Lfalse;
         }
 
@@ -657,14 +665,15 @@ Expression *TraitsExp::semantic(Scope *sc)
         ScopeDsymbol::foreach(sc, sd->members, &PushIdentsDg::dg, idents);
 
         ClassDeclaration *cd = sd->isClassDeclaration();
-        if (cd && ident == Id::allMembers)
+        if (cd && e->ident == Id::allMembers)
         {
             struct PushBaseMembers
             {
                 static void dg(ClassDeclaration *cd, Identifiers *idents)
                 {
                     for (size_t i = 0; i < cd->baseclasses->dim; i++)
-                    {   ClassDeclaration *cb = (*cd->baseclasses)[i]->base;
+                    {
+                        ClassDeclaration *cb = (*cd->baseclasses)[i]->base;
                         ScopeDsymbol::foreach(NULL, cb->members, &PushIdentsDg::dg, idents);
                         if (cb->baseclasses->dim)
                             dg(cb, idents);
@@ -678,8 +687,9 @@ Expression *TraitsExp::semantic(Scope *sc)
         assert(sizeof(Expressions) == sizeof(Identifiers));
         Expressions *exps = (Expressions *)idents;
         for (size_t i = 0; i < idents->dim; i++)
-        {   Identifier *id = (*idents)[i];
-            StringExp *se = new StringExp(loc, id->toChars());
+        {
+            Identifier *id = (*idents)[i];
+            StringExp *se = new StringExp(e->loc, id->toChars());
             (*exps)[i] = se;
         }
 
@@ -687,11 +697,11 @@ Expression *TraitsExp::semantic(Scope *sc)
          * To make an array literal, enclose __traits in [ ]:
          *   [ __traits(allMembers, ...) ]
          */
-        Expression *e = new TupleExp(loc, exps);
-        e = e->semantic(sc);
-        return e;
+        Expression *ex = new TupleExp(e->loc, exps);
+        ex = ex->semantic(sc);
+        return ex;
     }
-    else if (ident == Id::compiles)
+    else if (e->ident == Id::compiles)
     {
         /* Determine if all the objects - types, expressions, or symbols -
          * compile without error
@@ -709,27 +719,27 @@ Expression *TraitsExp::semantic(Scope *sc)
             sc2->flags = sc->flags & ~SCOPEctfe | SCOPEcompile;
             bool err = false;
 
-            RootObject *o = (*args)[i];
+            RootObject *o = (*e->args)[i];
             Type *t = isType(o);
-            Expression *e = t ? t->toExpression() : isExpression(o);
-            if (!e && t)
+            Expression *ex = t ? t->toExpression() : isExpression(o);
+            if (!ex && t)
             {
                 Dsymbol *s;
-                t->resolve(loc, sc2, &e, &t, &s);
+                t->resolve(e->loc, sc2, &ex, &t, &s);
                 if (t)
                 {
-                    t->semantic(loc, sc2);
+                    t->semantic(e->loc, sc2);
                     if (t->ty == Terror)
                         err = true;
                 }
                 else if (s && s->errors)
                     err = true;
             }
-            if (e)
+            if (ex)
             {
-                e = e->semantic(sc2);
-                e = e->optimize(WANTvalue);
-                if (e->op == TOKerror)
+                ex = ex->semantic(sc2);
+                ex = ex->optimize(WANTvalue);
+                if (ex->op == TOKerror)
                     err = true;
             }
 
@@ -742,15 +752,15 @@ Expression *TraitsExp::semantic(Scope *sc)
         }
         goto Ltrue;
     }
-    else if (ident == Id::isSame)
+    else if (e->ident == Id::isSame)
     {
         /* Determine if two symbols are the same
          */
         if (dim != 2)
             goto Ldimerror;
-        TemplateInstance::semanticTiargs(loc, sc, args, 0);
-        RootObject *o1 = (*args)[0];
-        RootObject *o2 = (*args)[1];
+        TemplateInstance::semanticTiargs(e->loc, sc, e->args, 0);
+        RootObject *o1 = (*e->args)[0];
+        RootObject *o2 = (*e->args)[1];
         Dsymbol *s1 = getDsymbol(o1);
         Dsymbol *s2 = getDsymbol(o2);
 
@@ -759,7 +769,8 @@ Expression *TraitsExp::semantic(Scope *sc)
         printf("o1: %p\n", o1);
         printf("o2: %p\n", o2);
         if (!s1)
-        {   Expression *ea = isExpression(o1);
+        {
+            Expression *ea = isExpression(o1);
             if (ea)
                 printf("%s\n", ea->toChars());
             Type *ta = isType(o1);
@@ -797,15 +808,15 @@ Expression *TraitsExp::semantic(Scope *sc)
         else
             goto Lfalse;
     }
-    else if (ident == Id::getUnitTests)
+    else if (e->ident == Id::getUnitTests)
     {
         if (dim != 1)
             goto Ldimerror;
-        RootObject *o = (*args)[0];
+        RootObject *o = (*e->args)[0];
         Dsymbol *s = getDsymbol(o);
         if (!s)
         {
-            error("argument %s to __traits(getUnitTests) must be a module or aggregate", o->toChars());
+            e->error("argument %s to __traits(getUnitTests) must be a module or aggregate", o->toChars());
             goto Lfalse;
         }
 
@@ -817,7 +828,7 @@ Expression *TraitsExp::semantic(Scope *sc)
 
         if (!scope)
         {
-            error("argument %s to __traits(getUnitTests) must be a module or aggregate, not a %s", s->toChars(), s->kind());
+            e->error("argument %s to __traits(getUnitTests) must be a module or aggregate, not a %s", s->toChars(), s->kind());
             goto Lfalse;
         }
 
@@ -831,41 +842,41 @@ Expression *TraitsExp::semantic(Scope *sc)
             collectUnitTests(symbols, uniqueUnitTests, unitTests);
         }
 
-        TupleExp *tup = new TupleExp(loc, unitTests);
+        TupleExp *tup = new TupleExp(e->loc, unitTests);
         return tup->semantic(sc);
     }
-    else if(ident == Id::getVirtualIndex)
+    else if(e->ident == Id::getVirtualIndex)
     {
         if (dim != 1)
             goto Ldimerror;
-        RootObject *o = (*args)[0];
+        RootObject *o = (*e->args)[0];
         Dsymbol *s = getDsymbol(o);
         FuncDeclaration *fd;
         if (!s || (fd = s->isFuncDeclaration()) == NULL)
         {
-            error("first argument to __traits(getVirtualIndex) must be a function");
+            e->error("first argument to __traits(getVirtualIndex) must be a function");
             goto Lfalse;
         }
         fd = fd->toAliasFunc(); // Neccessary to support multiple overloads.
         ptrdiff_t result = fd->isVirtual() ? fd->vtblIndex : -1;
-        return new IntegerExp(loc, fd->vtblIndex, Type::tptrdiff_t);
+        return new IntegerExp(e->loc, fd->vtblIndex, Type::tptrdiff_t);
     }
     else
     {
-        error("unrecognized trait %s", ident->toChars());
+        e->error("unrecognized trait %s", e->ident->toChars());
         goto Lfalse;
     }
 
     return NULL;
 
 Ldimerror:
-    error("wrong number of arguments %d", (int)dim);
+    e->error("wrong number of arguments %d", (int)dim);
     goto Lfalse;
 
 
 Lfalse:
-    return new IntegerExp(loc, 0, Type::tbool);
+    return new IntegerExp(e->loc, 0, Type::tbool);
 
 Ltrue:
-    return new IntegerExp(loc, 1, Type::tbool);
+    return new IntegerExp(e->loc, 1, Type::tbool);
 }
