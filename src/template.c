@@ -42,6 +42,8 @@ size_t templateParameterLookup(Type *tparam, TemplateParameters *parameters);
 int arrayObjectMatch(Objects *oa1, Objects *oa2);
 hash_t arrayObjectHash(Objects *oa1);
 void functionToBufferFull(TypeFunction *tf, OutBuffer *buf, Identifier *ident, HdrGenState* hgs, TypeFunction *attrs, TemplateDeclaration *td);
+unsigned char deduceWildHelper(Type *t, Type **at, Type *tparam);
+MATCH deduceTypeHelper(Type *t, Type **at, Type *tparam);
 
 /********************************************
  * These functions substitute for dynamic_cast. dynamic_cast does not work
@@ -1273,7 +1275,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
                 hasttp = true;
 
                 Type *t = new TypeIdentifier(Loc(), ttp->ident);
-                MATCH m = tthis->deduceType(paramscope, t, parameters, &dedtypes);
+                MATCH m = deduceType(tthis, paramscope, t, parameters, &dedtypes);
                 if (m <= MATCHnomatch)
                     goto Lnomatch;
                 if (m < match)
@@ -1384,7 +1386,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
 
                     if (tid->mod & MODwild)
                     {
-                        unsigned char wm = farg->type->deduceWildHelper(&tt, tid);
+                        unsigned char wm = deduceWildHelper(farg->type, &tt, tid);
                         if (wm)
                         {
                             wildmatch |= wm;
@@ -1393,7 +1395,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
                         }
                     }
 
-                    m = farg->type->deduceTypeHelper(&tt, tid);
+                    m = deduceTypeHelper(farg->type, &tt, tid);
                     if (!m)
                         goto Lnomatch;
 
@@ -1534,7 +1536,7 @@ Lretry:
                 goto Lvarargs;
 
             unsigned wm = 0;
-            MATCH m = argtype->deduceType(paramscope, prmtype, parameters, &dedtypes, &wm);
+            MATCH m = deduceType(argtype, paramscope, prmtype, parameters, &dedtypes, &wm);
             //printf("\tdeduceType m = %d\n", m);
             //printf("\twildmatch = x%x m = %d\n", wildmatch, m);
             wildmatch |= wm;
@@ -1558,7 +1560,7 @@ Lretry:
 
                     if (!tf->varargs && Parameter::dim(tf->parameters) == 0)
                     {
-                        m = farg->type->deduceType(paramscope, tf->next, parameters, &dedtypes);
+                        m = deduceType(farg->type, paramscope, tf->next, parameters, &dedtypes);
                         if (m == MATCHnomatch && tf->next->toBasetype()->ty == Tvoid)
                             m = MATCHconvert;
                     }
@@ -1724,7 +1726,7 @@ Lretry:
                     }
                     else
                     {
-                        m = arg->type->deduceType(paramscope, ta->next, parameters, &dedtypes);
+                        m = deduceType(arg->type, paramscope, ta->next, parameters, &dedtypes);
                         //m = arg->implicitConvTo(ta->next);
                     }
                     if (m == MATCHnomatch)
@@ -2874,13 +2876,13 @@ size_t templateParameterLookup(Type *tparam, TemplateParameters *parameters)
     return IDX_NOTFOUND;
 }
 
-unsigned char Type::deduceWildHelper(Type **at, Type *tparam)
+unsigned char deduceWildHelper(Type *t, Type **at, Type *tparam)
 {
     assert(tparam->mod & MODwild);
     *at = NULL;
 
     #define X(U,T)  ((U) << 4) | (T)
-    switch (X(tparam->mod, mod))
+    switch (X(tparam->mod, t->mod))
     {
         case X(MODwild,                     0):
         case X(MODwild,                     MODconst):
@@ -2899,11 +2901,11 @@ unsigned char Type::deduceWildHelper(Type **at, Type *tparam)
         case X(MODshared | MODwildconst,    MODshared | MODconst):
         case X(MODshared | MODwildconst,    MODimmutable):
         {
-            unsigned char wm = (mod & ~MODshared);
+            unsigned char wm = (t->mod & ~MODshared);
             if (wm == 0)
                 wm = MODmutable;
-            unsigned char m = (mod & (MODconst | MODimmutable)) | (tparam->mod & mod & MODshared);
-            *at = unqualify(m);
+            unsigned char m = (t->mod & (MODconst | MODimmutable)) | (tparam->mod & t->mod & MODshared);
+            *at = t->unqualify(m);
             return wm;
         }
 
@@ -2920,7 +2922,7 @@ unsigned char Type::deduceWildHelper(Type **at, Type *tparam)
         case X(MODshared | MODwildconst,    MODshared | MODwild):
         case X(MODshared | MODwildconst,    MODshared | MODwildconst):
         {
-            *at = unqualify(tparam->mod & mod);
+            *at = t->unqualify(tparam->mod & t->mod);
             return MODwild;
         }
 
@@ -2930,12 +2932,12 @@ unsigned char Type::deduceWildHelper(Type **at, Type *tparam)
     #undef X
 }
 
-MATCH Type::deduceTypeHelper(Type **at, Type *tparam)
+MATCH deduceTypeHelper(Type *t, Type **at, Type *tparam)
 {
     // 9*9 == 81 cases
 
     #define X(U,T)  ((U) << 4) | (T)
-    switch (X(tparam->mod, mod))
+    switch (X(tparam->mod, t->mod))
     {
         case X(0, 0):
         case X(0, MODconst):
@@ -2956,7 +2958,7 @@ MATCH Type::deduceTypeHelper(Type **at, Type *tparam)
             // foo(U)                       shared(inout(const(T))) => shared(inout(const(T)))
             // foo(U)                       immutable(T)            => immutable(T)
         {
-            *at = this;
+            *at = t;
             return MATCHexact;
         }
 
@@ -2977,7 +2979,7 @@ MATCH Type::deduceTypeHelper(Type **at, Type *tparam)
             // foo(shared(inout(const(U)))) shared(inout(const(T))) => T
             // foo(immutable(U))            immutable(T)            => T
         {
-            *at = mutableOf()->unSharedOf();
+            *at = t->mutableOf()->unSharedOf();
             return MATCHexact;
         }
 
@@ -3002,14 +3004,14 @@ MATCH Type::deduceTypeHelper(Type **at, Type *tparam)
             // foo(inout(const(U)))         shared(inout(const(T))) => shared(T)
             // foo(shared(const(U)))        immutable(T)            => T
         {
-            *at = mutableOf();
+            *at = t->mutableOf();
             return MATCHconst;
         }
 
         case X(MODconst,                    MODshared):
             // foo(const(U))                shared(T)               => shared(T)
         {
-            *at = this;
+            *at = t;
             return MATCHconst;
         }
 
@@ -3022,7 +3024,7 @@ MATCH Type::deduceTypeHelper(Type **at, Type *tparam)
             // foo(shared(U))               shared(inout(const(T))) => inout(const(T))
             // foo(shared(const(U)))        shared(T)               => T
         {
-            *at = unSharedOf();
+            *at = t->unSharedOf();
             return MATCHconst;
         }
 
@@ -3035,14 +3037,14 @@ MATCH Type::deduceTypeHelper(Type **at, Type *tparam)
             // foo(shared(inout(const(U)))) immutable(T)            => T
             // foo(shared(inout(const(U)))) shared(inout(T))        => T
         {
-            *at = unSharedOf()->mutableOf();
+            *at = t->unSharedOf()->mutableOf();
             return MATCHconst;
         }
 
         case X(MODshared | MODconst,        MODshared | MODwild):
             // foo(shared(const(U)))        shared(inout(T))        => T
         {
-            *at = unSharedOf()->mutableOf();
+            *at = t->unSharedOf()->mutableOf();
             return MATCHconst;
         }
 
@@ -3158,946 +3160,1027 @@ MATCH Type::deduceTypeHelper(Type **at, Type *tparam)
  *      dedtypes = [ int ]      // Array of Expression/Type's
  */
 
-MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
+MATCH deduceType(Type *t, Scope *sc, Type *tparam, TemplateParameters *parameters,
         Objects *dedtypes, unsigned *wm)
 {
-#if 0
-    printf("Type::deduceType()\n");
-    printf("\tthis   = %d, ", ty); print();
-    printf("\ttparam = %d, ", tparam->ty); tparam->print();
-#endif
-    if (!tparam)
-        goto Lnomatch;
-
-    if (this == tparam)
-        goto Lexact;
-
-    if (tparam->ty == Tident)
+    class DeduceType : public Visitor
     {
-        // Determine which parameter tparam is
-        size_t i = templateParameterLookup(tparam, parameters);
-        if (i == IDX_NOTFOUND)
+    public:
+        Scope *sc;
+        Type *tparam;
+        TemplateParameters *parameters;
+        Objects *dedtypes;
+        unsigned *wm;
+        MATCH result;
+
+        DeduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm)
+            : sc(sc), tparam(tparam), parameters(parameters), dedtypes(dedtypes), wm(wm)
         {
-            if (!sc)
-                goto Lnomatch;
-
-            /* Need a loc to go with the semantic routine.
-             */
-            Loc loc;
-            if (parameters->dim)
-            {
-                TemplateParameter *tp = (*parameters)[0];
-                loc = tp->loc;
-            }
-
-            /* BUG: what if tparam is a template instance, that
-             * has as an argument another Tident?
-             */
-            tparam = tparam->semantic(loc, sc);
-            assert(tparam->ty != Tident);
-            return deduceType(sc, tparam, parameters, dedtypes, wm);
+            result = MATCHnomatch;
         }
 
-        TemplateParameter *tp = (*parameters)[i];
-
-        TypeIdentifier *tident = (TypeIdentifier *)tparam;
-        if (tident->idents.dim > 0)
+        void visit(Type *t)
         {
-            //printf("matching %s to %s\n", tparam->toChars(), toChars());
-            Dsymbol *s = this->toDsymbol(sc);
-            for (size_t j = tident->idents.dim; j-- > 0; )
+        #if 0
+            printf("Type::deduceType()\n");
+            printf("\tthis   = %d, ", ty); t->print();
+            printf("\ttparam = %d, ", tparam->ty); tparam->print();
+        #endif
+            if (!tparam)
+                goto Lnomatch;
+
+            if (t == tparam)
+                goto Lexact;
+
+            if (tparam->ty == Tident)
             {
-                RootObject *id = tident->idents[j];
-                if (id->dyncast() == DYNCAST_IDENTIFIER)
+                // Determine which parameter tparam is
+                size_t i = templateParameterLookup(tparam, parameters);
+                if (i == IDX_NOTFOUND)
                 {
-                    if (!s || !s->parent)
+                    if (!sc)
                         goto Lnomatch;
-                    Dsymbol *s2 = s->parent->searchX(Loc(), sc, id);
-                    if (!s2)
-                        goto Lnomatch;
-                    s2 = s2->toAlias();
-                    //printf("[%d] s = %s %s, s2 = %s %s\n", j, s->kind(), s->toChars(), s2->kind(), s2->toChars());
-                    if (s != s2)
+
+                    /* Need a loc to go with the semantic routine.
+                     */
+                    Loc loc;
+                    if (parameters->dim)
                     {
-                        if (Type *t = s2->getType())
+                        TemplateParameter *tp = (*parameters)[0];
+                        loc = tp->loc;
+                    }
+
+                    /* BUG: what if tparam is a template instance, that
+                     * has as an argument another Tident?
+                     */
+                    tparam = tparam->semantic(loc, sc);
+                    assert(tparam->ty != Tident);
+                    result = deduceType(t, sc, tparam, parameters, dedtypes, wm);
+                    return;
+                }
+
+                TemplateParameter *tp = (*parameters)[i];
+
+                TypeIdentifier *tident = (TypeIdentifier *)tparam;
+                if (tident->idents.dim > 0)
+                {
+                    //printf("matching %s to %s\n", tparam->toChars(), toChars());
+                    Dsymbol *s = t->toDsymbol(sc);
+                    for (size_t j = tident->idents.dim; j-- > 0; )
+                    {
+                        RootObject *id = tident->idents[j];
+                        if (id->dyncast() == DYNCAST_IDENTIFIER)
                         {
-                            if (s != t->toDsymbol(sc))
+                            if (!s || !s->parent)
                                 goto Lnomatch;
+                            Dsymbol *s2 = s->parent->searchX(Loc(), sc, id);
+                            if (!s2)
+                                goto Lnomatch;
+                            s2 = s2->toAlias();
+                            //printf("[%d] s = %s %s, s2 = %s %s\n", j, s->kind(), s->toChars(), s2->kind(), s2->toChars());
+                            if (s != s2)
+                            {
+                                if (Type *t = s2->getType())
+                                {
+                                    if (s != t->toDsymbol(sc))
+                                        goto Lnomatch;
+                                }
+                                else
+                                    goto Lnomatch;
+                            }
+                            s = s->parent;
                         }
                         else
                             goto Lnomatch;
                     }
-                    s = s->parent;
-                }
-                else
-                    goto Lnomatch;
-            }
-            //printf("[e] s = %s\n", s?s->toChars():"(null)");
-            if (TemplateTypeParameter *ttp = tp->isTemplateTypeParameter())
-            {
-                Type *tt = s->getType();
-                if (!tt)
-                    goto Lnomatch;
-                Type *at = (Type *)(*dedtypes)[i];
-                if (!at || tt->equals(at))
-                {
-                    (*dedtypes)[i] = tt;
-                    goto Lexact;
-                }
-            }
-            if (TemplateAliasParameter *tap = tp->isTemplateAliasParameter())
-            {
-                Dsymbol *s2 = (Dsymbol *)(*dedtypes)[i];
-                if (!s2 || s == s2)
-                {
-                    (*dedtypes)[i] = s;
-                    goto Lexact;
-                }
-            }
-            goto Lnomatch;
-        }
-
-        // Found the corresponding parameter tp
-        if (!tp->isTemplateTypeParameter())
-            goto Lnomatch;
-        Type *tt;
-        Type *at = (Type *)(*dedtypes)[i];
-
-        if (wm && (tparam->mod & MODwild))
-        {
-            unsigned char wx = deduceWildHelper(&tt, tparam);
-            if (wx)
-            {
-                if (!at)
-                {
-                    (*dedtypes)[i] = tt;
-                    *wm |= wx;
-                    goto Lconst;
-                }
-
-                if (tt->equals(at))
-                {
-                    goto Lconst;
-                }
-                if (tt->implicitConvTo(at->constOf()))
-                {
-                    (*dedtypes)[i] = at->constOf()->mutableOf();
-                    *wm |= MODconst;
-                    goto Lconst;
-                }
-                if (at->implicitConvTo(tt->constOf()))
-                {
-                    (*dedtypes)[i] = tt->constOf()->mutableOf();
-                    *wm |= MODconst;
-                    goto Lconst;
-                }
-                goto Lnomatch;
-            }
-        }
-
-        MATCH m = deduceTypeHelper(&tt, tparam);
-        if (m)
-        {
-            if (!at)
-            {
-                (*dedtypes)[i] = tt;
-                if (m == MATCHexact)
-                    goto Lexact;
-                else
-                    goto Lconst;
-            }
-
-            if (tt->equals(at))
-            {
-                goto Lexact;
-            }
-            if (tt->ty == Tclass && at->ty == Tclass)
-            {
-                return tt->implicitConvTo(at);
-            }
-            if (tt->ty == Tsarray && at->ty == Tarray &&
-                tt->nextOf()->implicitConvTo(at->nextOf()) >= MATCHconst)
-            {
-                goto Lexact;
-            }
-        }
-        goto Lnomatch;
-    }
-    else if (tparam->ty == Ttypeof)
-    {
-        /* Need a loc to go with the semantic routine.
-         */
-        Loc loc;
-        if (parameters->dim)
-        {
-            TemplateParameter *tp = (*parameters)[0];
-            loc = tp->loc;
-        }
-
-        tparam = tparam->semantic(loc, sc);
-    }
-
-    if (ty != tparam->ty)
-    {
-        if (Dsymbol *sym = toDsymbol(sc))
-        {
-            if (sym->isforwardRef() && !tparam->deco)
-                goto Lnomatch;
-        }
-
-        MATCH m = implicitConvTo(tparam);
-        if (m == MATCHnomatch)
-        {
-            if (ty == Tclass)
-            {
-                TypeClass *tc = (TypeClass *)this;
-                if (tc->sym->aliasthis && !(tc->att & RECtracingDT))
-                {
-                    tc->att = (AliasThisRec)(tc->att | RECtracingDT);
-                    m = aliasthisOf()->deduceType(sc, tparam, parameters, dedtypes, wm);
-                    tc->att = (AliasThisRec)(tc->att & ~RECtracingDT);
-                }
-            }
-            else if (ty == Tstruct)
-            {
-                TypeStruct *ts = (TypeStruct *)this;
-                if (ts->sym->aliasthis && !(ts->att & RECtracingDT))
-                {
-                    ts->att = (AliasThisRec)(ts->att | RECtracingDT);
-                    m = aliasthisOf()->deduceType(sc, tparam, parameters, dedtypes, wm);
-                    ts->att = (AliasThisRec)(ts->att & ~RECtracingDT);
-                }
-            }
-        }
-        return m;
-    }
-
-    if (nextOf())
-    {
-        if (tparam->deco && !tparam->hasWild())
-            return implicitConvTo(tparam);
-
-        return nextOf()->deduceType(sc, tparam->nextOf(), parameters, dedtypes, wm);
-    }
-
-Lexact:
-    return MATCHexact;
-
-Lnomatch:
-    return MATCHnomatch;
-
-Lconst:
-    return MATCHconst;
-}
-
-MATCH TypeVector::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
-        Objects *dedtypes, unsigned *wm)
-{
-#if 0
-    printf("TypeVector::deduceType()\n");
-    printf("\tthis   = %d, ", ty); print();
-    printf("\ttparam = %d, ", tparam->ty); tparam->print();
-#endif
-    if (tparam->ty == Tvector)
-    {
-        TypeVector *tp = (TypeVector *)tparam;
-        return basetype->deduceType(sc, tp->basetype, parameters, dedtypes, wm);
-    }
-    return Type::deduceType(sc, tparam, parameters, dedtypes, wm);
-}
-
-MATCH TypeDArray::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
-        Objects *dedtypes, unsigned *wm)
-{
-#if 0
-    printf("TypeDArray::deduceType()\n");
-    printf("\tthis   = %d, ", ty); print();
-    printf("\ttparam = %d, ", tparam->ty); tparam->print();
-#endif
-    return Type::deduceType(sc, tparam, parameters, dedtypes, wm);
-}
-
-MATCH TypeSArray::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
-        Objects *dedtypes, unsigned *wm)
-{
-#if 0
-    printf("TypeSArray::deduceType()\n");
-    printf("\tthis   = %d, ", ty); print();
-    printf("\ttparam = %d, ", tparam->ty); tparam->print();
-#endif
-
-    // Extra check that array dimensions must match
-    if (tparam)
-    {
-        if (tparam->ty == Tarray)
-        {
-            MATCH m = next->deduceType(sc, tparam->nextOf(), parameters, dedtypes, wm);
-            if (m == MATCHexact)
-                m = MATCHconvert;
-            return m;
-        }
-
-        TemplateParameter *tp = NULL;
-        Expression *edim = NULL;
-        size_t i;
-        if (tparam->ty == Tsarray)
-        {
-            TypeSArray *tsa = (TypeSArray *)tparam;
-            if (tsa->dim->op == TOKvar &&
-                ((VarExp *)tsa->dim)->var->storage_class & STCtemplateparameter)
-            {
-                Identifier *id = ((VarExp *)tsa->dim)->var->ident;
-                i = templateIdentifierLookup(id, parameters);
-                assert(i != IDX_NOTFOUND);
-                tp = (*parameters)[i];
-            }
-            else
-                edim = tsa->dim;
-        }
-        else if (tparam->ty == Taarray)
-        {
-            TypeAArray *taa = (TypeAArray *)tparam;
-            i = templateParameterLookup(taa->index, parameters);
-            if (i != IDX_NOTFOUND)
-                tp = (*parameters)[i];
-            else
-            {
-                Expression *e;
-                Type *t;
-                Dsymbol *s;
-                taa->index->resolve(Loc(), sc, &e, &t, &s);
-                edim = s ? getValue(s) : getValue(e);
-            }
-        }
-        if (tp && tp->matchArg(sc, dim, i, parameters, dedtypes, NULL) ||
-            edim && edim->toInteger() == dim->toInteger())
-        {
-            return next->deduceType(sc, tparam->nextOf(), parameters, dedtypes, wm);
-        }
-    }
-    return Type::deduceType(sc, tparam, parameters, dedtypes, wm);
-
-  Lnomatch:
-    return MATCHnomatch;
-}
-
-MATCH TypeAArray::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm)
-{
-#if 0
-    printf("TypeAArray::deduceType()\n");
-    printf("\tthis   = %d, ", ty); print();
-    printf("\ttparam = %d, ", tparam->ty); tparam->print();
-#endif
-
-    // Extra check that index type must match
-    if (tparam && tparam->ty == Taarray)
-    {
-        TypeAArray *tp = (TypeAArray *)tparam;
-        if (!index->deduceType(sc, tp->index, parameters, dedtypes))
-        {
-            return MATCHnomatch;
-        }
-    }
-    return Type::deduceType(sc, tparam, parameters, dedtypes, wm);
-}
-
-MATCH TypeFunction::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm)
-{
-    //printf("TypeFunction::deduceType()\n");
-    //printf("\tthis   = %d, ", ty); print();
-    //printf("\ttparam = %d, ", tparam->ty); tparam->print();
-
-    // Extra check that function characteristics must match
-    if (tparam && tparam->ty == Tfunction)
-    {
-        TypeFunction *tp = (TypeFunction *)tparam;
-        if (varargs != tp->varargs ||
-            linkage != tp->linkage)
-            return MATCHnomatch;
-
-        size_t nfargs = Parameter::dim(this->parameters);
-        size_t nfparams = Parameter::dim(tp->parameters);
-
-        // bug 2579 fix: Apply function parameter storage classes to parameter types
-        for (size_t i = 0; i < nfparams; i++)
-        {
-            Parameter *fparam = Parameter::getNth(tp->parameters, i);
-            fparam->type = fparam->type->addStorageClass(fparam->storageClass);
-            fparam->storageClass &= ~(STC_TYPECTOR | STCin);
-        }
-        //printf("\t-> this   = %d, ", ty); print();
-        //printf("\t-> tparam = %d, ", tparam->ty); tparam->print();
-
-        /* See if tuple match
-         */
-        if (nfparams > 0 && nfargs >= nfparams - 1)
-        {
-            /* See if 'A' of the template parameter matches 'A'
-             * of the type of the last function parameter.
-             */
-            Parameter *fparam = Parameter::getNth(tp->parameters, nfparams - 1);
-            assert(fparam);
-            assert(fparam->type);
-            if (fparam->type->ty != Tident)
-                goto L1;
-            TypeIdentifier *tid = (TypeIdentifier *)fparam->type;
-            if (tid->idents.dim)
-                goto L1;
-
-            /* Look through parameters to find tuple matching tid->ident
-             */
-            size_t tupi = 0;
-            for (; 1; tupi++)
-            {   if (tupi == parameters->dim)
-                    goto L1;
-                TemplateParameter *t = (*parameters)[tupi];
-                TemplateTupleParameter *tup = t->isTemplateTupleParameter();
-                if (tup && tup->ident->equals(tid->ident))
-                    break;
-            }
-
-            /* The types of the function arguments [nfparams - 1 .. nfargs]
-             * now form the tuple argument.
-             */
-            size_t tuple_dim = nfargs - (nfparams - 1);
-
-            /* See if existing tuple, and whether it matches or not
-             */
-            RootObject *o = (*dedtypes)[tupi];
-            if (o)
-            {   // Existing deduced argument must be a tuple, and must match
-                Tuple *t = isTuple(o);
-                if (!t || t->objects.dim != tuple_dim)
-                    return MATCHnomatch;
-                for (size_t i = 0; i < tuple_dim; i++)
-                {   Parameter *arg = Parameter::getNth(this->parameters, nfparams - 1 + i);
-                    if (!arg->type->equals(t->objects[i]))
-                        return MATCHnomatch;
-                }
-            }
-            else
-            {   // Create new tuple
-                Tuple *t = new Tuple();
-                t->objects.setDim(tuple_dim);
-                for (size_t i = 0; i < tuple_dim; i++)
-                {   Parameter *arg = Parameter::getNth(this->parameters, nfparams - 1 + i);
-                    t->objects[i] = arg->type;
-                }
-                (*dedtypes)[tupi] = t;
-            }
-            nfparams--; // don't consider the last parameter for type deduction
-            goto L2;
-        }
-
-    L1:
-        if (nfargs != nfparams)
-            return MATCHnomatch;
-    L2:
-        for (size_t i = 0; i < nfparams; i++)
-        {
-            Parameter *a = Parameter::getNth(this->parameters, i);
-            Parameter *ap = Parameter::getNth(tp->parameters, i);
-            if (a->storageClass != ap->storageClass ||
-                !a->type->deduceType(sc, ap->type, parameters, dedtypes))
-                return MATCHnomatch;
-        }
-    }
-    return Type::deduceType(sc, tparam, parameters, dedtypes, wm);
-}
-
-MATCH TypeIdentifier::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm)
-{
-    // Extra check
-    if (tparam && tparam->ty == Tident)
-    {
-        TypeIdentifier *tp = (TypeIdentifier *)tparam;
-
-        for (size_t i = 0; i < idents.dim; i++)
-        {
-            RootObject *id1 = idents[i];
-            RootObject *id2 = tp->idents[i];
-
-            if (!id1->equals(id2))
-                return MATCHnomatch;
-        }
-    }
-    return Type::deduceType(sc, tparam, parameters, dedtypes, wm);
-}
-
-MATCH TypeInstance::deduceType(Scope *sc,
-        Type *tparam, TemplateParameters *parameters,
-        Objects *dedtypes, unsigned *wm)
-{
-#if 0
-    printf("TypeInstance::deduceType()\n");
-    printf("\tthis   = %d, ", ty); print();
-    printf("\ttparam = %d, ", tparam->ty); tparam->print();
-#endif
-    // Extra check
-    if (tparam && tparam->ty == Tinstance && tempinst->tempdecl)
-    {
-        TemplateDeclaration *tempdecl = tempinst->tempdecl->isTemplateDeclaration();
-        assert(tempdecl);
-
-        TypeInstance *tp = (TypeInstance *)tparam;
-
-        //printf("tempinst->tempdecl = %p\n", tempdecl);
-        //printf("tp->tempinst->tempdecl = %p\n", tp->tempinst->tempdecl);
-        if (!tp->tempinst->tempdecl)
-        {
-            //printf("tp->tempinst->name = '%s'\n", tp->tempinst->name->toChars());
-            if (!tp->tempinst->name->equals(tempinst->name))
-            {
-                /* Handle case of:
-                 *  template Foo(T : sa!(T), alias sa)
-                 */
-                size_t i = templateIdentifierLookup(tp->tempinst->name, parameters);
-                if (i == IDX_NOTFOUND)
-                {
-                    /* Didn't find it as a parameter identifier. Try looking
-                     * it up and seeing if is an alias. See Bugzilla 1454
-                     */
-                    TypeIdentifier *tid = new TypeIdentifier(tp->loc, tp->tempinst->name);
-                    Type *t;
-                    Expression *e;
-                    Dsymbol *s;
-                    tid->resolve(tp->loc, sc, &e, &t, &s);
-                    if (t)
+                    //printf("[e] s = %s\n", s?s->toChars():"(null)");
+                    if (TemplateTypeParameter *ttp = tp->isTemplateTypeParameter())
                     {
-                        s = t->toDsymbol(sc);
-                        if (s)
+                        Type *tt = s->getType();
+                        if (!tt)
+                            goto Lnomatch;
+                        Type *at = (Type *)(*dedtypes)[i];
+                        if (!at || tt->equals(at))
                         {
-                            TemplateInstance *ti = s->parent->isTemplateInstance();
-                            s = ti ? ti->tempdecl : NULL;
+                            (*dedtypes)[i] = tt;
+                            goto Lexact;
                         }
                     }
-                    if (s)
+                    if (TemplateAliasParameter *tap = tp->isTemplateAliasParameter())
                     {
-                        s = s->toAlias();
-                        TemplateDeclaration *td = s->isTemplateDeclaration();
-                        if (td && td == tempdecl)
-                            goto L2;
+                        Dsymbol *s2 = (Dsymbol *)(*dedtypes)[i];
+                        if (!s2 || s == s2)
+                        {
+                            (*dedtypes)[i] = s;
+                            goto Lexact;
+                        }
                     }
                     goto Lnomatch;
                 }
-                TemplateParameter *tpx = (*parameters)[i];
-                if (!tpx->matchArg(sc, tempdecl, i, parameters, dedtypes, NULL))
+
+                // Found the corresponding parameter tp
+                if (!tp->isTemplateTypeParameter())
                     goto Lnomatch;
-            }
-        }
-        else if (tempdecl != tp->tempinst->tempdecl)
-            goto Lnomatch;
+                Type *tt;
+                Type *at = (Type *)(*dedtypes)[i];
 
-      L2:
-
-        for (size_t i = 0; 1; i++)
-        {
-            //printf("\ttest: tempinst->tiargs[%d]\n", i);
-            RootObject *o1 = NULL;
-            if (i < tempinst->tiargs->dim)
-                o1 = (*tempinst->tiargs)[i];
-            else if (i < tempinst->tdtypes.dim && i < tp->tempinst->tiargs->dim)
-            {
-                // Pick up default arg
-                o1 = tempinst->tdtypes[i];
-            }
-            else if (i >= tp->tempinst->tiargs->dim)
-                break;
-
-            if (i >= tp->tempinst->tiargs->dim)
-                goto Lnomatch;
-
-            RootObject *o2 = (*tp->tempinst->tiargs)[i];
-            Type *t2 = isType(o2);
-
-            size_t j;
-            if (t2 &&
-                t2->ty == Tident &&
-                i == tp->tempinst->tiargs->dim - 1 &&
-                (j = templateParameterLookup(t2, parameters), j != IDX_NOTFOUND) &&
-                j == parameters->dim - 1 &&
-                (*parameters)[j]->isTemplateTupleParameter())
-            {
-                /* Given:
-                 *  struct A(B...) {}
-                 *  alias A!(int, float) X;
-                 *  static if (is(X Y == A!(Z), Z...)) {}
-                 * deduce that Z is a tuple(int, float)
-                 */
-
-                /* Create tuple from remaining args
-                 */
-                Tuple *vt = new Tuple();
-                size_t vtdim = (tempdecl->isVariadic()
-                                ? tempinst->tiargs->dim : tempinst->tdtypes.dim) - i;
-                vt->objects.setDim(vtdim);
-                for (size_t k = 0; k < vtdim; k++)
+                if (wm && (tparam->mod & MODwild))
                 {
-                    RootObject *o;
-                    if (k < tempinst->tiargs->dim)
-                        o = (*tempinst->tiargs)[i + k];
-                    else    // Pick up default arg
-                        o = tempinst->tdtypes[i + k];
-                    vt->objects[k] = o;
+                    unsigned char wx = deduceWildHelper(t, &tt, tparam);
+                    if (wx)
+                    {
+                        if (!at)
+                        {
+                            (*dedtypes)[i] = tt;
+                            *wm |= wx;
+                            goto Lconst;
+                        }
+
+                        if (tt->equals(at))
+                        {
+                            goto Lconst;
+                        }
+                        if (tt->implicitConvTo(at->constOf()))
+                        {
+                            (*dedtypes)[i] = at->constOf()->mutableOf();
+                            *wm |= MODconst;
+                            goto Lconst;
+                        }
+                        if (at->implicitConvTo(tt->constOf()))
+                        {
+                            (*dedtypes)[i] = tt->constOf()->mutableOf();
+                            *wm |= MODconst;
+                            goto Lconst;
+                        }
+                        goto Lnomatch;
+                    }
                 }
 
-                Tuple *v = (Tuple *)(*dedtypes)[j];
-                if (v)
+                MATCH m = deduceTypeHelper(t, &tt, tparam);
+                if (m)
                 {
-                    if (!match(v, vt))
+                    if (!at)
+                    {
+                        (*dedtypes)[i] = tt;
+                        if (m == MATCHexact)
+                            goto Lexact;
+                        else
+                            goto Lconst;
+                    }
+
+                    if (tt->equals(at))
+                    {
+                        goto Lexact;
+                    }
+                    if (tt->ty == Tclass && at->ty == Tclass)
+                    {
+                        result = tt->implicitConvTo(at);
+                        return;
+                    }
+                    if (tt->ty == Tsarray && at->ty == Tarray &&
+                        tt->nextOf()->implicitConvTo(at->nextOf()) >= MATCHconst)
+                    {
+                        goto Lexact;
+                    }
+                }
+                goto Lnomatch;
+            }
+            else if (tparam->ty == Ttypeof)
+            {
+                /* Need a loc to go with the semantic routine.
+                 */
+                Loc loc;
+                if (parameters->dim)
+                {
+                    TemplateParameter *tp = (*parameters)[0];
+                    loc = tp->loc;
+                }
+
+                tparam = tparam->semantic(loc, sc);
+            }
+
+            if (t->ty != tparam->ty)
+            {
+                if (Dsymbol *sym = t->toDsymbol(sc))
+                {
+                    if (sym->isforwardRef() && !tparam->deco)
                         goto Lnomatch;
                 }
-                else
-                    (*dedtypes)[j] = vt;
-                break; //return MATCHexact;
-            }
-            else if (!o1)
-                break;
 
-            Type *t1 = isType(o1);
-            Dsymbol *s1 = isDsymbol(o1);
-            Dsymbol *s2 = isDsymbol(o2);
-            Expression *e1 = s1 ? getValue(s1) : getValue(isExpression(o1));
-            Expression *e2 = isExpression(o2);
-            Tuple *v1 = isTuple(o1);
-            Tuple *v2 = isTuple(o2);
-#if 0
-            if (t1)     printf("t1 = %s\n", t1->toChars());
-            if (t2)     printf("t2 = %s\n", t2->toChars());
-            if (e1)     printf("e1 = %s\n", e1->toChars());
-            if (e2)     printf("e2 = %s\n", e2->toChars());
-            if (s1)     printf("s1 = %s\n", s1->toChars());
-            if (s2)     printf("s2 = %s\n", s2->toChars());
-            if (v1)     printf("v1 = %s\n", v1->toChars());
-            if (v2)     printf("v2 = %s\n", v2->toChars());
-#endif
-
-            if (t1 && t2)
-            {
-                if (!t1->deduceType(sc, t2, parameters, dedtypes))
-                    goto Lnomatch;
-            }
-            else if (e1 && e2)
-            {
-            Le:
-                e1 = e1->ctfeInterpret();
-
-                /* If it is one of the template parameters for this template,
-                 * we should not attempt to interpret it. It already has a value.
-                 */
-                if (e2->op == TOKvar &&
-                    (((VarExp *)e2)->var->storage_class & STCtemplateparameter))
+                MATCH m = t->implicitConvTo(tparam);
+                if (m == MATCHnomatch)
                 {
-                    /*
-                     * (T:Number!(e2), int e2)
+                    if (t->ty == Tclass)
+                    {
+                        TypeClass *tc = (TypeClass *)t;
+                        if (tc->sym->aliasthis && !(tc->att & RECtracingDT))
+                        {
+                            tc->att = (AliasThisRec)(tc->att | RECtracingDT);
+                            m = deduceType(t->aliasthisOf(), sc, tparam, parameters, dedtypes, wm);
+                            tc->att = (AliasThisRec)(tc->att & ~RECtracingDT);
+                        }
+                    }
+                    else if (t->ty == Tstruct)
+                    {
+                        TypeStruct *ts = (TypeStruct *)t;
+                        if (ts->sym->aliasthis && !(ts->att & RECtracingDT))
+                        {
+                            ts->att = (AliasThisRec)(ts->att | RECtracingDT);
+                            m = deduceType(t->aliasthisOf(), sc, tparam, parameters, dedtypes, wm);
+                            ts->att = (AliasThisRec)(ts->att & ~RECtracingDT);
+                        }
+                    }
+                }
+                result = m;
+                return;
+            }
+
+            if (t->nextOf())
+            {
+                if (tparam->deco && !tparam->hasWild())
+                {
+                    result = t->implicitConvTo(tparam);
+                    return;
+                }
+
+                result = deduceType(t->nextOf(), sc, tparam->nextOf(), parameters, dedtypes, wm);
+                return;
+            }
+
+        Lexact:
+            result = MATCHexact;
+            return;
+
+        Lnomatch:
+            result = MATCHnomatch;
+            return;
+
+        Lconst:
+            result = MATCHconst;
+        }
+
+        void visit(TypeVector *t)
+        {
+        #if 0
+            printf("TypeVector::deduceType()\n");
+            printf("\tthis   = %d, ", ty); t->print();
+            printf("\ttparam = %d, ", tparam->ty); tparam->print();
+        #endif
+            if (tparam->ty == Tvector)
+            {
+                TypeVector *tp = (TypeVector *)tparam;
+                result = deduceType(t->basetype, sc, tp->basetype, parameters, dedtypes, wm);
+                return;
+            }
+            visit((Type *)t);
+        }
+
+        void visit(TypeDArray *t)
+        {
+        #if 0
+            printf("TypeDArray::deduceType()\n");
+            printf("\tthis   = %d, ", ty); t->print();
+            printf("\ttparam = %d, ", tparam->ty); tparam->print();
+        #endif
+            visit((Type *)t);
+        }
+
+        void visit(TypeSArray *t)
+        {
+        #if 0
+            printf("TypeSArray::deduceType()\n");
+            printf("\tthis   = %d, ", ty); t->print();
+            printf("\ttparam = %d, ", tparam->ty); tparam->print();
+        #endif
+
+            // Extra check that array dimensions must match
+            if (tparam)
+            {
+                if (tparam->ty == Tarray)
+                {
+                    MATCH m = deduceType(t->next, sc, tparam->nextOf(), parameters, dedtypes, wm);
+                    if (m == MATCHexact)
+                        m = MATCHconvert;
+                    result = m;
+                    return;
+                }
+
+                TemplateParameter *tp = NULL;
+                Expression *edim = NULL;
+                size_t i;
+                if (tparam->ty == Tsarray)
+                {
+                    TypeSArray *tsa = (TypeSArray *)tparam;
+                    if (tsa->dim->op == TOKvar &&
+                        ((VarExp *)tsa->dim)->var->storage_class & STCtemplateparameter)
+                    {
+                        Identifier *id = ((VarExp *)tsa->dim)->var->ident;
+                        i = templateIdentifierLookup(id, parameters);
+                        assert(i != IDX_NOTFOUND);
+                        tp = (*parameters)[i];
+                    }
+                    else
+                        edim = tsa->dim;
+                }
+                else if (tparam->ty == Taarray)
+                {
+                    TypeAArray *taa = (TypeAArray *)tparam;
+                    i = templateParameterLookup(taa->index, parameters);
+                    if (i != IDX_NOTFOUND)
+                        tp = (*parameters)[i];
+                    else
+                    {
+                        Expression *e;
+                        Type *tx;
+                        Dsymbol *s;
+                        taa->index->resolve(Loc(), sc, &e, &tx, &s);
+                        edim = s ? getValue(s) : getValue(e);
+                    }
+                }
+                if (tp && tp->matchArg(sc, t->dim, i, parameters, dedtypes, NULL) ||
+                    edim && edim->toInteger() == t->dim->toInteger())
+                {
+                    result = deduceType(t->next, sc, tparam->nextOf(), parameters, dedtypes, wm);
+                    return;
+                }
+            }
+            visit((Type *)t);
+            return;
+
+          Lnomatch:
+            result = MATCHnomatch;
+        }
+
+        void visit(TypeAArray *t)
+        {
+        #if 0
+            printf("TypeAArray::deduceType()\n");
+            printf("\tthis   = %d, ", ty); t->print();
+            printf("\ttparam = %d, ", tparam->ty); tparam->print();
+        #endif
+
+            // Extra check that index type must match
+            if (tparam && tparam->ty == Taarray)
+            {
+                TypeAArray *tp = (TypeAArray *)tparam;
+                if (!deduceType(t->index, sc, tp->index, parameters, dedtypes))
+                {
+                    result = MATCHnomatch;
+                    return;
+                }
+            }
+            visit((Type *)t);
+        }
+
+        void visit(TypeFunction *t)
+        {
+            //printf("TypeFunction::deduceType()\n");
+            //printf("\tthis   = %d, ", ty); t->print();
+            //printf("\ttparam = %d, ", tparam->ty); tparam->print();
+
+            // Extra check that function characteristics must match
+            if (tparam && tparam->ty == Tfunction)
+            {
+                TypeFunction *tp = (TypeFunction *)tparam;
+                if (t->varargs != tp->varargs ||
+                    t->linkage != tp->linkage)
+                {
+                    result = MATCHnomatch;
+                    return;
+                }
+
+                size_t nfargs = Parameter::dim(t->parameters);
+                size_t nfparams = Parameter::dim(tp->parameters);
+
+                // bug 2579 fix: Apply function parameter storage classes to parameter types
+                for (size_t i = 0; i < nfparams; i++)
+                {
+                    Parameter *fparam = Parameter::getNth(tp->parameters, i);
+                    fparam->type = fparam->type->addStorageClass(fparam->storageClass);
+                    fparam->storageClass &= ~(STC_TYPECTOR | STCin);
+                }
+                //printf("\t-> this   = %d, ", ty); print();
+                //printf("\t-> tparam = %d, ", tparam->ty); tparam->print();
+
+                /* See if tuple match
+                 */
+                if (nfparams > 0 && nfargs >= nfparams - 1)
+                {
+                    /* See if 'A' of the template parameter matches 'A'
+                     * of the type of the last function parameter.
                      */
-                    j = templateIdentifierLookup(((VarExp *)e2)->var->ident, parameters);
-                    if (j != IDX_NOTFOUND)
+                    Parameter *fparam = Parameter::getNth(tp->parameters, nfparams - 1);
+                    assert(fparam);
+                    assert(fparam->type);
+                    if (fparam->type->ty != Tident)
                         goto L1;
-                    // The template parameter was not from this template
-                    // (it may be from a parent template, for example)
+                    TypeIdentifier *tid = (TypeIdentifier *)fparam->type;
+                    if (tid->idents.dim)
+                        goto L1;
+
+                    /* Look through parameters to find tuple matching tid->ident
+                     */
+                    size_t tupi = 0;
+                    for (; 1; tupi++)
+                    {
+                        if (tupi == parameters->dim)
+                            goto L1;
+                        TemplateParameter *t = (*parameters)[tupi];
+                        TemplateTupleParameter *tup = t->isTemplateTupleParameter();
+                        if (tup && tup->ident->equals(tid->ident))
+                            break;
+                    }
+
+                    /* The types of the function arguments [nfparams - 1 .. nfargs]
+                     * now form the tuple argument.
+                     */
+                    size_t tuple_dim = nfargs - (nfparams - 1);
+
+                    /* See if existing tuple, and whether it matches or not
+                     */
+                    RootObject *o = (*dedtypes)[tupi];
+                    if (o)
+                    {
+                        // Existing deduced argument must be a tuple, and must match
+                        Tuple *tup = isTuple(o);
+                        if (!tup || tup->objects.dim != tuple_dim)
+                        {
+                            result = MATCHnomatch;
+                            return;
+                        }
+                        for (size_t i = 0; i < tuple_dim; i++)
+                        {
+                            Parameter *arg = Parameter::getNth(t->parameters, nfparams - 1 + i);
+                            if (!arg->type->equals(tup->objects[i]))
+                            {
+                                result = MATCHnomatch;
+                                return;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // Create new tuple
+                        Tuple *tup = new Tuple();
+                        tup->objects.setDim(tuple_dim);
+                        for (size_t i = 0; i < tuple_dim; i++)
+                        {
+                            Parameter *arg = Parameter::getNth(t->parameters, nfparams - 1 + i);
+                            tup->objects[i] = arg->type;
+                        }
+                        (*dedtypes)[tupi] = tup;
+                    }
+                    nfparams--; // don't consider the last parameter for type deduction
+                    goto L2;
                 }
 
-                e2 = e2->ctfeInterpret();
-
-                //printf("e1 = %s, type = %s %d\n", e1->toChars(), e1->type->toChars(), e1->type->ty);
-                //printf("e2 = %s, type = %s %d\n", e2->toChars(), e2->type->toChars(), e2->type->ty);
-                if (!e1->equals(e2))
-                {
-                    if (!e2->implicitConvTo(e1->type))
-                        goto Lnomatch;
-
-                    e2 = e2->implicitCastTo(sc, e1->type);
-                    e2 = e2->ctfeInterpret();
-                    if (!e1->equals(e2))
-                        goto Lnomatch;
-                }
-            }
-            else if (e1 && t2 && t2->ty == Tident)
-            {
-                j = templateParameterLookup(t2, parameters);
             L1:
-                if (j == IDX_NOTFOUND)
+                if (nfargs != nfparams)
                 {
-                    t2->resolve(((TypeIdentifier *)t2)->loc, sc, &e2, &t2, &s2);
-                    if (e2)
-                        goto Le;
-                    goto Lnomatch;
+                    result = MATCHnomatch;
+                    return;
                 }
-                if (!(*parameters)[j]->matchArg(sc, e1, j, parameters, dedtypes, NULL))
-                    goto Lnomatch;
-            }
-            else if (s1 && s2)
-            {
-            Ls:
-                if (!s1->equals(s2))
-                    goto Lnomatch;
-            }
-            else if (s1 && t2 && t2->ty == Tident)
-            {
-                j = templateParameterLookup(t2, parameters);
-                if (j == IDX_NOTFOUND)
+            L2:
+                for (size_t i = 0; i < nfparams; i++)
                 {
-                    t2->resolve(((TypeIdentifier *)t2)->loc, sc, &e2, &t2, &s2);
-                    if (s2)
-                        goto Ls;
-                    goto Lnomatch;
+                    Parameter *a = Parameter::getNth(t->parameters, i);
+                    Parameter *ap = Parameter::getNth(tp->parameters, i);
+                    if (a->storageClass != ap->storageClass ||
+                        !deduceType(a->type, sc, ap->type, parameters, dedtypes))
+                    {
+                        result = MATCHnomatch;
+                        return;
+                    }
                 }
-                if (!(*parameters)[j]->matchArg(sc, s1, j, parameters, dedtypes, NULL))
-                    goto Lnomatch;
             }
-            else
-                goto Lnomatch;
+            visit((Type *)t);
         }
-    }
-    return Type::deduceType(sc, tparam, parameters, dedtypes, wm);
 
-Lnomatch:
-    //printf("no match\n");
-    return MATCHnomatch;
-}
-
-MATCH TypeStruct::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm)
-{
-    //printf("TypeStruct::deduceType()\n");
-    //printf("\tthis->parent   = %s, ", sym->parent->toChars()); print();
-    //printf("\ttparam = %d, ", tparam->ty); tparam->print();
-
-    /* If this struct is a template struct, and we're matching
-     * it against a template instance, convert the struct type
-     * to a template instance, too, and try again.
-     */
-    TemplateInstance *ti = sym->parent->isTemplateInstance();
-
-    if (tparam && tparam->ty == Tinstance)
-    {
-        if (ti && ti->toAlias() == sym)
+        void visit(TypeIdentifier *t)
         {
-            TypeInstance *t = new TypeInstance(Loc(), ti);
-            return t->deduceType(sc, tparam, parameters, dedtypes, wm);
+            // Extra check
+            if (tparam && tparam->ty == Tident)
+            {
+                TypeIdentifier *tp = (TypeIdentifier *)tparam;
+
+                for (size_t i = 0; i < t->idents.dim; i++)
+                {
+                    RootObject *id1 = t->idents[i];
+                    RootObject *id2 = tp->idents[i];
+
+                    if (!id1->equals(id2))
+                    {
+                        result = MATCHnomatch;
+                        return;
+                    }
+                }
+            }
+            visit((Type *)t);
         }
 
-        /* Match things like:
-         *  S!(T).foo
+        void visit(TypeInstance *t)
+        {
+        #if 0
+            printf("TypeInstance::deduceType()\n");
+            printf("\tthis   = %d, ", ty); t->print();
+            printf("\ttparam = %d, ", tparam->ty); tparam->print();
+        #endif
+            // Extra check
+            if (tparam && tparam->ty == Tinstance && t->tempinst->tempdecl)
+            {
+                TemplateDeclaration *tempdecl = t->tempinst->tempdecl->isTemplateDeclaration();
+                assert(tempdecl);
+
+                TypeInstance *tp = (TypeInstance *)tparam;
+
+                //printf("tempinst->tempdecl = %p\n", tempdecl);
+                //printf("tp->tempinst->tempdecl = %p\n", tp->tempinst->tempdecl);
+                if (!tp->tempinst->tempdecl)
+                {
+                    //printf("tp->tempinst->name = '%s'\n", tp->tempinst->name->toChars());
+                    if (!tp->tempinst->name->equals(t->tempinst->name))
+                    {
+                        /* Handle case of:
+                         *  template Foo(T : sa!(T), alias sa)
+                         */
+                        size_t i = templateIdentifierLookup(tp->tempinst->name, parameters);
+                        if (i == IDX_NOTFOUND)
+                        {
+                            /* Didn't find it as a parameter identifier. Try looking
+                             * it up and seeing if is an alias. See Bugzilla 1454
+                             */
+                            TypeIdentifier *tid = new TypeIdentifier(tp->loc, tp->tempinst->name);
+                            Type *tx;
+                            Expression *e;
+                            Dsymbol *s;
+                            tid->resolve(tp->loc, sc, &e, &tx, &s);
+                            if (tx)
+                            {
+                                s = tx->toDsymbol(sc);
+                                if (s)
+                                {
+                                    TemplateInstance *ti = s->parent->isTemplateInstance();
+                                    s = ti ? ti->tempdecl : NULL;
+                                }
+                            }
+                            if (s)
+                            {
+                                s = s->toAlias();
+                                TemplateDeclaration *td = s->isTemplateDeclaration();
+                                if (td && td == tempdecl)
+                                    goto L2;
+                            }
+                            goto Lnomatch;
+                        }
+                        TemplateParameter *tpx = (*parameters)[i];
+                        if (!tpx->matchArg(sc, tempdecl, i, parameters, dedtypes, NULL))
+                            goto Lnomatch;
+                    }
+                }
+                else if (tempdecl != tp->tempinst->tempdecl)
+                    goto Lnomatch;
+
+              L2:
+
+                for (size_t i = 0; 1; i++)
+                {
+                    //printf("\ttest: tempinst->tiargs[%d]\n", i);
+                    RootObject *o1 = NULL;
+                    if (i < t->tempinst->tiargs->dim)
+                        o1 = (*t->tempinst->tiargs)[i];
+                    else if (i < t->tempinst->tdtypes.dim && i < tp->tempinst->tiargs->dim)
+                    {
+                        // Pick up default arg
+                        o1 = t->tempinst->tdtypes[i];
+                    }
+                    else if (i >= tp->tempinst->tiargs->dim)
+                        break;
+
+                    if (i >= tp->tempinst->tiargs->dim)
+                        goto Lnomatch;
+
+                    RootObject *o2 = (*tp->tempinst->tiargs)[i];
+                    Type *t2 = isType(o2);
+
+                    size_t j;
+                    if (t2 &&
+                        t2->ty == Tident &&
+                        i == tp->tempinst->tiargs->dim - 1 &&
+                        (j = templateParameterLookup(t2, parameters), j != IDX_NOTFOUND) &&
+                        j == parameters->dim - 1 &&
+                        (*parameters)[j]->isTemplateTupleParameter())
+                    {
+                        /* Given:
+                         *  struct A(B...) {}
+                         *  alias A!(int, float) X;
+                         *  static if (is(X Y == A!(Z), Z...)) {}
+                         * deduce that Z is a tuple(int, float)
+                         */
+
+                        /* Create tuple from remaining args
+                         */
+                        Tuple *vt = new Tuple();
+                        size_t vtdim = (tempdecl->isVariadic()
+                                        ? t->tempinst->tiargs->dim : t->tempinst->tdtypes.dim) - i;
+                        vt->objects.setDim(vtdim);
+                        for (size_t k = 0; k < vtdim; k++)
+                        {
+                            RootObject *o;
+                            if (k < t->tempinst->tiargs->dim)
+                                o = (*t->tempinst->tiargs)[i + k];
+                            else    // Pick up default arg
+                                o = t->tempinst->tdtypes[i + k];
+                            vt->objects[k] = o;
+                        }
+
+                        Tuple *v = (Tuple *)(*dedtypes)[j];
+                        if (v)
+                        {
+                            if (!match(v, vt))
+                                goto Lnomatch;
+                        }
+                        else
+                            (*dedtypes)[j] = vt;
+                        break; //return MATCHexact;
+                    }
+                    else if (!o1)
+                        break;
+
+                    Type *t1 = isType(o1);
+                    Dsymbol *s1 = isDsymbol(o1);
+                    Dsymbol *s2 = isDsymbol(o2);
+                    Expression *e1 = s1 ? getValue(s1) : getValue(isExpression(o1));
+                    Expression *e2 = isExpression(o2);
+                    Tuple *v1 = isTuple(o1);
+                    Tuple *v2 = isTuple(o2);
+        #if 0
+                    if (t1)     printf("t1 = %s\n", t1->toChars());
+                    if (t2)     printf("t2 = %s\n", t2->toChars());
+                    if (e1)     printf("e1 = %s\n", e1->toChars());
+                    if (e2)     printf("e2 = %s\n", e2->toChars());
+                    if (s1)     printf("s1 = %s\n", s1->toChars());
+                    if (s2)     printf("s2 = %s\n", s2->toChars());
+                    if (v1)     printf("v1 = %s\n", v1->toChars());
+                    if (v2)     printf("v2 = %s\n", v2->toChars());
+        #endif
+
+                    if (t1 && t2)
+                    {
+                        if (!deduceType(t1, sc, t2, parameters, dedtypes))
+                            goto Lnomatch;
+                    }
+                    else if (e1 && e2)
+                    {
+                    Le:
+                        e1 = e1->ctfeInterpret();
+
+                        /* If it is one of the template parameters for this template,
+                         * we should not attempt to interpret it. It already has a value.
+                         */
+                        if (e2->op == TOKvar &&
+                            (((VarExp *)e2)->var->storage_class & STCtemplateparameter))
+                        {
+                            /*
+                             * (T:Number!(e2), int e2)
+                             */
+                            j = templateIdentifierLookup(((VarExp *)e2)->var->ident, parameters);
+                            if (j != IDX_NOTFOUND)
+                                goto L1;
+                            // The template parameter was not from this template
+                            // (it may be from a parent template, for example)
+                        }
+
+                        e2 = e2->ctfeInterpret();
+
+                        //printf("e1 = %s, type = %s %d\n", e1->toChars(), e1->type->toChars(), e1->type->ty);
+                        //printf("e2 = %s, type = %s %d\n", e2->toChars(), e2->type->toChars(), e2->type->ty);
+                        if (!e1->equals(e2))
+                        {
+                            if (!e2->implicitConvTo(e1->type))
+                                goto Lnomatch;
+
+                            e2 = e2->implicitCastTo(sc, e1->type);
+                            e2 = e2->ctfeInterpret();
+                            if (!e1->equals(e2))
+                                goto Lnomatch;
+                        }
+                    }
+                    else if (e1 && t2 && t2->ty == Tident)
+                    {
+                        j = templateParameterLookup(t2, parameters);
+                    L1:
+                        if (j == IDX_NOTFOUND)
+                        {
+                            t2->resolve(((TypeIdentifier *)t2)->loc, sc, &e2, &t2, &s2);
+                            if (e2)
+                                goto Le;
+                            goto Lnomatch;
+                        }
+                        if (!(*parameters)[j]->matchArg(sc, e1, j, parameters, dedtypes, NULL))
+                            goto Lnomatch;
+                    }
+                    else if (s1 && s2)
+                    {
+                    Ls:
+                        if (!s1->equals(s2))
+                            goto Lnomatch;
+                    }
+                    else if (s1 && t2 && t2->ty == Tident)
+                    {
+                        j = templateParameterLookup(t2, parameters);
+                        if (j == IDX_NOTFOUND)
+                        {
+                            t2->resolve(((TypeIdentifier *)t2)->loc, sc, &e2, &t2, &s2);
+                            if (s2)
+                                goto Ls;
+                            goto Lnomatch;
+                        }
+                        if (!(*parameters)[j]->matchArg(sc, s1, j, parameters, dedtypes, NULL))
+                            goto Lnomatch;
+                    }
+                    else
+                        goto Lnomatch;
+                }
+            }
+            visit((Type *)t);
+            return;
+
+        Lnomatch:
+            //printf("no match\n");
+            result = MATCHnomatch;
+        }
+
+        void visit(TypeStruct *t)
+        {
+            //printf("TypeStruct::deduceType()\n");
+            //printf("\tthis->parent   = %s, ", sym->parent->toChars()); t->print();
+            //printf("\ttparam = %d, ", tparam->ty); tparam->print();
+
+            /* If this struct is a template struct, and we're matching
+             * it against a template instance, convert the struct type
+             * to a template instance, too, and try again.
+             */
+            TemplateInstance *ti = t->sym->parent->isTemplateInstance();
+
+            if (tparam && tparam->ty == Tinstance)
+            {
+                if (ti && ti->toAlias() == t->sym)
+                {
+                    TypeInstance *tx = new TypeInstance(Loc(), ti);
+                    result = deduceType(tx, sc, tparam, parameters, dedtypes, wm);
+                    return;
+                }
+
+                /* Match things like:
+                 *  S!(T).foo
+                 */
+                TypeInstance *tpi = (TypeInstance *)tparam;
+                if (tpi->idents.dim)
+                {
+                    RootObject *id = tpi->idents[tpi->idents.dim - 1];
+                    if (id->dyncast() == DYNCAST_IDENTIFIER && t->sym->ident->equals((Identifier *)id))
+                    {
+                        Type *tparent = t->sym->parent->getType();
+                        if (tparent)
+                        {
+                            /* Slice off the .foo in S!(T).foo
+                             */
+                            tpi->idents.dim--;
+                            result = deduceType(tparent, sc, tpi, parameters, dedtypes, wm);
+                            tpi->idents.dim++;
+                            return;
+                        }
+                    }
+                }
+            }
+
+            // Extra check
+            if (tparam && tparam->ty == Tstruct)
+            {
+                TypeStruct *tp = (TypeStruct *)tparam;
+
+                //printf("\t%d\n", (MATCH) t->implicitConvTo(tp));
+                if (wm && t->deduceWild(tparam, false))
+                {
+                    result = MATCHconst;
+                    return;
+                }
+                result = t->implicitConvTo(tp);
+                return;
+            }
+            visit((Type *)t);
+        }
+
+        void visit(TypeEnum *t)
+        {
+            // Extra check
+            if (tparam && tparam->ty == Tenum)
+            {
+                TypeEnum *tp = (TypeEnum *)tparam;
+
+                if (t->sym != tp->sym)
+                {
+                    result = MATCHnomatch;
+                    return;
+                }
+            }
+            Type *tb = t->toBasetype();
+            if (tb->ty == tparam->ty ||
+                tb->ty == Tsarray && tparam->ty == Taarray)
+            {
+                result = deduceType(tb, sc, tparam, parameters, dedtypes, wm);
+                return;
+            }
+            visit((Type *)t);
+        }
+
+        void visit(TypeTypedef *t)
+        {
+            // Extra check
+            if (tparam && tparam->ty == Ttypedef)
+            {
+                TypeTypedef *tp = (TypeTypedef *)tparam;
+
+                if (t->sym != tp->sym)
+                {
+                    result = MATCHnomatch;
+                    return;
+                }
+            }
+            visit((Type *)t);
+        }
+
+        /* Helper for TypeClass::deduceType().
+         * Classes can match with implicit conversion to a base class or interface.
+         * This is complicated, because there may be more than one base class which
+         * matches. In such cases, one or more parameters remain ambiguous.
+         * For example,
+         *
+         *   interface I(X, Y) {}
+         *   class C : I(uint, double), I(char, double) {}
+         *   C x;
+         *   foo(T, U)( I!(T, U) x)
+         *
+         *   deduces that U is double, but T remains ambiguous (could be char or uint).
+         *
+         * Given a baseclass b, and initial deduced types 'dedtypes', this function
+         * tries to match tparam with b, and also tries all base interfaces of b.
+         * If a match occurs, numBaseClassMatches is incremented, and the new deduced
+         * types are ANDed with the current 'best' estimate for dedtypes.
          */
-        TypeInstance *tpi = (TypeInstance *)tparam;
-        if (tpi->idents.dim)
+        static void deduceBaseClassParameters(BaseClass *b,
+            Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes,
+            Objects *best, int &numBaseClassMatches)
         {
-            RootObject *id = tpi->idents[tpi->idents.dim - 1];
-            if (id->dyncast() == DYNCAST_IDENTIFIER && sym->ident->equals((Identifier *)id))
+            TemplateInstance *parti = b->base ? b->base->parent->isTemplateInstance() : NULL;
+            if (parti)
             {
-                Type *tparent = sym->parent->getType();
-                if (tparent)
+                // Make a temporary copy of dedtypes so we don't destroy it
+                Objects *tmpdedtypes = new Objects();
+                tmpdedtypes->setDim(dedtypes->dim);
+                memcpy(tmpdedtypes->tdata(), dedtypes->tdata(), dedtypes->dim * sizeof(void *));
+
+                TypeInstance *t = new TypeInstance(Loc(), parti);
+                MATCH m = deduceType(t, sc, tparam, parameters, tmpdedtypes);
+                if (m > MATCHnomatch)
                 {
-                    /* Slice off the .foo in S!(T).foo
-                     */
-                    tpi->idents.dim--;
-                    MATCH m = tparent->deduceType(sc, tpi, parameters, dedtypes, wm);
-                    tpi->idents.dim++;
-                    return m;
+                    // If this is the first ever match, it becomes our best estimate
+                    if (numBaseClassMatches==0)
+                        memcpy(best->tdata(), tmpdedtypes->tdata(), tmpdedtypes->dim * sizeof(void *));
+                    else for (size_t k = 0; k < tmpdedtypes->dim; ++k)
+                    {
+                        // If we've found more than one possible type for a parameter,
+                        // mark it as unknown.
+                        if ((*tmpdedtypes)[k] != (*best)[k])
+                            (*best)[k] = (*dedtypes)[k];
+                    }
+                    ++numBaseClassMatches;
                 }
             }
-        }
-    }
-
-    // Extra check
-    if (tparam && tparam->ty == Tstruct)
-    {
-        TypeStruct *tp = (TypeStruct *)tparam;
-
-        //printf("\t%d\n", (MATCH) implicitConvTo(tp));
-        if (wm && deduceWild(tparam, false))
-            return MATCHconst;
-        return implicitConvTo(tp);
-    }
-    return Type::deduceType(sc, tparam, parameters, dedtypes, wm);
-}
-
-MATCH TypeEnum::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm)
-{
-    // Extra check
-    if (tparam && tparam->ty == Tenum)
-    {
-        TypeEnum *tp = (TypeEnum *)tparam;
-
-        if (sym != tp->sym)
-            return MATCHnomatch;
-    }
-    Type *tb = toBasetype();
-    if (tb->ty == tparam->ty ||
-        tb->ty == Tsarray && tparam->ty == Taarray)
-    {
-        return tb->deduceType(sc, tparam, parameters, dedtypes, wm);
-    }
-    return Type::deduceType(sc, tparam, parameters, dedtypes, wm);
-}
-
-MATCH TypeTypedef::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm)
-{
-    // Extra check
-    if (tparam && tparam->ty == Ttypedef)
-    {
-        TypeTypedef *tp = (TypeTypedef *)tparam;
-
-        if (sym != tp->sym)
-            return MATCHnomatch;
-    }
-    return Type::deduceType(sc, tparam, parameters, dedtypes, wm);
-}
-
-/* Helper for TypeClass::deduceType().
- * Classes can match with implicit conversion to a base class or interface.
- * This is complicated, because there may be more than one base class which
- * matches. In such cases, one or more parameters remain ambiguous.
- * For example,
- *
- *   interface I(X, Y) {}
- *   class C : I(uint, double), I(char, double) {}
- *   C x;
- *   foo(T, U)( I!(T, U) x)
- *
- *   deduces that U is double, but T remains ambiguous (could be char or uint).
- *
- * Given a baseclass b, and initial deduced types 'dedtypes', this function
- * tries to match tparam with b, and also tries all base interfaces of b.
- * If a match occurs, numBaseClassMatches is incremented, and the new deduced
- * types are ANDed with the current 'best' estimate for dedtypes.
- */
-void deduceBaseClassParameters(BaseClass *b,
-    Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes,
-    Objects *best, int &numBaseClassMatches)
-{
-    TemplateInstance *parti = b->base ? b->base->parent->isTemplateInstance() : NULL;
-    if (parti)
-    {
-        // Make a temporary copy of dedtypes so we don't destroy it
-        Objects *tmpdedtypes = new Objects();
-        tmpdedtypes->setDim(dedtypes->dim);
-        memcpy(tmpdedtypes->tdata(), dedtypes->tdata(), dedtypes->dim * sizeof(void *));
-
-        TypeInstance *t = new TypeInstance(Loc(), parti);
-        MATCH m = t->deduceType(sc, tparam, parameters, tmpdedtypes);
-        if (m > MATCHnomatch)
-        {
-            // If this is the first ever match, it becomes our best estimate
-            if (numBaseClassMatches==0)
-                memcpy(best->tdata(), tmpdedtypes->tdata(), tmpdedtypes->dim * sizeof(void *));
-            else for (size_t k = 0; k < tmpdedtypes->dim; ++k)
+            // Now recursively test the inherited interfaces
+            for (size_t j = 0; j < b->baseInterfaces_dim; ++j)
             {
-                // If we've found more than one possible type for a parameter,
-                // mark it as unknown.
-                if ((*tmpdedtypes)[k] != (*best)[k])
-                    (*best)[k] = (*dedtypes)[k];
-            }
-            ++numBaseClassMatches;
-        }
-    }
-    // Now recursively test the inherited interfaces
-    for (size_t j = 0; j < b->baseInterfaces_dim; ++j)
-    {
-        deduceBaseClassParameters( &(b->baseInterfaces)[j],
-            sc, tparam, parameters, dedtypes,
-            best, numBaseClassMatches);
-    }
-
-}
-
-MATCH TypeClass::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm)
-{
-    //printf("TypeClass::deduceType(this = %s)\n", toChars());
-
-    /* If this class is a template class, and we're matching
-     * it against a template instance, convert the class type
-     * to a template instance, too, and try again.
-     */
-    TemplateInstance *ti = sym->parent->isTemplateInstance();
-
-    if (tparam && tparam->ty == Tinstance)
-    {
-        if (ti && ti->toAlias() == sym)
-        {
-            TypeInstance *t = new TypeInstance(Loc(), ti);
-            MATCH m = t->deduceType(sc, tparam, parameters, dedtypes, wm);
-            // Even if the match fails, there is still a chance it could match
-            // a base class.
-            if (m != MATCHnomatch)
-                return m;
-        }
-
-        /* Match things like:
-         *  S!(T).foo
-         */
-        TypeInstance *tpi = (TypeInstance *)tparam;
-        if (tpi->idents.dim)
-        {   RootObject *id = tpi->idents[tpi->idents.dim - 1];
-            if (id->dyncast() == DYNCAST_IDENTIFIER && sym->ident->equals((Identifier *)id))
-            {
-                Type *tparent = sym->parent->getType();
-                if (tparent)
-                {
-                    /* Slice off the .foo in S!(T).foo
-                     */
-                    tpi->idents.dim--;
-                    MATCH m = tparent->deduceType(sc, tpi, parameters, dedtypes, wm);
-                    tpi->idents.dim++;
-                    return m;
-                }
-            }
-        }
-
-        // If it matches exactly or via implicit conversion, we're done
-        MATCH m = Type::deduceType(sc, tparam, parameters, dedtypes, wm);
-        if (m != MATCHnomatch)
-            return m;
-
-        /* There is still a chance to match via implicit conversion to
-         * a base class or interface. Because there could be more than one such
-         * match, we need to check them all.
-         */
-
-        int numBaseClassMatches = 0; // Have we found an interface match?
-
-        // Our best guess at dedtypes
-        Objects *best = new Objects();
-        best->setDim(dedtypes->dim);
-
-        ClassDeclaration *s = sym;
-        while (s && s->baseclasses->dim > 0)
-        {
-            // Test the base class
-            deduceBaseClassParameters((*s->baseclasses)[0],
-                sc, tparam, parameters, dedtypes,
-                best, numBaseClassMatches);
-
-            // Test the interfaces inherited by the base class
-            for (size_t i = 0; i < s->interfaces_dim; ++i)
-            {
-                BaseClass *b = s->interfaces[i];
-                deduceBaseClassParameters(b, sc, tparam, parameters, dedtypes,
+                deduceBaseClassParameters( &(b->baseInterfaces)[j],
+                    sc, tparam, parameters, dedtypes,
                     best, numBaseClassMatches);
             }
-            s = (*s->baseclasses)[0]->base;
+
         }
 
-        if (numBaseClassMatches == 0)
-            return MATCHnomatch;
+        void visit(TypeClass *t)
+        {
+            //printf("TypeClass::deduceType(this = %s)\n", t->toChars());
 
-        // If we got at least one match, copy the known types into dedtypes
-        memcpy(dedtypes->tdata(), best->tdata(), best->dim * sizeof(void *));
-        return MATCHconvert;
-    }
+            /* If this class is a template class, and we're matching
+             * it against a template instance, convert the class type
+             * to a template instance, too, and try again.
+             */
+            TemplateInstance *ti = t->sym->parent->isTemplateInstance();
 
-    // Extra check
-    if (tparam && tparam->ty == Tclass)
-    {
-        TypeClass *tp = (TypeClass *)tparam;
+            if (tparam && tparam->ty == Tinstance)
+            {
+                if (ti && ti->toAlias() == t->sym)
+                {
+                    TypeInstance *tx = new TypeInstance(Loc(), ti);
+                    MATCH m = deduceType(tx, sc, tparam, parameters, dedtypes, wm);
+                    // Even if the match fails, there is still a chance it could match
+                    // a base class.
+                    if (m != MATCHnomatch)
+                    {
+                        result = m;
+                        return;
+                    }
+                }
 
-        //printf("\t%d\n", (MATCH) implicitConvTo(tp));
-        if (wm && deduceWild(tparam, false))
-            return MATCHconst;
-        return implicitConvTo(tp);
-    }
-    return Type::deduceType(sc, tparam, parameters, dedtypes, wm);
+                /* Match things like:
+                 *  S!(T).foo
+                 */
+                TypeInstance *tpi = (TypeInstance *)tparam;
+                if (tpi->idents.dim)
+                {
+                    RootObject *id = tpi->idents[tpi->idents.dim - 1];
+                    if (id->dyncast() == DYNCAST_IDENTIFIER && t->sym->ident->equals((Identifier *)id))
+                    {
+                        Type *tparent = t->sym->parent->getType();
+                        if (tparent)
+                        {
+                            /* Slice off the .foo in S!(T).foo
+                             */
+                            tpi->idents.dim--;
+                            result = deduceType(tparent, sc, tpi, parameters, dedtypes, wm);
+                            tpi->idents.dim++;
+                            return;
+                        }
+                    }
+                }
+
+                // If it matches exactly or via implicit conversion, we're done
+                visit((Type *)t);
+                if (result != MATCHnomatch)
+                    return;
+
+                /* There is still a chance to match via implicit conversion to
+                 * a base class or interface. Because there could be more than one such
+                 * match, we need to check them all.
+                 */
+
+                int numBaseClassMatches = 0; // Have we found an interface match?
+
+                // Our best guess at dedtypes
+                Objects *best = new Objects();
+                best->setDim(dedtypes->dim);
+
+                ClassDeclaration *s = t->sym;
+                while (s && s->baseclasses->dim > 0)
+                {
+                    // Test the base class
+                    deduceBaseClassParameters((*s->baseclasses)[0],
+                        sc, tparam, parameters, dedtypes,
+                        best, numBaseClassMatches);
+
+                    // Test the interfaces inherited by the base class
+                    for (size_t i = 0; i < s->interfaces_dim; ++i)
+                    {
+                        BaseClass *b = s->interfaces[i];
+                        deduceBaseClassParameters(b, sc, tparam, parameters, dedtypes,
+                            best, numBaseClassMatches);
+                    }
+                    s = (*s->baseclasses)[0]->base;
+                }
+
+                if (numBaseClassMatches == 0)
+                {
+                    result = MATCHnomatch;
+                    return;
+                }
+
+                // If we got at least one match, copy the known types into dedtypes
+                memcpy(dedtypes->tdata(), best->tdata(), best->dim * sizeof(void *));
+                result = MATCHconvert;
+                return;
+            }
+
+            // Extra check
+            if (tparam && tparam->ty == Tclass)
+            {
+                TypeClass *tp = (TypeClass *)tparam;
+
+                //printf("\t%d\n", (MATCH) t->implicitConvTo(tp));
+                if (wm && t->deduceWild(tparam, false))
+                {
+                    result = MATCHconst;
+                    return;
+                }
+                result = t->implicitConvTo(tp);
+                return;
+            }
+            visit((Type *)t);
+        }
+    };
+
+    DeduceType v(sc, tparam, parameters, dedtypes, wm);
+    t->accept(&v);
+    return v.result;
 }
 
 /* ======================== TemplateParameter =============================== */
@@ -4274,7 +4357,7 @@ MATCH TemplateTypeParameter::matchArg(Scope *sc, RootObject *oarg,
             goto Lnomatch;
 
         //printf("\tcalling deduceType(): ta is %s, specType is %s\n", ta->toChars(), specType->toChars());
-        MATCH m2 = ta->deduceType(sc, specType, parameters, dedtypes);
+        MATCH m2 = deduceType(ta, sc, specType, parameters, dedtypes);
         if (m2 <= MATCHnomatch)
         {   //printf("\tfailed deduceType\n");
             goto Lnomatch;
@@ -4559,7 +4642,7 @@ MATCH TemplateAliasParameter::matchArg(Scope *sc, RootObject *oarg,
             if (!ti || !ta)
                 goto Lnomatch;
             Type *t = new TypeInstance(Loc(), ti);
-            MATCH m = t->deduceType(sc, ta, parameters, dedtypes);
+            MATCH m = deduceType(t, sc, ta, parameters, dedtypes);
             if (m <= MATCHnomatch)
                 goto Lnomatch;
         }
