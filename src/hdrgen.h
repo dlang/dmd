@@ -10,6 +10,8 @@
 
 #include <string.h>                     // memset()
 
+void genhdrfile(Module *m);
+
 struct HdrGenState
 {
     int hdrgen;         // 1 if generating header file
