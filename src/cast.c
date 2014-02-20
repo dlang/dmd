@@ -2128,43 +2128,44 @@ Expression *CondExp::inferType(Type *t, int flag, Scope *sc, TemplateParameters 
  * Scale addition/subtraction to/from pointer.
  */
 
-Expression *BinExp::scaleFactor(Scope *sc)
+Expression *scaleFactor(BinExp *be, Scope *sc)
 {
-    d_uns64 stride;
-    Type *t1b = e1->type->toBasetype();
-    Type *t2b = e2->type->toBasetype();
+    Type *t1b = be->e1->type->toBasetype();
+    Type *t2b = be->e2->type->toBasetype();
     Expression *eoff;
 
     if (t1b->ty == Tpointer && t2b->isintegral())
-    {   // Need to adjust operator by the stride
+    {
+        // Need to adjust operator by the stride
         // Replace (ptr + int) with (ptr + (int * stride))
         Type *t = Type::tptrdiff_t;
 
-        stride = t1b->nextOf()->size(loc);
+        d_uns64 stride = t1b->nextOf()->size(be->loc);
         if (!t->equals(t2b))
-            e2 = e2->castTo(sc, t);
-        eoff = e2;
-        e2 = new MulExp(loc, e2, new IntegerExp(Loc(), stride, t));
-        e2->type = t;
-        type = e1->type;
+            be->e2 = be->e2->castTo(sc, t);
+        eoff = be->e2;
+        be->e2 = new MulExp(be->loc, be->e2, new IntegerExp(Loc(), stride, t));
+        be->e2->type = t;
+        be->type = be->e1->type;
     }
     else if (t2b->ty == Tpointer && t1b->isintegral())
-    {   // Need to adjust operator by the stride
+    {
+        // Need to adjust operator by the stride
         // Replace (int + ptr) with (ptr + (int * stride))
         Type *t = Type::tptrdiff_t;
         Expression *e;
 
-        stride = t2b->nextOf()->size(loc);
+        d_uns64 stride = t2b->nextOf()->size(be->loc);
         if (!t->equals(t1b))
-            e = e1->castTo(sc, t);
+            e = be->e1->castTo(sc, t);
         else
-            e = e1;
+            e = be->e1;
         eoff = e;
-        e = new MulExp(loc, e, new IntegerExp(Loc(), stride, t));
+        e = new MulExp(be->loc, e, new IntegerExp(Loc(), stride, t));
         e->type = t;
-        type = e2->type;
-        e1 = e2;
-        e2 = e;
+        be->type = be->e2->type;
+        be->e1 = be->e2;
+        be->e2 = e;
     }
     else
         assert(0);
@@ -2176,12 +2177,12 @@ Expression *BinExp::scaleFactor(Scope *sc)
             ;
         else if (sc->func->setUnsafe())
         {
-            error("pointer arithmetic not allowed in @safe functions");
+            be->error("pointer arithmetic not allowed in @safe functions");
             return new ErrorExp();
         }
     }
 
-    return this;
+    return be;
 }
 
 /**************************************

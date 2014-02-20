@@ -6469,7 +6469,7 @@ Expression *BinAssignExp::semantic(Scope *sc)
     if ((op == TOKaddass || op == TOKminass) &&
         e1->type->toBasetype()->ty == Tpointer &&
         e2->type->toBasetype()->isintegral())
-        return scaleFactor(sc);
+        return scaleFactor(this, sc);
 
     typeCombine(sc);
     if (arith)
@@ -10228,7 +10228,7 @@ Expression *PostExp::semantic(Scope *sc)
         e1->checkScalar();
         e1->checkNoBool();
         if (e1->type->ty == Tpointer)
-            e = scaleFactor(sc);
+            e = scaleFactor(this, sc);
         else
             e2 = e2->castTo(sc, e1->type);
         e->type = e1->type;
@@ -11412,7 +11412,7 @@ Expression *AddExp::semantic(Scope *sc)
         if (tb1->ty == Tpointer && e2->type->isintegral() ||
             tb2->ty == Tpointer && e1->type->isintegral())
         {
-            e = scaleFactor(sc);
+            e = scaleFactor(this, sc);
         }
         else if (tb1->ty == Tpointer && tb2->ty == Tpointer)
         {
@@ -11528,7 +11528,7 @@ Expression *MinExp::semantic(Scope *sc)
             return e;
         }
         else if (t2->isintegral())
-            e = scaleFactor(sc);
+            e = scaleFactor(this, sc);
         else
         {   error("can't subtract %s from pointer", t2->toChars());
             return new ErrorExp();

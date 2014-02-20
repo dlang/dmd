@@ -107,6 +107,7 @@ Expression *ctfeInterpret(Expression *);
 Expression *inlineCopy(Expression *e, Scope *sc);
 Expression *op_overload(Expression *e, Scope *sc);
 Type *toStaticArrayType(SliceExp *e);
+Expression *scaleFactor(BinExp *be, Scope *sc);
 
 /* Run CTFE on the expression, but allow the expression to be a TypeExp
  * or a tuple containing a TypeExp. (This is required by pragma(msg)).
@@ -782,7 +783,6 @@ public:
     Expression *semantic(Scope *sc);
     Expression *semanticp(Scope *sc);
     Expression *checkComplexOpAssign(Scope *sc);
-    Expression *scaleFactor(Scope *sc);
     Expression *typeCombine(Scope *sc);
     int isunsigned();
     Expression *incompatibleTypes();
