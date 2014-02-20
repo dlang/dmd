@@ -1496,7 +1496,7 @@ Lretry:
                 else if (farg->op == TOKslice)
                 {
                     SliceExp *se = (SliceExp *)farg;
-                    Type *tsa = se->toStaticArrayType();
+                    Type *tsa = toStaticArrayType(se);
                     if (tsa)
                         argtype = tsa;
                 }
@@ -1512,7 +1512,7 @@ Lretry:
             if (farg->op == TOKfunction)
             {
                 FuncExp *fe = (FuncExp *)farg;
-                Expression *e = fe->inferType(prmtype, 1, paramscope, inferparams);
+                Expression *e = inferType(fe, prmtype, 1, paramscope, inferparams);
                 if (!e)
                     goto Lvarargs;
                 farg = e;
@@ -1697,7 +1697,7 @@ Lretry:
                     if (arg->op == TOKfunction)
                     {
                         FuncExp *fe = (FuncExp *)arg;
-                        Expression *e = fe->inferType(tb->nextOf(), 1, paramscope, inferparams);
+                        Expression *e = inferType(fe, tb->nextOf(), 1, paramscope, inferparams);
                         if (!e)
                             goto Lnomatch;
                         arg = e;

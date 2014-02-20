@@ -5896,7 +5896,7 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
 
         if (arg->op == TOKfunction)
         {
-            arg = ((FuncExp *)arg)->inferType(p->type, 1);
+            arg = inferType(((FuncExp *)arg), p->type, 1);
             if (!arg)
                 goto L1;    // try typesafe variadics
         }
@@ -6011,7 +6011,7 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
                             assert(arg);
                             if (arg->op == TOKfunction)
                             {
-                                arg = ((FuncExp *)arg)->inferType(tb->nextOf(), 1);
+                                arg = inferType(((FuncExp *)arg), tb->nextOf(), 1);
                                 if (!arg)
                                     goto Nomatch;
                             }
