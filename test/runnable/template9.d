@@ -3093,6 +3093,21 @@ void test12122()
 }
 
 /******************************************/
+// 12207
+
+void test12207()
+{
+    static struct S
+    {
+        static void f(T)(T) {}
+    }
+
+    immutable S s;
+
+    s.f(1);
+}
+
+/******************************************/
 
 int main()
 {
@@ -3190,6 +3205,7 @@ int main()
     test11818();
     test11843();
     test12122();
+    test12207();
 
     printf("Success\n");
     return 0;

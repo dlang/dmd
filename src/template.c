@@ -1258,6 +1258,8 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
         }
     }
 
+    if (isstatic)
+        tthis = NULL;
     if (tthis)
     {
         bool hasttp = false;
