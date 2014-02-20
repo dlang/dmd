@@ -1535,7 +1535,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 }
             }
 
-            if (!inferRetType && f->retStyle() != RETstack)
+            if (!inferRetType && retStyle(f) != RETstack)
                 nrvo_can = 0;
 
             fbody = fbody->semantic(sc2);

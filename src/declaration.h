@@ -549,6 +549,7 @@ Expression *eval_builtin(Loc loc, FuncDeclaration *fd, Expressions *arguments);
 typedef Expression *(*builtin_fp)(Loc loc, FuncDeclaration *fd, Expressions *arguments);
 void add_builtin(const char *mangle, builtin_fp fp);
 void builtin_init();
+void buildClosure(FuncDeclaration *fd, IRState *irs);
 
 class FuncDeclaration : public Declaration
 {
@@ -702,7 +703,6 @@ public:
     Symbol *toSymbol();
     Symbol *toThunkSymbol(int offset);  // thunk version
     void toObjFile(int multiobj);                       // compile to .obj file
-    void buildClosure(IRState *irs);
     bool needsCodegen();
 
     FuncDeclaration *isFuncDeclaration() { return this; }
