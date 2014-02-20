@@ -12744,7 +12744,7 @@ Expression *EqualExp::semantic(Scope *sc)
         StructDeclaration *sd = ((TypeStruct *)t1)->sym;
         if (sd == ((TypeStruct *)t2)->sym)
         {
-            if (sd->needOpEquals())
+            if (needOpEquals(sd))
             {
                 this->e1 = new DotIdExp(loc, e1, Id::tupleof);
                 this->e2 = new DotIdExp(loc, e2, Id::tupleof);

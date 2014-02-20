@@ -51,6 +51,7 @@ enum StructPOD
 
 FuncDeclaration *hasIdentityOpAssign(AggregateDeclaration *ad, Scope *sc);
 FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc);
+bool needOpEquals(StructDeclaration *sd);
 
 class AggregateDeclaration : public ScopeDsymbol
 {
@@ -176,7 +177,6 @@ public:
     void finalizeSize(Scope *sc);
     bool fill(Loc loc, Expressions *elements, bool ctorinit);
     bool isPOD();
-    int needOpEquals();
     FuncDeclaration *buildPostBlit(Scope *sc);
     FuncDeclaration *buildCpCtor(Scope *sc);
     FuncDeclaration *buildOpEquals(Scope *sc);

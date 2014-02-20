@@ -339,23 +339,22 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
  * Generate one if a user-specified one does not exist.
  */
 
-int StructDeclaration::needOpEquals()
+bool needOpEquals(StructDeclaration *sd)
 {
-#define X 0
-    if (X) printf("StructDeclaration::needOpEquals() %s\n", toChars());
+    //printf("StructDeclaration::needOpEquals() %s\n", sd->toChars());
 
-    if (hasIdentityEquals)
+    if (sd->hasIdentityEquals)
         goto Lneed;
 
-    if (isUnionDeclaration())
+    if (sd->isUnionDeclaration())
         goto Ldontneed;
 
     /* If any of the fields has an opEquals, then we
      * need it too.
      */
-    for (size_t i = 0; i < fields.dim; i++)
+    for (size_t i = 0; i < sd->fields.dim; i++)
     {
-        VarDeclaration *v = fields[i];
+        VarDeclaration *v = sd->fields[i];
         if (v->storage_class & STCref)
             continue;
         Type *tv = v->type->toBasetype();
@@ -371,19 +370,17 @@ int StructDeclaration::needOpEquals()
         if (tv->ty == Tstruct)
         {
             TypeStruct *ts = (TypeStruct *)tv;
-            StructDeclaration *sd = ts->sym;
-            if (sd->needOpEquals())
+            if (needOpEquals(ts->sym))
                 goto Lneed;
         }
     }
 Ldontneed:
-    if (X) printf("\tdontneed\n");
-    return 0;
+    //printf("\tdontneed\n");
+    return false;
 
 Lneed:
-    if (X) printf("\tneed\n");
-    return 1;
-#undef X
+    //printf("\tneed\n");
+    return true;
 }
 
 FuncDeclaration *AggregateDeclaration::hasIdentityOpEquals(Scope *sc)
@@ -466,7 +463,7 @@ FuncDeclaration *StructDeclaration::buildOpEquals(Scope *sc)
 
 FuncDeclaration *StructDeclaration::buildXopEquals(Scope *sc)
 {
-    if (!needOpEquals())
+    if (!needOpEquals(this))
         return NULL;        // bitwise comparison would work
 
     //printf("StructDeclaration::buildXopEquals() %s\n", toChars());
