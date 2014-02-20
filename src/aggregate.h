@@ -175,7 +175,6 @@ public:
     void finalizeSize(Scope *sc);
     bool fill(Loc loc, Expressions *elements, bool ctorinit);
     bool isPOD();
-    int needOpAssign();
     int needOpEquals();
     FuncDeclaration *buildOpAssign(Scope *sc);
     FuncDeclaration *buildPostBlit(Scope *sc);

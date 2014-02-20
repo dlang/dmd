@@ -114,42 +114,39 @@ FuncDeclaration *hasIdentityOpAssign(AggregateDeclaration *ad, Scope *sc)
  * We need to generate one if a user-specified one does not exist.
  */
 
-int StructDeclaration::needOpAssign()
+bool needOpAssign(StructDeclaration *sd)
 {
-#define X 0
-    if (X) printf("StructDeclaration::needOpAssign() %s\n", toChars());
+    //printf("StructDeclaration::needOpAssign() %s\n", sd->toChars());
 
-    if (hasIdentityAssign)
+    if (sd->hasIdentityAssign)
         goto Lneed;         // because has identity==elaborate opAssign
 
-    if (dtor || postblit)
+    if (sd->dtor || sd->postblit)
         goto Lneed;
 
     /* If any of the fields need an opAssign, then we
      * need it too.
      */
-    for (size_t i = 0; i < fields.dim; i++)
+    for (size_t i = 0; i < sd->fields.dim; i++)
     {
-        VarDeclaration *v = fields[i];
+        VarDeclaration *v = sd->fields[i];
         if (v->storage_class & STCref)
             continue;
         Type *tv = v->type->baseElemOf();
         if (tv->ty == Tstruct)
         {
             TypeStruct *ts = (TypeStruct *)tv;
-            StructDeclaration *sd = ts->sym;
-            if (sd->needOpAssign())
+            if (needOpAssign(ts->sym))
                 goto Lneed;
         }
     }
 Ldontneed:
-    if (X) printf("\tdontneed\n");
-    return 0;
+    //printf("\tdontneed\n");
+    return false;
 
 Lneed:
-    if (X) printf("\tneed\n");
-    return 1;
-#undef X
+    //printf("\tneed\n");
+    return true;
 }
 
 /******************************************
@@ -183,7 +180,7 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
     // Even if non-identity opAssign is defined, built-in identity opAssign
     // will be defined.
 
-    if (!needOpAssign())
+    if (!needOpAssign(this))
         return NULL;
 
     //printf("StructDeclaration::buildOpAssign() %s\n", toChars());
