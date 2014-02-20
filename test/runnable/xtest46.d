@@ -4018,7 +4018,7 @@ void test5437()
 void test1962()
 {
     class C { abstract void x(); }
-    assert(C.classinfo.create() is null);
+    assert(typeid(C).create() is null);
 }
 
 /***************************************************/

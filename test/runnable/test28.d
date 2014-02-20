@@ -938,9 +938,9 @@ void test47()
 void test48()
 {
     Object o = new Object();
-    printf("%.*s\n", typeof(o).classinfo.name.length, typeof(o).classinfo.name.ptr);
-    printf("%.*s\n", (typeof(o)).classinfo.name.length, (typeof(o)).classinfo.name.ptr);
-    printf("%.*s\n", (Object).classinfo.name.length, (Object).classinfo.name.ptr);
+    printf("%.*s\n", typeid(typeof(o)).name.length, typeid(typeof(o)).name.ptr);
+    printf("%.*s\n", typeid(typeof(o)).name.length, typeid(typeof(o)).name.ptr);
+    printf("%.*s\n", typeid(Object).name.length, typeid(Object).name.ptr);
 }
 
 /*******************************************/
@@ -1220,7 +1220,7 @@ void test64()
 {
     auto x = new Container64;
 
-    assert(!(x.classinfo.flags & 2));
+    assert(!(typeid(x).flags & 2));
 }
 
 /*******************************************/

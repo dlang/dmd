@@ -1296,8 +1296,8 @@ void test79()
     C79 c = new C79();
     writeln(c.__vptr);
     writeln(c.__vptr[0]);
-    writeln(cast(void*)c.classinfo);
-    assert(c.__vptr[0] == cast(void*)c.classinfo);
+    writeln(typeid(cast(void*)c));
+    assert(c.__vptr[0] == cast(void*)typeid(c));
     writeln(c.__monitor);
     assert(c.__monitor == null);
     synchronized (c)
@@ -3543,7 +3543,7 @@ void test219()
   pragma(msg, T219!(int).C.mangleof);
   pragma(msg, C.mangleof); // incorrectly outputs the same as above
 
-  assert(T219!(int).C.classinfo !is C.classinfo); // fails
+  assert(typeid(T219!(int).C) !is typeid(C)); // fails
   assert(T219!(int).C.mangleof != C.mangleof); // fails
 }
 
@@ -3562,9 +3562,9 @@ void test220()
   mixin T220!(int);
 
   // all print 8
-  writeln(T220!(int).C.classinfo.init.length);
-  writeln(C.classinfo.init.length);
-  writeln(D220.classinfo.init.length);
+  writeln(typeid(T220!(int).C).init.length);
+  writeln(typeid(C).init.length);
+  writeln(typeid(D220).init.length);
 
   auto c = new C; // segfault in _d_newclass
 }

@@ -1361,8 +1361,8 @@ class C68
 void test68()
 {
     auto v1 = test.C68.value;
-    auto v2 = C68.classinfo;
-    auto v3 = test.C68.classinfo;
+    auto v2 = typeid(C68);
+    auto v3 = typeid(test.C68);
     assert(v2 == v3);
 }
 

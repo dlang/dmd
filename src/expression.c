@@ -5814,8 +5814,48 @@ Expression *TypeidExp::semantic(Scope *sc)
     {
         /* Get the dynamic type, which is .classinfo
          */
-        e = new DotIdExp(ea->loc, ea, Id::classinfo);
-        e = e->semantic(sc);
+        assert(Type::typeinfoclass);
+        Type *t = Type::typeinfoclass->type;
+        ClassDeclaration *sym = ta->isClassHandle();
+        if (ea->op == TOKtype || ea->op == TOKdottype)
+        {
+            /* For type.classinfo, we know the classinfo
+             * at compile time.
+             */
+            if (!sym->vclassinfo)
+                sym->vclassinfo = new TypeInfoClassDeclaration(sym->type);
+            e = new VarExp(ea->loc, sym->vclassinfo);
+            e = e->addressOf(sc);
+            e->type = t;    // do this so we don't get redundant dereference
+        }
+        else
+        {   /* For class objects, the classinfo reference is the first
+             * entry in the vtbl[]
+             */
+            e = new PtrExp(ea->loc, ea);
+            e->type = t->pointerTo();
+            if (sym->isInterfaceDeclaration())
+            {
+                if (sym->isCPPinterface())
+                {   /* C++ interface vtbl[]s are different in that the
+                     * first entry is always pointer to the first virtual
+                     * function, not typeinfo.
+                     * We can't get a typeinfo for it.
+                     */
+                    e->error("no typeinfo for C++ interface objects");
+                }
+                /* For an interface, the first entry in the vtbl[]
+                 * is actually a pointer to an instance of struct Interface.
+                 * The first member of Interface is the typeinfo,
+                 * so add an extra pointer indirection.
+                 */
+                e->type = e->type->pointerTo();
+                e = new PtrExp(e->loc, e);
+                e->type = t->pointerTo();
+            }
+            e = new PtrExp(e->loc, e, t);
+        }
+        return e;
     }
     else
     {
