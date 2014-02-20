@@ -42,6 +42,7 @@ size_t templateParameterLookup(Type *tparam, TemplateParameters *parameters);
 int arrayObjectMatch(Objects *oa1, Objects *oa2);
 hash_t arrayObjectHash(Objects *oa1);
 void functionToBufferFull(TypeFunction *tf, OutBuffer *buf, Identifier *ident, HdrGenState* hgs, TypeFunction *attrs, TemplateDeclaration *td);
+unsigned char deduceWildHelper(Type *t, Type **at, Type *tparam);
 
 /********************************************
  * These functions substitute for dynamic_cast. dynamic_cast does not work
@@ -1382,7 +1383,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
 
                     if (tid->mod & MODwild)
                     {
-                        unsigned char wm = farg->type->deduceWildHelper(&tt, tid);
+                        unsigned char wm = deduceWildHelper(farg->type, &tt, tid);
                         if (wm)
                         {
                             wildmatch |= wm;
@@ -2872,13 +2873,13 @@ size_t templateParameterLookup(Type *tparam, TemplateParameters *parameters)
     return IDX_NOTFOUND;
 }
 
-unsigned char Type::deduceWildHelper(Type **at, Type *tparam)
+unsigned char deduceWildHelper(Type *t, Type **at, Type *tparam)
 {
     assert(tparam->mod & MODwild);
     *at = NULL;
 
     #define X(U,T)  ((U) << 4) | (T)
-    switch (X(tparam->mod, mod))
+    switch (X(tparam->mod, t->mod))
     {
         case X(MODwild,                     0):
         case X(MODwild,                     MODconst):
@@ -2897,11 +2898,11 @@ unsigned char Type::deduceWildHelper(Type **at, Type *tparam)
         case X(MODshared | MODwildconst,    MODshared | MODconst):
         case X(MODshared | MODwildconst,    MODimmutable):
         {
-            unsigned char wm = (mod & ~MODshared);
+            unsigned char wm = (t->mod & ~MODshared);
             if (wm == 0)
                 wm = MODmutable;
-            unsigned char m = (mod & (MODconst | MODimmutable)) | (tparam->mod & mod & MODshared);
-            *at = unqualify(m);
+            unsigned char m = (t->mod & (MODconst | MODimmutable)) | (tparam->mod & t->mod & MODshared);
+            *at = t->unqualify(m);
             return wm;
         }
 
@@ -2918,7 +2919,7 @@ unsigned char Type::deduceWildHelper(Type **at, Type *tparam)
         case X(MODshared | MODwildconst,    MODshared | MODwild):
         case X(MODshared | MODwildconst,    MODshared | MODwildconst):
         {
-            *at = unqualify(tparam->mod & mod);
+            *at = t->unqualify(tparam->mod & t->mod);
             return MODwild;
         }
 
@@ -3263,7 +3264,7 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
 
         if (wm && (tparam->mod & MODwild))
         {
-            unsigned char wx = deduceWildHelper(&tt, tparam);
+            unsigned char wx = deduceWildHelper(this, &tt, tparam);
             if (wx)
             {
                 if (!at)
