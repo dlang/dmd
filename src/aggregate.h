@@ -49,6 +49,8 @@ enum StructPOD
     ISPODfwd,           // POD not yet computed
 };
 
+FuncDeclaration *hasIdentityOpAssign(AggregateDeclaration *ad, Scope *sc);
+
 class AggregateDeclaration : public ScopeDsymbol
 {
 public:
@@ -111,7 +113,6 @@ public:
     void emitComment(Scope *sc);
     void toDocBuffer(OutBuffer *buf, Scope *sc);
 
-    FuncDeclaration *hasIdentityOpAssign(Scope *sc);
     FuncDeclaration *hasIdentityOpEquals(Scope *sc);
 
     const char *mangle(bool isv = false);

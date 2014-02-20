@@ -766,7 +766,7 @@ void ClassDeclaration::semantic(Scope *sc)
     Module::dprogress++;
 
     dtor = buildDtor(sc);
-    if (FuncDeclaration *f = hasIdentityOpAssign(sc))
+    if (FuncDeclaration *f = hasIdentityOpAssign(this, sc))
     {
         if (!(f->storage_class & STCdisable))
             error(f->loc, "identity assignment operator overload is illegal");

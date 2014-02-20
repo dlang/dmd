@@ -58,16 +58,16 @@ StorageClass mergeFuncAttrs(StorageClass s1, StorageClass s2)
  * Check given opAssign symbol is really identity opAssign or not.
  */
 
-FuncDeclaration *AggregateDeclaration::hasIdentityOpAssign(Scope *sc)
+FuncDeclaration *hasIdentityOpAssign(AggregateDeclaration *ad, Scope *sc)
 {
-    Dsymbol *assign = search_function(this, Id::assign);
+    Dsymbol *assign = search_function(ad, Id::assign);
     if (assign)
     {
         /* check identity opAssign exists
          */
-        Expression *er = new NullExp(loc, type);        // dummy rvalue
-        Expression *el = new IdentifierExp(loc, Id::p); // dummy lvalue
-        el->type = type;
+        Expression *er = new NullExp(ad->loc, ad->type);    // dummy rvalue
+        Expression *el = new IdentifierExp(ad->loc, Id::p); // dummy lvalue
+        el->type = ad->type;
         Expressions *a = new Expressions();
         a->setDim(1);
         FuncDeclaration *f = NULL;
@@ -81,7 +81,7 @@ FuncDeclaration *AggregateDeclaration::hasIdentityOpAssign(Scope *sc)
         for (size_t i = 0; i < 2; i++)
         {
             (*a)[0] = (i == 0 ? er : el);
-            f = resolveFuncCall(loc, sc, assign, NULL, type, a, 1);
+            f = resolveFuncCall(ad->loc, sc, assign, NULL, ad->type, a, 1);
             if (f)
                 break;
         }
@@ -97,7 +97,7 @@ FuncDeclaration *AggregateDeclaration::hasIdentityOpAssign(Scope *sc)
             if (fparams->dim >= 1)
             {
                 Parameter *arg0 = Parameter::getNth(fparams, 0);
-                if (arg0->type->toDsymbol(NULL) != this)
+                if (arg0->type->toDsymbol(NULL) != ad)
                     f = NULL;
             }
         }
@@ -175,7 +175,7 @@ Lneed:
 
 FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
 {
-    if (FuncDeclaration *f = hasIdentityOpAssign(sc))
+    if (FuncDeclaration *f = hasIdentityOpAssign(this, sc))
     {
         hasIdentityAssign = 1;
         return f;
@@ -212,7 +212,7 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
             {
                 TypeStruct *ts = (TypeStruct *)tv;
                 StructDeclaration *sd = ts->sym;
-                if (FuncDeclaration *f = sd->hasIdentityOpAssign(sc))
+                if (FuncDeclaration *f = hasIdentityOpAssign(sd, sc))
                     stc = mergeFuncAttrs(stc, f->storage_class);
             }
         }
