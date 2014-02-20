@@ -43,6 +43,7 @@ int arrayObjectMatch(Objects *oa1, Objects *oa2);
 hash_t arrayObjectHash(Objects *oa1);
 void functionToBufferFull(TypeFunction *tf, OutBuffer *buf, Identifier *ident, HdrGenState* hgs, TypeFunction *attrs, TemplateDeclaration *td);
 unsigned char deduceWildHelper(Type *t, Type **at, Type *tparam);
+MATCH deduceTypeHelper(Type *t, Type **at, Type *tparam);
 
 /********************************************
  * These functions substitute for dynamic_cast. dynamic_cast does not work
@@ -1392,7 +1393,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
                         }
                     }
 
-                    m = farg->type->deduceTypeHelper(&tt, tid);
+                    m = deduceTypeHelper(farg->type, &tt, tid);
                     if (!m)
                         goto Lnomatch;
 
@@ -2929,12 +2930,12 @@ unsigned char deduceWildHelper(Type *t, Type **at, Type *tparam)
     #undef X
 }
 
-MATCH Type::deduceTypeHelper(Type **at, Type *tparam)
+MATCH deduceTypeHelper(Type *t, Type **at, Type *tparam)
 {
     // 9*9 == 81 cases
 
     #define X(U,T)  ((U) << 4) | (T)
-    switch (X(tparam->mod, mod))
+    switch (X(tparam->mod, t->mod))
     {
         case X(0, 0):
         case X(0, MODconst):
@@ -2955,7 +2956,7 @@ MATCH Type::deduceTypeHelper(Type **at, Type *tparam)
             // foo(U)                       shared(inout(const(T))) => shared(inout(const(T)))
             // foo(U)                       immutable(T)            => immutable(T)
         {
-            *at = this;
+            *at = t;
             return MATCHexact;
         }
 
@@ -2976,7 +2977,7 @@ MATCH Type::deduceTypeHelper(Type **at, Type *tparam)
             // foo(shared(inout(const(U)))) shared(inout(const(T))) => T
             // foo(immutable(U))            immutable(T)            => T
         {
-            *at = mutableOf()->unSharedOf();
+            *at = t->mutableOf()->unSharedOf();
             return MATCHexact;
         }
 
@@ -3001,14 +3002,14 @@ MATCH Type::deduceTypeHelper(Type **at, Type *tparam)
             // foo(inout(const(U)))         shared(inout(const(T))) => shared(T)
             // foo(shared(const(U)))        immutable(T)            => T
         {
-            *at = mutableOf();
+            *at = t->mutableOf();
             return MATCHconst;
         }
 
         case X(MODconst,                    MODshared):
             // foo(const(U))                shared(T)               => shared(T)
         {
-            *at = this;
+            *at = t;
             return MATCHconst;
         }
 
@@ -3021,7 +3022,7 @@ MATCH Type::deduceTypeHelper(Type **at, Type *tparam)
             // foo(shared(U))               shared(inout(const(T))) => inout(const(T))
             // foo(shared(const(U)))        shared(T)               => T
         {
-            *at = unSharedOf();
+            *at = t->unSharedOf();
             return MATCHconst;
         }
 
@@ -3034,14 +3035,14 @@ MATCH Type::deduceTypeHelper(Type **at, Type *tparam)
             // foo(shared(inout(const(U)))) immutable(T)            => T
             // foo(shared(inout(const(U)))) shared(inout(T))        => T
         {
-            *at = unSharedOf()->mutableOf();
+            *at = t->unSharedOf()->mutableOf();
             return MATCHconst;
         }
 
         case X(MODshared | MODconst,        MODshared | MODwild):
             // foo(shared(const(U)))        shared(inout(T))        => T
         {
-            *at = unSharedOf()->mutableOf();
+            *at = t->unSharedOf()->mutableOf();
             return MATCHconst;
         }
 
@@ -3294,7 +3295,7 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
             }
         }
 
-        MATCH m = deduceTypeHelper(&tt, tparam);
+        MATCH m = deduceTypeHelper(this, &tt, tparam);
         if (m)
         {
             if (!at)

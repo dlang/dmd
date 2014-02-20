@@ -341,8 +341,6 @@ public:
     virtual int needsDestruction();
     virtual bool needsNested();
 
-    MATCH deduceTypeHelper(Type **at, Type *tparam);
-
     static void error(Loc loc, const char *format, ...);
     static void warning(Loc loc, const char *format, ...);
 
