@@ -4223,6 +4223,7 @@ elem *toElem(Expression *e, IRState *irs)
 
                 case X(Tnull, Tarray):
                 case X(Tnull, Taarray):
+                case X(Tnull, Tdelegate):
                     goto Lzero;
 
                 /* ============================= */
