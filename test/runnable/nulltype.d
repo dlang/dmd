@@ -154,6 +154,21 @@ void test9385()
 }
 
 /**********************************************/
+// 12203
+
+void test12203()
+{
+    typeof(null) v;
+    void foo(float) {}
+    void delegate(float) dg = &foo;
+    assert(dg !is null);
+
+    dg = v; // Error: e2ir: cannot cast v of type typeof(null) to type void delegate(float)
+
+    assert(dg  is null);
+}
+
+/**********************************************/
 
 int main()
 {
@@ -163,6 +178,7 @@ int main()
     test8221();
     test8589();
     test9385();
+    test12203();
 
     printf("Success\n");
     return 0;
