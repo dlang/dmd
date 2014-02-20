@@ -210,14 +210,14 @@ void builtin_init()
  * Determine if function is a builtin one that we can
  * evaluate at compile time.
  */
-BUILTIN FuncDeclaration::isBuiltin()
+BUILTIN isBuiltin(FuncDeclaration *fd)
 {
-    if (builtin == BUILTINunknown)
+    if (fd->builtin == BUILTINunknown)
     {
-        builtin_fp fp = builtin_lookup(mangleExact());
-        builtin = fp ? BUILTINyes : BUILTINno;
+        builtin_fp fp = builtin_lookup(fd->mangleExact());
+        fd->builtin = fp ? BUILTINyes : BUILTINno;
     }
-    return builtin;
+    return fd->builtin;
 }
 
 /**************************************
