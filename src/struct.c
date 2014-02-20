@@ -816,7 +816,7 @@ void StructDeclaration::semantic(Scope *sc)
     /* Defer requesting semantic3 until TypeInfo generation is actually invoked.
      * See semanticTypeInfo().
      */
-    inv = buildInv(sc2);
+    inv = buildInv(this, sc2);
 
     sc2->pop();
 

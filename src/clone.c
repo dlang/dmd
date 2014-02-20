@@ -976,13 +976,13 @@ FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc)
  *      }
  */
 
-FuncDeclaration *AggregateDeclaration::buildInv(Scope *sc)
+FuncDeclaration *buildInv(AggregateDeclaration *ad, Scope *sc)
 {
     StorageClass stc = STCsafe | STCnothrow | STCpure;
-    Loc declLoc = this->loc;
+    Loc declLoc = ad->loc;
     Loc loc = Loc();    // internal code should have no loc to prevent coverage
 
-    switch (invs.dim)
+    switch (ad->invs.dim)
     {
         case 0:
             return NULL;
@@ -994,30 +994,30 @@ FuncDeclaration *AggregateDeclaration::buildInv(Scope *sc)
         default:
             Expression *e = NULL;
             StorageClass stcx = 0;
-            for (size_t i = 0; i < invs.dim; i++)
+            for (size_t i = 0; i < ad->invs.dim; i++)
             {
-                stc = mergeFuncAttrs(stc, invs[i]->storage_class);
+                stc = mergeFuncAttrs(stc, ad->invs[i]->storage_class);
                 if (stc & STCdisable)
                 {
                     // What should do?
                 }
-                StorageClass stcy = invs[i]->storage_class & (STCshared | STCsynchronized);
+                StorageClass stcy = ad->invs[i]->storage_class & (STCshared | STCsynchronized);
                 if (i == 0)
                     stcx = stcy;
                 else if (stcx ^ stcy)
                 {
             #if 1   // currently rejects
-                    error(invs[i]->loc, "mixing invariants with shared/synchronized differene is not supported");
+                    error(ad->invs[i]->loc, "mixing invariants with shared/synchronized differene is not supported");
                     e = NULL;
                     break;
             #endif
                 }
-                e = Expression::combine(e, new CallExp(loc, new VarExp(loc, invs[i])));
+                e = Expression::combine(e, new CallExp(loc, new VarExp(loc, ad->invs[i])));
             }
             InvariantDeclaration *inv;
             inv = new InvariantDeclaration(declLoc, Loc(), stc | stcx, Id::classInvariant);
             inv->fbody = new ExpStatement(loc, e);
-            members->push(inv);
+            ad->members->push(inv);
             inv->semantic(sc);
             return inv;
     }

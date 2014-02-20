@@ -696,7 +696,7 @@ void ClassDeclaration::semantic(Scope *sc)
         }
     }
 
-    inv = buildInv(sc);
+    inv = buildInv(this, sc);
 
     // Can be in base class
     aggNew    =    (NewDeclaration *)search(Loc(), Id::classNew);
