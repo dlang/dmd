@@ -413,6 +413,11 @@ typedef struct opnd
     longdouble real;
     Type *ptype;
     ASM_JUMPTYPE ajt;
+
+    opnd()
+    {
+        memset(this, 0, sizeof(opnd));
+    }
 } OPND;
 
 //
@@ -424,8 +429,6 @@ void iasm_term();
 // Local functions defined and only used here
 //
 static OPND *asm_add_exp();
-static OPND *opnd_calloc();
-static void opnd_free(OPND *popnd);
 static OPND *asm_and_exp();
 static OPND *asm_cond_exp();
 static opflag_t asm_determine_operand_flags(OPND *popnd);
@@ -469,28 +472,6 @@ static OPND *asm_xor_exp();
 static void asm_chktok(TOK toknum, const char *msg);
 static code *asm_db_parse(OP *pop);
 static code *asm_da_parse(OP *pop);
-
-
-/*******************************
- */
-
-static OPND *opnd_calloc()
-{
-    OPND *o = new OPND();
-    memset(o, 0, sizeof(*o));
-    return o;
-}
-
-/*******************************
- */
-
-static void opnd_free(OPND *o)
-{
-    if (o)
-    {
-        delete o;
-    }
-}
 
 /*******************************
  */
@@ -2315,7 +2296,7 @@ ILLEGAL_ADDRESS_ERROR:
     if (o2->ajt && !o1->ajt)
         o1->ajt = o2->ajt;
 
-    opnd_free(o2);
+    delete o2;
 #ifdef EXTRA_DEBUG
     printf("Result = %d\n",
             o1->uchMultiplier);
@@ -4213,7 +4194,7 @@ static OPND *asm_una_exp()
                 asm_token();
                 o1 = asm_cond_exp();
                 if (!o1)
-                    o1 = opnd_calloc();
+                    o1 = new OPND();
                 o1->bOffset= TRUE;
             }
             else
@@ -4224,7 +4205,7 @@ static OPND *asm_una_exp()
             asm_token();
             o1 = asm_cond_exp();
             if (!o1)
-                o1 = opnd_calloc();
+                o1 = new OPND();
             o1->bSeg= TRUE;
             break;
 
@@ -4250,7 +4231,7 @@ JUMP_REF:
 JUMP_REF2:
             o1 = asm_cond_exp();
             if (!o1)
-                o1 = opnd_calloc();
+                o1 = new OPND();
             o1->ajt= ajt;
             break;
 
@@ -4279,7 +4260,7 @@ TYPE_REF:
             asm_chktok((TOK) ASMTKptr, "ptr expected");
             o1 = asm_cond_exp();
             if (!o1)
-                o1 = opnd_calloc();
+                o1 = new OPND();
             o1->ptype = ptype;
             o1->bPtr = bPtr;
             break;
@@ -4306,7 +4287,7 @@ static OPND *asm_primary_exp()
     switch (tok_value)
     {
         case TOKdollar:
-            o1 = opnd_calloc();
+            o1 = new OPND();
             o1->s = asmstate.psDollar;
             asm_token();
             break;
@@ -4317,7 +4298,7 @@ static OPND *asm_primary_exp()
 #endif
         case TOKthis:
         case TOKidentifier:
-            o1 = opnd_calloc();
+            o1 = new OPND();
             regp = asm_reg_lookup(asmtok->ident->toChars());
             if (regp != NULL)
             {
@@ -4477,41 +4458,41 @@ static OPND *asm_primary_exp()
 
         case TOKint32v:
         case TOKuns32v:
-            o1 = opnd_calloc();
+            o1 = new OPND();
             o1->disp = asmtok->int32value;
             asm_token();
             break;
 
         case TOKint64v:
         case TOKuns64v:
-            o1 = opnd_calloc();
+            o1 = new OPND();
             o1->disp = asmtok->int64value;
             asm_token();
             break;
 
         case TOKfloat32v:
-            o1 = opnd_calloc();
+            o1 = new OPND();
             o1->real = asmtok->float80value;
             o1->ptype = Type::tfloat32;
             asm_token();
             break;
 
         case TOKfloat64v:
-            o1 = opnd_calloc();
+            o1 = new OPND();
             o1->real = asmtok->float80value;
             o1->ptype = Type::tfloat64;
             asm_token();
             break;
 
         case TOKfloat80v:
-            o1 = opnd_calloc();
+            o1 = new OPND();
             o1->real = asmtok->float80value;
             o1->ptype = Type::tfloat80;
             asm_token();
             break;
 
         case ASMTKlocalsize:
-            o1 = opnd_calloc();
+            o1 = new OPND();
             o1->s = asmstate.psLocalsize;
             o1->ptype = Type::tint32;
             asm_token();
@@ -4777,7 +4758,7 @@ Statement* asmSemantic(AsmStatement *s, Scope *sc)
                     ((o->usNumops & ITSIZE) == 3))
             {
                 o3 = o2;
-                o2 = opnd_calloc();
+                o2 = new OPND();
                 *o2 = *o1;
 
                 // Re-classify the opcode because the first classification
@@ -4789,7 +4770,7 @@ Statement* asmSemantic(AsmStatement *s, Scope *sc)
             else if (asmstate.ucItype == ITshift && (ptb.pptb2->usOp2 == 0 ||
                     (ptb.pptb2->usOp2 & _cl)))
             {
-                opnd_free(o2);
+                delete o2;
                 o2 = NULL;
                 usNumops = 1;
             }
@@ -4804,9 +4785,9 @@ Statement* asmSemantic(AsmStatement *s, Scope *sc)
     }
 
 AFTER_EMIT:
-    opnd_free(o1);
-    opnd_free(o2);
-    opnd_free(o3);
+    delete o1;
+    delete o2;
+    delete o3;
     o1 = o2 = o3 = NULL;
 
     if (tok_value != TOKeof)
