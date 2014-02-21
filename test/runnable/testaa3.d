@@ -1,4 +1,6 @@
 
+/***************************************************/
+
 /* Test all aa properties (length, values, keys, opApply(Key, Value), opApply_r(Value),
  * dup, byKey, byValue, rehash, opIndex, opIndexAssign, opIn_r)
  *
@@ -260,6 +262,17 @@ int[int] testRetx()
 }
 
 void aafunc(int[int] aa) {}
+
+/***************************************************/
+// 12214
+
+void test12214() pure nothrow
+{
+    int[int] aa;
+    auto n = aa.length;
+}
+
+/***************************************************/
 
 void main()
 {

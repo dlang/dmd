@@ -4784,18 +4784,19 @@ Expression *TypeAArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
 #endif
     if (ident == Id::length)
     {
-        Expression *ec;
-        FuncDeclaration *fd;
-        Expressions *arguments;
-
-        Parameters *fparams = new Parameters();
-        fparams->push(new Parameter(STCin, this, NULL, NULL));
-        fd = FuncDeclaration::genCfunc(fparams, Type::tsize_t, Id::aaLen);
-        ec = new VarExp(e->loc, fd);
-        arguments = new Expressions();
-        arguments->push(e);
-        e = new CallExp(e->loc, ec, arguments);
-        e->type = ((TypeFunction *)fd->type)->next;
+        static FuncDeclaration *fd_aaLen = NULL;
+        if (fd_aaLen == NULL)
+        {
+            Parameters *fparams = new Parameters();
+            fparams->push(new Parameter(STCin, this, NULL, NULL));
+            fd_aaLen = FuncDeclaration::genCfunc(fparams, Type::tsize_t, Id::aaLen);
+            TypeFunction *tf = (TypeFunction *)fd_aaLen->type;
+            tf->purity = PUREconst;
+            tf->isnothrow = true;
+        }
+        Expression *ev = new VarExp(e->loc, fd_aaLen);
+        e = new CallExp(e->loc, ev, e);
+        e->type = ((TypeFunction *)fd_aaLen->type)->next;
     }
     else
         e = Type::dotExp(sc, e, ident, flag);
