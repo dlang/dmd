@@ -117,9 +117,6 @@ public:
     bool isExport();
     void searchCtor();
 
-    void emitComment(Scope *sc);
-    void toDocBuffer(OutBuffer *buf, Scope *sc);
-
     const char *mangle(bool isv = false);
 
     // For access checking
@@ -180,7 +177,6 @@ public:
     void finalizeSize(Scope *sc);
     bool fill(Loc loc, Expressions *elements, bool ctorinit);
     bool isPOD();
-    void toDocBuffer(OutBuffer *buf, Scope *sc);
 
     PROT getAccess(Dsymbol *smember);   // determine access to smember
 
@@ -302,7 +298,6 @@ public:
     virtual int vtblOffset();
     const char *kind();
     const char *mangle(bool isv = false);
-    void toDocBuffer(OutBuffer *buf, Scope *sc);
 
     PROT getAccess(Dsymbol *smember);   // determine access to smember
 

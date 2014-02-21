@@ -127,7 +127,6 @@ public:
     void semantic3();   // pass 3 semantic analysis
     void genobjfile(int multiobj);
     void gensymfile();
-    void gendocfile();
     int needModuleInfo();
     Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
     void deleteObjFile();

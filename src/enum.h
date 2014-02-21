@@ -65,9 +65,6 @@ public:
     Expression *getDefaultValue(Loc loc);
     Type *getMemtype(Loc loc);
 
-    void emitComment(Scope *sc);
-    void toDocBuffer(OutBuffer *buf, Scope *sc);
-
     EnumDeclaration *isEnumDeclaration() { return this; }
 
     void toObjFile(int multiobj);                       // compile to .obj file
@@ -99,9 +96,6 @@ public:
     const char *kind();
     void semantic(Scope *sc);
     Expression *getVarExp(Loc loc, Scope *sc);
-
-    void emitComment(Scope *sc);
-    void toDocBuffer(OutBuffer *buf, Scope *sc);
 
     EnumMember *isEnumMember() { return this; }
     void accept(Visitor *v) { v->visit(this); }
