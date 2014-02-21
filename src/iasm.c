@@ -66,67 +66,6 @@
 #undef ADDFWAIT
 #define ADDFWAIT()      0
 
-// Error numbers
-enum ASMERRMSGS
-{
-    EM_bad_float_op,
-    EM_bad_addr_mode,
-    EM_align,
-    EM_opcode_exp,
-    EM_prefix,
-    EM_eol,
-    EM_bad_operand,
-    EM_bad_integral_operand,
-    EM_ident_exp,
-    EM_not_struct,
-    EM_nops_expected,
-    EM_bad_op,
-    EM_const_init,
-    EM_undefined,
-    EM_pointer,
-    EM_colon,
-    EM_rbra,
-    EM_rpar,
-    EM_ptr_exp,
-    EM_num,
-    EM_float,
-    EM_char,
-    EM_label_expected,
-    EM_uplevel,
-    EM_type_as_operand,
-    EM_invalid_64bit_opcode,
-};
-
-const char *asmerrmsgs[] =
-{
-    "unknown operand for floating point instruction",
-    "bad addr mode",
-    "align %d must be a power of 2",
-    "opcode expected, not %s",
-    "prefix",
-    "end of instruction expected, not '%s'",
-    "bad operand",
-    "bad integral operand",
-    "identifier expected",
-    "not struct",
-    "%u operands found for %s instead of the expected %u",
-    "bad type/size of operands '%s'",
-    "constant initializer expected",
-    "undefined identifier '%s'",
-    "pointer",
-    "colon",
-    "] expected instead of '%s'",
-    ") expected instead of '%s'",
-    "ptr expected",
-    "integer expected",
-    "floating point expected",
-    "character is truncated",
-    "label expected",
-    "uplevel nested reference to variable %s",
-    "cannot use type %s as an operand",
-    "opcode %s is unavailable in 64bit mode"
-};
-
 // Additional tokens for the inline assembler
 typedef enum
 {
@@ -495,13 +434,8 @@ int asm_getnum();
 
 STATIC void asmerr(const char *, ...);
 
-#if __clang__
-STATIC void asmerr(int, ...) __attribute__((analyzer_noreturn));
-#else
-STATIC void asmerr(int, ...);
 #if __DMC__
 #pragma SC noreturn(asmerr)
-#endif
 #endif
 
 STATIC OPND *asm_equal_exp();
@@ -534,7 +468,7 @@ STATIC OPND *asm_shift_exp();
 STATIC OPND *asm_una_exp();
 STATIC OPND *asm_xor_exp();
 STATIC void *link_alloc(size_t, void *);
-STATIC void asm_chktok(TOK toknum, unsigned errnum);
+STATIC void asm_chktok(TOK toknum, const char *msg);
 STATIC code *asm_db_parse(OP *pop);
 STATIC code *asm_da_parse(OP *pop);
 
@@ -566,7 +500,7 @@ STATIC void opnd_free(OPND *o)
 /*******************************
  */
 
-STATIC void asm_chktok(TOK toknum,unsigned errnum)
+STATIC void asm_chktok(TOK toknum, const char *msg)
 {
     if (tok_value == toknum)
         asm_token();                    // scan past token
@@ -574,7 +508,7 @@ STATIC void asm_chktok(TOK toknum,unsigned errnum)
         /* When we run out of tokens, asmtok is NULL.
          * But when this happens when a ';' was hit.
          */
-        asmerr(errnum, asmtok ? asmtok->toChars() : ";");
+        asmerr(msg, asmtok ? asmtok->toChars() : ";");
 }
 
 
@@ -631,7 +565,7 @@ STATIC PTRNTAB asm_classify(OP *pop, OPND *popnd1, OPND *popnd2,
         asmstate.ucItype != ITfloat)
     {
 PARAM_ERROR:
-        asmerr(EM_nops_expected, usNumops, asm_opstr(pop), usActual);
+        asmerr("%u operands found for %s instead of the expected %u", usNumops, asm_opstr(pop), usActual);
     }
     if (usActual < usNumops)
         *pusNumops = usActual;
@@ -647,7 +581,7 @@ RETRY:
     {
         case 0:
             if (I64 && (pop->ptb.pptb0->usFlags & _i64_bit))
-                asmerr( EM_invalid_64bit_opcode, asm_opstr(pop));  // illegal opcode in 64bit mode
+                asmerr("opcode %s is unavailable in 64bit mode", asm_opstr(pop));  // illegal opcode in 64bit mode
 
             if ((asmstate.ucItype == ITopt ||
                  asmstate.ucItype == ITfloat) &&
@@ -740,7 +674,7 @@ TYPE_SIZE_ERROR:
                         {
                             if (bRetry && popnd1->s && !popnd1->s->isLabel())
                             {
-                                asmerr(EM_label_expected, popnd1->s->toChars());
+                                asmerr("label expected", popnd1->s->toChars());
                             }
 
                             popnd1->usFlags |= CONSTRUCT_FLAGS(0, 0, 0,
@@ -764,7 +698,7 @@ TYPE_SIZE_ERROR:
                         if(bInvalid64bit)
                             asmerr("operand for '%s' invalid in 64bit mode", asm_opstr(pop));
                         else
-                            asmerr(EM_bad_op, asm_opstr(pop));  // illegal type/size of operands
+                            asmerr("bad type/size of operands '%s'", asm_opstr(pop));
                     }
                     bRetry = TRUE;
                     goto RETRY;
@@ -784,7 +718,7 @@ TYPE_SIZE_ERROR:
                     //printf("table1   = "); asm_output_flags(table2->usOp1); printf(" ");
                     //printf("table2   = "); asm_output_flags(table2->usOp2); printf("\n");
                     if (I64 && (table2->usFlags & _i64_bit))
-                        asmerr( EM_invalid_64bit_opcode, asm_opstr(pop));
+                        asmerr("opcode %s is unavailable in 64bit mode", asm_opstr(pop));
 
                     bMatch1 = asm_match_flags(opflags1, table2->usOp1);
                     bMatch2 = asm_match_flags(opflags2, table2->usOp2);
@@ -1045,7 +979,7 @@ TYPE_SIZE_ERROR:
 RETURN_IT:
     if (bRetry && !bFake)
     {
-        asmerr(EM_bad_op, asm_opstr(pop));
+        asmerr("bad type/size of operands '%s'", asm_opstr(pop));
     }
     return ptbRet;
 }
@@ -1113,7 +1047,7 @@ STATIC opflag_t asm_determine_float_flags(OPND *popnd)
     }
 #endif
 
-    asmerr(EM_bad_float_op);    // unknown operand for floating point instruction
+    asmerr("unknown operand for floating point instruction");
     return 0;
 }
 
@@ -1833,7 +1767,7 @@ L1:
                 {
 
                     if (!(d && d->isDataseg()))
-                        asmerr(EM_bad_addr_mode);   // illegal addressing mode
+                        asmerr("bad addr mode");
                 }
                 switch (uSizemaskTmp)
                 {
@@ -2154,21 +2088,6 @@ code *asm_genloc(Loc loc, code *c)
 /*******************************
  */
 
-STATIC void asmerr(int errnum, ...)
-{   const char *format;
-
-    format = asmerrmsgs[errnum];
-    va_list ap;
-    va_start(ap, errnum);
-    verror(asmstate.loc, format, ap);
-    va_end(ap);
-
-    exit(EXIT_FAILURE);
-}
-
-/*******************************
- */
-
 STATIC void asmerr(const char *format, ...)
 {
     va_list ap;
@@ -2443,7 +2362,7 @@ STATIC void asm_merge_symbol(OPND *o1, Dsymbol *s)
 #if 0
         if (!v->isDataseg() && v->parent != asmstate.sc->parent && v->parent)
         {
-            asmerr(EM_uplevel, v->toChars());
+            asmerr("uplevel nested reference to variable %s", v->toChars());
         }
 #endif
         if (v->isField())
@@ -2476,7 +2395,7 @@ L2:
         asmerr("%s %s is not a declaration", s->kind(), s->toChars());
     }
     else if (d->getType())
-        asmerr(EM_type_as_operand, d->getType()->toChars());
+        asmerr("cannot use type %s as an operand", d->getType()->toChars());
     else if (d->isTupleDeclaration())
         ;
     else
@@ -3472,7 +3391,7 @@ STATIC unsigned asm_type_size(Type * ptype)
     {
         switch ((int)ptype->size())
         {
-            case 0:     asmerr(EM_bad_op, "0 size");    break;
+            case 0:     asmerr("bad type/size of operands '%s'", "0 size");    break;
             case 1:     u = _8;         break;
             case 2:     u = _16;        break;
             case 4:     u = _32;        break;
@@ -3595,7 +3514,7 @@ STATIC code *asm_db_parse(OP *pop)
                     case OPdl:
                         break;
                     default:
-                        asmerr(EM_float);
+                        asmerr("floating point expected");
                 }
                 goto L2;
 
@@ -3614,7 +3533,7 @@ STATIC code *asm_db_parse(OP *pop)
                         dt.ld = asmtok->float80value;
                         break;
                     default:
-                        asmerr(EM_num);
+                        asmerr("integer expected");
                 }
                 goto L2;
 
@@ -3644,13 +3563,13 @@ STATIC code *asm_db_parse(OP *pop)
                             case OPdb:
                                 *p = (unsigned char)*q;
                                 if (*p != *q)
-                                    asmerr(EM_char);
+                                    asmerr("character is truncated");
                                 break;
 
                             case OPds:
                                 *(short *)p = *(unsigned char *)q;
                                 if (*(short *)p != *q)
-                                    asmerr(EM_char);
+                                    asmerr("character is truncated");
                                 break;
 
                             case OPdi:
@@ -3659,7 +3578,7 @@ STATIC code *asm_db_parse(OP *pop)
                                 break;
 
                             default:
-                                asmerr(EM_float);
+                                asmerr("floating point expected");
                         }
                         q++;
                         p += usSize;
@@ -3694,7 +3613,7 @@ STATIC code *asm_db_parse(OP *pop)
                             dt.ld = e->toReal();
                             break;
                         default:
-                            asmerr(EM_num);
+                            asmerr("integer expected");
                     }
                     goto L2;
                 }
@@ -3709,7 +3628,7 @@ STATIC code *asm_db_parse(OP *pop)
 
             default:
             Ldefault:
-                asmerr(EM_const_init);          // constant initializer
+                asmerr("constant initializer expected");          // constant initializer
                 break;
         }
         c->IEV1.as.len = usBytes;
@@ -3756,11 +3675,11 @@ int asm_getnum()
             i = e->toInteger();
             v = (int) i;
             if (v != i)
-                asmerr(EM_num);
+                asmerr("integer expected");
             break;
         }
         default:
-            asmerr(EM_num);
+            asmerr("integer expected");
             v = 0;              // no uninitialized values
             break;
     }
@@ -3782,7 +3701,7 @@ STATIC OPND *asm_cond_exp()
         asm_token();
         o2 = asm_cond_exp();
         asm_token();
-        asm_chktok(TOKcolon,EM_colon);
+        asm_chktok(TOKcolon,"colon");
         o3 = asm_cond_exp();
         o1 = (o1->disp) ? o2 : o3;
     }
@@ -3804,7 +3723,7 @@ STATIC OPND *asm_log_or_exp()
         if (asm_isint(o1) && asm_isint(o2))
             o1->disp = o1->disp || o2->disp;
         else
-            asmerr(EM_bad_integral_operand);            // illegal operand
+            asmerr("bad integral operand");
         o2->disp = 0;
         o1 = asm_merge_opnds(o1, o2);
     }
@@ -3826,7 +3745,7 @@ STATIC OPND *asm_log_and_exp()
         if (asm_isint(o1) && asm_isint(o2))
             o1->disp = o1->disp && o2->disp;
         else {
-            asmerr(EM_bad_integral_operand);                // illegal operand
+            asmerr("bad integral operand");
         }
         o2->disp = 0;
         o1 = asm_merge_opnds(o1, o2);
@@ -3849,7 +3768,7 @@ STATIC OPND *asm_inc_or_exp()
         if (asm_isint(o1) && asm_isint(o2))
             o1->disp |= o2->disp;
         else {
-            asmerr(EM_bad_integral_operand);                // illegal operand
+            asmerr("bad integral operand");
         }
         o2->disp = 0;
         o1 = asm_merge_opnds(o1, o2);
@@ -3872,7 +3791,7 @@ STATIC OPND *asm_xor_exp()
         if (asm_isint(o1) && asm_isint(o2))
             o1->disp ^= o2->disp;
         else {
-            asmerr(EM_bad_integral_operand);                // illegal operand
+            asmerr("bad integral operand");
         }
         o2->disp = 0;
         o1 = asm_merge_opnds(o1, o2);
@@ -3895,7 +3814,7 @@ STATIC OPND *asm_and_exp()
         if (asm_isint(o1) && asm_isint(o2))
             o1->disp &= o2->disp;
         else {
-            asmerr(EM_bad_integral_operand);                // illegal operand
+            asmerr("bad integral operand");
         }
         o2->disp = 0;
         o1 = asm_merge_opnds(o1, o2);
@@ -3921,7 +3840,7 @@ STATIC OPND *asm_equal_exp()
                 if (asm_isint(o1) && asm_isint(o2))
                     o1->disp = o1->disp == o2->disp;
                 else {
-                    asmerr(EM_bad_integral_operand);    // illegal operand
+                    asmerr("bad integral operand");
                 }
                 o2->disp = 0;
                 o1 = asm_merge_opnds(o1, o2);
@@ -3933,7 +3852,7 @@ STATIC OPND *asm_equal_exp()
                 if (asm_isint(o1) && asm_isint(o2))
                     o1->disp = o1->disp != o2->disp;
                 else {
-                    asmerr(EM_bad_integral_operand);
+                    asmerr("bad integral operand");
                 }
                 o2->disp = 0;
                 o1 = asm_merge_opnds(o1, o2);
@@ -3986,7 +3905,7 @@ STATIC OPND *asm_rel_exp()
                     }
                 }
                 else
-                    asmerr(EM_bad_integral_operand);
+                    asmerr("bad integral operand");
                 o2->disp = 0;
                 o1 = asm_merge_opnds(o1, o2);
                 break;
@@ -4019,7 +3938,7 @@ STATIC OPND *asm_shift_exp()
                 o1->disp >>= o2->disp;
         }
         else
-            asmerr(EM_bad_integral_operand);
+            asmerr("bad integral operand");
         o2->disp = 0;
         o1 = asm_merge_opnds(o1, o2);
     }
@@ -4107,7 +4026,7 @@ STATIC OPND *asm_mul_exp()
                 else if (asm_isint(o1) && asm_isint(o2))
                     o1->disp *= o2->disp;
                 else
-                    asmerr(EM_bad_operand);
+                    asmerr("bad operand");
                 o2->disp = 0;
                 o1 = asm_merge_opnds(o1, o2);
                 break;
@@ -4118,7 +4037,7 @@ STATIC OPND *asm_mul_exp()
                 if (asm_isint(o1) && asm_isint(o2))
                     o1->disp /= o2->disp;
                 else
-                    asmerr(EM_bad_integral_operand);
+                    asmerr("bad integral operand");
                 o2->disp = 0;
                 o1 = asm_merge_opnds(o1, o2);
                 break;
@@ -4129,7 +4048,7 @@ STATIC OPND *asm_mul_exp()
                 if (asm_isint(o1) && asm_isint(o2))
                     o1->disp %= o2->disp;
                 else
-                    asmerr(EM_bad_integral_operand);
+                    asmerr("bad integral operand");
                 o2->disp = 0;
                 o1 = asm_merge_opnds(o1, o2);
                 break;
@@ -4163,7 +4082,7 @@ STATIC OPND *asm_br_exp()
                 asm_TKlbra_seen++;
                 o2 = asm_cond_exp();
                 asm_TKlbra_seen--;
-                asm_chktok(TOKrbracket,EM_rbra);
+                asm_chktok(TOKrbracket,"] expected instead of '%s'");
 #ifdef EXTRA_DEBUG
                 printf("Saw a right bracket\n");
 #endif
@@ -4243,7 +4162,7 @@ STATIC OPND *asm_una_exp()
                 fixdeclar(ptype);/* fix declarator               */
                 type_free(ptypeSpec);/* the declar() function
                                     allocates the typespec again */
-                chktok(TOKrparen,EM_rpar);
+                chktok(TOKrparen,") expected instead of '%s'");
                 ptype->Tcount--;
                 goto CAST_REF;
             }
@@ -4251,7 +4170,7 @@ STATIC OPND *asm_una_exp()
             {
                 type_free(ptypeSpec);
                 o1 = asm_cond_exp();
-                chktok(TOKrparen, EM_rpar);
+                chktok(TOKrparen, ") expected instead of '%s'");
             }
             break;
 #endif
@@ -4302,7 +4221,7 @@ STATIC OPND *asm_una_exp()
             ajt = ASM_JUMPTYPE_FAR;
 JUMP_REF:
             asm_token();
-            asm_chktok((TOK) ASMTKptr, EM_ptr_exp);
+            asm_chktok((TOK) ASMTKptr, "ptr expected");
 JUMP_REF2:
             o1 = asm_cond_exp();
             if (!o1)
@@ -4332,7 +4251,7 @@ JUMP_REF2:
 TYPE_REF:
             bPtr = 1;
             asm_token();
-            asm_chktok((TOK) ASMTKptr, EM_ptr_exp);
+            asm_chktok((TOK) ASMTKptr, "ptr expected");
             o1 = asm_cond_exp();
             if (!o1)
                 o1 = opnd_calloc();
@@ -4391,7 +4310,7 @@ STATIC OPND *asm_primary_exp()
                 else if (asm_TKlbra_seen)
                 {   // should be a register
                     if (o1->pregDisp1)
-                        asmerr(EM_bad_operand);
+                        asmerr("bad operand");
                     else
                         o1->pregDisp1 = regp;
                 }
@@ -4399,7 +4318,7 @@ STATIC OPND *asm_primary_exp()
                 {   if (o1->base == NULL)
                         o1->base = regp;
                     else
-                        asmerr(EM_bad_operand);
+                        asmerr("bad operand");
                 }
                 break;
             }
@@ -4415,12 +4334,12 @@ STATIC OPND *asm_primary_exp()
                     {
                         unsigned n = (unsigned)asmtok->uns64value;
                         if (n > 7)
-                            asmerr(EM_bad_operand);
+                            asmerr("bad operand");
                         else
                             o1->base = &(aregFp[n]);
                     }
-                    asm_chktok(TOKint32v, EM_num);
-                    asm_chktok(TOKrparen, EM_rpar);
+                    asm_chktok(TOKint32v, "integer expected");
+                    asm_chktok(TOKrparen, ") expected instead of '%s'");
                 }
                 else
                     o1->base = &regFp;
@@ -4442,7 +4361,7 @@ STATIC OPND *asm_primary_exp()
                 else
                     s = asmstate.sc->search(Loc(), asmtok->ident, &scopesym);
                 if (!s)
-                    asmerr(EM_undefined, asmtok->toChars());
+                    asmerr("undefined identifier '%s'", asmtok->toChars());
 
                 Identifier *id = asmtok->ident;
                 asm_token();
@@ -4463,7 +4382,7 @@ STATIC OPND *asm_primary_exp()
                         }
                         else
                         {
-                            asmerr(EM_ident_exp);
+                            asmerr("identifier expected");
                             break;
                         }
                     }
@@ -4486,7 +4405,7 @@ STATIC OPND *asm_primary_exp()
                         }
                         else
                         {
-                            asmerr(EM_bad_op, e->toChars());
+                            asmerr("bad type/size of operands '%s'", e->toChars());
                         }
                     }
                     else if (e->op == TOKvar)
@@ -4496,7 +4415,7 @@ STATIC OPND *asm_primary_exp()
                     }
                     else
                     {
-                        asmerr(EM_bad_op, e->toChars());
+                        asmerr("bad type/size of operands '%s'", e->toChars());
                     }
                 }
 
@@ -4596,19 +4515,19 @@ STATIC OPND *asm_prim_post(OPND *o1)
                 if (++o1->indirect > 1)
                 {
                 BAD_OPERAND:
-                    asmerr(EM_bad_operand);
+                    asmerr("bad operand");
                 }
                 if (s->Sclass != SCregister)
                     goto BAD_OPERAND;
                 if (!typtr(t->Tty))
                 {
-                    asmerr(EM_pointer,t,(type *) NULL);
+                    asmerr("pointer",t,(type *) NULL);
                 }
                 else
                     t = t->Tnext;
             case TKcolcol:
                 if (tybasic(t->Tty) != TYstruct)
-                    asmerr(EM_not_struct);      // not a struct or union type
+                    asmerr("not struct");      // not a struct or union type
                 goto L1;
 
             case TOKdot:
@@ -4616,12 +4535,12 @@ STATIC OPND *asm_prim_post(OPND *o1)
                      t = t->Tnext)
                         ;
                 if (!t)
-                    asmerr(EM_not_struct);
+                    asmerr("not struct");
             L1:
                 /* try to find the symbol */
                 asm_token();
                 if (tok_value != TOKidentifier)
-                    asmerr(EM_ident_exp);
+                    asmerr("identifier expected");
                 s = n2_searchmember(t->Ttag,tok.TKid);
                 if (!s)
                 {
@@ -4640,7 +4559,7 @@ STATIC OPND *asm_prim_post(OPND *o1)
                 asm_token();
                 asm_TKlbra_seen++;
                 o2 = asm_cond_exp();
-                asm_chktok(TOKrbracket,EM_rbra);
+                asm_chktok(TOKrbracket,"] expected instead of '%s'");
                 asm_TKlbra_seen--;
                 return asm_merge_opnds(o1, o2);
 
@@ -4754,7 +4673,7 @@ Statement* asmSemantic(AsmStatement *s, Scope *sc)
             asm_token();
             align = asm_getnum();
             if (ispow2(align) == -1)
-                asmerr(EM_align, align);        // power of 2 expected
+                asmerr("align %d must be a power of 2", align);
             else
                 s->asmalign = align;
             break;
@@ -4852,7 +4771,7 @@ Statement* asmSemantic(AsmStatement *s, Scope *sc)
 
         default:
         OPCODE_EXPECTED:
-            asmerr(EM_opcode_exp, asmtok->toChars());   // assembler opcode expected
+            asmerr("opcode expected, not %s", asmtok->toChars());
             break;
     }
 
@@ -4864,7 +4783,7 @@ AFTER_EMIT:
 
     if (tok_value != TOKeof)
     {
-        asmerr(EM_eol, asmtok->toChars());  // end of line expected
+        asmerr("end of instruction expected, not '%s'", asmtok->toChars());  // end of line expected
     }
     //return asmstate.bReturnax;
     return s;
