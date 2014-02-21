@@ -2163,7 +2163,7 @@ STATIC void asmerr(int errnum, ...)
     verror(asmstate.loc, format, ap);
     va_end(ap);
 
-    throw &asmstate;
+    exit(EXIT_FAILURE);
 }
 
 /*******************************
@@ -2176,7 +2176,7 @@ STATIC void asmerr(const char *format, ...)
     verror(asmstate.loc, format, ap);
     va_end(ap);
 
-    throw &asmstate;
+    exit(EXIT_FAILURE);
 }
 
 /*******************************
@@ -4735,8 +4735,6 @@ Statement* asmSemantic(AsmStatement *s, Scope *sc)
     asmtok = s->tokens;
     asm_token_trans(asmtok);
 
-    try
-    {
     switch (tok_value)
     {
         case ASMTKnaked:
@@ -4857,13 +4855,6 @@ Statement* asmSemantic(AsmStatement *s, Scope *sc)
             asmerr(EM_opcode_exp, asmtok->toChars());   // assembler opcode expected
             break;
     }
-    }
-    catch (ASM_STATE *a)
-    {
-        asmtok = NULL;                  // skip rest of line
-        tok_value = TOKeof;
-        exit(EXIT_FAILURE);
-    }
 
 AFTER_EMIT:
     opnd_free(o1);
@@ -4873,16 +4864,7 @@ AFTER_EMIT:
 
     if (tok_value != TOKeof)
     {
-        try
-        {
-            asmerr(EM_eol, asmtok->toChars());  // end of line expected
-        }
-        catch (ASM_STATE *a)
-        {
-            asmtok = NULL;
-            tok_value = TOKeof;
-            exit(EXIT_FAILURE);
-        }
+        asmerr(EM_eol, asmtok->toChars());  // end of line expected
     }
     //return asmstate.bReturnax;
     return s;
