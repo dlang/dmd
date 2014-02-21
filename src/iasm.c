@@ -1032,8 +1032,7 @@ static opflag_t asm_determine_float_flags(OPND *popnd)
         //printf("us = x%x, usFloat = x%x\n", us, usFloat);
         if (popnd->pregDisp1->ty & (_r32 | _r64))
             return(CONSTRUCT_FLAGS(us, _m, _addr32, usFloat));
-        else
-        if (popnd->pregDisp1->ty & _r16)
+        else if (popnd->pregDisp1->ty & _r16)
             return(CONSTRUCT_FLAGS(us, _m, _addr16, usFloat));
     }
     else if (popnd->s != 0)
@@ -1132,8 +1131,7 @@ static opflag_t asm_determine_operand_flags(OPND *popnd)
                         if (popnd->disp >= CHAR_MIN &&
                             popnd->disp <= CHAR_MAX)
                             us = CONSTRUCT_FLAGS(_8, _rel, _flbl,0);
-                        else
-                        if (popnd->disp >= SHRT_MIN &&
+                        else if (popnd->disp >= SHRT_MIN &&
                             popnd->disp <= SHRT_MAX && !I64)
                             us = CONSTRUCT_FLAGS(_16, _rel, _flbl,0);
                         else
@@ -1528,8 +1526,7 @@ L386_WARNING2:
                     pc,
                     ptb.pptb1->usFlags,
                     popnd1, popnd2);
-            else
-            if (usNumops == 2 || usNumops == 3 && aoptyTable3 == _imm)
+            else if (usNumops == 2 || usNumops == 3 && aoptyTable3 == _imm)
                 asm_make_modrm_byte(
 #ifdef DEBUG
                     auchOpcode, &usIdx,
@@ -1930,8 +1927,7 @@ L1:
                 auchOpcode[usIdx-1] += reg;
 #endif
             }
-            else
-            if (((aoptyTable2 == _reg || aoptyTable2 == _float) &&
+            else if (((aoptyTable2 == _reg || aoptyTable2 == _float) &&
                  amodTable2 == _normal &&
                  (uRegmaskTable2 & _rplus_r)))
             {
@@ -2039,8 +2035,7 @@ L1:
                 auchOpcode[usIdx-1] += reg;
 #endif
             }
-            else
-            if (((aoptyTable2 == _reg || aoptyTable2 == _float) &&
+            else if (((aoptyTable2 == _reg || aoptyTable2 == _float) &&
                  amodTable2 == _normal &&
                  (uRegmaskTable2 &_rplus_r)))
             {
@@ -2722,8 +2717,7 @@ static void asm_make_modrm_byte(
             if ((!popnd->disp && !bDisp) ||
                 !popnd->pregDisp1)
                 mrmb.modregrm.mod = 0x0;
-            else
-            if (popnd->disp >= CHAR_MIN &&
+            else if (popnd->disp >= CHAR_MIN &&
                 popnd->disp <= SCHAR_MAX)
                 mrmb.modregrm.mod = 0x1;
             else
@@ -3403,8 +3397,7 @@ static void asm_output_popnd(OPND *popnd)
     }
     if (ASM_GET_aopty(popnd->usFlags) == _imm)
             printf("%llxh", (long long)popnd->disp);
-    else
-    if (popnd->disp)
+    else if (popnd->disp)
             printf("+%llxh", (long long)popnd->disp);
 }
 
@@ -4861,8 +4854,7 @@ Statement* asmSemantic(AsmStatement *s, Scope *sc)
                 ptb = asm_classify(o, o1, o2, o3, o4, &usNumops);
             }
 #if 0
-            else
-            if (asmstate.ucItype == ITshift && (ptb.pptb2->usOp2 == 0 ||
+            else if (asmstate.ucItype == ITshift && (ptb.pptb2->usOp2 == 0 ||
                     (ptb.pptb2->usOp2 & _cl)))
             {
                 opnd_free(o2);
