@@ -4789,6 +4789,8 @@ Expression *TypeAArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
             fparams->push(new Parameter(STCin, this, NULL, NULL));
             fd_aaLen = FuncDeclaration::genCfunc(fparams, Type::tsize_t, Id::aaLen);
             TypeFunction *tf = (TypeFunction *)fd_aaLen->type;
+            tf->purity = PUREconst;
+            tf->isnothrow = true;
         }
         Expression *ev = new VarExp(e->loc, fd_aaLen);
         e = new CallExp(e->loc, ev, e);
