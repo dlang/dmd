@@ -4682,13 +4682,13 @@ regm_t iasm_regs(block *bp)
 
 /************************ AsmStatement ***************************************/
 
-Statement *AsmStatement::semantic(Scope *sc)
+Statement* asmSemantic(AsmStatement *s, Scope *sc)
 {
     //printf("AsmStatement::semantic()\n");
 
     assert(sc->func);
     if (sc->func->setUnsafe())
-        error("inline assembler not allowed in @safe function %s", sc->func->toChars());
+        s->error("inline assembler not allowed in @safe function %s", sc->func->toChars());
 
     OP *o;
     OPND *o1 = NULL,*o2 = NULL, *o3 = NULL, *o4 = NULL;
@@ -4700,12 +4700,12 @@ Statement *AsmStatement::semantic(Scope *sc)
 
     assert(fd);
 
-    if (!tokens)
+    if (!s->tokens)
         return NULL;
 
     memset(&asmstate, 0, sizeof(asmstate));
 
-    asmstate.statement = this;
+    asmstate.statement = s;
     asmstate.sc = sc;
 
 #if 0 // don't use bReturnax anymore, and will fail anyway if we use return type inference
@@ -4730,9 +4730,9 @@ Statement *AsmStatement::semantic(Scope *sc)
         asmstate.psLocalsize = Dsymbol::create(Id::__LOCAL_SIZE);
     }
 
-    asmstate.loc = loc;
+    asmstate.loc = s->loc;
 
-    asmtok = tokens;
+    asmtok = s->tokens;
     asm_token_trans(asmtok);
 
     try
@@ -4740,14 +4740,14 @@ Statement *AsmStatement::semantic(Scope *sc)
     switch (tok_value)
     {
         case ASMTKnaked:
-            naked = TRUE;
+            s->naked = TRUE;
             sc->func->naked = TRUE;
             asm_token();
             break;
 
         case ASMTKeven:
             asm_token();
-            asmalign = 2;
+            s->asmalign = 2;
             break;
 
         case TOKalign:
@@ -4758,7 +4758,7 @@ Statement *AsmStatement::semantic(Scope *sc)
             if (ispow2(align) == -1)
                 asmerr(EM_align, align);        // power of 2 expected
             else
-                asmalign = align;
+                s->asmalign = align;
             break;
         }
 
@@ -4789,11 +4789,11 @@ Statement *AsmStatement::semantic(Scope *sc)
                 switch (asmstate.ucItype)
                 {
                     case ITdata:
-                        asmcode = asm_db_parse(o);
+                        s->asmcode = asm_db_parse(o);
                         goto AFTER_EMIT;
 
                     case ITaddr:
-                        asmcode = asm_da_parse(o);
+                        s->asmcode = asm_da_parse(o);
                         goto AFTER_EMIT;
                 }
             }
@@ -4849,7 +4849,7 @@ Statement *AsmStatement::semantic(Scope *sc)
                     usNumops = 1;
             }
 #endif
-            asmcode = asm_emit(loc, usNumops, ptb, o, o1, o2, o3, o4);
+            s->asmcode = asm_emit(s->loc, usNumops, ptb, o, o1, o2, o3, o4);
             break;
 
         default:
@@ -4885,12 +4885,12 @@ AFTER_EMIT:
         }
     }
     //return asmstate.bReturnax;
-    return this;
+    return s;
 }
 
 #else
 
-Statement* AsmStatement::semantic(Scope *sc)
+Statement* asmSemantic(AsmStatement *s, Scope *sc)
 {
     assert(0);
     return NULL;
