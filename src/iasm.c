@@ -54,10 +54,8 @@
 
 // I32 isn't set correctly yet because this is the front end, and I32
 // is a backend flag
-#undef I16
 #undef I32
 #undef I64
-#define I16 0
 #define I32 (global.params.is64bit == 0)
 #define I64 (global.params.is64bit == 1)
 
@@ -612,7 +610,6 @@ RETRY:
                 if (bMatch1)
                 {
                     if (table1->usOpcode == 0x68 &&
-                        !I16 &&
                         table1->usOp1 == _imm16
                       )
                         // Don't match PUSH imm16 in 32 bit code
@@ -1044,10 +1041,7 @@ static opflag_t asm_determine_float_flags(OPND *popnd)
     if (popnd->segreg)
     {
         us = asm_float_type_size(popnd->ptype, &usFloat);
-        if (I16)
-            return(CONSTRUCT_FLAGS(us, _m, _addr16, usFloat));
-        else
-            return(CONSTRUCT_FLAGS(us, _m, _addr32, usFloat));
+        return(CONSTRUCT_FLAGS(us, _m, _addr32, usFloat));
     }
 
 #if 0
@@ -1109,7 +1103,7 @@ static opflag_t asm_determine_operand_flags(OPND *popnd)
     if (popnd->pregDisp1 && !popnd->base)
     {
         if (ps && ps->isLabel() && sz == _anysize)
-            sz = I16 ? _16 : _32;
+            sz = _32;
         return (popnd->pregDisp1->ty & (_r32 | _r64))
             ? CONSTRUCT_FLAGS(sz, _m, _addr32, 0)
             : CONSTRUCT_FLAGS(sz, _m, _addr16, 0);
@@ -1117,9 +1111,7 @@ static opflag_t asm_determine_operand_flags(OPND *popnd)
     else if (ps)
     {
         if (popnd->bOffset || popnd->bSeg || ps == asmstate.psLocalsize)
-            return I16
-                ? CONSTRUCT_FLAGS(_16, _imm, _normal, 0)
-                : CONSTRUCT_FLAGS(_32, _imm, _normal, 0);
+            return CONSTRUCT_FLAGS(_32, _imm, _normal, 0);
 
         if (ps->isLabel())
         {
@@ -1147,24 +1139,18 @@ static opflag_t asm_determine_operand_flags(OPND *popnd)
                         goto case_near;
                     }
                     else
-                        us = I16
-                            ? CONSTRUCT_FLAGS(_8|_16, _rel, _flbl,0)
-                            : CONSTRUCT_FLAGS(_8|_32, _rel, _flbl,0);
+                        us = CONSTRUCT_FLAGS(_8|_32, _rel, _flbl,0);
                     break;
 
                 case ASM_JUMPTYPE_NEAR:
                 case_near:
-                    us = I16
-                        ? CONSTRUCT_FLAGS(_16, _rel, _flbl, 0)
-                        : CONSTRUCT_FLAGS(_32, _rel, _flbl, 0);
+                    us = CONSTRUCT_FLAGS(_32, _rel, _flbl, 0);
                     break;
                 case ASM_JUMPTYPE_SHORT:
                     us = CONSTRUCT_FLAGS(_8, _rel, _flbl, 0);
                     break;
                 case ASM_JUMPTYPE_FAR:
-                    us = I16
-                        ? CONSTRUCT_FLAGS(_32, _rel, _flbl, 0)
-                        : CONSTRUCT_FLAGS(_48, _rel, _flbl, 0);
+                    us = CONSTRUCT_FLAGS(_48, _rel, _flbl, 0);
                     break;
                 default:
                     assert(0);
@@ -1220,21 +1206,13 @@ static opflag_t asm_determine_operand_flags(OPND *popnd)
     }
     if (popnd->segreg /*|| popnd->bPtr*/)
     {
-        amod = I16 ? _addr16 : _addr32;
+        amod = _addr32;
         if (asmstate.ucItype == ITjump)
         {
         L1:
             opty = _m;
-            if (I16)
-            {
-                if (sz == _32)
-                    opty = _mnoi;
-            }
-            else
-            {
-                if (sz == _48)
-                    opty = _mnoi;
-            }
+            if (sz == _48)
+                opty = _mnoi;
             us = CONSTRUCT_FLAGS(sz,opty,amod,0);
         }
         else
@@ -1332,38 +1310,6 @@ static code *asm_emit(Loc loc,
 
     asmstate.statement->regs |= asm_modify_regs(ptb, popnd1, popnd2);
 
-    if (I16 && ptb.pptb0->usFlags & _I386)
-    {
-        switch (usNumops)
-        {
-            case 0:
-                break;
-            case 1:
-                if (popnd1 && popnd1->s)
-                {
-L386_WARNING:
-                    id = popnd1->s->ident;
-L386_WARNING2:
-                    if (config.target_cpu < TARGET_80386)
-                    {
-                        // Reference to %s caused a 386 instruction to be generated
-                        //warerr(WM_386_op, id->toChars());
-                    }
-                }
-                break;
-            case 2:
-            case 3:     // The third operand is always an _imm
-                if (popnd1 && popnd1->s)
-                    goto L386_WARNING;
-                if (popnd2 && popnd2->s)
-                {
-                    id = popnd2->s->ident;
-                    goto L386_WARNING2;
-                }
-                break;
-        }
-    }
-
     if (ptb.pptb0->usFlags & _64_bit && !I64)
         error(asmstate.loc, "use -m64 to compile 64 bit instructions");
 
@@ -1376,11 +1322,10 @@ L386_WARNING2:
     switch (usNumops)
     {
         case 0:
-            if (((I32 | I64) && (ptb.pptb0->usFlags & _16_bit)) ||
-                    (I16 && (ptb.pptb0->usFlags & _32_bit)))
+            if (((I32 | I64) && (ptb.pptb0->usFlags & _16_bit)))
             {
-                    emit(0x66);
-                    pc->Iflags |= CFopsize;
+                emit(0x66);
+                pc->Iflags |= CFopsize;
             }
             break;
 
@@ -1399,12 +1344,7 @@ L386_WARNING2:
                    (uSizemaskTable2 & _32 && aoptyTable2 == _mnoi) ||
                    (ptb.pptb2->usFlags & _16_bit_addr)
                  )
-                ) ||
-                 (I16 &&
-                   (amod2 == _addr32 ||
-                    (uSizemaskTable2 & _32 && aoptyTable2 == _rel) ||
-                    (uSizemaskTable2 & _48 && aoptyTable2 == _mnoi) ||
-                    (ptb.pptb2->usFlags & _32_bit_addr)))
+                )
               )
             {
                 emit(0x67);
@@ -1430,12 +1370,7 @@ L386_WARNING2:
                   (amod1 == _addr16 ||
                    (uSizemaskTable1 & _16 && aoptyTable1 == _rel) ||
                     (uSizemaskTable1 & _32 && aoptyTable1 == _mnoi) ||
-                    (ptb.pptb1->usFlags & _16_bit_addr))) ||
-                 (I16 &&
-                  (amod1 == _addr32 ||
-                    (uSizemaskTable1 & _32 && aoptyTable1 == _rel) ||
-                    (uSizemaskTable1 & _48 && aoptyTable1 == _mnoi) ||
-                     (ptb.pptb1->usFlags & _32_bit_addr))))
+                    (ptb.pptb1->usFlags & _16_bit_addr))))
             {
                 emit(0x67);     // address size prefix
                 pc->Iflags |= CFaddrsize;
@@ -1449,8 +1384,7 @@ L386_WARNING2:
 
             // If the size of the operand is unknown, assume that it is
             // the default size
-            if (((I64 || I32) && (ptb.pptb0->usFlags & _16_bit)) ||
-                (I16 && (ptb.pptb0->usFlags & _32_bit)))
+            if (((I64 || I32) && (ptb.pptb0->usFlags & _16_bit)))
             {
                 //if (asmstate.ucItype != ITjump)
                 {
@@ -2640,8 +2574,6 @@ static void asm_make_modrm_byte(
             {
                 if (I32 && amod == _addr16)
                     error(asmstate.loc, "cannot have 16 bit addressing mode in 32 bit code");
-                else if (I16 && amod == _addr32)
-                    error(asmstate.loc, "cannot have 32 bit addressing mode in 16 bit code");
                 goto DATA_REF;
             }
             mrmb.modregrm.rm = BPRM;
@@ -2656,7 +2588,7 @@ static void asm_make_modrm_byte(
         if (popnd->base->val & NUM_MASKR)
             pc->Irex |= REX_B;
     }
-    else if (amod == _addr16 || (amod == _flbl && I16))
+    else if (amod == _addr16)
     {
         unsigned rm;
 
