@@ -2588,6 +2588,24 @@ void test11297() {
 }
 
 /*******************************************/
+// 12217
+
+void test12217(int)
+{
+    static struct S {}
+    void bar() {}
+    int var;
+    template X(T) {}
+
+    static assert(    S.mangleof ==  "S6nested9test12217FiZv1S");
+    static assert(  bar.mangleof == "_D6nested9test12217FiZv3barMFZv");
+    static assert(  var.mangleof == "_D6nested9test12217FiZv3vari");
+    static assert(X!int.mangleof ==   "6nested9test12217FiZv8__T1XTiZ");
+}
+
+void test12217() {}
+
+/*******************************************/
 
 int main()
 {
