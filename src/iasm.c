@@ -423,54 +423,54 @@ void iasm_term();
 //
 // Local functions defined and only used here
 //
-STATIC OPND *asm_add_exp();
-STATIC OPND *opnd_calloc();
-STATIC void opnd_free(OPND *popnd);
-STATIC OPND *asm_and_exp();
-STATIC OPND *asm_cond_exp();
-STATIC opflag_t asm_determine_operand_flags(OPND *popnd);
+static OPND *asm_add_exp();
+static OPND *opnd_calloc();
+static void opnd_free(OPND *popnd);
+static OPND *asm_and_exp();
+static OPND *asm_cond_exp();
+static opflag_t asm_determine_operand_flags(OPND *popnd);
 code *asm_genloc(Loc loc, code *c);
 int asm_getnum();
 
-STATIC void asmerr(const char *, ...);
+static void asmerr(const char *, ...);
 
 #if __DMC__
 #pragma SC noreturn(asmerr)
 #endif
 
-STATIC OPND *asm_equal_exp();
-STATIC OPND *asm_inc_or_exp();
-STATIC OPND *asm_log_and_exp();
-STATIC OPND *asm_log_or_exp();
-STATIC char asm_length_type_size(OPND *popnd);
-STATIC void asm_token();
-STATIC void asm_token_trans(Token *tok);
-STATIC unsigned char asm_match_flags(opflag_t usOp , opflag_t usTable );
-STATIC unsigned char asm_match_float_flags(opflag_t usOp, opflag_t usTable);
-STATIC void asm_make_modrm_byte(
+static OPND *asm_equal_exp();
+static OPND *asm_inc_or_exp();
+static OPND *asm_log_and_exp();
+static OPND *asm_log_or_exp();
+static char asm_length_type_size(OPND *popnd);
+static void asm_token();
+static void asm_token_trans(Token *tok);
+static unsigned char asm_match_flags(opflag_t usOp , opflag_t usTable );
+static unsigned char asm_match_float_flags(opflag_t usOp, opflag_t usTable);
+static void asm_make_modrm_byte(
 #ifdef DEBUG
         unsigned char *puchOpcode, unsigned *pusIdx,
 #endif
         code *pc,
         unsigned usFlags,
         OPND *popnd, OPND *popnd2);
-STATIC regm_t asm_modify_regs(PTRNTAB ptb, OPND *popnd1, OPND *popnd2);
-STATIC void asm_output_flags(opflag_t usFlags);
-STATIC void asm_output_popnd(OPND *popnd);
-STATIC unsigned asm_type_size(Type * ptype);
-STATIC opflag_t asm_float_type_size(Type * ptype, opflag_t *pusFloat);
-STATIC OPND *asm_mul_exp();
-STATIC OPND *asm_br_exp();
-STATIC OPND *asm_primary_exp();
-STATIC OPND *asm_prim_post(OPND *);
-STATIC OPND *asm_rel_exp();
-STATIC OPND *asm_shift_exp();
-STATIC OPND *asm_una_exp();
-STATIC OPND *asm_xor_exp();
-STATIC void *link_alloc(size_t, void *);
-STATIC void asm_chktok(TOK toknum, const char *msg);
-STATIC code *asm_db_parse(OP *pop);
-STATIC code *asm_da_parse(OP *pop);
+static regm_t asm_modify_regs(PTRNTAB ptb, OPND *popnd1, OPND *popnd2);
+static void asm_output_flags(opflag_t usFlags);
+static void asm_output_popnd(OPND *popnd);
+static unsigned asm_type_size(Type * ptype);
+static opflag_t asm_float_type_size(Type * ptype, opflag_t *pusFloat);
+static OPND *asm_mul_exp();
+static OPND *asm_br_exp();
+static OPND *asm_primary_exp();
+static OPND *asm_prim_post(OPND *);
+static OPND *asm_rel_exp();
+static OPND *asm_shift_exp();
+static OPND *asm_una_exp();
+static OPND *asm_xor_exp();
+static void *link_alloc(size_t, void *);
+static void asm_chktok(TOK toknum, const char *msg);
+static code *asm_db_parse(OP *pop);
+static code *asm_da_parse(OP *pop);
 
 unsigned compute_hashkey(char *);
 
@@ -478,7 +478,7 @@ unsigned compute_hashkey(char *);
 /*******************************
  */
 
-STATIC OPND *opnd_calloc()
+static OPND *opnd_calloc()
 {   OPND *o;
 
     o = new OPND();
@@ -489,7 +489,7 @@ STATIC OPND *opnd_calloc()
 /*******************************
  */
 
-STATIC void opnd_free(OPND *o)
+static void opnd_free(OPND *o)
 {
     if (o)
     {
@@ -500,7 +500,7 @@ STATIC void opnd_free(OPND *o)
 /*******************************
  */
 
-STATIC void asm_chktok(TOK toknum, const char *msg)
+static void asm_chktok(TOK toknum, const char *msg)
 {
     if (tok_value == toknum)
         asm_token();                    // scan past token
@@ -515,7 +515,7 @@ STATIC void asm_chktok(TOK toknum, const char *msg)
 /*******************************
  */
 
-STATIC PTRNTAB asm_classify(OP *pop, OPND *popnd1, OPND *popnd2,
+static PTRNTAB asm_classify(OP *pop, OPND *popnd1, OPND *popnd2,
         OPND *popnd3, OPND *popnd4, unsigned *pusNumops)
 {
     unsigned usNumops;
@@ -987,7 +987,7 @@ RETURN_IT:
 /*******************************
  */
 
-STATIC opflag_t asm_determine_float_flags(OPND *popnd)
+static opflag_t asm_determine_float_flags(OPND *popnd)
 {
     //printf("asm_determine_float_flags()\n");
 
@@ -1054,7 +1054,7 @@ STATIC opflag_t asm_determine_float_flags(OPND *popnd)
 /*******************************
  */
 
-STATIC opflag_t asm_determine_operand_flags(OPND *popnd)
+static opflag_t asm_determine_operand_flags(OPND *popnd)
 {
     Dsymbol *ps;
     int ty;
@@ -1233,7 +1233,7 @@ STATIC opflag_t asm_determine_operand_flags(OPND *popnd)
  * it to the code generated for this block.
  */
 
-STATIC code *asm_emit(Loc loc,
+static code *asm_emit(Loc loc,
     unsigned usNumops, PTRNTAB ptb,
     OP *pop,
     OPND *popnd1, OPND *popnd2, OPND *popnd3, OPND *popnd4)
@@ -2088,7 +2088,7 @@ code *asm_genloc(Loc loc, code *c)
 /*******************************
  */
 
-STATIC void asmerr(const char *format, ...)
+static void asmerr(const char *format, ...)
 {
     va_list ap;
     va_start(ap, format);
@@ -2101,7 +2101,7 @@ STATIC void asmerr(const char *format, ...)
 /*******************************
  */
 
-STATIC opflag_t asm_float_type_size(Type *ptype, opflag_t *pusFloat)
+static opflag_t asm_float_type_size(Type *ptype, opflag_t *pusFloat)
 {
     *pusFloat = 0;
 
@@ -2136,7 +2136,7 @@ STATIC opflag_t asm_float_type_size(Type *ptype, opflag_t *pusFloat)
 /*******************************
  */
 
-STATIC int asm_isint(OPND *o)
+static int asm_isint(OPND *o)
 {
     if (!o || o->base || o->s)
         return 0;
@@ -2144,7 +2144,7 @@ STATIC int asm_isint(OPND *o)
     return 1;
 }
 
-STATIC int asm_isNonZeroInt(OPND *o)
+static int asm_isNonZeroInt(OPND *o)
 {
     if (!o || o->base || o->s)
         return 0;
@@ -2154,7 +2154,7 @@ STATIC int asm_isNonZeroInt(OPND *o)
 /*******************************
  */
 
-STATIC int asm_is_fpreg(char *szReg)
+static int asm_is_fpreg(char *szReg)
 {
 #if 1
     return(szReg[0] == 'S' &&
@@ -2170,7 +2170,7 @@ STATIC int asm_is_fpreg(char *szReg)
  * Merge operands o1 and o2 into a single operand.
  */
 
-STATIC OPND *asm_merge_opnds(OPND *o1, OPND *o2)
+static OPND *asm_merge_opnds(OPND *o1, OPND *o2)
 {
 #ifdef DEBUG
     const char *psz;
@@ -2338,7 +2338,7 @@ ILLEGAL_ADDRESS_ERROR:
 /***************************************
  */
 
-STATIC void asm_merge_symbol(OPND *o1, Dsymbol *s)
+static void asm_merge_symbol(OPND *o1, Dsymbol *s)
 {
     VarDeclaration *v;
     EnumMember *em;
@@ -2406,7 +2406,7 @@ L2:
  * Fill in the modregrm and sib bytes of code.
  */
 
-STATIC void asm_make_modrm_byte(
+static void asm_make_modrm_byte(
 #ifdef DEBUG
         unsigned char *puchOpcode, unsigned *pusIdx,
 #endif
@@ -2877,7 +2877,7 @@ STATIC void asm_make_modrm_byte(
 /*******************************
  */
 
-STATIC regm_t asm_modify_regs(PTRNTAB ptb, OPND *popnd1, OPND *popnd2)
+static regm_t asm_modify_regs(PTRNTAB ptb, OPND *popnd1, OPND *popnd2)
 {
     regm_t usRet = 0;
 
@@ -2960,7 +2960,7 @@ STATIC regm_t asm_modify_regs(PTRNTAB ptb, OPND *popnd1, OPND *popnd2)
  *      !=0 if match
  */
 
-STATIC unsigned char asm_match_flags(opflag_t usOp, opflag_t usTable)
+static unsigned char asm_match_flags(opflag_t usOp, opflag_t usTable)
 {
     ASM_OPERAND_TYPE    aoptyTable;
     ASM_OPERAND_TYPE    aoptyOp;
@@ -3099,7 +3099,7 @@ Lmatch:
 /*******************************
  */
 
-STATIC unsigned char asm_match_float_flags(opflag_t usOp, opflag_t usTable)
+static unsigned char asm_match_float_flags(opflag_t usOp, opflag_t usTable)
 {
     ASM_OPERAND_TYPE    aoptyTable;
     ASM_OPERAND_TYPE    aoptyOp;
@@ -3169,7 +3169,7 @@ STATIC unsigned char asm_match_float_flags(opflag_t usOp, opflag_t usTable)
 /*******************************
  */
 
-STATIC void asm_output_flags(opflag_t opflags)
+static void asm_output_flags(opflag_t opflags)
 {
     ASM_OPERAND_TYPE    aopty = ASM_GET_aopty(opflags);
     ASM_MODIFIERS       amod = ASM_GET_amod(opflags);
@@ -3268,7 +3268,7 @@ STATIC void asm_output_flags(opflag_t opflags)
 /*******************************
  */
 
-STATIC void asm_output_popnd(OPND *popnd)
+static void asm_output_popnd(OPND *popnd)
 {
     if (popnd->segreg)
             printf("%s:", popnd->segreg->regstr);
@@ -3317,7 +3317,7 @@ STATIC void asm_output_popnd(OPND *popnd)
 /*******************************
  */
 
-STATIC REG *asm_reg_lookup(char *s)
+static REG *asm_reg_lookup(char *s)
 {
     int i;
 
@@ -3347,7 +3347,7 @@ STATIC REG *asm_reg_lookup(char *s)
 /*******************************
  */
 
-STATIC void asm_token()
+static void asm_token()
 {
     if (asmtok)
         asmtok = asmtok->next;
@@ -3357,7 +3357,7 @@ STATIC void asm_token()
 /*******************************
  */
 
-STATIC void asm_token_trans(Token *tok)
+static void asm_token_trans(Token *tok)
 {
     tok_value = TOKeof;
     if (tok)
@@ -3382,7 +3382,7 @@ STATIC void asm_token_trans(Token *tok)
 /*******************************
  */
 
-STATIC unsigned asm_type_size(Type * ptype)
+static unsigned asm_type_size(Type * ptype)
 {   unsigned u;
 
     //if (ptype) printf("asm_type_size('%s') = %d\n", ptype->toChars(), (int)ptype->size());
@@ -3420,7 +3420,7 @@ STATIC unsigned asm_type_size(Type * ptype)
  *              for optimizer.
  */
 
-STATIC code *asm_da_parse(OP *pop)
+static code *asm_da_parse(OP *pop)
 {
     code *clst = NULL;
 
@@ -3458,7 +3458,7 @@ STATIC code *asm_da_parse(OP *pop)
  * Parse DB, DW, DD, DQ and DT expressions.
  */
 
-STATIC code *asm_db_parse(OP *pop)
+static code *asm_db_parse(OP *pop)
 {
     size_t usSize;
     size_t usMaxbytes;
@@ -3690,7 +3690,7 @@ int asm_getnum()
 /*******************************
  */
 
-STATIC OPND *asm_cond_exp()
+static OPND *asm_cond_exp()
 {
     OPND *o1,*o2,*o3;
 
@@ -3711,7 +3711,7 @@ STATIC OPND *asm_cond_exp()
 /*******************************
  */
 
-STATIC OPND *asm_log_or_exp()
+static OPND *asm_log_or_exp()
 {
     OPND *o1,*o2;
 
@@ -3733,7 +3733,7 @@ STATIC OPND *asm_log_or_exp()
 /*******************************
  */
 
-STATIC OPND *asm_log_and_exp()
+static OPND *asm_log_and_exp()
 {
     OPND *o1,*o2;
 
@@ -3756,7 +3756,7 @@ STATIC OPND *asm_log_and_exp()
 /*******************************
  */
 
-STATIC OPND *asm_inc_or_exp()
+static OPND *asm_inc_or_exp()
 {
     OPND *o1,*o2;
 
@@ -3779,7 +3779,7 @@ STATIC OPND *asm_inc_or_exp()
 /*******************************
  */
 
-STATIC OPND *asm_xor_exp()
+static OPND *asm_xor_exp()
 {
     OPND *o1,*o2;
 
@@ -3802,7 +3802,7 @@ STATIC OPND *asm_xor_exp()
 /*******************************
  */
 
-STATIC OPND *asm_and_exp()
+static OPND *asm_and_exp()
 {
     OPND *o1,*o2;
 
@@ -3825,7 +3825,7 @@ STATIC OPND *asm_and_exp()
 /*******************************
  */
 
-STATIC OPND *asm_equal_exp()
+static OPND *asm_equal_exp()
 {
     OPND *o1,*o2;
 
@@ -3867,7 +3867,7 @@ STATIC OPND *asm_equal_exp()
 /*******************************
  */
 
-STATIC OPND *asm_rel_exp()
+static OPND *asm_rel_exp()
 {
     OPND *o1,*o2;
     TOK tok_save;
@@ -3919,7 +3919,7 @@ STATIC OPND *asm_rel_exp()
 /*******************************
  */
 
-STATIC OPND *asm_shift_exp()
+static OPND *asm_shift_exp()
 {
     OPND *o1,*o2;
     TOK tk;
@@ -3948,7 +3948,7 @@ STATIC OPND *asm_shift_exp()
 /*******************************
  */
 
-STATIC OPND *asm_add_exp()
+static OPND *asm_add_exp()
 {
     OPND *o1,*o2;
 
@@ -3985,7 +3985,7 @@ STATIC OPND *asm_add_exp()
 /*******************************
  */
 
-STATIC OPND *asm_mul_exp()
+static OPND *asm_mul_exp()
 {
     OPND *o1,*o2;
     OPND *popndTmp;
@@ -4063,7 +4063,7 @@ STATIC OPND *asm_mul_exp()
 /*******************************
  */
 
-STATIC OPND *asm_br_exp()
+static OPND *asm_br_exp()
 {
     OPND *o1,*o2;
 
@@ -4102,7 +4102,7 @@ STATIC OPND *asm_br_exp()
 /*******************************
  */
 
-STATIC OPND *asm_una_exp()
+static OPND *asm_una_exp()
 {
     OPND *o1;
     Type *ptype;
@@ -4269,7 +4269,7 @@ TYPE_REF:
 /*******************************
  */
 
-STATIC OPND *asm_primary_exp()
+static OPND *asm_primary_exp()
 {
     OPND *o1 = NULL;
     OPND *o2 = NULL;
@@ -4499,7 +4499,7 @@ Lret:
  */
 
 #if 0
-STATIC OPND *asm_prim_post(OPND *o1)
+static OPND *asm_prim_post(OPND *o1)
 {
     OPND *o2;
     Declaration *d = o1->s ? o1->s->isDeclaration() : NULL;
