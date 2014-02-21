@@ -45,6 +45,8 @@ void slist_reset();
 Classsym *fake_classsym(Identifier *id);
 Symbols *Symbols_create();
 type *Type_toCtype(Type *t);
+const char *mangleExact(FuncDeclaration *fd, bool isv = false);
+const char *mangle(Dsymbol *s, bool isv = false);
 
 /********************************* SymbolDeclaration ****************************/
 
@@ -60,7 +62,7 @@ Symbol *SymbolDeclaration::toSymbol()
 Symbol *Dsymbol::toSymbolX(const char *prefix, int sclass, type *t, const char *suffix)
 {
     //printf("Dsymbol::toSymbolX('%s')\n", prefix);
-    const char *n = mangle();
+    const char *n = mangle(this);
     assert(n);
     size_t nlen = strlen(n);
     size_t prefixlen = strlen(prefix);
@@ -169,7 +171,7 @@ Symbol *VarDeclaration::toSymbol()
         const char *id;
 
         if (isDataseg())
-            id = mangle();
+            id = mangle(this);
         else
             id = ident->toChars();
         Symbol *s = symbol_calloc(id);
@@ -341,7 +343,7 @@ Symbol *FuncDeclaration::toSymbol()
         TYPE *t;
         const char *id;
 
-        id = mangleExact();
+        id = mangleExact(this);
 
         //printf("FuncDeclaration::toSymbol(%s %s)\n", kind(), toChars());
         //printf("\tid = '%s'\n", id);

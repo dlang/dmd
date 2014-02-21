@@ -45,6 +45,7 @@ void functionToBufferWithIdent(TypeFunction *t, OutBuffer *buf, const char *iden
 TypeTuple *toArgTypes(Type *t);
 void toBufferShort(Type *t, OutBuffer *buf, HdrGenState *hgs);
 void accessCheck(AggregateDeclaration *ad, Loc loc, Scope *sc, Dsymbol *smember);
+const char *mangle(Dsymbol *s, bool isv = false);
 
 #define LOGSEMANTIC     0
 
@@ -6838,7 +6839,7 @@ Expression *DotIdExp::semanticX(Scope *sc)
                 ds = ((OverExp *)e1)->vars;
             L1:
             {
-                const char* s = ds->mangle();
+                const char* s = mangle(ds);
                 Expression *e = new StringExp(loc, (void*)s, strlen(s), 'c');
                 e = e->semantic(sc);
                 return e;

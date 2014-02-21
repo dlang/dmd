@@ -44,6 +44,7 @@ hash_t arrayObjectHash(Objects *oa1);
 void functionToBufferFull(TypeFunction *tf, OutBuffer *buf, Identifier *ident, HdrGenState* hgs, TypeFunction *attrs, TemplateDeclaration *td);
 unsigned char deduceWildHelper(Type *t, Type **at, Type *tparam);
 MATCH deduceTypeHelper(Type *t, Type **at, Type *tparam);
+const char *mangle(Dsymbol *s, bool isv = false);
 
 /********************************************
  * These functions substitute for dynamic_cast. dynamic_cast does not work
@@ -6851,7 +6852,7 @@ Identifier *TemplateInstance::genIdent(Objects *args)
                 }
             }
 #endif
-            const char *p = sa->mangle();
+            const char *p = mangle(sa);
 
             /* Bugzilla 3043: if the first character of p is a digit this
              * causes ambiguity issues because the digits of the two numbers are adjacent.

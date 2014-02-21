@@ -24,6 +24,8 @@
 #include "id.h"
 #include "module.h"
 
+const char *mangleExact(FuncDeclaration *fd, bool isv = false);
+
 StringTable builtins;
 
 void add_builtin(const char *mangle, builtin_fp fp)
@@ -214,7 +216,7 @@ BUILTIN isBuiltin(FuncDeclaration *fd)
 {
     if (fd->builtin == BUILTINunknown)
     {
-        builtin_fp fp = builtin_lookup(fd->mangleExact());
+        builtin_fp fp = builtin_lookup(mangleExact(fd));
         fd->builtin = fp ? BUILTINyes : BUILTINno;
     }
     return fd->builtin;
@@ -229,7 +231,7 @@ Expression *eval_builtin(Loc loc, FuncDeclaration *fd, Expressions *arguments)
 {
     if (fd->builtin == BUILTINyes)
     {
-        builtin_fp fp = builtin_lookup(fd->mangleExact());
+        builtin_fp fp = builtin_lookup(mangleExact(fd));
         assert(fp);
         return fp(loc, fd, arguments);
     }

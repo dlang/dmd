@@ -330,7 +330,6 @@ public:
     const char *kind();
     bool oneMember(Dsymbol **ps, Identifier *ident);
     char *toChars();
-    const char *mangle(bool isv = false);
     void printInstantiationTrace();
     Identifier *getIdent();
     int compare(RootObject *o);

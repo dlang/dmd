@@ -136,7 +136,6 @@ public:
 
     Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
 
-    const char *mangle(bool isv = false);
     bool isStatic() { return (storage_class & STCstatic) != 0; }
     virtual bool isDelete();
     virtual bool isDataseg();
@@ -199,7 +198,6 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
-    const char *mangle(bool isv = false);
     const char *kind();
     Type *getType();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -297,7 +295,6 @@ public:
     Dsymbol *toAlias();
     Symbol *toSymbol();
     void toObjFile(int multiobj);                       // compile to .obj file
-    const char *mangle(bool isv = false);
     // Eliminate need for dynamic_cast
     VarDeclaration *isVarDeclaration() { return (VarDeclaration *)this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -647,8 +644,6 @@ public:
     int getLevel(Loc loc, Scope *sc, FuncDeclaration *fd); // lexical nesting level difference
     void appendExp(Expression *e);
     void appendState(Statement *s);
-    const char *mangle(bool isv = false);
-    const char *mangleExact(bool isv = false);
     const char *toPrettyChars();
     const char *toFullSignature();  // for diagnostics, e.g. 'int foo(int x, int y) pure'
     bool isMain();
@@ -716,7 +711,6 @@ public:
     FuncAliasDeclaration *isFuncAliasDeclaration() { return this; }
     const char *kind();
     Symbol *toSymbol();
-    const char *mangle(bool isv = false);
 
     FuncDeclaration *toAliasFunc();
     void accept(Visitor *v) { v->visit(this); }
