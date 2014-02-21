@@ -2243,8 +2243,7 @@ void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
 
         // If the caller has a pure parent, then either the called func must be pure,
         // OR, they must have the same pure parent.
-        if (/*outerfunc->isPure() &&*/    // comment out because we deduce purity now
-            !f->isPure() && calledparent != outerfunc &&
+        if (!f->isPure() && calledparent != outerfunc &&
             !(sc->flags & SCOPEctfe))
         {
             if (outerfunc->setImpure())
