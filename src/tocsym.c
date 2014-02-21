@@ -47,6 +47,7 @@ Symbols *Symbols_create();
 type *Type_toCtype(Type *t);
 const char *mangleExact(FuncDeclaration *fd, bool isv = false);
 const char *mangle(Dsymbol *s, bool isv = false);
+dt_t **ClassReferenceExp_toInstanceDt(ClassReferenceExp *ce, dt_t **pdt);
 
 /********************************* SymbolDeclaration ****************************/
 
@@ -749,7 +750,7 @@ Symbol* ClassReferenceExp::toSymbol()
     s->Stype = t;
     value->sym = s;
     dt_t *d = NULL;
-    toInstanceDt(&d);
+    ClassReferenceExp_toInstanceDt(this, &d);
     s->Sdt = d;
     slist_add(s);
     outdata(s);
