@@ -2053,8 +2053,9 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
             //        tf->mod, tthis_fd->mod, fd->isolateReturn());
             if (MODimplicitConv(tf->mod, tthis_fd->mod) ||
                 tf->isWild() && tf->isShared() == tthis_fd->isShared() ||
-                fd->isolateReturn()/* && tf->isShared() == tthis_fd->isShared()*/)
+                fd->isolateReturn())
             {
+                /* && tf->isShared() == tthis_fd->isShared()*/
                 // Uniquely constructed object can ignore shared qualifier.
                 // TODO: Is this appropriate?
                 tthis_fd = NULL;
