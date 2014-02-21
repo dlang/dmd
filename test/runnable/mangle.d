@@ -45,21 +45,21 @@ void test10077i()
 // 2774
 
 int foo2774(int n) { return 0; }
-static assert(foo2774.mangleof == "_D7xtest467foo2774FiZi");
+static assert(foo2774.mangleof == "_D6mangle7foo2774FiZi");
 
 class C2774
 {
     int foo2774() { return 0; }
 }
-static assert(C2774.foo2774.mangleof == "_D7xtest465C27747foo2774MFZi");
+static assert(C2774.foo2774.mangleof == "_D6mangle5C27747foo2774MFZi");
 
 template TFoo2774(T) {}
-static assert(TFoo2774!int.mangleof == "7xtest4615__T8TFoo2774TiZ");
+static assert(TFoo2774!int.mangleof == "6mangle15__T8TFoo2774TiZ");
 
 void test2774()
 {
     int foo2774(int n) { return 0; }
-    static assert(foo2774.mangleof == "_D7xtest468test2774FZv7foo2774MFiZi");
+    static assert(foo2774.mangleof == "_D6mangle8test2774FZv7foo2774MFiZi");
 }
 
 /*******************************************/
@@ -85,10 +85,10 @@ void test8847a()
 
 // --------
 
-enum result8847a = "S6nested9iota8847aFZ6Result";
-enum result8847b = "S6nested9iota8847bFZ4iotaMFZ6Result";
-enum result8847c = "C6nested9iota8847cFZ6Result";
-enum result8847d = "C6nested9iota8847dFZ4iotaMFZ6Result";
+enum result8847a = "S6mangle9iota8847aFZ6Result";
+enum result8847b = "S6mangle9iota8847bFZ4iotaMFZ6Result";
+enum result8847c = "C6mangle9iota8847cFZ6Result";
+enum result8847d = "C6mangle9iota8847dFZ4iotaMFZ6Result";
 
 auto iota8847a()
 {
@@ -150,8 +150,8 @@ void test8847b()
 
 struct Test8847
 {
-    enum result1 = "S6nested8Test88478__T3fooZ3fooMFZ6Result";
-    enum result2 = "S6nested8Test88478__T3fooZ3fooMxFiZ6Result";
+    enum result1 = "S6mangle8Test88478__T3fooZ3fooMFZ6Result";
+    enum result2 = "S6mangle8Test88478__T3fooZ3fooMxFiZ6Result";
 
     auto foo()()
     {
@@ -182,8 +182,8 @@ void test8847c()
 
 void test8847d()
 {
-    enum resultS = "S6nested9test8847dFZv3fooMFZ3barMFZAya3bazMFZ1S";
-    enum resultX = "S6nested9test8847dFZv3fooMFZ1X";
+    enum resultS = "S6mangle9test8847dFZv3fooMFZ3barMFZAya3bazMFZ1S";
+    enum resultX = "S6mangle9test8847dFZv3fooMFZ1X";
     // Return types for test8847d and bar are mangled correctly,
     // and return types for foo and baz are not mangled correctly.
 
@@ -211,7 +211,7 @@ void test8847d()
 
 void test8847e()
 {
-    enum resultHere = "6nested"~"9test8847eFZv"~"8__T3fooZ"~"3foo";
+    enum resultHere = "6mangle"~"9test8847eFZv"~"8__T3fooZ"~"3foo";
     enum resultBar =  "S"~resultHere~"MFNaNfNgiZ3Bar";
     enum resultFoo = "_D"~resultHere~"MFNaNbNfNgiZNg"~resultBar;   // added 'Nb'
 
@@ -236,8 +236,8 @@ void f9525(T)(in T*) { }
 
 void test9525()
 {
-    enum result1 = "S6nested8test9525FZv26__T5test1S136nested5f9525Z5test1MFZ1S";
-    enum result2 = "S6nested8test9525FZv26__T5test2S136nested5f9525Z5test2MFNaNbZ1S";
+    enum result1 = "S6mangle8test9525FZv26__T5test1S136mangle5f9525Z5test1MFZ1S";
+    enum result2 = "S6mangle8test9525FZv26__T5test2S136mangle5f9525Z5test2MFNaNbZ1S";
 
     void test1(alias a)()
     {
@@ -276,22 +276,22 @@ class C10249
 {
     mixin Func10249!long;
     mixin Func10249!string;
-    static assert(Seq10249!(.func10249)[0].mangleof == "7breaker9func10249");           // <- 9func10249
-    static assert(Seq10249!( func10249)[0].mangleof == "7breaker6C102499func10249");    // <- 9func10249
+    static assert(Seq10249!(.func10249)[0].mangleof == "6mangle9func10249");           // <- 9func10249
+    static assert(Seq10249!( func10249)[0].mangleof == "6mangle6C102499func10249");    // <- 9func10249
 
 static: // necessary to make overloaded symbols accessible via __traits(getOverloads, C10249)
     void foo(long) {}
     void foo(string) {}
-    static assert(Seq10249!(foo)[0].mangleof                                   ==   "7breaker6C102493foo");         // <- _D7breaker6C102493fooFlZv
-    static assert(Seq10249!(__traits(getOverloads, C10249, "foo"))[0].mangleof == "_D7breaker6C102493fooFlZv");     // <-
-    static assert(Seq10249!(__traits(getOverloads, C10249, "foo"))[1].mangleof == "_D7breaker6C102493fooFAyaZv");   // <-
+    static assert(Seq10249!(foo)[0].mangleof                                   ==   "6mangle6C102493foo");         // <- _D6mangle6C102493fooFlZv
+    static assert(Seq10249!(__traits(getOverloads, C10249, "foo"))[0].mangleof == "_D6mangle6C102493fooFlZv");     // <-
+    static assert(Seq10249!(__traits(getOverloads, C10249, "foo"))[1].mangleof == "_D6mangle6C102493fooFAyaZv");   // <-
 
     void g(string) {}
     alias bar = .f10249;
     alias bar =  g;
-    static assert(Seq10249!(bar)[0].mangleof                                   ==   "7breaker6C102496f10249");      // <- _D7breaker1fFlZv (todo!)
-    static assert(Seq10249!(__traits(getOverloads, C10249, "bar"))[0].mangleof == "_D7breaker6f10249FlZv");         // <-
-    static assert(Seq10249!(__traits(getOverloads, C10249, "bar"))[1].mangleof == "_D7breaker6C102491gFAyaZv");     // <-
+    static assert(Seq10249!(bar)[0].mangleof                                   ==   "6mangle6C102496f10249");      // <- _D6mangle1fFlZv (todo!)
+    static assert(Seq10249!(__traits(getOverloads, C10249, "bar"))[0].mangleof == "_D6mangle6f10249FlZv");         // <-
+    static assert(Seq10249!(__traits(getOverloads, C10249, "bar"))[1].mangleof == "_D6mangle6C102491gFAyaZv");     // <-
 }
 
 /*******************************************/
@@ -308,17 +308,17 @@ void test11718()
     {
         enum s = "__T7Ty11718" ~ tail;
         enum int len = s.length;
-        return "S6nested" ~ len.stringof ~ s;
+        return "S6mangle" ~ len.stringof ~ s;
     }
     string fnName(string paramPart)()
     {
-        enum s = "_D6nested36__T7fn11718T"~
-                 "S6nested9test11718FZv1AZ7fn11718"~paramPart~"1a"~
-                 "S6nested9test11718FZv1A";
+        enum s = "_D6mangle36__T7fn11718T"~
+                 "S6mangle9test11718FZv1AZ7fn11718"~paramPart~"1a"~
+                 "S6mangle9test11718FZv1A";
         enum int len = s.length;
         return len.stringof ~ s;
     }
-    enum result1 = TyName!("S" ~ fnName!("F"~"S6nested9test11718FZv1A"~"Z") ~ "Z") ~ "7Ty11718";
+    enum result1 = TyName!("S" ~ fnName!("F"~"S6mangle9test11718FZv1A"~"Z") ~ "Z") ~ "7Ty11718";
     enum result2 = TyName!("S" ~ fnName!("F"~""                       ~"Z") ~ "Z") ~ "7Ty11718";
 
     struct A {}
@@ -341,8 +341,8 @@ void test11776()
         {
             auto s = S11776!(a => 1)();
             static assert(typeof(s).mangleof ==
-                "S"~"6nested"~"57"~(
-                    "__T"~"6S11776"~"S43"~("6nested"~"9test11776"~"FZv"~"9__lambda1MFZ"~"9__lambda1")~"Z"
+                "S"~"6mangle"~"57"~(
+                    "__T"~"6S11776"~"S43"~("6mangle"~"9test11776"~"FZv"~"9__lambda1MFZ"~"9__lambda1")~"Z"
                 )~"6S11776");
         }
     };
@@ -385,10 +385,10 @@ void test12217(int)
     int var;
     template X(T) {}
 
-    static assert(    S.mangleof ==  "S6nested9test12217FiZv1S");
-    static assert(  bar.mangleof == "_D6nested9test12217FiZv3barMFZv");
-    static assert(  var.mangleof == "_D6nested9test12217FiZv3vari");
-    static assert(X!int.mangleof ==   "6nested9test12217FiZv8__T1XTiZ");
+    static assert(    S.mangleof ==  "S6mangle9test12217FiZv1S");
+    static assert(  bar.mangleof == "_D6mangle9test12217FiZv3barMFZv");
+    static assert(  var.mangleof == "_D6mangle9test12217FiZv3vari");
+    static assert(X!int.mangleof ==   "6mangle9test12217FiZv8__T1XTiZ");
 }
 
 void test12217() {}
