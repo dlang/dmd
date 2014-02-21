@@ -908,8 +908,9 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
                 }
             }
 
+            // (2 ^^ n) ^^ p -> 1 << n * p
             if (e->e1->op == TOKint64 && e->e1->toInteger() > 0 &&
-                !((e->e1->toInteger() - 1) & e->e1->toInteger()) && // is power of two
+                !((e->e1->toInteger() - 1) & e->e1->toInteger()) &&
                 e->e2->type->isintegral() && e->e2->type->isunsigned())
             {
                 dinteger_t i = e->e1->toInteger();
