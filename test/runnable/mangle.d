@@ -59,7 +59,7 @@ static assert(TFoo2774!int.mangleof == "6mangle15__T8TFoo2774TiZ");
 void test2774()
 {
     int foo2774(int n) { return 0; }
-    static assert(foo2774.mangleof == "_D6mangle8test2774FZv7foo2774MFiZi");
+    static assert(foo2774.mangleof == "_D6mangle8test2774FZ7foo2774MFiZi");
 }
 
 /*******************************************/
@@ -182,8 +182,8 @@ void test8847c()
 
 void test8847d()
 {
-    enum resultS = "S6mangle9test8847dFZv3fooMFZ3barMFZAya3bazMFZ1S";
-    enum resultX = "S6mangle9test8847dFZv3fooMFZ1X";
+    enum resultS = "S6mangle9test8847dFZ3fooMFZ3barMFZ3bazMFZ1S";
+    enum resultX = "S6mangle9test8847dFZ3fooMFZ1X";
     // Return types for test8847d and bar are mangled correctly,
     // and return types for foo and baz are not mangled correctly.
 
@@ -211,7 +211,7 @@ void test8847d()
 
 void test8847e()
 {
-    enum resultHere = "6mangle"~"9test8847eFZv"~"8__T3fooZ"~"3foo";
+    enum resultHere = "6mangle"~"9test8847eFZ"~"8__T3fooZ"~"3foo";
     enum resultBar =  "S"~resultHere~"MFNaNfNgiZ3Bar";
     enum resultFoo = "_D"~resultHere~"MFNaNbNfNgiZNg"~resultBar;   // added 'Nb'
 
@@ -250,14 +250,45 @@ static assert(typeof(f8847a()).mangleof == "S6mangle6f8847aFNaZ1S");
 static assert(typeof(f8847b()).mangleof == "S6mangle6f8847bFNaZ1S");
 
 /*******************************************/
+// 12352
+
+auto bar12352()
+{
+    struct S { int var; void func() {} }
+
+    static assert(!__traits(compiles, bar12352.mangleof));   // forward reference to bar
+    static assert(S     .mangleof ==  "S6mangle8bar12352FZ1S");
+    static assert(S.func.mangleof == "_D6mangle8bar12352FZ1S4funcMFZv");
+
+    return S();
+}
+static assert(       bar12352        .mangleof == "_D6mangle8bar12352FZS6mangle8bar12352FZ1S");
+static assert(typeof(bar12352())     .mangleof ==  "S6mangle8bar12352FZ1S");
+static assert(typeof(bar12352()).func.mangleof == "_D6mangle8bar12352FZ1S4funcMFZv");
+
+auto baz12352()
+{
+    class C { int var; void func() {} }
+
+    static assert(!__traits(compiles, baz12352.mangleof));   // forward reference to baz
+    static assert(C     .mangleof ==  "C6mangle8baz12352FZ1C");
+    static assert(C.func.mangleof == "_D6mangle8baz12352FZ1C4funcMFZv");
+
+    return new C();
+}
+static assert(       baz12352        .mangleof == "_D6mangle8baz12352FZC6mangle8baz12352FZ1C");
+static assert(typeof(baz12352())     .mangleof ==  "C6mangle8baz12352FZ1C");
+static assert(typeof(baz12352()).func.mangleof == "_D6mangle8baz12352FZ1C4funcMFZv");
+
+/*******************************************/
 // 9525
 
 void f9525(T)(in T*) { }
 
 void test9525()
 {
-    enum result1 = "S6mangle8test9525FZv26__T5test1S136mangle5f9525Z5test1MFZ1S";
-    enum result2 = "S6mangle8test9525FZv26__T5test2S136mangle5f9525Z5test2MFNaNbZ1S";
+    enum result1 = "S6mangle8test9525FZ26__T5test1S136mangle5f9525Z5test1MFZ1S";
+    enum result2 = "S6mangle8test9525FZ26__T5test2S136mangle5f9525Z5test2MFNaNbZ1S";
 
     void test1(alias a)()
     {
@@ -332,14 +363,14 @@ void test11718()
     }
     string fnName(string paramPart)()
     {
-        enum s = "_D6mangle36__T7fn11718T"~
-                 "S6mangle9test11718FZv1AZ7fn11718"~paramPart~"1a"~
-                 "S6mangle9test11718FZv1A";
+        enum s = "_D6mangle35__T7fn11718T"~
+                 "S6mangle9test11718FZ1AZ7fn11718"~paramPart~"1a"~
+                 "S6mangle9test11718FZ1A";
         enum int len = s.length;
         return len.stringof ~ s;
     }
-    enum result1 = TyName!("S" ~ fnName!("F"~"S6mangle9test11718FZv1A"~"Z") ~ "Z") ~ "7Ty11718";
-    enum result2 = TyName!("S" ~ fnName!("F"~""                       ~"Z") ~ "Z") ~ "7Ty11718";
+    enum result1 = TyName!("S" ~ fnName!("F"~"S6mangle9test11718FZ1A"~"Z") ~ "Z") ~ "7Ty11718";
+    enum result2 = TyName!("S" ~ fnName!("F"~""                      ~"Z") ~ "Z") ~ "7Ty11718";
 
     struct A {}
     static assert(fn11718(A.init) == result1);
@@ -361,8 +392,8 @@ void test11776()
         {
             auto s = S11776!(a => 1)();
             static assert(typeof(s).mangleof ==
-                "S"~"6mangle"~"57"~(
-                    "__T"~"6S11776"~"S43"~("6mangle"~"9test11776"~"FZv"~"9__lambda1MFZ"~"9__lambda1")~"Z"
+                "S"~"6mangle"~"56"~(
+                    "__T"~"6S11776"~"S42"~("6mangle"~"9test11776"~"FZ"~"9__lambda1MFZ"~"9__lambda1")~"Z"
                 )~"6S11776");
         }
     };
@@ -405,10 +436,10 @@ void test12217(int)
     int var;
     template X(T) {}
 
-    static assert(    S.mangleof ==  "S6mangle9test12217FiZv1S");
-    static assert(  bar.mangleof == "_D6mangle9test12217FiZv3barMFZv");
-    static assert(  var.mangleof == "_D6mangle9test12217FiZv3vari");
-    static assert(X!int.mangleof ==   "6mangle9test12217FiZv8__T1XTiZ");
+    static assert(    S.mangleof ==  "S6mangle9test12217FiZ1S");
+    static assert(  bar.mangleof == "_D6mangle9test12217FiZ3barMFZv");
+    static assert(  var.mangleof == "_D6mangle9test12217FiZ3vari");
+    static assert(X!int.mangleof ==   "6mangle9test12217FiZ8__T1XTiZ");
 }
 
 void test12217() {}

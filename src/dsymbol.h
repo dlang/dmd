@@ -82,6 +82,9 @@ struct TYPE;
 // Back end
 struct Classsym;
 
+const char *mangle(Dsymbol *s);
+const char *mangleExact(FuncDeclaration *fd);
+
 enum PROT
 {
     PROTundefined,

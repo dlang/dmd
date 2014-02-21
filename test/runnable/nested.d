@@ -2324,7 +2324,7 @@ void xmap(alias g)(int t)
 
 enum foo11297 = function (int x)
    {
-//	int bar(int y) { return x; } xmap!bar(7);
+        //int bar(int y) { return x; } xmap!bar(7);
         xmap!(y => x)(7);
    };
 

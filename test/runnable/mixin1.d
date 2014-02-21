@@ -1254,8 +1254,8 @@ void test11767()
         mixin M11767!();
         alias S2 = S11767;
         static assert(!is(S1 == S2));
-        static assert(S1.mangleof == "S6mixin19test11767FZv8__mixin16S11767");
-        static assert(S2.mangleof == "S6mixin19test11767FZv8__mixin26S11767");
+        static assert(S1.mangleof == "S6mixin19test11767FZ8__mixin16S11767");
+        static assert(S2.mangleof == "S6mixin19test11767FZ8__mixin26S11767");
     }
     mixin M11767!();
     static assert(!__traits(compiles, S11767));
