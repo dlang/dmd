@@ -359,10 +359,14 @@ public:
             Dsymbol *par = ti->isTemplateMixin() ? ti->parent : ti->tempdecl->parent;
             if (par)
             {
-                const char *p = mangle(par, isv);
-                if (p[0] == '_' && p[1] == 'D')
-                    p += 2;
-                buf.writestring(p);
+                FuncDeclaration *f = par->isFuncDeclaration();
+                if (f)
+                    mangleExact(f);
+                else
+                    par->accept(this);
+                if (result[0] == '_' && result[1] == 'D')
+                    result += 2;
+                buf.writestring(result);
             }
         }
         buf.printf("%llu%s", (ulonglong)strlen(id), id);
