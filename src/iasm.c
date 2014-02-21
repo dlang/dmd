@@ -417,7 +417,6 @@ typedef struct opnd
 //
 // Exported functions called from the compiler
 //
-int asm_state(int iFlags);
 void iasm_term();
 
 //
@@ -442,7 +441,6 @@ static OPND *asm_equal_exp();
 static OPND *asm_inc_or_exp();
 static OPND *asm_log_and_exp();
 static OPND *asm_log_or_exp();
-static char asm_length_type_size(OPND *popnd);
 static void asm_token();
 static void asm_token_trans(Token *tok);
 static unsigned char asm_match_flags(opflag_t usOp , opflag_t usTable );
@@ -467,12 +465,9 @@ static OPND *asm_rel_exp();
 static OPND *asm_shift_exp();
 static OPND *asm_una_exp();
 static OPND *asm_xor_exp();
-static void *link_alloc(size_t, void *);
 static void asm_chktok(TOK toknum, const char *msg);
 static code *asm_db_parse(OP *pop);
 static code *asm_da_parse(OP *pop);
-
-unsigned compute_hashkey(char *);
 
 
 /*******************************
