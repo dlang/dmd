@@ -158,21 +158,6 @@ Symbol* ClassReferenceExp::toSymbol()
 
 // todt
 
-void ClassDeclaration::toDt(dt_t **pdt)
-{
-    assert(0);
-}
-
-void ClassDeclaration::toDt2(dt_t **pdt, ClassDeclaration *cd)
-{
-    assert(0);
-}
-
-void StructDeclaration::toDt(dt_t **pdt)
-{
-    assert(0);
-}
-
 dt_t **ClassReferenceExp::toDtI(dt_t **pdt, int off)
 {
     assert(0);

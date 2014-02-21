@@ -170,7 +170,6 @@ public:
     bool isPOD();
 
     void toObjFile(int multiobj);                       // compile to .obj file
-    void toDt(dt_t **pdt);
     void toDebug();                     // to symbolic debug info
 
     StructDeclaration *isStructDeclaration() { return this; }
@@ -295,8 +294,6 @@ public:
     unsigned baseVtblOffset(BaseClass *bc);
     Symbol *toSymbol();
     Symbol *toVtblSymbol();
-    void toDt(dt_t **pdt);
-    void toDt2(dt_t **pdt, ClassDeclaration *cd);
 
     Symbol *vtblsym;
 

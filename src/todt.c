@@ -37,6 +37,9 @@
 
 dt_t **Type_toDt(Type *t, dt_t **pdt);
 dt_t **toDtElem(TypeSArray *tsa, dt_t **pdt, Expression *e);
+void ClassDeclaration_toDt(ClassDeclaration *cd, dt_t **pdt);
+void membersToDt(ClassDeclaration *cd, dt_t **pdt, ClassDeclaration *concreteType);
+void StructDeclaration_toDt(StructDeclaration *sd, dt_t **pdt);
 
 /* ================================================================ */
 
@@ -511,7 +514,7 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
             SymbolDeclaration *sd = e->var->isSymbolDeclaration();
             if (sd && sd->dsym)
             {
-                sd->dsym->toDt(pdt);
+                StructDeclaration_toDt(sd->dsym, pdt);
                 return;
             }
         #if 0
@@ -584,36 +587,30 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
 
 // Generate the data for the static initializer.
 
-void ClassDeclaration::toDt(dt_t **pdt)
+void ClassDeclaration_toDt(ClassDeclaration *cd, dt_t **pdt)
 {
-    //printf("ClassDeclaration::toDt(this = '%s')\n", toChars());
+    //printf("ClassDeclaration::toDt(this = '%s')\n", cd->toChars());
 
     // Put in first two members, the vtbl[] and the monitor
-    dtxoff(pdt, toVtblSymbol(), 0);
-    if (!cpp)
+    dtxoff(pdt, cd->toVtblSymbol(), 0);
+    if (!cd->cpp)
         dtsize_t(pdt, 0);                    // monitor
 
     // Put in the rest
-    toDt2(pdt, this);
+    membersToDt(cd, pdt, cd);
 
-    //printf("-ClassDeclaration::toDt(this = '%s')\n", toChars());
+    //printf("-ClassDeclaration::toDt(this = '%s')\n", cd->toChars());
 }
 
-void ClassDeclaration::toDt2(dt_t **pdt, ClassDeclaration *cd)
+void membersToDt(ClassDeclaration *cd, dt_t **pdt, ClassDeclaration *concreteType)
 {
     unsigned offset;
-    dt_t *dt;
-    unsigned csymoffset;
 
-#define LOG 0
-
-#if LOG
-    printf("ClassDeclaration::toDt2(this = '%s', cd = '%s')\n", toChars(), cd->toChars());
-#endif
-    if (baseClass)
+    //printf("ClassDeclaration::toDt2(this = '%s', cd = '%s')\n", cd->toChars(), concreteType->toChars());
+    if (cd->baseClass)
     {
-        baseClass->toDt2(pdt, cd);
-        offset = baseClass->structsize;
+        membersToDt(cd->baseClass, pdt, concreteType);
+        offset = cd->baseClass->structsize;
     }
     else
     {
@@ -621,16 +618,16 @@ void ClassDeclaration::toDt2(dt_t **pdt, ClassDeclaration *cd)
     }
 
     // Note equivalence of this loop to struct's
-    for (size_t i = 0; i < fields.dim; i++)
+    for (size_t i = 0; i < cd->fields.dim; i++)
     {
-        VarDeclaration *v = fields[i];
-        Initializer *init;
+        VarDeclaration *v = cd->fields[i];
 
         //printf("\t\tv = '%s' v->offset = %2d, offset = %2d\n", v->toChars(), v->offset, offset);
-        dt = NULL;
-        init = v->init;
+        dt_t *dt = NULL;
+        Initializer *init = v->init;
         if (init)
-        {   //printf("\t\t%s has initializer %s\n", v->toChars(), init->toChars());
+        {
+            //printf("\t\t%s has initializer %s\n", v->toChars(), init->toChars());
             ExpInitializer *ei = init->isExpInitializer();
             Type *tb = v->type->toBasetype();
             if (init->isVoidInitializer())
@@ -641,13 +638,14 @@ void ClassDeclaration::toDt2(dt_t **pdt, ClassDeclaration *cd)
                 dt = Initializer_toDt(init);
         }
         else if (v->offset >= offset)
-        {   //printf("\t\tdefault initializer\n");
+        {
+            //printf("\t\tdefault initializer\n");
             Type_toDt(v->type, &dt);
         }
         if (dt)
         {
             if (v->offset < offset)
-                error("duplicated union initialization for %s", v->toChars());
+                cd->error("duplicated union initialization for %s", v->toChars());
             else
             {
                 if (offset < v->offset)
@@ -659,15 +657,16 @@ void ClassDeclaration::toDt2(dt_t **pdt, ClassDeclaration *cd)
     }
 
     // Interface vptr initializations
-    toSymbol();                                         // define csym
+    cd->toSymbol();                                         // define csym
 
-    for (size_t i = 0; i < vtblInterfaces->dim; i++)
-    {   BaseClass *b = (*vtblInterfaces)[i];
+    for (size_t i = 0; i < cd->vtblInterfaces->dim; i++)
+    {
+        BaseClass *b = (*cd->vtblInterfaces)[i];
 
-        for (ClassDeclaration *cd2 = cd; 1; cd2 = cd2->baseClass)
+        for (ClassDeclaration *cd2 = concreteType; 1; cd2 = cd2->baseClass)
         {
             assert(cd2);
-            csymoffset = cd2->baseVtblOffset(b);
+            unsigned csymoffset = cd2->baseVtblOffset(b);
             if (csymoffset != ~0)
             {
                 if (offset < b->offset)
@@ -679,21 +678,19 @@ void ClassDeclaration::toDt2(dt_t **pdt, ClassDeclaration *cd)
         offset = b->offset + Target::ptrsize;
     }
 
-    if (offset < structsize)
-        dtnzeros(pdt, structsize - offset);
-
-#undef LOG
+    if (offset < cd->structsize)
+        dtnzeros(pdt, cd->structsize - offset);
 }
 
-void StructDeclaration::toDt(dt_t **pdt)
+void StructDeclaration_toDt(StructDeclaration *sd, dt_t **pdt)
 {
-    //printf("StructDeclaration::toDt(), this='%s'\n", toChars());
-    StructLiteralExp *sle = StructLiteralExp::create(loc, this, NULL);
-    if (!fill(loc, sle->elements, true))
+    //printf("StructDeclaration::toDt(), this='%s'\n", sd->toChars());
+    StructLiteralExp *sle = StructLiteralExp::create(sd->loc, sd, NULL);
+    if (!sd->fill(sd->loc, sle->elements, true))
         assert(0);
 
     //printf("sd->toDt sle = %s\n", sle->toChars());
-    sle->type = type;
+    sle->type = sd->type;
     sle->toDt(pdt);
 }
 
@@ -731,7 +728,7 @@ dt_t **Type_toDt(Type *t, dt_t **pdt)
 
         void visit(TypeStruct *t)
         {
-            t->sym->toDt(pdt);
+            StructDeclaration_toDt(t->sym, pdt);
         }
 
         void visit(TypeTypedef *t)

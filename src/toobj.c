@@ -44,6 +44,8 @@ void obj_lzext(Symbol *s1,Symbol *s2);
 void TypeInfo_toDt(dt_t **pdt, TypeInfoDeclaration *d);
 dt_t *Initializer_toDt(Initializer *init);
 dt_t **Type_toDt(Type *t, dt_t **pdt);
+void ClassDeclaration_toDt(ClassDeclaration *cd, dt_t **pdt);
+void StructDeclaration_toDt(StructDeclaration *sd, dt_t **pdt);
 
 /* ================================================================== */
 
@@ -245,7 +247,7 @@ void ClassDeclaration::toObjFile(int multiobj)
     // Generate static initializer
     sinit->Sclass = scclass;
     sinit->Sfl = FLdata;
-    toDt(&sinit->Sdt);
+    ClassDeclaration_toDt(this, &sinit->Sdt);
     out_readonly(sinit);
     outdata(sinit);
 
@@ -837,7 +839,7 @@ void StructDeclaration::toObjFile(int multiobj)
             }
 
             sinit->Sfl = FLdata;
-            toDt(&sinit->Sdt);
+            StructDeclaration_toDt(this, &sinit->Sdt);
             dt_optimize(sinit->Sdt);
             out_readonly(sinit);    // put in read-only segment
             outdata(sinit);
