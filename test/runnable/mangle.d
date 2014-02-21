@@ -1,34 +1,23 @@
 // PERMUTE_ARGS:
-// EXTRA_SOURCES: imports/mangle1.d
+// EXTRA_SOURCES: imports/mangle10077.d
 
-import mangle1;
+/***************************************************/
+// 10077 - pragma(mangle)
 
-pragma(mangle, "_test1_") int test1;
+pragma(mangle, "_test10077a_") int test10077a;
+static assert(test10077a.mangleof == "_test10077a_");
 
-static assert(test1.mangleof == "_test1_");
+__gshared pragma(mangle, "_test10077b_") ubyte test10077b;
+static assert(test10077b.mangleof == "_test10077b_");
 
-__gshared pragma(mangle, "_test2_") ubyte test2;
+pragma(mangle, "_test10077c_") void test10077c() {}
+static assert(test10077c.mangleof == "_test10077c_");
 
-static assert(test2.mangleof == "_test2_");
+pragma(mangle, "_test10077f_") __gshared char test10077f;
+static assert(test10077f.mangleof == "_test10077f_");
 
-pragma(mangle, "_test3_") void test3()
-{
-}
-
-static assert(test3.mangleof == "_test3_");
-
-pragma(mangle, "_test6_") __gshared char test6;
-
-static assert(test6.mangleof == "_test6_");
-
-pragma(mangle, "_test7_") @system
-{
-    void test7()
-    {
-    }
-}
-
-static assert(test7.mangleof == "_test7_");
+pragma(mangle, "_test10077g_") @system { void test10077g() {} }
+static assert(test10077g.mangleof == "_test10077g_");
 
 template getModuleInfo(alias mod)
 {
@@ -36,22 +25,26 @@ template getModuleInfo(alias mod)
     enum getModuleInfo = &mi;
 }
 
-void test8()
+void test10077h()
 {
     assert(getModuleInfo!(object).name == "object");
 }
 
 //UTF-8 chars
-__gshared extern pragma(mangle, "test_эльфийские_письмена_9") ubyte test9_1_e;
+__gshared extern pragma(mangle, "test_эльфийские_письмена_9") ubyte test10077i_evar;
 
-void test9()
+void test10077i()
 {
-    setTest91();
-    assert(test9_1_e == 42);
+    import imports.mangle10077;
+
+    setTest10077i();
+    assert(test10077i_evar == 42);
 }
+
+/***************************************************/
 
 void main()
 {
-    test8();
-    test9();
+    test10077h();
+    test10077i();
 }
