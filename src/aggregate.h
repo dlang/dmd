@@ -119,12 +119,6 @@ public:
 
     const char *mangle(bool isv = false);
 
-    // For access checking
-    virtual PROT getAccess(Dsymbol *smember);   // determine access to smember
-    int isFriendOf(AggregateDeclaration *cd);
-    int hasPrivateAccess(Dsymbol *smember);     // does smember have private access to members of this class?
-    void accessCheck(Loc loc, Scope *sc, Dsymbol *smember);
-
     PROT prot();
 
     // Back end
@@ -177,8 +171,6 @@ public:
     void finalizeSize(Scope *sc);
     bool fill(Loc loc, Expressions *elements, bool ctorinit);
     bool isPOD();
-
-    PROT getAccess(Dsymbol *smember);   // determine access to smember
 
     void toObjFile(int multiobj);                       // compile to .obj file
     void toDt(dt_t **pdt);
@@ -298,8 +290,6 @@ public:
     virtual int vtblOffset();
     const char *kind();
     const char *mangle(bool isv = false);
-
-    PROT getAccess(Dsymbol *smember);   // determine access to smember
 
     void addLocalClass(ClassDeclarations *);
 

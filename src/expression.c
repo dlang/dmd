@@ -44,6 +44,7 @@ Expression *expandVar(int result, VarDeclaration *v);
 void functionToBufferWithIdent(TypeFunction *t, OutBuffer *buf, const char *ident);
 TypeTuple *toArgTypes(Type *t);
 void toBufferShort(Type *t, OutBuffer *buf, HdrGenState *hgs);
+void accessCheck(AggregateDeclaration *ad, Loc loc, Scope *sc, Dsymbol *smember);
 
 #define LOGSEMANTIC     0
 
@@ -4842,7 +4843,7 @@ Lagain:
             member = f->isCtorDeclaration();
             assert(member);
 
-            cd->accessCheck(loc, sc, member);
+            accessCheck(cd, loc, sc, member);
 
             TypeFunction *tf = (TypeFunction *)f->type;
 
@@ -4939,7 +4940,7 @@ Lagain:
             member = f->isCtorDeclaration();
             assert(member);
 
-            sd->accessCheck(loc, sc, member);
+            accessCheck(sd, loc, sc, member);
 
             TypeFunction *tf = (TypeFunction *)f->type;
 
