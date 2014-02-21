@@ -45,6 +45,7 @@
 
 FuncDeclaration *hasThis(Scope *sc);
 void toCBuffer(Type *t, OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
+const char *mangle(Dsymbol *s, bool isv = false);
 
 #define LOGDOTEXP       0       // log ::dotExp()
 #define LOGDEFAULTINIT  0       // log ::defaultInit()
@@ -7241,7 +7242,7 @@ Type *TypeEnum::toBasetype()
 
 void TypeEnum::toDecoBuffer(OutBuffer *buf, int flag)
 {
-    const char *name = sym->mangle();
+    const char *name = mangle(sym);
     Type::toDecoBuffer(buf, flag);
     buf->writestring(name);
 }
@@ -7460,7 +7461,7 @@ Dsymbol *TypeTypedef::toDsymbol(Scope *sc)
 void TypeTypedef::toDecoBuffer(OutBuffer *buf, int flag)
 {
     Type::toDecoBuffer(buf, flag);
-    const char *name = sym->mangle();
+    const char *name = mangle(sym);
     buf->writestring(name);
 }
 
@@ -7752,7 +7753,7 @@ Dsymbol *TypeStruct::toDsymbol(Scope *sc)
 
 void TypeStruct::toDecoBuffer(OutBuffer *buf, int flag)
 {
-    const char *name = sym->mangle();
+    const char *name = mangle(sym);
     //printf("TypeStruct::toDecoBuffer('%s') = '%s'\n", toChars(), name);
     Type::toDecoBuffer(buf, flag);
     buf->writestring(name);
@@ -8287,7 +8288,7 @@ Dsymbol *TypeClass::toDsymbol(Scope *sc)
 
 void TypeClass::toDecoBuffer(OutBuffer *buf, int flag)
 {
-    const char *name = sym->mangle();
+    const char *name = mangle(sym);
     //printf("TypeClass::toDecoBuffer('%s' flag=%d mod=%x) = '%s'\n", toChars(), flag, mod, name);
     Type::toDecoBuffer(buf, flag);
     buf->writestring(name);
