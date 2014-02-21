@@ -1879,10 +1879,10 @@ void expToCBuffer(OutBuffer *buf, HdrGenState *hgs, Expression *e, PREC pr)
     assert(pr != PREC_zero);
 
     //if (precedence[e->op] == 0) e->print();
+    /* Despite precedence, we don't allow a<b<c expressions.
+     * They must be parenthesized.
+     */
     if (precedence[e->op] < pr ||
-        /* Despite precedence, we don't allow a<b<c expressions.
-         * They must be parenthesized.
-         */
         (pr == PREC_rel && precedence[e->op] == pr))
     {
         buf->writeByte('(');
