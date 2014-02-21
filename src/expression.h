@@ -204,7 +204,7 @@ public:
     virtual Expression *checkToBoolean(Scope *sc);
     virtual Expression *addDtorHook(Scope *sc);
     Expression *checkToPointer();
-    Expression *addressOf(Scope *sc);
+    Expression *addressOf();
     Expression *deref();
 
     Expression *optimize(int result, bool keepLvalue = false)

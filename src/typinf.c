@@ -79,7 +79,7 @@ Expression *Type::getInternalTypeInfo(Scope *sc)
                 internalTI[t->ty] = tid;
             }
             e = VarExp::create(Loc(), tid);
-            e = e->addressOf(sc);
+            e = e->addressOf();
             e->type = tid->type;        // do this so we don't get redundant dereference
             return e;
 
@@ -151,7 +151,7 @@ Expression *Type::getTypeInfo(Scope *sc)
 {
     genTypeInfo(sc);
     Expression *e = VarExp::create(Loc(), vtinfo);
-    e = e->addressOf(sc);
+    e = e->addressOf();
     e->type = vtinfo->type;     // do this so we don't get redundant dereference
     return e;
 }

@@ -189,7 +189,7 @@ elem *callfunc(Loc loc,
                 {
                     // Convert argument to a pointer,
                     // use AddrExp::toElem()
-                    Expression *ae = arg->addressOf(NULL);
+                    Expression *ae = arg->addressOf();
                     ea = ae->toElem(irs);
                     goto L1;
                 }

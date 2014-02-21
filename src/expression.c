@@ -2448,11 +2448,25 @@ Expression *Expression::checkToPointer()
  * Take address of expression.
  */
 
-Expression *Expression::addressOf(Scope *sc)
+Expression *Expression::addressOf()
 {
     //printf("Expression::addressOf()\n");
-    Expression *e = toLvalue(sc, NULL);
-    e = new AddrExp(loc, e);
+#ifdef DEBUG
+    {
+        Expression *e = this;
+        while (e->op == TOKcomma)
+            e = ((CommaExp *)e)->e2;
+
+        /* VarExp::isLvalue() returns false if the variable has STCtemp.
+         * However in glue layer, a variable with STCtemp is address-able.
+         * So currently we cannot directly use e->isLvalue().
+         */
+        assert(e->op == TOKvar && ((VarExp *)e)->var->isVarDeclaration() ||
+               e->op == TOKerror ||
+               e->isLvalue());
+    }
+#endif
+    Expression *e = new AddrExp(loc, this);
     e->type = type->pointerTo();
     return e;
 }
@@ -12973,8 +12987,8 @@ Expression *CondExp::toLvalue(Scope *sc, Expression *ex)
 {
     // convert (econd ? e1 : e2) to *(econd ? &e1 : &e2)
     PtrExp *e = new PtrExp(loc, this, type);
-    e1 = e1->addressOf(sc);
-    e2 = e2->addressOf(sc);
+    e1 = e1->toLvalue(sc, NULL)->addressOf();
+    e2 = e2->toLvalue(sc, NULL)->addressOf();
     //typeCombine(this, sc);
     type = e2->type;
     return e;

@@ -325,7 +325,7 @@ Expression *Type::getTypeInfo(Scope *sc)
 {
     Declaration *ti = new TypeInfoDeclaration(this, 1);
     Expression *e = new VarExp(Loc(), ti);
-    e = e->addressOf(sc);
+    e = e->addressOf();
     e->type = ti->type;
     return e;
 }
