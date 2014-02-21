@@ -3241,9 +3241,9 @@ MATCH deduceType(Type *t, Scope *sc, Type *tparam, TemplateParameters *parameter
                             //printf("[%d] s = %s %s, s2 = %s %s\n", j, s->kind(), s->toChars(), s2->kind(), s2->toChars());
                             if (s != s2)
                             {
-                                if (Type *t = s2->getType())
+                                if (Type *tx = s2->getType())
                                 {
-                                    if (s != t->toDsymbol(sc))
+                                    if (s != tx->toDsymbol(sc))
                                         goto Lnomatch;
                                 }
                                 else
@@ -3586,8 +3586,8 @@ MATCH deduceType(Type *t, Scope *sc, Type *tparam, TemplateParameters *parameter
                     {
                         if (tupi == parameters->dim)
                             goto L1;
-                        TemplateParameter *t = (*parameters)[tupi];
-                        TemplateTupleParameter *tup = t->isTemplateTupleParameter();
+                        TemplateParameter *tx = (*parameters)[tupi];
+                        TemplateTupleParameter *tup = tx->isTemplateTupleParameter();
                         if (tup && tup->ident->equals(tid->ident))
                             break;
                     }
