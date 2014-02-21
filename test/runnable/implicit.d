@@ -92,6 +92,37 @@ void test5()
 
 /***********************************/
 
+int* pureMaker() pure
+{
+    return [1,2,3,4].ptr + 1;
+}
+
+void testDIP29_1()
+{
+    int* p;
+    //immutable x = p + 3;
+    immutable x = pureMaker() + 1;
+    immutable y = pureMaker() - 1;
+    immutable z = 1 + pureMaker();
+}
+
+/***********************************/
+
+int** pureMaker2() pure
+{
+    int*[] da = [[11,12,13].ptr, [21,22,23].ptr, [31,32,33].ptr, [41,42,43].ptr];
+    return da.ptr + 1;
+}
+
+void testDIP29_2()
+{
+    immutable x2 = pureMaker2() + 1;
+    immutable y2 = pureMaker2() - 1;
+    immutable z2 = 1 + pureMaker2();
+}
+
+/***********************************/
+
 void main()
 {
     test1();
@@ -99,6 +130,8 @@ void main()
     test3();
     test4();
     test5();
+    testDIP29_1();
+    testDIP29_2();
 
     writefln("Success");
 }
