@@ -116,7 +116,6 @@ public:
 
     static Module *load(Loc loc, Identifiers *packages, Identifier *ident);
 
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     const char *kind();
     File *setOutfile(const char *name, const char *dir, const char *arg, const char *ext);
     void setDocfile();
@@ -126,7 +125,6 @@ public:
     void semantic();    // semantic analysis
     void semantic2();   // pass 2 semantic analysis
     void semantic3();   // pass 3 semantic analysis
-    void genhdrfile();  // generate D import file
     void genobjfile(int multiobj);
     void gensymfile();
     void gendocfile();

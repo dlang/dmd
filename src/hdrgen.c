@@ -53,43 +53,44 @@ void linkageToBuffer(OutBuffer *buf, LINK linkage);
 void functionToBufferFull(TypeFunction *tf, OutBuffer *buf, Identifier *ident, HdrGenState* hgs, TypeFunction *attrs, TemplateDeclaration *td);
 void toBufferShort(Type *t, OutBuffer *buf, HdrGenState *hgs);
 void expToCBuffer(OutBuffer *buf, HdrGenState *hgs, Expression *e, PREC pr);
+void toCBuffer(Module *m, OutBuffer *buf, HdrGenState *hgs);
 
-void Module::genhdrfile()
+void genhdrfile(Module *m)
 {
     OutBuffer hdrbufr;
     hdrbufr.doindent = 1;
 
-    hdrbufr.printf("// D import file generated from '%s'", srcfile->toChars());
+    hdrbufr.printf("// D import file generated from '%s'", m->srcfile->toChars());
     hdrbufr.writenl();
 
     HdrGenState hgs;
     memset(&hgs, 0, sizeof(hgs));
     hgs.hdrgen = 1;
 
-    toCBuffer(&hdrbufr, &hgs);
+    toCBuffer(m, &hdrbufr, &hgs);
 
     // Transfer image to file
-    hdrfile->setbuffer(hdrbufr.data, hdrbufr.offset);
+    m->hdrfile->setbuffer(hdrbufr.data, hdrbufr.offset);
     hdrbufr.data = NULL;
 
-    ensurePathToNameExists(Loc(), hdrfile->toChars());
-    writeFile(loc, hdrfile);
+    ensurePathToNameExists(Loc(), m->hdrfile->toChars());
+    writeFile(m->loc, m->hdrfile);
 }
 
 
-void Module::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+void toCBuffer(Module *m, OutBuffer *buf, HdrGenState *hgs)
 {
-    if (md)
+    if (m->md)
     {
         buf->writestring("module ");
-        buf->writestring(md->toChars());
+        buf->writestring(m->md->toChars());
         buf->writeByte(';');
         buf->writenl();
     }
 
-    for (size_t i = 0; i < members->dim; i++)
-    {   Dsymbol *s = (*members)[i];
-
+    for (size_t i = 0; i < m->members->dim; i++)
+    {
+        Dsymbol *s = (*m->members)[i];
         s->toCBuffer(buf, hgs);
     }
 }
