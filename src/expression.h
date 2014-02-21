@@ -1153,6 +1153,8 @@ public:
 
     AssignExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
+    int isLvalue();
+    Expression *toLvalue(Scope *sc, Expression *ex);
     Expression *checkToBoolean(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
