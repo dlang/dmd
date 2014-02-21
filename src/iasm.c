@@ -65,7 +65,7 @@
 #define ADDFWAIT()      0
 
 // Additional tokens for the inline assembler
-typedef enum
+enum ASMTK
 {
     ASMTKlocalsize = TOKMAX + 1,
     ASMTKdword,
@@ -78,7 +78,7 @@ typedef enum
     ASMTKseg,
     ASMTKword,
     ASMTKmax = ASMTKword-(TOKMAX+1)+1
-} ASMTK;
+};
 
 static const char *apszAsmtk[ASMTKmax] =
 {
@@ -132,14 +132,14 @@ void init_optab();
 
 static unsigned char asm_TKlbra_seen = FALSE;
 
-typedef struct
+struct REG
 {
     char regstr[6];
     unsigned char val;
     opflag_t ty;
 
     bool isSIL_DIL_BPL_SPL();
-} REG;
+};
 
 static REG regFp =      { "ST", 0, _st };
 
@@ -388,15 +388,15 @@ bool REG::isSIL_DIL_BPL_SPL()
          (val == _SPL && strcmp(regstr, "SPL") == 0));
 }
 
-typedef enum
+enum ASM_JUMPTYPE
 {
     ASM_JUMPTYPE_UNSPECIFIED,
     ASM_JUMPTYPE_SHORT,
     ASM_JUMPTYPE_NEAR,
     ASM_JUMPTYPE_FAR
-} ASM_JUMPTYPE;             // ajt
+};             // ajt
 
-typedef struct opnd
+struct OPND
 {
     REG *base;              // if plain register
     REG *pregDisp1;         // if [register1]
@@ -414,11 +414,11 @@ typedef struct opnd
     Type *ptype;
     ASM_JUMPTYPE ajt;
 
-    opnd()
+    OPND()
     {
-        memset(this, 0, sizeof(opnd));
+        memset(this, 0, sizeof(OPND));
     }
-} OPND;
+};
 
 //
 // Exported functions called from the compiler
@@ -2393,7 +2393,7 @@ static void asm_make_modrm_byte(
 {
     #undef modregrm
 
-    typedef union
+    union MODRM_BYTE
     {
         unsigned char   uchOpcode;
         struct
@@ -2402,9 +2402,9 @@ static void asm_make_modrm_byte(
             unsigned reg : 3;
             unsigned mod : 2;
         } modregrm;
-    } MODRM_BYTE;                       // mrmb
+    };                       // mrmb
 
-    typedef union
+    union SIB_BYTE
     {
         unsigned char   uchOpcode;
         struct
@@ -2413,7 +2413,7 @@ static void asm_make_modrm_byte(
             unsigned index : 3;
             unsigned ss    : 2;
         } sib;
-    } SIB_BYTE;
+    };
 
 
     MODRM_BYTE  mrmb = { 0 };
