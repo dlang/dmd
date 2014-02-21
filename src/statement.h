@@ -765,6 +765,8 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
+Statement* asmSemantic(AsmStatement *s, Scope *sc);
+
 class AsmStatement : public Statement
 {
 public:
@@ -777,7 +779,10 @@ public:
 
     AsmStatement(Loc loc, Token *tokens);
     Statement *syntaxCopy();
-    Statement *semantic(Scope *sc);
+    Statement *semantic(Scope *sc)
+    {
+        return asmSemantic(this, sc);
+    }
     int blockExit(bool mustNotThrow);
 
     void accept(Visitor *v) { v->visit(this); }
