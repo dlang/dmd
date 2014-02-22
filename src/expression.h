@@ -757,6 +757,7 @@ public:
     UnaExp(Loc loc, TOK op, int size, Expression *e1);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
+    Expression *unaSemantic(Scope *sc);
     Expression *resolveLoc(Loc loc, Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
@@ -777,7 +778,8 @@ public:
     BinExp(Loc loc, TOK op, int size, Expression *e1, Expression *e2);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
-    Expression *semanticp(Scope *sc);
+    Expression *binSemantic(Scope *sc);
+    Expression *binSemanticProp(Scope *sc);
     Expression *checkComplexOpAssign(Scope *sc);
     int isunsigned();
     Expression *incompatibleTypes();
