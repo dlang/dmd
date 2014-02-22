@@ -942,9 +942,10 @@ bool arrayExpressionSemantic(Expressions *exps, Scope *sc)
             if (e)
             {
                 e = e->semantic(sc);
-                (*exps)[i] = e;
                 if (e->op == TOKerror)
                     err = true;
+                else
+                    (*exps)[i] = e;
             }
         }
     }
@@ -5422,7 +5423,8 @@ Expression *TupleExp::semantic(Scope *sc)
         }
         else if (e->op == TOKerror)
             err = true;
-        (*exps)[i] = e;
+        else
+            (*exps)[i] = e;
     }
     if (err)
         return new ErrorExp();
@@ -6264,9 +6266,10 @@ Expression *UnaExp::semantic(Scope *sc)
 #if LOGSEMANTIC
     printf("UnaExp::semantic('%s')\n", toChars());
 #endif
-    e1 = e1->semantic(sc);
-//    if (!e1->type)
-//      error("%s has no value", e1->toChars());
+    Expression *e1x = e1->semantic(sc);
+    if (e1x->op == TOKerror)
+        return e1x;
+    e1 = e1x;
     return this;
 }
 
@@ -6302,18 +6305,32 @@ Expression *BinExp::semantic(Scope *sc)
 #if LOGSEMANTIC
     printf("BinExp::semantic('%s')\n", toChars());
 #endif
-    e1 = e1->semantic(sc);
-    e2 = e2->semantic(sc);
-    if (e1->op == TOKerror || e2->op == TOKerror)
-        return new ErrorExp();
+    Expression *e1x = e1->semantic(sc);
+    Expression *e2x = e2->semantic(sc);
+    if (e1x->op == TOKerror)
+        return e1x;
+    if (e2x->op == TOKerror)
+        return e2x;
+    e1 = e1x;
+    e2 = e2x;
     return this;
 }
 
 Expression *BinExp::semanticp(Scope *sc)
 {
-    BinExp::semantic(sc);
-    e1 = resolveProperties(sc, e1);
-    e2 = resolveProperties(sc, e2);
+    if (Expression *ex = BinExp::semantic(sc))
+    {
+        if (ex->op == TOKerror)
+            return ex;
+    }
+    Expression *e1x = resolveProperties(sc, e1);
+    Expression *e2x = resolveProperties(sc, e2);
+    if (e1x->op == TOKerror)
+        return e1x;
+    if (e2x->op == TOKerror)
+        return e2x;
+    e1 = e1x;
+    e2 = e2x;
     return this;
 }
 
@@ -6754,7 +6771,11 @@ Expression *AssertExp::semantic(Scope *sc)
 #if LOGSEMANTIC
     printf("AssertExp::semantic('%s')\n", toChars());
 #endif
-    UnaExp::semantic(sc);
+    if (Expression *ex = UnaExp::semantic(sc))
+    {
+        if (ex->op == TOKerror)
+            return ex;
+    }
     e1 = resolveProperties(sc, e1);
     // BUG: see if we can do compile time elimination of the Assert
     e1 = e1->optimize(WANTvalue);
@@ -6832,12 +6853,15 @@ Expression *DotIdExp::semantic(Scope *sc)
 Expression *DotIdExp::semanticX(Scope *sc)
 {
     //printf("DotIdExp::semanticX(this = %p, '%s')\n", this, toChars());
-    UnaExp::semantic(sc);
-    if (e1->op == TOKerror)
-        return e1;
+    if (Expression *ex = UnaExp::semantic(sc))
+    {
+        if (ex->op == TOKerror)
+            return ex;
+    }
 
     if (ident == Id::mangleof)
-    {   // symbol.mangleof
+    {
+        // symbol.mangleof
         Dsymbol *ds;
         switch (e1->op)
         {
@@ -7699,7 +7723,11 @@ Expression *DotTypeExp::semantic(Scope *sc)
 #if LOGSEMANTIC
     printf("DotTypeExp::semantic('%s')\n", toChars());
 #endif
-    UnaExp::semantic(sc);
+    if (Expression *ex = UnaExp::semantic(sc))
+    {
+        if (ex->op == TOKerror)
+            return ex;
+    }
     return this;
 }
 
@@ -7921,10 +7949,10 @@ Lagain:
                 --nest;
                 return new ErrorExp();
             }
-            UnaExp::semantic(sc);
+            Expression *ex = UnaExp::semantic(sc);
             --nest;
-            if (e1->op == TOKerror)
-                return e1;
+            if (ex->op == TOKerror)
+                return ex;
         }
 
         /* Look for e1 being a lazy parameter
@@ -8633,9 +8661,11 @@ Expression *AddrExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    UnaExp::semantic(sc);
-    if (e1->type == Type::terror)
-        return new ErrorExp();
+    if (Expression *ex = UnaExp::semantic(sc))
+    {
+        if (ex->op == TOKerror)
+            return ex;
+    }
     int wasCond = e1->op == TOKquestion;
     if (e1->op == TOKdotti)
     {
@@ -9008,7 +9038,11 @@ Expression *NotExp::semantic(Scope *sc)
         return this;
 
     // Note there is no operator overload
-    UnaExp::semantic(sc);
+    if (Expression *ex = UnaExp::semantic(sc))
+    {
+        if (ex->op == TOKerror)
+            return ex;
+    }
     e1 = resolveProperties(sc, e1);
     e1 = e1->checkToBoolean(sc);
     if (e1->type == Type::terror)
@@ -9032,7 +9066,11 @@ Expression *BoolExp::semantic(Scope *sc)
         return this;
 
     // Note there is no operator overload
-    UnaExp::semantic(sc);
+    if (Expression *ex = UnaExp::semantic(sc))
+    {
+        if (ex->op == TOKerror)
+            return ex;
+    }
     e1 = resolveProperties(sc, e1);
     e1 = e1->checkToBoolean(sc);
     if (e1->type == Type::terror)
@@ -9051,7 +9089,11 @@ DeleteExp::DeleteExp(Loc loc, Expression *e)
 
 Expression *DeleteExp::semantic(Scope *sc)
 {
-    UnaExp::semantic(sc);
+    if (Expression *ex = UnaExp::semantic(sc))
+    {
+        if (ex->op == TOKerror)
+            return ex;
+    }
     e1 = resolveProperties(sc, e1);
     e1 = e1->modifiableLvalue(sc, NULL);
     if (e1->op == TOKerror)
@@ -9200,7 +9242,11 @@ Expression *CastExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    UnaExp::semantic(sc);
+    if (Expression *ex = UnaExp::semantic(sc))
+    {
+        if (ex->op == TOKerror)
+            return ex;
+    }
     e1 = resolveProperties(sc, e1);
 
     if (e1->type)               // if not a tuple
@@ -9480,7 +9526,11 @@ Expression *SliceExp::semantic(Scope *sc)
     ScopeDsymbol *sym;
 
 Lagain:
-    UnaExp::semantic(sc);
+    if (Expression *ex = UnaExp::semantic(sc))
+    {
+        if (ex->op == TOKerror)
+            return ex;
+    }
     e1 = resolveProperties(sc, e1);
     if (e1->op == TOKtype && e1->type->ty != Ttuple)
     {
@@ -9744,7 +9794,11 @@ Expression *ArrayLengthExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    UnaExp::semantic(sc);
+    if (Expression *ex = UnaExp::semantic(sc))
+    {
+        if (ex->op == TOKerror)
+            return ex;
+    }
     e1 = resolveProperties(sc, e1);
 
     type = Type::tsize_t;
@@ -9837,7 +9891,11 @@ Expression *ArrayExp::semantic(Scope *sc)
 #if LOGSEMANTIC
     printf("ArrayExp::semantic('%s')\n", toChars());
 #endif
-    UnaExp::semantic(sc);
+    if (Expression *ex = UnaExp::semantic(sc))
+    {
+        if (ex->op == TOKerror)
+            return ex;
+    }
     e1 = resolveProperties(sc, e1);
     if (e1->op == TOKerror)
         return e1;
@@ -9923,7 +9981,11 @@ Expression *CommaExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    BinExp::semanticp(sc);
+    if (Expression *ex = BinExp::semanticp(sc))
+    {
+        if (ex->op == TOKerror)
+            return ex;
+    }
     e1 = e1->addDtorHook(sc);
 
     type = e2->type;
@@ -10218,7 +10280,11 @@ Expression *PostExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    BinExp::semantic(sc);
+    if (Expression *ex = BinExp::semantic(sc))
+    {
+        if (ex->op == TOKerror)
+            return ex;
+    }
     e1 = resolveProperties(sc, e1);
 
     Expression *e = op_overload(sc);
@@ -11498,7 +11564,11 @@ Expression *AddExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    BinExp::semanticp(sc);
+    if (Expression *ex = BinExp::semanticp(sc))
+    {
+        if (ex->op == TOKerror)
+            return ex;
+    }
     Expression *e = op_overload(sc);
     if (e)
         return e;
@@ -11590,7 +11660,11 @@ Expression *MinExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    BinExp::semanticp(sc);
+    if (Expression *ex = BinExp::semanticp(sc))
+    {
+        if (ex->op == TOKerror)
+            return ex;
+    }
     Expression *e = op_overload(sc);
     if (e)
         return e;
@@ -11708,7 +11782,11 @@ Expression *CatExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    BinExp::semanticp(sc);
+    if (Expression *ex = BinExp::semanticp(sc))
+    {
+        if (ex->op == TOKerror)
+            return ex;
+    }
     Expression *e = op_overload(sc);
     if (e)
         return e;
@@ -11849,7 +11927,11 @@ Expression *MulExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    BinExp::semanticp(sc);
+    if (Expression *ex = BinExp::semanticp(sc))
+    {
+        if (ex->op == TOKerror)
+            return ex;
+    }
     Expression *e = op_overload(sc);
     if (e)
         return e;
@@ -11935,7 +12017,11 @@ Expression *DivExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    BinExp::semanticp(sc);
+    if (Expression *ex = BinExp::semanticp(sc))
+    {
+        if (ex->op == TOKerror)
+            return ex;
+    }
     Expression *e = op_overload(sc);
     if (e)
         return e;
@@ -12020,7 +12106,11 @@ Expression *ModExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    BinExp::semanticp(sc);
+    if (Expression *ex = BinExp::semanticp(sc))
+    {
+        if (ex->op == TOKerror)
+            return ex;
+    }
     Expression *e = op_overload(sc);
     if (e)
         return e;
@@ -12093,7 +12183,11 @@ Expression *PowExp::semantic(Scope *sc)
         return this;
 
     //printf("PowExp::semantic() %s\n", toChars());
-    BinExp::semanticp(sc);
+    if (Expression *ex = BinExp::semanticp(sc))
+    {
+        if (ex->op == TOKerror)
+            return ex;
+    }
     Expression *e = op_overload(sc);
     if (e)
         return e;
@@ -12199,7 +12293,11 @@ Expression *ShlExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    BinExp::semanticp(sc);
+    if (Expression *ex = BinExp::semanticp(sc))
+    {
+        if (ex->op == TOKerror)
+            return ex;
+    }
     Expression *e = op_overload(sc);
     if (e)
         return e;
@@ -12228,7 +12326,11 @@ Expression *ShrExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    BinExp::semanticp(sc);
+    if (Expression *ex = BinExp::semanticp(sc))
+    {
+        if (ex->op == TOKerror)
+            return ex;
+    }
     Expression *e = op_overload(sc);
     if (e)
         return e;
@@ -12257,7 +12359,11 @@ Expression *UshrExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    BinExp::semanticp(sc);
+    if (Expression *ex = BinExp::semanticp(sc))
+    {
+        if (ex->op == TOKerror)
+            return ex;
+    }
     Expression *e = op_overload(sc);
     if (e)
         return e;
@@ -12289,7 +12395,11 @@ Expression *AndExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    BinExp::semanticp(sc);
+    if (Expression *ex = BinExp::semanticp(sc))
+    {
+        if (ex->op == TOKerror)
+            return ex;
+    }
     Expression *e = op_overload(sc);
     if (e)
         return e;
@@ -12336,7 +12446,11 @@ Expression *OrExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    BinExp::semanticp(sc);
+    if (Expression *ex = BinExp::semanticp(sc))
+    {
+        if (ex->op == TOKerror)
+            return ex;
+    }
     Expression *e = op_overload(sc);
     if (e)
         return e;
@@ -12383,7 +12497,11 @@ Expression *XorExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    BinExp::semanticp(sc);
+    if (Expression *ex = BinExp::semanticp(sc))
+    {
+        if (ex->op == TOKerror)
+            return ex;
+    }
     Expression *e = op_overload(sc);
     if (e)
         return e;
@@ -12547,7 +12665,11 @@ Expression *InExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    BinExp::semanticp(sc);
+    if (Expression *ex = BinExp::semanticp(sc))
+    {
+        if (ex->op == TOKerror)
+            return ex;
+    }
     Expression *e = op_overload(sc);
     if (e)
         return e;
@@ -12606,8 +12728,11 @@ Expression *CmpExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    BinExp::semanticp(sc);
-
+    if (Expression *ex = BinExp::semanticp(sc))
+    {
+        if (ex->op == TOKerror)
+            return ex;
+    }
     Type *t1 = e1->type->toBasetype();
     Type *t2 = e2->type->toBasetype();
     if (t1->ty == Tclass && e2->op == TOKnull ||
@@ -12785,8 +12910,11 @@ Expression *EqualExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    BinExp::semanticp(sc);
-
+    if (Expression *ex = BinExp::semanticp(sc))
+    {
+        if (ex->op == TOKerror)
+            return ex;
+    }
     if (e1->op == TOKtype || e2->op == TOKtype)
         return incompatibleTypes();
 
@@ -12958,7 +13086,11 @@ Expression *IdentityExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    BinExp::semanticp(sc);
+    if (Expression *ex = BinExp::semanticp(sc))
+    {
+        if (ex->op == TOKerror)
+            return ex;
+    }
     type = Type::tboolean;
 
     Expression *e = typeCombine(this, sc);

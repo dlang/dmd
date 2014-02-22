@@ -906,7 +906,14 @@ Expression *op_overload(Expression *e, Scope *sc)
                 }
             }
 
-            e->BinExp::semantic(sc);
+            if (Expression *ex = e->BinExp::semantic(sc))
+            {
+                if (ex->op == TOKerror)
+                {
+                    result = ex;
+                    return;
+                }
+            }
             e->e1 = resolveProperties(sc, e->e1);
             e->e2 = resolveProperties(sc, e->e2);
 
