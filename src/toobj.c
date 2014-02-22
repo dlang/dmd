@@ -47,6 +47,11 @@ dt_t **Type_toDt(Type *t, dt_t **pdt);
 void ClassDeclaration_toDt(ClassDeclaration *cd, dt_t **pdt);
 void StructDeclaration_toDt(StructDeclaration *sd, dt_t **pdt);
 
+void toDebug(TypedefDeclaration *tdd);
+void toDebug(EnumDeclaration *ed);
+void toDebug(StructDeclaration *sd);
+void toDebug(ClassDeclaration *cd);
+
 /* ================================================================== */
 
 // Put out instance of ModuleInfo for this Module
@@ -219,7 +224,7 @@ void ClassDeclaration::toObjFile(int multiobj)
     }
 
     if (global.params.symdebug)
-        toDebug();
+        toDebug(this);
 
     assert(!scope);     // semantic() should have been run to completion
 
@@ -644,7 +649,7 @@ void InterfaceDeclaration::toObjFile(int multiobj)
         return;
 
     if (global.params.symdebug)
-        toDebug();
+        toDebug(this);
 
     scclass = SCglobal;
     if (isInstantiated())
@@ -821,7 +826,7 @@ void StructDeclaration::toObjFile(int multiobj)
     if (!isAnonymous() && members)
     {
         if (global.params.symdebug)
-            toDebug();
+            toDebug(this);
 
         type->genTypeInfo(NULL);
 
@@ -990,7 +995,7 @@ void TypedefDeclaration::toObjFile(int multiobj)
     }
 
     if (global.params.symdebug)
-        toDebug();
+        toDebug(this);
 
     type->genTypeInfo(NULL);
 
@@ -1030,7 +1035,7 @@ void EnumDeclaration::toObjFile(int multiobj)
         return;
 
     if (global.params.symdebug)
-        toDebug();
+        toDebug(this);
 
     type->genTypeInfo(NULL);
 

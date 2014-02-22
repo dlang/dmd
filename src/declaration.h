@@ -205,7 +205,6 @@ public:
     Type *hbasetype;
 
     void toObjFile(int multiobj);                       // compile to .obj file
-    void toDebug();
 
     TypedefDeclaration *isTypedefDeclaration() { return this; }
 

@@ -419,28 +419,6 @@ Expression *createTypeInfoArray(Scope *sc, Expression *exps[], size_t dim)
     return e;
 }
 
-// tocvdebug
-
-void TypedefDeclaration::toDebug()
-{
-    assert(0);
-}
-
-void EnumDeclaration::toDebug()
-{
-    assert(0);
-}
-
-void StructDeclaration::toDebug()
-{
-    assert(0);
-}
-
-void ClassDeclaration::toDebug()
-{
-    assert(0);
-}
-
 // lib
 
 Library *LibMSCoff_factory()
