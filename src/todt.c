@@ -44,6 +44,7 @@ dt_t **ClassReferenceExp_toDt(ClassReferenceExp *e, dt_t **pdt, int off);
 dt_t **ClassReferenceExp_toInstanceDt(ClassReferenceExp *ce, dt_t **pdt);
 dt_t **membersToDt(ClassReferenceExp *ce, dt_t **pdt, ClassDeclaration *cd, Dts *dts);
 dt_t **ClassReferenceExp_toDt(ClassReferenceExp *e, dt_t **pdt, int off);
+Symbol *toSymbol(Dsymbol *s);
 
 /* ================================================================ */
 
@@ -493,7 +494,7 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
                 e->error("non-constant expression %s", e->toChars());
                 return;
             }
-            pdt =  dtxoff(pdt, e->var->toSymbol(), e->offset);
+            pdt =  dtxoff(pdt, toSymbol(e->var), e->offset);
         }
 
         void visit(VarExp *e)
@@ -537,7 +538,7 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
                 e->fd->tok = TOKfunction;
                 e->fd->vthis = NULL;
             }
-            Symbol *s = e->fd->toSymbol();
+            Symbol *s = toSymbol(e->fd);
             if (e->fd->isNested())
             {
                 e->error("non-constant nested delegate literal expression %s", e->toChars());
@@ -661,7 +662,7 @@ void membersToDt(ClassDeclaration *cd, dt_t **pdt, ClassDeclaration *concreteTyp
     }
 
     // Interface vptr initializations
-    cd->toSymbol();                                         // define csym
+    toSymbol(cd);                                         // define csym
 
     for (size_t i = 0; i < cd->vtblInterfaces->dim; i++)
     {
@@ -675,7 +676,7 @@ void membersToDt(ClassDeclaration *cd, dt_t **pdt, ClassDeclaration *concreteTyp
             {
                 if (offset < b->offset)
                     dtnzeros(pdt, b->offset - offset);
-                dtxoff(pdt, cd2->toSymbol(), csymoffset);
+                dtxoff(pdt, toSymbol(cd2), csymoffset);
                 break;
             }
         }
@@ -954,7 +955,7 @@ dt_t **membersToDt(ClassReferenceExp *ce, dt_t **pdt, ClassDeclaration *cd, Dts 
     }
 
     // Interface vptr initializations
-    cd->toSymbol();                                         // define csym
+    toSymbol(cd);                                         // define csym
 
     for (size_t i = 0; i < cd->vtblInterfaces->dim; i++)
     {
@@ -967,7 +968,7 @@ dt_t **membersToDt(ClassReferenceExp *ce, dt_t **pdt, ClassDeclaration *cd, Dts 
             {
                 if (offset < b->offset)
                     dtnzeros(pdt, b->offset - offset);
-                dtxoff(pdt, cd2->toSymbol(), csymoffset);
+                dtxoff(pdt, toSymbol(cd2), csymoffset);
                 break;
             }
         }

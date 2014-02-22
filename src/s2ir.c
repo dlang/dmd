@@ -47,6 +47,7 @@ type *Type_toCtype(Type *t);
 elem *toElemDtor(Expression *e, IRState *irs);
 Symbol *toSymbol(Type *t);
 unsigned totym(Type *tx);
+Symbol *toSymbol(Dsymbol *s);
 
 #define elem_setLoc(e,loc)      ((e)->Esrcpos.Sfilename = (char *)(loc).filename, \
                                  (e)->Esrcpos.Slinnum = (loc).linnum, \
@@ -197,7 +198,7 @@ public:
             Dsymbol *sa = getDsymbol(e);
             FuncDeclaration *f = sa->isFuncDeclaration();
             assert(f);
-            Symbol *sym = f->toSymbol();
+            Symbol *sym = toSymbol(f);
             while (irs->prev)
                 irs = irs->prev;
             irs->startaddress = sym;
@@ -722,7 +723,7 @@ public:
 
         //printf("SwitchErrorStatement::toIR()\n");
 
-        elem *efilename = el_ptr(blx->module->toSymbol());
+        elem *efilename = el_ptr(toSymbol(blx->module));
         elem *elinnum = el_long(TYint, s->loc.linnum);
         elem *e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_DSWITCHERR]), el_param(elinnum, efilename));
         block_appendexp(blx->curblock, e);
@@ -935,7 +936,7 @@ public:
         else
         {
             // Declare with handle
-            sp = s->wthis->toSymbol();
+            sp = toSymbol(s->wthis);
             symbol_add(sp);
 
             // Perform initialization of with handle
@@ -1046,7 +1047,7 @@ public:
                     elem *ex = el_var(irs->sclosure);
                     ex = el_bin(OPadd, TYnptr, ex, el_long(TYsize_t, cs->var->offset));
                     ex = el_una(OPind, tym, ex);
-                    ex = el_bin(OPeq, tym, ex, el_var(cs->var->toSymbol()));
+                    ex = el_bin(OPeq, tym, ex, el_var(toSymbol(cs->var)));
                     block_appendexp(catchState.blx->curblock, ex);
                 }
                 Statement_toIR(cs->handler, &catchState);
@@ -1174,7 +1175,7 @@ public:
 
                 case FLdsymbol:
                 case FLfunc:
-                    sym = c->IEVdsym1->toSymbol();
+                    sym = toSymbol(c->IEVdsym1);
                     if (sym->Sclass == SCauto && sym->Ssymnum == -1)
                         symbol_add(sym);
                     c->IEVsym1 = sym;
@@ -1197,7 +1198,7 @@ public:
                 case FLdsymbol:
                 case FLfunc:
                     d = c->IEVdsym2;
-                    sym = d->toSymbol();
+                    sym = toSymbol(d);
                     if (sym->Sclass == SCauto && sym->Ssymnum == -1)
                         symbol_add(sym);
                     c->IEVsym2 = sym;

@@ -51,6 +51,7 @@ bool ISWIN64REF(Declaration *var);
 
 type *Type_toCtype(Type *t);
 unsigned totym(Type *tx);
+Symbol *toSymbol(Dsymbol *s);
 
 /*********************************************
  * Produce elem which increments the usage count for a particular line.
@@ -573,7 +574,7 @@ elem *resolveLengthVar(VarDeclaration *lengthVar, elem **pe, Type *t1)
             elength = el_una(I64 ? OP128_64 : OP64_32, TYsize_t, elength);
 
         L3:
-            slength = lengthVar->toSymbol();
+            slength = toSymbol(lengthVar);
             //symbol_add(slength);
 
             einit = el_bin(OPeq, TYsize_t, el_var(slength), elength);
@@ -737,7 +738,7 @@ void buildClosure(FuncDeclaration *fd, IRState *irs)
                 tym = TYdelegate;
             ex = el_bin(OPadd, TYnptr, el_var(sclosure), el_long(TYsize_t, v->offset));
             ex = el_una(OPind, tym, ex);
-            elem *ev = el_var(v->toSymbol());
+            elem *ev = el_var(toSymbol(v));
             if (win64ref)
             {
                 ev->Ety = TYnptr;

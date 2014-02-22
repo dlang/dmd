@@ -31,6 +31,7 @@
 #include "dt.h"
 
 Parameters *Parameters_create();
+Symbol *toSymbol(Dsymbol *s);
 
 /*******************************************
  * Get a canonicalized form of the TypeInfo for use with the internal
@@ -274,7 +275,7 @@ public:
         Type *tm = d->tinfo->mutableOf();
         tm = tm->merge();
         tm->genTypeInfo(NULL);
-        dtxoff(pdt, tm->vtinfo->toSymbol(), 0);
+        dtxoff(pdt, toSymbol(tm->vtinfo), 0);
     }
 
     void visit(TypeInfoInvariantDeclaration *d)
@@ -287,7 +288,7 @@ public:
         Type *tm = d->tinfo->mutableOf();
         tm = tm->merge();
         tm->genTypeInfo(NULL);
-        dtxoff(pdt, tm->vtinfo->toSymbol(), 0);
+        dtxoff(pdt, toSymbol(tm->vtinfo), 0);
     }
 
     void visit(TypeInfoSharedDeclaration *d)
@@ -300,7 +301,7 @@ public:
         Type *tm = d->tinfo->unSharedOf();
         tm = tm->merge();
         tm->genTypeInfo(NULL);
-        dtxoff(pdt, tm->vtinfo->toSymbol(), 0);
+        dtxoff(pdt, toSymbol(tm->vtinfo), 0);
     }
 
     void visit(TypeInfoWildDeclaration *d)
@@ -313,7 +314,7 @@ public:
         Type *tm = d->tinfo->mutableOf();
         tm = tm->merge();
         tm->genTypeInfo(NULL);
-        dtxoff(pdt, tm->vtinfo->toSymbol(), 0);
+        dtxoff(pdt, toSymbol(tm->vtinfo), 0);
     }
 
     void visit(TypeInfoTypedefDeclaration *d)
@@ -339,7 +340,7 @@ public:
         sd->basetype = sd->basetype->merge();
         sd->basetype->genTypeInfo(NULL);            // generate vtinfo
         assert(sd->basetype->vtinfo);
-        dtxoff(pdt, sd->basetype->vtinfo->toSymbol(), 0);   // TypeInfo for basetype
+        dtxoff(pdt, toSymbol(sd->basetype->vtinfo), 0);   // TypeInfo for basetype
 
         const char *name = sd->toPrettyChars();
         size_t namelen = strlen(name);
@@ -382,7 +383,7 @@ public:
         if (sd->memtype)
         {
             sd->memtype->genTypeInfo(NULL);
-            dtxoff(pdt, sd->memtype->vtinfo->toSymbol(), 0);        // TypeInfo for enum members
+            dtxoff(pdt, toSymbol(sd->memtype->vtinfo), 0);        // TypeInfo for enum members
         }
         else
             dtsize_t(pdt, 0);
@@ -419,7 +420,7 @@ public:
         TypePointer *tc = (TypePointer *)d->tinfo;
 
         tc->next->genTypeInfo(NULL);
-        dtxoff(pdt, tc->next->vtinfo->toSymbol(), 0); // TypeInfo for type being pointed to
+        dtxoff(pdt, toSymbol(tc->next->vtinfo), 0); // TypeInfo for type being pointed to
     }
 
     void visit(TypeInfoArrayDeclaration *d)
@@ -435,7 +436,7 @@ public:
         TypeDArray *tc = (TypeDArray *)d->tinfo;
 
         tc->next->genTypeInfo(NULL);
-        dtxoff(pdt, tc->next->vtinfo->toSymbol(), 0); // TypeInfo for array of type
+        dtxoff(pdt, toSymbol(tc->next->vtinfo), 0); // TypeInfo for array of type
     }
 
     void visit(TypeInfoStaticArrayDeclaration *d)
@@ -451,7 +452,7 @@ public:
         TypeSArray *tc = (TypeSArray *)d->tinfo;
 
         tc->next->genTypeInfo(NULL);
-        dtxoff(pdt, tc->next->vtinfo->toSymbol(), 0); // TypeInfo for array of type
+        dtxoff(pdt, toSymbol(tc->next->vtinfo), 0); // TypeInfo for array of type
 
         dtsize_t(pdt, tc->dim->toInteger());         // length
     }
@@ -469,7 +470,7 @@ public:
         TypeVector *tc = (TypeVector *)d->tinfo;
 
         tc->basetype->genTypeInfo(NULL);
-        dtxoff(pdt, tc->basetype->vtinfo->toSymbol(), 0); // TypeInfo for equivalent static array
+        dtxoff(pdt, toSymbol(tc->basetype->vtinfo), 0); // TypeInfo for equivalent static array
     }
 
     void visit(TypeInfoAssociativeArrayDeclaration *d)
@@ -485,10 +486,10 @@ public:
         TypeAArray *tc = (TypeAArray *)d->tinfo;
 
         tc->next->genTypeInfo(NULL);
-        dtxoff(pdt, tc->next->vtinfo->toSymbol(), 0); // TypeInfo for array of type
+        dtxoff(pdt, toSymbol(tc->next->vtinfo), 0); // TypeInfo for array of type
 
         tc->index->genTypeInfo(NULL);
-        dtxoff(pdt, tc->index->vtinfo->toSymbol(), 0); // TypeInfo for array of type
+        dtxoff(pdt, toSymbol(tc->index->vtinfo), 0); // TypeInfo for array of type
     }
 
     void visit(TypeInfoFunctionDeclaration *d)
@@ -504,7 +505,7 @@ public:
         TypeFunction *tc = (TypeFunction *)d->tinfo;
 
         tc->next->genTypeInfo(NULL);
-        dtxoff(pdt, tc->next->vtinfo->toSymbol(), 0); // TypeInfo for function return value
+        dtxoff(pdt, toSymbol(tc->next->vtinfo), 0); // TypeInfo for function return value
 
         const char *name = d->tinfo->deco;
         assert(name);
@@ -526,7 +527,7 @@ public:
         TypeDelegate *tc = (TypeDelegate *)d->tinfo;
 
         tc->next->nextOf()->genTypeInfo(NULL);
-        dtxoff(pdt, tc->next->nextOf()->vtinfo->toSymbol(), 0); // TypeInfo for delegate return value
+        dtxoff(pdt, toSymbol(tc->next->nextOf()->vtinfo), 0); // TypeInfo for delegate return value
 
         const char *name = d->tinfo->deco;
         assert(name);
@@ -586,7 +587,7 @@ public:
 
         if (FuncDeclaration *fd = search_toHash(sd))
         {
-            dtxoff(pdt, fd->toSymbol(), 0);
+            dtxoff(pdt, toSymbol(fd), 0);
             TypeFunction *tf = (TypeFunction *)fd->type;
             assert(tf->ty == Tfunction);
             /* I'm a little unsure this is the right way to do it. Perhaps a better
@@ -601,18 +602,18 @@ public:
             dtsize_t(pdt, 0);
 
         if (sd->xeq)
-            dtxoff(pdt, sd->xeq->toSymbol(), 0);
+            dtxoff(pdt, toSymbol(sd->xeq), 0);
         else
             dtsize_t(pdt, 0);
 
         if (sd->xcmp)
-            dtxoff(pdt, sd->xcmp->toSymbol(), 0);
+            dtxoff(pdt, toSymbol(sd->xcmp), 0);
         else
             dtsize_t(pdt, 0);
 
         if (FuncDeclaration *fd = search_toString(sd))
         {
-            dtxoff(pdt, fd->toSymbol(), 0);
+            dtxoff(pdt, toSymbol(fd), 0);
         }
         else
             dtsize_t(pdt, 0);
@@ -626,7 +627,7 @@ public:
         // xgetMembers
         FuncDeclaration *sgetmembers = sd->findGetMembers();
         if (sgetmembers)
-            dtxoff(pdt, sgetmembers->toSymbol(), 0);
+            dtxoff(pdt, toSymbol(sgetmembers), 0);
         else
             dtsize_t(pdt, 0);                        // xgetMembers
     #endif
@@ -634,14 +635,14 @@ public:
         // xdtor
         FuncDeclaration *sdtor = sd->dtor;
         if (sdtor)
-            dtxoff(pdt, sdtor->toSymbol(), 0);
+            dtxoff(pdt, toSymbol(sdtor), 0);
         else
             dtsize_t(pdt, 0);                        // xdtor
 
         // xpostblit
         FuncDeclaration *spostblit = sd->postblit;
         if (spostblit && !(spostblit->storage_class & STCdisable))
-            dtxoff(pdt, spostblit->toSymbol(), 0);
+            dtxoff(pdt, toSymbol(spostblit), 0);
         else
             dtsize_t(pdt, 0);                        // xpostblit
 
@@ -657,7 +658,7 @@ public:
                 if (t)
                 {
                     t->genTypeInfo(NULL);
-                    dtxoff(pdt, t->vtinfo->toSymbol(), 0);
+                    dtxoff(pdt, toSymbol(t->vtinfo), 0);
                 }
                 else
                     dtsize_t(pdt, 0);
@@ -696,7 +697,7 @@ public:
 
         if (!tc->sym->vclassinfo)
             tc->sym->vclassinfo = TypeInfoClassDeclaration::create(tc);
-        s = tc->sym->vclassinfo->toSymbol();
+        s = toSymbol(tc->sym->vclassinfo);
         dtxoff(pdt, s, 0);          // ClassInfo for tinfo
     }
 
