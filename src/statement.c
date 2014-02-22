@@ -2273,10 +2273,7 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
         {
             AddExp ea(loc, lwr, upr);
             if (Expression *ex = typeCombine(&ea, sc))
-            {
-                if (ex->op == TOKerror)
-                    return new ErrorStatement();
-            }
+                return new ErrorStatement();
             arg->type = ea.type;
             lwr = ea.e1;
             upr = ea.e2;
