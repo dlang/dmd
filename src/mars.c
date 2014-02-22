@@ -1014,9 +1014,10 @@ Language changes listed by -transition=id:\n\
                     global.params.moduleDepsFile = p + 1 + 5;
                     if (!global.params.moduleDepsFile[0])
                         goto Lnoarg;
-                } // Else output to stdout.
+                }
                 else if (p[5]!='\0')
                 {
+                    // Else output to stdout.
                     goto Lerror;
                 }
                 global.params.moduleDeps = new OutBuffer;

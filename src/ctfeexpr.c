@@ -249,12 +249,12 @@ Expression *copyLiteral(Expression *e)
         r->ownedByCtfe = true;
         return r;
     }
-    /* syntaxCopy doesn't work for struct literals, because of a nasty special
-     * case: block assignment is permitted inside struct literals, eg,
-     * an int[4] array can be initialized with a single int.
-     */
     else if (e->op == TOKstructliteral)
     {
+        /* syntaxCopy doesn't work for struct literals, because of a nasty special
+         * case: block assignment is permitted inside struct literals, eg,
+         * an int[4] array can be initialized with a single int.
+         */
         StructLiteralExp *se = (StructLiteralExp *)e;
         Expressions *oldelems = se->elements;
         Expressions * newelems = new Expressions();

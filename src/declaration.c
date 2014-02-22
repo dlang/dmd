@@ -1362,9 +1362,9 @@ Lnomatch:
         ExpInitializer *ei = init->isExpInitializer();
         if (ei && isScope())
         {
-            // See if initializer is a NewExp that can be allocated on the stack
             if (ei->exp->op == TOKnew)
             {
+                // See if initializer is a NewExp that can be allocated on the stack
                 NewExp *ne = (NewExp *)ei->exp;
                 if (!(ne->newargs && ne->newargs->dim))
                 {
@@ -1374,9 +1374,9 @@ Lnomatch:
                         onstack = 2;
                 }
             }
-            // or a delegate that doesn't escape a reference to the function
             else if (ei->exp->op == TOKfunction)
             {
+                // or a delegate that doesn't escape a reference to the function
                 FuncDeclaration *f = ((FuncExp *)ei->exp)->fd;
                 f->tookAddressOf--;
             }

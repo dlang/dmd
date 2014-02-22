@@ -244,17 +244,18 @@ void Scope::mergeCallSuper(Loc loc, unsigned cs)
 
         bool ok = true;
 
-        // If one has returned without a constructor call, there must be never
-        // have been ctor calls in the other.
         if ( (aRet && !aAny && bAny) ||
              (bRet && !bAny && aAny))
-        {   ok = false;
+        {
+            // If one has returned without a constructor call, there must be never
+            // have been ctor calls in the other.
+            ok = false;
         }
-        // If one branch has called a ctor and then exited, anything the
-        // other branch has done is OK (except returning without a
-        // ctor call, but we already checked that).
         else if (aRet && aAll)
         {
+            // If one branch has called a ctor and then exited, anything the
+            // other branch has done is OK (except returning without a
+            // ctor call, but we already checked that).
             callSuper |= cs & (CSXany_ctor | CSXlabel);
         }
         else if (bRet && bAll)
@@ -317,62 +318,6 @@ bool mergeFieldInit(Loc loc, unsigned &fieldInit, unsigned fi, bool mustInit)
 
         return ok;
     }
-#if 0
-    // This does a primitive flow analysis to support the restrictions
-    // regarding when and how constructors can appear.
-    // It merges the results of two paths.
-    // The two paths are fieldInit and fi; the result is merged into fieldInit.
-
-    if (fi != fieldInit)
-    {   // Have ALL branches called a constructor?
-        int aAll = (fi        & CSXthis_ctor) != 0;
-        int bAll = (fieldInit & CSXthis_ctor) != 0;
-
-        // Have ANY branches called a constructor?
-        bool aAny = (fi        & CSXany_ctor) != 0;
-        bool bAny = (fieldInit & CSXany_ctor) != 0;
-
-        // Have any branches returned?
-        bool aRet = (fi        & CSXreturn) != 0;
-        bool bRet = (fieldInit & CSXreturn) != 0;
-
-        bool ok = true;
-
-printf("L%d fieldInit = x%x, fi = x%x\n", __LINE__, fieldInit, fi);
-
-        // If one has returned without a constructor call, there must be never
-        // have been ctor calls in the other.
-        if ( (aRet && !aAny && bAny) ||
-             (bRet && !bAny && aAny))
-        {   ok = false;
-printf("L%d\n", __LINE__);
-        }
-        // If one branch has called a ctor and then exited, anything the
-        // other branch has done is OK (except returning without a
-        // ctor call, but we already checked that).
-        else if (aRet && aAll)
-        {
-            //fieldInit |= fi & (CSXany_ctor | CSXlabel);
-printf("L%d -> fieldInit = x%x\n", __LINE__, fieldInit);
-        }
-        else if (bRet && bAll)
-        {
-            fieldInit = fi;// | (fieldInit & (CSXany_ctor | CSXlabel));
-printf("L%d -> fieldInit = x%x\n", __LINE__, fieldInit);
-        }
-        else
-        {   // Both branches must have called ctors, or both not.
-            ok = (aAll == bAll);
-            // If one returned without a ctor, we must remember that
-            // (Don't bother if we've already found an error)
-            if (ok && aRet && !aAny)
-                fieldInit |= CSXreturn;
-            fieldInit |= fi & (CSXany_ctor | CSXlabel);
-printf("L%d ok = %d, fieldInit = x%x, fi = x%x\n", __LINE__, ok, fieldInit, fi);
-        }
-        return ok;
-    }
-#endif
     return true;
 }
 
