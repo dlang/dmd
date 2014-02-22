@@ -5825,6 +5825,30 @@ void test7436()
 }
 
 /***************************************************/
+// 12211
+
+void test12211()
+{
+    int a = 0;
+    void foo(ref int x)
+    {
+        assert(x == 10);
+        assert(&x == &a);
+        x = 3;
+    }
+    foo(a = 10);
+    assert(a == 3);
+    foo(a += 7);
+    assert(a == 3);
+
+    // array ops should make rvalue
+    int[3] sa, sb;
+    void bar(ref int[]) {}
+    static assert(!__traits(compiles, bar(sa[]  = sb[])));
+    static assert(!__traits(compiles, bar(sa[] += sb[])));
+}
+
+/***************************************************/
 
 int main()
 {
@@ -6115,6 +6139,7 @@ int main()
     test10633();
     test10642();
     test7436();
+    test12211();
 
     writefln("Success");
     return 0;
