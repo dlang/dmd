@@ -308,7 +308,7 @@ void Lexer::endOfLine()
 
 Loc Lexer::loc()
 {
-    scanloc.charnum = 1 + p-line;
+    scanloc.charnum = (unsigned)(1 + p-line);
     return scanloc;
 }
 
