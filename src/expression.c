@@ -11877,8 +11877,7 @@ Expression *CatExp::semantic(Scope *sc)
     else
     {
         //printf("(%s) ~ (%s)\n", e1->toChars(), e2->toChars());
-        incompatibleTypes();
-        return new ErrorExp();
+        return incompatibleTypes();
     }
 
     e->type = e->type->semantic(loc, sc);
@@ -12268,7 +12267,9 @@ Expression *ShlExp::semantic(Scope *sc)
     e2 = e2->checkIntegral();
     if (e1->type->toBasetype()->ty == Tvector ||
         e2->type->toBasetype()->ty == Tvector)
+    {
         return incompatibleTypes();
+    }
     e1 = integralPromotions(e1, sc);
     e2 = e2->castTo(sc, Type::tshiftcnt);
 
@@ -12298,7 +12299,9 @@ Expression *ShrExp::semantic(Scope *sc)
     e2 = e2->checkIntegral();
     if (e1->type->toBasetype()->ty == Tvector ||
         e2->type->toBasetype()->ty == Tvector)
+    {
         return incompatibleTypes();
+    }
     e1 = integralPromotions(e1, sc);
     e2 = e2->castTo(sc, Type::tshiftcnt);
 
@@ -12707,8 +12710,7 @@ Expression *CmpExp::semantic(Scope *sc)
     if (e1->op == TOKslice && t1->ty == Tarray && e2->implicitConvTo(t1->nextOf()) ||
         e2->op == TOKslice && t2->ty == Tarray && e1->implicitConvTo(t2->nextOf()))
     {
-        incompatibleTypes();
-        return new ErrorExp();
+        return incompatibleTypes();
     }
 
     if (Expression *ex = typeCombine(this, sc))
@@ -12926,8 +12928,7 @@ Expression *EqualExp::semantic(Scope *sc)
     if (e1->op == TOKslice && t1->ty == Tarray && e2->implicitConvTo(t1->nextOf()) ||
         e2->op == TOKslice && t2->ty == Tarray && e1->implicitConvTo(t2->nextOf()))
     {
-        incompatibleTypes();
-        return new ErrorExp();
+        return incompatibleTypes();
     }
 
     if (t1->ty == Tstruct && t2->ty == Tstruct)
