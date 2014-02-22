@@ -110,11 +110,11 @@ struct ASM_STATE
 #define ITSIZE          0x0F    // mask for size
 
     Loc loc;
-    unsigned char bInit;
+    bool bInit;
     LabelDsymbol *psDollar;
     Dsymbol *psLocalsize;
     jmp_buf env;
-    unsigned char bReturnax;
+    bool bReturnax;
     AsmStatement *statement;
     Scope *sc;
 };
@@ -130,7 +130,7 @@ const char *asm_opstr(OP *pop);
 OP *asm_op_lookup(const char *s);
 void init_optab();
 
-static unsigned char asm_TKlbra_seen = FALSE;
+static unsigned char asm_TKlbra_seen = 0;
 
 struct REG
 {
@@ -403,9 +403,9 @@ struct OPND
     REG *pregDisp2;
     REG *segreg;            // if segment override
     char indirect;          // if had a '*' or '->'
-    char bOffset;           // if 'offset' keyword
-    char bSeg;              // if 'segment' keyword
-    char bPtr;              // if 'ptr' keyword
+    bool bOffset;           // if 'offset' keyword
+    bool bSeg;              // if 'segment' keyword
+    bool bPtr;              // if 'ptr' keyword
     unsigned uchMultiplier; // register multiplier; valid values are 0,1,2,4,8
     opflag_t usFlags;
     Dsymbol *s;
@@ -447,8 +447,8 @@ static OPND *asm_log_and_exp();
 static OPND *asm_log_or_exp();
 static void asm_token();
 static void asm_token_trans(Token *tok);
-static unsigned char asm_match_flags(opflag_t usOp , opflag_t usTable );
-static unsigned char asm_match_float_flags(opflag_t usOp, opflag_t usTable);
+static bool asm_match_flags(opflag_t usOp , opflag_t usTable );
+static bool asm_match_float_flags(opflag_t usOp, opflag_t usTable);
 static void asm_make_modrm_byte(
 #ifdef DEBUG
         unsigned char *puchOpcode, unsigned *pusIdx,
@@ -503,10 +503,10 @@ static PTRNTAB asm_classify(OP *pop, OPND *popnd1, OPND *popnd2,
     opflag_t opflags2 = 0;
     opflag_t opflags3 = 0;
     opflag_t opflags4 = 0;
-    char    bFake = FALSE;
-    char    bInvalid64bit = FALSE;
+    bool    bFake = false;
+    bool    bInvalid64bit = false;
 
-    unsigned char   bMatch1, bMatch2, bMatch3, bMatch4, bRetry = FALSE;
+    bool   bMatch1, bMatch2, bMatch3, bMatch4, bRetry = false;
 
     // How many arguments are there?  the parser is strictly left to right
     // so this should work.
@@ -599,7 +599,7 @@ RETRY:
                     // Check if match is invalid in 64bit mode
                     if (I64 && (table1->usFlags & _i64_bit))
                     {
-                        bInvalid64bit = TRUE;
+                        bInvalid64bit = true;
                         continue;
                     }
 
@@ -692,7 +692,7 @@ TYPE_SIZE_ERROR:
                     else
                         asmerr("bad type/size of operands '%s'", asm_opstr(pop));
                 }
-                bRetry = TRUE;
+                bRetry = true;
                 goto RETRY;
             }
             ptbRet.pptb1 = table1;
@@ -734,7 +734,7 @@ TYPE_SIZE_ERROR:
                         if (popnd2->disp <= SCHAR_MAX)
                             break;
                         else
-                            bFake = TRUE;
+                            bFake = true;
                     }
                     else
                         break;
@@ -2333,7 +2333,7 @@ static void asm_merge_symbol(OPND *o1, Dsymbol *s)
     if (v)
     {
         if (v->isParameter())
-            asmstate.statement->refparam = TRUE;
+            asmstate.statement->refparam = true;
 
         v->checkNestedReference(asmstate.sc, asmstate.loc);
 #if 0
@@ -2418,18 +2418,18 @@ static void asm_make_modrm_byte(
 
     MODRM_BYTE  mrmb = { 0 };
     SIB_BYTE    sib = { 0 };
-    char                bSib = FALSE;
-    char                bDisp = FALSE;
+    bool                bSib = false;
+    bool                bDisp = false;
 #ifdef DEBUG
     unsigned char       *puc;
 #endif
-    char                bModset = FALSE;
+    bool                bModset = false;
     Dsymbol             *s;
 
     unsigned        uSizemask =0;
     ASM_OPERAND_TYPE    aopty;
     ASM_MODIFIERS           amod;
-    unsigned char           bOffsetsym = FALSE;
+    bool                bOffsetsym = false;
 
 #if 0
     printf("asm_make_modrm_byte(usFlags = x%x)\n", usFlags);
@@ -2581,7 +2581,7 @@ static void asm_make_modrm_byte(
         {
             rm = 0x6;
             if (!s)
-                bDisp = TRUE;
+                bDisp = true;
         }
         else
         {
@@ -2602,7 +2602,7 @@ static void asm_make_modrm_byte(
 
                 case X(_BP,_SI):        rm = 2; break;
                 case X(_BP,_DI):        rm = 3; break;
-                case Y(_BP):    rm = 6; bDisp = TRUE;   break;
+                case Y(_BP):    rm = 6; bDisp = true;   break;
 
                 case X(_SI,_BX):        rm = 0; break;
                 case X(_SI,_BP):        rm = 2; break;
@@ -2637,7 +2637,7 @@ static void asm_make_modrm_byte(
                 mrmb.modregrm.mod = 0X2;
         }
         else
-            bOffsetsym = TRUE;
+            bOffsetsym = true;
 
     }
     else if (amod == _addr32 || (amod == _flbl && I32))
@@ -2662,11 +2662,11 @@ static void asm_make_modrm_byte(
                 if (popnd->uchMultiplier &&
                     popnd->pregDisp1->val ==_ESP)
                     error(asmstate.loc, "ESP cannot be scaled index register");
-                bDisp = TRUE;
+                bDisp = true;
             }
 
             mrmb.modregrm.rm = 0x4;
-            bSib = TRUE;
+            bSib = true;
             if (bDisp)
             {
                 if (!popnd->uchMultiplier &&
@@ -2691,7 +2691,7 @@ static void asm_make_modrm_byte(
                     else
                     {
                         mrmb.modregrm.mod = 0x0;
-                        bModset = TRUE;
+                        bModset = true;
                     }
 
                     sib.sib.base = 0x5;
@@ -2719,9 +2719,9 @@ static void asm_make_modrm_byte(
                         printf("Setting the mod to 1 in the _EBP case\n");
 #endif
                     mrmb.modregrm.mod = 0x1;
-                    bDisp = TRUE;   // Need a
+                    bDisp = true;   // Need a
                                     // displacement
-                    bModset = TRUE;
+                    bModset = true;
                 }
 
                 sib.sib.index = popnd->pregDisp2->val & NUM_MASK;
@@ -2754,8 +2754,8 @@ static void asm_make_modrm_byte(
                     if (!popnd->disp && !s)
                     {
                         mrmb.modregrm.mod = 0x1;
-                        bDisp = TRUE;   // Need a displacement
-                        bModset = TRUE;
+                        bDisp = true;   // Need a displacement
+                        bModset = true;
                     }
                     rm = 5;
                     break;
@@ -2781,7 +2781,7 @@ static void asm_make_modrm_byte(
                 (!popnd->pregDisp1 && !popnd->pregDisp2))
             {
                 mrmb.modregrm.mod = 0x0;
-                bDisp = TRUE;
+                bDisp = true;
             }
             else if (popnd->disp >= CHAR_MIN &&
                      popnd->disp <= SCHAR_MAX)
@@ -2790,7 +2790,7 @@ static void asm_make_modrm_byte(
                 mrmb.modregrm.mod = 0x2;
         }
         else
-            bOffsetsym = TRUE;
+            bOffsetsym = true;
     }
     if (popnd2 && !mrmb.modregrm.reg &&
         asmstate.ucItype != ITshift &&
@@ -2909,7 +2909,7 @@ static regm_t asm_modify_regs(PTRNTAB ptb, OPND *popnd1, OPND *popnd2)
         /*usRet |= mES;*/
         break;
     case _modall:
-        asmstate.bReturnax = TRUE;
+        asmstate.bReturnax = true;
         return /*mES |*/ ALLREGS;
     case _modsiax:
         usRet |= (mSI | mAX);
@@ -2944,7 +2944,7 @@ static regm_t asm_modify_regs(PTRNTAB ptb, OPND *popnd1, OPND *popnd2)
         }
     }
     if (usRet & mAX)
-        asmstate.bReturnax = TRUE;
+        asmstate.bReturnax = true;
 
     return usRet;
 }
@@ -2952,10 +2952,10 @@ static regm_t asm_modify_regs(PTRNTAB ptb, OPND *popnd1, OPND *popnd2)
 /*******************************
  * Match flags in operand against flags in opcode table.
  * Returns:
- *      !=0 if match
+ *      true if match
  */
 
-static unsigned char asm_match_flags(opflag_t usOp, opflag_t usTable)
+static bool asm_match_flags(opflag_t usOp, opflag_t usTable)
 {
     ASM_OPERAND_TYPE    aoptyTable;
     ASM_OPERAND_TYPE    aoptyOp;
@@ -2964,7 +2964,7 @@ static unsigned char asm_match_flags(opflag_t usOp, opflag_t usTable)
     unsigned            uRegmaskTable;
     unsigned            uRegmaskOp;
     unsigned char       bRegmatch;
-    unsigned char       bRetval = FALSE;
+    bool                bRetval = false;
     unsigned            uSizemaskOp;
     unsigned            uSizemaskTable;
     unsigned            bSizematch;
@@ -3025,7 +3025,7 @@ static unsigned char asm_match_flags(opflag_t usOp, opflag_t usTable)
 
 
 //
-// The operand types must match, otherwise return FALSE.
+// The operand types must match, otherwise return false.
 // There is one exception for the _rm which is a table entry which matches
 // _reg or _m
 //
@@ -3089,13 +3089,13 @@ EXIT:
 
 Lmatch:
     //printf("match\n");
-    return 1;
+    return true;
 }
 
 /*******************************
  */
 
-static unsigned char asm_match_float_flags(opflag_t usOp, opflag_t usTable)
+static bool asm_match_float_flags(opflag_t usOp, opflag_t usTable)
 {
     ASM_OPERAND_TYPE    aoptyTable;
     ASM_OPERAND_TYPE    aoptyOp;
@@ -3115,19 +3115,19 @@ static unsigned char asm_match_float_flags(opflag_t usOp, opflag_t usTable)
 
     if (!(ASM_GET_uSizemask(usTable) & ASM_GET_uSizemask(usOp) ||
           bRegmatch))
-        return(FALSE);
+        return false;
 
     aoptyTable = ASM_GET_aopty(usTable);
     aoptyOp = ASM_GET_aopty(usOp);
 //
-// The operand types must match, otherwise return FALSE.
+// The operand types must match, otherwise return false.
 // There is one exception for the _rm which is a table entry which matches
 // _reg or _m
 //
     if (aoptyTable != aoptyOp)
     {
         if (aoptyOp != _float)
-            return(FALSE);
+            return false;
     }
 
 //
@@ -3147,16 +3147,16 @@ static unsigned char asm_match_float_flags(opflag_t usOp, opflag_t usTable)
                 case _fn16:
                 case _fn32:
                 case _flbl:
-                    return(TRUE);
+                    return true;
                 default:
-                    return(FALSE);
+                    return false;
             }
         case _rseg:
         case _rspecial:
-            return(FALSE);
+            return false;
         default:
             assert(0);
-            return 0;
+            return false;
     }
 }
 
@@ -3453,7 +3453,7 @@ static code *asm_da_parse(OP *pop)
     }
 
     asmstate.statement->regs |= mES|ALLREGS;
-    asmstate.bReturnax = TRUE;
+    asmstate.bReturnax = true;
 
     return clst;
 }
@@ -3650,7 +3650,7 @@ static code *asm_db_parse(OP *pop)
     c = asm_genloc(asmstate.loc, c);
 
     asmstate.statement->regs |= /* mES| */ ALLREGS;
-    asmstate.bReturnax = TRUE;
+    asmstate.bReturnax = true;
 
     return c;
 }
@@ -4113,7 +4113,7 @@ static OPND *asm_una_exp()
     OPND *o1;
     Type *ptype;
     ASM_JUMPTYPE ajt = ASM_JUMPTYPE_UNSPECIFIED;
-    char bPtr = 0;
+    bool bPtr = false;
 
     switch ((int)tok_value)
     {
@@ -4195,7 +4195,7 @@ static OPND *asm_una_exp()
                 o1 = asm_cond_exp();
                 if (!o1)
                     o1 = new OPND();
-                o1->bOffset= TRUE;
+                o1->bOffset = true;
             }
             else
                 o1 = asm_primary_exp();
@@ -4206,7 +4206,7 @@ static OPND *asm_una_exp()
             o1 = asm_cond_exp();
             if (!o1)
                 o1 = new OPND();
-            o1->bSeg= TRUE;
+            o1->bSeg = true;
             break;
 
         case TOKint16:
@@ -4255,7 +4255,7 @@ JUMP_REF2:
         case ASMTKword:
             ptype = Type::tint16;
 TYPE_REF:
-            bPtr = 1;
+            bPtr = true;
             asm_token();
             asm_chktok((TOK) ASMTKptr, "ptr expected");
             o1 = asm_cond_exp();
@@ -4589,7 +4589,7 @@ void iasm_term()
     {
         asmstate.psDollar = NULL;
         asmstate.psLocalsize = NULL;
-        asmstate.bInit = 0;
+        asmstate.bInit = false;
     }
 }
 
@@ -4643,9 +4643,9 @@ Statement* asmSemantic(AsmStatement *s, Scope *sc)
     // then always assume that the ASM block sets up an appropriate return
     // value.
 
-    asmstate.bReturnax = 1;
+    asmstate.bReturnax = true;
     if (sc->func->type->nextOf()->isscalar())
-        asmstate.bReturnax = 0;
+        asmstate.bReturnax = false;
 #endif
 
     // Assume assembler code takes care of setting the return value
@@ -4653,7 +4653,7 @@ Statement* asmSemantic(AsmStatement *s, Scope *sc)
 
     if (!asmstate.bInit)
     {
-        asmstate.bInit = TRUE;
+        asmstate.bInit = true;
         init_optab();
         asmstate.psDollar = LabelDsymbol::create(Id::__dollar);
         asmstate.psLocalsize = Dsymbol::create(Id::__LOCAL_SIZE);
@@ -4667,8 +4667,8 @@ Statement* asmSemantic(AsmStatement *s, Scope *sc)
     switch (tok_value)
     {
         case ASMTKnaked:
-            s->naked = TRUE;
-            sc->func->naked = TRUE;
+            s->naked = true;
+            sc->func->naked = true;
             asm_token();
             break;
 
