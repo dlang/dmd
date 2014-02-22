@@ -6492,8 +6492,8 @@ Expression *BinExp::incompatibleTypes()
         else
         {
             error("incompatible types for ((%s) %s (%s)): '%s' and '%s'",
-             e1->toChars(), Token::toChars(thisOp), e2->toChars(),
-             e1->type->toChars(), e2->type->toChars());
+                e1->toChars(), Token::toChars(thisOp), e2->toChars(),
+                e1->type->toChars(), e2->type->toChars());
         }
         return new ErrorExp();
     }
@@ -6520,9 +6520,11 @@ Expression *BinAssignExp::semantic(Scope *sc)
     if (e1->op == TOKslice || e1->type->ty == Tarray || e1->type->ty == Tsarray)
     {
         // T[] op= ...
-        e = typeCombine(this, sc);
-        if (e->op == TOKerror)
-            return e;
+        if (Expression *ex = typeCombine(this, sc))
+        {
+            if (ex->op == TOKerror)
+                return ex;
+        }
         type = e1->type;
         return arrayOp(this, sc);
     }
@@ -6548,7 +6550,11 @@ Expression *BinAssignExp::semantic(Scope *sc)
         e2->type->toBasetype()->isintegral())
         return scaleFactor(this, sc);
 
-    typeCombine(this, sc);
+    if (Expression *ex = typeCombine(this, sc))
+    {
+        if (ex->op == TOKerror)
+            return ex;
+    }
 
     if (arith)
     {
@@ -11470,9 +11476,11 @@ Expression *PowAssignExp::semantic(Scope *sc)
     if (e1->op == TOKslice || e1->type->ty == Tarray || e1->type->ty == Tsarray)
     {
         // T[] ^^= ...
-        e = typeCombine(this, sc);
-        if (e->op == TOKerror)
-            return e;
+        if (Expression *ex = typeCombine(this, sc))
+        {
+            if (ex->op == TOKerror)
+                return ex;
+        }
 
         // Check element types are arithmetic
         Type *tb1 = e1->type->nextOf()->toBasetype();
@@ -11574,7 +11582,11 @@ Expression *AddExp::semantic(Scope *sc)
         return incompatibleTypes();
     }
 
-    typeCombine(this, sc);
+    if (Expression *ex = typeCombine(this, sc))
+    {
+        if (ex->op == TOKerror)
+            return ex;
+    }
 
     Type *tb = type->toBasetype();
     if (tb->ty == Tarray || tb->ty == Tsarray)
@@ -11664,7 +11676,12 @@ Expression *MinExp::semantic(Scope *sc)
             // Replace (ptr - ptr) with (ptr - ptr) / stride
             d_int64 stride;
 
-            typeCombine(this, sc);            // make sure pointer types are compatible
+            // make sure pointer types are compatible
+            if (Expression *ex = typeCombine(this, sc))
+            {
+                if (ex->op == TOKerror)
+                    return ex;
+            }
 
             type = Type::tptrdiff_t;
             stride = t2->nextOf()->size();
@@ -11694,7 +11711,11 @@ Expression *MinExp::semantic(Scope *sc)
         return new ErrorExp();
     }
 
-    typeCombine(this, sc);
+    if (Expression *ex = typeCombine(this, sc))
+    {
+        if (ex->op == TOKerror)
+            return ex;
+    }
 
     Type *tb = type->toBasetype();
     if (tb->ty == Tarray || tb->ty == Tsarray)
@@ -11837,7 +11858,11 @@ Expression *CatExp::semantic(Scope *sc)
             e2 = e2->castTo(sc, t2);
     }
 
-    typeCombine(this, sc);
+    if (Expression *ex = typeCombine(this, sc))
+    {
+        if (ex->op == TOKerror)
+            return ex;
+    }
     type = type->toHeadMutable();
 
     Type *tb = type->toBasetype();
@@ -11901,7 +11926,11 @@ Expression *MulExp::semantic(Scope *sc)
     if (e)
         return e;
 
-    typeCombine(this, sc);
+    if (Expression *ex = typeCombine(this, sc))
+    {
+        if (ex->op == TOKerror)
+            return ex;
+    }
 
     Type *tb = type->toBasetype();
     if (tb->ty == Tarray || tb->ty == Tsarray)
@@ -11988,7 +12017,11 @@ Expression *DivExp::semantic(Scope *sc)
     if (e)
         return e;
 
-    typeCombine(this, sc);
+    if (Expression *ex = typeCombine(this, sc))
+    {
+        if (ex->op == TOKerror)
+            return ex;
+    }
 
     Type *tb = type->toBasetype();
     if (tb->ty == Tarray || tb->ty == Tsarray)
@@ -12074,7 +12107,11 @@ Expression *ModExp::semantic(Scope *sc)
     if (e)
         return e;
 
-    typeCombine(this, sc);
+    if (Expression *ex = typeCombine(this, sc))
+    {
+        if (ex->op == TOKerror)
+            return ex;
+    }
 
     Type *tb = type->toBasetype();
     if (tb->ty == Tarray || tb->ty == Tsarray)
@@ -12148,7 +12185,11 @@ Expression *PowExp::semantic(Scope *sc)
     if (e)
         return e;
 
-    typeCombine(this, sc);
+    if (Expression *ex = typeCombine(this, sc))
+    {
+        if (ex->op == TOKerror)
+            return ex;
+    }
 
     Type *tb = type->toBasetype();
     if (tb->ty == Tarray || tb->ty == Tsarray)
@@ -12216,9 +12257,12 @@ Expression *PowExp::semantic(Scope *sc)
 
         // Leave handling of PowExp to the backend, or throw
         // an error gracefully if no backend support exists.
-        typeCombine(this, sc);
-        e = this;
-        return e;
+        if (Expression *ex = typeCombine(this, sc))
+        {
+            if (ex->op == TOKerror)
+                return ex;
+        }
+        return this;
     }
     e = new ScopeExp(loc, mmath);
 
@@ -12355,7 +12399,11 @@ Expression *AndExp::semantic(Scope *sc)
         return this;
     }
 
-    typeCombine(this, sc);
+    if (Expression *ex = typeCombine(this, sc))
+    {
+        if (ex->op == TOKerror)
+            return ex;
+    }
 
     Type *tb = type->toBasetype();
     if (tb->ty == Tarray || tb->ty == Tsarray)
@@ -12403,7 +12451,11 @@ Expression *OrExp::semantic(Scope *sc)
         return this;
     }
 
-    typeCombine(this, sc);
+    if (Expression *ex = typeCombine(this, sc))
+    {
+        if (ex->op == TOKerror)
+            return ex;
+    }
 
     Type *tb = type->toBasetype();
     if (tb->ty == Tarray || tb->ty == Tsarray)
@@ -12451,7 +12503,11 @@ Expression *XorExp::semantic(Scope *sc)
         return this;
     }
 
-    typeCombine(this, sc);
+    if (Expression *ex = typeCombine(this, sc))
+    {
+        if (ex->op == TOKerror)
+            return ex;
+    }
 
     Type *tb = type->toBasetype();
     if (tb->ty == Tarray || tb->ty == Tsarray)
@@ -12699,9 +12755,11 @@ Expression *CmpExp::semantic(Scope *sc)
         return new ErrorExp();
     }
 
-    e = typeCombine(this, sc);
-    if (e->op == TOKerror)
-        return e;
+    if (Expression *ex = typeCombine(this, sc))
+    {
+        if (ex->op == TOKerror)
+            return ex;
+    }
 
     type = Type::tboolean;
 
@@ -12720,7 +12778,6 @@ Expression *CmpExp::semantic(Scope *sc)
             error("array comparison type mismatch, %s vs %s", t1next->toChars(), t2next->toChars());
             return new ErrorExp();
         }
-        e = this;
     }
     else if (t1->ty == Tstruct || t2->ty == Tstruct ||
              (t1->ty == Tclass && t2->ty == Tclass))
@@ -12749,7 +12806,6 @@ Expression *CmpExp::semantic(Scope *sc)
     {
         if (!e1->rvalue() || !e2->rvalue())
             return new ErrorExp();
-        e = this;
     }
 
     TOK altop;
@@ -12797,7 +12853,7 @@ Expression *CmpExp::semantic(Scope *sc)
     }
 
     //printf("CmpExp: %s, type = %s\n", e->toChars(), e->type->toChars());
-    return e;
+    return this;
 }
 
 /************************************************************/
@@ -12978,9 +13034,11 @@ Expression *EqualExp::semantic(Scope *sc)
         return e->semantic(sc);
     }
 
-    e = typeCombine(this, sc);
-    if (e->op == TOKerror)
-        return e;
+    if (Expression *ex = typeCombine(this, sc))
+    {
+        if (ex->op == TOKerror)
+            return ex;
+    }
 
     type = Type::tboolean;
 
@@ -13000,7 +13058,7 @@ Expression *EqualExp::semantic(Scope *sc)
     if (e1->type->toBasetype()->ty == Tvector)
         return incompatibleTypes();
 
-    return e;
+    return this;
 }
 
 /************************************************************/
@@ -13019,9 +13077,11 @@ Expression *IdentityExp::semantic(Scope *sc)
         return ex;
     type = Type::tboolean;
 
-    Expression *e = typeCombine(this, sc);
-    if (e->op == TOKerror)
-        return e;
+    if (Expression *ex = typeCombine(this, sc))
+    {
+        if (ex->op == TOKerror)
+            return ex;
+    }
 
     if (e1->type != e2->type && e1->type->isfloating() && e2->type->isfloating())
     {
@@ -13095,7 +13155,11 @@ Expression *CondExp::semantic(Scope *sc)
         type = t1;
     else
     {
-        typeCombine(this, sc);
+        if (Expression *ex = typeCombine(this, sc))
+        {
+            if (ex->op == TOKerror)
+                return ex;
+        }
         switch (e1->type->toBasetype()->ty)
         {
             case Tcomplex32:
@@ -13139,7 +13203,6 @@ Expression *CondExp::toLvalue(Scope *sc, Expression *ex)
     PtrExp *e = new PtrExp(loc, this, type);
     e1 = e1->toLvalue(sc, NULL)->addressOf();
     e2 = e2->toLvalue(sc, NULL)->addressOf();
-    //typeCombine(this, sc);
     type = e2->type;
     return e;
 }

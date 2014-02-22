@@ -2878,10 +2878,9 @@ Expression *typeCombine(BinExp *be, Scope *sc)
     return be;
 
 Lerror:
-    be->incompatibleTypes();
-    be->type = Type::terror;
-    be->e1 = new ErrorExp();
-    be->e2 = new ErrorExp();
+    Expression *ex = be->incompatibleTypes();
+    if (ex->op == TOKerror)
+        return ex;
     return new ErrorExp();
 }
 
