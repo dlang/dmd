@@ -2637,7 +2637,8 @@ bool FuncDeclaration::overloadInsert(Dsymbol *s)
     {   printf("type = %s\n", type->toChars());
         printf("fd->type = %s\n", fd->type->toChars());
     }
-    if (type && fd->type &&      // can be NULL for overloaded constructors
+    // fd->type can be NULL for overloaded constructors
+    if (type && fd->type &&
         fd->type->covariant(type) &&
         fd->type->mod == type->mod &&
         !isFuncAliasDeclaration())
@@ -3653,7 +3654,6 @@ bool FuncDeclaration::addPreInvariant()
     AggregateDeclaration *ad = isThis();
     ClassDeclaration *cd = ad ? ad->isClassDeclaration() : NULL;
     return (ad && !(cd && cd->isCPPclass()) &&
-            //ad->isClassDeclaration() &&
             global.params.useInvariants &&
             (protection == PROTprotected || protection == PROTpublic || protection == PROTexport) &&
             !naked &&
@@ -3666,7 +3666,6 @@ bool FuncDeclaration::addPostInvariant()
     ClassDeclaration *cd = ad ? ad->isClassDeclaration() : NULL;
     return (ad && !(cd && cd->isCPPclass()) &&
             ad->inv &&
-            //ad->isClassDeclaration() &&
             global.params.useInvariants &&
             (protection == PROTprotected || protection == PROTpublic || protection == PROTexport) &&
             !naked &&

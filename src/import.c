@@ -277,10 +277,10 @@ void Import::semantic(Scope *sc)
         sc = sc->pop();
     }
 
+    // object self-imports itself, so skip that (Bugzilla 7547)
+    // don't list pseudo modules __entrypoint.d, __main.d (Bugzilla 11117, 11164)
     if (global.params.moduleDeps != NULL &&
-        // object self-imports itself, so skip that (Bugzilla 7547)
         !(id == Id::object && sc->module->ident == Id::object) &&
-        // don't list pseudo modules __entrypoint.d, __main.d (Bugzilla 11117, 11164)
         sc->module->ident != Id::entrypoint &&
         strcmp(sc->module->ident->string, "__main") != 0)
     {

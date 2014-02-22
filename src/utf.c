@@ -243,7 +243,8 @@ const char *utf_decodeChar(utf8_t const *s, size_t len, size_t *pidx, dchar_t *p
      *      11111100 100000xx (10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx)
      */
     utf8_t u2 = s[++i];
-    if ((u & 0xFE) == 0xC0 ||           // overlong combination
+    // overlong combination
+    if ((u & 0xFE) == 0xC0 ||
         (u == 0xE0 && (u2 & 0xE0) == 0x80) ||
         (u == 0xF0 && (u2 & 0xF0) == 0x80) ||
         (u == 0xF8 && (u2 & 0xF8) == 0x80) ||

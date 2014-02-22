@@ -2013,8 +2013,9 @@ TOK Lexer::number(Token *t)
         }
         n = n2 + d;
 
+        // if n needs more than 64 bits
         if (sizeof(n) > 8 &&
-            n > 0xFFFFFFFFFFFFFFFFULL &&    // if n needs more than 64 bits
+            n > 0xFFFFFFFFFFFFFFFFULL &&
             !err)
         {
             error("integer overflow");

@@ -1548,7 +1548,8 @@ Parameters *Parser::parseParameters(int *pvarargs, TemplateParameters **tpl)
                 default:
                 Ldefault:
                 {   stc = storageClass & (STCin | STCout | STCref | STClazy);
-                    if (stc & (stc - 1) &&        // if stc is not a power of 2
+                    // if stc is not a power of 2
+                    if (stc & (stc - 1) &&
                         !(stc == (STCin | STCref)))
                         error("incompatible parameter storage classes");
                     if ((storageClass & STCscope) && (storageClass & (STCref | STCout)))
