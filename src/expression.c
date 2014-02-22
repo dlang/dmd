@@ -12760,6 +12760,25 @@ PowExp::PowExp(Loc loc, Expression *e1, Expression *e2)
 {
 }
 
+Module *loadStdMath()
+{
+    static Import *impStdMath = NULL;
+    if (!impStdMath)
+    {
+        Identifiers *a = new Identifiers();
+        a->push(Id::std);
+        Import *s = new Import(Loc(), a, Id::math, NULL, false);
+        s->load(NULL);
+        if (s->mod)
+        {
+            s->mod->importAll(NULL);
+            s->mod->semantic();
+        }
+        impStdMath = s;
+    }
+    return impStdMath->mod;
+}
+
 Expression *PowExp::semantic(Scope *sc)
 {
     if (type)
@@ -12830,36 +12849,23 @@ Expression *PowExp::semantic(Scope *sc)
         return e;
     }
 
-    static int importMathChecked = 0;
-    static bool importMath = false;
-    if (!importMathChecked)
+    Module *mmath = loadStdMath();
+    if (!mmath)
     {
-        importMathChecked = 1;
-        for (size_t i = 0; i < Module::amodules.dim; i++)
-        {   Module *mi = Module::amodules[i];
-            //printf("\t[%d] %s\n", i, mi->toChars());
-            if (mi->ident == Id::math &&
-                mi->parent->ident == Id::std &&
-                !mi->parent->parent)
-            {
-                importMath = true;
-                break;
-            }
-        }
-    }
-    if (!importMath)
-    {   // Leave handling of PowExp to the backend, or throw
+        //error("requires std.math for ^^ operators");
+        //fatal();
+
+        // Leave handling of PowExp to the backend, or throw
         // an error gracefully if no backend support exists.
         typeCombine(sc);
         e = this;
         return e;
     }
+    e = new ScopeExp(loc, mmath);
 
-    e = new IdentifierExp(loc, Id::empty);
-    e = new DotIdExp(loc, e, Id::std);
-    e = new DotIdExp(loc, e, Id::math);
     if (e2->op == TOKfloat64 && e2->toReal() == 0.5)
-    {   // Replace e1 ^^ 0.5 with .std.math.sqrt(x)
+    {
+        // Replace e1 ^^ 0.5 with .std.math.sqrt(x)
         e = new CallExp(loc, new DotIdExp(loc, e, Id::_sqrt), e1);
     }
     else
