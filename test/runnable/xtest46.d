@@ -4237,27 +4237,6 @@ void test6293() {
 }
 
 /***************************************************/
-// 2774
-
-int foo2774(int n){ return 0; }
-static assert(foo2774.mangleof == "_D7xtest467foo2774FiZi");
-
-class C2774
-{
-    int foo2774(){ return 0; }
-}
-static assert(C2774.foo2774.mangleof == "_D7xtest465C27747foo2774MFZi");
-
-template TFoo2774(T){}
-static assert(TFoo2774!int.mangleof == "7xtest4615__T8TFoo2774TiZ");
-
-void test2774()
-{
-    int foo2774(int n){ return 0; }
-    static assert(foo2774.mangleof == "_D7xtest468test2774FZv7foo2774MFiZi");
-}
-
-/***************************************************/
 // 3733
 
 class C3733
@@ -6881,32 +6860,6 @@ void test11317()
 
 /***************************************************/
 
-struct S12044(T)
-{
-    void f()()
-    {
-        new T[1];
-    }
-
-    bool opEquals(O)(O)
-    {
-        f();
-    }
-}
-
-void test12044()
-{
-    ()
-    {
-        enum E { e }
-        auto arr = [E.e];
-        S12044!E s;
-    }
-    ();
-}
-
-/***************************************************/
-
 int main()
 {
     test1();
@@ -7105,7 +7058,6 @@ int main()
     test6335();
     test1687();
     test6228();
-    test2774();
     test3733();
     test4392();
     test6220();
@@ -7190,7 +7142,6 @@ int main()
     test7254();
     test11075();
     test11317();
-    test12044();
 
     printf("Success\n");
     return 0;
