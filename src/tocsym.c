@@ -49,13 +49,6 @@ const char *mangleExact(FuncDeclaration *fd, bool isv = false);
 const char *mangle(Dsymbol *s, bool isv = false);
 dt_t **ClassReferenceExp_toInstanceDt(ClassReferenceExp *ce, dt_t **pdt);
 
-/********************************* SymbolDeclaration ****************************/
-
-Symbol *SymbolDeclaration::toSymbol()
-{
-    return dsym->toInitializer();
-}
-
 /*************************************
  * Helper
  */
@@ -89,17 +82,358 @@ Symbol *Dsymbol::toSymbolX(const char *prefix, int sclass, type *t, const char *
     return s;
 }
 
+static Classsym *scc;
+
 /*************************************
  */
 
-Symbol *Dsymbol::toSymbol()
+Symbol *toSymbol(Dsymbol *s)
 {
-    printf("Dsymbol::toSymbol() '%s', kind = '%s'\n", toChars(), kind());
-#ifdef DEBUG
-    halt();
-#endif
-    assert(0);          // BUG: implement
-    return NULL;
+    class ToSymbol : public Visitor
+    {
+    public:
+        Symbol *result;
+
+        ToSymbol()
+        {
+            result = NULL;
+        }
+
+        void visit(Dsymbol *s)
+        {
+            printf("Dsymbol::toSymbol() '%s', kind = '%s'\n", s->toChars(), s->kind());
+            assert(0);          // BUG: implement
+        }
+
+        void visit(SymbolDeclaration *sd)
+        {
+            result = sd->dsym->toInitializer();
+        }
+
+        void visit(VarDeclaration *vd)
+        {
+            //printf("VarDeclaration::toSymbol(%s)\n", vd->toChars());
+            assert(!vd->needThis());
+            if (!vd->csym)
+            {
+                const char *id;
+                if (vd->isDataseg())
+                    id = mangle(vd);
+                else
+                    id = vd->ident->toChars();
+                Symbol *s = symbol_calloc(id);
+                s->Salignment = vd->alignment;
+                if (vd->storage_class & STCtemp)
+                    s->Sflags |= SFLartifical;
+
+                TYPE *t;
+                if (vd->storage_class & (STCout | STCref))
+                {
+                    // should be TYref, but problems in back end
+                    t = type_pointer(Type_toCtype(vd->type));
+                }
+                else if (vd->storage_class & STClazy)
+                {
+                    if (config.exe == EX_WIN64 && vd->isParameter())
+                        t = type_fake(TYnptr);
+                    else
+                        t = type_fake(TYdelegate);          // Tdelegate as C type
+                    t->Tcount++;
+                }
+                else if (vd->isParameter())
+                {
+                    if (config.exe == EX_WIN64 && vd->type->size(Loc()) > REGSIZE)
+                    {
+                        // should be TYref, but problems in back end
+                        t = type_pointer(Type_toCtype(vd->type));
+                    }
+                    else
+                    {
+                        t = Type_toCtype(vd->type);
+                        t->Tcount++;
+                    }
+                }
+                else
+                {
+                    t = Type_toCtype(vd->type);
+                    t->Tcount++;
+                }
+
+                if (vd->isDataseg())
+                {
+                    if (vd->isThreadlocal())
+                    {
+                        /* Thread local storage
+                         */
+                        TYPE *ts = t;
+                        ts->Tcount++;   // make sure a different t is allocated
+                        type_setty(&t, t->Tty | mTYthread);
+                        ts->Tcount--;
+
+                        if (global.params.vtls)
+                        {
+                            char *p = vd->loc.toChars();
+                            fprintf(global.stdmsg, "%s: %s is thread local\n", p ? p : "", vd->toChars());
+                            if (p)
+                                mem.free(p);
+                        }
+                    }
+                    s->Sclass = SCextern;
+                    s->Sfl = FLextern;
+                    slist_add(s);
+                    /* if it's global or static, then it needs to have a qualified but unmangled name.
+                     * This gives some explanation of the separation in treating name mangling.
+                     * It applies to PDB format, but should apply to CV as PDB derives from CV.
+                     *    http://msdn.microsoft.com/en-us/library/ff553493(VS.85).aspx
+                     */
+                    s->prettyIdent = vd->toPrettyChars();
+                }
+                else
+                {
+                    s->Sclass = SCauto;
+                    s->Sfl = FLauto;
+
+                    if (vd->nestedrefs.dim)
+                    {
+                        /* Symbol is accessed by a nested function. Make sure
+                         * it is not put in a register, and that the optimizer
+                         * assumes it is modified across function calls and pointer
+                         * dereferences.
+                         */
+                        //printf("\tnested ref, not register\n");
+                        type_setcv(&t, t->Tty | mTYvolatile);
+                    }
+                }
+
+                if (vd->ident == Id::va_argsave)
+                {
+                    /* __va_argsave is set outside of the realm of the optimizer,
+                     * so we tell the optimizer to leave it alone
+                     */
+                    type_setcv(&t, t->Tty | mTYvolatile);
+                }
+
+                mangle_t m = 0;
+                switch (vd->linkage)
+                {
+                    case LINKwindows:
+                        m = mTYman_std;
+                        break;
+
+                    case LINKpascal:
+                        m = mTYman_pas;
+                        break;
+
+                    case LINKc:
+                        m = mTYman_c;
+                        break;
+
+                    case LINKd:
+                        m = mTYman_d;
+                        break;
+                    case LINKcpp:
+                        s->Sflags |= SFLpublic;
+                        m = mTYman_d;
+                        break;
+                    default:
+                        printf("linkage = %d\n", vd->linkage);
+                        assert(0);
+                }
+
+                type_setmangle(&t, m);
+                s->Stype = t;
+
+                vd->csym = s;
+            }
+            result = vd->csym;
+        }
+
+        void visit(ClassInfoDeclaration *cid)
+        {
+            cid->cd->accept(this);
+        }
+
+        void visit(TypeInfoDeclaration *tid)
+        {
+            //printf("TypeInfoDeclaration::toSymbol(%s), linkage = %d\n", tid->toChars(), tid->linkage);
+            visit((VarDeclaration *)tid);
+        }
+
+        void visit(TypeInfoClassDeclaration *ticd)
+        {
+            //printf("TypeInfoClassDeclaration::toSymbol(%s), linkage = %d\n", ticd->toChars(), ticd->linkage);
+            assert(ticd->tinfo->ty == Tclass);
+            TypeClass *tc = (TypeClass *)ticd->tinfo;
+            tc->sym->accept(this);
+        }
+
+        void visit(FuncAliasDeclaration *fad)
+        {
+            fad->funcalias->accept(this);
+        }
+
+        void visit(FuncDeclaration *fd)
+        {
+            if (!fd->csym)
+            {
+                const char *id = mangleExact(fd);
+
+                //printf("FuncDeclaration::toSymbol(%s %s)\n", fd->kind(), fd->toChars());
+                //printf("\tid = '%s'\n", id);
+                //printf("\ttype = %s\n", fd->type->toChars());
+                Symbol *s = symbol_calloc(id);
+                slist_add(s);
+
+                s->prettyIdent = fd->toPrettyChars();
+                s->Sclass = SCglobal;
+                symbol_func(s);
+                func_t *f = s->Sfunc;
+                if (fd->isVirtual() && fd->vtblIndex != -1)
+                    f->Fflags |= Fvirtual;
+                else if (fd->isMember2() && fd->isStatic())
+                    f->Fflags |= Fstatic;
+                f->Fstartline.Slinnum = fd->loc.linnum;
+                f->Fstartline.Scharnum = fd->loc.charnum;
+                f->Fstartline.Sfilename = (char *)fd->loc.filename;
+                if (fd->endloc.linnum)
+                {
+                    f->Fendline.Slinnum = fd->endloc.linnum;
+                    f->Fendline.Scharnum = fd->endloc.charnum;
+                    f->Fendline.Sfilename = (char *)fd->endloc.filename;
+                }
+                else
+                {
+                    f->Fendline.Slinnum = fd->loc.linnum;
+                    f->Fendline.Scharnum = fd->loc.charnum;
+                    f->Fendline.Sfilename = (char *)fd->loc.filename;
+                }
+                TYPE *t = Type_toCtype(fd->type);
+
+                mangle_t msave = t->Tmangle;
+                if (fd->isMain())
+                {
+                    t->Tty = TYnfunc;
+                    t->Tmangle = mTYman_c;
+                }
+                else
+                {
+                    switch (fd->linkage)
+                    {
+                        case LINKwindows:
+                            t->Tmangle = mTYman_std;
+                            break;
+
+                        case LINKpascal:
+                            t->Tty = TYnpfunc;
+                            t->Tmangle = mTYman_pas;
+                            break;
+
+                        case LINKc:
+                            t->Tmangle = mTYman_c;
+                            break;
+
+                        case LINKd:
+                            t->Tmangle = mTYman_d;
+                            break;
+                        case LINKcpp:
+                            s->Sflags |= SFLpublic;
+                            if (fd->isThis() && !global.params.is64bit && global.params.isWindows)
+                            {
+                                if (((TypeFunction *)fd->type)->varargs == 1)
+                                {
+                                    t->Tty = TYnfunc;
+                                }
+                                else
+                                {
+                                    t->Tty = TYmfunc;
+                                }
+                            }
+                            t->Tmangle = mTYman_d;
+                            break;
+                        default:
+                            printf("linkage = %d\n", fd->linkage);
+                            assert(0);
+                    }
+                }
+
+                if (msave)
+                    assert(msave == t->Tmangle);
+                //printf("Tty = %x, mangle = x%x\n", t->Tty, t->Tmangle);
+                t->Tcount++;
+                s->Stype = t;
+                //s->Sfielddef = this;
+
+                fd->csym = s;
+            }
+            result = fd->csym;
+        }
+
+        /*************************************
+         * Create the "ClassInfo" symbol
+         */
+
+        void visit(ClassDeclaration *cd)
+        {
+            if (!cd->csym)
+            {
+
+                if (!scc)
+                    scc = fake_classsym(Id::ClassInfo);
+
+                Symbol *s = cd->toSymbolX("__Class", SCextern, scc->Stype, "Z");
+                s->Sfl = FLextern;
+                s->Sflags |= SFLnodebug;
+                cd->csym = s;
+                slist_add(s);
+            }
+            result = cd->csym;
+        }
+
+        /*************************************
+         * Create the "InterfaceInfo" symbol
+         */
+
+        void visit(InterfaceDeclaration *id)
+        {
+            if (!id->csym)
+            {
+
+                if (!scc)
+                    scc = fake_classsym(Id::ClassInfo);
+
+                Symbol *s = id->toSymbolX("__Interface", SCextern, scc->Stype, "Z");
+                s->Sfl = FLextern;
+                s->Sflags |= SFLnodebug;
+                id->csym = s;
+                slist_add(s);
+            }
+            result = id->csym;
+        }
+
+        /*************************************
+         * Create the "ModuleInfo" symbol
+         */
+
+        void visit(Module *m)
+        {
+            if (!m->csym)
+            {
+                if (!scc)
+                    scc = fake_classsym(Id::ClassInfo);
+
+                Symbol *s = m->toSymbolX("__ModuleInfo", SCextern, scc->Stype, "Z");
+                s->Sfl = FLextern;
+                s->Sflags |= SFLnodebug;
+                m->csym = s;
+                slist_add(s);
+            }
+            result = m->csym;
+        }
+    };
+
+    ToSymbol v;
+    s->accept(&v);
+    return v.result;
 }
 
 /*********************************
@@ -111,7 +445,7 @@ Symbol *Dsymbol::toImport()
     if (!isym)
     {
         if (!csym)
-            csym = toSymbol();
+            csym = toSymbol(this);
         isym = toImport(csym);
     }
     return isym;
@@ -161,287 +495,9 @@ Symbol *Dsymbol::toImport(Symbol *sym)
 /*************************************
  */
 
-Symbol *VarDeclaration::toSymbol()
-{
-    //printf("VarDeclaration::toSymbol(%s)\n", toChars());
-    //if (needThis()) *(char*)0=0;
-    assert(!needThis());
-    if (!csym)
-    {
-        TYPE *t;
-        const char *id;
-
-        if (isDataseg())
-            id = mangle(this);
-        else
-            id = ident->toChars();
-        Symbol *s = symbol_calloc(id);
-        s->Salignment = alignment;
-        if (storage_class & STCtemp)
-            s->Sflags |= SFLartifical;
-
-        if (storage_class & (STCout | STCref))
-        {
-            // should be TYref, but problems in back end
-            t = type_pointer(Type_toCtype(type));
-        }
-        else if (storage_class & STClazy)
-        {
-            if (config.exe == EX_WIN64 && isParameter())
-                t = type_fake(TYnptr);
-            else
-                t = type_fake(TYdelegate);          // Tdelegate as C type
-            t->Tcount++;
-        }
-        else if (isParameter())
-        {
-            if (config.exe == EX_WIN64 && type->size(Loc()) > REGSIZE)
-            {
-                // should be TYref, but problems in back end
-                t = type_pointer(Type_toCtype(type));
-            }
-            else
-            {
-                t = Type_toCtype(type);
-                t->Tcount++;
-            }
-        }
-        else
-        {
-            t = Type_toCtype(type);
-            t->Tcount++;
-        }
-
-        if (isDataseg())
-        {
-            if (isThreadlocal())
-            {   /* Thread local storage
-                 */
-                TYPE *ts = t;
-                ts->Tcount++;   // make sure a different t is allocated
-                type_setty(&t, t->Tty | mTYthread);
-                ts->Tcount--;
-
-                if (global.params.vtls)
-                {
-                    char *p = loc.toChars();
-                    fprintf(global.stdmsg, "%s: %s is thread local\n", p ? p : "", toChars());
-                    if (p)
-                        mem.free(p);
-                }
-            }
-            s->Sclass = SCextern;
-            s->Sfl = FLextern;
-            slist_add(s);
-            /* if it's global or static, then it needs to have a qualified but unmangled name.
-             * This gives some explanation of the separation in treating name mangling.
-             * It applies to PDB format, but should apply to CV as PDB derives from CV.
-             *    http://msdn.microsoft.com/en-us/library/ff553493(VS.85).aspx
-             */
-            s->prettyIdent = toPrettyChars();
-        }
-        else
-        {
-            s->Sclass = SCauto;
-            s->Sfl = FLauto;
-
-            if (nestedrefs.dim)
-            {
-                /* Symbol is accessed by a nested function. Make sure
-                 * it is not put in a register, and that the optimizer
-                 * assumes it is modified across function calls and pointer
-                 * dereferences.
-                 */
-                //printf("\tnested ref, not register\n");
-                type_setcv(&t, t->Tty | mTYvolatile);
-            }
-        }
-
-        if (ident == Id::va_argsave)
-            /* __va_argsave is set outside of the realm of the optimizer,
-             * so we tell the optimizer to leave it alone
-             */
-            type_setcv(&t, t->Tty | mTYvolatile);
-
-        mangle_t m = 0;
-        switch (linkage)
-        {
-            case LINKwindows:
-                m = mTYman_std;
-                break;
-
-            case LINKpascal:
-                m = mTYman_pas;
-                break;
-
-            case LINKc:
-                m = mTYman_c;
-                break;
-
-            case LINKd:
-                m = mTYman_d;
-                break;
-            case LINKcpp:
-                s->Sflags |= SFLpublic;
-                m = mTYman_d;
-                break;
-            default:
-                printf("linkage = %d\n", linkage);
-                assert(0);
-        }
-
-        type_setmangle(&t, m);
-        s->Stype = t;
-
-        csym = s;
-    }
-    return csym;
-}
-
-/*************************************
- */
-
-Symbol *ClassInfoDeclaration::toSymbol()
-{
-    return cd->toSymbol();
-}
-
-/*************************************
- */
-
-Symbol *TypeInfoDeclaration::toSymbol()
-{
-    //printf("TypeInfoDeclaration::toSymbol(%s), linkage = %d\n", toChars(), linkage);
-    return VarDeclaration::toSymbol();
-}
-
-/*************************************
- */
-
-Symbol *TypeInfoClassDeclaration::toSymbol()
-{
-    //printf("TypeInfoClassDeclaration::toSymbol(%s), linkage = %d\n", toChars(), linkage);
-    assert(tinfo->ty == Tclass);
-    TypeClass *tc = (TypeClass *)tinfo;
-    return tc->sym->toSymbol();
-}
-
-/*************************************
- */
-
-Symbol *FuncAliasDeclaration::toSymbol()
-{
-    return funcalias->toSymbol();
-}
-
-/*************************************
- */
-
-Symbol *FuncDeclaration::toSymbol()
-{
-    if (!csym)
-    {   Symbol *s;
-        TYPE *t;
-        const char *id;
-
-        id = mangleExact(this);
-
-        //printf("FuncDeclaration::toSymbol(%s %s)\n", kind(), toChars());
-        //printf("\tid = '%s'\n", id);
-        //printf("\ttype = %s\n", type->toChars());
-        s = symbol_calloc(id);
-        slist_add(s);
-
-        {
-            s->prettyIdent = toPrettyChars();
-            s->Sclass = SCglobal;
-            symbol_func(s);
-            func_t *f = s->Sfunc;
-            if (isVirtual() && vtblIndex != -1)
-                f->Fflags |= Fvirtual;
-            else if (isMember2() && isStatic())
-                f->Fflags |= Fstatic;
-            f->Fstartline.Slinnum = loc.linnum;
-            f->Fstartline.Scharnum = loc.charnum;
-            f->Fstartline.Sfilename = (char *)loc.filename;
-            if (endloc.linnum)
-            {   f->Fendline.Slinnum = endloc.linnum;
-                f->Fendline.Scharnum = endloc.charnum;
-                f->Fendline.Sfilename = (char *)endloc.filename;
-            }
-            else
-            {   f->Fendline.Slinnum = loc.linnum;
-                f->Fendline.Scharnum = loc.charnum;
-                f->Fendline.Sfilename = (char *)loc.filename;
-            }
-            t = Type_toCtype(type);
-        }
-
-        mangle_t msave = t->Tmangle;
-        if (isMain())
-        {
-            t->Tty = TYnfunc;
-            t->Tmangle = mTYman_c;
-        }
-        else
-        {
-            switch (linkage)
-            {
-                case LINKwindows:
-                    t->Tmangle = mTYman_std;
-                    break;
-
-                case LINKpascal:
-                    t->Tty = TYnpfunc;
-                    t->Tmangle = mTYman_pas;
-                    break;
-
-                case LINKc:
-                    t->Tmangle = mTYman_c;
-                    break;
-
-                case LINKd:
-                    t->Tmangle = mTYman_d;
-                    break;
-                case LINKcpp:
-                    s->Sflags |= SFLpublic;
-                    if (isThis() && !global.params.is64bit && global.params.isWindows)
-                    {
-                        if (((TypeFunction *)type)->varargs == 1)
-                        {
-                            t->Tty = TYnfunc;
-                        }
-                        else
-                        {
-                            t->Tty = TYmfunc;
-                        }
-                    }
-                    t->Tmangle = mTYman_d;
-                    break;
-                default:
-                    printf("linkage = %d\n", linkage);
-                    assert(0);
-            }
-        }
-
-        if (msave)
-            assert(msave == t->Tmangle);
-        //printf("Tty = %x, mangle = x%x\n", t->Tty, t->Tmangle);
-        t->Tcount++;
-        s->Stype = t;
-        //s->Sfielddef = this;
-
-        csym = s;
-    }
-    return csym;
-}
-
-/*************************************
- */
-
 Symbol *FuncDeclaration::toThunkSymbol(int offset)
 {
-    toSymbol();
+    toSymbol(this);
 
     Symbol *sthunk = symbol_generate(SCstatic, csym->Stype);
     sthunk->Sflags |= SFLimplem;
@@ -468,72 +524,6 @@ Classsym *fake_classsym(Identifier *id)
 }
 
 /*************************************
- * Create the "ClassInfo" symbol
- */
-
-static Classsym *scc;
-
-Symbol *ClassDeclaration::toSymbol()
-{
-    if (!csym)
-    {
-        Symbol *s;
-
-        if (!scc)
-            scc = fake_classsym(Id::ClassInfo);
-
-        s = toSymbolX("__Class", SCextern, scc->Stype, "Z");
-        s->Sfl = FLextern;
-        s->Sflags |= SFLnodebug;
-        csym = s;
-        slist_add(s);
-    }
-    return csym;
-}
-
-/*************************************
- * Create the "InterfaceInfo" symbol
- */
-
-Symbol *InterfaceDeclaration::toSymbol()
-{
-    if (!csym)
-    {
-        Symbol *s;
-
-        if (!scc)
-            scc = fake_classsym(Id::ClassInfo);
-
-        s = toSymbolX("__Interface", SCextern, scc->Stype, "Z");
-        s->Sfl = FLextern;
-        s->Sflags |= SFLnodebug;
-        csym = s;
-        slist_add(s);
-    }
-    return csym;
-}
-
-/*************************************
- * Create the "ModuleInfo" symbol
- */
-
-Symbol *Module::toSymbol()
-{
-    if (!csym)
-    {
-        if (!scc)
-            scc = fake_classsym(Id::ClassInfo);
-
-        Symbol *s = toSymbolX("__ModuleInfo", SCextern, scc->Stype, "Z");
-        s->Sfl = FLextern;
-        s->Sflags |= SFLnodebug;
-        csym = s;
-        slist_add(s);
-    }
-    return csym;
-}
-
-/*************************************
  * This is accessible via the ClassData, but since it is frequently
  * needed directly (like for rtti comparisons), make it directly accessible.
  */
@@ -546,7 +536,7 @@ Symbol *ClassDeclaration::toVtblSymbol()
         TYPE *t;
 
         if (!csym)
-            toSymbol();
+            toSymbol(this);
 
         t = type_allocn(TYnptr | mTYconst, tsvoid);
         t->Tmangle = mTYman_d;

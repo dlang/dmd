@@ -292,7 +292,6 @@ public:
     void checkCtorConstInit();
     void checkNestedReference(Scope *sc, Loc loc);
     Dsymbol *toAlias();
-    Symbol *toSymbol();
     void toObjFile(int multiobj);                       // compile to .obj file
     // Eliminate need for dynamic_cast
     VarDeclaration *isVarDeclaration() { return (VarDeclaration *)this; }
@@ -310,8 +309,6 @@ public:
 
     SymbolDeclaration(Loc loc, StructDeclaration *dsym);
 
-    Symbol *toSymbol();
-
     // Eliminate need for dynamic_cast
     SymbolDeclaration *isSymbolDeclaration() { return (SymbolDeclaration *)this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -326,7 +323,6 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
 
-    Symbol *toSymbol();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -341,7 +337,6 @@ public:
     void semantic(Scope *sc);
     char *toChars();
 
-    Symbol *toSymbol();
     void toObjFile(int multiobj);                       // compile to .obj file
 
     TypeInfoDeclaration *isTypeInfoDeclaration() { return this; }
@@ -362,7 +357,6 @@ class TypeInfoClassDeclaration : public TypeInfoDeclaration
 public:
     TypeInfoClassDeclaration(Type *tinfo);
     static TypeInfoClassDeclaration *create(Type *tinfo);
-    Symbol *toSymbol();
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -682,7 +676,6 @@ public:
     static FuncDeclaration *genCfunc(Parameters *args, Type *treturn, const char *name);
     static FuncDeclaration *genCfunc(Parameters *args, Type *treturn, Identifier *id);
 
-    Symbol *toSymbol();
     Symbol *toThunkSymbol(int offset);  // thunk version
     void toObjFile(int multiobj);                       // compile to .obj file
     bool needsCodegen();
@@ -709,7 +702,6 @@ public:
 
     FuncAliasDeclaration *isFuncAliasDeclaration() { return this; }
     const char *kind();
-    Symbol *toSymbol();
 
     FuncDeclaration *toAliasFunc();
     void accept(Visitor *v) { v->visit(this); }

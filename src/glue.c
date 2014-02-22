@@ -43,6 +43,7 @@ void clearStringTab();
 elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
 void Statement_toIR(Statement *s, IRState *irs);
 elem *toEfilename(Module *m);
+Symbol *toSymbol(Dsymbol *s);
 
 #define STATICCTOR      0
 
@@ -188,7 +189,7 @@ symbol *callFuncsAndGates(Module *m, symbols *sctors, StaticDtorDeclarations *ec
             for (size_t i = 0; i < ectorgates->dim; i++)
             {   StaticDtorDeclaration *f = (*ectorgates)[i];
 
-                Symbol *s = f->vgate->toSymbol();
+                Symbol *s = toSymbol(f->vgate);
                 elem *e = el_var(s);
                 e = el_bin(OPaddass, TYint, e, el_long(TYint, 1));
                 ector = el_combine(ector, e);
@@ -336,7 +337,7 @@ void Module::genobjfile(int multiobj)
         assert(m);
         if (m->sictor || m->sctor || m->sdtor || m->ssharedctor || m->sshareddtor)
         {
-            Symbol *s = m->toSymbol();
+            Symbol *s = toSymbol(m);
             //objextern(s);
             //if (!s->Sxtrnnum) objextdef(s->Sident);
             if (!s->Sxtrnnum)
@@ -519,7 +520,7 @@ void Module::genobjfile(int multiobj)
                 elinnum = el_var(sp);
             }
 
-            elem *efilename = el_ptr(toSymbol());
+            elem *efilename = el_ptr(toSymbol(this));
 
             elem *e = el_var(rtlsym[rt]);
             e = el_bin(OPcall, TYvoid, e, el_param(elinnum, efilename));
@@ -747,7 +748,7 @@ void FuncDeclaration::toObjFile(int multiobj)
             ee->EElinnum > (func->endwhere / LINEINC)
            )
             return;             // don't compile this function
-        ee->EEfunc = func->toSymbol();
+        ee->EEfunc = toSymbol(func);
     }
 #endif
 
@@ -823,7 +824,7 @@ void FuncDeclaration::toObjFile(int multiobj)
     if (global.params.verbose)
         fprintf(global.stdmsg, "function  %s\n",func->toPrettyChars());
 
-    Symbol *s = func->toSymbol();
+    Symbol *s = toSymbol(func);
     func_t *f = s->Sfunc;
 
     // tunnel type of "this" to debug info generation
@@ -1017,7 +1018,7 @@ void FuncDeclaration::toObjFile(int multiobj)
     if (vthis)
     {
         assert(!vthis->csym);
-        sthis = vthis->toSymbol();
+        sthis = toSymbol(vthis);
         irs.sthis = sthis;
         if (!(f->Fflags3 & Fnested))
             f->Fflags3 |= Fmember;
@@ -1041,7 +1042,7 @@ void FuncDeclaration::toObjFile(int multiobj)
     pi = 0;
     if (v_arguments)
     {
-        params[pi] = v_arguments->toSymbol();
+        params[pi] = toSymbol(v_arguments);
         pi += 1;
     }
     if (parameters)
@@ -1051,7 +1052,7 @@ void FuncDeclaration::toObjFile(int multiobj)
             VarDeclaration *v = (*parameters)[i];
             //printf("param[%d] = %p, %s\n", i, v, v->toChars());
             assert(!v->csym);
-            params[pi + i] = v->toSymbol();
+            params[pi + i] = toSymbol(v);
         }
         pi += parameters->dim;
     }
@@ -1510,7 +1511,7 @@ Symbol *toSymbol(Type *t)
 {
     if (t->ty == Tclass)
     {
-        return ((TypeClass *)t)->sym->toSymbol();
+        return toSymbol(((TypeClass *)t)->sym);
     }
     assert(0);
     return NULL;
