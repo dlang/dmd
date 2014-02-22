@@ -204,6 +204,47 @@ void test1780()
 }
 
 /**********************************/
+// 1659
+
+class Foo1659 { }
+class Bar1659 : Foo1659 { }
+
+void f1659(T : Foo1659)() { }
+void f1659(alias T)() { static assert(false); }
+
+void test1659()
+{
+    f1659!Bar1659();
+}
+
+/**********************************/
+// 2025
+
+struct S2025 {}
+void f2025() {}
+
+template Foo2025(int i) { enum Foo2025 = 1; }
+template Foo2025(TL...) { enum Foo2025 = 2; }
+static assert(Foo2025!1 == 1);
+static assert(Foo2025!int == 2);
+static assert(Foo2025!S2025 == 2);
+static assert(Foo2025!f2025 == 2);
+
+template Bar2025(T)    { enum Bar2025 = 1; }
+template Bar2025(A...) { enum Bar2025 = 2; }
+static assert(Bar2025!1 == 2);
+static assert(Bar2025!int == 1);    // 2 -> 1
+static assert(Bar2025!S2025 == 1);  // 2 -> 1
+static assert(Bar2025!f2025 == 2);
+
+template Baz2025(T)       { enum Baz2025 = 1; }
+template Baz2025(alias A) { enum Baz2025 = 2; }
+static assert(Baz2025!1 == 2);
+static assert(Baz2025!int == 1);
+static assert(Baz2025!S2025 == 1);  // 2 -> 1
+static assert(Baz2025!f2025 == 2);
+
+/**********************************/
 // 3608
 
 template foo3608(T, U){}
