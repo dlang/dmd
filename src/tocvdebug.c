@@ -287,20 +287,20 @@ unsigned cv_align(unsigned char *p, unsigned n)
  * Emit symbolic debug info in CV format.
  */
 
-void TypedefDeclaration::toDebug()
+void toDebug(TypedefDeclaration *tdd)
 {
-    //printf("TypedefDeclaration::toDebug('%s')\n", toChars());
+    //printf("TypedefDeclaration::toDebug('%s')\n", tdd->toChars());
 
     assert(config.fulltypes >= CV4);
 
     // If it is a member, it is handled by cvMember()
-    if (!isMember())
+    if (!tdd->isMember())
     {
-        if (basetype->ty == Ttuple)
+        if (tdd->basetype->ty == Ttuple)
             return;
 
-        const char *id = toPrettyChars();
-        idx_t typidx = cv4_typidx(Type_toCtype(basetype));
+        const char *id = tdd->toPrettyChars();
+        idx_t typidx = cv4_typidx(Type_toCtype(tdd->basetype));
         if (config.fulltypes == CV8)
             cv8_udt(id, typidx);
         else
@@ -322,17 +322,17 @@ void TypedefDeclaration::toDebug()
 }
 
 
-void EnumDeclaration::toDebug()
+void toDebug(EnumDeclaration *ed)
 {
-    //printf("EnumDeclaration::toDebug('%s')\n", toChars());
+    //printf("EnumDeclaration::toDebug('%s')\n", ed->toChars());
 
     assert(config.fulltypes >= CV4);
 
     // If it is a member, it is handled by cvMember()
-    if (!isMember())
+    if (!ed->isMember())
     {
-        const char *id = toPrettyChars();
-        idx_t typidx = cv4_Denum(this);
+        const char *id = ed->toPrettyChars();
+        idx_t typidx = cv4_Denum(ed);
         if (config.fulltypes == CV8)
             cv8_udt(id, typidx);
         else
@@ -382,14 +382,14 @@ int cv_mem_p(Dsymbol *s, void *param)
 }
 
 
-void StructDeclaration::toDebug()
+void toDebug(StructDeclaration *sd)
 {
     idx_t typidx = 0;
 
-    //printf("StructDeclaration::toDebug('%s')\n", toChars());
+    //printf("StructDeclaration::toDebug('%s')\n", sd->toChars());
 
     assert(config.fulltypes >= CV4);
-    if (isAnonymous())
+    if (sd->isAnonymous())
         return /*0*/;
 
     if (typidx)                 // if reference already generated
@@ -397,14 +397,15 @@ void StructDeclaration::toDebug()
 
     targ_size_t size;
     unsigned property = 0;
-    if (!members)
-    {   size = 0;
+    if (!sd->members)
+    {
+        size = 0;
         property |= 0x80;               // forward reference
     }
     else
-        size = structsize;
+        size = sd->structsize;
 
-    if (parent->isAggregateDeclaration()) // if class is nested
+    if (sd->parent->isAggregateDeclaration()) // if class is nested
         property |= 8;
 //    if (st->Sctor || st->Sdtor)
 //      property |= 2;          // class has ctors and/or dtors
@@ -415,9 +416,9 @@ void StructDeclaration::toDebug()
 //    if (st->Sopeq && !(st->Sopeq->Sfunc->Fflags & Fnodebug))
 //      property |= 0x20;               // class has overloaded assignment
 
-    const char *id = toPrettyChars();
+    const char *id = sd->toPrettyChars();
 
-    unsigned leaf = isUnionDeclaration() ? LF_UNION : LF_STRUCTURE;
+    unsigned leaf = sd->isUnionDeclaration() ? LF_UNION : LF_STRUCTURE;
     if (config.fulltypes == CV8)
         leaf = leaf == LF_UNION ? LF_UNION_V3 : LF_STRUCTURE_V3;
 
@@ -454,7 +455,7 @@ void StructDeclaration::toDebug()
     typidx = cv_debtyp(d);
     d->length = length_save;            // restore length
 
-    if (!members)                       // if reference only
+    if (!sd->members)                       // if reference only
     {
         if (config.fulltypes == CV8)
         {
@@ -475,8 +476,9 @@ void StructDeclaration::toDebug()
     CvMemberCount mc;
     mc.nfields = 0;
     mc.fnamelen = 2;
-    for (size_t i = 0; i < members->dim; i++)
-    {   Dsymbol *s = (*members)[i];
+    for (size_t i = 0; i < sd->members->dim; i++)
+    {
+        Dsymbol *s = (*sd->members)[i];
         s->apply(&cv_mem_count, &mc);
     }
     if (config.fulltypes != CV8 && mc.fnamelen > CV4_NAMELENMAX)
@@ -498,8 +500,9 @@ void StructDeclaration::toDebug()
     p += 2;
     if (nfields)
     {
-        for (size_t i = 0; i < members->dim; i++)
-        {   Dsymbol *s = (*members)[i];
+        for (size_t i = 0; i < sd->members->dim; i++)
+        {
+            Dsymbol *s = (*sd->members)[i];
             s->apply(&cv_mem_p, &p);
         }
     }
@@ -544,14 +547,14 @@ void StructDeclaration::toDebug()
 }
 
 
-void ClassDeclaration::toDebug()
+void toDebug(ClassDeclaration *cd)
 {
     idx_t typidx = 0;
 
-    //printf("ClassDeclaration::toDebug('%s')\n", toChars());
+    //printf("ClassDeclaration::toDebug('%s')\n", cd->toChars());
 
     assert(config.fulltypes >= CV4);
-    if (isAnonymous())
+    if (cd->isAnonymous())
         return /*0*/;
 
     if (typidx)                 // if reference already generated
@@ -559,16 +562,17 @@ void ClassDeclaration::toDebug()
 
     targ_size_t size;
     unsigned property = 0;
-    if (!members)
-    {   size = 0;
+    if (!cd->members)
+    {
+        size = 0;
         property |= 0x80;               // forward reference
     }
     else
-        size = structsize;
+        size = cd->structsize;
 
-    if (parent->isAggregateDeclaration()) // if class is nested
+    if (cd->parent->isAggregateDeclaration()) // if class is nested
         property |= 8;
-    if (ctor || dtors.dim)
+    if (cd->ctor || cd->dtors.dim)
         property |= 2;          // class has ctors and/or dtors
 //    if (st->Sopoverload)
 //      property |= 4;          // class has overloaded operators
@@ -577,7 +581,7 @@ void ClassDeclaration::toDebug()
 //    if (st->Sopeq && !(st->Sopeq->Sfunc->Fflags & Fnodebug))
 //      property |= 0x20;               // class has overloaded assignment
 
-    const char *id = isCPPinterface() ? ident->toChars() : toPrettyChars();
+    const char *id = cd->isCPPinterface() ? cd->ident->toChars() : cd->toPrettyChars();
     unsigned leaf = config.fulltypes == CV8 ? LF_CLASS_V3 : LF_CLASS;
 
     unsigned numidx = (leaf == LF_CLASS_V3) ? 18 : 12;
@@ -589,7 +593,7 @@ void ClassDeclaration::toDebug()
     idx_t vshapeidx = 0;
     if (1)
     {
-        size_t n = vtbl.dim;                   // number of virtual functions
+        size_t n = cd->vtbl.dim;                   // number of virtual functions
         if (n)
         {   // 4 bits per descriptor
             debtyp_t *vshape = debtyp_alloc(4 + (n + 1) / 2);
@@ -598,9 +602,9 @@ void ClassDeclaration::toDebug()
 
             n = 0;
             unsigned char descriptor = 0;
-            for (size_t i = 0; i < vtbl.dim; i++)
-            {   FuncDeclaration *fd = (FuncDeclaration *)vtbl[i];
-
+            for (size_t i = 0; i < cd->vtbl.dim; i++)
+            {
+                FuncDeclaration *fd = (FuncDeclaration *)cd->vtbl[i];
                 //if (intsize == 4)
                     descriptor |= 5;
                 vshape->data[4 + n / 2] = descriptor;
@@ -629,7 +633,7 @@ void ClassDeclaration::toDebug()
     typidx = cv_debtyp(d);
     d->length = length_save;            // restore length
 
-    if (!members)                       // if reference only
+    if (!cd->members)                       // if reference only
     {
         if (leaf == LF_CLASS_V3)
         {
@@ -660,9 +664,9 @@ void ClassDeclaration::toDebug()
     if (addInBaseClasses)
     {
         // Add in base classes
-        for (size_t i = 0; i < baseclasses->dim; i++)
-        {   BaseClass *bc = (*baseclasses)[i];
-
+        for (size_t i = 0; i < cd->baseclasses->dim; i++)
+        {
+            BaseClass *bc = (*cd->baseclasses)[i];
             mc.nfields++;
             unsigned elementlen = 4 + cgcv.sz_idx + cv4_numericbytes(bc->offset);
             elementlen = cv_align(NULL, elementlen);
@@ -670,8 +674,9 @@ void ClassDeclaration::toDebug()
         }
     }
 
-    for (size_t i = 0; i < members->dim; i++)
-    {   Dsymbol *s = (*members)[i];
+    for (size_t i = 0; i < cd->members->dim; i++)
+    {
+        Dsymbol *s = (*cd->members)[i];
         s->apply(&cv_mem_count, &mc);
     }
     if (config.fulltypes != CV8 && mc.fnamelen > CV4_NAMELENMAX)
@@ -698,9 +703,9 @@ void ClassDeclaration::toDebug()
         if (addInBaseClasses)
         {
             // Add in base classes
-            for (size_t i = 0; i < baseclasses->dim; i++)
-            {   BaseClass *bc = (*baseclasses)[i];
-
+            for (size_t i = 0; i < cd->baseclasses->dim; i++)
+            {
+                BaseClass *bc = (*cd->baseclasses)[i];
                 idx_t typidx = cv4_typidx(Type_toCtype(bc->base->type)->Tnext);
                 unsigned attribute = PROTtoATTR(bc->protection);
 
@@ -729,8 +734,9 @@ void ClassDeclaration::toDebug()
             }
         }
 
-        for (size_t i = 0; i < members->dim; i++)
-        {   Dsymbol *s = (*members)[i];
+        for (size_t i = 0; i < cd->members->dim; i++)
+        {
+            Dsymbol *s = (*cd->members)[i];
             s->apply(&cv_mem_p, &p);
         }
     }
