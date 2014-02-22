@@ -816,10 +816,9 @@ Expression *resolveUFCS(Scope *sc, CallExp *ce)
                 {
                     unsigned errors = global.startGagging();
                     e = ce->syntaxCopy()->semantic(sc);
-                    if (global.endGagging(errors))
-                    {}  /* fall down to UFCS */
-                    else
+                    if (!global.endGagging(errors))
                         return e;
+                    /* fall down to UFCS */
                 }
                 else
                     return NULL;
@@ -1647,20 +1646,21 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                 if (a->op == TOKcast)
                     a = ((CastExp *)a)->e1;
 
-                /* Function literals can only appear once, so if this
-                 * appearance was scoped, there cannot be any others.
-                 */
                 if (a->op == TOKfunction)
-                {   FuncExp *fe = (FuncExp *)a;
+                {
+                    /* Function literals can only appear once, so if this
+                     * appearance was scoped, there cannot be any others.
+                     */
+                    FuncExp *fe = (FuncExp *)a;
                     fe->fd->tookAddressOf = 0;
                 }
-
-                /* For passing a delegate to a scoped parameter,
-                 * this doesn't count as taking the address of it.
-                 * We only worry about 'escaping' references to the function.
-                 */
                 else if (a->op == TOKdelegate)
-                {   DelegateExp *de = (DelegateExp *)a;
+                {
+                    /* For passing a delegate to a scoped parameter,
+                     * this doesn't count as taking the address of it.
+                     * We only worry about 'escaping' references to the function.
+                     */
+                    DelegateExp *de = (DelegateExp *)a;
                     if (de->e1->op == TOKvar)
                     {   VarExp *ve = (VarExp *)de->e1;
                         FuncDeclaration *f = ve->var->isFuncDeclaration();
@@ -11007,13 +11007,13 @@ Ltupleassign:
     while (telem->ty == Tarray)
         telem = telem->nextOf();
 
-    // Check for block assignment. If it is of type void[], void[][], etc,
-    // '= null' is the only allowable block assignment (Bug 7493)
     if (e1->op == TOKslice &&
         t1->nextOf() && (telem->ty != Tvoid || e2->op == TOKnull) &&
         e2->implicitConvTo(t1->nextOf())
        )
     {
+        // Check for block assignment. If it is of type void[], void[][], etc,
+        // '= null' is the only allowable block assignment (Bug 7493)
         // memset
         ismemset = 1;   // make it easy for back end to tell what this is
         e2 = e2->implicitCastTo(sc, t1->nextOf());
@@ -11033,11 +11033,11 @@ Ltupleassign:
             assert(op != TOKassign);
         //error("cannot assign to static array %s", e1->toChars());
     }
-    // Check element-wise assignment.
     else if (e1->op == TOKslice &&
              (t2->ty == Tarray || t2->ty == Tsarray) &&
              t2->nextOf()->implicitConvTo(t1->nextOf()))
     {
+        // Check element-wise assignment.
         /* If assigned elements number is known at compile time,
          * check the mismatch.
          */
