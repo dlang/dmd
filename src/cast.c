@@ -2850,6 +2850,7 @@ Lt2:
 
 /************************************
  * Bring leaves to common type.
+ * Returns ErrorExp if error occurs. otherwise returns NULL.
  */
 
 Expression *typeCombine(BinExp *be, Scope *sc)
@@ -2875,13 +2876,12 @@ Expression *typeCombine(BinExp *be, Scope *sc)
         return be->e1;
     if (be->e2->op == TOKerror)
         return be->e2;
-    return be;
+    return NULL;
 
 Lerror:
-    be->incompatibleTypes();
-    be->type = Type::terror;
-    be->e1 = new ErrorExp();
-    be->e2 = new ErrorExp();
+    Expression *ex = be->incompatibleTypes();
+    if (ex->op == TOKerror)
+        return ex;
     return new ErrorExp();
 }
 

@@ -906,9 +906,9 @@ Expression *op_overload(Expression *e, Scope *sc)
                 }
             }
 
-            e->BinExp::semantic(sc);
-            e->e1 = resolveProperties(sc, e->e1);
-            e->e2 = resolveProperties(sc, e->e2);
+            result = e->binSemanticProp(sc);
+            if (result)
+                return;
 
             // Don't attempt 'alias this' if an error occured
             if (e->e1->type->ty == Terror || e->e2->type->ty == Terror)
