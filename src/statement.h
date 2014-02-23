@@ -54,14 +54,10 @@ struct CompiledCtfeFunction;
 enum TOK;
 
 // Back end
-struct IRState;
-struct Blockx;
 #ifdef IN_GCC
 typedef union tree_node block;
-typedef union tree_node elem;
 #else
 struct block;
-struct elem;
 #endif
 struct code;
 
@@ -599,9 +595,6 @@ public:
     bool hasContinue();
     int blockExit(bool mustNotThrow);
 
-// Back end
-    elem *esync;
-    SynchronizedStatement(Loc loc, elem *esync, Statement *body);
     void accept(Visitor *v) { v->visit(this); }
 };
 

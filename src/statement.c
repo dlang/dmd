@@ -3823,15 +3823,6 @@ SynchronizedStatement::SynchronizedStatement(Loc loc, Expression *exp, Statement
 {
     this->exp = exp;
     this->body = body;
-    this->esync = NULL;
-}
-
-SynchronizedStatement::SynchronizedStatement(Loc loc, elem *esync, Statement *body)
-    : Statement(loc)
-{
-    this->exp = NULL;
-    this->body = body;
-    this->esync = esync;
 }
 
 Statement *SynchronizedStatement::syntaxCopy()
