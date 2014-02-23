@@ -290,7 +290,6 @@ public:
     // Back end
     void toObjFile(int multiobj);                       // compile to .obj file
     unsigned baseVtblOffset(BaseClass *bc);
-    Symbol *toSymbol();
     Symbol *toVtblSymbol();
 
     Symbol *vtblsym;
@@ -314,7 +313,6 @@ public:
     virtual int isCOMinterface();
 
     void toObjFile(int multiobj);                       // compile to .obj file
-    Symbol *toSymbol();
 
     InterfaceDeclaration *isInterfaceDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }

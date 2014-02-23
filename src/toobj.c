@@ -46,6 +46,7 @@ dt_t *Initializer_toDt(Initializer *init);
 dt_t **Type_toDt(Type *t, dt_t **pdt);
 void ClassDeclaration_toDt(ClassDeclaration *cd, dt_t **pdt);
 void StructDeclaration_toDt(StructDeclaration *sd, dt_t **pdt);
+Symbol *toSymbol(Dsymbol *s);
 
 void toDebug(TypedefDeclaration *tdd);
 void toDebug(EnumDeclaration *ed);
@@ -65,7 +66,7 @@ void Module::genmoduleinfo()
         ObjectNotFound(Id::ModuleInfo);
     }
 
-    Symbol *msym = toSymbol();
+    Symbol *msym = toSymbol(this);
 
     //////////////////////////////////////////////
 
@@ -141,7 +142,7 @@ void Module::genmoduleinfo()
     if (flags & MIdtor)
         dtxoff(&dt, sshareddtor, 0, TYnptr);
     if (flags & MIxgetMembers)
-        dtxoff(&dt, sgetmembers->toSymbol(), 0, TYnptr);
+        dtxoff(&dt, toSymbol(sgetmembers), 0, TYnptr);
     if (flags & MIictor)
         dtxoff(&dt, sictor, 0, TYnptr);
     if (flags & MIunitTest)
@@ -153,7 +154,8 @@ void Module::genmoduleinfo()
         {   Module *m = aimports[i];
 
             if (m->needmoduleinfo)
-            {   Symbol *s = m->toSymbol();
+            {
+                Symbol *s = toSymbol(m);
 
                 /* Weak references don't pull objects in from the library,
                  * they resolve to 0 if not pulled in by something else.
@@ -170,7 +172,7 @@ void Module::genmoduleinfo()
         for (size_t i = 0; i < aclasses.dim; i++)
         {
             ClassDeclaration *cd = aclasses[i];
-            dtxoff(&dt, cd->toSymbol(), 0, TYnptr);
+            dtxoff(&dt, toSymbol(cd), 0, TYnptr);
         }
     }
     if (flags & MIname)
@@ -243,7 +245,7 @@ void ClassDeclaration::toObjFile(int multiobj)
     }
 
     // Generate C symbols
-    toSymbol();
+    toSymbol(this);
     toVtblSymbol();
     sinit = toInitializer();
 
@@ -337,19 +339,19 @@ void ClassDeclaration::toObjFile(int multiobj)
 
     // base
     if (baseClass)
-        dtxoff(&dt, baseClass->toSymbol(), 0, TYnptr);
+        dtxoff(&dt, toSymbol(baseClass), 0, TYnptr);
     else
         dtsize_t(&dt, 0);
 
     // destructor
     if (dtor)
-        dtxoff(&dt, dtor->toSymbol(), 0, TYnptr);
+        dtxoff(&dt, toSymbol(dtor), 0, TYnptr);
     else
         dtsize_t(&dt, 0);
 
     // invariant
     if (inv)
-        dtxoff(&dt, inv->toSymbol(), 0, TYnptr);
+        dtxoff(&dt, toSymbol(inv), 0, TYnptr);
     else
         dtsize_t(&dt, 0);
 
@@ -383,7 +385,7 @@ void ClassDeclaration::toObjFile(int multiobj)
 
     // deallocator
     if (aggDelete)
-        dtxoff(&dt, aggDelete->toSymbol(), 0, TYnptr);
+        dtxoff(&dt, toSymbol(aggDelete), 0, TYnptr);
     else
         dtsize_t(&dt, 0);
 
@@ -393,7 +395,7 @@ void ClassDeclaration::toObjFile(int multiobj)
 
     // defaultConstructor
     if (defaultCtor)
-        dtxoff(&dt, defaultCtor->toSymbol(), 0, TYnptr);
+        dtxoff(&dt, toSymbol(defaultCtor), 0, TYnptr);
     else
         dtsize_t(&dt, 0);
 
@@ -405,7 +407,7 @@ void ClassDeclaration::toObjFile(int multiobj)
     else
         dtsize_t(&dt, 1);
 
-    //dtxoff(&dt, type->vtinfo->toSymbol(), 0, TYnptr); // typeinfo
+    //dtxoff(&dt, toSymbol(type->vtinfo), 0, TYnptr); // typeinfo
 
     //////////////////////////////////////////////
 
@@ -429,7 +431,7 @@ void ClassDeclaration::toObjFile(int multiobj)
         // Fill in vtbl[]
         b->fillVtbl(this, &b->vtbl, 1);
 
-        dtxoff(&dt, id->toSymbol(), 0, TYnptr);         // ClassInfo
+        dtxoff(&dt, toSymbol(id), 0, TYnptr);         // ClassInfo
 
         // vtbl[]
         dtsize_t(&dt, id->vtbl.dim);
@@ -452,7 +454,7 @@ void ClassDeclaration::toObjFile(int multiobj)
         if (id->vtblOffset())
         {
             // First entry is ClassInfo reference
-            //dtxoff(&dt, id->toSymbol(), 0, TYnptr);
+            //dtxoff(&dt, toSymbol(id), 0, TYnptr);
 
             // First entry is struct Interface reference
             dtxoff(&dt, csym, classinfo_size + i * (4 * Target::ptrsize), TYnptr);
@@ -500,10 +502,10 @@ void ClassDeclaration::toObjFile(int multiobj)
                 if (id->vtblOffset())
                 {
                     // First entry is ClassInfo reference
-                    //dtxoff(&dt, id->toSymbol(), 0, TYnptr);
+                    //dtxoff(&dt, toSymbol(id), 0, TYnptr);
 
                     // First entry is struct Interface reference
-                    dtxoff(&dt, cd->toSymbol(), classinfo_size + k * (4 * Target::ptrsize), TYnptr);
+                    dtxoff(&dt, toSymbol(cd), classinfo_size + k * (4 * Target::ptrsize), TYnptr);
                     j = 1;
                 }
 
@@ -545,7 +547,7 @@ void ClassDeclaration::toObjFile(int multiobj)
             // Ensure function has a return value (Bugzilla 4869)
             fd->functionSemantic();
 
-            Symbol *s = fd->toSymbol();
+            Symbol *s = toSymbol(fd);
 
             if (isFuncHidden(fd))
             {   /* fd is hidden from the view of this class.
@@ -663,7 +665,7 @@ void InterfaceDeclaration::toObjFile(int multiobj)
     }
 
     // Generate C symbols
-    toSymbol();
+    toSymbol(this);
 
     //////////////////////////////////////////////
 
@@ -775,7 +777,7 @@ void InterfaceDeclaration::toObjFile(int multiobj)
     else
         dtsize_t(&dt, 0);       // no pointers
 
-    //dtxoff(&dt, type->vtinfo->toSymbol(), 0, TYnptr); // typeinfo
+    //dtxoff(&dt, toSymbol(type->vtinfo), 0, TYnptr); // typeinfo
 
     //////////////////////////////////////////////
 
@@ -788,7 +790,7 @@ void InterfaceDeclaration::toObjFile(int multiobj)
         ClassDeclaration *id = b->base;
 
         // ClassInfo
-        dtxoff(&dt, id->toSymbol(), 0, TYnptr);
+        dtxoff(&dt, toSymbol(id), 0, TYnptr);
 
         // vtbl[]
         dtsize_t(&dt, 0);
@@ -896,7 +898,7 @@ void VarDeclaration::toObjFile(int multiobj)
 
     if (isDataseg() && !(storage_class & STCextern))
     {
-        s = toSymbol();
+        s = toSymbol(this);
         sz = type->size();
 
         parent = this->toParent();
@@ -1070,7 +1072,7 @@ void TypeInfoDeclaration::toObjFile(int multiobj)
         return;
     }
 
-    Symbol *s = toSymbol();
+    Symbol *s = toSymbol(this);
     s->Sclass = SCcomdat;
     s->Sfl = FLdata;
 
@@ -1144,7 +1146,7 @@ void PragmaDeclaration::toObjFile(int multiobj)
         Dsymbol *sa = getDsymbol(e);
         FuncDeclaration *f = sa->isFuncDeclaration();
         assert(f);
-        Symbol *s = f->toSymbol();
+        Symbol *s = toSymbol(f);
         obj_startaddress(s);
     }
     AttribDeclaration::toObjFile(multiobj);

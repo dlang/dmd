@@ -53,6 +53,7 @@ VarDeclarations *VarDeclarations_create();
 type *Type_toCtype(Type *t);
 elem *toElemDtor(Expression *e, IRState *irs);
 unsigned totym(Type *tx);
+Symbol *toSymbol(Dsymbol *s);
 
 #define el_setLoc(e,loc)        ((e)->Esrcpos.Sfilename = (char *)(loc).filename, \
                                  (e)->Esrcpos.Slinnum = (loc).linnum, \
@@ -150,7 +151,7 @@ elem *callfunc(Loc loc,
     retmethod = retStyle(tf);
     ty = ec->Ety;
     if (fd)
-        ty = fd->toSymbol()->Stype->Tty;
+        ty = toSymbol(fd)->Stype->Tty;
     reverse = tyrevfunc(ty);
     ep = NULL;
     op = (ec->Eoper == OPvar) ? intrinsic_op(ec->EV.sp.Vsym->Sident) : -1;
@@ -276,7 +277,7 @@ elem *callfunc(Loc loc,
             // Evaluate ec for side effects
             eside = el_combine(ec, eside);
         }
-        Symbol *sfunc = fd->toSymbol();
+        Symbol *sfunc = toSymbol(fd);
 
         if (!fd->isVirtual() ||
             directcall ||               // BUG: fix
@@ -870,7 +871,7 @@ elem *toElem(Expression *e, IRState *irs)
                 return;
             }
 
-            Symbol *s = se->var->toSymbol();
+            Symbol *s = toSymbol(se->var);
             FuncDeclaration *fd = NULL;
             if (se->var->toParent2())
                 fd = se->var->toParent2()->isFuncDeclaration();
@@ -903,7 +904,7 @@ elem *toElem(Expression *e, IRState *irs)
                          */
                         if (fd->vthis)
                         {
-                            symbol *vs = fd->vthis->toSymbol();
+                            symbol *vs = toSymbol(fd->vthis);
                             //printf("vs = %s, offset = %x, %p\n", vs->Sident, (int)vs->Soffset, vs);
                             soffset -= vs->Soffset;
                         }
@@ -1033,7 +1034,7 @@ elem *toElem(Expression *e, IRState *irs)
                 fe->fd->tok = TOKfunction;
                 fe->fd->vthis = NULL;
             }
-            Symbol *s = fe->fd->toSymbol();
+            Symbol *s = toSymbol(fe->fd);
             elem *e = el_ptr(s);
             if (fe->fd->isNested())
             {
@@ -1360,7 +1361,7 @@ elem *toElem(Expression *e, IRState *irs)
                     }
                     else
                     {
-                        ex = el_var(ne->allocator->toSymbol());
+                        ex = el_var(toSymbol(ne->allocator));
                         ex = callfunc(ne->loc, irs, 1, ne->type, ex, ne->allocator->type,
                                 ne->allocator, ne->allocator->type, NULL, ne->newargs);
                     }
@@ -1384,7 +1385,7 @@ elem *toElem(Expression *e, IRState *irs)
                 }
                 else
                 {
-                    Symbol *csym = cd->toSymbol();
+                    Symbol *csym = toSymbol(cd);
                     ex = el_bin(OPcall,TYnptr,el_var(rtlsym[RTLSYM_NEWCLASS]),el_ptr(csym));
                     ectype = NULL;
 
@@ -1473,7 +1474,7 @@ elem *toElem(Expression *e, IRState *irs)
                 if (ne->allocator)
                 {
 
-                    ex = el_var(ne->allocator->toSymbol());
+                    ex = el_var(toSymbol(ne->allocator));
                     ex = callfunc(ne->loc, irs, 1, ne->type, ex, ne->allocator->type,
                                 ne->allocator, ne->allocator->type, NULL, ne->newargs);
 
@@ -3197,7 +3198,7 @@ elem *toElem(Expression *e, IRState *irs)
             }
 
             elem *ethis;
-            Symbol *sfunc = de->func->toSymbol();
+            Symbol *sfunc = toSymbol(de->func);
             elem *ep;
             if (de->func->isNested())
             {
@@ -3734,7 +3735,7 @@ elem *toElem(Expression *e, IRState *irs)
 
                 /* The offset from cdfrom=>cdto can only be determined at runtime.
                  */
-                elem *ep = el_param(el_ptr(cdto->toSymbol()), e);
+                elem *ep = el_param(el_ptr(toSymbol(cdto)), e);
                 e = el_bin(OPcall, TYnptr, el_var(rtlsym[rtl]), ep);
                 goto Lret;
             }
@@ -4323,7 +4324,7 @@ elem *toElem(Expression *e, IRState *irs)
                     else if (t1->ty == Tarray)
                     {
                         if (se->lengthVar && !(se->lengthVar->storage_class & STCconst))
-                            elength = el_var(se->lengthVar->toSymbol());
+                            elength = el_var(toSymbol(se->lengthVar));
                         else
                         {
                             elength = e;
@@ -4632,7 +4633,7 @@ elem *toElem(Expression *e, IRState *irs)
                     vd->toObjFile(0);
                 else
                 {
-                    Symbol *sp = s->toSymbol();
+                    Symbol *sp = toSymbol(s);
                     symbol_add(sp);
                     //printf("\tadding symbol '%s'\n", sp->Sident);
                     if (vd->init)
