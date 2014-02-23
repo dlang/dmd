@@ -429,6 +429,22 @@ elem *addressElem(elem *e, Type *t, bool alwaysCopy)
     elem **pe;
     for (pe = &e; (*pe)->Eoper == OPcomma; pe = &(*pe)->E2)
         ;
+
+    // For conditional operator, both branches need conversion.
+    if ((*pe)->Eoper == OPcond)
+    {
+        elem *ec = (*pe)->E2;
+
+        ec->E1 = addressElem(ec->E1, t, alwaysCopy);
+        ec->E2 = addressElem(ec->E2, t, alwaysCopy);
+
+        (*pe)->Ejty = (*pe)->Ety = ec->E1->Ety;
+        (*pe)->ET = ec->E1->ET;
+
+        e->Ety = TYnptr;
+        return e;
+    }
+
     if (alwaysCopy || ((*pe)->Eoper != OPvar && (*pe)->Eoper != OPind))
     {
         elem *e2 = *pe;

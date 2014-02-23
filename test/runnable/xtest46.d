@@ -6807,7 +6807,8 @@ void test10634()
 
 /***************************************************/
 
-immutable(char)[4] bar7254(int i) {
+immutable(char)[4] bar7254(int i)
+{
     if (i)
     {
         immutable(char)[4] r; return r;
@@ -6856,6 +6857,17 @@ void test11317()
     static assert(!__traits(compiles, test(fun())));
 
     assert(fun() == 0);
+}
+
+/***************************************************/
+// 12153
+
+void test12153()
+{
+    int[1] i, j;
+    bool b = true;
+    (b ? i : j)[] = [4];
+    assert(i == [4]);
 }
 
 /***************************************************/
@@ -7142,6 +7154,7 @@ int main()
     test7254();
     test11075();
     test11317();
+    test12153();
 
     printf("Success\n");
     return 0;
