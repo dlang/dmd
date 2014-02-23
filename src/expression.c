@@ -6261,22 +6261,15 @@ Expression *UnaExp::syntaxCopy()
     return e;
 }
 
-Expression *UnaExp::semantic(Scope *sc)
-{
-#if LOGSEMANTIC
-    printf("UnaExp::semantic('%s')\n", toChars());
-#endif
-    if (Expression *ex = unaSemantic(sc))
-        return ex;
-    return this;
-}
-
 /**************************
  * Helper function for easy error propagation.
  * If error occurs, returns ErrorExp. Otherwise returns NULL.
  */
 Expression *UnaExp::unaSemantic(Scope *sc)
 {
+#if LOGSEMANTIC
+    printf("UnaExp::semantic('%s')\n", toChars());
+#endif
     Expression *e1x = e1->semantic(sc);
     if (e1x->op == TOKerror)
         return e1x;
@@ -6311,22 +6304,15 @@ Expression *BinExp::syntaxCopy()
     return e;
 }
 
-Expression *BinExp::semantic(Scope *sc)
-{
-#if LOGSEMANTIC
-    printf("BinExp::semantic('%s')\n", toChars());
-#endif
-    if (Expression *ex = binSemantic(sc))
-        return ex;
-    return this;
-}
-
 /**************************
  * Helper function for easy error propagation.
  * If error occurs, returns ErrorExp. Otherwise returns NULL.
  */
 Expression *BinExp::binSemantic(Scope *sc)
 {
+#if LOGSEMANTIC
+    printf("BinExp::semantic('%s')\n", toChars());
+#endif
     Expression *e1x = e1->semantic(sc);
     Expression *e2x = e2->semantic(sc);
     if (e1x->op == TOKerror)
@@ -7190,6 +7176,13 @@ DotTemplateExp::DotTemplateExp(Loc loc, Expression *e, TemplateDeclaration *td)
     this->td = td;
 }
 
+Expression *DotTemplateExp::semantic(Scope *sc)
+{
+    if (Expression *ex = unaSemantic(sc))
+        return ex;
+    return this;
+}
+
 /************************************************************/
 
 DotVarExp::DotVarExp(Loc loc, Expression *e, Declaration *v, bool hasOverloads)
@@ -7736,7 +7729,9 @@ Expression *DotTypeExp::semantic(Scope *sc)
 #if LOGSEMANTIC
     printf("DotTypeExp::semantic('%s')\n", toChars());
 #endif
-    return UnaExp::semantic(sc);
+    if (Expression *ex = unaSemantic(sc))
+        return ex;
+    return this;
 }
 
 /************************************************************/
@@ -12661,6 +12656,13 @@ RemoveExp::RemoveExp(Loc loc, Expression *e1, Expression *e2)
         : BinExp(loc, TOKremove, sizeof(RemoveExp), e1, e2)
 {
     type = Type::tboolean;
+}
+
+Expression *RemoveExp::semantic(Scope *sc)
+{
+    if (Expression *ex = binSemantic(sc))
+        return ex;
+    return this;
 }
 
 /************************************************************/
