@@ -505,6 +505,15 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
 
         if (FuncDeclaration *f = s->isFuncDeclaration())
         {
+            if (TemplateDeclaration *td = getFuncTemplateDecl(f))
+            {
+                if (td->overroot)       // if not start of overloaded list of TemplateDeclaration's
+                    td = td->overroot;  // then get the start
+                Expression *ex = new TemplateExp(e->loc, td, f);
+                ex = ex->semantic(sc);
+                return ex;
+            }
+
             if (FuncLiteralDeclaration *fld = f->isFuncLiteralDeclaration())
             {
                 // Directly translate to VarExp instead of FuncExp
