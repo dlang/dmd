@@ -6977,6 +6977,12 @@ Expression *DotIdExp::semanticX(Scope *sc)
                 goto L1;
             case TOKoverloadset:
                 ds = ((OverExp *)e1)->vars;
+                goto L1;
+            case TOKtemplate:
+            {
+                TemplateExp *te = (TemplateExp *)e1;
+                ds = te->fd ? (Dsymbol *)te->fd : te->td;
+            }
             L1:
             {
                 assert(ds);
