@@ -1136,11 +1136,13 @@ void test9237()
 }
 
 /*************************************************************/
+// 5978
 
-void test5978() {
+void test5978()
+{
     () {
         int x;
-        pragma(msg, __traits(parent, x));
+        pragma(msg, __traits(identifier, __traits(parent, x)));
     } ();
 }
 

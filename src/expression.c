@@ -6979,6 +6979,15 @@ Expression *DotIdExp::semanticX(Scope *sc)
                 ds = ((OverExp *)e1)->vars;
             L1:
             {
+                assert(ds);
+                if (FuncDeclaration *f = ds->isFuncDeclaration())
+                {
+                    if (!f->type->deco)
+                    {
+                        error("forward reference to %s", f->toChars());
+                        return new ErrorExp();
+                    }
+                }
                 const char* s = mangle(ds);
                 Expression *e = new StringExp(loc, (void*)s, strlen(s), 'c');
                 e = e->semantic(sc);

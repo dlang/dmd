@@ -1,8 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice10922.d(11): Error: forward reference to inferred return type of function call self(n - 1u)
-fail_compilation/ice10922.d(11): Error: forward reference to inferred return type of function call self(n - 2u)
+fail_compilation/ice10922.d(9): Error: delegate ice10922.__lambda4 (const(uint) n) is not callable using argument types ()
 ---
 */
 

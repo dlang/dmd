@@ -502,6 +502,17 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             e->error("argument %s has no parent", o->toChars());
             goto Lfalse;
         }
+
+        if (FuncDeclaration *f = s->isFuncDeclaration())
+        {
+            if (FuncLiteralDeclaration *fld = f->isFuncLiteralDeclaration())
+            {
+                // Directly translate to VarExp instead of FuncExp
+                Expression *ex = new VarExp(e->loc, fld, 1);
+                return ex->semantic(sc);
+            }
+        }
+
         return (new DsymbolExp(e->loc, s))->semantic(sc);
     }
     else if (e->ident == Id::hasMember ||
