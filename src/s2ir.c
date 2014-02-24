@@ -796,8 +796,8 @@ public:
             else if (tf->isref)
             {
                 // Reference return, so convert to a pointer
-                Expression *ae = s->exp->addressOf();
-                e = toElemDtor(ae, irs);
+                e = toElemDtor(s->exp, irs);
+                e = addressElem(e, s->exp->type->pointerTo());
             }
             else
             {

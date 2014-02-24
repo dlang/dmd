@@ -2458,19 +2458,7 @@ Expression *Expression::addressOf()
 {
     //printf("Expression::addressOf()\n");
 #ifdef DEBUG
-    {
-        Expression *e = this;
-        while (e->op == TOKcomma)
-            e = ((CommaExp *)e)->e2;
-
-        /* VarExp::isLvalue() returns false if the variable has STCtemp.
-         * However in glue layer, a variable with STCtemp is address-able.
-         * So currently we cannot directly use e->isLvalue().
-         */
-        assert(e->op == TOKvar && ((VarExp *)e)->var->isVarDeclaration() ||
-               e->op == TOKerror ||
-               e->isLvalue());
-    }
+    assert(op == TOKerror || isLvalue());
 #endif
     Expression *e = new AddrExp(loc, this);
     e->type = type->pointerTo();
@@ -13510,4 +13498,33 @@ Expression *BinExp::reorderSettingAAElem(Scope *sc)
     }
     ec = new CommaExp(loc, ec, this);
     return ec->semantic(sc);
+}
+
+/***************************************
+ * Create a static array of TypeInfo references
+ * corresponding to an array of Expression's.
+ * Used to supply hidden _arguments[] value for variadic D functions.
+ */
+
+Expression *createTypeInfoArray(Scope *sc, Expression *exps[], size_t dim)
+{
+    /*
+     * Pass a reference to the TypeInfo_Tuple corresponding to the types of the
+     * arguments. Source compatibility is maintained by computing _arguments[]
+     * at the start of the called function by offseting into the TypeInfo_Tuple
+     * reference.
+     */
+    Parameters *args = new Parameters;
+    args->setDim(dim);
+    for (size_t i = 0; i < dim; i++)
+    {
+        Parameter *arg = new Parameter(STCin, exps[i]->type, NULL, NULL);
+        (*args)[i] = arg;
+    }
+    TypeTuple *tup = new TypeTuple(args);
+    Expression *e = tup->getTypeInfo(sc);
+    e = e->optimize(WANTvalue);
+    assert(e->op == TOKsymoff);         // should be SymOffExp
+
+    return e;
 }

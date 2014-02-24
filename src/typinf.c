@@ -30,7 +30,6 @@
 
 #include "dt.h"
 
-Parameters *Parameters_create();
 Symbol *toSymbol(Dsymbol *s);
 
 /*******************************************
@@ -766,96 +765,3 @@ int TypeClass::builtinTypeInfo()
      */
     return mod ? 0 : 1;
 }
-
-/* ========================================================================= */
-
-/***************************************
- * Create a static array of TypeInfo references
- * corresponding to an array of Expression's.
- * Used to supply hidden _arguments[] value for variadic D functions.
- */
-
-Expression *createTypeInfoArray(Scope *sc, Expression *exps[], size_t dim)
-{
-#if 1
-    /*
-     * Pass a reference to the TypeInfo_Tuple corresponding to the types of the
-     * arguments. Source compatibility is maintained by computing _arguments[]
-     * at the start of the called function by offseting into the TypeInfo_Tuple
-     * reference.
-     */
-    Parameters *args = Parameters_create();
-    args->setDim(dim);
-    for (size_t i = 0; i < dim; i++)
-    {   Parameter *arg = Parameter::create(STCin, exps[i]->type, NULL, NULL);
-        (*args)[i] = arg;
-    }
-    TypeTuple *tup = TypeTuple::create(args);
-    Expression *e = tup->getTypeInfo(sc);
-    e = e->optimize(WANTvalue);
-    assert(e->op == TOKsymoff);         // should be SymOffExp
-
-    return e;
-#else
-    /* Improvements:
-     * 1) create an array literal instead,
-     * as it would eliminate the extra dereference of loading the
-     * static variable.
-     */
-
-    ArrayInitializer *ai = new ArrayInitializer(0);
-    VarDeclaration *v;
-    Type *t;
-    Expression *e;
-    OutBuffer buf;
-    Identifier *id;
-    char *name;
-
-    // Generate identifier for _arguments[]
-    buf.writestring("_arguments_");
-    for (int i = 0; i < dim; i++)
-    {   t = exps[i]->type;
-        t->toDecoBuffer(&buf);
-    }
-    buf.writeByte(0);
-    id = Lexer::idPool((char *)buf.data);
-
-    Module *m = sc->module;
-    Dsymbol *s = m->symtab->lookup(id);
-
-    if (s && s->parent == m)
-    {   // Use existing one
-        v = s->isVarDeclaration();
-        assert(v);
-    }
-    else
-    {   // Generate new one
-
-        for (int i = 0; i < dim; i++)
-        {   t = exps[i]->type;
-            e = t->getTypeInfo(sc);
-            ai->addInit(new IntegerExp(i), new ExpInitializer(Loc(), e));
-        }
-
-        t = Type::typeinfo->type->arrayOf();
-        ai->type = t;
-        v = new VarDeclaration(0, t, id, ai);
-        v->storage_class |= STCtemp;
-        m->members->push(v);
-        m->symtabInsert(v);
-        sc = sc->push();
-        sc->linkage = LINKc;
-        sc->stc = STCstatic | STCcomdat;
-        ai->semantic(sc, t);
-        v->semantic(sc);
-        v->parent = m;
-        sc = sc->pop();
-    }
-    e = VarExp::create(Loc(), v);
-    e = e->semantic(sc);
-    return e;
-#endif
-}
-
-
-

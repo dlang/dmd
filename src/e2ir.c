@@ -188,10 +188,9 @@ elem *callfunc(Loc loc,
 
                 if (p->storageClass & (STCout | STCref))
                 {
-                    // Convert argument to a pointer,
-                    // use AddrExp::toElem()
-                    Expression *ae = arg->addressOf();
-                    ea = ae->toElem(irs);
+                    // Convert argument to a pointer
+                    ea = arg->toElem(irs);
+                    ea = addressElem(ea, arg->type->pointerTo());
                     goto L1;
                 }
             }
