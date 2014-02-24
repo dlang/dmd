@@ -1052,16 +1052,17 @@ MATCH TemplateDeclaration::leastAsSpecialized(Scope *sc, TemplateDeclaration *td
     // Set type arguments to dummy template instance to be types
     // generated from the parameters to this template declaration
     ti.tiargs = new Objects();
-    ti.tiargs->setDim(parameters->dim);
-    for (size_t i = 0; i < ti.tiargs->dim; i++)
+    ti.tiargs->reserve(parameters->dim);
+    for (size_t i = 0; i < parameters->dim; i++)
     {
         TemplateParameter *tp = (*parameters)[i];
-
+        if (tp->dependent)
+            break;
         RootObject *p = (RootObject *)tp->dummyArg();
-        if (p)
-            (*ti.tiargs)[i] = p;
-        else
-            ti.tiargs->setDim(i);
+        if (!p)
+            break;
+
+        ti.tiargs->push(p);
     }
 
     // Temporary Array to hold deduced types
@@ -1075,7 +1076,8 @@ MATCH TemplateDeclaration::leastAsSpecialized(Scope *sc, TemplateDeclaration *td
         /* A non-variadic template is more specialized than a
          * variadic one.
          */
-        if (isVariadic() && !td2->isVariadic())
+        TemplateTupleParameter *tp = isVariadic();
+        if (tp && !tp->dependent && !td2->isVariadic())
             goto L1;
 
 #if LOG_LEASTAS
@@ -4662,7 +4664,8 @@ MATCH TemplateAliasParameter::matchArg(Scope *sc, RootObject *oarg,
 {
     //printf("TemplateAliasParameter::matchArg()\n");
     MATCH m = MATCHexact;
-    RootObject *sa = getDsymbol(oarg);
+    Type *ta = isType(oarg);
+    RootObject *sa = ta && !ta->deco ? NULL : getDsymbol(oarg);
     Expression *ea = isExpression(oarg);
     if (ea && (ea->op == TOKthis || ea->op == TOKsuper))
         sa = ((ThisExp *)ea)->var;
@@ -4696,10 +4699,21 @@ MATCH TemplateAliasParameter::matchArg(Scope *sc, RootObject *oarg,
                     goto Lnomatch;
             }
         }
+        else if (ta && ta->ty == Tinstance && !specAlias)
+        {
+            /* Bugzilla xxxxx: Specialized parameter should be prefeerd
+             * match to the template type parameter.
+             *  template X(alias a) {}                      // a == this
+             *  template X(alias a : B!A, alias B, A...) {} // B!A => ta
+             */
+        }
         else if (sa && sa == TemplateTypeParameter::tdummy)
         {
-            // Bugzilla 2025: Aggregate Types should preferentially
-            // match to the template type parameter.
+            /* Bugzilla 2025: Aggregate Types should preferentially
+             * match to the template type parameter.
+             *  template X(alias a) {}  // a == this
+             *  template X(T) {}        // T => sa
+             */
         }
         else
             goto Lnomatch;

@@ -3097,6 +3097,31 @@ alias U12077(      T : Base!Args, alias Base, Args...) = Base;
 static assert(__traits(isSame, U12077!(S12077!int), S12077));
 
 /******************************************/
+// 12264
+
+struct S12264(A) {}
+
+template AX12264(alias A1)                      { enum AX12264 = 1; }
+template AX12264(alias A2 : B!A, alias B, A...) { enum AX12264 = 2; }
+template AY12264(alias A1)                  { enum AY12264 = 1; }
+template AY12264(alias A2 : B!int, alias B) { enum AY12264 = 2; }
+template AZ12264(alias A1)               { enum AZ12264 = 1; }
+template AZ12264(alias A2 : S12264!T, T) { enum AZ12264 = 2; }
+static assert(AX12264!(S12264!int) == 2);
+static assert(AY12264!(S12264!int) == 2);
+static assert(AZ12264!(S12264!int) == 2);
+
+template TX12264(T1)                      { enum TX12264 = 1; }
+template TX12264(T2 : B!A, alias B, A...) { enum TX12264 = 2; }
+template TY12264(T1)                  { enum TY12264 = 1; }
+template TY12264(T2 : B!int, alias B) { enum TY12264 = 2; }
+template TZ12264(T1)               { enum TZ12264 = 1; }
+template TZ12264(T2 : S12264!T, T) { enum TZ12264 = 2; }
+static assert(TX12264!(S12264!int) == 2);
+static assert(TY12264!(S12264!int) == 2);
+static assert(TZ12264!(S12264!int) == 2);
+
+/******************************************/
 // 12122
 
 enum N12122 = 1;
