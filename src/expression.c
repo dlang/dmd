@@ -4546,7 +4546,8 @@ Lagain:
             e = new DotTemplateInstanceExp(loc, e, ti);
             return e->semantic(sc);
         }
-        if (ti->needsTypeInference(sc))
+        if (!ti->semanticRun &&
+            ti->needsTypeInference(sc))
         {
             if (TemplateDeclaration *td = ti->tempdecl->isTemplateDeclaration())
             {
@@ -4572,7 +4573,6 @@ Lagain:
             }
             return this;
         }
-        unsigned olderrs = global.errors;
         if (!ti->semanticRun)
             ti->semantic(sc);
         if (ti->inst)
@@ -4605,8 +4605,6 @@ Lagain:
             }
             //printf("sds = %s, '%s'\n", sds->kind(), sds->toChars());
         }
-        if (olderrs != global.errors)
-            return new ErrorExp();
     }
     else
     {
@@ -5474,15 +5472,24 @@ void FuncExp::genIdent(Scope *sc)
         }
         else
         {
-            symtab = sc->parent->isScopeDsymbol()->symtab;
-        L1:
-            assert(symtab);
-            int num = (int)_aaLen(symtab->tab) + 1;
-            Identifier *id = Lexer::uniqueId(s, num);
-            fd->ident = id;
-            if (td) td->ident = id;
-            symtab->insert(td ? (Dsymbol *)td : (Dsymbol *)fd);
+            ScopeDsymbol *sds = sc->parent->isScopeDsymbol();
+            if (!sds->symtab)
+            {
+                // Inside template constraint, symtab may not be set yet.
+                // Initialize it lazily.
+                assert(sds->isTemplateInstance());
+                sds->symtab = new DsymbolTable();
+            }
+            symtab = sds->symtab;
         }
+        if (!symtab)
+            return;
+    L1:
+        int num = (int)_aaLen(symtab->tab) + 1;
+        Identifier *id = Lexer::uniqueId(s, num);
+        fd->ident = id;
+        if (td) td->ident = id;
+        symtab->insert(td ? (Dsymbol *)td : (Dsymbol *)fd);
     }
 }
 
@@ -7889,9 +7896,7 @@ Expression *CallExp::semantic(Scope *sc)
             }
             else
             {
-                ti->semantic(sc);
-                if (ti->errors)
-                    e1 = new ErrorExp();
+                e1 = e1->semantic(sc);
             }
         }
     }
