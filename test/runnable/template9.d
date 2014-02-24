@@ -3110,6 +3110,27 @@ void test12122()
 }
 
 /******************************************/
+// 12186
+
+template map_front12186(fun...)
+{
+    auto map_front12186(Range)(Range r)
+    {
+        return fun[0](r[0]);
+    }
+}
+
+void test12186()
+{
+    immutable int[][] mat;
+
+    mat.map_front12186!((in r) => 0);              // OK
+    mat.map_front12186!((const r) => 0);           // OK
+    mat.map_front12186!((immutable int[] r) => 0); // OK
+    mat.map_front12186!((immutable r) => 0);       // OK <- Error
+}
+
+/******************************************/
 // 12207
 
 void test12207()

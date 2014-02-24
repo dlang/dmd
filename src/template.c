@@ -1561,14 +1561,32 @@ Lretry:
             if (!(fparam->storageClass & STClazy) && argtype->ty == Tvoid)
                 goto Lnomatch;
 
-            /* Remove top const for dynamic array types and pointer types
+            /* Adjust top const of the dynamic array type or pointer type argument
+             * to the corresponding parameter type qualifier,
+             * to pass through deduceType.
              */
+            Type *at = argtype;
             if ((argtype->ty == Tarray || argtype->ty == Tpointer) &&
-                !argtype->isMutable() &&
+                ((prmtype->mod & MODwild) || deduceTypeHelper(argtype, &at, prmtype)) &&
                 (!(fparam->storageClass & STCref) ||
                  (fparam->storageClass & STCauto) && !farg->isLvalue()))
             {
-                argtype = argtype->mutableOf();
+                if ((prmtype->mod & MODwild) || prmtype->mod == 0)
+                {
+                    /*     prmtype      argtype                Adjusted argtype
+                     * foo(      U)     immutable(int[])    => immutable(int)[]
+                     * foo(inout U)     immutable(int[])    => immutable(int)[]
+                     */
+                    argtype = at->mutableOf();
+                }
+                else
+                {
+                    /*     prmtype      argtype                Adjusted argtype
+                     * foo(immutable U) immutable(int)[]    => immutable(int[])
+                     * foo(    const U) immutable(int[])    => const(immutable(int)[])
+                     */
+                    argtype = at->addMod(prmtype->mod);
+                }
             }
 
             if (fvarargs == 2 && parami + 1 == nfparams && argi + 1 < nfargs)
