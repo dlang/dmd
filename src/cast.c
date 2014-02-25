@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2012 by Digital Mars
+// Copyright (c) 1999-2014 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -200,6 +200,90 @@ MATCH implicitConvTo(Expression *e, Type *t)
                     return;
                 }
             }
+        }
+
+        static MATCH implicitConvToAddMin(BinExp *e, Type *t)
+        {
+            //printf("%s => %s\n", e->type->toChars(), t->toChars());
+            /* Is this (ptr +- offset)? If so, then ask ptr
+             * if the conversion can be done.
+             * This is to support doing things like implicitly converting a mutable unique
+             * pointer to an immutable pointer.
+             */
+
+            Type *typeb = e->type->toBasetype();
+            Type *tb = t->toBasetype();
+            if (typeb->ty != Tpointer || tb->ty != Tpointer)
+                return MATCHnomatch;
+            /* It is a pointer conversion
+             */
+
+            /* If the to/from mod bits are the same, don't need to look any further
+             */
+            if (typeb->nextOf()->mod == tb->nextOf()->mod)
+                return MATCHnomatch;
+
+            /* Ask if the only reason the pointer conversion doesn't work is because of the
+             * addition or subtraction of mod bits.
+             * Test by converting both to immutable and trying again.
+             */
+            Type *tbm = tb->nextOf()->immutableOf()->pointerTo();
+            Type *typebm = typeb->nextOf()->immutableOf()->pointerTo();
+            MATCH m = typebm->implicitConvTo(tbm);
+            if (m == MATCHnomatch)
+                return m;
+
+            /* Look for (ptr +- offset) or (offset + ptr).
+             * Set e1 to be ptr, and t1 the pointer type.
+             */
+            Expression *e1 = e->e1;
+            Expression *e2 = e->e2;
+            Type *t1 = e1->type->toBasetype();
+            Type *t2 = e2->type->toBasetype();
+            if (t1->ty == Tpointer && t2->ty != Tpointer)
+                ;
+            else if (e->op == TOKadd && t2->ty == Tpointer && t1->ty != Tpointer)
+            {
+                e1 = e2;
+                t1 = t2;
+            }
+            else
+                return MATCHnomatch;
+
+            /* Add t's mod bits to t1, and try to convert e1 to t1
+             */
+            t1 = t1->nextOf()->castMod(tb->nextOf()->mod)->pointerTo();
+            MATCH m2 = e1->implicitConvTo(t1);
+            if (m2 == MATCHnomatch)
+                return MATCHnomatch;
+
+            /* Allow the conversion. Match level is MATCHconst at best.
+             */
+            if (m == MATCHexact)
+                m = MATCHconst;
+            return m;
+        }
+
+        void visit(AddExp *e)
+        {
+        #if 0
+            printf("AddExp::implicitConvTo(this=%s, type=%s, t=%s)\n",
+                e->toChars(), e->type->toChars(), t->toChars());
+        #endif
+            visit((Expression *)e);
+            if (result == MATCHnomatch)
+                result = implicitConvToAddMin(e, t);
+        }
+
+        void visit(MinExp *e)
+        {
+        #if 0
+            printf("MinExp::implicitConvTo(this=%s, type=%s, t=%s)\n",
+                e->toChars(), e->type->toChars(), t->toChars());
+        #endif
+            visit((Expression *)e);
+            if (result == MATCHnomatch)
+                result = implicitConvToAddMin(e, t);
         }
 
         void visit(IntegerExp *e)
@@ -556,7 +640,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
                     }
                 }
             }
-            
+
             visit((Expression *)e);
         }
 
@@ -1740,7 +1824,7 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
             }
             Type *tb = t->toBasetype();
             Type *typeb = e->type->toBasetype();
-            
+
             if (tb->equals(typeb))
             {
                 result = e->copy();
