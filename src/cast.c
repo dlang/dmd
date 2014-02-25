@@ -259,9 +259,9 @@ MATCH implicitConvTo(Expression *e, Type *t)
 
             /* Allow the conversion. Match level is MATCHconst at best.
              */
-            if (m == MATCHexact)
-                m = MATCHconst;
-            return m;
+            if (m2 == MATCHexact)
+                m2 = MATCHconst;
+            return m2;
         }
 
         void visit(AddExp *e)
@@ -1116,7 +1116,44 @@ MATCH implicitConvTo(Expression *e, Type *t)
                 typeb = toStaticArrayType(e);
                 if (typeb)
                     result = typeb->implicitConvTo(t);
+                return;
             }
+
+            /* If the only reason it won't convert is because of the mod bits,
+             * then test for conversion by seeing if e1 can be converted with those
+             * same mod bits.
+             */
+
+            /* Test for 'only reason' by casting to immutable and trying the conversion again
+             */
+            Type *tbm = tb->immutableOf();
+            Type *typebm = typeb->immutableOf();
+            if (typebm->implicitConvTo(tbm) == MATCHnomatch)
+            {
+                assert(result == MATCHnomatch);
+                return;
+            }
+
+            /* Add t's mod bits to t1, and try to convert e1 to t1
+             */
+            Type *t1b = e->e1->type->toBasetype();
+            if (!t1b->nextOf() || !tb->nextOf())
+                return;
+            Type *t1e = t1b->nextOf()->castMod(tb->nextOf()->mod); // element type with mod bits
+            Type *t1;
+            if (t1b->ty == Tarray)
+                t1 = t1e->arrayOf();
+            else if (t1b->ty == Tpointer)
+                t1 = t1e->pointerTo();
+            else if (t1b->ty == Tsarray)
+                t1 = t1e->sarrayOf(t1b->size() / t1b->nextOf()->size());
+            else
+                return;
+            MATCH m = e->e1->implicitConvTo(t1);
+
+            /* Match level is MATCHconst at best.
+             */
+            result = (m > MATCHconst) ? MATCHconst : m;
         }
     };
 

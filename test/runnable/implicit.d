@@ -123,6 +123,18 @@ void testDIP29_2()
 
 /***********************************/
 
+int[] pureMaker3() pure
+{
+    return new int[4];
+}
+
+void testDIP29_3()
+{
+    immutable x = pureMaker3()[];
+}
+
+/***********************************/
+
 void main()
 {
     test1();
@@ -132,6 +144,7 @@ void main()
     test5();
     testDIP29_1();
     testDIP29_2();
+    testDIP29_3();
 
     writefln("Success");
 }
