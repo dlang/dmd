@@ -1293,6 +1293,8 @@ Type *Type::aliasthisOf()
             else if (d->isFuncDeclaration())
             {
                 FuncDeclaration *fd = resolveFuncCall(Loc(), NULL, d, NULL, this, NULL, 1);
+                if (fd && fd->errors)
+                    return Type::terror;
                 if (fd && !fd->type->nextOf() && !fd->functionSemantic())
                     fd = NULL;
                 if (fd)
@@ -1316,6 +1318,8 @@ Type *Type::aliasthisOf()
         {
             assert(td->scope);
             FuncDeclaration *fd = resolveFuncCall(Loc(), NULL, td, NULL, this, NULL, 1);
+            if (fd && fd->errors)
+                return Type::terror;
             if (fd && fd->functionSemantic())
             {
                 Type *t = fd->type->nextOf();

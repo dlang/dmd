@@ -2429,7 +2429,24 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
     TemplateDeclaration *td = dstart->isTemplateDeclaration();
     if (td && td->funcroot)
         dstart = td->funcroot;
+
+    unsigned errors = global.errors;
     overloadApply(dstart, &p, &ParamDeduce::fp);
+    if (global.errors != errors)
+    {
+    Lerror:
+        static FuncDeclaration *errorFunc = NULL;
+        if (errorFunc == NULL)
+        {
+            errorFunc = new FuncDeclaration(Loc(), Loc(), Id::empty, STCundefined, NULL);
+            errorFunc->type = Type::terror;
+            errorFunc->errors = true;
+        }
+        m->count = 1;
+        m->lastf = errorFunc;
+        m->last = MATCHnomatch;
+        return;
+    }
 
     //printf("td_best = %p, m->lastf = %p\n", p.td_best, m->lastf);
     if (p.td_best && p.ti_best)
@@ -2468,9 +2485,10 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
         assert(tf->ty == Tfunction);
         if (!tf->callMatch(p.tthis_best, fargs))
         {
-            m->lastf = NULL;
             m->count = 0;
-            goto Lerror;
+            m->lastf = NULL;
+            m->last = MATCHnomatch;
+            return;
         }
 
         if (FuncLiteralDeclaration *fld = m->lastf->isFuncLiteralDeclaration())
@@ -2505,8 +2523,6 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
     }
     else
     {
-    Lerror:
-        // Keep m->lastf and m->count as-is.
         m->last = MATCHnomatch;
     }
 }
@@ -5743,6 +5759,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 #endif
             if (!inst->instantiatingModule || inst->instantiatingModule->isRoot())
                 inst->instantiatingModule = mi;
+            errors = inst->errors;
             return;
         }
     L1: ;
@@ -5974,11 +5991,14 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     tryExpandMembers(sc2);
 
     semanticRun = PASSsemanticdone;
+    if (global.errors != errorsave)
+        goto Laftersemantic;
 
     /* If any of the instantiation members didn't get semantic() run
      * on them due to forward references, we cannot run semantic2()
      * or semantic3() yet.
      */
+    {
     bool found_deferred_ad = false;
     for (size_t i = 0; i < Module::deferred.dim; i++)
     {
@@ -5998,6 +6018,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     }
     if (found_deferred_ad || Module::deferred.dim)
         goto Laftersemantic;
+    }
 
     /* ConditionalDeclaration may introduce eponymous declaration,
      * so we should find it once again after semantic.
@@ -6024,7 +6045,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
      * Perhaps VarDeclaration::semantic() should do it like it does
      * for initializers inside a function.
      */
-//    if (sc->parent->isFuncDeclaration())
+    //if (sc->parent->isFuncDeclaration())
     {
         /* BUG 782: this has problems if the classes this depends on
          * are forward referenced. Find a way to defer semantic()
@@ -6032,6 +6053,8 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
          */
         semantic2(sc2);
     }
+    if (global.errors != errorsave)
+        goto Laftersemantic;
 
     if (sc->func && aliasdecl && aliasdecl->toAlias()->isFuncDeclaration())
     {
@@ -6894,7 +6917,7 @@ bool TemplateInstance::needsTypeInference(Scope *sc, int flag)
             dedtypes.setDim(td->parameters->dim);
             dedtypes.zero();
             assert(td->semanticRun != PASSinit);
-            MATCH m = td->matchWithInstance(sc, ti, &dedtypes, NULL, 0);
+            MATCH m = td->matchWithInstance(sc, ti, &dedtypes, NULL, 1);
             if (m <= MATCHnomatch)
                 return 0;
         }

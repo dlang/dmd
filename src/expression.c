@@ -298,6 +298,8 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
                 FuncDeclaration *f = resolveFuncCall(loc, sc, os->a[i], tiargs, tthis, &a, 1);
                 if (f)
                 {
+                    if (f->errors)
+                        return new ErrorExp();
                     fd = f;
                     assert(fd->type->ty == Tfunction);
                     TypeFunction *tf = (TypeFunction *)fd->type;
@@ -317,6 +319,8 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
                 FuncDeclaration *f = resolveFuncCall(loc, sc, os->a[i], tiargs, tthis, NULL, 1);
                 if (f)
                 {
+                    if (f->errors)
+                        return new ErrorExp();
                     fd = f;
                     assert(fd->type->ty == Tfunction);
                     TypeFunction *tf = (TypeFunction *)fd->type;
@@ -421,6 +425,8 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
             FuncDeclaration *fd = resolveFuncCall(loc, sc, s, tiargs, tthis, &a, 1);
             if (fd && fd->type)
             {
+                if (fd->errors)
+                    return new ErrorExp();
                 assert(fd->type->ty == Tfunction);
                 TypeFunction *tf = (TypeFunction *)fd->type;
                 if (!tf->isproperty && global.params.enforcePropertySyntax)
@@ -433,6 +439,8 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
             FuncDeclaration *fd = resolveFuncCall(loc, sc, s, tiargs, tthis, NULL, 1);
             if (fd && fd->type)
             {
+                if (fd->errors)
+                    return new ErrorExp();
                 assert(fd->type->ty == Tfunction);
                 TypeFunction *tf = (TypeFunction *)fd->type;
                 if (!e2 || tf->isref)
@@ -574,6 +582,7 @@ void checkPropertyCall(Expression *e, Expression *emsg)
 
 Expression *resolvePropertiesOnly(Scope *sc, Expression *e1)
 {
+    //printf("e1 = %s %s\n", Token::toChars(e1->op), e1->toChars());
     OverloadSet *os;
     FuncDeclaration *fd;
     TemplateDeclaration *td;
@@ -660,7 +669,8 @@ Expression *resolvePropertiesOnly(Scope *sc, Expression *e1)
         fd = dve->var->isFuncDeclaration();
         goto Lfd;
     }
-    else if (e1->op == TOKvar && e1->type->ty == Tfunction)
+    else if (e1->op == TOKvar && e1->type->ty == Tfunction &&
+        (sc->intypeof || !((VarExp *)e1)->var->needThis()))
     {
         fd = ((VarExp *)e1)->var->isFuncDeclaration();
     Lfd:
@@ -4848,6 +4858,8 @@ Lagain:
             f = resolveFuncCall(loc, sc, cd->ctor, NULL, tb, arguments, 0);
         if (f)
         {
+            if (f->errors)
+                goto Lerr;
             checkDeprecated(sc, f);
             checkPurity(sc, f);
             checkSafety(sc, f);
@@ -4882,7 +4894,7 @@ Lagain:
             newargs->shift(e);
 
             f = resolveFuncCall(loc, sc, cd->aggNew, NULL, tb, newargs);
-            if (!f)
+            if (!f || f->errors)
                 goto Lerr;
             allocator = f->isNewDeclaration();
             assert(allocator);
@@ -4921,7 +4933,7 @@ Lagain:
             newargs->shift(e);
 
             FuncDeclaration *f = resolveFuncCall(loc, sc, sd->aggNew, NULL, tb, newargs);
-            if (!f)
+            if (!f || f->errors)
                 goto Lerr;
             allocator = f->isNewDeclaration();
             assert(allocator);
@@ -4945,6 +4957,8 @@ Lagain:
             f = resolveFuncCall(loc, sc, sd->ctor, NULL, tb, arguments, 0);
         if (f)
         {
+            if (f->errors)
+                goto Lerr;
             checkDeprecated(sc, f);
             checkPurity(sc, f);
             checkSafety(sc, f);
@@ -8180,7 +8194,7 @@ Lagain:
 
         // Do overload resolution
         f = resolveFuncCall(loc, sc, s, tiargs, ue1 ? ue1->type : NULL, arguments);
-        if (!f || f->type->ty == Terror)
+        if (!f || f->errors || f->type->ty == Terror)
             return new ErrorExp();
 
         if (f->needThis())
@@ -8287,7 +8301,7 @@ Lagain:
 
                 tthis = cd->type->addMod(sc->func->type->mod);
                 f = resolveFuncCall(loc, sc, cd->baseClass->ctor, NULL, tthis, arguments, 0);
-                if (!f)
+                if (!f || f->errors)
                     return new ErrorExp();
                 accessCheck(loc, sc, NULL, f);
                 checkDeprecated(sc, f);
@@ -8326,7 +8340,7 @@ Lagain:
 
             tthis = cd->type->addMod(sc->func->type->mod);
             f = resolveFuncCall(loc, sc, cd->ctor, NULL, tthis, arguments, 0);
-            if (!f)
+            if (!f || f->errors)
                 return new ErrorExp();
             checkDeprecated(sc, f);
             checkPurity(sc, f);
@@ -8349,12 +8363,15 @@ Lagain:
         FuncDeclaration *f = NULL;
         Dsymbol *s = NULL;
         for (size_t i = 0; i < eo->vars->a.dim; i++)
-        {   s = eo->vars->a[i];
+        {
+            s = eo->vars->a[i];
             if (tiargs && s->isFuncDeclaration())
                 continue;
             FuncDeclaration *f2 = resolveFuncCall(loc, sc, s, tiargs, tthis, arguments, 1);
             if (f2)
             {
+                if (f2->errors)
+                    return new ErrorExp();
                 if (f)
                 {
                     /* Error if match in more than one overload set,
@@ -8414,7 +8431,7 @@ Lagain:
         {
             TemplateExp *te = (TemplateExp *)e1;
             f = resolveFuncCall(loc, sc, te->td, tiargs, NULL, arguments);
-            if (!f)
+            if (!f || f->errors)
                 return new ErrorExp();
             if (f->needThis())
             {
@@ -8529,10 +8546,10 @@ Lagain:
                     e1->toChars(), Parameter::argsTypesToChars(tf->parameters, tf->varargs),
                     buf.peekString());
 
-                return new ErrorExp();
+                f = NULL;
             }
         }
-        if (!f)
+        if (!f || f->errors)
             return new ErrorExp();
 
         if (f->needThis())
