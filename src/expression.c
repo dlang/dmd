@@ -11149,7 +11149,14 @@ Ltupleassign:
              *  C[2] ca;  D[] da;
              *  ca[] = da;
              */
-            e2 = e2->castTo(sc, e1->type->constOf());
+            if (isArrayOpValid(e2))
+            {
+                // Don't add CastExp to keep AST for array operations
+                e2 = e2->copy();
+                e2->type = e1->type->constOf();
+            }
+            else
+                e2 = e2->castTo(sc, e1->type->constOf());
         }
         else
             e2 = e2->implicitCastTo(sc, e1->type);
