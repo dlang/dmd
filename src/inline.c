@@ -1417,12 +1417,15 @@ public:
             }
         }
 
-        if (eresult && e->type->ty != Tvoid &&
-            !e->type->equals(eresult->type) &&
-            eresult->type->hasWild() && !e->type->hasWild())
+        if (eresult && e->type->ty != Tvoid)
         {
-            eresult = eresult->copy();
-            eresult->type = e->type;
+            Expression *ex = eresult;
+            while (ex->op == TOKcomma)
+            {
+                ex->type = e->type;
+                ex = ((CommaExp *)ex)->e2;
+            }
+            ex->type = e->type;
         }
     }
 
