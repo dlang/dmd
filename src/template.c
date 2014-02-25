@@ -806,11 +806,13 @@ bool TemplateDeclaration::evaluateConstraint(
     scx = scx->startCTFE();
     scx->flags |= SCOPEstaticif;
     assert(ti->inst == NULL);
+    ti->inst = ti;  // temporary instantiation to enable genIdent()
 
     //printf("\tscx->parent = %s %s\n", scx->parent->kind(), scx->parent->toPrettyChars());
     e = e->semantic(scx);
     e = resolveProperties(scx, e);
 
+    ti->inst = NULL;
     ti->symtab = NULL;
     scx = scx->endCTFE();
 
@@ -971,6 +973,7 @@ MATCH TemplateDeclaration::matchWithInstance(Scope *sc, TemplateInstance *ti,
             // Resolve parameter types and 'auto ref's.
             tf->fargs = fargs;
             fd->type = tf->semantic(loc, paramscope);
+            fd->originalType = fd->type;    // for mangling
             if (fd->type->ty != Tfunction)
                 goto Lnomatch;
         }
@@ -2600,6 +2603,7 @@ FuncDeclaration *TemplateDeclaration::doHeaderInstantiation(
     fd->type = tf;
     fd->type = fd->type->addSTC(scx->stc);
     fd->type = fd->type->semantic(fd->loc, scx);
+    fd->originalType = fd->type;    // for mangling
     //printf("\t[%s] fd->type = %s, mod = %x, ", loc.toChars(), fd->type->toChars(), fd->type->mod);
     //printf("fd->needThis() = %d\n", fd->needThis());
 
@@ -7090,7 +7094,13 @@ Identifier *TemplateInstance::genIdent(Objects *args)
     //printf("TemplateInstance::genIdent('%s')\n", tempdecl->ident->toChars());
     OutBuffer buf;
     char *id = tempdecl->ident->toChars();
-    buf.printf("__T%llu%s", (ulonglong)strlen(id), id);
+    if (!members)
+    {
+        // Use "__U" for the symbols declared inside template constraint.
+        buf.printf("__U%llu%s", (ulonglong)strlen(id), id);
+    }
+    else
+        buf.printf("__T%llu%s", (ulonglong)strlen(id), id);
     for (size_t i = 0; i < args->dim; i++)
     {
         RootObject *o = (*args)[i];

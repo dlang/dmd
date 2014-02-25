@@ -394,6 +394,75 @@ void test12217(int)
 void test12217() {}
 
 /***************************************************/
+// 12231
+
+void func12231a()()
+if (is(typeof({
+        class C {}
+        static assert(C.mangleof ==
+            "C6mangle16__U10func12231aZ10func12231aFZ9__lambda1MFZ1C");
+            //         ###            L                       #
+    })))
+{}
+
+void func12231b()()
+if (is(typeof({
+        class C {}
+        static assert(C.mangleof ==
+            "C6mangle16__U10func12231bZ10func12231bFZ9__lambda1MFZ1C");
+            //         L__L           L                       LL
+    })) &&
+    is(typeof({
+        class C {}
+        static assert(C.mangleof ==
+            "C6mangle16__U10func12231bZ10func12231bFZ9__lambda2MFZ1C");
+            //         L__L           L                       LL
+    })))
+{}
+
+void func12231c()()
+if (is(typeof({
+        class C {}
+        static assert(C.mangleof ==
+            "C6mangle16__U10func12231cZ10func12231cFZ9__lambda1MFZ1C");
+            //         L__L           L                       LL
+    })))
+{
+    (){
+        class C {}
+        static assert(C.mangleof ==
+            "C6mangle16__T10func12231cZ10func12231cFZ9__lambda1MFZ1C");
+            //         L__L           L                       LL
+    }();
+}
+
+void func12231c(X)()
+if (is(typeof({
+        class C {}
+        static assert(C.mangleof ==
+            "C6mangle20__U10func12231cTAyaZ10func12231cFZ9__lambda1MFZ1C");
+            //         L__L           L___L                       LL
+    })))
+{
+    (){
+        class C {}
+        static assert(C.mangleof ==
+            "C6mangle20__T10func12231cTAyaZ10func12231cFZ9__lambda1MFZ1C");
+            //         L__L           L___L                       LL
+    }();
+}
+
+void test12231()
+{
+    func12231a();
+
+    func12231b();
+
+    func12231c();
+    func12231c!string();
+}
+
+/***************************************************/
 
 void main()
 {

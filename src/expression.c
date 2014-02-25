@@ -5477,12 +5477,13 @@ void FuncExp::genIdent(Scope *sc)
         DsymbolTable *symtab;
         if (FuncDeclaration *func = sc->parent->isFuncDeclaration())
         {
-            symtab = func->localsymtab;
-            if (symtab)
+            if (func->localsymtab == NULL)
             {
                 // Inside template constraint, symtab is not set yet.
-                goto L1;
+                // Initialize it lazily.
+                func->localsymtab = new DsymbolTable();
             }
+            symtab = func->localsymtab;
         }
         else
         {
@@ -5496,9 +5497,7 @@ void FuncExp::genIdent(Scope *sc)
             }
             symtab = sds->symtab;
         }
-        if (!symtab)
-            return;
-    L1:
+        assert(symtab);
         int num = (int)_aaLen(symtab->tab) + 1;
         Identifier *id = Lexer::uniqueId(s, num);
         fd->ident = id;
