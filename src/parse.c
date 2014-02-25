@@ -3423,6 +3423,8 @@ L2:
 
             if (tpl && init)
             {
+                if ((v->storage_class & STCmanifest) == 0)
+                    error("eponymous template syntax with variables is allowed only for enums");
                 Dsymbols *a2 = new Dsymbols();
                 a2->push(s);
                 TemplateDeclaration *tempdecl =
@@ -3497,6 +3499,8 @@ Dsymbols *Parser::parseAutoDeclarations(StorageClass storageClass, const utf8_t 
         Dsymbol *s = v;
         if (tpl)
         {
+            if ((v->storage_class & STCmanifest) == 0)
+                error("eponymous template syntax with variables is allowed only for enums");
             Dsymbols *a2 = new Dsymbols();
             a2->push(v);
             TemplateDeclaration *tempdecl =
