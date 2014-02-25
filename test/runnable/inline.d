@@ -286,6 +286,9 @@ struct Task
     }
 }
 
+/************************************/
+// 9356
+
 void test9356()
 {
     static inout(char)[] bar (inout(char)[] a)
@@ -306,6 +309,17 @@ void test12079()
     string[string][string] foo;
 
     foo.get("bar", null).get("baz", null);
+}
+
+/************************************/
+// 12243
+
+char f12243() { return 'a'; }
+
+void test12243()
+{
+    string s;
+    s ~= f12243();
 }
 
 /************************************/
