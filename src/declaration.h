@@ -85,10 +85,11 @@ enum PURE;
 #define STCnodefaultctor 0x8000000000LL  // must be set inside constructor
 #define STCtemp          0x10000000000LL // temporary variable
 #define STCrvalue        0x20000000000LL // force rvalue for variables
+#define STCvirtual       0x40000000000LL
 
 const StorageClass STCStorageClass = (STCauto | STCscope | STCstatic | STCextern | STCconst | STCfinal |
     STCabstract | STCsynchronized | STCdeprecated | STCoverride | STClazy | STCalias |
-    STCout | STCin |
+    STCout | STCin | STCvirtual |
     STCmanifest | STCimmutable | STCshared | STCwild | STCnothrow | STCpure | STCref | STCtls |
     STCgshared | STCproperty | STCsafe | STCtrusted | STCsystem | STCdisable);
 

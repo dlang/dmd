@@ -2130,6 +2130,25 @@ void test103()
 
 /***************************************************/
 
+class C11616
+{
+    virtual void a() {}
+    virtual { void b() {} }
+virtual:
+    final void c() {}
+final:
+    virtual void d() {}
+}
+
+class D11616 : C11616
+{
+    final override void a() {}
+    final override void b() {}
+    final override void d() {}
+}
+
+/***************************************************/
+
 int foo104(int x)
 {
     int* p = &(x += 1);
