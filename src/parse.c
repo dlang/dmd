@@ -415,7 +415,6 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
                 goto Lstc;
 
             case TOKfinal:        stc = STCfinal;        goto Lstc;
-            case TOKvirtual:      stc = STCvirtual;      goto Lstc;
             case TOKauto:         stc = STCauto;         goto Lstc;
             case TOKscope:        stc = STCscope;        goto Lstc;
             case TOKoverride:     stc = STCoverride;     goto Lstc;
@@ -479,7 +478,6 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
                         stc = STCdeprecated;
                         goto Lstc;
                     case TOKfinal:        stc = STCfinal;        goto Lstc;
-                    case TOKvirtual:      stc = STCvirtual;      goto Lstc;
                     case TOKauto:         stc = STCauto;         goto Lstc;
                     case TOKscope:        stc = STCscope;        goto Lstc;
                     case TOKoverride:     stc = STCoverride;     goto Lstc;
@@ -3126,7 +3124,6 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, const utf8_t *co
 
             case TOKstatic:     stc = STCstatic;         goto L1;
             case TOKfinal:      stc = STCfinal;          goto L1;
-            case TOKvirtual:    stc = STCvirtual;        goto L1;
             case TOKauto:       stc = STCauto;           goto L1;
             case TOKscope:      stc = STCscope;          goto L1;
             case TOKoverride:   stc = STCoverride;       goto L1;
@@ -5695,7 +5692,6 @@ int Parser::skipAttributes(Token *t, Token **pt)
             case TOKshared:
             case TOKwild:
             case TOKfinal:
-            case TOKvirtual:
             case TOKauto:
             case TOKscope:
             case TOKoverride:
