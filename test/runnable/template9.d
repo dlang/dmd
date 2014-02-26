@@ -3097,6 +3097,17 @@ alias U12077(      T : Base!Args, alias Base, Args...) = Base;
 static assert(__traits(isSame, U12077!(S12077!int), S12077));
 
 /******************************************/
+// 12262
+
+template Inst12262(T) { int x; }
+
+enum fqnSym12262(alias a)                      = 1;
+enum fqnSym12262(alias a : B!A, alias B, A...) = 2;
+
+static assert(fqnSym12262!(Inst12262!(Object)) == 2);
+static assert(fqnSym12262!(Inst12262!(Object).x) == 1);
+
+/******************************************/
 // 12264
 
 struct S12264(A) {}

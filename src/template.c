@@ -4732,7 +4732,11 @@ MATCH TemplateAliasParameter::matchArg(Scope *sc, RootObject *oarg,
 
             TemplateInstance *ti = sx->isTemplateInstance();
             if (!ti && sx->parent)
+            {
                 ti = sx->parent->isTemplateInstance();
+                if (ti && ti->name != sx->ident)
+                    goto Lnomatch;
+            }
             if (!ti)
                 goto Lnomatch;
 
