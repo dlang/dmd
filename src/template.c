@@ -3759,44 +3759,50 @@ MATCH deduceType(Type *t, Scope *sc, Type *tparam, TemplateParameters *parameter
                 if (!tp->tempinst->tempdecl)
                 {
                     //printf("tp->tempinst->name = '%s'\n", tp->tempinst->name->toChars());
-                    if (!tp->tempinst->name->equals(t->tempinst->name))
+
+                    /* Handle case of:
+                     *  template Foo(T : sa!(T), alias sa)
+                     */
+                    size_t i = templateIdentifierLookup(tp->tempinst->name, parameters);
+                    if (i == IDX_NOTFOUND)
                     {
-                        /* Handle case of:
-                         *  template Foo(T : sa!(T), alias sa)
+                        /* Didn't find it as a parameter identifier. Try looking
+                         * it up and seeing if is an alias. See Bugzilla 1454
                          */
-                        size_t i = templateIdentifierLookup(tp->tempinst->name, parameters);
-                        if (i == IDX_NOTFOUND)
+                        TypeIdentifier *tid = new TypeIdentifier(tp->loc, tp->tempinst->name);
+                        Type *tx;
+                        Expression *e;
+                        Dsymbol *s;
+                        tid->resolve(tp->loc, sc, &e, &tx, &s);
+                        if (tx)
                         {
-                            /* Didn't find it as a parameter identifier. Try looking
-                             * it up and seeing if is an alias. See Bugzilla 1454
-                             */
-                            TypeIdentifier *tid = new TypeIdentifier(tp->loc, tp->tempinst->name);
-                            Type *tx;
-                            Expression *e;
-                            Dsymbol *s;
-                            tid->resolve(tp->loc, sc, &e, &tx, &s);
-                            if (tx)
-                            {
-                                s = tx->toDsymbol(sc);
-                                if (s)
-                                {
-                                    TemplateInstance *ti = s->parent->isTemplateInstance();
-                                    s = ti ? ti->tempdecl : NULL;
-                                }
-                            }
+                            s = tx->toDsymbol(sc);
                             if (s)
                             {
-                                s = s->toAlias();
-                                TemplateDeclaration *td = s->isTemplateDeclaration();
-                                if (td && td == tempdecl)
-                                    goto L2;
+                                TemplateInstance *ti = s->parent->isTemplateInstance();
+                                s = ti ? ti->tempdecl : NULL;
                             }
-                            goto Lnomatch;
                         }
-                        TemplateParameter *tpx = (*parameters)[i];
-                        if (!tpx->matchArg(sc, tempdecl, i, parameters, dedtypes, NULL))
-                            goto Lnomatch;
+                        if (s)
+                        {
+                            s = s->toAlias();
+                            TemplateDeclaration *td = s->isTemplateDeclaration();
+                            if (td)
+                            {
+                                if (td->overroot)
+                                    td = td->overroot;
+                                for (; td; td = td->overnext)
+                                {
+                                    if (td == tempdecl)
+                                        goto L2;
+                                }
+                            }
+                        }
+                        goto Lnomatch;
                     }
+                    TemplateParameter *tpx = (*parameters)[i];
+                    if (!tpx->matchArg(sc, tempdecl, i, parameters, dedtypes, NULL))
+                        goto Lnomatch;
                 }
                 else if (tempdecl != tp->tempinst->tempdecl)
                     goto Lnomatch;
