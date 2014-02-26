@@ -450,7 +450,6 @@ const char *StorageClassDeclaration::stcToChars(char tmp[], StorageClass& stc)
         { STCextern,       TOKextern },
         { STCconst,        TOKconst },
         { STCfinal,        TOKfinal },
-        { STCvirtual,      TOKvirtual },
         { STCabstract,     TOKabstract },
         { STCsynchronized, TOKsynchronized },
         { STCdeprecated,   TOKdeprecated },
