@@ -4530,12 +4530,19 @@ Lagain:
     TemplateInstance *ti = sds->isTemplateInstance();
     if (ti)
     {
-        if (!ti->findTemplateDeclaration(sc) ||
+        WithScopeSymbol *withsym;
+        if (!ti->findTemplateDeclaration(sc, &withsym) ||
             !ti->semanticTiargs(sc))
         {
             ti->inst = ti;
             ti->inst->errors = true;
             return new ErrorExp();
+        }
+        if (withsym && withsym->withstate->wthis)
+        {
+            Expression *e = new VarExp(loc, withsym->withstate->wthis);
+            e = new DotTemplateInstanceExp(loc, e, ti);
+            return e->semantic(sc);
         }
         if (ti->needsTypeInference(sc))
         {
@@ -4577,10 +4584,10 @@ Lagain:
                 Expression *e;
 
                 //printf("s = %s, '%s'\n", s->kind(), s->toChars());
-                if (ti->withsym && ti->withsym->withstate->wthis)
+                if (withsym && withsym->withstate->wthis)
                 {
                     // Same as wthis.s
-                    e = new VarExp(loc, ti->withsym->withstate->wthis);
+                    e = new VarExp(loc, withsym->withstate->wthis);
                     e = new DotVarExp(loc, e, s->isDeclaration());
                 }
                 else
@@ -7431,6 +7438,12 @@ DotTemplateInstanceExp::DotTemplateInstanceExp(Loc loc, Expression *e, Identifie
     this->ti->tiargs = tiargs;
 }
 
+DotTemplateInstanceExp::DotTemplateInstanceExp(Loc loc, Expression *e, TemplateInstance *ti)
+        : UnaExp(loc, TOKdotti, sizeof(DotTemplateInstanceExp), e)
+{
+    this->ti = ti;
+}
+
 Expression *DotTemplateInstanceExp::syntaxCopy()
 {
     DotTemplateInstanceExp *de = new DotTemplateInstanceExp(loc,
@@ -7839,19 +7852,27 @@ Expression *CallExp::semantic(Scope *sc)
      *  foo!(tiargs)(funcargs)
      */
     if (e1->op == TOKimport && !e1->type)
-    {   ScopeExp *se = (ScopeExp *)e1;
+    {
+        ScopeExp *se = (ScopeExp *)e1;
         TemplateInstance *ti = se->sds->isTemplateInstance();
         if (ti && !ti->semanticRun)
         {
             /* Attempt to instantiate ti. If that works, go with it.
              * If not, go with partial explicit specialization.
              */
-            if (!ti->findTemplateDeclaration(sc) ||
+            WithScopeSymbol *withsym;
+            if (!ti->findTemplateDeclaration(sc, &withsym) ||
                 !ti->semanticTiargs(sc))
             {
                 ti->inst = ti;
                 ti->inst->errors = true;
                 return new ErrorExp();
+            }
+            if (withsym && withsym->withstate->wthis)
+            {
+                e1 = new VarExp(e1->loc, withsym->withstate->wthis);
+                e1 = new DotTemplateInstanceExp(e1->loc, e1, ti);
+                goto Ldotti;
             }
             if (ti->needsTypeInference(sc, 1))
             {
@@ -7878,7 +7899,8 @@ Expression *CallExp::semantic(Scope *sc)
      */
 Ldotti:
     if (e1->op == TOKdotti && !e1->type)
-    {   DotTemplateInstanceExp *se = (DotTemplateInstanceExp *)e1;
+    {
+        DotTemplateInstanceExp *se = (DotTemplateInstanceExp *)e1;
         TemplateInstance *ti = se->ti;
         if (!ti->semanticRun)
         {
