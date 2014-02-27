@@ -3182,6 +3182,20 @@ void test12207()
 }
 
 /******************************************/
+// 12263
+
+template A12263(alias a) { int x; }
+template B12263(alias a) { int x; }
+
+template fqnSym12263(alias T : B12263!A, alias B12263, A...)
+{
+    enum fqnSym12263 = true;
+}
+
+static assert(fqnSym12263!(A12263!(Object)));
+static assert(fqnSym12263!(B12263!(Object)));
+
+/******************************************/
 
 int main()
 {
