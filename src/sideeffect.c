@@ -144,10 +144,27 @@ void discardValue(Expression *e)
             return;
 
         case TOKcall:
-            /* Don't complain about calling functions with no effect,
-             * because purity and nothrow are inferred, and because some of the
-             * runtime library depends on it. Needs more investigation.
-             */
+            /* Issue 3882: */
+            if (global.params.warnings && !global.gag)
+            {
+                if (e->type->ty == Tvoid)
+                {
+                    /* Don't complain about calling void-returning functions with no side-effect,
+                     * because purity and nothrow are inferred, and because some of the
+                     * runtime library depends on it. Needs more investigation.
+                     *
+                     * One possible solution is to restrict this message to only be called in hierarchies that
+                     * never call assert (and or not called from inside unittest blocks)
+                     */
+                }
+                else
+                {
+                    CallExp *ce = (CallExp *)e;
+                    e->warning("Call to strictly pure function %s discards return value of type %s, prepend a cast(void) if intentional",
+                               ce->f->toPrettyChars(),
+                               e->type->toChars());
+                }
+            }
             return;
 
         case TOKimport:
