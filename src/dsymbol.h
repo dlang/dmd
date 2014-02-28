@@ -212,11 +212,6 @@ public:
     virtual void addComment(const utf8_t *comment);
 
     bool inNonRoot();
-<<<<<<< HEAD
-=======
-
-    // Backend
->>>>>>> 2.065
 
     // Backend
     virtual void toObjFile(int multiobj);                       // compile to .obj file

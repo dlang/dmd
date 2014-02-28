@@ -135,17 +135,6 @@ Expression *implicitCastTo(Expression *e, Scope *sc, Type *t)
     return v.result;
 }
 
-Expression *ArrayLiteralExp::implicitCastTo(Scope *sc, Type *t)
-{
-    Expression *result = Expression::implicitCastTo(sc, t);
-
-    Type *tb = result->type->toBasetype();
-    if (tb->ty == Tarray)
-        semanticTypeInfo(sc, ((TypeDArray *)tb)->next);
-
-    return result;
-}
-
 /*******************************************
  * Return !=0 if we can implicitly convert this to type t.
  * Don't do the actual cast.
