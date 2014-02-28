@@ -571,6 +571,10 @@ public:
     CompiledCtfeFunction *ctfeCode;     // Compiled code for interpreter
     int inlineNest;                     // !=0 if nested inline
     bool isArrayOp;                     // true if array operation
+<<<<<<< HEAD
+=======
+    FuncDeclaration *dArrayOp;          // D version of array op for ctfe
+>>>>>>> 2.065
     bool semantic3Errors;               // true if errors in semantic3
                                         // this function's frame ptr
     ForeachStatement *fes;              // if foreach body, this is the foreach
@@ -679,6 +683,11 @@ public:
 
     Symbol *toThunkSymbol(int offset);  // thunk version
     void toObjFile(int multiobj);                       // compile to .obj file
+<<<<<<< HEAD
+=======
+    int cvMember(unsigned char *p);
+    void buildClosure(IRState *irs);
+>>>>>>> 2.065
     bool needsCodegen();
 
     FuncDeclaration *isFuncDeclaration() { return this; }
