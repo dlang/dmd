@@ -1014,13 +1014,12 @@ FuncDeclaration *buildInv(AggregateDeclaration *ad, Scope *sc)
                 {
                     // What should do?
                 }
-                StorageClass stcy = ad->invs[i]->storage_class & (STCshared | STCsynchronized);
+                StorageClass stcy = ad->invs[i]->storage_class & STCshared;
                 if (i == 0)
                     stcx = stcy;
                 else if (stcx ^ stcy)
                 {
-            #if 1   // currently rejects
-                    ad->error(ad->invs[i]->loc, "mixing invariants with shared/synchronized differene is not supported");
+                    ad->error(ad->invs[i]->loc, "mixing invariants with shared is not supported");
                     e = NULL;
                     break;
             #endif

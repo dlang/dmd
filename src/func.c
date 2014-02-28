@@ -414,6 +414,9 @@ void FuncDeclaration::semantic(Scope *sc)
 
     //printf("function storage_class = x%llx, sc->stc = x%llx, %x\n", storage_class, sc->stc, Declaration::isFinal());
 
+    if (ad && (ad->storage_class & STCsynchronized) == 0 && isSynchronized())
+        error("synchronized can only be applied to class declarations");
+
     FuncLiteralDeclaration *fld = isFuncLiteralDeclaration();
     if (fld && fld->treq)
     {
