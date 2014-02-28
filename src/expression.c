@@ -8683,7 +8683,6 @@ Expression *AddrExp::semantic(Scope *sc)
         TemplateInstance *ti = dti->ti;
         if (!ti->semanticRun)
         {
-<<<<<<< HEAD
             //assert(ti->needsTypeInference(sc));
             ti->semantic(sc);
             if (!ti->inst || ti->errors)    // if template failed to expand
@@ -8693,22 +8692,6 @@ Expression *AddrExp::semantic(Scope *sc)
             assert(f);
             e1 = new DotVarExp(e1->loc, dti->e1, f);
             e1 = e1->semantic(sc);
-=======
-            DotTemplateInstanceExp* dti = (DotTemplateInstanceExp *)e1;
-            TemplateInstance *ti = dti->ti;
-            if (!ti->semanticRun)
-            {
-                //assert(ti->needsTypeInference(sc));
-                ti->semantic(sc);
-                if (!ti->inst || ti->errors)    // if template failed to expand
-                    return new ErrorExp;
-                Dsymbol *s = ti->inst->toAlias();
-                FuncDeclaration *f = s->isFuncDeclaration();
-                assert(f);
-                e1 = new DotVarExp(e1->loc, dti->e1, f);
-                e1 = e1->semantic(sc);
-            }
->>>>>>> 2.065
         }
     }
     else if (e1->op == TOKimport)
@@ -8716,7 +8699,6 @@ Expression *AddrExp::semantic(Scope *sc)
         TemplateInstance *ti = ((ScopeExp *)e1)->sds->isTemplateInstance();
         if (ti && !ti->semanticRun)
         {
-<<<<<<< HEAD
             //assert(ti->needsTypeInference(sc));
             ti->semantic(sc);
             if (!ti->inst || ti->errors)    // if template failed to expand
@@ -8726,21 +8708,6 @@ Expression *AddrExp::semantic(Scope *sc)
             assert(f);
             e1 = new VarExp(e1->loc, f);
             e1 = e1->semantic(sc);
-=======
-            TemplateInstance *ti = ((ScopeExp *)e1)->sds->isTemplateInstance();
-            if (ti && !ti->semanticRun)
-            {
-                //assert(ti->needsTypeInference(sc));
-                ti->semantic(sc);
-                if (!ti->inst || ti->errors)    // if template failed to expand
-                    return new ErrorExp;
-                Dsymbol *s = ti->inst->toAlias();
-                FuncDeclaration *f = s->isFuncDeclaration();
-                assert(f);
-                e1 = new VarExp(e1->loc, f);
-                e1 = e1->semantic(sc);
-            }
->>>>>>> 2.065
         }
     }
     e1 = e1->toLvalue(sc, NULL);
@@ -9126,12 +9093,8 @@ DeleteExp::DeleteExp(Loc loc, Expression *e)
 
 Expression *DeleteExp::semantic(Scope *sc)
 {
-<<<<<<< HEAD
     if (Expression *ex = unaSemantic(sc))
         return ex;
-=======
-    UnaExp::semantic(sc);
->>>>>>> 2.065
     e1 = resolveProperties(sc, e1);
     e1 = e1->modifiableLvalue(sc, NULL);
     if (e1->op == TOKerror)
@@ -12273,15 +12236,9 @@ Expression *PowExp::semantic(Scope *sc)
 
         // Leave handling of PowExp to the backend, or throw
         // an error gracefully if no backend support exists.
-<<<<<<< HEAD
         if (Expression *ex = typeCombine(this, sc))
             return ex;
         return this;
-=======
-        typeCombine(sc);
-        e = this;
-        return e;
->>>>>>> 2.065
     }
     e = new ScopeExp(loc, mmath);
 
@@ -12881,11 +12838,7 @@ EqualExp::EqualExp(TOK op, Loc loc, Expression *e1, Expression *e2)
     assert(op == TOKequal || op == TOKnotequal);
 }
 
-<<<<<<< HEAD
 bool needDirectEq(Scope *sc, Type *t1, Type *t2)
-=======
-int needDirectEq(Scope *sc, Type *t1, Type *t2)
->>>>>>> 2.065
 {
     assert(t1->ty == Tarray || t1->ty == Tsarray);
     assert(t2->ty == Tarray || t2->ty == Tsarray);
