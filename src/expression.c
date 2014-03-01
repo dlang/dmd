@@ -1092,6 +1092,32 @@ int expandAliasThisTuples(Expressions *exps, size_t starti)
     return -1;
 }
 
+Expression *incompatibleTypes(Expression *e, Expression *e1, Expression *e2)
+{
+    if (e1->type->toBasetype() != Type::terror &&
+        e2->type->toBasetype() != Type::terror
+       )
+    {
+        // CondExp uses 'a ? b : c' but we're comparing 'b : c'
+        Loc loc = e->loc;
+        TOK op  = e->op;
+        TOK thisOp = (op == TOKquestion) ? TOKcolon : e->op;
+        if (e1->op == TOKtype || e2->op == TOKtype)
+        {
+            error(loc, "incompatible types for ((%s) %s (%s)): cannot use '%s' with types",
+                e1->toChars(), Token::toChars(thisOp), e2->toChars(), Token::toChars(op));
+        }
+        else
+        {
+            error(loc, "incompatible types for ((%s) %s (%s)): '%s' and '%s'",
+                e1->toChars(), Token::toChars(thisOp), e2->toChars(),
+                e1->type->toChars(), e2->type->toChars());
+        }
+        return new ErrorExp();
+    }
+    return e;
+}
+
 Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt)
 {
     /* The type is determined by applying ?: to each pair.
@@ -6459,26 +6485,7 @@ int BinExp::isunsigned()
 
 Expression *BinExp::incompatibleTypes()
 {
-    if (e1->type->toBasetype() != Type::terror &&
-        e2->type->toBasetype() != Type::terror
-       )
-    {
-        // CondExp uses 'a ? b : c' but we're comparing 'b : c'
-        TOK thisOp = (op == TOKquestion) ? TOKcolon : op;
-        if (e1->op == TOKtype || e2->op == TOKtype)
-        {
-            error("incompatible types for ((%s) %s (%s)): cannot use '%s' with types",
-                e1->toChars(), Token::toChars(thisOp), e2->toChars(), Token::toChars(op));
-        }
-        else
-        {
-            error("incompatible types for ((%s) %s (%s)): '%s' and '%s'",
-                e1->toChars(), Token::toChars(thisOp), e2->toChars(),
-                e1->type->toChars(), e2->type->toChars());
-        }
-        return new ErrorExp();
-    }
-    return this;
+    return ::incompatibleTypes(this, e1, e2);
 }
 
 /********************** BinAssignExp **************************************/
