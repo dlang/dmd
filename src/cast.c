@@ -3005,6 +3005,46 @@ Lerror:
     return new ErrorExp();
 }
 
+/************************************
+ * Bring leaves to common type, used by CondExp.
+ */
+
+Type *toCommonType(Scope *sc, Expression *&e1, Expression *&e2)
+{
+    // If either operand is void, the result is void
+    if (e1->type->ty == Tvoid || e2->type->ty == Tvoid)
+        return Type::tvoid;
+    if (e1->type == e2->type)
+        return e1->type;
+
+    Type *type = NULL;
+    if (!typeMerge(sc, TOKquestion, &type, &e1, &e2))
+        return NULL;
+
+    switch (e1->type->toBasetype()->ty)
+    {
+        case Tcomplex32:
+        case Tcomplex64:
+        case Tcomplex80:
+            e2 = e2->castTo(sc, e1->type);
+            break;
+    }
+    switch (e2->type->toBasetype()->ty)
+    {
+        case Tcomplex32:
+        case Tcomplex64:
+        case Tcomplex80:
+            e1 = e1->castTo(sc, e2->type);
+            break;
+    }
+    if (type->toBasetype()->ty == Tarray)
+    {
+        e1 = e1->castTo(sc, type);
+        e2 = e2->castTo(sc, type);
+    }
+    return type->merge2();
+}
+
 /***********************************
  * Do integral promotions (convertchk).
  * Don't convert <array of> to <pointer to>
