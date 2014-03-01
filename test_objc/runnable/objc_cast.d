@@ -1,7 +1,7 @@
 // REQUIRED_ARGS: -L-framework -LCocoa
 
 extern (Objective-C)
-class ObjcObject {
+interface ObjcObject {
 	static ObjcObject alloc() [alloc];
 	static ObjcObject alloc(void* zone) [allocWithZone:];
 }

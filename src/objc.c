@@ -96,18 +96,22 @@ static int objc_getsegment(enum ObjcSegment segid)
     {
         seg[SEGselrefs] = MachObj::getsegment("__objc_selrefs", "__DATA", align, S_ATTR_NO_DEAD_STRIP | S_LITERAL_POINTERS);
         seg[SEGcls_refs] = MachObj::getsegment("__objc_classrefs", "__DATA", align, S_REGULAR | S_ATTR_NO_DEAD_STRIP);
-        seg[SEGimage_info] = MachObj::getsegment("__objc_imageinfo", "__DATA", align, S_ATTR_NO_DEAD_STRIP);
+        seg[SEGimage_info] = MachObj::getsegment("__objc_imageinfo", "__DATA", align, S_REGULAR | S_ATTR_NO_DEAD_STRIP);
         seg[SEGmethname] = MachObj::getsegment("__objc_methname", "__TEXT", align, S_CSTRING_LITERALS);
         seg[SEGmethtype] = MachObj::getsegment("__objc_methtype", "__TEXT", align, S_CSTRING_LITERALS);
         seg[SEGclassname] = MachObj::getsegment("__objc_classname", "__TEXT", align, S_CSTRING_LITERALS);
         seg[SEGclass] = MachObj::getsegment("__objc_data", "__DATA", align, S_REGULAR);
         seg[SEGmeta_class] = MachObj::getsegment("__objc_data", "__DATA", align, S_REGULAR);
         seg[SEGmodule_info] = MachObj::getsegment("__objc_classlist", "__DATA", align, S_REGULAR | S_ATTR_NO_DEAD_STRIP);
+        seg[SEGprotocol] = MachObj::getsegment("__datacoal_nt", "__DATA", align, S_COALESCED);
+        seg[SEGcat_cls_meth] = MachObj::getsegment("__objc_const", "__DATA", align, S_REGULAR);
+        seg[SEGcat_inst_meth] = MachObj::getsegment("__objc_const", "__DATA", align, S_REGULAR);
 
         seg[SEGmessage_refs] = MachObj::getsegment("__objc_msgrefs", "__DATA", align, S_COALESCED);
         seg[SEGobjc_const] = MachObj::getsegment("__objc_const", "__DATA", align, S_REGULAR);
         seg[SEGinst_meth] = MachObj::getsegment("__objc_const", "__DATA", align, S_ATTR_NO_DEAD_STRIP);
         seg[SEGobjc_ivar] = MachObj::getsegment("__objc_ivar", "__DATA", align, S_REGULAR);
+        seg[SEGobjc_protolist] = MachObj::getsegment("__objc_protolist", "__DATA", align, S_COALESCED | S_ATTR_NO_DEAD_STRIP);
     }
 
     else
@@ -122,15 +126,15 @@ static int objc_getsegment(enum ObjcSegment segid)
         seg[SEGmeta_class] = MachObj::getsegment("__meta_class", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
         seg[SEGinst_meth] = MachObj::getsegment("__inst_meth", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
         seg[SEGmodule_info] = MachObj::getsegment("__module_info", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
+        seg[SEGprotocol] = MachObj::getsegment("__protocol", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
+        seg[SEGcat_cls_meth] = MachObj::getsegment("__cat_cls_meth", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
+        seg[SEGcat_inst_meth] = MachObj::getsegment("__cat_inst_meth", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
     }
 
-    seg[SEGcat_cls_meth] = MachObj::getsegment("__cat_cls_meth", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
-    seg[SEGcat_inst_meth] = MachObj::getsegment("__cat_inst_meth", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
     seg[SEGstring_object] = MachObj::getsegment("__string_object", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
     seg[SEGcstring_object] = MachObj::getsegment("__cstring_object", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
     seg[SEGsel_fixup] = MachObj::getsegment("__sel_fixup", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
     seg[SEGcls_meth] = MachObj::getsegment("__cls_meth", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
-    seg[SEGprotocol] = MachObj::getsegment("__protocol", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
     seg[SEGcstring] = MachObj::getsegment("__cstring", "__TEXT", align, S_CSTRING_LITERALS);
     seg[SEGustring] = MachObj::getsegment("__ustring", "__TEXT", align, S_REGULAR);
     seg[SEGcfstring] = MachObj::getsegment("__cfstring", "__DATA", align, S_REGULAR);
@@ -335,7 +339,7 @@ Symbol *ObjcSymbols::getImageInfo()
 
     dt_t *dt = NULL;
     dtdword(&dt, 0); // version
-    dtdword(&dt, 16); // flags
+    dtdword(&dt, global.params.isObjcNonFragileAbi ? 0 : 16); // flags
 
     siminfo = symbol_name("L_OBJC_IMAGE_INFO", SCstatic, type_allocn(TYarray, tschar));
     siminfo->Sdt = dt;
@@ -498,6 +502,10 @@ Symbol *ObjcSymbols::getClassReference(ClassDeclaration* cdecl)
         char namestr[42];
         sprintf(namestr, prefix, classrefcount++);
         sy = symbol_name(namestr, SCstatic, type_fake(TYnptr));
+
+        if (global.params.isObjcNonFragileAbi)
+            sy->Salignment = 3;
+
         sy->Sdt = dt;
         sy->Sseg = seg;
         outdata(sy);
@@ -550,6 +558,10 @@ Symbol *ObjcSymbols::getMethVarRef(const char *s, size_t len)
         char namestr[42];
         sprintf(namestr, "L_OBJC_SELECTOR_REFERENCES_%lu", selcount);
         refsymbol = symbol_name(namestr, SCstatic, type_fake(TYnptr));
+
+        if (global.params.isObjcNonFragileAbi)
+            refsymbol->Salignment = 3;
+
         refsymbol->Sdt = dt;
         refsymbol->Sseg = seg;
         outdata(refsymbol);
@@ -592,7 +604,13 @@ Symbol *ObjcSymbols::getMethVarType(Dsymbol **types, size_t dim)
     size_t typecode_len = 0;
 
     for (size_t i = 0; i < dim; ++i) {
-        Type *type = types[i]->getType();
+        Type *type;
+
+        if (FuncDeclaration* func = types[i]->isFuncDeclaration())
+            type = func->type->nextOf();
+        else
+            type = types[i]->getType();
+
         const char *typestr;
         if (type == Type::tvoid)            typestr = "v";
         else if (type == Type::tint8)       typestr = "c";
@@ -1152,6 +1170,9 @@ void ObjcClassDeclaration::toObjFile(int multiobj)
         symbol = symbol_name(sname, SCstatic, type_fake(TYnptr));
     }
 
+    if (global.params.isObjcNonFragileAbi)
+        symbol->Salignment = 3;
+
     symbol->Sdt = dt;
     symbol->Sseg = objc_getsegment((!ismeta ? SEGclass : SEGmeta_class));
     outdata(symbol);
@@ -1331,6 +1352,10 @@ Symbol *ObjcClassDeclaration::getMethodList()
 
     sname = prefixSymbolName(cdecl->objcident->string, cdecl->objcident->len, prefix, prefixLength);
     Symbol *sym = symbol_name(sname, SCstatic, type_fake(TYnptr));
+
+    if (global.params.isObjcNonFragileAbi)
+        sym->Salignment = 3;
+
     sym->Sdt = dt;
     sym->Sseg = objc_getsegment((!ismeta ? SEGinst_meth : SEGcls_meth));
     return sym;
@@ -1338,16 +1363,17 @@ Symbol *ObjcClassDeclaration::getMethodList()
 
 Symbol *ObjcClassDeclaration::getProtocolList()
 {
-    if (global.params.isObjcNonFragileAbi)
-        return NULL;
     if (sprotocols)
         return sprotocols;
     if (cdecl->interfaces_dim == 0)
         return NULL;
 
     dt_t *dt = NULL;
-    dtdword(&dt, 0); // pointer to next protocol list
-    dtdword(&dt, cdecl->interfaces_dim); // number of protocols in list
+
+    if (!global.params.isObjcNonFragileAbi)
+        dtdword(&dt, 0); // pointer to next protocol list
+
+    dtsize_t(&dt, cdecl->interfaces_dim); // number of protocols in list
 
     for (size_t i = 0; i < cdecl->interfaces_dim; ++i)
     {
@@ -1356,10 +1382,17 @@ Symbol *ObjcClassDeclaration::getProtocolList()
 
         dtxoff(&dt, ObjcSymbols::getProtocolSymbol(cdecl->interfaces[i]->base), 0, TYnptr); // pointer to protocol decl
     }
-    dtdword(&dt, 0); // null-terminate the list
+    dtsize_t(&dt, 0); // null-terminate the list
 
-    char *sname = prefixSymbolName(cdecl->objcident->string, cdecl->objcident->len, "L_OBJC_CLASS_PROTOCOLS_", 23);
+    const char* prefix = global.params.isObjcNonFragileAbi ? "l_OBJC_CLASS_PROTOCOLS_$_" : "L_OBJC_CLASS_PROTOCOLS_";
+    size_t prefixLength = global.params.isObjcNonFragileAbi ? 25 : 23;
+
+    char *sname = prefixSymbolName(cdecl->objcident->string, cdecl->objcident->len, prefix, prefixLength);
     sprotocols = symbol_name(sname, SCstatic, type_fake(TYnptr));
+
+    if (global.params.isObjcNonFragileAbi)
+        sprotocols->Salignment = 3;
+
     sprotocols->Sdt = dt;
     sprotocols->Sseg = objc_getsegment(SEGcat_cls_meth);
     outdata(sprotocols);
@@ -1400,6 +1433,10 @@ Symbol *ObjcClassDeclaration::getClassRo()
     const char* symbolName = prefixSymbolName(cdecl->objcident->string, cdecl->objcident->len, prefix, prefixLength);
 
     Symbol* symbol = symbol_name(symbolName, SCstatic, type_fake(TYnptr));
+
+    if (global.params.isObjcNonFragileAbi)
+        symbol->Salignment = 3;
+
     symbol->Sdt = dt;
     symbol->Sseg = objc_getsegment(SEGobjc_const);
     outdata(symbol);
@@ -1433,27 +1470,71 @@ void ObjcProtocolDeclaration::toObjFile(int multiobj)
     dt_t *dt = NULL;
     toDt(&dt);
 
-    char *sname = prefixSymbolName(idecl->objcident->string, idecl->objcident->len, "L_OBJC_PROTOCOL_", 16);
-    symbol = symbol_name(sname, SCstatic, type_fake(TYnptr));
+    const char* prefix = global.params.isObjcNonFragileAbi ? "l_OBJC_PROTOCOL_$_" : "L_OBJC_PROTOCOL_";
+    size_t prefixLength = global.params.isObjcNonFragileAbi ? 18 : 16;
+
+    char *sname = prefixSymbolName(idecl->objcident->string, idecl->objcident->len, prefix, prefixLength);
+    symbol = ObjcSymbols::getGlobal(sname);
+
+    if (global.params.isObjcNonFragileAbi)
+    {
+        symbol->Sclass = SCcomdat; // weak symbol
+        symbol->Salignment = 3;
+    }
+
     symbol->Sdt = dt;
     symbol->Sseg = objc_getsegment(SEGprotocol);
     outdata(symbol, 1);
+
+    if (global.params.isObjcNonFragileAbi)
+    {
+        dt_t* dt = NULL;
+        dtxoff(&dt, symbol, 0, TYnptr);
+
+        const char* symbolName = prefixSymbolName(idecl->objcident->string, idecl->objcident->len, "l_OBJC_LABEL_PROTOCOL_$_", 24);
+        Symbol* labelSymbol = ObjcSymbols::getGlobal(sname);
+
+        if (global.params.isObjcNonFragileAbi)
+        {
+            labelSymbol->Sclass = SCcomdat; // weak symbol
+            symbol->Salignment = 3;
+        }
+
+        labelSymbol->Sdt = dt;
+        labelSymbol->Sseg = objc_getsegment(SEGobjc_protolist);
+        outdata(labelSymbol);
+    }
 }
 
 void ObjcProtocolDeclaration::toDt(dt_t **pdt)
 {
-    dtdword(pdt, 0); // isa pointer, initialized by the runtime
-    dtxoff(pdt, ObjcSymbols::getClassName(idecl), 0, TYnptr); // protocol name
+    dtsize_t(pdt, 0); // isa pointer, initialized by the runtime
+    Symbol* className = global.params.isObjcNonFragileAbi ? ObjcSymbols::getClassNameRo(idecl->objcident) : ObjcSymbols::getClassName(idecl);
+    dtxoff(pdt, className, 0, TYnptr); // protocol name
 
     Symbol *protocols = getProtocolList();
     if (protocols)  dtxoff(pdt, protocols, 0, TYnptr); // protocol list
-    else            dtdword(pdt, 0); // or NULL if no protocol
+    else            dtsize_t(pdt, 0); // or NULL if no protocol
     Symbol *imethods = getMethodList(0);
     if (imethods)  dtxoff(pdt, imethods, 0, TYnptr); // instance method list
-    else           dtdword(pdt, 0); // or null if no methods
+    else           dtsize_t(pdt, 0); // or null if no methods
     Symbol *cmethods = getMethodList(1);
     if (cmethods)  dtxoff(pdt, cmethods, 0, TYnptr); // class method list
-    else           dtdword(pdt, 0); // or null if no methods
+    else           dtsize_t(pdt, 0); // or null if no methods
+
+    if (global.params.isObjcNonFragileAbi)
+    {
+        dtsize_t(pdt, 0); // null, optional instance methods, currently not supported
+        dtsize_t(pdt, 0); // null, optional class methods, currently not supported
+        dtsize_t(pdt, 0); // null, properites, currently not supported
+
+        dtdword(pdt, global.params.is64bit ? 80 : 44); // sizeof(_protocol_t)
+        dtdword(pdt, 0); // flags
+
+        Symbol* methodTypes = getMethodTypes();
+        if (methodTypes) dtxoff(pdt, methodTypes, TYnptr); // extended method types
+        else dtsize_t(pdt, 0); // or NULL if no method types
+    }
 }
 
 Symbol *ObjcProtocolDeclaration::getMethodList(int wantsClassMethods)
@@ -1463,6 +1544,10 @@ Symbol *ObjcProtocolDeclaration::getMethodList(int wantsClassMethods)
         return NULL;
 
     dt_t *dt = NULL;
+
+    if (global.params.isObjcNonFragileAbi)
+        dtdword(&dt, global.params.is64bit ? 24 : 12); // sizeof(_objc_method)
+
     dtdword(&dt, methods->dim); // method count
     for (size_t i = 0; i < methods->dim; ++i)
     {
@@ -1471,14 +1556,32 @@ Symbol *ObjcProtocolDeclaration::getMethodList(int wantsClassMethods)
         assert(func->objcSelector);
         dtxoff(&dt, func->objcSelector->toNameSymbol(), 0, TYnptr); // method name
         dtxoff(&dt, ObjcSymbols::getMethVarType(func), 0, TYnptr); // method type string
+
+        if (global.params.isObjcNonFragileAbi)
+            dtsize_t(&dt, 0); // NULL, protocol methods have no implemention
     }
 
     char *sname;
+    const char* prefix;
+    size_t prefixLength;
+
     if (!wantsClassMethods)
-        sname = prefixSymbolName(idecl->objcident->string, idecl->objcident->len, "L_OBJC_PROTOCOL_INSTANCE_METHODS_", 33);
+    {
+        prefix = global.params.isObjcNonFragileAbi ? "l_OBJC_$_PROTOCOL_INSTANCE_METHODS_" : "L_OBJC_PROTOCOL_INSTANCE_METHODS_";
+        prefixLength = global.params.isObjcNonFragileAbi ? 35 : 33;
+    }
     else
-        sname = prefixSymbolName(idecl->objcident->string, idecl->objcident->len, "L_OBJC_PROTOCOL_CLASS_METHODS_", 30);
+    {
+        prefix = global.params.isObjcNonFragileAbi ? "l_OBJC_$_PROTOCOL_CLASS_METHODS_" : "L_OBJC_PROTOCOL_CLASS_METHODS_";
+        prefixLength = global.params.isObjcNonFragileAbi ? 32 : 30;
+    }
+
+    sname = prefixSymbolName(idecl->objcident->string, idecl->objcident->len, prefix, prefixLength);
     Symbol *sym = symbol_name(sname, SCstatic, type_fake(TYnptr));
+
+    if (global.params.isObjcNonFragileAbi)
+        sym->Salignment = 3;
+
     sym->Sdt = dt;
     sym->Sseg = objc_getsegment((!wantsClassMethods ? SEGcat_inst_meth : SEGcat_cls_meth));
     return sym;
@@ -1502,14 +1605,49 @@ Symbol *ObjcProtocolDeclaration::getProtocolList()
     }
     dtdword(&dt, 0); // null-terminate the list
 
-    char *sname = prefixSymbolName(idecl->objcident->string, idecl->objcident->len, "L_OBJC_PROTOCOL_REFS_", 21);
+    const char* prefix = global.params.isObjcNonFragileAbi ? "l_OBJC_$_PROTOCOL_REFS_" : "L_OBJC_PROTOCOL_REFS_";
+    size_t prefixLength = global.params.isObjcNonFragileAbi ? 23 : 21;
+
+    char *sname = prefixSymbolName(idecl->objcident->string, idecl->objcident->len, prefix, prefixLength);
     Symbol *sprotocols = symbol_name(sname, SCstatic, type_fake(TYnptr));
+
+    if (global.params.isObjcNonFragileAbi)
+        sprotocols->Salignment = 3;
+
     sprotocols->Sdt = dt;
     sprotocols->Sseg = objc_getsegment(SEGcat_cls_meth);
     outdata(sprotocols);
     return sprotocols;
 }
 
+Symbol* ObjcProtocolDeclaration::getMethodTypes ()
+{
+    assert(global.params.isObjcNonFragileAbi);
+
+    if (idecl->objcMethodList.dim == 0)
+        return NULL;
+
+    dt_t* dt = NULL;
+
+    Dsymbols *methods = &idecl->objcMethodList;
+
+    for (size_t i = 0; i < methods->dim; ++i)
+    {
+        FuncDeclaration *func = methods->tdata()[i]->isFuncDeclaration();
+        assert(func);
+        assert(func->objcSelector);
+        dtxoff(&dt, ObjcSymbols::getMethVarType(func), 0, TYnptr);
+    }
+
+    const char* symbolName = prefixSymbolName(idecl->objcident->string, idecl->objcident->len, "l_OBJC_$_PROTOCOL_METHOD_TYPES_", 31);
+    Symbol* symbol = symbol_name(symbolName, SCstatic, type_fake(TYnptr));
+    symbol->Salignment = 3;
+    symbol->Sdt = dt;
+    symbol->Sseg = objc_getsegment(SEGobjc_const);
+    outdata(symbol);
+
+    return symbol;
+}
 
 /***************************** TypeObjcSelector *****************************/
 
