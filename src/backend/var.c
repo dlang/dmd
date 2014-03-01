@@ -21,6 +21,9 @@
 #include        "go.h"
 #include        "ty.h"
 #include        "code.h"
+#if SPP || SCPP
+#include        "parser.h"
+#endif
 
 #include        "optab.c"
 #include        "tytab.c"

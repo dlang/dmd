@@ -1629,7 +1629,10 @@ STATIC void cpp_symbol_name(symbol *s)
         }
     }
 #endif
-#if MARS
+#if MARS && 0
+    //It mangles correctly, but the ABI doesn't match,
+    // leading to copious segfaults. At least with the
+    // wrong mangling you get link errors.
     if (tyfunc(s->Stype->Tty) && s->Sfunc)
     {
         if (s->Sfunc->Fflags & Fctor)

@@ -17,7 +17,7 @@
 #include        <time.h>
 #include        <stdlib.h>
 
-#if _WIN32 || linux
+#if _WIN32 || __linux__
 #include        <malloc.h>
 #endif
 
@@ -2154,6 +2154,18 @@ L1:
             next = cv4_typidx(tsvoid);  // rewrite as void*
             t = tspvoid;
             goto L1;
+
+        // vector types
+        case TYfloat4:  size = 16; next = dttab4[TYfloat];  goto Larray;
+        case TYdouble2: size = 16; next = dttab4[TYdouble]; goto Larray;
+        case TYschar16: size = 16; next = dttab4[TYschar];  goto Larray;
+        case TYuchar16: size = 16; next = dttab4[TYuchar];  goto Larray;
+        case TYshort8:  size = 16; next = dttab4[TYshort];  goto Larray;
+        case TYushort8: size = 16; next = dttab4[TYushort]; goto Larray;
+        case TYlong4:   size = 16; next = dttab4[TYlong];   goto Larray;
+        case TYulong4:  size = 16; next = dttab4[TYulong];  goto Larray;
+        case TYllong2:  size = 16; next = dttab4[TYllong];  goto Larray;
+        case TYullong2: size = 16; next = dttab4[TYullong]; goto Larray;
 
         default:
 #ifdef DEBUG

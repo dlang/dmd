@@ -19,7 +19,7 @@
 #include        <fenv.h>
 #include        <fltpnt.h>
 #endif
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
 #include        <errno.h>
 #endif
 
@@ -31,7 +31,7 @@ extern char * __cdecl __locale_decpoint;
 void __pascal __set_errno (int an_errno);
 #endif
 
-#if _WIN32 || linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if _WIN32 || __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
 
 #if 0
 /* This is for compilers that don't support hex float literals,

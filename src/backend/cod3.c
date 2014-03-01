@@ -3846,7 +3846,23 @@ Lret:
         else
         {   // Stack is always aligned on register size boundary
             Para.offset = (Para.offset + (REGSIZE - 1)) & ~(REGSIZE - 1);
-            c = genc2(c,op,0,Para.offset);          // RET Para.offset
+            if (Para.offset >= 0x10000)
+            {
+                /*
+                    POP REG
+                    ADD ESP, Para.offset
+                    JMP REG
+                */
+                c = gen1(c, 0x58+regx);
+                c = genc2(c, 0x81, modregrm(3,0,SP), Para.offset);
+                if (I64)
+                    code_orrex(c, REX_W);
+                c = genc2(c, 0xFF, modregrm(3,4,regx), 0);
+                if (I64)
+                    code_orrex(c, REX_W);
+            }
+            else
+                c = genc2(c,op,0,Para.offset);          // RET Para.offset
         }
     }
 
@@ -6033,7 +6049,7 @@ unsigned codout(code *c)
                                 unsigned reg = rm & modregrm(0,7,0);
                                 if (ins & T ||
                                     ((op == 0xF6 || op == 0xF7) && (reg == modregrm(0,0,0) || reg == modregrm(0,1,0))))
-                                {   if (ins & E)
+                                {   if (ins & E || op == 0xF6)
                                         val = -5;
                                     else if (c->Iflags & CFopsize)
                                         val = -6;

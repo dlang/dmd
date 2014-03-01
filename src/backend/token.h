@@ -367,7 +367,7 @@ void token_term(void);
 /* from pragma.c */
 //enum_TK ptoken(void);
 void pragma_process();
-int pragma_search(char *id);
+int pragma_search(const char *id);
 macro_t * macfind(void);
 macro_t *macdefined(const char *id, unsigned hash);
 void listident(void);

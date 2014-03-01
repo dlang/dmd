@@ -169,7 +169,7 @@ void error(Loc loc, const char *format, ...)
     va_end( ap );
 }
 
-void error(const char *filename, unsigned linnum, const char *format, ...)
+void error(const char *filename, unsigned linnum, unsigned charnum, const char *format, ...)
 {   Loc loc;
     loc.filename = (char *)filename;
     loc.linnum = linnum;
