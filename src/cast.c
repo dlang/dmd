@@ -22,7 +22,7 @@
 #include "scope.h"
 #include "id.h"
 
-bool isCommutative(Expression *e);
+bool isCommutative(TOK op);
 
 /* ==================== implicitCast ====================== */
 
@@ -2379,10 +2379,9 @@ bool isVoidArrayLiteral(Expression *e, Type *other)
  *      0       failed
  */
 
-int typeMerge(Scope *sc, Expression *e, Type **pt, Expression **pe1, Expression **pe2)
+int typeMerge(Scope *sc, TOK op, Type **pt, Expression **pe1, Expression **pe2)
 {
     //printf("typeMerge() %s op %s\n", (*pe1)->toChars(), (*pe2)->toChars());
-    //e->print();
 
     MATCH m;
     Expression *e1 = *pe1;
@@ -2390,7 +2389,7 @@ int typeMerge(Scope *sc, Expression *e, Type **pt, Expression **pe1, Expression 
     Type *t1b = e1->type->toBasetype();
     Type *t2b = e2->type->toBasetype();
 
-    if (e->op != TOKquestion ||
+    if (op != TOKquestion ||
         t1b->ty != t2b->ty && (t1b->isTypeBasic() && t2b->isTypeBasic()))
     {
         e1 = integralPromotions(e1, sc);
@@ -2536,7 +2535,8 @@ Lagain:
             goto Lagain;
         }
         else if (t1n->ty == Tclass && t2n->ty == Tclass)
-        {   ClassDeclaration *cd1 = t1n->isClassHandle();
+        {
+            ClassDeclaration *cd1 = t1n->isClassHandle();
             ClassDeclaration *cd2 = t2n->isClassHandle();
             int offset;
 
@@ -2574,7 +2574,8 @@ Lagain:
               e2->op == TOKarrayliteral && t2->ty == Tsarray && t2->nextOf()->ty == Tvoid && ((TypeSArray *)t2)->dim->toInteger() == 0 ||
               isVoidArrayLiteral(e2, t1))
             )
-    {   /*  (T[n] op void*)   => T[]
+    {
+        /*  (T[n] op void*)   => T[]
          *  (T[]  op void*)   => T[]
          *  (T[n] op void[0]) => T[]
          *  (T[]  op void[0]) => T[]
@@ -2588,7 +2589,8 @@ Lagain:
               e1->op == TOKarrayliteral && t1->ty == Tsarray && t1->nextOf()->ty == Tvoid && ((TypeSArray *)t1)->dim->toInteger() == 0 ||
               isVoidArrayLiteral(e1, t2))
             )
-    {   /*  (void*   op T[n]) => T[]
+    {
+        /*  (void*   op T[n]) => T[]
          *  (void*   op T[])  => T[]
          *  (void[0] op T[n]) => T[]
          *  (void[0] op T[])  => T[]
@@ -2603,11 +2605,12 @@ Lagain:
         if (t1->ty == Tsarray && e2->op == TOKarrayliteral)
             goto Lt1;
         if (m == MATCHconst &&
-            (e->op == TOKaddass || e->op == TOKminass || e->op == TOKmulass ||
-             e->op == TOKdivass || e->op == TOKmodass || e->op == TOKpowass ||
-             e->op == TOKandass || e->op == TOKorass  || e->op == TOKxorass)
+            (op == TOKaddass || op == TOKminass || op == TOKmulass ||
+             op == TOKdivass || op == TOKmodass || op == TOKpowass ||
+             op == TOKandass || op == TOKorass  || op == TOKxorass)
            )
-        {   // Don't make the lvalue const
+        {
+            // Don't make the lvalue const
             t = t2;
             goto Lret;
         }
@@ -2697,7 +2700,8 @@ Lcc:
                 goto Lt1;
             }
             else if (t1->ty == Tclass && t2->ty == Tclass)
-            {   TypeClass *tc1 = (TypeClass *)t1;
+            {
+                TypeClass *tc1 = (TypeClass *)t1;
                 TypeClass *tc2 = (TypeClass *)t2;
 
                 /* Pick 'tightest' type
@@ -2706,7 +2710,8 @@ Lcc:
                 ClassDeclaration *cd2 = tc2->sym->baseClass;
 
                 if (cd1 && cd2)
-                {   t1 = cd1->type;
+                {
+                    t1 = cd1->type;
                     t2 = cd2->type;
                 }
                 else if (cd1)
@@ -2796,11 +2801,13 @@ Lcc:
                 goto Lt2;
 
             if (e1b)
-            {   e1 = e1b;
+            {
+                e1 = e1b;
                 t1 = e1b->type->toBasetype();
             }
             if (e2b)
-            {   e2 = e2b;
+            {
+                e2 = e2b;
                 t2 = e2b->type->toBasetype();
             }
             t = t1;
@@ -2917,22 +2924,25 @@ Lcc:
     }
     else if (isArrayOperand(e1) && t1->ty == Tarray &&
              e2->implicitConvTo(t1->nextOf()))
-    {   // T[] op T
+    {
+        // T[] op T
         e2 = e2->castTo(sc, t1->nextOf());
         t = t1->nextOf()->arrayOf();
     }
     else if (isArrayOperand(e2) && t2->ty == Tarray &&
              e1->implicitConvTo(t2->nextOf()))
-    {   // T op T[]
+    {
+        // T op T[]
         e1 = e1->castTo(sc, t2->nextOf());
         t = t2->nextOf()->arrayOf();
 
-        //printf("test %s\n", e->toChars());
+        //printf("test %s\n", Token::toChars(op));
         e1 = e1->optimize(WANTvalue);
-        if (e && isCommutative(e) && e1->isConst())
-        {   /* Swap operands to minimize number of functions generated
+        if (isCommutative(op) && e1->isConst())
+        {
+            /* Swap operands to minimize number of functions generated
              */
-            //printf("swap %s\n", e->toChars());
+            //printf("swap %s\n", Token::toChars(op));
             Expression *tmp = e1;
             e1 = e2;
             e2 = tmp;
@@ -2979,18 +2989,7 @@ Expression *typeCombine(BinExp *be, Scope *sc)
     Type *t1 = be->e1->type->toBasetype();
     Type *t2 = be->e2->type->toBasetype();
 
-    if (be->op == TOKmin || be->op == TOKadd)
-    {
-        // struct+struct, and class+class are errors
-        if (t1->ty == Tstruct && t2->ty == Tstruct)
-            goto Lerror;
-        else if (t1->ty == Tclass && t2->ty == Tclass)
-            goto Lerror;
-        else if (t1->ty == Taarray && t2->ty == Taarray)
-            goto Lerror;
-    }
-
-    if (!typeMerge(sc, be, &be->type, &be->e1, &be->e2))
+    if (!typeMerge(sc, be->op, &be->type, &be->e1, &be->e2))
         goto Lerror;
     // If the types have no value, return an error
     if (be->e1->op == TOKerror)
@@ -3004,6 +3003,46 @@ Lerror:
     if (ex->op == TOKerror)
         return ex;
     return new ErrorExp();
+}
+
+/************************************
+ * Bring leaves to common type, used by CondExp.
+ */
+
+Type *toCommonType(Scope *sc, Expression *&e1, Expression *&e2)
+{
+    // If either operand is void, the result is void
+    if (e1->type->ty == Tvoid || e2->type->ty == Tvoid)
+        return Type::tvoid;
+    if (e1->type == e2->type)
+        return e1->type;
+
+    Type *type = NULL;
+    if (!typeMerge(sc, TOKquestion, &type, &e1, &e2))
+        return NULL;
+
+    switch (e1->type->toBasetype()->ty)
+    {
+        case Tcomplex32:
+        case Tcomplex64:
+        case Tcomplex80:
+            e2 = e2->castTo(sc, e1->type);
+            break;
+    }
+    switch (e2->type->toBasetype()->ty)
+    {
+        case Tcomplex32:
+        case Tcomplex64:
+        case Tcomplex80:
+            e1 = e1->castTo(sc, e2->type);
+            break;
+    }
+    if (type->toBasetype()->ty == Tarray)
+    {
+        e1 = e1->castTo(sc, type);
+        e2 = e2->castTo(sc, type);
+    }
+    return type->merge2();
 }
 
 /***********************************

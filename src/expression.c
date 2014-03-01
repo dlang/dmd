@@ -1092,6 +1092,32 @@ int expandAliasThisTuples(Expressions *exps, size_t starti)
     return -1;
 }
 
+Expression *incompatibleTypes(Expression *e, Expression *e1, Expression *e2)
+{
+    if (e1->type->toBasetype() != Type::terror &&
+        e2->type->toBasetype() != Type::terror
+       )
+    {
+        // CondExp uses 'a ? b : c' but we're comparing 'b : c'
+        Loc loc = e ? e->loc : e2->loc;
+        TOK op  = e ? e->op  : TOKquestion;
+        TOK thisOp = (op == TOKquestion) ? TOKcolon : e->op;
+        if (e1->op == TOKtype || e2->op == TOKtype)
+        {
+            error(loc, "incompatible types for ((%s) %s (%s)): cannot use '%s' with types",
+                e1->toChars(), Token::toChars(thisOp), e2->toChars(), Token::toChars(op));
+        }
+        else
+        {
+            error(loc, "incompatible types for ((%s) %s (%s)): '%s' and '%s'",
+                e1->toChars(), Token::toChars(thisOp), e2->toChars(),
+                e1->type->toChars(), e2->type->toChars());
+        }
+        return new ErrorExp();
+    }
+    return e ? e : new ErrorExp();
+}
+
 Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt)
 {
     /* The type is determined by applying ?: to each pair.
@@ -1102,9 +1128,6 @@ Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt
      * type, but fails with this function doing bottom up typing.
      */
     //printf("arrayExpressionToCommonType()\n");
-    IntegerExp integerexp(0);
-    CondExp condexp(Loc(), &integerexp, NULL, NULL);
-
     Type *t0 = NULL;
     Expression *e0;
     size_t j0;
@@ -1120,38 +1143,23 @@ Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt
 
         e = e->isLvalue() ? callCpCtor(sc, e) : valueNoDtor(e);
 
-        if (t0)
+        if (t0 && t0 != e->type)
         {
-            if (t0 != e->type)
-            {
-                /* This applies ?: to merge the types. It's backwards;
-                 * ?: should call this function to merge types.
-                 */
-                condexp.type = NULL;
-                condexp.e1 = e0;
-                condexp.e2 = e;
-                condexp.loc = e->loc;
-                condexp.semantic(sc);
-                (*exps)[j0] = condexp.e1;
-                e = condexp.e2;
-                j0 = i;
-                e0 = e;
-                t0 = e0->type;
-            }
+            if (!toCommonType(sc, e0, e))
+                e = incompatibleTypes(NULL, e0, e);
+            (*exps)[j0] = e0;
         }
-        else
-        {
-            j0 = i;
-            e0 = e;
-            t0 = e->type;
-        }
+        j0 = i;
+        e0 = e;
+        t0 = e->type;
         (*exps)[i] = e;
     }
 
     if (t0)
     {
         for (size_t i = 0; i < exps->dim; i++)
-        {   Expression *e = (*exps)[i];
+        {
+            Expression *e = (*exps)[i];
             e = e->implicitCastTo(sc, t0);
             (*exps)[i] = e;
         }
@@ -6459,26 +6467,7 @@ int BinExp::isunsigned()
 
 Expression *BinExp::incompatibleTypes()
 {
-    if (e1->type->toBasetype() != Type::terror &&
-        e2->type->toBasetype() != Type::terror
-       )
-    {
-        // CondExp uses 'a ? b : c' but we're comparing 'b : c'
-        TOK thisOp = (op == TOKquestion) ? TOKcolon : op;
-        if (e1->op == TOKtype || e2->op == TOKtype)
-        {
-            error("incompatible types for ((%s) %s (%s)): cannot use '%s' with types",
-                e1->toChars(), Token::toChars(thisOp), e2->toChars(), Token::toChars(op));
-        }
-        else
-        {
-            error("incompatible types for ((%s) %s (%s)): '%s' and '%s'",
-                e1->toChars(), Token::toChars(thisOp), e2->toChars(),
-                e1->type->toChars(), e2->type->toChars());
-        }
-        return new ErrorExp();
-    }
-    return this;
+    return ::incompatibleTypes(this, e1, e2);
 }
 
 /********************** BinAssignExp **************************************/
@@ -11581,7 +11570,10 @@ Expression *AddExp::semantic(Scope *sc)
         return scaleFactor(this, sc);
     }
 
-    if (tb1->ty == Tpointer && tb2->ty == Tpointer)
+    if (tb1->ty == Tpointer && tb2->ty == Tpointer ||
+        tb1->ty == Tstruct  && tb2->ty == Tstruct ||
+        tb1->ty == Tclass   && tb2->ty == Tclass ||
+        tb1->ty == Taarray  && tb2->ty == Taarray)
     {
         return incompatibleTypes();
     }
@@ -11653,25 +11645,25 @@ Expression *MinExp::semantic(Scope *sc)
     if (e)
         return e;
 
-    Type *t1 = e1->type->toBasetype();
-    Type *t2 = e2->type->toBasetype();
+    Type *tb1 = e1->type->toBasetype();
+    Type *tb2 = e2->type->toBasetype();
 
-    if (t1->ty == Tdelegate ||
-        t1->ty == Tpointer && t1->nextOf()->ty == Tfunction)
+    if (tb1->ty == Tdelegate ||
+        tb1->ty == Tpointer && tb1->nextOf()->ty == Tfunction)
     {
         e = e1->checkArithmetic();
     }
-    if (t2->ty == Tdelegate ||
-        t2->ty == Tpointer && t2->nextOf()->ty == Tfunction)
+    if (tb2->ty == Tdelegate ||
+        tb2->ty == Tpointer && tb2->nextOf()->ty == Tfunction)
     {
         e = e2->checkArithmetic();
     }
     if (e)
         return e;
 
-    if (t1->ty == Tpointer)
+    if (tb1->ty == Tpointer)
     {
-        if (t2->ty == Tpointer)
+        if (tb2->ty == Tpointer)
         {
             // Need to divide the result by the stride
             // Replace (ptr - ptr) with (ptr - ptr) / stride
@@ -11682,7 +11674,7 @@ Expression *MinExp::semantic(Scope *sc)
                 return ex;
 
             type = Type::tptrdiff_t;
-            stride = t2->nextOf()->size();
+            stride = tb2->nextOf()->size();
             if (stride == 0)
             {
                 e = new IntegerExp(loc, 0, Type::tptrdiff_t);
@@ -11693,20 +11685,27 @@ Expression *MinExp::semantic(Scope *sc)
                 e->type = Type::tptrdiff_t;
             }
         }
-        else if (t2->isintegral())
+        else if (tb2->isintegral())
             e = scaleFactor(this, sc);
         else
         {
-            error("can't subtract %s from pointer", t2->toChars());
+            error("can't subtract %s from pointer", tb2->toChars());
             e = new ErrorExp();
         }
         return e;
     }
-    if (t2->ty == Tpointer)
+    if (tb2->ty == Tpointer)
     {
         type = e2->type;
         error("can't subtract pointer from %s", e1->type->toChars());
         return new ErrorExp();
+    }
+
+    if (tb1->ty == Tstruct && tb2->ty == Tstruct ||
+        tb1->ty == Tclass  && tb2->ty == Tclass ||
+        tb1->ty == Taarray && tb2->ty == Taarray)
+    {
+        return incompatibleTypes();
     }
 
     if (Expression *ex = typeCombine(this, sc))
@@ -11723,14 +11722,14 @@ Expression *MinExp::semantic(Scope *sc)
         return this;
     }
 
-    t1 = e1->type->toBasetype();
-    t2 = e2->type->toBasetype();
-    if (t1->ty == Tvector && !t1->isscalar())
+    tb1 = e1->type->toBasetype();
+    tb2 = e2->type->toBasetype();
+    if (tb1->ty == Tvector && !tb1->isscalar())
     {
         return incompatibleTypes();
     }
-    if ((t1->isreal() && t2->isimaginary()) ||
-        (t1->isimaginary() && t2->isreal()))
+    if ((tb1->isreal() && tb2->isimaginary()) ||
+        (tb1->isimaginary() && tb2->isreal()))
     {
         switch (type->ty)
         {
@@ -13076,7 +13075,6 @@ Expression *CondExp::syntaxCopy()
     return new CondExp(loc, econd->syntaxCopy(), e1->syntaxCopy(), e2->syntaxCopy());
 }
 
-
 Expression *CondExp::semantic(Scope *sc)
 {
 #if LOGSEMANTIC
@@ -13105,48 +13103,17 @@ Expression *CondExp::semantic(Scope *sc)
     sc->mergeCallSuper(loc, cs1);
     sc->mergeFieldInit(loc, fi1);
 
-    if (econd->type == Type::terror)
+    if (econd->op == TOKerror)
         return econd;
-    if (e1->type == Type::terror)
+    if (e1->op == TOKerror)
         return e1;
-    if (e2->type == Type::terror)
+    if (e2->op == TOKerror)
         return e2;
 
+    type = toCommonType(sc, e1, e2);
+    if (!type)
+        return incompatibleTypes();
 
-    // If either operand is void, the result is void
-    Type *t1 = e1->type;
-    Type *t2 = e2->type;
-    if (t1->ty == Tvoid || t2->ty == Tvoid)
-        type = Type::tvoid;
-    else if (t1 == t2)
-        type = t1;
-    else
-    {
-        if (Expression *ex = typeCombine(this, sc))
-            return ex;
-        switch (e1->type->toBasetype()->ty)
-        {
-            case Tcomplex32:
-            case Tcomplex64:
-            case Tcomplex80:
-                e2 = e2->castTo(sc, e1->type);
-                break;
-        }
-        switch (e2->type->toBasetype()->ty)
-        {
-            case Tcomplex32:
-            case Tcomplex64:
-            case Tcomplex80:
-                e1 = e1->castTo(sc, e2->type);
-                break;
-        }
-        if (type->toBasetype()->ty == Tarray)
-        {
-            e1 = e1->castTo(sc, type);
-            e2 = e2->castTo(sc, type);
-        }
-    }
-    type = type->merge2();
 #if 0
     printf("res: %s\n", type->toChars());
     printf("e1 : %s\n", e1->type->toChars());
