@@ -11581,7 +11581,10 @@ Expression *AddExp::semantic(Scope *sc)
         return scaleFactor(this, sc);
     }
 
-    if (tb1->ty == Tpointer && tb2->ty == Tpointer)
+    if (tb1->ty == Tpointer && tb2->ty == Tpointer ||
+        tb1->ty == Tstruct  && tb2->ty == Tstruct ||
+        tb1->ty == Tclass   && tb2->ty == Tclass ||
+        tb1->ty == Taarray  && tb2->ty == Taarray)
     {
         return incompatibleTypes();
     }
@@ -11653,25 +11656,25 @@ Expression *MinExp::semantic(Scope *sc)
     if (e)
         return e;
 
-    Type *t1 = e1->type->toBasetype();
-    Type *t2 = e2->type->toBasetype();
+    Type *tb1 = e1->type->toBasetype();
+    Type *tb2 = e2->type->toBasetype();
 
-    if (t1->ty == Tdelegate ||
-        t1->ty == Tpointer && t1->nextOf()->ty == Tfunction)
+    if (tb1->ty == Tdelegate ||
+        tb1->ty == Tpointer && tb1->nextOf()->ty == Tfunction)
     {
         e = e1->checkArithmetic();
     }
-    if (t2->ty == Tdelegate ||
-        t2->ty == Tpointer && t2->nextOf()->ty == Tfunction)
+    if (tb2->ty == Tdelegate ||
+        tb2->ty == Tpointer && tb2->nextOf()->ty == Tfunction)
     {
         e = e2->checkArithmetic();
     }
     if (e)
         return e;
 
-    if (t1->ty == Tpointer)
+    if (tb1->ty == Tpointer)
     {
-        if (t2->ty == Tpointer)
+        if (tb2->ty == Tpointer)
         {
             // Need to divide the result by the stride
             // Replace (ptr - ptr) with (ptr - ptr) / stride
@@ -11682,7 +11685,7 @@ Expression *MinExp::semantic(Scope *sc)
                 return ex;
 
             type = Type::tptrdiff_t;
-            stride = t2->nextOf()->size();
+            stride = tb2->nextOf()->size();
             if (stride == 0)
             {
                 e = new IntegerExp(loc, 0, Type::tptrdiff_t);
@@ -11693,20 +11696,27 @@ Expression *MinExp::semantic(Scope *sc)
                 e->type = Type::tptrdiff_t;
             }
         }
-        else if (t2->isintegral())
+        else if (tb2->isintegral())
             e = scaleFactor(this, sc);
         else
         {
-            error("can't subtract %s from pointer", t2->toChars());
+            error("can't subtract %s from pointer", tb2->toChars());
             e = new ErrorExp();
         }
         return e;
     }
-    if (t2->ty == Tpointer)
+    if (tb2->ty == Tpointer)
     {
         type = e2->type;
         error("can't subtract pointer from %s", e1->type->toChars());
         return new ErrorExp();
+    }
+
+    if (tb1->ty == Tstruct && tb2->ty == Tstruct ||
+        tb1->ty == Tclass  && tb2->ty == Tclass ||
+        tb1->ty == Taarray && tb2->ty == Taarray)
+    {
+        return incompatibleTypes();
     }
 
     if (Expression *ex = typeCombine(this, sc))
@@ -11723,14 +11733,14 @@ Expression *MinExp::semantic(Scope *sc)
         return this;
     }
 
-    t1 = e1->type->toBasetype();
-    t2 = e2->type->toBasetype();
-    if (t1->ty == Tvector && !t1->isscalar())
+    tb1 = e1->type->toBasetype();
+    tb2 = e2->type->toBasetype();
+    if (tb1->ty == Tvector && !tb1->isscalar())
     {
         return incompatibleTypes();
     }
-    if ((t1->isreal() && t2->isimaginary()) ||
-        (t1->isimaginary() && t2->isreal()))
+    if ((tb1->isreal() && tb2->isimaginary()) ||
+        (tb1->isimaginary() && tb2->isreal()))
     {
         switch (type->ty)
         {

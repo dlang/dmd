@@ -2979,17 +2979,6 @@ Expression *typeCombine(BinExp *be, Scope *sc)
     Type *t1 = be->e1->type->toBasetype();
     Type *t2 = be->e2->type->toBasetype();
 
-    if (be->op == TOKmin || be->op == TOKadd)
-    {
-        // struct+struct, and class+class are errors
-        if (t1->ty == Tstruct && t2->ty == Tstruct)
-            goto Lerror;
-        else if (t1->ty == Tclass && t2->ty == Tclass)
-            goto Lerror;
-        else if (t1->ty == Taarray && t2->ty == Taarray)
-            goto Lerror;
-    }
-
     if (!typeMerge(sc, be, &be->type, &be->e1, &be->e2))
         goto Lerror;
     // If the types have no value, return an error
