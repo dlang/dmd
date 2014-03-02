@@ -85,7 +85,7 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
             {
 #if _WIN32 // This fix by Tim Matthews
                 char resolved_name[MAX_PATH + 1];
-                if(GetModuleFileName(NULL, resolved_name, MAX_PATH + 1) && FileName::exists(resolved_name))
+                if(GetModuleFileNameA(NULL, resolved_name, MAX_PATH + 1) && FileName::exists(resolved_name))
                 {
                         filename = (char *)FileName::replaceName(resolved_name, inifile);
                         if(FileName::exists(filename))
