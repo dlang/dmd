@@ -652,11 +652,11 @@ const char *FileName::canonicalName(const char *name)
     /* Apparently, there is no good way to do this on Windows.
      * GetFullPathName isn't it, but use it anyway.
      */
-    DWORD result = GetFullPathName(name, 0, NULL, NULL);
+    DWORD result = GetFullPathNameA(name, 0, NULL, NULL);
     if (result)
     {
         char *buf = (char *)malloc(result);
-        result = GetFullPathName(name, result, buf, NULL);
+        result = GetFullPathNameA(name, result, buf, NULL);
         if (result == 0)
         {
             ::free(buf);
