@@ -352,21 +352,28 @@ else version (Solaris)
 }
 else version (Android)
 {
-    enum SIGALRM = 14;
-    enum SIGBUS  = 7;
-    enum SIGCHLD = 17;
-    enum SIGCONT = 18;
-    enum SIGHUP  = 1;
-    enum SIGKILL = 9;
-    enum SIGPIPE = 13;
-    enum SIGQUIT = 3;
-    enum SIGSTOP = 19;
-    enum SIGTSTP = 20;
-    enum SIGTTIN = 21;
-    enum SIGTTOU = 22;
-    enum SIGUSR1 = 10;
-    enum SIGUSR2 = 12;
-    enum SIGURG  = 23;
+    version (X86)
+    {
+        enum SIGALRM = 14;
+        enum SIGBUS  = 7;
+        enum SIGCHLD = 17;
+        enum SIGCONT = 18;
+        enum SIGHUP  = 1;
+        enum SIGKILL = 9;
+        enum SIGPIPE = 13;
+        enum SIGQUIT = 3;
+        enum SIGSTOP = 19;
+        enum SIGTSTP = 20;
+        enum SIGTTIN = 21;
+        enum SIGTTOU = 22;
+        enum SIGUSR1 = 10;
+        enum SIGUSR2 = 12;
+        enum SIGURG  = 23;
+    }
+    else
+    {
+        static assert(false, "Architecture not supported.");
+    }
 }
 else
 {
