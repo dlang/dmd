@@ -749,13 +749,14 @@ MATCH implicitConvTo(Expression *e, Type *t)
 
         void visit(CallExp *e)
         {
-        #if 0
-            printf("CalLExp::implicitConvTo(this=%s, type=%s, t=%s)\n",
+#define LOG 0
+        #if LOG
+            printf("CallExp::implicitConvTo(this=%s, type=%s, t=%s)\n",
                 e->toChars(), e->type->toChars(), t->toChars());
         #endif
 
             visit((Expression *)e);
-            if (result)
+            if (result != MATCHnomatch)
                 return;
 
             /* Allow the result of strongly pure functions to
@@ -793,6 +794,111 @@ MATCH implicitConvTo(Expression *e, Type *t)
                 result = e->type->immutableOf()->implicitConvTo(t);
                 return;
             }
+
+            /* Conversion is 'const' conversion if:
+             * 1. function is pure (weakly pure is ok)
+             * 2. implicit conversion only fails because of mod bits
+             * 3. each function parameter can be implicitly converted to the mod bits
+             */
+            Type *tx = e->f ? e->f->type : e->e1->type;
+            tx = tx->toBasetype();
+            if (tx->ty != Tfunction)
+                return;
+            TypeFunction *tf = (TypeFunction *)tx;
+
+            if (tf->purity == PUREimpure)
+                return;
+
+            /* See if fail only because of mod bits
+             */
+            if (e->type->immutableOf()->implicitConvTo(t->immutableOf()) == MATCHnomatch)
+                return;
+
+            /* Get mod bits of what we're converting to
+             */
+            Type *tb = t->toBasetype();
+            unsigned mod = tb->mod;
+            if (tf->isref)
+                ;
+            else
+            {
+                Type *ti = getIndirection(t);
+                if (ti)
+                    mod = ti->mod;
+            }
+#if LOG
+            printf("mod = x%x\n", mod);
+#endif
+            if (mod & MODwild)
+                return;                 // not sure what to do with this
+
+            /* Apply mod bits to each function parameter,
+             * and see if we can convert the function argument to the modded type
+             */
+
+            size_t nparams = Parameter::dim(tf->parameters);
+            size_t j = (tf->linkage == LINKd && tf->varargs == 1); // if TypeInfoArray was prepended
+            for (size_t i = j; i <= e->arguments->dim; ++i)
+            {
+                if (i == e->arguments->dim)
+                {
+                    if (e->e1->op == TOKdotvar)
+                    {
+                        /* Treat 'this' as just another function argument
+                         */
+                        DotVarExp *dve = (DotVarExp *)e->e1;
+                        Type *targ = dve->e1->type;
+                        if (targ->toBasetype()->ty == Tstruct)
+                            targ = targ->pointerTo();
+                        if (targ->implicitConvTo(targ->addMod(mod)) == MATCHnomatch)
+                            return;
+                    }
+                    continue;
+                }
+                Expression *earg = (*e->arguments)[i];
+                Type *targ = earg->type->toBasetype();
+#if LOG
+                printf("[%d] earg: %s, targ: %s\n", (int)i, earg->toChars(), targ->toChars());
+#endif
+                if (i - j < nparams)
+                {
+                    Parameter *fparam = Parameter::getNth(tf->parameters, i - j);
+                    if (fparam->storageClass & STClazy)
+                        return;                 // not sure what to do with this
+                    Type *tparam = fparam->type;
+                    if (!tparam)
+                        continue;
+                    if (fparam->storageClass & (STCout | STCref))
+                    {
+                        tparam = tparam->pointerTo();
+                        targ = targ->pointerTo();
+                        if (targ->implicitConvTo(tparam->addMod(mod)) == MATCHnomatch)
+                            return;
+                        continue;
+                    }
+                }
+
+#if LOG
+                printf("[%d] earg: %s, targm: %s\n", (int)i, earg->toChars(), targ->addMod(mod)->toChars());
+#endif
+                Type *targto;
+                if (targ->ty == Tpointer)
+                    targto = targ->nextOf()->castMod(mod)->pointerTo();
+                else if (targ->ty == Tarray)
+                    targto = targ->nextOf()->castMod(mod)->arrayOf();
+                else if (targ->ty == Tsarray)
+                    targto = targ->nextOf()->castMod(mod)->sarrayOf(targ->size() / targ->nextOf()->size());
+                else
+                    targto = targ->castMod(mod);
+
+                if (earg->implicitConvTo(targto) == MATCHnomatch)
+                    return;
+            }
+
+            /* Success
+             */
+            result = MATCHconst;
+#undef LOG
         }
 
         void visit(AddrExp *e)
