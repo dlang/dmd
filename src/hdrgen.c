@@ -114,6 +114,12 @@ public:
         assert(0);
     }
 
+    void visit(ErrorStatement *s)
+    {
+        buf->printf("__error__");
+        buf->writenl();
+    }
+
     void visit(ExpStatement *s)
     {
         if (s->exp)
