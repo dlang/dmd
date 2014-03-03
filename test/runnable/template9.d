@@ -3252,6 +3252,88 @@ static assert(fqnSym12263!(A12263!(Object)));
 static assert(fqnSym12263!(B12263!(Object)));
 
 /******************************************/
+// 12290
+
+void test12290()
+{
+    short[] arrS;
+    float[] arrF;
+    double[] arrD;
+    real[] arrR;
+    string cstr;
+    wstring wstr;
+    dstring dstr;
+    short[short] aa;
+
+    auto func1a(E)(E[], E) { return E.init; }
+    auto func1b(E)(E, E[]) { return E.init; }
+
+    static assert(is(typeof(func1a(arrS, 1)) == short));
+    static assert(is(typeof(func1b(1, arrS)) == short));
+    static assert(is(typeof(func1a(arrF, 1.0)) == float));
+    static assert(is(typeof(func1b(1.0, arrF)) == float));
+    static assert(is(typeof(func1a(arrD, 1.0L)) == double));
+    static assert(is(typeof(func1b(1.0L, arrD)) == double));
+    static assert(is(typeof(func1a(arrR, 1)) == real));
+    static assert(is(typeof(func1b(1, arrR)) == real));
+    static assert(is(typeof(func1a("str" , 'a')) == immutable  char));
+    static assert(is(typeof(func1b('a', "str" )) == immutable  char));
+    static assert(is(typeof(func1a("str"c, 'a')) == immutable  char));
+    static assert(is(typeof(func1b('a', "str"c)) == immutable  char));
+    static assert(is(typeof(func1a("str"w, 'a')) == immutable wchar));
+    static assert(is(typeof(func1b('a', "str"w)) == immutable wchar));
+    static assert(is(typeof(func1a("str"d, 'a')) == immutable dchar));
+    static assert(is(typeof(func1b('a', "str"d)) == immutable dchar));
+    static assert(is(typeof(func1a([1,2,3], 1L)) == long));
+    static assert(is(typeof(func1b(1L, [1,2,3])) == long));
+    static assert(is(typeof(func1a([1,2,3], 1.5)) == double));
+    static assert(is(typeof(func1b(1.5, [1,2,3])) == double));
+    static assert(is(typeof(func1a(["a","b"], "s"c)) ==  string));
+    static assert(is(typeof(func1b("s"c, ["a","b"])) ==  string));
+  //static assert(is(typeof(func1a(["a","b"], "s"w)) == wstring));  // typeMerge bug
+    static assert(is(typeof(func1b("s"w, ["a","b"])) == wstring));
+  //static assert(is(typeof(func1a(["a","b"], "s"d)) == dstring));  // typeMerge bug
+    static assert(is(typeof(func1b("s"d, ["a","b"])) == dstring));
+
+    auto func2a(K, V)(V[K], K, V) { return V[K].init; }
+    auto func2b(K, V)(V, K, V[K]) { return V[K].init; }
+
+    static assert(is(typeof(func2a(aa, 1, 1)) == short[short]));
+    static assert(is(typeof(func2b(1, 1, aa)) == short[short]));
+    static assert(is(typeof(func2a([1:10,2:20,3:30], 1L, 10L)) == long[long]));
+    static assert(is(typeof(func2b(1L, 10L, [1:20,2:20,3:30])) == long[long]));
+
+    auto func3a(T)(T, T) { return T.init; }
+    auto func3b(T)(T, T) { return T.init; }
+
+    static assert(is(typeof(func3a(arrS, null)) == short[]));
+    static assert(is(typeof(func3b(null, arrS)) == short[]));
+    static assert(is(typeof(func3a(arrR, null)) == real[]));
+    static assert(is(typeof(func3b(null, arrR)) == real[]));
+    static assert(is(typeof(func3a(cstr, "str")) ==  string));
+    static assert(is(typeof(func3b("str", cstr)) ==  string));
+    static assert(is(typeof(func3a(wstr, "str")) == wstring));
+    static assert(is(typeof(func3b("str", wstr)) == wstring));
+    static assert(is(typeof(func3a(dstr, "str")) == dstring));
+    static assert(is(typeof(func3b("str", dstr)) == dstring));
+    static assert(is(typeof(func3a("str1" , "str2"c)) ==  string));
+    static assert(is(typeof(func3b("str1"c, "str2" )) ==  string));
+    static assert(is(typeof(func3a("str1" , "str2"w)) == wstring));
+    static assert(is(typeof(func3b("str1"w, "str2" )) == wstring));
+    static assert(is(typeof(func3a("str1" , "str2"d)) == dstring));
+    static assert(is(typeof(func3b("str1"d, "str2" )) == dstring));
+
+    inout(V) get12220(K, V)(inout(V[K]) aa, K key, lazy V defaultValue) { return V.init; }
+    short[short] hash12220;
+    short res12220 = get12220(hash12220, 1, 1);
+
+    void get12221(K, V)(inout(V[K]) aa, K key, lazy V defaultValue) {}
+    short[short] hash12221;
+    enum Key12221 : short { a }
+    get(hash12221, Key12221.a, Key12221.a);
+}
+
+/******************************************/
 
 int main()
 {
