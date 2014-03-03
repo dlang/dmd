@@ -1847,6 +1847,8 @@ Lagain:
             goto Lerror2;
         }
         case Tdelegate:
+            if (op == TOKforeach_reverse)
+                warning("cannot use foreach_reverse with a delegate");
         Lapply:
         {
             Expression *ec;
