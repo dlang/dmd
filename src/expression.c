@@ -2982,6 +2982,8 @@ Expression *IdentifierExp::semantic(Scope *sc)
 #if LOGSEMANTIC
     printf("IdentifierExp::semantic('%s')\n", ident->toChars());
 #endif
+    if (type)   // This is used as the dummy expression
+        return this;
 
     Dsymbol *scopesym;
     Dsymbol *s = sc->search(loc, ident, &scopesym);
