@@ -544,6 +544,16 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             e->error("first argument is not a class");
             goto Lfalse;
         }
+        if (cd->sizeok == SIZEOKnone)
+        {
+            if (cd->scope)
+                cd->semantic(cd->scope);
+        }
+        if (cd->sizeok != SIZEOKdone)
+        {
+            e->error("%s %s is forward referenced", cd->kind(), cd->toChars());
+            goto Lfalse;
+        }
         return new IntegerExp(e->loc, cd->structsize, Type::tsize_t);
     }
     else if (e->ident == Id::getAliasThis)

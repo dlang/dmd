@@ -1343,6 +1343,22 @@ void test11711()
                 == TypeTuple!(int, string)));
 }
 
+
+/********************************************************/
+// Issue 12278
+
+class Foo12278
+{
+    InPlace12278!Bar12278 inside;
+}
+
+class Bar12278 { }
+
+struct InPlace12278(T)
+{
+    static assert(__traits(classInstanceSize, T) != 0);
+}
+
 /********************************************************/
 
 int main()
