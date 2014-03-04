@@ -542,10 +542,8 @@ bool isSafePointerCast(Type *srcPointee, Type *destPointee)
         destPointee = destPointee->nextOf();
     }
 
-   // It's OK if both are the same (modulo const)
-    srcPointee = srcPointee->castMod(0);
-    destPointee = destPointee->castMod(0);
-    if (srcPointee == destPointee)
+    // It's OK if both are the same (modulo const)
+    if (srcPointee->constConv(destPointee))
         return true;
 
     // It's OK if function pointers differ only in safe/pure/nothrow

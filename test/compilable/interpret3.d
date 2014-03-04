@@ -3726,6 +3726,19 @@ int isItSafeToDance()
 static assert(isItSafeToDance());
 
 /**************************************************
+    12296 CTFE rejects const compatible AA pointer cast
+**************************************************/
+
+int test12296()
+{
+    immutable x = [5 : 4];
+    auto aa = &x;
+    const(int[int])* y = aa;
+    return 1;
+}
+static assert(test12296());
+
+/**************************************************
     9170 Allow reinterpret casts float<->int
 **************************************************/
 int f9170(float x) {
