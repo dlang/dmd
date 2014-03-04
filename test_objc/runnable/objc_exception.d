@@ -1,6 +1,6 @@
 // Note: below is a crappy way to compile and link objc_code/objc_exception.m
 
-// REQUIRED_ARGS: -L-framework -LCocoa -L-lobjc runnable/objc_code/objc_exception.o $(gcc -m32 runnable/objc_code/objc_exception.m -c -o runnable/objc_code/objc_exception.o)
+// REQUIRED_ARGS: -L-framework -LCocoa -L-lobjc runnable/objc_code/objc_exception.o $(gcc -m$MODEL runnable/objc_code/objc_exception.m -c -o runnable/objc_code/objc_exception.o)
 // POST_SCRIPT: rm runnable/objc_code/objc_exception.o
 
 extern (Objective-C)
