@@ -3334,6 +3334,18 @@ void test12290()
 }
 
 /******************************************/
+// 12292
+
+void test12292()
+{
+    void fun(T : string)(T data) {}
+
+    ubyte[3] sa;
+    static assert(!__traits(compiles, fun(sa)));
+    static assert(!__traits(compiles, { alias f = fun!(ubyte[3]); }));
+}
+
+/******************************************/
 
 int main()
 {

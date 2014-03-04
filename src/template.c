@@ -3228,7 +3228,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
         {
         #if 0
             printf("Type::deduceType()\n");
-            printf("\tthis   = %d, ", ty); t->print();
+            printf("\tthis   = %d, ", t->ty); t->print();
             printf("\ttparam = %d, ", tparam->ty); tparam->print();
         #endif
             if (!tparam)
@@ -3476,7 +3476,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
         {
         #if 0
             printf("TypeVector::deduceType()\n");
-            printf("\tthis   = %d, ", ty); t->print();
+            printf("\tthis   = %d, ", t->ty); t->print();
             printf("\ttparam = %d, ", tparam->ty); tparam->print();
         #endif
             if (tparam->ty == Tvector)
@@ -3492,7 +3492,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
         {
         #if 0
             printf("TypeDArray::deduceType()\n");
-            printf("\tthis   = %d, ", ty); t->print();
+            printf("\tthis   = %d, ", t->ty); t->print();
             printf("\ttparam = %d, ", tparam->ty); tparam->print();
         #endif
             visit((Type *)t);
@@ -3502,7 +3502,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
         {
         #if 0
             printf("TypeSArray::deduceType()\n");
-            printf("\tthis   = %d, ", ty); t->print();
+            printf("\tthis   = %d, ", t->ty); t->print();
             printf("\ttparam = %d, ", tparam->ty); tparam->print();
         #endif
 
@@ -3512,9 +3512,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 if (tparam->ty == Tarray)
                 {
                     MATCH m = deduceType(t->next, sc, tparam->nextOf(), parameters, dedtypes, wm);
-                    if (m == MATCHexact)
-                        m = MATCHconvert;
-                    result = m;
+                    result = (m >= MATCHconst) ? MATCHconvert : MATCHnomatch;
                     return;
                 }
 
@@ -3568,7 +3566,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
         {
         #if 0
             printf("TypeAArray::deduceType()\n");
-            printf("\tthis   = %d, ", ty); t->print();
+            printf("\tthis   = %d, ", t->ty); t->print();
             printf("\ttparam = %d, ", tparam->ty); tparam->print();
         #endif
 
@@ -3588,7 +3586,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
         void visit(TypeFunction *t)
         {
             //printf("TypeFunction::deduceType()\n");
-            //printf("\tthis   = %d, ", ty); t->print();
+            //printf("\tthis   = %d, ", t->ty); t->print();
             //printf("\ttparam = %d, ", tparam->ty); tparam->print();
 
             // Extra check that function characteristics must match
@@ -3735,7 +3733,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
         {
         #if 0
             printf("TypeInstance::deduceType()\n");
-            printf("\tthis   = %d, ", ty); t->print();
+            printf("\tthis   = %d, ", t->ty); t->print();
             printf("\ttparam = %d, ", tparam->ty); tparam->print();
         #endif
             // Extra check
