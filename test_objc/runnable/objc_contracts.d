@@ -22,7 +22,7 @@ class Test2Object : Test1Object {
 	int in2;
 	int out2;
     
-    void test()
+    override void test()
     in { in2 += 1; }
     out { out2 += 1; }
     body { }
