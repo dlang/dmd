@@ -135,6 +135,32 @@ void testDIP29_3()
 
 /***********************************/
 
+import core.vararg;
+
+int* maker() pure { return null; }
+int* maker1(int *) pure { return null; }
+int* function(int *) pure makerfp1;
+int* maker2(int *, ...) pure { return null; }
+int* maker3(int) pure { return null; }
+int* maker4(ref int) pure { return null; }
+int* maker5(ref immutable int) pure { return null; }
+
+void testDIP29_4()
+{
+    { immutable x = maker1(maker()); }
+    { immutable x = maker1(null); }
+    static assert(__traits(compiles, { immutable x = (*makerfp1)(maker()); }));
+    { shared x = maker1(null); }
+    { immutable x = maker2(null, 3); }
+    { immutable int g; immutable x = maker2(null, 3, &g); }
+    static assert(!__traits(compiles, { int g; immutable x = maker2(null, 3, &g); }));
+    { immutable x = maker3(1); }
+    static assert(!__traits(compiles, { int g; immutable x = maker4(g); }));
+    { immutable int g; immutable x = maker5(g); }
+}
+
+/***********************************/
+
 void main()
 {
     test1();
@@ -145,6 +171,7 @@ void main()
     testDIP29_1();
     testDIP29_2();
     testDIP29_3();
+    testDIP29_4();
 
     writefln("Success");
 }

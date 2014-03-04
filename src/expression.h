@@ -111,6 +111,7 @@ Expression *scaleFactor(BinExp *be, Scope *sc);
 Expression *typeCombine(BinExp *be, Scope *sc);
 Expression *inferType(Expression *e, Type *t, int flag = 0, Scope *sc = NULL, TemplateParameters *tparams = NULL);
 Expression *semanticTraits(TraitsExp *e, Scope *sc);
+Type *getIndirection(Type *t);
 
 /* Run CTFE on the expression, but allow the expression to be a TypeExp
  * or a tuple containing a TypeExp. (This is required by pragma(msg)).
