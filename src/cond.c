@@ -202,6 +202,8 @@ bool VersionCondition::isPredefined(const char *ident)
         "MIPS_EABI",
         "MIPS_SoftFloat",
         "MIPS_HardFloat",
+        "NVPTX",
+        "NVPTX64",
         "SPARC",
         "SPARC_V8Plus",
         "SPARC_SoftFloat",
