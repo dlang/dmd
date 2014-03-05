@@ -2604,6 +2604,7 @@ void TemplateDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         FuncDeclaration *fd = (*members)[0]->isFuncDeclaration();
         if (fd && fd->type && fd->type->ty == Tfunction && fd->ident == ident)
         {
+            StorageClassDeclaration::stcToCBuffer(buf, fd->storage_class);
             functionToBufferFull((TypeFunction *)fd->type, buf, ident, hgs, this);
 
             if (constraint)
