@@ -1133,10 +1133,14 @@ Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt
                 condexp.loc = e->loc;
                 condexp.semantic(sc);
                 (*exps)[j0] = condexp.e1;
+                if (condexp.e1->op == TOKfunction &&
+                    condexp.e2->op == TOKfunction)
+                    t0 = condexp.e2->type;
+                else
+                    t0 = condexp.type;
                 e = condexp.e2;
                 j0 = i;
                 e0 = e;
-                t0 = e0->type;
             }
         }
         else
