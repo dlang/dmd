@@ -1796,20 +1796,20 @@ void functionToBufferFull(TypeFunction *tf, OutBuffer *buf, Identifier *ident,
     if (tf->linkage > LINKd && hgs->ddoc != 1 && !hgs->hdrgen)
         linkageToBuffer(buf, tf->linkage);
 
-    if (!ident || ident->toHChars2() == ident->toChars())
+    if (ident && ident->toHChars2() != ident->toChars())
     {
-        if (tf->next)
-            toBufferShort(tf->next, buf, hgs);
-        else if (hgs->ddoc)
-            buf->writestring("auto");
     }
+    else if (tf->next)
+    {
+        toBufferShort(tf->next, buf, hgs);
+        if (ident)
+            buf->writeByte(' ');
+    }
+    else if (hgs->ddoc)
+        buf->writestring("auto ");
 
     if (ident)
-    {
-        if (tf->next || hgs->ddoc)
-            buf->writeByte(' ');
         buf->writestring(ident->toHChars2());
-    }
 
     if (td)
     {
