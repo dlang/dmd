@@ -332,7 +332,7 @@ public:
             cd == ClassDeclaration::object ||
             cd == Type::typeinfoclass ||
             cd == Module::moduleinfo ||
-            memcmp(cd->ident->toChars(), "TypeInfo_", 9) == 0)
+            strncmp(cd->ident->toChars(), "TypeInfo_", 9) == 0)
             cd->parent = NULL;
 
         visit((AggregateDeclaration *)cd);

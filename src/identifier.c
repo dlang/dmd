@@ -32,12 +32,12 @@ Identifier *Identifier::create(const char *string, int value)
 
 bool Identifier::equals(RootObject *o)
 {
-    return this == o || memcmp(string,o->toChars(),len+1) == 0;
+    return this == o || strncmp(string,o->toChars(),len+1) == 0;
 }
 
 int Identifier::compare(RootObject *o)
 {
-    return memcmp(string, o->toChars(), len + 1);
+    return strncmp(string, o->toChars(), len + 1);
 }
 
 char *Identifier::toChars()
@@ -60,11 +60,11 @@ const char *Identifier::toHChars2()
     {   p = toChars();
         if (*p == '_')
         {
-            if (memcmp(p, "_staticCtor", 11) == 0)
+            if (strncmp(p, "_staticCtor", 11) == 0)
                 p = "static this";
-            else if (memcmp(p, "_staticDtor", 11) == 0)
+            else if (strncmp(p, "_staticDtor", 11) == 0)
                 p = "static ~this";
-            else if (memcmp(p, "__invariant", 11) == 0)
+            else if (strncmp(p, "__invariant", 11) == 0)
                 p = "invariant";
         }
     }
