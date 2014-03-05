@@ -39,7 +39,6 @@
 #include "mtype.h"
 #include "utf.h"
 
-void functionToBufferFull(TypeFunction *tf, OutBuffer *buf, Identifier *ident, HdrGenState* hgs, TypeFunction *attrs, TemplateDeclaration *td);
 void emitMemberComments(ScopeDsymbol *sds, Scope *sc);
 void toDocBuffer(Dsymbol *s, OutBuffer *buf, Scope *sc);
 void emitComment(Dsymbol *s, Scope *sc);
@@ -1020,8 +1019,7 @@ void toDocBuffer(Dsymbol *s, OutBuffer *buf, Scope *sc)
                     Type *origType = decl->originalType ? decl->originalType : decl->type;
                     if (origType->ty == Tfunction)
                     {
-                        TypeFunction *attrType = (TypeFunction*)(decl->ident == Id::ctor ? origType : decl->type);
-                        functionToBufferFull(((TypeFunction*)origType), buf, decl->ident, &hgs, attrType, td);
+                        functionToBufferFull((TypeFunction *)origType, buf, decl->ident, &hgs, td);
                     }
                     else
                         origType->toCBuffer(buf, decl->ident, &hgs);

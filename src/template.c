@@ -41,7 +41,6 @@
 size_t templateParameterLookup(Type *tparam, TemplateParameters *parameters);
 int arrayObjectMatch(Objects *oa1, Objects *oa2);
 hash_t arrayObjectHash(Objects *oa1);
-void functionToBufferFull(TypeFunction *tf, OutBuffer *buf, Identifier *ident, HdrGenState* hgs, TypeFunction *attrs, TemplateDeclaration *td);
 unsigned char deduceWildHelper(Type *t, Type **at, Type *tparam);
 MATCH deduceTypeHelper(Type *t, Type **at, Type *tparam);
 const char *mangle(Dsymbol *s, bool isv = false);
@@ -2605,8 +2604,7 @@ void TemplateDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         FuncDeclaration *fd = (*members)[0]->isFuncDeclaration();
         if (fd && fd->type && fd->type->ty == Tfunction && fd->ident == ident)
         {
-            TypeFunction *tf = (TypeFunction *)fd->type;
-            functionToBufferFull(tf, buf, ident, hgs, tf, this);
+            functionToBufferFull((TypeFunction *)fd->type, buf, ident, hgs, this);
 
             if (constraint)
             {

@@ -36,3 +36,5 @@ struct HdrGenState
 
     HdrGenState() { memset(this, 0, sizeof(HdrGenState)); }
 };
+
+void functionToBufferFull(TypeFunction *tf, OutBuffer *buf, Identifier *ident, HdrGenState* hgs, TemplateDeclaration *td);

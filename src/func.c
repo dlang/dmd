@@ -282,7 +282,11 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
     this->storage_class = storage_class;
     this->type = type;
     if (type)
+    {
+        // Normalize storage_class, because function-type related attributes
+        // are already set in the 'type' in parsing phase.
         this->storage_class &= ~(STC_TYPECTOR | STC_FUNCATTR);
+    }
     this->loc = loc;
     this->endloc = endloc;
     fthrows = NULL;
@@ -564,8 +568,6 @@ void FuncDeclaration::semantic(Scope *sc)
         type = type->semantic(loc, sc);
         sc = sc->pop();
     }
-
-    storage_class &= ~STCref;
     if (type->ty != Tfunction)
     {
         if (type->ty != Terror)
@@ -576,6 +578,22 @@ void FuncDeclaration::semantic(Scope *sc)
         errors = true;
         return;
     }
+    else
+    {
+        // Merge back function attributes into 'originalType'.
+        // It's used for mangling, ddoc, and json output.
+        TypeFunction *tfo = (TypeFunction *)originalType;
+        TypeFunction *tfx = (TypeFunction *)type;
+        tfo->mod        = tfx->mod;
+        tfo->isref      = tfx->isref;
+        tfo->isnothrow  = tfx->isnothrow;
+        tfo->isproperty = tfx->isproperty;
+        tfo->purity     = tfx->purity;
+        tfo->trust      = tfx->trust;
+
+        storage_class &= ~(STC_TYPECTOR | STC_FUNCATTR);
+    }
+
     f = (TypeFunction *)type;
     size_t nparams = Parameter::dim(f->parameters);
 

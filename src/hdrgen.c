@@ -50,7 +50,6 @@ void argsToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *hgs);
 void sizeToCBuffer(OutBuffer *buf, HdrGenState *hgs, Expression *e);
 void trustToBuffer(OutBuffer *buf, TRUST trust);
 void linkageToBuffer(OutBuffer *buf, LINK linkage);
-void functionToBufferFull(TypeFunction *tf, OutBuffer *buf, Identifier *ident, HdrGenState* hgs, TypeFunction *attrs, TemplateDeclaration *td);
 void toBufferShort(Type *t, OutBuffer *buf, HdrGenState *hgs);
 void expToCBuffer(OutBuffer *buf, HdrGenState *hgs, Expression *e, PREC pr);
 void toCBuffer(Module *m, OutBuffer *buf, HdrGenState *hgs);
@@ -1699,8 +1698,7 @@ void toCBuffer(Type *t, OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
 {
     if (t->ty == Tfunction)
     {
-        TypeFunction *tf = (TypeFunction *)t;
-        functionToBufferFull(tf, buf, ident, hgs, tf, NULL);
+        functionToBufferFull((TypeFunction *)t, buf, ident, hgs, NULL);
         return;
     }
     if (t->ty == Terror)
@@ -1761,7 +1759,8 @@ void linkageToBuffer(OutBuffer *buf, LINK linkage)
 }
 
 // Print the full function signature with correct ident, attributes and template args
-void functionToBufferFull(TypeFunction *tf, OutBuffer *buf, Identifier *ident, HdrGenState* hgs, TypeFunction *attrs, TemplateDeclaration *td)
+void functionToBufferFull(TypeFunction *tf, OutBuffer *buf, Identifier *ident,
+        HdrGenState* hgs, TemplateDeclaration *td)
 {
     //printf("TypeFunction::toCBuffer() this = %p\n", this);
     if (tf->inuse)
@@ -1773,29 +1772,29 @@ void functionToBufferFull(TypeFunction *tf, OutBuffer *buf, Identifier *ident, H
 
     /* Use 'storage class' style for attributes
      */
-    if (attrs->mod)
+    if (tf->mod)
     {
-        MODtoBuffer(buf, attrs->mod);
+        MODtoBuffer(buf, tf->mod);
         buf->writeByte(' ');
     }
 
-    if (attrs->purity)
+    if (tf->purity)
         buf->writestring("pure ");
-    if (attrs->isnothrow)
+    if (tf->isnothrow)
         buf->writestring("nothrow ");
-    if (attrs->isproperty)
+    if (tf->isproperty)
         buf->writestring("@property ");
-    if (attrs->isref)
+    if (tf->isref && ident != Id::ctor)
         buf->writestring("ref ");
 
-    if (attrs->trust)
+    if (tf->trust)
     {
-        trustToBuffer(buf, attrs->trust);
+        trustToBuffer(buf, tf->trust);
         buf->writeByte(' ');
     }
 
-    if (attrs->linkage > LINKd && hgs->ddoc != 1 && !hgs->hdrgen)
-        linkageToBuffer(buf, attrs->linkage);
+    if (tf->linkage > LINKd && hgs->ddoc != 1 && !hgs->hdrgen)
+        linkageToBuffer(buf, tf->linkage);
 
     if (!ident || ident->toHChars2() == ident->toChars())
     {
