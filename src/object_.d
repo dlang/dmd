@@ -502,11 +502,7 @@ class TypeInfo_StaticArray : TypeInfo
 
     override size_t getHash(in void* p) @trusted const
     {
-        size_t sz = value.tsize;
-        size_t hash = 0;
-        for (size_t i = 0; i < len; i++)
-            hash += value.getHash(p + i * sz);
-        return hash;
+        return getArrayHash(value, p, len);
     }
 
     override bool equals(in void* p1, in void* p2) const
