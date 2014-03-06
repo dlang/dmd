@@ -15,6 +15,12 @@ module rt.typeinfo.ti_AC;
 
 // Object[]
 
+/*
+NOTE: It is sometimes used for arrays of
+classes or (incorrectly) interfaces.
+But naked `TypeInfo_Array` is mostly used.
+See @@@BUG12303@@@.
+*/
 class TypeInfo_AC : TypeInfo_Array
 {
     override string toString() const { return TypeInfo.toString(); }
