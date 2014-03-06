@@ -12,6 +12,7 @@
 #include <string.h>                     // strlen()
 
 #include "root.h"
+#include "rmem.h"
 #include "speller.h"
 
 #include "mars.h"
@@ -21,10 +22,12 @@
 #include "attrib.h"
 #include "dsymbol.h"
 #include "declaration.h"
+#include "statement.h"
 #include "aggregate.h"
 #include "module.h"
 #include "id.h"
 #include "lexer.h"
+#include "template.h"
 
 Scope *Scope::freelist = NULL;
 
@@ -46,7 +49,8 @@ void *Scope::operator new(size_t size)
 }
 
 Scope::Scope()
-{   // Create root scope
+{
+    // Create root scope
 
     //printf("Scope::Scope() %p\n", this);
     this->module = NULL;
@@ -60,7 +64,8 @@ Scope::Scope()
     this->sbreak = NULL;
     this->scontinue = NULL;
     this->fes = NULL;
-    this->structalign = global.structalign;
+    this->callsc = NULL;
+    this->structalign = STRUCTALIGN_DEFAULT;
     this->func = NULL;
     this->slabel = NULL;
     this->linkage = LINKd;
@@ -72,17 +77,17 @@ Scope::Scope()
     this->inunion = 0;
     this->nofree = 0;
     this->noctor = 0;
-    this->noaccesscheck = 0;
-    this->mustsemantic = 0;
     this->intypeof = 0;
     this->speculative = 0;
-    this->parameterSpecialization = 0;
+    this->lastVar = NULL;
     this->callSuper = 0;
+    this->fieldinit = NULL;
+    this->fieldinit_dim = 0;
     this->flags = 0;
     this->lastdc = NULL;
     this->lastoffset = 0;
     this->docbuf = NULL;
-    this->userAttributes = NULL;
+    this->userAttribDecl = NULL;
 }
 
 Scope::Scope(Scope *enclosing)
@@ -100,6 +105,7 @@ Scope::Scope(Scope *enclosing)
     this->sbreak = enclosing->sbreak;
     this->scontinue = enclosing->scontinue;
     this->fes = enclosing->fes;
+    this->callsc = enclosing->callsc;
     this->structalign = enclosing->structalign;
     this->enclosing = enclosing;
 #ifdef DEBUG
@@ -121,17 +127,17 @@ Scope::Scope(Scope *enclosing)
     this->inunion = enclosing->inunion;
     this->nofree = 0;
     this->noctor = enclosing->noctor;
-    this->noaccesscheck = enclosing->noaccesscheck;
-    this->mustsemantic = enclosing->mustsemantic;
     this->intypeof = enclosing->intypeof;
     this->speculative = enclosing->speculative;
-    this->parameterSpecialization = enclosing->parameterSpecialization;
+    this->lastVar = enclosing->lastVar;
     this->callSuper = enclosing->callSuper;
-    this->flags = (enclosing->flags & SCOPEcontract);
+    this->fieldinit = enclosing->saveFieldInit();
+    this->fieldinit_dim = enclosing->fieldinit_dim;
+    this->flags = (enclosing->flags & (SCOPEcontract | SCOPEdebug | SCOPEctfe | SCOPEcompile));
     this->lastdc = NULL;
     this->lastoffset = 0;
     this->docbuf = enclosing->docbuf;
-    this->userAttributes = enclosing->userAttributes;
+    this->userAttribDecl = enclosing->userAttribDecl;
     assert(this != enclosing);
 }
 
@@ -179,7 +185,20 @@ Scope *Scope::pop()
     Scope *enc = enclosing;
 
     if (enclosing)
+    {
         enclosing->callSuper |= callSuper;
+        if (enclosing->fieldinit && fieldinit)
+        {
+            size_t dim = fieldinit_dim;
+            for (size_t i = 0; i < dim; i++)
+                enclosing->fieldinit[i] |= fieldinit[i];
+            /* Workaround regression @@@BUG11777@@@.
+            Probably this memory is used in future.
+            mem.free(fieldinit);
+            */
+            fieldinit = NULL;
+        }
+    }
 
     if (!nofree)
     {   enclosing = freelist;
@@ -188,6 +207,19 @@ Scope *Scope::pop()
     }
 
     return enc;
+}
+
+Scope *Scope::startCTFE()
+{
+    Scope *sc = this->push();
+    sc->flags = this->flags | SCOPEctfe;
+    return sc;
+}
+
+Scope *Scope::endCTFE()
+{
+    assert(flags & SCOPEctfe);
+    return pop();
 }
 
 void Scope::mergeCallSuper(Loc loc, unsigned cs)
@@ -212,17 +244,18 @@ void Scope::mergeCallSuper(Loc loc, unsigned cs)
 
         bool ok = true;
 
-        // If one has returned without a constructor call, there must be never
-        // have been ctor calls in the other.
         if ( (aRet && !aAny && bAny) ||
              (bRet && !bAny && aAny))
-        {   ok = false;
+        {
+            // If one has returned without a constructor call, there must be never
+            // have been ctor calls in the other.
+            ok = false;
         }
-        // If one branch has called a ctor and then exited, anything the
-        // other branch has done is OK (except returning without a
-        // ctor call, but we already checked that).
         else if (aRet && aAll)
         {
+            // If one branch has called a ctor and then exited, anything the
+            // other branch has done is OK (except returning without a
+            // ctor call, but we already checked that).
             callSuper |= cs & (CSXany_ctor | CSXlabel);
         }
         else if (bRet && bAll)
@@ -241,6 +274,81 @@ void Scope::mergeCallSuper(Loc loc, unsigned cs)
         if (!ok)
             error(loc, "one path skips constructor");
     }
+}
+
+unsigned *Scope::saveFieldInit()
+{
+    unsigned *fi = NULL;
+    if (fieldinit)  // copy
+    {
+        size_t dim = fieldinit_dim;
+        fi = (unsigned *)mem.malloc(sizeof(unsigned) * dim);
+        for (size_t i = 0; i < dim; i++)
+            fi[i] = fieldinit[i];
+    }
+    return fi;
+}
+
+bool mergeFieldInit(Loc loc, unsigned &fieldInit, unsigned fi, bool mustInit)
+{
+    if (fi != fieldInit)
+    {
+
+        // Have any branches returned?
+        bool aRet = (fi        & CSXreturn) != 0;
+        bool bRet = (fieldInit & CSXreturn) != 0;
+
+        bool ok;
+
+        if (aRet)
+        {
+            ok = !mustInit || (fi & CSXthis_ctor);
+            fieldInit = fieldInit;
+        }
+        else if (bRet)
+        {
+            ok = !mustInit || (fieldInit & CSXthis_ctor);
+            fieldInit = fi;
+        }
+        else
+        {
+            ok = !mustInit || !((fieldInit ^ fi) & CSXthis_ctor);
+            fieldInit |= fi;
+        }
+
+        return ok;
+    }
+    return true;
+}
+
+void Scope::mergeFieldInit(Loc loc, unsigned *fies)
+{
+    if (fieldinit && fies)
+    {
+        FuncDeclaration *f = func;
+        if (fes) f = fes->func;
+        AggregateDeclaration *ad = f->isAggregateMember2();
+        assert(ad);
+
+        for (size_t i = 0; i < ad->fields.dim; i++)
+        {
+            VarDeclaration *v = ad->fields[i];
+            bool mustInit = (v->storage_class & STCnodefaultctor ||
+                             v->type->needsNested());
+
+            if (!::mergeFieldInit(loc, fieldinit[i], fies[i], mustInit))
+            {
+                ::error(loc, "one path skips field %s", ad->fields[i]->toChars());
+            }
+        }
+    }
+}
+
+Module *Scope::instantiatingModule()
+{
+    if (tinst && tinst->instantiatingModule)
+        return tinst->instantiatingModule;
+    return module;
 }
 
 Dsymbol *Scope::search(Loc loc, Identifier *ident, Dsymbol **pscopesym)
@@ -275,11 +383,10 @@ Dsymbol *Scope::search(Loc loc, Identifier *ident, Dsymbol **pscopesym)
         if (sc->scopesym)
         {
             //printf("\tlooking in scopesym '%s', kind = '%s'\n", sc->scopesym->toChars(), sc->scopesym->kind());
-            s = sc->scopesym->search(loc, ident, 0);
+            s = sc->scopesym->search(loc, ident);
             if (s)
             {
-                if (global.params.Dversion > 1 &&
-                    ident == Id::length &&
+                if (ident == Id::length &&
                     sc->scopesym->isArrayScopeSymbol() &&
                     sc->enclosing &&
                     sc->enclosing->search(loc, ident, NULL))
@@ -299,9 +406,24 @@ Dsymbol *Scope::search(Loc loc, Identifier *ident, Dsymbol **pscopesym)
 }
 
 Dsymbol *Scope::insert(Dsymbol *s)
-{   Scope *sc;
-
-    for (sc = this; sc; sc = sc->enclosing)
+{
+    if (VarDeclaration *vd = s->isVarDeclaration())
+    {
+        if (lastVar)
+            vd->lastVar = lastVar;
+        lastVar = vd;
+    }
+    else if (WithScopeSymbol *ss = s->isWithScopeSymbol())
+    {
+        if (VarDeclaration *vd = ss->withstate->wthis)
+        {
+            if (lastVar)
+                vd->lastVar = lastVar;
+            lastVar = vd;
+        }
+        return NULL;
+    }
+    for (Scope *sc = this; sc; sc = sc->enclosing)
     {
         //printf("\tsc = %p\n", sc);
         if (sc->scopesym)
@@ -410,9 +532,8 @@ void *scope_search_fp(void *arg, const char *seed)
     assert(id);
 
     Scope *sc = (Scope *)arg;
-    Module::clearCache();
-    Dsymbol *s = sc->search(0, id, NULL);
-    return s;
+    Dsymbol *s = sc->search(Loc(), id, NULL);
+    return (void*)s;
 }
 
 Dsymbol *Scope::search_correct(Identifier *ident)

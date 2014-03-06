@@ -962,6 +962,79 @@ interface I7950a {} // ok
 interface I7950b : I7950a, TypeTuple7950!() {} // fail
 
 /*******************************************************/
+// 10007
+
+struct A10007 {}
+
+interface IFoo10007
+{
+    void bar(ref const A10007);
+}
+
+class Foo10007 : IFoo10007
+{
+    void bar(ref const A10007 a) {}
+    void bar(    const A10007 a) { return this.bar(a); }
+}
+
+/*******************************************************/
+// 10744
+
+interface A10744
+{
+    int x();
+    Foo10744 foo();
+}
+
+class B10744 : A10744
+{
+    int x() { return 0; }
+    Bar10744 foo() { return null; }
+}
+
+class Foo10744 { }
+class Bar10744 : Foo10744 { }
+
+interface C10744
+{
+    int x();
+    Baz10744 foo();
+}
+
+class D10744 : C10744
+{
+    int x() { return 0; }
+    Qux10744 foo() { return null; }
+}
+
+interface Baz10744 { }
+interface Qux10744 : Baz10744 { }
+
+/*******************************************************/
+// 11034
+
+class A11034(T)
+{
+    A11034!int view() { return null; }
+}
+class B11034(T) : A11034!int
+{
+override:
+    C11034!int view() { return null; }
+}
+class C11034(T) : B11034!int {}
+
+void test11034()
+{
+    auto b = new B11034!int;
+
+    // Check that B!int.view() overrides A!int.view()
+    auto tiobj = typeid(Object);
+    assert(typeid(A11034!int).vtbl.length == tiobj.vtbl.length + 1);
+    assert(typeid(B11034!int).vtbl.length == tiobj.vtbl.length + 1);
+}
+
+/*******************************************************/
 
 int main()
 {
@@ -993,6 +1066,7 @@ int main()
     test26();
     test27();
     test2553();
+    test11034();
 
     printf("Success\n");
     return 0;

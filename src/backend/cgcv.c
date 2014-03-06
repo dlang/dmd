@@ -1,12 +1,11 @@
 // Copyright (C) 1984-1998 by Symantec
-// Copyright (C) 2000-2012 by Digital Mars
+// Copyright (C) 2000-2013 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
 /*
  * This source file is made available for personal use
- * only. The license is in /dmd/src/dmd/backendlicense.txt
- * or /dm/src/dmd/backendlicense.txt
+ * only. The license is in backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
@@ -18,7 +17,7 @@
 #include        <time.h>
 #include        <stdlib.h>
 
-#if _WIN32 || linux
+#if _WIN32 || __linux__
 #include        <malloc.h>
 #endif
 
@@ -373,6 +372,11 @@ L1:
     }
     debtyp[debtyptop] = d;
     return debtyptop++ + cgcv.deb_offset;
+}
+
+idx_t cv_numdebtypes()
+{
+    return debtyptop;
 }
 
 /****************************
@@ -1995,6 +1999,8 @@ L1:
             unsigned idxtype = I32 ? 0x12 : 0x11;  // T_LONG : T_SHORT
             if (I64)
                 idxtype = 0x23;                    // T_UQUAD
+            if(next == dttab4[TYvoid])    // do not encode void[n], this confuses the debugger
+                next = dttab4[TYuchar];   // use ubyte instead
             switch (config.fulltypes)
             {
                 case CV8:
@@ -2148,6 +2154,18 @@ L1:
             next = cv4_typidx(tsvoid);  // rewrite as void*
             t = tspvoid;
             goto L1;
+
+        // vector types
+        case TYfloat4:  size = 16; next = dttab4[TYfloat];  goto Larray;
+        case TYdouble2: size = 16; next = dttab4[TYdouble]; goto Larray;
+        case TYschar16: size = 16; next = dttab4[TYschar];  goto Larray;
+        case TYuchar16: size = 16; next = dttab4[TYuchar];  goto Larray;
+        case TYshort8:  size = 16; next = dttab4[TYshort];  goto Larray;
+        case TYushort8: size = 16; next = dttab4[TYushort]; goto Larray;
+        case TYlong4:   size = 16; next = dttab4[TYlong];   goto Larray;
+        case TYulong4:  size = 16; next = dttab4[TYulong];  goto Larray;
+        case TYllong2:  size = 16; next = dttab4[TYllong];  goto Larray;
+        case TYullong2: size = 16; next = dttab4[TYullong]; goto Larray;
 
         default:
 #ifdef DEBUG
@@ -2328,13 +2346,13 @@ STATIC void cv4_outsym(symbol *s)
                     s->Sfl = FLreg;
                     goto case_register;
                 }
-                base = Poff - BPoff;    // cancel out add of BPoff
+                base = Para.size - BPoff;    // cancel out add of BPoff
                 goto L1;
             case SCauto:
                 if (s->Sfl == FLreg)
                     goto case_register;
             case_auto:
-                base = Aoff;
+                base = Auto.size;
             L1:
                 TOWORD(debsym + 2,I32 ? S_BPREL32 : S_BPREL16);
                 if (config.fulltypes == CV4)
@@ -2355,7 +2373,7 @@ STATIC void cv4_outsym(symbol *s)
 
             case SCfastpar:
                 if (s->Sfl != FLreg)
-                {   base = FASToff;
+                {   base = Fast.size;
                     goto L1;
                 }
                 goto case_register;

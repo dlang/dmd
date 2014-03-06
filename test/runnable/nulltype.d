@@ -116,6 +116,58 @@ void test8221()
     assert(a.foo() is null);
 }
 
+/***************************************************/
+// 8589
+
+void test8589()
+{
+    static typeof(null) retnull() { return null; }
+
+    void test(bool result, T)()
+    {
+        void f(T function() dg) { assert(!dg()); }
+
+        static assert((T.sizeof == typeof(null).sizeof) == result);
+        static assert(is(typeof( f(&retnull) )) == result);
+        static assert(is(typeof( f(()=>null) )) == result);
+        static if (result)
+        {
+            f(&retnull);
+            f(()=>null);
+        }
+    }
+    test!(true,  int*)();
+    test!(true,  Object)();
+    test!(true,  int[int])();
+    test!(false, int[])();
+    test!(false, void delegate())();
+}
+
+/**********************************************/
+// 9385
+
+void test9385()
+{
+    assert((null ? true : false) == false);
+    if (null) assert(0);
+    assert(!null);
+}
+
+/**********************************************/
+// 12203
+
+void test12203()
+{
+    typeof(null) v;
+    void foo(float) {}
+    void delegate(float) dg = &foo;
+    assert(dg !is null);
+
+    dg = v; // Error: e2ir: cannot cast v of type typeof(null) to type void delegate(float)
+
+    assert(dg  is null);
+}
+
 /**********************************************/
 
 int main()
@@ -124,6 +176,9 @@ int main()
     test2();
     test7278();
     test8221();
+    test8589();
+    test9385();
+    test12203();
 
     printf("Success\n");
     return 0;

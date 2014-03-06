@@ -1,23 +1,23 @@
 /*******************************************************************************
 
         @file Primes.d
-        
+
         Copyright (C) 2004 Kris Bell
-        
+
         This software is provided 'as-is', without any express or implied
         warranty. In no event will the authors be held liable for damages
         of any kind arising from the use of this software.
-        
-        Permission is hereby granted to anyone to use this software for any 
-        purpose, including commercial applications, and to alter it and/or 
+
+        Permission is hereby granted to anyone to use this software for any
+        purpose, including commercial applications, and to alter it and/or
         redistribute it freely, subject to the following restrictions:
-        
-        1. The origin of this software must not be misrepresented; you must 
-           not claim that you wrote the original software. If you use this 
-           software in a product, an acknowledgment within documentation of 
+
+        1. The origin of this software must not be misrepresented; you must
+           not claim that you wrote the original software. If you use this
+           software in a product, an acknowledgment within documentation of
            said product would be appreciated but is not required.
 
-        2. Altered source versions must be plainly marked as such, and must 
+        2. Altered source versions must be plainly marked as such, and must
            not be misrepresented as being the original software.
 
         3. This notice may not be removed or altered from any distribution
@@ -26,8 +26,8 @@
 
                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-        
-        @version        Initial version, April 2004      
+
+        @version        Initial version, April 2004
         @author         Kris
 
 
@@ -39,7 +39,7 @@ module imports.inline2a;
 class Primes
 {
         private
-	 static const short primes[] =
+         static const short primes[] =
         [
            2,    3,    5,    7,   11,   13,   17,   19,   23,   29,
           31,   37,   41,   43,   47,   53,   59,   61,   67,   71,
@@ -149,14 +149,14 @@ class Primes
 
         *********************************************************************/
 
-        private static int bsearch (in short[] array, short match)
+        private static ptrdiff_t bsearch (in short[] array, short match)
         {
-                int l, u, m;
-                
-                l = -1;
-                u = cast(int)array.length;
+                ptrdiff_t l, u, m;
 
-                while (l+1 != u) 
+                l = -1;
+                u = array.length;
+
+                while (l+1 != u)
                       {
                       m = (l + u) / 2;
                       if (array[m] < match)
@@ -173,7 +173,7 @@ class Primes
         /**********************************************************************
 
                 return a prime number between 2 and 7919 (inclusive) that
-                is equal to or larger than the given 'target' number. 
+                is equal to or larger than the given 'target' number.
 
         **********************************************************************/
 

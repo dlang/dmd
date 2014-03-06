@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2007 by Digital Mars
+// Copyright (c) 1999-2013 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -15,23 +15,25 @@
 
 #include "mars.h"
 #include "arraytypes.h"
+#include "visitor.h"
 
-struct Identifier;
-struct Expression;
+class Identifier;
+class Expression;
 struct Scope;
-struct Type;
-struct dt_t;
-struct AggregateDeclaration;
-struct VoidInitializer;
-struct StructInitializer;
-struct ArrayInitializer;
-struct ExpInitializer;
+class Type;
+class AggregateDeclaration;
+class ErrorInitializer;
+class VoidInitializer;
+class StructInitializer;
+class ArrayInitializer;
+class ExpInitializer;
 struct HdrGenState;
 
 enum NeedInterpret { INITnointerpret, INITinterpret };
 
-struct Initializer : Object
+class Initializer : public RootObject
 {
+public:
     Loc loc;
 
     Initializer(Loc loc);
@@ -39,57 +41,68 @@ struct Initializer : Object
     // needInterpret is INITinterpret if must be a manifest constant, 0 if not.
     virtual Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
     virtual Type *inferType(Scope *sc);
-    virtual Expression *toExpression() = 0;
+    virtual Expression *toExpression(Type *t = NULL) = 0;
     virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs) = 0;
     char *toChars();
 
     static Initializers *arraySyntaxCopy(Initializers *ai);
 
-    virtual dt_t *toDt();
-
-    virtual VoidInitializer *isVoidInitializer() { return NULL; }
+    virtual ErrorInitializer   *isErrorInitializer() { return NULL; }
+    virtual VoidInitializer    *isVoidInitializer() { return NULL; }
     virtual StructInitializer  *isStructInitializer()  { return NULL; }
-    virtual ArrayInitializer  *isArrayInitializer()  { return NULL; }
-    virtual ExpInitializer  *isExpInitializer()  { return NULL; }
+    virtual ArrayInitializer   *isArrayInitializer()  { return NULL; }
+    virtual ExpInitializer     *isExpInitializer()  { return NULL; }
+    virtual void accept(Visitor *v) { v->visit(this); }
 };
 
-struct VoidInitializer : Initializer
+class VoidInitializer : public Initializer
 {
+public:
     Type *type;         // type that this will initialize to
 
     VoidInitializer(Loc loc);
     Initializer *syntaxCopy();
     Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
-    Expression *toExpression();
+    Expression *toExpression(Type *t = NULL);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
-    dt_t *toDt();
-
     virtual VoidInitializer *isVoidInitializer() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
-struct StructInitializer : Initializer
+class ErrorInitializer : public Initializer
 {
+public:
+    ErrorInitializer();
+    Initializer *syntaxCopy();
+    Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
+    Expression *toExpression(Type *t = NULL);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+
+    virtual ErrorInitializer *isErrorInitializer() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
+};
+
+class StructInitializer : public Initializer
+{
+public:
     Identifiers field;  // of Identifier *'s
     Initializers value; // parallel array of Initializer *'s
-
-    VarDeclarations vars;       // parallel array of VarDeclaration *'s
-    AggregateDeclaration *ad;   // which aggregate this is for
 
     StructInitializer(Loc loc);
     Initializer *syntaxCopy();
     void addInit(Identifier *field, Initializer *value);
     Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
-    Expression *toExpression();
+    Expression *toExpression(Type *t = NULL);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
-    dt_t *toDt();
-
     StructInitializer *isStructInitializer() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
-struct ArrayInitializer : Initializer
+class ArrayInitializer : public Initializer
 {
+public:
     Expressions index;  // indices
     Initializers value; // of Initializer *'s
     size_t dim;         // length of array being initialized
@@ -102,18 +115,17 @@ struct ArrayInitializer : Initializer
     Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
     int isAssociativeArray();
     Type *inferType(Scope *sc);
-    Expression *toExpression();
+    Expression *toExpression(Type *t = NULL);
     Expression *toAssocArrayLiteral();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
-    dt_t *toDt();
-    dt_t *toDtBit();    // for bit arrays
-
     ArrayInitializer *isArrayInitializer() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
-struct ExpInitializer : Initializer
+class ExpInitializer : public Initializer
 {
+public:
     Expression *exp;
     int expandTuples;
 
@@ -121,12 +133,11 @@ struct ExpInitializer : Initializer
     Initializer *syntaxCopy();
     Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
     Type *inferType(Scope *sc);
-    Expression *toExpression();
+    Expression *toExpression(Type *t = NULL);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
-    dt_t *toDt();
-
     virtual ExpInitializer *isExpInitializer() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 #endif

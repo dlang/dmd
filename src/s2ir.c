@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 2000-2012 by Digital Mars
+// Copyright (c) 2000-2013 by Digital Mars
 // All Rights Reserved
 // Written by Walter Bright
 // http://www.digitalmars.com
@@ -33,29 +33,25 @@
 #include        "dt.h"
 
 #include        "rmem.h"
+#include        "target.h"
+#include        "visitor.h"
 
 static char __file__[] = __FILE__;      // for tassert.h
 #include        "tassert.h"
 
-elem *callfunc(Loc loc,
-        IRState *irs,
-        int directcall,         // 1: don't do virtual call
-        Type *tret,             // return type
-        elem *ec,               // evaluates to function address
-        Type *ectype,           // original type of ec
-        FuncDeclaration *fd,    // if !=NULL, this is the function being called
-        Type *t,                // TypeDelegate or TypeFunction for this function
-        elem *ehidden,          // if !=NULL, this is the 'hidden' argument
-        Expressions *arguments);
-
 elem *exp2_copytotemp(elem *e);
 elem *incUsageElem(IRState *irs, Loc loc);
-StructDeclaration *needsPostblit(Type *t);
 elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
-
+Blocks *Blocks_create();
+type *Type_toCtype(Type *t);
+elem *toElemDtor(Expression *e, IRState *irs);
+Symbol *toSymbol(Type *t);
+unsigned totym(Type *tx);
+Symbol *toSymbol(Dsymbol *s);
 
 #define elem_setLoc(e,loc)      ((e)->Esrcpos.Sfilename = (char *)(loc).filename, \
-                                 (e)->Esrcpos.Slinnum = (loc).linnum)
+                                 (e)->Esrcpos.Slinnum = (loc).linnum, \
+                                 (e)->Esrcpos.Scharnum = (loc).charnum)
 
 #define SEH     (TARGET_WINDOS)
 
@@ -104,7 +100,7 @@ block *labelToBlock(Loc loc, Blockx *blx, LabelDsymbol *label, int flag = 0)
         {
             // Keep track of the forward reference to this block, so we can check it later
             if (!s->fwdrefs)
-                s->fwdrefs = new Blocks();
+                s->fwdrefs = Blocks_create();
             s->fwdrefs->push(blx->curblock);
         }
     }
@@ -124,1588 +120,1120 @@ void incUsage(IRState *irs, Loc loc)
     }
 }
 
-/****************************************
- * This should be overridden by each statement class.
- */
+void Statement_toIR(Statement *s, IRState *irs);
 
-void Statement::toIR(IRState *irs)
+class S2irVisitor : public Visitor
 {
-    print();
-    assert(0);
-}
+    IRState *irs;
+public:
+    S2irVisitor(IRState *irs) : irs(irs) {}
 
-/*************************************
- */
-
-void OnScopeStatement::toIR(IRState *irs)
-{
-}
-
-/****************************************
- */
-
-void IfStatement::toIR(IRState *irs)
-{
-    elem *e;
-    Blockx *blx = irs->blx;
-
-    //printf("IfStatement::toIR('%s')\n", condition->toChars());
-
-    IRState mystate(irs, this);
-
-    // bexit is the block that gets control after this IfStatement is done
-    block *bexit = mystate.breakBlock ? mystate.breakBlock : block_calloc();
-
-    incUsage(irs, loc);
-#if 0
-    if (match)
-    {   /* Generate:
-         *  if (match = RTLSYM_IFMATCH(string, pattern)) ...
-         */
-        assert(condition->op == TOKmatch);
-        e = matchexp_toelem((MatchExp *)condition, &mystate, RTLSYM_IFMATCH);
-        Symbol *s = match->toSymbol();
-        symbol_add(s);
-        e = el_bin(OPeq, TYnptr, el_var(s), e);
-    }
-    else
-#endif
-        e = condition->toElemDtor(&mystate);
-    block_appendexp(blx->curblock, e);
-    block *bcond = blx->curblock;
-    block_next(blx, BCiftrue, NULL);
-
-    list_append(&bcond->Bsucc, blx->curblock);
-    if (ifbody)
-        ifbody->toIR(&mystate);
-    list_append(&blx->curblock->Bsucc, bexit);
-
-    if (elsebody)
-    {
-        block_next(blx, BCgoto, NULL);
-        list_append(&bcond->Bsucc, blx->curblock);
-        elsebody->toIR(&mystate);
-        list_append(&blx->curblock->Bsucc, bexit);
-    }
-    else
-        list_append(&bcond->Bsucc, bexit);
-
-    block_next(blx, BCgoto, bexit);
-
-}
-
-/**************************************
- */
-
-#if DMDV2
-void PragmaStatement::toIR(IRState *irs)
-{
-    //printf("PragmaStatement::toIR()\n");
-    if (ident == Id::startaddress)
-    {
-        assert(args && args->dim == 1);
-        Expression *e = (*args)[0];
-        Dsymbol *sa = getDsymbol(e);
-        FuncDeclaration *f = sa->isFuncDeclaration();
-        assert(f);
-        Symbol *s = f->toSymbol();
-        while (irs->prev)
-            irs = irs->prev;
-        irs->startaddress = s;
-    }
-}
-#endif
-
-/***********************
- */
-
-void WhileStatement::toIR(IRState *irs)
-{
-    assert(0); // was "lowered"
-#if 0
-    Blockx *blx = irs->blx;
-
-    /* Create a new state, because we need a new continue and break target
-     */
-    IRState mystate(irs,this);
-    mystate.breakBlock = block_calloc(blx);
-    mystate.contBlock = block_calloc(blx);
-
-    list_append(&blx->curblock->Bsucc, mystate.contBlock);
-    block_next(blx, BCgoto, mystate.contBlock);
-    incUsage(irs, loc);
-    block_appendexp(mystate.contBlock, condition->toElem(&mystate));
-
-    block_next(blx, BCiftrue, NULL);
-
-    /* curblock is the start of the while loop body
-     */
-    list_append(&mystate.contBlock->Bsucc, blx->curblock);
-    if (body)
-        body->toIR(&mystate);
-    list_append(&blx->curblock->Bsucc, mystate.contBlock);
-    block_next(blx, BCgoto, mystate.breakBlock);
-
-    list_append(&mystate.contBlock->Bsucc, mystate.breakBlock);
-#endif
-}
-
-/******************************************
- */
-
-void DoStatement::toIR(IRState *irs)
-{
-    Blockx *blx = irs->blx;
-
-    IRState mystate(irs,this);
-    mystate.breakBlock = block_calloc(blx);
-    mystate.contBlock = block_calloc(blx);
-
-    block *bpre = blx->curblock;
-    block_next(blx, BCgoto, NULL);
-    list_append(&bpre->Bsucc, blx->curblock);
-
-    list_append(&mystate.contBlock->Bsucc, blx->curblock);
-    list_append(&mystate.contBlock->Bsucc, mystate.breakBlock);
-
-    if (body)
-        body->toIR(&mystate);
-    list_append(&blx->curblock->Bsucc, mystate.contBlock);
-
-    block_next(blx, BCgoto, mystate.contBlock);
-    incUsage(irs, condition->loc);
-    block_appendexp(mystate.contBlock, condition->toElemDtor(&mystate));
-    block_next(blx, BCiftrue, mystate.breakBlock);
-
-}
-
-/*****************************************
- */
-
-void ForStatement::toIR(IRState *irs)
-{
-    Blockx *blx = irs->blx;
-
-    IRState mystate(irs,this);
-    mystate.breakBlock = block_calloc(blx);
-    mystate.contBlock = block_calloc(blx);
-
-    if (init)
-        init->toIR(&mystate);
-    block *bpre = blx->curblock;
-    block_next(blx,BCgoto,NULL);
-    block *bcond = blx->curblock;
-    list_append(&bpre->Bsucc, bcond);
-    list_append(&mystate.contBlock->Bsucc, bcond);
-    if (condition)
-    {
-        incUsage(irs, condition->loc);
-        block_appendexp(bcond, condition->toElemDtor(&mystate));
-        block_next(blx,BCiftrue,NULL);
-        list_append(&bcond->Bsucc, blx->curblock);
-        list_append(&bcond->Bsucc, mystate.breakBlock);
-    }
-    else
-    {   /* No conditional, it's a straight goto
-         */
-        block_next(blx,BCgoto,NULL);
-        list_append(&bcond->Bsucc, blx->curblock);
-    }
-
-    if (body)
-        body->toIR(&mystate);
-    /* End of the body goes to the continue block
-     */
-    list_append(&blx->curblock->Bsucc, mystate.contBlock);
-    block_next(blx, BCgoto, mystate.contBlock);
-
-    if (increment)
-    {
-        incUsage(irs, increment->loc);
-        block_appendexp(mystate.contBlock, increment->toElemDtor(&mystate));
-    }
-
-    /* The 'break' block follows the for statement.
-     */
-    block_next(blx,BCgoto, mystate.breakBlock);
-}
-
-
-/**************************************
- */
-
-void ForeachStatement::toIR(IRState *irs)
-{
-    printf("ForeachStatement::toIR() %s\n", toChars());
-    assert(0);  // done by "lowering" in the front end
-#if 0
-    Type *tab;
-    elem *eaggr;
-    elem *e;
-    elem *elength;
-    tym_t keytym;
-
-    //printf("ForeachStatement::toIR()\n");
-    block *bpre;
-    block *bcond;
-    block *bbody;
-    block *bbodyx;
-    Blockx *blx = irs->blx;
-
-    IRState mystate(irs,this);
-    mystate.breakBlock = block_calloc(blx);
-    mystate.contBlock = block_calloc(blx);
-
-    tab = aggr->type->toBasetype();
-    assert(tab->ty == Tarray || tab->ty == Tsarray);
-
-    incUsage(irs, aggr->loc);
-    eaggr = aggr->toElem(irs);
-
-    /* Create sp: pointer to start of array data
+    /****************************************
+     * This should be overridden by each statement class.
      */
 
-    Symbol *sp = symbol_genauto(TYnptr);
-
-    if (tab->ty == Tarray)
+    void visit(Statement *s)
     {
-        // stmp is copy of eaggr (the array), so eaggr is evaluated only once
-        Symbol *stmp;
+        s->print();
+        assert(0);
+    }
 
-        // Initialize stmp
-        stmp = symbol_genauto(eaggr);
-        e = el_bin(OPeq, eaggr->Ety, el_var(stmp), eaggr);
+    /*************************************
+     */
+
+    void visit(OnScopeStatement *s)
+    {
+    }
+
+    /****************************************
+     */
+
+    void visit(IfStatement *s)
+    {
+        elem *e;
+        Blockx *blx = irs->blx;
+
+        //printf("IfStatement::toIR('%s')\n", condition->toChars());
+
+        IRState mystate(irs, s);
+
+        // bexit is the block that gets control after this IfStatement is done
+        block *bexit = mystate.breakBlock ? mystate.breakBlock : block_calloc();
+
+        incUsage(irs, s->loc);
+        e = toElemDtor(s->condition, &mystate);
         block_appendexp(blx->curblock, e);
+        block *bcond = blx->curblock;
+        block_next(blx, BCiftrue, NULL);
 
-        // Initialize sp
-        e = el_una(OPmsw, TYnptr, el_var(stmp));
-        e = el_bin(OPeq, TYnptr, el_var(sp), e);
-        block_appendexp(blx->curblock, e);
+        bcond->appendSucc(blx->curblock);
+        if (s->ifbody)
+            Statement_toIR(s->ifbody, &mystate);
+        blx->curblock->appendSucc(bexit);
 
-        // Get array.length
-        elength = el_var(stmp);
-        elength->Ety = TYsize_t;
-    }
-    else // Tsarray
-    {
-        // Initialize sp
-        e = el_una(OPaddr, TYnptr, eaggr);
-        e = el_bin(OPeq, TYnptr, el_var(sp), e);
-        block_appendexp(blx->curblock, e);
-
-        // Get array.length
-        elength = el_long(TYsize_t, ((TypeSArray *)tab)->dim->toInteger());
-    }
-
-    Symbol *spmax;
-    Symbol *skey;
-
-    if (key)
-    {
-        /* Create skey, the index to the array.
-         * Initialize skey to 0 (foreach) or .length (foreach_reverse).
-         */
-        skey = key->toSymbol();
-        symbol_add(skey);
-        keytym = key->type->totym();
-        elem *einit = (op == TOKforeach_reverse) ? elength : el_long(keytym, 0);
-        e = el_bin(OPeq, keytym, el_var(skey), einit);
-    }
-    else
-    {
-        /* Create spmax, pointer past end of data.
-         * Initialize spmax = sp + array.length * size
-         */
-        spmax = symbol_genauto(TYnptr);
-        e = el_bin(OPmul, TYsize_t, elength, el_long(TYsize_t, tab->nextOf()->size()));
-        e = el_bin(OPadd, TYnptr, el_var(sp), e);
-        e = el_bin(OPeq, TYnptr, el_var(spmax), e);
-
-        /* For foreach_reverse, swap sp and spmax
-         */
-        if (op == TOKforeach_reverse)
-        {   Symbol *s = sp;
-            sp = spmax;
-            spmax = s;
-        }
-    }
-    block_appendexp(blx->curblock, e);
-
-    bpre = blx->curblock;
-    block_next(blx,BCgoto,NULL);
-    bcond = blx->curblock;
-
-    if (key)
-    {
-        if (op == TOKforeach_reverse)
+        if (s->elsebody)
         {
-            // Construct (key != 0)
-            e = el_bin(OPne, TYint, el_var(skey), el_long(keytym, 0));
+            block_next(blx, BCgoto, NULL);
+            bcond->appendSucc(blx->curblock);
+            Statement_toIR(s->elsebody, &mystate);
+            blx->curblock->appendSucc(bexit);
         }
         else
-        {
-            // Construct (key < elength)
-            e = el_bin(OPlt, TYint, el_var(skey), elength);
-        }
-    }
-    else
-    {
-        if (op == TOKforeach_reverse)
-        {
-            // Construct (sp > spmax)
-            e = el_bin(OPgt, TYint, el_var(sp), el_var(spmax));
-        }
-        else
-        {
-            // Construct (sp < spmax)
-            e = el_bin(OPlt, TYint, el_var(sp), el_var(spmax));
-        }
-    }
-    bcond->Belem = e;
-    block_next(blx, BCiftrue, NULL);
+            bcond->appendSucc(bexit);
 
-    if (op == TOKforeach_reverse)
-    {
-        if (key)
-        {   // Construct (skey -= 1)
-            e = el_bin(OPminass, keytym, el_var(skey), el_long(keytym, 1));
-        }
-        else
-        {   // Construct (sp--)
-            e = el_bin(OPminass, TYnptr, el_var(sp), el_long(TYsize_t, tab->nextOf()->size()));
-        }
-        block_appendexp(blx->curblock, e);
+        block_next(blx, BCgoto, bexit);
+
     }
 
-    Symbol *s;
-    FuncDeclaration *fd = NULL;
-    if (value->toParent2())
-        fd = value->toParent2()->isFuncDeclaration();
-    int nrvo = 0;
-    if (fd && fd->nrvo_can && fd->nrvo_var == value)
-    {
-        s = fd->shidden;
-        nrvo = 1;
-    }
-    else
-    {   s = value->toSymbol();
-        symbol_add(s);
-    }
-
-    // Construct (value = *sp) or (value = sp[skey * elemsize])
-    tym_t tym = value->type->totym();
-    if (key)
-    {   // sp + skey * elemsize
-        e = el_bin(OPmul, keytym, el_var(skey), el_long(keytym, tab->nextOf()->size()));
-        e = el_bin(OPadd, TYnptr, el_var(sp), e);
-    }
-    else
-        e = el_var(sp);
-
-    elem *evalue;
-#if DMDV2
-    if (value->offset)  // if value is a member of a closure
-    {
-        assert(irs->sclosure);
-        evalue = el_var(irs->sclosure);
-        evalue = el_bin(OPadd, TYnptr, evalue, el_long(TYint, value->offset));
-        evalue = el_una(OPind, value->type->totym(), evalue);
-    }
-    else
-#endif
-        evalue = el_var(s);
-
-    if (value->isOut() || value->isRef())
-    {
-        assert(value->storage_class & (STCout | STCref));
-        e = el_bin(OPeq, TYnptr, evalue, e);
-    }
-    else
-    {
-        if (nrvo)
-            evalue = el_una(OPind, tym, evalue);
-        StructDeclaration *sd = needsPostblit(value->type);
-        if (tybasic(tym) == TYstruct)
-        {
-            e = el_bin(OPeq, tym, evalue, el_una(OPind, tym, e));
-            e->Eoper = OPstreq;
-            e->ET = value->type->toCtype();
-#if DMDV2
-            // Call postblit on e
-            if (sd)
-            {   FuncDeclaration *fd = sd->postblit;
-                elem *ec = el_copytree(evalue);
-                ec = el_una(OPaddr, TYnptr, ec);
-                ec = callfunc(loc, irs, 1, Type::tvoid, ec, sd->type->pointerTo(), fd, fd->type, NULL, NULL);
-                e = el_combine(e, ec);
-            }
-#endif
-        }
-        else if (tybasic(tym) == TYarray)
-        {
-            if (sd)
-            {
-                /* Generate:
-                 *      _d_arrayctor(ti, efrom, eto)
-                 */
-                Expression *ti = value->type->toBasetype()->nextOf()->toBasetype()->getTypeInfo(NULL);
-                elem *esize = el_long(TYsize_t, ((TypeSArray *)value->type->toBasetype())->dim->toInteger());
-                elem *eto = el_pair(TYdarray, esize, el_una(OPaddr, TYnptr, evalue));
-                elem *efrom = el_pair(TYdarray, el_copytree(esize), e);
-                elem *ep = el_params(eto, efrom, ti->toElem(irs), NULL);
-                int rtl = RTLSYM_ARRAYCTOR;
-                e = el_bin(OPcall, TYvoid, el_var(rtlsym[rtl]), ep);
-            }
-            else
-            {
-                e = el_bin(OPeq, tym, evalue, el_una(OPind, tym, e));
-                e->Eoper = OPstreq;
-                e->Ejty = e->Ety = TYstruct;
-                e->ET = value->type->toCtype();
-            }
-        }
-        else
-            e = el_bin(OPeq, tym, evalue, el_una(OPind, tym, e));
-    }
-    incUsage(irs, loc);
-    block_appendexp(blx->curblock, e);
-
-    bbody = blx->curblock;
-    if (body)
-        body->toIR(&mystate);
-    bbodyx = blx->curblock;
-    block_next(blx,BCgoto,mystate.contBlock);
-
-    if (op == TOKforeach)
-    {
-        if (key)
-        {   // Construct (skey += 1)
-            e = el_bin(OPaddass, keytym, el_var(skey), el_long(keytym, 1));
-        }
-        else
-        {   // Construct (sp++)
-            e = el_bin(OPaddass, TYnptr, el_var(sp), el_long(TYsize_t, tab->nextOf()->size()));
-        }
-        mystate.contBlock->Belem = e;
-    }
-    block_next(blx,BCgoto,mystate.breakBlock);
-
-    list_append(&bpre->Bsucc,bcond);
-    list_append(&bcond->Bsucc,bbody);
-    list_append(&bcond->Bsucc,mystate.breakBlock);
-    list_append(&bbodyx->Bsucc,mystate.contBlock);
-    list_append(&mystate.contBlock->Bsucc,bcond);
-#endif
-}
-
-
-/**************************************
- */
-
-#if DMDV2
-void ForeachRangeStatement::toIR(IRState *irs)
-{
-    assert(0);
-#if 0
-    Type *tab;
-    elem *eaggr;
-    elem *elwr;
-    elem *eupr;
-    elem *e;
-    elem *elength;
-    tym_t keytym;
-
-    //printf("ForeachStatement::toIR()\n");
-    block *bpre;
-    block *bcond;
-    block *bbody;
-    block *bbodyx;
-    Blockx *blx = irs->blx;
-
-    IRState mystate(irs,this);
-    mystate.breakBlock = block_calloc(blx);
-    mystate.contBlock = block_calloc(blx);
-
-    incUsage(irs, lwr->loc);
-    elwr = lwr->toElem(irs);
-
-    incUsage(irs, upr->loc);
-    eupr = upr->toElem(irs);
-
-    /* Create skey, the index to the array.
-     * Initialize skey to elwr (foreach) or eupr (foreach_reverse).
+    /**************************************
      */
-    Symbol *skey = key->toSymbol();
-    symbol_add(skey);
-    keytym = key->type->totym();
 
-    elem *ekey;
-    if (key->offset)            // if key is member of a closure
+    void visit(PragmaStatement *s)
     {
-        assert(irs->sclosure);
-        ekey = el_var(irs->sclosure);
-        ekey = el_bin(OPadd, TYnptr, ekey, el_long(TYint, key->offset));
-        ekey = el_una(OPind, keytym, ekey);
-    }
-    else
-        ekey = el_var(skey);
-
-    elem *einit = (op == TOKforeach_reverse) ? eupr : elwr;
-    e = el_bin(OPeq, keytym, ekey, einit);   // skey = einit;
-    block_appendexp(blx->curblock, e);
-
-    /* Make a copy of the end condition, so it only
-     * gets evaluated once.
-     */
-    elem *eend = (op == TOKforeach_reverse) ? elwr : eupr;
-    Symbol *send = symbol_genauto(eend);
-    e = el_bin(OPeq, eend->Ety, el_var(send), eend);
-    assert(tybasic(e->Ety) != TYstruct);
-    block_appendexp(blx->curblock, e);
-
-    bpre = blx->curblock;
-    block_next(blx,BCgoto,NULL);
-    bcond = blx->curblock;
-
-    if (op == TOKforeach_reverse)
-    {
-        // Construct (key > elwr)
-        e = el_bin(OPgt, TYint, el_copytree(ekey), el_var(send));
-    }
-    else
-    {
-        // Construct (key < eupr)
-        e = el_bin(OPlt, TYint, el_copytree(ekey), el_var(send));
-    }
-
-    // The size of the increment
-    size_t sz = 1;
-    Type *tkeyb = key->type->toBasetype();
-    if (tkeyb->ty == Tpointer)
-        sz = tkeyb->nextOf()->size();
-
-    bcond->Belem = e;
-    block_next(blx, BCiftrue, NULL);
-
-    if (op == TOKforeach_reverse)
-    {
-        // Construct (skey -= 1)
-        e = el_bin(OPminass, keytym, el_copytree(ekey), el_long(keytym, sz));
-        block_appendexp(blx->curblock, e);
-    }
-
-    bbody = blx->curblock;
-    if (body)
-        body->toIR(&mystate);
-    bbodyx = blx->curblock;
-    block_next(blx,BCgoto,mystate.contBlock);
-
-    if (op == TOKforeach)
-    {
-        // Construct (skey += 1)
-        e = el_bin(OPaddass, keytym, el_copytree(ekey), el_long(keytym, sz));
-        mystate.contBlock->Belem = e;
-    }
-    block_next(blx,BCgoto,mystate.breakBlock);
-
-    list_append(&bpre->Bsucc,bcond);
-    list_append(&bcond->Bsucc,bbody);
-    list_append(&bcond->Bsucc,mystate.breakBlock);
-    list_append(&bbodyx->Bsucc,mystate.contBlock);
-    list_append(&mystate.contBlock->Bsucc,bcond);
-#endif
-}
-#endif
-
-
-/****************************************
- */
-
-void BreakStatement::toIR(IRState *irs)
-{
-    block *bbreak;
-    block *b;
-    Blockx *blx = irs->blx;
-
-    bbreak = irs->getBreakBlock(ident);
-    assert(bbreak);
-    b = blx->curblock;
-    incUsage(irs, loc);
-
-    // Adjust exception handler scope index if in different try blocks
-    if (b->Btry != bbreak->Btry)
-    {
-        //setScopeIndex(blx, b, bbreak->Btry ? bbreak->Btry->Bscope_index : -1);
-    }
-
-    /* Nothing more than a 'goto' to the current break destination
-     */
-    list_append(&b->Bsucc, bbreak);
-    block_next(blx, BCgoto, NULL);
-}
-
-/************************************
- */
-
-void ContinueStatement::toIR(IRState *irs)
-{
-    block *bcont;
-    block *b;
-    Blockx *blx = irs->blx;
-
-    //printf("ContinueStatement::toIR() %p\n", this);
-    bcont = irs->getContBlock(ident);
-    assert(bcont);
-    b = blx->curblock;
-    incUsage(irs, loc);
-
-    // Adjust exception handler scope index if in different try blocks
-    if (b->Btry != bcont->Btry)
-    {
-        //setScopeIndex(blx, b, bcont->Btry ? bcont->Btry->Bscope_index : -1);
-    }
-
-    /* Nothing more than a 'goto' to the current continue destination
-     */
-    list_append(&b->Bsucc, bcont);
-    block_next(blx, BCgoto, NULL);
-}
-
-/**************************************
- */
-
-void el_setVolatile(elem *e)
-{
-    elem_debug(e);
-    while (1)
-    {
-        e->Ety |= mTYvolatile;
-        if (OTunary(e->Eoper))
-            e = e->E1;
-        else if (OTbinary(e->Eoper))
-        {   el_setVolatile(e->E2);
-            e = e->E1;
+        //printf("PragmaStatement::toIR()\n");
+        if (s->ident == Id::startaddress)
+        {
+            assert(s->args && s->args->dim == 1);
+            Expression *e = (*s->args)[0];
+            Dsymbol *sa = getDsymbol(e);
+            FuncDeclaration *f = sa->isFuncDeclaration();
+            assert(f);
+            Symbol *sym = toSymbol(f);
+            while (irs->prev)
+                irs = irs->prev;
+            irs->startaddress = sym;
         }
-        else
-            break;
     }
-}
 
-void VolatileStatement::toIR(IRState *irs)
-{
-    block *b;
+    /***********************
+     */
 
-    if (statement)
+    void visit(WhileStatement *s)
+    {
+        assert(0); // was "lowered"
+    }
+
+    /******************************************
+     */
+
+    void visit(DoStatement *s)
     {
         Blockx *blx = irs->blx;
 
-        block_goto(blx, BCgoto, NULL);
-        b = blx->curblock;
+        IRState mystate(irs,s);
+        mystate.breakBlock = block_calloc(blx);
+        mystate.contBlock = block_calloc(blx);
 
-        statement->toIR(irs);
+        block *bpre = blx->curblock;
+        block_next(blx, BCgoto, NULL);
+        bpre->appendSucc(blx->curblock);
 
-        block_goto(blx, BCgoto, NULL);
+        mystate.contBlock->appendSucc(blx->curblock);
+        mystate.contBlock->appendSucc(mystate.breakBlock);
 
-        // Mark the blocks generated as volatile
-        for (; b != blx->curblock; b = b->Bnext)
-        {   b->Bflags |= BFLvolatile;
-            if (b->Belem)
-                el_setVolatile(b->Belem);
-        }
+        if (s->body)
+            Statement_toIR(s->body, &mystate);
+        blx->curblock->appendSucc(mystate.contBlock);
+
+        block_next(blx, BCgoto, mystate.contBlock);
+        incUsage(irs, s->condition->loc);
+        block_appendexp(mystate.contBlock, toElemDtor(s->condition, &mystate));
+        block_next(blx, BCiftrue, mystate.breakBlock);
+
     }
-}
 
-/**************************************
- */
+    /*****************************************
+     */
 
-void GotoStatement::toIR(IRState *irs)
-{
-    Blockx *blx = irs->blx;
-
-    if (!label->statement)
-    {   error("label %s is undefined", label->toChars());
-        return;
-    }
-    if (tf != label->statement->tf)
-        error("cannot goto forward out of or into finally block");
-
-    block *bdest = labelToBlock(loc, blx, label, 1);
-    if (!bdest)
-        return;
-    block *b = blx->curblock;
-    incUsage(irs, loc);
-
-    if (b->Btry != bdest->Btry)
+    void visit(ForStatement *s)
     {
-        // Check that bdest is in an enclosing try block
-        for (block *bt = b->Btry; bt != bdest->Btry; bt = bt->Btry)
+        Blockx *blx = irs->blx;
+
+        IRState mystate(irs,s);
+        mystate.breakBlock = block_calloc(blx);
+        mystate.contBlock = block_calloc(blx);
+
+        if (s->init)
+            Statement_toIR(s->init, &mystate);
+        block *bpre = blx->curblock;
+        block_next(blx,BCgoto,NULL);
+        block *bcond = blx->curblock;
+        bpre->appendSucc(bcond);
+        mystate.contBlock->appendSucc(bcond);
+        if (s->condition)
         {
-            if (!bt)
+            incUsage(irs, s->condition->loc);
+            block_appendexp(bcond, toElemDtor(s->condition, &mystate));
+            block_next(blx,BCiftrue,NULL);
+            bcond->appendSucc(blx->curblock);
+            bcond->appendSucc(mystate.breakBlock);
+        }
+        else
+        {   /* No conditional, it's a straight goto
+             */
+            block_next(blx,BCgoto,NULL);
+            bcond->appendSucc(blx->curblock);
+        }
+
+        if (s->body)
+            Statement_toIR(s->body, &mystate);
+        /* End of the body goes to the continue block
+         */
+        blx->curblock->appendSucc(mystate.contBlock);
+        block_next(blx, BCgoto, mystate.contBlock);
+
+        if (s->increment)
+        {
+            incUsage(irs, s->increment->loc);
+            block_appendexp(mystate.contBlock, toElemDtor(s->increment, &mystate));
+        }
+
+        /* The 'break' block follows the for statement.
+         */
+        block_next(blx,BCgoto, mystate.breakBlock);
+    }
+
+
+    /**************************************
+     */
+
+    void visit(ForeachStatement *s)
+    {
+        printf("ForeachStatement::toIR() %s\n", s->toChars());
+        assert(0);  // done by "lowering" in the front end
+    }
+
+
+    /**************************************
+     */
+
+    void visit(ForeachRangeStatement *s)
+    {
+        assert(0);
+    }
+
+
+    /****************************************
+     */
+
+    void visit(BreakStatement *s)
+    {
+        block *bbreak;
+        block *b;
+        Blockx *blx = irs->blx;
+
+        bbreak = irs->getBreakBlock(s->ident);
+        assert(bbreak);
+        b = blx->curblock;
+        incUsage(irs, s->loc);
+
+        // Adjust exception handler scope index if in different try blocks
+        if (b->Btry != bbreak->Btry)
+        {
+            //setScopeIndex(blx, b, bbreak->Btry ? bbreak->Btry->Bscope_index : -1);
+        }
+
+        /* Nothing more than a 'goto' to the current break destination
+         */
+        b->appendSucc(bbreak);
+        block_next(blx, BCgoto, NULL);
+    }
+
+    /************************************
+     */
+
+    void visit(ContinueStatement *s)
+    {
+        block *bcont;
+        block *b;
+        Blockx *blx = irs->blx;
+
+        //printf("ContinueStatement::toIR() %p\n", this);
+        bcont = irs->getContBlock(s->ident);
+        assert(bcont);
+        b = blx->curblock;
+        incUsage(irs, s->loc);
+
+        // Adjust exception handler scope index if in different try blocks
+        if (b->Btry != bcont->Btry)
+        {
+            //setScopeIndex(blx, b, bcont->Btry ? bcont->Btry->Bscope_index : -1);
+        }
+
+        /* Nothing more than a 'goto' to the current continue destination
+         */
+        b->appendSucc(bcont);
+        block_next(blx, BCgoto, NULL);
+    }
+
+
+    /**************************************
+     */
+
+    void visit(GotoStatement *s)
+    {
+        Blockx *blx = irs->blx;
+
+        assert(s->label->statement);
+        assert(s->tf == s->label->statement->tf);
+
+        block *bdest = labelToBlock(s->loc, blx, s->label, 1);
+        if (!bdest)
+            return;
+        block *b = blx->curblock;
+        incUsage(irs, s->loc);
+
+        if (b->Btry != bdest->Btry)
+        {
+            // Check that bdest is in an enclosing try block
+            for (block *bt = b->Btry; bt != bdest->Btry; bt = bt->Btry)
             {
-                //printf("b->Btry = %p, bdest->Btry = %p\n", b->Btry, bdest->Btry);
-                error("cannot goto into try block");
-                break;
+                if (!bt)
+                {
+                    //printf("b->Btry = %p, bdest->Btry = %p\n", b->Btry, bdest->Btry);
+                    s->error("cannot goto into try block");
+                    break;
+                }
             }
         }
+
+        b->appendSucc(bdest);
+        block_next(blx,BCgoto,NULL);
     }
 
-    list_append(&b->Bsucc,bdest);
-    block_next(blx,BCgoto,NULL);
-}
-
-void LabelStatement::toIR(IRState *irs)
-{
-    //printf("LabelStatement::toIR() %p, statement = %p\n", this, statement);
-    Blockx *blx = irs->blx;
-    block *bc = blx->curblock;
-    IRState mystate(irs,this);
-    mystate.ident = ident;
-
-    if (lblock)
+    void visit(LabelStatement *s)
     {
-        // At last, we know which try block this label is inside
-        lblock->Btry = blx->tryblock;
+        //printf("LabelStatement::toIR() %p, statement = %p\n", this, statement);
+        Blockx *blx = irs->blx;
+        block *bc = blx->curblock;
+        IRState mystate(irs,s);
+        mystate.ident = s->ident;
 
-        /* Go through the forward references and check.
-         */
-        if (fwdrefs)
+        if (s->lblock)
         {
-            for (size_t i = 0; i < fwdrefs->dim; i++)
-            {   block *b = (*fwdrefs)[i];
+            // At last, we know which try block this label is inside
+            s->lblock->Btry = blx->tryblock;
 
-                if (b->Btry != lblock->Btry)
-                {
-                    // Check that lblock is in an enclosing try block
-                    for (block *bt = b->Btry; bt != lblock->Btry; bt = bt->Btry)
+            /* Go through the forward references and check.
+             */
+            if (s->fwdrefs)
+            {
+                for (size_t i = 0; i < s->fwdrefs->dim; i++)
+                {   block *b = (*s->fwdrefs)[i];
+
+                    if (b->Btry != s->lblock->Btry)
                     {
-                        if (!bt)
+                        // Check that lblock is in an enclosing try block
+                        for (block *bt = b->Btry; bt != s->lblock->Btry; bt = bt->Btry)
                         {
-                            //printf("b->Btry = %p, lblock->Btry = %p\n", b->Btry, lblock->Btry);
-                            error("cannot goto into try block");
-                            break;
+                            if (!bt)
+                            {
+                                //printf("b->Btry = %p, s->lblock->Btry = %p\n", b->Btry, s->lblock->Btry);
+                                s->error("cannot goto into try block");
+                                break;
+                            }
                         }
                     }
+
                 }
-
+                s->fwdrefs = NULL;
             }
-            delete fwdrefs;
-            fwdrefs = NULL;
         }
+        else
+            s->lblock = block_calloc(blx);
+        block_next(blx,BCgoto,s->lblock);
+        bc->appendSucc(blx->curblock);
+        if (s->statement)
+            Statement_toIR(s->statement, &mystate);
     }
-    else
-        lblock = block_calloc(blx);
-    block_next(blx,BCgoto,lblock);
-    list_append(&bc->Bsucc,blx->curblock);
-    if (statement)
-        statement->toIR(&mystate);
-}
 
-/**************************************
- */
-
-void SwitchStatement::toIR(IRState *irs)
-{
-    int string;
-    Blockx *blx = irs->blx;
-
-    //printf("SwitchStatement::toIR()\n");
-    IRState mystate(irs,this);
-
-    mystate.switchBlock = blx->curblock;
-
-    /* Block for where "break" goes to
+    /**************************************
      */
-    mystate.breakBlock = block_calloc(blx);
 
-    /* Block for where "default" goes to.
-     * If there is a default statement, then that is where default goes.
-     * If not, then do:
-     *   default: break;
-     * by making the default block the same as the break block.
-     */
-    mystate.defaultBlock = sdefault ? block_calloc(blx) : mystate.breakBlock;
+    void visit(SwitchStatement *s)
+    {
+        int string;
+        Blockx *blx = irs->blx;
 
-    size_t numcases = 0;
-    if (cases)
-        numcases = cases->dim;
+        //printf("SwitchStatement::toIR()\n");
+        IRState mystate(irs,s);
 
-    incUsage(irs, loc);
-    elem *econd = condition->toElemDtor(&mystate);
-#if DMDV2
-    if (hasVars)
-    {   /* Generate a sequence of if-then-else blocks for the cases.
+        mystate.switchBlock = blx->curblock;
+
+        /* Block for where "break" goes to
          */
-        if (econd->Eoper != OPvar)
-        {
-            elem *e = exp2_copytotemp(econd);
-            block_appendexp(mystate.switchBlock, e);
-            econd = e->E2;
-        }
+        mystate.breakBlock = block_calloc(blx);
 
-        for (size_t i = 0; i < numcases; i++)
-        {   CaseStatement *cs = (*cases)[i];
+        /* Block for where "default" goes to.
+         * If there is a default statement, then that is where default goes.
+         * If not, then do:
+         *   default: break;
+         * by making the default block the same as the break block.
+         */
+        mystate.defaultBlock = s->sdefault ? block_calloc(blx) : mystate.breakBlock;
 
-            elem *ecase = cs->exp->toElemDtor(&mystate);
-            elem *e = el_bin(OPeqeq, TYbool, el_copytree(econd), ecase);
+        size_t numcases = 0;
+        if (s->cases)
+            numcases = s->cases->dim;
+
+        incUsage(irs, s->loc);
+        elem *econd = toElemDtor(s->condition, &mystate);
+        if (s->hasVars)
+        {   /* Generate a sequence of if-then-else blocks for the cases.
+             */
+            if (econd->Eoper != OPvar)
+            {
+                elem *e = exp2_copytotemp(econd);
+                block_appendexp(mystate.switchBlock, e);
+                econd = e->E2;
+            }
+
+            for (size_t i = 0; i < numcases; i++)
+            {   CaseStatement *cs = (*s->cases)[i];
+
+                elem *ecase = toElemDtor(cs->exp, &mystate);
+                elem *e = el_bin(OPeqeq, TYbool, el_copytree(econd), ecase);
+                block *b = blx->curblock;
+                block_appendexp(b, e);
+                block *bcase = block_calloc(blx);
+                cs->cblock = bcase;
+                block_next(blx, BCiftrue, NULL);
+                b->appendSucc(bcase);
+                b->appendSucc(blx->curblock);
+            }
+
+            /* The final 'else' clause goes to the default
+             */
             block *b = blx->curblock;
-            block_appendexp(b, e);
-            block *bcase = block_calloc(blx);
-            cs->cblock = bcase;
-            block_next(blx, BCiftrue, NULL);
-            list_append(&b->Bsucc, bcase);
-            list_append(&b->Bsucc, blx->curblock);
+            block_next(blx, BCgoto, NULL);
+            b->appendSucc(mystate.defaultBlock);
+
+            Statement_toIR(s->body, &mystate);
+
+            /* Have the end of the switch body fall through to the block
+             * following the switch statement.
+             */
+            block_goto(blx, BCgoto, mystate.breakBlock);
+            return;
         }
 
-        /* The final 'else' clause goes to the default
-         */
-        block *b = blx->curblock;
-        block_next(blx, BCgoto, NULL);
-        list_append(&b->Bsucc, mystate.defaultBlock);
+        if (s->condition->type->isString())
+        {
+            // Number the cases so we can unscramble things after the sort()
+            for (size_t i = 0; i < numcases; i++)
+            {   CaseStatement *cs = (*s->cases)[i];
+                cs->index = i;
+            }
 
-        body->toIR(&mystate);
+            s->cases->sort();
+
+            /* Create a sorted array of the case strings, and si
+             * will be the symbol for it.
+             */
+            dt_t *dt = NULL;
+            Symbol *si = symbol_generate(SCstatic,type_fake(TYdarray));
+            dtsize_t(&dt, numcases);
+            dtxoff(&dt, si, Target::ptrsize * 2, TYnptr);
+
+            for (size_t i = 0; i < numcases; i++)
+            {   CaseStatement *cs = (*s->cases)[i];
+
+                if (cs->exp->op != TOKstring)
+                {   s->error("case '%s' is not a string", cs->exp->toChars()); // BUG: this should be an assert
+                }
+                else
+                {
+                    StringExp *se = (StringExp *)(cs->exp);
+                    unsigned len = se->len;
+                    dtsize_t(&dt, len);
+                    dtabytes(&dt, TYnptr, 0, se->len * se->sz, (char *)se->string);
+                }
+            }
+
+            si->Sdt = dt;
+            si->Sfl = FLdata;
+            outdata(si);
+
+            /* Call:
+             *      _d_switch_string(string[] si, string econd)
+             */
+            if (config.exe == EX_WIN64)
+                econd = addressElem(econd, s->condition->type, true);
+            elem *eparam = el_param(econd, (config.exe == EX_WIN64) ? el_ptr(si) : el_var(si));
+            switch (s->condition->type->nextOf()->ty)
+            {
+                case Tchar:
+                    econd = el_bin(OPcall, TYint, el_var(rtlsym[RTLSYM_SWITCH_STRING]), eparam);
+                    break;
+                case Twchar:
+                    econd = el_bin(OPcall, TYint, el_var(rtlsym[RTLSYM_SWITCH_USTRING]), eparam);
+                    break;
+                case Tdchar:        // BUG: implement
+                    econd = el_bin(OPcall, TYint, el_var(rtlsym[RTLSYM_SWITCH_DSTRING]), eparam);
+                    break;
+                default:
+                    assert(0);
+            }
+            elem_setLoc(econd, s->loc);
+            string = 1;
+        }
+        else
+            string = 0;
+        block_appendexp(mystate.switchBlock, econd);
+        block_next(blx,BCswitch,NULL);
+
+        // Corresponding free is in block_free
+        targ_llong *pu = (targ_llong *) ::malloc(sizeof(*pu) * (numcases + 1));
+        mystate.switchBlock->BS.Bswitch = pu;
+        /* First pair is the number of cases, and the default block
+         */
+        *pu++ = numcases;
+        mystate.switchBlock->appendSucc(mystate.defaultBlock);
+
+        /* Fill in the first entry in each pair, which is the case value.
+         * CaseStatement::toIR() will fill in
+         * the second entry for each pair with the block.
+         */
+        for (size_t i = 0; i < numcases; i++)
+        {
+            CaseStatement *cs = (*s->cases)[i];
+            if (string)
+            {
+                pu[cs->index] = i;
+            }
+            else
+            {
+                pu[i] = cs->exp->toInteger();
+            }
+        }
+
+        Statement_toIR(s->body, &mystate);
 
         /* Have the end of the switch body fall through to the block
          * following the switch statement.
          */
         block_goto(blx, BCgoto, mystate.breakBlock);
-        return;
-    }
-#endif
-
-    if (condition->type->isString())
-    {
-        // Number the cases so we can unscramble things after the sort()
-        for (size_t i = 0; i < numcases; i++)
-        {   CaseStatement *cs = (*cases)[i];
-            cs->index = i;
-        }
-
-        cases->sort();
-
-        /* Create a sorted array of the case strings, and si
-         * will be the symbol for it.
-         */
-        dt_t *dt = NULL;
-        Symbol *si = symbol_generate(SCstatic,type_fake(TYdarray));
-        dtsize_t(&dt, numcases);
-        dtxoff(&dt, si, PTRSIZE * 2, TYnptr);
-
-        for (size_t i = 0; i < numcases; i++)
-        {   CaseStatement *cs = (*cases)[i];
-
-            if (cs->exp->op != TOKstring)
-            {   error("case '%s' is not a string", cs->exp->toChars()); // BUG: this should be an assert
-            }
-            else
-            {
-                StringExp *se = (StringExp *)(cs->exp);
-                unsigned len = se->len;
-                dtsize_t(&dt, len);
-                dtabytes(&dt, TYnptr, 0, se->len * se->sz, (char *)se->string);
-            }
-        }
-
-        si->Sdt = dt;
-        si->Sfl = FLdata;
-        outdata(si);
-
-        /* Call:
-         *      _d_switch_string(string[] si, string econd)
-         */
-        if (config.exe == EX_WIN64)
-            econd = addressElem(econd, condition->type, true);
-        elem *eparam = el_param(econd, (config.exe == EX_WIN64) ? el_ptr(si) : el_var(si));
-        switch (condition->type->nextOf()->ty)
-        {
-            case Tchar:
-                econd = el_bin(OPcall, TYint, el_var(rtlsym[RTLSYM_SWITCH_STRING]), eparam);
-                break;
-            case Twchar:
-                econd = el_bin(OPcall, TYint, el_var(rtlsym[RTLSYM_SWITCH_USTRING]), eparam);
-                break;
-            case Tdchar:        // BUG: implement
-                econd = el_bin(OPcall, TYint, el_var(rtlsym[RTLSYM_SWITCH_DSTRING]), eparam);
-                break;
-            default:
-                assert(0);
-        }
-        elem_setLoc(econd, loc);
-        string = 1;
-    }
-    else
-        string = 0;
-    block_appendexp(mystate.switchBlock, econd);
-    block_next(blx,BCswitch,NULL);
-
-    // Corresponding free is in block_free
-    targ_llong *pu = (targ_llong *) ::malloc(sizeof(*pu) * (numcases + 1));
-    mystate.switchBlock->BS.Bswitch = pu;
-    /* First pair is the number of cases, and the default block
-     */
-    *pu++ = numcases;
-    list_append(&mystate.switchBlock->Bsucc, mystate.defaultBlock);
-
-    /* Fill in the first entry in each pair, which is the case value.
-     * CaseStatement::toIR() will fill in
-     * the second entry for each pair with the block.
-     */
-    for (size_t i = 0; i < numcases; i++)
-    {
-        CaseStatement *cs = (*cases)[i];
-        if (string)
-        {
-            pu[cs->index] = i;
-        }
-        else
-        {
-            pu[i] = cs->exp->toInteger();
-        }
     }
 
-    body->toIR(&mystate);
-
-    /* Have the end of the switch body fall through to the block
-     * following the switch statement.
-     */
-    block_goto(blx, BCgoto, mystate.breakBlock);
-}
-
-void CaseStatement::toIR(IRState *irs)
-{
-    Blockx *blx = irs->blx;
-    block *bcase = blx->curblock;
-    if (!cblock)
-        cblock = block_calloc(blx);
-    block_next(blx,BCgoto,cblock);
-    block *bsw = irs->getSwitchBlock();
-    if (bsw->BC == BCswitch)
-        list_append(&bsw->Bsucc,cblock);        // second entry in pair
-    list_append(&bcase->Bsucc,cblock);
-    if (blx->tryblock != bsw->Btry)
-        error("case cannot be in different try block level from switch");
-    incUsage(irs, loc);
-    if (statement)
-        statement->toIR(irs);
-}
-
-void DefaultStatement::toIR(IRState *irs)
-{
-    Blockx *blx = irs->blx;
-    block *bcase = blx->curblock;
-    block *bdefault = irs->getDefaultBlock();
-    block_next(blx,BCgoto,bdefault);
-    list_append(&bcase->Bsucc,blx->curblock);
-    if (blx->tryblock != irs->getSwitchBlock()->Btry)
-        error("default cannot be in different try block level from switch");
-    incUsage(irs, loc);
-    if (statement)
-        statement->toIR(irs);
-}
-
-void GotoDefaultStatement::toIR(IRState *irs)
-{
-    block *b;
-    Blockx *blx = irs->blx;
-    block *bdest = irs->getDefaultBlock();
-
-    b = blx->curblock;
-
-    // The rest is equivalent to GotoStatement
-
-    // Adjust exception handler scope index if in different try blocks
-    if (b->Btry != bdest->Btry)
-    {
-        // Check that bdest is in an enclosing try block
-        for (block *bt = b->Btry; bt != bdest->Btry; bt = bt->Btry)
-        {
-            if (!bt)
-            {
-                //printf("b->Btry = %p, bdest->Btry = %p\n", b->Btry, bdest->Btry);
-                error("cannot goto into try block");
-                break;
-            }
-        }
-
-        //setScopeIndex(blx, b, bdest->Btry ? bdest->Btry->Bscope_index : -1);
-    }
-
-    list_append(&b->Bsucc,bdest);
-    incUsage(irs, loc);
-    block_next(blx,BCgoto,NULL);
-}
-
-void GotoCaseStatement::toIR(IRState *irs)
-{
-    block *b;
-    Blockx *blx = irs->blx;
-    block *bdest = cs->cblock;
-
-    if (!bdest)
-    {
-        bdest = block_calloc(blx);
-        cs->cblock = bdest;
-    }
-
-    b = blx->curblock;
-
-    // The rest is equivalent to GotoStatement
-
-    // Adjust exception handler scope index if in different try blocks
-    if (b->Btry != bdest->Btry)
-    {
-        // Check that bdest is in an enclosing try block
-        for (block *bt = b->Btry; bt != bdest->Btry; bt = bt->Btry)
-        {
-            if (!bt)
-            {
-                //printf("b->Btry = %p, bdest->Btry = %p\n", b->Btry, bdest->Btry);
-                error("cannot goto into try block");
-                break;
-            }
-        }
-
-        //setScopeIndex(blx, b, bdest->Btry ? bdest->Btry->Bscope_index : -1);
-    }
-
-    list_append(&b->Bsucc,bdest);
-    incUsage(irs, loc);
-    block_next(blx,BCgoto,NULL);
-}
-
-void SwitchErrorStatement::toIR(IRState *irs)
-{
-    Blockx *blx = irs->blx;
-
-    //printf("SwitchErrorStatement::toIR()\n");
-
-    elem *efilename = el_ptr(blx->module->toSymbol());
-    elem *elinnum = el_long(TYint, loc.linnum);
-    elem *e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_DSWITCHERR]), el_param(elinnum, efilename));
-    block_appendexp(blx->curblock, e);
-}
-
-/**************************************
- */
-
-void ReturnStatement::toIR(IRState *irs)
-{
-    Blockx *blx = irs->blx;
-
-    incUsage(irs, loc);
-    if (exp)
-    {   elem *e;
-
-        FuncDeclaration *func = irs->getFunc();
-        assert(func);
-        assert(func->type->ty == Tfunction);
-        TypeFunction *tf = (TypeFunction *)(func->type);
-
-        enum RET retmethod = tf->retStyle();
-        if (retmethod == RETstack)
-        {
-            elem *es;
-
-            /* If returning struct literal, write result
-             * directly into return value
-             */
-            if (exp->op == TOKstructliteral)
-            {   StructLiteralExp *se = (StructLiteralExp *)exp;
-                char save[sizeof(StructLiteralExp)];
-                memcpy(save, se, sizeof(StructLiteralExp));
-                se->sym = irs->shidden;
-                se->soffset = 0;
-                se->fillHoles = 1;
-                e = exp->toElemDtor(irs);
-                memcpy(se, save, sizeof(StructLiteralExp));
-
-            }
-            else
-                e = exp->toElemDtor(irs);
-            assert(e);
-
-            if (exp->op == TOKstructliteral ||
-                (func->nrvo_can && func->nrvo_var))
-            {
-                // Return value via hidden pointer passed as parameter
-                // Write exp; return shidden;
-                es = e;
-            }
-            else
-            {
-                // Return value via hidden pointer passed as parameter
-                // Write *shidden=exp; return shidden;
-                int op;
-                tym_t ety;
-
-                ety = e->Ety;
-                es = el_una(OPind,ety,el_var(irs->shidden));
-                op = (tybasic(ety) == TYstruct) ? OPstreq : OPeq;
-                es = el_bin(op, ety, es, e);
-                if (op == OPstreq)
-                    es->ET = exp->type->toCtype();
-#if 0//DMDV2
-                /* Call postBlit() on *shidden
-                 */
-                Type *tb = exp->type->toBasetype();
-                //if (tb->ty == Tstruct) exp->dump(0);
-                if (exp->isLvalue() && tb->ty == Tstruct)
-                {   StructDeclaration *sd = ((TypeStruct *)tb)->sym;
-                    if (sd->postblit)
-                    {   FuncDeclaration *fd = sd->postblit;
-                        if (fd->storage_class & STCdisable)
-                        {
-                            fd->toParent()->error(loc, "is not copyable because it is annotated with @disable");
-                        }
-                        elem *ec = el_var(irs->shidden);
-                        ec = callfunc(loc, irs, 1, Type::tvoid, ec, tb->pointerTo(), fd, fd->type, NULL, NULL);
-                        es = el_bin(OPcomma, ec->Ety, es, ec);
-                    }
-                }
-#endif
-            }
-            e = el_var(irs->shidden);
-            e = el_bin(OPcomma, e->Ety, es, e);
-        }
-#if DMDV2
-        else if (tf->isref)
-        {   // Reference return, so convert to a pointer
-            Expression *ae = exp->addressOf(NULL);
-            e = ae->toElemDtor(irs);
-        }
-#endif
-        else
-        {
-            e = exp->toElemDtor(irs);
-            assert(e);
-        }
-        elem_setLoc(e, loc);
-        block_appendexp(blx->curblock, e);
-        block_next(blx, BCretexp, NULL);
-    }
-    else
-        block_next(blx, BCret, NULL);
-}
-
-/**************************************
- */
-
-void ExpStatement::toIR(IRState *irs)
-{
-    Blockx *blx = irs->blx;
-
-    //printf("ExpStatement::toIR(), exp = %s\n", exp ? exp->toChars() : "");
-    incUsage(irs, loc);
-    if (exp)
-        block_appendexp(blx->curblock,exp->toElemDtor(irs));
-}
-
-/**************************************
- */
-
-void DtorExpStatement::toIR(IRState *irs)
-{
-    //printf("DtorExpStatement::toIR(), exp = %s\n", exp ? exp->toChars() : "");
-
-    FuncDeclaration *fd = irs->getFunc();
-    assert(fd);
-    if (fd->nrvo_can && fd->nrvo_var == var)
-        /* Do not call destructor, because var is returned as the nrvo variable.
-         * This is done at this stage because nrvo can be turned off at a
-         * very late stage in semantic analysis.
-         */
-        ;
-    else
-    {
-        ExpStatement::toIR(irs);
-    }
-}
-
-/**************************************
- */
-
-void CompoundStatement::toIR(IRState *irs)
-{
-    if (statements)
-    {
-        size_t dim = statements->dim;
-        for (size_t i = 0 ; i < dim ; i++)
-        {
-            Statement *s = (*statements)[i];
-            if (s != NULL)
-            {
-                s->toIR(irs);
-            }
-        }
-    }
-}
-
-
-/**************************************
- */
-
-void UnrolledLoopStatement::toIR(IRState *irs)
-{
-    Blockx *blx = irs->blx;
-
-    IRState mystate(irs, this);
-    mystate.breakBlock = block_calloc(blx);
-
-    block *bpre = blx->curblock;
-    block_next(blx, BCgoto, NULL);
-
-    block *bdo = blx->curblock;
-    list_append(&bpre->Bsucc, bdo);
-
-    block *bdox;
-
-    size_t dim = statements->dim;
-    for (size_t i = 0 ; i < dim ; i++)
-    {
-        Statement *s = (*statements)[i];
-        if (s != NULL)
-        {
-            mystate.contBlock = block_calloc(blx);
-
-            s->toIR(&mystate);
-
-            bdox = blx->curblock;
-            block_next(blx, BCgoto, mystate.contBlock);
-            list_append(&bdox->Bsucc, mystate.contBlock);
-        }
-    }
-
-    bdox = blx->curblock;
-    block_next(blx, BCgoto, mystate.breakBlock);
-    list_append(&bdox->Bsucc, mystate.breakBlock);
-}
-
-
-/**************************************
- */
-
-void ScopeStatement::toIR(IRState *irs)
-{
-    if (statement)
+    void visit(CaseStatement *s)
     {
         Blockx *blx = irs->blx;
-        IRState mystate(irs,this);
-
-        if (mystate.prev->ident)
-            mystate.ident = mystate.prev->ident;
-
-        statement->toIR(&mystate);
-
-        if (mystate.breakBlock)
-            block_goto(blx,BCgoto,mystate.breakBlock);
+        block *bcase = blx->curblock;
+        if (!s->cblock)
+            s->cblock = block_calloc(blx);
+        block_next(blx,BCgoto,s->cblock);
+        block *bsw = irs->getSwitchBlock();
+        if (bsw->BC == BCswitch)
+            bsw->appendSucc(s->cblock);        // second entry in pair
+        bcase->appendSucc(s->cblock);
+        if (blx->tryblock != bsw->Btry)
+            s->error("case cannot be in different try block level from switch");
+        incUsage(irs, s->loc);
+        if (s->statement)
+            Statement_toIR(s->statement, irs);
     }
-}
 
-/***************************************
- */
-
-void WithStatement::toIR(IRState *irs)
-{
-    Symbol *sp;
-    elem *e;
-    elem *ei;
-    ExpInitializer *ie;
-    Blockx *blx = irs->blx;
-
-    //printf("WithStatement::toIR()\n");
-    if (exp->op == TOKimport || exp->op == TOKtype)
+    void visit(DefaultStatement *s)
     {
+        Blockx *blx = irs->blx;
+        block *bcase = blx->curblock;
+        block *bdefault = irs->getDefaultBlock();
+        block_next(blx,BCgoto,bdefault);
+        bcase->appendSucc(blx->curblock);
+        if (blx->tryblock != irs->getSwitchBlock()->Btry)
+            s->error("default cannot be in different try block level from switch");
+        incUsage(irs, s->loc);
+        if (s->statement)
+            Statement_toIR(s->statement, irs);
     }
-    else
+
+    void visit(GotoDefaultStatement *s)
     {
-        // Declare with handle
-        sp = wthis->toSymbol();
-        symbol_add(sp);
-
-        // Perform initialization of with handle
-        ie = wthis->init->isExpInitializer();
-        assert(ie);
-        ei = ie->exp->toElemDtor(irs);
-        e = el_var(sp);
-        e = el_bin(OPeq,e->Ety, e, ei);
-        elem_setLoc(e, loc);
-        incUsage(irs, loc);
-        block_appendexp(blx->curblock,e);
-    }
-    // Execute with block
-    if (body)
-        body->toIR(irs);
-}
-
-
-/***************************************
- */
-
-void ThrowStatement::toIR(IRState *irs)
-{
-    // throw(exp)
-
-    Blockx *blx = irs->blx;
-
-    incUsage(irs, loc);
-    elem *e = exp->toElemDtor(irs);
-    e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_THROWC]),e);
-    block_appendexp(blx->curblock, e);
-}
-
-/***************************************
- * Builds the following:
- *      _try
- *      block
- *      jcatch
- *      handler
- * A try-catch statement.
- */
-
-void TryCatchStatement::toIR(IRState *irs)
-{
-    Blockx *blx = irs->blx;
-
-#if SEH
-    if (!global.params.is64bit)
-        nteh_declarvars(blx);
-#endif
-
-    IRState mystate(irs, this);
-
-    block *tryblock = block_goto(blx,BCgoto,NULL);
-
-    int previndex = blx->scope_index;
-    tryblock->Blast_index = previndex;
-    blx->scope_index = tryblock->Bscope_index = blx->next_index++;
-
-    // Set the current scope index
-    setScopeIndex(blx,tryblock,tryblock->Bscope_index);
-
-    // This is the catch variable
-    tryblock->jcatchvar = symbol_genauto(type_fake(mTYvolatile | TYnptr));
-
-    blx->tryblock = tryblock;
-    block *breakblock = block_calloc(blx);
-    block_goto(blx,BC_try,NULL);
-    if (body)
-    {
-        body->toIR(&mystate);
-    }
-    blx->tryblock = tryblock->Btry;
-
-    // break block goes here
-    block_goto(blx, BCgoto, breakblock);
-
-    setScopeIndex(blx,blx->curblock, previndex);
-    blx->scope_index = previndex;
-
-    // create new break block that follows all the catches
-    breakblock = block_calloc(blx);
-
-    list_append(&blx->curblock->Bsucc, breakblock);
-    block_next(blx,BCgoto,NULL);
-
-    assert(catches);
-    for (size_t i = 0 ; i < catches->dim; i++)
-    {
-        Catch *cs = (*catches)[i];
-        if (cs->var)
-            cs->var->csym = tryblock->jcatchvar;
-        block *bcatch = blx->curblock;
-        if (cs->type)
-            bcatch->Bcatchtype = cs->type->toBasetype()->toSymbol();
-        list_append(&tryblock->Bsucc,bcatch);
-        block_goto(blx,BCjcatch,NULL);
-        if (cs->handler != NULL)
-        {
-            IRState catchState(irs, this);
-            cs->handler->toIR(&catchState);
-        }
-        list_append(&blx->curblock->Bsucc, breakblock);
-        block_next(blx, BCgoto, NULL);
-    }
-
-    block_next(blx,(enum BC)blx->curblock->BC, breakblock);
-}
-
-/****************************************
- * A try-finally statement.
- * Builds the following:
- *      _try
- *      block
- *      _finally
- *      finalbody
- *      _ret
- */
-
-void TryFinallyStatement::toIR(IRState *irs)
-{
-    //printf("TryFinallyStatement::toIR()\n");
-
-    Blockx *blx = irs->blx;
-
-#if SEH
-    if (!global.params.is64bit)
-        nteh_declarvars(blx);
-#endif
-
-    block *tryblock = block_goto(blx, BCgoto, NULL);
-
-    int previndex = blx->scope_index;
-    tryblock->Blast_index = previndex;
-    tryblock->Bscope_index = blx->next_index++;
-    blx->scope_index = tryblock->Bscope_index;
-
-    // Current scope index
-    setScopeIndex(blx,tryblock,tryblock->Bscope_index);
-
-    blx->tryblock = tryblock;
-    block_goto(blx,BC_try,NULL);
-
-    IRState bodyirs(irs, this);
-    block *breakblock = block_calloc(blx);
-    block *contblock = block_calloc(blx);
-
-    if (body)
-        body->toIR(&bodyirs);
-    blx->tryblock = tryblock->Btry;     // back to previous tryblock
-
-    setScopeIndex(blx,blx->curblock,previndex);
-    blx->scope_index = previndex;
-
-    block_goto(blx,BCgoto, breakblock);
-    block *finallyblock = block_goto(blx,BCgoto,contblock);
-
-    list_append(&tryblock->Bsucc,finallyblock);
-
-    block_goto(blx,BC_finally,NULL);
-
-    IRState finallyState(irs, this);
-    breakblock = block_calloc(blx);
-    contblock = block_calloc(blx);
-
-    setScopeIndex(blx, blx->curblock, previndex);
-    if (finalbody)
-        finalbody->toIR(&finallyState);
-    block_goto(blx, BCgoto, contblock);
-    block_goto(blx, BCgoto, breakblock);
-
-    block *retblock = blx->curblock;
-    block_next(blx,BC_ret,NULL);
-
-    list_append(&finallyblock->Bsucc, blx->curblock);
-    list_append(&retblock->Bsucc, blx->curblock);
-}
-
-/****************************************
- */
-
-void SynchronizedStatement::toIR(IRState *irs)
-{
-    assert(0);
-}
-
-
-/****************************************
- */
-
-void AsmStatement::toIR(IRState *irs)
-{
-    block *bpre;
-    block *basm;
-    Declaration *d;
-    Symbol *s;
-    Blockx *blx = irs->blx;
-
-    //printf("AsmStatement::toIR(asmcode = %x)\n", asmcode);
-    bpre = blx->curblock;
-    block_next(blx,BCgoto,NULL);
-    basm = blx->curblock;
-    list_append(&bpre->Bsucc, basm);
-    basm->Bcode = asmcode;
-    basm->Balign = asmalign;
-#if 0
-    if (label)
-    {   block *b;
-
-        b = labelToBlock(loc, blx, label);
-        printf("AsmStatement::toIR() %p\n", b);
-        if (b)
-            list_append(&basm->Bsucc, b);
-    }
-#endif
-    // Loop through each instruction, fixing Dsymbols into Symbol's
-    for (code *c = asmcode; c; c = c->next)
-    {   LabelDsymbol *label;
         block *b;
+        Blockx *blx = irs->blx;
+        block *bdest = irs->getDefaultBlock();
 
-        switch (c->IFL1)
+        b = blx->curblock;
+
+        // The rest is equivalent to GotoStatement
+
+        // Adjust exception handler scope index if in different try blocks
+        if (b->Btry != bdest->Btry)
         {
-            case FLblockoff:
-            case FLblock:
-                // FLblock and FLblockoff have LabelDsymbol's - convert to blocks
-                label = c->IEVlsym1;
-                b = labelToBlock(loc, blx, label);
-                list_append(&basm->Bsucc, b);
-                c->IEV1.Vblock = b;
-                break;
+            // Check that bdest is in an enclosing try block
+            for (block *bt = b->Btry; bt != bdest->Btry; bt = bt->Btry)
+            {
+                if (!bt)
+                {
+                    //printf("b->Btry = %p, bdest->Btry = %p\n", b->Btry, bdest->Btry);
+                    s->error("cannot goto into try block");
+                    break;
+                }
+            }
 
-            case FLdsymbol:
-            case FLfunc:
-                s = c->IEVdsym1->toSymbol();
-                if (s->Sclass == SCauto && s->Ssymnum == -1)
-                    symbol_add(s);
-                c->IEVsym1 = s;
-                c->IFL1 = s->Sfl ? s->Sfl : FLauto;
-                break;
+            //setScopeIndex(blx, b, bdest->Btry ? bdest->Btry->Bscope_index : -1);
         }
+
+        b->appendSucc(bdest);
+        incUsage(irs, s->loc);
+        block_next(blx,BCgoto,NULL);
+    }
+
+    void visit(GotoCaseStatement *s)
+    {
+        block *b;
+        Blockx *blx = irs->blx;
+        block *bdest = s->cs->cblock;
+
+        if (!bdest)
+        {
+            bdest = block_calloc(blx);
+            s->cs->cblock = bdest;
+        }
+
+        b = blx->curblock;
+
+        // The rest is equivalent to GotoStatement
+
+        // Adjust exception handler scope index if in different try blocks
+        if (b->Btry != bdest->Btry)
+        {
+            // Check that bdest is in an enclosing try block
+            for (block *bt = b->Btry; bt != bdest->Btry; bt = bt->Btry)
+            {
+                if (!bt)
+                {
+                    //printf("b->Btry = %p, bdest->Btry = %p\n", b->Btry, bdest->Btry);
+                    s->error("cannot goto into try block");
+                    break;
+                }
+            }
+
+            //setScopeIndex(blx, b, bdest->Btry ? bdest->Btry->Bscope_index : -1);
+        }
+
+        b->appendSucc(bdest);
+        incUsage(irs, s->loc);
+        block_next(blx,BCgoto,NULL);
+    }
+
+    void visit(SwitchErrorStatement *s)
+    {
+        Blockx *blx = irs->blx;
+
+        //printf("SwitchErrorStatement::toIR()\n");
+
+        elem *efilename = el_ptr(toSymbol(blx->module));
+        elem *elinnum = el_long(TYint, s->loc.linnum);
+        elem *e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_DSWITCHERR]), el_param(elinnum, efilename));
+        block_appendexp(blx->curblock, e);
+    }
+
+    /**************************************
+     */
+
+    void visit(ReturnStatement *s)
+    {
+        Blockx *blx = irs->blx;
+        enum BC bc;
+
+        incUsage(irs, s->loc);
+        if (s->exp)
+        {   elem *e;
+
+            FuncDeclaration *func = irs->getFunc();
+            assert(func);
+            assert(func->type->ty == Tfunction);
+            TypeFunction *tf = (TypeFunction *)(func->type);
+
+            RET retmethod = retStyle(tf);
+            if (retmethod == RETstack)
+            {
+                elem *es;
+
+                /* If returning struct literal, write result
+                 * directly into return value
+                 */
+                if (s->exp->op == TOKstructliteral)
+                {   StructLiteralExp *se = (StructLiteralExp *)s->exp;
+                    char save[sizeof(StructLiteralExp)];
+                    memcpy(save, (void*)se, sizeof(StructLiteralExp));
+                    se->sym = irs->shidden;
+                    se->soffset = 0;
+                    se->fillHoles = 1;
+                    e = toElemDtor(s->exp, irs);
+                    memcpy((void*)se, save, sizeof(StructLiteralExp));
+
+                }
+                else
+                    e = toElemDtor(s->exp, irs);
+                assert(e);
+
+                if (s->exp->op == TOKstructliteral ||
+                    (func->nrvo_can && func->nrvo_var))
+                {
+                    // Return value via hidden pointer passed as parameter
+                    // Write exp; return shidden;
+                    es = e;
+                }
+                else
+                {
+                    // Return value via hidden pointer passed as parameter
+                    // Write *shidden=exp; return shidden;
+                    int op;
+                    tym_t ety;
+
+                    ety = e->Ety;
+                    es = el_una(OPind,ety,el_var(irs->shidden));
+                    op = (tybasic(ety) == TYstruct) ? OPstreq : OPeq;
+                    es = el_bin(op, ety, es, e);
+                    if (op == OPstreq)
+                        es->ET = Type_toCtype(s->exp->type);
+                }
+                e = el_var(irs->shidden);
+                e = el_bin(OPcomma, e->Ety, es, e);
+            }
+            else if (tf->isref)
+            {
+                // Reference return, so convert to a pointer
+                e = toElemDtor(s->exp, irs);
+                e = addressElem(e, s->exp->type->pointerTo());
+            }
+            else
+            {
+                e = toElemDtor(s->exp, irs);
+                assert(e);
+            }
+            elem_setLoc(e, s->loc);
+            block_appendexp(blx->curblock, e);
+            bc = BCretexp;
+        }
+        else
+            bc = BCret;
+
+        block *btry = blx->curblock->Btry;
+        if (btry)
+        {
+            // A finally block is a successor to a return block inside a try-finally
+            if (btry->numSucc() == 2)      // try-finally
+            {
+                block *bfinally = btry->nthSucc(1);
+                assert(bfinally->BC == BC_finally);
+                blx->curblock->appendSucc(bfinally);
+            }
+        }
+        block_next(blx, bc, NULL);
+    }
+
+    /**************************************
+     */
+
+    void visit(ExpStatement *s)
+    {
+        Blockx *blx = irs->blx;
+
+        //printf("ExpStatement::toIR(), exp = %s\n", exp ? exp->toChars() : "");
+        incUsage(irs, s->loc);
+        if (s->exp)
+            block_appendexp(blx->curblock,toElemDtor(s->exp, irs));
+    }
+
+    /**************************************
+     */
+
+    void visit(CompoundStatement *s)
+    {
+        if (s->statements)
+        {
+            size_t dim = s->statements->dim;
+            for (size_t i = 0 ; i < dim ; i++)
+            {
+                Statement *s2 = (*s->statements)[i];
+                if (s2 != NULL)
+                {
+                    Statement_toIR(s2, irs);
+                }
+            }
+        }
+    }
+
+
+    /**************************************
+     */
+
+    void visit(UnrolledLoopStatement *s)
+    {
+        Blockx *blx = irs->blx;
+
+        IRState mystate(irs, s);
+        mystate.breakBlock = block_calloc(blx);
+
+        block *bpre = blx->curblock;
+        block_next(blx, BCgoto, NULL);
+
+        block *bdo = blx->curblock;
+        bpre->appendSucc(bdo);
+
+        block *bdox;
+
+        size_t dim = s->statements->dim;
+        for (size_t i = 0 ; i < dim ; i++)
+        {
+            Statement *s2 = (*s->statements)[i];
+            if (s2 != NULL)
+            {
+                mystate.contBlock = block_calloc(blx);
+
+                Statement_toIR(s2, &mystate);
+
+                bdox = blx->curblock;
+                block_next(blx, BCgoto, mystate.contBlock);
+                bdox->appendSucc(mystate.contBlock);
+            }
+        }
+
+        bdox = blx->curblock;
+        block_next(blx, BCgoto, mystate.breakBlock);
+        bdox->appendSucc(mystate.breakBlock);
+    }
+
+
+    /**************************************
+     */
+
+    void visit(ScopeStatement *s)
+    {
+        if (s->statement)
+        {
+            Blockx *blx = irs->blx;
+            IRState mystate(irs,s);
+
+            if (mystate.prev->ident)
+                mystate.ident = mystate.prev->ident;
+
+            Statement_toIR(s->statement, &mystate);
+
+            if (mystate.breakBlock)
+                block_goto(blx,BCgoto,mystate.breakBlock);
+        }
+    }
+
+    /***************************************
+     */
+
+    void visit(WithStatement *s)
+    {
+        Symbol *sp;
+        elem *e;
+        elem *ei;
+        ExpInitializer *ie;
+        Blockx *blx = irs->blx;
+
+        //printf("WithStatement::toIR()\n");
+        if (s->exp->op == TOKimport || s->exp->op == TOKtype)
+        {
+        }
+        else
+        {
+            // Declare with handle
+            sp = toSymbol(s->wthis);
+            symbol_add(sp);
+
+            // Perform initialization of with handle
+            ie = s->wthis->init->isExpInitializer();
+            assert(ie);
+            ei = toElemDtor(ie->exp, irs);
+            e = el_var(sp);
+            e = el_bin(OPeq,e->Ety, e, ei);
+            elem_setLoc(e, s->loc);
+            incUsage(irs, s->loc);
+            block_appendexp(blx->curblock,e);
+        }
+        // Execute with block
+        if (s->body)
+            Statement_toIR(s->body, irs);
+    }
+
+
+    /***************************************
+     */
+
+    void visit(ThrowStatement *s)
+    {
+        // throw(exp)
+
+        Blockx *blx = irs->blx;
+
+        incUsage(irs, s->loc);
+        elem *e = toElemDtor(s->exp, irs);
+        e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_THROWC]),e);
+        block_appendexp(blx->curblock, e);
+    }
+
+    /***************************************
+     * Builds the following:
+     *      _try
+     *      block
+     *      jcatch
+     *      handler
+     * A try-catch statement.
+     */
+
+    void visit(TryCatchStatement *s)
+    {
+        Blockx *blx = irs->blx;
+
+#if SEH
+        if (!global.params.is64bit)
+            nteh_declarvars(blx);
+#endif
+
+        IRState mystate(irs, s);
+
+        block *tryblock = block_goto(blx,BCgoto,NULL);
+
+        int previndex = blx->scope_index;
+        tryblock->Blast_index = previndex;
+        blx->scope_index = tryblock->Bscope_index = blx->next_index++;
+
+        // Set the current scope index
+        setScopeIndex(blx,tryblock,tryblock->Bscope_index);
+
+        // This is the catch variable
+        tryblock->jcatchvar = symbol_genauto(type_fake(mTYvolatile | TYnptr));
+
+        blx->tryblock = tryblock;
+        block *breakblock = block_calloc(blx);
+        block_goto(blx,BC_try,NULL);
+        if (s->body)
+        {
+            Statement_toIR(s->body, &mystate);
+        }
+        blx->tryblock = tryblock->Btry;
+
+        // break block goes here
+        block_goto(blx, BCgoto, breakblock);
+
+        setScopeIndex(blx,blx->curblock, previndex);
+        blx->scope_index = previndex;
+
+        // create new break block that follows all the catches
+        breakblock = block_calloc(blx);
+
+        blx->curblock->appendSucc(breakblock);
+        block_next(blx,BCgoto,NULL);
+
+        assert(s->catches);
+        for (size_t i = 0 ; i < s->catches->dim; i++)
+        {
+            Catch *cs = (*s->catches)[i];
+            if (cs->var)
+                cs->var->csym = tryblock->jcatchvar;
+            block *bcatch = blx->curblock;
+            if (cs->type)
+                bcatch->Bcatchtype = toSymbol(cs->type->toBasetype());
+            tryblock->appendSucc(bcatch);
+            block_goto(blx, BCjcatch, NULL);
+            if (cs->handler != NULL)
+            {
+                IRState catchState(irs, s);
+
+                /* Append to block:
+                 *   *(sclosure + cs.offset) = cs;
+                 */
+                if (cs->var && cs->var->offset)
+                {
+                    tym_t tym = totym(cs->var->type);
+                    elem *ex = el_var(irs->sclosure);
+                    ex = el_bin(OPadd, TYnptr, ex, el_long(TYsize_t, cs->var->offset));
+                    ex = el_una(OPind, tym, ex);
+                    ex = el_bin(OPeq, tym, ex, el_var(toSymbol(cs->var)));
+                    block_appendexp(catchState.blx->curblock, ex);
+                }
+                Statement_toIR(cs->handler, &catchState);
+            }
+            blx->curblock->appendSucc(breakblock);
+            block_next(blx, BCgoto, NULL);
+        }
+
+        block_next(blx,(enum BC)blx->curblock->BC, breakblock);
+    }
+
+    /****************************************
+     * A try-finally statement.
+     * Builds the following:
+     *      _try
+     *      block
+     *      _finally
+     *      finalbody
+     *      _ret
+     */
+
+    void visit(TryFinallyStatement *s)
+    {
+        //printf("TryFinallyStatement::toIR()\n");
+
+        Blockx *blx = irs->blx;
+
+#if SEH
+        if (!global.params.is64bit)
+            nteh_declarvars(blx);
+#endif
+
+        block *tryblock = block_goto(blx, BCgoto, NULL);
+
+        int previndex = blx->scope_index;
+        tryblock->Blast_index = previndex;
+        tryblock->Bscope_index = blx->next_index++;
+        blx->scope_index = tryblock->Bscope_index;
+
+        // Current scope index
+        setScopeIndex(blx,tryblock,tryblock->Bscope_index);
+
+        blx->tryblock = tryblock;
+        block_goto(blx,BC_try,NULL);
+
+        IRState bodyirs(irs, s);
+        block *breakblock = block_calloc(blx);
+        block *contblock = block_calloc(blx);
+        tryblock->appendSucc(contblock);
+        contblock->BC = BC_finally;
+
+        if (s->body)
+            Statement_toIR(s->body, &bodyirs);
+        blx->tryblock = tryblock->Btry;     // back to previous tryblock
+
+        setScopeIndex(blx,blx->curblock,previndex);
+        blx->scope_index = previndex;
+
+        block_goto(blx,BCgoto, breakblock);
+        block *finallyblock = block_goto(blx,BCgoto,contblock);
+        assert(finallyblock == contblock);
+
+        block_goto(blx,BC_finally,NULL);
+
+        IRState finallyState(irs, s);
+        breakblock = block_calloc(blx);
+        contblock = block_calloc(blx);
+
+        setScopeIndex(blx, blx->curblock, previndex);
+        if (s->finalbody)
+            Statement_toIR(s->finalbody, &finallyState);
+        block_goto(blx, BCgoto, contblock);
+        block_goto(blx, BCgoto, breakblock);
+
+        block *retblock = blx->curblock;
+        block_next(blx,BC_ret,NULL);
+
+        finallyblock->appendSucc(blx->curblock);
+        retblock->appendSucc(blx->curblock);
+    }
+
+    /****************************************
+     */
+
+    void visit(SynchronizedStatement *s)
+    {
+        assert(0);
+    }
+
+
+    /****************************************
+     */
+
+    void visit(AsmStatement *s)
+    {
+        block *bpre;
+        block *basm;
+        Declaration *d;
+        Symbol *sym;
+        Blockx *blx = irs->blx;
+
+        //printf("AsmStatement::toIR(asmcode = %x)\n", asmcode);
+        bpre = blx->curblock;
+        block_next(blx,BCgoto,NULL);
+        basm = blx->curblock;
+        bpre->appendSucc(basm);
+        basm->Bcode = s->asmcode;
+        basm->Balign = s->asmalign;
+
+        // Loop through each instruction, fixing Dsymbols into Symbol's
+        for (code *c = s->asmcode; c; c = c->next)
+        {   LabelDsymbol *label;
+            block *b;
+
+            switch (c->IFL1)
+            {
+                case FLblockoff:
+                case FLblock:
+                    // FLblock and FLblockoff have LabelDsymbol's - convert to blocks
+                    label = c->IEVlsym1;
+                    b = labelToBlock(s->loc, blx, label);
+                    basm->appendSucc(b);
+                    c->IEV1.Vblock = b;
+                    break;
+
+                case FLdsymbol:
+                case FLfunc:
+                    sym = toSymbol(c->IEVdsym1);
+                    if (sym->Sclass == SCauto && sym->Ssymnum == -1)
+                        symbol_add(sym);
+                    c->IEVsym1 = sym;
+                    c->IFL1 = sym->Sfl ? sym->Sfl : FLauto;
+                    break;
+            }
 
 #if TX86
-        // Repeat for second operand
-        switch (c->IFL2)
-        {
-            case FLblockoff:
-            case FLblock:
-                label = c->IEVlsym2;
-                b = labelToBlock(loc, blx, label);
-                list_append(&basm->Bsucc, b);
-                c->IEV2.Vblock = b;
-                break;
+            // Repeat for second operand
+            switch (c->IFL2)
+            {
+                case FLblockoff:
+                case FLblock:
+                    label = c->IEVlsym2;
+                    b = labelToBlock(s->loc, blx, label);
+                    basm->appendSucc(b);
+                    c->IEV2.Vblock = b;
+                    break;
 
-            case FLdsymbol:
-            case FLfunc:
-                d = c->IEVdsym2;
-                s = d->toSymbol();
-                if (s->Sclass == SCauto && s->Ssymnum == -1)
-                    symbol_add(s);
-                c->IEVsym2 = s;
-                c->IFL2 = s->Sfl ? s->Sfl : FLauto;
-                if (d->isDataseg())
-                    s->Sflags |= SFLlivexit;
-                break;
-        }
+                case FLdsymbol:
+                case FLfunc:
+                    d = c->IEVdsym2;
+                    sym = toSymbol(d);
+                    if (sym->Sclass == SCauto && sym->Ssymnum == -1)
+                        symbol_add(sym);
+                    c->IEVsym2 = sym;
+                    c->IFL2 = sym->Sfl ? sym->Sfl : FLauto;
+                    if (d->isDataseg())
+                        sym->Sflags |= SFLlivexit;
+                    break;
+            }
 #endif
-        //c->print();
+            //c->print();
+        }
+
+        basm->bIasmrefparam = s->refparam;             // are parameters reference?
+        basm->usIasmregs = s->regs;                    // registers modified
+
+        block_next(blx,BCasm, NULL);
+        basm->prependSucc(blx->curblock);
+
+        if (s->naked)
+        {
+            blx->funcsym->Stype->Tty |= mTYnaked;
+        }
     }
 
-    basm->bIasmrefparam = refparam;             // are parameters reference?
-    basm->usIasmregs = regs;                    // registers modified
+    /****************************************
+     */
 
-    block_next(blx,BCasm, NULL);
-    list_prepend(&basm->Bsucc, blx->curblock);
-
-    if (naked)
+    void visit(ImportStatement *s)
     {
-        blx->funcsym->Stype->Tty |= mTYnaked;
     }
-}
 
-/****************************************
- */
+};
 
-void ImportStatement::toIR(IRState *irs)
+void Statement_toIR(Statement *s, IRState *irs)
 {
+    S2irVisitor v(irs);
+    s->accept(&v);
 }
-
-
-

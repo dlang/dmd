@@ -15,7 +15,6 @@
 #include        <stdio.h>
 #include        <string.h>
 #include        <time.h>
-//#include        <complex.h>
 
 #include        "lexer.h"
 #include        "expression.h"
@@ -28,6 +27,7 @@
 #include        "module.h"
 #include        "init.h"
 #include        "template.h"
+#include        "target.h"
 
 #include        "mem.h" // for mem_malloc
 
@@ -49,6 +49,9 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 bool ISREF(Declaration *var, Type *tb);
 bool ISWIN64REF(Declaration *var);
 
+type *Type_toCtype(Type *t);
+unsigned totym(Type *tx);
+Symbol *toSymbol(Dsymbol *s);
 
 /*********************************************
  * Produce elem which increments the usage count for a particular line.
@@ -72,6 +75,7 @@ elem *incUsageElem(IRState *irs, Loc loc)
     unsigned *p = irs->blx->module->covb;
     if (p)      // covb can be NULL if it has already been written out to its .obj file
     {
+        assert(linnum < irs->blx->module->numlines);
         p += linnum / (sizeof(*p) * 8);
         *p |= 1 << (linnum & (sizeof(*p) * 8 - 1));
     }
@@ -107,12 +111,9 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
     {   /* Going down one nesting level, i.e. we're calling
          * a nested function from its enclosing function.
          */
-#if DMDV2
         if (irs->sclosure)
             ethis = el_var(irs->sclosure);
-        else
-#endif
-        if (irs->sthis)
+        else if (irs->sthis)
         {   // We have a 'this' pointer for the current function
             ethis = el_var(irs->sthis);
 
@@ -248,7 +249,6 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
  * Returns:
  *      *(ey + ad.vthis.offset) = this;
  */
-#if DMDV2
 elem *setEthis(Loc loc, IRState *irs, elem *ey, AggregateDeclaration *ad)
 {
     elem *ethis;
@@ -305,7 +305,6 @@ elem *setEthis(Loc loc, IRState *irs, elem *ey, AggregateDeclaration *ad)
     ey = el_bin(OPeq, TYnptr, ey, ethis);
     return ey;
 }
-#endif
 
 /*******************************************
  * Convert intrinsic function to operator.
@@ -318,33 +317,6 @@ int intrinsic_op(char *name)
     //printf("intrinsic_op(%s)\n", name);
     static const char *std_namearray[] =
     {
-#if DMDV1
-        "4math3cosFeZe",
-        "4math3sinFeZe",
-        "4math4fabsFeZe",
-        "4math4rintFeZe",
-        "4math4sqrtFdZd",
-        "4math4sqrtFeZe",
-        "4math4sqrtFfZf",
-        "4math4yl2xFeeZe",
-        "4math5ldexpFeiZe",
-        "4math6rndtolFeZl",
-        "4math6yl2xp1FeeZe",
-
-        "9intrinsic2btFPkkZi",
-        "9intrinsic3bsfFkZi",
-        "9intrinsic3bsrFkZi",
-        "9intrinsic3btcFPkkZi",
-        "9intrinsic3btrFPkkZi",
-        "9intrinsic3btsFPkkZi",
-        "9intrinsic3inpFkZh",
-        "9intrinsic4inplFkZk",
-        "9intrinsic4inpwFkZt",
-        "9intrinsic4outpFkhZh",
-        "9intrinsic5bswapFkZk",
-        "9intrinsic5outplFkkZk",
-        "9intrinsic5outpwFktZt",
-#elif DMDV2
         /* The names are mangled differently because of the pure and
          * nothrow attributes.
          */
@@ -359,37 +331,9 @@ int intrinsic_op(char *name)
         "4math5ldexpFNaNbNfeiZe",
         "4math6rndtolFNaNbNfeZl",
         "4math6yl2xp1FNaNbNfeeZe",
-#endif
     };
     static const char *std_namearray64[] =
     {
-#if DMDV1
-        "4math3cosFeZe",
-        "4math3sinFeZe",
-        "4math4fabsFeZe",
-        "4math4rintFeZe",
-        "4math4sqrtFdZd",
-        "4math4sqrtFeZe",
-        "4math4sqrtFfZf",
-        "4math4yl2xFeeZe",
-        "4math5ldexpFeiZe",
-        "4math6rndtolFeZl",
-        "4math6yl2xp1FeeZe",
-
-        "9intrinsic2btFPmmZi",
-        "9intrinsic3bsfFkZi",
-        "9intrinsic3bsrFkZi",
-        "9intrinsic3btcFPmmZi",
-        "9intrinsic3btrFPmmZi",
-        "9intrinsic3btsFPmmZi",
-        "9intrinsic3inpFkZh",
-        "9intrinsic4inplFkZk",
-        "9intrinsic4inpwFkZt",
-        "9intrinsic4outpFkhZh",
-        "9intrinsic5bswapFkZk",
-        "9intrinsic5outplFkkZk",
-        "9intrinsic5outpwFktZt",
-#elif DMDV2
         /* The names are mangled differently because of the pure and
          * nothrow attributes.
          */
@@ -404,7 +348,6 @@ int intrinsic_op(char *name)
         "4math5ldexpFNaNbNfeiZe",
         "4math6rndtolFNaNbNfeZl",
         "4math6yl2xp1FNaNbNfeeZe",
-#endif
     };
     static unsigned char std_ioptab[] =
     {
@@ -421,7 +364,6 @@ int intrinsic_op(char *name)
         OPyl2xp1,
     };
 
-#ifdef DMDV2
     static const char *core_namearray[] =
     {
         "4math3cosFNaNbNfeZe",
@@ -446,12 +388,11 @@ int intrinsic_op(char *name)
         "4simd6__simdFNaNbNfE4core4simd3XMMfZNhG16v",
         "4simd9__simd_ibFNaNbNfE4core4simd3XMMNhG16vhZNhG16v",
 
-        "5bitop2btFNaNbNfxPkkZi",
         "5bitop3bsfFNaNbNfkZi",
         "5bitop3bsrFNaNbNfkZi",
-        "5bitop3btcFNaNbNfPkkZi",
-        "5bitop3btrFNaNbNfPkkZi",
-        "5bitop3btsFNaNbNfPkkZi",
+        "5bitop3btcFNaNbPkkZi",
+        "5bitop3btrFNaNbPkkZi",
+        "5bitop3btsFNaNbPkkZi",
         "5bitop3inpFNbkZh",
         "5bitop4inplFNbkZk",
         "5bitop4inpwFNbkZt",
@@ -484,12 +425,11 @@ int intrinsic_op(char *name)
         "4simd6__simdFNaNbNfE4core4simd3XMMfZNhG16v",
         "4simd9__simd_ibFNaNbNfE4core4simd3XMMNhG16vhZNhG16v",
 
-        "5bitop2btFNaNbNfxPmmZi",
         "5bitop3bsfFNaNbNfmZi",
         "5bitop3bsrFNaNbNfmZi",
-        "5bitop3btcFNaNbNfPmmZi",
-        "5bitop3btrFNaNbNfPmmZi",
-        "5bitop3btsFNaNbNfPmmZi",
+        "5bitop3btcFNaNbPmmZi",
+        "5bitop3btrFNaNbPmmZi",
+        "5bitop3btsFNaNbPmmZi",
         "5bitop3inpFNbkZh",
         "5bitop4inplFNbkZk",
         "5bitop4inpwFNbkZt",
@@ -522,7 +462,6 @@ int intrinsic_op(char *name)
         OPvector,
         OPvector,
 
-        OPbt,
         OPbsf,
         OPbsr,
         OPbtc,
@@ -536,7 +475,6 @@ int intrinsic_op(char *name)
         OPoutp,
         OPoutp,
     };
-#endif
 
 #ifdef DEBUG
     assert(sizeof(std_namearray) == sizeof(std_namearray64));
@@ -558,7 +496,6 @@ int intrinsic_op(char *name)
             assert(0);
         }
     }
-#ifdef DMDV2
     assert(sizeof(core_namearray) == sizeof(core_namearray64));
     assert(sizeof(core_namearray) / sizeof(char *) == sizeof(core_ioptab));
     for (size_t i = 0; i < sizeof(core_namearray) / sizeof(char *) - 1; i++)
@@ -579,7 +516,6 @@ int intrinsic_op(char *name)
         }
     }
 #endif
-#endif
     size_t length = strlen(name);
 
     if (length > 10 &&
@@ -589,7 +525,6 @@ int intrinsic_op(char *name)
         int i = binary(name + 6, I64 ? std_namearray64 : std_namearray, sizeof(std_namearray) / sizeof(char *));
         return (i == -1) ? i : std_ioptab[i];
     }
-#ifdef DMDV2
     if (length > 12 &&
         (name[8] == 'm' || name[8] == 'b' || name[8] == 's') &&
         !memcmp(name, "_D4core", 7))
@@ -597,7 +532,6 @@ int intrinsic_op(char *name)
         int i = binary(name + 7, I64 ? core_namearray64 : core_namearray, sizeof(core_namearray) / sizeof(char *));
         return (i == -1) ? i : core_ioptab[i];
     }
-#endif
 #endif
 
     return -1;
@@ -640,7 +574,7 @@ elem *resolveLengthVar(VarDeclaration *lengthVar, elem **pe, Type *t1)
             elength = el_una(I64 ? OP128_64 : OP64_32, TYsize_t, elength);
 
         L3:
-            slength = lengthVar->toSymbol();
+            slength = toSymbol(lengthVar);
             //symbol_add(slength);
 
             einit = el_bin(OPeq, TYsize_t, el_var(slength), elength);
@@ -669,15 +603,14 @@ elem *resolveLengthVar(VarDeclaration *lengthVar, elem **pe, Type *t1)
  * than the current frame pointer.
  */
 
-#if DMDV2
 
-void FuncDeclaration::buildClosure(IRState *irs)
+void buildClosure(FuncDeclaration *fd, IRState *irs)
 {
-    if (needsClosure())
-    {   // Generate closure on the heap
+    if (fd->needsClosure())
+    {
+        // Generate closure on the heap
         // BUG: doesn't capture variadic arguments passed to this function
 
-#if DMDV2
         /* BUG: doesn't handle destructors for the local variables.
          * The way to do it is to make the closure variables the fields
          * of a class object:
@@ -690,46 +623,48 @@ void FuncDeclaration::buildClosure(IRState *irs)
          *        ~this() { call destructor }
          *    }
          */
-#endif
         //printf("FuncDeclaration::buildClosure() %s\n", toChars());
         Symbol *sclosure;
-        sclosure = symbol_name("__closptr",SCauto,Type::tvoidptr->toCtype());
+        sclosure = symbol_name("__closptr", SCauto, Type_toCtype(Type::tvoidptr));
         sclosure->Sflags |= SFLtrue | SFLfree;
         symbol_add(sclosure);
         irs->sclosure = sclosure;
 
-        unsigned offset = PTRSIZE;      // leave room for previous sthis
-        for (size_t i = 0; i < closureVars.dim; i++)
-        {   VarDeclaration *v = closureVars[i];
+        unsigned offset = Target::ptrsize;      // leave room for previous sthis
+        for (size_t i = 0; i < fd->closureVars.dim; i++)
+        {
+            VarDeclaration *v = fd->closureVars[i];
+            //printf("closure var %s\n", v->toChars());
             assert(v->isVarDeclaration());
 
-#if DMDV2
             if (v->needsAutoDtor())
+            {
                 /* Because the value needs to survive the end of the scope!
                  */
                 v->error("has scoped destruction, cannot build closure");
+            }
             if (v->isargptr)
+            {
                 /* See Bugzilla 2479
                  * This is actually a bug, but better to produce a nice
                  * message at compile time rather than memory corruption at runtime
                  */
                 v->error("cannot reference variadic arguments from closure");
-#endif
+            }
             /* Align and allocate space for v in the closure
              * just like AggregateDeclaration::addField() does.
              */
             unsigned memsize;
             unsigned memalignsize;
             structalign_t xalign;
-#if DMDV2
             if (v->storage_class & STClazy)
             {
                 /* Lazy variables are really delegates,
                  * so give same answers that TypeDelegate would
                  */
-                memsize = PTRSIZE * 2;
+                memsize = Target::ptrsize * 2;
                 memalignsize = memsize;
-                xalign = global.structalign;
+                xalign = STRUCTALIGN_DEFAULT;
             }
             else if (ISWIN64REF(v))
             {
@@ -738,13 +673,13 @@ void FuncDeclaration::buildClosure(IRState *irs)
                 xalign = v->alignment;
             }
             else if (ISREF(v, NULL))
-            {    // reference parameters are just pointers
-                memsize = PTRSIZE;
+            {
+                // reference parameters are just pointers
+                memsize = Target::ptrsize;
                 memalignsize = memsize;
-                xalign = global.structalign;
+                xalign = STRUCTALIGN_DEFAULT;
             }
             else
-#endif
             {
                 memsize = v->type->size();
                 memalignsize = v->type->alignsize();
@@ -757,16 +692,15 @@ void FuncDeclaration::buildClosure(IRState *irs)
             /* Can't do nrvo if the variable is put in a closure, since
              * what the shidden points to may no longer exist.
              */
-            if (nrvo_can && nrvo_var == v)
+            if (fd->nrvo_can && fd->nrvo_var == v)
             {
-                nrvo_can = 0;
+                fd->nrvo_can = 0;
             }
         }
         // offset is now the size of the closure
 
         // Allocate memory for the closure
-        elem *e;
-        e = el_long(TYsize_t, offset);
+        elem *e = el_long(TYsize_t, offset);
         e = el_bin(OPcall, TYnptr, el_var(rtlsym[RTLSYM_ALLOCMEMORY]), e);
 
         // Assign block of memory to sclosure
@@ -785,39 +719,36 @@ void FuncDeclaration::buildClosure(IRState *irs)
         e = el_combine(e, ex);
 
         // Copy function parameters into closure
-        for (size_t i = 0; i < closureVars.dim; i++)
-        {   VarDeclaration *v = closureVars[i];
+        for (size_t i = 0; i < fd->closureVars.dim; i++)
+        {
+            VarDeclaration *v = fd->closureVars[i];
 
             if (!v->isParameter())
                 continue;
-            tym_t tym = v->type->totym();
+            tym_t tym = totym(v->type);
             bool win64ref = ISWIN64REF(v);
             if (win64ref)
             {
-#if DMDV2
                 if (v->storage_class & STClazy)
                     tym = TYdelegate;
-#endif
             }
             else if (ISREF(v, NULL))
                 tym = TYnptr;   // reference parameters are just pointers
-#if DMDV2
             else if (v->storage_class & STClazy)
                 tym = TYdelegate;
-#endif
             ex = el_bin(OPadd, TYnptr, el_var(sclosure), el_long(TYsize_t, v->offset));
             ex = el_una(OPind, tym, ex);
-            elem *ev = el_var(v->toSymbol());
+            elem *ev = el_var(toSymbol(v));
             if (win64ref)
             {
                 ev->Ety = TYnptr;
                 ev = el_una(OPind, tym, ev);
                 if (tybasic(ev->Ety) == TYstruct || tybasic(ev->Ety) == TYarray)
-                    ev->ET = v->type->toCtype();
+                    ev->ET = Type_toCtype(v->type);
             }
             if (tybasic(ex->Ety) == TYstruct || tybasic(ex->Ety) == TYarray)
             {
-                ::type *t = v->type->toCtype();
+                ::type *t = Type_toCtype(v->type);
                 ex->ET = t;
                 ex = el_bin(OPstreq, tym, ex, ev);
                 ex->ET = t;
@@ -832,44 +763,38 @@ void FuncDeclaration::buildClosure(IRState *irs)
     }
 }
 
-#endif
 
 /***************************
  * Determine return style of function - whether in registers or
  * through a hidden pointer to the caller's stack.
  */
 
-enum RET TypeFunction::retStyle()
+RET retStyle(TypeFunction *tf)
 {
     //printf("TypeFunction::retStyle() %s\n", toChars());
-#if DMDV2
-    if (isref)
+    if (tf->isref)
     {
         //printf("  ref RETregs\n");
         return RETregs;                 // returns a pointer
     }
-#endif
 
-    Type *tn = next->toBasetype();
+    Type *tn = tf->next->toBasetype();
     //printf("tn = %s\n", tn->toChars());
     d_uns64 sz = tn->size();
     Type *tns = tn;
 
     if (global.params.isWindows && global.params.is64bit)
-    {   // http://msdn.microsoft.com/en-us/library/7572ztz4(v=vs.80)
+    {
+        // http://msdn.microsoft.com/en-us/library/7572ztz4(v=vs.80)
+        if (tns->ty == Tcomplex32)
+            return RETstack;
         if (tns->isscalar())
             return RETregs;
-#if SARRAYVALUE
-        if (tns->ty == Tsarray)
-        {
-            do
-            {
-                tns = tns->nextOf()->toBasetype();
-            } while (tns->ty == Tsarray);
-        }
-#endif
+
+        tns = tns->baseElemOf();
         if (tns->ty == Tstruct)
-        {   StructDeclaration *sd = ((TypeStruct *)tns)->sym;
+        {
+            StructDeclaration *sd = ((TypeStruct *)tns)->sym;
             if (!sd->isPOD() || sz >= 8)
                 return RETstack;
         }
@@ -879,23 +804,19 @@ enum RET TypeFunction::retStyle()
     }
 
 Lagain:
-#if SARRAYVALUE
     if (tns->ty == Tsarray)
     {
-        do
-        {
-            tns = tns->nextOf()->toBasetype();
-        } while (tns->ty == Tsarray);
-
+        tns = tns->baseElemOf();
         if (tns->ty != Tstruct)
         {
 L2:
-            if (global.params.isLinux && linkage != LINKd && !global.params.is64bit)
+            if (global.params.isLinux && tf->linkage != LINKd && !global.params.is64bit)
                 ;                               // 32 bit C/C++ structs always on stack
             else
             {
                 switch (sz)
-                {   case 1:
+                {
+                    case 1:
                     case 2:
                     case 4:
                     case 8:
@@ -910,11 +831,11 @@ L2:
             return RETstack;
         }
     }
-#endif
 
     if (tns->ty == Tstruct)
-    {   StructDeclaration *sd = ((TypeStruct *)tns)->sym;
-        if (global.params.isLinux && linkage != LINKd && !global.params.is64bit)
+    {
+        StructDeclaration *sd = ((TypeStruct *)tns)->sym;
+        if (global.params.isLinux && tf->linkage != LINKd && !global.params.is64bit)
         {
             //printf("  2 RETstack\n");
             return RETstack;            // 32 bit C/C++ structs always on stack
@@ -922,22 +843,27 @@ L2:
         if (sd->arg1type && !sd->arg2type)
         {
             tns = sd->arg1type;
-#if SARRAYVALUE
             if (tns->ty != Tstruct)
                 goto L2;
-#endif
             goto Lagain;
         }
+        else if (global.params.is64bit && !sd->arg1type && !sd->arg2type)
+            return RETstack;
         else if (sd->isPOD())
         {
             switch (sz)
-            {   case 1:
+            {
+                case 1:
                 case 2:
                 case 4:
                 case 8:
                     //printf("  3 RETregs\n");
                     return RETregs;     // return small structs in regs
                                         // (not 3 byte structs!)
+                case 16:
+                    if (!global.params.isWindows && global.params.is64bit)
+                       return RETregs;
+
                 default:
                     break;
             }
@@ -946,7 +872,7 @@ L2:
         return RETstack;
     }
     else if ((global.params.isLinux || global.params.isOSX || global.params.isFreeBSD || global.params.isSolaris) &&
-             linkage == LINKc &&
+             tf->linkage == LINKc &&
              tns->iscomplex())
     {
         if (tns->ty == Tcomplex32)

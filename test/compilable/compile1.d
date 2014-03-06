@@ -1,6 +1,16 @@
 // PERMUTE_ARGS:
 
 /**************************************************
+    1748 class template with stringof
+**************************************************/
+
+struct S1748(T) {}
+static assert(S1748!int.stringof == "S1748!int");
+
+class C1748(T) {}
+static assert(C1748!int.stringof == "C1748!int");
+
+/**************************************************
     5996    ICE(expression.c)
 **************************************************/
 
@@ -20,6 +30,21 @@ auto segfault8532(Y, R ...)(R r, Y val) pure
 { return segfault8532(r, val); }
 
 static assert(!is(typeof( segfault8532(1,2,3))));
+
+/**************************************************
+    8982    ICE(ctfeexpr.c) __parameters with error in default value
+**************************************************/
+template ice8982(T)
+{
+    void bug8982(ref const int v = 7){}
+
+    static if (is(typeof(bug8982) P == __parameters)) {
+        pragma(msg, ((P[0..1] g) => g[0])());
+    }
+}
+
+static assert(!is(ice8982!(int)));
+
 
 /**************************************************
     8801    ICE assigning to __ctfe
@@ -78,7 +103,18 @@ template bug6661(Q)
     const Q blaz = 6;
 }
 
-static assert(is(typeof(bug6661!(int).blaz)));
+static assert(!is(typeof(bug6661!(int).blaz)));
+
+template bug6661x(Q)
+{
+    int qutz(Q y)
+    {
+        Q q = "abc";
+        return 67;
+    }
+}
+// should pass, but doesn't in current
+//static assert(!is(typeof(bug6661x!(int))));
 
 /**************************************************
     6599    ICE(constfold.c) or segfault
@@ -177,6 +213,35 @@ static assert( !is(typeof( (){
 })));
 
 /**************************************************
+    11991
+**************************************************/
+
+void main()
+{
+    int Throwable;
+    int object;
+    try
+    {
+    }
+    catch
+    {
+    }
+}
+
+/**************************************************
+    11939
+**************************************************/
+
+void test11939()
+{
+    scope(failure)
+    {
+        import object : Object;
+    }
+    throw new Exception("");
+}
+
+/**************************************************
     5796
 **************************************************/
 
@@ -192,9 +257,9 @@ static assert(!is(typeof(A!(int))));
 **************************************************/
 void bug6720() { }
 
-//static assert(!is(typeof(
-//cast(bool)bug6720()
-//)));
+static assert(!is(typeof(
+cast(bool)bug6720()
+)));
 
 /**************************************************
     1099
@@ -335,6 +400,25 @@ struct Bug7058
 
 /***************************************************/
 
+void test12094()
+{
+    auto n = null;
+    int *a;
+    int[int] b;
+    int[] c;
+    auto u = true ? null : a;
+    auto v = true ? null : b;
+    auto w = true ? null : c;
+    auto x = true ? n : a;
+    auto y = true ? n : b;
+    auto z = true ? n : c;
+    a = n;
+    b = n;
+    c = n;
+}
+
+/***************************************************/
+
 template test8163(T...)
 {
     struct Point
@@ -361,3 +445,57 @@ alias test8163!(ubyte, ubyte, ubyte, ubyte, ubyte, ubyte, ubyte, ubyte) _BBBBBBB
 alias test8163!(ubyte, ubyte, ushort, float) _BBSf;
 
 
+/***************************************************/
+// 9348
+
+void test9348()
+{
+    @property Object F(int E)() { return null; }
+
+    assert(F!0 !is null);
+    assert(F!0 !in [new Object():1]);
+}
+
+/***************************************************/
+// 9690
+
+@disable
+{
+    void dep9690() {}
+    void test9690()
+    {
+        dep9690();      // OK
+        void inner()
+        {
+            dep9690();  // OK <- NG
+        }
+    }
+}
+
+/***************************************************/
+// 9987
+
+static if (is(object.ModuleInfo == struct))
+{
+    struct ModuleInfo {}
+
+    static assert(!is(object.ModuleInfo == ModuleInfo));
+    static assert(object.ModuleInfo.sizeof != ModuleInfo.sizeof);
+}
+static if (is(object.ModuleInfo == class))
+{
+    class ModuleInfo {}
+
+    static assert(!is(object.ModuleInfo == ModuleInfo));
+    static assert(__traits(classInstanceSize, object.ModuleInfo) !=
+                  __traits(classInstanceSize, ModuleInfo));
+}
+
+/***************************************************/
+// 11554
+
+enum E11554;
+static assert(is(E11554 == enum));
+
+struct Bro11554(N...) {}
+static assert(!is(E11554 unused : Bro11554!M, M...));

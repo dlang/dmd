@@ -1,12 +1,11 @@
 
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
-// All Rights Reserved
-// written by Rainer Schuetze
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+/* Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved, written by Rainer Schuetze
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/root/longdouble.c
+ */
 
 // 80 bit floating point value implementation for Microsoft compiler
 
@@ -51,14 +50,15 @@ bool initFPU()
     int old_cw = _control87(_MCW_EM | _PC_64  | _RC_NEAR,
                             _MCW_EM | _MCW_PC | _MCW_RC);
 #endif
+    _set_output_format(_TWO_DIGIT_EXPONENT);
     return true;
 }
 static bool doInitFPU = initFPU();
 
-#ifndef _WIN64
 extern "C"
 {
 
+#ifndef _WIN64
 double ld_read(const longdouble* pthis)
 {
     double res;
@@ -70,6 +70,8 @@ double ld_read(const longdouble* pthis)
     }
     return res;
 }
+#endif // !_WIN64
+
 long long ld_readll(const longdouble* pthis)
 {
 #if 1
@@ -126,6 +128,7 @@ unsigned long long ld_readull(const longdouble* pthis)
 #endif
 }
 
+#ifndef _WIN64
 void ld_set(longdouble* pthis, double d)
 {
     __asm
@@ -157,9 +160,9 @@ void ld_setull(longdouble* pthis, unsigned long long d)
         fstp tbyte ptr [eax]
     }
 }
+#endif // !_WIN64
 
 } // extern "C"
-#endif // !_WIN64
 
 longdouble ldexpl(longdouble ld, int exp)
 {
@@ -477,9 +480,9 @@ FM1:    // We don't use fprem1 because for some inexplicable
 
 //////////////////////////////////////////////////////////////
 
-longdouble ld_qnan = { 0x8000000000000000ULL, 0x7fff, 0 };
-longdouble ld_snan = { 0x0000000000000001ULL, 0x7fff, 0 };
-longdouble ld_inf  = { 0x0000000000000000ULL, 0x7fff, 0 };
+longdouble ld_qnan = { 0xC000000000000000ULL, 0x7fff, 0 };
+longdouble ld_snan = { 0xC000000000000001ULL, 0x7fff, 0 };
+longdouble ld_inf  = { 0x8000000000000000ULL, 0x7fff, 0 };
 
 longdouble ld_zero  = { 0, 0, 0 };
 longdouble ld_one   = { 0x8000000000000000ULL, 0x3fff, 0 };
@@ -516,9 +519,26 @@ int ld_type(longdouble x)
 
 size_t ld_sprint(char* str, int fmt, longdouble x)
 {
+    // ensure dmc compatible strings for nan and inf
+    switch(ld_type(x))
+    {
+    case LD_TYPE_QNAN:
+    case LD_TYPE_SNAN:
+        return sprintf(str, "nan");
+    case LD_TYPE_INFINITE:
+        return sprintf(str, x.sign ? "-inf" : "inf");
+    }
+
     // fmt is 'a','A','f' or 'g'
     if(fmt != 'a' && fmt != 'A')
     {
+        if (ldouble((unsigned long long)x) == x)
+        {   // ((1.5 -> 1 -> 1.0) == 1.5) is false
+            // ((1.0 -> 1 -> 1.0) == 1.0) is true
+            // see http://en.cppreference.com/w/cpp/io/c/fprintf
+            char format[] = {'%', '#', 'L', fmt, 0};
+            return sprintf(str, format, ld_read(&x));
+        }
         char format[] = { '%', fmt, 0 };
         return sprintf(str, format, ld_read(&x));
     }
@@ -526,16 +546,8 @@ size_t ld_sprint(char* str, int fmt, longdouble x)
     unsigned short exp = x.exponent;
     unsigned long long mantissa = x.mantissa;
 
-    switch(ld_type(x))
-    {
-    case LD_TYPE_ZERO:
+    if(ld_type(x) == LD_TYPE_ZERO)
         return sprintf(str, "0x0.0L");
-    case LD_TYPE_QNAN:
-    case LD_TYPE_SNAN:
-        return sprintf(str, "NAN");
-    case LD_TYPE_INFINITE:
-        return sprintf(str, x.sign ? "-INF" : "INF");
-    }
 
     size_t len = 0;
     if(x.sign)
@@ -579,6 +591,12 @@ static bool unittest()
     char buffer[32];
     ld_sprint(buffer, 'a', ld_pi);
     assert(strcmp(buffer, "0x1.921fb54442d1846ap+1") == 0);
+
+    ld_sprint(buffer, 'g', ldouble(2.0));
+    assert(strcmp(buffer, "2.00000") == 0);
+
+    ld_sprint(buffer, 'g', ldouble(1234567.89));
+    assert(strcmp(buffer, "1.23457e+06") == 0);
 
     longdouble ldb = ldouble(0.4);
     long long b = ldb;

@@ -1,12 +1,12 @@
 /*
  * Some portions copyright (c) 1994-1995 by Symantec
- * Copyright (c) 1999-2012 by Digital Mars
+ * Copyright (c) 1999-2013 by Digital Mars
  * All Rights Reserved
  * http://www.digitalmars.com
  * Written by Walter Bright
  *
  * This source file is made available for personal use
- * only. The license is in /dmd/src/dmd/backendlicense.txt
+ * only. The license is in backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
@@ -28,35 +28,14 @@
 #include        <limits.h>
 #endif
 
-#if __sun
-#include        <alloca.h>
-#endif
-
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
-#include "gnuc.h"
-#endif
-
 #include        "root.h"
 #include        "rmem.h"
+#include        "port.h"
 
 #define LOG     0
 
 char *skipspace(const char *p);
 
-#if __GNUC__
-char *strupr(char *s)
-{
-    char *t = s;
-
-    while (*s)
-    {
-        *s = toupper(*s);
-        s++;
-    }
-
-    return t;
-}
-#endif
 
 /*****************************
  * Read and analyze .ini file, i.e. write the entries of the specified section
@@ -78,7 +57,7 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
     char *filename;
     OutBuffer buf;
     int envsection = 0;
-    int envsectionnamelen = strlen(envsectionname);
+    size_t envsectionnamelen = strlen(envsectionname);
 
 #if LOG
     printf("inifile(argv0 = '%s', inifile = '%s')\n", argv0, inifile);
@@ -93,7 +72,7 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
          *      o current directory
          *      o home directory
          *      o directory off of argv0
-         *      o /etc/
+         *      o SYSCONFDIR (default=/etc/)
          */
         if (FileName::exists(inifile))
         {
@@ -101,12 +80,12 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
         }
         else
         {
-            filename = FileName::combine(getenv("HOME"), inifile);
+            filename = (char *)FileName::combine(getenv("HOME"), inifile);
             if (!FileName::exists(filename))
             {
 #if _WIN32 // This fix by Tim Matthews
                 char resolved_name[MAX_PATH + 1];
-                if(GetModuleFileName(NULL, resolved_name, MAX_PATH + 1) && FileName::exists(resolved_name))
+                if(GetModuleFileNameA(NULL, resolved_name, MAX_PATH + 1) && FileName::exists(resolved_name))
                 {
                         filename = (char *)FileName::replaceName(resolved_name, inifile);
                         if(FileName::exists(filename))
@@ -116,7 +95,7 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
                 filename = (char *)FileName::replaceName(argv0, inifile);
                 if (!FileName::exists(filename))
                 {
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
 #if __GLIBC__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun   // This fix by Thomas Kuehne
                     /* argv0 might be a symbolic link,
                      * so try again looking past it to the real path
@@ -131,7 +110,7 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
                     if (real_argv0)
                     {
                         filename = (char *)FileName::replaceName(real_argv0, inifile);
-#if linux
+#if __linux__
                         free(real_argv0);
 #endif
                         if (FileName::exists(filename))
@@ -147,7 +126,7 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
                     printf("\tPATH='%s'\n", p);
 #endif
                     Strings *paths = FileName::splitPath(p);
-                    filename = FileName::searchPath(paths, argv0, 0);
+                    filename = (char *)FileName::searchPath(paths, argv0, 0);
                     if (!filename)
                         goto Letc;              // argv0 not found on path
                     filename = (char *)FileName::replaceName(filename, inifile);
@@ -156,16 +135,19 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
                     }
                     // Search /etc/ for inifile
                 Letc:
+#ifndef SYSCONFDIR
+# error SYSCONFDIR not defined
 #endif
-                    filename = FileName::combine((char *)"/etc/", inifile);
-
+                    assert(SYSCONFDIR != NULL && strlen(SYSCONFDIR));
+                    filename = (char *)FileName::combine((char *)SYSCONFDIR, inifile);
+#endif // __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
                 Ldone:
                     ;
                 }
             }
         }
     }
-    path = FileName::path(filename);
+    path = (char *)FileName::path(filename);
 #if LOG
     printf("\tpath = '%s', filename = '%s'\n", path, filename);
 #endif
@@ -205,30 +187,24 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
             break;
         }
 
-        // The line is file.buffer[linestart..i]
-        char *line;
-        size_t len;
-        char *pn;
-
-        line = (char *)&file.buffer[linestart];
-        len = i - linestart;
-
         buf.reset();
 
         // First, expand the macros.
         // Macros are bracketed by % characters.
 
-        for (size_t k = 0; k < len; k++)
+        for (size_t k = 0; k < i - linestart; k++)
         {
+            // The line is file.buffer[linestart..i]
+            char *line = (char *)&file.buffer[linestart];
             if (line[k] == '%')
             {
-                for (size_t j = k + 1; j < len; j++)
+                for (size_t j = k + 1; j < i - linestart; j++)
                 {
                     if (line[j] == '%')
                     {
                         char *p = NULL;
                         char *palloc = NULL;
-                        if (j - k == 3 && memicmp(&line[k + 1], "@P", 2) == 0)
+                        if (j - k == 3 && Port::memicmp(&line[k + 1], "@P", 2) == 0)
                         {
                             // %@P% is special meaning the path to the .ini file
                             p = path;
@@ -248,7 +224,7 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
                             len2--;
                             memcpy(p, &line[k + 1], len2);
                             p[len2] = 0;
-                            strupr(p);
+                            Port::strupr(p);
                             p = getenv(p);
                             if (!p)
                                 p = (char *)"";
@@ -271,7 +247,7 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
             buf.offset--;
 
         {
-        char *p = buf.toChars();
+        char *p = buf.peekString();
 
         // The expanded line is in p.
         // Now parse it for meaning.
@@ -285,10 +261,11 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
 
             case '[':           // look for [Environment]
                 p = skipspace(p + 1);
-                for (pn = p; isalnum((unsigned char)*pn); pn++)
+                char *pn;
+                for (pn = p; isalnum((utf8_t)*pn); pn++)
                     ;
                 if (pn - p == envsectionnamelen &&
-                    memicmp(p, envsectionname, envsectionnamelen) == 0 &&
+                    Port::memicmp(p, envsectionname, envsectionnamelen) == 0 &&
                     *skipspace(pn) == ']'
                    )
                     envsection = 1;
@@ -299,29 +276,49 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
             default:
                 if (envsection)
                 {
-                    pn = p;
+                    char *pn = p;
 
                     // Convert name to upper case;
                     // remove spaces bracketing =
                     for (p = pn; *p; p++)
-                    {   if (islower((unsigned char)*p))
+                    {   if (islower((utf8_t)*p))
                             *p &= ~0x20;
-                        else if (isspace((unsigned char)*p))
+                        else if (isspace((utf8_t)*p))
+                        {
                             memmove(p, p + 1, strlen(p));
+                            p--;
+                        }
+                        else if (p[0] == '?' && p[1] == '=')
+                        {
+                            *p = '\0';
+                            if (getenv(p))
+                            {
+                                pn = NULL;
+                                break;
+                            }
+                            // remove the '?' and resume parsing starting from
+                            // '=' again so the regular variable format is
+                            // parsed
+                            memmove(p, p + 1, strlen(p + 1) + 1);
+                            p--;
+                        }
                         else if (*p == '=')
                         {
                             p++;
-                            while (isspace((unsigned char)*p))
+                            while (isspace((utf8_t)*p))
                                 memmove(p, p + 1, strlen(p));
                             break;
                         }
                     }
 
-                    putenv(strdup(pn));
+                    if (pn)
+                    {
+                        putenv(strdup(pn));
 #if LOG
-                    printf("\tputenv('%s')\n", pn);
-                    //printf("getenv(\"TEST\") = '%s'\n",getenv("TEST"));
+                        printf("\tputenv('%s')\n", pn);
+                        //printf("getenv(\"TEST\") = '%s'\n",getenv("TEST"));
 #endif
+                    }
                 }
                 break;
         }
@@ -339,7 +336,7 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
 
 char *skipspace(const char *p)
 {
-    while (isspace((unsigned char)*p))
+    while (isspace((utf8_t)*p))
         p++;
     return (char *)p;
 }

@@ -180,6 +180,122 @@ class Derived7560 : Base7560
 }
 
 /*********************************************/
+// 10577
+
+enum sync10577;
+
+public template get_sync10577(size_t I, A...)
+{
+    static if (I == A.length)               enum bool get_sync10577 = false;
+    else static if (is(A[I] == sync10577))  enum bool get_sync10577 = true;
+    else                                    enum bool get_sync10577 = get_sync!10577(I+1, A);
+}
+
+template add_sync10577(T, size_t ITER=0)
+{
+    static if (ITER == (__traits(derivedMembers, T).length))
+    {
+        enum string add_sync10577 = "";
+    }
+    else
+    {
+        enum string mem = __traits(derivedMembers, T)[ITER];
+        enum string add_sync10577 =
+            "static if (! __traits(isVirtualMethod, " ~ mem ~ ")) {" ~
+            "mixin(add_sync10577!(get_sync10577!(0, __traits(getAttributes, "
+            ~ mem ~ ")), \"" ~ mem ~ "\"));} " ~ add_sync10577!(T, ITER+1);
+    }
+}
+
+template add_sync10577(bool A, string M)
+{
+    static if (A)
+    {
+        enum string add_sync10577 = " auto " ~ M[1..$] ~
+            "() { synchronized(this) return " ~ M ~ "; }";
+    }
+    else
+    {
+        enum string add_sync10577 = "";
+    }
+}
+
+class base10577
+{
+    public void foo() {}
+}
+
+class derived10577 : base10577
+{
+    mixin(add_sync10577!(derived10577));
+    @sync10577 private bool _bar;
+
+    public override void foo() {}
+}
+
+/*********************************************/
+// 10583
+
+enum sync10583;
+
+public template get_sync10583(size_t I, A...)
+{
+    static if (I == A.length)
+        enum bool get_sync10583 = false;
+    else static if (is(A[I] == sync10583))
+        enum bool get_sync10583 = true;
+    else
+        enum bool get_sync10583 = get_sync10583!(I+1, A);
+}
+
+template add_sync10583(T, size_t ITER = 0)
+{
+    static if (ITER == (__traits(derivedMembers, T).length))
+    {
+        enum string add_sync10583 = "";
+    }
+    else
+    {
+        enum string mem = __traits(derivedMembers, T)[ITER];
+        enum string add_sync10583 =
+            "mixin(add_sync10583!(get_sync10583!(0, __traits(getAttributes, "
+            ~ mem ~ ")), __traits(getProtection, "
+            ~ mem ~ "), \"" ~ mem ~ "\"));\n" ~ add_sync10583!(T, ITER+1);
+    }
+}
+
+template add_sync10583(bool A, string P, string M)
+{
+    static if (A)
+    {
+        enum string add_sync10583 = " auto " ~ M[1..$] ~
+            "() { synchronized(this) return " ~ M ~ "; }";
+    }
+    else
+        enum string add_sync10583 = "";
+}
+
+class derived10583
+{
+    mixin(add_sync10583!(derived10583));
+    @sync10583 private bool _bar;
+    void frop() {}
+}
+
+/*********************************************/
+
+string rep(string s, int n)
+{
+    return n > 1 ? s ~ rep(s, n-1) : s;
+}
+
+void test7156()
+{
+    int i;
+    mixin(rep("++i;", 200));
+}
+
+/*********************************************/
 
 void main()
 {
@@ -193,6 +309,7 @@ void main()
     test8();
     test9();
     test10();
+    test7156();
 
     writeln("Success");
 }

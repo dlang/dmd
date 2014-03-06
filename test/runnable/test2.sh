@@ -21,7 +21,7 @@ for x in "${a[@]}"; do
         exit 1
     fi
 
-    ./${dir}/test2 >> ${output_file}
+    ${dir}/test2 >> ${output_file}
     if [ $? -ne 0 ]; then
         cat ${output_file}
         rm -f ${output_file}

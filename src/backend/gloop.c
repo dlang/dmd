@@ -5,8 +5,7 @@
 // Written by Walter Bright
 /*
  * This source file is made available for personal use
- * only. The license is in /dmd/src/dmd/backendlicense.txt
- * or /dm/src/dmd/backendlicense.txt
+ * only. The license is in backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
@@ -887,8 +886,8 @@ restart:
             if (dfo[i]->Belem)
             {   // If there is any hope of making an improvement
                 if (domexit || l->Llis)
-                {   if (dfo[i] != l->Lhead)
-                        ; //domexit |= 2;
+                {   //if (dfo[i] != l->Lhead)
+                        //domexit |= 2;
                     movelis(dfo[i]->Belem, dfo[i], l, &domexit);
                 }
             }
@@ -1108,6 +1107,7 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPlt:      case OPle:      case OPgt:      case OPge:
         case OPashr:
         case OPror:     case OProl:
+        case OPbtst:
 
         case OPunord:   case OPlg:      case OPleg:     case OPule:
         case OPul:      case OPuge:     case OPug:      case OPue:
@@ -2231,6 +2231,10 @@ STATIC void findbasivs(loop *l)
         if (tyaggregate(s->ty()))
                 continue;
 
+        // Do not use complex types as basic IVs, as the code gen isn't up to it
+        if (tycomplex(s->ty()))
+                continue;
+
         biv = Iv::mycalloc();
         biv->IVnext = l->Livlist;
         l->Livlist = biv;               // link into list of IVs
@@ -2449,6 +2453,9 @@ STATIC void ivfamelems(register Iv *biv,register elem **pn)
   }
   else                                  /* else leaf elem               */
         return;                         /* which can't be in the family */
+
+  if (tycomplex(n->Ety))
+        return;
 
   if (op == OPmul || op == OPadd || op == OPmin ||
         op == OPneg || op == OPshl)

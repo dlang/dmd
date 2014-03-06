@@ -5,8 +5,7 @@
 // Written by Walter Bright
 /*
  * This source file is made available for personal use
- * only. The license is in /dmd/src/dmd/backendlicense.txt
- * or /dm/src/dmd/backendlicense.txt
+ * only. The license is in backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
@@ -35,10 +34,12 @@ struct Loc
 {
     char *filename;
     unsigned linnum;
+    unsigned charnum;
 
-    Loc(int x)
+    Loc(int y, int x)
     {
-        linnum = x;
+        linnum = y;
+        charnum = x;
         filename = NULL;
     }
 };
@@ -365,7 +366,7 @@ void objrecord(unsigned rectyp,const char *record,unsigned reclen)
  *      # of bytes stored
  */
 
-extern void error(const char *filename, unsigned linnum, const char *format, ...);
+extern void error(const char *filename, unsigned linnum, unsigned charnum, const char *format, ...);
 extern void fatal();
 
 void too_many_symbols()
@@ -373,7 +374,7 @@ void too_many_symbols()
 #if SCPP
     err_fatal(EM_too_many_symbols, 0x7FFF);
 #else // MARS
-    error(NULL, 0, "more than %d symbols in object file", 0x7FFF);
+    error(NULL, 0, 0, "more than %d symbols in object file", 0x7FFF);
     fatal();
 #endif
 }
@@ -2249,7 +2250,7 @@ size_t Obj::mangle(Symbol *s,char *dest)
 #if SCPP
             synerr(EM_identifier_too_long, name, len - IDMAX, IDMAX);
 #elif MARS
-//          error(0, "identifier %s is too long by %d characters", name, len - IDMAX);
+//          error(Loc(), "identifier %s is too long by %d characters", name, len - IDMAX);
 #else
             assert(0);
 #endif

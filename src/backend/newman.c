@@ -5,8 +5,7 @@
 // Written by Walter Bright
 /*
  * This source file is made available for personal use
- * only. The license is in /dmd/src/dmd/backendlicense.txt
- * or /dm/src/dmd/backendlicense.txt
+ * only. The license is in backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
@@ -1315,8 +1314,7 @@ STATIC void cpp_this_type(type *tfunc,Classsym *stag)
     type_debug(tfunc);
     symbol_debug(stag);
 #if MARS
-    t = type_allocn(TYnptr, stag->Stype);
-    t->Tcount++;
+    t = type_pointer(stag->Stype);
 #else
     t = cpp_thistype(tfunc,stag);
 #endif
@@ -1627,6 +1625,24 @@ STATIC void cpp_symbol_name(symbol *s)
         {   // operator_name ::= '?' operator_code
             //CHAR('?');                        // already there
             STR(p);
+            return;
+        }
+    }
+#endif
+#if MARS && 0
+    //It mangles correctly, but the ABI doesn't match,
+    // leading to copious segfaults. At least with the
+    // wrong mangling you get link errors.
+    if (tyfunc(s->Stype->Tty) && s->Sfunc)
+    {
+        if (s->Sfunc->Fflags & Fctor)
+        {
+            cpp_zname(cpp_name_ct);
+            return;
+        }
+        if (s->Sfunc->Fflags & Fdtor)
+        {
+            cpp_zname(cpp_name_dt);
             return;
         }
     }

@@ -20,10 +20,9 @@
 
 /**************************************************************/
 
-#if DMDV2
-
-struct AliasThis : Dsymbol
+class AliasThis : public Dsymbol
 {
+public:
    // alias Identifier this;
     Identifier *ident;
 
@@ -34,8 +33,7 @@ struct AliasThis : Dsymbol
     const char *kind();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     AliasThis *isAliasThis() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
 };
-
-#endif
 
 #endif

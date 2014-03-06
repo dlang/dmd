@@ -5,8 +5,7 @@
 // Written by Walter Bright
 /*
  * This source file is made available for personal use
- * only. The license is in /dmd/src/dmd/backendlicense.txt
- * or /dm/src/dmd/backendlicense.txt
+ * only. The license is in backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
@@ -26,7 +25,7 @@
 #include <sys\stat.h>
 #endif
 
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -251,7 +250,7 @@ void *vmem_mapfile(const char *filename,void *ptr,unsigned long size,int flag)
 
     dbg_printf("vmem_mapfile(filename = '%s', ptr = %p, size = x%lx, flag = %d)\n",filename,ptr,size,flag);
 
-    hFile = CreateFile(filename, GENERIC_READ | GENERIC_WRITE,
+    hFile = CreateFileA(filename, GENERIC_READ | GENERIC_WRITE,
                         FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
                         OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
     if (hFile == INVALID_HANDLE_VALUE)
@@ -263,7 +262,7 @@ void *vmem_mapfile(const char *filename,void *ptr,unsigned long size,int flag)
     if (flag == 1 && OsVerInfo.dwPlatformId == 1)       // Windows 95, 98, ME
         hFileMap = NULL;
     else
-        hFileMap = CreateFileMapping(hFile,NULL,
+        hFileMap = CreateFileMappingA(hFile,NULL,
                 (flag == 1) ? PAGE_WRITECOPY : PAGE_READWRITE,0,size,NULL);
 
     if (hFileMap == NULL)               // mapping failed
@@ -667,7 +666,7 @@ int os_file_exists(const char *name)
     if (!find)
         return 0;
     return (find->attribute & FA_DIREC) ? 2 : 1;
-#elif linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#elif __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
     struct stat buf;
 
     return stat(name,&buf) == 0;        /* file exists if stat succeeded */
@@ -707,7 +706,7 @@ long os_file_size(int fd)
 char *file_8dot3name(const char *filename)
 {
     HANDLE h;
-    WIN32_FIND_DATA fileinfo;
+    WIN32_FIND_DATAA fileinfo;
     char *buf;
     int i;
 
@@ -744,7 +743,7 @@ char *file_8dot3name(const char *filename)
 
 int file_write(char *name, void *buffer, unsigned len)
 {
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
     int fd;
     ssize_t numwritten;
 
@@ -771,7 +770,7 @@ err:
     HANDLE h;
     DWORD numwritten;
 
-    h = CreateFile((LPTSTR)name,GENERIC_WRITE,0,NULL,CREATE_ALWAYS,
+    h = CreateFileA((LPTSTR)name,GENERIC_WRITE,0,NULL,CREATE_ALWAYS,
         FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL);
     if (h == INVALID_HANDLE_VALUE)
     {
@@ -779,7 +778,7 @@ err:
         {
             if (!file_createdirs(name))
             {
-                h = CreateFile((LPTSTR)name,GENERIC_WRITE,0,NULL,CREATE_ALWAYS,
+                h = CreateFileA((LPTSTR)name,GENERIC_WRITE,0,NULL,CREATE_ALWAYS,
                     FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL);
                 if (h != INVALID_HANDLE_VALUE)
                     goto Lok;
@@ -820,7 +819,7 @@ err:
 
 int file_createdirs(char *name)
 {
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
     return 1;
 #endif
 #if _WIN32
@@ -866,6 +865,8 @@ Lfail:
  * sizes.
  */
 
+#if DMDV1
+
 #if _WIN32
 int os_critsecsize32()
 {
@@ -878,7 +879,7 @@ int os_critsecsize64()
 }
 #endif
 
-#if linux
+#if __linux__
 int os_critsecsize32()
 {
     return 24; // sizeof(pthread_mutex_t) on 32 bit
@@ -959,3 +960,4 @@ int main()
 }
 #endif
 
+#endif

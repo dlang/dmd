@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2013 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -18,11 +18,11 @@
 #include        <fcntl.h>
 #include        <ctype.h>
 
-#if __DMC__ || linux
+#if __DMC__ || __linux__
 #include        <malloc.h>
 #endif
 
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
 #include        <signal.h>
 #include        <unistd.h>
 #include        <errno.h>
@@ -149,6 +149,7 @@ struct CFA_state
     CFA_reg regstates[17];      // register states
 };
 
+#if TX86
 int dwarf_regno(int reg)
 {
     assert(reg < NUMGENREGS);
@@ -162,6 +163,7 @@ int dwarf_regno(int reg)
         return reg < 8 ? to_amd64_reg_map[reg] : reg;
     }
 }
+#endif
 
 static CFA_state CFA_state_init_32 =       // initial CFA state as defined by CIE
 {   0,                // location
@@ -415,7 +417,7 @@ struct DebugInfoHeader
 
 static DebugInfoHeader debuginfo_init =
 {       0,      // total_length
-        2,      // version
+        3,      // version
         0,      // abbrev_offset
         4       // address_size
 };
@@ -564,24 +566,16 @@ void dwarf_initfile(const char *filename)
 
     // include_directories
 #if SCPP
-    list_t pl;
-    for (pl = pathlist; pl; pl = list_next(pl))
+    for (size_t i = 0; i < pathlist.length(); ++i)
     {
-        linebuf->writeString((char *)list_ptr(pl));
+        linebuf->writeString(pathlist[i]);
         linebuf->writeByte(0);
     }
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
-    for (pl = pathsyslist; pl; pl = list_next(pl))
-    {
-        linebuf->writeString((char *)list_ptr(pl));
-        linebuf->writeByte(0);
-    }
-#endif
 #endif
 #if 0 && MARS
     for (int i = 0; i < global.params.imppath->dim; i++)
     {
-        linebuf->writeString(global.params.imppath->tdata()[i]);
+        linebuf->writeString((*global.params.imppath)[i]);
         linebuf->writeByte(0);
     }
 #endif
@@ -737,7 +731,7 @@ int dwarf_line_addfile(const char* filename)
 
     Abuf abuf;
     abuf.buf = (const unsigned char*)filename;
-    abuf.length = strlen(filename)-1;
+    abuf.length = strlen(filename);
 
     unsigned *pidx = (unsigned *)infoFileName_table->get(&abuf);
     if (!*pidx)                 // if no idx assigned yet
@@ -925,6 +919,11 @@ void dwarf_termfile()
     debugline.total_length = linebuf->size() - 4;
     memcpy(linebuf->buf, &debugline, sizeof(debugline));
 
+    // Bugzilla 3502, workaround OSX's ld64-77 bug.
+    // Don't emit the the debug_line section if nothing has been written to the line table.
+    if (debugline.prologue_length + 10 == debugline.total_length + 4)
+        linebuf->reset();
+
     /* ================================================= */
 
     abbrevbuf->writeByte(0);
@@ -998,6 +997,8 @@ void dwarf_func_term(Symbol *sfunc)
    //printf("dwarf_func_term(sfunc = '%s')\n", sfunc->Sident);
 
 #if MARS
+    if (sfunc->Sflags & SFLnodebug)
+        return;
     const char* filename = sfunc->Sfunc->Fstartline.Sfilename;
     if (!filename)
         return;
@@ -1114,16 +1115,21 @@ void dwarf_func_term(Symbol *sfunc)
         unsigned autocode = 0;
         SYMIDX si;
         for (si = 0; si < globsym.top; si++)
-        {   symbol *sa = globsym.tab[si];
+        {
+            symbol *sa = globsym.tab[si];
+#if MARS
+            if (sa->Sflags & SFLnodebug) continue;
+#endif
 
             static unsigned char formal[] =
             {
                 DW_TAG_formal_parameter,
                 0,
-                DW_AT_name,     DW_FORM_string,
-                DW_AT_type,     DW_FORM_ref4,
-                DW_AT_location, DW_FORM_block1,
-                0,              0,
+                DW_AT_name,       DW_FORM_string,
+                DW_AT_type,       DW_FORM_ref4,
+                DW_AT_artificial, DW_FORM_flag,
+                DW_AT_location,   DW_FORM_block1,
+                0,                0,
             };
 
             switch (sa->Sclass)
@@ -1215,7 +1221,12 @@ void dwarf_func_term(Symbol *sfunc)
         if (haveparameters)
         {
             for (si = 0; si < globsym.top; si++)
-            {   symbol *sa = globsym.tab[si];
+            {
+                symbol *sa = globsym.tab[si];
+#if MARS
+                if (sa->Sflags & SFLnodebug) continue;
+#endif
+
                 unsigned vcode;
 
                 switch (sa->Sclass)
@@ -1231,12 +1242,14 @@ void dwarf_func_term(Symbol *sfunc)
                     case SCbprel:
                         vcode = autocode;
                     L1:
-                    {   unsigned soffset;
+                    {
+                        unsigned soffset;
                         unsigned tidx = dwarf_typidx(sa->Stype);
 
                         infobuf->writeuLEB128(vcode);           // abbreviation code
                         infobuf->writeString(sa->Sident);       // DW_AT_name
                         infobuf->write32(tidx);                 // DW_AT_type
+                        infobuf->writeByte(sa->Sflags & SFLartifical ? 1 : 0); // DW_FORM_tag
                         soffset = infobuf->size();
                         infobuf->writeByte(2);                  // DW_FORM_block1
                         if (sa->Sfl == FLreg || sa->Sclass == SCpseudo)
@@ -1250,11 +1263,11 @@ void dwarf_func_term(Symbol *sfunc)
                                 sa->Sclass == SCparameter)
                                 infobuf->writesLEB128(sa->Soffset);
                             else if (sa->Sclass == SCfastpar)
-                                infobuf->writesLEB128(FASToff + BPoff - Poff + sa->Soffset);
+                                infobuf->writesLEB128(Fast.size + BPoff - Para.size + sa->Soffset);
                             else if (sa->Sclass == SCbprel)
-                                infobuf->writesLEB128(-Poff + sa->Soffset);
+                                infobuf->writesLEB128(-Para.size + sa->Soffset);
                             else
-                                infobuf->writesLEB128(Aoff + BPoff - Poff + sa->Soffset);
+                                infobuf->writesLEB128(Auto.size + BPoff - Para.size + sa->Soffset);
                         }
                         infobuf->buf[soffset] = infobuf->size() - soffset - 1;
                         break;
@@ -1298,8 +1311,8 @@ void dwarf_func_term(Symbol *sfunc)
 
         /* ============= debug_loc =========================== */
 
-        assert(Poff >= 2 * REGSIZE);
-        assert(Poff < 63); // avoid sLEB128 encoding
+        assert(Para.size >= 2 * REGSIZE);
+        assert(Para.size < 63); // avoid sLEB128 encoding
         unsigned short op_size = 0x0002;
         unsigned short loc_op;
 
@@ -1308,21 +1321,21 @@ void dwarf_func_term(Symbol *sfunc)
         dwarf_appreladdr(debug_loc_seg, debug_loc_buf, seg, funcoffset + 0);
         dwarf_appreladdr(debug_loc_seg, debug_loc_buf, seg, funcoffset + 1);
 
-        loc_op = ((Poff - REGSIZE) << 8) | (DW_OP_breg0 + dwarf_regno(SP));
+        loc_op = ((Para.size - REGSIZE) << 8) | (DW_OP_breg0 + dwarf_regno(SP));
         debug_loc_buf->write32(loc_op << 16 | op_size);
 
         // after push EBP
         dwarf_appreladdr(debug_loc_seg, debug_loc_buf, seg, funcoffset + 1);
         dwarf_appreladdr(debug_loc_seg, debug_loc_buf, seg, funcoffset + 3);
 
-        loc_op = ((Poff) << 8) | (DW_OP_breg0 + dwarf_regno(SP));
+        loc_op = ((Para.size) << 8) | (DW_OP_breg0 + dwarf_regno(SP));
         debug_loc_buf->write32(loc_op << 16 | op_size);
 
         // after mov EBP, ESP
         dwarf_appreladdr(debug_loc_seg, debug_loc_buf, seg, funcoffset + 3);
         dwarf_appreladdr(debug_loc_seg, debug_loc_buf, seg, funcoffset + sfunc->Ssize);
 
-        loc_op = ((Poff) << 8) | (DW_OP_breg0 + dwarf_regno(BP));
+        loc_op = ((Para.size) << 8) | (DW_OP_breg0 + dwarf_regno(BP));
         debug_loc_buf->write32(loc_op << 16 | op_size);
 
         // 2 zero addresses to end loc_list

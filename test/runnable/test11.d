@@ -1318,6 +1318,27 @@ void test8809()
 }
 
 /**************************************/
+// 9734
+
+void test9734()
+{
+    class C {}
+    class D : C
+    {
+        static bool test(C) { return true; }
+
+        void foo()() if (is(typeof(test(super)))) {}
+        void bar()() if (is(typeof(super) == C)) {}
+    }
+    void baz()() if (is(typeof(super))) {}
+
+    auto d = new D();
+    d.foo();
+    d.bar();
+    static assert(!__traits(compiles, baz()));
+}
+
+/**************************************/
 
 int main(string[] argv)
 {
@@ -1384,6 +1405,7 @@ int main(string[] argv)
     test64();
     test65();
     test8809();
+    test9734();
 
     printf("Success\n");
     return 0;

@@ -40,6 +40,8 @@ code* REGSAVE::save(code* c, int reg, unsigned* pidx) { assert(0); return NULL; 
 FuncParamRegs::FuncParamRegs(tym_t tyf) { assert(0); }
 int FuncParamRegs::alloc(type *t, tym_t ty, unsigned char *preg1, unsigned char *preg2) { assert(0); return 0; }
 
+int dwarf_regno(int reg) { assert(0); return 0; }
+
 code* prolog_ifunc(tym_t* tyf) { assert(0); return NULL; }
 code* prolog_ifunc2(tym_t tyf, tym_t tym, bool pushds) { assert(0); return NULL; }
 code* prolog_16bit_windows_farfunc(tym_t* tyf, bool* pushds) { assert(0); return NULL; }
@@ -49,7 +51,9 @@ code* prolog_frameadj2(tym_t tyf, unsigned xlocalsize, bool* pushalloc) { assert
 code* prolog_setupalloca() { assert(0); return NULL; }
 code* prolog_trace(bool farfunc, unsigned* regsaved) { assert(0); return NULL; }
 code* prolog_genvarargs(symbol* sv, regm_t* namedargs) { assert(0); return NULL; }
+code* prolog_gen_win64_varargs() { assert(0); return NULL; }
 code* prolog_loadparams(tym_t tyf, bool pushalloc, regm_t* namedargs) { assert(0); return NULL; }
+code* prolog_saveregs(code *c, regm_t topush) { assert(0); return NULL; }
 targ_size_t cod3_spoff() { assert(0); }
 
 void  epilog(block* b) { assert(0); }
@@ -98,6 +102,7 @@ void genEEcode() { assert(0); }
 unsigned gensaverestore(regm_t regm, code** csave, code** crestore) { assert(0); return 0; }
 unsigned gensaverestore2(regm_t regm, code** csave, code** crestore) { assert(0); return 0; }
 
+bool isXMMstore(unsigned op) { assert(0); return false; }
 const unsigned char* getintegerparamsreglist(tym_t tyf, size_t* num) { assert(0); *num = 0; return NULL; }
 const unsigned char* getfloatparamsreglist(tym_t tyf, size_t* num) { assert(0); *num = 0; return NULL; }
 void cod3_buildmodulector(Outbuffer* buf, int codeOffset, int refOffset) { assert(0); }
@@ -112,6 +117,7 @@ code* cdabs      (elem* e, regm_t* pretregs) { assert(0); return NULL; }
 code* cdaddass   (elem* e, regm_t* pretregs) { assert(0); return NULL; }
 code* cdasm      (elem* e, regm_t* pretregs) { assert(0); return NULL; }
 code* cdbscan    (elem* e, regm_t* pretregs) { assert(0); return NULL; }
+code* cdbtst     (elem* e, regm_t* pretregs) { assert(0); return NULL; }
 code* cdbswap    (elem* e, regm_t* pretregs) { assert(0); return NULL; }
 code* cdbt       (elem* e, regm_t* pretregs) { assert(0); return NULL; }
 code* cdbyteint  (elem* e, regm_t* pretregs) { assert(0); return NULL; }
@@ -161,6 +167,7 @@ code* cdstrcpy   (elem* e, regm_t* pretregs) { assert(0); return NULL; }
 code* cdstreq    (elem* e, regm_t* pretregs) { assert(0); return NULL; }
 code* cdstrlen   (elem* e, regm_t* pretregs) { assert(0); return NULL; }
 code* cdstrthis  (elem* e, regm_t* pretregs) { assert(0); return NULL; }
+code* cdvecsto   (elem* e, regm_t* pretregs) { assert(0); return NULL; }
 code* cdvector   (elem* e, regm_t* pretregs) { assert(0); return NULL; }
 code* cdvoid     (elem* e, regm_t* pretregs) { assert(0); return NULL; }
 

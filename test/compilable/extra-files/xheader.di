@@ -1,52 +1,90 @@
 class C
 {
 }
-void foo(const C c, const(char)[] s, const int* q, const(int*) p)
-{
-}
-void bar(in void* p)
-{
-}
+void foo(const C c, const(char)[] s, const int* q, const(int*) p);
+void bar(in void* p);
 void f(void function() f2);
 class C2;
 void foo2(const C2 c);
 struct Foo3
 {
 	int k;
-	~this()
-	{
-		k = 1;
-	}
-	this(this)
-	{
-		k = 2;
-	}
+	~this();
+	this(this);
 }
 class C3
 {
-	@property int get()
-	{
-		return 0;
-	}
+	@property int get();
 
 }
-template foo3(T)
+T foo3(T)()
 {
-	T foo3()
+}
+struct S4A(T)
+{
+	T x;
+}
+struct S4B(T) if (1)
+{
+	T x;
+}
+union U4A(T)
+{
+	T x;
+}
+union U4B(T) if (2 * 4 == 8)
+{
+	T x;
+}
+class C4A(T)
+{
+	T x;
+}
+class C4B(T) if (true)
+{
+	T x;
+}
+class C4C(T) if (!false) : C4A!int
+{
+	T x;
+}
+class C4D(T) if (!false) : C4B!long, C4C!(int[])
+{
+	T x;
+}
+interface I4(T) if ((int[1]).length == 1)
+{
+	T x;
+}
+template MyClass4(T) if (is(typeof(T.subtype)))
+{
+	alias T.subtype HelperSymbol;
+	class MyClass4
 	{
 	}
 }
-template Foo4(T)
+auto flit = 3 / 2.00000;
+void foo11217()(const int[] arr)
 {
-	struct Foo4
-	{
-		T x;
-	}
 }
-template C4(T)
+void foo11217()(immutable int[] arr)
 {
-	class C4
-	{
-		T x;
-	}
+}
+void foo11217()(ref int[] arr)
+{
+}
+void foo11217()(lazy int[] arr)
+{
+}
+void foo11217()(auto ref int[] arr)
+{
+}
+void foo11217()(scope int[] arr)
+{
+}
+void foo11217()(in int[] arr)
+{
+}
+void foo11217()(inout int[] arr)
+{
 }

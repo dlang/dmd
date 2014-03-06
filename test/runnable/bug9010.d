@@ -1,6 +1,7 @@
 // PERMUTE_ARGS: 
 // POST_SCRIPT: runnable/extra-files/bug9010-postscript.sh 
 // REQUIRED_ARGS: -cov 
+// EXECUTE_ARGS: ${RESULTS_DIR}/runnable
  
 struct A
 {
@@ -13,9 +14,9 @@ struct A
 
 extern(C) void dmd_coverDestPath(string pathname); 
 
-void main()
+void main(string[] args)
 {
-    dmd_coverDestPath("test_results/runnable"); 
+    dmd_coverDestPath(args[1]);
 
     auto a = A();
     auto b = A();

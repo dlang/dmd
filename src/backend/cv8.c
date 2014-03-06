@@ -40,6 +40,10 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 #if MARS
 #if TARGET_WINDOS
 
+// if symbols get longer than 65500 bytes, the linker reports corrupt debug info or exits with
+// 'fatal error LNK1318: Unexpected PDB error; RPC (23) '(0x000006BA)'
+#define CV8_MAX_SYMBOL_LENGTH 0xffd8
+
 #include        <direct.h>
 
 // The "F1" section, which is the symbols
@@ -280,9 +284,41 @@ void cv8_func_term(Symbol *sfunc)
     funcdata->write(&currentfuncdata, sizeof(currentfuncdata));
 
     // Write function symbol
-    idx_t typidx = cv_typidx(sfunc->Stype);
+    assert(tyfunc(sfunc->ty()));
+    idx_t typidx;
+    func_t* fn = sfunc->Sfunc;
+    if(fn->Fclass)
+    {
+        // generate member function type info
+        // it would be nicer if this could be in cv4_typidx, but the function info is not available there
+        unsigned nparam;
+        unsigned char call = cv4_callconv(sfunc->Stype);
+        idx_t paramidx = cv4_arglist(sfunc->Stype,&nparam);
+        unsigned next = cv4_typidx(sfunc->Stype->Tnext);
+
+        type* classtype = (type*)fn->Fclass;
+        unsigned classidx = cv4_typidx(classtype);
+        type *tp = type_allocn(TYnptr, classtype);
+        unsigned thisidx = cv4_typidx(tp);  // TODO
+        debtyp_t *d = debtyp_alloc(2 + 4 + 4 + 4 + 1 + 1 + 2 + 4 + 4);
+        TOWORD(d->data,LF_MFUNCTION_V2);
+        TOLONG(d->data + 2,next);       // return type
+        TOLONG(d->data + 6,classidx);   // class type
+        TOLONG(d->data + 10,thisidx);   // this type
+        d->data[14] = call;
+        d->data[15] = 0;                // reserved
+        TOWORD(d->data + 16,nparam);
+        TOLONG(d->data + 18,paramidx);
+        TOLONG(d->data + 22,0);  // this adjust
+        typidx = cv_debtyp(d);
+    }
+    else
+        typidx = cv_typidx(sfunc->Stype);
+
     const char *id = sfunc->prettyIdent ? sfunc->prettyIdent : prettyident(sfunc);
     size_t len = strlen(id);
+    if(len > CV8_MAX_SYMBOL_LENGTH)
+        len = CV8_MAX_SYMBOL_LENGTH;
     /*
      *  2       length (not including these 2 bytes)
      *  2       S_GPROC_V3
@@ -317,7 +353,8 @@ void cv8_func_term(Symbol *sfunc)
     buf->writeWordn(0);
 
     buf->writeByte(0);
-    buf->writen(id, len + 1);
+    buf->writen(id, len);
+    buf->writeByte(0);
 
     // Write local symbol table
     bool endarg = false;
@@ -514,6 +551,8 @@ void cv8_outsym(Symbol *s)
     //printf("typidx = %x\n", typidx);
     const char *id = s->prettyIdent ? s->prettyIdent : prettyident(s);
     size_t len = strlen(id);
+    if(len > CV8_MAX_SYMBOL_LENGTH)
+        len = CV8_MAX_SYMBOL_LENGTH;
 
     F1_Fixups f1f;
     Outbuffer *buf = currentfuncdata.f1buf;
@@ -532,13 +571,13 @@ void cv8_outsym(Symbol *s)
                 s->Sfl = FLreg;
                 goto case_register;
             }
-            base = Poff - BPoff;    // cancel out add of BPoff
+            base = Para.size - BPoff;    // cancel out add of BPoff
             goto L1;
         case SCauto:
             if (s->Sfl == FLreg)
                 goto case_register;
         case_auto:
-            base = Aoff;
+            base = Auto.size;
         L1:
 #if 1
             // Register relative addressing
@@ -548,7 +587,8 @@ void cv8_outsym(Symbol *s)
             buf->write32(s->Soffset + base + BPoff);
             buf->write32(typidx);
             buf->writeWordn(334);       // relative to RBP
-            buf->writen(id, len + 1);
+            buf->writen(id, len);
+            buf->writeByte(0);
 #else
             // This is supposed to work, implicit BP relative addressing, but it does not
             buf->reserve(2 + 2 + 4 + 4 + len + 1);
@@ -556,7 +596,8 @@ void cv8_outsym(Symbol *s)
             buf->writeWordn(0x1006);
             buf->write32(s->Soffset + base + BPoff);
             buf->write32(typidx);
-            buf->writen(id, len + 1);
+            buf->writen(id, len);
+            buf->writeByte(0);
 #endif
             break;
 
@@ -566,7 +607,7 @@ void cv8_outsym(Symbol *s)
 
         case SCfastpar:
             if (s->Sfl != FLreg)
-            {   base = FASToff;
+            {   base = Fast.size;
                 goto L1;
             }
             goto L2;
@@ -582,7 +623,8 @@ void cv8_outsym(Symbol *s)
             buf->writeWordn(S_REGISTER_V3);
             buf->write32(typidx);
             buf->writeWordn(cv8_regnum(s));
-            buf->writen(id, len + 1);
+            buf->writen(id, len);
+            buf->writeByte(0);
             break;
 
         case SCextern:
@@ -619,7 +661,8 @@ void cv8_outsym(Symbol *s)
             buf->write32(0);
             buf->writeWordn(0);
 
-            buf->writen(id, len + 1);
+            buf->writen(id, len);
+            buf->writeByte(0);
             break;
 
         default:
@@ -639,11 +682,14 @@ void cv8_udt(const char *id, idx_t typidx)
     //printf("cv8_udt('%s', %x)\n", id, typidx);
     Outbuffer *buf = currentfuncdata.f1buf;
     size_t len = strlen(id);
+    if (len > CV8_MAX_SYMBOL_LENGTH)
+        len = CV8_MAX_SYMBOL_LENGTH;
     buf->reserve(2 + 2 + 4 + len + 1);
     buf->writeWordn( 2 + 4 + len + 1);
     buf->writeWordn(S_UDT_V3);
     buf->write32(typidx);
-    buf->writen(id, len + 1);
+    buf->writen(id, len);
+    buf->writeByte(0);
 }
 
 /*********************************************
@@ -715,7 +761,11 @@ idx_t cv8_fwdref(Symbol *s)
         numidx = 18;
     }
     unsigned len = numidx + cv4_numericbytes(0);
-    debtyp_t *d = debtyp_alloc(len + cv_stringbytes(s->Sident));
+    int idlen = strlen(s->Sident);
+    if (idlen > CV8_MAX_SYMBOL_LENGTH)
+        idlen = CV8_MAX_SYMBOL_LENGTH;
+
+    debtyp_t *d = debtyp_alloc(len + idlen + 1);
     TOWORD(d->data, leaf);
     TOWORD(d->data + 2, 0);     // number of fields
     TOWORD(d->data + 4, 0x80);  // property
@@ -726,7 +776,8 @@ idx_t cv8_fwdref(Symbol *s)
         TOLONG(d->data + 14, 0);        // vshape
     }
     cv4_storenumeric(d->data + numidx, 0);
-    cv_namestring(d->data + len, s->Sident);
+    memcpy(d->data + len, s->Sident, idlen);
+    d->data[len + idlen] = 0;
     idx_t typidx = cv_debtyp(d);
     s->Stypidx = typidx;
     return typidx;
@@ -759,29 +810,29 @@ idx_t cv8_darray(type *t, idx_t etypidx)
     return cv_debtyp(d);
 #endif
 
-    type *tp = type_allocn(TYnptr, t->Tnext);
+    type *tp = type_pointer(t->Tnext);
     idx_t ptridx = cv4_typidx(tp);
     type_free(tp);
 
-    static const unsigned char fl[0x26] =
+    static const unsigned char fl[] =
     {
         0x03, 0x12,             // LF_FIELDLIST_V2
         0x0d, 0x15,             // LF_MEMBER_V3
         0x03, 0x00,             // attribute
         0x23, 0x00, 0x00, 0x00, // size_t
         0x00, 0x00,             // offset
-        0x6c, 0x65, 0x6e, 0x67, 0x74, 0x68, 0x00,
-        0xf3, 0xf2, 0xf1,
+        'l', 'e', 'n', 'g', 't', 'h', 0x00,
+        0xf3, 0xf2, 0xf1,       // align to 4-byte including length word before data
         0x0d, 0x15,
         0x03, 0x00,
         0x00, 0x00, 0x00, 0x00, // etypidx
         0x08, 0x00,
-        0x70, 0x74, 0x72, 0x00,
+        'p', 't', 'r', 0x00,
         0xf2, 0xf1,
     };
 
-    debtyp_t *f = debtyp_alloc(0x26);
-    memcpy(f->data,fl,0x26);
+    debtyp_t *f = debtyp_alloc(sizeof(fl));
+    memcpy(f->data,fl,sizeof(fl));
     TOLONG(f->data + 26, ptridx);
     idx_t fieldlist = cv_debtyp(f);
 
@@ -801,11 +852,15 @@ idx_t cv8_darray(type *t, idx_t etypidx)
             break;
 
         default:
-            id = "dArray";
+            id = t->Tident ? t->Tident : "dArray";
             break;
     }
 
-    debtyp_t *d = debtyp_alloc(20 + cv_stringbytes(id));
+    int idlen = strlen(id);
+    if (idlen > CV8_MAX_SYMBOL_LENGTH)
+        idlen = CV8_MAX_SYMBOL_LENGTH;
+
+    debtyp_t *d = debtyp_alloc(20 + idlen + 1);
     TOWORD(d->data, LF_STRUCTURE_V3);
     TOWORD(d->data + 2, 2);     // count
     TOWORD(d->data + 4, 0);     // property
@@ -813,9 +868,15 @@ idx_t cv8_darray(type *t, idx_t etypidx)
     TOLONG(d->data + 10, 0);    // dList
     TOLONG(d->data + 14, 0);    // vtshape
     TOWORD(d->data + 18, 16);   // size
-    cv_namestring(d->data + 20, id);
+    memcpy(d->data + 20, id, idlen);
+    d->data[20 + idlen] = 0;
 
-    return cv_debtyp(d);
+    idx_t top = cv_numdebtypes();
+    idx_t debidx = cv_debtyp(d);
+    if(top != cv_numdebtypes())
+        cv8_udt(id, debidx);
+
+    return debidx;
 }
 
 /****************************************
@@ -839,7 +900,7 @@ idx_t cv8_ddelegate(type *t, idx_t functypidx)
     idx_t pvidx = cv4_typidx(tv);
     type_free(tv);
 
-    type *tp = type_allocn(TYnptr, t->Tnext);
+    type *tp = type_pointer(t->Tnext);
     idx_t ptridx = cv4_typidx(tp);
     type_free(tp);
 
@@ -852,7 +913,7 @@ idx_t cv8_ddelegate(type *t, idx_t functypidx)
     TOLONG(d->data + 10, key);  // void* type
     TOLONG(d->data + 14, functypidx); // function type
 #else
-    static const unsigned char fl[0x27] =
+    static const unsigned char fl[] =
     {
         0x03, 0x12,             // LF_FIELDLIST_V2
         0x0d, 0x15,             // LF_MEMBER_V3
@@ -860,7 +921,7 @@ idx_t cv8_ddelegate(type *t, idx_t functypidx)
         0x00, 0x00, 0x00, 0x00, // void*
         0x00, 0x00,             // offset
         'p','t','r',0,          // "ptr"
-        0xf3, 0xf2, 0xf1,
+        0xf2, 0xf1,             // align to 4-byte including length word before data
         0x0d, 0x15,
         0x03, 0x00,
         0x00, 0x00, 0x00, 0x00, // ptrtypidx
@@ -872,12 +933,15 @@ idx_t cv8_ddelegate(type *t, idx_t functypidx)
     debtyp_t *f = debtyp_alloc(sizeof(fl));
     memcpy(f->data,fl,sizeof(fl));
     TOLONG(f->data + 6, pvidx);
-    TOLONG(f->data + 23, ptridx);
+    TOLONG(f->data + 22, ptridx);
     idx_t fieldlist = cv_debtyp(f);
 
     const char *id = "dDelegate";
+    int idlen = strlen(id);
+    if (idlen > CV8_MAX_SYMBOL_LENGTH)
+        idlen = CV8_MAX_SYMBOL_LENGTH;
 
-    debtyp_t *d = debtyp_alloc(20 + cv_stringbytes(id));
+    debtyp_t *d = debtyp_alloc(20 + idlen + 1);
     TOWORD(d->data, LF_STRUCTURE_V3);
     TOWORD(d->data + 2, 2);     // count
     TOWORD(d->data + 4, 0);     // property
@@ -885,7 +949,8 @@ idx_t cv8_ddelegate(type *t, idx_t functypidx)
     TOLONG(d->data + 10, 0);    // dList
     TOLONG(d->data + 14, 0);    // vtshape
     TOWORD(d->data + 18, 16);   // size
-    cv_namestring(d->data + 20, id);
+    memcpy(d->data + 20, id, idlen);
+    d->data[20 + idlen] = 0;
 #endif
     return cv_debtyp(d);
 }
@@ -928,7 +993,7 @@ idx_t cv8_daarray(type *t, idx_t keyidx, idx_t validx)
         0x00, 0x00, 0x00, 0x00, // void*
         0x00, 0x00,             // offset
         'p','t','r',0,          // "ptr"
-        0xf3, 0xf2, 0xf1,
+        0xf2, 0xf1,             // align to 4-byte including length word before data
     };
 
     debtyp_t *f = debtyp_alloc(sizeof(fl));
@@ -937,16 +1002,20 @@ idx_t cv8_daarray(type *t, idx_t keyidx, idx_t validx)
     idx_t fieldlist = cv_debtyp(f);
 
     const char *id = "dAssocArray";
+    int idlen = strlen(id);
+    if (idlen > CV8_MAX_SYMBOL_LENGTH)
+        idlen = CV8_MAX_SYMBOL_LENGTH;
 
-    debtyp_t *d = debtyp_alloc(20 + cv_stringbytes(id));
+    debtyp_t *d = debtyp_alloc(20 + idlen + 1);
     TOWORD(d->data, LF_STRUCTURE_V3);
     TOWORD(d->data + 2, 1);     // count
     TOWORD(d->data + 4, 0);     // property
     TOLONG(d->data + 6, fieldlist);
     TOLONG(d->data + 10, 0);    // dList
     TOLONG(d->data + 14, 0);    // vtshape
-    TOWORD(d->data + 18, 16);   // size
-    cv_namestring(d->data + 20, id);
+    TOWORD(d->data + 18, NPTRSIZE);   // size
+    memcpy(d->data + 20, id, idlen);
+    d->data[20 + idlen] = 0;
 
 #endif
     return cv_debtyp(d);

@@ -280,17 +280,17 @@ void test11()
 
 struct Array12
 {
-	char len;
-	void* p;
+    char len;
+    void* p;
 }
-Array12 f12(string a)
-{
-	return *cast(Array12*) &a[0..23]; //Internal error: ..\ztc\cgcs.c 350
-}
+//Array12 f12(string a)
+//{
+//    return *cast(Array12*) &a[0..23]; //Internal error: ..\ztc\cgcs.c 350
+//}
 
 Array12 g12(string a)
 {
-	return *cast(Array12*) &a; //works
+    return *cast(Array12*) &a; //works
 }
 
 void test12()
@@ -298,8 +298,8 @@ void test12()
     string a = "12345678901234567890123";
     Array12 b;
 
-    b = f12(a);
-    printf("b.len = %x\n", b.len);
+    //b = f12(a);
+    //printf("b.len = %x\n", b.len);
     b = g12(a);
     printf("b.len = %x\n", b.len);
 }
@@ -781,7 +781,7 @@ void test36()
     printf("%d\n", a.d);
 
     version(D_LP64)
-        assert(a.classinfo.init.length == 36);
+        assert(a.classinfo.init.length == 40);
     else
         assert(a.classinfo.init.length == 28);
     assert(a.s == 1);
@@ -914,6 +914,7 @@ struct Property
 struct Value
 {
     int a,b,c,d;
+    const int opCmp(ref const Value v) { return 0; }
 }
 
 struct PropTable

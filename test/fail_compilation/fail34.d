@@ -1,3 +1,10 @@
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail34.d(31): Error: duplicate case "123" in switch statement
+---
+*/
+
 // $HeadURL$
 // $Date$
 // $Author$
@@ -11,18 +18,25 @@
 
 module switch_12;
 
-int main(){
-	string array = "123";
-	switch(array){
-		case "123":{
-			assert(0);
-			break;
-		}case "123":{
-			assert(1);
-			break;
-		}default:{
-			return -1; // dummy
-		}
-	}
-	return 0;	
+int main()
+{
+    string array = "123";
+    switch(array)
+    {
+        case "123":
+        {
+            assert(0);
+            break;
+        }
+        case "123":
+        {
+            assert(1);
+            break;
+        }
+        default:
+        {
+            return -1; // dummy
+        }
+    }
+    return 0;
 }

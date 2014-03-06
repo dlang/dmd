@@ -15,4 +15,6 @@ void dwarf_func_term(Symbol *sfunc);
 unsigned dwarf_typidx(type *t);
 unsigned dwarf_abbrev_code(unsigned char *data, size_t nbytes);
 
+int dwarf_regno(int reg);
+
 #endif

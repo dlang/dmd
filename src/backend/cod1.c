@@ -5,8 +5,7 @@
 // Written by Walter Bright
 /*
  * This source file is made available for personal use
- * only. The license is in /dmd/src/dmd/backendlicense.txt
- * or /dm/src/dmd/backendlicense.txt
+ * only. The license is in backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
@@ -284,10 +283,10 @@ void genEEcode()
     eecontext.EEin++;
     regcon.immed.mval = 0;
     retregs = 0;    //regmask(eecontext.EEelem->Ety);
-    assert(EEoffset >= REGSIZE);
-    c = cod3_stackadj(NULL, EEoffset - REGSIZE);
+    assert(EEStack.offset >= REGSIZE);
+    c = cod3_stackadj(NULL, EEStack.offset - REGSIZE);
     gen1(c,0x50 + SI);                      // PUSH ESI
-    genadjesp(c,EEoffset);
+    genadjesp(c,EEStack.offset);
     c = gencodelem(c,eecontext.EEelem,&retregs, FALSE);
     assignaddrc(c);
     pinholeopt(c,NULL);
@@ -1046,7 +1045,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
             }
             if (f == FLpara)
                 refparam = TRUE;
-            else if (f == FLauto || f == FLtmp || f == FLbprel || f == FLfltreg || f == FLfast)
+            else if (f == FLauto || f == FLbprel || f == FLfltreg || f == FLfast)
                 reflocal = TRUE;
 #if TARGET_SEGMENTED
             else if (f == FLcsdata || tybasic(e12->Ety) == TYcptr)
@@ -1318,7 +1317,6 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
         }
         if (s->Sclass == SCshadowreg)
             goto Lpara;
-    case FLtmp:
     case FLbprel:
         reflocal = TRUE;
         pcs->Irm = modregrm(2,0,BPRM);
@@ -1960,6 +1958,11 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
   };
   static symbol clibldiv2  = Y(mAX|mBX|mCX|mDX,"_LDIV2__");
   static symbol clibuldiv2 = Y(mAX|mBX|mCX|mDX,"_ULDIV2__");
+
+  static symbol clibldiv3  = Y(mAX|mBX|mCX|mDX,"_divdi3");
+  static symbol clibuldiv3 = Y(mAX|mBX|mCX|mDX,"_udivdi3");
+  static symbol cliblmod3  = Y(mAX|mBX|mCX|mDX,"_moddi3");
+  static symbol clibulmod3 = Y(mAX|mBX|mCX|mDX,"_umoddi3");
 #else
   static symbol lib[CLIBMAX] =
   {
@@ -2159,12 +2162,28 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         clibldiv2.Stype = tsclib;
         clibuldiv2.Stype = tsclib;
+        clibldiv3.Stype = tsclib;
+        clibuldiv3.Stype = tsclib;
+        cliblmod3.Stype = tsclib;
+        clibulmod3.Stype = tsclib;
 #if MARS
         clibldiv2.Sxtrnnum = 0;
         clibldiv2.Stypidx = 0;
 
         clibuldiv2.Sxtrnnum = 0;
         clibuldiv2.Stypidx = 0;
+
+        clibldiv3.Sxtrnnum = 0;
+        clibldiv3.Stypidx = 0;
+
+        clibuldiv3.Sxtrnnum = 0;
+        clibuldiv3.Stypidx = 0;
+
+        cliblmod3.Sxtrnnum = 0;
+        cliblmod3.Stypidx = 0;
+
+        clibulmod3.Sxtrnnum = 0;
+        clibulmod3.Stypidx = 0;
 #endif
 #endif
         if (!I16)
@@ -2263,9 +2282,38 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
         code *cgot = NULL;
         bool pushebx = false;
 #if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-        if (config.flags3 & CFG3pic && I32)
+        if (I32)
         {
-            cgot = load_localgot();     // EBX gets set to this value
+            /* Pass EBX on the stack instead, this is because EBX is used
+             * for shared library function calls
+             */
+            if (config.flags3 & CFG3pic)
+            {
+                cgot = load_localgot();     // EBX gets set to this value
+            }
+#if TARGET_LINUX
+            switch (clib)
+            {
+                case CLIBldiv:
+                    s = &clibldiv3;
+                    pushebx = true;
+                    break;
+                case CLIBlmod:
+                    s = &cliblmod3;
+                    pushebx = true;
+                    info[clib].retregs32 = mAX|mDX;
+                    break;
+                case CLIBuldiv:
+                    s = &clibuldiv3;
+                    pushebx = true;
+                    break;
+                case CLIBulmod:
+                    s = &clibulmod3;
+                    pushebx = true;
+                    info[clib].retregs32 = mAX|mDX;
+                    break;
+            }
+#else
             switch (clib)
             {   // EBX is a parameter to these, so push it on the stack before load_localgot()
                 case CLIBldiv:
@@ -2279,6 +2327,7 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
                     pushebx = true;
                     break;
             }
+#endif
         }
 #endif
         makeitextern(s);
@@ -2292,8 +2341,17 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
             }
         }
         if (pushebx)
-        {   c = gen1(c, 0x50 + BX);                             // PUSH EBX
+        {
+#if TARGET_LINUX
+            c = gen1(c, 0x50 + CX);                             // PUSH ECX
+            c = gen1(c, 0x50 + BX);                             // PUSH EBX
+            c = gen1(c, 0x50 + DX);                             // PUSH EDX
+            c = gen1(c, 0x50 + AX);                             // PUSH EAX
+            nalign += 4 * REGSIZE;
+#else
+            c = gen1(c, 0x50 + BX);                             // PUSH EBX
             nalign += REGSIZE;
+#endif
         }
         c = cat(c, cgot);                                       // EBX = localgot
         c = gencs(c,(LARGECODE) ? 0x9A : 0xE8,0,FLfunc,s);      // CALL s
@@ -2974,10 +3032,28 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
             ce = cat(c1,cdrelconst(e1,&retregs));
 #if TARGET_SEGMENTED
             if (farfunc)
-                goto LF1;
+            {
+                unsigned reg = findregmsw(retregs);
+                unsigned lsreg = findreglsw(retregs);
+                floatreg = TRUE;                /* use float register   */
+                reflocal = TRUE;
+                ce = genc1(ce,0x89,             /* MOV floatreg+2,reg   */
+                        modregrm(2,reg,BPRM),FLfltreg,REGSIZE);
+                genc1(ce,0x89,                  /* MOV floatreg,lsreg   */
+                        modregrm(2,lsreg,BPRM),FLfltreg,0);
+                if (tym1 == TYifunc)
+                    gen1(ce,0x9C);              // PUSHF
+                genc1(ce,0xFF,                  /* CALL [floatreg]      */
+                        modregrm(2,3,BPRM),FLfltreg,0);
+            }
             else
 #endif
-                goto LF2;
+            {
+                unsigned reg = findreg(retregs);
+                ce = gen2(ce,0xFF,modregrmx(3,2,reg));   /* CALL reg     */
+                if (I64)
+                    code_orrex(ce, REX_W);
+            }
         }
         else
         {   int fl;
@@ -2996,7 +3072,7 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
             }
 #endif
             ce = gencs(ce,farfunc ? 0x9A : 0xE8,0,fl,s);      // CALL extern
-            ce->Iflags |= farfunc ? (CFseg | CFoff) : (CFselfrel | CFoff);
+            code_orflag(ce, farfunc ? (CFseg | CFoff) : (CFselfrel | CFoff));
 #if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
             if (s == tls_get_addr_sym)
             {
@@ -3022,8 +3098,6 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
   }
   else
   {     /* Call function via pointer    */
-        elem *e11;
-        tym_t e11ty;
 
 #ifdef DEBUG
         if (e1->Eoper != OPind
@@ -3031,32 +3105,38 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
 #endif
         c = save87();                   // assume 8087 regs are all trashed
         assert(e1->Eoper == OPind);
-        e11 = e1->E1;
-        e11ty = tybasic(e11->Ety);
+        elem *e11 = e1->E1;
+        tym_t e11ty = tybasic(e11->Ety);
 #if TARGET_SEGMENTED
         assert(!I16 || (e11ty == (farfunc ? TYfptr : TYnptr)));
 #else
         assert(!I16 || (e11ty == TYnptr));
 #endif
+        c = cat(c, load_localgot());
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+        if (config.flags3 & CFG3pic && I32)
+            keepmsk |= mBX;
+#endif
+
+        /* Mask of registers destroyed by the function call
+         */
+        regm_t desmsk = (mBP | ALLREGS | mES | XMMREGS) & ~fregsaved;
 
         /* if we can't use loadea()     */
         if ((EOP(e11) || e11->Eoper == OPconst) &&
             (e11->Eoper != OPind || e11->Ecount))
         {
-            unsigned reg;
-
             retregs = allregs & ~keepmsk;
             cgstate.stackclean++;
             ce = scodelem(e11,&retregs,keepmsk,TRUE);
             cgstate.stackclean--;
             /* Kill registers destroyed by an arbitrary function call */
-            ce = cat(ce,getregs((mBP | ALLREGS | mES | XMMREGS) & ~fregsaved));
+            ce = cat(ce,getregs(desmsk));
 #if TARGET_SEGMENTED
             if (e11ty == TYfptr)
-            {   unsigned lsreg;
-             LF1:
-                reg = findregmsw(retregs);
-                lsreg = findreglsw(retregs);
+            {
+                unsigned reg = findregmsw(retregs);
+                unsigned lsreg = findreglsw(retregs);
                 floatreg = TRUE;                /* use float register   */
                 reflocal = TRUE;
                 ce = genc1(ce,0x89,             /* MOV floatreg+2,reg   */
@@ -3071,8 +3151,7 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
             else
 #endif
             {
-             LF2:
-                reg = findreg(retregs);
+                unsigned reg = findreg(retregs);
                 ce = gen2(ce,0xFF,modregrmx(3,2,reg));   /* CALL reg     */
                 if (I64)
                     code_orrex(ce, REX_W);
@@ -3085,7 +3164,7 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
                                                 // CALL [function]
             cs.Iflags = 0;
             cgstate.stackclean++;
-            ce = loadea(e11,&cs,0xFF,farfunc ? 3 : 2,0,keepmsk,(mBP|ALLREGS|mES|XMMREGS) & ~fregsaved);
+            ce = loadea(e11,&cs,0xFF,farfunc ? 3 : 2,0,keepmsk,desmsk);
             cgstate.stackclean--;
             freenode(e11);
         }
@@ -3509,9 +3588,24 @@ code *params(elem *e,unsigned stackalign)
                     break;
                 if (I32)
                 {
-                    assert(sz == REGSIZE * 2);
-                    ce = loadea(e,&cs,0xFF,6,REGSIZE,0,0); /* PUSH EA+4 */
+                    assert(sz >= REGSIZE * 2);
+                    ce = loadea(e,&cs,0xFF,6,sz - REGSIZE,0,0); /* PUSH EA+4 */
                     ce = genadjesp(ce,REGSIZE);
+                    stackpush += REGSIZE;
+                    sz -= REGSIZE;
+
+                    if (sz > REGSIZE)
+                    {
+                        while (sz)
+                        {
+                            cs.IEVoffset1 -= REGSIZE;
+                            ce = gen(ce,&cs);                    // PUSH EA+...
+                            ce = genadjesp(ce,REGSIZE);
+                            stackpush += REGSIZE;
+                            sz -= REGSIZE;
+                        }
+                        goto L2;
+                    }
                 }
                 else
                 {
@@ -3711,9 +3805,31 @@ code *params(elem *e,unsigned stackalign)
         {
             if (i)                      /* be careful not to go negative */
                 i--;
-            targ_size_t value = (regsize == 4) ? pi[i] : ps[i];
-            if (regsize == 8)
-                value = pl[i];
+
+            targ_size_t value;
+            switch (regsize)
+            {
+                case 2:
+                    value = ps[i];
+                    break;
+                case 4:
+                    if (tym == TYldouble || tym == TYildouble)
+                        /* The size is 10 bytes, and since we have 2 bytes left over,
+                         * just read those 2 bytes, not 4.
+                         * Otherwise we're reading uninitialized data.
+                         * I.e. read 4 bytes, 4 bytes, then 2 bytes
+                         */
+                        value = i == 2 ? ps[4] : pi[i]; // 80 bits
+                    else
+                        value = pi[i];
+                    break;
+                case 8:
+                    value = pl[i];
+                    break;
+                default:
+                    assert(0);
+            }
+
             if (pushi)
             {
                 if (I64 && regsize == 8 && value != (int)value)

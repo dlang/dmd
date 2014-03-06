@@ -20,8 +20,9 @@
 struct OutBuffer;
 struct HdrGenState;
 
-struct DebugSymbol : Dsymbol
+class DebugSymbol : public Dsymbol
 {
+public:
     unsigned level;
 
     DebugSymbol(Loc loc, Identifier *ident);
@@ -32,10 +33,12 @@ struct DebugSymbol : Dsymbol
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     const char *kind();
+    void accept(Visitor *v) { v->visit(this); }
 };
 
-struct VersionSymbol : Dsymbol
+class VersionSymbol : public Dsymbol
 {
+public:
     unsigned level;
 
     VersionSymbol(Loc loc, Identifier *ident);
@@ -46,6 +49,7 @@ struct VersionSymbol : Dsymbol
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     const char *kind();
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 #endif /* DMD_VERSION_H */

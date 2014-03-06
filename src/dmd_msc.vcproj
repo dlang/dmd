@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9.00"
+	Version="9,00"
 	Name="dmd_msc"
 	ProjectGUID="{BAE0389D-7D3F-4D5E-AE0E-C871776E8432}"
 	RootNamespace="dmd"
@@ -42,14 +42,13 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalOptions="/TP"
 				AdditionalIncludeDirectories=".\root;.\tk;.\backend;.;vcbuild"
-				PreprocessorDefinitions="DEBUG,_DEBUG"
+				PreprocessorDefinitions="DEBUG,_DEBUG;TARGET_WINDOS=1"
 				RuntimeLibrary="1"
 				StructMemberAlignment="1"
 				WarningLevel="4"
 				DebugInformationFormat="4"
-				CompileAs="0"
+				CompileAs="2"
 				ForcedIncludeFiles="vcbuild\warnings.h"
 			/>
 			<Tool
@@ -117,7 +116,7 @@
 				Name="VCCLCompilerTool"
 				AdditionalOptions="/TP"
 				AdditionalIncludeDirectories=".\root;.\tk;.\backend;.;vcbuild"
-				PreprocessorDefinitions="DEBUG,_DEBUG"
+				PreprocessorDefinitions="DEBUG,_DEBUG;TARGET_WINDOS=1"
 				RuntimeLibrary="1"
 				StructMemberAlignment="1"
 				WarningLevel="4"
@@ -189,20 +188,19 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalOptions="/TP"
 				Optimization="3"
 				InlineFunctionExpansion="1"
 				EnableIntrinsicFunctions="true"
 				FavorSizeOrSpeed="1"
 				OmitFramePointers="true"
 				AdditionalIncludeDirectories=".\root;.\tk;.\backend;.;vcbuild"
-				PreprocessorDefinitions="NDEBUG"
+				PreprocessorDefinitions="NDEBUG;TARGET_WINDOS=1"
 				RuntimeLibrary="0"
 				StructMemberAlignment="1"
 				BufferSecurityCheck="false"
 				WarningLevel="4"
 				DebugInformationFormat="3"
-				CompileAs="0"
+				CompileAs="2"
 				ForcedIncludeFiles="vcbuild\warnings.h"
 			/>
 			<Tool
@@ -277,7 +275,7 @@
 				OmitFramePointers="true"
 				WholeProgramOptimization="true"
 				AdditionalIncludeDirectories=".\root;.\tk;.\backend;.;vcbuild"
-				PreprocessorDefinitions="NDEBUG"
+				PreprocessorDefinitions="NDEBUG;TARGET_WINDOS=1"
 				RuntimeLibrary="0"
 				StructMemberAlignment="1"
 				BufferSecurityCheck="false"
@@ -443,10 +441,6 @@
 			</File>
 			<File
 				RelativePath=".\dsymbol.h"
-				>
-			</File>
-			<File
-				RelativePath=".\dump.c"
 				>
 			</File>
 			<File
@@ -646,15 +640,19 @@
 				>
 			</File>
 			<File
-				RelativePath=".\ph.c"
-				>
-			</File>
-			<File
 				RelativePath=".\s2ir.c"
 				>
 			</File>
 			<File
+				RelativePath=".\sapply.c"
+				>
+			</File>
+			<File
 				RelativePath=".\scanmscoff.c"
+				>
+			</File>
+			<File
+				RelativePath=".\scanomf.c"
 				>
 			</File>
 			<File
@@ -687,6 +685,14 @@
 			</File>
 			<File
 				RelativePath=".\struct.c"
+				>
+			</File>
+			<File
+				RelativePath=".\target.c"
+				>
+			</File>
+			<File
+				RelativePath=".\target.h"
 				>
 			</File>
 			<File
@@ -790,10 +796,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\util.c"
-				>
-			</File>
-			<File
 				RelativePath=".\version.c"
 				>
 			</File>
@@ -810,6 +812,10 @@
 				</File>
 				<File
 					RelativePath=".\backend\aa.h"
+					>
+				</File>
+				<File
+					RelativePath=".\backend\backconfig.c"
 					>
 				</File>
 				<File
@@ -938,6 +944,10 @@
 				</File>
 				<File
 					RelativePath=".\backend\debug.c"
+					>
+				</File>
+				<File
+					RelativePath=".\backend\divcoeff.c"
 					>
 				</File>
 				<File
@@ -1085,6 +1095,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\backend\ph2.c"
+					>
+				</File>
+				<File
 					RelativePath=".\backend\ptrntab.c"
 					>
 				</File>
@@ -1134,6 +1148,10 @@
 				</File>
 				<File
 					RelativePath=".\backend\type.h"
+					>
+				</File>
+				<File
+					RelativePath=".\backend\util2.c"
 					>
 				</File>
 				<File
@@ -1321,7 +1339,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\root\array.c"
+					RelativePath=".\root\array.h"
 					>
 				</File>
 				<File
@@ -1333,47 +1351,19 @@
 					>
 				</File>
 				<File
-					RelativePath=".\root\dmgcmem.c"
-					>
-					<FileConfiguration
-						Name="Debug|Win32"
-						ExcludedFromBuild="true"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-						/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Debug|x64"
-						ExcludedFromBuild="true"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-						/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Release|Win32"
-						ExcludedFromBuild="true"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-						/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Release|x64"
-						ExcludedFromBuild="true"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-						/>
-					</FileConfiguration>
-				</File>
-				<File
-					RelativePath=".\root\gnuc.c"
+					RelativePath=".\root\file.c"
 					>
 				</File>
 				<File
-					RelativePath=".\root\gnuc.h"
+					RelativePath=".\root\file.h"
+					>
+				</File>
+				<File
+					RelativePath=".\root\filename.c"
+					>
+				</File>
+				<File
+					RelativePath=".\root\filename.h"
 					>
 				</File>
 				<File
@@ -1386,6 +1376,22 @@
 				</File>
 				<File
 					RelativePath=".\root\man.c"
+					>
+				</File>
+				<File
+					RelativePath=".\root\object.c"
+					>
+				</File>
+				<File
+					RelativePath=".\root\object.h"
+					>
+				</File>
+				<File
+					RelativePath=".\root\outbuffer.c"
+					>
+				</File>
+				<File
+					RelativePath=".\root\outbuffer.h"
 					>
 				</File>
 				<File
@@ -1409,10 +1415,6 @@
 					>
 				</File>
 				<File
-					RelativePath=".\root\root.c"
-					>
-				</File>
-				<File
 					RelativePath=".\root\root.h"
 					>
 				</File>
@@ -1432,174 +1434,6 @@
 					RelativePath=".\root\stringtable.h"
 					>
 				</File>
-				<Filter
-					Name="gc"
-					>
-					<File
-						RelativePath=".\root\gc\bits.c"
-						>
-						<FileConfiguration
-							Name="Debug|Win32"
-							ExcludedFromBuild="true"
-							>
-							<Tool
-								Name="VCCLCompilerTool"
-							/>
-						</FileConfiguration>
-						<FileConfiguration
-							Name="Debug|x64"
-							ExcludedFromBuild="true"
-							>
-							<Tool
-								Name="VCCLCompilerTool"
-							/>
-						</FileConfiguration>
-						<FileConfiguration
-							Name="Release|Win32"
-							ExcludedFromBuild="true"
-							>
-							<Tool
-								Name="VCCLCompilerTool"
-							/>
-						</FileConfiguration>
-						<FileConfiguration
-							Name="Release|x64"
-							ExcludedFromBuild="true"
-							>
-							<Tool
-								Name="VCCLCompilerTool"
-							/>
-						</FileConfiguration>
-					</File>
-					<File
-						RelativePath=".\root\gc\bits.h"
-						>
-					</File>
-					<File
-						RelativePath=".\root\gc\gc.c"
-						>
-						<FileConfiguration
-							Name="Debug|Win32"
-							ExcludedFromBuild="true"
-							>
-							<Tool
-								Name="VCCLCompilerTool"
-							/>
-						</FileConfiguration>
-						<FileConfiguration
-							Name="Debug|x64"
-							ExcludedFromBuild="true"
-							>
-							<Tool
-								Name="VCCLCompilerTool"
-							/>
-						</FileConfiguration>
-						<FileConfiguration
-							Name="Release|Win32"
-							ExcludedFromBuild="true"
-							>
-							<Tool
-								Name="VCCLCompilerTool"
-							/>
-						</FileConfiguration>
-						<FileConfiguration
-							Name="Release|x64"
-							ExcludedFromBuild="true"
-							>
-							<Tool
-								Name="VCCLCompilerTool"
-							/>
-						</FileConfiguration>
-					</File>
-					<File
-						RelativePath=".\root\gc\gc.h"
-						>
-					</File>
-					<File
-						RelativePath=".\root\gc\gccbitops.h"
-						>
-					</File>
-					<File
-						RelativePath=".\root\gc\mscbitops.h"
-						>
-					</File>
-					<File
-						RelativePath=".\root\gc\os.h"
-						>
-					</File>
-					<File
-						RelativePath=".\root\gc\testgc.c"
-						>
-						<FileConfiguration
-							Name="Debug|Win32"
-							ExcludedFromBuild="true"
-							>
-							<Tool
-								Name="VCCLCompilerTool"
-							/>
-						</FileConfiguration>
-						<FileConfiguration
-							Name="Debug|x64"
-							ExcludedFromBuild="true"
-							>
-							<Tool
-								Name="VCCLCompilerTool"
-							/>
-						</FileConfiguration>
-						<FileConfiguration
-							Name="Release|Win32"
-							ExcludedFromBuild="true"
-							>
-							<Tool
-								Name="VCCLCompilerTool"
-							/>
-						</FileConfiguration>
-						<FileConfiguration
-							Name="Release|x64"
-							ExcludedFromBuild="true"
-							>
-							<Tool
-								Name="VCCLCompilerTool"
-							/>
-						</FileConfiguration>
-					</File>
-					<File
-						RelativePath=".\root\gc\win32.c"
-						>
-						<FileConfiguration
-							Name="Debug|Win32"
-							ExcludedFromBuild="true"
-							>
-							<Tool
-								Name="VCCLCompilerTool"
-							/>
-						</FileConfiguration>
-						<FileConfiguration
-							Name="Debug|x64"
-							ExcludedFromBuild="true"
-							>
-							<Tool
-								Name="VCCLCompilerTool"
-							/>
-						</FileConfiguration>
-						<FileConfiguration
-							Name="Release|Win32"
-							ExcludedFromBuild="true"
-							>
-							<Tool
-								Name="VCCLCompilerTool"
-							/>
-						</FileConfiguration>
-						<FileConfiguration
-							Name="Release|x64"
-							ExcludedFromBuild="true"
-							>
-							<Tool
-								Name="VCCLCompilerTool"
-							/>
-						</FileConfiguration>
-					</File>
-				</Filter>
 			</Filter>
 			<Filter
 				Name="gen"
@@ -1731,7 +1565,7 @@
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Building and running $(IntDir)\$(InputName).exe"
-							CommandLine="cl /TP /Itk /Iroot /Ivcbuild /I. /FIwarnings.h /Fo&quot;$(IntDir)\$(InputName).obj&quot; /Fe&quot;$(IntDir)\$(InputName).exe&quot; &quot;$(InputPath)&quot;&#x0D;&#x0A;if errorlevel 1 goto VCReportError&#x0D;&#x0A;&quot;$(IntDir)\$(InputName).exe&quot;"
+							CommandLine="cl /TP /Itk /Iroot /Ivcbuild /I. /FIwarnings.h /Fo&quot;$(IntDir)\$(InputName).obj&quot; /Fe&quot;$(IntDir)\$(InputName).exe&quot; &quot;$(InputPath)&quot;&#x0D;&#x0A;if errorlevel 1 goto VCReportError&#x0D;&#x0A;&quot;$(IntDir)\$(InputName).exe&quot;&#x0D;&#x0A;"
 							AdditionalDependencies="cc.h;oper.h"
 							Outputs="optab.c;debtab.c;cdxxx.c;elxxx.c;tytab.c;fltables.c"
 						/>
@@ -1980,6 +1814,10 @@
 						/>
 					</FileConfiguration>
 				</File>
+				<File
+					RelativePath=".\verstr.h"
+					>
+				</File>
 			</Filter>
 			<Filter
 				Name="no_win"
@@ -2146,6 +1984,56 @@
 				</File>
 			</Filter>
 		</Filter>
+		<File
+			RelativePath="..\VERSION"
+			>
+			<FileConfiguration
+				Name="Debug|Win32"
+				>
+				<Tool
+					Name="VCCustomBuildTool"
+					Description="Generatin verstr.h"
+					CommandLine="set /P X= &lt; $(InputPath) &amp;&amp; echo &quot;%X%&quot; &gt;verstr.h&#x0D;&#x0A;"
+					AdditionalDependencies=""
+					Outputs="verstr.h"
+				/>
+			</FileConfiguration>
+			<FileConfiguration
+				Name="Debug|x64"
+				>
+				<Tool
+					Name="VCCustomBuildTool"
+					Description="Generatin verstr.h"
+					CommandLine="set /P X= &lt; $(InputPath) &amp;&amp; echo &quot;%X%&quot; &gt;verstr.h&#x0D;&#x0A;"
+					Outputs="verstr.h"
+				/>
+			</FileConfiguration>
+			<FileConfiguration
+				Name="Release|Win32"
+				>
+				<Tool
+					Name="VCCustomBuildTool"
+					Description="Generatin verstr.h"
+					CommandLine="set /P X= &lt; $(InputPath) &amp;&amp; echo &quot;%X%&quot; &gt;verstr.h&#x0D;&#x0A;"
+					AdditionalDependencies="vergen.c"
+					Outputs="verstr.h"
+				/>
+			</FileConfiguration>
+			<FileConfiguration
+				Name="Release|x64"
+				>
+				<Tool
+					Name="VCCustomBuildTool"
+					Description="Generatin verstr.h"
+					CommandLine="set /P X= &lt; $(InputPath) &amp;&amp; echo &quot;%X%&quot; &gt;verstr.h&#x0D;&#x0A;"
+					Outputs="verstr.h"
+				/>
+			</FileConfiguration>
+		</File>
+		<File
+			RelativePath=".\win32.mak"
+			>
+		</File>
 	</Files>
 	<Globals>
 	</Globals>

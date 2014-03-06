@@ -5,8 +5,7 @@
 // Written by Walter Bright
 /*
  * This source file is made available for personal use
- * only. The license is in /dmd/src/dmd/backendlicense.txt
- * or /dm/src/dmd/backendlicense.txt
+ * only. The license is in backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
@@ -62,7 +61,7 @@
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
-extern void error(const char *filename, unsigned linnum, const char *format, ...);
+extern void error(const char *filename, unsigned linnum, unsigned charnum, const char *format, ...);
 
 #if __DMC__
     #define HAVE_FLOAT_EXCEPT 1
@@ -107,7 +106,7 @@ extern void error(const char *filename, unsigned linnum, const char *format, ...
 #endif
 
 
-CEXTERN elem * evalu8(elem *);
+elem * evalu8(elem *, goal_t);
 
 /* When this !=0, we do constant folding on floating point constants
  * even if they raise overflow, underflow, invalid, etc. exceptions.
@@ -149,7 +148,7 @@ FM1:    // We don't use fprem1 because for some inexplicable
  * Return boolean result of constant elem.
  */
 
-HINT boolres(elem *e)
+int boolres(elem *e)
 {   int b;
 
     //printf("boolres()\n");
@@ -290,7 +289,7 @@ HINT boolres(elem *e)
  * Return TRUE if expression will always evaluate to TRUE.
  */
 
-HINT iftrue(elem *e)
+int iftrue(elem *e)
 {
   while (1)
   {
@@ -315,7 +314,7 @@ HINT iftrue(elem *e)
  * Return TRUE if expression will always evaluate to FALSE.
  */
 
-HINT iffalse(elem *e)
+int iffalse(elem *e)
 {
         while (1)
         {       assert(e);
@@ -570,7 +569,7 @@ elem *poptelem(elem *e)
                 e->E2 = poptelem(e->E2);
             }
         eval:
-            e = evalu8(e);
+            e = evalu8(e, GOALvalue);
             break;
     }
 ret:
@@ -600,7 +599,7 @@ elem *selecte1(elem *e,type *t)
  * Return with the result.
  */
 
-elem * evalu8(elem *e)
+elem * evalu8(elem *e, goal_t goal)
 {   elem *e1,*e2;
     tym_t tym,tym2,uns;
     unsigned op;
@@ -1408,7 +1407,7 @@ elem * evalu8(elem *e)
 #if SCPP
                 synerr(EM_divby0);
 #else // MARS
-                //error(e->Esrcpos.Sfilename, e->Esrcpos.Slinnum, "divide by zero");
+                //error(e->Esrcpos.Sfilename, e->Esrcpos.Slinnum, e->Esrcpos.Scharnum, "divide by zero");
 #endif
                 break;
         }
@@ -1563,6 +1562,12 @@ elem * evalu8(elem *e)
         // Always unsigned
         e->EV.Vullong = ((targ_ullong) l1) >> i2;
 #endif
+        break;
+
+    case OPbtst:
+        if ((targ_ullong) i2 > sizeof(targ_ullong) * 8)
+            i2 = sizeof(targ_ullong) * 8;
+        e->EV.Vullong = (((targ_ullong) l1) >> i2) & 1;
         break;
 
 #if MARS
@@ -2024,7 +2029,8 @@ elem * evalu8(elem *e)
          */
         if (l1 >= 0 && l1 < 4096)
         {
-            error(e->Esrcpos.Sfilename, e->Esrcpos.Slinnum, "dereference of null pointer");
+            error(e->Esrcpos.Sfilename, e->Esrcpos.Slinnum, e->Esrcpos.Scharnum,
+                "dereference of null pointer");
             e->E1->EV.Vlong = 4096;     // suppress redundant messages
         }
 #endif
@@ -2036,7 +2042,9 @@ elem * evalu8(elem *e)
     int flags;
 
     if (!ignore_exceptions &&
-        (config.flags4 & CFG4fastfloat) == 0 && testFE())
+        (config.flags4 & CFG4fastfloat) == 0 && testFE() &&
+        (HAVE_FLOAT_EXCEPT || tyfloating(tym) || tyfloating(tybasic(typemask(e))))
+       )
     {
         // Exceptions happened. Do not fold the constants.
         *e = esave;

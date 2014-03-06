@@ -13,9 +13,6 @@
     <Filter Include="src\root">
       <UniqueIdentifier>{f109049a-11c8-4419-bdda-9d44c65b2900}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\root\gc">
-      <UniqueIdentifier>{93137d89-fe84-4502-818f-e8f38fcffb3b}</UniqueIdentifier>
-    </Filter>
     <Filter Include="src\gen">
       <UniqueIdentifier>{8f21dd4e-1670-48be-9a72-1dccf0c17166}</UniqueIdentifier>
     </Filter>
@@ -82,9 +79,6 @@
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="dsymbol.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="dump.c">
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="e2ir.c">
@@ -183,10 +177,10 @@
     <ClCompile Include="parse.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="ph.c">
+    <ClCompile Include="s2ir.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="s2ir.c">
+    <ClCompile Include="sapply.c">
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="scanmscoff.c">
@@ -240,16 +234,10 @@
     <ClCompile Include="typinf.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="unialpha.c">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="unittests.c">
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="utf.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="util.c">
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="version.c">
@@ -319,6 +307,9 @@
       <Filter>src\backend</Filter>
     </ClCompile>
     <ClCompile Include="backend\debug.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\divcoeff.c">
       <Filter>src\backend</Filter>
     </ClCompile>
     <ClCompile Include="backend\dt.c">
@@ -420,16 +411,10 @@
     <ClCompile Include="root\aav.c">
       <Filter>src\root</Filter>
     </ClCompile>
-    <ClCompile Include="root\array.c">
-      <Filter>src\root</Filter>
-    </ClCompile>
     <ClCompile Include="root\async.c">
       <Filter>src\root</Filter>
     </ClCompile>
     <ClCompile Include="root\dmgcmem.c">
-      <Filter>src\root</Filter>
-    </ClCompile>
-    <ClCompile Include="root\gnuc.c">
       <Filter>src\root</Filter>
     </ClCompile>
     <ClCompile Include="root\longdouble.c">
@@ -447,7 +432,16 @@
     <ClCompile Include="root\rmem.c">
       <Filter>src\root</Filter>
     </ClCompile>
-    <ClCompile Include="root\root.c">
+    <ClCompile Include="root\file.c">
+      <Filter>src\root</Filter>
+    </ClCompile>
+    <ClCompile Include="root\filename.c">
+      <Filter>src\root</Filter>
+    </ClCompile>
+    <ClCompile Include="root\object.c">
+      <Filter>src\root</Filter>
+    </ClCompile>
+    <ClCompile Include="root\outbuffer.c">
       <Filter>src\root</Filter>
     </ClCompile>
     <ClCompile Include="root\speller.c">
@@ -455,18 +449,6 @@
     </ClCompile>
     <ClCompile Include="root\stringtable.c">
       <Filter>src\root</Filter>
-    </ClCompile>
-    <ClCompile Include="root\gc\bits.c">
-      <Filter>src\root\gc</Filter>
-    </ClCompile>
-    <ClCompile Include="root\gc\gc.c">
-      <Filter>src\root\gc</Filter>
-    </ClCompile>
-    <ClCompile Include="root\gc\testgc.c">
-      <Filter>src\root\gc</Filter>
-    </ClCompile>
-    <ClCompile Include="root\gc\win32.c">
-      <Filter>src\root\gc</Filter>
     </ClCompile>
     <ClCompile Include="cdxxx.c">
       <Filter>src\generated</Filter>
@@ -498,8 +480,32 @@
     <ClCompile Include="libmach.c">
       <Filter>src\no_win</Filter>
     </ClCompile>
-    <ClCompile Include="root\gc\linux.c">
-      <Filter>src\no_win</Filter>
+    <ClCompile Include="backend\backconfig.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\ph2.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\util2.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="ctfeexpr.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\cv8.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\pdata.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="target.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="scanomf.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="sapply.c">
+      <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -626,9 +632,6 @@
     <ClInclude Include="backend\code.h">
       <Filter>src\backend</Filter>
     </ClInclude>
-    <ClInclude Include="backend\cpp.h">
-      <Filter>src\backend</Filter>
-    </ClInclude>
     <ClInclude Include="backend\cv4.h">
       <Filter>src\backend</Filter>
     </ClInclude>
@@ -710,9 +713,6 @@
     <ClInclude Include="root\async.h">
       <Filter>src\root</Filter>
     </ClInclude>
-    <ClInclude Include="root\gnuc.h">
-      <Filter>src\root</Filter>
-    </ClInclude>
     <ClInclude Include="root\longdouble.h">
       <Filter>src\root</Filter>
     </ClInclude>
@@ -731,21 +731,6 @@
     <ClInclude Include="root\stringtable.h">
       <Filter>src\root</Filter>
     </ClInclude>
-    <ClInclude Include="root\gc\bits.h">
-      <Filter>src\root\gc</Filter>
-    </ClInclude>
-    <ClInclude Include="root\gc\gc.h">
-      <Filter>src\root\gc</Filter>
-    </ClInclude>
-    <ClInclude Include="root\gc\gccbitops.h">
-      <Filter>src\root\gc</Filter>
-    </ClInclude>
-    <ClInclude Include="root\gc\mscbitops.h">
-      <Filter>src\root\gc</Filter>
-    </ClInclude>
-    <ClInclude Include="root\gc\os.h">
-      <Filter>src\root\gc</Filter>
-    </ClInclude>
     <ClInclude Include="id.h">
       <Filter>src\generated</Filter>
     </ClInclude>
@@ -761,11 +746,9 @@
     <ClInclude Include="vcbuild\warnings.h">
       <Filter>src\vcbuild</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <CustomBuildStep Include="vcbuild\ldfpu.asm">
-      <Filter>src\vcbuild</Filter>
-    </CustomBuildStep>
+    <ClInclude Include="target.h">
+      <Filter>src</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="idgen.c">
@@ -776,6 +759,10 @@
     </CustomBuild>
     <CustomBuild Include="backend\optabgen.c">
       <Filter>src\gen</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\VERSION" />
+    <CustomBuild Include="vcbuild\ldfpu.asm">
+      <Filter>src\vcbuild</Filter>
     </CustomBuild>
   </ItemGroup>
 </Project>

@@ -5,8 +5,7 @@
 // Written by Walter Bright
 /*
  * This source file is made available for personal use
- * only. The license is in /dmd/src/dmd/backendlicense.txt
- * or /dm/src/dmd/backendlicense.txt
+ * only. The license is in backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
@@ -459,6 +458,7 @@ bool reghasvalue(regm_t regm,targ_size_t value,unsigned *preg)
 code *regwithvalue(code *c,regm_t regm,targ_size_t value,unsigned *preg,regm_t flags)
 {   unsigned reg;
 
+    //printf("regwithvalue(value = %lld)\n", (long long)value);
     if (!preg)
         preg = &reg;
 
@@ -581,10 +581,12 @@ size_t addtofixlist(symbol *s,targ_size_t soffset,int seg,targ_size_t val,int fl
         if (I64 && !(flags & CFoffset64))
             numbytes = 4;
 
+#if TARGET_WINDOS
         /* This can happen when generating CV8 data
          */
         if (flags & CFseg)
             numbytes += 2;
+#endif
 #endif
 #ifdef DEBUG
         assert(numbytes <= sizeof(zeros));

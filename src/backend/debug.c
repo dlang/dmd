@@ -5,8 +5,7 @@
 // Written by Walter Bright
 /*
  * This source file is made available for personal use
- * only. The license is in /dmd/src/dmd/backendlicense.txt
- * or /dm/src/dmd/backendlicense.txt
+ * only. The license is in backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
@@ -92,7 +91,7 @@ void WRTYxx(tym_t t)
         dbg_printf("mTYconst|");
     if (t & mTYvolatile)
         dbg_printf("mTYvolatile|");
-#if !MARS && (linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun)
+#if !MARS && (__linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun)
     if (t & mTYtransu)
         dbg_printf("mTYtransu|");
 #endif
@@ -192,34 +191,7 @@ void WReqn(elem *e)
   {
         switch (e->Eoper)
         {   case OPconst:
-                switch (tybasic(e->Ety))
-                {
-                    case TYfloat:
-                        dbg_printf("%g <float> ",e->EV.Vfloat);
-                        break;
-                    case TYdouble:
-                        dbg_printf("%g ",e->EV.Vdouble);
-                        break;
-                    case TYldouble:
-#if _MSC_VER
-                    {
-                        char buffer[3 + 3 * sizeof(targ_ldouble) + 1];
-                        ld_sprint(buffer, 'g', e->EV.Vldouble);
-                        dbg_printf("%s ",buffer);
-                        break;
-                    }
-#else
-                        dbg_printf("%Lg ",e->EV.Vldouble);
-                        break;
-#endif
-                    case TYcent:
-                    case TYucent:
-                        dbg_printf("%lld+%lld ", e->EV.Vcent.msw, e->EV.Vcent.lsw);
-                        break;
-                    default:
-                        dbg_printf("%lld ",el_tolong(e));
-                        break;
-                }
+                elem_print_const(e);
                 break;
             case OPrelconst:
                 ferr("#");
@@ -285,7 +257,7 @@ void WRFL(enum FL fl)
         {"unde  ","const ","oper  ","func  ","data  ",
          "reg   ",
          "pseudo",
-         "auto  ","fast  ","para  ","extrn ","tmp   ",
+         "auto  ","fast  ","para  ","extrn ",
          "code  ","block ","udata ","cs    ","swit  ",
          "fltrg ","offst ","datsg ",
          "ctor  ","dtor  ","regsav","asm   ",

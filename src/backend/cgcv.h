@@ -5,8 +5,7 @@
 // Written by Walter Bright
 /*
  * This source file is made available for personal use
- * only. The license is in /dmd/src/dmd/backendlicense.txt
- * or /dm/src/dmd/backendlicense.txt
+ * only. The license is in backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
@@ -65,6 +64,7 @@ int cv_namestring ( unsigned char *p , const char *name );
 unsigned cv4_typidx(type *t);
 idx_t cv4_arglist(type *t,unsigned *pnparam);
 unsigned char cv4_callconv(type *t);
+idx_t cv_numdebtypes();
 
 #define TOIDX(a,b)      ((cgcv.sz_idx == 4) ? TOLONG(a,b) : TOWORD(a,b))
 

@@ -5,8 +5,7 @@
 // Written by Walter Bright
 /*
  * This source file is made available for personal use
- * only. The license is in /dmd/src/dmd/backendlicense.txt
- * or /dm/src/dmd/backendlicense.txt
+ * only. The license is in backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
@@ -23,16 +22,30 @@ struct Outbuffer
     unsigned char *buf;         // the buffer itself
     unsigned char *pend;        // pointer past the end of the buffer
     unsigned char *p;           // current position in buffer
-    size_t len;                 // size of buffer
-    size_t inc;                 // default increment size
+    unsigned len;               // size of buffer
+    unsigned inc;               // default increment size
+    unsigned char *origbuf;     // external buffer
 
     Outbuffer();
-    Outbuffer(size_t inc);
+
+    Outbuffer(size_t incx) : buf(NULL), pend(NULL), p(NULL), len(0), inc(incx), origbuf(NULL) { }
+
+    Outbuffer(unsigned char *bufx, size_t bufxlen, unsigned incx) :
+        buf(bufx), pend(bufx + bufxlen), p(bufx), len(bufxlen), inc(incx), origbuf(bufx) { }
+
     ~Outbuffer();
+
     void reset();
 
     // Reserve nbytes in buffer
-    void reserve(size_t nbytes);
+    void reserve(size_t nbytes)
+    {
+        if (pend - p < nbytes)
+            enlarge(nbytes);
+    }
+
+    // Reserve nbytes in buffer
+    void enlarge(size_t nbytes);
 
     // Write n zeros; return pointer to start of zeros
     void *writezeros(size_t n);
@@ -76,7 +89,12 @@ struct Outbuffer
     /**
      * Writes an 8 bit byte.
      */
-    void writeByte(int v);
+    void writeByte(int v)
+    {
+        if (pend == p)
+            reserve(1);
+        *p++ = v;
+    }
 
     /**
      * Writes a 16 bit little-end short, no reserve check.

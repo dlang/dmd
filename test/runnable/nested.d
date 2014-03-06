@@ -1543,6 +1543,31 @@ void test7428(){
 }
 
 /*******************************************/
+// 4612
+
+struct S4612a(alias x)
+{
+    void* func() { void* p = &x; return p; }
+}
+
+struct S4612b(alias x)
+{
+    int i;
+    void* func() { void* p = &x; return p; }
+}
+
+void test4612()
+{
+    int a;
+
+    auto sa = S4612a!a();
+    assert(sa.func() == &a);
+
+    auto sb = S4612b!(a)();
+    assert(sb.func() == &a);
+}
+
+/*******************************************/
 
 struct S4841(alias pred)
 {
@@ -2131,12 +2156,15 @@ void test9036()
 /+
 auto fun8863(T)(T* ret) { *ret = T(); }
 
-void test8863() {
+void test8863()
+{
     int x = 1;
-    struct A {
-	auto f() {
-	    assert(x == 1);
-	}
+    struct A
+    {
+        auto f()
+        {
+            assert(x == 1);
+        }
     }
 
     A a;
@@ -2145,6 +2173,169 @@ void test8863() {
     a.f();
 }
 +/
+
+/*******************************************/
+// 8774
+
+void popFront8774()
+{
+    int[20] abc;    // smash stack
+}
+
+struct MapResult8774(alias fun)
+{
+    void delegate() front()
+    {
+        return fun(1);
+    }
+}
+
+void test8774() {
+
+    int sliceSize = 100;
+
+    void delegate() foo( int i )
+    {
+        void delegate() closedPartialSum()
+        {
+            int ii = i ;
+            void bar()
+            {
+                printf("%d\n", sliceSize);
+                assert(sliceSize == 100);
+            }
+            return &bar;
+        }
+        return closedPartialSum();
+    }
+
+    auto threads = MapResult8774!foo();
+
+    auto dg = threads.front();
+    popFront8774();
+
+    printf("calling dg()\n");
+    dg();
+}
+
+/*******************************************/
+
+int Bug8832(alias X)()
+{
+    return X();
+}
+
+int delegate() foo8832()
+{
+  int stack;
+  int heap = 3;
+
+  int nested_func()
+  {
+    ++heap;
+    return heap;
+  }
+  return delegate int() { return Bug8832!(nested_func); };
+}
+
+void test8832()
+{
+  auto z = foo8832();
+  auto p = foo8832();
+  assert(z() == 4);
+  p();
+  assert(z() == 5);
+}
+
+/*******************************************/
+// 9315
+
+auto test9315()
+{
+    struct S
+    {
+        int i;
+        void bar() {}
+    }
+    pragma(msg, S.init.tupleof[$-1]);
+}
+
+/*******************************************/
+// 9244
+
+void test9244()
+{
+    union U {
+        int i;
+        @safe int x() { return i; }
+    }
+}
+
+/*******************************************/
+// 10495
+
+struct X10495
+{
+    @disable this();
+}
+
+struct Y10495(alias f)
+{
+    void g() {}
+}
+
+class C10495
+{
+    X10495 s = X10495.init;
+
+    void h()
+    {
+        Y10495!(a => a) st;
+    }
+}
+
+/*******************************************/
+// 11385
+
+auto map11385(alias fun, R)(R range)
+{
+    return MapResult11385!(fun, R)(range);
+}
+struct MapResult11385(alias fun, R)
+{
+    R range;
+    auto front() { return fun(range[0]); }
+}
+void test11385()
+{
+    //import std.algorithm;
+    static auto fun1(T)(T a) { return a * 2; }
+           auto fun2(T)(T a) { return a * 2; }
+    [1].map11385!(a=>fun1(a));   // OK
+    [1].map11385!(a=>fun2(a));   // NG:XXX is a nested function and cannot be accessed from XXX
+}
+
+/*******************************************/
+
+void xmap(alias g)(int t)
+{
+    g(t);
+}
+
+enum foo11297 = function (int x)
+   {
+//	int bar(int y) { return x; } xmap!bar(7);
+        xmap!(y => x)(7);
+   };
+
+void xreduce(alias f)()
+{
+    f(4);
+}
+
+void test11297() {
+    xreduce!foo11297();
+}
 
 /*******************************************/
 
@@ -2207,6 +2398,7 @@ int main()
     test55();
     test4401();
     test7428();
+    test4612();
     test4841();
     test7199();
     test7965();
@@ -2227,6 +2419,12 @@ int main()
     test9035a();
     test9036();
 //    test8863();
+    test8774();
+    test8832();
+    test9315();
+    test9244();
+    test11385();
+    test11297();
 
     printf("Success\n");
     return 0;

@@ -5,8 +5,7 @@
 // Written by Walter Bright
 /*
  * This source file is made available for personal use
- * only. The license is in /dmd/src/dmd/backendlicense.txt
- * or /dm/src/dmd/backendlicense.txt
+ * only. The license is in backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
@@ -248,9 +247,6 @@ void outdata(symbol *s)
             case DT_coff:
                 datasize += size(dt->Dty);
                 break;
-            case DT_1byte:
-                datasize++;
-                break;
             default:
 #ifdef DEBUG
                 dbg_printf("dt = %p, dt = %d\n",dt,dt->dt);
@@ -419,9 +415,6 @@ void outdata(symbol *s)
                 objmod->reftocodeseg(seg,offset,dt->DToffset);
                 offset += intsize;
                 break;
-            case DT_1byte:
-                objmod->byte(seg,offset++,dt->DTonebyte);
-                break;
             default:
 #ifdef DEBUG
                 dbg_printf("dt = %p, dt = %d\n",dt,dt->dt);
@@ -522,7 +515,14 @@ void out_readonly(symbol *s)
 {
     // The default is DATA
 #if ELFOBJ
-    s->Sseg = CDATA;
+    /* Cannot have pointers in CDATA when compiling PIC code, because
+     * they require dynamic relocations of the read-only segment.
+     * Instead use the .data.rel.ro section. See Bugzilla 11171.
+     */
+    if (config.flags3 & CFG3pic && dtpointers(s->Sdt))
+        s->Sseg = CDATAREL;
+    else
+        s->Sseg = CDATA;
 #endif
 #if MACHOBJ
     /* Because of PIC and CDATA being in the _TEXT segment;
@@ -668,7 +668,6 @@ again:
             case SCregister:
             case SCfastpar:
             case SCbprel:
-            case SCtmp:
                 if (e->Eoper == OPrelconst)
                 {
                     s->Sflags &= ~(SFLunambig | GTregcand);
@@ -868,7 +867,6 @@ STATIC void out_regcand_walk(elem *e)
                         break;
                     case SCauto:
                     case SCregister:
-                    case SCtmp:
                     case SCfastpar:
                     case SCbprel:
                         s->Sflags &= ~(SFLunambig | GTregcand);
@@ -1054,9 +1052,6 @@ STATIC void writefunc2(symbol *sfunc)
         s->Sflags &= ~(SFLunambig | GTregcand);
         switch (s->Sclass)
         {
-            case SCtmp:
-                s->Sfl = FLtmp;
-                goto L3;
             case SCbprel:
                 s->Sfl = FLbprel;
                 goto L3;
@@ -1325,7 +1320,7 @@ STATIC void writefunc2(symbol *sfunc)
         sfunc->Sclass != SCsinline &&
         !(sfunc->Sclass == SCinline && !(config.flags2 & CFG2comdat)) &&
         sfunc->ty() & mTYexport)
-        objmod->export_symbol(sfunc,Poffset);      // export function definition
+        objmod->export_symbol(sfunc,Para.offset);      // export function definition
 
     if (config.fulltypes && config.fulltypes != CV8)
         cv_func(sfunc);                 // debug info for function

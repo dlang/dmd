@@ -47,3 +47,4 @@ else
 	// delete p;
 }
 
+export __gshared int globvar;

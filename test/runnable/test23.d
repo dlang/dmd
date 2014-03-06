@@ -1336,28 +1336,8 @@ void test64()
 
 void test65()
 {
-    int i;
-    char[1] c = ['0'];
-    i = c[0]; // ok
-    i = *cast(int*)c; // ok
-    assert((i & 0xFF) == 0x30);
-
-    i = *cast(int*)['0']; // compiler seg-fault
-    assert((i & 0xFF) == 0x30);
-
-    if (0)
-	i = *cast(int*)cast(char[0])[]; // compiler seg-fault
-    i = *cast(int*)cast(char[1])['0']; // compiler seg-fault
-    i = *cast(int*)cast(char[1])"0"; // ok
-
-//    i = *cast(int*)cast(char[3])['0']; // ok
-//    i = *cast(int*)cast(char[3])['0', '0']; // ok
-    i = *cast(int*)cast(char[3])['0', '0', '0']; // compiler seg-fault
-
-//    i = *cast(int*)cast(char[4])['0', '0', '0']; // ok
-    i = *cast(int*)cast(char[4])['0', '0', '0', '0']; // compiler seg-fault
-
-    i = *cast(int*)cast(char[])['0','0','0']; // ok
+    // Bugzilla Issue 407.
+    int i = *cast(int*)cast(char[4])['0', '0', '0', '0']; // compiler seg-fault
     printf("i = %x\n", i);
 }
 

@@ -5,8 +5,7 @@
 // Written by Walter Bright
 /*
  * This source file is made available for personal use
- * only. The license is in /dmd/src/dmd/backendlicense.txt
- * or /dm/src/dmd/backendlicense.txt
+ * only. The license is in backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
@@ -47,6 +46,7 @@ SYMBOL_MARS(MONITOR_HANDLER, FLfunc,FREGSAVED,"_d_monitor_handler", 0, 0) \
 SYMBOL_MARS(MONITOR_PROLOG,  FLfunc,FREGSAVED,"_d_monitor_prolog",0,t) \
 SYMBOL_MARS(MONITOR_EPILOG,  FLfunc,FREGSAVED,"_d_monitor_epilog",0,t) \
 SYMBOL_MARS(DCOVER,          FLfunc,FREGSAVED,"_d_cover_register", 0, t) \
+SYMBOL_MARS(DCOVER2,         FLfunc,FREGSAVED,"_d_cover_register2", 0, t) \
 SYMBOL_MARS(DASSERT,         FLfunc,FREGSAVED,"_d_assert", SFLexit, t) \
 SYMBOL_MARS(DASSERTM,        FLfunc,FREGSAVED,"_d_assertm", SFLexit, t) \
 SYMBOL_MARS(DASSERT_MSG,     FLfunc,FREGSAVED,"_d_assert_msg", SFLexit, t) \
@@ -135,7 +135,7 @@ SYMBOL_MARS(D_LOCAL_UNWIND2, FLfunc,FREGSAVED,"_d_local_unwind2", 0, 0) \
 SYMBOL_SCPP(LOCAL_UNWIND2, FLfunc,FREGSAVED,"_local_unwind2", 0, 0) \
 \
 SYMBOL_Z(TLS_INDEX, FLextern,0,"_tls_index",0,tsint) \
-SYMBOL_Z(TLS_ARRAY, FLextern,0,"_tls_array",0,tsint) \
+SYMBOL_Z(TLS_ARRAY, FLextern,0,"_tls_array",0,tspvoid) \
 SYMBOL_SCPP(AHSHIFT,   FLfunc,0,"_AHSHIFT",0,tstrace) \
 \
 SYMBOL_SCPP_TX86(HDIFFN, FLfunc,mBX|mCX|mSI|mDI|mBP|mES,"_aNahdiff", 0, 0) \

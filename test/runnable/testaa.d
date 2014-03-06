@@ -249,8 +249,8 @@ void test11()
     printf("Key.hash = %d\n", Key.hash);
     assert(Key.hash == 1);
     printf("Key.cmp = %d\n", Key.cmp);
-    assert(Key.cmp == 1);
-//    assert(Key.equals == 1);
+    printf("Key.equals = %d\n", Key.equals);
+    assert(Key.cmp == 1 && !Key.equals || !Key.cmp && Key.equals == 1);
 }
 
 
@@ -786,13 +786,334 @@ void test4826c()
 
 struct ICE5131
 {
+    this(int n) {}
     ICE5131 opAssign(int x) { return this; }
 }
 
 void test5131()
 {
     ICE5131[string] a;
-    a["ICE?"] = 1;
+    a["ICE?"] = 1;  // call ctor
+    a["ICE?"] = 1;  // call opAssign
+}
+
+/************************************************/
+// 6178
+
+bool test6178a()
+{
+    // AA value setting through identity opAssign
+
+    int assign = 0;
+    struct S
+    {
+        int value = 10;
+
+        void opAssign(S rhs)
+        {
+            ++assign;
+            assert(value == 10);
+        }
+    }
+
+    int count = 0;
+    int makeKey() { return ++count; }
+
+    S[int] aa;
+    assert(aa.length == 0);
+
+    aa[makeKey()] = S();
+    assert(assign == 0);
+    assert(aa.length == 1 && 1 in aa);
+
+    aa[1] = S();
+    assert(assign == 1);
+    assert(aa.length == 1 && 1 in aa);
+
+    return true;
+}
+
+bool test6178b()
+{
+    // AA value setting through implicit ctor call + non-identity opAssign
+
+    int ctor = 0;
+    int assign = 0;
+    struct S
+    {
+        int value = 10;
+
+        @disable this();
+
+        this(int n)
+        {
+            ++ctor;
+            assert(value == 10);
+            value = 20;
+        }
+        void opAssign(int rhs)
+        {
+            ++assign;
+            assert(value == 20);
+            assert(rhs == 30);
+            value = rhs;
+        }
+    }
+
+    int count = 0;
+    int makeKey() { return ++count; }
+
+    S[int] aa;
+    assert(aa.length == 0);
+
+    aa[makeKey()] = 20;
+    assert(assign == 0 && ctor == 1 && count == 1);
+    assert(aa.length == 1 && (1 in aa));
+
+    aa[1] = 30;
+    assert(assign == 1 && ctor == 1);
+    assert(aa.length == 1 && 1 in aa);
+
+    return true;
+}
+
+bool test6178c()
+{
+    // AA value setting through non-identity opAssign
+
+    struct S
+    {
+        //this(int) {}
+        // not possible to perform implicit ctor call
+        void opAssign(int) {}
+    }
+
+    S[int] aa;
+    assert(aa.length == 0);
+
+    if (!__ctfe)
+    {
+        // currently CTFE does not support throwing RangeError
+        import core.exception : RangeError;
+        try { aa[1] = 1; assert(0); } catch (RangeError) {}
+
+        // The above line is exactly same as:
+        try { aa[1].opAssign(1); assert(0); } catch (RangeError) {}
+    }
+    assert(aa.length == 0);
+
+    aa[1] = S();
+    aa[1] = 1;
+    assert(aa.length == 1);
+
+    return true;
+}
+
+bool test6178d()
+{
+    // AA value setting through implicit ctor call + alias this
+
+    int ctor;
+    struct S
+    {
+        this(int n) { ++ctor; value = n; }
+
+        int value;
+        alias value this;
+    }
+
+    S[int] aa;
+    assert(ctor == 0);
+    assert(aa.length == 0);
+
+    aa[1] = 0;      // implicit ctor call + blit assign
+    assert(aa[1].value == 0 && ctor == 1);
+    assert(aa.length == 1);
+
+    aa[1] = 1;      // set through alias this
+    assert(aa[1].value == 1 && ctor == 1);
+    assert(aa.length == 1);
+
+    return true;
+}
+
+bool test6178e()
+{
+    // AA value setting through alias this
+
+    struct S
+    {
+        int value;
+        alias value this;
+    }
+
+    S[int] aa;
+    assert(aa.length == 0);
+
+    if (!__ctfe)
+    {
+        // currently CTFE does not support throwing RangeError
+        import core.exception : RangeError;
+        try { aa[1] = 1; assert(0); } catch (RangeError) {}
+
+        // The above line is exactly same as:
+        try { aa[1].value = 1; assert(0); } catch (RangeError) {}
+    }
+    assert(aa.length == 0);
+
+    aa[1] = S(0);   // construct + blit assign
+    assert(aa[1].value == 0 && aa.length == 1);
+
+    aa[1] = 1;      // set through alias this
+    assert(aa[1].value == 1 && aa.length == 1);
+
+    return true;
+}
+
+void test6178()
+{
+    static assert(test6178a()); // ctfe check
+    test6178a();                // runtime test
+
+    static assert(test6178b());
+    test6178b();
+
+    static assert(test6178c());
+    test6178c();
+
+    static assert(test6178d());
+    test6178d();
+
+    static assert(test6178e());
+    test6178e();
+}
+
+void test6178x()
+{
+    static int ctor, cpctor, dtor;
+
+    static struct S
+    {
+        this(int)  { ++ctor;   printf("ctor\n");   }
+        this(this) { ++cpctor; printf("cpctor\n"); }
+        ~this()    { ++dtor;   printf("dtor\n");   }
+    }
+    static struct X
+    {
+        this(int) {}
+        void opAssign(int) {}
+    }
+
+    X[S] aa1;
+    S[int] aa2;
+
+    {
+        auto value = S(1);
+        assert(ctor==1 && cpctor==0 && dtor==0);
+
+        ref getRef(ref S s = value) { return s; }
+        auto getVal() { return value; }
+
+        aa1[value] = 10;
+        assert(ctor==1 && cpctor==0 && dtor==0);
+
+        aa1[getRef()] = 20;
+        assert(ctor==1 && cpctor==0 && dtor==0);
+
+        aa1[getVal()] = 20;
+        assert(ctor==1 && cpctor==1 && dtor==1);
+
+        aa2[1] = value;
+        assert(ctor==1 && cpctor==2 && dtor==1);
+
+        aa2[2] = getRef();
+        assert(ctor==1 && cpctor==3 && dtor==1);
+    }
+    assert(ctor==1 && cpctor==3 && dtor==2);
+    assert(ctor + cpctor - aa2.length == dtor);
+}
+
+/************************************************/
+// 10595
+
+struct S10595
+{
+    bool b = true;
+
+    bool test()
+    {
+        if (!b)  // note: must be a check, not 'return b;'
+            return false;
+
+        return true;
+    }
+}
+
+struct Wrap10595
+{
+    int i;
+    alias i this;
+    S10595 s;
+}
+
+void test10595()
+{
+    {
+        Wrap10595[int] wrap;
+
+        wrap[0] = Wrap10595();
+        wrap[0].i = 0;
+
+        assert(wrap[0].s.test());  // ok
+    }
+
+    {
+        Wrap10595[int] wrap;
+
+        wrap[0] = Wrap10595();
+        wrap[0] = 0;  // note: using 'alias this' to assign
+
+        assert(wrap[0].s.test());  // failure
+    }
+}
+
+/************************************************/
+// 10970
+
+struct RefCounted10970(T) //if (!is(T == class))
+{
+    struct RefCountedStore
+    {
+    }
+    RefCountedStore _refCounted;
+
+    this(this) {}
+
+    ~this() {}
+}
+
+struct Array10970(T) if (!is(T : const(bool)))
+{
+    struct Payload
+    {
+    }
+    RefCounted10970!Payload _data;
+}
+
+class C10970
+{
+    this(string name)
+    {
+        m[name] = Arr();
+    }
+
+    alias Array10970!C10970 Arr;
+    Arr[string] m;
+}
+
+void test10970()
+{
+    C10970 c = new C10970("test");
 }
 
 /************************************************/
@@ -860,6 +1181,70 @@ int[N6655] bar6655;
 
 /************************************************/
 
+struct ChunkLoc {}
+
+ChunkLoc Get()
+{
+    return ChunkLoc();
+}
+
+void test6799()
+{
+    int[ChunkLoc] aa;
+    aa.remove(Get());
+}
+
+/************************************************/
+// 11359
+
+void test11359()
+{
+    class Bar {}
+    static Bar[string] aa;
+    static ref fun() { return aa; }
+
+    string key = "test";
+
+    fun[key] = new Bar;
+    assert(aa.length == 1);
+    Bar bar = fun[key];
+}
+
+/************************************************/
+// 11730
+
+struct SysTime11730
+{
+    ref SysTime11730 opAssign(SysTime11730 rhs)
+    {
+        assert(0);
+    }
+}
+
+struct Nullable11730(T)
+{
+    T _value;
+
+    void opAssign()(T value)
+    {
+        assert(0);
+    }
+
+    @property ref inout(T) get() inout
+    {
+        assert(0);
+    }
+    alias get this;
+}
+
+void test11730()
+{
+    Nullable11730!SysTime11730[string] map;
+    map["foo"] = Nullable11730!SysTime11730();
+}
+
+/************************************************/
+
 int main()
 {
     printf("before test 1\n");   test1();
@@ -896,10 +1281,17 @@ int main()
 
     test4826c();
     test5131();
+    test6178();
+    test6178x();
+    test10595();
+    test10970();
     test6433();
     test6612();
     test7365();
     test5520();
+    test6799();
+    test11359();
+    test11730();
 
     printf("Success\n");
     return 0;

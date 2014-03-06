@@ -5,8 +5,7 @@
 // Written by Walter Bright
 /*
  * This source file is made available for personal use
- * only. The license is in /dmd/src/dmd/backendlicense.txt
- * or /dm/src/dmd/backendlicense.txt
+ * only. The license is in backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
@@ -212,7 +211,13 @@ elem *el_convert(elem *e);
 int el_isdependent(elem *);
 unsigned el_alignsize(elem *);
 
+size_t el_opN(elem *e, unsigned op);
+void el_opArray(elem ***parray, elem *e, unsigned op);
+void el_opFree(elem *e, unsigned op);
+elem *el_opCombine(elem **args, size_t length, unsigned op, unsigned ty);
+
 void elem_print(elem *);
+void elem_print_const(elem *);
 void el_hydrate(elem **);
 void el_dehydrate(elem **);
 

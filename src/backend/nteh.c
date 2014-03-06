@@ -5,8 +5,7 @@
 // Written by Walter Bright
 /*
  * This source file is made available for personal use
- * only. The license is in /dmd/src/dmd/backendlicense.txt
- * or /dm/src/dmd/backendlicense.txt
+ * only. The license is in backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
@@ -345,7 +344,7 @@ code *nteh_prolog()
     cs.IEV2.Vint = -1;
     c1 = gen(CNIL,&cs);                 // PUSH -1
 
-    if (usednteh & NTEHcpp || MARS)
+    if ((usednteh & NTEHcpp) || MARS)
     {
         // PUSH &framehandler
         cs.IFL2 = FLframehandler;

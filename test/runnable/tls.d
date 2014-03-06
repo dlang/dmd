@@ -3,7 +3,7 @@
 import std.c.stdio;
 import imports.tlsa;
 
-__thread int x = 3;
+int x = 3;
 
 void bar()
 {
@@ -28,10 +28,10 @@ void test1()
 
 /************************************/
 
-__thread long fooa;
-__thread long foob;
-__thread int bara = 0x12345678;
-__thread int barb = 0x9ABCDEFF;
+long fooa;
+long foob;
+int bara = 0x12345678;
+int barb = 0x9ABCDEFF;
 
 void test2()
 {
@@ -50,9 +50,9 @@ void test2()
 
 int abc3(T)(T t)
 {
-    static __thread T qqq;
+    static T qqq;
     static T rrr;
-    static __thread T sss = 8;
+    static T sss = 8;
     static T ttt = 9;
     printf("qqq = %d, rrr = %d, sss = %d, ttt = %d\n", qqq, rrr, sss, ttt);
     assert(sss == 8);

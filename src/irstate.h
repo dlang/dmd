@@ -12,13 +12,13 @@
 #pragma once
 #endif /* __DMC__ */
 
-struct Module;
-struct Statement;
+class Module;
+class Statement;
 struct block;
-struct Dsymbol;
-struct Identifier;
+class Dsymbol;
+class Identifier;
 struct Symbol;
-struct FuncDeclaration;
+class FuncDeclaration;
 struct Blockx;
 struct elem;
 #include "arraytypes.h"

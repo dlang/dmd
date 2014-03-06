@@ -3,18 +3,20 @@ import core.vararg;
 
 extern (C) int printf(const(char*) fmt, ...);
 
+template TypeTuple(T...) { alias TypeTuple = T; }
+
+/**********************************/
+
 int sdtor;
 
-struct S
+struct S1
 {
     ~this() { printf("~S()\n"); sdtor++; }
 }
 
-/**********************************/
-
 void test1()
 {
-    S* s = new S();
+    S1* s = new S1();
     delete s;
     assert(sdtor == 1);
 }
@@ -1089,11 +1091,11 @@ struct S41 {
 
 void test41()
 {
-    auto s = new S41(3);
+    auto s = new immutable S41(3);
     //writeln(typeid(typeof(s)));
     static assert(is(typeof(s) == immutable(S41)*));
 
-    auto t = S41(3);
+    auto t = immutable S41(3);
     //writeln(typeid(typeof(t)));
     static assert(is(typeof(t) == immutable(S41)));
 }
@@ -1107,9 +1109,9 @@ class C42 {
 
 void test42()
 {
-    auto c = new C42(3);
+    static assert(!__traits(compiles, new C42(3)));
     //writeln(typeid(typeof(c)));
-    static assert(is(typeof(c) == immutable(C42)));
+    //static assert(is(typeof(c) == immutable(C42)));
 
     auto d = new immutable(C42)(3);
     //writeln(typeid(typeof(d)));
@@ -1128,7 +1130,7 @@ void test43()
 {
     int i;
     assert(!__traits(compiles, immutable(S43)(3, &i)));
-    immutable int j = 4; 
+    immutable int j = 4;
     auto s = immutable(S43)(3, &j);
     //writeln(typeid(typeof(s)));
     static assert(is(typeof(s) == immutable(S43)));
@@ -1146,7 +1148,7 @@ void test44()
 {
     int i;
     assert(!__traits(compiles, immutable(S44)(3, &i)));
-    immutable int j = 4; 
+    immutable int j = 4;
     auto s = immutable(S44)(3, &j);
     //writeln(typeid(typeof(s)));
     static assert(is(typeof(s) == immutable(S44)));
@@ -1166,6 +1168,7 @@ void test45()
 }
 
 /**********************************/
+// 3986
 
 struct SiberianHamster
 {
@@ -1177,6 +1180,26 @@ void test46()
 {
    SiberianHamster basil = "cybil";
    assert(basil.rat == 813);
+}
+
+/**********************************/
+// 8741
+
+struct Vec8741
+{
+    this(float x)
+    {
+        m[0] = x;
+        m[1] = 58;
+    }
+    float[2] m;
+    static Vec8741 zzz = Vec8741(7);
+}
+
+void test8741()
+{
+    assert(Vec8741.zzz.m[0] == 7);
+    assert(Vec8741.zzz.m[1] == 58);
 }
 
 /**********************************/
@@ -2350,6 +2373,819 @@ alias X8475!(true).XY Xtrue;
 
 /**********************************/
 
+struct Foo9320 {
+    real x;
+
+    this(real x) {
+        this.x = x;
+    }
+
+    Foo9320 opBinary(string op)(Foo9320 other) {
+        return Foo9320(mixin("x" ~ op ~ "other.x"));
+    }
+}
+
+Foo9320 test9320(Foo9320 a, Foo9320 b, Foo9320 c) {
+    return (a + b) / (a * b) - c;
+}
+
+/**********************************/
+// 9386
+
+struct Test9386
+{
+    string name;
+    static string op;
+
+    this(string name)
+    {
+        this.name = name;
+        printf("Created %.*s...\n", name.length, name.ptr);
+        op ~= "a";
+    }
+
+    this(this)
+    {
+        printf("Copied %.*s...\n", name.length, name.ptr);
+        op ~= "b";
+    }
+
+    ~this()
+    {
+        printf("Deleted %.*s\n", name.length, name.ptr);
+        op ~= "c";
+    }
+
+    const int opCmp(ref const Test9386 t)
+    {
+	return op[0] - t.op[0];
+    }
+}
+
+void test9386()
+{
+    {
+        Test9386.op = null;
+
+        Test9386[] tests =
+            [ Test9386("one"),
+              Test9386("two"),
+              Test9386("three"),
+              Test9386("four") ];
+
+        assert(Test9386.op == "aaaa");
+        Test9386.op = null;
+
+        printf("----\n");
+        foreach (Test9386 test; tests)
+        {
+            printf("\tForeach %.*s\n", test.name.length, test.name.ptr);
+            Test9386.op ~= "x";
+        }
+
+        assert(Test9386.op == "bxcbxcbxcbxc");
+        Test9386.op = null;
+
+        printf("----\n");
+        foreach (ref Test9386 test; tests)
+        {
+            printf("\tForeach %.*s\n", test.name.length, test.name.ptr);
+            Test9386.op ~= "x";
+        }
+        assert(Test9386.op == "xxxx");
+    }
+    printf("====\n");
+    {
+        Test9386.op = null;
+
+        Test9386[Test9386] tests =
+            [ Test9386("1") : Test9386("one"),
+              Test9386("2") : Test9386("two"),
+              Test9386("3") : Test9386("three"),
+              Test9386("4") : Test9386("four") ];
+
+        assert(Test9386.op == "aaaaaaaa");
+        Test9386.op = null;
+
+        printf("----\n");
+        foreach (Test9386 k, Test9386 v; tests)
+        {
+            printf("\tForeach %.*s : %.*s\n", k.name.length, k.name.ptr,
+                                              v.name.length, v.name.ptr);
+            Test9386.op ~= "x";
+        }
+
+        assert(Test9386.op == "bbxccbbxccbbxccbbxcc");
+        Test9386.op = null;
+
+        printf("----\n");
+        foreach (Test9386 k, ref Test9386 v; tests)
+        {
+            printf("\tForeach %.*s : %.*s\n", k.name.length, k.name.ptr,
+                                              v.name.length, v.name.ptr);
+            Test9386.op ~= "x";
+        }
+        assert(Test9386.op == "bxcbxcbxcbxc");
+    }
+}
+
+/**********************************/
+// 9441
+
+auto x9441 = X9441(0.123);
+
+struct X9441
+{
+    int a;
+    this(double x) { a = cast(int)(x * 100); }
+}
+
+void test9441()
+{
+    assert(x9441.a == 12);
+}
+
+/**********************************/
+
+struct Payload
+{
+    size_t _capacity; //Comment me
+    int[] _pay;       //Comment me
+
+    size_t insertBack(Data d)
+    {
+        immutable newLen   = _pay.length + 3;
+        _pay.length = newLen;
+        _pay = _pay[0 .. newLen]; //Comment me
+        return 3;
+    }
+}
+
+struct Impl
+{
+    Payload _payload;
+    size_t _count;
+}
+
+struct Data
+{
+    Impl* _store;
+
+    this(int i)
+    {
+        _store = new Impl;
+        _store._payload = Payload.init;
+    }
+
+    ~this()
+    {
+        printf("%d\n", _store._count);
+        --_store._count;
+    }
+}
+
+
+void test9720()
+{
+    auto a = Data(1);
+    auto b = Data(1);
+    a._store._payload.insertBack(b); //Fails
+}
+
+/**********************************/
+// 9899
+
+struct S9899
+{
+    @safe pure nothrow ~this() {}
+}
+
+struct MemberS9899
+{
+    S9899 s;
+}
+
+void test9899() @safe pure nothrow
+{
+    MemberS9899 s; // 11
+}
+
+/**********************************/
+// 9907
+
+void test9907()
+{
+    static struct SX(bool hasCtor, bool hasDtor)
+    {
+        int i;
+        static size_t assign;
+        static size_t dtor;
+
+        static if (hasCtor)
+        {
+            this(int i) { this.i = i; }
+        }
+
+        void opAssign(SX rhs)
+        {
+            printf("%08X(%d) from Rvalue %08X(%d)\n", &this.i, this.i, &rhs.i, rhs.i);
+            ++assign;
+        }
+
+        void opAssign(ref SX rhs)
+        {
+            printf("%08X(%d) from Lvalue %08X(%d)\n", &this.i, this.i, &rhs.i, rhs.i);
+            assert(0);
+        }
+
+        static if (hasDtor)
+        {
+            ~this()
+            {
+                printf("destroying %08X(%d)\n", &this.i, this.i);
+                ++dtor;
+            }
+        }
+    }
+
+    S test(S)(int i)
+    {
+        return S(i);
+    }
+
+    foreach (hasCtor; TypeTuple!(false, true))
+    foreach (hasDtor; TypeTuple!(false, true))
+    {
+        alias S = SX!(hasCtor, hasDtor);
+        alias test!S foo;
+
+        printf("----\n");
+        auto s = S(1);
+
+        // Assignment from two kinds of rvalues
+        assert(S.assign == 0);
+        s = foo(2);
+        static if (hasDtor) assert(S.dtor == 1);
+        assert(S.assign == 1);
+        s = S(3);
+        assert(S.assign == 2);
+        static if (hasDtor) assert(S.dtor == 2);
+    }
+    printf("----\n");
+}
+
+/**********************************/
+// 9985
+
+struct S9985
+{
+    ubyte* b;
+    ubyte buf[128];
+    this(this) { assert(0); }
+
+    static void* ptr;
+}
+auto ref makeS9985()
+{
+    S9985 s;
+    s.b = s.buf.ptr;
+    S9985.ptr = &s;
+    return s;
+}
+void test9985()
+{
+    S9985 s = makeS9985();
+    assert(S9985.ptr == &s);    // NRVO
+
+    static const int n = 1;
+    static auto ref retN()
+    {
+        return n;
+    }
+    auto p = &(retN());        // OK
+    assert(p == &n);
+    alias ref const(int) F1();
+    static assert(is(typeof(retN) == F1));
+
+    enum const(int) x = 1;
+    static auto ref retX()
+    {
+        return x;
+    }
+    static assert(!__traits(compiles, { auto q = &(retX()); }));
+    alias const(int) F2();
+    static assert(is(typeof(retX) == F2));
+}
+
+/**********************************/
+// 9994
+
+void test9994()
+{
+    static struct S
+    {
+        static int dtor;
+        ~this() { ++dtor; }
+    }
+
+    S s;
+    static assert( __traits(compiles, s.opAssign(s)));
+    static assert(!__traits(compiles, s.__postblit()));
+
+    assert(S.dtor == 0);
+    s = s;
+    assert(S.dtor == 1);
+}
+
+/**********************************/
+// 10053
+
+struct S10053A
+{
+    pure ~this() {}
+}
+
+struct S10053B
+{
+    S10053A sa;
+    ~this() {}
+}
+
+/**********************************/
+// 10055
+
+void test10055a()
+{
+    static struct SX { pure nothrow @safe ~this() {} }
+    static struct SY { pure nothrow @safe ~this() {} }
+    static struct SZ {           @disable ~this() {} }
+
+    // function to check merge result of the dtor attributes
+    static void check(S)() { S s; }
+
+    static struct S1 {                                             }
+    static struct S2 {                                  ~this() {} }
+    static struct SA { SX sx; SY sy;                               }
+    static struct SB { SX sx; SY sy; pure nothrow @safe ~this() {} }
+    static struct SC { SX sx; SY sy;      nothrow @safe ~this() {} }
+    static struct SD { SX sx; SY sy; pure         @safe ~this() {} }
+    static struct SE { SX sx; SY sy; pure nothrow       ~this() {} }
+    static struct SF { SX sx; SY sy;              @safe ~this() {} }
+    static struct SG { SX sx; SY sy;      nothrow       ~this() {} }
+    static struct SH { SX sx; SY sy; pure               ~this() {} }
+    static struct SI { SX sx; SY sy;                    ~this() {} }
+    static assert(is( typeof(&check!S1) == void function() pure nothrow @safe ));
+    static assert(is( typeof(&check!S2) == void function()                    ));
+    static assert(is( typeof(&check!SA) == void function() pure nothrow @safe ));
+    static assert(is( typeof(&check!SB) == void function() pure nothrow @safe ));
+    static assert(is( typeof(&check!SC) == void function()      nothrow @safe ));
+    static assert(is( typeof(&check!SD) == void function() pure         @safe ));
+    static assert(is( typeof(&check!SE) == void function() pure nothrow       ));
+    static assert(is( typeof(&check!SF) == void function()              @safe ));
+    static assert(is( typeof(&check!SG) == void function()      nothrow       ));
+    static assert(is( typeof(&check!SH) == void function() pure               ));
+    static assert(is( typeof(&check!SI) == void function()                    ));
+
+    static struct S1x {                                             SZ sz; }
+    static struct S2x {                                  ~this() {} SZ sz; }
+    static struct SAx { SX sx; SY sy;                               SZ sz; }
+    static struct SBx { SX sx; SY sy; pure nothrow @safe ~this() {} SZ sz; }
+    static struct SCx { SX sx; SY sy;      nothrow @safe ~this() {} SZ sz; }
+    static struct SDx { SX sx; SY sy; pure         @safe ~this() {} SZ sz; }
+    static struct SEx { SX sx; SY sy; pure nothrow       ~this() {} SZ sz; }
+    static struct SFx { SX sx; SY sy;              @safe ~this() {} SZ sz; }
+    static struct SGx { SX sx; SY sy;      nothrow       ~this() {} SZ sz; }
+    static struct SHx { SX sx; SY sy; pure               ~this() {} SZ sz; }
+    static struct SIx { SX sx; SY sy;                    ~this() {} SZ sz; }
+    foreach (Sx; TypeTuple!(S1x, S2x, SAx, SBx, SCx, SDx, SEx, SFx, SGx, SHx, SIx))
+    {
+        static assert(!__traits(compiles, &check!Sx));
+    }
+}
+
+void test10055b()
+{
+    static struct SX { pure nothrow @safe this(this) {} }
+    static struct SY { pure nothrow @safe this(this) {} }
+    static struct SZ {           @disable this(this) {} }
+
+    // function to check merge result of the postblit attributes
+    static void check(S)() { S s; S s2 = s; }
+
+    static struct S1 {                                               }
+    static struct S2 {                                  this(this) {} }
+    static struct SA { SX sx; SY sy;                                  }
+    static struct SB { SX sx; SY sy; pure nothrow @safe this(this) {} }
+    static struct SC { SX sx; SY sy;      nothrow @safe this(this) {} }
+    static struct SD { SX sx; SY sy; pure         @safe this(this) {} }
+    static struct SE { SX sx; SY sy; pure nothrow       this(this) {} }
+    static struct SF { SX sx; SY sy;              @safe this(this) {} }
+    static struct SG { SX sx; SY sy;      nothrow       this(this) {} }
+    static struct SH { SX sx; SY sy; pure               this(this) {} }
+    static struct SI { SX sx; SY sy;                    this(this) {} }
+    static assert(is( typeof(&check!S1) == void function() pure nothrow @safe ));
+    static assert(is( typeof(&check!S2) == void function()                    ));
+    static assert(is( typeof(&check!SA) == void function() pure nothrow @safe ));
+    static assert(is( typeof(&check!SB) == void function() pure nothrow @safe ));
+    static assert(is( typeof(&check!SC) == void function()      nothrow @safe ));
+    static assert(is( typeof(&check!SD) == void function() pure         @safe ));
+    static assert(is( typeof(&check!SE) == void function() pure nothrow       ));
+    static assert(is( typeof(&check!SF) == void function()              @safe ));
+    static assert(is( typeof(&check!SG) == void function()      nothrow       ));
+    static assert(is( typeof(&check!SH) == void function() pure               ));
+    static assert(is( typeof(&check!SI) == void function()                    ));
+
+    static struct S1x {                                                SZ sz; }
+    static struct S2x {                                  this(this) {} SZ sz; }
+    static struct SAx { SX sx; SY sy;                                  SZ sz; }
+    static struct SBx { SX sx; SY sy; pure nothrow @safe this(this) {} SZ sz; }
+    static struct SCx { SX sx; SY sy;      nothrow @safe this(this) {} SZ sz; }
+    static struct SDx { SX sx; SY sy; pure         @safe this(this) {} SZ sz; }
+    static struct SEx { SX sx; SY sy; pure nothrow       this(this) {} SZ sz; }
+    static struct SFx { SX sx; SY sy;              @safe this(this) {} SZ sz; }
+    static struct SGx { SX sx; SY sy;      nothrow       this(this) {} SZ sz; }
+    static struct SHx { SX sx; SY sy; pure               this(this) {} SZ sz; }
+    static struct SIx { SX sx; SY sy;                    this(this) {} SZ sz; }
+    foreach (Sx; TypeTuple!(S1x, S2x, SAx, SBx, SCx, SDx, SEx, SFx, SGx, SHx, SIx))
+    {
+        static assert(!__traits(compiles, &check!Sx));
+    }
+}
+
+/**********************************/
+// 10160
+
+struct S10160 { this(this) {} }
+
+struct X10160a { S10160 s; const int x;     }
+struct X10160b { S10160 s; const int x = 1; }
+
+void test10160()
+{
+    X10160a xa;
+    X10160b xb;
+}
+
+/**********************************/
+// 10094
+
+void test10094()
+{
+    static void* p;
+    const string[4] i2s = ()
+    {
+        string[4] tmp;
+        p = &tmp[0];
+        for (int i = 0; i < 4; ++i)
+        {
+            char[1] buf = [cast(char)('0' + i)];
+            string str = buf.idup;
+            tmp[i] = str;
+        }
+        return tmp; // NRVO should work
+    }();
+    assert(p == cast(void*)&i2s[0]);
+    assert(i2s == ["0", "1", "2", "3"]);
+}
+
+/**********************************/
+// 10079
+
+// dtor || postblit
+struct S10079a
+{
+    this(this) pure nothrow @safe {}
+}
+struct S10079b
+{
+    ~this() pure nothrow @safe {}
+}
+struct S10079c
+{
+    this(this) pure nothrow @safe {}
+    ~this() pure nothrow @safe {}
+}
+struct S10079d
+{
+    this(this) {}
+}
+struct S10079e
+{
+    this(this) {}
+    ~this() pure nothrow @safe {}
+}
+
+// memberwise
+struct S10079f
+{
+    S10079a a;
+    S10079b b;
+    S10079c c;
+    S10079d d;
+    S10079e e;
+}
+
+void check10079(S)(ref S s) pure nothrow @safe { s = S(); }
+
+// Assignment is pure, nothrow, and @safe in all cases.
+static assert(__traits(compiles, &check10079!S10079a));
+static assert(__traits(compiles, &check10079!S10079b));
+static assert(__traits(compiles, &check10079!S10079c));
+static assert(__traits(compiles, &check10079!S10079d));
+static assert(__traits(compiles, &check10079!S10079e));
+static assert(__traits(compiles, &check10079!S10079f));
+
+/**********************************/
+// 10244
+
+void test10244()
+{
+    static struct Foo
+    {
+        string _str;
+        long _num;
+
+        template DeclareConstructor(string fieldName)
+        {
+            enum code =
+                `this(typeof(_` ~ fieldName ~ `) value)` ~
+                `{ this._` ~ fieldName ~ ` = value; }`;
+            mixin(code);
+        }
+
+        mixin DeclareConstructor!"str";
+        mixin DeclareConstructor!"num";
+    }
+
+    Foo value1 = Foo("D");
+    Foo value2 = Foo(128);
+    assert(value1._str == "D");
+    assert(value2._num == 128);
+}
+
+/**********************************/
+// 10694
+
+struct Foo10694 { ~this() { } }
+
+void test10694() pure
+{
+    static Foo10694 i1;
+    __gshared Foo10694 i2;
+    void foo() pure
+    {
+        static Foo10694 j1;
+        __gshared Foo10694 j2;
+    }
+}
+
+/**********************************/
+// 10787
+
+int global10787;
+
+static ~this() nothrow pure @safe
+{
+    int* p;
+    static assert(!__traits(compiles, ++p));
+    static assert(!__traits(compiles, ++global10787));
+}
+
+shared static ~this() nothrow pure @safe
+{
+    int* p;
+    static assert(!__traits(compiles, ++p));
+    static assert(!__traits(compiles, ++global10787));
+}
+
+/**********************************/
+// 10789
+
+struct S10789
+{
+    static int count;
+    int value;
+
+    this(int)  { value = ++count; }
+    ~this()    { --count; }
+    this(this) { value = ++count; assert(value == 3); }
+}
+
+S10789 fun10789a(bool isCondExp)(bool cond)
+{
+    S10789 s1 = S10789(42), s2 = S10789(24);
+    assert(S10789.count == 2);
+    static if (isCondExp)
+    {
+        return cond ? s1 : s2;
+    }
+    else
+    {
+        if (cond)
+            return s1;
+        else
+            return s2;
+    }
+}
+
+auto fun10789b(bool isCondExp)(bool cond)
+{
+    S10789 s1 = S10789(42), s2 = S10789(24);
+    assert(S10789.count == 2);
+    static if (isCondExp)
+    {
+        return cond ? s1 : s2;
+    }
+    else
+    {
+        if (cond)
+            return s1;
+        else
+            return s2;
+    }
+}
+
+void test10789()
+{
+    foreach (fun; TypeTuple!(fun10789a, fun10789b))
+    foreach (isCondExp; TypeTuple!(false, true))
+    {
+        {
+            S10789 s = fun!isCondExp(true);
+            assert(S10789.count == 1);
+            assert(s.value == 3);
+        }
+        assert(S10789.count == 0);
+        {
+            S10789 s = fun!isCondExp(false);
+            assert(S10789.count == 1);
+            assert(s.value == 3);
+        }
+        assert(S10789.count == 0);
+    }
+}
+
+/**********************************/
+// 11134
+
+void test11134()
+{
+    void test(S)()
+    {
+        S s;
+        S[2] sa;
+        S[2][] dsa = [[S(), S()]];
+        dsa.reserve(dsa.length + 2);    // avoid postblit calls by GC
+
+        S.count = 0;
+        dsa ~= sa;
+        assert(S.count == 2);
+
+        S.count = 0;
+        dsa ~= [s, s];
+        assert(S.count == 2);
+    }
+
+    static struct SS
+    {
+        static int count;
+        this(this) { ++count; }
+    }
+    test!SS();
+
+    struct NS
+    {
+        static int count;
+        this(this) { ++count; }
+    }
+    test!NS();
+}
+
+/**********************************/
+// 11197
+
+struct S11197a
+{
+    this(bool) {}
+    this(this) {}
+}
+
+struct S11197b
+{
+    //this(bool) {}
+    this(this) {}
+}
+
+void test11197()
+{
+    S11197a[][string] aa1;
+    aa1["test"] ~= S11197a.init;
+
+    S11197b[][string] aa2;
+    aa2["test"] ~= S11197b.init;
+}
+
+/**********************************/
+
+struct S7474 {
+  float x;
+  ~this() {}
+}
+
+void fun7474(T...)() { T x; }
+void test7474() { fun7474!S7474(); }
+
+/**********************************/
+// 11286
+
+struct A11286
+{
+    ~this() {}
+}
+
+A11286 getA11286() pure nothrow
+{
+    return A11286();
+}
+
+void test11286()
+{
+    A11286 a = getA11286();
+}
+
+/**********************************/
+// 11505
+
+struct Foo11505
+{
+    Bar11505 b;
+}
+
+struct Bar11505
+{
+    ~this() @safe { }
+    void* p;
+}
+
+void test11505()
+{
+    Foo11505 f;
+    f = Foo11505();
+}
+
+/**********************************/
+// 12045
+
+bool test12045()
+{
+    string dtor;
+    void* ptr;
+
+    struct S12045
+    {
+        string val;
+
+        this(this) { assert(0); }
+        ~this() { dtor ~= val; }
+    }
+
+    auto makeS12045(bool thrown)
+    {
+        auto s1 = S12045("1");
+        auto s2 = S12045("2");
+        ptr = &s1;
+
+        if (thrown)
+            throw new Exception("");
+
+        return s1;  // NRVO
+    }
+
+    dtor = null, ptr = null;
+    try
+    {
+        S12045 s = makeS12045(true);
+        assert(0);
+    }
+    catch (Exception e)
+    {
+        assert(dtor == "21", dtor);
+    }
+
+    dtor = null, ptr = null;
+    {
+        S12045 s = makeS12045(false);
+        assert(dtor == "2");
+        if (!__ctfe) assert(ptr is &s);   // NRVO
+    }
+    assert(dtor == "21");
+
+    return true;
+}
+static assert(test12045());
+
+/**********************************/
+
 int main()
 {
     test1();
@@ -2413,6 +3249,7 @@ int main()
     test59();
     test5737();
     test6119();
+    test8741();
     test6364();
     test6499();
     test60();
@@ -2430,6 +3267,22 @@ int main()
     test7579b();
     test8335();
     test8356();
+    test9386();
+    test9441();
+    test9720();
+    test9899();
+    test9907();
+    test9985();
+    test9994();
+    test10094();
+    test10244();
+    test10694();
+    test10789();
+    test11134();
+    test11197();
+    test7474();
+    test11505();
+    test12045();
 
     printf("Success\n");
     return 0;

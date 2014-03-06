@@ -1,3 +1,5 @@
+// PERMUTE_ARGS:
+
 // Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
@@ -2894,8 +2896,8 @@ void test38()
 
 void test39()
 {
-    goto end;
     const byte z = 35;
+    goto end;
     asm { db z; }
     end: ;
 }
@@ -3944,6 +3946,9 @@ void test53()
 	0x49, 0x8D, 0x44, 0x05, 0x12,    			// lea	RAX,012h[RAX][R13]
 	0x49, 0x8D, 0x84, 0x05, 0x34, 0x12, 0x00, 0x00, 	// lea	RAX,01234h[RAX][R13]
 	0x49, 0x8D, 0x84, 0x05, 0x78, 0x56, 0x34, 0x12, 	// lea	RAX,012345678h[RAX][R13]
+
+	0x48, 0x8D, 0x04, 0x24,       	// lea	RAX,[RSP]
+	0x49, 0x8D, 0x04, 0x24,       	// lea	RAX,[R12]
     ];
 
     asm
@@ -4005,6 +4010,9 @@ void test53()
 	lea RAX, [R13+RAX+0x12];
 	lea RAX, [R13+RAX+0x1234];
 	lea RAX, [R13+RAX+0x1234_5678];
+
+	lea RAX, [RSP];
+	lea RAX, [R12];
 
 L1:	pop	RAX	;
 	mov	p[RBP],RAX ;
@@ -6391,6 +6399,70 @@ L1:     pop     RAX;
     assert(p[data.length] == 0x58); // pop RAX
 }
 
+/* ======================= SHA ========================== */
+
+void test62()
+{
+    ubyte* p;
+    byte   m8;
+    short m16;
+    int   m32;
+    M64   m64;
+    M128 m128;
+    static ubyte data[] =
+    [
+0x0F,       0x3A, 0xCC, 0xD1, 0x01,           // sha1rnds4 XMM2, XMM1, 1;
+0x0F,       0x3A, 0xCC, 0x10, 0x01,           // sha1rnds4 XMM2, [RAX], 1;
+0x0F,       0x38, 0xC8, 0xD1,                 // sha1nexte XMM2, XMM1;
+0x0F,       0x38, 0xC8, 0x10,                 // sha1nexte XMM2, [RAX];
+0x0F,       0x38, 0xC9, 0xD1,                 // sha1msg1 XMM2, XMM1;
+0x0F,       0x38, 0xC9, 0x10,                 // sha1msg1 XMM2, [RAX];
+0x0F,       0x38, 0xCA, 0xD1,                 // sha1msg2 XMM2, XMM1;
+0x0F,       0x38, 0xCA, 0x10,                 // sha1msg2 XMM2, [RAX];
+0x0F,       0x38, 0xCB, 0xD1,                 // sha256rnds2 XMM2, XMM1;
+0x0F,       0x38, 0xCB, 0x10,                 // sha256rnds2 XMM2, [RAX];
+0x0F,       0x38, 0xCC, 0xD1,                 // sha256msg1 XMM2, XMM1;
+0x0F,       0x38, 0xCC, 0x10,                 // sha256msg1 XMM2, [RAX];
+0x0F,       0x38, 0xCD, 0xD1,                 // sha256msg2 XMM2, XMM1;
+0x0F,       0x38, 0xCD, 0x10,                 // sha256msg2 XMM2, [RAX];
+    ];
+
+    asm
+    {
+        call  L1;
+
+        sha1rnds4 XMM2, XMM1, 1;
+        sha1rnds4 XMM2, [RAX], 1;
+
+        sha1nexte XMM2, XMM1;
+        sha1nexte XMM2, [RAX];
+
+        sha1msg1 XMM2, XMM1;
+        sha1msg1 XMM2, [RAX];
+
+        sha1msg2 XMM2, XMM1;
+        sha1msg2 XMM2, [RAX];
+
+        sha256rnds2 XMM2, XMM1;
+        sha256rnds2 XMM2, [RAX];
+
+        sha256msg1 XMM2, XMM1;
+        sha256msg1 XMM2, [RAX];
+
+        sha256msg2 XMM2, XMM1;
+        sha256msg2 XMM2, [RAX];
+
+L1:     pop     RAX;
+        mov     p[RBP],RAX;
+    }
+
+    foreach (ref i, b; data)
+    {
+        //printf("data[%d] = 0x%02x, should be 0x%02x\n", i, p[i], b);
+        assert(p[i] == b);
+    }
+}
+
 
 void test2941()
 {
@@ -6415,6 +6487,43 @@ L1:
     {
         assert(p[i] == data[i]);
     }
+}
+
+
+void test9866()
+{
+    ubyte* p;
+    static ubyte data[] =
+    [
+        0x48, 0x0f, 0xbe, 0xc0, // movsx RAX, AL
+        0x48, 0x0f, 0xbe, 0x00, // movsx RAX, byte ptr [RAX]
+        0x48, 0x0f, 0xbf, 0xc0, // movsx RAX, AX
+        0x48, 0x0f, 0xbf, 0x00, // movsx RAX, word ptr [RAX]
+        0x48, 0x63, 0xc0,       // movsxd RAX, EAX
+        0x48, 0x63, 0x00,       // movsxd RAX, dword ptr [RAX]
+    ];
+
+    asm
+    {
+        call L1;
+
+        movsx RAX, AL;
+        movsx RAX, byte ptr [RAX];
+        movsx RAX, AX;
+        movsx RAX, word ptr [RAX];
+        movsxd RAX, EAX;
+        movsxd RAX, dword ptr [RAX];
+
+L1:     pop     RAX;
+        mov     p[RBP],RAX;
+    }
+
+    foreach (ref i, b; data)
+    {
+        // printf("data[%d] = 0x%02x, should be 0x%02x\n", i, p[i], b);
+        assert(p[i] == b);
+    }
+    assert(p[data.length] == 0x58); // pop RAX
 }
 
 /****************************************************/
@@ -6448,6 +6557,44 @@ L1:     pop     RAX;
         //printf("data[%d] = 0x%02x, should be 0x%02x\n", i, p[i], b);
         assert(p[i] == b);
     }
+}
+
+/****************************************************/
+
+void test9965()
+{
+    ubyte* p;
+    static ubyte data[] =
+    [
+	0xB7, 0x01,             // mov	BH,1
+	0x40, 0xB6, 0x01,       // mov	SIL,1
+	0x40, 0xB7, 0x01,       // mov	DIL,1
+	0x40, 0xB5, 0x01,       // mov	BPL,1
+	0x40, 0xB4, 0x01,       // mov	SPL,1
+	0x41, 0xB0, 0x01,       // mov	R8B,1
+    ];
+
+    asm
+    {
+        call L1;
+
+	mov BH, 1;
+	mov SIL, 1;
+	mov DIL, 1;
+	mov BPL, 1;
+	mov SPL, 1;
+	mov R8B, 1;
+
+L1:     pop     RAX;
+        mov     p[RBP],RAX;
+    }
+
+    foreach (ref i, b; data)
+    {
+        // printf("data[%d] = 0x%02x, should be 0x%02x\n", i, p[i], b);
+        assert(p[i] == b);
+    }
+    assert(p[data.length] == 0x58); // pop RAX
 }
 
 /****************************************************/
@@ -6516,8 +6663,11 @@ int main()
     test59();
     test60();
     test61();
+    test62();
     test2941();
+    test9866();
     testxadd();
+    test9965();
 
     printf("Success\n");
     return 0;

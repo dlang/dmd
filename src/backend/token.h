@@ -5,8 +5,7 @@
 // Written by Walter Bright
 /*
  * This source file is made available for personal use
- * only. The license is in /dmd/src/dmd/backendlicense.txt
- * or /dm/src/dmd/backendlicense.txt
+ * only. The license is in backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
@@ -314,7 +313,7 @@ extern char *tok_arg;
 extern unsigned argmax;
 extern  token_t tok;
 extern  int ininclude;
-CEXTERN char tok_ident[];       // identifier
+extern char tok_ident[];       // identifier
 extern  unsigned char _chartype[];
 extern token_t *toklist;
 
@@ -368,8 +367,9 @@ void token_term(void);
 /* from pragma.c */
 //enum_TK ptoken(void);
 void pragma_process();
-int pragma_search(char *id);
+int pragma_search(const char *id);
 macro_t * macfind(void);
+macro_t *macdefined(const char *id, unsigned hash);
 void listident(void);
 void pragma_term(void);
 macro_t *defmac(const char *name , const char *text);

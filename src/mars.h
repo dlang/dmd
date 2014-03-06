@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2012 by Digital Mars
+// Copyright (c) 1999-2013 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -35,7 +35,7 @@ Macros defined by the compiler, not the code:
         _WIN32          Microsoft NT, Windows 95, Windows 98, Win32s,
                         Windows 2000, Win XP, Vista
         _WIN64          Windows for AMD64
-        linux           Linux
+        __linux__       Linux
         __APPLE__       Mac OSX
         __FreeBSD__     FreeBSD
         __OpenBSD__     OpenBSD
@@ -51,15 +51,9 @@ the target object file format:
         TARGET_FREEBSD  Covers 32 and 64 bit FreeBSD
         TARGET_OPENBSD  Covers 32 and 64 bit OpenBSD
         TARGET_SOLARIS  Covers 32 and 64 bit Solaris
-        TARGET_NET      Covers .Net
 
     It is expected that the compiler for each platform will be able
     to generate 32 and 64 bit code from the same compiler binary.
-
-    Target object module format:
-        OMFOBJ          Intel Object Module Format, used on Windows
-        ELFOBJ          Elf Object Module Format, used on linux, FreeBSD, OpenBSD and Solaris
-        MACHOBJ         Mach-O Object Module Format, used on Mac OSX
 
     There are currently no macros for byte endianness order.
  */
@@ -76,61 +70,17 @@ the target object file format:
 #endif
 #endif
 
-#ifdef DEBUG
-#define UNITTEST 1
-#endif
 void unittests();
-
-#ifdef IN_GCC
-/* Changes for the GDC compiler by David Friedman */
-#endif
 
 #define DMDV1   0
 #define DMDV2   1       // Version 2.0 features
-#define STRUCTTHISREF DMDV2     // if 'this' for struct is a reference, not a pointer
-#define SNAN_DEFAULT_INIT DMDV2 // if floats are default initialized to signalling NaN
-#define SARRAYVALUE DMDV2       // static arrays are value types
-#define MODULEINFO_IS_STRUCT DMDV2   // if ModuleInfo is a struct rather than a class
-#define BUG6652 1       // Making foreach range statement parameter non-ref in default
-                        // 1: Modifying iteratee in body is warned with -w switch
-                        // 2: Modifying iteratee in body is error without -d switch
-
-// Set if C++ mangling is done by the front end
-#define CPP_MANGLE (DMDV2 && (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS))
-
-/* Other targets are TARGET_LINUX, TARGET_OSX, TARGET_FREEBSD, TARGET_OPENBSD and
- * TARGET_SOLARIS, which are
- * set on the command line via the compiler makefile.
- */
-
-#if _WIN32
-#ifndef TARGET_WINDOS
-#define TARGET_WINDOS 1         // Windows dmd generates Windows targets
-#endif
-#ifndef OMFOBJ
-#define OMFOBJ TARGET_WINDOS
-#endif
-#endif
-
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-#ifndef ELFOBJ
-#define ELFOBJ 1
-#endif
-#endif
-
-#if TARGET_OSX
-#ifndef MACHOBJ
-#define MACHOBJ 1
-#endif
-#endif
-
 
 struct OutBuffer;
 
 // Can't include arraytypes.h here, need to declare these directly.
-template <typename TYPE> struct ArrayBase;
-typedef ArrayBase<struct Identifier> Identifiers;
-typedef ArrayBase<char> Strings;
+template <typename TYPE> struct Array;
+typedef Array<class Identifier *> Identifiers;
+typedef Array<const char *> Strings;
 
 // Put command line switches in here
 struct Param
@@ -141,21 +91,23 @@ struct Param
     char lib;           // write library file instead of object file(s)
     char multiobj;      // break one object file into multiple ones
     char oneobj;        // write one object file instead of multiple ones
-    char trace;         // insert profiling hooks
+    bool trace;         // insert profiling hooks
     char quiet;         // suppress non-error messages
     char verbose;       // verbose compile
+    char showColumns;   // print character (column) numbers in diagnostics
     char vtls;          // identify thread local variables
+    char vfield;        // identify non-mutable field variables
     char symdebug;      // insert debug symbolic information
-    char alwaysframe;   // always emit standard stack frame
-    char optimize;      // run optimizer
+    bool alwaysframe;   // always emit standard stack frame
+    bool optimize;      // run optimizer
     char map;           // generate linker .map file
-    char cpu;           // target CPU
-    char is64bit;       // generate 64 bit code
+    bool is64bit;       // generate 64 bit code
+    char isLP64;        // generate code for LP64
     char isLinux;       // generate code for linux
     char isOSX;         // generate code for Mac OSX
     char isWindows;     // generate code for Windows
     char isFreeBSD;     // generate code for FreeBSD
-    char isOPenBSD;     // generate code for OpenBSD
+    char isOpenBSD;     // generate code for OpenBSD
     char isSolaris;     // generate code for Solaris
     char scheduler;     // which scheduler to use
     char useDeprecated; // 0: don't allow use of deprecated features
@@ -169,6 +121,7 @@ struct Param
                          // 1: array bounds checks for safe functions only
                          // 2: array bounds checks for all functions
     char noboundscheck; // no array bounds checking at all
+    bool stackstomp;    // add stack stomping code
     char useSwitchError; // check for switches without a default
     char useUnitTests;  // generate unittest code
     char useInline;     // inline expand functions
@@ -177,45 +130,45 @@ struct Param
     char warnings;      // 0: enable warnings
                         // 1: warnings as errors
                         // 2: informational warnings (no errors)
-    char pic;           // generate position-independent-code for shared libs
-    char cov;           // generate code coverage data
-    char nofloat;       // code should not pull in floating point support
-    char Dversion;      // D version number
+    bool pic;           // generate position-independent-code for shared libs
+    bool cov;           // generate code coverage data
+    unsigned char covPercent;   // 0..100 code coverage percentage required
+    bool nofloat;       // code should not pull in floating point support
     char ignoreUnsupportedPragmas;      // rather than error on them
     char enforcePropertySyntax;
     char betterC;       // be a "better C" compiler; no dependency on D runtime
+    bool addMain;       // add a default main() function
+    bool allInst;       // generate code for all template instantiations
 
-    char *argv0;        // program name
+    const char *argv0;    // program name
     Strings *imppath;     // array of char*'s of where to look for import modules
     Strings *fileImppath; // array of char*'s of where to look for file import modules
-    char *objdir;       // .obj/.lib file output directory
-    char *objname;      // .obj file output name
-    char *libname;      // .lib file output name
+    const char *objdir;   // .obj/.lib file output directory
+    const char *objname;  // .obj file output name
+    const char *libname;  // .lib file output name
 
-    char doDocComments; // process embedded documentation comments
-    char *docdir;       // write documentation file to docdir directory
-    char *docname;      // write documentation file to docname
-    Strings *ddocfiles;   // macro include files for Ddoc
+    char doDocComments;  // process embedded documentation comments
+    const char *docdir;  // write documentation file to docdir directory
+    const char *docname; // write documentation file to docname
+    Strings *ddocfiles;  // macro include files for Ddoc
 
-    char doHdrGeneration;       // process embedded documentation comments
-    char *hdrdir;               // write 'header' file to docdir directory
-    char *hdrname;              // write 'header' file to docname
+    char doHdrGeneration;  // process embedded documentation comments
+    const char *hdrdir;    // write 'header' file to docdir directory
+    const char *hdrname;   // write 'header' file to docname
 
-    char doXGeneration;         // write JSON file
-    char *xfilename;            // write JSON file to xfilename
+    char doXGeneration;    // write JSON file
+    const char *xfilename; // write JSON file to xfilename
 
-    unsigned debuglevel;        // debug level
+    unsigned debuglevel;   // debug level
     Strings *debugids;     // debug identifiers
 
-    unsigned versionlevel;      // version level
+    unsigned versionlevel; // version level
     Strings *versionids;   // version identifiers
-
-    bool dump_source;
 
     const char *defaultlibname; // default library for non-debug builds
     const char *debuglibname;   // default library for debug builds
 
-    char *moduleDepsFile;       // filename for deps output
+    const char *moduleDepsFile; // filename for deps output
     OutBuffer *moduleDeps;      // contents to be written to deps file
 
     // Hidden debug switches
@@ -230,21 +183,34 @@ struct Param
 
     char run;           // run resulting executable
     size_t runargs_length;
-    char** runargs;     // arguments for executable
+    const char** runargs; // arguments for executable
 
     // Linker stuff
     Strings *objfiles;
     Strings *linkswitches;
     Strings *libfiles;
-    char *deffile;
-    char *resfile;
-    char *exefile;
-    char *mapfile;
+    const char *deffile;
+    const char *resfile;
+    const char *exefile;
+    const char *mapfile;
+};
+
+struct Compiler
+{
+    const char *vendor;     // Compiler backend name
 };
 
 typedef unsigned structalign_t;
-#define STRUCTALIGN_DEFAULT ~0  // magic value means "match whatever the underlying C compiler does"
+#define STRUCTALIGN_DEFAULT ((structalign_t) ~0)  // magic value means "match whatever the underlying C compiler does"
 // other values are all powers of 2
+
+struct Ungag
+{
+    unsigned oldgag;
+
+    Ungag(unsigned old) : oldgag(old) {}
+    ~Ungag();
+};
 
 struct Global
 {
@@ -258,18 +224,21 @@ struct Global
     const char *hdr_ext;        // for D 'header' import files
     const char *json_ext;       // for JSON files
     const char *map_ext;        // for .map files
+    bool run_noext;             // allow -run sources without extensions.
+
     const char *copyright;
     const char *written;
+    const char *main_d;         // dummy filename for dummy main()
     Strings *path;        // Array of char*'s which form the import lookup path
     Strings *filePath;    // Array of char*'s which form the file import lookup path
 
-    structalign_t structalign;       // default alignment for struct fields
-
     const char *version;
 
+    Compiler compiler;
     Param params;
     unsigned errors;       // number of errors reported so far
     unsigned warnings;     // number of warnings reported so far
+    FILE *stdmsg;          // where to send verbose messages
     unsigned gag;          // !=0 means gag reporting of errors & warnings
     unsigned gaggedErrors; // number of errors reported while gagged
 
@@ -287,32 +256,22 @@ struct Global
      */
     bool endGagging(unsigned oldGagged);
 
-    Global();
+    /*  Increment the error count to record that an error
+     *  has occured in the current context. An error message
+     *  may or may not have been printed.
+     */
+    void increaseErrorCount();
+
+    void init();
 };
 
 extern Global global;
 
-/* Set if Windows Structured Exception Handling C extensions are supported.
- * Apparently, VC has dropped support for these?
- */
-#define WINDOWS_SEH     _WIN32
-
 #include "longdouble.h"
 
-#ifdef __DMC__
- #include  <complex.h>
- typedef _Complex long double complex_t;
-#else
- #ifndef IN_GCC
-  #include "complex_t.h"
- #endif
- #ifdef __APPLE__
-  //#include "complex.h"//This causes problems with include the c++ <complex> and not the C "complex.h"
- #endif
-#endif
+#include "complex_t.h"
 
 // Be careful not to care about sign when using dinteger_t
-//typedef uint64_t integer_t;
 typedef uint64_t dinteger_t;    // use this instead of integer_t to
                                 // avoid conflicts with system #include's
 
@@ -337,60 +296,30 @@ typedef d_uns8                  d_char;
 typedef d_uns16                 d_wchar;
 typedef d_uns32                 d_dchar;
 
-#ifdef IN_GCC
-#include "d-gcc-real.h"
-#else
 typedef longdouble real_t;
-#endif
 
-// Modify OutBuffer::writewchar to write the correct size of wchar
-#if _WIN32
-#define writewchar writeword
-#else
-// This needs a configuration test...
-#define writewchar write4
-#endif
 
-#ifdef IN_GCC
-#include "d-gcc-complex_t.h"
-#endif
-
-struct Module;
+class Module;
 
 //typedef unsigned Loc;         // file location
 struct Loc
 {
     const char *filename;
     unsigned linnum;
+    unsigned charnum;
 
     Loc()
     {
         linnum = 0;
+        charnum = 0;
         filename = NULL;
     }
 
-    Loc(int x)
-    {
-        linnum = x;
-        filename = NULL;
-    }
-
-    Loc(Module *mod, unsigned linnum);
+    Loc(Module *mod, unsigned linnum, unsigned charnum);
 
     char *toChars();
     bool equals(const Loc& loc);
 };
-
-#ifndef GCC_SAFE_DMD
-#define TRUE    1
-#define FALSE   0
-#endif
-
-#define INTERFACE_OFFSET        0       // if 1, put classinfo as first entry
-                                        // in interface vtbl[]'s
-#define INTERFACE_VIRTUAL       0       // 1 means if an interface appears
-                                        // in the inheritance graph multiple
-                                        // times, only one is used
 
 enum LINK
 {
@@ -417,9 +346,7 @@ enum MATCH
 {
     MATCHnomatch,       // no match
     MATCHconvert,       // match with conversions
-#if DMDV2
     MATCHconst,         // match with conversion to const
-#endif
     MATCHexact          // exact match
 };
 
@@ -430,7 +357,9 @@ void warning(Loc loc, const char *format, ...);
 void deprecation(Loc loc, const char *format, ...);
 void error(Loc loc, const char *format, ...);
 void errorSupplemental(Loc loc, const char *format, ...);
+extern "C" {
 void verror(Loc loc, const char *format, va_list ap, const char *p1 = NULL, const char *p2 = NULL, const char *header = "Error: ");
+}
 void vwarning(Loc loc, const char *format, va_list);
 void verrorSupplemental(Loc loc, const char *format, va_list ap);
 void verrorPrint(Loc loc, const char *header, const char *format, va_list ap, const char *p1 = NULL, const char *p2 = NULL);
@@ -438,8 +367,13 @@ void vdeprecation(Loc loc, const char *format, va_list ap, const char *p1 = NULL
 
 #if defined(__GNUC__) || defined(__clang__)
 __attribute__((noreturn))
-#endif
 void fatal();
+#elif _MSC_VER
+__declspec(noreturn)
+void fatal();
+#else
+void fatal();
+#endif
 
 void err_nomem();
 int runLINK();
@@ -447,16 +381,8 @@ void deleteExeFile();
 int runProgram();
 const char *inifile(const char *argv0, const char *inifile, const char* envsectionname);
 void halt();
-void util_progress();
 
-/*** Where to send error messages ***/
-#ifdef IN_GCC
-#define stdmsg stderr
-#else
-#define stdmsg stderr
-#endif
-
-struct Dsymbol;
+class Dsymbol;
 class Library;
 struct File;
 void obj_start(char *srcfile);
@@ -464,6 +390,12 @@ void obj_end(Library *library, File *objfile);
 void obj_append(Dsymbol *s);
 void obj_write_deferred(Library *library);
 
+void readFile(Loc loc, File *f);
+void writeFile(Loc loc, File *f);
+void ensurePathToNameExists(Loc loc, const char *name);
+
 const char *importHint(const char *s);
+/// Little helper function for writting out deps.
+void escapePath(OutBuffer *buf, const char *fname);
 
 #endif /* DMD_MARS_H */

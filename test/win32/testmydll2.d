@@ -22,6 +22,7 @@ version(dynload)
 	mixin(d2_shared ~ "fnGetglob* pGetglob;");
 	mixin(d2_shared ~ "fnAlloc* pAlloc;");
 	mixin(d2_shared ~ "fnFree* pFree;");
+	mixin(d2_shared ~ "int* pGlobvar;");
 
 	int loadLib()
 	{
@@ -31,7 +32,9 @@ version(dynload)
   	   pFree = cast(fnFree*) GetProcAddress(lib, "D6mydll24freeFPaiZv".ptr);
 	   pAlloc = cast(fnAlloc*) GetProcAddress(lib, "D6mydll25allocFiZPa".ptr);
 	   pGetglob = cast(fnGetglob*) GetProcAddress(lib, "D6mydll27getglobFZi".ptr);
-	   assert(pDllPrint && pFree && pAlloc && pGetglob);
+	   pGlobvar = cast(int*) GetProcAddress(lib, "D6mydll27globvari".ptr);
+
+	   assert(pDllPrint && pFree && pAlloc && pGetglob && pGlobvar);
 	   return 0;
 	}
 
@@ -53,6 +56,10 @@ version(dynload)
 	{
 		(*pFree)(p, sz);
 	}
+	@property int globvar()
+	{
+		return *pGlobvar;
+	}
 }
 else
 {
@@ -66,7 +73,7 @@ void runtest()
 	// wait until lib loaded
 	synchronized(syncobj) getglob();
 
-	//int g = mydll.glob;
+	int g = globvar;
 
 	char*[] mem;
 	for(int i = 0; i < 10000; i++)

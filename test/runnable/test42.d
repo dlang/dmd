@@ -5,6 +5,7 @@ module test42;
 import std.stdio;
 import std.c.stdio;
 import std.string;
+import core.memory;
 
 /***************************************************/
 
@@ -50,7 +51,7 @@ void test3()
 {
     auto i = mixin("__LINE__");
     writefln("%d", i);
-    assert(i == 51);
+    assert(i == 52);
 }
 
 /***************************************************/
@@ -609,7 +610,7 @@ void test40()
 
 /***************************************************/
 
-struct S41
+align(16) struct S41
 {
     int[4] a;
 }
@@ -1650,6 +1651,7 @@ void test100()
     printf("d = %llx, ulong.max = %llx\n", d, ulong.max);
     assert(d == ulong.max);
   }
+  static if(real.mant_dig == 64)
   {
     real r = ulong.max - 1;
     printf("r = %Lg, ulong.max = %llu\n", r, ulong.max);
@@ -1657,6 +1659,11 @@ void test100()
     printf("d = %llx, ulong.max = %llx\n", d, ulong.max);
     assert(d == ulong.max - 1);
   }
+  else static if(real.mant_dig == 53)
+  { //can't store ulong.max-1 in double
+  }
+  else
+     static assert(false, "Test not implemented for this platform");
 }
 
 /***************************************************/
@@ -2673,6 +2680,7 @@ enum FwdEnum : int
 }
 
 /***************************************************/
+// 3740
 
 abstract class Address {
     abstract int nameLen();
@@ -2688,7 +2696,8 @@ class Class171 : Address {
 
 void test171 ()
 {
-        Class171 xxx = new Class171;
+    Class171 xxx = new Class171;
+    assert(typeid(Class171).vtbl.length - typeid(Object).vtbl.length == 1);
 }
 
 /***************************************************/
@@ -3212,18 +3221,16 @@ int bug2931()
 int bug2931_2()
 {
   Outer2931 v;
+  Bug2931 w = Bug2931(68);
   assert(v.move==3);
   for (int i = 0; i < 4; i++)
-  { for (int j = 0; j < 3; j++)
+  {
+    for (int j = 0; j < 3; j++)
     {
-	printf("[%d][%d] = %d\n", j, i, v.p.val[j][i]);
-	if (i == 0 && j == 0)
-	    assert(v.p.val[j][i] == 67);
-	else
-	    assert(v.p.val[j][i] == 0);
+        assert(w.val[j][i] == 68);
+	assert(v.p.val[j][i] == 67);
     }
   }
-  printf("v.zoom = %d\n", v.zoom);
   assert(v.scale == 4);
   return v.zoom;
 }
@@ -4137,36 +4144,27 @@ void bug3809b() {
 /***************************************************/
 //
 
-version (X86_64)
+void bug6184()
 {
-    void bug6184()
+    bool cmp(ref int[3] a, ref int[3] b)
     {
-        bool cmp(ref int[3] a, ref int[3] b)
-        {
-            return a is b;
-        }
-
-        static struct Ary
-        {
-            int[3] ary;
-        }
-
-        auto a = new Ary;
-        auto b = new Ary;
-        assert(!cmp(a.ary, b.ary));
-        b = a;
-        assert(cmp(a.ary, b.ary));
-
-        // change high bit of ary address
-        *(cast(size_t*)&b) ^= (1UL << 32);
-        assert(!cmp(a.ary, b.ary));
+        return a is b;
     }
-}
-else
-{
-    void bug6184()
+
+    static struct Ary
     {
+        int[3] ary;
     }
+
+    auto a = new Ary;
+    auto b = new Ary;
+    assert(!cmp(a.ary, b.ary));
+    b = a;
+    assert(cmp(a.ary, b.ary));
+
+    // change high bit of ary address
+    *(cast(size_t*)&b) ^= (1UL << (size_t.sizeof * 4));
+    assert(!cmp(a.ary, b.ary));
 }
 
 /***************************************************/
@@ -4217,18 +4215,21 @@ void test6270()
 
 /***************************************************/
 
-void test236()
+void testrolror(int shift)
 {
-    uint a;
-    int shift;
-    a = 7;
-    shift = 1;
-    int r;
+    uint a = 7;
+    uint r;
     r = (a >> shift) | (a << (int.sizeof * 8 - shift));
     assert(r == 0x8000_0003);
-    r = (a << shift) | (a >> (int.sizeof * 8 - shift));
-    assert(a == 7);
+    r = (r << shift) | (r >> (int.sizeof * 8 - shift));
+    assert(r == 7);
 }
+
+void test236()
+{
+    testrolror(1);
+}
+
 
 /***************************************************/
 // 4460
@@ -4557,51 +4558,19 @@ void test242()
 /***************************************************/
 // 7290
 
-version (D_InlineAsm_X86)
-{
-    enum GP_BP = "EBP";
-    version = ASM_X86;
-}
-else version (D_InlineAsm_X86_64)
-{
-    enum GP_BP = "RBP";
-    version = ASM_X86;
-}
-
-int foo7290a(alias dg)()
+void foo7290a(alias dg)()
 {
     assert(dg(5) == 7);
-
-    version (ASM_X86)
-    {
-        void* p;
-        mixin(`asm { mov p, ` ~ GP_BP ~ `; }`);
-        assert(p < dg.ptr);
-    }
 }
 
-int foo7290b(scope int delegate(int a) dg)
+void foo7290b(scope int delegate(int a) dg)
 {
     assert(dg(5) == 7);
-
-    version (ASM_X86)
-    {
-        void* p;
-        mixin(`asm { mov p, ` ~ GP_BP ~ `; }`);
-        assert(p < dg.ptr);
-    }
 }
 
-int foo7290c(int delegate(int a) dg)
+void foo7290c(int delegate(int a) dg)
 {
     assert(dg(5) == 7);
-
-    version (ASM_X86)
-    {
-        void* p;
-        mixin(`asm { mov p, ` ~ GP_BP ~ `; }`);
-        assert(p < dg.ptr);
-    }
 }
 
 void test7290()
@@ -4609,12 +4578,7 @@ void test7290()
     int add = 2;
     scope dg = (int a) => a + add;
 
-    version (ASM_X86)
-    {
-        void* p;
-        mixin(`asm { mov p, ` ~ GP_BP ~ `; }`);
-        assert(dg.ptr <= p);
-    }
+    assert(GC.addrOf(dg.ptr) == null);
 
     foo7290a!dg();
     foo7290b(dg);
@@ -4735,49 +4699,6 @@ struct Logger {
 void test7422() {
     if (Logger.info()) {
     }
-}
-
-/***************************************************/
-
-void test7504() pure nothrow @safe
-{
-    auto n = null;
-    char[] k = n;
-    assert(k.ptr == null);
-    assert(k.length == 0);
-
-    double[] l;
-    l = n;
-    assert(l.ptr == null);
-    assert(l.length == 0);
-
-    immutable(int[]) m = n;
-    assert(m.ptr == null);
-    assert(m.length == 0);
-
-    const(float)[] o;
-    o = n;
-    assert(o.ptr == null);
-    assert(o.length == 0);
-
-    auto c = create7504(null, null);
-    assert(c.k.ptr == null);
-    assert(c.k.length == 0);
-    assert(c.l.ptr == null);
-    assert(c.l.length == 0);
-}
-
-class C7504
-{
-    int[] k;
-    string l;
-}
-
-C7504 create7504(T...)(T input)
-{
-    auto obj = new C7504;
-    obj.tupleof = input;
-    return obj;
 }
 
 /***************************************************/
@@ -4982,7 +4903,7 @@ mixin template mix7974()
 
 struct Foo7974
 {
-    immutable Foo7974 fa = Foo7974(0);
+    static immutable Foo7974 fa = Foo7974(0);
 
     this(uint x)
     {
@@ -5245,7 +5166,7 @@ int bar8840(long g) { assert(g == 4); return printf("%llx\n", g); }
 
 void test8840()
 {
-    long f1 = foo8840();    
+    long f1 = foo8840();
     long f2 = foo8840();
 
     long f = (f1 < f2 ? f1 : f2);
@@ -5309,6 +5230,18 @@ void bar8870(S8870 t1, S8870 t2, bool someBool, float finalFloat)
     assert(t2.x == 5 && t2.y == 6 && t2.z == 7 && t2.w == 8);
     assert(someBool == false);
     assert(finalFloat == 1);
+}
+
+/***************************************************/
+
+int foo9781(int[1] x)
+{
+    return x[0] * x[0];
+}
+
+void test9781()
+{
+    foo9781([7]);
 }
 
 /***************************************************/
@@ -5440,6 +5373,479 @@ void check9171(const char *s, ulong v)
 void test9171()
 {
     bitcomb9171(0b1110000000000000010000000000000000000000000000000001);
+}
+
+/***************************************************/
+
+void test9248()
+{
+    void*[] a = [cast(void*)1];
+    void*[] b = [cast(void*)2];
+    auto c = a ~ b;
+    assert(c == [cast(void*)1, cast(void*)2]);
+}
+
+/***************************************************/
+// 9739
+
+class Foo9739
+{
+    int val = 1;
+    this(int arg = 2) { val = arg; }
+}
+
+class Bar9739 : Foo9739 { }
+
+void test9739()
+{
+    Bar9739 bar = new Bar9739;
+    assert(bar.val == 2);
+}
+
+/***************************************************/
+// 6057
+void test6057()
+{
+    enum Foo { A=1, B=2 }
+    Foo[] bar = [cast(Foo)1];
+}
+
+/***************************************************/
+
+ulong d2ulong(double u)
+{
+    return cast(ulong)u;
+}
+
+void testdbl_to_ulong()
+{
+    auto u = d2ulong(12345.6);
+    //writeln(u);
+    assert(u == 12345);
+
+    real adjust = 1.0L/real.epsilon;
+    u = d2ulong(adjust);
+    //writefln("%s %s", adjust, u);
+    static if(real.mant_dig == 64)
+        assert(u == 9223372036854775808UL);
+    else static if(real.mant_dig == 53)
+        assert(u == 4503599627370496UL);
+    else
+        static assert(false, "Test not implemented for this architecture");
+
+    auto v = d2ulong(adjust * 1.1);
+    //writefln("%s %s %s", adjust, v, u + u/10);
+
+    // The following can vary in the last bits with different optimization settings,
+    // i.e. the conversion from real to double may not happen.
+    //assert(v == 10145709240540254208UL);
+}
+
+/***************************************************/
+
+
+
+uint d2uint(double u)
+{
+    return cast(uint)u;
+}
+
+void testdbl_to_uint()
+{
+    auto u = d2uint(12345.6);
+    //writeln(u);
+    assert(u == 12345);
+}
+
+/***************************************************/
+
+ulong r2ulong(real u)
+{
+    return cast(ulong)u;
+}
+
+void testreal_to_ulong()
+{
+    auto u = r2ulong(12345.6L);
+    //writeln(u);
+    assert(u == 12345);
+
+    real adjust = 1.0L/real.epsilon;
+    u = r2ulong(adjust);
+    //writefln("%s %s", adjust, u);
+    static if(real.mant_dig == 64)
+        assert(u == 9223372036854775808UL);
+    else static if(real.mant_dig == 53)
+        assert(u == 4503599627370496UL);
+    else
+        static assert(false, "Test not implemented for this architecture");
+
+    auto v = r2ulong(adjust * 1.1);
+    writefln("%s %s %s", adjust, v, u + u/10);
+
+    //assert(v == 10145709240540253389UL);
+}
+
+/***************************************************/
+
+long testbt1(long a, long b, int c)
+{
+    return a + ((b >> c) & 1);
+//    return a + ((b & (1L << c)) != 0);
+}
+
+
+long testbt2(long a, long b, int c)
+{
+//    return a + ((b >> c) & 1);
+    return a + ((b & (1L << c)) != 0);
+}
+
+int testbt3(int a, int b, int c)
+{
+    return a + ((b >> c) & 1);
+//    return a + ((b & (1 << c)) != 0);
+}
+
+int testbt4(int a, int b, int c)
+{
+//    return a + ((b >> c) & 1);
+    return a + ((b & (1 << c)) != 0);
+}
+
+
+void test248()
+{
+    auto a1 = testbt1(3, 4, 2);
+    assert(a1 == 4);
+    a1 = testbt2(3, 4, 2);
+    assert(a1 == 4);
+    a1 = testbt3(3, 4, 2);
+    assert(a1 == 4);
+    a1 = testbt4(3, 4, 2);
+    assert(a1 == 4);
+
+    a1 = testbt1(3, 8, 2);
+    assert(a1 == 3);
+    a1 = testbt2(3, 8, 2);
+    assert(a1 == 3);
+    a1 = testbt3(3, 8, 2);
+    assert(a1 == 3);
+    a1 = testbt4(3, 8, 2);
+    assert(a1 == 3);
+}
+
+/***************************************************/
+
+int foo249(int a, int b)
+{
+    return a + ((b & 0x80) != 0);
+}
+
+long bar249(long a, int b)
+{
+    return a + ((b & 0x80) != 0);
+}
+
+void test249()
+{
+  {
+    auto i = foo249(3, 6);
+    assert(i == 3);
+    i = foo249(3, 0x88);
+    assert(i == 4);
+  }
+  {
+    auto i = bar249(3, 6);
+    assert(i == 3);
+    i = bar249(3, 0x88);
+    assert(i == 4);
+  }
+}
+
+/***************************************************/
+
+// These should all compile to a BT instruction when -O, for -m32 and -m64
+
+int bt32(uint *p, uint b) { return ((p[b >> 5] & (1 << (b & 0x1F)))) != 0; }
+
+int bt64a(ulong *p, uint b) { return ((p[b >> 6] & (1L << (b & 63)))) != 0; }
+
+int bt64b(ulong *p, size_t b) { return ((p[b >> 6] & (1L << (b & 63)))) != 0; }
+
+void test250()
+{
+    static uint[2]  a1 = [0x1001_1100, 0x0220_0012];
+
+    if ( bt32(a1.ptr,30)) assert(0);
+    if (!bt32(a1.ptr,8))  assert(0);
+    if ( bt32(a1.ptr,30+32)) assert(0);
+    if (!bt32(a1.ptr,1+32))  assert(0);
+
+    static ulong[2] a2 = [0x1001_1100_12345678, 0x0220_0012_12345678];
+
+    if ( bt64a(a2.ptr,30+32)) assert(0);
+    if (!bt64a(a2.ptr,8+32))  assert(0);
+    if ( bt64a(a2.ptr,30+32+64)) assert(0);
+    if (!bt64a(a2.ptr,1+32+64))  assert(0);
+
+    if ( bt64b(a2.ptr,30+32)) assert(0);
+    if (!bt64b(a2.ptr,8+32))  assert(0);
+    if ( bt64b(a2.ptr,30+32+64)) assert(0);
+    if (!bt64b(a2.ptr,1+32+64))  assert(0);
+}
+
+/***************************************************/
+
+struct S251 { int a,b,c,d; }
+
+S251 foo251(S251 s)
+{
+    S251 a = s;
+    S251 b = a;	// copy propagation
+    S251 c = b;
+    S251 d = c;
+    S251 e = d;	// dead assignment
+    return d;
+}
+
+void test251()
+{
+    S251 a;
+    a.a = 1;
+    a.b = 2;
+    a.c = 3;
+    a.d = 4;
+    a = foo251(a);
+    assert(a.a == 1);
+    assert(a.b == 2);
+    assert(a.c == 3);
+    assert(a.d == 4);
+}
+
+/***************************************************/
+// 9387
+
+void bug9387a(double x) { }
+
+void ice9387()
+{
+    double x = 0.3;
+    double r = x*0.1;
+    double q = x*0.1 + r;
+    double p = x*0.1 + r*0.2;
+    if ( q )
+        p = -p;
+    bug9387a(p);
+}
+
+/***************************************************/
+
+void bug6962(string value)
+{
+    string v = value;
+    try
+    {
+        v = v[0LU..0LU];
+        return;
+    }
+    finally
+    {
+        assert(!v.length);
+    }
+}
+
+void test6962()
+{
+    bug6962("42");
+}
+
+/***************************************************/
+
+int[1] foo4414() {
+    return [7];
+}
+
+ubyte[4] bytes4414()
+{
+    ubyte[4] x;
+    x[0] = 7;
+    x[1] = 8;
+    x[2] = 9;
+    x[3] = 10;
+    return x;
+}
+
+void test4414() {
+  {
+    int x = foo4414()[0];
+    assert(x == 7);
+  }
+  {
+    auto x = bytes4414()[0..4];
+    if (x[0] != 7 || x[1] != 8 || x[2] != 9 || x[3] != 10)
+	assert(0);
+  }
+}
+
+/***************************************************/
+
+void test9844() {
+    int a = -1;
+    long b = -1;
+    assert(a == -1);
+    assert(b == -1L);
+}
+
+/***************************************************/
+// 10628
+
+abstract class B10628
+{
+    static if (! __traits(isVirtualMethod, foo))
+    {
+    }
+
+    private bool _bar;
+    public void foo();
+}
+
+class D10628 : B10628
+{
+    public override void foo() {}
+}
+
+void test10628()
+{
+    assert(typeid(D10628).vtbl.length - typeid(Object).vtbl.length == 1);
+}
+
+/***************************************************/
+// 11265
+
+struct S11265
+{
+    class InnerClass
+    {
+        S11265 s;
+
+        bool empty()
+        {
+            return true;
+        }
+    }
+}
+
+void test11265()
+{
+    S11265.InnerClass trav = new S11265.InnerClass();
+    trav.empty();
+}
+
+/***************************************************/
+
+struct TimeOfDay
+{
+    void roll(int value) 
+    {
+        value %= 60;
+        auto newVal = _seconds + value;
+
+        if(newVal < 0)
+            newVal += 60;
+        else if(newVal >= 60)
+            newVal -= 60;
+
+        _seconds = cast(ubyte)newVal;
+    }
+
+    ubyte _seconds;
+}
+
+
+void test10633()
+{
+    TimeOfDay tod = TimeOfDay(0);
+    tod.roll(-1);
+    assert(tod._seconds == 59);
+}
+
+/***************************************************/
+
+import std.stdio;
+
+void _assertEq (ubyte lhs, short rhs, string msg, string file, size_t line)
+{
+    immutable result = lhs == rhs;
+
+    if(!result)
+    {
+        string op = "==";
+        if(msg.length > 0)
+            writefln(`_assertEq failed: [%s] is not [%s].`, lhs, rhs);
+        else
+            writefln(`_assertEq failed: [%s] is not [%s]: %s`, lhs, rhs, msg);
+    }
+
+    assert(result);
+}
+
+struct Date
+{
+    short year;
+    ubyte month;
+    ubyte day;
+}
+
+struct MonthDay
+{
+    ubyte month;
+    short day;
+}
+
+void test10642()
+{
+    static void test(Date date, int day, MonthDay expected, size_t line = __LINE__)
+    {
+        _assertEq(date.day, expected.day, "", __FILE__, line);
+    }
+
+    test(Date(1999, 1, 1), 1, MonthDay(1,1));
+}
+
+
+/***************************************************/
+
+void test7436()
+{
+    ubyte a = 10;
+    float f = 6;
+    ubyte b = a += f;
+    assert(b == 16);
+}
+
+/***************************************************/
+// 12211
+
+void test12211()
+{
+    int a = 0;
+    void foo(ref int x)
+    {
+        assert(x == 10);
+        assert(&x == &a);
+        x = 3;
+    }
+    foo(a = 10);
+    assert(a == 3);
+    foo(a += 7);
+    assert(a == 3);
+
+    // array ops should make rvalue
+    int[3] sa, sb;
+    void bar(ref int[]) {}
+    static assert(!__traits(compiles, bar(sa[]  = sb[])));
+    static assert(!__traits(compiles, bar(sa[] += sb[])));
 }
 
 /***************************************************/
@@ -5689,7 +6095,6 @@ int main()
     test6504();
     test7422();
     test7424();
-    test7504();
     test7502();
     test4820();
     test4820_2();
@@ -5710,11 +6115,31 @@ int main()
     test8840();
     test8889();
     test8870();
+    test9781();
     test247();
     test8340();
     test8376();
     test8796();
     test9171();
+    test9248();
+    test9739();
+    testdbl_to_ulong();
+    testdbl_to_uint();
+    testreal_to_ulong();
+    test248();
+    test249();
+    test250();
+    test6057();
+    test251();
+    test6962();
+    test4414();
+    test9844();
+    test10628();
+    test11265();
+    test10633();
+    test10642();
+    test7436();
+    test12211();
 
     writefln("Success");
     return 0;

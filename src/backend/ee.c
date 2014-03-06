@@ -5,8 +5,7 @@
 // Written by Walter Bright
 /*
  * This source file is made available for personal use
- * only. The license is in /dmd/src/dmd/backendlicense.txt
- * or /dm/src/dmd/backendlicense.txt
+ * only. The license is in backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
@@ -53,7 +52,7 @@ void eecontext_convs(unsigned marksi)
     unsigned top;
     symtab_t *ps;
 
-    // Change all generated SCtmp's and SCauto's to SCstack's
+    // Change all generated SCauto's to SCstack's
 #if SCPP
     ps = &globsym;
 #else
@@ -68,7 +67,6 @@ void eecontext_convs(unsigned marksi)
         switch (s->Sclass)
         {
             case SCauto:
-            case SCtmp:
             case SCregister:
                 s->Sclass = SCstack;
                 s->Sfl = FLstack;

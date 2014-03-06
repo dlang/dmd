@@ -1,12 +1,11 @@
 
-// Copyright (c) 1999-2011 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
-
+/* Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved, written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/root/stringtable.c
+ */
 
 #include <stdio.h>
 #include <stdint.h>                     // uint{8|16|32}_t
@@ -36,30 +35,18 @@ hash_t calcHash(const char *str, size_t len)
 
             case 2:
                 hash *= 37;
-#if LITTLE_ENDIAN
                 hash += *(const uint16_t *)str;
-#else
-                hash += str[0] * 256 + str[1];
-#endif
                 return hash;
 
             case 3:
                 hash *= 37;
-#if LITTLE_ENDIAN
                 hash += (*(const uint16_t *)str << 8) +
                         ((const uint8_t *)str)[2];
-#else
-                hash += (str[0] * 256 + str[1]) * 256 + str[2];
-#endif
                 return hash;
 
             default:
                 hash *= 37;
-#if LITTLE_ENDIAN
                 hash += *(const uint32_t *)str;
-#else
-                hash += ((str[0] * 256 + str[1]) * 256 + str[2]) * 256 + str[3];
-#endif
                 str += 4;
                 len -= 4;
                 break;
@@ -74,7 +61,7 @@ void StringValue::ctor(const char *p, size_t length)
     memcpy(this->lstring, p, length * sizeof(char));
 }
 
-void StringTable::init(size_t size)
+void StringTable::_init(size_t size)
 {
     table = (void **)mem.calloc(size, sizeof(void *));
     tabledim = size;

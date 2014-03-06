@@ -403,6 +403,36 @@ void test6659c()
 }
 
 /***************************************/
+
+// 10221
+
+void test10221()
+{
+    // All of these should work, but most are too slow.  Just check they compile.
+    foreach(char i; char.min..char.max+1) {}
+    if (0) foreach(wchar i; wchar.min..wchar.max+1) {}
+    if (0) foreach(dchar i; dchar.min..dchar.max+1) {}
+    foreach(byte i; byte.min..byte.max+1) {}
+    foreach(ubyte i; ubyte.min..ubyte.max+1) {}
+    if (0) foreach(short i; short.min..short.max+1) {}
+    if (0) foreach(ushort i; ushort.min..ushort.max+1) {}
+    if (0) foreach(int i; int.min..int.max+1U) {}
+    if (0) foreach(uint i; uint.min..uint.max+1L) {}
+    if (0) foreach(long i; long.min..long.max+1UL) {}
+
+    foreach_reverse(char i; char.min..char.max+1) { assert(i == typeof(i).max); break; }
+    foreach_reverse(wchar i; wchar.min..wchar.max+1) { assert(i == typeof(i).max); break; }
+    foreach_reverse(dchar i; dchar.min..dchar.max+1) { assert(i == typeof(i).max); break; }
+    foreach_reverse(byte i; byte.min..byte.max+1) { assert(i == typeof(i).max); break; }
+    foreach_reverse(ubyte i; ubyte.min..ubyte.max+1) { assert(i == typeof(i).max); break; }
+    foreach_reverse(short i; short.min..short.max+1) { assert(i == typeof(i).max); break; }
+    foreach_reverse(ushort i; ushort.min..ushort.max+1) { assert(i == typeof(i).max); break; }
+    foreach_reverse(int i; int.min..int.max+1U) { assert(i == typeof(i).max); break; }
+    foreach_reverse(uint i; uint.min..uint.max+1L) { assert(i == typeof(i).max); break; }
+    foreach_reverse(long i; long.min..long.max+1UL) { assert(i == typeof(i).max); break; }
+}
+
+/***************************************/
 // 7814
 
 struct File7814
@@ -432,6 +462,147 @@ void test7814()
 }
 
 /***************************************/
+// 10049
+
+struct ByLine10049
+{
+    bool empty() { return true; }
+    string front() { return null; }
+    void popFront() {}
+
+    ~this() {}  // necessary
+}
+
+void test10049()
+{
+    ByLine10049 r;
+    foreach (line; r)
+    {
+        doNext:
+            {}
+    }
+}
+
+/******************************************/
+
+struct T11955(T...) { T field; alias field this; }
+
+alias X11955 = uint;
+
+struct S11955
+{
+    enum empty = false;
+    T11955!(uint, uint) front;
+    void popFront() {}
+}
+
+void test11955()
+{
+    foreach(X11955 i, v; S11955()) {}
+}
+
+/******************************************/
+// 6652
+
+void test6652()
+{
+    size_t sum;
+    foreach (i; 0 .. 10)
+        sum += i++; // 0123456789
+    assert(sum == 45);
+
+    sum = 0;
+    foreach (ref i; 0 .. 10)
+        sum += i++; // 02468
+    assert(sum == 20);
+
+    sum = 0;
+    foreach_reverse (i; 0 .. 10)
+        sum += i--; // 9876543210
+    assert(sum == 45);
+
+    sum = 0;
+    foreach_reverse (ref i; 0 .. 10)
+        sum += i--; // 97531
+    assert(sum == 25);
+
+    enum ary = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+    sum = 0;
+    foreach (i, v; ary)
+    {
+        assert(i == v);
+        sum += i++; // 0123456789
+    }
+    assert(sum == 45);
+
+    sum = 0;
+    foreach (ref i, v; ary)
+    {
+        assert(i == v);
+        sum += i++; // 02468
+    }
+    assert(sum == 20);
+
+    sum = 0;
+    foreach_reverse (i, v; ary)
+    {
+        assert(i == v);
+        sum += i--; // 9876543210
+    }
+    assert(sum == 45);
+
+    sum = 0;
+    foreach_reverse (ref i, v; ary)
+    {
+        assert(i == v);
+        sum += i--; // 97531
+    }
+    assert(sum == 25);
+
+    static struct Iter
+    {
+        ~this()
+        {
+            ++_dtorCount;
+        }
+
+        bool opCmp(ref const Iter rhs)
+        {
+            return _pos == rhs._pos;
+        }
+
+        void opUnary(string op)() if(op == "++" || op == "--")
+        {
+            mixin(op ~ q{_pos;});
+        }
+
+        size_t _pos;
+        static size_t _dtorCount;
+    }
+
+    Iter._dtorCount = sum = 0;
+    foreach (v; Iter(0) .. Iter(10))
+        sum += v._pos++; // 0123456789
+    assert(sum == 45 && Iter._dtorCount == 12);
+
+    Iter._dtorCount = sum = 0;
+    foreach (ref v; Iter(0) .. Iter(10))
+        sum += v._pos++; // 02468
+    assert(sum == 20 && Iter._dtorCount == 2);
+
+    // additional dtor calls due to unnecessary postdecrements
+    Iter._dtorCount = sum = 0;
+    foreach_reverse (v; Iter(0) .. Iter(10))
+        sum += v._pos--; // 9876543210
+    assert(sum == 45 && Iter._dtorCount >= 12);
+
+    Iter._dtorCount = sum = 0;
+    foreach_reverse (ref v; Iter(0) .. Iter(10))
+        sum += v._pos--; // 97531
+    assert(sum == 25 && Iter._dtorCount >= 2);
+}
+
+/***************************************/
 // 8595
 
 struct OpApply8595
@@ -452,6 +623,221 @@ string test8595()
 }
 
 /***************************************/
+// 9068
+
+struct Foo9068
+{
+    static int[] destroyed;
+    int x;
+    ~this() { destroyed ~= x; }
+}
+
+struct SimpleCounter9068
+{
+    static int destroyedCount;
+    const(int) limit = 5;
+    int counter;
+    ~this() { destroyedCount++; }
+
+    // Range primitives.
+    @property bool empty() const { return counter >= limit; }
+    @property int front() { return counter; }
+    void popFront() { counter++; }
+}
+
+// ICE when trying to break outer loop from inside switch statement
+void test9068()
+{
+    //----------------------------------------
+    // There was never a bug in this case (no range).
+    int sum;
+loop_simple:
+    foreach (i; [10, 20]) {
+        sum += i;
+        break loop_simple;
+    }
+    assert(sum == 10);
+
+    //----------------------------------------
+    // There was a bug with loops over ranges.
+    int last = -1;
+X:  foreach (i; SimpleCounter9068()) {
+       switch(i) {
+           case 3: break X;
+           default: last = i;
+       }
+    }
+    assert(last == 2);
+    assert(SimpleCounter9068.destroyedCount == 1);
+
+    //----------------------------------------
+    // Simpler case: the compiler error had nothing to do with the switch.
+    last = -1;
+loop_with_range:
+    foreach (i; SimpleCounter9068()) {
+        last = i;
+        break loop_with_range;
+    }
+    assert(last == 0);
+    assert(SimpleCounter9068.destroyedCount == 2);
+
+    //----------------------------------------
+    // Test with destructors: the loop is implicitly wrapped into two
+    // try/finally clauses.
+loop_with_dtors:
+    for (auto x = Foo9068(4), y = Foo9068(5); x.x != 10; ++x.x) {
+        if (x.x == 8)
+            break loop_with_dtors;
+    }
+    assert(Foo9068.destroyed == [5, 8]);
+    Foo9068.destroyed.clear();
+
+    //----------------------------------------
+    // Same with an unlabelled break.
+    for (auto x = Foo9068(4), y = Foo9068(5); x.x != 10; ++x.x) {
+        if (x.x == 7)
+            break;
+    }
+    assert(Foo9068.destroyed == [5, 7]);
+    Foo9068.destroyed.clear();
+}
+
+/***************************************/
+// 10475
+
+void test10475a()
+{
+    struct DirIterator
+    {
+        int _store = 42;
+        ~this() { assert(0); }
+    }
+
+    DirIterator dirEntries()
+    {
+        throw new Exception("");
+    }
+
+    try
+    {
+        for (DirIterator c = dirEntries(); true; ) {}
+        assert(0);
+    }
+    catch (Exception e)
+    {
+        assert(e.next is null);
+    }
+}
+
+void test10475b()
+{
+    uint g;
+    struct S
+    {
+        uint flag;
+        ~this() { g |= flag; }
+    }
+
+    S thrown()
+    {
+        throw new Exception("");
+    }
+
+    g = 0x0;
+    try
+    {
+        for (auto x = S(0x1), y = S(0x2), z = thrown(); true; ) {}
+        assert(0);
+    }
+    catch (Exception e)
+    {
+        assert(e.next is null);
+    }
+    assert(g == 0x3);
+
+    g = 0x0;
+    try
+    {
+        for (auto x = S(0x1), y = thrown(), z = S(0x2); true; ) {}
+        assert(0);
+    }
+    catch (Exception e)
+    {
+        assert(e.next is null);
+    }
+    assert(g == 0x1);
+
+    g = 0x0;
+    try
+    {
+        for (auto x = thrown(), y = S(0x1), z = S(0x2); true; ) {}
+        assert(0);
+    }
+    catch (Exception e)
+    {
+        assert(e.next is null);
+    }
+    assert(g == 0x0);
+}
+
+/***************************************/
+// 11291
+
+void test11291()
+{
+    struct Tuple(T...)
+    {
+        T field;
+        alias field this;
+    }
+    struct zip
+    {
+        string[] s1, s2;
+
+        bool empty() { return true; }
+        auto front() { return Tuple!(string, string)(s1[0], s2[0]); }
+        void popFront() {}
+    }
+
+    foreach (const a, const b; zip(["foo"], ["bar"]))
+    {
+        static assert(is(typeof(a) == const string));
+        static assert(is(typeof(b) == const string));
+
+        static assert(!__traits(compiles, a = "something"));
+        static assert(!__traits(compiles, b = "something"));
+    }
+}
+
+/***************************************/
+// 12103
+
+alias TypeTuple12103(TL...) = TL;
+
+alias Id12103(alias a) = a;
+
+void test12103()
+{
+    alias fs1 = TypeTuple12103!(() => 0, () => 1);
+    foreach (i, f; fs1)
+    {
+        static assert(f() == i);
+        static assert(Id12103!f() == i);
+        assert(f() == i);
+        assert(Id12103!f() == i);
+    }
+
+    alias fs2 = TypeTuple12103!(x=>x+0, y=>y+1);
+    foreach (i, f; fs2)
+    {
+        static assert(f(0) == i);
+        static assert(Id12103!f(0) == i);
+        assert(f(0) == i);
+        assert(Id12103!f(0) == i);
+    }
+}
+
+/***************************************/
 
 int main()
 {
@@ -464,12 +850,19 @@ int main()
     test4090b();
     test5605();
     test7004();
+    test10221();
     test7406();
     test6659();
     test6659a();
     test6659b();
     test6659c();
     test7814();
+    test6652();
+    test9068();
+    test10475a();
+    test10475b();
+    test11291();
+    test12103();
 
     printf("Success\n");
     return 0;

@@ -17,15 +17,18 @@
 
 #if _WIN32
 #include        <process.h>
+#ifdef _MSC_VER
+#include <windows.h>
+#endif
 #endif
 
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
 #include        <sys/types.h>
 #include        <sys/wait.h>
 #include        <unistd.h>
 #endif
 
-#if linux || __APPLE__
+#if __linux__ || __APPLE__
     #define HAS_POSIX_SPAWN 1
     #include        <spawn.h>
     #if __APPLE__
@@ -44,8 +47,9 @@
 
 #include        "arraytypes.h"
 
-int executecmd(char *cmd, char *args, int useenv);
-int executearg0(char *cmd, char *args);
+void toWinPath(char *src);
+int executecmd(const char *cmd, const char *args);
+int executearg0(const char *cmd, const char *args);
 
 /****************************************
  * Write filename to cmdbuf, quoting if necessary.
@@ -58,7 +62,7 @@ void writeFilename(OutBuffer *buf, const char *filename, size_t len)
     for (size_t i = 0; i < len; i++)
     {   char c = filename[i];
 
-        if (isalnum((unsigned char)c) || c == '_')
+        if (isalnum((utf8_t)c) || c == '_')
             continue;
 
         /* Need to quote
@@ -79,14 +83,7 @@ void writeFilename(OutBuffer *buf, const char *filename)
     writeFilename(buf, filename, strlen(filename));
 }
 
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
-#define NME_MAX_OFFSET 100
-
-#if __APPLE__
-#define NME_ERROR_MSG "\"__Dmain\", referenced from:"
-#else
-#define NME_ERROR_MSG "undefined reference to `_Dmain'"
-#endif
+#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
 
 /*****************************
  * As it forwards the linker error message to stderr, checks for the presence
@@ -97,67 +94,46 @@ void writeFilename(OutBuffer *buf, const char *filename)
  *     -1 if there is an IO error
  *      0 otherwise
  */
-int findNoMainError(int fd) {
-    FILE *stream = fdopen(fd, "rb");
+int findNoMainError(int fd)
+{
+#if __APPLE__
+    static const char nmeErrorMessage[] = "\"__Dmain\", referenced from:";
+#else
+    static const char nmeErrorMessage[] = "undefined reference to `_Dmain'";
+#endif
 
+    FILE *stream = fdopen(fd, "r");
     if (stream == NULL) return -1;
 
-    int nmeFound = 0;
-    while (true)
+    const size_t len = 64 * 1024 - 1;
+    char buffer[len + 1]; // + '\0'
+    size_t beg = 0, end = len;
+
+    bool nmeFound = false;
+    for (;;)
     {
+        // read linker output
+        const size_t n = fread(&buffer[beg], 1, len - beg, stream);
+        if (beg + n < len && ferror(stream)) return -1;
+        buffer[(end = beg + n) + 1] = '\0';
 
-        // read into buffer while forwarding
-        char buffer[NME_MAX_OFFSET+1];
-        size_t buffer_i = 0;
-        int ch;
-        while (buffer_i < NME_MAX_OFFSET)
-        {
-            ch = fgetc(stream);
-            if (ferror(stream)) return -1;
-            if (ch == EOF) break;
+        // search error message, stop at last complete line
+        const char *lastSep = strrchr(buffer, '\n');
+        if (lastSep) buffer[(end = lastSep - &buffer[0])] = '\0';
 
-            fputc(ch, stderr);
-            if (ferror(stream)) return -1;
+        if (strstr(&buffer[0], nmeErrorMessage))
+            nmeFound = true;
 
-            if (ch == '\n') break;
-            buffer[buffer_i] = ch;
-            buffer_i++;
-        }
-        buffer[buffer_i] = 0;
+        if (lastSep) buffer[end++] = '\n';
 
-        // check for nme
-        if (strstr(buffer, NME_ERROR_MSG) != NULL)
-        {
-            nmeFound = 1;
-            break;
-        }
+        if (fwrite(&buffer[0], 1, end, stderr) < end) return -1;
 
-        if (ch == EOF) break;
+        if (beg + n < len && feof(stream)) break;
 
-        // output the rest of the line
-        while (ch != '\n')
-        {
-            ch = fgetc(stream);
-            if (ferror(stream)) return -1;
-            if (ch == EOF) goto Lend;
-
-            fputc(ch, stderr);
-            if (ferror(stream)) return -1;
-        }
+        // copy over truncated last line
+        memcpy(&buffer[0], &buffer[end], (beg = len - end));
     }
-
-    // output the rest
-    while (true) {
-        int ch = fgetc(stream);
-        if (ferror(stream)) return -1;
-        if (ch == EOF) break;
-
-        fputc(ch, stderr);
-        if (ferror(stream)) return -1;
-    }
-
-  Lend:
-    return nmeFound;
+    return nmeFound ? 1 : 0;
 }
 #endif
 
@@ -178,15 +154,17 @@ int runLINK()
         {
             if (i)
                 cmdbuf.writeByte(' ');
-            char *p = (*global.params.objfiles)[i];
-            char *basename = FileName::removeExt(FileName::name(p));
-            char *ext = FileName::ext(p);
+            const char *p = (*global.params.objfiles)[i];
+            const char *basename = FileName::removeExt(FileName::name(p));
+            const char *ext = FileName::ext(p);
             if (ext && !strchr(basename, '.'))
+            {
                 // Write name sans extension (but not if a double extension)
                 writeFilename(&cmdbuf, p, ext - p - 1);
+            }
             else
                 writeFilename(&cmdbuf, p);
-            mem.free(basename);
+            FileName::free(basename);
         }
 
         if (global.params.resfile)
@@ -204,17 +182,13 @@ int runLINK()
         {   /* Generate exe file name from first obj name.
              * No need to add it to cmdbuf because the linker will default to it.
              */
-            char *n = (*global.params.objfiles)[0];
+            const char *n = (*global.params.objfiles)[0];
             n = FileName::name(n);
-            FileName *fn = FileName::forceExt(n, "exe");
-            global.params.exefile = fn->toChars();
+            global.params.exefile = (char *)FileName::forceExt(n, "exe");
         }
 
         // Make sure path to exe file exists
-        {   char *p = FileName::path(global.params.exefile);
-            FileName::ensurePathExists(p);
-            mem.free(p);
-        }
+        ensurePathToNameExists(Loc(), global.params.exefile);
 
         cmdbuf.writeByte(' ');
         if (global.params.mapfile)
@@ -223,14 +197,14 @@ int runLINK()
         }
         else if (global.params.map)
         {
-            FileName *fn = FileName::forceExt(global.params.exefile, "map");
+            const char *fn = FileName::forceExt(global.params.exefile, "map");
 
-            char *path = FileName::path(global.params.exefile);
-            char *p;
+            const char *path = FileName::path(global.params.exefile);
+            const char *p;
             if (path[0] == '\0')
-                p = FileName::combine(global.params.objdir, fn->toChars());
+                p = FileName::combine(global.params.objdir, fn);
             else
-                p = fn->toChars();
+                p = fn;
 
             cmdbuf.writestring("/MAP:");
             writeFilename(&cmdbuf, p);
@@ -262,9 +236,6 @@ int runLINK()
             cmdbuf.writestring("/DLL");
         }
 
-        cmdbuf.writestring(" /MERGE:.minfobg=.minfodt /MERGE:.minfoen=.minfodt");
-        cmdbuf.writestring(" /MERGE:._deh_bg=._deh_eh /MERGE:._deh_en=._deh_eh");
-
         for (size_t i = 0; i < global.params.linkswitches->dim; i++)
         {
             cmdbuf.writeByte(' ');
@@ -287,9 +258,9 @@ int runLINK()
             cmdbuf.writestring("lib\\x64\"");
         }
 
-        char *p = cmdbuf.toChars();
+        char *p = cmdbuf.peekString();
 
-        FileName *lnkfilename = NULL;
+        const char *lnkfilename = NULL;
         size_t plen = strlen(p);
         if (plen > 7000)
         {
@@ -298,12 +269,14 @@ int runLINK()
             flnk.setbuffer(p, plen);
             flnk.ref = 1;
             if (flnk.write())
-                error(0, "error writing file %s", lnkfilename);
-            if (lnkfilename->len() < plen)
-                sprintf(p, "@%s", lnkfilename->toChars());
+                error(Loc(), "error writing file %s", lnkfilename);
+            if (strlen(lnkfilename) < plen)
+                sprintf(p, "@%s", lnkfilename);
         }
 
-        char *linkcmd = getenv("LINKCMD64");
+        const char *linkcmd = getenv("LINKCMD64");
+        if (!linkcmd)
+            linkcmd = getenv("LINKCMD"); // backward compatible
         if (!linkcmd)
         {
             if (vcinstalldir)
@@ -311,17 +284,16 @@ int runLINK()
                 OutBuffer linkcmdbuf;
                 linkcmdbuf.writestring(vcinstalldir);
                 linkcmdbuf.writestring("bin\\amd64\\link");
-                linkcmd = linkcmdbuf.toChars();
-                linkcmdbuf.extractData();
+                linkcmd = linkcmdbuf.extractString();
             }
             else
                 linkcmd = "link";
         }
-        int status = executecmd(linkcmd, p, 1);
+        int status = executecmd(linkcmd, p);
         if (lnkfilename)
         {
-            remove(lnkfilename->toChars());
-            delete lnkfilename;
+            remove(lnkfilename);
+            FileName::free(lnkfilename);
         }
         return status;
     }
@@ -336,15 +308,17 @@ int runLINK()
         {
             if (i)
                 cmdbuf.writeByte('+');
-            char *p = (*global.params.objfiles)[i];
-            char *basename = FileName::removeExt(FileName::name(p));
-            char *ext = FileName::ext(p);
+            const char *p = (*global.params.objfiles)[i];
+            const char *basename = FileName::removeExt(FileName::name(p));
+            const char *ext = FileName::ext(p);
             if (ext && !strchr(basename, '.'))
+            {
                 // Write name sans extension (but not if a double extension)
                 writeFilename(&cmdbuf, p, ext - p - 1);
+            }
             else
                 writeFilename(&cmdbuf, p);
-            mem.free(basename);
+            FileName::free(basename);
         }
         cmdbuf.writeByte(',');
         if (global.params.exefile)
@@ -353,31 +327,27 @@ int runLINK()
         {   /* Generate exe file name from first obj name.
              * No need to add it to cmdbuf because the linker will default to it.
              */
-            char *n = (*global.params.objfiles)[0];
+            const char *n = (*global.params.objfiles)[0];
             n = FileName::name(n);
-            FileName *fn = FileName::forceExt(n, "exe");
-            global.params.exefile = fn->toChars();
+            global.params.exefile = (char *)FileName::forceExt(n, "exe");
         }
 
         // Make sure path to exe file exists
-        {   char *p = FileName::path(global.params.exefile);
-            FileName::ensurePathExists(p);
-            mem.free(p);
-        }
+        ensurePathToNameExists(Loc(), global.params.exefile);
 
         cmdbuf.writeByte(',');
         if (global.params.mapfile)
             writeFilename(&cmdbuf, global.params.mapfile);
         else if (global.params.map)
         {
-            FileName *fn = FileName::forceExt(global.params.exefile, "map");
+            const char *fn = FileName::forceExt(global.params.exefile, "map");
 
-            char *path = FileName::path(global.params.exefile);
-            char *p;
+            const char *path = FileName::path(global.params.exefile);
+            const char *p;
             if (path[0] == '\0')
-                p = FileName::combine(global.params.objdir, fn->toChars());
+                p = FileName::combine(global.params.objdir, fn);
             else
-                p = fn->toChars();
+                p = fn;
 
             writeFilename(&cmdbuf, p);
         }
@@ -436,9 +406,9 @@ int runLINK()
         }
         cmdbuf.writeByte(';');
 
-        char *p = cmdbuf.toChars();
+        char *p = cmdbuf.peekString();
 
-        FileName *lnkfilename = NULL;
+        const char *lnkfilename = NULL;
         size_t plen = strlen(p);
         if (plen > 7000)
         {
@@ -447,23 +417,23 @@ int runLINK()
             flnk.setbuffer(p, plen);
             flnk.ref = 1;
             if (flnk.write())
-                error(0, "error writing file %s", lnkfilename);
-            if (lnkfilename->len() < plen)
-                sprintf(p, "@%s", lnkfilename->toChars());
+                error(Loc(), "error writing file %s", lnkfilename);
+            if (strlen(lnkfilename) < plen)
+                sprintf(p, "@%s", lnkfilename);
         }
 
-        char *linkcmd = getenv("LINKCMD");
+        const char *linkcmd = getenv("LINKCMD");
         if (!linkcmd)
             linkcmd = "link";
-        int status = executecmd(linkcmd, p, 1);
+        int status = executecmd(linkcmd, p);
         if (lnkfilename)
         {
-            remove(lnkfilename->toChars());
-            delete lnkfilename;
+            remove(lnkfilename);
+            FileName::free(lnkfilename);
         }
         return status;
     }
-#elif linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#elif __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
     pid_t childpid;
     int status;
 
@@ -473,36 +443,63 @@ int runLINK()
     const char *cc = getenv("CC");
     if (!cc)
         cc = "gcc";
-    argv.push((char *)cc);
+    argv.push(cc);
     argv.insert(1, global.params.objfiles);
 
 #if __APPLE__
     // If we are on Mac OS X and linking a dynamic library,
     // add the "-dynamiclib" flag
     if (global.params.dll)
-        argv.push((char *) "-dynamiclib");
-#elif linux || __FreeBSD__ || __OpenBSD__ || __sun
+        argv.push("-dynamiclib");
+#elif __linux__ || __FreeBSD__ || __OpenBSD__ || __sun
     if (global.params.dll)
-        argv.push((char *) "-shared");
+        argv.push("-shared");
 #endif
 
     // None of that a.out stuff. Use explicit exe file name, or
     // generate one from name of first source file.
-    argv.push((char *)"-o");
+    argv.push("-o");
     if (global.params.exefile)
     {
-        if (global.params.dll)
-            global.params.exefile = FileName::forceExt(global.params.exefile, global.dll_ext)->toChars();
         argv.push(global.params.exefile);
+    }
+    else if (global.params.run)
+    {
+#if 1
+        char name[L_tmpnam + 14 + 1];
+        strcpy(name, P_tmpdir);
+        strcat(name, "/dmd_runXXXXXX");
+        int fd = mkstemp(name);
+        if (fd == -1)
+        {   error(Loc(), "error creating temporary file");
+            return 1;
+        }
+        else
+            close(fd);
+        global.params.exefile = mem.strdup(name);
+        argv.push(global.params.exefile);
+#else
+        /* The use of tmpnam raises the issue of "is this a security hole"?
+         * The hole is that after tmpnam and before the file is opened,
+         * the attacker modifies the file system to get control of the
+         * file with that name. I do not know if this is an issue in
+         * this context.
+         * We cannot just replace it with mkstemp, because this name is
+         * passed to the linker that actually opens the file and writes to it.
+         */
+        char s[L_tmpnam + 1];
+        char *n = tmpnam(s);
+        global.params.exefile = mem.strdup(n);
+        argv.push(global.params.exefile);
+#endif
     }
     else
     {   // Generate exe file name from first obj name
-        char *n = (*global.params.objfiles)[0];
-        char *e;
+        const char *n = (*global.params.objfiles)[0];
         char *ex;
 
         n = FileName::name(n);
-        e = FileName::ext(n);
+        const char *e = FileName::ext(n);
         if (e)
         {
             e--;                        // back up over '.'
@@ -511,7 +508,7 @@ int runLINK()
             ex[e - n] = 0;
             // If generating dll then force dll extension
             if (global.params.dll)
-                ex = FileName::forceExt(ex, global.dll_ext)->toChars();
+                ex = (char *)FileName::forceExt(ex, global.dll_ext);
         }
         else
             ex = (char *)"a.out";       // no extension, so give up
@@ -520,41 +517,38 @@ int runLINK()
     }
 
     // Make sure path to exe file exists
-    {   char *p = FileName::path(global.params.exefile);
-        FileName::ensurePathExists(p);
-        mem.free(p);
-    }
+    ensurePathToNameExists(Loc(), global.params.exefile);
 
     if (global.params.symdebug)
-        argv.push((char *)"-g");
+        argv.push("-g");
 
     if (global.params.is64bit)
-        argv.push((char *)"-m64");
+        argv.push("-m64");
     else
-        argv.push((char *)"-m32");
+        argv.push("-m32");
 
     if (global.params.map || global.params.mapfile)
     {
-        argv.push((char *)"-Xlinker");
+        argv.push("-Xlinker");
 #if __APPLE__
-        argv.push((char *)"-map");
+        argv.push("-map");
 #else
-        argv.push((char *)"-Map");
+        argv.push("-Map");
 #endif
         if (!global.params.mapfile)
         {
-            FileName *fn = FileName::forceExt(global.params.exefile, "map");
+            const char *fn = FileName::forceExt(global.params.exefile, "map");
 
-            char *path = FileName::path(global.params.exefile);
-            char *p;
+            const char *path = FileName::path(global.params.exefile);
+            const char *p;
             if (path[0] == '\0')
-                p = FileName::combine(global.params.objdir, fn->toChars());
+                p = FileName::combine(global.params.objdir, fn);
             else
-                p = fn->toChars();
+                p = fn;
 
-            global.params.mapfile = p;
+            global.params.mapfile = (char *)p;
         }
-        argv.push((char *)"-Xlinker");
+        argv.push("-Xlinker");
         argv.push(global.params.mapfile);
     }
 
@@ -570,17 +564,17 @@ int runLINK()
          * BUG: disabled because it causes exception handling to fail
          * because EH sections are "unreferenced" and elided
          */
-        argv.push((char *)"-Xlinker");
-        argv.push((char *)"--gc-sections");
+        argv.push("-Xlinker");
+        argv.push("--gc-sections");
     }
 
     for (size_t i = 0; i < global.params.linkswitches->dim; i++)
-    {   char *p = (*global.params.linkswitches)[i];
+    {   const char *p = (*global.params.linkswitches)[i];
         if (!p || !p[0] || !(p[0] == '-' && (p[1] == 'l' || p[1] == 'L')))
             // Don't need -Xlinker if switch starts with -l or -L.
             // Eliding -Xlinker is significant for -L since it allows our paths
             // to take precedence over gcc defaults.
-            argv.push((char *)"-Xlinker");
+            argv.push("-Xlinker");
         argv.push(p);
     }
 
@@ -593,7 +587,7 @@ int runLINK()
      *  4. standard libraries.
      */
     for (size_t i = 0; i < global.params.libfiles->dim; i++)
-    {   char *p = (*global.params.libfiles)[i];
+    {   const char *p = (*global.params.libfiles)[i];
         size_t plen = strlen(p);
         if (plen > 2 && p[plen - 2] == '.' && p[plen -1] == 'a')
             argv.push(p);
@@ -616,31 +610,40 @@ int runLINK()
     size_t slen = strlen(libname);
     if (slen)
     {
-        char *buf = (char *)malloc(2 + slen + 1);
+        char *buf = (char *)malloc(3 + slen + 1);
         strcpy(buf, "-l");
-        strcpy(buf + 2, libname);
+        /* Use "-l:libname.a" if the library name is complete
+         */
+        if (slen > 3 + 2 &&
+            memcmp(libname, "lib", 3) == 0 &&
+            (memcmp(libname + slen - 2, ".a", 2) == 0 ||
+             memcmp(libname + slen - 3, ".so", 3) == 0)
+           )
+        {
+            strcat(buf, ":");
+        }
+        strcat(buf, libname);
         argv.push(buf);             // turns into /usr/lib/libphobos2.a
     }
 
 #ifdef __sun
-    argv.push((char *)"-mt");
+    argv.push("-mt");
 #endif
 
-//    argv.push((void *)"-ldruntime");
-    argv.push((char *)"-lpthread");
-    argv.push((char *)"-lm");
-#if linux && DMDV2
+//    argv.push("-ldruntime");
+    argv.push("-lpthread");
+    argv.push("-lm");
+#if __linux__
     // Changes in ld for Ubuntu 11.10 require this to appear after phobos2
-    argv.push((char *)"-lrt");
+    argv.push("-lrt");
 #endif
 
     if (!global.params.quiet || global.params.verbose)
     {
         // Print it
         for (size_t i = 0; i < argv.dim; i++)
-            printf("%s ", argv[i]);
-        printf("\n");
-        fflush(stdout);
+            fprintf(global.stdmsg, "%s ", argv[i]);
+        fprintf(global.stdmsg, "\n");
     }
 
     argv.push(NULL);
@@ -661,7 +664,7 @@ int runLINK()
         dup2(fds[1], STDERR_FILENO);
         close(fds[0]);
 
-        execvp(argv[0], argv.tdata());
+        execvp(argv[0], (char **)argv.tdata());
         perror(argv[0]);           // failed to execute
         return -1;
     }
@@ -671,7 +674,7 @@ int runLINK()
         return -1;
     }
     close(fds[1]);
-
+    const int nme = findNoMainError(fds[0]);
     waitpid(childpid, &status, 0);
 
     if (WIFEXITED(status))
@@ -679,7 +682,6 @@ int runLINK()
         status = WEXITSTATUS(status);
         if (status)
         {
-            int nme = findNoMainError(fds[0]);
             if (nme == -1)
             {
                 perror("Error with the linker pipe");
@@ -688,7 +690,7 @@ int runLINK()
             else
             {
                 printf("--- errorlevel %d\n", status);
-                if (nme == 1) error(0, "no main function specified");
+                if (nme == 1) error(Loc(), "no main function specified");
             }
         }
     }
@@ -721,56 +723,59 @@ void deleteExeFile()
  * Execute a rule.  Return the status.
  *      cmd     program to run
  *      args    arguments to cmd, as a string
- *      useenv  if cmd knows about _CMDLINE environment variable
  */
 
 #if _WIN32
-int executecmd(char *cmd, char *args, int useenv)
+int executecmd(const char *cmd, const char *args)
 {
     int status;
     size_t len;
 
     if (!global.params.quiet || global.params.verbose)
-    {
-        printf("%s %s\n", cmd, args);
-        fflush(stdout);
-    }
+        fprintf(global.stdmsg, "%s %s\n", cmd, args);
 
-    if (global.params.is64bit)
+    if (!global.params.is64bit)
     {
-    }
-    else
-    {
-    if ((len = strlen(args)) > 255)
-    {   char *q;
-        static char envname[] = "@_CMDLINE";
-
-        envname[0] = '@';
-        switch (useenv)
-        {   case 0:     goto L1;
-            case 2: envname[0] = '%';   break;
-        }
-        q = (char *) alloca(sizeof(envname) + len + 1);
-        sprintf(q,"%s=%s", envname + 1, args);
-        status = putenv(q);
-        if (status == 0)
-            args = envname;
-        else
+        if ((len = strlen(args)) > 255)
         {
-        L1:
-            error(0, "command line length of %d is too long",len);
+            char *q = (char *) alloca(8 + len + 1);
+            sprintf(q,"_CMDLINE=%s", args);
+            status = putenv(q);
+            if (status == 0)
+            {
+                args = "@_CMDLINE";
+            }
+            else
+            {
+                error(Loc(), "command line length of %d is too long",len);
             }
         }
     }
 
+    // Normalize executable path separators, see Bugzilla 9330
+    char *p = mem.strdup(cmd);
+    toWinPath(p);
+    cmd = p;
+
+#ifdef _MSC_VER
+    if(strchr(cmd, ' '))
+    {
+        // MSVCRT: spawn does not work with spaces in the executable
+        size_t cmdlen = strlen(cmd);
+        char* shortName = new char[cmdlen + 1]; // enough space
+        DWORD len = GetShortPathName(cmd, shortName, cmdlen + 1);
+        if(len > 0 && len <= cmdlen)
+            cmd = shortName;
+    }
+#endif
+
     status = executearg0(cmd,args);
-#if _WIN32
     if (status == -1)
         // spawnlp returns intptr_t in some systems, not int
         status = spawnlp(0,cmd,cmd,args,NULL);
-#endif
+
 //    if (global.params.verbose)
-//      printf("\n");
+//      fprintf(global.stdmsg, "\n");
     if (status)
     {
         if (status == -1)
@@ -791,10 +796,10 @@ int executecmd(char *cmd, char *args, int useenv)
  */
 
 #if _WIN32
-int executearg0(char *cmd, char *args)
+int executearg0(const char *cmd, const char *args)
 {
     const char *file;
-    char *argv0 = global.params.argv0;
+    const char *argv0 = global.params.argv0;
 
     //printf("argv0='%s', cmd='%s', args='%s'\n",argv0,cmd,args);
 
@@ -805,27 +810,8 @@ int executearg0(char *cmd, char *args)
     file = FileName::replaceName(argv0, cmd);
 
     //printf("spawning '%s'\n",file);
-#if _WIN32
     // spawnlp returns intptr_t in some systems, not int
     return spawnl(0,file,file,args,NULL);
-#elif linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
-    char *full;
-    int cmdl = strlen(cmd);
-
-    full = (char*) mem.malloc(cmdl + strlen(args) + 2);
-    if (full == NULL)
-        return 1;
-    strcpy(full, cmd);
-    full [cmdl] = ' ';
-    strcpy(full + cmdl + 1, args);
-
-    int result = system(full);
-
-    mem.free(full);
-    return result;
-#else
-    assert(0);
-#endif
 }
 #endif
 
@@ -839,10 +825,10 @@ int runProgram()
     //printf("runProgram()\n");
     if (global.params.verbose)
     {
-        printf("%s", global.params.exefile);
+        fprintf(global.stdmsg, "%s", global.params.exefile);
         for (size_t i = 0; i < global.params.runargs_length; i++)
-            printf(" %s", (char *)global.params.runargs[i]);
-        printf("\n");
+            fprintf(global.stdmsg, " %s", (char *)global.params.runargs[i]);
+        fprintf(global.stdmsg, "\n");
     }
 
     // Build argv[]
@@ -850,7 +836,7 @@ int runProgram()
 
     argv.push(global.params.exefile);
     for (size_t i = 0; i < global.params.runargs_length; i++)
-    {   char *a = global.params.runargs[i];
+    {   const char *a = global.params.runargs[i];
 
 #if _WIN32
         // BUG: what about " appearing in the string?
@@ -865,26 +851,26 @@ int runProgram()
     argv.push(NULL);
 
 #if _WIN32
-    char *ex = FileName::name(global.params.exefile);
+    const char *ex = FileName::name(global.params.exefile);
     if (ex == global.params.exefile)
         ex = FileName::combine(".", ex);
     else
         ex = global.params.exefile;
     // spawnlp returns intptr_t in some systems, not int
     return spawnv(0,ex,argv.tdata());
-#elif linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#elif __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
     pid_t childpid;
     int status;
 
     childpid = fork();
     if (childpid == 0)
     {
-        char *fn = argv[0];
+        const char *fn = argv[0];
         if (!FileName::absolute(fn))
         {   // Make it "./fn"
             fn = FileName::combine(".", fn);
         }
-        execv(fn, argv.tdata());
+        execv(fn, (char **)argv.tdata());
         perror(fn);             // failed to execute
         return -1;
     }

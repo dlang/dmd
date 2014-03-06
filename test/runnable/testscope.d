@@ -241,6 +241,25 @@ void test7435() {
 
 /********************************************/
 
+void test7049() @safe
+{
+    int count = 0;
+    @safe void foo()
+    {
+        scope (failure) { count++; }
+        scope (failure) { count++; }
+        throw new Exception("failed");
+    }
+
+    try {
+        foo();
+    } catch(Exception e) {
+    }
+    assert(count == 2);
+}
+
+/********************************************/
+
 void main()
 {
     test1();
@@ -254,6 +273,7 @@ void main()
     test9();
     test10();
     test7435();
+    test7049();
 
     printf("Success\n");
 }

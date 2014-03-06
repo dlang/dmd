@@ -195,6 +195,18 @@ void testsizes()
 
 ///////////////////////
 
+size_t cond11565(size_t val)
+{
+    return val ? size_t.max : 0;
+}
+
+void test11565()
+{
+    assert(cond11565(true) == size_t.max);
+}
+
+///////////////////////
+
 int array1[3] = [1:1,2,0:3];
 
 void testarrayinit()
@@ -259,7 +271,823 @@ void testulldiv()
     }
 }
 
-///////////////////////
+////////////////////////////////////////////////////////////////////////
+
+
+uint udiv10(uint x)
+{
+    return x / 10;
+}
+
+uint udiv14(uint x)
+{
+    return x / 14;
+}
+
+uint udiv14007(uint x)
+{
+    return x / 14007;
+}
+
+uint umod10(uint x)
+{
+    return x % 10;
+}
+
+uint umod14(uint x)
+{
+    return x % 14;
+}
+
+uint umod14007(uint x)
+{
+    return x % 14007;
+}
+
+uint uremquo10(uint x)
+{
+    return (x / 10) | (x % 10);
+}
+
+uint uremquo14(uint x)
+{
+    return (x / 14) | (x % 14);
+}
+
+uint uremquo14007(uint x)
+{
+    return (x / 14007) | (x % 14007);
+}
+
+
+
+ulong uldiv10(ulong x)
+{
+    return x / 10;
+}
+
+ulong uldiv14(ulong x)
+{
+    return x / 14;
+}
+
+ulong uldiv14007(ulong x)
+{
+    return x / 14007;
+}
+
+ulong ulmod10(ulong x)
+{
+    return x % 10;
+}
+
+ulong ulmod14(ulong x)
+{
+    return x % 14;
+}
+
+ulong ulmod14007(ulong x)
+{
+    return x % 14007;
+}
+
+ulong ulremquo10(ulong x)
+{
+    return (x / 10) | (x % 10);
+}
+
+ulong ulremquo14(ulong x)
+{
+    return (x / 14) | (x % 14);
+}
+
+ulong ulremquo14007(ulong x)
+{
+    return (x / 14007) | (x % 14007);
+}
+
+
+void testfastudiv()
+{
+  {
+    static uint x10 = 10;
+    static uint x14 = 14;
+    static uint x14007 = 14007;
+
+    uint u = 10000;
+    uint r;
+    r = udiv10(u);  assert(r == u/x10);
+    r = udiv14(u);  assert(r == u/x14);
+    r = udiv14007(u);  assert(r == u/x14007);
+    r = umod10(u);  assert(r == u%x10);
+    r = umod14(u);  assert(r == u%x14);
+    r = umod14007(u);  assert(r == u%x14007);
+    r = uremquo10(u);  assert(r == ((u/10)|(u%x10)));
+    r = uremquo14(u);  assert(r == ((u/14)|(u%x14)));
+    r = uremquo14007(u);  assert(r == ((u/14007)|(u%x14007)));
+  }
+  {
+    static ulong y10 = 10;
+    static ulong y14 = 14;
+    static ulong y14007 = 14007;
+
+    ulong u = 10000;
+    ulong r;
+    r = uldiv10(u);  assert(r == u/y10);
+    r = uldiv14(u);  assert(r == u/y14);
+    r = uldiv14007(u);  assert(r == u/y14007);
+    r = ulmod10(u);  assert(r == u%y10);
+    r = ulmod14(u);  assert(r == u%y14);
+    r = ulmod14007(u);  assert(r == u%y14007);
+    r = ulremquo10(u);  assert(r == ((u/10)|(u%y10)));
+    r = ulremquo14(u);  assert(r == ((u/14)|(u%y14)));
+    r = ulremquo14007(u);  assert(r == ((u/14007)|(u%y14007)));
+  }
+}
+
+
+////////////////////////////////////////////////////////////////////////
+
+void vfunc() {}
+
+void test12095(int k)
+{
+    int e = 0;
+    e ? k || assert(0) : !e || vfunc();
+    e ? k || assert(0) : e && vfunc();
+    !e ? !e || vfunc() : k || assert(0);
+}
+
+
+////////////////////////////////////////////////////////////////////////
+
+
+int div10(int x)
+{
+    return x / 10;
+}
+
+int div14(int x)
+{
+    return x / 14;
+}
+
+int div14007(int x)
+{
+    return x / 14007;
+}
+
+int mod10(int x)
+{
+    return x % 10;
+}
+
+int mod14(int x)
+{
+    return x % 14;
+}
+
+int mod14007(int x)
+{
+    return x % 14007;
+}
+
+int remquo10(int x)
+{
+    return (x / 10) | (x % 10);
+}
+
+int remquo14(int x)
+{
+    return (x / 14) | (x % 14);
+}
+
+int remquo14007(int x)
+{
+    return (x / 14007) | (x % 14007);
+}
+
+////////////////////
+
+int mdiv10(int x)
+{
+    return x / -10;
+}
+
+int mdiv14(int x)
+{
+    return x / -14;
+}
+
+int mdiv14007(int x)
+{
+    return x / -14007;
+}
+
+int mmod10(int x)
+{
+    return x % -10;
+}
+
+int mmod14(int x)
+{
+    return x % -14;
+}
+
+int mmod14007(int x)
+{
+    return x % -14007;
+}
+
+int mremquo10(int x)
+{
+    return (x / -10) | (x % -10);
+}
+
+int mremquo14(int x)
+{
+    return (x / -14) | (x % -14);
+}
+
+int mremquo14007(int x)
+{
+    return (x / -14007) | (x % -14007);
+}
+
+////////////////////
+
+
+long ldiv10(long x)
+{
+    return x / 10;
+}
+
+long ldiv14(long x)
+{
+    return x / 14;
+}
+
+long ldiv14007(long x)
+{
+    return x / 14007;
+}
+
+long lmod10(long x)
+{
+    return x % 10;
+}
+
+long lmod14(long x)
+{
+    return x % 14;
+}
+
+long lmod14007(long x)
+{
+    return x % 14007;
+}
+
+long lremquo10(long x)
+{
+    return (x / 10) | (x % 10);
+}
+
+long lremquo14(long x)
+{
+    return (x / 14) | (x % 14);
+}
+
+long lremquo14007(long x)
+{
+    return (x / 14007) | (x % 14007);
+}
+
+
+////////////////////
+
+
+long mldiv10(long x)
+{
+    return x / -10;
+}
+
+long mldiv14(long x)
+{
+    return x / -14;
+}
+
+long mldiv14007(long x)
+{
+    return x / -14007;
+}
+
+long mlmod10(long x)
+{
+    return x % -10;
+}
+
+long mlmod14(long x)
+{
+    return x % -14;
+}
+
+long mlmod14007(long x)
+{
+    return x % -14007;
+}
+
+long mlremquo10(long x)
+{
+    return (x / -10) | (x % -10);
+}
+
+long mlremquo14(long x)
+{
+    return (x / -14) | (x % -14);
+}
+
+long mlremquo14007(long x)
+{
+    return (x / -14007) | (x % -14007);
+}
+
+
+
+void testfastdiv()
+{
+  {
+    static int x10 = 10;
+    static int x14 = 14;
+    static int x14007 = 14007;
+
+    int u = 10000;
+    int r;
+    r = div10(u);  assert(r == u/x10);
+    r = div14(u);  assert(r == u/x14);
+    r = div14007(u);  assert(r == u/x14007);
+    r = mod10(u);  assert(r == u%x10);
+    r = mod14(u);  assert(r == u%x14);
+    r = mod14007(u);  assert(r == u%x14007);
+    r = remquo10(u);  assert(r == ((u/x10)|(u%x10)));
+    r = remquo14(u);  assert(r == ((u/x14)|(u%x14)));
+    r = remquo14007(u);  assert(r == ((u/x14007)|(u%x14007)));
+  }
+  {
+    static int t10 = -10;
+    static int t14 = -14;
+    static int t14007 = -14007;
+
+    int u = 10000;
+    int r;
+    r = mdiv10(u);  assert(r == u/t10);
+    r = mdiv14(u);  assert(r == u/t14);
+    r = mdiv14007(u);  assert(r == u/t14007);
+    r = mmod10(u);  assert(r == u%t10);
+    r = mmod14(u);  assert(r == u%t14);
+    r = mmod14007(u);  assert(r == u%t14007);
+    r = mremquo10(u);  assert(r == ((u/t10)|(u%t10)));
+    r = mremquo14(u);  assert(r == ((u/t14)|(u%t14)));
+    r = mremquo14007(u);  assert(r == ((u/t14007)|(u%t14007)));
+  }
+  {
+    static long y10 = 10;
+    static long y14 = 14;
+    static long y14007 = 14007;
+
+    long u = 10000;
+    long r;
+    r = ldiv10(u);  assert(r == u/y10);
+    r = ldiv14(u);  assert(r == u/y14);
+    r = ldiv14007(u);  assert(r == u/y14007);
+    r = lmod10(u);  assert(r == u%y10);
+    r = lmod14(u);  assert(r == u%y14);
+    r = lmod14007(u);  assert(r == u%y14007);
+    r = lremquo10(u);  assert(r == ((u/y10)|(u%y10)));
+    r = lremquo14(u);  assert(r == ((u/y14)|(u%y14)));
+    r = lremquo14007(u);  assert(r == ((u/y14007)|(u%y14007)));
+  }
+  {
+    static long z10 = -10;
+    static long z14 = -14;
+    static long z14007 = -14007;
+
+    long u = 10000;
+    long r;
+    r = mldiv10(u);  assert(r == u/z10);
+    r = mldiv14(u);  assert(r == u/z14);
+    r = mldiv14007(u);  assert(r == u/z14007);
+    r = mlmod10(u);  assert(r == u%z10);
+    r = mlmod14(u);  assert(r == u%z14);
+    r = mlmod14007(u);  assert(r == u%z14007);
+    r = mlremquo10(u);  assert(r == ((u/z10)|(u%z10)));
+    r = mlremquo14(u);  assert(r == ((u/z14)|(u%z14)));
+    r = mlremquo14007(u);  assert(r == ((u/z14007)|(u%z14007)));
+  }
+}
+
+////////////////////////////////////////////////////////////////////////
+
+
+T docond1(T)(T l, ubyte thresh, ubyte val) {
+    l += (thresh < val);
+    return l;
+}
+
+T docond2(T)(T l, ubyte thresh, ubyte val) {
+    l -= (thresh >= val);
+    return l;
+}
+
+T docond3(T)(T l, ubyte thresh, ubyte val) {
+    l += (thresh >= val);
+    return l;
+}
+
+T docond4(T)(T l, ubyte thresh, ubyte val) {
+    l -= (thresh < val);
+    return l;
+}
+
+void testdocond()
+{
+    assert(docond1!ubyte(10,3,5)  == 11);
+    assert(docond1!ushort(10,3,5) == 11);
+    assert(docond1!uint(10,3,5)   == 11);
+    assert(docond1!ulong(10,3,5)  == 11);
+
+    assert(docond2!ubyte(10,3,5)  == 10);
+    assert(docond2!ushort(10,3,5) == 10);
+    assert(docond2!uint(10,3,5)   == 10);
+    assert(docond2!ulong(10,3,5)  == 10);
+
+    assert(docond3!ubyte(10,3,5)  == 10);
+    assert(docond3!ushort(10,3,5) == 10);
+    assert(docond3!uint(10,3,5)   == 10);
+    assert(docond3!ulong(10,3,5)  == 10);
+
+    assert(docond4!ubyte(10,3,5)  == 9);
+    assert(docond4!ushort(10,3,5) == 9);
+    assert(docond4!uint(10,3,5)   == 9);
+    assert(docond4!ulong(10,3,5)  == 9);
+
+
+    assert(docond1!ubyte(10,5,3)  == 10);
+    assert(docond1!ushort(10,5,3) == 10);
+    assert(docond1!uint(10,5,3)   == 10);
+    assert(docond1!ulong(10,5,3)  == 10);
+
+    assert(docond2!ubyte(10,5,3)  == 9);
+    assert(docond2!ushort(10,5,3) == 9);
+    assert(docond2!uint(10,5,3)   == 9);
+    assert(docond2!ulong(10,5,3)  == 9);
+
+    assert(docond3!ubyte(10,5,3)  == 11);
+    assert(docond3!ushort(10,5,3) == 11);
+    assert(docond3!uint(10,5,3)   == 11);
+    assert(docond3!ulong(10,5,3)  == 11);
+
+    assert(docond4!ubyte(10,5,3)  == 10);
+    assert(docond4!ushort(10,5,3) == 10);
+    assert(docond4!uint(10,5,3)   == 10);
+    assert(docond4!ulong(10,5,3)  == 10);
+}
+
+////////////////////////////////////////////////////////////////////////
+
+struct S8658
+{
+    int[16385] a;
+}
+
+void foo8658(S8658 s)
+{
+    int x;
+}
+
+void test8658()
+{
+    S8658 s;
+    for(int i = 0; i < 1000; i++)
+        foo8658(s);
+}
+
+////////////////////////////////////////////////////////////////////////
+
+uint neg(uint i)
+{
+    return ~i + 1;
+}
+
+uint com(uint i)
+{
+    return -i - 1;
+}
+
+float com(float i)
+{
+    return -i - 1;
+}
+
+uint com2(uint i)
+{
+    return -(i + 1);
+}
+
+void testnegcom()
+{
+    assert(neg(3) == -3);
+    assert(com(3) == -4);
+    assert(com(3.0f) == -4.0f);
+    assert(com2(3) == -4);
+}
+
+////////////////////////////////////////////////////////////////////////
+
+int oror1(char c)
+{
+    return ((((((((((cast(int) c <= 32 || cast(int) c == 46) || cast(int) c == 44)
+		 || cast(int) c == 58) || cast(int) c == 59) || cast(int) c == 60)
+	      || cast(int) c == 62) || cast(int) c == 34) || cast(int) c == 92)
+	   || cast(int) c == 39) != 0);
+}
+
+int oror2(char c)
+{
+    return ((((((((((c <= 32 || c == 46) || c == 44)
+		 || c == 58) || c == 59) || c == 60)
+	         || c == 62) || c == 34) || c == 92)
+	         || c == 39) != 0);
+}
+
+void testoror()
+{
+    assert(oror1(0) == 1);
+    assert(oror1(32) == 1);
+    assert(oror1(46) == 1);
+    assert(oror1(44) == 1);
+    assert(oror1(58) == 1);
+    assert(oror1(59) == 1);
+    assert(oror1(60) == 1);
+    assert(oror1(62) == 1);
+    assert(oror1(34) == 1);
+    assert(oror1(92) == 1);
+    assert(oror1(39) == 1);
+    assert(oror1(33) == 0);
+    assert(oror1(61) == 0);
+    assert(oror1(93) == 0);
+    assert(oror1(255) == 0);
+
+    assert(oror2(0) == 1);
+    assert(oror2(32) == 1);
+    assert(oror2(46) == 1);
+    assert(oror2(44) == 1);
+    assert(oror2(58) == 1);
+    assert(oror2(59) == 1);
+    assert(oror2(60) == 1);
+    assert(oror2(62) == 1);
+    assert(oror2(34) == 1);
+    assert(oror2(92) == 1);
+    assert(oror2(39) == 1);
+    assert(oror2(33) == 0);
+    assert(oror2(61) == 0);
+    assert(oror2(93) == 0);
+    assert(oror2(255) == 0);
+}
+
+////////////////////////////////////////////////////////////////////////
+
+bool bt1(int p, int a, int b)
+{
+    return p && ((1 << b) & a);
+}
+
+bool bt2(int p, long a, long b)
+{
+    return p && ((1L << b) & a);
+}
+
+void testbt()
+{
+    assert(bt1(1,7,2) == 1);
+    assert(bt1(1,7,3) == 0);
+
+    assert(bt2(1,0x7_0000_0000,2+32) == 1);
+    assert(bt2(1,0x7_0000_0000,3+32) == 0);
+}
+
+////////////////////////////////////////////////////////////////////////
+
+int andand1(int c)
+{
+    return (c > 32 && c != 46 && c != 44
+		   && c != 58 && c != 59
+		   && c != 60 && c != 62
+                   && c != 34 && c != 92
+	           && c != 39) != 0;
+}
+
+bool andand2(long c)
+{
+    return (c > 32 && c != 46 && c != 44
+		   && c != 58 && c != 59
+		   && c != 60 && c != 62
+                   && c != 34 && c != 92
+	           && c != 39) != 0;
+}
+
+int foox3() { return 1; }
+
+int andand3(uint op)
+{
+    if (foox3() &&
+	op != 7 &&
+	op != 3 &&
+	op != 18 &&
+	op != 30 &&
+	foox3())
+	return 3;
+    return 4;
+}
+
+
+void testandand()
+{
+    assert(andand1(0) == 0);
+    assert(andand1(32) == 0);
+    assert(andand1(46) == 0);
+    assert(andand1(44) == 0);
+    assert(andand1(58) == 0);
+    assert(andand1(59) == 0);
+    assert(andand1(60) == 0);
+    assert(andand1(62) == 0);
+    assert(andand1(34) == 0);
+    assert(andand1(92) == 0);
+    assert(andand1(39) == 0);
+    assert(andand1(33) == 1);
+    assert(andand1(61) == 1);
+    assert(andand1(93) == 1);
+    assert(andand1(255) == 1);
+
+    assert(andand2(0) == false);
+    assert(andand2(32) == false);
+    assert(andand2(46) == false);
+    assert(andand2(44) == false);
+    assert(andand2(58) == false);
+    assert(andand2(59) == false);
+    assert(andand2(60) == false);
+    assert(andand2(62) == false);
+    assert(andand2(34) == false);
+    assert(andand2(92) == false);
+    assert(andand2(39) == false);
+    assert(andand2(33) == true);
+    assert(andand2(61) == true);
+    assert(andand2(93) == true);
+    assert(andand2(255) == true);
+
+    assert(andand3(6) == 3);
+    assert(andand3(30) == 4);
+}
+
+////////////////////////////////////////////////////////////////////////
+
+bool bittest11508(char c)
+{
+    return c=='_' || c=='-' || c=='+' || c=='.';
+}
+
+void testbittest()
+{
+    assert(bittest11508('_'));
+}
+
+////////////////////////////////////////////////////////////////////////
+
+uint or1(ubyte x)
+{
+    return x | (x<<8) | (x<<16) | (x<<24) | (x * 3);
+}
+
+void testor_combine()
+{
+    printf("%x\n", or1(1));
+    assert(or1(5) == 5 * (0x1010101 | 3));
+}
+
+////////////////////////////////////////////////////////////////////////
+
+
+int shrshl(int i) {
+  return ((i+1)>>1)<<1;
+}
+
+void testshrshl()
+{
+    assert(shrshl(6) == 6);
+    assert(shrshl(7) == 8);
+}
+
+////////////////////////////////////////////////////////////////////////
+
+struct S1 
+{ 
+    cdouble val; 
+}
+
+void formatTest(S1 s, double re, double im)
+{
+    assert(s.val.re == re);
+    assert(s.val.im == im);
+}
+
+void test10639()
+{
+    S1 s = S1(3+2.25i);
+    formatTest(s, 3, 2.25);
+}
+
+////////////////////////////////////////////////////////////////////////
+
+bool bt10715(in uint[] ary, size_t bitnum)
+{
+    return !!(ary[bitnum >> 5] & 1 << (bitnum & 31)); // uses bt
+}
+
+bool neg_bt10715(in uint[] ary, size_t bitnum)
+{
+    return !(ary[bitnum >> 5] & 1 << (bitnum & 31)); // does not use bt
+}
+
+void test10715()
+{
+    static uint[2]  a1 = [0x1001_1100, 0x0220_0012];
+
+    if ( bt10715(a1,30)) assert(0);
+    if (!bt10715(a1,8))  assert(0);
+    if ( bt10715(a1,30+32)) assert(0);
+    if (!bt10715(a1,1+32))  assert(0);
+
+    if (!neg_bt10715(a1,30)) assert(0);
+    if ( neg_bt10715(a1,8))  assert(0);
+    if (!neg_bt10715(a1,30+32)) assert(0);
+    if ( neg_bt10715(a1,1+32))  assert(0);
+}
+
+////////////////////////////////////////////////////////////////////////
+
+int foo10678(char[5] txt)
+{
+    return txt[0] + txt[1] + txt[4];
+}
+
+void test10678()
+{
+    char[5] hello = void;
+    hello[0] = 8;
+    hello[1] = 9;
+    hello[4] = 10;
+    int i = foo10678(hello);
+    assert(i == 27);
+}
+
+////////////////////////////////////////////////////////////////////////
+
+struct S12051
+{
+    this(char c)
+    {
+        assert(c == 'P' || c == 'M');
+    }
+}
+
+void test12051()
+{
+    auto ip = ["abc"];
+    foreach (i, s; ip)
+    {
+        S12051(i < ip.length ? 'P' : 'M');
+    }
+}
+
+////////////////////////////////////////////////////////////////////////
+
+void bug7565( double x) { assert(x == 3); }
+
+void test7565()
+{
+   double y = 3;
+   bug7565( y++ );
+   assert(y == 4);
+}
+
+////////////////////////////////////////////////////////////////////////
+
+int bug8525(int[] devt)
+{
+    return devt[$ - 1];
+}
+
+
+////////////////////////////////////////////////////////////////////////
  
 int main()
 {
@@ -273,6 +1101,24 @@ int main()
     testarrayinit();
     testU();
     testulldiv();
+    testbittest();
+    test8658();
+    testfastudiv();
+    testfastdiv();
+    test12051();
+    testdocond();
+    testnegcom();
+    test11565();
+    testoror();
+    testbt();
+    test12095(0);
+    testandand();
+    testor_combine();
+    testshrshl();
+    test10639();
+    test10715();
+    test10678();
+    test7565();
     printf("Success\n");
     return 0;
 }

@@ -4,8 +4,7 @@
 // http://www.digitalmars.com
 /*
  * This source file is made available for personal use
- * only. The license is in /dmd/src/dmd/backendlicense.txt
- * or /dm/src/dmd/backendlicense.txt
+ * only. The license is in backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
@@ -641,25 +640,25 @@ PTRNTAB2  aptb2MOVS[] = /* MOVS */ {
         { ASM_END }
 };
 PTRNTAB2  aptb2MOVSX[] = /* MOVSX */ {
-        { 0x0fbe,       _r|_16_bit,                     _r16,   _rm8 },
-        { 0x0fbe,       _r|_32_bit,                     _r32,   _rm8 },
-#if 1
+        { 0x0fbe,       _r|_16_bit,             _r16,   _rm8 },
+        { 0x0fbe,       _r|_32_bit,             _r32,   _rm8 },
+        { 0x0fbe,       _r|_64_bit,             _r64,   _rm8 },  // TODO: REX_W override is implicit
         { 0x0fbf,       _r|_16_bit,             _r16,   _rm16 },
         { 0x0fbf,       _r|_32_bit,             _r32,   _rm16 },
-#else
-        { 0x0fbf,       _r,                     _r32,   _rm16 },
-#endif
+        { 0x0fbf,       _r|_64_bit,             _r64,   _rm16 }, // TODO: REX_W override is implicit
+        { ASM_END }
+};
+PTRNTAB2  aptb2MOVSXD[] = /* MOVSXD */ {
+        { 0x63,         _r|_64_bit,             _r64,   _rm32 }, // TODO: REX_W override is implicit
         { ASM_END }
 };
 PTRNTAB2  aptb2MOVZX[] = /* MOVZX */ {
-        { 0x0fb6,       _r|_16_bit,                     _r16,   _rm8 },
-        { 0x0fb6,       _r|_32_bit,                     _r32,   _rm8 },
-#if 1
+        { 0x0fb6,       _r|_16_bit,             _r16,   _rm8 },
+        { 0x0fb6,       _r|_32_bit,             _r32,   _rm8 },
+        { 0x0fb6,       _r|_64_bit,             _r64,   _rm8 },  // TODO: REX_W override is implicit
         { 0x0fb7,       _r|_16_bit,             _r16,   _rm16 },
         { 0x0fb7,       _r|_32_bit,             _r32,   _rm16 },
-#else
-        { 0x0fb7,       _r,                     _r32,   _rm16 },
-#endif
+        { 0x0fb7,       _r|_64_bit,             _r64,   _rm16 }, // TODO: REX_W override is implicit
         { ASM_END }
 };
 PTRNTAB2  aptb2MUL[] = /* MUL */ {
@@ -4652,6 +4651,42 @@ PTRNTAB3 aptb3VFMSUB231SS[] = /* VFMSUB231SS */ {
         { ASM_END },
 };
 
+/* ======================= SHA ======================= */
+
+PTRNTAB3 aptb3SHA1RNDS4[] = /* SHA1RNDS4 */ {
+        { 0x0F3ACC, _ib, _xmm, _xmm_m128, _imm8 },
+        { ASM_END },
+};
+
+PTRNTAB2 aptb2SHA1NEXTE[] = /* SHA1NEXTE */ {
+        { 0x0F38C8, _r, _xmm, _xmm_m128 },
+        { ASM_END }
+};
+
+PTRNTAB2 aptb2SHA1MSG1[] = /* SHA1MSG1 */ {
+        { 0x0F38C9, _r, _xmm, _xmm_m128 },
+        { ASM_END }
+};
+
+PTRNTAB2 aptb2SHA1MSG2[] = /* SHA1MSG2 */ {
+        { 0x0F38CA, _r, _xmm, _xmm_m128 },
+        { ASM_END }
+};
+
+PTRNTAB2 aptb2SHA256RNDS2[] = /* SHA256RNDS2 */ {
+        { 0x0F38CB, _r, _xmm, _xmm_m128 },
+        { ASM_END }
+};
+
+PTRNTAB2 aptb2SHA256MSG1[] = /* SHA256MSG1 */ {
+        { 0x0F38CC, _r, _xmm, _xmm_m128 },
+        { ASM_END }
+};
+
+PTRNTAB2 aptb2SHA256MSG2[] = /* SHA256MSG2 */ {
+        { 0x0F38CD, _r, _xmm, _xmm_m128 },
+        { ASM_END }
+};
 //////////////////////////////////////////////////////////////////////
 
 
@@ -5064,6 +5099,7 @@ PTRNTAB3 aptb3VFMSUB231SS[] = /* VFMSUB231SS */ {
         X("movss",          2,              (P) aptb2MOVSS )                \
         X("movsw",          0,              aptb0MOVSW )                    \
         X("movsx",          2,              (P) aptb2MOVSX )                \
+        X("movsxd",         2,              (P) aptb2MOVSXD )               \
         X("movupd",         2,              (P) aptb2MOVUPD )               \
         X("movups",         2,              (P) aptb2MOVUPS )               \
         X("movzx",          2,              (P) aptb2MOVZX )                \
@@ -5313,6 +5349,13 @@ PTRNTAB3 aptb3VFMSUB231SS[] = /* VFMSUB231SS */ {
         X("setz",           1,              (P) aptb1SETZ )                 \
         X("sfence",         0,              aptb0SFENCE)                    \
         X("sgdt",           1,              (P) aptb1SGDT )                 \
+        X("sha1msg1",       2,              (P) aptb2SHA1MSG1 )             \
+        X("sha1msg2",       2,              (P) aptb2SHA1MSG2 )             \
+        X("sha1nexte",      2,              (P) aptb2SHA1NEXTE )            \
+        X("sha1rnds4",      3,              (P) aptb3SHA1RNDS4 )            \
+        X("sha256msg1",     2,              (P) aptb2SHA256MSG1 )           \
+        X("sha256msg2",     2,              (P) aptb2SHA256MSG2 )           \
+        X("sha256rnds2",    2,              (P) aptb2SHA256RNDS2 )          \
         X("shl",            ITshift | 2,    (P) aptb2SHL )                  \
         X("shld",           3,              (P) aptb3SHLD )                 \
         X("shr",            ITshift | 2,    (P) aptb2SHR )                  \

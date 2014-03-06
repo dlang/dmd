@@ -1,5 +1,5 @@
 // PERMUTE_ARGS:
-// EXECUTE_ARGS: runnable/extra-files/testzip.zip test_results/runnable/testzip-out.zip
+// EXECUTE_ARGS: runnable/extra-files/testzip.zip ${RESULTS_DIR}/runnable/testzip-out.zip
 // POST_SCRIPT: runnable/extra-files/testzip-postscript.sh
 
 import std.c.stdio;
@@ -53,7 +53,6 @@ int main(string[] args)
     am.name = "foo.bar";
     //am.extra = cast(ubyte[])"ExTrA";
     am.expandedData = cast(ubyte[])"We all live in a yellow submarine, a yellow submarine";
-    am.expandedSize = to!uint(am.expandedData.length);
     zr.addMember(am);
     void[] data2 = zr.build();
     std.file.write(outzipname, cast(byte[])data2);

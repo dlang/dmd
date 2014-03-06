@@ -1,7 +1,7 @@
 
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2013 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -18,7 +18,9 @@
 
 #include "arraytypes.h"
 
-void json_generate(Modules *);
+struct OutBuffer;
+
+void json_generate(OutBuffer *, Modules *);
 
 #endif /* DMD_JSON_H */
 

@@ -1,5 +1,4 @@
 // Compiler implementation of the D programming language
-// utf.h
 // Copyright (c) 2003-2010 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
@@ -21,10 +20,8 @@ typedef unsigned short  utf16_t;
 typedef unsigned int    utf32_t;
 typedef utf32_t         dchar_t;
 
-namespace Unicode
-{
-
-static utf16_t const ALPHA_TABLE[][2] =
+#define ALPHA_TABLE_LENGTH 245
+static utf16_t const ALPHA_TABLE[ALPHA_TABLE_LENGTH][2] =
 {
     { 0x00AA, 0x00AA }, { 0x00B5, 0x00B5 }, { 0x00B7, 0x00B7 }, { 0x00BA, 0x00BA },
     { 0x00C0, 0x00D6 }, { 0x00D8, 0x00F6 }, { 0x00F8, 0x01F5 }, { 0x01FA, 0x0217 },
@@ -67,7 +64,7 @@ static utf16_t const ALPHA_TABLE[][2] =
     { 0x0CE0, 0x0CE1 }, { 0x0CE6, 0x0CEF }, { 0x0D02, 0x0D03 }, { 0x0D05, 0x0D0C },
     { 0x0D0E, 0x0D10 }, { 0x0D12, 0x0D28 }, { 0x0D2A, 0x0D39 }, { 0x0D3E, 0x0D43 },
     { 0x0D46, 0x0D48 }, { 0x0D4A, 0x0D4D }, { 0x0D60, 0x0D61 }, { 0x0D66, 0x0D6F },
-    { 0x0E01, 0x0E3A }, { 0x0E40, 0x0E5B }, /* { 0x0E50, 0x0E59 }, */ { 0x0E81, 0x0E82 },
+    { 0x0E01, 0x0E3A }, { 0x0E40, 0x0E5B }, { 0x0E81, 0x0E82 },
     { 0x0E84, 0x0E84 }, { 0x0E87, 0x0E88 }, { 0x0E8A, 0x0E8A }, { 0x0E8D, 0x0E8D },
     { 0x0E94, 0x0E97 }, { 0x0E99, 0x0E9F }, { 0x0EA1, 0x0EA3 }, { 0x0EA5, 0x0EA5 },
     { 0x0EA7, 0x0EA7 }, { 0x0EAA, 0x0EAB }, { 0x0EAD, 0x0EAE }, { 0x0EB0, 0x0EB9 },
@@ -102,8 +99,6 @@ extern char const UTF16_DECODE_TRUNCATED_SEQUENCE[];
 extern char const UTF16_DECODE_INVALID_SURROGATE[];
 extern char const UTF16_DECODE_UNPAIRED_SURROGATE[];
 extern char const UTF16_DECODE_INVALID_CODE_POINT[];
-
-}   // namespace Unicode
 
 /// \return true if \a c is a valid, non-private UTF-32 code point
 bool utf_isValidDchar(dchar_t c);

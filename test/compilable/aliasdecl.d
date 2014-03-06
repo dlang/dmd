@@ -24,12 +24,12 @@ void main()
     static assert(is(Y4 == void delegate() const));
     static assert(is(Y5.Type == int));
 
-    struct S
+ /+ struct S
     {
         int value;
         alias this = value;
     }
     auto s = S(10);
     int n = s;
-    assert(n == 10);
+    assert(n == 10); +/
 }

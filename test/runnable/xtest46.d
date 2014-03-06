@@ -890,6 +890,14 @@ void test45()
 
 /***************************************************/
 
+void text10682()
+{
+    ulong x = 1;
+    ulong y = 2 ^^ x;
+}
+
+/***************************************************/
+
 struct Test46
 {
  int foo;
@@ -943,6 +951,39 @@ sort!(delegate bool(string a, string b) { return freqs[a] > freqs[b]; })(words);
 void test48()
 {
 }
+
+/***************************************************/
+// 6408
+
+static assert(!is(typeof(string[0..1].init)));
+static assert(is(typeof(string[].init) == string[]));
+static assert(is(typeof(string[][].init) == string[][]));
+static assert(is(typeof(string[][][].init) == string[][][]));
+
+static assert(is(typeof(string[1].init) == string[1]));
+static assert(is(typeof(string[1][1].init) == string[1][1]));
+static assert(is(typeof(string[1][1][1].init) == string[1][1][1]));
+
+static assert(is(typeof(string[string].init) == string[string]));
+static assert(is(typeof(string[string][string].init) == string[string][string]));
+static assert(is(typeof(string[string][string][string].init) == string[string][string][string]));
+
+template TT6408(T...) { alias T TT6408; }
+static assert(is(typeof(TT6408!(int, int)[].init) == TT6408!(int, int)));
+static assert(is(typeof(TT6408!(int, int)[0..$].init) == TT6408!(int, int)));
+static assert(is(typeof(TT6408!(int, int)[$-1].init) == int));
+
+/***************************************************/
+// 9409
+
+template TT9409(T...) { alias T TT9409; }
+
+template idxTypes9409(Prefix...)
+{
+    TT9409!((Prefix[$-1])) idxTypes9409;
+}
+
+alias idxTypes9409!(int) Types9409;
 
 /***************************************************/
 
@@ -1123,6 +1164,14 @@ pure immutable(T)[] fooPT(T)(immutable(T)[] x, immutable(T)[] y){
 void test61()
 {
   writeln(fooPT("p", "c"));
+}
+
+/***************************************************/
+
+void test9577()
+{
+    static int function(int)[] foo = [x => x];
+    foo[0](0);
 }
 
 /***************************************************/
@@ -1439,6 +1488,15 @@ void test74()
     C74 c = null;
     a = b;
     a = c;
+}
+
+/***************************************************/
+
+void test9212()
+{
+    int[int] aa;
+    foreach (const key, const val; aa) {}
+    foreach (size_t key, size_t val; aa) {}
 }
 
 /***************************************************/
@@ -1840,6 +1898,20 @@ void test93()
 
 /***************************************************/
 
+
+extern(C++) class C1687
+{
+    void func() {}
+}
+
+void test1687()
+{
+    auto c = new C1687();
+    assert(c.__vptr[0] == (&c.func).funcptr);
+}
+
+/***************************************************/
+
 struct Foo94
 {
     int x, y;
@@ -1963,21 +2035,36 @@ void test99()
 }
 
 /***************************************************/
+// 5081
 
 void test5081()
 {
-    static pure immutable(int[]) x()
+    static pure immutable(int[]) x1()
+    {
+        int[] a = new int[](10);
+        return a;
+    }
+    static pure immutable(int[]) x2(int len)
+    {
+        int[] a = new int[](len);
+        return a;
+    }
+    static pure immutable(int[]) x3(immutable(int[]) org)
+    {
+        int[] a = new int[](org.length);
+        return a;
+    }
+
+    immutable a1 = x1();
+    immutable a2 = x2(10);
+    immutable a3 = x3([1,2]);
+
+    static pure int[] y1()
     {
         return new int[](10);
     }
 
-    static pure int[] y()
-    {
-        return new int[](10);
-    }
-
-    immutable a = x();
-    immutable b = y();
+    immutable b1 = y1();
 }
 
 /***************************************************/
@@ -2043,6 +2130,25 @@ void test103()
 
 /***************************************************/
 
+class C11616
+{
+    virtual void a() {}
+    virtual { void b() {} }
+virtual:
+    final void c() {}
+final:
+    virtual void d() {}
+}
+
+class D11616 : C11616
+{
+    final override void a() {}
+    final override void b() {}
+    final override void d() {}
+}
+
+/***************************************************/
+
 int foo104(int x)
 {
     int* p = &(x += 1);
@@ -2096,14 +2202,6 @@ void test107()
 
 /***************************************************/
 
-void bug4072(T)(T x)
-   if (is(typeof(bug4072(x))))
-{}
-
-static assert(!is(typeof(bug4072(7))));
-
-/***************************************************/
-
 class A109 {}
 
 void test109()
@@ -2119,14 +2217,24 @@ void test109()
 
 template Boo(T) {}
 struct Foo110(T, alias V = Boo!T)
-{ pragma(msg, V.stringof);
-  const s = V.stringof;
+{
+    pragma(msg, V.stringof);
+    static const s = V.stringof;
 }
 alias Foo110!double B110;
 alias Foo110!int A110;
 
-static assert(B110.s == "Boo!(double)");
-static assert(A110.s == "Boo!(int)");
+static assert(B110.s == "Boo!double");
+static assert(A110.s == "Boo!int");
+
+/***************************************************/
+
+int test11247()
+{
+    static assert(is(byte[typeof(int.init).sizeof] == byte[4]));
+    static assert(is(byte[typeof(return).sizeof] == byte[4]));
+    return 0;
+}
 
 /***************************************************/
 
@@ -2140,6 +2248,29 @@ void test111()
     auto k5 = true ? [[[1,2]]] : [[[]]];
     auto k6 = true ? [] : [[[]]];
     static assert(!is(typeof(true ? [[[]]] : [[1,2]]))); // Must fail
+}
+
+/***************************************************/
+// 658
+
+void test658()
+{
+    struct S { int i; }
+    class C { int i; }
+
+    S s;
+    S* sp = &s;
+    with (sp) i = 42;
+    assert(s.i == 42);
+    with (&s) i = 43;
+    assert(s.i == 43);
+
+    C c = new C;
+    C* cp = &c;
+    with (cp) i = 42;
+    assert(c.i == 42);
+    with (&c) i = 43;
+    assert(c.i == 43);
 }
 
 /***************************************************/
@@ -2391,6 +2522,8 @@ struct Bar124 {
 void test124() {
     Foo124[string] stuff;
     stuff["foo"] = Foo124.init;
+    assert(stuff["foo"].z == 3);
+    stuff["foo"] = Foo124.init;
     assert(stuff["foo"].z == 2);
 
     Bar124[string] stuff2;
@@ -2440,6 +2573,14 @@ void test796()
         assert(s);
     } catch (Error) {
     }
+}
+
+/***************************************************/
+
+void test7077()
+{
+    if(0) mixin("auto x = 2;");
+    auto x = 1;
 }
 
 /***************************************************/
@@ -2557,6 +2698,69 @@ void test129()
     void delegate (int) nothrow dg = &foo.add!(int);
     dg(7);
     assert(foo.value == 20);
+}
+
+/***************************************************/
+// 6169
+
+auto ctfefunc6169() { return ";"; }
+enum ctfefptr6169 = &ctfefunc6169;
+int ctfefunc6169a() { return 1; }
+template x6169(string c) { alias int x6169; }
+template TT6169(T...) { alias T TT6169; }
+@property ctfeprop6169() { return "g"; }
+
+void test6169() pure @safe
+{
+    enum a = ctfefunc6169();
+    static b = ctfefunc6169();
+    x6169!(ctfefunc6169()) tt;
+    mixin(ctfefunc6169());
+    static if(ctfefunc6169()) {}
+    pragma(msg, ctfefunc6169());
+    enum xx
+    {
+        k = 0,
+        j = ctfefunc6169a()
+    }
+    auto g = mixin('"' ~ ctfefunc6169() ~ '"');
+    //auto h = import("testx.d" ~ false ? ctfefunc() : "");
+    alias TT6169!(int, int)[ctfefunc6169a()..ctfefunc6169a()] i;
+    alias TT6169!(int, int)[ctfefunc6169a()] j;
+    int[ctfefunc6169a()+1] k;
+    alias int[ctfefunc6169a()] l;
+    switch(1)
+    {
+    //case ctfefunc6169a(): // Can't do this because of case variables
+    case ctfefunc6169a()+1:
+        ..
+    case ctfefunc6169a()+2:
+    default:
+        break;
+    }
+    static assert(ctfefunc6169a());
+    void fun(int i : ctfefunc6169a() = ctfefunc6169a(), alias j)() if (ctfefunc6169a()) {}
+    fun!(ctfefunc6169a(), ctfefunc6169())();
+    enum z = ctfefptr6169();
+
+    auto p = mixin(ctfeprop6169);
+}
+
+/***************************************************/
+// 10506
+
+void impureFunc10506() {}
+string join10506(RoR)(RoR ror)
+{
+    impureFunc10506();
+    return ror[0] ~ ror[1];
+}
+
+void test10506() pure
+{
+    void foobar() {}
+
+    mixin(["foo", "bar"].join10506()~";");
 }
 
 /***************************************************/
@@ -2829,6 +3033,12 @@ int test137(){
 
 /***************************************************/
 
+// 9366
+static assert(!is(typeof((void[]).init ~ cast(void)0)));
+static assert(!is(typeof(cast(void)0 ~ (void[]).init)));
+
+/***************************************************/
+
 struct Size138
 {
     union
@@ -2974,7 +3184,7 @@ void test141()
 struct S142
 {
     int v;
-    this(int n) { v = n; }
+    this(int n) pure { v = n; }
     const bool opCast(T:bool)() { return true; }
 }
 
@@ -3224,6 +3434,84 @@ void cantthrow() nothrow
 }
 
 /***************************************************/
+// 2356
+
+void test2356()
+{
+    int[3] x = [1,2,3];
+    printf("x[] = [%d %d %d]\n", x[0], x[1], x[2]);
+    assert(x[0] == 1 && x[1] == 2 && x[2] == 3);
+
+    struct S
+    {
+        static int pblit;
+        int n;
+        this(this) { ++pblit; printf("postblit: %d\n", n); }
+    }
+    S s2 = S(2);
+    S[3] s = [S(1), s2, S(3)];
+    assert(s[0].n == 1 && s[1].n == 2 && s[2].n == 3);
+    printf("s[].n = [%d %d %d]\n", s[0].n, s[1].n, s[2].n);
+    assert(S.pblit == 1);
+
+    ubyte[1024] v;
+    v = typeof(v).init;
+    printf("v[] = [%d %d %d, ..., %d]\n", v[0], v[1], v[2], v[$-1]);
+    foreach (ref a; v) assert(a == 0);
+
+    int n = 5;
+    int[3] y = [n, n, n];
+    printf("y[] = [%d %d %d]\n", y[0], y[1], y[2]);
+    assert(y[0] == 5 && y[1] == 5 && y[2] == 5);
+
+    S[3] z = [s2, s2, s2];
+    assert(z[0].n == 2 && z[1].n == 2 && z[2].n == 2);
+    printf("z[].n = [%d %d %d]\n", z[0].n, z[1].n, z[2].n);
+    assert(S.pblit == 1 + 3);
+
+    int[0] nsa0 = [];
+    void[0] vsa0 = [];
+
+    void foo(T)(T){}
+    foo(vsa0);
+
+    ref int[0] bar() { static int[1] sa; return *cast(int[0]*)&sa; }
+    bar() = [];
+}
+
+/***************************************************/
+// 11238
+
+void test11238()
+{
+    int[2] m;
+    m[0] = 4,m[1] = 6;
+    //printf("%d,%d\n", m[0], m[1]);
+    assert(m[0] == 4 && m[1] == 6);
+
+    m = [m[1], m[0]];   // swap
+    assert(m[0] == 6 && m[1] == 4);
+    //printf("%d,%d\n", m[0], m[1]);
+
+    m = [m[1], m[0]];   // swap
+    //printf("%d,%d\n", m[0], m[1]);
+    assert(m[0] == 4 && m[1] == 6);
+}
+
+/***************************************************/
+
+void test11805()
+{
+    int i;
+
+    i = 47;
+    i = 1 && i;
+    assert(i == 1);
+    i = 0 || i;
+    assert(i == 1);
+}
+
+/***************************************************/
 
 class A2540
 {
@@ -3421,6 +3709,26 @@ void test154() {
 }
 
 /***************************************************/
+
+void test6545()
+{
+    static int[] func()
+    {
+        auto a = [1, 2, 3];
+        auto b = [2, 3, 4];
+        auto c = [3, 4, 5];
+
+        a[] = b[] + c[];
+
+        return a;
+    }
+
+    auto a = func();
+    enum b = func();
+    assert(a == b);
+}
+
+/***************************************************/
 // 3147
 
 
@@ -3437,6 +3745,29 @@ void test155()
     b = 1;
     b = i % b;
     b = b >> i;
+}
+
+/***************************************************/
+// 2486
+
+void test2486()
+{
+    void foo(ref int[] arr) {}
+
+    int[] arr = [1,2,3];
+    foo(arr);   //OK
+    static assert(!__traits(compiles, foo(arr[1..2]))); // should be NG
+
+    struct S
+    {
+        int[] a;
+        auto ref opSlice(){ return a[]; }  // line 4
+    }
+    S s;
+    s[];
+    // opSlice should return rvalue
+    static assert(is(typeof(&S.opSlice) == int[] function()));
+    static assert(!__traits(compiles, foo(s[])));       // should be NG
 }
 
 /***************************************************/
@@ -3502,6 +3833,22 @@ void test156()
     assert(ms.g() == 1);
     auto cs = const(S156)();
     assert(cs.g() == 2);
+}
+
+/***************************************************/
+
+void test10724()
+{
+    const(char)* s = "abc"[0..$-1];
+    assert(s[2] == '\0');
+}
+
+/***************************************************/
+
+void test6708(const ref int y)
+{
+    immutable int x;
+    test6708(x);
 }
 
 /***************************************************/
@@ -3624,6 +3971,14 @@ void test4596()
 {
     auto n = new NoGo4596;
     n.fun();
+}
+
+/***************************************************/
+
+void test10927()
+{
+    static assert( (1+2i) ^^ 3 == -11 - 2i );
+    auto a = (1+2i) ^^ 3;
 }
 
 /***************************************************/
@@ -3901,27 +4256,6 @@ void test6293() {
 }
 
 /***************************************************/
-// 2774
-
-int foo2774(int n){ return 0; }
-static assert(foo2774.mangleof == "_D7xtest467foo2774FiZi");
-
-class C2774
-{
-    int foo2774(){ return 0; }
-}
-static assert(C2774.foo2774.mangleof == "_D7xtest465C27747foo2774MFZi");
-
-template TFoo2774(T){}
-static assert(TFoo2774!int.mangleof == "7xtest4615__T8TFoo2774TiZ");
-
-void test2774()
-{
-    int foo2774(int n){ return 0; }
-    static assert(foo2774.mangleof == "_D7xtest468test2774FZv7foo2774MFiZi");
-}
-
-/***************************************************/
 // 3733
 
 class C3733
@@ -4054,6 +4388,80 @@ void test6473()
 }
 
 /***************************************************/
+
+uint rol11417(uint n)(in uint x)
+{
+    return x << n | x >> 32 - n;
+}
+
+uint ror11417(uint n)(in uint x)
+{
+    return x >> n | x << 32 - n;
+}
+
+void test11417()
+{
+    assert(rol11417!1(0x8000_0000) == 0x1);
+    assert(ror11417!1(0x1) == 0x8000_0000);
+}
+
+/***************************************************/
+
+void test6578()
+{
+    static struct Foo
+    {
+        this(int x) pure {}
+    }
+    auto f1 = new const(Foo)(1);
+    auto f2 = new immutable(Foo)(1);
+    auto f3 = new shared(Foo)(1);
+    auto f4 = const(Foo)(1);
+    auto f5 = immutable(Foo)(1);
+    auto f6 = shared(Foo)(1);
+    static assert(is(typeof(f1) == const(Foo)*));
+    static assert(is(typeof(f2) == immutable(Foo)*));
+    static assert(is(typeof(f3) == shared(Foo)*));
+    static assert(is(typeof(f4) == const(Foo)));
+    static assert(is(typeof(f5) == immutable(Foo)));
+    static assert(is(typeof(f6) == shared(Foo)));
+
+    static struct Bar
+    {
+        this(int x) const pure {}
+    }
+    auto g1 = new const(Bar)(1);
+    auto g2 = new immutable(Bar)(1);
+    auto g3 = new shared(Bar)(1);
+    auto g4 = const(Bar)(1);
+    auto g5 = immutable(Bar)(1);
+    auto g6 = shared(Bar)(1);
+    static assert(is(typeof(g1) == const(Bar)*));
+    static assert(is(typeof(g2) == immutable(Bar)*));
+    static assert(is(typeof(g3) == shared(Bar)*));
+    static assert(is(typeof(g4) == const(Bar)));
+    static assert(is(typeof(g5) == immutable(Bar)));
+    static assert(is(typeof(g6) == shared(Bar)));
+
+    static struct Baz
+    {
+        this()(int x) const pure {}
+    }
+    auto h1 = new const(Baz)(1);
+    auto h2 = new immutable(Baz)(1);
+    auto h3 = new shared(const(Baz))(1);
+    auto h4 = const(Baz)(1);
+    auto h5 = immutable(Baz)(1);
+    auto h6 = shared(const(Baz))(1);
+    static assert(is(typeof(h1) == const(Baz)*));
+    static assert(is(typeof(h2) == immutable(Baz)*));
+    static assert(is(typeof(h3) == shared(const(Baz))*));
+    static assert(is(typeof(h4) == const(Baz)));
+    static assert(is(typeof(h5) == immutable(Baz)));
+    static assert(is(typeof(h6) == shared(const(Baz))));
+}
+
+/***************************************************/
 // 6630
 
 void test6630()
@@ -4078,6 +4486,19 @@ void test6630()
     fun(a);
     assert(a !is null);
     assert(a.b !is null);
+}
+
+/***************************************************/
+
+int i199 = 1;
+
+void test199()
+{
+    label:
+    {
+        int i199 = 2;
+    }
+    assert(i199 == 1);
 }
 
 /***************************************************/
@@ -4108,6 +4529,25 @@ template Hoge6691()
     }
 }
 alias Hoge6691!() H6691;
+
+/***************************************************/
+
+void test10626()
+{
+    double[2] v, x;
+    struct Y { double u; }
+    double z;
+    Y y;
+    double[2] r = v[] * x[0];
+    //double[2] s = v[] * z++;
+    //double[2] t = v[] * z--;
+    double[2] a = v[] * ++z;
+    double[2] b = v[] * --z;
+    double[2] c = v[] * y.u;
+    double[2] d = v[] * (x[] = 3, x[0]);
+    double[2] e = v[] * (v[] ~ z)[0];
+}
+
 
 /***************************************************/
 // 2953
@@ -4158,25 +4598,78 @@ static assert(typeof(cfunc6596).stringof == "extern (C) int()");
 
 interface Timer
 {
-    final int run() { printf("Timer.run()\n"); return 1; };
+    final int run() { printf("Timer.run()\n"); fun(); return 1; };
+    int fun();
 }
 
 interface Application
 {
-    final int run() { printf("Application.run()\n"); return 2; };
+    final int run() { printf("Application.run()\n"); fun(); return 2; };
+    int fun();
 }
 
 class TimedApp : Timer, Application
 {
+    int funCalls;
+    override int fun()
+    {
+        printf("TimedApp.fun()\n");
+        funCalls++;
+        return 2;
+    }
+}
+
+class SubTimedApp : TimedApp
+{
+    int subFunCalls;
+
+    override int fun()
+    {
+        printf("SubTimedApp.fun()\n");
+        subFunCalls++;
+        return 1;
+    }
 }
 
 void test4647()
 {
-    auto app = new TimedApp;
-    assert(app.Timer.run() == 1);       // error, no Timer property
+    //Test access to TimedApps base interfaces
+    auto app = new TimedApp();
+    assert((cast(Application)app).run() == 2);
+    assert((cast(Timer)app).run() == 1);
+    assert(app.Timer.run() == 1); // error, no Timer property
     assert(app.Application.run() == 2); // error, no Application property
     assert(app.run() == 1);             // This would call Timer.run() if the two calls
                                         // above were commented out
+    assert(app.funCalls == 5);
+
+    assert(app.TimedApp.fun() == 2);
+    assert(app.funCalls == 6);
+
+    //Test direct access to SubTimedApp interfaces
+    auto app2 = new SubTimedApp();
+    assert((cast(Application)app2).run() == 2);
+    assert((cast(Timer)app2).run() == 1);
+    assert(app2.Application.run() == 2);
+    assert(app2.Timer.run() == 1);
+    assert(app2.funCalls == 0);
+    assert(app2.subFunCalls == 4);
+
+    assert(app2.fun() == 1);
+    assert(app2.SubTimedApp.fun() == 1);
+    assert(app2.funCalls == 0);
+    assert(app2.subFunCalls == 6);
+
+    //Test access to SubTimedApp interfaces via TimedApp
+    auto app3 = new SubTimedApp();
+    (cast(Timer)cast(TimedApp)app3).run();
+    app3.TimedApp.Timer.run();
+    assert((cast(Application)cast(TimedApp)app3).run() == 2);
+    assert((cast(Timer)cast(TimedApp)app3).run() == 1);
+    assert(app3.TimedApp.Application.run() == 2);
+    assert(app3.TimedApp.Timer.run() == 1);
+    assert(app3.funCalls == 0);
+    assert(app3.subFunCalls == 6);
 }
 
 /***************************************************/
@@ -4217,6 +4710,37 @@ void test5696()
         assert(fn(i) == i);
     }
 }
+
+/***************************************************/
+// 5933
+
+int dummyfunc5933();
+alias typeof(dummyfunc5933) FuncType5933;
+
+struct S5933a { auto x() { return 0; } }
+static assert(is(typeof(&S5933a.init.x) == int delegate()));
+
+struct S5933b { auto x() { return 0; } }
+static assert(is(typeof(S5933b.init.x) == FuncType5933));
+
+struct S5933c { auto x() { return 0; } }
+static assert(is(typeof(&S5933c.x) == int function()));
+
+struct S5933d { auto x() { return 0; } }
+static assert(is(typeof(S5933d.x) == FuncType5933));
+
+
+class C5933a { auto x() { return 0; } }
+static assert(is(typeof(&(new C5933b()).x) == int delegate()));
+
+class C5933b { auto x() { return 0; } }
+static assert(is(typeof((new C5933b()).x) == FuncType5933));
+
+class C5933c { auto x() { return 0; } }
+static assert(is(typeof(&C5933c.x) == int function()));
+
+class C5933d { auto x() { return 0; } }
+static assert(is(typeof(C5933d.x) == FuncType5933));
 
 /***************************************************/
 // 6084
@@ -4738,7 +5262,7 @@ void test3091(inout int = 0)
 
 template Id6837(T)
 {
-	alias T Id6837;
+    alias T Id6837;
 }
 static assert(is(Id6837!(shared const int) == shared const int));
 static assert(is(Id6837!(shared inout int) == shared inout int));
@@ -4828,6 +5352,20 @@ void test7150()
 {
     auto a = A7150(5, 5); // Error: template instance constructtest.A.__ctor!(int) error instantiating
     assert(A7150.cnt == 2);
+}
+
+/***************************************************/
+// 7159
+
+alias void delegate()  Void7159;
+
+class HomeController7159 {
+    Void7159 foo() {
+        return cast(Void7159)&HomeController7159.displayDefault;
+    }
+    auto displayDefault() {
+        return 1;
+    }
 }
 
 /***************************************************/
@@ -4928,11 +5466,16 @@ class A158
 class B158 : A158
 {
     override void foo1() { }
-    override void foo2() { }
+    override void foo2() const { }
     override void foo3() { }
     override void foo4() { }
 }
 
+/***************************************************/
+// 9231
+
+class B9231 { void foo() inout pure {} }
+class D9231 : B9231 { override void foo() inout {} }
 
 /***************************************************/
 // 3282
@@ -4950,7 +5493,7 @@ class Derived3282 : Base3282
     {
         return "Derived.f()";
     }
-    override string f() const
+  /*override*/ string f() const
     {
         return "Derived.f() const";
     }
@@ -4976,7 +5519,7 @@ class C7534
 class D7534 : C7534
 {
     override int foo(){ return 2; }
-    override int foo() const { return 3; }
+  /*override*/ int foo() const { return 3; }
     // Error: D.foo multiple overrides of same function
 }
 void test7534()
@@ -5011,7 +5554,7 @@ class V7534
 class W7534 : V7534
 {
     override Y7534 foo(){ return new Y7534(1); }
-    override Y7534 foo() const { return new Y7534(2); }
+  /*override*/ Y7534 foo() const { return new Y7534(2); }
 }
 
 void test7534cov()
@@ -5305,6 +5848,12 @@ void test8064()
 }
 
 /***************************************************/
+// 8220
+
+void foo8220(int){}
+static assert(!__traits(compiles, foo8220(typeof(0)))); // fail
+
+/***************************************************/
 
 void func8105(in ref int x) { }
 
@@ -5375,6 +5924,87 @@ void test8395()
     assert(ms.v == 12);
     const S8395 cs = 7;
     assert(cs.v == 14);
+}
+
+/***************************************************/
+// 5749
+
+void test5749()
+{
+    static struct A
+    {
+        A foo(int x, int i)
+        {
+            //printf("this = %p, %d: i=%d\n", &this, x, i);
+            assert(i == x);
+            return this;
+        }
+        A bar(int x, ref int i)
+        {
+            //printf("this = %p, %d: i=%d\n", &this, x, i);
+            assert(i == x);
+            return this;
+        }
+    }
+
+    static     int inc1(ref int i) { return ++i; }
+    static ref int inc2(ref int i) { return ++i; }
+
+    int i;
+    A a;
+    //printf("&a = %p\n", &a);
+
+    i = 0;  a.foo(1, ++i).foo(2, ++i);          // OK <-- 2 1
+    i = 0;  a.bar(1, ++i).bar(2, ++i);          // OK <-- 2 2
+    i = 0;  a.foo(1, inc1(i)).foo(2, inc1(i));  // OK <-- 2 1
+    i = 0;  a.bar(1, inc2(i)).bar(2, inc2(i));  // OK <-- 2 2
+    //printf("\n");
+
+    A getVal() { static A a; return a; }
+    i = 0;  getVal().foo(1, ++i).foo(2, ++i);           // OK <-- 2 1
+    i = 0;  getVal().bar(1, ++i).bar(2, ++i);           // OK <-- 2 2
+    i = 0;  getVal().foo(1, inc1(i)).foo(2, inc1(i));   // OK <-- 2 1
+    i = 0;  getVal().bar(1, inc2(i)).bar(2, inc2(i));   // OK <-- 2 2
+    //printf("\n");
+
+    ref A getRef() { static A a; return a; }
+    i = 0;  getRef().foo(1, ++i).foo(2, ++i);           // OK <-- 2 1
+    i = 0;  getRef().bar(1, ++i).bar(2, ++i);           // OK <-- 2 2
+    i = 0;  getRef().foo(1, inc1(i)).foo(2, inc1(i));   // OK <-- 2 1
+    i = 0;  getRef().bar(1, inc2(i)).bar(2, inc2(i));   // OK <-- 2 2
+}
+
+/***************************************************/
+// 8396
+
+void test8396()
+{
+    static int g;
+
+    static extern(C) int bar(int a, int b)
+    {
+        //printf("a = %d, b = %d\n", a, b);
+        assert(b - a == 1);
+        return ++g;
+    }
+    static auto getFunc(int n)
+    {
+        assert(++g == n);
+        return &bar;
+    }
+
+    static struct Tuple { int _a, _b; }
+    static Tuple foo(int n)
+    {
+        assert(++g == n);
+        return Tuple(1, 2);
+    }
+
+    g = 0;
+    assert(bar(foo(1).tupleof) == 2);
+
+    g = 0;
+    assert(getFunc(1)(foo(2).tupleof) == 3);
 }
 
 /***************************************************/
@@ -5500,6 +6130,61 @@ void test8108()
 }
 
 /***************************************************/
+// 8360
+
+struct Foo8360
+{
+    int value = 0;
+    int check = 1337;
+
+    this(int value)
+    {
+        assert(0);
+        this.value = value;
+    }
+
+    ~this()
+    {
+        assert(0);
+        assert(check == 1337);
+    }
+
+    string str()
+    {
+        assert(0);
+        return "Foo";
+    }
+}
+
+Foo8360 makeFoo8360()
+{
+    assert(0);
+    return Foo8360(2);
+}
+
+void test8360()
+{
+    size_t length = 0;
+
+    // The message part 'makeFoo().str()' should not be evaluated at all.
+    assert(length < 5, makeFoo8360().str());
+}
+
+/***************************************************/
+// 8361
+
+struct Foo8361
+{
+    string bar = "hello";
+    ~this() {}
+}
+
+void test8361()
+{
+    assert(true, Foo8361().bar);
+}
+
+/***************************************************/
 // 6141 + 8526
 
 void test6141()
@@ -5573,6 +6258,32 @@ void test161()
 }
 
 /***************************************************/
+// 8819
+
+void test8819()
+{
+    void[0] sa0 = (void[0]).init;
+    assert(sa0.ptr !is null); // 7175 - ptr should not be null
+
+    void[1] sa1 = (void[1]).init;
+    assert((cast(ubyte*)sa1.ptr)[0] == 0);
+
+    void[4] sa4 = [cast(ubyte)1,cast(ubyte)2,cast(ubyte)3,cast(ubyte)4];
+    assert((cast(ubyte*)sa4.ptr)[0] == 1);
+    assert((cast(ubyte*)sa4.ptr)[1] == 2);
+    assert((cast(ubyte*)sa4.ptr)[2] == 3);
+    assert((cast(ubyte*)sa4.ptr)[3] == 4);
+
+    auto sa22 = (void[2][2]).init;
+    static assert(sa22.sizeof == ubyte.sizeof * 2 * 2);
+    ubyte[4]* psa22 = cast(ubyte[4]*)sa22.ptr;
+    assert((*psa22)[0] == 0);
+    assert((*psa22)[1] == 0);
+    assert((*psa22)[2] == 0);
+    assert((*psa22)[3] == 0);
+}
+
+/***************************************************/
 // 8897
 
 class C8897
@@ -5589,7 +6300,28 @@ template M8897 ( E ) { }
 void test8917()
 {
     int[3] a;
-    int[3] b = a[] + a[];
+    int[3] a2;
+    int[3] b = a[] + a2[];
+}
+
+/***************************************************/
+// 8945
+
+struct S8945 // or `class`, or `union`
+{
+    struct S0(T) { int i; }
+    struct S1(T) { this(int){} }
+}
+
+void test8945()
+{
+    auto cs0a = const S8945.S0!int();  // ok
+    auto cs0b = const S8945.S0!int(1); // ok
+    auto cs1  = const S8945.S1!int(1); // ok
+
+    auto s0a = S8945.S0!int();  // Error: struct S0 does not overload ()
+    auto s0b = S8945.S0!int(1); // Error: struct S0 does not overload ()
+    auto s1  = S8945.S1!int(1); // Error: struct S1 does not overload ()
 }
 
 /***************************************************/
@@ -5598,17 +6330,17 @@ struct S162
 {
     static int generateMethodStubs( Class )()
     {
-	int text;
+        int text;
 
-	foreach( m; __traits( allMembers, Class ) )
-	{
-	    static if( is( typeof( mixin( m ) ) ) && is( typeof( mixin( m ) ) == function ) )
-	    {
-		pragma(msg, __traits( getOverloads, Class, m ));
-	    }
-	}
+        foreach( m; __traits( allMembers, Class ) )
+        {
+            static if( is( typeof( mixin( m ) ) ) && is( typeof( mixin( m ) ) == function ) )
+            {
+                pragma(msg, __traits( getOverloads, Class, m ));
+            }
+        }
 
-	return text;
+        return text;
     }
 
     enum int ttt = generateMethodStubs!( S162 )();
@@ -5671,10 +6403,10 @@ mixin template DefineCoreType(string type)
 
         static void instance()
         {
-	    x = 3;
+            x = 3;
         }
 
-	X164!() xxx;
+        X164!() xxx;
     }
 }
 
@@ -5693,6 +6425,469 @@ struct X164()
     mixin A164!();
 }
 
+
+/***************************************************/
+// 9428
+
+void test9428()
+{
+    int[2][] items = [[1, 2]];
+    int[2] x = [3, 4];
+
+    auto r1 = items ~ [x];
+    assert(r1.length == 2);
+    assert(r1[0][0] == 1);
+    assert(r1[0][1] == 2);
+    assert(r1[1][0] == 3);
+    assert(r1[1][1] == 4);
+
+    auto r2 = items ~ x;
+    assert(r2.length == 2);
+    assert(r2[0][0] == 1);
+    assert(r2[0][1] == 2);
+    assert(r2[1][0] == 3);
+    assert(r2[1][1] == 4);
+
+    auto r3 = [x] ~ items;
+    assert(r3.length == 2);
+    assert(r3[0][0] == 3);
+    assert(r3[0][1] == 4);
+    assert(r3[1][0] == 1);
+    assert(r3[1][1] == 2);
+
+    auto r4 = x ~ items;
+    assert(r4.length == 2);
+    assert(r4[0][0] == 3);
+    assert(r4[0][1] == 4);
+    assert(r4[1][0] == 1);
+    assert(r4[1][1] == 2);
+}
+
+/***************************************************/
+// 9477
+
+template Tuple9477(T...) { alias T Tuple9477; }
+template Select9477(bool b, T, U) { static if (b) alias T Select9477; else alias U Select9477; }
+
+void test9477()
+{
+    static bool isEq (T1, T2)(T1 s1, T2 s2) { return s1 == s2; }
+    static bool isNeq(T1, T2)(T1 s1, T2 s2) { return s1 != s2; }
+
+    // Must be outside the loop due to http://d.puremagic.com/issues/show_bug.cgi?id=9748
+    int order;
+    // Must be outside the loop due to http://d.puremagic.com/issues/show_bug.cgi?id=9756
+    auto checkOrder(bool dyn, uint expected)()
+    {
+        assert(order==expected);
+        order++;
+        // Use temporary ("v") to work around http://d.puremagic.com/issues/show_bug.cgi?id=9402
+        auto v = cast(Select9477!(dyn, string, char[1]))"a";
+        return v;
+    }
+
+    foreach (b1; Tuple9477!(false, true))
+        foreach (b2; Tuple9477!(false, true))
+        {
+            version (D_PIC) {} else // Work around http://d.puremagic.com/issues/show_bug.cgi?id=9754
+            {
+                assert( isEq (cast(Select9477!(b1, string, char[0]))"" , cast(Select9477!(b2, string, char[0]))""  ));
+                assert(!isNeq(cast(Select9477!(b1, string, char[0]))"" , cast(Select9477!(b2, string, char[0]))""  ));
+
+                assert(!isEq (cast(Select9477!(b1, string, char[0]))"" , cast(Select9477!(b2, string, char[1]))"a" ));
+                assert( isNeq(cast(Select9477!(b1, string, char[0]))"" , cast(Select9477!(b2, string, char[1]))"a" ));
+            }
+
+            assert( isEq (cast(Select9477!(b1, string, char[1]))"a", cast(Select9477!(b2, string, char[1]))"a" ));
+            assert(!isNeq(cast(Select9477!(b1, string, char[1]))"a", cast(Select9477!(b2, string, char[1]))"a" ));
+
+            assert(!isEq (cast(Select9477!(b1, string, char[1]))"a", cast(Select9477!(b2, string, char[1]))"b" ));
+            assert( isNeq(cast(Select9477!(b1, string, char[1]))"a", cast(Select9477!(b2, string, char[1]))"b" ));
+
+            assert(!isEq (cast(Select9477!(b1, string, char[1]))"a", cast(Select9477!(b2, string, char[2]))"aa"));
+            assert( isNeq(cast(Select9477!(b1, string, char[1]))"a", cast(Select9477!(b2, string, char[2]))"aa"));
+
+            // Note: order of evaluation was not followed before this patch
+            // (thus, the test below will fail without the patch).
+            // Although the specification mentions that as implementation-defined behavior,
+            // I understand that this isn't by design, but rather an inconvenient aspect of DMD
+            // that has been moved to the specification.
+            order = 0;
+            bool result = checkOrder!(b1, 0)() == checkOrder!(b2, 1)();
+            assert(result);
+            assert(order == 2);
+        }
+
+    ubyte[64] a1, a2;
+    foreach (T; Tuple9477!(void, ubyte, ushort, uint, ulong, char, wchar, dchar, float, double))
+    {
+        auto s1 = cast(T[])(a1[]);
+        auto s2 = cast(T[])(a2[]);
+        assert(s1 == s2);
+        a2[$-1]++;
+        assert(s1 != s2);
+        assert(s1[0..$-1]==s2[0..$-1]);
+        a2[$-1]--;
+    }
+}
+
+/***************************************************/
+// 9504
+
+struct Bar9504
+{
+    template Abc(T)
+    {
+        T y;
+    }
+
+    enum size_t num = 123;
+
+    class Def {}
+}
+
+template GetSym9504(alias sym) { static assert(__traits(isSame, sym, Bar9504.Abc)); }
+template GetExp9504(size_t n) { static assert(n == Bar9504.num); }
+template GetTyp9504(T) { static assert(is(T == Bar9504.Def)); }
+
+alias GetSym9504!(typeof(Bar9504.init).Abc) X9504; // NG
+alias GetExp9504!(typeof(Bar9504.init).num) Y9504; // NG
+alias GetTyp9504!(typeof(Bar9504.init).Def) Z9504;
+
+Bar9504 test9504()
+{
+    alias GetSym9504!(typeof(return).Abc) V9504; // NG
+    alias GetExp9504!(typeof(return).num) W9504; // NG
+    alias GetTyp9504!(typeof(return).Def) X9504;
+    return Bar9504();
+}
+
+/***************************************************/
+// 9538
+
+void test9538()
+{
+    void*[1] x;
+    auto ti = typeid(x.ptr);
+}
+
+/***************************************************/
+// 9539
+
+void test9539()
+{
+    void f(int** ptr)
+    {
+        assert(**ptr == 10);
+    }
+    int* p = new int;
+    *p = 10;
+    int*[1] x = [p];
+    f(&x[0]);
+
+    int*[] arr = [null];
+    static assert(!__traits(compiles, p = arr));    // bad!
+}
+
+/***************************************************/
+// 9700
+
+mixin template Proxy9700(alias a)
+{
+    auto ref opOpAssign(string op, V)(V v) { return a += v; }  // NG
+  //auto ref opOpAssign(string op, V)(V v) { a += v; } // OK
+}
+struct MyInt9700
+{
+    int value;
+    invariant() { assert(value >= 0); }
+    mixin Proxy9700!value;
+}
+void test9700()
+{
+    MyInt9700 a = { 2 };
+    a *= 3;   // object.Error: Access Violation
+}
+
+/***************************************************/
+// 9834
+
+struct Event9834
+{
+    void delegate() dg;
+    void set(void delegate() h) pure { dg = h; }  // AV occurs
+    void call() { dg(); }
+}
+void test9834()
+{
+    Event9834 ev;
+    auto a = new class
+    {
+        Object o;
+        this()
+        {
+            o = new Object;
+            ev.set((){ o.toString(); });
+        }
+    };
+    ev.call();
+}
+
+/***************************************************/
+// 9859
+
+void test9859(inout int[] arr)
+{
+    auto dg1 = { foreach (i, e; arr) { } };
+    dg1();
+
+    void foo() { auto v = arr; auto w = arr[0]; }
+    void bar(inout int i) { auto v = arr[i]; }
+
+    auto dg2 =
+    {
+        auto dg =
+        {
+            void foo(T)()
+            {
+                auto dg =
+                {
+                    auto dg =
+                    {
+                        auto v = arr;
+                    };
+                };
+            }
+            foo!int;
+        };
+    };
+
+    void qux(T)()
+    {
+        auto v = arr;
+        auto dg1 = { auto v = arr; };
+        auto dg2 =
+        {
+            auto dg =
+            {
+                auto v = arr;
+            };
+        };
+    }
+    qux!int;
+}
+
+/***************************************************/
+// 9912
+
+template TypeTuple9912(Stuff...)
+{
+    alias Stuff TypeTuple9912;
+}
+
+struct S9912
+{
+    int i;
+    alias TypeTuple9912!i t;
+
+    void testA() {
+        auto x = t;
+    }
+
+    void testB() {
+        auto x = t;
+    }
+}
+
+/***************************************************/
+// 9883
+
+struct S9883
+{
+    @property size_t p9883(T)() { return 0; }
+}
+
+@property size_t p9883(T)() { return 0; }
+
+void test9883()
+{
+    S9883 s;
+    auto n1 = p9883!int; // OK
+    auto n2 = s.p9883!int; // OK
+    auto a1 = new int[p9883!int]; // Error: need size of rightmost array, not type p!(int)
+    auto a2 = new int[s.p9883!int]; // Error: no property 'p!(int)' for type 'S'
+}
+
+
+/***************************************************/
+// 10091
+
+struct S10091
+{
+    enum e = "a";
+}
+
+void test10091()
+{
+    auto arr = cast(ubyte[1]) S10091.e;
+}
+
+/***************************************************/
+// 9130
+
+class S9130 { void bar() { } }
+
+import core.stdc.stdio : printf;
+
+struct Function
+{
+    int[] ai = [1,2,3];
+}
+
+@property void meta(alias m)()
+{
+    static Function md;
+    printf("length = %d\n", md.ai.length);
+    printf("ptr = %p\n", md.ai.ptr);
+    md.ai[0] = 0;
+}
+
+void test9130()
+{
+    meta!(__traits(getOverloads, S9130, "bar")[0]);
+    meta!(S9130.bar);
+}
+
+/***************************************************/
+// 10390
+
+class C10390 { this() { this.c = this; } C10390 c; }
+const c10390 = new C10390();
+pragma(msg, c10390);
+
+/***************************************************/
+// 10542
+
+class B10542
+{
+    this() nothrow pure @safe { }
+}
+
+class D10542 : B10542
+{
+}
+
+void test10542() nothrow pure @safe
+{
+    new D10542;
+}
+
+/***************************************************/
+// 10539
+
+void test10539()
+{
+    int[2][2] a;
+    int* p1 = a.ptr.ptr;    // OK <- error
+    int* p2 = (*a.ptr).ptr; // OK
+    assert(p1 is p2);
+}
+
+/***************************************************/
+
+struct TimeOfDay
+{
+    ubyte h, m, s;
+}
+
+__gshared byte glob;
+
+struct DateTime
+{
+    this(ubyte _d, ubyte _m, ubyte _y, TimeOfDay _tod = TimeOfDay.init)
+    {
+        d = _d;
+        m = _m;
+        y = _y;
+        tod = _tod;
+    }
+    TimeOfDay tod;
+    ubyte d, m, y;
+}
+
+
+void test10634()
+{
+    glob = 123;
+    DateTime date1 = DateTime(0, 0, 0);
+    DateTime date2;
+    assert(date1 == date2);
+}
+
+/***************************************************/
+
+immutable(char)[4] bar7254(int i)
+{
+    if (i)
+    {
+        immutable(char)[4] r; return r;
+    }
+    else
+        return "1234";
+}
+
+void test7254()
+{
+    assert(bar7254(0) == "1234");
+}
+
+/***************************************************/
+
+struct S11075() { int x = undefined_expr; }
+
+class C11075() { int x = undefined_expr; }
+
+interface I11075() { enum int x = undefined_expr; }
+
+void test11075()
+{
+    static assert(!is(typeof(S11075!().x)));
+    static assert(!is(typeof(S11075!().x)));
+
+    static assert(!is(typeof(C11075!().x)));
+    static assert(!is(typeof(C11075!().x)));
+
+    static assert(!is(typeof(I11075!().x)));
+    static assert(!is(typeof(I11075!().x)));
+}
+
+
+/***************************************************/
+// 11317
+
+void test11317()
+{
+    auto ref uint fun()
+    {
+        return 0;
+    }
+
+    void test(ref uint x) {}
+    static assert(!__traits(compiles, test(fun())));
+
+    assert(fun() == 0);
+}
+
+/***************************************************/
+// 12153
+
+void test12153()
+{
+    int[1] i, j;
+    bool b = true;
+    (b ? i : j)[] = [4];
+    assert(i == [4]);
+}
 
 /***************************************************/
 
@@ -5790,6 +6985,7 @@ int main()
     test8442();
     test86();
     test87();
+    test2486();
     test5554();
     test88();
     test7545();
@@ -5825,11 +7021,12 @@ int main()
     test116();
     test117();
     test3822();
+    test6545();
     test118();
     test5081();
 
     test120();
-
+    test10724();
     test122();
     test123();
     test124();
@@ -5865,6 +7062,8 @@ int main()
     test6685();
     test148();
     test149();
+    test2356();
+    test11238();
     test2540();
     test150();
     test151();
@@ -5873,6 +7072,7 @@ int main()
     test154();
     test155();
     test156();
+    test658();
     test4258();
     test4539();
     test4596();
@@ -5887,8 +7087,8 @@ int main()
     test5046();
     test1471();
     test6335();
+    test1687();
     test6228();
-    test2774();
     test3733();
     test4392();
     test6220();
@@ -5930,6 +7130,7 @@ int main()
     test7534cov();
     test7618();
     test7621();
+    test11417();
     test7682();
     test7735();
     test7823();
@@ -5942,14 +7143,37 @@ int main()
     test159();
     test8283();
     test8395();
+    test5749();
+    test8396();
     test160();
     test8665();
     test8108();
+    test8360();
+    test9577();
     test6141();
+    test199();
     test8526();
     test161();
+    test8819();
     test8917();
+    test8945();
+    test11805();
     test163();
+    test9428();
+    test9477();
+    test9538();
+    test9700();
+    test9834();
+    test9883();
+    test10091();
+    test9130();
+    test10542();
+    test10539();
+    test10634();
+    test7254();
+    test11075();
+    test11317();
+    test12153();
 
     printf("Success\n");
     return 0;

@@ -1,4 +1,3 @@
-// utf.c
 // Copyright (c) 2003-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
@@ -19,9 +18,6 @@
 #include <assert.h>
 
 #include "utf.h"
-
-namespace
-{
 
 /* The following encodings are valid, except for the 5 and 6 byte
  * combinations:
@@ -52,11 +48,6 @@ const unsigned UTF8_STRIDE[256] =
     4,4,4,4,4,4,4,4,5,5,5,5,6,6,0xFF,0xFF,
 };
 
-}   // namespace
-
-namespace Unicode
-{
-
 // UTF-8 decoding errors
 char const UTF8_DECODE_OUTSIDE_CODE_SPACE[] = "Outside Unicode code space";
 char const UTF8_DECODE_TRUNCATED_SEQUENCE[] = "Truncated UTF-8 sequence";
@@ -70,22 +61,22 @@ char const UTF16_DECODE_INVALID_SURROGATE[] = "Invalid low surrogate";
 char const UTF16_DECODE_UNPAIRED_SURROGATE[]= "Unpaired surrogate";
 char const UTF16_DECODE_INVALID_CODE_POINT[]= "Invalid code point decoded";
 
-}   // namespace Unicode
-
-using namespace Unicode;
-
 /// The Unicode code space is the range of code points [0x000000,0x10FFFF]
 /// except the UTF-16 surrogate pairs in the range [0xD800,0xDFFF]
 /// and non-characters (which end in 0xFFFE or 0xFFFF).
 bool utf_isValidDchar(dchar_t c)
 {
     // TODO: Whether non-char code points should be rejected is pending review
-    return c <= 0x10FFFF                        // largest character code point
-        && !(0xD800 <= c && c <= 0xDFFF)        // surrogate pairs
-        && (c & 0xFFFFFE) != 0x00FFFE           // non-characters
-//        && (c & 0xFFFE) != 0xFFFE               // non-characters
-//        && !(0x00FDD0 <= c && c <= 0x00FDEF)    // non-characters
-        ;
+    // largest character code point
+    if (c > 0x10FFFF)
+        return false;
+    // surrogate pairs
+    if (0xD800 <= c && c <= 0xDFFF)
+        return false;
+    // non-characters
+    if ((c & 0xFFFFFE) == 0x00FFFE)
+        return false;
+    return true;
 }
 
 /*******************************
@@ -95,8 +86,7 @@ bool utf_isValidDchar(dchar_t c)
 
 bool isUniAlpha(dchar_t c)
 {
-    static size_t const END = sizeof(ALPHA_TABLE) / sizeof(ALPHA_TABLE[0]);
-    size_t high = END - 1;
+    size_t high = ALPHA_TABLE_LENGTH - 1;
     // Shortcut search if c is out of range
     size_t low
         = (c < ALPHA_TABLE[0][0] || ALPHA_TABLE[high][1] < c) ? high + 1 : 0;
@@ -253,7 +243,8 @@ const char *utf_decodeChar(utf8_t const *s, size_t len, size_t *pidx, dchar_t *p
      *      11111100 100000xx (10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx)
      */
     utf8_t u2 = s[++i];
-    if ((u & 0xFE) == 0xC0 ||           // overlong combination
+    // overlong combination
+    if ((u & 0xFE) == 0xC0 ||
         (u == 0xE0 && (u2 & 0xE0) == 0x80) ||
         (u == 0xF0 && (u2 & 0xF0) == 0x80) ||
         (u == 0xF8 && (u2 & 0xF8) == 0x80) ||

@@ -139,7 +139,7 @@ void test7()
 
     if (!is(Test7 == typeof(tp[0])))
         assert(0);
-    
+
     assert(tp[0] == Test7(3, "foo"));
 }
 
@@ -251,6 +251,156 @@ void test12()
 }
 
 /************************************************/
+// 9178
+
+void test9178()
+{
+    static class Foo { @(1) int a; }
+
+    Foo foo = new Foo;
+    static assert(__traits(getAttributes, foo.tupleof[0])[0] == 1);
+}
+
+/************************************************/
+// 9652
+
+struct Bug9652
+{
+    pragma(msg, __traits(getAttributes, enum_field));
+    alias Tuple!(__traits(getAttributes, enum_field)) Tenum_field;
+    private @(10) enum enum_field = 42;
+
+    static assert(Tenum_field[0] == 10);
+    static assert(__traits(getAttributes, enum_field)[0] == 10);
+    static assert(__traits(getProtection, enum_field) == "private");
+    static assert(__traits(isSame, __traits(parent, enum_field), Bug9652));
+    static assert(__traits(isSame, enum_field, enum_field));
+
+    pragma(msg, __traits(getAttributes, anon_enum_member));
+    alias Tuple!(__traits(getAttributes, anon_enum_member)) Tanon_enum_member;
+    private @(20) enum {anon_enum_member}
+
+    static assert(Tanon_enum_member[0] == 20);
+    static assert(__traits(getAttributes, anon_enum_member)[0] == 20);
+    static assert(__traits(getProtection, anon_enum_member) == "private");
+    static assert(__traits(isSame, __traits(parent, anon_enum_member), Bug9652));
+    static assert(__traits(isSame, anon_enum_member, anon_enum_member));
+
+    pragma(msg, __traits(getAttributes, Foo.enum_member));
+    alias Tuple!(__traits(getAttributes, Foo.enum_member)) Tfoo_enum_member;
+    private @(30) enum Foo {enum_member}
+    static assert(Tfoo_enum_member.length == 0); //Foo has attributes, not Foo.enum_member
+    static assert(__traits(getAttributes, Foo.enum_member).length == 0);
+    static assert(__traits(getProtection, Foo.enum_member) == "public");
+    static assert(__traits(isSame, __traits(parent, Foo.enum_member), Foo));
+    static assert(__traits(isSame, Foo.enum_member, Foo.enum_member));
+
+    pragma(msg, __traits(getAttributes, anon_enum_member_2));
+    alias Tuple!(__traits(getAttributes, anon_enum_member_2)) Tanon_enum_member_2;
+    private @(40) enum {long anon_enum_member_2 = 2L}
+
+    static assert(Tanon_enum_member_2[0] == 40);
+    static assert(__traits(getAttributes, anon_enum_member_2)[0] == 40);
+    static assert(__traits(getProtection, anon_enum_member_2) == "private");
+    static assert(__traits(isSame, __traits(parent, anon_enum_member_2), Bug9652));
+    static assert(__traits(isSame, anon_enum_member_2, anon_enum_member_2));
+
+    template Bug(alias X, bool is_exp)
+    {
+        static assert(is_exp == !__traits(compiles, __traits(parent, X)));
+        static assert(is_exp == !__traits(compiles, __traits(getAttributes, X)));
+        static assert(is_exp == !__traits(compiles, __traits(getProtection, X)));
+        enum Bug = 0;
+    }
+    enum en = 0;
+    enum dummy1 = Bug!(5, true);
+    enum dummy2 = Bug!(en, false);
+}
+
+/************************************************/
+// 9741
+
+import imports.a9741;
+
+struct A9741 {}
+
+alias X9741 = ShowAttributes!(B9741);
+
+@A9741 struct B9741 {}
+
+/************************************************/
+// 12160
+
+auto before12160(alias Hook)(string) { return 0; }
+
+template checkUDAs12160(alias Func)
+{
+    enum x = __traits(getAttributes, Func).length;
+}
+
+void test12160()
+{
+    int foo() { return 42; }    // OK <- NG
+
+    @before12160!foo("name1")
+    void bar(int name1, double name2) {}
+
+    alias X = checkUDAs12160!(bar);
+}
+
+/************************************************/
+// 10208
+
+@( 10)                enum int x10208_01 =  100;
+@( 20)                     int x10208_02;
+@( 30)               const int x10208_03;
+@( 40)           immutable int x10208_04;
+@( 50)                     int x10208_05 =  500;
+@( 60)               const int x10208_06 =  600;
+@( 70)           immutable int x10208_07 =  700;
+@( 80) __gshared      enum int x10208_08 =  800;
+@( 90) __gshared           int x10208_09;
+@(100) __gshared     const int x10208_10;
+@(110) __gshared immutable int x10208_11;
+@(120) __gshared           int x10208_12 = 1200;
+@(130) __gshared     const int x10208_13 = 1300;
+@(140) __gshared immutable int x10208_14 = 1400;
+static assert(__traits(getAttributes, x10208_01)[0] ==  10); // OK
+static assert(__traits(getAttributes, x10208_02)[0] ==  20); // OK
+static assert(__traits(getAttributes, x10208_03)[0] ==  30); // OK
+static assert(__traits(getAttributes, x10208_04)[0] ==  40); // OK
+static assert(__traits(getAttributes, x10208_05)[0] ==  50); // OK
+static assert(__traits(getAttributes, x10208_06)[0] ==  60); // Error -> OK
+static assert(__traits(getAttributes, x10208_07)[0] ==  70); // Error -> OK
+static assert(__traits(getAttributes, x10208_08)[0] ==  80); // OK
+static assert(__traits(getAttributes, x10208_09)[0] ==  90); // OK
+static assert(__traits(getAttributes, x10208_10)[0] == 100); // OK
+static assert(__traits(getAttributes, x10208_11)[0] == 110); // OK
+static assert(__traits(getAttributes, x10208_12)[0] == 120); // OK
+static assert(__traits(getAttributes, x10208_13)[0] == 130); // Error -> OK
+static assert(__traits(getAttributes, x10208_14)[0] == 140); // Error -> OK
+
+/************************************************/
+// 11844
+
+auto make_encode11844(T, string name)()
+{
+    return mixin("function(T self) { return self.encodeField!\""~ name ~ "\"();}");
+}
+
+class FileData11844
+{
+    ulong _member;
+
+    @make_encode11844!(FileData11844, "member")()
+    ulong member() const { return _member; }
+
+    ubyte[] encodeField(string key)() { return [1,2,3]; }
+}
+
+static assert(__traits(getAttributes, FileData11844.member)[0](new FileData11844()) == [1,2,3]);
+
+/************************************************/
 
 int main()
 {
@@ -266,6 +416,7 @@ int main()
     test10();
     test11();
     test12();
+    test9178();
 
     printf("Success\n");
     return 0;

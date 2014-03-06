@@ -25,19 +25,19 @@ Identifier::Identifier(const char *string, int value)
     this->len = strlen(string);
 }
 
-hash_t Identifier::hashCode()
+Identifier *Identifier::create(const char *string, int value)
 {
-    return String::calcHash(string);
+    return new Identifier(string, value);
 }
 
-int Identifier::equals(Object *o)
+bool Identifier::equals(RootObject *o)
 {
-    return this == o || memcmp(string,o->toChars(),len+1) == 0;
+    return this == o || strncmp(string,o->toChars(),len+1) == 0;
 }
 
-int Identifier::compare(Object *o)
+int Identifier::compare(RootObject *o)
 {
-    return memcmp(string, o->toChars(), len + 1);
+    return strncmp(string, o->toChars(), len + 1);
 }
 
 char *Identifier::toChars()
@@ -51,7 +51,6 @@ const char *Identifier::toHChars2()
 
     if (this == Id::ctor) p = "this";
     else if (this == Id::dtor) p = "~this";
-    else if (this == Id::classInvariant) p = "invariant";
     else if (this == Id::unitTest) p = "unittest";
     else if (this == Id::dollar) p = "$";
     else if (this == Id::withSym) p = "with";
@@ -61,10 +60,12 @@ const char *Identifier::toHChars2()
     {   p = toChars();
         if (*p == '_')
         {
-            if (memcmp(p, "_staticCtor", 11) == 0)
+            if (strncmp(p, "_staticCtor", 11) == 0)
                 p = "static this";
-            else if (memcmp(p, "_staticDtor", 11) == 0)
+            else if (strncmp(p, "_staticDtor", 11) == 0)
                 p = "static ~this";
+            else if (strncmp(p, "__invariant", 11) == 0)
+                p = "invariant";
         }
     }
 
@@ -73,7 +74,7 @@ const char *Identifier::toHChars2()
 
 void Identifier::print()
 {
-    fprintf(stdmsg, "%s",string);
+    fprintf(stderr, "%s",string);
 }
 
 int Identifier::dyncast()
@@ -96,7 +97,6 @@ Identifier *Identifier::generateId(const char *prefix, size_t i)
     buf.writestring(prefix);
     buf.printf("%llu", (ulonglong)i);
 
-    char *id = buf.toChars();
-    buf.data = NULL;
+    char *id = buf.peekString();
     return Lexer::idPool(id);
 }

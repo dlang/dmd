@@ -1,31 +1,17 @@
-
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
-// All Rights Reserved
-// written by Rainer Schuetze
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+/* Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved, written by Rainer Schuetze
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/root/longdouble.h
+ */
 
 // 80 bit floating point value implementation for Microsoft compiler
 
 #ifndef __LONG_DOUBLE_H__
 #define __LONG_DOUBLE_H__
 
-#if IN_GCC
-#include "d-gcc-real.h"
-typedef real_t longdouble;
-
-template<typename T> longdouble ldouble(T x) { return (longdouble) x; }
-inline size_t ld_sprint(char* str, int fmt, longdouble x)
-{
-    if(fmt == 'a' || fmt == 'A')
-        return x.formatHex(buffer, 46); // don't know the size here, but 46 is the max
-    return x.format(buffer, 46);
-}
-
-#elif !_MSC_VER // has native 10 byte doubles
+#if !_MSC_VER // has native 10 byte doubles
 #include <stdio.h>
 typedef long double longdouble;
 typedef volatile long double volatile_longdouble;
@@ -34,12 +20,33 @@ typedef volatile long double volatile_longdouble;
 // template<typename T> longdouble ldouble(T x) { return (longdouble) x; }
 #define ldouble(x) ((longdouble)(x))
 
+#if __MINGW32__
+// MinGW supports 80 bit reals, but the formatting functions map to versions
+// from the MSVC runtime by default which don't.
+#define sprintf __mingw_sprintf
+#endif
+
 inline size_t ld_sprint(char* str, int fmt, longdouble x)
 {
-    char sfmt[4] = "%Lg";
-    sfmt[2] = fmt;
-    return sprintf(str, sfmt, x);
+    if (((longdouble)(unsigned long long)x) == x)
+    {   // ((1.5 -> 1 -> 1.0) == 1.5) is false
+        // ((1.0 -> 1 -> 1.0) == 1.0) is true
+        // see http://en.cppreference.com/w/cpp/io/c/fprintf
+        char sfmt[5] = "%#Lg";
+        sfmt[3] = fmt;
+        return sprintf(str, sfmt, x);
+    }
+    else
+    {
+        char sfmt[4] = "%Lg";
+        sfmt[2] = fmt;
+        return sprintf(str, sfmt, x);
+    }
 }
+
+#if __MINGW32__
+#undef sprintf
+#endif
 
 #else
 
@@ -122,8 +129,18 @@ inline longdouble ldouble(unsigned long long mantissa, int exp, int sign = 0)
     d.sign = sign;
     return d;
 }
-template<typename T> inline longdouble ldouble(T x) { longdouble d; d.set(x); return d; }
-//template<typename T> inline longdouble ldouble(volatile T x) { longdouble d; d.set(x); return d; }
+
+// codegen bug in VS2010/VS2012, if the set() function not inlined
+//  (this passed on stack, but expected in ECX; RVO?)
+#if _MSC_VER >= 1600
+#define LDOUBLE_INLINE __declspec(noinline)
+#else
+#define LDOUBLE_INLINE inline
+#endif
+
+template<typename T> LDOUBLE_INLINE longdouble ldouble(T x) { longdouble d; d.set(x); return d; }
+
+#undef LDOUBLE_INLINE
 
 longdouble operator+(longdouble ld1, longdouble ld2);
 longdouble operator-(longdouble ld1, longdouble ld2);
@@ -179,6 +196,7 @@ longdouble tanl (longdouble ld);
 
 longdouble fmodl(longdouble x, longdouble y);
 longdouble ldexpl(longdouble ldval, int exp); // see strtold
+longdouble strtold(const char *p,char **endp);
 
 inline longdouble fabs (longdouble ld) { return fabsl(ld); }
 inline longdouble sqrt (longdouble ld) { return sqrtl(ld); }
@@ -214,38 +232,6 @@ extern longdouble ld_ln2;
 extern longdouble ld_inf;
 extern longdouble ld_qnan;
 extern longdouble ld_snan;
-
-///////////////////////////////////////////////////////////////////////
-// CLASS numeric_limits<longdouble>
-template<> class _CRTIMP2_PURE std::numeric_limits<longdouble>
-: public _Num_float_base
-{       // limits for type long double
-public:
-    typedef longdouble _Ty;
-
-    static _Ty (__CRTDECL min)() _THROW0()         { return LDBL_MIN; }
-    static _Ty (__CRTDECL max)() _THROW0()         { return LDBL_MAX; }
-    static _Ty __CRTDECL epsilon() _THROW0()       { return LDBL_EPSILON; }
-    static _Ty __CRTDECL round_error() _THROW0()   { return ldouble(0.5); }
-    static _Ty __CRTDECL denorm_min() _THROW0()    { return ldouble(0x0000000000000001ULL, 1); }
-    static _Ty __CRTDECL infinity() _THROW0()      { return ld_inf; }
-    static _Ty __CRTDECL quiet_NaN() _THROW0()     { return ld_qnan; }
-    static _Ty __CRTDECL signaling_NaN() _THROW0() { return ld_snan; }
-
-    _STCONS(int, digits, LDBL_MANT_DIG);
-    _STCONS(int, digits10, LDBL_DIG);
-    _STCONS(int, max_exponent, (int)LDBL_MAX_EXP);
-    _STCONS(int, max_exponent10, (int)LDBL_MAX_10_EXP);
-    _STCONS(int, min_exponent, (int)LDBL_MIN_EXP);
-    _STCONS(int, min_exponent10, (int)LDBL_MIN_10_EXP);
-};
-
-//_STCONSDEF(numeric_limits<longdouble>, int, digits)
-//_STCONSDEF(numeric_limits<longdouble>, int, digits10)
-//_STCONSDEF(numeric_limits<longdouble>, int, max_exponent)
-//_STCONSDEF(numeric_limits<longdouble>, int, max_exponent10)
-//_STCONSDEF(numeric_limits<longdouble>, int, min_exponent)
-//_STCONSDEF(numeric_limits<longdouble>, int, min_exponent10)
 
 size_t ld_sprint(char* str, int fmt, longdouble x);
 

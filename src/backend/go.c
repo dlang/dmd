@@ -5,8 +5,7 @@
 // Written by Walter Bright
 /*
  * This source file is made available for personal use
- * only. The license is in /dmd/src/dmd/backendlicense.txt
- * or /dm/src/dmd/backendlicense.txt
+ * only. The license is in backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
@@ -222,12 +221,13 @@ void optfunc()
 
     // Each pass through the loop can reduce only one level of comma expression.
     // The infinite loop check needs to take this into account.
+    // Add 100 just to give optimizer more rope to try to converge.
     int iterationLimit = 0;
     for (b = startblock; b; b = b->Bnext)
     {
         if (!b->Belem)
             continue;
-        int d = el_countCommas(b->Belem);
+        int d = el_countCommas(b->Belem) + 100;
         if (d > iterationLimit)
             iterationLimit = d;
     }

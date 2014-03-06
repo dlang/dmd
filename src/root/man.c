@@ -1,12 +1,11 @@
 
-// Compiler implementation of the D programming language
-// Copyright (c) 2008-2009 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+/* Copyright (c) 2008-2014 by Digital Mars
+ * All Rights Reserved, written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/root/man.c
+ */
 
 #include <stdio.h>
 #include <string.h>
@@ -26,7 +25,7 @@ void browse(const char *url)
 
 #endif
 
-#if linux || __FreeBSD__ || __OpenBSD__ || __sun
+#if __linux__ || __FreeBSD__ || __OpenBSD__ || __sun
 
 #include        <sys/types.h>
 #include        <sys/wait.h>

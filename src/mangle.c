@@ -24,27 +24,34 @@
 #include "id.h"
 #include "module.h"
 
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-char *cpp_mangle(Dsymbol *s);
-#endif
+char *toCppMangle(Dsymbol *s);
+const char *mangle(Dsymbol *s, bool isv = false);
+const char *mangleExact(FuncDeclaration *fd, bool isv = false);
 
-char *mangle(Declaration *sthis)
+/******************************************************************************
+ *  isv     : for the enclosing auto functions of an inner class/struct type.
+ *            An aggregate type which defined inside auto function, it might
+ *            become Voldemort Type so its object might be returned.
+ *            This flag is necessary due to avoid mutual mangling
+ *            between return type and enclosing scope. See bugzilla 8847.
+ */
+char *mangleDecl(Declaration *sthis, bool isv)
 {
     OutBuffer buf;
     char *id;
     Dsymbol *s;
 
-    //printf("::mangle(%s)\n", sthis->toChars());
+    //printf("::mangleDecl(%s)\n", sthis->toChars());
     s = sthis;
     do
     {
         //printf("mangle: s = %p, '%s', parent = %p\n", s, s->toChars(), s->parent);
-        if (s->ident)
+        if (s->getIdent())
         {
             FuncDeclaration *fd = s->isFuncDeclaration();
             if (s != sthis && fd)
             {
-                id = mangle(fd);
+                id = mangleDecl(fd, isv);
                 buf.prependstring(id);
                 goto L1;
             }
@@ -60,7 +67,12 @@ char *mangle(Declaration *sthis)
         }
         else
             buf.prependstring("0");
-        s = s->parent;
+
+        TemplateInstance *ti = s->isTemplateInstance();
+        if (ti && !ti->isTemplateMixin())
+            s = ti->tempdecl->parent;
+        else
+            s = s->parent;
     } while (s);
 
 //    buf.prependstring("_D");
@@ -70,7 +82,31 @@ L1:
     FuncDeclaration *fd = sthis->isFuncDeclaration();
     if (fd && (fd->needThis() || fd->isNested()))
         buf.writeByte(Type::needThisPrefix());
-    if (sthis->type->deco)
+    if (isv && fd && (fd->inferRetType || getFuncTemplateDecl(fd)))
+    {
+#if DDMD
+        TypeFunction *tfn = (TypeFunction *)sthis->type->copy();
+        TypeFunction *tfo = (TypeFunction *)sthis->originalType;
+        tfn->purity      = tfo->purity;
+        tfn->isnothrow   = tfo->isnothrow;
+        tfn->isproperty  = tfo->isproperty;
+        tfn->isref       = fd->storage_class & STCauto ? false : tfo->isref;
+        tfn->trust       = tfo->trust;
+        tfn->next        = NULL;     // do not mangle return type
+        tfn->toDecoBuffer(&buf, 0);
+#else
+        TypeFunction tfn = *(TypeFunction *)sthis->type;
+        TypeFunction *tfo = (TypeFunction *)sthis->originalType;
+        tfn.purity      = tfo->purity;
+        tfn.isnothrow   = tfo->isnothrow;
+        tfn.isproperty  = tfo->isproperty;
+        tfn.isref       = fd->storage_class & STCauto ? false : tfo->isref;
+        tfn.trust       = tfo->trust;
+        tfn.next        = NULL;     // do not mangle return type
+        tfn.toDecoBuffer(&buf, 0);
+#endif
+    }
+    else if (sthis->type->deco)
         buf.writestring(sthis->type->deco);
     else
     {
@@ -78,37 +114,36 @@ L1:
         if (!fd->inferRetType)
             printf("%s\n", fd->toChars());
 #endif
-        assert(fd && fd->inferRetType);
+        assert(fd && fd->inferRetType && fd->type->ty == Tfunction);
+        TypeFunction *tf = (TypeFunction *)sthis->type;
+        Type *tn = tf->next;
+        tf->next = NULL;    // do not mangle undetermined return type
+        tf->toDecoBuffer(&buf, 0);
+        tf->next = tn;
     }
 
-    id = buf.toChars();
-    buf.data = NULL;
+    id = buf.extractString();
     return id;
 }
 
-char *Declaration::mangle()
-#if __DMC__
-    __out(result)
-    {
-        int len = strlen(result);
+class Mangler : public Visitor
+{
+public:
+    bool isv;
+    const char *result;
 
-        assert(len > 0);
-        //printf("mangle: '%s' => '%s'\n", toChars(), result);
-        for (int i = 0; i < len; i++)
-        {
-            assert(result[i] == '_' ||
-                   result[i] == '@' ||
-                   isalnum(result[i]) || result[i] & 0x80);
-        }
-    }
-    __body
-#endif
+    Mangler(bool isv)
+        : isv(isv)
     {
-        //printf("Declaration::mangle(this = %p, '%s', parent = '%s', linkage = %d)\n", this, toChars(), parent ? parent->toChars() : "null", linkage);
-        if (!parent || parent->isModule() || linkage == LINKcpp) // if at global scope
+        result = NULL;
+    }
+
+    void visit(Declaration *d)
+    {
+        //printf("Declaration::mangle(this = %p, '%s', parent = '%s', linkage = %d)\n", d, d->toChars(), d->parent ? d->parent->toChars() : "null", d->linkage);
+        if (!d->parent || d->parent->isModule() || d->linkage == LINKcpp) // if at global scope
         {
-            // If it's not a D declaration, no mangling
-            switch (linkage)
+            switch (d->linkage)
             {
                 case LINKd:
                     break;
@@ -116,157 +151,272 @@ char *Declaration::mangle()
                 case LINKc:
                 case LINKwindows:
                 case LINKpascal:
-                    return ident->toChars();
+                    result = d->ident->toChars();
+                    break;
 
                 case LINKcpp:
-#if CPP_MANGLE
-                    return cpp_mangle(this);
-#else
-                    // Windows C++ mangling is done by C++ back end
-                    return ident->toChars();
-#endif
+                    result = toCppMangle(d);
+                    break;
 
                 case LINKdefault:
-                    error("forward declaration");
-                    return ident->toChars();
+                    d->error("forward declaration");
+                    result = d->ident->toChars();
+                    break;
 
                 default:
-                    fprintf(stdmsg, "'%s', linkage = %d\n", toChars(), linkage);
+                    fprintf(stderr, "'%s', linkage = %d\n", d->toChars(), d->linkage);
                     assert(0);
             }
         }
-        char *p = ::mangle(this);
-        OutBuffer buf;
-        buf.writestring("_D");
-        buf.writestring(p);
-        p = buf.toChars();
-        buf.data = NULL;
-        //printf("Declaration::mangle(this = %p, '%s', parent = '%s', linkage = %d) = %s\n", this, toChars(), parent ? parent->toChars() : "null", linkage, p);
-        return p;
-    }
+        //printf("Declaration::mangle(this = %p, '%s', parent = '%s', linkage = %d) = %s\n", d, d->toChars(), d->parent ? d->parent->toChars() : "null", d->linkage, result);
 
-char *FuncDeclaration::mangle()
-#if __DMC__
-    __out(result)
-    {
-        assert(strlen(result) > 0);
-    }
-    __body
-#endif
-    {
-        if (isMain())
-            return (char *)"_Dmain";
-
-        if (isWinMain() || isDllMain() || ident == Id::tls_get_addr)
-            return ident->toChars();
-
-        assert(this);
-        return Declaration::mangle();
-    }
-
-char *StructDeclaration::mangle()
-{
-    //printf("StructDeclaration::mangle() '%s'\n", toChars());
-    return Dsymbol::mangle();
-}
-
-
-char *TypedefDeclaration::mangle()
-{
-    //printf("TypedefDeclaration::mangle() '%s'\n", toChars());
-    return Dsymbol::mangle();
-}
-
-
-char *ClassDeclaration::mangle()
-{
-    Dsymbol *parentsave = parent;
-
-    //printf("ClassDeclaration::mangle() %s.%s\n", parent->toChars(), toChars());
-
-    /* These are reserved to the compiler, so keep simple
-     * names for them.
-     */
-    if (ident == Id::Exception)
-    {   if (parent->ident == Id::object)
-            parent = NULL;
-    }
-    else if (ident == Id::TypeInfo   ||
-//      ident == Id::Exception ||
-        ident == Id::TypeInfo_Struct   ||
-        ident == Id::TypeInfo_Class    ||
-        ident == Id::TypeInfo_Typedef  ||
-        ident == Id::TypeInfo_Tuple ||
-        this == object     ||
-        this == classinfo  ||
-        this == Module::moduleinfo ||
-        memcmp(ident->toChars(), "TypeInfo_", 9) == 0
-       )
-        parent = NULL;
-
-    char *id = Dsymbol::mangle();
-    parent = parentsave;
-    return id;
-}
-
-
-char *TemplateInstance::mangle()
-{
-    OutBuffer buf;
-
-#if 0
-    printf("TemplateInstance::mangle() %p %s", this, toChars());
-    if (parent)
-        printf("  parent = %s %s", parent->kind(), parent->toChars());
-    printf("\n");
-#endif
-    char *id = ident ? ident->toChars() : toChars();
-    if (!tempdecl)
-        error("is not defined");
-    else
-    {
-        Dsymbol *par = isnested || isTemplateMixin() ? parent : tempdecl->parent;
-        if (par)
+        if (!result)
         {
-            char *p = par->mangle();
-            if (p[0] == '_' && p[1] == 'D')
-                p += 2;
-            buf.writestring(p);
+            OutBuffer buf;
+            buf.writestring("_D");
+            buf.writestring(mangleDecl(d, isv));
+            result = buf.extractString();
         }
+
+    #ifdef DEBUG
+        assert(result);
+        size_t len = strlen(result);
+        assert(len > 0);
+        for (size_t i = 0; i < len; i++)
+        {
+            assert(result[i] == '_' ||
+                   result[i] == '@' ||
+                   result[i] == '?' ||
+                   result[i] == '$' ||
+                   isalnum(result[i]) || result[i] & 0x80);
+        }
+    #endif
     }
-    buf.printf("%llu%s", (ulonglong)strlen(id), id);
-    id = buf.toChars();
-    buf.data = NULL;
-    //printf("TemplateInstance::mangle() %s = %s\n", toChars(), id);
-    return id;
-}
 
-
-
-char *Dsymbol::mangle()
-{
-    OutBuffer buf;
-    char *id;
-
-#if 0
-    printf("Dsymbol::mangle() '%s'", toChars());
-    if (parent)
-        printf("  parent = %s %s", parent->kind(), parent->toChars());
-    printf("\n");
-#endif
-    id = ident ? ident->toChars() : toChars();
-    if (parent)
+    /******************************************************************************
+     * Normally FuncDeclaration and FuncAliasDeclaration have overloads.
+     * If and only if there is no overloads, mangle() could return
+     * exact mangled name.
+     *
+     *      module test;
+     *      void foo(long) {}           // _D4test3fooFlZv
+     *      void foo(string) {}         // _D4test3fooFAyaZv
+     *
+     *      // from FuncDeclaration::mangle().
+     *      pragma(msg, foo.mangleof);  // prints unexact mangled name "4test3foo"
+     *                                  // by calling Dsymbol::mangle()
+     *
+     *      // from FuncAliasDeclaration::mangle()
+     *      pragma(msg, __traits(getOverloads, test, "foo")[0].mangleof);  // "_D4test3fooFlZv"
+     *      pragma(msg, __traits(getOverloads, test, "foo")[1].mangleof);  // "_D4test3fooFAyaZv"
+     *
+     * If a function has no overloads, .mangleof property still returns exact mangled name.
+     *
+     *      void bar() {}
+     *      pragma(msg, bar.mangleof);  // still prints "_D4test3barFZv"
+     *                                  // by calling FuncDeclaration::mangleExact().
+     */
+    void visit(FuncDeclaration *fd)
     {
-        char *p = parent->mangle();
-        if (p[0] == '_' && p[1] == 'D')
-            p += 2;
-        buf.writestring(p);
+        if (fd->isUnique())
+            mangleExact(fd);
+        else
+            visit((Dsymbol *)fd);
     }
-    buf.printf("%llu%s", (ulonglong)strlen(id), id);
-    id = buf.toChars();
-    buf.data = NULL;
-    //printf("Dsymbol::mangle() %s = %s\n", toChars(), id);
-    return id;
+
+    // ditto
+    void visit(FuncAliasDeclaration *fd)
+    {
+        FuncDeclaration *f = fd->toAliasFunc();
+        FuncAliasDeclaration *fa = f->isFuncAliasDeclaration();
+        if (!fd->hasOverloads && !fa)
+        {
+            mangleExact(f);
+            return;
+        }
+        if (fa)
+        {
+            fa->accept(this);
+            return;
+        }
+        visit((Dsymbol *)fd);
+    }
+
+    void mangleExact(FuncDeclaration *fd)
+    {
+        assert(!fd->isFuncAliasDeclaration());
+
+        if (fd->mangleOverride)
+        {
+            result = fd->mangleOverride;
+            return;
+        }
+
+        if (fd->isMain())
+        {
+            result = "_Dmain";
+            return;
+        }
+
+        if (fd->isWinMain() || fd->isDllMain() || fd->ident == Id::tls_get_addr)
+        {
+            result = fd->ident->toChars();
+            return;
+        }
+
+        visit((Declaration *)fd);
+    }
+
+    void visit(VarDeclaration *vd)
+    {
+        if (vd->mangleOverride)
+        {
+            result = vd->mangleOverride;
+            return;
+        }
+
+        visit((Declaration *)vd);
+    }
+
+    void visit(TypedefDeclaration *td)
+    {
+        //printf("TypedefDeclaration::mangle() '%s'\n", toChars());
+        visit((Dsymbol *)td);
+    }
+
+    void visit(AggregateDeclaration *ad)
+    {
+        //printf("AggregateDeclaration::mangle() '%s'\n", ad->toChars());
+        if (Dsymbol *p = ad->toParent2())
+        {
+            if (FuncDeclaration *fd = p->isFuncDeclaration())
+            {
+                // This might be the Voldemort Type
+                bool save = isv;
+                isv = fd->inferRetType || getFuncTemplateDecl(fd);
+                visit((Dsymbol *)ad);
+                isv = save;
+                //printf("isv ad %s, %s\n", ad->toChars(), result);
+                return;
+            }
+        }
+
+        visit((Dsymbol *)ad);
+    }
+
+    void visit(StructDeclaration *sd)
+    {
+        //printf("StructDeclaration::mangle() '%s'\n", sd->toChars());
+        visit((AggregateDeclaration *)sd);
+    }
+
+    void visit(ClassDeclaration *cd)
+    {
+        Dsymbol *parentsave = cd->parent;
+
+        //printf("ClassDeclaration::mangle() %s.%s\n", cd->parent->toChars(), cd->toChars());
+
+        /* These are reserved to the compiler, so keep simple
+         * names for them.
+         */
+        if (cd->ident == Id::Exception)
+        {
+            if (cd->parent->ident == Id::object)
+                cd->parent = NULL;
+        }
+        else if (cd->ident == Id::TypeInfo ||
+            cd->ident == Id::TypeInfo_Struct ||
+            cd->ident == Id::TypeInfo_Class ||
+            cd->ident == Id::TypeInfo_Typedef ||
+            cd->ident == Id::TypeInfo_Tuple ||
+            cd == ClassDeclaration::object ||
+            cd == Type::typeinfoclass ||
+            cd == Module::moduleinfo ||
+            strncmp(cd->ident->toChars(), "TypeInfo_", 9) == 0)
+            cd->parent = NULL;
+
+        visit((AggregateDeclaration *)cd);
+        cd->parent = parentsave;
+        return;
+    }
+
+    void visit(TemplateInstance *ti)
+    {
+        OutBuffer buf;
+
+    #if 0
+        printf("TemplateInstance::mangle() %p %s", ti, ti->toChars());
+        if (ti->parent)
+            printf("  parent = %s %s", ti->parent->kind(), ti->parent->toChars());
+        printf("\n");
+    #endif
+        ti->getIdent();
+        const char *id = ti->ident ? ti->ident->toChars() : ti->toChars();
+        if (!ti->tempdecl)
+            ti->error("is not defined");
+        else
+        {
+            Dsymbol *par = ti->isTemplateMixin() ? ti->parent : ti->tempdecl->parent;
+            if (par)
+            {
+                FuncDeclaration *f = par->isFuncDeclaration();
+                if (f)
+                    mangleExact(f);
+                else
+                    par->accept(this);
+                if (result[0] == '_' && result[1] == 'D')
+                    result += 2;
+                buf.writestring(result);
+            }
+        }
+        buf.printf("%llu%s", (ulonglong)strlen(id), id);
+        id = buf.extractString();
+        //printf("TemplateInstance::mangle() %s = %s\n", ti->toChars(), ti->id);
+        result = id;
+    }
+
+    void visit(Dsymbol *s)
+    {
+    #if 0
+        printf("Dsymbol::mangle() '%s'", s->toChars());
+        if (s->parent)
+            printf("  parent = %s %s", s->parent->kind(), s->parent->toChars());
+        printf("\n");
+    #endif
+
+        char *id = s->ident ? s->ident->toChars() : s->toChars();
+        OutBuffer buf;
+        if (s->parent)
+        {
+            FuncDeclaration *f = s->parent->isFuncDeclaration();
+            if (f)
+                mangleExact(f);
+            else
+                s->parent->accept(this);
+            if (result[0] == '_' && result[1] == 'D')
+                result += 2;
+            buf.writestring(result);
+        }
+        buf.printf("%llu%s", (ulonglong)strlen(id), id);
+        id = buf.extractString();
+        //printf("Dsymbol::mangle() %s = %s\n", s->toChars(), id);
+        result = id;
+    }
+};
+
+const char *mangle(Dsymbol *s, bool isv)
+{
+    Mangler v(isv);
+    s->accept(&v);
+    return v.result;
 }
 
-
+/******************************************************************************
+ * Returns exact mangled name of function.
+ */
+const char *mangleExact(FuncDeclaration *fd, bool isv)
+{
+    Mangler v(isv);
+    v.mangleExact(fd);
+    return v.result;
+}

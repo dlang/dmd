@@ -4,8 +4,7 @@
 // Written by Walter Bright
 /*
  * This source file is made available for personal use
- * only. The license is in /dmd/src/dmd/backendlicense.txt
- * or /dm/src/dmd/backendlicense.txt
+ * only. The license is in backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
@@ -106,13 +105,15 @@ struct ElfObj : Obj
     static int getsegment(const char *name, const char *suffix,
         int type, int flags, int align);
     static void addrel(int seg, targ_size_t offset, unsigned type,
-                        unsigned symidx, targ_size_t val);
+                       unsigned symidx, targ_size_t val);
+    static size_t writerel(int targseg, size_t offset, unsigned type,
+                           unsigned symidx, targ_size_t val);
 };
 
 struct MachObj : Obj
 {
     static int getsegment(const char *sectname, const char *segname,
-        int align, int flags, int flags2 = 0);
+        int align, int flags);
     static void addrel(int seg, targ_size_t offset, symbol *targsym,
         unsigned targseg, int rtype, int val = 0);
 };

@@ -48,7 +48,7 @@ void fECPa() {
         }
         h();
     }
-    static assert( is(typeof(&g!()) == void delegate() pure));
+    static assert( is(typeof(&g!()) == void delegate() pure nothrow @safe));
     static assert(!is(typeof(&g!()) == void delegate()));
 }
 
@@ -92,9 +92,9 @@ template map7017(fun...) if (fun.length >= 1)
     auto map7017()
     {
         struct Result {
-            this(int dummy){}   // impure member function
+            this(int dummy){}   // impure member function -> inferred to pure by fixing issue 10329
         }
-        return Result(0);   // impure call
+        return Result(0);   // impure call -> inferred to pure by fixing issue 10329
     }
 }
 
@@ -104,10 +104,10 @@ void test7017a() pure
 {
     int bar7017(immutable int x) pure nothrow { return 1; }
 
-    static assert(!__traits(compiles, map7017!((){})()));   // should pass, but fails
-    static assert(!__traits(compiles, map7017!q{ 1 }()));   // pass, OK
-    static assert(!__traits(compiles, map7017!foo7017()));  // pass, OK
-    static assert(!__traits(compiles, map7017!bar7017()));  // should pass, but fails
+    static assert(__traits(compiles, map7017!((){})()));
+    static assert(__traits(compiles, map7017!q{ 1 }()));
+    static assert(__traits(compiles, map7017!foo7017()));
+    static assert(__traits(compiles, map7017!bar7017()));
 }
 
 /***************************************************/
@@ -160,6 +160,36 @@ pure string escapeShellArguments()
 }
 
 /***************************************************/
+// 8504
+
+void foo8504()()
+{
+    static assert(typeof(foo8504!()).stringof == "void()");
+    static assert(typeof(foo8504!()).mangleof == "FZv");
+    static assert(foo8504!().mangleof == "_D13testInference12__T7foo8504Z7foo8504FZv");
+}
+
+auto toDelegate8504a(F)(auto ref F fp) { return fp; }
+   F toDelegate8504b(F)(auto ref F fp) { return fp; }
+
+extern(C) void testC8504() {}
+
+void test8504()
+{
+    static assert(typeof(foo8504!()).stringof == "pure nothrow @safe void()");
+    static assert(typeof(foo8504!()).mangleof == "FNaNbNfZv");
+    static assert(foo8504!().mangleof == "_D13testInference12__T7foo8504Z7foo8504FNaNbNfZv");
+
+    auto fp1 = toDelegate8504a(&testC8504);
+    auto fp2 = toDelegate8504b(&testC8504);
+    static assert(is(typeof(fp1) == typeof(fp2)));
+    static assert(typeof(fp1).stringof == "extern (C) void function()");
+    static assert(typeof(fp2).stringof == "extern (C) void function()");
+    static assert(typeof(fp1).mangleof == "PUZv");
+    static assert(typeof(fp2).mangleof == "PUZv");
+}
+
+/***************************************************/
 // 8751
 
 alias bool delegate(in int) pure Bar8751;
@@ -201,6 +231,175 @@ struct A9072(T)
 void test9072()
 {
     A9072!int a = A9072!short();
+}
+
+/***************************************************/
+// 5933 + Issue 8504 - Template attribute inferrence doesn't work
+
+int foo5933()(int a) { return a*a; }
+struct S5933
+{
+    double foo()(double a) { return a * a; }
+}
+// outside function
+static assert(typeof(foo5933!()).stringof == "pure nothrow @safe int(int a)");
+static assert(typeof(S5933.init.foo!()).stringof == "pure nothrow @safe double(double a)");
+
+void test5933()
+{
+    // inside function
+    static assert(typeof(foo5933!()).stringof == "pure nothrow @safe int(int a)");
+    static assert(typeof(S5933.init.foo!()).stringof == "pure nothrow @safe double(double a)");
+}
+
+/***************************************************/
+// 10002
+
+void impure10002() {}
+void remove10002(alias pred, bool impure = false, Range)(Range range)
+{
+    pred(range[0]);
+    static if (impure) impure10002();
+}
+class Node10002
+{
+    Node10002 parent;
+    Node10002[] children;
+
+    void foo() pure
+    {
+        parent.children.remove10002!(n => n is parent)();
+        remove10002!(n => n is parent)(parent.children);
+        static assert(!__traits(compiles, parent.children.remove10002x!(n => n is parent, true)()));
+        static assert(!__traits(compiles, remove10002x!(n => n is parent, true)(parent.children)));
+
+        Node10002 p;
+        p.children.remove10002!(n => n is p)();
+        remove10002!(n => n is p)(p.children);
+        static assert(!__traits(compiles, p.children.remove10002x!(n => n is p, true)()));
+        static assert(!__traits(compiles, remove10002x!(n => n is p, true)(p.children)));
+    }
+}
+
+/***************************************************/
+// 10148
+
+void fa10148() {}  // fa is @system
+
+auto fb10148(T)()
+{
+    struct A(S)
+    {
+        // [4] Parent function fb is already inferred to @safe, then
+        // fc is forcely marked @safe on default until 2.052.
+        // But fc should keep attribute inference ability
+        // by overriding the inherited @safe-ty from its parent.
+        void fc(T2)()
+        {
+            // [5] During semantic3 process, fc is not @safe on default.
+            static assert(is(typeof(&fc) == void delegate()));
+            fa10148();
+        }
+        // [1] this is now inferred to @safe by implementing issue 7511
+        this(S a) {}
+    }
+
+    // [2] A!int(0) is now calling @safe function, then fb!T also be inferred to @safe
+    return A!int(0);
+}
+
+void test10148()
+{
+    fb10148!int.fc!int;  // [0] instantiate fb
+                         // [3] instantiate fc
+
+    // [6] Afer semantic3 done, fc!int is deduced to @system.
+    static assert(is(typeof(&fb10148!int.fc!int) == void delegate() @system));
+}
+
+/***************************************************/
+// 10289
+
+void test10289()
+{
+    void foo(E)()
+    {
+        throw new E("");
+    }
+    void bar(E1, E2)()
+    {
+        throw new E1("");
+        throw new E2("");
+    }
+    void baz(E1, E2)(bool cond)
+    {
+        if (cond)
+            throw new E1("");
+        else
+            throw new E2("");
+    }
+
+    import core.exception;
+    static class MyException : Exception
+    {
+        this(string) @safe pure nothrow { super(""); }
+    }
+
+    static assert( __traits(compiles, () nothrow { foo!Error(); }));
+    static assert( __traits(compiles, () nothrow { foo!AssertError(); }));
+
+    static assert(!__traits(compiles, () nothrow { foo!Exception(); }));
+    static assert(!__traits(compiles, () nothrow { foo!MyException(); }));
+
+    static assert( __traits(compiles, () nothrow { bar!(Error, Exception)(); }));
+    static assert(!__traits(compiles, () nothrow { bar!(Exception, Error)(); }));
+
+    static assert(!__traits(compiles, () nothrow { baz!(Error, Exception)(); }));
+    static assert(!__traits(compiles, () nothrow { baz!(Exception, Error)(); }));
+}
+
+/***************************************************/
+// 10296
+
+void foo10296()()
+{
+    int[3] a;
+
+    void bar()() { a[1] = 2; }
+    bar();
+    pragma(msg, typeof(bar!()));    // nothrow @safe void()
+}
+pure void test10296()
+{
+    foo10296();
+}
+
+/***************************************************/
+// 12025
+
+struct Foo12025
+{
+    int[5] bar;
+}
+
+void test12025a() pure
+{
+    enum n1 = typeof(Foo12025.bar).length;  // OK
+    enum n2 =        Foo12025.bar .length;  // OK <- error
+
+    auto x1 = typeof(Foo12025.bar).length;  // OK
+    auto x2 =        Foo12025.bar .length;  // OK <- error
+}
+
+void test12025b() pure
+{
+    static int[5] bar;
+
+    enum n1 = typeof(bar).length;  // OK
+    enum n2 =        bar .length;  // OK <- error
+
+    auto x1 = typeof(bar).length;  // OK
+    auto x2 =        bar .length;  // OK <- error
 }
 
 /***************************************************/

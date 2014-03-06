@@ -5,8 +5,7 @@
 // Written by Walter Bright
 /*
  * This source file is made available for personal use
- * only. The license is in /dmd/src/dmd/backendlicense.txt
- * or /dm/src/dmd/backendlicense.txt
+ * only. The license is in backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
@@ -47,10 +46,6 @@
 
 #ifndef STATIC
 #define STATIC  static
-#endif
-
-#ifndef CEXTERN
-#define CEXTERN extern
 #endif
 
 // Warnings
@@ -206,6 +201,7 @@ extern Config config;
 typedef struct Srcpos
 {
     unsigned Slinnum;           // 0 means no info available
+    unsigned Scharnum;
 #if SPP || SCPP
     struct Sfile **Sfilptr;     // file
     #define srcpos_sfile(p)     (**(p).Sfilptr)
@@ -373,9 +369,9 @@ typedef enum SC enum_SC;
  */
 
 #if MARS
-struct ClassDeclaration;
-struct Declaration;
-struct Module;
+class ClassDeclaration;
+class Declaration;
+class Module;
 #endif
 
 struct Blockx
@@ -546,8 +542,11 @@ typedef struct block
         // CODGEN
         struct
         {
-            targ_size_t Btablesize;     // BCswitch, BCjmptab
-            targ_size_t Btableoffset;   // BCswitch, BCjmptab
+            // For BCswitch, BCjmptab
+            targ_size_t Btablesize;     // size of generated table
+            targ_size_t Btableoffset;   // offset to start of table
+            targ_size_t Btablebase;     // offset to instruction pointer base
+
             targ_size_t Boffset;        // code offset of start of this block
             targ_size_t Bsize;          // code size of this block
             con_t       Bregcon;        // register state at block exit
@@ -555,6 +554,7 @@ typedef struct block
 
             #define Btablesize          _BLU._UD.Btablesize
             #define Btableoffset        _BLU._UD.Btableoffset
+            #define Btablebase          _BLU._UD.Btablebase
             #define Boffset             _BLU._UD.Boffset
             #define Bsize               _BLU._UD.Bsize
 //          #define Bcode               _BLU._UD.Bcode
@@ -562,6 +562,11 @@ typedef struct block
             #define Btryoff             _BLU._UD.Btryoff
         } _UD;
     } _BLU;
+
+    void appendSucc(block *b)  { list_append(&this->Bsucc, b); }
+    void prependSucc(block *b) { list_prepend(&this->Bsucc, b); }
+    int numSucc() { return list_nitems(this->Bsucc); }
+    block *nthSucc(int n) { return (block *)list_ptr(list_nth(Bsucc, n)); }
 } block;
 
 #define list_block(l)   ((block *) list_ptr(l))
@@ -1084,6 +1089,7 @@ struct Symbol
     Symbol *Snext;              // next in threaded list
     dt_t *Sdt;                  // variables: initializer
     int Salignment;             // variables: alignment, 0 or -1 means default alignment
+    int Salignsize();           // variables: return alignment
     type *Stype;                // type of Symbol
     #define ty() Stype->Tty
 
@@ -1219,6 +1225,7 @@ struct Symbol
         #define SFLnodebug      0x20000 // don't generate debug info
         #define SFLwasstatic    0x800000 // was an uninitialized static
         #define SFLweak         0x1000000 // resolve to NULL if not found
+        #define SFLartifical    0x4000000 // compiler generated symbol
 
         // CPP
         #define SFLnodtor       0x10    // set if destructor for Symbol is already called
@@ -1301,7 +1308,8 @@ struct Symbol
     char Sident[SYM_PREDEF_SZ]; // identifier string (dynamic array)
                                 // (the size is for static Symbols)
 
-    int needThis();     // !=0 if symbol needs a 'this' pointer
+    int needThis();             // !=0 if symbol needs a 'this' pointer
+    bool Sisdead(bool anyiasm); // if variable is not referenced
 };
 
 #if __DMC__
@@ -1414,7 +1422,6 @@ enum FL
         FLfast,         // ref to variable passed as register
         FLpara,         // ref to function parameter variable
         FLextern,       // ref to external variable
-        FLtmp,          // ref to a stack temporary, int contains temp number
         FLcode,         // offset to code
         FLblock,        // offset to block
         FLudata,        // ref to udata segment variable
@@ -1483,6 +1490,7 @@ typedef struct Sfile
     symlist_t SFtemp_ft;        // template_ftlist
     symlist_t SFtemp_class;     // template_class_list
     Symbol   *SFtagsymdefs;     // list of tag names (C only)
+    char     *SFinc_once_id;    // macro include guard identifier
     unsigned SFhashval;         // hash of file name
 } Sfile;
 
@@ -1495,7 +1503,11 @@ typedef struct Srcfiles
 {
 //  Sfile *arr;         // array of Sfiles
     Sfile **pfiles;     // parallel array of pointers into arr[]
+#if SPP
+    #define SRCFILES_MAX (2*512*4)      // no precompiled headers for SPP
+#else
     #define SRCFILES_MAX (2*512)
+#endif
     unsigned dim;       // dimension of array
     unsigned idx;       // # used in array
 } Srcfiles;
@@ -1539,6 +1551,7 @@ enum
 extern Symbol *rtlsym[RTLSYM_MAX];
 
 // Different goals for el_optimize()
+typedef unsigned goal_t;
 #define GOALnone        0       // evaluate for side effects only
 #define GOALvalue       1       // evaluate for value
 #define GOALflags       2       // evaluate for flags
@@ -1561,5 +1574,114 @@ struct Declar
 };
 
 extern Declar gdeclar;
+
+/**********************************
+ * Data definitions
+ *      DTibytes        1..7 bytes
+ *      DTabytes        offset of bytes of data
+ *                      a { a data bytes }
+ *      DTnbytes        bytes of data
+ *                      a { a data bytes }
+ *                      a = offset
+ *      DTazeros        # of 0 bytes
+ *                      a
+ *      DTsymsize       same as DTazeros, but the type of the symbol gives
+ *                      the size
+ *      DTcommon        # of 0 bytes (in a common block)
+ *                      a
+ *      DTxoff          offset from symbol
+ *                      w a
+ *                      w = symbol number (pointer for CPP)
+ *                      a = offset
+ *      DTcoff          offset into code segment
+ *      DTend           mark end of list
+ */
+
+struct dt_t
+{   dt_t *DTnext;                       // next in list
+    char dt;                            // type (DTxxxx)
+    unsigned char Dty;                  // pointer type
+    union
+    {
+        struct                          // DTibytes
+        {   char DTn_;                  // number of bytes
+            #define DTn _DU._DI.DTn_
+            char DTdata_[8];            // data
+            #define DTdata _DU._DI.DTdata_
+        }_DI;
+        targ_size_t DTazeros_;          // DTazeros,DTcommon,DTsymsize
+        #define DTazeros _DU.DTazeros_
+        struct                          // DTabytes
+        {
+            char *DTpbytes_;            // pointer to the bytes
+            #define DTpbytes _DU._DN.DTpbytes_
+            unsigned DTnbytes_;         // # of bytes
+            #define DTnbytes _DU._DN.DTnbytes_
+            int DTseg_;                 // segment it went into
+            #define DTseg _DU._DN.DTseg_
+            targ_size_t DTabytes_;              // offset of abytes for DTabytes
+            #define DTabytes _DU._DN.DTabytes_
+        }_DN;
+        struct                          // DTxoff
+        {
+            symbol *DTsym_;             // symbol pointer
+            #define DTsym _DU._DS.DTsym_
+            targ_size_t DToffset_;      // offset from symbol
+            #define DToffset _DU._DS.DToffset_
+        }_DS;
+    }_DU;
+};
+
+enum
+{
+    DT_abytes,
+    DT_azeros,  // 1
+    DT_xoff,
+    DT_nbytes,
+    DT_common,
+    DT_symsize,
+    DT_coff,
+    DT_ibytes, // 7
+};
+
+// An efficient way to clear aligned memory
+#define MEMCLEAR(p,sz)                  \
+    if ((sz) == 10 * sizeof(size_t))    \
+    {                                   \
+        ((size_t *)(p))[0] = 0;         \
+        ((size_t *)(p))[1] = 0;         \
+        ((size_t *)(p))[2] = 0;         \
+        ((size_t *)(p))[3] = 0;         \
+        ((size_t *)(p))[4] = 0;         \
+        ((size_t *)(p))[5] = 0;         \
+        ((size_t *)(p))[6] = 0;         \
+        ((size_t *)(p))[7] = 0;         \
+        ((size_t *)(p))[8] = 0;         \
+        ((size_t *)(p))[9] = 0;         \
+    }                                   \
+    else if ((sz) == 14 * sizeof(size_t))       \
+    {                                   \
+        ((size_t *)(p))[0] = 0;         \
+        ((size_t *)(p))[1] = 0;         \
+        ((size_t *)(p))[2] = 0;         \
+        ((size_t *)(p))[3] = 0;         \
+        ((size_t *)(p))[4] = 0;         \
+        ((size_t *)(p))[5] = 0;         \
+        ((size_t *)(p))[6] = 0;         \
+        ((size_t *)(p))[7] = 0;         \
+        ((size_t *)(p))[8] = 0;         \
+        ((size_t *)(p))[9] = 0;         \
+        ((size_t *)(p))[10] = 0;        \
+        ((size_t *)(p))[11] = 0;        \
+        ((size_t *)(p))[12] = 0;        \
+        ((size_t *)(p))[13] = 0;        \
+    }                                   \
+    else                                \
+    {                                   \
+        /*printf("%s(%d) sz = %d\n",__FILE__,__LINE__,(sz));fflush(stdout);*(char*)0=0;*/  \
+        for (size_t i = 0; i < sz / sizeof(size_t); ++i)        \
+            ((size_t *)(p))[i] = 0;                             \
+    }
+
 
 #endif

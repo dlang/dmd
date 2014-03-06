@@ -1,8 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice5996.d(9): Error: undefined identifier anyOldGarbage
-fail_compilation/ice5996.d(12): Error: CTFE failed because of previous errors in bug5996
+fail_compilation/ice5996.d(8): Error: undefined identifier anyOldGarbage
 ---
 */
 auto bug5996() {

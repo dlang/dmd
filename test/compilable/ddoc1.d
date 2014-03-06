@@ -1,10 +1,10 @@
 // PERMUTE_ARGS:
-// REQUIRED_ARGS: -D -Ddtest_results/compilable -o-
+// REQUIRED_ARGS: -D -Dd${RESULTS_DIR}/compilable -o-
 // POST_SCRIPT: compilable/extra-files/ddocAny-postscript.sh 1
 // REQUIRED_ARGS: -d
 
 /** This module is for ABC
- * Copyright: Copyright &copy; $(YEAR)
+ * Copyright: Copyright &copy;
  */
 
 module abc;
@@ -22,7 +22,7 @@ typedef int mytypedefint;
  * #include <stdio.h>
   * void main()
  * {
- *	printf("hello\n");
+ * 	printf("hello\n");
  * }
  * -----
  * Copyright: 1998

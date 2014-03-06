@@ -30,6 +30,16 @@
 #   PERMUTE_ARGS:        the set of arguments to permute in multiple $(DMD) invocations
 #                        default: the make variable ARGS (see below)
 #
+#   TEST_OUTPUT:         the output is expected from the compilation (if the
+#                        output of the compilation doesn't match, the test
+#                        fails). You can use the this format for multi-line
+#                        output:
+#                        TEST_OUTPUT:
+#                        ---
+#                        Some
+#                        Output
+#                        ---
+#
 #   POST_SCRIPT:         name of script to execute after test run
 #                        note: arguments to the script may be included after the name.
 #                              additionally, the name of the file that contains the output
@@ -51,7 +61,7 @@ ifeq (,$(OS))
         OS:=osx
     else
         ifeq (Linux,$(OS))
-            OS:=posix
+            OS:=linux
         else
             ifeq (FreeBSD,$(OS))
                 OS:=freebsd
@@ -123,14 +133,12 @@ endif
 ifeq ($(OS),win64)
 DISABLED_TESTS += testargtypes
 DISABLED_TESTS += testxmm
-
-DISABLED_SH_TESTS += test39
 endif
 
 runnable_tests=$(wildcard runnable/*.d) $(wildcard runnable/*.sh)
 runnable_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(runnable_tests)))
 
-compilable_tests=$(wildcard compilable/*.d)
+compilable_tests=$(wildcard compilable/*.d) $(wildcard compilable/*.sh)
 compilable_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(compilable_tests)))
 
 fail_compilation_tests=$(wildcard fail_compilation/*.d) $(wildcard fail_compilation/*.html)
@@ -145,20 +153,24 @@ $(addsuffix .sh.out,$(addprefix $(RESULTS_DIR)/runnable/,$(DISABLED_SH_TESTS))):
 	$(QUIET) echo " ... $@ - disabled"
 
 $(RESULTS_DIR)/runnable/%.d.out: runnable/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test $(DMD)
-	$(QUIET) ./$(RESULTS_DIR)/d_do_test $(<D) $* d
+	$(QUIET) $(RESULTS_DIR)/d_do_test $(<D) $* d
 
 $(RESULTS_DIR)/runnable/%.sh.out: runnable/%.sh $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test $(DMD)
 	$(QUIET) echo " ... $(<D)/$*.sh"
 	$(QUIET) ./$(<D)/$*.sh
 
 $(RESULTS_DIR)/compilable/%.d.out: compilable/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test $(DMD)
-	$(QUIET) ./$(RESULTS_DIR)/d_do_test $(<D) $* d
+	$(QUIET) $(RESULTS_DIR)/d_do_test $(<D) $* d
+
+$(RESULTS_DIR)/compilable/%.sh.out: compilable/%.sh $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test $(DMD)
+	$(QUIET) echo " ... $(<D)/$*.sh"
+	$(QUIET) ./$(<D)/$*.sh
 
 $(RESULTS_DIR)/fail_compilation/%.d.out: fail_compilation/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test $(DMD)
-	$(QUIET) ./$(RESULTS_DIR)/d_do_test $(<D) $* d
+	$(QUIET) $(RESULTS_DIR)/d_do_test $(<D) $* d
 
 $(RESULTS_DIR)/fail_compilation/%.html.out: fail_compilation/%.html $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test $(DMD)
-	$(QUIET) ./$(RESULTS_DIR)/d_do_test $(<D) $* html
+	$(QUIET) $(RESULTS_DIR)/d_do_test $(<D) $* html
 
 quick:
 	$(MAKE) ARGS="" run_tests
@@ -198,5 +210,6 @@ start_fail_compilation_tests: $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test
 $(RESULTS_DIR)/d_do_test: d_do_test.d $(RESULTS_DIR)/.created
 	@echo "Building d_do_test tool"
 	@echo "OS: $(OS)"
+	$(QUIET)$(DMD) -m$(MODEL) -unittest -run d_do_test.d -unittest
 	$(QUIET)$(DMD) -m$(MODEL) -od$(RESULTS_DIR) -of$(RESULTS_DIR)$(DSEP)d_do_test d_do_test.d
 

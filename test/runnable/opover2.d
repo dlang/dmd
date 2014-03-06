@@ -564,7 +564,7 @@ void test13()
     assert(opeq == 4);
 
     // built-in opEquals == const bool opEquals(const S rhs);
-    assert(!s.opEquals(s));
+    assert(s != s);
     assert(opeq == 5);
 
     // xopEquals
@@ -605,7 +605,11 @@ void test15()
     struct S
     {
         const bool opEquals(T)(const(T) rhs)
-        if (!is(T == typeof(this)))
+        if (!is(T == S))
+        { return false; }
+
+        @disable const bool opEquals(T)(const(T) rhs)
+        if (is(T == S))
         { return false; }
     }
 
@@ -662,6 +666,160 @@ void test17()
     static assert(!__traits(compiles, csa == sa1));
     static assert(!__traits(compiles, sa1 == csa));
     static assert(!__traits(compiles, csa == csa));
+}
+
+/**************************************/
+// 3789
+
+bool test3789()
+{
+    static struct Float
+    {
+        double x;
+    }
+    Float f;
+    assert(f.x != f.x); // NaN != NaN
+    assert(f != f);
+
+    static struct Array
+    {
+        int[] x;
+    }
+    Array a1 = Array([1,2,3].dup);
+    Array a2 = Array([1,2,3].dup);
+    if (!__ctfe)
+    {   // Currently doesn't work this in CTFE - may or may not a bug.
+        assert(a1.x !is a2.x);
+    }
+    assert(a1.x == a2.x);
+    assert(a1 == a2);
+
+    static struct AA
+    {
+        int[int] x;
+    }
+    AA aa1 = AA([1:1,2:2,3:3]);
+    AA aa2 = AA([1:1,2:2,3:3]);
+    if (!__ctfe)
+    {   // Currently doesn't work this in CTFE - may or may not a bug.
+        assert(aa1.x !is aa2.x);
+    }
+    if (!__ctfe)
+    {   // This is definitely a bug. Should work in CTFE.
+        assert(aa1.x == aa2.x);
+        assert(aa1 == aa2);
+    }
+
+    if (!__ctfe)
+    {   // Currently union operation is not supported in CTFE.
+        union U1
+        {
+            double x;
+        }
+        static struct UnionA
+        {
+            int[] a;
+            U1 u;
+        }
+        auto ua1 = UnionA([1,2,3]);
+        auto ua2 = UnionA([1,2,3]);
+        assert(ua1.u.x is ua2.u.x);
+        assert(ua1.u.x != ua2.u.x);
+        assert(ua1 == ua2);
+        ua1.u.x = 1.0;
+        ua2.u.x = 1.0;
+        assert(ua1.u.x is ua2.u.x);
+        assert(ua1.u.x == ua2.u.x);
+        assert(ua1 == ua2);
+        ua1.u.x = double.nan;
+        assert(ua1.u.x !is ua2.u.x);
+        assert(ua1.u.x !=  ua2.u.x);
+        assert(ua1 != ua2);
+
+        union U2
+        {
+            int[] a;
+        }
+        static struct UnionB
+        {
+            double x;
+            U2 u;
+        }
+        auto ub1 = UnionB(1.0);
+        auto ub2 = UnionB(1.0);
+        assert(ub1 == ub2);
+        ub1.u.a = [1,2,3].dup;
+        ub2.u.a = [1,2,3].dup;
+        assert(ub1.u.a !is ub2.u.a);
+        assert(ub1.u.a  == ub2.u.a);
+        assert(ub1 != ub2);
+        ub2.u.a = ub1.u.a;
+        assert(ub1.u.a is ub2.u.a);
+        assert(ub1.u.a == ub2.u.a);
+        assert(ub1 == ub2);
+    }
+
+    if (!__ctfe)
+    {   // This is definitely a bug. Should work in CTFE.
+        static struct Class
+        {
+            Object x;
+        }
+        static class X
+        {
+            override bool opEquals(Object o){ return true; }
+        }
+
+        Class c1a = Class(new Object());
+        Class c2a = Class(new Object());
+        assert(c1a.x !is c2a.x);
+        assert(c1a.x != c2a.x);
+        assert(c1a != c2a); // Pass, Object.opEquals works like bitwise compare
+
+        Class c1b = Class(new X());
+        Class c2b = Class(new X());
+        assert(c1b.x !is c2b.x);
+        assert(c1b.x == c2b.x);
+        assert(c1b == c2b); // Fails, should pass
+    }
+    return true;
+}
+static assert(test3789());
+
+/**************************************/
+// 10037
+
+struct S10037
+{
+    bool opEquals(ref const S10037) { assert(0); }
+}
+
+struct T10037
+{
+    S10037 s;
+    // Compiler should not generate 'opEquals' here implicitly:
+}
+
+struct Sub10037(TL...)
+{
+    TL data;
+    int value;
+    alias value this;
+}
+
+void test10037()
+{
+    S10037 s;
+    T10037 t;
+    static assert( __traits(hasMember, S10037, "opEquals"));
+    static assert(!__traits(hasMember, T10037, "opEquals"));
+    assert(thrown!Error(s == s));
+    assert(thrown!Error(t == t));
+
+    Sub10037!(S10037) lhs;
+    Sub10037!(S10037) rhs;
+    static assert(!__traits(hasMember, Sub10037!(S10037), "opEquals"));
+    assert(lhs == rhs);     // lowered to: lhs.value == rhs.value
 }
 
 /**************************************/
@@ -923,6 +1081,439 @@ void test19()
 }
 
 /**************************************/
+// 9453
+
+struct Foo9453
+{
+    static int ctor = 0;
+
+    this(string bar) { ++ctor; }
+
+    void opIndex(size_t i) const {}
+    void opSlice(size_t s, size_t e) const {}
+
+    size_t opDollar(int dim)() const if (dim == 0) { return 1; }
+}
+
+void test9453()
+{
+    assert(Foo9453.ctor == 0);  Foo9453("bar")[$-1];
+    assert(Foo9453.ctor == 1);  Foo9453("bar")[0..$];
+    assert(Foo9453.ctor == 2);
+}
+
+/**************************************/
+// 9496
+
+struct S9496
+{
+	static S9496* ptr;
+
+    size_t opDollar()
+    {
+        assert(ptr is &this);
+        return 10;
+    }
+    void opSlice(size_t , size_t)
+    {
+        assert(ptr is &this);
+    }
+    void getSlice()
+    {
+        assert(ptr is &this);
+        this[1 .. opDollar()];
+        this[1 .. $];
+    }
+}
+
+void test9496()
+{
+    S9496 s;
+    S9496.ptr = &s;
+    s.getSlice();
+    s[1 .. $];
+}
+
+/**************************************/
+// 9689
+
+struct B9689(T)
+{
+    T val;
+    @disable this(this);
+
+    bool opEquals(this X, B)(auto ref B b)
+    {
+        //pragma(msg, "+", X, ", B = ", B, ", ref = ", __traits(isRef, b));
+        return this.val == b.val;
+        //pragma(msg, "-", X, ", B = ", B, ", ref = ", __traits(isRef, b));
+    }
+}
+
+struct S9689
+{
+    B9689!int num;
+}
+
+void test9689()
+{
+    B9689!S9689 b;
+}
+
+/**************************************/
+// 9694
+
+struct S9694
+{
+    bool opEquals(ref S9694 rhs)
+    {
+        assert(0);
+    }
+}
+struct T9694
+{
+    S9694 s;
+}
+void test9694()
+{
+    T9694 t;
+    assert(thrown!Error(typeid(T9694).equals(&t, &t)));
+}
+
+/**************************************/
+// 10064
+
+void test10064()
+{
+    static struct S
+    {
+        int x = 3;
+
+        @disable this();
+
+        this(int)
+        { x = 7; }
+
+        int opSlice(size_t, size_t)
+        { return 0; }
+
+        @property size_t opDollar()
+        {
+            assert(x == 7 || x == 3); // fails
+            assert(x == 7);
+            return 0;
+        }
+    }
+    auto x = S(0)[0 .. $];
+}
+
+/**************************************/
+// 10394
+
+void test10394()
+{
+    alias Seq!(int, int) Pair;
+    Pair pair;
+
+    struct S1
+    {
+        int opBinary(string op)(Pair) { return 1;  }
+        bool opEquals(Pair) { return true; }
+        int opOpAssign(string op)(Pair) { return 1; }
+    }
+    S1 s1;
+    assert((s1 + pair) == 1);
+    assert((s1 == pair) == true);
+    assert((s1 *= pair) == 1);
+
+    struct S2
+    {
+        int opBinaryRight(string op)(Pair lhs) { return 1;  }
+        int opCmp(Pair) { return -1; }
+    }
+    S2 s2;
+    assert((pair in s2) == 1);
+    assert(s2 < pair);
+}
+
+/**************************************/
+// 10597
+
+struct R10597
+{
+    void opIndex(int) {}
+    void opSlice(int, int) {}
+    int opDollar();
+}
+R10597 r;
+
+struct S10597
+{
+    static assert(is(typeof(r[0]))); //ok
+    static assert(is(typeof(r[$]))); //fails
+
+    static assert(is(typeof(r[0..0]))); //ok
+    static assert(is(typeof(r[$..$]))); //fails
+
+    void foo()
+    {
+        static assert(is(typeof(r[0]))); //ok
+        static assert(is(typeof(r[$]))); //ok
+
+        static assert(is(typeof(r[0..0]))); //ok
+        static assert(is(typeof(r[$..$]))); //ok
+    }
+}
+
+static assert(is(typeof(r[0]))); //ok
+static assert(is(typeof(r[$]))); //fails
+
+static assert(is(typeof(r[0..0]))); //ok
+static assert(is(typeof(r[$..$]))); //fails
+
+void test10597()
+{
+    static assert(is(typeof(r[0]))); //ok
+    static assert(is(typeof(r[$]))); //ok
+
+    static assert(is(typeof(r[0..0]))); //ok
+    static assert(is(typeof(r[$..$]))); //ok
+}
+
+/**************************************/
+// 10567
+
+// doesn't require thunk
+struct S10567x1n { int value; int opCmp(ref const S10567x1n rhs) const { return 0; } }
+
+// requires thunk
+struct S10567y1n { int value; int opCmp(const S10567y1n rhs) const { return 0; } }
+struct S10567y1t { int value; int opCmp(S)(const S rhs) const { return 0; } }
+
+// doesn't support const comparison
+struct S10567z1n { int value; int opCmp(const S10567z1n rhs) { return 0; } }
+struct S10567z1t { int value; int opCmp(S)(const S rhs) { return 0; } }
+
+/+
+struct S10567x2n { S10567x1n s; this(int n) { s = typeof(s)(n); } alias s this; }
+
+struct S10567y2n { S10567y1n s; this(int n) { s = typeof(s)(n); } alias s this; }
+struct S10567y2t { S10567y1t s; this(int n) { s = typeof(s)(n); } alias s this; }
+
+struct S10567z2n { S10567z1n s; this(int n) { s = typeof(s)(n); } alias s this; }
+struct S10567z2t { S10567z1t s; this(int n) { s = typeof(s)(n); } alias s this; }
+
+struct S10567d1
+{
+    int value;
+    int opDispatch(string name, S)(const S rhs) const if (name == "opCmp")
+    { assert(0); }
+}
+struct S10567d2
+{
+    int value;
+    template opDispatch(string name) if (name == "opCmp")
+    {
+        int opDispatch(const S rhs) const
+        { assert(0); }
+    }
+}
+
+// recursive alias this + opCmp searching
+struct S10567r1
+{
+    static S10567r2 t;
+    ref S10567r2 payload() { return t; }
+    alias payload this;
+
+    int opCmp(const S10567r1 s) const { return 0; }
+}
+struct S10567r2
+{
+    static S10567r1 s;
+    ref S10567r1 payload() { return s; }
+    alias payload this;
+}
++/
+
+void test10567()
+{
+    foreach (S; Seq!(S10567x1n/+, S10567x2n+/))
+    {
+        S sx = S(1);
+        S sy = S(2);
+        assert(!(sx < sy) && !(sx > sy));
+        assert(sx.opCmp(sy) == 0);
+
+        assert(typeid(S).compare(&sx, &sy) == 0);
+        static if (is(S == S10567x1n))
+            assert(cast(void*)typeid(S).xopCmp == cast(void*)&S.opCmp, S.stringof);
+    }
+
+    foreach (S; Seq!(S10567y1n, S10567y1t/+, S10567y2n, S10567y2t+/))
+    {
+        S sx = S(1);
+        S sy = S(2);
+        assert(!(sx < sy) && !(sx > sy));
+        assert(sx.opCmp(sy) == 0);
+
+        assert(typeid(S).compare(&sx, &sy) == 0);
+    }
+
+    foreach (S; Seq!(S10567z1n, S10567z1t/+, S10567z2n, S10567z2t+/))
+    {
+        S sx = S(1);
+        S sy = S(2);
+        assert(!(sx < sy) && !(sx > sy));
+        assert(sx.opCmp(sy) == 0);
+
+        try
+        {
+            auto x = typeid(S).compare(&sx, &sy);
+            assert(0);
+        }
+        catch (Error e) { assert(e.msg[$-15 .. $] == "not implemented"); }
+    }
+/+
+    foreach (S; Seq!(S10567d1, S10567d2))
+    {
+        int[S] aa;
+        aa[S(1)] = 10;  aa[S(1)] = 1;
+        aa[S(2)] = 20;  aa[S(2)] = 2;
+        assert(aa.length == 2);
+        foreach (k, v; aa)
+            assert(k.value == v);
+
+        S sx = S(1);
+        S sy = S(2);
+
+        // Don't invoke opDispatch!"opCmp"
+        assert(typeid(S).compare(&sx, &sy) != 0);
+    }
++/
+}
+
+/**************************************/
+// 11062
+
+struct S11062ia
+{
+    struct S1
+    {
+        void opIndexAssign(int val, int key) {}
+    }
+    struct S2
+    {
+        S1 headers;
+    }
+
+    private S2 m_obj;
+    @property S2 get() { return m_obj; }
+    alias get this;
+}
+
+struct S11062sa
+{
+    struct S1
+    {
+        void opSliceAssign(int val, int lwr, int upr) {}
+    }
+    struct S2
+    {
+        S1 headers;
+    }
+
+    private S2 m_obj;
+    @property S2 get() { return m_obj; }
+    alias get this;
+}
+
+void test11062()
+{
+    auto sia = S11062ia();
+    sia.headers[1] = 1;     // bug
+
+    auto ssa = S11062sa();
+    ssa.headers[1..2] = 1;  // bug
+}
+
+/**************************************/
+// 11311
+
+void test11311()
+{
+    static int ctor, cpctor, dtor;
+
+    static struct S
+    {
+        this(int)  { ++ctor; }
+        this(this) { ++cpctor; }
+        ~this()    { ++dtor; }
+    }
+    static struct Arr
+    {
+        S data;
+        ref S opIndex(int) { return data; }
+        ref S opSlice(int, int) { return data; }
+    }
+
+    {
+        Arr a = Arr(S(1));
+        assert(ctor == 1);
+        assert(cpctor == 0);
+        assert(dtor == 0);
+
+        auto getA1() { return a; }
+      //getA1().opIndex(1);  // OK
+        getA1()[1];          // NG
+
+        assert(ctor == 1);
+        assert(cpctor == 1);  // getA() returns a copy of a
+        assert(dtor == 1);    // temporary returned by getA() should be destroyed
+    }
+    assert(dtor == 2);
+    assert(ctor + cpctor == dtor);
+
+    ctor = cpctor = dtor = 0;
+
+    {
+        Arr a = Arr(S(1));
+        assert(ctor == 1);
+        assert(cpctor == 0);
+        assert(dtor == 0);
+
+        auto getA2() { return a; }
+      //getA2().opSlice(1, 2);  // OK
+        getA2()[1..2];          // NG
+
+        assert(ctor == 1);
+        assert(cpctor == 1);  // getA() returns a copy of a
+        assert(dtor == 1);    // temporary returned by getA() should be destroyed
+    }
+    assert(dtor == 2);
+    assert(ctor + cpctor == dtor);
+}
+
+/**************************************/
+// 12193
+
+void test12193()
+{
+    struct Foo
+    {
+        bool bar;
+        alias bar this;
+        void opOpAssign(string op)(size_t x)
+        {
+            bar = false;
+        }
+    }
+
+    Foo foo;
+    foo <<= 1;
+}
+
+/**************************************/
 
 int main()
 {
@@ -944,10 +1535,21 @@ int main()
     test15();
     test16();
     test17();
+    test3789();
+    test10037();
     test7641();
     test8434();
     test18();
     test19();
+    test9453();
+    test9496();
+    test9689();
+    test9694();
+    test10064();
+    test10394();
+    test10567();
+    test11062();
+    test11311();
 
     printf("Success\n");
     return 0;

@@ -127,6 +127,68 @@ void test5()
 }
 
 /**********************************************/
+// 4617
+
+struct S4617
+{
+    struct F
+    {
+        int  square(int  n) { return n*n; }
+        real square(real n) { return n*n; }
+    }
+    F forward;
+
+    alias forward this;
+
+    alias forward.square sqr;    // okay
+
+    int field;
+    void mfunc();
+    template Templ(){}
+    void tfunc()(){}
+}
+
+template Id4617(alias k) { alias k Id4617; }
+
+void test4617a()
+{
+    alias Id4617!(S4617.square) test1;            //NG
+    alias Id4617!(S4617.forward.square) test2;    //OK
+
+    alias Id4617!(S4617.sqr) test3;               //okay
+
+    static assert(__traits(isSame, S4617.square, S4617.forward.square));
+}
+
+void test4617b()
+{
+    static struct Sub(T)
+    {
+        T value;
+        @property ref inout(T) payload() inout { return value; }
+        alias payload this;
+    }
+
+    alias Id4617!(S4617.field) S_field;
+    alias Id4617!(S4617.mfunc) S_mfunc;
+    alias Id4617!(S4617.Templ) S_Templ;
+    alias Id4617!(S4617.tfunc) S_tfunc;
+
+    alias Sub!S4617 T4617;
+    alias Id4617!(T4617.field) R_field;
+    alias Id4617!(T4617.mfunc) R_mfunc;
+    alias Id4617!(T4617.Templ) R_Templ;
+    alias Id4617!(T4617.tfunc) R_tfunc;
+    static assert(__traits(isSame, R_field, S_field));
+    static assert(__traits(isSame, R_mfunc, S_mfunc));
+    static assert(__traits(isSame, R_Templ, S_Templ));
+    static assert(__traits(isSame, R_tfunc, S_tfunc));
+
+    alias Id4617!(T4617.square) R_sqr;
+    static assert(__traits(isSame, R_sqr, S4617.forward.square));
+}
+
+/**********************************************/
 // 4773
 
 void test4773()
@@ -186,6 +248,210 @@ void test6() {
 }
 
 /**********************************************/
+// recursive alias this detection
+
+class C0 {}
+
+class C1 { C2 c; alias c this; }
+class C2 { C1 c; alias c this; }
+
+class C3 { C2 c; alias c this; }
+
+struct S0 {}
+
+struct S1 { S2* ps; @property ref get(){return *ps;} alias get this; }
+struct S2 { S1* ps; @property ref get(){return *ps;} alias get this; }
+
+struct S3 { S2* ps; @property ref get(){return *ps;} alias get this; }
+
+struct S4 { S5* ps; @property ref get(){return *ps;} alias get this; }
+struct S5 { S4* ps; @property ref get(){return *ps;} alias get this; }
+
+struct S6 { S5* ps; @property ref get(){return *ps;} alias get this; }
+
+void test7()
+{
+    // Able to check a type is implicitly convertible within a finite time.
+    static assert(!is(C1 : C0));
+    static assert( is(C2 : C1));
+    static assert( is(C1 : C2));
+    static assert(!is(C3 : C0));
+    static assert( is(C3 : C1));
+    static assert( is(C3 : C2));
+
+    static assert(!is(S1 : S0));
+    static assert( is(S2 : S1));
+    static assert( is(S1 : S2));
+    static assert(!is(S3 : S0));
+    static assert( is(S3 : S1));
+    static assert( is(S3 : S2));
+
+    C0 c0;  C1 c1;  C3 c3;
+    S0 s0;  S1 s1;  S3 s3;  S4 s4;  S6 s6;
+
+    // Allow merging types that contains alias this recursion.
+    static assert( __traits(compiles, c0 is c1));   // typeMerge(c || c) e2->implicitConvTo(t1);
+    static assert( __traits(compiles, c0 is c3));   // typeMerge(c || c) e2->implicitConvTo(t1);
+    static assert( __traits(compiles, c1 is c0));   // typeMerge(c || c) e1->implicitConvTo(t2);
+    static assert( __traits(compiles, c3 is c0));   // typeMerge(c || c) e1->implicitConvTo(t2);
+    static assert(!__traits(compiles, s1 is c0));   // typeMerge(c || c) e1
+    static assert(!__traits(compiles, s3 is c0));   // typeMerge(c || c) e1
+    static assert(!__traits(compiles, c0 is s1));   // typeMerge(c || c) e2
+    static assert(!__traits(compiles, c0 is s3));   // typeMerge(c || c) e2
+
+    static assert(!__traits(compiles, s1 is s0));   // typeMerge(s && s) e1
+    static assert(!__traits(compiles, s3 is s0));   // typeMerge(s && s) e1
+    static assert(!__traits(compiles, s0 is s1));   // typeMerge(s && s) e2
+    static assert(!__traits(compiles, s0 is s3));   // typeMerge(s && s) e2
+    static assert(!__traits(compiles, s1 is s4));   // typeMerge(s && s) e1 + e2
+    static assert(!__traits(compiles, s3 is s6));   // typeMerge(s && s) e1 + e2
+
+    static assert(!__traits(compiles, s1 is 10));   // typeMerge(s || s) e1
+    static assert(!__traits(compiles, s3 is 10));   // typeMerge(s || s) e1
+    static assert(!__traits(compiles, 10 is s1));   // typeMerge(s || s) e2
+    static assert(!__traits(compiles, 10 is s3));   // typeMerge(s || s) e2
+
+    // SliceExp::semantic
+    static assert(!__traits(compiles, c1[]));
+    static assert(!__traits(compiles, c3[]));
+    static assert(!__traits(compiles, s1[]));
+    static assert(!__traits(compiles, s3[]));
+
+    // CallExp::semantic
+//  static assert(!__traits(compiles, c1()));
+//  static assert(!__traits(compiles, c3()));
+    static assert(!__traits(compiles, s1()));
+    static assert(!__traits(compiles, s3()));
+
+    // AssignExp::semantic
+    static assert(!__traits(compiles, { c1[1] = 0; }));
+    static assert(!__traits(compiles, { c3[1] = 0; }));
+    static assert(!__traits(compiles, { s1[1] = 0; }));
+    static assert(!__traits(compiles, { s3[1] = 0; }));
+    static assert(!__traits(compiles, { c1[ ] = 0; }));
+    static assert(!__traits(compiles, { c3[ ] = 0; }));
+    static assert(!__traits(compiles, { s1[ ] = 0; }));
+    static assert(!__traits(compiles, { s3[ ] = 0; }));
+
+    // UnaExp::op_overload
+    static assert(!__traits(compiles, +c1[1]));
+    static assert(!__traits(compiles, +c3[1]));
+    static assert(!__traits(compiles, +s1[1]));
+    static assert(!__traits(compiles, +s3[1]));
+    static assert(!__traits(compiles, +c1[ ]));
+    static assert(!__traits(compiles, +c3[ ]));
+    static assert(!__traits(compiles, +s1[ ]));
+    static assert(!__traits(compiles, +s3[ ]));
+    static assert(!__traits(compiles, +c1));
+    static assert(!__traits(compiles, +c3));
+    static assert(!__traits(compiles, +s1));
+    static assert(!__traits(compiles, +s3));
+
+    // ArrayExp::op_overload
+    static assert(!__traits(compiles, c1[1]));
+    static assert(!__traits(compiles, c3[1]));
+    static assert(!__traits(compiles, s1[1]));
+    static assert(!__traits(compiles, s3[1]));
+
+    // BinExp::op_overload
+    static assert(!__traits(compiles, c1 + 10));    // e1
+    static assert(!__traits(compiles, c3 + 10));    // e1
+    static assert(!__traits(compiles, 10 + c1));    // e2
+    static assert(!__traits(compiles, 10 + c3));    // e2
+    static assert(!__traits(compiles, s1 + 10));    // e1
+    static assert(!__traits(compiles, s3 + 10));    // e1
+    static assert(!__traits(compiles, 10 + s1));    // e2
+    static assert(!__traits(compiles, 10 + s3));    // e2
+
+    // BinExp::compare_overload
+    static assert(!__traits(compiles, c1 < 10));    // (Object.opCmp(int) is invalid)
+    static assert(!__traits(compiles, c3 < 10));    // (Object.opCmp(int) is invalid)
+    static assert(!__traits(compiles, 10 < c1));    // (Object.opCmp(int) is invalid)
+    static assert(!__traits(compiles, 10 < c3));    // (Object.opCmp(int) is invalid)
+    static assert(!__traits(compiles, s1 < 10));    // e1
+    static assert(!__traits(compiles, s3 < 10));    // e1
+    static assert(!__traits(compiles, 10 < s1));    // e2
+    static assert(!__traits(compiles, 10 < s3));    // e2
+
+    // BinAssignExp::op_overload
+    static assert(!__traits(compiles, c1[1] += 1));
+    static assert(!__traits(compiles, c3[1] += 1));
+    static assert(!__traits(compiles, s1[1] += 1));
+    static assert(!__traits(compiles, s3[1] += 1));
+    static assert(!__traits(compiles, c1[ ] += 1));
+    static assert(!__traits(compiles, c3[ ] += 1));
+    static assert(!__traits(compiles, s1[ ] += 1));
+    static assert(!__traits(compiles, s3[ ] += 1));
+    static assert(!__traits(compiles, c1 += c0));   // e1
+    static assert(!__traits(compiles, c3 += c0));   // e1
+    static assert(!__traits(compiles, s1 += s0));   // e1
+    static assert(!__traits(compiles, s3 += s0));   // e1
+    static assert(!__traits(compiles, c0 += c1));   // e2
+    static assert(!__traits(compiles, c0 += c3));   // e2
+    static assert(!__traits(compiles, s0 += s1));   // e2
+    static assert(!__traits(compiles, s0 += s3));   // e2
+    static assert(!__traits(compiles, c1 += s1));   // e1 + e2
+    static assert(!__traits(compiles, c3 += s3));   // e1 + e2
+
+    // ForeachStatement::inferAggregate
+    static assert(!__traits(compiles, { foreach (e; s1){} }));
+    static assert(!__traits(compiles, { foreach (e; s3){} }));
+    static assert(!__traits(compiles, { foreach (e; c1){} }));
+    static assert(!__traits(compiles, { foreach (e; c3){} }));
+
+    // Expression::checkToBoolean
+    static assert(!__traits(compiles, { if (s1){} }));
+    static assert(!__traits(compiles, { if (s3){} }));
+}
+
+/***************************************************/
+// 11875 - endless recursion in Type::deduceType
+
+struct T11875x(C)
+{
+    C c;
+}
+class D11875a { D11875b c; alias c this; }
+class D11875b { D11875a c; alias c this; }
+static assert(!is(D11875a == D11875b));
+static assert( is(T11875x!D11875a == T11875x!D, D) && is(D == D11875a));
+static assert(!is(D11875a == T11875x!D, D));    // this used to freeze dmd
+
+// test that types in recursion are still detected
+struct T11875y(C)
+{
+    C c;
+    alias c this;
+}
+class D11875c { T11875y!D11875b c; alias c this; }
+static assert(is(D11875c : T11875y!D, D) && is(D == D11875b));
+
+/***************************************************/
+// 11930
+
+class BarObj11930 {}
+
+struct Bar11930
+{
+    BarObj11930 _obj;
+    alias _obj this;
+}
+
+BarObj11930 getBarObj11930(T)(T t)
+{
+    static if (is(T unused : BarObj11930))
+        return t;
+    else
+        static assert(false, "Can not get BarObj from " ~ T.stringof);
+}
+
+void test11930()
+{
+    Bar11930 b;
+    getBarObj11930(b);
+}
+
+/***************************************************/
 // 2781
 
 struct Tuple2781a(T...) {
@@ -217,13 +483,17 @@ void test2781()
     {
         Tuple2781b!(int[]) bar1;
         foreach(elem; bar1) goto L1;
+    L1:
+        ;
 
         Tuple2781b!(int[int]) bar2;
-        foreach(key, elem; bar2) goto L1;
+        foreach(key, elem; bar2) goto L2;
+    L2:
+        ;
 
         Tuple2781b!(string) bar3;
-        foreach(dchar elem; bar3) goto L1;
-    L1:
+        foreach(dchar elem; bar3) goto L3;
+    L3:
         ;
     }
 
@@ -436,6 +706,50 @@ void test6508()
     assert(y == 20);
 }
 
+void test6508x()
+{
+    static int ctor, cpctor, dtor;
+
+    static struct Tuple(T...)
+    {
+        T field;
+        alias field this;
+
+        this(int)  { ++ctor;   printf("ctor\n");   }
+        this(this) { ++cpctor; printf("cpctor\n"); }
+        ~this()    { ++dtor;   printf("dtor\n");   }
+    }
+
+    {
+        alias Tup = Tuple!(int, string);
+        auto tup = Tup(1);
+        assert(ctor==1 && cpctor==0 && dtor==0);
+
+        auto getVal() { return tup; }
+        ref getRef(ref Tup s = tup) { return s; }
+
+        {
+            auto n1 = tup[0];
+            assert(ctor==1 && cpctor==0 && dtor==0);
+
+            auto n2 = getRef()[0];
+            assert(ctor==1 && cpctor==0 && dtor==0);
+
+            auto n3 = getVal()[0];
+            assert(ctor==1 && cpctor==1 && dtor==1);
+        }
+
+        // bug in DotVarExp::semantic
+        {
+            typeof(tup.field) vars;
+            vars = getVal();
+            assert(ctor==1 && cpctor==2 && dtor==2);
+        }
+    }
+    assert(ctor==1 && cpctor==2 && dtor==3);
+    assert(ctor + cpctor == dtor);
+}
+
 /***********************************/
 // 6369
 
@@ -610,8 +924,54 @@ void test6366()
     }
 }
 
+/***************************************************/
+// 6711
+
+void test6711()
+{
+    struct A { int i; }
+    struct B { A a; alias a this; }
+    struct C { B b; alias b this; }
+
+    B b;
+    with (b)
+    {
+        i = 42;
+    }
+    assert(b.i == 42);
+
+    C c;
+    with (c)
+    {
+        i = 42;
+    }
+    assert(c.i == 42);
+}
+
 /**********************************************/
-// Bugzill 6759
+// 12161
+
+class A12161
+{
+    void m() {}
+}
+
+class B12161
+{
+    A12161 a;
+    alias a this;
+}
+
+void test12161()
+{
+    B12161 b = new B12161();
+    b.a = new A12161();
+    with (b)
+        m();
+}
+
+/**********************************************/
+// 6759
 
 struct Range
 {
@@ -874,9 +1234,444 @@ void test8169()
     }
 
     static assert(ValueImpl.getValue() == 42); // #0, OK
-    static assert(ValueUser.getValue() == 42); // #1, NG
-    static assert(       ValueUser.m_valueImpl .getValue() == 42); // #2, NG
+    static assert(ValueUser.getValue() == 42); // #1, NG -> OK
+    static assert(       ValueUser.m_valueImpl .getValue() == 42); // #2, NG -> OK
     static assert(typeof(ValueUser.m_valueImpl).getValue() == 42); // #3, OK
+}
+
+/***************************************************/
+// 8735
+
+struct S8735(alias Arg)
+{
+    alias Arg Val;
+    alias Val this;
+}
+
+struct Tuple9709(T...)
+{
+    alias T expand;
+    alias expand this;
+}
+
+void test8735()
+{
+    alias S8735!1 S;
+    S s;
+    int n = s;
+    assert(n == 1);
+
+    // 11502 case
+    static void f(int i);
+    S8735!f sf;
+
+    // 9709 case
+    alias A = Tuple9709!(1,int,"foo");
+    A a;
+    static assert(A[0] == 1);
+    static assert(a[0] == 1);
+    //static assert(is(A[1] == int));
+    //static assert(is(a[1] == int));
+    static assert(A[2] == "foo");
+    static assert(a[2] == "foo");
+}
+
+/***************************************************/
+// 9174
+
+void test9174()
+{
+    static struct Foo
+    {
+        char x;
+        alias x this;
+    }
+    static assert(is(typeof(true ? 'A' : Foo()) == char));
+    static assert(is(typeof(true ? Foo() : 100) == int));
+}
+
+/***************************************************/
+// 9177
+
+struct S9177
+{
+    int foo(int){ return 0; }
+    alias foo this;
+}
+pragma(msg, is(S9177 : int));
+
+/***************************************************/
+// 9858
+
+struct S9858()
+{
+    @property int get() const
+    {
+        return 42;
+    }
+    alias get this;
+    void opAssign(int) {}
+}
+void test9858()
+{
+    const S9858!() s;
+    int i = s;
+}
+
+/***************************************************/
+// 9873
+
+void test9873()
+{
+    struct Tup(T...) { T field; alias field this; }
+
+    auto seq1 = Seq!(1, "hi");
+    assert(Seq!(1, "hi") == Seq!(1, "hi"));
+    assert(seq1          == Seq!(1, "hi"));
+    assert(Seq!(1, "hi") == seq1);
+    assert(seq1          == seq1);
+
+    auto seq2 = Seq!(2, "hi");
+    assert(Seq!(1, "hi") != Seq!(2, "hi"));
+    assert(seq2          != Seq!(1, "hi"));
+    assert(Seq!(1, "hi") != seq2);
+    assert(seq2          != seq1);
+
+    auto tup1 = Tup!(int, string)(1, "hi");
+    assert(Seq!(1, "hi") == tup1);
+    assert(seq1          == tup1);
+    assert(tup1          == Seq!(1, "hi"));
+    assert(tup1          == seq1);
+
+    auto tup2 = Tup!(int, string)(2, "hi");
+    assert(Seq!(1, "hi") != tup2);
+    assert(seq1          != tup2);
+    assert(tup2          != Seq!(1, "hi"));
+    assert(tup2          != seq1);
+
+    static assert(!__traits(compiles, seq1 == Seq!(1, "hi", [1,2])));
+    static assert(!__traits(compiles, tup1 == Seq!(1, "hi", [1,2])));
+}
+
+/***************************************************/
+// 10178
+
+void test10178()
+{
+    struct S { static int count; }
+    S s;
+    assert((s.tupleof == s.tupleof) == true);
+    assert((s.tupleof != s.tupleof) == false);
+
+    S getS()
+    {
+        S s;
+        ++S.count;
+        return s;
+    }
+    assert(getS().tupleof == getS().tupleof);
+    assert(S.count == 2);
+}
+
+/***************************************************/
+// 10179
+
+void test10179()
+{
+    struct S { static int count; }
+    S s;
+    static assert(s.tupleof.length == 0);
+    s.tupleof = s.tupleof;   // error -> OK
+
+    S getS()
+    {
+        S s;
+        ++S.count;
+        return s;
+    }
+    getS().tupleof = getS().tupleof;
+    assert(S.count == 2);
+}
+
+/***************************************************/
+// 9890
+
+void test9890()
+{
+    struct RefCounted(T)
+    {
+        T _payload;
+
+        ref T refCountedPayload()
+        {
+            return _payload;
+        }
+
+        alias refCountedPayload this;
+    }
+
+    struct S(int x_)
+    {
+        alias x_ x;
+    }
+
+    alias RefCounted!(S!1) Rs;
+    static assert(Rs.x == 1);
+}
+
+/***************************************************/
+// 10004
+
+void test10004()
+{
+    static int count = 0;
+
+    static S make(S)()
+    {
+        ++count;    // necessary to make this function impure
+        S s;
+        return s;
+    }
+
+    struct SX(T...) {
+        T field; alias field this;
+    }
+    alias S = SX!(int, long);
+    assert(make!S.field == make!S.field);
+    assert(count == 2);
+}
+
+/***************************************************/
+// 10180
+
+template TypeTuple10180(TL...) { alias TypeTuple10180 = TL; }
+
+template Identity10180(alias T) { alias Identity10180 = T; }
+
+struct Tuple10180(Specs...)
+{
+    static if (is(Specs))
+    {
+        alias Types = Specs;
+        Types expand;
+        alias expand this;
+    }
+    else
+    {
+        alias Types = TypeTuple10180!(Specs[0]);
+        Types expand;
+        mixin("alias Identity10180!(expand[0]) "~Specs[1]~";");
+
+        @property
+        ref Tuple10180!(Specs[0]) _Tuple_super()
+        {
+            return *cast(typeof(return)*) (&expand[0]);
+        }
+        alias _Tuple_super this;
+    }
+}
+
+void test10180()
+{
+    Tuple10180!(int, "a") x;
+    auto o1 = x.a.offsetof;     // OK
+    auto o2 = x[0].offsetof;    // NG: no property 'offsetof' for type 'int'
+    auto o3 = x._Tuple_super[0].offsetof;   // same as above
+    assert(o2 == o3);
+}
+
+/***************************************************/
+// 10456
+
+void test10456()
+{
+    S10456 s1, s2;
+    auto x = s1 == s2;
+}
+
+struct S10456
+{
+    enum E { e };
+    alias E this;
+    int[] x;
+}
+
+/***************************************************/
+// 11261
+
+template Tuple11261(Specs...)
+{
+    struct Tuple11261
+    {
+        static if (Specs.length != 4)   // anonymous field version
+        {
+            alias Specs Types;
+            Types expand;
+            alias expand this;
+        }
+        else
+        {
+            alias Seq!(Specs[0], Specs[2]) Types;
+            Types expand;
+            ref inout(Tuple11261!Types) _Tuple_super() inout @trusted
+            {
+                return *cast(typeof(return)*) &(expand[0]);
+            }
+            // This is mostly to make t[n] work.
+            alias _Tuple_super this;
+        }
+
+        this()(Types values)
+        {
+            expand[] = values[];
+        }
+    }
+}
+
+interface InputRange11261(E)
+{
+    @property bool empty();
+    @property E front();
+    void popFront();
+
+    int opApply(int delegate(E));
+    int opApply(int delegate(size_t, E));
+
+}
+template InputRangeObject11261(R)
+{
+    alias typeof(R.init.front()) E;
+
+    class InputRangeObject11261 : InputRange11261!E
+    {
+        private R _range;
+
+        this(R range) { this._range = range; }
+
+        @property bool empty() { return _range.empty; }
+        @property E front() { return _range.front; }
+        void popFront() { _range.popFront(); }
+
+        int opApply(int delegate(E) dg) { return 0; }
+        int opApply(int delegate(size_t, E) dg) { return 0; }
+    }
+}
+
+// ------
+
+class Container11261
+{
+    alias Tuple11261!(string, "key", string, "value") Key;
+
+    InputRange11261!Key opSlice()
+    {
+        Range r;
+        return new InputRangeObject11261!Range(r);
+    }
+    private struct Range
+    {
+        enum empty = false;
+        auto popFront() {}
+        auto front() { return Key("myKey", "myValue"); }
+    }
+}
+
+void test11261()
+{
+    auto container = new Container11261();
+    foreach (k, v; container)   // map the tuple of container[].front to (k, v)
+    {
+        static assert(is(typeof(k) == string) && is(typeof(v) == string));
+        break;
+    }
+}
+
+/***************************************************/
+// 11800
+
+struct A11800
+{
+    B11800 b;
+    alias b this;
+}
+
+struct B11800
+{
+    static struct Value {}
+    Value value;
+    alias value this;
+
+    void foo(ref const B11800 rhs)
+    {
+    }
+}
+
+void test11800()
+{
+    A11800 a;
+    B11800 b;
+    b.foo(a);
+}
+
+/***************************************************/
+// 12008
+
+struct RefCounted12008(T)
+{
+    struct RefCountedStore
+    {
+        private struct Impl
+        {
+            T _payload;
+        }
+
+        private void initialize(A...)(auto ref A args)
+        {
+            import core.memory;
+        }
+
+        void ensureInitialized()
+        {
+            initialize();
+        }
+
+    }
+    RefCountedStore _refCounted;
+
+    void opAssign(T rhs)
+    {
+    }
+
+    int refCountedPayload()
+    {
+        _refCounted.ensureInitialized();
+        return 0;
+    }
+
+    int refCountedPayload() inout;
+
+    alias refCountedPayload this;
+}
+
+struct SharedInput12008
+{
+    Group12008 unused;
+}
+
+struct Group12008
+{
+    RefCounted12008!SharedInput12008 _allGroups;
+}
+
+/***************************************************/
+// 12038
+
+bool f12038(void* p) { return true; }
+
+struct S12038
+{
+    @property p() { f12038(&this); }
+    alias p this;
 }
 
 /***************************************************/
@@ -888,9 +1683,12 @@ int main()
     test3();
     test4();
     test5();
+    test4617a();
+    test4617b();
     test4773();
     test5188();
     test6();
+    test7();
     test2781();
     test6546();
     test6736();
@@ -898,12 +1696,15 @@ int main()
     test2777b();
     test5679();
     test6508();
+    test6508x();
     test6369a();
     test6369b();
     test6369c();
     test6369d();
     test6434();
     test6366();
+    test6711();
+    test12161();
     test6759();
     test6832();
     test6928();
@@ -914,6 +1715,17 @@ int main()
     test7945();
     test7992();
     test8169();
+    test8735();
+    test9174();
+    test9858();
+    test9873();
+    test10178();
+    test10179();
+    test9890();
+    test10004();
+    test10180();
+    test10456();
+    test11800();
 
     printf("Success\n");
     return 0;

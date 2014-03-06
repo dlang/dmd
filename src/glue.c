@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2012 by Digital Mars
+// Copyright (c) 1999-2013 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -9,10 +9,6 @@
 #include <stddef.h>
 #include <time.h>
 #include <assert.h>
-
-#if __sun
-#include <alloca.h>
-#endif
 
 #include "mars.h"
 #include "module.h"
@@ -27,6 +23,7 @@
 #include "import.h"
 #include "template.h"
 #include "lib.h"
+#include "target.h"
 
 #include "rmem.h"
 #include "cc.h"
@@ -39,19 +36,21 @@
 #include "outbuf.h"
 #include "irstate.h"
 
-struct Environment;
-
-Environment *benv;
-
 void slist_add(Symbol *s);
 void slist_reset();
 void clearStringTab();
 
 elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
+void Statement_toIR(Statement *s, IRState *irs);
+elem *toEfilename(Module *m);
+Symbol *toSymbol(Dsymbol *s);
 
 #define STATICCTOR      0
 
-typedef ArrayBase<symbol> symbols;
+typedef Array<symbol *> symbols;
+Dsymbols *Dsymbols_create();
+Expressions *Expressions_create();
+type *Type_toCtype(Type *t);
 
 elem *eictor;
 symbol *ictorlocalgot;
@@ -111,40 +110,48 @@ void obj_write_deferred(Library *library)
          */
         OutBuffer idbuf;
         idbuf.printf("%s.%d", m ? m->ident->toChars() : mname, count);
-        char *idstr = idbuf.toChars();
-        idbuf.data = NULL;
-        Identifier *id = new Identifier(idstr, TOKidentifier);
+        char *idstr = idbuf.peekString();
 
-        Module *md = new Module(mname, id, 0, 0);
-        md->members = new Dsymbols();
-        md->members->push(s);   // its only 'member' is s
-        if (m)
+        if(!m)
         {
+            // it doesn't make sense to make up a module if we don't know where to put the symbol
+            //  so output it into it's own object file without ModuleInfo
+            objmod->initfile(idstr, NULL, mname);
+            s->toObjFile(0);
+            objmod->termfile();
+        }
+        else
+        {
+            idbuf.data = NULL;
+            Identifier *id = Identifier::create(idstr, TOKidentifier);
+
+            Module *md = Module::create(mname, id, 0, 0);
+            md->members = Dsymbols_create();
+            md->members->push(s);   // its only 'member' is s
             md->doppelganger = 1;       // identify this module as doppelganger
             md->md = m->md;
             md->aimports.push(m);       // it only 'imports' m
             md->massert = m->massert;
             md->munittest = m->munittest;
             md->marray = m->marray;
-        }
 
-        md->genobjfile(0);
+            md->genobjfile(0);
+        }
 
         /* Set object file name to be source name with sequence number,
          * as mangled symbol names get way too long.
          */
-        char *fname = FileName::removeExt(mname);
+        const char *fname = FileName::removeExt(mname);
         OutBuffer namebuf;
         unsigned hash = 0;
         for (char *p = s->toChars(); *p; p++)
             hash += *p;
         namebuf.printf("%s_%x_%x.%s", fname, count, hash, global.obj_ext);
-        namebuf.writeByte(0);
-        mem.free(fname);
-        fname = (char *)namebuf.extractData();
+        FileName::free((char *)fname);
+        fname = namebuf.extractString();
 
         //printf("writing '%s'\n", fname);
-        File *objfile = new File(fname);
+        File *objfile = File::create(fname);
         obj_end(library, objfile);
     }
     obj_symbols_towrite.dim = 0;
@@ -168,11 +175,8 @@ symbol *callFuncsAndGates(Module *m, symbols *sctors, StaticDtorDeclarations *ec
             /* t will be the type of the functions generated:
              *      extern (C) void func();
              */
-            t = type_alloc(TYnfunc);
-            t->Tflags |= TFprototype | TFfixed;
+            t = type_function(TYnfunc, NULL, 0, false, tsvoid);
             t->Tmangle = mTYman_c;
-            t->Tnext = tsvoid;
-            tsvoid->Tcount++;
         }
 
         localgot = NULL;
@@ -185,7 +189,7 @@ symbol *callFuncsAndGates(Module *m, symbols *sctors, StaticDtorDeclarations *ec
             for (size_t i = 0; i < ectorgates->dim; i++)
             {   StaticDtorDeclaration *f = (*ectorgates)[i];
 
-                Symbol *s = f->vgate->toSymbol();
+                Symbol *s = toSymbol(f->vgate);
                 elem *e = el_var(s);
                 e = el_bin(OPaddass, TYint, e, el_long(TYint, 1));
                 ector = el_combine(ector, e);
@@ -260,12 +264,10 @@ void obj_end(Library *library, File *objfile)
         objfile->setbuffer(objbuf.buf, objbuf.p - objbuf.buf);
         objbuf.buf = NULL;
 
-        char *p = FileName::path(objfilename);
-        FileName::ensurePathExists(p);
-        //mem.free(p);
+        ensurePathToNameExists(Loc(), objfilename);
 
         //printf("write obj %s\n", objfilename);
-        objfile->writev();
+        writeFile(Loc(), objfile);
     }
     objbuf.pend = NULL;
     objbuf.p = NULL;
@@ -294,6 +296,22 @@ void Module::genobjfile(int multiobj)
 
     //printf("Module::genobjfile(multiobj = %d) %s\n", multiobj, toChars());
 
+    if (ident == Id::entrypoint)
+    {
+        char v = global.params.verbose;
+        global.params.verbose = 0;
+
+        for (size_t i = 0; i < members->dim; i++)
+        {
+            Dsymbol *member = (*members)[i];
+            //printf("toObjFile %s %s\n", member->kind(), member->toChars());
+            member->toObjFile(global.params.multiobj);
+        }
+
+        global.params.verbose = v;
+        return;
+    }
+
     lastmname = srcfile->toChars();
 
     objmod->initfile(lastmname, NULL, toPrettyChars());
@@ -319,7 +337,7 @@ void Module::genobjfile(int multiobj)
         assert(m);
         if (m->sictor || m->sctor || m->sdtor || m->ssharedctor || m->sshareddtor)
         {
-            Symbol *s = m->toSymbol();
+            Symbol *s = toSymbol(m);
             //objextern(s);
             //if (!s->Sxtrnnum) objextdef(s->Sident);
             if (!s->Sxtrnnum)
@@ -386,11 +404,8 @@ void Module::genobjfile(int multiobj)
         /* t will be the type of the functions generated:
          *      extern (C) void func();
          */
-        type *t = type_alloc(TYnfunc);
-        t->Tflags |= TFprototype | TFfixed;
+        type *t = type_function(TYnfunc, NULL, 0, false, tsvoid);
         t->Tmangle = mTYman_c;
-        t->Tnext = tsvoid;
-        tsvoid->Tcount++;
 
         sictor = toSymbolX("__modictor", SCglobal, t, "FZv");
         cstate.CSpsymtab = &sictor->Sfunc->Flocsym;
@@ -405,11 +420,13 @@ void Module::genobjfile(int multiobj)
             ebcov = addressElem(ebcov, Type::tvoid->arrayOf(), false);
         }
 
-        elem *e = el_params(ecov,
+        elem *e = el_params(
+                      el_long(TYuchar, global.params.covPercent),
+                      ecov,
                       ebcov,
-                      toEfilename(),
+                      toEfilename(this),
                       NULL);
-        e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_DCOVER]), e);
+        e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_DCOVER2]), e);
         eictor = el_combine(e, eictor);
         ictorlocalgot = localgot;
     }
@@ -433,10 +450,8 @@ void Module::genobjfile(int multiobj)
         sctor = callFuncsAndGates(this, &sctors, &ectorgates, "__modctor");
         sdtor = callFuncsAndGates(this, &sdtors, NULL, "__moddtor");
 
-#if DMDV2
         ssharedctor = callFuncsAndGates(this, &ssharedctors, (StaticDtorDeclarations *)&esharedctorgates, "__modsharedctor");
         sshareddtor = callFuncsAndGates(this, &sshareddtors, NULL, "__modshareddtor");
-#endif
         stest = callFuncsAndGates(this, &stests, NULL, "__modtest");
 
         if (doppelganger)
@@ -505,7 +520,7 @@ void Module::genobjfile(int multiobj)
                 elinnum = el_var(sp);
             }
 
-            elem *efilename = el_ptr(toSymbol());
+            elem *efilename = el_ptr(toSymbol(this));
 
             elem *e = el_var(rtlsym[rt]);
             e = el_bin(OPcall, TYvoid, e, el_param(elinnum, efilename));
@@ -526,6 +541,192 @@ void Module::genobjfile(int multiobj)
 }
 
 
+/**************************************
+ * Search for a druntime array op
+ */
+int isDruntimeArrayOp(Identifier *ident)
+{
+    /* Some of the array op functions are written as library functions,
+     * presumably to optimize them with special CPU vector instructions.
+     * List those library functions here, in alpha order.
+     */
+    static const char *libArrayopFuncs[] =
+    {
+        "_arrayExpSliceAddass_a",
+        "_arrayExpSliceAddass_d",
+        "_arrayExpSliceAddass_f",           // T[]+=T
+        "_arrayExpSliceAddass_g",
+        "_arrayExpSliceAddass_h",
+        "_arrayExpSliceAddass_i",
+        "_arrayExpSliceAddass_k",
+        "_arrayExpSliceAddass_s",
+        "_arrayExpSliceAddass_t",
+        "_arrayExpSliceAddass_u",
+        "_arrayExpSliceAddass_w",
+
+        "_arrayExpSliceDivass_d",           // T[]/=T
+        "_arrayExpSliceDivass_f",           // T[]/=T
+
+        "_arrayExpSliceMinSliceAssign_a",
+        "_arrayExpSliceMinSliceAssign_d",   // T[]=T-T[]
+        "_arrayExpSliceMinSliceAssign_f",   // T[]=T-T[]
+        "_arrayExpSliceMinSliceAssign_g",
+        "_arrayExpSliceMinSliceAssign_h",
+        "_arrayExpSliceMinSliceAssign_i",
+        "_arrayExpSliceMinSliceAssign_k",
+        "_arrayExpSliceMinSliceAssign_s",
+        "_arrayExpSliceMinSliceAssign_t",
+        "_arrayExpSliceMinSliceAssign_u",
+        "_arrayExpSliceMinSliceAssign_w",
+
+        "_arrayExpSliceMinass_a",
+        "_arrayExpSliceMinass_d",           // T[]-=T
+        "_arrayExpSliceMinass_f",           // T[]-=T
+        "_arrayExpSliceMinass_g",
+        "_arrayExpSliceMinass_h",
+        "_arrayExpSliceMinass_i",
+        "_arrayExpSliceMinass_k",
+        "_arrayExpSliceMinass_s",
+        "_arrayExpSliceMinass_t",
+        "_arrayExpSliceMinass_u",
+        "_arrayExpSliceMinass_w",
+
+        "_arrayExpSliceMulass_d",           // T[]*=T
+        "_arrayExpSliceMulass_f",           // T[]*=T
+        "_arrayExpSliceMulass_i",
+        "_arrayExpSliceMulass_k",
+        "_arrayExpSliceMulass_s",
+        "_arrayExpSliceMulass_t",
+        "_arrayExpSliceMulass_u",
+        "_arrayExpSliceMulass_w",
+
+        "_arraySliceExpAddSliceAssign_a",
+        "_arraySliceExpAddSliceAssign_d",   // T[]=T[]+T
+        "_arraySliceExpAddSliceAssign_f",   // T[]=T[]+T
+        "_arraySliceExpAddSliceAssign_g",
+        "_arraySliceExpAddSliceAssign_h",
+        "_arraySliceExpAddSliceAssign_i",
+        "_arraySliceExpAddSliceAssign_k",
+        "_arraySliceExpAddSliceAssign_s",
+        "_arraySliceExpAddSliceAssign_t",
+        "_arraySliceExpAddSliceAssign_u",
+        "_arraySliceExpAddSliceAssign_w",
+
+        "_arraySliceExpDivSliceAssign_d",   // T[]=T[]/T
+        "_arraySliceExpDivSliceAssign_f",   // T[]=T[]/T
+
+        "_arraySliceExpMinSliceAssign_a",
+        "_arraySliceExpMinSliceAssign_d",   // T[]=T[]-T
+        "_arraySliceExpMinSliceAssign_f",   // T[]=T[]-T
+        "_arraySliceExpMinSliceAssign_g",
+        "_arraySliceExpMinSliceAssign_h",
+        "_arraySliceExpMinSliceAssign_i",
+        "_arraySliceExpMinSliceAssign_k",
+        "_arraySliceExpMinSliceAssign_s",
+        "_arraySliceExpMinSliceAssign_t",
+        "_arraySliceExpMinSliceAssign_u",
+        "_arraySliceExpMinSliceAssign_w",
+
+        "_arraySliceExpMulSliceAddass_d",   // T[] += T[]*T
+        "_arraySliceExpMulSliceAddass_f",
+        "_arraySliceExpMulSliceAddass_r",
+
+        "_arraySliceExpMulSliceAssign_d",   // T[]=T[]*T
+        "_arraySliceExpMulSliceAssign_f",   // T[]=T[]*T
+        "_arraySliceExpMulSliceAssign_i",
+        "_arraySliceExpMulSliceAssign_k",
+        "_arraySliceExpMulSliceAssign_s",
+        "_arraySliceExpMulSliceAssign_t",
+        "_arraySliceExpMulSliceAssign_u",
+        "_arraySliceExpMulSliceAssign_w",
+
+        "_arraySliceExpMulSliceMinass_d",   // T[] -= T[]*T
+        "_arraySliceExpMulSliceMinass_f",
+        "_arraySliceExpMulSliceMinass_r",
+
+        "_arraySliceSliceAddSliceAssign_a",
+        "_arraySliceSliceAddSliceAssign_d", // T[]=T[]+T[]
+        "_arraySliceSliceAddSliceAssign_f", // T[]=T[]+T[]
+        "_arraySliceSliceAddSliceAssign_g",
+        "_arraySliceSliceAddSliceAssign_h",
+        "_arraySliceSliceAddSliceAssign_i",
+        "_arraySliceSliceAddSliceAssign_k",
+        "_arraySliceSliceAddSliceAssign_r", // T[]=T[]+T[]
+        "_arraySliceSliceAddSliceAssign_s",
+        "_arraySliceSliceAddSliceAssign_t",
+        "_arraySliceSliceAddSliceAssign_u",
+        "_arraySliceSliceAddSliceAssign_w",
+
+        "_arraySliceSliceAddass_a",
+        "_arraySliceSliceAddass_d",         // T[]+=T[]
+        "_arraySliceSliceAddass_f",         // T[]+=T[]
+        "_arraySliceSliceAddass_g",
+        "_arraySliceSliceAddass_h",
+        "_arraySliceSliceAddass_i",
+        "_arraySliceSliceAddass_k",
+        "_arraySliceSliceAddass_s",
+        "_arraySliceSliceAddass_t",
+        "_arraySliceSliceAddass_u",
+        "_arraySliceSliceAddass_w",
+
+        "_arraySliceSliceMinSliceAssign_a",
+        "_arraySliceSliceMinSliceAssign_d", // T[]=T[]-T[]
+        "_arraySliceSliceMinSliceAssign_f", // T[]=T[]-T[]
+        "_arraySliceSliceMinSliceAssign_g",
+        "_arraySliceSliceMinSliceAssign_h",
+        "_arraySliceSliceMinSliceAssign_i",
+        "_arraySliceSliceMinSliceAssign_k",
+        "_arraySliceSliceMinSliceAssign_r", // T[]=T[]-T[]
+        "_arraySliceSliceMinSliceAssign_s",
+        "_arraySliceSliceMinSliceAssign_t",
+        "_arraySliceSliceMinSliceAssign_u",
+        "_arraySliceSliceMinSliceAssign_w",
+
+        "_arraySliceSliceMinass_a",
+        "_arraySliceSliceMinass_d",         // T[]-=T[]
+        "_arraySliceSliceMinass_f",         // T[]-=T[]
+        "_arraySliceSliceMinass_g",
+        "_arraySliceSliceMinass_h",
+        "_arraySliceSliceMinass_i",
+        "_arraySliceSliceMinass_k",
+        "_arraySliceSliceMinass_s",
+        "_arraySliceSliceMinass_t",
+        "_arraySliceSliceMinass_u",
+        "_arraySliceSliceMinass_w",
+
+        "_arraySliceSliceMulSliceAssign_d", // T[]=T[]*T[]
+        "_arraySliceSliceMulSliceAssign_f", // T[]=T[]*T[]
+        "_arraySliceSliceMulSliceAssign_i",
+        "_arraySliceSliceMulSliceAssign_k",
+        "_arraySliceSliceMulSliceAssign_s",
+        "_arraySliceSliceMulSliceAssign_t",
+        "_arraySliceSliceMulSliceAssign_u",
+        "_arraySliceSliceMulSliceAssign_w",
+
+        "_arraySliceSliceMulass_d",         // T[]*=T[]
+        "_arraySliceSliceMulass_f",         // T[]*=T[]
+        "_arraySliceSliceMulass_i",
+        "_arraySliceSliceMulass_k",
+        "_arraySliceSliceMulass_s",
+        "_arraySliceSliceMulass_t",
+        "_arraySliceSliceMulass_u",
+        "_arraySliceSliceMulass_w",
+    };
+    char *name = ident->toChars();
+    int i = binary(name, libArrayopFuncs, sizeof(libArrayopFuncs) / sizeof(char *));
+    if (i != -1)
+        return 1;
+
+#ifdef DEBUG    // Make sure our array is alphabetized
+    for (i = 0; i < sizeof(libArrayopFuncs) / sizeof(char *); i++)
+    {
+        if (strcmp(name, libArrayopFuncs[i]) == 0)
+            assert(0);
+    }
+#endif
+    return 0;
+}
+
 /* ================================================================== */
 
 void FuncDeclaration::toObjFile(int multiobj)
@@ -536,6 +737,7 @@ void FuncDeclaration::toObjFile(int multiobj)
     int has_arguments;
 
     //printf("FuncDeclaration::toObjFile(%p, %s.%s)\n", func, parent->toChars(), func->toChars());
+
     //if (type) printf("type = %s\n", func->type->toChars());
 #if 0
     //printf("line = %d\n",func->getWhere() / LINEINC);
@@ -546,15 +748,21 @@ void FuncDeclaration::toObjFile(int multiobj)
             ee->EElinnum > (func->endwhere / LINEINC)
            )
             return;             // don't compile this function
-        ee->EEfunc = func->toSymbol();
+        ee->EEfunc = toSymbol(func);
     }
 #endif
 
     if (semanticRun >= PASSobj) // if toObjFile() already run
         return;
 
+    if (type && type->ty == Tfunction && ((TypeFunction *)type)->next == NULL)
+        return;
+
     // If errors occurred compiling it, such as bugzilla 6118
     if (type && type->ty == Tfunction && ((TypeFunction *)type)->next->ty == Terror)
+        return;
+
+    if (global.errors)
         return;
 
     if (!func->fbody)
@@ -565,7 +773,8 @@ void FuncDeclaration::toObjFile(int multiobj)
         return;
 
     if (multiobj && !isStaticDtorDeclaration() && !isStaticCtorDeclaration())
-    {   obj_append(this);
+    {
+        obj_append(this);
         return;
     }
 
@@ -579,13 +788,53 @@ void FuncDeclaration::toObjFile(int multiobj)
         return;
     }
     assert(semanticRun == PASSsemantic3done);
+    assert(ident != Id::empty);
+
+    if (!needsCodegen())
+        return;
+
+    FuncDeclaration *fdp = func->toParent2()->isFuncDeclaration();
+    if (isNested())
+    {
+        if (fdp && fdp->semanticRun < PASSobj)
+        {
+            if (fdp->semantic3Errors)
+                return;
+
+            /* Can't do unittest's out of order, they are order dependent in that their
+             * execution is done in lexical order.
+             */
+            if (fdp->isUnitTestDeclaration())
+            {
+                fdp->deferred.push(func);
+                return;
+            }
+        }
+    }
+
+    if (isArrayOp && isDruntimeArrayOp(ident))
+    {
+        // Implementation is in druntime
+        return;
+    }
+
+    // start code generation
     semanticRun = PASSobj;
 
     if (global.params.verbose)
-        printf("function  %s\n",func->toPrettyChars());
+        fprintf(global.stdmsg, "function  %s\n",func->toPrettyChars());
 
-    Symbol *s = func->toSymbol();
+    Symbol *s = toSymbol(func);
     func_t *f = s->Sfunc;
+
+    // tunnel type of "this" to debug info generation
+    if (AggregateDeclaration* ad = func->parent->isAggregateDeclaration())
+    {
+        ::type* t = Type_toCtype(ad->getType());
+        if(cd)
+            t = t->Tnext; // skip reference
+        f->Fclass = (Classsym *)t;
+    }
 
 #if TARGET_WINDOS
     /* This is done so that the 'this' pointer on the stack is the same
@@ -618,29 +867,15 @@ void FuncDeclaration::toObjFile(int multiobj)
 
     if (isNested())
     {
-//      if (!(config.flags3 & CFG3pic))
-//          s->Sclass = SCstatic;
+        //if (!(config.flags3 & CFG3pic))
+        //    s->Sclass = SCstatic;
         f->Fflags3 |= Fnested;
 
         /* The enclosing function must have its code generated first,
-         * so we know things like where its local symbols are stored.
+         * in order to calculate correct frame pointer offset.
          */
-        FuncDeclaration *fdp = toAliasFunc()->toParent2()->isFuncDeclaration();
-        // Bug 8016 - only include the function if it is a template instance
-        Dsymbol * owner = NULL;
-        if (fdp)
-        {   owner =  fdp->toParent();
-            while (owner && !owner->isTemplateInstance())
-                owner = owner->toParent();
-        }
-
-        if (owner && fdp && fdp->semanticRun == PASSsemantic3done &&
-            !fdp->isUnitTestDeclaration())
+        if (fdp && fdp->semanticRun < PASSobj)
         {
-            /* Can't do unittest's out of order, they are order dependent in that their
-             * execution is done in lexical order, and some modules (std.datetime *cough*
-             * *cough*) rely on this.
-             */
             fdp->toObjFile(multiobj);
         }
     }
@@ -726,6 +961,7 @@ void FuncDeclaration::toObjFile(int multiobj)
 #endif
     }
 
+    symtab_t *symtabsave = cstate.CSpsymtab;
     cstate.CSpsymtab = &f->Flocsym;
 
     // Find module m for this function
@@ -742,7 +978,7 @@ void FuncDeclaration::toObjFile(int multiobj)
     irs.deferToObj = &deferToObj;
 
     TypeFunction *tf;
-    enum RET retmethod;
+    RET retmethod;
     symbol *shidden = NULL;
     Symbol *sthis = NULL;
     tym_t tyf;
@@ -754,29 +990,26 @@ void FuncDeclaration::toObjFile(int multiobj)
     assert(func->type->ty == Tfunction);
     tf = (TypeFunction *)(func->type);
     has_arguments = (tf->linkage == LINKd) && (tf->varargs == 1);
-    retmethod = tf->retStyle();
+    retmethod = retStyle(tf);
     if (retmethod == RETstack)
     {
         // If function returns a struct, put a pointer to that
         // as the first argument
-        ::type *thidden = tf->next->pointerTo()->toCtype();
+        ::type *thidden = Type_toCtype(tf->next->pointerTo());
         char hiddenparam[5+4+1];
         static int hiddenparami;    // how many we've generated so far
 
         sprintf(hiddenparam,"__HID%d",++hiddenparami);
         shidden = symbol_name(hiddenparam,SCparameter,thidden);
         shidden->Sflags |= SFLtrue | SFLfree;
-#if DMDV1
-        if (func->nrvo_can && func->nrvo_var && func->nrvo_var->nestedref)
-#else
         if (func->nrvo_can && func->nrvo_var && func->nrvo_var->nestedrefs.dim)
-#endif
             type_setcv(&shidden->Stype, shidden->Stype->Tty | mTYvolatile);
         irs.shidden = shidden;
         this->shidden = shidden;
     }
     else
-    {   // Register return style cannot make nrvo.
+    {
+        // Register return style cannot make nrvo.
         // Auto functions keep the nrvo_can flag up to here,
         // so we should eliminate it before entering backend.
         nrvo_can = 0;
@@ -785,44 +1018,48 @@ void FuncDeclaration::toObjFile(int multiobj)
     if (vthis)
     {
         assert(!vthis->csym);
-        sthis = vthis->toSymbol();
+        sthis = toSymbol(vthis);
         irs.sthis = sthis;
         if (!(f->Fflags3 & Fnested))
             f->Fflags3 |= Fmember;
     }
 
-    Symbol **params;
-
     // Estimate number of parameters, pi
     size_t pi = (v_arguments != NULL);
     if (parameters)
         pi += parameters->dim;
-    // Allow extra 2 for sthis and shidden
-    params = (Symbol **)alloca((pi + 2) * sizeof(Symbol *));
+
+    // Create a temporary buffer, params[], to hold function parameters
+    Symbol *paramsbuf[10];
+    Symbol **params = paramsbuf;    // allocate on stack if possible
+    if (pi + 2 > 10)                // allow extra 2 for sthis and shidden
+    {
+        params = (Symbol **)malloc((pi + 2) * sizeof(Symbol *));
+        assert(params);
+    }
 
     // Get the actual number of parameters, pi, and fill in the params[]
     pi = 0;
     if (v_arguments)
     {
-        params[pi] = v_arguments->toSymbol();
+        params[pi] = toSymbol(v_arguments);
         pi += 1;
     }
     if (parameters)
     {
         for (size_t i = 0; i < parameters->dim; i++)
-        {   VarDeclaration *v = (*parameters)[i];
-            if (v->csym)
-            {
-                error("compiler error, parameter '%s', bugzilla 2962?", v->toChars());
-                assert(0);
-            }
-            params[pi + i] = v->toSymbol();
+        {
+            VarDeclaration *v = (*parameters)[i];
+            //printf("param[%d] = %p, %s\n", i, v, v->toChars());
+            assert(!v->csym);
+            params[pi + i] = toSymbol(v);
         }
         pi += parameters->dim;
     }
 
     if (reverse)
-    {   // Reverse params[] entries
+    {
+        // Reverse params[] entries
         for (size_t i = 0; i < pi/2; i++)
         {
             Symbol *sptmp = params[i];
@@ -869,7 +1106,8 @@ void FuncDeclaration::toObjFile(int multiobj)
     }
 
     for (size_t i = 0; i < pi; i++)
-    {   Symbol *sp = params[i];
+    {
+        Symbol *sp = params[i];
         sp->Sclass = SCparameter;
         sp->Sflags &= ~SFLspill;
         sp->Sfl = FLpara;
@@ -882,7 +1120,8 @@ void FuncDeclaration::toObjFile(int multiobj)
         FuncParamRegs fpr(tyf);
 
         for (size_t i = 0; i < pi; i++)
-        {   Symbol *sp = params[i];
+        {
+            Symbol *sp = params[i];
             if (fpr.alloc(sp->Stype, sp->Stype->Tty, &sp->Spreg, &sp->Spreg2))
             {
                 sp->Sclass = (config.exe == EX_WIN64) ? SCshadowreg : SCfastpar;
@@ -891,13 +1130,18 @@ void FuncDeclaration::toObjFile(int multiobj)
         }
     }
 
-    if (func->fbody)
-    {   block *b;
-        Blockx bx;
+    // Done with params
+    if (params != paramsbuf)
+        free(params);
+    params = NULL;
 
+    if (func->fbody)
+    {
         localgot = NULL;
 
         Statement *sbody = func->fbody;
+
+        Blockx bx;
         memset(&bx,0,sizeof(bx));
         bx.startblock = block_calloc();
         bx.curblock = bx.startblock;
@@ -908,76 +1152,50 @@ void FuncDeclaration::toObjFile(int multiobj)
         bx.module = getModule();
         irs.blx = &bx;
 
-        /* If profiling, insert call to the profiler here.
-         *      _c_trace_pro(char* funcname);
+        /* Doing this in semantic3() caused all kinds of problems:
+         * 1. couldn't reliably get the final mangling of the function name due to fwd refs
+         * 2. impact on function inlining
+         * 3. what to do when writing out .di files, or other pretty printing
          */
         if (global.params.trace)
         {
-            dt_t *dt = NULL;
+            /* Wrap the entire function body in:
+             *   trace_pro("funcname");
+             *   try
+             *     body;
+             *   finally
+             *     _c_trace_epi();
+             */
+            StringExp *se = StringExp::create(Loc(), s->Sident);
+            se->type = Type::tstring;
+            se->type = se->type->semantic(Loc(), NULL);
+            Expressions *exps = Expressions_create();
+            exps->push(se);
+            FuncDeclaration *fdpro = FuncDeclaration::genCfunc(NULL, Type::tvoid, "trace_pro");
+            Expression *ec = VarExp::create(Loc(), fdpro);
+            Expression *e = CallExp::create(Loc(), ec, exps);
+            e->type = Type::tvoid;
+            Statement *sp = ExpStatement::create(loc, e);
 
-            char *id = s->Sident;
-            size_t len = strlen(id);
-            dtnbytes(&dt, len + 1, id);
+            FuncDeclaration *fdepi = FuncDeclaration::genCfunc(NULL, Type::tvoid, "_c_trace_epi");
+            ec = VarExp::create(Loc(), fdepi);
+            e = CallExp::create(Loc(), ec);
+            e->type = Type::tvoid;
+            Statement *sf = ExpStatement::create(loc, e);
 
-            Symbol *sfuncname = symbol_generate(SCstatic,type_fake(TYchar));
-            sfuncname->Sdt = dt;
-            sfuncname->Sfl = FLdata;
-            out_readonly(sfuncname);
-            outdata(sfuncname);
-            elem *efuncname = el_ptr(sfuncname);
-
-            elem *eparam = el_params(efuncname, el_long(TYsize_t, len), NULL);
-            elem *e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_TRACE_CPRO]), eparam);
-            block_appendexp(bx.curblock, e);
-        }
-
-#if DMDV2
-        buildClosure(&irs);
-#endif
-
-#if 0
-        if (func->isSynchronized())
-        {
-            if (cd)
-            {   elem *esync;
-                if (func->isStatic())
-                {   // monitor is in ClassInfo
-                    esync = el_ptr(cd->toSymbol());
-                }
-                else
-                {   // 'this' is the monitor
-                    esync = el_var(sthis);
-                }
-
-                if (func->isStatic() || sbody->usesEH() ||
-                    !(config.flags2 & CFG2seh))
-                {   // BUG: what if frequire or fensure uses EH?
-
-                    sbody = new SynchronizedStatement(func->loc, esync, sbody);
-                }
-                else
-                {
-#if TARGET_WINDOS
-                    if (config.flags2 & CFG2seh)
-                    {
-                        /* The "jmonitor" uses an optimized exception handling frame
-                         * which is a little shorter than the more general EH frame.
-                         * It isn't strictly necessary.
-                         */
-                        s->Sfunc->Fflags3 |= Fjmonitor;
-                    }
-#endif
-                    el_free(esync);
-                }
-            }
+            Statement *stf;
+            if (sbody->blockExit(tf->isnothrow) == BEfallthru)
+                stf = CompoundStatement::create(Loc(), sbody, sf);
             else
-            {
-                error("synchronized function %s must be a member of a class", func->toChars());
-            }
+                stf = TryFinallyStatement::create(Loc(), sbody, sf);
+            sbody = CompoundStatement::create(Loc(), sp, stf);
         }
-#elif TARGET_WINDOS
+
+        buildClosure(this, &irs);
+
+#if TARGET_WINDOS
         if (func->isSynchronized() && cd && config.flags2 & CFG2seh &&
-            !func->isStatic() && !sbody->usesEH())
+            !func->isStatic() && !sbody->usesEH() && !global.params.trace)
         {
             /* The "jmonitor" hack uses an optimized exception handling frame
              * which is a little shorter than the more general EH frame.
@@ -986,7 +1204,7 @@ void FuncDeclaration::toObjFile(int multiobj)
         }
 #endif
 
-        sbody->toIR(&irs);
+        Statement_toIR(sbody, &irs);
         bx.curblock->BC = BCret;
 
         f->Fstartblock = bx.startblock;
@@ -995,7 +1213,7 @@ void FuncDeclaration::toObjFile(int multiobj)
         if (isCtorDeclaration())
         {
             assert(sthis);
-            for (b = f->Fstartblock; b; b = b->Bnext)
+            for (block *b = f->Fstartblock; b; b = b->Bnext)
             {
                 if (b->BC == BCret)
                 {
@@ -1007,40 +1225,36 @@ void FuncDeclaration::toObjFile(int multiobj)
     }
 
     // If static constructor
-#if DMDV2
     if (isSharedStaticCtorDeclaration())        // must come first because it derives from StaticCtorDeclaration
     {
         ssharedctors.push(s);
     }
-    else
-#endif
-    if (isStaticCtorDeclaration())
+    else if (isStaticCtorDeclaration())
     {
         sctors.push(s);
     }
 
     // If static destructor
-#if DMDV2
     if (isSharedStaticDtorDeclaration())        // must come first because it derives from StaticDtorDeclaration
     {
         SharedStaticDtorDeclaration *f = isSharedStaticDtorDeclaration();
         assert(f);
         if (f->vgate)
-        {   /* Increment destructor's vgate at construction time
+        {
+            /* Increment destructor's vgate at construction time
              */
             esharedctorgates.push(f);
         }
 
         sshareddtors.shift(s);
     }
-    else
-#endif
-    if (isStaticDtorDeclaration())
+    else if (isStaticDtorDeclaration())
     {
         StaticDtorDeclaration *f = isStaticDtorDeclaration();
         assert(f);
         if (f->vgate)
-        {   /* Increment destructor's vgate at construction time
+        {
+            /* Increment destructor's vgate at construction time
              */
             ectorgates.push(f);
         }
@@ -1055,31 +1269,22 @@ void FuncDeclaration::toObjFile(int multiobj)
     }
 
     if (global.errors)
+    {
+        // Restore symbol table
+        cstate.CSpsymtab = symtabsave;
         return;
+    }
 
     writefunc(s);
+    // Restore symbol table
+    cstate.CSpsymtab = symtabsave;
+
     if (isExport())
-        objmod->export_symbol(s, Poffset);
+        objmod->export_symbol(s, Para.offset);
 
     for (size_t i = 0; i < irs.deferToObj->dim; i++)
     {
         Dsymbol *s = (*irs.deferToObj)[i];
-
-        FuncDeclaration *fd = s->isFuncDeclaration();
-        if (fd)
-        {   FuncDeclaration *fdp = fd->toParent2()->isFuncDeclaration();
-            if (fdp && fdp->semanticRun < PASSobj)
-            {   /* Bugzilla 7595
-                 * FuncDeclaration::buildClosure() relies on nested functions
-                 * being toObjFile'd after the outer function. Otherwise, the
-                 * v->offset's for the closure variables are wrong.
-                 * So, defer fd until after fdp is done.
-                 */
-                fdp->deferred.push(fd);
-                continue;
-            }
-        }
-
         s->toObjFile(0);
     }
 
@@ -1094,27 +1299,30 @@ void FuncDeclaration::toObjFile(int multiobj)
     if (ident && memcmp(ident->toChars(), "_STD", 4) == 0)
         objmod->staticdtor(s);
 #endif
-#if DMDV2
     if (irs.startaddress)
     {
         //printf("Setting start address\n");
         objmod->startaddress(irs.startaddress);
     }
-#endif
 }
 
 bool onlyOneMain(Loc loc)
 {
+    static Loc lastLoc;
     static bool hasMain = false;
     if (hasMain)
     {
+        const char *msg = NULL;
+        if (global.params.addMain)
+            msg = ", -main switch added another main()";
 #if TARGET_WINDOS
-        error(loc, "only one main/WinMain/DllMain allowed");
+        error(lastLoc, "only one main/WinMain/DllMain allowed%s", msg ? msg : "");
 #else
-        error(loc, "only one main allowed");
+        error(lastLoc, "only one main allowed%s", msg ? msg : "");
 #endif
         return false;
     }
+    lastLoc = loc;
     hasMain = true;
     return true;
 }
@@ -1125,10 +1333,10 @@ bool onlyOneMain(Loc loc)
  * Return back end type corresponding to D front end type.
  */
 
-unsigned Type::totym()
-{   unsigned t;
-
-    switch (ty)
+unsigned totym(Type *tx)
+{
+    unsigned t;
+    switch (tx->ty)
     {
         case Tvoid:     t = TYvoid;     break;
         case Tint8:     t = TYschar;    break;
@@ -1150,14 +1358,13 @@ unsigned Type::totym()
         case Tcomplex80: t = TYcldouble; break;
         case Tbool:     t = TYbool;     break;
         case Tchar:     t = TYchar;     break;
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         case Twchar:    t = TYwchar_t;  break;
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         case Tdchar:    t = TYdchar;    break;
 #else
-        case Twchar:    t = TYwchar_t;  break;
         case Tdchar:
-                t = (global.params.symdebug == 1) ? TYdchar : TYulong;
-                break;
+            t = (global.params.symdebug == 1) ? TYdchar : TYulong;
+            break;
 #endif
 
         case Taarray:   t = TYaarray;   break;
@@ -1166,24 +1373,20 @@ unsigned Type::totym()
         case Tpointer:  t = TYnptr;     break;
         case Tdelegate: t = TYdelegate; break;
         case Tarray:    t = TYdarray;   break;
-#if SARRAYVALUE
         case Tsarray:   t = TYstruct;   break;
-#else
-        case Tsarray:   t = TYarray;    break;
-#endif
         case Tstruct:   t = TYstruct;   break;
 
         case Tenum:
         case Ttypedef:
-             t = toBasetype()->totym();
-             break;
+            t = totym(tx->toBasetype());
+            break;
 
         case Tident:
         case Ttypeof:
 #ifdef DEBUG
-            printf("ty = %d, '%s'\n", ty, toChars());
+            printf("ty = %d, '%s'\n", tx->ty, tx->toChars());
 #endif
-            error(0, "forward reference of %s", toChars());
+            error(Loc(), "forward reference of %s", tx->toChars());
             t = TYint;
             break;
 
@@ -1192,10 +1395,12 @@ unsigned Type::totym()
             break;
 
         case Tvector:
-        {   TypeVector *tv = (TypeVector *)this;
+        {
+            TypeVector *tv = (TypeVector *)tx;
             TypeBasic *tb = tv->elementType();
             switch (tb->ty)
-            {   case Tvoid:
+            {
+                case Tvoid:
                 case Tint8:     t = TYschar16;  break;
                 case Tuns8:     t = TYuchar16;  break;
                 case Tint16:    t = TYshort8;   break;
@@ -1213,151 +1418,128 @@ unsigned Type::totym()
             static bool once = false;
             if (!once)
             {
-                if (global.params.is64bit || TARGET_OSX)
+                if (global.params.is64bit || global.params.isOSX)
                     ;
                 else
-                {   error(0, "SIMD vector types not supported on this platform");
+                {
+                    error(Loc(), "SIMD vector types not supported on this platform");
                     once = true;
                 }
-                if (tv->size(0) == 32)
-                {   error(0, "AVX vector types not supported");
+                if (tv->size(Loc()) == 32)
+                {
+                    error(Loc(), "AVX vector types not supported");
                     once = true;
                 }
             }
             break;
         }
 
+        case Tfunction:
+        {
+            TypeFunction *tf = (TypeFunction *)tx;
+            switch (tf->linkage)
+            {
+                case LINKwindows:
+                    t = (tf->varargs == 1) ? TYnfunc : TYnsfunc;
+                    break;
+
+                case LINKpascal:
+                    t = (tf->varargs == 1) ? TYnfunc : TYnpfunc;
+                    break;
+
+                case LINKc:
+                case LINKcpp:
+                    t = TYnfunc;
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+                    if (I32 && retStyle(tf) == RETstack)
+                        t = TYhfunc;
+#endif
+                    break;
+
+                case LINKd:
+                    t = (tf->varargs == 1) ? TYnfunc : TYjfunc;
+                    break;
+
+                default:
+                    printf("linkage = %d\n", tf->linkage);
+                    assert(0);
+            }
+            if (tf->isnothrow)
+                t |= mTYnothrow;
+            return t;
+        }
         default:
 #ifdef DEBUG
-            printf("ty = %d, '%s'\n", ty, toChars());
+            printf("ty = %d, '%s'\n", tx->ty, tx->toChars());
             halt();
 #endif
             assert(0);
     }
 
-#if DMDV2
     // Add modifiers
-    switch (mod)
+    switch (tx->mod)
     {
         case 0:
             break;
         case MODconst:
         case MODwild:
+        case MODwildconst:
             t |= mTYconst;
-            break;
-        case MODimmutable:
-            t |= mTYimmutable;
             break;
         case MODshared:
             t |= mTYshared;
             break;
-        case MODshared | MODwild:
         case MODshared | MODconst:
+        case MODshared | MODwild:
+        case MODshared | MODwildconst:
             t |= mTYshared | mTYconst;
             break;
+        case MODimmutable:
+            t |= mTYimmutable;
+            break;
         default:
             assert(0);
     }
-#endif
 
     return t;
-}
-
-unsigned TypeFunction::totym()
-{
-    tym_t tyf;
-
-    //printf("TypeFunction::totym(), linkage = %d\n", linkage);
-    switch (linkage)
-    {
-        case LINKwindows:
-            tyf = (varargs == 1) ? TYnfunc : TYnsfunc;
-            break;
-
-        case LINKpascal:
-            tyf = (varargs == 1) ? TYnfunc : TYnpfunc;
-            break;
-
-        case LINKc:
-        case LINKcpp:
-            tyf = TYnfunc;
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-            if (I32 && retStyle() == RETstack)
-                tyf = TYhfunc;
-#endif
-            break;
-
-        case LINKd:
-            tyf = (varargs == 1) ? TYnfunc : TYjfunc;
-            break;
-
-        default:
-            printf("linkage = %d\n", linkage);
-            assert(0);
-    }
-#if DMDV2
-    if (isnothrow)
-        tyf |= mTYnothrow;
-#endif
-    return tyf;
 }
 
 /**************************************
  */
 
-Symbol *Type::toSymbol()
+Symbol *toSymbol(Type *t)
 {
+    if (t->ty == Tclass)
+    {
+        return toSymbol(((TypeClass *)t)->sym);
+    }
     assert(0);
     return NULL;
-}
-
-Symbol *TypeClass::toSymbol()
-{
-    return sym->toSymbol();
-}
-
-/*************************************
- * Generate symbol in data segment for critical section.
- */
-
-Symbol *Module::gencritsec()
-{
-    Symbol *s;
-    type *t;
-
-    t = Type::tint32->toCtype();
-    s = symbol_name("critsec", SCstatic, t);
-    s->Sfl = FLdata;
-    /* Must match D_CRITICAL_SECTION in phobos/internal/critical.c
-     */
-    dtnzeros(&s->Sdt, PTRSIZE + (I64 ? os_critsecsize64() : os_critsecsize32()));
-    outdata(s);
-    return s;
 }
 
 /**************************************
  * Generate elem that is a pointer to the module file name.
  */
 
-elem *Module::toEfilename()
-{   elem *efilename;
-
-    if (!sfilename)
+elem *toEfilename(Module *m)
+{
+    elem *efilename;
+    if (!m->sfilename)
     {
         dt_t *dt = NULL;
-        char *id = srcfile->toChars();
+        char *id = m->srcfile->toChars();
         size_t len = strlen(id);
         dtsize_t(&dt, len);
         dtabytes(&dt,TYnptr, 0, len + 1, id);
 
-        sfilename = symbol_generate(SCstatic,type_fake(TYdarray));
-        sfilename->Sdt = dt;
-        sfilename->Sfl = FLdata;
-        out_readonly(sfilename);
-        outdata(sfilename);
+        m->sfilename = symbol_generate(SCstatic,type_fake(TYdarray));
+        m->sfilename->Sdt = dt;
+        m->sfilename->Sfl = FLdata;
+        out_readonly(m->sfilename);
+        outdata(m->sfilename);
     }
 
-    efilename = (config.exe == EX_WIN64) ? el_ptr(sfilename) : el_var(sfilename);
+    efilename = (config.exe == EX_WIN64) ? el_ptr(m->sfilename) : el_var(m->sfilename);
     return efilename;
 }
 

@@ -5,8 +5,7 @@
 // Written by Walter Bright
 /*
  * This source file is made available for personal use
- * only. The license is in /dmd/src/dmd/backendlicense.txt
- * or /dm/src/dmd/backendlicense.txt
+ * only. The license is in backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
@@ -66,9 +65,7 @@ struct TYPE
 #if SCPP
         struct TYPE *Talternate;        // typtr: type of parameter before converting
 #endif
-#if MARS
         struct TYPE *Tkey;      // typtr: key type for associative arrays
-#endif
     };
     list_t Texcspec;            // tyfunc(): list of types of exception specification
 #if 0
@@ -206,5 +203,15 @@ symbol *param_search(const char *name, param_t **pp);
 void param_hydrate(param_t **);
 void param_dehydrate(param_t **);
 int typematch(type *t1, type *t2, int relax);
+
+type *type_pointer(type *tnext);
+type *type_dyn_array(type *tnext);
+type *type_static_array(unsigned long long dim, type *tnext);
+type *type_assoc_array(type *tkey, type *tvalue);
+type *type_delegate(type *tnext);
+type *type_function(tym_t tyf, type **ptypes, size_t nparams, bool variadic, type *tret);
+type *type_enum(const char *name, type *tbase);
+type *type_struct_class(const char *name, unsigned alignsize, unsigned structsize,
+        type *arg1type, type *arg2type, bool isUnion, bool isClass, bool isPOD);
 
 #endif

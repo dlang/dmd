@@ -1,3 +1,5 @@
+// PERMUTE_ARGS:
+module traits;
 
 import std.stdio;
 
@@ -604,12 +606,66 @@ string toString23(E)(E value) if (is(E == enum)) {
    return null;
 }
 
-enum OddWord { acini, alembicated, prolegomena, aprosexia } 
+enum OddWord { acini, alembicated, prolegomena, aprosexia }
 
 void test23()
 {
    auto w = OddWord.alembicated;
    assert(toString23(w) == "alembicated");
+}
+
+/********************************************************/
+
+struct Test24
+{
+    public void test24(int){}
+    private void test24(int, int){}
+}
+
+static assert(__traits(getProtection, __traits(getOverloads, Test24, "test24")[1]) == "private");
+
+/********************************************************/
+// 1369
+
+void test1369()
+{
+    class C1
+    {
+        static int count;
+        void func() { count++; }
+    }
+
+    // variable symbol
+    C1 c1 = new C1;
+    __traits(getMember, c1, "func")();      // TypeIdentifier -> VarExp
+    __traits(getMember, mixin("c1"), "func")(); // Expression -> VarExp
+    assert(C1.count == 2);
+
+    // nested function symbol
+    @property C1 get() { return c1; }
+    __traits(getMember, get, "func")();
+    __traits(getMember, mixin("get"), "func")();
+    assert(C1.count == 4);
+
+    class C2
+    {
+        C1 c1;
+        this() { c1 = new C1; }
+        void test()
+        {
+            // variable symbol (this.outer.c1)
+            __traits(getMember, c1, "func")();      // TypeIdentifier -> VarExp -> DotVarExp
+            __traits(getMember, mixin("c1"), "func")(); // Expression -> VarExp -> DotVarExp
+            assert(C1.count == 6);
+
+            // nested function symbol (this.outer.get)
+            __traits(getMember, get, "func")();
+            __traits(getMember, mixin("get"), "func")();
+            assert(C1.count == 8);
+        }
+    }
+    C2 c2 = new C2;
+    c2.test();
 }
 
 /********************************************************/
@@ -623,6 +679,20 @@ struct S2234c{ alias Foo2234!() foo; }
 static assert([__traits(allMembers, S2234a)] == ["x"]);
 static assert([__traits(allMembers, S2234b)] == ["x"]);
 static assert([__traits(allMembers, S2234c)] == ["foo"]);
+
+/********************************************************/
+// 5878
+
+template J5878(A)
+{
+    static if (is(A P == super))
+        alias P J5878;
+}
+
+alias J5878!(A5878) Z5878;
+
+class X5878 {}
+class A5878 : X5878 {}
 
 /********************************************************/
 
@@ -660,11 +730,16 @@ alias T6073!(__traits(parent, S6073)) U6073;    // error
 static assert(__traits(isSame, V6073, U6073));  // same instantiation == same arguemnts
 
 /********************************************************/
+// 7027
 
-struct Foo7027 {
-  int a;
-}
+struct Foo7027 { int a; }
 static assert(!__traits(compiles, { return Foo7027.a; }));
+
+/********************************************************/
+// 9213
+
+class Foo9213 { int a; }
+static assert(!__traits(compiles, { return Foo9213.a; }));
 
 /********************************************************/
 
@@ -864,6 +939,57 @@ void getProtection()
 }
 
 /********************************************************/
+// 9546
+
+void test9546()
+{
+    import imports.a9546;
+
+    S s;
+    static assert(__traits(getProtection, s.privA) == "private");
+    static assert(__traits(getProtection, s.protA) == "protected");
+    static assert(__traits(getProtection, s.packA) == "package");
+    static assert(__traits(getProtection, S.privA) == "private");
+    static assert(__traits(getProtection, S.protA) == "protected");
+    static assert(__traits(getProtection, S.packA) == "package");
+
+    static assert(__traits(getProtection, mixin("s.privA")) == "private");
+    static assert(__traits(getProtection, mixin("s.protA")) == "protected");
+    static assert(__traits(getProtection, mixin("s.packA")) == "package");
+    static assert(__traits(getProtection, mixin("S.privA")) == "private");
+    static assert(__traits(getProtection, mixin("S.protA")) == "protected");
+    static assert(__traits(getProtection, mixin("S.packA")) == "package");
+
+    static assert(__traits(getProtection, __traits(getMember, s, "privA")) == "private");
+    static assert(__traits(getProtection, __traits(getMember, s, "protA")) == "protected");
+    static assert(__traits(getProtection, __traits(getMember, s, "packA")) == "package");
+    static assert(__traits(getProtection, __traits(getMember, S, "privA")) == "private");
+    static assert(__traits(getProtection, __traits(getMember, S, "protA")) == "protected");
+    static assert(__traits(getProtection, __traits(getMember, S, "packA")) == "package");
+
+    static assert(__traits(getProtection, s.privF) == "private");
+    static assert(__traits(getProtection, s.protF) == "protected");
+    static assert(__traits(getProtection, s.packF) == "package");
+    static assert(__traits(getProtection, S.privF) == "private");
+    static assert(__traits(getProtection, S.protF) == "protected");
+    static assert(__traits(getProtection, S.packF) == "package");
+
+    static assert(__traits(getProtection, mixin("s.privF")) == "private");
+    static assert(__traits(getProtection, mixin("s.protF")) == "protected");
+    static assert(__traits(getProtection, mixin("s.packF")) == "package");
+    static assert(__traits(getProtection, mixin("S.privF")) == "private");
+    static assert(__traits(getProtection, mixin("S.protF")) == "protected");
+    static assert(__traits(getProtection, mixin("S.packF")) == "package");
+
+    static assert(__traits(getProtection, __traits(getMember, s, "privF")) == "private");
+    static assert(__traits(getProtection, __traits(getMember, s, "protF")) == "protected");
+    static assert(__traits(getProtection, __traits(getMember, s, "packF")) == "package");
+    static assert(__traits(getProtection, __traits(getMember, S, "privF")) == "private");
+    static assert(__traits(getProtection, __traits(getMember, S, "protF")) == "protected");
+    static assert(__traits(getProtection, __traits(getMember, S, "packF")) == "package");
+}
+
+/********************************************************/
 // 9091
 
 template isVariable9091(X...) if (X.length == 1)
@@ -872,19 +998,365 @@ template isVariable9091(X...) if (X.length == 1)
 }
 class C9091
 {
-    void func()
-    {
-        enum is_x = isVariable9091!(__traits(getMember, C9091, "x"));
-    }
     int x;  // some class members
+    void func(int n){ this.x = n; }
+
+    void test()
+    {
+        alias T = C9091;
+        enum is_x = isVariable9091!(__traits(getMember, T, "x"));
+
+        foreach (i, m; __traits(allMembers, T))
+        {
+            enum x = isVariable9091!(__traits(getMember, T, m));
+            static if (i == 0)  // x
+            {
+                __traits(getMember, T, m) = 10;
+                assert(this.x == 10);
+            }
+            static if (i == 1)  // func
+            {
+                __traits(getMember, T, m)(20);
+                assert(this.x == 20);
+            }
+        }
+    }
 }
 struct S9091
 {
-    void func()
-    {
-        enum is_x = isVariable9091!(__traits(getMember, S9091, "x"));
-    }
     int x;  // some struct members
+    void func(int n){ this.x = n; }
+
+    void test()
+    {
+        alias T = S9091;
+        enum is_x = isVariable9091!(__traits(getMember, T, "x"));
+
+        foreach (i, m; __traits(allMembers, T))
+        {
+            enum x = isVariable9091!(__traits(getMember, T, m));
+            static if (i == 0)  // x
+            {
+                __traits(getMember, T, m) = 10;
+                assert(this.x == 10);
+            }
+            static if (i == 1)  // func
+            {
+                __traits(getMember, T, m)(20);
+                assert(this.x == 20);
+            }
+        }
+    }
+}
+
+void test9091()
+{
+    auto c = new C9091();
+    c.test();
+
+    auto s = S9091();
+    s.test();
+}
+
+/********************************************************/
+
+struct CtorS_9237 { this(int x) { } }       // ctor -> POD
+struct DtorS_9237 { ~this() { } }           // dtor -> nonPOD
+struct PostblitS_9237 { this(this) { } }    // cpctor -> nonPOD
+
+struct NonPOD1_9237
+{
+    DtorS_9237 field;  // nonPOD -> ng
+}
+
+struct NonPOD2_9237
+{
+    DtorS_9237[2] field;  // static array of nonPOD -> ng
+}
+
+struct POD1_9237
+{
+    DtorS_9237* field;  // pointer to nonPOD -> ok
+}
+
+struct POD2_9237
+{
+    DtorS_9237[] field;  // dynamic array of nonPOD -> ok
+}
+
+struct POD3_9237
+{
+    int x = 123;
+}
+
+class C_9273 { }
+
+void test9237()
+{
+    int x;
+    struct NS_9237  // acceses .outer -> nested
+    {
+        void foo() { x++; }
+    }
+
+    struct NonNS_9237 { }  // doesn't access .outer -> non-nested
+    static struct StatNS_9237 { }  // can't access .outer -> non-nested
+
+    static assert(!__traits(isPOD, NS_9237));
+    static assert(__traits(isPOD, NonNS_9237));
+    static assert(__traits(isPOD, StatNS_9237));
+    static assert(__traits(isPOD, CtorS_9237));
+    static assert(!__traits(isPOD, DtorS_9237));
+    static assert(!__traits(isPOD, PostblitS_9237));
+    static assert(!__traits(isPOD, NonPOD1_9237));
+    static assert(!__traits(isPOD, NonPOD2_9237));
+    static assert(__traits(isPOD, POD1_9237));
+    static assert(__traits(isPOD, POD2_9237));
+    static assert(__traits(isPOD, POD3_9237));
+
+    // static array of POD/non-POD types
+    static assert(!__traits(isPOD, NS_9237[2]));
+    static assert(__traits(isPOD, NonNS_9237[2]));
+    static assert(__traits(isPOD, StatNS_9237[2]));
+    static assert(__traits(isPOD, CtorS_9237[2]));
+    static assert(!__traits(isPOD, DtorS_9237[2]));
+    static assert(!__traits(isPOD, PostblitS_9237[2]));
+    static assert(!__traits(isPOD, NonPOD1_9237[2]));
+    static assert(!__traits(isPOD, NonPOD2_9237[2]));
+    static assert(__traits(isPOD, POD1_9237[2]));
+    static assert(__traits(isPOD, POD2_9237[2]));
+    static assert(__traits(isPOD, POD3_9237[2]));
+
+    // non-structs are POD types
+    static assert(__traits(isPOD, C_9273));
+    static assert(__traits(isPOD, int));
+    static assert(__traits(isPOD, int*));
+    static assert(__traits(isPOD, int[]));
+    static assert(!__traits(compiles, __traits(isPOD, 123) ));
+}
+
+/*************************************************************/
+
+void test5978() {
+    () {
+        int x;
+        pragma(msg, __traits(parent, x));
+    } ();
+}
+
+/*************************************************************/
+
+template T7408() { }
+
+void test7408()
+{
+    auto x = T7408!().stringof;
+    auto y = T7408!().mangleof;
+    static assert(__traits(compiles, T7408!().stringof));
+    static assert(__traits(compiles, T7408!().mangleof));
+    static assert(!__traits(compiles, T7408!().init));
+    static assert(!__traits(compiles, T7408!().offsetof));
+}
+
+/*************************************************************/
+// 9552
+
+class C9552
+{
+    int f() { return 10; }
+    int f(int n) { return n * 2; }
+}
+
+void test9552()
+{
+    auto c = new C9552;
+    auto dg1 = &(__traits(getOverloads, c, "f")[0]); // DMD crashes
+    assert(dg1() == 10);
+    auto dg2 = &(__traits(getOverloads, c, "f")[1]);
+    assert(dg2(10) == 20);
+}
+
+/*************************************************************/
+
+void test9136()
+{
+    int x;
+    struct S1 { void f() { x++; } }
+    struct U1 { void f() { x++; } }
+    static struct S2 { }
+    static struct S3 { S1 s; }
+    static struct U2 { }
+    void f1() { x++; }
+    static void f2() { }
+
+    static assert(__traits(isNested, S1));
+    static assert(__traits(isNested, U1));
+    static assert(!__traits(isNested, S2));
+    static assert(!__traits(isNested, S3));
+    static assert(!__traits(isNested, U2));
+    static assert(!__traits(compiles, __traits(isNested, int) ));
+    static assert(!__traits(compiles, __traits(isNested, f1, f2) ));
+    static assert(__traits(isNested, f1));
+    static assert(!__traits(isNested, f2));
+
+    static class A { static class SC { } class NC { } }
+    static assert(!__traits(isNested, A));
+    static assert(!__traits(isNested, A.SC));
+    static assert(__traits(isNested, A.NC));
+}
+
+/********************************************************/
+// 9939
+
+struct Test9939
+{
+    int f;
+    enum /*Anonymous enum*/
+    {
+        A,
+        B
+    }
+    enum NamedEnum
+    {
+        C,
+        D
+    }
+}
+
+static assert([__traits(allMembers, Test9939)] == ["f", "A", "B", "NamedEnum"]);
+
+/********************************************************/
+// 10043
+
+void test10043()
+{
+    struct X {}
+    X d1;
+    static assert(!__traits(compiles, d1.structuralCast!Refleshable));
+}
+
+/********************************************************/
+// 10096
+
+struct S10096X
+{
+    string str;
+
+    invariant() {}
+    invariant() {}
+    unittest {}
+
+    this(int) {}
+    this(this) {}
+    ~this() {}
+}
+static assert(
+    [__traits(allMembers, S10096X)] ==
+    ["str", "__ctor", "__postblit", "__dtor", "opAssign"]);
+
+// --------
+
+string foo10096(alias var, T = typeof(var))()
+{
+    foreach (idx, member; __traits(allMembers, T))
+    {
+        auto x = var.tupleof[idx];
+    }
+
+    return "";
+}
+
+string foo10096(T)(T var)
+{
+    return "";
+}
+
+struct S10096
+{
+    int i;
+    string s;
+}
+
+void test10096()
+{
+    S10096 s = S10096(1, "");
+    auto x = foo10096!s;
+}
+
+/********************************************************/
+
+unittest { }
+
+struct GetUnitTests
+{
+    unittest { }
+}
+
+void test_getUnitTests ()
+{
+    // Always returns empty tuple if the -unittest flag isn't used
+    static assert(__traits(getUnitTests, mixin(__MODULE__)).length == 0);
+    static assert(__traits(getUnitTests, GetUnitTests).length == 0);
+}
+
+/********************************************************/
+
+class TestIsOverrideFunctionBase
+{
+    void bar () {}
+}
+
+class TestIsOverrideFunctionPass : TestIsOverrideFunctionBase
+{
+    override void bar () {}
+}
+
+void test_isOverrideFunction ()
+{
+    assert(__traits(isOverrideFunction, TestIsOverrideFunctionPass.bar) == true);
+    assert(__traits(isOverrideFunction, TestIsOverrideFunctionBase.bar) == false);
+}
+
+/********************************************************/
+// 11711 - Add __traits(getAliasThis)
+
+alias TypeTuple(T...) = T;
+
+void test11711()
+{
+    struct S1
+    {
+        string var;
+        alias var this;
+    }
+    static assert(__traits(getAliasThis, S1) == TypeTuple!("var"));
+    static assert(is(typeof(__traits(getMember, S1.init, __traits(getAliasThis, S1)[0]))
+                == string));
+
+    struct S2
+    {
+        TypeTuple!(int, string) var;
+        alias var this;
+    }
+    static assert(__traits(getAliasThis, S2) == TypeTuple!("var"));
+    static assert(is(typeof(__traits(getMember, S2.init, __traits(getAliasThis, S2)[0]))
+                == TypeTuple!(int, string)));
+}
+
+
+/********************************************************/
+// Issue 12278
+
+class Foo12278
+{
+    InPlace12278!Bar12278 inside;
+}
+
+class Bar12278 { }
+
+struct InPlace12278(T)
+{
+    static assert(__traits(classInstanceSize, T) != 0);
 }
 
 /********************************************************/
@@ -915,8 +1387,17 @@ int main()
     test21();
     test22();
     test23();
+    test1369();
     test7608();
     test7858();
+    test9091();
+    test5978();
+    test7408();
+    test9552();
+    test9136();
+    test10096();
+    test_getUnitTests();
+    test_isOverrideFunction();
 
     writeln("Success");
     return 0;

@@ -382,6 +382,112 @@ class D7699 : P7699
 }
 
 /*******************************************/
+// 7883
+
+// Segmentation fault
+class AA7883
+{
+    int foo()
+    out (r1) { }
+    body { return 1; }
+}
+
+class BA7883 : AA7883
+{
+    override int foo()
+    out (r2) { }
+    body { return 1; }
+}
+
+class CA7883 : BA7883
+{
+    override int foo()
+    body { return 1; }
+}
+
+// Error: undefined identifier r2, did you mean variable r3?
+class AB7883
+{
+    int foo()
+    out (r1) { }
+    body { return 1; }
+}
+
+class BB7883 : AB7883
+{
+    override int foo()
+    out (r2) { }
+    body { return 1; }
+
+}
+
+class CB7883 : BB7883
+{
+    override int foo()
+    out (r3) { }
+    body { return 1; }
+}
+
+// Error: undefined identifier r3, did you mean variable r4?
+class AC7883
+{
+    int foo()
+    out (r1) { }
+    body { return 1; }
+}
+
+class BC7883 : AC7883
+{
+    override int foo()
+    out (r2) { }
+    body { return 1; }
+}
+
+class CC7883 : BC7883
+{
+    override int foo()
+    out (r3) { }
+    body { return 1; }
+}
+
+class DC7883 : CC7883
+{
+    override int foo()
+    out (r4) { }
+    body { return 1; }
+}
+
+/*******************************************/
+// 7892
+
+struct S7892
+{
+    @disable this();
+    this(int x) {}
+}
+
+S7892 f7892()
+out (result) {}     // case 1
+body
+{
+    return S7892(1);
+}
+
+interface I7892
+{
+    S7892 f();
+}
+class C7892
+{
+    invariant() {}  // case 2
+
+    S7892 f()
+    {
+        return S7892(1);
+    }
+}
+
+/*******************************************/
 // 8066
 
 struct CLCommandQueue
@@ -469,6 +575,62 @@ void test8093()
 
     { auto n = foo_val1(); assert(&n !is &g && n == 10); }
     { auto n = foo_val2(); assert(&n !is &g && n == 10); }
+}
+
+/*******************************************/
+// 10479
+
+class B10479
+{
+    B10479 foo()
+    out { } body { return null; }
+}
+
+class D10479 : B10479
+{
+    override D10479 foo() { return null; }
+}
+
+/*******************************************/
+// 10596
+
+class Foo10596
+{
+    auto bar()
+    out (result) { }
+    body { return 0; }
+}
+
+/*******************************************/
+// 10721
+
+class Foo10721
+{
+    this()
+    out { }
+    body { }
+
+    ~this()
+    out { }
+    body { }
+}
+
+struct Bar10721
+{
+    this(this)
+    out { }
+    body { }
+}
+
+/*******************************************/
+// 10981
+
+class C10981
+{
+    void foo(int i) pure
+    in { assert(i); }
+    out { assert(i); }
+    body {}
 }
 
 /*******************************************/
