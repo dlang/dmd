@@ -3289,6 +3289,30 @@ void test12285()
 }
 
 /******************************************/
+// 12286
+
+class A12286          { int i; }
+class B12286 : A12286 { int j; }
+
+template copy12286(alias a, alias b)
+{
+    void copy12286() { a = b; }
+}
+
+class C12286 : B12286
+{
+    alias copyIJ = copy12286!(i, j);
+}
+
+void test12286()
+{
+    auto c = new C12286;
+    c.j = 42;
+    c.copyIJ();
+    assert(c.i == 42);
+}
+
+/******************************************/
 // 12290
 
 void test12290()
@@ -4165,6 +4189,7 @@ int main()
     test12122();
     test12207();
     test12285();
+    test12286();
     test12376();
     test13235();
     test13299();

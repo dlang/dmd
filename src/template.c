@@ -7086,6 +7086,24 @@ bool TemplateInstance::needsTypeInference(Scope *sc, int flag)
 }
 
 
+/****************************************
+ * Used when determining where a TemplateInstance
+ * is nested from two alias parameters.
+ * Returns true if a and b are the same Dsymbol,
+ * or if both are classes and a inherits from b.
+ */
+static bool templateNestTarget(Dsymbol *child, Dsymbol *parent)
+{
+    if (child == parent)
+        return true;
+    ClassDeclaration *cdchild  = child ->isClassDeclaration();
+    ClassDeclaration *cdparent = parent->isClassDeclaration();
+    if (cdchild && cdparent && cdparent->isBaseOf(cdchild, NULL))
+        return true;
+    return false;
+}
+
+
 /*****************************************
  * Determines if a TemplateInstance will need a nested
  * generation of the TemplateDeclaration.
@@ -7174,12 +7192,12 @@ bool TemplateInstance::hasNestedArgs(Objects *args, bool isstatic)
                         */
                     for (Dsymbol *p = enclosing; p; p = p->parent)
                     {
-                        if (p == dparent)
+                        if (templateNestTarget(p, dparent))
                             goto L1;        // enclosing is most nested
                     }
                     for (Dsymbol *p = dparent; p; p = p->parent)
                     {
-                        if (p == enclosing)
+                        if (templateNestTarget(p, enclosing))
                         {
                             enclosing = dparent;
                             goto L1;        // dparent is most nested
