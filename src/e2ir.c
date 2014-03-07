@@ -1609,6 +1609,21 @@ elem *toElem(Expression *e, IRState *irs)
 
                 int rtl = tp->next->isZeroInit() ? RTLSYM_NEWITEMT : RTLSYM_NEWITEMIT;
                 e = el_bin(OPcall,TYnptr,el_var(rtlsym[rtl]),e);
+
+                if (ne->arguments && ne->arguments->dim == 1)
+                {
+                    elem *e2 = (*ne->arguments)[0]->toElem(irs);
+
+                    symbol *ts = symbol_genauto(Type_toCtype(tp));
+                    elem *eeq1 = el_bin(OPeq, TYnptr, el_var(ts), e);
+
+                    elem *ederef = el_una(OPind, e2->Ety, el_var(ts));
+                    elem *eeq2 = el_bin(OPeq, e2->Ety, ederef, e2);
+
+                    e = el_combine(eeq1, eeq2);
+                    e = el_combine(e, el_var(ts));
+                    //elem_print(e);
+                }
             }
             else
             {

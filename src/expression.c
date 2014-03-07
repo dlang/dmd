@@ -5023,8 +5023,18 @@ Lagain:
     }
     else if (tb->isscalar())
     {
-        if (nargs)
-        {   error("no constructor for %s", type->toChars());
+        if (!nargs)
+        {
+        }
+        else if (nargs == 1)
+        {
+            Expression *e = (*arguments)[0];
+            e = e->implicitCastTo(sc, tb);
+            (*arguments)[0] = e;
+        }
+        else
+        {
+            error("more than one argument for construction of %s", type->toChars());
             goto Lerr;
         }
 
@@ -8138,6 +8148,30 @@ Lagain:
             // Rewrite as e1.call(arguments)
             Expression *e = new DotIdExp(loc, e1, Id::call);
             e = new CallExp(loc, e, arguments);
+            e = e->semantic(sc);
+            return e;
+        }
+        else if (e1->op == TOKtype && t1->isscalar())
+        {
+            if (arrayExpressionSemantic(arguments, sc))
+                return new ErrorExp();
+            preFunctionParameters(loc, sc, arguments);
+            Expression *e;
+            if (!arguments || arguments->dim == 0)
+            {
+                e = t1->defaultInitLiteral(loc);
+            }
+            else if (arguments->dim == 1)
+            {
+                e = (*arguments)[0];
+                e = e->implicitCastTo(sc, t1);
+                e = new CastExp(loc, e, t1);
+            }
+            else
+            {
+                error("more than one argument for construction of %s", t1->toChars());
+                e = new ErrorExp();
+            }
             e = e->semantic(sc);
             return e;
         }
