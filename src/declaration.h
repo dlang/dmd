@@ -674,8 +674,8 @@ public:
     Statement *mergeFensure(Statement *, Identifier *oid);
     Parameters *getParameters(int *pvarargs);
 
-    static FuncDeclaration *genCfunc(Parameters *args, Type *treturn, const char *name);
-    static FuncDeclaration *genCfunc(Parameters *args, Type *treturn, Identifier *id);
+    static FuncDeclaration *genCfunc(Parameters *args, Type *treturn, const char *name, StorageClass stc = 0);
+    static FuncDeclaration *genCfunc(Parameters *args, Type *treturn, Identifier *id, StorageClass stc = 0);
 
     Symbol *toThunkSymbol(int offset);  // thunk version
     void toObjFile(int multiobj);                       // compile to .obj file

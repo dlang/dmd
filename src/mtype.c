@@ -3802,7 +3802,8 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
                 Parameters* args = new Parameters;
                 args->push(new Parameter(STCin, Type::dtypeinfo->type, NULL, NULL));
                 args->push(new Parameter(STCin, Type::tvoid->arrayOf(), NULL, NULL));
-                adDup_fd = FuncDeclaration::genCfunc(args, Type::tvoid->arrayOf(), Id::adDup);
+                adDup_fd = FuncDeclaration::genCfunc(args, Type::tvoid->arrayOf(), Id::adDup,
+                        STCpure | STCtrusted);
             }
             fd = adDup_fd;
         } else {
