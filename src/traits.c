@@ -748,6 +748,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             if (ex)
             {
                 ex = ex->semantic(sc2);
+                ex = resolvePropertiesOnly(sc2, ex);
                 ex = ex->optimize(WANTvalue);
                 if (ex->op == TOKerror)
                     err = true;

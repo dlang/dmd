@@ -1652,6 +1652,21 @@ void test14()
 }
 
 /**********************************/
+// test for evaluateConstraint assertion
+
+bool canSearchInCodeUnits15(C)(dchar c)
+if (is(C == char))
+{
+    return true;
+}
+
+void test15()
+{
+    int needle = 0;
+    auto b = canSearchInCodeUnits15!char(needle);
+}
+
+/**********************************/
 // 8129
 
 class X8129 {}

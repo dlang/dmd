@@ -105,6 +105,8 @@ FuncDeclaration *hasIdentityOpAssign(AggregateDeclaration *ad, Scope *sc)
 
         if (f)
         {
+            if (f->errors)
+                return NULL;
             int varargs;
             Parameters *fparams = f->getParameters(&varargs);
             if (fparams->dim >= 1)
@@ -438,7 +440,11 @@ FuncDeclaration *hasIdentityOpEquals(AggregateDeclaration *ad,  Scope *sc)
             global.endGagging(errors);
 
             if (f)
+            {
+                if (f->errors)
+                    return NULL;
                 return f;
+            }
         }
     }
     return NULL;

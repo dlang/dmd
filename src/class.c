@@ -707,7 +707,8 @@ void ClassDeclaration::semantic(Scope *sc)
     //    this() { }
     if (!ctor && baseClass && baseClass->ctor)
     {
-        if (FuncDeclaration *fd = resolveFuncCall(loc, sc, baseClass->ctor, NULL, NULL, NULL, 1))
+        FuncDeclaration *fd = resolveFuncCall(loc, sc, baseClass->ctor, NULL, NULL, NULL, 1);
+        if (fd && !fd->errors)
         {
             //printf("Creating default this(){} for class %s\n", toChars());
             TypeFunction *btf = (TypeFunction *)fd->type;
