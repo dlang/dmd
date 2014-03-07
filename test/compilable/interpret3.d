@@ -6278,3 +6278,27 @@ bool test11664()
     return true;
 }
 static assert(test11664());
+
+/**************************************************
+    12310 - heap allocation for built-in sclar types
+**************************************************/
+
+bool test12310()
+{
+    auto p1 = new int, p2 = p1;
+    assert(*p1 == 0);
+    assert(*p2 == 0);
+    *p1 = 10;
+    assert(*p1 == 10);
+    assert(*p2 == 10);
+
+    auto q1 = new int(3), q2 = q1;
+    assert(*q1 == 3);
+    assert(*q2 == 3);
+    *q1 = 20;
+    assert(*q1 == 20);
+    assert(*q2 == 20);
+
+    return true;
+}
+static assert(test12310());
