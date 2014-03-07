@@ -446,6 +446,26 @@ alias test8163!(ubyte, ubyte, ushort, float) _BBSf;
 
 
 /***************************************************/
+// 4757
+
+auto foo4757(T)(T)
+{
+    static struct Bar(T)
+    {
+        void spam()
+        {
+            foo4757(1);
+        }
+    }
+    return Bar!T();
+}
+
+void test4757()
+{
+    foo4757(1);
+}
+
+/***************************************************/
 // 9348
 
 void test9348()

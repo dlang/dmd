@@ -861,10 +861,7 @@ void StructDeclaration::semantic(Scope *sc)
     }
 
     if (sc->func)
-    {
         semantic2(sc);
-        semantic3(sc);
-    }
 
     if (global.errors != errors)
     {   // The type is no good.
