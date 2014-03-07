@@ -3062,6 +3062,35 @@ public:
             result = eref;
             return;
         }
+        if (e->newtype->toBasetype()->isscalar())
+        {
+            Expression *newval;
+            if (e->arguments && e->arguments->dim)
+                newval = (*e->arguments)[0]->interpret(istate);
+            else
+                newval = e->newtype->defaultInitLiteral(e->loc);
+            if (exceptionOrCantInterpret(newval))
+            {
+                result = newval;
+                return;
+            }
+
+            /* Create &[newval][0]
+             */
+            Expressions *elements = new Expressions();
+            elements->setDim(1);
+            (*elements)[0] = copyLiteral(newval);
+            ArrayLiteralExp *ae = new ArrayLiteralExp(e->loc, elements);
+            ae->type = e->newtype->arrayOf();
+            ae->ownedByCtfe = true;
+
+            result = new IndexExp(e->loc, ae, new IntegerExp(Loc(), 0, Type::tsize_t));
+            result->type = e->newtype;
+
+            result = new AddrExp(e->loc, result);
+            result->type = e->type;
+            return;
+        }
         e->error("Cannot interpret %s at compile time", e->toChars());
         result = EXP_CANT_INTERPRET;
     }
@@ -6053,7 +6082,7 @@ public:
                 result->type = e->type;
                 return;
             }
-           // It's possible we have an array bounds error. We need to make sure it
+            // It's possible we have an array bounds error. We need to make sure it
             // errors with this line number, not the one where the pointer was set.
             result = e->e1->interpret(istate, ctfeNeedLvalue);
             if (exceptionOrCantInterpret(result))
