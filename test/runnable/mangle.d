@@ -229,6 +229,26 @@ void test8847e()
     static assert(foo!().mangleof == resultFoo);
 }
 
+// --------
+
+pure f8847a()
+{
+    struct S {}
+    return S();
+}
+
+pure
+{
+    auto f8847b()
+    {
+        struct S {}
+        return S();
+    }
+}
+
+static assert(typeof(f8847a()).mangleof == "S6mangle6f8847aFNaZ1S");
+static assert(typeof(f8847b()).mangleof == "S6mangle6f8847bFNaZ1S");
+
 /*******************************************/
 // 9525
 
