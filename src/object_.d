@@ -413,7 +413,7 @@ class TypeInfo_Array : TypeInfo
     override size_t getHash(in void* p) @trusted const
     {
         void[] a = *cast(void[]*)p;
-        return hashOf(a.ptr, a.length * value.tsize);
+        return getArrayHash(value, a.ptr, a.length);
     }
 
     override bool equals(in void* p1, in void* p2) const
@@ -502,11 +502,7 @@ class TypeInfo_StaticArray : TypeInfo
 
     override size_t getHash(in void* p) @trusted const
     {
-        size_t sz = value.tsize;
-        size_t hash = 0;
-        for (size_t i = 0; i < len; i++)
-            hash += value.getHash(p + i * sz);
-        return hash;
+        return getArrayHash(value, p, len);
     }
 
     override bool equals(in void* p1, in void* p2) const
@@ -2653,4 +2649,100 @@ bool _xopCmp(in void*, in void*)
 template RTInfo(T)
 {
     enum RTInfo = null;
+}
+
+
+// Helper functions
+
+private:
+
+inout(TypeInfo) getElement(inout TypeInfo value) @trusted pure nothrow
+{
+    TypeInfo element = cast() value;
+    for(;;)
+    {
+        if(auto qualified = cast(TypeInfo_Const) element)
+            element = qualified.base;
+        else if(auto redefined = cast(TypeInfo_Typedef) element) // typedef & enum
+            element = redefined.base;
+        else if(auto staticArray = cast(TypeInfo_StaticArray) element)
+            element = staticArray.value;
+        else if(auto vector = cast(TypeInfo_Vector) element)
+            element = vector.base;
+        else
+            break;
+    }
+    return cast(inout) element;
+}
+
+size_t getArrayHash(in TypeInfo element, in void* ptr, in size_t count) @trusted nothrow
+{
+    if(!count)
+        return 0;
+
+    const size_t elementSize = element.tsize;
+    if(!elementSize)
+        return 0;
+
+    static bool hasCustomToHash(in TypeInfo value) @trusted pure nothrow
+    {
+        const element = getElement(value);
+
+        if(const struct_ = cast(const TypeInfo_Struct) element)
+            return !!struct_.xtoHash;
+
+        return cast(const TypeInfo_Array) element
+            || cast(const TypeInfo_AssociativeArray) element
+            || cast(const ClassInfo) element
+            || cast(const TypeInfo_Interface) element;
+    }
+
+    if(!hasCustomToHash(element))
+        return hashOf(ptr, elementSize * count);
+
+    size_t hash = 0;
+    foreach(size_t i; 0 .. count)
+        hash += element.getHash(ptr + i * elementSize);
+    return hash;
+}
+
+
+// @@@BUG5835@@@ tests:
+
+unittest
+{
+    class C
+    {
+        int i;
+        this(in int i) { this.i = i; }
+        override hash_t toHash() { return 0; }
+    }
+    C[] a1 = [new C(11)], a2 = [new C(12)];
+    assert(typeid(C[]).getHash(&a1) == typeid(C[]).getHash(&a2)); // fails
+}
+
+unittest
+{
+    struct S
+    {
+        int i;
+        hash_t toHash() const @safe nothrow { return 0; }
+    }
+    S[] a1 = [S(11)], a2 = [S(12)];
+    assert(typeid(S[]).getHash(&a1) == typeid(S[]).getHash(&a2)); // fails
+}
+
+@safe unittest
+{
+    struct S
+    {
+        int i;
+    const @safe nothrow:
+        hash_t toHash() { return 0; }
+        bool opEquals(const S) { return true; }
+        int opCmp(const S) { return 0; }
+    }
+
+    int[S[]] aa = [[S(11)] : 13];
+    assert(aa[[S(12)]] == 13); // fails
 }
