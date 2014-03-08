@@ -678,6 +678,7 @@ public:
     Parameters *getParameters(int *pvarargs);
 #if DMD_OBJC
     void createObjCSelector();
+    bool isObjcProperty();
 #endif
 
     static FuncDeclaration *genCfunc(Type *treturn, const char *name, Type *param, StorageClass stc=0);

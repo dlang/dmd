@@ -112,6 +112,7 @@ static int objc_getsegment(enum ObjcSegment segid)
         seg[SEGinst_meth] = MachObj::getsegment("__objc_const", "__DATA", align, S_ATTR_NO_DEAD_STRIP);
         seg[SEGobjc_ivar] = MachObj::getsegment("__objc_ivar", "__DATA", align, S_REGULAR);
         seg[SEGobjc_protolist] = MachObj::getsegment("__objc_protolist", "__DATA", align, S_COALESCED | S_ATTR_NO_DEAD_STRIP);
+        seg[SEGproperty] = MachObj::getsegment("__objc_const", "__DATA", align, S_ATTR_NO_DEAD_STRIP);
     }
 
     else
@@ -129,6 +130,7 @@ static int objc_getsegment(enum ObjcSegment segid)
         seg[SEGprotocol] = MachObj::getsegment("__protocol", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
         seg[SEGcat_cls_meth] = MachObj::getsegment("__cat_cls_meth", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
         seg[SEGcat_inst_meth] = MachObj::getsegment("__cat_inst_meth", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
+        seg[SEGproperty] = MachObj::getsegment("__property", "__OBJC", align, S_ATTR_NO_DEAD_STRIP | S_REGULAR);
     }
 
     seg[SEGstring_object] = MachObj::getsegment("__string_object", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
@@ -143,10 +145,37 @@ static int objc_getsegment(enum ObjcSegment segid)
     seg[SEGinstance_vars] = MachObj::getsegment("__instance_vars", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
     seg[SEGsymbols] = MachObj::getsegment("__symbols", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
     seg[SEGprotocol_ext] = MachObj::getsegment("__protocol_ext", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
-    seg[SEGclass_ext] = MachObj::getsegment("__class_ext", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
-    seg[SEGproperty] = MachObj::getsegment("__property", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
+    seg[SEGclass_ext] = MachObj::getsegment("__class_ext", "__OBJC", align, S_ATTR_NO_DEAD_STRIP | S_REGULAR);
 
     return seg[segid];
+}
+
+static const char* getTypeEncoding(Type* type)
+{
+    if (type == Type::tvoid)            return "v";
+    else if (type == Type::tint8)       return "c";
+    else if (type == Type::tuns8)       return "C";
+    else if (type == Type::tchar)       return "C";
+    else if (type == Type::tint16)      return "s";
+    else if (type == Type::tuns16)      return "S";
+    else if (type == Type::twchar)      return "S";
+    else if (type == Type::tint32)      return "l";
+    else if (type == Type::tuns32)      return "L";
+    else if (type == Type::tdchar)      return "L";
+    else if (type == Type::tint64)      return "q";
+    else if (type == Type::tuns64)      return "Q";
+    else if (type == Type::tfloat32)     return "f";
+    else if (type == Type::timaginary32) return "f";
+    else if (type == Type::tfloat64)     return "d";
+    else if (type == Type::timaginary64) return "d";
+    // "float80" is "long double" in Objective-C, but "long double" has no specific
+    // encoding character documented. Since @encode in Objective-C outputs "d",
+    // which is the same as "double", that's what we do here. But it doesn't look right.
+    else if (type == Type::tfloat80)     return "d";
+    else if (type == Type::timaginary80) return "d";
+    else                                 return "?"; // unknown
+    // TODO: add "B" BOOL, "*" char*, "#" Class, "@" id, ":" SEL
+    // TODO: add "^"<type> indirection and "^^" double indirection
 }
 
 int ObjcSymbols::hassymbols = 0;
@@ -173,6 +202,8 @@ StringTable *ObjcSymbols::smethvarreftable = NULL;
 StringTable *ObjcSymbols::smethvartypetable = NULL;
 StringTable *ObjcSymbols::sprototable = NULL;
 StringTable *ObjcSymbols::sivarOffsetTable = NULL;
+StringTable *ObjcSymbols::spropertyNameTable = NULL;
+StringTable *ObjcSymbols::spropertyTypeStringTable = NULL;
 
 static StringTable *initStringTable(StringTable *stringtable)
 {
@@ -205,6 +236,8 @@ void ObjcSymbols::init()
     smethvartypetable = initStringTable(smethvartypetable);
     sprototable = initStringTable(sprototable);
     sivarOffsetTable = initStringTable(sivarOffsetTable);
+    spropertyNameTable = initStringTable(spropertyNameTable);
+    spropertyTypeStringTable = initStringTable(spropertyTypeStringTable);
 
     // also wipe out segment numbers
     for (int s = 0; s < SEG_MAX; ++s)
@@ -611,31 +644,7 @@ Symbol *ObjcSymbols::getMethVarType(Dsymbol **types, size_t dim)
         else
             type = types[i]->getType();
 
-        const char *typestr;
-        if (type == Type::tvoid)            typestr = "v";
-        else if (type == Type::tint8)       typestr = "c";
-        else if (type == Type::tuns8)       typestr = "C";
-        else if (type == Type::tchar)       typestr = "C";
-        else if (type == Type::tint16)      typestr = "s";
-        else if (type == Type::tuns16)      typestr = "S";
-        else if (type == Type::twchar)      typestr = "S";
-        else if (type == Type::tint32)      typestr = "l";
-        else if (type == Type::tuns32)      typestr = "L";
-        else if (type == Type::tdchar)      typestr = "L";
-        else if (type == Type::tint64)      typestr = "q";
-        else if (type == Type::tuns64)      typestr = "Q";
-        else if (type == Type::tfloat32)     typestr = "f";
-        else if (type == Type::timaginary32) typestr = "f";
-        else if (type == Type::tfloat64)     typestr = "d";
-        else if (type == Type::timaginary64) typestr = "d";
-        // "float80" is "long double" in Objective-C, but "long double" has no specific
-        // encoding character documented. Since @encode in Objective-C outputs "d",
-        // which is the same as "double", that's what we do here. But it doesn't look right.
-        else if (type == Type::tfloat80)     typestr = "d";
-        else if (type == Type::timaginary80) typestr = "d";
-        else                                 typestr = "?"; // unknown
-        // TODO: add "B" BOOL, "*" char*, "#" Class, "@" id, ":" SEL
-        // TODO: add "^"<type> indirection and "^^" double indirection
+        const char *typestr = getTypeEncoding(type);
 
         // Append character
         // Ensure enough length
@@ -803,6 +812,52 @@ Symbol *ObjcSymbols::getEmptyVTable()
     hassymbols = 1;
 
     return emptyVTable = emptyVTable ? emptyVTable : getGlobal("__objc_empty_vtable");
+}
+
+Symbol *ObjcSymbols::getPropertyName(const char* str, size_t len)
+{
+    hassymbols = 1;
+    StringValue* sv = spropertyNameTable->update(str, len);
+    Symbol* symbol = (Symbol*) sv->ptrvalue;
+
+    if (!symbol)
+    {
+        static size_t propertyNameCount = 0;
+        char nameStr[42];
+        sprintf(nameStr, "L_OBJC_PROP_NAME_ATTR_%lu", propertyNameCount++);
+        symbol = getCString(str, len, nameStr);
+        sv->ptrvalue = symbol;
+    }
+
+    return symbol;
+}
+
+Symbol *ObjcSymbols::getPropertyName(Identifier* ident)
+{
+    return getPropertyName(ident->string, ident->len);
+}
+
+Symbol *ObjcSymbols::getPropertyTypeString(FuncDeclaration* property)
+{
+    assert(property->isObjcProperty());
+
+    TypeFunction* type = (TypeFunction*) property->type;
+    Type* propertyType = type->next->ty != TYvoid ? type->next : (*type->parameters)[0]->type;
+    const char* typeEncoding = getTypeEncoding(propertyType);
+    size_t len = strlen(typeEncoding);
+    size_t nameLength = 1 + len + 3;
+
+    // The string is looking like this: "T#{typeEncoding},V_#{property->ident->string}".
+    // For properties which are only getters (not handled yet): "T#{typeEncoding},R,V_#{property->ident->string}".
+    char* name = (char*) malloc(nameLength + 1);
+    name[0] = 'T';
+    memmove(name + 1, typeEncoding, len);
+    memmove(name + 1 + len, ",V_", 3);
+    name[nameLength] = 0;
+
+    name = prefixSymbolName(property->ident->string, property->ident->len, name, nameLength);
+
+    return getPropertyName(name, nameLength + property->ident->len);
 }
 
 // MARK: ObjcSelectorBuilder
@@ -1147,6 +1202,7 @@ ObjcClassDeclaration::ObjcClassDeclaration(ClassDeclaration *cdecl, int ismeta)
     this->ismeta = ismeta;
     symbol = NULL;
     sprotocols = NULL;
+    sproperties = NULL;
 }
 
 
@@ -1222,7 +1278,11 @@ void ObjcClassDeclaration::toDt(dt_t **pdt)
 
         // extra bytes
         dtdword(pdt, 0);
-        dtdword(pdt, 0);
+
+        if (ismeta)
+            dtxoff(pdt, getClassExtension(), 0, TYnptr);
+        else
+            dtdword(pdt, 0);
     }
 }
 
@@ -1399,6 +1459,60 @@ Symbol *ObjcClassDeclaration::getProtocolList()
     return sprotocols;
 }
 
+Symbol *ObjcClassDeclaration::getPropertyList()
+{
+    if (sproperties)
+        return sproperties;
+
+    Dsymbols* properties = getProperties();
+
+    if (properties->dim == 0)
+        return  NULL;
+
+    dt_t* dt = NULL;
+    dtdword(&dt, global.params.is64bit ? 16 : 8); // sizeof (_objc_property)
+    dtdword(&dt, properties->dim);
+
+    for (size_t i = 0; i < properties->dim; i++)
+    {
+        FuncDeclaration* property = (FuncDeclaration*) (*properties)[i];
+        dtxoff(&dt, ObjcSymbols::getPropertyName(property->ident), 0, TYnptr);
+        dtxoff(&dt, ObjcSymbols::getPropertyTypeString(property), 0, TYnptr);
+    }
+
+    const char* symbolName = prefixSymbolName(cdecl->objcident->string, cdecl->objcident->len, "l_OBJC_$_PROP_LIST_", 19);
+    sproperties = symbol_name(symbolName, SCstatic, type_fake(TYnptr));
+
+    sproperties->Salignment = global.params.isObjcNonFragileAbi ? 3 : 2;
+    sproperties->Sdt = dt;
+    sproperties->Sseg = objc_getsegment(SEGproperty);
+    outdata(sproperties);
+
+    return sproperties;
+}
+
+Dsymbols* ObjcClassDeclaration::getProperties()
+{
+    Dsymbols* properties = new Dsymbols();
+    StringTable* uniqueProperties = new StringTable();
+    uniqueProperties->_init();
+
+    for (size_t i = 0; i < cdecl->objcMethodList.dim; i++)
+    {
+        FuncDeclaration* method = (FuncDeclaration*) cdecl->objcMethodList[i];
+        TypeFunction* type = (TypeFunction*) method->type;
+        Identifier* ident = method->ident;
+
+        if (method->isObjcProperty() && !uniqueProperties->lookup(ident->string, ident->len))
+        {
+            properties->push(method);
+            uniqueProperties->insert(ident->string, ident->len);
+        }
+    }
+
+    return properties;
+}
+
 Symbol *ObjcClassDeclaration::getClassRo()
 {
     assert(global.params.isObjcNonFragileAbi);
@@ -1421,12 +1535,25 @@ Symbol *ObjcClassDeclaration::getClassRo()
     if (protocols)  dtxoff(&dt, protocols, 0, TYnptr); // protocol list
     else dtsize_t(&dt, 0); // or NULL if no protocol
 
-    Symbol* ivars = getIVarList();
-    if (ivars && !ismeta) dtxoff(&dt, ivars, 0, TYnptr); // instance variable list
-    else dtsize_t(&dt, 0); // or null if no ivars
+    if (ismeta)
+    {
+        dtsize_t(&dt, 0); // instance variable list
+        dtsize_t(&dt, 0); // weak ivar layout
+        dtsize_t(&dt, 0); // properties
+    }
 
-    dtsize_t(&dt, 0); // weak ivar layout
-    dtsize_t(&dt, 0); // properties
+    else
+    {
+        Symbol* ivars = getIVarList();
+        if (ivars && !ismeta) dtxoff(&dt, ivars, 0, TYnptr); // instance variable list
+        else dtsize_t(&dt, 0); // or null if no ivars
+
+        dtsize_t(&dt, 0); // weak ivar layout
+
+        Symbol* properties = getPropertyList();
+        if (properties) dtxoff(&dt, properties, 0, TYnptr);
+        else dtsize_t(&dt, 0); // properties
+    }
 
     const char* prefix = ismeta ? "l_OBJC_METACLASS_RO_$_" : "l_OBJC_CLASS_RO_$_";
     size_t prefixLength = ismeta ? 22 : 18;
@@ -1439,6 +1566,30 @@ Symbol *ObjcClassDeclaration::getClassRo()
 
     symbol->Sdt = dt;
     symbol->Sseg = objc_getsegment(SEGobjc_const);
+    outdata(symbol);
+
+    return symbol;
+}
+
+Symbol *ObjcClassDeclaration::getClassExtension()
+{
+    assert(!global.params.isObjcNonFragileAbi);
+
+    dt_t* dt = NULL;
+
+    dtdword(&dt, 12);
+    dtdword(&dt, 0); // weak ivar layout
+
+    Symbol* properties = getPropertyList();
+    if (properties) dtxoff(&dt, properties, 0, TYnptr);
+    else dtdword(&dt, 0); // properties
+
+    const char* symbolName = prefixSymbolName(cdecl->objcident->string, cdecl->objcident->len, "L_OBJC_CLASSEXT_", 16);
+    Symbol* symbol = symbol_name(symbolName, SCstatic, type_fake(TYnptr));
+
+    symbol->Salignment = 2;
+    symbol->Sdt = dt;
+    symbol->Sseg = objc_getsegment(SEGclass_ext);
     outdata(symbol);
 
     return symbol;

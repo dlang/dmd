@@ -4408,6 +4408,17 @@ void FuncDeclaration::createObjCSelector()
         objcSelector = ObjcSelector::create(this);
     }
 }
+
+// Returns true if the receiver is an Objective-C property.
+bool FuncDeclaration::isObjcProperty()
+{
+    TypeFunction* t = (TypeFunction*) type;
+
+    return (storage_class & STCproperty) &&
+        t && t->parameters &&
+        (t->parameters->dim == 1 && t->next == Type::tvoid) ||
+        (t->parameters->dim == 0 && t->next != Type::tvoid);
+}
 #endif
 
 
