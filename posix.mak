@@ -17,7 +17,7 @@ test:
 # Creates Exuberant Ctags tags file
 tags: posix.mak $(TAGS_FILES)
 	ctags --sort=yes --links=no --excmd=number --languages=$(ECTAGS_LANGS) \
-		--langmap='C++:.c' --extra=+f --file-scope=yes --fields=afikmsSt --totals=yes posix.mak $(TAGS_FILES)
+		--langmap='C++:+.c,C++:+.h' --extra=+f --file-scope=yes --fields=afikmsSt --totals=yes posix.mak $(TAGS_FILES)
 
 install: all
 	$(MAKE) INSTALL_DIR=$(INSTALL_DIR) -C src -f posix.mak install
