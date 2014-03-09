@@ -94,6 +94,8 @@ static int objc_getsegment(enum ObjcSegment segid)
 
     if (global.params.isObjcNonFragileAbi)
     {
+        align = 3;
+
         seg[SEGselrefs] = MachObj::getsegment("__objc_selrefs", "__DATA", align, S_ATTR_NO_DEAD_STRIP | S_LITERAL_POINTERS);
         seg[SEGcls_refs] = MachObj::getsegment("__objc_classrefs", "__DATA", align, S_REGULAR | S_ATTR_NO_DEAD_STRIP);
         seg[SEGimage_info] = MachObj::getsegment("__objc_imageinfo", "__DATA", align, S_REGULAR | S_ATTR_NO_DEAD_STRIP);
@@ -106,6 +108,7 @@ static int objc_getsegment(enum ObjcSegment segid)
         seg[SEGprotocol] = MachObj::getsegment("__datacoal_nt", "__DATA", align, S_COALESCED);
         seg[SEGcat_cls_meth] = MachObj::getsegment("__objc_const", "__DATA", align, S_REGULAR);
         seg[SEGcat_inst_meth] = MachObj::getsegment("__objc_const", "__DATA", align, S_REGULAR);
+        seg[SEGcls_meth] = MachObj::getsegment("__objc_const", "__DATA", align, S_ATTR_NO_DEAD_STRIP);
 
         seg[SEGmessage_refs] = MachObj::getsegment("__objc_msgrefs", "__DATA", align, S_COALESCED);
         seg[SEGobjc_const] = MachObj::getsegment("__objc_const", "__DATA", align, S_REGULAR);
@@ -131,12 +134,14 @@ static int objc_getsegment(enum ObjcSegment segid)
         seg[SEGcat_cls_meth] = MachObj::getsegment("__cat_cls_meth", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
         seg[SEGcat_inst_meth] = MachObj::getsegment("__cat_inst_meth", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
         seg[SEGproperty] = MachObj::getsegment("__property", "__OBJC", align, S_ATTR_NO_DEAD_STRIP | S_REGULAR);
+        seg[SEGcls_meth] = MachObj::getsegment("__cls_meth", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
+
+        seg[SEGclass_ext] = MachObj::getsegment("__class_ext", "__OBJC", align, S_ATTR_NO_DEAD_STRIP | S_REGULAR);
     }
 
     seg[SEGstring_object] = MachObj::getsegment("__string_object", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
     seg[SEGcstring_object] = MachObj::getsegment("__cstring_object", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
     seg[SEGsel_fixup] = MachObj::getsegment("__sel_fixup", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
-    seg[SEGcls_meth] = MachObj::getsegment("__cls_meth", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
     seg[SEGcstring] = MachObj::getsegment("__cstring", "__TEXT", align, S_CSTRING_LITERALS);
     seg[SEGustring] = MachObj::getsegment("__ustring", "__TEXT", align, S_REGULAR);
     seg[SEGcfstring] = MachObj::getsegment("__cfstring", "__DATA", align, S_REGULAR);
@@ -145,7 +150,6 @@ static int objc_getsegment(enum ObjcSegment segid)
     seg[SEGinstance_vars] = MachObj::getsegment("__instance_vars", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
     seg[SEGsymbols] = MachObj::getsegment("__symbols", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
     seg[SEGprotocol_ext] = MachObj::getsegment("__protocol_ext", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
-    seg[SEGclass_ext] = MachObj::getsegment("__class_ext", "__OBJC", align, S_ATTR_NO_DEAD_STRIP | S_REGULAR);
 
     return seg[segid];
 }
@@ -456,10 +460,6 @@ Symbol *ObjcSymbols::getClassReference(ClassDeclaration* cdecl)
         char namestr[42];
         sprintf(namestr, prefix, classrefcount++);
         sy = symbol_name(namestr, SCstatic, type_fake(TYnptr));
-
-        if (global.params.isObjcNonFragileAbi)
-            sy->Salignment = 3;
-
         sy->Sdt = dt;
         sy->Sseg = seg;
         outdata(sy);
@@ -512,9 +512,6 @@ Symbol *ObjcSymbols::getMethVarRef(const char *s, size_t len)
         char namestr[42];
         sprintf(namestr, "L_OBJC_SELECTOR_REFERENCES_%lu", selcount);
         refsymbol = symbol_name(namestr, SCstatic, type_fake(TYnptr));
-
-        if (global.params.isObjcNonFragileAbi)
-            refsymbol->Salignment = 3;
 
         refsymbol->Sdt = dt;
         refsymbol->Sseg = seg;
@@ -1330,10 +1327,6 @@ Symbol *ObjcClassDeclaration::getMethodList()
 
     sname = prefixSymbolName(cdecl->objcident->string, cdecl->objcident->len, prefix, prefixLength);
     Symbol *sym = symbol_name(sname, SCstatic, type_fake(TYnptr));
-
-    if (global.params.isObjcNonFragileAbi)
-        sym->Salignment = 3;
-
     sym->Sdt = dt;
     sym->Sseg = objc_getsegment((!ismeta ? SEGinst_meth : SEGcls_meth));
     return sym;
@@ -1367,10 +1360,6 @@ Symbol *ObjcClassDeclaration::getProtocolList()
 
     char *sname = prefixSymbolName(cdecl->objcident->string, cdecl->objcident->len, prefix, prefixLength);
     sprotocols = symbol_name(sname, SCstatic, type_fake(TYnptr));
-
-    if (global.params.isObjcNonFragileAbi)
-        sprotocols->Salignment = 3;
-
     sprotocols->Sdt = dt;
     sprotocols->Sseg = objc_getsegment(SEGcat_cls_meth);
     outdata(sprotocols);
@@ -1400,8 +1389,6 @@ Symbol *ObjcClassDeclaration::getPropertyList()
 
     const char* symbolName = prefixSymbolName(cdecl->objcident->string, cdecl->objcident->len, "l_OBJC_$_PROP_LIST_", 19);
     sproperties = symbol_name(symbolName, SCstatic, type_fake(TYnptr));
-
-    sproperties->Salignment = global.params.isObjcNonFragileAbi ? 3 : 2;
     sproperties->Sdt = dt;
     sproperties->Sseg = objc_getsegment(SEGproperty);
     outdata(sproperties);
@@ -1539,8 +1526,6 @@ namespace FragileAbi
 
         const char* symbolName = prefixSymbolName(cdecl->objcident->string, cdecl->objcident->len, "L_OBJC_CLASSEXT_", 16);
         Symbol* symbol = symbol_name(symbolName, SCstatic, type_fake(TYnptr));
-
-        symbol->Salignment = 2;
         symbol->Sdt = dt;
         symbol->Sseg = objc_getsegment(SEGclass_ext);
         outdata(symbol);
@@ -1562,7 +1547,6 @@ namespace NonFragileAbi
         toDt(&dt);
 
         symbol = ObjcSymbols::getClassName(this);
-        symbol->Salignment = 3;
         symbol->Sdt = dt;
         symbol->Sseg = objc_getsegment((!ismeta ? SEGclass : SEGmeta_class));
         outdata(symbol);
@@ -1656,7 +1640,6 @@ namespace NonFragileAbi
         const char* symbolName = prefixSymbolName(cdecl->objcident->string, cdecl->objcident->len, prefix, prefixLength);
 
         Symbol* symbol = symbol_name(symbolName, SCstatic, type_fake(TYnptr));
-        symbol->Salignment = 3;
         symbol->Sdt = dt;
         symbol->Sseg = objc_getsegment(SEGobjc_const);
         outdata(symbol);
@@ -1749,10 +1732,6 @@ Symbol *ObjcProtocolDeclaration::getMethodList(int wantsClassMethods)
 
     sname = prefixSymbolName(idecl->objcident->string, idecl->objcident->len, prefix, prefixLength);
     Symbol *sym = symbol_name(sname, SCstatic, type_fake(TYnptr));
-
-    if (global.params.isObjcNonFragileAbi)
-        sym->Salignment = 3;
-
     sym->Sdt = dt;
     sym->Sseg = objc_getsegment((!wantsClassMethods ? SEGcat_inst_meth : SEGcat_cls_meth));
     return sym;
@@ -1781,10 +1760,6 @@ Symbol *ObjcProtocolDeclaration::getProtocolList()
 
     char *sname = prefixSymbolName(idecl->objcident->string, idecl->objcident->len, prefix, prefixLength);
     Symbol *sprotocols = symbol_name(sname, SCstatic, type_fake(TYnptr));
-
-    if (global.params.isObjcNonFragileAbi)
-        sprotocols->Salignment = 3;
-
     sprotocols->Sdt = dt;
     sprotocols->Sseg = objc_getsegment(SEGcat_cls_meth);
     outdata(sprotocols);
@@ -1827,7 +1802,6 @@ namespace NonFragileAbi
         symbol = ObjcSymbols::getGlobal(sname);
 
         symbol->Sclass = SCcomdat; // weak symbol
-        symbol->Salignment = 3;
         symbol->Sdt = dt;
         symbol->Sseg = objc_getsegment(SEGprotocol);
         outdata(symbol, 1);
@@ -1839,7 +1813,6 @@ namespace NonFragileAbi
         Symbol* labelSymbol = ObjcSymbols::getGlobal(sname);
 
         labelSymbol->Sclass = SCcomdat; // weak symbol
-        symbol->Salignment = 3;
         labelSymbol->Sdt = dt;
         labelSymbol->Sseg = objc_getsegment(SEGobjc_protolist);
         outdata(labelSymbol);
@@ -1880,7 +1853,6 @@ namespace NonFragileAbi
 
         const char* symbolName = prefixSymbolName(idecl->objcident->string, idecl->objcident->len, "l_OBJC_$_PROTOCOL_METHOD_TYPES_", 31);
         Symbol* symbol = symbol_name(symbolName, SCstatic, type_fake(TYnptr));
-        symbol->Salignment = 3;
         symbol->Sdt = dt;
         symbol->Sseg = objc_getsegment(SEGobjc_const);
         outdata(symbol);
