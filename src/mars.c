@@ -525,8 +525,8 @@ int tryMain(size_t argc, const char *argv[])
     Strings libmodules;
     size_t argcstart = argc;
     int setdebuglib = 0;
-    char noboundscheck = 0;
-        int setdefaultlib = 0;
+    bool noboundscheck = false;
+    int setdefaultlib = 0;
     const char *inifilename = NULL;
     global.init();
 
@@ -909,7 +909,7 @@ Language changes listed by -transition=id:\n\
             else if (strcmp(p + 1, "betterC") == 0)
                 global.params.betterC = true;
             else if (strcmp(p + 1, "noboundscheck") == 0)
-                noboundscheck = 1;
+                noboundscheck = true;
             else if (strcmp(p + 1, "unittest") == 0)
                 global.params.useUnitTests = true;
             else if (p[1] == 'I')
