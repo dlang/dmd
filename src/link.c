@@ -638,7 +638,7 @@ int runLINK()
     argv.push("-lrt");
 #endif
 
-    if (!global.params.quiet || global.params.verbose)
+    if (global.params.verbose)
     {
         // Print it
         for (size_t i = 0; i < argv.dim; i++)
@@ -731,7 +731,7 @@ int executecmd(const char *cmd, const char *args)
     int status;
     size_t len;
 
-    if (!global.params.quiet || global.params.verbose)
+    if (global.params.verbose)
         fprintf(global.stdmsg, "%s %s\n", cmd, args);
 
     if (!global.params.is64bit)

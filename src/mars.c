@@ -451,7 +451,6 @@ Usage:\n\
   -op            preserve source path for output files\n\
   -profile       profile runtime performance of generated code\n\
   -property      enforce property syntax\n\
-  -quiet         suppress unnecessary messages\n\
   -release       compile release version\n\
   -run srcfile args...   run resulting program, passing args\n\
   -shared        generate shared library (DLL)\n\
@@ -566,7 +565,6 @@ int tryMain(size_t argc, const char *argv[])
     global.params.useSwitchError = true;
     global.params.useInline = false;
     global.params.obj = true;
-    global.params.quiet = true;
     global.params.useDeprecated = 2;
 
     global.params.linkswitches = new Strings();
@@ -903,7 +901,9 @@ Language changes listed by -transition=id:\n\
             else if (strcmp(p + 1, "nofloat") == 0)
                 global.params.nofloat = true;
             else if (strcmp(p + 1, "quiet") == 0)
-                global.params.quiet = true;
+            {
+                // Ignore
+            }
             else if (strcmp(p + 1, "release") == 0)
                 global.params.release = true;
             else if (strcmp(p + 1, "betterC") == 0)
@@ -1137,9 +1137,6 @@ Language changes listed by -transition=id:\n\
     }
     if (noboundscheck)
         global.params.useArrayBounds = 0;
-
-    if (global.params.run)
-        global.params.quiet = true;
 
     if (global.params.useUnitTests)
         global.params.useAssert = true;
