@@ -7,7 +7,7 @@
     "name" : "_staticCtor1",
     "kind" : "function",
     "line" : 8,
-    "char" : 8,
+    "char" : 1,
     "storageClass" : [
      "static"
     ],
@@ -19,7 +19,7 @@
     "name" : "_staticDtor2",
     "kind" : "function",
     "line" : 10,
-    "char" : 8,
+    "char" : 1,
     "storageClass" : [
      "static"
     ],

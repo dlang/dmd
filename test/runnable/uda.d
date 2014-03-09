@@ -381,6 +381,71 @@ static assert(__traits(getAttributes, x10208_13)[0] == 130); // Error -> OK
 static assert(__traits(getAttributes, x10208_14)[0] == 140); // Error -> OK
 
 /************************************************/
+// 11677, 11678
+
+bool test_uda(alias func)() @safe
+{
+    alias Tuple!(__traits(getAttributes, func)) udas;
+    static assert([udas] == [10, 20]);
+
+    func(); // @safe attribute check
+
+    return true;
+}
+
+@(10) @(20) @safe void func11677a() {}  // OK
+@safe @(10) @(20) void func11677b() {}  // OK <- NG
+@(10) @safe @(20) void func11677c() {}  // OK <- NG
+
+static assert(test_uda!func11677a());
+static assert(test_uda!func11677b());
+static assert(test_uda!func11677c());
+
+void func11678a() @safe @(10) @(20) {}  // OK <- NG
+void func11678b() @(10) @safe @(20) {}  // OK <- NG
+void func11678c() @(10) @(20) @safe {}  // OK <- NG
+
+static assert(test_uda!func11678a());
+static assert(test_uda!func11678b());
+static assert(test_uda!func11678c());
+
+/************************************************/
+// 11678
+
+class C11678
+{
+    this() @(10) @(20) {}
+    ~this() @(10) @(20) {}
+}
+
+//static this() @(10) @(20) {}
+static ~this() @(10) @(20) {}
+
+//shared static this() @(10) @(20) {}
+shared static ~this() @(10) @(20) {}
+
+/************************************************/
+// 11679
+
+void test11679()
+{
+    @(10) @(20) auto var = 1;
+    static assert([__traits(getAttributes, var)] == [10, 20]);
+}
+
+/************************************************/
+// 11680
+
+@(10) gvar11680 = 1;  // OK <- NG
+@(10) gfun11680() {}  // OK <- NG
+
+void test11680()
+{
+    @(10) lvar11680 = 1;  // OK <- NG
+    @(10) lfun11680() {}  // OK <- NG
+}
+
+/************************************************/
 // 11844
 
 auto make_encode11844(T, string name)()

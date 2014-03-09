@@ -670,25 +670,28 @@ void ProtDeclaration::setScope(Scope *sc)
 
 void ProtDeclaration::importAll(Scope *sc)
 {
-    Scope *newsc = sc;
-    if (sc->protection != protection ||
-       sc->explicitProtection != 1)
+    if (decl)
     {
-       // create new one for changes
-       newsc = new Scope(*sc);
-       newsc->flags &= ~SCOPEfree;
-       newsc->protection = protection;
-       newsc->explicitProtection = 1;
-    }
+        Scope *newsc = sc;
+        if (sc->protection != protection ||
+           sc->explicitProtection != 1)
+        {
+           // create new one for changes
+           newsc = new Scope(*sc);
+           newsc->flags &= ~SCOPEfree;
+           newsc->protection = protection;
+           newsc->explicitProtection = 1;
+        }
 
-    for (size_t i = 0; i < decl->dim; i++)
-    {
-       Dsymbol *s = (*decl)[i];
-       s->importAll(newsc);
-    }
+        for (size_t i = 0; i < decl->dim; i++)
+        {
+           Dsymbol *s = (*decl)[i];
+           s->importAll(newsc);
+        }
 
-    if (newsc != sc)
-       newsc->pop();
+        if (newsc != sc)
+           newsc->pop();
+    }
 }
 
 void ProtDeclaration::semantic(Scope *sc)
