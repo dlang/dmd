@@ -47,7 +47,7 @@
 
 #include        "arraytypes.h"
 
-void toWinPath(char *src);
+const char * toWinPath(const char *src);
 int executecmd(const char *cmd, const char *args);
 int executearg0(const char *cmd, const char *args);
 
@@ -753,9 +753,7 @@ int executecmd(const char *cmd, const char *args)
     }
 
     // Normalize executable path separators, see Bugzilla 9330
-    char *p = mem.strdup(cmd);
-    toWinPath(p);
-    cmd = p;
+    cmd = toWinPath(cmd);
 
 #ifdef _MSC_VER
     if(strchr(cmd, ' '))
