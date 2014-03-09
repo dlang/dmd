@@ -874,13 +874,13 @@ Language changes listed by -transition=id:\n\
             }
             else if (p[1] == 'X')
             {
-                global.params.doXGeneration = true;
+                global.params.doJsonGeneration = true;
                 switch (p[2])
                 {
                     case 'f':
                         if (!p[3])
                             goto Lnoarg;
-                        global.params.xfilename = p + 3;
+                        global.params.jsonfilename = p + 3;
                         break;
 
                     case 0:
@@ -1328,8 +1328,8 @@ Language changes listed by -transition=id:\n\
 
             if (FileName::equals(ext, global.json_ext))
             {
-                global.params.doXGeneration = true;
-                global.params.xfilename = files[i];
+                global.params.doJsonGeneration = true;
+                global.params.jsonfilename = files[i];
                 continue;
             }
 
@@ -1641,13 +1641,13 @@ Language changes listed by -transition=id:\n\
 
     // Generate output files
 
-    if (global.params.doXGeneration)
+    if (global.params.doJsonGeneration)
     {
         OutBuffer buf;
         json_generate(&buf, &modules);
 
         // Write buf to file
-        const char *name = global.params.xfilename;
+        const char *name = global.params.jsonfilename;
 
         if (name && name[0] == '-' && name[1] == 0)
         {   // Write to stdout; assume it succeeds

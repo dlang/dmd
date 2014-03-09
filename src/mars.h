@@ -153,8 +153,8 @@ struct Param
     const char *hdrdir;    // write 'header' file to docdir directory
     const char *hdrname;   // write 'header' file to docname
 
-    bool doXGeneration;    // write JSON file
-    const char *xfilename; // write JSON file to xfilename
+    bool doJsonGeneration;    // write JSON file
+    const char *jsonfilename; // write JSON file to jsonfilename
 
     unsigned debuglevel;   // debug level
     Strings *debugids;     // debug identifiers
