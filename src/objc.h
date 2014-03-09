@@ -68,6 +68,7 @@ struct ObjcSymbols
     static void init();
 
     static int hassymbols;
+    static ObjcSymbols *instance;
 
     static Symbol *msgSend;
     static Symbol *msgSend_stret;
@@ -82,8 +83,6 @@ struct ObjcSymbols
     static Symbol *smodinfo;
     static Symbol *ssymmap;
     static Symbol *classListReferences;
-    static Symbol *emptyCache;
-    static Symbol *emptyVTable;
 
     static StringTable *sclassnametable;
     static StringTable *sclassreftable;
@@ -112,8 +111,6 @@ struct ObjcSymbols
 
     static Symbol *getClassName(ObjcClassDeclaration* cdecl);
     static Symbol *getClassName(ClassDeclaration* cdecl, bool meta = false);
-    static Symbol *getClassNameRo(const char *str, size_t len);
-    static Symbol *getClassNameRo(Identifier* ident);
     static Symbol *getClassReference(ClassDeclaration* cdecl);
     static Symbol *getClassListReference(const char *s, size_t len);
     static Symbol *getClassListReference(Identifier *ident);
@@ -126,7 +123,6 @@ struct ObjcSymbols
     static Symbol *getMethVarType(Dsymbol **types, size_t dim);
     static Symbol *getMethVarType(Dsymbol *type);
     static Symbol *getMethVarType(FuncDeclaration *func);
-    static Symbol *getIVarOffset(ClassDeclaration *cdecl, VarDeclaration *ivar);
 
     static Symbol *getMessageReference(ObjcSelector* selector, Type* returnType, bool hasHiddenArg);
 
@@ -134,13 +130,49 @@ struct ObjcSymbols
     static Symbol *getProtocolName(ClassDeclaration* interface);
     static Symbol *getStringLiteral(const void *str, size_t len, size_t sz);
 
-    static Symbol *getEmptyCache();
-    static Symbol *getEmptyVTable();
-
     static Symbol* getPropertyName(const char* str, size_t len);
     static Symbol* getPropertyName(Identifier* ident);
     static Symbol* getPropertyTypeString(FuncDeclaration* property);
+
+protected:
+    virtual Symbol *_getModuleInfo(ClassDeclarations *cls, ClassDeclarations *cat) = 0;
+    virtual Symbol *_getClassName(ObjcClassDeclaration* cdecl) = 0;
 };
+
+namespace FragileAbi
+{
+    struct ObjcSymbols : ::ObjcSymbols
+    {
+    protected:
+        virtual Symbol *_getModuleInfo(ClassDeclarations *cls, ClassDeclarations *cat);
+        virtual Symbol *_getClassName(ObjcClassDeclaration* cdecl);
+    };
+}
+
+namespace NonFragileAbi
+{
+    struct ObjcSymbols : ::ObjcSymbols
+    {
+        static ObjcSymbols* instance;
+
+        Symbol *emptyCache;
+        Symbol *emptyVTable;
+
+        ObjcSymbols();
+
+        Symbol *getClassNameRo(const char *str, size_t len);
+        Symbol *getClassNameRo(Identifier* ident);
+
+        Symbol *getIVarOffset(ClassDeclaration *cdecl, VarDeclaration *ivar);
+
+        Symbol *getEmptyCache();
+        Symbol *getEmptyVTable();
+
+    protected:
+        Symbol *_getModuleInfo(ClassDeclarations *cls, ClassDeclarations *cat);
+        Symbol *_getClassName(ObjcClassDeclaration* cdecl);
+    };
+}
 
 // Helper class to efficiently build a selector from identifiers and colon tokens
 struct ObjcSelectorBuilder
@@ -239,48 +271,113 @@ struct ObjcProtocolOfExp : UnaExp
 
 struct ObjcClassDeclaration
 {
-    enum NonFragileFlags
-    {
-        nonFragileFlags_meta = 0x00001,
-        nonFragileFlags_root = 0x00002
-    };
-
     ClassDeclaration *cdecl;
     int ismeta;
     Symbol *symbol;
     Symbol *sprotocols;
     Symbol *sproperties;
 
+    static ObjcClassDeclaration *create(ClassDeclaration *cdecl, int ismeta = 0);
     static ClassDeclaration *getObjcMetaClass(ClassDeclaration *cdecl);
 
-    ObjcClassDeclaration(ClassDeclaration *cdecl, int ismeta = 0);
-    void toObjFile(int multiobj);
-    void toDt(dt_t **pdt);
+    ObjcClassDeclaration(ClassDeclaration *cdecl, int ismeta);
+
+    virtual void toObjFile(int multiobj) = 0;
+    virtual void toDt(dt_t **pdt) = 0;
 
     Symbol *getMetaclass();
-    Symbol *getIVarList();
+    virtual Symbol *getIVarList() = 0;
     Symbol *getMethodList();
     Symbol *getProtocolList();
     Symbol *getPropertyList();
     Dsymbols *getProperties();
-    Symbol *getClassRo();
-    Symbol *getClassExtension();
-    uint32_t generateFlags ();
 };
+
+namespace FragileAbi
+{
+    struct ObjcClassDeclaration : ::ObjcClassDeclaration
+    {
+        ObjcClassDeclaration(ClassDeclaration *cdecl, int ismeta) :
+            ::ObjcClassDeclaration(cdecl, ismeta) { }
+
+        void toObjFile(int multiobj);
+        void toDt(dt_t **pdt);
+
+        Symbol *getIVarList();
+        Symbol *getClassExtension();
+    };
+}
+
+namespace NonFragileAbi
+{
+    struct ObjcClassDeclaration : ::ObjcClassDeclaration
+    {
+        enum NonFragileFlags
+        {
+            nonFragileFlags_meta = 0x00001,
+            nonFragileFlags_root = 0x00002
+        };
+
+        ObjcClassDeclaration(ClassDeclaration *cdecl, int ismeta) :
+            ::ObjcClassDeclaration(cdecl, ismeta) { }
+
+        void toObjFile(int multiobj);
+        void toDt(dt_t **pdt);
+
+        Symbol *getIVarList();
+        Symbol *getClassRo();
+        uint32_t generateFlags();
+    };
+}
 
 struct ObjcProtocolDeclaration
 {
     ClassDeclaration *idecl;
     Symbol *symbol;
 
+    static ObjcProtocolDeclaration* create(ClassDeclaration *idecl);
+
     ObjcProtocolDeclaration(ClassDeclaration *idecl);
-    void toObjFile(int multiobj);
-    void toDt(dt_t **pdt);
+    virtual void toObjFile(int multiobj) = 0;
+    virtual void toDt(dt_t **pdt);
 
     Symbol *getMethodList(int wantsClassMethods);
     Symbol *getProtocolList();
-    Symbol *getMethodTypes();
+
+protected:
+    virtual Symbol *getClassName() = 0;
 };
+
+namespace FragileAbi
+{
+    struct ObjcProtocolDeclaration : ::ObjcProtocolDeclaration
+    {
+        ObjcProtocolDeclaration(ClassDeclaration *idecl) :
+            ::ObjcProtocolDeclaration(idecl) { }
+
+        void toObjFile(int multiobj);
+
+    protected:
+        Symbol *getClassName();
+    };
+}
+
+namespace NonFragileAbi
+{
+    struct ObjcProtocolDeclaration : ::ObjcProtocolDeclaration
+    {
+        ObjcProtocolDeclaration(ClassDeclaration *idecl) :
+            ::ObjcProtocolDeclaration(idecl) { }
+
+        void toObjFile(int multiobj);
+        void toDt(dt_t **pdt);
+
+        Symbol *getMethodTypes();
+
+    protected:
+        Symbol *getClassName();
+    };
+}
 
 struct TypeObjcSelector : TypeNext
 {
