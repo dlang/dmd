@@ -56,8 +56,8 @@
 // is a backend flag
 #undef I32
 #undef I64
-#define I32 (global.params.is64bit == 0)
-#define I64 (global.params.is64bit == 1)
+#define I32 (!global.params.is64bit)
+#define I64 (global.params.is64bit)
 
 //#define EXTRA_DEBUG 1
 

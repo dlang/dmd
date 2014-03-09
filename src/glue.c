@@ -232,8 +232,8 @@ void obj_start(char *srcfile)
 #if TARGET_WINDOS
     // Produce Ms COFF files for 64 bit code, OMF for 32 bit code
     assert(objbuf.size() == 0);
-    objmod = global.params.is64bit == 1 ? MsCoffObj::init(&objbuf, srcfile, NULL)
-                                        :       Obj::init(&objbuf, srcfile, NULL);
+    objmod = global.params.is64bit ? MsCoffObj::init(&objbuf, srcfile, NULL)
+                                   :       Obj::init(&objbuf, srcfile, NULL);
 #else
     objmod = Obj::init(&objbuf, srcfile, NULL);
 #endif
@@ -298,8 +298,8 @@ void Module::genobjfile(int multiobj)
 
     if (ident == Id::entrypoint)
     {
-        char v = global.params.verbose;
-        global.params.verbose = 0;
+        bool v = global.params.verbose;
+        global.params.verbose = false;
 
         for (size_t i = 0; i < members->dim; i++)
         {
