@@ -1625,7 +1625,7 @@ void ObjcProtocolDeclaration::toObjFile(int multiobj)
     size_t prefixLength = global.params.isObjcNonFragileAbi ? 18 : 16;
 
     char *sname = prefixSymbolName(idecl->objcident->string, idecl->objcident->len, prefix, prefixLength);
-    symbol = ObjcSymbols::getGlobal(sname);
+    symbol = global.params.isObjcNonFragileAbi ? ObjcSymbols::getGlobal(sname) : symbol_name(sname, SCstatic, type_fake(TYnptr));
 
     if (global.params.isObjcNonFragileAbi)
     {
