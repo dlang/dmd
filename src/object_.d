@@ -619,6 +619,13 @@ class TypeInfo_AssociativeArray : TypeInfo
         return !!_aaEqual(this, *cast(const void**) p1, *cast(const void**) p2);
     }
 
+    override int compare(in void* p1, in void* p2) const
+    {
+        // This is a hack to fix Issue 10380 because AA uses
+        // `compare` instead of `equals`.
+        return !equals(p1, p2);
+    }
+
     override hash_t getHash(in void* p) nothrow @trusted const
     {
         return _aaGetHash(cast(void*)p, this);
