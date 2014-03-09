@@ -451,7 +451,6 @@ Usage:\n\
   -op            preserve source path for output files\n\
   -profile       profile runtime performance of generated code\n\
   -property      enforce property syntax\n\
-  -quiet         suppress unnecessary messages\n\
   -release       compile release version\n\
   -run srcfile args...   run resulting program, passing args\n\
   -shared        generate shared library (DLL)\n\
@@ -526,8 +525,8 @@ int tryMain(size_t argc, const char *argv[])
     Strings libmodules;
     size_t argcstart = argc;
     int setdebuglib = 0;
-    char noboundscheck = 0;
-        int setdefaultlib = 0;
+    bool noboundscheck = false;
+    int setdefaultlib = 0;
     const char *inifilename = NULL;
     global.init();
 
@@ -557,16 +556,15 @@ int tryMain(size_t argc, const char *argv[])
 
     // Set default values
     global.params.argv0 = argv[0];
-    global.params.link = 1;
-    global.params.useAssert = 1;
-    global.params.useInvariants = 1;
-    global.params.useIn = 1;
-    global.params.useOut = 1;
+    global.params.link = true;
+    global.params.useAssert = true;
+    global.params.useInvariants = true;
+    global.params.useIn = true;
+    global.params.useOut = true;
     global.params.useArrayBounds = 2;   // default to all functions
-    global.params.useSwitchError = 1;
-    global.params.useInline = 0;
-    global.params.obj = 1;
-    global.params.quiet = 1;
+    global.params.useSwitchError = true;
+    global.params.useInline = false;
+    global.params.obj = true;
     global.params.useDeprecated = 2;
 
     global.params.linkswitches = new Strings();
@@ -593,30 +591,30 @@ int tryMain(size_t argc, const char *argv[])
 
 #if TARGET_WINDOS
     VersionCondition::addPredefinedGlobalIdent("Windows");
-    global.params.isWindows = 1;
+    global.params.isWindows = true;
 #elif TARGET_LINUX
     VersionCondition::addPredefinedGlobalIdent("Posix");
     VersionCondition::addPredefinedGlobalIdent("linux");
-    global.params.isLinux = 1;
+    global.params.isLinux = true;
 #elif TARGET_OSX
     VersionCondition::addPredefinedGlobalIdent("Posix");
     VersionCondition::addPredefinedGlobalIdent("OSX");
-    global.params.isOSX = 1;
+    global.params.isOSX = true;
 
     // For legacy compatibility
     VersionCondition::addPredefinedGlobalIdent("darwin");
 #elif TARGET_FREEBSD
     VersionCondition::addPredefinedGlobalIdent("Posix");
     VersionCondition::addPredefinedGlobalIdent("FreeBSD");
-    global.params.isFreeBSD = 1;
+    global.params.isFreeBSD = true;
 #elif TARGET_OPENBSD
     VersionCondition::addPredefinedGlobalIdent("Posix");
     VersionCondition::addPredefinedGlobalIdent("OpenBSD");
-    global.params.isFreeBSD = 1;
+    global.params.isFreeBSD = true;
 #elif TARGET_SOLARIS
     VersionCondition::addPredefinedGlobalIdent("Posix");
     VersionCondition::addPredefinedGlobalIdent("Solaris");
-    global.params.isSolaris = 1;
+    global.params.isSolaris = true;
 #else
 #error "fix this"
 #endif
@@ -668,7 +666,7 @@ int tryMain(size_t argc, const char *argv[])
             else if (strcmp(p + 1, "dw") == 0)
                 global.params.useDeprecated = 2;
             else if (strcmp(p + 1, "c") == 0)
-                global.params.link = 0;
+                global.params.link = false;
             else if (memcmp(p + 1, "cov", 3) == 0)
             {
                 global.params.cov = true;
@@ -693,12 +691,12 @@ int tryMain(size_t argc, const char *argv[])
                     goto Lerror;
             }
             else if (strcmp(p + 1, "shared") == 0)
-                global.params.dll = 1;
+                global.params.dll = true;
             else if (strcmp(p + 1, "dylib") == 0)
             {
 #if TARGET_OSX
                 warning(Loc(), "use -shared instead of -dylib");
-                global.params.dll = 1;
+                global.params.dll = true;
 #else
                 goto Lerror;
 #endif
@@ -712,33 +710,33 @@ int tryMain(size_t argc, const char *argv[])
 #endif
             }
             else if (strcmp(p + 1, "map") == 0)
-                global.params.map = 1;
+                global.params.map = true;
             else if (strcmp(p + 1, "multiobj") == 0)
-                global.params.multiobj = 1;
+                global.params.multiobj = true;
             else if (strcmp(p + 1, "g") == 0)
                 global.params.symdebug = 1;
             else if (strcmp(p + 1, "gc") == 0)
                 global.params.symdebug = 2;
             else if (strcmp(p + 1, "gs") == 0)
-                global.params.alwaysframe = 1;
+                global.params.alwaysframe = true;
             else if (strcmp(p + 1, "gx") == 0)
                 global.params.stackstomp = true;
             else if (strcmp(p + 1, "gt") == 0)
             {   error(Loc(), "use -profile instead of -gt");
-                global.params.trace = 1;
+                global.params.trace = true;
             }
             else if (strcmp(p + 1, "m32") == 0)
                 global.params.is64bit = false;
             else if (strcmp(p + 1, "m64") == 0)
                 global.params.is64bit = true;
             else if (strcmp(p + 1, "profile") == 0)
-                global.params.trace = 1;
+                global.params.trace = true;
             else if (strcmp(p + 1, "v") == 0)
-                global.params.verbose = 1;
+                global.params.verbose = true;
             else if (strcmp(p + 1, "vtls") == 0)
-                global.params.vtls = 1;
+                global.params.vtls = true;
             else if (strcmp(p + 1, "vcolumns") == 0)
-                global.params.showColumns = 1;
+                global.params.showColumns = true;
             else if (memcmp(p + 1, "transition", 10) == 0)
             {
                 // Parse:
@@ -764,7 +762,7 @@ Language changes listed by -transition=id:\n\
                         switch (num)
                         {
                             case 3449:
-                                global.params.vfield = 1;
+                                global.params.vfield = true;
                                 break;
                             default:
                                 goto Lerror;
@@ -786,13 +784,13 @@ Language changes listed by -transition=id:\n\
             else if (strcmp(p + 1, "wi") == 0)
                 global.params.warnings = 2;
             else if (strcmp(p + 1, "O") == 0)
-                global.params.optimize = 1;
+                global.params.optimize = true;
             else if (p[1] == 'o')
             {
                 switch (p[2])
                 {
                     case '-':
-                        global.params.obj = 0;
+                        global.params.obj = false;
                         break;
 
                     case 'd':
@@ -816,7 +814,7 @@ Language changes listed by -transition=id:\n\
                     case 'p':
                         if (p[3])
                             goto Lerror;
-                        global.params.preservePaths = 1;
+                        global.params.preservePaths = true;
                         break;
 
                     case 0:
@@ -828,7 +826,8 @@ Language changes listed by -transition=id:\n\
                 }
             }
             else if (p[1] == 'D')
-            {   global.params.doDocComments = 1;
+            {
+                global.params.doDocComments = true;
                 switch (p[2])
                 {
                     case 'd':
@@ -850,7 +849,8 @@ Language changes listed by -transition=id:\n\
                 }
             }
             else if (p[1] == 'H')
-            {   global.params.doHdrGeneration = 1;
+            {
+                global.params.doHdrGeneration = true;
                 switch (p[2])
                 {
                     case 'd':
@@ -873,13 +873,14 @@ Language changes listed by -transition=id:\n\
                 }
             }
             else if (p[1] == 'X')
-            {   global.params.doXGeneration = 1;
+            {
+                global.params.doJsonGeneration = true;
                 switch (p[2])
                 {
                     case 'f':
                         if (!p[3])
                             goto Lnoarg;
-                        global.params.xfilename = p + 3;
+                        global.params.jsonfilename = p + 3;
                         break;
 
                     case 0:
@@ -890,25 +891,27 @@ Language changes listed by -transition=id:\n\
                 }
             }
             else if (strcmp(p + 1, "ignore") == 0)
-                global.params.ignoreUnsupportedPragmas = 1;
+                global.params.ignoreUnsupportedPragmas = true;
             else if (strcmp(p + 1, "property") == 0)
-                global.params.enforcePropertySyntax = 1;
+                global.params.enforcePropertySyntax = true;
             else if (strcmp(p + 1, "inline") == 0)
-                global.params.useInline = 1;
+                global.params.useInline = true;
             else if (strcmp(p + 1, "lib") == 0)
-                global.params.lib = 1;
+                global.params.lib = true;
             else if (strcmp(p + 1, "nofloat") == 0)
-                global.params.nofloat = 1;
+                global.params.nofloat = true;
             else if (strcmp(p + 1, "quiet") == 0)
-                global.params.quiet = 1;
+            {
+                // Ignore
+            }
             else if (strcmp(p + 1, "release") == 0)
-                global.params.release = 1;
+                global.params.release = true;
             else if (strcmp(p + 1, "betterC") == 0)
-                global.params.betterC = 1;
+                global.params.betterC = true;
             else if (strcmp(p + 1, "noboundscheck") == 0)
-                noboundscheck = 1;
+                noboundscheck = true;
             else if (strcmp(p + 1, "unittest") == 0)
-                global.params.useUnitTests = 1;
+                global.params.useUnitTests = true;
             else if (p[1] == 'I')
             {
                 if (!global.params.imppath)
@@ -973,21 +976,21 @@ Language changes listed by -transition=id:\n\
                     goto Lerror;
             }
             else if (strcmp(p + 1, "-b") == 0)
-                global.params.debugb = 1;
+                global.params.debugb = true;
             else if (strcmp(p + 1, "-c") == 0)
-                global.params.debugc = 1;
+                global.params.debugc = true;
             else if (strcmp(p + 1, "-f") == 0)
-                global.params.debugf = 1;
+                global.params.debugf = true;
             else if (strcmp(p + 1, "-help") == 0)
             {   usage();
                 exit(EXIT_SUCCESS);
             }
             else if (strcmp(p + 1, "-r") == 0)
-                global.params.debugr = 1;
+                global.params.debugr = true;
             else if (strcmp(p + 1, "-x") == 0)
-                global.params.debugx = 1;
+                global.params.debugx = true;
             else if (strcmp(p + 1, "-y") == 0)
-                global.params.debugy = 1;
+                global.params.debugy = true;
             else if (p[1] == 'L')
             {
                 global.params.linkswitches->push(p + 2);
@@ -1046,7 +1049,8 @@ Language changes listed by -transition=id:\n\
                 exit(EXIT_SUCCESS);
             }
             else if (strcmp(p + 1, "run") == 0)
-            {   global.params.run = 1;
+            {
+                global.params.run = true;
                 global.params.runargs_length = ((i >= argcstart) ? argc : argcstart) - i - 1;
                 if (global.params.runargs_length)
                 {
@@ -1064,7 +1068,8 @@ Language changes listed by -transition=id:\n\
                     global.params.runargs_length--;
                 }
                 else
-                {   global.params.run = 0;
+                {
+                    global.params.run = false;
                     goto Lnoarg;
                 }
             }
@@ -1122,29 +1127,27 @@ Language changes listed by -transition=id:\n\
 #endif
 
     if (global.params.release)
-    {   global.params.useInvariants = 0;
-        global.params.useIn = 0;
-        global.params.useOut = 0;
-        global.params.useAssert = 0;
+    {
+        global.params.useInvariants = false;
+        global.params.useIn = false;
+        global.params.useOut = false;
+        global.params.useAssert = false;
         global.params.useArrayBounds = 1;
-        global.params.useSwitchError = 0;
+        global.params.useSwitchError = false;
     }
     if (noboundscheck)
         global.params.useArrayBounds = 0;
 
-    if (global.params.run)
-        global.params.quiet = 1;
-
     if (global.params.useUnitTests)
-        global.params.useAssert = 1;
+        global.params.useAssert = true;
 
     if (!global.params.obj || global.params.lib)
-        global.params.link = 0;
+        global.params.link = false;
 
     if (global.params.link)
     {
         global.params.exefile = global.params.objname;
-        global.params.oneobj = 1;
+        global.params.oneobj = true;
         if (global.params.objname)
         {
             /* Use this to name the one object file with the same
@@ -1168,7 +1171,7 @@ Language changes listed by -transition=id:\n\
 
         // Haven't investigated handling these options with multiobj
         if (!global.params.cov && !global.params.trace)
-            global.params.multiobj = 1;
+            global.params.multiobj = true;
     }
     else if (global.params.run)
     {
@@ -1179,7 +1182,7 @@ Language changes listed by -transition=id:\n\
     {
         if (global.params.objname && files.dim > 1)
         {
-            global.params.oneobj = 1;
+            global.params.oneobj = true;
             //error("multiple source files, but only one .obj name");
             //fatal();
         }
@@ -1325,8 +1328,8 @@ Language changes listed by -transition=id:\n\
 
             if (FileName::equals(ext, global.json_ext))
             {
-                global.params.doXGeneration = 1;
-                global.params.xfilename = files[i];
+                global.params.doJsonGeneration = true;
+                global.params.jsonfilename = files[i];
                 continue;
             }
 
@@ -1483,7 +1486,7 @@ Language changes listed by -transition=id:\n\
             }
 
             if (global.params.objfiles->dim == 0)
-                global.params.link = 0;
+                global.params.link = false;
         }
     }
 #if ASYNCREAD
@@ -1638,13 +1641,13 @@ Language changes listed by -transition=id:\n\
 
     // Generate output files
 
-    if (global.params.doXGeneration)
+    if (global.params.doJsonGeneration)
     {
         OutBuffer buf;
         json_generate(&buf, &modules);
 
         // Write buf to file
-        const char *name = global.params.xfilename;
+        const char *name = global.params.jsonfilename;
 
         if (name && name[0] == '-' && name[1] == 0)
         {   // Write to stdout; assume it succeeds
@@ -1920,9 +1923,9 @@ static bool parse_arch(size_t argc, const char** argv, bool is64bit)
         if (p[0] == '-')
         {
             if (strcmp(p + 1, "m32") == 0)
-                is64bit = 0;
+                is64bit = false;
             else if (strcmp(p + 1, "m64") == 0)
-                is64bit = 1;
+                is64bit = true;
             else if (strcmp(p + 1, "run") == 0)
                 break;
         }
