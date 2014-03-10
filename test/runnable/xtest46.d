@@ -3179,6 +3179,14 @@ void test141()
 }
 
 /***************************************************/
+
+class test5498_A {}
+class test5498_B : test5498_A {}
+class test5498_C : test5498_A {}
+
+static assert(is(typeof([test5498_B.init, test5498_C.init]) == test5498_A[]));
+
+/***************************************************/
 // 3688
 
 struct S142
