@@ -6514,7 +6514,9 @@ L1:
             return;
         }
         if (t->ty == Tinstance && t != this && !t->deco)
-        {   error(loc, "forward reference to '%s'", t->toChars());
+        {
+            if (!((TypeInstance *)t)->tempinst->errors)
+                error(loc, "forward reference to '%s'", t->toChars());
             *pt = Type::terror;
             return;
         }
