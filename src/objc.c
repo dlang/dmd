@@ -1824,7 +1824,11 @@ namespace NonFragileAbi
 
         dtsize_t(pdt, 0); // null, optional instance methods, currently not supported
         dtsize_t(pdt, 0); // null, optional class methods, currently not supported
-        dtsize_t(pdt, 0); // null, properites, currently not supported
+
+        ::ObjcClassDeclaration* c = ::ObjcClassDeclaration::create(idecl);
+        Symbol* properties = c->getPropertyList();
+        if (properties) dtxoff(pdt, properties, 0, TYnptr);
+        else dtsize_t(pdt, 0); // properites
 
         dtdword(pdt, global.params.is64bit ? 80 : 44); // sizeof(_protocol_t)
         dtdword(pdt, 0); // flags
