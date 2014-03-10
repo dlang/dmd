@@ -499,3 +499,31 @@ static assert(is(E11554 == enum));
 
 struct Bro11554(N...) {}
 static assert(!is(E11554 unused : Bro11554!M, M...));
+
+/***************************************************/
+// 12302
+
+template isCallable12302(T...)
+    if (T.length == 1)
+{
+    static if (is(typeof(& T[0].opCall) == delegate))
+        enum bool isCallable12302 = true;
+    else
+    static if (is(typeof(& T[0].opCall) V : V*) && is(V == function))
+        enum bool isCallable12302 = true;
+    else
+        enum bool isCallable12302 = true;
+}
+
+class A12302
+{
+    struct X {}
+    X x;
+    auto opDispatch(string s, TArgs...)(TArgs args)
+    {
+        mixin("return x."~s~"(args);");
+    }
+}
+
+A12302 func12302() { return null; }
+enum b12302 = isCallable12302!func12302;
