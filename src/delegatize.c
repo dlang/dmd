@@ -26,35 +26,38 @@
  * i.e. convert:
  *      expr
  * to:
- *      t delegate() { return expr; }
+ *      typeof(expr) delegate() { return expr; }
  */
 
 bool walkPostorder(Expression *e, StoppableVisitor *v);
 void lambdaSetParent(Expression *e, Scope *sc);
 void lambdaCheckForNestedRef(Expression *e, Scope *sc);
 
-Expression *toDelegate(Expression *e, Scope *sc, Type *t)
+Expression *toDelegate(Expression *e, Scope *sc)
 {
-    //printf("Expression::toDelegate(t = %s) %s\n", t->toChars(), e->toChars());
+    //printf("Expression::toDelegate(t = %s) %s\n", e->type->toChars(), e->toChars());
     Loc loc = e->loc;
-    Type *tw = t->semantic(loc, sc);
-    Type *tc = t->substWildTo(MODconst)->semantic(loc, sc);
-    TypeFunction *tf = new TypeFunction(NULL, tc, 0, LINKd);
-    if (tw != tc) tf->mod = MODwild;                            // hack for bug7757
-    (tf = (TypeFunction *)tf->semantic(loc, sc))->next = tw;    // hack for bug7757
+    Type *t = e->type;
+
+    TypeFunction *tf = new TypeFunction(NULL, t, 0, LINKd);
+    if (t->hasWild())
+        tf->mod = MODwild;
     FuncLiteralDeclaration *fld =
         new FuncLiteralDeclaration(loc, loc, tf, TOKdelegate, NULL);
+
     sc = sc->push();
     sc->parent = fld;           // set current function to be the delegate
     lambdaSetParent(e, sc);
     lambdaCheckForNestedRef(e, sc);
     sc = sc->pop();
+
     Statement *s;
     if (t->ty == Tvoid)
         s = new ExpStatement(loc, e);
     else
         s = new ReturnStatement(loc, e);
     fld->fbody = s;
+
     e = new FuncExp(loc, fld);
     e = e->semantic(sc);
     return e;

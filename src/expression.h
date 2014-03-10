@@ -88,7 +88,7 @@ Expression *integralPromotions(Expression *e, Scope *sc);
 void discardValue(Expression *e);
 
 int isConst(Expression *e);
-Expression *toDelegate(Expression *e, Scope *sc, Type *t);
+Expression *toDelegate(Expression *e, Scope *sc);
 AggregateDeclaration *isAggregate(Type *t);
 IntRange getIntRange(Expression *e);
 bool isArrayOperand(Expression *e);
