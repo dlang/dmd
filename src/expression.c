@@ -4756,7 +4756,8 @@ Lagain:
     nargs = arguments ? arguments->dim : 0;
 
     if (thisexp && tb->ty != Tclass)
-    {   error("e.new is only for allocating nested classes, not %s", tb->toChars());
+    {
+        error("e.new is only for allocating nested classes, not %s", tb->toChars());
         goto Lerr;
     }
 
@@ -4767,13 +4768,16 @@ Lagain:
         if (cd->scope)
             cd->semantic(NULL);
         if (cd->isInterfaceDeclaration())
-        {   error("cannot create instance of interface %s", cd->toChars());
+        {
+            error("cannot create instance of interface %s", cd->toChars());
             goto Lerr;
         }
         else if (cd->isAbstract())
-        {   error("cannot create instance of abstract class %s", cd->toChars());
+        {
+            error("cannot create instance of abstract class %s", cd->toChars());
             for (size_t i = 0; i < cd->vtbl.dim; i++)
-            {   FuncDeclaration *fd = cd->vtbl[i]->isFuncDeclaration();
+            {
+                FuncDeclaration *fd = cd->vtbl[i]->isFuncDeclaration();
                 if (fd && fd->isAbstract())
                     errorSupplemental(loc, "function '%s' is not implemented", fd->toFullSignature());
             }
@@ -4781,12 +4785,14 @@ Lagain:
         }
 
         if (cd->noDefaultCtor && !nargs && !cd->defaultCtor)
-        {   error("default construction is disabled for type %s", cd->type->toChars());
+        {
+            error("default construction is disabled for type %s", cd->type->toChars());
             goto Lerr;
         }
         checkDeprecated(sc, cd);
         if (cd->isNested())
-        {   /* We need a 'this' pointer for the nested class.
+        {
+            /* We need a 'this' pointer for the nested class.
              * Ensure we have the right one.
              */
             Dsymbol *s = cd->toParent2();
@@ -4801,7 +4807,8 @@ Lagain:
                     // Supply an implicit 'this' and try again
                     thisexp = new ThisExp(loc);
                     for (Dsymbol *sp = sc->parent; 1; sp = sp->parent)
-                    {   if (!sp)
+                    {
+                        if (!sp)
                         {
                             error("outer class %s 'this' needed to 'new' nested class %s", cdn->toChars(), cd->toChars());
                             goto Lerr;
@@ -4821,13 +4828,15 @@ Lagain:
                 {
                     //printf("cdthis = %s\n", cdthis->toChars());
                     if (cdthis != cdn && !cdn->isBaseOf(cdthis, NULL))
-                    {   error("'this' for nested class must be of type %s, not %s", cdn->toChars(), thisexp->type->toChars());
+                    {
+                        error("'this' for nested class must be of type %s, not %s", cdn->toChars(), thisexp->type->toChars());
                         goto Lerr;
                     }
                 }
             }
             else if (thisexp)
-            {   error("e.new is only for allocating nested classes");
+            {
+                error("e.new is only for allocating nested classes");
                 goto Lerr;
             }
             else if (fdn)
@@ -4849,7 +4858,8 @@ Lagain:
                 assert(0);
         }
         else if (thisexp)
-        {   error("e.new is only for allocating nested classes");
+        {
+            error("e.new is only for allocating nested classes");
             goto Lerr;
         }
 
@@ -4880,7 +4890,8 @@ Lagain:
         else
         {
             if (nargs)
-            {   error("no constructor for %s", cd->toChars());
+            {
+                error("no constructor for %s", cd->toChars());
                 goto Lerr;
             }
         }
@@ -4908,7 +4919,8 @@ Lagain:
         else
         {
             if (newargs && newargs->dim)
-            {   error("no allocator for %s", cd->toChars());
+            {
+                error("no allocator for %s", cd->toChars());
                 goto Lerr;
             }
         }
@@ -4920,7 +4932,8 @@ Lagain:
         if (sd->scope)
             sd->semantic(NULL);
         if (sd->noDefaultCtor && !nargs)
-        {   error("default construction is disabled for type %s", sd->type->toChars());
+        {
+            error("default construction is disabled for type %s", sd->type->toChars());
             goto Lerr;
         }
 
@@ -4947,7 +4960,8 @@ Lagain:
         else
         {
             if (newargs && newargs->dim)
-            {   error("no allocator for %s", sd->toChars());
+            {
+                error("no allocator for %s", sd->toChars());
                 goto Lerr;
             }
         }
@@ -5011,13 +5025,15 @@ Lagain:
         Dsymbol *s = tn->toDsymbol(sc);
         AggregateDeclaration *ad = s ? s->isAggregateDeclaration() : NULL;
         if (ad && ad->noDefaultCtor)
-        {   error("default construction is disabled for type %s", tb->nextOf()->toChars());
+        {
+            error("default construction is disabled for type %s", tb->nextOf()->toChars());
             goto Lerr;
         }
         for (size_t i = 0; i < nargs; i++)
         {
             if (tb->ty != Tarray)
-            {   error("too many arguments for array");
+            {
+                error("too many arguments for array");
                 goto Lerr;
             }
 
@@ -5026,7 +5042,8 @@ Lagain:
             arg = arg->implicitCastTo(sc, Type::tsize_t);
             arg = arg->optimize(WANTvalue);
             if (arg->op == TOKint64 && (sinteger_t)arg->toInteger() < 0)
-            {   error("negative array index %s", arg->toChars());
+            {
+                error("negative array index %s", arg->toChars());
                 goto Lerr;
             }
             (*arguments)[i] =  arg;
