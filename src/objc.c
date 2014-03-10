@@ -721,19 +721,15 @@ Symbol *ObjcSymbols::getPropertyTypeString(FuncDeclaration* property)
     Type* propertyType = type->next->ty != TYvoid ? type->next : (*type->parameters)[0]->type;
     const char* typeEncoding = getTypeEncoding(propertyType);
     size_t len = strlen(typeEncoding);
-    size_t nameLength = 1 + len + 3;
+    size_t nameLength = 1 + len;
 
-    // The string is looking like this: "T#{typeEncoding},V_#{property->ident->string}".
-    // For properties which are only getters (not handled yet): "T#{typeEncoding},R,V_#{property->ident->string}".
+    // Method encodings are not handled
     char* name = (char*) malloc(nameLength + 1);
     name[0] = 'T';
     memmove(name + 1, typeEncoding, len);
-    memmove(name + 1 + len, ",V_", 3);
     name[nameLength] = 0;
 
-    name = prefixSymbolName(property->ident->string, property->ident->len, name, nameLength);
-
-    return getPropertyName(name, nameLength + property->ident->len);
+    return getPropertyName(name, nameLength);
 }
 
 // MARK: FragileAbi::ObjcSymbols
