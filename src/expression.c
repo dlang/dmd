@@ -1604,27 +1604,26 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
         Expression *arg = (*arguments)[i];
         assert(arg);
 
+        if (arg->op == TOKtype)
+        {
+            arg->error("cannot pass type %s as function argument", arg->toChars());
+            arg = new ErrorExp();
+            goto L3;
+        }
+
         if (i < nparams)
         {
             Parameter *p = Parameter::getNth(tf->parameters, i);
 
             if (!(p->storageClass & STClazy && p->type->ty == Tvoid))
             {
+                Type *tprm = p->type;
                 if (p->type->hasWild())
-                {
-                    arg = arg->implicitCastTo(sc, p->type->substWildTo(wildmatch));
-                    arg = arg->optimize(WANTvalue, (p->storageClass & STCref) != 0);
-                }
-                else if (!p->type->equals(arg->type))
+                    tprm = p->type->substWildTo(wildmatch);
+                if (!tprm->equals(arg->type))
                 {
                     //printf("arg->type = %s, p->type = %s\n", arg->type->toChars(), p->type->toChars());
-                    if (arg->op == TOKtype)
-                    {   arg->error("cannot pass type %s as function argument", arg->toChars());
-                        arg = new ErrorExp();
-                        goto L3;
-                    }
-                    else
-                        arg = arg->implicitCastTo(sc, p->type);
+                    arg = arg->implicitCastTo(sc, tprm);
                     arg = arg->optimize(WANTvalue, (p->storageClass & STCref) != 0);
                 }
             }
