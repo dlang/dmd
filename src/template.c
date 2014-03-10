@@ -6126,10 +6126,12 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     // Give additional context info if error occurred during instantiation
     if (global.errors != errorsave)
     {
-        if (!tempdecl->literal)
-            error(loc, "error instantiating");
-        if (tinst)
-        {   tinst->printInstantiationTrace();
+        if (!errors)
+        {
+            if (!tempdecl->literal)
+                error(loc, "error instantiating");
+            if (tinst)
+                tinst->printInstantiationTrace();
         }
         errors = true;
         if (global.gag)
@@ -7360,6 +7362,7 @@ void TemplateInstance::printInstantiationTrace()
     {
         for (TemplateInstance *cur = this; cur; cur = cur->tinst)
         {
+            cur->errors = true;
             errorSupplemental(cur->loc, format, cur->toChars());
         }
     }
@@ -7370,6 +7373,7 @@ void TemplateInstance::printInstantiationTrace()
         int recursionDepth=0;
         for (TemplateInstance *cur = this; cur; cur = cur->tinst)
         {
+            cur->errors = true;
             if (cur->tinst && cur->tempdecl && cur->tinst->tempdecl
                     && cur->tempdecl->loc.equals(cur->tinst->tempdecl->loc))
             {
@@ -7392,6 +7396,8 @@ void TemplateInstance::printInstantiationTrace()
         unsigned i = 0;
         for (TemplateInstance *cur = this; cur; cur = cur->tinst)
         {
+            cur->errors = true;
+
             if (i == max_shown / 2)
                 errorSupplemental(cur->loc, "... (%d instantiations, -v to show) ...", n_instantiations - max_shown);
 
