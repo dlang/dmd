@@ -52,17 +52,20 @@ static bool parse_arch(size_t argc, const char** argv, bool is64bit);
 void inlineScan(Module *m);
 
 /** Normalize path by turning forward slashes into backslashes */
-void toWinPath(char *src)
+const char * toWinPath(const char *src)
 {
     if (src == NULL)
-        return;
+        return NULL;
 
-    while (*src != '\0')
+    char *result = strdup(src);
+    char *p = result;
+    while (*p != '\0')
     {
-        if (*src == '/')
-            *src = '\\';
-        src++;
+        if (*p == '/')
+            *p = '\\';
+        p++;
     }
+    return result;
 }
 
 Ungag::~Ungag()
@@ -787,6 +790,7 @@ Language changes listed by -transition=id:\n\
                 global.params.optimize = true;
             else if (p[1] == 'o')
             {
+                const char *path;
                 switch (p[2])
                 {
                     case '-':
@@ -796,19 +800,21 @@ Language changes listed by -transition=id:\n\
                     case 'd':
                         if (!p[3])
                             goto Lnoarg;
+                        path = p + 3;
 #if _WIN32
-                        toWinPath((char *)p + 3);
+                        path = toWinPath(path);
 #endif
-                        global.params.objdir = p + 3;
+                        global.params.objdir = path;
                         break;
 
                     case 'f':
                         if (!p[3])
                             goto Lnoarg;
+                        path = p + 3;
 #if _WIN32
-                        toWinPath((char *)p + 3);
+                        path = toWinPath(path);
 #endif
-                        global.params.objname = p + 3;
+                        global.params.objname = path;
                         break;
 
                     case 'p':
@@ -1294,11 +1300,11 @@ Language changes listed by -transition=id:\n\
     {
         const char *name;
 
-        const char *p = files[i];
-
 #if _WIN32
-        toWinPath((char *)p);
+        files[i] = toWinPath(files[i]);
 #endif
+
+        const char *p = files[i];
 
         p = FileName::name(p);          // strip path
         const char *ext = FileName::ext(p);
