@@ -4852,6 +4852,10 @@ Lagain:
                         error("outer function context of %s is needed to 'new' nested class %s", fdn->toPrettyChars(), cd->toPrettyChars());
                         goto Lerr;
                     }
+                    else if (FuncLiteralDeclaration *fld = sp->isFuncLiteralDeclaration())
+                    {
+                        fld->tok = TOKdelegate;
+                    }
                 }
             }
             else
