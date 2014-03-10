@@ -153,6 +153,8 @@ Msgtable msgtable[] =
     { "system" },
     { "disable" },
 
+    { "body" },
+
     // For inline assembler
     { "___out", "out" },
     { "___in", "in" },
