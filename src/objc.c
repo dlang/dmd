@@ -828,7 +828,7 @@ namespace NonFragileAbi
 
         size_t symbolPrefixLength;
         const char* name = buildIVarName(cdecl, ivar);
-        symbol = symbol_name(name, SCstatic, type_fake(TYnptr));
+        symbol = getGlobal(name);
         symbol->Sdt = dt;
         symbol->Sseg = objc_getsegment(SEGobjc_ivar);
 
