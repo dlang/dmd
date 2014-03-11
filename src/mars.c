@@ -38,7 +38,7 @@
 #include "hdrgen.h"
 #include "doc.h"
 
-int response_expand(size_t *pargc, const char ***pargv);
+bool response_expand(size_t *pargc, const char ***pargv);
 void browse(const char *url);
 void getenv_setargv(const char *envvar, size_t *pargc, const char** *pargv);
 
