@@ -261,7 +261,7 @@ public:
     virtual bool isunsigned();
     virtual bool isscope();
     virtual bool isString();
-    virtual int isAssignable();
+    virtual bool isAssignable();
     virtual int checkBoolean(); // if can be converted to boolean value
     virtual void checkDeprecated(Loc loc, Scope *sc);
     bool isConst()       { return (mod & MODconst) != 0; }
@@ -783,7 +783,7 @@ public:
     Expression *defaultInit(Loc loc);
     Expression *defaultInitLiteral(Loc loc);
     bool isZeroInit(Loc loc);
-    int isAssignable();
+    bool isAssignable();
     int checkBoolean();
     int needsDestruction();
     bool needsNested();
@@ -822,7 +822,7 @@ public:
     bool isunsigned();
     int checkBoolean();
     bool isString();
-    int isAssignable();
+    bool isAssignable();
     int needsDestruction();
     bool needsNested();
     MATCH implicitConvTo(Type *to);
@@ -862,7 +862,7 @@ public:
     bool isscalar();
     bool isunsigned();
     int checkBoolean();
-    int isAssignable();
+    bool isAssignable();
     int needsDestruction();
     bool needsNested();
     Type *toBasetype();

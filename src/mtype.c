@@ -1816,7 +1816,7 @@ bool Type::isString()
  *      a = b;
  * ?
  */
-int Type::isAssignable()
+bool Type::isAssignable()
 {
     return true;
 }
@@ -7346,7 +7346,7 @@ bool TypeEnum::isString()
     return sym->getMemtype(Loc())->isString();
 }
 
-int TypeEnum::isAssignable()
+bool TypeEnum::isAssignable()
 {
     return sym->getMemtype(Loc())->isAssignable();
 }
@@ -7549,7 +7549,7 @@ bool TypeTypedef::isscalar()
     return sym->basetype->isscalar();
 }
 
-int TypeTypedef::isAssignable()
+bool TypeTypedef::isAssignable()
 {
     return sym->basetype->isAssignable();
 }
@@ -8101,9 +8101,9 @@ bool TypeStruct::needsNested()
     return false;
 }
 
-int TypeStruct::isAssignable()
+bool TypeStruct::isAssignable()
 {
-    int assignable = true;
+    bool assignable = true;
     unsigned offset;
 
     /* If any of the fields are const or invariant,
