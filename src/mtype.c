@@ -1830,7 +1830,7 @@ bool Type::checkBoolean()
  * true if when type goes out of scope, it needs a destructor applied.
  * Only applies to value types, not ref types.
  */
-int Type::needsDestruction()
+bool Type::needsDestruction()
 {
     return false;
 }
@@ -4340,7 +4340,7 @@ bool TypeSArray::isZeroInit(Loc loc)
     return next->isZeroInit(loc);
 }
 
-int TypeSArray::needsDestruction()
+bool TypeSArray::needsDestruction()
 {
     return next->needsDestruction();
 }
@@ -7356,7 +7356,7 @@ bool TypeEnum::checkBoolean()
     return sym->getMemtype(Loc())->checkBoolean();
 }
 
-int TypeEnum::needsDestruction()
+bool TypeEnum::needsDestruction()
 {
     return sym->getMemtype(Loc())->needsDestruction();
 }
@@ -7559,7 +7559,7 @@ bool TypeTypedef::checkBoolean()
     return sym->basetype->checkBoolean();
 }
 
-int TypeTypedef::needsDestruction()
+bool TypeTypedef::needsDestruction()
 {
     return sym->basetype->needsDestruction();
 }
@@ -8082,7 +8082,7 @@ bool TypeStruct::checkBoolean()
     return false;
 }
 
-int TypeStruct::needsDestruction()
+bool TypeStruct::needsDestruction()
 {
     return sym->dtor != NULL;
 }

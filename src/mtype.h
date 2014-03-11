@@ -338,7 +338,7 @@ public:
     virtual Type *nextOf();
     Type *baseElemOf();
     uinteger_t sizemask();
-    virtual int needsDestruction();
+    virtual bool needsDestruction();
     virtual bool needsNested();
 
     static void error(Loc loc, const char *format, ...);
@@ -484,7 +484,7 @@ public:
     TypeInfoDeclaration *getTypeInfoDeclaration();
     Expression *toExpression();
     int hasPointers();
-    int needsDestruction();
+    bool needsDestruction();
     bool needsNested();
 
     void accept(Visitor *v) { v->visit(this); }
@@ -785,7 +785,7 @@ public:
     bool isZeroInit(Loc loc);
     bool isAssignable();
     bool checkBoolean();
-    int needsDestruction();
+    bool needsDestruction();
     bool needsNested();
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
@@ -823,7 +823,7 @@ public:
     bool checkBoolean();
     bool isString();
     bool isAssignable();
-    int needsDestruction();
+    bool needsDestruction();
     bool needsNested();
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);
@@ -863,7 +863,7 @@ public:
     bool isunsigned();
     bool checkBoolean();
     bool isAssignable();
-    int needsDestruction();
+    bool needsDestruction();
     bool needsNested();
     Type *toBasetype();
     MATCH implicitConvTo(Type *to);
