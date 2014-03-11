@@ -255,7 +255,7 @@ public:
     int com;                            // !=0 if this is a COM class (meaning
                                         // it derives from IUnknown)
     int cpp;                            // !=0 if this is a C++ interface
-    int isscope;                        // !=0 if this is an auto class
+    bool isscope;                       // !=0 if this is an auto class
     int isabstract;                     // !=0 if abstract class
     int inuse;                          // to prevent recursive attempts
     Semantic doAncestorsSemantic;  // Before searching symbol, whole ancestors should finish

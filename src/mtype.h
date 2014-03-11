@@ -259,7 +259,7 @@ public:
     virtual bool iscomplex();
     virtual bool isscalar();
     virtual bool isunsigned();
-    virtual int isscope();
+    virtual bool isscope();
     virtual int isString();
     virtual int isAssignable();
     virtual int checkBoolean(); // if can be converted to boolean value
@@ -902,7 +902,7 @@ public:
     Type *toHeadMutable();
     Expression *defaultInit(Loc loc);
     bool isZeroInit(Loc loc);
-    int isscope();
+    bool isscope();
     int checkBoolean();
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();

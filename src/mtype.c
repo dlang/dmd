@@ -1798,7 +1798,7 @@ ClassDeclaration *Type::isClassHandle()
     return NULL;
 }
 
-int Type::isscope()
+bool Type::isscope()
 {
     return false;
 }
@@ -8684,7 +8684,7 @@ ClassDeclaration *TypeClass::isClassHandle()
     return sym;
 }
 
-int TypeClass::isscope()
+bool TypeClass::isscope()
 {
     return sym->isscope;
 }
