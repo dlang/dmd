@@ -118,7 +118,7 @@ bool StaticAssert::oneMember(Dsymbol **ps, Identifier *ident)
     return true;
 }
 
-void StaticAssert::toObjFile(int multiobj)
+void StaticAssert::toObjFile(bool multiobj)
 {
 }
 

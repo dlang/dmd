@@ -196,7 +196,7 @@ void Module::genmoduleinfo()
 
 /* ================================================================== */
 
-void Dsymbol::toObjFile(int multiobj)
+void Dsymbol::toObjFile(bool multiobj)
 {
     //printf("Dsymbol::toObjFile('%s')\n", toChars());
     // ignore
@@ -204,7 +204,7 @@ void Dsymbol::toObjFile(int multiobj)
 
 /* ================================================================== */
 
-void ClassDeclaration::toObjFile(int multiobj)
+void ClassDeclaration::toObjFile(bool multiobj)
 {
     unsigned offset;
     Symbol *sinit;
@@ -636,7 +636,7 @@ unsigned ClassDeclaration::baseVtblOffset(BaseClass *bc)
 
 /* ================================================================== */
 
-void InterfaceDeclaration::toObjFile(int multiobj)
+void InterfaceDeclaration::toObjFile(bool multiobj)
 {
     enum_SC scclass;
 
@@ -809,7 +809,7 @@ void InterfaceDeclaration::toObjFile(int multiobj)
 
 /* ================================================================== */
 
-void StructDeclaration::toObjFile(int multiobj)
+void StructDeclaration::toObjFile(bool multiobj)
 {
     //printf("StructDeclaration::toObjFile('%s')\n", toChars());
 
@@ -871,7 +871,7 @@ void StructDeclaration::toObjFile(int multiobj)
 
 /* ================================================================== */
 
-void VarDeclaration::toObjFile(int multiobj)
+void VarDeclaration::toObjFile(bool multiobj)
 {
     Symbol *s;
     unsigned sz;
@@ -987,7 +987,7 @@ void VarDeclaration::toObjFile(int multiobj)
 
 /* ================================================================== */
 
-void TypedefDeclaration::toObjFile(int multiobj)
+void TypedefDeclaration::toObjFile(bool multiobj)
 {
     //printf("TypedefDeclaration::toObjFile('%s')\n", toChars());
 
@@ -1022,7 +1022,7 @@ void TypedefDeclaration::toObjFile(int multiobj)
 
 /* ================================================================== */
 
-void EnumDeclaration::toObjFile(int multiobj)
+void EnumDeclaration::toObjFile(bool multiobj)
 {
     if (semanticRun >= PASSobj)  // already written
         return;
@@ -1062,7 +1062,7 @@ void EnumDeclaration::toObjFile(int multiobj)
 
 /* ================================================================== */
 
-void TypeInfoDeclaration::toObjFile(int multiobj)
+void TypeInfoDeclaration::toObjFile(bool multiobj)
 {
     //printf("TypeInfoDeclaration::toObjFile(%p '%s') protection %d\n", this, toChars(), protection);
 
@@ -1096,7 +1096,7 @@ void TypeInfoDeclaration::toObjFile(int multiobj)
 
 /* ================================================================== */
 
-void AttribDeclaration::toObjFile(int multiobj)
+void AttribDeclaration::toObjFile(bool multiobj)
 {
     Dsymbols *d = include(NULL, NULL);
 
@@ -1111,7 +1111,7 @@ void AttribDeclaration::toObjFile(int multiobj)
 
 /* ================================================================== */
 
-void PragmaDeclaration::toObjFile(int multiobj)
+void PragmaDeclaration::toObjFile(bool multiobj)
 {
     if (ident == Id::lib)
     {
@@ -1154,7 +1154,7 @@ void PragmaDeclaration::toObjFile(int multiobj)
 
 /* ================================================================== */
 
-void TemplateInstance::toObjFile(int multiobj)
+void TemplateInstance::toObjFile(bool multiobj)
 {
 #if LOG
     printf("TemplateInstance::toObjFile('%s', this = %p)\n", toChars(), this);
@@ -1177,7 +1177,7 @@ void TemplateInstance::toObjFile(int multiobj)
 
 /* ================================================================== */
 
-void TemplateMixin::toObjFile(int multiobj)
+void TemplateMixin::toObjFile(bool multiobj)
 {
     //printf("TemplateMixin::toObjFile('%s')\n", toChars());
     TemplateInstance::toObjFile(0);

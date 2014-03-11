@@ -125,7 +125,7 @@ public:
     void semantic();    // semantic analysis
     void semantic2();   // pass 2 semantic analysis
     void semantic3();   // pass 3 semantic analysis
-    void genobjfile(int multiobj);
+    void genobjfile(bool multiobj);
     void gensymfile();
     int needModuleInfo();
     Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
