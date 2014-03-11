@@ -1334,7 +1334,7 @@ Type *Type::aliasthisOf()
     return NULL;
 }
 
-int Type::checkAliasThisRec()
+bool Type::checkAliasThisRec()
 {
     Type *tb = toBasetype();
     AliasThisRec* pflag;
@@ -1343,7 +1343,7 @@ int Type::checkAliasThisRec()
     else if (tb->ty == Tclass)
         pflag = &((TypeClass *)tb)->att;
     else
-        return 0;
+        return false;
 
     AliasThisRec flag = (AliasThisRec)(*pflag & RECtypeMask);
     if (flag == RECfwdref)
