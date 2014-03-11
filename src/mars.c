@@ -509,8 +509,8 @@ void genCmain(Scope *sc)
     m->members = p.parseModule();
     assert(p.token.value == TOKeof);
 
-    char v = global.params.verbose;
-    global.params.verbose = 0;
+    bool v = global.params.verbose;
+    global.params.verbose = false;
     m->importedFrom = m;
     m->importAll(NULL);
     m->semantic();
