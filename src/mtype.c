@@ -1803,7 +1803,7 @@ bool Type::isscope()
     return false;
 }
 
-int Type::isString()
+bool Type::isString()
 {
     return false;
 }
@@ -4241,7 +4241,7 @@ structalign_t TypeSArray::alignment()
     return next->alignment();
 }
 
-int TypeSArray::isString()
+bool TypeSArray::isString()
 {
     TY nty = next->toBasetype()->ty;
     return nty == Tchar || nty == Twchar || nty == Tdchar;
@@ -4537,7 +4537,7 @@ Expression *TypeDArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
     return e;
 }
 
-int TypeDArray::isString()
+bool TypeDArray::isString()
 {
     TY nty = next->toBasetype()->ty;
     return nty == Tchar || nty == Twchar || nty == Tdchar;
@@ -7341,7 +7341,7 @@ bool TypeEnum::isscalar()
     return sym->getMemtype(Loc())->isscalar();
 }
 
-int TypeEnum::isString()
+bool TypeEnum::isString()
 {
     return sym->getMemtype(Loc())->isString();
 }

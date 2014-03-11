@@ -260,7 +260,7 @@ public:
     virtual bool isscalar();
     virtual bool isunsigned();
     virtual bool isscope();
-    virtual int isString();
+    virtual bool isString();
     virtual int isAssignable();
     virtual int checkBoolean(); // if can be converted to boolean value
     virtual void checkDeprecated(Loc loc, Scope *sc);
@@ -474,7 +474,7 @@ public:
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
     void toDecoBuffer(OutBuffer *buf, int flag);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
-    int isString();
+    bool isString();
     bool isZeroInit(Loc loc);
     structalign_t alignment();
     MATCH constConv(Type *to);
@@ -503,7 +503,7 @@ public:
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
     void toDecoBuffer(OutBuffer *buf, int flag);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
-    int isString();
+    bool isString();
     bool isZeroInit(Loc loc);
     int checkBoolean();
     MATCH implicitConvTo(Type *to);
@@ -821,7 +821,7 @@ public:
     bool isscalar();
     bool isunsigned();
     int checkBoolean();
-    int isString();
+    bool isString();
     int isAssignable();
     int needsDestruction();
     bool needsNested();
