@@ -1821,7 +1821,7 @@ bool Type::isAssignable()
     return true;
 }
 
-int Type::checkBoolean()
+bool Type::checkBoolean()
 {
     return isscalar();
 }
@@ -3610,7 +3610,7 @@ TypeBasic *TypeVector::elementType()
     return tb;
 }
 
-int TypeVector::checkBoolean()
+bool TypeVector::checkBoolean()
 {
     return false;
 }
@@ -4603,7 +4603,7 @@ bool TypeDArray::isZeroInit(Loc loc)
     return true;
 }
 
-int TypeDArray::checkBoolean()
+bool TypeDArray::checkBoolean()
 {
     return true;
 }
@@ -4827,7 +4827,7 @@ bool TypeAArray::isZeroInit(Loc loc)
     return true;
 }
 
-int TypeAArray::checkBoolean()
+bool TypeAArray::checkBoolean()
 {
     return true;
 }
@@ -6267,7 +6267,7 @@ bool TypeDelegate::isZeroInit(Loc loc)
     return true;
 }
 
-int TypeDelegate::checkBoolean()
+bool TypeDelegate::checkBoolean()
 {
     return true;
 }
@@ -7351,7 +7351,7 @@ bool TypeEnum::isAssignable()
     return sym->getMemtype(Loc())->isAssignable();
 }
 
-int TypeEnum::checkBoolean()
+bool TypeEnum::checkBoolean()
 {
     return sym->getMemtype(Loc())->checkBoolean();
 }
@@ -7554,7 +7554,7 @@ bool TypeTypedef::isAssignable()
     return sym->basetype->isAssignable();
 }
 
-int TypeTypedef::checkBoolean()
+bool TypeTypedef::checkBoolean()
 {
     return sym->basetype->checkBoolean();
 }
@@ -8077,7 +8077,7 @@ bool TypeStruct::isZeroInit(Loc loc)
     return sym->zeroInit != 0;
 }
 
-int TypeStruct::checkBoolean()
+bool TypeStruct::checkBoolean()
 {
     return false;
 }
@@ -8791,7 +8791,7 @@ bool TypeClass::isZeroInit(Loc loc)
     return true;
 }
 
-int TypeClass::checkBoolean()
+bool TypeClass::checkBoolean()
 {
     return true;
 }
@@ -9180,7 +9180,7 @@ MATCH TypeNull::implicitConvTo(Type *to)
     return MATCHnomatch;
 }
 
-int TypeNull::checkBoolean()
+bool TypeNull::checkBoolean()
 {
     return true;
 }

@@ -262,7 +262,7 @@ public:
     virtual bool isscope();
     virtual bool isString();
     virtual bool isAssignable();
-    virtual int checkBoolean(); // if can be converted to boolean value
+    virtual bool checkBoolean(); // if can be converted to boolean value
     virtual void checkDeprecated(Loc loc, Scope *sc);
     bool isConst()       { return (mod & MODconst) != 0; }
     bool isImmutable()   { return (mod & MODimmutable) != 0; }
@@ -440,7 +440,7 @@ public:
     bool isfloating();
     bool isscalar();
     bool isunsigned();
-    int checkBoolean();
+    bool checkBoolean();
     MATCH implicitConvTo(Type *to);
     Expression *defaultInit(Loc loc);
     Expression *defaultInitLiteral(Loc loc);
@@ -505,7 +505,7 @@ public:
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     bool isString();
     bool isZeroInit(Loc loc);
-    int checkBoolean();
+    bool checkBoolean();
     MATCH implicitConvTo(Type *to);
     Expression *defaultInit(Loc loc);
     int builtinTypeInfo();
@@ -533,7 +533,7 @@ public:
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     Expression *defaultInit(Loc loc);
     bool isZeroInit(Loc loc);
-    int checkBoolean();
+    bool checkBoolean();
     TypeInfoDeclaration *getTypeInfoDeclaration();
     Type *reliesOnTident(TemplateParameters *tparams);
     Expression *toExpression();
@@ -658,7 +658,7 @@ public:
     MATCH implicitConvTo(Type *to);
     Expression *defaultInit(Loc loc);
     bool isZeroInit(Loc loc);
-    int checkBoolean();
+    bool checkBoolean();
     TypeInfoDeclaration *getTypeInfoDeclaration();
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     int hasPointers();
@@ -784,7 +784,7 @@ public:
     Expression *defaultInitLiteral(Loc loc);
     bool isZeroInit(Loc loc);
     bool isAssignable();
-    int checkBoolean();
+    bool checkBoolean();
     int needsDestruction();
     bool needsNested();
     TypeInfoDeclaration *getTypeInfoDeclaration();
@@ -820,7 +820,7 @@ public:
     bool iscomplex();
     bool isscalar();
     bool isunsigned();
-    int checkBoolean();
+    bool checkBoolean();
     bool isString();
     bool isAssignable();
     int needsDestruction();
@@ -861,7 +861,7 @@ public:
     bool iscomplex();
     bool isscalar();
     bool isunsigned();
-    int checkBoolean();
+    bool checkBoolean();
     bool isAssignable();
     int needsDestruction();
     bool needsNested();
@@ -903,7 +903,7 @@ public:
     Expression *defaultInit(Loc loc);
     bool isZeroInit(Loc loc);
     bool isscope();
-    int checkBoolean();
+    bool checkBoolean();
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
     int builtinTypeInfo();
@@ -957,7 +957,7 @@ public:
     Type *syntaxCopy();
     void toDecoBuffer(OutBuffer *buf, int flag);
     MATCH implicitConvTo(Type *to);
-    int checkBoolean();
+    bool checkBoolean();
 
     d_uns64 size(Loc loc);
     Expression *defaultInit(Loc loc);
