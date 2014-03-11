@@ -323,7 +323,7 @@ public:
     Expression *noMember(Scope *sc, Expression *e, Identifier *ident, int flag);
     virtual Expression *defaultInit(Loc loc = Loc());
     virtual Expression *defaultInitLiteral(Loc loc);
-    virtual int isZeroInit(Loc loc = Loc());                // if initializer is 0
+    virtual bool isZeroInit(Loc loc = Loc());                // if initializer is 0
     Identifier *getTypeInfoIdent(int internal);
     virtual void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
     Expression *getInternalTypeInfo(Scope *sc);
@@ -412,7 +412,7 @@ public:
     bool isunsigned();
     MATCH implicitConvTo(Type *to);
     Expression *defaultInit(Loc loc);
-    int isZeroInit(Loc loc);
+    bool isZeroInit(Loc loc);
     int builtinTypeInfo();
 
     // For eliminating dynamic_cast
@@ -445,7 +445,7 @@ public:
     Expression *defaultInit(Loc loc);
     Expression *defaultInitLiteral(Loc loc);
     TypeBasic *elementType();
-    int isZeroInit(Loc loc);
+    bool isZeroInit(Loc loc);
     TypeInfoDeclaration *getTypeInfoDeclaration();
 
     void accept(Visitor *v) { v->visit(this); }
@@ -475,7 +475,7 @@ public:
     void toDecoBuffer(OutBuffer *buf, int flag);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     int isString();
-    int isZeroInit(Loc loc);
+    bool isZeroInit(Loc loc);
     structalign_t alignment();
     MATCH constConv(Type *to);
     MATCH implicitConvTo(Type *to);
@@ -504,7 +504,7 @@ public:
     void toDecoBuffer(OutBuffer *buf, int flag);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     int isString();
-    int isZeroInit(Loc loc);
+    bool isZeroInit(Loc loc);
     int checkBoolean();
     MATCH implicitConvTo(Type *to);
     Expression *defaultInit(Loc loc);
@@ -532,7 +532,7 @@ public:
     void toDecoBuffer(OutBuffer *buf, int flag);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     Expression *defaultInit(Loc loc);
-    int isZeroInit(Loc loc);
+    bool isZeroInit(Loc loc);
     int checkBoolean();
     TypeInfoDeclaration *getTypeInfoDeclaration();
     Type *reliesOnTident(TemplateParameters *tparams);
@@ -559,7 +559,7 @@ public:
     MATCH constConv(Type *to);
     bool isscalar();
     Expression *defaultInit(Loc loc);
-    int isZeroInit(Loc loc);
+    bool isZeroInit(Loc loc);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
 
@@ -576,7 +576,7 @@ public:
     d_uns64 size(Loc loc);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     Expression *defaultInit(Loc loc);
-    int isZeroInit(Loc loc);
+    bool isZeroInit(Loc loc);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -657,7 +657,7 @@ public:
     unsigned alignsize();
     MATCH implicitConvTo(Type *to);
     Expression *defaultInit(Loc loc);
-    int isZeroInit(Loc loc);
+    bool isZeroInit(Loc loc);
     int checkBoolean();
     TypeInfoDeclaration *getTypeInfoDeclaration();
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
@@ -782,7 +782,7 @@ public:
     structalign_t alignment();
     Expression *defaultInit(Loc loc);
     Expression *defaultInitLiteral(Loc loc);
-    int isZeroInit(Loc loc);
+    bool isZeroInit(Loc loc);
     int isAssignable();
     int checkBoolean();
     int needsDestruction();
@@ -829,7 +829,7 @@ public:
     MATCH constConv(Type *to);
     Type *toBasetype();
     Expression *defaultInit(Loc loc);
-    int isZeroInit(Loc loc);
+    bool isZeroInit(Loc loc);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
     Type *nextOf();
@@ -871,7 +871,7 @@ public:
     Type *toHeadMutable();
     Expression *defaultInit(Loc loc);
     Expression *defaultInitLiteral(Loc loc);
-    int isZeroInit(Loc loc);
+    bool isZeroInit(Loc loc);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
     int hasWild();
@@ -901,7 +901,7 @@ public:
     unsigned char deduceWild(Type *t, bool isRef);
     Type *toHeadMutable();
     Expression *defaultInit(Loc loc);
-    int isZeroInit(Loc loc);
+    bool isZeroInit(Loc loc);
     int isscope();
     int checkBoolean();
     TypeInfoDeclaration *getTypeInfoDeclaration();
