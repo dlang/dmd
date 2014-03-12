@@ -11211,7 +11211,7 @@ Ltupleassign:
             if (!e2->implicitConvTo(e1->type))
             {
                 /* Internal handling for the default initialization
-                 * of multi-dimentional static array:
+                 * of multi-dimensional static array:
                  *  T[2][3] sa; // = T.init; if T is zero-init
                  */
                 // Treat e1 as one large array
@@ -13600,12 +13600,31 @@ Expression *resolveOpDollar(Scope *sc, ArrayExp *ae)
 
     Expression *e0 = NULL;
 
+    AggregateDeclaration *ad = isAggregate(ae->e1->type);
+    Dsymbol *slice = search_function(ad, Id::slice);
+    //printf("slice = %s %s\n", slice->kind(), slice->toChars());
+
     for (size_t i = 0; i < ae->arguments->dim; i++)
     {
         if (i == 0)
             e0 = extractOpDollarSideEffect(sc, ae);
 
         Expression *e = (*ae->arguments)[i];
+        if (e->op == TOKinterval && !(slice && slice->isTemplateDeclaration()))
+        {
+        Lfallback:
+            if (ae->arguments->dim == 1)
+            {
+                ae->e1 = Expression::combine(e0, ae->e1);
+                return NULL;
+            }
+            else
+            {
+                ae->error("multi-dimensional slicing requires template opSlice");
+                return new ErrorExp();
+            }
+        }
+        //printf("[%d] e = %s\n", i, e->toChars());
 
         // Create scope for '$' variable for this dimension
         ArrayScopeSymbol *sym = new ArrayScopeSymbol(sc, ae);
@@ -13626,6 +13645,36 @@ Expression *resolveOpDollar(Scope *sc, ArrayExp *ae)
             e0 = Expression::combine(e0, de);
         }
         sc = sc->pop();
+
+        if (e->op == TOKinterval)
+        {
+            IntervalExp *ie = (IntervalExp *)e;
+
+            Objects *tiargs = new Objects();
+            Expression *edim = new IntegerExp(ae->loc, i, Type::tsize_t);
+            edim = edim->semantic(sc);
+            tiargs->push(edim);
+
+            Expressions *fargs = new Expressions();
+            fargs->push(ie->lwr);
+            fargs->push(ie->upr);
+
+            unsigned xerrors = global.startGagging();
+            unsigned oldspec = global.speculativeGag;
+            global.speculativeGag = global.gag;
+            sc = sc->push();
+            sc->speculative = true;
+            FuncDeclaration *fslice = resolveFuncCall(ae->loc, sc, slice, tiargs, ae->e1->type, fargs, 1);
+            sc = sc->pop();
+            global.speculativeGag = oldspec;
+            global.endGagging(xerrors);
+            if (!fslice)
+                goto Lfallback;
+
+            e = new DotTemplateInstanceExp(ae->loc, ae->e1, slice->ident, tiargs);
+            e = new CallExp(ae->loc, e, fargs);
+            e = e->semantic(sc);
+        }
 
         if (!e->type)
         {
