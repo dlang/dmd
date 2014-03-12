@@ -200,6 +200,12 @@ public:
         //printf("ForStatement: inlineCost = %d\n", cost);
     }
 
+    void visit(ThrowStatement *s)
+    {
+        cost += STATEMENT_COST;
+        s->exp->accept(this);
+    }
+
     /* -------------------------- */
 
     void expressionInlineCost(Expression *e)
@@ -499,6 +505,12 @@ Statement *inlineAsStatement(Statement *s, InlineDoState *ids)
             Expression *increment = s->increment ? doInline(s->increment, ids) : NULL;
             Statement *body = s->body ? inlineAsStatement(s->body, ids) : NULL;
             result = new ForStatement(s->loc, init, condition, increment, body);
+        }
+
+        void visit(ThrowStatement *s)
+        {
+            //printf("ThrowStatement::inlineAsStatement() '%s'\n", s->exp->toChars());
+            result = new ThrowStatement(s->loc, doInline(s->exp, ids));
         }
     };
 
