@@ -904,7 +904,6 @@ int test6798a()
     assert((s1[20..30, 10]          +="x") == tuple("[]+=", "x", [0, 20, 30], 10));
     assert((s1[10, 10..$, $-4, $..2]-="x") == tuple("[]-=", "x", 10, [1,10,99], 99-4, [3,99,2]));
 
-/+
     // opIndex exist, but opSlice for multi-dimensional doesn't.
     static struct S2
     {
@@ -936,7 +935,7 @@ int test6798a()
     static assert(!__traits(compiles, s3[1..2] ));
     static assert(!__traits(compiles, s3[1, 2..3] ));
     static assert(!__traits(compiles, s3[1..2, 2..3] ));
-// +/
+
     return 0;
 }
 
