@@ -166,6 +166,32 @@ else version( FreeBSD )
 
     //enum INET_ADDRSTRLEN       = 16;
 }
+else version( Android )
+{
+    private enum __SOCK_SIZE__ = 16;
+
+    struct sockaddr_in
+    {
+        sa_family_t sin_family;
+        ushort      sin_port;
+        in_addr     sin_addr;
+
+        /* Pad to size of `struct sockaddr'. */
+        ubyte[__SOCK_SIZE__ - sa_family_t.sizeof -
+              ushort.sizeof - in_addr.sizeof] __pad;
+    }
+
+    enum
+    {
+        IPPROTO_IP   = 0,
+        IPPROTO_ICMP = 1,
+        IPPROTO_TCP  = 6,
+        IPPROTO_UDP  = 17
+    }
+
+    enum c_ulong INADDR_ANY       = 0x00000000;
+    enum c_ulong INADDR_BROADCAST = 0xffffffff;
+}
 
 
 //
@@ -610,6 +636,149 @@ else version( FreeBSD )
                __IPV6_ADDR_MC_SCOPE(a) == __IPV6_ADDR_SCOPE_GLOBAL;
     }
 }
+else version( Android )
+{
+    struct in6_addr
+    {
+        union
+        {
+            uint8_t[16] s6_addr;
+            uint16_t[8] s6_addr16;
+            uint32_t[4] s6_addr32;
+        }
+    }
+
+    struct sockaddr_in6
+    {
+        ushort      sin6_family;
+        uint16_t    sin6_port;
+        uint32_t    sin6_flowinfo;
+        in6_addr    sin6_addr;
+        uint32_t    sin6_scope_id;
+    }
+
+    __gshared immutable in6_addr in6addr_any = {[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]};
+    __gshared immutable in6_addr in6addr_loopback = {[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1]};
+
+    struct ipv6_mreq
+    {
+        in6_addr ipv6mr_multiaddr;
+        int      ipv6mr_ifindex;
+    }
+
+    enum : uint
+    {
+        IPPROTO_IPV6        = 41,
+
+        IPV6_JOIN_GROUP     = 20,
+        IPV6_LEAVE_GROUP    = 21,
+        IPV6_MULTICAST_HOPS = 18,
+        IPV6_MULTICAST_IF   = 17,
+        IPV6_MULTICAST_LOOP = 19,
+        IPV6_UNICAST_HOPS   = 16,
+        IPV6_V6ONLY         = 26
+    }
+
+    private enum
+    {
+        IPV6_ADDR_SCOPE_NODELOCAL     = 0x01,
+        IPV6_ADDR_SCOPE_INTFACELOCAL  = 0x01,
+        IPV6_ADDR_SCOPE_LINKLOCAL     = 0x02,
+        IPV6_ADDR_SCOPE_SITELOCAL     = 0x05,
+        IPV6_ADDR_SCOPE_ORGLOCAL      = 0x08,
+        IPV6_ADDR_SCOPE_GLOBAL        = 0x0e,
+    }
+
+    extern (D)
+    {
+        bool IN6_IS_ADDR_UNSPECIFIED( in in6_addr* a )
+        {
+            return (*cast(const uint32_t*) cast(const void*) (&a.s6_addr[0]) == 0) &&
+                   (*cast(const uint32_t*) cast(const void*) (&a.s6_addr[4]) == 0) &&
+                   (*cast(const uint32_t*) cast(const void*) (&a.s6_addr[8]) == 0) &&
+                   (*cast(const uint32_t*) cast(const void*) (&a.s6_addr[12]) == 0);
+        }
+
+        bool IN6_IS_ADDR_LOOPBACK( in in6_addr* a )
+        {
+            return (*cast(const uint32_t*) cast(const void*) (&a.s6_addr[0]) == 0) &&
+                   (*cast(const uint32_t*) cast(const void*) (&a.s6_addr[4]) == 0) &&
+                   (*cast(const uint32_t*) cast(const void*) (&a.s6_addr[8]) == 0) &&
+                   (*cast(const uint32_t*) cast(const void*) (&a.s6_addr[12]) == ntohl(1));
+        }
+
+        bool IN6_IS_ADDR_V4COMPAT( in in6_addr* a )
+        {
+            return (*cast(const uint32_t*) cast(const void*) (&a.s6_addr[0]) == 0) &&
+                   (*cast(const uint32_t*) cast(const void*) (&a.s6_addr[4]) == 0) &&
+                   (*cast(const uint32_t*) cast(const void*) (&a.s6_addr[8]) == 0) &&
+                   (*cast(const uint32_t*) cast(const void*) (&a.s6_addr[12]) != 0) &&
+                   (*cast(const uint32_t*) cast(const void*) (&a.s6_addr[12]) != ntohl(1));
+        }
+
+        bool IN6_IS_ADDR_V4MAPPED( in in6_addr* a )
+        {
+            return (*cast(const uint32_t*) cast(const void*) (&a.s6_addr[0]) == 0) &&
+                   (*cast(const uint32_t*) cast(const void*) (&a.s6_addr[4]) == 0) &&
+                   (*cast(const uint32_t*) cast(const void*) (&a.s6_addr[8]) == ntohl(0x0000ffff));
+        }
+
+        bool IN6_IS_ADDR_LINKLOCAL( in in6_addr* a )
+        {
+            return a.s6_addr[0] == 0xfe && (a.s6_addr[1] & 0xc0) == 0x80;
+        }
+
+        bool IN6_IS_ADDR_SITELOCAL( in in6_addr* a )
+        {
+            return a.s6_addr[0] == 0xfe && (a.s6_addr[1] & 0xc0) == 0xc0;
+        }
+
+        bool IN6_IS_ADDR_ULA( in in6_addr* a )
+        {
+            return (a.s6_addr[0] & 0xfe) == 0xfc;
+        }
+
+        bool IN6_IS_ADDR_MULTICAST( in in6_addr* a )
+        {
+            return a.s6_addr[0] == 0xff;
+        }
+
+        uint8_t IPV6_ADDR_MC_SCOPE( in in6_addr* a )
+        {
+            return a.s6_addr[1] & 0x0f;
+        }
+
+        bool IN6_IS_ADDR_MC_NODELOCAL( in in6_addr* a )
+        {
+            return IN6_IS_ADDR_MULTICAST(a) &&
+                   IPV6_ADDR_MC_SCOPE(a) == IPV6_ADDR_SCOPE_NODELOCAL;
+        }
+
+        bool IN6_IS_ADDR_MC_LINKLOCAL( in in6_addr* a )
+        {
+            return IN6_IS_ADDR_MULTICAST(a) &&
+                   IPV6_ADDR_MC_SCOPE(a) == IPV6_ADDR_SCOPE_LINKLOCAL;
+        }
+
+        bool IN6_IS_ADDR_MC_SITELOCAL( in in6_addr* a )
+        {
+            return IN6_IS_ADDR_MULTICAST(a) &&
+                   IPV6_ADDR_MC_SCOPE(a) == IPV6_ADDR_SCOPE_SITELOCAL;
+        }
+
+        bool IN6_IS_ADDR_MC_ORGLOCAL( in in6_addr* a )
+        {
+            return IN6_IS_ADDR_MULTICAST(a) &&
+                   IPV6_ADDR_MC_SCOPE(a) == IPV6_ADDR_SCOPE_ORGLOCAL;
+        }
+
+        bool IN6_IS_ADDR_MC_GLOBAL( in in6_addr* a )
+        {
+            return IN6_IS_ADDR_MULTICAST(a) &&
+                   IPV6_ADDR_MC_SCOPE(a) == IPV6_ADDR_SCOPE_GLOBAL;
+        }
+    }
+}
 
 
 //
@@ -631,4 +800,7 @@ else version( FreeBSD )
 {
     enum uint IPPROTO_RAW = 255;
 }
-
+else version( Android )
+{
+    enum uint IPPROTO_RAW = 255;
+}

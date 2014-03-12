@@ -54,4 +54,21 @@ extern (C)
 
         int uname(utsname* __name);
     }
+    else version(Android)
+    {
+        private enum SYS_NMLN = 65;
+
+        struct utsname
+        {
+            char[SYS_NMLN] sysname;
+            char[SYS_NMLN] nodename;
+            char[SYS_NMLN] release;
+            // The field name is version but version is a keyword in D.
+            char[SYS_NMLN] _version;
+            char[SYS_NMLN] machine;
+            char[SYS_NMLN] domainname;
+        }
+
+        int uname(utsname*);
+    }
 }

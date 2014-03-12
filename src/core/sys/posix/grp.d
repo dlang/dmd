@@ -67,6 +67,16 @@ else version( FreeBSD )
         char**  gr_mem;
     }
 }
+else version( Android )
+{
+    struct group
+    {
+        char*   gr_name;
+        char*   gr_passwd;
+        gid_t   gr_gid;
+        char**  gr_mem;
+    }
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -97,6 +107,9 @@ else version( FreeBSD )
 {
     int getgrnam_r(in char*, group*, char*, size_t, group**);
     int getgruid_r(gid_t, group*, char*, size_t, group**);
+}
+else version( Android )
+{
 }
 else
 {
@@ -129,6 +142,9 @@ else version( FreeBSD )
     group* getgrent();
     @trusted void endgrent();
     @trusted void setgrent();
+}
+else version( Android )
+{
 }
 else
 {

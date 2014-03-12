@@ -115,6 +115,49 @@ else version( FreeBSD )
     const(char)*    inet_ntop(int, in void*, char*, socklen_t);
     int             inet_pton(int, in char*, void*);
 }
+else version( Android )
+{
+    alias uint32_t in_addr_t;
+
+    struct in_addr
+    {
+        in_addr_t s_addr;
+    }
+
+    enum INET_ADDRSTRLEN = 16;
+
+    private
+    {
+        extern (D)
+        {
+            uint32_t __swap32( uint32_t x )
+            {
+                uint32_t byte32_swap = (x & 0xff) << 24 | (x &0xff00) << 8 |
+                                     (x & 0xff0000) >> 8 | (x & 0xff000000) >> 24;
+                return byte32_swap;
+            }
+
+            uint16_t __swap16( uint16_t x )
+            {
+                uint16_t byte16_swap = (x & 0xff) << 8 | (x & 0xff00) >> 8;
+                return byte16_swap;
+            }
+        }
+    }
+
+    extern (D)
+    {
+        uint32_t htonl(uint32_t x) { return __swap32(x); }
+        uint16_t htons(uint16_t x) { return __swap16(x); }
+        uint32_t ntohl(uint32_t x) { return __swap32(x); }
+        uint16_t ntohs(uint16_t x) { return __swap16(x); }
+    }
+
+    in_addr_t       inet_addr(in char*);
+    char*           inet_ntoa(in_addr);
+    const(char)*    inet_ntop(int, in void*, char*, size_t);
+    int             inet_pton(int, in char*, void*);
+}
 
 //
 // IPV6 (IP6)
@@ -135,6 +178,10 @@ else version( OSX )
     enum INET6_ADDRSTRLEN = 46;
 }
 else version( FreeBSD )
+{
+    enum INET6_ADDRSTRLEN = 46;
+}
+else version( Android )
 {
     enum INET6_ADDRSTRLEN = 46;
 }

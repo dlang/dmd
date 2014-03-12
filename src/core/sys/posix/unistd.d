@@ -462,6 +462,16 @@ else version( FreeBSD )
     enum F_TLOCK    = 2;
     enum F_TEST     = 3;
 }
+else version( Android )
+{
+    enum F_OK       = 0;
+    enum R_OK       = 4;
+    enum W_OK       = 2;
+    enum X_OK       = 1;
+
+    enum _SC_PAGESIZE         = 0x0027;
+    enum _SC_NPROCESSORS_ONLN = 0x0061;
+}
 
 //
 // File Synchronization (FSC)
@@ -482,6 +492,10 @@ else version( FreeBSD )
 {
     int fsync(int);
 }
+else version( Android )
+{
+    int fsync(int);
+}
 
 //
 // Synchronized I/O (SIO)
@@ -491,6 +505,10 @@ int fdatasync(int);
 */
 
 version( linux )
+{
+    int fdatasync(int);
+}
+else version( Android )
 {
     int fdatasync(int);
 }
@@ -618,5 +636,21 @@ else version( FreeBSD )
     int        truncate(in char*, off_t);
     useconds_t ualarm(useconds_t, useconds_t);
     int        usleep(useconds_t);
+    pid_t      vfork();
+}
+else version( Android )
+{
+    int        fchdir(int);
+    pid_t      getpgid(pid_t);
+    int        lchown(in char*, uid_t, gid_t);
+    int        nice(int);
+    ssize_t    pread(int, void*, size_t, off_t);
+    ssize_t    pwrite(int, in void*, size_t, off_t);
+    int        setpgrp();
+    int        setregid(gid_t, gid_t);
+    int        setreuid(uid_t, uid_t);
+    int        sync();
+    int        truncate(in char*, off_t);
+    int        usleep(c_ulong);
     pid_t      vfork();
 }

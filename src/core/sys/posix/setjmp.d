@@ -141,6 +141,23 @@ else version( FreeBSD )
     int  setjmp(ref jmp_buf);
     void longjmp(ref jmp_buf, int);
 }
+else version( Android )
+{
+    // <machine/setjmp.h>
+    version( X86 )
+    {
+        enum _JBLEN = 10;
+    }
+    else
+    {
+        static assert(false, "Architecture not supported.");
+    }
+
+    alias c_long[_JBLEN] jmp_buf;
+
+    int  setjmp(ref jmp_buf);
+    void longjmp(ref jmp_buf, int);
+}
 
 //
 // C Extension (CX)
@@ -188,6 +205,13 @@ else version( FreeBSD )
     int  sigsetjmp(ref sigjmp_buf);
     void siglongjmp(ref sigjmp_buf, int);
 }
+else version( Android )
+{
+    alias c_long[_JBLEN + 1] sigjmp_buf;
+
+    int  sigsetjmp(ref sigjmp_buf, int);
+    void siglongjmp(ref sigjmp_buf, int);
+}
 
 //
 // XOpen (XSI)
@@ -203,6 +227,11 @@ version( linux )
     void _longjmp(ref jmp_buf, int);
 }
 else version( FreeBSD )
+{
+    int  _setjmp(ref jmp_buf);
+    void _longjmp(ref jmp_buf, int);
+}
+else version( Android )
 {
     int  _setjmp(ref jmp_buf);
     void _longjmp(ref jmp_buf, int);

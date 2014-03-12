@@ -115,3 +115,35 @@ else version( FreeBSD )
 
     key_t ftok(in char*, int);
 }
+else version( Android )
+{
+    version (X86)
+    {
+        struct ipc_perm
+        {
+            key_t   key;
+            ushort  uid;
+            ushort  gid;
+            ushort  cuid;
+            ushort  cgid;
+            mode_t  mode;
+            ushort  seq;
+        }
+    }
+    else
+    {
+        static assert(false, "Architecture not supported.");
+    }
+
+    enum IPC_CREAT      = 0x0200; // 01000
+    enum IPC_EXCL       = 0x0400; // 02000
+    enum IPC_NOWAIT     = 0x0800; // 04000
+
+    enum key_t IPC_PRIVATE = 0;
+
+    enum IPC_RMID       = 0;
+    enum IPC_SET        = 1;
+    enum IPC_STAT       = 2;
+
+    key_t ftok(in char*, int);
+}

@@ -365,6 +365,10 @@ else version (Solaris)
 {
     int ioctl(int fildes, int request, ...);
 }
+else version (Android)
+{
+    int ioctl(int, int, ...);
+}
 else
 {
     static assert(false, "Unsupported platform");
