@@ -10539,13 +10539,11 @@ Expression *AssignExp::semantic(Scope *sc)
         ArrayExp *ae = (ArrayExp *)e1;
         ae->e1 = ae->e1->semantic(sc);
         ae->e1 = resolveProperties(sc, ae->e1);
-        Expression *ae1old = ae->e1;
 
         Type *t1 = ae->e1->type->toBasetype();
         AggregateDeclaration *ad = isAggregate(t1);
         if (ad)
         {
-          L1:
             // Rewrite (a[i] = value) to (a.opIndexAssign(value, i))
             if (search_function(ad, Id::indexass))
             {
@@ -10560,21 +10558,21 @@ Expression *AssignExp::semantic(Scope *sc)
                 e = e->semantic(sc);
                 return e;
             }
-        }
 
-        // No opIndexAssign found yet, but there might be an alias this to try.
-        if (ad && ad->aliasthis && t1 != att1)
-        {
-            if (!att1 && t1->checkAliasThisRec())
-                att1 = t1;
-            ae->e1 = resolveAliasThis(sc, ae->e1);
-            t1 = ae->e1->type->toBasetype();
-            ad = isAggregate(t1);
-            if (ad)
-                goto L1;
+            // No opIndexAssign found yet, but there might be an alias this to try.
+            if (ad->aliasthis && t1 != ae->att1)
+            {
+                ArrayExp *aex = (ArrayExp *)ae->copy();
+                if (!aex->att1 && t1->checkAliasThisRec())
+                    aex->att1 = t1;
+                aex->e1 = new DotIdExp(loc, ae->e1, ad->aliasthis->ident);
+                this->e1 = aex;
+                Expression *ex = this->trySemantic(sc);
+                if (ex)
+                    return ex;
+                this->e1 = ae;  // restore
+            }
         }
-
-        ae->e1 = ae1old;    // restore
     }
     /* Look for operator overloading of a[i..j]=value.
      * Do it before semantic() otherwise the a[i..j] will have been
@@ -10585,13 +10583,11 @@ Expression *AssignExp::semantic(Scope *sc)
         SliceExp *ae = (SliceExp *)e1;
         ae->e1 = ae->e1->semantic(sc);
         ae->e1 = resolveProperties(sc, ae->e1);
-        Expression *ae1old = ae->e1;
 
         Type *t1 = ae->e1->type->toBasetype();
         AggregateDeclaration *ad = isAggregate(t1);
         if (ad)
         {
-          L2:
             // Rewrite (a[i..j] = value) to (a.opSliceAssign(value, i, j))
             if (search_function(ad, Id::sliceass))
             {
@@ -10610,21 +10606,21 @@ Expression *AssignExp::semantic(Scope *sc)
                 e = e->semantic(sc);
                 return e;
             }
-        }
 
-        // No opSliceAssign found yet, but there might be an alias this to try.
-        if (ad && ad->aliasthis && t1 != att1)
-        {
-            if (!att1 && t1->checkAliasThisRec())
-                att1 = t1;
-            ae->e1 = resolveAliasThis(sc, ae->e1);
-            t1 = ae->e1->type->toBasetype();
-            ad = isAggregate(t1);
-            if (ad)
-                goto L2;
+            // No opSliceAssign found yet, but there might be an alias this to try.
+            if (ad->aliasthis && t1 != ae->att1)
+            {
+                SliceExp *aex = (SliceExp *)ae->copy();
+                if (!aex->att1 && t1->checkAliasThisRec())
+                    aex->att1 = t1;
+                aex->e1 = new DotIdExp(loc, ae->e1, ad->aliasthis->ident);
+                this->e1 = aex;
+                Expression *ex = this->trySemantic(sc);
+                if (ex)
+                    return ex;
+                this->e1 = ae;  // restore
+            }
         }
-
-        ae->e1 = ae1old;    // restore
     }
 
     /* With UFCS, e.f = value
