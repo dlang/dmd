@@ -232,25 +232,6 @@ Expression *op_overload(Expression *e, Scope *sc)
                 AggregateDeclaration *ad = isAggregate(ae->e1->type);
                 if (ad)
                 {
-#if 1
-                    if (ae->arguments->dim == 0)
-                    {
-                        // op(a[])
-                        SliceExp *se = new SliceExp(ae->loc, ae->e1, NULL, NULL);
-                        e->e1 = se;
-                        result = e->semantic(sc);
-                        return;
-                    }
-                    if (ae->arguments->dim == 1 && (*ae->arguments)[0]->op == TOKinterval)
-                    {
-                        // op(a[lwr..upr])
-                        IntervalExp *ie = (IntervalExp *)(*ae->arguments)[0];
-                        SliceExp *se = new SliceExp(ae->loc, ae->e1, ie->lwr, ie->upr);
-                        e->e1 = se;
-                        result = e->semantic(sc);
-                        return;
-                    }
-#endif
                     /* Rewrite as:
                      *  a.opIndexUnary!("+")(args);
                      */
@@ -259,6 +240,8 @@ Expression *op_overload(Expression *e, Scope *sc)
                     {
                         // Deal with $
                         Expression *ex = resolveOpDollar(sc, ae);
+                        if (!ex)
+                            goto Lfallback;
                         if (ex->op == TOKerror)
                         {
                             result = ex;
@@ -267,7 +250,12 @@ Expression *op_overload(Expression *e, Scope *sc)
                         Objects *tiargs = opToArg(sc, e->op);
                         result = new DotTemplateInstanceExp(e->loc, ae->e1, fd->ident, tiargs);
                         result = new CallExp(e->loc, result, ae->arguments);
-                        result = result->semantic(sc);
+                        if (ae->arguments->dim == 0)
+                            result = result->trySemantic(sc);
+                        else
+                            result = result->semantic(sc);
+                        if (!result)
+                            goto Lfallback;
                         return;
                     }
 
@@ -288,6 +276,27 @@ Expression *op_overload(Expression *e, Scope *sc)
                             return;
                     }
                     e->att1 = NULL;
+
+                Lfallback:
+                    if (ae->arguments->dim == 0)
+                    {
+                        // op(a[])
+                        SliceExp *se = new SliceExp(ae->loc, ae->e1, NULL, NULL);
+                        se->att1 = ae->att1;
+                        e->e1 = se;
+                        e->accept(this);
+                        return;
+                    }
+                    if (ae->arguments->dim == 1 && (*ae->arguments)[0]->op == TOKinterval)
+                    {
+                        // op(a[lwr..upr])
+                        IntervalExp *ie = (IntervalExp *)(*ae->arguments)[0];
+                        SliceExp *se = new SliceExp(ae->loc, ae->e1, ie->lwr, ie->upr);
+                        se->att1 = ae->att1;
+                        e->e1 = se;
+                        e->accept(this);
+                        return;
+                    }
                 }
             }
             else if (e->e1->op == TOKslice)

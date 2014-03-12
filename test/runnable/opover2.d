@@ -883,10 +883,10 @@ int test6798a()
     assert( s1[10]     == tuple(" []", 10));
     assert( s1[10, 20] == tuple(" []", 10, 20));
     assert( s1[10..20] == tuple(" []", [0, 10, 20]));
-  //assert(+s1[]       == tuple("+[]"));
+    assert(+s1[]       == tuple("+[]"));
     assert(-s1[10]     == tuple("-[]", 10));
     assert(*s1[10, 20] == tuple("*[]", 10, 20));
-  //assert(~s1[10..20] == tuple("~[]", [0, 10, 20]));
+    assert(~s1[10..20] == tuple("~[]", [0, 10, 20]));
     assert((s1[]       ="x") == tuple("[] =", "x"));
     assert((s1[10]     ="x") == tuple("[] =", "x", 10));
     assert((s1[10, 20] ="x") == tuple("[] =", "x", 10, 20));
