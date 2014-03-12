@@ -879,10 +879,10 @@ int test6798a()
         }
     }
     S1 s1;
-  //assert( s1[]       == tuple(" []"));
+    assert( s1[]       == tuple(" []"));
     assert( s1[10]     == tuple(" []", 10));
     assert( s1[10, 20] == tuple(" []", 10, 20));
-  //assert( s1[10..20] == tuple(" []", [0, 10, 20]));
+    assert( s1[10..20] == tuple(" []", [0, 10, 20]));
   //assert(+s1[]       == tuple("+[]"));
     assert(-s1[10]     == tuple("-[]", 10));
     assert(*s1[10, 20] == tuple("*[]", 10, 20));
@@ -977,12 +977,23 @@ int test6798b()
     return 0;
 }
 
+int test6798c()
+{
+    alias T = Tuple6798!(int, int);
+    auto n = T[].init;
+    static assert(is(typeof(n[0]) == Tuple6798!(int, int)));
+
+    return 0;
+}
+
 void test6798()
 {
     static assert(test6798a() == 0);    // CTFE check
     test6798a();
     static assert(test6798b() == 0);
     test6798b();
+    static assert(test6798c() == 0);
+    test6798c();
 }
 
 /**************************************/

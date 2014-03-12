@@ -417,28 +417,13 @@ Expression *op_overload(Expression *e, Scope *sc)
             AggregateDeclaration *ad = isAggregate(ae->e1->type);
             if (ad)
             {
-#if 1
-                if (ae->arguments->dim == 0)
-                {
-                    // a[]
-                    SliceExp *se = new SliceExp(ae->loc, ae->e1, NULL, NULL);
-                    result = se->semantic(sc);
-                    return;
-                }
-                if (ae->arguments->dim == 1 && (*ae->arguments)[0]->op == TOKinterval)
-                {
-                    // a[lwr..upr]
-                    IntervalExp *ie = (IntervalExp *)(*ae->arguments)[0];
-                    SliceExp *se = new SliceExp(ae->loc, ae->e1, ie->lwr, ie->upr);
-                    result = se->semantic(sc);
-                    return;
-                }
-#endif
                 Dsymbol *fd = search_function(ad, opId(ae));
                 if (fd)
                 {
                     // Deal with $
                     Expression *ex = resolveOpDollar(sc, ae);
+                    if (!ex)
+                        goto Lfallback;
                     if (ex->op == TOKerror)
                     {
                         result = ex;
@@ -450,9 +435,17 @@ Expression *op_overload(Expression *e, Scope *sc)
                      */
                     result = new DotIdExp(ae->loc, ae->e1, fd->ident);
                     result = new CallExp(ae->loc, result, ae->arguments);
-                    result = result->semantic(sc);
+                    if (ae->arguments->dim == 0)
+                        result = result->trySemantic(sc);
+                    else
+                        result = result->semantic(sc);
+                    if (!result)
+                        goto Lfallback;
                     return;
                 }
+
+                if (ae->e1->op == TOKtype && ae->arguments->dim < 2)
+                    goto Lfallback;
 
                 // Didn't find it. Forward to aliasthis
                 if (ad->aliasthis && ae->e1->type != ae->att1)
@@ -467,6 +460,24 @@ Expression *op_overload(Expression *e, Scope *sc)
                         ue->att1 = ae->e1->type;
                     ue->e1 = e1;
                     result = ue->trySemantic(sc);
+                    if (result)
+                        return;
+                }
+
+            Lfallback:
+                if (ae->arguments->dim == 0)
+                {
+                    // a[]
+                    SliceExp *se = new SliceExp(ae->loc, ae->e1, NULL, NULL);
+                    result = se->semantic(sc);
+                    return;
+                }
+                if (ae->arguments->dim == 1 && (*ae->arguments)[0]->op == TOKinterval)
+                {
+                    // a[lwr..upr]
+                    IntervalExp *ie = (IntervalExp *)(*ae->arguments)[0];
+                    SliceExp *se = new SliceExp(ae->loc, ae->e1, ie->lwr, ie->upr);
+                    result = se->semantic(sc);
                     return;
                 }
             }
