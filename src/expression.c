@@ -10598,36 +10598,27 @@ Expression *AssignExp::semantic(Scope *sc)
         AggregateDeclaration *ad = isAggregate(t1);
         if (ad)
         {
-#if 1
-            if (ae->arguments->dim == 0)
-            {
-                // a[] = e2
-                SliceExp *se = new SliceExp(ae->loc, ae->e1, NULL, NULL);
-                this->e1 = se;
-                return this->semantic(sc);
-            }
-            if (ae->arguments->dim == 1 && (*ae->arguments)[0]->op == TOKinterval)
-            {
-                // a[lwr..upr] = e2
-                IntervalExp *ie = (IntervalExp *)(*ae->arguments)[0];
-                SliceExp *se = new SliceExp(ae->loc, ae->e1, ie->lwr, ie->upr);
-                this->e1 = se;
-                return this->semantic(sc);
-            }
-#endif
             // Rewrite (a[i] = value) to (a.opIndexAssign(value, i))
             if (search_function(ad, Id::indexass))
             {
                 // Deal with $
                 Expression *ex = resolveOpDollar(sc, ae);
+                if (!ex)
+                    goto Lfallback;
                 if (ex->op == TOKerror)
                     return ex;
+
                 Expressions *a = (Expressions *)ae->arguments->copy();
                 a->insert(0, e2);
 
                 Expression *e = new DotIdExp(loc, ae->e1, Id::indexass);
                 e = new CallExp(loc, e, a);
-                e = e->semantic(sc);
+                if (ae->arguments->dim == 0)
+                    e = e->trySemantic(sc);
+                else
+                    e = e->semantic(sc);
+                if (!e)
+                    goto Lfallback;
                 return e;
             }
 
@@ -10643,6 +10634,25 @@ Expression *AssignExp::semantic(Scope *sc)
                 if (ex)
                     return ex;
                 this->e1 = ae;  // restore
+            }
+
+        Lfallback:
+            if (ae->arguments->dim == 0)
+            {
+                // a[] = e2
+                SliceExp *se = new SliceExp(ae->loc, ae->e1, NULL, NULL);
+                se->att1 = ae->att1;
+                this->e1 = se;
+                return this->semantic(sc);
+            }
+            if (ae->arguments->dim == 1 && (*ae->arguments)[0]->op == TOKinterval)
+            {
+                // a[lwr..upr] = e2
+                IntervalExp *ie = (IntervalExp *)(*ae->arguments)[0];
+                SliceExp *se = new SliceExp(ae->loc, ae->e1, ie->lwr, ie->upr);
+                se->att1 = ae->att1;
+                this->e1 = se;
+                return this->semantic(sc);
             }
         }
     }
