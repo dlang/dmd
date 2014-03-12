@@ -34,6 +34,10 @@ private
     {
         version = USE_PTHREADS;
     }
+    else version( Android )
+    {
+        version = USE_PTHREADS;
+    }
 
     version( Windows )
     {

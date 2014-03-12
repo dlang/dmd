@@ -38,6 +38,10 @@ private
     {
         version = USE_PTHREADS;
     }
+    else version( Android )
+    {
+        version = USE_PTHREADS;
+    }
 
     // This is what the monitor reference in Object points to
     alias Object.Monitor        IMonitor;

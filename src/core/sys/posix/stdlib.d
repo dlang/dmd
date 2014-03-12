@@ -119,6 +119,13 @@ else version( FreeBSD )
 
     void* valloc(size_t); // LEGACY non-standard
 }
+else version( Android )
+{
+    int setenv(in char*, in char*, int);
+    int unsetenv(in char*);
+
+    void* valloc(size_t);
+}
 
 //
 // Thread-Safe Functions (TSF)
@@ -313,4 +320,24 @@ else version( FreeBSD )
     void   srand48(c_long);
     void   srandom(uint);
     int    unlockpt(int);
+}
+else version( Android )
+{
+    double  drand48();
+    double  erand48(ref ushort[3]);
+    //int   grantpt(int); defined inline, but seems to do nothing in bionic
+    c_long  jrand48(ref ushort[3]);
+    c_long  lrand48();
+    char*   mktemp(char*); // LEGACY
+    int     mkstemp(char*);
+    c_long  mrand48();
+    c_long  nrand48(ref ushort[3]);
+    char*   ptsname(int);
+    int     putenv(in char*);
+    c_long  random() { return lrand48(); }
+    char*   realpath(in char*, char*);
+    ushort* seed48(ref ushort[3]);
+    void    srand48(c_long);
+    void    srandom(uint s) { srand48(s); }
+    int     unlockpt(int);
 }
