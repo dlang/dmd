@@ -232,6 +232,25 @@ Expression *op_overload(Expression *e, Scope *sc)
                 AggregateDeclaration *ad = isAggregate(ae->e1->type);
                 if (ad)
                 {
+#if 1
+                    if (ae->arguments->dim == 0)
+                    {
+                        // op(a[])
+                        SliceExp *se = new SliceExp(ae->loc, ae->e1, NULL, NULL);
+                        e->e1 = se;
+                        result = e->semantic(sc);
+                        return;
+                    }
+                    if (ae->arguments->dim == 1 && (*ae->arguments)[0]->op == TOKinterval)
+                    {
+                        // op(a[lwr..upr])
+                        IntervalExp *ie = (IntervalExp *)(*ae->arguments)[0];
+                        SliceExp *se = new SliceExp(ae->loc, ae->e1, ie->lwr, ie->upr);
+                        e->e1 = se;
+                        result = e->semantic(sc);
+                        return;
+                    }
+#endif
                     /* Rewrite as:
                      *  a.opIndexUnary!("+")(args);
                      */
@@ -398,6 +417,23 @@ Expression *op_overload(Expression *e, Scope *sc)
             AggregateDeclaration *ad = isAggregate(ae->e1->type);
             if (ad)
             {
+#if 1
+                if (ae->arguments->dim == 0)
+                {
+                    // a[]
+                    SliceExp *se = new SliceExp(ae->loc, ae->e1, NULL, NULL);
+                    result = se->semantic(sc);
+                    return;
+                }
+                if (ae->arguments->dim == 1 && (*ae->arguments)[0]->op == TOKinterval)
+                {
+                    // a[lwr..upr]
+                    IntervalExp *ie = (IntervalExp *)(*ae->arguments)[0];
+                    SliceExp *se = new SliceExp(ae->loc, ae->e1, ie->lwr, ie->upr);
+                    result = se->semantic(sc);
+                    return;
+                }
+#endif
                 Dsymbol *fd = search_function(ad, opId(ae));
                 if (fd)
                 {
@@ -860,6 +896,25 @@ Expression *op_overload(Expression *e, Scope *sc)
                 AggregateDeclaration *ad = isAggregate(ae->e1->type);
                 if (ad)
                 {
+#if 1
+                    if (ae->arguments->dim == 0)
+                    {
+                        // a[] op= e2
+                        SliceExp *se = new SliceExp(ae->loc, ae->e1, NULL, NULL);
+                        e->e1 = se;
+                        result = e->semantic(sc);
+                        return;
+                    }
+                    if (ae->arguments->dim == 1 && (*ae->arguments)[0]->op == TOKinterval)
+                    {
+                        // a[lwr..upr] op= e2
+                        IntervalExp *ie = (IntervalExp *)(*ae->arguments)[0];
+                        SliceExp *se = new SliceExp(ae->loc, ae->e1, ie->lwr, ie->upr);
+                        e->e1 = se;
+                        result = e->semantic(sc);
+                        return;
+                    }
+#endif
                     /* Rewrite a[args]+=e2 as:
                      *  a.opIndexOpAssign!("+")(e2, args);
                      */

@@ -6512,45 +6512,29 @@ Expression *Parser::parsePostExp(Expression *e)
                 //      array[lwr .. upr]
                 Expression *index;
                 Expression *upr;
+                Expressions *arguments = new Expressions();
 
                 inBrackets++;
                 nextToken();
-                if (token.value == TOKrbracket)
-                {   // array[]
-                    inBrackets--;
-                    e = new SliceExp(loc, e, NULL, NULL);
-                    nextToken();
-                }
-                else
+                while (token.value != TOKrbracket && token.value != TOKeof)
                 {
                     index = parseAssignExp();
                     if (token.value == TOKslice)
-                    {   // array[lwr .. upr]
+                    {
+                        // array[..., lwr..upr, ...]
                         nextToken();
                         upr = parseAssignExp();
-                        e = new SliceExp(loc, e, index, upr);
+                        arguments->push(new IntervalExp(loc, index, upr));
                     }
                     else
-                    {   // array[index, i2, i3, i4, ...]
-                        Expressions *arguments = new Expressions();
                         arguments->push(index);
-                        if (token.value == TOKcomma)
-                        {
-                            nextToken();
-                            while (token.value != TOKrbracket && token.value != TOKeof)
-                            {
-                                Expression *arg = parseAssignExp();
-                                arguments->push(arg);
-                                if (token.value == TOKrbracket)
-                                    break;
-                                check(TOKcomma);
-                            }
-                        }
-                        e = new ArrayExp(loc, e, arguments);
-                    }
-                    check(TOKrbracket);
-                    inBrackets--;
+                    if (token.value == TOKrbracket)
+                        break;
+                    check(TOKcomma);
                 }
+                check(TOKrbracket);
+                inBrackets--;
+                e = new ArrayExp(loc, e, arguments);
                 continue;
             }
 
@@ -7427,5 +7411,7 @@ void initPrecedence()
 
     precedence[TOKcomma] = PREC_expr;
     precedence[TOKdeclaration] = PREC_expr;
+
+    precedence[TOKinterval] = PREC_assign;
 }
 

@@ -9994,6 +9994,50 @@ Expression *ArrayLengthExp::rewriteOpAssign(BinExp *exp)
     return e;
 }
 
+/*********************** IntervalExp ********************************/
+
+// Mainly just a placeholder
+
+IntervalExp::IntervalExp(Loc loc, Expression *lwr, Expression *upr)
+        : Expression(loc, TOKinterval, sizeof(IntervalExp))
+{
+    this->lwr = lwr;
+    this->upr = upr;
+}
+
+Expression *IntervalExp::syntaxCopy()
+{
+    return new IntervalExp(loc, lwr->syntaxCopy(), upr->syntaxCopy());
+}
+
+Expression *IntervalExp::semantic(Scope *sc)
+{
+#if LOGSEMANTIC
+    printf("IntervalExp::semantic('%s')\n", toChars());
+#endif
+    if (type)
+        return this;
+
+    Expression *le = lwr;
+    le = le->semantic(sc);
+    le = resolveProperties(sc, le);
+
+    Expression *ue = upr;
+    ue = ue->semantic(sc);
+    ue = resolveProperties(sc, ue);
+
+    if (le->op == TOKerror)
+        return le;
+    if (ue->op == TOKerror)
+        return ue;
+
+    lwr = le;
+    upr = ue;
+
+    type = Type::tvoid;
+    return this;
+}
+
 /*********************** ArrayExp *************************************/
 
 // e1 [ i1, i2, i3, ... ]
@@ -10015,9 +10059,6 @@ Expression *ArrayExp::syntaxCopy()
 
 Expression *ArrayExp::semantic(Scope *sc)
 {
-    Expression *e;
-    Type *t1;
-
 #if LOGSEMANTIC
     printf("ArrayExp::semantic('%s')\n", toChars());
 #endif
@@ -10027,25 +10068,37 @@ Expression *ArrayExp::semantic(Scope *sc)
     if (e1->op == TOKerror)
         return e1;
 
-    t1 = e1->type->toBasetype();
+    Type *t1 = e1->type->toBasetype();
     if (t1->ty != Tclass && t1->ty != Tstruct)
-    {   // Convert to IndexExp
-        if (arguments->dim != 1)
-        {   error("only one index allowed to index %s", t1->toChars());
-            goto Lerr;
+    {
+        // Convert to IndexExp
+        Expression *e;
+        if (arguments->dim == 0)
+        {
+            e = new SliceExp(loc, e1, NULL, NULL);
         }
-        e = new IndexExp(loc, e1, (*arguments)[0]);
+        else if (arguments->dim == 1 && (*arguments)[0]->op == TOKinterval)
+        {
+            IntervalExp *ie = (IntervalExp *)(*arguments)[0];
+            e = new SliceExp(loc, e1, ie->lwr, ie->upr);
+        }
+        else if (arguments->dim == 1)
+        {
+            e = new IndexExp(loc, e1, (*arguments)[0]);
+        }
+        else
+        {
+            error("only one index allowed to index %s", t1->toChars());
+            return new ErrorExp();
+        }
         return e->semantic(sc);
     }
 
-    e = op_overload(sc);
-    if (!e)
-    {   error("no [] operator overload for type %s", e1->type->toChars());
-        goto Lerr;
-    }
-    return e;
+    Expression *e = op_overload(sc);
+    if (e)
+        return e;
 
-Lerr:
+    error("no [] operator overload for type %s", e1->type->toChars());
     return new ErrorExp();
 }
 
@@ -10545,6 +10598,23 @@ Expression *AssignExp::semantic(Scope *sc)
         AggregateDeclaration *ad = isAggregate(t1);
         if (ad)
         {
+#if 1
+            if (ae->arguments->dim == 0)
+            {
+                // a[] = e2
+                SliceExp *se = new SliceExp(ae->loc, ae->e1, NULL, NULL);
+                this->e1 = se;
+                return this->semantic(sc);
+            }
+            if (ae->arguments->dim == 1 && (*ae->arguments)[0]->op == TOKinterval)
+            {
+                // a[lwr..upr] = e2
+                IntervalExp *ie = (IntervalExp *)(*ae->arguments)[0];
+                SliceExp *se = new SliceExp(ae->loc, ae->e1, ie->lwr, ie->upr);
+                this->e1 = se;
+                return this->semantic(sc);
+            }
+#endif
             // Rewrite (a[i] = value) to (a.opIndexAssign(value, i))
             if (search_function(ad, Id::indexass))
             {

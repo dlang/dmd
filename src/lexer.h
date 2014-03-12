@@ -177,6 +177,8 @@ enum TOK
         TOKvector,
         TOKpound,
 
+        TOKinterval,
+
         TOKMAX
 };
 
