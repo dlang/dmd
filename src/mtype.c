@@ -7409,7 +7409,7 @@ bool TypeEnum::isZeroInit(Loc loc)
 
 int TypeEnum::hasPointers()
 {
-    return toBasetype()->hasPointers();
+    return sym->getMemtype(Loc())->hasPointers();
 }
 
 Type *TypeEnum::nextOf()
