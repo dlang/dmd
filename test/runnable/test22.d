@@ -582,7 +582,7 @@ void test27()
     printf("%.*s\n", s.length, s.ptr);
     assert((int*function(int ...)[]).mangleof == "APFiXPi");
     assert(typeof(x).mangleof == "i");
-    assert(x.mangleof == "_D6test226test27FZv1xi");
+    assert(x.mangleof == "_D6test226test27FZ1xi");
 }
 
 /*************************************/

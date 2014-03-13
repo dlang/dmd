@@ -45,7 +45,6 @@
 
 FuncDeclaration *hasThis(Scope *sc);
 void toCBuffer(Type *t, OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
-const char *mangle(Dsymbol *s, bool isv = false);
 
 #define LOGDOTEXP       0       // log ::dotExp()
 #define LOGDEFAULTINIT  0       // log ::defaultInit()

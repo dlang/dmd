@@ -24,8 +24,6 @@
 #include "id.h"
 #include "module.h"
 
-const char *mangleExact(FuncDeclaration *fd, bool isv = false);
-
 StringTable builtins;
 
 void add_builtin(const char *mangle, builtin_fp fp)

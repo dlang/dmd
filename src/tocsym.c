@@ -45,8 +45,6 @@ void slist_reset();
 Classsym *fake_classsym(Identifier *id);
 Symbols *Symbols_create();
 type *Type_toCtype(Type *t);
-const char *mangleExact(FuncDeclaration *fd, bool isv = false);
-const char *mangle(Dsymbol *s, bool isv = false);
 dt_t **ClassReferenceExp_toInstanceDt(ClassReferenceExp *ce, dt_t **pdt);
 
 /*************************************
