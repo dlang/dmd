@@ -617,7 +617,8 @@ int Import::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 
 Dsymbol *Import::search(Loc loc, Identifier *ident, int flags)
 {
-    //printf("[%s].Import::search(ident = '%s', flags = x%x)\n", loc.toChars(), ident->toChars(), flags);
+    //printf("%p [%s].Import::search(ident = '%s', flags = x%x)\n", this, loc.toChars(), ident->toChars(), flags);
+    //printf("%p\tfrom [%s] mod = %p\n", this, this->loc.toChars(), mod);
 
     if (!pkg)
     {
@@ -625,6 +626,7 @@ Dsymbol *Import::search(Loc loc, Identifier *ident, int flags)
         mod->importAll(NULL);
         mod->semantic();
     }
+    //printf("%p\tmod = %s\n", this, mod->toChars());
 
     // Don't find private members and import declarations
     flags |= (IgnorePrivateMembers | IgnoreImportedFQN);

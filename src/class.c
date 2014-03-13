@@ -649,6 +649,12 @@ void ClassDeclaration::semantic(Scope *sc)
         s->setScope(sc);
     }
 
+    for (size_t i = 0; i < members->dim; i++)
+    {
+        Dsymbol *s = (*members)[i];
+        s->importAll(sc);
+    }
+
     for (size_t i = 0; i < members_dim; i++)
     {
         Dsymbol *s = (*members)[i];
@@ -1476,6 +1482,12 @@ void InterfaceDeclaration::semantic(Scope *sc)
             //printf("setScope %s %s\n", s->kind(), s->toChars());
             s->setScope(sc);
         }
+    }
+
+    for (size_t i = 0; i < members->dim; i++)
+    {
+        Dsymbol *s = (*members)[i];
+        s->importAll(sc);
     }
 
     for (size_t i = 0; i < members->dim; i++)

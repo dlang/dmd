@@ -5610,6 +5610,12 @@ void TemplateInstance::expandMembers(Scope *sc2)
     for (size_t i = 0; i < members->dim; i++)
     {
         Dsymbol *s = (*members)[i];
+        s->importAll(sc2);
+    }
+
+    for (size_t i = 0; i < members->dim; i++)
+    {
+        Dsymbol *s = (*members)[i];
         //printf("\t[%d] semantic on '%s' %p kind %s in '%s'\n", i, s->toChars(), s, s->kind(), this->toChars());
         //printf("test: enclosing = %d, sc2->parent = %s\n", enclosing, sc2->parent->toChars());
 //      if (enclosing)
@@ -7932,6 +7938,12 @@ void TemplateMixin::semantic(Scope *sc)
     {
         Dsymbol *s = (*members)[i];
         s->setScope(sc2);
+    }
+
+    for (size_t i = 0; i < members->dim; i++)
+    {
+        Dsymbol *s = (*members)[i];
+        s->importAll(sc2);
     }
 
     for (size_t i = 0; i < members->dim; i++)
