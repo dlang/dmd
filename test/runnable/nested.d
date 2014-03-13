@@ -2338,6 +2338,25 @@ void test11297() {
 }
 
 /*******************************************/
+// 12234
+
+void test12234()
+{
+    class B
+    {
+        int a;
+        this(int aa) { a = aa; }
+    }
+    auto foo = {
+        return new B(1);
+    };
+    static assert(is(typeof(foo) == delegate));
+
+    auto b = foo();
+    assert(b.a == 1);
+}
+
+/*******************************************/
 
 int main()
 {
@@ -2425,6 +2444,7 @@ int main()
     test9244();
     test11385();
     test11297();
+    test12234();
 
     printf("Success\n");
     return 0;
