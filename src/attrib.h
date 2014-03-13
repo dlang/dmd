@@ -56,7 +56,7 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     AttribDeclaration *isAttribDeclaration() { return this; }
 
-    void toObjFile(int multiobj);                       // compile to .obj file
+    void toObjFile(bool multiobj);                       // compile to .obj file
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -161,7 +161,7 @@ public:
     bool oneMember(Dsymbol **ps, Identifier *ident);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     const char *kind();
-    void toObjFile(int multiobj);                       // compile to .obj file
+    void toObjFile(bool multiobj);                       // compile to .obj file
     void accept(Visitor *v) { v->visit(this); }
 };
 

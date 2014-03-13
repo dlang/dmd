@@ -33,7 +33,7 @@ public:
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
     bool oneMember(Dsymbol **ps, Identifier *ident);
-    void toObjFile(int multiobj);
+    void toObjFile(bool multiobj);
     const char *kind();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void accept(Visitor *v) { v->visit(this); }

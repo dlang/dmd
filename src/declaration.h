@@ -205,7 +205,7 @@ public:
     Type *htype;
     Type *hbasetype;
 
-    void toObjFile(int multiobj);                       // compile to .obj file
+    void toObjFile(bool multiobj);                       // compile to .obj file
 
     TypedefDeclaration *isTypedefDeclaration() { return this; }
 
@@ -293,7 +293,7 @@ public:
     void checkCtorConstInit();
     void checkNestedReference(Scope *sc, Loc loc);
     Dsymbol *toAlias();
-    void toObjFile(int multiobj);                       // compile to .obj file
+    void toObjFile(bool multiobj);                       // compile to .obj file
     // Eliminate need for dynamic_cast
     VarDeclaration *isVarDeclaration() { return (VarDeclaration *)this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -338,7 +338,7 @@ public:
     void semantic(Scope *sc);
     char *toChars();
 
-    void toObjFile(int multiobj);                       // compile to .obj file
+    void toObjFile(bool multiobj);                       // compile to .obj file
 
     TypeInfoDeclaration *isTypeInfoDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -678,7 +678,7 @@ public:
     static FuncDeclaration *genCfunc(Parameters *args, Type *treturn, Identifier *id);
 
     Symbol *toThunkSymbol(int offset);  // thunk version
-    void toObjFile(int multiobj);                       // compile to .obj file
+    void toObjFile(bool multiobj);                       // compile to .obj file
     bool needsCodegen();
 
     FuncDeclaration *isFuncDeclaration() { return this; }

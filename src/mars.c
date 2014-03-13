@@ -38,7 +38,7 @@
 #include "hdrgen.h"
 #include "doc.h"
 
-int response_expand(size_t *pargc, const char ***pargv);
+bool response_expand(size_t *pargc, const char ***pargv);
 void browse(const char *url);
 void getenv_setargv(const char *envvar, size_t *pargc, const char** *pargv);
 
@@ -351,7 +351,6 @@ void writeFile(Loc loc, File *f)
 void ensurePathToNameExists(Loc loc, const char *name)
 {
     const char *pt = FileName::path(name);
-    int r = 0;
     if (*pt)
     {
         if (FileName::ensurePathExists(pt))
@@ -509,8 +508,8 @@ void genCmain(Scope *sc)
     m->members = p.parseModule();
     assert(p.token.value == TOKeof);
 
-    char v = global.params.verbose;
-    global.params.verbose = 0;
+    bool v = global.params.verbose;
+    global.params.verbose = false;
     m->importedFrom = m;
     m->importAll(NULL);
     m->semantic();
@@ -527,9 +526,9 @@ int tryMain(size_t argc, const char *argv[])
     Strings files;
     Strings libmodules;
     size_t argcstart = argc;
-    int setdebuglib = 0;
+    bool setdebuglib = false;
     bool noboundscheck = false;
-    int setdefaultlib = 0;
+    bool setdefaultlib = false;
     const char *inifilename = NULL;
     global.init();
 
@@ -1003,12 +1002,12 @@ Language changes listed by -transition=id:\n\
             }
             else if (memcmp(p + 1, "defaultlib=", 11) == 0)
             {
-                setdefaultlib = 1;
+                setdefaultlib = true;
                 global.params.defaultlibname = p + 1 + 11;
             }
             else if (memcmp(p + 1, "debuglib=", 9) == 0)
             {
-                setdebuglib = 1;
+                setdebuglib = true;
                 global.params.debuglibname = p + 1 + 9;
             }
             else if (memcmp(p + 1, "deps", 4) == 0)

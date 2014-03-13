@@ -34,7 +34,7 @@ struct IRState
     Symbol *sthis;              // 'this' parameter to function (member and nested)
     Symbol *sclosure;           // pointer to closure instance
     Blockx *blx;
-    Dsymbols *deferToObj;       // array of Dsymbol's to run toObjFile(int multiobj) on later
+    Dsymbols *deferToObj;       // array of Dsymbol's to run toObjFile(bool multiobj) on later
     elem *ehidden;              // transmit hidden pointer to CallExp::toElem()
     Symbol *startaddress;
     VarDeclarations *varsInScope; // variables that are in scope that will need destruction later

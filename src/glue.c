@@ -290,7 +290,7 @@ void obj_startaddress(Symbol *s)
  * Generate .obj file for Module.
  */
 
-void Module::genobjfile(int multiobj)
+void Module::genobjfile(bool multiobj)
 {
     //EEcontext *ee = env->getEEcontext();
 
@@ -729,7 +729,7 @@ int isDruntimeArrayOp(Identifier *ident)
 
 /* ================================================================== */
 
-void FuncDeclaration::toObjFile(int multiobj)
+void FuncDeclaration::toObjFile(bool multiobj)
 {
     FuncDeclaration *func = this;
     ClassDeclaration *cd = func->parent->isClassDeclaration();

@@ -71,7 +71,7 @@ struct Narg
     const char **argv;
 };
 
-static int addargp(struct Narg *n, const char *p)
+static bool addargp(struct Narg *n, const char *p)
 {
     /* The 2 is to always allow room for a NULL argp at the end   */
     if (n->argc + 2 > n->argvmax)
@@ -80,18 +80,19 @@ static int addargp(struct Narg *n, const char *p)
         const char **ap = n->argv;
         ap = (const char **) realloc(ap,n->argvmax * sizeof(char *));
         if (!ap)
-        {   if (n->argv)
+        {
+            if (n->argv)
                 free(n->argv);
             memset(n, 0, sizeof(*n));
-            return 1;
+            return true;
         }
         n->argv = ap;
     }
     n->argv[n->argc++] = p;
-    return 0;
+    return false;
 }
 
-int response_expand(size_t *pargc, const char ***pargv)
+bool response_expand(size_t *pargc, const char ***pargv)
 {
     struct Narg n;
     const char *cp;
@@ -292,7 +293,7 @@ int response_expand(size_t *pargc, const char ***pargv)
         n.argvmax = 1;
         n.argv = (const char **) calloc(n.argvmax, sizeof(char *));
         if (!n.argv)
-            return 1;
+            return true;
     }
     else
         n.argv[n.argc] = NULL;
@@ -304,10 +305,10 @@ int response_expand(size_t *pargc, const char ***pargv)
     }
     *pargc = n.argc;
     *pargv = n.argv;
-    return 0;            /* success         */
+    return false;            /* success         */
 
 noexpand:            /* error         */
     free(n.argv);
     /* BUG: any file buffers are not free'd   */
-    return 1;
+    return true;
 }

@@ -163,12 +163,12 @@ void Module::genmoduleinfo()
     assert(0);
 }
 
-void Dsymbol::toObjFile(int multiobj)
+void Dsymbol::toObjFile(bool multiobj)
 {
     assert(0);
 }
 
-void ClassDeclaration::toObjFile(int multiobj)
+void ClassDeclaration::toObjFile(bool multiobj)
 {
     assert(0);
 }
@@ -179,52 +179,52 @@ unsigned ClassDeclaration::baseVtblOffset(BaseClass *bc)
     return 0;
 }
 
-void InterfaceDeclaration::toObjFile(int multiobj)
+void InterfaceDeclaration::toObjFile(bool multiobj)
 {
     assert(0);
 }
 
-void StructDeclaration::toObjFile(int multiobj)
+void StructDeclaration::toObjFile(bool multiobj)
 {
     assert(0);
 }
 
-void VarDeclaration::toObjFile(int multiobj)
+void VarDeclaration::toObjFile(bool multiobj)
 {
     assert(0);
 }
 
-void TypedefDeclaration::toObjFile(int multiobj)
+void TypedefDeclaration::toObjFile(bool multiobj)
 {
     assert(0);
 }
 
-void EnumDeclaration::toObjFile(int multiobj)
+void EnumDeclaration::toObjFile(bool multiobj)
 {
     assert(0);
 }
 
-void TypeInfoDeclaration::toObjFile(int multiobj)
+void TypeInfoDeclaration::toObjFile(bool multiobj)
 {
     assert(0);
 }
 
-void AttribDeclaration::toObjFile(int multiobj)
+void AttribDeclaration::toObjFile(bool multiobj)
 {
     assert(0);
 }
 
-void PragmaDeclaration::toObjFile(int multiobj)
+void PragmaDeclaration::toObjFile(bool multiobj)
 {
     assert(0);
 }
 
-void TemplateInstance::toObjFile(int multiobj)
+void TemplateInstance::toObjFile(bool multiobj)
 {
     assert(0);
 }
 
-void TemplateMixin::toObjFile(int multiobj)
+void TemplateMixin::toObjFile(bool multiobj)
 {
     assert(0);
 }
@@ -259,11 +259,11 @@ void obj_startaddress(Symbol *s)
     assert(0);
 }
 
-void Module::genobjfile(int multiobj)
+void Module::genobjfile(bool multiobj)
 {
 }
 
-void FuncDeclaration::toObjFile(int multiobj)
+void FuncDeclaration::toObjFile(bool multiobj)
 {
     assert(0);
 }

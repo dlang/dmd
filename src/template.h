@@ -344,7 +344,7 @@ public:
     int compare(RootObject *o);
     hash_t hashCode();
 
-    void toObjFile(int multiobj);                       // compile to .obj file
+    void toObjFile(bool multiobj);                       // compile to .obj file
 
     // Internal
     bool findTemplateDeclaration(Scope *sc, WithScopeSymbol **pwithsym);
@@ -383,7 +383,7 @@ public:
     char *toChars();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
-    void toObjFile(int multiobj);                       // compile to .obj file
+    void toObjFile(bool multiobj);                       // compile to .obj file
 
     bool findTemplateDeclaration(Scope *sc);
 

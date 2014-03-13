@@ -1334,7 +1334,7 @@ Type *Type::aliasthisOf()
     return NULL;
 }
 
-int Type::checkAliasThisRec()
+bool Type::checkAliasThisRec()
 {
     Type *tb = toBasetype();
     AliasThisRec* pflag;
@@ -1343,7 +1343,7 @@ int Type::checkAliasThisRec()
     else if (tb->ty == Tclass)
         pflag = &((TypeClass *)tb)->att;
     else
-        return 0;
+        return false;
 
     AliasThisRec flag = (AliasThisRec)(*pflag & RECtypeMask);
     if (flag == RECfwdref)
@@ -1798,12 +1798,12 @@ ClassDeclaration *Type::isClassHandle()
     return NULL;
 }
 
-int Type::isscope()
+bool Type::isscope()
 {
     return false;
 }
 
-int Type::isString()
+bool Type::isString()
 {
     return false;
 }
@@ -1816,12 +1816,12 @@ int Type::isString()
  *      a = b;
  * ?
  */
-int Type::isAssignable()
+bool Type::isAssignable()
 {
     return true;
 }
 
-int Type::checkBoolean()
+bool Type::checkBoolean()
 {
     return isscalar();
 }
@@ -1830,7 +1830,7 @@ int Type::checkBoolean()
  * true if when type goes out of scope, it needs a destructor applied.
  * Only applies to value types, not ref types.
  */
-int Type::needsDestruction()
+bool Type::needsDestruction()
 {
     return false;
 }
@@ -1877,9 +1877,9 @@ Expression *Type::defaultInitLiteral(Loc loc)
     return defaultInit(loc);
 }
 
-int Type::isZeroInit(Loc loc)
+bool Type::isZeroInit(Loc loc)
 {
-    return 0;           // assume not
+    return false;           // assume not
 }
 
 int Type::isBaseOf(Type *t, int *poffset)
@@ -3409,7 +3409,7 @@ Expression *TypeBasic::defaultInit(Loc loc)
     return new IntegerExp(loc, value, this);
 }
 
-int TypeBasic::isZeroInit(Loc loc)
+bool TypeBasic::isZeroInit(Loc loc)
 {
     switch (ty)
     {
@@ -3425,9 +3425,9 @@ int TypeBasic::isZeroInit(Loc loc)
         case Tcomplex32:
         case Tcomplex64:
         case Tcomplex80:
-            return 0;           // no
+            return false;       // no
         default:
-            return 1;           // yes
+            return true;        // yes
     }
 }
 
@@ -3610,7 +3610,7 @@ TypeBasic *TypeVector::elementType()
     return tb;
 }
 
-int TypeVector::checkBoolean()
+bool TypeVector::checkBoolean()
 {
     return false;
 }
@@ -3674,7 +3674,7 @@ Expression *TypeVector::defaultInitLiteral(Loc loc)
     return basetype->defaultInitLiteral(loc);
 }
 
-int TypeVector::isZeroInit(Loc loc)
+bool TypeVector::isZeroInit(Loc loc)
 {
     return basetype->isZeroInit(loc);
 }
@@ -4241,7 +4241,7 @@ structalign_t TypeSArray::alignment()
     return next->alignment();
 }
 
-int TypeSArray::isString()
+bool TypeSArray::isString()
 {
     TY nty = next->toBasetype()->ty;
     return nty == Tchar || nty == Twchar || nty == Tdchar;
@@ -4335,12 +4335,12 @@ Expression *TypeSArray::defaultInit(Loc loc)
         return next->defaultInit(loc);
 }
 
-int TypeSArray::isZeroInit(Loc loc)
+bool TypeSArray::isZeroInit(Loc loc)
 {
     return next->isZeroInit(loc);
 }
 
-int TypeSArray::needsDestruction()
+bool TypeSArray::needsDestruction()
 {
     return next->needsDestruction();
 }
@@ -4537,7 +4537,7 @@ Expression *TypeDArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
     return e;
 }
 
-int TypeDArray::isString()
+bool TypeDArray::isString()
 {
     TY nty = next->toBasetype()->ty;
     return nty == Tchar || nty == Twchar || nty == Tdchar;
@@ -4598,12 +4598,12 @@ Expression *TypeDArray::defaultInit(Loc loc)
     return new NullExp(loc, this);
 }
 
-int TypeDArray::isZeroInit(Loc loc)
+bool TypeDArray::isZeroInit(Loc loc)
 {
-    return 1;
+    return true;
 }
 
-int TypeDArray::checkBoolean()
+bool TypeDArray::checkBoolean()
 {
     return true;
 }
@@ -4822,12 +4822,12 @@ Expression *TypeAArray::defaultInit(Loc loc)
     return new NullExp(loc, this);
 }
 
-int TypeAArray::isZeroInit(Loc loc)
+bool TypeAArray::isZeroInit(Loc loc)
 {
     return true;
 }
 
-int TypeAArray::checkBoolean()
+bool TypeAArray::checkBoolean()
 {
     return true;
 }
@@ -5044,9 +5044,9 @@ Expression *TypePointer::defaultInit(Loc loc)
     return new NullExp(loc, this);
 }
 
-int TypePointer::isZeroInit(Loc loc)
+bool TypePointer::isZeroInit(Loc loc)
 {
-    return 1;
+    return true;
 }
 
 int TypePointer::hasPointers()
@@ -5115,9 +5115,9 @@ Expression *TypeReference::defaultInit(Loc loc)
     return new NullExp(loc, this);
 }
 
-int TypeReference::isZeroInit(Loc loc)
+bool TypeReference::isZeroInit(Loc loc)
 {
-    return 1;
+    return true;
 }
 
 
@@ -6262,12 +6262,12 @@ Expression *TypeDelegate::defaultInit(Loc loc)
     return new NullExp(loc, this);
 }
 
-int TypeDelegate::isZeroInit(Loc loc)
+bool TypeDelegate::isZeroInit(Loc loc)
 {
-    return 1;
+    return true;
 }
 
-int TypeDelegate::checkBoolean()
+bool TypeDelegate::checkBoolean()
 {
     return true;
 }
@@ -7341,22 +7341,22 @@ bool TypeEnum::isscalar()
     return sym->getMemtype(Loc())->isscalar();
 }
 
-int TypeEnum::isString()
+bool TypeEnum::isString()
 {
     return sym->getMemtype(Loc())->isString();
 }
 
-int TypeEnum::isAssignable()
+bool TypeEnum::isAssignable()
 {
     return sym->getMemtype(Loc())->isAssignable();
 }
 
-int TypeEnum::checkBoolean()
+bool TypeEnum::checkBoolean()
 {
     return sym->getMemtype(Loc())->checkBoolean();
 }
 
-int TypeEnum::needsDestruction()
+bool TypeEnum::needsDestruction()
 {
     return sym->getMemtype(Loc())->needsDestruction();
 }
@@ -7403,9 +7403,9 @@ Expression *TypeEnum::defaultInit(Loc loc)
     return e;
 }
 
-int TypeEnum::isZeroInit(Loc loc)
+bool TypeEnum::isZeroInit(Loc loc)
 {
-    return sym->getDefaultValue(loc)->isBool(false);
+    return sym->getDefaultValue(loc)->isBool(false) != 0;
 }
 
 int TypeEnum::hasPointers()
@@ -7549,17 +7549,17 @@ bool TypeTypedef::isscalar()
     return sym->basetype->isscalar();
 }
 
-int TypeTypedef::isAssignable()
+bool TypeTypedef::isAssignable()
 {
     return sym->basetype->isAssignable();
 }
 
-int TypeTypedef::checkBoolean()
+bool TypeTypedef::checkBoolean()
 {
     return sym->basetype->checkBoolean();
 }
 
-int TypeTypedef::needsDestruction()
+bool TypeTypedef::needsDestruction()
 {
     return sym->basetype->needsDestruction();
 }
@@ -7666,16 +7666,16 @@ Expression *TypeTypedef::defaultInitLiteral(Loc loc)
     return e;
 }
 
-int TypeTypedef::isZeroInit(Loc loc)
+bool TypeTypedef::isZeroInit(Loc loc)
 {
     if (sym->init)
     {
         if (sym->init->isVoidInitializer())
-            return 1;           // initialize voids to 0
+            return true;           // initialize voids to 0
         Expression *e = sym->init->toExpression();
         if (e && e->isBool(false))
-            return 1;
-        return 0;               // assume not
+            return true;
+        return false;               // assume not
     }
     if (sym->inuse)
     {
@@ -7683,7 +7683,7 @@ int TypeTypedef::isZeroInit(Loc loc)
         sym->basetype = Type::terror;
     }
     sym->inuse = 1;
-    int result = sym->basetype->isZeroInit(loc);
+    bool result = sym->basetype->isZeroInit(loc);
     sym->inuse = 0;
     return result;
 }
@@ -8072,17 +8072,17 @@ Expression *TypeStruct::defaultInitLiteral(Loc loc)
 }
 
 
-int TypeStruct::isZeroInit(Loc loc)
+bool TypeStruct::isZeroInit(Loc loc)
 {
-    return sym->zeroInit;
+    return sym->zeroInit != 0;
 }
 
-int TypeStruct::checkBoolean()
+bool TypeStruct::checkBoolean()
 {
     return false;
 }
 
-int TypeStruct::needsDestruction()
+bool TypeStruct::needsDestruction()
 {
     return sym->dtor != NULL;
 }
@@ -8101,9 +8101,9 @@ bool TypeStruct::needsNested()
     return false;
 }
 
-int TypeStruct::isAssignable()
+bool TypeStruct::isAssignable()
 {
-    int assignable = true;
+    bool assignable = true;
     unsigned offset;
 
     /* If any of the fields are const or invariant,
@@ -8684,7 +8684,7 @@ ClassDeclaration *TypeClass::isClassHandle()
     return sym;
 }
 
-int TypeClass::isscope()
+bool TypeClass::isscope()
 {
     return sym->isscope;
 }
@@ -8786,12 +8786,12 @@ Expression *TypeClass::defaultInit(Loc loc)
     return new NullExp(loc, this);
 }
 
-int TypeClass::isZeroInit(Loc loc)
+bool TypeClass::isZeroInit(Loc loc)
 {
-    return 1;
+    return true;
 }
 
-int TypeClass::checkBoolean()
+bool TypeClass::checkBoolean()
 {
     return true;
 }
@@ -9180,7 +9180,7 @@ MATCH TypeNull::implicitConvTo(Type *to)
     return MATCHnomatch;
 }
 
-int TypeNull::checkBoolean()
+bool TypeNull::checkBoolean()
 {
     return true;
 }

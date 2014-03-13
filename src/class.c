@@ -213,7 +213,7 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
 
     com = 0;
     cpp = 0;
-    isscope = 0;
+    isscope = false;
     isabstract = 0;
     inuse = 0;
     doAncestorsSemantic = SemanticStart;
@@ -568,7 +568,7 @@ void ClassDeclaration::semantic(Scope *sc)
         if (storage_class & STCauto)
             error("storage class 'auto' is invalid when declaring a class, did you mean to use 'scope'?");
         if (storage_class & STCscope)
-            isscope = 1;
+            isscope = true;
         if (storage_class & STCabstract)
             isabstract = 1;
     }
