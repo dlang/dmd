@@ -834,6 +834,7 @@ bool Dsymbol::inNonRoot()
 OverloadSet::OverloadSet(Identifier *ident)
     : Dsymbol(ident)
 {
+    bug12359 = false;
 }
 
 void OverloadSet::push(Dsymbol *s)
@@ -902,6 +903,57 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
         // FIXME: Issue 10604 - Not consistent access check for overloaded symbols
         if ((flags & IgnorePrivateMembers) && /*!s1->isOverloadable() && */s1->prot() == PROTprivate)
             s1 = NULL;
+#if 1
+        if (!s1 || !imports)
+            return s1;
+
+        Dsymbol *s = s1;
+        if (!s->isFuncDeclaration())
+            return s1;
+
+        OverloadSet *a = NULL;
+        for (size_t n = 0; n < imports->dim; n++)
+        {
+            Import *ss = (*imports)[n]->isImport();
+            if (!ss || ss->names.dim == 0)
+                continue;
+
+            Dsymbol *s2 = ss->search(loc, ident, flags & IgnorePrivateImports);
+            if (!s2)
+                continue;
+
+            if (!s2->isFuncDeclaration())
+                continue;
+
+            if (!a)
+            {
+                a = new OverloadSet(s->ident);
+                a->parent = this;
+                a->bug12359 = true;
+            }
+            /* Don't add to a[] if s2 is alias of previous sym
+             */
+            for (size_t j = 0; j < a->a.dim; j++)
+            {
+                Dsymbol *s3 = a->a[j];
+                if (s2 == s3)
+                {
+                    if (s3->isDeprecated() ||
+                        s2->prot() > s3->prot() && s2->prot() != PROTnone)
+                        a->a[j] = s2;
+                    goto LcontinueX;
+                }
+            }
+            a->push(s2);
+        LcontinueX:
+            continue;
+        }
+        if (a)
+        {
+            a->push(s);
+            s1 = a;
+        }
+#endif
         return s1;
     }
 
