@@ -6391,6 +6391,14 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
             //printf("\t3: s = %p %s %s, sm = %p\n", s, s->kind(), s->toChars(), sm);
             if (intypeid && !t && sm && sm->needThis())
                 goto L3;
+            if (VarDeclaration *v = s->isVarDeclaration())
+            {
+                if (v->storage_class & (STCconst | STCimmutable | STCmanifest) ||
+                    v->type->isConst() || v->type->isImmutable())
+                {
+                    goto L3;
+                }
+            }
             if (!sm)
             {
                 if (!t)

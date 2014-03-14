@@ -648,6 +648,27 @@ void test11159()
 }
 
 /************************************/
+// 12306
+
+void test12306()
+{
+    struct Point3D { ubyte x, y, z; }
+
+    enum      Point3D pt1 = {x:1, y:1, z:1};
+    const     Point3D pt2 = {x:1, y:1, z:1};
+    immutable Point3D pt3 = {x:1, y:1, z:1};
+
+    int[pt1.z][pt1.y][pt1.x] a1;
+    int[pt2.z][pt2.y][pt2.x] a2;
+    int[pt3.z][pt3.y][pt3.x] a3;
+
+    ubyte a = 1;
+    const     Point3D ptx = {x:a, y:1, z:1};
+
+    static assert(!__traits(compiles, { int[ptx.z][ptx.y][ptx.x] ax; }));
+}
+
+/************************************/
 
 int main()
 {
