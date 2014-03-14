@@ -53,6 +53,7 @@ SRCS=\
 	src\core\sys\posix\sys\ioctl.d \
 	src\core\sys\posix\sys\utsname.d \
 	src\core\sys\posix\netinet\in_.d \
+	src\core\sys\posix\arpa\inet.d \
 	\
 	src\core\sys\windows\dbghelp.d \
 	src\core\sys\windows\dll.d \

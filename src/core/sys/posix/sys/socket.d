@@ -921,6 +921,167 @@ else version (Solaris)
     int sockatmark(int);
     int socketpair(int, int, int, ref int[2]);
 }
+else version( Android )
+{
+    alias int    socklen_t;
+    alias ushort sa_family_t;
+
+    struct sockaddr
+    {
+        sa_family_t sa_family;
+        byte[14]    sa_data;
+    }
+
+    private enum size_t _K_SS_MAXSIZE  = 128;
+
+    struct sockaddr_storage
+    {
+        ushort ss_family;
+        byte[_K_SS_MAXSIZE - ushort.sizeof] __data;
+    }
+
+    enum : uint
+    {
+        SCM_RIGHTS = 0x01
+    }
+
+    private enum _ALIGNBYTES = c_long.sizeof - 1;
+
+    extern (D)
+    {
+        size_t CMSG_ALIGN( size_t len )
+        {
+            return (len + _ALIGNBYTES) & ~_ALIGNBYTES;
+        }
+
+        void* CMSG_DATA( cmsghdr* cmsg )
+        {
+            return cast(void*) (cast(char*) cmsg + CMSG_ALIGN( cmsghdr.sizeof ));
+        }
+
+        cmsghdr* CMSG_NXTHDR( msghdr* mhdr, cmsghdr* cmsg )
+        {
+            cmsghdr* __ptr = cast(cmsghdr*) ((cast(ubyte*) cmsg) + CMSG_ALIGN(cmsg.cmsg_len));
+            return cast(c_ulong)( cast(char*)(__ptr+1) - cast(char*) mhdr.msg_control) > mhdr.msg_controllen ? null : __ptr;
+        }
+
+        cmsghdr* CMSG_FIRSTHDR( msghdr* mhdr )
+        {
+            return mhdr.msg_controllen >= cmsghdr.sizeof ? cast(cmsghdr*) mhdr.msg_control : null;
+        }
+    }
+
+    struct linger
+    {
+        int l_onoff;
+        int l_linger;
+    }
+
+    version (X86)
+    {
+        struct msghdr
+        {
+            void*  msg_name;
+            int    msg_namelen;
+            iovec* msg_iov;
+            uint   msg_iovlen;
+            void*  msg_control;
+            uint   msg_controllen;
+            uint   msg_flags;
+        }
+
+        struct cmsghdr
+        {
+            uint cmsg_len;
+            int  cmsg_level;
+            int  cmsg_type;
+        }
+
+        enum
+        {
+            SOCK_DGRAM      = 2,
+            SOCK_SEQPACKET  = 5,
+            SOCK_STREAM     = 1
+        }
+
+        enum
+        {
+            SOL_SOCKET      = 1
+        }
+
+        enum
+        {
+            SO_ACCEPTCONN   = 30,
+            SO_BROADCAST    = 6,
+            SO_DEBUG        = 1,
+            SO_DONTROUTE    = 5,
+            SO_ERROR        = 4,
+            SO_KEEPALIVE    = 9,
+            SO_LINGER       = 13,
+            SO_OOBINLINE    = 10,
+            SO_RCVBUF       = 8,
+            SO_RCVLOWAT     = 18,
+            SO_RCVTIMEO     = 20,
+            SO_REUSEADDR    = 2,
+            SO_SNDBUF       = 7,
+            SO_SNDLOWAT     = 19,
+            SO_SNDTIMEO     = 21,
+            SO_TYPE         = 3
+        }
+    }
+    else
+    {
+        static assert(false, "Architecture not supported.");
+    }
+
+    enum
+    {
+        SOMAXCONN       = 128
+    }
+
+    enum : uint
+    {
+        MSG_CTRUNC      = 0x08,
+        MSG_DONTROUTE   = 0x04,
+        MSG_EOR         = 0x80,
+        MSG_OOB         = 0x01,
+        MSG_PEEK        = 0x02,
+        MSG_TRUNC       = 0x20,
+        MSG_WAITALL     = 0x100
+    }
+
+    enum
+    {
+        AF_INET         = 2,
+        AF_UNIX         = 1,
+        AF_UNSPEC       = 0
+    }
+
+    enum
+    {
+        SHUT_RD,
+        SHUT_WR,
+        SHUT_RDWR
+    }
+
+    int     accept(int, sockaddr*, socklen_t*);
+    int     bind(int, in sockaddr*, int);
+    int     connect(int, in sockaddr*, socklen_t);
+    int     getpeername(int, sockaddr*, socklen_t*);
+    int     getsockname(int, sockaddr*, socklen_t*);
+    int     getsockopt(int, int, int, void*, socklen_t*);
+    int     listen(int, int);
+    ssize_t recv(int, void*, size_t, uint);
+    ssize_t recvfrom(int, void*, size_t, uint, in sockaddr*, socklen_t*);
+    int     recvmsg(int, msghdr*, uint);
+    ssize_t send(int, in void*, size_t, uint);
+    int     sendmsg(int, in msghdr*, uint);
+    ssize_t sendto(int, in void*, size_t, int, in sockaddr*, socklen_t);
+    int     setsockopt(int, int, int, in void*, socklen_t);
+    int     shutdown(int, int);
+    int     socket(int, int, int);
+    int     socketpair(int, int, int, ref int[2]);
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -961,6 +1122,13 @@ else version (Solaris)
         AF_INET6 = 26,
     }
 }
+else version( Android )
+{
+    enum
+    {
+        AF_INET6    = 10
+    }
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -999,6 +1167,13 @@ else version (Solaris)
     enum
     {
         SOCK_RAW = 4,
+    }
+}
+else version( Android )
+{
+    enum
+    {
+        SOCK_RAW    = 3
     }
 }
 else

@@ -288,6 +288,55 @@ else version (Solaris)
         RLIMIT_AS     = 6,
     }
 }
+else version (Android)
+{
+    enum
+    {
+        PRIO_PROCESS = 0,
+        PRIO_PGRP    = 1,
+        PRIO_USER    = 2,
+    }
+
+    alias c_ulong rlim_t;
+    enum RLIM_INFINITY = cast(c_ulong)(~0UL);
+
+    enum
+    {
+        RUSAGE_SELF     =  0,
+        RUSAGE_CHILDREN = -1,
+    }
+
+    struct rusage
+    {
+        timeval ru_utime;
+        timeval ru_stime;
+        c_long ru_maxrss;
+        c_long ru_ixrss;
+        c_long ru_idrss;
+        c_long ru_isrss;
+        c_long ru_minflt;
+        c_long ru_majflt;
+        c_long ru_nswap;
+        c_long ru_inblock;
+        c_long ru_oublock;
+        c_long ru_msgsnd;
+        c_long ru_msgrcv;
+        c_long ru_nsignals;
+        c_long ru_nvcsw;
+        c_long ru_nivcsw;
+    }
+
+    enum
+    {
+        RLIMIT_CORE   = 4,
+        RLIMIT_CPU    = 0,
+        RLIMIT_DATA   = 2,
+        RLIMIT_FSIZE  = 1,
+        RLIMIT_NOFILE = 7,
+        RLIMIT_STACK  = 3,
+        RLIMIT_AS     = 9,
+    }
+}
 else static assert (false, "Unsupported platform");
 
 struct rlimit
@@ -301,6 +350,11 @@ version (FreeBSD)
     int getpriority(int, int);
     int setpriority(int, int, int);
 }
+else version (Android)
+{
+    int getpriority(int, int);
+    int setpriority(int, int, int);
+}
 else
 {
     int getpriority(int, id_t);
@@ -309,4 +363,4 @@ else
 
 int getrlimit(int, rlimit*);
 int getrusage(int, rusage*);
-int setrlimit(int, const rlimit*);
+int setrlimit(int, in rlimit*);
