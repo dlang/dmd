@@ -283,6 +283,38 @@ void *trait_search_fp(void *arg, const char *seed)
     return sv ? (void*)sv->ptrvalue : NULL;
 }
 
+static int fpisTemplate(void *param, Dsymbol *s)
+{
+    if (s->isTemplateDeclaration())
+        return 1;
+
+    return 0;
+}
+
+bool isTemplate(Dsymbol *s)
+{
+    if (!s->toAlias()->isOverloadable())
+        return false;
+
+    return overloadApply(s, NULL, &fpisTemplate) != 0;
+}
+
+Expression *isSymbolX(TraitsExp *e, bool (*fp)(Dsymbol *s))
+{
+    int result = 0;
+    if (!e->args || !e->args->dim)
+        goto Lfalse;
+    for (size_t i = 0; i < e->args->dim; i++)
+    {
+        Dsymbol *s = getDsymbol((*e->args)[i]);
+        if (!s || !fp(s))
+            goto Lfalse;
+    }
+    result = 1;
+Lfalse:
+    return new IntegerExp(e->loc, result, Type::tbool);
+}
+
 Expression *semanticTraits(TraitsExp *e, Scope *sc)
 {
 #if LOGSEMANTIC
@@ -332,6 +364,10 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
     else if (e->ident == Id::isFinalClass)
     {
         return isTypeX(e, &isTypeFinalClass);
+    }
+    else if (e->ident == Id::isTemplate)
+    {
+        return isSymbolX(e, &isTemplate);
     }
     else if (e->ident == Id::isPOD)
     {
