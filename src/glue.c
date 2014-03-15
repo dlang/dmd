@@ -766,10 +766,10 @@ void FuncDeclaration::toObjFile(bool multiobj)
         return;
 
     if (!func->fbody)
-    {
         return;
-    }
-    if (func->isUnitTestDeclaration() && !global.params.useUnitTests)
+
+    UnitTestDeclaration *ud = func->isUnitTestDeclaration();
+    if (ud && !global.params.useUnitTests)
         return;
 
     if (multiobj && !isStaticDtorDeclaration() && !isStaticCtorDeclaration())
@@ -804,9 +804,9 @@ void FuncDeclaration::toObjFile(bool multiobj)
             /* Can't do unittest's out of order, they are order dependent in that their
              * execution is done in lexical order.
              */
-            if (fdp->isUnitTestDeclaration())
+            if (UnitTestDeclaration *udp = fdp->isUnitTestDeclaration())
             {
-                fdp->deferred.push(func);
+                udp->deferredNested.push(func);
                 return;
             }
         }
@@ -1263,7 +1263,7 @@ void FuncDeclaration::toObjFile(bool multiobj)
     }
 
     // If unit test
-    if (isUnitTestDeclaration())
+    if (ud)
     {
         stests.push(s);
     }
@@ -1288,10 +1288,13 @@ void FuncDeclaration::toObjFile(bool multiobj)
         s->toObjFile(0);
     }
 
-    for (size_t i = 0; i < deferred.dim; i++)
+    if (ud)
     {
-        FuncDeclaration *fd = deferred[i];
-        fd->toObjFile(0);
+        for (size_t i = 0; i < ud->deferredNested.dim; i++)
+        {
+            FuncDeclaration *fd = ud->deferredNested[i];
+            fd->toObjFile(0);
+        }
     }
 
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
