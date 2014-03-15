@@ -86,8 +86,8 @@ unsigned cv4_memfunctypidx(FuncDeclaration *fd)
             thisidx = dttab4[TYvoid];
         else
         {
-            assert(ad->handle);
-            thisidx = cv4_typidx(Type_toCtype(ad->handle));
+            assert(ad->handleType());
+            thisidx = cv4_typidx(Type_toCtype(ad->handleType()));
         }
 
         unsigned nparam;

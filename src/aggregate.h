@@ -66,7 +66,6 @@ public:
     Type *type;
     StorageClass storage_class;
     PROT protection;
-    Type *handle;               // 'this' type
     unsigned structsize;        // size of struct
     unsigned alignsize;         // size of struct for alignment purposes
     VarDeclarations fields;     // VarDeclaration fields
@@ -118,6 +117,8 @@ public:
     void searchCtor();
 
     PROT prot();
+
+    Type *handleType() { return type; } // 'this' type
 
     // Back end
     Symbol *stag;               // tag symbol for debug data

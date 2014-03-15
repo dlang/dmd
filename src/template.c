@@ -2587,7 +2587,7 @@ FuncDeclaration *TemplateDeclaration::doHeaderInstantiation(
         }
         else
         {
-            tret = ad->handle;
+            tret = ad->handleType();
             assert(tret);
             tret = tret->addStorageClass(fd->storage_class | scx->stc);
             tret = tret->addMod(tf->mod);
