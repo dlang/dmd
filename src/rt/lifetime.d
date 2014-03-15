@@ -548,7 +548,7 @@ void __insertBlkInfoCache(BlkInfo bi, BlkInfo *curpos) nothrow
  * It doesn't matter what the current allocated length of the array is, the
  * user is telling the runtime that he knows what he is doing.
  */
-extern(C) void _d_arrayshrinkfit(const TypeInfo ti, void[] arr)
+extern(C) void _d_arrayshrinkfit(const TypeInfo ti, void[] arr) /+nothrow+/
 {
     // note, we do not care about shared.  We are setting the length no matter
     // what, so no lock is required.
@@ -563,6 +563,9 @@ extern(C) void _d_arrayshrinkfit(const TypeInfo ti, void[] arr)
             // remove prefix from the current stored size
             cursize -= LARGEPREFIX;
         debug(PRINTF) printf("setting allocated size to %d\n", (arr.ptr - info.base) + cursize);
+
+        // Note: Since we "assume" the append is safe, it means it is not shared.
+        // Since it is not shared, we also know it won't throw (no lock).
         __setArrayAllocLength(info, (arr.ptr - info.base) + cursize, false);
     }
 }
