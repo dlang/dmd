@@ -10,6 +10,9 @@ print dstring
 يطبع الترميز الموحد
 يطبع الترميز الموحد
 يطبع الترميز الموحد
+foo_str
+foo_wstr
+foo_dstr
 ---
 */
 
@@ -20,3 +23,14 @@ pragma(msg, "print dstring"d);
 pragma(msg, "يطبع الترميز الموحد");
 pragma(msg, "يطبع الترميز الموحد"w);
 pragma(msg, "يطبع الترميز الموحد"d);
+
+void main()
+{
+    enum a = "foo_str";
+    enum b = "foo_wstr"w;
+    enum c = "foo_dstr"d;
+
+    pragma(msg, a);
+    pragma(msg, b);
+    pragma(msg, c);
+}

@@ -2652,6 +2652,7 @@ Statement *PragmaStatement::semantic(Scope *sc)
                 StringExp *se = e->toStringExp();
                 if (se)
                 {
+                    se = se->toUTF8(sc);
                     fprintf(stderr, "%.*s", (int)se->len, (char *)se->string);
                 }
                 else
