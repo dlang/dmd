@@ -101,6 +101,22 @@ version( linux )
                 double __fpregs[6];
         }
     }
+    else version (MIPS64)
+    {
+        struct __jmp_buf
+        {
+            long __pc;
+            long __sp;
+            long __regs[8];
+            long __fp;
+            long __gp;
+            int __fpc_csr;
+            version (MIPS_N64)
+                double __fpregs[8];
+            else
+                double __fpregs[6];
+        }
+    }
     else
         static assert(0, "unimplemented");
 

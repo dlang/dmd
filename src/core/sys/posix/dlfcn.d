@@ -57,6 +57,13 @@ version( linux )
         enum RTLD_GLOBAL    = 0x0004;
         enum RTLD_LOCAL     = 0;
     }
+    else version (MIPS64)
+    {
+        enum RTLD_LAZY      = 0x0001;
+        enum RTLD_NOW       = 0x0002;
+        enum RTLD_GLOBAL    = 0x0004;
+        enum RTLD_LOCAL     = 0;
+    }
     else version (PPC)
     {
         enum RTLD_LAZY      = 0x00001;

@@ -232,6 +232,70 @@ version( linux )
             c_long[14]  st_pad5;
         }
     }
+    else version (MIPS64)
+    {
+        struct stat_t
+        {
+            c_ulong     st_dev;
+            int[3]      st_pad1;
+            static if (!__USE_FILE_OFFSET64)
+            {
+                ino_t       st_ino;
+            }
+            else
+            {
+                c_ulong     st_ino;
+            }
+            mode_t      st_mode;
+            nlink_t     st_nlink;
+            uid_t       st_uid;
+            gid_t       st_gid;
+            c_ulong     st_rdev;
+            static if (!__USE_FILE_OFFSET64)
+            {
+                uint[2]     st_pad2;
+                off_t       st_size;
+                int         st_pad3;
+            }
+            else
+            {
+                c_long[3]   st_pad2;
+                c_long      st_size;
+            }
+            static if (__USE_MISC || __USE_XOPEN2K8)
+            {
+                timespec    st_atim;
+                timespec    st_mtim;
+                timespec    st_ctim;
+                extern(D)
+                {
+                    @property ref time_t st_atime() { return st_atim.tv_sec; }
+                    @property ref time_t st_mtime() { return st_mtim.tv_sec; }
+                    @property ref time_t st_ctime() { return st_ctim.tv_sec; }
+                }
+            }
+            else
+            {
+                time_t      st_atime;
+                c_ulong     st_atimensec;
+                time_t      st_mtime;
+                c_ulong     st_mtimensec;
+                time_t      st_ctime;
+                c_ulong     st_ctimensec;
+            }
+            blksize_t   st_blksize;
+            uint        st_pad4;
+            static if (!__USE_FILE_OFFSET64)
+            {
+                blkcnt_t    st_blocks;
+            }
+            else
+            {
+                c_long  st_blocks;
+            }
+            c_long[14]  st_pad5;
+        }
+    }
     else version (PPC)
     {
         struct stat_t

@@ -148,6 +148,19 @@ version( linux )
         enum O_RSYNC        = O_SYNC;
         enum O_SYNC         = 0x0010;
     }
+    else version (MIPS64)
+    {
+        enum O_CREAT        = 0x0100;
+        enum O_EXCL         = 0x0400;
+        enum O_NOCTTY       = 0x0800;
+        enum O_TRUNC        = 0x0200;
+
+        enum O_APPEND       = 0x0008;
+        enum O_DSYNC        = 0x0010;
+        enum O_NONBLOCK     = 0x0080;
+        enum O_RSYNC        = O_SYNC;
+        enum O_SYNC         = 0x4010;
+    }
     else version (PPC)
     {
         enum O_CREAT        = 0x40;     // octal     0100
