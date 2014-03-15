@@ -589,7 +589,7 @@ else version (MIPS32)
 
     private enum __MAP_ANONYMOUS = 0x0800;
 
-    static if (__USE_MISC) enum MAP_RENAME MAP_ANONYMOUS;
+    static if (__USE_MISC) enum MAP_RENAME = MAP_ANONYMOUS;
 }
 // http://sourceware.org/git/?p=glibc.git;a=blob;f=ports/sysdeps/unix/sysv/linux/mips/bits/mman.h
 else version (MIPS64)
@@ -609,7 +609,7 @@ else version (MIPS64)
 
     private enum __MAP_ANONYMOUS = 0x0800;
 
-    static if (__USE_MISC) enum MAP_RENAME MAP_ANONYMOUS;
+    static if (__USE_MISC) enum MAP_RENAME = MAP_ANONYMOUS;
 }
 else
 {

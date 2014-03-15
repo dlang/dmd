@@ -185,6 +185,30 @@ version( linux )
         enum SIGUSR2    = 17;
         enum SIGURG     = 21;
     }
+    else version (MIPS64)
+    {
+        //SIGABRT (defined in core.stdc.signal)
+        enum SIGALRM    = 14;
+        enum SIGBUS     = 10;
+        enum SIGCHLD    = 18;
+        enum SIGCONT    = 25;
+        //SIGFPE (defined in core.stdc.signal)
+        enum SIGHUP     = 1;
+        //SIGILL (defined in core.stdc.signal)
+        //SIGINT (defined in core.stdc.signal)
+        enum SIGKILL    = 9;
+        enum SIGPIPE    = 13;
+        enum SIGQUIT    = 3;
+        //SIGSEGV (defined in core.stdc.signal)
+        enum SIGSTOP    = 23;
+        //SIGTERM (defined in core.stdc.signal)
+        enum SIGTSTP    = 24;
+        enum SIGTTIN    = 26;
+        enum SIGTTOU    = 27;
+        enum SIGUSR1    = 16;
+        enum SIGUSR2    = 17;
+        enum SIGURG     = 21;
+    }
     else version (PPC)
     {
         //SIGABRT (defined in core.stdc.signal)
@@ -1117,6 +1141,16 @@ version( linux )
         enum SIGXFSZ        = 25;
     }
     else version (MIPS32)
+    {
+        enum SIGPOLL    = 22;
+        enum SIGPROF    = 29;
+        enum SIGSYS     = 12;
+        enum SIGTRAP    = 5;
+        enum SIGVTALRM  = 28;
+        enum SIGXCPU    = 30;
+        enum SIGXFSZ    = 31;
+    }
+    else version (MIPS64)
     {
         enum SIGPOLL    = 22;
         enum SIGPROF    = 29;

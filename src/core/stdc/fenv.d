@@ -75,6 +75,26 @@ else version( linux )
 
         alias fexcept_t = ushort;
     }
+    // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/mips/bits/fenv.h
+    else version (MIPS32)
+    {
+        struct fenv_t
+        {
+            uint   __fp_control_register;
+        }
+
+        alias fexcept_t = ushort;
+    }
+    // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/mips/bits/fenv.h
+    else version (MIPS64)
+    {
+        struct fenv_t
+        {
+            uint   __fp_control_register;
+        }
+
+        alias fexcept_t = ushort;
+    }
     else
     {
         static assert(0, "Unimplemented architecture");
