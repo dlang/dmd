@@ -730,6 +730,12 @@ void StructDeclaration::semantic(Scope *sc)
     for (size_t i = 0; i < members->dim; i++)
     {
         Dsymbol *s = (*members)[i];
+        s->importAll(sc2);
+    }
+
+    for (size_t i = 0; i < members->dim; i++)
+    {
+        Dsymbol *s = (*members)[i];
 
         /* If this is the last member, see if we can finish setting the size.
          * This could be much better - finish setting the size after the last

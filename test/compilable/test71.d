@@ -1,3 +1,5 @@
+// PERMUTE_ARGS:
+
 import imports.test71;
 
 void bar()

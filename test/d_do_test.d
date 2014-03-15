@@ -262,6 +262,8 @@ string genTempFilename(string result_path)
 
 int system(string command)
 {
+    import std.c.process;
+
     if (!command) return std.c.process.system(null);
     const commandz = toStringz(command);
     auto status = std.c.process.system(commandz);

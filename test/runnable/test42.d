@@ -1564,12 +1564,12 @@ void test94()
 
 struct X95
 {
-   import std.c.stdio;
+    import std.c.stdio;
 }
 
 void test95()
 {
-   X95.std.c.stdio.printf("hello\n");
+    static assert(!__traits(compiles, X95.std.c.stdio.printf("hello\n")));
 }
 
 /***************************************************/

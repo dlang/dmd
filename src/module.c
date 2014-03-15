@@ -57,6 +57,7 @@ Module::Module(const char *filename, Identifier *ident, int doDocComment, int do
     numlines = 0;
     members = NULL;
     isDocFile = 0;
+    isPackageFile = false;
     needmoduleinfo = 0;
     selfimports = 0;
     insearch = 0;
@@ -331,6 +332,8 @@ void Module::parse()
     char *srcname = srcfile->name->toChars();
     //printf("Module::parse(srcname = '%s')\n", srcname);
 
+    isPackageFile = (strcmp(srcfile->name->name(), "package.d") == 0);
+
     utf8_t *buf = (utf8_t *)srcfile->buffer;
     size_t buflen = srcfile->len;
 
@@ -531,8 +534,10 @@ void Module::parse()
          */
         this->ident = md->id;
         this->safe = md->safe;
+        Package *pparent = NULL;
         Package *ppack = NULL;
-        dst = Package::resolve(md->packages, &this->parent, &ppack);
+        dst = Package::resolve(md->packages, &pparent, &ppack);
+        this->parent = pparent;
         assert(dst);
 
         Module *m = ppack ? ppack->isModule() : NULL;
@@ -557,8 +562,7 @@ void Module::parse()
 
     // Insert module into the symbol table
     Dsymbol *s = this;
-    bool isPackageMod = strcmp(srcfile->name->name(), "package.d") == 0;
-    if (isPackageMod)
+    if (isPackageFile)
     {
         /* If the source tree is as follows:
          *     pkg/
@@ -580,7 +584,7 @@ void Module::parse()
         Package *p = new Package(ident);
         p->parent = this->parent;
         p->isPkgMod = PKGmodule;
-        p->mod = this;
+        p->aliassym = this;
         p->symtab = new DsymbolTable();
         s = p;
     }
@@ -602,13 +606,13 @@ void Module::parse()
         }
         else if (Package *pkg = prev->isPackage())
         {
-            if (pkg->isPkgMod == PKGunknown && isPackageMod)
+            if (pkg->isPkgMod == PKGunknown && isPackageFile)
             {
                 /* If the previous inserted Package is not yet determined as package.d,
                  * link it to the actual module.
                  */
                 pkg->isPkgMod = PKGmodule;
-                pkg->mod = this;
+                pkg->aliassym = this;
             }
             else
                 error(pkg->loc, "from file %s conflicts with package name %s",
@@ -643,6 +647,27 @@ void Module::importAll(Scope *prevsc)
      * Ignore prevsc.
      */
     Scope *sc = Scope::createGlobal(this);      // create root scope
+
+    if (md)
+    {
+        /* Insert self module FQN to local package tree.
+         *
+         *  module p1.p2.mod;
+         *  void foo() {}
+         *  void main() { p1.p2.mod.foo(); }
+         *  // access current module by FQN
+         */
+
+        Import *imp = new Import(Loc(this, 1, 1), md->packages, ident, NULL, 1);
+        imp->mod = this;
+
+        if (!pkgtab)
+            pkgtab = new DsymbolTable();
+        Package::resolve(pkgtab, md->packages, NULL, &imp->pkg);
+        if (!imp->pkg)
+            imp->pkg = this;
+        imp->importScope(sc);
+    }
 
     // Add import of "object", even for the "object" module.
     // If it isn't there, some compiler rewrites, like
@@ -1068,7 +1093,7 @@ Package::Package(Identifier *ident)
         : ScopeDsymbol(ident)
 {
     this->isPkgMod = PKGunknown;
-    this->mod = NULL;
+    this->aliassym = NULL;
 }
 
 
@@ -1077,8 +1102,28 @@ const char *Package::kind()
     return "package";
 }
 
+Module *Package::isPackageMod()
+{
+    if (isPkgMod == PKGmodule)
+    {
+        if (Module *mod = aliassym->isModule())
+            return mod;
+        if (Import *imp = aliassym->isImport())
+            return imp->mod;
+    }
+    return NULL;
+}
+
+Package *Package::enclosingPkg()
+{
+    if (isPkgMod != PKGmodule && aliassym)
+        return aliassym->isPackage();
+    return NULL;
+}
+
 /****************************************************
  * Input:
+ *      dst             package tree root
  *      packages[]      the pkg1.pkg2 of pkg1.pkg2.mod
  * Returns:
  *      the symbol table that mod should be inserted into
@@ -1087,10 +1132,14 @@ const char *Package::kind()
  *      *ppkg           the leftmost package, i.e. pkg1, or NULL if no packages
  */
 
-DsymbolTable *Package::resolve(Identifiers *packages, Dsymbol **pparent, Package **ppkg)
+DsymbolTable *Package::resolve(Identifiers *packages, Package **pparent, Package **ppkg)
 {
-    DsymbolTable *dst = Module::modules;
-    Dsymbol *parent = NULL;
+    return Package::resolve(Module::modules, packages, pparent, ppkg);
+}
+
+DsymbolTable *Package::resolve(DsymbolTable *dst, Identifiers *packages, Package **pparent, Package **ppkg)
+{
+    Package *parent = NULL;
 
     //printf("Package::resolve()\n");
     if (ppkg)
@@ -1143,17 +1192,38 @@ DsymbolTable *Package::resolve(Identifiers *packages, Dsymbol **pparent, Package
 
 Dsymbol *Package::search(Loc loc, Identifier *ident, int flags)
 {
-    if (!isModule() && mod)
+    //printf("%s->Package::search(ident='%s', flags=x%x)\n", toChars(), ident->toChars(), flags);
+
+    assert(!imports);
+    assert(!isModule());
+
+    if (isPkgMod == PKGmodule)
     {
-        // Prefer full package name.
-        Dsymbol *s = symtab ? symtab->lookup(ident) : NULL;
+        /* Prefer symbols declared in package.d.
+         *
+         *  import std.algorithm;
+         *  import std; // std/package.d
+         *  void main() {
+         *      map!(a=>a*2)([1,2,3]);
+         *      std.map!(a=>a*2)([1,2,3]);
+         *      std.algorithm.map!(a=>a*2)([1,2,3]);
+         *      // iff std/package.d doesn't have a symbol named "algorithm",
+         *      // std/algorithm.d would hit.
+         *  }
+         */
+        Dsymbol *s = aliassym->search(loc, ident, flags);
         if (s)
             return s;
-        //printf("[%s] through pkdmod: %s\n", loc.toChars(), toChars());
-        return mod->search(loc, ident, flags);
     }
 
-    return ScopeDsymbol::search(loc, ident, flags);
+    Dsymbol *s = ScopeDsymbol::search(loc, ident, flags);
+    if (!s && !isPackageMod())
+    {
+        if (Package *pkg = enclosingPkg())
+            s = pkg->search(loc, ident, flags);
+    }
+
+    return s;
 }
 
 /* ===========================  ===================== */
