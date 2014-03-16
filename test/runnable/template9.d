@@ -3361,6 +3361,19 @@ void test12292()
 }
 
 /******************************************/
+// 12376
+
+static auto encode12376(size_t sz)(dchar ch) if (sz > 1)
+{
+    undefined;
+}
+
+void test12376()
+{
+    enum x = __traits(compiles, encode12376!2(x));
+}
+
+/******************************************/
 
 int main()
 {
@@ -3460,6 +3473,7 @@ int main()
     test11872();
     test12122();
     test12207();
+    test12376();
 
     printf("Success\n");
     return 0;
