@@ -1625,6 +1625,13 @@ public:
         buf->writestring(".length");
     }
 
+    void visit(IntervalExp *e)
+    {
+        expToCBuffer(buf, hgs, e->lwr, PREC_assign);
+        buf->writestring("..");
+        expToCBuffer(buf, hgs, e->upr, PREC_assign);
+    }
+
     void visit(ArrayExp *e)
     {
         expToCBuffer(buf, hgs, e->e1, PREC_primary);

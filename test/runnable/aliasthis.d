@@ -1268,11 +1268,11 @@ void test8735()
     // 9709 case
     alias A = Tuple9709!(1,int,"foo");
     A a;
-    static assert(A[0] == 1);
+    //static assert(A[0] == 1);
     static assert(a[0] == 1);
     //static assert(is(A[1] == int));
     //static assert(is(a[1] == int));
-    static assert(A[2] == "foo");
+    //static assert(A[2] == "foo");
     static assert(a[2] == "foo");
 }
 

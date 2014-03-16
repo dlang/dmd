@@ -1069,6 +1069,18 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
+struct IntervalExp : Expression
+{
+    Expression *lwr;
+    Expression *upr;
+
+    IntervalExp(Loc loc, Expression *lwr, Expression *upr);
+    Expression *syntaxCopy();
+    Expression *semantic(Scope *sc);
+
+    void accept(Visitor *v) { v->visit(this); }
+};
+
 // e1[a0,a1,a2,a3,...]
 
 class ArrayExp : public UnaExp

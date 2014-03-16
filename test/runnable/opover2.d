@@ -823,6 +823,179 @@ void test10037()
 }
 
 /**************************************/
+// 6798
+
+struct Tuple6798(T...)
+{
+    T field;
+    alias field this;
+
+    bool opEquals(Tuple6798 rhs)
+    {
+        foreach (i, _; T)
+        {
+            if (this[i] != rhs[i])
+                return false;
+        }
+        return true;
+    }
+}
+auto tuple6798(T...)(T args)
+{
+    return Tuple6798!T(args);
+}
+
+int test6798a()
+{
+    //import std.typecons;
+    alias tuple6798 tuple;
+
+    static struct S1
+    {
+        auto opDollar(size_t dim)()
+        {
+            return 99;
+        }
+        auto opSlice(int dim)(int lwr, int upr)
+        {
+            return [dim, lwr, upr];
+        }
+
+        auto opIndex(A...)(A indices)
+        {
+            return tuple(" []", indices);
+        }
+        auto opIndexUnary(string op, A...)(A indices)
+        {
+            return tuple(op~"[]", indices);
+        }
+        auto opIndexAssign(A...)(string s, A indices)
+        {
+            return tuple("[] =", s, indices);
+        }
+        auto opIndexOpAssign(string op, A...)(string s, A indices)
+        {
+            return tuple("[]"~op~"=", s, indices);
+        }
+    }
+    S1 s1;
+    assert( s1[]       == tuple(" []"));
+    assert( s1[10]     == tuple(" []", 10));
+    assert( s1[10, 20] == tuple(" []", 10, 20));
+    assert( s1[10..20] == tuple(" []", [0, 10, 20]));
+    assert(+s1[]       == tuple("+[]"));
+    assert(-s1[10]     == tuple("-[]", 10));
+    assert(*s1[10, 20] == tuple("*[]", 10, 20));
+    assert(~s1[10..20] == tuple("~[]", [0, 10, 20]));
+    assert((s1[]       ="x") == tuple("[] =", "x"));
+    assert((s1[10]     ="x") == tuple("[] =", "x", 10));
+    assert((s1[10, 20] ="x") == tuple("[] =", "x", 10, 20));
+    assert((s1[10..20] ="x") == tuple("[] =", "x", [0, 10, 20]));
+    assert((s1[]      +="x") == tuple("[]+=", "x"));
+    assert((s1[10]    -="x") == tuple("[]-=", "x", 10));
+    assert((s1[10, 20]*="x") == tuple("[]*=", "x", 10, 20));
+    assert((s1[10..20]~="x") == tuple("[]~=", "x", [0, 10, 20]));
+    assert( s1[20..30, 10]           == tuple(" []", [0, 20, 30], 10));
+    assert( s1[10, 10..$, $-4, $..2] == tuple(" []", 10, [1,10,99], 99-4, [3,99,2]));
+    assert(+s1[20..30, 10]           == tuple("+[]", [0, 20, 30], 10));
+    assert(-s1[10, 10..$, $-4, $..2] == tuple("-[]", 10, [1,10,99], 99-4, [3,99,2]));
+    assert((s1[20..30, 10]           ="x") == tuple("[] =", "x", [0, 20, 30], 10));
+    assert((s1[10, 10..$, $-4, $..2] ="x") == tuple("[] =", "x", 10, [1,10,99], 99-4, [3,99,2]));
+    assert((s1[20..30, 10]          +="x") == tuple("[]+=", "x", [0, 20, 30], 10));
+    assert((s1[10, 10..$, $-4, $..2]-="x") == tuple("[]-=", "x", 10, [1,10,99], 99-4, [3,99,2]));
+
+    // opIndex exist, but opSlice for multi-dimensional doesn't.
+    static struct S2
+    {
+        auto opSlice(size_t dim)() { return [dim]; }
+        auto opSlice()(size_t lwr, size_t upr) { return [lwr, upr]; }
+
+        auto opIndex(A...)(A indices){ return [[indices]]; }
+    }
+    S2 s2;
+    static assert(!__traits(compiles, s2[] ));
+    assert(s2[1] == [[1]]);
+    assert(s2[1, 2] == [[1, 2]]);
+    assert(s2[1..2] == [1, 2]);
+    static assert(!__traits(compiles, s2[1, 2..3] ));
+    static assert(!__traits(compiles, s2[1..2, 2..3] ));
+
+    // opSlice for multi-dimensional exists, but opIndex for that doesn't.
+    static struct S3
+    {
+        auto opSlice(size_t dim)(size_t lwr, size_t upr) { return [lwr, upr]; }
+
+        auto opIndex(size_t n){ return [[n]]; }
+        auto opIndex(size_t n, size_t m){ return [[n, m]]; }
+    }
+    S3 s3;
+    static assert(!__traits(compiles, s3[] ));
+    assert(s3[1]    == [[1]]);
+    assert(s3[1, 2] == [[1, 2]]);
+    static assert(!__traits(compiles, s3[1..2] ));
+    static assert(!__traits(compiles, s3[1, 2..3] ));
+    static assert(!__traits(compiles, s3[1..2, 2..3] ));
+
+    return 0;
+}
+
+int test6798b()
+{
+    static struct Typedef(T)
+    {
+        private T Typedef_payload = T.init;
+
+        alias a = Typedef_payload;
+
+        auto ref opIndex(this X, D...)(auto ref D i)    { return a[i]; }
+        auto ref opSlice(this X      )()                { return a[]; }
+        auto ref opSlice(this X, B, E)(auto ref B b, auto ref E e)
+        {
+            assert(b == 0 && e == 3);
+            return a[b..e];
+        }
+
+        template opDispatch(string name)
+        {
+            // field or property function
+            @property auto ref opDispatch(this X)()                { return mixin("a."~name);        }
+            @property auto ref opDispatch(this X, V)(auto ref V v) { return mixin("a."~name~" = v"); }
+        }
+
+        static if (is(typeof(a) : E[], E))
+        {
+            auto opDollar() const { return a.length; }
+        }
+    }
+
+    Typedef!(int[]) dollar2;
+    dollar2.length = 3;
+    assert(dollar2.Typedef_payload.length == 3);
+    assert(dollar2[0 .. $] is dollar2[0 .. 3]);
+
+    return 0;
+}
+
+int test6798c()
+{
+    alias T = Tuple6798!(int, int);
+    auto n = T[].init;
+    static assert(is(typeof(n[0]) == Tuple6798!(int, int)));
+
+    return 0;
+}
+
+void test6798()
+{
+    static assert(test6798a() == 0);    // CTFE check
+    test6798a();
+    static assert(test6798b() == 0);
+    test6798b();
+    static assert(test6798c() == 0);
+    test6798c();
+}
+
+/**************************************/
 // 7641
 
 mixin template Proxy7641(alias a)
@@ -1537,6 +1710,7 @@ int main()
     test17();
     test3789();
     test10037();
+    test6798();
     test7641();
     test8434();
     test18();
