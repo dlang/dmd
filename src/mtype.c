@@ -6975,7 +6975,6 @@ void TypeTypeof::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
         Scope *sc2 = sc->push();
         sc2->intypeof = 1;
         sc2->speculative = true;
-        sc2->flags |= sc->flags & SCOPEstaticif;
         unsigned oldspecgag = global.speculativeGag;
         if (global.gag)
             global.speculativeGag = global.gag;

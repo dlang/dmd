@@ -3244,12 +3244,8 @@ int FuncDeclaration::getLevel(Loc loc, Scope *sc, FuncDeclaration *fd)
     return level;
 
 Lerr:
-    Dsymbol *p = toParent2();
-    while (p->toParent2()->isFuncDeclaration())
-        p = p->toParent2();
-
     // Don't give error if in template constraint
-    if (!(sc->flags & SCOPEstaticif) && !p->parent->isTemplateDeclaration())
+    if (!(sc->flags & SCOPEconstraint))
     {
         const char *xstatic = isStatic() ? "static " : "";
         // better diagnostics for static functions
