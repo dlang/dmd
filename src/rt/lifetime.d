@@ -1237,6 +1237,27 @@ extern (C) CollectHandler rt_getCollectHandler()
 /**
  *
  */
+extern (C) int rt_hasFinalizerInSegment(void* p, in void[] segment)
+{
+    auto ppv = cast(void**) p;
+    if(!p || !*ppv)
+        return false;
+
+    auto c = *cast(ClassInfo*)*ppv;
+    do
+    {
+        auto pf = c.destructor;
+        if (cast(size_t)(pf - segment.ptr) < segment.length) return true;
+    }
+    while ((c = c.base) !is null);
+
+    return false;
+}
+
+
+/**
+ *
+ */
 extern (C) void rt_finalize2(void* p, bool det = true, bool resetMemory = true)
 {
     debug(PRINTF) printf("rt_finalize2(p = %p)\n", p);

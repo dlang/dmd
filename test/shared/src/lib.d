@@ -92,3 +92,24 @@ extern(C) int lib_term()
 {
     return rt_term();
 }
+
+shared size_t* _finalizeCounter;
+
+class MyFinalizer
+{
+    ~this()
+    {
+        import core.atomic;
+        atomicOp!"+="(*_finalizeCounter, 1);
+    }
+}
+
+class MyFinalizerBig : MyFinalizer
+{
+    ubyte[4096] _big = void;
+}
+
+extern(C) void setFinalizeCounter(shared(size_t)* p)
+{
+    _finalizeCounter = p;
+}

@@ -120,6 +120,7 @@ private
 
     extern (C) void gc_removeRoot( in void* p ) nothrow;
     extern (C) void gc_removeRange( in void* p ) nothrow;
+    extern (C) void gc_runFinalizers( in void[] segment );
 }
 
 
@@ -716,5 +717,21 @@ struct GC
     static void removeRange( in void* p ) nothrow /* FIXME pure */
     {
         gc_removeRange( p );
+    }
+
+
+    /**
+     * Runs any finalizer that is located in address range of the
+     * given code segment.  This is used before unloading shared
+     * libraries.  All matching objects which have a finalizer in this
+     * code segment are assumed to be dead, using them while or after
+     * calling this method has undefined behavior.
+     *
+     * Params:
+     *  segment = address range of a code segment.
+     */
+    static void runFinalizers( in void[] segment )
+    {
+        gc_runFinalizers( segment );
     }
 }

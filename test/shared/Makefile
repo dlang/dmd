@@ -8,7 +8,7 @@ QUIET:=
 
 SRC:=src
 ROOT:=obj/$(OS)/$(MODEL)
-TESTS:=link load linkD linkDR loadDR host
+TESTS:=link load linkD linkDR loadDR host finalize
 TESTS+=link_linkdep load_linkdep link_loaddep load_loaddep
 
 ifneq (default,$(MODEL))
@@ -42,7 +42,7 @@ $(ROOT)/link_loaddep: $(SRC)/link_loaddep.d $(ROOT)/lib.so $(ROOT)/libloaddep.so
 $(ROOT)/load_loaddep: $(SRC)/load_loaddep.d $(ROOT)/lib.so $(ROOT)/libloaddep.so $(DRUNTIMESO)
 	$(QUIET)$(DMD) $(DFLAGS) -of$@ $< $(LINKFLAGS) -L-ldl
 
-$(ROOT)/load: $(SRC)/load.d $(ROOT)/lib.so $(DRUNTIMESO)
+$(ROOT)/load $(ROOT)/finalize: $(ROOT)/%: $(SRC)/%.d $(ROOT)/lib.so $(DRUNTIMESO)
 	$(QUIET)$(DMD) $(DFLAGS) -of$@ $< -L-ldl
 
 $(ROOT)/linkD: $(SRC)/linkD.c $(ROOT)/lib.so $(DRUNTIMESO)
