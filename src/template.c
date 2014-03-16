@@ -6156,6 +6156,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
             }
             semanticRun = PASSinit;
             inst = NULL;
+            symtab = NULL;
         }
     }
 
