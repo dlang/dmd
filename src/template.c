@@ -6065,16 +6065,11 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     if (global.errors != errorsave)
         goto Laftersemantic;
 
-    if (sc->func && aliasdecl && aliasdecl->toAlias()->isFuncDeclaration())
+    if (sc->func && (aliasdecl && aliasdecl->toAlias()->isFuncDeclaration() || !tinst))
     {
         /* Template function instantiation should run semantic3 immediately
          * for attribute inference.
          */
-        //printf("function semantic3 %s inside %s\n", toChars(), sc->func->toChars());
-        trySemantic3(sc2);
-    }
-    else if (sc->func && !tinst)
-    {
         /* If a template is instantiated inside function, the whole instantiation
          * should be done at that position. But, immediate running semantic3 of
          * dependent templates may cause unresolved forward reference (Bugzilla 9050).
@@ -7315,10 +7310,14 @@ void TemplateInstance::semantic3(Scope *sc)
     semanticRun = PASSsemantic3;
     if (!errors && members)
     {
+        TemplateDeclaration *tempdecl = this->tempdecl->isTemplateDeclaration();
+        assert(tempdecl);
+
         sc = tempdecl->scope;
         sc = sc->push(argsym);
         sc = sc->push(this);
         sc->tinst = this;
+
         int needGagging = (speculative && !global.gag);
         int olderrors = global.errors;
         int oldGaggedErrors;
@@ -7329,6 +7328,7 @@ void TemplateInstance::semantic3(Scope *sc)
          */
         if (needGagging)
             oldGaggedErrors = global.startGagging();
+
         for (size_t i = 0; i < members->dim; i++)
         {
             Dsymbol *s = (*members)[i];
@@ -7336,11 +7336,21 @@ void TemplateInstance::semantic3(Scope *sc)
             if (speculative && global.errors != olderrors)
                 break;
         }
-        if (needGagging)
-        {   // If errors occurred, this instantiation failed
-            if (global.endGagging(oldGaggedErrors))
-                errors = true;
+
+        if (global.errors != olderrors)
+        {
+            if (!errors)
+            {
+                if (!tempdecl->literal)
+                    error(loc, "error instantiating");
+                if (tinst)
+                    tinst->printInstantiationTrace();
+            }
+            errors = true;
         }
+        if (needGagging)
+            global.endGagging(oldGaggedErrors);
+
         sc = sc->pop();
         sc->pop();
     }
