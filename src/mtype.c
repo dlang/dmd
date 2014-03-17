@@ -7792,6 +7792,8 @@ Type *TypeStruct::semantic(Loc loc, Scope *sc)
     /* Don't semantic for sym because it should be deferred until
      * sizeof needed or its members accessed.
      */
+    // instead, parent should be set correctly
+    assert(sym->parent);
 
     return merge();
 }
@@ -8338,6 +8340,8 @@ Type *TypeClass::semantic(Loc loc, Scope *sc)
     /* Don't semantic for sym because it should be deferred until
      * sizeof needed or its members accessed.
      */
+    // instead, parent should be set correctly
+    assert(sym->parent);
 
     return merge();
 }

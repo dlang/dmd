@@ -668,27 +668,6 @@ void StructDeclaration::semantic(Scope *sc)
 
     if (semanticRun >= PASSsemanticdone)
         return;
-    semanticRun = PASSsemantic;
-
-    assert(!isAnonymous());
-
-    assert(type);
-    if (!members)               // if opaque declaration
-    {
-        return;
-    }
-
-    if (symtab)
-    {
-        if (sizeok == SIZEOKdone || !scope)
-        {
-            //printf("already completed\n");
-            scope = NULL;
-            return;             // semantic() already completed
-        }
-    }
-    else
-        symtab = new DsymbolTable();
 
     Scope *scx = NULL;
     if (scope)
@@ -700,7 +679,13 @@ void StructDeclaration::semantic(Scope *sc)
     unsigned dprogress_save = Module::dprogress;
     int errors = global.errors;
 
-    parent = sc->parent;
+    if (!parent)
+    {
+        assert(sc->parent && sc->func);
+        parent = sc->parent;
+    }
+    assert(parent && parent == sc->parent);
+    assert(!isAnonymous());
     type = type->semantic(loc, sc);
 
     if (type->ty == Tstruct && ((TypeStruct *)type)->sym != this)
@@ -710,8 +695,29 @@ void StructDeclaration::semantic(Scope *sc)
             ((TypeStruct *)type)->sym = this;
     }
 
+    if (semanticRun == PASSinit)
+    {
+    }
+    semanticRun = PASSsemantic;
+
+    if (!members)               // if opaque declaration
+        return;
+
+    if (symtab)
+    {
+        if (sizeok == SIZEOKdone || !scope)
+        {
+            //printf("already completed\n");
+            return;             // semantic() already completed
+        }
+    }
+    else
+        symtab = new DsymbolTable();
+
     protection = sc->protection;
+
     alignment = sc->structalign;
+
     storage_class |= sc->stc;
     if (sc->stc & STCdeprecated)
         isdeprecated = true;

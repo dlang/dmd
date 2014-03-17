@@ -275,43 +275,6 @@ void ClassDeclaration::semantic(Scope *sc)
 
     if (semanticRun >= PASSsemanticdone)
         return;
-    semanticRun = PASSsemantic;
-
-    if (!ident)         // if anonymous class
-    {
-        const char *id = "__anonclass";
-        ident = Identifier::generateId(id);
-    }
-
-    if (!sc)
-        sc = scope;
-    if (!parent && sc->parent && !sc->parent->isModule())
-        parent = sc->parent;
-
-    type = type->semantic(loc, sc);
-
-    if (type->ty == Tclass && ((TypeClass *)type)->sym != this)
-    {
-        TemplateInstance *ti = ((TypeClass *)type)->sym->isInstantiated();
-        if (ti && isError(ti))
-            ((TypeClass *)type)->sym = this;
-    }
-
-    if (!members)               // if opaque declaration
-    {
-        //printf("\tclass '%s' is forward referenced\n", toChars());
-        return;
-    }
-    if (symtab)
-    {
-        if (sizeok == SIZEOKdone || !scope)
-        {
-            //printf("\tsemantic for '%s' is already completed\n", toChars());
-            return;             // semantic() already completed
-        }
-    }
-    else
-        symtab = new DsymbolTable();
 
     Scope *scx = NULL;
     if (scope)
@@ -322,6 +285,47 @@ void ClassDeclaration::semantic(Scope *sc)
     }
     unsigned dprogress_save = Module::dprogress;
     int errors = global.errors;
+
+    if (!parent)
+    {
+        assert(sc->parent && (sc->func || !ident));
+        parent = sc->parent;
+
+        if (!ident)         // if anonymous class
+        {
+            const char *id = "__anonclass";
+            ident = Identifier::generateId(id);
+        }
+    }
+    assert(parent && parent == sc->parent);
+    assert(!isAnonymous());
+    type = type->semantic(loc, sc);
+
+    if (type->ty == Tclass && ((TypeClass *)type)->sym != this)
+    {
+        TemplateInstance *ti = ((TypeClass *)type)->sym->isInstantiated();
+        if (ti && isError(ti))
+            ((TypeClass *)type)->sym = this;
+    }
+
+    if (semanticRun == PASSinit)
+    {
+    }
+    semanticRun = PASSsemantic;
+
+    if (!members)               // if opaque declaration
+        return;
+
+    if (symtab)
+    {
+        if (sizeok == SIZEOKdone || !scope)
+        {
+            //printf("\tsemantic for '%s' is already completed\n", toChars());
+            return;             // semantic() already completed
+        }
+    }
+    else
+        symtab = new DsymbolTable();
 
     if (sc->stc & STCdeprecated)
     {
@@ -1288,13 +1292,23 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
     if (semanticRun >= PASSsemanticdone)
         return;
-    semanticRun = PASSsemantic;
 
-    if (!sc)
+    Scope *scx = NULL;
+    if (scope)
+    {
         sc = scope;
-    if (!parent && sc->parent && !sc->parent->isModule())
-        parent = sc->parent;
+        scx = scope;            // save so we don't make redundant copies
+        scope = NULL;
+    }
+    int errors = global.errors;
 
+    if (!parent)
+    {
+        assert(sc->parent && sc->func);
+        parent = sc->parent;
+    }
+    assert(parent && parent == sc->parent);
+    assert(!isAnonymous());
     type = type->semantic(loc, sc);
 
     if (type->ty == Tclass && ((TypeClass *)type)->sym != this)
@@ -1304,11 +1318,14 @@ void InterfaceDeclaration::semantic(Scope *sc)
             ((TypeClass *)type)->sym = this;
     }
 
-    if (!members)                       // if forward reference
+    if (semanticRun == PASSinit)
     {
-        //printf("\tinterface '%s' is forward referenced\n", toChars());
-        return;
     }
+    semanticRun = PASSsemantic;
+
+    if (!members)               // if opaque declaration
+        return;
+
     if (symtab)                 // if already done
     {
         if (!scope)
@@ -1316,16 +1333,6 @@ void InterfaceDeclaration::semantic(Scope *sc)
     }
     else
         symtab = new DsymbolTable();
-
-    Scope *scx = NULL;
-    if (scope)
-    {
-        sc = scope;
-        scx = scope;            // save so we don't make redundant copies
-        scope = NULL;
-    }
-
-    int errors = global.errors;
 
     if (sc->stc & STCdeprecated)
     {
