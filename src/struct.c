@@ -666,6 +666,12 @@ void StructDeclaration::semantic(Scope *sc)
 
     //static int count; if (++count == 20) halt();
 
+    if (semanticRun >= PASSsemanticdone)
+        return;
+    semanticRun = PASSsemantic;
+
+    assert(!isAnonymous());
+
     assert(type);
     if (!members)               // if opaque declaration
     {
@@ -709,7 +715,6 @@ void StructDeclaration::semantic(Scope *sc)
     storage_class |= sc->stc;
     if (sc->stc & STCdeprecated)
         isdeprecated = true;
-    assert(!isAnonymous());
     if (sc->stc & STCabstract)
         error("structs, unions cannot be abstract");
     userAttribDecl = sc->userAttribDecl;
@@ -908,6 +913,8 @@ void StructDeclaration::semantic(Scope *sc)
     }
 #endif
     assert(type->ty != Tstruct || ((TypeStruct *)type)->sym == this);
+
+    semanticRun = PASSsemanticdone;
 }
 
 Dsymbol *StructDeclaration::search(Loc loc, Identifier *ident, int flags)

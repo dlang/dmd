@@ -273,6 +273,10 @@ void ClassDeclaration::semantic(Scope *sc)
 
     //{ static int n;  if (++n == 20) *(char*)0=0; }
 
+    if (semanticRun >= PASSsemanticdone)
+        return;
+    semanticRun = PASSsemantic;
+
     if (!ident)         // if anonymous class
     {
         const char *id = "__anonclass";
@@ -824,6 +828,8 @@ void ClassDeclaration::semantic(Scope *sc)
       }
 #endif
     assert(type->ty != Tclass || ((TypeClass *)type)->sym == this);
+
+    semanticRun = PASSsemanticdone;
 }
 
 void ClassDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -1280,6 +1286,10 @@ void InterfaceDeclaration::semantic(Scope *sc)
     if (inuse)
         return;
 
+    if (semanticRun >= PASSsemanticdone)
+        return;
+    semanticRun = PASSsemantic;
+
     if (!sc)
         sc = scope;
     if (!parent && sc->parent && !sc->parent->isModule())
@@ -1526,6 +1536,8 @@ void InterfaceDeclaration::semantic(Scope *sc)
       }
 #endif
     assert(type->ty != Tclass || ((TypeClass *)type)->sym == this);
+
+    semanticRun = PASSsemanticdone;
 }
 
 
