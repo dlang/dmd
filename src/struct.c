@@ -408,7 +408,8 @@ void AggregateDeclaration::alignmember(
             break;
 
         case (structalign_t) STRUCTALIGN_DEFAULT:
-        {   /* Must match what the corresponding C compiler's default
+        {
+            /* Must match what the corresponding C compiler's default
              * alignment behavior is.
              */
             assert(size != 3);
@@ -666,8 +667,10 @@ void StructDeclaration::semantic(Scope *sc)
     }
 
     if (symtab)
-    {   if (sizeok == SIZEOKdone || !scope)
-        {   //printf("already completed\n");
+    {
+        if (sizeok == SIZEOKdone || !scope)
+        {
+            //printf("already completed\n");
             scope = NULL;
             return;             // semantic() already completed
         }
@@ -868,7 +871,8 @@ void StructDeclaration::semantic(Scope *sc)
     TypeTuple *tup = toArgTypes(type);
     size_t dim = tup->arguments->dim;
     if (dim >= 1)
-    {   assert(dim <= 2);
+    {
+        assert(dim <= 2);
         arg1type = (*tup->arguments)[0]->type;
         if (dim == 2)
             arg2type = (*tup->arguments)[1]->type;
@@ -878,7 +882,8 @@ void StructDeclaration::semantic(Scope *sc)
         semantic2(sc);
 
     if (global.errors != errors)
-    {   // The type is no good.
+    {
+        // The type is no good.
         type = Type::terror;
         this->errors = true;
     }

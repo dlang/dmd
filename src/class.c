@@ -68,7 +68,8 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
     vclassinfo = NULL;
 
     if (id)
-    {   // Look for special class names
+    {
+        // Look for special class names
 
         if (id == Id::__sizeof || id == Id::__xalignof || id == Id::mangleof)
             error("illegal class name");
@@ -77,134 +78,156 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
         if (id->toChars()[0] == 'T')
         {
             if (id == Id::TypeInfo)
-            {   if (!inObject)
+            {
+                if (!inObject)
                     error("%s", msg);
                 Type::dtypeinfo = this;
             }
 
             if (id == Id::TypeInfo_Class)
-            {   if (!inObject)
+            {
+                if (!inObject)
                     error("%s", msg);
                 Type::typeinfoclass = this;
             }
 
             if (id == Id::TypeInfo_Interface)
-            {   if (!inObject)
+            {
+                if (!inObject)
                     error("%s", msg);
                 Type::typeinfointerface = this;
             }
 
             if (id == Id::TypeInfo_Struct)
-            {   if (!inObject)
+            {
+                if (!inObject)
                     error("%s", msg);
                 Type::typeinfostruct = this;
             }
 
             if (id == Id::TypeInfo_Typedef)
-            {   if (!inObject)
+            {
+                if (!inObject)
                     error("%s", msg);
                 Type::typeinfotypedef = this;
             }
 
             if (id == Id::TypeInfo_Pointer)
-            {   if (!inObject)
+            {
+                if (!inObject)
                     error("%s", msg);
                 Type::typeinfopointer = this;
             }
 
             if (id == Id::TypeInfo_Array)
-            {   if (!inObject)
+            {
+                if (!inObject)
                     error("%s", msg);
                 Type::typeinfoarray = this;
             }
 
             if (id == Id::TypeInfo_StaticArray)
-            {   //if (!inObject)
-                    //Type::typeinfostaticarray->error("%s", msg);
+            {
+                //if (!inObject)
+                //    Type::typeinfostaticarray->error("%s", msg);
                 Type::typeinfostaticarray = this;
             }
 
             if (id == Id::TypeInfo_AssociativeArray)
-            {   if (!inObject)
+            {
+                if (!inObject)
                     error("%s", msg);
                 Type::typeinfoassociativearray = this;
             }
 
             if (id == Id::TypeInfo_Enum)
-            {   if (!inObject)
+            {
+                if (!inObject)
                     error("%s", msg);
                 Type::typeinfoenum = this;
             }
 
             if (id == Id::TypeInfo_Function)
-            {   if (!inObject)
+            {
+                if (!inObject)
                     error("%s", msg);
                 Type::typeinfofunction = this;
             }
 
             if (id == Id::TypeInfo_Delegate)
-            {   if (!inObject)
+            {
+                if (!inObject)
                     error("%s", msg);
                 Type::typeinfodelegate = this;
             }
 
             if (id == Id::TypeInfo_Tuple)
-            {   if (!inObject)
+            {
+                if (!inObject)
                     error("%s", msg);
                 Type::typeinfotypelist = this;
             }
 
             if (id == Id::TypeInfo_Const)
-            {   if (!inObject)
+            {
+                if (!inObject)
                     error("%s", msg);
                 Type::typeinfoconst = this;
             }
 
             if (id == Id::TypeInfo_Invariant)
-            {   if (!inObject)
+            {
+                if (!inObject)
                     error("%s", msg);
                 Type::typeinfoinvariant = this;
             }
 
             if (id == Id::TypeInfo_Shared)
-            {   if (!inObject)
+            {
+                if (!inObject)
                     error("%s", msg);
                 Type::typeinfoshared = this;
             }
 
             if (id == Id::TypeInfo_Wild)
-            {   if (!inObject)
+            {
+                if (!inObject)
                     error("%s", msg);
                 Type::typeinfowild = this;
             }
 
             if (id == Id::TypeInfo_Vector)
-            {   if (!inObject)
+            {
+                if (!inObject)
                     error("%s", msg);
                 Type::typeinfovector = this;
             }
         }
 
         if (id == Id::Object)
-        {   if (!inObject)
+        {
+            if (!inObject)
                 error("%s", msg);
             object = this;
         }
 
         if (id == Id::Throwable)
-        {   if (!inObject)
+        {
+            if (!inObject)
                 error("%s", msg);
             throwable = this;
         }
 
         if (id == Id::Exception)
-        {   if (!inObject)
+        {
+            if (!inObject)
                 error("%s", msg);
             exception = this;
         }
 
         if (id == Id::Error)
-        {   if (!inObject)
+        {
+            if (!inObject)
                 error("%s", msg);
             errorException = this;
         }
@@ -251,8 +274,8 @@ void ClassDeclaration::semantic(Scope *sc)
     //{ static int n;  if (++n == 20) *(char*)0=0; }
 
     if (!ident)         // if anonymous class
-    {   const char *id = "__anonclass";
-
+    {
+        const char *id = "__anonclass";
         ident = Identifier::generateId(id);
     }
 
@@ -271,12 +294,15 @@ void ClassDeclaration::semantic(Scope *sc)
     }
 
     if (!members)               // if opaque declaration
-    {   //printf("\tclass '%s' is forward referenced\n", toChars());
+    {
+        //printf("\tclass '%s' is forward referenced\n", toChars());
         return;
     }
     if (symtab)
-    {   if (sizeok == SIZEOKdone || !scope)
-        {   //printf("\tsemantic for '%s' is already completed\n", toChars());
+    {
+        if (sizeok == SIZEOKdone || !scope)
+        {
+            //printf("\tsemantic for '%s' is already completed\n", toChars());
             return;             // semantic() already completed
         }
     }
@@ -313,12 +339,14 @@ void ClassDeclaration::semantic(Scope *sc)
 
         Type *tb = b->type->toBasetype();
         if (tb->ty == Ttuple)
-        {   TypeTuple *tup = (TypeTuple *)tb;
+        {
+            TypeTuple *tup = (TypeTuple *)tb;
             PROT protection = b->protection;
             baseclasses->remove(i);
             size_t dim = Parameter::dim(tup->arguments);
             for (size_t j = 0; j < dim; j++)
-            {   Parameter *arg = Parameter::getNth(tup->arguments, j);
+            {
+                Parameter *arg = Parameter::getNth(tup->arguments, j);
                 b = new BaseClass(arg->type, protection);
                 baseclasses->insert(i + j, b);
             }
@@ -379,7 +407,7 @@ void ClassDeclaration::semantic(Scope *sc)
 
                 if (tc->sym->symtab && tc->sym->scope == NULL)
                 {
-                    /* Bugzilla 11034: Essentailly, class inheritance hierarchy
+                    /* Bugzilla 11034: Essentially, class inheritance hierarchy
                      * and instance size of each classes are orthogonal information.
                      * Therefore, even if tc->sym->sizeof == SIZEOKnone,
                      * we need to set baseClass field for class covariance check.
@@ -739,7 +767,8 @@ void ClassDeclaration::semantic(Scope *sc)
 
 #if 0
     if (baseClass)
-    {   if (!aggDelete)
+    {
+        if (!aggDelete)
             aggDelete = baseClass->aggDelete;
         if (!aggNew)
             aggNew = baseClass->aggNew;
@@ -867,8 +896,8 @@ int ClassDeclaration::isBaseOf2(ClassDeclaration *cd)
         return 0;
     //printf("ClassDeclaration::isBaseOf2(this = '%s', cd = '%s')\n", toChars(), cd->toChars());
     for (size_t i = 0; i < cd->baseclasses->dim; i++)
-    {   BaseClass *b = (*cd->baseclasses)[i];
-
+    {
+        BaseClass *b = (*cd->baseclasses)[i];
         if (b->base == this || isBaseOf2(b->base))
             return 1;
     }
@@ -913,7 +942,8 @@ int ClassDeclaration::isBaseInfoComplete()
     if (!baseClass)
         return ident == Id::Object;
     for (size_t i = 0; i < baseclasses->dim; i++)
-    {   BaseClass *b = (*baseclasses)[i];
+    {
+        BaseClass *b = (*baseclasses)[i];
         if (!b->base || !b->base->isBaseInfoComplete())
             return 0;
     }
@@ -1062,7 +1092,8 @@ FuncDeclaration *ClassDeclaration::findFunc(Identifier *ident, TypeFunction *tf)
             //printf("\t[%d] = %s\n", i, fd->toChars());
             if (ident == fd->ident &&
                 fd->type->covariant(tf) == 1)
-            {   //printf("fd->parent->isClassDeclaration() = %p\n", fd->parent->isClassDeclaration());
+            {
+                //printf("fd->parent->isClassDeclaration() = %p\n", fd->parent->isClassDeclaration());
                 if (!fdmatch)
                     goto Lfd;
                 if (fd == fdmatch)
@@ -1234,7 +1265,8 @@ InterfaceDeclaration::InterfaceDeclaration(Loc loc, Identifier *id, BaseClasses 
     : ClassDeclaration(loc, id, baseclasses)
 {
     if (id == Id::IUnknown)     // IUnknown is the root of all COM interfaces
-    {   com = 1;
+    {
+        com = 1;
         cpp = 1;                // IUnknown is also a C++ interface
     }
 }
@@ -1273,11 +1305,13 @@ void InterfaceDeclaration::semantic(Scope *sc)
     }
 
     if (!members)                       // if forward reference
-    {   //printf("\tinterface '%s' is forward referenced\n", toChars());
+    {
+        //printf("\tinterface '%s' is forward referenced\n", toChars());
         return;
     }
     if (symtab)                 // if already done
-    {   if (!scope)
+    {
+        if (!scope)
             return;
     }
     else
@@ -1310,12 +1344,14 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
         Type *tb = b->type->toBasetype();
         if (tb->ty == Ttuple)
-        {   TypeTuple *tup = (TypeTuple *)tb;
+        {
+            TypeTuple *tup = (TypeTuple *)tb;
             PROT protection = b->protection;
             baseclasses->remove(i);
             size_t dim = Parameter::dim(tup->arguments);
             for (size_t j = 0; j < dim; j++)
-            {   Parameter *arg = Parameter::getNth(tup->arguments, j);
+            {
+                Parameter *arg = Parameter::getNth(tup->arguments, j);
                 b = new BaseClass(arg->type, protection);
                 baseclasses->insert(i + j, b);
             }
@@ -1397,7 +1433,8 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
     // Cat together the vtbl[]'s from base interfaces
     for (size_t i = 0; i < interfaces_dim; i++)
-    {   BaseClass *b = interfaces[i];
+    {
+        BaseClass *b = interfaces[i];
 
         // Skip if b has already appeared
         for (size_t k = 0; k < i; k++)
@@ -1408,7 +1445,8 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
         // Copy vtbl[] from base class
         if (b->base->vtblOffset())
-        {   size_t d = b->base->vtbl.dim;
+        {
+            size_t d = b->base->vtbl.dim;
             if (d > 1)
             {
                 vtbl.reserve(d - 1);
@@ -1453,7 +1491,8 @@ void InterfaceDeclaration::semantic(Scope *sc)
      * resolve individual members like enums.
      */
     for (size_t i = 0; i < members->dim; i++)
-    {   Dsymbol *s = (*members)[i];
+    {
+        Dsymbol *s = (*members)[i];
         /* There are problems doing this in the general case because
          * Scope keeps track of things like 'offset'
          */
@@ -1480,7 +1519,8 @@ void InterfaceDeclaration::semantic(Scope *sc)
     }
 
     if (global.errors != errors)
-    {   // The type is no good.
+    {
+        // The type is no good.
         type = Type::terror;
     }
 
@@ -1524,14 +1564,16 @@ int InterfaceDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
         {
             //printf("\tfound at offset %d\n", b->offset);
             if (poffset)
-            {   *poffset = b->offset;
+            {
+                *poffset = b->offset;
                 if (j && cd->isInterfaceDeclaration())
                     *poffset = OFFSET_RUNTIME;
             }
             return 1;
         }
         if (isBaseOf(b, poffset))
-        {   if (j && poffset && cd->isInterfaceDeclaration())
+        {
+            if (j && poffset && cd->isInterfaceDeclaration())
                 *poffset = OFFSET_RUNTIME;
             return 1;
         }
@@ -1556,14 +1598,16 @@ int InterfaceDeclaration::isBaseOf(BaseClass *bc, int *poffset)
         if (this == b->base)
         {
             if (poffset)
-            {   *poffset = b->offset;
+            {
+                *poffset = b->offset;
                 if (j && bc->base->isInterfaceDeclaration())
                     *poffset = OFFSET_RUNTIME;
             }
             return 1;
         }
         if (isBaseOf(b, poffset))
-        {   if (j && poffset && bc->base->isInterfaceDeclaration())
+        {
+            if (j && poffset && bc->base->isInterfaceDeclaration())
                 *poffset = OFFSET_RUNTIME;
             return 1;
         }
@@ -1582,7 +1626,8 @@ int InterfaceDeclaration::isBaseInfoComplete()
 {
     assert(!baseClass);
     for (size_t i = 0; i < baseclasses->dim; i++)
-    {   BaseClass *b = (*baseclasses)[i];
+    {
+        BaseClass *b = (*baseclasses)[i];
         if (!b->base || !b->base->isBaseInfoComplete ())
             return 0;
     }
