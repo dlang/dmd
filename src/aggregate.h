@@ -114,7 +114,7 @@ public:
     bool isNested();
     void makeNested();
     bool isExport();
-    void searchCtor();
+    Dsymbol *searchCtor();
 
     PROT prot();
 

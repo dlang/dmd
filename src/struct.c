@@ -599,20 +599,21 @@ int AggregateDeclaration::numFieldsInUnion(int firstIndex)
 /*******************************************
  * Look for constructor declaration.
  */
-void AggregateDeclaration::searchCtor()
+Dsymbol *AggregateDeclaration::searchCtor()
 {
-    ctor = search(Loc(), Id::ctor);
-    if (ctor)
+    Dsymbol *s = search(Loc(), Id::ctor);
+    if (s)
     {
-        if (!(ctor->isCtorDeclaration() ||
-              ctor->isTemplateDeclaration() ||
-              ctor->isOverloadSet()))
+        if (!(s->isCtorDeclaration() ||
+              s->isTemplateDeclaration() ||
+              s->isOverloadSet()))
         {
-            error("%s %s is not a constructor; identifiers starting with __ are reserved for the implementation", ctor->kind(), ctor->toChars());
+            error("%s %s is not a constructor; identifiers starting with __ are reserved for the implementation", s->kind(), s->toChars());
             errors = true;
-            ctor = NULL;
+            s = NULL;
         }
     }
+    return s;
 }
 
 /********************************* StructDeclaration ****************************/
@@ -841,7 +842,7 @@ void StructDeclaration::semantic(Scope *sc)
 
     /* Look for special member functions.
      */
-    searchCtor();
+    ctor = searchCtor();
     aggNew =       (NewDeclaration *)search(Loc(), Id::classNew);
     aggDelete = (DeleteDeclaration *)search(Loc(), Id::classDelete);
 
