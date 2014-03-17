@@ -331,16 +331,7 @@ void ClassDeclaration::semantic(Scope *sc)
 
     if (!members)               // if opaque declaration
         return;
-
-    if (symtab)
-    {
-        if (sizeok == SIZEOKdone || !scope)
-        {
-            //printf("\tsemantic for '%s' is already completed\n", toChars());
-            return;             // semantic() already completed
-        }
-    }
-    else
+    if (!symtab)
         symtab = new DsymbolTable();
 
     // Expand any tuples in baseclasses[]
@@ -1331,13 +1322,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
     if (!members)               // if opaque declaration
         return;
-
-    if (symtab)                 // if already done
-    {
-        if (!scope)
-            return;
-    }
-    else
+    if (!symtab)
         symtab = new DsymbolTable();
 
     // Expand any tuples in baseclasses[]

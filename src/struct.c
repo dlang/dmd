@@ -713,15 +713,7 @@ void StructDeclaration::semantic(Scope *sc)
     if (!members)               // if opaque declaration
         return;
 
-    if (symtab)
-    {
-        if (sizeok == SIZEOKdone || !scope)
-        {
-            //printf("already completed\n");
-            return;             // semantic() already completed
-        }
-    }
-    else
+    if (!symtab)
         symtab = new DsymbolTable();
 
     if (sizeok == SIZEOKnone)            // if not already done the addMember step
