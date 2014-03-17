@@ -697,6 +697,16 @@ void StructDeclaration::semantic(Scope *sc)
 
     if (semanticRun == PASSinit)
     {
+        protection = sc->protection;
+
+        alignment = sc->structalign;
+
+        storage_class |= sc->stc;
+        if (storage_class & STCdeprecated)
+            isdeprecated = true;
+        if (storage_class & STCabstract)
+            error("structs, unions cannot be abstract");
+        userAttribDecl = sc->userAttribDecl;
     }
     semanticRun = PASSsemantic;
 
@@ -713,17 +723,6 @@ void StructDeclaration::semantic(Scope *sc)
     }
     else
         symtab = new DsymbolTable();
-
-    protection = sc->protection;
-
-    alignment = sc->structalign;
-
-    storage_class |= sc->stc;
-    if (sc->stc & STCdeprecated)
-        isdeprecated = true;
-    if (sc->stc & STCabstract)
-        error("structs, unions cannot be abstract");
-    userAttribDecl = sc->userAttribDecl;
 
     if (sizeok == SIZEOKnone)            // if not already done the addMember step
     {

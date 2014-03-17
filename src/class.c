@@ -310,6 +310,22 @@ void ClassDeclaration::semantic(Scope *sc)
 
     if (semanticRun == PASSinit)
     {
+        protection = sc->protection;
+
+        storage_class |= sc->stc;
+        if (storage_class & STCdeprecated)
+            isdeprecated = true;
+        if (storage_class & STCauto)
+            error("storage class 'auto' is invalid when declaring a class, did you mean to use 'scope'?");
+        if (storage_class & STCscope)
+            isscope = true;
+        if (storage_class & STCabstract)
+            isabstract = true;
+
+        userAttribDecl = sc->userAttribDecl;
+
+        if (sc->linkage == LINKcpp)
+            cpp = true;
     }
     semanticRun = PASSsemantic;
 
@@ -326,15 +342,6 @@ void ClassDeclaration::semantic(Scope *sc)
     }
     else
         symtab = new DsymbolTable();
-
-    if (sc->stc & STCdeprecated)
-    {
-        isdeprecated = true;
-    }
-    userAttribDecl = sc->userAttribDecl;
-
-    if (sc->linkage == LINKcpp)
-        cpp = true;
 
     // Expand any tuples in baseclasses[]
     for (size_t i = 0; i < baseclasses->dim; )
@@ -547,10 +554,12 @@ void ClassDeclaration::semantic(Scope *sc)
             memcpy(vtbl.tdata(), baseClass->vtbl.tdata(), sizeof(void *) * vtbl.dim);
 
             // Inherit properties from base class
-            com = baseClass->isCOMclass();
+            if (baseClass->isCOMclass())
+                com = true;
             if (baseClass->isCPPclass())
                 cpp = true;
-            isscope = baseClass->isscope;
+            if (baseClass->isscope)
+                isscope = true;
             vthis = baseClass->vthis;
             enclosing = baseClass->enclosing;
             storage_class |= baseClass->storage_class & STC_TYPECTOR;
@@ -562,9 +571,6 @@ void ClassDeclaration::semantic(Scope *sc)
             if (vtblOffset())
                 vtbl.push(this);            // leave room for classinfo as first member
         }
-
-        protection = sc->protection;
-        storage_class |= sc->stc;
 
         interfaceSemantic(sc);
 
@@ -605,13 +611,6 @@ void ClassDeclaration::semantic(Scope *sc)
         }
         else
             makeNested();
-
-        if (storage_class & STCauto)
-            error("storage class 'auto' is invalid when declaring a class, did you mean to use 'scope'?");
-        if (storage_class & STCscope)
-            isscope = true;
-        if (storage_class & STCabstract)
-            isabstract = true;
     }
 
     Scope *sc2 = sc->push(this);
@@ -1320,6 +1319,13 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
     if (semanticRun == PASSinit)
     {
+        protection = sc->protection;
+
+        storage_class |= sc->stc;
+        if (storage_class & STCdeprecated)
+            isdeprecated = true;
+
+        userAttribDecl = sc->userAttribDecl;
     }
     semanticRun = PASSsemantic;
 
@@ -1333,12 +1339,6 @@ void InterfaceDeclaration::semantic(Scope *sc)
     }
     else
         symtab = new DsymbolTable();
-
-    if (sc->stc & STCdeprecated)
-    {
-        isdeprecated = true;
-    }
-    userAttribDecl = sc->userAttribDecl;
 
     // Expand any tuples in baseclasses[]
     for (size_t i = 0; i < baseclasses->dim; )
@@ -1469,9 +1469,6 @@ void InterfaceDeclaration::semantic(Scope *sc)
       Lcontinue:
         ;
     }
-
-    protection = sc->protection;
-    storage_class |= sc->stc & STC_TYPECTOR;
 
     for (size_t i = 0; i < members->dim; i++)
     {
