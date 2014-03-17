@@ -22,6 +22,7 @@ public import core.sys.posix.sys.types; // for off_t, mode_t
 
 version (Posix):
 extern (C):
+nothrow:
 
 //
 // Required
