@@ -7789,10 +7789,9 @@ Type *TypeStruct::semantic(Loc loc, Scope *sc)
 {
     //printf("TypeStruct::semantic('%s')\n", sym->toChars());
 
-    /* Cannot do semantic for sym because scope chain may not
-     * be right.
+    /* Don't semantic for sym because it should be deferred until
+     * sizeof needed or its members accessed.
      */
-    //sym->semantic(sc);
 
     return merge();
 }
@@ -8335,9 +8334,11 @@ Type *TypeClass::syntaxCopy()
 Type *TypeClass::semantic(Loc loc, Scope *sc)
 {
     //printf("TypeClass::semantic(%s)\n", sym->toChars());
-    if (deco)
-        return this;
-    //printf("\t%s\n", merge()->deco);
+
+    /* Don't semantic for sym because it should be deferred until
+     * sizeof needed or its members accessed.
+     */
+
     return merge();
 }
 

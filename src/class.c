@@ -606,25 +606,27 @@ void ClassDeclaration::semantic(Scope *sc)
             isabstract = true;
     }
 
-    sc = sc->push(this);
-    //sc->stc &= ~(STCfinal | STCauto | STCscope | STCstatic | STCabstract | STCdeprecated | STC_TYPECTOR | STCtls | STCgshared);
-    //sc->stc |= storage_class & STC_TYPECTOR;
-    sc->stc &= STCsafe | STCtrusted | STCsystem;
-    sc->parent = this;
-    sc->inunion = 0;
+    Scope *sc2 = sc->push(this);
+    //sc2->stc &= ~(STCfinal | STCauto | STCscope | STCstatic | STCabstract | STCdeprecated | STC_TYPECTOR | STCtls | STCgshared);
+    //sc2->stc |= storage_class & STC_TYPECTOR;
+    sc2->stc &= STCsafe | STCtrusted | STCsystem;
+    sc2->parent = this;
+    sc2->inunion = 0;
     if (isCOMclass())
     {
         if (global.params.isWindows)
-            sc->linkage = LINKwindows;
+            sc2->linkage = LINKwindows;
         else
+        {
             /* This enables us to use COM objects under Linux and
              * work with things like XPCOM
              */
-            sc->linkage = LINKc;
+            sc2->linkage = LINKc;
+        }
     }
-    sc->protection = PROTpublic;
-    sc->explicitProtection = 0;
-    sc->structalign = STRUCTALIGN_DEFAULT;
+    sc2->protection = PROTpublic;
+    sc2->explicitProtection = 0;
+    sc2->structalign = STRUCTALIGN_DEFAULT;
     if (baseClass)
     {
         alignsize = baseClass->alignsize;
@@ -638,8 +640,7 @@ void ClassDeclaration::semantic(Scope *sc)
         else
             structsize = Target::ptrsize * 2;   // allow room for __vptr and __monitor
     }
-    sc->userAttribDecl = NULL;
-    Scope scsave = *sc;
+    sc2->userAttribDecl = NULL;
     size_t members_dim = members->dim;
     sizeok = SIZEOKnone;
 
@@ -649,14 +650,14 @@ void ClassDeclaration::semantic(Scope *sc)
     for (size_t i = 0; i < members_dim; i++)
     {
         Dsymbol *s = (*members)[i];
-        //printf("[%d] setScope %s %s, sc = %p\n", i, s->kind(), s->toChars(), sc);
-        s->setScope(sc);
+        //printf("[%d] setScope %s %s, sc2 = %p\n", i, s->kind(), s->toChars(), sc2);
+        s->setScope(sc2);
     }
 
     for (size_t i = 0; i < members->dim; i++)
     {
         Dsymbol *s = (*members)[i];
-        s->importAll(sc);
+        s->importAll(sc2);
     }
 
     for (size_t i = 0; i < members_dim; i++)
@@ -665,7 +666,7 @@ void ClassDeclaration::semantic(Scope *sc)
 
         // Ungag errors when not speculative
         Ungag ungag = ungagSpeculative();
-        s->semantic(sc);
+        s->semantic(sc2);
     }
 
     // Set the offsets of the fields and determine the size of the class
@@ -696,7 +697,7 @@ void ClassDeclaration::semantic(Scope *sc)
         structsize = 0;
         alignsize = 0;
 
-        sc = sc->pop();
+        sc2->pop();
 
         scope = scx ? scx : sc->copy();
         scope->setNoFree();
@@ -729,7 +730,7 @@ void ClassDeclaration::semantic(Scope *sc)
         }
     }
 
-    inv = buildInv(this, sc);
+    inv = buildInv(this, sc2);
 
     // Can be in base class
     aggNew    =    (NewDeclaration *)search(Loc(), Id::classNew);
@@ -740,7 +741,7 @@ void ClassDeclaration::semantic(Scope *sc)
     //    this() { }
     if (!ctor && baseClass && baseClass->ctor)
     {
-        FuncDeclaration *fd = resolveFuncCall(loc, sc, baseClass->ctor, NULL, NULL, NULL, 1);
+        FuncDeclaration *fd = resolveFuncCall(loc, sc2, baseClass->ctor, NULL, NULL, NULL, 1);
         if (fd && !fd->errors)
         {
             //printf("Creating default this(){} for class %s\n", toChars());
@@ -754,8 +755,7 @@ void ClassDeclaration::semantic(Scope *sc)
             ctor->fbody = new CompoundStatement(Loc(), new Statements());
             members->push(ctor);
             ctor->addMember(sc, this, 1);
-            *sc = scsave;   // why? What about sc->nofree?
-            ctor->semantic(sc);
+            ctor->semantic(sc2);
             this->ctor = ctor;
             defaultCtor = ctor;
         }
@@ -764,16 +764,6 @@ void ClassDeclaration::semantic(Scope *sc)
             error("Cannot implicitly generate a default ctor when base class %s is missing a default ctor", baseClass->toPrettyChars());
         }
     }
-
-#if 0
-    if (baseClass)
-    {
-        if (!aggDelete)
-            aggDelete = baseClass->aggDelete;
-        if (!aggNew)
-            aggNew = baseClass->aggNew;
-    }
-#endif
 
     // Allocate instance of each new interface
     offset = structsize;
@@ -801,13 +791,13 @@ void ClassDeclaration::semantic(Scope *sc)
     sizeok = SIZEOKdone;
     Module::dprogress++;
 
-    dtor = buildDtor(this, sc);
-    if (FuncDeclaration *f = hasIdentityOpAssign(this, sc))
+    dtor = buildDtor(this, sc2);
+    if (FuncDeclaration *f = hasIdentityOpAssign(this, sc2))
     {
         if (!(f->storage_class & STCdisable))
             error(f->loc, "identity assignment operator overload is illegal");
     }
-    sc->pop();
+    sc2->pop();
 
 #if 0 // Do not call until toObjfile() because of forward references
     // Fill in base class vtbl[]s
@@ -1472,18 +1462,17 @@ void InterfaceDeclaration::semantic(Scope *sc)
         s->addMember(sc, this, 1);
     }
 
-    sc = sc->push(this);
-    sc->stc &= STCsafe | STCtrusted | STCsystem;
-    sc->parent = this;
+    Scope *sc2 = sc->push(this);
+    sc2->stc &= STCsafe | STCtrusted | STCsystem;
+    sc2->parent = this;
     if (com)
-        sc->linkage = LINKwindows;
+        sc2->linkage = LINKwindows;
     else if (cpp)
-        sc->linkage = LINKcpp;
-    sc->structalign = STRUCTALIGN_DEFAULT;
-    sc->protection = PROTpublic;
-    sc->explicitProtection = 0;
-//    structalign = sc->structalign;
-    sc->userAttribDecl = NULL;
+        sc2->linkage = LINKcpp;
+    sc2->structalign = STRUCTALIGN_DEFAULT;
+    sc2->protection = PROTpublic;
+    sc2->explicitProtection = 0;
+    sc2->userAttribDecl = NULL;
     structsize = Target::ptrsize * 2;
     inuse++;
 
@@ -1499,14 +1488,14 @@ void InterfaceDeclaration::semantic(Scope *sc)
         if (s->isEnumDeclaration() || (s->isAggregateDeclaration() && s->ident))
         {
             //printf("setScope %s %s\n", s->kind(), s->toChars());
-            s->setScope(sc);
+            s->setScope(sc2);
         }
     }
 
     for (size_t i = 0; i < members->dim; i++)
     {
         Dsymbol *s = (*members)[i];
-        s->importAll(sc);
+        s->importAll(sc2);
     }
 
     for (size_t i = 0; i < members->dim; i++)
@@ -1515,7 +1504,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
         // Ungag errors when not speculative
         Ungag ungag = ungagSpeculative();
-        s->semantic(sc);
+        s->semantic(sc2);
     }
 
     if (global.errors != errors)
@@ -1526,7 +1515,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
     inuse--;
     //members->print();
-    sc->pop();
+    sc2->pop();
     //printf("-InterfaceDeclaration::semantic(%s), type = %p\n", toChars(), type);
 
 #if 0

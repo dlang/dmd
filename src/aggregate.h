@@ -163,6 +163,7 @@ public:
     StructDeclaration(Loc loc, Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
+    void semanticTypeInfoMembers();
     Dsymbol *search(Loc, Identifier *ident, int flags = IgnoreNone);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     const char *kind();
