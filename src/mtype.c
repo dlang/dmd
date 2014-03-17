@@ -6437,7 +6437,13 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
         {
             RootObject *id = idents[i];
             Type *t = s->getType();     // type symbol, type alias, or type tuple?
+            unsigned errorsave = global.errors;
             Dsymbol *sm = s->searchX(loc, sc, id);
+            if (global.errors != errorsave)
+            {
+                *pt = Type::terror;
+                return;
+            }
             //printf("\t3: s = %p %s %s, sm = %p\n", s, s->kind(), s->toChars(), sm);
             if (intypeid && !t && sm && sm->needThis())
                 goto L3;
