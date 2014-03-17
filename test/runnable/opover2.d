@@ -996,6 +996,34 @@ void test6798()
 }
 
 /**************************************/
+// 12382
+
+struct S12382
+{
+    size_t opDollar() { return 0; }
+    size_t opIndex(size_t) { return 0; }
+}
+
+S12382 func12382() { return S12382(); }
+
+static assert(S12382.init[$] == 0);
+static assert(func12382()[$] == 0);
+enum e12382a = S12382.init[$];
+enum e12382b = func12382()[$];
+static v12382a = S12382.init[$];
+static v12382b = func12382()[$];
+
+void test12382()
+{
+    static assert(S12382.init[$] == 0);
+    static assert(func12382()[$] == 0);
+    enum e12382a = S12382.init[$];
+    enum e12382b = func12382()[$];
+    static v12382a = S12382.init[$];
+    static v12382b = func12382()[$];
+}
+
+/**************************************/
 // 7641
 
 mixin template Proxy7641(alias a)

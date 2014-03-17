@@ -232,6 +232,8 @@ Expression *op_overload(Expression *e, Scope *sc)
                 AggregateDeclaration *ad = isAggregate(ae->e1->type);
                 if (ad)
                 {
+                    Expression *e0 = NULL;
+
                     /* Rewrite as:
                      *  a.opIndexUnary!("+")(args);
                      */
@@ -239,7 +241,7 @@ Expression *op_overload(Expression *e, Scope *sc)
                     if (fd)
                     {
                         // Deal with $
-                        Expression *ex = resolveOpDollar(sc, ae);
+                        Expression *ex = resolveOpDollar(sc, ae, &e0);
                         if (!ex)
                             goto Lfallback;
                         if (ex->op == TOKerror)
@@ -256,6 +258,7 @@ Expression *op_overload(Expression *e, Scope *sc)
                             result = result->semantic(sc);
                         if (!result)
                             goto Lfallback;
+                        result = Expression::combine(e0, result);
                         return;
                     }
 
@@ -285,6 +288,7 @@ Expression *op_overload(Expression *e, Scope *sc)
                         se->att1 = ae->att1;
                         e->e1 = se;
                         e->accept(this);
+                        result = Expression::combine(e0, result);
                         return;
                     }
                     if (ae->arguments->dim == 1 && (*ae->arguments)[0]->op == TOKinterval)
@@ -295,6 +299,7 @@ Expression *op_overload(Expression *e, Scope *sc)
                         se->att1 = ae->att1;
                         e->e1 = se;
                         e->accept(this);
+                        result = Expression::combine(e0, result);
                         return;
                     }
                 }
@@ -315,7 +320,8 @@ Expression *op_overload(Expression *e, Scope *sc)
                     if (fd)
                     {
                         // Deal with $
-                        Expression *ex = resolveOpDollar(sc, se);
+                        Expression *e0 = NULL;
+                        Expression *ex = resolveOpDollar(sc, se, &e0);
                         if (ex->op == TOKerror)
                         {
                             result = ex;
@@ -332,6 +338,7 @@ Expression *op_overload(Expression *e, Scope *sc)
                         result = new DotTemplateInstanceExp(e->loc, se->e1, fd->ident, tiargs);
                         result = new CallExp(e->loc, result, a);
                         result = result->semantic(sc);
+                        result = Expression::combine(e0, result);
                         return;
                     }
 
@@ -426,11 +433,13 @@ Expression *op_overload(Expression *e, Scope *sc)
             AggregateDeclaration *ad = isAggregate(ae->e1->type);
             if (ad)
             {
+                Expression *e0 = NULL;
+
                 Dsymbol *fd = search_function(ad, opId(ae));
                 if (fd)
                 {
                     // Deal with $
-                    Expression *ex = resolveOpDollar(sc, ae);
+                    Expression *ex = resolveOpDollar(sc, ae, &e0);
                     if (!ex)
                         goto Lfallback;
                     if (ex->op == TOKerror)
@@ -450,6 +459,7 @@ Expression *op_overload(Expression *e, Scope *sc)
                         result = result->semantic(sc);
                     if (!result)
                         goto Lfallback;
+                    result = Expression::combine(e0, result);
                     return;
                 }
 
@@ -479,6 +489,7 @@ Expression *op_overload(Expression *e, Scope *sc)
                     // a[]
                     SliceExp *se = new SliceExp(ae->loc, ae->e1, NULL, NULL);
                     result = se->semantic(sc);
+                    result = Expression::combine(e0, result);
                     return;
                 }
                 if (ae->arguments->dim == 1 && (*ae->arguments)[0]->op == TOKinterval)
@@ -487,6 +498,7 @@ Expression *op_overload(Expression *e, Scope *sc)
                     IntervalExp *ie = (IntervalExp *)(*ae->arguments)[0];
                     SliceExp *se = new SliceExp(ae->loc, ae->e1, ie->lwr, ie->upr);
                     result = se->semantic(sc);
+                    result = Expression::combine(e0, result);
                     return;
                 }
             }
@@ -916,6 +928,8 @@ Expression *op_overload(Expression *e, Scope *sc)
                 AggregateDeclaration *ad = isAggregate(ae->e1->type);
                 if (ad)
                 {
+                    Expression *e0 = NULL;
+
                     /* Rewrite a[args]+=e2 as:
                      *  a.opIndexOpAssign!("+")(e2, args);
                      */
@@ -923,7 +937,7 @@ Expression *op_overload(Expression *e, Scope *sc)
                     if (fd)
                     {
                         // Deal with $
-                        Expression *ex = resolveOpDollar(sc, ae);
+                        Expression *ex = resolveOpDollar(sc, ae, &e0);
                         if (!ex)
                             goto Lfallback;
                         if (ex->op == TOKerror)
@@ -944,6 +958,7 @@ Expression *op_overload(Expression *e, Scope *sc)
                             result = result->semantic(sc);
                         if (!result)
                             goto Lfallback;
+                        result = Expression::combine(e0, result);
                         return;
                     }
 
@@ -973,6 +988,7 @@ Expression *op_overload(Expression *e, Scope *sc)
                         se->att1 = ae->att1;
                         e->e1 = se;
                         e->accept(this);
+                        result = Expression::combine(e0, result);
                         return;
                     }
                     if (ae->arguments->dim == 1 && (*ae->arguments)[0]->op == TOKinterval)
@@ -983,6 +999,7 @@ Expression *op_overload(Expression *e, Scope *sc)
                         se->att1 = ae->att1;
                         e->e1 = se;
                         e->accept(this);
+                        result = Expression::combine(e0, result);
                         return;
                     }
                 }
@@ -1003,7 +1020,8 @@ Expression *op_overload(Expression *e, Scope *sc)
                     if (fd)
                     {
                         // Deal with $
-                        Expression *ex = resolveOpDollar(sc, se);
+                        Expression *e0 = NULL;
+                        Expression *ex = resolveOpDollar(sc, se, &e0);
                         if (ex->op == TOKerror)
                         {
                             result = ex;
@@ -1022,6 +1040,7 @@ Expression *op_overload(Expression *e, Scope *sc)
                         result = new DotTemplateInstanceExp(e->loc, se->e1, fd->ident, tiargs);
                         result = new CallExp(e->loc, result, a);
                         result = result->semantic(sc);
+                        result = Expression::combine(e0, result);
                         return;
                     }
 
