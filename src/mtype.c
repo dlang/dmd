@@ -7412,6 +7412,7 @@ Expression *TypeEnum::defaultInit(Loc loc)
     // Initialize to first member of enum
     Expression *e = sym->getDefaultValue(loc);
     e = e->copy();
+    e->loc = loc;
     e->type = this;     // to deal with const, immutable, etc., variants
     return e;
 }
