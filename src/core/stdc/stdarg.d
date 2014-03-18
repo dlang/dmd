@@ -2,19 +2,18 @@
  * D header file for C99.
  *
  * Copyright: Copyright Digital Mars 2000 - 2009.
- * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
+ * License:   Distributed under the
+ *    <a href="http://www.boost.org/LICENSE_1_0.txt">Boost Software License 1.0</a>.
+ *    (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
  * Authors:   Walter Bright, Hauke Duden
  * Standards: ISO/IEC 9899:1999 (E)
+ * Source: $(DRUNTIMESRC core/stdc/_stdarg.d)
  */
 
-/*          Copyright Digital Mars 2000 - 2009.
- * Distributed under the Boost Software License, Version 1.0.
- *    (See accompanying file LICENSE or copy at
- *          http://www.boost.org/LICENSE_1_0.txt)
- */
 module core.stdc.stdarg;
 
 @system:
+nothrow:
 
 version( X86 )
 {
@@ -348,10 +347,17 @@ else version (X86_64)
         TypeInfo arg1, arg2;
         if (!ti.argTypes(arg1, arg2))
         {
-            bool inXMMregister(TypeInfo arg)
+            bool inXMMregister(TypeInfo arg) nothrow
             {
-                auto s = arg.toString();
-                return (s == "double" || s == "float" || s == "idouble" || s == "ifloat");
+                try
+                {
+                    auto s = arg.toString();
+                    return (s == "double" || s == "float" || s == "idouble" || s == "ifloat");
+                }
+                catch (Exception e)
+                {
+                    return false;
+                }
             }
 
             TypeInfo_Vector v1 = arg1 ? cast(TypeInfo_Vector)arg1 : null;
