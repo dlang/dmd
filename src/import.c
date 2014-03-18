@@ -628,10 +628,16 @@ Dsymbol *Import::search(Loc loc, Identifier *ident, int flags)
     }
     //printf("%p\tmod = %s\n", this, mod->toChars());
 
+    Dsymbol *s = NULL;
+
+    int saveflags = flags;
+    if (!(flags & IgnoreImportedFQN) && isstatic)
+    {
+        goto Lskip;
+    }
+
     // Don't find private members and import declarations
     flags |= (IgnorePrivateMembers | IgnoreImportedFQN);
-
-    Dsymbol *s = NULL;
 
     if (protection == PROTprivate && (flags & IgnorePrivateImports))
     {
@@ -656,9 +662,10 @@ Dsymbol *Import::search(Loc loc, Identifier *ident, int flags)
         // Forward it to the module
         s = mod->search(loc, ident, flags | IgnorePrivateImports);
     }
+Lskip:
     if (!s && overnext)
     {
-        s = overnext->search(loc, ident, flags);
+        s = overnext->search(loc, ident, saveflags);
     }
 
     return s;

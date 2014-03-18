@@ -1211,7 +1211,7 @@ Dsymbol *Package::search(Loc loc, Identifier *ident, int flags)
          *      // std/algorithm.d would hit.
          *  }
          */
-        Dsymbol *s = aliassym->search(loc, ident, flags);
+        Dsymbol *s = aliassym->search(loc, ident, flags | IgnoreImportedFQN);
         if (s)
             return s;
     }
