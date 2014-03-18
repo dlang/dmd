@@ -7075,10 +7075,10 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
         {
             s = imp->search_correct(ident);
             if (s)
-                error("undefined identifier '%s', did you mean '%s %s'?",
-                      ident->toChars(), s->kind(), s->toChars());
+                error("undefined identifier '%s' in module %s, did you mean '%s %s'?",
+                      ident->toChars(), imp->mod->toPrettyChars(), s->kind(), s->toChars());
             else
-                error("undefined identifier '%s'", ident->toChars());
+                error("undefined identifier '%s' in module %s", ident->toChars(), imp->mod->toPrettyChars());
             return new ErrorExp();
         }
     }
