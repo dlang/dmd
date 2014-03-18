@@ -915,7 +915,22 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
              */
             Dsymbol *s2 = ss->search(loc, ident, ss->isModule() ? IgnorePrivateMembers : IgnoreNone);
             if (!s)
+            {
                 s = s2;
+
+                if (s && s->isOverloadSet())
+                {
+                    // Merge the cross-module overload set 'a2' into 'a'
+                    OverloadSet *a2 = (OverloadSet *)s;
+                    assert(!a);
+
+                    a = new OverloadSet(s->ident);
+                    a->parent = this;
+
+                    a->a.setDim(a2->a.dim);
+                    memcpy(a->a.tdata(), a2->a.tdata(), sizeof(a->a[0]) * a2->a.dim);
+                }
+            }
             else if (s2 && s != s2)
             {
                 if (s->toAlias() == s2->toAlias() ||
@@ -952,6 +967,43 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
                          */
                         s = s->toAlias();
                         s2 = s2->toAlias();
+
+                        // Bugzilla 12242: Merge imported cross-module overload sets
+                        if (s2->isOverloadSet())
+                        {
+                            // Merge the cross-module overload set 'a2' into 'a'
+                            OverloadSet *a2 = (OverloadSet *)s2;
+                            if (!a)
+                            {
+                                a = new OverloadSet(s->ident);
+                                a->parent = this;
+
+                                a->a.setDim(a2->a.dim);
+                                memcpy(a->a.tdata(), a2->a.tdata(), sizeof(a->a[0]) * a2->a.dim);
+                            }
+                            else
+                            {
+                                for (size_t k = 0; k < a2->a.dim; k++)
+                                {
+                                    Dsymbol *sk = a2->a[k];
+                                    for (size_t j = 0; j < a->a.dim; j++)
+                                    {
+                                        Dsymbol *s3 = a->a[j];
+                                        if (sk->toAlias() == s3->toAlias())
+                                        {
+                                            if (s3->isDeprecated() ||
+                                                sk->prot() > s3->prot() && sk->prot() != PROTnone)
+                                                a->a[j] = sk;
+                                            goto LcontinueOvs;
+                                        }
+                                    }
+                                    a->push(sk);
+                                LcontinueOvs:
+                                    continue;
+                                }
+                            }
+                            continue;
+                        }
 
                         /* If both s2 and s are overloadable (though we only
                          * need to check s once)
@@ -996,7 +1048,23 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
              */
             if (a)
             {
-                a->push(s);
+                if (!s->isOverloadSet())
+                {
+                    for (size_t j = 0; j < a->a.dim; j++)
+                    {
+                        Dsymbol *s3 = a->a[j];
+                        if (s->toAlias() == s3->toAlias())
+                        {
+                            if (s3->isDeprecated() ||
+                                s->prot() > s3->prot() && s->prot() != PROTnone)
+                                a->a[j] = s;
+                            goto LcontinueY;
+                        }
+                    }
+                    a->push(s);
+                LcontinueY:
+                    ;
+                }
                 s = a;
             }
 
