@@ -1069,8 +1069,9 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
-struct IntervalExp : Expression
+class IntervalExp : public Expression
 {
+public:
     Expression *lwr;
     Expression *upr;
 

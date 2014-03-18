@@ -7066,8 +7066,8 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
             buf.writestring(" ");
             buf.writestring(imp->mod->toChars());
             buf.writeByte(0);
-            char *s = buf.extractData();
-            e = new StringExp(loc, s, strlen(s), 'c');
+            char *str = buf.extractData();
+            e = new StringExp(loc, str, strlen(str), 'c');
             e = e->semantic(sc);
             return e;
         }

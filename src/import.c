@@ -96,7 +96,7 @@ PROT Import::prot()
 Import *Import::copy()
 {
     Import *imp = (Import *)mem.malloc(sizeof(Import));
-    memcpy(imp, this, sizeof(Import));
+    memcpy((void *)imp, (void *)this, sizeof(Import));
     return imp;
 }
 
@@ -392,7 +392,7 @@ void Import::importScope(Scope *sc)
         }
         else
         {
-            Package *pkg = prev->isPackage();
+            pkg = prev->isPackage();
             assert(pkg);
             //printf("[%s] pkg = %d, pkg->aliassym = %p, mod = %p, mod->isPackageFile = %d\n", loc.toChars(), pkg->isPkgMod, pkg->aliassym, mod, mod->isPackageFile);
             if (pkg->isPkgMod == PKGunknown && mod->isPackageFile)
