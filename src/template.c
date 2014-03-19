@@ -24,7 +24,6 @@
 #include "expression.h"
 #include "scope.h"
 #include "module.h"
-#include "import.h"
 #include "aggregate.h"
 #include "declaration.h"
 #include "dsymbol.h"
@@ -5610,12 +5609,6 @@ void TemplateInstance::expandMembers(Scope *sc2)
     for (size_t i = 0; i < members->dim; i++)
     {
         Dsymbol *s = (*members)[i];
-        s->importAll(sc2);
-    }
-
-    for (size_t i = 0; i < members->dim; i++)
-    {
-        Dsymbol *s = (*members)[i];
         //printf("\t[%d] semantic on '%s' %p kind %s in '%s'\n", i, s->toChars(), s, s->kind(), this->toChars());
         //printf("test: enclosing = %d, sc2->parent = %s\n", enclosing, sc2->parent->toChars());
 //      if (enclosing)
@@ -6552,12 +6545,6 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
                 sa = ((ScopeExp *)ea)->sds;
                 goto Ldsym;
             }
-            if (ea->op == TOKdsymbol)
-            {
-                sa = ((DsymbolExp *)ea)->s->isImport();
-                assert(sa);
-                goto Ldsym;
-            }
             if (ea->op == TOKfunction)
             {
                 FuncExp *fe = (FuncExp *)ea;
@@ -6601,11 +6588,6 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
         {
         Ldsym:
             //printf("dsym %s %s\n", sa->kind(), sa->toChars());
-            if (Import *imp = sa->isImport())
-            {
-                if (sc->module == imp->mod)
-                    sa = imp->mod;
-            }
             TupleDeclaration *d = sa->toAlias()->isTupleDeclaration();
             if (d)
             {
@@ -7939,12 +7921,6 @@ void TemplateMixin::semantic(Scope *sc)
     {
         Dsymbol *s = (*members)[i];
         s->setScope(sc2);
-    }
-
-    for (size_t i = 0; i < members->dim; i++)
-    {
-        Dsymbol *s = (*members)[i];
-        s->importAll(sc2);
     }
 
     for (size_t i = 0; i < members->dim; i++)
