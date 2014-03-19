@@ -25,6 +25,10 @@ ifeq (,$(OS))
   endif
 endif
 
+ifeq (MACOS,$(OS))
+  OS:=osx
+endif
+
 ifeq (,$(MODEL))
   uname_M:=$(shell uname -m)
   ifneq (,$(findstring $(uname_M),x86_64 amd64))
