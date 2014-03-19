@@ -43,23 +43,18 @@ class Package : public ScopeDsymbol
 {
 public:
     PKG isPkgMod;
-    Dsymbol *aliassym;  // isPkgMod == PKGmodule: Module/Import object corresponding to 'package.d'
-                        // isPkgMod != PKGmodule: Package object in enclosing scope
+    Module *mod;        // != NULL if isPkgMod == PKGmodule
 
     Package(Identifier *ident);
     const char *kind();
 
-    static DsymbolTable *resolve(Identifiers *packages, Package **pparent, Package **ppkg);
-    static DsymbolTable *resolve(DsymbolTable *dst, Identifiers *packages, Package **pparent, Package **ppkg);
+    static DsymbolTable *resolve(Identifiers *packages, Dsymbol **pparent, Package **ppkg);
 
     Package *isPackage() { return this; }
 
-    void semantic(Scope *sc) { }
+    virtual void semantic(Scope *) { }
     Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
     void accept(Visitor *v) { v->visit(this); }
-
-    Module *isPackageMod();
-    Package *enclosingPkg();
 };
 
 class Module : public Package
@@ -86,7 +81,6 @@ public:
     unsigned errors;    // if any errors in file
     unsigned numlines;  // number of lines in source file
     int isDocFile;      // if it is a documentation input file, not D source
-    bool isPackageFile; // if it is a package.d
     int needmoduleinfo;
 
     int selfimports;            // 0: don't know, 1: does not, 2: does

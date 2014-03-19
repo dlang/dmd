@@ -1,9 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice9865.d(9): Error: undefined identifier Baz
-fail_compilation/ice9865.d(8): Error: module ice9865b import 'Baz' not found, did you mean 'class Bar'?
+fail_compilation/ice9865.d(9): Error: struct ice9865.Foo no size yet for forward reference
+fail_compilation/ice9865.d(8): Error: alias ice9865.Baz cannot resolve
 ---
 */
-import imports.ice9865b : Baz;
+import imports.ice9865b : Baz; 
 struct Foo { Baz f; }
