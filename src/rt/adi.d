@@ -314,6 +314,23 @@ unittest
     }
 }
 
+private dchar[] mallocUTF32(C)(in C[] s)
+{
+    size_t j = 0;
+    auto p = cast(dchar*)malloc(dchar.sizeof * s.length);
+    auto r = p[0..s.length]; // r[] will never be longer than s[]
+    for (size_t i = 0; i < s.length; )
+    {
+        dchar c = s[i];
+        if (c >= 0x80)
+            c = decode(s, i);
+        else
+            i++;                // c is ascii, no need for decode
+        r[j++] = c;
+    }
+    return r[0 .. j];
+}
+
 /**********************************************
  * Sort array of chars.
  */
@@ -322,7 +339,7 @@ extern (C) char[] _adSortChar(char[] a)
 {
     if (a.length > 1)
     {
-        dchar[] da = cast(dchar[])toUTF32(a);
+        auto da = mallocUTF32(a);
         da.sort;
         size_t i = 0;
         foreach (dchar d; da)
@@ -331,7 +348,7 @@ extern (C) char[] _adSortChar(char[] a)
             a[i .. i + t.length] = t[];
             i += t.length;
         }
-        GC.free(da.ptr);
+        free(da.ptr);
     }
     return a;
 }
@@ -344,7 +361,7 @@ extern (C) wchar[] _adSortWchar(wchar[] a)
 {
     if (a.length > 1)
     {
-        dchar[] da = cast(dchar[])toUTF32(a);
+        auto da = mallocUTF32(a);
         da.sort;
         size_t i = 0;
         foreach (dchar d; da)
@@ -353,7 +370,7 @@ extern (C) wchar[] _adSortWchar(wchar[] a)
             a[i .. i + t.length] = t[];
             i += t.length;
         }
-        GC.free(da.ptr);
+        free(da.ptr);
     }
     return a;
 }
