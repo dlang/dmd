@@ -32,7 +32,7 @@ private
 
     extern (C) void onOutOfMemoryError() @trusted /* pure dmd @@@BUG11461@@@ */ nothrow;
     extern (C) Object _d_newclass(const TypeInfo_Class ci);
-    extern (C) void _d_arrayshrinkfit(const TypeInfo ti, void[] arr) pure nothrow;
+    extern (C) void _d_arrayshrinkfit(const TypeInfo ti, void[] arr) nothrow;
     extern (C) size_t _d_arraysetcapacity(const TypeInfo ti, size_t newcapacity, void *arrptr) pure nothrow;
     extern (C) void rt_finalize(void *data, bool det=true);
 }
@@ -2522,7 +2522,7 @@ unittest
  * Returns:
  *   The input is returned.
  */
-auto ref inout(T[]) assumeSafeAppend(T)(auto ref inout(T[]) arr) pure nothrow
+auto ref inout(T[]) assumeSafeAppend(T)(auto ref inout(T[]) arr) nothrow
 {
     _d_arrayshrinkfit(typeid(T[]), *(cast(void[]*)&arr));
     return arr;
