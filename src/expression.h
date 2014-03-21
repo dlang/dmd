@@ -161,6 +161,9 @@ public:
     void deprecation(const char *format, ...);
     virtual int rvalue(bool allowVoid = false);
 
+    // creates a single expression which is effectively (e1, e2)
+    // this new expression does not necessarily need to have valid D source code representation,
+    // for example, it may include declaration expressions
     static Expression *combine(Expression *e1, Expression *e2);
     static Expressions *arraySyntaxCopy(Expressions *exps);
 
@@ -683,6 +686,9 @@ public:
 
 // Declaration of a symbol
 
+// D grammar allows declarations only as statements. However in AST representation
+// it can be part of any expression. This is used, for example, during internal
+// syntax re-writes to inject hidden symbols.
 class DeclarationExp : public Expression
 {
 public:
