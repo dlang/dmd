@@ -6420,7 +6420,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                     sm = t->toDsymbol(sc);
                     if (sm && id->dyncast() == DYNCAST_IDENTIFIER)
                     {
-                        sm = sm->search(loc, (Identifier *)id, IgnoreImportedFQN);
+                        sm = sm->search(loc, (Identifier *)id);
                         if (sm)
                             goto L2;
                     }
@@ -6996,12 +6996,6 @@ void TypeTypeof::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
                 error(loc, "%s has no type", exp->toChars());
                 goto Lerr;
             }
-        }
-        else if (exp->op == TOKdsymbol && ((DsymbolExp *)exp)->s->isImport())
-        {
-            Import *imp = ((DsymbolExp *)exp)->s->isImport();
-            error(loc, "%s %s has no type", imp->mod->kind(), imp->toChars());
-            goto Lerr;
         }
         t = exp->type;
         if (!t)
@@ -7854,7 +7848,7 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
         }
     }
 
-    s = sym->search(e->loc, ident, IgnoreImportedFQN);
+    s = sym->search(e->loc, ident);
 L1:
     if (!s)
     {
@@ -8393,7 +8387,7 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
         return e;
     }
 
-    s = sym->search(e->loc, ident, IgnoreImportedFQN);
+    s = sym->search(e->loc, ident);
 L1:
     if (!s)
     {

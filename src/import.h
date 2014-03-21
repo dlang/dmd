@@ -44,24 +44,23 @@ public:
 
     Module *mod;
     Package *pkg;               // leftmost package/module
-    Import *overnext;
+
+    AliasDeclarations aliasdecls; // corresponding AliasDeclarations for alias=name pairs
 
     Import(Loc loc, Identifiers *packages, Identifier *id, Identifier *aliasId,
         int isstatic);
     void addAlias(Identifier *name, Identifier *alias);
     const char *kind();
     PROT prot();
-    Import *copy();
     Dsymbol *syntaxCopy(Dsymbol *s);    // copy only syntax trees
     void load(Scope *sc);
     void importAll(Scope *sc);
-    void importScope(Scope *sc);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
     Dsymbol *toAlias();
     int addMember(Scope *sc, ScopeDsymbol *s, int memnum);
     Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
-    char *toChars();
+    bool overloadInsert(Dsymbol *s);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     Import *isImport() { return this; }
