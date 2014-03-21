@@ -3262,8 +3262,8 @@ Lagain:
             error("forward reference of import %s", imp->toChars());
             return new ErrorExp();
         }
-        type = Type::tvoid;
-        return this;
+        ScopeExp *ie = new ScopeExp(loc, imp->pkg);
+        return ie->semantic(sc);
     }
     if (Package *pkg = s->isPackage())
     {
@@ -6933,13 +6933,6 @@ Expression *DotIdExp::semanticX(Scope *sc)
                 e = e->semantic(sc);
                 return e;
             }
-            case TOKdsymbol:
-                if (Import *imp = ((DsymbolExp *)e1)->s->isImport())
-                {
-                    ds = imp->mod;
-                    goto L1;
-                }
-                break;
             default:
                 break;
         }
@@ -7048,54 +7041,18 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
 
     Type *t1b = e1->type->toBasetype();
 
-    ScopeExp *ie = NULL;
-    Dsymbol *s;
-    if (eright->op == TOKdsymbol && ((DsymbolExp *)eright)->s->isImport())
-    {
-        Import *imp = (Import *)((DsymbolExp *)eright)->s;
-        if (imp->mod == sc->module)
-            s = imp->mod->search(loc, ident, IgnoreImportedFQN);
-        else
-            s = imp->search(loc, ident, IgnoreImportedFQN | IgnorePrivateMembers);
-        if (s)
-            goto L1;
-        else if (ident == Id::stringof)
-        {
-            OutBuffer buf;
-            buf.writestring(imp->mod->kind());
-            buf.writestring(" ");
-            buf.writestring(imp->mod->toChars());
-            buf.writeByte(0);
-            char *str = buf.extractData();
-            e = new StringExp(loc, str, strlen(str), 'c');
-            e = e->semantic(sc);
-            return e;
-        }
-        else
-        {
-            s = imp->search_correct(ident);
-            if (s)
-                error("undefined identifier '%s', did you mean '%s %s'?",
-                      ident->toChars(), s->kind(), s->toChars());
-            else
-                error("undefined identifier '%s'", ident->toChars());
-            return new ErrorExp();
-        }
-    }
     if (eright->op == TOKimport)        // also used for template alias's
     {
-        ie = (ScopeExp *)eright;
+        ScopeExp *ie = (ScopeExp *)eright;
 
         /* Disable access to another module's private imports.
          * The check for 'is sds our current module' is because
          * the current module should have access to its own imports.
          */
-        s = ie->sds->search(loc, ident,
-            (ie->sds->isModule() && ie->sds != sc->module ? IgnoreImportedFQN | IgnorePrivateMembers : IgnoreNone)
-        );
+        Dsymbol *s = ie->sds->search(loc, ident,
+            (ie->sds->isModule() && ie->sds != sc->module) ? IgnorePrivateMembers : IgnoreNone);
         if (s)
         {
-        L1:
             /* Check for access before resolving aliases because public
              * aliases to private symbols are public.
              */
@@ -7201,8 +7158,8 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
             Import *imp = s->isImport();
             if (imp)
             {
-                DsymbolExp *se = new DsymbolExp(loc, imp);
-                return se->semantic(sc);
+                ie = new ScopeExp(loc, imp->pkg);
+                return ie->semantic(sc);
             }
 
             // BUG: handle other cases like in IdentifierExp::semantic()
@@ -8462,8 +8419,6 @@ Lagain:
         OverExp *eo = (OverExp *)e1;
         FuncDeclaration *f = NULL;
         Dsymbol *s = NULL;
-        bool err = false;
-        size_t lastmatch = eo->vars->a.dim;
         for (size_t i = 0; i < eo->vars->a.dim; i++)
         {
             s = eo->vars->a[i];
@@ -8479,28 +8434,17 @@ Lagain:
                     /* Error if match in more than one overload set,
                      * even if one is a 'better' match than the other.
                      */
-                    if (eo->vars->bug12359)
-                        continue;
-                    err = true;
                     ScopeDsymbol::multiplyDefined(loc, f, f2);
                 }
                 else
-                {
                     f = f2;
-                    lastmatch = i;
-                }
             }
         }
         if (!f)
-        {
-            /* No overload matches
+        {   /* No overload matches
              */
             error("no overload matches for %s", s->toChars());
             return new ErrorExp();
-        }
-        if (eo->vars->bug12359 && !err && lastmatch != eo->vars->a.dim - 1)
-        {
-            deprecation("implicit overload merging with selective/renamed import is now removed.");
         }
         if (ethis)
             e1 = new DotVarExp(loc, ethis, f);

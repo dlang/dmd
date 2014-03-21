@@ -534,10 +534,8 @@ void Module::parse()
          */
         this->ident = md->id;
         this->safe = md->safe;
-        Package *pparent = NULL;
         Package *ppack = NULL;
-        dst = Package::resolve(md->packages, &pparent, &ppack);
-        this->parent = pparent;
+        dst = Package::resolve(md->packages, &this->parent, &ppack);
         assert(dst);
 
         Module *m = ppack ? ppack->isModule() : NULL;
@@ -584,7 +582,7 @@ void Module::parse()
         Package *p = new Package(ident);
         p->parent = this->parent;
         p->isPkgMod = PKGmodule;
-        p->aliassym = this;
+        p->mod = this;
         p->symtab = new DsymbolTable();
         s = p;
     }
@@ -612,7 +610,7 @@ void Module::parse()
                  * link it to the actual module.
                  */
                 pkg->isPkgMod = PKGmodule;
-                pkg->aliassym = this;
+                pkg->mod = this;
             }
             else
                 error(pkg->loc, "from file %s conflicts with package name %s",
@@ -647,27 +645,6 @@ void Module::importAll(Scope *prevsc)
      * Ignore prevsc.
      */
     Scope *sc = Scope::createGlobal(this);      // create root scope
-
-    if (md)
-    {
-        /* Insert self module FQN to local package tree.
-         *
-         *  module p1.p2.mod;
-         *  void foo() {}
-         *  void main() { p1.p2.mod.foo(); }
-         *  // access current module by FQN
-         */
-
-        Import *imp = new Import(Loc(this, 1, 1), md->packages, ident, NULL, 1);
-        imp->mod = this;
-
-        if (!pkgtab)
-            pkgtab = new DsymbolTable();
-        Package::resolve(pkgtab, md->packages, NULL, &imp->pkg);
-        if (!imp->pkg)
-            imp->pkg = this;
-        imp->importScope(sc);
-    }
 
     // Add import of "object", even for the "object" module.
     // If it isn't there, some compiler rewrites, like
@@ -1093,7 +1070,7 @@ Package::Package(Identifier *ident)
         : ScopeDsymbol(ident)
 {
     this->isPkgMod = PKGunknown;
-    this->aliassym = NULL;
+    this->mod = NULL;
 }
 
 
@@ -1106,24 +1083,13 @@ Module *Package::isPackageMod()
 {
     if (isPkgMod == PKGmodule)
     {
-        if (Module *mod = aliassym->isModule())
-            return mod;
-        if (Import *imp = aliassym->isImport())
-            return imp->mod;
+        return mod;
     }
-    return NULL;
-}
-
-Package *Package::enclosingPkg()
-{
-    if (isPkgMod != PKGmodule && aliassym)
-        return aliassym->isPackage();
     return NULL;
 }
 
 /****************************************************
  * Input:
- *      dst             package tree root
  *      packages[]      the pkg1.pkg2 of pkg1.pkg2.mod
  * Returns:
  *      the symbol table that mod should be inserted into
@@ -1132,14 +1098,10 @@ Package *Package::enclosingPkg()
  *      *ppkg           the leftmost package, i.e. pkg1, or NULL if no packages
  */
 
-DsymbolTable *Package::resolve(Identifiers *packages, Package **pparent, Package **ppkg)
+DsymbolTable *Package::resolve(Identifiers *packages, Dsymbol **pparent, Package **ppkg)
 {
-    return Package::resolve(Module::modules, packages, pparent, ppkg);
-}
-
-DsymbolTable *Package::resolve(DsymbolTable *dst, Identifiers *packages, Package **pparent, Package **ppkg)
-{
-    Package *parent = NULL;
+    DsymbolTable *dst = Module::modules;
+    Dsymbol *parent = NULL;
 
     //printf("Package::resolve()\n");
     if (ppkg)
@@ -1192,38 +1154,17 @@ DsymbolTable *Package::resolve(DsymbolTable *dst, Identifiers *packages, Package
 
 Dsymbol *Package::search(Loc loc, Identifier *ident, int flags)
 {
-    //printf("%s->Package::search(ident='%s', flags=x%x)\n", toChars(), ident->toChars(), flags);
-
-    assert(!imports);
-    assert(!isModule());
-
-    if (isPkgMod == PKGmodule)
+    if (!isModule() && mod)
     {
-        /* Prefer symbols declared in package.d.
-         *
-         *  import std.algorithm;
-         *  import std; // std/package.d
-         *  void main() {
-         *      map!(a=>a*2)([1,2,3]);
-         *      std.map!(a=>a*2)([1,2,3]);
-         *      std.algorithm.map!(a=>a*2)([1,2,3]);
-         *      // iff std/package.d doesn't have a symbol named "algorithm",
-         *      // std/algorithm.d would hit.
-         *  }
-         */
-        Dsymbol *s = aliassym->search(loc, ident, flags);
+        // Prefer full package name.
+        Dsymbol *s = symtab ? symtab->lookup(ident) : NULL;
         if (s)
             return s;
+        //printf("[%s] through pkdmod: %s\n", loc.toChars(), toChars());
+        return mod->search(loc, ident, flags);
     }
 
-    Dsymbol *s = ScopeDsymbol::search(loc, ident, flags);
-    if (!s && !isPackageMod())
-    {
-        if (Package *pkg = enclosingPkg())
-            s = pkg->search(loc, ident, flags);
-    }
-
-    return s;
+    return ScopeDsymbol::search(loc, ident, flags);
 }
 
 /* ===========================  ===================== */
