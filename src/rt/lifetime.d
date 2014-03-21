@@ -986,7 +986,7 @@ void[] _d_newarrayOpT(alias op)(const TypeInfo ti, size_t ndims, va_list q)
         }
 
         auto result = foo(ti, q, ndims);
-        debug(PRINTF) printf("result = %llx\n", result);
+        debug(PRINTF) printf("result = %llx\n", result.ptr);
         va_end(q);
 
         return result;
