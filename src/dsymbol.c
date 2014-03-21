@@ -453,6 +453,11 @@ Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, RootObject *id)
             sm = s->search(loc, ti->name, IgnoreImportedFQN);
             if (!sm)
             {
+                if (Import *imp = s->isImport())
+                {
+                    ::error(loc, "undefined identifier '%s' in module %s", ti->name->toChars(), imp->mod->toPrettyChars());
+                    return NULL;
+                }
                 sm = s->search_correct(ti->name);
                 if (sm)
                     error("template identifier '%s' is not a member of '%s %s', did you mean '%s %s'?",
