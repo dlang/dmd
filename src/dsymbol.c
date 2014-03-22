@@ -590,25 +590,23 @@ int Dsymbol::apply(Dsymbol_apply_ft_t fp, void *param)
     return (*fp)(this, param);
 }
 
-int Dsymbol::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
+int Dsymbol::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
 {
     //printf("Dsymbol::addMember('%s')\n", toChars());
-    //printf("Dsymbol::addMember(this = %p, '%s' scopesym = '%s')\n", this, toChars(), sd->toChars());
-    //printf("Dsymbol::addMember(this = %p, '%s' sd = %p, sd->symtab = %p)\n", this, toChars(), sd, sd->symtab);
-    parent = sd;
+    //printf("Dsymbol::addMember(this = %p, '%s' scopesym = '%s')\n", this, toChars(), sds->toChars());
+    //printf("Dsymbol::addMember(this = %p, '%s' sds = %p, sds->symtab = %p)\n", this, toChars(), sds, sds->symtab);
+    parent = sds;
     if (!isAnonymous())         // no name, so can't add it to symbol table
     {
-        if (!sd->symtabInsert(this))    // if name is already defined
+        if (!sds->symtabInsert(this))    // if name is already defined
         {
-            Dsymbol *s2;
-
-            s2 = sd->symtab->lookup(ident);
+            Dsymbol *s2 = sds->symtab->lookup(ident);
             if (!s2->overloadInsert(this))
             {
-                sd->multiplyDefined(Loc(), this, s2);
+                sds->multiplyDefined(Loc(), this, s2);
             }
         }
-        if (sd->isAggregateDeclaration() || sd->isEnumDeclaration())
+        if (sds->isAggregateDeclaration() || sds->isEnumDeclaration())
         {
             if (ident == Id::__sizeof || ident == Id::__xalignof || ident == Id::mangleof)
                 error(".%s property cannot be redefined", ident->toChars());
@@ -872,13 +870,13 @@ Dsymbol *ScopeDsymbol::syntaxCopy(Dsymbol *s)
 {
     //printf("ScopeDsymbol::syntaxCopy('%s')\n", toChars());
 
-    ScopeDsymbol *sd;
+    ScopeDsymbol *sds;
     if (s)
-        sd = (ScopeDsymbol *)s;
+        sds = (ScopeDsymbol *)s;
     else
-        sd = new ScopeDsymbol(ident);
-    sd->members = arraySyntaxCopy(members);
-    return sd;
+        sds = new ScopeDsymbol(ident);
+    sds->members = arraySyntaxCopy(members);
+    return sds;
 }
 
 /*****************************************

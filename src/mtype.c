@@ -7040,8 +7040,8 @@ void TypeTypeof::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
         }
         else if (exp->op == TOKimport)
         {
-            ScopeDsymbol *s = ((ScopeExp *)exp)->sds;
-            if (s->isPackage())
+            ScopeDsymbol *sds = ((ScopeExp *)exp)->sds;
+            if (sds->isPackage())
             {
                 error(loc, "%s has no type", exp->toChars());
                 goto Lerr;

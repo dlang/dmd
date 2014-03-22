@@ -29,7 +29,7 @@ public:
     StaticAssert(Loc loc, Expression *exp, Expression *msg);
 
     Dsymbol *syntaxCopy(Dsymbol *s);
-    int addMember(Scope *sc, ScopeDsymbol *sd, int memnum);
+    int addMember(Scope *sc, ScopeDsymbol *sds, int memnum);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
     bool oneMember(Dsymbol **ps, Identifier *ident);

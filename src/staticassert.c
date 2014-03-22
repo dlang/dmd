@@ -40,7 +40,7 @@ Dsymbol *StaticAssert::syntaxCopy(Dsymbol *s)
     return sa;
 }
 
-int StaticAssert::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
+int StaticAssert::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
 {
     return 0;           // we didn't add anything
 }
@@ -52,8 +52,8 @@ void StaticAssert::semantic(Scope *sc)
 void StaticAssert::semantic2(Scope *sc)
 {
     //printf("StaticAssert::semantic2() %s\n", toChars());
-    ScopeDsymbol *sd = new ScopeDsymbol();
-    sc = sc->push(sd);
+    ScopeDsymbol *sds = new ScopeDsymbol();
+    sc = sc->push(sds);
     sc->flags |= SCOPEstaticassert;
 
     sc = sc->startCTFE();

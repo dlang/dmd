@@ -72,7 +72,7 @@ void EnumDeclaration::setScope(Scope *sc)
     ScopeDsymbol::setScope(sc);
 }
 
-int EnumDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
+int EnumDeclaration::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
 {
 #if 0
     printf("EnumDeclaration::addMember() %s\n", toChars());
@@ -85,11 +85,11 @@ int EnumDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 
     /* Anonymous enum members get added to enclosing scope.
      */
-    ScopeDsymbol *scopesym = isAnonymous() ? sd : this;
+    ScopeDsymbol *scopesym = isAnonymous() ? sds : this;
 
     if (!isAnonymous())
     {
-        ScopeDsymbol::addMember(sc, sd, memnum);
+        ScopeDsymbol::addMember(sc, sds, memnum);
 
         if (!symtab)
             symtab = new DsymbolTable();
