@@ -483,7 +483,7 @@ extern (C) void onRangeError( string file = __FILE__, size_t line = __LINE__ ) @
  * Throws:
  *  FinalizeError.
  */
-extern (C) void onFinalizeError( ClassInfo info, Exception e, string file = __FILE__, size_t line = __LINE__ ) @safe pure nothrow
+extern (C) void onFinalizeError( ClassInfo info, Throwable e, string file = __FILE__, size_t line = __LINE__ ) @safe pure nothrow
 {
     throw new FinalizeError( info, file, line, e );
 }
