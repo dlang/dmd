@@ -160,7 +160,7 @@ void discardValue(Expression *e)
                 else
                 {
                     CallExp *ce = (CallExp *)e;
-                    e->warning("Call to strictly pure function %s discards return value of type %s, prepend a cast(void) if intentional",
+                    e->warning("Call to function %s without side effects discards return value of type %s, prepend a cast(void) if intentional",
                                ce->f->toPrettyChars(),
                                e->type->toChars());
                 }
