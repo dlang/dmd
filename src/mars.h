@@ -186,6 +186,7 @@ struct Param
     Strings *objfiles;
     Strings *linkswitches;
     Strings *libfiles;
+    Strings *dllfiles;
     const char *deffile;
     const char *resfile;
     const char *exefile;

@@ -571,6 +571,7 @@ int tryMain(size_t argc, const char *argv[])
 
     global.params.linkswitches = new Strings();
     global.params.libfiles = new Strings();
+    global.params.dllfiles = new Strings();
     global.params.objfiles = new Strings();
     global.params.ddocfiles = new Strings();
 
@@ -1321,6 +1322,13 @@ Language changes listed by -transition=id:\n\
             if (FileName::equals(ext, global.lib_ext))
             {
                 global.params.libfiles->push(files[i]);
+                libmodules.push(files[i]);
+                continue;
+            }
+
+            if (FileName::equals(ext, global.dll_ext))
+            {
+                global.params.dllfiles->push(files[i]);
                 libmodules.push(files[i]);
                 continue;
             }
