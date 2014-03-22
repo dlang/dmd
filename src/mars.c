@@ -1326,12 +1326,14 @@ Language changes listed by -transition=id:\n\
                 continue;
             }
 
+#ifndef _WIN32
             if (FileName::equals(ext, global.dll_ext))
             {
                 global.params.dllfiles->push(files[i]);
                 libmodules.push(files[i]);
                 continue;
             }
+#endif
 
             if (strcmp(ext, global.ddoc_ext) == 0)
             {
