@@ -108,8 +108,8 @@ private
     alias void delegate(void*, void*) scanFn;
     extern (C) void thread_scanAll(scope scanFn fn);
 
-    extern (C) void onOutOfMemoryError() @trusted /* pure dmd @@@BUG11461@@@ */ nothrow;
-    extern (C) void onInvalidMemoryOperationError() @trusted /* pure dmd @@@BUG11461@@@ */ nothrow;
+    extern (C) void onOutOfMemoryError(void* pretend_sideffect = null) @trusted pure nothrow; /* dmd @@@BUG11461@@@ */
+    extern (C) void onInvalidMemoryOperationError(void* pretend_sideffect = null) @trusted pure nothrow; /* dmd @@@BUG11461@@@ */ 
 
     enum
     {

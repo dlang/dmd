@@ -19,7 +19,7 @@ import core.stdc.string;
 import core.stdc.stdlib;
 
 
-private extern (C) void onOutOfMemoryError() @trusted /* pure dmd @@@BUG11461@@@ */ nothrow;
+private extern (C) void onOutOfMemoryError(void* pretend_sideffect = null) @trusted pure nothrow; /* dmd @@@BUG11461@@@ */
 
 
 version (DigitalMars)
