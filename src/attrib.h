@@ -41,6 +41,7 @@ public:
     virtual Scope *newScope(Scope *sc);
     int addMember(Scope *sc, ScopeDsymbol *sds, int memnum);
     void setScope(Scope *sc);
+    void importAll(Scope *sc);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
     void semantic3(Scope *sc);
@@ -109,7 +110,6 @@ public:
     ProtDeclaration(PROT p, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
-    void importAll(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     static void protectionToCBuffer(OutBuffer *buf, PROT protection);
@@ -172,7 +172,6 @@ public:
     Dsymbols *include(Scope *sc, ScopeDsymbol *sds);
     void addComment(const utf8_t *comment);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    void importAll(Scope *sc);
     void setScope(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
