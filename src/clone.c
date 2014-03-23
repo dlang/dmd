@@ -231,7 +231,7 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
 
     Parameters *fparams = new Parameters;
     fparams->push(new Parameter(STCnodtor, sd->type, Id::p, NULL));
-    Type *tf = new TypeFunction(fparams, sd->handle, 0, LINKd, stc | STCref);
+    Type *tf = new TypeFunction(fparams, sd->handleType(), 0, LINKd, stc | STCref);
 
     FuncDeclaration *fop = new FuncDeclaration(declLoc, Loc(), Id::assign, stc, tf);
 

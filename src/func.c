@@ -483,7 +483,8 @@ void FuncDeclaration::semantic(Scope *sc)
                 tret = Type::tvoid;
             }
             else
-            {   tret = ad->handle;
+            {
+                tret = ad->handleType();
                 assert(tret);
                 tret = tret->addStorageClass(storage_class | sc->stc);
                 tret = tret->addMod(type->mod);
@@ -2204,12 +2205,11 @@ VarDeclaration *FuncDeclaration::declareThis(Scope *sc, AggregateDeclaration *ad
     {
         VarDeclaration *v;
         {
-            assert(ad->handle);
-            Type *thandle = ad->handle;
+            Type *thandle = ad->handleType();
+            assert(thandle);
             thandle = thandle->addMod(type->mod);
             thandle = thandle->addStorageClass(storage_class);
             v = new ThisDeclaration(loc, thandle);
-            //v = new ThisDeclaration(loc, isCtorDeclaration() ? ad->handle : thandle);
             v->storage_class |= STCparameter;
             if (thandle->ty == Tstruct)
                 v->storage_class |= STCref;

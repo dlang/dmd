@@ -60,7 +60,6 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
 
     // For forward references
     type = new TypeClass(this);
-    handle = type;
 
     staticCtor = NULL;
     staticDtor = NULL;
@@ -263,7 +262,13 @@ void ClassDeclaration::semantic(Scope *sc)
         parent = sc->parent;
 
     type = type->semantic(loc, sc);
-    handle = type;
+
+    if (type->ty == Tclass && ((TypeClass *)type)->sym != this)
+    {
+        TemplateInstance *ti = ((TypeClass *)type)->sym->isInstantiated();
+        if (ti && ti->errors)
+            ((TypeClass *)type)->sym = this;
+    }
 
     if (!members)               // if opaque declaration
     {   //printf("\tclass '%s' is forward referenced\n", toChars());
@@ -797,12 +802,14 @@ void ClassDeclaration::semantic(Scope *sc)
         deferred->semantic3(sc);
     }
 
+#if 0
     if (type->ty == Tclass && ((TypeClass *)type)->sym != this)
     {
-        error("failed semantic analysis");
-        this->errors = true;
-        type = Type::terror;
-    }
+        printf("this = %p %s\n", this, this->toChars());
+        printf("type = %d sym = %p\n", type->ty, ((TypeClass *)type)->sym);
+      }
+#endif
+    assert(type->ty != Tclass || ((TypeClass *)type)->sym == this);
 }
 
 void ClassDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -1262,7 +1269,13 @@ void InterfaceDeclaration::semantic(Scope *sc)
         parent = sc->parent;
 
     type = type->semantic(loc, sc);
-    handle = type;
+
+    if (type->ty == Tclass && ((TypeClass *)type)->sym != this)
+    {
+        TemplateInstance *ti = ((TypeClass *)type)->sym->isInstantiated();
+        if (ti && ti->errors)
+            ((TypeClass *)type)->sym = this;
+    }
 
     if (!members)                       // if forward reference
     {   //printf("\tinterface '%s' is forward referenced\n", toChars());
@@ -1482,12 +1495,14 @@ void InterfaceDeclaration::semantic(Scope *sc)
     sc->pop();
     //printf("-InterfaceDeclaration::semantic(%s), type = %p\n", toChars(), type);
 
+#if 0
     if (type->ty == Tclass && ((TypeClass *)type)->sym != this)
     {
-        error("failed semantic analysis");
-        this->errors = true;
-        type = Type::terror;
-    }
+        printf("this = %p %s\n", this, this->toChars());
+        printf("type = %d sym = %p\n", type->ty, ((TypeClass *)type)->sym);
+      }
+#endif
+    assert(type->ty != Tclass || ((TypeClass *)type)->sym == this);
 }
 
 

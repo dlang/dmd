@@ -155,7 +155,6 @@ AggregateDeclaration::AggregateDeclaration(Loc loc, Identifier *id)
     storage_class = 0;
     protection = PROTpublic;
     type = NULL;
-    handle = NULL;
     structsize = 0;             // size of struct
     alignsize = 0;              // size of struct for alignment purposes
     sizeok = SIZEOKnone;        // size not determined yet
@@ -519,11 +518,12 @@ void AggregateDeclaration::makeNested()
                     //printf("makeNested %s, enclosing = %s\n", toChars(), enclosing->toChars());
                     Type *t;
                     if (ad)
-                        t = ad->handle;
+                        t = ad->handleType();
                     else if (fd)
-                    {   AggregateDeclaration *ad2 = fd->isMember2();
+                    {
+                        AggregateDeclaration *ad2 = fd->isMember2();
                         if (ad2)
-                            t = ad2->handle;
+                            t = ad2->handleType();
                         else
                             t = Type::tvoidptr;
                     }
@@ -685,7 +685,14 @@ void StructDeclaration::semantic(Scope *sc)
 
     parent = sc->parent;
     type = type->semantic(loc, sc);
-    handle = type;
+
+    if (type->ty == Tstruct && ((TypeStruct *)type)->sym != this)
+    {
+        TemplateInstance *ti = ((TypeStruct *)type)->sym->isInstantiated();
+        if (ti && ti->errors)
+            ((TypeStruct *)type)->sym = this;
+    }
+
     protection = sc->protection;
     alignment = sc->structalign;
     storage_class |= sc->stc;
@@ -881,12 +888,14 @@ void StructDeclaration::semantic(Scope *sc)
         deferred->semantic3(sc);
     }
 
+#if 0
     if (type->ty == Tstruct && ((TypeStruct *)type)->sym != this)
     {
-        error("failed semantic analysis");
-        this->errors = true;
-        type = Type::terror;
+        printf("this = %p %s\n", this, this->toChars());
+        printf("type = %d sym = %p\n", type->ty, ((TypeStruct *)type)->sym);
     }
+#endif
+    assert(type->ty != Tstruct || ((TypeStruct *)type)->sym == this);
 }
 
 Dsymbol *StructDeclaration::search(Loc loc, Identifier *ident, int flags)
