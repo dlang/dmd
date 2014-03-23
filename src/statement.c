@@ -1292,12 +1292,47 @@ Statement *ForeachStatement::semantic(Scope *sc)
         return new ErrorStatement();
     }
 
+    Dsymbol* sapplyOld = sapply;  // 'sapply' will be NULL if and after 'inferApplyArgTypes' errors
+
     /* Check for inference errors
      */
     if (!inferApplyArgTypes(this, sc, sapply))
     {
+        /**
+            Try and extract the parameter count of the opApply callback function, e.g.:
+            int opApply(int delegate(int, float)) => 2 args
+        */
+        bool foundMismatch = false;
+        size_t foreachParamCount = 0;
+        if (sapplyOld)
+        {
+            if (FuncDeclaration *fd = sapplyOld->isFuncDeclaration())
+            {
+                int fvarargs;  // ignored (opApply shouldn't take variadics)
+                Parameters *fparameters = fd->getParameters(&fvarargs);
+
+                if (Parameter::dim(fparameters) == 1)
+                {
+                    // first param should be the callback function
+                    Parameter *fparam = Parameter::getNth(fparameters, 0);
+                    if ((fparam->type->ty == Tpointer || fparam->type->ty == Tdelegate) &&
+                        fparam->type->nextOf()->ty == Tfunction)
+                    {
+                        TypeFunction *tf = (TypeFunction *)fparam->type->nextOf();
+                        foreachParamCount = Parameter::dim(tf->parameters);
+                        foundMismatch = true;
+                    }
+                }
+            }
+        }
+
         //printf("dim = %d, arguments->dim = %d\n", dim, arguments->dim);
-        error("cannot uniquely infer foreach argument types");
+        if (foundMismatch && dim != foreachParamCount)
+            error("cannot infer argument types, expected %d argument%s, not %d",
+                  foreachParamCount, foreachParamCount > 1 ? "s" : "", dim);
+        else
+            error("cannot uniquely infer foreach argument types");
+
         goto Lerror;
     }
 
@@ -1802,7 +1837,11 @@ Lagain:
                         break;
                 }
                 if (exps->dim != dim)
-                    goto Lrangeerr;
+                {
+                    error("cannot infer argument types, expected %d argument%s, not %d",
+                          exps->dim, exps->dim > 1 ? "s" : "", dim);
+                    goto Lerror2;
+                }
 
                 for (size_t i = 0; i < dim; i++)
                 {
