@@ -1326,7 +1326,7 @@ Language changes listed by -transition=id:\n\
                 continue;
             }
 
-#ifndef _WIN32
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
             if (FileName::equals(ext, global.dll_ext))
             {
                 global.params.dllfiles->push(files[i]);
