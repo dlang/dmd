@@ -38,7 +38,9 @@ public:
     static Scope *createNewScope(Scope *sc,
         StorageClass newstc, LINK linkage, PROT protection, int explictProtection,
         structalign_t structalign);
+    virtual Scope *newScope(Scope *sc);
     int addMember(Scope *sc, ScopeDsymbol *sds, int memnum);
+    void setScope(Scope *sc);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
     void semantic3(Scope *sc);
@@ -64,8 +66,7 @@ public:
 
     StorageClassDeclaration(StorageClass stc, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
-    void setScope(Scope *sc);
-    void semantic(Scope *sc);
+    Scope *newScope(Scope *sc);
     bool oneMember(Dsymbol **ps, Identifier *ident);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
@@ -93,8 +94,7 @@ public:
 
     LinkDeclaration(LINK p, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
-    void setScope(Scope *sc);
-    void semantic(Scope *sc);
+    Scope *newScope(Scope *sc);
     void semantic3(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     char *toChars();
@@ -108,9 +108,8 @@ public:
 
     ProtDeclaration(PROT p, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
+    Scope *newScope(Scope *sc);
     void importAll(Scope *sc);
-    void setScope(Scope *sc);
-    void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     static void protectionToCBuffer(OutBuffer *buf, PROT protection);
@@ -124,8 +123,7 @@ public:
 
     AlignDeclaration(unsigned sa, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
-    void setScope(Scope *sc);
-    void semantic(Scope *sc);
+    Scope *newScope(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -209,6 +207,7 @@ public:
     CompileDeclaration(Loc loc, Expression *exp);
     Dsymbol *syntaxCopy(Dsymbol *s);
     int addMember(Scope *sc, ScopeDsymbol *sds, int memnum);
+    void setScope(Scope *sc);
     void compileIt(Scope *sc);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -227,6 +226,7 @@ public:
 
     UserAttributeDeclaration(Expressions *atts, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
+    Scope *newScope(Scope *sc);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
     void setScope(Scope *sc);
