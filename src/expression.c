@@ -9664,7 +9664,8 @@ Lagain:
         if (search_function(ad, Id::slice))
         {
             // Rewrite as e1.slice(lwr, upr)
-            Expression *ex = resolveOpDollar(sc, this);
+            Expression *e0 = NULL;
+            Expression *ex = resolveOpDollar(sc, this, &e0);
             if (ex->op == TOKerror)
                 return ex;
             Expressions *a = new Expressions();
@@ -9677,7 +9678,7 @@ Lagain:
             e = new DotIdExp(loc, e1, Id::slice);
             e = new CallExp(loc, e, a);
             e = e->semantic(sc);
-            return e;
+            return Expression::combine(e0, e);
         }
         if (ad->aliasthis && e1->type != att1)
         {
@@ -10543,11 +10544,13 @@ Expression *AssignExp::semantic(Scope *sc)
         AggregateDeclaration *ad = isAggregate(t1);
         if (ad)
         {
+            Expression *e0 = NULL;
+
             // Rewrite (a[i] = value) to (a.opIndexAssign(value, i))
             if (search_function(ad, Id::indexass))
             {
                 // Deal with $
-                Expression *ex = resolveOpDollar(sc, ae);
+                Expression *ex = resolveOpDollar(sc, ae, &e0);
                 if (!ex)
                     goto Lfallback;
                 if (ex->op == TOKerror)
@@ -10564,7 +10567,7 @@ Expression *AssignExp::semantic(Scope *sc)
                     e = e->semantic(sc);
                 if (!e)
                     goto Lfallback;
-                return e;
+                return Expression::combine(e0, e);
             }
 
             // No opIndexAssign found yet, but there might be an alias this to try.
@@ -10588,7 +10591,7 @@ Expression *AssignExp::semantic(Scope *sc)
                 SliceExp *se = new SliceExp(ae->loc, ae->e1, NULL, NULL);
                 se->att1 = ae->att1;
                 this->e1 = se;
-                return this->semantic(sc);
+                return Expression::combine(e0, this->semantic(sc));
             }
             if (ae->arguments->dim == 1 && (*ae->arguments)[0]->op == TOKinterval)
             {
@@ -10597,7 +10600,7 @@ Expression *AssignExp::semantic(Scope *sc)
                 SliceExp *se = new SliceExp(ae->loc, ae->e1, ie->lwr, ie->upr);
                 se->att1 = ae->att1;
                 this->e1 = se;
-                return this->semantic(sc);
+                return Expression::combine(e0, this->semantic(sc));
             }
         }
     }
@@ -10618,7 +10621,8 @@ Expression *AssignExp::semantic(Scope *sc)
             // Rewrite (a[i..j] = value) to (a.opSliceAssign(value, i, j))
             if (search_function(ad, Id::sliceass))
             {
-                Expression *ex = resolveOpDollar(sc, ae);
+                Expression *e0 = NULL;
+                Expression *ex = resolveOpDollar(sc, ae, &e0);
                 if (ex->op == TOKerror)
                     return ex;
                 Expressions *a = new Expressions();
@@ -10632,7 +10636,7 @@ Expression *AssignExp::semantic(Scope *sc)
                 Expression *e = new DotIdExp(loc, ae->e1, Id::sliceass);
                 e = new CallExp(loc, e, a);
                 e = e->semantic(sc);
-                return e;
+                return Expression::combine(e0, e);
             }
 
             // No opSliceAssign found yet, but there might be an alias this to try.
@@ -13549,11 +13553,11 @@ Expression *extractOpDollarSideEffect(Scope *sc, UnaExp *ue)
  * if '$' was used.
  */
 
-Expression *resolveOpDollar(Scope *sc, ArrayExp *ae)
+Expression *resolveOpDollar(Scope *sc, ArrayExp *ae, Expression **pe0)
 {
     assert(!ae->lengthVar);
 
-    Expression *e0 = NULL;
+    *pe0 = NULL;
 
     AggregateDeclaration *ad = isAggregate(ae->e1->type);
     Dsymbol *slice = search_function(ad, Id::slice);
@@ -13562,22 +13566,16 @@ Expression *resolveOpDollar(Scope *sc, ArrayExp *ae)
     for (size_t i = 0; i < ae->arguments->dim; i++)
     {
         if (i == 0)
-            e0 = extractOpDollarSideEffect(sc, ae);
+            *pe0 = extractOpDollarSideEffect(sc, ae);
 
         Expression *e = (*ae->arguments)[i];
         if (e->op == TOKinterval && !(slice && slice->isTemplateDeclaration()))
         {
         Lfallback:
             if (ae->arguments->dim == 1)
-            {
-                ae->e1 = Expression::combine(e0, ae->e1);
                 return NULL;
-            }
-            else
-            {
-                ae->error("multi-dimensional slicing requires template opSlice");
-                return new ErrorExp();
-            }
+            ae->error("multi-dimensional slicing requires template opSlice");
+            return new ErrorExp();
         }
         //printf("[%d] e = %s\n", i, e->toChars());
 
@@ -13597,7 +13595,7 @@ Expression *resolveOpDollar(Scope *sc, ArrayExp *ae)
             // If $ was used, declare it now
             Expression *de = new DeclarationExp(ae->loc, ae->lengthVar);
             de = de->semantic(sc);
-            e0 = Expression::combine(e0, de);
+            *pe0 = Expression::combine(*pe0, de);
         }
         sc = sc->pop();
 
@@ -13642,7 +13640,6 @@ Expression *resolveOpDollar(Scope *sc, ArrayExp *ae)
         (*ae->arguments)[i] = e;
     }
 
-    ae->e1 = Expression::combine(e0, ae->e1);
     return ae;
 }
 
@@ -13651,7 +13648,7 @@ Expression *resolveOpDollar(Scope *sc, ArrayExp *ae)
  * if '$' was used.
  */
 
-Expression *resolveOpDollar(Scope *sc, SliceExp *se)
+Expression *resolveOpDollar(Scope *sc, SliceExp *se, Expression **pe0)
 {
     assert(!se->lengthVar);
     assert(!se->lwr || se->upr);
@@ -13659,7 +13656,7 @@ Expression *resolveOpDollar(Scope *sc, SliceExp *se)
     if (!se->lwr)
         return se;
 
-    Expression *e0 = extractOpDollarSideEffect(sc, se);
+    *pe0 = extractOpDollarSideEffect(sc, se);
 
     // create scope for '$'
     ArrayScopeSymbol *sym = new ArrayScopeSymbol(sc, se);
@@ -13685,11 +13682,10 @@ Expression *resolveOpDollar(Scope *sc, SliceExp *se)
         // If $ was used, declare it now
         Expression *de = new DeclarationExp(se->loc, se->lengthVar);
         de = de->semantic(sc);
-        e0 = Expression::combine(e0, de);
+        *pe0 = Expression::combine(*pe0, de);
     }
     sc = sc->pop();
 
-    se->e1 = Expression::combine(e0, se->e1);
     return se;
 }
 
