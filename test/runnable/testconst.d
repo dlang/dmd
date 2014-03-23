@@ -2970,6 +2970,8 @@ inout(T)      bar7757a(T)(T x, lazy inout(T)    def) { return def; }
 inout(T)[]    bar7757b(T)(T x, lazy inout(T)[]  def) { return def; }
 inout(T)[T]   bar7757c(T)(T x, lazy inout(T)[T] def) { return def; }
 
+inout(Object) get7757(lazy inout(Object) defVal) { return null; }
+
 void test7757()
 {
           int       mx1  = foo7757a(1,2);
@@ -2985,6 +2987,9 @@ void test7757()
     const(int)[]    ca2  = bar7757b(1,[2]);
           int [int] maa2 = bar7757c(1,[2:3]);
     const(int)[int] caa2 = bar7757c(1,[2:3]);
+
+    Object defObj = null;
+    auto resObj = get7757(defObj);
 }
 
 /************************************/
