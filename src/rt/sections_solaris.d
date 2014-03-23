@@ -81,7 +81,7 @@ void finiTLSRanges(void[] rng)
 {
 }
 
-void scanTLSRanges(void[] rng, scope void delegate(void* pbeg, void* pend) dg)
+void scanTLSRanges(void[] rng, scope void delegate(void* pbeg, void* pend) nothrow dg) nothrow
 {
     dg(rng.ptr, rng.ptr + rng.length);
 }

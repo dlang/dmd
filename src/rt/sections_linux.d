@@ -114,7 +114,7 @@ void finiSections()
     _isRuntimeInitialized = false;
 }
 
-alias ScanDG = void delegate(void* pbeg, void* pend);
+alias ScanDG = void delegate(void* pbeg, void* pend) nothrow;
 
 version (Shared)
 {
@@ -131,7 +131,7 @@ version (Shared)
         tdsos.reset();
     }
 
-    void scanTLSRanges(Array!(ThreadDSO)* tdsos, scope ScanDG dg)
+    void scanTLSRanges(Array!(ThreadDSO)* tdsos, scope ScanDG dg) nothrow
     {
         foreach (ref tdso; *tdsos)
             dg(tdso._tlsRange.ptr, tdso._tlsRange.ptr + tdso._tlsRange.length);
@@ -211,7 +211,7 @@ else
         rngs.reset();
     }
 
-    void scanTLSRanges(Array!(void[])* rngs, scope ScanDG dg)
+    void scanTLSRanges(Array!(void[])* rngs, scope ScanDG dg) nothrow
     {
         foreach (rng; *rngs)
             dg(rng.ptr, rng.ptr + rng.length);

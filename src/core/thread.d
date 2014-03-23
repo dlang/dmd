@@ -1060,7 +1060,7 @@ class Thread
      *  deleting this object is undefined.  If the current thread is not
      *  attached to the runtime, a null reference is returned.
      */
-    static Thread getThis()
+    static Thread getThis() nothrow
     {
         // NOTE: This function may not be called until thread_init has
         //       completed.  See thread_suspendAll for more information
@@ -2049,12 +2049,12 @@ version (PPC64) version = ExternStackShell;
 
 version (ExternStackShell)
 {
-    extern(D) public void callWithStackShell(scope void delegate(void* sp) fn);
+    extern(D) public void callWithStackShell(scope void delegate(void* sp) fn) nothrow;
 }
 else
 {
     // Calls the given delegate, passing the current thread's stack pointer to it.
-    private void callWithStackShell(scope void delegate(void* sp) fn)
+    private void callWithStackShell(scope void delegate(void* sp) fn) nothrow
     in
     {
         assert(fn);
@@ -2489,10 +2489,10 @@ enum ScanType
     tls,
 }
 
-alias void delegate(void*, void*) ScanAllThreadsFn;
-alias void delegate(ScanType, void*, void*) ScanAllThreadsTypeFn;
+alias void delegate(void*, void*) nothrow ScanAllThreadsFn;
+alias void delegate(ScanType, void*, void*) nothrow ScanAllThreadsTypeFn;
 
-extern (C) void thread_scanAllType( scope ScanAllThreadsTypeFn scan )
+extern (C) void thread_scanAllType( scope ScanAllThreadsTypeFn scan ) nothrow
 in
 {
     assert( suspendDepth > 0 );
@@ -2503,7 +2503,7 @@ body
 }
 
 
-private void scanAllTypeImpl( scope ScanAllThreadsTypeFn scan, void* curStackTop )
+private void scanAllTypeImpl( scope ScanAllThreadsTypeFn scan, void* curStackTop ) nothrow
 {
     Thread  thisThread  = null;
     void*   oldStackTop = null;
@@ -2563,7 +2563,7 @@ private void scanAllTypeImpl( scope ScanAllThreadsTypeFn scan, void* curStackTop
 }
 
 
-extern (C) void thread_scanAll( scope ScanAllThreadsFn scan )
+extern (C) void thread_scanAll( scope ScanAllThreadsFn scan ) nothrow
 {
     thread_scanAllType((type, p1, p2) => scan(p1, p2));
 }
@@ -2705,7 +2705,7 @@ unittest
  * In:
  *  This routine must be called just prior to resuming all threads.
  */
-extern(C) void thread_processGCMarks(scope rt.tlsgc.IsMarkedDg dg)
+extern(C) void thread_processGCMarks(scope rt.tlsgc.IsMarkedDg dg) nothrow
 {
     for( Thread t = Thread.sm_tbeg; t; t = t.next )
     {

@@ -342,7 +342,7 @@ class Thread
      *  deleting this object is undefined.  If the current thread is not
      *  attached to the runtime, a null reference is returned.
      */
-    static Thread getThis();
+    static Thread getThis() nothrow;
 
 
     /**
@@ -653,7 +653,7 @@ alias int delegate( void* addr ) IsMarkedDg;
  * In:
  *  This routine must be called just prior to resuming all threads.
  */
-extern(C) void thread_processGCMarks( scope IsMarkedDg isMarked );
+extern(C) void thread_processGCMarks( scope IsMarkedDg isMarked ) nothrow;
 
 
 /**

@@ -40,6 +40,7 @@ private
         {
             void function() gc_enable;
             void function() gc_disable;
+        nothrow:
             void function() gc_collect;
             void function() gc_minimize;
 
@@ -163,7 +164,7 @@ extern (C)
         return proxy.gc_disable();
     }
 
-    void gc_collect()
+    void gc_collect() nothrow
     {
         if( proxy is null )
         {
@@ -173,42 +174,42 @@ extern (C)
         return proxy.gc_collect();
     }
 
-    void gc_minimize()
+    void gc_minimize() nothrow
     {
         if( proxy is null )
             return _gc.minimize();
         return proxy.gc_minimize();
     }
 
-    uint gc_getAttr( void* p )
+    uint gc_getAttr( void* p ) nothrow
     {
         if( proxy is null )
             return _gc.getAttr( p );
         return proxy.gc_getAttr( p );
     }
 
-    uint gc_setAttr( void* p, uint a )
+    uint gc_setAttr( void* p, uint a ) nothrow
     {
         if( proxy is null )
             return _gc.setAttr( p, a );
         return proxy.gc_setAttr( p, a );
     }
 
-    uint gc_clrAttr( void* p, uint a )
+    uint gc_clrAttr( void* p, uint a ) nothrow
     {
         if( proxy is null )
             return _gc.clrAttr( p, a );
         return proxy.gc_clrAttr( p, a );
     }
 
-    void* gc_malloc( size_t sz, uint ba = 0 )
+    void* gc_malloc( size_t sz, uint ba = 0 ) nothrow
     {
         if( proxy is null )
             return _gc.malloc( sz, ba );
         return proxy.gc_malloc( sz, ba );
     }
 
-    BlkInfo gc_qalloc( size_t sz, uint ba = 0 )
+    BlkInfo gc_qalloc( size_t sz, uint ba = 0 ) nothrow
     {
         if( proxy is null )
         {
@@ -220,56 +221,56 @@ extern (C)
         return proxy.gc_qalloc( sz, ba );
     }
 
-    void* gc_calloc( size_t sz, uint ba = 0 )
+    void* gc_calloc( size_t sz, uint ba = 0 ) nothrow
     {
         if( proxy is null )
             return _gc.calloc( sz, ba );
         return proxy.gc_calloc( sz, ba );
     }
 
-    void* gc_realloc( void* p, size_t sz, uint ba = 0 )
+    void* gc_realloc( void* p, size_t sz, uint ba = 0 ) nothrow
     {
         if( proxy is null )
             return _gc.realloc( p, sz, ba );
         return proxy.gc_realloc( p, sz, ba );
     }
 
-    size_t gc_extend( void* p, size_t mx, size_t sz )
+    size_t gc_extend( void* p, size_t mx, size_t sz ) nothrow
     {
         if( proxy is null )
             return _gc.extend( p, mx, sz );
         return proxy.gc_extend( p, mx, sz );
     }
 
-    size_t gc_reserve( size_t sz )
+    size_t gc_reserve( size_t sz ) nothrow
     {
         if( proxy is null )
             return _gc.reserve( sz );
         return proxy.gc_reserve( sz );
     }
 
-    void gc_free( void* p )
+    void gc_free( void* p ) nothrow
     {
         if( proxy is null )
             return _gc.free( p );
         return proxy.gc_free( p );
     }
 
-    void* gc_addrOf( void* p )
+    void* gc_addrOf( void* p ) nothrow
     {
         if( proxy is null )
             return _gc.addrOf( p );
         return proxy.gc_addrOf( p );
     }
 
-    size_t gc_sizeOf( void* p )
+    size_t gc_sizeOf( void* p ) nothrow
     {
         if( proxy is null )
             return _gc.sizeOf( p );
         return proxy.gc_sizeOf( p );
     }
 
-    BlkInfo gc_query( void* p )
+    BlkInfo gc_query( void* p ) nothrow
     {
         if( proxy is null )
             return _gc.query( p );
@@ -278,7 +279,7 @@ extern (C)
 
     // NOTE: This routine is experimental. The stats or function name may change
     //       before it is made officially available.
-    GCStats gc_stats()
+    GCStats gc_stats() nothrow
     {
         if( proxy is null )
         {
@@ -292,42 +293,42 @@ extern (C)
         return GCStats.init;
     }
 
-    void gc_addRoot( void* p )
+    void gc_addRoot( void* p ) nothrow
     {
         if( proxy is null )
             return _gc.addRoot( p );
         return proxy.gc_addRoot( p );
     }
 
-    void gc_addRange( void* p, size_t sz )
+    void gc_addRange( void* p, size_t sz ) nothrow
     {
         if( proxy is null )
             return _gc.addRange( p, sz );
         return proxy.gc_addRange( p, sz );
     }
 
-    void gc_removeRoot( void* p )
+    void gc_removeRoot( void* p ) nothrow
     {
         if( proxy is null )
             return _gc.removeRoot( p );
         return proxy.gc_removeRoot( p );
     }
 
-    void gc_removeRange( void* p )
+    void gc_removeRange( void* p ) nothrow
     {
         if( proxy is null )
             return _gc.removeRange( p );
         return proxy.gc_removeRange( p );
     }
 
-    void gc_runFinalizers( in void[] segment )
+    void gc_runFinalizers( in void[] segment ) nothrow
     {
         if( proxy is null )
             return _gc.runFinalizers( segment );
         return proxy.gc_runFinalizers( segment );
     }
 
-    Proxy* gc_getProxy()
+    Proxy* gc_getProxy() nothrow
     {
         return &pthis;
     }
