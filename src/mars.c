@@ -571,6 +571,7 @@ int tryMain(size_t argc, const char *argv[])
 
     global.params.linkswitches = new Strings();
     global.params.libfiles = new Strings();
+    global.params.dllfiles = new Strings();
     global.params.objfiles = new Strings();
     global.params.ddocfiles = new Strings();
 
@@ -1324,6 +1325,15 @@ Language changes listed by -transition=id:\n\
                 libmodules.push(files[i]);
                 continue;
             }
+
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+            if (FileName::equals(ext, global.dll_ext))
+            {
+                global.params.dllfiles->push(files[i]);
+                libmodules.push(files[i]);
+                continue;
+            }
+#endif
 
             if (strcmp(ext, global.ddoc_ext) == 0)
             {

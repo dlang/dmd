@@ -601,6 +601,12 @@ int runLINK()
         }
     }
 
+    for (size_t i = 0; i < global.params.dllfiles->dim; i++)
+    {
+        const char *p = (*global.params.dllfiles)[i];
+        argv.push(p);
+    }
+
     /* Standard libraries must go after user specified libraries
      * passed with -l.
      */
