@@ -94,7 +94,7 @@ Scope *AttribDeclaration::createNewScope(Scope *sc,
 
 /****************************************
  * A hook point to supply scope for members.
- * addMember, setScope, importAll and semantic will use this.
+ * addMember, setScope, importAll, semantic, semantic2 and semantic3 will use this.
  */
 Scope *AttribDeclaration::newScope(Scope *sc)
 {
@@ -189,11 +189,16 @@ void AttribDeclaration::semantic2(Scope *sc)
 
     if (d)
     {
+        Scope *sc2 = newScope(sc);
+
         for (size_t i = 0; i < d->dim; i++)
         {
             Dsymbol *s = (*d)[i];
-            s->semantic2(sc);
+            s->semantic2(sc2);
         }
+
+        if (sc2 != sc)
+            sc2->pop();
     }
 }
 
@@ -203,11 +208,16 @@ void AttribDeclaration::semantic3(Scope *sc)
 
     if (d)
     {
+        Scope *sc2 = newScope(sc);
+
         for (size_t i = 0; i < d->dim; i++)
         {
             Dsymbol *s = (*d)[i];
-            s->semantic3(sc);
+            s->semantic3(sc2);
         }
+
+        if (sc2 != sc)
+            sc2->pop();
     }
 }
 
@@ -579,28 +589,6 @@ Dsymbol *LinkDeclaration::syntaxCopy(Dsymbol *s)
 Scope *LinkDeclaration::newScope(Scope *sc)
 {
     return createNewScope(sc, sc->stc, this->linkage, sc->protection, sc->explicitProtection, sc->structalign);
-}
-
-void LinkDeclaration::semantic3(Scope *sc)
-{
-    //printf("LinkDeclaration::semantic3(linkage = %d, decl = %p)\n", linkage, decl);
-    if (decl)
-    {
-        LINK linkage_save = sc->linkage;
-
-        sc->linkage = linkage;
-        for (size_t i = 0; i < decl->dim; i++)
-        {
-            Dsymbol *s = (*decl)[i];
-
-            s->semantic3(sc);
-        }
-        sc->linkage = linkage_save;
-    }
-    else
-    {
-        sc->linkage = linkage;
-    }
 }
 
 void LinkDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -1572,29 +1560,16 @@ void UserAttributeDeclaration::semantic(Scope *sc)
 
 void UserAttributeDeclaration::semantic2(Scope *sc)
 {
-    if (decl)
+    if (decl && atts && atts->dim)
     {
-        Scope *newsc = sc;
-        if (atts && atts->dim)
+        if (atts && atts->dim && scope)
         {
-            if (scope)
-            {
-                scope = NULL;
-                arrayExpressionSemantic(atts, sc);  // run semantic
-            }
-
-            // create new one for changes
-            newsc = sc->push();
-            newsc->userAttribDecl = this;
+            scope = NULL;
+            arrayExpressionSemantic(atts, sc);  // run semantic
         }
-        for (size_t i = 0; i < decl->dim; i++)
-        {
-            Dsymbol *s = (*decl)[i];
-            s->semantic2(newsc);
-        }
-        if (newsc != sc)
-            newsc->pop();
     }
+
+    AttribDeclaration::semantic2(sc);
 }
 
 Expressions *UserAttributeDeclaration::concat(Expressions *udas1, Expressions *udas2)
