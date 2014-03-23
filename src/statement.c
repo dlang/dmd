@@ -1328,8 +1328,11 @@ Statement *ForeachStatement::semantic(Scope *sc)
 
         //printf("dim = %d, arguments->dim = %d\n", dim, arguments->dim);
         if (foundMismatch && dim != foreachParamCount)
+        {
+            const char *plural = foreachParamCount > 1 ? "s" : "";
             error("cannot infer argument types, expected %d argument%s, not %d",
-                  foreachParamCount, foreachParamCount > 1 ? "s" : "", dim);
+                  foreachParamCount, plural, dim);
+        }
         else
             error("cannot uniquely infer foreach argument types");
 
@@ -1838,8 +1841,9 @@ Lagain:
                 }
                 if (exps->dim != dim)
                 {
+                    const char *plural = exps->dim > 1 ? "s" : "";
                     error("cannot infer argument types, expected %d argument%s, not %d",
-                          exps->dim, exps->dim > 1 ? "s" : "", dim);
+                          exps->dim, plural, dim);
                     goto Lerror2;
                 }
 
