@@ -3263,6 +3263,32 @@ static assert(fqnSym12263!(A12263!(Object)));
 static assert(fqnSym12263!(B12263!(Object)));
 
 /******************************************/
+// 12285
+
+struct S12285
+{
+    int a, c;
+
+    template toA(alias s)
+    {
+        void copy()
+        {
+            a = s;
+        }
+    }
+
+    alias cToA = toA!c;
+}
+
+void test12285()
+{
+    S12285 s;
+    s.c = 42;
+    s.cToA.copy();
+    assert(s.a == 42);
+}
+
+/******************************************/
 // 12290
 
 void test12290()
@@ -4138,6 +4164,7 @@ int main()
     test11872();
     test12122();
     test12207();
+    test12285();
     test12376();
     test13235();
     test13299();

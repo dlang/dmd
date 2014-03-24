@@ -7160,39 +7160,37 @@ bool TemplateInstance::hasNestedArgs(Objects *args, bool isstatic)
                  !isTemplateMixin()
                 ))
             {
-                // if module level template
-                if (isstatic)
+                Dsymbol *dparent = sa->toParent2();
+
+                if (!isstatic && !enclosing)
+                    enclosing = toParent2();
+
+                if (!enclosing)
+                    enclosing = dparent;
+                else if (enclosing != dparent)
                 {
-                    Dsymbol *dparent = sa->toParent2();
-                    if (!enclosing)
-                        enclosing = dparent;
-                    else if (enclosing != dparent)
+                    /* Select the more deeply nested of the two.
+                        * Error if one is not nested inside the other.
+                        */
+                    for (Dsymbol *p = enclosing; p; p = p->parent)
                     {
-                        /* Select the more deeply nested of the two.
-                         * Error if one is not nested inside the other.
-                         */
-                        for (Dsymbol *p = enclosing; p; p = p->parent)
-                        {
-                            if (p == dparent)
-                                goto L1;        // enclosing is most nested
-                        }
-                        for (Dsymbol *p = dparent; p; p = p->parent)
-                        {
-                            if (p == enclosing)
-                            {
-                                enclosing = dparent;
-                                goto L1;        // dparent is most nested
-                            }
-                        }
-                        error("%s is nested in both %s and %s",
-                                toChars(), enclosing->toChars(), dparent->toChars());
+                        if (p == dparent)
+                            goto L1;        // enclosing is most nested
                     }
-                  L1:
-                    //printf("\tnested inside %s\n", enclosing->toChars());
-                    nested |= 1;
+                    for (Dsymbol *p = dparent; p; p = p->parent)
+                    {
+                        if (p == enclosing)
+                        {
+                            enclosing = dparent;
+                            goto L1;        // dparent is most nested
+                        }
+                    }
+                    error("%s is nested in both %s and %s",
+                            toChars(), enclosing->toChars(), dparent->toChars());
                 }
-                else
-                    error("cannot use local '%s' as parameter to non-global template %s", sa->toChars(), tempdecl->toChars());
+              L1:
+                //printf("\tnested inside %s\n", enclosing->toChars());
+                nested |= 1;
             }
         }
         else if (va)

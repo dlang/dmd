@@ -1,17 +1,24 @@
 /*
 test_output:
 ---
-fail_compilation/fail324.d(16): Error: template instance doStuff!((i){ return i; }) cannot use local '__lambda1' as parameter to non-global template doStuff(alias fun)()
+fail_compilation/fail324.d(11): Error: need 'this' for 'f' of type 'int'
+fail_compilation/fail324.d(18): Error: template instance fail324.main.doStuff!((i)
+{
+return j;
+}
+) error instantiating
 ---
 */
 
 struct Foo
 {
-    void doStuff(alias fun)() {}
+    int f;
+    void doStuff(alias fun)() { fun(f); }
 }
 
 void main()
 {
     Foo foo;
-    foo.doStuff!( (i) { return i; })();
+    int j;
+    foo.doStuff!( (i) { return j; })();
 }
