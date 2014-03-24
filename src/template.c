@@ -6759,7 +6759,7 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
 
         if (p.td_ambig)
         {
-            ::error(loc, "%s %s.%s matches more than one template declaration:\n\t%s:%s\nand\n\t%s:%s",
+            ::error(loc, "%s %s.%s matches more than one template declaration:\n%s:     %s\nand\n%s:     %s",
                     p.td_best->kind(), p.td_best->parent->toPrettyChars(), p.td_best->ident->toChars(),
                     p.td_best->loc.toChars() , p.td_best->toChars(),
                     p.td_ambig->loc.toChars(), p.td_ambig->toChars());
