@@ -46,9 +46,10 @@ enum
 }
 
 struct epoll_event 
-{ 
-     uint events;
-     epoll_data_t data;
+{
+    align(1):
+      uint events;
+      epoll_data_t data;
 };
 
 union epoll_data_t 
