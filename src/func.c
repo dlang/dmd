@@ -3118,7 +3118,7 @@ Lerror:
         const char *lastprms = Parameter::argsTypesToChars(tf1->parameters, tf1->varargs);
         const char *nextprms = Parameter::argsTypesToChars(tf2->parameters, tf2->varargs);
         ::error(loc, "%s.%s called with argument types %s matches both:\n"
-                     "\t%s: %s%s\nand:\n\t%s: %s%s",
+                     "%s:     %s%s\nand:\n%s:     %s%s",
                 s->parent->toPrettyChars(), s->ident->toChars(),
                 fargsBuf.peekString(),
                 m.lastf->loc.toChars(), m.lastf->toPrettyChars(), lastprms,
