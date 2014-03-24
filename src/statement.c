@@ -1591,7 +1591,18 @@ Statement *ForeachStatement::semantic(Scope *sc)
 
     if (!inferAggregate(this, sc, sapply))
     {
-        error("invalid foreach aggregate %s", aggr->toChars());
+        const char *s;
+        if (aggr->type && isAggregate(aggr->type))
+        {
+            s = ", define opApply(), range primitives, or use .tupleof";
+        }
+        else
+        {
+            // dumb else switch needed because recent GCC doesn't allow s to
+            // default inititalized because of jumps to Lerror
+            s = "";
+        }
+        error("invalid foreach aggregate %s%s", aggr->toChars(), s);
     Lerror:
         return new ErrorStatement();
     }
