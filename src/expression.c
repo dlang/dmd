@@ -10701,10 +10701,13 @@ Expression *IndexExp::modifiableLvalue(Scope *sc, Expression *e)
     modifiable = 1;
     Type *t1 = e1->type->toBasetype();
     if (t1->ty == Taarray)
-    {   TypeAArray *taa = (TypeAArray *)t1;
+    {
+        TypeAArray *taa = (TypeAArray *)t1;
         Type *t2b = e2->type->toBasetype();
-        if (t2b->ty == Tarray && t2b->nextOf()->isMutable())
+        if (t2b->ty == Tarray && !e2->implicitConvTo(taa->index->immutableOf()))
+        {
             error("associative arrays can only be assigned values with immutable keys, not %s", e2->type->toChars());
+        }
         e1 = e1->modifiableLvalue(sc, e1);
         return toLvalue(sc, e);
     }
