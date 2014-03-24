@@ -509,7 +509,7 @@ extern (C) void onHiddenFuncError( Object o ) @safe pure nothrow
  * Throws:
  *  OutOfMemoryError.
  */
-extern (C) void onOutOfMemoryError() @trusted pure nothrow
+extern (C) void onOutOfMemoryError(void* pretend_sideffect = null) @trusted pure nothrow /* dmd @@@BUG11461@@@ */ 
 {
     // NOTE: Since an out of memory condition exists, no allocation must occur
     //       while generating this object.
@@ -524,7 +524,7 @@ extern (C) void onOutOfMemoryError() @trusted pure nothrow
  * Throws:
  *  InvalidMemoryOperationError.
  */
-extern (C) void onInvalidMemoryOperationError() @trusted pure nothrow
+extern (C) void onInvalidMemoryOperationError(void* pretend_sideffect = null) @trusted pure nothrow /* dmd @@@BUG11461@@@ */ 
 {
     // The same restriction applies as for onOutOfMemoryError. The GC is in an
     // undefined state, thus no allocation must occur while generating this object.
