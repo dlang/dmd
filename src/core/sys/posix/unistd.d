@@ -21,6 +21,7 @@ public import core.sys.posix.sys.types; // for size_t, ssize_t, uid_t, gid_t, of
 
 version (Posix):
 extern (C):
+nothrow:
 
 version( Posix )
 {
@@ -34,58 +35,58 @@ version( Posix )
     int     optopt;
 
     int     access(in char*, int);
-    uint    alarm(uint);
+    uint    alarm(uint) @trusted;
     int     chdir(in char*);
     int     chown(in char*, uid_t, gid_t);
-    int     close(int);
+    int     close(int) @trusted;
     size_t  confstr(int, char*, size_t);
-    int     dup(int);
-    int     dup2(int, int);
+    int     dup(int) @trusted;
+    int     dup2(int, int) @trusted;
     int     execl(in char*, in char*, ...);
     int     execle(in char*, in char*, ...);
     int     execlp(in char*, in char*, ...);
     int     execv(in char*, in char**);
     int     execve(in char*, in char**, in char**);
     int     execvp(in char*, in char**);
-    void    _exit(int);
-    int     fchown(int, uid_t, gid_t);
-    pid_t   fork();
-    c_long  fpathconf(int, int);
+    void    _exit(int) @trusted;
+    int     fchown(int, uid_t, gid_t) @trusted;
+    pid_t   fork() @trusted;
+    c_long  fpathconf(int, int) @trusted;
     //int     ftruncate(int, off_t);
     char*   getcwd(char*, size_t);
-    gid_t   getegid();
-    uid_t   geteuid();
-    gid_t   getgid();
+    gid_t   getegid() @trusted;
+    uid_t   geteuid() @trusted;
+    gid_t   getgid() @trusted;
     int     getgroups(int, gid_t *);
     int     gethostname(char*, size_t);
-    char*   getlogin();
+    char*   getlogin() @trusted;
     int     getlogin_r(char*, size_t);
     int     getopt(int, in char**, in char*);
-    pid_t   getpgrp();
-    pid_t   getpid();
-    pid_t   getppid();
-    uid_t   getuid();
-    int     isatty(int);
+    pid_t   getpgrp() @trusted;
+    pid_t   getpid() @trusted;
+    pid_t   getppid() @trusted;
+    uid_t   getuid() @trusted;
+    int     isatty(int) @trusted;
     int     link(in char*, in char*);
     //off_t   lseek(int, off_t, int);
     c_long  pathconf(in char*, int);
-    int     pause();
-    int     pipe(ref int[2]);
+    int     pause() @trusted;
+    int     pipe(ref int[2]) @trusted;
     ssize_t read(int, void*, size_t);
     ssize_t readlink(in char*, char*, size_t);
     int     rmdir(in char*);
-    int     setegid(gid_t);
-    int     seteuid(uid_t);
-    int     setgid(gid_t);
-    int     setpgid(pid_t, pid_t);
-    pid_t   setsid();
-    int     setuid(uid_t);
-    uint    sleep(uint);
+    int     setegid(gid_t) @trusted;
+    int     seteuid(uid_t) @trusted;
+    int     setgid(gid_t) @trusted;
+    int     setpgid(pid_t, pid_t) @trusted;
+    pid_t   setsid() @trusted;
+    int     setuid(uid_t) @trusted;
+    uint    sleep(uint) @trusted;
     int     symlink(in char*, in char*);
-    c_long  sysconf(int);
-    pid_t   tcgetpgrp(int);
-    int     tcsetpgrp(int, pid_t);
-    char*   ttyname(int);
+    c_long  sysconf(int) @trusted;
+    pid_t   tcgetpgrp(int) @trusted;
+    int     tcsetpgrp(int, pid_t) @trusted;
+    char*   ttyname(int) @trusted;
     int     ttyname_r(int, char*, size_t);
     int     unlink(in char*);
     ssize_t write(int, in void*, size_t);
@@ -95,32 +96,32 @@ version( linux )
 {
   static if( __USE_FILE_OFFSET64 )
   {
-    off_t lseek64(int, off_t, int);
+    off_t lseek64(int, off_t, int) @trusted;
     alias lseek64 lseek;
   }
   else
   {
-    off_t lseek(int, off_t, int);
+    off_t lseek(int, off_t, int) @trusted;
   }
   static if( __USE_LARGEFILE64 )
   {
-    int   ftruncate64(int, off_t);
+    int   ftruncate64(int, off_t) @trusted;
     alias ftruncate64 ftruncate;
   }
   else
   {
-    int   ftruncate(int, off_t);
+    int   ftruncate(int, off_t) @trusted;
   }
 }
 else version( FreeBSD )
 {
-    off_t lseek(int, off_t, int);
-    int   ftruncate(int, off_t);
+    off_t lseek(int, off_t, int) @trusted;
+    int   ftruncate(int, off_t) @trusted;
 }
 else version( Posix )
 {
-    off_t lseek(int, off_t, int);
-    int   ftruncate(int, off_t);
+    off_t lseek(int, off_t, int) @trusted;
+    int   ftruncate(int, off_t) @trusted;
 }
 
 version( linux )
@@ -482,19 +483,19 @@ int fsync(int);
 
 version( linux )
 {
-    int fsync(int);
+    int fsync(int) @trusted;
 }
 else version( OSX )
 {
-    int fsync(int);
+    int fsync(int) @trusted;
 }
 else version( FreeBSD )
 {
-    int fsync(int);
+    int fsync(int) @trusted;
 }
 else version( Android )
 {
-    int fsync(int);
+    int fsync(int) @trusted;
 }
 
 //
@@ -506,11 +507,11 @@ int fdatasync(int);
 
 version( linux )
 {
-    int fdatasync(int);
+    int fdatasync(int) @trusted;
 }
 else version( Android )
 {
-    int fdatasync(int);
+    int fdatasync(int) @trusted;
 }
 
 //
@@ -545,30 +546,30 @@ version( linux )
 {
     char*      crypt(in char*, in char*);
     char*      ctermid(char*);
-    void       encrypt(ref char[64], int);
-    int        fchdir(int);
-    c_long     gethostid();
-    pid_t      getpgid(pid_t);
-    pid_t      getsid(pid_t);
+    void       encrypt(ref char[64], int) @trusted;
+    int        fchdir(int) @trusted;
+    c_long     gethostid() @trusted;
+    pid_t      getpgid(pid_t) @trusted;
+    pid_t      getsid(pid_t) @trusted;
     char*      getwd(char*); // LEGACY
     int        lchown(in char*, uid_t, gid_t);
     //int        lockf(int, int, off_t);
-    int        nice(int);
+    int        nice(int) @trusted;
     //ssize_t    pread(int, void*, size_t, off_t);
     //ssize_t    pwrite(int, in void*, size_t, off_t);
-    pid_t      setpgrp();
-    int        setregid(gid_t, gid_t);
-    int        setreuid(uid_t, uid_t);
+    pid_t      setpgrp() @trusted;
+    int        setregid(gid_t, gid_t) @trusted;
+    int        setreuid(uid_t, uid_t) @trusted;
     void       swab(in void*, void*, ssize_t);
-    void       sync();
+    void       sync() @trusted;
     //int        truncate(in char*, off_t);
-    useconds_t ualarm(useconds_t, useconds_t);
-    int        usleep(useconds_t);
+    useconds_t ualarm(useconds_t, useconds_t) @trusted;
+    int        usleep(useconds_t) @trusted;
     pid_t      vfork();
 
   static if( __USE_FILE_OFFSET64 )
   {
-    int        lockf64(int, int, off_t);
+    int        lockf64(int, int, off_t) @trusted;
     alias      lockf64 lockf;
 
     ssize_t    pread64(int, void*, size_t, off_t);
@@ -582,7 +583,7 @@ version( linux )
   }
   else
   {
-    int        lockf(int, int, off_t);
+    int        lockf(int, int, off_t) @trusted;
     ssize_t    pread(int, void*, size_t, off_t);
     ssize_t    pwrite(int, in void*, size_t, off_t);
     int        truncate(in char*, off_t);
@@ -592,65 +593,65 @@ else version( OSX )
 {
     char*      crypt(in char*, in char*);
     char*      ctermid(char*);
-    void       encrypt(ref char[64], int);
-    int        fchdir(int);
-    c_long     gethostid();
-    pid_t      getpgid(pid_t);
-    pid_t      getsid(pid_t);
+    void       encrypt(ref char[64], int) @trusted;
+    int        fchdir(int) @trusted;
+    c_long     gethostid() @trusted;
+    pid_t      getpgid(pid_t) @trusted;
+    pid_t      getsid(pid_t) @trusted;
     char*      getwd(char*); // LEGACY
     int        lchown(in char*, uid_t, gid_t);
-    int        lockf(int, int, off_t);
-    int        nice(int);
+    int        lockf(int, int, off_t) @trusted;
+    int        nice(int) @trusted;
     ssize_t    pread(int, void*, size_t, off_t);
     ssize_t    pwrite(int, in void*, size_t, off_t);
-    pid_t      setpgrp();
-    int        setregid(gid_t, gid_t);
-    int        setreuid(uid_t, uid_t);
+    pid_t      setpgrp() @trusted;
+    int        setregid(gid_t, gid_t) @trusted;
+    int        setreuid(uid_t, uid_t) @trusted;
     void       swab(in void*, void*, ssize_t);
-    void       sync();
+    void       sync() @trusted;
     int        truncate(in char*, off_t);
-    useconds_t ualarm(useconds_t, useconds_t);
-    int        usleep(useconds_t);
+    useconds_t ualarm(useconds_t, useconds_t) @trusted;
+    int        usleep(useconds_t) @trusted;
     pid_t      vfork();
 }
 else version( FreeBSD )
 {
     char*      crypt(in char*, in char*);
     //char*      ctermid(char*);
-    void       encrypt(ref char[64], int);
-    int        fchdir(int);
-    c_long     gethostid();
-    int        getpgid(pid_t);
-    int        getsid(pid_t);
+    void       encrypt(ref char[64], int) @trusted;
+    int        fchdir(int) @trusted;
+    c_long     gethostid() @trusted;
+    int        getpgid(pid_t) @trusted;
+    int        getsid(pid_t) @trusted;
     char*      getwd(char*); // LEGACY
     int        lchown(in char*, uid_t, gid_t);
-    int        lockf(int, int, off_t);
-    int        nice(int);
+    int        lockf(int, int, off_t) @trusted;
+    int        nice(int) @trusted;
     ssize_t    pread(int, void*, size_t, off_t);
     ssize_t    pwrite(int, in void*, size_t, off_t);
-    int        setpgrp(pid_t, pid_t);
-    int        setregid(gid_t, gid_t);
-    int        setreuid(uid_t, uid_t);
+    int        setpgrp(pid_t, pid_t) @trusted;
+    int        setregid(gid_t, gid_t) @trusted;
+    int        setreuid(uid_t, uid_t) @trusted;
     void       swab(in void*, void*, ssize_t);
-    void       sync();
+    void       sync() @trusted;
     int        truncate(in char*, off_t);
-    useconds_t ualarm(useconds_t, useconds_t);
-    int        usleep(useconds_t);
+    useconds_t ualarm(useconds_t, useconds_t) @trusted;
+    int        usleep(useconds_t) @trusted;
     pid_t      vfork();
 }
 else version( Android )
 {
-    int        fchdir(int);
-    pid_t      getpgid(pid_t);
+    int        fchdir(int) @trusted;
+    pid_t      getpgid(pid_t) @trusted;
     int        lchown(in char*, uid_t, gid_t);
-    int        nice(int);
+    int        nice(int) @trusted;
     ssize_t    pread(int, void*, size_t, off_t);
     ssize_t    pwrite(int, in void*, size_t, off_t);
-    int        setpgrp();
-    int        setregid(gid_t, gid_t);
-    int        setreuid(uid_t, uid_t);
-    int        sync();
+    int        setpgrp() @trusted;
+    int        setregid(gid_t, gid_t) @trusted;
+    int        setreuid(uid_t, uid_t) @trusted;
+    int        sync() @trusted;
     int        truncate(in char*, off_t);
-    int        usleep(c_ulong);
+    int        usleep(c_ulong) @trusted;
     pid_t      vfork();
 }
