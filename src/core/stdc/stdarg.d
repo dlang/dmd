@@ -347,17 +347,9 @@ else version (X86_64)
         TypeInfo arg1, arg2;
         if (!ti.argTypes(arg1, arg2))
         {
-            bool inXMMregister(TypeInfo arg) nothrow
+            bool inXMMregister(TypeInfo arg) pure nothrow @safe
             {
-                try
-                {
-                    auto s = arg.toString();
-                    return (s == "double" || s == "float" || s == "idouble" || s == "ifloat");
-                }
-                catch (Exception e)
-                {
-                    return false;
-                }
+                return (arg.flags & 2) != 0;
             }
 
             TypeInfo_Vector v1 = arg1 ? cast(TypeInfo_Vector)arg1 : null;
