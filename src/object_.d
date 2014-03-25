@@ -30,7 +30,7 @@ private
     import rt.minfo;
     debug(PRINTF) import core.stdc.stdio;
 
-    extern (C) void onOutOfMemoryError(void* pretend_sideffect = null) @trusted pure nothrow; /* dmd @@@BUG11461@@@ */ 
+    extern (C) void onOutOfMemoryError(void* pretend_sideffect = null) @trusted pure nothrow; /* dmd @@@BUG11461@@@ */
     extern (C) Object _d_newclass(const TypeInfo_Class ci);
     extern (C) void _d_arrayshrinkfit(const TypeInfo ti, void[] arr) nothrow;
     extern (C) size_t _d_arraysetcapacity(const TypeInfo ti, size_t newcapacity, void *arrptr) pure nothrow;
@@ -278,7 +278,8 @@ class TypeInfo
     // TODO: make this a property, but may need to be renamed to diambiguate with T.init...
     const(void)[] init() nothrow pure const @safe { return null; }
 
-    /// Get flags for type: 1 means GC should scan for pointers
+    /// Get flags for type: 1 means GC should scan for pointers,
+    /// 2 means arg of this type is passed in XMM register
     @property uint flags() nothrow pure const @safe { return 0; }
 
     /// Get type information on the contents of the type; null if not available

@@ -87,4 +87,13 @@ class TypeInfo_d : TypeInfo
     {
         return double.alignof;
     }
+
+    version (Windows)
+    {
+    }
+    else version (X86_64)
+    {
+        // 2 means arg to function is passed in XMM registers
+        override @property uint flags() nothrow pure const @safe { return 2; }
+    }
 }
