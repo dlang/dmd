@@ -180,6 +180,7 @@ Lfalse:
 bool isDeclRef(Declaration *d) { return d->isRef(); }
 bool isDeclOut(Declaration *d) { return d->isOut(); }
 bool isDeclLazy(Declaration *d) { return (d->storage_class & STClazy) != 0; }
+bool isDeclGshared(Declaration *d) { return (d->storage_class & STCgshared) != 0; }
 
 Expression *isDeclX(TraitsExp *e, bool (*fp)(Declaration *d))
 {
@@ -335,6 +336,10 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
     else if (e->ident == Id::isLazy)
     {
         return isDeclX(e, &isDeclLazy);
+    }
+    else if (e->ident == Id::isGshared)
+    {
+        return isDeclX(e, &isDeclGshared);
     }
     else if (e->ident == Id::identifier)
     {

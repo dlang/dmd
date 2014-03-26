@@ -624,6 +624,17 @@ struct Test24
 
 static assert(__traits(getProtection, __traits(getOverloads, Test24, "test24")[1]) == "private");
 
+int tls_12474;
+shared int shared_12474;
+__gshared int gshared_12474;
+
+void test12474()
+{
+    static assert(!__traits(isGshared, tls_12474));
+    static assert(!__traits(isGshared, shared_12474));
+    static assert(__traits(isGshared, gshared_12474));
+}
+
 /********************************************************/
 // 1369
 
@@ -1387,6 +1398,7 @@ int main()
     test21();
     test22();
     test23();
+    test12474();
     test1369();
     test7608();
     test7858();
