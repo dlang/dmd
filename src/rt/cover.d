@@ -241,7 +241,7 @@ string appendFN( string path, string name )
 
     auto dest = path;
 
-    if( dest.ptr && dest[$ - 1] != sep )
+    if( dest.length && dest[$ - 1] != sep )
         dest ~= sep;
     dest ~= name;
     return dest;
@@ -264,7 +264,7 @@ string baseName( string name, string ext = null )
             ret ~= c;
         }
     }
-    return chomp( ret, ext.ptr ? ext : "" );
+    return ext.length ? chomp(ret,  ext) : ret;
 }
 
 
