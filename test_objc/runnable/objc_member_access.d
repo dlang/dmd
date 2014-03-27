@@ -1,4 +1,5 @@
-// REQUIRED_ARGS: -L-framework -LCocoa
+// REQUIRED_ARGS: -L-framework -LCocoa runnable/objc_code/objc_member_access.o $(clang -m$MODEL runnable/objc_code/objc_member_access.m -c -o runnable/objc_code/objc_member_access.o)
+// POST_SCRIPT: rm runnable/objc_code/objc_member_access.o
 
 import std.c.stdio;
 
@@ -22,9 +23,67 @@ class TestObject : NSObject {
 	}
 }
 
-void main() {
+void testMemberAccess ()
+{
 	TestObject o = cast(TestObject)cast(void*)TestObject.alloc().init();
 	o.test();
 	assert(o.memberVar == 2);
 	assert(globalVar == 4);
+}
+
+version (D_ObjCNonFragileABI)
+{
+	extern (Objective-C)
+	class NonFragileBase : NSObject
+	{
+		// We're deliberately not including this field to test non-fragile fields.
+		// Objective-C doesn't require to declare fields in the @interface declaration when
+		// using the non-fragile ABI.
+		// size_t _a;
+
+		@property size_t a();
+		@property void a(size_t value);
+	}
+
+	class NonFragile : NonFragileBase
+	{
+		size_t b;
+	}
+
+	void testNonFragileFields ()
+	{
+		auto o = new NonFragile;
+
+		assert(o.a == 0);
+		assert(o.b == 0);
+
+		o.a = 3;
+		o.b = 5;
+		assert(o.a == 3);
+		assert(o.b == 5);
+
+		o.a = 4;
+		o.b = 8;
+		assert(o.a == 4);
+		assert(o.b == 8);
+
+		o.a = 8;
+		o.tupleof[0] = 12;
+		assert(o.a == 8);
+		assert(o.b == 12);
+
+		o.a = 10;
+		auto ptr = &o.b;
+		*ptr = 14;
+		assert(o.a == 10);
+		assert(o.b == 14);
+	}
+}
+
+void main()
+{
+	testMemberAccess();
+
+	version (D_ObjCNonFragileABI)
+		testNonFragileFields();
 }

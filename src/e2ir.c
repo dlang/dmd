@@ -3449,7 +3449,21 @@ elem *toElem(Expression *e, IRState *irs)
             Type *tb1 = dve->e1->type->toBasetype();
             if (tb1->ty != Tclass && tb1->ty != Tpointer)
                 e = addressElem(e, tb1);
-            e = el_bin(OPadd, TYnptr, e, el_long(TYsize_t, v ? v->offset : 0));
+
+            elem* offset = el_long(TYsize_t, v ? v->offset : 0);
+#if DMD_OBJC
+            if (global.params.isObjcNonFragileAbi && tb1->ty == Tclass)
+            {
+                ClassDeclaration* cls = ((TypeClass*) tb1)->sym;
+                if (cls->objc)
+                {
+                    NonFragileAbi::ObjcClassDeclaration objcClass(cls);
+                    offset = el_var(objcClass.getIVarOffset(v));
+                }
+            }
+#endif
+
+            e = el_bin(OPadd, TYnptr, e, offset);
             e = el_una(OPind, totym(dve->type), e);
             if (tybasic(e->Ety) == TYstruct)
             {
@@ -4140,7 +4154,6 @@ elem *toElem(Expression *e, IRState *irs)
                     }
                     goto Lret;                  // no-op
                 }
-
 #if DMD_OBJC
                 if (cdto->objc)
                 {

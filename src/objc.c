@@ -51,7 +51,7 @@ static char *prefixSymbolName(const char *name, size_t name_len, const char *pre
     return sname;
 }
 
-static char* buildIVarName (ClassDeclaration* cdecl, VarDeclaration* ivar)
+static char* buildIVarName (ClassDeclaration* cdecl, VarDeclaration* ivar, size_t* resultLength)
 {
     const char* className = cdecl->objcident->string;
     size_t classLength = cdecl->objcident->len;
@@ -78,6 +78,7 @@ static char* buildIVarName (ClassDeclaration* cdecl, VarDeclaration* ivar)
     name[prefixLength + classLength] = '.';
     name[requiredLength] = 0;
 
+    *resultLength = requiredLength;
     return name;
 }
 
@@ -109,11 +110,12 @@ static int objc_getsegment(enum ObjcSegment segid)
         seg[SEGcat_cls_meth] = MachObj::getsegment("__objc_const", "__DATA", align, S_REGULAR);
         seg[SEGcat_inst_meth] = MachObj::getsegment("__objc_const", "__DATA", align, S_REGULAR);
         seg[SEGcls_meth] = MachObj::getsegment("__objc_const", "__DATA", align, S_ATTR_NO_DEAD_STRIP);
+        seg[SEGinstance_vars] = MachObj::getsegment("__objc_const", "__DATA", align, S_ATTR_NO_DEAD_STRIP);
 
         seg[SEGmessage_refs] = MachObj::getsegment("__objc_msgrefs", "__DATA", align, S_COALESCED);
         seg[SEGobjc_const] = MachObj::getsegment("__objc_const", "__DATA", align, S_REGULAR);
         seg[SEGinst_meth] = MachObj::getsegment("__objc_const", "__DATA", align, S_ATTR_NO_DEAD_STRIP);
-        seg[SEGobjc_ivar] = MachObj::getsegment("__objc_ivar", "__DATA", align, S_REGULAR);
+        seg[SEGobjc_ivar] = MachObj::getsegment("__objc_ivar", "__DATA", align, S_ATTR_NO_DEAD_STRIP);
         seg[SEGobjc_protolist] = MachObj::getsegment("__objc_protolist", "__DATA", align, S_COALESCED | S_ATTR_NO_DEAD_STRIP);
         seg[SEGproperty] = MachObj::getsegment("__objc_const", "__DATA", align, S_ATTR_NO_DEAD_STRIP);
     }
@@ -135,6 +137,7 @@ static int objc_getsegment(enum ObjcSegment segid)
         seg[SEGcat_inst_meth] = MachObj::getsegment("__cat_inst_meth", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
         seg[SEGproperty] = MachObj::getsegment("__property", "__OBJC", align, S_ATTR_NO_DEAD_STRIP | S_REGULAR);
         seg[SEGcls_meth] = MachObj::getsegment("__cls_meth", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
+        seg[SEGinstance_vars] = MachObj::getsegment("__instance_vars", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
 
         seg[SEGclass_ext] = MachObj::getsegment("__class_ext", "__OBJC", align, S_ATTR_NO_DEAD_STRIP | S_REGULAR);
     }
@@ -147,7 +150,6 @@ static int objc_getsegment(enum ObjcSegment segid)
     seg[SEGcfstring] = MachObj::getsegment("__cfstring", "__DATA", align, S_REGULAR);
     seg[SEGcategory] = MachObj::getsegment("__category", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
     seg[SEGclass_vars] = MachObj::getsegment("__class_vars", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
-    seg[SEGinstance_vars] = MachObj::getsegment("__instance_vars", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
     seg[SEGsymbols] = MachObj::getsegment("__symbols", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
     seg[SEGprotocol_ext] = MachObj::getsegment("__protocol_ext", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
 
@@ -809,27 +811,33 @@ namespace NonFragileAbi
         return sy;
     }
 
-    Symbol *ObjcSymbols::getIVarOffset(ClassDeclaration* cdecl, VarDeclaration* ivar)
+    Symbol *ObjcSymbols::getIVarOffset(ClassDeclaration* cdecl, VarDeclaration* ivar, bool outputSymbol)
     {
         hassymbols = 1;
 
-        StringValue* stringValue = sivarOffsetTable->update(ivar->ident->string, ivar->ident->len);
+        size_t length;
+        const char* name = buildIVarName(cdecl, ivar, &length);
+        StringValue* stringValue = sivarOffsetTable->update(name, length);
         Symbol* symbol = (Symbol*) stringValue->ptrvalue;
 
-        if (symbol)
-            return symbol;
+        if (!symbol)
+        {
+            symbol = getGlobal(name);
+            stringValue->ptrvalue = symbol;
+            symbol->Sfl |= FLextern;
+        }
 
-        dt_t* dt = NULL;
-        dtsize_t(&dt, ivar->offset);
+        if (outputSymbol)
+        {
+            dt_t* dt = NULL;
+            dtsize_t(&dt, ivar->offset);
 
-        size_t symbolPrefixLength;
-        const char* name = buildIVarName(cdecl, ivar);
-        symbol = getGlobal(name);
-        symbol->Sdt = dt;
-        symbol->Sseg = objc_getsegment(SEGobjc_ivar);
+            symbol->Sdt = dt;
+            symbol->Sseg = objc_getsegment(SEGobjc_ivar);
+            symbol->Sfl &= ~FLextern;
 
-        stringValue->ptrvalue = symbol;
-        outdata(symbol);
+            outdata(symbol);
+        }
 
         return  symbol;
     }
@@ -1576,7 +1584,7 @@ namespace NonFragileAbi
             assert(ivar);
             assert((ivar->storage_class & STCstatic) == 0);
 
-            dtxoff(&dt, ObjcSymbols::instance->getIVarOffset(cdecl, ivar), 0, TYnptr); // pointer to ivar offset
+            dtxoff(&dt, ObjcSymbols::instance->getIVarOffset(cdecl, ivar, true), 0, TYnptr); // pointer to ivar offset
             dtxoff(&dt, ObjcSymbols::getMethVarName(ivar->ident), 0, TYnptr); // ivar name
             dtxoff(&dt, ObjcSymbols::getMethVarType(ivar), 0, TYnptr); // ivar type string
             dtdword(&dt, ivar->alignment);
@@ -1591,12 +1599,24 @@ namespace NonFragileAbi
         return sym;
     }
 
+    Symbol *ObjcClassDeclaration::getIVarOffset(VarDeclaration* ivar)
+    {
+        if (ivar->toParent() == cdecl)
+            return ObjcSymbols::instance->getIVarOffset(cdecl, ivar, false);
+
+        else if (cdecl->baseClass)
+            return ObjcClassDeclaration(cdecl->baseClass).getIVarOffset(ivar);
+
+        else
+            assert(false || "Trying to get the base class of root class");
+    }
+
     Symbol *ObjcClassDeclaration::getClassRo()
     {
         dt_t* dt = NULL;
 
         dtdword(&dt, generateFlags()); // flags
-        dtdword(&dt, ismeta ? 40 : cdecl->size(cdecl->loc)); // instance start
+        dtdword(&dt, getInstanceStart()); // instance start
         dtdword(&dt, ismeta ? 40 : cdecl->size(cdecl->loc)); // instance size in bytes
         dtdword(&dt, 0); // reserved, only for 64bit targets
 
@@ -1651,6 +1671,31 @@ namespace NonFragileAbi
             flags |= nonFragileFlags_root;
 
         return flags;
+    }
+
+    unsigned ObjcClassDeclaration::getInstanceStart ()
+    {
+        if (ismeta)
+            return 40;
+
+        unsigned start = cdecl->size(cdecl->loc);
+
+        if (cdecl->members && cdecl->members->dim > 0)
+        {
+            for (size_t i = 0; i < cdecl->members->dim; i++)
+            {
+                Dsymbol* member = (*cdecl->members)[i];
+                VarDeclaration* var = member->isVarDeclaration();
+
+                if (var && var->isField())
+                {
+                    start = var->offset;
+                    break;
+                }
+            }
+        }
+
+        return start;
     }
 }
 
