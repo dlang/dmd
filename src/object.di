@@ -490,7 +490,8 @@ inout(V) get(K, V)(inout(V[K])* aa, K key, lazy inout(V) defaultValue)
 
 // Scheduled for deprecation in December 2012.
 // Please use destroy instead of clear.
-deprecated alias destroy clear;
+deprecated("Please use destroy instead.")
+alias clear = destroy;
 
 void destroy(T)(T obj) if (is(T == class))
 {
