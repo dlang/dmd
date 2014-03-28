@@ -181,7 +181,7 @@ TK_SRC = \
 	$(TK)/filespec.h $(TK)/mem.h $(TK)/list.h $(TK)/vec.h \
 	$(TK)/filespec.c $(TK)/mem.c $(TK)/vec.c $(TK)/list.c
 
-DMD_DEPS:=$(DMD_OBJS:.o=.deps)
+DEPS = $(patsubst %.o,%.deps,$(DMD_OBJS) $(ROOT_OBJS) $(GLUE_OBJS) $(BACK_OBJS))
 
 all: dmd
 
@@ -692,7 +692,7 @@ var.o: $C/var.c optab.c tytab.c
 version.o: version.c
 	$(CC) -c $(CFLAGS) $<
 
--include $(DMD_DEPS)
+-include $(DEPS)
 
 ######################################################
 
