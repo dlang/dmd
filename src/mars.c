@@ -464,6 +464,7 @@ Usage:\n\
   -version=level compile in version code >= level\n\
   -version=ident compile in version code identified by ident\n\
   -vtls          list all variables going into thread local storage\n\
+  -vgc           list all hidden gc allocations\n\
   -w             warnings as errors (compilation will halt)\n\
   -wi            warnings as messages (compilation will continue)\n\
   -X             generate JSON file\n\
@@ -740,6 +741,8 @@ int tryMain(size_t argc, const char *argv[])
                 global.params.vtls = true;
             else if (strcmp(p + 1, "vcolumns") == 0)
                 global.params.showColumns = true;
+            else if (strcmp(p + 1, "vgc") == 0)
+                global.params.vgc = true;
             else if (memcmp(p + 1, "transition", 10) == 0)
             {
                 // Parse:

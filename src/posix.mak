@@ -61,7 +61,7 @@ DMD_OBJS = \
 	class.o \
 	constfold.o cond.o \
 	declaration.o dsymbol.o \
-	enum.o expression.o func.o \
+	enum.o expression.o func.o nogc.o \
 	id.o \
 	identifier.o impcnvtab.o import.o inifile.o init.o inline.o \
 	lexer.o link.o mangle.o mars.o module.o mtype.o \
@@ -118,7 +118,7 @@ SRC = win32.mak posix.mak osmodel.mak \
 	template.c lexer.c declaration.c cast.c cond.h cond.c link.c \
 	aggregate.h parse.c statement.c constfold.c version.h version.c \
 	inifile.c module.c scope.c init.h init.c attrib.h \
-	attrib.c opover.c class.c mangle.c func.c inline.c \
+	attrib.c opover.c class.c mangle.c func.c nogc.c inline.c \
 	access.c complex_t.h \
 	identifier.h parse.h \
 	scope.h enum.h import.h mars.h module.h mtype.h dsymbol.h \
@@ -440,6 +440,9 @@ filename.o : $(ROOT)/filename.c
 func.o: func.c
 	$(CC) -c $(CFLAGS) $<
 
+nogc.o: nogc.c
+	$(CC) -c $(CFLAGS) $<
+
 gdag.o: $C/gdag.c
 	$(CC) -c $(MFLAGS) $<
 
@@ -726,6 +729,7 @@ gcov:
 	gcov enum.c
 	gcov expression.c
 	gcov func.c
+	gcov nogc.c
 	gcov glue.c
 	gcov iasm.c
 	gcov identifier.c

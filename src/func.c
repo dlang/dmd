@@ -33,6 +33,8 @@ void functionToBufferWithIdent(TypeFunction *t, OutBuffer *buf, const char *iden
 void genCmain(Scope *sc);
 void toBufferShort(Type *t, OutBuffer *buf, HdrGenState *hgs);
 
+void checkGC(FuncDeclaration *func, Statement *stmt);
+
 /* A visitor to walk entire statements and provides ability to replace any sub-statements.
  */
 class StatementRewriteWalker : public Visitor
@@ -2078,6 +2080,19 @@ void FuncDeclaration::semantic3(Scope *sc)
         f->trust = TRUSTsafe;
     }
 
+    if (fbody)
+        checkGC(this, fbody);
+
+    if (needsClosure() && setGCUse(loc, "Using closure causes gc allocation"))
+        error("Can not use closures in @nogc code");
+
+    if (flags & FUNCFLAGgcuseInprocess)
+    {
+        flags &= ~FUNCFLAGgcuseInprocess;
+        if (type == f) f = (TypeFunction *)f->copy();
+        f->gcuse = GCUSEnogc;
+    }
+
     // reset deco to apply inference result to mangled name
     if (f != type)
         f->deco = NULL;
@@ -2863,6 +2878,23 @@ static void MODMatchToBuffer(OutBuffer *buf, unsigned char lhsMod, unsigned char
 }
 
 /********************************************
+ * Returns true if function was declared
+ * directly or indirectly in a unittest block
+ */
+bool FuncDeclaration::inUnittest()
+{
+    Dsymbol *f = this;
+    do
+    {
+        if (f->isUnitTestDeclaration())
+            return true;
+        f = f->toParent();
+    } while (f);
+
+    return false;
+}
+
+/********************************************
  * find function template root in overload list
  */
 
@@ -3504,6 +3536,52 @@ bool FuncDeclaration::setUnsafe()
         ((TypeFunction *)type)->trust = TRUSTsystem;
     }
     else if (isSafe())
+        return true;
+    return false;
+}
+
+/**************************************
+ * Return true if the function is marked
+ * as @nogc and therefore must not allocate.
+ */
+bool FuncDeclaration::isNOGC()
+{
+    assert(type->ty == Tfunction);
+    if (flags & FUNCFLAGgcuseInprocess)
+        setGCUse();
+    return ((TypeFunction *)type)->gcuse == GCUSEnogc;
+}
+
+/**************************************
+ * Mark function as using GC, warn on -vgc, return
+ * true if GC access is an error (@nogc)
+ */
+bool FuncDeclaration::setGCUse(Loc loc, const char* warn)
+{
+    if (setGCUse())
+    {
+        return true;
+    }
+    //Only warn about errors in 'root' modules
+    else if (global.params.vgc && getModule() && getModule()->isRoot()
+        && !inUnittest())
+    {
+        fprintf(global.stdmsg, "%s: vgc: %s\n", loc.toChars(), warn);
+    }
+    return false;
+}
+
+/**************************************
+ * Same as above, but do not warn on -vgc
+ */
+bool FuncDeclaration::setGCUse()
+{
+    if (flags & FUNCFLAGgcuseInprocess)
+    {
+        flags &= ~FUNCFLAGgcuseInprocess;
+        ((TypeFunction *)type)->gcuse = GCUSEgc;
+    }
+    else if (isNOGC())
         return true;
     return false;
 }
