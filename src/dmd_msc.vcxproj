@@ -125,6 +125,7 @@
     <ClCompile Include="module.c" />
     <ClCompile Include="msc.c" />
     <ClCompile Include="mtype.c" />
+    <ClCompile Include="nogc.c" />
     <ClCompile Include="opover.c" />
     <ClCompile Include="optimize.c" />
     <ClCompile Include="parse.c" />

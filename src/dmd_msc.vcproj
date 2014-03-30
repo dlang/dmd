@@ -622,6 +622,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\nogc.c"
+				>
+			</File>
+			<File
 				RelativePath=".\objfile.h"
 				>
 			</File>
