@@ -168,6 +168,9 @@
     <ClCompile Include="mtype.c">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="nogc.c">
+      <Filter>src</Filter>
+    </ClCompile>
     <ClCompile Include="opover.c">
       <Filter>src</Filter>
     </ClCompile>
