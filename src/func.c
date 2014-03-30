@@ -3563,7 +3563,7 @@ bool FuncDeclaration::setGCUse(Loc loc, const char* warn)
         return true;
     }
     //Only warn about errors in 'root' modules
-    else if (global.params.vgc && getModule() && getModule()->isRoot()
+    if (global.params.vgc && getModule() && getModule()->isRoot()
         && !inUnittest())
     {
         fprintf(global.stdmsg, "%s: vgc: %s\n", loc.toChars(), warn);
