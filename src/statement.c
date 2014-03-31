@@ -470,14 +470,14 @@ Statements *CompileStatement::flatten(Scope *sc)
     exp = exp->semantic(sc);
     exp = resolveProperties(sc, exp);
     sc = sc->endCTFE();
-    exp = exp->ctfeInterpret();
 
     Statements *a = new Statements();
     if (exp->op != TOKerror)
     {
-        StringExp *se = exp->toStringExp();
+        Expression *e = exp->ctfeInterpret();
+        StringExp *se = e->toStringExp();
         if (!se)
-           error("argument to mixin must be a string, not (%s)", exp->toChars());
+           error("argument to mixin must be a string, not (%s) of type %s", exp->toChars(), exp->type->toChars());
         else
         {
             se = se->toUTF8(sc);
