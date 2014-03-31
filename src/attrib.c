@@ -1537,23 +1537,26 @@ void CompileDeclaration::compileIt(Scope *sc)
     exp = exp->semantic(sc);
     exp = resolveProperties(sc, exp);
     sc = sc->endCTFE();
-    exp = exp->ctfeInterpret();
-    StringExp *se = exp->toStringExp();
-    if (!se)
+
+    if (exp->op != TOKerror)
     {
-        exp->error("argument to mixin must be a string, not (%s)", exp->toChars());
-    }
-    else
-    {
-        se = se->toUTF8(sc);
-        Parser p(loc, sc->module, (utf8_t *)se->string, se->len, 0);
-        p.nextToken();
-        unsigned errors = global.errors;
-        decl = p.parseDeclDefs(0);
-        if (p.token.value != TOKeof)
-            exp->error("incomplete mixin declaration (%s)", se->toChars());
-        if (global.errors != errors)
-            decl = NULL;
+        Expression *e = exp->ctfeInterpret();
+        StringExp *se = e->toStringExp();
+        if (!se)
+            exp->error("argument to mixin must be a string, not (%s) of type %s", exp->toChars(), exp->type->toChars());
+        else
+        {
+            se = se->toUTF8(sc);
+            Parser p(loc, sc->module, (utf8_t *)se->string, se->len, 0);
+            p.nextToken();
+
+            unsigned errors = global.errors;
+            decl = p.parseDeclDefs(0);
+            if (p.token.value != TOKeof)
+                exp->error("incomplete mixin declaration (%s)", se->toChars());
+            if (global.errors != errors)
+                decl = NULL;
+        }
     }
 }
 
