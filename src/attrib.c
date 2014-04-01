@@ -1352,7 +1352,7 @@ int StaticIfDeclaration::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
     this->sds = sds;
     int m = 0;
 
-    if (memnum == 0)
+    if (0 && memnum == 0)
     {
         m = AttribDeclaration::addMember(sc, sds, memnum);
         addisdone = 1;
