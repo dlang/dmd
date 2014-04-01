@@ -10573,6 +10573,7 @@ Expression *AssignExp::semantic(Scope *sc)
             // No opIndexAssign found yet, but there might be an alias this to try.
             if (ad->aliasthis && t1 != ae->att1)
             {
+                Expression *e2x = e2;
                 ArrayExp *aex = (ArrayExp *)ae->copy();
                 if (!aex->att1 && t1->checkAliasThisRec())
                     aex->att1 = t1;
@@ -10582,6 +10583,7 @@ Expression *AssignExp::semantic(Scope *sc)
                 if (ex)
                     return ex;
                 this->e1 = ae;  // restore
+                this->e2 = e2x; // restore
             }
 
         Lfallback:
@@ -10642,6 +10644,7 @@ Expression *AssignExp::semantic(Scope *sc)
             // No opSliceAssign found yet, but there might be an alias this to try.
             if (ad->aliasthis && t1 != ae->att1)
             {
+                Expression *e2x = e2;
                 SliceExp *aex = (SliceExp *)ae->copy();
                 if (!aex->att1 && t1->checkAliasThisRec())
                     aex->att1 = t1;
@@ -10651,6 +10654,7 @@ Expression *AssignExp::semantic(Scope *sc)
                 if (ex)
                     return ex;
                 this->e1 = ae;  // restore
+                this->e2 = e2x; // restore
             }
         }
     }
