@@ -673,7 +673,7 @@ version( linux )
 }
 else version( OSX )
 {
-    //SIG_HOLD
+    enum SIG_HOLD = cast(sigfn_t) 5;
 
     alias uint sigset_t;
     // pid_t  (defined in core.sys.types)
@@ -685,11 +685,11 @@ else version( OSX )
     //SIGSEGV (defined in core.stdc.signal)
     //SIGTERM (defined in core.stdc.signal)
 
-    //SA_NOCLDSTOP (CX|XSI)
+    enum SA_NOCLDSTOP = 8; // (CX|XSI)
 
-    //SIG_BLOCK
-    //SIG_UNBLOCK
-    //SIG_SETMASK
+    enum SIG_BLOCK   = 1;
+    enum SIG_UNBLOCK = 2;
+    enum SIG_SETMASK = 3;
 
     struct siginfo_t
     {
@@ -705,11 +705,11 @@ else version( OSX )
         uint    pad[7];
     }
 
-    //SI_USER
-    //SI_QUEUE
-    //SI_TIMER
-    //SI_ASYNCIO
-    //SI_MESGQ
+    enum SI_USER    = 0x10001;
+    enum SI_QUEUE   = 0x10002;
+    enum SI_TIMER   = 0x10003;
+    enum SI_ASYNCIO = 0x10004;
+    enum SI_MESGQ   = 0x10005;
 
     int kill(pid_t, int);
     int sigaction(int, in sigaction_t*, sigaction_t*);
