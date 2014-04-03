@@ -1539,11 +1539,6 @@ public:
                 e = s->condition->interpret(istate);
                 if (exceptionOrCantInterpret(e))
                     break;
-                if (!e->isConst())
-                {
-                    e = EXP_CANT_INTERPRET;
-                    break;
-                }
                 if (e->isBool(false))
                 {
                     e = NULL;
