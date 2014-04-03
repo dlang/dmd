@@ -727,6 +727,8 @@ public:
     bool addPreInvariant();
     bool addPostInvariant();
 
+    void modifyReturns(Scope *sc, Type *tret);
+
     FuncLiteralDeclaration *isFuncLiteralDeclaration() { return this; }
     const char *kind();
     const char *toPrettyChars();

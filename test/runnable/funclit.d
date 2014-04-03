@@ -981,6 +981,43 @@ void test11661()
 }
 
 /***************************************************/
+// 12508
+
+interface A12508(T)
+{
+    T getT();
+}
+
+class C12508 : A12508!double
+{
+    double getT() { return 1; }
+}
+
+void f12508(A12508!double delegate() dg)
+{
+    auto a = dg();
+    assert(a !is null);
+    assert(a.getT() == 1.0);    // fails!
+}
+
+void t12508(T)(A12508!T delegate() dg)
+{
+    auto a = dg();
+    assert(a !is null);
+    assert(a.getT() == 1.0);    // fails!
+}
+
+ref alias Dg12508 = A12508!double delegate();
+void t12508(T)(Dg12508 dg) {}
+
+void test12508()
+{
+    f12508({ return new C12508(); });
+    t12508({ return new C12508(); });
+    static assert(!__traits(compiles, x12508({ return new C12508(); })));
+}
+
+/***************************************************/
 
 int main()
 {
@@ -1030,6 +1067,7 @@ int main()
     test10288();
     test10336();
     test11661();
+    test12508();
 
     printf("Success\n");
     return 0;

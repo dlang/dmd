@@ -118,6 +118,16 @@ Expression *implicitCastTo(Expression *e, Scope *sc, Type *t)
         {
             //printf("FuncExp::implicitCastTo type = %p %s, t = %s\n", e->type, e->type ? e->type->toChars() : NULL, t->toChars());
             visit((Expression *)inferType(e, t));
+
+            if (result->op == TOKfunction)
+            {
+                Type *tn = t->nextOf();
+                if (tn->ty == Tfunction)
+                {
+                    // Bugzilla 12508: Tweak function body for covariant returns.
+                    e->fd->modifyReturns(sc, tn->nextOf());
+                }
+            }
         }
 
         void visit(ArrayLiteralExp *e)
@@ -2070,7 +2080,7 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
 
         void visit(FuncExp *e)
         {
-            //printf("FuncExp::castTo type = %s, t = %s\n", type->toChars(), t->toChars());
+            //printf("FuncExp::castTo type = %s, t = %s\n", e->type->toChars(), t->toChars());
             result = inferType(e, t, 1);
             if (result)
             {
@@ -2246,7 +2256,7 @@ Expression *inferType(Expression *e, Type *t, int flag, Scope *sc, TemplateParam
                 return;
             }
 
-            //printf("FuncExp::interType('%s'), to=%s\n", fe->type ? fe->type->toChars() : "null", fe->to->toChars());
+            //printf("FuncExp::interType('%s'), to=%s\n", fe->type ? fe->type->toChars() : "null", t->toChars());
 
             if (!fe->type)  // semantic is not yet done
             {

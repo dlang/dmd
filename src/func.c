@@ -4321,6 +4321,46 @@ bool FuncLiteralDeclaration::addPostInvariant()
     return false;
 }
 
+/*******************************
+ * Modify all expression type of return statements to tret.
+ *
+ * On function literals, return type may be modified based on the context type
+ * after its semantic3 is done, in FuncExp::implicitCastTo.
+ *
+ *  A function() dg = (){ return new B(); } // OK if is(B : A) == true
+ *
+ * If B to A conversion is convariant that requires offseet adjusting,
+ * all return statements should be adjusted to return expressions typed A.
+ */
+void FuncLiteralDeclaration::modifyReturns(Scope *sc, Type *tret)
+{
+    class RetWalker : public StatementRewriteWalker
+    {
+    public:
+        Scope *sc;
+        Type *tret;
+        FuncLiteralDeclaration *fld;
+
+        void visit(ReturnStatement *s)
+        {
+            Expression *exp = s->exp;
+            if (exp && !exp->type->equals(tret))
+            {
+                s->exp = exp->castTo(sc, tret);
+            }
+        }
+    };
+
+    if (semanticRun < PASSsemantic3done)
+        return;
+
+    RetWalker w;
+    w.sc = sc;
+    w.tret = tret;
+    w.fld = this;
+    fbody->accept(&w);
+}
+
 const char *FuncLiteralDeclaration::kind()
 {
     // GCC requires the (char*) casts
