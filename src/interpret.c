@@ -715,6 +715,8 @@ Expression *ctfeInterpret(Expression *e)
     if (e->type == Type::terror)
         return e;
 
+    unsigned olderrors = global.errors;
+
     // This code is outside a function, but still needs to be compiled
     // (there are compiler-generated temporary variables such as __dollar).
     // However, this will only be run once and can then be discarded.
@@ -726,7 +728,10 @@ Expression *ctfeInterpret(Expression *e)
     if (result != EXP_CANT_INTERPRET)
         result = scrubReturnValue(e->loc, result);
     if (result == EXP_CANT_INTERPRET)
+    {
+        assert(global.errors != olderrors);
         result = new ErrorExp();
+    }
     return result;
 }
 
