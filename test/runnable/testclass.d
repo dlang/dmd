@@ -25,6 +25,19 @@ void test12078()
     static assert(is(Y12078 : X12078!Y12078));
 }
 
+/******************************************/
+// 12143
+
+class Node12143
+{
+    alias typeof(true ? Node12143.init : Class12143.init) V;
+    static assert(is(V == Node12143));
+}
+
+class Type12143 : Node12143 {}
+
+class Class12143 : Type12143 {}
+
 /***************************************************/
 
 int main()
