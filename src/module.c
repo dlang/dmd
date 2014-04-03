@@ -758,16 +758,6 @@ void Module::semantic()
 
 void Module::semantic2()
 {
-    if (deferred.dim)
-    {
-        for (size_t i = 0; i < deferred.dim; i++)
-        {
-            Dsymbol *sd = deferred[i];
-
-            sd->error("unable to resolve forward reference in definition");
-        }
-        return;
-    }
     //printf("Module::semantic2('%s'): parent = %p\n", toChars(), parent);
     if (semanticRun != PASSsemanticdone)       // semantic() not completed yet - could be recursive call
         return;

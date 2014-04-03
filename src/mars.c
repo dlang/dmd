@@ -1563,6 +1563,15 @@ Language changes listed by -transition=id:\n\
 
     Module::dprogress = 1;
     Module::runDeferredSemantic();
+    if (Module::deferred.dim)
+    {
+        for (size_t i = 0; i < Module::deferred.dim; i++)
+        {
+            Dsymbol *sd = Module::deferred[i];
+            sd->error("unable to resolve forward reference in definition");
+        }
+        fatal();
+    }
 
     // Do pass 2 semantic analysis
     for (size_t i = 0; i < modules.dim; i++)
