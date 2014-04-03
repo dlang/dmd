@@ -346,8 +346,15 @@ void ClassDeclaration::semantic(Scope *sc)
         // Expand any tuples in baseclasses[]
         for (size_t i = 0; i < baseclasses->dim; )
         {
+            if (!scx)
+                scx = new Scope(*sc);
+            scope = scx;
+            scope->setNoFree();
+
             BaseClass *b = (*baseclasses)[i];
             b->type = b->type->semantic(loc, sc);
+
+            scope = NULL;
 
             Type *tb = b->type->toBasetype();
             if (tb->ty == Ttuple)
@@ -1318,8 +1325,15 @@ void InterfaceDeclaration::semantic(Scope *sc)
         // Expand any tuples in baseclasses[]
         for (size_t i = 0; i < baseclasses->dim; )
         {
+            if (!scx)
+                scx = new Scope(*sc);
+            scope = scx;
+            scope->setNoFree();
+
             BaseClass *b = (*baseclasses)[i];
             b->type = b->type->semantic(loc, sc);
+
+            scope = NULL;
 
             Type *tb = b->type->toBasetype();
             if (tb->ty == Ttuple)
