@@ -3400,7 +3400,15 @@ IntRange getIntRange(Expression *e)
                 ir2 = IntRange(SignExtendedNumber(0), SignExtendedNumber(64));
 
             range = IntRange(ir1.imin >> ir2.imax, ir1.imax >> ir2.imin).cast(e->type);
+        }
 
+        void visit(VarExp *e)
+        {
+            VarDeclaration* vd = e->var->isVarDeclaration();
+            if (vd && vd->range)
+                range = *vd->range;
+            else
+                visit((Expression *)e);
         }
 
         void visit(CommaExp *e)

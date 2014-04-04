@@ -895,6 +895,7 @@ VarDeclaration::VarDeclaration(Loc loc, Type *type, Identifier *id, Initializer 
     ctfeAdrOnStack = -1;
     rundtor = NULL;
     edtor = NULL;
+    range = NULL;
 }
 
 Dsymbol *VarDeclaration::syntaxCopy(Dsymbol *s)

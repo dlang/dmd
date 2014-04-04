@@ -1901,10 +1901,15 @@ Lagain:
                             goto Lerror2;
                         }
                     }
-                    TypeSArray *ta = tab->ty == Tsarray ? (TypeSArray *)tab : NULL;
-                    if (ta && !IntRange::fromType(var->type).contains(getIntRange(ta->dim)))
+                    if (tab->ty == Tsarray)
                     {
-                        error("index type '%s' cannot cover index range 0..%llu", arg->type->toChars(), ta->dim->toInteger());
+                        TypeSArray *ta =  (TypeSArray *)tab;
+                        IntRange dimrange = getIntRange(ta->dim);
+                        if (!IntRange::fromType(var->type).contains(dimrange))
+                        {
+                            error("index type '%s' cannot cover index range 0..%llu", arg->type->toChars(), ta->dim->toInteger());
+                        }
+                        key->range = new IntRange(0, dimrange.imax);
                     }
                 }
                 else
@@ -1996,6 +2001,7 @@ Lagain:
             {   Parameter *arg = (*arguments)[0];
                 if ((arg->storageClass & STCref) && arg->type->equals(key->type))
                 {
+                    key->range = NULL;
                     AliasDeclaration *v = new AliasDeclaration(loc, arg->ident, key);
                     body = new CompoundStatement(loc, new ExpStatement(loc, v), body);
                 }
@@ -2005,6 +2011,12 @@ Lagain:
                     VarDeclaration *v = new VarDeclaration(loc, arg->type, arg->ident, ei);
                     v->storage_class |= STCforeach | (arg->storageClass & STCref);
                     body = new CompoundStatement(loc, new ExpStatement(loc, v), body);
+                    if (key->range && arg->storageClass & (STCimmutable | STCconst))
+                    {
+                        /* Limit the range of the key to the specified range
+                         */
+                        v->range = new IntRange(key->range->imin, key->range->imax - 1);
+                    }
                 }
             }
             body = new CompoundStatement(loc, ds, body);
@@ -2653,6 +2665,12 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
     ExpInitializer *ie = new ExpInitializer(loc, (op == TOKforeach) ? lwr : upr);
     key = new VarDeclaration(loc, upr->type->mutableOf(), Lexer::uniqueId("__key"), ie);
     key->storage_class |= STCtemp;
+    SignExtendedNumber lower = getIntRange(lwr).imin;
+    SignExtendedNumber upper = getIntRange(upr).imax;
+    if (lower <= upper)
+    {
+        key->range = new IntRange(lower, upper);
+    }
 
     Identifier *id = Lexer::uniqueId("__limit");
     ie = new ExpInitializer(loc, (op == TOKforeach) ? upr : lwr);
@@ -2710,6 +2728,7 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
 
     if ((arg->storageClass & STCref) && arg->type->equals(key->type))
     {
+        key->range = NULL;
         AliasDeclaration *v = new AliasDeclaration(loc, arg->ident, key);
         body = new CompoundStatement(loc, new ExpStatement(loc, v), body);
     }
@@ -2719,6 +2738,12 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
         VarDeclaration *v = new VarDeclaration(loc, arg->type, arg->ident, ie);
         v->storage_class |= STCtemp | STCforeach | (arg->storageClass & STCref);
         body = new CompoundStatement(loc, new ExpStatement(loc, v), body);
+        if (key->range && arg->storageClass & (STCimmutable | STCconst))
+        {
+            /* Limit the range of the key to the specified range
+             */
+            v->range = new IntRange(key->range->imin, key->range->imax - 1);
+        }
     }
     if (arg->storageClass & STCref)
     {

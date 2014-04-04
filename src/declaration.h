@@ -290,6 +290,7 @@ public:
                                 // if the destructor should be run. Used to prevent
                                 // dtor calls on postblitted vars
     Expression *edtor;          // if !=NULL, does the destruction of the variable
+    IntRange *range;            // if !NULL, the variable is known to be within the range
 
     VarDeclaration(Loc loc, Type *t, Identifier *id, Initializer *init);
     Dsymbol *syntaxCopy(Dsymbol *);
