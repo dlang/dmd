@@ -533,7 +533,7 @@ void TemplateDeclaration::semantic(Scope *sc)
      */
     if (!this->scope)
     {
-        this->scope = new Scope(*sc);
+        this->scope = sc->copy();
         this->scope->setNoFree();
     }
 
@@ -7773,7 +7773,7 @@ void TemplateMixin::semantic(Scope *sc)
             {
                 // Forward reference
                 //printf("forward reference - deferring\n");
-                scope = scx ? scx : new Scope(*sc);
+                scope = scx ? scx : sc->copy();
                 scope->setNoFree();
                 scope->module->addDeferredSemantic(this);
             }
@@ -7978,7 +7978,7 @@ void TemplateMixin::semantic(Scope *sc)
         {
             // Forward reference
             //printf("forward reference - deferring\n");
-            scope = scx ? scx : new Scope(*sc);
+            scope = scx ? scx : sc->copy();
             scope->setNoFree();
             scope->module->addDeferredSemantic(this);
         }

@@ -393,7 +393,7 @@ void ClassDeclaration::semantic(Scope *sc)
                     //error("forward reference of base class %s", baseClass->toChars());
                     // Forward reference of base class, try again later
                     //printf("\ttry later, forward reference of base class %s\n", tc->sym->toChars());
-                    scope = scx ? scx : new Scope(*sc);
+                    scope = scx ? scx : sc->copy();
                     scope->setNoFree();
                     if (tc->sym->scope)
                         tc->sym->scope->module->addDeferredSemantic(tc->sym);
@@ -457,7 +457,7 @@ void ClassDeclaration::semantic(Scope *sc)
                 //error("forward reference of base class %s", baseClass->toChars());
                 // Forward reference of base, try again later
                 //printf("\ttry later, forward reference of base %s\n", baseClass->toChars());
-                scope = scx ? scx : new Scope(*sc);
+                scope = scx ? scx : sc->copy();
                 scope->setNoFree();
                 if (tc->sym->scope)
                     tc->sym->scope->module->addDeferredSemantic(tc->sym);
@@ -676,7 +676,7 @@ void ClassDeclaration::semantic(Scope *sc)
 
         sc = sc->pop();
 
-        scope = scx ? scx : new Scope(*sc);
+        scope = scx ? scx : sc->copy();
         scope->setNoFree();
         scope->module->addDeferredSemantic(this);
 
@@ -1377,7 +1377,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
                 //error("forward reference of base class %s", baseClass->toChars());
                 // Forward reference of base, try again later
                 //printf("\ttry later, forward reference of base %s\n", b->base->toChars());
-                scope = scx ? scx : new Scope(*sc);
+                scope = scx ? scx : sc->copy();
                 scope->setNoFree();
                 scope->module->addDeferredSemantic(this);
                 return;

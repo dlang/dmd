@@ -121,6 +121,8 @@ struct Scope
     Scope();
     Scope(Scope *enclosing);
 
+    Scope *copy();
+
     Scope *push();
     Scope *push(ScopeDsymbol *ss);
     Scope *pop();

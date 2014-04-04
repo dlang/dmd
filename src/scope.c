@@ -141,6 +141,12 @@ Scope::Scope(Scope *enclosing)
     assert(this != enclosing);
 }
 
+Scope *Scope::copy()
+{
+    Scope *sc = new Scope(*this);
+    return sc;
+}
+
 Scope *Scope::createGlobal(Module *module)
 {
     Scope *sc;

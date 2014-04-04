@@ -92,7 +92,7 @@ void AttribDeclaration::setScopeNewSc(Scope *sc,
             structalign != sc->structalign)
         {
             // create new one for changes
-            newsc = new Scope(*sc);
+            newsc = sc->copy();
             newsc->flags &= ~SCOPEfree;
             newsc->stc = stc;
             newsc->linkage = linkage;
@@ -127,7 +127,7 @@ void AttribDeclaration::semanticNewSc(Scope *sc,
             structalign != sc->structalign)
         {
             // create new one for changes
-            newsc = new Scope(*sc);
+            newsc = sc->copy();
             newsc->flags &= ~SCOPEfree;
             newsc->stc = stc;
             newsc->linkage = linkage;
@@ -677,7 +677,7 @@ void ProtDeclaration::importAll(Scope *sc)
            sc->explicitProtection != 1)
         {
            // create new one for changes
-           newsc = new Scope(*sc);
+           newsc = sc->copy();
            newsc->flags &= ~SCOPEfree;
            newsc->protection = protection;
            newsc->explicitProtection = 1;

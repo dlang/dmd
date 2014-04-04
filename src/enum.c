@@ -171,7 +171,7 @@ void EnumDeclaration::semantic(Scope *sc)
             if (!sym->memtype || !sym->members || !sym->symtab || sym->scope)
             {
                 // memtype is forward referenced, so try again later
-                scope = scx ? scx : new Scope(*sc);
+                scope = scx ? scx : sc->copy();
                 scope->setNoFree();
                 scope->module->addDeferredSemantic(this);
                 Module::dprogress = dprogress_save;

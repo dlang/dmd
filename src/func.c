@@ -1158,7 +1158,7 @@ Ldone:
     /* Save scope for possible later use (if we need the
      * function internals)
      */
-    scope = new Scope(*sc);
+    scope = sc->copy();
     scope->setNoFree();
 
     static bool printedMain = false;  // semantic might run more than once
