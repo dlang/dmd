@@ -144,6 +144,11 @@ Scope::Scope(Scope *enclosing)
 Scope *Scope::copy()
 {
     Scope *sc = new Scope(*this);
+
+    /* Bugzilla 11777: The copied scope should not inherit fieldinit.
+     */
+    sc->fieldinit = NULL;
+
     return sc;
 }
 
@@ -195,13 +200,12 @@ Scope *Scope::pop()
         enclosing->callSuper |= callSuper;
         if (enclosing->fieldinit && fieldinit)
         {
+            assert(fieldinit != enclosing->fieldinit);
+
             size_t dim = fieldinit_dim;
             for (size_t i = 0; i < dim; i++)
                 enclosing->fieldinit[i] |= fieldinit[i];
-            /* Workaround regression @@@BUG11777@@@.
-            Probably this memory is used in future.
             mem.free(fieldinit);
-            */
             fieldinit = NULL;
         }
     }
