@@ -775,7 +775,7 @@ void StructDeclaration::semantic(Scope *sc)
         alignsize = 0;
 //        structalign = 0;
 
-        scope = scx ? scx : new Scope(*sc);
+        scope = scx ? scx : sc->copy();
         scope->setNoFree();
         scope->module->addDeferredSemantic(this);
 

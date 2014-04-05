@@ -5629,7 +5629,8 @@ Expression *FuncExp::semantic(Scope *sc)
         {
             if (fd->type && fd->type->ty == Tfunction && !fd->type->nextOf())
                 ((TypeFunction *)fd->type)->next = Type::terror;
-            return new ErrorExp();
+            e = new ErrorExp();
+            goto Ldone;
         }
 
         // Type is a "delegate to" or "pointer to" the function literal

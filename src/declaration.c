@@ -1429,7 +1429,7 @@ Lnomatch:
         }
         else if (parent->isAggregateDeclaration())
         {
-            scope = scx ? scx : new Scope(*sc);
+            scope = scx ? scx : sc->copy();
             scope->setNoFree();
         }
         else if (storage_class & (STCconst | STCimmutable | STCmanifest) ||
@@ -1497,7 +1497,7 @@ Lnomatch:
             }
             else
             {
-                scope = scx ? scx : new Scope(*sc);
+                scope = scx ? scx : sc->copy();
                 scope->setNoFree();
             }
         }

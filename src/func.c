@@ -1158,7 +1158,7 @@ Ldone:
     /* Save scope for possible later use (if we need the
      * function internals)
      */
-    scope = new Scope(*sc);
+    scope = sc->copy();
     scope->setNoFree();
 
     static bool printedMain = false;  // semantic might run more than once
@@ -1555,12 +1555,14 @@ void FuncDeclaration::semantic3(Scope *sc)
             sc2 = sc2->push(sym);
 
             AggregateDeclaration *ad2 = isAggregateMember2();
+            unsigned *fieldinit = NULL;
 
             /* If this is a class constructor
              */
             if (ad2 && isCtorDeclaration())
             {
-                sc2->fieldinit = (unsigned *)mem.malloc(sizeof(unsigned) * ad2->fields.dim);
+                fieldinit = (unsigned *)mem.malloc(sizeof(unsigned) * ad2->fields.dim);
+                sc2->fieldinit = fieldinit;
                 sc2->fieldinit_dim = ad2->fields.dim;
                 for (size_t i = 0; i < ad2->fields.dim; i++)
                 {
@@ -1596,7 +1598,8 @@ void FuncDeclaration::semantic3(Scope *sc)
             assert(type == f);
 
             if (isStaticCtorDeclaration())
-            {   /* It's a static constructor. Ensure that all
+            {
+                /* It's a static constructor. Ensure that all
                  * ctor consts were initialized.
                  */
 
@@ -1609,8 +1612,8 @@ void FuncDeclaration::semantic3(Scope *sc)
                 else
                 {
                     for (size_t i = 0; i < pd->members->dim; i++)
-                    {   Dsymbol *s = (*pd->members)[i];
-
+                    {
+                        Dsymbol *s = (*pd->members)[i];
                         s->checkCtorConstInit();
                     }
                 }
@@ -1618,7 +1621,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 
             if (fbody->isErrorStatement())
                 ;
-            else if (isCtorDeclaration() && ad2)
+            else if (ad2 && isCtorDeclaration())
             {
                 ClassDeclaration *cd = ad2->isClassDeclaration();
 
@@ -1654,7 +1657,6 @@ void FuncDeclaration::semantic3(Scope *sc)
                         }
                     }
                 }
-                mem.free(sc2->fieldinit);
                 sc2->fieldinit = NULL;
                 sc2->fieldinit_dim = 0;
 
@@ -1704,7 +1706,8 @@ void FuncDeclaration::semantic3(Scope *sc)
                 }
             }
             else if (fes)
-            {   // For foreach(){} body, append a return 0;
+            {
+                // For foreach(){} body, append a return 0;
                 Expression *e = new IntegerExp(0);
                 Statement *s = new ReturnStatement(Loc(), e);
                 fbody = new CompoundStatement(Loc(), fbody, s);
@@ -1733,11 +1736,13 @@ void FuncDeclaration::semantic3(Scope *sc)
                 if (type->nextOf()->ty != Tvoid)
                 {
                     if (offend)
-                    {   Expression *e;
+                    {
+                        Expression *e;
                         error("no return exp; or assert(0); at end of function");
                         if (global.params.useAssert &&
                             !global.params.useInline)
-                        {   /* Add an assert(0, msg); where the missing return
+                        {
+                            /* Add an assert(0, msg); where the missing return
                              * should be.
                              */
                             e = new AssertExp(
@@ -1756,6 +1761,8 @@ void FuncDeclaration::semantic3(Scope *sc)
                 }
             }
 
+            if (fieldinit)
+                mem.free(fieldinit);
             sc2 = sc2->pop();
         }
 
