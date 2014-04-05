@@ -8,6 +8,12 @@
  */
 module core.internal.traits;
 
+/// taken from std.typetuple.TypeTuple
+template TypeTuple(TList...)
+{
+    alias TypeTuple = TList;
+}
+
 /// taken from std.traits.Unqual
 template Unqual(T)
 {
