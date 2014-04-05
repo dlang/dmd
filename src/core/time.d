@@ -78,6 +78,7 @@ module core.time;
 import core.exception;
 import core.stdc.time;
 import core.stdc.stdio;
+import core.internal.traits : _Unqual = Unqual;
 
 version(Windows)
 {
@@ -3313,38 +3314,6 @@ string numToString(long value) @safe pure nothrow
     }
     catch(Exception e)
         assert(0, "Something threw when nothing can throw.");
-}
-
-
-/+ A copy of std.traits.Unqual. +/
-private template _Unqual(T)
-{
-    version (none) // Error: recursive alias declaration @@@BUG1308@@@
-    {
-             static if (is(T U ==     const U)) alias _Unqual!U _Unqual;
-        else static if (is(T U == immutable U)) alias _Unqual!U _Unqual;
-        else static if (is(T U ==    shared U)) alias _Unqual!U _Unqual;
-        else                                    alias        T _Unqual;
-    }
-    else // workaround
-    {
-             static if (is(T U == shared(const U))) alias U _Unqual;
-        else static if (is(T U ==        const U )) alias U _Unqual;
-        else static if (is(T U ==    immutable U )) alias U _Unqual;
-        else static if (is(T U ==       shared U )) alias U _Unqual;
-        else                                        alias T _Unqual;
-    }
-}
-
-unittest
-{
-    static assert(is(_Unqual!(int) == int));
-    static assert(is(_Unqual!(const int) == int));
-    static assert(is(_Unqual!(immutable int) == int));
-    static assert(is(_Unqual!(shared int) == int));
-    static assert(is(_Unqual!(shared(const int)) == int));
-    alias immutable(int[]) ImmIntArr;
-    static assert(is(_Unqual!(ImmIntArr) == immutable(int)[]));
 }
 
 
