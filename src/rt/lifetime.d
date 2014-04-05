@@ -198,7 +198,7 @@ private class ArrayAllocLengthLock
 
   where elem0 starts 16 bytes after the first byte.
   */
-bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, size_t oldlength = ~0)
+bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, size_t oldlength = ~0) pure nothrow
 {
     if(info.size <= 256)
     {
@@ -210,13 +210,15 @@ bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, si
         {
             if(isshared)
             {
-                synchronized(typeid(ArrayAllocLengthLock))
+                try synchronized(typeid(ArrayAllocLengthLock))
                 {
                     if(*length == cast(ubyte)oldlength)
                         *length = cast(ubyte)newlength;
                     else
                         return false;
                 }
+                catch (Throwable t)
+                    assert(0, "Failed to synchronize.");
             }
             else
             {
@@ -242,13 +244,15 @@ bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, si
         {
             if(isshared)
             {
-                synchronized(typeid(ArrayAllocLengthLock))
+                try synchronized(typeid(ArrayAllocLengthLock))
                 {
                     if(*length == oldlength)
                         *length = cast(ushort)newlength;
                     else
                         return false;
                 }
+                catch (Throwable t)
+                    assert(0, "Failed to synchronize.");
             }
             else
             {
@@ -274,13 +278,15 @@ bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, si
         {
             if(isshared)
             {
-                synchronized(typeid(ArrayAllocLengthLock))
+                try synchronized(typeid(ArrayAllocLengthLock))
                 {
                     if(*length == oldlength)
                         *length = newlength;
                     else
                         return false;
                 }
+                catch (Throwable t)
+                    assert(0, "Failed to synchronize.");
             }
             else
             {
