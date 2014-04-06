@@ -1594,12 +1594,8 @@ Lagain:
                     value = var;
                     if (var->storage_class & STCref)
                     {
-                        /* Reference to immutable data should be marked as const
-                         */
                         if (aggr->checkModifiable(sc, 1) == 2)
                             var->storage_class |= STCctorinit;
-                        else if (!tn->isMutable())
-                            var->storage_class |= STCconst;
 
                         Type *t = tab->nextOf();
                         if (!t->immutableOf()->equals(arg->type->immutableOf()) ||
