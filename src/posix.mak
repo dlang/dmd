@@ -98,7 +98,7 @@ BACK_OBJS = go.o gdag.o gother.o gflow.o gloop.o var.o el.o \
 	glocal.o os.o nteh.o evalu8.o cgcs.o \
 	rtlsym.o cgelem.o cgen.o cgreg.o out.o \
 	blockopt.o cg.o type.o dt.o \
-	debug.o code.o ee.o csymbol.o \
+	debug.o code.o ee.o symbol.o \
 	cgcod.o cod5.o outbuf.o \
 	bcomplex.o aa.o ti_achar.o \
 	ti_pvoid.o pdata.o cv8.o backconfig.o \
@@ -257,440 +257,51 @@ $(shell test \"$(VERSION)\" != "`cat verstr.h 2> /dev/null`" \
 $(DMD_OBJS) $(GLUE_OBJS) : $(idgen_output) $(impcnvgen_output)
 $(BACK_OBJS) : $(optabgen_output)
 
-aa.o: $C/aa.c
-	$(CC) -c $(MFLAGS) -I. $<
 
-aav.o: $(ROOT)/aav.c
-	$(CC) -c $(GFLAGS) -I$(ROOT) $<
+# Specific dependencies other than the source file for all objects
+########################################################################
+# If additional flags are needed for a specific file add a _CFLAGS as a
+# dependency to the object file and assign the appropriate content.
 
-access.o: access.c
-	$(CC) -c $(CFLAGS) $<
+cg.o: fltables.c
 
-aliasthis.o: aliasthis.c
-	$(CC) -c $(CFLAGS) $<
+cgcod.o: cdxxx.c
 
-apply.o: apply.c
-	$(CC) -c $(CFLAGS) $<
+cgelem.o: elxxx.c
 
-argtypes.o: argtypes.c
-	$(CC) -c $(CFLAGS) $<
+debug.o: debtab.c
 
-arrayop.o: arrayop.c
-	$(CC) -c $(CFLAGS) $<
+iasm.o: _CFLAGS := -fexceptions
 
-async.o: $(ROOT)/async.c
-	$(CC) -c $(GFLAGS) -I$(ROOT) $<
+inifile.o: _CFLAGS := -DSYSCONFDIR='"$(SYSCONFDIR)"'
 
-attrib.o: attrib.c
-	$(CC) -c $(CFLAGS) $<
+mars.o: verstr.h
 
-backconfig.o: $C/backconfig.c
-	$(CC) -c $(MFLAGS) $<
+var.o: optab.c tytab.c
 
-bcomplex.o: $C/bcomplex.c
-	$(CC) -c $(MFLAGS) $<
 
-blockopt.o: $C/blockopt.c
-	$(CC) -c $(MFLAGS) $<
+# Generic rules for all source files
+########################################################################
+# Search the directories $(C) and $(ROOT) for .c-files, in that order,
+# when using implicit pattern matching below.
+vpath %.c $(C):$(ROOT)
 
-builtin.o: builtin.c
-	$(CC) -c $(CFLAGS) $<
+$(DMD_OBJS): %.o: %.c
+	@echo "  (CC)  DMD_OBJS   $<"
+	$(CC) -c $(CFLAGS) $(_CFLAGS) $<
 
-canthrow.o: canthrow.c
-	$(CC) -c $(CFLAGS) $<
+$(BACK_OBJS): %.o: %.c
+	@echo "  (CC)  BACK_OBJS  $<"
+	$(CC) -c $(MFLAGS) -I. $(_CFLAGS) $<
 
-cast.o: cast.c
-	$(CC) -c $(CFLAGS) $<
+$(GLUE_OBJS): %.o: %.c
+	@echo "  (CC)  GLUE_OBJS  $<"
+	$(CC) -c $(MFLAGS) -I$(ROOT) $(_CFLAGS) $<
 
-cg.o: $C/cg.c fltables.c
-	$(CC) -c $(MFLAGS) -I. $<
+$(ROOT_OBJS): %.o: %.c
+	@echo "  (CC)  ROOT_OBJS  $<"
+	$(CC) -c $(GFLAGS) -I$(ROOT) $(_CFLAGS) $<
 
-cg87.o: $C/cg87.c
-	$(CC) -c $(MFLAGS) $<
-
-cgcod.o: $C/cgcod.c cdxxx.c
-	$(CC) -c $(MFLAGS) -I. $<
-
-cgcs.o: $C/cgcs.c
-	$(CC) -c $(MFLAGS) $<
-
-cgcv.o: $C/cgcv.c
-	$(CC) -c $(MFLAGS) $<
-
-cgelem.o: $C/cgelem.c elxxx.c
-	$(CC) -c $(MFLAGS) -I. $<
-
-cgen.o: $C/cgen.c
-	$(CC) -c $(MFLAGS) $<
-
-cgobj.o: $C/cgobj.c
-	$(CC) -c $(MFLAGS) $<
-
-cgreg.o: $C/cgreg.c
-	$(CC) -c $(MFLAGS) $<
-
-cgsched.o: $C/cgsched.c
-	$(CC) -c $(MFLAGS) $<
-
-cgxmm.o: $C/cgxmm.c
-	$(CC) -c $(MFLAGS) $<
-
-class.o: class.c
-	$(CC) -c $(CFLAGS) $<
-
-clone.o: clone.c
-	$(CC) -c $(CFLAGS) $<
-
-cod1.o: $C/cod1.c
-	$(CC) -c $(MFLAGS) $<
-
-cod2.o: $C/cod2.c
-	$(CC) -c $(MFLAGS) $<
-
-cod3.o: $C/cod3.c
-	$(CC) -c $(MFLAGS) $<
-
-cod4.o: $C/cod4.c
-	$(CC) -c $(MFLAGS) $<
-
-cod5.o: $C/cod5.c
-	$(CC) -c $(MFLAGS) $<
-
-code.o: $C/code.c
-	$(CC) -c $(MFLAGS) $<
-
-constfold.o: constfold.c
-	$(CC) -c $(CFLAGS) $<
-
-ctfeexpr.o: ctfeexpr.c
-	$(CC) -c $(CFLAGS) $<
-
-irstate.o: irstate.c
-	$(CC) -c $(MFLAGS) -I$(ROOT) $<
-
-csymbol.o: $C/symbol.c
-	$(CC) -c $(MFLAGS) $< -o $@
-
-cond.o: cond.c
-	$(CC) -c $(CFLAGS) $<
-
-cppmangle.o: cppmangle.c
-	$(CC) -c $(CFLAGS) $<
-
-cv8.o: $C/cv8.c
-	$(CC) -c $(MFLAGS) $<
-
-debug.o: $C/debug.c debtab.c
-	$(CC) -c $(MFLAGS) -I. $<
-
-declaration.o: declaration.c
-	$(CC) -c $(CFLAGS) $<
-
-delegatize.o: delegatize.c
-	$(CC) -c $(CFLAGS) $<
-
-divcoeff.o: $C/divcoeff.c
-	$(CC) -c $(MFLAGS) $<
-
-doc.o: doc.c
-	$(CC) -c $(CFLAGS) $<
-
-dsymbol.o: dsymbol.c
-	$(CC) -c $(CFLAGS) $<
-
-dt.o: $C/dt.c
-	$(CC) -c $(MFLAGS) $<
-
-dwarf.o: $C/dwarf.c
-	$(CC) -c $(MFLAGS) -I. $<
-
-e2ir.o: e2ir.c
-	$(CC) -c $(MFLAGS) -I$(ROOT) $<
-
-ee.o: $C/ee.c
-	$(CC) -c $(MFLAGS) $<
-
-eh.o: eh.c
-	$(CC) -c $(MFLAGS) $<
-
-el.o: $C/el.c
-	$(CC) -c $(MFLAGS) $<
-
-elfobj.o: $C/elfobj.c
-	$(CC) -c $(MFLAGS) $<
-
-entity.o: entity.c
-	$(CC) -c $(CFLAGS) $<
-
-enum.o: enum.c
-	$(CC) -c $(CFLAGS) $<
-
-evalu8.o: $C/evalu8.c
-	$(CC) -c $(MFLAGS) $<
-
-expression.o: expression.c
-	$(CC) -c $(CFLAGS) $<
-
-file.o : $(ROOT)/file.c
-	$(CC) -c $(CFLAGS) -I$(ROOT) $<
-
-filename.o : $(ROOT)/filename.c
-	$(CC) -c $(CFLAGS) -I$(ROOT) $<
-
-func.o: func.c
-	$(CC) -c $(CFLAGS) $<
-
-nogc.o: nogc.c
-	$(CC) -c $(CFLAGS) $<
-
-gdag.o: $C/gdag.c
-	$(CC) -c $(MFLAGS) $<
-
-gflow.o: $C/gflow.c
-	$(CC) -c $(MFLAGS) $<
-
-#globals.o: globals.c
-#	$(CC) -c $(CFLAGS) $<
-
-glocal.o: $C/glocal.c
-	$(CC) -c $(MFLAGS) $<
-
-gloop.o: $C/gloop.c
-	$(CC) -c $(MFLAGS) $<
-
-glue.o: glue.c
-	$(CC) -c $(MFLAGS) -I$(ROOT) $<
-
-go.o: $C/go.c
-	$(CC) -c $(MFLAGS) $<
-
-gother.o: $C/gother.c
-	$(CC) -c $(MFLAGS) $<
-
-hdrgen.o: hdrgen.c
-	$(CC) -c $(CFLAGS) $<
-
-iasm.o: iasm.c
-	$(CC) -c $(MFLAGS) -I$(ROOT) -fexceptions $<
-
-id.o: id.c
-	$(CC) -c $(CFLAGS) $<
-
-identifier.o: identifier.c
-	$(CC) -c $(CFLAGS) $<
-
-impcnvtab.o: impcnvtab.c
-	$(CC) -c $(CFLAGS) -I$(ROOT) $<
-
-imphint.o: imphint.c
-	$(CC) -c $(CFLAGS) $<
-
-import.o: import.c
-	$(CC) -c $(CFLAGS) $<
-
-inifile.o: inifile.c
-	$(CC) -c $(CFLAGS) -DSYSCONFDIR='"$(SYSCONFDIR)"' $<
-
-init.o: init.c
-	$(CC) -c $(CFLAGS) $<
-
-inline.o: inline.c
-	$(CC) -c $(CFLAGS) $<
-
-interpret.o: interpret.c
-	$(CC) -c $(CFLAGS) $<
-
-intrange.o: intrange.c
-	$(CC) -c $(CFLAGS) $<
-
-json.o: json.c
-	$(CC) -c $(CFLAGS) $<
-
-lexer.o: lexer.c
-	$(CC) -c $(CFLAGS) $<
-
-libelf.o: libelf.c
-	$(CC) -c $(CFLAGS) -I$C $<
-
-libmach.o: libmach.c
-	$(CC) -c $(CFLAGS) -I$C $<
-
-libmscoff.o: libmscoff.c
-	$(CC) -c $(CFLAGS) -I$C $<
-
-link.o: link.c
-	$(CC) -c $(CFLAGS) $<
-
-machobj.o: $C/machobj.c
-	$(CC) -c $(MFLAGS) -I. $<
-
-macro.o: macro.c
-	$(CC) -c $(CFLAGS) $<
-
-man.o: $(ROOT)/man.c
-	$(CC) -c $(GFLAGS) -I$(ROOT) $<
-
-mangle.o: mangle.c
-	$(CC) -c $(CFLAGS) $<
-
-mars.o: mars.c verstr.h
-	$(CC) -c $(CFLAGS) $<
-
-rmem.o: $(ROOT)/rmem.c
-	$(CC) -c $(GFLAGS) -I$(ROOT) $<
-
-module.o: module.c
-	$(CC) -c $(CFLAGS) -I$C $<
-
-mscoffobj.o: $C/mscoffobj.c
-	$(CC) -c $(MFLAGS) $<
-
-msc.o: msc.c
-	$(CC) -c $(MFLAGS) $<
-
-mtype.o: mtype.c
-	$(CC) -c $(CFLAGS) $<
-
-nteh.o: $C/nteh.c
-	$(CC) -c $(MFLAGS) $<
-
-object.o : $(ROOT)/object.c
-	$(CC) -c $(CFLAGS) -I$(ROOT) $<
-
-opover.o: opover.c
-	$(CC) -c $(CFLAGS) $<
-
-optimize.o: optimize.c
-	$(CC) -c $(CFLAGS) $<
-
-os.o: $C/os.c
-	$(CC) -c $(MFLAGS) $<
-
-out.o: $C/out.c
-	$(CC) -c $(MFLAGS) $<
-
-outbuf.o: $C/outbuf.c
-	$(CC) -c $(MFLAGS) $<
-
-outbuffer.o : $(ROOT)/outbuffer.c
-	$(CC) -c $(CFLAGS) -I$(ROOT) $<
-
-parse.o: parse.c
-	$(CC) -c $(CFLAGS) $<
-
-pdata.o: $C/pdata.c
-	$(CC) -c $(MFLAGS) $<
-
-ph2.o: $C/ph2.c
-	$(CC) -c $(MFLAGS) $<
-
-platform_stub.o: $C/platform_stub.c
-	$(CC) -c $(MFLAGS) $<
-
-port.o: $(ROOT)/port.c
-	$(CC) -c $(GFLAGS) -I$(ROOT) $<
-
-ptrntab.o: $C/ptrntab.c
-	$(CC) -c $(MFLAGS) $<
-
-response.o: $(ROOT)/response.c
-	$(CC) -c $(GFLAGS) -I$(ROOT) $<
-
-rtlsym.o: $C/rtlsym.c
-	$(CC) -c $(MFLAGS) $<
-
-sapply.o: sapply.c
-	$(CC) -c $(CFLAGS) $<
-
-s2ir.o: s2ir.c
-	$(CC) -c $(MFLAGS) -I$(ROOT) $<
-
-scanelf.o: scanelf.c
-	$(CC) -c $(CFLAGS) -I$C $<
-
-scanmach.o: scanmach.c
-	$(CC) -c $(CFLAGS) -I$C $<
-
-scope.o: scope.c
-	$(CC) -c $(CFLAGS) $<
-
-sideeffect.o: sideeffect.c
-	$(CC) -c $(CFLAGS) $<
-
-speller.o: $(ROOT)/speller.c
-	$(CC) -c $(GFLAGS) -I$(ROOT) $<
-
-statement.o: statement.c
-	$(CC) -c $(CFLAGS) $<
-
-staticassert.o: staticassert.c
-	$(CC) -c $(CFLAGS) $<
-
-stringtable.o: $(ROOT)/stringtable.c
-	$(CC) -c $(GFLAGS) -I$(ROOT) $<
-
-strtold.o: $C/strtold.c
-	$(CC) -c -I$(ROOT) $<
-
-struct.o: struct.c
-	$(CC) -c $(CFLAGS) $<
-
-target.o: target.c
-	$(CC) -c $(CFLAGS) $<
-
-template.o: template.c
-	$(CC) -c $(CFLAGS) $<
-
-ti_achar.o: $C/ti_achar.c
-	$(CC) -c $(MFLAGS) -I. $<
-
-ti_pvoid.o: $C/ti_pvoid.c
-	$(CC) -c $(MFLAGS) -I. $<
-
-tk.o: tk.c
-	$(CC) -c $(MFLAGS) $<
-
-tocsym.o: tocsym.c
-	$(CC) -c $(MFLAGS) -I$(ROOT) $<
-
-toctype.o: toctype.c
-	$(CC) -c $(MFLAGS) -I$(ROOT) $<
-
-todt.o: todt.c
-	$(CC) -c $(MFLAGS) -I$(ROOT) $<
-
-toelfdebug.o: toelfdebug.c
-	$(CC) -c $(MFLAGS) -I$(ROOT) $<
-
-toir.o: toir.c
-	$(CC) -c $(MFLAGS) -I$(ROOT) $<
-
-toobj.o: toobj.c
-	$(CC) -c $(MFLAGS) -I$(ROOT) $<
-
-traits.o: traits.c
-	$(CC) -c $(CFLAGS) $<
-
-type.o: $C/type.c
-	$(CC) -c $(MFLAGS) $<
-
-typinf.o: typinf.c
-	$(CC) -c $(MFLAGS) -I$(ROOT) $<
-
-util2.o: $C/util2.c
-	$(CC) -c $(MFLAGS) $<
-
-utf.o: utf.c
-	$(CC) -c $(CFLAGS) $<
-
-unittests.o: unittests.c
-	$(CC) -c $(CFLAGS) $<
-
-var.o: $C/var.c optab.c tytab.c
-	$(CC) -c $(MFLAGS) -I. $<
-
-version.o: version.c
-	$(CC) -c $(CFLAGS) $<
 
 -include $(DEPS)
 
