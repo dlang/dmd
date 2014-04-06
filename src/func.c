@@ -1837,6 +1837,9 @@ void FuncDeclaration::semantic3(Scope *sc)
                 fens = NULL;
         }
 
+        if (fbody && fbody->isErrorStatement())
+            ;
+        else
         {
             Statements *a = new Statements();
 
@@ -2146,7 +2149,7 @@ void FuncDeclaration::semantic3(Scope *sc)
      * Otherwise, error gagging should be temporarily ungagged by functionSemantic3.
      */
     semanticRun = PASSsemantic3done;
-    semantic3Errors = (global.errors != nerrors);
+    semantic3Errors = (global.errors != nerrors) || (fbody && fbody->isErrorStatement());
     if (type->ty == Terror)
         errors = true;
     //printf("-FuncDeclaration::semantic3('%s.%s', sc = %p, loc = %s)\n", parent->toChars(), toChars(), sc, loc.toChars());
