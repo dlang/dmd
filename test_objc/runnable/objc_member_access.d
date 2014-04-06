@@ -1,5 +1,5 @@
 // REQUIRED_ARGS: -L-framework -LCocoa runnable/objc_code/objc_member_access.o $(clang -m$MODEL runnable/objc_code/objc_member_access.m -c -o runnable/objc_code/objc_member_access.o)
-// POST_SCRIPT: rm runnable/objc_code/objc_member_access.o
+// POST_SCRIPT: runnable/extra-files/objc_member_access-postscript.sh
 
 import std.c.stdio;
 

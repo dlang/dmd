@@ -1,7 +1,7 @@
 // Note: below is a crappy way to compile and link objc_code/objc_exception.m
 
 // REQUIRED_ARGS: -L-framework -LCocoa -L-lobjc runnable/objc_code/objc_exception.o $(gcc -m$MODEL runnable/objc_code/objc_exception.m -c -o runnable/objc_code/objc_exception.o)
-// POST_SCRIPT: rm runnable/objc_code/objc_exception.o
+// POST_SCRIPT: runnable/extra-files/objc_exception-postscript.sh
 
 extern (Objective-C)
 class NSObject {
