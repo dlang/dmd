@@ -182,16 +182,16 @@ void mix4() {
     assert(finalized == true);
 }
 
-
-
 void main() {
-    test1();
-    test2();
-    test3();
-    test4();
-    
-    mix1();
-    mix2();
-    mix3();
-    mix4();
+    version (X86) {
+        test1();
+        test2();
+        test3();
+        test4();
+
+        mix1();
+        mix2();
+        mix3();
+        mix4();
+    }
 }
