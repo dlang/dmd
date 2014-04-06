@@ -428,7 +428,7 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
 
         void visit(StructLiteralExp *se)
         {
-            //printf("StructLiteralExp::toDt() %s, ctfe = %d\n", toChars(), ownedByCtfe);
+            //printf("StructLiteralExp::toDt() %s, ctfe = %d\n", se->toChars(), se->ownedByCtfe);
             assert(se->sd->fields.dim - se->sd->isNested() <= se->elements->dim);
 
             unsigned offset = 0;
