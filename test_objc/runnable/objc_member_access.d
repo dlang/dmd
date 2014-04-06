@@ -67,11 +67,6 @@ version (D_ObjCNonFragileABI)
 		assert(o.a == 4);
 		assert(o.b == 8);
 
-		o.a = 8;
-		o.tupleof[0] = 12;
-		assert(o.a == 8);
-		assert(o.b == 12);
-
 		o.a = 10;
 		auto ptr = &o.b;
 		*ptr = 14;

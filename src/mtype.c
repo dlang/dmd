@@ -2151,22 +2151,40 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
     printf("Type::dotExp(e = '%s', ident = '%s')\n", e->toChars(), ident->toChars());
 #endif
     Expression *ex = e;
+#if DMD_OBJC
+    ClassDeclaration* receiver = NULL;
+#endif
     while (ex->op == TOKcomma)
         ex = ((CommaExp *)ex)->e2;
     if (ex->op == TOKdotvar)
     {
         DotVarExp *dv = (DotVarExp *)ex;
         v = dv->var->isVarDeclaration();
+#if DMD_OBJC
+        Type* baseType = dv->e1->type->toBasetype();
+        if (baseType && baseType->ty == Tclass)
+            receiver = ((TypeClass*) baseType)->sym;
+
+#endif
     }
     else if (ex->op == TOKvar)
     {
         VarExp *ve = (VarExp *)ex;
         v = ve->var->isVarDeclaration();
+        assert(v && "v is not an VarDeclaration");
+#if DMD_OBJC
+        if (Dsymbol* parent = v->toParent())
+            receiver = parent->isClassDeclaration();
+#endif
     }
     if (v)
     {
         if (ident == Id::offsetof)
         {
+#if DMD_OBJC
+            if (receiver && receiver->objc)
+                error(e->loc, ".offsetof (%s) is not available for members of Objective-C classes (%s)", e->toChars(), receiver->toChars());
+#endif
             if (v->isField())
             {
                 e = new IntegerExp(e->loc, v->offset, Type::tsize_t);
