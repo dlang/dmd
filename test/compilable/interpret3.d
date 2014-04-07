@@ -2565,6 +2565,28 @@ bool bug10858()
 static assert(bug10858());
 
 /**************************************************
+    12528 - painting inout type for value type literals
+**************************************************/
+
+inout(T)[] dup12528(T)(inout(T)[] a)
+{
+    inout(T)[] res;
+    foreach (ref e; a)
+        res ~= e;
+    return res;
+}
+
+enum arr12528V1 = dup12528([0]);
+enum arr12528V2 = dup12528([0, 1]);
+static assert(arr12528V1 == [0]);
+static assert(arr12528V2 == [0, 1]);
+
+enum arr12528C1 = dup12528([new immutable Object]);
+enum arr12528C2 = dup12528([new immutable Object, new immutable Object]);
+static assert(arr12528C1.length == 1);
+static assert(arr12528C2.length == 2 && arr12528C2[0] !is arr12528C2[1]);
+
+/**************************************************
     9745 Allow pointers to static variables
 **************************************************/
 
