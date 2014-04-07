@@ -3736,7 +3736,7 @@ Statement *BreakStatement::semantic(Scope *sc)
             {
                 Statement *s = ls->statement;
 
-                if (!s->hasBreak())
+                if (!s || !s->hasBreak())
                     error("label '%s' has no break", ident->toChars());
                 else if (ls->tf != sc->tf)
                     error("cannot break out of finally block");
@@ -3829,7 +3829,7 @@ Statement *ContinueStatement::semantic(Scope *sc)
             {
                 Statement *s = ls->statement;
 
-                if (!s->hasContinue())
+                if (!s || !s->hasContinue())
                     error("label '%s' has no continue", ident->toChars());
                 else if (ls->tf != sc->tf)
                     error("cannot continue out of finally block");
@@ -4693,7 +4693,7 @@ LabelStatement::LabelStatement(Loc loc, Identifier *ident, Statement *statement)
 
 Statement *LabelStatement::syntaxCopy()
 {
-    LabelStatement *s = new LabelStatement(loc, ident, statement->syntaxCopy());
+    LabelStatement *s = new LabelStatement(loc, ident, statement ? statement->syntaxCopy() : NULL);
     return s;
 }
 
