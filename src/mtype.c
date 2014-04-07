@@ -9055,13 +9055,13 @@ Type *TypeSlice::syntaxCopy()
 Type *TypeSlice::semantic(Loc loc, Scope *sc)
 {
     //printf("TypeSlice::semantic() %s\n", toChars());
-    next = next->semantic(loc, sc);
-    transitive();
-    //printf("next: %s\n", next->toChars());
+    Type *tn = next->semantic(loc, sc);
+    //printf("next: %s\n", tn->toChars());
 
-    Type *tbn = next->toBasetype();
+    Type *tbn = tn->toBasetype();
     if (tbn->ty != Ttuple)
-    {   error(loc, "can only slice tuple types, not %s", tbn->toChars());
+    {
+        error(loc, "can only slice tuple types, not %s", tbn->toChars());
         return Type::terror;
     }
     TypeTuple *tt = (TypeTuple *)tbn;
@@ -9075,19 +9075,23 @@ Type *TypeSlice::semantic(Loc loc, Scope *sc)
     uinteger_t i2 = upr->toUInteger();
 
     if (!(i1 <= i2 && i2 <= tt->arguments->dim))
-    {   error(loc, "slice [%llu..%llu] is out of range of [0..%u]", i1, i2, tt->arguments->dim);
+    {
+        error(loc, "slice [%llu..%llu] is out of range of [0..%u]", i1, i2, tt->arguments->dim);
         return Type::terror;
     }
+
+    next = tn;
+    transitive();
 
     Parameters *args = new Parameters;
     args->reserve((size_t)(i2 - i1));
     for (size_t i = (size_t)i1; i < (size_t)i2; i++)
-    {   Parameter *arg = (*tt->arguments)[i];
+    {
+        Parameter *arg = (*tt->arguments)[i];
         args->push(arg);
     }
-
-    Type *t = (new TypeTuple(args))->semantic(loc, sc);
-    return t;
+    Type *t = new TypeTuple(args);
+    return t->semantic(loc, sc);
 }
 
 void TypeSlice::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid)

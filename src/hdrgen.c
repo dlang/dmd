@@ -767,6 +767,7 @@ public:
 
     void visit(Type *t)
     {
+        printf("t = %p, ty = %d\n", t, t->ty);
         assert(0);
     }
 
