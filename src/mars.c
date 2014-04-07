@@ -445,7 +445,7 @@ Usage:\n\
   -main          add default main() (e.g. for unittesting)\n\
   -man           open web browser on manual page\n\
   -map           generate linker .map file\n\
-  -noboundscheck turns off array bounds checking for all functions\n\
+  -noboundscheck turns off array bounds checking for all functions (including @safe)\n\
   -O             optimize\n\
   -o-            do not write object file\n\
   -odobjdir      write object & library files to directory objdir\n\
