@@ -1345,6 +1345,10 @@ Lnomatch:
             else
                 init = getExpInitializer();
         }
+        else if (type->baseElemOf()->ty == Tvoid)
+        {
+            error("%s does not have a default initializer", type->toChars());
+        }
         else
         {
             init = getExpInitializer();
