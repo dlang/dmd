@@ -346,9 +346,13 @@ Expression *paintTypeOntoLiteral(Type *type, Expression *lit)
     if (lit->type->equals(type))
         return lit;
 
-    // If it is a cast to inout, retain the original type.
-    if (type->hasWild())
+    // If it is a cast to inout, retain the original type of the referenced part.
+    if (type->hasWild() && type->hasPointers())
+    {
+        lit = lit->copy();
+        lit->type = type;
         return lit;
+    }
 
     Expression *e;
     if (lit->op == TOKslice)
@@ -383,7 +387,8 @@ Expression *paintTypeOntoLiteral(Type *type, Expression *lit)
         e = aae;
     }
     else
-    {   // Can't type paint from struct to struct*; this needs another
+    {
+        // Can't type paint from struct to struct*; this needs another
         // level of indirection
         if (lit->op == TOKstructliteral && isPointer(type) )
             lit->error("CTFE internal error painting %s", type->toChars());
