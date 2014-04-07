@@ -3330,6 +3330,7 @@ public:
             interpretCompareCommon(e, &ctfeCmp);
             return;
         default:
+            printf("be = '%s' %s at [%s]\n", Token::toChars(e->op), e->toChars(), e->loc.toChars());
             assert(0);
             return;
         }
