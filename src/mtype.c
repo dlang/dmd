@@ -7913,18 +7913,21 @@ L1:
 
     TemplateInstance *ti = s->isTemplateInstance();
     if (ti)
-    {   if (!ti->semanticRun)
+    {
+        if (!ti->semanticRun)
         {
-            if (global.errors)
-                return new ErrorExp();  // TemplateInstance::semantic() will fail anyway
             ti->semantic(sc);
+            if (!ti->inst || ti->errors)    // if template failed to expand
+                return new ErrorExp();
         }
         s = ti->inst->toAlias();
         if (!s->isTemplateInstance())
             goto L1;
-        Expression *de = new DotExp(e->loc, e, new ScopeExp(e->loc, ti));
-        de->type = e->type;
-        return de;
+        if (e->op == TOKtype)
+            e = new ScopeExp(e->loc, ti);
+        else
+            e = new DotExp(e->loc, e, new ScopeExp(e->loc, ti));
+        return e->semantic(sc);
     }
 
     if (s->isImport() || s->isModule() || s->isPackage())
@@ -8542,18 +8545,21 @@ L1:
 
     TemplateInstance *ti = s->isTemplateInstance();
     if (ti)
-    {   if (!ti->semanticRun)
+    {
+        if (!ti->semanticRun)
         {
-            if (global.errors)
-                return new ErrorExp();  // TemplateInstance::semantic() will fail anyway
             ti->semantic(sc);
+            if (!ti->inst || ti->errors)    // if template failed to expand
+                return new ErrorExp();
         }
         s = ti->inst->toAlias();
         if (!s->isTemplateInstance())
             goto L1;
-        Expression *de = new DotExp(e->loc, e, new ScopeExp(e->loc, ti));
-        de->type = e->type;
-        return de;
+        if (e->op == TOKtype)
+            e = new ScopeExp(e->loc, ti);
+        else
+            e = new DotExp(e->loc, e, new ScopeExp(e->loc, ti));
+        return e->semantic(sc);
     }
 
     if (s->isImport() || s->isModule() || s->isPackage())

@@ -547,3 +547,33 @@ class A12302
 
 A12302 func12302() { return null; }
 enum b12302 = isCallable12302!func12302;
+
+/***************************************************/
+// 12476
+
+template A12476(T) {  }
+
+struct S12476(T)
+{
+    alias B = A12476!T;
+}
+
+class C12476(T)
+{
+    alias B = A12476!T;
+}
+
+struct Bar12476(alias Foo)
+{
+    Foo!int baz;
+    alias baz this;
+}
+
+alias Identity12476(alias A) = A;
+
+alias sb12476 = Identity12476!(Bar12476!S12476.B);
+alias cb12476 = Identity12476!(Bar12476!C12476.B);
+
+static assert(__traits(isSame, sb12476, A12476!int));
+static assert(__traits(isSame, cb12476, A12476!int));
+
