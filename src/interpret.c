@@ -2511,13 +2511,12 @@ public:
         {
             if (v->toAlias()->isTupleDeclaration())
             {
+                result = NULL;
+
                 // Reserve stack space for all tuple members
                 TupleDeclaration *td = v->toAlias()->isTupleDeclaration();
                 if (!td->objects)
-                {
-                    result = NULL;
                     return;
-                }
                 for(size_t i= 0; i < td->objects->dim; ++i)
                 {
                     RootObject * o = (*td->objects)[i];
@@ -2526,9 +2525,27 @@ public:
                     VarDeclaration *v2 = s ? s->s->isVarDeclaration() : NULL;
                     assert(v2);
                     if (!v2->isDataseg() || v2->isCTFE())
+                    {
                         ctfeStack.push(v2);
+                        if (v2->init)
+                        {
+                            ExpInitializer *ie = v2->init->isExpInitializer();
+                            if (ie)
+                            {
+                                setValue(v2, ie->exp->interpret(istate, goal));
+                            }
+                            else if (v2->init->isVoidInitializer())
+                            {
+                                setValue(v2, voidInitLiteral(v2->type, v2));
+                            }
+                            else
+                            {
+                                e->error("Declaration %s is not yet implemented in CTFE", e->toChars());
+                                result = EXP_CANT_INTERPRET;
+                            }
+                        }
+                    }
                 }
-                result = NULL;
                 return;
             }
             if (!(v->isDataseg() || v->storage_class & STCmanifest) || v->isCTFE())

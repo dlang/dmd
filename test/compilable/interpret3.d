@@ -5,6 +5,8 @@ template compiles(int T)
    bool compiles = true;
 }
 
+alias TypeTuple(T...) = T;
+
 /**************************************************
     3901 Arbitrary struct assignment, ref return
 **************************************************/
@@ -6324,3 +6326,15 @@ bool test12310()
     return true;
 }
 static assert(test12310());
+
+/**************************************************
+    12499 - initialize TupleDeclaraion in CTFE
+**************************************************/
+
+auto f12499()
+{
+    //Initialize 3 ints to 5.
+    TypeTuple!(int, int, int) a = 5;
+    return a[0]; //Error: variable _a_field_0 cannot be read at compile time
+}
+static assert(f12499() == 5);
