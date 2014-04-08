@@ -1054,10 +1054,20 @@ bool StructDeclaration::fill(Loc loc, Expressions *elements, bool ctorinit)
                     ::error(loc, "field %s.%s must be initialized because it has no default constructor",
                             type->toChars(), vx->toChars());
                 }
-                if (vx->type->needsNested() && ctorinit)
-                    e = vx->type->defaultInit(loc);
+
+                /* Bugzilla 12509: Get the element of static array type.
+                 */
+                Type *telem = vx->type;
+                if (telem->ty == Tsarray)
+                {
+                    telem = telem->baseElemOf();
+                    if (telem->ty == Tvoid)
+                        telem = Type::tuns8->addMod(telem->mod);
+                }
+                if (telem->needsNested() && ctorinit)
+                    e = telem->defaultInit(loc);
                 else
-                    e = vx->type->defaultInitLiteral(loc);
+                    e = telem->defaultInitLiteral(loc);
             }
             (*elements)[fieldi] = e;
         }
