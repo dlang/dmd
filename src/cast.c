@@ -768,33 +768,6 @@ MATCH implicitConvTo(Expression *e, Type *t)
                 return;
             }
 
-            /* The result of arr.dup and arr.idup can be unique essentially.
-             * So deal with this case specially.
-             */
-            if (!e->f && e->e1->op == TOKvar && ((VarExp *)e->e1)->var->ident == Id::adDup &&
-                t->toBasetype()->ty == Tarray)
-            {
-                assert(e->type->toBasetype()->ty == Tarray);
-                assert(e->arguments->dim == 2);
-                Expression *eorg = (*e->arguments)[1];
-                Type *tn = t->nextOf();
-                if (e->type->nextOf()->implicitConvTo(tn) < MATCHconst)
-                {
-                    /* If the operand is an unique array literal, then allow conversion.
-                     */
-                    if (eorg->op != TOKarrayliteral)
-                        return;
-                    Expressions *elements = ((ArrayLiteralExp *)eorg)->elements;
-                    for (size_t i = 0; i < elements->dim; i++)
-                    {
-                        if (!(*elements)[i]->implicitConvTo(tn))
-                            return;
-                    }
-                }
-                result = e->type->immutableOf()->implicitConvTo(t);
-                return;
-            }
-
             /* Conversion is 'const' conversion if:
              * 1. function is pure (weakly pure is ok)
              * 2. implicit conversion only fails because of mod bits
@@ -813,6 +786,51 @@ MATCH implicitConvTo(Expression *e, Type *t)
              */
             if (e->type->immutableOf()->implicitConvTo(t->immutableOf()) == MATCHnomatch)
                 return;
+
+            /* adDup() is called to implement arr.dup or arr.idup
+             * We know that it makes a copy of an array. So it is not necessary
+             * to check first level, only second level, to see if convertible, because
+             * we know the first level of the return value will be unique.
+             */
+            bool isdup = false;
+            if (!e->f && e->e1->op == TOKvar && ((VarExp *)e->e1)->var->ident == Id::adDup &&
+                t->toBasetype()->ty == Tarray)
+            {
+                assert(e->type->toBasetype()->ty == Tarray);
+                assert(e->arguments->dim == 2);
+                isdup = true;   // so we only check eorg later
+
+                Expression *eorg = (*e->arguments)[1];
+                Type *tnb = t->nextOf()->toBasetype();
+
+                Type *typen = e->type->nextOf();
+
+                /* If the operand is an array literal, then we can look at the
+                 * array literal elements to do second level conversion check.
+                 */
+                if (eorg->op == TOKarrayliteral)
+                {
+                    Expressions *elements = ((ArrayLiteralExp *)eorg)->elements;
+                    for (size_t i = 0; i < elements->dim; i++)
+                    {
+                        if ((*elements)[i]->implicitConvTo(tnb) == MATCHnomatch)
+                            return;
+                    }
+                    result = MATCHconst;
+                    return;
+                }
+
+                if (typen->implicitConvTo(tnb) >= MATCHconst)
+                {
+                    result = MATCHconst;
+                    return;
+                }
+
+                /* Treat as regular pure function, i.e. if arguments are unique we can
+                 * allow the conversion. But only check second arg, since we know that
+                 * first arg won't be part of the return value.
+                 */
+            }
 
             /* Get mod bits of what we're converting to
              */
@@ -855,6 +873,8 @@ MATCH implicitConvTo(Expression *e, Type *t)
                     }
                     continue;
                 }
+                if (isdup)
+                    i = 1;                      // for adDup, only check eorg for uniqueness
                 Expression *earg = (*e->arguments)[i];
                 Type *targ = earg->type->toBasetype();
 #if LOG

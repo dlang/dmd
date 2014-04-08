@@ -161,6 +161,26 @@ void testDIP29_4()
 
 /***********************************/
 
+int[] test6(int[] a) pure @safe nothrow
+{
+    return a.dup;
+}
+
+/***********************************/
+
+int*[] pureFoo() pure { return null; }
+
+
+void testDIP29_5() pure
+{
+    { char[] s; immutable x = s.dup; }
+    { immutable x = (cast(int*[])null).dup; }
+    { immutable x = pureFoo(); }
+    { immutable x = pureFoo().dup; }
+}
+
+/***********************************/
+
 void main()
 {
     test1();
@@ -172,6 +192,7 @@ void main()
     testDIP29_2();
     testDIP29_3();
     testDIP29_4();
+    testDIP29_5();
 
     writefln("Success");
 }
