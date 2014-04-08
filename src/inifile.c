@@ -291,7 +291,7 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
                         else if (p[0] == '?' && p[1] == '=')
                         {
                             *p = '\0';
-                            if (getenv(p))
+                            if (getenv(pn))
                             {
                                 pn = NULL;
                                 break;
