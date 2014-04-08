@@ -66,7 +66,9 @@ bool canThrow(Expression *e, FuncDeclaration *func, bool mustNotThrow)
              * Note that pure functions can throw.
              */
             Type *t = ce->e1->type->toBasetype();
-            if (t->ty == Tfunction && ((TypeFunction *)t)->isnothrow)
+            if (ce->f && ce->f == func)
+                ;
+            else if (t->ty == Tfunction && ((TypeFunction *)t)->isnothrow)
                 ;
             else if (t->ty == Tdelegate && ((TypeFunction *)((TypeDelegate *)t)->next)->isnothrow)
                 ;
