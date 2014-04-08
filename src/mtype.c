@@ -5779,7 +5779,7 @@ void TypeFunction::purityLevel()
                 Type *tn = t->nextOf();
                 if (tn)
                 {   tn = tn->toBasetype();
-                    if (tn->ty == Tpointer || tn->ty == Tarray)
+                    if (t->ty == Tpointer || t->ty == Tarray)
                     {   /* Accept immutable(T)* and immutable(T)[] as being strongly pure
                          */
                         if (tn->mod & MODimmutable)
