@@ -304,7 +304,7 @@ void OutBuffer::align(size_t size)
     fill0(nbytes);
 }
 
-void OutBuffer::vprintf(const char *format, va_list args)
+void OutBuffer::vprintf(const char *format, void *args)
 {
     char buffer[128];
     char *p;
@@ -316,13 +316,13 @@ void OutBuffer::vprintf(const char *format, va_list args)
     for (;;)
     {
 #if _WIN32
-        count = _vsnprintf(p,psize,format,args);
+        count = _vsnprintf(p,psize,format,(va_list)args);
         if (count != -1)
             break;
         psize *= 2;
 #elif POSIX
         va_list va;
-        va_copy(va, args);
+        va_copy(va, (va_list)args);
 /*
   The functions vprintf(), vfprintf(), vsprintf(), vsnprintf()
   are equivalent to the functions printf(), fprintf(), sprintf(),
