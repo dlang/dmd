@@ -10269,7 +10269,8 @@ Expression *IndexExp::semantic(Scope *sc)
         }
 
         case Taarray:
-        {   TypeAArray *taa = (TypeAArray *)t1;
+        {
+            TypeAArray *taa = (TypeAArray *)t1;
             /* We can skip the implicit conversion if they differ only by
              * constness (Bugzilla 2684, see also bug 2954b)
              */
@@ -10293,7 +10294,8 @@ Expression *IndexExp::semantic(Scope *sc)
             TypeTuple *tup;
 
             if (e1->op == TOKtuple)
-            {   te = (TupleExp *)e1;
+            {
+                te = (TupleExp *)e1;
                 length = te->exps->dim;
             }
             else if (e1->op == TOKtype)
@@ -10319,7 +10321,7 @@ Expression *IndexExp::semantic(Scope *sc)
             {
                 error("array index [%llu] is outside array bounds [0 .. %llu]",
                         index, (ulonglong)length);
-                e = e1;
+                return new ErrorExp();
             }
             break;
         }
