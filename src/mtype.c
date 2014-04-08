@@ -8326,12 +8326,11 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
 #endif
 
     if (e->op == TOKdotexp)
-    {   DotExp *de = (DotExp *)e;
-
+    {
+        DotExp *de = (DotExp *)e;
         if (de->e1->op == TOKimport)
         {
             ScopeExp *se = (ScopeExp *)de->e1;
-
             s = se->sds->search(e->loc, ident);
             e = de->e1;
             goto L1;
@@ -8392,6 +8391,12 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
         e = e->semantic(sc2);
         sc2->pop();
         return e;
+    }
+
+    // Bugzilla 12543
+    if (ident == Id::__sizeof || ident == Id::__xalignof || ident == Id::mangleof)
+    {
+        return Type::getProperty(e->loc, ident, 0);
     }
 
     s = sym->search(e->loc, ident);
