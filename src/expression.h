@@ -1129,7 +1129,9 @@ public:
 class CommaExp : public BinExp
 {
 public:
-    CommaExp(Loc loc, Expression *e1, Expression *e2);
+    bool isInternal;
+
+    CommaExp(Loc loc, Expression *e1, Expression *e2, bool isInternal = true);
     Expression *semantic(Scope *sc);
     void checkEscape();
     void checkEscapeRef();
