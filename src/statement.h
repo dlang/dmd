@@ -104,7 +104,7 @@ public:
     virtual bool hasBreak();
     virtual bool hasContinue();
     bool usesEH();
-    virtual int blockExit(bool mustNotThrow);
+    int blockExit(FuncDeclaration *func, bool mustNotThrow);
     bool comeFrom();
     bool hasCode();
     virtual Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
@@ -138,7 +138,6 @@ public:
     ErrorStatement();
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
-    int blockExit(bool mustNotThrow);
 
     ErrorStatement *isErrorStatement() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -164,7 +163,6 @@ public:
     static ExpStatement *create(Loc loc, Expression *exp);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
-    int blockExit(bool mustNotThrow);
     Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
 
     ExpStatement *isExpStatement() { return this; }
@@ -195,7 +193,6 @@ public:
     Statement *syntaxCopy();
     Statements *flatten(Scope *sc);
     Statement *semantic(Scope *sc);
-    int blockExit(bool mustNotThrow);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -210,7 +207,6 @@ public:
     static CompoundStatement *create(Loc loc, Statement *s1, Statement *s2);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
-    int blockExit(bool mustNotThrow);
     Statements *flatten(Scope *sc);
     ReturnStatement *isReturnStatement();
     Statement *last();
@@ -240,7 +236,6 @@ public:
     Statement *semantic(Scope *sc);
     bool hasBreak();
     bool hasContinue();
-    int blockExit(bool mustNotThrow);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -257,7 +252,6 @@ public:
     Statement *semantic(Scope *sc);
     bool hasBreak();
     bool hasContinue();
-    int blockExit(bool mustNotThrow);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -273,7 +267,6 @@ public:
     Statement *semantic(Scope *sc);
     bool hasBreak();
     bool hasContinue();
-    int blockExit(bool mustNotThrow);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -289,7 +282,6 @@ public:
     Statement *semantic(Scope *sc);
     bool hasBreak();
     bool hasContinue();
-    int blockExit(bool mustNotThrow);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -314,7 +306,6 @@ public:
     Statement *getRelatedLabeled() { return relatedLabeled ? relatedLabeled : this; }
     bool hasBreak();
     bool hasContinue();
-    int blockExit(bool mustNotThrow);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -341,7 +332,6 @@ public:
     bool checkForArgTypes();
     bool hasBreak();
     bool hasContinue();
-    int blockExit(bool mustNotThrow);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -363,7 +353,6 @@ public:
     Statement *semantic(Scope *sc);
     bool hasBreak();
     bool hasContinue();
-    int blockExit(bool mustNotThrow);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -381,7 +370,6 @@ public:
     IfStatement(Loc loc, Parameter *arg, Expression *condition, Statement *ifbody, Statement *elsebody);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
-    int blockExit(bool mustNotThrow);
     IfStatement *isIfStatement() { return this; }
 
     void accept(Visitor *v) { v->visit(this); }
@@ -398,7 +386,6 @@ public:
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     Statements *flatten(Scope *sc);
-    int blockExit(bool mustNotThrow);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -413,7 +400,6 @@ public:
     PragmaStatement(Loc loc, Identifier *ident, Expressions *args, Statement *body);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
-    int blockExit(bool mustNotThrow);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -426,7 +412,6 @@ public:
     StaticAssertStatement(StaticAssert *sa);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
-    int blockExit(bool mustNotThrow);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -449,7 +434,6 @@ public:
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     bool hasBreak();
-    int blockExit(bool mustNotThrow);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -467,7 +451,6 @@ public:
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     int compare(RootObject *obj);
-    int blockExit(bool mustNotThrow);
     CaseStatement *isCaseStatement() { return this; }
 
     void accept(Visitor *v) { v->visit(this); }
@@ -499,7 +482,6 @@ public:
     DefaultStatement(Loc loc, Statement *s);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
-    int blockExit(bool mustNotThrow);
     DefaultStatement *isDefaultStatement() { return this; }
 
     void accept(Visitor *v) { v->visit(this); }
@@ -513,7 +495,6 @@ public:
     GotoDefaultStatement(Loc loc);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
-    int blockExit(bool mustNotThrow);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -527,7 +508,6 @@ public:
     GotoCaseStatement(Loc loc, Expression *exp);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
-    int blockExit(bool mustNotThrow);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -536,7 +516,6 @@ class SwitchErrorStatement : public Statement
 {
 public:
     SwitchErrorStatement(Loc loc);
-    int blockExit(bool mustNotThrow);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -550,7 +529,6 @@ public:
     ReturnStatement(Loc loc, Expression *exp);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
-    int blockExit(bool mustNotThrow);
 
     ReturnStatement *isReturnStatement() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -564,7 +542,6 @@ public:
     BreakStatement(Loc loc, Identifier *ident);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
-    int blockExit(bool mustNotThrow);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -577,7 +554,6 @@ public:
     ContinueStatement(Loc loc, Identifier *ident);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
-    int blockExit(bool mustNotThrow);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -593,7 +569,6 @@ public:
     Statement *semantic(Scope *sc);
     bool hasBreak();
     bool hasContinue();
-    int blockExit(bool mustNotThrow);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -608,7 +583,6 @@ public:
     WithStatement(Loc loc, Expression *exp, Statement *body);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
-    int blockExit(bool mustNotThrow);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -623,7 +597,6 @@ public:
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     bool hasBreak();
-    int blockExit(bool mustNotThrow);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -643,7 +616,6 @@ public:
     Catch(Loc loc, Type *t, Identifier *id, Statement *handler);
     Catch *syntaxCopy();
     void semantic(Scope *sc);
-    int blockExit(bool mustNotThrow);
 };
 
 class TryFinallyStatement : public Statement
@@ -658,7 +630,6 @@ public:
     Statement *semantic(Scope *sc);
     bool hasBreak();
     bool hasContinue();
-    int blockExit(bool mustNotThrow);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -671,7 +642,6 @@ public:
 
     OnScopeStatement(Loc loc, TOK tok, Statement *statement);
     Statement *syntaxCopy();
-    int blockExit(bool mustNotThrow);
     Statement *semantic(Scope *sc);
     Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
 
@@ -689,7 +659,6 @@ public:
     ThrowStatement(Loc loc, Expression *exp);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
-    int blockExit(bool mustNotThrow);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -719,7 +688,6 @@ public:
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     bool checkLabel();
-    int blockExit(bool mustNotThrow);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -740,7 +708,6 @@ public:
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     Statements *flatten(Scope *sc);
-    int blockExit(bool mustNotThrow);
 
     LabelStatement *isLabelStatement() { return this; }
 
@@ -776,7 +743,6 @@ public:
     {
         return asmSemantic(this, sc);
     }
-    int blockExit(bool mustNotThrow);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -789,7 +755,6 @@ public:
     ImportStatement(Loc loc, Dsymbols *imports);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
-    int blockExit(bool mustNotThrow);
 
     void accept(Visitor *v) { v->visit(this); }
 };

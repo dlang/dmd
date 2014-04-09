@@ -403,6 +403,21 @@ void test12025b() pure
 }
 
 /***************************************************/
+// 12542
+
+int logOf12542(T)(T n)
+{
+    if (n)
+        return 1 + logOf12542(n/2);
+    return 0;
+}
+
+void test12542() @safe nothrow pure 
+{
+    int log = logOf12542(9);
+}
+
+/***************************************************/
 
 // Add more tests regarding inferences later.
 

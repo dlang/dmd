@@ -966,13 +966,14 @@ bool arrayExpressionSemantic(Expressions *exps, Scope *sc)
  * Perform canThrow() on an array of Expressions.
  */
 
-int arrayExpressionCanThrow(Expressions *exps, bool mustNotThrow)
+int arrayExpressionCanThrow(Expressions *exps, FuncDeclaration *func, bool mustNotThrow)
 {
     if (exps)
     {
         for (size_t i = 0; i < exps->dim; i++)
-        {   Expression *e = (*exps)[i];
-            if (e && canThrow(e, mustNotThrow))
+        {
+            Expression *e = (*exps)[i];
+            if (e && canThrow(e, func, mustNotThrow))
                 return 1;
         }
     }
@@ -2186,7 +2187,7 @@ void Expression::checkDeprecated(Scope *sc, Dsymbol *s)
 void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
 {
 #if 1
-    if (sc->func && !sc->intypeof && !(sc->flags & SCOPEdebug))
+    if (sc->func && sc->func != f && !sc->intypeof && !(sc->flags & SCOPEdebug))
     {
         /* Given:
          * void f()
@@ -2385,7 +2386,7 @@ void Expression::checkPurity(Scope *sc, VarDeclaration *v)
 
 void Expression::checkSafety(Scope *sc, FuncDeclaration *f)
 {
-    if (sc->func && !sc->intypeof &&
+    if (sc->func && sc->func != f && !sc->intypeof &&
         !(sc->flags & SCOPEctfe) &&
         !f->isSafe() && !f->isTrusted())
     {
