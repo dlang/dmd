@@ -445,7 +445,8 @@ Usage:\n\
   -main          add default main() (e.g. for unittesting)\n\
   -man           open web browser on manual page\n\
   -map           generate linker .map file\n\
-  -noboundscheck turns off array bounds checking for all functions (including @safe)\n\
+  -boundscheck=[on|safeonly|off]   bounds checks on, in @safe only, or off\n\
+  -noboundscheck no array bounds checking (deprecated, use -boundscheck=off)\n\
   -O             optimize\n\
   -o-            do not write object file\n\
   -odobjdir      write object & library files to directory objdir\n\
@@ -528,7 +529,8 @@ int tryMain(size_t argc, const char *argv[])
     Strings libmodules;
     size_t argcstart = argc;
     bool setdebuglib = false;
-    bool noboundscheck = false;
+    bool setboundscheck = false;
+    char boundscheck = 2;
     bool setdefaultlib = false;
     const char *inifilename = NULL;
     global.init();
@@ -918,7 +920,37 @@ Language changes listed by -transition=id:\n\
             else if (strcmp(p + 1, "betterC") == 0)
                 global.params.betterC = true;
             else if (strcmp(p + 1, "noboundscheck") == 0)
-                noboundscheck = true;
+            {
+                setboundscheck = true;
+                boundscheck = 0;
+            }
+            else if (memcmp(p + 1, "boundscheck", 11) == 0)
+            {
+                // Parse:
+                //      -boundscheck=[on|safeonly|off]
+                if (p[12] == '=')
+                {
+                    if (strcmp(p + 13, "on") == 0)
+                    {
+                        setboundscheck = true;
+                        boundscheck = 2;
+                    }
+                    else if (strcmp(p + 13, "safeonly") == 0)
+                    {
+                        setboundscheck = true;
+                        boundscheck = 1;
+                    }
+                    else if (strcmp(p + 13, "off") == 0)
+                    {
+                        setboundscheck = true;
+                        boundscheck = 0;
+                    }
+                    else
+                        goto Lerror;
+                }
+                else
+                    goto Lerror;
+            }
             else if (strcmp(p + 1, "unittest") == 0)
                 global.params.useUnitTests = true;
             else if (p[1] == 'I')
@@ -1144,8 +1176,8 @@ Language changes listed by -transition=id:\n\
         global.params.useArrayBounds = 1;
         global.params.useSwitchError = false;
     }
-    if (noboundscheck)
-        global.params.useArrayBounds = 0;
+    if (setboundscheck)
+        global.params.useArrayBounds = boundscheck;
 
     if (global.params.useUnitTests)
         global.params.useAssert = true;
@@ -1234,7 +1266,7 @@ Language changes listed by -transition=id:\n\
         VersionCondition::addPredefinedGlobalIdent("unittest");
     if (global.params.useAssert)
         VersionCondition::addPredefinedGlobalIdent("assert");
-    if (noboundscheck)
+    if (boundscheck == 0)
         VersionCondition::addPredefinedGlobalIdent("D_NoBoundsChecks");
 
     VersionCondition::addPredefinedGlobalIdent("D_HardFloat");
