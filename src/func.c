@@ -252,7 +252,7 @@ public:
 
             Statement *sexception = new DtorExpStatement(Loc(), fd->nrvo_var->edtor, fd->nrvo_var);
             Statement *handler = sexception;
-            if (sexception->blockExit(false) & BEfallthru)
+            if (sexception->blockExit(fd, false) & BEfallthru)
             {
                 ThrowStatement *ts = new ThrowStatement(Loc(), new IdentifierExp(Loc(), id));
                 ts->internalThrow = true;
@@ -1684,7 +1684,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 
                 // Check for errors related to 'nothrow'.
                 int nothrowErrors = global.errors;
-                int blockexit = fbody->blockExit(f->isnothrow);
+                int blockexit = fbody->blockExit(this, f->isnothrow);
                 if (f->isnothrow && (global.errors != nothrowErrors) )
                     ::error(loc, "%s '%s' is nothrow yet may throw", kind(), toPrettyChars());
                 if (flags & FUNCFLAGnothrowInprocess)
@@ -1723,7 +1723,7 @@ void FuncDeclaration::semantic3(Scope *sc)
             {
                 // Check for errors related to 'nothrow'.
                 int nothrowErrors = global.errors;
-                int blockexit = fbody->blockExit(f->isnothrow);
+                int blockexit = fbody->blockExit(this, f->isnothrow);
                 if (f->isnothrow && (global.errors != nothrowErrors) )
                     ::error(loc, "%s '%s' is nothrow yet may throw", kind(), toPrettyChars());
                 if (flags & FUNCFLAGnothrowInprocess)
@@ -2005,12 +2005,12 @@ void FuncDeclaration::semantic3(Scope *sc)
                         s = s->semantic(sc2);
                         int nothrowErrors = global.errors;
                         bool isnothrow = f->isnothrow & !(flags & FUNCFLAGnothrowInprocess);
-                        int blockexit = s->blockExit(isnothrow);
+                        int blockexit = s->blockExit(this, isnothrow);
                         if (f->isnothrow && (global.errors != nothrowErrors) )
                             ::error(loc, "%s '%s' is nothrow yet may throw", kind(), toPrettyChars());
                         if (flags & FUNCFLAGnothrowInprocess && blockexit & BEthrow)
                             f->isnothrow = false;
-                        if (fbody->blockExit(f->isnothrow) == BEfallthru)
+                        if (fbody->blockExit(this, f->isnothrow) == BEfallthru)
                             fbody = new CompoundStatement(Loc(), fbody, s);
                         else
                             fbody = new TryFinallyStatement(Loc(), fbody, s);
