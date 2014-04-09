@@ -39,30 +39,47 @@ LDFLAGS=-lm -lstdc++ -lpthread
 CC=$(HOST_CC) $(MODEL_FLAG)
 GIT=git
 
-#COV=-fprofile-arcs -ftest-coverage
-#PROFILE=-pg
-
 ifdef ENABLE_WARNINGS
-WARNINGS=-Wall -Wextra -Wno-deprecated -Wstrict-aliasing \
+WARNINGS := -Wall -Wextra -Wno-deprecated -Wstrict-aliasing \
 	-Wno-unused-parameter -Wno-unused-variable -Wunused-function \
 	-Wno-unused-label -Wno-unknown-pragmas -Wno-sign-compare \
 	-Wno-overloaded-virtual -Wno-missing-braces \
 	-Wno-missing-field-initializers -Wno-logical-op-parentheses
 else
-WARNINGS=-Wno-deprecated -Wstrict-aliasing
+WARNINGS := -Wno-deprecated -Wstrict-aliasing
 endif
+
+OS_UPCASE := $(shell echo $(OS) | tr '[a-z]' '[A-Z]')
 
 MMD=-MMD -MF $(basename $@).deps
 
+# Default compiler flags for all source files
+CFLAGS := $(WARNINGS) \
+	-fno-exceptions -fno-rtti \
+	-D__pascal= -DMARS=1 -DTARGET_$(OS_UPCASE)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1 \
+
 ifneq (,$(DEBUG))
-	GFLAGS=$(WARNINGS) -D__pascal= -fno-exceptions -g -g3 -DDEBUG=1 -DUNITTEST $(COV) $(PROFILE) $(MMD) -fno-rtti
-else
-	GFLAGS=$(WARNINGS) -D__pascal= -fno-exceptions -O2 $(PROFILE) $(MMD) -fno-rtti
+ENABLE_DEBUG := 1
 endif
 
-OS_UPCASE:=$(shell echo $(OS) | tr '[a-z]' '[A-Z]')
-CFLAGS = $(GFLAGS) -I$(ROOT) -DMARS=1 -DTARGET_$(OS_UPCASE)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1
-MFLAGS = $(GFLAGS) -I$C -I$(TK) -I$(ROOT) -DMARS=1 -DTARGET_$(OS_UPCASE)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1 -DDMDV2=1
+# Append different flags for debugging, profiling and release. Define
+# ENABLE_DEBUG and ENABLE_PROFILING to enable profiling.
+ifdef ENABLE_DEBUG
+CFLAGS += -g -g3 -DDEBUG=1 -DUNITTEST
+ifdef ENABLE_PROFILING
+CFLAGS  += -pg -fprofile-arcs -ftest-coverage
+LDFLAGS += -pg -fprofile-arcs -ftest-coverage
+endif
+else
+CFLAGS += -O2
+endif
+
+# Uniqe extra flags if necessary
+DMD_FLAGS  :=           -I$(ROOT)
+GLUE_FLAGS := -DDMDV2=1 -I$(ROOT) -I$(TK) -I$(C)
+BACK_FLAGS := -DDMDV2=1 -I$(ROOT) -I$(TK) -I$(C) -I.
+ROOT_FLAGS := -DDMDV2=1 -I$(ROOT)
+
 
 DMD_OBJS = \
 	access.o attrib.o \
@@ -207,7 +224,7 @@ backend.a: $(BACK_OBJS)
 	ar rcs backend.a $(BACK_OBJS)
 
 dmd: frontend.a root.a glue.a backend.a
-	$(HOST_CC) -o dmd $(MODEL_FLAG) $(COV) $(PROFILE) frontend.a root.a glue.a backend.a $(LDFLAGS)
+	$(HOST_CC) -o dmd $(MODEL_FLAG) frontend.a root.a glue.a backend.a $(LDFLAGS)
 
 clean:
 	rm -f $(DMD_OBJS) $(ROOT_OBJS) $(GLUE_OBJS) $(BACK_OBJS) dmd optab.o id.o impcnvgen idgen id.c id.h \
@@ -218,7 +235,7 @@ clean:
 ######## optabgen generates some source
 
 optabgen: $C/optabgen.c $C/cc.h $C/oper.h
-	$(CC) $(MFLAGS) $< -o optabgen
+	$(CC) $(CFLAGS) -I$(TK) $< -o optabgen
 	./optabgen
 
 optabgen_output = debtab.c optab.c cdxxx.c elxxx.c fltables.c tytab.c
@@ -239,7 +256,7 @@ impcnvtab_output = impcnvtab.c
 $(impcnvtab_output) : impcnvgen
 
 impcnvgen : mtype.h impcnvgen.c
-	$(CC) $(CFLAGS) impcnvgen.c -o impcnvgen
+	$(CC) $(CFLAGS) -I$(ROOT) impcnvgen.c -o impcnvgen
 	./impcnvgen
 
 #########
@@ -280,9 +297,9 @@ cgelem.o: elxxx.c
 
 debug.o: debtab.c
 
-iasm.o: _CFLAGS := -fexceptions
+iasm.o: CFLAGS += -fexceptions
 
-inifile.o: _CFLAGS := -DSYSCONFDIR='"$(SYSCONFDIR)"'
+inifile.o: CFLAGS += -DSYSCONFDIR='"$(SYSCONFDIR)"'
 
 mars.o: verstr.h
 
@@ -297,19 +314,19 @@ vpath %.c $(C):$(ROOT)
 
 $(DMD_OBJS): %.o: %.c
 	@echo "  (CC)  DMD_OBJS   $<"
-	$(CC) -c $(CFLAGS) $(_CFLAGS) $<
+	$(CC) -c $(CFLAGS) $(DMD_FLAGS) $(MMD) $<
 
 $(BACK_OBJS): %.o: %.c
 	@echo "  (CC)  BACK_OBJS  $<"
-	$(CC) -c $(MFLAGS) -I. $(_CFLAGS) $<
+	$(CC) -c $(CFLAGS) $(BACK_FLAGS) $(MMD) $<
 
 $(GLUE_OBJS): %.o: %.c
 	@echo "  (CC)  GLUE_OBJS  $<"
-	$(CC) -c $(MFLAGS) -I$(ROOT) $(_CFLAGS) $<
+	$(CC) -c $(CFLAGS) $(GLUE_FLAGS) $(MMD) $<
 
 $(ROOT_OBJS): %.o: %.c
 	@echo "  (CC)  ROOT_OBJS  $<"
-	$(CC) -c $(GFLAGS) -I$(ROOT) $(_CFLAGS) $<
+	$(CC) -c $(CFLAGS) $(ROOT_FLAGS) $(MMD) $<
 
 
 -include $(DEPS)
