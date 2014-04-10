@@ -5571,6 +5571,7 @@ Expression *FuncExp::semantic(Scope *sc)
 
     sc = sc->startCTFE();       // just create new scope
     sc->flags &= ~SCOPEctfe;    // temporary stop CTFE
+    sc->protection = PROTpublic;    // Bugzilla 12506
 
     if (!type || type == Type::tvoid)
     {
