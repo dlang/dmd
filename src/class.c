@@ -308,6 +308,9 @@ void ClassDeclaration::semantic(Scope *sc)
             ((TypeClass *)type)->sym = this;
     }
 
+    // Ungag errors when not speculative
+    Ungag ungag = ungagSpeculative();
+
     if (semanticRun == PASSinit)
     {
         protection = sc->protection;
@@ -337,9 +340,6 @@ void ClassDeclaration::semantic(Scope *sc)
     // Expand any tuples in baseclasses[]
     for (size_t i = 0; i < baseclasses->dim; )
     {
-        // Ungag errors when not speculative
-        Ungag ungag = ungagSpeculative();
-
         BaseClass *b = (*baseclasses)[i];
         b->type = b->type->semantic(loc, sc);
 
@@ -364,9 +364,6 @@ void ClassDeclaration::semantic(Scope *sc)
     // See if there's a base class as first in baseclasses[]
     if (baseclasses->dim)
     {
-        // Ungag errors when not speculative
-        Ungag ungag = ungagSpeculative();
-
         BaseClass *b = (*baseclasses)[0];
         //b->type = b->type->semantic(loc, sc);
 
@@ -443,9 +440,6 @@ void ClassDeclaration::semantic(Scope *sc)
     // Check for errors, handle forward references
     for (size_t i = (baseClass ? 1 : 0); i < baseclasses->dim; )
     {
-        // Ungag errors when not speculative
-        Ungag ungag = ungagSpeculative();
-
         BaseClass *b = (*baseclasses)[i];
         b->type = b->type->semantic(loc, sc);
 
@@ -661,9 +655,6 @@ void ClassDeclaration::semantic(Scope *sc)
     for (size_t i = 0; i < members_dim; i++)
     {
         Dsymbol *s = (*members)[i];
-
-        // Ungag errors when not speculative
-        Ungag ungag = ungagSpeculative();
         s->semantic(sc2);
     }
 
@@ -1308,6 +1299,9 @@ void InterfaceDeclaration::semantic(Scope *sc)
             ((TypeClass *)type)->sym = this;
     }
 
+    // Ungag errors when not speculative
+    Ungag ungag = ungagSpeculative();
+
     if (semanticRun == PASSinit)
     {
         protection = sc->protection;
@@ -1328,9 +1322,6 @@ void InterfaceDeclaration::semantic(Scope *sc)
     // Expand any tuples in baseclasses[]
     for (size_t i = 0; i < baseclasses->dim; )
     {
-        // Ungag errors when not speculative
-        Ungag ungag = ungagSpeculative();
-
         BaseClass *b = (*baseclasses)[i];
         b->type = b->type->semantic(loc, sc);
 
@@ -1358,9 +1349,6 @@ void InterfaceDeclaration::semantic(Scope *sc)
     // Check for errors, handle forward references
     for (size_t i = 0; i < baseclasses->dim; )
     {
-        // Ungag errors when not speculative
-        Ungag ungag = ungagSpeculative();
-
         BaseClass *b = (*baseclasses)[i];
         b->type = b->type->semantic(loc, sc);
 
@@ -1500,9 +1488,6 @@ void InterfaceDeclaration::semantic(Scope *sc)
     for (size_t i = 0; i < members->dim; i++)
     {
         Dsymbol *s = (*members)[i];
-
-        // Ungag errors when not speculative
-        Ungag ungag = ungagSpeculative();
         s->semantic(sc2);
     }
 

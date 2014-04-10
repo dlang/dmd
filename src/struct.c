@@ -695,6 +695,9 @@ void StructDeclaration::semantic(Scope *sc)
             ((TypeStruct *)type)->sym = this;
     }
 
+    // Ungag errors when not speculative
+    Ungag ungag = ungagSpeculative();
+
     if (semanticRun == PASSinit)
     {
         protection = sc->protection;
@@ -767,9 +770,6 @@ void StructDeclaration::semantic(Scope *sc)
             if (sizeok == SIZEOKnone && s->isAliasDeclaration())
                 finalizeSize(sc2);
         }
-
-        // Ungag errors when not speculative
-        Ungag ungag = ungagSpeculative();
         s->semantic(sc2);
     }
     finalizeSize(sc2);
