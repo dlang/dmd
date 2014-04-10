@@ -667,7 +667,7 @@ void EnumMember::semantic(Scope *sc)
         Expression *eprev = emprev->value;
         Type *tprev = eprev->type->equals(ed->type) ? ed->memtype : eprev->type;
 
-        Expression *emax = tprev->getProperty(Loc(), Id::max, 0);
+        Expression *emax = tprev->getProperty(ed->loc, Id::max, 0);
         emax = emax->semantic(sc);
         emax = emax->ctfeInterpret();
 
@@ -689,6 +689,8 @@ void EnumMember::semantic(Scope *sc)
         e = e->castTo(sc, eprev->type);
         e = e->ctfeInterpret();
 
+        if (e->op == TOKerror)
+            goto Lerrors;
         if (e->type->isfloating())
         {
             // Check that e != eprev (not always true for floats)
