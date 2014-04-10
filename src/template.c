@@ -34,7 +34,7 @@
 #include "id.h"
 #include "attrib.h"
 
-#define LOG     0
+#define LOG     1
 
 #define IDX_NOTFOUND (0x12345678)               // index is not found
 
