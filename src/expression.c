@@ -5586,12 +5586,14 @@ Expression *FuncExp::semantic(Scope *sc)
 
         // Set target of return type inference
         if (fd->treq && !fd->type->nextOf())
-        {   TypeFunction *tfv = NULL;
+        {
+            TypeFunction *tfv = NULL;
             if (fd->treq->ty == Tdelegate ||
                 (fd->treq->ty == Tpointer && fd->treq->nextOf()->ty == Tfunction))
                 tfv = (TypeFunction *)fd->treq->nextOf();
             if (tfv)
-            {   TypeFunction *tfl = (TypeFunction *)fd->type;
+            {
+                TypeFunction *tfl = (TypeFunction *)fd->type;
                 tfl->next = tfv->nextOf();
             }
         }
