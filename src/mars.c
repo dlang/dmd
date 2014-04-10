@@ -78,7 +78,7 @@ Ungag Dsymbol::ungagSpeculative()
 {
     unsigned oldgag = global.gag;
 
-    if (global.isSpeculativeGagging() && !isSpeculative())
+    if (global.isSpeculativeGagging() && !isSpeculative() && !toParent2()->isFuncDeclaration())
         global.gag = 0;
 
     return Ungag(oldgag);
@@ -294,8 +294,8 @@ void verror(Loc loc, const char *format, va_list ap,
     }
     else
     {
-        //fprintf(stderr, "(gag:%d) ", global.gag);
-        //verrorPrint(loc, header, format, ap, p1, p2);
+        fprintf(stderr, "(gag:%d) ", global.gag);
+        verrorPrint(loc, header, format, ap, p1, p2);
         global.gaggedErrors++;
     }
     global.errors++;

@@ -583,3 +583,15 @@ static assert(__traits(isSame, cb12476, A12476!int));
 import imports.a12506;
 private           bool[9] r12506a = f12506!(i => true)(); // OK
 private immutable bool[9] r12506b = f12506!(i => true)(); // OK <- error
+
+/***************************************************/
+// 12555
+
+class A12555(T)
+{
+    Undef12555 error;
+}
+
+static assert(!__traits(compiles, {
+    class C : A12555!C  { }
+}));
