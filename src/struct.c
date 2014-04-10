@@ -191,7 +191,7 @@ void AggregateDeclaration::setScope(Scope *sc)
 
 void AggregateDeclaration::semantic2(Scope *sc)
 {
-    //printf("AggregateDeclaration::semantic2(%s)\n", toChars());
+    //printf("AggregateDeclaration::semantic2(%s) type = %s, errors = %d\n", toChars(), type->toChars(), errors);
     if (!members)
         return;
 
@@ -223,7 +223,7 @@ void AggregateDeclaration::semantic2(Scope *sc)
 
 void AggregateDeclaration::semantic3(Scope *sc)
 {
-    //printf("AggregateDeclaration::semantic3(%s)\n", toChars());
+    //printf("AggregateDeclaration::semantic3(%s) type = %s, errors = %d\n", toChars(), type->toChars(), errors);
     if (!members)
         return;
 
@@ -922,6 +922,8 @@ void StructDeclaration::semantic(Scope *sc)
         // The type is no good.
         type = Type::terror;
         this->errors = true;
+        if (deferred)
+            deferred->errors = true;
     }
 
     if (deferred && !global.gag)

@@ -278,6 +278,8 @@ void ClassDeclaration::semantic(Scope *sc)
     unsigned dprogress_save = Module::dprogress;
     int errors = global.errors;
 
+    //printf("+ClassDeclaration::semantic(%s), type = %p, sizeok = %d, this = %p\n", toChars(), type, sizeok, this);
+
     Scope *scx = NULL;
     if (scope)
     {
@@ -352,7 +354,9 @@ void ClassDeclaration::semantic(Scope *sc)
             scope->setNoFree();
 
             BaseClass *b = (*baseclasses)[i];
+            //printf("+ %s [%d] b->type = %s\n", toChars(), i, b->type->toChars());
             b->type = b->type->semantic(loc, sc);
+            //printf("- %s [%d] b->type = %s\n", toChars(), i, b->type->toChars());
 
             scope = NULL;
 
@@ -372,6 +376,14 @@ void ClassDeclaration::semantic(Scope *sc)
             }
             else
                 i++;
+        }
+
+        if (doAncestorsSemantic == SemanticDone)
+        {
+            //printf("%s already semantic analyzed, semanticRun = %d\n", toChars(), semanticRun);
+            if (semanticRun >= PASSsemanticdone)
+                return;
+            goto Lancestorsdone;
         }
 
         // See if there's a base class as first in baseclasses[]
@@ -489,6 +501,7 @@ void ClassDeclaration::semantic(Scope *sc)
             scope = scx ? scx : sc->copy();
             scope->setNoFree();
             scope->module->addDeferredSemantic(this);
+            //printf("\tL%d semantic('%s') failed due to forward references\n", __LINE__, toChars());
             return;
         }
         doAncestorsSemantic = SemanticDone;
@@ -542,6 +555,7 @@ void ClassDeclaration::semantic(Scope *sc)
                 com = true;
         }
     }
+Lancestorsdone:
 
     if (!members)               // if opaque declaration
     {
@@ -566,6 +580,7 @@ void ClassDeclaration::semantic(Scope *sc)
             if (tc->sym->scope)
                 tc->sym->scope->module->addDeferredSemantic(tc->sym);
             scope->module->addDeferredSemantic(this);
+            //printf("\tL%d semantic('%s') failed due to forward references\n", __LINE__, toChars());
             return;
         }
     }
@@ -703,6 +718,9 @@ void ClassDeclaration::semantic(Scope *sc)
     {
         // The type is no good.
         type = Type::terror;
+        this->errors = true;
+        if (deferred)
+            deferred->errors = true;
     }
 
     if (sizeok == SIZEOKfwd)            // failed due to forward references
@@ -838,6 +856,8 @@ void ClassDeclaration::semantic(Scope *sc)
       }
 #endif
     assert(type->ty != Tclass || ((TypeClass *)type)->sym == this);
+
+    //printf("-ClassDeclaration::semantic(%s), type = %p, sizeok = %d, this = %p\n", toChars(), type, sizeok, this);
 }
 
 void ClassDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
