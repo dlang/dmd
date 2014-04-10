@@ -81,7 +81,7 @@ Ungag Dsymbol::ungagSpeculative()
 {
     unsigned oldgag = global.gag;
 
-    if (global.isSpeculativeGagging() && !isSpeculative())
+    if (global.isSpeculativeGagging() && !isSpeculative() && !toParent2()->isFuncDeclaration())
         global.gag = 0;
 
     return Ungag(oldgag);
