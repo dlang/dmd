@@ -39,6 +39,7 @@
 #include "aav.h"
 
 bool isArrayOpValid(Expression *e);
+bool isNonAssignmentArrayOp(Expression *e);
 Expression *createTypeInfoArray(Scope *sc, Expression *args[], size_t dim);
 Expression *expandVar(int result, VarDeclaration *v);
 void functionToBufferWithIdent(TypeFunction *t, OutBuffer *buf, const char *ident);
@@ -1608,6 +1609,12 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
         if (arg->op == TOKtype)
         {
             arg->error("cannot pass type %s as function argument", arg->toChars());
+            arg = new ErrorExp();
+            goto L3;
+        }
+        if (isNonAssignmentArrayOp(arg))
+        {
+            arg->error("array operation %s without assignment not implemented", arg->toChars());
             arg = new ErrorExp();
             goto L3;
         }
@@ -11529,6 +11536,11 @@ Expression *CatAssignExp::semantic(Scope *sc)
     e2 = inferType(e2, tb1next);
     if (!e2->rvalue())
         return new ErrorExp();
+    if (isNonAssignmentArrayOp(e2))
+    {
+        error("array operation %s without assignment not implemented", e2->toChars());
+        return new ErrorExp();
+    }
 
     Type *tb2 = e2->type->toBasetype();
 
@@ -11540,7 +11552,8 @@ Expression *CatAssignExp::semantic(Scope *sc)
              tb1next->ty == Tchar || tb1next->ty == Twchar || tb1next->ty == Tdchar))
         )
        )
-    {   // Append array
+    {
+        // Append array
         e1->checkPostblit(sc, tb1next);
         e2 = e2->castTo(sc, e1->type);
         type = e1->type;
@@ -11548,7 +11561,8 @@ Expression *CatAssignExp::semantic(Scope *sc)
     else if ((tb1->ty == Tarray) &&
         e2->implicitConvTo(tb1next)
        )
-    {   // Append element
+    {
+        // Append element
         e2->checkPostblit(sc, tb2);
         e2 = e2->castTo(sc, tb1next);
         e2 = e2->isLvalue() ? callCpCtor(sc, e2) : valueNoDtor(e2);

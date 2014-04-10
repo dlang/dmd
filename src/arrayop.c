@@ -156,6 +156,34 @@ bool isArrayOpValid(Expression *e)
     return true;
 }
 
+bool isNonAssignmentArrayOp(Expression *e)
+{
+    Type *tb = e->type->toBasetype();
+
+    if (tb->ty == Tarray || tb->ty == Tsarray)
+    {
+        switch (e->op)
+        {
+            case TOKadd:
+            case TOKmin:
+            case TOKmul:
+            case TOKdiv:
+            case TOKmod:
+            case TOKxor:
+            case TOKand:
+            case TOKor:
+            case TOKpow:
+            case TOKneg:
+            case TOKtilde:
+                return true;
+
+            default:
+                return false;
+        }
+    }
+    return false;
+}
+
 /***********************************
  * Construct the array operation expression.
  */
