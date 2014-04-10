@@ -1800,7 +1800,7 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                     FuncDeclaration *f = ve->var->isFuncDeclaration();
                     if (f)
                     {
-                        assert(0);      // should be SymOffExp instead
+                        assert(f->isImportedSymbol());
                         f = f->overloadExactMatch(tb->nextOf());
                         if (f)
                         {
