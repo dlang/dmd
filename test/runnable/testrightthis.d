@@ -507,7 +507,7 @@ class Foo9633
     void bar()
     {
         // CallExp::e1->op == TOKvar
-        static assert(!compilesWithoutThis9633!baz);
+        static assert(compilesWithoutThis9633!baz);
     }
     void vaz()()
     {

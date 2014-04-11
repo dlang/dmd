@@ -1,8 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice9439.d(11): Error: this for foo needs to be type Derived not type ice9439.Base
-fail_compilation/ice9439.d(18): Error: template instance ice9439.Base.boo!(foo) error instantiating
+fail_compilation/ice9439.d(12): Error: value of 'this' is not known at compile time
+fail_compilation/ice9439.d(12):        while evaluating: static assert(this.foo())
+fail_compilation/ice9439.d(19): Error: template instance ice9439.Derived.boo!(foo) error instantiating
 ---
 */
 

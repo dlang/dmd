@@ -7170,11 +7170,12 @@ bool TemplateInstance::hasNestedArgs(Objects *args, bool isstatic)
             }
             TemplateInstance *ti = sa->isTemplateInstance();
             Declaration *d = sa->isDeclaration();
+            FuncDeclaration *f = d ? d->isFuncDeclaration() : NULL;
             if ((td && td->literal) ||
                 (ti && ti->enclosing) ||
                 (d && !d->isDataseg() &&
                  !(d->storage_class & STCmanifest) &&
-                 (!d->isFuncDeclaration() || d->isFuncDeclaration()->isNested()) &&
+                 (!f || f->isNested() || f->isThis()) &&
                  !isTemplateMixin()
                 ))
             {
