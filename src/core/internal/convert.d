@@ -8,6 +8,7 @@
  * Source: $(DRUNTIMESRC core/internal/_convert.d)
  */
 module core.internal.convert;
+import core.internal.traits : Unqual;
 
 @trusted pure nothrow
 const(ubyte)[] toUbyte(T)(ref T val) if(is(Unqual!T == float) || is(Unqual!T == double) || is(Unqual!T == real) ||
@@ -477,15 +478,6 @@ template floatFormat(T) if(is(T:real) || is(T:ireal))
     else
         static assert(0);
     
-}
-private template Unqual(T)
-{
-         static if (is(T U == shared(const U))) alias U Unqual;
-    else static if (is(T U ==        const U )) alias U Unqual;
-    else static if (is(T U ==    immutable U )) alias U Unqual;
-    else static if (is(T U ==        inout U )) alias U Unqual;
-    else static if (is(T U ==       shared U )) alias U Unqual;
-    else                                        alias T Unqual;
 }
 
 //  all toUbyte functions must be evaluable at compile time

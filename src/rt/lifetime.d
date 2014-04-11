@@ -198,7 +198,7 @@ private class ArrayAllocLengthLock
 
   where elem0 starts 16 bytes after the first byte.
   */
-bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, size_t oldlength = ~0)
+bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, size_t oldlength = ~0) pure nothrow
 {
     if(info.size <= 256)
     {
@@ -210,13 +210,15 @@ bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, si
         {
             if(isshared)
             {
-                synchronized(typeid(ArrayAllocLengthLock))
+                try synchronized(typeid(ArrayAllocLengthLock))
                 {
                     if(*length == cast(ubyte)oldlength)
                         *length = cast(ubyte)newlength;
                     else
                         return false;
                 }
+                catch (Throwable t)
+                    assert(0, "Failed to synchronize.");
             }
             else
             {
@@ -242,13 +244,15 @@ bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, si
         {
             if(isshared)
             {
-                synchronized(typeid(ArrayAllocLengthLock))
+                try synchronized(typeid(ArrayAllocLengthLock))
                 {
                     if(*length == oldlength)
                         *length = cast(ushort)newlength;
                     else
                         return false;
                 }
+                catch (Throwable t)
+                    assert(0, "Failed to synchronize.");
             }
             else
             {
@@ -274,13 +278,15 @@ bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, si
         {
             if(isshared)
             {
-                synchronized(typeid(ArrayAllocLengthLock))
+                try synchronized(typeid(ArrayAllocLengthLock))
                 {
                     if(*length == oldlength)
                         *length = newlength;
                     else
                         return false;
                 }
+                catch (Throwable t)
+                    assert(0, "Failed to synchronize.");
             }
             else
             {
@@ -747,64 +753,60 @@ Lcontinue:
 }
 
 /**
- * Allocate a new array of length elements.
+ * Allocate a new uninitialized array of length elements.
  * ti is the type of the resulting array, or pointer to element.
- * (For when the array is initialized to 0)
  */
-extern (C) void[] _d_newarrayT(const TypeInfo ti, size_t length)
+extern (C) void[] _d_newarrayU(const TypeInfo ti, size_t length) pure nothrow
 {
-    void[] result;
-    auto size = ti.next.tsize;                  // array element size
+    auto size = ti.next.tsize;
 
-    debug(PRINTF) printf("_d_newarrayT(length = x%x, size = %d)\n", length, size);
+    debug(PRINTF) printf("_d_newarrayU(length = x%x, size = %d)\n", length, size);
     if (length == 0 || size == 0)
-        result = null;
+        return null;
+
+    version (D_InlineAsm_X86)
+    {
+        asm
+        {
+            mov     EAX,size        ;
+            mul     EAX,length      ;
+            mov     size,EAX        ;
+            jc      Loverflow       ;
+        }
+    }
+    else version(D_InlineAsm_X86_64)
+    {
+        asm
+        {
+            mov     RAX,size        ;
+            mul     RAX,length      ;
+            mov     size,RAX        ;
+            jc      Loverflow       ;
+        }
+    }
     else
     {
-        version (D_InlineAsm_X86)
-        {
-            asm
-            {
-                mov     EAX,size        ;
-                mul     EAX,length      ;
-                mov     size,EAX        ;
-                jc      Loverflow       ;
-            }
-        }
-        else version(D_InlineAsm_X86_64)
-        {
-            asm
-            {
-                mov     RAX,size        ;
-                mul     RAX,length      ;
-                mov     size,RAX        ;
-                jc      Loverflow       ;
-            }
-        }
-        else
-        {
-            auto newsize = size * length;
-            if (newsize / length != size)
-                goto Loverflow;
-
-            size = newsize;
-        }
-
-        // increase the size by the array pad.
-        auto pad = __arrayPad(size);
-        if (size + pad < size)
+        auto newsize = size * length;
+        if (newsize / length != size)
             goto Loverflow;
 
-        auto info = GC.qalloc(size + pad, !(ti.next.flags & 1) ? BlkAttr.NO_SCAN | BlkAttr.APPENDABLE : BlkAttr.APPENDABLE);
-        debug(PRINTF) printf(" p = %p\n", info.base);
-        // update the length of the array
-        auto arrstart = __arrayStart(info);
-        memset(arrstart, 0, size);
-        auto isshared = typeid(ti) is typeid(TypeInfo_Shared);
-        __setArrayAllocLength(info, size, isshared);
-        result = arrstart[0..length];
+        size = newsize;
     }
-    return result;
+
+    // increase the size by the array pad.
+    auto pad = __arrayPad(size);
+    if (size + pad < size)
+        goto Loverflow;
+
+    {
+    auto info = GC.qalloc(size + pad, !(ti.next.flags & 1) ? BlkAttr.NO_SCAN | BlkAttr.APPENDABLE : BlkAttr.APPENDABLE);
+    debug(PRINTF) printf(" p = %p\n", info.base);
+    // update the length of the array
+    auto arrstart = __arrayStart(info);
+    auto isshared = typeid(ti) is typeid(TypeInfo_Shared);
+    __setArrayAllocLength(info, size, isshared);
+    return arrstart[0..length];
+    }
 
 Loverflow:
     onOutOfMemoryError();
@@ -812,81 +814,48 @@ Loverflow:
 }
 
 /**
+ * Allocate a new array of length elements.
+ * ti is the type of the resulting array, or pointer to element.
+ * (For when the array is initialized to 0)
+ */
+extern (C) void[] _d_newarrayT(const TypeInfo ti, size_t length) pure nothrow
+{
+    void[] result = _d_newarrayU(ti, length);
+    auto size = ti.next.tsize;
+
+    memset(result.ptr, 0, size * length);
+    return result;
+}
+
+/**
  * For when the array has a non-zero initializer.
  */
-extern (C) void[] _d_newarrayiT(const TypeInfo ti, size_t length)
+extern (C) void[] _d_newarrayiT(const TypeInfo ti, size_t length) pure nothrow
 {
-    void[] result;
-    auto size = ti.next.tsize;                  // array element size
+    import core.internal.traits : TypeTuple;
 
-    debug(PRINTF) printf("_d_newarrayiT(length = %d, size = %d)\n", length, size);
+    void[] result = _d_newarrayU(ti, length);
+    auto size = ti.next.tsize;
 
-    if (length == 0 || size == 0)
-        result = null;
-    else
+    auto init = ti.next.init();
+
+    switch (init.length)
     {
-        auto initializer = ti.next.init();
-        auto isize = initializer.length;
-        auto q = initializer.ptr;
-        version (D_InlineAsm_X86)
-        {
-            asm
-            {
-                mov     EAX,size        ;
-                mul     EAX,length      ;
-                mov     size,EAX        ;
-                jc      Loverflow       ;
-            }
-        }
-        else version (D_InlineAsm_X86_64)
-        {
-            asm
-            {
-                mov     RAX,size        ;
-                mul     RAX,length      ;
-                mov     size,RAX        ;
-                jc      Loverflow       ;
-            }
-        }
-        else
-        {
-            auto newsize = size * length;
-            if (newsize / length != size)
-                goto Loverflow;
-
-            size = newsize;
-        }
-
-        auto info = GC.qalloc(size + __arrayPad(size), !(ti.next.flags & 1) ? BlkAttr.NO_SCAN | BlkAttr.APPENDABLE : BlkAttr.APPENDABLE);
-        debug(PRINTF) printf(" p = %p\n", info.base);
-        auto arrstart = __arrayStart(info);
-        if (isize == 1)
-            memset(arrstart, *cast(ubyte*)q, size);
-        else if (isize == int.sizeof)
-        {
-            int init = *cast(int*)q;
-            auto len = size / int.sizeof;
-            for (size_t u = 0; u < len; u++)
-            {
-                (cast(int*)arrstart)[u] = init;
-            }
-        }
-        else
-        {
-            for (size_t u = 0; u < size; u += isize)
-            {
-                memcpy(arrstart + u, q, isize);
-            }
-        }
-        auto isshared = typeid(ti) is typeid(TypeInfo_Shared);
-        __setArrayAllocLength(info, size, isshared);
-        result = arrstart[0..length];
+    foreach (T; TypeTuple!(ubyte, ushort, uint, ulong))
+    {
+    case T.sizeof:
+        (cast(T*)result.ptr)[0 .. size * length / T.sizeof] = *cast(T*)init.ptr;
+        return result;
     }
-    return result;
 
-Loverflow:
-    onOutOfMemoryError();
-    assert(0);
+    default:
+    {
+        immutable sz = init.length;
+        for (size_t u = 0; u < size * length; u += sz)
+            memcpy(result.ptr + u, init.ptr, sz);
+        return result;
+    }
+    }
 }
 
 
@@ -2236,9 +2205,10 @@ struct Array2
 
 
 /**
- *
+ * Replaced by object.dup and object.idup.
+ * Remove in 2.068.
  */
-extern (C) void[] _adDupT(const TypeInfo ti, void[] a)
+deprecated extern (C) void[] _adDupT(const TypeInfo ti, void[] a)
 out (result)
 {
     auto sizeelem = ti.next.tsize;              // array element size
