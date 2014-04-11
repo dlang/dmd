@@ -46,6 +46,7 @@ void functionToBufferWithIdent(TypeFunction *t, OutBuffer *buf, const char *iden
 TypeTuple *toArgTypes(Type *t);
 void toBufferShort(Type *t, OutBuffer *buf, HdrGenState *hgs);
 void accessCheck(AggregateDeclaration *ad, Loc loc, Scope *sc, Dsymbol *smember);
+bool checkFrameAccess(Loc loc, Scope *sc, AggregateDeclaration *ad, size_t istart = 0);
 
 #define LOGSEMANTIC     0
 
@@ -4328,6 +4329,9 @@ Expression *StructLiteralExp::semantic(Scope *sc)
 
         (*elements)[i] = e->isLvalue() ? callCpCtor(sc, e) : valueNoDtor(e);
     }
+
+    if (!checkFrameAccess(loc, sc, sd, elements->dim))
+        return new ErrorExp();
 
     /* Fill out remainder of elements[] with default initializers for fields[]
      */
