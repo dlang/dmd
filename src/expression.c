@@ -9621,17 +9621,18 @@ Lagain:
     if (Expression *ex = unaSemantic(sc))
         return ex;
     e1 = resolveProperties(sc, e1);
-    if (e1->op == TOKtype && e1->type->ty != Ttuple)
+
+    bool noBounds = (!lwr && !upr);
+
+    // if no bounds are mentioned explicitly, interpret it as array type declaration
+    // (when applied to types)
+    if (e1->op == TOKtype && e1->type->ty != Ttuple && noBounds)
     {
-        if (lwr || upr)
-        {
-            error("cannot slice type '%s'", e1->toChars());
-            return new ErrorExp();
-        }
         e = new TypeExp(loc, e1->type->arrayOf());
         return e->semantic(sc);
     }
-    if (!lwr && !upr)
+
+    if (noBounds)
     {
         if (e1->op == TOKarrayliteral)
         {   // Convert [a,b,c][] to [a,b,c]
@@ -9656,6 +9657,14 @@ Lagain:
 
     Type *t = e1->type->toBasetype();
     AggregateDeclaration *ad = isAggregate(t);
+
+    // opSlice can be overriden only for aggregate types
+    if ((e1->op == TOKtype) && (e1->type->ty != Ttuple) && (!ad))
+    {
+        error("Attempt to slice non-aggregate type (%s)", e1->toChars());
+        return new ErrorExp();
+    }
+
     if (t->ty == Tpointer)
     {
         if (!lwr || !upr)
