@@ -2751,3 +2751,192 @@ unittest
     int[S[]] aa = [[S(11)] : 13];
     assert(aa[[S(12)]] == 13); // fails
 }
+
+private extern (C) void[] _d_newarrayU(const TypeInfo ti, size_t length) pure nothrow;
+
+/// Provide the .dup array property.
+auto dup(T)(T[] a)
+    if (!is(const(T) : T))
+{
+    import core.internal.traits : Unconst;
+    static assert(is(T : Unconst!T), "Cannot implicitly convert type "~T.stringof~
+                  " to "~Unconst!T.stringof~" in dup.");
+
+    // wrap unsafe _dup in @trusted to preserve @safe postblit
+    static if (__traits(compiles, (T b) @safe { T a = b; }))
+        return _trustedDup!(T, Unconst!T)(a);
+    else
+        return _dup!(T, Unconst!T)(a);
+}
+
+/// ditto
+// const overload to support implicit conversion to immutable (unique result, see DIP29)
+T[] dup(T)(const(T)[] a)
+    if (is(const(T) : T))
+{
+    // wrap unsafe _dup in @trusted to preserve @safe postblit
+    static if (__traits(compiles, (T b) @safe { T a = b; }))
+        return _trustedDup!(const(T), T)(a);
+    else
+        return _dup!(const(T), T)(a);
+}
+
+/// Provide the .idup array property.
+immutable(T)[] idup(T)(T[] a)
+{
+    static assert(is(T : immutable(T)), "Cannot implicitly convert type "~T.stringof~
+                  " to immutable in idup.");
+
+    // wrap unsafe _dup in @trusted to preserve @safe postblit
+    static if (__traits(compiles, (T b) @safe { T a = b; }))
+        return _trustedDup!(T, immutable(T))(a);
+    else
+        return _dup!(T, immutable(T))(a);
+}
+
+private U[] _trustedDup(T, U)(T[] a) @trusted
+{
+    return _dup!(T, U)(a);
+}
+
+private U[] _dup(T, U)(T[] a) // pure nothrow depends on postblit
+{
+    if (__ctfe)
+    {
+        U[] res;
+        foreach (ref e; a)
+            res ~= e;
+        return res;
+    }
+
+    import core.stdc.string : memcpy;
+
+    auto arr = _d_newarrayU(typeid(T[]), a.length);
+    memcpy(cast(void*)arr.ptr, cast(void*)a.ptr, T.sizeof * a.length);
+    auto res = *cast(typeof(return)*)&arr;
+    _doPostblit(res);
+    return res;
+}
+
+private void _doPostblit(T)(T[] ary)
+{
+    // infer static postblit type, run postblit if any
+    static if (is(T == struct))
+    {
+        import core.internal.traits : Unqual;
+
+        alias PostBlitT = typeof(function(void*){T a = T.init, b = a;});
+        // use typeid(Unqual!T) here to skip TypeInfo_Const/Shared/...
+        auto postBlit = cast(PostBlitT)typeid(Unqual!T).xpostblit;
+        if (postBlit !is null)
+        {
+            foreach (ref el; ary)
+                postBlit(cast(void*)&el);
+        }
+    }
+    else if ((&typeid(T).postblit).funcptr !is &TypeInfo.postblit)
+    {
+        alias PostBlitT = typeof(delegate(void*){T a = T.init, b = a;});
+        auto postBlit = cast(PostBlitT)&typeid(T).postblit;
+
+        foreach (ref el; ary)
+            postBlit(cast(void*)&el);
+    }
+}
+
+unittest
+{
+    static struct S1 { int* p; }
+    static struct S2 { @disable this(); }
+    static struct S3 { @disable this(this); }
+
+    int dg1() pure nothrow @safe
+    {
+        {
+           char[] m;
+           string i;
+           m = dup(m);
+           i = idup(i);
+           m = dup(i);
+           i = idup(m);
+        }
+        {
+           S1[] m;
+           immutable(S1)[] i;
+           m = dup(m);
+           i = idup(i);
+           static assert(!is(typeof(idup(m))));
+           static assert(!is(typeof(dup(i))));
+        }
+        {
+            S3[] m;
+            immutable(S3)[] i;
+            static assert(!is(typeof(dup(m))));
+            static assert(!is(typeof(idup(i))));
+        }
+        {
+            shared(S1)[] m;
+            m = dup(m);
+            static assert(!is(typeof(idup(m))));
+        }
+        {
+            int[] a = (inout(int)) { inout(const(int))[] a; return dup(a); }(0);
+        }
+        return 1;
+    }
+
+    int dg2() pure nothrow @safe
+    {
+        {
+           S2[] m = [S2.init, S2.init];
+           immutable(S2)[] i = [S2.init, S2.init];
+           m = dup(m);
+           m = dup(i);
+           i = idup(m);
+           i = idup(i);
+        }
+        return 2;
+    }
+
+    enum a = dg1();
+    enum b = dg2();
+    assert(dg1() == a);
+    assert(dg2() == b);
+}
+
+unittest
+{
+    static struct Sunpure { this(this) @safe nothrow {} }
+    static struct Sthrow { this(this) @safe pure {} }
+    static struct Sunsafe { this(this) @system pure nothrow {} }
+
+    static assert( __traits(compiles, ()         { dup!Sunpure([]); }));
+    static assert(!__traits(compiles, () pure    { dup!Sunpure([]); }));
+    static assert( __traits(compiles, ()         { dup!Sthrow([]); }));
+    static assert(!__traits(compiles, () nothrow { dup!Sthrow([]); }));
+    static assert( __traits(compiles, ()         { dup!Sunsafe([]); }));
+    static assert(!__traits(compiles, () @safe   { dup!Sunsafe([]); }));
+
+    static assert( __traits(compiles, ()         { idup!Sunpure([]); }));
+    static assert(!__traits(compiles, () pure    { idup!Sunpure([]); }));
+    static assert( __traits(compiles, ()         { idup!Sthrow([]); }));
+    static assert(!__traits(compiles, () nothrow { idup!Sthrow([]); }));
+    static assert( __traits(compiles, ()         { idup!Sunsafe([]); }));
+    static assert(!__traits(compiles, () @safe   { idup!Sunsafe([]); }));
+}
+
+unittest
+{
+    static int*[] pureFoo() pure { return null; }
+    { char[] s; immutable x = s.dup(); }
+    { immutable x = (cast(int*[])null).dup(); }
+    { immutable x = pureFoo(); }
+    { immutable x = pureFoo().dup(); }
+}
+
+unittest
+{
+    auto a = [1, 2, 3];
+    auto b = a.dup();
+    assert(b.capacity >= 3);
+}
