@@ -635,7 +635,7 @@ struct Foo9068
 struct SimpleCounter9068
 {
     static int destroyedCount;
-    const(int) limit = 5;
+    enum int limit = 5;
     int counter;
     ~this() { destroyedCount++; }
 
@@ -645,14 +645,14 @@ struct SimpleCounter9068
     void popFront() { counter++; }
 }
 
-// ICE when trying to break outer loop from inside switch statement
 void test9068()
 {
     //----------------------------------------
     // There was never a bug in this case (no range).
     int sum;
 loop_simple:
-    foreach (i; [10, 20]) {
+    foreach (i; [10, 20])
+    {
         sum += i;
         break loop_simple;
     }
@@ -661,10 +661,14 @@ loop_simple:
     //----------------------------------------
     // There was a bug with loops over ranges.
     int last = -1;
-X:  foreach (i; SimpleCounter9068()) {
-       switch(i) {
-           case 3: break X;
-           default: last = i;
+X:  foreach (i; SimpleCounter9068())
+    {
+        switch(i)
+        {
+            case 3:
+                break X;
+            default:
+                last = i;
        }
     }
     assert(last == 2);
@@ -674,7 +678,8 @@ X:  foreach (i; SimpleCounter9068()) {
     // Simpler case: the compiler error had nothing to do with the switch.
     last = -1;
 loop_with_range:
-    foreach (i; SimpleCounter9068()) {
+    foreach (i; SimpleCounter9068())
+    {
         last = i;
         break loop_with_range;
     }
@@ -685,21 +690,110 @@ loop_with_range:
     // Test with destructors: the loop is implicitly wrapped into two
     // try/finally clauses.
 loop_with_dtors:
-    for (auto x = Foo9068(4), y = Foo9068(5); x.x != 10; ++x.x) {
+    for (auto x = Foo9068(4), y = Foo9068(5); x.x != 10; ++x.x)
+    {
         if (x.x == 8)
             break loop_with_dtors;
     }
     assert(Foo9068.destroyed == [5, 8]);
-    Foo9068.destroyed.clear();
+    Foo9068.destroyed = null;
 
     //----------------------------------------
     // Same with an unlabelled break.
-    for (auto x = Foo9068(4), y = Foo9068(5); x.x != 10; ++x.x) {
+    for (auto x = Foo9068(4), y = Foo9068(5); x.x != 10; ++x.x)
+    {
         if (x.x == 7)
             break;
     }
     assert(Foo9068.destroyed == [5, 7]);
-    Foo9068.destroyed.clear();
+    Foo9068.destroyed = null;
+}
+
+/***************************************/
+// 11885
+
+struct Foo11885
+{
+    static int[] destroyed;
+    int x;
+    ~this() { destroyed ~= x; }
+}
+
+struct SimpleCounter11885
+{
+    static int destroyedCount;
+    enum int limit = 5;
+    int counter;
+    ~this() { destroyedCount++; }
+
+    // Range primitives.
+    @property bool empty() const { return counter >= limit; }
+    @property int front() { return counter; }
+    void popFront() { counter++; }
+}
+
+void test11885()
+{
+    //----------------------------------------
+    // There was never a bug in this case (no range).
+    int sum;
+loop_simple:
+    foreach (i; [10, 20])
+    {
+        sum += i;
+        continue loop_simple;
+    }
+    assert(sum == 30);
+
+    //----------------------------------------
+    // There was a bug with loops over ranges.
+    int last = -1;
+X:  foreach (i; SimpleCounter11885())
+    {
+        switch(i)
+        {
+            case 3:
+                continue X;
+            default:
+                last = i;
+       }
+    }
+    assert(last == 4);
+    assert(SimpleCounter11885.destroyedCount == 1);
+
+    //----------------------------------------
+    // Simpler case: the compiler error had nothing to do with the switch.
+    last = -1;
+loop_with_range:
+    foreach (i; SimpleCounter11885())
+    {
+        last = i;
+        continue loop_with_range;
+    }
+    assert(last == 4);
+    assert(SimpleCounter11885.destroyedCount == 2);
+
+    //----------------------------------------
+    // Test with destructors: the loop is implicitly wrapped into two
+    // try/finally clauses.
+loop_with_dtors:
+    for (auto x = Foo11885(4), y = Foo11885(5); x.x != 10; ++x.x)
+    {
+        if (x.x == 8)
+            continue loop_with_dtors;
+    }
+    assert(Foo11885.destroyed == [5, 10]);
+    Foo11885.destroyed = null;
+
+    //----------------------------------------
+    // Same with an unlabelled continue.
+    for (auto x = Foo11885(4), y = Foo11885(5); x.x != 10; ++x.x)
+    {
+        if (x.x == 7)
+            continue;
+    }
+    assert(Foo11885.destroyed == [5, 10]);
+    Foo11885.destroyed = null;
 }
 
 /***************************************/
@@ -859,6 +953,7 @@ int main()
     test7814();
     test6652();
     test9068();
+    test11885();
     test10475a();
     test10475b();
     test11291();

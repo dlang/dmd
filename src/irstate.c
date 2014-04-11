@@ -139,15 +139,32 @@ block *IRState::getContBlock(Identifier *ident)
 {
     IRState *bc;
 
-    for (bc = this; bc; bc = bc->prev)
+    if (ident)
     {
-        if (ident)
+        Statement *related = NULL;
+        block *ret = NULL;
+        for (bc = this; bc; bc = bc->prev)
         {
+            // The label for a contBlock may actually be some levels up (e.g.
+            // on a try/finally wrapping a loop). We'll see if this contBlock
+            // is the one to return once we reach that outer statement (which
+            // in many cases will be this same statement).
+            if (bc->contBlock)
+            {
+                related = bc->statement->getRelatedLabeled();
+                ret = bc->contBlock;
+            }
             if (bc->prev && bc->prev->ident == ident)
+                return ret;
+        }
+    }
+    else
+    {
+        for (bc = this; bc; bc = bc->prev)
+        {
+            if (bc->contBlock)
                 return bc->contBlock;
         }
-        else if (bc->contBlock)
-            return bc->contBlock;
     }
     return NULL;
 }
