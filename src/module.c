@@ -596,7 +596,7 @@ void Module::parse()
         if (Module *mprev = prev->isModule())
         {
             if (strcmp(srcname, mprev->srcfile->toChars()) == 0)
-                error(loc, "from file %s must be imported as module '%s'",
+                error(loc, "from file %s must be imported with 'import %s;'",
                     srcname, toPrettyChars());
             else
                 error(loc, "from file %s conflicts with another module %s from file %s",
