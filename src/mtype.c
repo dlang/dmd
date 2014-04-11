@@ -7838,14 +7838,13 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
     }
 
     if (e->op == TOKdotexp)
-    {   DotExp *de = (DotExp *)e;
-
+    {
+        DotExp *de = (DotExp *)e;
         if (de->e1->op == TOKimport)
         {
             assert(0);  // cannot find a case where this happens; leave
                         // assert in until we do
             ScopeExp *se = (ScopeExp *)de->e1;
-
             s = se->sds->search(e->loc, ident);
             e = de->e1;
             goto L1;
@@ -7999,9 +7998,9 @@ L1:
         if (v->toParent() != sym)
             sym->error(e->loc, "'%s' is not a member", v->toChars());
 
+#if 0
         // *(&e + offset)
         accessCheck(e->loc, sc, e, d);
-#if 0
         Expression *b = new AddrExp(e->loc, e);
         b->type = e->type->pointerTo();
         b = new AddExp(e->loc, b, new IntegerExp(e->loc, v->offset, Type::tint32));
