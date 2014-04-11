@@ -1018,6 +1018,27 @@ Expression *interpret(FuncDeclaration *fd, InterState *istate, Expressions *argu
     }
     assert(e != EXP_CONTINUE_INTERPRET && e != EXP_BREAK_INTERPRET);
 
+    /* Bugzilla 7887: If the returned reference is a ref parameter of fd,
+     * peel off the local indirection.
+     */
+    if (tf->isref && e->op == TOKvar)
+    {
+        VarDeclaration *v = ((VarExp *)e)->var->isVarDeclaration();
+        assert(v);
+        if ((v->storage_class & STCref) && (v->storage_class & STCparameter) &&
+            fd == v->parent)
+        {
+            for (size_t i = 0; i < dim; i++)
+            {
+                if ((*fd->parameters)[i] == v)
+                {
+                    e = eargs[i];
+                    break;
+                }
+            }
+        }
+    }
+
     // Leave the function
     --CtfeStatus::callDepth;
 
@@ -1326,7 +1347,7 @@ public:
             if (tf->isref && istate->caller && istate->caller->awaitingLvalueReturn)
             {
                 // We need to return an lvalue
-                Expression *e = s->exp->interpret(istate, ctfeNeedLvalue);
+                Expression *e = s->exp->interpret(istate, ctfeNeedLvalueRef);
                 if (e == EXP_CANT_INTERPRET)
                     s->error("ref return %s is not yet supported in CTFE", s->exp->toChars());
                 result = e;
