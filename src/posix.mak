@@ -98,14 +98,14 @@ DMD_OBJS = \
 	entity.o doc.o macro.o \
 	hdrgen.o delegatize.o interpret.o traits.o \
 	builtin.o ctfeexpr.o clone.o aliasthis.o \
-	arrayop.o async.o json.o unittests.o \
+	arrayop.o json.o unittests.o \
 	imphint.o argtypes.o apply.o sapply.o sideeffect.o \
 	intrange.o canthrow.o target.o
 
 ROOT_OBJS = \
 	rmem.o port.o man.o stringtable.o response.o \
 	aav.o speller.o outbuffer.o object.o \
-	filename.o file.o
+	filename.o file.o async.o
 
 GLUE_OBJS = \
 	glue.o msc.o s2ir.o todt.o e2ir.o tocsym.o \
@@ -308,9 +308,9 @@ var.o: optab.c tytab.c
 
 # Generic rules for all source files
 ########################################################################
-# Search the directories $(C) and $(ROOT) for .c-files, in that order,
-# when using implicit pattern matching below.
-vpath %.c $(C):$(ROOT)
+# Search the directory $(C) for .c-files when using implicit pattern
+# matching below.
+vpath %.c $(C)
 
 $(DMD_OBJS): %.o: %.c
 	@echo "  (CC)  DMD_OBJS   $<"
@@ -324,7 +324,7 @@ $(GLUE_OBJS): %.o: %.c
 	@echo "  (CC)  GLUE_OBJS  $<"
 	$(CC) -c $(CFLAGS) $(GLUE_FLAGS) $(MMD) $<
 
-$(ROOT_OBJS): %.o: %.c
+$(ROOT_OBJS): %.o: $(ROOT)/%.c
 	@echo "  (CC)  ROOT_OBJS  $<"
 	$(CC) -c $(CFLAGS) $(ROOT_FLAGS) $(MMD) $<
 
