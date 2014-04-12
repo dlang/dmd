@@ -5166,25 +5166,6 @@ public:
         if (result)
             return;
 
-        // Inline .dup. Special case because it needs the return type.
-        if (!pthis && fd->ident == Id::adDup && e->arguments && e->arguments->dim == 2)
-        {
-            Expression *ex = (*e->arguments)[1];
-            ex = ex->interpret(istate);
-            if (exceptionOrCantInterpret(ex))
-            {
-                result = ex;
-                return;
-            }
-            if (ex != EXP_CANT_INTERPRET)
-            {
-                if (ex->op == TOKslice)
-                    ex = resolveSlice(ex);
-                ex = paintTypeOntoLiteral(e->type, copyLiteral(ex));
-            }
-            result = ex;
-            return;
-        }
         if (!fd->fbody)
         {
             e->error("%s cannot be interpreted at compile time,"

@@ -19,10 +19,6 @@ compilable/nogc_warn.d(76): vgc: Concatenation may cause gc allocation
 compilable/nogc_warn.d(79): vgc: Concatenation may cause gc allocation
 compilable/nogc_warn.d(80): vgc: Concatenation may cause gc allocation
 compilable/nogc_warn.d(85): vgc: Using closure causes gc allocation
-compilable/nogc_warn.d(100): vgc: 'dup' causes gc allocation
-compilable/nogc_warn.d(101): vgc: 'dup' causes gc allocation
-compilable/nogc_warn.d(107): vgc: 'dup' causes gc allocation
-compilable/nogc_warn.d(108): vgc: 'dup' causes gc allocation
 compilable/nogc_warn.d-mixin-114(114): vgc: 'new' causes gc allocation
 compilable/nogc_warn.d(120): vgc: Indexing an associative array may cause gc allocation
 ---

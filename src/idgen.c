@@ -144,8 +144,6 @@ Msgtable msgtable[] =
 
     { "sort" },
     { "reverse" },
-    { "dup" },
-    { "idup" },
 
     { "property" },
     { "safe" },
@@ -243,7 +241,6 @@ Msgtable msgtable[] =
     { "FpopFront", "popFront" },
     { "FpopBack", "popBack" },
 
-    { "adDup", "_adDupT" },
     { "adReverse", "_adReverse" },
 
     // For internal functions

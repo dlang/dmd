@@ -3732,8 +3732,7 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
 
     if (e->op == TOKtype)
     {
-        if (ident == Id::sort || ident == Id::reverse ||
-            ident == Id::dup || ident == Id::idup)
+        if (ident == Id::sort || ident == Id::reverse)
         {
             e->error("%s is not an expression", e->toChars());
             return new ErrorExp();
@@ -3788,68 +3787,32 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
         e = new CallExp(e->loc, ec, arguments);
         e->type = next->arrayOf();
     }
-    else if (ident == Id::reverse || ident == Id::dup || ident == Id::idup)
+    else if (ident == Id::reverse)
     {
         Expression *ec;
         FuncDeclaration *fd;
         Expressions *arguments;
         dinteger_t size = next->size(e->loc);
-        int dup;
 
         Expression *olde = e;
         assert(size);
-        dup = (ident == Id::dup || ident == Id::idup);
 
-        if (dup) {
-            static FuncDeclaration *adDup_fd = NULL;
-            if (!adDup_fd) {
-                Parameters* args = new Parameters;
-                args->push(new Parameter(STCin, Type::dtypeinfo->type, NULL, NULL));
-                args->push(new Parameter(STCin, Type::tvoid->arrayOf(), NULL, NULL));
-                adDup_fd = FuncDeclaration::genCfunc(args, Type::tvoid->arrayOf(), Id::adDup);
-            }
-            fd = adDup_fd;
-        } else {
-            static FuncDeclaration *adReverse_fd = NULL;
-            if (!adReverse_fd) {
-                Parameters* args = new Parameters;
-                args->push(new Parameter(STCin, Type::tvoid->arrayOf(), NULL, NULL));
-                args->push(new Parameter(STCin, Type::tsize_t, NULL, NULL));
-                adReverse_fd = FuncDeclaration::genCfunc(args, Type::tvoid->arrayOf(), Id::adReverse);
-            }
-            fd = adReverse_fd;
+        static FuncDeclaration *adReverse_fd = NULL;
+        if (!adReverse_fd) {
+            Parameters* args = new Parameters;
+            args->push(new Parameter(STCin, Type::tvoid->arrayOf(), NULL, NULL));
+            args->push(new Parameter(STCin, Type::tsize_t, NULL, NULL));
+            adReverse_fd = FuncDeclaration::genCfunc(args, Type::tvoid->arrayOf(), Id::adReverse);
         }
+        fd = adReverse_fd;
 
         ec = new VarExp(Loc(), fd);
         e = e->castTo(sc, n->arrayOf());        // convert to dynamic array
         arguments = new Expressions();
-        if (dup)
-            arguments->push(getTypeInfo(sc));
         arguments->push(e);
-        if (!dup)
-            arguments->push(new IntegerExp(Loc(), size, Type::tsize_t));
+        arguments->push(new IntegerExp(Loc(), size, Type::tsize_t));
         e = new CallExp(e->loc, ec, arguments);
-        if (ident == Id::idup)
-        {   Type *einv = next->immutableOf();
-            if (next->implicitConvTo(einv) < MATCHconst)
-            {   error(e->loc, "cannot implicitly convert element type %s to immutable in %s.idup",
-                    next->toChars(), olde->toChars());
-                goto Lerror;
-            }
-            e->type = einv->arrayOf();
-        }
-        else if (ident == Id::dup)
-        {
-            Type *emut = next->mutableOf();
-            if (next->implicitConvTo(emut) < MATCHconst)
-            {   error(e->loc, "cannot implicitly convert element type %s to mutable in %s.dup",
-                    next->toChars(), olde->toChars());
-                goto Lerror;
-            }
-            e->type = emut->arrayOf();
-        }
-        else
-            e->type = next->mutableOf()->arrayOf();
+        e->type = next->mutableOf()->arrayOf();
     }
     else if (ident == Id::sort)
     {

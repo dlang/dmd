@@ -145,22 +145,6 @@ public:
     }
     void visit(CallExp *e)
     {
-        if (e->e1 && e->e1->op == TOKvar)
-        {
-            VarExp *ve = (VarExp*)e->e1;
-            if (ve->var && ve->var->isFuncDeclaration() && ve->var->isFuncDeclaration()->ident)
-            {
-                Identifier *ident = ve->var->isFuncDeclaration()->ident;
-
-                if (ident == Id::adDup)
-                {
-                    if (func->setGCUse(e->loc, "'dup' causes gc allocation"))
-                    {
-                        e->error("Can not use 'dup' in @nogc code");
-                    }
-                }
-            }
-        }
     }
     void visit(CatExp *e)
     {
