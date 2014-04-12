@@ -183,6 +183,19 @@ static assert(retRefTest3()==26);
 static assert(retRefTest4()==218);
 
 /**************************************************
+    Bug 7887 assign to returned reference
+**************************************************/
+
+bool test7887()
+{
+    ref int f(ref int x) { return x; }
+    int a;
+    f(a) = 42;
+    return (a == 42);
+}
+static assert(test7887());
+
+/**************************************************
     Bug 7473 struct non-ref
 **************************************************/
 
@@ -1282,9 +1295,14 @@ struct Zadok
         z[0] = 56;
         auto zs = z[];
         fog(zs) = [56, 6, 8];
-        assert(z[1] == 6);
+
         assert(z[0] == 56);
-        return z[2];
+        assert(z[1] == 61);
+        assert(z[2] == 61);
+
+        assert(zs[0] == 56);
+        assert(zs[1] == 6);
+        return zs[2];
     }
 }
 
