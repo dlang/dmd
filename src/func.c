@@ -2120,15 +2120,8 @@ void FuncDeclaration::semantic3(Scope *sc)
     if (fbody)
         checkGC(this, fbody);
 
-    if (needsClosure() && setGCUse(loc, "Using closure causes gc allocation"))
-        error("Can not use closures in @nogc code");
-
-    if (flags & FUNCFLAGgcuseInprocess)
-    {
-        flags &= ~FUNCFLAGgcuseInprocess;
-        if (type == f) f = (TypeFunction *)f->copy();
-        f->gcuse = GCUSEnogc;
-    }
+    if (needsClosure())
+        printGCUsage(loc, "Using closure causes gc allocation");
 
     // reset deco to apply inference result to mangled name
     if (f != type)
@@ -3573,52 +3566,6 @@ bool FuncDeclaration::setUnsafe()
         ((TypeFunction *)type)->trust = TRUSTsystem;
     }
     else if (isSafe())
-        return true;
-    return false;
-}
-
-/**************************************
- * Return true if the function is marked
- * as @nogc and therefore must not allocate.
- */
-bool FuncDeclaration::isNOGC()
-{
-    assert(type->ty == Tfunction);
-    if (flags & FUNCFLAGgcuseInprocess)
-        setGCUse();
-    return ((TypeFunction *)type)->gcuse == GCUSEnogc;
-}
-
-/**************************************
- * Mark function as using GC, warn on -vgc, return
- * true if GC access is an error (@nogc)
- */
-bool FuncDeclaration::setGCUse(Loc loc, const char* warn)
-{
-    if (setGCUse())
-    {
-        return true;
-    }
-    //Only warn about errors in 'root' modules
-    if (global.params.vgc && getModule() && getModule()->isRoot()
-        && !inUnittest())
-    {
-        fprintf(global.stdmsg, "%s: vgc: %s\n", loc.toChars(), warn);
-    }
-    return false;
-}
-
-/**************************************
- * Same as above, but do not warn on -vgc
- */
-bool FuncDeclaration::setGCUse()
-{
-    if (flags & FUNCFLAGgcuseInprocess)
-    {
-        flags &= ~FUNCFLAGgcuseInprocess;
-        ((TypeFunction *)type)->gcuse = GCUSEgc;
-    }
-    else if (isNOGC())
         return true;
     return false;
 }

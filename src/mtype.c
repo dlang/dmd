@@ -2098,7 +2098,6 @@ Type *TypeFunction::substWildTo(unsigned)
     t->isref = isref;
     t->iswild = 0;
     t->trust = trust;
-    t->gcuse = gcuse;
     t->fargs = fargs;
     return t->merge();
 }
@@ -5114,7 +5113,6 @@ TypeFunction::TypeFunction(Parameters *parameters, Type *treturn, int varargs, L
         this->isref = true;
 
     this->trust = TRUSTdefault;
-    this->gcuse = GCUSEdefault;
     if (stc & STCsafe)
         this->trust = TRUSTsafe;
     if (stc & STCsystem)
@@ -5145,7 +5143,6 @@ Type *TypeFunction::syntaxCopy()
     t->isref = isref;
     t->iswild = iswild;
     t->trust = trust;
-    t->gcuse = gcuse;
     t->fargs = fargs;
     return t;
 }
@@ -6127,7 +6124,6 @@ Type *TypeFunction::addStorageClass(StorageClass stc)
         tf->isproperty = t->isproperty;
         tf->isref = t->isref;
         tf->trust = t->trust;
-        tf->gcuse = t->gcuse;
         tf->iswild = t->iswild;
 
         if (stc & STCpure)

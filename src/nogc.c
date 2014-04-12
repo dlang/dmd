@@ -14,9 +14,19 @@
 #include "statement.h"
 #include "declaration.h"
 #include "id.h"
+#include "module.h"
 
 bool walkPostorder(Statement *s, StoppableVisitor *v);
 bool walkPostorder(Expression *e, StoppableVisitor *v);
+
+void FuncDeclaration::printGCUsage(Loc loc, const char* warn)
+{
+    if (global.params.vgc && getModule() && getModule()->isRoot()
+        && !inUnittest())
+    {
+        fprintf(global.stdmsg, "%s: vgc: %s\n", loc.toChars(), warn);
+    }
+}
 
 /**************************************
  * Look for GC-allocations
@@ -148,44 +158,34 @@ public:
     }
     void visit(CatExp *e)
     {
-        if (func->setGCUse(e->loc, "Concatenation may cause gc allocation"))
-            e->error("Can not use concatenation in @nogc code");
+        func->printGCUsage(e->loc, "Concatenation may cause gc allocation");
     }
     void visit(CatAssignExp *e)
     {
-        if (func->setGCUse(e->loc, "Concatenation may cause gc allocation"))
-            e->error("Can not use concatenation in @nogc code");
+        func->printGCUsage(e->loc, "Concatenation may cause gc allocation");
     }
     void visit(AssignExp *e)
     {
-        if (e->e1->op == TOKarraylength
-           && func->setGCUse(e->loc, "Setting 'length' may cause gc allocation"))
-        {
-            e->error("Can not set 'length' in @nogc code");
-        }
+        if (e->e1->op == TOKarraylength)
+           func->printGCUsage(e->loc, "Setting 'length' may cause gc allocation");
     }
     void visit(DeleteExp *e)
     {
-        if (func->setGCUse(e->loc, "'delete' requires gc"))
-            e->error("Can not use 'delete' in @nogc code");
+        func->printGCUsage(e->loc, "'delete' requires gc");
     }
     void visit(NewExp *e)
     {
-        if (!e->allocator && !e->onstack && func->setGCUse(e->loc, "'new' causes gc allocation"))
-            e->error("Can not use 'new' in @nogc code");
+        if (!e->allocator && !e->onstack)
+            func->printGCUsage(e->loc, "'new' causes gc allocation");
     }
     void visit(NewAnonClassExp *e)
     {
-        if (func->setGCUse(e->loc, "'new' causes gc allocation"))
-            e->error("Can not use 'new' in @nogc code");
+        func->printGCUsage(e->loc, "'new' causes gc allocation");
     }
     void visit(AssocArrayLiteralExp *e)
     {
-        if (e->keys->dim
-            && func->setGCUse(e->loc, "Associative array literals cause gc allocation"))
-        {
-            e->error("Can not use associative array literals in @nogc code");
-        }
+        if (e->keys->dim)
+            func->printGCUsage(e->loc, "Associative array literals cause gc allocation");
     }
     void visit(ArrayLiteralExp *e)
     {
@@ -202,19 +202,13 @@ public:
                 }
             }
         }
-        if (e->elements && e->elements->dim != 0 && e->type->ty != Tsarray && !init_const &&
-            func->setGCUse(e->loc, "Array literals cause gc allocation"))
-        {
-                e->error("Can not use array literals in @nogc code");
-        }
+        if (e->elements && e->elements->dim != 0 && e->type->ty != Tsarray && !init_const)
+            func->printGCUsage(e->loc, "Array literals cause gc allocation");
     }
     void visit(IndexExp* e)
     {
-        if (e->e1->type->ty == Taarray && func->setGCUse(e->loc, "Indexing an associative"
-            " array may cause gc allocation"))
-        {
-            e->error("Can not index an associative array in @nogc code");
-        }
+        if (e->e1->type->ty == Taarray)
+            func->printGCUsage(e->loc, "Indexing an associative array may cause gc allocation");
     }
 };
 
