@@ -2757,7 +2757,7 @@ private extern (C) void[] _d_newarrayU(const TypeInfo ti, size_t length) pure no
 public:
 
 /// Provide the .dup array property.
-auto dup(T)(T[] a)
+@property auto dup(T)(T[] a)
     if (!is(const(T) : T))
 {
     import core.internal.traits : Unconst;
@@ -2773,7 +2773,7 @@ auto dup(T)(T[] a)
 
 /// ditto
 // const overload to support implicit conversion to immutable (unique result, see DIP29)
-T[] dup(T)(const(T)[] a)
+@property T[] dup(T)(const(T)[] a)
     if (is(const(T) : T))
 {
     // wrap unsafe _dup in @trusted to preserve @safe postblit
@@ -2784,7 +2784,7 @@ T[] dup(T)(const(T)[] a)
 }
 
 /// Provide the .idup array property.
-immutable(T)[] idup(T)(T[] a)
+@property immutable(T)[] idup(T)(T[] a)
 {
     static assert(is(T : immutable(T)), "Cannot implicitly convert type "~T.stringof~
                   " to immutable in idup.");
