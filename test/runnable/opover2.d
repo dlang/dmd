@@ -1255,7 +1255,7 @@ void test18()
     }
     assert(dollar!q{@property size_t opDollar() { return 8; }}() == 8);
     assert(dollar!q{template opDollar(size_t dim) { enum opDollar = dim; }}() == 0);
-    assert(dollar!q{const size_t opDollar = 8;}() == 8);
+    assert(dollar!q{static const size_t opDollar = 8;}() == 8);
     assert(dollar!q{enum opDollar = 8;}() == 8);
     assert(dollar!q{size_t length() { return 8; } alias length opDollar;}() == 8);
 }

@@ -2,29 +2,25 @@
 REQUIRED_ARGS: -vgc
 TEST_OUTPUT:
 ---
-compilable/nogc_warn.d(34): vgc: 'new' causes gc allocation
-compilable/nogc_warn.d(35): vgc: 'new' causes gc allocation
-compilable/nogc_warn.d(36): vgc: 'new' causes gc allocation
-compilable/nogc_warn.d(37): vgc: 'new' causes gc allocation
-compilable/nogc_warn.d(42): vgc: 'delete' requires gc
-compilable/nogc_warn.d(47): vgc: 'delete' requires gc
-compilable/nogc_warn.d(52): vgc: 'delete' requires gc
-compilable/nogc_warn.d(59): vgc: Associative array literals cause gc allocation
-compilable/nogc_warn.d(60): vgc: Associative array literals cause gc allocation
+compilable/nogc_warn.d(30): vgc: 'new' causes gc allocation
+compilable/nogc_warn.d(31): vgc: 'new' causes gc allocation
+compilable/nogc_warn.d(32): vgc: 'new' causes gc allocation
+compilable/nogc_warn.d(33): vgc: 'new' causes gc allocation
+compilable/nogc_warn.d(38): vgc: 'delete' requires gc
+compilable/nogc_warn.d(43): vgc: 'delete' requires gc
+compilable/nogc_warn.d(48): vgc: 'delete' requires gc
+compilable/nogc_warn.d(55): vgc: Associative array literals cause gc allocation
+compilable/nogc_warn.d(56): vgc: Associative array literals cause gc allocation
+compilable/nogc_warn.d(62): vgc: Setting 'length' may cause gc allocation
+compilable/nogc_warn.d(65): vgc: Setting 'length' may cause gc allocation
 compilable/nogc_warn.d(66): vgc: Setting 'length' may cause gc allocation
-compilable/nogc_warn.d(69): vgc: Setting 'length' may cause gc allocation
-compilable/nogc_warn.d(70): vgc: Setting 'length' may cause gc allocation
+compilable/nogc_warn.d(71): vgc: Concatenation may cause gc allocation
+compilable/nogc_warn.d(72): vgc: Concatenation may cause gc allocation
 compilable/nogc_warn.d(75): vgc: Concatenation may cause gc allocation
 compilable/nogc_warn.d(76): vgc: Concatenation may cause gc allocation
-compilable/nogc_warn.d(79): vgc: Concatenation may cause gc allocation
-compilable/nogc_warn.d(80): vgc: Concatenation may cause gc allocation
-compilable/nogc_warn.d(85): vgc: Using closure causes gc allocation
-compilable/nogc_warn.d(100): vgc: 'dup' causes gc allocation
-compilable/nogc_warn.d(101): vgc: 'dup' causes gc allocation
-compilable/nogc_warn.d(107): vgc: 'dup' causes gc allocation
-compilable/nogc_warn.d(108): vgc: 'dup' causes gc allocation
-compilable/nogc_warn.d-mixin-114(114): vgc: 'new' causes gc allocation
-compilable/nogc_warn.d(120): vgc: Indexing an associative array may cause gc allocation
+compilable/nogc_warn.d(81): vgc: Using closure causes gc allocation
+compilable/nogc_warn.d-mixin-110(110): vgc: 'new' causes gc allocation
+compilable/nogc_warn.d(116): vgc: Indexing an associative array may cause gc allocation
 ---
 */
 

@@ -155,17 +155,6 @@ public:
     }
     void visit(CallExp *e)
     {
-        if (e->e1 && e->e1->op == TOKvar)
-        {
-            VarExp *ve = (VarExp*)e->e1;
-            if (ve->var && ve->var->isFuncDeclaration() && ve->var->isFuncDeclaration()->ident)
-            {
-                Identifier *ident = ve->var->isFuncDeclaration()->ident;
-
-                if (ident == Id::adDup)
-                    func->printGCUsage(e->loc, "'dup' causes gc allocation");
-            }
-        }
     }
     void visit(CatExp *e)
     {

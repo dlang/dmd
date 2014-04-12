@@ -778,33 +778,6 @@ MATCH implicitConvTo(Expression *e, Type *t)
                 return;
             }
 
-            /* The result of arr.dup and arr.idup can be unique essentially.
-             * So deal with this case specially.
-             */
-            if (!e->f && e->e1->op == TOKvar && ((VarExp *)e->e1)->var->ident == Id::adDup &&
-                t->toBasetype()->ty == Tarray)
-            {
-                assert(e->type->toBasetype()->ty == Tarray);
-                assert(e->arguments->dim == 2);
-                Expression *eorg = (*e->arguments)[1];
-                Type *tn = t->nextOf();
-                if (e->type->nextOf()->implicitConvTo(tn) < MATCHconst)
-                {
-                    /* If the operand is an unique array literal, then allow conversion.
-                     */
-                    if (eorg->op != TOKarrayliteral)
-                        return;
-                    Expressions *elements = ((ArrayLiteralExp *)eorg)->elements;
-                    for (size_t i = 0; i < elements->dim; i++)
-                    {
-                        if (!(*elements)[i]->implicitConvTo(tn))
-                            return;
-                    }
-                }
-                result = e->type->immutableOf()->implicitConvTo(t);
-                return;
-            }
-
             /* Conversion is 'const' conversion if:
              * 1. function is pure (weakly pure is ok)
              * 2. implicit conversion only fails because of mod bits
