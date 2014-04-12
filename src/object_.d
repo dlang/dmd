@@ -2754,6 +2754,8 @@ unittest
 
 private extern (C) void[] _d_newarrayU(const TypeInfo ti, size_t length) pure nothrow;
 
+public:
+
 /// Provide the .dup array property.
 auto dup(T)(T[] a)
     if (!is(const(T) : T))
