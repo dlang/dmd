@@ -3691,7 +3691,6 @@ bool FuncDeclaration::addPostInvariant()
     AggregateDeclaration *ad = isThis();
     ClassDeclaration *cd = ad ? ad->isClassDeclaration() : NULL;
     return (ad && !(cd && cd->isCPPclass()) &&
-            ad->inv &&
             global.params.useInvariants &&
             (protection == PROTprotected || protection == PROTpublic || protection == PROTexport) &&
             !naked &&
