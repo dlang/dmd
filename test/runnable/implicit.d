@@ -181,6 +181,131 @@ void testDIP29_5() pure
 
 /***********************************/
 
+void testDIP29_6()
+{
+    /******* structs ************/
+
+    static assert(__traits(compiles,
+    {
+	static struct S { int *p; }
+	immutable s = new S;		// since p is null
+    }));
+
+    static assert(!__traits(compiles,
+    {
+	__gshared int x;
+	static struct S { int *p = &x; }
+	immutable s = new S;		// x is mutable
+    }));
+
+    static assert(!__traits(compiles,
+    {
+	int y;
+	struct S { int x; void bar() { y = 3; } }
+	immutable s = new S;		// nested struct
+    }));
+
+    static assert(!__traits(compiles,
+    {
+	static struct S { int x; this(int); }
+	immutable s = new S(1);
+    }));
+
+    static assert(__traits(compiles,
+    {
+	static struct S { int x; this(int) pure; }
+	immutable s = new S(1);
+    }));
+
+    static assert(__traits(compiles,
+    {
+	static struct S { int* p = void; this(int) pure; }
+	immutable s = new S(1);
+    }));
+
+    static assert(!__traits(compiles,
+    {
+	static struct S { int* p = void; this(int*) pure; }
+	int x;
+	immutable s = new S(&x);
+    }));
+
+    static assert(__traits(compiles,
+    {
+	static struct S { int* p = void; this(immutable(int)*) pure; }
+	immutable int x;
+	immutable s = new S(&x);
+    }));
+
+    static assert(__traits(compiles,
+    {
+	static struct S { int* p = void; this(int*) pure; }
+	immutable s = new S(null);
+    }));
+
+    /******* classes ************/
+
+    static assert(__traits(compiles,
+    {
+	static class S { int *p; }
+	immutable s = new S;		// since p is null
+    }));
+
+    static assert(!__traits(compiles,
+    {
+	__gshared int x;
+	static class S { int *p = &x; }
+	immutable s = new S;		// x is mutable
+    }));
+
+    static assert(!__traits(compiles,
+    {
+	int y;
+	class S { int x; void bar() { y = 3; } }
+	immutable s = new S;		// nested class
+    }));
+
+    static assert(!__traits(compiles,
+    {
+	static class S { int x; this(int); }
+	immutable s = new S(1);
+    }));
+
+    static assert(__traits(compiles,
+    {
+	static class S { int x; this(int) pure; }
+	immutable s = new S(1);
+    }));
+
+    static assert(__traits(compiles,
+    {
+	static class S { int* p = void; this(int) pure; }
+	immutable s = new S(1);
+    }));
+
+    static assert(!__traits(compiles,
+    {
+	static class S { int* p = void; this(int*) pure; }
+	int x;
+	immutable s = new S(&x);
+    }));
+
+    static assert(__traits(compiles,
+    {
+	static class S { int* p = void; this(immutable(int)*) pure; }
+	immutable int x;
+	immutable s = new S(&x);
+    }));
+
+    static assert(__traits(compiles,
+    {
+	static class S { int* p = void; this(int*) pure; }
+	immutable s = new S(null);
+    }));
+}
+
+/***********************************/
+
 void main()
 {
     test1();
@@ -193,6 +318,7 @@ void main()
     testDIP29_3();
     testDIP29_4();
     testDIP29_5();
+    testDIP29_6();
 
     writefln("Success");
 }
