@@ -228,6 +228,10 @@ int runLINK()
         {
             cmdbuf.writeByte(' ');
             cmdbuf.writestring("/DEBUG");
+
+            // in release mode we need to reactivate /OPT:REF after /DEBUG
+            if (global.params.release)
+                cmdbuf.writestring(" /OPT:REF");
         }
 
         if (global.params.dll)
