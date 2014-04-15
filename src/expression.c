@@ -734,7 +734,7 @@ Expression *searchUFCS(Scope *sc, UnaExp *ue, Identifier *ident)
         DotTemplateInstanceExp *dti = (DotTemplateInstanceExp *)ue;
         TemplateInstance *ti = new TemplateInstance(loc, s->ident);
         ti->tiargs = dti->ti->tiargs;   // for better diagnostic message
-        if (!ti->updateTemplateDeclaration(sc, s))
+        if (!ti->updateTempDecl(sc, s))
             return new ErrorExp();
         return new ScopeExp(loc, ti);
     }
@@ -4555,7 +4555,7 @@ Lagain:
     if (ti)
     {
         WithScopeSymbol *withsym;
-        if (!ti->findTemplateDeclaration(sc, &withsym) ||
+        if (!ti->findTempDecl(sc, &withsym) ||
             !ti->semanticTiargs(sc))
         {
             ti->inst = ti;
@@ -7545,7 +7545,7 @@ bool DotTemplateInstanceExp::findTempDecl(Scope *sc)
         case TOKvar:            s = ((VarExp *)e)->var;         break;
         default:                return false;
     }
-    return ti->updateTemplateDeclaration(sc, s);
+    return ti->updateTempDecl(sc, s);
 }
 
 Expression *DotTemplateInstanceExp::semantic(Scope *sc)
@@ -7930,7 +7930,7 @@ Expression *CallExp::semantic(Scope *sc)
              * If not, go with partial explicit specialization.
              */
             WithScopeSymbol *withsym;
-            if (!ti->findTemplateDeclaration(sc, &withsym) ||
+            if (!ti->findTempDecl(sc, &withsym) ||
                 !ti->semanticTiargs(sc))
             {
                 ti->inst = ti;
@@ -9079,15 +9079,16 @@ UAddExp::UAddExp(Loc loc, Expression *e)
 }
 
 Expression *UAddExp::semantic(Scope *sc)
-{   Expression *e;
-
+{
 #if LOGSEMANTIC
     printf("UAddExp::semantic('%s')\n", toChars());
 #endif
     assert(!type);
-    e = op_overload(sc);
+
+    Expression *e = op_overload(sc);
     if (e)
         return e;
+
     e1->checkNoBool();
     e1->checkArithmetic();
     return e1;
@@ -9339,7 +9340,10 @@ Expression *CastExp::semantic(Scope *sc)
 
     if (Expression *ex = unaSemantic(sc))
         return ex;
-    e1 = resolveProperties(sc, e1);
+    Expression *e1x = resolveProperties(sc, e1);
+    if (e1x->op == TOKerror)
+        return e1x;
+    e1 = e1x;
 
     if (e1->type)               // if not a tuple
     {
@@ -9358,8 +9362,6 @@ Expression *CastExp::semantic(Scope *sc)
             error("cannot cast %s to tuple type %s", e1->toChars(), to->toChars());
             return new ErrorExp();
         }
-        if (e1->type->ty == Terror)
-            return new ErrorExp();
 
         // cast(void) is used to mark e1 as unused, so it is safe
         if (to->ty == Tvoid)
@@ -9369,9 +9371,7 @@ Expression *CastExp::semantic(Scope *sc)
         {
             Expression *e = op_overload(sc);
             if (e)
-            {
                 return e->implicitCastTo(sc, to);
-            }
         }
 
         if (e1->op == TOKtemplate)
@@ -10022,9 +10022,10 @@ Expression *ArrayExp::semantic(Scope *sc)
 #endif
     if (Expression *ex = unaSemantic(sc))
         return ex;
-    e1 = resolveProperties(sc, e1);
-    if (e1->op == TOKerror)
-        return e1;
+    Expression *e1x = resolveProperties(sc, e1);
+    if (e1x->op == TOKerror)
+        return e1x;
+    e1 = e1x;
 
     Type *t1 = e1->type->toBasetype();
     if (t1->ty != Tclass && t1->ty != Tstruct)
@@ -10419,7 +10420,10 @@ Expression *PostExp::semantic(Scope *sc)
 
     if (Expression *ex = binSemantic(sc))
         return ex;
-    e1 = resolveProperties(sc, e1);
+    Expression *e1x = resolveProperties(sc, e1);
+    if (e1x->op == TOKerror)
+        return e1x;
+    e1 = e1x;
 
     Expression *e = op_overload(sc);
     if (e)
@@ -10587,7 +10591,6 @@ Expression *AssignExp::semantic(Scope *sc)
             // No opIndexAssign found yet, but there might be an alias this to try.
             if (ad->aliasthis && t1 != ae->att1)
             {
-                Expression *e2x = e2;
                 ArrayExp *aex = (ArrayExp *)ae->copy();
                 if (!aex->att1 && t1->checkAliasThisRec())
                     aex->att1 = t1;
@@ -10597,7 +10600,6 @@ Expression *AssignExp::semantic(Scope *sc)
                 if (ex)
                     return ex;
                 this->e1 = ae;  // restore
-                this->e2 = e2x; // restore
             }
 
         Lfallback:
@@ -10658,7 +10660,6 @@ Expression *AssignExp::semantic(Scope *sc)
             // No opSliceAssign found yet, but there might be an alias this to try.
             if (ad->aliasthis && t1 != ae->att1)
             {
-                Expression *e2x = e2;
                 SliceExp *aex = (SliceExp *)ae->copy();
                 if (!aex->att1 && t1->checkAliasThisRec())
                     aex->att1 = t1;
@@ -10668,122 +10669,142 @@ Expression *AssignExp::semantic(Scope *sc)
                 if (ex)
                     return ex;
                 this->e1 = ae;  // restore
-                this->e2 = e2x; // restore
             }
         }
     }
 
-    /* With UFCS, e.f = value
-     * Could mean:
-     *      .f(e, value)
-     * or:
-     *      .f(e) = value
+    /* Run this->e1 semantic.
      */
-    if (e1->op == TOKdotti)
     {
-        DotTemplateInstanceExp *dti = (DotTemplateInstanceExp *)e1;
-        Expression *e = dti->semanticY(sc, 1);
-        if (!e)
-            return resolveUFCSProperties(sc, e1, e2);
-        e1 = e;
-    }
-    else if (e1->op == TOKdot)
-    {
-        DotIdExp *die = (DotIdExp *)e1;
-        Expression *e = die->semanticY(sc, 1);
-        if (e && isDotOpDispatch(e))
+        Expression *e1x = e1;
+
+        /* With UFCS, e.f = value
+         * Could mean:
+         *      .f(e, value)
+         * or:
+         *      .f(e) = value
+         */
+        if (e1x->op == TOKdotti)
         {
-            unsigned errors = global.startGagging();
-            e = resolvePropertiesX(sc, e, e2);
-            if (global.endGagging(errors))
-                e = NULL;   /* fall down to UFCS */
-            else
-                return e;
+            DotTemplateInstanceExp *dti = (DotTemplateInstanceExp *)e1x;
+            Expression *e = dti->semanticY(sc, 1);
+            if (!e)
+                return resolveUFCSProperties(sc, e1x, e2);
+            e1x = e;
         }
-        if (!e)
-            return resolveUFCSProperties(sc, e1, e2);
-        e1 = e;
+        else if (e1x->op == TOKdot)
+        {
+            DotIdExp *die = (DotIdExp *)e1x;
+            Expression *e = die->semanticY(sc, 1);
+            if (e && isDotOpDispatch(e))
+            {
+                unsigned errors = global.startGagging();
+                e = resolvePropertiesX(sc, e, e2);
+                if (global.endGagging(errors))
+                    e = NULL;   /* fall down to UFCS */
+                else
+                    return e;
+            }
+            if (!e)
+                return resolveUFCSProperties(sc, e1x, e2);
+            e1x = e;
+        }
+        else
+            e1x = e1x->semantic(sc);
+
+        /* We have f = value.
+         * Could mean:
+         *      f(value)
+         * or:
+         *      f() = value
+         */
+        if (Expression *e = resolvePropertiesX(sc, e1x, e2))
+            return e;
+
+        e1x = checkRightThis(sc, e1x);
+
+        if (e1x->op == TOKerror)
+            return e1x;
+        e1 = e1x;
+        assert(e1->type);
     }
-    else
-        e1 = e1->semantic(sc);
-    if (e1->op == TOKerror)
-        return new ErrorExp();
-
-    /* We have f = value.
-     * Could mean:
-     *      f(value)
-     * or:
-     *      f() = value
-     */
-    if (Expression *e = resolvePropertiesX(sc, e1, e2))
-        return e;
-
-    e1 = checkRightThis(sc, e1);
-
-    assert(e1->type);
     Type *t1 = e1->type->toBasetype();
 
-    e2 = inferType(e2, t1);
+    /* Run this->e2 semantic.
+     * Different from other binary expressions, the analysis of e2
+     * depends on the result of e1 in assignments.
+     */
+    {
+        Expression *e2x = inferType(e2, t1);
 
-    e2 = e2->semantic(sc);
-    if (e2->op == TOKerror)
-        return new ErrorExp();
-    e2 = resolveProperties(sc, e2);
-    if (!e2->rvalue())
-        return new ErrorExp();
+        e2x = e2x->semantic(sc);
+        e2x = resolveProperties(sc, e2x);
+
+        if (e2x->op == TOKerror)
+            return e2x;
+        if (!e2x->rvalue())
+            return new ErrorExp();
+        e2 = e2x;
+    }
 
     /* Rewrite tuple assignment as a tuple of assignments.
      */
-Ltupleassign:
-    if (e1->op == TOKtuple && e2->op == TOKtuple)
     {
-        TupleExp *tup1 = (TupleExp *)e1;
-        TupleExp *tup2 = (TupleExp *)e2;
-        size_t dim = tup1->exps->dim;
-        Expression *e = NULL;
-        if (dim != tup2->exps->dim)
-        {
-            error("mismatched tuple lengths, %d and %d", (int)dim, (int)tup2->exps->dim);
-            return new ErrorExp();
-        }
-        if (dim == 0)
-        {
-            e = new IntegerExp(loc, 0, Type::tint32);
-            e = new CastExp(loc, e, Type::tvoid);   // avoid "has no effect" error
-            e = combine(combine(tup1->e0, tup2->e0), e);
-        }
-        else
-        {
-            Expressions *exps = new Expressions;
-            exps->setDim(dim);
-            for (size_t i = 0; i < dim; i++)
-            {
-                Expression *ex1 = (*tup1->exps)[i];
-                Expression *ex2 = (*tup2->exps)[i];
-                (*exps)[i] = new AssignExp(loc, ex1, ex2);
-            }
-            e = new TupleExp(loc, combine(tup1->e0, tup2->e0), exps);
-        }
-        assert(e);
-        return e->semantic(sc);
-    }
+        Expression *e2x = e2;
 
-    if (e1->op == TOKtuple)
-    {
-        if (TupleDeclaration *td = isAliasThisTuple(e2))
+    Ltupleassign:
+        if (e1->op == TOKtuple && e2x->op == TOKtuple)
         {
+            TupleExp *tup1 = (TupleExp *)e1;
+            TupleExp *tup2 = (TupleExp *)e2x;
+            size_t dim = tup1->exps->dim;
+            Expression *e = NULL;
+            if (dim != tup2->exps->dim)
+            {
+                error("mismatched tuple lengths, %d and %d", (int)dim, (int)tup2->exps->dim);
+                return new ErrorExp();
+            }
+            if (dim == 0)
+            {
+                e = new IntegerExp(loc, 0, Type::tint32);
+                e = new CastExp(loc, e, Type::tvoid);   // avoid "has no effect" error
+                e = combine(combine(tup1->e0, tup2->e0), e);
+            }
+            else
+            {
+                Expressions *exps = new Expressions;
+                exps->setDim(dim);
+                for (size_t i = 0; i < dim; i++)
+                {
+                    Expression *ex1 = (*tup1->exps)[i];
+                    Expression *ex2 = (*tup2->exps)[i];
+                    (*exps)[i] = new AssignExp(loc, ex1, ex2);
+                }
+                e = new TupleExp(loc, combine(tup1->e0, tup2->e0), exps);
+            }
+            return e->semantic(sc);
+        }
+
+        /* Look for form: e1 = e2->aliasthis.
+         */
+        if (e1->op == TOKtuple)
+        {
+            TupleDeclaration *td = isAliasThisTuple(e2x);
+            if (!td)
+                goto Lnomatch;
+
             assert(e1->type->ty == Ttuple);
             TypeTuple *tt = (TypeTuple *)e1->type;
 
             Identifier *id = Lexer::uniqueId("__tup");
-            ExpInitializer *ei = new ExpInitializer(e2->loc, e2);
-            VarDeclaration *v = new VarDeclaration(e2->loc, NULL, id, ei);
+            ExpInitializer *ei = new ExpInitializer(e2x->loc, e2x);
+            VarDeclaration *v = new VarDeclaration(e2x->loc, NULL, id, ei);
             v->storage_class |= STCtemp | STCctfe;
-            if (e2->isLvalue())
+            if (e2x->isLvalue())
                 v->storage_class = STCref | STCforeach;
-            Expression *e0 = new DeclarationExp(e2->loc, v);
-            Expression *ev = new VarExp(e2->loc, v);
-            ev->type = e2->type;
+            Expression *e0 = new DeclarationExp(e2x->loc, v);
+            Expression *ev = new VarExp(e2x->loc, v);
+            ev->type = e2x->type;
 
             Expressions *iexps = new Expressions();
             iexps->push(ev);
@@ -10807,15 +10828,20 @@ Ltupleassign:
                     goto Lnomatch;
                 }
             }
-            e2 = new TupleExp(e2->loc, e0, iexps);
-            e2 = e2->semantic(sc);
+            e2x = new TupleExp(e2x->loc, e0, iexps);
+            e2x = e2x->semantic(sc);
+            if (e2x->op == TOKerror)
+                return e2x;
+            // Do not need to overwrite this->e2
             goto Ltupleassign;
-
-        Lnomatch:
-            ;
         }
+    Lnomatch:
+        ;
     }
 
+    /* Inside constructor, if this is the first assignment of object field,
+     * rewrite this to initializing the field.
+     */
     if (op == TOKassign && e1->checkModifiable(sc) == 2)
     {
         //printf("[%s] change to init - %s\n", loc.toChars(), toChars());
@@ -10833,19 +10859,22 @@ Ltupleassign:
     }
     else if (t1->ty == Tstruct)
     {
+        Expression *e1x = e1;
+        Expression *e2x = e2;
         StructDeclaration *sd = ((TypeStruct *)t1)->sym;
+
         if (op == TOKconstruct)
         {
-            Type *t2 = e2->type->toBasetype();
+            Type *t2 = e2x->type->toBasetype();
             if (t2->ty == Tstruct && sd == ((TypeStruct *)t2)->sym)
             {
                 CallExp *ce;
                 DotVarExp *dve;
                 if (sd->ctor &&
-                    e2->op == TOKcall &&
-                    (ce = (CallExp *)e2, ce->e1->op == TOKdotvar) &&
+                    e2x->op == TOKcall &&
+                    (ce = (CallExp *)e2x, ce->e1->op == TOKdotvar) &&
                     (dve = (DotVarExp *)ce->e1, dve->var->isCtorDeclaration()) &&
-                    e2->type->implicitConvTo(t1))
+                    e2x->type->implicitConvTo(t1))
                 {
                     /* Look for form of constructor call which is:
                      *    __ctmp.ctor(arguments...)
@@ -10863,14 +10892,14 @@ Ltupleassign:
                     else
                         ae->e2 = t1->defaultInit(loc);
                     // Keep ae->op == TOKconstruct
-                    ae->type = e1->type;
+                    ae->type = e1x->type;
 
                     /* Replace __ctmp being constructed with e1.
                      * We need to copy constructor call expression,
                      * because it may be used in other place.
                      */
                     DotVarExp *dvx = (DotVarExp *)dve->copy();
-                    dvx->e1 = this->e1;
+                    dvx->e1 = e1x;
                     CallExp *cx = (CallExp *)ce->copy();
                     cx->e1 = dvx;
 
@@ -10882,28 +10911,31 @@ Ltupleassign:
                 {
                     /* We have a copy constructor for this
                      */
-                    if (e2->op == TOKquestion)
+                    if (e2x->op == TOKquestion)
                     {
                         /* Rewrite as:
                          *  a ? e1 = b : e1 = c;
                          */
-                        CondExp *econd = (CondExp *)e2;
-                        Expression *ea1 = new ConstructExp(econd->e1->loc, e1, econd->e1);
-                        Expression *ea2 = new ConstructExp(econd->e1->loc, e1, econd->e2);
+                        CondExp *econd = (CondExp *)e2x;
+                        Expression *ea1 = new ConstructExp(econd->e1->loc, e1x, econd->e1);
+                        Expression *ea2 = new ConstructExp(econd->e1->loc, e1x, econd->e2);
                         Expression *e = new CondExp(loc, econd->econd, ea1, ea2);
                         return e->semantic(sc);
                     }
 
-                    if (e2->isLvalue())
+                    if (e2x->isLvalue())
                     {
                         /* Rewrite as:
                          *  e1.cpctor(e2);
                          */
-                        if (!e2->type->implicitConvTo(e1->type))
-                            error("conversion error from %s to %s", e2->type->toChars(), e1->type->toChars());
+                        if (!e2x->type->implicitConvTo(e1x->type))
+                        {
+                            error("conversion error from %s to %s", e2x->type->toChars(), e1x->type->toChars());
+                            return new ErrorExp();
+                        }
 
-                        Expression *e = new DotVarExp(loc, e1, sd->cpctor, 0);
-                        e = new CallExp(loc, e, e2);
+                        Expression *e = new DotVarExp(loc, e1x, sd->cpctor, 0);
+                        e = new CallExp(loc, e, e2x);
                         return e->semantic(sc);
                     }
                     else
@@ -10911,11 +10943,11 @@ Ltupleassign:
                         /* The struct value returned from the function is transferred
                          * so should not call the destructor on it.
                          */
-                        e2 = valueNoDtor(e2);
+                        e2x = valueNoDtor(e2x);
                     }
                 }
             }
-            else if (!e2->implicitConvTo(t1))
+            else if (!e2x->implicitConvTo(t1))
             {
                 if (sd->ctor)
                 {
@@ -10923,41 +10955,41 @@ Ltupleassign:
                      * Rewrite as:
                      *  e1 = init, e1.ctor(e2)
                      */
-                    Expression *ex;
-                    ex = new AssignExp(loc, e1, e1->type->defaultInit(loc));
-                    ex->op = TOKblit;
-                    ex->type = e1->type;
+                    Expression *einit;
+                    einit = new AssignExp(loc, e1x, e1x->type->defaultInit(loc));
+                    einit->op = TOKblit;
+                    einit->type = e1x->type;
 
                     Expression *e;
-                    e = new DotIdExp(loc, e1, Id::ctor);
-                    e = new CallExp(loc, e, e2);
-                    e = new CommaExp(loc, ex, e);
+                    e = new DotIdExp(loc, e1x, Id::ctor);
+                    e = new CallExp(loc, e, e2x);
+                    e = new CommaExp(loc, einit, e);
                     e = e->semantic(sc);
                     return e;
                 }
-                else if (search_function(sd, Id::call))
+                if (search_function(sd, Id::call))
                 {
                     /* Look for static opCall
                      * (See bugzilla 2702 for more discussion)
                      * Rewrite as:
                      *  e1 = typeof(e1).opCall(arguments)
                      */
-                    Expression *e = typeDotIdExp(e2->loc, e1->type, Id::call);
-                    e2 = new CallExp(loc, e, e2);
+                    e2x = typeDotIdExp(e2x->loc, e1x->type, Id::call);
+                    e2x = new CallExp(loc, e2x, this->e2);
 
-                    e2 = e2->semantic(sc);
-                    if (e2->op == TOKerror)
-                        return new ErrorExp();
-                    e2 = resolveProperties(sc, e2);
-                    if (!e2->rvalue())
+                    e2x = e2x->semantic(sc);
+                    e2x = resolveProperties(sc, e2x);
+                    if (e2x->op == TOKerror)
+                        return e2x;
+                    if (!e2x->rvalue())
                         return new ErrorExp();
                 }
             }
         }
         else if (op == TOKassign)
         {
-            if (e1->op == TOKindex &&
-                ((IndexExp *)e1)->e1->type->toBasetype()->ty == Taarray)
+            if (e1x->op == TOKindex &&
+                ((IndexExp *)e1x)->e1->type->toBasetype()->ty == Taarray)
             {
                 /*
                  * Rewrite:
@@ -10970,13 +11002,13 @@ Ltupleassign:
                  *          ? __aatmp[__aakey].opAssign(__aaval)
                  *          : ConstructExp(__aatmp[__aakey], __aaval));
                  */
-                IndexExp *ie = (IndexExp *)e1;
-                Type *t2 = e2->type->toBasetype();
+                IndexExp *ie = (IndexExp *)e1x;
+                Type *t2 = e2x->type->toBasetype();
                 Expression *e0 = NULL;
 
                 Expression *ea = ie->e1;
                 Expression *ek = ie->e2;
-                Expression *ev = e2;
+                Expression *ev = e2x;
                 if (hasSideEffect(ea))
                 {
                     VarDeclaration *v = new VarDeclaration(loc, ie->e1->type,
@@ -11001,8 +11033,8 @@ Ltupleassign:
                 }
                 if (hasSideEffect(ev))
                 {
-                    VarDeclaration *v = new VarDeclaration(loc, e2->type,
-                        Lexer::uniqueId("__aaval"), new ExpInitializer(loc, e2));
+                    VarDeclaration *v = new VarDeclaration(loc, e2x->type,
+                        Lexer::uniqueId("__aaval"), new ExpInitializer(loc, e2x));
                     v->storage_class |= STCtemp | STCctfe;
                     if (ev->isLvalue())
                         v->storage_class |= STCforeach | STCref;
@@ -11018,7 +11050,6 @@ Ltupleassign:
                 ae->e1 = ae->e1->semantic(sc);
                 ae->e1 = ae->e1->optimize(WANTvalue);
                 ae->e2 = ev;
-                //Expression *e = new CallExp(loc, new DotIdExp(loc, ex, Id::assign), ev);
                 Expression *e = ae->op_overload(sc);
                 if (e)
                 {
@@ -11063,6 +11094,9 @@ Ltupleassign:
         }
         else
             assert(op == TOKblit);
+
+        e1 = e1x;
+        e2 = e2x;
     }
     else if (t1->ty == Tclass)
     {
@@ -11076,35 +11110,36 @@ Ltupleassign:
     }
     else if (t1->ty == Tsarray)
     {
-        Type *t2 = e2->type->toBasetype();
+        Expression *e1x = e1;
+        Expression *e2x = e2;
+        Type *t2 = e2x->type->toBasetype();
 
-        if (e1->op == TOKindex &&
-            ((IndexExp *)e1)->e1->type->toBasetype()->ty == Taarray)
+        if (e1x->op == TOKindex &&
+            ((IndexExp *)e1x)->e1->type->toBasetype()->ty == Taarray)
         {
             // Assignment to an AA of fixed-length arrays.
             // Convert T[n][U] = T[] into T[n][U] = T[n]
-            e2 = e2->implicitCastTo(sc, e1->type);
-            if (e2->op == TOKerror)
-                return e2;
+            e2x = e2x->implicitCastTo(sc, e1x->type);
+            if (e2x->op == TOKerror)
+                return e2x;
         }
         else if (op == TOKconstruct)
         {
-            Expression *e2x = e2;
             if (e2x->op == TOKslice)
             {
-                SliceExp *se = (SliceExp *)e2;
-                if (se->lwr == NULL && se->e1->implicitConvTo(e1->type))
+                SliceExp *se = (SliceExp *)e2x;
+                if (se->lwr == NULL && se->e1->implicitConvTo(e1x->type))
                 {
                     e2x = se->e1;
                 }
             }
             if (e2x->op == TOKcall && !e2x->isLvalue() &&
-                e2x->implicitConvTo(e1->type))
+                e2x->implicitConvTo(e1x->type))
             {
                 // Keep the expression form for NRVO
-                e2 = e2x->implicitCastTo(sc, e1->type);
-                if (e2->op == TOKerror)
-                    return e2;
+                e2x = e2x->implicitCastTo(sc, e1x->type);
+                if (e2x->op == TOKerror)
+                    return e2x;
             }
             else
             {
@@ -11114,12 +11149,12 @@ Ltupleassign:
                  *  sa = [...]; as: sa[] = [...];
                  */
                 // Convert e2 to e2[], if t2 is impllicitly convertible to t1.
-                if (e2->op != TOKarrayliteral && t2->ty == Tsarray && t2->implicitConvTo(t1))
+                if (e2x->op != TOKarrayliteral && t2->ty == Tsarray && t2->implicitConvTo(t1))
                 {
-                    e2 = new SliceExp(e2->loc, e2, NULL, NULL);
-                    e2 = e2->semantic(sc);
+                    e2x = new SliceExp(e2x->loc, e2x, NULL, NULL);
+                    e2x = e2x->semantic(sc);
                 }
-                else if (!e2->implicitConvTo(e1->type))
+                else if (!e2x->implicitConvTo(e1x->type))
                 {
                     // If multidimensional static array, treat as one large array
                     dinteger_t dim = ((TypeSArray *)t1)->dim->toInteger();
@@ -11130,14 +11165,13 @@ Ltupleassign:
                         if (t->ty != Tsarray)
                             break;
                         dim *= ((TypeSArray *)t)->dim->toInteger();
-                        e1->type = t->nextOf()->sarrayOf(dim);
+                        e1x->type = t->nextOf()->sarrayOf(dim);
                     }
                 }
 
                 // Convert e1 to e1[]
-                e1 = new SliceExp(e1->loc, e1, NULL, NULL);
-                e1 = e1->semantic(sc);
-                t1 = e1->type->toBasetype();
+                e1x = new SliceExp(e1x->loc, e1x, NULL, NULL);
+                e1x = e1x->semantic(sc);
             }
         }
         else if (op == TOKassign)
@@ -11149,19 +11183,19 @@ Ltupleassign:
              */
 
             // Convert e2 to e2[], unless e2-> e1[0]
-            if (e2->op != TOKarrayliteral && t2->ty == Tsarray && !t2->implicitConvTo(t1->nextOf()))
+            if (e2x->op != TOKarrayliteral && t2->ty == Tsarray && !t2->implicitConvTo(t1->nextOf()))
             {
-                e2 = new SliceExp(e2->loc, e2, NULL, NULL);
-                e2 = e2->semantic(sc);
+                e2x = new SliceExp(e2x->loc, e2x, NULL, NULL);
+                e2x = e2x->semantic(sc);
             }
             else if (0 && global.params.warnings && !global.gag && op == TOKassign &&
-                     e2->op != TOKarrayliteral && e2->op != TOKstring &&
-                     !e2->implicitConvTo(t1))
+                     e2x->op != TOKarrayliteral && e2x->op != TOKstring &&
+                     !e2x->implicitConvTo(t1))
             {   // Disallow sa = da (Converted to sa[] = da[])
                 // Disallow sa = e  (Converted to sa[] = e)
-                const char* e1str = e1->toChars();
-                const char* e2str = e2->toChars();
-                if (e2->op == TOKslice || e2->implicitConvTo(t1->nextOf()))
+                const char* e1str = e1x->toChars();
+                const char* e2str = e2x->toChars();
+                if (e2x->op == TOKslice || e2x->implicitConvTo(t1->nextOf()))
                     warning("explicit element-wise assignment (%s)[] = %s is better than %s = %s",
                         e1str, e2str, e1str, e2str);
                 else
@@ -11171,21 +11205,20 @@ Ltupleassign:
                 // Convert e2 to e2[] to avoid duplicated error message.
                 if (t2->ty == Tarray)
                 {
-                    Expression *e = new SliceExp(e2->loc, e2, NULL, NULL);
-                    e2 = e->semantic(sc);
+                    e2x = new SliceExp(e2x->loc, e2x, NULL, NULL);
+                    e2x = e2x->semantic(sc);
                 }
             }
 
             // Convert e1 to e1[]
-            e1 = new SliceExp(e1->loc, e1, NULL, NULL);
-            e1 = e1->semantic(sc);
-            t1 = e1->type->toBasetype();
+            e1x = new SliceExp(e1x->loc, e1x, NULL, NULL);
+            e1x = e1x->semantic(sc);
         }
         else
         {
             assert(op == TOKblit);
 
-            if (!e2->implicitConvTo(e1->type))
+            if (!e2x->implicitConvTo(e1x->type))
             {
                 /* Internal handling for the default initialization
                  * of multi-dimensional static array:
@@ -11200,13 +11233,20 @@ Ltupleassign:
                     if (t->ty != Tsarray)
                         break;
                     dim *= ((TypeSArray *)t)->dim->toInteger();
-                    e1->type = t->nextOf()->sarrayOf(dim);
+                    e1x->type = t->nextOf()->sarrayOf(dim);
                 }
             }
-            e1 = new SliceExp(loc, e1, NULL, NULL);
-            e1 = e1->semantic(sc);
-            t1 = e1->type->toBasetype();
+            e1x = new SliceExp(loc, e1x, NULL, NULL);
+            e1x = e1x->semantic(sc);
         }
+        if (e1x->op == TOKerror)
+            return e1x;
+        if (e2x->op == TOKerror)
+            return e2x;
+
+        e1 = e1x;
+        e2 = e2x;
+        t1 = e1x->type->toBasetype();
     }
 
     /* Check the mutability of e1.
@@ -11246,6 +11286,8 @@ Ltupleassign:
     if (e1->op == TOKerror)
         return e1;
 
+    /* Tweak e2 based on the type of e1.
+     */
     Type *t2 = e2->type->toBasetype();
 
     // If it is a array, get the element type. Note that it may be
@@ -11278,18 +11320,18 @@ Ltupleassign:
         }
         else
             assert(op != TOKassign);
-        //error("cannot assign to static array %s", e1->toChars());
     }
     else if (e1->op == TOKslice &&
              (t2->ty == Tarray || t2->ty == Tsarray) &&
              t2->nextOf()->implicitConvTo(t1->nextOf()))
     {
         // Check element-wise assignment.
+        SliceExp *se1 = (SliceExp *)e1;
+        Type *tx1 = se1->e1->type->toBasetype();
+
         /* If assigned elements number is known at compile time,
          * check the mismatch.
          */
-        SliceExp *se1 = (SliceExp *)e1;
-        Type *tx1 = se1->e1->type->toBasetype();
         if (se1->lwr == NULL && tx1->ty == Tsarray)
         {
             Type *tx2 = t2;
@@ -11511,6 +11553,9 @@ CatAssignExp::CatAssignExp(Loc loc, Expression *e1, Expression *e2)
 
 Expression *CatAssignExp::semantic(Scope *sc)
 {
+    if (type)
+        return this;
+
     //printf("CatAssignExp::semantic() %s\n", toChars());
     Expression *e = op_overload(sc);
     if (e)
@@ -11726,7 +11771,6 @@ Expression *PowAssignExp::semantic(Scope *sc)
     }
     return incompatibleTypes();
 }
-
 
 /************************* AddExp *****************************/
 
