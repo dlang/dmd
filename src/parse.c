@@ -813,6 +813,8 @@ StorageClass Parser::parseAttribute(Expressions **pudas)
     {
         if (token.ident == Id::property)
             stc = STCproperty;
+        else if (token.ident == Id::nogc)
+            stc = STCnogc;
         else if (token.ident == Id::safe)
             stc = STCsafe;
         else if (token.ident == Id::trusted)
@@ -5823,6 +5825,7 @@ int Parser::skipAttributes(Token *t, Token **pt)
                      * @predefined_attribute
                      */
                     if (t->ident == Id::property ||
+                        t->ident == Id::nogc ||
                         t->ident == Id::safe ||
                         t->ident == Id::trusted ||
                         t->ident == Id::system ||

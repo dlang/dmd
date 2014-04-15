@@ -146,6 +146,7 @@ Msgtable msgtable[] =
     { "reverse" },
 
     { "property" },
+    { "nogc" },
     { "safe" },
     { "trusted" },
     { "system" },

@@ -614,6 +614,7 @@ public:
     int varargs;        // 1: T t, ...) style for variable number of arguments
                         // 2: T t ...) style for variable number of arguments
     bool isnothrow;     // true: nothrow
+    bool isnogc;        // true: is @nogc
     bool isproperty;    // can be called without parentheses
     bool isref;         // true: returns a reference
     LINK linkage;  // calling convention

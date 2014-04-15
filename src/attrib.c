@@ -468,6 +468,7 @@ const char *StorageClassDeclaration::stcToChars(char tmp[], StorageClass& stc)
         { STCref,          TOKref },
         { STCtls },
         { STCgshared,      TOKgshared },
+        { STCnogc,         TOKat,       "nogc" },
         { STCproperty,     TOKat,       "property" },
         { STCsafe,         TOKat,       "safe" },
         { STCtrusted,      TOKat,       "trusted" },

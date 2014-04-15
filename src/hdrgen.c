@@ -862,6 +862,8 @@ public:
             buf->writestring(" pure");
         if (t->isnothrow)
             buf->writestring(" nothrow");
+        if (t->isnogc)
+            buf->writestring(" @nogc");
         if (t->isproperty)
             buf->writestring(" @property");
         if (t->isref)
@@ -1790,6 +1792,8 @@ void functionToBufferFull(TypeFunction *tf, OutBuffer *buf, Identifier *ident,
         buf->writestring("pure ");
     if (tf->isnothrow)
         buf->writestring("nothrow ");
+    if (tf->isnogc)
+        buf->writestring("@nogc ");
     if (tf->isproperty)
         buf->writestring("@property ");
     if (tf->isref && ident != Id::ctor)

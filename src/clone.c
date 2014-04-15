@@ -41,6 +41,8 @@ StorageClass mergeFuncAttrs(StorageClass s1, FuncDeclaration *f)
         s2 |= STCpure;
     if (tf->isnothrow)
         s2 |= STCnothrow;
+    if (tf->isnogc)
+        s2 |= STCnogc;
 
     StorageClass stc = 0;
     StorageClass sa = s1 & s2;
@@ -60,6 +62,9 @@ StorageClass mergeFuncAttrs(StorageClass s1, FuncDeclaration *f)
 
     if (sa & STCnothrow)
         stc |= STCnothrow;
+
+    if (sa & STCnogc)
+        stc |= STCnogc;
 
     if (so & STCdisable)
         stc |= STCdisable;
