@@ -1360,6 +1360,20 @@ struct InPlace12278(T)
 }
 
 /********************************************************/
+// 12571
+
+mixin template getScopeName12571()
+{
+    enum string scopeName = __traits(identifier, __traits(parent, scopeName));
+}
+
+void test12571()
+{
+    mixin getScopeName12571;
+    static assert(scopeName == "test12571");
+}
+
+/********************************************************/
 
 int main()
 {
