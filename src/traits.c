@@ -208,7 +208,8 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
     if (e->ident != Id::compiles && e->ident != Id::isSame &&
         e->ident != Id::identifier && e->ident != Id::getProtection)
     {
-        TemplateInstance::semanticTiargs(e->loc, sc, e->args, 1);
+        if (!TemplateInstance::semanticTiargs(e->loc, sc, e->args, 1))
+            return new ErrorExp();
     }
     size_t dim = e->args ? e->args->dim : 0;
     Declaration *d;
@@ -343,7 +344,8 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
          * a symbol should not be folded to a constant.
          * Bit 1 means don't convert Parameter to Type if Parameter has an identifier
          */
-        TemplateInstance::semanticTiargs(e->loc, sc, e->args, 2);
+        if (!TemplateInstance::semanticTiargs(e->loc, sc, e->args, 2))
+            return new ErrorExp();
 
         if (dim != 1)
             goto Ldimerror;
@@ -375,8 +377,11 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
 
         Scope *sc2 = sc->push();
         sc2->flags = sc->flags | SCOPEnoaccesscheck;
-        TemplateInstance::semanticTiargs(e->loc, sc2, e->args, 1);
+        bool ok = TemplateInstance::semanticTiargs(e->loc, sc2, e->args, 1);
         sc2->pop();
+
+        if (!ok)
+            return new ErrorExp();
 
         RootObject *o = (*e->args)[0];
         Dsymbol *s = getDsymbol(o);
@@ -769,7 +774,8 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
          */
         if (dim != 2)
             goto Ldimerror;
-        TemplateInstance::semanticTiargs(e->loc, sc, e->args, 0);
+        if (!TemplateInstance::semanticTiargs(e->loc, sc, e->args, 0))
+            return new ErrorExp();
         RootObject *o1 = (*e->args)[0];
         RootObject *o2 = (*e->args)[1];
         Dsymbol *s1 = getDsymbol(o1);

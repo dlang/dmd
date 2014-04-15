@@ -349,7 +349,7 @@ public:
     // Internal
     bool findTemplateDeclaration(Scope *sc, WithScopeSymbol **pwithsym);
     bool updateTemplateDeclaration(Scope *sc, Dsymbol *s);
-    static void semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int flags);
+    static bool semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int flags);
     bool semanticTiargs(Scope *sc);
     bool findBestMatch(Scope *sc, Expressions *fargs);
     bool needsTypeInference(Scope *sc, int flag = 0);

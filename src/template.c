@@ -6362,9 +6362,13 @@ bool TemplateInstance::semanticTiargs(Scope *sc)
     //printf("+TemplateInstance::semanticTiargs() %s\n", toChars());
     if (semantictiargsdone)
         return true;
-    semantictiargsdone = 1;
-    semanticTiargs(loc, sc, tiargs, 0);
-    return arrayObjectIsError(tiargs) == 0;
+    if (semanticTiargs(loc, sc, tiargs, 0))
+    {
+        // cache the result iff semantic analysis succeeded entirely
+        semantictiargsdone = 1;
+        return true;
+    }
+    return false;
 }
 
 /**********************************
@@ -6429,12 +6433,13 @@ bool definitelyValueParameter(Expression *e)
  *              2: don't devolve Parameter to Type
  */
 
-void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int flags)
+bool TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int flags)
 {
     // Run semantic on each argument, place results in tiargs[]
     //printf("+TemplateInstance::semanticTiargs()\n");
     if (!tiargs)
-        return;
+        return true;
+    bool err = false;
     for (size_t j = 0; j < tiargs->dim; j++)
     {
         RootObject *o = (*tiargs)[j];
@@ -6476,6 +6481,11 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
                     }
                 }
                 j--;
+                continue;
+            }
+            if (ta->ty == Terror)
+            {
+                err = true;
                 continue;
             }
             (*tiargs)[j] = ta->merge2();
@@ -6532,6 +6542,11 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
                         tiargs->insert(j + i, (*te->exps)[i]);
                 }
                 j--;
+                continue;
+            }
+            if (ea->op == TOKerror)
+            {
+                err = true;
                 continue;
             }
             (*tiargs)[j] = ea;
@@ -6642,6 +6657,7 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
         printf("\ttiargs[%d] = ta %p, ea %p, sa %p, va %p\n", j, ta, ea, sa, va);
     }
 #endif
+    return !err;
 }
 
 bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
@@ -7229,7 +7245,7 @@ Identifier *TemplateInstance::genIdent(Objects *args)
 
 Identifier *TemplateInstance::getIdent()
 {
-    if (!ident && inst)
+    if (!ident && inst && !errors)
         ident = genIdent(tiargs);         // need an identifier for name mangling purposes.
     return ident;
 }
