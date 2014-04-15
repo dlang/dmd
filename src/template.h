@@ -347,8 +347,8 @@ public:
     void toObjFile(bool multiobj);                       // compile to .obj file
 
     // Internal
-    bool findTemplateDeclaration(Scope *sc, WithScopeSymbol **pwithsym);
-    bool updateTemplateDeclaration(Scope *sc, Dsymbol *s);
+    bool findTempDecl(Scope *sc, WithScopeSymbol **pwithsym);
+    bool updateTempDecl(Scope *sc, Dsymbol *s);
     static bool semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int flags);
     bool semanticTiargs(Scope *sc);
     bool findBestMatch(Scope *sc, Expressions *fargs);
@@ -385,7 +385,7 @@ public:
 
     void toObjFile(bool multiobj);                       // compile to .obj file
 
-    bool findTemplateDeclaration(Scope *sc);
+    bool findTempDecl(Scope *sc);
 
     TemplateMixin *isTemplateMixin() { return this; }
     void accept(Visitor *v) { v->visit(this); }

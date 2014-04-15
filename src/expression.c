@@ -734,7 +734,7 @@ Expression *searchUFCS(Scope *sc, UnaExp *ue, Identifier *ident)
         DotTemplateInstanceExp *dti = (DotTemplateInstanceExp *)ue;
         TemplateInstance *ti = new TemplateInstance(loc, s->ident);
         ti->tiargs = dti->ti->tiargs;   // for better diagnostic message
-        if (!ti->updateTemplateDeclaration(sc, s))
+        if (!ti->updateTempDecl(sc, s))
             return new ErrorExp();
         return new ScopeExp(loc, ti);
     }
@@ -4555,7 +4555,7 @@ Lagain:
     if (ti)
     {
         WithScopeSymbol *withsym;
-        if (!ti->findTemplateDeclaration(sc, &withsym) ||
+        if (!ti->findTempDecl(sc, &withsym) ||
             !ti->semanticTiargs(sc))
         {
             ti->inst = ti;
@@ -7545,7 +7545,7 @@ bool DotTemplateInstanceExp::findTempDecl(Scope *sc)
         case TOKvar:            s = ((VarExp *)e)->var;         break;
         default:                return false;
     }
-    return ti->updateTemplateDeclaration(sc, s);
+    return ti->updateTempDecl(sc, s);
 }
 
 Expression *DotTemplateInstanceExp::semantic(Scope *sc)
@@ -7930,7 +7930,7 @@ Expression *CallExp::semantic(Scope *sc)
              * If not, go with partial explicit specialization.
              */
             WithScopeSymbol *withsym;
-            if (!ti->findTemplateDeclaration(sc, &withsym) ||
+            if (!ti->findTempDecl(sc, &withsym) ||
                 !ti->semanticTiargs(sc))
             {
                 ti->inst = ti;

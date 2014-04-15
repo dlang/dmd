@@ -5714,7 +5714,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
      * then run semantic on each argument (place results in tiargs[]),
      * last find most specialized template from overload list/set.
      */
-    if (!findTemplateDeclaration(sc, NULL) ||
+    if (!findTempDecl(sc, NULL) ||
         !semanticTiargs(sc) ||
         !findBestMatch(sc, fargs))
     {
@@ -6164,7 +6164,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
  * Find template declaration corresponding to template instance.
  */
 
-bool TemplateInstance::findTemplateDeclaration(Scope *sc, WithScopeSymbol **pwithsym)
+bool TemplateInstance::findTempDecl(Scope *sc, WithScopeSymbol **pwithsym)
 {
     if (pwithsym)
         *pwithsym = NULL;
@@ -6172,7 +6172,7 @@ bool TemplateInstance::findTemplateDeclaration(Scope *sc, WithScopeSymbol **pwit
     if (havetempdecl)
         return true;
 
-    //printf("TemplateInstance::findTemplateDeclaration() %s\n", toChars());
+    //printf("TemplateInstance::findTempDecl() %s\n", toChars());
     if (!tempdecl)
     {
         /* Given:
@@ -6221,7 +6221,7 @@ bool TemplateInstance::findTemplateDeclaration(Scope *sc, WithScopeSymbol **pwit
             }
         }
 
-        if (!updateTemplateDeclaration(sc, s))
+        if (!updateTempDecl(sc, s))
         {
             return false;
         }
@@ -6269,7 +6269,7 @@ bool TemplateInstance::findTemplateDeclaration(Scope *sc, WithScopeSymbol **pwit
  * Confirm s is a valid template, then store it.
  */
 
-bool TemplateInstance::updateTemplateDeclaration(Scope *sc, Dsymbol *s)
+bool TemplateInstance::updateTempDecl(Scope *sc, Dsymbol *s)
 {
     if (s)
     {
@@ -7650,7 +7650,7 @@ Dsymbol *TemplateMixin::syntaxCopy(Dsymbol *s)
     return tm;
 }
 
-bool TemplateMixin::findTemplateDeclaration(Scope *sc)
+bool TemplateMixin::findTempDecl(Scope *sc)
 {
     // Follow qualifications to find the TemplateDeclaration
     if (!tempdecl)
@@ -7770,7 +7770,7 @@ void TemplateMixin::semantic(Scope *sc)
     /* Run semantic on each argument, place results in tiargs[],
      * then find best match template with tiargs
      */
-    if (!findTemplateDeclaration(sc) ||
+    if (!findTempDecl(sc) ||
         !semanticTiargs(sc) ||
         !findBestMatch(sc, NULL))
     {
