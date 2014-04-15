@@ -2771,6 +2771,23 @@ void decodeImpl12089(S)(auto ref S str)
 {}
 
 /************************************/
+// 12524
+
+inout(int) dup12524(inout(const(int)) val)
+{
+    return val;
+}
+
+void test12524(inout(int))
+{
+    inout(const(int)) val;
+
+    auto bug = dup12524(val);
+
+    static assert(is(typeof(bug) == inout(int)));
+}
+
+/************************************/
 // 6941
 
 static assert((const(shared(int[])[])).stringof == "const(shared(int[])[])");	// fail

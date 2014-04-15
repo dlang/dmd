@@ -1935,7 +1935,12 @@ unsigned char Type::deduceWild(Type *t, bool isRef)
         if (isImmutable())
             return MODimmutable;
         else if (isWildConst())
-            return MODwildconst;
+        {
+            if (t->isWildConst())
+                return MODwild;
+            else
+                return MODwildconst;
+        }
         else if (isWild())
             return MODwild;
         else if (isConst())
