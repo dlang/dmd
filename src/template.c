@@ -201,6 +201,62 @@ Expression *getValue(Dsymbol *&s)
     return e;
 }
 
+/**********************************
+ * Return true if e could be valid only as a template value parameter.
+ * Return false if it might be an alias or tuple.
+ * (Note that even in this case, it could still turn out to be a value).
+ */
+bool definitelyValueParameter(Expression *e)
+{
+    // None of these can be value parameters
+    if (e->op == TOKtuple || e->op == TOKimport  ||
+        e->op == TOKtype || e->op == TOKdottype ||
+        e->op == TOKtemplate ||  e->op == TOKdottd ||
+        e->op == TOKfunction || e->op == TOKerror ||
+        e->op == TOKthis || e->op == TOKsuper)
+        return false;
+
+    if (e->op != TOKdotvar)
+        return true;
+
+ /* Template instantiations involving a DotVar expression are difficult.
+  * In most cases, they should be treated as a value parameter, and interpreted.
+  * But they might also just be a fully qualified name, which should be treated
+  * as an alias.
+  */
+
+    // x.y.f cannot be a value
+    FuncDeclaration *f = ((DotVarExp *)e)->var->isFuncDeclaration();
+    if (f)
+        return false;
+
+    while (e->op == TOKdotvar)
+    {
+        e = ((DotVarExp *)e)->e1;
+    }
+    // this.x.y and super.x.y couldn't possibly be valid values.
+    if (e->op == TOKthis || e->op == TOKsuper)
+        return false;
+
+    // e.type.x could be an alias
+    if (e->op == TOKdottype)
+        return false;
+
+    // var.x.y is the only other possible form of alias
+    if (e->op != TOKvar)
+        return true;
+
+    VarDeclaration *v = ((VarExp *)e)->var->isVarDeclaration();
+
+    // func.x.y is not an alias
+    if (!v)
+        return true;
+
+    // TODO: Should we force CTFE if it is a global constant?
+
+    return false;
+}
+
 /******************************
  * If o1 matches o2, return 1.
  * Else, return 0.
@@ -6162,6 +6218,13 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 
 /**********************************************
  * Find template declaration corresponding to template instance.
+ *
+ * Returns:
+ *      false if finding fails.
+ * Note:
+ *      This function is reentrant against error occurrence. If returns false,
+ *      any members of this object won't be modified, and repetition call will
+ *      reproduce same error.
  */
 
 bool TemplateInstance::findTempDecl(Scope *sc, WithScopeSymbol **pwithsym)
@@ -6267,6 +6330,14 @@ bool TemplateInstance::findTempDecl(Scope *sc, WithScopeSymbol **pwithsym)
 
 /**********************************************
  * Confirm s is a valid template, then store it.
+ * Input:
+ *      sc
+ *      s   candidate symbol of template. It may be:
+ *          TemplateDeclaration
+ *          FuncDeclaration with findTemplateDeclRoot() != NULL
+ *          OverloadSet which contains candidates
+ * Returns:
+ *      true if updating succeeds.
  */
 
 bool TemplateInstance::updateTempDecl(Scope *sc, Dsymbol *s)
@@ -6357,6 +6428,17 @@ bool TemplateInstance::updateTempDecl(Scope *sc, Dsymbol *s)
     return (tempdecl != NULL);
 }
 
+/**********************************
+ * Run semantic on the elements of tiargs.
+ * Input:
+ *      sc
+ * Returns:
+ *      false if one or more arguments have errors.
+ * Note:
+ *      This function is reentrant against error occurrence. If returns false,
+ *      all elements of tiargs won't be modified.
+ */
+
 bool TemplateInstance::semanticTiargs(Scope *sc)
 {
     //printf("+TemplateInstance::semanticTiargs() %s\n", toChars());
@@ -6372,65 +6454,15 @@ bool TemplateInstance::semanticTiargs(Scope *sc)
 }
 
 /**********************************
- * Return true if e could be valid only as a template value parameter.
- * Return false if it might be an alias or tuple.
- * (Note that even in this case, it could still turn out to be a value).
- */
-bool definitelyValueParameter(Expression *e)
-{
-    // None of these can be value parameters
-    if (e->op == TOKtuple || e->op == TOKimport  ||
-        e->op == TOKtype || e->op == TOKdottype ||
-        e->op == TOKtemplate ||  e->op == TOKdottd ||
-        e->op == TOKfunction || e->op == TOKerror ||
-        e->op == TOKthis || e->op == TOKsuper)
-        return false;
-
-    if (e->op != TOKdotvar)
-        return true;
-
- /* Template instantiations involving a DotVar expression are difficult.
-  * In most cases, they should be treated as a value parameter, and interpreted.
-  * But they might also just be a fully qualified name, which should be treated
-  * as an alias.
-  */
-
-    // x.y.f cannot be a value
-    FuncDeclaration *f = ((DotVarExp *)e)->var->isFuncDeclaration();
-    if (f)
-        return false;
-
-    while (e->op == TOKdotvar)
-    {
-        e = ((DotVarExp *)e)->e1;
-    }
-    // this.x.y and super.x.y couldn't possibly be valid values.
-    if (e->op == TOKthis || e->op == TOKsuper)
-        return false;
-
-    // e.type.x could be an alias
-    if (e->op == TOKdottype)
-        return false;
-
-    // var.x.y is the only other possible form of alias
-    if (e->op != TOKvar)
-        return true;
-
-    VarDeclaration *v = ((VarExp *)e)->var->isVarDeclaration();
-
-    // func.x.y is not an alias
-    if (!v)
-        return true;
-
-    // TODO: Should we force CTFE if it is a global constant?
-
-    return false;
-}
-
-/**********************************
+ * Run semantic of tiargs as arguments of template.
  * Input:
+ *      loc
+ *      sc
+ *      tiargs  array of template arguments
  *      flags   1: replace const variables with their initializers
  *              2: don't devolve Parameter to Type
+ * Returns:
+ *      false if one or more arguments have errors.
  */
 
 bool TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int flags)
