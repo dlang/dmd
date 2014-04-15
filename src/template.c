@@ -6493,8 +6493,8 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
                 if (ea->op == TOKvar && (v = ((VarExp *)ea)->var->isVarDeclaration()) != NULL &&
                     !(v->storage_class & STCtemplateparameter))
                 {
-                    if (v->sem < SemanticDone)
-                        v->semantic(sc);
+                    if (v->sem < SemanticDone && v->scope)
+                        v->semantic(NULL);
                     // skip optimization for variable symbols
                 }
                 else
