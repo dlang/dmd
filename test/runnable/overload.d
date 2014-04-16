@@ -596,6 +596,44 @@ void test15()
 }
 
 /***************************************************/
+// 8868
+
+void test8868()
+{
+    struct S
+    {
+        static int g1()      { return 7; }
+               int g1(int n) { return 3; }
+
+               int g2(int n) { return 3; }
+        static int g2()      { return 7; }
+    }
+    S s;
+    S func() { return s; }
+
+    auto a1 = &(func()).g1;
+    auto a2 = &(func()).g2;
+    auto b1 = &s.g1;
+    auto b2 = &s.g2;
+    auto c1 = &S.g1;
+    auto c2 = &S.g2;
+
+    static assert(is(typeof(a1) == int delegate(int)));
+    static assert(is(typeof(a2) == int delegate(int)));
+    static assert(is(typeof(b1) == int delegate(int)));
+    static assert(is(typeof(b2) == int delegate(int)));
+    static assert(is(typeof(c1) == int function()));
+    static assert(is(typeof(c2) == int function()));
+
+    assert(a1(1) == 3);
+    assert(a2(1) == 3);
+    assert(b1(1) == 3);
+    assert(b2(1) == 3);
+    assert(c1() == 7);
+    assert(c2() == 7);
+}
+
+/***************************************************/
 // 1528
 
 int foo1528(long){ return 1; }
@@ -1811,6 +1849,7 @@ int main()
     test10();
     test11();
     test12();
+    test8868();
     test1528a();
     test1528b();
     test1528c();
