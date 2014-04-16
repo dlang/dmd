@@ -13625,8 +13625,10 @@ Expression *PrettyFuncInitExp::resolveLoc(Loc loc, Scope *sc)
 
 Expression *extractOpDollarSideEffect(Scope *sc, UnaExp *ue)
 {
-    Expression *e0 = NULL;
-    Expression *e1 = ue->e1;
+    Expression *e0;
+    Expression *e1 = Expression::extractLast(ue->e1, &e0);
+    // Bugzilla 12585: Extract the side effect part if ue->e1 is comma.
+
     if (hasSideEffect(e1))
     {
         /* Even if opDollar is needed, 'e1' should be evaluate only once. So
