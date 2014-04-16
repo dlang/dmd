@@ -3981,7 +3981,9 @@ void TypeSArray::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
             if (d >= td->objects->dim)
             {
                 error(loc, "tuple index %llu exceeds length %u", d, td->objects->dim);
-                goto Ldefault;
+                *ps = NULL;
+                *pt = Type::terror;
+                return;
             }
             RootObject *o = (*td->objects)[(size_t)d];
             if (o->dyncast() == DYNCAST_DSYMBOL)
