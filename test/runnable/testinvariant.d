@@ -108,8 +108,49 @@ void test6453()
 
 /***************************************************/
 
+void test7337()
+{
+    static class Base
+    {
+        static uint called = 0;
+        invariant()
+        {
+            called += 1;
+        }
+
+        void publicMember()
+        {
+            // pre invariant executed ?
+            assert(called == 1);
+        }
+    }
+
+    static class Inherited : Base
+    {
+        override void publicMember()
+        {
+            // pre invariant executed ?
+            assert(called == 3);
+        }
+    }
+
+    assert(Base.called == 0);
+    auto base = new Base();
+    base.publicMember();
+    // post invariant executed ?
+    assert(Base.called == 2);
+
+    auto inherited = new Inherited();
+    inherited.publicMember();
+    // post invariant executed ?
+    assert(Base.called == 4);
+}
+
+/***************************************************/
+
 void main()
 {
     testinvariant();
     test6453();
+    test7337();
 }
