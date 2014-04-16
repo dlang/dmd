@@ -146,8 +146,13 @@ void testDIP29_3()
 
     immutable y2 = pureMaker3b()[0..2];
 
+    // Conversion from *rvalue* of mutable static array to immutable slice
     immutable z1 = pureMaker3c()[];
     immutable z2 = pureMaker3c()[0..2];
+
+    // Issue 12467 - conversion from lvalue of mutable static array to immutable slice
+    char[3] arr = "foo";
+    static assert(!__traits(compiles, { string str = arr[]; }));
 }
 
 /***********************************/

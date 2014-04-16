@@ -1190,12 +1190,23 @@ MATCH implicitConvTo(Expression *e, Type *t)
             {
                 Type *tbn = tb->nextOf();
                 Type *tx = NULL;
+
+                /* If e->e1 is dynamic array or pointer, the uniqueness of e->e1
+                 * is equivalent with the uniqueness of the referred data. And in here
+                 * we can have arbitrary typed reference for that.
+                 */
                 if (t1b->ty == Tarray)
                     tx = tbn->arrayOf();
                 if (t1b->ty == Tpointer)
                     tx = tbn->pointerTo();
-                if (t1b->ty == Tsarray)
+
+                /* If e->e1 is static array, at least it should be an rvalue.
+                 * If not, e->e1 is a reference, and its uniqueness does not link
+                 * to the uniqueness of the referred data.
+                 */
+                if (t1b->ty == Tsarray && !e->e1->isLvalue())
                     tx = tbn->sarrayOf(t1b->size() / tbn->size());
+
                 if (tx)
                 {
                     result = e->e1->implicitConvTo(tx);
