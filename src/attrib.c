@@ -106,10 +106,7 @@ void AttribDeclaration::setScopeNewSc(Scope *sc,
             s->setScope(newsc); // yes, the only difference from semanticNewSc()
         }
         if (newsc != sc)
-        {
-            sc->offset = newsc->offset;
             newsc->pop();
-        }
     }
 }
 
@@ -141,10 +138,7 @@ void AttribDeclaration::semanticNewSc(Scope *sc,
             s->semantic(newsc);
         }
         if (newsc != sc)
-        {
-            sc->offset = newsc->offset;
             newsc->pop();
-        }
     }
 }
 
@@ -215,7 +209,8 @@ void AttribDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffs
     if (d)
     {
         for (size_t i = 0; i < d->dim; i++)
-        {   Dsymbol *s = (*d)[i];
+        {
+            Dsymbol *s = (*d)[i];
             s->setFieldOffset(ad, poffset, isunion);
         }
     }
@@ -806,7 +801,6 @@ void AnonDeclaration::semantic(Scope *sc)
         sc = sc->push();
         sc->stc &= ~(STCauto | STCscope | STCstatic | STCtls | STCgshared);
         sc->inunion = isunion;
-        sc->offset = 0;
         sc->flags = 0;
 
         for (size_t i = 0; i < decl->dim; i++)
@@ -1633,10 +1627,7 @@ void UserAttributeDeclaration::setScope(Scope *sc)
             s->setScope(newsc); // yes, the only difference from semantic()
         }
         if (newsc != sc)
-        {
-            sc->offset = newsc->offset;
             newsc->pop();
-        }
     }
 }
 
@@ -1661,10 +1652,7 @@ void UserAttributeDeclaration::semantic(Scope *sc)
             s->semantic(newsc);
         }
         if (newsc != sc)
-        {
-            sc->offset = newsc->offset;
             newsc->pop();
-        }
     }
 }
 
@@ -1691,10 +1679,7 @@ void UserAttributeDeclaration::semantic2(Scope *sc)
             s->semantic2(newsc);
         }
         if (newsc != sc)
-        {
-            sc->offset = newsc->offset;
             newsc->pop();
-        }
     }
 }
 

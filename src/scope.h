@@ -80,11 +80,6 @@ struct Scope
     Statement *scontinue;       // enclosing statement that supports "continue"
     ForeachStatement *fes;      // if nested function for ForeachStatement, this is it
     Scope *callsc;              // used for __FUNCTION__, __PRETTY_FUNCTION__ and __MODULE__
-    unsigned offset;            // next offset to use in aggregate
-                                // This really shouldn't be a part of Scope, because it requires
-                                // semantic() to be done in the lexical field order. It should be
-                                // set in a pass after semantic() on all fields so they can be
-                                // semantic'd in any order.
     int inunion;                // we're processing members of a union
     int nofree;                 // set if shouldn't free it
     int noctor;                 // set if constructor calls aren't allowed

@@ -7541,14 +7541,7 @@ Dsymbol *TemplateInstance::toAlias()
         // Maybe we can resolve it
         if (scope)
         {
-            /* Anything that affects scope->offset must be
-             * done in lexical order. Fwd ref error if it is affected, otherwise allow.
-             */
-            unsigned offset = scope->offset;
-            Scope *sc = scope;
             semantic(scope);
-//            if (offset != sc->offset)
-//                inst = NULL;            // trigger fwd ref error
         }
         if (!inst)
         {
@@ -7966,10 +7959,7 @@ void TemplateMixin::semantic(Scope *sc)
 #if LOG
     printf("\tdo semantic() on template instance members '%s'\n", toChars());
 #endif
-    Scope *sc2;
-    sc2 = argscope->push(this);
-    sc2->offset = sc->offset;
-
+    Scope *sc2 = argscope->push(this);
     size_t deferred_dim = Module::deferred.dim;
 
     static int nest;
@@ -8000,8 +7990,6 @@ void TemplateMixin::semantic(Scope *sc)
     }
 
     nest--;
-
-    sc->offset = sc2->offset;
 
     if (!sc->func && Module::deferred.dim > deferred_dim)
     {
@@ -8160,7 +8148,8 @@ void TemplateMixin::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, 
     if (members)
     {
         for (size_t i = 0; i < members->dim; i++)
-        {   Dsymbol *s = (*members)[i];
+        {
+            Dsymbol *s = (*members)[i];
             //printf("\t%s\n", s->toChars());
             s->setFieldOffset(ad, poffset, isunion);
         }
