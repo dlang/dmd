@@ -8008,8 +8008,9 @@ Expression *TypeStruct::defaultInitLiteral(Loc loc)
 #if LOGDEFAULTINIT
     printf("TypeStruct::defaultInitLiteral() '%s'\n", toChars());
 #endif
-    //if (sym->isNested())
-    //    return defaultInit(loc);
+    sym->size(loc);
+    if (sym->sizeok != SIZEOKdone)
+        return new ErrorExp();
     Expressions *structelems = new Expressions();
     structelems->setDim(sym->fields.dim - sym->isNested());
     unsigned offset = 0;
