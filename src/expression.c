@@ -10574,9 +10574,9 @@ Expression *AssignExp::semantic(Scope *sc)
     {
         /* Rewrite to get rid of the comma from rvalue
          */
-        AssignExp *ea = new AssignExp(loc, e1, ((CommaExp *)e2)->e2);
-        ea->op = op;
-        Expression *e = new CommaExp(loc, ((CommaExp *)e2)->e1, ea);
+        Expression *e0;
+        e2 = Expression::extractLast(e2, &e0);
+        Expression *e = Expression::combine(e0, this);
         return e->semantic(sc);
     }
 
