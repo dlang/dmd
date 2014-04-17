@@ -1994,6 +1994,9 @@ int Expression::rvalue(bool allowVoid)
     return 1;
 }
 
+/**********************************
+ * Combine e1 and e2 by CommaExp if both are not NULL.
+ */
 Expression *Expression::combine(Expression *e1, Expression *e2)
 {
     if (e1)
@@ -2007,6 +2010,35 @@ Expression *Expression::combine(Expression *e1, Expression *e2)
     else
         e1 = e2;
     return e1;
+}
+
+/**********************************
+ * If 'e' is a tree of commas, returns the leftmost expression
+ * by stripping off it from the tree. The remained part of the tree
+ * is returned via *pe0.
+ * Otherwise 'e' is directly returned and *pe0 is set to NULL.
+ */
+Expression *Expression::extractLast(Expression *e, Expression **pe0)
+{
+    if (e->op == TOKcomma)
+    {
+        CommaExp *ce = (CommaExp *)e;
+        *pe0 = ce;
+
+        Expression **pe = &e;
+        while (((CommaExp *)(*pe))->e2->op == TOKcomma)
+        {
+            ce = (CommaExp *)(*pe);
+            pe = &ce->e2;
+        }
+
+        *pe = ce->e2;
+        if (pe == &e)
+            *pe0 = ce->e1;
+    }
+    else
+        *pe0 = NULL;
+    return e;
 }
 
 dinteger_t Expression::toInteger()
