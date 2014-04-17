@@ -1451,7 +1451,7 @@ class Exception : Throwable
 
     /**
      * Creates a new instance of Exception. The next parameter is used
-     * internally and should be always be $(D null) when passed by user code.
+     * internally and should always be $(D null) when passed by user code.
      * This constructor does not automatically throw the newly-created
      * Exception; the $(D throw) statement should be used for that purpose.
      */
@@ -1494,8 +1494,23 @@ unittest
 }
 
 
+/**
+ * The base class of all unrecoverable runtime errors.
+ *
+ * This represents the category of $(D Throwable) objects that are $(B not)
+ * safe to catch and handle. In principle, one should not catch Error
+ * objects, as they represent unrecoverable runtime errors.
+ * Certain runtime guarantees may fail to hold when these errors are
+ * thrown, making it unsafe to continue execution after catching them.
+ */
 class Error : Throwable
 {
+    /**
+     * Creates a new instance of Error. The next parameter is used
+     * internally and should always be $(D null) when passed by user code.
+     * This constructor does not automatically throw the newly-created
+     * Error; the $(D throw) statement should be used for that purpose.
+     */
     @safe pure nothrow this(string msg, Throwable next = null)
     {
         super(msg, next);
@@ -1508,8 +1523,8 @@ class Error : Throwable
         bypassedException = null;
     }
 
-    /// The first Exception which was bypassed when this Error was thrown,
-    /// or null if no Exceptions were pending.
+    /// The first $(D Exception) which was bypassed when this Error was thrown,
+    /// or $(D null) if no $(D Exception)s were pending.
     Throwable   bypassedException;
 }
 
