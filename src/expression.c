@@ -13626,26 +13626,29 @@ Expression *PrettyFuncInitExp::resolveLoc(Loc loc, Scope *sc)
 Expression *extractOpDollarSideEffect(Scope *sc, UnaExp *ue)
 {
     Expression *e0 = NULL;
-    if (hasSideEffect(ue->e1))
+    Expression *e1 = ue->e1;
+    if (hasSideEffect(e1))
     {
-        /* Even if opDollar is needed, 'ue->e1' should be evaluate only once. So
+        /* Even if opDollar is needed, 'e1' should be evaluate only once. So
          * Rewrite:
-         *      ue->e1.opIndex( ... use of $ ... )
-         *      ue->e1.opSlice( ... use of $ ... )
+         *      e1.opIndex( ... use of $ ... )
+         *      e1.opSlice( ... use of $ ... )
          * as:
-         *      (ref __dop = ue->e1, __dop).opIndex( ... __dop.opDollar ...)
-         *      (ref __dop = ue->e1, __dop).opSlice( ... __dop.opDollar ...)
+         *      (ref __dop = e1, __dop).opIndex( ... __dop.opDollar ...)
+         *      (ref __dop = e1, __dop).opSlice( ... __dop.opDollar ...)
          */
         Identifier *id = Lexer::uniqueId("__dop");
-        ExpInitializer *ei = new ExpInitializer(ue->loc, ue->e1);
-        VarDeclaration *v = new VarDeclaration(ue->loc, ue->e1->type, id, ei);
+        ExpInitializer *ei = new ExpInitializer(ue->loc, e1);
+        VarDeclaration *v = new VarDeclaration(ue->loc, e1->type, id, ei);
         v->storage_class |= STCtemp | STCctfe
-                            | (ue->e1->isLvalue() ? (STCforeach | STCref) : 0);
-        e0 = new DeclarationExp(ue->loc, v);
-        e0 = e0->semantic(sc);
-        ue->e1 = new VarExp(ue->loc, v);
-        ue->e1 = ue->e1->semantic(sc);
+                            | (e1->isLvalue() ? (STCforeach | STCref) : 0);
+        Expression *de = new DeclarationExp(ue->loc, v);
+        de = de->semantic(sc);
+        e0 = Expression::combine(e0, de);
+        e1 = new VarExp(ue->loc, v);
+        e1 = e1->semantic(sc);
     }
+    ue->e1 = e1;
     return e0;
 }
 
