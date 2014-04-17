@@ -629,8 +629,6 @@ version (unittest)
     }
 }
 
-private extern (C) void[] _d_newarrayU(const TypeInfo ti, size_t length) pure nothrow;
-
 /// Provide the .dup array property.
 @property auto dup(T)(T[] a)
     if (!is(const(T) : T))
@@ -658,6 +656,13 @@ private extern (C) void[] _d_newarrayU(const TypeInfo ti, size_t length) pure no
         return _dup!(const(T), T)(a);
 }
 
+/// ditto
+@property T[] dup(T:void)(const(T)[] a) @trusted
+{
+    if (__ctfe) assert(0, "Cannot dup a void[] array at compile time.");
+    return cast(T[])_rawDup(a);
+}
+
 /// Provide the .idup array property.
 @property immutable(T)[] idup(T)(T[] a)
 {
@@ -669,6 +674,12 @@ private extern (C) void[] _d_newarrayU(const TypeInfo ti, size_t length) pure no
         return _trustedDup!(T, immutable(T))(a);
     else
         return _dup!(T, immutable(T))(a);
+}
+
+/// ditto
+@property immutable(T)[] idup(T:void)(const(T)[] a)
+{
+    return .dup(a);
 }
 
 private U[] _trustedDup(T, U)(T[] a) @trusted
@@ -686,13 +697,21 @@ private U[] _dup(T, U)(T[] a) // pure nothrow depends on postblit
         return res;
     }
 
-    import core.stdc.string : memcpy;
-
-    auto arr = _d_newarrayU(typeid(T[]), a.length);
-    memcpy(cast(void*)arr.ptr, cast(void*)a.ptr, T.sizeof * a.length);
-    auto res = *cast(typeof(return)*)&arr;
+    a = _rawDup(a);
+    auto res = *cast(typeof(return)*)&a;
     _doPostblit(res);
     return res;
+}
+
+private extern (C) void[] _d_newarrayU(const TypeInfo ti, size_t length) pure nothrow;
+
+private inout(T)[] _rawDup(T)(inout(T)[] a)
+{
+    import core.stdc.string : memcpy;
+
+    void[] arr = _d_newarrayU(typeid(T[]), a.length);
+    memcpy(arr.ptr, cast(void*)a.ptr, T.sizeof * a.length);
+    return *cast(inout(T)[]*)&arr;
 }
 
 private void _doPostblit(T)(T[] ary)

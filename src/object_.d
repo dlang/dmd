@@ -2752,8 +2752,6 @@ unittest
     assert(aa[[S(12)]] == 13); // fails
 }
 
-private extern (C) void[] _d_newarrayU(const TypeInfo ti, size_t length) pure nothrow;
-
 public:
 
 /// Provide the .dup array property.
@@ -2783,6 +2781,13 @@ public:
         return _dup!(const(T), T)(a);
 }
 
+/// ditto
+@property T[] dup(T:void)(const(T)[] a) @trusted
+{
+    if (__ctfe) assert(0, "Cannot dup a void[] array at compile time.");
+    return cast(T[])_rawDup(a);
+}
+
 /// Provide the .idup array property.
 @property immutable(T)[] idup(T)(T[] a)
 {
@@ -2794,6 +2799,12 @@ public:
         return _trustedDup!(T, immutable(T))(a);
     else
         return _dup!(T, immutable(T))(a);
+}
+
+/// ditto
+@property immutable(T)[] idup(T:void)(const(T)[] a)
+{
+    return .dup(a);
 }
 
 private U[] _trustedDup(T, U)(T[] a) @trusted
@@ -2811,13 +2822,21 @@ private U[] _dup(T, U)(T[] a) // pure nothrow depends on postblit
         return res;
     }
 
-    import core.stdc.string : memcpy;
-
-    auto arr = _d_newarrayU(typeid(T[]), a.length);
-    memcpy(cast(void*)arr.ptr, cast(void*)a.ptr, T.sizeof * a.length);
-    auto res = *cast(typeof(return)*)&arr;
+    a = _rawDup(a);
+    auto res = *cast(typeof(return)*)&a;
     _doPostblit(res);
     return res;
+}
+
+private extern (C) void[] _d_newarrayU(const TypeInfo ti, size_t length) pure nothrow;
+
+private inout(T)[] _rawDup(T)(inout(T)[] a)
+{
+    import core.stdc.string : memcpy;
+
+    void[] arr = _d_newarrayU(typeid(T[]), a.length);
+    memcpy(arr.ptr, cast(void*)a.ptr, T.sizeof * a.length);
+    return *cast(inout(T)[]*)&arr;
 }
 
 private void _doPostblit(T)(T[] ary)
@@ -2941,4 +2960,23 @@ unittest
     auto a = [1, 2, 3];
     auto b = a.dup();
     assert(b.capacity >= 3);
+}
+
+unittest
+{
+    // Bugzilla 12580
+    void[] m = [0];
+    shared(void)[] s = [cast(shared)1];
+    immutable(void)[] i = [cast(immutable)2];
+
+    s.dup();
+    static assert(is(typeof(s.dup()) == shared(void)[]));
+
+    m = i.dup();
+    i = m.dup();
+    i = i.idup();
+    i = m.idup();
+    i = s.idup();
+    i = s.dup();
+    static assert(!__traits(compiles, m = s.dup()));
 }
