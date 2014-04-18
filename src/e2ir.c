@@ -2311,7 +2311,11 @@ elem *toElem(Expression *e, IRState *irs)
 
         void visit(AssignExp *ae)
         {
-            //printf("AssignExp::toElem('%s')\n", ae->toChars());
+        #if 0
+            if (ae->op == TOKblit)      printf("BlitExp::toElem('%s')\n", ae->toChars());
+            if (ae->op == TOKassign)    printf("AssignExp::toElem('%s')\n", ae->toChars());
+            if (ae->op == TOKconstruct) printf("ConstructExp::toElem('%s')\n", ae->toChars());
+        #endif
             Type *t1b = ae->e1->type->toBasetype();
 
             elem *e;
@@ -2711,9 +2715,10 @@ elem *toElem(Expression *e, IRState *irs)
             }
 
             //if (op == TOKconstruct) printf("construct\n");
-            if (t1b->ty == Tstruct || t1b->ty == Tsarray)
+            if (t1b->ty == Tstruct)
             {
-                elem *eleft = ae->e1->toElem(irs);
+                elem *e1 = ae->e1->toElem(irs);
+
                 if (ae->e2->op == TOKint64)
                 {
                     /* Implement:
@@ -2726,13 +2731,13 @@ elem *toElem(Expression *e, IRState *irs)
                     StructDeclaration *sd = ((TypeStruct *)t1b)->sym;
                     if (sd->isNested() && ae->op == TOKconstruct)
                     {
-                        ey = el_una(OPaddr, TYnptr, eleft);
-                        eleft = el_same(&ey);
+                        ey = el_una(OPaddr, TYnptr, e1);
+                        e1 = el_same(&ey);
                         ey = setEthis(ae->loc, irs, ey, sd);
                         sz = sd->vthis->offset;
                     }
 
-                    elem *el = eleft;
+                    elem *el = e1;
                     elem *enbytes = el_long(TYsize_t, sz);
                     elem *evalue = el_long(TYsize_t, 0);
 
@@ -2741,49 +2746,64 @@ elem *toElem(Expression *e, IRState *irs)
                     e = el_param(enbytes, evalue);
                     e = el_bin(OPmemset,TYnptr,el,e);
                     e = el_combine(ey, e);
-                    el_setLoc(e, ae->loc);
-                    //e = el_una(OPind, TYstruct, e);
-                }
-                else
-                {
-                    //printf("toElemBin() '%s'\n", ae->toChars());
-
-                    tym_t tym = totym(ae->type);
-
-                    elem *e1 = eleft;
-                    elem *ex = e1;
-                    if (e1->Eoper == OPind)
-                        ex = e1->E1;
-                    if (ae->e2->op == TOKstructliteral &&
-                        ex->Eoper == OPvar && ex->EV.sp.Voffset == 0)
-                    {
-                        StructLiteralExp *se = (StructLiteralExp *)ae->e2;
-
-                        Symbol *symSave = se->sym;
-                        size_t soffsetSave = se->soffset;
-                        int fillHolesSave = se->fillHoles;
-
-                        se->sym = ex->EV.sp.Vsym;
-                        se->soffset = 0;
-                        se->fillHoles = (ae->op == TOKconstruct || ae->op == TOKblit) ? 1 : 0;
-
-                        el_free(e1);
-                        e = ae->e2->toElem(irs);
-
-                        se->sym = symSave;
-                        se->soffset = soffsetSave;
-                        se->fillHoles = fillHolesSave;
-                    }
-                    else
-                    {
-                        elem *e2 = ae->e2->toElem(irs);
-                        e = el_bin(OPstreq,tym,e1,e2);
-                        e->ET = Type_toCtype(ae->e1->type);
-                        if (type_size(e->ET) == 0)
-                            e->Eoper = OPcomma;
-                    }
                     goto Lret;
                 }
+
+                //printf("toElemBin() '%s'\n", ae->toChars());
+
+                elem *ex = e1;
+                if (e1->Eoper == OPind)
+                    ex = e1->E1;
+                if (ae->e2->op == TOKstructliteral &&
+                    ex->Eoper == OPvar && ex->EV.sp.Voffset == 0)
+                {
+                    StructLiteralExp *se = (StructLiteralExp *)ae->e2;
+
+                    Symbol *symSave = se->sym;
+                    size_t soffsetSave = se->soffset;
+                    int fillHolesSave = se->fillHoles;
+
+                    se->sym = ex->EV.sp.Vsym;
+                    se->soffset = 0;
+                    se->fillHoles = (ae->op == TOKconstruct || ae->op == TOKblit) ? 1 : 0;
+
+                    el_free(e1);
+                    e = ae->e2->toElem(irs);
+
+                    se->sym = symSave;
+                    se->soffset = soffsetSave;
+                    se->fillHoles = fillHolesSave;
+                    goto Lret;
+                }
+
+                /* Implement:
+                 *  (struct = struct)
+                 */
+                tym_t tym = totym(ae->type);
+                elem *e2 = ae->e2->toElem(irs);
+
+                e = el_bin(OPstreq, tym, e1, e2);
+                e->ET = Type_toCtype(ae->e1->type);
+                if (type_size(e->ET) == 0)
+                    e->Eoper = OPcomma;
+                goto Lret;
+            }
+            else if (t1b->ty == Tsarray)
+            {
+                /* Implement:
+                 *  (sarray = sarray)
+                 */
+                tym_t tym = totym(ae->type);
+                elem *e1 = ae->e1->toElem(irs);
+                elem *e2 = ae->e2->toElem(irs);
+
+                {
+                    e = el_bin(OPstreq, tym, e1, e2);
+                    e->ET = Type_toCtype(ae->e1->type);
+                    if (type_size(e->ET) == 0)
+                        e->Eoper = OPcomma;
+                }
+                goto Lret;
             }
             else
                 e = toElemBin(ae,OPeq);
