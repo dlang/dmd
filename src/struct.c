@@ -331,7 +331,8 @@ unsigned AggregateDeclaration::size(Loc loc)
              *  1       this member does
              */
             static int func(Dsymbol *s, void *param)
-            {   SV *psv = (SV *)param;
+            {
+                SV *psv = (SV *)param;
                 VarDeclaration *v = s->isVarDeclaration();
                 if (v)
                 {
@@ -349,7 +350,8 @@ unsigned AggregateDeclaration::size(Loc loc)
         SV sv;
 
         for (size_t i = 0; i < members->dim; i++)
-        {   Dsymbol *s = (*members)[i];
+        {
+            Dsymbol *s = (*members)[i];
             if (s->apply(&SV::func, &sv))
                 goto L1;
         }

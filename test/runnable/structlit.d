@@ -1260,6 +1260,29 @@ int foo11427() @safe
 }
 
 /********************************************/
+// 12011
+
+struct S12011a
+{
+    int f() { return i; }
+    enum e = this.init.f();
+    int i = 1, j = 2;
+}
+
+struct S12011b
+{
+    int f() { return i; }
+    enum e = S12011b().f();
+    int i = 1, j = 2;
+}
+
+void test12011()
+{
+    static assert(S12011a.e == 1);
+    static assert(S12011b.e == 1);
+}
+
+/********************************************/
 
 int main()
 {
