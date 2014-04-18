@@ -11142,30 +11142,29 @@ Expression *AssignExp::semantic(Scope *sc)
     }
     else if (t1->ty == Tsarray)
     {
+        // SliceExp cannot have static array type without context inference.
+        assert(e1->op != TOKslice);
+
         Expression *e1x = e1;
         Expression *e2x = e2;
         Type *t2 = e2x->type->toBasetype();
 
-        if (op == TOKconstruct)
+        if (e2x->implicitConvTo(e1x->type))
         {
-            if (e2x->implicitConvTo(e1x->type))
+            if (op != TOKblit &&
+                (e2x->op == TOKslice && ((UnaExp *)e2x)->e1->isLvalue() ||
+                 e2x->op == TOKcast  && ((UnaExp *)e2x)->e1->isLvalue() ||
+                 e2x->op != TOKslice && e2x->isLvalue()))
             {
-                if (op != TOKblit &&
-                    (e2x->op == TOKslice && ((UnaExp *)e2x)->e1->isLvalue() ||
-                     e2x->op == TOKcast  && ((UnaExp *)e2x)->e1->isLvalue() ||
-                     e2x->op != TOKslice && e2x->isLvalue()))
-                {
-                    e1x->checkPostblit(sc, t1);
-                }
+                e1x->checkPostblit(sc, t1);
             }
-            else
+        }
+        else
+        {
+            // May be block or element-wise assignment, so
+            // convert e1 to e1[]
+            if (op != TOKassign)
             {
-                /* Block/element-wise initializing
-                 * Rewrite:
-                 *  sa = e;     as: sa[] = e;
-                 *  sa = da;    as: sa[] = da;
-                 */
-
                 // If multidimensional static array, treat as one large array
                 dinteger_t dim = ((TypeSArray *)t1)->dim->toInteger();
                 Type *t = t1;
@@ -11177,65 +11176,9 @@ Expression *AssignExp::semantic(Scope *sc)
                     dim *= ((TypeSArray *)t)->dim->toInteger();
                     e1x->type = t->nextOf()->sarrayOf(dim);
                 }
-
-                // Convert e1 to e1[]
-                e1x = new SliceExp(e1x->loc, e1x, NULL, NULL);
-                e1x = e1x->semantic(sc);
             }
-        }
-        else if (op == TOKassign)
-        {
-            if (e2x->implicitConvTo(e1x->type))
-            {
-                if (op != TOKblit &&
-                    (e2x->op == TOKslice && ((UnaExp *)e2x)->e1->isLvalue() ||
-                     e2x->op == TOKcast  && ((UnaExp *)e2x)->e1->isLvalue() ||
-                     e2x->op != TOKslice && e2x->isLvalue()))
-                {
-                    e1x->checkPostblit(sc, t1);
-                }
-            }
-            else
-            {
-                /* Block/element-wise assignment
-                 * Rewrite:
-                 *  sa = e;     as: sa[] = e;
-                 *  sa = da;    as: sa[] = da;
-                 */
-
-                // Convert e1 to e1[]
-                e1x = new SliceExp(e1x->loc, e1x, NULL, NULL);
-                e1x = e1x->semantic(sc);
-            }
-        }
-        else
-        {
-            assert(op == TOKblit);
-
-            if (e2x->implicitConvTo(e1x->type))
-            {
-            }
-            else
-            {
-                /* Internal handling for the default initialization
-                 * of multi-dimensional static array:
-                 *  T[2][3] sa; // = T.init; if T is zero-init
-                 */
-                // Treat e1 as one large array
-                dinteger_t dim = ((TypeSArray *)t1)->dim->toInteger();
-                Type *t = t1;
-                while (1)
-                {
-                    t = t->nextOf()->toBasetype();
-                    if (t->ty != Tsarray)
-                        break;
-                    dim *= ((TypeSArray *)t)->dim->toInteger();
-                    e1x->type = t->nextOf()->sarrayOf(dim);
-                }
-
-                e1x = new SliceExp(loc, e1x, NULL, NULL);
-                e1x = e1x->semantic(sc);
-            }
+            e1x = new SliceExp(e1x->loc, e1x, NULL, NULL);
+            e1x = e1x->semantic(sc);
         }
         if (e1x->op == TOKerror)
             return e1x;
