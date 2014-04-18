@@ -214,7 +214,6 @@ MATCH implicitConvTo(Expression *e, Type *t)
 
         static MATCH implicitConvToAddMin(BinExp *e, Type *t)
         {
-            //printf("%s => %s\n", e->type->toChars(), t->toChars());
             /* Is this (ptr +- offset)? If so, then ask ptr
              * if the conversion can be done.
              * This is to support doing things like implicitly converting a mutable unique
@@ -225,53 +224,26 @@ MATCH implicitConvTo(Expression *e, Type *t)
             Type *tb = t->toBasetype();
             if (typeb->ty != Tpointer || tb->ty != Tpointer)
                 return MATCHnomatch;
-            /* It is a pointer conversion
-             */
 
-            /* If the to/from mod bits are the same, don't need to look any further
-             */
-            if (typeb->nextOf()->mod == tb->nextOf()->mod)
-                return MATCHnomatch;
-
-            /* Ask if the only reason the pointer conversion doesn't work is because of the
-             * addition or subtraction of mod bits.
-             * Test by converting both to immutable and trying again.
-             */
-            Type *tbm = tb->nextOf()->immutableOf()->pointerTo();
-            Type *typebm = typeb->nextOf()->immutableOf()->pointerTo();
-            MATCH m = typebm->implicitConvTo(tbm);
-            if (m == MATCHnomatch)
-                return m;
-
-            /* Look for (ptr +- offset) or (offset + ptr).
-             * Set e1 to be ptr, and t1 the pointer type.
-             */
-            Expression *e1 = e->e1;
-            Expression *e2 = e->e2;
-            Type *t1 = e1->type->toBasetype();
-            Type *t2 = e2->type->toBasetype();
-            if (t1->ty == Tpointer && t2->ty != Tpointer)
-                ;
-            else if (e->op == TOKadd && t2->ty == Tpointer && t1->ty != Tpointer)
+            Type *t1b = e->e1->type->toBasetype();
+            Type *t2b = e->e2->type->toBasetype();
+            if (t1b->ty == Tpointer && t2b->isintegral() &&
+                t1b->immutableOf()->equals(tb->immutableOf()))
             {
-                e1 = e2;
-                t1 = t2;
+                // ptr + offset
+                // ptr - offset
+                MATCH m = e->e1->implicitConvTo(t);
+                return (m > MATCHconst) ? MATCHconst : m;
             }
-            else
-                return MATCHnomatch;
+            if (t2b->ty == Tpointer && t1b->isintegral() &&
+                t2b->immutableOf()->equals(tb->immutableOf()))
+            {
+                // offset + ptr
+                MATCH m = e->e2->implicitConvTo(t);
+                return (m > MATCHconst) ? MATCHconst : m;
+            }
 
-            /* Add t's mod bits to t1, and try to convert e1 to t1
-             */
-            t1 = t1->nextOf()->castMod(tb->nextOf()->mod)->pointerTo();
-            MATCH m2 = e1->implicitConvTo(t1);
-            if (m2 == MATCHnomatch)
-                return MATCHnomatch;
-
-            /* Allow the conversion. Match level is MATCHconst at best.
-             */
-            if (m2 == MATCHexact)
-                m2 = MATCHconst;
-            return m2;
+            return MATCHnomatch;
         }
 
         void visit(AddExp *e)
@@ -1212,37 +1184,36 @@ MATCH implicitConvTo(Expression *e, Type *t)
              * then test for conversion by seeing if e1 can be converted with those
              * same mod bits.
              */
-
-            /* Test for 'only reason' by casting to immutable and trying the conversion again
-             */
-            Type *tbm = tb->immutableOf();
-            Type *typebm = typeb->immutableOf();
-            if (typebm->implicitConvTo(tbm) == MATCHnomatch)
-            {
-                assert(result == MATCHnomatch);
-                return;
-            }
-
-            /* Add t's mod bits to t1, and try to convert e1 to t1
-             */
             Type *t1b = e->e1->type->toBasetype();
-            if (!t1b->nextOf() || !tb->nextOf())
-                return;
-            Type *t1e = t1b->nextOf()->castMod(tb->nextOf()->mod); // element type with mod bits
-            Type *t1;
-            if (t1b->ty == Tarray)
-                t1 = t1e->arrayOf();
-            else if (t1b->ty == Tpointer)
-                t1 = t1e->pointerTo();
-            else if (t1b->ty == Tsarray)
-                t1 = t1e->sarrayOf(t1b->size() / t1b->nextOf()->size());
-            else
-                return;
-            MATCH m = e->e1->implicitConvTo(t1);
+            if (tb->ty == Tarray &&
+                typeb->immutableOf()->equals(tb->immutableOf()))
+            {
+                Type *tbn = tb->nextOf();
+                Type *tx = NULL;
 
-            /* Match level is MATCHconst at best.
-             */
-            result = (m > MATCHconst) ? MATCHconst : m;
+                /* If e->e1 is dynamic array or pointer, the uniqueness of e->e1
+                 * is equivalent with the uniqueness of the referred data. And in here
+                 * we can have arbitrary typed reference for that.
+                 */
+                if (t1b->ty == Tarray)
+                    tx = tbn->arrayOf();
+                if (t1b->ty == Tpointer)
+                    tx = tbn->pointerTo();
+
+                /* If e->e1 is static array, at least it should be an rvalue.
+                 * If not, e->e1 is a reference, and its uniqueness does not link
+                 * to the uniqueness of the referred data.
+                 */
+                if (t1b->ty == Tsarray && !e->e1->isLvalue())
+                    tx = tbn->sarrayOf(t1b->size() / tbn->size());
+
+                if (tx)
+                {
+                    result = e->e1->implicitConvTo(tx);
+                    if (result > MATCHconst)    // Match level is MATCHconst at best.
+                        result = MATCHconst;
+                }
+            }
         }
     };
 

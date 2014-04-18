@@ -100,7 +100,7 @@ int* pureMaker() pure
 void testDIP29_1()
 {
     int* p;
-    //immutable x = p + 3;
+    static assert(!__traits(compiles, { immutable x = p + 3; }));
     immutable x = pureMaker() + 1;
     immutable y = pureMaker() - 1;
     immutable z = 1 + pureMaker();
@@ -123,14 +123,36 @@ void testDIP29_2()
 
 /***********************************/
 
-int[] pureMaker3() pure
+int[] pureMaker3a() pure
 {
     return new int[4];
 }
 
+int* pureMaker3b() pure
+{
+    return new int[4].ptr;
+}
+
+int[4] pureMaker3c() pure
+{
+    int[4] buf;
+    return buf;
+}
+
 void testDIP29_3()
 {
-    immutable x = pureMaker3()[];
+    immutable x1 = pureMaker3a()[];
+    immutable x2 = pureMaker3a()[0..2];
+
+    immutable y2 = pureMaker3b()[0..2];
+
+    // Conversion from *rvalue* of mutable static array to immutable slice
+    immutable z1 = pureMaker3c()[];
+    immutable z2 = pureMaker3c()[0..2];
+
+    // Issue 12467 - conversion from lvalue of mutable static array to immutable slice
+    char[3] arr = "foo";
+    static assert(!__traits(compiles, { string str = arr[]; }));
 }
 
 /***********************************/
