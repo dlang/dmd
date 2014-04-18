@@ -688,10 +688,10 @@ FuncDeclaration *buildXopCmp(StructDeclaration *sd, Scope *sc)
 
 /*******************************************
  * Build copy constructor for struct.
- *      void __cpctpr(ref const S s) const [pure nothrow @trusted]
+ *      void __cpctpr(ref const S s) [pure nothrow @trusted]
  *      {
- *          (*cast(S*)&this) = *cast(S*)s;
- *          (*cast(S*)&this).postBlit();
+ *          this = s;   // blit copy
+ *          this.postBlit();
  *      }
  *
  * Copy constructors are compiler generated only, and are only
@@ -723,25 +723,23 @@ FuncDeclaration *buildCpCtor(StructDeclaration *sd, Scope *sc)
     Parameters *fparams = new Parameters;
     fparams->push(new Parameter(STCref, sd->type->constOf(), Id::p, NULL));
     Type *tf = new TypeFunction(fparams, Type::tvoid, 0, LINKd, stc);
-    tf->mod = MODconst;
 
     FuncDeclaration *fcp = new FuncDeclaration(declLoc, Loc(), Id::cpctor, stc, tf);
 
     if (!(stc & STCdisable))
     {
-        // Build *this = p;
-        Expression *e = new ThisExp(loc);
-        AssignExp *ea = new AssignExp(loc,
-            new PtrExp(loc, new CastExp(loc, new AddrExp(loc, e), sd->type->mutableOf()->pointerTo())),
-            new PtrExp(loc, new CastExp(loc, new AddrExp(loc, new IdentifierExp(loc, Id::p)), sd->type->mutableOf()->pointerTo()))
+        Expression *e;
+
+        // Build this = p;
+        e = new AssignExp(loc,
+            new PtrExp(loc, new AddrExp(loc, new ThisExp(loc))),
+            new PtrExp(loc, new AddrExp(loc, new IdentifierExp(loc, Id::p)))
         );
-        ea->op = TOKblit;
-        Statement *s = new ExpStatement(loc, ea);
+        e->op = TOKblit;
+        Statement *s = new ExpStatement(loc, e);
 
         // Build postBlit();
-        e = new ThisExp(loc);
-        e = new PtrExp(loc, new CastExp(loc, new AddrExp(loc, e), sd->type->mutableOf()->pointerTo()));
-        e = new DotVarExp(loc, e, sd->postblit, 0);
+        e = new DotVarExp(loc, new ThisExp(loc), sd->postblit, 0);
         e = new CallExp(loc, e);
 
         s = new CompoundStatement(loc, s, new ExpStatement(loc, e));
