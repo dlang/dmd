@@ -775,7 +775,6 @@ void StructDeclaration::semantic(Scope *sc)
         fields.setDim(0);
         structsize = 0;
         alignsize = 0;
-//        structalign = 0;
 
         scope = scx ? scx : sc->copy();
         scope->setNoFree();
@@ -926,7 +925,8 @@ void StructDeclaration::finalizeSize(Scope *sc)
     unsigned offset = 0;
     bool isunion = isUnionDeclaration() != NULL;
     for (size_t i = 0; i < members->dim; i++)
-    {   Dsymbol *s = (*members)[i];
+    {
+        Dsymbol *s = (*members)[i];
         s->setFieldOffset(this, &offset, isunion);
     }
     if (sizeok == SIZEOKfwd)

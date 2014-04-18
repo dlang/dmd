@@ -73,7 +73,6 @@ Scope::Scope()
     this->explicitProtection = 0;
     this->stc = 0;
     this->depmsg = NULL;
-    this->offset = 0;
     this->inunion = 0;
     this->nofree = 0;
     this->noctor = 0;
@@ -123,7 +122,6 @@ Scope::Scope(Scope *enclosing)
     this->explicitProtection = enclosing->explicitProtection;
     this->depmsg = enclosing->depmsg;
     this->stc = enclosing->stc;
-    this->offset = 0;
     this->inunion = enclosing->inunion;
     this->nofree = 0;
     this->noctor = enclosing->noctor;
