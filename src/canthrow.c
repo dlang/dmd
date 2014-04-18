@@ -104,10 +104,15 @@ bool canThrow(Expression *e, FuncDeclaration *func, bool mustNotThrow)
 
             /* Element-wise assignment could invoke postblits.
              */
-            if (ae->e1->op != TOKslice)
+            Type *t;
+            if (ae->type->toBasetype()->ty == Tsarray)
+                t = ae->type;
+            else if (ae->e1->op == TOKslice)
+                t = ((SliceExp *)ae->e1)->e1->type;
+            else
                 return;
 
-            Type *tv = ae->e1->type->toBasetype()->nextOf()->baseElemOf();
+            Type *tv = t->baseElemOf();
             if (tv->ty != Tstruct)
                 return;
             StructDeclaration *sd = ((TypeStruct *)tv)->sym;

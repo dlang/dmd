@@ -4068,6 +4068,15 @@ public:
                 newval, wantRef, isBlockAssignment, e);
             return;
         }
+        else if (e1->op == TOKarrayliteral && e1->type->toBasetype()->ty == Tsarray)
+        {
+            // Bugzilla 12212: Support direct assignment of static arrays.
+            // Rewrite as: (e1[] = newval)
+            SliceExp *se = new SliceExp(e1->loc, e1, NULL, NULL);
+            result = interpretAssignToSlice(e->loc, se,
+                newval, wantRef, isBlockAssignment, e);
+            return;
+        }
         else
         {
             e->error("%s cannot be evaluated at compile time", e->toChars());

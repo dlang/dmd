@@ -2350,138 +2350,6 @@ elem *toElem(Expression *e, IRState *irs)
                 Type *t2 = ae->e2->type->toBasetype();
                 Type *ta = are->e1->type->toBasetype();
 
-                /* Optimize static array assignment with array literal.
-                 * Rewrite:
-                 *      sa[] = [a, b, ...];
-                 * as:
-                 *      sa[0] = a, sa[1] = b, ...;
-                 *
-                 * If the same values are contiguous, that will be rewritten
-                 * to block assignment.
-                 * Rewrite:
-                 *      sa[] = [x, a, a, b, ...];
-                 * as:
-                 *      sa[0] = x, sa[1..2] = a, sa[3] = b, ...;
-                 */
-                if (are->lwr == NULL && ta->ty == Tsarray &&
-                    ae->e2->op == TOKarrayliteral &&
-                    ae->op == TOKconstruct &&   // Bugzilla 11238: avoid aliasing issue
-                    t2->nextOf()->mutableOf()->implicitConvTo(ta->nextOf()))
-                {
-                    ArrayLiteralExp *ale = (ArrayLiteralExp *)ae->e2;
-                    TypeSArray *tsa = (TypeSArray *)ta;
-
-                    size_t dim = ale->elements->dim;
-                    if (dim == 0)
-                    {
-                        goto Lx;
-                    #if 0
-                        /* This code doesn't work with -O switch. Because backend optimizer
-                         * will eliminate this useless initializing code for zero-length
-                         * static array completely, then the variable kept in "unset".
-                         * Instead to fallback to the __d_arrayliteral call.
-                         */
-                        symbol *stmp = symbol_genauto(TYnptr);
-                        e = are->e1->toElem(irs);
-                        e = addressElem(e, tsa);
-                        e = el_bin(OPeq, TYnptr, el_var(stmp), e);
-
-                        elem *e1 = el_var(stmp);
-                        e1 = el_una(OPind, totym(tsa), e1);
-                        e1->ET = Type_toCtype(tsa);
-                        elem *e2 = el_long(totym(tsa), 0);
-
-                        elem *ex = el_bin(OPstreq, TYstruct, e1, e2);
-                        ex->ET = Type_toCtype(tsa);
-                        e = el_combine(e, ex);
-                        goto Lret;
-                    #endif
-                    }
-
-                    Type *tn = tsa->nextOf()->toBasetype();
-                    bool postblit = needsPostblit(tn) != NULL;
-                    tym_t ty = totym(tn);
-
-                    symbol *stmp = symbol_genauto(TYnptr);
-                    e = are->e1->toElem(irs);
-                    e = addressElem(e, tsa);
-                    e = el_bin(OPeq, TYnptr, el_var(stmp), e);
-
-                    size_t esz = tn->size();
-                    for (size_t i = 0; i < dim; )
-                    {
-                        Expression *en = (*ale->elements)[i];
-                        size_t j = i + 1;
-                        if (!postblit)
-                        {
-                            // If the elements are same literal and elaborate copy
-                            // is not necessary, do memcpy.
-                            while (j < dim && en->equals((*ale->elements)[j])) { j++; }
-                        }
-
-                        elem *e1 = el_var(stmp);
-                        if (i > 0)
-                            e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, i * esz));
-                        elem *ex;
-                        if (j == i + 1)
-                        {
-                            e1 = el_una(OPind, ty, e1);
-                            if (tybasic(ty) == TYstruct)
-                                e1->ET = Type_toCtype(tn);
-                            ex = el_bin(OPeq, e1->Ety, e1, en->toElem(irs));
-                            if (tybasic(ty) == TYstruct)
-                            {
-                                ex->Eoper = OPstreq;
-                                ex->ET = Type_toCtype(tn);
-                            }
-                        }
-                        else
-                        {
-                            assert(j - i >= 2);
-                            elem *edim = el_long(TYsize_t, j - i);
-                            ex = setArray(e1, edim, tn, en->toElem(irs), irs, ae->op);
-                        }
-                        e = el_combine(e, ex);
-                        i = j;
-                    }
-                    goto Lret;
-                }
-            Lx:
-
-                if (ae->op == TOKconstruct && !ae->ismemset)
-                {
-                    Expression *e1x = are->e1;
-                    Expression *e2x = ae->e2;
-                    if (e2x->op == TOKcast)
-                    {
-                        Expression *e2y = ((CastExp *)e2x)->e1;
-                        if (Type *t2n = e2y->type->toBasetype()->nextOf())
-                        {
-                            Type *t1n = e1x->type->toBasetype()->nextOf();
-                            assert(t1n);
-                            Type *t1 = t1n->arrayOf()->immutableOf();
-                            Type *t2 = t2n->arrayOf()->immutableOf();
-                            if (t1->equals(t2))
-                                e2x = e2y;
-                        }
-                    }
-                    if (e2x->op == TOKcall)
-                    {
-                        CallExp *ce = (CallExp *)e2x;
-
-                        TypeFunction *tf = (TypeFunction *)ce->e1->type->toBasetype();
-                        if (tf->ty == Tfunction && retStyle(tf) == RETstack)
-                        {
-                            elem *ehidden = e1x->toElem(irs);
-                            ehidden = el_una(OPaddr, TYnptr, ehidden);
-                            assert(!irs->ehidden);
-                            irs->ehidden = ehidden;
-                            e = ce->toElem(irs);
-                            goto Lret;
-                        }
-                    }
-                }
-
                 // which we do if the 'next' types match
                 if (ae->ismemset)
                 {
@@ -2793,15 +2661,156 @@ elem *toElem(Expression *e, IRState *irs)
                 /* Implement:
                  *  (sarray = sarray)
                  */
+                if (ae->e2->type->toBasetype()->ty != Tsarray)
+                    printf("[%s] ae = %s\n", ae->loc.toChars(), ae->toChars());
+                assert(ae->e2->type->toBasetype()->ty == Tsarray);
+
+                bool postblit = needsPostblit(t1b->nextOf()) != NULL;
+
+                /* Optimize static array assignment with array literal.
+                 * Rewrite:
+                 *      e1 = [a, b, ...];
+                 * as:
+                 *      e1[0] = a, e1[1] = b, ...;
+                 *
+                 * If the same values are contiguous, that will be rewritten
+                 * to block assignment.
+                 * Rewrite:
+                 *      e1 = [x, a, a, b, ...];
+                 * as:
+                 *      e1[0] = x, e1[1..2] = a, e1[3] = b, ...;
+                 */
+                if (ae->op == TOKconstruct &&   // Bugzilla 11238: avoid aliasing issue
+                    ae->e2->op == TOKarrayliteral)
+                {
+                    ArrayLiteralExp *ale = (ArrayLiteralExp *)ae->e2;
+                    size_t dim = ale->elements->dim;
+                    if (dim == 0)
+                    {
+                        // Eliminate _d_arrayliteralTX call in ae->e2.
+                        e = ae->e1->toElem(irs);
+                        goto Lret;
+                    }
+
+                    // TODO: This part is very similar to ExpressionsToStaticArray.
+
+                    Type *tn = t1b->nextOf()->toBasetype();
+                    if (tn->ty == Tvoid)
+                        tn = Type::tuns8;
+                    tym_t ty = totym(tn);
+
+                    symbol *stmp = symbol_genauto(TYnptr);
+                    e = ae->e1->toElem(irs);
+                    e = addressElem(e, t1b);
+                    e = el_bin(OPeq, TYnptr, el_var(stmp), e);
+
+                    size_t esz = tn->size();
+                    for (size_t i = 0; i < dim; )
+                    {
+                        Expression *en = (*ale->elements)[i];
+                        size_t j = i + 1;
+                        if (!postblit)
+                        {
+                            // If the elements are same literal and elaborate copy
+                            // is not necessary, do memcpy.
+                            while (j < dim && en->equals((*ale->elements)[j])) { j++; }
+                        }
+
+                        elem *e1 = el_var(stmp);
+                        if (i > 0)
+                            e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, i * esz));
+                        elem *ex;
+                        if (j == i + 1)
+                        {
+                            e1 = el_una(OPind, ty, e1);
+                            if (tybasic(ty) == TYstruct)
+                                e1->ET = Type_toCtype(tn);
+                            ex = el_bin(OPeq, e1->Ety, e1, en->toElem(irs));
+                            if (tybasic(ty) == TYstruct)
+                            {
+                                ex->Eoper = OPstreq;
+                                ex->ET = Type_toCtype(tn);
+                            }
+                        }
+                        else
+                        {
+                            assert(j - i >= 2);
+                            elem *edim = el_long(TYsize_t, j - i);
+                            ex = setArray(e1, edim, tn, en->toElem(irs), irs, ae->op);
+                        }
+                        e = el_combine(e, ex);
+                        i = j;
+                    }
+                    goto Lret;
+                }
+
+                /* Determine if we need to do postblit
+                 */
+                if (postblit &&
+                    !(ae->e2->op == TOKslice && ((UnaExp *)ae->e2)->e1->isLvalue() ||
+                      ae->e2->op == TOKcast  && ((UnaExp *)ae->e2)->e1->isLvalue() ||
+                      ae->e2->op != TOKslice && ae->e2->isLvalue()))
+                {
+                    postblit = false;
+                }
+
                 tym_t tym = totym(ae->type);
                 elem *e1 = ae->e1->toElem(irs);
                 elem *e2 = ae->e2->toElem(irs);
 
+                if (!postblit || ae->op == TOKblit || type_size(e1->ET) == 0)
                 {
                     e = el_bin(OPstreq, tym, e1, e2);
                     e->ET = Type_toCtype(ae->e1->type);
                     if (type_size(e->ET) == 0)
                         e->Eoper = OPcomma;
+                }
+                else
+                {
+                    elem *eto = e1;
+                    elem *efrom = e2;
+
+                    // Create a reference to eto.
+                    elem *e1x;
+                    if (eto->Eoper == OPvar)
+                        e1x = el_same(&eto);
+                    else
+                    {
+                        /* Rewrite to:
+                         *  eto = *((tmp = &e1), tmp)
+                         *  e1x = *tmp
+                         */
+                        eto = addressElem(eto, NULL);
+                        e1x = el_same(&eto);
+                        eto = el_una(OPind, tym, eto);
+                        if (tybasic(tym) == TYstruct)
+                            eto->ET = Type_toCtype(ae->e1->type);
+                        e1x = el_una(OPind, tym, e1x);
+                        if (tybasic(tym) == TYstruct)
+                            e1x->ET = Type_toCtype(ae->e1->type);
+                        //printf("eto = \n"); elem_print(eto);
+                        //printf("e1x = \n"); elem_print(e1x);
+                    }
+
+                    eto   = sarray_toDarray(ae->e1->loc, ae->e1->type, NULL, eto);
+                    efrom = sarray_toDarray(ae->e2->loc, ae->e2->type, NULL, efrom);
+
+                    /* Generate:
+                     *      _d_arrayassign(ti, efrom, eto)
+                     * or:
+                     *      _d_arrayctor(ti, efrom, eto)
+                     */
+                    Expression *ti = t1b->nextOf()->toBasetype()->getTypeInfo(NULL);
+                    if (config.exe == EX_WIN64)
+                    {
+                        eto   = addressElem(eto,   Type::tvoid->arrayOf());
+                        efrom = addressElem(efrom, Type::tvoid->arrayOf());
+                    }
+                    elem *ep = el_params(eto, efrom, ti->toElem(irs), NULL);
+                    int rtl = (ae->op == TOKconstruct) ? RTLSYM_ARRAYCTOR : RTLSYM_ARRAYASSIGN;
+                    e = el_bin(OPcall, TYdarray, el_var(rtlsym[rtl]), ep);
+
+                    e = el_combine(e, e1x);
                 }
                 goto Lret;
             }

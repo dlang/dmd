@@ -852,6 +852,94 @@ void test12131() pure
 }
 
 /***************************************************/
+// 12212
+
+void test12212()
+{
+    struct S
+    {
+        int x, y;
+        static int cpctor;
+        this(this) { cpctor++; }
+    }
+
+    void funcVal(E)(E[3] x) {}
+    auto funcRef(E)(ref E[3] x) { return &x; }
+    ref get(E)(ref E[3] a){ return a; }
+
+    {
+        int[3] a, b;
+        funcVal(a = b);
+
+        auto p = funcRef(a = b);
+        assert(p == &a);
+    }
+
+    {
+        S.cpctor = 0;
+
+        S[3] a, b;
+        assert(S.cpctor == 0);
+
+        S[3] c = a;
+        //printf("cpctpr = %d\n", S.cpctor);
+        assert(S.cpctor == 3);
+        S.cpctor = 0;
+
+        c = a;
+        //printf("cpctpr = %d\n", S.cpctor);
+        assert(S.cpctor == 3);
+        S.cpctor = 0;
+
+        c = (a = b);
+        //printf("cpctpr = %d\n", S.cpctor);
+        assert(S.cpctor == 6);
+        S.cpctor = 0;
+
+        c = (get(a) = b);
+        //printf("cpctpr = %d\n", S.cpctor);
+        assert(S.cpctor == 6);
+        S.cpctor = 0;
+    }
+    {
+        S.cpctor = 0;
+
+        S[3] a, b;
+        assert(S.cpctor == 0);
+
+        funcVal(a = b);
+        //printf("cpctpr = %d\n", S.cpctor);
+        assert(S.cpctor == 6);
+        S.cpctor = 0;
+
+        funcVal(get(a) = b);
+        //printf("cpctpr = %d\n", S.cpctor);
+        assert(S.cpctor == 6);
+        S.cpctor = 0;
+    }
+    {
+        S.cpctor = 0;
+
+        S[3] a, b;
+        assert(S.cpctor == 0);
+
+        S[3]* p;
+
+        p = funcRef(a = b);
+        //printf("cpctpr = %d\n", S.cpctor);
+        assert(p == &a);
+        assert(S.cpctor == 3);
+        S.cpctor = 0;
+
+        p = funcRef(get(a) = b);
+        assert(p == &a);
+        //printf("cpctpr = %d\n", S.cpctor);
+        assert(S.cpctor == 3);
+        S.cpctor = 0;
+    }
+}
+
+/***************************************************/
 
 int main()
 {
@@ -875,6 +963,7 @@ int main()
     test9416();
     test11187();
     test12131();
+    test12212();
 
     printf("Success\n");
     return 0;
