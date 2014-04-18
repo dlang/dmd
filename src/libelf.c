@@ -1,4 +1,3 @@
-
 // Compiler implementation of the D programming language
 // Copyright (c) 1999-2013 by Digital Mars
 // All Rights Reserved
@@ -214,6 +213,8 @@ void OmToHeader(Header *h, ObjModule *om)
     assert(len <= 6);
     memset(h->user_id + len, ' ', 6 - len);
 
+    if (om->group_id > 999999)
+        om->group_id = 0;
     len = sprintf(h->group_id, "%u", om->group_id);
     assert(len <= 6);
     memset(h->group_id + len, ' ', 6 - len);
