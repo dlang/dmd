@@ -1994,6 +1994,9 @@ int Expression::rvalue(bool allowVoid)
     return 1;
 }
 
+/**********************************
+ * Combine e1 and e2 by CommaExp if both are not NULL.
+ */
 Expression *Expression::combine(Expression *e1, Expression *e2)
 {
     if (e1)
@@ -2007,6 +2010,35 @@ Expression *Expression::combine(Expression *e1, Expression *e2)
     else
         e1 = e2;
     return e1;
+}
+
+/**********************************
+ * If 'e' is a tree of commas, returns the leftmost expression
+ * by stripping off it from the tree. The remained part of the tree
+ * is returned via *pe0.
+ * Otherwise 'e' is directly returned and *pe0 is set to NULL.
+ */
+Expression *Expression::extractLast(Expression *e, Expression **pe0)
+{
+    if (e->op == TOKcomma)
+    {
+        CommaExp *ce = (CommaExp *)e;
+        *pe0 = ce;
+
+        Expression **pe = &e;
+        while (((CommaExp *)(*pe))->e2->op == TOKcomma)
+        {
+            ce = (CommaExp *)(*pe);
+            pe = &ce->e2;
+        }
+
+        *pe = ce->e2;
+        if (pe == &e)
+            *pe0 = ce->e1;
+    }
+    else
+        *pe0 = NULL;
+    return e;
 }
 
 dinteger_t Expression::toInteger()
@@ -10542,9 +10574,9 @@ Expression *AssignExp::semantic(Scope *sc)
     {
         /* Rewrite to get rid of the comma from rvalue
          */
-        AssignExp *ea = new AssignExp(loc, e1, ((CommaExp *)e2)->e2);
-        ea->op = op;
-        Expression *e = new CommaExp(loc, ((CommaExp *)e2)->e1, ea);
+        Expression *e0;
+        e2 = Expression::extractLast(e2, &e0);
+        Expression *e = Expression::combine(e0, this);
         return e->semantic(sc);
     }
 
@@ -13593,27 +13625,32 @@ Expression *PrettyFuncInitExp::resolveLoc(Loc loc, Scope *sc)
 
 Expression *extractOpDollarSideEffect(Scope *sc, UnaExp *ue)
 {
-    Expression *e0 = NULL;
-    if (hasSideEffect(ue->e1))
+    Expression *e0;
+    Expression *e1 = Expression::extractLast(ue->e1, &e0);
+    // Bugzilla 12585: Extract the side effect part if ue->e1 is comma.
+
+    if (hasSideEffect(e1))
     {
-        /* Even if opDollar is needed, 'ue->e1' should be evaluate only once. So
+        /* Even if opDollar is needed, 'e1' should be evaluate only once. So
          * Rewrite:
-         *      ue->e1.opIndex( ... use of $ ... )
-         *      ue->e1.opSlice( ... use of $ ... )
+         *      e1.opIndex( ... use of $ ... )
+         *      e1.opSlice( ... use of $ ... )
          * as:
-         *      (ref __dop = ue->e1, __dop).opIndex( ... __dop.opDollar ...)
-         *      (ref __dop = ue->e1, __dop).opSlice( ... __dop.opDollar ...)
+         *      (ref __dop = e1, __dop).opIndex( ... __dop.opDollar ...)
+         *      (ref __dop = e1, __dop).opSlice( ... __dop.opDollar ...)
          */
         Identifier *id = Lexer::uniqueId("__dop");
-        ExpInitializer *ei = new ExpInitializer(ue->loc, ue->e1);
-        VarDeclaration *v = new VarDeclaration(ue->loc, ue->e1->type, id, ei);
+        ExpInitializer *ei = new ExpInitializer(ue->loc, e1);
+        VarDeclaration *v = new VarDeclaration(ue->loc, e1->type, id, ei);
         v->storage_class |= STCtemp | STCctfe
-                            | (ue->e1->isLvalue() ? (STCforeach | STCref) : 0);
-        e0 = new DeclarationExp(ue->loc, v);
-        e0 = e0->semantic(sc);
-        ue->e1 = new VarExp(ue->loc, v);
-        ue->e1 = ue->e1->semantic(sc);
+                            | (e1->isLvalue() ? (STCforeach | STCref) : 0);
+        Expression *de = new DeclarationExp(ue->loc, v);
+        de = de->semantic(sc);
+        e0 = Expression::combine(e0, de);
+        e1 = new VarExp(ue->loc, v);
+        e1 = e1->semantic(sc);
     }
+    ue->e1 = e1;
     return e0;
 }
 

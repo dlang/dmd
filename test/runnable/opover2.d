@@ -1409,6 +1409,45 @@ void test10064()
 }
 
 /**************************************/
+// 12585
+
+void test12585()
+{
+    struct Bar
+    {
+        int opIndex(size_t index)
+        {
+            return 0;
+        }
+    }
+
+    struct Foo
+    {
+        Bar opIndex(size_t index)
+        {
+            throw new Exception("Fail");
+        }
+    }
+
+    Foo foo()
+    {
+        return Foo();
+    }
+
+    void catchStuff(E)(lazy E expression)
+    {
+        try
+            expression();
+        catch (Exception e) {}
+    }
+
+    catchStuff(foo()[0][0]);          // OK <- NG
+    catchStuff(foo().opIndex(0)[0]);  // OK
+    catchStuff(foo()[0].opIndex(0));  // OK
+    Foo f; catchStuff(f[0][0]);       // OK
+}
+
+/**************************************/
 // 10394
 
 void test10394()
@@ -1748,6 +1787,7 @@ int main()
     test9689();
     test9694();
     test10064();
+    test12585();
     test10394();
     test10567();
     test11062();
