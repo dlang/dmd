@@ -451,6 +451,12 @@ public:
         if (s->prot() != PROTpublic)
             property("protection", Pprotectionnames[s->prot()]);
 
+        if (EnumMember *em = s->isEnumMember())
+        {
+            if (em->origValue)
+                property("value", em->origValue->toChars());
+        }
+
         property("comment", (const char *)s->comment);
 
         property("line", "char", &s->loc);

@@ -513,6 +513,7 @@ EnumMember::EnumMember(Loc loc, Identifier *id, Expression *value, Type *type)
 {
     this->ed = NULL;
     this->value = value;
+    this->origValue = value;
     this->type = type;
     this->loc = loc;
     this->vd = NULL;
@@ -534,9 +535,13 @@ Dsymbol *EnumMember::syntaxCopy(Dsymbol *s)
         em->loc = loc;
         em->value = e;
         em->type = t;
+        em->origValue = origValue ? origValue->syntaxCopy() : NULL;
     }
     else
+    {
         em = new EnumMember(loc, ident, e, t);
+        em->origValue = origValue ? origValue->syntaxCopy() : NULL;
+    }
     return em;
 }
 
@@ -613,6 +618,10 @@ void EnumMember::semantic(Scope *sc)
         {
             e = e->implicitCastTo(sc, ed->memtype);
             e = e->ctfeInterpret();
+
+            // save origValue for better json output
+            origValue = e;
+
             if (!ed->isAnonymous())
                 e = e->castTo(sc, ed->type);
         }
@@ -621,6 +630,9 @@ void EnumMember::semantic(Scope *sc)
             e = e->implicitCastTo(sc, type);
             e = e->ctfeInterpret();
             assert(ed->isAnonymous());
+
+            // save origValue for better json output
+            origValue = e;
         }
         value = e;
     }
@@ -638,6 +650,10 @@ void EnumMember::semantic(Scope *sc)
         Expression *e = new IntegerExp(loc, 0, Type::tint32);
         e = e->implicitCastTo(sc, t);
         e = e->ctfeInterpret();
+
+        // save origValue for better json output
+        origValue = e;
+
         if (!ed->isAnonymous())
             e = e->castTo(sc, ed->type);
         value = e;
@@ -689,6 +705,15 @@ void EnumMember::semantic(Scope *sc)
         e = e->castTo(sc, eprev->type);
         e = e->ctfeInterpret();
 
+        // save origValue (without cast) for better json output
+        if (e->op != TOKerror)  // avoid duplicate diagnostics
+        {
+            assert(emprev->origValue);
+            origValue = new AddExp(loc, emprev->origValue, new IntegerExp(loc, 1, Type::tint32));
+            origValue = origValue->semantic(sc);
+            origValue = origValue->ctfeInterpret();
+        }
+
         if (e->op == TOKerror)
             goto Lerrors;
         if (e->type->isfloating())
@@ -706,6 +731,7 @@ void EnumMember::semantic(Scope *sc)
         value = e;
     }
 
+    assert(origValue);
     semanticRun = PASSsemanticdone;
 }
 
