@@ -2102,7 +2102,12 @@ Expression *Expression::toLvalue(Scope *sc, Expression *e)
         e = this;
     else if (!loc.filename)
         loc = e->loc;
-    error("%s is not an lvalue", e->toChars());
+
+    if (e->op == TOKtype)
+        error("%s '%s' is a type, not an lvalue", e->type->kind(), e->type->toChars());
+    else
+        error("%s is not an lvalue", e->toChars());
+
     return new ErrorExp();
 }
 
