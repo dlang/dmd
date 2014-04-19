@@ -3185,6 +3185,29 @@ bool test12045()
 static assert(test12045());
 
 /**********************************/
+// 12591
+
+struct S12591(T)
+{
+    this(this)
+    {}
+}
+
+struct Tuple12591(Types...)
+{
+    Types expand;
+    this(Types values)
+    {
+        expand[] = values[];
+    }
+}
+
+void test12591()
+{
+    alias T1 = Tuple12591!(S12591!int);
+}
+
+/**********************************/
 
 int main()
 {
@@ -3283,6 +3306,7 @@ int main()
     test7474();
     test11505();
     test12045();
+    test12591();
 
     printf("Success\n");
     return 0;

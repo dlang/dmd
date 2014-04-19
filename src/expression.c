@@ -10966,6 +10966,8 @@ Expression *AssignExp::semantic(Scope *sc)
                             return new ErrorExp();
                         }
 
+                        e1x = e1x->copy();
+                        e1x->type = e1x->type->mutableOf();
                         Expression *e = new DotVarExp(loc, e1x, sd->cpctor, 0);
                         e = new CallExp(loc, e, e2x);
                         return e->semantic(sc);
@@ -11351,7 +11353,10 @@ Expression *AssignExp::semantic(Scope *sc)
             warning("explicit %s assignment %s = (%s)[] is better than %s = %s",
                 atypestr, e1str, e2str, e1str, e2str);
         }
-        e2 = e2->implicitCastTo(sc, e1->type);
+        if (op == TOKblit)
+            e2 = e2->castTo(sc, e1->type);
+        else
+            e2 = e2->implicitCastTo(sc, e1->type);
     }
     if (e2->op == TOKerror)
         return new ErrorExp();
