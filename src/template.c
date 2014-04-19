@@ -2255,6 +2255,8 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
             m->last = MATCHnomatch;
             return 1;
         }
+        //printf("td = %s\n", td->toChars());
+
         FuncDeclaration *f;
         f = td->onemember ? td->onemember->isFuncDeclaration() : NULL;
         if (!f)
@@ -2338,6 +2340,22 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
             if (mfa < m->last)
                 return 0;
 
+            if (mta < ta_last) goto Ltd_best2;
+            if (mta > ta_last) goto Ltd2;
+
+            if (mfa < m->last) goto Ltd_best2;
+            if (mfa > m->last) goto Ltd2;
+
+          Lambig2:  // td_best and td are ambiguous
+            //printf("Lambig2\n");
+            m->nextf = fd;
+            m->count++;
+            return 0;
+
+         Ltd_best2:
+            return 0;
+
+         Ltd2:
             // td is the new best match
             assert(td->scope);
             td_best = td;
