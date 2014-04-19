@@ -1310,6 +1310,7 @@ Lnomatch:
             Expression *e = tv->defaultInitLiteral(loc);
             Expression *e1 = new VarExp(loc, this);
             e = new ConstructExp(loc, e1, e);
+            e->op = TOKblit;
             e = e->semantic(sc);
             init = new ExpInitializer(loc, e);
             goto Ldtor;
@@ -1327,6 +1328,7 @@ Lnomatch:
             Expression *e1;
             e1 = new VarExp(loc, this);
             e = new ConstructExp(loc, e1, e);
+            e->op = TOKblit;
             e->type = e1->type;         // don't type check this, it would fail
             init = new ExpInitializer(loc, e);
             goto Ldtor;

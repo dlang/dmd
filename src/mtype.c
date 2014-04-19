@@ -3656,7 +3656,10 @@ Expression *TypeVector::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
 #endif
     if (ident == Id::array)
     {
-        e = e->castTo(sc, basetype);
+        //e = e->castTo(sc, basetype);
+        // Keep lvalue-ness
+        e = e->copy();
+        e->type = basetype;
         return e;
     }
     if (ident == Id::offsetof || ident == Id::offset || ident == Id::stringof)

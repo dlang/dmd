@@ -427,8 +427,11 @@ STATIC void chkrd(elem *n,list_t rdlist)
             auto y = x;
         }
      */
-    error(n->Esrcpos.Sfilename, n->Esrcpos.Slinnum, n->Esrcpos.Scharnum,
-        "variable %s used before set", sv->Sident);
+    if (type_size(sv->Stype) != 0)
+    {
+        error(n->Esrcpos.Sfilename, n->Esrcpos.Slinnum, n->Esrcpos.Scharnum,
+            "variable %s used before set", sv->Sident);
+    }
 #endif
 
     sv->Sflags |= SFLnord;              // no redundant messages

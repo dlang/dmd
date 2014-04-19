@@ -11142,121 +11142,30 @@ Expression *AssignExp::semantic(Scope *sc)
     }
     else if (t1->ty == Tsarray)
     {
+        // SliceExp cannot have static array type without context inference.
+        assert(e1->op != TOKslice);
+
         Expression *e1x = e1;
         Expression *e2x = e2;
         Type *t2 = e2x->type->toBasetype();
 
-        if (e1x->op == TOKindex &&
-            ((IndexExp *)e1x)->e1->type->toBasetype()->ty == Taarray)
+        if (e2x->implicitConvTo(e1x->type))
         {
-            // Assignment to an AA of fixed-length arrays.
-            // Convert T[n][U] = T[] into T[n][U] = T[n]
-            e2x = e2x->implicitCastTo(sc, e1x->type);
-            if (e2x->op == TOKerror)
-                return e2x;
-        }
-        else if (op == TOKconstruct)
-        {
-            if (e2x->op == TOKslice)
+            if (op != TOKblit &&
+                (e2x->op == TOKslice && ((UnaExp *)e2x)->e1->isLvalue() ||
+                 e2x->op == TOKcast  && ((UnaExp *)e2x)->e1->isLvalue() ||
+                 e2x->op != TOKslice && e2x->isLvalue()))
             {
-                SliceExp *se = (SliceExp *)e2x;
-                if (se->lwr == NULL && se->e1->implicitConvTo(e1x->type))
-                {
-                    e2x = se->e1;
-                }
+                e1x->checkPostblit(sc, t1);
             }
-            if (e2x->op == TOKcall && !e2x->isLvalue() &&
-                e2x->implicitConvTo(e1x->type))
-            {
-                // Keep the expression form for NRVO
-                e2x = e2x->implicitCastTo(sc, e1x->type);
-                if (e2x->op == TOKerror)
-                    return e2x;
-            }
-            else
-            {
-                /* Rewrite:
-                 *  sa = e;     as: sa[] = e;
-                 *  sa = arr;   as: sa[] = arr[];
-                 *  sa = [...]; as: sa[] = [...];
-                 */
-                // Convert e2 to e2[], if t2 is impllicitly convertible to t1.
-                if (e2x->op != TOKarrayliteral && t2->ty == Tsarray && t2->implicitConvTo(t1))
-                {
-                    e2x = new SliceExp(e2x->loc, e2x, NULL, NULL);
-                    e2x = e2x->semantic(sc);
-                }
-                else if (!e2x->implicitConvTo(e1x->type))
-                {
-                    // If multidimensional static array, treat as one large array
-                    dinteger_t dim = ((TypeSArray *)t1)->dim->toInteger();
-                    Type *t = t1;
-                    while (1)
-                    {
-                        t = t->nextOf()->toBasetype();
-                        if (t->ty != Tsarray)
-                            break;
-                        dim *= ((TypeSArray *)t)->dim->toInteger();
-                        e1x->type = t->nextOf()->sarrayOf(dim);
-                    }
-                }
-
-                // Convert e1 to e1[]
-                e1x = new SliceExp(e1x->loc, e1x, NULL, NULL);
-                e1x = e1x->semantic(sc);
-            }
-        }
-        else if (op == TOKassign)
-        {
-            /* Rewrite:
-             *  sa = e;     as: sa[] = e;
-             *  sa = arr;   as: sa[] = arr[];
-             *  sa = [...]; as: sa[] = [...];
-             */
-
-            // Convert e2 to e2[], unless e2-> e1[0]
-            if (e2x->op != TOKarrayliteral && t2->ty == Tsarray && !t2->implicitConvTo(t1->nextOf()))
-            {
-                e2x = new SliceExp(e2x->loc, e2x, NULL, NULL);
-                e2x = e2x->semantic(sc);
-            }
-            else if (0 && global.params.warnings && !global.gag && op == TOKassign &&
-                     e2x->op != TOKarrayliteral && e2x->op != TOKstring &&
-                     !e2x->implicitConvTo(t1))
-            {   // Disallow sa = da (Converted to sa[] = da[])
-                // Disallow sa = e  (Converted to sa[] = e)
-                const char* e1str = e1x->toChars();
-                const char* e2str = e2x->toChars();
-                if (e2x->op == TOKslice || e2x->implicitConvTo(t1->nextOf()))
-                    warning("explicit element-wise assignment (%s)[] = %s is better than %s = %s",
-                        e1str, e2str, e1str, e2str);
-                else
-                    warning("explicit element-wise assignment (%s)[] = (%s)[] is better than %s = %s",
-                        e1str, e2str, e1str, e2str);
-
-                // Convert e2 to e2[] to avoid duplicated error message.
-                if (t2->ty == Tarray)
-                {
-                    e2x = new SliceExp(e2x->loc, e2x, NULL, NULL);
-                    e2x = e2x->semantic(sc);
-                }
-            }
-
-            // Convert e1 to e1[]
-            e1x = new SliceExp(e1x->loc, e1x, NULL, NULL);
-            e1x = e1x->semantic(sc);
         }
         else
         {
-            assert(op == TOKblit);
-
-            if (!e2x->implicitConvTo(e1x->type))
+            // May be block or element-wise assignment, so
+            // convert e1 to e1[]
+            if (op != TOKassign)
             {
-                /* Internal handling for the default initialization
-                 * of multi-dimensional static array:
-                 *  T[2][3] sa; // = T.init; if T is zero-init
-                 */
-                // Treat e1 as one large array
+                // If multidimensional static array, treat as one large array
                 dinteger_t dim = ((TypeSArray *)t1)->dim->toInteger();
                 Type *t = t1;
                 while (1)
@@ -11268,7 +11177,7 @@ Expression *AssignExp::semantic(Scope *sc)
                     e1x->type = t->nextOf()->sarrayOf(dim);
                 }
             }
-            e1x = new SliceExp(loc, e1x, NULL, NULL);
+            e1x = new SliceExp(e1x->loc, e1x, NULL, NULL);
             e1x = e1x->semantic(sc);
         }
         if (e1x->op == TOKerror)
@@ -11339,19 +11248,7 @@ Expression *AssignExp::semantic(Scope *sc)
         ismemset = 1;   // make it easy for back end to tell what this is
         e2 = e2->implicitCastTo(sc, t1->nextOf());
         if (op != TOKblit && e2->isLvalue())
-            e2->checkPostblit(sc, t1->nextOf());
-    }
-    else if (t1->ty == Tsarray)
-    {
-        /* Should have already converted e1 => e1[]
-         * unless it is an AA
-         */
-        if (e1->op == TOKindex && t2->ty == Tsarray &&
-            ((IndexExp *)e1)->e1->type->toBasetype()->ty == Taarray)
-        {
-        }
-        else
-            assert(op != TOKassign);
+            e1->checkPostblit(sc, t1->nextOf());
     }
     else if (e1->op == TOKslice &&
              (t2->ty == Tarray || t2->ty == Tsarray) &&
@@ -11395,7 +11292,7 @@ Expression *AssignExp::semantic(Scope *sc)
              e2->op == TOKcast  && ((UnaExp *)e2)->e1->isLvalue() ||
              e2->op != TOKslice && e2->isLvalue()))
         {
-            e2->checkPostblit(sc, t2->nextOf());
+            e1->checkPostblit(sc, t1->nextOf());
         }
         if (0 && global.params.warnings && !global.gag && op == TOKassign &&
             e2->op != TOKslice && e2->op != TOKassign &&
