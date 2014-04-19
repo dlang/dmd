@@ -4017,7 +4017,7 @@ void FuncDeclaration::checkNestedReference(Scope *sc, Loc loc)
             if (fdthis != this)
             {
                 bool found = false;
-                for (int i = 0; i < siblingCallers.dim; ++i)
+                for (size_t i = 0; i < siblingCallers.dim; ++i)
                 {
                     if (siblingCallers[i] == fdthis)
                         found = true;
@@ -4092,7 +4092,7 @@ bool checkEscapingSiblings(FuncDeclaration *f, FuncDeclaration *outerFunc, void 
 
     //printf("checkEscapingSiblings(f = %s, outerfunc = %s)\n", f->toChars(), outerFunc->toChars());
     bool bAnyClosures = false;
-    for (int i = 0; i < f->siblingCallers.dim; ++i)
+    for (size_t i = 0; i < f->siblingCallers.dim; ++i)
     {
         FuncDeclaration *g = f->siblingCallers[i];
         if (g->isThis() || g->tookAddressOf)

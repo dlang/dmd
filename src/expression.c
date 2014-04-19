@@ -2833,7 +2833,7 @@ void realToMangleBuffer(OutBuffer *buf, real_t value)
         char buffer[BUFFER_LEN];
         size_t n = ld_sprint(buffer, 'A', value);
         assert(n < BUFFER_LEN);
-        for (int i = 0; i < n; i++)
+        for (size_t i = 0; i < n; i++)
         {   char c = buffer[i];
 
             switch (c)
@@ -4037,7 +4037,7 @@ StringExp *ArrayLiteralExp::toStringExp()
         OutBuffer buf;
         if (elements)
         {
-            for (int i = 0; i < elements->dim; ++i)
+            for (size_t i = 0; i < elements->dim; ++i)
             {
                 Expression *ch = (*elements)[i];
                 if (ch->op != TOKint64)
