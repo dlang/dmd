@@ -653,20 +653,15 @@ void TemplateDeclaration::semantic(Scope *sc)
 
             if (TemplateTypeParameter *ttp = (*parameters)[j]->isTemplateTypeParameter())
             {
-                Type *t = ttp->specType;
-                if (t && t->reliesOnTident(&tparams))
+                if (reliesOnTident(ttp->specType, &tparams))
                     tp->dependent = true;
             }
             else if (TemplateAliasParameter *tap = (*parameters)[j]->isTemplateAliasParameter())
             {
-                Type *t = tap->specType;
-                if (t && t->reliesOnTident(&tparams))
-                    tp->dependent = true;
-                else if (tap->specAlias)
+                if (reliesOnTident(tap->specType, &tparams) ||
+                    reliesOnTident(isType(tap->specAlias), &tparams))
                 {
-                    t = isType(tap->specAlias);
-                    if (t && t->reliesOnTident(&tparams))
-                        tp->dependent = true;
+                    tp->dependent = true;
                 }
             }
         }
@@ -1456,7 +1451,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
                 for (size_t j = parami + 1; j < nfparams; j++)
                 {
                     Parameter *p = Parameter::getNth(fparameters, j);
-                    if (!inferparams || !p->type->reliesOnTident(inferparams))
+                    if (!inferparams || !reliesOnTident(p->type, inferparams))
                     {
                         Type *pt = p->type->syntaxCopy()->semantic(fd->loc, paramscope);
                         rem += pt->ty == Ttuple ? ((TypeTuple *)pt)->arguments->dim : 1;
@@ -1525,7 +1520,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
 
         // If parameter type doesn't depend on inferred template parameters,
         // semantic it to get actual type.
-        if (!inferparams || !prmtype->reliesOnTident(inferparams))
+        if (!inferparams || !reliesOnTident(prmtype, inferparams))
         {
             // should copy prmtype to avoid affecting semantic result
             prmtype = prmtype->syntaxCopy()->semantic(fd->loc, paramscope);
@@ -4552,6 +4547,137 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
     return v.result;
 }
 
+/*******************************
+ * Input:
+ *      t           Tested type, if NULL, returns NULL.
+ *      tparams     Optional template parameters.
+ *                  == NULL:
+ *                      If one of the subtypes of this type is a TypeIdentifier,
+ *                      i.e. it's an unresolved type, return that type.
+ *                  != NULL:
+ *                      Only when the TypeIdentifier is one of template parameters,
+ *                      return that type.
+ */
+
+Type *reliesOnTident(Type *t, TemplateParameters *tparams)
+{
+    class ReliesOnTident : public Visitor
+    {
+    public:
+        TemplateParameters *tparams;
+        Type *result;
+
+        ReliesOnTident(TemplateParameters *tparams)
+            : tparams(tparams)
+        {
+            result = NULL;
+        }
+
+        void visit(Type *t)
+        {
+        }
+
+        void visit(TypeNext *t)
+        {
+            t->next->accept(this);
+        }
+
+        void visit(TypeVector *t)
+        {
+            t->basetype->accept(this);
+        }
+
+        void visit(TypeAArray *t)
+        {
+            visit((TypeNext *)t);
+            if (!result)
+                t->index->accept(this);
+        }
+
+        void visit(TypeFunction *t)
+        {
+            size_t dim = Parameter::dim(t->parameters);
+            for (size_t i = 0; i < dim; i++)
+            {
+                Parameter *fparam = Parameter::getNth(t->parameters, i);
+                fparam->type->accept(this);
+                if (result)
+                    return;
+            }
+            if (t->next)
+                t->next->accept(this);
+        }
+
+        void visit(TypeIdentifier *t)
+        {
+            if (!tparams)
+            {
+                result = t;
+                return;
+            }
+
+            for (size_t i = 0; i < tparams->dim; i++)
+            {
+                TemplateParameter *tp = (*tparams)[i];
+                if (tp->ident->equals(t->ident))
+                {
+                    result = t;
+                    return;
+                }
+            }
+        }
+
+        void visit(TypeInstance *t)
+        {
+            if (!tparams)
+                return;
+
+            for (size_t i = 0; i < tparams->dim; i++)
+            {
+                TemplateParameter *tp = (*tparams)[i];
+                if (t->tempinst->name == tp->ident)
+                {
+                    result = t;
+                    return;
+                }
+            }
+            if (!t->tempinst->tiargs)
+                return;
+            for (size_t i = 0; i < t->tempinst->tiargs->dim; i++)
+            {
+                Type *ta = isType((*t->tempinst->tiargs)[i]);
+                if (ta)
+                {
+                    ta->accept(this);
+                    if (result)
+                        return;
+                }
+            }
+        }
+
+        void visit(TypeTuple *t)
+        {
+            if (t->arguments)
+            {
+                for (size_t i = 0; i < t->arguments->dim; i++)
+                {
+                    Parameter *arg = (*t->arguments)[i];
+                    arg->type->accept(this);
+                    if (result)
+                        return;
+                }
+            }
+        }
+    };
+
+    if (!t)
+        return NULL;
+
+    ReliesOnTident v(tparams);
+    t->accept(&v);
+    return v.result;
+}
+
 /* ======================== TemplateParameter =============================== */
 
 TemplateParameter::TemplateParameter(Loc loc, Identifier *ident)
@@ -4668,7 +4794,7 @@ void TemplateTypeParameter::declareParameter(Scope *sc)
 void TemplateTypeParameter::semantic(Scope *sc, TemplateParameters *parameters)
 {
     //printf("TemplateTypeParameter::semantic('%s')\n", ident->toChars());
-    if (specType && !specType->reliesOnTident(parameters))
+    if (specType && !reliesOnTident(specType, parameters))
     {
         specType = specType->semantic(loc, sc);
     }
@@ -4920,7 +5046,7 @@ RootObject *aliasParameterSemantic(Loc loc, Scope *sc, RootObject *o, TemplatePa
     {
         Expression *ea = isExpression(o);
         Type *ta = isType(o);
-        if (ta && (!parameters || !ta->reliesOnTident(parameters)))
+        if (ta && (!parameters || !reliesOnTident(ta, parameters)))
         {   Dsymbol *s = ta->toDsymbol(sc);
             if (s)
                 o = s;
@@ -4940,7 +5066,7 @@ RootObject *aliasParameterSemantic(Loc loc, Scope *sc, RootObject *o, TemplatePa
 
 void TemplateAliasParameter::semantic(Scope *sc, TemplateParameters *parameters)
 {
-    if (specType && !specType->reliesOnTident(parameters))
+    if (specType && !reliesOnTident(specType, parameters))
     {
         specType = specType->semantic(loc, sc);
     }

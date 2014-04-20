@@ -86,8 +86,8 @@ Expression *implicitCastTo(Expression *e, Scope *sc, Type *t)
                      */
                     e->error("forward reference to type %s", t->toChars());
                 }
-                else if (t->reliesOnTident())
-                    e->error("forward reference to type %s", t->reliesOnTident()->toChars());
+                else if (Type *tx = reliesOnTident(t))
+                    e->error("forward reference to type %s", tx->toChars());
 
                 //printf("type %p ty %d deco %p\n", type, type->ty, type->deco);
                 //type = type->semantic(loc, sc);
@@ -2340,7 +2340,7 @@ Expression *inferType(Expression *e, Type *t, int flag, Scope *sc, TemplateParam
                                 {
                                     p = Parameter::getNth(tfv->parameters, u);
                                     Type *tprm = p->type;
-                                    if (tprm->reliesOnTident(tparams))
+                                    if (reliesOnTident(tprm, tparams))
                                         goto L1;
                                     if (sc)
                                         tprm = tprm->semantic(fe->loc, sc);
