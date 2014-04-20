@@ -51,8 +51,8 @@ struct Symbol;
 class TypeTuple;
 
 void semanticTypeInfo(Scope *sc, Type *t);
-MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL);
-Type *reliesOnTident(Type *t, TemplateParameters *tparams = NULL);
+MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL, size_t inferStart = 0);
+Type *reliesOnTident(Type *t, TemplateParameters *tparams = NULL, size_t iStart = 0);
 
 enum ENUMTY
 {

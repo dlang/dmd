@@ -2194,23 +2194,19 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
  * Set type inference target
  *      t       Target type
  *      flag    1: don't put an error when inference fails
- *      sc      it is used for the semantic of t, when != NULL
- *      tparams template parameters should be inferred
  */
 
-Expression *inferType(Expression *e, Type *t, int flag, Scope *sc, TemplateParameters *tparams)
+Expression *inferType(Expression *e, Type *t, int flag)
 {
     class InferType : public Visitor
     {
     public:
         Type *t;
         int flag;
-        Scope *sc;
-        TemplateParameters *tparams;
         Expression *result;
 
-        InferType(Type *t, int flag, Scope *sc, TemplateParameters *tparams)
-            : t(t), flag(flag), sc(sc), tparams(tparams)
+        InferType(Type *t, int flag)
+            : t(t), flag(flag)
         {
             result = NULL;
         }
@@ -2234,7 +2230,7 @@ Expression *inferType(Expression *e, Type *t, int flag, Scope *sc, TemplateParam
                         Expression *e = (*ale->elements)[i];
                         if (e)
                         {
-                            e = inferType(e, tn, flag, sc, tparams);
+                            e = inferType(e, tn, flag);
                             (*ale->elements)[i] = e;
                         }
                     }
@@ -2254,10 +2250,11 @@ Expression *inferType(Expression *e, Type *t, int flag, Scope *sc, TemplateParam
                     Type *ti = taa->index;
                     Type *tv = taa->nextOf();
                     for (size_t i = 0; i < aale->keys->dim; i++)
-                    {   Expression *e = (*aale->keys)[i];
+                    {
+                        Expression *e = (*aale->keys)[i];
                         if (e)
                         {
-                            e = inferType(e, ti, flag, sc, tparams);
+                            e = inferType(e, ti, flag);
                             (*aale->keys)[i] = e;
                         }
                     }
@@ -2265,7 +2262,8 @@ Expression *inferType(Expression *e, Type *t, int flag, Scope *sc, TemplateParam
                     {
                         Expression *e = (*aale->values)[i];
                         if (e)
-                        {   e = inferType(e, tv, flag, sc, tparams);
+                        {
+                            e = inferType(e, tv, flag);
                             (*aale->values)[i] = e;
                         }
                     }
@@ -2340,10 +2338,6 @@ Expression *inferType(Expression *e, Type *t, int flag, Scope *sc, TemplateParam
                                 {
                                     p = Parameter::getNth(tfv->parameters, u);
                                     Type *tprm = p->type;
-                                    if (reliesOnTident(tprm, tparams))
-                                        goto L1;
-                                    if (sc)
-                                        tprm = tprm->semantic(fe->loc, sc);
                                     if (tprm->ty == Terror)
                                         goto L1;
                                     tiargs->push(tprm);
@@ -2408,14 +2402,14 @@ Expression *inferType(Expression *e, Type *t, int flag, Scope *sc, TemplateParam
             if (t)
             {
                 t = t->toBasetype();
-                ce->e1 = inferType(ce->e1, t, flag, sc, tparams);
-                ce->e2 = inferType(ce->e2, t, flag, sc, tparams);
+                ce->e1 = inferType(ce->e1, t, flag);
+                ce->e2 = inferType(ce->e2, t, flag);
             }
             result = ce;
         }
     };
 
-    InferType v(t, flag, sc, tparams);
+    InferType v(t, flag);
     e->accept(&v);
     return v.result;
 }
