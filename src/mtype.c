@@ -5870,14 +5870,6 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
         {
         Expression *arg = (*args)[u];
         assert(arg);
-
-        if (arg->op == TOKfunction)
-        {
-            arg = inferType(((FuncExp *)arg), p->type, 1);
-            if (!arg)
-                goto L1;    // try typesafe variadics
-        }
-
         //printf("arg: %s, type: %s\n", arg->toChars(), arg->type->toChars());
 
         Type *targ = arg->type;
@@ -5981,17 +5973,12 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
                         if (sz != nargs - u)
                             goto Nomatch;
                     case Tarray:
-                    {   TypeArray *ta = (TypeArray *)tb;
+                    {
+                        TypeArray *ta = (TypeArray *)tb;
                         for (; u < nargs; u++)
                         {
                             Expression *arg = (*args)[u];
                             assert(arg);
-                            if (arg->op == TOKfunction)
-                            {
-                                arg = inferType(((FuncExp *)arg), tb->nextOf(), 1);
-                                if (!arg)
-                                    goto Nomatch;
-                            }
 
                             /* If lazy array of delegates,
                              * convert arg(s) to delegate(s)

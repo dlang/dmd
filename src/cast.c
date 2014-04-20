@@ -118,17 +118,13 @@ Expression *implicitCastTo(Expression *e, Scope *sc, Type *t)
         void visit(FuncExp *e)
         {
             //printf("FuncExp::implicitCastTo type = %p %s, t = %s\n", e->type, e->type ? e->type->toChars() : NULL, t->toChars());
-            visit((Expression *)inferType(e, t));
-
-            if (result->op == TOKfunction)
+            FuncExp *fe;
+            if (e->matchType(t, sc, &fe) > MATCHnomatch)
             {
-                Type *tn = t->nextOf();
-                if (tn->ty == Tfunction)
-                {
-                    // Bugzilla 12508: Tweak function body for covariant returns.
-                    e->fd->modifyReturns(sc, tn->nextOf());
-                }
+                result = fe;
+                return;
             }
+            visit((Expression *)e);
         }
 
         void visit(ArrayLiteralExp *e)
@@ -957,27 +953,11 @@ MATCH implicitConvTo(Expression *e, Type *t)
         void visit(FuncExp *e)
         {
             //printf("FuncExp::implicitConvTo type = %p %s, t = %s\n", e->type, e->type ? e->type->toChars() : NULL, t->toChars());
-            Expression *ex = inferType(e, t, 1);
-            if (ex &&
-                (t->ty == Tdelegate ||
-                 t->ty == Tpointer && t->nextOf()->ty == Tfunction))
+            MATCH m = e->matchType(t, NULL, NULL, 1);
+            if (m > MATCHnomatch)
             {
-                if (ex != e)
-                {
-                    result = ex->implicitConvTo(t);
-                    return;
-                }
-
-                /* MATCHconst:   Conversion from implicit to explicit function pointer
-                 * MATCHconvert: Conversion from impliict funciton pointer to delegate
-                 */
-                // fbody doesn't have a frame pointer
-                if (e->fd->tok == TOKreserved &&
-                    (e->type->equals(t) || e->type->nextOf()->covariant(t->nextOf()) == 1))
-                {
-                    result = t->ty == Tpointer ? MATCHconst : MATCHconvert;
-                    return;
-                }
+                result = m;
+                return;
             }
             visit((Expression *)e);
         }
@@ -2107,23 +2087,11 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
         void visit(FuncExp *e)
         {
             //printf("FuncExp::castTo type = %s, t = %s\n", e->type->toChars(), t->toChars());
-            result = inferType(e, t, 1);
-            if (result)
+            FuncExp *fe;
+            if (e->matchType(t, sc, &fe, 1) > MATCHnomatch)
             {
-                if (result != e)
-                {
-                    result->accept(this);
-                    return;
-                }
-                if (!result->type->equals(t) && result->type->implicitConvTo(t))
-                {
-                    // Bugzilla 9928
-                    assert(t->ty == Tpointer && t->nextOf()->ty == Tvoid ||
-                           result->type->nextOf()->covariant(t->nextOf()) == 1);
-                    result = result->copy();
-                    result->type = t;
-                    return;
-                }
+                result = fe;
+                return;
             }
             visit((Expression *)e);
         }
@@ -2274,127 +2242,13 @@ Expression *inferType(Expression *e, Type *t, int flag)
 
         void visit(FuncExp *fe)
         {
-            if (!t)
+            //printf("FuncExp::inferType('%s'), to=%s\n", fe->type ? fe->type->toChars() : "null", t->toChars());
+            if (t->ty == Tdelegate ||
+                t->ty == Tpointer && t->nextOf()->ty == Tfunction)
             {
-                result = fe;
-                return;
+                fe->fd->treq = t;
             }
-
-            //printf("FuncExp::interType('%s'), to=%s\n", fe->type ? fe->type->toChars() : "null", t->toChars());
-
-            if (!fe->type)  // semantic is not yet done
-            {
-                if (t->ty == Tdelegate ||
-                    t->ty == Tpointer && t->nextOf()->ty == Tfunction)
-                {
-                    fe->fd->treq = t;
-                }
-                result = fe;
-                return;
-            }
-
-            Expression *e = NULL;
-
-            Type *to = t;
-            if (to->ty == Tdelegate)
-            {
-                if (fe->tok == TOKfunction)
-                    goto L1;
-                to = to->nextOf();
-            }
-            else if (to->ty == Tpointer && to->nextOf()->ty == Tfunction)
-            {
-                if (fe->tok == TOKdelegate)
-                    goto L1;
-                to = to->nextOf();
-            }
-
-            if (fe->td)
-            {
-                // Parameter types inference from 'to'
-                assert(fe->td->scope);
-                if (to->ty == Tfunction)
-                {
-                    TypeFunction *tfv = (TypeFunction *)to;
-                    TypeFunction *tfl = (TypeFunction *)fe->fd->type;
-                    //printf("\ttfv = %s\n", tfv->toChars());
-                    //printf("\ttfl = %s\n", tfl->toChars());
-                    size_t dim = Parameter::dim(tfl->parameters);
-
-                    if (Parameter::dim(tfv->parameters) == dim &&
-                        tfv->varargs == tfl->varargs)
-                    {
-                        Objects *tiargs = new Objects();
-                        tiargs->reserve(fe->td->parameters->dim);
-
-                        for (size_t i = 0; i < fe->td->parameters->dim; i++)
-                        {
-                            TemplateParameter *tp = (*fe->td->parameters)[i];
-                            for (size_t u = 0; u < dim; u++)
-                            {
-                                Parameter *p = Parameter::getNth(tfl->parameters, u);
-                                if (p->type->ty == Tident &&
-                                    ((TypeIdentifier *)p->type)->ident == tp->ident)
-                                {
-                                    p = Parameter::getNth(tfv->parameters, u);
-                                    Type *tprm = p->type;
-                                    if (tprm->ty == Terror)
-                                        goto L1;
-                                    tiargs->push(tprm);
-                                    u = dim;    // break inner loop
-                                }
-                            }
-                        }
-
-                        // Set target of return type inference
-                        assert(fe->td->onemember);
-                        FuncLiteralDeclaration *fld = fe->td->onemember->isFuncLiteralDeclaration();
-                        assert(fld);
-                        if (!fld->type->nextOf() && tfv->next)
-                            fld->treq = t;
-
-                        TemplateInstance *ti = new TemplateInstance(fe->loc, fe->td, tiargs);
-                        e = (new ScopeExp(fe->loc, ti))->semantic(fe->td->scope);
-
-                        // Reset inference target for the later re-semantic
-                        fld->treq = NULL;
-
-                        if (e->op == TOKfunction)
-                        {
-                            FuncExp *fex = (FuncExp *)e;
-                            assert(fex->td == NULL);
-                            e = inferType(fex, t, flag);
-                        }
-                    }
-                }
-            }
-            else if (fe->type)
-            {
-                assert(fe->type != Type::tvoid);   // semantic is already done
-
-                // Allow conversion from implicit function pointer to delegate
-                if (fe->tok == TOKreserved && fe->type->ty == Tpointer &&
-                    t->ty == Tdelegate)
-                {
-                    Type *typen = fe->type->nextOf();
-                    if (typen->deco)
-                    {
-                        FuncExp *fex = (FuncExp *)fe->copy();
-                        fex->tok = TOKdelegate;
-                        fex->type = (new TypeDelegate(typen))->merge();
-                        e = fex;
-                    }
-                }
-                else
-                    e = fe;
-            }
-        L1:
-            if (!flag && !e)
-            {
-                fe->error("cannot infer function literal type from %s", t->toChars());
-                e = new ErrorExp();
-            }
-            result = e;
+            result = fe;
         }
 
         void visit(CondExp *ce)
