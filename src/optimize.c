@@ -960,6 +960,18 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
                 ret = e->e1;
                 return;
             }
+
+            // CTFE interpret static immutable arrays (to get better diagnostics)
+            if (e->e1->op == TOKvar)
+            {
+                VarDeclaration *v = ((VarExp *)e->e1)->var->isVarDeclaration();
+                if (v && (v->storage_class & STCstatic) && (v->storage_class & STCimmutable) && v->init)
+                {
+                    if (Expression *ci = v->getConstInitializer())
+                        e->e1 = ci;
+                }
+            }
+
             if (e->e1->op == TOKstring || e->e1->op == TOKarrayliteral || e->e1->op == TOKassocarrayliteral ||
                 e->e1->type->toBasetype()->ty == Tsarray)
             {
