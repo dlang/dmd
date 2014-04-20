@@ -2187,20 +2187,17 @@ Expression *inferType(Expression *e, Type *t, int flag)
 
         void visit(ArrayLiteralExp *ale)
         {
-            if (t)
+            Type *tb = t->toBasetype();
+            if (tb->ty == Tarray || tb->ty == Tsarray)
             {
-                t = t->toBasetype();
-                if (t->ty == Tarray || t->ty == Tsarray)
+                Type *tn = tb->nextOf();
+                for (size_t i = 0; i < ale->elements->dim; i++)
                 {
-                    Type *tn = t->nextOf();
-                    for (size_t i = 0; i < ale->elements->dim; i++)
+                    Expression *e = (*ale->elements)[i];
+                    if (e)
                     {
-                        Expression *e = (*ale->elements)[i];
-                        if (e)
-                        {
-                            e = inferType(e, tn, flag);
-                            (*ale->elements)[i] = e;
-                        }
+                        e = inferType(e, tn, flag);
+                        (*ale->elements)[i] = e;
                     }
                 }
             }
@@ -2209,31 +2206,28 @@ Expression *inferType(Expression *e, Type *t, int flag)
 
         void visit(AssocArrayLiteralExp *aale)
         {
-            if (t)
+            Type *tb = t->toBasetype();
+            if (tb->ty == Taarray)
             {
-                t = t->toBasetype();
-                if (t->ty == Taarray)
+                TypeAArray *taa = (TypeAArray *)tb;
+                Type *ti = taa->index;
+                Type *tv = taa->nextOf();
+                for (size_t i = 0; i < aale->keys->dim; i++)
                 {
-                    TypeAArray *taa = (TypeAArray *)t;
-                    Type *ti = taa->index;
-                    Type *tv = taa->nextOf();
-                    for (size_t i = 0; i < aale->keys->dim; i++)
+                    Expression *e = (*aale->keys)[i];
+                    if (e)
                     {
-                        Expression *e = (*aale->keys)[i];
-                        if (e)
-                        {
-                            e = inferType(e, ti, flag);
-                            (*aale->keys)[i] = e;
-                        }
+                        e = inferType(e, ti, flag);
+                        (*aale->keys)[i] = e;
                     }
-                    for (size_t i = 0; i < aale->values->dim; i++)
+                }
+                for (size_t i = 0; i < aale->values->dim; i++)
+                {
+                    Expression *e = (*aale->values)[i];
+                    if (e)
                     {
-                        Expression *e = (*aale->values)[i];
-                        if (e)
-                        {
-                            e = inferType(e, tv, flag);
-                            (*aale->values)[i] = e;
-                        }
+                        e = inferType(e, tv, flag);
+                        (*aale->values)[i] = e;
                     }
                 }
             }
@@ -2253,15 +2247,15 @@ Expression *inferType(Expression *e, Type *t, int flag)
 
         void visit(CondExp *ce)
         {
-            if (t)
-            {
-                t = t->toBasetype();
-                ce->e1 = inferType(ce->e1, t, flag);
-                ce->e2 = inferType(ce->e2, t, flag);
-            }
+            Type *tb = t->toBasetype();
+            ce->e1 = inferType(ce->e1, tb, flag);
+            ce->e2 = inferType(ce->e2, tb, flag);
             result = ce;
         }
     };
+
+    if (!t)
+        return e;
 
     InferType v(t, flag);
     e->accept(&v);
