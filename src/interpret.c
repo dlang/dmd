@@ -4517,9 +4517,9 @@ public:
             return newval;
         }
         else if (newval->op == TOKstring && existingAE
-                && existingAE->type->isString())
+                && existingAE->type->nextOf()->isintegral())
         {
-            /* Mixed slice: it was initialized as an array literal of chars.
+            /* Mixed slice: it was initialized as an array literal of chars/integers.
              * Now a slice of it is being set with a string.
              */
             sliceAssignArrayLiteralFromString(existingAE, (StringExp *)newval, (size_t)firstIndex);
