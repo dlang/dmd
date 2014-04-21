@@ -2633,6 +2633,9 @@ Lagain:
         {
             TypeFunction *tf1 = (TypeFunction *)t1n;
             TypeFunction *tf2 = (TypeFunction *)t2n;
+            tf1->purityLevel();
+            tf2->purityLevel();
+
             TypeFunction *d = (TypeFunction *)tf1->syntaxCopy();
 
             if (tf1->purity != tf2->purity)
