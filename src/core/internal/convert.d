@@ -58,22 +58,13 @@ const(ubyte)[] toUbyte(T)(ref T val) if(is(Unqual!T == float) || is(Unqual!T == 
         sign <<= 7;
         buff[off_bytes] |= sign;
 
-        try
+        version(LittleEndian)
         {
-            
-            version(LittleEndian)
-            {
-                return buff.dup;
-            }
-            else
-            {
-                return reverse_(buff);
-            }
+            return buff.dup;
         }
-        catch
+        else
         {
-            //dup cannot throw inside CTFE
-            assert(0);
+            return reverse_(buff);
         }
     }
     else
@@ -367,11 +358,11 @@ version(unittest)
         */
         testNumberConvert!("float.min_normal");
         testNumberConvert!("float.max");
-        
+
         /**Test common values*/
         testNumberConvert!("-0.17F");
         testNumberConvert!("3.14F");
-        
+
         /**Test immutable and const*/
         testNumberConvert!("cast(const)3.14F");
         testNumberConvert!("cast(immutable)3.14F");
@@ -390,14 +381,14 @@ version(unittest)
         testNumberConvert!("3.14L");
         testNumberConvert!("cast(const)3.14L");
         testNumberConvert!("cast(immutable)3.14L");
-        
+
         /**Test denormalized values*/
-        
+
         /**Max denormalized value, first bit is 1*/
         testNumberConvert!("float.min_normal/2");
         /**Min denormalized value, last bit is 1*/
         testNumberConvert!("float.min_normal/2UL^^23");
-        
+
         /**Denormalized values with round*/
         testNumberConvert!("float.min_normal/19");
         testNumberConvert!("float.min_normal/17");
@@ -427,12 +418,12 @@ version(unittest)
         testNumberConvert!("0x7.36e6e264012dp+879");
         testNumberConvert!("-0x1.05df6ce4708ep+658");
         testNumberConvert!("0x9.54bb0d888061p-708");
-        
+
         testNumberConvert!("-0x9.0f7eefp-101F");
         testNumberConvert!("0x7.36e6ep+87F");
         testNumberConvert!("-0x1.05df6p+112F");
         testNumberConvert!("0x9.54bb0p-70F");
-        
+
         /**Big overflow or underflow*/
         testNumberConvert!("cast(double)-0x9.0f7ee55df77618fp-13829L");
         testNumberConvert!("cast(double)0x7.36e6e2640120d28p+8797L");
@@ -477,7 +468,7 @@ template floatFormat(T) if(is(T:real) || is(T:ireal))
         enum floatFormat = FloatFormat.Quadruple;
     else
         static assert(0);
-    
+
 }
 
 //  all toUbyte functions must be evaluable at compile time
