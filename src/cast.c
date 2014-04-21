@@ -2833,14 +2833,17 @@ Lcc:
 
             if (i2)
             {
+                e2 = e2->castTo(sc, t2);
                 goto Lt2;
             }
             else if (i1)
             {
+                e1 = e1->castTo(sc, t1);
                 goto Lt1;
             }
             else if (t1->ty == Tclass && t2->ty == Tclass)
-            {   TypeClass *tc1 = (TypeClass *)t1;
+            {
+                TypeClass *tc1 = (TypeClass *)t1;
                 TypeClass *tc2 = (TypeClass *)t2;
 
                 /* Pick 'tightest' type
@@ -2849,7 +2852,8 @@ Lcc:
                 ClassDeclaration *cd2 = tc2->sym->baseClass;
 
                 if (cd1 && cd2)
-                {   t1 = cd1->type;
+                {
+                    t1 = cd1->type;
                     t2 = cd2->type;
                 }
                 else if (cd1)
