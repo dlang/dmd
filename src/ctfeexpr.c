@@ -268,8 +268,6 @@ Expression *copyLiteral(Expression *e)
             // If it is a void assignment, use the default initializer
             if (!m)
                 m = voidInitLiteral(v->type, v);
-            if (m->op == TOKslice)
-                m = resolveSlice(m);
             if ((v->type->ty != m->type->ty) && v->type->ty == Tsarray)
             {
                 // Block assignment from inside struct literals
@@ -299,8 +297,9 @@ Expression *copyLiteral(Expression *e)
         r->type = e->type;
         return r;
     }
-    else if ( isPointer(e->type) )
-    {   // For pointers, we only do a shallow copy.
+    else if (isPointer(e->type))
+    {
+        // For pointers, we only do a shallow copy.
         Expression *r;
         if (e->op == TOKaddress)
             r = new AddrExp(e->loc, ((AddrExp *)e)->e1);
@@ -317,9 +316,10 @@ Expression *copyLiteral(Expression *e)
         return r;
     }
     else if (e->op == TOKslice)
-    {   // Array slices only do a shallow copy
+    {
+        // Array slices only do a shallow copy
         Expression *r = new SliceExp(e->loc, ((SliceExp *)e)->e1,
-         ((SliceExp *)e)->lwr,  ((SliceExp *)e)->upr);
+            ((SliceExp *)e)->lwr, ((SliceExp *)e)->upr);
         r->type = e->type;
         return r;
     }

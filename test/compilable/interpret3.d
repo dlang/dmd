@@ -6416,3 +6416,101 @@ auto f12499()
     return a[0]; //Error: variable _a_field_0 cannot be read at compile time
 }
 static assert(f12499() == 5);
+
+/**************************************************
+    12602 - slice in struct literal members
+**************************************************/
+
+struct Result12602
+{
+    uint[] source;
+}
+
+auto wrap12602a(uint[] r)
+{
+    return Result12602(r);
+}
+
+auto wrap12602b(uint[] r)
+{
+    Result12602 x;
+    x.source = r;
+    return x;
+}
+
+auto testWrap12602a()
+{
+    uint[] dest = [1, 2, 3, 4];
+
+    auto ra = wrap12602a(dest[0..2]);
+    auto rb = wrap12602a(dest[2..4]);
+
+    foreach (i; 0..2)
+        rb.source[i] = ra.source[i];
+
+    assert(ra.source == [1,2]);
+    assert(rb.source == [1,2]);
+    assert(&ra.source[0] == &dest[0]);
+    assert(&rb.source[0] == &dest[2]);
+    assert(dest == [1,2,1,2]);
+    return dest;
+}
+
+auto testWrap12602b()
+{
+    uint[] dest = [1, 2, 3, 4];
+
+    auto ra = wrap12602b(dest[0..2]);
+    auto rb = wrap12602b(dest[2..4]);
+
+    foreach (i; 0..2)
+        rb.source[i] = ra.source[i];
+
+    assert(ra.source == [1,2]);
+    assert(rb.source == [1,2]);
+    assert(&ra.source[0] == &dest[0]);
+    assert(&rb.source[0] == &dest[2]);
+    assert(dest == [1,2,1,2]);
+    return dest;
+}
+
+auto testWrap12602c()
+{
+    uint[] dest = [1, 2, 3, 4];
+
+    auto ra = Result12602(dest[0..2]);
+    auto rb = Result12602(dest[2..4]);
+
+    foreach (i; 0..2)
+        rb.source[i] = ra.source[i];
+
+    assert(ra.source == [1,2]);
+    assert(rb.source == [1,2]);
+    assert(&ra.source[0] == &dest[0]);
+    assert(&rb.source[0] == &dest[2]);
+    assert(dest == [1,2,1,2]);
+    return dest;
+}
+
+auto testWrap12602d()
+{
+    uint[] dest = [1, 2, 3, 4];
+
+    Result12602 ra; ra.source = dest[0..2];
+    Result12602 rb; rb.source = dest[2..4];
+
+    foreach (i; 0..2)
+        rb.source[i] = ra.source[i];
+
+    assert(ra.source == [1,2]);
+    assert(rb.source == [1,2]);
+    assert(&ra.source[0] == &dest[0]);
+    assert(&rb.source[0] == &dest[2]);
+    assert(dest == [1,2,1,2]);
+    return dest;
+}
+
+static assert(testWrap12602a() == [1,2,1,2]);
+static assert(testWrap12602b() == [1,2,1,2]);
+static assert(testWrap12602c() == [1,2,1,2]);
+static assert(testWrap12602d() == [1,2,1,2]);
