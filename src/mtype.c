@@ -4694,11 +4694,13 @@ printf("index->ito->ito = x%x\n", index->ito->ito);
         {
             /* AA's need opCmp. Issue error if not correctly set up.
              */
-            TypeStruct *ts = (TypeStruct *)index->toBasetype();
-            if (ts->sym->xcmp == ts->sym->xerrcmp)
+            StructDeclaration *sd = ((TypeStruct *)index->toBasetype())->sym;
+            if (sd->scope)
+                sd->semantic(NULL);
+            if (sd->xcmp == sd->xerrcmp)
             {
                 error(loc, "associative array key type %s does not have 'const int opCmp(ref const %s)' member function",
-                        index->toBasetype()->toChars(), ts->sym->toChars());
+                        index->toBasetype()->toChars(), sd->toChars());
                 return Type::terror;
             }
             break;
