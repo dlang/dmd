@@ -6322,6 +6322,40 @@ bool test11664()
 static assert(test11664());
 
 /**************************************************
+    12110 - operand of dereferencing does not need to be an lvalue
+**************************************************/
+
+struct SliceOverIndexed12110
+{
+    Uint24Array12110* arr;
+
+    @property front(uint val)
+    {
+        arr.dupThisReference();
+    }
+}
+
+struct Uint24Array12110
+{
+    ubyte[] data;
+
+    this(ubyte[] range)
+    {
+        data = range;
+        SliceOverIndexed12110(&this).front = 0;
+        assert(data.length == range.length * 2);
+    }
+
+    void dupThisReference()
+    {
+        auto new_data = new ubyte[data.length * 2];
+        data = new_data;
+    }
+}
+
+static m12110 = Uint24Array12110([0x80]);
+
+/**************************************************
     12310 - heap allocation for built-in sclar types
 **************************************************/
 

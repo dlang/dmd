@@ -6113,7 +6113,7 @@ public:
             }
             // It's possible we have an array bounds error. We need to make sure it
             // errors with this line number, not the one where the pointer was set.
-            result = e->e1->interpret(istate, ctfeNeedLvalue);
+            result = e->e1->interpret(istate);
             if (exceptionOrCantInterpret(result))
                 return;
             if (!(result->op == TOKvar || result->op == TOKdotvar || result->op == TOKindex
