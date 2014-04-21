@@ -583,7 +583,7 @@ class GC
             size_t psize;
 
             //debug(PRINTF) printf("GC::realloc(p = %p, size = %zu)\n", p, size);
-            version (SENTINEL)
+            debug (SENTINEL)
             {
                 sentinel_Invariant(p);
                 psize = *sentinel_size(p);
@@ -727,7 +727,7 @@ class GC
             onInvalidMemoryOperationError();
 
         //debug(PRINTF) printf("GC::extend(p = %p, minsize = %zu, maxsize = %zu)\n", p, minsize, maxsize);
-        version (SENTINEL)
+        debug (SENTINEL)
         {
             return 0;
         }
@@ -920,7 +920,7 @@ class GC
     {
         assert (p);
 
-        version (SENTINEL)
+        debug (SENTINEL)
         {
             p = sentinel_sub(p);
             size_t size = gcx.findSize(p);
@@ -3360,7 +3360,7 @@ struct Pool
 /* ============================ SENTINEL =============================== */
 
 
-version (SENTINEL)
+debug (SENTINEL)
 {
     const size_t SENTINEL_PRE = cast(size_t) 0xF4F4F4F4F4F4F4F4UL; // 32 or 64 bits
     const ubyte SENTINEL_POST = 0xF5;           // 8 bits
