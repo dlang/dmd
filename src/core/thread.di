@@ -639,7 +639,7 @@ enum IsMarked : int
     unknown, /// Address is not managed by the GC.
 }
 
-alias IsMarked delegate( void* addr ) IsMarkedDg;
+alias int delegate( void* addr ) IsMarkedDg;
 
 /**
  * This routine allows the runtime to process any special per-thread handling

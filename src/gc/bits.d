@@ -17,9 +17,7 @@ module gc.bits;
 import core.bitop;
 import core.stdc.string;
 import core.stdc.stdlib;
-
-
-private extern (C) void onOutOfMemoryError(void* pretend_sideffect = null) @trusted pure nothrow; /* dmd @@@BUG11461@@@ */
+import core.exception : onOutOfMemoryError;
 
 
 version (DigitalMars)

@@ -39,11 +39,14 @@ import gc.stats;
 import gc.os;
 
 import cstdlib = core.stdc.stdlib : calloc, free, malloc, realloc;
-import core.stdc.string;
+import core.stdc.string : memcpy, memset, memmove;
 import core.bitop;
 import core.sync.mutex;
+import core.exception : onOutOfMemoryError, onInvalidMemoryOperationError;
+import core.thread;
 static import core.memory;
 private alias BlkAttr = core.memory.GC.BlkAttr;
+private alias BlkInfo = core.memory.GC.BlkInfo;
 
 version (GNU) import gcc.builtins;
 
@@ -81,36 +84,20 @@ private
     // D is the depth of the heap graph.
     enum MAX_MARK_RECURSIONS = 64;
 }
-    struct BlkInfo
-    {
-        void*  base;
-        size_t size;
-        uint   attr;
-    }
+
 private
 {
+    // to allow compilation of this module without access to the rt package,
+    //  make these functions available from rt.lifetime
     extern (C) void rt_finalize2(void* p, bool det, bool resetMemory);
     extern (C) int rt_hasFinalizerInSegment(void* p, in void[] segment);
 
-    extern (C) void thread_suspendAll();
-    extern (C) void thread_resumeAll();
-
-    // core.thread
     enum IsMarked : int
     {
         no,
         yes,
-        unknown, // memory is not managed by GC
+        unknown, // memory is not managed by GC, treated as yes by lifetime.processGCMarks
     }
-    alias IsMarked delegate(void*) IsMarkedDg;
-    extern (C) void thread_processGCMarks(scope IsMarkedDg isMarked);
-
-    alias void delegate(void*, void*) scanFn;
-    extern (C) void thread_scanAll(scope scanFn fn);
-
-    extern (C) void onOutOfMemoryError(void* pretend_sideffect = null) @trusted pure nothrow; /* dmd @@@BUG11461@@@ */
-    extern (C) void onInvalidMemoryOperationError(void* pretend_sideffect = null) @trusted pure nothrow; /* dmd @@@BUG11461@@@ */ 
-
     enum
     {
         OPFAIL = ~cast(size_t)0
@@ -2825,7 +2812,7 @@ struct Gcx
      * Warning! This should only be called while the world is stopped inside
      * the fullcollect function.
      */
-    IsMarked isMarked(void *addr)
+    int isMarked(void *addr)
     {
         // first, we find the Pool this block is in, then check to see if the
         // mark bit is clear.
