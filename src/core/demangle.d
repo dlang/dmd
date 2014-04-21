@@ -2,16 +2,14 @@
  * The demangle module converts mangled D symbols to a representation similar
  * to what would have existed in code.
  *
- * Copyright: Copyright Sean Kelly 2010 - 2010.
- * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
+ * Copyright: Copyright Sean Kelly 2010 - 2014.
+ * License: Distributed under the
+ *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
+ *    (See accompanying file LICENSE)
  * Authors:   Sean Kelly
+ * Source:    $(DRUNTIMESRC core/_demangle.d)
  */
 
-/*          Copyright Sean Kelly 2010 - 2010.
- * Distributed under the Boost Software License, Version 1.0.
- *    (See accompanying file LICENSE or copy at
- *          http://www.boost.org/LICENSE_1_0.txt)
- */
 module core.demangle;
 
 
@@ -838,6 +836,9 @@ private struct Demangle
     FuncAttrSafe:
         Nf
 
+    FuncAttrNogc:
+        Ni
+
     Arguments:
         Argument
         Argument Arguments
@@ -926,6 +927,10 @@ private struct Demangle
                 //       the parameter list.  Rewind and break.
                 pos--;
                 break breakFuncAttrs;
+            case 'i': // FuncAttrNogc
+                next();
+                put( "@nogc " );
+                continue;
             default:
                 error();
             }
@@ -1796,8 +1801,8 @@ version(unittest)
         ["_D8demangle21__T2fnVHiiA2i1i2i3i4Z2fnFZv", "void demangle.fn!([1:2, 3:4]).fn()"],
         ["_D8demangle2fnFNgiZNgi", "inout(int) demangle.fn(inout(int))"],
         ["_D8demangle29__T2fnVa97Va9Va0Vu257Vw65537Z2fnFZv", "void demangle.fn!('a', '\\t', \\x00, '\\u0101', '\\U00010001').fn()"],
-        ["_D2gc11gctemplates56__T8mkBitmapTS3std5range13__T4iotaTiTiZ4iotaFiiZ6ResultZ8mkBitmapFNbNfPmmZv",
-         "nothrow @safe void gc.gctemplates.mkBitmap!(std.range.iota!(int, int).iota(int, int).Result).mkBitmap(ulong*, ulong)"],
+        ["_D2gc11gctemplates56__T8mkBitmapTS3std5range13__T4iotaTiTiZ4iotaFiiZ6ResultZ8mkBitmapFNbNiNfPmmZv",
+         "nothrow @nogc @safe void gc.gctemplates.mkBitmap!(std.range.iota!(int, int).iota(int, int).Result).mkBitmap(ulong*, ulong)"],
         ["_D8serenity9persister6Sqlite70__T15SqlitePersisterTS8serenity9persister6Sqlite11__unittest6FZv4TestZ15SqlitePersister12__T7opIndexZ7opIndexMFmZS8serenity9persister6Sqlite11__unittest6FZv4Test",
          "serenity.persister.Sqlite.__unittest6().Test serenity.persister.Sqlite.SqlitePersister!(serenity.persister.Sqlite.__unittest6().Test).SqlitePersister.opIndex!().opIndex(ulong)"],
         ["_D8bug100274mainFZv5localMFZi","int bug10027.main().local()"],
