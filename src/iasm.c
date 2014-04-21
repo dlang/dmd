@@ -1383,38 +1383,45 @@ static code *asm_emit(Loc loc,
                         popndTmp->pregDisp2 &&
                         popndTmp->pregDisp2->val == _BP)
                         usDefaultseg = _SS;
+                else if (asmstate.ucItype == ITjump)
+                        usDefaultseg = _CS;
                 else
                         usDefaultseg = _DS;
                 if (pregSegment->val != usDefaultseg)
-                    switch (pregSegment->val)
-                    {
-                    case _CS:
-                        emit(0x2e);
-                        pc->Iflags |= CFcs;
-                        break;
-                    case _SS:
-                        emit(0x36);
-                        pc->Iflags |= CFss;
-                        break;
-                    case _DS:
-                        emit(0x3e);
-                        pc->Iflags |= CFds;
-                        break;
-                    case _ES:
-                        emit(0x26);
-                        pc->Iflags |= CFes;
-                        break;
-                    case _FS:
-                        emit(0x64);
-                        pc->Iflags |= CFfs;
-                        break;
-                    case _GS:
-                        emit(0x65);
-                        pc->Iflags |= CFgs;
-                        break;
-                    default:
-                        assert(0);
-                    }
+                {
+                    if (asmstate.ucItype == ITjump)
+                        error(asmstate.loc, "Cannot generate a segment prefix for a branching instruction");
+                    else
+                        switch (pregSegment->val)
+                        {
+                        case _CS:
+                            emit(0x2e);
+                            pc->Iflags |= CFcs;
+                            break;
+                        case _SS:
+                            emit(0x36);
+                            pc->Iflags |= CFss;
+                            break;
+                        case _DS:
+                            emit(0x3e);
+                            pc->Iflags |= CFds;
+                            break;
+                        case _ES:
+                            emit(0x26);
+                            pc->Iflags |= CFes;
+                            break;
+                        case _FS:
+                            emit(0x64);
+                            pc->Iflags |= CFfs;
+                            break;
+                        case _GS:
+                            emit(0x65);
+                            pc->Iflags |= CFgs;
+                            break;
+                        default:
+                            assert(0);
+                        }
+                }
             }
             break;
     }
@@ -4311,6 +4318,8 @@ static OPND *asm_primary_exp()
                     o1->segreg = regp;
                     asm_token();
                     o2 = asm_cond_exp();
+                    if (o2->s && o2->s->isLabel())
+                        o2->segreg = NULL; // The segment register was specified explicitly.
                     o1 = asm_merge_opnds(o1, o2);
                 }
                 else if (asm_TKlbra_seen)
@@ -4354,23 +4363,18 @@ static OPND *asm_primary_exp()
             }
             else
             {
-                if (asmstate.ucItype == ITjump)
-                {
-                    s = NULL;
-                    if (asmstate.sc->func->labtab)
-                        s = asmstate.sc->func->labtab->lookup(asmtok->ident);
-                    if (!s)
-                        s = asmstate.sc->search(Loc(), asmtok->ident, &scopesym);
-                    if (!s)
-                    {
-                        // Assume it is a label, and define that label
-                        s = asmstate.sc->func->searchLabel(asmtok->ident);
-                    }
-                }
-                else
+                s = NULL;
+                if (asmstate.sc->func->labtab)
+                    s = asmstate.sc->func->labtab->lookup(asmtok->ident);
+                if (!s)
                     s = asmstate.sc->search(Loc(), asmtok->ident, &scopesym);
                 if (!s)
-                    asmerr("undefined identifier '%s'", asmtok->toChars());
+                {
+                    // Assume it is a label, and define that label
+                    s = asmstate.sc->func->searchLabel(asmtok->ident);
+                }
+                if (s->isLabel())
+                    o1->segreg = &regtab[25]; // Make it use CS as a base for a label
 
                 Identifier *id = asmtok->ident;
                 asm_token();
