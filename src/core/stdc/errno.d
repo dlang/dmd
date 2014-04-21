@@ -164,6 +164,7 @@ else version( linux )
     enum EPROTONOSUPPORT    = 93;       // Protocol not supported
     enum ESOCKTNOSUPPORT    = 94;       // Socket type not supported
     enum EOPNOTSUPP         = 95;       // Operation not supported on transport endpoint
+    enum ENOTSUP            = EOPNOTSUPP;
     enum EPFNOSUPPORT       = 96;       // Protocol family not supported
     enum EAFNOSUPPORT       = 97;       // Address family not supported by protocol
     enum EADDRINUSE         = 98;       // Address already in use
