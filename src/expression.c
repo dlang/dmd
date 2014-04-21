@@ -11271,12 +11271,22 @@ Expression *AssignExp::semantic(Scope *sc)
         }
         else
         {
-            if (e2x->op == TOKarrayliteral)
+            if (e2x->implicitConvTo(t1->nextOf()->arrayOf()) > MATCHnomatch)
             {
-                ArrayLiteralExp *ale = (ArrayLiteralExp *)e2x;
                 uinteger_t dim1 = ((TypeSArray *)t1)->dim->toInteger();
-                uinteger_t dim2 = ale->elements ? ale->elements->dim : 0;
-                if (e2x->implicitConvTo(t1->nextOf()->sarrayOf(dim2)))
+                uinteger_t dim2 = dim1;
+                if (e2x->op == TOKarrayliteral)
+                {
+                    ArrayLiteralExp *ale = (ArrayLiteralExp *)e2x;
+                    dim2 = ale->elements ? ale->elements->dim : 0;
+                }
+                else if (e2x->op == TOKslice)
+                {
+                    Type *tx = toStaticArrayType((SliceExp *)e2x);
+                    if (tx)
+                        dim2 = ((TypeSArray *)tx)->dim->toInteger();
+                }
+                if (dim1 != dim2)
                 {
                     error("mismatched array lengths, %d and %d", (int)dim1, (int)dim2);
                     return new ErrorExp();
