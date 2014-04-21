@@ -2300,14 +2300,14 @@ Lagain:
                 unsigned char i = dim == 2;
                 if (!fdapply[i]) {
                     args = new Parameters;
-                    args->push(new Parameter(STCin, Type::tvoid->pointerTo(), NULL, NULL));
+                    args->push(new Parameter(0, Type::tvoid->pointerTo(), NULL, NULL));
                     args->push(new Parameter(STCin, Type::tsize_t, NULL, NULL));
                     Parameters* dgargs = new Parameters;
-                    dgargs->push(new Parameter(STCin, Type::tvoidptr, NULL, NULL));
+                    dgargs->push(new Parameter(0, Type::tvoidptr, NULL, NULL));
                     if (dim == 2)
-                        dgargs->push(new Parameter(STCin, Type::tvoidptr, NULL, NULL));
+                        dgargs->push(new Parameter(0, Type::tvoidptr, NULL, NULL));
                     fldeTy[i] = new TypeDelegate(new TypeFunction(dgargs, Type::tint32, 0, LINKd));
-                    args->push(new Parameter(STCin, fldeTy[i], NULL, NULL));
+                    args->push(new Parameter(0, fldeTy[i], NULL, NULL));
                     fdapply[i] = FuncDeclaration::genCfunc(args, Type::tint32, name[i]);
                 }
 
@@ -2363,11 +2363,11 @@ Lagain:
                 args = new Parameters;
                 args->push(new Parameter(STCin, tn->arrayOf(), NULL, NULL));
                 Parameters* dgargs = new Parameters;
-                dgargs->push(new Parameter(STCin, Type::tvoidptr, NULL, NULL));
+                dgargs->push(new Parameter(0, Type::tvoidptr, NULL, NULL));
                 if (dim == 2)
-                    dgargs->push(new Parameter(STCin, Type::tvoidptr, NULL, NULL));
+                    dgargs->push(new Parameter(0, Type::tvoidptr, NULL, NULL));
                 dgty = new TypeDelegate(new TypeFunction(dgargs, Type::tint32, 0, LINKd));
-                args->push(new Parameter(STCin, dgty, NULL, NULL));
+                args->push(new Parameter(0, dgty, NULL, NULL));
                 fdapply = FuncDeclaration::genCfunc(args, Type::tint32, fdname);
 
                 ec = new VarExp(Loc(), fdapply);
@@ -4060,7 +4060,7 @@ Statement *SynchronizedStatement::semantic(Scope *sc)
         cs->push(new ExpStatement(loc, tmp));
 
         Parameters* args = new Parameters;
-        args->push(new Parameter(STCin, ClassDeclaration::object->type, NULL, NULL));
+        args->push(new Parameter(0, ClassDeclaration::object->type, NULL, NULL));
 
         FuncDeclaration *fdenter = FuncDeclaration::genCfunc(args, Type::tvoid, Id::monitorenter);
         Expression *e = new CallExp(loc, new VarExp(loc, fdenter), new VarExp(loc, tmp));
@@ -4101,7 +4101,7 @@ Statement *SynchronizedStatement::semantic(Scope *sc)
         cs->push(new ExpStatement(loc, v));
 
         Parameters* args = new Parameters;
-        args->push(new Parameter(STCin, t->pointerTo(), NULL, NULL));
+        args->push(new Parameter(0, t->pointerTo(), NULL, NULL));
 
         FuncDeclaration *fdenter = FuncDeclaration::genCfunc(args, Type::tvoid, Id::criticalenter);
         Expression *e = new DotIdExp(loc, new VarExp(loc, tmp), Id::ptr);
