@@ -1366,7 +1366,7 @@ Expression *Slice(Type *type, Expression *e1, Expression *lwr, Expression *upr)
     return e;
 }
 
-/* Set a slice of char array literal 'existingAE' from a string 'newval'.
+/* Set a slice of char/integer array literal 'existingAE' from a string 'newval'.
  * existingAE[firstIndex..firstIndex+newval.length] = newval.
  */
 void sliceAssignArrayLiteralFromString(ArrayLiteralExp *existingAE, StringExp *newval, size_t firstIndex)

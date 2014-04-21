@@ -6074,6 +6074,32 @@ bool test11941b()
 static assert(test11941b());
 
 /**************************************************
+    11535 - element-wise assignment from string to ubyte array literal
+**************************************************/
+
+struct Hash11535
+{
+    ubyte[6] _buffer;
+
+    void put(scope const(ubyte)[] data...)
+    {
+        uint i = 0, index = 0;
+        auto inputLen = data.length;
+
+        (&_buffer[index])[0 .. inputLen-i] = (&data[i])[0 .. inputLen-i];
+    }
+}
+
+auto md5_digest11535(T...)(scope const T data)
+{
+    Hash11535 hash;
+    hash.put(cast(const(ubyte[]))data[0]);
+    return hash._buffer;
+}
+
+static assert(md5_digest11535(`TEST`) == [84, 69, 83, 84, 0, 0]);
+
+/**************************************************
     11540 - goto label + try-catch-finally / with statement
 **************************************************/
 
