@@ -61,6 +61,7 @@ struct code;
 
 bool inferAggregate(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply);
 bool inferApplyArgTypes(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply);
+TypeIdentifier *getThrowable();
 
 /* How a statement exits; this is returned by blockExit()
  */
