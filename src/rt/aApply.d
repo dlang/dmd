@@ -23,7 +23,7 @@ private import rt.util.utf;
 // dg is D, but _aApplycd() is C
 extern (D) alias int delegate(void *) dg_t;
 
-extern (C) int _aApplycd1(char[] aa, dg_t dg)
+extern (C) int _aApplycd1(in char[] aa, dg_t dg)
 {   int result;
     size_t i;
     size_t len = aa.length;
@@ -44,7 +44,7 @@ extern (C) int _aApplycd1(char[] aa, dg_t dg)
     return result;
 }
 
-extern (C) int _aApplywd1(wchar[] aa, dg_t dg)
+extern (C) int _aApplywd1(in wchar[] aa, dg_t dg)
 {   int result;
     size_t i;
     size_t len = aa.length;
@@ -65,7 +65,7 @@ extern (C) int _aApplywd1(wchar[] aa, dg_t dg)
     return result;
 }
 
-extern (C) int _aApplycw1(char[] aa, dg_t dg)
+extern (C) int _aApplycw1(in char[] aa, dg_t dg)
 {   int result;
     size_t i;
     size_t len = aa.length;
@@ -98,7 +98,7 @@ extern (C) int _aApplycw1(char[] aa, dg_t dg)
     return result;
 }
 
-extern (C) int _aApplywc1(wchar[] aa, dg_t dg)
+extern (C) int _aApplywc1(in wchar[] aa, dg_t dg)
 {   int result;
     size_t i;
     size_t len = aa.length;
@@ -135,7 +135,7 @@ extern (C) int _aApplywc1(wchar[] aa, dg_t dg)
     return result;
 }
 
-extern (C) int _aApplydc1(dchar[] aa, dg_t dg)
+extern (C) int _aApplydc1(in dchar[] aa, dg_t dg)
 {   int result;
 
     debug(apply) printf("_aApplydc1(), len = %d\n", aa.length);
@@ -167,7 +167,7 @@ extern (C) int _aApplydc1(dchar[] aa, dg_t dg)
     return result;
 }
 
-extern (C) int _aApplydw1(dchar[] aa, dg_t dg)
+extern (C) int _aApplydw1(in dchar[] aa, dg_t dg)
 {   int result;
 
     debug(apply) printf("_aApplydw1(), len = %d\n", aa.length);
@@ -198,7 +198,7 @@ extern (C) int _aApplydw1(dchar[] aa, dg_t dg)
 // dg is D, but _aApplycd2() is C
 extern (D) alias int delegate(void *, void *) dg2_t;
 
-extern (C) int _aApplycd2(char[] aa, dg2_t dg)
+extern (C) int _aApplycd2(in char[] aa, dg2_t dg)
 {   int result;
     size_t i;
     size_t n;
@@ -224,7 +224,7 @@ extern (C) int _aApplycd2(char[] aa, dg2_t dg)
     return result;
 }
 
-extern (C) int _aApplywd2(wchar[] aa, dg2_t dg)
+extern (C) int _aApplywd2(in wchar[] aa, dg2_t dg)
 {   int result;
     size_t i;
     size_t n;
@@ -250,7 +250,7 @@ extern (C) int _aApplywd2(wchar[] aa, dg2_t dg)
     return result;
 }
 
-extern (C) int _aApplycw2(char[] aa, dg2_t dg)
+extern (C) int _aApplycw2(in char[] aa, dg2_t dg)
 {   int result;
     size_t i;
     size_t n;
@@ -286,7 +286,7 @@ extern (C) int _aApplycw2(char[] aa, dg2_t dg)
     return result;
 }
 
-extern (C) int _aApplywc2(wchar[] aa, dg2_t dg)
+extern (C) int _aApplywc2(in wchar[] aa, dg2_t dg)
 {   int result;
     size_t i;
     size_t n;
@@ -326,7 +326,7 @@ extern (C) int _aApplywc2(wchar[] aa, dg2_t dg)
     return result;
 }
 
-extern (C) int _aApplydc2(dchar[] aa, dg2_t dg)
+extern (C) int _aApplydc2(in dchar[] aa, dg2_t dg)
 {   int result;
     size_t i;
     size_t len = aa.length;
@@ -360,7 +360,7 @@ extern (C) int _aApplydc2(dchar[] aa, dg2_t dg)
     return result;
 }
 
-extern (C) int _aApplydw2(dchar[] aa, dg2_t dg)
+extern (C) int _aApplydw2(in dchar[] aa, dg2_t dg)
 {   int result;
 
     debug(apply) printf("_aApplydw2(), len = %d\n", aa.length);
