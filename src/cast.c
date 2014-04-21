@@ -2558,6 +2558,7 @@ Lagain:
             assert(d->purity != PUREfwdref);
 
             d->isnothrow = (tf1->isnothrow && tf2->isnothrow);
+            d->isnogc    = (tf1->isnogc    && tf2->isnogc);
 
             if (tf1->trust == tf2->trust)
                 d->trust = tf1->trust;

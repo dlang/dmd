@@ -73,7 +73,7 @@ enum PURE;
                                         // but not typed as "shared"
 #define STCwild         0x80000000LL    // for "wild" type constructor
 #define STC_TYPECTOR    (STCconst | STCimmutable | STCshared | STCwild)
-#define STC_FUNCATTR    (STCref | STCnothrow | STCpure | STCproperty | STCsafe | STCtrusted | STCsystem)
+#define STC_FUNCATTR    (STCref | STCnothrow | STCnogc | STCpure | STCproperty | STCsafe | STCtrusted | STCsystem)
 
 #define STCproperty      0x100000000LL
 #define STCsafe          0x200000000LL
@@ -86,11 +86,12 @@ enum PURE;
 #define STCtemp          0x10000000000LL // temporary variable
 #define STCrvalue        0x20000000000LL // force rvalue for variables
 #define STCvirtual       0x40000000000LL
+#define STCnogc          0x80000000000LL  // @nogc
 
 const StorageClass STCStorageClass = (STCauto | STCscope | STCstatic | STCextern | STCconst | STCfinal |
     STCabstract | STCsynchronized | STCdeprecated | STCoverride | STClazy | STCalias |
     STCout | STCin | STCvirtual |
-    STCmanifest | STCimmutable | STCshared | STCwild | STCnothrow | STCpure | STCref | STCtls |
+    STCmanifest | STCimmutable | STCshared | STCwild | STCnothrow | STCnogc | STCpure | STCref | STCtls |
     STCgshared | STCproperty | STCsafe | STCtrusted | STCsystem | STCdisable);
 
 struct Match

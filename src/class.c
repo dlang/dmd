@@ -720,6 +720,7 @@ void ClassDeclaration::semantic(Scope *sc)
             TypeFunction *tf = new TypeFunction(NULL, NULL, 0, LINKd, fd->storage_class);
             tf->purity = btf->purity;
             tf->isnothrow = btf->isnothrow;
+            tf->isnogc = btf->isnogc;
             tf->trust = btf->trust;
             CtorDeclaration *ctor = new CtorDeclaration(loc, Loc(), 0, tf);
             ctor->fbody = new CompoundStatement(Loc(), new Statements());
