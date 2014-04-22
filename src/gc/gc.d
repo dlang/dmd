@@ -756,7 +756,7 @@ class GC
         }
         if (sz < minsz)
             return 0;
-        debug (MEMSTOMP) memset(p + psize, 0xF0, (psz + sz) * PAGESIZE - psize);
+        debug (MEMSTOMP) memset(pool.baseAddr + (pagenum + psz) * PAGESIZE, 0xF0, sz * PAGESIZE);
         memset(pool.pagetable + pagenum + psz, B_PAGEPLUS, sz);
         pool.updateOffsets(pagenum);
         pool.freepages -= sz;
