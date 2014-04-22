@@ -166,7 +166,7 @@ size_t hashOf(T)(auto ref T aa, size_t seed = 0) if (!is(T == enum) && __traits(
         }
         return seedHash(h, seed);
     }
-    catch
+    catch (Throwable thr)
     {
         assert(0);
     }
@@ -222,7 +222,7 @@ unittest
             return 1;
         }
     }
-    
+
     enum Gun: long
     {
         A = 99,
@@ -383,10 +383,10 @@ unittest
     assert(h27 == rth27);
     assert(h28 == rth28);
     assert(h29 == rth29);*/
-    
-    
+
+
     //Fail tests:
-    
+
     static assert(!__traits(compiles, {const Goo fail01; auto h = hashOf(fail01); return h;}));
 }
 
