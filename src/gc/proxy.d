@@ -28,6 +28,9 @@ private
 
     __gshared gc_t _gc;
 
+    static import core.memory;
+    alias BlkInfo = core.memory.GC.BlkInfo;
+
     extern (C) void thread_init();
     extern (C) void thread_term();
 
