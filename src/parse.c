@@ -1788,6 +1788,8 @@ EnumDeclaration *Parser::parseEnum()
             else
             {
                 type = parseType(&ident, NULL);
+                if (!ident)
+                    error("no identifier for declarator %s", type->toChars());
                 if (id || memtype)
                     error("type only allowed if anonymous enum and no enum type");
             }
