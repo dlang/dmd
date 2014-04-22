@@ -162,6 +162,12 @@ static IDXSTR extdef;
 
 int seg_data::isCode()
 {
+    // The codegen assumes that code->data references are indirect,
+    // but when CDATA is treated as code reftoident will emit a direct
+    // relocation.
+    if (this == SegData[CDATA])
+        return false;
+
     if (I64)
     {
         //printf("SDshtidx = %d, x%x\n", SDshtidx, SecHdrTab64[SDshtidx].flags);
