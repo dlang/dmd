@@ -62,3 +62,18 @@ void test12606b()   // ExpInitializer::semantic
     static ushort[2] a3 = [1, 2, 3][];
     static ushort[2] a4 = [1, 2, 3][0 .. 3];
 }
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail12604.d(77): Error: mismatched array lengths, 4 and 3
+fail_compilation/fail12604.d(78): Error: mismatched array lengths, 4 and 3
+---
+*/
+void testc()
+{
+    int[4] sa1;
+    int[3] sa2;
+    sa1[0..4] = [1,2,3];
+    sa1[0..4] = sa2;
+}
