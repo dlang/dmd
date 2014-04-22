@@ -482,9 +482,10 @@ Obj *Obj::init(Outbuffer *objbuf, const char *filename, const char *csegname)
     seg_count = 0;
     int align = I64 ? 4 : 2;            // align to 16 bytes for floating point
     MachObj::getsegment("__text",  "__TEXT", 2, S_REGULAR | S_ATTR_PURE_INSTRUCTIONS | S_ATTR_SOME_INSTRUCTIONS);
-    MachObj::getsegment("__data",  "__DATA", align, S_REGULAR);         // DATA
+    MachObj::getsegment("__data",  "__DATA", align, S_REGULAR);     // DATA
     MachObj::getsegment("__const", "__TEXT", 2, S_REGULAR);         // CDATA
     MachObj::getsegment("__bss",   "__DATA", 4, S_ZEROFILL);        // UDATA
+    MachObj::getsegment("__const", "__DATA", align, S_REGULAR);     // CDATAREL
 
     if (config.fulltypes)
         dwarf_initfile(filename);
