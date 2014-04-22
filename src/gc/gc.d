@@ -25,6 +25,7 @@ module gc.gc;
 //debug = PTRCHECK;             // more pointer checking
 //debug = PTRCHECK2;            // thorough but slow pointer checking
 //debug = PROFILING;            // measure performance of various steps.
+//debug = INVARIANT;            // enable invariants
 
 /*************** Configuration *********************/
 
@@ -1388,7 +1389,7 @@ struct Gcx
 
     void Invariant() const { }
 
-
+    debug(INVARIANT)
     invariant()
     {
         if (inited)
@@ -3223,6 +3224,7 @@ struct Pool
     void Invariant() const {}
 
 
+    debug(INVARIANT)
     invariant()
     {
         //mark.Invariant();
