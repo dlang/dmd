@@ -384,23 +384,11 @@ symbol * Obj::sym_cdata(tym_t ty,char *p,int len)
 
 int Obj::data_readonly(char *p, int len, int *pseg)
 {
-    int oldoff;
-    if (I64)
-    {
-        oldoff = Doffset;
-        SegData[DATA]->SDbuf->reserve(len);
-        SegData[DATA]->SDbuf->writen(p,len);
-        Doffset += len;
-        *pseg = DATA;
-    }
-    else
-    {
-        oldoff = CDoffset;
-        SegData[CDATA]->SDbuf->reserve(len);
-        SegData[CDATA]->SDbuf->writen(p,len);
-        CDoffset += len;
-        *pseg = CDATA;
-    }
+    int oldoff = CDoffset;
+    SegData[CDATA]->SDbuf->reserve(len);
+    SegData[CDATA]->SDbuf->writen(p,len);
+    CDoffset += len;
+    *pseg = CDATA;
     return oldoff;
 }
 
