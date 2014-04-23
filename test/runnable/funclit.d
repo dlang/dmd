@@ -314,7 +314,7 @@ void test10()
 void test11()
 {
     auto a1 = [x => x, (int x) => x * 2];
-    static assert(is(typeof(a1[0]) == int function(int) pure @safe nothrow));
+    static assert(is(typeof(a1[0]) == int function(int) pure @safe nothrow @nogc));
     assert(a1[0](10) == 10);
     assert(a1[1](10) == 20);
 
@@ -395,7 +395,7 @@ void test7288()
         return () => { return x; };
     }
     pragma(msg, typeof(&foo));
-    alias int delegate() nothrow @safe delegate() nothrow @safe delegate() Dg;
+    alias int delegate() nothrow @nogc @safe delegate() nothrow @nogc @safe delegate() Dg;
     pragma(msg, Dg);
     static assert(is(typeof(&foo) == Dg));  // should pass
 }
@@ -536,10 +536,10 @@ auto foo7743b()
 }
 void test7743()
 {
-    static assert(is(typeof(&foo7743a) == int delegate() nothrow @safe function()));
+    static assert(is(typeof(&foo7743a) == int delegate() nothrow @nogc @safe function()));
     assert(foo7743a()() == 10);
 
-    static assert(is(typeof(&foo7743b) == int delegate() nothrow @safe function()));
+    static assert(is(typeof(&foo7743b) == int delegate() nothrow @nogc @safe function()));
     assert(foo7743b()() == 10);
 }
 
@@ -550,7 +550,7 @@ enum dg7761 = (int a) pure => 2 * a;
 
 void test7761()
 {
-    static assert(is(typeof(dg7761) == int function(int) pure @safe nothrow));
+    static assert(is(typeof(dg7761) == int function(int) pure @safe nothrow @nogc));
     assert(dg7761(10) == 20);
 }
 

@@ -213,7 +213,7 @@ void test8847e()
 {
     enum resultHere = "6mangle"~"9test8847eFZ"~"8__T3fooZ"~"3foo";
     enum resultBar =  "S"~resultHere~"MFNaNfNgiZ3Bar";
-    enum resultFoo = "_D"~resultHere~"MFNaNbNfNgiZNg"~resultBar;   // added 'Nb'
+    enum resultFoo = "_D"~resultHere~"MFNaNbNiNfNgiZNg"~resultBar;   // added 'Nb'
 
     // Make template function to infer 'nothrow' attributes
     auto foo()(inout int) pure @safe
