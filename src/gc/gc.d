@@ -485,9 +485,13 @@ class GC
             if (!p)
                 onOutOfMemoryError();
         }
-        size -= SENTINEL_EXTRA;
-        p = sentinel_add(p);
-        sentinel_init(p, size);
+        debug (SENTINEL)
+        {
+            size -= SENTINEL_EXTRA;
+            p = sentinel_add(p);
+            sentinel_init(p, size);
+            *alloc_size = size;
+        }
         gcx.log_malloc(p, size);
 
         if (bits)
