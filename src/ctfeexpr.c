@@ -1752,6 +1752,8 @@ void assignInPlace(Expression *dest, Expression *src)
         assert(dest->op == src->op);
         oldelems = ((StructLiteralExp *)dest)->elements;
         newelems = ((StructLiteralExp *)src)->elements;
+        if (((StructLiteralExp *)dest)->sd->isNested() && oldelems->dim == newelems->dim - 1)
+            oldelems->push(NULL);
     }
     else if (dest->op == TOKarrayliteral && src->op==TOKarrayliteral)
     {

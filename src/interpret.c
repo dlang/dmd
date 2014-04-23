@@ -259,6 +259,7 @@ void printCtfePerformanceStats()
 VarDeclaration *findParentVar(Expression *e);
 Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
     FuncDeclaration *fd, Expressions *arguments, Expression *pthis);
+Expression *evaluatePostblits(InterState *istate, ArrayLiteralExp *ale, size_t lwr, size_t upr);
 Expression *scrubReturnValue(Loc loc, Expression *e);
 
 
@@ -3467,7 +3468,7 @@ public:
                     wantRef = false;
             }
         }
-        if (isBlockAssignment && (e->e2->type->toBasetype()->ty == Tarray || e->e2->type->toBasetype()->ty == Tsarray))
+        if (isBlockAssignment && (e->e2->type->toBasetype()->ty == Tarray))
         {
             wantRef = true;
         }
@@ -3968,6 +3969,13 @@ public:
             else
             {
                 TY tyE1 = e1->type->toBasetype()->ty;
+                if (tyE1 == Tsarray && newval->op == TOKslice)
+                {
+                    // Newly set value is non-ref static array,
+                    // so making new ArrayLiteralExp is legitimate.
+                    newval = resolveSlice(newval);
+                    ((ArrayLiteralExp *)newval)->ownedByCtfe = true;
+                }
                 if (tyE1 == Tarray || tyE1 == Taarray)
                 {
                     // arr op= arr
@@ -3976,6 +3984,16 @@ public:
                 else
                 {
                     setValue(v, newval);
+                    if (tyE1 == Tsarray && e->e2->isLvalue())
+                    {
+                        assert(newval->op == TOKarrayliteral);
+                        ArrayLiteralExp *ale = (ArrayLiteralExp *)newval;
+                        if (Expression *x = evaluatePostblits(istate, ale, 0, ale->elements->dim))
+                        {
+                            result = x;
+                            return;
+                        }
+                    }
                 }
             }
         }
@@ -4509,6 +4527,12 @@ public:
             {
                 (*oldelems)[(size_t)(j + firstIndex)] = paintTypeOntoLiteral(elemtype, (*newelems)[j]);
             }
+            if (originalExp->e2->isLvalue())
+            {
+                Expression *x = evaluatePostblits(istate, existingAE, 0, oldelems->dim);
+                if (exceptionOrCantInterpret(x))
+                    return x;
+            }
             return newval;
         }
         else if (newval->op == TOKstring && existingSE)
@@ -4586,6 +4610,12 @@ public:
                     else
                         assignInPlace((*existingAE->elements)[(size_t)(j+firstIndex)], newval);
                 }
+            }
+            if (!wantRef && !cow && originalExp->e2->isLvalue())
+            {
+                Expression *x = evaluatePostblits(istate, existingAE, firstIndex, firstIndex+upperbound-lowerbound);
+                if (exceptionOrCantInterpret(x))
+                    return x;
             }
             if (goal == ctfeNeedNothing)
                 return NULL; // avoid creating an unused literal
@@ -7032,6 +7062,35 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
         }
     }
     return e;
+}
+
+Expression *evaluatePostblits(InterState *istate, ArrayLiteralExp *ale, size_t lwr, size_t upr)
+{
+    Type *telem = ale->type->nextOf()->baseElemOf();
+    if (telem->ty != Tstruct)
+        return NULL;
+    StructDeclaration *sd = ((TypeStruct *)telem)->sym;
+    if (sd->postblit)
+    {
+        for (size_t i = lwr; i < upr; i++)
+        {
+            Expression *e = (*ale->elements)[i];
+            if (e->op == TOKarrayliteral)
+            {
+                ArrayLiteralExp *alex = (ArrayLiteralExp *)e;
+                e = evaluatePostblits(istate, alex, 0, alex->elements->dim);
+            }
+            else
+            {
+                // e.__postblit()
+                assert(e->op == TOKstructliteral);
+                e = interpret(sd->postblit, istate, NULL, e);
+            }
+            if (exceptionOrCantInterpret(e))
+                return e;
+        }
+    }
+    return NULL;
 }
 
 /*************************** CTFE Sanity Checks ***************************/
