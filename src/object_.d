@@ -123,11 +123,28 @@ class Object
     }
 
     /**
-     * Create instance of class specified by classname.
+     * Create instance of class specified by the fully qualified name
+     * classname.
      * The class must either have no constructors or have
      * a default constructor.
      * Returns:
      *   null if failed
+     * Example:
+     * ---
+     * module foo.bar;
+     *
+     * class C
+     * {
+     *     this() { x = 10; }
+     *     int x;
+     * }
+     *
+     * void main()
+     * {
+     *     auto c = cast(C)Object.factory("foo.bar.C");
+     *     assert(c !is null && c.x == 10);
+     * }
+     * ---
      */
     static Object factory(string classname)
     {
