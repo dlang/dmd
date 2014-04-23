@@ -26,6 +26,7 @@
 module core.math;
 
 public:
+@nogc:
 
 /***********************************
  * Returns cosine of x. x is in radians.

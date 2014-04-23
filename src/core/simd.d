@@ -15,6 +15,7 @@ module core.simd;
 pure:
 nothrow:
 @safe:
+@nogc:
 
 /*******************************
  * Create a vector type.
