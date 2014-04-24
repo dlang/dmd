@@ -1,8 +1,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice11926.d(11): Error: undefined identifier const(a)
-fail_compilation/ice11926.d(12): Error: undefined identifier const(b)
+fail_compilation/ice11926.d(11): Error: no identifier for declarator const(a)
+fail_compilation/ice11926.d(12): Error: no identifier for declarator const(b)
 ---
 */
 
