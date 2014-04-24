@@ -507,6 +507,64 @@
     "deco" : "xC6Object",
     "originalType" : "Object",
     "init" : "Object()"
+   },
+   {
+    "name" : "Numbers",
+    "kind" : "enum",
+    "line" : 101,
+    "char" : 1,
+    "baseDeco" : "i",
+    "members" : [
+     {
+      "name" : "unspecified1",
+      "kind" : "enum member",
+      "value" : "0",
+      "line" : 103,
+      "char" : 5
+     },
+     {
+      "name" : "one",
+      "kind" : "enum member",
+      "value" : "2",
+      "line" : 104,
+      "char" : 5
+     },
+     {
+      "name" : "two",
+      "kind" : "enum member",
+      "value" : "3",
+      "line" : 105,
+      "char" : 5
+     },
+     {
+      "name" : "FILE_NOT_FOUND",
+      "kind" : "enum member",
+      "value" : "101",
+      "line" : 106,
+      "char" : 5
+     },
+     {
+      "name" : "unspecified3",
+      "kind" : "enum member",
+      "value" : "102",
+      "line" : 107,
+      "char" : 5
+     },
+     {
+      "name" : "unspecified4",
+      "kind" : "enum member",
+      "value" : "103",
+      "line" : 108,
+      "char" : 5
+     },
+     {
+      "name" : "four",
+      "kind" : "enum member",
+      "value" : "4",
+      "line" : 109,
+      "char" : 5
+     }
+    ]
    }
   ]
  }

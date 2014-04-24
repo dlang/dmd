@@ -96,3 +96,15 @@ class C_9755
 
 /** Issue 10011 - init property is wrong for object initializer. */
 const Object c_10011 = new Object();
+
+///
+enum Numbers
+{
+    unspecified1,
+    one  = 2,
+    two  = 3,
+    FILE_NOT_FOUND = 101,
+    unspecified3,
+    unspecified4,
+    four = 4,
+}
