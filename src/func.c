@@ -3558,10 +3558,7 @@ bool FuncDeclaration::isSafe()
 
 bool FuncDeclaration::isSafeBypassingInference()
 {
-    if (flags & FUNCFLAGsafetyInprocess)
-        return false;
-    else
-        return isSafe();
+    return !(flags & FUNCFLAGsafetyInprocess) && isSafe();
 }
 
 bool FuncDeclaration::isTrusted()
@@ -3599,10 +3596,7 @@ bool FuncDeclaration::isNogc()
 
 bool FuncDeclaration::isNogcBypassingInference()
 {
-    if (flags & FUNCFLAGnogcInprocess)
-        return false;
-    else
-        return isNogc();
+    return !(flags & FUNCFLAGnogcInprocess) && isNogc();
 }
 
 /**************************************
