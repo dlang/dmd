@@ -5990,6 +5990,72 @@ bool test10929()
 static assert(test10929());
 
 /**************************************************
+    9245 - support postblit call on array assignments
+**************************************************/
+
+bool test9245()
+{
+    int postblits = 0;
+    struct S
+    {
+        this(this)
+        {
+            ++postblits;
+        }
+    }
+
+    S s;
+    S[2] a;
+    assert(postblits == 0);
+
+    {
+        S[2] arr = s;
+        assert(postblits == 2);
+        arr[] = s;
+        assert(postblits == 4);
+        postblits = 0;
+
+        S[2] arr2 = arr;
+        assert(postblits == 2);
+        arr2 = arr;
+        assert(postblits == 4);
+        postblits = 0;
+
+        const S[2] constArr = s;
+        assert(postblits == 2);
+        postblits = 0;
+
+        const S[2] constArr2 = arr;
+        assert(postblits == 2);
+        postblits = 0;
+    }
+    {
+        S[2][2] arr = s;
+        assert(postblits == 4);
+        arr[] = a;
+        assert(postblits == 8);
+        postblits = 0;
+
+        S[2][2] arr2 = arr;
+        assert(postblits == 4);
+        arr2 = arr;
+        assert(postblits == 8);
+        postblits = 0;
+
+        const S[2][2] constArr = s;
+        assert(postblits == 4);
+        postblits = 0;
+
+        const S[2][2] constArr2 = arr;
+        assert(postblits == 4);
+        postblits = 0;
+    }
+
+    return true;
+}
+static assert(test9245());
+
+/**************************************************
     11510 support overlapped field access in CTFE
 **************************************************/
 
