@@ -2,16 +2,13 @@
  * ...
  *
  * Copyright: Copyright Benjamin Thaut 2010 - 2011.
- * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * License: Distributed under the
+ *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
+ *    (See accompanying file LICENSE)
  * Authors:   Benjamin Thaut, Sean Kelly
  * Source:    $(DRUNTIMESRC core/sys/windows/_stacktrace.d)
  */
 
-/*          Copyright Benjamin Thaut 2010 - 2011.
- * Distributed under the Boost Software License, Version 1.0.
- *    (See accompanying file LICENSE or copy at
- *          http://www.boost.org/LICENSE_1_0.txt)
- */
 module core.sys.windows.dbghelp;
 
 version (Windows):
@@ -171,7 +168,7 @@ struct IMAGEHLP_CBA_READ_MEMORY
     DWORD   *bytesread;
 };
 
-struct API_VERSION 
+struct API_VERSION
 {
     USHORT MajorVersion;
     USHORT MinorVersion;
