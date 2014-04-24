@@ -302,7 +302,7 @@ auto foo10329(T)(T arg)
     {
         return arg;
     }
-    static assert(is(typeof(&bar) == T delegate() nothrow @safe));
+    static assert(is(typeof(&bar) == T delegate() nothrow @nogc @safe));
     return bar();
 }
 
@@ -313,7 +313,7 @@ auto make10329(T)(T arg)
         auto front() { return T.init; }
     }
     S s;
-    static assert(is(typeof(&s.front) == T delegate() pure nothrow @safe));
+    static assert(is(typeof(&s.front) == T delegate() pure nothrow @nogc @safe));
     return s;
 }
 

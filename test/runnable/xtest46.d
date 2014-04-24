@@ -5457,8 +5457,8 @@ void test7285()
 
 void test7321()
 {
-    static assert(is(typeof((){})==void function()pure nothrow @safe));         // ok
-    static assert(is(typeof((){return;})==void function()pure nothrow @safe));  // fail
+    static assert(is(typeof((){})==void function()pure nothrow @nogc @safe));         // ok
+    static assert(is(typeof((){return;})==void function()pure nothrow @nogc @safe));  // fail
 }
 
 /***************************************************/

@@ -2734,7 +2734,7 @@ void test10055a()
     static struct SG { SX sx; SY sy;      nothrow       ~this() {} }
     static struct SH { SX sx; SY sy; pure               ~this() {} }
     static struct SI { SX sx; SY sy;                    ~this() {} }
-    static assert(is( typeof(&check!S1) == void function() pure nothrow @safe ));
+    static assert(is( typeof(&check!S1) == void function() pure nothrow @nogc @safe ));
     static assert(is( typeof(&check!S2) == void function()                    ));
     static assert(is( typeof(&check!SA) == void function() pure nothrow @safe ));
     static assert(is( typeof(&check!SB) == void function() pure nothrow @safe ));
@@ -2783,7 +2783,7 @@ void test10055b()
     static struct SG { SX sx; SY sy;      nothrow       this(this) {} }
     static struct SH { SX sx; SY sy; pure               this(this) {} }
     static struct SI { SX sx; SY sy;                    this(this) {} }
-    static assert(is( typeof(&check!S1) == void function() pure nothrow @safe ));
+    static assert(is( typeof(&check!S1) == void function() pure nothrow @nogc @safe ));
     static assert(is( typeof(&check!S2) == void function()                    ));
     static assert(is( typeof(&check!SA) == void function() pure nothrow @safe ));
     static assert(is( typeof(&check!SB) == void function() pure nothrow @safe ));
@@ -2818,7 +2818,7 @@ void test10055b()
 struct S10160 { this(this) {} }
 
 struct X10160a { S10160 s; const int x;     }
-struct X10160b { S10160 s; const int x = 1; }
+struct X10160b { S10160 s; enum int x = 1; }
 
 void test10160()
 {

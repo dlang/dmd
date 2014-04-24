@@ -1315,6 +1315,7 @@ bool Expression::checkPostblit(Scope *sc, Type *t)
             {
                 checkPurity(sc, sd->postblit);
                 checkSafety(sc, sd->postblit);
+                checkNogc(sc, sd->postblit);
             }
             return true;
         }
@@ -2440,6 +2441,23 @@ void Expression::checkSafety(Scope *sc, FuncDeclaration *f)
                 loc = sc->func->loc;
 
             error("safe function '%s' cannot call system function '%s'",
+                sc->func->toPrettyChars(), f->toPrettyChars());
+        }
+    }
+}
+
+void Expression::checkNogc(Scope *sc, FuncDeclaration *f)
+{
+    if (sc->func && sc->func != f && !sc->intypeof &&
+        !(sc->flags & SCOPEctfe) &&
+        !f->isNogc())
+    {
+        if (sc->func->setGC())
+        {
+            if (loc.linnum == 0)  // e.g. implicitly generated dtor
+                loc = sc->func->loc;
+
+            error("@nogc function '%s' cannot call non-@nogc function '%s'",
                 sc->func->toPrettyChars(), f->toPrettyChars());
         }
     }
@@ -4070,6 +4088,26 @@ Expression *ArrayLiteralExp::semantic(Scope *sc)
 
     semanticTypeInfo(sc, t0);
 
+    if (sc->func && !sc->intypeof)
+    {
+        if (elements && type->toBasetype()->ty == Tarray)
+        {
+            for (size_t i = 0; i < elements->dim; i++)
+            {
+                if (!((*elements)[i])->isConst())
+                {
+                    if (sc->func->setGC())
+                    {
+                        error("array literals in @nogc function %s may cause GC allocation",
+                            sc->func->toChars());
+                        return new ErrorExp();
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
     return this;
 }
 
@@ -4203,6 +4241,15 @@ Expression *AssocArrayLiteralExp::semantic(Scope *sc)
 
     if (tkey == Type::terror || tvalue == Type::terror)
         return new ErrorExp;
+
+    if (sc->func && !sc->intypeof)
+    {
+        if (keys->dim && sc->func->setGC())
+        {
+            error("associative array literal in @nogc function %s may cause GC allocation", sc->func->toChars());
+            return new ErrorExp;
+        }
+    }
 
     type = new TypeAArray(tvalue, tkey);
     type = type->semantic(loc, sc);
@@ -4926,6 +4973,7 @@ Lagain:
             checkDeprecated(sc, f);
             checkPurity(sc, f);
             checkSafety(sc, f);
+            checkNogc(sc, f);
             member = f->isCtorDeclaration();
             assert(member);
 
@@ -5029,6 +5077,7 @@ Lagain:
             checkDeprecated(sc, f);
             checkPurity(sc, f);
             checkSafety(sc, f);
+            checkNogc(sc, f);
             member = f->isCtorDeclaration();
             assert(member);
 
@@ -5131,6 +5180,35 @@ Lagain:
     //printf("NewExp: '%s'\n", toChars());
     //printf("NewExp:type '%s'\n", type->toChars());
     semanticTypeInfo(sc, type);
+
+    if (sc->func && !sc->intypeof)
+    {
+        if (member && !member->isNogc() && sc->func->setGC())
+        {
+            error("constructor for %s may allocate in 'new' in @nogc function %s",
+                type->toChars(), sc->func->toChars());
+            goto Lerr;
+        }
+        if (!onstack)
+        {
+            if (allocator)
+            {
+                if (!allocator->isNogc() && sc->func->setGC())
+                {
+                    error("operator new in @nogc function %s may allocate", sc->func->toChars());
+                    goto Lerr;
+                }
+            }
+            else
+            {
+                if (sc->func->setGC())
+                {
+                    error("cannot use 'new' in @nogc function %s", sc->func->toChars());
+                    goto Lerr;
+                }
+            }
+        }
+    }
 
     return this;
 
@@ -8329,6 +8407,7 @@ Lagain:
         checkDeprecated(sc, f);
         checkPurity(sc, f);
         checkSafety(sc, f);
+        checkNogc(sc, f);
         accessCheck(loc, sc, ue->e1, f);
         if (!f->needThis())
         {
@@ -8414,6 +8493,7 @@ Lagain:
                 checkDeprecated(sc, f);
                 checkPurity(sc, f);
                 checkSafety(sc, f);
+                checkNogc(sc, f);
                 e1 = new DotVarExp(e1->loc, e1, f);
                 e1 = e1->semantic(sc);
                 t1 = e1->type;
@@ -8452,6 +8532,7 @@ Lagain:
             checkDeprecated(sc, f);
             checkPurity(sc, f);
             checkSafety(sc, f);
+            checkNogc(sc, f);
             e1 = new DotVarExp(e1->loc, e1, f);
             e1 = e1->semantic(sc);
             t1 = e1->type;
@@ -8596,6 +8677,7 @@ Lagain:
         {
             checkPurity(sc, f);
             checkSafety(sc, f);
+            checkNogc(sc, f);
             f->checkNestedReference(sc, loc);
         }
         else if (sc->func && !(sc->flags & SCOPEctfe))
@@ -8603,6 +8685,11 @@ Lagain:
             if (!tf->purity && !(sc->flags & SCOPEdebug) && sc->func->setImpure())
             {
                 error("pure function '%s' cannot call impure %s '%s'", sc->func->toPrettyChars(), p, e1->toChars());
+                return new ErrorExp();
+            }
+            if (!tf->isnogc && sc->func->setGC())
+            {
+                error("@nogc function '%s' cannot call non-@nogc %s '%s'", sc->func->toPrettyChars(), p, e1->toChars());
                 return new ErrorExp();
             }
             if (tf->trust <= TRUSTsystem && sc->func->setUnsafe())
@@ -8679,6 +8766,7 @@ Lagain:
         checkDeprecated(sc, f);
         checkPurity(sc, f);
         checkSafety(sc, f);
+        checkNogc(sc, f);
         f->checkNestedReference(sc, loc);
         accessCheck(loc, sc, NULL, f);
 
@@ -9243,6 +9331,7 @@ Expression *DeleteExp::semantic(Scope *sc)
             {   /* Because COM classes are deleted by IUnknown.Release()
                  */
                 error("cannot delete instance of COM interface %s", cd->toChars());
+                goto Lerr;
             }
             break;
         }
@@ -9320,7 +9409,7 @@ Expression *DeleteExp::semantic(Scope *sc)
                     break;
             }
             error("cannot delete type %s", e1->type->toChars());
-            return new ErrorExp();
+            goto Lerr;
     }
 
     if (e1->op == TOKindex)
@@ -9328,10 +9417,22 @@ Expression *DeleteExp::semantic(Scope *sc)
         IndexExp *ae = (IndexExp *)(e1);
         Type *tb1 = ae->e1->type->toBasetype();
         if (tb1->ty == Taarray)
-            error("delete aa[key] deprecated, use aa.remove(key)");
+        {
+            error("use 'aa.remove(key)' instead of 'delete aa[key]'");
+            goto Lerr;
+        }
+    }
+
+    if (sc->func && !sc->intypeof && sc->func->setGC())
+    {
+        error("cannot use 'delete' in @nogc function %s", sc->func->toChars());
+        goto Lerr;
     }
 
     return this;
+
+Lerr:
+    return new ErrorExp();
 }
 
 
@@ -10328,6 +10429,12 @@ Expression *IndexExp::semantic(Scope *sc)
                 e2 = e2->implicitCastTo(sc, taa->index);        // type checking
             }
             type = taa->next;
+            if (sc->func && !sc->intypeof && sc->func->setGC())
+            {
+                error("indexing an associative array in @nogc function %s may cause gc allocation",
+                    sc->func->toChars());
+                goto Lerror;
+            }
             break;
         }
 
@@ -10381,6 +10488,7 @@ Expression *IndexExp::semantic(Scope *sc)
             error("%s must be an array or pointer type, not %s",
                 e1->toChars(), e1->type->toChars());
         case Terror:
+        Lerror:
             return new ErrorExp();
     }
 
@@ -11223,6 +11331,13 @@ Expression *AssignExp::semantic(Scope *sc)
         Type *tn = ale->e1->type->toBasetype()->nextOf();
         checkDefCtor(ale->loc, tn);
         semanticTypeInfo(sc, tn);
+
+        if (sc->func && !sc->intypeof && sc->func->setGC())
+        {
+            error("Setting 'length' in @nogc function %s may cause GC allocation",
+                sc->func->toChars());
+            return new ErrorExp();
+        }
     }
     else if (e1->op == TOKslice)
     {
@@ -11511,6 +11626,12 @@ Expression *CatAssignExp::semantic(Scope *sc)
     Expression *e = op_overload(sc);
     if (e)
         return e;
+
+    if (sc->func && !sc->intypeof && sc->func->setGC())
+    {
+        error("cannot use operator ~= in @nogc function %s", sc->func->toChars());
+        return new ErrorExp();
+    }
 
     if (e1->op == TOKslice)
     {
@@ -11959,6 +12080,12 @@ Expression *CatExp::semantic(Scope *sc)
     Expression *e = op_overload(sc);
     if (e)
         return e;
+
+    if (sc->func && !sc->intypeof && sc->func->setGC())
+    {
+        error("cannot use operator ~ in @nogc function %s", sc->func->toChars());
+        return new ErrorExp();
+    }
 
     Type *tb1 = e1->type->toBasetype();
     Type *tb2 = e2->type->toBasetype();
