@@ -1921,7 +1921,7 @@ Lagain:
             if (op == TOKforeach_reverse)
                 key->init = new ExpInitializer(loc, tmp_length);
             else
-                key->init = new ExpInitializer(loc, new IntegerExp(loc, 0, NULL));
+                key->init = new ExpInitializer(loc, new IntegerExp(loc, 0, key->type));
 
             Statements *cs = new Statements();
             cs->push(new ExpStatement(loc, tmp));
@@ -1943,7 +1943,7 @@ Lagain:
             Expression *increment = NULL;
             if (op == TOKforeach)
                 // key += 1
-                increment = new AddAssignExp(loc, new VarExp(loc, key), new IntegerExp(loc, 1, NULL));
+                increment = new AddAssignExp(loc, new VarExp(loc, key), new IntegerExp(loc, 1, key->type));
 
             // T value = tmp[key];
             value->init = new ExpInitializer(loc, new IndexExp(loc, new VarExp(loc, tmp), new VarExp(loc, key)));

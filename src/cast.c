@@ -300,39 +300,16 @@ MATCH implicitConvTo(Expression *e, Type *t)
             switch (ty)
             {
                 case Tbool:
-                    e->value &= 1;
-                    ty = Tint32;
-                    break;
-
                 case Tint8:
-                    e->value = (signed char)e->value;
-                    ty = Tint32;
-                    break;
-
                 case Tchar:
                 case Tuns8:
-                    e->value &= 0xFF;
-                    ty = Tint32;
-                    break;
-
                 case Tint16:
-                    e->value = (short)e->value;
-                    ty = Tint32;
-                    break;
-
                 case Tuns16:
                 case Twchar:
-                    e->value &= 0xFFFF;
                     ty = Tint32;
                     break;
 
-                case Tint32:
-                    e->value = (int)e->value;
-                    break;
-
-                case Tuns32:
                 case Tdchar:
-                    e->value &= 0xFFFFFFFF;
                     ty = Tuns32;
                     break;
 
@@ -341,41 +318,42 @@ MATCH implicitConvTo(Expression *e, Type *t)
             }
 
             // Only allow conversion if no change in value
+            dinteger_t value = e->toInteger();
             switch (toty)
             {
                 case Tbool:
-                    if ((e->value & 1) != e->value)
+                    if ((value & 1) != value)
                         return;
                     break;
 
                 case Tint8:
-                    if (ty == Tuns64 && e->value & ~0x7FUL)
+                    if (ty == Tuns64 && value & ~0x7FUL)
                         return;
-                    else if ((signed char)e->value != e->value)
+                    else if ((signed char)value != value)
                         return;
                     break;
 
                 case Tchar:
-                    if ((oldty == Twchar || oldty == Tdchar) && e->value > 0x7F)
+                    if ((oldty == Twchar || oldty == Tdchar) && value > 0x7F)
                         return;
                 case Tuns8:
-                    //printf("value = %llu %llu\n", (dinteger_t)(unsigned char)e->value, e->value);
-                    if ((unsigned char)e->value != e->value)
+                    //printf("value = %llu %llu\n", (dinteger_t)(unsigned char)value, value);
+                    if ((unsigned char)value != value)
                         return;
                     break;
 
                 case Tint16:
-                    if (ty == Tuns64 && e->value & ~0x7FFFUL)
+                    if (ty == Tuns64 && value & ~0x7FFFUL)
                         return;
-                    else if ((short)e->value != e->value)
+                    else if ((short)value != value)
                         return;
                     break;
 
                 case Twchar:
-                    if (oldty == Tdchar && e->value > 0xD7FF && e->value < 0xE000)
+                    if (oldty == Tdchar && value > 0xD7FF && value < 0xE000)
                         return;
                 case Tuns16:
-                    if ((unsigned short)e->value != e->value)
+                    if ((unsigned short)value != value)
                         return;
                     break;
 
@@ -383,9 +361,9 @@ MATCH implicitConvTo(Expression *e, Type *t)
                     if (ty == Tuns32)
                     {
                     }
-                    else if (ty == Tuns64 && e->value & ~0x7FFFFFFFUL)
+                    else if (ty == Tuns64 && value & ~0x7FFFFFFFUL)
                         return;
-                    else if ((int)e->value != e->value)
+                    else if ((int)value != value)
                         return;
                     break;
 
@@ -393,12 +371,12 @@ MATCH implicitConvTo(Expression *e, Type *t)
                     if (ty == Tint32)
                     {
                     }
-                    else if ((unsigned)e->value != e->value)
+                    else if ((unsigned)value != value)
                         return;
                     break;
 
                 case Tdchar:
-                    if (e->value > 0x10FFFFUL)
+                    if (value > 0x10FFFFUL)
                         return;
                     break;
 
@@ -407,14 +385,14 @@ MATCH implicitConvTo(Expression *e, Type *t)
                     volatile float f;
                     if (e->type->isunsigned())
                     {
-                        f = (float)e->value;
-                        if (f != e->value)
+                        f = (float)value;
+                        if (f != value)
                             return;
                     }
                     else
                     {
-                        f = (float)(sinteger_t)e->value;
-                        if (f != (sinteger_t)e->value)
+                        f = (float)(sinteger_t)value;
+                        if (f != (sinteger_t)value)
                             return;
                     }
                     break;
@@ -425,14 +403,14 @@ MATCH implicitConvTo(Expression *e, Type *t)
                     volatile double f;
                     if (e->type->isunsigned())
                     {
-                        f = (double)e->value;
-                        if (f != e->value)
+                        f = (double)value;
+                        if (f != value)
                             return;
                     }
                     else
                     {
-                        f = (double)(sinteger_t)e->value;
-                        if (f != (sinteger_t)e->value)
+                        f = (double)(sinteger_t)value;
+                        if (f != (sinteger_t)value)
                             return;
                     }
                     break;
@@ -443,14 +421,14 @@ MATCH implicitConvTo(Expression *e, Type *t)
                     volatile_longdouble f;
                     if (e->type->isunsigned())
                     {
-                        f = ldouble(e->value);
-                        if (f != e->value) // isn't this a noop, because the compiler prefers ld
+                        f = ldouble(value);
+                        if (f != value) // isn't this a noop, because the compiler prefers ld
                             return;
                     }
                     else
                     {
-                        f = ldouble((sinteger_t)e->value);
-                        if (f != (sinteger_t)e->value)
+                        f = ldouble((sinteger_t)value);
+                        if (f != (sinteger_t)value)
                             return;
                     }
                     break;
@@ -3237,7 +3215,7 @@ IntRange getIntRange(Expression *e)
 
         void visit(IntegerExp *e)
         {
-            range = IntRange(SignExtendedNumber(e->value)).cast(e->type);
+            range = IntRange(SignExtendedNumber(e->getInteger())).cast(e->type);
         }
 
         void visit(CastExp *e)

@@ -873,10 +873,10 @@ void intUnary(TOK op, IntegerExp *e)
     switch (op)
     {
     case TOKneg:
-        e->value = -e->value;
+        e->setInteger(-e->getInteger());
         break;
     case TOKtilde:
-        e->value = ~e->value;
+        e->setInteger(~e->getInteger());
         break;
     default:
         assert(0);
@@ -892,26 +892,27 @@ void intBinary(TOK op, IntegerExp *dest, Type *type, IntegerExp *e1, IntegerExp 
     switch (op)
     {
     case TOKand:
-        result = e1->value & e2->value;
+        result = e1->getInteger() & e2->getInteger();
         break;
     case TOKor:
-        result = e1->value | e2->value;
+        result = e1->getInteger() | e2->getInteger();
         break;
     case TOKxor:
-        result = e1->value ^ e2->value;
+        result = e1->getInteger() ^ e2->getInteger();
         break;
     case TOKadd:
-        result = e1->value + e2->value;
+        result = e1->getInteger() + e2->getInteger();
         break;
     case TOKmin:
-        result = e1->value - e2->value;
+        result = e1->getInteger() - e2->getInteger();
         break;
     case TOKmul:
-        result = e1->value * e2->value;
+        result = e1->getInteger() * e2->getInteger();
         break;
     case TOKdiv:
-        {   sinteger_t n1 = e1->value;
-            sinteger_t n2 = e2->value;
+        {
+            sinteger_t n1 = e1->getInteger();
+            sinteger_t n2 = e2->getInteger();
 
             if (n2 == 0)
             {   e2->error("divide by 0");
@@ -924,8 +925,8 @@ void intBinary(TOK op, IntegerExp *dest, Type *type, IntegerExp *e1, IntegerExp 
         }
         break;
     case TOKmod:
-        {   sinteger_t n1 = e1->value;
-            sinteger_t n2 = e2->value;
+        {   sinteger_t n1 = e1->getInteger();
+            sinteger_t n2 = e2->getInteger();
 
             if (n2 == 0)
             {   e2->error("divide by 0");
@@ -951,13 +952,13 @@ void intBinary(TOK op, IntegerExp *dest, Type *type, IntegerExp *e1, IntegerExp 
         }
         break;
     case TOKpow:
-        {   dinteger_t n = e2->value;
+        {   dinteger_t n = e2->getInteger();
             if (!e2->type->isunsigned() && (sinteger_t)n < 0)
             {
                 e2->error("integer ^^ -integer: total loss of precision");
                 n = 1;
             }
-            uinteger_t r = e1->value;
+            uinteger_t r = e1->getInteger();
             result = 1;
             while (n != 0)
             {
@@ -969,11 +970,11 @@ void intBinary(TOK op, IntegerExp *dest, Type *type, IntegerExp *e1, IntegerExp 
         }
         break;
     case TOKshl:
-        result = e1->value << e2->value;
+        result = e1->getInteger() << e2->getInteger();
         break;
     case TOKshr:
-        {   dinteger_t value = e1->value;
-            dinteger_t dcount = e2->value;
+        {   dinteger_t value = e1->getInteger();
+            dinteger_t dcount = e2->getInteger();
             assert(dcount <= 0xFFFFFFFF);
             unsigned count = (unsigned)dcount;
             switch (e1->type->toBasetype()->ty)
@@ -1018,8 +1019,8 @@ void intBinary(TOK op, IntegerExp *dest, Type *type, IntegerExp *e1, IntegerExp 
         }
         break;
     case TOKushr:
-        {   dinteger_t value = e1->value;
-            dinteger_t dcount = e2->value;
+        {   dinteger_t value = e1->getInteger();
+            dinteger_t dcount = e2->getInteger();
             assert(dcount <= 0xFFFFFFFF);
             unsigned count = (unsigned)dcount;
             switch (e1->type->toBasetype()->ty)
@@ -1056,16 +1057,16 @@ void intBinary(TOK op, IntegerExp *dest, Type *type, IntegerExp *e1, IntegerExp 
         break;
     case TOKequal:
     case TOKidentity:
-        result = (e1->value == e2->value);
+        result = (e1->getInteger() == e2->getInteger());
         break;
     case TOKnotequal:
     case TOKnotidentity:
-        result = (e1->value != e2->value);
+        result = (e1->getInteger() != e2->getInteger());
         break;
     default:
         assert(0);
     }
-    dest->value = result;
+    dest->setInteger(result);
     dest->type = type;
 }
 

@@ -245,9 +245,10 @@ public:
 
 class IntegerExp : public Expression
 {
-public:
+private:
     dinteger_t value;
 
+public:
     IntegerExp(Loc loc, dinteger_t value, Type *type);
     IntegerExp(dinteger_t value);
     bool equals(RootObject *o);
@@ -261,6 +262,11 @@ public:
     void toMangleBuffer(OutBuffer *buf);
     Expression *toLvalue(Scope *sc, Expression *e);
     void accept(Visitor *v) { v->visit(this); }
+    dinteger_t getInteger() { return value; }
+    void setInteger(dinteger_t value);
+
+private:
+    void normalize();
 };
 
 class ErrorExp : public Expression

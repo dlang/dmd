@@ -260,10 +260,11 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
         {
             //printf("IntegerExp::toDt() %d\n", e->op);
             unsigned sz = e->type->size();
-            if (e->value == 0)
+            dinteger_t value = e->getInteger();
+            if (value == 0)
                 pdt = dtnzeros(pdt, sz);
             else
-                pdt = dtnbytes(pdt, sz, (char *)&e->value);
+                pdt = dtnbytes(pdt, sz, (char *)&value);
         }
 
         void visit(RealExp *e)

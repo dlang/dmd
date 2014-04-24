@@ -1101,7 +1101,7 @@ elem *toElem(Expression *e, IRState *irs)
 
         void visit(IntegerExp *ie)
         {
-            elem *e = el_long(totym(ie->type), ie->value);
+            elem *e = el_long(totym(ie->type), ie->getInteger());
             el_setLoc(e,ie->loc);
             result = e;
         }

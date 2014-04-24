@@ -2612,7 +2612,8 @@ IntegerExp::IntegerExp(Loc loc, dinteger_t value, Type *type)
         : Expression(loc, TOKint64, sizeof(IntegerExp))
 {
     //printf("IntegerExp(value = %lld, type = '%s')\n", value, type ? type->toChars() : "");
-    if (type && !type->isscalar())
+    assert(type);
+    if (!type->isscalar())
     {
         //printf("%s, loc = %d\n", toChars(), loc.linnum);
         if (type->ty != Terror)
@@ -2620,14 +2621,14 @@ IntegerExp::IntegerExp(Loc loc, dinteger_t value, Type *type)
         type = Type::terror;
     }
     this->type = type;
-    this->value = value;
+    setInteger(value);
 }
 
 IntegerExp::IntegerExp(dinteger_t value)
         : Expression(Loc(), TOKint64, sizeof(IntegerExp))
 {
     this->type = Type::tint32;
-    this->value = value;
+    this->value = (d_int32) value;
 }
 
 bool IntegerExp::equals(RootObject *o)
@@ -2651,72 +2652,53 @@ char *IntegerExp::toChars()
     return Expression::toChars();
 }
 
-dinteger_t IntegerExp::toInteger()
-{   Type *t;
+void IntegerExp::setInteger(dinteger_t value)
+{
+    this->value = value;
+    normalize();
+}
 
-    t = type;
-    while (t)
+void IntegerExp::normalize()
+{
+    /* 'Normalize' the value of the integer to be in range of the type
+     */
+    switch (type->toBasetype()->ty)
     {
-        switch (t->ty)
-        {
-            case Tbool:         value = (value != 0);           break;
-            case Tint8:         value = (d_int8)  value;        break;
-            case Tchar:
-            case Tuns8:         value = (d_uns8)  value;        break;
-            case Tint16:        value = (d_int16) value;        break;
-            case Twchar:
-            case Tuns16:        value = (d_uns16) value;        break;
-            case Tint32:        value = (d_int32) value;        break;
-            case Tdchar:
-            case Tuns32:        value = (d_uns32) value;        break;
-            case Tint64:        value = (d_int64) value;        break;
-            case Tuns64:        value = (d_uns64) value;        break;
-            case Tpointer:
-                if (Target::ptrsize == 4)
-                    value = (d_uns32) value;
-                else if (Target::ptrsize == 8)
-                    value = (d_uns64) value;
-                else
-                    assert(0);
-                break;
-
-            case Tenum:
-            {
-                TypeEnum *te = (TypeEnum *)t;
-                t = te->sym->memtype;
-                continue;
-            }
-
-            case Ttypedef:
-            {
-                TypeTypedef *tt = (TypeTypedef *)t;
-                t = tt->sym->basetype;
-                continue;
-            }
-
-            default:
-                /* This can happen if errors, such as
-                 * the type is painted on like in fromConstInitializer().
-                 */
-                if (!global.errors)
-                {
-                    printf("e = %p, ty = %d\n", this, type->ty);
-                    type->print();
-                    assert(0);
-                }
-                break;
-        }
-        break;
+        case Tbool:         value = (value != 0);           break;
+        case Tint8:         value = (d_int8)  value;        break;
+        case Tchar:
+        case Tuns8:         value = (d_uns8)  value;        break;
+        case Tint16:        value = (d_int16) value;        break;
+        case Twchar:
+        case Tuns16:        value = (d_uns16) value;        break;
+        case Tint32:        value = (d_int32) value;        break;
+        case Tdchar:
+        case Tuns32:        value = (d_uns32) value;        break;
+        case Tint64:        value = (d_int64) value;        break;
+        case Tuns64:        value = (d_uns64) value;        break;
+        case Tpointer:
+            if (Target::ptrsize == 4)
+                value = (d_uns32) value;
+            else if (Target::ptrsize == 8)
+                value = (d_uns64) value;
+            else
+                assert(0);
+            break;
+        default:
+            break;
     }
+}
+
+dinteger_t IntegerExp::toInteger()
+{
+    normalize();   // necessary until we fix all the paints of 'type'
     return value;
 }
 
 real_t IntegerExp::toReal()
 {
-    Type *t;
-
-    toInteger();
-    t = type->toBasetype();
+    normalize();   // necessary until we fix all the paints of 'type'
+    Type *t = type->toBasetype();
     if (t->ty == Tuns64)
         return ldouble((d_uns64)value);
     else
@@ -2741,23 +2723,10 @@ int IntegerExp::isBool(int result)
 
 Expression *IntegerExp::semantic(Scope *sc)
 {
-    if (!type)
-    {
-        // Determine what the type of this number is
-        dinteger_t number = value;
-
-        if (number & 0x8000000000000000LL)
-            type = Type::tuns64;
-        else if (number & 0xFFFFFFFF80000000LL)
-            type = Type::tint64;
-        else
-            type = Type::tint32;
-    }
-    else
-    {
-        if (!type->deco)
-            type = type->semantic(loc, sc);
-    }
+    assert(type && type->deco);
+    if (type->ty == Terror)
+        return new ErrorExp();
+    normalize();
     return this;
 }
 
