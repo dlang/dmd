@@ -18,6 +18,7 @@ public import core.stdc.stddef; // for size_t, wchar_t
 extern (C):
 @system:
 nothrow:
+@nogc:
 
 struct div_t
 {
