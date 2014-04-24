@@ -4088,7 +4088,8 @@ Expression *ArrayLiteralExp::semantic(Scope *sc)
 
     semanticTypeInfo(sc, t0);
 
-    if (sc->func && !sc->intypeof && elements && type->toBasetype()->ty == Tarray)
+    if (sc->func && !sc->intypeof && !(sc->flags & SCOPEctfe) &&
+        elements && type->toBasetype()->ty == Tarray)
     {
         for (size_t i = 0; i < elements->dim; i++)
         {
@@ -4239,7 +4240,7 @@ Expression *AssocArrayLiteralExp::semantic(Scope *sc)
     if (tkey == Type::terror || tvalue == Type::terror)
         return new ErrorExp;
 
-    if (sc->func && !sc->intypeof && keys->dim && sc->func->setGC())
+    if (sc->func && !sc->intypeof && !(sc->flags & SCOPEctfe) && keys->dim && sc->func->setGC())
     {
         error("associative array literal in @nogc function %s may cause GC allocation", sc->func->toChars());
         return new ErrorExp;
@@ -5175,7 +5176,7 @@ Lagain:
     //printf("NewExp:type '%s'\n", type->toChars());
     semanticTypeInfo(sc, type);
 
-    if (sc->func && !sc->intypeof)
+    if (sc->func && !sc->intypeof && !(sc->flags & SCOPEctfe))
     {
         if (member && !member->isNogc() && sc->func->setGC())
         {
@@ -9417,7 +9418,7 @@ Expression *DeleteExp::semantic(Scope *sc)
         }
     }
 
-    if (sc->func && !sc->intypeof && sc->func->setGC())
+    if (sc->func && !sc->intypeof && !(sc->flags & SCOPEctfe) && sc->func->setGC())
     {
         error("cannot use 'delete' in @nogc function %s", sc->func->toChars());
         goto Lerr;
@@ -10423,7 +10424,7 @@ Expression *IndexExp::semantic(Scope *sc)
                 e2 = e2->implicitCastTo(sc, taa->index);        // type checking
             }
             type = taa->next;
-            if (sc->func && !sc->intypeof && sc->func->setGC())
+            if (sc->func && !sc->intypeof && !(sc->flags & SCOPEctfe) && sc->func->setGC())
             {
                 error("indexing an associative array in @nogc function %s may cause gc allocation",
                     sc->func->toChars());
@@ -11326,7 +11327,7 @@ Expression *AssignExp::semantic(Scope *sc)
         checkDefCtor(ale->loc, tn);
         semanticTypeInfo(sc, tn);
 
-        if (sc->func && !sc->intypeof && sc->func->setGC())
+        if (sc->func && !sc->intypeof && !(sc->flags & SCOPEctfe) && sc->func->setGC())
         {
             error("Setting 'length' in @nogc function %s may cause GC allocation",
                 sc->func->toChars());
@@ -11621,7 +11622,7 @@ Expression *CatAssignExp::semantic(Scope *sc)
     if (e)
         return e;
 
-    if (sc->func && !sc->intypeof && sc->func->setGC())
+    if (sc->func && !sc->intypeof && !(sc->flags & SCOPEctfe) && sc->func->setGC())
     {
         error("cannot use operator ~= in @nogc function %s", sc->func->toChars());
         return new ErrorExp();
@@ -12075,7 +12076,7 @@ Expression *CatExp::semantic(Scope *sc)
     if (e)
         return e;
 
-    if (sc->func && !sc->intypeof && sc->func->setGC())
+    if (sc->func && !sc->intypeof && !(sc->flags & SCOPEctfe) && sc->func->setGC())
     {
         error("cannot use operator ~ in @nogc function %s", sc->func->toChars());
         return new ErrorExp();
