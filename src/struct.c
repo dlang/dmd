@@ -691,7 +691,7 @@ void StructDeclaration::semantic(Scope *sc)
     if (type->ty == Tstruct && ((TypeStruct *)type)->sym != this)
     {
         TemplateInstance *ti = ((TypeStruct *)type)->sym->isInstantiated();
-        if (ti && ti->errors)
+        if (ti && isError(ti))
             ((TypeStruct *)type)->sym = this;
     }
 

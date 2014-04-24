@@ -266,7 +266,7 @@ void ClassDeclaration::semantic(Scope *sc)
     if (type->ty == Tclass && ((TypeClass *)type)->sym != this)
     {
         TemplateInstance *ti = ((TypeClass *)type)->sym->isInstantiated();
-        if (ti && ti->errors)
+        if (ti && isError(ti))
             ((TypeClass *)type)->sym = this;
     }
 
@@ -1268,7 +1268,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
     if (type->ty == Tclass && ((TypeClass *)type)->sym != this)
     {
         TemplateInstance *ti = ((TypeClass *)type)->sym->isInstantiated();
-        if (ti && ti->errors)
+        if (ti && isError(ti))
             ((TypeClass *)type)->sym = this;
     }
 
