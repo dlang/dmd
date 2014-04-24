@@ -2,16 +2,13 @@
  * ...
  *
  * Copyright: Copyright Benjamin Thaut 2010 - 2013.
- * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * License: Distributed under the
+ *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
+ *    (See accompanying file LICENSE)
  * Authors:   Benjamin Thaut, Sean Kelly
  * Source:    $(DRUNTIMESRC core/sys/windows/_stacktrace.d)
  */
 
-/*          Copyright Benjamin Thaut 2010 - 2012.
- * Distributed under the Boost Software License, Version 1.0.
- *    (See accompanying file LICENSE or copy at
- *          http://www.boost.org/LICENSE_1_0.txt)
- */
 module core.sys.windows.stacktrace;
 version(Windows):
 
@@ -52,7 +49,7 @@ public:
                 static enum INTERNALFRAMES = 3;
             else
                 static enum INTERNALFRAMES = 2;
-                
+
             skip += INTERNALFRAMES; //skip the stack frames within the StackTrace class
         }
         else
@@ -62,7 +59,7 @@ public:
                 static enum INTERNALFRAMES = 1;
             else
                 static enum INTERNALFRAMES = 1;
-                
+
             skip += INTERNALFRAMES;
         }
         if( initialized )
@@ -141,12 +138,12 @@ private:
         auto dbghelp  = DbgHelp.get();
         if(dbghelp is null)
             return []; // dbghelp.dll not available
-            
+
         if(RtlCaptureStackBackTrace !is null && context is null)
         {
             size_t[63] buffer = void; // On windows xp the sum of "frames to skip" and "frames to capture" can't be greater then 63
             auto backtraceLength = RtlCaptureStackBackTrace(cast(ULONG)skip, cast(ULONG)(buffer.length - skip), cast(void**)buffer.ptr, null);
-            
+
             // If we get a backtrace and it does not have the maximum length use it.
             // Otherwise rely on tracing through StackWalk64 which is slower but works when no frame pointers are available.
             if(backtraceLength > 1 && backtraceLength < buffer.length - skip)
@@ -186,7 +183,7 @@ private:
         STACKFRAME64 stackframe;
         with (stackframe)
         {
-            version(X86) 
+            version(X86)
             {
                 enum Flat = ADDRESS_MODE.AddrModeFlat;
                 AddrPC.Offset    = ctxt.Eip;
@@ -214,9 +211,9 @@ private:
 
         ulong[] result;
         size_t frameNum = 0;
-        
+
         // do ... while so that we don't skip the first stackframe
-        do 
+        do
         {
             if( stackframe.AddrPC.Offset == stackframe.AddrReturn.Offset )
             {
@@ -383,19 +380,19 @@ shared static this()
 
     if( dbghelp is null )
         return; // dbghelp.dll not available
-        
+
     auto kernel32Handle = LoadLibraryA( "kernel32.dll" );
     if(kernel32Handle !is null)
     {
         RtlCaptureStackBackTrace = cast(RtlCaptureStackBackTraceFunc) GetProcAddress(kernel32Handle, "RtlCaptureStackBackTrace");
-        debug(PRINTF) 
+        debug(PRINTF)
         {
             if(RtlCaptureStackBackTrace !is null)
                 printf("Found RtlCaptureStackBackTrace\n");
         }
     }
 
-    debug(PRINTF) 
+    debug(PRINTF)
     {
         API_VERSION* dbghelpVersion = dbghelp.ImagehlpApiVersion();
         printf("DbgHelp Version %d.%d.%d\n", dbghelpVersion.MajorVersion, dbghelpVersion.MinorVersion, dbghelpVersion.Revision);
