@@ -4088,22 +4088,19 @@ Expression *ArrayLiteralExp::semantic(Scope *sc)
 
     semanticTypeInfo(sc, t0);
 
-    if (sc->func && !sc->intypeof)
+    if (sc->func && !sc->intypeof && elements && type->toBasetype()->ty == Tarray)
     {
-        if (elements && type->toBasetype()->ty == Tarray)
+        for (size_t i = 0; i < elements->dim; i++)
         {
-            for (size_t i = 0; i < elements->dim; i++)
+            if (!((*elements)[i])->isConst())
             {
-                if (!((*elements)[i])->isConst())
+                if (sc->func->setGC())
                 {
-                    if (sc->func->setGC())
-                    {
-                        error("array literals in @nogc function %s may cause GC allocation",
-                            sc->func->toChars());
-                        return new ErrorExp();
-                    }
-                    break;
+                    error("array literals in @nogc function %s may cause GC allocation",
+                        sc->func->toChars());
+                    return new ErrorExp();
                 }
+                break;
             }
         }
     }
@@ -4242,13 +4239,10 @@ Expression *AssocArrayLiteralExp::semantic(Scope *sc)
     if (tkey == Type::terror || tvalue == Type::terror)
         return new ErrorExp;
 
-    if (sc->func && !sc->intypeof)
+    if (sc->func && !sc->intypeof && keys->dim && sc->func->setGC())
     {
-        if (keys->dim && sc->func->setGC())
-        {
-            error("associative array literal in @nogc function %s may cause GC allocation", sc->func->toChars());
-            return new ErrorExp;
-        }
+        error("associative array literal in @nogc function %s may cause GC allocation", sc->func->toChars());
+        return new ErrorExp;
     }
 
     type = new TypeAArray(tvalue, tkey);
