@@ -1126,7 +1126,8 @@ bool arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt)
         if (!e->type)
         {
             e->error("%s has no value", e->toChars());
-            e = new ErrorExp();
+            t0 = Type::terror;
+            continue;
         }
 
         e = e->isLvalue() ? callCpCtor(sc, e) : valueNoDtor(e);
@@ -1152,24 +1153,25 @@ bool arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt)
         j0 = i;
         e0 = e;
         t0 = e->type;
-        (*exps)[i] = e;
+        if (e->op != TOKerror)
+            (*exps)[i] = e;
     }
 
-    if (t0)
+    if (!t0)
+        t0 = Type::tvoid;               // [] is typed as void[]
+    else if (t0->ty != Terror)
     {
         for (size_t i = 0; i < exps->dim; i++)
         {
             Expression *e = (*exps)[i];
             e = e->implicitCastTo(sc, t0);
+            assert(e->op != TOKerror);
             (*exps)[i] = e;
         }
     }
-    else
-        t0 = Type::tvoid;               // [] is typed as void[]
     if (pt)
         *pt = t0;
 
-    // Eventually, we want to make this copy-on-write
     return (t0 == Type::terror);
 }
 
