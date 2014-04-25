@@ -1301,6 +1301,82 @@ void test_getUnitTests ()
 
 /********************************************************/
 
+void test_getFunctionAttributes()
+{
+    enum tupleLength(T...) = T.length;
+    alias tuple(T...) = T;
+
+    struct S
+    {
+        int noF() { return 0; }
+        int constF() const { return 0; }
+        int immutableF() immutable { return 0; }
+        int inoutF() inout { return 0; }
+        int sharedF() shared { return 0; }
+
+        int x;
+        ref int refF() { return x; }
+        int propertyF() @property { return 0; }
+        int nothrowF() nothrow { return 0; }
+        int nogcF() @nogc { return 0; }
+
+        int systemF() @system { return 0; }
+        int trustedF() @trusted { return 0; }
+        int safeF() @safe { return 0; }
+
+        int pureF() pure { return 0; }
+    }
+
+    static assert(tupleLength!(__traits(getFunctionAttributes, S.noF)) == 0);
+    static assert(__traits(getFunctionAttributes, S.constF) == tuple!("const"));
+    static assert(__traits(getFunctionAttributes, S.immutableF) == tuple!("immutable"));
+    static assert(__traits(getFunctionAttributes, S.inoutF) == tuple!("inout"));
+    static assert(__traits(getFunctionAttributes, S.sharedF) == tuple!("shared"));
+
+    static assert(__traits(getFunctionAttributes, S.refF) == tuple!("ref"));
+    static assert(__traits(getFunctionAttributes, S.propertyF) == tuple!("@property"));
+    static assert(__traits(getFunctionAttributes, S.nothrowF) == tuple!("nothrow"));
+    static assert(__traits(getFunctionAttributes, S.nogcF) == tuple!("@nogc"));
+
+    static assert(__traits(getFunctionAttributes, S.systemF) == tuple!("@system"));
+    static assert(__traits(getFunctionAttributes, S.trustedF) == tuple!("@trusted"));
+    static assert(__traits(getFunctionAttributes, S.safeF) == tuple!("@safe"));
+
+    static assert(__traits(getFunctionAttributes, S.pureF) == tuple!("pure"));
+
+    int pure_nothrow() nothrow pure { return 0; }
+    static ref int static_ref_property() @property { return *(new int); }
+    ref int ref_property() @property { return *(new int); }
+    void safe_nothrow() @safe nothrow { }
+
+    static assert(__traits(getFunctionAttributes, pure_nothrow) == tuple!("pure", "nothrow"));
+    static assert(__traits(getFunctionAttributes, static_ref_property) == tuple!("@property", "ref"));
+    static assert(__traits(getFunctionAttributes, ref_property) == tuple!("@property", "ref"));
+    static assert(__traits(getFunctionAttributes, safe_nothrow) == tuple!("nothrow", "@safe"));
+
+    struct S2
+    {
+        int pure_const() const pure { return 0; }
+        int pure_sharedconst() const shared pure { return 0; }
+    }
+
+    static assert(__traits(getFunctionAttributes, S2.pure_const) == tuple!("const", "pure"));
+    static assert(__traits(getFunctionAttributes, S2.pure_sharedconst) == tuple!("const", "shared", "pure"));
+
+    static assert(__traits(getFunctionAttributes, (int a) { }) == tuple!("pure", "nothrow", "@nogc", "@safe"));
+
+    auto safeDel = delegate() @safe { };
+    static assert(__traits(getFunctionAttributes, safeDel) == tuple!("pure", "nothrow", "@nogc", "@safe"));
+
+    auto trustedDel = delegate() @trusted { };
+    static assert(__traits(getFunctionAttributes, trustedDel) == tuple!("pure", "nothrow", "@nogc", "@trusted"));
+
+    auto systemDel = delegate() @system { };
+    static assert(__traits(getFunctionAttributes, systemDel) == tuple!("pure", "nothrow", "@nogc", "@system"));
+}
+
+/********************************************************/
+
 class TestIsOverrideFunctionBase
 {
     void bar () {}
@@ -1411,6 +1487,7 @@ int main()
     test9136();
     test10096();
     test_getUnitTests();
+    test_getFunctionAttributes();
     test_isOverrideFunction();
 
     writeln("Success");

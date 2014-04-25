@@ -200,6 +200,19 @@ Lfalse:
     return new IntegerExp(e->loc, result, Type::tbool);
 }
 
+// callback for TypeFunction::attributesApply
+struct PushAttributes
+{
+    Expressions *mods;
+
+    static int fp(void *param, const char *str)
+    {
+        PushAttributes *p = (PushAttributes *)param;
+        p->mods->push(new StringExp(Loc(), (char *)str));
+        return 0;
+    }
+};
+
 Expression *semanticTraits(TraitsExp *e, Scope *sc)
 {
 #if LOGSEMANTIC
@@ -602,6 +615,53 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         //printf("getAttributes %s, attrs = %p, scope = %p\n", s->toChars(), s->userAttributes, s->userAttributesScope);
         UserAttributeDeclaration *udad = s->userAttribDecl;
         TupleExp *tup = new TupleExp(e->loc, udad ? udad->getAttributes() : new Expressions());
+        return tup->semantic(sc);
+    }
+    else if (e->ident == Id::getFunctionAttributes)
+    {
+        /// extract all function attributes as a tuple (const/shared/inout/pure/nothrow/etc) except UDAs.
+
+        if (dim != 1)
+            goto Ldimerror;
+        RootObject *o = (*e->args)[0];
+        Dsymbol *s = getDsymbol(o);
+        TypeFunction *tf = NULL;
+        FuncDeclaration *fd = NULL;
+
+        if (!s) { }
+        else if (FuncDeclaration *sfd = s->isFuncDeclaration())
+        {
+            fd = sfd;
+            tf = (TypeFunction *)fd->type;
+        }
+        else if (VarDeclaration *vd = s->isVarDeclaration())
+        {
+            if (vd->type->ty == Tfunction)
+                tf = (TypeFunction *)vd->type;
+            else if (vd->type->ty == Tdelegate)
+                tf = (TypeFunction *)vd->type->nextOf();
+            else if (vd->type->ty == Tpointer && vd->type->nextOf()->ty == Tfunction)
+                tf = (TypeFunction *)vd->type->nextOf();
+        }
+
+        if (!tf)
+        {
+            e->error("first argument is not a function");
+            goto Lfalse;
+        }
+
+        Expressions *mods = new Expressions();
+
+        PushAttributes pa;
+        pa.mods = mods;
+
+        // const/immutable/inout/shared is only valid for member functions
+        if (fd)
+            fd->type->modifiersApply(&pa, &PushAttributes::fp);
+
+        tf->attributesApply(&pa, &PushAttributes::fp);
+
+        TupleExp *tup = new TupleExp(e->loc, mods);
         return tup->semantic(sc);
     }
     else if (e->ident == Id::allMembers || e->ident == Id::derivedMembers)
