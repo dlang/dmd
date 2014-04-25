@@ -300,9 +300,9 @@ int Statement::blockExit(FuncDeclaration *func, bool mustNotThrow)
                             // Allow if last case/default was empty
                             CaseStatement *sc = slast->isCaseStatement();
                             DefaultStatement *sd = slast->isDefaultStatement();
-                            if (sc && (!sc->statement->hasCode() || sc->statement->isCaseStatement()))
+                            if (sc && (!sc->statement->hasCode() || sc->statement->isCaseStatement() || sc->statement->isErrorStatement()))
                                 ;
-                            else if (sd && (!sd->statement->hasCode() || sd->statement->isCaseStatement()))
+                            else if (sd && (!sd->statement->hasCode() || sd->statement->isCaseStatement() || sd->statement->isErrorStatement()))
                                 ;
                             else
                             {
