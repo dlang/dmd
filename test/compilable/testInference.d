@@ -412,9 +412,24 @@ int logOf12542(T)(T n)
     return 0;
 }
 
-void test12542() @safe nothrow pure 
+void test12542() @safe nothrow pure
 {
     int log = logOf12542(9);
+}
+
+/***************************************************/
+// 12647
+
+void assertThrown12647(E)(lazy E expression)
+{
+    expression();
+}
+
+void test12647() nothrow pure @safe @nogc
+{
+    // should be marked nothrow
+    //throw new Exception("");
+    assertThrown12647( 0 );
 }
 
 /***************************************************/
