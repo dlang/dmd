@@ -3,7 +3,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail3882.d(28): Warning: Call to function fail3882.strictlyPure!int.strictlyPure without side effects discards return value of type int, prepend a cast(void) if intentional
+fail_compilation/fail3882.d(29): Warning: calling fail3882.strictlyPure!int.strictlyPure without side effects discards return value of type int, prepend a cast(void) if intentional
+fail_compilation/fail3882.d(33): Warning: calling fp without side effects discards return value of type int, prepend a cast(void) if intentional
 ---
 */
 
@@ -26,6 +27,10 @@ void main()
     strictVoidReturn(x);
     nonstrictVoidReturn(x);
     strictlyPure(x);
+
+    // 12649
+    auto fp = &strictlyPure!int;
+    fp(x);
 }
 
 /******************************************/

@@ -173,9 +173,19 @@ void discardValue(Expression *e)
                     if (t->ty == Tfunction && ((TypeFunction *)t)->purity > PUREweak &&
                                               ((TypeFunction *)t)->isnothrow)
                     {
-                        e->warning("Call to function %s without side effects discards return value of type %s, prepend a cast(void) if intentional",
-                                   ce->f->toPrettyChars(),
-                                   e->type->toChars());
+                        const char *s;
+                        if (ce->f)
+                            s = ce->f->toPrettyChars();
+                        else if (ce->e1->op == TOKstar)
+                        {
+                            // print 'fp' if ce->e1 is (*fp)
+                            s = ((PtrExp *)ce->e1)->e1->toChars();
+                        }
+                        else
+                            s = ce->e1->toChars();
+
+                        e->warning("calling %s without side effects discards return value of type %s, prepend a cast(void) if intentional",
+                                   s, e->type->toChars());
                     }
                 }
             }
