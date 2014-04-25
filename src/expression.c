@@ -8119,7 +8119,8 @@ Lagain:
     else
     {
         if (e1->op == TOKdot)
-        {   DotIdExp *die = (DotIdExp *)e1;
+        {
+            DotIdExp *die = (DotIdExp *)e1;
             e1 = die->semantic(sc);
             /* Look for e1 having been rewritten to expr.opDispatch!(string)
              * We handle such earlier, so go back.
@@ -8148,14 +8149,14 @@ Lagain:
         /* Look for e1 being a lazy parameter
          */
         if (e1->op == TOKvar)
-        {   VarExp *ve = (VarExp *)e1;
-
+        {
+            VarExp *ve = (VarExp *)e1;
             if (ve->var->storage_class & STClazy)
             {
-                // lazy paramaters can be called without violating purity and safety
+                // lazy paramaters can be called without violating purity, safety, nothrow-ness and gc-ability.
                 Type *tw = ve->var->type;
                 Type *tc = ve->var->type->substWildTo(MODconst);
-                TypeFunction *tf = new TypeFunction(NULL, tc, 0, LINKd, STCsafe | STCpure);
+                TypeFunction *tf = new TypeFunction(NULL, tc, 0, LINKd, STCsafe | STCpure | STCnothrow | STCnogc);
                 (tf = (TypeFunction *)tf->semantic(loc, sc))->next = tw;    // hack for bug7757
                 TypeDelegate *t = new TypeDelegate(tf);
                 ve->type = t->semantic(loc, sc);
@@ -8163,7 +8164,8 @@ Lagain:
         }
 
         if (e1->op == TOKimport)
-        {   // Perhaps this should be moved to ScopeExp::semantic()
+        {
+            // Perhaps this should be moved to ScopeExp::semantic()
             ScopeExp *se = (ScopeExp *)e1;
             e1 = new DsymbolExp(loc, se->sds);
             e1 = e1->semantic(sc);
@@ -8186,14 +8188,16 @@ Lagain:
             }
 
             if (de->e2->op == TOKimport)
-            {   // This should *really* be moved to ScopeExp::semantic()
+            {
+                // This should *really* be moved to ScopeExp::semantic()
                 ScopeExp *se = (ScopeExp *)de->e2;
                 de->e2 = new DsymbolExp(loc, se->sds);
                 de->e2 = de->e2->semantic(sc);
             }
 
             if (de->e2->op == TOKtemplate)
-            {   TemplateExp *te = (TemplateExp *) de->e2;
+            {
+                TemplateExp *te = (TemplateExp *) de->e2;
                 e1 = new DotTemplateExp(loc,de->e1,te->td);
             }
         }

@@ -90,12 +90,12 @@ bool lambdaHasSideEffect(Expression *e)
             if (ce->e1->type)
             {
                 Type *t = ce->e1->type->toBasetype();
-                if ((t->ty == Tfunction && ((TypeFunction *)t)->purity > PUREweak &&
-                                           ((TypeFunction *)t)->isnothrow)
-                    ||
-                    (t->ty == Tdelegate && ((TypeFunction *)((TypeDelegate *)t)->next)->purity > PUREweak &&
-                                           ((TypeFunction *)((TypeDelegate *)t)->next)->isnothrow)
-                   )
+                if (t->ty == Tdelegate)
+                    t = ((TypeDelegate *)t)->next;
+                if (t->ty == Tfunction)
+                    ((TypeFunction *)t)->purityLevel();
+                if (t->ty == Tfunction && ((TypeFunction *)t)->purity > PUREweak &&
+                                          ((TypeFunction *)t)->isnothrow)
                 {
                 }
                 else
@@ -152,6 +152,7 @@ void discardValue(Expression *e)
             /* Issue 3882: */
             if (global.params.warnings && !global.gag)
             {
+                CallExp *ce = (CallExp *)e;
                 if (e->type->ty == Tvoid)
                 {
                     /* Don't complain about calling void-returning functions with no side-effect,
@@ -162,12 +163,30 @@ void discardValue(Expression *e)
                      * never call assert (and or not called from inside unittest blocks)
                      */
                 }
-                else
+                else if (ce->e1->type)
                 {
-                    CallExp *ce = (CallExp *)e;
-                    e->warning("Call to function %s without side effects discards return value of type %s, prepend a cast(void) if intentional",
-                               ce->f->toPrettyChars(),
-                               e->type->toChars());
+                    Type *t = ce->e1->type->toBasetype();
+                    if (t->ty == Tdelegate)
+                        t = ((TypeDelegate *)t)->next;
+                    if (t->ty == Tfunction)
+                        ((TypeFunction *)t)->purityLevel();
+                    if (t->ty == Tfunction && ((TypeFunction *)t)->purity > PUREweak &&
+                                              ((TypeFunction *)t)->isnothrow)
+                    {
+                        const char *s;
+                        if (ce->f)
+                            s = ce->f->toPrettyChars();
+                        else if (ce->e1->op == TOKstar)
+                        {
+                            // print 'fp' if ce->e1 is (*fp)
+                            s = ((PtrExp *)ce->e1)->e1->toChars();
+                        }
+                        else
+                            s = ce->e1->toChars();
+
+                        e->warning("calling %s without side effects discards return value of type %s, prepend a cast(void) if intentional",
+                                   s, e->type->toChars());
+                    }
                 }
             }
             return;
