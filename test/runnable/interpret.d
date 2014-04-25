@@ -2055,7 +2055,8 @@ int badfoo6()
 int badfoo7()
 {
     S[] b = [S(7), S(15), S(56), S(12), S(67)];
-    b[1..4] = [S(17), S(4)]; // slice mismatch in dynamic array
+    S[] c = [S(17), S(4)];
+    b[1..4] = c[]; // slice mismatch in dynamic array
     return 1;
 }
 

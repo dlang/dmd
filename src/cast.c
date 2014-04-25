@@ -1234,6 +1234,12 @@ Type *toStaticArrayType(SliceExp *e)
             return e->type->toBasetype()->nextOf()->sarrayOf(len);
         }
     }
+    else
+    {
+        Type *t1b = e->e1->type->toBasetype();
+        if (t1b->ty == Tsarray)
+            return t1b;
+    }
     return NULL;
 }
 

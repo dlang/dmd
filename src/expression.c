@@ -11271,12 +11271,22 @@ Expression *AssignExp::semantic(Scope *sc)
         }
         else
         {
-            if (e2x->op == TOKarrayliteral)
+            if (e2x->implicitConvTo(t1->nextOf()->arrayOf()) > MATCHnomatch)
             {
-                ArrayLiteralExp *ale = (ArrayLiteralExp *)e2x;
                 uinteger_t dim1 = ((TypeSArray *)t1)->dim->toInteger();
-                uinteger_t dim2 = ale->elements ? ale->elements->dim : 0;
-                if (e2x->implicitConvTo(t1->nextOf()->sarrayOf(dim2)))
+                uinteger_t dim2 = dim1;
+                if (e2x->op == TOKarrayliteral)
+                {
+                    ArrayLiteralExp *ale = (ArrayLiteralExp *)e2x;
+                    dim2 = ale->elements ? ale->elements->dim : 0;
+                }
+                else if (e2x->op == TOKslice)
+                {
+                    Type *tx = toStaticArrayType((SliceExp *)e2x);
+                    if (tx)
+                        dim2 = ((TypeSArray *)tx)->dim->toInteger();
+                }
+                if (dim1 != dim2)
                 {
                     error("mismatched array lengths, %d and %d", (int)dim1, (int)dim2);
                     return new ErrorExp();
@@ -11384,38 +11394,30 @@ Expression *AssignExp::semantic(Scope *sc)
              t2->nextOf()->implicitConvTo(t1->nextOf()))
     {
         // Check element-wise assignment.
-        SliceExp *se1 = (SliceExp *)e1;
-        Type *tx1 = se1->e1->type->toBasetype();
 
         /* If assigned elements number is known at compile time,
          * check the mismatch.
          */
-        if (se1->lwr == NULL && tx1->ty == Tsarray)
+        SliceExp *se1 = (SliceExp *)e1;
+        TypeSArray *tsa1 = (TypeSArray *)toStaticArrayType(se1);
+        TypeSArray *tsa2 = NULL;
+        if (e2->op == TOKarrayliteral)
+            tsa2 = (TypeSArray *)t2->nextOf()->sarrayOf(((ArrayLiteralExp *)e2)->elements->dim);
+        else if (e2->op == TOKslice)
+            tsa2 = (TypeSArray *)toStaticArrayType((SliceExp *)e2);
+        else if (t2->ty == Tsarray)
+            tsa2 = (TypeSArray *)t2;
+        if (tsa1 && tsa2)
         {
-            Type *tx2 = t2;
-            if (e2->op == TOKslice && ((SliceExp *)e2)->lwr == NULL)
-                tx2 = ((SliceExp *)e2)->e1->type->toBasetype();
-            uinteger_t dim1, dim2;
-            if (e2->op == TOKarrayliteral)
+            uinteger_t dim1 = tsa1->dim->toInteger();
+            uinteger_t dim2 = tsa2->dim->toInteger();
+            if (dim1 != dim2)
             {
-                dim2 = ((ArrayLiteralExp *)e2)->elements->dim;
-                goto Lsa;
-            }
-            if (tx2->ty == Tsarray)
-            {
-                // sa1[] = sa2[];
-                // sa1[] = sa2;
-                // sa1[] = [ ... ];
-                dim2 = ((TypeSArray *)tx2)->dim->toInteger();
-            Lsa:
-                dim1 = ((TypeSArray *)tx1)->dim->toInteger();
-                if (dim1 != dim2)
-                {
-                    error("mismatched array lengths, %d and %d", (int)dim1, (int)dim2);
-                    return new ErrorExp();
-                }
+                error("mismatched array lengths, %d and %d", (int)dim1, (int)dim2);
+                return new ErrorExp();
             }
         }
+
         if (op != TOKblit &&
             (e2->op == TOKslice && ((UnaExp *)e2)->e1->isLvalue() ||
              e2->op == TOKcast  && ((UnaExp *)e2)->e1->isLvalue() ||
@@ -11423,6 +11425,7 @@ Expression *AssignExp::semantic(Scope *sc)
         {
             e1->checkPostblit(sc, t1->nextOf());
         }
+
         if (0 && global.params.warnings && !global.gag && op == TOKassign &&
             e2->op != TOKslice && e2->op != TOKassign &&
             e2->op != TOKarrayliteral && e2->op != TOKstring &&
