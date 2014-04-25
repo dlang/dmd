@@ -577,10 +577,10 @@ int Statement::blockExit(FuncDeclaration *func, bool mustNotThrow)
                 else
                     catchresult |= BEfallthru;
 
-                /* If we're catching Object, then there is no throwing
+                /* If we're catching Object/Throwable/Error, then there is no throwing
                  */
                 Identifier *id = c->type->toBasetype()->isClassHandle()->ident;
-                if (id == Id::Object || id == Id::Throwable)
+                if (id == Id::Object || id == Id::Throwable || id == Id::Error)
                 {
                     result &= ~(BEthrow | BEerrthrow);
                 }
