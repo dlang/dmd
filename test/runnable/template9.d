@@ -3374,6 +3374,15 @@ void test12376()
 }
 
 /******************************************/
+// 12651
+
+alias TemplateArgsOf12651(alias T : Base!Args, alias Base, Args...) = Args;
+
+struct S12651(T) { }
+
+static assert(!__traits(compiles, TemplateArgsOf12651!(S12651!int, S, float)));
+
+/******************************************/
 
 int main()
 {
