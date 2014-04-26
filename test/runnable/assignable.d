@@ -852,6 +852,30 @@ void test12131() pure
 }
 
 /***************************************************/
+// 12211
+
+void test12211()
+{
+    int a = 0;
+    void foo(ref int x)
+    {
+        assert(x == 10);
+        assert(&x == &a);
+        x = 3;
+    }
+    foo(a = 10);
+    assert(a == 3);
+    foo(a += 7);
+    assert(a == 3);
+
+    // array ops should make rvalue
+    int[3] sa, sb;
+    void bar(ref int[]) {}
+    static assert(!__traits(compiles, bar(sa[]  = sb[])));
+    static assert(!__traits(compiles, bar(sa[] += sb[])));
+}
+
+/***************************************************/
 // 12212
 
 void test12212()
@@ -963,6 +987,7 @@ int main()
     test9416();
     test11187();
     test12131();
+    test12211();
     test12212();
 
     printf("Success\n");
