@@ -1051,7 +1051,7 @@ Parameters *Parser::parseParameters(int *pvarargs)
                 ae = NULL;
                 if (token.value == TOKassign)   // = defaultArg
                 {   nextToken();
-                    ae = parseAssignExp();
+                    ae = parseDefaultInitExp();
                     hasdefault = 1;
                 }
                 else
@@ -1526,7 +1526,7 @@ TemplateParameters *Parser::parseTemplateParameterList(int flag)
                 if (token.value == TOKassign)   // = CondExpression
                 {
                     nextToken();
-                    tp_defaultvalue = parseCondExp();
+                    tp_defaultvalue = parseDefaultInitExp();
                 }
                 tp = new TemplateValueParameter(loc, tp_ident, tp_valtype, tp_specvalue, tp_defaultvalue);
             }
@@ -2780,7 +2780,6 @@ Initializer *Parser::parseInitializer()
  * with special handling for __FILE__ and __LINE__.
  */
 
-#if DMDV2
 Expression *Parser::parseDefaultInitExp()
 {
     if (token.value == TOKfile ||
@@ -2788,8 +2787,8 @@ Expression *Parser::parseDefaultInitExp()
     {
         Token *t = peek(&token);
         if (t->value == TOKcomma || t->value == TOKrparen)
-        {   Expression *e;
-
+        {
+            Expression *e;
             if (token.value == TOKfile)
                 e = new FileInitExp(loc);
             else
@@ -2802,7 +2801,7 @@ Expression *Parser::parseDefaultInitExp()
     Expression *e = parseAssignExp();
     return e;
 }
-#endif
+
 
 /*****************************************
  * Input:
@@ -2882,13 +2881,8 @@ Statement *Parser::parseStatement(int flags)
         case TOKtypeid:
         case TOKis:
         case TOKlbracket:
-#if DMDV2
-        case TOKtilde:
-        case TOKnot:
-        case TOKtraits:
         case TOKfile:
         case TOKline:
-#endif
         Lexp:
         {
             Expression *exp = parseExpression();
@@ -4336,7 +4330,6 @@ Expression *Parser::parsePrimaryExp()
             nextToken();
             break;
 
-#if DMDV2
         case TOKfile:
         {   const char *s = loc.filename ? loc.filename : mod->ident->toChars();
             e = new StringExp(loc, (char *)s, strlen(s), 0);
@@ -4348,7 +4341,7 @@ Expression *Parser::parsePrimaryExp()
             e = new IntegerExp(loc, loc.linnum, Type::tint32);
             nextToken();
             break;
-#endif
+
 
         case TOKtrue:
             e = new IntegerExp(loc, 1, Type::tbool);
@@ -4905,10 +4898,8 @@ Expression *Parser::parseUnaryExp()
                     case TOKfunction:
                     case TOKdelegate:
                     case TOKtypeof:
-#if DMDV2
                     case TOKfile:
                     case TOKline:
-#endif
                     case BASIC_TYPES:           // (type)int.size
                     {   // (type) una_exp
                         Type *t;
@@ -5550,10 +5541,8 @@ void initPrecedence()
     precedence[TOKstring] = PREC_primary;
     precedence[TOKarrayliteral] = PREC_primary;
     precedence[TOKassocarrayliteral] = PREC_primary;
-#if DMDV2
     precedence[TOKfile] = PREC_primary;
     precedence[TOKline] = PREC_primary;
-#endif
     precedence[TOKtypeid] = PREC_primary;
     precedence[TOKis] = PREC_primary;
     precedence[TOKassert] = PREC_primary;

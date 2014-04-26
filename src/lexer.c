@@ -674,19 +674,6 @@ void Lexer::scan(Token *t)
                         sprintf(timestamp, "%.24s", p);
                     }
 
-#if DMDV1
-                    if (mod && id == Id::FILE)
-                    {
-                        t->ustring = (unsigned char *)(loc.filename ? loc.filename : mod->ident->toChars());
-                        goto Lstr;
-                    }
-                    else if (mod && id == Id::LINE)
-                    {
-                        t->value = TOKint64v;
-                        t->uns64value = loc.linnum;
-                    }
-                    else
-#endif
                     if (id == Id::DATE)
                     {
                         t->ustring = (unsigned char *)date;
@@ -2458,9 +2445,13 @@ void Lexer::pragma()
 
     scan(&tok);
     if (tok.value == TOKint32v || tok.value == TOKint64v)
-    {   linnum = tok.uns64value - 1;
+    {   linnum = (int)(tok.uns64value - 1);
         if (linnum != tok.uns64value - 1)
             error("line number out of range");
+    }
+    else if (tok.value == TOKline)
+    {
+        linnum = this->loc.linnum;
     }
     else
         goto Lerr;
@@ -2930,6 +2921,8 @@ static Keyword keywords[] =
 
     // Added after 1.0
     {   "__argTypes",   TOKargTypes     },
+    {   "__FILE__",     TOKfile         },
+    {   "__LINE__",     TOKline         },
     {   "ref",          TOKref          },
     {   "macro",        TOKmacro        },
 #if DMDV2
@@ -2940,8 +2933,6 @@ static Keyword keywords[] =
     {   "__traits",     TOKtraits       },
     {   "__vector",     TOKvector       },
     {   "__overloadset", TOKoverloadset },
-    {   "__FILE__",     TOKfile         },
-    {   "__LINE__",     TOKline         },
     {   "shared",       TOKshared       },
     {   "immutable",    TOKimmutable    },
 #endif

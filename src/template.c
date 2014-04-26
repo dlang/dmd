@@ -3384,9 +3384,7 @@ Object *TemplateValueParameter::defaultArg(Loc loc, Scope *sc)
     {
         e = e->syntaxCopy();
         e = e->semantic(sc);
-#if DMDV2
         e = e->resolveLoc(loc, sc);
-#endif
     }
     return e;
 }

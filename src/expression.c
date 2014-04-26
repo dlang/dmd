@@ -571,9 +571,8 @@ void functionParameters(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argum
                 }
                 arg = p->defaultArg;
                 arg = arg->inlineCopy(sc);
-#if DMDV2
-                arg = arg->resolveLoc(loc, sc);         // __FILE__ and __LINE__
-#endif
+                // __FILE__, __LINE__
+                arg = arg->resolveLoc(loc, sc);
                 arguments->push(arg);
                 nargs++;
             }
@@ -1344,6 +1343,15 @@ int Expression::canThrow()
 #endif
 }
 
+
+/****************************************
+ * Resolve __FILE__, __LINE__ to loc.
+ */
+
+Expression *Expression::resolveLoc(Loc loc, Scope *sc)
+{
+    return this;
+}
 
 
 Expressions *Expression::arraySyntaxCopy(Expressions *exps)
@@ -5251,6 +5259,12 @@ int UnaExp::canThrow()
     return e1->canThrow();
 }
 #endif
+
+Expression *UnaExp::resolveLoc(Loc loc, Scope *sc)
+{
+    e1 = e1->resolveLoc(loc, sc);
+    return this;
+}
 
 void UnaExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
@@ -10602,6 +10616,64 @@ void CondExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     expToCBuffer(buf, hgs, e1, PREC_expr);
     buf->writestring(" : ");
     expToCBuffer(buf, hgs, e2, PREC_cond);
+}
+
+
+/****************************************************************/
+
+DefaultInitExp::DefaultInitExp(Loc loc, TOK subop, int size)
+    : Expression(loc, TOKdefault, size)
+{
+    this->subop = subop;
+}
+
+void DefaultInitExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->writestring(Token::toChars(subop));
+}
+
+/****************************************************************/
+
+FileInitExp::FileInitExp(Loc loc)
+    : DefaultInitExp(loc, TOKfile, sizeof(FileInitExp))
+{
+}
+
+Expression *FileInitExp::semantic(Scope *sc)
+{
+    //printf("FileInitExp::semantic()\n");
+    type = Type::tstring;
+    return this;
+}
+
+Expression *FileInitExp::resolveLoc(Loc loc, Scope *sc)
+{
+    //printf("FileInitExp::resolve() %s\n", toChars());
+    const char *s = loc.filename ? loc.filename : sc->module->ident->toChars();
+    Expression *e = new StringExp(loc, (char *)s);
+    e = e->semantic(sc);
+    e = e->castTo(sc, type);
+    return e;
+}
+
+/****************************************************************/
+
+LineInitExp::LineInitExp(Loc loc)
+    : DefaultInitExp(loc, TOKline, sizeof(LineInitExp))
+{
+}
+
+Expression *LineInitExp::semantic(Scope *sc)
+{
+    type = Type::tint32;
+    return this;
+}
+
+Expression *LineInitExp::resolveLoc(Loc loc, Scope *sc)
+{
+    Expression *e = new IntegerExp(loc, loc.linnum, Type::tint32);
+    e = e->castTo(sc, type);
+    return e;
 }
 
 
