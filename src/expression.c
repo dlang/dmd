@@ -11536,44 +11536,17 @@ int AssignExp::isLvalue()
 
 Expression *AssignExp::toLvalue(Scope *sc, Expression *ex)
 {
-    Expression *e;
-
-    if (e1->op == TOKvar)
+    if (e1->op == TOKslice ||
+        e1->op == TOKarraylength)
     {
-        /* Convert (e1 = e2) to
-         *    e1 = e2;
-         *    e1
-         */
-        e = e1->copy();
-        e = Expression::combine(this, e);
+        return Expression::toLvalue(sc, ex);
     }
-    else
-    {
-        // toLvalue may be called from inline.c with sc == NULL,
-        // but this branch should not be reached at that time.
-        assert(sc);
 
-        /* Convert (e1 = e2) to
-         *    ref v = e1;
-         *    v = e2;
-         *    v
-         */
-
-        // ref v = e1;
-        Identifier *id = Lexer::uniqueId("__assignop");
-        ExpInitializer *ei = new ExpInitializer(loc, e1);
-        VarDeclaration *v = new VarDeclaration(loc, e1->type, id, ei);
-        v->storage_class |= STCtemp | STCref | STCforeach;
-        Expression *de = new DeclarationExp(loc, v);
-
-        // v = e2
-        this->e1 = new VarExp(e1->loc, v);
-
-        e = new CommaExp(loc, de, this);
-        e = new CommaExp(loc, e, new VarExp(loc, v));
-        e = e->semantic(sc);
-    }
-    return e;
+    /* In front-end level, AssignExp should make an lvalue of e1.
+     * Taking the address of e1 will be handled in low level layer,
+     * so this function does nothing.
+     */
+    return this;
 }
 
 Expression *AssignExp::checkToBoolean(Scope *sc)

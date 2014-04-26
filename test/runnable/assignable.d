@@ -1,4 +1,4 @@
-import std.c.stdio;
+import core.stdc.stdio;
 
 template TypeTuple(T...){ alias T TypeTuple; }
 
@@ -852,6 +852,30 @@ void test12131() pure
 }
 
 /***************************************************/
+// 12211
+
+void test12211()
+{
+    int a = 0;
+    void foo(ref int x)
+    {
+        assert(x == 10);
+        assert(&x == &a);
+        x = 3;
+    }
+    foo(a = 10);
+    assert(a == 3);
+    foo(a += 7);
+    assert(a == 3);
+
+    // array ops should make rvalue
+    int[3] sa, sb;
+    void bar(ref int[]) {}
+    static assert(!__traits(compiles, bar(sa[]  = sb[])));
+    static assert(!__traits(compiles, bar(sa[] += sb[])));
+}
+
+/***************************************************/
 // 12212
 
 void test12212()
@@ -940,6 +964,76 @@ void test12212()
 }
 
 /***************************************************/
+// 12650
+
+void test12650()
+{
+    // AssignExp::toElem should make an lvalue of e1.
+    static class A1
+    {
+        struct S { int a; }
+
+        static foo(ref const(S) s)
+        {
+            assert(s.a == 2);
+            return &s;
+        }
+
+        S s;
+
+        this()
+        {
+            const v = S(2);
+
+            // (this.s = v) will become ConstructExp
+            auto p = foo(s = v);
+            assert(p == &s);
+        }
+    }
+    assert(new A1().s.a == 2);
+
+    static class A2
+    {
+        static foo(ref int[2] sa)
+        {
+            assert(sa[1] == 2);
+            return &sa;
+        }
+
+        int[2] sa;
+
+        this()
+        {
+            // (this.sa = [1,2]) will become ConstructExp
+            auto p = foo(sa = [1,2]);
+            assert(p == &sa);
+        }
+    }
+    assert(new A2().sa[1] == 2);
+
+    static class A3
+    {
+        static foo(ref int n)
+        {
+            assert(n == 2);
+            return &n;
+        }
+
+        int n;
+
+        this()
+        {
+            const v = 2;
+
+            // (this.n = v) will become ConstructExp
+            auto p = foo(n = v);
+            assert(p == &n);
+        }
+    }
+    assert(new A3().n == 2);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -963,7 +1057,9 @@ int main()
     test9416();
     test11187();
     test12131();
+    test12211();
     test12212();
+    test12650();
 
     printf("Success\n");
     return 0;
