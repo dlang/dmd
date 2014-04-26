@@ -4638,7 +4638,7 @@ public:
             }
             if (!wantRef && !cow && originalExp->e2->isLvalue())
             {
-                Expression *x = evaluatePostblits(istate, existingAE, firstIndex, firstIndex+upperbound-lowerbound);
+                Expression *x = evaluatePostblits(istate, existingAE, (size_t)firstIndex, (size_t)(firstIndex+upperbound-lowerbound));
                 if (exceptionOrCantInterpret(x))
                     return x;
             }
