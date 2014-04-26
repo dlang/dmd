@@ -302,13 +302,22 @@ void ClassDeclaration::semantic(Scope *sc)
     if (sc->linkage == LINKcpp)
         cpp = 1;
 
-    // Expand any tuples in baseclasses[]
+    // Check for invalid base class identifiers and expand any tuples in baseclasses[]
     for (size_t i = 0; i < baseclasses->dim; )
     {
         // Ungag errors when not speculative
         Ungag ungag = ungagSpeculative();
 
         BaseClass *b = (*baseclasses)[i];
+
+        if (b->type->ty == Tident &&
+            (((TypeIdentifier *)b->type)->ident == Id::This ||
+             ((TypeIdentifier *)b->type)->ident == Id::super))
+        {
+            error("base type must be class or interface, not '%s'. Did you mean to use 'typeof(%s)'?",
+                  b->type->toChars(), ((TypeIdentifier *)b->type)->ident->string);
+        }
+
         b->type = b->type->semantic(loc, sc);
 
         Type *tb = b->type->toBasetype();
