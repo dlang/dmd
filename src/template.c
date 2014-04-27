@@ -5486,10 +5486,10 @@ MATCH TemplateTupleParameter::matchArg(Loc loc, Scope *sc, Objects *tiargs,
     assert(i + 1 == dedtypes->dim);     // must be the last one
     Tuple *ovar;
 
-    if ((*dedtypes)[i] && isTuple((*dedtypes)[i]))
+    if (Tuple *u = isTuple((*dedtypes)[i]))
     {
         // It has already been deduced
-        ovar = isTuple((*dedtypes)[i]);
+        ovar = u;
     }
     else if (i + 1 == tiargs->dim && isTuple((*tiargs)[i]))
         ovar = isTuple((*tiargs)[i]);
@@ -5516,6 +5516,14 @@ MATCH TemplateTupleParameter::matchArg(Scope *sc, RootObject *oarg,
     Tuple *ovar = isTuple(oarg);
     if (!ovar)
         return MATCHnomatch;
+    if ((*dedtypes)[i])
+    {
+        Tuple *tup = isTuple((*dedtypes)[i]);
+        if (!tup)
+            return MATCHnomatch;
+        if (!match(tup, ovar))
+            return MATCHnomatch;
+    }
     (*dedtypes)[i] = ovar;
 
     if (psparam)
