@@ -335,6 +335,7 @@ Msgtable msgtable[] =
     { "parameters" },
     { "getAliasThis" },
     { "getAttributes" },
+    { "getFunctionAttributes" },
     { "getUnitTests" },
     { "getVirtualIndex" }
 };

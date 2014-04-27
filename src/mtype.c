@@ -1611,6 +1611,25 @@ char *Type::modToChars()
     return buf.extractString();
 }
 
+/** For each active modifier (MODconst, MODimmutable, etc) call fp with a
+void* for the work param and a string representation of the attribute. */
+int Type::modifiersApply(void *param, int (*fp)(void *, const char *))
+{
+    int res = 0;
+
+    static unsigned modsArr[] = { MODconst, MODimmutable, MODwild, MODshared };
+    for (size_t idx = 0; idx < 4; ++idx)
+    {
+        if (mod & modsArr[idx])
+        {
+            if (res = fp(param, MODtoChars(modsArr[idx])))
+                return res;
+        }
+    }
+
+    return res;
+}
+
 /************************************
  * Strip all parameter's idenfiers and their default arguments for merging types.
  * If some of parameter types or return type are function pointer, delegate, or
@@ -6166,6 +6185,41 @@ Type *TypeFunction::addStorageClass(StorageClass stc)
         t = tf;
     }
     return t;
+}
+
+// in hdrgen.c
+void trustToBuffer(OutBuffer *buf, TRUST trust);
+
+/** For each active attribute (ref/const/nogc/etc) call fp with a void* for the
+work param and a string representation of the attribute. */
+int TypeFunction::attributesApply(void *param, int (*fp)(void *, const char *))
+{
+    int res = 0;
+
+    if (purity) res = fp(param, "pure");
+    if (res) return res;
+
+    if (isnothrow) res = fp(param, "nothrow");
+    if (res) return res;
+
+    if (isnogc) res = fp(param, "@nogc");
+    if (res) return res;
+
+    if (isproperty) res = fp(param, "@property");
+    if (res) return res;
+
+    if (isref) res = fp(param, "ref");
+    if (res) return res;
+
+    if (trust != TRUSTdefault)  // avoid calling with an empty string
+    {
+        OutBuffer buf;
+        trustToBuffer(&buf, trust);
+        res = fp(param, buf.extractString());
+        if (res) return res;
+    }
+
+    return res;
 }
 
 /***************************** TypeDelegate *****************************/

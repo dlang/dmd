@@ -839,6 +839,20 @@ public:
         t->inuse--;
     }
 
+    // callback for TypeFunction::attributesApply, prepends spaces
+    struct PreAppendStrings
+    {
+        OutBuffer *buf;
+
+        static int fp(void *param, const char *str)
+        {
+            PreAppendStrings *p = (PreAppendStrings *)param;
+            p->buf->writeByte(' ');
+            p->buf->writestring(str);
+            return 0;
+        }
+    };
+
     void visitFuncIdent(TypeFunction *t, const char *ident)
     {
         if (t->linkage > LINKd && hgs->ddoc != 1 && !hgs->hdrgen)
@@ -858,22 +872,10 @@ public:
         {
             t->modToBuffer(buf);
         }
-        if (t->purity)
-            buf->writestring(" pure");
-        if (t->isnothrow)
-            buf->writestring(" nothrow");
-        if (t->isnogc)
-            buf->writestring(" @nogc");
-        if (t->isproperty)
-            buf->writestring(" @property");
-        if (t->isref)
-            buf->writestring(" ref");
 
-        if (t->trust)
-        {
-            buf->writeByte(' ');
-            trustToBuffer(buf, t->trust);
-        }
+        PreAppendStrings pas;
+        pas.buf = buf;
+        t->attributesApply(&pas, &PreAppendStrings::fp);
     }
 
     void visit(TypeDelegate *t)
@@ -1747,7 +1749,11 @@ void trustToBuffer(OutBuffer *buf, TRUST trust)
         case TRUSTsafe:
             buf->writestring("@safe");
             break;
-        default: break;
+
+        case TRUSTdefault:
+            break;
+
+        default: assert(0);  // unhandled trust
     }
 }
 
@@ -1767,6 +1773,26 @@ void linkageToBuffer(OutBuffer *buf, LINK linkage)
     buf->writestring(p);
     buf->writestring(") ");
 }
+
+// callback for TypeFunction::attributesApply, avoids 'ref' in ctors and appends spaces
+struct PostAppendStrings
+{
+    bool isCtor;
+    OutBuffer *buf;
+
+    static int fp(void *param, const char *str)
+    {
+        PostAppendStrings *p = (PostAppendStrings *)param;
+
+        // don't write 'ref' for ctors
+        if (p->isCtor && strcmp(str, "ref") == 0)
+            return 0;
+
+        p->buf->writestring(str);
+        p->buf->writeByte(' ');
+        return 0;
+    }
+};
 
 // Print the full function signature with correct ident, attributes and template args
 void functionToBufferFull(TypeFunction *tf, OutBuffer *buf, Identifier *ident,
@@ -1788,22 +1814,10 @@ void functionToBufferFull(TypeFunction *tf, OutBuffer *buf, Identifier *ident,
         buf->writeByte(' ');
     }
 
-    if (tf->purity)
-        buf->writestring("pure ");
-    if (tf->isnothrow)
-        buf->writestring("nothrow ");
-    if (tf->isnogc)
-        buf->writestring("@nogc ");
-    if (tf->isproperty)
-        buf->writestring("@property ");
-    if (tf->isref && ident != Id::ctor)
-        buf->writestring("ref ");
-
-    if (tf->trust)
-    {
-        trustToBuffer(buf, tf->trust);
-        buf->writeByte(' ');
-    }
+    PostAppendStrings pas;
+    pas.isCtor = (ident == Id::ctor);
+    pas.buf = buf;
+    tf->attributesApply(&pas, &PostAppendStrings::fp);
 
     if (tf->linkage > LINKd && hgs->ddoc != 1 && !hgs->hdrgen)
         linkageToBuffer(buf, tf->linkage);
