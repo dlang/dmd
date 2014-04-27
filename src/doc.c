@@ -116,9 +116,17 @@ Parameter *isFunctionParameter(Dsymbol *s, const utf8_t *p, size_t len);
 TemplateParameter *isTemplateParameter(Dsymbol *s, const utf8_t *p, size_t len);
 
 int isIdStart(const utf8_t *p);
+bool isCVariadicArg(const utf8_t *p, size_t len);
 int isIdTail(const utf8_t *p);
 int isIndentWS(const utf8_t *p);
 int utfStride(const utf8_t *p);
+
+// Workaround for missing Parameter instance for variadic params. (it's unnecessary to instantiate one).
+bool isCVariadicParameter(Dsymbol *s, const utf8_t *p, size_t len)
+{
+    TypeFunction *tf = isTypeFunction(s);
+    return tf && tf->varargs == 1 && cmp("...", p, len) == 0;
+}
 
 static const char ddoc_default[] = "\
 DDOC =  <html><head>\n\
@@ -1598,7 +1606,7 @@ void ParamSection::write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
                     goto Lcont;
 
                 default:
-                    if (isIdStart(p))
+                    if (isIdStart(p) || isCVariadicArg(p, pend - p))
                         break;
                     if (namelen)
                         goto Ltext;             // continuation of prev macro
@@ -1610,13 +1618,17 @@ void ParamSection::write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
 
         while (isIdTail(p))
             p += utfStride(p);
+        if (isCVariadicArg(p, pend - p))
+            p += 3;
+
         templen = p - tempstart;
 
         while (*p == ' ' || *p == '\t')
             p++;
 
         if (*p != '=')
-        {   if (namelen)
+        {
+            if (namelen)
                 goto Ltext;             // continuation of prev macro
             goto Lskipline;
         }
@@ -1633,7 +1645,12 @@ void ParamSection::write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
                 buf->writestring("$(DDOC_PARAM_ID ");
                     o = buf->offset;
                     arg = isFunctionParameter(s, namestart, namelen);
-                    if (arg && arg->type && arg->ident)
+                    bool isCVariadic = isCVariadicParameter(s, namestart, namelen);
+                    if (isCVariadic)
+                    {
+                        buf->writestring("...");
+                    }
+                    else if (arg && arg->type && arg->ident)
                     {
                         arg->type->toCBuffer(buf, arg->ident, &hgs);
                     }
@@ -1694,7 +1711,7 @@ void ParamSection::write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
     TypeFunction *tf = isTypeFunction(s);
     if (tf)
     {
-        size_t pcount = tf->parameters ? tf->parameters->dim : 0;
+        size_t pcount = (tf->parameters ? tf->parameters->dim : 0) + (int)(tf->varargs == 1);
         if (pcount != paramcount)
         {
             warning(s->loc, "Ddoc: parameter count mismatch");
@@ -2429,7 +2446,9 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
                             }
                             else
                             {
-                                if (f && isFunctionParameter(f, (utf8_t *)buf->data + i, j - i))
+                                utf8_t *start = (utf8_t *)buf->data + i;
+                                size_t end = j - i;
+                                if (f && (isFunctionParameter(f, start, end) || isCVariadicParameter(f, start, end)))
                                 {
                                     //printf("highlighting arg '%s', i = %d, j = %d\n", arg->ident->toChars(), i, j);
                                     i = buf->bracket(i, "$(DDOC_PARAM ", j, ")") - 1;
@@ -2490,7 +2509,9 @@ void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset, bool an
                 }
                 else if (f)
                 {
-                    if (isFunctionParameter(f, (utf8_t *)buf->data + i, j - i))
+                    utf8_t *start = (utf8_t *)buf->data + i;
+                    size_t end = j - i;
+                    if (isFunctionParameter(f, start, end) || isCVariadicParameter(f, start, end))
                     {
                         //printf("highlighting arg '%s', i = %d, j = %d\n", arg->ident->toChars(), i, j);
                         i = buf->bracket(i, "$(DDOC_PARAM ", j, ")") - 1;
@@ -2555,7 +2576,8 @@ void highlightCode2(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
                 }
                 else if (f)
                 {
-                    if (isFunctionParameter(f, tok.ptr, lex.p - tok.ptr))
+                    size_t end = lex.p - tok.ptr;
+                    if (isFunctionParameter(f, tok.ptr, end) || isCVariadicParameter(f, tok.ptr, end))
                     {
                         //printf("highlighting arg '%s', i = %d, j = %d\n", arg->ident->toChars(), i, j);
                         highlight = "$(D_PARAM ";
@@ -2626,6 +2648,15 @@ const char *Escape::escapeChar(unsigned c)
     }
     return s;
 #endif
+}
+
+/****************************************
+ * Determine if p points to the start of a "..." parameter identifier.
+ */
+
+bool isCVariadicArg(const utf8_t *p, size_t len)
+{
+    return len >= 3 && cmp("...", p, 3) == 0;
 }
 
 /****************************************
