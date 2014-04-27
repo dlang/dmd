@@ -625,23 +625,34 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             goto Ldimerror;
         RootObject *o = (*e->args)[0];
         Dsymbol *s = getDsymbol(o);
+        Type *t = isType(o);
         TypeFunction *tf = NULL;
         FuncDeclaration *fd = NULL;
+        Type *type = NULL;
 
-        if (!s) { }
-        else if (FuncDeclaration *sfd = s->isFuncDeclaration())
+        if (s)
         {
-            fd = sfd;
-            tf = (TypeFunction *)fd->type;
+            if (FuncDeclaration *sfd = s->isFuncDeclaration())
+            {
+                fd = sfd;
+                type = fd->type;
+            }
+            else if (VarDeclaration *vd = s->isVarDeclaration())
+                type = vd->type;
         }
-        else if (VarDeclaration *vd = s->isVarDeclaration())
+        else if (t)
         {
-            if (vd->type->ty == Tfunction)
-                tf = (TypeFunction *)vd->type;
-            else if (vd->type->ty == Tdelegate)
-                tf = (TypeFunction *)vd->type->nextOf();
-            else if (vd->type->ty == Tpointer && vd->type->nextOf()->ty == Tfunction)
-                tf = (TypeFunction *)vd->type->nextOf();
+            type = t;
+        }
+
+        if (type)
+        {
+            if (type->ty == Tfunction)
+                tf = (TypeFunction *)type;
+            else if (type->ty == Tdelegate)
+                tf = (TypeFunction *)type->nextOf();
+            else if (type->ty == Tpointer && type->nextOf()->ty == Tfunction)
+                tf = (TypeFunction *)type->nextOf();
         }
 
         if (!tf)
