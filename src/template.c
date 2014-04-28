@@ -380,7 +380,7 @@ hash_t arrayObjectHash(Objects *oa1)
                 if (e1->op == TOKint64)
                 {
                     IntegerExp *ne = (IntegerExp *)e1;
-                    hash += (size_t)ne->value;
+                    hash += (size_t)ne->getInteger();
                 }
             }
             else if (s1)
