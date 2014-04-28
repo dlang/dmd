@@ -51,6 +51,9 @@ static bool parse_arch(size_t argc, const char** argv, bool is64bit);
 
 void inlineScan(Module *m);
 
+// in traits.c
+void initTraitsStringTable();
+
 /** Normalize path by turning forward slashes into backslashes */
 const char * toWinPath(const char *src)
 {
@@ -1279,6 +1282,7 @@ Language changes listed by -transition=id:\n\
     Expression::init();
     initPrecedence();
     builtin_init();
+    initTraitsStringTable();
 
     if (global.params.verbose)
     {   fprintf(global.stdmsg, "binary    %s\n", argv[0]);

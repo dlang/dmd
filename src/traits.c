@@ -35,6 +35,7 @@
 #include "attrib.h"
 #include "hdrgen.h"
 #include "parse.h"
+#include "speller.h"
 
 #define LOGSEMANTIC     0
 
@@ -212,6 +213,75 @@ struct PushAttributes
         return 0;
     }
 };
+
+const char* traits[] = {
+    "isAbstractClass",
+    "isArithmetic",
+    "isAssociativeArray",
+    "isFinalClass",
+    "isPOD",
+    "isNested",
+    "isFloating",
+    "isIntegral",
+    "isScalar",
+    "isStaticArray",
+    "isUnsigned",
+    "isVirtualFunction",
+    "isVirtualMethod",
+    "isAbstractFunction",
+    "isFinalFunction",
+    "isOverrideFunction",
+    "isStaticFunction",
+    "isRef",
+    "isOut",
+    "isLazy",
+    "hasMember",
+    "identifier",
+    "getProtection",
+    "parent",
+    "getMember",
+    "getOverloads",
+    "getVirtualFunctions",
+    "getVirtualMethods",
+    "classInstanceSize",
+    "allMembers",
+    "derivedMembers",
+    "isSame",
+    "compiles",
+    "parameters",
+    "getAliasThis",
+    "getAttributes",
+    "getFunctionAttributes",
+    "getUnitTests",
+    "getVirtualIndex",
+    NULL
+};
+
+StringTable traitsStringTable;
+
+void initTraitsStringTable()
+{
+    traitsStringTable._init();
+
+    for (size_t idx = 0; ; idx++)
+    {
+        const char *s = traits[idx];
+        if (!s) break;
+        StringValue *sv = traitsStringTable.insert(s, strlen(s));
+        sv->ptrvalue = (void *)traits[idx];
+    }
+}
+
+void *trait_search_fp(void *arg, const char *seed)
+{
+    //printf("trait_search_fp('%s')\n", seed);
+    size_t len = strlen(seed);
+    if (!len)
+        return NULL;
+
+    StringValue *sv = traitsStringTable.lookup(seed, len);
+    return sv ? (void*)sv->ptrvalue : NULL;
+}
 
 Expression *semanticTraits(TraitsExp *e, Scope *sc)
 {
@@ -940,7 +1010,11 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
     }
     else
     {
-        e->error("unrecognized trait %s", e->ident->toChars());
+        if (const char *sub = (const char *)speller(e->ident->toChars(), &trait_search_fp, NULL, idchars))
+            e->error("unrecognized trait '%s', did you mean '%s'?", e->ident->toChars(), sub);
+        else
+            e->error("unrecognized trait '%s'", e->ident->toChars());
+
         goto Lfalse;
     }
 
