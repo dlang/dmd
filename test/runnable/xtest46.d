@@ -4138,7 +4138,7 @@ void test6264()
     S s;
     static assert(!is(typeof(a[] = s[])));
     int*[] b;
-    static assert(!is(typeof(b[] = [new immutable(int)])));
+    static assert(is(typeof(b[] = [new immutable(int)])));
     char[] c = new char[](5);
     c[] = "hello";
 }
@@ -6382,7 +6382,7 @@ void test163() {
     shared const S* s3 = new S();
 
     shared S* s4;
-    assert(!__traits(compiles, s4 = new immutable(S)()));
+    assert(__traits(compiles, s4 = new immutable(S)()));
 
     struct T { int x; int y; }
     immutable T* t;

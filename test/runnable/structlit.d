@@ -618,7 +618,7 @@ void test9993b()
     }
               A ma = new           A;   assert(ma.x == 13);
     immutable A ia = new immutable A;   assert(ia.x == 42);
-    static assert(!__traits(compiles, { immutable A ia = new A; }));
+    static assert(__traits(compiles, { immutable A ia = new A; }));
 
     static class B
     {
@@ -628,7 +628,7 @@ void test9993b()
     }
     const B mb = new       B;           assert(mb.x == 13);
     const B cb = new const B;           assert(cb.x == 42);
-    static assert(!__traits(compiles, { immutable B ib = new B; }));
+    static assert(__traits(compiles, { immutable B ib = new B; }));
 
     static class C
     {

@@ -21,6 +21,7 @@
 #include "template.h"
 #include "scope.h"
 #include "id.h"
+#include "init.h"
 
 bool isCommutative(Expression *e);
 
@@ -146,8 +147,8 @@ Expression *implicitCastTo(Expression *e, Scope *sc, Type *t)
 }
 
 /*******************************************
- * Return !=0 if we can implicitly convert this to type t.
- * Don't do the actual cast.
+ * Return MATCH level of implicitly converting e to type t.
+ * Don't do the actual cast; don't change e.
  */
 
 MATCH implicitConvTo(Expression *e, Type *t)
@@ -210,6 +211,27 @@ MATCH implicitConvTo(Expression *e, Type *t)
                     return;
                 }
             }
+        }
+
+        /******
+         * Given expression e of type t, see if we can implicitly convert e
+         * to type tprime, where tprime is type t with mod bits added.
+         * Returns:
+         *      match level
+         */
+        static MATCH implicitMod(Expression *e, Type *t, unsigned mod)
+        {
+            Type *tprime;
+            if (t->ty == Tpointer)
+                tprime = t->nextOf()->castMod(mod)->pointerTo();
+            else if (t->ty == Tarray)
+                tprime = t->nextOf()->castMod(mod)->arrayOf();
+            else if (t->ty == Tsarray)
+                tprime = t->nextOf()->castMod(mod)->sarrayOf(t->size() / t->nextOf()->size());
+            else
+                tprime = t->castMod(mod);
+
+            return e->implicitConvTo(tprime);
         }
 
         static MATCH implicitConvToAddMin(BinExp *e, Type *t)
@@ -814,17 +836,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
 #if LOG
                 printf("[%d] earg: %s, targm: %s\n", (int)i, earg->toChars(), targ->addMod(mod)->toChars());
 #endif
-                Type *targto;
-                if (targ->ty == Tpointer)
-                    targto = targ->nextOf()->castMod(mod)->pointerTo();
-                else if (targ->ty == Tarray)
-                    targto = targ->nextOf()->castMod(mod)->arrayOf();
-                else if (targ->ty == Tsarray)
-                    targto = targ->nextOf()->castMod(mod)->sarrayOf(targ->size() / targ->nextOf()->size());
-                else
-                    targto = targ->castMod(mod);
-
-                if (earg->implicitConvTo(targto) == MATCHnomatch)
+                if (implicitMod(earg, targ, mod) == MATCHnomatch)
                     return;
             }
 
@@ -1039,106 +1051,192 @@ MATCH implicitConvTo(Expression *e, Type *t)
             if (result != MATCHnomatch)
                 return;
 
-            /* The return from new() is special in that it might be a unique pointer.
-             * If we can prove it is, allow the following implicit conversions:
-             *  mutable => immutable
-             *  non-shared => shared
-             *  shared => non-shared
+            /* Calling new() is like calling a pure function. We can implicitly convert the
+             * return from new() to t using the same algorithm as in CallExp, with the function
+             * 'arguments' being:
+             *    thisexp
+             *    newargs
+             *    arguments
+             *    .init
+             * 'member' and 'allocator' need to be pure.
              */
 
-            Type *typeb = e->type->toBasetype();
+            /* See if fail only because of mod bits
+             */
+            if (e->type->immutableOf()->implicitConvTo(t->immutableOf()) == MATCHnomatch)
+                return;
+
+            /* Get mod bits of what we're converting to
+             */
             Type *tb = t->toBasetype();
+            unsigned mod = tb->mod;
+            if (Type *ti = getIndirection(t))
+                mod = ti->mod;
+#if LOG
+            printf("mod = x%x\n", mod);
+#endif
+            if (mod & MODwild)
+                return;                 // not sure what to do with this
 
-            if (tb->ty == Tclass)
+            /* Apply mod bits to each argument,
+             * and see if we can convert the argument to the modded type
+             */
+
+            if (e->thisexp)
             {
-                //printf("%s => %s\n", type->castMod(0)->toChars(), t->castMod(0)->toChars());
-                MATCH match = e->type->castMod(0)->implicitConvTo(t->castMod(0));
-                if (!match)
-                    return;
-
-                // Regardless, don't allow immutable to be implicitly converted to mutable
-                if (tb->isMutable() && !typeb->isMutable())
-                    return;
-
-                // All the fields must be convertible as well
-                ClassDeclaration *cd = ((TypeClass *)tb)->sym;
-
-                cd->size(e->loc);          // resolve any forward references
-
-                /* The following is excessively conservative, but be very
-                 * careful in loosening them up.
+                /* Treat 'this' as just another function argument
                  */
-                if (cd->isNested() ||
-                    cd->isInterfaceDeclaration() ||
-                    cd->ctor ||
-                    cd->baseClass != ClassDeclaration::object)
+                Type *targ = e->thisexp->type;
+                if (targ->toBasetype()->ty == Tstruct)
+                    targ = targ->pointerTo();
+                if (targ->implicitConvTo(targ->addMod(mod)) == MATCHnomatch)
                     return;
-
-                for (size_t i = 0; i < cd->fields.dim; i++)
-                {
-                    Declaration *d = cd->fields[i];
-                    if (d->storage_class & STCref || d->hasPointers())
-                        return;
-                }
-                result = (match == MATCHexact) ? MATCHconst : match;
             }
-            else if ((tb->ty == Tpointer || tb->ty == Tarray) &&
-                     (typeb->ty == Tpointer || typeb->ty == Tarray))
+
+            /* Check call to 'allocator', then 'member'
+             */
+            FuncDeclaration *fd = e->allocator;
+            for (int count = 0; count < 2; ++count, (fd = e->member))
             {
-                Type *typen = e->type->nextOf()->toBasetype();
-                Type *tn = tb->nextOf()->toBasetype();
+                if (!fd)
+                    continue;
+                TypeFunction *tf = (TypeFunction *)fd->type->toBasetype();
+                if (tf->ty != Tfunction || ((TypeFunction *)tf)->purity == PUREimpure)
+                    return;     // error or impure
 
-                //printf("%s => %s\n", typen->castMod(0)->toChars(), tn->castMod(0)->toChars());
+                Expressions *args = (fd == e->allocator) ? e->newargs : e->arguments;
 
-                /* Determine if the match failure was solely due to a difference
-                 * in the mod bits, by rebuilding type and t without mod bits and
-                 * retrying the implicit conversion.
-                 */
-                Type *tn2 = tn->castMod(0);         // cast off mod bits
-                Type *typen2 = typen->castMod(0);
-                Type *t2 = (tb->ty == Tpointer) ? tn2->pointerTo() : tn2->arrayOf();
-                Type *type2 = (typeb->ty == Tpointer) ? typen2->pointerTo() : typen2->arrayOf();
-                MATCH match = type2->implicitConvTo(t2);
-                if (!match)
-                    return;
-
-                // Regardless, don't allow immutable to be implicitly converted to mutable
-                if (tn->isMutable() && !typen->isMutable())
-                    return;
-
-                if (tn->isTypeBasic())
-                    ;
-                else if (tn->ty == Tstruct)
+                size_t nparams = Parameter::dim(tf->parameters);
+                size_t j = (tf->linkage == LINKd && tf->varargs == 1); // if TypeInfoArray was prepended
+                for (size_t i = j; i < e->arguments->dim; ++i)
                 {
-                    // All the fields must be convertible as well
-                    StructDeclaration *sd = ((TypeStruct *)tn)->sym;
-
-                    sd->size(e->loc);              // resolve any forward references
-
-                    /* The following is excessively conservative, but be very
-                     * careful in loosening them up.
-                     */
-
-                    if (sd->isNested() ||
-                        sd->ctor)
-                        return;
-
-                    for (size_t i = 0; i < sd->fields.dim; i++)
+                    Expression *earg = (*args)[i];
+                    Type *targ = earg->type->toBasetype();
+#if LOG
+                    printf("[%d] earg: %s, targ: %s\n", (int)i, earg->toChars(), targ->toChars());
+#endif
+                    if (i - j < nparams)
                     {
-                        Declaration *d = sd->fields[i];
-                        if (d->storage_class & STCref || d->hasPointers())
-                            return;
+                        Parameter *fparam = Parameter::getNth(tf->parameters, i - j);
+                        if (fparam->storageClass & STClazy)
+                            return;                 // not sure what to do with this
+                        Type *tparam = fparam->type;
+                        if (!tparam)
+                            continue;
+                        if (fparam->storageClass & (STCout | STCref))
+                        {
+                            tparam = tparam->pointerTo();
+                            targ = targ->pointerTo();
+                            if (targ->implicitConvTo(tparam->addMod(mod)) == MATCHnomatch)
+                                return;
+                            continue;
+                        }
                     }
-                }
-                else
-                {
-                    /* More fruit left on the table, such as pointers to immutable.
-                     */
-                    return;
-                }
 
-                result = (match == MATCHexact) ? MATCHconst : match;
+#if LOG
+                    printf("[%d] earg: %s, targm: %s\n", (int)i, earg->toChars(), targ->addMod(mod)->toChars());
+#endif
+                    if (implicitMod(earg, targ, mod) == MATCHnomatch)
+                        return;
+                }
             }
+
+            /* If no 'member', then construction is by simple assignment,
+             * and just straight check 'arguments'
+             */
+            if (!e->member && e->arguments)
+            {
+                for (size_t i = 0; i < e->arguments->dim; ++i)
+                {
+                    Expression *earg = (*e->arguments)[i];
+                    Type *targ = earg->type->toBasetype();
+#if LOG
+                    printf("[%d] earg: %s, targ: %s\n", (int)i, earg->toChars(), targ->toChars());
+                    printf("[%d] earg: %s, targm: %s\n", (int)i, earg->toChars(), targ->addMod(mod)->toChars());
+#endif
+                    if (implicitMod(earg, targ, mod) == MATCHnomatch)
+                        return;
+                }
+            }
+
+            /* Consider the .init expression as an argument
+             */
+            Type *ntb = e->newtype->toBasetype();
+            if (ntb->ty == Tarray)
+                ntb = ntb->nextOf()->toBasetype();
+            if (ntb->ty == Tstruct)
+            {
+                // Don't allow nested structs - uplevel reference may not be convertible
+                StructDeclaration *sd = ((TypeStruct *)ntb)->sym;
+                sd->size(e->loc);              // resolve any forward references
+                if (sd->isNested())
+                    return;
+            }
+            if (ntb->isZeroInit(e->loc))
+            {
+                /* Zeros are implicitly convertible, except for special cases.
+                 */
+                if (ntb->ty == Tclass)
+                {
+                    /* With new() must look at the class instance initializer.
+                     */
+                    ClassDeclaration *cd = ((TypeClass *)ntb)->sym;
+
+                    cd->size(e->loc);          // resolve any forward references
+
+                    if (cd->isNested())
+                        return;                 // uplevel reference may not be convertible
+
+                    assert(!cd->isInterfaceDeclaration());
+
+                    struct ClassCheck
+                    {
+                        static bool convertible(Loc loc, ClassDeclaration *cd, unsigned mod)
+                        {
+                            for (size_t i = 0; i < cd->fields.dim; i++)
+                            {
+                                VarDeclaration *v = cd->fields[i];
+                                Initializer *init = v->init;
+                                if (init)
+                                {
+                                    if (init->isVoidInitializer())
+                                        ;
+                                    else if (ExpInitializer *ei = init->isExpInitializer())
+                                    {
+                                        Type *tb = v->type->toBasetype();
+                                        if (implicitMod(ei->exp, tb, mod) == MATCHnomatch)
+                                            return false;
+                                    }
+                                    else
+				    {
+                                        /* Enhancement: handle StructInitializer and ArrayInitializer
+                                         */
+                                        return false;
+				    }
+                                }
+                                else if (!v->type->isZeroInit(loc))
+                                    return false;
+                            }
+                            return cd->baseClass ? convertible(loc, cd->baseClass, mod) : true;
+                        }
+                    };
+
+                    if (!ClassCheck::convertible(e->loc, cd, mod))
+                        return;
+                }
+            }
+            else
+            {
+                Expression *earg = e->newtype->defaultInitLiteral(e->loc);
+                Type *targ = e->newtype->toBasetype();
+
+                if (implicitMod(earg, targ, mod) == MATCHnomatch)
+                    return;
+            }
+
+            /* Success
+             */
+            result = MATCHconst;
         }
 
         void visit(SliceExp *e)
