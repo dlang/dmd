@@ -693,7 +693,7 @@ void FuncDeclaration::semantic(Scope *sc)
         }
 
         if (storage_class & STCabstract)
-            cd->isabstract = 1;
+            cd->isabstract = true;
 
         // if static function, do not put in vtbl[]
         if (!isVirtual())

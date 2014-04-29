@@ -71,7 +71,7 @@ public:
     VarDeclarations fields;     // VarDeclaration fields
     Sizeok sizeok;         // set when structsize contains valid data
     Dsymbol *deferred;          // any deferred semantic2() or semantic3() symbol
-    bool isdeprecated;          // !=0 if deprecated
+    bool isdeprecated;          // true if deprecated
 
     Dsymbol *enclosing;         /* !=NULL if is nested
                                  * pointing to the dsymbol that directly enclosing it.
@@ -114,7 +114,7 @@ public:
     bool isNested();
     void makeNested();
     bool isExport();
-    void searchCtor();
+    Dsymbol *searchCtor();
 
     PROT prot();
 
@@ -163,6 +163,7 @@ public:
     StructDeclaration(Loc loc, Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
+    void semanticTypeInfoMembers();
     Dsymbol *search(Loc, Identifier *ident, int flags = IgnoreNone);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     const char *kind();
@@ -205,7 +206,7 @@ struct BaseClass
     BaseClass();
     BaseClass(Type *type, PROT protection);
 
-    int fillVtbl(ClassDeclaration *cd, FuncDeclarations *vtbl, int newinstance);
+    bool fillVtbl(ClassDeclaration *cd, FuncDeclarations *vtbl, int newinstance);
     void copyBaseInterfaces(BaseClasses *);
 };
 
@@ -253,13 +254,12 @@ public:
                                         // their own vtbl[]
 
     TypeInfoClassDeclaration *vclassinfo;       // the ClassInfo object for this ClassDeclaration
-    int com;                            // !=0 if this is a COM class (meaning
-                                        // it derives from IUnknown)
-    int cpp;                            // !=0 if this is a C++ interface
-    bool isscope;                       // !=0 if this is an auto class
-    int isabstract;                     // !=0 if abstract class
+    bool com;                           // true if this is a COM class (meaning it derives from IUnknown)
+    bool cpp;                           // true if this is a C++ interface
+    bool isscope;                       // true if this is a scope class
+    bool isabstract;                    // true if abstract class
     int inuse;                          // to prevent recursive attempts
-    Semantic doAncestorsSemantic;  // Before searching symbol, whole ancestors should finish
+    Semantic doAncestorsSemantic;       // Before searching symbol, whole ancestors should finish
                                         // calling semantic() at least once, due to fill symtab
                                         // and do addMember(). [== Semantic(Start,In,Done)]
 
@@ -267,21 +267,21 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    int isBaseOf2(ClassDeclaration *cd);
+    bool isBaseOf2(ClassDeclaration *cd);
 
     #define OFFSET_RUNTIME 0x76543210
-    virtual int isBaseOf(ClassDeclaration *cd, int *poffset);
+    virtual bool isBaseOf(ClassDeclaration *cd, int *poffset);
 
-    virtual int isBaseInfoComplete();
+    virtual bool isBaseInfoComplete();
     Dsymbol *search(Loc, Identifier *ident, int flags = IgnoreNone);
     ClassDeclaration *searchBase(Loc, Identifier *ident);
-    int isFuncHidden(FuncDeclaration *fd);
+    bool isFuncHidden(FuncDeclaration *fd);
     FuncDeclaration *findFunc(Identifier *ident, TypeFunction *tf);
     void interfaceSemantic(Scope *sc);
-    int isCOMclass();
-    virtual int isCOMinterface();
-    int isCPPclass();
-    virtual int isCPPinterface();
+    bool isCOMclass();
+    virtual bool isCOMinterface();
+    bool isCPPclass();
+    virtual bool isCPPinterface();
     bool isAbstract();
     virtual int vtblOffset();
     const char *kind();
@@ -305,13 +305,13 @@ public:
     InterfaceDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
-    int isBaseOf(ClassDeclaration *cd, int *poffset);
-    int isBaseOf(BaseClass *bc, int *poffset);
+    bool isBaseOf(ClassDeclaration *cd, int *poffset);
+    bool isBaseOf(BaseClass *bc, int *poffset);
     const char *kind();
-    int isBaseInfoComplete();
+    bool isBaseInfoComplete();
     int vtblOffset();
-    int isCPPinterface();
-    virtual int isCOMinterface();
+    bool isCPPinterface();
+    bool isCOMinterface();
 
     void toObjFile(bool multiobj);                       // compile to .obj file
 

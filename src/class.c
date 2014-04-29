@@ -68,7 +68,8 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
     vclassinfo = NULL;
 
     if (id)
-    {   // Look for special class names
+    {
+        // Look for special class names
 
         if (id == Id::__sizeof || id == Id::__xalignof || id == Id::mangleof)
             error("illegal class name");
@@ -77,143 +78,165 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
         if (id->toChars()[0] == 'T')
         {
             if (id == Id::TypeInfo)
-            {   if (!inObject)
+            {
+                if (!inObject)
                     error("%s", msg);
                 Type::dtypeinfo = this;
             }
 
             if (id == Id::TypeInfo_Class)
-            {   if (!inObject)
+            {
+                if (!inObject)
                     error("%s", msg);
                 Type::typeinfoclass = this;
             }
 
             if (id == Id::TypeInfo_Interface)
-            {   if (!inObject)
+            {
+                if (!inObject)
                     error("%s", msg);
                 Type::typeinfointerface = this;
             }
 
             if (id == Id::TypeInfo_Struct)
-            {   if (!inObject)
+            {
+                if (!inObject)
                     error("%s", msg);
                 Type::typeinfostruct = this;
             }
 
             if (id == Id::TypeInfo_Typedef)
-            {   if (!inObject)
+            {
+                if (!inObject)
                     error("%s", msg);
                 Type::typeinfotypedef = this;
             }
 
             if (id == Id::TypeInfo_Pointer)
-            {   if (!inObject)
+            {
+                if (!inObject)
                     error("%s", msg);
                 Type::typeinfopointer = this;
             }
 
             if (id == Id::TypeInfo_Array)
-            {   if (!inObject)
+            {
+                if (!inObject)
                     error("%s", msg);
                 Type::typeinfoarray = this;
             }
 
             if (id == Id::TypeInfo_StaticArray)
-            {   //if (!inObject)
-                    //Type::typeinfostaticarray->error("%s", msg);
+            {
+                //if (!inObject)
+                //    Type::typeinfostaticarray->error("%s", msg);
                 Type::typeinfostaticarray = this;
             }
 
             if (id == Id::TypeInfo_AssociativeArray)
-            {   if (!inObject)
+            {
+                if (!inObject)
                     error("%s", msg);
                 Type::typeinfoassociativearray = this;
             }
 
             if (id == Id::TypeInfo_Enum)
-            {   if (!inObject)
+            {
+                if (!inObject)
                     error("%s", msg);
                 Type::typeinfoenum = this;
             }
 
             if (id == Id::TypeInfo_Function)
-            {   if (!inObject)
+            {
+                if (!inObject)
                     error("%s", msg);
                 Type::typeinfofunction = this;
             }
 
             if (id == Id::TypeInfo_Delegate)
-            {   if (!inObject)
+            {
+                if (!inObject)
                     error("%s", msg);
                 Type::typeinfodelegate = this;
             }
 
             if (id == Id::TypeInfo_Tuple)
-            {   if (!inObject)
+            {
+                if (!inObject)
                     error("%s", msg);
                 Type::typeinfotypelist = this;
             }
 
             if (id == Id::TypeInfo_Const)
-            {   if (!inObject)
+            {
+                if (!inObject)
                     error("%s", msg);
                 Type::typeinfoconst = this;
             }
 
             if (id == Id::TypeInfo_Invariant)
-            {   if (!inObject)
+            {
+                if (!inObject)
                     error("%s", msg);
                 Type::typeinfoinvariant = this;
             }
 
             if (id == Id::TypeInfo_Shared)
-            {   if (!inObject)
+            {
+                if (!inObject)
                     error("%s", msg);
                 Type::typeinfoshared = this;
             }
 
             if (id == Id::TypeInfo_Wild)
-            {   if (!inObject)
+            {
+                if (!inObject)
                     error("%s", msg);
                 Type::typeinfowild = this;
             }
 
             if (id == Id::TypeInfo_Vector)
-            {   if (!inObject)
+            {
+                if (!inObject)
                     error("%s", msg);
                 Type::typeinfovector = this;
             }
         }
 
         if (id == Id::Object)
-        {   if (!inObject)
+        {
+            if (!inObject)
                 error("%s", msg);
             object = this;
         }
 
         if (id == Id::Throwable)
-        {   if (!inObject)
+        {
+            if (!inObject)
                 error("%s", msg);
             throwable = this;
         }
 
         if (id == Id::Exception)
-        {   if (!inObject)
+        {
+            if (!inObject)
                 error("%s", msg);
             exception = this;
         }
 
         if (id == Id::Error)
-        {   if (!inObject)
+        {
+            if (!inObject)
                 error("%s", msg);
             errorException = this;
         }
     }
 
-    com = 0;
-    cpp = 0;
+    com = false;
+    cpp = false;
     isscope = false;
-    isabstract = 0;
+    isabstract = false;
     inuse = 0;
     doAncestorsSemantic = SemanticStart;
 }
@@ -251,8 +274,8 @@ void ClassDeclaration::semantic(Scope *sc)
     //{ static int n;  if (++n == 20) *(char*)0=0; }
 
     if (!ident)         // if anonymous class
-    {   const char *id = "__anonclass";
-
+    {
+        const char *id = "__anonclass";
         ident = Identifier::generateId(id);
     }
 
@@ -271,12 +294,15 @@ void ClassDeclaration::semantic(Scope *sc)
     }
 
     if (!members)               // if opaque declaration
-    {   //printf("\tclass '%s' is forward referenced\n", toChars());
+    {
+        //printf("\tclass '%s' is forward referenced\n", toChars());
         return;
     }
     if (symtab)
-    {   if (sizeok == SIZEOKdone || !scope)
-        {   //printf("\tsemantic for '%s' is already completed\n", toChars());
+    {
+        if (sizeok == SIZEOKdone || !scope)
+        {
+            //printf("\tsemantic for '%s' is already completed\n", toChars());
             return;             // semantic() already completed
         }
     }
@@ -300,7 +326,7 @@ void ClassDeclaration::semantic(Scope *sc)
     userAttribDecl = sc->userAttribDecl;
 
     if (sc->linkage == LINKcpp)
-        cpp = 1;
+        cpp = true;
 
     // Expand any tuples in baseclasses[]
     for (size_t i = 0; i < baseclasses->dim; )
@@ -313,12 +339,14 @@ void ClassDeclaration::semantic(Scope *sc)
 
         Type *tb = b->type->toBasetype();
         if (tb->ty == Ttuple)
-        {   TypeTuple *tup = (TypeTuple *)tb;
+        {
+            TypeTuple *tup = (TypeTuple *)tb;
             PROT protection = b->protection;
             baseclasses->remove(i);
             size_t dim = Parameter::dim(tup->arguments);
             for (size_t j = 0; j < dim; j++)
-            {   Parameter *arg = Parameter::getNth(tup->arguments, j);
+            {
+                Parameter *arg = Parameter::getNth(tup->arguments, j);
                 b = new BaseClass(arg->type, protection);
                 baseclasses->insert(i + j, b);
             }
@@ -379,7 +407,7 @@ void ClassDeclaration::semantic(Scope *sc)
 
                 if (tc->sym->symtab && tc->sym->scope == NULL)
                 {
-                    /* Bugzilla 11034: Essentailly, class inheritance hierarchy
+                    /* Bugzilla 11034: Essentially, class inheritance hierarchy
                      * and instance size of each classes are orthogonal information.
                      * Therefore, even if tc->sym->sizeof == SIZEOKnone,
                      * we need to set baseClass field for class covariance check.
@@ -513,7 +541,7 @@ void ClassDeclaration::semantic(Scope *sc)
             // Inherit properties from base class
             com = baseClass->isCOMclass();
             if (baseClass->isCPPclass())
-                cpp = 1;
+                cpp = true;
             isscope = baseClass->isscope;
             vthis = baseClass->vthis;
             enclosing = baseClass->enclosing;
@@ -575,28 +603,30 @@ void ClassDeclaration::semantic(Scope *sc)
         if (storage_class & STCscope)
             isscope = true;
         if (storage_class & STCabstract)
-            isabstract = 1;
+            isabstract = true;
     }
 
-    sc = sc->push(this);
-    //sc->stc &= ~(STCfinal | STCauto | STCscope | STCstatic | STCabstract | STCdeprecated | STC_TYPECTOR | STCtls | STCgshared);
-    //sc->stc |= storage_class & STC_TYPECTOR;
-    sc->stc &= STCsafe | STCtrusted | STCsystem;
-    sc->parent = this;
-    sc->inunion = 0;
+    Scope *sc2 = sc->push(this);
+    //sc2->stc &= ~(STCfinal | STCauto | STCscope | STCstatic | STCabstract | STCdeprecated | STC_TYPECTOR | STCtls | STCgshared);
+    //sc2->stc |= storage_class & STC_TYPECTOR;
+    sc2->stc &= STCsafe | STCtrusted | STCsystem;
+    sc2->parent = this;
+    sc2->inunion = 0;
     if (isCOMclass())
     {
         if (global.params.isWindows)
-            sc->linkage = LINKwindows;
+            sc2->linkage = LINKwindows;
         else
+        {
             /* This enables us to use COM objects under Linux and
              * work with things like XPCOM
              */
-            sc->linkage = LINKc;
+            sc2->linkage = LINKc;
+        }
     }
-    sc->protection = PROTpublic;
-    sc->explicitProtection = 0;
-    sc->structalign = STRUCTALIGN_DEFAULT;
+    sc2->protection = PROTpublic;
+    sc2->explicitProtection = 0;
+    sc2->structalign = STRUCTALIGN_DEFAULT;
     if (baseClass)
     {
         alignsize = baseClass->alignsize;
@@ -610,8 +640,7 @@ void ClassDeclaration::semantic(Scope *sc)
         else
             structsize = Target::ptrsize * 2;   // allow room for __vptr and __monitor
     }
-    sc->userAttribDecl = NULL;
-    Scope scsave = *sc;
+    sc2->userAttribDecl = NULL;
     size_t members_dim = members->dim;
     sizeok = SIZEOKnone;
 
@@ -621,14 +650,14 @@ void ClassDeclaration::semantic(Scope *sc)
     for (size_t i = 0; i < members_dim; i++)
     {
         Dsymbol *s = (*members)[i];
-        //printf("[%d] setScope %s %s, sc = %p\n", i, s->kind(), s->toChars(), sc);
-        s->setScope(sc);
+        //printf("[%d] setScope %s %s, sc2 = %p\n", i, s->kind(), s->toChars(), sc2);
+        s->setScope(sc2);
     }
 
     for (size_t i = 0; i < members->dim; i++)
     {
         Dsymbol *s = (*members)[i];
-        s->importAll(sc);
+        s->importAll(sc2);
     }
 
     for (size_t i = 0; i < members_dim; i++)
@@ -637,7 +666,7 @@ void ClassDeclaration::semantic(Scope *sc)
 
         // Ungag errors when not speculative
         Ungag ungag = ungagSpeculative();
-        s->semantic(sc);
+        s->semantic(sc2);
     }
 
     // Set the offsets of the fields and determine the size of the class
@@ -668,7 +697,7 @@ void ClassDeclaration::semantic(Scope *sc)
         structsize = 0;
         alignsize = 0;
 
-        sc = sc->pop();
+        sc2->pop();
 
         scope = scx ? scx : sc->copy();
         scope->setNoFree();
@@ -687,7 +716,7 @@ void ClassDeclaration::semantic(Scope *sc)
     /* Look for special member functions.
      * They must be in this class, not in a base class.
      */
-    searchCtor();
+    ctor = searchCtor();
     if (ctor && (ctor->toParent() != this || !(ctor->isCtorDeclaration() || ctor->isTemplateDeclaration())))
         ctor = NULL;    // search() looks through ancestor classes
     if (!ctor && noDefaultCtor)
@@ -701,7 +730,7 @@ void ClassDeclaration::semantic(Scope *sc)
         }
     }
 
-    inv = buildInv(this, sc);
+    inv = buildInv(this, sc2);
 
     // Can be in base class
     aggNew    =    (NewDeclaration *)search(Loc(), Id::classNew);
@@ -712,7 +741,7 @@ void ClassDeclaration::semantic(Scope *sc)
     //    this() { }
     if (!ctor && baseClass && baseClass->ctor)
     {
-        FuncDeclaration *fd = resolveFuncCall(loc, sc, baseClass->ctor, NULL, NULL, NULL, 1);
+        FuncDeclaration *fd = resolveFuncCall(loc, sc2, baseClass->ctor, NULL, NULL, NULL, 1);
         if (fd && !fd->errors)
         {
             //printf("Creating default this(){} for class %s\n", toChars());
@@ -726,8 +755,7 @@ void ClassDeclaration::semantic(Scope *sc)
             ctor->fbody = new CompoundStatement(Loc(), new Statements());
             members->push(ctor);
             ctor->addMember(sc, this, 1);
-            *sc = scsave;   // why? What about sc->nofree?
-            ctor->semantic(sc);
+            ctor->semantic(sc2);
             this->ctor = ctor;
             defaultCtor = ctor;
         }
@@ -736,15 +764,6 @@ void ClassDeclaration::semantic(Scope *sc)
             error("Cannot implicitly generate a default ctor when base class %s is missing a default ctor", baseClass->toPrettyChars());
         }
     }
-
-#if 0
-    if (baseClass)
-    {   if (!aggDelete)
-            aggDelete = baseClass->aggDelete;
-        if (!aggNew)
-            aggNew = baseClass->aggNew;
-    }
-#endif
 
     // Allocate instance of each new interface
     offset = structsize;
@@ -772,13 +791,13 @@ void ClassDeclaration::semantic(Scope *sc)
     sizeok = SIZEOKdone;
     Module::dprogress++;
 
-    dtor = buildDtor(this, sc);
-    if (FuncDeclaration *f = hasIdentityOpAssign(this, sc))
+    dtor = buildDtor(this, sc2);
+    if (FuncDeclaration *f = hasIdentityOpAssign(this, sc2))
     {
         if (!(f->storage_class & STCdisable))
             error(f->loc, "identity assignment operator overload is illegal");
     }
-    sc->pop();
+    sc2->pop();
 
 #if 0 // Do not call until toObjfile() because of forward references
     // Fill in base class vtbl[]s
@@ -861,25 +880,25 @@ void ClassDeclaration::defineRef(Dsymbol *s)
  * This is used to detect circular inheritance only.
  */
 
-int ClassDeclaration::isBaseOf2(ClassDeclaration *cd)
+bool ClassDeclaration::isBaseOf2(ClassDeclaration *cd)
 {
     if (!cd)
-        return 0;
+        return false;
     //printf("ClassDeclaration::isBaseOf2(this = '%s', cd = '%s')\n", toChars(), cd->toChars());
     for (size_t i = 0; i < cd->baseclasses->dim; i++)
-    {   BaseClass *b = (*cd->baseclasses)[i];
-
+    {
+        BaseClass *b = (*cd->baseclasses)[i];
         if (b->base == this || isBaseOf2(b->base))
-            return 1;
+            return true;
     }
-    return 0;
+    return false;
 }
 
 /*******************************************
  * Determine if 'this' is a base class of cd.
  */
 
-int ClassDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
+bool ClassDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
 {
     //printf("ClassDeclaration::isBaseOf(this = '%s', cd = '%s')\n", toChars(), cd->toChars());
     if (poffset)
@@ -896,11 +915,11 @@ int ClassDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
         }
 
         if (this == cd->baseClass)
-            return 1;
+            return true;
 
         cd = cd->baseClass;
     }
-    return 0;
+    return false;
 }
 
 /*********************************************
@@ -908,16 +927,17 @@ int ClassDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
  * This is used to detect forward references in covariant overloads.
  */
 
-int ClassDeclaration::isBaseInfoComplete()
+bool ClassDeclaration::isBaseInfoComplete()
 {
     if (!baseClass)
         return ident == Id::Object;
     for (size_t i = 0; i < baseclasses->dim; i++)
-    {   BaseClass *b = (*baseclasses)[i];
+    {
+        BaseClass *b = (*baseclasses)[i];
         if (!b->base || !b->base->isBaseInfoComplete())
-            return 0;
+            return false;
     }
-    return 1;
+    return true;
 }
 
 Dsymbol *ClassDeclaration::search(Loc loc, Identifier *ident, int flags)
@@ -1002,7 +1022,7 @@ int isf(void *param, Dsymbol *s)
     return (RootObject *)param == fd;
 }
 
-int ClassDeclaration::isFuncHidden(FuncDeclaration *fd)
+bool ClassDeclaration::isFuncHidden(FuncDeclaration *fd)
 {
     //printf("ClassDeclaration::isFuncHidden(class = %s, fd = %s)\n", toChars(), fd->toChars());
     Dsymbol *s = search(Loc(), fd->ident, IgnoreAmbiguous | IgnoreErrors);
@@ -1012,7 +1032,7 @@ int ClassDeclaration::isFuncHidden(FuncDeclaration *fd)
         /* Because, due to a hack, if there are multiple definitions
          * of fd->ident, NULL is returned.
          */
-        return 0;
+        return false;
     }
     s = s->toAlias();
     OverloadSet *os = s->isOverloadSet();
@@ -1023,16 +1043,16 @@ int ClassDeclaration::isFuncHidden(FuncDeclaration *fd)
             Dsymbol *s2 = os->a[i];
             FuncDeclaration *f2 = s2->isFuncDeclaration();
             if (f2 && overloadApply(f2, (void *)fd, &isf))
-                return 0;
+                return false;
         }
-        return 1;
+        return true;
     }
     else
     {
         FuncDeclaration *fdstart = s->isFuncDeclaration();
         //printf("%s fdstart = %p\n", s->kind(), fdstart);
         if (overloadApply(fdstart, (void *)fd, &isf))
-            return 0;
+            return false;
 
         return !fd->parent->isTemplateMixin();
     }
@@ -1062,7 +1082,8 @@ FuncDeclaration *ClassDeclaration::findFunc(Identifier *ident, TypeFunction *tf)
             //printf("\t[%d] = %s\n", i, fd->toChars());
             if (ident == fd->ident &&
                 fd->type->covariant(tf) == 1)
-            {   //printf("fd->parent->isClassDeclaration() = %p\n", fd->parent->isClassDeclaration());
+            {
+                //printf("fd->parent->isClassDeclaration() = %p\n", fd->parent->isClassDeclaration());
                 if (!fdmatch)
                     goto Lfd;
                 if (fd == fdmatch)
@@ -1137,14 +1158,14 @@ void ClassDeclaration::interfaceSemantic(Scope *sc)
         // If this is an interface, and it derives from a COM interface,
         // then this is a COM interface too.
         if (b->base->isCOMinterface())
-            com = 1;
+            com = true;
 
 #if 1
         if (b->base->isCPPinterface() && id)
-            id->cpp = 1;
+            id->cpp = true;
 #else
         if (b->base->isCPPinterface())
-            cpp = 1;
+            cpp = true;
 #endif
         vtblInterfaces->push(b);
         b->copyBaseInterfaces(vtblInterfaces);
@@ -1154,24 +1175,24 @@ void ClassDeclaration::interfaceSemantic(Scope *sc)
 /****************************************
  */
 
-int ClassDeclaration::isCOMclass()
+bool ClassDeclaration::isCOMclass()
 {
     return com;
 }
 
-int ClassDeclaration::isCOMinterface()
+bool ClassDeclaration::isCOMinterface()
 {
-    return 0;
+    return false;
 }
 
-int ClassDeclaration::isCPPclass()
+bool ClassDeclaration::isCPPclass()
 {
     return cpp;
 }
 
-int ClassDeclaration::isCPPinterface()
+bool ClassDeclaration::isCPPinterface()
 {
-    return 0;
+    return false;
 }
 
 
@@ -1189,7 +1210,7 @@ bool ClassDeclaration::isAbstract()
         //printf("\tvtbl[%d] = %p\n", i, fd);
         if (!fd || fd->isAbstract())
         {
-            isabstract |= 1;
+            isabstract = true;
             return true;
         }
     }
@@ -1234,8 +1255,9 @@ InterfaceDeclaration::InterfaceDeclaration(Loc loc, Identifier *id, BaseClasses 
     : ClassDeclaration(loc, id, baseclasses)
 {
     if (id == Id::IUnknown)     // IUnknown is the root of all COM interfaces
-    {   com = 1;
-        cpp = 1;                // IUnknown is also a C++ interface
+    {
+        com = true;
+        cpp = true;             // IUnknown is also a C++ interface
     }
 }
 
@@ -1273,11 +1295,13 @@ void InterfaceDeclaration::semantic(Scope *sc)
     }
 
     if (!members)                       // if forward reference
-    {   //printf("\tinterface '%s' is forward referenced\n", toChars());
+    {
+        //printf("\tinterface '%s' is forward referenced\n", toChars());
         return;
     }
     if (symtab)                 // if already done
-    {   if (!scope)
+    {
+        if (!scope)
             return;
     }
     else
@@ -1310,12 +1334,14 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
         Type *tb = b->type->toBasetype();
         if (tb->ty == Ttuple)
-        {   TypeTuple *tup = (TypeTuple *)tb;
+        {
+            TypeTuple *tup = (TypeTuple *)tb;
             PROT protection = b->protection;
             baseclasses->remove(i);
             size_t dim = Parameter::dim(tup->arguments);
             for (size_t j = 0; j < dim; j++)
-            {   Parameter *arg = Parameter::getNth(tup->arguments, j);
+            {
+                Parameter *arg = Parameter::getNth(tup->arguments, j);
                 b = new BaseClass(arg->type, protection);
                 baseclasses->insert(i + j, b);
             }
@@ -1325,7 +1351,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
     }
 
     if (!baseclasses->dim && sc->linkage == LINKcpp)
-        cpp = 1;
+        cpp = true;
 
     // Check for errors, handle forward references
     for (size_t i = 0; i < baseclasses->dim; )
@@ -1397,7 +1423,8 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
     // Cat together the vtbl[]'s from base interfaces
     for (size_t i = 0; i < interfaces_dim; i++)
-    {   BaseClass *b = interfaces[i];
+    {
+        BaseClass *b = interfaces[i];
 
         // Skip if b has already appeared
         for (size_t k = 0; k < i; k++)
@@ -1408,7 +1435,8 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
         // Copy vtbl[] from base class
         if (b->base->vtblOffset())
-        {   size_t d = b->base->vtbl.dim;
+        {
+            size_t d = b->base->vtbl.dim;
             if (d > 1)
             {
                 vtbl.reserve(d - 1);
@@ -1434,18 +1462,17 @@ void InterfaceDeclaration::semantic(Scope *sc)
         s->addMember(sc, this, 1);
     }
 
-    sc = sc->push(this);
-    sc->stc &= STCsafe | STCtrusted | STCsystem;
-    sc->parent = this;
+    Scope *sc2 = sc->push(this);
+    sc2->stc &= STCsafe | STCtrusted | STCsystem;
+    sc2->parent = this;
     if (com)
-        sc->linkage = LINKwindows;
+        sc2->linkage = LINKwindows;
     else if (cpp)
-        sc->linkage = LINKcpp;
-    sc->structalign = STRUCTALIGN_DEFAULT;
-    sc->protection = PROTpublic;
-    sc->explicitProtection = 0;
-//    structalign = sc->structalign;
-    sc->userAttribDecl = NULL;
+        sc2->linkage = LINKcpp;
+    sc2->structalign = STRUCTALIGN_DEFAULT;
+    sc2->protection = PROTpublic;
+    sc2->explicitProtection = 0;
+    sc2->userAttribDecl = NULL;
     structsize = Target::ptrsize * 2;
     inuse++;
 
@@ -1453,21 +1480,22 @@ void InterfaceDeclaration::semantic(Scope *sc)
      * resolve individual members like enums.
      */
     for (size_t i = 0; i < members->dim; i++)
-    {   Dsymbol *s = (*members)[i];
+    {
+        Dsymbol *s = (*members)[i];
         /* There are problems doing this in the general case because
          * Scope keeps track of things like 'offset'
          */
         if (s->isEnumDeclaration() || (s->isAggregateDeclaration() && s->ident))
         {
             //printf("setScope %s %s\n", s->kind(), s->toChars());
-            s->setScope(sc);
+            s->setScope(sc2);
         }
     }
 
     for (size_t i = 0; i < members->dim; i++)
     {
         Dsymbol *s = (*members)[i];
-        s->importAll(sc);
+        s->importAll(sc2);
     }
 
     for (size_t i = 0; i < members->dim; i++)
@@ -1476,17 +1504,18 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
         // Ungag errors when not speculative
         Ungag ungag = ungagSpeculative();
-        s->semantic(sc);
+        s->semantic(sc2);
     }
 
     if (global.errors != errors)
-    {   // The type is no good.
+    {
+        // The type is no good.
         type = Type::terror;
     }
 
     inuse--;
     //members->print();
-    sc->pop();
+    sc2->pop();
     //printf("-InterfaceDeclaration::semantic(%s), type = %p\n", toChars(), type);
 
 #if 0
@@ -1507,11 +1536,11 @@ void InterfaceDeclaration::semantic(Scope *sc)
  *      *poffset        offset to start of class
  *                      OFFSET_RUNTIME  must determine offset at runtime
  * Returns:
- *      0       not a base
- *      1       is a base
+ *      false   not a base
+ *      true    is a base
  */
 
-int InterfaceDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
+bool InterfaceDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
 {
     //printf("%s.InterfaceDeclaration::isBaseOf(cd = '%s')\n", toChars(), cd->toChars());
     assert(!baseClass);
@@ -1524,29 +1553,31 @@ int InterfaceDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
         {
             //printf("\tfound at offset %d\n", b->offset);
             if (poffset)
-            {   *poffset = b->offset;
+            {
+                *poffset = b->offset;
                 if (j && cd->isInterfaceDeclaration())
                     *poffset = OFFSET_RUNTIME;
             }
-            return 1;
+            return true;
         }
         if (isBaseOf(b, poffset))
-        {   if (j && poffset && cd->isInterfaceDeclaration())
+        {
+            if (j && poffset && cd->isInterfaceDeclaration())
                 *poffset = OFFSET_RUNTIME;
-            return 1;
+            return true;
         }
     }
 
     if (cd->baseClass && isBaseOf(cd->baseClass, poffset))
-        return 1;
+        return true;
 
     if (poffset)
         *poffset = 0;
-    return 0;
+    return false;
 }
 
 
-int InterfaceDeclaration::isBaseOf(BaseClass *bc, int *poffset)
+bool InterfaceDeclaration::isBaseOf(BaseClass *bc, int *poffset)
 {
     //printf("%s.InterfaceDeclaration::isBaseOf(bc = '%s')\n", toChars(), bc->base->toChars());
     for (size_t j = 0; j < bc->baseInterfaces_dim; j++)
@@ -1556,21 +1587,23 @@ int InterfaceDeclaration::isBaseOf(BaseClass *bc, int *poffset)
         if (this == b->base)
         {
             if (poffset)
-            {   *poffset = b->offset;
+            {
+                *poffset = b->offset;
                 if (j && bc->base->isInterfaceDeclaration())
                     *poffset = OFFSET_RUNTIME;
             }
-            return 1;
+            return true;
         }
         if (isBaseOf(b, poffset))
-        {   if (j && poffset && bc->base->isInterfaceDeclaration())
+        {
+            if (j && poffset && bc->base->isInterfaceDeclaration())
                 *poffset = OFFSET_RUNTIME;
-            return 1;
+            return true;
         }
     }
     if (poffset)
         *poffset = 0;
-    return 0;
+    return false;
 }
 
 /*********************************************
@@ -1578,15 +1611,16 @@ int InterfaceDeclaration::isBaseOf(BaseClass *bc, int *poffset)
  * This is used to detect forward references in covariant overloads.
  */
 
-int InterfaceDeclaration::isBaseInfoComplete()
+bool InterfaceDeclaration::isBaseInfoComplete()
 {
     assert(!baseClass);
     for (size_t i = 0; i < baseclasses->dim; i++)
-    {   BaseClass *b = (*baseclasses)[i];
+    {
+        BaseClass *b = (*baseclasses)[i];
         if (!b->base || !b->base->isBaseInfoComplete ())
-            return 0;
+            return false;
     }
-    return 1;
+    return true;
 }
 
 /****************************************
@@ -1603,12 +1637,12 @@ int InterfaceDeclaration::vtblOffset()
     return 1;
 }
 
-int InterfaceDeclaration::isCOMinterface()
+bool InterfaceDeclaration::isCOMinterface()
 {
     return com;
 }
 
-int InterfaceDeclaration::isCPPinterface()
+bool InterfaceDeclaration::isCPPinterface()
 {
     return cpp;
 }
@@ -1648,13 +1682,13 @@ BaseClass::BaseClass(Type *type, PROT protection)
  *      newinstance     !=0 means all entries must be filled in by members
  *                      of cd, not members of any base classes of cd.
  * Returns:
- *      !=0 if any entries were filled in by members of cd (not exclusively
+ *      true if any entries were filled in by members of cd (not exclusively
  *      by base classes)
  */
 
-int BaseClass::fillVtbl(ClassDeclaration *cd, FuncDeclarations *vtbl, int newinstance)
+bool BaseClass::fillVtbl(ClassDeclaration *cd, FuncDeclarations *vtbl, int newinstance)
 {
-    int result = 0;
+    bool result = false;
 
     //printf("BaseClass::fillVtbl(this='%s', cd='%s')\n", base->toChars(), cd->toChars());
     if (vtbl)
@@ -1688,7 +1722,7 @@ int BaseClass::fillVtbl(ClassDeclaration *cd, FuncDeclarations *vtbl, int newins
                 cd->error("interface function '%s' is not implemented", ifd->toFullSignature());
 
             if (fd->toParent() == cd)
-                result = 1;
+                result = true;
         }
         else
         {
