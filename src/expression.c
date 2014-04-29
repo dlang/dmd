@@ -7526,14 +7526,17 @@ int modifyFieldVar(Loc loc, Scope *sc, VarDeclaration *var, Expression *e1)
                     if (var->type->isMutable() && e1->type->isMutable())
                         result = false;
                     else
-                        ::error(loc, "multiple field %s initialization", var->toChars());
+                    {
+                        const char *modStr = !var->type->isMutable() ? MODtoChars(var->type->mod) : MODtoChars(e1->type->mod);
+                        ::error(loc, "%s field '%s' initialized multiple times", modStr, var->toChars());
+                    }
                 }
                 else if (sc->noctor || fi & CSXlabel)
                 {
                     if (!mustInit && var->type->isMutable() && e1->type->isMutable())
                         result = false;
                     else
-                        ::error(loc, "field %s initializing not allowed in loops or after labels", var->toChars());
+                        ::error(loc, "field '%s' initializing not allowed in loops or after labels", var->toChars());
                 }
                 sc->fieldinit[i] |= CSXthis_ctor;
             }
