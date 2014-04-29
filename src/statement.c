@@ -1279,7 +1279,11 @@ Statement *ForeachStatement::semantic(Scope *sc)
         if (dim < 1 || dim > 2)
         {
             error("only one (value) or two (key,value) arguments for tuple foreach");
-            return s;
+        }
+
+        Type *argtype = (*arguments)[dim-1]->type;
+        if (argtype)
+        {   argtype = argtype->semantic(loc, sc);
         }
 
         TypeTuple *tuple = (TypeTuple *)tab;
@@ -1299,8 +1303,8 @@ Statement *ForeachStatement::semantic(Scope *sc)
             assert(0);
         for (size_t j = 0; j < n; j++)
         {   size_t k = (op == TOKforeach) ? j : n - 1 - j;
-            Expression *e;
-            Type *t;
+            Expression *e = NULL;
+            Type *t = NULL;
             if (te)
                 e = (*te->exps)[k];
             else
@@ -1332,40 +1336,66 @@ Statement *ForeachStatement::semantic(Scope *sc)
                 arg = (*arguments)[1];  // value
             }
             // Declare value
-            if (arg->storageClass & (STCout | STCref | STClazy))
+            if (arg->storageClass & (STCout | STClazy) ||
+                arg->storageClass & STCref && !te)
+            {
                 error("no storage class for value %s", arg->ident->toChars());
+            }
             Dsymbol *var;
             if (te)
-            {   Type *tb = e->type->toBasetype();
-                Dsymbol *s = NULL;
+            {
+                Type *tb = e->type->toBasetype();
+                Dsymbol *ds = NULL;
                 if ((tb->ty == Tfunction || tb->ty == Tsarray) && e->op == TOKvar)
-                    s = ((VarExp *)e)->var;
+                    ds = ((VarExp *)e)->var;
                 else if (e->op == TOKtemplate)
-                    s =((TemplateExp *)e)->td;
+                    ds = ((TemplateExp *)e)->td;
                 else if (e->op == TOKimport)
-                    s =((ScopeExp *)e)->sds;
+                    ds = ((ScopeExp *)e)->sds;
 
-                if (s)
+                if (ds)
                 {
-                    var = new AliasDeclaration(loc, arg->ident, s);
+                    var = new AliasDeclaration(loc, arg->ident, ds);
+                    if (arg->storageClass & STCref)
+                    {   error("symbol %s cannot be ref", s->toChars());
+                    }
+                    if (argtype)
+                    {   error("cannot specify element type for symbol %s", ds->toChars());
+                    }
                 }
                 else if (e->op == TOKtype)
                 {
                     var = new AliasDeclaration(loc, arg->ident, e->type);
+                    if (argtype)
+                    {   error("cannot specify element type for type %s", e->type->toChars());
+                    }
                 }
                 else
                 {
                     arg->type = e->type;
-                    Initializer *ie = new ExpInitializer(0, e);
+                    if (argtype)
+                        arg->type = argtype;
+                    Initializer *ie = new ExpInitializer(Loc(), e);
                     VarDeclaration *v = new VarDeclaration(loc, arg->type, arg->ident, ie);
+                    if (arg->storageClass & STCref)
+                        v->storage_class |= STCref | STCforeach;
                     if (e->isConst() || e->op == TOKstring)
-                        v->storage_class |= STCconst;
+                    {   if (v->storage_class & STCref)
+                        {   error("constant value %s cannot be ref", ie->toChars());
+                            return this;
+                        }
+                        else
+                            v->storage_class |= STCconst;
+                    }
                     var = v;
                 }
             }
             else
             {
                 var = new AliasDeclaration(loc, arg->ident, t);
+                if (argtype)
+                {   error("cannot specify element type for symbol %s", s->toChars());
+                }
             }
             DeclarationExp *de = new DeclarationExp(loc, var);
             st->push(new ExpStatement(loc, de));
