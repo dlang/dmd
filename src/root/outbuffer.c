@@ -13,6 +13,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#if __sun
+#include <alloca.h>
+#endif
+
 #include "outbuffer.h"
 #include "object.h"
 #include "rmem.h"

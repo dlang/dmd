@@ -673,6 +673,7 @@ longdouble Port::strtold(const char *p, char **endp)
 #include <wchar.h>
 #include <float.h>
 #include <ieeefp.h>
+#include <assert.h>
 
 double Port::nan;
 longdouble Port::ldbl_nan;
@@ -774,6 +775,48 @@ char *Port::strupr(char *s)
     }
 
     return t;
+}
+
+int Port::memicmp(const char *s1, const char *s2, int n)
+{
+    int result = 0;
+
+    for (int i = 0; i < n; i++)
+    {   char c1 = s1[i];
+        char c2 = s2[i];
+
+        result = c1 - c2;
+        if (result)
+        {
+            result = toupper(c1) - toupper(c2);
+            if (result)
+                break;
+        }
+    }
+    return result;
+}
+
+int Port::stricmp(const char *s1, const char *s2)
+{
+    int result = 0;
+
+    for (;;)
+    {   char c1 = *s1;
+        char c2 = *s2;
+
+        result = c1 - c2;
+        if (result)
+        {
+            result = toupper(c1) - toupper(c2);
+            if (result)
+                break;
+        }
+        if (!c1)
+            break;
+        s1++;
+        s2++;
+    }
+    return result;
 }
 
 float Port::strtof(const char *p, char **endp)
