@@ -545,6 +545,25 @@ else version( FreeBSD )
     int signbit(real x)         { return __signbit(x); }
   }
 }
+else version( Solaris )
+{
+    int __isnanf(float x);
+    int __isnan(double x);
+    int __isnanl(real x);
+
+  extern (D)
+  {
+    //int isnan(real-floating x);
+    int isnan(float x)          { return __isnanf(x);  }
+    int isnan(double x)         { return __isnan(x);   }
+    int isnan(real x)
+    {
+        return (real.sizeof == double.sizeof)
+            ? __isnan(x)
+            : __isnanl(x);
+    }
+  }
+}
 else version( Android )
 {
     enum
