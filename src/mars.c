@@ -457,7 +457,7 @@ Usage:\n\
   -op            preserve source path for output files\n\
   -profile       profile runtime performance of generated code\n\
   -property      enforce property syntax\n\
-  -release       compile release version\n\
+  -release       compile release version (implies -boundscheck=safeonly unless overriden)\n\
   -run srcfile args...   run resulting program, passing args\n\
   -shared        generate shared library (DLL)\n\
   -transition=id show additional info about language change identified by 'id'\n\
