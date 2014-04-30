@@ -14,6 +14,8 @@ version (linux)
     public import rt.sections_linux;
 else version (FreeBSD)
     public import rt.sections_freebsd;
+else version (Solaris)
+    public import rt.sections_solaris;
 else version (OSX)
     public import rt.sections_osx;
 else version (Win32)
