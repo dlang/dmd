@@ -3275,7 +3275,8 @@ Lagain:
 
         if (!f->type->deco)
         {
-            error("forward reference to %s", toChars());
+            const char *trailMsg = f->inferRetType ? "inferred return type of function call " : "";
+            error("forward reference to %s'%s'", trailMsg, toChars());
             return new ErrorExp();
         }
         FuncDeclaration *fd = s->isFuncDeclaration();
