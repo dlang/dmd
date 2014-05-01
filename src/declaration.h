@@ -904,6 +904,7 @@ public:
     bool addPostInvariant();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
+    ExpInitializer *toUnitTestInfo();
     UnitTestDeclaration *isUnitTestDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };

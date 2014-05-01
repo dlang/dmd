@@ -26,6 +26,7 @@ TypeTuple *toArgTypes(Type *t);
 
 FuncDeclaration *StructDeclaration::xerreq;     // object.xopEquals
 FuncDeclaration *StructDeclaration::xerrcmp;    // object.xopCmp
+StructDeclaration *StructDeclaration::UnitTest;
 
 /***************************************
  * Search toHash member function for TypeInfo_Struct.
@@ -664,6 +665,9 @@ StructDeclaration::StructDeclaration(Loc loc, Identifier *id)
 
     if (id == Id::ModuleInfo && !Module::moduleinfo)
         Module::moduleinfo = this;
+
+    if(id == Id::UnitTest && !UnitTest)
+        UnitTest = this;
 }
 
 Dsymbol *StructDeclaration::syntaxCopy(Dsymbol *s)

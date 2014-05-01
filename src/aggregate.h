@@ -141,6 +141,8 @@ struct StructFlags
 class StructDeclaration : public AggregateDeclaration
 {
 public:
+    static StructDeclaration *UnitTest;
+
     int zeroInit;               // !=0 if initialize with 0 fill
     bool hasIdentityAssign;     // true if has identity opAssign
     bool hasIdentityEquals;     // true if has identity opEquals

@@ -71,6 +71,8 @@ Module::Module(const char *filename, Identifier *ident, int doDocComment, int do
     ssharedctor = NULL;
     sshareddtor = NULL;
     stest = NULL;
+    unitTestArr = NULL;
+    unitTests = NULL;
     sfilename = NULL;
     importedFrom = NULL;
     srcfile = NULL;

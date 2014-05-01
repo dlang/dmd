@@ -34,6 +34,8 @@ typedef Array<class RootObject *> Objects;
 
 typedef Array<class FuncDeclaration *> FuncDeclarations;
 
+typedef Array<class UnitTestDeclaration *> UnitTestDeclarations;
+
 typedef Array<class Parameter *> Parameters;
 
 typedef Array<class Identifier *> Identifiers;

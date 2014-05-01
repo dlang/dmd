@@ -105,10 +105,11 @@ void Module::genmoduleinfo()
     #define MIdtor            0x40
     #define MIxgetMembers     0x80
     #define MIictor           0x100
-    #define MIunitTest        0x200
+    #define MIunitTest        0x200 //deprecated
     #define MIimportedModules 0x400
     #define MIlocalClasses    0x800
     #define MIname            0x1000
+    #define MIunitTest2       0x2000
 
     unsigned flags = 0;
     if (!needmoduleinfo)
@@ -127,6 +128,8 @@ void Module::genmoduleinfo()
         flags |= MIictor;
     if (stest)
         flags |= MIunitTest;
+    if (unitTestArr)
+        flags |= MIunitTest2;
     if (aimports_dim)
         flags |= MIimportedModules;
     if (aclasses.dim)
@@ -185,7 +188,17 @@ void Module::genmoduleinfo()
         const char *name = toPrettyChars();
         namelen = strlen(name);
         dtnbytes(&dt, namelen + 1, name);
+        // Pad to next multiple of Target::ptrsize to preserve alignment
+        if((namelen + 1) % Target::ptrsize != 0)
+            dtnzeros(&dt, Target::ptrsize - ((namelen + 1) % Target::ptrsize));
         //printf("nameoffset = x%x\n", nameoffset);
+    }
+    if (flags & MIunitTest2)
+    {
+        unitTestArr->toObjFile(0); //Put out unittests
+        //UnitTest[]
+        dtsize_t(&dt, unitTests->dim);
+        dtxoff(&dt, toSymbol(unitTestArr), 0, TYnptr);
     }
 
     csym->Sdt = dt;

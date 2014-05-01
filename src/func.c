@@ -5231,6 +5231,35 @@ void UnitTestDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     bodyToCBuffer(buf, hgs);
 }
 
+/*
+ * Mirrored with druntime
+ * struct __UnitTest
+ * {
+ *     void function() func;
+ *     string file;
+ *     uint line;
+ *     bool disabled;
+ * }
+ * 
+ * Generates struct initializer
+ * __UnitTest(&testFunc, file, line, disabled, name)
+ */
+ExpInitializer *UnitTestDeclaration::toUnitTestInfo()
+{
+    Expressions *inits = new Expressions();
+
+    bool disabled = storage_class & STCdisable;
+
+    inits->push((Expression*)new AddrExp(loc, new VarExp(loc, this))); //testFunc
+    inits->push(new StringExp(loc, (char*)loc.filename)); //fileName
+    inits->push(new IntegerExp(loc, loc.linnum, TypeBasic::tuns32)); //line
+    inits->push(new IntegerExp(loc, disabled, TypeBasic::tbool)); //disabled
+
+    StructLiteralExp *exp = new StructLiteralExp(loc, StructDeclaration::UnitTest,
+        inits, StructDeclaration::UnitTest->type);
+    return new ExpInitializer(loc, exp);
+}
+
 /********************************* NewDeclaration ****************************/
 
 NewDeclaration::NewDeclaration(Loc loc, Loc endloc, Parameters *arguments, int varargs)
