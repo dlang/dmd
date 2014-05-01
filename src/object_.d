@@ -1596,6 +1596,7 @@ enum
     MIimportedModules = 0x400,
     MIlocalClasses = 0x800,
     MIname       = 0x1000,
+    MIunitTest2  = 0x2000,
 }
 
 
@@ -1608,7 +1609,7 @@ const:
     private void* addrOf(int flag) nothrow pure
     in
     {
-        assert(flag >= MItlsctor && flag <= MIname);
+        assert(flag >= MItlsctor && flag <= MIunitTest2);
         assert(!(flag & (flag - 1)) && !(flag & ~(flag - 1) << 1));
     }
     body
@@ -1663,7 +1664,16 @@ const:
         if (true || flags & MIname) // always available for now
         {
             if (flag == MIname) return p;
-            p += .strlen(cast(immutable char*)p);
+            auto len = .strlen(cast(immutable char*)p) + 1;
+            //Align p
+            p += len;
+            if (len % (void*).sizeof != 0)
+                p += (void*).sizeof - (len % (void*).sizeof);
+        }
+        if (flags & MIunitTest2)
+        {
+            if (flag == MIunitTest2) return p;
+            p += (__UnitTest[]).sizeof;
         }
         assert(0);
     }
@@ -1702,9 +1712,18 @@ const:
         return flags & MIictor ? *cast(typeof(return)*)addrOf(MIictor) : null;
     }
 
+    /**
+     * Deprecated:
+     * Please use unitTests instead.
+     */
     @property void function() unitTest() nothrow pure
     {
         return flags & MIunitTest ? *cast(typeof(return)*)addrOf(MIunitTest) : null;
+    }
+
+    @property __UnitTest[] unitTests() nothrow
+    {
+        return flags & MIunitTest2 ? *cast(typeof(return)*)addrOf(MIunitTest2) : null;
     }
 
     @property immutable(ModuleInfo*)[] importedModules() nothrow pure
@@ -3009,4 +3028,16 @@ unittest
     i = s.idup;
     i = s.dup;
     static assert(!__traits(compiles, m = s.dup));
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Unittest support
+///////////////////////////////////////////////////////////////////////////////
+struct __UnitTest
+{
+    void function() func;
+    string file;
+    uint line;
+    bool disabled;
 }
