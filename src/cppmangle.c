@@ -1,12 +1,13 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2012 by Digital Mars
+// Copyright (c) 1999-2014 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
 // License for redistribution is by either the Artistic License
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
+// Source: https://github.com/D-Programming-Language/dmd/blob/master/src/cppmangle.c
 
 #include <stdio.h>
 #include <string.h>
@@ -27,10 +28,7 @@
 #include "aggregate.h"
 #include "target.h"
 
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-
 /* Do mangling for C++ linkage.
- * Follows Itanium C++ ABI 1.86
  * No attempt is made to support mangling of templates, operator
  * overloading, or special functions.
  *
@@ -38,6 +36,12 @@
  * Because D supports a lot of things (like modules) that the C++
  * ABI has no concept of. These affect every D mangled name,
  * so nothing would be compatible anyway.
+ */
+
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+
+/*
+ * Follows Itanium C++ ABI 1.86
  */
 
 class CppMangleVisitor : public Visitor
@@ -716,7 +720,7 @@ char *toCppMangle(Dsymbol *s)
     return v.mangleOf(s);
 }
 
-#else
+#elif TARGET_WINDOS
 
 // Windows DMC and Microsoft Visual C++ mangling
 #define VC_SAVED_TYPE_CNT 10
@@ -1221,6 +1225,7 @@ private:
 
     void mangleName(Dsymbol *sym, bool dont_use_back_reference = false)
     {
+        //printf("mangleName('%s')\n", sym->toChars());
         const char *name = NULL;
         bool is_dmc_template = false;
         if (sym->isDtorDeclaration())
@@ -1446,6 +1451,7 @@ private:
         // <template arg>  ::= <type>
         //                ::= $0<encoded integral number>
 
+        //printf("mangleIdent('%s')\n", sym->toChars());
         Dsymbol *p = sym;
         if (p->toParent() && p->toParent()->isTemplateInstance())
         {
@@ -1671,4 +1677,6 @@ char *toCppMangle(Dsymbol *s)
     return v.mangleOf(s);
 }
 
+#else
+#error "fix this"
 #endif

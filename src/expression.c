@@ -37,6 +37,7 @@
 #include "parse.h"
 #include "doc.h"
 #include "aav.h"
+#include "nspace.h"
 
 bool isArrayOpValid(Expression *e);
 bool isNonAssignmentArrayOp(Expression *e);
@@ -3306,6 +3307,12 @@ Lagain:
     if (Module *mod = s->isModule())
     {
         ScopeExp *ie = new ScopeExp(loc, mod);
+        return ie->semantic(sc);
+    }
+
+    if (Nspace *ns = s->isNspace())
+    {
+        ScopeExp *ie = new ScopeExp(loc, ns);
         return ie->semantic(sc);
     }
 

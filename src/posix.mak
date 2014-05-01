@@ -100,7 +100,7 @@ DMD_OBJS = \
 	builtin.o ctfeexpr.o clone.o aliasthis.o \
 	arrayop.o json.o unittests.o \
 	imphint.o argtypes.o apply.o sapply.o sideeffect.o \
-	intrange.o canthrow.o target.o
+	intrange.o canthrow.o target.o nspace.o
 
 ROOT_OBJS = \
 	rmem.o port.o man.o stringtable.o response.o \
@@ -158,7 +158,7 @@ SRC = win32.mak posix.mak osmodel.mak \
 	argtypes.c apply.c sapply.c sideeffect.c \
 	intrange.h intrange.c canthrow.c target.c target.h \
 	scanmscoff.c scanomf.c ctfe.h ctfeexpr.c \
-	ctfe.h ctfeexpr.c visitor.h
+	ctfe.h ctfeexpr.c visitor.h nspace.h nspace.c
 
 ROOT_SRC = $(ROOT)/root.h \
 	$(ROOT)/array.h \
@@ -392,6 +392,7 @@ endif
 	gcov module.c
 	gcov msc.c
 	gcov mtype.c
+	gcov nspace.c
 	gcov opover.c
 	gcov optimize.c
 	gcov parse.c

@@ -206,4 +206,9 @@ void foo10(const MyStructType s, const MyStructType t) { }
 enum MyEnumType { onemember };
 void foo10(const MyEnumType s, const MyEnumType t) { }
 
+/**************************************/
+
+namespace N11 { namespace M { void bar11() { } } }
+
+namespace A11 { namespace B { namespace C { void bar() { } } } }
 

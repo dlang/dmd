@@ -64,6 +64,7 @@ class ScopeDsymbol;
 class TemplateDeclaration;
 class TemplateInstance;
 class TemplateMixin;
+class Nspace;
 class EnumMember;
 class WithScopeSymbol;
 class ArrayScopeSymbol;
@@ -231,6 +232,7 @@ public:
     virtual TemplateDeclaration *isTemplateDeclaration() { return NULL; }
     virtual TemplateInstance *isTemplateInstance() { return NULL; }
     virtual TemplateMixin *isTemplateMixin() { return NULL; }
+    virtual Nspace *isNspace() { return NULL; }
     virtual Declaration *isDeclaration() { return NULL; }
     virtual ThisDeclaration *isThisDeclaration() { return NULL; }
     virtual TypeInfoDeclaration *isTypeInfoDeclaration() { return NULL; }
@@ -276,9 +278,11 @@ public:
     Dsymbols *members;          // all Dsymbol's in this scope
     DsymbolTable *symtab;       // members[] sorted into table
 
+private:
     Dsymbols *imports;          // imported Dsymbol's
     PROT *prots;                // array of PROT, one for each import
 
+public:
     ScopeDsymbol();
     ScopeDsymbol(Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *s);
