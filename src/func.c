@@ -572,17 +572,14 @@ void FuncDeclaration::semantic(Scope *sc)
         type = type->semantic(loc, sc);
         sc = sc->pop();
     }
-    if (type->ty != Tfunction)
+    assert(type->ty == Tfunction);
+    f = (TypeFunction *)type;
+    if (f->next == Type::terror)
     {
-        if (type->ty != Terror)
-        {
-            error("%s must be a function instead of %s", toChars(), type->toChars());
-            type = Type::terror;
-        }
         errors = true;
         return;
     }
-    else
+
     {
         // Merge back function attributes into 'originalType'.
         // It's used for mangling, ddoc, and json output.
@@ -599,7 +596,6 @@ void FuncDeclaration::semantic(Scope *sc)
         storage_class &= ~(STC_TYPECTOR | STC_FUNCATTR);
     }
 
-    f = (TypeFunction *)type;
     size_t nparams = Parameter::dim(f->parameters);
 
     if (storage_class & STCscope)
@@ -2155,6 +2151,7 @@ void FuncDeclaration::semantic3(Scope *sc)
         type = f->semantic(loc, sc);
         sc = sc->pop();
     }
+    assert(type->ty == Tfunction);
 
     /* If this function had speculatively instantiated, error reproduction will be
      * done by TemplateInstance::semantic.
@@ -2162,7 +2159,7 @@ void FuncDeclaration::semantic3(Scope *sc)
      */
     semanticRun = PASSsemantic3done;
     semantic3Errors = (global.errors != nerrors) || (fbody && fbody->isErrorStatement());
-    if (type->ty == Terror)
+    if (type->nextOf() == Type::terror)
         errors = true;
     //printf("-FuncDeclaration::semantic3('%s.%s', sc = %p, loc = %s)\n", parent->toChars(), toChars(), sc, loc.toChars());
     //fflush(stdout);

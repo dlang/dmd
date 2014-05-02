@@ -2330,7 +2330,7 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
             if (!fd)
                 return 0;
 
-            if (fd->type->ty != Tfunction)
+            if (fd->errors)
                 goto Lerror;
 
             Type *tthis_fd = fd->needThis() && !fd->isCtorDeclaration() ? tthis : NULL;
@@ -2374,9 +2374,6 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
         //printf("td = %s\n", td->toChars());
         for (size_t ovi = 0; f; f = f->overnext0, ovi++)
         {
-            if (f->type->ty != Tfunction || f->errors)
-                goto Lerror;
-
             /* This is a 'dummy' instance to evaluate constraint properly.
              */
             TemplateInstance *ti = new TemplateInstance(loc, td, tiargs);
@@ -2555,9 +2552,9 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
         p.tthis_best = m->lastf->needThis() && !m->lastf->isCtorDeclaration() ? tthis : NULL;
 
         TypeFunction *tf = (TypeFunction *)m->lastf->type;
-        if (tf->ty == Terror)
-            goto Lerror;
         assert(tf->ty == Tfunction);
+        if (tf->next == Type::terror)
+            goto Lerror;
         if (!tf->callMatch(p.tthis_best, fargs))
         {
             m->count = 0;
@@ -2681,7 +2678,8 @@ FuncDeclaration *TemplateDeclaration::doHeaderInstantiation(
 
     scx = scx->pop();
 
-    return fd->type->ty == Tfunction ? fd : NULL;
+    assert(fd->type->ty == Tfunction);
+    return ((TypeFunction *)fd->type)->next == Type::terror ? NULL : fd;
 }
 
 bool TemplateDeclaration::hasStaticCtorOrDtor()
