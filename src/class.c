@@ -273,41 +273,8 @@ void ClassDeclaration::semantic(Scope *sc)
 
     //{ static int n;  if (++n == 20) *(char*)0=0; }
 
-    if (!ident)         // if anonymous class
-    {
-        const char *id = "__anonclass";
-        ident = Identifier::generateId(id);
-    }
-
-    if (!sc)
-        sc = scope;
-    if (!parent && sc->parent && !sc->parent->isModule())
-        parent = sc->parent;
-
-    type = type->semantic(loc, sc);
-
-    if (type->ty == Tclass && ((TypeClass *)type)->sym != this)
-    {
-        TemplateInstance *ti = ((TypeClass *)type)->sym->isInstantiated();
-        if (ti && isError(ti))
-            ((TypeClass *)type)->sym = this;
-    }
-
-    if (!members)               // if opaque declaration
-    {
-        //printf("\tclass '%s' is forward referenced\n", toChars());
+    if (semanticRun >= PASSsemanticdone)
         return;
-    }
-    if (symtab)
-    {
-        if (sizeok == SIZEOKdone || !scope)
-        {
-            //printf("\tsemantic for '%s' is already completed\n", toChars());
-            return;             // semantic() already completed
-        }
-    }
-    else
-        symtab = new DsymbolTable();
 
     Scope *scx = NULL;
     if (scope)
@@ -319,21 +286,60 @@ void ClassDeclaration::semantic(Scope *sc)
     unsigned dprogress_save = Module::dprogress;
     int errors = global.errors;
 
-    if (sc->stc & STCdeprecated)
+    if (!parent)
     {
-        isdeprecated = true;
-    }
-    userAttribDecl = sc->userAttribDecl;
+        assert(sc->parent && (sc->func || !ident));
+        parent = sc->parent;
 
-    if (sc->linkage == LINKcpp)
-        cpp = true;
+        if (!ident)         // if anonymous class
+        {
+            const char *id = "__anonclass";
+            ident = Identifier::generateId(id);
+        }
+    }
+    assert(parent && parent == sc->parent);
+    assert(!isAnonymous());
+    type = type->semantic(loc, sc);
+
+    if (type->ty == Tclass && ((TypeClass *)type)->sym != this)
+    {
+        TemplateInstance *ti = ((TypeClass *)type)->sym->isInstantiated();
+        if (ti && isError(ti))
+            ((TypeClass *)type)->sym = this;
+    }
+
+    // Ungag errors when not speculative
+    Ungag ungag = ungagSpeculative();
+
+    if (semanticRun == PASSinit)
+    {
+        protection = sc->protection;
+
+        storage_class |= sc->stc;
+        if (storage_class & STCdeprecated)
+            isdeprecated = true;
+        if (storage_class & STCauto)
+            error("storage class 'auto' is invalid when declaring a class, did you mean to use 'scope'?");
+        if (storage_class & STCscope)
+            isscope = true;
+        if (storage_class & STCabstract)
+            isabstract = true;
+
+        userAttribDecl = sc->userAttribDecl;
+
+        if (sc->linkage == LINKcpp)
+            cpp = true;
+    }
+    semanticRun = PASSsemantic;
+
+    if (!members)               // if opaque declaration
+        return;
+    if (!symtab)
+        symtab = new DsymbolTable();
 
     // Expand any tuples in baseclasses[]
     for (size_t i = 0; i < baseclasses->dim; )
     {
-        // Ungag errors when not speculative
-        Ungag ungag = ungagSpeculative();
-
         BaseClass *b = (*baseclasses)[i];
         b->type = b->type->semantic(loc, sc);
 
@@ -358,9 +364,6 @@ void ClassDeclaration::semantic(Scope *sc)
     // See if there's a base class as first in baseclasses[]
     if (baseclasses->dim)
     {
-        // Ungag errors when not speculative
-        Ungag ungag = ungagSpeculative();
-
         BaseClass *b = (*baseclasses)[0];
         //b->type = b->type->semantic(loc, sc);
 
@@ -437,9 +440,6 @@ void ClassDeclaration::semantic(Scope *sc)
     // Check for errors, handle forward references
     for (size_t i = (baseClass ? 1 : 0); i < baseclasses->dim; )
     {
-        // Ungag errors when not speculative
-        Ungag ungag = ungagSpeculative();
-
         BaseClass *b = (*baseclasses)[i];
         b->type = b->type->semantic(loc, sc);
 
@@ -539,10 +539,12 @@ void ClassDeclaration::semantic(Scope *sc)
             memcpy(vtbl.tdata(), baseClass->vtbl.tdata(), sizeof(void *) * vtbl.dim);
 
             // Inherit properties from base class
-            com = baseClass->isCOMclass();
+            if (baseClass->isCOMclass())
+                com = true;
             if (baseClass->isCPPclass())
                 cpp = true;
-            isscope = baseClass->isscope;
+            if (baseClass->isscope)
+                isscope = true;
             vthis = baseClass->vthis;
             enclosing = baseClass->enclosing;
             storage_class |= baseClass->storage_class & STC_TYPECTOR;
@@ -554,9 +556,6 @@ void ClassDeclaration::semantic(Scope *sc)
             if (vtblOffset())
                 vtbl.push(this);            // leave room for classinfo as first member
         }
-
-        protection = sc->protection;
-        storage_class |= sc->stc;
 
         interfaceSemantic(sc);
 
@@ -597,13 +596,6 @@ void ClassDeclaration::semantic(Scope *sc)
         }
         else
             makeNested();
-
-        if (storage_class & STCauto)
-            error("storage class 'auto' is invalid when declaring a class, did you mean to use 'scope'?");
-        if (storage_class & STCscope)
-            isscope = true;
-        if (storage_class & STCabstract)
-            isabstract = true;
     }
 
     Scope *sc2 = sc->push(this);
@@ -663,9 +655,6 @@ void ClassDeclaration::semantic(Scope *sc)
     for (size_t i = 0; i < members_dim; i++)
     {
         Dsymbol *s = (*members)[i];
-
-        // Ungag errors when not speculative
-        Ungag ungag = ungagSpeculative();
         s->semantic(sc2);
     }
 
@@ -824,6 +813,8 @@ void ClassDeclaration::semantic(Scope *sc)
       }
 #endif
     assert(type->ty != Tclass || ((TypeClass *)type)->sym == this);
+
+    semanticRun = PASSsemanticdone;
 }
 
 void ClassDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -1280,11 +1271,25 @@ void InterfaceDeclaration::semantic(Scope *sc)
     if (inuse)
         return;
 
-    if (!sc)
-        sc = scope;
-    if (!parent && sc->parent && !sc->parent->isModule())
-        parent = sc->parent;
+    if (semanticRun >= PASSsemanticdone)
+        return;
 
+    Scope *scx = NULL;
+    if (scope)
+    {
+        sc = scope;
+        scx = scope;            // save so we don't make redundant copies
+        scope = NULL;
+    }
+    int errors = global.errors;
+
+    if (!parent)
+    {
+        assert(sc->parent && sc->func);
+        parent = sc->parent;
+    }
+    assert(parent && parent == sc->parent);
+    assert(!isAnonymous());
     type = type->semantic(loc, sc);
 
     if (type->ty == Tclass && ((TypeClass *)type)->sym != this)
@@ -1294,41 +1299,29 @@ void InterfaceDeclaration::semantic(Scope *sc)
             ((TypeClass *)type)->sym = this;
     }
 
-    if (!members)                       // if forward reference
+    // Ungag errors when not speculative
+    Ungag ungag = ungagSpeculative();
+
+    if (semanticRun == PASSinit)
     {
-        //printf("\tinterface '%s' is forward referenced\n", toChars());
+        protection = sc->protection;
+
+        storage_class |= sc->stc;
+        if (storage_class & STCdeprecated)
+            isdeprecated = true;
+
+        userAttribDecl = sc->userAttribDecl;
+    }
+    semanticRun = PASSsemantic;
+
+    if (!members)               // if opaque declaration
         return;
-    }
-    if (symtab)                 // if already done
-    {
-        if (!scope)
-            return;
-    }
-    else
+    if (!symtab)
         symtab = new DsymbolTable();
-
-    Scope *scx = NULL;
-    if (scope)
-    {
-        sc = scope;
-        scx = scope;            // save so we don't make redundant copies
-        scope = NULL;
-    }
-
-    int errors = global.errors;
-
-    if (sc->stc & STCdeprecated)
-    {
-        isdeprecated = true;
-    }
-    userAttribDecl = sc->userAttribDecl;
 
     // Expand any tuples in baseclasses[]
     for (size_t i = 0; i < baseclasses->dim; )
     {
-        // Ungag errors when not speculative
-        Ungag ungag = ungagSpeculative();
-
         BaseClass *b = (*baseclasses)[i];
         b->type = b->type->semantic(loc, sc);
 
@@ -1356,9 +1349,6 @@ void InterfaceDeclaration::semantic(Scope *sc)
     // Check for errors, handle forward references
     for (size_t i = 0; i < baseclasses->dim; )
     {
-        // Ungag errors when not speculative
-        Ungag ungag = ungagSpeculative();
-
         BaseClass *b = (*baseclasses)[i];
         b->type = b->type->semantic(loc, sc);
 
@@ -1453,9 +1443,6 @@ void InterfaceDeclaration::semantic(Scope *sc)
         ;
     }
 
-    protection = sc->protection;
-    storage_class |= sc->stc & STC_TYPECTOR;
-
     for (size_t i = 0; i < members->dim; i++)
     {
         Dsymbol *s = (*members)[i];
@@ -1501,9 +1488,6 @@ void InterfaceDeclaration::semantic(Scope *sc)
     for (size_t i = 0; i < members->dim; i++)
     {
         Dsymbol *s = (*members)[i];
-
-        // Ungag errors when not speculative
-        Ungag ungag = ungagSpeculative();
         s->semantic(sc2);
     }
 
@@ -1526,6 +1510,8 @@ void InterfaceDeclaration::semantic(Scope *sc)
       }
 #endif
     assert(type->ty != Tclass || ((TypeClass *)type)->sym == this);
+
+    semanticRun = PASSsemanticdone;
 }
 
 

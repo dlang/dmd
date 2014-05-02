@@ -666,23 +666,8 @@ void StructDeclaration::semantic(Scope *sc)
 
     //static int count; if (++count == 20) halt();
 
-    assert(type);
-    if (!members)               // if opaque declaration
-    {
+    if (semanticRun >= PASSsemanticdone)
         return;
-    }
-
-    if (symtab)
-    {
-        if (sizeok == SIZEOKdone || !scope)
-        {
-            //printf("already completed\n");
-            scope = NULL;
-            return;             // semantic() already completed
-        }
-    }
-    else
-        symtab = new DsymbolTable();
 
     Scope *scx = NULL;
     if (scope)
@@ -694,7 +679,13 @@ void StructDeclaration::semantic(Scope *sc)
     unsigned dprogress_save = Module::dprogress;
     int errors = global.errors;
 
-    parent = sc->parent;
+    if (!parent)
+    {
+        assert(sc->parent && sc->func);
+        parent = sc->parent;
+    }
+    assert(parent && parent == sc->parent);
+    assert(!isAnonymous());
     type = type->semantic(loc, sc);
 
     if (type->ty == Tstruct && ((TypeStruct *)type)->sym != this)
@@ -704,15 +695,29 @@ void StructDeclaration::semantic(Scope *sc)
             ((TypeStruct *)type)->sym = this;
     }
 
-    protection = sc->protection;
-    alignment = sc->structalign;
-    storage_class |= sc->stc;
-    if (sc->stc & STCdeprecated)
-        isdeprecated = true;
-    assert(!isAnonymous());
-    if (sc->stc & STCabstract)
-        error("structs, unions cannot be abstract");
-    userAttribDecl = sc->userAttribDecl;
+    // Ungag errors when not speculative
+    Ungag ungag = ungagSpeculative();
+
+    if (semanticRun == PASSinit)
+    {
+        protection = sc->protection;
+
+        alignment = sc->structalign;
+
+        storage_class |= sc->stc;
+        if (storage_class & STCdeprecated)
+            isdeprecated = true;
+        if (storage_class & STCabstract)
+            error("structs, unions cannot be abstract");
+        userAttribDecl = sc->userAttribDecl;
+    }
+    semanticRun = PASSsemantic;
+
+    if (!members)               // if opaque declaration
+        return;
+
+    if (!symtab)
+        symtab = new DsymbolTable();
 
     if (sizeok == SIZEOKnone)            // if not already done the addMember step
     {
@@ -765,9 +770,6 @@ void StructDeclaration::semantic(Scope *sc)
             if (sizeok == SIZEOKnone && s->isAliasDeclaration())
                 finalizeSize(sc2);
         }
-
-        // Ungag errors when not speculative
-        Ungag ungag = ungagSpeculative();
         s->semantic(sc2);
     }
     finalizeSize(sc2);
@@ -908,6 +910,8 @@ void StructDeclaration::semantic(Scope *sc)
     }
 #endif
     assert(type->ty != Tstruct || ((TypeStruct *)type)->sym == this);
+
+    semanticRun = PASSsemanticdone;
 }
 
 Dsymbol *StructDeclaration::search(Loc loc, Identifier *ident, int flags)
