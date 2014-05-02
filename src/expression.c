@@ -1103,7 +1103,7 @@ int expandAliasThisTuples(Expressions *exps, size_t starti)
     return -1;
 }
 
-Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt)
+bool arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt)
 {
     /* The type is determined by applying ?: to each pair.
      */
@@ -1126,58 +1126,53 @@ Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt
         if (!e->type)
         {
             e->error("%s has no value", e->toChars());
-            e = new ErrorExp();
+            t0 = Type::terror;
+            continue;
         }
 
         e = e->isLvalue() ? callCpCtor(sc, e) : valueNoDtor(e);
 
-        if (t0)
+        if (t0 && !t0->equals(e->type))
         {
-            if (t0 != e->type)
+            /* This applies ?: to merge the types. It's backwards;
+             * ?: should call this function to merge types.
+             */
+            condexp.type = NULL;
+            condexp.e1 = e0;
+            condexp.e2 = e;
+            condexp.loc = e->loc;
+            Expression *ex = condexp.semantic(sc);
+            if (ex->op == TOKerror)
+                e = ex;
+            else
             {
-                /* This applies ?: to merge the types. It's backwards;
-                 * ?: should call this function to merge types.
-                 */
-                condexp.type = NULL;
-                condexp.e1 = e0;
-                condexp.e2 = e;
-                condexp.loc = e->loc;
-                condexp.semantic(sc);
                 (*exps)[j0] = condexp.e1;
-                if (condexp.e1->op == TOKfunction &&
-                    condexp.e2->op == TOKfunction)
-                    t0 = condexp.e2->type;
-                else
-                    t0 = condexp.type;
                 e = condexp.e2;
-                j0 = i;
-                e0 = e;
             }
         }
-        else
-        {
-            j0 = i;
-            e0 = e;
-            t0 = e->type;
-        }
-        (*exps)[i] = e;
+        j0 = i;
+        e0 = e;
+        t0 = e->type;
+        if (e->op != TOKerror)
+            (*exps)[i] = e;
     }
 
-    if (t0)
+    if (!t0)
+        t0 = Type::tvoid;               // [] is typed as void[]
+    else if (t0->ty != Terror)
     {
         for (size_t i = 0; i < exps->dim; i++)
-        {   Expression *e = (*exps)[i];
+        {
+            Expression *e = (*exps)[i];
             e = e->implicitCastTo(sc, t0);
+            assert(e->op != TOKerror);
             (*exps)[i] = e;
         }
     }
-    else
-        t0 = Type::tvoid;               // [] is typed as void[]
     if (pt)
         *pt = t0;
 
-    // Eventually, we want to make this copy-on-write
-    return exps;
+    return (t0 == Type::terror);
 }
 
 /****************************************
@@ -4042,7 +4037,8 @@ Expression *ArrayLiteralExp::semantic(Scope *sc)
     expandTuples(elements);
 
     Type *t0;
-    elements = arrayExpressionToCommonType(sc, elements, &t0);
+    if (arrayExpressionToCommonType(sc, elements, &t0))
+        return new ErrorExp();
 
     type = t0->arrayOf();
     //type = new TypeSArray(t0, new IntegerExp(elements->dim));
@@ -4204,8 +4200,10 @@ Expression *AssocArrayLiteralExp::semantic(Scope *sc)
 
     Type *tkey = NULL;
     Type *tvalue = NULL;
-    keys = arrayExpressionToCommonType(sc, keys, &tkey);
-    values = arrayExpressionToCommonType(sc, values, &tvalue);
+    err_keys = arrayExpressionToCommonType(sc, keys, &tkey);
+    err_vals = arrayExpressionToCommonType(sc, values, &tvalue);
+    if (err_keys || err_vals)
+        return new ErrorExp();
 
     if (tkey == Type::terror || tvalue == Type::terror)
         return new ErrorExp;
