@@ -193,16 +193,14 @@ const char *Module::kind()
 }
 
 Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
-{   Module *m;
-    char *filename;
-
+{
     //printf("Module::load(ident = '%s')\n", ident->toChars());
 
     // Build module filename by turning:
     //  foo.bar.baz
     // into:
     //  foo\bar\baz
-    filename = ident->toChars();
+    char *filename = ident->toChars();
     if (packages && packages->dim)
     {
         OutBuffer buf;
@@ -222,7 +220,7 @@ Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
         filename = (char *)buf.extractData();
     }
 
-    m = new Module(filename, ident, 0, 0);
+    Module *m = new Module(filename, ident, 0, 0);
     m->loc = loc;
 
     /* Look for the source file
@@ -237,7 +235,8 @@ Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
         if (packages)
         {
             for (size_t i = 0; i < packages->dim; i++)
-            {   Identifier *pid = (*packages)[i];
+            {
+                Identifier *pid = (*packages)[i];
                 fprintf(global.stdmsg, "%s.", pid->toChars());
             }
         }
@@ -663,7 +662,7 @@ void Module::importAll(Scope *prevsc)
         for (size_t i = 0; i < members->dim; i++)
         {
             Dsymbol *s = (*members)[i];
-            s->addMember(NULL, sc->scopesym, 1);
+            s->addMember(sc, sc->scopesym, 1);
         }
     }
     // anything else should be run after addMember, so version/debug symbols are defined
@@ -708,34 +707,6 @@ void Module::semantic()
     }
 
     //printf("Module = %p, linkage = %d\n", sc->scopesym, sc->linkage);
-
-#if 0
-    // Add import of "object" if this module isn't "object"
-    if (ident != Id::object)
-    {
-        Import *im = new Import(0, NULL, Id::object, NULL, 0);
-        members->shift(im);
-    }
-
-    // Add all symbols into module's symbol table
-    symtab = new DsymbolTable();
-    for (size_t i = 0; i < members->dim; i++)
-    {
-        Dsymbol *s = (Dsymbol *)members->data[i];
-        s->addMember(NULL, sc->scopesym, 1);
-    }
-
-    /* Set scope for the symbols so that if we forward reference
-     * a symbol, it can possibly be resolved on the spot.
-     * If this works out well, it can be extended to all modules
-     * before any semantic() on any of them.
-     */
-    for (size_t i = 0; i < members->dim; i++)
-    {
-        Dsymbol *s = (Dsymbol *)members->data[i];
-        s->setScope(sc);
-    }
-#endif
 
     // Pass 1 semantic routines: do public side of the definition
     for (size_t i = 0; i < members->dim; i++)

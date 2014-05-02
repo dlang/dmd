@@ -1286,7 +1286,7 @@ void FuncDeclaration::semantic3(Scope *sc)
         sc2->stc &= ~(STCauto | STCscope | STCstatic | STCabstract |
                         STCdeprecated | STCoverride | STCvirtual |
                         STC_TYPECTOR | STCfinal | STCtls | STCgshared | STCref |
-                        STCproperty | STCsafe | STCtrusted | STCsystem);
+                        STCproperty | STCnothrow | STCpure | STCsafe | STCtrusted | STCsystem);
         sc2->protection = PROTpublic;
         sc2->explicitProtection = 0;
         sc2->structalign = STRUCTALIGN_DEFAULT;
