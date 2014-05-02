@@ -3258,27 +3258,35 @@ Lerror:
         {
             assert(fd);
 
-            const char *trailMsg = (fd->overnext != NULL) ? ", candidates are:" : "";
+            bool hasOverloads = fd->overnext != NULL;
             TypeFunction *tf = (TypeFunction *)fd->type;
             if (tthis && !MODimplicitConv(tthis->mod, tf->mod)) // modifier mismatch
             {
                 OutBuffer thisBuf, funcBuf;
                 MODMatchToBuffer(&thisBuf, tthis->mod, tf->mod);
                 MODMatchToBuffer(&funcBuf, tf->mod, tthis->mod);
-                ::error(loc, "%smethod %s is not callable using a %sobject%s",
-                    funcBuf.peekString(), fd->toPrettyChars(), thisBuf.peekString(), trailMsg);
+                if (hasOverloads)
+                    ::error(loc, "None of the overloads of '%s' are callable using a %sobject, candidates are:",
+                        fd->ident->toChars(), thisBuf.peekString());
+                else
+                    ::error(loc, "%smethod %s is not callable using a %sobject",
+                        funcBuf.peekString(), fd->toPrettyChars(), thisBuf.peekString());
             }
             else
             {
                 //printf("tf = %s, args = %s\n", tf->deco, (*fargs)[0]->type->deco);
-                fd->error(loc, "%s%s is not callable using argument types %s%s",
-                    Parameter::argsTypesToChars(tf->parameters, tf->varargs),
-                    tf->modToChars(),
-                    fargsBuf.peekString(), trailMsg);
+                if (hasOverloads)
+                    ::error(loc, "None of the overloads of '%s' are callable using argument types %s, candidates are:",
+                            fd->ident->toChars(), fargsBuf.peekString());
+                else
+                    fd->error(loc, "%s%s is not callable using argument types %s",
+                        Parameter::argsTypesToChars(tf->parameters, tf->varargs),
+                        tf->modToChars(),
+                        fargsBuf.peekString());
             }
 
-            // Display candidate functions (only when there are multiple overloads)
-            if (fd->overnext)
+            // Display candidate functions
+            if (hasOverloads)
             {
                 FuncCandidateWalker fcw;
                 fcw.loc = loc;
