@@ -75,7 +75,19 @@ bool canThrow(Expression *e, FuncDeclaration *func, bool mustNotThrow)
             else
             {
                 if (mustNotThrow)
-                    ce->error("'%s' is not nothrow", ce->f ? ce->f->toPrettyChars() : ce->e1->toChars());
+                {
+                    const char *s;
+                    if (ce->f)
+                        s = ce->f->toPrettyChars();
+                    else if (ce->e1->op == TOKstar)
+                    {
+                        // print 'fp' if ce->e1 is (*fp)
+                        s = ((PtrExp *)ce->e1)->e1->toChars();
+                    }
+                    else
+                        s = ce->e1->toChars();
+                    ce->error("'%s' is not nothrow", s);
+                }
                 stop = true;
             }
         }

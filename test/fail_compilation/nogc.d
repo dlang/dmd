@@ -14,11 +14,11 @@ fail_compilation/nogc.d(95): Error: indexing an associative array in @nogc funct
 fail_compilation/nogc.d(102): Error: associative array literal in @nogc function foo13 may cause GC allocation
 fail_compilation/nogc.d(112): Error: array literals in @nogc function foo14 may cause GC allocation
 fail_compilation/nogc.d(119): Error: Setting 'length' in @nogc function foo15 may cause GC allocation
+fail_compilation/nogc.d(129): Error: @nogc function 'nogc.foo16' cannot call non-@nogc function pointer 'fp'
 fail_compilation/nogc.d(130): Error: @nogc function 'nogc.foo16' cannot call non-@nogc function 'nogc.bar16'
 fail_compilation/nogc.d(150): Error: function nogc.foo18 @nogc function allocates a closure with the GC
 ---
 */
-
 /***************** NewExp *******************/
 
 @nogc int* foo1()
@@ -28,13 +28,13 @@ fail_compilation/nogc.d(150): Error: function nogc.foo18 @nogc function allocate
 
 @nogc void foo2()
 {
-    scope int* p = new int;	// no error
+    scope int* p = new int; // no error
 }
 
 struct S3 { }
 @nogc void foo3()
 {
-    scope S3* p = new S3();	// no error
+    scope S3* p = new S3(); // no error
 }
 
 struct S4 { this(int); }
@@ -46,7 +46,7 @@ struct S4 { this(int); }
 struct S5 { this(int) @nogc; }
 @nogc void foo5()
 {
-    scope S5* p = new S5(1);	// no error
+    scope S5* p = new S5(1);    // no error
 }
 
 struct S6 { new(size_t); }
@@ -58,13 +58,13 @@ struct S6 { new(size_t); }
 struct S7 { new(size_t); }
 @nogc void foo7()
 {
-    scope S7* p = new S7;	// no error
+    scope S7* p = new S7;   // no error
 }
 
 struct S8 { @nogc new(size_t); }
 @nogc void foo8()
 {
-    S8* p = new S8;		// no error
+    S8* p = new S8;     // no error
 }
 
 /***************** DeleteExp *******************/
@@ -126,8 +126,8 @@ void bar16();
 @nogc void foo16()
 {
     auto fp = &bar16;
-    (*fp)();		// should give error, but for bugzilla 12622
-    bar16();		// does give error
+    (*fp)();
+    bar16();
 }
 
 
@@ -141,7 +141,7 @@ class C17
 
 class D17 : C17
 {
-    override void foo();	// no error
+    override void foo();        // no error
     override void bar() @nogc;  // no error
 }
 

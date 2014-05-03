@@ -8090,7 +8090,8 @@ Lagain:
     else
     {
         if (e1->op == TOKdot)
-        {   DotIdExp *die = (DotIdExp *)e1;
+        {
+            DotIdExp *die = (DotIdExp *)e1;
             e1 = die->semantic(sc);
             /* Look for e1 having been rewritten to expr.opDispatch!(string)
              * We handle such earlier, so go back.
@@ -8119,8 +8120,8 @@ Lagain:
         /* Look for e1 being a lazy parameter
          */
         if (e1->op == TOKvar)
-        {   VarExp *ve = (VarExp *)e1;
-
+        {
+            VarExp *ve = (VarExp *)e1;
             if (ve->var->storage_class & STClazy)
             {
                 // lazy paramaters can be called without violating purity and safety
@@ -8134,7 +8135,8 @@ Lagain:
         }
 
         if (e1->op == TOKimport)
-        {   // Perhaps this should be moved to ScopeExp::semantic()
+        {
+            // Perhaps this should be moved to ScopeExp::semantic()
             ScopeExp *se = (ScopeExp *)e1;
             e1 = new DsymbolExp(loc, se->sds);
             e1 = e1->semantic(sc);
@@ -8157,16 +8159,23 @@ Lagain:
             }
 
             if (de->e2->op == TOKimport)
-            {   // This should *really* be moved to ScopeExp::semantic()
+            {
+                // This should *really* be moved to ScopeExp::semantic()
                 ScopeExp *se = (ScopeExp *)de->e2;
                 de->e2 = new DsymbolExp(loc, se->sds);
                 de->e2 = de->e2->semantic(sc);
             }
 
             if (de->e2->op == TOKtemplate)
-            {   TemplateExp *te = (TemplateExp *) de->e2;
+            {
+                TemplateExp *te = (TemplateExp *) de->e2;
                 e1 = new DotTemplateExp(loc,de->e1,te->td);
             }
+        }
+        else if (e1->op == TOKstar && e1->type->ty == Tfunction)
+        {
+            // Rewrite (*fp)(arguments) to fp(arguments)
+            e1 = ((PtrExp *)e1)->e1;
         }
     }
 
@@ -8648,21 +8657,24 @@ Lagain:
         }
         else if (sc->func && !(sc->flags & SCOPEctfe))
         {
+            bool err = false;
             if (!tf->purity && !(sc->flags & SCOPEdebug) && sc->func->setImpure())
             {
                 error("pure function '%s' cannot call impure %s '%s'", sc->func->toPrettyChars(), p, e1->toChars());
-                return new ErrorExp();
+                err = true;
             }
             if (!tf->isnogc && sc->func->setGC())
             {
                 error("@nogc function '%s' cannot call non-@nogc %s '%s'", sc->func->toPrettyChars(), p, e1->toChars());
-                return new ErrorExp();
+                err = true;
             }
             if (tf->trust <= TRUSTsystem && sc->func->setUnsafe())
             {
                 error("safe function '%s' cannot call system %s '%s'", sc->func->toPrettyChars(), p, e1->toChars());
-                return new ErrorExp();
+                err = true;
             }
+            if (err)
+                return new ErrorExp();
         }
 
         if (t1->ty == Tpointer)
