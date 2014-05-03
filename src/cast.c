@@ -55,8 +55,13 @@ Expression *implicitCastTo(Expression *e, Scope *sc, Type *t)
             MATCH match = e->implicitConvTo(t);
             if (match)
             {
-                if (match == MATCHconst && e->type->constConv(t))
+                if (match == MATCHconst &&
+                    (e->type->constConv(t) ||
+                     !e->isLvalue() && e->type->immutableOf()->equals(t->immutableOf())))
                 {
+                    /* Do not emit CastExp for const conversions and
+                     * unique conversions on rvalue.
+                     */
                     result = e->copy();
                     result->type = t;
                     return;
