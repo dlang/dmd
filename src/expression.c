@@ -4903,8 +4903,9 @@ Lagain:
     {
         TypeStruct *ts = (TypeStruct *)tb;
         StructDeclaration *sd = ts->sym;
-        if (sd->scope)
-            sd->semantic(NULL);
+        sd->size(loc);
+        if (sd->sizeok != SIZEOKdone)
+            return new ErrorExp();
         if (sd->noDefaultCtor && !nargs)
         {
             error("default construction is disabled for type %s", sd->type->toChars());
@@ -4965,31 +4966,13 @@ Lagain:
             if (olderrors != global.errors)
                 return new ErrorExp();
         }
-        else if (nargs)
+        else
         {
-            Type *tptr = type->pointerTo();
+            if (!sd->fit(loc, sc, arguments, tb))
+                return new ErrorExp();
 
-            /* Rewrite:
-            *   new S(arguments)
-             * as:
-            *   (((S* __newsl = new S()), (*__newsl = S(arguments))), __newsl)
-             */
-            Identifier *id = Lexer::uniqueId("__newsl");
-            ExpInitializer *ei = new ExpInitializer(loc, this);
-            VarDeclaration *v = new VarDeclaration(loc, tptr, id, ei);
-            v->storage_class |= STCtemp | STCctfe;
-            Expression *e = new DeclarationExp(loc, v);
-            Expression *ve = new VarExp(loc, v);
-            Expression *se = new StructLiteralExp(loc, sd, arguments, type);
-            Expression *ae = new ConstructExp(loc, new PtrExp(loc, ve), se);
-            e = new CommaExp(loc, e, ae);
-            e = new CommaExp(loc, e, ve);
-
-            // rewrite this
-            this->arguments = NULL;
-            this->type = tptr;
-
-            return e->semantic(sc);
+            if (!sd->fill(loc, arguments, false))
+                return new ErrorExp();
         }
 
         type = type->pointerTo();

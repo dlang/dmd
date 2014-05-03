@@ -2880,7 +2880,7 @@ public:
     #endif
         if (e->ownedByCtfe)
         {
-            result = copyLiteral(e);
+            result = e;
             return;
         }
 
@@ -3011,19 +3011,44 @@ public:
 
         if (e->newtype->toBasetype()->ty == Tstruct)
         {
-            Expression *se = e->newtype->defaultInitLiteral(e->loc);
             if (e->member)
             {
-                int olderrors = global.errors;
-                interpret(e->member, istate, e->arguments, se);
-                if (olderrors != global.errors)
-                {
-                    e->error("cannot evaluate %s at compile time", e->toChars());
-                    result = EXP_CANT_INTERPRET;
-                    return;
-                }
+                Expression *se = e->newtype->defaultInitLiteral(e->loc);
+                result = interpret(e->member, istate, e->arguments, se);
             }
-            result = new AddrExp(e->loc, copyLiteral(se));
+            else
+            {
+                StructDeclaration *sd = ((TypeStruct *)e->newtype->toBasetype())->sym;
+                Expressions *exps = new Expressions();
+                exps->reserve(sd->fields.dim);
+                if (e->arguments)
+                {
+                    exps->setDim(e->arguments->dim);
+                    for (size_t i = 0; i < exps->dim; i++)
+                    {
+                        Expression *ex = (*e->arguments)[i];
+                        ex = ex->interpret(istate);
+                        if (exceptionOrCantInterpret(ex))
+                        {
+                            result = ex;
+                            return;
+                        }
+                        (*exps)[i] = ex;
+                    }
+                }
+                sd->fill(e->loc, exps, false);
+
+                StructLiteralExp *se = new StructLiteralExp(e->loc, sd, exps, e->newtype);
+                se->type = e->newtype;
+                se->ownedByCtfe = true;
+                result = se->interpret(istate);
+            }
+            if (exceptionOrCantInterpret(result))
+            {
+                result = EXP_CANT_INTERPRET;
+                return;
+            }
+            result = new AddrExp(e->loc, copyLiteral(result));
             result->type = e->type;
             return;
         }

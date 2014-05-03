@@ -1474,7 +1474,7 @@ elem *toElem(Expression *e, IRState *irs)
                 t = ne->newtype->toBasetype();
                 assert(t->ty == Tstruct);
                 TypeStruct *tclass = (TypeStruct *)t;
-                StructDeclaration *cd = tclass->sym;
+                StructDeclaration *sd = tclass->sym;
 
                 /* Things to do:
                  * 1) ex: call allocator
@@ -1493,31 +1493,11 @@ elem *toElem(Expression *e, IRState *irs)
                     ex = callfunc(ne->loc, irs, 1, ne->type, ex, ne->allocator->type,
                                 ne->allocator, ne->allocator->type, NULL, ne->newargs);
 
-                    Symbol *si = tclass->sym->toInitializer();
-                    elem *ei = el_var(si);
-
-                    if (cd->isNested())
-                    {
-                        ey = el_same(&ex);
-                        ez = el_copytree(ey);
-                    }
-                    else if (ne->member)
-                        ez = el_same(&ex);
-
-                    if (!ne->member)
-                    {
-                        /* Statically intialize with default initializer
-                         */
-                        ex = el_una(OPind, TYstruct, ex);
-                        ex = el_bin(OPstreq, TYnptr, ex, ei);
-                        ex->ET = Type_toCtype(tclass);
-                        ex = el_una(OPaddr, TYnptr, ex);
-                    }
                     ectype = tclass;
                 }
                 else
                 {
-                    d_uns64 elemsize = cd->size(ne->loc);
+                    d_uns64 elemsize = sd->size(ne->loc);
 
                     // call _d_newitemT(ti)
                     e = ne->type->getTypeInfo(NULL)->toElem(irs);
@@ -1526,36 +1506,50 @@ elem *toElem(Expression *e, IRState *irs)
                     ex = el_bin(OPcall,TYnptr,el_var(rtlsym[rtl]),e);
 
                     ectype = NULL;
-
-                    if (cd->isNested())
-                    {
-                        ey = el_same(&ex);
-                        ez = el_copytree(ey);
-                    }
-                    else if (ne->member)
-                        ez = el_same(&ex);
-                    //elem_print(ex);
-                    //elem_print(ey);
-                    //elem_print(ez);
                 }
 
-                if (cd->isNested())
-                {
-                    /* Initialize cd->vthis:
-                     *  *(ey + cd.vthis.offset) = this;
-                     */
-                    ey = setEthis(ne->loc, irs, ey, cd);
-                }
+                elem *ev = el_same(&ex);
 
                 if (ne->member)
                 {
+                    if (sd->isNested())
+                    {
+                        ey = el_copytree(ev);
+
+                        /* Initialize sd->vthis:
+                         *  *(ey + sd.vthis.offset) = this;
+                         */
+                        ey = setEthis(ne->loc, irs, ey, sd);
+                    }
+
                     // Call constructor
-                    ez = callfunc(ne->loc, irs, 1, ne->type, ez, ectype, ne->member, ne->member->type, NULL, ne->arguments);
+                    ez = callfunc(ne->loc, irs, 1, ne->type, ev, ectype, ne->member, ne->member->type, NULL, ne->arguments);
                     /* Structs return a ref, which gets automatically dereferenced.
                      * But we want a pointer to the instance.
                      */
                     ez = el_una(OPaddr, TYnptr, ez);
                 }
+                else
+                {
+                    StructLiteralExp *se = StructLiteralExp::create(ne->loc, sd, ne->arguments, t);
+
+                    Symbol *symSave = se->sym;
+                    size_t soffsetSave = se->soffset;
+                    int fillHolesSave = se->fillHoles;
+
+                    se->sym = ev->EV.sp.Vsym;
+                    se->soffset = 0;
+                    se->fillHoles = 0;
+
+                    ez = se->toElem(irs);
+
+                    se->sym = symSave;
+                    se->soffset = soffsetSave;
+                    se->fillHoles = fillHolesSave;
+                }
+                //elem_print(ex);
+                //elem_print(ey);
+                //elem_print(ez);
 
                 e = el_combine(ex, ey);
                 e = el_combine(e, ez);
