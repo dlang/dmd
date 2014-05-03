@@ -2786,7 +2786,7 @@ public:
     #endif
         if (e->ownedByCtfe) // We've already interpreted all the elements
         {
-            result = copyLiteral(e);
+            result = e;
             return;
         }
         for (size_t i = 0; i < e->keys->dim; i++)
