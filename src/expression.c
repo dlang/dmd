@@ -4541,7 +4541,7 @@ Expression *TypeExp::semantic(Scope *sc)
     Type *t;
     Dsymbol *s;
 
-    type->resolve(loc, sc, &e, &t, &s);
+    type->resolve(loc, sc, &e, &t, &s, true);
     if (e)
     {
         //printf("e = %s %s\n", Token::toChars(e->op), e->toChars());
