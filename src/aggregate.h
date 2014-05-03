@@ -168,6 +168,7 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     const char *kind();
     void finalizeSize(Scope *sc);
+    bool fit(Loc loc, Scope *sc, Expressions *elements, Type *stype);
     bool fill(Loc loc, Expressions *elements, bool ctorinit);
     bool isPOD();
 

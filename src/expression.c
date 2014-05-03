@@ -4266,61 +4266,15 @@ Expression *StructLiteralExp::semantic(Scope *sc)
     sd->size(loc);
     if (sd->sizeok != SIZEOKdone)
         return new ErrorExp();
-    size_t nfields = sd->fields.dim - sd->isNested();
 
     if (arrayExpressionSemantic(elements, sc))  // run semantic() on each element
         return new ErrorExp();
     expandTuples(elements);
-    size_t offset = 0;
-    for (size_t i = 0; i < elements->dim; i++)
-    {
-        Expression *e = (*elements)[i];
-        if (!e)
-            continue;
 
-        e = resolveProperties(sc, e);
-        if (i >= nfields)
-        {
-            if (i == sd->fields.dim - 1 && sd->isNested() && e->op == TOKnull)
-            {   // CTFE sometimes creates null as hidden pointer; we'll allow this.
-                continue;
-            }
-#if 0
-            for (size_t i = 0; i < sd->fields.dim; i++)
-                printf("[%d] = %s\n", i, sd->fields[i]->toChars());
-#endif
-            error("more initializers than fields (%d) of %s", nfields, sd->toChars());
-            return new ErrorExp();
-        }
-        VarDeclaration *v = sd->fields[i];
-        if (v->offset < offset)
-        {
-            error("overlapping initialization for %s", v->toChars());
-            return new ErrorExp();
-        }
-        offset = (unsigned)(v->offset + v->type->size());
-
-        Type *telem = v->type;
-        if (stype)
-            telem = telem->addMod(stype->mod);
-        Type *origType = telem;
-        while (!e->implicitConvTo(telem) && telem->toBasetype()->ty == Tsarray)
-        {
-            /* Static array initialization, as in:
-             *  T[3][5] = e;
-             */
-            telem = telem->toBasetype()->nextOf();
-        }
-
-        if (!e->implicitConvTo(telem))
-            telem = origType;  // restore type for better diagnostic
-
-        e = e->implicitCastTo(sc, telem);
-        if (e->op == TOKerror)
-            return e;
-
-        (*elements)[i] = e->isLvalue() ? callCpCtor(sc, e) : valueNoDtor(e);
-    }
+    /* Fit elements[] to the corresponding type of field[].
+     */
+    if (!sd->fit(loc, sc, elements, stype))
+        return new ErrorExp();
 
     if (!checkFrameAccess(loc, sc, sd, elements->dim))
         return new ErrorExp();
