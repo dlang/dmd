@@ -595,3 +595,20 @@ class A12555(T)
 static assert(!__traits(compiles, {
     class C : A12555!C  { }
 }));
+
+/***************************************************/
+// 12688
+
+void writeln12688(A...)(A) {}
+
+struct S12688
+{
+    int foo() @property { return 1; }
+}
+
+void test12688()
+{
+    S12688 s;
+    s.foo.writeln12688;   // ok
+    (s.foo).writeln12688; // ok <- ng
+}
