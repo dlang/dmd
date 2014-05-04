@@ -4480,9 +4480,8 @@ void FuncLiteralDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
     CompoundStatement *cs = fbody->isCompoundStatement();
     Statement *s1;
-    if (semanticRun >= PASSsemantic3done)
+    if (semanticRun >= PASSsemantic3done && cs)
     {
-        assert(cs);
         s1 = (*cs->statements)[cs->statements->dim - 1];
     }
     else
