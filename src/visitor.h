@@ -1,3 +1,10 @@
+// Compiler implementation of the D programming language
+// Copyright (c) 2013-2014 by Digital Mars
+// All Rights Reserved
+// http://www.digitalmars.com
+// License for redistribution is by either the Artistic License
+// in artistic.txt, or the GNU General Public License in gnu.txt.
+// See the included readme.txt for details.
 
 #ifndef DMD_VISITOR_H
 #define DMD_VISITOR_H
