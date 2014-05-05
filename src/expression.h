@@ -1199,6 +1199,13 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
+class BlitExp : public AssignExp
+{
+public:
+    BlitExp(Loc loc, Expression *e1, Expression *e2);
+    void accept(Visitor *v) { v->visit(this); }
+};
+
 class AddAssignExp : public BinAssignExp
 {
 public:

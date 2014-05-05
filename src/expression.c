@@ -11081,8 +11081,7 @@ Expression *AssignExp::semantic(Scope *sc)
                      *  e1 = init, e1.ctor(e2)
                      */
                     Expression *einit;
-                    einit = new AssignExp(loc, e1x, e1x->type->defaultInit(loc));
-                    einit->op = TOKblit;
+                    einit = new BlitExp(loc, e1x, e1x->type->defaultInit(loc));
                     einit->type = e1x->type;
 
                     Expression *e;
@@ -11548,6 +11547,14 @@ ConstructExp::ConstructExp(Loc loc, Expression *e1, Expression *e2)
     : AssignExp(loc, e1, e2)
 {
     op = TOKconstruct;
+}
+
+/************************************************************/
+
+BlitExp::BlitExp(Loc loc, Expression *e1, Expression *e2)
+    : AssignExp(loc, e1, e2)
+{
+    op = TOKblit;
 }
 
 /************************************************************/

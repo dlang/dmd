@@ -1286,7 +1286,7 @@ Lnomatch:
     else if (storage_class & STCmanifest)
         error("manifest constants must have initializers");
 
-    TOK op = TOKconstruct;
+    bool isBlit = false;
     if (!init && !sc->inunion && !(storage_class & (STCstatic | STCgshared | STCextern)) && fd &&
         (!(storage_class & (STCfield | STCin | STCforeach | STCparameter | STCresult))
          || (storage_class & STCout)) &&
@@ -1309,8 +1309,7 @@ Lnomatch:
 
             Expression *e = tv->defaultInitLiteral(loc);
             Expression *e1 = new VarExp(loc, this);
-            e = new ConstructExp(loc, e1, e);
-            e->op = TOKblit;
+            e = new BlitExp(loc, e1, e);
             e = e->semantic(sc);
             init = new ExpInitializer(loc, e);
             goto Ldtor;
@@ -1327,8 +1326,7 @@ Lnomatch:
             Expression *e = new IntegerExp(loc, 0, Type::tint32);
             Expression *e1;
             e1 = new VarExp(loc, this);
-            e = new ConstructExp(loc, e1, e);
-            e->op = TOKblit;
+            e = new BlitExp(loc, e1, e);
             e->type = e1->type;         // don't type check this, it would fail
             init = new ExpInitializer(loc, e);
             goto Ldtor;
@@ -1356,7 +1354,7 @@ Lnomatch:
             init = getExpInitializer();
         }
         // Default initializer is always a blit
-        op = TOKblit;
+        isBlit = true;
     }
 
     if (init)
@@ -1421,8 +1419,10 @@ Lnomatch:
                 }
 
                 Expression *e1 = new VarExp(loc, this);
-                ei->exp = new AssignExp(loc, e1, ei->exp);
-                ei->exp->op = op;
+                if (isBlit)
+                    ei->exp = new BlitExp(loc, e1, ei->exp);
+                else
+                    ei->exp = new ConstructExp(loc, e1, ei->exp);
                 canassign++;
                 ei->exp = ei->exp->semantic(sc);
                 canassign--;

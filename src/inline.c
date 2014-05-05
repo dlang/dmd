@@ -1895,9 +1895,10 @@ static Expression *expandInline(FuncDeclaration *fd, FuncDeclaration *parent,
             //ve->type = vto->type;
             ve->type = arg->type;
 
-            ei->exp = new ConstructExp(vto->loc, ve, arg);
-            if ((vfrom->storage_class & (STCout | STCref)) == 0)
-                ei->exp->op = TOKblit;
+            if (vfrom->storage_class & (STCout | STCref))
+                ei->exp = new ConstructExp(vto->loc, ve, arg);
+            else
+                ei->exp = new BlitExp(vto->loc, ve, arg);
             ei->exp->type = ve->type;
             //ve->type->print();
             //arg->type->print();
