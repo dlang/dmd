@@ -619,6 +619,8 @@ void ClassDeclaration::semantic(Scope *sc)
     sc2->protection = PROTpublic;
     sc2->explicitProtection = 0;
     sc2->structalign = STRUCTALIGN_DEFAULT;
+    sc2->userAttribDecl = NULL;
+
     if (baseClass)
     {
         alignsize = baseClass->alignsize;
@@ -632,7 +634,6 @@ void ClassDeclaration::semantic(Scope *sc)
         else
             structsize = Target::ptrsize * 2;   // allow room for __vptr and __monitor
     }
-    sc2->userAttribDecl = NULL;
     size_t members_dim = members->dim;
     sizeok = SIZEOKnone;
 
@@ -1452,14 +1453,16 @@ void InterfaceDeclaration::semantic(Scope *sc)
     Scope *sc2 = sc->push(this);
     sc2->stc &= STCsafe | STCtrusted | STCsystem;
     sc2->parent = this;
+    sc2->inunion = 0;
     if (com)
         sc2->linkage = LINKwindows;
     else if (cpp)
         sc2->linkage = LINKcpp;
-    sc2->structalign = STRUCTALIGN_DEFAULT;
     sc2->protection = PROTpublic;
     sc2->explicitProtection = 0;
+    sc2->structalign = STRUCTALIGN_DEFAULT;
     sc2->userAttribDecl = NULL;
+
     structsize = Target::ptrsize * 2;
     inuse++;
 
