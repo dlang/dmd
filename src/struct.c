@@ -202,13 +202,22 @@ void AggregateDeclaration::semantic2(Scope *sc)
     }
 
     Scope *sc2 = sc->push(this);
+    sc2->stc &= STCsafe | STCtrusted | STCsystem;
     sc2->parent = this;
+    //if (isUnionDeclaration())     // TODO
+    //    sc2->inunion = 1;
+    sc2->protection = PROTpublic;
+    sc2->explicitProtection = 0;
+    sc2->structalign = STRUCTALIGN_DEFAULT;
+    sc2->userAttribDecl = NULL;
+
     for (size_t i = 0; i < members->dim; i++)
     {
         Dsymbol *s = (*members)[i];
         //printf("\t[%d] %s\n", i, s->toChars());
         s->semantic2(sc2);
     }
+
     sc2->pop();
 }
 
@@ -227,12 +236,21 @@ void AggregateDeclaration::semantic3(Scope *sc)
     }
 
     Scope *sc2 = sc->push(this);
+    sc2->stc &= STCsafe | STCtrusted | STCsystem;
     sc2->parent = this;
+    if (isUnionDeclaration())
+        sc2->inunion = 1;
+    sc2->protection = PROTpublic;
+    sc2->explicitProtection = 0;
+    sc2->structalign = STRUCTALIGN_DEFAULT;
+    sc2->userAttribDecl = NULL;
+
     for (size_t i = 0; i < members->dim; i++)
     {
         Dsymbol *s = (*members)[i];
         s->semantic3(sc2);
     }
+
     sc2->pop();
 
     // don't do it for unused deprecated types
