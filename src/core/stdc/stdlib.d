@@ -1,7 +1,7 @@
 /**
  * D header file for C99.
  *
- * Copyright: Copyright Sean Kelly 2005 - 2012.
+ * Copyright: Copyright Sean Kelly 2005 - 2014.
  * License: Distributed under the
  *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
  *    (See accompanying file LICENSE)
@@ -17,6 +17,14 @@ public import core.stdc.stddef; // for size_t, wchar_t
 
 extern (C):
 @system:
+
+/* Placed outside @nogc in order to not constrain what the callback does.
+ */
+alias int function(in void*, in void*) _compare_fp_t;
+void*   bsearch(in void* key, in void* base, size_t nmemb, size_t size, _compare_fp_t compar);
+void    qsort(void* base, size_t nmemb, size_t size, _compare_fp_t compar);
+
+
 nothrow:
 @nogc:
 
@@ -109,9 +117,6 @@ void    _Exit(int status);
 
 char*   getenv(in char* name);
 int     system(in char* string);
-
-void*   bsearch(in void* key, in void* base, size_t nmemb, size_t size, int function(in void*, in void*) compar);
-void    qsort(void* base, size_t nmemb, size_t size, int function(in void*, in void*) compar);
 
 // These only operate on integer values.
 @trusted
