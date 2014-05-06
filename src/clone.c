@@ -259,17 +259,10 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
             tmp->noscope = 1;
             tmp->storage_class |= STCtemp | STCctfe;
             e = new DeclarationExp(loc, tmp);
-            ec = new AssignExp(loc,
-                new VarExp(loc, tmp),
-                new ThisExp(loc)
-                );
-            ec->op = TOKblit;
+            ec = new BlitExp(loc, new VarExp(loc, tmp), new ThisExp(loc));
             e = Expression::combine(e, ec);
         }
-        ec = new AssignExp(loc,
-                new ThisExp(loc),
-                new IdentifierExp(loc, Id::p));
-        ec->op = TOKblit;
+        ec = new BlitExp(loc, new ThisExp(loc), new IdentifierExp(loc, Id::p));
         e = Expression::combine(e, ec);
         if (sd->dtor)
         {
@@ -736,11 +729,10 @@ FuncDeclaration *buildCpCtor(StructDeclaration *sd, Scope *sc)
         Expression *e;
 
         // Build this = p;
-        e = new AssignExp(loc,
+        e = new BlitExp(loc,
             new PtrExp(loc, new AddrExp(loc, new ThisExp(loc))),
             new PtrExp(loc, new AddrExp(loc, new IdentifierExp(loc, Id::p)))
         );
-        e->op = TOKblit;
         Statement *s = new ExpStatement(loc, e);
 
         // Build postBlit();
