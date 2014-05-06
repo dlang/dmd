@@ -3208,6 +3208,31 @@ void test12591()
 }
 
 /**********************************/
+// 12686
+
+struct Foo12686
+{
+    static int count;
+
+    invariant() { ++count; }
+
+    @disable this(this);
+
+    Foo12686 bar()
+    {
+        Foo12686 f;
+        return f;
+    }
+}
+
+void test12686()
+{
+    Foo12686 f;
+    Foo12686 f2 = f.bar();
+    assert(Foo12686.count == 2);
+}
+
+/**********************************/
 
 int main()
 {
@@ -3307,6 +3332,7 @@ int main()
     test11505();
     test12045();
     test12591();
+    test12686();
 
     printf("Success\n");
     return 0;

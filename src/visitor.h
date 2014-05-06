@@ -233,6 +233,7 @@ class PostExp;
 class PreExp;
 class AssignExp;
 class ConstructExp;
+class BlitExp;
 class AddAssignExp;
 class MinAssignExp;
 class MulAssignExp;
@@ -502,6 +503,7 @@ public:
     virtual void visit(PreExp *e) { visit((UnaExp *)e); }
     virtual void visit(AssignExp *e) { visit((BinExp *)e); }
     virtual void visit(ConstructExp *e) { visit((AssignExp *)e); }
+    virtual void visit(BlitExp *e) { visit((AssignExp *)e); }
     virtual void visit(AddAssignExp *e) { visit((BinAssignExp *)e); }
     virtual void visit(MinAssignExp *e) { visit((BinAssignExp *)e); }
     virtual void visit(MulAssignExp *e) { visit((BinAssignExp *)e); }
