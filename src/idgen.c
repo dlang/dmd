@@ -321,6 +321,7 @@ Msgtable msgtable[] =
     { "isLazy" },
     { "hasMember" },
     { "identifier" },
+    { "documentation" },
     { "getProtection" },
     { "parent" },
     { "getMember" },
