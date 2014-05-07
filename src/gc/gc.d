@@ -25,6 +25,7 @@ module gc.gc;
 //debug = PTRCHECK;             // more pointer checking
 //debug = PTRCHECK2;            // thorough but slow pointer checking
 //debug = PROFILING;            // measure performance of various steps.
+//debug = INVARIANT;            // enable invariants
 
 /*************** Configuration *********************/
 
@@ -484,9 +485,13 @@ class GC
             if (!p)
                 onOutOfMemoryError();
         }
-        size -= SENTINEL_EXTRA;
-        p = sentinel_add(p);
-        sentinel_init(p, size);
+        debug (SENTINEL)
+        {
+            size -= SENTINEL_EXTRA;
+            p = sentinel_add(p);
+            sentinel_init(p, size);
+            *alloc_size = size;
+        }
         gcx.log_malloc(p, size);
 
         if (bits)
@@ -583,7 +588,7 @@ class GC
             size_t psize;
 
             //debug(PRINTF) printf("GC::realloc(p = %p, size = %zu)\n", p, size);
-            version (SENTINEL)
+            debug (SENTINEL)
             {
                 sentinel_Invariant(p);
                 psize = *sentinel_size(p);
@@ -727,41 +732,44 @@ class GC
             onInvalidMemoryOperationError();
 
         //debug(PRINTF) printf("GC::extend(p = %p, minsize = %zu, maxsize = %zu)\n", p, minsize, maxsize);
-        version (SENTINEL)
+        debug (SENTINEL)
         {
             return 0;
         }
-        auto psize = gcx.findSize(p);   // find allocated size
-        if (psize < PAGESIZE)
-            return 0;                   // cannot extend buckets
-
-        auto psz = psize / PAGESIZE;
-        auto minsz = (minsize + PAGESIZE - 1) / PAGESIZE;
-        auto maxsz = (maxsize + PAGESIZE - 1) / PAGESIZE;
-
-        auto pool = gcx.findPool(p);
-        auto pagenum = (p - pool.baseAddr) / PAGESIZE;
-
-        size_t sz;
-        for (sz = 0; sz < maxsz; sz++)
+        else
         {
-            auto i = pagenum + psz + sz;
-            if (i == pool.npages)
-                break;
-            if (pool.pagetable[i] != B_FREE)
-            {   if (sz < minsz)
-                    return 0;
-                break;
+            auto psize = gcx.findSize(p);   // find allocated size
+            if (psize < PAGESIZE)
+                return 0;                   // cannot extend buckets
+
+            auto psz = psize / PAGESIZE;
+            auto minsz = (minsize + PAGESIZE - 1) / PAGESIZE;
+            auto maxsz = (maxsize + PAGESIZE - 1) / PAGESIZE;
+
+            auto pool = gcx.findPool(p);
+            auto pagenum = (p - pool.baseAddr) / PAGESIZE;
+
+            size_t sz;
+            for (sz = 0; sz < maxsz; sz++)
+            {
+                auto i = pagenum + psz + sz;
+                if (i == pool.npages)
+                    break;
+                if (pool.pagetable[i] != B_FREE)
+                {   if (sz < minsz)
+                        return 0;
+                    break;
+                }
             }
+            if (sz < minsz)
+                return 0;
+            debug (MEMSTOMP) memset(pool.baseAddr + (pagenum + psz) * PAGESIZE, 0xF0, sz * PAGESIZE);
+            memset(pool.pagetable + pagenum + psz, B_PAGEPLUS, sz);
+            pool.updateOffsets(pagenum);
+            pool.freepages -= sz;
+            gcx.updateCaches(p, (psz + sz) * PAGESIZE);
+            return (psz + sz) * PAGESIZE;
         }
-        if (sz < minsz)
-            return 0;
-        debug (MEMSTOMP) memset(p + psize, 0xF0, (psz + sz) * PAGESIZE - psize);
-        memset(pool.pagetable + pagenum + psz, B_PAGEPLUS, sz);
-        pool.updateOffsets(pagenum);
-        pool.freepages -= sz;
-        gcx.updateCaches(p, (psz + sz) * PAGESIZE);
-        return (psz + sz) * PAGESIZE;
     }
 
 
@@ -920,7 +928,7 @@ class GC
     {
         assert (p);
 
-        version (SENTINEL)
+        debug (SENTINEL)
         {
             p = sentinel_sub(p);
             size_t size = gcx.findSize(p);
@@ -1388,7 +1396,7 @@ struct Gcx
 
     void Invariant() const { }
 
-
+    debug(INVARIANT)
     invariant()
     {
         if (inited)
@@ -3223,6 +3231,7 @@ struct Pool
     void Invariant() const {}
 
 
+    debug(INVARIANT)
     invariant()
     {
         //mark.Invariant();
@@ -3360,16 +3369,16 @@ struct Pool
 /* ============================ SENTINEL =============================== */
 
 
-version (SENTINEL)
+debug (SENTINEL)
 {
     const size_t SENTINEL_PRE = cast(size_t) 0xF4F4F4F4F4F4F4F4UL; // 32 or 64 bits
     const ubyte SENTINEL_POST = 0xF5;           // 8 bits
     const uint SENTINEL_EXTRA = 2 * size_t.sizeof + 1;
 
 
-    size_t* sentinel_size(void *p)  { return &(cast(size_t *)p)[-2]; }
-    size_t* sentinel_pre(void *p)   { return &(cast(size_t *)p)[-1]; }
-    ubyte* sentinel_post(void *p) { return &(cast(ubyte *)p)[*sentinel_size(p)]; }
+    inout(size_t*) sentinel_size(inout void *p)  { return &(cast(inout size_t *)p)[-2]; }
+    inout(size_t*) sentinel_pre(inout void *p)   { return &(cast(inout size_t *)p)[-1]; }
+    inout(ubyte*) sentinel_post(inout void *p) { return &(cast(inout ubyte *)p)[*sentinel_size(p)]; }
 
 
     void sentinel_init(void *p, size_t size)
