@@ -490,19 +490,22 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             goto Ldimerror;
         RootObject *o = (*e->args)[0];
         Dsymbol *s = getDsymbol(o);
+        Dsymbol *p = NULL;
         if (s)
         {
             if (FuncDeclaration *fd = s->isFuncDeclaration())   // Bugzilla 8943
                 s = fd->toAliasFunc();
             if (!s->isImport())  // Bugzilla 8922
-                s = s->toParent();
+                p = s->toParent();
+            if (p && p->toAlias()->toParent() == p)  // Bugzilla 12287
+                p = p->toParent();
         }
-        if (!s || s->isImport())
+        if (!p || p->isImport())
         {
             e->error("argument %s has no parent", o->toChars());
             goto Lfalse;
         }
-        return (new DsymbolExp(e->loc, s))->semantic(sc);
+        return (new DsymbolExp(e->loc, p))->semantic(sc);
     }
     else if (e->ident == Id::hasMember ||
              e->ident == Id::getMember ||

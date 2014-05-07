@@ -1471,6 +1471,18 @@ struct InPlace12278(T)
     static assert(__traits(classInstanceSize, T) != 0);
 }
 
+
+/********************************************************/
+// Issue 12287
+
+alias Identity(alias x) = x;
+
+struct X12287(T) { }
+
+alias X12287i = X12287!int;
+
+static assert(!__traits(isSame, X12287i, __traits(parent, X12287i)));
+
 /********************************************************/
 // 12571
 
