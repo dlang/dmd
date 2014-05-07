@@ -2253,16 +2253,6 @@ void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
                 return;
         }
 
-        // Find the closest pure parent of the called function
-        if (getFuncTemplateDecl(f) && !f->isNested() &&
-            f->parent->isTemplateInstance()->enclosing == NULL)
-        {   // The closest pure parent of instantiated non-nested template function is
-            // always itself.
-            if (!f->isPure() && outerfunc->setImpure() && !(sc->flags & SCOPEctfe))
-                error("pure function '%s' cannot call impure function '%s'",
-                    outerfunc->toPrettyChars(), f->toPrettyChars());
-            return;
-        }
         FuncDeclaration *calledparent = f;
         while ( calledparent->toParent2() &&
                !calledparent->isPureBypassingInference() &&
@@ -2271,29 +2261,6 @@ void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
             calledparent = calledparent->toParent2()->isFuncDeclaration();
             if (calledparent->type->ty == Terror)
                 return;
-        }
-
-        /* Both escape!allocator and escapeImpl!allocator are impure at [a],
-         * but they are nested template function that instantiated in test().
-         * Then calling them from [a] doesn't break purity.
-         * It's similar to normal impure nested function inside pure function.
-         *
-         *   auto escapeImpl(alias fun)() {
-         *     return fun();
-         *   }
-         *   auto escape(alias fun)() {
-         *     return escape!fun();
-         *   }
-         *   pure string test() {
-         *     char[] allocator() { return new char[1]; }  // impure
-         *     return escape!allocator();       // [a]
-         *   }
-         */
-        if (getFuncTemplateDecl(outerfunc) &&
-            outerfunc->toParent2() == calledparent &&
-            f != calledparent)
-        {
-            return;
         }
 
         // If the caller has a pure parent, then either the called func must be pure,
