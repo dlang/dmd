@@ -65,7 +65,7 @@ struct OffsetTypeInfo
 
 class TypeInfo
 {
-    override string toString() const;
+    override string toString() const pure @safe nothrow;
     override size_t toHash() @trusted const;
     override int opCmp(Object o);
     override bool opEquals(Object o);
