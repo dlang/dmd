@@ -2226,8 +2226,7 @@ void Expression::checkDeprecated(Scope *sc, Dsymbol *s)
  */
 void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
 {
-#if 1
-    if (sc->func && sc->func != f && !sc->intypeof && !(sc->flags & SCOPEdebug))
+    if (sc->func && sc->func != f && !sc->intypeof && !(sc->flags & (SCOPEctfe | SCOPEdebug)))
     {
         /* Given:
          * void f()
@@ -2299,19 +2298,13 @@ void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
 
         // If the caller has a pure parent, then either the called func must be pure,
         // OR, they must have the same pure parent.
-        if (!f->isPure() && calledparent != outerfunc &&
-            !(sc->flags & SCOPEctfe))
+        if (!f->isPure() && calledparent != outerfunc)
         {
             if (outerfunc->setImpure())
                 error("pure function '%s' cannot call impure function '%s'",
                     outerfunc->toPrettyChars(), f->toPrettyChars());
         }
     }
-#else
-    if (sc->func && sc->func->isPure() && !sc->intypeof && !f->isPure())
-        error("pure function '%s' cannot call impure function '%s'",
-            sc->func->toPrettyChars(), f->toPrettyChars());
-#endif
 }
 
 /*******************************************
