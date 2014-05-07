@@ -5141,17 +5141,27 @@ void InvariantDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
  * instances per module.
  */
 
-static Identifier *unitTestId(Loc loc)
+static Identifier *unitTestId(Loc loc, Identifier *id)
 {
     OutBuffer buf;
-    buf.printf("__unittestL%u_", loc.linnum);
-    return Lexer::uniqueId(buf.peekString());
+    if (id)
+    {
+        const char* name = id->toChars();
+        buf.printf("__unittestL%u_N%llu%s", loc.linnum, (ulonglong)strlen(name), name);
+        return Lexer::idPool(buf.peekString());
+    }
+    else
+    {
+        buf.printf("__unittestL%u_", loc.linnum);
+        return Lexer::uniqueId(buf.peekString());
+    }
 }
 
-UnitTestDeclaration::UnitTestDeclaration(Loc loc, Loc endloc, char *codedoc)
-    : FuncDeclaration(loc, endloc, unitTestId(loc), STCundefined, NULL)
+UnitTestDeclaration::UnitTestDeclaration(Loc loc, Loc endloc, char *codedoc, Identifier *id)
+    : FuncDeclaration(loc, endloc, unitTestId(loc, id), STCundefined, NULL)
 {
     this->codedoc = codedoc;
+    this->id = id;
 }
 
 Dsymbol *UnitTestDeclaration::syntaxCopy(Dsymbol *s)
@@ -5159,7 +5169,7 @@ Dsymbol *UnitTestDeclaration::syntaxCopy(Dsymbol *s)
     UnitTestDeclaration *utd;
 
     assert(!s);
-    utd = new UnitTestDeclaration(loc, endloc, codedoc);
+    utd = new UnitTestDeclaration(loc, endloc, codedoc, id);
     return FuncDeclaration::syntaxCopy(utd);
 }
 
@@ -5239,8 +5249,9 @@ void UnitTestDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
  *     string file;
  *     uint line;
  *     bool disabled;
+ *     string name;
  * }
- * 
+ *
  * Generates struct initializer
  * __UnitTest(&testFunc, file, line, disabled, name)
  */
@@ -5254,6 +5265,8 @@ ExpInitializer *UnitTestDeclaration::toUnitTestInfo()
     inits->push(new StringExp(loc, (char*)loc.filename)); //fileName
     inits->push(new IntegerExp(loc, loc.linnum, TypeBasic::tuns32)); //line
     inits->push(new IntegerExp(loc, disabled, TypeBasic::tbool)); //disabled
+    const char* name = id ? id->toChars() : "";
+    inits->push(new StringExp(loc, (char*)name)); //name
 
     StructLiteralExp *exp = new StructLiteralExp(loc, StructDeclaration::UnitTest,
         inits, StructDeclaration::UnitTest->type);
