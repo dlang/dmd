@@ -2226,7 +2226,7 @@ void Expression::checkDeprecated(Scope *sc, Dsymbol *s)
  */
 void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
 {
-    if (sc->func && sc->func != f && !sc->intypeof && !(sc->flags & (SCOPEctfe | SCOPEdebug)))
+    if (sc->func && sc->func != f && sc->intypeof != 1 && !(sc->flags & (SCOPEctfe | SCOPEdebug)))
     {
         /* Given:
          * void f()
@@ -2286,7 +2286,7 @@ void Expression::checkPurity(Scope *sc, VarDeclaration *v)
      */
     if (!sc->func)
         return;
-    if (sc->intypeof)
+    if (sc->intypeof == 1)
         return; // allow violations inside typeof(expression)
     if (sc->flags & SCOPEdebug)
         return; // allow violations inside debug conditionals
@@ -2386,7 +2386,7 @@ void Expression::checkPurity(Scope *sc, VarDeclaration *v)
 
 void Expression::checkSafety(Scope *sc, FuncDeclaration *f)
 {
-    if (sc->func && sc->func != f && !sc->intypeof &&
+    if (sc->func && sc->func != f && sc->intypeof != 1 &&
         !(sc->flags & SCOPEctfe) &&
         !f->isSafe() && !f->isTrusted())
     {
@@ -2403,7 +2403,7 @@ void Expression::checkSafety(Scope *sc, FuncDeclaration *f)
 
 void Expression::checkNogc(Scope *sc, FuncDeclaration *f)
 {
-    if (sc->func && sc->func != f && !sc->intypeof &&
+    if (sc->func && sc->func != f && sc->intypeof != 1 &&
         !(sc->flags & SCOPEctfe) &&
         !f->isNogc())
     {
@@ -4014,7 +4014,7 @@ Expression *ArrayLiteralExp::semantic(Scope *sc)
 
     semanticTypeInfo(sc, t0);
 
-    if (sc->func && !sc->intypeof && !(sc->flags & SCOPEctfe) &&
+    if (sc->func && sc->intypeof != 1 && !(sc->flags & SCOPEctfe) &&
         elements && type->toBasetype()->ty == Tarray)
     {
         for (size_t i = 0; i < elements->dim; i++)
@@ -4168,7 +4168,7 @@ Expression *AssocArrayLiteralExp::semantic(Scope *sc)
     if (tkey == Type::terror || tvalue == Type::terror)
         return new ErrorExp;
 
-    if (sc->func && !sc->intypeof && !(sc->flags & SCOPEctfe) && keys->dim && sc->func->setGC())
+    if (sc->func && sc->intypeof != 1 && !(sc->flags & SCOPEctfe) && keys->dim && sc->func->setGC())
     {
         error("associative array literal in @nogc function %s may cause GC allocation", sc->func->toChars());
         return new ErrorExp;
@@ -5104,7 +5104,7 @@ Lagain:
     //printf("NewExp:type '%s'\n", type->toChars());
     semanticTypeInfo(sc, type);
 
-    if (sc->func && !sc->intypeof && !(sc->flags & SCOPEctfe))
+    if (sc->func && sc->intypeof != 1 && !(sc->flags & SCOPEctfe))
     {
         if (member && !member->isNogc() && sc->func->setGC())
         {
@@ -8615,7 +8615,7 @@ Lagain:
             checkNogc(sc, f);
             f->checkNestedReference(sc, loc);
         }
-        else if (sc->func && !(sc->flags & SCOPEctfe))
+        else if (sc->func && sc->intypeof != 1 && !(sc->flags & SCOPEctfe))
         {
             bool err = false;
             if (!tf->purity && !(sc->flags & SCOPEdebug) && sc->func->setImpure())
@@ -9361,7 +9361,7 @@ Expression *DeleteExp::semantic(Scope *sc)
         }
     }
 
-    if (sc->func && !sc->intypeof && !(sc->flags & SCOPEctfe) && sc->func->setGC())
+    if (sc->func && sc->intypeof != 1 && !(sc->flags & SCOPEctfe) && sc->func->setGC())
     {
         error("cannot use 'delete' in @nogc function %s", sc->func->toChars());
         goto Lerr;
@@ -10367,7 +10367,7 @@ Expression *IndexExp::semantic(Scope *sc)
                 e2 = e2->implicitCastTo(sc, taa->index);        // type checking
             }
             type = taa->next;
-            if (sc->func && !sc->intypeof && !(sc->flags & SCOPEctfe) && sc->func->setGC())
+            if (sc->func && sc->intypeof != 1 && !(sc->flags & SCOPEctfe) && sc->func->setGC())
             {
                 error("indexing an associative array in @nogc function %s may cause gc allocation",
                     sc->func->toChars());
@@ -11279,7 +11279,7 @@ Expression *AssignExp::semantic(Scope *sc)
         checkDefCtor(ale->loc, tn);
         semanticTypeInfo(sc, tn);
 
-        if (sc->func && !sc->intypeof && !(sc->flags & SCOPEctfe) && sc->func->setGC())
+        if (sc->func && sc->intypeof != 1 && !(sc->flags & SCOPEctfe) && sc->func->setGC())
         {
             error("Setting 'length' in @nogc function %s may cause GC allocation",
                 sc->func->toChars());
@@ -11548,7 +11548,7 @@ Expression *CatAssignExp::semantic(Scope *sc)
     if (e)
         return e;
 
-    if (sc->func && !sc->intypeof && !(sc->flags & SCOPEctfe) && sc->func->setGC())
+    if (sc->func && sc->intypeof != 1 && !(sc->flags & SCOPEctfe) && sc->func->setGC())
     {
         error("cannot use operator ~= in @nogc function %s", sc->func->toChars());
         return new ErrorExp();
@@ -12002,7 +12002,7 @@ Expression *CatExp::semantic(Scope *sc)
     if (e)
         return e;
 
-    if (sc->func && !sc->intypeof && !(sc->flags & SCOPEctfe) && sc->func->setGC())
+    if (sc->func && sc->intypeof != 1 && !(sc->flags & SCOPEctfe) && sc->func->setGC())
     {
         error("cannot use operator ~ in @nogc function %s", sc->func->toChars());
         return new ErrorExp();
