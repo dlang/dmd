@@ -418,6 +418,13 @@ void test12542() @safe nothrow pure
 }
 
 /***************************************************/
+// 12704
+
+void foo12704() @system;
+alias FP12704 = typeof(function() { foo12704(); });
+static assert(is(FP12704 == void function() @system));
+
+/***************************************************/
 
 // Add more tests regarding inferences later.
 
