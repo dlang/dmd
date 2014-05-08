@@ -57,6 +57,15 @@ class ThreadException : Exception
     @safe pure nothrow this(string msg, Throwable next, string file = __FILE__, size_t line = __LINE__);
 }
 
+/**
+* Base class for thread errors to be used for function inside GC when allocations are unavailable.
+*/
+class ThreadError : Error
+{
+    @safe pure nothrow this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null);
+    @safe pure nothrow this(string msg, Throwable next, string file = __FILE__, size_t line = __LINE__);
+}
+
 
 /**
  * Base class for fiber exceptions.
@@ -530,9 +539,9 @@ shared static ~this();
  * processing is resumed.
  *
  * Throws:
- *  ThreadException if the suspend operation fails for a running thread.
+ *  ThreadError if the suspend operation fails for a running thread.
  */
-extern (C) void thread_suspendAll();
+extern (C) void thread_suspendAll() nothrow;
 
 
 /**
@@ -544,9 +553,9 @@ extern (C) void thread_suspendAll();
  *  This routine must be preceded by a call to thread_suspendAll.
  *
  * Throws:
- *  ThreadException if the resume operation fails for a running thread.
+ *  ThreadError if the resume operation fails for a running thread.
  */
-extern (C) void thread_resumeAll();
+extern (C) void thread_resumeAll() nothrow;
 
 
 /**

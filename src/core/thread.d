@@ -819,7 +819,7 @@ class Thread
      * Returns:
      *  true if the thread is running, false if not.
      */
-    final @property bool isRunning()
+    final @property bool isRunning() nothrow
     {
         if( m_addr == m_addr.init )
         {
@@ -1445,12 +1445,12 @@ private:
     //
     // All use of the global lists should synchronize on this lock.
     //
-    @property static Mutex slock()
+    @property static Mutex slock() nothrow
     {
         return cast(Mutex)_locks[0].ptr;
     }
 
-    @property static Mutex criticalRegionLock()
+    @property static Mutex criticalRegionLock() nothrow
     {
         return cast(Mutex)_locks[1].ptr;
     }
@@ -1532,7 +1532,9 @@ private:
     //
     // Remove a context from the global context list.
     //
-    static void remove( Context* c )
+    // This assumes slock being acquired. This isn't done here to
+    // avoid double locking when called from remove(Thread)
+    static void remove( Context* c ) nothrow
     in
     {
         assert( c );
@@ -1540,16 +1542,13 @@ private:
     }
     body
     {
-        synchronized( slock )
-        {
-            if( c.prev )
-                c.prev.next = c.next;
-            if( c.next )
-                c.next.prev = c.prev;
-            if( sm_cbeg == c )
-                sm_cbeg = c.next;
-            --sm_clen;
-        }
+        if( c.prev )
+            c.prev.next = c.next;
+        if( c.next )
+            c.next.prev = c.prev;
+        if( sm_cbeg == c )
+            sm_cbeg = c.next;
+        --sm_clen;
         // NOTE: Don't null out c.next or c.prev because opApply currently
         //       follows c.next after removing a node.  This could be easily
         //       addressed by simply returning the next node from this
@@ -1625,7 +1624,7 @@ private:
     //
     // Remove a thread from the global thread list.
     //
-    static void remove( Thread t )
+    static void remove( Thread t ) nothrow
     in
     {
         assert( t );
@@ -1633,7 +1632,7 @@ private:
     }
     body
     {
-        synchronized( slock )
+        slock.lock_nothrow(); // this is called from within the GC, so it cannot allocate an exception
         {
             // NOTE: When a thread is removed from the global thread list its
             //       main context is invalid and should be removed as well.
@@ -1650,7 +1649,7 @@ private:
                 t.prev.next = t.next;
             if( t.next )
                 t.next.prev = t.prev;
-            if( sm_tbeg == t )
+            if( sm_tbeg is t )
                 sm_tbeg = t.next;
             --sm_tlen;
         }
@@ -1660,6 +1659,7 @@ private:
         //       function, however, a thread should never be re-added to the
         //       list anyway and having next and prev be non-null is a good way
         //       to ensure that.
+        slock.unlock_nothrow();
     }
 }
 
@@ -2149,9 +2149,9 @@ private __gshared uint suspendDepth = 0;
  *  t = The thread to suspend.
  *
  * Throws:
- *  ThreadException if the suspend operation fails for a running thread.
+ *  ThreadError if the suspend operation fails for a running thread.
  */
-private void suspend( Thread t )
+private void suspend( Thread t ) nothrow
 {
     version( Windows )
     {
@@ -2162,14 +2162,14 @@ private void suspend( Thread t )
                 Thread.remove( t );
                 return;
             }
-            throw new ThreadException( "Unable to suspend thread" );
+            onThreadError( "Unable to suspend thread" );
         }
 
         CONTEXT context = void;
         context.ContextFlags = CONTEXT_INTEGER | CONTEXT_CONTROL;
 
         if( !GetThreadContext( t.m_hndl, &context ) )
-            throw new ThreadException( "Unable to load thread context" );
+            onThreadError( "Unable to load thread context" );
         version( X86 )
         {
             if( !t.m_lock )
@@ -2221,7 +2221,7 @@ private void suspend( Thread t )
                 Thread.remove( t );
                 return;
             }
-            throw new ThreadException( "Unable to suspend thread" );
+            onThreadError( "Unable to suspend thread" );
         }
 
         version( X86 )
@@ -2230,7 +2230,7 @@ private void suspend( Thread t )
             mach_msg_type_number_t  count = x86_THREAD_STATE32_COUNT;
 
             if( thread_get_state( t.m_tmach, x86_THREAD_STATE32, &state, &count ) != KERN_SUCCESS )
-                throw new ThreadException( "Unable to load thread state" );
+                onThreadError( "Unable to load thread state" );
             if( !t.m_lock )
                 t.m_curr.tstack = cast(void*) state.esp;
             // eax,ebx,ecx,edx,edi,esi,ebp,esp
@@ -2249,7 +2249,7 @@ private void suspend( Thread t )
             mach_msg_type_number_t  count = x86_THREAD_STATE64_COUNT;
 
             if( thread_get_state( t.m_tmach, x86_THREAD_STATE64, &state, &count ) != KERN_SUCCESS )
-                throw new ThreadException( "Unable to load thread state" );
+                onThreadError( "Unable to load thread state" );
             if( !t.m_lock )
                 t.m_curr.tstack = cast(void*) state.rsp;
             // rax,rbx,rcx,rdx,rdi,rsi,rbp,rsp
@@ -2287,12 +2287,12 @@ private void suspend( Thread t )
                     Thread.remove( t );
                     return;
                 }
-                throw new ThreadException( "Unable to suspend thread" );
+                onThreadError( "Unable to suspend thread" );
             }
             while (sem_wait(&suspendCount) != 0)
             {
                 if (errno != EINTR)
-                    throw new ThreadException( "Unable to wait for semaphore" );
+                    onThreadError( "Unable to wait for semaphore" );
                 errno = 0;
             }
         }
@@ -2310,9 +2310,9 @@ private void suspend( Thread t )
  * processing is resumed.
  *
  * Throws:
- *  ThreadException if the suspend operation fails for a running thread.
+ *  ThreadError if the suspend operation fails for a running thread.
  */
-extern (C) void thread_suspendAll()
+extern (C) void thread_suspendAll() nothrow
 {
     // NOTE: We've got an odd chicken & egg problem here, because while the GC
     //       is required to call thread_init before calling any other thread
@@ -2335,7 +2335,7 @@ extern (C) void thread_suspendAll()
         return;
     }
 
-    Thread.slock.lock();
+    Thread.slock.lock_nothrow();
     {
         if( ++suspendDepth > 1 )
             return;
@@ -2348,7 +2348,7 @@ extern (C) void thread_suspendAll()
         //       cause the second suspend to fail, the garbage collection to
         //       abort, and Bad Things to occur.
 
-        Thread.criticalRegionLock.lock();
+        Thread.criticalRegionLock.lock_nothrow();
         for (Thread t = Thread.sm_tbeg; t !is null; t = t.next)
         {
             Duration waittime = dur!"usecs"(10);
@@ -2359,10 +2359,19 @@ extern (C) void thread_suspendAll()
             }
             else if (t.m_isInCriticalRegion)
             {
-                Thread.criticalRegionLock.unlock();
-                Thread.sleep(waittime);
+                Thread.criticalRegionLock.unlock_nothrow();
+                try
+                {
+                    Thread.sleep(waittime);
+                }
+                catch(Exception)
+                {
+                    // if sleep actually fails, it tries to allocate the new exception
+                    //  which fails the GC recursion check, so we don't expect to ever
+                    //  reach this point, but we have to convince the compiler, too
+                }
                 if (waittime < dur!"msecs"(10)) waittime *= 2;
-                Thread.criticalRegionLock.lock();
+                Thread.criticalRegionLock.lock_nothrow();
                 goto Lagain;
             }
             else
@@ -2370,7 +2379,7 @@ extern (C) void thread_suspendAll()
                 suspend(t);
             }
         }
-        Thread.criticalRegionLock.unlock();
+        Thread.criticalRegionLock.unlock_nothrow();
     }
 }
 
@@ -2386,9 +2395,9 @@ extern (C) void thread_suspendAll()
  *  t = The thread to resume.
  *
  * Throws:
- *  ThreadException if the resume fails for a running thread.
+ *  ThreadError if the resume fails for a running thread.
  */
-private void resume( Thread t )
+private void resume( Thread t ) nothrow
 {
     version( Windows )
     {
@@ -2399,7 +2408,7 @@ private void resume( Thread t )
                 Thread.remove( t );
                 return;
             }
-            throw new ThreadException( "Unable to resume thread" );
+            onThreadError( "Unable to resume thread" );
         }
 
         if( !t.m_lock )
@@ -2415,7 +2424,7 @@ private void resume( Thread t )
                 Thread.remove( t );
                 return;
             }
-            throw new ThreadException( "Unable to resume thread" );
+            onThreadError( "Unable to resume thread" );
         }
 
         if( !t.m_lock )
@@ -2433,7 +2442,7 @@ private void resume( Thread t )
                     Thread.remove( t );
                     return;
                 }
-                throw new ThreadException( "Unable to resume thread" );
+                onThreadError( "Unable to resume thread" );
             }
         }
         else if( !t.m_lock )
@@ -2454,7 +2463,7 @@ private void resume( Thread t )
  * Throws:
  *  ThreadException if the resume operation fails for a running thread.
  */
-extern (C) void thread_resumeAll()
+extern (C) void thread_resumeAll() nothrow
 in
 {
     assert( suspendDepth > 0 );
@@ -2469,7 +2478,7 @@ body
         return;
     }
 
-    scope(exit) Thread.slock.unlock();
+    scope(exit) Thread.slock.unlock_nothrow();
     {
         if( --suspendDepth > 0 )
             return;
@@ -2600,6 +2609,39 @@ body
     synchronized (Thread.criticalRegionLock)
         return Thread.getThis().m_isInCriticalRegion;
 }
+
+/**
+* Base class for thread errors.
+*/
+class ThreadError : Error
+{
+    @safe pure nothrow this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null)
+    {
+        super(msg, file, line, next);
+    }
+
+    @safe pure nothrow this(string msg, Throwable next, string file = __FILE__, size_t line = __LINE__)
+    {
+        super(msg, file, line, next);
+    }
+}
+
+
+/**
+* A callback for thread errors in D during collections. Since an allocation is not possible
+*  a preallocated ThreadError will be used as the Error instance
+*
+* Throws:
+*  ThreadError.
+*/
+private void onThreadError(string msg = null, Throwable next = null) nothrow
+{
+    __gshared ThreadError error = new ThreadError(null);
+    error.msg = msg;
+    error.next = next;
+	throw error;
+}
+
 
 unittest
 {
@@ -3998,7 +4040,8 @@ private:
     {
         // NOTE: m_ctxt is guaranteed to be alive because it is held in the
         //       global context list.
-        Thread.remove( m_ctxt );
+        synchronized( Thread.slock )
+            Thread.remove( m_ctxt );
 
         static if( __traits( compiles, VirtualAlloc ) )
         {
