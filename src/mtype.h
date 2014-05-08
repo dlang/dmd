@@ -599,6 +599,12 @@ enum TRUST
     TRUSTsafe = 3,      // @safe
 };
 
+enum TRUSTformat
+{
+    TRUSTformatDefault,  // do not emit @system when trust == TRUSTdefault
+    TRUSTformatSystem,   // emit @system when trust == TRUSTdefault
+};
+
 enum PURE
 {
     PUREimpure = 0,     // not pure at all
@@ -645,7 +651,7 @@ public:
 
     /** For each active attribute (ref/const/nogc/etc) call fp with a void* for the
     work param and a string representation of the attribute. */
-    int attributesApply(void *param, int (*fp)(void *, const char *));
+    int attributesApply(void *param, int (*fp)(void *, const char *), TRUSTformat trustFormat = TRUSTformatDefault);
 
     Type *substWildTo(unsigned mod);
     MATCH callMatch(Type *tthis, Expressions *toargs, int flag = 0);

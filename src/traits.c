@@ -736,11 +736,12 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         PushAttributes pa;
         pa.mods = mods;
 
-        // const/immutable/inout/shared is only valid for member functions
         if (fd)
             fd->type->modifiersApply(&pa, &PushAttributes::fp);
+        else if (tf)
+            tf->modifiersApply(&pa, &PushAttributes::fp);
 
-        tf->attributesApply(&pa, &PushAttributes::fp);
+        tf->attributesApply(&pa, &PushAttributes::fp, TRUSTformatSystem);
 
         TupleExp *tup = new TupleExp(e->loc, mods);
         return tup->semantic(sc);
