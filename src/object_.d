@@ -619,7 +619,7 @@ class TypeInfo_AssociativeArray : TypeInfo
 {
     override string toString() const
     {
-        return next.toString() ~ "[" ~ key.toString() ~ "]";
+        return value.toString() ~ "[" ~ key.toString() ~ "]";
     }
 
     override bool opEquals(Object o)
@@ -655,8 +655,8 @@ class TypeInfo_AssociativeArray : TypeInfo
         return (char[int]).sizeof;
     }
 
-    override @property inout(TypeInfo) next() nothrow @safe pure inout { return value; }
-    override @property uint flags() nothrow @safe pure const { return 1; }
+    override @property inout(TypeInfo) next() nothrow pure inout { return value; }
+    override @property uint flags() nothrow pure const { return 1; }
 
     TypeInfo value;
     TypeInfo key;
