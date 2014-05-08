@@ -19,6 +19,7 @@ private import core.sys.posix.time;
 
 version (Posix):
 extern (C):
+nothrow:
 
 //
 // Required

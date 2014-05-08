@@ -2769,7 +2769,7 @@ extern (C)
 }
 
 
-private void* getStackTop()
+private void* getStackTop() nothrow
 {
     version (D_InlineAsm_X86)
         asm { naked; mov EAX, ESP; ret; }
@@ -2782,7 +2782,7 @@ private void* getStackTop()
 }
 
 
-private void* getStackBottom()
+private void* getStackBottom() nothrow
 {
     version (Windows)
     {
