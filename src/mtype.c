@@ -6192,7 +6192,7 @@ void trustToBuffer(OutBuffer *buf, TRUST trust);
 
 /** For each active attribute (ref/const/nogc/etc) call fp with a void* for the
 work param and a string representation of the attribute. */
-int TypeFunction::attributesApply(void *param, int (*fp)(void *, const char *))
+int TypeFunction::attributesApply(void *param, int (*fp)(void *, const char *), TRUSTformat trustFormat)
 {
     int res = 0;
 
@@ -6211,14 +6211,20 @@ int TypeFunction::attributesApply(void *param, int (*fp)(void *, const char *))
     if (isref) res = fp(param, "ref");
     if (res) return res;
 
-    if (trust != TRUSTdefault)  // avoid calling with an empty string
+    TRUST trustAttrib = trust;
+
+    if (trustAttrib == TRUSTdefault)
     {
-        OutBuffer buf;
-        trustToBuffer(&buf, trust);
-        res = fp(param, buf.extractString());
-        if (res) return res;
+        // Print out "@system" when trust equals TRUSTdefault (if desired).
+        if (trustFormat == TRUSTformatSystem)
+            trustAttrib = TRUSTsystem;
+        else
+            return res;  // avoid calling with an empty string
     }
 
+    OutBuffer buf;
+    trustToBuffer(&buf, trustAttrib);
+    res = fp(param, buf.extractString());
     return res;
 }
 

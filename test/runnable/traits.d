@@ -1327,35 +1327,35 @@ void test_getFunctionAttributes()
         int pureF() pure { return 0; }
     }
 
-    static assert(tupleLength!(__traits(getFunctionAttributes, S.noF)) == 0);
-    static assert(tupleLength!(__traits(getFunctionAttributes, typeof(S.noF))) == 0);
+    static assert(__traits(getFunctionAttributes, S.noF) == tuple!("@system"));
+    static assert(__traits(getFunctionAttributes, typeof(S.noF)) == tuple!("@system"));
 
-    static assert(__traits(getFunctionAttributes, S.constF) == tuple!("const"));
-    static assert(tupleLength!(__traits(getFunctionAttributes, typeof(S.constF))) == 0);
+    static assert(__traits(getFunctionAttributes, S.constF) == tuple!("const", "@system"));
+    static assert(__traits(getFunctionAttributes, typeof(S.constF)) == tuple!("const", "@system"));
 
-    static assert(__traits(getFunctionAttributes, S.immutableF) == tuple!("immutable"));
-    static assert(tupleLength!(__traits(getFunctionAttributes, typeof(S.immutableF))) == 0);
+    static assert(__traits(getFunctionAttributes, S.immutableF) == tuple!("immutable", "@system"));
+    static assert(__traits(getFunctionAttributes, typeof(S.immutableF)) == tuple!("immutable", "@system"));
 
-    static assert(__traits(getFunctionAttributes, S.inoutF) == tuple!("inout"));
-    static assert(tupleLength!(__traits(getFunctionAttributes, typeof(S.inoutF))) == 0);
+    static assert(__traits(getFunctionAttributes, S.inoutF) == tuple!("inout", "@system"));
+    static assert(__traits(getFunctionAttributes, typeof(S.inoutF)) == tuple!("inout", "@system"));
 
-    static assert(__traits(getFunctionAttributes, S.sharedF) == tuple!("shared"));
-    static assert(tupleLength!(__traits(getFunctionAttributes, typeof(S.sharedF))) == 0);
+    static assert(__traits(getFunctionAttributes, S.sharedF) == tuple!("shared", "@system"));
+    static assert(__traits(getFunctionAttributes, typeof(S.sharedF)) == tuple!("shared", "@system"));
 
-    static assert(__traits(getFunctionAttributes, S.refF) == tuple!("ref"));
-    static assert(__traits(getFunctionAttributes, typeof(S.refF)) == tuple!("ref"));
+    static assert(__traits(getFunctionAttributes, S.refF) == tuple!("ref", "@system"));
+    static assert(__traits(getFunctionAttributes, typeof(S.refF)) == tuple!("ref", "@system"));
 
-    static assert(__traits(getFunctionAttributes, S.propertyF) == tuple!("@property"));
-    static assert(__traits(getFunctionAttributes, typeof(&S.propertyF)) == tuple!("@property"));
+    static assert(__traits(getFunctionAttributes, S.propertyF) == tuple!("@property", "@system"));
+    static assert(__traits(getFunctionAttributes, typeof(&S.propertyF)) == tuple!("@property", "@system"));
 
-    static assert(__traits(getFunctionAttributes, S.nothrowF) == tuple!("nothrow"));
-    static assert(__traits(getFunctionAttributes, typeof(S.nothrowF)) == tuple!("nothrow"));
+    static assert(__traits(getFunctionAttributes, S.nothrowF) == tuple!("nothrow", "@system"));
+    static assert(__traits(getFunctionAttributes, typeof(S.nothrowF)) == tuple!("nothrow", "@system"));
 
-    static assert(__traits(getFunctionAttributes, S.nogcF) == tuple!("@nogc"));
-    static assert(__traits(getFunctionAttributes, typeof(S.nogcF)) == tuple!("@nogc"));
+    static assert(__traits(getFunctionAttributes, S.nogcF) == tuple!("@nogc", "@system"));
+    static assert(__traits(getFunctionAttributes, typeof(S.nogcF)) == tuple!("@nogc", "@system"));
 
     static assert(__traits(getFunctionAttributes, S.systemF) == tuple!("@system"));
-    // static assert(__traits(getFunctionAttributes, typeof(S.systemF)) == tuple!("@system"));  // bug?
+    static assert(__traits(getFunctionAttributes, typeof(S.systemF)) == tuple!("@system"));
 
     static assert(__traits(getFunctionAttributes, S.trustedF) == tuple!("@trusted"));
     static assert(__traits(getFunctionAttributes, typeof(S.trustedF)) == tuple!("@trusted"));
@@ -1363,22 +1363,22 @@ void test_getFunctionAttributes()
     static assert(__traits(getFunctionAttributes, S.safeF) == tuple!("@safe"));
     static assert(__traits(getFunctionAttributes, typeof(S.safeF)) == tuple!("@safe"));
 
-    static assert(__traits(getFunctionAttributes, S.pureF) == tuple!("pure"));
-    static assert(__traits(getFunctionAttributes, typeof(S.pureF)) == tuple!("pure"));
+    static assert(__traits(getFunctionAttributes, S.pureF) == tuple!("pure", "@system"));
+    static assert(__traits(getFunctionAttributes, typeof(S.pureF)) == tuple!("pure", "@system"));
 
     int pure_nothrow() nothrow pure { return 0; }
     static ref int static_ref_property() @property { return *(new int); }
     ref int ref_property() @property { return *(new int); }
     void safe_nothrow() @safe nothrow { }
 
-    static assert(__traits(getFunctionAttributes, pure_nothrow) == tuple!("pure", "nothrow"));
-    static assert(__traits(getFunctionAttributes, typeof(pure_nothrow)) == tuple!("pure", "nothrow"));
+    static assert(__traits(getFunctionAttributes, pure_nothrow) == tuple!("pure", "nothrow", "@system"));
+    static assert(__traits(getFunctionAttributes, typeof(pure_nothrow)) == tuple!("pure", "nothrow", "@system"));
 
-    static assert(__traits(getFunctionAttributes, static_ref_property) == tuple!("@property", "ref"));
-    static assert(__traits(getFunctionAttributes, typeof(&static_ref_property)) == tuple!("@property", "ref"));
+    static assert(__traits(getFunctionAttributes, static_ref_property) == tuple!("@property", "ref", "@system"));
+    static assert(__traits(getFunctionAttributes, typeof(&static_ref_property)) == tuple!("@property", "ref", "@system"));
 
-    static assert(__traits(getFunctionAttributes, ref_property) == tuple!("@property", "ref"));
-    static assert(__traits(getFunctionAttributes, typeof(&ref_property)) == tuple!("@property", "ref"));
+    static assert(__traits(getFunctionAttributes, ref_property) == tuple!("@property", "ref", "@system"));
+    static assert(__traits(getFunctionAttributes, typeof(&ref_property)) == tuple!("@property", "ref", "@system"));
 
     static assert(__traits(getFunctionAttributes, safe_nothrow) == tuple!("nothrow", "@safe"));
     static assert(__traits(getFunctionAttributes, typeof(safe_nothrow)) == tuple!("nothrow", "@safe"));
@@ -1389,11 +1389,11 @@ void test_getFunctionAttributes()
         int pure_sharedconst() const shared pure { return 0; }
     }
 
-    static assert(__traits(getFunctionAttributes, S2.pure_const) == tuple!("const", "pure"));
-    static assert(__traits(getFunctionAttributes, typeof(S2.pure_const)) == tuple!("pure"));
+    static assert(__traits(getFunctionAttributes, S2.pure_const) == tuple!("const", "pure", "@system"));
+    static assert(__traits(getFunctionAttributes, typeof(S2.pure_const)) == tuple!("const", "pure", "@system"));
 
-    static assert(__traits(getFunctionAttributes, S2.pure_sharedconst) == tuple!("const", "shared", "pure"));
-    static assert(__traits(getFunctionAttributes, typeof(S2.pure_sharedconst)) == tuple!("pure"));
+    static assert(__traits(getFunctionAttributes, S2.pure_sharedconst) == tuple!("const", "shared", "pure", "@system"));
+    static assert(__traits(getFunctionAttributes, typeof(S2.pure_sharedconst)) == tuple!("const", "shared", "pure", "@system"));
 
     static assert(__traits(getFunctionAttributes, (int a) { }) == tuple!("pure", "nothrow", "@nogc", "@safe"));
     static assert(__traits(getFunctionAttributes, typeof((int a) { })) == tuple!("pure", "nothrow", "@nogc", "@safe"));
