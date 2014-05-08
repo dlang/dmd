@@ -15,6 +15,7 @@ module core.sys.osx.mach.thread_act;
 
 version (OSX):
 extern (C):
+nothrow:
 
 public import core.sys.osx.mach.kern_return;
 public import core.sys.osx.mach.port;
