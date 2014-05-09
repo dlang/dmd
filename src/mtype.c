@@ -1557,7 +1557,7 @@ char *MODtoChars(unsigned char mod)
 /********************************
  * Name mangling.
  * Input:
- *      flag    0x100   do not do const/invariant
+ *      flag    0x100   do not do modifiers
  */
 
 void Type::toDecoBuffer(OutBuffer *buf, int flag)
@@ -8168,7 +8168,7 @@ bool TypeStruct::isAssignable()
     bool assignable = true;
     unsigned offset;
 
-    /* If any of the fields are const or invariant,
+    /* If any of the fields are const or immutable,
      * then one cannot assign this struct.
      */
     for (size_t i = 0; i < sym->fields.dim; i++)
@@ -8488,7 +8488,8 @@ L1:
                 e->type = t;    // do this so we don't get redundant dereference
             }
             else
-            {   /* For class objects, the classinfo reference is the first
+            {
+                /* For class objects, the classinfo reference is the first
                  * entry in the vtbl[]
                  */
                 e = new PtrExp(e->loc, e);
@@ -8496,7 +8497,8 @@ L1:
                 if (sym->isInterfaceDeclaration())
                 {
                     if (sym->isCPPinterface())
-                    {   /* C++ interface vtbl[]s are different in that the
+                    {
+                        /* C++ interface vtbl[]s are different in that the
                          * first entry is always pointer to the first virtual
                          * function, not classinfo.
                          * We can't get a .classinfo for it.
@@ -8518,8 +8520,9 @@ L1:
         }
 
         if (ident == Id::__vptr)
-        {   /* The pointer to the vtbl[]
-             * *cast(invariant(void*)**)e
+        {
+            /* The pointer to the vtbl[]
+             * *cast(immutable(void*)**)e
              */
             e = e->castTo(sc, tvoidptr->immutableOf()->pointerTo()->pointerTo());
             e = new PtrExp(e->loc, e);
@@ -8528,7 +8531,8 @@ L1:
         }
 
         if (ident == Id::__monitor)
-        {   /* The handle to the monitor (call it a void*)
+        {
+            /* The handle to the monitor (call it a void*)
              * *(cast(void**)e + 1)
              */
             e = e->castTo(sc, tvoidptr->pointerTo());
