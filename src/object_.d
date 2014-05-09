@@ -218,10 +218,9 @@ struct OffsetTypeInfo
  */
 class TypeInfo
 {
-    override string toString() const
+    override string toString() const pure @safe nothrow
     {
-        // hack to keep const qualifiers for TypeInfo member functions
-        return (cast()super).toString();
+        return typeid(this).name;
     }
 
     override size_t toHash() @trusted const
@@ -506,7 +505,7 @@ class TypeInfo_StaticArray : TypeInfo
     override string toString() const
     {
         SizeStringBuff tmpBuff = void;
-        return cast(string)(value.toString() ~ "[" ~ len.sizeToTempString(tmpBuff) ~ "]");
+        return value.toString() ~ "[" ~ len.sizeToTempString(tmpBuff) ~ "]";
     }
 
     override bool opEquals(Object o)
@@ -620,7 +619,7 @@ class TypeInfo_AssociativeArray : TypeInfo
 {
     override string toString() const
     {
-        return cast(string)(next.toString() ~ "[" ~ key.toString() ~ "]");
+        return value.toString() ~ "[" ~ key.toString() ~ "]";
     }
 
     override bool opEquals(Object o)
