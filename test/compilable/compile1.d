@@ -512,6 +512,16 @@ static if (is(object.ModuleInfo == class))
 }
 
 /***************************************************/
+// 10326
+
+class C10326
+{
+    int val;
+    invariant   { assert(val == 0); }
+    invariant() { assert(val == 0); }
+}
+
+/***************************************************/
 // 11554
 
 enum E11554;
