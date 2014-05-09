@@ -1615,7 +1615,7 @@ char *Type::modToChars()
 void* for the work param and a string representation of the attribute. */
 int Type::modifiersApply(void *param, int (*fp)(void *, const char *))
 {
-    static unsigned modsArr[] = { MODconst, MODimmutable, MODwild, MODshared };
+    static unsigned char modsArr[] = { MODconst, MODimmutable, MODwild, MODshared };
 
     for (size_t idx = 0; idx < 4; ++idx)
     {
