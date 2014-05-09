@@ -1303,7 +1303,6 @@ void test_getUnitTests ()
 
 void test_getFunctionAttributes()
 {
-    enum tupleLength(T...) = T.length;
     alias tuple(T...) = T;
 
     struct S
