@@ -697,34 +697,23 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         Dsymbol *s = getDsymbol(o);
         Type *t = isType(o);
         TypeFunction *tf = NULL;
-        FuncDeclaration *fd = NULL;
-        Type *type = NULL;
 
         if (s)
         {
-            if (FuncDeclaration *sfd = s->isFuncDeclaration())
-            {
-                fd = sfd;
-                type = fd->type;
-            }
-            else if (VarDeclaration *vd = s->isVarDeclaration())
-                type = vd->type;
+            if (FuncDeclaration *f = s->isFuncDeclaration())
+                t = f->type;
+            else if (VarDeclaration *v = s->isVarDeclaration())
+                t = v->type;
         }
-        else if (t)
+        if (t)
         {
-            type = t;
+            if (t->ty == Tfunction)
+                tf = (TypeFunction *)t;
+            else if (t->ty == Tdelegate)
+                tf = (TypeFunction *)t->nextOf();
+            else if (t->ty == Tpointer && t->nextOf()->ty == Tfunction)
+                tf = (TypeFunction *)t->nextOf();
         }
-
-        if (type)
-        {
-            if (type->ty == Tfunction)
-                tf = (TypeFunction *)type;
-            else if (type->ty == Tdelegate)
-                tf = (TypeFunction *)type->nextOf();
-            else if (type->ty == Tpointer && type->nextOf()->ty == Tfunction)
-                tf = (TypeFunction *)type->nextOf();
-        }
-
         if (!tf)
         {
             e->error("first argument is not a function");
@@ -736,11 +725,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         PushAttributes pa;
         pa.mods = mods;
 
-        if (fd)
-            fd->type->modifiersApply(&pa, &PushAttributes::fp);
-        else if (tf)
-            tf->modifiersApply(&pa, &PushAttributes::fp);
-
+        tf->modifiersApply(&pa, &PushAttributes::fp);
         tf->attributesApply(&pa, &PushAttributes::fp, TRUSTformatSystem);
 
         TupleExp *tup = new TupleExp(e->loc, mods);
