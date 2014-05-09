@@ -1,11 +1,4 @@
-/*
-TEST_OUTPUT:
----
-fail_compilation/fail260.d(26): Error: template instance Static!(4u, 4u) Static!(4u, 4u) is nested in both Static and Static
-fail_compilation/fail260.d(31): Error: template instance fail260.Static!(1, 4).Static.MultReturn!(Static!(1, 4), Static!(4, 1)) error instantiating
-fail_compilation/fail260.d(43):        instantiated from here: opMultVectors!(Static!(4, 1))
----
-*/
+// PERMUTE_ARGS:
 // REQUIRED_ARGS: -d
 
 struct Static(uint width2, uint height2)

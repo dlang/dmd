@@ -5205,7 +5205,8 @@ void TemplateValueParameter::semantic(Scope *sc, TemplateParameters *parameters)
     bool wasSame = (sparam->type == valType);
     sparam->semantic(sc);
     if (sparam->type == Type::terror && wasSame)
-    {   /* If sparam has a type error, avoid duplicate errors
+    {
+        /* If sparam has a type error, avoid duplicate errors
          * The simple solution of leaving that function if sparam->type == Type::terror
          * doesn't quite work because it causes failures in xtest46 for bug 6295
          */
@@ -5299,7 +5300,8 @@ MATCH TemplateValueParameter::matchArg(Scope *sc, RootObject *oarg,
     }
 
     if (ei && ei->op == TOKvar)
-    {   // Resolve const variables that we had skipped earlier
+    {
+        // Resolve const variables that we had skipped earlier
         ei = ei->ctfeInterpret();
     }
 
@@ -5310,15 +5312,12 @@ MATCH TemplateValueParameter::matchArg(Scope *sc, RootObject *oarg,
 
     if (ei->type)
     {
-        m = (MATCH)ei->implicitConvTo(vt);
+        m = ei->implicitConvTo(vt);
         //printf("m: %d\n", m);
         if (m <= MATCHnomatch)
             goto Lnomatch;
-        if (m != MATCHexact)
-        {
-            ei = ei->implicitCastTo(sc, vt);
-            ei = ei->ctfeInterpret();
-        }
+        ei = ei->implicitCastTo(sc, vt);
+        ei = ei->ctfeInterpret();
     }
 
     if (specValue)
@@ -5349,7 +5348,8 @@ MATCH TemplateValueParameter::matchArg(Scope *sc, RootObject *oarg,
     else
     {
         if ((*dedtypes)[i])
-        {   // Must match already deduced value
+        {
+            // Must match already deduced value
             Expression *e = (Expression *)(*dedtypes)[i];
 
             if (!ei || !ei->equals(e))
@@ -6865,7 +6865,37 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
         }
     }
 
-    if (!td_last)
+    if (td_last)
+    {
+        /* Bugzilla 7469: Normalize template value arguments by using corresponding
+         * template value parameter types for correct mangling.
+         *
+         * By doing this before hasNestedArgs, CTFEable local variable will be
+         * accepted as a value parameter. For example:
+         *
+         *  void foo() {
+         *    struct S(int n) {}   // non-global template
+         *    const int num = 1;   // CTFEable local variable
+         *    S!num s;             // S!1 is instantiated, not S!num
+         *  }
+         */
+        size_t dim = td_last->parameters->dim - (td_last->isVariadic() ? 1 : 0);
+        for (size_t i = 0; i < dim; i++)
+        {
+            if (tiargs->dim <= i)
+                tiargs->push(tdtypes[i]);
+            assert(i < tiargs->dim);
+
+            TemplateValueParameter *tvp = (*td_last->parameters)[i]->isTemplateValueParameter();
+            if (!tvp)
+                continue;
+            assert(tdtypes[i]);
+            // tdtypes[i] is already normalized to the required type in matchArg
+
+            (*tiargs)[i] = tdtypes[i];
+        }
+    }
+    else
     {
         TemplateDeclaration *tdecl = tempdecl->isTemplateDeclaration();
 

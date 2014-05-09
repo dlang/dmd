@@ -1064,6 +1064,34 @@ void test6701()
 }
 
 /******************************************/
+// 7469
+
+struct Foo7469a(int x) { }
+struct Foo7469b(int x) { }
+struct Foo7469c(alias v) { }
+struct Foo7469d(T...) { }
+struct Foo7469e(int a, T...) { }
+struct Foo7469f(T, int k=1) { }
+struct Foo7469g(T, int k=1) { }
+
+void test7469()
+{
+    static assert(Foo7469a!(3 )    .mangleof[$-28 .. $] == "17__T8Foo7469aVii3Z8Foo7469a");
+    static assert(Foo7469a!(3u)    .mangleof[$-28 .. $] == "17__T8Foo7469aVii3Z8Foo7469a");
+    static assert(Foo7469b!(3u)    .mangleof[$-28 .. $] == "17__T8Foo7469bVii3Z8Foo7469b");
+    static assert(Foo7469b!(3 )    .mangleof[$-28 .. $] == "17__T8Foo7469bVii3Z8Foo7469b");
+    static assert(Foo7469c!(3 )    .mangleof[$-28 .. $] == "17__T8Foo7469cVii3Z8Foo7469c");
+    static assert(Foo7469c!(3u)    .mangleof[$-28 .. $] == "17__T8Foo7469cVki3Z8Foo7469c");
+    static assert(Foo7469d!(3 )    .mangleof[$-28 .. $] == "17__T8Foo7469dVii3Z8Foo7469d");
+    static assert(Foo7469d!(3u)    .mangleof[$-28 .. $] == "17__T8Foo7469dVki3Z8Foo7469d");
+    static assert(Foo7469e!(3u, 5u).mangleof[$-32 .. $] == "21__T8Foo7469eVii3Vki5Z8Foo7469e");
+    static assert(Foo7469f!(int, 1).mangleof[$-30 .. $] == "19__T8Foo7469fTiVii1Z8Foo7469f");
+    static assert(Foo7469f!(int)   .mangleof[$-30 .. $] == "19__T8Foo7469fTiVii1Z8Foo7469f");
+    static assert(Foo7469g!(int)   .mangleof[$-30 .. $] == "19__T8Foo7469gTiVii1Z8Foo7469g");
+    static assert(Foo7469g!(int, 1).mangleof[$-30 .. $] == "19__T8Foo7469gTiVii1Z8Foo7469g");
+}
+
+/******************************************/
 
 template foo7698a(T, T val : 0)
 {
