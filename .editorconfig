@@ -1,0 +1,15 @@
+root = true
+
+; Standard conventions for the D programming language repository are:
+;  no tab characters
+;  indents are by 4 spaces
+;  line endings are LF
+;  no trailing whitespace
+;  last character in file is an LF
+[*]
+indent_style = space
+indent_size = 4
+trim_trailing_whitespace = true
+insert_final_newline = true
+charset = utf-8
+end_of_line = lf
