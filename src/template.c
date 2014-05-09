@@ -3916,7 +3916,14 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                         break;
 
                     if (i >= tp->tempinst->tiargs->dim)
+                    {
+                        size_t dim = tempdecl->parameters->dim - (tempdecl->isVariadic() ? 1 : 0);
+                        while (i < dim && (*tempdecl->parameters)[i]->dependent)
+                            i++;
+                        if (i >= dim)
+                            break;  // match if all remained parameters are dependent
                         goto Lnomatch;
+                    }
 
                     RootObject *o2 = (*tp->tempinst->tiargs)[i];
                     Type *t2 = isType(o2);
@@ -3960,7 +3967,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                         }
                         else
                             (*dedtypes)[j] = vt;
-                        break; //return MATCHexact;
+                        break;
                     }
                     else if (!o1)
                         break;
