@@ -3383,6 +3383,23 @@ struct S12651(T) { }
 static assert(!__traits(compiles, TemplateArgsOf12651!(S12651!int, S, float)));
 
 /******************************************/
+// 12719
+
+struct A12719
+{
+    B12719!int b();
+}
+
+struct B12719(T)
+{
+    A12719 a;
+    void m()
+    {
+        auto v = B12719!T.init;
+    }
+}
+
+/******************************************/
 
 int main()
 {

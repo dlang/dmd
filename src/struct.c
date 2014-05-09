@@ -686,6 +686,8 @@ void StructDeclaration::semantic(Scope *sc)
 
     if (semanticRun >= PASSsemanticdone)
         return;
+    unsigned dprogress_save = Module::dprogress;
+    int errors = global.errors;
 
     Scope *scx = NULL;
     if (scope)
@@ -694,8 +696,6 @@ void StructDeclaration::semantic(Scope *sc)
         scx = scope;            // save so we don't make redundant copies
         scope = NULL;
     }
-    unsigned dprogress_save = Module::dprogress;
-    int errors = global.errors;
 
     if (!parent)
     {
@@ -815,6 +815,7 @@ void StructDeclaration::semantic(Scope *sc)
     }
 
     Module::dprogress++;
+    semanticRun = PASSsemanticdone;
 
     //printf("-StructDeclaration::semantic(this=%p, '%s')\n", this, toChars());
 
@@ -928,8 +929,6 @@ void StructDeclaration::semantic(Scope *sc)
     }
 #endif
     assert(type->ty != Tstruct || ((TypeStruct *)type)->sym == this);
-
-    semanticRun = PASSsemanticdone;
 }
 
 Dsymbol *StructDeclaration::search(Loc loc, Identifier *ident, int flags)
