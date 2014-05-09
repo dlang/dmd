@@ -1169,7 +1169,7 @@ public:
 
     void visit(IdentifierExp *e)
     {
-        if (hgs->hdrgen)
+        if (hgs->hdrgen || hgs->ddoc)
             buf->writestring(e->ident->toHChars2());
         else
             buf->writestring(e->ident->toChars());
