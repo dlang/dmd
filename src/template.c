@@ -7278,17 +7278,29 @@ Identifier *TemplateInstance::genIdent(Objects *args)
             ea = ea->ctfeInterpret();
             if (ea->op == TOKerror || olderr != global.errors)
                 continue;
-#if 1
+#if 0
             /* Use deco that matches what it would be for a function parameter
              */
             buf.writestring(ea->type->deco);
 #else
-            // Use type of parameter, not type of argument
-            TemplateParameter *tp = (*tempdecl->parameters)[i];
-            assert(tp);
-            TemplateValueParameter *tvp = tp->isTemplateValueParameter();
-            assert(tvp);
-            buf.writestring(tvp->valType->deco);
+            // Issue 12720: Name mangling should use parameter type
+            // The declared parameter list might be shorter because of variadic arguments
+            if (((TemplateDeclaration*)tempdecl)->parameters->dim > i)
+            {
+                // Use type of parameter, not type of argument
+                TemplateParameter *tp = (*((TemplateDeclaration*)tempdecl)->parameters)[i];
+                assert(tp);
+                TemplateValueParameter *tvp = tp->isTemplateValueParameter();
+                if (tvp && tvp->valType->deco)
+                    buf.writestring(tvp->valType->deco);
+                else
+                    goto Lvalue;
+            }
+            else
+            {
+              Lvalue:
+                buf.writestring(ea->type->deco);
+            }
 #endif
             ea->toMangleBuffer(&buf);
         }
