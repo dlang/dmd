@@ -3918,8 +3918,11 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                     if (i >= tp->tempinst->tiargs->dim)
                     {
                         size_t dim = tempdecl->parameters->dim - (tempdecl->isVariadic() ? 1 : 0);
-                        while (i < dim && (*tempdecl->parameters)[i]->dependent)
+                        while (i < dim && ((*tempdecl->parameters)[i]->dependent ||
+                                           (*tempdecl->parameters)[i]->hasDefaultArg()))
+                        {
                             i++;
+                        }
                         if (i >= dim)
                             break;  // match if all remained parameters are dependent
                         goto Lnomatch;
@@ -4826,15 +4829,18 @@ RootObject *TemplateTypeParameter::specialization()
 
 RootObject *TemplateTypeParameter::defaultArg(Loc loc, Scope *sc)
 {
-    Type *t;
-
-    t = defaultType;
+    Type *t = defaultType;
     if (t)
     {
         t = t->syntaxCopy();
         t = t->semantic(loc, sc);
     }
     return t;
+}
+
+bool TemplateTypeParameter::hasDefaultArg()
+{
+    return defaultType != NULL;
 }
 
 /* ======================== TemplateThisParameter =========================== */
@@ -5158,6 +5164,11 @@ RootObject *TemplateAliasParameter::defaultArg(Loc loc, Scope *sc)
     return o;
 }
 
+bool TemplateAliasParameter::hasDefaultArg()
+{
+    return defaultAlias != NULL;
+}
+
 /* ======================== TemplateValueParameter ========================== */
 
 // value-parameter
@@ -5438,6 +5449,11 @@ RootObject *TemplateValueParameter::defaultArg(Loc loc, Scope *sc)
     return e;
 }
 
+bool TemplateValueParameter::hasDefaultArg()
+{
+    return defaultValue != NULL;
+}
+
 /* ======================== TemplateTupleParameter ========================== */
 
 // variadic-parameter
@@ -5593,6 +5609,11 @@ RootObject *TemplateTupleParameter::specialization()
 RootObject *TemplateTupleParameter::defaultArg(Loc loc, Scope *sc)
 {
     return NULL;
+}
+
+bool TemplateTupleParameter::hasDefaultArg()
+{
+    return false;
 }
 
 /* ======================== TemplateInstance ================================ */
@@ -6995,27 +7016,13 @@ bool TemplateInstance::needsTypeInference(Scope *sc, int flag)
             if (tp && td->parameters->dim > 1)
                 return 1;
 
-            if (ti->tiargs->dim < td->parameters->dim)
+            if (!tp && ti->tiargs->dim < td->parameters->dim)
             {
                 // Can remain tiargs be filled by default arguments?
                 for (size_t i = ti->tiargs->dim; i < td->parameters->dim; i++)
                 {
-                    tp = (*td->parameters)[i];
-                    if (TemplateTypeParameter *ttp = tp->isTemplateTypeParameter())
-                    {
-                        if (!ttp->defaultType)
-                            return 1;
-                    }
-                    else if (TemplateAliasParameter *tap = tp->isTemplateAliasParameter())
-                    {
-                        if (!tap->defaultAlias)
-                            return 1;
-                    }
-                    else if (TemplateValueParameter *tvp = tp->isTemplateValueParameter())
-                    {
-                        if (!tvp->defaultValue)
-                            return 1;
-                    }
+                    if (!(*td->parameters)[i]->hasDefaultArg())
+                        return 1;
                 }
             }
 
