@@ -275,6 +275,8 @@ void ClassDeclaration::semantic(Scope *sc)
 
     if (semanticRun >= PASSsemanticdone)
         return;
+    unsigned dprogress_save = Module::dprogress;
+    int errors = global.errors;
 
     Scope *scx = NULL;
     if (scope)
@@ -283,8 +285,6 @@ void ClassDeclaration::semantic(Scope *sc)
         scx = scope;            // save so we don't make redundant copies
         scope = NULL;
     }
-    unsigned dprogress_save = Module::dprogress;
-    int errors = global.errors;
 
     if (!parent)
     {
@@ -779,7 +779,9 @@ void ClassDeclaration::semantic(Scope *sc)
     }
     structsize = offset;
     sizeok = SIZEOKdone;
+
     Module::dprogress++;
+    semanticRun = PASSsemanticdone;
 
     dtor = buildDtor(this, sc2);
     if (FuncDeclaration *f = hasIdentityOpAssign(this, sc2))
@@ -789,15 +791,6 @@ void ClassDeclaration::semantic(Scope *sc)
     }
     sc2->pop();
 
-#if 0 // Do not call until toObjfile() because of forward references
-    // Fill in base class vtbl[]s
-    for (i = 0; i < vtblInterfaces->dim; i++)
-    {
-        BaseClass *b = (*vtblInterfaces)[i];
-
-        //b->fillVtbl(this, &b->vtbl, 1);
-    }
-#endif
     //printf("-ClassDeclaration::semantic(%s), type = %p\n", toChars(), type);
 
     if (deferred && !global.gag)
@@ -814,8 +807,6 @@ void ClassDeclaration::semantic(Scope *sc)
       }
 #endif
     assert(type->ty != Tclass || ((TypeClass *)type)->sym == this);
-
-    semanticRun = PASSsemanticdone;
 }
 
 void ClassDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -1274,6 +1265,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
     if (semanticRun >= PASSsemanticdone)
         return;
+    int errors = global.errors;
 
     Scope *scx = NULL;
     if (scope)
@@ -1282,7 +1274,6 @@ void InterfaceDeclaration::semantic(Scope *sc)
         scx = scope;            // save so we don't make redundant copies
         scope = NULL;
     }
-    int errors = global.errors;
 
     if (!parent)
     {
@@ -1494,6 +1485,8 @@ void InterfaceDeclaration::semantic(Scope *sc)
         s->semantic(sc2);
     }
 
+    semanticRun = PASSsemanticdone;
+
     if (global.errors != errors)
     {
         // The type is no good.
@@ -1513,8 +1506,6 @@ void InterfaceDeclaration::semantic(Scope *sc)
       }
 #endif
     assert(type->ty != Tclass || ((TypeClass *)type)->sym == this);
-
-    semanticRun = PASSsemanticdone;
 }
 
 
