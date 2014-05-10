@@ -2111,6 +2111,24 @@ void test12725()
 }
 
 /***************************************************/
+// 12728
+
+struct Matrix12728(T, uint m, uint n = m, ubyte f = 0)
+{
+    void foo(uint r)(auto ref in Matrix12728!(T, n, r) b)
+    {
+    }
+}
+
+void test12728()
+{
+    alias Matrix4 = Matrix12728!(float, 4);
+
+    Matrix4 m;
+    m.foo(m);
+}
+
+/***************************************************/
 
 struct S130
 {
