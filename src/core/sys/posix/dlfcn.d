@@ -18,6 +18,7 @@ private import core.sys.posix.config;
 
 version (Posix):
 extern (C):
+nothrow:
 
 //
 // XOpen (XSI)

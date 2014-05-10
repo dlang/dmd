@@ -639,6 +639,7 @@ version( linux )
             } _sigpoll_t _sigpoll;
         } _sifields_t _sifields;
 
+    nothrow:
         @property ref pid_t si_pid() { return _sifields._kill.si_pid; }
         @property ref uid_t si_uid() { return _sifields._kill.si_uid; }
         @property ref void* si_addr() { return _sifields._sigfault.si_addr; }

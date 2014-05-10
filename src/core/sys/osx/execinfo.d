@@ -9,6 +9,7 @@ module core.sys.osx.execinfo;
 
 version (OSX):
 extern (C):
+nothrow:
 
 int backtrace(void** buffer, int size);
 char** backtrace_symbols(const(void*)* buffer, int size);

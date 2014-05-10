@@ -363,7 +363,7 @@ else version( Posix )
         __gshared sem_t suspendCount;
 
 
-        extern (C) void thread_suspendHandler( int sig )
+        extern (C) void thread_suspendHandler( int sig ) nothrow
         in
         {
             assert( sig == SIGUSR1 );
@@ -412,7 +412,7 @@ else version( Posix )
         }
 
 
-        extern (C) void thread_resumeHandler( int sig )
+        extern (C) void thread_resumeHandler( int sig ) nothrow
         in
         {
             assert( sig == SIGUSR2 );
@@ -2762,6 +2762,7 @@ extern(C) void thread_processGCMarks(scope rt.tlsgc.IsMarkedDg dg) nothrow
 
 extern (C)
 {
+nothrow:
     version (linux) int pthread_getattr_np(pthread_t thread, pthread_attr_t* attr);
     version (FreeBSD) int pthread_attr_get_np(pthread_t thread, pthread_attr_t* attr);
     version (Solaris) int thr_stksegment(stack_t* stk);

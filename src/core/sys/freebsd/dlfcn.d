@@ -11,6 +11,7 @@ public import core.sys.posix.dlfcn;
 
 version (FreeBSD):
 extern (C):
+nothrow:
 
 enum __BSD_VISIBLE = true;
 
@@ -86,7 +87,7 @@ static if (__BSD_VISIBLE)
 
 private template __externC(RT, P...)
 {
-    alias extern(C) RT function(P) __externC;
+    alias extern(C) RT function(P) nothrow __externC;
 }
 
 /* XSI functions first. */
