@@ -160,6 +160,7 @@ public:
     virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs) = 0;
     virtual RootObject *specialization() = 0;
     virtual RootObject *defaultArg(Loc loc, Scope *sc) = 0;
+    virtual bool hasDefaultArg() = 0;
 
     /* If TemplateParameter's match as far as overloading goes.
      */
@@ -196,6 +197,7 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     RootObject *specialization();
     RootObject *defaultArg(Loc loc, Scope *sc);
+    bool hasDefaultArg();
     int overloadMatch(TemplateParameter *);
     MATCH matchArg(Scope *sc, RootObject *oarg, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     void *dummyArg();
@@ -236,6 +238,7 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     RootObject *specialization();
     RootObject *defaultArg(Loc loc, Scope *sc);
+    bool hasDefaultArg();
     int overloadMatch(TemplateParameter *);
     MATCH matchArg(Scope *sc, RootObject *oarg, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     void *dummyArg();
@@ -263,6 +266,7 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     RootObject *specialization();
     RootObject *defaultArg(Loc loc, Scope *sc);
+    bool hasDefaultArg();
     int overloadMatch(TemplateParameter *);
     MATCH matchArg(Scope *sc, RootObject *oarg, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     void *dummyArg();
@@ -284,6 +288,7 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     RootObject *specialization();
     RootObject *defaultArg(Loc loc, Scope *sc);
+    bool hasDefaultArg();
     int overloadMatch(TemplateParameter *);
     MATCH matchArg(Loc loc, Scope *sc, Objects *tiargs, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     MATCH matchArg(Scope *sc, RootObject *oarg, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
