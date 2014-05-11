@@ -1399,7 +1399,7 @@ TOK Lexer::hexStringConstant(Token *t)
     unsigned c;
     Loc start = loc();
     unsigned n = 0;
-    unsigned v;
+    unsigned v = ~0; // dead assignment, needed to suppress warning
 
     p++;
     stringbuffer.reset();
@@ -1492,7 +1492,7 @@ TOK Lexer::delimitedStringConstant(Token *t)
     unsigned delimleft = 0;
     unsigned delimright = 0;
     unsigned nest = 1;
-    unsigned nestcount;
+    unsigned nestcount = ~0; // dead assignment, needed to suppress warning
     Identifier *hereid = NULL;
     unsigned blankrol = 0;
     unsigned startline = 0;
@@ -3002,4 +3002,3 @@ void unittest_lexer()
 }
 
 #endif
-

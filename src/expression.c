@@ -6065,7 +6065,7 @@ Expression *IsExp::semantic(Scope *sc)
         return new ErrorExp();
     }
 
-    Type *tded;
+    Type *tded = NULL;
     Type *t = targ->trySemantic(loc, sc);
     if (!t)
         goto Lno;                       // errors, so condition is false
@@ -8285,8 +8285,6 @@ Lagain:
     if (e1->op == TOKdotvar && t1->ty == Tfunction ||
         e1->op == TOKdottd)
     {
-        DotVarExp *dve;
-        DotTemplateExp *dte;
         UnaExp *ue = (UnaExp *)(e1);
 
         Expression *ue1 = ue->e1;
@@ -8300,15 +8298,20 @@ Lagain:
             ue1 = NULL;
         }
 
+        DotVarExp *dve;
+        DotTemplateExp *dte;
         Dsymbol *s;
         if (e1->op == TOKdotvar)
         {
             dve = (DotVarExp *)(e1);
+            dte = NULL;
             s = dve->var;
             tiargs = NULL;
         }
         else
-        {   dte = (DotTemplateExp *)(e1);
+        {
+            dve = NULL;
+            dte = (DotTemplateExp *)(e1);
             s = dte->td;
         }
 
@@ -9843,16 +9846,19 @@ Lagain:
         uinteger_t i1 = lwr->toUInteger();
         uinteger_t i2 = upr->toUInteger();
 
-        size_t length;
         TupleExp *te;
         TypeTuple *tup;
-
+        size_t length;
         if (e1->op == TOKtuple)         // slicing an expression tuple
-        {   te = (TupleExp *)e1;
+        {
+            te = (TupleExp *)e1;
+            tup = NULL;
             length = te->exps->dim;
         }
         else if (e1->op == TOKtype)     // slicing a type tuple
-        {   tup = (TypeTuple *)t;
+        {
+            te = NULL;
+            tup = (TypeTuple *)t;
             length = Parameter::dim(tup->arguments);
         }
         else
@@ -10383,17 +10389,19 @@ Expression *IndexExp::semantic(Scope *sc)
                 return new ErrorExp();
             e2 = e2->ctfeInterpret();
             uinteger_t index = e2->toUInteger();
-            size_t length;
+
             TupleExp *te;
             TypeTuple *tup;
-
+            size_t length;
             if (e1->op == TOKtuple)
             {
                 te = (TupleExp *)e1;
+                tup = NULL;
                 length = te->exps->dim;
             }
             else if (e1->op == TOKtype)
             {
+                te = NULL;
                 tup = (TypeTuple *)t1;
                 length = Parameter::dim(tup->arguments);
             }

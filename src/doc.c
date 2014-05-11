@@ -1576,17 +1576,17 @@ void ParamSection::write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
     size_t len = bodylen;
     const utf8_t *pend = p + len;
 
-    const utf8_t *tempstart;
-    size_t templen;
+    const utf8_t *tempstart = NULL;
+    size_t templen = 0;
 
-    const utf8_t *namestart;
+    const utf8_t *namestart = NULL;
     size_t namelen = 0;       // !=0 if line continuation
 
-    const utf8_t *textstart;
-    size_t textlen;
+    const utf8_t *textstart = NULL;
+    size_t textlen = 0;
 
     size_t o, paramcount = 0;
-    Parameter *arg;
+    Parameter *arg = NULL;
 
     buf->writestring("$(DDOC_PARAMS ");
     while (p < pend)
@@ -1742,14 +1742,14 @@ void DocComment::parseMacros(Escape **pescapetable, Macro **pmacrotable, const u
     size_t len = mlen;
     const utf8_t *pend = p + len;
 
-    const utf8_t *tempstart;
-    size_t templen;
+    const utf8_t *tempstart = NULL;
+    size_t templen = 0;
 
-    const utf8_t *namestart;
+    const utf8_t *namestart = NULL;
     size_t namelen = 0;       // !=0 if line continuation
 
-    const utf8_t *textstart;
-    size_t textlen;
+    const utf8_t *textstart = NULL;
+    size_t textlen = 0;
 
     while (p < pend)
     {
@@ -2193,7 +2193,7 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
     int leadingBlank = 1;
     int inCode = 0;
     //int inComment = 0;                  // in <!-- ... --> comment
-    size_t iCodeStart;                    // start of code section
+    size_t iCodeStart = 0;                    // start of code section
     size_t codeIndent = 0;
 
     size_t iLineStart = offset;
