@@ -130,6 +130,15 @@ class Mutex :
      */
     @trusted void lock()
     {
+        lock_impl!SyncException();
+    }
+
+    @trusted void lock_nothrow() nothrow
+    {
+        lock_impl!Error();
+    }
+    private @trusted void lock_impl(Exc)()
+    {
         version( Windows )
         {
             EnterCriticalSection( &m_hndl );
@@ -138,10 +147,9 @@ class Mutex :
         {
             int rc = pthread_mutex_lock( &m_hndl );
             if( rc )
-                throw new SyncException( "Unable to lock mutex" );
+                throw new Exc( "Unable to lock mutex" );
         }
     }
-
 
     /**
      * Decrements the internal lock count by one.  If this brings the count to
@@ -152,6 +160,16 @@ class Mutex :
      */
     @trusted void unlock()
     {
+        unlock_impl!SyncException();
+    }
+
+    @trusted void unlock_nothrow() nothrow
+    {
+        unlock_impl!Error();
+    }
+
+    private @trusted void unlock_impl(Exc)()
+    {
         version( Windows )
         {
             LeaveCriticalSection( &m_hndl );
@@ -160,10 +178,9 @@ class Mutex :
         {
             int rc = pthread_mutex_unlock( &m_hndl );
             if( rc )
-                throw new SyncException( "Unable to unlock mutex" );
+                throw new Exc( "Unable to unlock mutex" );
         }
     }
-
 
     /**
      * If the lock is held by another caller, the method returns.  Otherwise,

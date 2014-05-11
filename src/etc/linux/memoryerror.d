@@ -131,7 +131,7 @@ version (X86_64)
     static RegType savedRDI, savedRSI;
 
     extern(C)
-    void handleSignal(int signum, siginfo_t* info, void* contextPtr)
+    void handleSignal(int signum, siginfo_t* info, void* contextPtr) nothrow
     {
         auto context = cast(ucontext_t*)contextPtr;
 
@@ -228,7 +228,7 @@ else version (X86)
     static RegType savedEAX, savedEDX;
 
     extern(C)
-    void handleSignal(int signum, siginfo_t* info, void* contextPtr)
+    void handleSignal(int signum, siginfo_t* info, void* contextPtr) nothrow
     {
         auto context = cast(ucontext_t*)contextPtr;
 

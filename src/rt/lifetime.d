@@ -375,7 +375,7 @@ static ~this()
 
 
 // we expect this to be called with the lock in place
-void processGCMarks(BlkInfo* cache, scope rt.tlsgc.IsMarkedDg isMarked)
+void processGCMarks(BlkInfo* cache, scope rt.tlsgc.IsMarkedDg isMarked) nothrow
 {
     // called after the mark routine to eliminate block cache data when it
     // might be ready to sweep
@@ -1177,7 +1177,7 @@ extern (C) CollectHandler rt_getCollectHandler()
 /**
  *
  */
-extern (C) int rt_hasFinalizerInSegment(void* p, in void[] segment)
+extern (C) int rt_hasFinalizerInSegment(void* p, in void[] segment) nothrow
 {
     auto ppv = cast(void**) p;
     if(!p || !*ppv)
@@ -1198,7 +1198,7 @@ extern (C) int rt_hasFinalizerInSegment(void* p, in void[] segment)
 /**
  *
  */
-extern (C) void rt_finalize2(void* p, bool det = true, bool resetMemory = true)
+extern (C) void rt_finalize2(void* p, bool det = true, bool resetMemory = true) nothrow
 {
     debug(PRINTF) printf("rt_finalize2(p = %p)\n", p);
 

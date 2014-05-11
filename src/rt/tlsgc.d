@@ -53,26 +53,26 @@ void destroy(Data* data)
     .free(data);
 }
 
-alias void delegate(void* pstart, void* pend) ScanDg;
+alias void delegate(void* pstart, void* pend) nothrow ScanDg;
 
 /**
  * GC scan hook, called FOR each thread. Can be used to scan
  * additional thread local memory.
  */
-void scan(Data* data, scope ScanDg dg)
+void scan(Data* data, scope ScanDg dg) nothrow
 {
     // do module specific marking
     rt.sections.scanTLSRanges(data.tlsRanges, dg);
 }
 
-alias int delegate(void* addr) IsMarkedDg;
+alias int delegate(void* addr) nothrow IsMarkedDg;
 
 /**
  * GC sweep hook, called FOR each thread. Can be used to free
  * additional thread local memory or associated data structures. Note
  * that only memory allocated from the GC can have marks.
  */
-void processGCMarks(Data* data, scope IsMarkedDg dg)
+void processGCMarks(Data* data, scope IsMarkedDg dg) nothrow
 {
     // do module specific sweeping
     rt.lifetime.processGCMarks(*data.blockInfoCache, dg);

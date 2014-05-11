@@ -43,7 +43,7 @@ static assert(is(typeof(&finiSections) == void function()));
 static assert(is(typeof(&initTLSRanges) RT == return) &&
               is(typeof(&initTLSRanges) == RT function()) &&
               is(typeof(&finiTLSRanges) == void function(RT)) &&
-              is(typeof(&scanTLSRanges) == void function(RT, scope void delegate(void*, void*))));
+              is(typeof(&scanTLSRanges) == void function(RT, scope void delegate(void*, void*) nothrow) nothrow));
 
 version (Shared)
 {

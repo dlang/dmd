@@ -359,7 +359,7 @@ extern (C) bool runModuleUnitTests()
     {
         import core.sys.posix.signal; // segv handler
 
-        static extern (C) void unittestSegvHandler( int signum, siginfo_t* info, void* ptr )
+        static extern (C) void unittestSegvHandler( int signum, siginfo_t* info, void* ptr ) nothrow
         {
             static enum MAXFRAMES = 128;
             void*[MAXFRAMES]  callstack;
