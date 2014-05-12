@@ -112,11 +112,13 @@ SRCS=\
 	\
 	src\rt\util\array.d \
 	src\rt\util\hash.d \
+	src\rt\util\random.d \
 	src\rt\util\string.d \
 	src\rt\util\utf.d \
 	src\rt\util\container\array.d \
 	src\rt\util\container\common.d \
 	src\rt\util\container\hashtab.d \
+	src\rt\util\container\treap.d \
 	\
 	src\rt\typeinfo\ti_AC.d \
 	src\rt\typeinfo\ti_Acdouble.d \
