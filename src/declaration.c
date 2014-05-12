@@ -677,8 +677,10 @@ Dsymbol *AliasDeclaration::toAlias()
 
         aliassym = new AliasDeclaration(loc, ident, Type::terror);
         type = Type::terror;
+        return aliassym;
     }
-    else if (aliassym || type->deco)
+
+    if (aliassym || type->deco)
         ;   // semantic is already done.
     else if (import && import->scope)
     {
@@ -689,7 +691,9 @@ Dsymbol *AliasDeclaration::toAlias()
     }
     else if (scope)
         semantic(scope);
+    inSemantic = true;
     Dsymbol *s = aliassym ? aliassym->toAlias() : this;
+    inSemantic = false;
     return s;
 }
 
