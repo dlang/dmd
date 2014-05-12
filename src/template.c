@@ -6080,7 +6080,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
             //s->print();
             //printf("'%s', '%s'\n", s->ident->toChars(), tempdecl->ident->toChars());
             //printf("setting aliasdecl\n");
-            aliasdecl = new AliasDeclaration(loc, s->ident, s);
+            aliasdecl = s;
         }
     }
 
@@ -6088,7 +6088,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
      */
     if (fargs && aliasdecl)
     {
-        FuncDeclaration *fd = aliasdecl->toAlias()->isFuncDeclaration();
+        FuncDeclaration *fd = aliasdecl->isFuncDeclaration();
         if (fd)
         {
             /* Transmit fargs to type so that TypeFunction::semantic() can
@@ -6153,17 +6153,15 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
         Dsymbol *s;
         if (Dsymbol::oneMembers(members, &s, tempdecl->ident) && s)
         {
-            if (!aliasdecl || aliasdecl->toAlias() != s)
+            if (!aliasdecl || aliasdecl != s)
             {
                 //printf("s->kind = '%s'\n", s->kind());
                 //s->print();
                 //printf("'%s', '%s'\n", s->ident->toChars(), tempdecl->ident->toChars());
                 //printf("setting aliasdecl 2\n");
-                aliasdecl = new AliasDeclaration(loc, s->ident, s);
+                aliasdecl = s;
             }
         }
-        else if (aliasdecl)
-            aliasdecl = NULL;
     }
 
     /* The problem is when to parse the initializer for a variable.
@@ -7637,11 +7635,6 @@ Dsymbol *TemplateInstance::toAlias()
     }
 
     return inst;
-}
-
-AliasDeclaration *TemplateInstance::isAliasDeclaration()
-{
-    return aliasdecl;
 }
 
 const char *TemplateInstance::kind()

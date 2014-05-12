@@ -129,8 +129,8 @@ bool Dsymbol::oneMembers(Dsymbols *members, Dsymbol **ps, Identifier *ident)
     if (members)
     {
         for (size_t i = 0; i < members->dim; i++)
-        {   Dsymbol *sx = (*members)[i];
-
+        {
+            Dsymbol *sx = (*members)[i];
             bool x = sx->oneMember(ps, ident);
             //printf("\t[%d] kind %s = %d, s = %p\n", i, sx->kind(), x, *ps);
             if (!x)
@@ -166,7 +166,8 @@ bool Dsymbol::oneMembers(Dsymbols *members, Dsymbol **ps, Identifier *ident)
                     }
                 }
                 else                    // more than one symbol
-                {   *ps = NULL;
+                {
+                    *ps = NULL;
                     //printf("\tfalse 2\n");
                     return false;
                 }
