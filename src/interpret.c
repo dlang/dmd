@@ -4750,7 +4750,7 @@ public:
 
         // Save the pointer expressions and the comparison directions,
         // so we can use them later.
-        Expression *p1, *p2, *p3, *p4;
+        Expression *p1 = NULL, *p2 = NULL, *p3 = NULL, *p4 = NULL;
         int dir1 = isPointerCmpExp(e->e1, &p1, &p2);
         int dir2 = isPointerCmpExp(e->e2, &p3, &p4);
         if (dir1 == 0 || dir2 == 0)
@@ -7126,4 +7126,3 @@ void setValue(VarDeclaration *vd, Expression *newval)
     assert(isCtfeValueValid(newval));
     ctfeStack.setValue(vd, newval);
 }
-

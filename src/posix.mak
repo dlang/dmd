@@ -39,13 +39,26 @@ LDFLAGS=-lm -lstdc++ -lpthread
 CC=$(HOST_CC) $(MODEL_FLAG)
 GIT=git
 
+# Compiler Warnings
 ifdef ENABLE_WARNINGS
-WARNINGS := -Wall -Wextra -Wno-deprecated -Wstrict-aliasing \
-	-Wno-unused-parameter -Wno-unused-variable -Wno-unused-function \
+WARNINGS := -Wall -Wextra -Wno-deprecated -Wno-strict-aliasing -Wno-empty-body \
+	-Wno-unused-parameter -Wno-unused-value -Wno-unused-variable -Wno-unused-function -Wno-return-type \
 	-Wno-unused-label -Wno-unknown-pragmas -Wno-sign-compare \
 	-Wno-overloaded-virtual -Wno-missing-braces \
-	-Wno-missing-field-initializers -Wno-logical-op -Wno-parentheses
+	-Wno-missing-field-initializers -Wno-parentheses -Wno-format -Wno-attributes \
+	-Wno-char-subscripts -Wno-reorder \
+	-Wno-switch -Wno-type-limits
+# GCC Specific
+ifeq ($(HOST_CC), g++)
+WARNINGS := $(WARNINGS) -Wno-logical-op -Wno-narrowing -Wno-unused-but-set-variable -Wno-uninitialized
+endif
+# Clangn Specific
+ifeq ($(HOST_CC), clang++)
+WARNINGS := $(WARNINGS) -Wno-tautological-constant-out-of-range-compare -Wno-tautological-compare \
+			-Wno-constant-logical-operand -Wno-self-assign -Wno-self-assign # -Wno-sometimes-uninitialized
+endif
 else
+# Default Warnings
 WARNINGS := -Wno-deprecated -Wstrict-aliasing
 endif
 
@@ -75,7 +88,7 @@ CFLAGS += -O2
 endif
 
 # Uniqe extra flags if necessary
-DMD_FLAGS  :=           -I$(ROOT)
+DMD_FLAGS  :=           -I$(ROOT) -Wuninitialized
 GLUE_FLAGS := -DDMDV2=1 -I$(ROOT) -I$(TK) -I$(C)
 BACK_FLAGS := -DDMDV2=1 -I$(ROOT) -I$(TK) -I$(C) -I.
 ROOT_FLAGS := -DDMDV2=1 -I$(ROOT)
@@ -312,19 +325,19 @@ var.o: optab.c tytab.c
 # matching below.
 vpath %.c $(C)
 
-$(DMD_OBJS): %.o: %.c
+$(DMD_OBJS): %.o: %.c posix.mak
 	@echo "  (CC)  DMD_OBJS   $<"
 	$(CC) -c $(CFLAGS) $(DMD_FLAGS) $(MMD) $<
 
-$(BACK_OBJS): %.o: %.c
+$(BACK_OBJS): %.o: %.c posix.mak
 	@echo "  (CC)  BACK_OBJS  $<"
 	$(CC) -c $(CFLAGS) $(BACK_FLAGS) $(MMD) $<
 
-$(GLUE_OBJS): %.o: %.c
+$(GLUE_OBJS): %.o: %.c posix.mak
 	@echo "  (CC)  GLUE_OBJS  $<"
 	$(CC) -c $(CFLAGS) $(GLUE_FLAGS) $(MMD) $<
 
-$(ROOT_OBJS): %.o: $(ROOT)/%.c
+$(ROOT_OBJS): %.o: $(ROOT)/%.c posix.mak
 	@echo "  (CC)  ROOT_OBJS  $<"
 	$(CC) -c $(CFLAGS) $(ROOT_FLAGS) $(MMD) $<
 

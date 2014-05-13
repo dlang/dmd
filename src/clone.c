@@ -251,7 +251,7 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
          */
         //printf("\tswap copy\n");
         Identifier *idtmp = Lexer::uniqueId("__tmp");
-        VarDeclaration *tmp;
+        VarDeclaration *tmp = NULL;
         AssignExp *ec = NULL;
         if (sd->dtor)
         {
@@ -1037,4 +1037,3 @@ FuncDeclaration *buildInv(AggregateDeclaration *ad, Scope *sc)
             return inv;
     }
 }
-

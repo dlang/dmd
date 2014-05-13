@@ -3984,6 +3984,8 @@ Expression *Parser::parseDefaultInitExp()
                 e = new FuncInitExp(token.loc);
             else if (token.value == TOKprettyfunc)
                 e = new PrettyFuncInitExp(token.loc);
+            else
+                assert(0);
             nextToken();
             return e;
         }
@@ -7382,4 +7384,3 @@ void initPrecedence()
 
     precedence[TOKinterval] = PREC_assign;
 }
-

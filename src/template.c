@@ -5915,7 +5915,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     // an error.
 #if 1
     Dsymbols *target_symbol_list = NULL;
-    size_t target_symbol_list_idx;
+    size_t target_symbol_list_idx = 0;
 
     {   Dsymbols *a;
 
@@ -8252,5 +8252,3 @@ void TemplateMixin::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writeByte(';');
     buf->writenl();
 }
-
-

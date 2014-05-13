@@ -1450,6 +1450,10 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
                     {
                         dim = 0; // slices are currently always one-dimensional
                     }
+                    else
+                    {
+                        assert(0);
+                    }
 
                     Objects *tiargs = new Objects();
                     Expression *edim = new IntegerExp(Loc(), dim, Type::tsize_t);
