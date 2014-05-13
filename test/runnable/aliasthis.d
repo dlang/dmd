@@ -1587,6 +1587,32 @@ void test11261()
 }
 
 /***************************************************/
+// 11333
+
+alias id11333(a...) = a;
+
+struct Unit11333
+{
+    enum value = Unit11333.init.tupleof;
+    alias value this;
+}
+
+void test11333()
+{
+    void foo() {}
+
+    id11333!() unit;
+    unit = unit; // ok
+    foo(unit);   // ok
+
+    unit = Unit11333.value; // ok
+    foo(Unit11333.value);   // ok
+
+    Unit11333 unit2;
+    unit = unit2; // ok <- segfault
+}
+
+/***************************************************/
 // 11800
 
 struct A11800
@@ -1725,6 +1751,7 @@ int main()
     test10004();
     test10180();
     test10456();
+    test11333();
     test11800();
 
     printf("Success\n");
