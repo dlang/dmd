@@ -94,7 +94,7 @@ DMD_OBJS = \
 	cppmangle.o opover.o optimize.o \
 	parse.o scope.o statement.o \
 	struct.o template.o \
-	version.o strtold.o utf.o staticassert.o \
+	version.o utf.o staticassert.o \
 	entity.o doc.o macro.o \
 	hdrgen.o delegatize.o interpret.o traits.o \
 	builtin.o ctfeexpr.o clone.o aliasthis.o \
@@ -129,7 +129,7 @@ BACK_OBJS = go.o gdag.o gother.o gflow.o gloop.o var.o el.o \
 	bcomplex.o aa.o ti_achar.o \
 	ti_pvoid.o pdata.o cv8.o backconfig.o \
 	divcoeff.o dwarf.o \
-	ph2.o util2.o eh.o tk.o \
+	ph2.o util2.o eh.o tk.o strtold.o \
 	$(TARGET_OBJS)
 
 ifeq (osx,$(OS))

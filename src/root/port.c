@@ -252,10 +252,12 @@ double Port::strtod(const char *p, char **endp)
     return ::strtod(p, endp);
 }
 
-// See backend/strtold.c.
+// from backend/strtold.c, renamed to avoid clash with decl in stdlib.h
+longdouble strtold_dm(const char *p,char **endp);
+
 longdouble Port::strtold(const char *p, char **endp)
 {
-    return ::strtold(p, endp);
+    return ::strtold_dm(p, endp);
 }
 
 #endif
