@@ -22,6 +22,8 @@ else version (Win32)
     public import rt.sections_win32;
 else version (Win64)
     public import rt.sections_win64;
+else version (Android)
+    public import rt.sections_android;
 else
     static assert(0, "unimplemented");
 

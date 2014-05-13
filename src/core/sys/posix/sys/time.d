@@ -169,7 +169,7 @@ else version( Android )
     int getitimer(int, itimerval*);
     int gettimeofday(timeval*, timezone_t*);
     int setitimer(int, in itimerval*, itimerval*);
-    int utimes(in char*, in timeval*);
+    int utimes(in char*, ref const(timeval)[2]);
 }
 else
 {

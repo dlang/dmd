@@ -100,6 +100,7 @@ SRCS=\
 	src\rt\obj.d \
 	src\rt\qsort.d \
 	src\rt\sections.d \
+	src\rt\sections_android.d \
 	src\rt\sections_freebsd.d \
 	src\rt\sections_linux.d \
 	src\rt\sections_osx.d \
