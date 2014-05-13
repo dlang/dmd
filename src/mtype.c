@@ -8102,18 +8102,6 @@ L1:
             return e;
         }
 
-        if (ident == Id::__monitor)
-        {
-            /* The handle to the monitor (call it a void*)
-             * *(cast(void**)e + 1)
-             */
-            e = e->castTo(sc, tvoidptr->pointerTo());
-            e = new AddExp(e->loc, e, new IntegerExp(1));
-            e = new PtrExp(e->loc, e);
-            e = e->semantic(sc);
-            return e;
-        }
-
         if (ident == Id::outer && sym->vthis)
         {
             if (sym->vthis->scope)

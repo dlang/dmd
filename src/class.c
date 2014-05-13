@@ -669,10 +669,7 @@ Lancestorsdone:
     else
     {
         alignsize = Target::ptrsize;
-        if (cpp)
-            structsize = Target::ptrsize;       // allow room for __vptr
-        else
-            structsize = Target::ptrsize * 2;   // allow room for __vptr and __monitor
+        structsize = Target::ptrsize;       // allow room for __vptr
     }
     size_t members_dim = members->dim;
     sizeok = SIZEOKnone;
