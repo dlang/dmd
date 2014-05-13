@@ -10902,12 +10902,15 @@ Expression *AssignExp::semantic(Scope *sc)
                 //printf("e = (%s %s, %s), ", Token::tochars[e->op], e->toChars(), e->type->toChars());
                 //printf("arg = (%s, %s)\n", arg->toChars(), arg->type->toChars());
 
-                if (!e->type->implicitConvTo(arg->type))
+                if (!arg || !e->type->implicitConvTo(arg->type))
                 {
                     // expand initializer to tuple
                     if (expandAliasThisTuples(iexps, u) != -1)
+                    {
+                        if (iexps->dim <= u)
+                            break;
                         goto Lexpand;
-
+                    }
                     goto Lnomatch;
                 }
             }
