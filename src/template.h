@@ -318,7 +318,7 @@ public:
     TemplateInstance *inst;             // refer to existing instance
     TemplateInstance *tinst;            // enclosing template instance
     ScopeDsymbol *argsym;               // argument symbol table
-    AliasDeclaration *aliasdecl;        // !=NULL if instance is an alias for its sole member
+    Dsymbol *aliasdecl;                 // !=NULL if instance is an alias for its sole member
     int nest;                           // for recursion detection
     bool semantictiargsdone;            // has semanticTiargs() been done?
     bool havetempdecl;                  // if used second constructor
@@ -366,7 +366,6 @@ public:
     void trySemantic3(Scope *sc2);
 
     TemplateInstance *isTemplateInstance() { return this; }
-    AliasDeclaration *isAliasDeclaration();
     void accept(Visitor *v) { v->visit(this); }
 };
 
