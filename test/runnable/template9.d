@@ -3399,6 +3399,18 @@ struct B12719(T)
     }
 }
 
+// --------
+
+enum canDoIt12719(R) = is(typeof(W12719!R));
+
+struct W12719(R)
+{
+    R r;
+    static if (canDoIt12719!R) {}
+}
+
+W12719!int a12719;
+
 /******************************************/
 
 int main()

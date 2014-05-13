@@ -702,8 +702,7 @@ void StructDeclaration::semantic(Scope *sc)
         assert(sc->parent && sc->func);
         parent = sc->parent;
     }
-    assert(parent && parent == sc->parent);
-    assert(!isAnonymous());
+    assert(parent && !isAnonymous());
     type = type->semantic(loc, sc);
 
     if (type->ty == Tstruct && ((TypeStruct *)type)->sym != this)
@@ -729,11 +728,21 @@ void StructDeclaration::semantic(Scope *sc)
             error("structs, unions cannot be abstract");
         userAttribDecl = sc->userAttribDecl;
     }
+    else if (symtab)
+    {
+        if (sizeok == SIZEOKdone || !scx)
+        {
+            semanticRun = PASSsemanticdone;
+            return;
+        }
+    }
     semanticRun = PASSsemantic;
 
     if (!members)               // if opaque declaration
+    {
+        semanticRun = PASSsemanticdone;
         return;
-
+    }
     if (!symtab)
         symtab = new DsymbolTable();
 
