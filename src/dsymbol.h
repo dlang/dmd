@@ -176,7 +176,7 @@ public:
     virtual const char *kind();
     virtual Dsymbol *toAlias();                 // resolve real symbol
     virtual int apply(Dsymbol_apply_ft_t fp, void *param);
-    virtual int addMember(Scope *sc, ScopeDsymbol *s, int memnum);
+    virtual int addMember(Scope *sc, ScopeDsymbol *sds, int memnum);
     virtual void setScope(Scope *sc);
     virtual void importAll(Scope *sc);
     virtual void semantic(Scope *sc);

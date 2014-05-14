@@ -68,8 +68,8 @@ struct Scope
 
     Module *module;             // Root module
     ScopeDsymbol *scopesym;     // current symbol
-    ScopeDsymbol *sd;           // if in static if, and declaring new symbols,
-                                // sd gets the addMember()
+    ScopeDsymbol *sds;          // if in static if, and declaring new symbols,
+                                // sds gets the addMember()
     FuncDeclaration *func;      // function we are in
     Dsymbol *parent;            // parent to use
     LabelStatement *slabel;     // enclosing labelled statement

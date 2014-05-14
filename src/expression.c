@@ -6311,8 +6311,8 @@ Expression *IsExp::semantic(Scope *sc)
                 if (m <= MATCHnomatch)
                     goto Lno;
                 s->semantic(sc);
-                if (sc->sd)
-                    s->addMember(sc, sc->sd, 1);
+                if (sc->sds)
+                    s->addMember(sc, sc->sds, 1);
                 else if (!sc->insert(s))
                     error("declaration %s is already defined", s->toChars());
             }
@@ -6343,8 +6343,8 @@ Lyes:
          */
         if (!tup && !sc->insert(s))
             error("declaration %s is already defined", s->toChars());
-        if (sc->sd)
-            s->addMember(sc, sc->sd, 1);
+        if (sc->sds)
+            s->addMember(sc, sc->sds, 1);
     }
     //printf("Lyes\n");
     return new IntegerExp(loc, 1, Type::tbool);
