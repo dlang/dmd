@@ -46,7 +46,7 @@ int main(string[] args)
     else
     {
         domain = url[0 .. i];
-        url    = url[i .. url.length];
+        url    = url[i .. $];
     }
 
     ushort port;
@@ -58,7 +58,7 @@ int main(string[] args)
     }
     else
     {
-        port   = to!ushort(domain[i + 1 .. domain.length]);
+        port   = to!ushort(domain[i + 1 .. $]);
         domain = domain[0 .. i];
     }
 
@@ -92,7 +92,7 @@ int main(string[] args)
         if (line.length > CONTENT_TYPE_NAME.length &&
             !icmp(CONTENT_TYPE_NAME, line[0 .. CONTENT_TYPE_NAME.length]))
         {
-            auto type = line[CONTENT_TYPE_NAME.length .. line.length];
+            auto type = line[CONTENT_TYPE_NAME.length .. $];
 
             if (type.length <= 5 || icmp("text/", type[0 .. 5]))
                 throw new Exception("URL is not text");
