@@ -1186,17 +1186,11 @@ TemplateDeclaration *getFuncTemplateDecl(Dsymbol *s)
     if (f && f->parent)
     {
         TemplateInstance *ti = f->parent->isTemplateInstance();
-        TemplateDeclaration *td;
-        if (ti &&
-            !ti->isTemplateMixin() &&
-            (ti->name == f->ident ||
-             ti->toAlias()->ident == f->ident)
-            &&
-            ti->tempdecl &&
-            (td = ti->tempdecl->isTemplateDeclaration()) != NULL &&
-            td->onemember)
+        if (ti && !ti->isTemplateMixin() &&
+            ti->tempdecl && ((TemplateDeclaration *)ti->tempdecl)->onemember &&
+            ti->tempdecl->ident == f->ident)
         {
-            return td;
+            return (TemplateDeclaration *)ti->tempdecl;
         }
     }
     return NULL;
