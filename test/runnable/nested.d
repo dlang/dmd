@@ -1823,6 +1823,33 @@ void test8339c()
 }
 
 /*******************************************/
+// 8704
+
+void check8704(T, int num)()
+{
+    static if (num == 1) T t0;
+    static if (num == 2) T t1 = T();
+    static if (num == 3) T t2 = T(1);
+}
+
+void test8704()
+{
+    struct S
+    {
+        int n;
+        void foo(){}
+    }
+
+    static assert(!is(typeof(check8704!(S, 1)())));
+    static assert(!is(typeof(check8704!(S, 2)())));
+    static assert(!is(typeof(check8704!(S, 3)())));
+
+    static assert(!__traits(compiles, check8704!(S, 1)()));
+    static assert(!__traits(compiles, check8704!(S, 2)()));
+    static assert(!__traits(compiles, check8704!(S, 3)()));
+}
+
+/*******************************************/
 // 8923
 
 void test8923a()

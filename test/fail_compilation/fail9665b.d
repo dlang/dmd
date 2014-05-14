@@ -55,18 +55,18 @@ struct S2(X)
     X[2] x4;
     X[2] x5;
     X[2] x6;
-    this(int)
+    this(X x)
     {
-        if (true) x2 = X(1);
-        auto x = true ? (x3 = X(1), 1) : 2;
+        if (true) x2 = x;
+        auto a = true ? (x3 = x, 1) : 2;
 
-        if (true) x5 = X(1);
-        auto m = true ? (x6 = X(1), 1) : 2;
+        if (true) x5 = x;
+        auto b = true ? (x6 = x, 1) : 2;
     }
 }
 void test2()
 {
     struct X { this(int) {} }
     static assert(X.tupleof.length == 1);
-    S2!(X) s;
+    S2!(X) s = X(1);
 }

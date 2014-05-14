@@ -27,10 +27,10 @@
 #include "ctfe.h"
 #include "target.h"
 
-void checkFrameAccess(Loc loc, Scope *sc, AggregateDeclaration *ad)
+bool checkFrameAccess(Loc loc, Scope *sc, AggregateDeclaration *ad, size_t iStart = 0)
 {
     if (!ad->isNested())
-        return;
+        return true;
 
     Dsymbol *s = sc->func;
     if (s)
@@ -43,16 +43,20 @@ void checkFrameAccess(Loc loc, Scope *sc, AggregateDeclaration *ad)
         {
             if (s == sparent)   // hit!
             {
-                // Is it better moving this check to AggregateDeclaration:semantic?
-                for (size_t i = 0; i < ad->fields.dim; i++)
+                bool result = true;
+                for (size_t i = iStart; i < ad->fields.dim; i++)
                 {
                     VarDeclaration *vd = ad->fields[i];
-                    if (vd)
-                        if (AggregateDeclaration *ad2 = isAggregate(vd->type))
-                            if (ad2->isStructDeclaration())
-                                checkFrameAccess(loc, sc, ad2);
+                    if (AggregateDeclaration *ad2 = isAggregate(vd->type))
+                    {
+                        if (ad2->isStructDeclaration())
+                        {
+                            bool r = checkFrameAccess(loc, sc, ad2);
+                            result = result && r;
+                        }
+                    }
                 }
-                return;
+                return result;
             }
 
             if (FuncDeclaration *fd = s->isFuncDeclaration())
@@ -69,6 +73,7 @@ void checkFrameAccess(Loc loc, Scope *sc, AggregateDeclaration *ad)
         }
     }
     error(loc, "cannot access frame pointer of %s", ad->toPrettyChars());
+    return false;
 }
 
 /********************************* Declaration ****************************/
