@@ -526,6 +526,16 @@ void genCmain(Scope *sc)
     rootHasMain = sc->module;
 }
 
+enum compileTarget
+{
+    targetWindows,
+    targetLinux,
+    targetOSX,
+    targetFreeBSD,
+    targetOpenBSD,
+    targetSolaris,
+};
+
 int tryMain(size_t argc, const char *argv[])
 {
     Strings files;
@@ -585,6 +595,22 @@ int tryMain(size_t argc, const char *argv[])
     global.params.is64bit = (sizeof(size_t) == 8);
 
 #if TARGET_WINDOS
+    compileTarget target = targetWindows;
+#elif TARGET_LINUX
+    compileTarget target = targetLinux;
+#elif TARGET_OSX
+    compileTarget target = targetOSX;
+#elif TARGET_FREEBSD
+    compileTarget target = targetFreeBSD;
+#elif TARGET_OPENBSD
+    compileTarget target = targetOpenBSD;
+#elif TARGET_SOLARIS
+    compileTarget target = targetSolaris;
+#else
+#error "fix this"
+#endif
+
+#if TARGET_WINDOS
     global.params.is64bit = false;
     global.params.defaultlibname = "phobos";
 #elif TARGET_LINUX
@@ -594,43 +620,6 @@ int tryMain(size_t argc, const char *argv[])
 #else
 #error "fix this"
 #endif
-
-    // Predefine version identifiers
-    VersionCondition::addPredefinedGlobalIdent("DigitalMars");
-
-#if TARGET_WINDOS
-    VersionCondition::addPredefinedGlobalIdent("Windows");
-    global.params.isWindows = true;
-#elif TARGET_LINUX
-    VersionCondition::addPredefinedGlobalIdent("Posix");
-    VersionCondition::addPredefinedGlobalIdent("linux");
-    global.params.isLinux = true;
-#elif TARGET_OSX
-    VersionCondition::addPredefinedGlobalIdent("Posix");
-    VersionCondition::addPredefinedGlobalIdent("OSX");
-    global.params.isOSX = true;
-
-    // For legacy compatibility
-    VersionCondition::addPredefinedGlobalIdent("darwin");
-#elif TARGET_FREEBSD
-    VersionCondition::addPredefinedGlobalIdent("Posix");
-    VersionCondition::addPredefinedGlobalIdent("FreeBSD");
-    global.params.isFreeBSD = true;
-#elif TARGET_OPENBSD
-    VersionCondition::addPredefinedGlobalIdent("Posix");
-    VersionCondition::addPredefinedGlobalIdent("OpenBSD");
-    global.params.isFreeBSD = true;
-#elif TARGET_SOLARIS
-    VersionCondition::addPredefinedGlobalIdent("Posix");
-    VersionCondition::addPredefinedGlobalIdent("Solaris");
-    global.params.isSolaris = true;
-#else
-#error "fix this"
-#endif
-
-    VersionCondition::addPredefinedGlobalIdent("LittleEndian");
-    VersionCondition::addPredefinedGlobalIdent("D_Version2");
-    VersionCondition::addPredefinedGlobalIdent("all");
 
 #if _WIN32
     inifilename = inifile(argv[0], "sc.ini", "Environment");
@@ -1019,6 +1008,23 @@ Language changes listed by -transition=id:\n\
                 else
                     goto Lerror;
             }
+            else if (memcmp(p + 1, "target=", 7) == 0)
+            {
+                if (Port::stricmp(p + 8, "windows") == 0)
+                    target = targetWindows;
+                else if (Port::stricmp(p + 8, "linux") == 0)
+                    target = targetLinux;
+                else if (Port::stricmp(p + 8, "osx") == 0)
+                    target = targetOSX;
+                else if (Port::stricmp(p + 8, "freebsd") == 0)
+                    target = targetFreeBSD;
+                else if (Port::stricmp(p + 8, "openbsd") == 0)
+                    target = targetOpenBSD;
+                else if (Port::stricmp(p + 8, "solaris") == 0)
+                    target = targetSolaris;
+                else
+                    goto Lerror;
+            }
             else if (strcmp(p + 1, "-b") == 0)
                 global.params.debugb = true;
             else if (strcmp(p + 1, "-c") == 0)
@@ -1146,6 +1152,51 @@ Language changes listed by -transition=id:\n\
         error(Loc(), "the architecture must not be changed in the %s section of %s",
               envsec, inifilename);
 
+    // Predefine version identifiers
+    VersionCondition::addPredefinedGlobalIdent("DigitalMars");
+
+    if (target == targetWindows)
+    {
+        VersionCondition::addPredefinedGlobalIdent("Windows");
+        global.params.isWindows = true;
+    }
+    else if (target == targetLinux)
+    {
+        VersionCondition::addPredefinedGlobalIdent("Posix");
+        VersionCondition::addPredefinedGlobalIdent("linux");
+        global.params.isLinux = true;
+    }
+    else if (target == targetOSX)
+    {
+        VersionCondition::addPredefinedGlobalIdent("Posix");
+        VersionCondition::addPredefinedGlobalIdent("OSX");
+        global.params.isOSX = true;
+        // For legacy compatibility
+        VersionCondition::addPredefinedGlobalIdent("darwin");
+    }
+    else if (target == targetFreeBSD)
+    {
+        VersionCondition::addPredefinedGlobalIdent("Posix");
+        VersionCondition::addPredefinedGlobalIdent("FreeBSD");
+        global.params.isFreeBSD = true;
+    }
+    else if (target == targetOpenBSD)
+    {
+        VersionCondition::addPredefinedGlobalIdent("Posix");
+        VersionCondition::addPredefinedGlobalIdent("OpenBSD");
+        global.params.isOpenBSD = true;
+    }
+    else if (target == targetSolaris)
+    {
+        VersionCondition::addPredefinedGlobalIdent("Posix");
+        VersionCondition::addPredefinedGlobalIdent("Solaris");
+        global.params.isSolaris = true;
+    }
+
+    VersionCondition::addPredefinedGlobalIdent("LittleEndian");
+    VersionCondition::addPredefinedGlobalIdent("D_Version2");
+    VersionCondition::addPredefinedGlobalIdent("all");
+
     // Target uses 64bit pointers.
     global.params.isLP64 = global.params.is64bit;
 
@@ -1236,26 +1287,25 @@ Language changes listed by -transition=id:\n\
         VersionCondition::addPredefinedGlobalIdent("D_InlineAsm_X86_64");
         VersionCondition::addPredefinedGlobalIdent("X86_64");
         VersionCondition::addPredefinedGlobalIdent("D_SIMD");
-#if TARGET_WINDOS
-        VersionCondition::addPredefinedGlobalIdent("Win64");
-        if (!setdefaultlib)
-        {   global.params.defaultlibname = "phobos64";
-            if (!setdebuglib)
-                global.params.debuglibname = global.params.defaultlibname;
+        if (target == targetWindows)
+        {
+            VersionCondition::addPredefinedGlobalIdent("Win64");
+            if (!setdefaultlib)
+            {   global.params.defaultlibname = "phobos64";
+                if (!setdebuglib)
+                    global.params.debuglibname = global.params.defaultlibname;
+            }
         }
-#endif
     }
     else
     {
         VersionCondition::addPredefinedGlobalIdent("D_InlineAsm");
         VersionCondition::addPredefinedGlobalIdent("D_InlineAsm_X86");
         VersionCondition::addPredefinedGlobalIdent("X86");
-#if TARGET_OSX
-        VersionCondition::addPredefinedGlobalIdent("D_SIMD");
-#endif
-#if TARGET_WINDOS
-        VersionCondition::addPredefinedGlobalIdent("Win32");
-#endif
+        if (target == targetOSX)
+            VersionCondition::addPredefinedGlobalIdent("D_SIMD");
+        if (target == targetWindows)
+            VersionCondition::addPredefinedGlobalIdent("Win32");
     }
     if (global.params.isLP64)
         VersionCondition::addPredefinedGlobalIdent("D_LP64");
