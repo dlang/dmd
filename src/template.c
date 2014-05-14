@@ -6436,6 +6436,13 @@ bool TemplateInstance::updateTempDecl(Scope *sc, Dsymbol *s)
             }
         }
 
+        OverDeclaration *od = s->isOverDeclaration();
+        if (od)
+        {
+            tempdecl = od;  // TODO: more strict check
+            return true;
+        }
+
         /* It should be a TemplateDeclaration, not some other symbol
          */
         if (FuncDeclaration *f = s->isFuncDeclaration())
@@ -6927,7 +6934,7 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
             error("does not match template declaration %s", tdecl->toChars());
         else
             ::error(loc, "%s %s.%s does not match any template declaration",
-                    tdecl->kind(), tdecl->parent->toPrettyChars(), tdecl->ident->toChars());
+                    tempdecl->kind(), tempdecl->parent->toPrettyChars(), tempdecl->ident->toChars());
         return false;
     }
 

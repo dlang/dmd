@@ -2772,7 +2772,21 @@ int overloadApply(Dsymbol *fstart, void *param, int (*fp)(void *, Dsymbol *))
     Dsymbol *next;
     for (d = fstart; d; d = next)
     {
-        if (FuncAliasDeclaration *fa = d->isFuncAliasDeclaration())
+        if (OverDeclaration *od = d->isOverDeclaration())
+        {
+            if (od->hasOverloads)
+            {
+                if (int r = overloadApply(od->aliassym, param, fp))
+                    return r;
+            }
+            else
+            {
+                if (int r = (*fp)(param, od->aliassym))
+                    return r;
+            }
+            next = od->overnext;
+        }
+        else if (FuncAliasDeclaration *fa = d->isFuncAliasDeclaration())
         {
             if (fa->hasOverloads)
             {

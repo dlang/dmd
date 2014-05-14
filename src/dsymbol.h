@@ -39,6 +39,7 @@ class StructDeclaration;
 class UnionDeclaration;
 class FuncDeclaration;
 class FuncAliasDeclaration;
+class OverDeclaration;
 class FuncLiteralDeclaration;
 class CtorDeclaration;
 class PostBlitDeclaration;
@@ -240,6 +241,7 @@ public:
     virtual AggregateDeclaration *isAggregateDeclaration() { return NULL; }
     virtual FuncDeclaration *isFuncDeclaration() { return NULL; }
     virtual FuncAliasDeclaration *isFuncAliasDeclaration() { return NULL; }
+    virtual OverDeclaration *isOverDeclaration() { return NULL; }
     virtual FuncLiteralDeclaration *isFuncLiteralDeclaration() { return NULL; }
     virtual CtorDeclaration *isCtorDeclaration() { return NULL; }
     virtual PostBlitDeclaration *isPostBlitDeclaration() { return NULL; }

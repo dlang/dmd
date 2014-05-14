@@ -51,3 +51,8 @@ void Value1900b() {}
 
 Range remove8352a(alias pred, Range)(Range range) { return range; }
 void remove8352b(in char[] name) {}
+
+/***************************************************/
+// 10658
+
+template Val10658(int n) { enum Val10658 = 1; }

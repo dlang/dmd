@@ -243,6 +243,28 @@ public:
 
 /**************************************************************/
 
+class OverDeclaration : public Declaration
+{
+public:
+    Dsymbol *overnext;          // next in overload list
+    Dsymbol *aliassym;
+    bool hasOverloads;
+
+    OverDeclaration(Dsymbol *s, bool hasOverloads = true);
+    const char *kind();
+    void semantic(Scope *sc);
+    bool equals(RootObject *o);
+    bool overloadInsert(Dsymbol *s);
+
+    Dsymbol *toAlias();
+    Dsymbol *isUnique();
+
+    OverDeclaration *isOverDeclaration() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
+};
+
+/**************************************************************/
+
 class VarDeclaration : public Declaration
 {
 public:
