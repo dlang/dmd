@@ -603,6 +603,52 @@ Lancestorsdone:
             s->addMember(sc, this, 1);
         }
 
+        // Forbid explicit declaration of __monitor member
+        Dsymbol* monitorSym = symtab->lookup(Id::__monitor);
+        if (monitorSym && monitorSym->isVarDeclaration())
+        {
+            monitorSym->error("field declaration is forbidden. Add @monitor attribute to class,"
+                      " if embedded monitor needed.");
+        }
+
+        // Check is class has @monitor attribute
+        bool needsMonitor = false;
+        if (userAttribDecl)
+        {
+            unsigned prevGag = global.startGagging();
+            UserAttributeDeclaration* tempAttrDecl = userAttribDecl->syntaxCopy(NULL)->
+                    isUserAttributeDeclaration();
+            Expressions* attrs = tempAttrDecl->getAttributes();
+            global.endGagging(prevGag);
+            if (attrs->dim)
+            {
+                TupleExp* attrsTuple = (TupleExp*)(*attrs)[0];
+                for (size_t i = 0; i < attrsTuple->exps->dim; i++)
+                {
+                    // Is this a correct comparison?
+                    if (!strcmp((*attrsTuple->exps)[i]->toChars(), "monitor"))
+                    {
+                        needsMonitor = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // If class has @monitor attribute and it's supers do not define __monitor member,
+        // add __monitor variable to this one.
+        if (needsMonitor)
+        {
+            monitorSym = search(loc, Id::__monitor);
+            VarDeclaration* monitorVar = monitorSym ? monitorSym->isVarDeclaration() : NULL;
+            if (!monitorVar)
+            {
+                monitorVar = new VarDeclaration(loc, Type::tvoidptr, Id::__monitor, NULL);
+                members->push(monitorVar);
+                monitorVar->addMember(sc, this, 1);
+            }
+        }
+
         /* If this is a nested class, add the hidden 'this'
          * member which is a pointer to the enclosing scope.
          */

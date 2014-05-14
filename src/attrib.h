@@ -223,6 +223,7 @@ public:
     Expressions *getAttributes();
     const char *kind();
     void accept(Visitor *v) { v->visit(this); }
+    UserAttributeDeclaration *isUserAttributeDeclaration() { return this; }
 };
 
 #endif /* DMD_ATTRIB_H */
