@@ -3412,6 +3412,28 @@ struct W12719(R)
 W12719!int a12719;
 
 /******************************************/
+// 12746
+
+template foo12746()
+{
+    void bar()
+    {
+        static assert(!__traits(compiles, bar(1)));
+    }
+    alias foo12746 = bar;
+}
+
+void foo12746(int)
+{
+    assert(0);
+}
+
+void test12746()
+{
+    foo12746(); // instantiate
+}
+
+/******************************************/
 
 int main()
 {
