@@ -1136,11 +1136,13 @@ void test9237()
 }
 
 /*************************************************************/
+// 5978
 
-void test5978() {
+void test5978()
+{
     () {
         int x;
-        pragma(msg, __traits(parent, x));
+        pragma(msg, __traits(identifier, __traits(parent, x)));
     } ();
 }
 
@@ -1485,6 +1487,32 @@ void test12571()
 }
 
 /********************************************************/
+// 12237
+
+auto f12237(T)(T a)
+{
+    static if (is(typeof(a) == int))
+        return f12237("");
+    else
+        return 10;
+}
+
+void test12237()
+{
+    assert(f12237(1) == 10);
+
+    assert((a){
+        static if (is(typeof(a) == int))
+        {
+            int x;
+            return __traits(parent, x)("");
+        }
+        else
+            return 10;
+    }(1) == 10);
+}
+
+/********************************************************/
 
 int main()
 {
@@ -1524,6 +1552,7 @@ int main()
     test_getUnitTests();
     test_getFunctionAttributes();
     test_isOverrideFunction();
+    test12237();
 
     writeln("Success");
     return 0;

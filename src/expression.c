@@ -6981,8 +6981,23 @@ Expression *DotIdExp::semanticX(Scope *sc)
                 goto L1;
             case TOKoverloadset:
                 ds = ((OverExp *)e1)->vars;
+                goto L1;
+            case TOKtemplate:
+            {
+                TemplateExp *te = (TemplateExp *)e1;
+                ds = te->fd ? (Dsymbol *)te->fd : te->td;
+            }
             L1:
             {
+                assert(ds);
+                if (FuncDeclaration *f = ds->isFuncDeclaration())
+                {
+                    if (!f->type->deco)
+                    {
+                        error("forward reference to %s", f->toChars());
+                        return new ErrorExp();
+                    }
+                }
                 const char* s = mangle(ds);
                 Expression *e = new StringExp(loc, (void*)s, strlen(s), 'c');
                 e = e->semantic(sc);
