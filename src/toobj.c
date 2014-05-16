@@ -78,7 +78,8 @@ void Module::genmoduleinfo()
 
     //printf("members->dim = %d\n", members->dim);
     for (size_t i = 0; i < members->dim; i++)
-    {   Dsymbol *member = (*members)[i];
+    {
+        Dsymbol *member = (*members)[i];
 
         //printf("\tmember '%s'\n", member->toChars());
         member->addLocalClass(&aclasses);
@@ -87,7 +88,8 @@ void Module::genmoduleinfo()
     // importedModules[]
     size_t aimports_dim = aimports.dim;
     for (size_t i = 0; i < aimports.dim; i++)
-    {   Module *m = aimports[i];
+    {
+        Module *m = aimports[i];
         if (!m->needmoduleinfo)
             aimports_dim--;
     }

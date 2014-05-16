@@ -561,27 +561,14 @@ void TemplateDeclaration::semantic(Scope *sc)
             Type::rtinfo = this;
     }
 
-    if (sc->module)
+    if (Module *m = sc->module) // should use getModule() instead?
     {
-        // Generate this function as it may be used
+        // Generate these functions as they may be used
         // when template is instantiated in other modules
-        // even if bounds checking is disabled in this module
-        sc->module->toModuleArray();
-    }
-
-    if (sc->module)
-    {
-        // Generate this function as it may be used
-        // when template is instantiated in other modules
-        // even if assertions are disabled in this module
-        sc->module->toModuleAssert();
-    }
-
-    if (sc->module)
-    {
-        // Generate this function as it may be used
-        // when template is instantiated in other modules
-        sc->module->toModuleUnittest();
+        // even if assertions or bounds checking are disabled in this module
+        m->toModuleArray();
+        m->toModuleAssert();
+        m->toModuleUnittest();
     }
 
     /* Remember Scope for later instantiations, but make
