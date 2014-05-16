@@ -4472,7 +4472,7 @@ elem *toElem(Expression *e, IRState *irs)
                 {
                     elem *n = el_same(&e);
 
-                    // Construct: ((e || ModuleAssert(line)),n)
+                    // Construct: ((e || ModuleArray(line)), n)
                     Symbol *sassert = irs->blx->module->toModuleArray();
                     elem *ea = el_bin(OPcall,TYvoid,el_var(sassert),
                         el_long(TYint, ie->loc.linnum));
@@ -4510,7 +4510,7 @@ elem *toElem(Expression *e, IRState *irs)
                         n2 = el_same(&n2x);
                         n2x = el_bin(OPlt, TYint, n2x, elength);
 
-                        // Construct: (n2x || ModuleAssert(line))
+                        // Construct: (n2x || ModuleArray(line))
                         Symbol *sassert = irs->blx->module->toModuleArray();
                         elem *ea = el_bin(OPcall,TYvoid,el_var(sassert),
                             el_long(TYint, ie->loc.linnum));
