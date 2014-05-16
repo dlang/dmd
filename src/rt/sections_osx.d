@@ -35,7 +35,7 @@ struct SectionGroup
         return dg(_sections);
     }
 
-    @property inout(ModuleInfo*)[] modules() inout
+    @property immutable(ModuleInfo*)[] modules() const
     {
         return _moduleGroup.modules;
     }
@@ -206,7 +206,7 @@ extern (C) void sections_osx_onAddImage(in mach_header* h, intptr_t slide)
         }
 
         debug(PRINTF) printf("  minfodata\n");
-        auto p = cast(ModuleInfo**)sect.ptr;
+        auto p = cast(immutable(ModuleInfo*)*)sect.ptr;
         immutable len = sect.length / (*p).sizeof;
 
         _sections._moduleGroup = ModuleGroup(p[0 .. len]);

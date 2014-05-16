@@ -276,13 +276,12 @@ class MemberInfo_function : MemberInfo
 
 struct ModuleInfo
 {
+const:
     uint _flags;
     uint _index;
 
     @property uint index() nothrow pure;
-    @property void index(uint i) nothrow pure;
     @property uint flags() nothrow pure;
-    @property void flags(uint f) nothrow pure;
     @property void function() tlsctor() nothrow pure;
     @property void function() tlsdtor() nothrow pure;
     @property void* xgetMembers() nothrow pure;
@@ -290,11 +289,11 @@ struct ModuleInfo
     @property void function() dtor() nothrow pure;
     @property void function() ictor() nothrow pure;
     @property void function() unitTest() nothrow pure;
-    @property ModuleInfo*[] importedModules() nothrow pure;
+    @property immutable(ModuleInfo*)[] importedModules() nothrow pure;
     @property TypeInfo_Class[] localClasses() nothrow pure;
     @property string name() nothrow pure;
 
-    static int opApply(scope int delegate(ref ModuleInfo*) dg);
+    static int opApply(scope int delegate(immutable(ModuleInfo*)) dg);
 }
 
 class Throwable : Object

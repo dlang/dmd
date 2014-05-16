@@ -49,7 +49,7 @@ struct DSO
         return 0;
     }
 
-    @property inout(ModuleInfo*)[] modules() inout
+    @property immutable(ModuleInfo*)[] modules() const
     {
         return _moduleGroup.modules;
     }
@@ -286,10 +286,10 @@ else
  */
 struct CompilerDSOData
 {
-    size_t _version;                                  // currently 1
-    void** _slot;                                     // can be used to store runtime data
-    object.ModuleInfo** _minfo_beg, _minfo_end;       // array of modules in this object file
-    immutable(rt.deh.FuncTable)* _deh_beg, _deh_end; // array of exception handling data
+    size_t _version;                                       // currently 1
+    void** _slot;                                          // can be used to store runtime data
+    immutable(object.ModuleInfo*)* _minfo_beg, _minfo_end; // array of modules in this object file
+    immutable(rt.deh.FuncTable)* _deh_beg, _deh_end;       // array of exception handling data
 }
 
 T[] toRange(T)(T* beg, T* end) { return beg[0 .. end - beg]; }
@@ -737,11 +737,11 @@ const(char)[] dsoName(const char* dlpi_name)
 }
 
 nothrow
-void checkModuleCollisions(in ref dl_phdr_info info, in ModuleInfo*[] modules)
+void checkModuleCollisions(in ref dl_phdr_info info, in immutable(ModuleInfo)*[] modules)
 in { assert(modules.length); }
 body
 {
-    const(ModuleInfo)* conflicting;
+    immutable(ModuleInfo)* conflicting;
 
     // find the segment that contains the ModuleInfos
     ElfW!"Phdr" phdr=void;
@@ -770,7 +770,7 @@ body
         dl_phdr_info other=void;
         findDSOInfoForAddr(conflicting, &other) || assert(0);
 
-        auto modname = (cast(ModuleInfo*)conflicting).name;
+        auto modname = conflicting.name;
         auto loading = dsoName(info.dlpi_name);
         auto existing = dsoName(other.dlpi_name);
         fprintf(stderr, "Fatal Error while loading '%.*s':\n\tThe module '%.*s' is already defined in '%.*s'.\n",
