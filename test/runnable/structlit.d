@@ -851,6 +851,41 @@ void test6937()
 }
 
 /********************************************/
+// 12681
+
+bool test12681()
+{
+    immutable int x = 42;
+
+    static struct S1
+    {
+        immutable int *p;
+    }
+    immutable s1 = new S1(&x);
+    assert(s1.p == &x);
+
+    struct S2
+    {
+        immutable int *p;
+        void foo() {}
+    }
+    auto s2 = new S2(&x);
+    assert(s2.p == &x);
+
+    struct S3
+    {
+        immutable int *p;
+        int foo() { return x; }
+    }
+    auto s3 = new S3(&x);
+    assert(s3.p == &x);
+    assert(s3.foo() == 42);
+
+    return true;
+}
+static assert(test12681());
+
+/********************************************/
 // 3991
 
 union X3991
@@ -1312,6 +1347,7 @@ int main()
     test5889();
     test4247();
     test6937();
+    test12681();
     test3991();
     test7727();
     test7929();

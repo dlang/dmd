@@ -2880,7 +2880,7 @@ public:
     #endif
         if (e->ownedByCtfe)
         {
-            result = copyLiteral(e);
+            result = e;
             return;
         }
 
@@ -3011,19 +3011,44 @@ public:
 
         if (e->newtype->toBasetype()->ty == Tstruct)
         {
-            Expression *se = e->newtype->defaultInitLiteral(e->loc);
             if (e->member)
             {
-                int olderrors = global.errors;
-                interpret(e->member, istate, e->arguments, se);
-                if (olderrors != global.errors)
-                {
-                    e->error("cannot evaluate %s at compile time", e->toChars());
-                    result = EXP_CANT_INTERPRET;
-                    return;
-                }
+                Expression *se = e->newtype->defaultInitLiteral(e->loc);
+                result = interpret(e->member, istate, e->arguments, se);
             }
-            result = new AddrExp(e->loc, copyLiteral(se));
+            else
+            {
+                StructDeclaration *sd = ((TypeStruct *)e->newtype->toBasetype())->sym;
+                Expressions *exps = new Expressions();
+                exps->reserve(sd->fields.dim);
+                if (e->arguments)
+                {
+                    exps->setDim(e->arguments->dim);
+                    for (size_t i = 0; i < exps->dim; i++)
+                    {
+                        Expression *ex = (*e->arguments)[i];
+                        ex = ex->interpret(istate);
+                        if (exceptionOrCantInterpret(ex))
+                        {
+                            result = ex;
+                            return;
+                        }
+                        (*exps)[i] = ex;
+                    }
+                }
+                sd->fill(e->loc, exps, false);
+
+                StructLiteralExp *se = new StructLiteralExp(e->loc, sd, exps, e->newtype);
+                se->type = e->newtype;
+                se->ownedByCtfe = true;
+                result = se->interpret(istate);
+            }
+            if (exceptionOrCantInterpret(result))
+            {
+                result = EXP_CANT_INTERPRET;
+                return;
+            }
+            result = new AddrExp(e->loc, copyLiteral(result));
             result->type = e->type;
             return;
         }
@@ -6141,11 +6166,13 @@ public:
                 result->type = e->type;
                 return;
             }
+
             // It's possible we have an array bounds error. We need to make sure it
             // errors with this line number, not the one where the pointer was set.
             result = e->e1->interpret(istate);
             if (exceptionOrCantInterpret(result))
                 return;
+
             if (!(result->op == TOKvar || result->op == TOKdotvar || result->op == TOKindex
                 || result->op == TOKslice || result->op == TOKaddress))
             {
@@ -6212,40 +6239,20 @@ public:
                 }
                 if (result->op == TOKstructliteral)
                     return;
-                result = e->e1->interpret(istate, goal);
+
                 if (result->op == TOKaddress)
                 {
-                    result = ((AddrExp*)result)->e1;
                     // We're changing *&e to e.
-                    // We needed the AddrExp to deal with type painting expressions
-                    // we couldn't otherwise express. Now that the type painting is
-                    // undone, we must simplify them. This applies to references
-                    // (which will be a DotVarExp or IndexExp) and to local structs
-                    // (which will be a VarExp).
-
-                    // We sometimes use DotVarExp and IndexExp to represent pointers,
-                    // so in that case, they shouldn't be simplified.
-
-                    bool isCtfePtr = (result->op == TOKdotvar || result->op == TOKindex)
-                            && isPointer(result->type);
-
-                    // We also must not simplify if it is already a struct Literal
-                    // or array literal, because it has already been interpreted.
-                    if ( !isCtfePtr && result->op != TOKstructliteral &&
-                        result->op != TOKassocarrayliteral && result->op != TOKarrayliteral)
-                    {
-                        result = result->interpret(istate, goal);
-                    }
+                    result = ((AddrExp *)result)->e1;
                 }
-                else if (result->op == TOKvar)
-                {
-                    result = result->interpret(istate, goal);
-                }
+                result = result->interpret(istate, goal);
                 if (exceptionOrCantInterpret(result))
                     return;
             }
             else if (result->op == TOKaddress)
+            {
                 result = ((AddrExp*)result)->e1;  // *(&x) ==> x
+            }
             else if (result->op == TOKnull)
             {
                 e->error("dereference of null pointer '%s'", e->e1->toChars());
