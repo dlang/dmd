@@ -1,7 +1,7 @@
 import core.runtime, core.time : TickDuration;
 import core.stdc.stdio;
 
-ModuleInfo* getModuleInfo(string name)
+immutable(ModuleInfo*) getModuleInfo(string name)
 {
     foreach (m; ModuleInfo)
         if (m.name == name) return m;

@@ -32,7 +32,7 @@ import rt.deh, rt.minfo;
 template isSectionGroup(T)
 {
     enum isSectionGroup =
-        is(typeof(T.init.modules) == ModuleInfo*[]) &&
+        is(typeof(T.init.modules) == immutable(ModuleInfo*)[]) &&
         is(typeof(T.init.moduleGroup) == ModuleGroup) &&
         (!is(typeof(T.init.ehTables)) || is(typeof(T.init.ehTables) == immutable(FuncTable)[])) &&
         is(typeof(T.init.gcRanges) == void[][]) &&

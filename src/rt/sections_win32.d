@@ -30,7 +30,7 @@ struct SectionGroup
         return dg(_sections);
     }
 
-    @property inout(ModuleInfo*)[] modules() inout
+    @property immutable(ModuleInfo*)[] modules() const
     {
         return _moduleGroup.modules;
     }
@@ -84,10 +84,10 @@ private:
 __gshared SectionGroup _sections;
 
 // Windows: this gets initialized by minit.asm
-extern(C) __gshared ModuleInfo*[] _moduleinfo_array;
+extern(C) __gshared immutable(ModuleInfo*)[] _moduleinfo_array;
 extern(C) void _minit();
 
-ModuleInfo*[] getModuleInfos()
+immutable(ModuleInfo*)[] getModuleInfos()
 out (result)
 {
     foreach(m; result)

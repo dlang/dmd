@@ -1601,6 +1601,7 @@ enum
 
 struct ModuleInfo
 {
+const:
     uint _flags;
     uint _index; // index into _moduleinfo_array[]
 
@@ -1668,10 +1669,8 @@ struct ModuleInfo
     }
 
     @property uint index() nothrow pure { return _index; }
-    @property void index(uint i) nothrow pure { _index = i; }
 
     @property uint flags() nothrow pure { return _flags; }
-    @property void flags(uint f) nothrow pure { _flags = f; }
 
     @property void function() tlsctor() nothrow pure
     {
@@ -1708,12 +1707,12 @@ struct ModuleInfo
         return flags & MIunitTest ? *cast(typeof(return)*)addrOf(MIunitTest) : null;
     }
 
-    @property ModuleInfo*[] importedModules() nothrow pure
+    @property immutable(ModuleInfo*)[] importedModules() nothrow pure
     {
         if (flags & MIimportedModules)
         {
             auto p = cast(size_t*)addrOf(MIimportedModules);
-            return (cast(ModuleInfo**)(p + 1))[0 .. *p];
+            return (cast(immutable(ModuleInfo*)*)(p + 1))[0 .. *p];
         }
         return null;
     }
@@ -1738,7 +1737,7 @@ struct ModuleInfo
         // return null;
     }
 
-    alias int delegate(ref ModuleInfo*) ApplyDg;
+    alias int delegate(immutable(ModuleInfo*)) ApplyDg;
 
     static int opApply(scope ApplyDg dg)
     {
