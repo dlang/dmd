@@ -1184,7 +1184,7 @@ void FuncDeclaration::toObjFile(bool multiobj)
             Statement *sf = ExpStatement::create(loc, e);
 
             Statement *stf;
-            if (sbody->blockExit(this, tf->isnothrow) == BEfallthru)
+            if (sbody->blockExit(this, false) == BEfallthru)
                 stf = CompoundStatement::create(Loc(), sbody, sf);
             else
                 stf = TryFinallyStatement::create(Loc(), sbody, sf);
