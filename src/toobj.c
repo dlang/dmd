@@ -189,7 +189,7 @@ void Module::genmoduleinfo()
     }
 
     csym->Sdt = dt;
-    // Cannot be CONST because the startup code sets flag bits in it
+    out_readonly(csym);
     outdata(csym);
 
     //////////////////////////////////////////////
@@ -1215,5 +1215,3 @@ void Nspace::toObjFile(bool multiobj)
         }
     }
 }
-
-
