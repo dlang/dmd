@@ -51,7 +51,8 @@ struct Symbol;
 class TypeTuple;
 
 void semanticTypeInfo(Scope *sc, Type *t);
-MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL);
+MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL, size_t inferStart = 0);
+Type *reliesOnTident(Type *t, TemplateParameters *tparams = NULL, size_t iStart = 0);
 
 enum ENUMTY
 {
@@ -336,7 +337,6 @@ public:
     void genTypeInfo(Scope *sc);
     virtual TypeInfoDeclaration *getTypeInfoDeclaration();
     virtual int builtinTypeInfo();
-    virtual Type *reliesOnTident(TemplateParameters *tparams = NULL);
     virtual int hasWild();
     virtual Expression *toExpression();
     virtual int hasPointers();
@@ -376,7 +376,6 @@ public:
     TypeNext(TY ty, Type *next);
     void toDecoBuffer(OutBuffer *buf, int flag);
     void checkDeprecated(Loc loc, Scope *sc);
-    Type *reliesOnTident(TemplateParameters *tparams = NULL);
     int hasWild();
     Type *nextOf();
     Type *makeConst();
@@ -440,7 +439,6 @@ public:
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     char *toChars();
     void toDecoBuffer(OutBuffer *buf, int flag);
-    Type *reliesOnTident(TemplateParameters *tparams);
     bool isintegral();
     bool isfloating();
     bool isscalar();
@@ -540,7 +538,6 @@ public:
     bool isZeroInit(Loc loc);
     bool checkBoolean();
     TypeInfoDeclaration *getTypeInfoDeclaration();
-    Type *reliesOnTident(TemplateParameters *tparams);
     Expression *toExpression();
     int hasPointers();
     MATCH implicitConvTo(Type *to);
@@ -644,7 +641,6 @@ public:
     void purityLevel();
     void toDecoBuffer(OutBuffer *buf, int flag);
     TypeInfoDeclaration *getTypeInfoDeclaration();
-    Type *reliesOnTident(TemplateParameters *tparams = NULL);
     bool hasLazyParameters();
     bool parameterEscapes(Parameter *p);
     Type *addStorageClass(StorageClass stc);
@@ -714,7 +710,6 @@ public:
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
     Dsymbol *toDsymbol(Scope *sc);
     Type *semantic(Loc loc, Scope *sc);
-    Type *reliesOnTident(TemplateParameters *tparams = NULL);
     Expression *toExpression();
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -734,7 +729,6 @@ public:
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
     Type *semantic(Loc loc, Scope *sc);
     Dsymbol *toDsymbol(Scope *sc);
-    Type *reliesOnTident(TemplateParameters *tparams = NULL);
     Expression *toExpression();
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -942,7 +936,6 @@ public:
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
     bool equals(RootObject *o);
-    Type *reliesOnTident(TemplateParameters *tparams = NULL);
     void toDecoBuffer(OutBuffer *buf, int flag);
     Expression *getProperty(Loc loc, Identifier *ident, int flag);
     Expression *defaultInit(Loc loc);

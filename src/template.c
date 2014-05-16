@@ -653,20 +653,15 @@ void TemplateDeclaration::semantic(Scope *sc)
 
             if (TemplateTypeParameter *ttp = (*parameters)[j]->isTemplateTypeParameter())
             {
-                Type *t = ttp->specType;
-                if (t && t->reliesOnTident(&tparams))
+                if (reliesOnTident(ttp->specType, &tparams))
                     tp->dependent = true;
             }
             else if (TemplateAliasParameter *tap = (*parameters)[j]->isTemplateAliasParameter())
             {
-                Type *t = tap->specType;
-                if (t && t->reliesOnTident(&tparams))
-                    tp->dependent = true;
-                else if (tap->specAlias)
+                if (reliesOnTident(tap->specType, &tparams) ||
+                    reliesOnTident(isType(tap->specAlias), &tparams))
                 {
-                    t = isType(tap->specAlias);
-                    if (t && t->reliesOnTident(&tparams))
-                        tp->dependent = true;
+                    tp->dependent = true;
                 }
             }
         }
@@ -1184,7 +1179,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
     Parameters *fparameters;            // function parameter list
     int fvarargs;                       // function varargs
     unsigned wildmatch = 0;
-    TemplateParameters *inferparams = parameters;
+    size_t inferStart = 0;
 
     Loc loc = ti->loc;
     Objects *tiargs = ti->tiargs;
@@ -1288,14 +1283,10 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
         }
         if (n < parameters->dim && !tp_is_declared)
         {
-            inferparams = new TemplateParameters();
-            inferparams->setDim(parameters->dim - n);
-            memcpy(inferparams->tdata(),
-                   parameters->tdata() + n,
-                   inferparams->dim * sizeof(*inferparams->tdata()));
+            inferStart = n;
         }
         else
-            inferparams = NULL;
+            inferStart = parameters->dim;
         //printf("tiargs matchTiargs = %d\n", matchTiargs);
     }
 #if 0
@@ -1456,7 +1447,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
                 for (size_t j = parami + 1; j < nfparams; j++)
                 {
                     Parameter *p = Parameter::getNth(fparameters, j);
-                    if (!inferparams || !p->type->reliesOnTident(inferparams))
+                    if (!reliesOnTident(p->type, parameters, inferStart))
                     {
                         Type *pt = p->type->syntaxCopy()->semantic(fd->loc, paramscope);
                         rem += pt->ty == Ttuple ? ((TypeTuple *)pt)->arguments->dim : 1;
@@ -1525,7 +1516,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
 
         // If parameter type doesn't depend on inferred template parameters,
         // semantic it to get actual type.
-        if (!inferparams || !prmtype->reliesOnTident(inferparams))
+        if (!reliesOnTident(prmtype, parameters, inferStart))
         {
             // should copy prmtype to avoid affecting semantic result
             prmtype = prmtype->syntaxCopy()->semantic(fd->loc, paramscope);
@@ -1581,19 +1572,7 @@ Lretry:
 #endif
             Type *argtype = farg->type;
 
-            /* Allow implicit function literals to delegate conversion
-             */
-            if (farg->op == TOKfunction)
-            {
-                FuncExp *fe = (FuncExp *)farg;
-                Expression *e = inferType(fe, prmtype, 1, paramscope, inferparams);
-                if (!e)
-                    goto Lvarargs;
-                farg = e;
-                argtype = farg->type;
-            }
-
-            if (!(fparam->storageClass & STClazy) && argtype->ty == Tvoid)
+            if (!(fparam->storageClass & STClazy) && argtype->ty == Tvoid && farg->op != TOKfunction)
                 goto Lnomatch;
 
             /* Adjust top const of the dynamic array type or pointer type argument
@@ -1633,7 +1612,7 @@ Lretry:
                 goto Lvarargs;
 
             unsigned wm = 0;
-            MATCH m = deduceType(farg, paramscope, prmtype, parameters, dedtypes, &wm);
+            MATCH m = deduceType(farg, paramscope, prmtype, parameters, dedtypes, &wm, inferStart);
             //printf("\tdeduceType m = %d\n", m);
             //printf("\twildmatch = x%x m = %d\n", wildmatch, m);
             wildmatch |= wm;
@@ -1641,7 +1620,7 @@ Lretry:
             /* If no match, see if the argument can be matched by using
              * implicit conversions.
              */
-            if (m == MATCHnomatch)
+            if (m == MATCHnomatch && prmtype->deco)
                 m = farg->implicitConvTo(prmtype);
 
             /* If no match, see if there's a conversion to a delegate
@@ -1784,25 +1763,16 @@ Lretry:
             case Tarray:
             {
                 TypeArray *ta = (TypeArray *)tb;
+                Type *tret = fparam->isLazyArray();
                 for (; argi < nfargs; argi++)
                 {
                     Expression *arg = (*fargs)[argi];
                     assert(arg);
 
-                    if (arg->op == TOKfunction)
-                    {
-                        FuncExp *fe = (FuncExp *)arg;
-                        Expression *e = inferType(fe, tb->nextOf(), 1, paramscope, inferparams);
-                        if (!e)
-                            goto Lnomatch;
-                        arg = e;
-                    }
-
                     MATCH m;
                     /* If lazy array of delegates,
                      * convert arg(s) to delegate(s)
                      */
-                    Type *tret = fparam->isLazyArray();
                     if (tret)
                     {
                         if (ta->next->equals(arg->type))
@@ -1821,8 +1791,9 @@ Lretry:
                     }
                     else
                     {
-                        m = deduceType(arg->type, paramscope, ta->next, parameters, dedtypes);
-                        //m = arg->implicitConvTo(ta->next);
+                        unsigned wm = 0;
+                        m = deduceType(arg, paramscope, ta->next, parameters, dedtypes, &wm, inferStart);
+                        wildmatch |= wm;
                     }
                     if (m == MATCHnomatch)
                         goto Lnomatch;
@@ -3301,7 +3272,7 @@ MATCH deduceTypeHelper(Type *t, Type **at, Type *tparam)
  */
 
 MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *parameters,
-        Objects *dedtypes, unsigned *wm)
+        Objects *dedtypes, unsigned *wm, size_t inferStart)
 {
     class DeduceType : public Visitor
     {
@@ -3311,10 +3282,11 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
         TemplateParameters *parameters;
         Objects *dedtypes;
         unsigned *wm;
+        size_t inferStart;
         MATCH result;
 
-        DeduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm)
-            : sc(sc), tparam(tparam), parameters(parameters), dedtypes(dedtypes), wm(wm)
+        DeduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm, size_t inferStart)
+            : sc(sc), tparam(tparam), parameters(parameters), dedtypes(dedtypes), wm(wm), inferStart(inferStart)
         {
             result = MATCHnomatch;
         }
@@ -4517,6 +4489,90 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             visit((Expression *)e);
         }
 
+        void visit(FuncExp *e)
+        {
+            //printf("e->type = %s, tparam = %s\n", e->type->toChars(), tparam->toChars());
+            if (e->td)
+            {
+                Type *to = tparam;
+                if (!to->nextOf() || to->nextOf()->ty != Tfunction)
+                    return;
+                TypeFunction *tof = (TypeFunction *)to->nextOf();
+
+                // Parameter types inference from 'tof'
+                assert(e->td->scope);
+                TypeFunction *tf = (TypeFunction *)e->fd->type;
+                //printf("\ttof = %s\n", tof->toChars());
+                //printf("\ttf  = %s\n", tf->toChars());
+                size_t dim = Parameter::dim(tf->parameters);
+
+                if (Parameter::dim(tof->parameters) != dim ||
+                    tof->varargs != tf->varargs)
+                    return;
+
+                Objects *tiargs = new Objects();
+                tiargs->reserve(e->td->parameters->dim);
+
+                for (size_t i = 0; i < e->td->parameters->dim; i++)
+                {
+                    TemplateParameter *tp = (*e->td->parameters)[i];
+                    size_t u = 0;
+                    for (; u < dim; u++)
+                    {
+                        Parameter *p = Parameter::getNth(tf->parameters, u);
+                        if (p->type->ty == Tident &&
+                            ((TypeIdentifier *)p->type)->ident == tp->ident)
+                        {
+                            break;
+                        }
+                    }
+                    assert(u < dim);
+                    Parameter *pto = Parameter::getNth(tof->parameters, u);
+                    if (!pto)
+                        break;
+                    Type *t = pto->type;
+                    if (reliesOnTident(t, parameters, inferStart))
+                        return;
+                    t = t->semantic(e->loc, sc);
+                    if (t->ty == Terror)
+                        return;
+                    tiargs->push(t);
+                }
+
+                // Set target of return type inference
+                if (!tf->next && tof->next)
+                    e->fd->treq = tparam;
+
+                TemplateInstance *ti = new TemplateInstance(e->loc, e->td, tiargs);
+                Expression *ex = (new ScopeExp(e->loc, ti))->semantic(e->td->scope);
+
+                // Reset inference target for the later re-semantic
+                e->fd->treq = NULL;
+
+                if (ex->op == TOKerror)
+                    return;
+                if (ex->op != TOKfunction)
+                    return;
+                visit(ex->type);
+                return;
+            }
+
+            Type *t = e->type;
+
+            if (t->ty == Tdelegate && tparam->ty == Tpointer)
+                return;
+
+            // Allow conversion from implicit function pointer to delegate
+            if (e->tok == TOKreserved &&
+                t->ty == Tpointer && tparam->ty == Tdelegate)
+            {
+                TypeFunction *tf = (TypeFunction *)t->nextOf();
+                t = (new TypeDelegate(tf))->merge();
+            }
+            //printf("tparam = %s <= e->type = %s, t = %s\n", tparam->toChars(), e->type->toChars(), t->toChars());
+            visit(t);
+        }
+
         void visit(SliceExp *e)
         {
             Type *taai;
@@ -4541,7 +4597,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
         }
     };
 
-    DeduceType v(sc, tparam, parameters, dedtypes, wm);
+    DeduceType v(sc, tparam, parameters, dedtypes, wm, inferStart);
     if (Type *t = isType(o))
         t->accept(&v);
     else
@@ -4549,6 +4605,138 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
         assert(isExpression(o));
         ((Expression *)o)->accept(&v);
     }
+    return v.result;
+}
+
+/*******************************
+ * Input:
+ *      t           Tested type, if NULL, returns NULL.
+ *      tparams     Optional template parameters.
+ *                  == NULL:
+ *                      If one of the subtypes of this type is a TypeIdentifier,
+ *                      i.e. it's an unresolved type, return that type.
+ *                  != NULL:
+ *                      Only when the TypeIdentifier is one of template parameters,
+ *                      return that type.
+ */
+
+Type *reliesOnTident(Type *t, TemplateParameters *tparams, size_t iStart)
+{
+    class ReliesOnTident : public Visitor
+    {
+    public:
+        TemplateParameters *tparams;
+        size_t iStart;
+        Type *result;
+
+        ReliesOnTident(TemplateParameters *tparams, size_t iStart)
+            : tparams(tparams), iStart(iStart)
+        {
+            result = NULL;
+        }
+
+        void visit(Type *t)
+        {
+        }
+
+        void visit(TypeNext *t)
+        {
+            t->next->accept(this);
+        }
+
+        void visit(TypeVector *t)
+        {
+            t->basetype->accept(this);
+        }
+
+        void visit(TypeAArray *t)
+        {
+            visit((TypeNext *)t);
+            if (!result)
+                t->index->accept(this);
+        }
+
+        void visit(TypeFunction *t)
+        {
+            size_t dim = Parameter::dim(t->parameters);
+            for (size_t i = 0; i < dim; i++)
+            {
+                Parameter *fparam = Parameter::getNth(t->parameters, i);
+                fparam->type->accept(this);
+                if (result)
+                    return;
+            }
+            if (t->next)
+                t->next->accept(this);
+        }
+
+        void visit(TypeIdentifier *t)
+        {
+            if (!tparams)
+            {
+                result = t;
+                return;
+            }
+
+            for (size_t i = iStart; i < tparams->dim; i++)
+            {
+                TemplateParameter *tp = (*tparams)[i];
+                if (tp->ident->equals(t->ident))
+                {
+                    result = t;
+                    return;
+                }
+            }
+        }
+
+        void visit(TypeInstance *t)
+        {
+            if (!tparams)
+                return;
+
+            for (size_t i = iStart; i < tparams->dim; i++)
+            {
+                TemplateParameter *tp = (*tparams)[i];
+                if (t->tempinst->name == tp->ident)
+                {
+                    result = t;
+                    return;
+                }
+            }
+            if (!t->tempinst->tiargs)
+                return;
+            for (size_t i = 0; i < t->tempinst->tiargs->dim; i++)
+            {
+                Type *ta = isType((*t->tempinst->tiargs)[i]);
+                if (ta)
+                {
+                    ta->accept(this);
+                    if (result)
+                        return;
+                }
+            }
+        }
+
+        void visit(TypeTuple *t)
+        {
+            if (t->arguments)
+            {
+                for (size_t i = 0; i < t->arguments->dim; i++)
+                {
+                    Parameter *arg = (*t->arguments)[i];
+                    arg->type->accept(this);
+                    if (result)
+                        return;
+                }
+            }
+        }
+    };
+
+    if (!t)
+        return NULL;
+
+    ReliesOnTident v(tparams, iStart);
+    t->accept(&v);
     return v.result;
 }
 
@@ -4668,7 +4856,7 @@ void TemplateTypeParameter::declareParameter(Scope *sc)
 void TemplateTypeParameter::semantic(Scope *sc, TemplateParameters *parameters)
 {
     //printf("TemplateTypeParameter::semantic('%s')\n", ident->toChars());
-    if (specType && !specType->reliesOnTident(parameters))
+    if (specType && !reliesOnTident(specType, parameters))
     {
         specType = specType->semantic(loc, sc);
     }
@@ -4920,7 +5108,7 @@ RootObject *aliasParameterSemantic(Loc loc, Scope *sc, RootObject *o, TemplatePa
     {
         Expression *ea = isExpression(o);
         Type *ta = isType(o);
-        if (ta && (!parameters || !ta->reliesOnTident(parameters)))
+        if (ta && (!parameters || !reliesOnTident(ta, parameters)))
         {   Dsymbol *s = ta->toDsymbol(sc);
             if (s)
                 o = s;
@@ -4940,7 +5128,7 @@ RootObject *aliasParameterSemantic(Loc loc, Scope *sc, RootObject *o, TemplatePa
 
 void TemplateAliasParameter::semantic(Scope *sc, TemplateParameters *parameters)
 {
-    if (specType && !specType->reliesOnTident(parameters))
+    if (specType && !reliesOnTident(specType, parameters))
     {
         specType = specType->semantic(loc, sc);
     }
