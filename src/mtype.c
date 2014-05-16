@@ -6378,7 +6378,13 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
         {
             RootObject *id = idents[i];
             Type *t = s->getType();     // type symbol, type alias, or type tuple?
+            unsigned errorsave = global.errors;
             Dsymbol *sm = s->searchX(loc, sc, id);
+            if (global.errors != errorsave)
+            {
+                *pt = Type::terror;
+                return;
+            }
             //printf("\t3: s = %p %s %s, sm = %p\n", s, s->kind(), s->toChars(), sm);
             if (intypeid && !t && sm && sm->needThis())
                 goto L3;
@@ -8686,12 +8692,14 @@ MATCH TypeClass::implicitConvTo(Type *to)
     ClassDeclaration *cdto = to->isClassHandle();
     if (cdto)
     {
-        if (cdto->scope)
+        //printf("TypeClass::implicitConvTo(to = '%s') %s, isbase = %d %d\n", to->toChars(), toChars(), cdto->isBaseInfoComplete(), sym->isBaseInfoComplete());
+        if (cdto->scope && !cdto->isBaseInfoComplete())
             cdto->semantic(NULL);
-        if (sym->scope)
+        if (sym->scope && !sym->isBaseInfoComplete())
             sym->semantic(NULL);
         if (cdto->isBaseOf(sym, NULL) && MODimplicitConv(mod, to->mod))
-        {   //printf("'to' is base\n");
+        {
+            //printf("'to' is base\n");
             return MATCHconvert;
         }
     }

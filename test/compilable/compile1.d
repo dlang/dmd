@@ -607,6 +607,25 @@ static assert(!__traits(compiles, {
 }));
 
 /***************************************************/
+// 11622
+
+class A11622(T)
+{
+    B11622!T foo()
+    {
+        return new B11622!T;
+    }
+}
+
+class B11622(T) : T
+{
+}
+
+static assert(!__traits(compiles, {
+    class C : A11622!C  { }
+}));
+
+/***************************************************/
 // 12688
 
 void writeln12688(A...)(A) {}

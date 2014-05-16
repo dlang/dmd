@@ -272,7 +272,7 @@ public:
     #define OFFSET_RUNTIME 0x76543210
     virtual bool isBaseOf(ClassDeclaration *cd, int *poffset);
 
-    virtual bool isBaseInfoComplete();
+    bool isBaseInfoComplete();
     Dsymbol *search(Loc, Identifier *ident, int flags = IgnoreNone);
     ClassDeclaration *searchBase(Loc, Identifier *ident);
     bool isFuncHidden(FuncDeclaration *fd);
@@ -308,7 +308,6 @@ public:
     bool isBaseOf(ClassDeclaration *cd, int *poffset);
     bool isBaseOf(BaseClass *bc, int *poffset);
     const char *kind();
-    bool isBaseInfoComplete();
     int vtblOffset();
     bool isCPPinterface();
     bool isCOMinterface();
