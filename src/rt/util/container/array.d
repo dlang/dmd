@@ -7,8 +7,7 @@
  */
 module rt.util.container.array;
 
-import rt.util.container.common;
-alias rt.util.container.common.destroy destroy;
+static import common = rt.util.container.common;
 
 struct Array(T)
 {
@@ -32,10 +31,10 @@ struct Array(T)
     @property void length(size_t nlength)
     {
         if (nlength < length)
-            foreach (ref val; _ptr[nlength .. length]) destroy(val);
-        _ptr = cast(T*)xrealloc(_ptr, nlength * T.sizeof);
+            foreach (ref val; _ptr[nlength .. length]) common.destroy(val);
+        _ptr = cast(T*)common.xrealloc(_ptr, nlength * T.sizeof);
         if (nlength > length)
-            foreach (ref val; _ptr[length .. nlength]) initialize(val);
+            foreach (ref val; _ptr[length .. nlength]) common.initialize(val);
         _length = nlength;
     }
 
@@ -165,6 +164,7 @@ unittest
 
 unittest
 {
+    alias RC = common.RC;
     Array!RC ary;
 
     size_t cnt;

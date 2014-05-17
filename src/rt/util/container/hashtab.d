@@ -8,8 +8,7 @@
 module rt.util.container.hashtab;
 
 import rt.util.container.array;
-import rt.util.container.common;
-alias rt.util.container.common.destroy destroy;
+static import common = rt.util.container.common;
 
 struct HashTab(Key, Value)
 {
@@ -34,8 +33,8 @@ struct HashTab(Key, Value)
             while (p !is null)
             {
                 auto pn = p._next;
-                destroy(*p);
-                .free(p);
+                common.destroy(*p);
+                common.free(p);
                 p = pn;
             }
         }
@@ -67,8 +66,8 @@ struct HashTab(Key, Value)
             if (p._key == key)
             {
                 *pp = p._next;
-                destroy(*p);
-                .free(p);
+                common.destroy(*p);
+                common.free(p);
                 if (--_length < _buckets.length && _length >= 4)
                     shrink();
                 return;
@@ -135,8 +134,8 @@ private:
             _buckets.length = 4;
 
         immutable hash = hashOf(key) & mask;
-        auto p = cast(Node*).xmalloc(Node.sizeof);
-        initialize(*p);
+        auto p = cast(Node*)common.xmalloc(Node.sizeof);
+        common.initialize(*p);
         p._key = key;
         p._next = _buckets[hash];
         _buckets[hash] = p;
@@ -292,6 +291,7 @@ unittest
 
 unittest
 {
+    alias RC = common.RC;
     HashTab!(size_t, RC) tab;
 
     size_t cnt;

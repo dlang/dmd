@@ -8,6 +8,7 @@ module rt.util.random;
 
 struct Rand48
 {
+nothrow:
     private ulong rng_state;
 
     void defaultSeed()

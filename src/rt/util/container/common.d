@@ -9,8 +9,6 @@ module rt.util.container.common;
 
 import core.stdc.stdlib : free, malloc, realloc;
 
-package:
-
 void* xrealloc(void* ptr, size_t sz)
 {
     import core.exception;
@@ -21,7 +19,7 @@ void* xrealloc(void* ptr, size_t sz)
     assert(0);
 }
 
-void* xmalloc(size_t sz)
+void* xmalloc(size_t sz) nothrow
 {
     import core.exception;
     if (auto nptr = .malloc(sz))

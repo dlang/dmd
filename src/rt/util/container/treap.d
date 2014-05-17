@@ -6,11 +6,12 @@
  */
 module rt.util.container.treap;
 
-import rt.util.container.common;
+static import common = rt.util.container.common;
 import rt.util.random;
 
 struct Treap(E)
 {
+nothrow:
     static struct Node
     {
         Node* left, right;
@@ -40,12 +41,12 @@ struct Treap(E)
         remove(&root, element);
     }
 
-    int opApply(scope int delegate(ref E) dg)
+    int opApply(scope int delegate(ref E) nothrow dg)
     {
-        return opApplyHelper(root, dg);
+        return (cast(const)&this).opApply((ref const E e) => dg(*cast(E*)&e));
     }
 
-    int opApply(scope int delegate(const E) dg) const
+    int opApply(scope int delegate(ref const E) nothrow dg) const
     {
         return opApplyHelper(root, dg);
     }
@@ -54,13 +55,25 @@ struct Treap(E)
     bool opEquals(E[] elements)
     {
         size_t i;
-        foreach (e; this)
+        // @@@BUG12739@@@
+        auto res = this.opApply(
+            (ref E e) {
+                if (i >= elements.length)
+                    return 1;
+                if (e != elements[i++])
+                    return 1;
+                return 0;
+            }
+        );
+        if (res)
+            return false;
+        /*foreach (e; this)
         {
             if (i >= elements.length)
                 return false;
             if (e != elements[i++])
                 return false;
-        }
+        }*/
         return i == elements.length;
     }
 
@@ -110,7 +123,7 @@ private:
 
     Node* allocNode(E element)
     {
-        Node* node = cast(Node*)xmalloc(Node.sizeof);
+        Node* node = cast(Node*)common.xmalloc(Node.sizeof);
         node.left = node.right = null;
         node.priority = rand48();
         node.element = element;
@@ -143,8 +156,7 @@ static:
 
     void freeNode(Node* node)
     {
-        import core.stdc.stdlib : free;
-        .free(node);
+        common.free(node);
     }
 
     Node* rotateL(Node* root)
@@ -209,21 +221,7 @@ static:
         freeNode(node);
     }
 
-    int opApplyHelper(Node* node, scope int delegate(ref E) dg)
-    {
-        if (!node)
-            return 0;
-
-        int result = opApplyHelper(node.left, dg);
-        if (result)
-            return result;
-        result = dg(node.element);
-        if (result)
-            return result;
-        return opApplyHelper(node.right, dg);
-    }
-
-    int opApplyHelper(const Node* node, scope int delegate(const E) dg)
+    int opApplyHelper(const Node* node, scope int delegate(ref const E) nothrow dg)
     {
         if (!node)
             return 0;

@@ -1097,7 +1097,7 @@ class GC
     /**
      *
      */
-    @property int delegate(int delegate(ref Root)) rootIter()
+    @property auto rootIter()
     {
         gcLock.lock();
         auto rc = &gcx.roots.opApply;
@@ -1154,7 +1154,7 @@ class GC
     /**
      *
      */
-    @property int delegate(int delegate(ref Range)) rangeIter()
+    @property auto rangeIter()
     {
         gcLock.lock();
         auto rc = &gcx.ranges.opApply;
@@ -1441,12 +1441,15 @@ struct Gcx
                 }
             }
 
-            foreach (range; ranges)
-            {
-                assert(range.pbot);
-                assert(range.ptop);
-                assert(range.pbot <= range.ptop);
-            }
+            // @@@BUG12739@@@
+            ranges.opApply(
+                (ref Range range) {
+                    assert(range.pbot);
+                    assert(range.ptop);
+                    assert(range.pbot <= range.ptop);
+                    return 0;
+                }
+            );
 
             for (size_t i = 0; i < B_PAGE; i++)
             {
@@ -2469,19 +2472,25 @@ struct Gcx
 
         // Scan roots[]
         debug(COLLECT_PRINTF) printf("\tscan roots[]\n");
-        foreach (root; roots)
-        {
-            mark(root.proot, root.proot+(void*).sizeof);
-        }
+        // @@@BUG12739@@@
+        roots.opApply(
+            (ref Root root) {
+                mark(cast(void*)&root.proot, cast(void*)(&root.proot + 1));
+                return 0;
+            }
+        );
 
         // Scan ranges[]
         debug(COLLECT_PRINTF) printf("\tscan ranges[]\n");
         //log++;
-        foreach (range; ranges)
-        {
-            debug(COLLECT_PRINTF) printf("\t\t%p .. %p\n", range.pbot, range.ptop);
-            mark(range.pbot, range.ptop);
-        }
+        // @@@BUG12739@@@
+        ranges.opApply(
+            (ref Range range) {
+               debug(COLLECT_PRINTF) printf("\t\t%p .. %p\n", range.pbot, range.ptop);
+               mark(range.pbot, range.ptop);
+               return 0;
+            }
+        );
         //log--;
 
         debug(COLLECT_PRINTF) printf("\tscan heap\n");
