@@ -3795,7 +3795,7 @@ L2:
                 /* AliasDeclaration distinguish @safe, @system, @trusted atttributes
                  * on prefix and postfix.
                  *   @safe alias void function() FP1;
-                 *   alias @safe void function() FP2;    // FP2 is not @safe
+                 *   alias @safe void function() FP2;    // changed to be @safe with bugzilla 12529
                  *   alias void function() @safe FP3;
                  */
                 pAttrs->storageClass &= (STCsafe | STCsystem | STCtrusted);

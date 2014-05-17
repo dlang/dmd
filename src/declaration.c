@@ -373,17 +373,15 @@ void AliasDeclaration::semantic(Scope *sc)
         goto L2;                        // it's a symbolic alias
 
     type = type->addStorageClass(storage_class);
-    if (storage_class & (STCref | STCnothrow | STCnogc | STCpure | STCdisable))
-    {
-        // For 'ref' to be attached to function types, and picked
-        // up by Type::resolve(), it has to go into sc.
-        sc = sc->push();
-        sc->stc |= storage_class & (STCref | STCnothrow | STCnogc | STCpure | STCshared | STCdisable);
-        type->resolve(loc, sc, &e, &t, &s);
-        sc = sc->pop();
-    }
-    else
-        type->resolve(loc, sc, &e, &t, &s);
+
+    // For 'ref', 'pure', 'nothrow', '@safe', etc. to be attached to function types,
+    // and picked up by Type::resolve(), it has to go into sc.
+    // And, prevent picking up function attributes from surrounding scope.
+    sc = sc->push();
+    sc->stc = storage_class & STC_FUNCATTR;
+    type->resolve(loc, sc, &e, &t, &s);
+    sc = sc->pop();
+
     if (s)
     {
         goto L2;
