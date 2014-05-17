@@ -1632,26 +1632,19 @@ Language changes listed by -transition=id:\n\
         fatal();
     if (global.params.useInline)
     {
-        /* The problem with useArrayBounds and useAssert is that the
-         * module being linked to may not have generated them, so if
-         * we inline functions from those modules, the symbols for them will
-         * not be found at link time.
+        /* Do pass 3 semantic analysis on all imported modules,
+         * since otherwise functions in them cannot be inlined
          * We must do this BEFORE generating the .deps file!
          */
-        if (!global.params.useArrayBounds && !global.params.useAssert)
+        for (size_t i = 0; i < Module::amodules.dim; i++)
         {
-            // Do pass 3 semantic analysis on all imported modules,
-            // since otherwise functions in them cannot be inlined
-            for (size_t i = 0; i < Module::amodules.dim; i++)
-            {
-                Module *m = Module::amodules[i];
-                if (global.params.verbose)
-                    fprintf(global.stdmsg, "semantic3 %s\n", m->toChars());
-                m->semantic3();
-            }
-            if (global.errors)
-                fatal();
+            Module *m = Module::amodules[i];
+            if (global.params.verbose)
+                fprintf(global.stdmsg, "semantic3 %s\n", m->toChars());
+            m->semantic3();
         }
+        if (global.errors)
+            fatal();
     }
     Module::runDeferredSemantic3();
     if (global.errors)
