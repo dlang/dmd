@@ -39,6 +39,8 @@ import gc.bits;
 import gc.stats;
 import gc.os;
 
+import rt.util.container.treap;
+
 import cstdlib = core.stdc.stdlib : calloc, free, malloc, realloc;
 import core.stdc.string : memcpy, memset, memmove;
 import core.bitop;
@@ -1095,10 +1097,10 @@ class GC
     /**
      *
      */
-    @property int delegate(int delegate(ref void*)) rootIter()
+    @property auto rootIter()
     {
         gcLock.lock();
-        auto rc = &gcx.rootIter;
+        auto rc = &gcx.roots.opApply;
         gcLock.unlock();
         return rc;
     }
@@ -1152,10 +1154,10 @@ class GC
     /**
      *
      */
-    @property int delegate(int delegate(ref Range)) rangeIter()
+    @property auto rangeIter()
     {
         gcLock.lock();
-        auto rc = &gcx.rangeIter;
+        auto rc = &gcx.ranges.opApply;
         gcLock.unlock();
         return rc;
     }
@@ -1321,6 +1323,13 @@ struct Range
 {
     void *pbot;
     void *ptop;
+    alias pbot this; // only consider pbot for relative ordering (opCmp)
+}
+
+struct Root
+{
+    void *proot;
+    alias proot this;
 }
 
 
@@ -1338,13 +1347,8 @@ struct Gcx
     void *cached_info_key;
     BlkInfo cached_info_val;
 
-    size_t nroots;
-    size_t rootdim;
-    void **roots;
-
-    size_t nranges;
-    size_t rangedim;
-    Range *ranges;
+    Treap!Root roots;
+    Treap!Range ranges;
 
     uint noStack;       // !=0 means don't scan stack
     uint log;           // turn on logging
@@ -1367,6 +1371,8 @@ struct Gcx
 
         (cast(byte*)&this)[0 .. Gcx.sizeof] = 0;
         log_init();
+        roots.initialize();
+        ranges.initialize();
         //printf("gcx = %p, self = %x\n", &this, self);
         inited = 1;
     }
@@ -1403,11 +1409,8 @@ struct Gcx
             pooltable = null;
         }
 
-        if (roots)
-            cstdlib.free(roots);
-
-        if (ranges)
-            cstdlib.free(ranges);
+        roots.removeAll();
+        ranges.removeAll();
     }
 
 
@@ -1438,24 +1441,15 @@ struct Gcx
                 }
             }
 
-            if (roots)
-            {
-                assert(rootdim != 0);
-                assert(nroots <= rootdim);
-            }
-
-            if (ranges)
-            {
-                assert(rangedim != 0);
-                assert(nranges <= rangedim);
-
-                for (size_t i = 0; i < nranges; i++)
-                {
-                    assert(ranges[i].pbot);
-                    assert(ranges[i].ptop);
-                    assert(ranges[i].pbot <= ranges[i].ptop);
+            // @@@BUG12739@@@
+            ranges.opApply(
+                (ref Range range) {
+                    assert(range.pbot);
+                    assert(range.ptop);
+                    assert(range.pbot <= range.ptop);
+                    return 0;
                 }
-            }
+            );
 
             for (size_t i = 0; i < B_PAGE; i++)
             {
@@ -1472,23 +1466,7 @@ struct Gcx
      */
     void addRoot(void *p) nothrow
     {
-        if (nroots == rootdim)
-        {
-            size_t newdim = rootdim * 2 + 16;
-            void** newroots;
-
-            newroots = cast(void**)cstdlib.malloc(newdim * newroots[0].sizeof);
-            if (!newroots)
-                onOutOfMemoryError();
-            if (roots)
-            {   memcpy(newroots, roots, nroots * newroots[0].sizeof);
-                cstdlib.free(roots);
-            }
-            roots = newroots;
-            rootdim = newdim;
-        }
-        roots[nroots] = p;
-        nroots++;
+        roots.insert(Root(p));
     }
 
 
@@ -1497,32 +1475,7 @@ struct Gcx
      */
     void removeRoot(void *p) nothrow
     {
-        for (size_t i = nroots; i--;)
-        {
-            if (roots[i] == p)
-            {
-                nroots--;
-                memmove(roots + i, roots + i + 1, (nroots - i) * roots[0].sizeof);
-                return;
-            }
-        }
-        assert(0);
-    }
-
-
-    /**
-     *
-     */
-    int rootIter(int delegate(ref void*) dg)
-    {
-        int result = 0;
-        for (size_t i = 0; i < nroots; ++i)
-        {
-            result = dg(roots[i]);
-            if (result)
-                break;
-        }
-        return result;
+        roots.remove(Root(p));
     }
 
 
@@ -1532,25 +1485,8 @@ struct Gcx
     void addRange(void *pbot, void *ptop) nothrow
     {
         //debug(PRINTF) printf("Thread %x ", pthread_self());
-        debug(PRINTF) printf("%p.Gcx::addRange(%p, %p), nranges = %d\n", &this, pbot, ptop, nranges);
-        if (nranges == rangedim)
-        {
-            size_t newdim = rangedim * 2 + 16;
-            Range *newranges;
-
-            newranges = cast(Range*)cstdlib.malloc(newdim * newranges[0].sizeof);
-            if (!newranges)
-                onOutOfMemoryError();
-            if (ranges)
-            {   memcpy(newranges, ranges, nranges * newranges[0].sizeof);
-                cstdlib.free(ranges);
-            }
-            ranges = newranges;
-            rangedim = newdim;
-        }
-        ranges[nranges].pbot = pbot;
-        ranges[nranges].ptop = ptop;
-        nranges++;
+        debug(PRINTF) printf("%p.Gcx::addRange(%p, %p)\n", &this, pbot, ptop);
+        ranges.insert(Range(pbot, ptop));
     }
 
 
@@ -1560,18 +1496,10 @@ struct Gcx
     void removeRange(void *pbot) nothrow
     {
         //debug(PRINTF) printf("Thread %x ", pthread_self());
-        debug(PRINTF) printf("Gcx.removeRange(%p), nranges = %d\n", pbot, nranges);
-        for (size_t i = nranges; i--;)
-        {
-            if (ranges[i].pbot == pbot)
-            {
-                nranges--;
-                memmove(ranges + i, ranges + i + 1, (nranges - i) * ranges[0].sizeof);
-                return;
-            }
-        }
-        debug(PRINTF) printf("Wrong thread\n");
+        debug(PRINTF) printf("Gcx.removeRange(%p)\n", pbot);
+        ranges.remove(Range(pbot, pbot)); // only pbot is used, see Range.opCmp
 
+        // debug(PRINTF) printf("Wrong thread\n");
         // This is a fatal error, but ignore it.
         // The problem is that we can get a Close() call on a thread
         // other than the one the range was allocated on.
@@ -1670,22 +1598,6 @@ struct Gcx
                 }
             }
         }
-    }
-
-
-    /**
-     *
-     */
-    int rangeIter(int delegate(ref Range) dg)
-    {
-        int result = 0;
-        for (size_t i = 0; i < nranges; ++i)
-        {
-            result = dg(ranges[i]);
-            if (result)
-                break;
-        }
-        return result;
     }
 
 
@@ -2560,16 +2472,25 @@ struct Gcx
 
         // Scan roots[]
         debug(COLLECT_PRINTF) printf("\tscan roots[]\n");
-        mark(roots, roots + nroots);
+        // @@@BUG12739@@@
+        roots.opApply(
+            (ref Root root) {
+                mark(cast(void*)&root.proot, cast(void*)(&root.proot + 1));
+                return 0;
+            }
+        );
 
         // Scan ranges[]
         debug(COLLECT_PRINTF) printf("\tscan ranges[]\n");
         //log++;
-        for (n = 0; n < nranges; n++)
-        {
-            debug(COLLECT_PRINTF) printf("\t\t%p .. %p\n", ranges[n].pbot, ranges[n].ptop);
-            mark(ranges[n].pbot, ranges[n].ptop);
-        }
+        // @@@BUG12739@@@
+        ranges.opApply(
+            (ref Range range) {
+               debug(COLLECT_PRINTF) printf("\t\t%p .. %p\n", range.pbot, range.ptop);
+               mark(range.pbot, range.ptop);
+               return 0;
+            }
+        );
         //log--;
 
         debug(COLLECT_PRINTF) printf("\tscan heap\n");
