@@ -2401,8 +2401,11 @@ Lagain:
                 else
                     e = new CallExp(loc, aggr, exps);
                 e = e->semantic(sc);
+                if (e->op == TOKerror)
+                    goto Lerror2;
                 if (e->type != Type::tint32)
-                {   error("opApply() function for %s must return an int", tab->toChars());
+                {
+                    error("opApply() function for %s must return an int", tab->toChars());
                     goto Lerror2;
                 }
             }
@@ -2418,8 +2421,11 @@ Lagain:
                 exps->push(flde);
                 e = new CallExp(loc, ec, exps);
                 e = e->semantic(sc);
+                if (e->op == TOKerror)
+                    goto Lerror2;
                 if (e->type != Type::tint32)
-                {   error("opApply() function for %s must return an int", tab->toChars());
+                {
+                    error("opApply() function for %s must return an int", tab->toChars());
                     goto Lerror2;
                 }
             }
