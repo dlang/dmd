@@ -5152,9 +5152,13 @@ void UnitTestDeclaration::semantic(Scope *sc)
     protection = sc->protection;
 
     if (scope)
-    {   sc = scope;
+    {
+        sc = scope;
         scope = NULL;
     }
+
+    if (!isInstantiated() && inNonRoot())
+        return;
 
     if (global.params.useUnitTests)
     {
