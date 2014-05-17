@@ -2835,7 +2835,7 @@ public:
 /// ditto
 @property immutable(T)[] idup(T:void)(const(T)[] a)
 {
-    return .dup(a);
+    return a.dup;
 }
 
 private U[] _trustedDup(T, U)(T[] a) @trusted
@@ -2907,32 +2907,32 @@ unittest
         {
            char[] m;
            string i;
-           m = dup(m);
-           i = idup(i);
-           m = dup(i);
-           i = idup(m);
+           m = m.dup;
+           i = i.idup;
+           m = i.dup;
+           i = m.idup;
         }
         {
            S1[] m;
            immutable(S1)[] i;
-           m = dup(m);
-           i = idup(i);
-           static assert(!is(typeof(idup(m))));
-           static assert(!is(typeof(dup(i))));
+           m = m.dup;
+           i = i.idup;
+           static assert(!is(typeof(m.idup)));
+           static assert(!is(typeof(i.dup)));
         }
         {
             S3[] m;
             immutable(S3)[] i;
-            static assert(!is(typeof(dup(m))));
-            static assert(!is(typeof(idup(i))));
+            static assert(!is(typeof(m.dup)));
+            static assert(!is(typeof(i.idup)));
         }
         {
             shared(S1)[] m;
-            m = dup(m);
-            static assert(!is(typeof(idup(m))));
+            m = m.dup;
+            static assert(!is(typeof(m.idup)));
         }
         {
-            int[] a = (inout(int)) { inout(const(int))[] a; return dup(a); }(0);
+            int[] a = (inout(int)) { inout(const(int))[] a; return a.dup; }(0);
         }
         return 1;
     }
@@ -2942,10 +2942,10 @@ unittest
         {
            S2[] m = [S2.init, S2.init];
            immutable(S2)[] i = [S2.init, S2.init];
-           m = dup(m);
-           m = dup(i);
-           i = idup(m);
-           i = idup(i);
+           m = m.dup;
+           m = i.dup;
+           i = m.idup;
+           i = i.idup;
         }
         return 2;
     }
@@ -2962,34 +2962,34 @@ unittest
     static struct Sthrow { this(this) @safe pure {} }
     static struct Sunsafe { this(this) @system pure nothrow {} }
 
-    static assert( __traits(compiles, ()         { dup!Sunpure([]); }));
-    static assert(!__traits(compiles, () pure    { dup!Sunpure([]); }));
-    static assert( __traits(compiles, ()         { dup!Sthrow([]); }));
-    static assert(!__traits(compiles, () nothrow { dup!Sthrow([]); }));
-    static assert( __traits(compiles, ()         { dup!Sunsafe([]); }));
-    static assert(!__traits(compiles, () @safe   { dup!Sunsafe([]); }));
+    static assert( __traits(compiles, ()         { [].dup!Sunpure; }));
+    static assert(!__traits(compiles, () pure    { [].dup!Sunpure; }));
+    static assert( __traits(compiles, ()         { [].dup!Sthrow; }));
+    static assert(!__traits(compiles, () nothrow { [].dup!Sthrow; }));
+    static assert( __traits(compiles, ()         { [].dup!Sunsafe; }));
+    static assert(!__traits(compiles, () @safe   { [].dup!Sunsafe; }));
 
-    static assert( __traits(compiles, ()         { idup!Sunpure([]); }));
-    static assert(!__traits(compiles, () pure    { idup!Sunpure([]); }));
-    static assert( __traits(compiles, ()         { idup!Sthrow([]); }));
-    static assert(!__traits(compiles, () nothrow { idup!Sthrow([]); }));
-    static assert( __traits(compiles, ()         { idup!Sunsafe([]); }));
-    static assert(!__traits(compiles, () @safe   { idup!Sunsafe([]); }));
+    static assert( __traits(compiles, ()         { [].idup!Sunpure; }));
+    static assert(!__traits(compiles, () pure    { [].idup!Sunpure; }));
+    static assert( __traits(compiles, ()         { [].idup!Sthrow; }));
+    static assert(!__traits(compiles, () nothrow { [].idup!Sthrow; }));
+    static assert( __traits(compiles, ()         { [].idup!Sunsafe; }));
+    static assert(!__traits(compiles, () @safe   { [].idup!Sunsafe; }));
 }
 
 unittest
 {
     static int*[] pureFoo() pure { return null; }
-    { char[] s; immutable x = s.dup(); }
-    { immutable x = (cast(int*[])null).dup(); }
+    { char[] s; immutable x = s.dup; }
+    { immutable x = (cast(int*[])null).dup; }
     { immutable x = pureFoo(); }
-    { immutable x = pureFoo().dup(); }
+    { immutable x = pureFoo().dup; }
 }
 
 unittest
 {
     auto a = [1, 2, 3];
-    auto b = a.dup();
+    auto b = a.dup;
     assert(b.capacity >= 3);
 }
 
@@ -3000,14 +3000,14 @@ unittest
     shared(void)[] s = [cast(shared)1];
     immutable(void)[] i = [cast(immutable)2];
 
-    s.dup();
-    static assert(is(typeof(s.dup()) == shared(void)[]));
+    s.dup;
+    static assert(is(typeof(s.dup) == shared(void)[]));
 
-    m = i.dup();
-    i = m.dup();
-    i = i.idup();
-    i = m.idup();
-    i = s.idup();
-    i = s.dup();
-    static assert(!__traits(compiles, m = s.dup()));
+    m = i.dup;
+    i = m.dup;
+    i = i.idup;
+    i = m.idup;
+    i = s.idup;
+    i = s.dup;
+    static assert(!__traits(compiles, m = s.dup));
 }
