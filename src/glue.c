@@ -85,12 +85,14 @@ void obj_append(Dsymbol *s)
 void obj_write_deferred(Library *library)
 {
     for (size_t i = 0; i < obj_symbols_towrite.dim; i++)
-    {   Dsymbol *s = obj_symbols_towrite[i];
+    {
+        Dsymbol *s = obj_symbols_towrite[i];
         Module *m = s->getModule();
 
         char *mname;
         if (m)
-        {   mname = m->srcfile->toChars();
+        {
+            mname = m->srcfile->toChars();
             lastmname = mname;
         }
         else
@@ -112,7 +114,7 @@ void obj_write_deferred(Library *library)
         idbuf.printf("%s.%d", m ? m->ident->toChars() : mname, count);
         char *idstr = idbuf.peekString();
 
-        if(!m)
+        if (!m)
         {
             // it doesn't make sense to make up a module if we don't know where to put the symbol
             //  so output it into it's own object file without ModuleInfo
@@ -465,7 +467,8 @@ void Module::genobjfile(bool multiobj)
     }
 
     if (global.params.multiobj)
-    {   /* This is necessary because the main .obj for this module is written
+    {
+        /* This is necessary because the main .obj for this module is written
          * first, but determining whether marray or massert or munittest are needed is done
          * possibly later in the doppelganger modules.
          * Another way to fix it is do the main one last.
@@ -481,6 +484,14 @@ void Module::genobjfile(bool multiobj)
     if (!global.params.betterC /*|| needModuleInfo()*/)
         genmoduleinfo();
 
+    genhelpers(false);
+
+    objmod->termfile();
+}
+
+void Module::genhelpers(bool iscomdat)
+{
+
     // If module assert
     for (int i = 0; i < 3; i++)
     {
@@ -490,8 +501,8 @@ void Module::genobjfile(bool multiobj)
         switch (i)
         {
             case 0:     ma = marray;    rt = RTLSYM_DARRAY;     bc = BCexit; break;
-            case 1:     ma = massert;   rt = RTLSYM_DASSERTM;   bc = BCexit; break;
-            case 2:     ma = munittest; rt = RTLSYM_DUNITTESTM; bc = BCret;  break;
+            case 1:     ma = massert;   rt = RTLSYM_DASSERT;    bc = BCexit; break;
+            case 2:     ma = munittest; rt = RTLSYM_DUNITTEST;  bc = BCret;  break;
             default:    assert(0);
         }
 
@@ -520,7 +531,7 @@ void Module::genobjfile(bool multiobj)
                 elinnum = el_var(sp);
             }
 
-            elem *efilename = el_ptr(toSymbol(this));
+            elem *efilename = toEfilename(this);
 
             elem *e = el_var(rtlsym[rt]);
             e = el_bin(OPcall, TYvoid, e, el_param(elinnum, efilename));
@@ -530,16 +541,13 @@ void Module::genobjfile(bool multiobj)
             b->Belem = e;
             ma->Sfunc->Fstartline.Sfilename = arg;
             ma->Sfunc->Fstartblock = b;
-            ma->Sclass = SCglobal;
+            ma->Sclass = iscomdat ? SCcomdat : SCglobal;
             ma->Sfl = 0;
             ma->Sflags |= rtlsym[rt]->Sflags & SFLexit;
             writefunc(ma);
         }
     }
-
-    objmod->termfile();
 }
-
 
 /**************************************
  * Search for a druntime array op
