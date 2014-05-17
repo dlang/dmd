@@ -133,12 +133,12 @@ Expression *Add(Type *type, Expression *e1, Expression *e2)
         // This rigamarole is necessary so that -0.0 doesn't get
         // converted to +0.0 by doing an extraneous add with +0.0
         complex_t c1;
-        real_t r1 = 0.0;
-        real_t i1 = 0.0;
+        real_t r1 = ldouble (0.0);
+        real_t i1 = ldouble (0.0);
 
         complex_t c2;
-        real_t r2 = 0.0;
-        real_t i2 = 0.0;
+        real_t r2 = ldouble (0.0);
+        real_t i2 = ldouble (0.0);
 
         complex_t v;
         int x;
@@ -218,12 +218,12 @@ Expression *Min(Type *type, Expression *e1, Expression *e2)
         // This rigamarole is necessary so that -0.0 doesn't get
         // converted to +0.0 by doing an extraneous add with +0.0
         complex_t c1;
-        real_t r1 = 0.0;
-        real_t i1 = 0.0;
+        real_t r1 = ldouble (0.0);
+        real_t i1 = ldouble (0.0);
 
         complex_t c2;
-        real_t r2 = 0.0;
-        real_t i2 = 0.0;
+        real_t r2 = ldouble (0.0);
+        real_t i2 = ldouble (0.0);
 
         complex_t v;
         int x;
