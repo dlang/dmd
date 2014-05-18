@@ -393,6 +393,13 @@ void halt()
 extern void backend_init();
 extern void backend_term();
 
+void print_version()
+{
+    printf("DMD%llu D Compiler %s\n",
+           (unsigned long long) sizeof(size_t) * 8,
+           global.version);
+}
+
 void usage()
 {
 #if TARGET_LINUX
@@ -402,9 +409,8 @@ void usage()
 #else
     const char fpic[] = "";
 #endif
-    printf("DMD%llu D Compiler %s\n%s %s\n",
-           (unsigned long long) sizeof(size_t) * 8,
-        global.version, global.copyright, global.written);
+    print_version();
+    printf("%s %s\n", global.copyright, global.written);
     printf("\
 Documentation: http://dlang.org/\n\
 Usage:\n\
@@ -463,6 +469,7 @@ Usage:\n\
   -transition=id show additional info about language change identified by 'id'\n\
   -transition=?  list all language changes\n\
   -unittest      compile in unit tests\n\
+  -V             print compiler version\n\
   -v             verbose\n\
   -vcolumns      print character (column) numbers in diagnostics\n\
   -version=level compile in version code >= level\n\
@@ -1027,6 +1034,10 @@ Language changes listed by -transition=id:\n\
                 global.params.debugf = true;
             else if (strcmp(p + 1, "-help") == 0)
             {   usage();
+                exit(EXIT_SUCCESS);
+            }
+            else if (strcmp(p + 1, "V") == 0)
+            {   print_version();
                 exit(EXIT_SUCCESS);
             }
             else if (strcmp(p + 1, "-r") == 0)
