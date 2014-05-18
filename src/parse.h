@@ -90,7 +90,7 @@ public:
     StaticAssert *parseStaticAssert();
     TypeQualified *parseTypeof();
     Type *parseVector();
-    LINK parseLinkage();
+    LINK parseLinkage(Identifiers **);
     Condition *parseDebugCondition();
     Condition *parseVersionCondition();
     Condition *parseStaticIfCondition();

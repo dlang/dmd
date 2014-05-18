@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2012 by Digital Mars
+// Copyright (c) 1999-2014 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -24,6 +24,7 @@
 #include "id.h"
 #include "import.h"
 #include "template.h"
+#include "nspace.h"
 
 #include "rmem.h"
 #include "target.h"
@@ -1184,4 +1185,28 @@ void TemplateMixin::toObjFile(bool multiobj)
     //printf("TemplateMixin::toObjFile('%s')\n", toChars());
     TemplateInstance::toObjFile(0);
 }
+
+/* ================================================================== */
+
+void Nspace::toObjFile(bool multiobj)
+{
+#if LOG
+    printf("Nspace::toObjFile('%s', this = %p)\n", toChars(), this);
+#endif
+    if (!isError(this) && members)
+    {
+        if (multiobj)
+            // Append to list of object files to be written later
+            obj_append(this);
+        else
+        {
+            for (size_t i = 0; i < members->dim; i++)
+            {
+                Dsymbol *s = (*members)[i];
+                s->toObjFile(multiobj);
+            }
+        }
+    }
+}
+
 

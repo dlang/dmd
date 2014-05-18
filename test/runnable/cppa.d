@@ -267,6 +267,17 @@ void test10()
 
 /****************************************/
 
+extern (C++, N11.M) { void bar11(); }
+
+extern (C++, A11.B) { extern (C++, C) { void bar(); }}
+
+void test11()
+{
+    bar11();
+    A11.B.C.bar();
+}
+/****************************************/
+
 void main()
 {
     test1();
@@ -280,6 +291,7 @@ void main()
     test11802();
     test9();
     test10();
+    test11();
 
     printf("Success\n");
 }

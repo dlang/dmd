@@ -34,6 +34,7 @@
 #include "id.h"
 #include "version.h"
 #include "aliasthis.h"
+#include "nspace.h"
 
 // How multiple declarations are parsed.
 // If 1, treat as C.
@@ -198,6 +199,8 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
         StorageClass storageClass = STCundefined;
         Expression *depmsg = NULL;
         LINK link = LINKdefault;
+        Identifiers *idents = NULL;
+        Loc linkLoc;
         PROT protection = PROTundefined;
         unsigned alignment = 0;
         Expressions *udas = NULL;
@@ -544,11 +547,12 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
                     stc = STCextern;
                     goto Lstc;
                 }
-                LINK l = parseLinkage();
+                linkLoc = token.loc;
+                LINK lnk = parseLinkage(&idents);
                 if (link != LINKdefault)
-                    error("conflicting storage class 'extern(%d)' and 'extern(%d)'", l, link);
-                link = l;
-                linkage = l;
+                    error("redundant linkage declaration extern (%d)", lnk);
+                link = lnk;
+                linkage = lnk;
                 goto Lagain;
             }
 
@@ -725,7 +729,21 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
                 a = new Dsymbols(), a->push(s);
             s = new DeprecatedDeclaration(depmsg, a);
         }
-        if (link != LINKdefault)
+        if (idents)
+        {
+            assert(link != LINKdefault);
+            assert(idents->dim);
+            for (size_t i = idents->dim; i;)
+            {
+                Identifier *id = (*idents)[--i];
+                if (s)
+                    a = new Dsymbols(), a->push(s);
+                s = new Nspace(linkLoc, id, a);
+            }
+            delete idents;
+            idents = NULL;
+        }
+        else if (link != LINKdefault)
         {
             if (s)
                 a = new Dsymbols(), a->push(s);
@@ -1040,12 +1058,15 @@ Type *Parser::parseVector()
 }
 
 /***********************************
- * Parse extern (linkage)
+ * Parse:
+ *      extern (linkage)
+ *      extern (C++, namespaces)
  * The parser is on the 'extern' token.
  */
 
-LINK Parser::parseLinkage()
+LINK Parser::parseLinkage(Identifiers **pidents)
 {
+    Identifiers *idents = NULL;
     LINK link = LINKdefault;
     nextToken();
     assert(token.value == TOKlparen);
@@ -1064,8 +1085,31 @@ LINK Parser::parseLinkage()
         {
             link = LINKc;
             if (token.value == TOKplusplus)
-            {   link = LINKcpp;
+            {
+                link = LINKcpp;
                 nextToken();
+                if (token.value == TOKcomma)    // , namespaces
+                {
+                    idents = new Identifiers();
+                    nextToken();
+                    while (1)
+                    {
+                        if (token.value == TOKidentifier)
+                        {
+                            Identifier *idn = token.ident;
+                            idents->push(idn);
+                            nextToken();
+                            if (token.value == TOKdot)
+                            {
+                                nextToken();
+                                continue;
+                            }
+                        }
+                        else
+                            error("identifier expected for C++ namespace");
+                        break;
+                    }
+                }
             }
         }
         else if (id == Id::System)
@@ -1083,6 +1127,7 @@ LINK Parser::parseLinkage()
         link = LINKd;           // default
     }
     check(TOKrparen);
+    *pidents = idents;
     return link;
 }
 
@@ -3067,10 +3112,12 @@ Dsymbols *Parser::parseDeclarations(bool autodecl, StorageClass storage_class, c
     Identifier *ident;
     TOK tok = TOKreserved;
     LINK link = linkage;
+    bool sawLinkage = false;            // seen a linkage declaration
     unsigned structalign = 0;
     Loc loc = token.loc;
     Expressions *udas = NULL;
     Token *tk;
+    Identifiers *idents = NULL;
 
     //printf("parseDeclarations() %s\n", token.toChars());
     if (!comment)
@@ -3244,13 +3291,24 @@ Dsymbols *Parser::parseDeclarations(bool autodecl, StorageClass storage_class, c
                 continue;
 
             case TOKextern:
+            {
                 if (peek(&token)->value != TOKlparen)
                 {   stc = STCextern;
                     goto L1;
                 }
 
-                link = parseLinkage();
+                if (sawLinkage)
+                    error("redundant linkage declaration");
+                sawLinkage = true;
+                Identifiers *idents = NULL;
+                link = parseLinkage(&idents);
+                if (idents)
+                {
+                    error("C++ name spaces not allowed here");
+                    delete idents;
+                }
                 continue;
+            }
 
             case TOKalign:
             {
