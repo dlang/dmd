@@ -26,7 +26,7 @@ nothrow:
 
     auto opCall()
     {
-        auto result = front();
+        auto result = front;
         popFront();
         return result;
     }
