@@ -63,6 +63,7 @@ module core.cpuid;
 
 @trusted:
 nothrow:
+@nogc:
 
 // If optimizing for a particular processor, it is generally better
 // to identify based on features rather than model. NOTE: Normally
@@ -376,7 +377,7 @@ __gshared uint max_cpuid, max_extended_cpuid;
 void getcacheinfoCPUID2()
 {
     // We are only interested in the data caches
-    void decipherCpuid2(ubyte x) {
+    void decipherCpuid2(ubyte x) @nogc {
         if (x==0) return;
         // Values from http://www.sandpile.org/ia32/cpuid.htm.
         // Includes Itanium and non-Intel CPUs.
