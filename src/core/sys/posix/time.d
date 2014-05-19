@@ -22,6 +22,8 @@ public import core.sys.posix.signal; // for sigevent
 
 version (Posix):
 extern (C):
+nothrow:
+@nogc:
 
 //
 // Required (defined in core.stdc.time)

@@ -19,6 +19,8 @@ public import core.sys.posix.sys.types; // for time_t
 
 version (Posix):
 extern (C):
+nothrow:
+@nogc:
 
 //
 // Required

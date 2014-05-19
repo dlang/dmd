@@ -21,6 +21,9 @@ public import core.sys.posix.sys.types; // for off_t
 version (Posix):
 extern (C):
 
+nothrow:
+@nogc:
+
 //
 // Required (defined in core.stdc.stdio)
 //

@@ -20,6 +20,8 @@ public import core.sys.posix.sys.types; // for ino_t
 
 version (Posix):
 extern (C):
+nothrow:
+@nogc:
 
 //
 // Required

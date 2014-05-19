@@ -23,6 +23,9 @@ public import core.sys.posix.sys.stat;  // for S_IFMT, etc.
 version (Posix):
 extern (C):
 
+nothrow:
+@nogc:
+
 //
 // Required
 //

@@ -20,6 +20,8 @@ public import core.sys.posix.sys.wait;
 
 version (Posix):
 extern (C):
+nothrow:
+@nogc:
 
 //
 // Required (defined in core.stdc.stdlib)

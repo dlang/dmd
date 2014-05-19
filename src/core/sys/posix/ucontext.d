@@ -19,6 +19,8 @@ public import core.sys.posix.signal; // for sigset_t, stack_t
 
 version (Posix):
 extern (C):
+nothrow:
+@nogc:
 
 //
 // XOpen (XSI)

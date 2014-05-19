@@ -22,6 +22,7 @@ public import core.sys.posix.sys.types; // for size_t, ssize_t, uid_t, gid_t, of
 version (Posix):
 extern (C):
 nothrow:
+@nogc:
 
 version( Posix )
 {
