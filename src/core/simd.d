@@ -38,29 +38,29 @@ template Vector(T)
 
 /* Handy aliases
  */
-alias Vector!(void[16])  void16;        ///
-alias Vector!(double[2]) double2;       ///
-alias Vector!(float[4])  float4;        ///
-alias Vector!(byte[16])  byte16;        ///
-alias Vector!(ubyte[16]) ubyte16;       ///
-alias Vector!(short[8])  short8;        ///
-alias Vector!(ushort[8]) ushort8;       ///
-alias Vector!(int[4])    int4;          ///
-alias Vector!(uint[4])   uint4;         ///
-alias Vector!(long[2])   long2;         ///
-alias Vector!(ulong[2])  ulong2;        ///
+static if (is(Vector!(void[16])))   alias Vector!(void[16])  void16;        ///
+static if (is(Vector!(double[2])))  alias Vector!(double[2]) double2;       ///
+static if (is(Vector!(float[4])))   alias Vector!(float[4])  float4;        ///
+static if (is(Vector!(byte[16])))   alias Vector!(byte[16])  byte16;        ///
+static if (is(Vector!(ubyte[16])))  alias Vector!(ubyte[16]) ubyte16;       ///
+static if (is(Vector!(short[8])))   alias Vector!(short[8])  short8;        ///
+static if (is(Vector!(ushort[8])))  alias Vector!(ushort[8]) ushort8;       ///
+static if (is(Vector!(int[4])))     alias Vector!(int[4])    int4;          ///
+static if (is(Vector!(uint[4])))    alias Vector!(uint[4])   uint4;         ///
+static if (is(Vector!(long[2])))    alias Vector!(long[2])   long2;         ///
+static if (is(Vector!(ulong[2])))   alias Vector!(ulong[2])  ulong2;        ///
 
-alias Vector!(void[32])   void32;        ///
-alias Vector!(double[4])  double4;       ///
-alias Vector!(float[8])   float8;        ///
-alias Vector!(byte[32])   byte32;        ///
-alias Vector!(ubyte[32])  ubyte32;       ///
-alias Vector!(short[16])  short16;       ///
-alias Vector!(ushort[16]) ushort16;      ///
-alias Vector!(int[8])     int8;          ///
-alias Vector!(uint[8])    uint8;         ///
-alias Vector!(long[4])    long4;         ///
-alias Vector!(ulong[4])   ulong4;        ///
+static if (is(Vector!(void[32])))   alias Vector!(void[32])   void32;        ///
+static if (is(Vector!(double[4])))  alias Vector!(double[4])  double4;       ///
+static if (is(Vector!(float[8])))   alias Vector!(float[8])   float8;        ///
+static if (is(Vector!(byte[32])))   alias Vector!(byte[32])   byte32;        ///
+static if (is(Vector!(ubyte[32])))  alias Vector!(ubyte[32])  ubyte32;       ///
+static if (is(Vector!(short[16])))  alias Vector!(short[16])  short16;       ///
+static if (is(Vector!(ushort[16]))) alias Vector!(ushort[16]) ushort16;      ///
+static if (is(Vector!(int[8])))     alias Vector!(int[8])     int8;          ///
+static if (is(Vector!(uint[8])))    alias Vector!(uint[8])    uint8;         ///
+static if (is(Vector!(long[4])))    alias Vector!(long[4])    long4;         ///
+static if (is(Vector!(ulong[4])))   alias Vector!(ulong[4])   ulong4;        ///
 
 version ( D_SIMD )
 {
