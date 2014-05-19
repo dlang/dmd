@@ -22,6 +22,8 @@ public import core.sys.posix.sys.socket;  // for socklen_t
 
 version (Posix):
 extern (C):
+nothrow:
+@nogc:
 
 //
 // Required

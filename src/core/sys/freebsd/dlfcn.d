@@ -87,7 +87,7 @@ static if (__BSD_VISIBLE)
 
 private template __externC(RT, P...)
 {
-    alias extern(C) RT function(P) nothrow __externC;
+    alias extern(C) RT function(P) nothrow @nogc __externC;
 }
 
 /* XSI functions first. */

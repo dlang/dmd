@@ -21,6 +21,8 @@ public import core.sys.posix.sys.types;
 
 version (Posix):
 extern (C):
+nothrow:
+@nogc:
 
 //
 // Required
