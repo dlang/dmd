@@ -3,7 +3,7 @@ TEST_OUTPUT:
 ---
 fail_compilation/diag12678.d(19): Error: const field 'cf1' initialized multiple times
 fail_compilation/diag12678.d(22): Error: immutable field 'if1' initialized multiple times
-fail_compilation/diag12678.d(25): Error: field 'cf2' initializing not allowed in loops or after labels
+fail_compilation/diag12678.d(25): Error: const field 'cf2' initialization is not allowed in loops or after labels
 ---
 */
 
