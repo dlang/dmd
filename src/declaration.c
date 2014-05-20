@@ -796,7 +796,7 @@ bool OverDeclaration::equals(RootObject *o)
             return true;
         if (FuncDeclaration *fd = s->isFuncDeclaration())
         {
-            return fd->isUnique();
+            return fd->isUnique() != NULL;
         }
         if (TemplateDeclaration *td = s->isTemplateDeclaration())
         {
