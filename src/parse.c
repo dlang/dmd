@@ -3117,7 +3117,6 @@ Dsymbols *Parser::parseDeclarations(bool autodecl, StorageClass storage_class, c
     Loc loc = token.loc;
     Expressions *udas = NULL;
     Token *tk;
-    Identifiers *idents = NULL;
 
     //printf("parseDeclarations() %s\n", token.toChars());
     if (!comment)
