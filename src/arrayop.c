@@ -158,6 +158,8 @@ bool isArrayOpValid(Expression *e)
 
 bool isNonAssignmentArrayOp(Expression *e)
 {
+    if (e->op == TOKslice)
+        return isNonAssignmentArrayOp(((SliceExp *)e)->e1);
     Type *tb = e->type->toBasetype();
 
     if (tb->ty == Tarray || tb->ty == Tsarray)

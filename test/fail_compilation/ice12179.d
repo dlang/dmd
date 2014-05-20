@@ -40,3 +40,19 @@ void main()
     arr1 ~= [1] + a[];         // NG
     arr2 ~= [1] + a[];         // NG
 }
+
+// from issue 12769
+/*
+TEST_OUTPUT:
+---
+fail_compilation/ice12179.d(55): Error: array operation -a[] without assignment not implemented
+fail_compilation/ice12179.d(57): Error: array operation (-a[])[0..4] without assignment not implemented
+---
+*/
+float[] f12769(float[] a)
+{
+    if (a.length < 4)
+        return -a[];
+    else
+        return (-a[])[0..4];
+}
