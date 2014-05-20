@@ -269,10 +269,10 @@ void AggregateDeclaration::semantic3(Scope *sc)
         Dsymbol *s = ti->toAlias();
         Expression *e = new DsymbolExp(Loc(), s, 0);
 
-        Scope *sc2 = ti->tempdecl->scope->startCTFE();
-        sc2->tinst = sc->tinst;
-        e = e->semantic(sc2);
-        sc2->endCTFE();
+        Scope *sc3 = ti->tempdecl->scope->startCTFE();
+        sc3->tinst = sc->tinst;
+        e = e->semantic(sc3);
+        sc3->endCTFE();
 
         e = e->ctfeInterpret();
         getRTInfo = e;
