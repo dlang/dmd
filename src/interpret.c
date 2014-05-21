@@ -3027,7 +3027,8 @@ public:
                     for (size_t i = 0; i < exps->dim; i++)
                     {
                         Expression *ex = (*e->arguments)[i];
-                        ex = ex->interpret(istate);
+                        if (ex)
+                            ex = ex->interpret(istate);
                         if (exceptionOrCantInterpret(ex))
                         {
                             result = ex;
