@@ -4396,6 +4396,11 @@ void Catch::semantic(Scope *sc)
     //printf("Catch::semantic(%s)\n", ident->toChars());
 
 #ifndef IN_GCC
+    if (sc->os && sc->os->tok != TOKon_scope_failure)
+    {
+        // If enclosing is scope(success) or scope(exit), this will be placed in finally block.
+        error(loc, "cannot put catch statement inside %s", Token::toChars(sc->os->tok));
+    }
     if (sc->tf)
     {
         /* This is because the _d_local_unwind() gets the stack munged
@@ -4425,7 +4430,8 @@ void Catch::semantic(Scope *sc)
     if (!cd || ((cd != ClassDeclaration::throwable) && !ClassDeclaration::throwable->isBaseOf(cd, NULL)))
     {
         if (type != Type::terror)
-        {   error(loc, "can only catch class objects derived from Throwable, not '%s'", type->toChars());
+        {
+            error(loc, "can only catch class objects derived from Throwable, not '%s'", type->toChars());
             type = Type::terror;
         }
     }
@@ -4521,6 +4527,26 @@ Statement *OnScopeStatement::syntaxCopy()
 
 Statement *OnScopeStatement::semantic(Scope *sc)
 {
+#ifndef IN_GCC
+    if (tok != TOKon_scope_exit)
+    {
+        // scope(success) and scope(failure) are rewritten to try-catch(-finally) statement,
+        // so the generated catch block cannot be placed in finally block.
+        // See also Catch::semantic.
+        if (sc->os && sc->os->tok != TOKon_scope_failure)
+        {
+            // If enclosing is scope(success) or scope(exit), this will be placed in finally block.
+            error("cannot put %s statement inside %s", Token::toChars(tok), Token::toChars(sc->os->tok));
+            return new ErrorStatement();
+        }
+        if (sc->tf)
+        {
+            error("cannot put %s statement inside finally block", Token::toChars(tok));
+            return new ErrorStatement();
+        }
+    }
+#endif
+
     sc = sc->push();
     sc->tf = NULL;
     sc->os = this;
