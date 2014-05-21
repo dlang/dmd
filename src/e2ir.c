@@ -2645,7 +2645,8 @@ elem *toElem(Expression *e, IRState *irs)
                 if (e1->Eoper == OPind)
                     ex = e1->E1;
                 if (ae->e2->op == TOKstructliteral &&
-                    ex->Eoper == OPvar && ex->EV.sp.Voffset == 0)
+                    ex->Eoper == OPvar && ex->EV.sp.Voffset == 0 &&
+                    ae->op == TOKconstruct)
                 {
                     StructLiteralExp *se = (StructLiteralExp *)ae->e2;
 
