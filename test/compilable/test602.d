@@ -343,7 +343,7 @@ static assert(!__traits(compiles, (bool b)
 }));
 
 // Goto into scope(failure)
-static assert(__traits(compiles, (bool b)
+static assert(!__traits(compiles, (bool b)
 {
     if (b)
         goto label;
