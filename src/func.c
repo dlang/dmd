@@ -1708,7 +1708,10 @@ void FuncDeclaration::semantic3(Scope *sc)
                 if (f->isnothrow && (global.errors != nothrowErrors) )
                     ::error(loc, "%s '%s' is nothrow yet may throw", kind(), toPrettyChars());
                 if (flags & FUNCFLAGnothrowInprocess)
+                {
+                    if (type == f) f = (TypeFunction *)f->copy();
                     f->isnothrow = !(blockexit & BEthrow);
+                }
                 //printf("callSuper = x%x\n", sc2->callSuper);
 
                 /* Append:
@@ -1727,6 +1730,18 @@ void FuncDeclaration::semantic3(Scope *sc)
             }
             else if (fes)
             {
+                // Check for errors related to 'nothrow'.
+                int nothrowErrors = global.errors;
+                int blockexit = fbody->blockExit(this, f->isnothrow);
+                if (f->isnothrow && (global.errors != nothrowErrors) )
+                    ::error(loc, "%s '%s' is nothrow yet may throw", kind(), toPrettyChars());
+                if (flags & FUNCFLAGnothrowInprocess)
+                {
+                    if (type == f) f = (TypeFunction *)f->copy();
+                    f->isnothrow = !(blockexit & BEthrow);
+                }
+                //printf("callSuper = x%x\n", sc2->callSuper);
+
                 // For foreach(){} body, append a return 0;
                 Expression *e = new IntegerExp(0);
                 Statement *s = new ReturnStatement(Loc(), e);

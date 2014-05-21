@@ -932,6 +932,24 @@ void test12103()
 }
 
 /***************************************/
+// 12739
+
+struct S12739
+{
+nothrow:
+    int opApply(int delegate(ref int) nothrow dg)
+    {
+        return 0;
+    }
+}
+
+void test12739() nothrow
+{
+    S12739 s;
+    foreach (e; s) {}
+}
+
+/***************************************/
 
 int main()
 {
@@ -958,6 +976,7 @@ int main()
     test10475b();
     test11291();
     test12103();
+    test12739();
 
     printf("Success\n");
     return 0;
