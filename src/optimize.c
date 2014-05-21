@@ -469,6 +469,8 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
                 for (size_t i = 0; i < e->arguments->dim; i++)
                 {
                     Expression *arg = (*e->arguments)[i];
+                    if (!arg)
+                        continue;
                     arg = arg->optimize(WANTvalue);
                     (*e->arguments)[i] = arg;
                 }

@@ -853,6 +853,14 @@ void test6937()
 /********************************************/
 // 12681
 
+struct HasUnion12774
+{
+    union
+    {
+        int a, b;
+    }
+}
+
 bool test12681()
 {
     immutable int x = 42;
@@ -880,6 +888,8 @@ bool test12681()
     auto s3 = new S3(&x);
     assert(s3.p == &x);
     assert(s3.foo() == 42);
+
+    auto x12774 = new HasUnion12774();
 
     return true;
 }
