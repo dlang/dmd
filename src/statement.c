@@ -4946,23 +4946,20 @@ Statement *ImportStatement::semantic(Scope *sc)
     for (size_t i = 0; i < imports->dim; i++)
     {
         Import *s = (*imports)[i]->isImport();
-
-        if (!s->aliasdecls.dim)
+        assert(!s->aliasdecls.dim);
+        for (size_t j = 0; j < s->names.dim; j++)
         {
-            for (size_t j = 0; j < s->names.dim; j++)
-            {
-                Identifier *name = s->names[j];
-                Identifier *alias = s->aliases[j];
+            Identifier *name = s->names[j];
+            Identifier *alias = s->aliases[j];
 
-                if (!alias)
-                    alias = name;
+            if (!alias)
+                alias = name;
 
-                TypeIdentifier *tname = new TypeIdentifier(s->loc, name);
-                AliasDeclaration *ad = new AliasDeclaration(s->loc, alias, tname);
-                ad->import = s;
+            TypeIdentifier *tname = new TypeIdentifier(s->loc, name);
+            AliasDeclaration *ad = new AliasDeclaration(s->loc, alias, tname);
+            ad->import = s;
 
-                s->aliasdecls.push(ad);
-            }
+            s->aliasdecls.push(ad);
         }
 
         s->semantic(sc);
