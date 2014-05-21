@@ -1,6 +1,7 @@
 // EXTRA_CPP_SOURCES: cppb.cpp
 
 import std.c.stdio;
+import core.stdc.stdarg;
 
 extern (C++)
         int foob(int i, int j, int k);
@@ -278,6 +279,37 @@ void test11()
 }
 /****************************************/
 
+char[100] valistbuffer;
+
+extern(C++) void myvprintfx(const(char)* format, va_list va)
+{
+    vsprintf(valistbuffer.ptr, format, va);
+}
+extern(C++) void myvprintf(const(char)*, va_list);
+extern(C++) void myprintf(const(char)* format, ...)
+{
+    va_list ap;
+    version(X86_64)
+    {
+        version(Windows)
+            va_start(ap, format);
+        else
+            va_start(ap, __va_argsave);
+    }
+    else
+        va_start(ap, format);
+    myvprintf(format, ap);
+    va_end(ap);
+}
+
+void testvalist()
+{
+    myprintf("hello %d", 999);
+    assert(valistbuffer[0..9] == "hello 999");
+}
+
+/****************************************/
+
 void main()
 {
     test1();
@@ -292,6 +324,7 @@ void main()
     test9();
     test10();
     test11();
+    testvalist();
 
     printf("Success\n");
 }
