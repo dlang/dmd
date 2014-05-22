@@ -230,9 +230,14 @@ va_list (defined in core.stdc.stdarg)
 char*  tempnam(in char*, in char*);
 */
 
+char*  tempnam(in char*, in char*);
+
 version( linux )
 {
     enum P_tmpdir  = "/tmp";
-
-    char*  tempnam(in char*, in char*);
 }
+version( OSX )
+{
+    enum P_tmpdir  = "/var/tmp";
+}
+
