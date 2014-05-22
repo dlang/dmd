@@ -49,7 +49,7 @@ private void _enforceSameLength(in char[] action,
 private void _enforceNoOverlap(in char[] action,
     in void* ptr1, in void* ptr2, in size_t bytes)
 {
-    const d = ptr1 > ptr2 ? ptr1 - ptr2 : ptr2 - ptr1;
+    const size_t d = ptr1 > ptr2 ? ptr1 - ptr2 : ptr2 - ptr1;
     if(d >= bytes)
         return;
     const overlappedBytes = bytes - d;
