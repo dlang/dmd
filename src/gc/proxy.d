@@ -342,36 +342,21 @@ extern (C)
                 // TODO: Decide if this is an error condition.
             }
             proxy = p;
-            // @@@BUG12739@@@
-            _gc.rootIter()(
-                (ref Root r) {
-                    proxy.gc_addRoot( r );
-                    return 0;
-                }
-            );
-            _gc.rangeIter()(
-                (ref Range r) {
-                    proxy.gc_addRange( r.pbot, r.ptop - r.pbot );
-                    return 0;
-                }
-            );
+            foreach (r; _gc.rootIter())
+                proxy.gc_addRoot( r );
+
+            foreach (r; _gc.rangeIter())
+                proxy.gc_addRange( r.pbot, r.ptop - r.pbot );
         }
 
         void gc_clrProxy()
         {
-            // @@@BUG12739@@@
-            _gc.rangeIter()(
-                (ref Range r) {
-                    proxy.gc_removeRange( r.pbot );
-                    return 0;
-                }
-            );
-            _gc.rootIter()(
-                (ref Root r) {
-                    proxy.gc_removeRoot( r );
-                    return 0;
-                }
-            );
+            foreach (r; _gc.rangeIter())
+                proxy.gc_removeRange( r.pbot );
+
+            foreach (r; _gc.rootIter())
+                proxy.gc_removeRoot( r );
+
             proxy = null;
         }
     }
