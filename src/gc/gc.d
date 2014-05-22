@@ -844,7 +844,17 @@ class GC
 
         if (gcx.running)
             onInvalidMemoryOperationError();
-
+            
+        static if (USE_CACHE){
+            if (p == gcx.cached_size_key){
+                gcx.cached_size_key = gcx.cached_size_key.init;
+                gcx.cached_size_val = gcx.cached_size_val.init;
+            }
+            if (p == gcx.cached_info_key){
+                gcx.cached_info_key = gcx.cached_info_key.init;
+                gcx.cached_info_val = gcx.cached_info_val.init;
+            }
+        }
         Pool*  pool;
         size_t pagenum;
         Bins   bin;
@@ -883,6 +893,7 @@ class GC
             list.pool = pool;
             gcx.bucket[bin] = list;
         }
+
         gcx.log_free(sentinel_add(p));
     }
 
@@ -1341,12 +1352,13 @@ immutable size_t notbinsize[B_MAX] = [ ~(16-1),~(32-1),~(64-1),~(128-1),~(256-1)
 
 struct Gcx
 {
-    void *cached_size_key;
-    size_t cached_size_val;
+    static if (USE_CACHE){
+        void *cached_size_key;
+        size_t cached_size_val;
 
-    void *cached_info_key;
-    BlkInfo cached_info_val;
-
+        void *cached_info_key;
+        BlkInfo cached_info_val;
+    }
     Treap!Root roots;
     Treap!Range ranges;
 
@@ -1684,8 +1696,10 @@ struct Gcx
         Pool*  pool;
         size_t size = 0;
 
-        if (USE_CACHE && p == cached_size_key)
-            return cached_size_val;
+        static if (USE_CACHE){
+            if (p == cached_size_key)
+                return cached_size_val;
+        }
 
         pool = findPool(p);
         if (pool)
@@ -1700,8 +1714,10 @@ struct Gcx
             {
                 size = pool.bPageOffsets[pagenum] * PAGESIZE;
             }
-            cached_size_key = p;
-            cached_size_val = size;
+            static if (USE_CACHE){
+                cached_size_key = p;
+                cached_size_val = size;
+            }
         }
         return size;
     }
@@ -1715,8 +1731,10 @@ struct Gcx
         Pool*   pool;
         BlkInfo info;
 
-        if (USE_CACHE && p == cached_info_key)
-            return cached_info_val;
+        static if (USE_CACHE){
+            if (p == cached_info_key)
+                return cached_info_val;
+        }
 
         pool = findPool(p);
         if (pool)
@@ -1762,19 +1780,22 @@ struct Gcx
             // are the bits for the pointer, which may be garbage
             offset = cast(size_t)(info.base - pool.baseAddr);
             info.attr = getBits(pool, cast(size_t)(offset >> pool.shiftBy));
-
-            cached_info_key = p;
-            cached_info_val = info;
+            static if (USE_CACHE){
+                cached_info_key = p;
+                cached_info_val = info;
+            }
         }
         return info;
     }
 
     void updateCaches(void*p, size_t size) nothrow
     {
-        if (USE_CACHE && p == cached_size_key)
-            cached_size_val = size;
-        if (p == cached_info_key)
-            cached_info_val.size = size;
+        static if (USE_CACHE){
+            if (p == cached_size_key)
+                cached_size_val = size;
+            if (p == cached_info_key)
+                cached_info_val.size = size;
+        }
     }
 
     /**
@@ -2416,12 +2437,14 @@ struct Gcx
         running = 1;
 
         thread_suspendAll();
-
-        cached_size_key = cached_size_key.init;
-        cached_size_val = cached_size_val.init;
-        cached_info_key = cached_info_key.init;
-        cached_info_val = cached_info_val.init;
-
+        
+        static if (USE_CACHE){
+            cached_size_key = cached_size_key.init;
+            cached_size_val = cached_size_val.init;
+            cached_info_key = cached_info_key.init;
+            cached_info_val = cached_info_val.init;
+        }
+        
         anychanges = 0;
         for (n = 0; n < npools; n++)
         {
