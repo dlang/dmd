@@ -623,28 +623,8 @@ int FileName::ensurePathExists(const char *path)
 const char *FileName::canonicalName(const char *name)
 {
 #if POSIX
-  #if _POSIX_VERSION >= 200809L || defined (__linux__)
     // NULL destination buffer is allowed and preferred
     return realpath(name, NULL);
-  #else
-    char *cname = NULL;
-    #if PATH_MAX
-        /* PATH_MAX must be defined as a constant in <limits.h>,
-         * otherwise using it is unsafe due to TOCTOU
-         */
-        size_t path_max = (size_t)PATH_MAX;
-        if (path_max > 0)
-        {
-            /* Need to add one to PATH_MAX because of realpath() buffer overflow bug:
-             * http://isec.pl/vulnerabilities/isec-0011-wu-ftpd.txt
-             */
-            cname = (char *)malloc(path_max + 1);
-            if (cname == NULL)
-                return NULL;
-        }
-    #endif
-    return realpath(name, cname);
-  #endif
 #elif _WIN32
     /* Apparently, there is no good way to do this on Windows.
      * GetFullPathName isn't it, but use it anyway.
