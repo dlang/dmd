@@ -846,15 +846,15 @@ class GC
             onInvalidMemoryOperationError();
             
         static if (USE_CACHE){
-	    if (p == cached_size_key){
-                cached_size_key = cached_size_key.init;
-                cached_size_val = cached_size_val.init;
-	    }
-            if (p == cached_info_key){
-	        cached_info_key = cached_info_key.init;
-	        cached_info_val = cached_info_val.init;
-	    }
-	}
+            if (p == gcx.cached_size_key){
+                gcx.cached_size_key = gcx.cached_size_key.init;
+                gcx.cached_size_val = gcx.cached_size_val.init;
+            }
+            if (p == gcx.cached_info_key){
+                gcx.cached_info_key = gcx.cached_info_key.init;
+                gcx.cached_info_val = gcx.cached_info_val.init;
+            }
+        }
         Pool*  pool;
         size_t pagenum;
         Bins   bin;
@@ -1697,9 +1697,9 @@ struct Gcx
         size_t size = 0;
 
         static if (USE_CACHE){
-	    if (p == cached_size_key)
-	        return cached_size_val;
-	}
+            if (p == cached_size_key)
+                return cached_size_val;
+        }
 
         pool = findPool(p);
         if (pool)
@@ -1732,9 +1732,9 @@ struct Gcx
         BlkInfo info;
 
         static if (USE_CACHE){
-	    if (p == cached_info_key)
-	        return cached_info_val;
-	}
+            if (p == cached_info_key)
+                return cached_info_val;
+        }
 
         pool = findPool(p);
         if (pool)
@@ -1791,11 +1791,11 @@ struct Gcx
     void updateCaches(void*p, size_t size) nothrow
     {
         static if (USE_CACHE){
-	    if (p == cached_size_key)
-	        cached_size_val = size;
-	    if (p == cached_info_key)
-	        cached_info_val.size = size;
-	}
+            if (p == cached_size_key)
+                cached_size_val = size;
+            if (p == cached_info_key)
+                cached_info_val.size = size;
+        }
     }
 
     /**
