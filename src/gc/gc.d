@@ -26,6 +26,7 @@ module gc.gc;
 //debug = PTRCHECK2;            // thorough but slow pointer checking
 //debug = PROFILING;            // measure performance of various steps.
 //debug = INVARIANT;            // enable invariants
+//debug = CACHE_HITRATE;        // enable hit rate measure
 
 /*************** Configuration *********************/
 
@@ -54,6 +55,7 @@ private alias BlkInfo = core.memory.GC.BlkInfo;
 version (GNU) import gcc.builtins;
 
 debug (PRINTF) import core.stdc.stdio : printf;
+debug (CACHE_HITRATE) import core.stdc.stdio : printf;
 debug (COLLECT_PRINTF) import core.stdc.stdio : printf;
 debug private import core.stdc.stdio;
 
@@ -635,7 +637,8 @@ class GC
             }
             else
             {
-                psize = gcx.findSize(p);        // find allocated size
+                auto pool = gcx.findPool(p);
+                psize = pool.getSize(p);     // get allocated size
                 if (psize >= PAGESIZE && size >= PAGESIZE)
                 {
                     auto psz = psize / PAGESIZE;
@@ -643,8 +646,7 @@ class GC
                     if (newsz == psz)
                         return p;
 
-                    auto pool = gcx.findPool(p);
-                    auto pagenum = (p - pool.baseAddr) / PAGESIZE;
+                    auto pagenum = pool.pagenumOf(p);
 
                     if (newsz < psz)
                     {   // Shrink in place
@@ -671,7 +673,6 @@ class GC
                     }
                     if(alloc_size)
                         *alloc_size = newsz * PAGESIZE;
-                    gcx.updateCaches(p, newsz * PAGESIZE);
                     return p;
                     Lfallthrough:
                         {}
@@ -679,23 +680,18 @@ class GC
                 if (psize < size ||             // if new size is bigger
                     psize > size * 2)           // or less than half
                 {
-                    if (psize)
+                    if (psize && pool)
                     {
-                        Pool *pool = gcx.findPool(p);
+                        auto biti = cast(size_t)(p - pool.baseAddr) >> pool.shiftBy;
 
-                        if (pool)
+                        if (bits)
                         {
-                            auto biti = cast(size_t)(p - pool.baseAddr) >> pool.shiftBy;
-
-                            if (bits)
-                            {
-                                gcx.clrBits(pool, biti, ~BlkAttr.NONE);
-                                gcx.setBits(pool, biti, bits);
-                            }
-                            else
-                            {
-                                bits = gcx.getBits(pool, biti);
-                            }
+                            gcx.clrBits(pool, biti, ~BlkAttr.NONE);
+                            gcx.setBits(pool, biti, bits);
+                        }
+                        else
+                        {
+                            bits = gcx.getBits(pool, biti);
                         }
                     }
                     p2 = mallocNoSync(size, bits, alloc_size);
@@ -751,7 +747,10 @@ class GC
         }
         else
         {
-            auto psize = gcx.findSize(p);   // find allocated size
+            auto pool = gcx.findPool(p);
+            if (!pool)
+                return 0;
+            auto psize = pool.getSize(p);   // get allocated size
             if (psize < PAGESIZE)
                 return 0;                   // cannot extend buckets
 
@@ -759,8 +758,7 @@ class GC
             auto minsz = (minsize + PAGESIZE - 1) / PAGESIZE;
             auto maxsz = (maxsize + PAGESIZE - 1) / PAGESIZE;
 
-            auto pool = gcx.findPool(p);
-            auto pagenum = (p - pool.baseAddr) / PAGESIZE;
+            auto pagenum = pool.pagenumOf(p);
 
             size_t sz;
             for (sz = 0; sz < maxsz; sz++)
@@ -780,7 +778,6 @@ class GC
             memset(pool.pagetable + pagenum + psz, B_PAGEPLUS, sz);
             pool.updateOffsets(pagenum);
             pool.freepages -= sz;
-            gcx.updateCaches(p, (psz + sz) * PAGESIZE);
             return (psz + sz) * PAGESIZE;
         }
     }
@@ -844,17 +841,7 @@ class GC
 
         if (gcx.running)
             onInvalidMemoryOperationError();
-            
-        static if (USE_CACHE){
-            if (p == gcx.cached_size_key){
-                gcx.cached_size_key = gcx.cached_size_key.init;
-                gcx.cached_size_val = gcx.cached_size_val.init;
-            }
-            if (p == gcx.cached_info_key){
-                gcx.cached_info_key = gcx.cached_info_key.init;
-                gcx.cached_info_val = gcx.cached_info_val.init;
-            }
-        }
+
         Pool*  pool;
         size_t pagenum;
         Bins   bin;
@@ -866,7 +853,7 @@ class GC
             return;                             // ignore
         sentinel_Invariant(p);
         p = sentinel_sub(p);
-        pagenum = cast(size_t)(p - pool.baseAddr) / PAGESIZE;
+        pagenum = pool.pagenumOf(p);
 
         debug(PRINTF) printf("pool base = %p, PAGENUM = %d of %d, bin = %d\n", pool.baseAddr, pagenum, pool.npages, pool.pagetable[pagenum]);
         debug(PRINTF) if(pool.isLargeObject) printf("Block size = %d\n", pool.bPageOffsets[pagenum]);
@@ -1050,7 +1037,7 @@ class GC
             p = sentinel_sub(p);
             pool = gcx.findPool(p);
             assert(pool);
-            pagenum = cast(size_t)(p - pool.baseAddr) / PAGESIZE;
+            pagenum = pool.pagenumOf(p);
             bin = cast(Bins)pool.pagetable[pagenum];
             assert(bin <= B_PAGE);
             size = binsize[bin];
@@ -1353,11 +1340,14 @@ immutable size_t notbinsize[B_MAX] = [ ~(16-1),~(32-1),~(64-1),~(128-1),~(256-1)
 struct Gcx
 {
     static if (USE_CACHE){
-        void *cached_size_key;
-        size_t cached_size_val;
-
-        void *cached_info_key;
-        BlkInfo cached_info_val;
+        byte *cached_pool_topAddr;
+        byte *cached_pool_baseAddr;
+        Pool *cached_pool;
+        debug (CACHE_HITRATE)
+        {
+            ulong cached_pool_queries;
+            ulong cached_pool_hits;
+        }
     }
     Treap!Root roots;
     Treap!Range ranges;
@@ -1405,6 +1395,11 @@ struct Gcx
             printf("\tGrand total GC time:  %d milliseconds\n",
                 1000 * (recoverTime + sweepTime + markTime + prepTime)
                 / CLOCKS_PER_SEC);
+        }
+
+        debug(CACHE_HITRATE)
+        {
+            printf("\tGcx.Pool Cache hits: %llu\tqueries: %llu\n",cached_pool_hits,cached_pool_queries);
         }
 
         inited = 0;
@@ -1618,8 +1613,18 @@ struct Gcx
      * Return null if not in a Pool.
      * Assume pooltable[] is sorted.
      */
-    Pool *findPool(void *p) nothrow
+    Pool *findPool(bool bypassCache = !USE_CACHE)(void *p) nothrow
     {
+        static if (!bypassCache && USE_CACHE)
+        {
+            debug (CACHE_HITRATE) cached_pool_queries++;
+            if (p < cached_pool_topAddr
+                && p >= cached_pool_baseAddr)
+            {
+                debug (CACHE_HITRATE) cached_pool_hits++;
+                return cached_pool;
+            }
+        }
         if (p >= minAddr && p < maxAddr)
         {
             if (npools <= 1)
@@ -1641,7 +1646,15 @@ struct Gcx
                 else if (p >= pool.topAddr)
                     low = mid + 1;
                 else
+                {
+                    static if (!bypassCache && USE_CACHE)
+                    {
+                        cached_pool_topAddr = pool.topAddr;
+                        cached_pool_baseAddr = pool.baseAddr;
+                        cached_pool = pool;
+                    }
                     return pool;
+                }
             }
         }
         return null;
@@ -1693,35 +1706,11 @@ struct Gcx
      */
     size_t findSize(void *p) nothrow
     {
-        Pool*  pool;
-        size_t size = 0;
-
-        static if (USE_CACHE){
-            if (p == cached_size_key)
-                return cached_size_val;
-        }
-
-        pool = findPool(p);
+        Pool* pool = findPool(p);
         if (pool)
-        {
-            size_t pagenum;
-            Bins   bin;
-
-            pagenum = cast(size_t)(p - pool.baseAddr) / PAGESIZE;
-            bin = cast(Bins)pool.pagetable[pagenum];
-            size = binsize[bin];
-            if (bin == B_PAGE)
-            {
-                size = pool.bPageOffsets[pagenum] * PAGESIZE;
-            }
-            static if (USE_CACHE){
-                cached_size_key = p;
-                cached_size_val = size;
-            }
-        }
-        return size;
+            return pool.getSize(p);
+        return 0;
     }
-
 
     /**
      *
@@ -1730,11 +1719,6 @@ struct Gcx
     {
         Pool*   pool;
         BlkInfo info;
-
-        static if (USE_CACHE){
-            if (p == cached_info_key)
-                return cached_info_val;
-        }
 
         pool = findPool(p);
         if (pool)
@@ -1780,21 +1764,16 @@ struct Gcx
             // are the bits for the pointer, which may be garbage
             offset = cast(size_t)(info.base - pool.baseAddr);
             info.attr = getBits(pool, cast(size_t)(offset >> pool.shiftBy));
-            static if (USE_CACHE){
-                cached_info_key = p;
-                cached_info_val = info;
-            }
         }
         return info;
     }
 
-    void updateCaches(void*p, size_t size) nothrow
+    void resetPoolCache() nothrow
     {
         static if (USE_CACHE){
-            if (p == cached_size_key)
-                cached_size_val = size;
-            if (p == cached_info_key)
-                cached_info_val.size = size;
+            cached_pool_topAddr = cached_pool_topAddr.init;
+            cached_pool_baseAddr = cached_pool_baseAddr.init;
+            cached_pool = cached_pool.init;
         }
     }
 
@@ -1938,6 +1917,10 @@ struct Gcx
         else
         {
             minAddr = maxAddr = null;
+        }
+
+        static if (USE_CACHE){
+            resetPoolCache();
         }
 
         debug(PRINTF) printf("Done minimizing.\n");
@@ -2321,7 +2304,7 @@ struct Gcx
                 if ((cast(size_t)p & ~cast(size_t)(PAGESIZE-1)) == pcache)
                     continue;
 
-                auto pool = findPool(p);
+                auto pool = findPool!true(p);
                 if (pool)
                 {
                     size_t offset = cast(size_t)(p - pool.baseAddr);
@@ -2437,13 +2420,6 @@ struct Gcx
         running = 1;
 
         thread_suspendAll();
-        
-        static if (USE_CACHE){
-            cached_size_key = cached_size_key.init;
-            cached_size_val = cached_size_val.init;
-            cached_info_key = cached_info_key.init;
-            cached_info_val = cached_info_val.init;
-        }
         
         anychanges = 0;
         for (n = 0; n < npools; n++)
@@ -2786,7 +2762,7 @@ struct Gcx
     {
         // first, we find the Pool this block is in, then check to see if the
         // mark bit is clear.
-        auto pool = findPool(addr);
+        auto pool = findPool!true(addr);
         if(pool)
         {
             auto offset = cast(size_t)(addr - pool.baseAddr);
@@ -3006,7 +2982,7 @@ struct Gcx
             for (size_t i = 0; i < current.dim; i++)
             {
                 void* p = current.data[i].p;
-                if (!findPool(current.data[i].parent))
+                if (!findPool!true(current.data[i].parent))
                 {
                     auto j = prev.find(current.data[i].p);
                     debug(PRINTF) printf(j == OPFAIL ? "N" : " ");
@@ -3029,7 +3005,7 @@ struct Gcx
             {
                 debug(PRINTF) printf("parent'ing unallocated memory %p, parent = %p\n", p, parent);
                 Pool *pool;
-                pool = findPool(p);
+                pool = findPool!true(p);
                 assert(pool);
                 size_t offset = cast(size_t)(p - pool.baseAddr);
                 size_t biti;
@@ -3314,6 +3290,40 @@ struct Pool
         }
     }
 
+    /**
+     * Given a pointer p in the p, return the pagenum.
+     */
+    size_t pagenumOf(void *p) const nothrow
+    in
+    {
+        assert(p >= baseAddr);
+        assert(p < topAddr);
+    }
+    body
+    {
+        return cast(size_t)(p - baseAddr) / PAGESIZE;
+    }
+
+    /**
+     * Get size of pointer p in pool.
+     */
+    size_t getSize(void *p) const nothrow
+    in
+    {
+        assert(p >= baseAddr);
+        assert(p < topAddr);
+    }
+    body
+    {
+        size_t pagenum = pagenumOf(p);
+        Bins bin = cast(Bins)pagetable[pagenum];
+        size_t size = binsize[bin];
+        if (bin == B_PAGE)
+        {
+            size = bPageOffsets[pagenum] * PAGESIZE;
+        }
+        return size;
+    }
 
     /**
      * Used for sorting pooltable[]
