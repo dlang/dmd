@@ -759,6 +759,7 @@ int tryMain(size_t argc, const char *argv[])
                         printf("\
 Language changes listed by -transition=id:\n\
   =tls           do list all variables going into thread local storage\n\
+  =nan           do list all variables default-initialized to NaN\n\
 ");
                         return EXIT_FAILURE;
                     }
@@ -783,6 +784,8 @@ Language changes listed by -transition=id:\n\
                     {
                         if (strcmp(p + 12, "tls") == 0)
                             global.params.vtls = 1;
+                        else if (strcmp(p + 12, "nan") == 0)
+                            global.params.vnan = 1;
                     }
                     else
                         goto Lerror;

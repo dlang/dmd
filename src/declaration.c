@@ -1440,6 +1440,14 @@ Lnomatch:
     else if (storage_class & STCmanifest)
         error("manifest constants must have initializers");
 
+    if (global.params.vnan && !isParameter() && !sc->inunion && type->baseElemOf()->isfloating() && !init)
+    {
+        char *p = loc.toChars();
+        fprintf(global.stdmsg, "%s: %s is default-initialized with NaN\n", p ? p : "", toChars());
+        if (p)
+            mem.free(p);
+    }
+
     bool isBlit = false;
     if (!init && !sc->inunion && !(storage_class & (STCstatic | STCgshared | STCextern)) && fd &&
         (!(storage_class & (STCfield | STCin | STCforeach | STCparameter | STCresult))

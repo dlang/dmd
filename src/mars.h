@@ -95,6 +95,7 @@ struct Param
     bool verbose;       // verbose compile
     bool showColumns;   // print character (column) numbers in diagnostics
     bool vtls;          // identify thread local variables
+    bool vnan;          // identify floating-point variables default-initialized to NaN
     char vgc;           // identify gc usage
     bool vfield;        // identify non-mutable field variables
     char symdebug;      // insert debug symbolic information
