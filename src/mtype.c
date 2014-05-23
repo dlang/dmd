@@ -325,7 +325,7 @@ void Type::init()
 
     tvoidptr = tvoid->pointerTo();
     tstring = tchar->immutableOf()->arrayOf();
-    tvalist = tvoid->pointerTo();
+    tvalist = Target::va_listType();
 
     if (global.params.isLP64)
     {

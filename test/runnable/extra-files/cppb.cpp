@@ -212,3 +212,11 @@ namespace N11 { namespace M { void bar11() { } } }
 
 namespace A11 { namespace B { namespace C { void bar() { } } } }
 
+/**************************************/
+
+void myvprintfx(const char* format, va_list);
+
+void myvprintf(const char* format, va_list va)
+{
+    myvprintfx(format, va);
+}
