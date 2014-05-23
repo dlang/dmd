@@ -7,7 +7,7 @@ import std.stdio;
 import std.format;
 import std.utf;
 
-dstring formatstring(TypeInfo[] arguments, void *argptr) 
+dstring formatstring(TypeInfo[] arguments, va_list argptr)
 {
 
 	dstring message = null; 

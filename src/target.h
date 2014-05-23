@@ -29,6 +29,7 @@ struct Target
     static unsigned alignsize(Type* type);
     static unsigned fieldalign(Type* type);
     static unsigned critsecsize();
+    static Type *va_listType();  // get type of va_list
 };
 
 #endif
