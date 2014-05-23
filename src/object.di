@@ -289,6 +289,7 @@ const:
     @property void function() dtor() nothrow pure;
     @property void function() ictor() nothrow pure;
     @property void function() unitTest() nothrow pure;
+    @property __UnitTest[] unitTests() nothrow;
     @property immutable(ModuleInfo*)[] importedModules() nothrow pure;
     @property TypeInfo_Class[] localClasses() nothrow pure;
     @property string name() nothrow pure;
@@ -737,4 +738,14 @@ private void _doPostblit(T)(T[] ary)
         foreach (ref el; ary)
             postBlit(cast(void*)&el);
     }
+}
+
+
+struct __UnitTest
+{
+    void function() func;
+    string file;
+    uint line;
+    bool disabled;
+    string name;
 }

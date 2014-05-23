@@ -32,6 +32,7 @@ enum
     MIimportedModules = 0x400,
     MIlocalClasses = 0x800,
     MIname       = 0x1000,
+    MIunitTest2  = 0x2000,
 }
 
 /*****
