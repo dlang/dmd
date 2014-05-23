@@ -126,6 +126,7 @@
     <ClCompile Include="msc.c" />
     <ClCompile Include="mtype.c" />
     <ClCompile Include="nogc.c" />
+    <ClCompile Include="nspace.c" />
     <ClCompile Include="opover.c" />
     <ClCompile Include="optimize.c" />
     <ClCompile Include="parse.c" />
@@ -304,6 +305,7 @@
     <ClInclude Include="mars.h" />
     <ClInclude Include="module.h" />
     <ClInclude Include="mtype.h" />
+    <ClInclude Include="nspace.h" />
     <ClInclude Include="objfile.h" />
     <ClInclude Include="parse.h" />
     <ClInclude Include="scope.h" />

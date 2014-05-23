@@ -626,6 +626,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\nspace.c"
+				>
+			</File>
+			<File
+				RelativePath=".\nspace.h"
+				>
+			</File>
+			<File
 				RelativePath=".\objfile.h"
 				>
 			</File>
