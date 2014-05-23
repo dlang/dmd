@@ -33,7 +33,6 @@
     #include        <spawn.h>
     #if __APPLE__
         #include <crt_externs.h>
-        #define environ (*(_NSGetEnviron()))
     #endif
 #else
     #define HAS_POSIX_SPAWN 0
