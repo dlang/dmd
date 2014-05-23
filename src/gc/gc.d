@@ -1453,15 +1453,12 @@ struct Gcx
                 }
             }
 
-            // @@@BUG12739@@@
-            ranges.opApply(
-                (ref Range range) {
-                    assert(range.pbot);
-                    assert(range.ptop);
-                    assert(range.pbot <= range.ptop);
-                    return 0;
-                }
-            );
+            foreach (range; ranges)
+            {
+                assert(range.pbot);
+                assert(range.ptop);
+                assert(range.pbot <= range.ptop);
+            }
 
             for (size_t i = 0; i < B_PAGE; i++)
             {
@@ -2495,25 +2492,19 @@ struct Gcx
 
         // Scan roots[]
         debug(COLLECT_PRINTF) printf("\tscan roots[]\n");
-        // @@@BUG12739@@@
-        roots.opApply(
-            (ref Root root) {
-                mark(cast(void*)&root.proot, cast(void*)(&root.proot + 1));
-                return 0;
-            }
-        );
+        foreach (root; roots)
+        {
+            mark(cast(void*)&root.proot, cast(void*)(&root.proot + 1));
+        }
 
         // Scan ranges[]
         debug(COLLECT_PRINTF) printf("\tscan ranges[]\n");
         //log++;
-        // @@@BUG12739@@@
-        ranges.opApply(
-            (ref Range range) {
-               debug(COLLECT_PRINTF) printf("\t\t%p .. %p\n", range.pbot, range.ptop);
-               mark(range.pbot, range.ptop);
-               return 0;
-            }
-        );
+        foreach (range; ranges)
+        {
+            debug(COLLECT_PRINTF) printf("\t\t%p .. %p\n", range.pbot, range.ptop);
+            mark(range.pbot, range.ptop);
+        }
         //log--;
 
         debug(COLLECT_PRINTF) printf("\tscan heap\n");

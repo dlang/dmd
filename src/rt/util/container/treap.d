@@ -55,25 +55,13 @@ nothrow:
     bool opEquals(E[] elements)
     {
         size_t i;
-        // @@@BUG12739@@@
-        auto res = this.opApply(
-            (ref E e) {
-                if (i >= elements.length)
-                    return 1;
-                if (e != elements[i++])
-                    return 1;
-                return 0;
-            }
-        );
-        if (res)
-            return false;
-        /*foreach (e; this)
+        foreach (e; this)
         {
             if (i >= elements.length)
                 return false;
             if (e != elements[i++])
                 return false;
-        }*/
+        }
         return i == elements.length;
     }
 
