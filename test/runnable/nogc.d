@@ -8,6 +8,27 @@ extern(C) int printf(const char*, ...);
     return 3;
 }
 
+@nogc void test2()
+{
+    if(__ctfe)
+    {
+        int[] arr;
+        arr ~= 42;
+    }
+}
+
+@nogc void test3()
+{
+    if(!__ctfe)
+    {
+    }
+    else
+    {
+        int[] arr;
+        arr ~= 42;
+    }
+}
+
 /***********************/
 // 12642
 
@@ -34,6 +55,8 @@ void test12642() @nogc
 int main()
 {
     test1();
+    test2();
+    test3();
     test12642();
 
     printf("Success\n");

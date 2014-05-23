@@ -2789,6 +2789,12 @@ Statement *IfStatement::semantic(Scope *sc)
     // semantic analysis of the skipped code.
     // This feature allows a limited form of conditional compilation.
     condition = condition->optimize(WANTflags);
+
+    //Allow allocations in @nogc functions if we're in a if(__ctfe){} block
+    if (condition->op == TOKvar && ((VarExp*)condition)->var && ((VarExp*)condition)->var->ident == Id::ctfe)
+    {
+        scd->flags |= SCOPEctfe;
+    }
     ifbody = ifbody->semanticNoScope(scd);
     scd->pop();
 
@@ -2797,7 +2803,18 @@ Statement *IfStatement::semantic(Scope *sc)
     sc->callSuper = cs0;
     sc->fieldinit = fi0;
     if (elsebody)
-        elsebody = elsebody->semanticScope(sc, NULL, NULL);
+    {
+        Scope *sce = sc->push();
+        //Allow allocations in @nogc functions if we're in a if(!__ctfe){}else{here} block
+        if (condition->op == TOKnot && ((UnaExp*)condition)->e1->op == TOKvar &&
+            ((VarExp*)((UnaExp*)condition)->e1)->var &&
+            ((VarExp*)((UnaExp*)condition)->e1)->var->ident == Id::ctfe)
+        {
+            sce->flags |= SCOPEctfe;
+        }
+        elsebody = elsebody->semanticNoScope(sce);
+        sce->pop();
+    }
     sc->mergeCallSuper(loc, cs1);
     sc->mergeFieldInit(loc, fi1);
 
