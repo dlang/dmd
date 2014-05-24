@@ -250,8 +250,8 @@ static:
 unittest
 {
     // randomized unittest for randomized data structure
-    import cstdlib = core.stdc.stdlib : rand, srand;
-    import ctime = core.stdc.time : time;
+    import /*cstdlib = */core.stdc.stdlib : rand, srand;
+    import /*ctime = */core.stdc.time : time;
 
     enum OP { add, remove }
     enum initialSize = 1000;

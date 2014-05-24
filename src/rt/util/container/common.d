@@ -7,7 +7,8 @@
  */
 module rt.util.container.common;
 
-import core.stdc.stdlib : free, malloc, realloc;
+import core.stdc.stdlib : malloc, realloc;
+public import core.stdc.stdlib : free;
 
 void* xrealloc(void* ptr, size_t sz)
 {
