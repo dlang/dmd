@@ -1305,7 +1305,7 @@ private:
             sm_this = t;
         }
         else version( Posix )
-        { 
+        {
             pthread_setspecific( sm_this, cast(void*) t );
         }
         else
@@ -3402,7 +3402,7 @@ private
  * Such registers are usually floating point registers and the return address. In order to
  * implement this, we return a modified stack pointer from fiber_switchContext. However,
  * we have to remember that when we restore the registers from the stack!
- * 
+ *
  * --------------------------- <= Stack Base
  * |          Frame          | <= Many other stack frames
  * |          Frame          |
@@ -3471,7 +3471,7 @@ private
  *
  * The ARM implementation is meant to be used as a kind of documented example implementation.
  * Look there for a concrete example.
- * 
+ *
  * FIXME: fiber_entrypoint might benefit from a @noreturn attribute, but D doesn't have one.
  */
 
@@ -3639,7 +3639,7 @@ class Fiber
      *  Any exception not handled by this fiber if rethrow = false, null
      *  otherwise.
      */
-    final Object call( bool rethrow = true )
+    final Throwable call( bool rethrow = true )
     in
     {
         assert( m_state == State.HOLD );
