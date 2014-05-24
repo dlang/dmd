@@ -1097,10 +1097,14 @@ class GC
      */
     @property auto rootIter()
     {
-        gcLock.lock();
-        auto rc = &gcx.roots.opApply;
-        gcLock.unlock();
-        return rc;
+        auto iter(scope int delegate(ref Root) nothrow dg)
+        {
+            gcLock.lock();
+            auto res = gcx.roots.opApply(dg);
+            gcLock.unlock();
+            return res;
+        }
+        return &iter;
     }
 
 
@@ -1154,10 +1158,14 @@ class GC
      */
     @property auto rangeIter()
     {
-        gcLock.lock();
-        auto rc = &gcx.ranges.opApply;
-        gcLock.unlock();
-        return rc;
+        auto iter(scope int delegate(ref Range) nothrow dg)
+        {
+            gcLock.lock();
+            auto res = gcx.ranges.opApply(dg);
+            gcLock.unlock();
+            return res;
+        }
+        return &iter;
     }
 
 
