@@ -303,19 +303,6 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
     }
 
     Dsymbol *s = fop;
-#if 1   // workaround until fixing issue 1528
-    Dsymbol *assign = search_function(sd, Id::assign);
-    if (assign && assign->isTemplateDeclaration())
-    {
-        // Wrap a template around the function declaration
-        TemplateParameters *tpl = new TemplateParameters();
-        Dsymbols *decldefs = new Dsymbols();
-        decldefs->push(s);
-        TemplateDeclaration *tempdecl =
-            new TemplateDeclaration(assign->loc, fop->ident, tpl, NULL, decldefs);
-        s = tempdecl;
-    }
-#endif
     sd->members->push(s);
     s->addMember(sc, sd, 1);
     sd->hasIdentityAssign = true;        // temporary mark identity assignable
