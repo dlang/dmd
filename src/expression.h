@@ -1093,7 +1093,22 @@ public:
     IntervalExp(Loc loc, Expression *lwr, Expression *upr);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
+    void accept(Visitor *v) { v->visit(this); }
+};
 
+class DelegatePtrExp : public UnaExp
+{
+public:
+    DelegatePtrExp(Loc loc, Expression *e1);
+    Expression *semantic(Scope *sc);
+    void accept(Visitor *v) { v->visit(this); }
+};
+
+class DelegateFuncptrExp : public UnaExp
+{
+public:
+    DelegateFuncptrExp(Loc loc, Expression *e1);
+    Expression *semantic(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 

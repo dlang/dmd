@@ -7327,6 +7327,8 @@ void initPrecedence()
     precedence[TOKsymoff] = PREC_primary;
     precedence[TOKstructliteral] = PREC_primary;
     precedence[TOKarraylength] = PREC_primary;
+    precedence[TOKdelegateptr] = PREC_primary;
+    precedence[TOKdelegatefuncptr] = PREC_primary;
     precedence[TOKremove] = PREC_primary;
     precedence[TOKtuple] = PREC_primary;
     precedence[TOKtraits] = PREC_primary;

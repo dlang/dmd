@@ -5148,6 +5148,13 @@ public:
             // Calling a function literal
             fd = ((FuncExp*)((PtrExp*)ecall)->e1)->fd;
         }
+        else if (ecall->op == TOKdelegatefuncptr)
+        {
+            // delegate.funcptr()
+            e->error("cannot evaulate %s at compile time", e->toChars());
+            result = EXP_CANT_INTERPRET;
+            return;
+        }
 
         TypeFunction *tf = fd ? (TypeFunction *)(fd->type) : NULL;
         if (!tf)
@@ -5396,6 +5403,38 @@ public:
             e->error("%s cannot be evaluated at compile time", e->toChars());
             result = EXP_CANT_INTERPRET;
         }
+    }
+
+    void visit(DelegatePtrExp *e)
+    {
+    #if LOG
+        printf("%s DelegatePtrExp::interpret() %s\n", e->loc.toChars(), e->toChars());
+    #endif
+        Expression *e1 = e->e1->interpret(istate);
+        assert(e1);
+        if (exceptionOrCantInterpret(e1))
+        {
+            result = e1;
+            return;
+        }
+        e->error("%s cannot be evaluated at compile time", e->toChars());
+        result = EXP_CANT_INTERPRET;
+    }
+
+    void visit(DelegateFuncptrExp *e)
+    {
+    #if LOG
+        printf("%s DelegateFuncptrExp::interpret() %s\n", e->loc.toChars(), e->toChars());
+    #endif
+        Expression *e1 = e->e1->interpret(istate);
+        assert(e1);
+        if (exceptionOrCantInterpret(e1))
+        {
+            result = e1;
+            return;
+        }
+        e->error("%s cannot be evaluated at compile time", e->toChars());
+        result = EXP_CANT_INTERPRET;
     }
 
     void visit(IndexExp *e)

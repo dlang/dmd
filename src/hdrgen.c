@@ -1,4 +1,5 @@
 
+
 // Compiler implementation of the D programming language
 // Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
@@ -1635,6 +1636,18 @@ public:
         expToCBuffer(buf, hgs, e->lwr, PREC_assign);
         buf->writestring("..");
         expToCBuffer(buf, hgs, e->upr, PREC_assign);
+    }
+
+    void visit(DelegatePtrExp *e)
+    {
+        expToCBuffer(buf, hgs, e->e1, PREC_primary);
+        buf->writestring(".ptr");
+    }
+
+    void visit(DelegateFuncptrExp *e)
+    {
+        expToCBuffer(buf, hgs, e->e1, PREC_primary);
+        buf->writestring(".funcptr");
     }
 
     void visit(ArrayExp *e)

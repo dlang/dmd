@@ -10258,6 +10258,54 @@ Expression *IntervalExp::semantic(Scope *sc)
     return this;
 }
 
+/********************** DelegatePtrExp **************************************/
+
+DelegatePtrExp::DelegatePtrExp(Loc loc, Expression *e1)
+        : UnaExp(loc, TOKdelegateptr, sizeof(DelegatePtrExp), e1)
+{
+}
+
+Expression *DelegatePtrExp::semantic(Scope *sc)
+{
+#if LOGSEMANTIC
+    printf("DelegatePtrExp::semantic('%s')\n", toChars());
+#endif
+    if (!type)
+    {
+        unaSemantic(sc);
+        e1 = resolveProperties(sc, e1);
+
+        if (e1->op == TOKerror)
+            return e1;
+        type = Type::tvoidptr;
+    }
+    return this;
+}
+
+/********************** DelegateFuncptrExp **************************************/
+
+DelegateFuncptrExp::DelegateFuncptrExp(Loc loc, Expression *e1)
+        : UnaExp(loc, TOKdelegatefuncptr, sizeof(DelegateFuncptrExp), e1)
+{
+}
+
+Expression *DelegateFuncptrExp::semantic(Scope *sc)
+{
+#if LOGSEMANTIC
+    printf("DelegateFuncptrExp::semantic('%s')\n", toChars());
+#endif
+    if (!type)
+    {
+        unaSemantic(sc);
+        e1 = resolveProperties(sc, e1);
+
+        if (e1->op == TOKerror)
+            return e1;
+        type = e1->type->nextOf()->pointerTo();
+    }
+    return this;
+}
+
 /*********************** ArrayExp *************************************/
 
 // e1 [ i1, i2, i3, ... ]
