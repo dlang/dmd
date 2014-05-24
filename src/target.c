@@ -163,6 +163,11 @@ unsigned Target::critsecsize()
     return 0;
 }
 
+/***********************************
+ * Returns a Type for the va_list type of the target.
+ * NOTE: For Posix/x86_64 this returns the type which will really
+ * be used for passing an argument of type va_list.
+ */
 Type *Target::va_listType()
 {
     if (global.params.isWindows)
