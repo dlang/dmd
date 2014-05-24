@@ -132,7 +132,8 @@ Type *getType(RootObject *o)
 {
     Type *t = isType(o);
     if (!t)
-    {   Expression *e = isExpression(o);
+    {
+        Expression *e = isExpression(o);
         if (e)
             t = e->type;
     }
@@ -147,7 +148,8 @@ Dsymbol *getDsymbol(RootObject *oarg)
     Dsymbol *sa;
     Expression *ea = isExpression(oarg);
     if (ea)
-    {   // Try to convert Expression to symbol
+    {
+        // Try to convert Expression to symbol
         if (ea->op == TOKvar)
             sa = ((VarExp *)ea)->var;
         else if (ea->op == TOKfunction)
@@ -161,7 +163,8 @@ Dsymbol *getDsymbol(RootObject *oarg)
             sa = NULL;
     }
     else
-    {   // Try to convert Type to symbol
+    {
+        // Try to convert Type to symbol
         Type *ta = isType(oarg);
         if (ta)
             sa = ta->toDsymbol(NULL);
@@ -348,7 +351,8 @@ int arrayObjectMatch(Objects *oa1, Objects *oa2)
     if (oa1->dim != oa2->dim)
         return 0;
     for (size_t j = 0; j < oa1->dim; j++)
-    {   RootObject *o1 = (*oa1)[j];
+    {
+        RootObject *o1 = (*oa1)[j];
         RootObject *o2 = (*oa2)[j];
         if (!match(o1, o2))
         {
@@ -366,7 +370,8 @@ hash_t arrayObjectHash(Objects *oa1)
 {
     hash_t hash = 0;
     for (size_t j = 0; j < oa1->dim; j++)
-    {   /* Must follow the logic of match()
+    {
+        /* Must follow the logic of match()
          */
         RootObject *o1 = (*oa1)[j];
         if (Type *t1 = isType(o1))
@@ -416,7 +421,8 @@ void ObjectToCBuffer(OutBuffer *buf, HdrGenState *hgs, RootObject *oarg)
      * Perhaps it would be better to demangle what genIdent() does.
      */
     if (t)
-    {   //printf("\tt: %s ty = %d\n", t->toChars(), t->ty);
+    {
+        //printf("\tt: %s ty = %d\n", t->toChars(), t->ty);
         t->toCBuffer(buf, NULL, hgs);
     }
     else if (e)
@@ -480,7 +486,8 @@ TemplateDeclaration::TemplateDeclaration(Loc loc, Identifier *id,
 #if 0
     if (parameters)
         for (int i = 0; i < parameters->dim; i++)
-        {   TemplateParameter *tp = (*parameters)[i];
+        {
+            TemplateParameter *tp = (*parameters)[i];
             //printf("\tparameter[%d] = %p\n", i, tp);
             TemplateTypeParameter *ttp = tp->isTemplateTypeParameter();
 
@@ -531,7 +538,8 @@ Dsymbol *TemplateDeclaration::syntaxCopy(Dsymbol *)
         p = new TemplateParameters();
         p->setDim(parameters->dim);
         for (size_t i = 0; i < p->dim; i++)
-        {   TemplateParameter *tp = (*parameters)[i];
+        {
+            TemplateParameter *tp = (*parameters)[i];
             (*p)[i] = tp->syntaxCopy();
         }
     }
@@ -717,7 +725,8 @@ bool TemplateDeclaration::overloadInsert(Dsymbol *s)
             goto Lcontinue;
 
         for (size_t i = 0; i < td->parameters->dim; i++)
-        {   TemplateParameter *p1 = (*td->parameters)[i];
+        {
+            TemplateParameter *p1 = (*td->parameters)[i];
             TemplateParameter *p2 = (*f2->parameters)[i];
 
             if (!p1->overloadMatch(p2))
@@ -1994,7 +2003,8 @@ RootObject *TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *
  */
 
 TemplateTupleParameter *isVariadic(TemplateParameters *parameters)
-{   size_t dim = parameters->dim;
+{
+    size_t dim = parameters->dim;
     TemplateTupleParameter *tp = NULL;
 
     if (dim)
@@ -2872,7 +2882,8 @@ TemplateInstance *TemplateDeclaration::addInstance(TemplateInstance *ti)
     /* See if we need to rehash
      */
     if (numinstances > buckets.dim * 4)
-    {   // rehash
+    {
+        // rehash
         //printf("rehash\n");
         size_t newdim = buckets.dim * 2 + 1;
         TemplateInstances **newp = (TemplateInstances **)::calloc(newdim, sizeof(TemplateInstances *));
@@ -2923,7 +2934,8 @@ void TemplateDeclaration::removeInstance(TemplateInstance *handle)
     {
         TemplateInstance *ti = (*instances)[i];
         if (handle == ti)
-        {   instances->remove(i);
+        {
+            instances->remove(i);
             break;
         }
     }
@@ -2955,8 +2967,8 @@ TemplateInstance *TemplateDeclaration::getInstantiating(Scope *sc)
 size_t templateIdentifierLookup(Identifier *id, TemplateParameters *parameters)
 {
     for (size_t i = 0; i < parameters->dim; i++)
-    {   TemplateParameter *tp = (*parameters)[i];
-
+    {
+        TemplateParameter *tp = (*parameters)[i];
         if (tp->ident->equals(id))
             return i;
     }
@@ -5096,7 +5108,8 @@ RootObject *aliasParameterSemantic(Loc loc, Scope *sc, RootObject *o, TemplatePa
         Expression *ea = isExpression(o);
         Type *ta = isType(o);
         if (ta && (!parameters || !reliesOnTident(ta, parameters)))
-        {   Dsymbol *s = ta->toDsymbol(sc);
+        {
+            Dsymbol *s = ta->toDsymbol(sc);
             if (s)
                 o = s;
             else
@@ -5285,7 +5298,8 @@ void TemplateAliasParameter::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("alias ");
     if (specType)
-    {   HdrGenState hgs1;
+    {
+        HdrGenState hgs1;
         specType->toCBuffer(buf, ident, &hgs1);
     }
     else
@@ -5855,7 +5869,8 @@ Objects *TemplateInstance::arraySyntaxCopy(Objects *objs)
 {
     Objects *a = NULL;
     if (objs)
-    {   a = new Objects();
+    {
+        a = new Objects();
         a->setDim(objs->dim);
         for (size_t i = 0; i < objs->dim; i++)
         {
@@ -6092,8 +6107,8 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     Dsymbols *target_symbol_list = NULL;
     size_t target_symbol_list_idx = 0;
 
-    {   Dsymbols *a;
-
+    {
+        Dsymbols *a;
         Scope *scx = sc;
 #if 0
         for (scx = sc; scx; scx = scx->enclosing)
@@ -7364,7 +7379,8 @@ bool TemplateInstance::hasNestedArgs(Objects *args, bool isstatic)
                         for (Dsymbol *p = dparent; p; p = p->parent)
                         {
                             if (p == enclosing)
-                            {   enclosing = dparent;
+                            {
+                                enclosing = dparent;
                                 goto L1;        // dparent is most nested
                             }
                         }
@@ -7457,7 +7473,8 @@ Identifier *TemplateInstance::genIdent(Objects *args)
             }
             buf.writeByte('V');
             if (ea->op == TOKtuple)
-            {   ea->error("tuple is not a valid template value argument");
+            {
+                ea->error("tuple is not a valid template value argument");
                 continue;
             }
             // Now that we know it is not an alias, we MUST obtain a value
@@ -7493,7 +7510,8 @@ Identifier *TemplateInstance::genIdent(Objects *args)
 #if 0
             VarDeclaration *v = sa->isVarDeclaration();
             if (v && v->storage_class & STCmanifest)
-            {   ExpInitializer *ei = v->init->isExpInitializer();
+            {
+                ExpInitializer *ei = v->init->isExpInitializer();
                 if (ei)
                 {
                     ea = ei->exp;
@@ -8362,7 +8380,8 @@ int TemplateMixin::apply(Dsymbol_apply_ft_t fp, void *param)
     if (members)
     {
         for (size_t i = 0; i < members->dim; i++)
-        {   Dsymbol *s = (*members)[i];
+        {
+            Dsymbol *s = (*members)[i];
             if (s)
             {
                 if (s->apply(fp, param))
