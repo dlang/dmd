@@ -841,7 +841,8 @@ void FuncDeclaration::semantic(Scope *sc)
 
                 doesoverride = true;
                 if (!isOverride())
-                    ::deprecation(loc, "overriding base class function without using override attribute is deprecated (%s overrides %s)", toPrettyChars(), fdv->toPrettyChars());
+                    ::deprecation(loc, "implicitly overriding base class method %s with %s deprecated; add 'override' attribute",
+                        fdv->toPrettyChars(), toPrettyChars());
 
                 if (fdc->toParent() == parent)
                 {

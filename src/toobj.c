@@ -567,7 +567,14 @@ void ClassDeclaration::toObjFile(bool multiobj)
                     {
                         TypeFunction *tf = (TypeFunction *)fd->type;
                         if (tf->ty == Tfunction)
-                            deprecation("use of %s%s hidden by %s is deprecated. Use 'alias %s.%s %s;' to introduce base class overload set.", fd->toPrettyChars(), Parameter::argsTypesToChars(tf->parameters, tf->varargs), toChars(), fd->parent->toChars(), fd->toChars(), fd->toChars());
+                            deprecation("use of %s%s hidden by %s is deprecated; use 'alias %s = %s.%s;' to introduce base class overload set",
+                                fd->toPrettyChars(),
+                                Parameter::argsTypesToChars(tf->parameters, tf->varargs),
+                                toChars(),
+
+                                fd->toChars(),
+                                fd->parent->toChars(),
+                                fd->toChars());
                         else
                             deprecation("use of %s hidden by %s is deprecated", fd->toPrettyChars(), toChars());
                         s = rtlsym[RTLSYM_DHIDDENFUNC];
