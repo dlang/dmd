@@ -75,6 +75,7 @@ struct Scope
     LabelStatement *slabel;     // enclosing labelled statement
     SwitchStatement *sw;        // enclosing switch statement
     TryFinallyStatement *tf;    // enclosing try finally statement
+    OnScopeStatement *os;       // enclosing scope(xxx) statement
     TemplateInstance *tinst;    // enclosing template instance
     Statement *sbreak;          // enclosing statement that supports "break"
     Statement *scontinue;       // enclosing statement that supports "continue"

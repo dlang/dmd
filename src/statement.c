@@ -1037,23 +1037,24 @@ Statement *CompoundStatement::semantic(Scope *sc)
 
                         Identifier *id = Lexer::uniqueId("__o");
 
-                        Statement *handler = sexception;
+                        Statement *handler = new PeelStatement(sexception);
                         if (sexception->blockExit(sc->func, false) & BEfallthru)
                         {
-                            handler = new ThrowStatement(Loc(), new IdentifierExp(Loc(), id));
-                            ((ThrowStatement *)handler)->internalThrow = true;
-                            handler = new CompoundStatement(Loc(), sexception, handler);
+                            ThrowStatement *ts = new ThrowStatement(Loc(), new IdentifierExp(Loc(), id));
+                            ts->internalThrow = true;
+                            handler = new CompoundStatement(Loc(), handler, ts);
                         }
 
                         Catches *catches = new Catches();
                         Catch *ctch = new Catch(Loc(), NULL, id, handler);
                         ctch->internalCatch = true;
                         catches->push(ctch);
-                        s = new TryCatchStatement(Loc(), body, catches);
 
+                        s = new TryCatchStatement(Loc(), body, catches);
                         if (sfinally)
                             s = new TryFinallyStatement(Loc(), s, sfinally);
                         s = s->semantic(sc);
+
                         statements->setDim(i + 1);
                         statements->push(s);
                         break;
@@ -2401,8 +2402,11 @@ Lagain:
                 else
                     e = new CallExp(loc, aggr, exps);
                 e = e->semantic(sc);
+                if (e->op == TOKerror)
+                    goto Lerror2;
                 if (e->type != Type::tint32)
-                {   error("opApply() function for %s must return an int", tab->toChars());
+                {
+                    error("opApply() function for %s must return an int", tab->toChars());
                     goto Lerror2;
                 }
             }
@@ -2418,8 +2422,11 @@ Lagain:
                 exps->push(flde);
                 e = new CallExp(loc, ec, exps);
                 e = e->semantic(sc);
+                if (e->op == TOKerror)
+                    goto Lerror2;
                 if (e->type != Type::tint32)
-                {   error("opApply() function for %s must return an int", tab->toChars());
+                {
+                    error("opApply() function for %s must return an int", tab->toChars());
                     goto Lerror2;
                 }
             }
@@ -3520,10 +3527,12 @@ Statement *ReturnStatement::semantic(Scope *sc)
         exp = new IntegerExp(0);
     }
 
-    if ((sc->flags & SCOPEcontract) || (scx->flags & SCOPEcontract))
+    if (sc->flags & SCOPEcontract)
         error("return statements cannot be in contracts");
-    if (sc->tf || scx->tf)
-        error("return statements cannot be in finally, scope(exit) or scope(success) bodies");
+    if (sc->os && sc->os->tok != TOKon_scope_failure)
+        error("return statements cannot be in %s bodies", Token::toChars(sc->os->tok));
+    if (sc->tf)
+        error("return statements cannot be in finally bodies");
 
     if (fd->isCtorDeclaration())
     {
@@ -3913,13 +3922,18 @@ Statement *BreakStatement::semantic(Scope *sc)
     }
     else if (!sc->sbreak)
     {
-        if (sc->fes)
+        if (sc->os && sc->os->tok != TOKon_scope_failure)
+        {
+            error("break is not inside %s bodies", Token::toChars(sc->os->tok));
+        }
+        else if (sc->fes)
         {
             // Replace break; with return 1;
             Statement *s = new ReturnStatement(Loc(), new IntegerExp(1));
             return s;
         }
-        error("break is not inside a loop or switch");
+        else
+            error("break is not inside a loop or switch");
         return new ErrorStatement();
     }
     return this;
@@ -4000,13 +4014,19 @@ Statement *ContinueStatement::semantic(Scope *sc)
     }
     else if (!sc->scontinue)
     {
-        if (sc->fes)
+        if (sc->os && sc->os->tok != TOKon_scope_failure)
+        {
+            error("continue is not inside %s bodies", Token::toChars(sc->os->tok));
+        }
+        else if (sc->fes)
         {
             // Replace continue; with return 0;
             Statement *s = new ReturnStatement(Loc(), new IntegerExp(0));
             return s;
         }
-        error("continue is not inside a loop");
+        else
+            error("continue is not inside a loop");
+        return new ErrorStatement();
     }
     return this;
 }
@@ -4376,6 +4396,11 @@ void Catch::semantic(Scope *sc)
     //printf("Catch::semantic(%s)\n", ident->toChars());
 
 #ifndef IN_GCC
+    if (sc->os && sc->os->tok != TOKon_scope_failure)
+    {
+        // If enclosing is scope(success) or scope(exit), this will be placed in finally block.
+        error(loc, "cannot put catch statement inside %s", Token::toChars(sc->os->tok));
+    }
     if (sc->tf)
     {
         /* This is because the _d_local_unwind() gets the stack munged
@@ -4405,7 +4430,8 @@ void Catch::semantic(Scope *sc)
     if (!cd || ((cd != ClassDeclaration::throwable) && !ClassDeclaration::throwable->isBaseOf(cd, NULL)))
     {
         if (type != Type::terror)
-        {   error(loc, "can only catch class objects derived from Throwable, not '%s'", type->toChars());
+        {
+            error(loc, "can only catch class objects derived from Throwable, not '%s'", type->toChars());
             type = Type::terror;
         }
     }
@@ -4501,7 +4527,40 @@ Statement *OnScopeStatement::syntaxCopy()
 
 Statement *OnScopeStatement::semantic(Scope *sc)
 {
-    /* semantic is called on results of scopeCode() */
+#ifndef IN_GCC
+    if (tok != TOKon_scope_exit)
+    {
+        // scope(success) and scope(failure) are rewritten to try-catch(-finally) statement,
+        // so the generated catch block cannot be placed in finally block.
+        // See also Catch::semantic.
+        if (sc->os && sc->os->tok != TOKon_scope_failure)
+        {
+            // If enclosing is scope(success) or scope(exit), this will be placed in finally block.
+            error("cannot put %s statement inside %s", Token::toChars(tok), Token::toChars(sc->os->tok));
+            return new ErrorStatement();
+        }
+        if (sc->tf)
+        {
+            error("cannot put %s statement inside finally block", Token::toChars(tok));
+            return new ErrorStatement();
+        }
+    }
+#endif
+
+    sc = sc->push();
+    sc->tf = NULL;
+    sc->os = this;
+    if (tok != TOKon_scope_failure)
+    {
+        // Jump out from scope(failure) block is allowed.
+        sc->sbreak = NULL;
+        sc->scontinue = NULL;
+    }
+    statement = statement->semanticNoScope(sc);
+    sc->pop();
+
+    if (!statement || statement->isErrorStatement())
+        return statement;
     return this;
 }
 
@@ -4512,14 +4571,17 @@ Statement *OnScopeStatement::scopeCode(Scope *sc, Statement **sentry, Statement 
     *sentry = NULL;
     *sexception = NULL;
     *sfinally = NULL;
+
+    Statement *s = new PeelStatement(statement);
+
     switch (tok)
     {
         case TOKon_scope_exit:
-            *sfinally = statement;
+            *sfinally = s;
             break;
 
         case TOKon_scope_failure:
-            *sexception = statement;
+            *sexception = s;
             break;
 
         case TOKon_scope_success:
@@ -4542,7 +4604,7 @@ Statement *OnScopeStatement::scopeCode(Scope *sc, Statement **sentry, Statement 
 
             e = new VarExp(Loc(), v);
             e = new NotExp(Loc(), e);
-            *sfinally = new IfStatement(Loc(), NULL, e, statement, NULL);
+            *sfinally = new IfStatement(Loc(), NULL, e, s, NULL);
 
             break;
         }
@@ -4641,6 +4703,7 @@ GotoStatement::GotoStatement(Loc loc, Identifier *ident)
     this->ident = ident;
     this->label = NULL;
     this->tf = NULL;
+    this->os = NULL;
     this->lastVar = NULL;
     this->fd = NULL;
 }
@@ -4660,6 +4723,7 @@ Statement *GotoStatement::semantic(Scope *sc)
     this->lastVar = sc->lastVar;
     this->fd = sc->func;
     tf = sc->tf;
+    os = sc->os;
     label = fd->searchLabel(ident);
     if (!label->statement && sc->fes)
     {
@@ -4693,6 +4757,22 @@ bool GotoStatement::checkLabel()
     {
         error("label '%s' is undefined", label->toChars());
         return true;
+    }
+
+    if (label->statement->os != os)
+    {
+        if (os && os->tok == TOKon_scope_failure && !label->statement->os)
+        {
+            // Jump out from scope(failure) block is allowed.
+        }
+        else
+        {
+            if (label->statement->os)
+                error("cannot goto in to %s block", Token::toChars(label->statement->os->tok));
+            else
+                error("cannot goto out of %s block", Token::toChars(os->tok));
+            return true;
+        }
     }
 
     if (label->statement->tf != tf)
@@ -4734,6 +4814,7 @@ LabelStatement::LabelStatement(Loc loc, Identifier *ident, Statement *statement)
     this->ident = ident;
     this->statement = statement;
     this->tf = NULL;
+    this->os = NULL;
     this->gotoTarget = NULL;
     this->lastVar = NULL;
     this->lblock = NULL;
@@ -4763,6 +4844,7 @@ Statement *LabelStatement::semantic(Scope *sc)
     else
         ls->statement = this;
     tf = sc->tf;
+    os = sc->os;
     sc = sc->push();
     sc->scopesym = sc->enclosing->scopesym;
     sc->callSuper |= CSXlabel;
@@ -4864,23 +4946,20 @@ Statement *ImportStatement::semantic(Scope *sc)
     for (size_t i = 0; i < imports->dim; i++)
     {
         Import *s = (*imports)[i]->isImport();
-
-        if (!s->aliasdecls.dim)
+        assert(!s->aliasdecls.dim);
+        for (size_t j = 0; j < s->names.dim; j++)
         {
-            for (size_t j = 0; j < s->names.dim; j++)
-            {
-                Identifier *name = s->names[j];
-                Identifier *alias = s->aliases[j];
+            Identifier *name = s->names[j];
+            Identifier *alias = s->aliases[j];
 
-                if (!alias)
-                    alias = name;
+            if (!alias)
+                alias = name;
 
-                TypeIdentifier *tname = new TypeIdentifier(s->loc, name);
-                AliasDeclaration *ad = new AliasDeclaration(s->loc, alias, tname);
-                ad->import = s;
+            TypeIdentifier *tname = new TypeIdentifier(s->loc, name);
+            AliasDeclaration *ad = new AliasDeclaration(s->loc, alias, tname);
+            ad->import = s;
 
-                s->aliasdecls.push(ad);
-            }
+            s->aliasdecls.push(ad);
         }
 
         s->semantic(sc);

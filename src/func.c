@@ -248,15 +248,15 @@ public:
              *      // equivalent with:
              *      //    s->body; scope(failure) nrvo_var->edtor;
              */
+            Statement *sexception = new DtorExpStatement(Loc(), fd->nrvo_var->edtor, fd->nrvo_var);
             Identifier *id = Lexer::uniqueId("__o");
 
-            Statement *sexception = new DtorExpStatement(Loc(), fd->nrvo_var->edtor, fd->nrvo_var);
-            Statement *handler = sexception;
+            Statement *handler = new PeelStatement(sexception);
             if (sexception->blockExit(fd, false) & BEfallthru)
             {
                 ThrowStatement *ts = new ThrowStatement(Loc(), new IdentifierExp(Loc(), id));
                 ts->internalThrow = true;
-                handler = new CompoundStatement(Loc(), sexception, ts);
+                handler = new CompoundStatement(Loc(), handler, ts);
             }
 
             Catches *catches = new Catches();
@@ -1293,6 +1293,7 @@ void FuncDeclaration::semantic3(Scope *sc)
         if (this->ident != Id::require && this->ident != Id::ensure)
             sc2->flags = sc->flags & ~SCOPEcontract;
         sc2->tf = NULL;
+        sc2->os = NULL;
         sc2->noctor = 0;
         sc2->speculative = sc->speculative || isSpeculative() != NULL;
         sc2->userAttribDecl = NULL;

@@ -681,6 +681,7 @@ public:
     Identifier *ident;
     LabelDsymbol *label;
     TryFinallyStatement *tf;
+    OnScopeStatement *os;
     VarDeclaration *lastVar;
     FuncDeclaration *fd;
 
@@ -698,6 +699,7 @@ public:
     Identifier *ident;
     Statement *statement;
     TryFinallyStatement *tf;
+    OnScopeStatement *os;
     Statement *gotoTarget;      // interpret
     VarDeclaration *lastVar;
     block *lblock;              // back end
