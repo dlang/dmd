@@ -967,7 +967,7 @@ class Fiber
      *  Any exception not handled by this fiber if rethrow = false, null
      *  otherwise.
      */
-    final Object call( bool rethrow = true );
+    final Throwable call( bool rethrow = true );
 
 
     /**
