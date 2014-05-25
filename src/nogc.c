@@ -15,14 +15,17 @@
 #include "declaration.h"
 #include "id.h"
 #include "module.h"
+#include "scope.h"
 
-bool walkPostorder(Statement *s, StoppableVisitor *v);
 bool walkPostorder(Expression *e, StoppableVisitor *v);
 
 void FuncDeclaration::printGCUsage(Loc loc, const char* warn)
 {
-    if (global.params.vgc && getModule() && getModule()->isRoot()
-        && !inUnittest())
+    if (!global.params.vgc)
+        return;
+
+    Module *m = getModule();
+    if (m && m->isRoot() && !inUnittest())
     {
         fprintf(global.stdmsg, "%s: vgc: %s\n", loc.toChars(), warn);
     }
@@ -34,17 +37,13 @@ void FuncDeclaration::printGCUsage(Loc loc, const char* warn)
 class NOGCVisitor : public StoppableVisitor
 {
 public:
-    FuncDeclaration *func;
+    FuncDeclaration *f;
+    bool err;
 
-    NOGCVisitor(FuncDeclaration *fdecl)
+    NOGCVisitor(FuncDeclaration *f)
     {
-        func = fdecl;
-    }
-
-    void doCond(Initializer *init)
-    {
-        if (init)
-            init->accept(this);
+        this->f = f;
+        this->err = false;
     }
 
     void doCond(Expression *exp)
@@ -53,122 +52,92 @@ public:
             walkPostorder(exp, this);
     }
 
-    void visit(Initializer *init)
-    {
-    }
-    void visit(StructInitializer *init)
-    {
-        for (size_t i = 0; i < init->value.dim; i++)
-            doCond(init->value[i]);
-    }
-    void visit(ArrayInitializer *init)
-    {
-        for (size_t i = 0; i < init->value.dim; i++)
-            doCond(init->value[i]);
-    }
-    void visit(ExpInitializer *init)
-    {
-        doCond(init->exp);
-    }
-
-    void visit(Statement *s)
-    {
-    }
-    void visit(ExpStatement *s)
-    {
-        doCond(s->exp);
-    }
-    void visit(CompileStatement *s)
-    {
-    }
-    void visit(WhileStatement *s)
-    {
-        doCond(s->condition);
-    }
-    void visit(DoStatement *s)
-    {
-        doCond(s->condition);
-    }
-    void visit(ForStatement *s)
-    {
-        doCond(s->condition);
-        doCond(s->increment);
-    }
-    void visit(ForeachStatement *s)
-    {
-        doCond(s->aggr);
-    }
-    void visit(ForeachRangeStatement *s)
-    {
-        doCond(s->lwr);
-        doCond(s->upr);
-    }
-    void visit(IfStatement *s)
-    {
-        doCond(s->condition);
-    }
-    void visit(PragmaStatement *s)
-    {
-        for (size_t i = 0; i < s->args->dim; i++)
-            doCond((*s->args)[i]);
-    }
-    void visit(SwitchStatement *s)
-    {
-        doCond(s->condition);
-    }
-    void visit(CaseStatement *s)
-    {
-        doCond(s->exp);
-    }
-    void visit(CaseRangeStatement *s)
-    {
-        doCond(s->first);
-        doCond(s->last);
-    }
-    void visit(ReturnStatement *s)
-    {
-        doCond(s->exp);
-    }
-    void visit(SynchronizedStatement *s)
-    {
-        doCond(s->exp);
-    }
-    void visit(WithStatement *s)
-    {
-        doCond(s->exp);
-    }
-    void visit(ThrowStatement *s)
-    {
-        doCond(s->exp);
-    }
-
     void visit(Expression *e)
     {
     }
+
     void visit(DeclarationExp *e)
     {
-        VarDeclaration *var = e->declaration->isVarDeclaration();
-        if (var)
+        // Note that, walkPostorder does not support DeclarationExp today.
+        VarDeclaration *v = e->declaration->isVarDeclaration();
+        if (v && (v->storage_class & (STCmanifest | STCstatic)) == 0 && v->init)
         {
-            doCond(var->init);
+            if (v->init->isVoidInitializer())
+            {
+            }
+            else
+            {
+                ExpInitializer *ei = v->init->isExpInitializer();
+                assert(ei);
+                doCond(ei->exp);
+            }
         }
     }
+
     void visit(CallExp *e)
     {
     }
-    void visit(CatExp *e)
+
+    void visit(ArrayLiteralExp *e)
     {
-        func->printGCUsage(e->loc, "Concatenation may cause gc allocation");
+        if (e->type->ty != Tarray || !e->elements || !e->elements->dim)
+            return;
+
+        if (f->setGC())
+        {
+            e->error("array literals in @nogc function %s may cause GC allocation",
+                f->toChars());
+            err = true;
+            return;
+        }
+        f->printGCUsage(e->loc, "Array literals cause gc allocation");
     }
-    void visit(CatAssignExp *e)
+
+    void visit(AssocArrayLiteralExp *e)
     {
-        func->printGCUsage(e->loc, "Concatenation may cause gc allocation");
+        if (!e->keys->dim)
+            return;
+
+        if (f->setGC())
+        {
+            e->error("associative array literal in @nogc function %s may cause GC allocation", f->toChars());
+            err = true;
+            return;
+        }
+        f->printGCUsage(e->loc, "Associative array literals cause gc allocation");
     }
-    void visit(AssignExp *e)
+
+    void visit(NewExp *e)
     {
-        if (e->e1->op == TOKarraylength)
-           func->printGCUsage(e->loc, "Setting 'length' may cause gc allocation");
+        bool needGC = false;
+        if (e->member && !e->member->isNogc() && f->setGC())
+        {
+            // @nogc-ness is already checked in NewExp::semantic
+            return;
+        }
+        if (e->onstack)
+            return;
+
+        if (e->allocator)
+        {
+            if (!e->allocator->isNogc() && f->setGC())
+            {
+                e->error("operator new in @nogc function %s may allocate", f->toChars());
+                err = true;
+                return;
+            }
+            return;
+        }
+
+        if (f->setGC())
+        {
+            e->error("cannot use 'new' in @nogc function %s", f->toChars());
+            err = true;
+            return;
+        }
+        f->printGCUsage(e->loc, "'new' causes gc allocation");
     }
+
     void visit(DeleteExp *e)
     {
         if (e->e1->op == TOKvar)
@@ -178,52 +147,80 @@ public:
                 return;     // delete for scope allocated class object
         }
 
-        func->printGCUsage(e->loc, "'delete' requires gc");
-    }
-    void visit(NewExp *e)
-    {
-        if (!e->allocator && !e->onstack)
-            func->printGCUsage(e->loc, "'new' causes gc allocation");
-    }
-    void visit(NewAnonClassExp *e)
-    {
-        func->printGCUsage(e->loc, "'new' causes gc allocation");
-    }
-    void visit(AssocArrayLiteralExp *e)
-    {
-        if (e->keys->dim)
-            func->printGCUsage(e->loc, "Associative array literals cause gc allocation");
-    }
-    void visit(ArrayLiteralExp *e)
-    {
-        bool init_const = false;
-        if (e->type->ty == Tarray)
+        if (f->setGC())
         {
-            init_const = true;
-            for (size_t i = 0; i < e->elements->dim; i++)
-            {
-                if (!((*e->elements)[i])->isConst())
-                {
-                    init_const = false;
-                    break;
-                }
-            }
+            e->error("cannot use 'delete' in @nogc function %s", f->toChars());
+            err = true;
+            return;
         }
-        if (e->elements && e->elements->dim != 0 && e->type->ty != Tsarray && !init_const)
-            func->printGCUsage(e->loc, "Array literals cause gc allocation");
+        f->printGCUsage(e->loc, "'delete' requires gc");
     }
+
     void visit(IndexExp* e)
     {
-        if (e->e1->type->ty == Taarray)
-            func->printGCUsage(e->loc, "Indexing an associative array may cause gc allocation");
+        Type *t1b = e->e1->type->toBasetype();
+        if (t1b->ty == Taarray)
+        {
+            if (f->setGC())
+            {
+                e->error("indexing an associative array in @nogc function %s may cause gc allocation", f->toChars());
+                err = true;
+                return;
+            }
+            f->printGCUsage(e->loc, "Indexing an associative array may cause gc allocation");
+        }
+    }
+
+    void visit(AssignExp *e)
+    {
+        if (e->e1->op == TOKarraylength)
+        {
+            if (f->setGC())
+            {
+                e->error("Setting 'length' in @nogc function %s may cause GC allocation", f->toChars());
+                err = true;
+                return;
+            }
+            f->printGCUsage(e->loc, "Setting 'length' may cause gc allocation");
+        }
+    }
+
+    void visit(CatAssignExp *e)
+    {
+        if (f->setGC())
+        {
+            e->error("cannot use operator ~= in @nogc function %s", f->toChars());
+            err = true;
+            return;
+        }
+        f->printGCUsage(e->loc, "Concatenation may cause gc allocation");
+    }
+
+    void visit(CatExp *e)
+    {
+        if (f->setGC())
+        {
+            e->error("cannot use operator ~ in @nogc function %s", f->toChars());
+            err = true;
+            return;
+        }
+        f->printGCUsage(e->loc, "Concatenation may cause gc allocation");
     }
 };
 
-void checkGC(FuncDeclaration *func, Statement *stmt)
+Expression *checkGC(Scope *sc, Expression *e)
 {
-    if (global.params.vgc)
+    FuncDeclaration *f = sc->func;
+    if (e && e->op != TOKerror &&
+        f && sc->intypeof != 1 && !(sc->flags & SCOPEctfe) &&
+        (f->type->ty == Tfunction && ((TypeFunction *)f->type)->isnogc ||
+         (f->flags & FUNCFLAGnogcInprocess) ||
+         global.params.vgc))
     {
-        NOGCVisitor gcv(func);
-        walkPostorder(stmt, &gcv);
+        NOGCVisitor gcv(f);
+        walkPostorder(e, &gcv);
+        if (gcv.err)
+            return new ErrorExp();
     }
+    return e;
 }

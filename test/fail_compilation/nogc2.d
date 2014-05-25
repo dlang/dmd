@@ -6,17 +6,14 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/nogc2.d(24): Error: cannot use operator ~ in @nogc function testCat
+fail_compilation/nogc2.d(21): Error: cannot use operator ~ in @nogc function testCat
+fail_compilation/nogc2.d(22): Error: cannot use operator ~ in @nogc function testCat
+fail_compilation/nogc2.d(23): Error: cannot use operator ~ in @nogc function testCat
 fail_compilation/nogc2.d(25): Error: cannot use operator ~ in @nogc function testCat
 fail_compilation/nogc2.d(26): Error: cannot use operator ~ in @nogc function testCat
+fail_compilation/nogc2.d(27): Error: cannot use operator ~ in @nogc function testCat
 fail_compilation/nogc2.d(28): Error: cannot use operator ~ in @nogc function testCat
 fail_compilation/nogc2.d(29): Error: cannot use operator ~ in @nogc function testCat
-fail_compilation/nogc2.d(30): Error: cannot use operator ~ in @nogc function testCat
-fail_compilation/nogc2.d(31): Error: cannot use operator ~ in @nogc function testCat
-fail_compilation/nogc2.d(32): Error: cannot use operator ~ in @nogc function testCat
-fail_compilation/nogc2.d(34): Error: cannot use operator ~ in @nogc function testCat
-fail_compilation/nogc2.d(35): Error: cannot use operator ~ in @nogc function testCat
-fail_compilation/nogc2.d(36): Error: cannot use operator ~ in @nogc function testCat
 ---
 */
 @nogc void testCat(int[] a, string s)
@@ -31,9 +28,9 @@ fail_compilation/nogc2.d(36): Error: cannot use operator ~ in @nogc function tes
     string s4 = s ~ 'c';
     string s5 = 'c' ~ s;
 
-    string s6 = "a" ~ "b";      // should not be error
-    string s7 = "a" ~ 'c';      // should not be error
-    string s8 = 'c' ~ "b";      // should not be error
+    string s6 = "a" ~ "b";      // no error
+    string s7 = "a" ~ 'c';      // no error
+    string s8 = 'c' ~ "b";      // no error
 }
 
 /***************** CatAssignExp *******************/
@@ -41,9 +38,9 @@ fail_compilation/nogc2.d(36): Error: cannot use operator ~ in @nogc function tes
 /*
 TEST_OUTPUT:
 ---
+fail_compilation/nogc2.d(48): Error: cannot use operator ~= in @nogc function testCatAssign
+fail_compilation/nogc2.d(50): Error: cannot use operator ~= in @nogc function testCatAssign
 fail_compilation/nogc2.d(51): Error: cannot use operator ~= in @nogc function testCatAssign
-fail_compilation/nogc2.d(53): Error: cannot use operator ~= in @nogc function testCatAssign
-fail_compilation/nogc2.d(54): Error: cannot use operator ~= in @nogc function testCatAssign
 ---
 */
 @nogc void testCatAssign(int[] a, string s)
@@ -61,17 +58,17 @@ fail_compilation/nogc2.d(54): Error: cannot use operator ~= in @nogc function te
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/nogc2.d(73): Error: array literals in @nogc function testArray may cause GC allocation
+fail_compilation/nogc2.d(70): Error: array literals in @nogc function testArray may cause GC allocation
+fail_compilation/nogc2.d(71): Error: array literals in @nogc function testArray may cause GC allocation
 ---
 */
-
 @nogc void testArray()
 {
     enum arrLiteral = [null, null];
 
     int* p;
     auto a = [p, p, barA()];
-    a = arrLiteral; // should be error
+    a = arrLiteral;
 }
 
 /***************** AssocArrayLiteralExp *******************/
@@ -79,16 +76,16 @@ fail_compilation/nogc2.d(73): Error: array literals in @nogc function testArray 
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/nogc2.d(90): Error: associative array literal in @nogc function testAssocArray may cause GC allocation
+fail_compilation/nogc2.d(87): Error: associative array literal in @nogc function testAssocArray may cause GC allocation
+fail_compilation/nogc2.d(88): Error: associative array literal in @nogc function testAssocArray may cause GC allocation
 ---
 */
-
 @nogc void testAssocArray()
 {
     enum aaLiteral = [10: 100];
 
     auto aa = [1:1, 2:3, 4:5];
-    aa = aaLiteral; // should be error
+    aa = aaLiteral;
 }
 
 /***************** IndexExp *******************/
@@ -96,8 +93,8 @@ fail_compilation/nogc2.d(90): Error: associative array literal in @nogc function
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/nogc2.d(105): Error: indexing an associative array in @nogc function testIndex may cause gc allocation
-fail_compilation/nogc2.d(106): Error: indexing an associative array in @nogc function testIndex may cause gc allocation
+fail_compilation/nogc2.d(102): Error: indexing an associative array in @nogc function testIndex may cause gc allocation
+fail_compilation/nogc2.d(103): Error: indexing an associative array in @nogc function testIndex may cause gc allocation
 ---
 */
 @nogc void testIndex(int[int] aa)

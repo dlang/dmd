@@ -15,6 +15,43 @@ class D1 : C1
 }
 
 /******************************************/
+// __traits(compiles)
+
+static assert(__traits(compiles, new Object()));
+
+void foo_compiles() {}
+
+@nogc void test_compiles()
+{
+    auto fp = &foo_compiles;
+    static assert(!__traits(compiles, foo_compiles()));
+    static assert(!__traits(compiles, fp()));
+    static assert(!__traits(compiles, (*fp)()));
+
+    static assert(!__traits(compiles, [1,2,3]));
+    static assert(!__traits(compiles, [1:1, 2:2]));
+
+    struct Struct {}
+    static assert(!__traits(compiles, new int));
+    static assert(!__traits(compiles, new Struct()));
+    static assert(!__traits(compiles, new Object()));
+
+    int* p;
+    static assert(!__traits(compiles, delete p));
+
+    int[int] aa;
+    static assert(!__traits(compiles, aa[0]));
+
+    int[] a;
+    static assert(!__traits(compiles, a.length = 1));
+    static assert(!__traits(compiles, a.length += 1));
+    static assert(!__traits(compiles, a.length -= 1));
+
+    static assert(!__traits(compiles, a ~= 1));
+    static assert(!__traits(compiles, a ~ a));
+}
+
+/******************************************/
 // 12630
 
 void test12630() @nogc

@@ -58,14 +58,13 @@ int* barA();
 /*
 TEST_OUTPUT:
 ---
-compilable/vgc2.d(68): vgc: Array literals cause gc allocation
+compilable/vgc2.d(70): vgc: Array literals cause gc allocation
 compilable/vgc2.d(71): vgc: Array literals cause gc allocation
-compilable/vgc2.d(72): vgc: Array literals cause gc allocation
 ---
 */
 void testArray()
 {
-    enum arrLiteral = [null, null]; // should not be error
+    enum arrLiteral = [null, null];
 
     int* p;
     auto a = [p, p, barA()];
@@ -78,13 +77,12 @@ void testArray()
 TEST_OUTPUT:
 ---
 compilable/vgc2.d(87): vgc: Associative array literals cause gc allocation
-compilable/vgc2.d(89): vgc: Associative array literals cause gc allocation
-compilable/vgc2.d(90): vgc: Associative array literals cause gc allocation
+compilable/vgc2.d(88): vgc: Associative array literals cause gc allocation
 ---
 */
 void testAssocArray()
 {
-    enum aaLiteral = [10: 100]; // should not be error
+    enum aaLiteral = [10: 100];
 
     auto aa = [1:1, 2:3, 4:5];
     aa = aaLiteral;
@@ -95,8 +93,8 @@ void testAssocArray()
 /*
 TEST_OUTPUT:
 ---
-compilable/vgc2.d(104): vgc: Indexing an associative array may cause gc allocation
-compilable/vgc2.d(105): vgc: Indexing an associative array may cause gc allocation
+compilable/vgc2.d(102): vgc: Indexing an associative array may cause gc allocation
+compilable/vgc2.d(103): vgc: Indexing an associative array may cause gc allocation
 ---
 */
 void testIndex(int[int] aa)
