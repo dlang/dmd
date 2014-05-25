@@ -48,6 +48,67 @@ bool hasSideEffect(Expression *e)
     return walkPostorder(e, &v);
 }
 
+/********************************************
+ * Determine if the call of f, or function type or delegate type t1, has any side effects.
+ * Returns:
+ *      0   has any side effects
+ *      1   nothrow + constant purity
+ *      2   nothrow + strong purity
+ */
+
+int callSideEffectLevel(FuncDeclaration *f)
+{
+    /* Bugzilla 12760: ctor call always has side effects.
+     */
+    if (f->isCtorDeclaration())
+        return 0;
+
+    assert(f->type->ty == Tfunction);
+    TypeFunction *tf = (TypeFunction *)f->type;
+    if (tf->isnothrow)
+    {
+        PURE purity = f->isPure();
+        if (purity == PUREstrong)
+            return 2;
+        if (purity == PUREconst)
+            return 1;
+    }
+    return 0;
+}
+
+int callSideEffectLevel(Type *t)
+{
+    t = t->toBasetype();
+
+    TypeFunction *tf;
+    if (t->ty == Tdelegate)
+        tf = (TypeFunction *)((TypeDelegate *)t)->next;
+    else
+    {
+        assert(t->ty == Tfunction);
+        tf = (TypeFunction *)t;
+    }
+
+    tf->purityLevel();
+    PURE purity = tf->purity;
+    if (t->ty == Tdelegate && purity > PUREweak)
+    {
+        if (tf->isMutable())
+            purity = PUREweak;
+        else if (!tf->isImmutable())
+            purity = PUREconst;
+    }
+
+    if (tf->isnothrow)
+    {
+        if (purity == PUREstrong)
+            return 2;
+        if (purity == PUREconst)
+            return 1;
+    }
+    return 0;
+}
+
 bool lambdaHasSideEffect(Expression *e)
 {
     switch (e->op)
@@ -92,10 +153,10 @@ bool lambdaHasSideEffect(Expression *e)
                 Type *t = ce->e1->type->toBasetype();
                 if (t->ty == Tdelegate)
                     t = ((TypeDelegate *)t)->next;
-                if (t->ty == Tfunction)
-                    ((TypeFunction *)t)->purityLevel();
-                if (t->ty == Tfunction && ((TypeFunction *)t)->purity > PUREweak &&
-                                          ((TypeFunction *)t)->isnothrow)
+                if (t->ty == Tfunction &&
+                    (ce->f && ce->f->type->ty == Tfunction
+                        ? callSideEffectLevel(ce->f)
+                        : callSideEffectLevel(ce->e1->type)) > 0)
                 {
                 }
                 else
@@ -168,10 +229,10 @@ void discardValue(Expression *e)
                     Type *t = ce->e1->type->toBasetype();
                     if (t->ty == Tdelegate)
                         t = ((TypeDelegate *)t)->next;
-                    if (t->ty == Tfunction)
-                        ((TypeFunction *)t)->purityLevel();
-                    if (t->ty == Tfunction && ((TypeFunction *)t)->purity > PUREweak &&
-                                              ((TypeFunction *)t)->isnothrow)
+                    if (t->ty == Tfunction &&
+                        (ce->f && ce->f->type->ty == Tfunction
+                            ? callSideEffectLevel(ce->f)
+                            : callSideEffectLevel(ce->e1->type)) > 0)
                     {
                         const char *s;
                         if (ce->f)

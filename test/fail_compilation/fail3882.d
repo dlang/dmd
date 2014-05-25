@@ -44,3 +44,22 @@ void test12619() pure
     ubyte[10] a, b;
     debug memcpy(a.ptr, b.ptr, 5);  // memcpy call should have side effect
 }
+
+/******************************************/
+// 12760
+
+struct S12760(T)
+{
+    T i;
+    this(T j) inout {}
+}
+
+struct K12760
+{
+    S12760!int nullable;
+
+    this(int)
+    {
+        nullable = 0;   // weak purity
+    }
+}

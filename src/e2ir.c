@@ -55,6 +55,9 @@ elem *toElemDtor(Expression *e, IRState *irs);
 unsigned totym(Type *tx);
 Symbol *toSymbol(Dsymbol *s);
 
+int callSideEffectLevel(FuncDeclaration *f);
+int callSideEffectLevel(Type *t);
+
 #define el_setLoc(e,loc)        ((e)->Esrcpos.Sfilename = (char *)(loc).filename, \
                                  (e)->Esrcpos.Slinnum = (loc).linnum, \
                                  (e)->Esrcpos.Scharnum = (loc).charnum)
@@ -372,7 +375,8 @@ if (I32) assert(tysize[TYnptr] == 4);
             e = el_una(op,tyret,ep);
     }
     else
-    {   /* Do not do "no side effect" calls if a hidden parameter is passed,
+    {
+        /* Do not do "no side effect" calls if a hidden parameter is passed,
          * as the return value is stored through the hidden parameter, which
          * is a side effect.
          */
@@ -381,8 +385,9 @@ if (I32) assert(tysize[TYnptr] == 4);
         //printf("\tfd = %s, tf = %s\n", fd->toChars(), tf->toChars());
         /* assert() has 'implicit side effect' so disable this optimization.
          */
-        int ns = ((fd ? fd->isPure() : tf->purity) == PUREstrong &&
-                  tf->isnothrow && (retmethod != RETstack) &&
+        int ns = ((fd ? callSideEffectLevel(fd)
+                      : callSideEffectLevel(t)) == 2 &&
+                  retmethod != RETstack &&
                   !global.params.useAssert && global.params.optimize);
         if (ep)
             e = el_bin(ns ? OPcallns : OPcall, tyret, ec, ep);
