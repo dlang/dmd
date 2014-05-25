@@ -3243,20 +3243,20 @@ private
                 push R13;
                 push R14;
                 push R15;
-                xor  RCX,RCX;
-                push qword ptr GS:[RCX];
-                push qword ptr GS:8[RCX];
-                push qword ptr GS:16[RCX];
+                xor  RAX,RAX;
+                push qword ptr GS:[RAX];
+                push qword ptr GS:8[RAX];
+                push qword ptr GS:16[RAX];
 
                 // store oldp
-                mov [RDI], RSP;
+                mov [RCX], RSP;
                 // load newp to begin context switch
-                mov RSP, RSI;
+                mov RSP, RDX;
 
                 // load saved state from new stack
-                pop qword ptr GS:16[RCX];
-                pop qword ptr GS:8[RCX];
-                pop qword ptr GS:[RCX];
+                pop qword ptr GS:16[RAX];
+                pop qword ptr GS:8[RAX];
+                pop qword ptr GS:[RAX];
                 pop R15;
                 pop R14;
                 pop R13;
