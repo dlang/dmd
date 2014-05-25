@@ -3151,7 +3151,7 @@ Statement *SwitchStatement::semantic(Scope *sc)
     {   hasNoDefault = 1;
 
         if (!isFinal && !body->isErrorStatement())
-           deprecation("non-final switch statement without a default is deprecated; add 'default: assert(0);' or 'default: break;'");
+           deprecation("switch statement without a default is deprecated; use 'final switch' or add 'default: assert(0);' or add 'default: break;'");
 
         // Generate runtime error if the default is hit
         Statements *a = new Statements();

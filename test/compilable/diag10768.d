@@ -2,7 +2,7 @@
 /*
 TEST_OUTPUT:
 ---
-compilable/diag10768.d(36): Deprecation: overriding base class function without using override attribute is deprecated (diag10768.Foo.frop overrides diag10768.Frop.frop)
+compilable/diag10768.d(36): Deprecation: implicitly overriding base class method diag10768.Frop.frop with diag10768.Foo.frop deprecated; add 'override' attribute
 ---
 */
 
