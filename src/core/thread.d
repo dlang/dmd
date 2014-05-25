@@ -4493,9 +4493,6 @@ else
 }
 
 
-version(Win64) {}
-else {
-
 version( unittest )
 {
     class TestFiber : Fiber
@@ -4781,9 +4778,8 @@ unittest
     fiber.call();
 }
 
-}
 
-version( AsmX86_64_Posix )
+version( D_InlineAsm_X86_64 )
 {
     unittest
     {
