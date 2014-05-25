@@ -9544,10 +9544,14 @@ Expression *DeleteExp::semantic(Scope *sc)
         }
     }
 
-    if (sc->func && sc->intypeof != 1 && !(sc->flags & SCOPEctfe) && sc->func->setGC())
+    if (sc->func && sc->intypeof != 1 && !(sc->flags & SCOPEctfe))
     {
-        error("cannot use 'delete' in @nogc function %s", sc->func->toChars());
-        goto Lerr;
+        VarDeclaration *v = e1->op == TOKvar ? ((VarExp *)e1)->var->isVarDeclaration() : NULL;
+        if (!(v && v->onstack) && sc->func->setGC())
+        {
+            error("cannot use 'delete' in @nogc function %s", sc->func->toChars());
+            goto Lerr;
+        }
     }
 
     return this;

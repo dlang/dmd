@@ -171,6 +171,13 @@ public:
     }
     void visit(DeleteExp *e)
     {
+        if (e->e1->op == TOKvar)
+        {
+            VarDeclaration *v =  ((VarExp *)e->e1)->var->isVarDeclaration();
+            if (v && v->onstack)
+                return;     // delete for scope allocated class object
+        }
+
         func->printGCUsage(e->loc, "'delete' requires gc");
     }
     void visit(NewExp *e)

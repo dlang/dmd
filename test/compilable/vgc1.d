@@ -41,30 +41,30 @@ void testNew()
 /*
 TEST_OUTPUT:
 ---
-compilable/vgc1.d(67): vgc: 'delete' requires gc
-compilable/vgc1.d(66): vgc: 'delete' requires gc
+compilable/vgc1.d(55): vgc: 'new' causes gc allocation
+compilable/vgc1.d(57): vgc: 'new' causes gc allocation
+compilable/vgc1.d(58): vgc: 'new' causes gc allocation
+compilable/vgc1.d(60): vgc: 'new' causes gc allocation
+compilable/vgc1.d(61): vgc: 'new' causes gc allocation
+compilable/vgc1.d(62): vgc: 'new' causes gc allocation
 ---
 */
 
-
-
-
-
 void testNewScope()
 {
-    scope int* p1 = new int;            // should be error
+    scope int* p1 = new int;
 
-    scope int[] a1 = new int[3];        // should be error
-    scope int[][] a2 = new int[][](2, 3);   // should be error
+    scope int[] a1 = new int[3];
+    scope int[][] a2 = new int[][](2, 3);
 
-    scope S1* ps1 = new S1();           // should be error
-    scope S2* ps2 = new S2(1);          // should be error
-    scope S3* ps3 = new S3(1);          // should be error
+    scope S1* ps1 = new S1();
+    scope S2* ps2 = new S2(1);
+    scope S3* ps3 = new S3(1);
     scope S4* ps4 = new S4;             // no error
     scope S5* ps5 = new S5;             // no error
 
     scope Object o1 = new Object();     // no error
-    scope o2 = new Object();            // should be no error
+    scope o2 = new Object();            // no error
 }
 
 /***************** DeleteExp *******************/

@@ -42,15 +42,17 @@ fail_compilation/nogc1.d(39): Error: cannot use 'new' in @nogc function testNew
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/nogc1.d(62): Error: @nogc function 'nogc1.testNewScope' cannot call non-@nogc function 'nogc1.S2.this'
-fail_compilation/nogc1.d(62): Error: constructor for S2* may allocate in 'new' in @nogc function testNewScope
-fail_compilation/nogc1.d(67): Error: cannot use 'delete' in @nogc function testNewScope
-fail_compilation/nogc1.d(68): Error: cannot use 'new' in @nogc function testNewScope
+fail_compilation\nogc1.d(58): Error: cannot use 'new' in @nogc function testNewScope
+fail_compilation\nogc1.d(60): Error: cannot use 'new' in @nogc function testNewScope
+fail_compilation\nogc1.d(61): Error: cannot use 'new' in @nogc function testNewScope
+fail_compilation\nogc1.d(63): Error: cannot use 'new' in @nogc function testNewScope
+fail_compilation\nogc1.d(64): Error: @nogc function 'nogc1.testNewScope' cannot call non-@nogc function 'nogc1.S2.this'
+fail_compilation\nogc1.d(64): Error: constructor for S2* may allocate in 'new' in @nogc function testNewScope
+fail_compilation\nogc1.d(65): Error: cannot use 'new' in @nogc function testNewScope
+fail_compilation\nogc1.d(66): Error: operator new in @nogc function testNewScope may allocate
+fail_compilation\nogc1.d(70): Error: cannot use 'new' in @nogc function testNewScope
 ---
 */
-
-
-
 @nogc void testNewScope()
 {
     scope int* p1 = new int;
@@ -65,7 +67,7 @@ fail_compilation/nogc1.d(68): Error: cannot use 'new' in @nogc function testNewS
     scope S5* ps5 = new S5;             // no error
 
     scope Object o1 = new Object();     // no error
-    scope o2 = new Object();            // no error
+    scope o2 = new Object();            // should not be error
 }
 
 /***************** DeleteExp *******************/
@@ -73,9 +75,9 @@ fail_compilation/nogc1.d(68): Error: cannot use 'new' in @nogc function testNewS
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/nogc1.d(83): Error: cannot use 'delete' in @nogc function testDelete
-fail_compilation/nogc1.d(84): Error: cannot use 'delete' in @nogc function testDelete
 fail_compilation/nogc1.d(85): Error: cannot use 'delete' in @nogc function testDelete
+fail_compilation/nogc1.d(86): Error: cannot use 'delete' in @nogc function testDelete
+fail_compilation/nogc1.d(87): Error: cannot use 'delete' in @nogc function testDelete
 ---
 */
 @nogc void testDelete(int* p, Object o, S1* s)
