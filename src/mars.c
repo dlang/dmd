@@ -1743,7 +1743,19 @@ Language changes listed by -transition=id:\n\
         }
     }
 
-    if (global.params.oneobj)
+    if (!global.errors && global.params.doDocComments)
+    {
+        for (size_t i = 0; i < modules.dim; i++)
+        {
+            Module *m = modules[i];
+            gendocfile(m);
+        }
+    }
+
+    if (!global.params.obj)
+    {
+    }
+    else if (global.params.oneobj)
     {
         if (modules.dim)
             obj_start(modules[0]->srcfile->toChars());
@@ -1755,8 +1767,6 @@ Language changes listed by -transition=id:\n\
             m->genobjfile(0);
             if (entrypoint && m == rootHasMain)
                 entrypoint->genobjfile(0);
-            if (!global.errors && global.params.doDocComments)
-                gendocfile(m);
         }
         for (size_t i = 0; i < Module::amodules.dim; i++)
         {
@@ -1776,31 +1786,22 @@ Language changes listed by -transition=id:\n\
             Module *m = modules[i];
             if (global.params.verbose)
                 fprintf(global.stdmsg, "code      %s\n", m->toChars());
-            if (global.params.obj)
+
+            obj_start(m->srcfile->toChars());
+            m->genobjfile(global.params.multiobj);
+            if (entrypoint && m == rootHasMain)
+                entrypoint->genobjfile(global.params.multiobj);
+            for (size_t j = 0; j < Module::amodules.dim; j++)
             {
-                obj_start(m->srcfile->toChars());
-                m->genobjfile(global.params.multiobj);
-                if (entrypoint && m == rootHasMain)
-                    entrypoint->genobjfile(global.params.multiobj);
-                for (size_t j = 0; j < Module::amodules.dim; j++)
-                {
-                    Module *mx = Module::amodules[j];
-                    if (mx != m && mx->importedFrom == m && (mx->marray || mx->massert || mx->munittest))
-                        mx->genhelpers(true);
-                }
-                obj_end(library, m->objfile);
-                obj_write_deferred(library);
+                Module *mx = Module::amodules[j];
+                if (mx != m && mx->importedFrom == m && (mx->marray || mx->massert || mx->munittest))
+                    mx->genhelpers(true);
             }
-            if (global.errors)
-            {
-                if (!global.params.lib)
-                    m->deleteObjFile();
-            }
-            else
-            {
-                if (global.params.doDocComments)
-                    gendocfile(m);
-            }
+            obj_end(library, m->objfile);
+            obj_write_deferred(library);
+
+            if (global.errors && !global.params.lib)
+                m->deleteObjFile();
         }
     }
 
