@@ -33,8 +33,6 @@ void functionToBufferWithIdent(TypeFunction *t, OutBuffer *buf, const char *iden
 void genCmain(Scope *sc);
 void toBufferShort(Type *t, OutBuffer *buf, HdrGenState *hgs);
 
-void checkGC(FuncDeclaration *func, Statement *stmt);
-
 /* A visitor to walk entire statements and provides ability to replace any sub-statements.
  */
 class StatementRewriteWalker : public Visitor
@@ -2125,9 +2123,12 @@ void FuncDeclaration::semantic3(Scope *sc)
         sc2->pop();
     }
 
-    if (f->isnogc && needsClosure() && setGC())
+    if (needsClosure())
     {
-        error("@nogc function allocates a closure with the GC");
+        if (setGC())
+            error("@nogc function allocates a closure with the GC");
+        else
+            printGCUsage(loc, "using closure causes GC allocation");
     }
 
     /* If function survived being marked as impure, then it is pure
@@ -2152,12 +2153,6 @@ void FuncDeclaration::semantic3(Scope *sc)
         if (type == f) f = (TypeFunction *)f->copy();
         f->isnogc = true;
     }
-
-    if (fbody)
-        checkGC(this, fbody);
-
-    if (needsClosure())
-        printGCUsage(loc, "Using closure causes gc allocation");
 
     // reset deco to apply inference result to mangled name
     if (f != type)

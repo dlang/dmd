@@ -792,6 +792,7 @@ Statement *ExpStatement::semantic(Scope *sc)
         exp = resolveProperties(sc, exp);
         discardValue(exp);
         exp = exp->optimize(0);
+        exp = checkGC(sc, exp);
         if (exp->op == TOKerror)
             return new ErrorStatement();
     }
@@ -1388,6 +1389,7 @@ Statement *DoStatement::semantic(Scope *sc)
     condition = condition->semantic(sc);
     condition = resolveProperties(sc, condition);
     condition = condition->optimize(WANTvalue);
+    condition = checkGC(sc, condition);
 
     condition = condition->checkToBoolean(sc);
 
@@ -1478,15 +1480,19 @@ Statement *ForStatement::semantic(Scope *sc)
 
     sc->noctor++;
     if (condition)
-    {   condition = condition->semantic(sc);
+    {
+        condition = condition->semantic(sc);
         condition = resolveProperties(sc, condition);
         condition = condition->optimize(WANTvalue);
+        condition = checkGC(sc, condition);
         condition = condition->checkToBoolean(sc);
     }
     if (increment)
-    {   increment = increment->semantic(sc);
+    {
+        increment = increment->semantic(sc);
         increment = resolveProperties(sc, increment);
         increment = increment->optimize(0);
+        increment = checkGC(sc, increment);
     }
 
     sc->sbreak = this;
@@ -2744,7 +2750,8 @@ Statement *IfStatement::semantic(Scope *sc)
     sym->parent = sc->scopesym;
     Scope *scd = sc->push(sym);
     if (arg)
-    {   /* Declare arg, which we will set to be the
+    {
+        /* Declare arg, which we will set to be the
          * result of condition.
          */
 
@@ -2771,6 +2778,7 @@ Statement *IfStatement::semantic(Scope *sc)
         condition = condition->addDtorHook(sc);
         condition = resolveProperties(sc, condition);
     }
+    condition = checkGC(sc, condition);
 
     // Convert to boolean after declaring arg so this works:
     //  if (S arg = S()) {}
@@ -3066,6 +3074,7 @@ Statement *SwitchStatement::semantic(Scope *sc)
             error("'%s' must be of integral or string type, it is a %s", condition->toChars(), condition->type->toChars());
     }
     condition = condition->optimize(WANTvalue);
+    condition = checkGC(sc, condition);
 
     sc = sc->push();
     sc->sbreak = this;
@@ -3770,6 +3779,8 @@ Statement *ReturnStatement::semantic(Scope *sc)
 
     if (exp)
     {
+        exp = checkGC(sc, exp);
+
         if (tf->isref && !fd->isCtorDeclaration())
         {
             // Function returns a reference
@@ -4053,6 +4064,8 @@ Statement *SynchronizedStatement::semantic(Scope *sc)
     {
         exp = exp->semantic(sc);
         exp = resolveProperties(sc, exp);
+        // exp = exp->optimize(0);  //?
+        exp = checkGC(sc, exp);
         if (exp->op == TOKerror)
             goto Lbody;
         ClassDeclaration *cd = exp->type->isClassHandle();
@@ -4197,6 +4210,8 @@ Statement *WithStatement::semantic(Scope *sc)
     //printf("WithStatement::semantic()\n");
     exp = exp->semantic(sc);
     exp = resolveProperties(sc, exp);
+    // exp = exp_>optimize(0);  //?
+    exp = checkGC(sc, exp);
     if (exp->op == TOKerror)
         return new ErrorStatement();
     if (exp->op == TOKimport)
@@ -4217,8 +4232,7 @@ Statement *WithStatement::semantic(Scope *sc)
     }
     else
     {
-        Type *t = exp->type;
-        t = t->toBasetype();
+        Type *t = exp->type->toBasetype();
 
         Expression *olde = exp;
         if (t->ty == Tpointer)
@@ -4640,6 +4654,7 @@ Statement *ThrowStatement::semantic(Scope *sc)
 
     exp = exp->semantic(sc);
     exp = resolveProperties(sc, exp);
+    exp = checkGC(sc, exp);
     if (exp->op == TOKerror)
         return new ErrorStatement();
     ClassDeclaration *cd = exp->type->toBasetype()->isClassHandle();

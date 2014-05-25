@@ -4014,24 +4014,6 @@ Expression *ArrayLiteralExp::semantic(Scope *sc)
 
     semanticTypeInfo(sc, t0);
 
-    if (sc->func && sc->intypeof != 1 && !(sc->flags & SCOPEctfe) &&
-        elements && type->toBasetype()->ty == Tarray)
-    {
-        for (size_t i = 0; i < elements->dim; i++)
-        {
-            if (!((*elements)[i])->isConst())
-            {
-                if (sc->func->setGC())
-                {
-                    error("array literals in @nogc function %s may cause GC allocation",
-                        sc->func->toChars());
-                    return new ErrorExp();
-                }
-                break;
-            }
-        }
-    }
-
     return this;
 }
 
@@ -4167,12 +4149,6 @@ Expression *AssocArrayLiteralExp::semantic(Scope *sc)
 
     if (tkey == Type::terror || tvalue == Type::terror)
         return new ErrorExp;
-
-    if (sc->func && sc->intypeof != 1 && !(sc->flags & SCOPEctfe) && keys->dim && sc->func->setGC())
-    {
-        error("associative array literal in @nogc function %s may cause GC allocation", sc->func->toChars());
-        return new ErrorExp;
-    }
 
     type = new TypeAArray(tvalue, tkey);
     type = type->semantic(loc, sc);
@@ -5043,35 +5019,6 @@ Lagain:
     //printf("NewExp: '%s'\n", toChars());
     //printf("NewExp:type '%s'\n", type->toChars());
     semanticTypeInfo(sc, type);
-
-    if (sc->func && sc->intypeof != 1 && !(sc->flags & SCOPEctfe))
-    {
-        if (member && !member->isNogc() && sc->func->setGC())
-        {
-            error("constructor for %s may allocate in 'new' in @nogc function %s",
-                type->toChars(), sc->func->toChars());
-            goto Lerr;
-        }
-        if (!onstack)
-        {
-            if (allocator)
-            {
-                if (!allocator->isNogc() && sc->func->setGC())
-                {
-                    error("operator new in @nogc function %s may allocate", sc->func->toChars());
-                    goto Lerr;
-                }
-            }
-            else
-            {
-                if (sc->func->setGC())
-                {
-                    error("cannot use 'new' in @nogc function %s", sc->func->toChars());
-                    goto Lerr;
-                }
-            }
-        }
-    }
 
     return this;
 
@@ -9544,12 +9491,6 @@ Expression *DeleteExp::semantic(Scope *sc)
         }
     }
 
-    if (sc->func && sc->intypeof != 1 && !(sc->flags & SCOPEctfe) && sc->func->setGC())
-    {
-        error("cannot use 'delete' in @nogc function %s", sc->func->toChars());
-        goto Lerr;
-    }
-
     return this;
 
 Lerr:
@@ -10601,12 +10542,6 @@ Expression *IndexExp::semantic(Scope *sc)
                 e2 = e2->implicitCastTo(sc, taa->index);        // type checking
             }
             type = taa->next;
-            if (sc->func && sc->intypeof != 1 && !(sc->flags & SCOPEctfe) && sc->func->setGC())
-            {
-                error("indexing an associative array in @nogc function %s may cause gc allocation",
-                    sc->func->toChars());
-                goto Lerror;
-            }
             break;
         }
 
@@ -11517,13 +11452,6 @@ Expression *AssignExp::semantic(Scope *sc)
         Type *tn = ale->e1->type->toBasetype()->nextOf();
         checkDefCtor(ale->loc, tn);
         semanticTypeInfo(sc, tn);
-
-        if (sc->func && sc->intypeof != 1 && !(sc->flags & SCOPEctfe) && sc->func->setGC())
-        {
-            error("Setting 'length' in @nogc function %s may cause GC allocation",
-                sc->func->toChars());
-            return new ErrorExp();
-        }
     }
     else if (e1->op == TOKslice)
     {
@@ -11786,12 +11714,6 @@ Expression *CatAssignExp::semantic(Scope *sc)
     Expression *e = op_overload(sc);
     if (e)
         return e;
-
-    if (sc->func && sc->intypeof != 1 && !(sc->flags & SCOPEctfe) && sc->func->setGC())
-    {
-        error("cannot use operator ~= in @nogc function %s", sc->func->toChars());
-        return new ErrorExp();
-    }
 
     if (e1->op == TOKslice)
     {
@@ -12238,12 +12160,6 @@ Expression *CatExp::semantic(Scope *sc)
     Expression *e = op_overload(sc);
     if (e)
         return e;
-
-    if (sc->func && sc->intypeof != 1 && !(sc->flags & SCOPEctfe) && sc->func->setGC())
-    {
-        error("cannot use operator ~ in @nogc function %s", sc->func->toChars());
-        return new ErrorExp();
-    }
 
     Type *tb1 = e1->type->toBasetype();
     Type *tb2 = e2->type->toBasetype();

@@ -1523,7 +1523,7 @@ Lnomatch:
             {
                 // See if initializer is a NewExp that can be allocated on the stack
                 NewExp *ne = (NewExp *)ei->exp;
-                if (!(ne->newargs && ne->newargs->dim))
+                if (!(ne->newargs && ne->newargs->dim) && type->toBasetype()->ty == Tclass)
                 {
                     ne->onstack = 1;
                     onstack = 1;

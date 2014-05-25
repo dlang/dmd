@@ -113,6 +113,8 @@ Expression *inferType(Expression *e, Type *t, int flag = 0);
 Expression *semanticTraits(TraitsExp *e, Scope *sc);
 Type *getIndirection(Type *t);
 
+Expression *checkGC(Scope *sc, Expression *e);
+
 /* Run CTFE on the expression, but allow the expression to be a TypeExp
  * or a tuple containing a TypeExp. (This is required by pragma(msg)).
  */

@@ -902,6 +902,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
                 ex = ex->semantic(sc2);
                 ex = resolvePropertiesOnly(sc2, ex);
                 ex = ex->optimize(WANTvalue);
+                ex = checkGC(sc2, ex);
                 if (ex->op == TOKerror)
                     err = true;
             }
