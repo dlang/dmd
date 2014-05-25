@@ -6,9 +6,9 @@
 /*
 TEST_OUTPUT:
 ---
-compilable/vgc3.d(16): vgc: Setting 'length' may cause gc allocation
-compilable/vgc3.d(17): vgc: Setting 'length' may cause gc allocation
-compilable/vgc3.d(18): vgc: Setting 'length' may cause gc allocation
+compilable/vgc3.d(16): vgc: setting 'length' may cause GC allocation
+compilable/vgc3.d(17): vgc: setting 'length' may cause GC allocation
+compilable/vgc3.d(18): vgc: setting 'length' may cause GC allocation
 ---
 */
 void testArrayLength(int[] a)
@@ -44,8 +44,8 @@ void testCall()
 /*
 TEST_OUTPUT:
 ---
-compilable/vgc3.d(51): vgc: Using closure causes gc allocation
-compilable/vgc3.d(63): vgc: Using closure causes gc allocation
+compilable/vgc3.d(51): vgc: using closure causes GC allocation
+compilable/vgc3.d(63): vgc: using closure causes GC allocation
 ---
 */
 auto testClosure1()

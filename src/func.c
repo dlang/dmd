@@ -2128,7 +2128,7 @@ void FuncDeclaration::semantic3(Scope *sc)
         if (setGC())
             error("@nogc function allocates a closure with the GC");
         else
-            printGCUsage(loc, "Using closure causes gc allocation");
+            printGCUsage(loc, "using closure causes GC allocation");
     }
 
     /* If function survived being marked as impure, then it is pure

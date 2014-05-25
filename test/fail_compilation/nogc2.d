@@ -58,8 +58,8 @@ fail_compilation/nogc2.d(51): Error: cannot use operator ~= in @nogc function te
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/nogc2.d(70): Error: array literals in @nogc function testArray may cause GC allocation
-fail_compilation/nogc2.d(71): Error: array literals in @nogc function testArray may cause GC allocation
+fail_compilation/nogc2.d(70): Error: array literal in @nogc function testArray may cause GC allocation
+fail_compilation/nogc2.d(71): Error: array literal in @nogc function testArray may cause GC allocation
 ---
 */
 @nogc void testArray()
@@ -93,8 +93,8 @@ fail_compilation/nogc2.d(88): Error: associative array literal in @nogc function
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/nogc2.d(102): Error: indexing an associative array in @nogc function testIndex may cause gc allocation
-fail_compilation/nogc2.d(103): Error: indexing an associative array in @nogc function testIndex may cause gc allocation
+fail_compilation/nogc2.d(102): Error: indexing an associative array in @nogc function testIndex may cause GC allocation
+fail_compilation/nogc2.d(103): Error: indexing an associative array in @nogc function testIndex may cause GC allocation
 ---
 */
 @nogc void testIndex(int[int] aa)

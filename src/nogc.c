@@ -85,12 +85,12 @@ public:
 
         if (f->setGC())
         {
-            e->error("array literals in @nogc function %s may cause GC allocation",
+            e->error("array literal in @nogc function %s may cause GC allocation",
                 f->toChars());
             err = true;
             return;
         }
-        f->printGCUsage(e->loc, "Array literals cause gc allocation");
+        f->printGCUsage(e->loc, "array literal may cause GC allocation");
     }
 
     void visit(AssocArrayLiteralExp *e)
@@ -104,7 +104,7 @@ public:
             err = true;
             return;
         }
-        f->printGCUsage(e->loc, "Associative array literals cause gc allocation");
+        f->printGCUsage(e->loc, "associative array literal may cause GC allocation");
     }
 
     void visit(NewExp *e)
@@ -135,7 +135,7 @@ public:
             err = true;
             return;
         }
-        f->printGCUsage(e->loc, "'new' causes gc allocation");
+        f->printGCUsage(e->loc, "'new' causes GC allocation");
     }
 
     void visit(DeleteExp *e)
@@ -153,7 +153,7 @@ public:
             err = true;
             return;
         }
-        f->printGCUsage(e->loc, "'delete' requires gc");
+        f->printGCUsage(e->loc, "'delete' requires GC");
     }
 
     void visit(IndexExp* e)
@@ -163,11 +163,11 @@ public:
         {
             if (f->setGC())
             {
-                e->error("indexing an associative array in @nogc function %s may cause gc allocation", f->toChars());
+                e->error("indexing an associative array in @nogc function %s may cause GC allocation", f->toChars());
                 err = true;
                 return;
             }
-            f->printGCUsage(e->loc, "Indexing an associative array may cause gc allocation");
+            f->printGCUsage(e->loc, "indexing an associative array may cause GC allocation");
         }
     }
 
@@ -177,11 +177,11 @@ public:
         {
             if (f->setGC())
             {
-                e->error("Setting 'length' in @nogc function %s may cause GC allocation", f->toChars());
+                e->error("setting 'length' in @nogc function %s may cause GC allocation", f->toChars());
                 err = true;
                 return;
             }
-            f->printGCUsage(e->loc, "Setting 'length' may cause gc allocation");
+            f->printGCUsage(e->loc, "setting 'length' may cause GC allocation");
         }
     }
 
@@ -193,7 +193,7 @@ public:
             err = true;
             return;
         }
-        f->printGCUsage(e->loc, "Concatenation may cause gc allocation");
+        f->printGCUsage(e->loc, "operator ~= may cause GC allocation");
     }
 
     void visit(CatExp *e)
@@ -204,7 +204,7 @@ public:
             err = true;
             return;
         }
-        f->printGCUsage(e->loc, "Concatenation may cause gc allocation");
+        f->printGCUsage(e->loc, "operator ~ may cause GC allocation");
     }
 };
 

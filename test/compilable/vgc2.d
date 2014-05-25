@@ -6,14 +6,14 @@
 /*
 TEST_OUTPUT:
 ---
-compilable/vgc2.d(21): vgc: Concatenation may cause gc allocation
-compilable/vgc2.d(22): vgc: Concatenation may cause gc allocation
-compilable/vgc2.d(23): vgc: Concatenation may cause gc allocation
-compilable/vgc2.d(25): vgc: Concatenation may cause gc allocation
-compilable/vgc2.d(26): vgc: Concatenation may cause gc allocation
-compilable/vgc2.d(27): vgc: Concatenation may cause gc allocation
-compilable/vgc2.d(28): vgc: Concatenation may cause gc allocation
-compilable/vgc2.d(29): vgc: Concatenation may cause gc allocation
+compilable/vgc2.d(21): vgc: operator ~ may cause GC allocation
+compilable/vgc2.d(22): vgc: operator ~ may cause GC allocation
+compilable/vgc2.d(23): vgc: operator ~ may cause GC allocation
+compilable/vgc2.d(25): vgc: operator ~ may cause GC allocation
+compilable/vgc2.d(26): vgc: operator ~ may cause GC allocation
+compilable/vgc2.d(27): vgc: operator ~ may cause GC allocation
+compilable/vgc2.d(28): vgc: operator ~ may cause GC allocation
+compilable/vgc2.d(29): vgc: operator ~ may cause GC allocation
 ---
 */
 void testCat(int[] a, string s)
@@ -38,9 +38,9 @@ void testCat(int[] a, string s)
 /*
 TEST_OUTPUT:
 ---
-compilable/vgc2.d(48): vgc: Concatenation may cause gc allocation
-compilable/vgc2.d(50): vgc: Concatenation may cause gc allocation
-compilable/vgc2.d(51): vgc: Concatenation may cause gc allocation
+compilable/vgc2.d(48): vgc: operator ~= may cause GC allocation
+compilable/vgc2.d(50): vgc: operator ~= may cause GC allocation
+compilable/vgc2.d(51): vgc: operator ~= may cause GC allocation
 ---
 */
 void testCatAssign(int[] a, string s)
@@ -58,8 +58,8 @@ int* barA();
 /*
 TEST_OUTPUT:
 ---
-compilable/vgc2.d(70): vgc: Array literals cause gc allocation
-compilable/vgc2.d(71): vgc: Array literals cause gc allocation
+compilable/vgc2.d(70): vgc: array literal may cause GC allocation
+compilable/vgc2.d(71): vgc: array literal may cause GC allocation
 ---
 */
 void testArray()
@@ -76,8 +76,8 @@ void testArray()
 /*
 TEST_OUTPUT:
 ---
-compilable/vgc2.d(87): vgc: Associative array literals cause gc allocation
-compilable/vgc2.d(88): vgc: Associative array literals cause gc allocation
+compilable/vgc2.d(87): vgc: associative array literal may cause GC allocation
+compilable/vgc2.d(88): vgc: associative array literal may cause GC allocation
 ---
 */
 void testAssocArray()
@@ -93,8 +93,8 @@ void testAssocArray()
 /*
 TEST_OUTPUT:
 ---
-compilable/vgc2.d(102): vgc: Indexing an associative array may cause gc allocation
-compilable/vgc2.d(103): vgc: Indexing an associative array may cause gc allocation
+compilable/vgc2.d(102): vgc: indexing an associative array may cause GC allocation
+compilable/vgc2.d(103): vgc: indexing an associative array may cause GC allocation
 ---
 */
 void testIndex(int[int] aa)
