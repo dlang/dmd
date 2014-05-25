@@ -2529,7 +2529,8 @@ Lagain:
             goto Lagain;
         }
         else if (t1n->ty == Tclass && t2n->ty == Tclass)
-        {   ClassDeclaration *cd1 = t1n->isClassHandle();
+        {
+            ClassDeclaration *cd1 = t1n->isClassHandle();
             ClassDeclaration *cd2 = t2n->isClassHandle();
             int offset;
 
@@ -2567,7 +2568,8 @@ Lagain:
               e2->op == TOKarrayliteral && t2->ty == Tsarray && t2->nextOf()->ty == Tvoid && ((TypeSArray *)t2)->dim->toInteger() == 0 ||
               isVoidArrayLiteral(e2, t1))
             )
-    {   /*  (T[n] op void*)   => T[]
+    {
+        /*  (T[n] op void*)   => T[]
          *  (T[]  op void*)   => T[]
          *  (T[n] op void[0]) => T[]
          *  (T[]  op void[0]) => T[]
@@ -2581,7 +2583,8 @@ Lagain:
               e1->op == TOKarrayliteral && t1->ty == Tsarray && t1->nextOf()->ty == Tvoid && ((TypeSArray *)t1)->dim->toInteger() == 0 ||
               isVoidArrayLiteral(e1, t2))
             )
-    {   /*  (void*   op T[n]) => T[]
+    {
+        /*  (void*   op T[n]) => T[]
          *  (void*   op T[])  => T[]
          *  (void[0] op T[n]) => T[]
          *  (void[0] op T[])  => T[]
@@ -2600,7 +2603,8 @@ Lagain:
              e->op == TOKdivass || e->op == TOKmodass || e->op == TOKpowass ||
              e->op == TOKandass || e->op == TOKorass  || e->op == TOKxorass)
            )
-        {   // Don't make the lvalue const
+        {
+            // Don't make the lvalue const
             t = t2;
             goto Lret;
         }
@@ -2793,11 +2797,13 @@ Lcc:
                 goto Lt2;
 
             if (e1b)
-            {   e1 = e1b;
+            {
+                e1 = e1b;
                 t1 = e1b->type->toBasetype();
             }
             if (e2b)
-            {   e2 = e2b;
+            {
+                e2 = e2b;
                 t2 = e2b->type->toBasetype();
             }
             t = t1;
@@ -2912,22 +2918,25 @@ Lcc:
     {
         goto Lt2;
     }
-    else if (isArrayOperand(e1) && t1->ty == Tarray &&
-             e2->implicitConvTo(t1->nextOf()))
-    {   // T[] op T
+    else if (e->op != TOKquestion && t1->ty == Tarray &&
+             isArrayOperand(e1) && e2->implicitConvTo(t1->nextOf()))
+    {
+        // T[] op T
         e2 = e2->castTo(sc, t1->nextOf());
         t = t1->nextOf()->arrayOf();
     }
-    else if (isArrayOperand(e2) && t2->ty == Tarray &&
-             e1->implicitConvTo(t2->nextOf()))
-    {   // T op T[]
+    else if (e->op != TOKquestion && t2->ty == Tarray &&
+             isArrayOperand(e2) && e1->implicitConvTo(t2->nextOf()))
+    {
+        // T op T[]
         e1 = e1->castTo(sc, t2->nextOf());
         t = t2->nextOf()->arrayOf();
 
         //printf("test %s\n", e->toChars());
         e1 = e1->optimize(WANTvalue);
         if (e && isCommutative(e) && e1->isConst())
-        {   /* Swap operands to minimize number of functions generated
+        {
+            /* Swap operands to minimize number of functions generated
              */
             //printf("swap %s\n", e->toChars());
             Expression *tmp = e1;
