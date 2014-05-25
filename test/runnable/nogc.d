@@ -1,5 +1,5 @@
 
-import std.stdio;
+extern(C) int printf(const char*, ...);
 
 /***********************/
 
@@ -14,6 +14,6 @@ int main()
 {
     test1();
 
-    writeln("Success");
+    printf("Success\n");
     return 0;
 }

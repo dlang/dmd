@@ -1,97 +1,50 @@
-// REQUIRED_ARGS: -vgc
-/*
-TEST_OUTPUT:
----
----
-*/
+// REQUIRED_ARGS: -o-
 
-// Tests special cases which do not allocate and shouldn't error
-// Statically typed dynamic array literals
-int[4] arr = [1,2,3,4];
+/***************** Covariance ******************/
 
-int testSArray()
+class C1
 {
-    int[4] arr = [1,2,3,4];
-    auto x = cast(int[4])[1,2,3,4];
-    return [1, 2, 3][1];
+    void foo() @nogc;
+    void bar();
 }
 
-enum int[] enumliteral = [1,2,3,4];
-
-void testArrayLiteral()
+class D1 : C1
 {
-    void helper(int[] a){}
-    int[] allocate2 = [1,2,4];
-    int[] e = enumliteral;
-    helper([1,2,3]);
+    override void foo();        // no error
+    override void bar() @nogc;  // no error
 }
 
-// String literal concatenation
-immutable s1 = "test" ~ "string";
-enum s2 = "test" ~ "string";
+/******************************************/
+// 12630
 
-void testLiteral()
+void test12630() @nogc
 {
-    string s3 = "test" ~ "string";
+    // All of these declarations should cause no errors.
+
+    static const ex1 = new Exception("invalid");
+  //enum         ex2 = new Exception("invalid");
+
+    static const arr1 = [[1,2], [3, 4]];
+    enum         arr2 = [[1,2], [3, 4]];
+
+    static const aa1 = [1:1, 2:2];
+    enum         aa2 = [1:1, 2:2];
+
+    static const v1 = aa1[1];
+    enum         v2 = aa2[1];
+
+    Object o;
+    static const del1 = (delete o).sizeof;
+    enum         del2 = (delete o).sizeof;
+
+    int[] a;
+    static const len1 = (a.length = 1).sizeof;
+    enum         len2 = (a.length = 1).sizeof;
+
+    static const cata1 = (a ~= 1).sizeof;
+    enum         cata2 = (a ~= 1).sizeof;
+
+    static const cat1 = (a ~ a).sizeof;
+    enum         cat2 = (a ~ a).sizeof;
 }
 
-//Appending to user defined type is OK
-void testAppend()
-{
-    struct App
-    {
-        ref App opOpAssign(string op)(in string s)
-        {
-            return this;
-        }
-        App opBinary(string op)(in string s) const
-        {
-            return this;
-        }
-    }
-
-    App a;
-    a ~= "test";
-    auto b = a ~ "test";
-}
-
-// mixins
-mixin(int.stringof ~ " mixInt;");
-
-// CTFE
-enum ctfe1 = "test".dup ~ "abcd";
-
-/*
- * Can't test this with -nogc, as -nogc marks the delegate as @nogc (as it should):
- * ------
- * enum n = () { auto a = [1,2,3]; return a[0] + a[1] + a[2]; }();
- * ------
- * Correct test:
- * ------
- * @nogc void func()
- * {
- *     enum n = () { auto a = [1,2,3]; return a[0] + a[1] + a[2]; }();
- * }
- * ------
- */
-
-// Reading .length is OK
-void testLength()
-{
-    int[] arr;
-    auto x = arr.length;
-}
-
-// scope prevents closure allocation
-void closureHelper1(scope void delegate() d) {}
-void testClosure()
-{
-    int a;
-
-    void del1()
-    {
-        a++;
-    }
-
-    closureHelper1(&del1);
-}
