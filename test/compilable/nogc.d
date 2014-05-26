@@ -85,3 +85,12 @@ void test12630() @nogc
     enum         cat2 = (a ~ a).sizeof;
 }
 
+/******************************************/
+// 12642
+
+import core.simd;
+
+ulong2 test12642() @nogc
+{
+    return [0, 0];
+}
