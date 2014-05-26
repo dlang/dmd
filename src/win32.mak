@@ -140,7 +140,8 @@ FRONTOBJ= enum.obj struct.obj dsymbol.obj import.obj id.obj \
 	interpret.obj ctfeexpr.obj traits.obj aliasthis.obj \
 	builtin.obj clone.obj arrayop.obj \
 	json.obj unittests.obj imphint.obj argtypes.obj apply.obj sapply.obj \
-	sideeffect.obj intrange.obj canthrow.obj target.obj nspace.obj
+	sideeffect.obj intrange.obj canthrow.obj target.obj nspace.obj \
+	color.obj
 
 # Glue layer
 GLUEOBJ=glue.obj msc.obj s2ir.obj todt.obj e2ir.obj tocsym.obj \
