@@ -5466,12 +5466,12 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
             error(loc, "functions cannot return a tuple");
             errors = true;
         }
-        else if (tb->ty == Tstruct)
+        else if (!tf->isref && (tb->ty == Tstruct || tb->ty == Tsarray))
         {
-            StructDeclaration *sd = ((TypeStruct *)tb)->sym;
-            if (sd->isforwardRef())
+            Type *tb2 = tb->baseElemOf();
+            if (tb2->ty == Tstruct && !((TypeStruct *)tb2)->sym->members)
             {
-                error(loc, "cannot return opaque struct %s by value", tb->toChars());
+                error(loc, "functions cannot return opaque type %s by value", tb->toChars());
                 errors = true;
             }
         }
@@ -5523,11 +5523,27 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 
             Type *t = fparam->type->toBasetype();
 
-            if (!(fparam->storageClass & STClazy) && t->ty == Tvoid)
+            if (t->ty == Tfunction)
+            {
+                error(loc, "cannot have parameter of function type %s", fparam->type->toChars());
+                errors = true;
+            }
+            else if (!(fparam->storageClass & (STCref | STCout)) &&
+                     (t->ty == Tstruct || t->ty == Tsarray))
+            {
+                Type *tb2 = t->baseElemOf();
+                if (tb2->ty == Tstruct && !((TypeStruct *)tb2)->sym->members)
+                {
+                    error(loc, "cannot have parameter of opaque type %s by value", fparam->type->toChars());
+                    errors = true;
+                }
+            }
+            else if (!(fparam->storageClass & STClazy) && t->ty == Tvoid)
             {
                 error(loc, "cannot have parameter of type %s", fparam->type->toChars());
                 errors = true;
             }
+
             if (fparam->storageClass & (STCref | STClazy))
             {
             }

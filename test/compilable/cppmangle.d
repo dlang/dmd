@@ -271,7 +271,7 @@ static assert(test10058l.mangleof == "_Z10test10058lPFPvS_EPFS_PKvEPFS3_S_E");
 // 11696
 
 class Expression;
-struct Loc;
+struct Loc {}
 
 extern(C++)
 class CallExp
