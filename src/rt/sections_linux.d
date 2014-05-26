@@ -737,6 +737,13 @@ const(char)[] dsoName(const char* dlpi_name)
     return p[0 .. strlen(p)];
 }
 
+extern(C)
+{
+    // .bss, .lbss, .lrodata, .ldata
+    extern __gshared void* __bss_start;
+    extern __gshared void* _end;
+}
+
 nothrow
 void checkModuleCollisions(in ref dl_phdr_info info, in immutable(ModuleInfo)*[] modules)
 in { assert(modules.length); }
@@ -744,25 +751,21 @@ body
 {
     immutable(ModuleInfo)* conflicting;
 
-    // find the segment that contains the ModuleInfos
-    ElfW!"Phdr" phdr=void;
-    if (!findSegmentForAddr(info, modules[0], &phdr))
+    auto bss_start = cast(void*)&__bss_start;
+    immutable bss_size = cast(void*)&_end - bss_start;
+
+    foreach (m; modules)
     {
-        // the first ModuleInfo* points into another DSO
-        conflicting = modules[0];
-    }
-    else
-    {
-        // all other ModuleInfos must be in the same segment
-        auto beg = cast(void*)(info.dlpi_addr + phdr.p_vaddr);
-        foreach (m; modules[1 .. $])
+        auto addr = cast(const(void*))m;
+        if (cast(size_t)(addr - bss_start) < bss_size)
         {
-            auto addr = cast(const(void*))m;
-            if (cast(size_t)(addr - beg) >= phdr.p_memsz)
-            {
-                conflicting = m;
-                break;
-            }
+            // Module is in .bss of the exe because it was copy relocated
+        }
+        else if (!findSegmentForAddr(info, addr))
+        {
+            // Module is in another DSO
+            conflicting = m;
+            break;
         }
     }
 
