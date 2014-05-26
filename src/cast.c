@@ -1925,6 +1925,7 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                     goto L1;
 
                 ae = (ArrayLiteralExp *)e->copy();
+                ae->type = tbase;   // Bugzilla 12642
                 ae->elements = e->elements->copy();
                 Type *telement = tv->elementType();
                 for (size_t i = 0; i < e->elements->dim; i++)
