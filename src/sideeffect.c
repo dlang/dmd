@@ -154,9 +154,8 @@ bool lambdaHasSideEffect(Expression *e)
                 if (t->ty == Tdelegate)
                     t = ((TypeDelegate *)t)->next;
                 if (t->ty == Tfunction &&
-                    (ce->f && ce->f->type->ty == Tfunction
-                        ? callSideEffectLevel(ce->f)
-                        : callSideEffectLevel(ce->e1->type)) > 0)
+                    (ce->f ? callSideEffectLevel(ce->f)
+                           : callSideEffectLevel(ce->e1->type)) > 0)
                 {
                 }
                 else
@@ -230,9 +229,8 @@ void discardValue(Expression *e)
                     if (t->ty == Tdelegate)
                         t = ((TypeDelegate *)t)->next;
                     if (t->ty == Tfunction &&
-                        (ce->f && ce->f->type->ty == Tfunction
-                            ? callSideEffectLevel(ce->f)
-                            : callSideEffectLevel(ce->e1->type)) > 0)
+                        (ce->f ? callSideEffectLevel(ce->f)
+                               : callSideEffectLevel(ce->e1->type)) > 0)
                     {
                         const char *s;
                         if (ce->f)
