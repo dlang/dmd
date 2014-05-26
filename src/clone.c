@@ -204,7 +204,7 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
         return NULL;
 
     //printf("StructDeclaration::buildOpAssign() %s\n", toChars());
-    StorageClass stc = STCsafe | STCnothrow | STCpure;
+    StorageClass stc = STCsafe | STCnothrow | STCpure | STCnogc;
     Loc declLoc = sd->loc;
     Loc loc = Loc();    // internal code should have no loc to prevent coverage
 
@@ -697,7 +697,7 @@ FuncDeclaration *buildCpCtor(StructDeclaration *sd, Scope *sc)
         return NULL;
 
     //printf("StructDeclaration::buildCpCtor() %s\n", toChars());
-    StorageClass stc = STCsafe | STCnothrow | STCpure;
+    StorageClass stc = STCsafe | STCnothrow | STCpure | STCnogc;
     Loc declLoc = sd->postblit->loc;
     Loc loc = Loc();    // internal code should have no loc to prevent coverage
 
@@ -754,7 +754,7 @@ FuncDeclaration *buildCpCtor(StructDeclaration *sd, Scope *sc)
 FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
 {
     //printf("StructDeclaration::buildPostBlit() %s\n", sd->toChars());
-    StorageClass stc = STCsafe | STCnothrow | STCpure;
+    StorageClass stc = STCsafe | STCnothrow | STCpure | STCnogc;
     Loc declLoc = sd->postblits.dim ? sd->postblits[0]->loc : sd->loc;
     Loc loc = Loc();    // internal code should have no loc to prevent coverage
 
@@ -832,7 +832,7 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
 
         default:
             e = NULL;
-            stc = STCsafe | STCnothrow | STCpure;
+            stc = STCsafe | STCnothrow | STCpure | STCnogc;
             for (size_t i = 0; i < sd->postblits.dim; i++)
             {
                 FuncDeclaration *fd = sd->postblits[i];
@@ -866,7 +866,7 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
 FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc)
 {
     //printf("AggregateDeclaration::buildDtor() %s\n", ad->toChars());
-    StorageClass stc = STCsafe | STCnothrow | STCpure;
+    StorageClass stc = STCsafe | STCnothrow | STCpure | STCnogc;
     Loc declLoc = ad->dtors.dim ? ad->dtors[0]->loc : ad->loc;
     Loc loc = Loc();    // internal code should have no loc to prevent coverage
 
@@ -945,7 +945,7 @@ FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc)
 
         default:
             e = NULL;
-            stc = STCsafe | STCnothrow | STCpure;
+            stc = STCsafe | STCnothrow | STCpure | STCnogc;
             for (size_t i = 0; i < ad->dtors.dim; i++)
             {
                 FuncDeclaration *fd = ad->dtors[i];
@@ -979,7 +979,7 @@ FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc)
 
 FuncDeclaration *buildInv(AggregateDeclaration *ad, Scope *sc)
 {
-    StorageClass stc = STCsafe | STCnothrow | STCpure;
+    StorageClass stc = STCsafe | STCnothrow | STCpure | STCnogc;
     Loc declLoc = ad->loc;
     Loc loc = Loc();    // internal code should have no loc to prevent coverage
 

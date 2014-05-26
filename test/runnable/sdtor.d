@@ -3208,6 +3208,47 @@ void test12591()
 }
 
 /**********************************/
+// 12660
+
+struct X12660
+{
+    this(this) @nogc {}
+    ~this() @nogc {}
+    void opAssign(X12660) @nogc {}
+    @nogc invariant() {}
+}
+struct Y12660
+{
+    X12660 x;
+
+    this(this) @nogc {}
+    ~this() @nogc {}
+    @nogc invariant() {}
+}
+struct Z12660
+{
+    Y12660 y;
+}
+
+class C12660
+{
+    this() @nogc {}
+    @nogc invariant() {}
+}
+
+void test12660() @nogc
+{
+    X12660 x;
+    x = x;
+
+    Y12660 y = { x };
+    y = y;
+
+    Z12660 z = { y };
+    z = z;
+}
+
+/**********************************/
 // 12686
 
 struct Foo12686
@@ -3332,6 +3373,7 @@ int main()
     test11505();
     test12045();
     test12591();
+    test12660();
     test12686();
 
     printf("Success\n");
