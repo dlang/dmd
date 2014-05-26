@@ -981,6 +981,23 @@ void test11661()
 }
 
 /***************************************************/
+// 11774
+
+void f11774(T, R)(R delegate(T[]) dg)
+{
+    T[] src;
+    dg(src);
+}
+
+void test11774()
+{
+    int[] delegate(int[]) dg = (int[] a) => a;
+    f11774!int(dg);
+    f11774!Object(a => a);
+    f11774!int(dg);
+}
+
+/***************************************************/
 // 12508
 
 interface A12508(T)
@@ -1067,6 +1084,7 @@ int main()
     test10288();
     test10336();
     test11661();
+    test11774();
     test12508();
 
     printf("Success\n");

@@ -4529,7 +4529,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                     Parameter *pto = Parameter::getNth(tof->parameters, u);
                     if (!pto)
                         break;
-                    Type *t = pto->type;
+                    Type *t = pto->type->syntaxCopy();  // Bugzilla 11774
                     if (reliesOnTident(t, parameters, inferStart))
                         return;
                     t = t->semantic(e->loc, sc);
