@@ -6869,6 +6869,19 @@ void test11075()
     static assert(!is(typeof(I11075!().x)));
 }
 
+/***************************************************/
+// 11181
+
+void test11181()
+{
+    auto a = ["a", "b"];
+
+    static assert(!is(typeof([a, "x"])));
+    static assert(!is(typeof(true ? a : "x")));
+
+    static assert(!is(typeof(true ? a[0 .. $] : "x")));
+    static assert(!is(typeof([a[0 .. $], "x"])));
+}
 
 /***************************************************/
 // 11317
@@ -7197,6 +7210,7 @@ int main()
     test10634();
     test7254();
     test11075();
+    test11181();
     test11317();
     test12153();
 
