@@ -6588,6 +6588,11 @@ Expression *scrubReturnValue(Loc loc, Expression *e)
             return EXP_CANT_INTERPRET;
         aae->type = toBuiltinAAType(aae->type);
     }
+    if (e->type->isfloating())
+    {
+        // Discard bits which aren't representable at runtime
+        e = discardExcessFloatPrecision(e);
+    }
     return e;
 }
 
