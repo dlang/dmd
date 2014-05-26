@@ -3243,6 +3243,17 @@ private
                 push R13;
                 push R14;
                 push R15;
+                sub RSP, 160;
+                movdqu [RSP + 144], XMM6;
+                movdqu [RSP + 128], XMM7;
+                movdqu [RSP + 112], XMM8;
+                movdqu [RSP + 96], XMM9;
+                movdqu [RSP + 80], XMM10;
+                movdqu [RSP + 64], XMM11;
+                movdqu [RSP + 48], XMM12;
+                movdqu [RSP + 32], XMM13;
+                movdqu [RSP + 16], XMM14;
+                movdqu [RSP], XMM15;
                 xor  RAX,RAX;
                 push qword ptr GS:[RAX];
                 push qword ptr GS:8[RAX];
@@ -3257,6 +3268,17 @@ private
                 pop qword ptr GS:16[RAX];
                 pop qword ptr GS:8[RAX];
                 pop qword ptr GS:[RAX];
+                movdqu XMM15, [RSP];
+                movdqu XMM14, [RSP + 16];
+                movdqu XMM13, [RSP + 32];
+                movdqu XMM12, [RSP + 48];
+                movdqu XMM11, [RSP + 64];
+                movdqu XMM10, [RSP + 80];
+                movdqu XMM9, [RSP + 96];
+                movdqu XMM8, [RSP + 112];
+                movdqu XMM7, [RSP + 128];
+                movdqu XMM6, [RSP + 144];
+                add RSP, 160;
                 pop R15;
                 pop R14;
                 pop R13;
@@ -4193,6 +4215,26 @@ private:
             push( 0x00000000_00000000 );                            // R13
             push( 0x00000000_00000000 );                            // R14
             push( 0x00000000_00000000 );                            // R15
+            push( 0x00000000_00000000 );                            // XMM6 (high)
+            push( 0x00000000_00000000 );                            // XMM6 (low)
+            push( 0x00000000_00000000 );                            // XMM7 (high)
+            push( 0x00000000_00000000 );                            // XMM7 (low)
+            push( 0x00000000_00000000 );                            // XMM8 (high)
+            push( 0x00000000_00000000 );                            // XMM8 (low)
+            push( 0x00000000_00000000 );                            // XMM9 (high)
+            push( 0x00000000_00000000 );                            // XMM9 (low)
+            push( 0x00000000_00000000 );                            // XMM10 (high)
+            push( 0x00000000_00000000 );                            // XMM10 (low)
+            push( 0x00000000_00000000 );                            // XMM11 (high)
+            push( 0x00000000_00000000 );                            // XMM11 (low)
+            push( 0x00000000_00000000 );                            // XMM12 (high)
+            push( 0x00000000_00000000 );                            // XMM12 (low)
+            push( 0x00000000_00000000 );                            // XMM13 (high)
+            push( 0x00000000_00000000 );                            // XMM13 (low)
+            push( 0x00000000_00000000 );                            // XMM14 (high)
+            push( 0x00000000_00000000 );                            // XMM14 (low)
+            push( 0x00000000_00000000 );                            // XMM15 (high)
+            push( 0x00000000_00000000 );                            // XMM15 (low)
             push( 0xFFFFFFFF_FFFFFFFF );                            // GS:[0]
             version( StackGrowsDown )
             {
@@ -4776,6 +4818,61 @@ unittest
     }
     fiber = new Fiber(() { recurse(20); });
     fiber.call();
+}
+
+
+version( AsmX86_64_Windows )
+{
+    // Test Windows x64 calling convention
+    unittest
+    {
+        void testNonvolatileRegister(alias REG)()
+        {
+            auto zeroRegister = new Fiber(() {
+                mixin("asm { xor "~REG~", "~REG~"; }");
+            });
+            long after;
+
+            mixin("asm { mov "~REG~", 0xFFFFFFFFFFFFFFFF; }");
+            zeroRegister.call();
+            mixin("asm { mov after, "~REG~"; }");
+
+            assert(after == -1);
+        }
+
+        void testNonvolatileRegisterSSE(alias REG)()
+        {
+            auto zeroRegister = new Fiber(() {
+                mixin("asm { xorpd "~REG~", "~REG~"; }");
+            });
+            long[2] before = [0xFFFFFFFF_FFFFFFFF, 0xFFFFFFFF_FFFFFFFF], after;
+
+            mixin("asm { movdqu "~REG~", before; }");
+            zeroRegister.call();
+            mixin("asm { movdqu after, "~REG~"; }");
+
+            assert(before == after);
+        }
+
+        testNonvolatileRegister!("R12")();
+        testNonvolatileRegister!("R13")();
+        testNonvolatileRegister!("R14")();
+        testNonvolatileRegister!("R15")();
+        testNonvolatileRegister!("RDI")();
+        testNonvolatileRegister!("RSI")();
+        testNonvolatileRegister!("RBX")();
+
+        testNonvolatileRegisterSSE!("XMM6")();
+        testNonvolatileRegisterSSE!("XMM7")();
+        testNonvolatileRegisterSSE!("XMM8")();
+        testNonvolatileRegisterSSE!("XMM9")();
+        testNonvolatileRegisterSSE!("XMM10")();
+        testNonvolatileRegisterSSE!("XMM11")();
+        testNonvolatileRegisterSSE!("XMM12")();
+        testNonvolatileRegisterSSE!("XMM13")();
+        testNonvolatileRegisterSSE!("XMM14")();
+        testNonvolatileRegisterSSE!("XMM15")();
+    }
 }
 
 
