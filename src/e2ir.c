@@ -4326,16 +4326,23 @@ elem *toElem(Expression *e, IRState *irs)
 
         void visit(DelegatePtrExp *dpe)
         {
+            // *cast(void**)(&dg)
             elem *e = dpe->e1->toElem(irs);
-            e = el_una(I64 ? OP128_64 : OP64_32, totym(dpe->type), e);
+            Type *tb1 = dpe->e1->type->toBasetype();
+            e = addressElem(e, tb1);
+            e = el_una(OPind, totym(dpe->type), e);
             el_setLoc(e, dpe->loc);
             result = e;
         }
 
         void visit(DelegateFuncptrExp *dfpe)
         {
+            // *cast(void**)(&dg + size_t.sizeof)
             elem *e = dfpe->e1->toElem(irs);
-            e = el_una(OPmsw, totym(dfpe->type), e);
+            Type *tb1 = dfpe->e1->type->toBasetype();
+            e = addressElem(e, tb1);
+            e = el_bin(OPadd, TYnptr, e, el_long(TYsize_t, I64 ? 8 : 4));
+            e = el_una(OPind, totym(dfpe->type), e);
             el_setLoc(e, dfpe->loc);
             result = e;
         }
