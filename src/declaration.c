@@ -1517,27 +1517,6 @@ Lnomatch:
         sc->stc &= ~(STC_TYPECTOR | STCpure | STCnothrow | STCnogc | STCref | STCdisable);
 
         ExpInitializer *ei = init->isExpInitializer();
-        if (ei && isScope())
-        {
-            if (ei->exp->op == TOKnew)
-            {
-                // See if initializer is a NewExp that can be allocated on the stack
-                NewExp *ne = (NewExp *)ei->exp;
-                if (!(ne->newargs && ne->newargs->dim) && type->toBasetype()->ty == Tclass)
-                {
-                    ne->onstack = 1;
-                    onstack = 1;
-                    if (type->isBaseOf(ne->newtype->semantic(loc, sc), NULL))
-                        onstack = 2;
-                }
-            }
-            else if (ei->exp->op == TOKfunction)
-            {
-                // or a delegate that doesn't escape a reference to the function
-                FuncDeclaration *f = ((FuncExp *)ei->exp)->fd;
-                f->tookAddressOf--;
-            }
-        }
 
         // If inside function, there is no semantic3() call
         if (sc->func)
@@ -1581,6 +1560,33 @@ Lnomatch:
                 ei->exp = ei->exp->semantic(sc);
                 canassign--;
                 ei->exp->optimize(WANTvalue);
+
+                if (isScope())
+                {
+                    Expression *ex = ei->exp;
+                    while (ex->op == TOKcomma)
+                        ex = ((CommaExp *)ex)->e2;
+                    assert(ex->op == TOKblit || ex->op == TOKconstruct);
+                    ex = ((AssignExp *)ex)->e2;
+                    if (ex->op == TOKnew)
+                    {
+                        // See if initializer is a NewExp that can be allocated on the stack
+                        NewExp *ne = (NewExp *)ex;
+                        if (!(ne->newargs && ne->newargs->dim) && type->toBasetype()->ty == Tclass)
+                        {
+                            ne->onstack = 1;
+                            onstack = 1;
+                            if (type->isBaseOf(ne->newtype->semantic(loc, sc), NULL))
+                                onstack = 2;
+                        }
+                    }
+                    else if (ex->op == TOKfunction)
+                    {
+                        // or a delegate that doesn't escape a reference to the function
+                        FuncDeclaration *f = ((FuncExp *)ex)->fd;
+                        f->tookAddressOf--;
+                    }
+                }
             }
             else
             {
