@@ -3236,24 +3236,29 @@ private
                 naked;
 
                 // save current stack state
+                // NOTE: When changing the layout of registers on the stack,
+                //       make sure that the XMM registers are still aligned.
+                //       On function entry, the stack is guaranteed to be
+                //       misaligned by 8 bytes.
                 push RBP;
                 mov  RBP, RSP;
-                push RBX;
                 push R12;
                 push R13;
                 push R14;
                 push R15;
+                // Five registers = 40 bytes; stack is now aligned to 16 bytes
                 sub RSP, 160;
-                movdqu [RSP + 144], XMM6;
-                movdqu [RSP + 128], XMM7;
-                movdqu [RSP + 112], XMM8;
-                movdqu [RSP + 96], XMM9;
-                movdqu [RSP + 80], XMM10;
-                movdqu [RSP + 64], XMM11;
-                movdqu [RSP + 48], XMM12;
-                movdqu [RSP + 32], XMM13;
-                movdqu [RSP + 16], XMM14;
-                movdqu [RSP], XMM15;
+                movdqa [RSP + 144], XMM6;
+                movdqa [RSP + 128], XMM7;
+                movdqa [RSP + 112], XMM8;
+                movdqa [RSP + 96], XMM9;
+                movdqa [RSP + 80], XMM10;
+                movdqa [RSP + 64], XMM11;
+                movdqa [RSP + 48], XMM12;
+                movdqa [RSP + 32], XMM13;
+                movdqa [RSP + 16], XMM14;
+                movdqa [RSP], XMM15;
+                push RBX;
                 xor  RAX,RAX;
                 push qword ptr GS:[RAX];
                 push qword ptr GS:8[RAX];
@@ -3268,22 +3273,22 @@ private
                 pop qword ptr GS:16[RAX];
                 pop qword ptr GS:8[RAX];
                 pop qword ptr GS:[RAX];
-                movdqu XMM15, [RSP];
-                movdqu XMM14, [RSP + 16];
-                movdqu XMM13, [RSP + 32];
-                movdqu XMM12, [RSP + 48];
-                movdqu XMM11, [RSP + 64];
-                movdqu XMM10, [RSP + 80];
-                movdqu XMM9, [RSP + 96];
-                movdqu XMM8, [RSP + 112];
-                movdqu XMM7, [RSP + 128];
-                movdqu XMM6, [RSP + 144];
+                pop RBX;
+                movdqa XMM15, [RSP];
+                movdqa XMM14, [RSP + 16];
+                movdqa XMM13, [RSP + 32];
+                movdqa XMM12, [RSP + 48];
+                movdqa XMM11, [RSP + 64];
+                movdqa XMM10, [RSP + 80];
+                movdqa XMM9, [RSP + 96];
+                movdqa XMM8, [RSP + 112];
+                movdqa XMM7, [RSP + 128];
+                movdqa XMM6, [RSP + 144];
                 add RSP, 160;
                 pop R15;
                 pop R14;
                 pop R13;
                 pop R12;
-                pop RBX;
                 pop RBP;
 
                 // 'return' to complete switch
@@ -4207,11 +4212,25 @@ private:
         }
         else version( AsmX86_64_Windows )
         {
-            push( 0x00000000_00000000 );                            // Return address of fiber_entryPoint call
-            push( cast(size_t) &fiber_entryPoint );                 // RIP
+            // Using this trampoline instead of the raw fiber_entryPoint
+            // ensures that during context switches, source and destination
+            // stacks have the same alignment. Otherwise, the stack would need
+            // to be shifted by 8 bytes for the first call.
+            static void trampoline()
+            {
+                asm
+                {
+                    naked;
+                    sub RSP, 32; // Reserve shadow space for callee
+                    call R12; // R12 is set to fiber_entryPoint    
+                    xor RCX, RCX; // this should never be reached, as
+                    jmp RCX;      // fiber_entrypoint must never return
+                }
+            }
+
+            push( cast(size_t) &trampoline );                       // RIP
             push( 0x00000000_00000000 );                            // RBP
-            push( 0x00000000_00000000 );                            // RBX
-            push( 0x00000000_00000000 );                            // R12
+            push( cast(size_t) &fiber_entryPoint );                 // R12
             push( 0x00000000_00000000 );                            // R13
             push( 0x00000000_00000000 );                            // R14
             push( 0x00000000_00000000 );                            // R15
@@ -4235,6 +4254,7 @@ private:
             push( 0x00000000_00000000 );                            // XMM14 (low)
             push( 0x00000000_00000000 );                            // XMM15 (high)
             push( 0x00000000_00000000 );                            // XMM15 (low)
+            push( 0x00000000_00000000 );                            // RBX
             push( 0xFFFFFFFF_FFFFFFFF );                            // GS:[0]
             version( StackGrowsDown )
             {
