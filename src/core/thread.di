@@ -486,7 +486,7 @@ version( Windows )
 
 
 /**
- * Deregisters the calling thread from use with the runtime.  If this routine
+ * Deregisters the given thread from use with the runtime.  If this routine
  * is called for a thread which is not registered, no action is performed.
  */
 extern (C) void thread_detachThis();
@@ -494,6 +494,10 @@ extern (C) void thread_detachThis();
 
 /// ditto
 extern (C) void thread_detachByAddr( Thread.ThreadAddr addr );
+
+
+/// ditto
+extern (C) void thread_detachInstance( Thread t );
 
 
 /**

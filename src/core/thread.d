@@ -1937,7 +1937,7 @@ version( Windows )
 
 
 /**
- * Deregisters the calling thread from use with the runtime.  If this routine
+ * Deregisters the given thread from use with the runtime.  If this routine
  * is called for a thread which is not registered, the result is undefined.
  */
 extern (C) void thread_detachThis()
@@ -1952,6 +1952,13 @@ extern (C) void thread_detachByAddr( Thread.ThreadAddr addr )
 {
     if( auto t = thread_findByAddr( addr ) )
         Thread.remove( t );
+}
+
+
+/// ditto
+extern (C) void thread_detachInstance( Thread t )
+{
+    Thread.remove( t );
 }
 
 
