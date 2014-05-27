@@ -2755,7 +2755,7 @@ HWND CreateWindowW(
     return CreateWindowExW(0, lpClassName, lpWindowName, dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
 }
 
-export BOOL DestroyWindow(HWND hWnd) nothrow;
+export BOOL DestroyWindow(HWND hWnd);
 
 /*
  * Message structure
