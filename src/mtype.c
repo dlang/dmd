@@ -4684,13 +4684,23 @@ printf("index->ito->ito = x%x\n", index->ito->ito);
             return Type::terror;
         case Tstruct:
         {
-            /* AA's need opCmp. Issue error if not correctly set up.
+            /* AA's need opEquals and opCmp. Issue error if not correctly set up.
              */
             StructDeclaration *sd = ((TypeStruct *)index->toBasetype())->sym;
             if (sd->scope)
                 sd->semantic(NULL);
 
             // duplicate a part of StructDeclaration::semanticTypeInfoMembers
+            if (sd->xeq &&
+                sd->xeq->scope &&
+                sd->xeq->semanticRun < PASSsemantic3done)
+            {
+                unsigned errors = global.startGagging();
+                sd->xeq->semantic3(sd->xeq->scope);
+                if (global.endGagging(errors))
+                    sd->xeq = sd->xerreq;
+            }
+
             if (sd->xcmp &&
                 sd->xcmp->scope &&
                 sd->xcmp->semanticRun < PASSsemantic3done)
@@ -4701,6 +4711,13 @@ printf("index->ito->ito = x%x\n", index->ito->ito);
                     sd->xcmp = sd->xerrcmp;
             }
 
+            if (sd->xeq == sd->xerreq)
+            {
+                error(loc, "associative array key type %s does not have 'const bool opEquals(ref const %s)' member function",
+                        index->toBasetype()->toChars(), sd->toChars());
+                return Type::terror;
+            }
+            // the opCmp requirement can go away once druntime fully switched to using opEquals
             if (sd->xcmp == sd->xerrcmp)
             {
                 error(loc, "associative array key type %s does not have 'const int opCmp(ref const %s)' member function",
