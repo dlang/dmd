@@ -601,15 +601,37 @@ int Statement::blockExit(FuncDeclaration *func, bool mustNotThrow)
         {
             result = BEfallthru;
             if (s->body)
-                result = s->body->blockExit(func, mustNotThrow);
+                result = s->body->blockExit(func, false);
+
             // check finally body as well, it may throw (bug #4082)
+            int finalresult = BEfallthru;
             if (s->finalbody)
+                finalresult = s->finalbody->blockExit(func, false);
+
+            // If either body or finalbody halts
+            if (result == BEhalt)
+                finalresult = BEnone;
+            if (finalresult == BEhalt)
+                result = BEnone;
+
+            if (mustNotThrow && (result & BEthrow))
             {
-                int finalresult = s->finalbody->blockExit(func, mustNotThrow);
-                if (!(finalresult & BEfallthru))
-                    result &= ~BEfallthru;
-                result |= finalresult & ~BEfallthru;
+                // now explain why this is nothrow
+                if (s->body && (result & BEthrow))
+                    s->body->blockExit(func, mustNotThrow);
+                if (s->finalbody && (finalresult & BEthrow))
+                    s->finalbody->blockExit(func, mustNotThrow);
             }
+
+            if (result == BEhalt && finalresult != BEhalt && s->finalbody &&
+                /*!s->finalbody->comeFrom() &&*/ s->finalbody->hasCode())
+            {
+                s->finalbody->warning("statement is not reachable");
+            }
+
+            if (!(finalresult & BEfallthru))
+                result &= ~BEfallthru;
+            result |= finalresult & ~BEfallthru;
         }
 
         void visit(OnScopeStatement *s)
