@@ -10227,6 +10227,17 @@ Expression *DelegatePtrExp::semantic(Scope *sc)
     return this;
 }
 
+int DelegatePtrExp::isLvalue()
+{
+    return e1->isLvalue();
+}
+
+Expression *DelegatePtrExp::toLvalue(Scope *sc, Expression *e)
+{
+    e1 = e1->toLvalue(sc, e);
+    return this;
+}
+
 /********************** DelegateFuncptrExp **************************************/
 
 DelegateFuncptrExp::DelegateFuncptrExp(Loc loc, Expression *e1)
@@ -10248,6 +10259,17 @@ Expression *DelegateFuncptrExp::semantic(Scope *sc)
             return e1;
         type = e1->type->nextOf()->pointerTo();
     }
+    return this;
+}
+
+int DelegateFuncptrExp::isLvalue()
+{
+    return e1->isLvalue();
+}
+
+Expression *DelegateFuncptrExp::toLvalue(Scope *sc, Expression *e)
+{
+    e1 = e1->toLvalue(sc, e);
     return this;
 }
 
