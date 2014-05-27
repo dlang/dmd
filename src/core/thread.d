@@ -3238,8 +3238,9 @@ private
                 // save current stack state
                 // NOTE: When changing the layout of registers on the stack,
                 //       make sure that the XMM registers are still aligned.
-                //       On function entry, the stack is guaranteed to be
-                //       misaligned by 8 bytes.
+                //       On function entry, the stack is guaranteed to not 
+                //       be aligned to 16 bytes because of the return address
+                //       on the stack.
                 push RBP;
                 mov  RBP, RSP;
                 push R12;
@@ -4215,22 +4216,24 @@ private:
             // Using this trampoline instead of the raw fiber_entryPoint
             // ensures that during context switches, source and destination
             // stacks have the same alignment. Otherwise, the stack would need
-            // to be shifted by 8 bytes for the first call.
+            // to be shifted by 8 bytes for the first call, as fiber_entryPoint
+            // is an actual function expecting a stack which is not aligned
+            // to 16 bytes.
             static void trampoline()
             {
                 asm
                 {
                     naked;
-                    sub RSP, 32; // Reserve shadow space for callee
-                    call R12; // R12 is set to fiber_entryPoint    
-                    xor RCX, RCX; // this should never be reached, as
-                    jmp RCX;      // fiber_entrypoint must never return
+                    sub RSP, 32; // Shadow space (Win64 calling convention)
+                    call fiber_entryPoint;
+                    xor RCX, RCX; // This should never be reached, as
+                    jmp RCX;      // fiber_entryPoint must never return.
                 }
             }
 
             push( cast(size_t) &trampoline );                       // RIP
             push( 0x00000000_00000000 );                            // RBP
-            push( cast(size_t) &fiber_entryPoint );                 // R12
+            push( 0x00000000_00000000 );                            // R12
             push( 0x00000000_00000000 );                            // R13
             push( 0x00000000_00000000 );                            // R14
             push( 0x00000000_00000000 );                            // R15
