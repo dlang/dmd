@@ -9,6 +9,21 @@ extern(C) int printf(const char*, ...);
 }
 
 /***********************/
+// 3022
+
+class Foo3022
+{
+    new(size_t) { assert(0); }
+    delete(void*) { assert(0); }
+}
+
+void test3022() @nogc
+{
+    int n;
+    scope x = new Foo3022;
+}
+
+/***********************/
 // 3032
 
 void test3032() @nogc
@@ -48,6 +63,7 @@ void test12642() @nogc
 int main()
 {
     test1();
+    test3022();
     test3032();
     test12642();
 
