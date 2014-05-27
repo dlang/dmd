@@ -2756,6 +2756,7 @@ HWND CreateWindowW(
 }
 
 export BOOL DestroyWindow(HWND hWnd);
+export BOOL SetWindowPos(HWND hWnd, HWND hWndInsertAfter, int X, int Y, int cx, int cy, UINT uFlags);
 
 /*
  * Message structure
