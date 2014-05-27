@@ -1829,6 +1829,12 @@ extern (C) bool thread_isMainThread()
 /**
  * Registers the calling thread for use with the D Runtime.  If this routine
  * is called for a thread which is already registered, no action is performed.
+ *
+ * NOTE: This routine does not run thread-local static ctors when called.  If
+ *       full functionality as a D thread is desired, the following function
+ *       must be called after thread_attachThis:
+ *
+ *       extern (C) void rt_moduleTlsCtor();
  */
 extern (C) Thread thread_attachThis()
 {
@@ -1939,6 +1945,13 @@ version( Windows )
 /**
  * Deregisters the given thread from use with the runtime.  If this routine
  * is called for a thread which is not registered, the result is undefined.
+ *
+ * NOTE: This routine does not run thread-local static dtors when called.  If
+ *       full functionality as a D thread is desired, the following function
+ *       must be called after thread_detachThis, particularly if the thread is
+ *       being detached at some indeterminate time before program termination:
+ *
+ *       extern (C) void rt_moduleTlsDtor();
  */
 extern (C) void thread_detachThis()
 {
