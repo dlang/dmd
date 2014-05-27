@@ -7953,6 +7953,7 @@ CallExp::CallExp(Loc loc, Expression *e)
         : UnaExp(loc, TOKcall, sizeof(CallExp), e)
 {
     this->arguments = NULL;
+    this->f = NULL;
 }
 
 CallExp::CallExp(Loc loc, Expression *e, Expression *earg1)
@@ -7960,10 +7961,12 @@ CallExp::CallExp(Loc loc, Expression *e, Expression *earg1)
 {
     Expressions *arguments = new Expressions();
     if (earg1)
-    {   arguments->setDim(1);
+    {
+        arguments->setDim(1);
         (*arguments)[0] = earg1;
     }
     this->arguments = arguments;
+    this->f = NULL;
 }
 
 CallExp::CallExp(Loc loc, Expression *e, Expression *earg1, Expression *earg2)
@@ -7975,6 +7978,7 @@ CallExp::CallExp(Loc loc, Expression *e, Expression *earg1, Expression *earg2)
     (*arguments)[1] = earg2;
 
     this->arguments = arguments;
+    this->f = NULL;
 }
 
 CallExp *CallExp::create(Loc loc, Expression *e, Expressions *exps)
