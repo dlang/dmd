@@ -1561,18 +1561,22 @@ Lnomatch:
                 canassign--;
                 ei->exp->optimize(WANTvalue);
 
-                if (isScope())
+                if (isScope() && ei->exp->op != TOKerror)
                 {
                     Expression *ex = ei->exp;
                     while (ex->op == TOKcomma)
                         ex = ((CommaExp *)ex)->e2;
                     assert(ex->op == TOKblit || ex->op == TOKconstruct);
                     ex = ((AssignExp *)ex)->e2;
-                    if (ex->op == TOKnew)
+                    if (ex->op == TOKnew && type->toBasetype()->ty == Tclass)
                     {
                         // See if initializer is a NewExp that can be allocated on the stack
                         NewExp *ne = (NewExp *)ex;
-                        if (!(ne->newargs && ne->newargs->dim) && type->toBasetype()->ty == Tclass)
+                        if (ne->newargs && ne->newargs->dim > 1)
+                        {
+                            error("conflict stack allocation and allocator call");
+                        }
+                        else
                         {
                             ne->onstack = 1;
                             onstack = 1;
