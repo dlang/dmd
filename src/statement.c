@@ -573,26 +573,34 @@ int Statement::blockExit(FuncDeclaration *func, bool mustNotThrow)
                 if (c->type == Type::terror)
                     continue;
 
+                int cresult;
                 if (c->handler)
-                    catchresult |= c->handler->blockExit(func, mustNotThrow);
+                    cresult = c->handler->blockExit(func, mustNotThrow);
                 else
-                    catchresult |= BEfallthru;
+                    cresult = BEfallthru;
 
                 /* If we're catching Object, then there is no throwing
                  */
                 Identifier *id = c->type->toBasetype()->isClassHandle()->ident;
-                if (id == Id::Object || id == Id::Throwable)
+                if (c->internalCatch && (cresult & BEfallthru))
+                {
+                    // Bugzilla 11542: leave blockExit flags of the body
+                    cresult &= ~BEfallthru;
+                }
+                else if (id == Id::Object || id == Id::Throwable)
                 {
                     result &= ~(BEthrow | BEerrthrow);
                 }
-                if (id == Id::Exception)
+                else if (id == Id::Exception)
                 {
                     result &= ~BEthrow;
                 }
+                catchresult |= cresult;
             }
             if (mustNotThrow && (result & BEthrow))
             {
-                s->body->blockExit(func, mustNotThrow); // now explain why this is nothrow
+                // now explain why this is nothrow
+                s->body->blockExit(func, mustNotThrow);
             }
             result |= catchresult;
         }
@@ -601,15 +609,37 @@ int Statement::blockExit(FuncDeclaration *func, bool mustNotThrow)
         {
             result = BEfallthru;
             if (s->body)
-                result = s->body->blockExit(func, mustNotThrow);
+                result = s->body->blockExit(func, false);
+
             // check finally body as well, it may throw (bug #4082)
+            int finalresult = BEfallthru;
             if (s->finalbody)
+                finalresult = s->finalbody->blockExit(func, false);
+
+            // If either body or finalbody halts
+            if (result == BEhalt)
+                finalresult = BEnone;
+            if (finalresult == BEhalt)
+                result = BEnone;
+
+            if (mustNotThrow)
             {
-                int finalresult = s->finalbody->blockExit(func, mustNotThrow);
-                if (!(finalresult & BEfallthru))
-                    result &= ~BEfallthru;
-                result |= finalresult & ~BEfallthru;
+                // now explain why this is nothrow
+                if (s->body && (result & BEthrow))
+                    s->body->blockExit(func, mustNotThrow);
+                if (s->finalbody && (finalresult & BEthrow))
+                    s->finalbody->blockExit(func, mustNotThrow);
             }
+
+            if (result == BEhalt && finalresult != BEhalt && s->finalbody &&
+                /*!s->finalbody->comeFrom() &&*/ s->finalbody->hasCode())
+            {
+                s->finalbody->warning("statement is not reachable");
+            }
+
+            if (!(finalresult & BEfallthru))
+                result &= ~BEfallthru;
+            result |= finalresult & ~BEfallthru;
         }
 
         void visit(OnScopeStatement *s)
@@ -620,6 +650,13 @@ int Statement::blockExit(FuncDeclaration *func, bool mustNotThrow)
 
         void visit(ThrowStatement *s)
         {
+            if (s->internalThrow)
+            {
+                // Bugzilla 8675: Allow throwing 'Throwable' object even if mustNotThrow.
+                result = BEfallthru;
+                return;
+            }
+
             Type *t = s->exp->type->toBasetype();
             ClassDeclaration *cd = t->isClassHandle();
             assert(cd);
@@ -630,9 +667,7 @@ int Statement::blockExit(FuncDeclaration *func, bool mustNotThrow)
                 result = BEerrthrow;
                 return;
             }
-            // Bugzilla 8675
-            // Throwing Errors is allowed even if mustNotThrow
-            if (!s->internalThrow && mustNotThrow)
+            if (mustNotThrow)
                 s->error("%s is thrown but not caught", s->exp->type->toChars());
 
             result = BEthrow;
