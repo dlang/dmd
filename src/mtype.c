@@ -4689,6 +4689,18 @@ printf("index->ito->ito = x%x\n", index->ito->ito);
             StructDeclaration *sd = ((TypeStruct *)index->toBasetype())->sym;
             if (sd->scope)
                 sd->semantic(NULL);
+
+            // duplicate a part of StructDeclaration::semanticTypeInfoMembers
+            if (sd->xcmp &&
+                sd->xcmp->scope &&
+                sd->xcmp->semanticRun < PASSsemantic3done)
+            {
+                unsigned errors = global.startGagging();
+                sd->xcmp->semantic3(sd->xcmp->scope);
+                if (global.endGagging(errors))
+                    sd->xcmp = sd->xerrcmp;
+            }
+
             if (sd->xcmp == sd->xerrcmp)
             {
                 error(loc, "associative array key type %s does not have 'const int opCmp(ref const %s)' member function",
