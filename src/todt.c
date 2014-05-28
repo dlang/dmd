@@ -788,13 +788,7 @@ dt_t **toDtElem(TypeSArray *tsa, dt_t **pdt, Expression *e)
         {
             for (size_t i = 1; i < len; i++)
             {
-                if (tbn->ty == Tstruct)
-                {
-                    pdt = Type_toDt(tnext, pdt);
-                    pdt = dtend(pdt);
-                }
-                else
-                    pdt = e->toDt(pdt);
+                pdt = e->toDt(pdt);
             }
         }
     }
