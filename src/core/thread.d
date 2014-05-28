@@ -1979,7 +1979,7 @@ unittest
 {
     auto t = new Thread({Thread.sleep(1000.msecs);});
     t.start();
-    thread_detachThread(t);
+    thread_detachInstance(t);
     foreach (t2; Thread)
         assert(t !is t2);
     t.join();
