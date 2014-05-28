@@ -41,21 +41,44 @@ GIT=git
 
 # Compiler Warnings
 ifdef ENABLE_WARNINGS
-WARNINGS := -Wall -Wextra -Wno-deprecated -Wno-strict-aliasing -Wno-empty-body \
-	-Wno-unused-parameter -Wno-unused-value -Wno-unused-variable -Wno-unused-function -Wno-return-type \
-	-Wno-unused-label -Wno-unknown-pragmas -Wno-sign-compare \
-	-Wno-overloaded-virtual -Wno-missing-braces \
-	-Wno-missing-field-initializers -Wno-parentheses -Wno-format -Wno-attributes \
-	-Wno-char-subscripts -Wno-reorder \
-	-Wno-switch -Wno-type-limits
+WARNINGS := -Wall -Wextra \
+	-Wno-attributes \
+	-Wno-char-subscripts \
+	-Wno-deprecated \
+	-Wno-empty-body \
+	-Wno-format \
+	-Wno-missing-braces \
+	-Wno-missing-field-initializers \
+	-Wno-overloaded-virtual \
+	-Wno-parentheses \
+	-Wno-reorder \
+	-Wno-return-type \
+	-Wno-sign-compare \
+	-Wno-strict-aliasing \
+	-Wno-switch \
+	-Wno-type-limits \
+	-Wno-unknown-pragmas \
+	-Wno-unused-function \
+	-Wno-unused-label \
+	-Wno-unused-parameter \
+	-Wno-unused-value \
+	-Wno-unused-variable
 # GCC Specific
 ifeq ($(HOST_CC), g++)
-WARNINGS := $(WARNINGS) -Wno-logical-op -Wno-narrowing -Wno-unused-but-set-variable -Wno-uninitialized
+WARNINGS := $(WARNINGS) \
+	-Wno-logical-op \
+	-Wno-narrowing \
+	-Wno-unused-but-set-variable \
+	-Wno-uninitialized
 endif
 # Clangn Specific
 ifeq ($(HOST_CC), clang++)
-WARNINGS := $(WARNINGS) -Wno-tautological-constant-out-of-range-compare -Wno-tautological-compare \
-			-Wno-constant-logical-operand -Wno-self-assign -Wno-self-assign # -Wno-sometimes-uninitialized
+WARNINGS := $(WARNINGS) \
+	-Wno-tautological-constant-out-of-range-compare \
+	-Wno-tautological-compare \
+	-Wno-constant-logical-operand \
+	-Wno-self-assign -Wno-self-assign
+# -Wno-sometimes-uninitialized
 endif
 else
 # Default Warnings
