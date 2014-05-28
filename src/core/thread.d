@@ -1977,7 +1977,10 @@ extern (C) void thread_detachInstance( Thread t )
 
 unittest
 {
-    auto t = new Thread({Thread.sleep(1000.msecs);});
+    auto t = new Thread(
+    {
+        Thread.sleep(100.msecs);
+    });
     t.start();
     thread_detachInstance(t);
     foreach (t2; Thread)
