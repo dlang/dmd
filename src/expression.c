@@ -3201,6 +3201,14 @@ Lagain:
             }
             e = e->copy();
             e->loc = loc;   // for better error message
+
+            // Detect recursive initializers.
+            // BUG: The check for speculative gagging is not correct
+            if (v->inuse && !global.isSpeculativeGagging())
+            {
+                e->error("circular initialization of %s", v->toChars());
+                return new ErrorExp();
+            }
             e = e->semantic(sc);
             return e;
         }
