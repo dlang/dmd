@@ -4906,8 +4906,16 @@ Statement *LabelStatement::semantic(Scope *sc)
     }
     sc->slabel = this;
     if (statement)
-        statement = statement->semanticNoScope(sc);
+        statement = statement->semantic(sc);
     sc->pop();
+    return this;
+}
+
+Statement *LabelStatement::scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally)
+{
+    //printf("LabelStatement::scopeCode()\n");
+    if (statement)
+        statement = statement->scopeCode(sc, sentry, sexit, sfinally);
     return this;
 }
 

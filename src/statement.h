@@ -710,6 +710,7 @@ public:
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     Statements *flatten(Scope *sc);
+    Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
 
     LabelStatement *isLabelStatement() { return this; }
 
