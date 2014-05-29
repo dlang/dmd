@@ -1300,7 +1300,7 @@ void FuncDeclaration::semantic3(Scope *sc)
         sc2->fieldinit = NULL;
         sc2->fieldinit_dim = 0;
 
-        if (AggregateDeclaration *ad = isMember2())
+        if (isMember2())
         {
             FuncLiteralDeclaration *fld = isFuncLiteralDeclaration();
             if (fld && !sc->intypeof)

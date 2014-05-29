@@ -2594,7 +2594,7 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
         else
         {
             AddExp ea(loc, lwr, upr);
-            if (Expression *ex = typeCombine(&ea, sc))
+            if (typeCombine(&ea, sc))
                 return new ErrorStatement();
             arg->type = ea.type;
             lwr = ea.e1;

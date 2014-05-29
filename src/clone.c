@@ -446,7 +446,7 @@ FuncDeclaration *hasIdentityOpEquals(AggregateDeclaration *ad,  Scope *sc)
 
 FuncDeclaration *buildOpEquals(StructDeclaration *sd, Scope *sc)
 {
-    if (FuncDeclaration *f = hasIdentityOpEquals(sd, sc))
+    if (hasIdentityOpEquals(sd, sc))
     {
         sd->hasIdentityEquals = true;
     }

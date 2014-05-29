@@ -1485,7 +1485,7 @@ bool inferAggregate(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply)
                     }
                 }
 
-                if (Dsymbol *shead = ad->search(Loc(), idfront))
+                if (ad->search(Loc(), idfront))
                 {
                     // range aggregate
                     break;

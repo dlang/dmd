@@ -3360,7 +3360,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                             goto Lnomatch;
                     }
                     //printf("[e] s = %s\n", s?s->toChars():"(null)");
-                    if (TemplateTypeParameter *ttp = tp->isTemplateTypeParameter())
+                    if (tp->isTemplateTypeParameter())
                     {
                         Type *tt = s->getType();
                         if (!tt)
@@ -3372,7 +3372,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                             goto Lexact;
                         }
                     }
-                    if (TemplateAliasParameter *tap = tp->isTemplateAliasParameter())
+                    if (tp->isTemplateAliasParameter())
                     {
                         Dsymbol *s2 = (Dsymbol *)(*dedtypes)[i];
                         if (!s2 || s == s2)
@@ -7260,7 +7260,7 @@ bool TemplateInstance::needsTypeInference(Scope *sc, int flag)
     unsigned olderrs = global.errors;
     for (size_t oi = 0; oi < overs_dim; oi++)
     {
-        if (int r = overloadApply(tovers ? tovers->a[oi] : tempdecl, &p, &ParamNeedsInf::fp))
+        if (overloadApply(tovers ? tovers->a[oi] : tempdecl, &p, &ParamNeedsInf::fp))
             return true;
     }
     if (olderrs != global.errors)
