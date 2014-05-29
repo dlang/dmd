@@ -4057,7 +4057,7 @@ Expression *Parser::parseDefaultInitExp()
         Token *t = peek(&token);
         if (t->value == TOKcomma || t->value == TOKrparen)
         {
-            Expression *e;
+            Expression *e = NULL;
             if (token.value == TOKfile)
                 e = new FileInitExp(token.loc);
             else if (token.value == TOKline)
