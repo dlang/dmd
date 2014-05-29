@@ -796,7 +796,7 @@ bool TemplateDeclaration::evaluateConstraint(
     pr.dedargs = dedargs;
     previous = &pr;                 // add this to threaded list
 
-    int nerrors = global.errors;
+    unsigned int nerrors = global.errors;
 
     Scope *scx = paramscope->push(ti);
     scx->parent = ti;
@@ -6810,7 +6810,7 @@ bool TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
             }
             else if (definitelyValueParameter(ea))
             {
-                int olderrs = global.errors;
+                unsigned int olderrs = global.errors;
                 ea->rvalue();   // check void expression
                 ea = ea->ctfeInterpret();
                 if (global.errors != olderrs)
@@ -7610,7 +7610,7 @@ void TemplateInstance::semantic3(Scope *sc)
         sc->tinst = this;
 
         int needGagging = (speculative && !global.gag);
-        int olderrors = global.errors;
+        unsigned int olderrors = global.errors;
         int oldGaggedErrors;
         /* If this is a speculative instantiation, gag errors.
          * Future optimisation: If the results are actually needed, errors

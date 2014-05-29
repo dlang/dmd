@@ -8856,7 +8856,7 @@ Lagain:
 
     if (!arguments)
         arguments = new Expressions();
-    int olderrors = global.errors;
+    unsigned int olderrors = global.errors;
     type = functionParameters(loc, sc, (TypeFunction *)(t1), tthis, arguments, f);
     if (olderrors != global.errors)
         return new ErrorExp();

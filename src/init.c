@@ -822,7 +822,7 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInte
     if (exp->op == TOKerror)
         return new ErrorInitializer();
 
-    int olderrors = global.errors;
+    unsigned int olderrors = global.errors;
     if (needInterpret)
         exp = exp->ctfeInterpret();
     else

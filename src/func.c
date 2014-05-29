@@ -1703,7 +1703,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 }
 
                 // Check for errors related to 'nothrow'.
-                int nothrowErrors = global.errors;
+                unsigned int nothrowErrors = global.errors;
                 int blockexit = fbody->blockExit(this, f->isnothrow);
                 if (f->isnothrow && (global.errors != nothrowErrors) )
                     ::error(loc, "%s '%s' is nothrow yet may throw", kind(), toPrettyChars());
@@ -1757,7 +1757,7 @@ void FuncDeclaration::semantic3(Scope *sc)
             else
             {
                 // Check for errors related to 'nothrow'.
-                int nothrowErrors = global.errors;
+                unsigned int nothrowErrors = global.errors;
                 int blockexit = fbody->blockExit(this, f->isnothrow);
                 if (f->isnothrow && (global.errors != nothrowErrors) )
                     ::error(loc, "%s '%s' is nothrow yet may throw", kind(), toPrettyChars());
@@ -2052,7 +2052,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                     {
                         Statement *s = new ExpStatement(Loc(), e);
                         s = s->semantic(sc2);
-                        int nothrowErrors = global.errors;
+                        unsigned int nothrowErrors = global.errors;
                         bool isnothrow = f->isnothrow & !(flags & FUNCFLAGnothrowInprocess);
                         int blockexit = s->blockExit(this, isnothrow);
                         if (f->isnothrow && (global.errors != nothrowErrors) )
