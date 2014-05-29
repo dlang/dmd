@@ -160,7 +160,6 @@ bool needOpAssign(StructDeclaration *sd)
                 goto Lneed;
         }
     }
-Ldontneed:
     //printf("\tdontneed\n");
     return false;
 

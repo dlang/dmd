@@ -3012,7 +3012,6 @@ MATCH FuncDeclaration::leastAsSpecialized(FuncDeclaration *g)
     TypeFunction *tf = (TypeFunction *)type;
     TypeFunction *tg = (TypeFunction *)g->type;
     size_t nfparams = Parameter::dim(tf->parameters);
-    size_t ngparams = Parameter::dim(tg->parameters);
 
     /* If both functions have a 'this' pointer, and the mods are not
      * the same and g's is not const, then this is less specialized.
@@ -3225,7 +3224,6 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
         }
     }
 
-Lerror:
     /* Failed to find a best match.
      * Do nothing or print error.
      */

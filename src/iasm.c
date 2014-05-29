@@ -457,8 +457,10 @@ static void asm_make_modrm_byte(
         unsigned usFlags,
         OPND *popnd, OPND *popnd2);
 static regm_t asm_modify_regs(PTRNTAB ptb, OPND *popnd1, OPND *popnd2);
+#ifdef DEBUG
 static void asm_output_flags(opflag_t usFlags);
 static void asm_output_popnd(OPND *popnd);
+#endif
 static unsigned asm_type_size(Type * ptype);
 static opflag_t asm_float_type_size(Type * ptype, opflag_t *pusFloat);
 static OPND *asm_mul_exp();
@@ -1232,7 +1234,6 @@ static code *asm_emit(Loc loc,
 #else
     #define emit(op)        ((void)(op))
 #endif
-    Identifier *id;
 //  unsigned us;
     unsigned char *puc;
     unsigned usDefaultseg;
@@ -4623,8 +4624,6 @@ Statement* asmSemantic(AsmStatement *s, Scope *sc)
     OPND *o1 = NULL,*o2 = NULL, *o3 = NULL, *o4 = NULL;
     PTRNTAB ptb;
     unsigned usNumops;
-    unsigned char uchPrefix = 0;
-    char *pszLabel = NULL;
     FuncDeclaration *fd = sc->parent->isFuncDeclaration();
 
     assert(fd);

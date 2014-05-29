@@ -3794,7 +3794,6 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
         Expressions *arguments;
         dinteger_t size = next->size(e->loc);
 
-        Expression *olde = e;
         assert(size);
 
         static FuncDeclaration *adReverse_fd = NULL;

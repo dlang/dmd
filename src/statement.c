@@ -1798,7 +1798,6 @@ Statement *ForeachStatement::semantic(Scope *sc)
 
     sc->noctor++;
 
-Lagain:
     switch (tab->ty)
     {
         case Tarray:

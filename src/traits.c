@@ -295,7 +295,6 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             return new ErrorExp();
     }
     size_t dim = e->args ? e->args->dim : 0;
-    Declaration *d;
 
     if (e->ident == Id::isArithmetic)
     {
@@ -1023,7 +1022,6 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             goto Lfalse;
         }
         fd = fd->toAliasFunc(); // Neccessary to support multiple overloads.
-        ptrdiff_t result = fd->isVirtual() ? fd->vtblIndex : -1;
         return new IntegerExp(e->loc, fd->vtblIndex, Type::tptrdiff_t);
     }
     else

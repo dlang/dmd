@@ -1141,7 +1141,6 @@ FuncDeclaration *ClassDeclaration::findFunc(Identifier *ident, TypeFunction *tf)
                     goto Lfdmatch;
                 }
 
-            Lambig:
                 fdambig = fd;
                 //printf("Lambig fdambig = %s %s [%s]\n", fdambig->toChars(), fdambig->type->toChars(), fdambig->loc.toChars());
                 continue;

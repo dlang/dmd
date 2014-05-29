@@ -145,10 +145,11 @@ longdouble strtold_dm(const char *p,char **endp)
         int pow;
         int ndigits;
         const char *pinit = p;
+#if __DMC__
         static char infinity[] = "infinity";
         static char nans[] = "nans";
+#endif
         unsigned int old_cw;
-        unsigned int old_status;
 
 #if _WIN32 && __DMC__
         fenv_t flagp;

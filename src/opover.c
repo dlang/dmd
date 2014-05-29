@@ -1785,7 +1785,6 @@ static int inferApplyArgTypesY(TypeFunction *tf, Parameters *arguments, int flag
             arg->type = arg->type->addStorageClass(arg->storageClass);
         }
     }
-Lmatch:
     return 1;
 
 Lnomatch:

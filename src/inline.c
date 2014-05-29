@@ -832,7 +832,6 @@ Expression *doInline(Expression *e, InlineDoState *ids)
                         {
                             if (vd == ids->from[i])
                             {
-                                VarDeclaration *vto = (VarDeclaration *)ids->to[i];
                                 if (vd->init && !vd->init->isVoidInitializer())
                                 {
                                     result = vd->init->toExpression();

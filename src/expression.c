@@ -10530,7 +10530,6 @@ Expression *IndexExp::semantic(Scope *sc)
             e2 = e2->implicitCastTo(sc, Type::tsize_t);
             if (e2->type == Type::terror)
                 return new ErrorExp();
-            TypeSArray *tsa = (TypeSArray *)t1;
             e->type = t1->nextOf();
             break;
         }
@@ -10649,7 +10648,7 @@ Expression *IndexExp::modifiableLvalue(Scope *sc, Expression *e)
     modifiable = 1;
     Type *t1 = e1->type->toBasetype();
     if (t1->ty == Taarray)
-    {   TypeAArray *taa = (TypeAArray *)t1;
+    {
         Type *t2b = e2->type->toBasetype();
         if (t2b->ty == Tarray && t2b->nextOf()->isMutable())
             error("associative arrays can only be assigned values with immutable keys, not %s", e2->type->toChars());
@@ -12580,8 +12579,6 @@ Expression *PowExp::semantic(Scope *sc)
 
     // For built-in numeric types, there are several cases.
     // TODO: backend support, especially for  e1 ^^ 2.
-
-    bool wantSqrt = false;
 
     // First, attempt to fold the expression.
     e = optimize(WANTvalue);

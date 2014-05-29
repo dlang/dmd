@@ -352,7 +352,7 @@ void Macro::expand(OutBuffer *buf, size_t start, size_t *pend,
              * beginning of macro argument (marg).
              */
             for (v = u + 2; v < end; v+=utfStride(p+v))
-            {   utf8_t c = p[v];
+            {
 
                 if (!isIdTail(p+v))
                 {   // We've gone past the end of the macro name.

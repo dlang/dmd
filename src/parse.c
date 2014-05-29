@@ -3526,9 +3526,9 @@ L2:
         }
         else if (t->ty == Tfunction)
         {
-            TypeFunction *tf = (TypeFunction *)t;
             Expression *constraint = NULL;
 #if 0
+            TypeFunction *tf = (TypeFunction *)t;
             if (Parameter::isTPL(tf->parameters))
             {
                 if (!tpl)

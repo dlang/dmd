@@ -771,7 +771,6 @@ bool TemplateDeclaration::evaluateConstraint(
      * Workaround the problem by setting a flag to relax the checking on frame errors.
      */
 
-    int nmatches = 0;
     for (TemplatePrevious *p = previous; p; p = p->prev)
     {
         if (arrayObjectMatch(p->dedargs, dedargs))
@@ -2175,7 +2174,6 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
                 if (!fd->fbody &&  m->lastf->fbody) goto LlastIsBetter;
             }
 
-        Lambiguous:
             m->nextf = fd;
             m->count++;
             return 0;
@@ -2423,8 +2421,6 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
                 if (c1 < c2) goto Ltd_best;
             }
 
-          Lambig:   // td_best and td are ambiguous
-            //printf("Lambig\n");
             m->nextf = fd;
             m->count++;
             continue;
@@ -2468,7 +2464,6 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
     p.ta_last    = m->last != MATCHnomatch ? MATCHexact : MATCHnomatch;
     p.tthis_best = NULL;
 
-    FuncDeclaration *fd = dstart->isFuncDeclaration();
     TemplateDeclaration *td = dstart->isTemplateDeclaration();
     if (td && td->funcroot)
         dstart = td->funcroot;
@@ -3631,7 +3626,6 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             visit((Type *)t);
             return;
 
-          Lnomatch:
             result = MATCHnomatch;
         }
 
@@ -3951,9 +3945,9 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                     Dsymbol *s2 = isDsymbol(o2);
                     Expression *e1 = s1 ? getValue(s1) : getValue(isExpression(o1));
                     Expression *e2 = isExpression(o2);
+        #if 0
                     Tuple *v1 = isTuple(o1);
                     Tuple *v2 = isTuple(o2);
-        #if 0
                     if (t1)     printf("t1 = %s\n", t1->toChars());
                     if (t2)     printf("t2 = %s\n", t2->toChars());
                     if (e1)     printf("e1 = %s\n", e1->toChars());
@@ -4364,7 +4358,6 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                  *      // 2: deduceType(oarg='1', tparam='T', ...)
                  *      //      T <= TypeTypeof(idexp ? 1 : 2L)
                  */
-                Type *t = NULL;
                 static IdentifierExp *idexp = NULL; // dummy condition
                 if (!idexp)
                 {
@@ -6896,7 +6889,6 @@ bool TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
             if (d)
             {
                 // Expand tuple
-                size_t dim = d->objects->dim;
                 tiargs->remove(j);
                 tiargs->insert(j, d->objects);
                 j--;
@@ -7024,7 +7016,6 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
         if (c1 < c2) goto Ltd_best;
         }
 
-      Lambig:           // td_best and td are ambiguous
         td_ambig = td;
         return 0;
 
@@ -7170,7 +7161,6 @@ bool TemplateInstance::needsTypeInference(Scope *sc, int flag)
         TemplateDeclaration *td = s->isTemplateDeclaration();
         if (!td)
         {
-        Lcontinue:
             return 0;
         }
 
@@ -7350,7 +7340,6 @@ bool TemplateInstance::hasNestedArgs(Objects *args, bool isstatic)
                     sa = ti;
             }
             TemplateInstance *ti = sa->isTemplateInstance();
-            AggregateDeclaration *ad = sa->isAggregateDeclaration();
             Declaration *d = sa->isDeclaration();
             if ((td && td->literal) ||
                 (ti && ti->enclosing) ||

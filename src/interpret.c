@@ -137,7 +137,6 @@ size_t CtfeStack::maxStackUsage()
 
 void CtfeStack::startFrame(Expression *thisexp)
 {
-    size_t oldframe = framepointer;
     frames.push((void *)(size_t)(framepointer));
     savedThis.push(localThis);
     framepointer = stackPointer();
@@ -693,7 +692,6 @@ void ctfeCompile(FuncDeclaration *fd)
     {
         Type *tb = fd->type->toBasetype();
         assert(tb->ty == Tfunction);
-        TypeFunction *tf = (TypeFunction *)tb;
         for (size_t i = 0; i < fd->parameters->dim; i++)
         {
             VarDeclaration *v = (*fd->parameters)[i];
