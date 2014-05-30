@@ -208,6 +208,16 @@ void discardValue(Expression *e)
         case TOKerror:
             return;
 
+        case TOKvar:
+        {
+            VarDeclaration *v = ((VarExp *)e)->var->isVarDeclaration();
+            if (v && (v->storage_class & STCtemp))
+            {
+                // Bugzilla 5810: Don't complain about an internal generated variable.
+                return;
+            }
+            break;
+        }
         case TOKcall:
             /* Issue 3882: */
             if (global.params.warnings && !global.gag)
