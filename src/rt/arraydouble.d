@@ -14,7 +14,7 @@
  */
 module rt.arraydouble;
 
-// debug=PRINTF
+// debug=PRINTF;
 
 private import core.cpuid;
 import rt.util.array;
@@ -2267,7 +2267,8 @@ T[] _arraySliceExpMulSliceAddass_d(T[] a, T value, T[] b)
                 mov ECX, bptr;      // right operand
                 mov ESI, aptr;      // destination operand
                 mov EDI, n;         // end comparison
-                movddup XMM3, value;// multiplier
+                movsd XMM3, value;  // multiplier
+                shufpd XMM3, XMM3, 0;
 
                 align 8;
             startsseloopb:
@@ -2304,7 +2305,8 @@ T[] _arraySliceExpMulSliceAddass_d(T[] a, T value, T[] b)
                 mov RCX, bptr; 		// right operand
                 mov RSI, aptr; 		// destination operand
                 mov RDI, n; 		// end comparison
-                movddup XMM3, value;// multiplier
+                movsd XMM3, value;  // multiplier
+                shufpd XMM3, XMM3, 0;
 
                 align 8;
             startsseloopb:
