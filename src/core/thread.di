@@ -252,7 +252,7 @@ class Thread
      * Returns:
      *  true if the thread is running, false if not.
      */
-    final @property bool isRunning();
+    final @property bool isRunning() nothrow;
 
 
     ///////////////////////////////////////////////////////////////////////////
@@ -567,8 +567,8 @@ enum ScanType
     tls, /// TLS data is being scanned.
 }
 
-alias void delegate(void*, void*) ScanAllThreadsFn; /// The scanning function.
-alias void delegate(ScanType, void*, void*) ScanAllThreadsTypeFn; /// ditto
+alias void delegate(void*, void*) nothrow ScanAllThreadsFn; /// The scanning function.
+alias void delegate(ScanType, void*, void*) nothrow ScanAllThreadsTypeFn; /// ditto
 
 /**
  * The main entry point for garbage collection.  The supplied delegate
@@ -580,7 +580,7 @@ alias void delegate(ScanType, void*, void*) ScanAllThreadsTypeFn; /// ditto
  * In:
  *  This routine must be preceded by a call to thread_suspendAll.
  */
-extern (C) void thread_scanAllType( scope ScanAllThreadsTypeFn scan );
+extern (C) void thread_scanAllType( scope ScanAllThreadsTypeFn scan ) nothrow;
 
 
 /**
@@ -593,7 +593,7 @@ extern (C) void thread_scanAllType( scope ScanAllThreadsTypeFn scan );
  * In:
  *  This routine must be preceded by a call to thread_suspendAll.
  */
-extern (C) void thread_scanAll( scope ScanAllThreadsFn scan );
+extern (C) void thread_scanAll( scope ScanAllThreadsFn scan ) nothrow;
 
 
 /**
@@ -648,7 +648,7 @@ enum IsMarked : int
     unknown, /// Address is not managed by the GC.
 }
 
-alias int delegate( void* addr ) IsMarkedDg;
+alias int delegate( void* addr ) nothrow IsMarkedDg;
 
 /**
  * This routine allows the runtime to process any special per-thread handling
