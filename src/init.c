@@ -824,9 +824,20 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInte
 
     int olderrors = global.errors;
     if (needInterpret)
+    {
+        // If the result will be implicitly cast, move the cast into CTFE
+        // to avoid premature truncation of polysemous types.
+        // eg real [] x = [1.1, 2.2]; should use real precision.
+        if (exp->implicitConvTo(t))
+        {
+            exp = exp->implicitCastTo(sc, t);
+        }
         exp = exp->ctfeInterpret();
+    }
     else
+    {
         exp = exp->optimize(WANTvalue);
+    }
     if (!global.gag && olderrors != global.errors)
         return this; // Failed, suppress duplicate error messages
 
