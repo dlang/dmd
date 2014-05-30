@@ -3,11 +3,8 @@
  *
  * Copyright: Copyright Digital Mars 2008 - 2010.
  * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
- * Authors:   Walter Bright, based on code originally written by Burton Radons
- *
- * All methods having SSE2 vector hardware assembly code updated May 2011 by Jim Crapuchettes
- * to add 64-bit versions.  "a[] += b[] * value" method changed to add 32-bit and 64-bit SSE2
- * assembly language code and unit test updated to test all variants.
+ * Authors:   Walter Bright, based on code originally written by Burton Radons;
+ *            Jim Crapuchettes (64 bit SSE code)
  */
 
 /*          Copyright Digital Mars 2008 - 2010.
@@ -508,7 +505,6 @@ unittest
 
 T[] _arrayExpSliceAddass_d(T[] a, T value)
 {
-    //printf("_arrayExpSliceAddass_d(a.length = %d, value = %Lg)\n", a.length, cast(real)value);
     auto aptr = a.ptr;
     auto aend = aptr + a.length;
 
@@ -645,7 +641,6 @@ T[] _arraySliceSliceAddass_d(T[] a, T[] b)
 {
     enforceTypedArraysConformable("vector operation", a, b);
 
-    //printf("_arraySliceSliceAddass_d()\n");
     auto aptr = a.ptr;
     auto aend = aptr + a.length;
     auto bptr = b.ptr;
@@ -822,7 +817,6 @@ T[] _arraySliceExpMinSliceAssign_d(T[] a, T value, T[] b)
 {
     enforceTypedArraysConformable("vector operation", a, b);
 
-    //printf("_arraySliceExpMinSliceAssign_d()\n");
     auto aptr = a.ptr;
     auto aend = aptr + a.length;
     auto bptr = b.ptr;
@@ -963,7 +957,6 @@ T[] _arrayExpSliceMinSliceAssign_d(T[] a, T[] b, T value)
 {
     enforceTypedArraysConformable("vector operation", a, b);
 
-    //printf("_arrayExpSliceMinSliceAssign_d()\n");
     auto aptr = a.ptr;
     auto aend = aptr + a.length;
     auto bptr = b.ptr;
@@ -1110,7 +1103,6 @@ unittest
 
 T[] _arrayExpSliceMinass_d(T[] a, T value)
 {
-    //printf("_arrayExpSliceMinass_d(a.length = %d, value = %Lg)\n", a.length, cast(real)value);
     auto aptr = a.ptr;
     auto aend = aptr + a.length;
 
@@ -1247,7 +1239,6 @@ T[] _arraySliceSliceMinass_d(T[] a, T[] b)
 {
     enforceTypedArraysConformable("vector operation", a, b);
 
-    //printf("_arraySliceSliceMinass_d()\n");
     auto aptr = a.ptr;
     auto aend = aptr + a.length;
     auto bptr = b.ptr;
@@ -1393,7 +1384,6 @@ T[] _arraySliceExpMulSliceAssign_d(T[] a, T value, T[] b)
 {
     enforceTypedArraysConformable("vector operation", a, b);
 
-    //printf("_arraySliceExpMulSliceAssign_d()\n");
     auto aptr = a.ptr;
     auto aend = aptr + a.length;
     auto bptr = b.ptr;
@@ -1535,7 +1525,6 @@ T[] _arraySliceSliceMulSliceAssign_d(T[] a, T[] c, T[] b)
     enforceTypedArraysConformable("vector operation", a, b);
     enforceTypedArraysConformable("vector operation", a, c);
 
-    //printf("_arraySliceSliceMulSliceAssign_d()\n");
     auto aptr = a.ptr;
     auto aend = aptr + a.length;
     auto bptr = b.ptr;
@@ -1685,7 +1674,6 @@ unittest
 
 T[] _arrayExpSliceMulass_d(T[] a, T value)
 {
-    //printf("_arrayExpSliceMulass_d(a.length = %d, value = %Lg)\n", a.length, cast(real)value);
     auto aptr = a.ptr;
     auto aend = aptr + a.length;
 
@@ -1822,7 +1810,6 @@ T[] _arraySliceSliceMulass_d(T[] a, T[] b)
 {
     enforceTypedArraysConformable("vector operation", a, b);
 
-    //printf("_arraySliceSliceMulass_d()\n");
     auto aptr = a.ptr;
     auto aend = aptr + a.length;
     auto bptr = b.ptr;
@@ -1968,7 +1955,6 @@ T[] _arraySliceExpDivSliceAssign_d(T[] a, T value, T[] b)
 {
     enforceTypedArraysConformable("vector operation", a, b);
 
-    //printf("_arraySliceExpDivSliceAssign_d()\n");
     auto aptr = a.ptr;
     auto aend = aptr + a.length;
     auto bptr = b.ptr;
@@ -1992,8 +1978,6 @@ T[] _arraySliceExpDivSliceAssign_d(T[] a, T value, T[] b)
                 mov ESI, aptr;
                 mov EDI, n;
                 movsd XMM4, recip;
-                //movsd XMM4, value
-                //rcpsd XMM4, XMM4
                 shufpd XMM4, XMM4, 0;
 
                 align 8;
@@ -2008,10 +1992,6 @@ T[] _arraySliceExpDivSliceAssign_d(T[] a, T value, T[] b)
                 mulpd XMM1, XMM4;
                 mulpd XMM2, XMM4;
                 mulpd XMM3, XMM4;
-                //divpd XMM0, XMM4;
-                //divpd XMM1, XMM4;
-                //divpd XMM2, XMM4;
-                //divpd XMM3, XMM4;
                 movupd [ESI+ 0-64], XMM0;
                 movupd [ESI+16-64], XMM1;
                 movupd [ESI+32-64], XMM2;
@@ -2038,8 +2018,6 @@ T[] _arraySliceExpDivSliceAssign_d(T[] a, T value, T[] b)
                 mov RSI, aptr;
                 mov RDI, n;
                 movsd XMM4, recip;
-                //movsd XMM4, value
-                //rcpsd XMM4, XMM4
                 shufpd XMM4, XMM4, 0;
 
                 align 8;
@@ -2054,10 +2032,6 @@ T[] _arraySliceExpDivSliceAssign_d(T[] a, T value, T[] b)
                 mulpd XMM1, XMM4;
                 mulpd XMM2, XMM4;
                 mulpd XMM3, XMM4;
-                //divpd XMM0, XMM4;
-                //divpd XMM1, XMM4;
-                //divpd XMM2, XMM4;
-                //divpd XMM3, XMM4;
                 movupd [RSI+ 0-64], XMM0;
                 movupd [RSI+16-64], XMM1;
                 movupd [RSI+32-64], XMM2;
@@ -2074,8 +2048,7 @@ T[] _arraySliceExpDivSliceAssign_d(T[] a, T value, T[] b)
     // Handle remainder
     while (aptr < aend)
     {
-        *aptr++ = *bptr++ / value;
-        //*aptr++ = *bptr++ * recip;
+        *aptr++ = *bptr++ * recip;
     }
 
     return a;
@@ -2108,7 +2081,6 @@ unittest
 
             for (int i = 0; i < dim; i++)
             {
-                //printf("[%d]: %g ?= %g / 8\n", i, c[i], a[i]);
                 if (c[i] != cast(T)(a[i] / 8))
                 {
                     printf("[%d]: %g != %g / 8\n", i, c[i], a[i]);
@@ -2128,7 +2100,6 @@ unittest
 
 T[] _arrayExpSliceDivass_d(T[] a, T value)
 {
-    //printf("_arrayExpSliceDivass_d(a.length = %d, value = %Lg)\n", a.length, cast(real)value);
     auto aptr = a.ptr;
     auto aend = aptr + a.length;
 
@@ -2150,8 +2121,6 @@ T[] _arrayExpSliceDivass_d(T[] a, T value)
                 mov ESI, aptr;
                 mov EDI, n;
                 movsd XMM4, recip;
-                //movsd XMM4, value
-                //rcpsd XMM4, XMM4
                 shufpd XMM4, XMM4, 0;
 
                 align 8;
@@ -2165,10 +2134,6 @@ T[] _arrayExpSliceDivass_d(T[] a, T value)
                 mulpd XMM1, XMM4;
                 mulpd XMM2, XMM4;
                 mulpd XMM3, XMM4;
-                //divpd XMM0, XMM4;
-                //divpd XMM1, XMM4;
-                //divpd XMM2, XMM4;
-                //divpd XMM3, XMM4;
                 movupd [ESI+ 0-64], XMM0;
                 movupd [ESI+16-64], XMM1;
                 movupd [ESI+32-64], XMM2;
@@ -2193,8 +2158,6 @@ T[] _arrayExpSliceDivass_d(T[] a, T value)
                 mov RSI, aptr;
                 mov RDI, n;
                 movsd XMM4, recip;
-                //movsd XMM4, value
-                //rcpsd XMM4, XMM4
                 shufpd XMM4, XMM4, 0;
 
                 align 8;
@@ -2208,10 +2171,6 @@ T[] _arrayExpSliceDivass_d(T[] a, T value)
                 mulpd XMM1, XMM4;
                 mulpd XMM2, XMM4;
                 mulpd XMM3, XMM4;
-                //divpd XMM0, XMM4;
-                //divpd XMM1, XMM4;
-                //divpd XMM2, XMM4;
-                //divpd XMM3, XMM4;
                 movupd [RSI+ 0-64], XMM0;
                 movupd [RSI+16-64], XMM1;
                 movupd [RSI+32-64], XMM2;
@@ -2406,7 +2365,6 @@ unittest
 
             for (int i = 0; i < dim; i++)
             {
-                //printf("[%d]: %g ?= %g + %g * 6\n", i, c[i], b[i], a[i]);
                 if (c[i] != cast(T)(b[i] + a[i] * 6))
                 {
                     printf("[%d]: %g ?= %g + %g * 6\n", i, c[i], b[i], a[i]);
