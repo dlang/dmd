@@ -5711,6 +5711,32 @@ MATCH FuncExp::matchType(Type *to, Scope *sc, FuncExp **presult, int flag)
 
     assert(type && type != Type::tvoid);
     TypeFunction *tfx = (TypeFunction *)fd->type;
+    bool convertMatch = (type->ty != to->ty);
+
+    if (fd->inferRetType && tfx->next->implicitConvTo(tof->next) == MATCHconvert)
+    {
+        /* If return type is inferred and covariant return,
+         * tweak return statements to required return type.
+         *
+         * interface I {}
+         * class C : Object, I{}
+         *
+         * I delegate() dg = delegate() { return new class C(); }
+         */
+        convertMatch = true;
+
+        TypeFunction *tfy = new TypeFunction(tfx->parameters, tof->next, tfx->varargs, tfx->linkage, STCundefined);
+        tfy->mod = tfx->mod;
+        tfy->isnothrow  = tfx->isnothrow;
+        tfy->isnogc     = tfx->isnogc;
+        tfy->purity     = tfx->purity;
+        tfy->isproperty = tfx->isproperty;
+        tfy->isref      = tfx->isref;
+        tfy->iswild     = tfx->iswild;
+        tfy->deco = tfy->merge()->deco;
+
+        tfx = tfy;
+    }
 
     Type *tx;
     if (tok == TOKdelegate ||
@@ -5732,8 +5758,6 @@ MATCH FuncExp::matchType(Type *to, Scope *sc, FuncExp **presult, int flag)
     MATCH m = tx->implicitConvTo(to);
     if (m > MATCHnomatch)
     {
-        bool convertMatch = (type->ty != to->ty);
-
         // MATCHexact:      exact type match
         // MATCHconst:      covairiant type match (eg. attributes difference)
         // MATCHconvert:    context conversion

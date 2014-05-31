@@ -4971,7 +4971,22 @@ MATCH TypePointer::implicitConvTo(Type *to)
                     return MATCHconst;
 
                 if (next->covariant(tp->next) == 1)
+                {
+                    Type *tret = this->next->nextOf();
+                    Type *toret = tp->next->nextOf();
+                    if (tret->ty == Tclass && toret->ty == Tclass)
+                    {
+                        /* Bugzilla 10219: Check covariant interface return with offset tweaking.
+                         * interface I {}
+                         * class C : Object, I {}
+                         * I function() dg = function C() {}    // should be error
+                         */
+                        int offset = 0;
+                        if (toret->isBaseOf(tret, &offset) && offset != 0)
+                            return MATCHnomatch;
+                    }
                     return MATCHconvert;
+                }
             }
             else if (tp->next->ty == Tvoid)
             {
@@ -6284,7 +6299,22 @@ MATCH TypeDelegate::implicitConvTo(Type *to)
         return MATCHexact;
 #if 1 // not allowing covariant conversions because it interferes with overriding
     if (to->ty == Tdelegate && this->nextOf()->covariant(to->nextOf()) == 1)
+    {
+        Type *tret = this->next->nextOf();
+        Type *toret = ((TypeDelegate *)to)->next->nextOf();
+        if (tret->ty == Tclass && toret->ty == Tclass)
+        {
+            /* Bugzilla 10219: Check covariant interface return with offset tweaking.
+             * interface I {}
+             * class C : Object, I {}
+             * I delegate() dg = delegate C() {}    // should be error
+             */
+            int offset = 0;
+            if (toret->isBaseOf(tret, &offset) && offset != 0)
+                return MATCHnomatch;
+        }
         return MATCHconvert;
+    }
 #endif
     return MATCHnomatch;
 }

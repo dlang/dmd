@@ -358,9 +358,7 @@ void test6714()
     bar6714x((a, b) { return a + b; });
 
     assert(bar6714y((a, b){ return 1.0;  }) == 1);
-    static assert(!__traits(compiles, {
-           bar6714y((a, b){ return 1.0f; });
-    }));
+    assert(bar6714y((a, b){ return 1.0f; }) == 1);
     assert(bar6714y((a, b){ return a;    }) == 2);
 }
 
@@ -835,6 +833,55 @@ void test10133()
 }
 
 /***************************************************/
+// 10219
+
+void test10219()
+{
+    interface I { }
+    class C : I { }
+
+    void test_dg(I delegate(C) dg)
+    {
+        C c = new C;
+        void* cptr = cast(void*) c;
+        void* iptr = cast(void*) cast(I) c;
+        void* xptr = cast(void*) dg(c);
+        assert(cptr != iptr);
+        assert(cptr != xptr); // should pass
+        assert(iptr == xptr); // should pass
+    }
+
+    C delegate(C c) dg = delegate C(C c) { return c; };
+    static assert(!__traits(compiles, { test_dg(dg); }));
+    static assert(!__traits(compiles, { test_dg(delegate C(C c) { return c; }); }));
+    static assert(!__traits(compiles, { I delegate(C) dg2 = dg; }));
+
+    // creates I delegate(C)
+    test_dg(c => c);
+    test_dg(delegate(C c) => c);
+
+    void test_fp(I function(C) fp)
+    {
+        C c = new C;
+        void* cptr = cast(void*) c;
+        void* iptr = cast(void*) cast(I) c;
+        void* xptr = cast(void*) fp(c);
+        assert(cptr != iptr);
+        assert(cptr != xptr); // should pass
+        assert(iptr == xptr); // should pass
+    }
+
+    C function(C c) fp = function C(C c) { return c; };
+    static assert(!__traits(compiles, { test_fp(fp); }));
+    static assert(!__traits(compiles, { test_fp(function C(C c) { return c; }); }));
+    static assert(!__traits(compiles, { I function(C) fp2 = fp; }));
+
+    // creates I function(C)
+    test_fp(c => c);
+    test_fp(function(C c) => c);
+}
+
+/***************************************************/
 // 10288
 
 T foo10288(T)(T x)
@@ -1081,6 +1128,7 @@ int main()
     test9628();
     test9928();
     test10133();
+    test10219();
     test10288();
     test10336();
     test11661();
