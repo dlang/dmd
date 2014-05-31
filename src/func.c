@@ -1662,9 +1662,9 @@ void FuncDeclaration::semantic3(Scope *sc)
                             if (v->isCtorinit() && !v->type->isMutable() && cd)
                                 error("missing initializer for %s field %s", MODtoChars(v->type->mod), v->toChars());
                             else if (v->storage_class & STCnodefaultctor)
-                                error("field %s must be initialized in constructor", v->toChars());
+                                ::error(loc, "field %s must be initialized in constructor", v->toChars());
                             else if (v->type->needsNested())
-                                error("field %s must be initialized in constructor, because it is nested struct", v->toChars());
+                                ::error(loc, "field %s must be initialized in constructor, because it is nested struct", v->toChars());
                         }
                         else
                         {

@@ -652,21 +652,23 @@ class Confectionary
 {
     this(int sugar)
     {
-	//if (sugar < 500)
-	//      tastiness = 200;
+        //if (sugar < 500)
+        //    tastiness = 200;
 
-	//for (int i = 0; i < 10; ++i)
-	//      tastiness = 300;
+        //for (int i = 0; i < 10; ++i)
+        //    tastiness = 300;
 
-	//int[] tastinesses_array;
+        //int[] tastinesses_array;
 
-	//foreach (n; tastinesses_array)
-	//      tastiness = n;
+        //foreach (n; tastinesses_array)
+        //    tastiness = n;
 
-	int[int] tastinesses_aa;
+        //int[int] tastinesses_aa;
 
-	foreach (n; tastinesses_aa)
-		tastiness = n;
+        //foreach (n; tastinesses_aa)
+        //    tastiness = n;
+
+        tastiness = 1;
     }
 
    const int tastiness;

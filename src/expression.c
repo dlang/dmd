@@ -2127,7 +2127,8 @@ Expression *Expression::modifiableLvalue(Scope *sc, Expression *e)
         if (type->isMutable())
         {
             if (!type->isAssignable())
-            {   error("cannot modify struct %s %s with immutable members", toChars(), type->toChars());
+            {
+                error("cannot modify struct %s %s with immutable members", toChars(), type->toChars());
                 goto Lerror;
             }
         }
@@ -7559,16 +7560,37 @@ int modifyFieldVar(Loc loc, Scope *sc, VarDeclaration *var, Expression *e1)
                     if (!mustInit && var->type->isMutable() && e1->type->isMutable())
                         result = false;
                     else
-                        ::error(loc, "field '%s' initializing not allowed in loops or after labels", var->toChars());
+                    {
+                        const char *modStr = !var->type->isMutable() ? MODtoChars(var->type->mod) : MODtoChars(e1->type->mod);
+                        ::error(loc, "%s field '%s' initialization is not allowed in loops or after labels", modStr, var->toChars());
+                    }
                 }
                 sc->fieldinit[i] |= CSXthis_ctor;
+            }
+            else if (fd != sc->func)
+            {
+                if (var->type->isMutable())
+                    result = false;
+                else if (sc->func->fes)
+                {
+                    const char *p = var->isField() ? "field" : var->kind();
+                    ::error(loc, "%s %s '%s' initialization is not allowed in foreach loop",
+                        MODtoChars(var->type->mod), p, var->toChars());
+                }
+                else
+                {
+                    const char *p = var->isField() ? "field" : var->kind();
+                    ::error(loc, "%s %s '%s' initialization is not allowed in nested function '%s'",
+                        MODtoChars(var->type->mod), p, var->toChars(), sc->func->toChars());
+                }
             }
             return result;
         }
         else
         {
             if (s)
-            {   s = s->toParent2();
+            {
+                s = s->toParent2();
                 continue;
             }
         }

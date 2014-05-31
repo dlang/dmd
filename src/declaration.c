@@ -156,7 +156,8 @@ int Declaration::checkModify(Loc loc, Scope *sc, Type *t, Expression *e1, int fl
     }
 
     if (v && (isCtorinit() || isField()))
-    {   // It's only modifiable if inside the right constructor
+    {
+        // It's only modifiable if inside the right constructor
         if ((storage_class & (STCforeach | STCref)) == (STCforeach | STCref))
             return 2;
         return modifyFieldVar(loc, sc, v, e1) ? 2 : 1;
