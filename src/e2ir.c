@@ -2876,7 +2876,7 @@ elem *toElem(Expression *e, IRState *irs)
                     // Append array
                     e1 = el_una(OPaddr, TYnptr, e1);
                     if (config.exe == EX_WIN64)
-                        e2 = addressElem(e2, tb2);
+                        e2 = addressElem(e2, tb2, true);
                     else
                         e2 = useOPstrpar(e2);
                     elem *ep = el_params(e2, e1, ce->e1->type->getTypeInfo(NULL)->toElem(irs), NULL);
