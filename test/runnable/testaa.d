@@ -94,7 +94,7 @@ void test2()
 void test4()
 {
     int[const(ubyte)[]] b;
-    const(ubyte)[] x;
+    immutable(ubyte)[] x;
     b[x] = 3;
     assert(b[x] == 3);
 }
@@ -114,7 +114,7 @@ void test5()
 void test6()
 {
     int[const(int)[]] b;
-    const(int)[] x;
+    immutable(int)[] x;
     b[x] = 3;
     assert(b[x] == 3);
 }
@@ -1244,6 +1244,15 @@ void test11730()
 }
 
 /************************************************/
+// 12420
+
+void test12420()
+{
+    int[char[]] aa;
+    aa[new char[1]] = 5;
+}
+
+/************************************************/
 
 int main()
 {
@@ -1292,6 +1301,7 @@ int main()
     test6799();
     test11359();
     test11730();
+    test12420();
 
     printf("Success\n");
     return 0;
