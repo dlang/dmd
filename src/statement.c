@@ -4916,6 +4916,12 @@ Statement *LabelStatement::scopeCode(Scope *sc, Statement **sentry, Statement **
     //printf("LabelStatement::scopeCode()\n");
     if (statement)
         statement = statement->scopeCode(sc, sentry, sexit, sfinally);
+    else
+    {
+        *sentry = NULL;
+        *sexit = NULL;
+        *sfinally = NULL;
+    }
     return this;
 }
 
