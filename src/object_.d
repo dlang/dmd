@@ -268,7 +268,7 @@ class TypeInfo
     bool equals(in void* p1, in void* p2) const { return p1 == p2; }
 
     /// Compares two instances for &lt;, ==, or &gt;.
-    int compare(in void* p1, in void* p2) const { return 0; }
+    int compare(in void* p1, in void* p2) const { return _xopCmp(p1, p2); }
 
     /// Returns size of the type.
     @property size_t tsize() nothrow pure const @safe { return 0; }
@@ -634,13 +634,6 @@ class TypeInfo_AssociativeArray : TypeInfo
     override bool equals(in void* p1, in void* p2) @trusted const
     {
         return !!_aaEqual(this, *cast(const void**) p1, *cast(const void**) p2);
-    }
-
-    override int compare(in void* p1, in void* p2) const
-    {
-        // This is a hack to fix Issue 10380 because AA uses
-        // `compare` instead of `equals`.
-        return !equals(p1, p2);
     }
 
     override hash_t getHash(in void* p) nothrow @trusted const

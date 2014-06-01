@@ -175,8 +175,7 @@ body
     {
         if (key_hash == e.hash)
         {
-            auto c = keyti.compare(pkey, e + 1);
-            if (c == 0)
+            if (keyti.equals(pkey, e + 1))
                 goto Lret;
         }
         pe = &e.next;
@@ -231,8 +230,7 @@ inout(void)* _aaGetRvalueX(inout AA aa, in TypeInfo keyti, in size_t valuesize, 
         {
             if (key_hash == e.hash)
             {
-                auto c = keyti.compare(pkey, e + 1);
-                if (c == 0)
+                if (keyti.equals(pkey, e + 1))
                     return cast(inout void *)(e + 1) + keysize;
             }
             e = e.next;
@@ -273,8 +271,7 @@ body
             {
                 if (key_hash == e.hash)
                 {
-                    auto c = keyti.compare(pkey, e + 1);
-                    if (c == 0)
+                    if (keyti.equals(pkey, e + 1))
                         return cast(inout void *)(e + 1) + aligntsize(keyti.tsize);
                 }
                 e = e.next;
@@ -304,8 +301,7 @@ bool _aaDelX(AA aa, in TypeInfo keyti, in void* pkey)
         {
             if (key_hash == e.hash)
             {
-                auto c = keyti.compare(pkey, e + 1);
-                if (c == 0)
+                if (keyti.equals(pkey, e + 1))
                 {
                     *pe = e.next;
                     aa.impl.nodes--;
@@ -618,8 +614,7 @@ Impl* _d_assocarrayliteralTX(const TypeInfo_AssociativeArray ti, void[] keys, vo
                 }
                 if (key_hash == e.hash)
                 {
-                    auto c = keyti.compare(pkey, e + 1);
-                    if (c == 0)
+                    if (keyti.equals(pkey, e + 1))
                         break;
                 }
                 pe = &e.next;
@@ -723,8 +718,7 @@ int _aaEqual(in TypeInfo tiRaw, in AA e1, in AA e2)
                 if (key_hash == f.hash)
                 {
                     //printf("hash equals\n");
-                    auto c = keyti.compare(pkey, f + 1);
-                    if (c == 0)
+                    if (keyti.equals(pkey, f + 1))
                     {   // Found key in e2. Compare values
                         //printf("key equals\n");
                         auto pvalue2 = cast(void *)(f + 1) + keysize;
