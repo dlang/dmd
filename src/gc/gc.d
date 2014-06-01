@@ -59,7 +59,7 @@ debug (CACHE_HITRATE) import core.stdc.stdio : printf;
 debug (COLLECT_PRINTF) import core.stdc.stdio : printf;
 debug private import core.stdc.stdio;
 
-debug(PRINTF) void printFreeInfo(Pool* pool)
+debug(PRINTF) void printFreeInfo(Pool* pool) nothrow
 {
     uint nReallyFree;
     foreach(i; 0..pool.npages) {
@@ -126,7 +126,7 @@ debug (LOGGING)
         char*  file;
         void*  parent;
 
-        void print()
+        void print() nothrow
         {
             printf("    p = %p, size = %zd, parent = %p ", p, size, parent);
             if (file)
@@ -144,14 +144,14 @@ debug (LOGGING)
         size_t allocdim;
         Log *data;
 
-        void Dtor()
+        void Dtor() nothrow
         {
             if (data)
                 cstdlib.free(data);
             data = null;
         }
 
-        void reserve(size_t nentries)
+        void reserve(size_t nentries) nothrow
         {
             assert(dim <= allocdim);
             if (allocdim - dim < nentries)
@@ -178,20 +178,20 @@ debug (LOGGING)
         }
 
 
-        void push(Log log)
+        void push(Log log) nothrow
         {
             reserve(1);
             data[dim++] = log;
         }
 
-        void remove(size_t i)
+        void remove(size_t i) nothrow
         {
             memmove(data + i, data + i + 1, (dim - i) * Log.sizeof);
             dim--;
         }
 
 
-        size_t find(void *p)
+        size_t find(void *p) nothrow
         {
             for (size_t i = 0; i < dim; i++)
             {
@@ -202,7 +202,7 @@ debug (LOGGING)
         }
 
 
-        void copy(LogArray *from)
+        void copy(LogArray *from) nothrow
         {
             reserve(from.dim - dim);
             assert(from.dim <= allocdim);
