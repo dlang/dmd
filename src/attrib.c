@@ -1565,11 +1565,31 @@ void UserAttributeDeclaration::semantic2(Scope *sc)
         if (atts && atts->dim && scope)
         {
             scope = NULL;
-            arrayExpressionSemantic(atts, sc);  // run semantic
+            semanticAttributes(sc);     // run semantic
         }
     }
 
     AttribDeclaration::semantic2(sc);
+}
+
+void UserAttributeDeclaration::semanticAttributes(Scope *sc)
+{
+    sc = sc->startCTFE();
+    arrayExpressionSemantic(atts, sc);
+    sc = sc->endCTFE();
+
+    if (atts && atts->dim)
+    {
+        for (size_t i = 0; i < atts->dim; i++)
+        {
+            Expression *e = (*atts)[i];
+            if (e->rvalue())
+                e = e->ctfeInterpret();
+            else
+                e = new ErrorExp();
+            (*atts)[i] = e;
+        }
+    }
 }
 
 Expressions *UserAttributeDeclaration::concat(Expressions *udas1, Expressions *udas2)
@@ -1597,7 +1617,7 @@ Expressions *UserAttributeDeclaration::getAttributes()
     {
         Scope *sc = scope;
         scope = NULL;
-        arrayExpressionSemantic(atts, sc);
+        semanticAttributes(sc);
     }
 
     Expressions *exps = new Expressions();

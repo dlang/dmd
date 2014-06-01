@@ -225,9 +225,10 @@ public:
     UserAttributeDeclaration(Expressions *atts, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
+    void setScope(Scope *sc);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
-    void setScope(Scope *sc);
+    void semanticAttributes(Scope *sc);
     static Expressions *concat(Expressions *udas1, Expressions *udas2);
     Expressions *getAttributes();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
