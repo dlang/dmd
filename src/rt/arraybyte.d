@@ -237,7 +237,7 @@ T[] _arraySliceExpAddSliceAssign_g(T[] a, T value, T[] b)
                 mov RAX, aptr;
                 mov RBX, bptr;
                 mov RDI, simdEnd;
-                movdqu XMM15, v;
+                movq XMM15, v;
                 shufpd XMM15, XMM15, 0;
 
             start64:
@@ -285,7 +285,7 @@ T[] _arraySliceExpAddSliceAssign_g(T[] a, T value, T[] b)
                 mov RAX, aptr;
                 mov RBX, bptr;
                 mov RDI, simdEnd;
-                movdqu XMM15, v;
+                movq XMM15, v;
                 shufpd XMM15, XMM15, 0;
             start16:
                 movdqu XMM0, [RBX];
@@ -783,7 +783,7 @@ T[] _arrayExpSliceAddass_g(T[] a, T value)
             {
                 mov RAX, aptr;
                 mov RDI, simdEnd;
-                movdqu XMM8, v;
+                movq XMM8, v;
                 shufpd XMM8, XMM8, 0;
             start128:
                 movdqu XMM0, [RAX];
@@ -823,7 +823,7 @@ T[] _arrayExpSliceAddass_g(T[] a, T value)
             {
                 mov RAX, aptr;
                 mov RDI, simdEnd;
-                movdqu XMM4, v;
+                movq XMM4, v;
                 shufpd XMM4, XMM4, 0;
             start16:
                 movdqu XMM0, [RAX];
@@ -1345,7 +1345,7 @@ T[] _arraySliceExpMinSliceAssign_g(T[] a, T value, T[] b)
                 mov RAX, aptr;
                 mov RBX, bptr;
                 mov RDI, simdEnd;
-                movdqu XMM15, v;
+                movq XMM15, v;
                 shufpd XMM15, XMM15, 0;
 
             start64:
@@ -1393,7 +1393,7 @@ T[] _arraySliceExpMinSliceAssign_g(T[] a, T value, T[] b)
                 mov RAX, aptr;
                 mov RBX, bptr;
                 mov RDI, simdEnd;
-                movdqu XMM15, v;
+                movq XMM15, v;
                 shufpd XMM15, XMM15, 0;
             start16:
                 movdqu XMM0, [RBX];
@@ -1623,7 +1623,7 @@ T[] _arrayExpSliceMinSliceAssign_g(T[] a, T[] b, T value)
                 mov RDI, simdEnd;
 
             start64:
-                movdqu XMM15, v;
+                movq XMM15, v;
                 shufpd XMM15, XMM15, 0;
                 movdqa XMM8, XMM15;
                 movdqa XMM9, XMM15;
@@ -1678,7 +1678,7 @@ T[] _arrayExpSliceMinSliceAssign_g(T[] a, T[] b, T value)
                 mov RBX, bptr;
                 mov RDI, simdEnd;
             start16:
-                movdqu XMM15, v;
+                movq XMM15, v;
                 shufpd XMM15, XMM15, 0;
                 movdqu XMM0, [RBX];
                 psubb XMM15, XMM0;
@@ -2172,7 +2172,7 @@ T[] _arrayExpSliceMinass_g(T[] a, T value)
                 mov RAX, aptr;
                 mov RDI, simdEnd;
                 pshufd XMM8, XMM8, 0;
-                movdqu XMM8, v;
+                movq XMM8, v;
                 shufpd XMM8, XMM8, 0;
             start128:
                 movdqu XMM0, [RAX];
@@ -2212,7 +2212,7 @@ T[] _arrayExpSliceMinass_g(T[] a, T value)
             {
                 mov RAX, aptr;
                 mov RDI, simdEnd;
-                movdqu XMM4, v;
+                movq XMM4, v;
                 shufpd XMM4, XMM4, 0;
             start16:
                 movdqu XMM0, [RAX];
