@@ -210,6 +210,12 @@ public:
     void checkNogc(Scope *sc, FuncDeclaration *f);
     bool checkPostblit(Scope *sc, Type *t);
     virtual int checkModifiable(Scope *sc, int flag = 0);
+
+    // check whether the expression allows RMW operations, error with rmw operator diagnostic if not.
+    // exp is the RHS expression, or NULL if ++/-- is used (for diagnostics)
+    Expression *readModifyWrite(TOK rmwOp, Expression *exp = NULL);
+    virtual bool checkReadModifyWrite();  // return true if the expression allows RMW operations.
+
     virtual Expression *checkToBoolean(Scope *sc);
     virtual Expression *addDtorHook(Scope *sc);
     Expression *checkToPointer();
@@ -655,6 +661,7 @@ public:
     void checkEscape();
     void checkEscapeRef();
     int checkModifiable(Scope *sc, int flag);
+    bool checkReadModifyWrite();
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
@@ -885,6 +892,7 @@ public:
     DotVarExp(Loc loc, Expression *e, Declaration *var, bool hasOverloads = false);
     Expression *semantic(Scope *sc);
     int checkModifiable(Scope *sc, int flag);
+    bool checkReadModifyWrite();
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
