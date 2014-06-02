@@ -4,7 +4,8 @@
  *
  * Copyright: Copyright Digital Mars 2008 - 2010.
  * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
- * Authors:   Walter Bright, based on code originally written by Burton Radons
+ * Authors:   Walter Bright, based on code originally written by Burton Radons,
+ *            Brian Schott (64-bit operations)
  */
 
 /*          Copyright Digital Mars 2008 - 2010.
@@ -33,15 +34,15 @@ version (unittest)
 }
 else
 {
-    alias core.cpuid.mmx mmx;
-    alias core.cpuid.sse sse;
-    alias core.cpuid.sse2 sse2;
-    alias core.cpuid.amd3dnow amd3dnow;
+    alias mmx = core.cpuid.mmx;
+    alias sse = core.cpuid.sse;
+    alias sse2 = core.cpuid.sse2;
+    alias amd3dnow = core.cpuid.amd3dnow;
 }
 
 //version = log;
 
-alias byte T;
+alias T = byte;
 
 extern (C) @trusted nothrow:
 
@@ -223,6 +224,80 @@ T[] _arraySliceExpAddSliceAssign_g(T[] a, T value, T[] b)
                 mov bptr, EAX;
             }
 
+        }
+    }
+    version (D_InlineAsm_X86_64)
+    {
+        ulong v = (cast(ulong) value) * 0x0101010101010101;
+        if (a.length >= 128)
+        {
+            size_t simdEnd = (cast(size_t) aptr) + (a.length & ~127);
+            asm
+            {
+                mov RAX, aptr;
+                mov RBX, bptr;
+                mov RDI, simdEnd;
+                movq XMM15, v;
+                shufpd XMM15, XMM15, 0;
+
+            start64:
+                movdqu XMM0, [RBX];
+                movdqu XMM1, [RBX + 16];
+                movdqu XMM2, [RBX + 32];
+                movdqu XMM3, [RBX + 48];
+                movdqu XMM4, [RBX + 64];
+                movdqu XMM5, [RBX + 80];
+                movdqu XMM6, [RBX + 96];
+                movdqu XMM7, [RBX + 112];
+
+                paddb XMM0, XMM15;
+                paddb XMM1, XMM15;
+                paddb XMM2, XMM15;
+                paddb XMM3, XMM15;
+                paddb XMM4, XMM15;
+                paddb XMM5, XMM15;
+                paddb XMM6, XMM15;
+                paddb XMM7, XMM15;
+
+                movdqu [RAX], XMM0;
+                movdqu [RAX + 16], XMM1;
+                movdqu [RAX + 32], XMM2;
+                movdqu [RAX + 48], XMM3;
+                movdqu [RAX + 64], XMM4;
+                movdqu [RAX + 80], XMM5;
+                movdqu [RAX + 96], XMM6;
+                movdqu [RAX + 112], XMM7;
+
+                add RAX, 128;
+                add RBX, 128;
+
+                cmp RAX, RDI;
+                jb start64;
+                mov aptr, RAX;
+                mov bptr, RBX;
+            }
+        }
+        if ((aend - aptr) >= 16)
+        {
+            size_t simdEnd = (cast(size_t) aptr) + (a.length & ~15);
+            asm
+            {
+                mov RAX, aptr;
+                mov RBX, bptr;
+                mov RDI, simdEnd;
+                movq XMM15, v;
+                shufpd XMM15, XMM15, 0;
+            start16:
+                movdqu XMM0, [RBX];
+                paddb XMM0, XMM15;
+                movdqu [RAX], XMM0;
+                add RAX, 16;
+                add RBX, 16;
+                cmp RAX, RDI;
+                jb start16;
+                mov aptr, RAX;
+                mov bptr, RBX;
+            }
         }
     }
 
@@ -430,6 +505,95 @@ T[] _arraySliceSliceAddSliceAssign_g(T[] a, T[] c, T[] b)
             }
         }
     }
+    version (D_InlineAsm_X86_64)
+    {
+        if (a.length >= 128)
+        {
+            size_t simdEnd = (cast(size_t) aptr) + (a.length & ~127);
+            asm
+            {
+                mov RAX, aptr;
+                mov RBX, bptr;
+                mov RCX, cptr;
+                mov RDI, simdEnd;
+            start128:
+
+                // Load b
+                movdqu XMM0, [RBX];
+                movdqu XMM1, [RBX + 16];
+                movdqu XMM2, [RBX + 32];
+                movdqu XMM3, [RBX + 48];
+                movdqu XMM4, [RBX + 64];
+                movdqu XMM5, [RBX + 80];
+                movdqu XMM6, [RBX + 96];
+                movdqu XMM7, [RBX + 112];
+
+                // Load c
+                movdqu XMM8, [RCX];
+                movdqu XMM9, [RCX + 16];
+                movdqu XMM10, [RCX + 32];
+                movdqu XMM11, [RCX + 48];
+                movdqu XMM12, [RCX + 64];
+                movdqu XMM13, [RCX + 80];
+                movdqu XMM14, [RCX + 96];
+                movdqu XMM15, [RCX + 112];
+
+                // Add
+                paddb XMM0, XMM8;
+                paddb XMM1, XMM9;
+                paddb XMM2, XMM10;
+                paddb XMM3, XMM11;
+                paddb XMM4, XMM12;
+                paddb XMM5, XMM13;
+                paddb XMM6, XMM14;
+                paddb XMM7, XMM15;
+
+                // Write to a
+                movdqu [RAX], XMM0;
+                movdqu [RAX + 16], XMM1;
+                movdqu [RAX + 32], XMM2;
+                movdqu [RAX + 48], XMM3;
+                movdqu [RAX + 64], XMM4;
+                movdqu [RAX + 80], XMM5;
+                movdqu [RAX + 96], XMM6;
+                movdqu [RAX + 112], XMM7;
+
+                add RAX, 128;
+                add RBX, 128;
+                add RCX, 128;
+
+                cmp RAX, RDI;
+                jb start128;
+                mov aptr, RAX;
+                mov bptr, RBX;
+                mov cptr, RCX;
+            }
+        }
+        if ((aend - aptr) >= 16)
+        {
+            size_t simdEnd = (cast(size_t) aptr) + (a.length & ~15);
+            asm
+            {
+                mov RAX, aptr;
+                mov RBX, bptr;
+                mov RCX, cptr;
+                mov RDI, simdEnd;
+            start16:
+                movdqu XMM0, [RBX];
+                movdqu XMM1, [RCX];
+                paddb XMM0, XMM1;
+                movdqu [RAX], XMM0;
+                add RAX, 16;
+                add RBX, 16;
+                add RCX, 16;
+                cmp RAX, RDI;
+                jb start16;
+                mov aptr, RAX;
+                mov bptr, RBX;
+                mov cptr, RCX;
+            }
+        }
+    }
 
     version (log) if (aptr < aend) printf("\tbase\n");
     while (aptr < aend)
@@ -606,6 +770,69 @@ T[] _arrayExpSliceAddass_g(T[] a, T value)
 
                 emms;
                 mov aptr, ESI;
+            }
+        }
+    }
+    version (D_InlineAsm_X86_64)
+    {
+        ulong v = (cast(ulong) value) * 0x0101010101010101;
+        if (aend - aptr >= 128)
+        {
+            size_t simdEnd = (cast(size_t) aptr) + (a.length & ~127);
+            asm
+            {
+                mov RAX, aptr;
+                mov RDI, simdEnd;
+                movq XMM8, v;
+                shufpd XMM8, XMM8, 0;
+            start128:
+                movdqu XMM0, [RAX];
+                paddb XMM0, XMM8;
+                movdqu XMM1, [RAX + 16];
+                paddb XMM1, XMM8;
+                movdqu XMM2, [RAX + 32];
+                paddb XMM2, XMM8;
+                movdqu XMM3, [RAX + 48];
+                paddb XMM3, XMM8;
+                movdqu XMM4, [RAX + 64];
+                paddb XMM4, XMM8;
+                movdqu XMM5, [RAX + 80];
+                paddb XMM5, XMM8;
+                movdqu XMM6, [RAX + 96];
+                paddb XMM6, XMM8;
+                movdqu XMM7, [RAX + 112];
+                paddb XMM7, XMM8;
+                movdqu [RAX], XMM0;
+                movdqu [RAX + 16], XMM1;
+                movdqu [RAX + 32], XMM2;
+                movdqu [RAX + 48], XMM3;
+                movdqu [RAX + 64], XMM4;
+                movdqu [RAX + 80], XMM5;
+                movdqu [RAX + 96], XMM6;
+                movdqu [RAX + 112], XMM7;
+                add RAX, 128;
+                cmp RAX, RDI;
+                jb start128;
+                mov aptr, RAX;
+            }
+        }
+        if (aend - aptr >= 16)
+        {
+            size_t simdEnd = (cast(size_t) aptr) + (a.length & ~15);
+            asm
+            {
+                mov RAX, aptr;
+                mov RDI, simdEnd;
+                movq XMM4, v;
+                shufpd XMM4, XMM4, 0;
+            start16:
+                movdqu XMM0, [RAX];
+                paddb XMM0, XMM4;
+                movdqu [RAX], XMM0;
+                add RAX, 16;
+                cmp RAX, RDI;
+                jb start16;
+                mov aptr, RAX;
             }
         }
     }
@@ -799,6 +1026,89 @@ T[] _arraySliceSliceAddass_g(T[] a, T[] b)
                 emms;
                 mov aptr, ESI;
                 mov bptr, ECX;
+            }
+        }
+    }
+    version (D_InlineAsm_X86_64)
+    {
+        if (a.length >= 128)
+        {
+            size_t simdEnd = (cast(size_t) aptr) + (a.length & ~127);
+            asm
+            {
+                mov RAX, aptr;
+                mov RBX, bptr;
+                mov RDI, simdEnd;
+            start128:
+
+                // Load a
+                movdqu XMM0, [RAX];
+                movdqu XMM1, [RAX + 16];
+                movdqu XMM2, [RAX + 32];
+                movdqu XMM3, [RAX + 48];
+                movdqu XMM4, [RAX + 64];
+                movdqu XMM5, [RAX + 80];
+                movdqu XMM6, [RAX + 96];
+                movdqu XMM7, [RAX + 112];
+
+                // Load b
+                movdqu XMM8, [RBX];
+                movdqu XMM9, [RBX + 16];
+                movdqu XMM10, [RBX + 32];
+                movdqu XMM11, [RBX + 48];
+                movdqu XMM12, [RBX + 64];
+                movdqu XMM13, [RBX + 80];
+                movdqu XMM14, [RBX + 96];
+                movdqu XMM15, [RBX + 112];
+
+                // Add
+                paddb XMM0, XMM8;
+                paddb XMM1, XMM9;
+                paddb XMM2, XMM10;
+                paddb XMM3, XMM11;
+                paddb XMM4, XMM12;
+                paddb XMM5, XMM13;
+                paddb XMM6, XMM14;
+                paddb XMM7, XMM15;
+
+                // Write to a
+                movdqu [RAX], XMM0;
+                movdqu [RAX + 16], XMM1;
+                movdqu [RAX + 32], XMM2;
+                movdqu [RAX + 48], XMM3;
+                movdqu [RAX + 64], XMM4;
+                movdqu [RAX + 80], XMM5;
+                movdqu [RAX + 96], XMM6;
+                movdqu [RAX + 112], XMM7;
+
+                add RAX, 128;
+                add RBX, 128;
+
+                cmp RAX, RDI;
+                jb start128;
+                mov aptr, RAX;
+                mov bptr, RBX;
+            }
+        }
+        if ((aend - aptr) >= 16)
+        {
+            size_t simdEnd = (cast(size_t) aptr) + (a.length & ~15);
+            asm
+            {
+                mov RAX, aptr;
+                mov RBX, bptr;
+                mov RDI, simdEnd;
+            start16:
+                movdqu XMM0, [RAX];
+                movdqu XMM1, [RBX];
+                paddb XMM0, XMM1;
+                movdqu [RAX], XMM0;
+                add RAX, 16;
+                add RBX, 16;
+                cmp RAX, RDI;
+                jb start16;
+                mov aptr, RAX;
+                mov bptr, RBX;
             }
         }
     }
@@ -1024,6 +1334,80 @@ T[] _arraySliceExpMinSliceAssign_g(T[] a, T value, T[] b)
             }
         }
     }
+    version (D_InlineAsm_X86_64)
+    {
+        ulong v = (cast(ulong) value) * 0x0101010101010101;
+        if (a.length >= 128)
+        {
+            size_t simdEnd = (cast(size_t) aptr) + (a.length & ~127);
+            asm
+            {
+                mov RAX, aptr;
+                mov RBX, bptr;
+                mov RDI, simdEnd;
+                movq XMM15, v;
+                shufpd XMM15, XMM15, 0;
+
+            start64:
+                movdqu XMM0, [RBX];
+                movdqu XMM1, [RBX + 16];
+                movdqu XMM2, [RBX + 32];
+                movdqu XMM3, [RBX + 48];
+                movdqu XMM4, [RBX + 64];
+                movdqu XMM5, [RBX + 80];
+                movdqu XMM6, [RBX + 96];
+                movdqu XMM7, [RBX + 112];
+
+                psubb XMM0, XMM15;
+                psubb XMM1, XMM15;
+                psubb XMM2, XMM15;
+                psubb XMM3, XMM15;
+                psubb XMM4, XMM15;
+                psubb XMM5, XMM15;
+                psubb XMM6, XMM15;
+                psubb XMM7, XMM15;
+
+                movdqu [RAX], XMM0;
+                movdqu [RAX + 16], XMM1;
+                movdqu [RAX + 32], XMM2;
+                movdqu [RAX + 48], XMM3;
+                movdqu [RAX + 64], XMM4;
+                movdqu [RAX + 80], XMM5;
+                movdqu [RAX + 96], XMM6;
+                movdqu [RAX + 112], XMM7;
+
+                add RAX, 128;
+                add RBX, 128;
+
+                cmp RAX, RDI;
+                jb start64;
+                mov aptr, RAX;
+                mov bptr, RBX;
+            }
+        }
+        if ((aend - aptr) >= 16)
+        {
+            size_t simdEnd = (cast(size_t) aptr) + (a.length & ~15);
+            asm
+            {
+                mov RAX, aptr;
+                mov RBX, bptr;
+                mov RDI, simdEnd;
+                movq XMM15, v;
+                shufpd XMM15, XMM15, 0;
+            start16:
+                movdqu XMM0, [RBX];
+                psubb XMM0, XMM15;
+                movdqu [RAX], XMM0;
+                add RAX, 16;
+                add RBX, 16;
+                cmp RAX, RDI;
+                jb start16;
+                mov aptr, RAX;
+                mov bptr, RBX;
+            }
+        }
+    }
 
     while (aptr < aend)
         *aptr++ = cast(T)(*bptr++ - value);
@@ -1225,7 +1609,88 @@ T[] _arrayExpSliceMinSliceAssign_g(T[] a, T[] b, T value)
                 mov bptr, EAX;
             }
         }
+    }
+    version (D_InlineAsm_X86_64)
+    {
+        ulong v = (cast(ulong) value) * 0x0101010101010101;
+        if (a.length >= 128)
+        {
+            size_t simdEnd = (cast(size_t) aptr) + (a.length & ~127);
+            asm
+            {
+                mov RAX, aptr;
+                mov RBX, bptr;
+                mov RDI, simdEnd;
 
+            start64:
+                movq XMM15, v;
+                shufpd XMM15, XMM15, 0;
+                movdqa XMM8, XMM15;
+                movdqa XMM9, XMM15;
+                movdqa XMM10, XMM15;
+                movdqa XMM11, XMM15;
+                movdqa XMM12, XMM15;
+                movdqa XMM13, XMM15;
+                movdqa XMM14, XMM15;
+
+                movdqu XMM0, [RBX];
+                movdqu XMM1, [RBX + 16];
+                movdqu XMM2, [RBX + 32];
+                movdqu XMM3, [RBX + 48];
+                movdqu XMM4, [RBX + 64];
+                movdqu XMM5, [RBX + 80];
+                movdqu XMM6, [RBX + 96];
+                movdqu XMM7, [RBX + 112];
+
+                psubb XMM8, XMM0;
+                psubb XMM9, XMM1;
+                psubb XMM10, XMM2;
+                psubb XMM11, XMM3;
+                psubb XMM12, XMM4;
+                psubb XMM13, XMM5;
+                psubb XMM14, XMM6;
+                psubb XMM15, XMM7;
+
+                movdqu [RAX], XMM8;
+                movdqu [RAX + 16], XMM9;
+                movdqu [RAX + 32], XMM10;
+                movdqu [RAX + 48], XMM11;
+                movdqu [RAX + 64], XMM12;
+                movdqu [RAX + 80], XMM13;
+                movdqu [RAX + 96], XMM14;
+                movdqu [RAX + 112], XMM15;
+
+                add RAX, 128;
+                add RBX, 128;
+
+                cmp RAX, RDI;
+                jb start64;
+                mov aptr, RAX;
+                mov bptr, RBX;
+            }
+        }
+        if ((aend - aptr) >= 16)
+        {
+            size_t simdEnd = (cast(size_t) aptr) + (a.length & ~15);
+            asm
+            {
+                mov RAX, aptr;
+                mov RBX, bptr;
+                mov RDI, simdEnd;
+            start16:
+                movq XMM15, v;
+                shufpd XMM15, XMM15, 0;
+                movdqu XMM0, [RBX];
+                psubb XMM15, XMM0;
+                movdqu [RAX], XMM15;
+                add RAX, 16;
+                add RBX, 16;
+                cmp RAX, RDI;
+                jb start16;
+                mov aptr, RAX;
+                mov bptr, RBX;
+            }
+        }
     }
 
     while (aptr < aend)
@@ -1429,6 +1894,95 @@ T[] _arraySliceSliceMinSliceAssign_g(T[] a, T[] c, T[] b)
             }
         }
     }
+    version (D_InlineAsm_X86_64)
+    {
+        if (a.length >= 128)
+        {
+            size_t simdEnd = (cast(size_t) aptr) + (a.length & ~127);
+            asm
+            {
+                mov RAX, aptr;
+                mov RBX, bptr;
+                mov RCX, cptr;
+                mov RDI, simdEnd;
+            start128:
+
+                // Load b
+                movdqu XMM0, [RBX];
+                movdqu XMM1, [RBX + 16];
+                movdqu XMM2, [RBX + 32];
+                movdqu XMM3, [RBX + 48];
+                movdqu XMM4, [RBX + 64];
+                movdqu XMM5, [RBX + 80];
+                movdqu XMM6, [RBX + 96];
+                movdqu XMM7, [RBX + 112];
+
+                // Load c
+                movdqu XMM8, [RCX];
+                movdqu XMM9, [RCX + 16];
+                movdqu XMM10, [RCX + 32];
+                movdqu XMM11, [RCX + 48];
+                movdqu XMM12, [RCX + 64];
+                movdqu XMM13, [RCX + 80];
+                movdqu XMM14, [RCX + 96];
+                movdqu XMM15, [RCX + 112];
+
+                // Subtract
+                psubb XMM0, XMM8;
+                psubb XMM1, XMM9;
+                psubb XMM2, XMM10;
+                psubb XMM3, XMM11;
+                psubb XMM4, XMM12;
+                psubb XMM5, XMM13;
+                psubb XMM6, XMM14;
+                psubb XMM7, XMM15;
+
+                // Write to a
+                movdqu [RAX], XMM0;
+                movdqu [RAX + 16], XMM1;
+                movdqu [RAX + 32], XMM2;
+                movdqu [RAX + 48], XMM3;
+                movdqu [RAX + 64], XMM4;
+                movdqu [RAX + 80], XMM5;
+                movdqu [RAX + 96], XMM6;
+                movdqu [RAX + 112], XMM7;
+
+                add RAX, 128;
+                add RBX, 128;
+                add RCX, 128;
+
+                cmp RAX, RDI;
+                jb start128;
+                mov aptr, RAX;
+                mov bptr, RBX;
+                mov cptr, RCX;
+            }
+        }
+        if ((aend - aptr) >= 16)
+        {
+            size_t simdEnd = (cast(size_t) aptr) + (a.length & ~15);
+            asm
+            {
+                mov RAX, aptr;
+                mov RBX, bptr;
+                mov RCX, cptr;
+                mov RDI, simdEnd;
+            start16:
+                movdqu XMM0, [RBX];
+                movdqu XMM1, [RCX];
+                psubb XMM0, XMM1;
+                movdqu [RAX], XMM0;
+                add RAX, 16;
+                add RBX, 16;
+                add RCX, 16;
+                cmp RAX, RDI;
+                jb start16;
+                mov aptr, RAX;
+                mov bptr, RBX;
+                mov cptr, RCX;
+            }
+        }
+    }
 
     while (aptr < aend)
         *aptr++ = cast(T)(*bptr++ - *cptr++);
@@ -1604,6 +2158,70 @@ T[] _arrayExpSliceMinass_g(T[] a, T value)
 
                 emms;
                 mov aptr, ESI;
+            }
+        }
+    }
+    version (D_InlineAsm_X86_64)
+    {
+        ulong v = (cast(ulong) value) * 0x0101010101010101;
+        if (aend - aptr >= 128)
+        {
+            size_t simdEnd = (cast(size_t) aptr) + (a.length & ~127);
+            asm
+            {
+                mov RAX, aptr;
+                mov RDI, simdEnd;
+                pshufd XMM8, XMM8, 0;
+                movq XMM8, v;
+                shufpd XMM8, XMM8, 0;
+            start128:
+                movdqu XMM0, [RAX];
+                psubb XMM0, XMM8;
+                movdqu XMM1, [RAX + 16];
+                psubb XMM1, XMM8;
+                movdqu XMM2, [RAX + 32];
+                psubb XMM2, XMM8;
+                movdqu XMM3, [RAX + 48];
+                psubb XMM3, XMM8;
+                movdqu XMM4, [RAX + 64];
+                psubb XMM4, XMM8;
+                movdqu XMM5, [RAX + 80];
+                psubb XMM5, XMM8;
+                movdqu XMM6, [RAX + 96];
+                psubb XMM6, XMM8;
+                movdqu XMM7, [RAX + 112];
+                psubb XMM7, XMM8;
+                movdqu [RAX], XMM0;
+                movdqu [RAX + 16], XMM1;
+                movdqu [RAX + 32], XMM2;
+                movdqu [RAX + 48], XMM3;
+                movdqu [RAX + 64], XMM4;
+                movdqu [RAX + 80], XMM5;
+                movdqu [RAX + 96], XMM6;
+                movdqu [RAX + 112], XMM7;
+                add RAX, 128;
+                cmp RAX, RDI;
+                jb start128;
+                mov aptr, RAX;
+            }
+        }
+        if (aend - aptr >= 16)
+        {
+            size_t simdEnd = (cast(size_t) aptr) + (a.length & ~15);
+            asm
+            {
+                mov RAX, aptr;
+                mov RDI, simdEnd;
+                movq XMM4, v;
+                shufpd XMM4, XMM4, 0;
+            start16:
+                movdqu XMM0, [RAX];
+                psubb XMM0, XMM4;
+                movdqu [RAX], XMM0;
+                add RAX, 16;
+                cmp RAX, RDI;
+                jb start16;
+                mov aptr, RAX;
             }
         }
     }
@@ -1797,6 +2415,89 @@ T[] _arraySliceSliceMinass_g(T[] a, T[] b)
                 emms;
                 mov aptr, ESI;
                 mov bptr, ECX;
+            }
+        }
+    }
+    version (D_InlineAsm_X86_64)
+    {
+        if (a.length >= 128)
+        {
+            size_t simdEnd = (cast(size_t) aptr) + (a.length & ~127);
+            asm
+            {
+                mov RAX, aptr;
+                mov RBX, bptr;
+                mov RDI, simdEnd;
+            start128:
+
+                // Load a
+                movdqu XMM0, [RAX];
+                movdqu XMM1, [RAX + 16];
+                movdqu XMM2, [RAX + 32];
+                movdqu XMM3, [RAX + 48];
+                movdqu XMM4, [RAX + 64];
+                movdqu XMM5, [RAX + 80];
+                movdqu XMM6, [RAX + 96];
+                movdqu XMM7, [RAX + 112];
+
+                // Load b
+                movdqu XMM8, [RBX];
+                movdqu XMM9, [RBX + 16];
+                movdqu XMM10, [RBX + 32];
+                movdqu XMM11, [RBX + 48];
+                movdqu XMM12, [RBX + 64];
+                movdqu XMM13, [RBX + 80];
+                movdqu XMM14, [RBX + 96];
+                movdqu XMM15, [RBX + 112];
+
+                // Subtract
+                psubb XMM0, XMM8;
+                psubb XMM1, XMM9;
+                psubb XMM2, XMM10;
+                psubb XMM3, XMM11;
+                psubb XMM4, XMM12;
+                psubb XMM5, XMM13;
+                psubb XMM6, XMM14;
+                psubb XMM7, XMM15;
+
+                // Write to a
+                movdqu [RAX], XMM0;
+                movdqu [RAX + 16], XMM1;
+                movdqu [RAX + 32], XMM2;
+                movdqu [RAX + 48], XMM3;
+                movdqu [RAX + 64], XMM4;
+                movdqu [RAX + 80], XMM5;
+                movdqu [RAX + 96], XMM6;
+                movdqu [RAX + 112], XMM7;
+
+                add RAX, 128;
+                add RBX, 128;
+
+                cmp RAX, RDI;
+                jb start128;
+                mov aptr, RAX;
+                mov bptr, RBX;
+            }
+        }
+        if ((aend - aptr) >= 16)
+        {
+            size_t simdEnd = (cast(size_t) aptr) + (a.length & ~15);
+            asm
+            {
+                mov RAX, aptr;
+                mov RBX, bptr;
+                mov RDI, simdEnd;
+            start16:
+                movdqu XMM0, [RAX];
+                movdqu XMM1, [RBX];
+                psubb XMM0, XMM1;
+                movdqu [RAX], XMM0;
+                add RAX, 16;
+                add RBX, 16;
+                cmp RAX, RDI;
+                jb start16;
+                mov aptr, RAX;
+                mov bptr, RBX;
             }
         }
     }
