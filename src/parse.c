@@ -1364,16 +1364,10 @@ Dsymbol *Parser::parseStaticCtor()
     nextToken();
     check(TOKlparen);
     check(TOKrparen);
+    StorageClass stc = parsePostfix(NULL);
 
-    //StorageClass stc = parsePostfix(&udas);
-    StaticCtorDeclaration *f = new StaticCtorDeclaration(loc, Loc());
+    StaticCtorDeclaration *f = new StaticCtorDeclaration(loc, Loc(), stc);
     Dsymbol *s = parseContracts(f);
-    //if (udas)
-    //{
-    //    Dsymbols *a = new Dsymbols();
-    //    a->push(f);
-    //    s = new UserAttributeDeclaration(udas, a);
-    //}
     return s;
 }
 
@@ -1393,16 +1387,10 @@ Dsymbol *Parser::parseSharedStaticCtor()
     nextToken();
     check(TOKlparen);
     check(TOKrparen);
+    StorageClass stc = parsePostfix(NULL);
 
-    //StorageClass stc = parsePostfix(&udas);
-    SharedStaticCtorDeclaration *f = new SharedStaticCtorDeclaration(loc, Loc());
+    SharedStaticCtorDeclaration *f = new SharedStaticCtorDeclaration(loc, Loc(), stc);
     Dsymbol *s = parseContracts(f);
-    //if (udas)
-    //{
-    //    Dsymbols *a = new Dsymbols();
-    //    a->push(f);
-    //    s = new UserAttributeDeclaration(udas, a);
-    //}
     return s;
 }
 
