@@ -7839,6 +7839,16 @@ char *TemplateInstance::toChars()
     return s;
 }
 
+char *TemplateInstance::toPrettyCharsHelper()
+{
+    OutBuffer buf;
+    HdrGenState hgs;
+    hgs.fullQualification = 1;
+    toCBuffer(&buf, &hgs);
+
+    return buf.extractString();
+}
+
 int TemplateInstance::compare(RootObject *o)
 {
     TemplateInstance *ti = (TemplateInstance *)o;

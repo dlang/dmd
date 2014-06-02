@@ -238,6 +238,7 @@ public:
     int dyncast() { return DYNCAST_TYPE; }
     int covariant(Type *t, StorageClass *pstc = NULL);
     char *toChars();
+    char *toPrettyChars(bool QualifyTypes = false);
     static char needThisPrefix();
     static void init();
 

@@ -1583,6 +1583,17 @@ char *Type::toChars()
     return buf.extractString();
 }
 
+char *Type::toPrettyChars(bool QualifyTypes)
+{
+    OutBuffer buf;
+    buf.reserve(16);
+    HdrGenState hgs;
+    hgs.fullQualification = QualifyTypes;
+
+    toCBuffer(&buf, NULL, &hgs);
+    return buf.extractString();
+}
+
 void Type::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
 {
     ::toCBuffer(this, buf, ident, hgs);
