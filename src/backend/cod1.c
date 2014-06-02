@@ -2481,6 +2481,8 @@ static int type_jparam2(type *t, tym_t ty)
 
 int FuncParamRegs::alloc(type *t, tym_t ty, reg_t *preg1, reg_t *preg2)
 {
+    //printf("FuncParamRegs::alloc(ty = TY%s)\n", tystring[tybasic(ty)]);
+    //if (t) type_print(t);
     ++i;
 
     *preg1 = NOREG;
