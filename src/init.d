@@ -68,7 +68,7 @@ public:
     /* Translates to an expression to infer type.
      * Returns ExpInitializer or ErrorInitializer.
      */
-    abstract Initializer inferType(Scope* sc);
+    abstract Initializer inferType(Scope* sc, Type tx);
 
     // needInterpret is INITinterpret if must be a manifest constant, 0 if not.
     abstract Initializer semantic(Scope* sc, Type t, NeedInterpret needInterpret);
@@ -131,7 +131,7 @@ public:
         return new VoidInitializer(loc);
     }
 
-    Initializer inferType(Scope* sc)
+    Initializer inferType(Scope* sc, Type tx)
     {
         error(loc, "cannot infer type from void initializer");
         return new ErrorInitializer();
@@ -174,7 +174,7 @@ public:
         return this;
     }
 
-    Initializer inferType(Scope* sc)
+    Initializer inferType(Scope* sc, Type tx)
     {
         return this;
     }
@@ -234,8 +234,20 @@ public:
         this.value.push(value);
     }
 
-    Initializer inferType(Scope* sc)
+    Initializer inferType(Scope* sc, Type tx)
     {
+        if (tx && !(tx.ty == Tident && (cast(TypeIdentifier)tx).ident == Id.empty))
+        {
+            Type tb = tx.toBasetype();
+            //printf("si tb = %s => %s\n", tb.toChars(), toChars());
+            if (tb.ty == Tstruct ||
+                tb.ty == Tdelegate ||
+                tb.ty == Tpointer && tb.nextOf().ty == Tfunction)
+            {
+                return semantic(sc, tb, INITnointerpret);
+            }
+        }
+
         error(loc, "cannot infer type from struct initializer");
         return new ErrorInitializer();
     }
@@ -429,13 +441,24 @@ public:
         return false;
     }
 
-    Initializer inferType(Scope* sc)
+    Initializer inferType(Scope* sc, Type tx)
     {
         //printf("ArrayInitializer::inferType() %s\n", toChars());
+        bool isAA = isAssociativeArray();
         Expressions* keys = null;
         Expressions* values;
-        if (isAssociativeArray())
+        if (tx ? (tx.ty == Taarray ||
+                  tx.ty != Tarray && tx.ty != Tsarray && isAA)
+               : isAA)
         {
+            Type tidx = null;
+            Type tval = null;
+            if (tx && tx.ty == Taarray)
+            {
+                tidx = (cast(TypeAArray)tx).index;
+                tval = (cast(TypeAArray)tx).next;
+            }
+
             keys = new Expressions();
             keys.setDim(value.dim);
             values = new Expressions();
@@ -445,11 +468,20 @@ public:
                 Expression e = index[i];
                 if (!e)
                     goto Lno;
+                if (tidx)
+                {
+                    e = .inferType(e, tidx);
+                    e = e.semantic(sc);
+                    e = resolveProperties(sc, e);
+                    if (tidx.deco)  // tidx may be partial type
+                        e = e.implicitCastTo(sc, tidx);
+                }
                 (*keys)[i] = e;
+
                 Initializer iz = value[i];
                 if (!iz)
                     goto Lno;
-                iz = iz.inferType(sc);
+                iz = iz.inferType(sc, tval);
                 if (iz.isErrorInitializer())
                     return iz;
                 assert(iz.isExpInitializer());
@@ -458,10 +490,14 @@ public:
             }
             Expression e = new AssocArrayLiteralExp(loc, keys, values);
             auto ei = new ExpInitializer(loc, e);
-            return ei.inferType(sc);
+            return ei.inferType(sc, tx);
         }
-        else
+        else if (!isAA)
         {
+            Type tn = null;
+            if (tx && (tx.ty == Tarray || tx.ty == Tsarray))
+                tn = (cast(TypeNext)tx).next;
+
             auto elements = new Expressions();
             elements.setDim(value.dim);
             elements.zero();
@@ -471,7 +507,7 @@ public:
                 Initializer iz = value[i];
                 if (!iz)
                     goto Lno;
-                iz = iz.inferType(sc);
+                iz = iz.inferType(sc, tn);
                 if (iz.isErrorInitializer())
                     return iz;
                 assert(iz.isExpInitializer());
@@ -480,7 +516,7 @@ public:
             }
             Expression e = new ArrayLiteralExp(loc, elements);
             auto ei = new ExpInitializer(loc, e);
-            return ei.inferType(sc);
+            return ei.inferType(sc, tx);
         }
     Lno:
         if (keys)
@@ -612,7 +648,7 @@ public:
 
     /********************************
      * If possible, convert array initializer to array literal.
-     * Otherwise return NULL.
+     * Otherwise return null.
      */
     Expression toExpression(Type tx = null)
     {
@@ -769,11 +805,39 @@ public:
         return new ExpInitializer(loc, exp.syntaxCopy());
     }
 
-    Initializer inferType(Scope* sc)
+    Initializer inferType(Scope* sc, Type tx)
     {
         //printf("ExpInitializer::inferType() %s\n", toChars());
+        exp = .inferType(exp, tx);
         exp = exp.semantic(sc);
         exp = resolveProperties(sc, exp);
+
+        if (tx)
+        {
+            //printf("ExpInitializer::inferType() tx = %s (%s), exp = %s (%s) %s\n",
+            //    tx.toChars(), tx.deco, exp.type.toChars(), exp.type.deco, exp.toChars());
+            Type tb = tx.toBasetype();
+            Type ti = exp.type.toBasetype();
+
+            // Look for implicit constructor call
+            if (tb.ty == Tstruct &&
+                !(ti.ty == Tstruct && tb.toDsymbol(sc) == ti.toDsymbol(sc)) &&
+                !exp.implicitConvTo(tx))
+            {
+                StructDeclaration sd = (cast(TypeStruct)tb).sym;
+                if (sd.ctor)
+                {
+                    // Rewrite as S().ctor(exp)
+                    Expression e;
+                    e = new StructLiteralExp(loc, sd, null);
+                    e = new DotIdExp(loc, e, Id.ctor);
+                    e = new CallExp(loc, e, exp);
+                    e = e.semantic(sc);
+                    exp = e.optimize(WANTvalue);
+                }
+            }
+        }
+
         if (exp.op == TOKimport)
         {
             ScopeExp se = cast(ScopeExp)exp;

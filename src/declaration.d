@@ -1024,6 +1024,411 @@ public:
 }
 
 /**************************************************************/
+
+extern (C++) Type isPartialType(Type t)
+{
+    if (!t)
+        return null;
+    if (t.ty == Tenum)
+        return null;
+
+    if (t.ty == Tident &&
+        (cast(TypeIdentifier)t).ident == Id.empty &&
+        (cast(TypeIdentifier)t).idents.dim == 0)
+    {
+        return t;
+    }
+
+    Type tn1 = t.nextOf();
+    Type tn2 = isPartialType(tn1);
+    if (tn2)
+    {
+        return t;
+    }
+
+    if (t.ty == Tsarray)
+    {
+        Expression dim = (cast(TypeSArray)t).dim;
+        if (dim.op == TOKidentifier && (cast(IdentifierExp)dim).ident == Id.dollar)
+        {
+            return t;
+        }
+    }
+    if (t.ty == Taarray && isPartialType((cast(TypeAArray)t).index))
+    {
+        return t;
+    }
+
+    return null;
+}
+
+extern (C++) Type semanticPartialType(Loc loc, Scope *sc, Type t)
+{
+    if (!t)
+        return t;
+
+    //printf("semanticPartialType t = %s\n", t.toChars());
+    if (t.ty == Tident &&
+        (cast(TypeIdentifier)t).ident == Id.empty &&
+        (cast(TypeIdentifier)t).idents.dim == 0)
+    {
+        return t;
+    }
+
+    if (t.ty == Tfunction ||
+        t.ty == Tdelegate ||
+        t.ty == Tpointer && (cast(TypePointer)t).next.ty == Tfunction)
+    {
+        return t.semantic(loc, sc);
+    }
+
+    Type tn = t.nextOf();
+    if (!tn)
+        return t.semantic(loc, sc);
+
+    tn = semanticPartialType(loc, sc, tn);
+
+    if (t.ty == Tarray)
+    {
+        t = new TypeDArray(tn);
+        if (tn.deco)
+            t = t.semantic(loc, sc);
+        return t;
+    }
+    if (t.ty == Tsarray)
+    {
+    Lsarray:
+        TypeSArray tsa = cast(TypeSArray)t;
+        Expression dim = tsa.dim;
+
+        if (dim.op == TOKidentifier && (cast(IdentifierExp)dim).ident == Id.dollar)
+            return new TypeSArray(tn, dim);
+
+        int errors = global.errors;
+        sc = sc.startCTFE();
+        dim = dim.semantic(sc);
+        sc = sc.endCTFE();
+        if (errors != global.errors)
+        {
+        Lerror:
+            return Type.terror;
+        }
+
+        dim = dim.optimize(WANTvalue);
+        dim = dim.ctfeInterpret();
+        if (dim.op == TOKerror)
+            goto Lerror;
+        errors = global.errors;
+        dinteger_t d1 = dim.toInteger();
+        if (errors != global.errors)
+            goto Lerror;
+
+        dim = dim.implicitCastTo(sc, Type.tsize_t);
+        dim = dim.optimize(WANTvalue);
+        if (dim.op == TOKerror)
+            goto Lerror;
+        errors = global.errors;
+        dinteger_t d2 = dim.toInteger();
+        if (errors != global.errors)
+            goto Lerror;
+
+        if (dim.op == TOKerror)
+            goto Lerror;
+
+        if (d1 != d2)
+        {
+            error(loc, "index %lld overflow for static array", d1);
+            goto Lerror;
+        }
+
+        t = new TypeSArray(tn, dim);
+        if (tn.deco)
+            t = t.semantic(loc, sc);
+        return t;
+    }
+    if (t.ty == Taarray)
+    {
+        TypeAArray taa = cast(TypeAArray)t;
+        Type index = taa.index;
+
+        if (isPartialType(index))
+        {
+            index = semanticPartialType(loc, sc, index);
+            t = new TypeAArray(tn, index);
+            if (tn.deco && index.deco)
+                t = t.semantic(loc, sc);
+            return t;
+        }
+
+        // Deal with the case where we thought the index was a type, but
+        // in reality it was an expression.
+        if (index.ty == Tident || index.ty == Tinstance || index.ty == Tsarray)
+        {
+            Expression ea;
+            Type ta;
+            Dsymbol sa;
+
+            index.resolve(loc, sc, &ea, &ta, &sa);
+            if (ea)
+            {
+                // It was an expression -
+                // Rewrite as a static array
+                t = new TypeSArray(tn, ea);
+                goto Lsarray;
+            }
+            else if (ta)
+                index = ta.semantic(loc, sc);
+            else
+            {
+                index.error(loc, "index is not a type or an expression");
+                return Type.terror;
+            }
+        }
+        else
+            index = index.semantic(loc, sc);
+
+        t = new TypeAArray(tn, index);
+        if (tn.deco)
+            t = t.semantic(loc, sc);
+        return t;
+    }
+    if (t.ty == Tpointer)
+    {
+        t = new TypePointer(tn);
+        if (tn.deco)
+            t = t.semantic(loc, sc);
+        return t;
+    }
+    assert(0);
+    return null;
+}
+
+extern (C++) Type applyPartialType(Loc loc, Scope *sc, Type t, Type tx)
+{
+    if (tx.deco || tx.ty == Terror)
+        return tx;
+    if (tx.ty == Tident &&
+        (cast(TypeIdentifier)tx).ident == Id.empty &&
+        (cast(TypeIdentifier)tx).idents.dim == 0)
+    {
+        if (tx.mod)
+            t = t.castMod(tx.mod);
+        return t;
+    }
+
+    Type txn = tx.nextOf();
+    assert(txn);
+    // tx is undetermined type, eg. auto[$], const[], immutable*, int[$], etc.
+
+    Type tn = t.nextOf();
+    if (!tn)
+    {
+    Lerror:
+        error(loc, "cannot match %s and %s", tx.toChars(), t.toChars());
+        return Type.terror;
+    }
+    tn = applyPartialType(loc, sc, tn.toBasetype(), txn);
+    if (tn.ty == Terror)
+        return tn;
+
+    if (tx.ty == Tarray)
+    {
+        if (t.ty == Tsarray || t.ty == Tarray)
+            return tn.arrayOf();
+        goto Lerror;
+    }
+    if (tx.ty == Tsarray)
+    {
+        Expression dim = (cast(TypeSArray)tx).dim;
+        if (t.ty == Tsarray)
+        {
+            if (dim.op == TOKidentifier && (cast(IdentifierExp)dim).ident == Id.dollar)
+                dim = (cast(TypeSArray)t).dim;
+            return tn.sarrayOf(dim.toInteger());
+        }
+        goto Lerror;
+    }
+    if (tx.ty == Taarray)
+    {
+        if (t.ty == Taarray)
+        {
+            Type index = applyPartialType(loc, sc, (cast(TypeAArray)t).index, (cast(TypeAArray)tx).index);
+            return (new TypeAArray(tn, index)).semantic(loc, sc);
+        }
+        goto Lerror;
+    }
+    if (tx.ty == Tpointer)
+    {
+        if (t.ty == Tpointer)
+            return tn.pointerTo();
+        goto Lerror;
+    }
+
+    assert(0);
+    return null;
+}
+
+extern (C++) Type applyPartialType(Loc loc, Scope *sc, Expression exp, Type tx)
+{
+    Type t = exp.type;
+    if (!tx || t.ty == Terror)
+        return t;
+
+    if (tx.deco || tx.ty == Terror)
+        return tx;
+    if (tx.ty == Tident &&
+        (cast(TypeIdentifier)tx).ident == Id.empty &&
+        (cast(TypeIdentifier)tx).idents.dim == 0)
+    {
+        if (tx.mod)
+            t = t.castMod(tx.mod);
+        return t;
+    }
+
+    Type txn = tx.nextOf();
+    assert(txn);
+    // tx is undetermined type, eg. auto[$], const[], immutable*, int[$], etc.
+
+    if (exp.op == TOKarrayliteral)
+    {
+        ArrayLiteralExp ale = cast(ArrayLiteralExp)exp;
+        size_t d = ale.elements ? ale.elements.dim : 0;
+        Type tn = null;
+        for (size_t i = 0; i < d; i++)
+        {
+            Type tn2 = applyPartialType(loc, sc, (*ale.elements)[i], txn);
+            if (!tn || tn2.ty == Terror)
+                tn = tn2;
+            else if (tn.ty != Terror && !tn.equals(tn2))
+            {
+                // auto[$][2] a = [[1,2], [1,2,3]];    // $ => 2 or 3?
+                error(loc, "mismatch type %s and %s", tn.toChars(), tn2.toChars());
+                tn = Type.terror;
+            }
+        }
+        if (!tn)
+            tn = txn.deco ? txn : t.nextOf();
+        if (tn.ty == Terror)
+            return tn;
+
+        if (tx.ty == Tsarray)
+        {
+            Expression dim = (cast(TypeSArray)tx).dim;
+            if (!(dim.op == TOKidentifier && (cast(IdentifierExp)dim).ident == Id.dollar))
+            {
+                dinteger_t d1 = dim.toInteger();
+                dinteger_t d2 = d;
+                if (d1 != d2)
+                {
+                    error(loc, "mismatch length %d and %d", cast(int)d1, cast(int)d2);
+                    return Type.terror;
+                }
+            }
+            return tn.sarrayOf(d);
+        }
+        if (tx.ty == Tarray)
+        {
+            return tn.arrayOf();
+        }
+    }
+    else if (exp.op == TOKstring && tx.ty == Tsarray)
+    {
+        Type tn = applyPartialType(loc, sc, t.nextOf(), tx.nextOf());
+        if (tx.ty == Tsarray)
+        {
+            size_t d = (cast(StringExp)exp).len;
+
+            Expression dim = (cast(TypeSArray)tx).dim;
+            if (!(dim.op == TOKidentifier && (cast(IdentifierExp)dim).ident == Id.dollar))
+            {
+                dinteger_t d1 = dim.toInteger();
+                dinteger_t d2 = d;
+                if (d1 != d2)
+                {
+                    error(loc, "mismatch length %d and %d", cast(int)d1, cast(int)d2);
+                    return Type.terror;
+                }
+            }
+            return tn.sarrayOf(d);
+        }
+    }
+    else if (exp.op == TOKslice && tx.ty == Tsarray)
+    {
+        Type tn = applyPartialType(loc, sc, t.nextOf(), tx.nextOf());
+        TypeSArray tsa2 = cast(TypeSArray)toStaticArrayType(cast(SliceExp)exp);
+        if (tsa2)
+        {
+            dinteger_t d = tsa2.dim.toInteger();
+
+            Expression dim = (cast(TypeSArray)tx).dim;
+            if (!(dim.op == TOKidentifier && (cast(IdentifierExp)dim).ident == Id.dollar))
+            {
+                dinteger_t d1 = dim.toInteger();
+                dinteger_t d2 = d;
+                if (d1 != d2)
+                {
+                    error(loc, "mismatch length %d and %d", cast(int)d1, cast(int)d2);
+                    return Type.terror;
+                }
+            }
+            return tn.sarrayOf(d);
+        }
+    }
+    else if (exp.op == TOKassocarrayliteral)
+    {
+        t = t.toBasetype();
+        assert(t.ty == Taarray);
+        TypeAArray taa = cast(TypeAArray)t;
+        if (tx.ty == Taarray)
+        {
+            TypeAArray txaa = cast(TypeAArray)tx;
+            AssocArrayLiteralExp aale = cast(AssocArrayLiteralExp)exp;
+            size_t d = aale.keys ? aale.keys.dim : 0;
+            Type ti = null;
+            for (size_t i = 0; i < d; i++)
+            {
+                Type ti2 = applyPartialType(loc, sc, (*aale.keys)[i], txaa.index);
+                if (!ti || ti2.ty == Terror)
+                    ti = ti2;
+                else if (ti.ty != Terror && !ti.equals(ti2))
+                {
+                    // auto[$][2] a = [[1,2], [1,2,3]];    // $ => 2 or 3?
+                    error(loc, "mismatch type %s and %s", ti.toChars(), ti2.toChars());
+                    ti = Type.terror;
+                }
+            }
+            if (!ti)
+                ti = txaa.index.deco ? txaa.index : taa.index;
+
+            Type tv = null;
+            for (size_t i = 0; i < d; i++)
+            {
+                Type tv2 = applyPartialType(loc, sc, (*aale.values)[i], txn);
+                if (!tv || tv2.ty == Terror)
+                    tv = tv2;
+                else if (tv.ty != Terror && !tv.equals(tv2))
+                {
+                    // auto[$][2] a = [[1,2], [1,2,3]];    // $ => 2 or 3?
+                    error(loc, "mismatch type %s and %s", tv.toChars(), tv2.toChars());
+                    tv = Type.terror;
+                }
+            }
+            if (!tv)
+                tv = txn.deco ? txn : t.nextOf();
+
+            if (ti.ty == Terror)
+                return ti;
+            if (tv.ty == Terror)
+                return tv;
+
+            return (new TypeAArray(tv, ti)).semantic(loc, sc);
+        }
+    }
+    return applyPartialType(loc, sc, exp.type, tx);
+}
+
+/**************************************************************/
+
 extern (C++) class VarDeclaration : Declaration
 {
 public:
@@ -1126,20 +1531,35 @@ public:
         AggregateDeclaration ad = isThis();
         if (ad)
             storage_class |= ad.storage_class & STC_TYPECTOR;
+
+        // See 'partial type'
+        Type tx = null;
+        if (_init && !_init.isVoidInitializer())
+            tx = isPartialType(type);
+        if (tx)
+            type = null;
+
         /* If auto type inference, do the inference
          */
         int inferred = 0;
         if (!type)
         {
             inuse++;
+
+            Scope *sc2 = sc.push();
+            sc2.stc |= (storage_class & STC_FUNCATTR);
+            tx = semanticPartialType(loc, sc2, tx);
+            sc2.pop();
+
             // Infering the type requires running semantic,
             // so mark the scope as ctfe if required
             bool needctfe = (storage_class & (STCmanifest | STCstatic)) != 0;
             if (needctfe)
                 sc = sc.startCTFE();
             //printf("inferring type for %s with init %s\n", toChars(), init->toChars());
-            _init = _init.inferType(sc);
-            type = _init.toExpression().type;
+            _init = _init.inferType(sc, tx);
+            type = applyPartialType(loc, sc, _init.toExpression(), tx);
+
             if (needctfe)
                 sc = sc.endCTFE();
             inuse--;
@@ -1154,6 +1574,9 @@ public:
         {
             if (!originalType)
                 originalType = type.syntaxCopy();
+
+            inuse++;
+
             /* Prefix function attributes of variable declaration can affect
              * its type:
              *      pure nothrow void function() fp;
@@ -1161,10 +1584,10 @@ public:
              */
             Scope* sc2 = sc.push();
             sc2.stc |= (storage_class & STC_FUNCATTR);
-            inuse++;
             type = type.semantic(loc, sc2);
-            inuse--;
             sc2.pop();
+
+            inuse--;
         }
         //printf(" semantic type = %s\n", type ? type->toChars() : "null");
         type.checkDeprecated(loc, sc);
