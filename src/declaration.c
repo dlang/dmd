@@ -214,8 +214,8 @@ Type *TupleDeclaration::getType()
         /* It's only a type tuple if all the Object's are types
          */
         for (size_t i = 0; i < objects->dim; i++)
-        {   RootObject *o = (*objects)[i];
-
+        {
+            RootObject *o = (*objects)[i];
             if (o->dyncast() != DYNCAST_TYPE)
             {
                 //printf("\tnot[%d], %p, %d\n", i, o, o->dyncast());
@@ -231,8 +231,8 @@ Type *TupleDeclaration::getType()
         OutBuffer buf;
         int hasdeco = 1;
         for (size_t i = 0; i < types->dim; i++)
-        {   Type *t = (*types)[i];
-
+        {
+            Type *t = (*types)[i];
             //printf("type = %s\n", t->toChars());
 #if 0
             buf.printf("_%s_%d", ident->toChars(), i);
@@ -259,11 +259,14 @@ bool TupleDeclaration::needThis()
 {
     //printf("TupleDeclaration::needThis(%s)\n", toChars());
     for (size_t i = 0; i < objects->dim; i++)
-    {   RootObject *o = (*objects)[i];
+    {
+        RootObject *o = (*objects)[i];
         if (o->dyncast() == DYNCAST_EXPRESSION)
-        {   Expression *e = (Expression *)o;
+        {
+            Expression *e = (Expression *)o;
             if (e->op == TOKdsymbol)
-            {   DsymbolExp *ve = (DsymbolExp *)e;
+            {
+                DsymbolExp *ve = (DsymbolExp *)e;
                 Declaration *d = ve->s->isDeclaration();
                 if (d && d->needThis())
                 {
@@ -718,7 +721,8 @@ VarDeclaration::VarDeclaration(Loc loc, Type *type, Identifier *id, Initializer 
     assert(id);
 #ifdef DEBUG
     if (!type && !init)
-    {   printf("VarDeclaration('%s')\n", id->toChars());
+    {
+        printf("VarDeclaration('%s')\n", id->toChars());
         //*(char*)0=0;
     }
 #endif
@@ -752,6 +756,351 @@ Dsymbol *VarDeclaration::syntaxCopy(Dsymbol *s)
             init ? init->syntaxCopy() : NULL);
     v->storage_class = storage_class;
     return v;
+}
+
+Type *isPartialType(Type *t)
+{
+    if (!t)
+        return NULL;
+    if (t->ty == Tenum)
+        return NULL;
+
+    if (t->ty == Tident &&
+        ((TypeIdentifier *)t)->ident == Id::empty &&
+        ((TypeIdentifier *)t)->idents.dim == 0)
+    {
+        return t;
+    }
+
+    Type *tn1 = t->nextOf();
+    Type *tn2 = isPartialType(tn1);
+    if (tn2)
+    {
+        return t;
+    }
+
+    if (t->ty == Tsarray)
+    {
+        Expression *dim = ((TypeSArray *)t)->dim;
+        if (dim->op == TOKidentifier && ((IdentifierExp *)dim)->ident == Id::dollar)
+        {
+            return t;
+        }
+    }
+
+    return NULL;
+}
+
+Type *semanticPartialType(Loc loc, Scope *sc, Type *t)
+{
+    if (!t)
+        return t;
+
+    //printf("semanticPartialType t = %s\n", t->toChars());
+    if (t->ty == Tident &&
+        ((TypeIdentifier *)t)->ident == Id::empty &&
+        ((TypeIdentifier *)t)->idents.dim == 0)
+    {
+        return t;
+    }
+
+    if (t->ty == Tfunction ||
+        t->ty == Tdelegate ||
+        t->ty == Tpointer && ((TypePointer *)t)->next->ty == Tfunction)
+    {
+        return t->semantic(loc, sc);
+    }
+
+    Type *tn = t->nextOf();
+    if (!tn)
+        return t->semantic(loc, sc);
+
+    tn = semanticPartialType(loc, sc, tn);
+
+    if (t->ty == Tarray)
+    {
+        t = new TypeDArray(tn);
+        if (tn->deco)
+            t = t->semantic(loc, sc);
+        return t;
+    }
+    if (t->ty == Tsarray)
+    {
+    Lsarray:
+        TypeSArray *tsa = (TypeSArray *)t;
+        Expression *dim = tsa->dim;
+
+        if (dim->op == TOKidentifier && ((IdentifierExp *)dim)->ident == Id::dollar)
+            return new TypeSArray(tn, dim);
+
+        int errors = global.errors;
+        sc = sc->startCTFE();
+        dim = dim->semantic(sc);
+        sc = sc->endCTFE();
+        if (errors != global.errors)
+        {
+        Lerror:
+            return Type::terror;
+        }
+
+        dim = dim->optimize(WANTvalue);
+        dim = dim->ctfeInterpret();
+        if (dim->op == TOKerror)
+            goto Lerror;
+        errors = global.errors;
+        dinteger_t d1 = dim->toInteger();
+        if (errors != global.errors)
+            goto Lerror;
+
+        dim = dim->implicitCastTo(sc, Type::tsize_t);
+        dim = dim->optimize(WANTvalue);
+        if (dim->op == TOKerror)
+            goto Lerror;
+        errors = global.errors;
+        dinteger_t d2 = dim->toInteger();
+        if (errors != global.errors)
+            goto Lerror;
+
+        if (dim->op == TOKerror)
+            goto Lerror;
+
+        if (d1 != d2)
+        {
+            error(loc, "index %lld overflow for static array", d1);
+            goto Lerror;
+        }
+
+        t = new TypeSArray(tn, dim);
+        if (tn->deco)
+            t = t->semantic(loc, sc);
+        return t;
+    }
+    if (t->ty == Taarray)
+    {
+        TypeAArray *taa = (TypeAArray *)t;
+        Type *index = taa->index;
+
+        // Deal with the case where we thought the index was a type, but
+        // in reality it was an expression.
+        if (index->ty == Tident || index->ty == Tinstance || index->ty == Tsarray)
+        {
+            Expression *ea;
+            Type *ta;
+            Dsymbol *sa;
+
+            index->resolve(loc, sc, &ea, &ta, &sa);
+            if (ea)
+            {
+                // It was an expression -
+                // Rewrite as a static array
+                t = new TypeSArray(tn, ea);
+                goto Lsarray;
+            }
+            else if (ta)
+                index = ta->semantic(loc, sc);
+            else
+            {
+                index->error(loc, "index is not a type or an expression");
+                return Type::terror;
+            }
+        }
+        else
+            index = index->semantic(loc, sc);
+
+        t = new TypeAArray(tn, index);
+        if (tn->deco)
+            t = t->semantic(loc, sc);
+        return t;
+    }
+    if (t->ty == Tpointer)
+    {
+        t = new TypePointer(tn);
+        if (tn->deco)
+            t = t->semantic(loc, sc);
+        return t;
+    }
+    assert(0);
+    return NULL;
+}
+
+Type *applyPartialType(Loc loc, Scope *sc, Type *t, Type *tx)
+{
+    if (tx->ty == Tident &&
+        ((TypeIdentifier *)tx)->ident == Id::empty &&
+        ((TypeIdentifier *)tx)->idents.dim == 0)
+    {
+        return t;
+    }
+
+    if (tx->deco)
+        return tx;
+
+    if (t->ty == Tfunction ||
+        t->ty == Tdelegate ||
+        t->ty == Tpointer && ((TypePointer *)t)->next->ty == Tfunction)
+    {
+    Lerror:
+        error(loc, "cannot match %s and %s", tx->toChars(), t->toChars());
+        return Type::terror;
+    }
+    Type *txn = tx->nextOf();
+    assert(txn);
+    // tx is undetermined type, eg. auto[$], const[], immutable*, int[$], etc.
+
+    Type *tn = t->nextOf();
+    if (!tn)
+        goto Lerror;
+    tn = applyPartialType(loc, sc, tn->toBasetype(), txn);
+    if (tn->ty == Terror)
+        return tn;
+
+    if (tx->ty == Tarray)
+    {
+        if (t->ty == Tsarray || t->ty == Tarray)
+            return tn->arrayOf();
+        goto Lerror;
+    }
+    if (tx->ty == Tsarray)
+    {
+        Expression *dim = ((TypeSArray *)tx)->dim;
+        if (t->ty == Tsarray)
+        {
+            if (dim->op == TOKidentifier && ((IdentifierExp *)dim)->ident == Id::dollar)
+                dim = ((TypeSArray *)t)->dim;
+            return tn->sarrayOf(dim->toInteger());
+        }
+        goto Lerror;
+    }
+    if (tx->ty == Taarray)
+    {
+        if (t->ty == Taarray)
+            return (new TypeAArray(tn, ((TypeAArray *)tx)->index))->merge();
+        goto Lerror;
+    }
+    if (tx->ty == Tpointer)
+    {
+        if (t->ty == Tpointer)
+            return tn->pointerTo();
+        goto Lerror;
+    }
+
+    assert(0);
+    return NULL;
+}
+
+Type *applyPartialType(Loc loc, Scope *sc, Expression *exp, Type *tx)
+{
+    Type *t = exp->type;
+    if (!tx)
+        return t;
+
+    if (tx->ty == Tident &&
+        ((TypeIdentifier *)tx)->ident == Id::empty &&
+        ((TypeIdentifier *)tx)->idents.dim == 0)
+    {
+        return t;
+    }
+
+    if (t->ty == Tfunction ||
+        t->ty == Tdelegate ||
+        t->ty == Tpointer && ((TypePointer *)t)->next->ty == Tfunction)
+    {
+    Lerror:
+        error(loc, "cannot match %s and %s", tx->toChars(), t->toChars());
+        return Type::terror;
+    }
+
+    if (tx->deco || tx->ty == Terror)
+        return tx;
+    Type *txn = tx->nextOf();
+    assert(txn);
+
+    if (exp->op == TOKarrayliteral)
+    {
+        ArrayLiteralExp *ale = (ArrayLiteralExp *)exp;
+        size_t d = ale->elements ? ale->elements->dim : 0;
+        Type *tn = NULL;
+        for (size_t i = 0; i < d; i++)
+        {
+            Type *tn2 = applyPartialType(loc, sc, (*ale->elements)[i], txn);
+            if (!tn || tn2->ty == Terror)
+                tn = tn2;
+            else if (tn->ty != Terror && !tn->equals(tn2))
+            {
+                // auto[$][2] a = [[1,2], [1,2,3]];    // $ => 2 or 3?
+                error(loc, "mismatch type %s and %s", tn->toChars(), tn2->toChars());
+                tn = Type::terror;
+            }
+        }
+        if (!tn)
+            tn = txn->deco ? txn : t->nextOf();
+        if (tn->ty == Terror)
+            return tn;
+
+        if (tx->ty == Tsarray)
+        {
+            Expression *dim = ((TypeSArray *)tx)->dim;
+            if (!(dim->op == TOKidentifier && ((IdentifierExp *)dim)->ident == Id::dollar))
+            {
+                dinteger_t d1 = dim->toInteger();
+                dinteger_t d2 = d;
+                if (d1 != d2)
+                {
+                    error(loc, "mismatch length %d and %d", (int)d1, (int)d2);
+                    return Type::terror;
+                }
+            }
+            return tn->sarrayOf(d);
+        }
+        if (tx->ty == Tarray)
+        {
+            return tn->arrayOf();
+        }
+    }
+    else if (exp->op == TOKstring && tx->ty == Tsarray)
+    {
+        Type *tn = applyPartialType(loc, sc, t->nextOf(), tx->nextOf());
+        if (tx->ty == Tsarray)
+        {
+            size_t d = ((StringExp *)exp)->len;
+
+            Expression *dim = ((TypeSArray *)tx)->dim;
+            if (!(dim->op == TOKidentifier && ((IdentifierExp *)dim)->ident == Id::dollar))
+            {
+                dinteger_t d1 = dim->toInteger();
+                dinteger_t d2 = d;
+                if (d1 != d2)
+                {
+                    error(loc, "mismatch length %d and %d", (int)d1, (int)d2);
+                    return Type::terror;
+                }
+            }
+            return tn->sarrayOf(d);
+        }
+    }
+    else if (exp->op == TOKslice && tx->ty == Tsarray)
+    {
+        Type *tn = applyPartialType(loc, sc, t->nextOf(), tx->nextOf());
+        TypeSArray *tsa2 = (TypeSArray *)toStaticArrayType((SliceExp *)exp);
+        if (tsa2)
+        {
+            size_t d = tsa2->dim->toInteger();
+
+            Expression *dim = ((TypeSArray *)tx)->dim;
+            if (!(dim->op == TOKidentifier && ((IdentifierExp *)dim)->ident == Id::dollar))
+            {
+                dinteger_t d1 = dim->toInteger();
+                dinteger_t d2 = d;
+                if (d1 != d2)
+                {
+                    error(loc, "mismatch length %d and %d", (int)d1, (int)d2);
+                    return Type::terror;
+                }
+            }
+            return tn->sarrayOf(d);
+        }
+    }
+    return applyPartialType(loc, sc, exp->type, tx);
 }
 
 void VarDeclaration::semantic(Scope *sc)
@@ -792,6 +1141,13 @@ void VarDeclaration::semantic(Scope *sc)
     if (ad)
         storage_class |= ad->storage_class & STC_TYPECTOR;
 
+    // See 'partial type'
+    Type *tx = NULL;
+    if (init && !init->isVoidInitializer())
+        tx = isPartialType(type);
+    if (tx)
+        type = NULL;
+
     /* If auto type inference, do the inference
      */
     int inferred = 0;
@@ -799,14 +1155,16 @@ void VarDeclaration::semantic(Scope *sc)
     {
         inuse++;
 
+        tx = semanticPartialType(loc, sc, tx);
+
         // Infering the type requires running semantic,
         // so mark the scope as ctfe if required
         bool needctfe = (storage_class & (STCmanifest | STCstatic)) != 0;
         if (needctfe) sc = sc->startCTFE();
 
         //printf("inferring type for %s with init %s\n", toChars(), init->toChars());
-        init = init->inferType(sc);
-        type = init->toExpression()->type;
+        init = init->inferType(sc, tx);
+        type = applyPartialType(loc, sc, init->toExpression(), tx);
 
         if (needctfe) sc = sc->endCTFE();
 
@@ -1074,7 +1432,8 @@ Lnomatch:
     /* Adjust storage class to reflect type
      */
     if (type->isConst())
-    {   storage_class |= STCconst;
+    {
+        storage_class |= STCconst;
         if (type->isShared())
             storage_class |= STCshared;
     }
@@ -1226,7 +1585,8 @@ Lnomatch:
     }
 
     if (!init && !fd)
-    {   // If not mutable, initializable by constructor only
+    {
+        // If not mutable, initializable by constructor only
         storage_class |= STCctorinit;
     }
 
@@ -1952,8 +2312,7 @@ bool VarDeclaration::needsAutoDtor()
  */
 
 Expression *VarDeclaration::callScopeDtor(Scope *sc)
-{   Expression *e = NULL;
-
+{
     //printf("VarDeclaration::callScopeDtor() %s\n", toChars());
 
     // Destruction of STCfield's is handled by buildDtor()
@@ -1961,6 +2320,8 @@ Expression *VarDeclaration::callScopeDtor(Scope *sc)
     {
         return NULL;
     }
+
+    Expression *e = NULL;
 
     // Destructors for structs and arrays of structs
     Type *tv = type->baseElemOf();

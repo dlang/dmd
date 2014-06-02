@@ -2,6 +2,207 @@
 extern(C) int printf(const char*, ...);
 
 /***************************************************/
+// 481
+
+enum size_t n481 = 3;
+enum int[3] sa481 = [1,2];
+
+struct S481a { int a; }
+struct S481b { this(int n) {} }
+
+int [3] a481_1x = [1,2,3];
+auto[3] a481_1y = [1,2,3];
+static assert(is(typeof(a481_1x) == typeof(a481_1y)));
+
+int [n481] a481_2x = [1,2,3];
+auto[n481] a481_2y = [1,2,3];
+static assert(is(typeof(a481_2x) == typeof(a481_2y)));
+
+int [3] a481_3x = [1,2,3];
+auto[$] a481_3y = [1,2,3];
+static assert(is(typeof(a481_3x) == typeof(a481_3y)));
+
+int[2][3] a481_4x = [[1,2],[3,4],[5,6]];
+int[2][$] a481_4y = [[1,2],[3,4],[5,6]];
+static assert(is(typeof(a481_4x) == typeof(a481_4y)));
+
+int[2][3] a481_5x = [[1,2],[3,4],[5,6]];
+int[$][3] a481_5y = [[1,2],[3,4],[5,6]];
+static assert(is(typeof(a481_5x) == typeof(a481_5y)));
+
+int [2][3] a481_6x = [[1,2],[3,4],[5,6]];
+auto[$][$] a481_6y = [[1,2],[3,4],[5,6]];
+static assert(is(typeof(a481_6x) == typeof(a481_6y)));
+
+int [2][2] a481_7x = [sa481[0..2], sa481[1..3]];
+auto[$][$] a481_7y = [sa481[0..2], sa481[1..3]];
+static assert(is(typeof(a481_7x) == typeof(a481_7y)));
+
+S481a[2] a481_8x = [{a:1}, {a:2}];
+S481a[$] a481_8y = [{a:1}, {a:2}];
+static assert(is(typeof(a481_8x) == typeof(a481_8y)));
+
+S481a[][1] a481_9x = [[{a:1}, {a:2}]];
+S481a[][$] a481_9y = [[{a:1}, {a:2}]];
+static assert(is(typeof(a481_9x) == typeof(a481_9y)));
+
+S481a[2][] a481_10x = [[{a:1}, {a:2}]];
+S481a[$][] a481_10y = [[{a:1}, {a:2}]];
+static assert(is(typeof(a481_10x) == typeof(a481_10y)));
+
+S481b[3] a481_11x = [1,2,3];  // [S481b(1), S481b(2), S481b(3)]
+S481b[$] a481_11y = [1,2,3];  // dotto
+static assert(is(typeof(a481_11x) == typeof(a481_11y)));
+
+int [] a481_12x = sa481;
+auto[] a481_12y = sa481;
+static assert(is(typeof(a481_12x) == typeof(a481_12y)));
+
+const(int[3]) a481_13x = [1,2,3];
+const[$]      a481_13y = [1,2,3];
+static assert(is(typeof(a481_13x) == typeof(a481_13y)));
+
+const(int[][3]) a481_14x = [[1],[2],[3]];
+const[][$]      a481_14y = [[1],[2],[3]];
+static assert(is(typeof(a481_14x) == typeof(a481_14y)));
+
+const(int[]) a481_15x = [1,2,3];
+const[]      a481_15y = [1,2,3];
+static assert(is(typeof(a481_15x) == typeof(a481_15y)));
+
+const(int[][]) a481_16x = [[1,2,3]];
+const[][]      a481_16y = [[1,2,3]];
+static assert(is(typeof(a481_16x) == typeof(a481_16y)));
+
+immutable(char)[3] a481_17x = "abc";
+auto[$]            a481_17y = "abc";
+static assert(is(typeof(a481_17x) == typeof(a481_17y)));
+
+char[3] a481_18x = "abc";
+char[$] a481_18y = "abc";
+static assert(is(typeof(a481_18x) == typeof(a481_18y)));
+
+void test481()
+{
+    assert(a481_1x == a481_1y);
+    assert(a481_2x == a481_2y);
+    assert(a481_3x == a481_3y);
+    assert(a481_4x == a481_4y);
+    assert(a481_5x == a481_5y);
+    assert(a481_6x == a481_6y);
+    assert(a481_7x == a481_7y);
+    assert(a481_8x == a481_8y);
+    assert(a481_9x == a481_9y);
+    assert(a481_10x == a481_10y);
+    assert(a481_11x == a481_11y);
+    assert(a481_12x == a481_12y);
+    assert(a481_13x == a481_13y);
+    assert(a481_14x == a481_14y);
+    assert(a481_15x == a481_15y);
+    assert(a481_16x == a481_16y);
+
+    int [3] a1x = [1,2,3];
+    auto[3] a1y = [1,2,3];
+    static assert(is(typeof(a1x) == typeof(a1y)));
+
+    int [n481] a2x = [1,2,3];
+    auto[n481] a2y = [1,2,3];
+    static assert(is(typeof(a2x) == typeof(a2y)));
+
+    int [3] a3x = [1,2,3];
+    auto[$] a3y = [1,2,3];
+    static assert(is(typeof(a3x) == typeof(a3y)));
+
+    int[2][3] a4x = [[1,2],[3,4],[5,6]];
+    int[2][$] a4y = [[1,2],[3,4],[5,6]];
+    static assert(is(typeof(a4x) == typeof(a4y)));
+
+    int[2][3] a5x = [[1,2],[3,4],[5,6]];
+    int[$][3] a5y = [[1,2],[3,4],[5,6]];
+    static assert(is(typeof(a5x) == typeof(a5y)));
+
+    int [2][3] a6x = [[1,2],[3,4],[5,6]];
+    auto[$][$] a6y = [[1,2],[3,4],[5,6]];
+    static assert(is(typeof(a6x) == typeof(a6y)));
+
+    int [2][2] a7x = [sa481[0..2], sa481[1..3]];
+    auto[$][$] a7y = [sa481[0..2], sa481[1..3]];
+    static assert(is(typeof(a7x) == typeof(a7y)));
+
+    S481a[2] a8x = [{a:1}, {a:2}];
+    S481a[$] a8y = [{a:1}, {a:2}];
+    static assert(is(typeof(a8x) == typeof(a8y)));
+
+    S481a[][1] a9x = [[{a:1}, {a:2}]];
+    S481a[][$] a9y = [[{a:1}, {a:2}]];
+    static assert(is(typeof(a9x) == typeof(a9y)));
+
+    S481a[2][] a10x = [[{a:1}, {a:2}]];
+    S481a[$][] a10y = [[{a:1}, {a:2}]];
+    static assert(is(typeof(a10x) == typeof(a10y)));
+
+  //S481b[3] a11x = [1,2,3];  // [S481b(1), S481b(2), S481b(3)]
+    S481b[$] a11y = [1,2,3];  // dotto
+    //static assert(is(typeof(a11x) == typeof(a11y)));
+    static assert(is(typeof(a11y) == S481b[3]));
+
+    int [] a12x = sa481;
+    auto[] a12y = sa481;
+    static assert(is(typeof(a12x) == typeof(a12y)));
+
+    const(int[3]) a13x = [1,2,3];
+    const[$]      a13y = [1,2,3];
+    static assert(is(typeof(a13x) == typeof(a13y)));
+
+    const(int[][3]) a14x = [[1],[2],[3]];
+    const[][$]      a14y = [[1],[2],[3]];
+    static assert(is(typeof(a14x) == typeof(a14y)));
+
+    const(int[]) a15x = [1,2,3];
+    const[]      a15y = [1,2,3];
+    static assert(is(typeof(a15x) == typeof(a15y)));
+
+    const(int[][]) a16x = [[1,2,3]];
+    const[][]      a16y = [[1,2,3]];
+    static assert(is(typeof(a16x) == typeof(a16y)));
+
+    int num;
+    int* p = &num;
+    int** pp1 = &p;
+    auto* pp2 = &p;
+    static assert(is(typeof(pp1) == typeof(pp2)));
+
+    const(int*) p1x = new int(3);
+    const*      p1y = new int(3);
+    static assert(is(typeof(p1x) == typeof(p1y)));
+
+    const(int*[]) a17x = [new int(3)];
+    const*[]      a17y = [new int(3)];
+    static assert(is(typeof(a17x) == typeof(a17y)));
+
+    enum E { a };
+    E[$] esa0 = [];
+    static assert(is(typeof(esa0) == E[0]));
+
+    assert(a1x == a1y);
+    assert(a2x == a2y);
+    assert(a3x == a3y);
+    assert(a4x == a4y);
+    assert(a5x == a5y);
+    assert(a6x == a6y);
+    assert(a7x == a7y);
+    assert(a8x == a8y);
+    assert(a9x == a9y);
+    assert(a10x == a10y);
+    assert(a11y == [S481b(1), S481b(2), S481b(3)]);//assert(a11x == a11y);
+    assert(a12x == a12y);
+    assert(a13x == a13y);
+    assert(a14x == a14y);
+    assert(a15x == a15y);
+    assert(a16x == a16y);
+}
+
+/***************************************************/
 // 6475
 
 class Foo6475(Value)
@@ -370,6 +571,7 @@ void test13950()
 
 int main()
 {
+    test481();
     test6475();
     test6905();
     test7019();
