@@ -394,7 +394,7 @@ class GC
     /**
      *
      */
-    void *malloc(size_t size, uint bits = 0, size_t *alloc_size = null) nothrow
+    void *malloc(size_t size, uint bits = 0, size_t *alloc_size = null, const TypeInfo ti = null) nothrow
     {
         if (!size)
         {
@@ -412,7 +412,7 @@ class GC
         // when allocating.
         {
             gcLock.lock();
-            p = mallocNoSync(size, bits, alloc_size);
+            p = mallocNoSync(size, bits, alloc_size, ti);
             gcLock.unlock();
         }
 
@@ -428,7 +428,7 @@ class GC
     //
     //
     //
-    private void *mallocNoSync(size_t size, uint bits = 0, size_t *alloc_size = null) nothrow
+    private void *mallocNoSync(size_t size, uint bits = 0, size_t *alloc_size = null, const TypeInfo ti = null) nothrow
     {
         assert(size != 0);
 
@@ -519,7 +519,7 @@ class GC
     /**
      *
      */
-    void *calloc(size_t size, uint bits = 0, size_t *alloc_size = null) nothrow
+    void *calloc(size_t size, uint bits = 0, size_t *alloc_size = null, const TypeInfo ti = null) nothrow
     {
         if (!size)
         {
@@ -537,7 +537,7 @@ class GC
         // when allocating.
         {
             gcLock.lock();
-            p = mallocNoSync(size, bits, alloc_size);
+            p = mallocNoSync(size, bits, alloc_size, ti);
             gcLock.unlock();
         }
 
@@ -553,7 +553,7 @@ class GC
     /**
      *
      */
-    void *realloc(void *p, size_t size, uint bits = 0, size_t *alloc_size = null) nothrow
+    void *realloc(void *p, size_t size, uint bits = 0, size_t *alloc_size = null, const TypeInfo ti = null) nothrow
     {
         size_t localAllocSize = void;
         auto oldp = p;
@@ -564,7 +564,7 @@ class GC
         // when allocating.
         {
             gcLock.lock();
-            p = reallocNoSync(p, size, bits, alloc_size);
+            p = reallocNoSync(p, size, bits, alloc_size, ti);
             gcLock.unlock();
         }
 
@@ -580,7 +580,7 @@ class GC
     //
     //
     //
-    private void *reallocNoSync(void *p, size_t size, uint bits = 0, size_t *alloc_size = null) nothrow
+    private void *reallocNoSync(void *p, size_t size, uint bits = 0, size_t *alloc_size = null, const TypeInfo ti = null) nothrow
     {
         if (gcx.running)
             onInvalidMemoryOperationError();
@@ -595,7 +595,7 @@ class GC
         }
         else if (!p)
         {
-            p = mallocNoSync(size, bits, alloc_size);
+            p = mallocNoSync(size, bits, alloc_size, ti);
         }
         else
         {   void *p2;
@@ -627,7 +627,7 @@ class GC
                             }
                         }
                     }
-                    p2 = mallocNoSync(size, bits, alloc_size);
+                    p2 = mallocNoSync(size, bits, alloc_size, ti);
                     if (psize < size)
                         size = psize;
                     //debug(PRINTF) printf("\tcopying %d bytes\n",size);
@@ -694,7 +694,7 @@ class GC
                             bits = gcx.getBits(pool, biti);
                         }
                     }
-                    p2 = mallocNoSync(size, bits, alloc_size);
+                    p2 = mallocNoSync(size, bits, alloc_size, ti);
                     if (psize < size)
                         size = psize;
                     //debug(PRINTF) printf("\tcopying %d bytes\n",size);
@@ -718,10 +718,10 @@ class GC
      *  0 if could not extend p,
      *  total size of entire memory block if successful.
      */
-    size_t extend(void* p, size_t minsize, size_t maxsize) nothrow
+    size_t extend(void* p, size_t minsize, size_t maxsize, const TypeInfo ti = null) nothrow
     {
         gcLock.lock();
-        auto rc = extendNoSync(p, minsize, maxsize);
+        auto rc = extendNoSync(p, minsize, maxsize, ti);
         gcLock.unlock();
         return rc;
     }
@@ -730,7 +730,7 @@ class GC
     //
     //
     //
-    private size_t extendNoSync(void* p, size_t minsize, size_t maxsize) nothrow
+    private size_t extendNoSync(void* p, size_t minsize, size_t maxsize, const TypeInfo ti = null) nothrow
     in
     {
         assert(minsize <= maxsize);
@@ -1111,7 +1111,7 @@ class GC
     /**
      * add range to scan for roots
      */
-    void addRange(void *p, size_t sz) nothrow
+    void addRange(void *p, size_t sz, const TypeInfo ti = null) nothrow
     {
         if (!p || !sz)
         {
@@ -1121,7 +1121,7 @@ class GC
         //debug(PRINTF) printf("+GC.addRange(p = %p, sz = 0x%zx), p + sz = %p\n", p, sz, p + sz);
 
         gcLock.lock();
-        gcx.addRange(p, p + sz);
+        gcx.addRange(p, p + sz, ti);
         gcLock.unlock();
 
         //debug(PRINTF) printf("-GC.addRange()\n");
@@ -1494,7 +1494,7 @@ struct Gcx
     /**
      *
      */
-    void addRange(void *pbot, void *ptop) nothrow
+    void addRange(void *pbot, void *ptop, const TypeInfo ti) nothrow
     {
         //debug(PRINTF) printf("Thread %x ", pthread_self());
         debug(PRINTF) printf("%p.Gcx::addRange(%p, %p)\n", &this, pbot, ptop);

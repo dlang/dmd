@@ -95,11 +95,11 @@ private
     extern (C) uint gc_setAttr( void* p, uint a ) pure nothrow;
     extern (C) uint gc_clrAttr( void* p, uint a ) pure nothrow;
 
-    extern (C) void*    gc_malloc( size_t sz, uint ba = 0 ) pure nothrow;
-    extern (C) void*    gc_calloc( size_t sz, uint ba = 0 ) pure nothrow;
-    extern (C) BlkInfo_ gc_qalloc( size_t sz, uint ba = 0 ) pure nothrow;
-    extern (C) void*    gc_realloc( void* p, size_t sz, uint ba = 0 ) pure nothrow;
-    extern (C) size_t   gc_extend( void* p, size_t mx, size_t sz ) pure nothrow;
+    extern (C) void*    gc_malloc( size_t sz, uint ba = 0, const TypeInfo = null ) pure nothrow;
+    extern (C) void*    gc_calloc( size_t sz, uint ba = 0, const TypeInfo = null ) pure nothrow;
+    extern (C) BlkInfo_ gc_qalloc( size_t sz, uint ba = 0, const TypeInfo = null ) pure nothrow;
+    extern (C) void*    gc_realloc( void* p, size_t sz, uint ba = 0, const TypeInfo = null ) pure nothrow;
+    extern (C) size_t   gc_extend( void* p, size_t mx, size_t sz, const TypeInfo = null ) pure nothrow;
     extern (C) size_t   gc_reserve( size_t sz ) nothrow;
     extern (C) void     gc_free( void* p ) pure nothrow;
 
@@ -116,7 +116,7 @@ private
     extern (C) BlkInfo_ gc_query( void* p ) pure nothrow;
 
     extern (C) void gc_addRoot( in void* p ) nothrow;
-    extern (C) void gc_addRange( in void* p, size_t sz ) nothrow;
+    extern (C) void gc_addRange( in void* p, size_t sz, const TypeInfo ti = null ) nothrow;
 
     extern (C) void gc_removeRoot( in void* p ) nothrow;
     extern (C) void gc_removeRange( in void* p ) nothrow;
@@ -325,6 +325,8 @@ struct GC
      * Params:
      *  sz = The desired allocation size in bytes.
      *  ba = A bitmask of the attributes to set on this block.
+     *  ti = TypeInfo to describe the memory. The GC might use this information
+     *       to improve scanning for pointers or to call finalizers.
      *
      * Returns:
      *  A reference to the allocated memory or null if insufficient memory
@@ -333,9 +335,9 @@ struct GC
      * Throws:
      *  OutOfMemoryError on allocation failure.
      */
-    static void* malloc( size_t sz, uint ba = 0 ) pure nothrow
+    static void* malloc( size_t sz, uint ba = 0, const TypeInfo ti = null ) pure nothrow
     {
-        return gc_malloc( sz, ba );
+        return gc_malloc( sz, ba, ti );
     }
 
 
@@ -349,6 +351,8 @@ struct GC
      * Params:
      *  sz = The desired allocation size in bytes.
      *  ba = A bitmask of the attributes to set on this block.
+     *  ti = TypeInfo to describe the memory. The GC might use this information
+     *       to improve scanning for pointers or to call finalizers.
      *
      * Returns:
      *  Information regarding the allocated memory block or BlkInfo.init on
@@ -357,9 +361,9 @@ struct GC
      * Throws:
      *  OutOfMemoryError on allocation failure.
      */
-    static BlkInfo qalloc( size_t sz, uint ba = 0 ) pure nothrow
+    static BlkInfo qalloc( size_t sz, uint ba = 0, const TypeInfo ti = null ) pure nothrow
     {
-        return gc_qalloc( sz, ba );
+        return gc_qalloc( sz, ba, ti );
     }
 
 
@@ -374,6 +378,8 @@ struct GC
      * Params:
      *  sz = The desired allocation size in bytes.
      *  ba = A bitmask of the attributes to set on this block.
+     *  ti = TypeInfo to describe the memory. The GC might use this information
+     *       to improve scanning for pointers or to call finalizers.
      *
      * Returns:
      *  A reference to the allocated memory or null if insufficient memory
@@ -382,9 +388,9 @@ struct GC
      * Throws:
      *  OutOfMemoryError on allocation failure.
      */
-    static void* calloc( size_t sz, uint ba = 0 ) pure nothrow
+    static void* calloc( size_t sz, uint ba = 0, const TypeInfo ti = null ) pure nothrow
     {
-        return gc_calloc( sz, ba );
+        return gc_calloc( sz, ba, ti );
     }
 
 
@@ -412,6 +418,8 @@ struct GC
      *  p  = A pointer to the root of a valid memory block or to null.
      *  sz = The desired allocation size in bytes.
      *  ba = A bitmask of the attributes to set on this block.
+     *  ti = TypeInfo to describe the memory. The GC might use this information
+     *       to improve scanning for pointers or to call finalizers.
      *
      * Returns:
      *  A reference to the allocated memory on success or null if sz is
@@ -420,9 +428,9 @@ struct GC
      * Throws:
      *  OutOfMemoryError on allocation failure.
      */
-    static void* realloc( void* p, size_t sz, uint ba = 0 ) pure nothrow
+    static void* realloc( void* p, size_t sz, uint ba = 0, const TypeInfo ti = null ) pure nothrow
     {
-        return gc_realloc( p, sz, ba );
+        return gc_realloc( p, sz, ba, ti );
     }
 
 
@@ -437,6 +445,9 @@ struct GC
      *  p  = A pointer to the root of a valid memory block or to null.
      *  mx = The minimum extension size in bytes.
      *  sz = The desired extension size in bytes.
+     *  ti = TypeInfo to describe the full memory block. The GC might use 
+     *       this information to improve scanning for pointers or to 
+     *       call finalizers.
      *
      * Returns:
      *  The size in bytes of the extended memory block referenced by p or zero
@@ -448,9 +459,9 @@ struct GC
      *  as an indicator of success. $(LREF capacity) should be used to
      *  retrieve actual useable slice capacity.
      */
-    static size_t extend( void* p, size_t mx, size_t sz ) pure nothrow
+    static size_t extend( void* p, size_t mx, size_t sz, const TypeInfo ti = null ) pure nothrow
     {
-        return gc_extend( p, mx, sz );
+        return gc_extend( p, mx, sz, ti );
     }
     /// Standard extending
     unittest
@@ -685,6 +696,8 @@ struct GC
      *  p  = A pointer to a valid memory address or to null.
      *  sz = The size in bytes of the block to add. If sz is zero then the
      *       no operation will occur. If p is null then sz must be zero.
+     *  ti = TypeInfo to describe the memory. The GC might use this information
+     *       to improve scanning for pointers or to call finalizers
      *
      * Example:
      * ---
@@ -699,9 +712,9 @@ struct GC
      * // rawMemory will be recognized on collection.
      * ---
      */
-    static void addRange( in void* p, size_t sz ) nothrow /* FIXME pure */
+    static void addRange( in void* p, size_t sz, const TypeInfo ti = null ) nothrow /* FIXME pure */
     {
-        gc_addRange( p, sz );
+        gc_addRange( p, sz, ti );
     }
 
 

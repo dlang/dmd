@@ -47,7 +47,7 @@ private
     }
 
     extern (C) void thread_init();
-    extern (C) void onOutOfMemoryError(void* pretend_sideffect = null) @trusted pure nothrow; /* dmd @@@BUG11461@@@ */ 
+    extern (C) void onOutOfMemoryError(void* pretend_sideffect = null) @trusted pure nothrow; /* dmd @@@BUG11461@@@ */
 
     struct Proxy
     {
@@ -60,11 +60,11 @@ private
         extern (C) uint function(void*, uint) gc_setAttr;
         extern (C) uint function(void*, uint) gc_clrAttr;
 
-        extern (C) void*   function(size_t, uint) gc_malloc;
-        extern (C) BlkInfo function(size_t, uint) gc_qalloc;
-        extern (C) void*   function(size_t, uint) gc_calloc;
-        extern (C) void*   function(void*, size_t, uint ba) gc_realloc;
-        extern (C) size_t  function(void*, size_t, size_t) gc_extend;
+        extern (C) void*   function(size_t, uint, const TypeInfo) gc_malloc;
+        extern (C) BlkInfo function(size_t, uint, const TypeInfo) gc_qalloc;
+        extern (C) void*   function(size_t, uint, const TypeInfo) gc_calloc;
+        extern (C) void*   function(void*, size_t, uint ba, const TypeInfo) gc_realloc;
+        extern (C) size_t  function(void*, size_t, size_t, const TypeInfo) gc_extend;
         extern (C) size_t  function(size_t) gc_reserve;
         extern (C) void    function(void*) gc_free;
 
@@ -74,7 +74,7 @@ private
         extern (C) BlkInfo function(void*) gc_query;
 
         extern (C) void function(void*) gc_addRoot;
-        extern (C) void function(void*, size_t) gc_addRange;
+        extern (C) void function(void*, size_t, const TypeInfo ti) gc_addRange;
 
         extern (C) void function(void*) gc_removeRoot;
         extern (C) void function(void*) gc_removeRange;
@@ -121,6 +121,7 @@ private
     {
         void*  pos;
         size_t len;
+        TypeInfo ti; // should be tail const, but doesn't exist for references
     }
 
     __gshared Range* ranges  = null;
@@ -190,7 +191,7 @@ extern (C) uint gc_clrAttr( void* p, uint a )
     return proxy.gc_clrAttr( p, a );
 }
 
-extern (C) void* gc_malloc( size_t sz, uint ba = 0 )
+extern (C) void* gc_malloc( size_t sz, uint ba = 0, const TypeInfo ti = null )
 {
     if( proxy is null )
     {
@@ -200,10 +201,10 @@ extern (C) void* gc_malloc( size_t sz, uint ba = 0 )
             onOutOfMemoryError();
         return p;
     }
-    return proxy.gc_malloc( sz, ba );
+    return proxy.gc_malloc( sz, ba, ti );
 }
 
-extern (C) BlkInfo gc_qalloc( size_t sz, uint ba = 0 )
+extern (C) BlkInfo gc_qalloc( size_t sz, uint ba = 0, const TypeInfo ti = null )
 {
     if( proxy is null )
     {
@@ -213,10 +214,10 @@ extern (C) BlkInfo gc_qalloc( size_t sz, uint ba = 0 )
         retval.attr = ba;
         return retval;
     }
-    return proxy.gc_qalloc( sz, ba );
+    return proxy.gc_qalloc( sz, ba, ti );
 }
 
-extern (C) void* gc_calloc( size_t sz, uint ba = 0 )
+extern (C) void* gc_calloc( size_t sz, uint ba = 0, const TypeInfo ti = null )
 {
     if( proxy is null )
     {
@@ -226,10 +227,10 @@ extern (C) void* gc_calloc( size_t sz, uint ba = 0 )
             onOutOfMemoryError();
         return p;
     }
-    return proxy.gc_calloc( sz, ba );
+    return proxy.gc_calloc( sz, ba, ti );
 }
 
-extern (C) void* gc_realloc( void* p, size_t sz, uint ba = 0 )
+extern (C) void* gc_realloc( void* p, size_t sz, uint ba = 0, const TypeInfo ti = null )
 {
     if( proxy is null )
     {
@@ -239,14 +240,14 @@ extern (C) void* gc_realloc( void* p, size_t sz, uint ba = 0 )
             onOutOfMemoryError();
         return p;
     }
-    return proxy.gc_realloc( p, sz, ba );
+    return proxy.gc_realloc( p, sz, ba, ti );
 }
 
-extern (C) size_t gc_extend( void* p, size_t mx, size_t sz )
+extern (C) size_t gc_extend( void* p, size_t mx, size_t sz, const TypeInfo ti = null )
 {
     if( proxy is null )
         return 0;
-    return proxy.gc_extend( p, mx, sz );
+    return proxy.gc_extend( p, mx, sz, ti );
 }
 
 extern (C) size_t gc_reserve( size_t sz )
@@ -299,7 +300,7 @@ extern (C) void gc_addRoot( void* p )
     return proxy.gc_addRoot( p );
 }
 
-extern (C) void gc_addRange( void* p, size_t sz )
+extern (C) void gc_addRange( void* p, size_t sz, const TypeInfo ti = null )
 {
     //printf("gcstub::gc_addRange() proxy = %p\n", proxy);
     if( proxy is null )
@@ -310,11 +311,12 @@ extern (C) void gc_addRange( void* p, size_t sz )
             onOutOfMemoryError();
         r[nranges].pos = p;
         r[nranges].len = sz;
+        r[nranges].ti = cast()ti;
         ranges = r;
         ++nranges;
         return;
     }
-    return proxy.gc_addRange( p, sz );
+    return proxy.gc_addRange( p, sz, ti );
 }
 
 extern (C) void gc_removeRoot( void *p )
@@ -366,7 +368,7 @@ export extern (C) void gc_setProxy( Proxy* p )
     foreach( r; roots[0 .. nroots] )
         proxy.gc_addRoot( r );
     foreach( r; ranges[0 .. nranges] )
-        proxy.gc_addRange( r.pos, r.len );
+        proxy.gc_addRange( r.pos, r.len, r.ti );
 }
 
 export extern (C) void gc_clrProxy()

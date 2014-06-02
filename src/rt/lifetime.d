@@ -79,7 +79,7 @@ extern (C) Object _d_newclass(const ClassInfo ci)
             attr &= ~BlkAttr.FINALIZE;
         if (ci.m_flags & TypeInfo_Class.ClassFlags.noPointers)
             attr |= BlkAttr.NO_SCAN;
-        p = GC.malloc(ci.init.length, attr);
+        p = GC.malloc(ci.init.length, attr, ci);
         debug(PRINTF) printf(" p = %p\n", p);
     }
 
@@ -1001,7 +1001,7 @@ extern (C) void* _d_newitemT(TypeInfo ti)
     else
     {*/
         // allocate a block to hold this item
-        auto ptr = GC.malloc(size, !(ti.next.flags & 1) ? BlkAttr.NO_SCAN : 0);
+        auto ptr = GC.malloc(size, !(ti.next.flags & 1) ? BlkAttr.NO_SCAN : 0, ti);
         debug(PRINTF) printf(" p = %p\n", ptr);
         if(size == ubyte.sizeof)
             *cast(ubyte*)ptr = 0;
@@ -1032,7 +1032,7 @@ extern (C) void* _d_newitemiT(TypeInfo ti)
         auto isize = initializer.length;
         auto q = initializer.ptr;
 
-        auto ptr = GC.malloc(size, !(ti.next.flags & 1) ? BlkAttr.NO_SCAN : 0);
+        auto ptr = GC.malloc(size, !(ti.next.flags & 1) ? BlkAttr.NO_SCAN : 0, ti);
         debug(PRINTF) printf(" p = %p\n", ptr);
         if (isize == 1)
             *cast(ubyte*)ptr =  *cast(ubyte*)q;
