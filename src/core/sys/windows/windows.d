@@ -2963,6 +2963,16 @@ export BOOL ScrollDC(HDC hDC, int dx, int dy, RECT* lprcScroll, RECT* lprcClip, 
 export int ScrollWindowEx(HWND hWnd, int dx, int dy, RECT* prcScroll, RECT* prcClip, HRGN hrgnUpdate, LPRECT prcUpdate, UINT flags);
 
 /*
+ * Key State API
+ */
+
+export SHORT GetKeyState(int vKey);
+export SHORT GetAsyncKeyState(int vKey);
+export BOOL GetKeyboardState(PBYTE lpKeyState);
+export BOOL SetKeyboardState(LPBYTE lpKeyState);
+export UINT MapVirtualKey(UINT uCode, UINT uMapType);
+
+/*
  * Virtual Keys, Standard Set
  */
 enum
