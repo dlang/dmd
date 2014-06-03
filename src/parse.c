@@ -4014,8 +4014,9 @@ Dsymbols *Parser::parseAutoDeclarations(StorageClass storageClass, const utf8_t 
     if (token.value == TOKmul || token.value == TOKlbracket)
     {
         t = new TypeIdentifier(Loc(), Id::empty);
+        t = t->addSTC(storageClass);
         t = parseBasicType3(t);
-        storageClass &= ~STCauto;
+        storageClass &= ~(STCauto | STC_TYPECTOR);
     }
 
     while (1)

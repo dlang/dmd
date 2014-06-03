@@ -62,15 +62,15 @@ const(int[3]) a481_13x = [1,2,3];
 const[$]      a481_13y = [1,2,3];
 static assert(is(typeof(a481_13x) == typeof(a481_13y)));
 
-const(int[][3]) a481_14x = [[1],[2],[3]];
+const(int)[][3] a481_14x = [[1],[2],[3]];
 const[][$]      a481_14y = [[1],[2],[3]];
 static assert(is(typeof(a481_14x) == typeof(a481_14y)));
 
-const(int[]) a481_15x = [1,2,3];
+const(int)[] a481_15x = [1,2,3];
 const[]      a481_15y = [1,2,3];
 static assert(is(typeof(a481_15x) == typeof(a481_15y)));
 
-const(int[][]) a481_16x = [[1,2,3]];
+const(int)[][] a481_16x = [[1,2,3]];
 const[][]      a481_16y = [[1,2,3]];
 static assert(is(typeof(a481_16x) == typeof(a481_16y)));
 
@@ -154,15 +154,15 @@ void test481()
     const[$]      a13y = [1,2,3];
     static assert(is(typeof(a13x) == typeof(a13y)));
 
-    const(int[][3]) a14x = [[1],[2],[3]];
+    const(int)[][3] a14x = [[1],[2],[3]];
     const[][$]      a14y = [[1],[2],[3]];
     static assert(is(typeof(a14x) == typeof(a14y)));
 
-    const(int[]) a15x = [1,2,3];
+    const(int)[] a15x = [1,2,3];
     const[]      a15y = [1,2,3];
     static assert(is(typeof(a15x) == typeof(a15y)));
 
-    const(int[][]) a16x = [[1,2,3]];
+    const(int)[][] a16x = [[1,2,3]];
     const[][]      a16y = [[1,2,3]];
     static assert(is(typeof(a16x) == typeof(a16y)));
 
@@ -172,11 +172,11 @@ void test481()
     auto* pp2 = &p;
     static assert(is(typeof(pp1) == typeof(pp2)));
 
-    const(int*) p1x = new int(3);
+    const(int)* p1x = new int(3);
     const*      p1y = new int(3);
     static assert(is(typeof(p1x) == typeof(p1y)));
 
-    const(int*[]) a17x = [new int(3)];
+    const(int)*[] a17x = [new int(3)];
     const*[]      a17y = [new int(3)];
     static assert(is(typeof(a17x) == typeof(a17y)));
 

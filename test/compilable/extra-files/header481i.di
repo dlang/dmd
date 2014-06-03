@@ -23,10 +23,10 @@ S481a[][$] a481_9y = [[{a:1}, {a:2}]];
 S481a[$][] a481_10y = [[{a:1}, {a:2}]];
 S481b[$] a481_11y = [1, 2, 3];
 auto[] a481_12y = sa481;
-const auto[$] a481_13y = [1, 2, 3];
-const auto[][$] a481_14y = [[1], [2], [3]];
-const auto[] a481_15y = [1, 2, 3];
-const auto[][] a481_16y = [[1, 2, 3]];
+const[$] a481_13y = [1, 2, 3];
+const[][$] a481_14y = [[1], [2], [3]];
+const[] a481_15y = [1, 2, 3];
+const[][] a481_16y = [[1, 2, 3]];
 auto[$] a481_17y = "abc";
 char[$] a481_18y = "abc";
 void test481()
@@ -43,15 +43,15 @@ void test481()
 	S481a[$][] a10y = [[{a:1}, {a:2}]];
 	S481b[$] a11y = [1, 2, 3];
 	auto[] a12y = sa481;
-	const auto[$] a13y = [1, 2, 3];
-	const auto[][$] a14y = [[1], [2], [3]];
-	const auto[] a15y = [1, 2, 3];
-	const auto[][] a16y = [[1, 2, 3]];
+	const[$] a13y = [1, 2, 3];
+	const[][$] a14y = [[1], [2], [3]];
+	const[] a15y = [1, 2, 3];
+	const[][] a16y = [[1, 2, 3]];
 	int num;
 	int* p = &num;
 	auto* pp2 = &p;
-	const auto* p1y = new int(3);
-	const auto*[] a17y = [new int(3)];
+	const* p1y = new int(3);
+	const*[] a17y = [new int(3)];
 	enum E 
 	{
 		a,
