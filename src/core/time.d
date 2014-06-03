@@ -811,8 +811,20 @@ public:
     /++
         Returns the number of the given units in this $(D Duration)
         (minus the larger units).
+
+        Examples:
+--------------------
+assert(dur!"weeks"(12).get!"weeks"() == 12);
+assert(dur!"weeks"(12).get!"days"() == 0);
+
+assert(dur!"days"(13).get!"weeks"() == 1);
+assert(dur!"days"(13).get!"days"() == 6);
+
+assert(dur!"hours"(49).get!"days"() == 2);
+assert(dur!"hours"(49).get!"hours"() == 1);
+--------------------
       +/
-    long getOnly(string units)() @safe const pure nothrow
+    long get(string units)() @safe const pure nothrow
         if(units == "weeks" ||
            units == "days" ||
            units == "hours" ||
@@ -829,48 +841,22 @@ public:
         }
     }
 
-    ///
+    //Verify Examples
     unittest
     {
-        assert(dur!"weeks"(12).getOnly!"weeks"() == 12);
-        assert(dur!"weeks"(12).getOnly!"days"() == 0);
+        assert(dur!"weeks"(12).get!"weeks"() == 12);
+        assert(dur!"weeks"(12).get!"days"() == 0);
 
-        assert(dur!"days"(13).getOnly!"weeks"() == 1);
-        assert(dur!"days"(13).getOnly!"days"() == 6);
+        assert(dur!"days"(13).get!"weeks"() == 1);
+        assert(dur!"days"(13).get!"days"() == 6);
 
-        assert(dur!"hours"(49).getOnly!"days"() == 2);
-        assert(dur!"hours"(49).getOnly!"hours"() == 1);
+        assert(dur!"hours"(49).get!"days"() == 2);
+        assert(dur!"hours"(49).get!"hours"() == 1);
     }
 
     unittest
     {
         foreach(D; _TypeTuple!(const Duration, immutable Duration))
-        {
-            assert((cast(D)dur!"weeks"(12)).getOnly!"weeks"() == 12);
-            assert((cast(D)dur!"weeks"(12)).getOnly!"days"() == 0);
-
-            assert((cast(D)dur!"days"(13)).getOnly!"weeks"() == 1);
-            assert((cast(D)dur!"days"(13)).getOnly!"days"() == 6);
-
-            assert((cast(D)dur!"hours"(49)).getOnly!"days"() == 2);
-            assert((cast(D)dur!"hours"(49)).getOnly!"hours"() == 1);
-        }
-    }
-
-    /++
-        $(RED Deprecated. Please use $(LREF getOnly) instead. Too many people
-              seem to be using get or one of the individual unit getters when
-              they mean total. This should make it more explicit and help
-              prevent bugs. This alias will be removed in June 2015.)
-
-        alias to $(LREF getOnly).
-      +/
-    deprecated("Please use getOnly instead. Too many people were confusing get with total.")
-    alias getOnly get;
-
-    deprecated unittest
-    {
-        foreach(D; _TypeTuple!(Duration, const Duration, immutable Duration))
         {
             assert((cast(D)dur!"weeks"(12)).get!"weeks"() == 12);
             assert((cast(D)dur!"weeks"(12)).get!"days"() == 0);
@@ -885,28 +871,28 @@ public:
 
 
     /++
-        $(RED Deprecated. Please use $(LREF getOnly) instead. Too many people
-              seem to be using get or one of the individual unit getters when
-              they mean total. This should make it more explicit and help
-              prevent bugs. This alias will be removed in June 2015.)
-
         Returns the number of weeks in this $(D Duration)
         (minus the larger units).
+
+        Examples:
+--------------------
+assert(dur!"weeks"(12).weeks == 12);
+assert(dur!"days"(13).weeks == 1);
+--------------------
       +/
-    deprecated(`Please use getOnly instead. Too many people were confusing weeks with total!"weeks"().`)
     @property long weeks() @safe const pure nothrow
     {
-        return getOnly!"weeks"();
+        return get!"weeks"();
     }
 
-    ///
-    deprecated unittest
+    //Verify Examples
+    unittest
     {
         assert(dur!"weeks"(12).weeks == 12);
         assert(dur!"days"(13).weeks == 1);
     }
 
-    deprecated unittest
+    unittest
     {
         foreach(D; _TypeTuple!(const Duration, immutable Duration))
         {
@@ -917,29 +903,30 @@ public:
 
 
     /++
-        $(RED Deprecated. Please use $(LREF getOnly) instead. Too many people
-              seem to be using get or one of the individual unit getters when
-              they mean total. This should make it more explicit and help
-              prevent bugs. This alias will be removed in June 2015.)
-
         Returns the number of days in this $(D Duration)
         (minus the larger units).
+
+        Examples:
+--------------------
+assert(dur!"weeks"(12).days == 0);
+assert(dur!"days"(13).days == 6);
+assert(dur!"hours"(49).days == 2);
+--------------------
       +/
-    deprecated(`Please use getOnly instead. Too many people were confusing days with total!"days"().`)
     @property long days() @safe const pure nothrow
     {
-        return getOnly!"days"();
+        return get!"days"();
     }
 
-    ///
-    deprecated unittest
+    //Verify Examples.
+    unittest
     {
         assert(dur!"weeks"(12).days == 0);
         assert(dur!"days"(13).days == 6);
         assert(dur!"hours"(49).days == 2);
     }
 
-    deprecated unittest
+    unittest
     {
         foreach(D; _TypeTuple!(const Duration, immutable Duration))
         {
@@ -951,29 +938,30 @@ public:
 
 
     /++
-        $(RED Deprecated. Please use $(LREF getOnly) instead. Too many people
-              seem to be using get or one of the individual unit getters when
-              they mean total. This should make it more explicit and help
-              prevent bugs. This alias will be removed in June 2015.)
-
         Returns the number of hours in this $(D Duration)
         (minus the larger units).
+
+        Examples:
+--------------------
+assert(dur!"days"(8).hours == 0);
+assert(dur!"hours"(49).hours == 1);
+assert(dur!"minutes"(121).hours == 2);
+--------------------
       +/
-    deprecated(`Please use getOnly instead. Too many people were confusing hours with total!"hours"().`)
     @property long hours() @safe const pure nothrow
     {
-        return getOnly!"hours"();
+        return get!"hours"();
     }
 
-    ///
-    deprecated unittest
+    //Verify Examples.
+    unittest
     {
         assert(dur!"days"(8).hours == 0);
         assert(dur!"hours"(49).hours == 1);
         assert(dur!"minutes"(121).hours == 2);
     }
 
-    deprecated unittest
+    unittest
     {
         foreach(D; _TypeTuple!(const Duration, immutable Duration))
         {
@@ -985,29 +973,30 @@ public:
 
 
     /++
-        $(RED Deprecated. Please use $(LREF getOnly) instead. Too many people
-              seem to be using get or one of the individual unit getters when
-              they mean total. This should make it more explicit and help
-              prevent bugs. This alias will be removed in June 2015.)
-
         Returns the number of minutes in this $(D Duration)
         (minus the larger units).
+
+        Examples:
+--------------------
+assert(dur!"hours"(47).minutes == 0);
+assert(dur!"minutes"(127).minutes == 7);
+assert(dur!"seconds"(121).minutes == 2);
+--------------------
       +/
-    deprecated(`Please use getOnly instead. Too many people were confusing minutes with total!"minutes"().`)
     @property long minutes() @safe const pure nothrow
     {
-        return getOnly!"minutes"();
+        return get!"minutes"();
     }
 
-    ///
-    deprecated unittest
+    //Verify Examples.
+    unittest
     {
         assert(dur!"hours"(47).minutes == 0);
         assert(dur!"minutes"(127).minutes == 7);
         assert(dur!"seconds"(121).minutes == 2);
     }
 
-    deprecated unittest
+    unittest
     {
         foreach(D; _TypeTuple!(const Duration, immutable Duration))
         {
@@ -1019,29 +1008,30 @@ public:
 
 
     /++
-        $(RED Deprecated. Please use $(LREF getOnly) instead. Too many people
-              seem to be using get or one of the individual unit getters when
-              they mean total. This should make it more explicit and help
-              prevent bugs. This alias will be removed in June 2015.)
-
         Returns the number of seconds in this $(D Duration)
         (minus the larger units).
+
+        Examples:
+--------------------
+assert(dur!"minutes"(47).seconds == 0);
+assert(dur!"seconds"(127).seconds == 7);
+assert(dur!"msecs"(1217).seconds == 1);
+--------------------
       +/
-    deprecated(`Please use getOnly instead. Too many people were confusing seconds with total!"seconds"().`)
     @property long seconds() @safe const pure nothrow
     {
-        return getOnly!"seconds"();
+        return get!"seconds"();
     }
 
-    ///
-    deprecated unittest
+    //Verify Examples.
+    unittest
     {
         assert(dur!"minutes"(47).seconds == 0);
         assert(dur!"seconds"(127).seconds == 7);
         assert(dur!"msecs"(1217).seconds == 1);
     }
 
-    deprecated unittest
+    unittest
     {
         foreach(D; _TypeTuple!(const Duration, immutable Duration))
         {
@@ -1053,7 +1043,22 @@ public:
 
 
     /++
-        Returns the fractional seconds past the second in this $(D Duration).
+        Returns the fractional seconds passed the second in this $(D Duration).
+
+        Examples:
+--------------------
+assert(dur!"msecs"(1000).fracSec == FracSec.from!"msecs"(0));
+assert(dur!"msecs"(1217).fracSec == FracSec.from!"msecs"(217));
+assert(dur!"usecs"(43).fracSec == FracSec.from!"usecs"(43));
+assert(dur!"hnsecs"(50_007).fracSec == FracSec.from!"hnsecs"(50_007));
+assert(dur!"nsecs"(62_127).fracSec == FracSec.from!"nsecs"(62_100));
+
+assert(dur!"msecs"(-1000).fracSec == FracSec.from!"msecs"(-0));
+assert(dur!"msecs"(-1217).fracSec == FracSec.from!"msecs"(-217));
+assert(dur!"usecs"(-43).fracSec == FracSec.from!"usecs"(-43));
+assert(dur!"hnsecs"(-50_007).fracSec == FracSec.from!"hnsecs"(-50_007));
+assert(dur!"nsecs"(-62_127).fracSec == FracSec.from!"nsecs"(-62_100));
+--------------------
      +/
     @property FracSec fracSec() @safe const pure nothrow
     {
@@ -1067,7 +1072,7 @@ public:
             assert(0, "FracSec.from!\"hnsecs\"() threw.");
     }
 
-    ///
+    //Verify Examples.
     unittest
     {
         assert(dur!"msecs"(1000).fracSec == FracSec.from!"msecs"(0));
@@ -1104,9 +1109,24 @@ public:
 
     /++
         Returns the total number of the given units in this $(D Duration).
-        So, unlike $(D getOnly), it does not strip out the larger units.
+        So, unlike $(D get), it does not strip out the larger units.
+
+        Examples:
+--------------------
+assert(dur!"weeks"(12).total!"weeks" == 12);
+assert(dur!"weeks"(12).total!"days" == 84);
+
+assert(dur!"days"(13).total!"weeks" == 1);
+assert(dur!"days"(13).total!"days" == 13);
+
+assert(dur!"hours"(49).total!"days" == 2);
+assert(dur!"hours"(49).total!"hours" == 49);
+
+assert(dur!"nsecs"(2007).total!"hnsecs" == 20);
+assert(dur!"nsecs"(2007).total!"nsecs" == 2000);
+--------------------
       +/
-    long total(string units)() @safe const pure nothrow
+    @property long total(string units)() @safe const pure nothrow
         if(units == "weeks" ||
            units == "days" ||
            units == "hours" ||
@@ -1123,7 +1143,7 @@ public:
             return getUnitsFromHNSecs!units(_hnsecs);
     }
 
-    ///
+    //Verify Examples.
     unittest
     {
         assert(dur!"weeks"(12).total!"weeks" == 12);
