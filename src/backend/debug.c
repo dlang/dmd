@@ -334,6 +334,7 @@ void WRblock(block *b)
         dbg_printf("********* Basic Block %p ************\n",b);
         if (b->Belem) elem_print(b->Belem);
         dbg_printf("block: ");
+printf("%p %d ", b, b->BC);
         WRBC(b->BC);
         dbg_printf(" Btry=%p Bindex=%d",b->Btry,b->Bindex);
         dbg_printf("\n");
