@@ -1,11 +1,11 @@
 
-// Copyright (c) 1999-2012 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+/* Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved, written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/root/file.c
+ */
 
 #include "file.h"
 
@@ -36,6 +36,7 @@
 #include "filename.h"
 #include "array.h"
 #include "port.h"
+#include "rmem.h"
 
 /****************************** File ********************************/
 
@@ -85,7 +86,7 @@ int File::read()
     if (len)
         return 0;               // already read the file
 #if POSIX
-    off_t size;
+    size_t size;
     ssize_t numread;
     int fd;
     struct stat buf;
@@ -111,7 +112,7 @@ int File::read()
         printf("\tfstat error, errno = %d\n",errno);
         goto err2;
     }
-    size = buf.st_size;
+    size = (size_t)buf.st_size;
     buffer = (unsigned char *) ::malloc(size + 2);
     if (!buffer)
     {
@@ -226,7 +227,7 @@ int File::mmread()
     char *name;
 
     name = this->name->toChars();
-    hFile = CreateFile(name, GENERIC_READ,
+    hFile = CreateFileA(name, GENERIC_READ,
                         FILE_SHARE_READ, NULL,
                         OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
     if (hFile == INVALID_HANDLE_VALUE)
@@ -234,7 +235,7 @@ int File::mmread()
     size = GetFileSize(hFile, NULL);
     //printf(" file created, size %d\n", size);
 
-    hFileMap = CreateFileMapping(hFile,NULL,PAGE_READONLY,0,size,NULL);
+    hFileMap = CreateFileMappingA(hFile,NULL,PAGE_READONLY,0,size,NULL);
     if (CloseHandle(hFile) != TRUE)
         goto Lerr;
 

@@ -70,8 +70,7 @@ char *Initializer::toChars()
 
     OutBuffer buf;
     toCBuffer(&buf, &hgs);
-    buf.writebyte(0);
-    return buf.extractData();
+    return buf.extractString();
 }
 
 /********************************** ErrorInitializer ***************************/
@@ -318,7 +317,7 @@ Expression *StructInitializer::toExpression(Type *t)
 void StructInitializer::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     //printf("StructInitializer::toCBuffer()\n");
-    buf->writebyte('{');
+    buf->writeByte('{');
     for (size_t i = 0; i < field.dim; i++)
     {
         if (i > 0)
@@ -327,13 +326,13 @@ void StructInitializer::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         if (id)
         {
             buf->writestring(id->toChars());
-            buf->writebyte(':');
+            buf->writeByte(':');
         }
         Initializer *iz = value[i];
         if (iz)
             iz->toCBuffer(buf, hgs);
     }
-    buf->writebyte('}');
+    buf->writeByte('}');
 }
 
 /********************************** ArrayInitializer ************************************/
@@ -703,7 +702,7 @@ Laa:
 
 void ArrayInitializer::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    buf->writebyte('[');
+    buf->writeByte('[');
     for (size_t i = 0; i < index.dim; i++)
     {
         if (i > 0)
@@ -712,13 +711,13 @@ void ArrayInitializer::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         if (ex)
         {
             ex->toCBuffer(buf, hgs);
-            buf->writebyte(':');
+            buf->writeByte(':');
         }
         Initializer *iz = value[i];
         if (iz)
             iz->toCBuffer(buf, hgs);
     }
-    buf->writebyte(']');
+    buf->writeByte(']');
 }
 
 
@@ -903,7 +902,38 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInte
         t = tb->nextOf();
     }
 
-    exp = exp->implicitCastTo(sc, t);
+    if (exp->implicitConvTo(t))
+    {
+        exp = exp->implicitCastTo(sc, t);
+    }
+    else
+    {
+        // Look for mismatch of compile-time known length to emit
+        // better diagnostic message, as same as AssignExp::semantic.
+        if (tb->ty == Tsarray &&
+            exp->implicitConvTo(tb->nextOf()->arrayOf()) > MATCHnomatch)
+        {
+            uinteger_t dim1 = ((TypeSArray *)tb)->dim->toInteger();
+            uinteger_t dim2 = dim1;
+            if (exp->op == TOKarrayliteral)
+            {
+                ArrayLiteralExp *ale = (ArrayLiteralExp *)exp;
+                dim2 = ale->elements ? ale->elements->dim : 0;
+            }
+            else if (exp->op == TOKslice)
+            {
+                Type *tx = toStaticArrayType((SliceExp *)exp);
+                if (tx)
+                    dim2 = ((TypeSArray *)tx)->dim->toInteger();
+            }
+            if (dim1 != dim2)
+            {
+                exp->error("mismatched array lengths, %d and %d", (int)dim1, (int)dim2);
+                exp = new ErrorExp();
+            }
+        }
+        exp = exp->implicitCastTo(sc, t);
+    }
     if (exp->op == TOKerror)
         return this;
 L1:

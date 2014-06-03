@@ -135,7 +135,7 @@ static longdouble postab[] =
  * Terminates on first unrecognized character.
  */
 
-longdouble strtold(const char *p,char **endp)
+longdouble strtold_dm(const char *p,char **endp)
 {
         longdouble ldval;
         int exp;
@@ -564,7 +564,7 @@ longdouble strtold(const char *p,char **endp)
 
 #else
 
-longdouble strtold(const char *p,char **endp)
+longdouble strtold_dm(const char *p,char **endp)
 {
     return strtod(p, endp);
 }
@@ -579,7 +579,7 @@ longdouble strtold(const char *p,char **endp)
 #include <float.h>
 #include <errno.h>
 
-extern "C" longdouble strtold(const char *p,char **endp);
+longdouble strtold_dm(const char *p,char **endp);
 
 struct longdouble
 {
@@ -593,8 +593,8 @@ void main()
     int i;
 
     errno = 0;
-//  ld = strtold("0x1.FFFFFFFFFFFFFFFEp16383", NULL);
-    ld = strtold("0x1.FFFFFFFFFFFFFFFEp-16382", NULL);
+//  ld = strtold_dm("0x1.FFFFFFFFFFFFFFFEp16383", NULL);
+    ld = strtold_dm("0x1.FFFFFFFFFFFFFFFEp-16382", NULL);
     x = *(struct longdouble *)&ld;
     for (i = 4; i >= 0; i--)
     {
@@ -602,7 +602,7 @@ void main()
     }
     printf("\t%d\n", errno);
 
-    ld = strtold("1.0e5", NULL);
+    ld = strtold_dm("1.0e5", NULL);
     x = *(struct longdouble *)&ld;
     for (i = 4; i >= 0; i--)
     {

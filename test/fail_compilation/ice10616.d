@@ -1,8 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice10616.d(9): Error: no property 'B' for type 'ice10616.A'
-fail_compilation/ice10616.d(9): Error: A.B is used as a type
+fail_compilation/ice10616.d(8): Error: class ice10616.A is forward referenced when looking for 'B'
 ---
 */
 

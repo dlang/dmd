@@ -42,6 +42,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+				Optimization="0"
 				AdditionalIncludeDirectories=".\root;.\tk;.\backend;.;vcbuild"
 				PreprocessorDefinitions="DEBUG,_DEBUG;TARGET_WINDOS=1"
 				RuntimeLibrary="1"
@@ -115,8 +116,9 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				AdditionalOptions="/TP"
+				Optimization="0"
 				AdditionalIncludeDirectories=".\root;.\tk;.\backend;.;vcbuild"
-				PreprocessorDefinitions="DEBUG,_DEBUG"
+				PreprocessorDefinitions="DEBUG,_DEBUG;TARGET_WINDOS=1"
 				RuntimeLibrary="1"
 				StructMemberAlignment="1"
 				WarningLevel="4"
@@ -275,7 +277,7 @@
 				OmitFramePointers="true"
 				WholeProgramOptimization="true"
 				AdditionalIncludeDirectories=".\root;.\tk;.\backend;.;vcbuild"
-				PreprocessorDefinitions="NDEBUG"
+				PreprocessorDefinitions="NDEBUG;TARGET_WINDOS=1"
 				RuntimeLibrary="0"
 				StructMemberAlignment="1"
 				BufferSecurityCheck="false"
@@ -441,10 +443,6 @@
 			</File>
 			<File
 				RelativePath=".\dsymbol.h"
-				>
-			</File>
-			<File
-				RelativePath=".\dump.c"
 				>
 			</File>
 			<File
@@ -621,6 +619,18 @@
 			</File>
 			<File
 				RelativePath=".\mtype.h"
+				>
+			</File>
+			<File
+				RelativePath=".\nogc.c"
+				>
+			</File>
+			<File
+				RelativePath=".\nspace.c"
+				>
+			</File>
+			<File
+				RelativePath=".\nspace.h"
 				>
 			</File>
 			<File

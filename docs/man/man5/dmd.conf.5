@@ -17,9 +17,13 @@ This is handy to make dmd independent of programs with
 conflicting use of environment variables.
 
 .SH SYNTAX
-Environment variables follow the [Environment] section
-heading, in name=value pairs. Comments are lines that start
-with ;.
+Environment variables follow the [Environment] section heading, in
+name=value or name?=value pairs. Comments are lines that start with ;.
+Variable names are always converted to uppercase, so if you use
+name=value, actually the variable with name NAME will be written.  If
+the name?=value syntax is used, the variable with NAME will only be
+written if it was defined before (in that case the original value is
+preserved).
 .PP
 
 .SH EXAMPLE

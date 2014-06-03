@@ -8,7 +8,7 @@ fail_compilation/spell9644.d(21): Error: undefined identifier b
 fail_compilation/spell9644.d(22): Error: undefined identifier xx
 fail_compilation/spell9644.d(23): Error: undefined identifier cb, did you mean variable ab?
 fail_compilation/spell9644.d(24): Error: undefined identifier bc, did you mean variable abc?
-fail_compilation/spell9644.d(25): Error: undefined identifier ccc, did you mean variable abc?
+fail_compilation/spell9644.d(25): Error: undefined identifier ccc
 ---
 */
 

@@ -1,11 +1,11 @@
 
-// Copyright (c) 2010-2012 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+/* Copyright (c) 2010-2014 by Digital Mars
+ * All Rights Reserved, written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/root/speller.c
+ */
 
 #include <stdio.h>
 #include <string.h>
@@ -201,7 +201,7 @@ void *spellerX(const char *seed, size_t seedlen, fp_speller_t fp, void *fparg,
 void *speller(const char *seed, fp_speller_t fp, void *fparg, const char *charset)
 {
     size_t seedlen = strlen(seed);
-    size_t maxdist = seedlen < 3 ? seedlen - 1 : 2;
+    size_t maxdist = seedlen < 4 ? seedlen / 2 : 2;
     for (int distance = 0; distance < maxdist; distance++)
     {   void *p = spellerX(seed, seedlen, fp, fparg, charset, distance);
         if (p)
@@ -242,7 +242,6 @@ void unittest_speller()
         { "hello", "ehllo",  "y" },
         { "hello", "helol",  "y" },
         { "hello", "abcd",  "n" },
-        //{ "ehllo", "helol", "y" },
         { "hello", "helxxlo", "y" },
         { "hello", "ehlxxlo", "n" },
         { "hello", "heaao", "y" },

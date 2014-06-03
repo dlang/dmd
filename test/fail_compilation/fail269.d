@@ -1,7 +1,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail269.d(11): Error: circular initialization of b
+fail_compilation/fail269.d(12): Error: circular initialization of a
+fail_compilation/fail269.d(19): Error: circular initialization of bug7209
 ---
 */
 
@@ -15,3 +16,4 @@ else
     const int a = .b;
     const int b = .a;
 }
+enum int bug7209 = bug7209;

@@ -52,9 +52,11 @@ public:
 
     Package *isPackage() { return this; }
 
-    virtual void semantic(Scope *) { }
+    void semantic(Scope *sc) { }
     Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
     void accept(Visitor *v) { v->visit(this); }
+
+    Module *isPackageMod();
 };
 
 class Module : public Package
@@ -81,6 +83,7 @@ public:
     unsigned errors;    // if any errors in file
     unsigned numlines;  // number of lines in source file
     int isDocFile;      // if it is a documentation input file, not D source
+    bool isPackageFile; // if it is a package.d
     int needmoduleinfo;
 
     int selfimports;            // 0: don't know, 1: does not, 2: does
@@ -116,7 +119,6 @@ public:
 
     static Module *load(Loc loc, Identifiers *packages, Identifier *ident);
 
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     const char *kind();
     File *setOutfile(const char *name, const char *dir, const char *arg, const char *ext);
     void setDocfile();
@@ -126,11 +128,9 @@ public:
     void semantic();    // semantic analysis
     void semantic2();   // pass 2 semantic analysis
     void semantic3();   // pass 3 semantic analysis
-    void inlineScan();  // scan for functions to inline
-    void genhdrfile();  // generate D import file
-    void genobjfile(int multiobj);
+    void genobjfile(bool multiobj);
+    void genhelpers(bool iscomdat);
     void gensymfile();
-    void gendocfile();
     int needModuleInfo();
     Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
     void deleteObjFile();
@@ -168,10 +168,6 @@ public:
     Symbol *marray;             // module array bounds function
     Symbol *toModuleArray();    // get module array bounds function
 
-
-    elem *toEfilename();
-
-    Symbol *toSymbol();
     void genmoduleinfo();
 
     Module *isModule() { return this; }

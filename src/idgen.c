@@ -43,7 +43,6 @@ Msgtable msgtable[] =
     { "require", "__require" },
     { "ensure", "__ensure" },
     { "init" },
-    { "size" },
     { "__sizeof", "sizeof" },
     { "__xalignof", "alignof" },
     { "mangleof" },
@@ -64,19 +63,16 @@ Msgtable msgtable[] =
     { "typeinfo" },
     { "outer" },
     { "Exception" },
-    { "AssociativeArray" },
     { "RTInfo" },
     { "Throwable" },
     { "Error" },
     { "withSym", "__withSym" },
     { "result", "__result" },
     { "returnLabel", "__returnLabel" },
-    { "delegate" },
     { "line" },
     { "empty", "" },
     { "p" },
     { "q" },
-    { "coverage", "__coverage" },
     { "__vptr" },
     { "__monitor" },
 
@@ -102,7 +98,6 @@ Msgtable msgtable[] =
     { "_arguments_typeinfo" },
     { "_arguments" },
     { "_argptr" },
-    { "_match" },
     { "destroy" },
     { "postblit" },
     { "xopEquals", "__xopEquals" },
@@ -156,10 +151,9 @@ Msgtable msgtable[] =
 
     { "sort" },
     { "reverse" },
-    { "dup" },
-    { "idup" },
 
     { "property" },
+    { "nogc" },
     { "safe" },
     { "trusted" },
     { "system" },
@@ -223,8 +217,6 @@ Msgtable msgtable[] =
     { "sliceass", "opSliceAssign" },
     { "call",    "opCall" },
     { "cast",    "opCast" },
-    { "match",   "opMatch" },
-    { "next",    "opNext" },
     { "opIn" },
     { "opIn_r" },
     { "opStar" },
@@ -257,7 +249,6 @@ Msgtable msgtable[] =
     { "FpopFront", "popFront" },
     { "FpopBack", "popBack" },
 
-    { "adDup", "_adDupT" },
     { "adReverse", "_adReverse" },
 
     // For internal functions
@@ -293,7 +284,6 @@ Msgtable msgtable[] =
     { "getmembers", "getMembers" },
 
     // Special functions
-    { "__alloca", "alloca" }, // has to be mapped because alloca is #defined if _MSC_VER
     { "main" },
     { "WinMain" },
     { "DllMain" },
@@ -365,6 +355,7 @@ Msgtable msgtable[] =
     { "parameters" },
     { "getAliasThis" },
     { "getAttributes" },
+    { "getFunctionAttributes" },
     { "getUnitTests" },
     { "getVirtualIndex" }
 };

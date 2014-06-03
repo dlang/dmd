@@ -408,6 +408,19 @@ void testfastudiv()
 
 ////////////////////////////////////////////////////////////////////////
 
+void vfunc() {}
+
+void test12095(int k)
+{
+    int e = 0;
+    e ? k || assert(0) : !e || vfunc();
+    e ? k || assert(0) : e && vfunc();
+    !e ? !e || vfunc() : k || assert(0);
+}
+
+
+////////////////////////////////////////////////////////////////////////
+
 
 int div10(int x)
 {
@@ -1038,6 +1051,25 @@ void test10678()
 
 ////////////////////////////////////////////////////////////////////////
 
+struct S12051
+{
+    this(char c)
+    {
+        assert(c == 'P' || c == 'M');
+    }
+}
+
+void test12051()
+{
+    auto ip = ["abc"];
+    foreach (i, s; ip)
+    {
+        S12051(i < ip.length ? 'P' : 'M');
+    }
+}
+
+////////////////////////////////////////////////////////////////////////
+
 void bug7565( double x) { assert(x == 3); }
 
 void test7565()
@@ -1073,11 +1105,13 @@ int main()
     test8658();
     testfastudiv();
     testfastdiv();
+    test12051();
     testdocond();
     testnegcom();
     test11565();
     testoror();
     testbt();
+    test12095(0);
     testandand();
     testor_combine();
     testshrshl();

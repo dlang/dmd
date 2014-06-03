@@ -213,6 +213,35 @@ static assert( !is(typeof( (){
 })));
 
 /**************************************************
+    11991
+**************************************************/
+
+void main()
+{
+    int Throwable;
+    int object;
+    try
+    {
+    }
+    catch
+    {
+    }
+}
+
+/**************************************************
+    11939
+**************************************************/
+
+void test11939()
+{
+    scope(failure)
+    {
+        import object : Object;
+    }
+    throw new Exception("");
+}
+
+/**************************************************
     5796
 **************************************************/
 
@@ -371,6 +400,25 @@ struct Bug7058
 
 /***************************************************/
 
+void test12094()
+{
+    auto n = null;
+    int *a;
+    int[int] b;
+    int[] c;
+    auto u = true ? null : a;
+    auto v = true ? null : b;
+    auto w = true ? null : c;
+    auto x = true ? n : a;
+    auto y = true ? n : b;
+    auto z = true ? n : c;
+    a = n;
+    b = n;
+    c = n;
+}
+
+/***************************************************/
+
 template test8163(T...)
 {
     struct Point
@@ -396,6 +444,26 @@ alias test8163!(ushort, ushort, ushort, ushort) _SSSS;
 alias test8163!(ubyte, ubyte, ubyte, ubyte, ubyte, ubyte, ubyte, ubyte) _BBBBBBBB;
 alias test8163!(ubyte, ubyte, ushort, float) _BBSf;
 
+
+/***************************************************/
+// 4757
+
+auto foo4757(T)(T)
+{
+    static struct Bar(T)
+    {
+        void spam()
+        {
+            foo4757(1);
+        }
+    }
+    return Bar!T();
+}
+
+void test4757()
+{
+    foo4757(1);
+}
 
 /***************************************************/
 // 9348
@@ -444,6 +512,16 @@ static if (is(object.ModuleInfo == class))
 }
 
 /***************************************************/
+// 10326
+
+class C10326
+{
+    int val;
+    invariant   { assert(val == 0); }
+    invariant() { assert(val == 0); }
+}
+
+/***************************************************/
 // 11554
 
 enum E11554;
@@ -451,3 +529,128 @@ static assert(is(E11554 == enum));
 
 struct Bro11554(N...) {}
 static assert(!is(E11554 unused : Bro11554!M, M...));
+
+/***************************************************/
+// 12302
+
+template isCallable12302(T...)
+    if (T.length == 1)
+{
+    static if (is(typeof(& T[0].opCall) == delegate))
+        enum bool isCallable12302 = true;
+    else
+    static if (is(typeof(& T[0].opCall) V : V*) && is(V == function))
+        enum bool isCallable12302 = true;
+    else
+        enum bool isCallable12302 = true;
+}
+
+class A12302
+{
+    struct X {}
+    X x;
+    auto opDispatch(string s, TArgs...)(TArgs args)
+    {
+        mixin("return x."~s~"(args);");
+    }
+}
+
+A12302 func12302() { return null; }
+enum b12302 = isCallable12302!func12302;
+
+/***************************************************/
+// 12476
+
+template A12476(T) {  }
+
+struct S12476(T)
+{
+    alias B = A12476!T;
+}
+
+class C12476(T)
+{
+    alias B = A12476!T;
+}
+
+struct Bar12476(alias Foo)
+{
+    Foo!int baz;
+    alias baz this;
+}
+
+alias Identity12476(alias A) = A;
+
+alias sb12476 = Identity12476!(Bar12476!S12476.B);
+alias cb12476 = Identity12476!(Bar12476!C12476.B);
+
+static assert(__traits(isSame, sb12476, A12476!int));
+static assert(__traits(isSame, cb12476, A12476!int));
+
+/***************************************************/
+// 12506
+
+import imports.a12506;
+private           bool[9] r12506a = f12506!(i => true)(); // OK
+private immutable bool[9] r12506b = f12506!(i => true)(); // OK <- error
+
+/***************************************************/
+// 12555
+
+class A12555(T)
+{
+    Undef12555 error;
+}
+
+static assert(!__traits(compiles, {
+    class C : A12555!C  { }
+}));
+
+/***************************************************/
+// 11622
+
+class A11622(T)
+{
+    B11622!T foo()
+    {
+        return new B11622!T;
+    }
+}
+
+class B11622(T) : T
+{
+}
+
+static assert(!__traits(compiles, {
+    class C : A11622!C  { }
+}));
+
+/***************************************************/
+// 12688
+
+void writeln12688(A...)(A) {}
+
+struct S12688
+{
+    int foo() @property { return 1; }
+}
+
+void test12688()
+{
+    S12688 s;
+    s.foo.writeln12688;   // ok
+    (s.foo).writeln12688; // ok <- ng
+}
+
+/***************************************************/
+// 12703
+
+struct S12703
+{
+    this(int) {}
+}
+
+final class C12703
+{
+    S12703 s = S12703(1);
+}

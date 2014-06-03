@@ -23,22 +23,94 @@
 #include "scope.h"
 #include "attrib.h"
 
-int lambdaHasSideEffect(Expression *e, void *param);
+bool walkPostorder(Expression *e, StoppableVisitor *v);
+bool lambdaHasSideEffect(Expression *e);
 
 /********************************************
  * Determine if Expression has any side effects.
  */
 
-bool Expression::hasSideEffect()
+bool hasSideEffect(Expression *e)
 {
-    bool has = false;
-    apply(&lambdaHasSideEffect, &has);
-    return has;
+    class LambdaHasSideEffect : public StoppableVisitor
+    {
+    public:
+        LambdaHasSideEffect() {}
+
+        void visit(Expression *e)
+        {
+            // stop walking if we determine this expression has side effects
+            stop = lambdaHasSideEffect(e);
+        }
+    };
+
+    LambdaHasSideEffect v;
+    return walkPostorder(e, &v);
 }
 
-int lambdaHasSideEffect(Expression *e, void *param)
+/********************************************
+ * Determine if the call of f, or function type or delegate type t1, has any side effects.
+ * Returns:
+ *      0   has any side effects
+ *      1   nothrow + constant purity
+ *      2   nothrow + strong purity
+ */
+
+int callSideEffectLevel(FuncDeclaration *f)
 {
-    bool *phas = (bool *)param;
+    /* Bugzilla 12760: ctor call always has side effects.
+     */
+    if (f->isCtorDeclaration())
+        return 0;
+
+    assert(f->type->ty == Tfunction);
+    TypeFunction *tf = (TypeFunction *)f->type;
+    if (tf->isnothrow)
+    {
+        PURE purity = f->isPure();
+        if (purity == PUREstrong)
+            return 2;
+        if (purity == PUREconst)
+            return 1;
+    }
+    return 0;
+}
+
+int callSideEffectLevel(Type *t)
+{
+    t = t->toBasetype();
+
+    TypeFunction *tf;
+    if (t->ty == Tdelegate)
+        tf = (TypeFunction *)((TypeDelegate *)t)->next;
+    else
+    {
+        assert(t->ty == Tfunction);
+        tf = (TypeFunction *)t;
+    }
+
+    tf->purityLevel();
+    PURE purity = tf->purity;
+    if (t->ty == Tdelegate && purity > PUREweak)
+    {
+        if (tf->isMutable())
+            purity = PUREweak;
+        else if (!tf->isImmutable())
+            purity = PUREconst;
+    }
+
+    if (tf->isnothrow)
+    {
+        if (purity == PUREstrong)
+            return 2;
+        if (purity == PUREconst)
+            return 1;
+    }
+    return 0;
+}
+
+bool lambdaHasSideEffect(Expression *e)
+{
     switch (e->op)
     {
         // Sort the cases by most frequently used first
@@ -68,52 +140,49 @@ int lambdaHasSideEffect(Expression *e, void *param)
         case TOKdelete:
         case TOKnew:
         case TOKnewanonclass:
-            *phas = true;
-            break;
+            return true;
 
         case TOKcall:
-        {   CallExp *ce = (CallExp *)e;
-
+        {
+            CallExp *ce = (CallExp *)e;
             /* Calling a function or delegate that is pure nothrow
              * has no side effects.
              */
             if (ce->e1->type)
             {
                 Type *t = ce->e1->type->toBasetype();
-                if ((t->ty == Tfunction && ((TypeFunction *)t)->purity > PUREweak &&
-                                           ((TypeFunction *)t)->isnothrow)
-                    ||
-                    (t->ty == Tdelegate && ((TypeFunction *)((TypeDelegate *)t)->next)->purity > PUREweak &&
-                                           ((TypeFunction *)((TypeDelegate *)t)->next)->isnothrow)
+                if (t->ty == Tdelegate)
+                    t = ((TypeDelegate *)t)->next;
 #if DMD_OBJC
-                    ||
-                    (t->ty == Tobjcselector && ((TypeFunction *)((TypeObjcSelector *)t)->next)->purity > PUREweak &&
-                                           ((TypeFunction *)((TypeObjcSelector *)t)->next)->isnothrow)
+                if (t->ty == Tobjcselector)
+                    t = ((TypeObjcSelector *)t)->next;
 #endif
-                   )
+                if (t->ty == Tfunction &&
+                    (ce->f ? callSideEffectLevel(ce->f)
+                           : callSideEffectLevel(ce->e1->type)) > 0)
                 {
                 }
                 else
-                    *phas = true;
+                    return true;
             }
             break;
         }
 
         case TOKcast:
-        {   CastExp *ce = (CastExp *)e;
-
+        {
+            CastExp *ce = (CastExp *)e;
             /* if:
              *  cast(classtype)func()  // because it may throw
              */
             if (ce->to->ty == Tclass && ce->e1->op == TOKcall && ce->e1->type->ty == Tclass)
-                *phas = true;
+                return true;
             break;
         }
 
         default:
             break;
     }
-    return *phas; // stop walking if we determine this expression has side effects
+    return false;
 }
 
 
@@ -121,135 +190,130 @@ int lambdaHasSideEffect(Expression *e, void *param)
  * The result of this expression will be discarded.
  * Complain if the operation has no side effects (and hence is meaningless).
  */
-void Expression::discardValue()
+void discardValue(Expression *e)
 {
-    bool has = false;
-    lambdaHasSideEffect(this, &has);
-    if (!has)
-    {
-        switch (op)
-        {
-            case TOKcast:
-            {   CastExp *ce = (CastExp *)this;
-                if (ce->to->equals(Type::tvoid))
-                {   /*
-                     * Don't complain about an expression with no effect if it was cast to void
-                     */
-                    ce->e1->useValue();
-                    break;
-                }
-                goto Ldefault;          // complain
-            }
-
-            case TOKerror:
-                break;
-
-            case TOKcall:
-                /* Don't complain about calling functions with no effect,
-                 * because purity and nothrow are inferred, and because some of the
-                 * runtime library depends on it. Needs more investigation.
-                 */
-                break;
-
-            case TOKimport:
-                error("%s has no effect", toChars());
-                break;
-
-            case TOKandand:
-            {   AndAndExp *aae = (AndAndExp *)this;
-                aae->e1->useValue();
-                aae->e2->discardValue();
-                break;
-            }
-
-            case TOKoror:
-            {   OrOrExp *ooe = (OrOrExp *)this;
-                ooe->e1->useValue();
-                ooe->e2->discardValue();
-                break;
-            }
-
-            case TOKquestion:
-            {   CondExp *ce = (CondExp *)this;
-                ce->econd->useValue();
-                ce->e1->discardValue();
-                ce->e2->discardValue();
-                break;
-            }
-
-            case TOKcomma:
-            {   CommaExp *ce = (CommaExp *)this;
-
-                /* Check for compiler-generated code of the form  auto __tmp, e, __tmp;
-                 * In such cases, only check e for side effect (it's OK for __tmp to have
-                 * no side effect).
-                 * See Bugzilla 4231 for discussion
-                 */
-                CommaExp* firstComma = ce;
-                while (firstComma->e1->op == TOKcomma)
-                    firstComma = (CommaExp *)firstComma->e1;
-                if (firstComma->e1->op == TOKdeclaration &&
-                    ce->e2->op == TOKvar &&
-                    ((DeclarationExp *)firstComma->e1)->declaration == ((VarExp*)ce->e2)->var)
-                {
-                    ce->e1->useValue();
-                    break;
-                }
-                // Don't check e1 until we cast(void) the a,b code generation
-                //ce->e1->discardValue();
-                ce->e2->discardValue();
-                break;
-            }
-
-            case TOKtuple:
-                /* Pass without complaint if any of the tuple elements have side effects.
-                 * Ideally any tuple elements with no side effects should raise an error,
-                 * this needs more investigation as to what is the right thing to do.
-                 */
-                if (!hasSideEffect())
-                    goto Ldefault;
-                break;
-
-            default:
-            Ldefault:
-                error("%s has no effect in expression (%s)",
-                    Token::toChars(op), toChars());
-                break;
-        }
-    }
-    else
-    {
-        useValue();
-    }
-}
-
-/* This isn't used yet because the only way an expression has an unused sub-expression
- * is with the CommaExp, and that currently generates messages from rewrites into comma
- * expressions. Needs more investigation.
- */
-void Expression::useValue()
-{
-#if 0
-    // Disabled because need to cast(void) the a,b code generation
-    void *p;
-    apply(&lambdaUseValue, &p);
-#endif
-}
-
-#if 0
-int lambdaUseValue(Expression *e, void *param)
-{
+    if (lambdaHasSideEffect(e))     // check side-effect shallowly
+        return;
     switch (e->op)
     {
-        case TOKcomma:
-        {   CommaExp *ce = (CommaExp *)e;
-            discardValue(ce->E1);
-            break;
+        case TOKcast:
+        {
+            CastExp *ce = (CastExp *)e;
+            if (ce->to->equals(Type::tvoid))
+            {
+                /*
+                 * Don't complain about an expression with no effect if it was cast to void
+                 */
+                return;
+            }
+            break;          // complain
         }
+
+        case TOKerror:
+            return;
+
+        case TOKcall:
+            /* Issue 3882: */
+            if (global.params.warnings && !global.gag)
+            {
+                CallExp *ce = (CallExp *)e;
+                if (e->type->ty == Tvoid)
+                {
+                    /* Don't complain about calling void-returning functions with no side-effect,
+                     * because purity and nothrow are inferred, and because some of the
+                     * runtime library depends on it. Needs more investigation.
+                     *
+                     * One possible solution is to restrict this message to only be called in hierarchies that
+                     * never call assert (and or not called from inside unittest blocks)
+                     */
+                }
+                else if (ce->e1->type)
+                {
+                    Type *t = ce->e1->type->toBasetype();
+                    if (t->ty == Tdelegate)
+                        t = ((TypeDelegate *)t)->next;
+                    if (t->ty == Tfunction &&
+                        (ce->f ? callSideEffectLevel(ce->f)
+                               : callSideEffectLevel(ce->e1->type)) > 0)
+                    {
+                        const char *s;
+                        if (ce->f)
+                            s = ce->f->toPrettyChars();
+                        else if (ce->e1->op == TOKstar)
+                        {
+                            // print 'fp' if ce->e1 is (*fp)
+                            s = ((PtrExp *)ce->e1)->e1->toChars();
+                        }
+                        else
+                            s = ce->e1->toChars();
+
+                        e->warning("calling %s without side effects discards return value of type %s, prepend a cast(void) if intentional",
+                                   s, e->type->toChars());
+                    }
+                }
+            }
+            return;
+
+        case TOKimport:
+            e->error("%s has no effect", e->toChars());
+            return;
+
+        case TOKandand:
+        {
+            AndAndExp *aae = (AndAndExp *)e;
+            discardValue(aae->e2);
+            return;
+        }
+
+        case TOKoror:
+        {
+            OrOrExp *ooe = (OrOrExp *)e;
+            discardValue(ooe->e2);
+            return;
+        }
+
+        case TOKquestion:
+        {
+            CondExp *ce = (CondExp *)e;
+            discardValue(ce->e1);
+            discardValue(ce->e2);
+            return;
+        }
+
+        case TOKcomma:
+        {
+            CommaExp *ce = (CommaExp *)e;
+            /* Check for compiler-generated code of the form  auto __tmp, e, __tmp;
+             * In such cases, only check e for side effect (it's OK for __tmp to have
+             * no side effect).
+             * See Bugzilla 4231 for discussion
+             */
+            CommaExp* firstComma = ce;
+            while (firstComma->e1->op == TOKcomma)
+                firstComma = (CommaExp *)firstComma->e1;
+            if (firstComma->e1->op == TOKdeclaration &&
+                ce->e2->op == TOKvar &&
+                ((DeclarationExp *)firstComma->e1)->declaration == ((VarExp*)ce->e2)->var)
+            {
+                return;
+            }
+            // Don't check e1 until we cast(void) the a,b code generation
+            //discardValue(ce->e1);
+            discardValue(ce->e2);
+            return;
+        }
+
+        case TOKtuple:
+            /* Pass without complaint if any of the tuple elements have side effects.
+             * Ideally any tuple elements with no side effects should raise an error,
+             * this needs more investigation as to what is the right thing to do.
+             */
+            if (!hasSideEffect(e))
+                break;
+            return;
 
         default:
             break;
     }
-    return 0;
+    e->error("%s has no effect in expression (%s)", Token::toChars(e->op), e->toChars());
 }
-#endif

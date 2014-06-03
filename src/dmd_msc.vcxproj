@@ -43,7 +43,7 @@
   <ItemDefinitionGroup>
     <ClCompile>
       <AdditionalIncludeDirectories>.\root;.\tk;.\backend;.;vcbuild;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions Condition="'$(Configuration)'=='Debug'">DEBUG;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Configuration)'=='Debug'">DEBUG;_DEBUG;TARGET_WINDOS%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessorDefinitions Condition="'$(Configuration)'=='Release'">NDEBUG;TARGET_WINDOS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary Condition="'$(Configuration)'=='Debug'">MultiThreadedDebug</RuntimeLibrary>
       <RuntimeLibrary Condition="'$(Configuration)'=='Release'">MultiThreaded</RuntimeLibrary>
@@ -58,6 +58,8 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <CompileAs>CompileAsCpp</CompileAs>
       <ForcedIncludeFiles>vcbuild\warnings.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+      <InlineFunctionExpansion Condition="'$(Configuration)'=='Debug'">Disabled</InlineFunctionExpansion>
+      <Optimization Condition="'$(Configuration)'=='Debug'">Disabled</Optimization>
     </ClCompile>
     <Link>
       <AdditionalOptions>/LARGEADDRESSAWARE %(AdditionalOptions)</AdditionalOptions>
@@ -94,7 +96,6 @@
     <ClCompile Include="delegatize.c" />
     <ClCompile Include="doc.c" />
     <ClCompile Include="dsymbol.c" />
-    <ClCompile Include="dump.c" />
     <ClCompile Include="e2ir.c" />
     <ClCompile Include="eh.c" />
     <ClCompile Include="entity.c" />
@@ -124,6 +125,8 @@
     <ClCompile Include="module.c" />
     <ClCompile Include="msc.c" />
     <ClCompile Include="mtype.c" />
+    <ClCompile Include="nogc.c" />
+    <ClCompile Include="nspace.c" />
     <ClCompile Include="opover.c" />
     <ClCompile Include="optimize.c" />
     <ClCompile Include="parse.c" />
@@ -302,6 +305,7 @@
     <ClInclude Include="mars.h" />
     <ClInclude Include="module.h" />
     <ClInclude Include="mtype.h" />
+    <ClInclude Include="nspace.h" />
     <ClInclude Include="objfile.h" />
     <ClInclude Include="parse.h" />
     <ClInclude Include="scope.h" />

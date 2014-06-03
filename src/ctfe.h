@@ -39,8 +39,6 @@ class ClassReferenceExp : public Expression
 public:
     StructLiteralExp *value;
     ClassReferenceExp(Loc loc, StructLiteralExp *lit, Type *type);
-    Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     ClassDeclaration *originalClass();
     VarDeclaration *getFieldAt(unsigned index);
 
@@ -49,13 +47,16 @@ public:
     /// Return index of the field, or -1 if not found
     /// Same as getFieldIndex, but checks for a direct match with the VarDeclaration
     int findFieldIndexByName(VarDeclaration *v);
-    dt_t **toDt(dt_t **pdt);
-    dt_t **toDtI(dt_t **pdt, int offset);
     Symbol* toSymbol();
-    dt_t **toInstanceDt(dt_t **pdt);
-    dt_t **toDt2(dt_t **pdt, ClassDeclaration *cd, Dts *dts);
-    elem *toElem(IRState *irs);
+    void accept(Visitor *v) { v->visit(this); }
 };
+
+// The various functions are used only to detect compiler CTFE bugs
+Expression *getValue(VarDeclaration *vd);
+bool hasValue(VarDeclaration *vd);
+void setValueNull(VarDeclaration *vd);
+void setValueWithoutChecking(VarDeclaration *vd, Expression *newval);
+void setValue(VarDeclaration *vd, Expression *newval);
 
 /// Return index of the field, or -1 if not found
 /// Same as getFieldIndex, but checks for a direct match with the VarDeclaration
@@ -71,9 +72,11 @@ public:
 
     VoidInitExp(VarDeclaration *var, Type *type);
     char *toChars();
-    Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
+// Create an appropriate void initializer
+Expression *voidInitLiteral(Type *t, VarDeclaration *var);
 
 /** Fake class which holds the thrown exception.
     Used for implementing exception handling.
@@ -83,10 +86,10 @@ class ThrownExceptionExp : public Expression
 public:
     ClassReferenceExp *thrown; // the thing being tossed
     ThrownExceptionExp(Loc loc, ClassReferenceExp *victim);
-    Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     char *toChars();
     /// Generate an error message when this exception is not caught
     void generateUncaughtError();
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 
@@ -193,7 +196,7 @@ bool isFloatIntPaint(Type *to, Type *from);
 // Reinterpret float/int value 'fromVal' as a float/integer of type 'to'.
 Expression *paintFloatInt(Expression *fromVal, Type *to);
 
-/// Return true if t is an AA, or AssociativeArray!(key, value)
+/// Return true if t is an AA
 bool isAssocArray(Type *t);
 
 /// Given a template AA type, extract the corresponding built-in AA type

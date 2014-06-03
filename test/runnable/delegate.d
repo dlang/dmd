@@ -224,22 +224,6 @@ void test10()
 
 /********************************************************/
 
-class Foo11 {
-    int x = 7;
-    int func() { return x; }
-}
-
-void test11()
-{
-    int delegate() dg;
-    Foo11 f = new Foo11;
-    dg.ptr = cast(void*)f;
-    dg.funcptr = &Foo11.func;
-    assert(dg() == 7);
-}
-
-/********************************************************/
-
 class A12
 {
 public:
@@ -325,6 +309,31 @@ void test2472()
 
 /********************************************************/
 
+void testAssign()
+{
+    static class C
+    {
+        int a;
+        this(int a) { this.a = a; }
+        int funca() { return a; }
+        int funcb() { return a + 1; }
+    }
+
+    auto x = new C(5);
+    auto y = new C(7);
+
+    auto dg = &x.funca;
+    assert(dg() == 5);
+    dg.funcptr = &C.funcb;
+    assert(dg() == 6);
+    dg.ptr = cast(void*)y;
+    assert(dg() == 8);
+    dg.funcptr = &C.funca;
+    assert(dg() == 7);
+}
+
+/********************************************************/
+
 int main()
 {
     test1();
@@ -337,11 +346,11 @@ int main()
     test8();
     test9();
     test10();
-    test11();
     test12();
     test13();
     test2472();
     test8257();
+    testAssign();
 
     printf("Success\n");
     return 0;

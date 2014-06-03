@@ -48,7 +48,7 @@ void fECPa() {
         }
         h();
     }
-    static assert( is(typeof(&g!()) == void delegate() pure nothrow @safe));
+    static assert( is(typeof(&g!()) == void delegate() pure nothrow @nogc @safe));
     static assert(!is(typeof(&g!()) == void delegate()));
 }
 
@@ -176,9 +176,9 @@ extern(C) void testC8504() {}
 
 void test8504()
 {
-    static assert(typeof(foo8504!()).stringof == "pure nothrow @safe void()");
-    static assert(typeof(foo8504!()).mangleof == "FNaNbNfZv");
-    static assert(foo8504!().mangleof == "_D13testInference12__T7foo8504Z7foo8504FNaNbNfZv");
+    static assert(typeof(foo8504!()).stringof == "pure nothrow @nogc @safe void()");
+    static assert(typeof(foo8504!()).mangleof == "FNaNbNiNfZv");
+    static assert(foo8504!().mangleof == "_D13testInference12__T7foo8504Z7foo8504FNaNbNiNfZv");
 
     auto fp1 = toDelegate8504a(&testC8504);
     auto fp2 = toDelegate8504b(&testC8504);
@@ -242,14 +242,14 @@ struct S5933
     double foo()(double a) { return a * a; }
 }
 // outside function
-static assert(typeof(foo5933!()).stringof == "pure nothrow @safe int(int a)");
-static assert(typeof(S5933.init.foo!()).stringof == "pure nothrow @safe double(double a)");
+static assert(typeof(foo5933!()).stringof == "pure nothrow @nogc @safe int(int a)");
+static assert(typeof(S5933.init.foo!()).stringof == "pure nothrow @nogc @safe double(double a)");
 
 void test5933()
 {
     // inside function
-    static assert(typeof(foo5933!()).stringof == "pure nothrow @safe int(int a)");
-    static assert(typeof(S5933.init.foo!()).stringof == "pure nothrow @safe double(double a)");
+    static assert(typeof(foo5933!()).stringof == "pure nothrow @nogc @safe int(int a)");
+    static assert(typeof(S5933.init.foo!()).stringof == "pure nothrow @nogc @safe double(double a)");
 }
 
 /***************************************************/
@@ -373,6 +373,56 @@ pure void test10296()
 {
     foo10296();
 }
+
+/***************************************************/
+// 12025
+
+struct Foo12025
+{
+    int[5] bar;
+}
+
+void test12025a() pure
+{
+    enum n1 = typeof(Foo12025.bar).length;  // OK
+    enum n2 =        Foo12025.bar .length;  // OK <- error
+
+    auto x1 = typeof(Foo12025.bar).length;  // OK
+    auto x2 =        Foo12025.bar .length;  // OK <- error
+}
+
+void test12025b() pure
+{
+    static int[5] bar;
+
+    enum n1 = typeof(bar).length;  // OK
+    enum n2 =        bar .length;  // OK <- error
+
+    auto x1 = typeof(bar).length;  // OK
+    auto x2 =        bar .length;  // OK <- error
+}
+
+/***************************************************/
+// 12542
+
+int logOf12542(T)(T n)
+{
+    if (n)
+        return 1 + logOf12542(n/2);
+    return 0;
+}
+
+void test12542() @safe nothrow pure 
+{
+    int log = logOf12542(9);
+}
+
+/***************************************************/
+// 12704
+
+void foo12704() @system;
+alias FP12704 = typeof(function() { foo12704(); });
+static assert(is(FP12704 == void function() @system));
 
 /***************************************************/
 

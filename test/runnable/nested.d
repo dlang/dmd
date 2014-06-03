@@ -1823,6 +1823,33 @@ void test8339c()
 }
 
 /*******************************************/
+// 8704
+
+void check8704(T, int num)()
+{
+    static if (num == 1) T t0;
+    static if (num == 2) T t1 = T();
+    static if (num == 3) T t2 = T(1);
+}
+
+void test8704()
+{
+    struct S
+    {
+        int n;
+        void foo(){}
+    }
+
+    static assert(!is(typeof(check8704!(S, 1)())));
+    static assert(!is(typeof(check8704!(S, 2)())));
+    static assert(!is(typeof(check8704!(S, 3)())));
+
+    static assert(!__traits(compiles, check8704!(S, 1)()));
+    static assert(!__traits(compiles, check8704!(S, 2)()));
+    static assert(!__traits(compiles, check8704!(S, 3)()));
+}
+
+/*******************************************/
 // 8923
 
 void test8923a()
@@ -2152,256 +2179,6 @@ void test9036()
 }
 
 /*******************************************/
-// 8847
-
-auto S8847()
-{
-    static struct Result
-    {
-        inout(Result) get() inout { return this; }
-    }
-    return Result();
-}
-
-void test8847a()
-{
-    auto a = S8847();
-    auto b = a.get();
-    alias typeof(a) A;
-    alias typeof(b) B;
-    assert(is(A == B), A.stringof~ " is different from "~B.stringof);
-}
-
-// --------
-
-enum result8847a = "S6nested9iota8847aFZ6Result";
-enum result8847b = "S6nested9iota8847bFZ4iotaMFZ6Result";
-enum result8847c = "C6nested9iota8847cFZ6Result";
-enum result8847d = "C6nested9iota8847dFZ4iotaMFZ6Result";
-
-auto iota8847a()
-{
-    static struct Result
-    {
-        this(int) {}
-        inout(Result) test() inout { return cast(inout)Result(0); }
-    }
-    static assert(Result.mangleof == result8847a);
-    return Result.init;
-}
-auto iota8847b()
-{
-    auto iota()
-    {
-        static struct Result
-        {
-            this(int) {}
-            inout(Result) test() inout { return cast(inout)Result(0); }
-        }
-        static assert(Result.mangleof == result8847b);
-        return Result.init;
-    }
-    return iota();
-}
-auto iota8847c()
-{
-    static class Result
-    {
-        this(int) {}
-        inout(Result) test() inout { return cast(inout)new Result(0); }
-    }
-    static assert(Result.mangleof == result8847c);
-    return Result.init;
-}
-auto iota8847d()
-{
-    auto iota()
-    {
-        static class Result
-        {
-            this(int) {}
-            inout(Result) test() inout { return cast(inout)new Result(0); }
-        }
-        static assert(Result.mangleof == result8847d);
-        return Result.init;
-    }
-    return iota();
-}
-void test8847b()
-{
-    static assert(typeof(iota8847a().test()).mangleof == result8847a);
-    static assert(typeof(iota8847b().test()).mangleof == result8847b);
-    static assert(typeof(iota8847c().test()).mangleof == result8847c);
-    static assert(typeof(iota8847d().test()).mangleof == result8847d);
-}
-
-// --------
-
-struct Test8847
-{
-    enum result1 = "S6nested8Test88478__T3fooZ3fooMFZ6Result";
-    enum result2 = "S6nested8Test88478__T3fooZ3fooMxFiZ6Result";
-
-    auto foo()()
-    {
-        static struct Result
-        {
-            inout(Result) get() inout { return this; }
-        }
-        static assert(Result.mangleof == Test8847.result1);
-        return Result();
-    }
-    auto foo()(int n) const
-    {
-        static struct Result
-        {
-            inout(Result) get() inout { return this; }
-        }
-        static assert(Result.mangleof == Test8847.result2);
-        return Result();
-    }
-}
-void test8847c()
-{
-    static assert(typeof(Test8847().foo( ).get()).mangleof == Test8847.result1);
-    static assert(typeof(Test8847().foo(1).get()).mangleof == Test8847.result2);
-}
-
-// --------
-
-void test8847d()
-{
-    enum resultS = "S6nested9test8847dFZv3fooMFZ3barMFZAya3bazMFZ1S";
-    enum resultX = "S6nested9test8847dFZv3fooMFZ1X";
-    // Return types for test8847d and bar are mangled correctly,
-    // and return types for foo and baz are not mangled correctly.
-
-    auto foo()
-    {
-        struct X { inout(X) get() inout { return inout(X)(); } }
-        string bar()
-        {
-            auto baz()
-            {
-                struct S { inout(S) get() inout { return inout(S)(); } }
-                return S();
-            }
-            static assert(typeof(baz()      ).mangleof == resultS);
-            static assert(typeof(baz().get()).mangleof == resultS);
-            return "";
-        }
-        return X();
-    }
-    static assert(typeof(foo()      ).mangleof == resultX);
-    static assert(typeof(foo().get()).mangleof == resultX);
-}
-
-// --------
-
-void test8847e()
-{
-    enum resultHere = "6nested"~"9test8847eFZv"~"8__T3fooZ"~"3foo";
-    enum resultBar =  "S"~resultHere~"MFNaNfNgiZ3Bar";
-    enum resultFoo = "_D"~resultHere~"MFNaNbNfNgiZNg"~resultBar;   // added 'Nb'
-
-    // Make template function to infer 'nothrow' attributes
-    auto foo()(inout int) pure @safe
-    {
-        struct Bar {}
-        static assert(Bar.mangleof == resultBar);
-        return inout(Bar)();
-    }
-
-    auto bar = foo(0);
-    static assert(typeof(bar).stringof == "Bar");
-    static assert(typeof(bar).mangleof == resultBar);
-    static assert(foo!().mangleof == resultFoo);
-}
-
-/*******************************************/
-// 9525
-
-void f9525(T)(in T*) { }
-
-void test9525()
-{
-    enum result1 = "S6nested8test9525FZv26__T5test1S136nested5f9525Z5test1MFZ1S";
-    enum result2 = "S6nested8test9525FZv26__T5test2S136nested5f9525Z5test2MFNaNbZ1S";
-
-    void test1(alias a)()
-    {
-        static struct S {}
-        static assert(S.mangleof == result1);
-        S s;
-        a(&s);  // Error: Cannot convert &S to const(S*) at compile time
-    }
-    static assert((test1!f9525(), true));
-
-    void test2(alias a)() pure nothrow
-    {
-        static struct S {}
-        static assert(S.mangleof == result2);
-        S s;
-        a(&s);  // Error: Cannot convert &S to const(S*) at compile time
-    }
-    static assert((test2!f9525(), true));
-}
-
-/*******************************************/
-// 11718
-
-struct Ty11718(alias sym) {}
-
-auto fn11718(T)(T a)   { return Ty11718!(a).mangleof; }
-auto fn11718(T)() { T a; return Ty11718!(a).mangleof; }
-
-void test11718()
-{
-    string TyName(string tail)()
-    {
-        enum s = "__T7Ty11718" ~ tail;
-        enum int len = s.length;
-        return "S6nested" ~ len.stringof ~ s;
-    }
-    string fnName(string paramPart)()
-    {
-        enum s = "_D6nested36__T7fn11718T"~
-                 "S6nested9test11718FZv1AZ7fn11718"~paramPart~"1a"~
-                 "S6nested9test11718FZv1A";
-        enum int len = s.length;
-        return len.stringof ~ s;
-    }
-    enum result1 = TyName!("S" ~ fnName!("F"~"S6nested9test11718FZv1A"~"Z") ~ "Z") ~ "7Ty11718";
-    enum result2 = TyName!("S" ~ fnName!("F"~""                       ~"Z") ~ "Z") ~ "7Ty11718";
-
-    struct A {}
-    static assert(fn11718(A.init) == result1);
-    static assert(fn11718!A()     == result2);
-}
-
-/*******************************************/
-// 11776
-
-struct S11776(alias fun) { }
-
-void test11776()
-{
-    auto g = ()
-    {
-        if (1)
-            return; // fill tf->next
-        if (1)
-        {
-            auto s = S11776!(a => 1)();
-            static assert(typeof(s).mangleof ==
-                "S"~"6nested"~"57"~(
-                    "__T"~"6S11776"~"S43"~("6nested"~"9test11776"~"FZv"~"9__lambda1MFZ"~"9__lambda1")~"Z"
-                )~"6S11776");
-        }
-    };
-}
-
-/*******************************************/
 
 /+
 auto fun8863(T)(T* ret) { *ret = T(); }
@@ -2574,7 +2351,7 @@ void xmap(alias g)(int t)
 
 enum foo11297 = function (int x)
    {
-//	int bar(int y) { return x; } xmap!bar(7);
+        //int bar(int y) { return x; } xmap!bar(7);
         xmap!(y => x)(7);
    };
 
@@ -2585,6 +2362,25 @@ void xreduce(alias f)()
 
 void test11297() {
     xreduce!foo11297();
+}
+
+/*******************************************/
+// 12234
+
+void test12234()
+{
+    class B
+    {
+        int a;
+        this(int aa) { a = aa; }
+    }
+    auto foo = {
+        return new B(1);
+    };
+    static assert(is(typeof(foo) == delegate));
+
+    auto b = foo();
+    assert(b.a == 1);
 }
 
 /*******************************************/
@@ -2675,6 +2471,7 @@ int main()
     test9244();
     test11385();
     test11297();
+    test12234();
 
     printf("Success\n");
     return 0;

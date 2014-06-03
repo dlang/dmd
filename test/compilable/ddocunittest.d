@@ -174,6 +174,108 @@ unittest
 }
 
 // ------------------------------------
+// insert import declaration between documented function and unittests
+
+///
+void fooImport() {}
+import core.stdc.stdio;
+/// test
+unittest { fooImport(); }
+
+///
+void fooStaticImport() {}
+static import core.stdc.stdlib;
+/// test
+unittest { fooStaticImport(); }
+
+///
+void fooPublicImport() {}
+public import core.stdc.string;
+/// test
+unittest { fooPublicImport(); }
+
+///
+void fooSelectiveImport() {}
+import core.stdc.ctype : isalpha;
+/// test
+unittest { fooSelectiveImport(); }
+
+///
+void fooRenamedImport() {}
+import io = core.stdc.stdio;
+/// test
+unittest { fooRenamedImport(); }
+
+// ------------------------------------
+// documented unittest after conditional declarations
+
+static if (true)
+  void fooConditionalDecl1a() {} /** */
+unittest { int x1a; }   ///
+
+static if (true)
+{ void fooConditionalDecl1b() {} /** */ }
+unittest { int x1b; }   ///
+
+static if (false)
+  void fooConditionalDecl2a() {} /** */
+unittest { int x2a; }   ///
+
+static if (false)
+{ void fooConditionalDecl2b() {} /** */ }
+unittest { int x2b; }   ///
+
+static if (true)
+{ void fooConditionalDecl3a() {} /** */ }
+else
+{ void barConditionalDecl3a() {} /** */ }
+unittest { int x3a; }   ///
+
+static if (true)
+{ void fooConditionalDecl3b() {} /** */ }
+else
+{ void barConditionalDecl3b() {} /** */ }
+unittest { int x3b; }   ///
+
+static if (false)
+  void fooConditionalDecl4a() {} /** */
+else
+  void barConditionalDecl4a() {} /** */
+unittest { int x4a; }   ///
+
+static if (false)
+{ void fooConditionalDecl4b() {} /** */ }
+else
+{ void barConditionalDecl4b() {} /** */ }
+unittest { int x4b; }   ///
+
+static if (true)
+{}
+else
+  void barConditionalDecl5a() {} /** */
+unittest { int x5a; }   ///
+
+static if (true)
+{}
+else
+{ void barConditionalDecl5b() {} /** */ }
+unittest { int x5b; }   ///
+
+static if (false)
+{}
+else
+  void barConditionalDecl6a() {} /** */
+///
+unittest { int x6a; }
+
+static if (false)
+{}
+else
+{ void barConditionalDecl6b() {} /** */ }
+///
+unittest { int x6b; }
+
+// ------------------------------------
 // 9474
 
 ///
@@ -286,6 +388,34 @@ unittest
 {
     auto s = "1 + (2 * (3 + 1 / 2)";
     assert(!balancedParens10519(s, '(', ')'));
+}
+
+// ------------------------------------
+// Issue 12097
+
+/// declaration
+struct S12097
+{
+    /// method
+    void foo() {}
+}
+
+/// ditto
+void f12097() {}
+
+/// ddoc code 1
+unittest
+{
+    int a = 1;
+}
+
+/// ditto
+struct T12097(T) {}
+
+/// ddoc code 2
+unittest
+{
+    int[] arr;
 }
 
 // ------------------------------------

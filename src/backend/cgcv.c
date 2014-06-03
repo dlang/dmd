@@ -108,13 +108,22 @@ int cv_stringbytes(const char *name)
  *      number of bytes consumed
  */
 
-int cv_namestring(unsigned char *p,const char *name)
+int cv_namestring(unsigned char *p, const char *name, int length)
 {
-    size_t len = strlen(name);
+    size_t len = (length >= 0) ? length : strlen(name);
     if (config.fulltypes == CV8)
     {
-        memcpy(p, name, len + 1);
-        return len + 1;
+        size_t numBytesWritten = len + ((length < 0) ? 1 : 0);
+        memcpy(p, name, numBytesWritten);
+        if(config.flags2 & CFG2gms)
+        {
+            for(int i = 0; i < len; i++)
+            {
+                if(p[i] == '.')
+                    p[i] = '@';
+            }
+        }
+        return numBytesWritten;
     }
     if (len > 255)
     {   p[0] = 0xFF;
@@ -1859,9 +1868,17 @@ L1:
                         d = debtyp_alloc(10);
                         TOWORD(d->data,0x1002);
                         TOLONG(d->data + 2,next);
-                        /* BUG: attribute bits are unknown, 0x1000C is maaaagic
-                         */
-                        TOLONG(d->data + 6,attribute | 0x1000C);
+                        // The visual studio debugger gets confused with pointers to arrays, emit a reference instead.
+                        // This especially happens when passing arrays as function arguments because 64bit ABI demands
+                        // passing structs > 8 byte as pointers.
+                        if((config.flags2 & CFG2gms) && t->Tnext && t->Tnext->Tty == TYdarray)
+                            TOLONG(d->data + 6,attribute | 0x20);
+                        else
+                        {
+                            /* BUG: attribute bits are unknown, 0x1000C is maaaagic
+                             */
+                            TOLONG(d->data + 6,attribute | 0x1000C);
+                        }
                         break;
 
                     default:

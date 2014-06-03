@@ -1,4 +1,4 @@
-import std.c.stdio;
+import core.stdc.stdio;
 
 template TypeTuple(T...){ alias T TypeTuple; }
 
@@ -830,6 +830,210 @@ void test11187()
 }
 
 /***************************************************/
+// 12131
+
+struct X12131
+{
+    void opAssign()(X12131 y) pure {}
+}
+
+struct Y12131
+{
+    X12131 a;
+}
+
+void test12131() pure
+{
+    X12131 x;
+    x = X12131();   // OK
+
+    Y12131 y;
+    y = Y12131();   // OK <- Error
+}
+
+/***************************************************/
+// 12211
+
+void test12211()
+{
+    int a = 0;
+    void foo(ref int x)
+    {
+        assert(x == 10);
+        assert(&x == &a);
+        x = 3;
+    }
+    foo(a = 10);
+    assert(a == 3);
+    foo(a += 7);
+    assert(a == 3);
+
+    // array ops should make rvalue
+    int[3] sa, sb;
+    void bar(ref int[]) {}
+    static assert(!__traits(compiles, bar(sa[]  = sb[])));
+    static assert(!__traits(compiles, bar(sa[] += sb[])));
+}
+
+/***************************************************/
+// 12212
+
+void test12212()
+{
+    struct S
+    {
+        int x, y;
+        static int cpctor;
+        this(this) { cpctor++; }
+    }
+
+    void funcVal(E)(E[3] x) {}
+    auto funcRef(E)(ref E[3] x) { return &x; }
+    ref get(E)(ref E[3] a){ return a; }
+
+    {
+        int[3] a, b;
+        funcVal(a = b);
+
+        auto p = funcRef(a = b);
+        assert(p == &a);
+    }
+
+    {
+        S.cpctor = 0;
+
+        S[3] a, b;
+        assert(S.cpctor == 0);
+
+        S[3] c = a;
+        //printf("cpctpr = %d\n", S.cpctor);
+        assert(S.cpctor == 3);
+        S.cpctor = 0;
+
+        c = a;
+        //printf("cpctpr = %d\n", S.cpctor);
+        assert(S.cpctor == 3);
+        S.cpctor = 0;
+
+        c = (a = b);
+        //printf("cpctpr = %d\n", S.cpctor);
+        assert(S.cpctor == 6);
+        S.cpctor = 0;
+
+        c = (get(a) = b);
+        //printf("cpctpr = %d\n", S.cpctor);
+        assert(S.cpctor == 6);
+        S.cpctor = 0;
+    }
+    {
+        S.cpctor = 0;
+
+        S[3] a, b;
+        assert(S.cpctor == 0);
+
+        funcVal(a = b);
+        //printf("cpctpr = %d\n", S.cpctor);
+        assert(S.cpctor == 6);
+        S.cpctor = 0;
+
+        funcVal(get(a) = b);
+        //printf("cpctpr = %d\n", S.cpctor);
+        assert(S.cpctor == 6);
+        S.cpctor = 0;
+    }
+    {
+        S.cpctor = 0;
+
+        S[3] a, b;
+        assert(S.cpctor == 0);
+
+        S[3]* p;
+
+        p = funcRef(a = b);
+        //printf("cpctpr = %d\n", S.cpctor);
+        assert(p == &a);
+        assert(S.cpctor == 3);
+        S.cpctor = 0;
+
+        p = funcRef(get(a) = b);
+        assert(p == &a);
+        //printf("cpctpr = %d\n", S.cpctor);
+        assert(S.cpctor == 3);
+        S.cpctor = 0;
+    }
+}
+
+/***************************************************/
+// 12650
+
+void test12650()
+{
+    // AssignExp::toElem should make an lvalue of e1.
+    static class A1
+    {
+        struct S { int a; }
+
+        static foo(ref const(S) s)
+        {
+            assert(s.a == 2);
+            return &s;
+        }
+
+        S s;
+
+        this()
+        {
+            const v = S(2);
+
+            // (this.s = v) will become ConstructExp
+            auto p = foo(s = v);
+            assert(p == &s);
+        }
+    }
+    assert(new A1().s.a == 2);
+
+    static class A2
+    {
+        static foo(ref int[2] sa)
+        {
+            assert(sa[1] == 2);
+            return &sa;
+        }
+
+        int[2] sa;
+
+        this()
+        {
+            // (this.sa = [1,2]) will become ConstructExp
+            auto p = foo(sa = [1,2]);
+            assert(p == &sa);
+        }
+    }
+    assert(new A2().sa[1] == 2);
+
+    static class A3
+    {
+        static foo(ref int n)
+        {
+            assert(n == 2);
+            return &n;
+        }
+
+        int n;
+
+        this()
+        {
+            const v = 2;
+
+            // (this.n = v) will become ConstructExp
+            auto p = foo(n = v);
+            assert(p == &n);
+        }
+    }
+    assert(new A3().n == 2);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -852,6 +1056,10 @@ int main()
     test9154();
     test9416();
     test11187();
+    test12131();
+    test12211();
+    test12212();
+    test12650();
 
     printf("Success\n");
     return 0;

@@ -71,6 +71,8 @@ enum TOK
         TOKstructliteral,
         TOKclassreference,
         TOKthrownexception,
+        TOKdelegateptr,
+        TOKdelegatefuncptr,
 
         // Operators
         TOKlt,          TOKgt,
@@ -80,7 +82,7 @@ enum TOK
         TOKindex,       TOKis,
         TOKtobool,
 
-// 60
+// 63
         // NCEG floating point compares
         // !<>=     <>    <>=    !>     !>=   !<     !<=   !<>
         TOKunord,TOKlg,TOKleg,TOKule,TOKul,TOKuge,TOKug,TOKue,
@@ -100,7 +102,7 @@ enum TOK
         TOKquestion,    TOKandand,      TOKoror,
         TOKpreplusplus, TOKpreminusminus,
 
-// 106
+// 110
         // Numeric literals
         TOKint32v, TOKuns32v,
         TOKint64v, TOKuns64v,
@@ -111,7 +113,7 @@ enum TOK
         TOKcharv, TOKwcharv, TOKdcharv,
 
         // Leaf operators
-        TOKidentifier,  TOKstring,
+        TOKidentifier,  TOKstring, TOKxstring,
         TOKthis,        TOKsuper,
         TOKhalt,        TOKtuple,
         TOKerror,
@@ -128,14 +130,14 @@ enum TOK
         TOKcomplex32, TOKcomplex64, TOKcomplex80,
         TOKchar, TOKwchar, TOKdchar, TOKbool,
 
-// 152
+// 155
         // Aggregates
         TOKstruct, TOKclass, TOKinterface, TOKunion, TOKenum, TOKimport,
         TOKtypedef, TOKalias, TOKoverride, TOKdelegate, TOKfunction,
         TOKmixin,
 
         TOKalign, TOKextern, TOKprivate, TOKprotected, TOKpublic, TOKexport,
-        TOKstatic, /*TOKvirtual,*/ TOKfinal, TOKconst, TOKabstract, TOKvolatile,
+        TOKstatic, TOKvirtual, TOKfinal, TOKconst, TOKabstract, TOKvolatile,
         TOKdebug, TOKdeprecated, TOKin, TOKout, TOKinout, TOKlazy,
         TOKauto, TOKpackage, TOKmanifest, TOKimmutable,
 
@@ -176,6 +178,8 @@ enum TOK
         TOKgoesto,
         TOKvector,
         TOKpound,
+
+        TOKinterval,
 
 #if DMD_OBJC
         TOKobjcclsref, // Objective-C class reference
@@ -242,6 +246,7 @@ public:
     const utf8_t *base;        // pointer to start of buffer
     const utf8_t *end;         // past end of buffer
     const utf8_t *p;           // current character
+    const utf8_t *line;        // start of current line
     Token token;
     Module *mod;
     int doDocComment;           // collect doc comment information
@@ -273,6 +278,7 @@ public:
     void stringPostfix(Token *t);
     TOK number(Token *t);
     TOK inreal(Token *t);
+    Loc loc();
     void error(const char *format, ...);
     void error(Loc loc, const char *format, ...);
     void deprecation(const char *format, ...);
@@ -282,6 +288,9 @@ public:
 
     static int isValidIdentifier(const char *p);
     static const utf8_t *combineComments(const utf8_t *c1, const utf8_t *c2);
+
+private:
+    void endOfLine();
 };
 
 #endif /* DMD_LEXER_H */

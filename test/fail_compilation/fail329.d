@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail329.d(39): Deprecation: overriding base class function without using override attribute is deprecated (fail329.B.foo overrides fail329.A.foo)
+fail_compilation/fail329.d(39): Deprecation: implicitly overriding base class method fail329.A.foo with fail329.B.foo deprecated; add 'override' attribute
 fail_compilation/fail329.d(29): Error: variable fail329.A.foo.__ensure.result cannot modify result 'result' in contract
 ---
 */

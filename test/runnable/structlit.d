@@ -618,7 +618,7 @@ void test9993b()
     }
               A ma = new           A;   assert(ma.x == 13);
     immutable A ia = new immutable A;   assert(ia.x == 42);
-    static assert(!__traits(compiles, { immutable A ia = new A; }));
+    static assert(__traits(compiles, { immutable A ia = new A; }));
 
     static class B
     {
@@ -628,7 +628,7 @@ void test9993b()
     }
     const B mb = new       B;           assert(mb.x == 13);
     const B cb = new const B;           assert(cb.x == 42);
-    static assert(!__traits(compiles, { immutable B ib = new B; }));
+    static assert(__traits(compiles, { immutable B ib = new B; }));
 
     static class C
     {
@@ -851,6 +851,51 @@ void test6937()
 }
 
 /********************************************/
+// 12681
+
+struct HasUnion12774
+{
+    union
+    {
+        int a, b;
+    }
+}
+
+bool test12681()
+{
+    immutable int x = 42;
+
+    static struct S1
+    {
+        immutable int *p;
+    }
+    immutable s1 = new S1(&x);
+    assert(s1.p == &x);
+
+    struct S2
+    {
+        immutable int *p;
+        void foo() {}
+    }
+    auto s2 = new S2(&x);
+    assert(s2.p == &x);
+
+    struct S3
+    {
+        immutable int *p;
+        int foo() { return x; }
+    }
+    auto s3 = new S3(&x);
+    assert(s3.p == &x);
+    assert(s3.foo() == 42);
+
+    auto x12774 = new HasUnion12774();
+
+    return true;
+}
+static assert(test12681());
+
+/********************************************/
 // 3991
 
 union X3991
@@ -1009,6 +1054,23 @@ void test7021()
   static assert(!is(typeof({
     auto s = S7021();
   })));
+}
+
+/********************************************/
+// 8738
+
+void test8738()
+{
+    int[3] a = [1, 2, 3];
+
+    struct S { int a, b, c; }
+    S s = S(1, 2, 3);
+
+    a = [4, a[0], 6];
+    s = S(4, s.a, 6);
+
+    assert(a == [4, 1, 6]);
+    assert(s == S(4, 1, 6));
 }
 
 /********************************************/
@@ -1260,6 +1322,29 @@ int foo11427() @safe
 }
 
 /********************************************/
+// 12011
+
+struct S12011a
+{
+    int f() { return i; }
+    enum e = this.init.f();
+    int i = 1, j = 2;
+}
+
+struct S12011b
+{
+    int f() { return i; }
+    enum e = S12011b().f();
+    int i = 1, j = 2;
+}
+
+void test12011()
+{
+    static assert(S12011a.e == 1);
+    static assert(S12011b.e == 1);
+}
+
+/********************************************/
 
 int main()
 {
@@ -1289,10 +1374,12 @@ int main()
     test5889();
     test4247();
     test6937();
+    test12681();
     test3991();
     test7727();
     test7929();
     test7021();
+    test8738();
     test8763();
     test8902();
     test9116();

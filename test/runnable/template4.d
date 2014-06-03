@@ -6,21 +6,21 @@ import std.c.stdio;
 template Foo(T)
 {
     static if ( is(T : int) )
-	alias T t1;
+        alias T t1;
 
     static if (T.sizeof == 4)
-	alias T t2;
+        alias T t2;
 
     static if ( is(T AB : int) )
-	alias AB t3;
+        alias AB t3;
 
     static if ( is(T* V : V*) )
-	alias V t4;
+        alias V t4;
 
     static if ( is(T W) )
-	alias W t5;
+        alias W t5;
     else
-	alias char t5;
+        alias char t5;
 
     static if ( is(T* X : X*) )
     {
@@ -56,21 +56,21 @@ void test2()
     alias int T;
 
     static if ( is(T : int) )
-	alias T t1;
+        alias T t1;
 
     static if (T.sizeof == 4)
-	alias T t2;
+        alias T t2;
 
     static if ( is(T U : int) )
-	alias U t3;
+        alias U t3;
 
     static if ( is(T* V : V*) )
-	alias V t4;
+        alias V t4;
 
     static if ( is(T W) )
-	alias W t5;
+        alias W t5;
     else
-	alias char t5;
+        alias char t5;
 
     static if ( is(T* X : X*) )
     {
@@ -100,17 +100,19 @@ void test2()
 void test3()
 {
     static if ( is(short : int) )
-    {	printf("1\n");
+    {
+        printf("1\n");
     }
     else
-	assert(0);
+        assert(0);
     static if ( is(short == int) )
-	assert(0);
+        assert(0);
     static if ( is(int == int) )
-    {	printf("3\n");
+    {
+        printf("3\n");
     }
     else
-	assert(0);
+        assert(0);
 }
 
 /*********************************************************/
@@ -120,76 +122,76 @@ void test4()
     alias void Function(int);
 
     static if (is(Function Void == function))
-	printf("if\n");
+        printf("if\n");
     else
-	assert(0);
+        assert(0);
 
 //    static if (is(Void == void))
-//	printf("if\n");
+//        printf("if\n");
 //    else
-//	assert(0);
+//        assert(0);
 
 
     alias byte delegate(int) Delegate;
 
     static if (is(Delegate Foo == delegate))
-	printf("if\n");
+        printf("if\n");
     else
-	assert(0);
+        assert(0);
 
     static if (is(Foo Byte == function))
-	printf("if\n");
+        printf("if\n");
     else
-	assert(0);
+        assert(0);
 
 //    static if (is(Byte == byte))
-//	printf("if\n");
+//        printf("if\n");
 //    else
-//	assert(0);
+//        assert(0);
 
 
     union Union { }
 
     static if (is(Union == union))
-	printf("if\n");
+        printf("if\n");
     else
-	assert(0);
+        assert(0);
 
 
     struct Struct { }
 
     static if (is(Struct == struct))
-	printf("if\n");
+        printf("if\n");
     else
-	assert(0);
+        assert(0);
 
 
     enum Enum : short { EnumMember }
 
     static if (is(Enum Short == enum))
-	printf("if\n");
+        printf("if\n");
     else
-	assert(0);
+        assert(0);
 
     static if (is(Short == short))
-	printf("if\n");
+        printf("if\n");
     else
-	assert(0);
+        assert(0);
 
     class Class { }
 
     static if (is(Class == class))
-	printf("if\n");
+        printf("if\n");
     else
-	assert(0);
+        assert(0);
 
 
     interface Interface { }
 
     static if (is(Interface == interface))
-	printf("if\n");
+        printf("if\n");
     else
-	assert(0);
+        assert(0);
 
 }
 
@@ -201,7 +203,7 @@ class Foo5(T)
 
     struct Node
     {
-	int value;
+        int value;
     }
 }
 
@@ -217,9 +219,9 @@ void test5()
 template factorial6(int n)
 {
     static if (n == 1)
-	const int factorial6 = 1;
+        const int factorial6 = 1;
     else
-	const int factorial6 = n * .factorial6!(n-1);
+        const int factorial6 = n * .factorial6!(n-1);
 }
 
 void test6()
@@ -235,9 +237,9 @@ void test6()
 template factorial7(float n, cdouble c, string sss, string ttt)
 {
     static if (n == 1)
-	const float factorial7 = 1;
+        const float factorial7 = 1;
     else
-	const float factorial7 = n * 2;
+        const float factorial7 = n * 2;
 }
 
 template bar7(wstring abc, dstring def)
@@ -310,24 +312,24 @@ template Recurse(string pattern){
 
 template slice(string str, int from, int to)
 {
-	const string slice = str[from..to];
+    const string slice = str[from..to];
 }
 
 
 template Compile(string pattern)
 {
-	const string left = slice!(pattern,4,pattern.length);
-		
-	const string remaining = slice!(left,1,left.length);
-		
-	alias Recurse!(remaining) fn;
+    const string left = slice!(pattern,4,pattern.length);
+
+    const string remaining = slice!(left,1,left.length);
+
+    alias Recurse!(remaining) fn;
 }
 
 
 
 template Match(string pattern)
 {
-	alias Compile!(pattern) Match;
+    alias Compile!(pattern) Match;
 }
 
 void test9()
@@ -405,7 +407,7 @@ template Foo13(int i)
 {
     const int j = i + 1;
     static if (j == 3)
-	const int k = 2;
+        const int k = 2;
 }
 
 void test13()
@@ -418,18 +420,18 @@ void test13()
 
 template zebra(string w)
 {
-   static if (w.length > 2 && w[1] == 'q')
-	const bool zebra = true;
-   else
-	const bool zebra = false;
+    static if (w.length > 2 && w[1] == 'q')
+        const bool zebra = true;
+    else
+        const bool zebra = false;
 }
 
 template horse(string w)
 {
-   static if (w.length == 1 || w[1] == 'q')
-	const bool horse = true;
-   else
-	const bool horse = false;
+    static if (w.length == 1 || w[1] == 'q')
+        const bool horse = true;
+    else
+        const bool horse = false;
 }
 
 void test14()
@@ -514,8 +516,9 @@ const uint[14] testtable =
 void test16()
 {
     for (int i=0; i<smallfactorials.length; ++i)
-    {	writefln("%d  %d", i, smallfactorials[i]);
-	assert(smallfactorials[i] == testtable[i]);
+    {
+        writefln("%d  %d", i, smallfactorials[i]);
+        assert(smallfactorials[i] == testtable[i]);
     }
 }
 
@@ -523,12 +526,12 @@ void test16()
 
 template dingo(int a)
 {
-   pragma(msg, "This actually gets evaluated!");
-   static if (a==2) {
-	const int dingo = 28;
-   }
-   else
-	const int dingo = a;
+    pragma(msg, "This actually gets evaluated!");
+    static if (a==2) {
+        const int dingo = 28;
+    }
+    else
+        const int dingo = a;
 }
 
 const int bilby = dingo!(2);
@@ -675,7 +678,7 @@ T delegate (T) acc24 (T) (T n)
 void test24()
 {
     auto acc1 = acc24 (4);
-} 
+}
 
 /*********************************************************/
 
@@ -703,31 +706,31 @@ void test25()
 
 /*********************************************************/
 
-class Foo26 {} 
+class Foo26 {}
 class Bar26 {}
 
 string name26;
 
 template aliastest(alias A) {
-        pragma(msg,"Alias Test instantiated");
-        void aliastest() {
-		name26 = (new A!().al).classinfo.name;
-		//writefln("Alias Test: ", name26);
-        }
+    pragma(msg,"Alias Test instantiated");
+    void aliastest() {
+        name26 = (new A!().al).classinfo.name;
+        //writefln("Alias Test: ", name26);
+    }
 }
 
 template boxtpl(alias A) {
-        template box() {
-                alias A al;
-        }
+    template box() {
+        alias A al;
+    }
 }
 
 void test26()
 {
-        aliastest!(boxtpl!(Foo26).box) ();
-	assert(name26 == "template4.Foo26");
-        aliastest!(boxtpl!(Bar26).box) ();
-	assert(name26 == "template4.Bar26");
+    aliastest!(boxtpl!(Foo26).box) ();
+    assert(name26 == "template4.Foo26");
+    aliastest!(boxtpl!(Bar26).box) ();
+    assert(name26 == "template4.Bar26");
 }
 
 /*********************************************************/
@@ -748,10 +751,10 @@ void test27()
 
 struct SiQuantity
 {
-	real value = 0;
-	static assert(SiQuantity.sizeof == real.sizeof);
+    real value = 0;
+    static assert(SiQuantity.sizeof == real.sizeof);
 
-	template AddDimensions(int mul, U) { }
+    template AddDimensions(int mul, U) { }
 }
 
 void test28()
@@ -840,9 +843,9 @@ struct Composer(T) {
     public T opCall()(T x) {
         T result = x;
         foreach_reverse (f; funs)
-	{
+        {
             result = f(result);
-	}
+        }
         return result;
     }
     public void opAddAssign(Fun f) {
@@ -872,12 +875,12 @@ T delegate(T) tofp(T : S!(T), alias S)()
 {
     class Foo
     {
-	div3!(T) arg;
+        div3!(T) arg;
 
-	T bar(T t)
-	{
-	    return arg(t);
-	}
+        T bar(T t)
+        {
+            return arg(t);
+        }
     }
 
     Foo f = new Foo;
@@ -899,7 +902,6 @@ void test33() {
     writefln("%f", comp2( 2.0));
 }
 
- 
 /*********************************************************/
 
 template Print34(Ts ...) { pragma (msg, Ts.stringof); }
@@ -1044,7 +1046,7 @@ void test39()
 {
     auto i = bar39!(a => a + 1)(3);
     if (i != 4)
-	assert(0);
+        assert(0);
 }
 
 /*********************************************************/
@@ -1059,6 +1061,34 @@ void test6701()
 {
     assert(foo_6701!(0u)() == 1);
     assert(foo2_6701!(0u, "+")() == 1);
+}
+
+/******************************************/
+// 7469
+
+struct Foo7469a(int x) { }
+struct Foo7469b(int x) { }
+struct Foo7469c(alias v) { }
+struct Foo7469d(T...) { }
+struct Foo7469e(int a, T...) { }
+struct Foo7469f(T, int k=1) { }
+struct Foo7469g(T, int k=1) { }
+
+void test7469()
+{
+    static assert(Foo7469a!(3 )    .mangleof[$-28 .. $] == "17__T8Foo7469aVii3Z8Foo7469a");
+    static assert(Foo7469a!(3u)    .mangleof[$-28 .. $] == "17__T8Foo7469aVii3Z8Foo7469a");
+    static assert(Foo7469b!(3u)    .mangleof[$-28 .. $] == "17__T8Foo7469bVii3Z8Foo7469b");
+    static assert(Foo7469b!(3 )    .mangleof[$-28 .. $] == "17__T8Foo7469bVii3Z8Foo7469b");
+    static assert(Foo7469c!(3 )    .mangleof[$-28 .. $] == "17__T8Foo7469cVii3Z8Foo7469c");
+    static assert(Foo7469c!(3u)    .mangleof[$-28 .. $] == "17__T8Foo7469cVki3Z8Foo7469c");
+    static assert(Foo7469d!(3 )    .mangleof[$-28 .. $] == "17__T8Foo7469dVii3Z8Foo7469d");
+    static assert(Foo7469d!(3u)    .mangleof[$-28 .. $] == "17__T8Foo7469dVki3Z8Foo7469d");
+    static assert(Foo7469e!(3u, 5u).mangleof[$-32 .. $] == "21__T8Foo7469eVii3Vki5Z8Foo7469e");
+    static assert(Foo7469f!(int, 1).mangleof[$-30 .. $] == "19__T8Foo7469fTiVii1Z8Foo7469f");
+    static assert(Foo7469f!(int)   .mangleof[$-30 .. $] == "19__T8Foo7469fTiVii1Z8Foo7469f");
+    static assert(Foo7469g!(int)   .mangleof[$-30 .. $] == "19__T8Foo7469gTiVii1Z8Foo7469g");
+    static assert(Foo7469g!(int, 1).mangleof[$-30 .. $] == "19__T8Foo7469gTiVii1Z8Foo7469g");
 }
 
 /******************************************/

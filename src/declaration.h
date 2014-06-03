@@ -27,7 +27,6 @@ class Statement;
 class LabelDsymbol;
 class Initializer;
 class Module;
-struct InlineScanState;
 class ForeachStatement;
 class FuncDeclaration;
 class ExpInitializer;
@@ -77,7 +76,7 @@ enum PURE;
                                         // but not typed as "shared"
 #define STCwild         0x80000000LL    // for "wild" type constructor
 #define STC_TYPECTOR    (STCconst | STCimmutable | STCshared | STCwild)
-#define STC_FUNCATTR    (STCref | STCnothrow | STCpure | STCproperty | STCsafe | STCtrusted | STCsystem)
+#define STC_FUNCATTR    (STCref | STCnothrow | STCnogc | STCpure | STCproperty | STCsafe | STCtrusted | STCsystem)
 
 #define STCproperty      0x100000000LL
 #define STCsafe          0x200000000LL
@@ -89,11 +88,13 @@ enum PURE;
 #define STCnodefaultctor 0x8000000000LL  // must be set inside constructor
 #define STCtemp          0x10000000000LL // temporary variable
 #define STCrvalue        0x20000000000LL // force rvalue for variables
+#define STCvirtual       0x40000000000LL
+#define STCnogc          0x80000000000LL  // @nogc
 
 const StorageClass STCStorageClass = (STCauto | STCscope | STCstatic | STCextern | STCconst | STCfinal |
     STCabstract | STCsynchronized | STCdeprecated | STCoverride | STClazy | STCalias |
-    STCout | STCin |
-    STCmanifest | STCimmutable | STCshared | STCwild | STCnothrow | STCpure | STCref | STCtls |
+    STCout | STCin | STCvirtual |
+    STCmanifest | STCimmutable | STCshared | STCwild | STCnothrow | STCnogc | STCpure | STCref | STCtls |
     STCgshared | STCproperty | STCsafe | STCtrusted | STCsystem | STCdisable);
 
 struct Match
@@ -140,10 +141,6 @@ public:
 
     Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
 
-    void emitComment(Scope *sc);
-    void toDocBuffer(OutBuffer *buf, Scope *sc);
-
-    const char *mangle(bool isv = false);
     bool isStatic() { return (storage_class & STCstatic) != 0; }
     virtual bool isDelete();
     virtual bool isDataseg();
@@ -206,18 +203,13 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
-    const char *mangle(bool isv = false);
     const char *kind();
     Type *getType();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Type *htype;
     Type *hbasetype;
 
-    void toDocBuffer(OutBuffer *buf, Scope *sc);
-
-    void toObjFile(int multiobj);                       // compile to .obj file
-    void toDebug();
-    int cvMember(unsigned char *p);
+    void toObjFile(bool multiobj);                       // compile to .obj file
 
     TypedefDeclaration *isTypedefDeclaration() { return this; }
 
@@ -248,9 +240,29 @@ public:
     Type *htype;
     Dsymbol *haliassym;
 
-    void toDocBuffer(OutBuffer *buf, Scope *sc);
-
     AliasDeclaration *isAliasDeclaration() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
+};
+
+/**************************************************************/
+
+class OverDeclaration : public Declaration
+{
+public:
+    Dsymbol *overnext;          // next in overload list
+    Dsymbol *aliassym;
+    bool hasOverloads;
+
+    OverDeclaration(Dsymbol *s, bool hasOverloads = true);
+    const char *kind();
+    void semantic(Scope *sc);
+    bool equals(RootObject *o);
+    bool overloadInsert(Dsymbol *s);
+
+    Dsymbol *toAlias();
+    Dsymbol *isUnique();
+
+    OverDeclaration *isOverDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -276,12 +288,6 @@ public:
     // When interpreting, these point to the value (NULL if value not determinable)
     // The index of this variable on the CTFE stack, -1 if not allocated
     int ctfeAdrOnStack;
-    // The various functions are used only to detect compiler CTFE bugs
-    Expression *getValue();
-    bool hasValue();
-    void setValueNull();
-    void setValueWithoutChecking(Expression *newval);
-    void setValue(Expression *newval);
 
     VarDeclaration *rundtor;    // if !NULL, rundtor is tested at runtime to see
                                 // if the destructor should be run. Used to prevent
@@ -313,10 +319,7 @@ public:
     void checkCtorConstInit();
     void checkNestedReference(Scope *sc, Loc loc);
     Dsymbol *toAlias();
-    Symbol *toSymbol();
-    void toObjFile(int multiobj);                       // compile to .obj file
-    int cvMember(unsigned char *p);
-    const char *mangle(bool isv = false);
+    void toObjFile(bool multiobj);                       // compile to .obj file
     // Eliminate need for dynamic_cast
     VarDeclaration *isVarDeclaration() { return (VarDeclaration *)this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -333,8 +336,6 @@ public:
 
     SymbolDeclaration(Loc loc, StructDeclaration *dsym);
 
-    Symbol *toSymbol();
-
     // Eliminate need for dynamic_cast
     SymbolDeclaration *isSymbolDeclaration() { return (SymbolDeclaration *)this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -349,9 +350,6 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
 
-    void emitComment(Scope *sc);
-
-    Symbol *toSymbol();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -366,11 +364,7 @@ public:
     void semantic(Scope *sc);
     char *toChars();
 
-    void emitComment(Scope *sc);
-
-    Symbol *toSymbol();
-    void toObjFile(int multiobj);                       // compile to .obj file
-    virtual void toDt(dt_t **pdt);
+    void toObjFile(bool multiobj);                       // compile to .obj file
 
     TypeInfoDeclaration *isTypeInfoDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -382,7 +376,6 @@ public:
     TypeInfoStructDeclaration(Type *tinfo);
     static TypeInfoStructDeclaration *create(Type *tinfo);
 
-    void toDt(dt_t **pdt);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -391,9 +384,7 @@ class TypeInfoClassDeclaration : public TypeInfoDeclaration
 public:
     TypeInfoClassDeclaration(Type *tinfo);
     static TypeInfoClassDeclaration *create(Type *tinfo);
-    Symbol *toSymbol();
 
-    void toDt(dt_t **pdt);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -403,7 +394,6 @@ public:
     TypeInfoInterfaceDeclaration(Type *tinfo);
     static TypeInfoInterfaceDeclaration *create(Type *tinfo);
 
-    void toDt(dt_t **pdt);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -413,7 +403,6 @@ public:
     TypeInfoTypedefDeclaration(Type *tinfo);
     static TypeInfoTypedefDeclaration *create(Type *tinfo);
 
-    void toDt(dt_t **pdt);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -423,7 +412,6 @@ public:
     TypeInfoPointerDeclaration(Type *tinfo);
     static TypeInfoPointerDeclaration *create(Type *tinfo);
 
-    void toDt(dt_t **pdt);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -433,7 +421,6 @@ public:
     TypeInfoArrayDeclaration(Type *tinfo);
     static TypeInfoArrayDeclaration *create(Type *tinfo);
 
-    void toDt(dt_t **pdt);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -443,7 +430,6 @@ public:
     TypeInfoStaticArrayDeclaration(Type *tinfo);
     static TypeInfoStaticArrayDeclaration *create(Type *tinfo);
 
-    void toDt(dt_t **pdt);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -453,7 +439,6 @@ public:
     TypeInfoAssociativeArrayDeclaration(Type *tinfo);
     static TypeInfoAssociativeArrayDeclaration *create(Type *tinfo);
 
-    void toDt(dt_t **pdt);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -463,7 +448,6 @@ public:
     TypeInfoEnumDeclaration(Type *tinfo);
     static TypeInfoEnumDeclaration *create(Type *tinfo);
 
-    void toDt(dt_t **pdt);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -473,7 +457,6 @@ public:
     TypeInfoFunctionDeclaration(Type *tinfo);
     static TypeInfoFunctionDeclaration *create(Type *tinfo);
 
-    void toDt(dt_t **pdt);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -483,7 +466,6 @@ public:
     TypeInfoDelegateDeclaration(Type *tinfo);
     static TypeInfoDelegateDeclaration *create(Type *tinfo);
 
-    void toDt(dt_t **pdt);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -494,7 +476,7 @@ public:
     TypeInfoObjcSelectorDeclaration(Type *tinfo);
     static TypeInfoObjcSelectorDeclaration *create(Type *tinfo);
 
-    void toDt(dt_t **pdt);
+    void accept(Visitor *v) { v->visit(this); }
 };
 #endif
 
@@ -504,7 +486,6 @@ public:
     TypeInfoTupleDeclaration(Type *tinfo);
     static TypeInfoTupleDeclaration *create(Type *tinfo);
 
-    void toDt(dt_t **pdt);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -514,7 +495,6 @@ public:
     TypeInfoConstDeclaration(Type *tinfo);
     static TypeInfoConstDeclaration *create(Type *tinfo);
 
-    void toDt(dt_t **pdt);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -524,7 +504,6 @@ public:
     TypeInfoInvariantDeclaration(Type *tinfo);
     static TypeInfoInvariantDeclaration *create(Type *tinfo);
 
-    void toDt(dt_t **pdt);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -534,7 +513,6 @@ public:
     TypeInfoSharedDeclaration(Type *tinfo);
     static TypeInfoSharedDeclaration *create(Type *tinfo);
 
-    void toDt(dt_t **pdt);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -544,7 +522,6 @@ public:
     TypeInfoWildDeclaration(Type *tinfo);
     static TypeInfoWildDeclaration *create(Type *tinfo);
 
-    void toDt(dt_t **pdt);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -554,7 +531,6 @@ public:
     TypeInfoVectorDeclaration(Type *tinfo);
     static TypeInfoVectorDeclaration *create(Type *tinfo);
 
-    void toDt(dt_t **pdt);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -586,10 +562,12 @@ enum BUILTIN
 };
 
 Expression *eval_builtin(Loc loc, FuncDeclaration *fd, Expressions *arguments);
+BUILTIN isBuiltin(FuncDeclaration *fd);
 
 typedef Expression *(*builtin_fp)(Loc loc, FuncDeclaration *fd, Expressions *arguments);
 void add_builtin(const char *mangle, builtin_fp fp);
 void builtin_init();
+void buildClosure(FuncDeclaration *fd, IRState *irs);
 
 class FuncDeclaration : public Declaration
 {
@@ -634,8 +612,7 @@ public:
     CompiledCtfeFunction *ctfeCode;     // Compiled code for interpreter
     int inlineNest;                     // !=0 if nested inline
     bool isArrayOp;                     // true if array operation
-    FuncDeclaration *dArrayOp;          // D version of array op for ctfe
-    int semantic3Errors;                // !=0 if errors in semantic3
+    bool semantic3Errors;               // true if errors in semantic3
                                         // this function's frame ptr
     ForeachStatement *fes;              // if foreach body, this is the foreach
     bool introducing;                   // true if 'introducing' function
@@ -656,7 +633,6 @@ public:
     VarDeclaration *nrvo_var;           // variable to replace with shidden
     Symbol *shidden;                    // hidden pointer passed to function
 
-    ReturnStatements *returns;
     GotoStatements *gotos;              // Gotos with forward references
 
     BUILTIN builtin;               // set if this is a known, builtin
@@ -671,12 +647,12 @@ public:
                                         // functions
     FuncDeclarations siblingCallers;    // Sibling nested functions which
                                         // called this one
-    FuncDeclarations deferred;          // toObjFile() these functions after this one
 
     unsigned flags;
     #define FUNCFLAGpurityInprocess 1   // working on determining purity
     #define FUNCFLAGsafetyInprocess 2   // working on determining safety
     #define FUNCFLAGnothrowInprocess 4  // working on determining nothrow
+    #define FUNCFLAGnogcInprocess 8     // working on determining @nogc
 
     FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageClass storage_class, Type *type);
     Dsymbol *syntaxCopy(Dsymbol *);
@@ -696,6 +672,7 @@ public:
     bool overloadInsert(Dsymbol *s);
     FuncDeclaration *overloadExactMatch(Type *t);
     TemplateDeclaration *findTemplateDeclRoot();
+    bool inUnittest();
     MATCH leastAsSpecialized(FuncDeclaration *g);
     LabelDsymbol *searchLabel(Identifier *ident);
     AggregateDeclaration *isThis();
@@ -703,14 +680,11 @@ public:
     int getLevel(Loc loc, Scope *sc, FuncDeclaration *fd); // lexical nesting level difference
     void appendExp(Expression *e);
     void appendState(Statement *s);
-    const char *mangle(bool isv = false);
-    const char *mangleExact(bool isv = false);
     const char *toPrettyChars();
     const char *toFullSignature();  // for diagnostics, e.g. 'int foo(int x, int y) pure'
     bool isMain();
     bool isWinMain();
     bool isDllMain();
-    BUILTIN isBuiltin();
     bool isExport();
     bool isImportedSymbol();
     bool isCodeseg();
@@ -723,6 +697,12 @@ public:
     bool isSafeBypassingInference();
     bool isTrusted();
     bool setUnsafe();
+
+    bool isNogc();
+    bool isNogcBypassingInference();
+    bool setGC();
+
+    void printGCUsage(Loc loc, const char *warn);
     bool isolateReturn();
     bool parametersIntersect(Type *t);
     virtual bool isNested();
@@ -732,13 +712,7 @@ public:
     virtual bool isFinalFunc();
     virtual bool addPreInvariant();
     virtual bool addPostInvariant();
-    Expression *interpret(InterState *istate, Expressions *arguments, Expression *thisexp = NULL);
-    void ctfeCompile();
-    void inlineScan();
-    int canInline(int hasthis, int hdrscan, int statementsToo);
-    Expression *expandInline(InlineScanState *iss, Expression *eret, Expression *ethis, Expressions *arguments, Statement **ps);
     const char *kind();
-    void toDocBuffer(OutBuffer *buf, Scope *sc);
     FuncDeclaration *isUnique();
     void checkNestedReference(Scope *sc, Loc loc);
     bool needsClosure();
@@ -755,11 +729,9 @@ public:
     static FuncDeclaration *genCfunc(Parameters *args, Type *treturn, const char *name);
     static FuncDeclaration *genCfunc(Parameters *args, Type *treturn, Identifier *id);
 
-    Symbol *toSymbol();
     Symbol *toThunkSymbol(int offset);  // thunk version
-    void toObjFile(int multiobj);                       // compile to .obj file
-    int cvMember(unsigned char *p);
-    void buildClosure(IRState *irs);
+    void toObjFile(bool multiobj);                       // compile to .obj file
+    bool needsCodegen();
 
     FuncDeclaration *isFuncDeclaration() { return this; }
 
@@ -783,8 +755,6 @@ public:
 
     FuncAliasDeclaration *isFuncAliasDeclaration() { return this; }
     const char *kind();
-    Symbol *toSymbol();
-    const char *mangle(bool isv = false);
 
     FuncDeclaration *toAliasFunc();
     void accept(Visitor *v) { v->visit(this); }
@@ -802,6 +772,10 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *);
     bool isNested();
     bool isVirtual();
+    bool addPreInvariant();
+    bool addPostInvariant();
+
+    void modifyReturns(Scope *sc, Type *tret);
 
     FuncLiteralDeclaration *isFuncLiteralDeclaration() { return this; }
     const char *kind();
@@ -836,7 +810,6 @@ public:
     bool addPreInvariant();
     bool addPostInvariant();
     bool overloadInsert(Dsymbol *s);
-    void emitComment(Scope *sc);
 
     PostBlitDeclaration *isPostBlitDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -856,7 +829,6 @@ public:
     bool addPreInvariant();
     bool addPostInvariant();
     bool overloadInsert(Dsymbol *s);
-    void emitComment(Scope *sc);
 
     DtorDeclaration *isDtorDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -874,7 +846,6 @@ public:
     bool addPreInvariant();
     bool addPostInvariant();
     bool hasStaticCtorOrDtor();
-    void emitComment(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     StaticCtorDeclaration *isStaticCtorDeclaration() { return this; }
@@ -906,7 +877,6 @@ public:
     bool hasStaticCtorOrDtor();
     bool addPreInvariant();
     bool addPostInvariant();
-    void emitComment(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     StaticDtorDeclaration *isStaticDtorDeclaration() { return this; }
@@ -933,7 +903,6 @@ public:
     bool isVirtual();
     bool addPreInvariant();
     bool addPostInvariant();
-    void emitComment(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     InvariantDeclaration *isInvariantDeclaration() { return this; }
@@ -944,6 +913,10 @@ class UnitTestDeclaration : public FuncDeclaration
 {
 public:
     char *codedoc; /** For documented unittest. */
+
+    // toObjFile() these nested functions after this one
+    FuncDeclarations deferredNested;
+
     UnitTestDeclaration(Loc loc, Loc endloc, char *codedoc);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
@@ -951,8 +924,6 @@ public:
     bool isVirtual();
     bool addPreInvariant();
     bool addPostInvariant();
-    void emitComment(Scope *sc);
-    void inlineScan();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     UnitTestDeclaration *isUnitTestDeclaration() { return this; }

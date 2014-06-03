@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag11078.d(17): Error: function diag11078.S1.value () is not callable using argument types (double)
+fail_compilation/diag11078.d(19): Error: None of the overloads of 'value' are callable using argument types (double), candidates are:
+fail_compilation/diag11078.d(12):        diag11078.S1.value()
+fail_compilation/diag11078.d(13):        diag11078.S1.value(int n)
 ---
 */
 

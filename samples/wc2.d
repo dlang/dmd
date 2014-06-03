@@ -46,7 +46,7 @@ int main (string[] args)
             }
             if (inword)
             {
-                auto w = input[wstart .. input.length];
+                auto w = input[wstart .. $];
                 dictionary[w]++;
             }
         }

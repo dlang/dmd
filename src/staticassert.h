@@ -29,12 +29,11 @@ public:
     StaticAssert(Loc loc, Expression *exp, Expression *msg);
 
     Dsymbol *syntaxCopy(Dsymbol *s);
-    int addMember(Scope *sc, ScopeDsymbol *sd, int memnum);
+    int addMember(Scope *sc, ScopeDsymbol *sds, int memnum);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
-    void inlineScan();
     bool oneMember(Dsymbol **ps, Identifier *ident);
-    void toObjFile(int multiobj);
+    void toObjFile(bool multiobj);
     const char *kind();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void accept(Visitor *v) { v->visit(this); }

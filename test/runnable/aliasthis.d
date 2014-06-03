@@ -407,30 +407,49 @@ void test7()
 /***************************************************/
 // 11875 - endless recursion in Type::deduceType
 
-struct T1(C)
+struct T11875x(C)
 {
     C c;
 }
-
-class D1 { D2 c; alias c this; }
-class D2 { D1 c; alias c this; }
-
-static assert(!is(D1 == D2));
-static if(is(T1!D1 == T1!D, D))
-    static assert(is(D == D1));
-static if(is(D1 == T1!D, D)) // this used to freeze dmd
-    static assert(false);
+class D11875a { D11875b c; alias c this; }
+class D11875b { D11875a c; alias c this; }
+static assert(!is(D11875a == D11875b));
+static assert( is(T11875x!D11875a == T11875x!D, D) && is(D == D11875a));
+static assert(!is(D11875a == T11875x!D, D));    // this used to freeze dmd
 
 // test that types in recursion are still detected
-class D3 { T2!D2 c; alias c this; }
-
-struct T2(C)
+struct T11875y(C)
 {
     C c;
     alias c this;
 }
-static assert(is(D3 : T2!D, D) && is(D == D2));
+class D11875c { T11875y!D11875b c; alias c this; }
+static assert(is(D11875c : T11875y!D, D) && is(D == D11875b));
 
+/***************************************************/
+// 11930
+
+class BarObj11930 {}
+
+struct Bar11930
+{
+    BarObj11930 _obj;
+    alias _obj this;
+}
+
+BarObj11930 getBarObj11930(T)(T t)
+{
+    static if (is(T unused : BarObj11930))
+        return t;
+    else
+        static assert(false, "Can not get BarObj from " ~ T.stringof);
+}
+
+void test11930()
+{
+    Bar11930 b;
+    getBarObj11930(b);
+}
 
 /***************************************************/
 // 2781
@@ -927,39 +946,28 @@ void test6711()
         i = 42;
     }
     assert(c.i == 42);
+}
 
-    struct Foo
-    {
-        string[string] strs;
-        alias strs this;
-    }
+/**********************************************/
+// 12161
 
-    struct Bar
-    {
-        Foo f;
-        alias f this;
-    }
+class A12161
+{
+    void m() {}
+}
 
-    void test(T)()
-    {
-        T f;
-        f = ["first" : "a", "second" : "b"];
-        with (f)
-        {
-            assert(length == 2);
-            rehash;
-            auto vs = values;
-            assert(vs == ["a", "b"] || vs == ["b", "a"]);
-            auto ks = keys;
-            assert(ks == ["first", "second"] || ks == ["second", "first"]);
-            foreach (k; byKey) { }
-            foreach (v; byValue) { }
-            assert(get("a", "default") == "default");
-        }
-    }
+class B12161
+{
+    A12161 a;
+    alias a this;
+}
 
-    test!Foo;
-    test!Bar;
+void test12161()
+{
+    B12161 b = new B12161();
+    b.a = new A12161();
+    with (b)
+        m();
 }
 
 /**********************************************/
@@ -1260,11 +1268,11 @@ void test8735()
     // 9709 case
     alias A = Tuple9709!(1,int,"foo");
     A a;
-    static assert(A[0] == 1);
+    //static assert(A[0] == 1);
     static assert(a[0] == 1);
     //static assert(is(A[1] == int));
     //static assert(is(a[1] == int));
-    static assert(A[2] == "foo");
+    //static assert(A[2] == "foo");
     static assert(a[2] == "foo");
 }
 
@@ -1579,6 +1587,32 @@ void test11261()
 }
 
 /***************************************************/
+// 11333
+
+alias id11333(a...) = a;
+
+struct Unit11333
+{
+    enum value = Unit11333.init.tupleof;
+    alias value this;
+}
+
+void test11333()
+{
+    void foo() {}
+
+    id11333!() unit;
+    unit = unit; // ok
+    foo(unit);   // ok
+
+    unit = Unit11333.value; // ok
+    foo(Unit11333.value);   // ok
+
+    Unit11333 unit2;
+    unit = unit2; // ok <- segfault
+}
+
+/***************************************************/
 // 11800
 
 struct A11800
@@ -1603,6 +1637,67 @@ void test11800()
     A11800 a;
     B11800 b;
     b.foo(a);
+}
+
+/***************************************************/
+// 12008
+
+struct RefCounted12008(T)
+{
+    struct RefCountedStore
+    {
+        private struct Impl
+        {
+            T _payload;
+        }
+
+        private void initialize(A...)(auto ref A args)
+        {
+            import core.memory;
+        }
+
+        void ensureInitialized()
+        {
+            initialize();
+        }
+
+    }
+    RefCountedStore _refCounted;
+
+    void opAssign(T rhs)
+    {
+    }
+
+    int refCountedPayload()
+    {
+        _refCounted.ensureInitialized();
+        return 0;
+    }
+
+    int refCountedPayload() inout;
+
+    alias refCountedPayload this;
+}
+
+struct SharedInput12008
+{
+    Group12008 unused;
+}
+
+struct Group12008
+{
+    RefCounted12008!SharedInput12008 _allGroups;
+}
+
+/***************************************************/
+// 12038
+
+bool f12038(void* p) { return true; }
+
+struct S12038
+{
+    @property p() { f12038(&this); }
+    alias p this;
 }
 
 /***************************************************/
@@ -1635,6 +1730,7 @@ int main()
     test6434();
     test6366();
     test6711();
+    test12161();
     test6759();
     test6832();
     test6928();
@@ -1655,6 +1751,7 @@ int main()
     test10004();
     test10180();
     test10456();
+    test11333();
     test11800();
 
     printf("Success\n");

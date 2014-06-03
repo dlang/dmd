@@ -1,13 +1,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail125.d(16): Error: array index [2] is outside array bounds [0 .. 2]
-fail_compilation/fail125.d(16): Error: cannot implicitly convert expression (tuple(a, b)) of type (int, int) to int
-fail_compilation/fail125.d(19): Error: template instance fail125.main.recMove!(1, a, b) error instantiating
-fail_compilation/fail125.d(26):        instantiated from here: recMove!(0, a, b)
-fail_compilation/fail125.d(26): Error: template instance fail125.main.recMove!(0, a, b) error instantiating
+fail_compilation/fail125.d(15): Error: array index [2] is outside array bounds [0 .. 2]
+fail_compilation/fail125.d(18): Error: template instance fail125.main.recMove!(1, a, b) error instantiating
+fail_compilation/fail125.d(25):        instantiated from here: recMove!(0, a, b)
 ---
 */
+
 
 template recMove(int i, X...)
 {

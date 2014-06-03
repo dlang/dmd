@@ -87,7 +87,7 @@ void test8()
     auto p = &foo8;
     showf(p.mangleof);
     assert(typeof(p).mangleof == "PFxAaxC9testconst2C8xiZv");
-    assert(p.mangleof == "_D9testconst5test8FZv1pPFxAaxC9testconst2C8xiZv");
+    assert(p.mangleof == "_D9testconst5test8FZ1pPFxAaxC9testconst2C8xiZv");
 }
 
 /************************************/
@@ -1495,9 +1495,13 @@ void test82(inout(int) _ = 0)
 void test83(inout(int) _ = 0)
 {
     static assert( __traits(compiles, typeid(int* function(inout int))));
+    static assert( __traits(compiles, typeid(int* delegate(inout int))));
     static assert(!__traits(compiles, typeid(inout(int*) function(int))));
+    static assert(!__traits(compiles, typeid(inout(int*) delegate(int))));
     static assert(!__traits(compiles, typeid(inout(int*) function())));
+    static assert(!__traits(compiles, typeid(inout(int*) delegate())));
     inout(int*) function(inout(int)) fp;
+    inout(int*) delegate(inout(int)) dg;
 }
 
 /************************************/
@@ -2705,6 +2709,85 @@ void test11868()
 }
 
 /************************************/
+// 11924
+
+inout(StringType) localize11924(StringType)(inout StringType str, string locale)
+{
+    return str;
+}
+
+struct S11924
+{
+    static menuItem_1(ARGS...)()
+    {
+        enum itemTitle = ARGS;
+    }
+
+    static content_left_1()
+    {
+        menuItem!(localize11924("Home", ""));
+    }
+    alias menuItem = menuItem_1;
+}
+
+/************************************/
+// 11966
+
+inout(char)[] stripped11966 (inout(char)[] path)
+{
+    return path;
+}
+
+struct PathParser11966
+{
+    inout(const(char))[] path() inout
+    {
+        return null;
+    }
+
+    inout(const(char))[] pop() inout
+    {
+        return stripped11966(path);
+    }
+}
+
+void test11966()
+{
+    auto a = PathParser11966().pop();
+}
+
+/************************************/
+// 12089
+
+void foo12089(inout(char[]) a)
+{
+    validate12089(a);
+}
+void validate12089(S)(in S str)
+{
+    decodeImpl12089(str);
+}
+void decodeImpl12089(S)(auto ref S str)
+{}
+
+/************************************/
+// 12524
+
+inout(int) dup12524(inout(const(int)) val)
+{
+    return val;
+}
+
+void test12524(inout(int))
+{
+    inout(const(int)) val;
+
+    auto bug = dup12524(val);
+
+    static assert(is(typeof(bug) == inout(int)));
+}
+
+/************************************/
 // 6941
 
 static assert((const(shared(int[])[])).stringof == "const(shared(int[])[])");	// fail
@@ -2904,6 +2987,8 @@ inout(T)      bar7757a(T)(T x, lazy inout(T)    def) { return def; }
 inout(T)[]    bar7757b(T)(T x, lazy inout(T)[]  def) { return def; }
 inout(T)[T]   bar7757c(T)(T x, lazy inout(T)[T] def) { return def; }
 
+inout(Object) get7757(lazy inout(Object) defVal) { return null; }
+
 void test7757()
 {
           int       mx1  = foo7757a(1,2);
@@ -2919,6 +3004,9 @@ void test7757()
     const(int)[]    ca2  = bar7757b(1,[2]);
           int [int] maa2 = bar7757c(1,[2:3]);
     const(int)[int] caa2 = bar7757c(1,[2:3]);
+
+    Object defObj = null;
+    auto resObj = get7757(defObj);
 }
 
 /************************************/
@@ -3603,6 +3691,21 @@ void test11768(inout int = 0)
     static assert(typeof(k1).stringof == "inout(const(char))"); // OK
     static assert(typeof(k2).stringof == "inout(const(char))"); // fails
     static assert(is(typeof(k1) == typeof(k2)));                // fails
+}
+
+/************************************/
+// 12403
+
+void test12403()
+{
+    void func(K, V)(inout(V[K]) aa)
+    {
+        static assert(is(V == const int));
+        static assert(is(K == int));
+    }
+
+    const(int)[int] m;
+    func(m);
 }
 
 /************************************/

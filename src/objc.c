@@ -762,7 +762,9 @@ ObjcDotClassExp::ObjcDotClassExp(Loc loc, Expression *e)
 
 Expression *ObjcDotClassExp::semantic(Scope *sc)
 {
-    UnaExp::semantic(sc);
+    if (Expression *ex = unaSemantic(sc))
+        return ex;
+
     if (e1->type && e1->type->ty == Tclass)
     {
         ClassDeclaration *cd = ((TypeClass *)e1->type)->sym;
@@ -801,25 +803,6 @@ void ObjcDotClassExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writestring(".class");
 }
 
-elem *ObjcDotClassExp::toElem(IRState *irs)
-{
-    elem *e = e1->toElem(irs);
-    if (!noop)
-    {
-        TypeFunction *tf = new TypeFunction(NULL, type, 0, LINKobjc);
-        FuncDeclaration *fd = new FuncDeclaration(0, 0, NULL, STCstatic, tf);
-        fd->protection = PROTpublic;
-        fd->linkage = LINKobjc;
-        fd->objcSelector = ObjcSelector::lookup("class", 5, 0);
-
-        Expression *ef = new VarExp(0, fd);
-        Expression *ec = new CallExp(loc, ef);
-        e = ec->toElem(irs);
-    }
-    return e;
-}
-
-
 // MARK: .interface Expression
 
 ClassDeclaration *ObjcProtocolOfExp::protocolClassDecl = NULL;
@@ -832,7 +815,9 @@ ObjcProtocolOfExp::ObjcProtocolOfExp(Loc loc, Expression *e)
 
 Expression *ObjcProtocolOfExp::semantic(Scope *sc)
 {
-    UnaExp::semantic(sc);
+    if (Expression *ex = unaSemantic(sc))
+        return ex;
+
     if (e1->type && e1->type->ty == Tclass)
     {
         ClassDeclaration *cd = ((TypeClass *)e1->type)->sym;
@@ -1015,7 +1000,7 @@ Symbol *ObjcClassDeclaration::getMethodList()
             assert(func->objcSelector);
             dtxoff(&dt, func->objcSelector->toNameSymbol(), 0, TYnptr); // method name
             dtxoff(&dt, ObjcSymbols::getMethVarType(func), 0, TYnptr); // method type string
-            dtxoff(&dt, func->toSymbol(), 0, TYnptr); // function implementation
+            dtxoff(&dt, toSymbol(func), 0, TYnptr); // function implementation
         }
     }
 
@@ -1218,20 +1203,6 @@ MATCH TypeObjcSelector::implicitConvTo(Type *to)
     return MATCHnomatch;
 }
 
-void TypeObjcSelector::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
-{
-    if (mod != this->mod)
-    {   toCBuffer3(buf, hgs, mod);
-        return;
-    }
-    TypeFunction *tf = (TypeFunction *)next;
-
-    tf->next->toCBuffer2(buf, hgs, 0);
-    buf->writestring(" __selector");
-    Parameter::argsToCBuffer(buf, hgs, tf->parameters, tf->varargs);
-    tf->attributesToCBuffer(buf, mod);
-}
-
 Expression *TypeObjcSelector::defaultInit(Loc loc)
 {
 #if LOGDEFAULTINIT
@@ -1240,14 +1211,14 @@ Expression *TypeObjcSelector::defaultInit(Loc loc)
     return new NullExp(loc, this);
 }
 
-int TypeObjcSelector::isZeroInit(Loc loc)
+bool TypeObjcSelector::isZeroInit(Loc loc)
 {
-    return 1;
+    return true;
 }
 
-int TypeObjcSelector::checkBoolean()
+bool TypeObjcSelector::checkBoolean()
 {
-    return TRUE;
+    return true;
 }
 
 Expression *TypeObjcSelector::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)

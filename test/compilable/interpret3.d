@@ -5,6 +5,8 @@ template compiles(int T)
    bool compiles = true;
 }
 
+alias TypeTuple(T...) = T;
+
 /**************************************************
     3901 Arbitrary struct assignment, ref return
 **************************************************/
@@ -179,6 +181,19 @@ static assert(retRefTest1()==2);
 static assert(retRefTest2()==2);
 static assert(retRefTest3()==26);
 static assert(retRefTest4()==218);
+
+/**************************************************
+    Bug 7887 assign to returned reference
+**************************************************/
+
+bool test7887()
+{
+    ref int f(ref int x) { return x; }
+    int a;
+    f(a) = 42;
+    return (a == 42);
+}
+static assert(test7887());
 
 /**************************************************
     Bug 7473 struct non-ref
@@ -1280,9 +1295,14 @@ struct Zadok
         z[0] = 56;
         auto zs = z[];
         fog(zs) = [56, 6, 8];
-        assert(z[1] == 6);
+
         assert(z[0] == 56);
-        return z[2];
+        assert(z[1] == 61);
+        assert(z[2] == 61);
+
+        assert(zs[0] == 56);
+        assert(zs[1] == 6);
+        return zs[2];
     }
 }
 
@@ -2565,6 +2585,28 @@ bool bug10858()
 static assert(bug10858());
 
 /**************************************************
+    12528 - painting inout type for value type literals
+**************************************************/
+
+inout(T)[] dup12528(T)(inout(T)[] a)
+{
+    inout(T)[] res;
+    foreach (ref e; a)
+        res ~= e;
+    return res;
+}
+
+enum arr12528V1 = dup12528([0]);
+enum arr12528V2 = dup12528([0, 1]);
+static assert(arr12528V1 == [0]);
+static assert(arr12528V2 == [0, 1]);
+
+enum arr12528C1 = dup12528([new immutable Object]);
+enum arr12528C2 = dup12528([new immutable Object, new immutable Object]);
+static assert(arr12528C1.length == 1);
+static assert(arr12528C2.length == 2 && arr12528C2[0] !is arr12528C2[1]);
+
+/**************************************************
     9745 Allow pointers to static variables
 **************************************************/
 
@@ -2676,6 +2718,20 @@ bool bug4065(string s) {
 static assert(!bug4065("xx"));
 static assert(bug4065("aa"));
 static assert(bug4065("bb"));
+
+/**************************************************
+    12689 - assigning via pointer from 'in' expression
+**************************************************/
+
+int g12689()
+{
+    int[int] aa;
+    aa[1] = 13;
+    assert(*(1 in aa) == 13);
+    *(1 in aa) = 42;
+    return aa[1];
+}
+static assert(g12689() == 42);
 
 /**************************************************
     Pointers in ? :
@@ -3726,6 +3782,19 @@ int isItSafeToDance()
 static assert(isItSafeToDance());
 
 /**************************************************
+    12296 CTFE rejects const compatible AA pointer cast
+**************************************************/
+
+int test12296()
+{
+    immutable x = [5 : 4];
+    auto aa = &x;
+    const(int[int])* y = aa;
+    return 1;
+}
+static assert(test12296());
+
+/**************************************************
     9170 Allow reinterpret casts float<->int
 **************************************************/
 int f9170(float x) {
@@ -3936,6 +4005,23 @@ static assert( is(typeof(compiles!(test7876(11)))));
 static assert(!is(typeof(compiles!(test7876(10)))));
 
 /**************************************************
+    11824
+**************************************************/
+
+int f11824(T)()
+{
+    T[] arr = new T[](1);
+    T* getAddr(ref T a)
+    {
+        return &a;
+    }
+    getAddr(arr[0]);
+    return 1;
+}
+static assert(f11824!int());        // OK
+static assert(f11824!(int[])());    // OK <- NG
+
+/**************************************************
     6817 if converted to &&, only with -inline
 **************************************************/
 static assert({
@@ -4138,6 +4224,22 @@ int classtest3()
 }
 
 static assert(classtest3());
+
+/**************************************************
+    12016 class cast and qualifier reinterpret
+**************************************************/
+
+class B12016 { }
+
+class C12016 : B12016 { }
+
+bool f12016(immutable B12016 b)
+{
+    assert(b);
+    return true;
+}
+
+static assert(f12016(new immutable C12016));
 
 /**************************************************
     11587 AA compare
@@ -5868,6 +5970,106 @@ string f10782()
 mixin(f10782());
 
 /**************************************************
+    10929 NRVO support in CTFE
+**************************************************/
+
+struct S10929
+{
+    this(this)
+    {
+        postblitCount++;
+    }
+    ~this()
+    {
+        dtorCount++;
+    }
+    int payload;
+    int dtorCount;
+    int postblitCount;
+}
+
+auto makeS10929()
+{
+    auto s = S10929(42, 0, 0);
+    return s;
+}
+
+bool test10929()
+{
+    auto s = makeS10929();
+    assert(s.postblitCount == 0);
+    assert(s.dtorCount == 0);
+    return true;
+};
+static assert(test10929());
+
+/**************************************************
+    9245 - support postblit call on array assignments
+**************************************************/
+
+bool test9245()
+{
+    int postblits = 0;
+    struct S
+    {
+        this(this)
+        {
+            ++postblits;
+        }
+    }
+
+    S s;
+    S[2] a;
+    assert(postblits == 0);
+
+    {
+        S[2] arr = s;
+        assert(postblits == 2);
+        arr[] = s;
+        assert(postblits == 4);
+        postblits = 0;
+
+        S[2] arr2 = arr;
+        assert(postblits == 2);
+        arr2 = arr;
+        assert(postblits == 4);
+        postblits = 0;
+
+        const S[2] constArr = s;
+        assert(postblits == 2);
+        postblits = 0;
+
+        const S[2] constArr2 = arr;
+        assert(postblits == 2);
+        postblits = 0;
+    }
+    {
+        S[2][2] arr = s;
+        assert(postblits == 4);
+        arr[] = a;
+        assert(postblits == 8);
+        postblits = 0;
+
+        S[2][2] arr2 = arr;
+        assert(postblits == 4);
+        arr2 = arr;
+        assert(postblits == 8);
+        postblits = 0;
+
+        const S[2][2] constArr = s;
+        assert(postblits == 4);
+        postblits = 0;
+
+        const S[2][2] constArr2 = arr;
+        assert(postblits == 4);
+        postblits = 0;
+    }
+
+    return true;
+}
+static assert(test9245());
+
+/**************************************************
     11510 support overlapped field access in CTFE
 **************************************************/
 
@@ -5918,6 +6120,64 @@ enum test11534 = () {
     //auto start = m.storage.ptr + 1; //this obviously works
     return 0;
 }();
+
+/**************************************************
+    11941 - Regression of 11534 fix
+**************************************************/
+
+void takeConst11941(const string[]) {}
+string[] identity11941(string[] x) { return x; }
+
+bool test11941a()
+{
+    struct S { string[] a; }
+    S s;
+
+    takeConst11941(identity11941(s.a));
+    s.a ~= [];
+
+    return true;
+}
+static assert(test11941a());
+
+bool test11941b()
+{
+    struct S { string[] a; }
+    S s;
+
+    takeConst11941(identity11941(s.a));
+    s.a ~= "foo"; /* Error refers to this line (15), */
+    string[] b = s.a[]; /* but only when this is here. */
+
+    return true;
+}
+static assert(test11941b());
+
+/**************************************************
+    11535 - element-wise assignment from string to ubyte array literal
+**************************************************/
+
+struct Hash11535
+{
+    ubyte[6] _buffer;
+
+    void put(scope const(ubyte)[] data...)
+    {
+        uint i = 0, index = 0;
+        auto inputLen = data.length;
+
+        (&_buffer[index])[0 .. inputLen-i] = (&data[i])[0 .. inputLen-i];
+    }
+}
+
+auto md5_digest11535(T...)(scope const T data)
+{
+    Hash11535 hash;
+    hash.put(cast(const(ubyte[]))data[0]);
+    return hash._buffer;
+}
+
+static assert(md5_digest11535(`TEST`) == [84, 69, 83, 84, 0, 0]);
 
 /**************************************************
     11540 - goto label + try-catch-finally / with statement
@@ -6166,3 +6426,171 @@ bool test11664()
     return true;
 }
 static assert(test11664());
+
+/**************************************************
+    12110 - operand of dereferencing does not need to be an lvalue
+**************************************************/
+
+struct SliceOverIndexed12110
+{
+    Uint24Array12110* arr;
+
+    @property front(uint val)
+    {
+        arr.dupThisReference();
+    }
+}
+
+struct Uint24Array12110
+{
+    ubyte[] data;
+
+    this(ubyte[] range)
+    {
+        data = range;
+        SliceOverIndexed12110(&this).front = 0;
+        assert(data.length == range.length * 2);
+    }
+
+    void dupThisReference()
+    {
+        auto new_data = new ubyte[data.length * 2];
+        data = new_data;
+    }
+}
+
+static m12110 = Uint24Array12110([0x80]);
+
+/**************************************************
+    12310 - heap allocation for built-in sclar types
+**************************************************/
+
+bool test12310()
+{
+    auto p1 = new int, p2 = p1;
+    assert(*p1 == 0);
+    assert(*p2 == 0);
+    *p1 = 10;
+    assert(*p1 == 10);
+    assert(*p2 == 10);
+
+    auto q1 = new int(3), q2 = q1;
+    assert(*q1 == 3);
+    assert(*q2 == 3);
+    *q1 = 20;
+    assert(*q1 == 20);
+    assert(*q2 == 20);
+
+    return true;
+}
+static assert(test12310());
+
+/**************************************************
+    12499 - initialize TupleDeclaraion in CTFE
+**************************************************/
+
+auto f12499()
+{
+    //Initialize 3 ints to 5.
+    TypeTuple!(int, int, int) a = 5;
+    return a[0]; //Error: variable _a_field_0 cannot be read at compile time
+}
+static assert(f12499() == 5);
+
+/**************************************************
+    12602 - slice in struct literal members
+**************************************************/
+
+struct Result12602
+{
+    uint[] source;
+}
+
+auto wrap12602a(uint[] r)
+{
+    return Result12602(r);
+}
+
+auto wrap12602b(uint[] r)
+{
+    Result12602 x;
+    x.source = r;
+    return x;
+}
+
+auto testWrap12602a()
+{
+    uint[] dest = [1, 2, 3, 4];
+
+    auto ra = wrap12602a(dest[0..2]);
+    auto rb = wrap12602a(dest[2..4]);
+
+    foreach (i; 0..2)
+        rb.source[i] = ra.source[i];
+
+    assert(ra.source == [1,2]);
+    assert(rb.source == [1,2]);
+    assert(&ra.source[0] == &dest[0]);
+    assert(&rb.source[0] == &dest[2]);
+    assert(dest == [1,2,1,2]);
+    return dest;
+}
+
+auto testWrap12602b()
+{
+    uint[] dest = [1, 2, 3, 4];
+
+    auto ra = wrap12602b(dest[0..2]);
+    auto rb = wrap12602b(dest[2..4]);
+
+    foreach (i; 0..2)
+        rb.source[i] = ra.source[i];
+
+    assert(ra.source == [1,2]);
+    assert(rb.source == [1,2]);
+    assert(&ra.source[0] == &dest[0]);
+    assert(&rb.source[0] == &dest[2]);
+    assert(dest == [1,2,1,2]);
+    return dest;
+}
+
+auto testWrap12602c()
+{
+    uint[] dest = [1, 2, 3, 4];
+
+    auto ra = Result12602(dest[0..2]);
+    auto rb = Result12602(dest[2..4]);
+
+    foreach (i; 0..2)
+        rb.source[i] = ra.source[i];
+
+    assert(ra.source == [1,2]);
+    assert(rb.source == [1,2]);
+    assert(&ra.source[0] == &dest[0]);
+    assert(&rb.source[0] == &dest[2]);
+    assert(dest == [1,2,1,2]);
+    return dest;
+}
+
+auto testWrap12602d()
+{
+    uint[] dest = [1, 2, 3, 4];
+
+    Result12602 ra; ra.source = dest[0..2];
+    Result12602 rb; rb.source = dest[2..4];
+
+    foreach (i; 0..2)
+        rb.source[i] = ra.source[i];
+
+    assert(ra.source == [1,2]);
+    assert(rb.source == [1,2]);
+    assert(&ra.source[0] == &dest[0]);
+    assert(&rb.source[0] == &dest[2]);
+    assert(dest == [1,2,1,2]);
+    return dest;
+}
+
+static assert(testWrap12602a() == [1,2,1,2]);
+static assert(testWrap12602b() == [1,2,1,2]);
+static assert(testWrap12602c() == [1,2,1,2]);
+static assert(testWrap12602d() == [1,2,1,2]);

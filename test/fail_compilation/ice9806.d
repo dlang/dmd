@@ -25,15 +25,12 @@ void test1() {
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice9806.d(39): Error: undefined identifier undefined_expr
-fail_compilation/ice9806.d(42): Error: CTFE failed because of previous errors in foo2
-fail_compilation/ice9806.d(47): Error: template instance ice9806.S2!() error instantiating
-fail_compilation/ice9806.d(40): Error: undefined identifier undefined_expr
-fail_compilation/ice9806.d(43): Error: CTFE failed because of previous errors in bar2
-fail_compilation/ice9806.d(49): Error: template instance ice9806.C2!() error instantiating
-fail_compilation/ice9806.d(41): Error: undefined identifier undefined_expr
-fail_compilation/ice9806.d(44): Error: CTFE failed because of previous errors in baz2
-fail_compilation/ice9806.d(51): Error: template instance ice9806.I2!() error instantiating
+fail_compilation/ice9806.d(36): Error: undefined identifier undefined_expr
+fail_compilation/ice9806.d(44): Error: template instance ice9806.S2!() error instantiating
+fail_compilation/ice9806.d(37): Error: undefined identifier undefined_expr
+fail_compilation/ice9806.d(46): Error: template instance ice9806.C2!() error instantiating
+fail_compilation/ice9806.d(38): Error: undefined identifier undefined_expr
+fail_compilation/ice9806.d(48): Error: template instance ice9806.I2!() error instantiating
 ---
 */
 int foo2()() { return undefined_expr; }

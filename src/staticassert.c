@@ -40,7 +40,7 @@ Dsymbol *StaticAssert::syntaxCopy(Dsymbol *s)
     return sa;
 }
 
-int StaticAssert::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
+int StaticAssert::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
 {
     return 0;           // we didn't add anything
 }
@@ -52,8 +52,8 @@ void StaticAssert::semantic(Scope *sc)
 void StaticAssert::semantic2(Scope *sc)
 {
     //printf("StaticAssert::semantic2() %s\n", toChars());
-    ScopeDsymbol *sd = new ScopeDsymbol();
-    sc = sc->push(sd);
+    ScopeDsymbol *sds = new ScopeDsymbol();
+    sc = sc->push(sds);
     sc->flags |= SCOPEstaticassert;
 
     sc = sc->startCTFE();
@@ -90,13 +90,13 @@ void StaticAssert::semantic2(Scope *sc)
             sc = sc->endCTFE();
             msg = msg->ctfeInterpret();
             hgs.console = 1;
-            StringExp * s = msg->toString();
+            StringExp * s = msg->toStringExp();
             if (s)
             {   s->postfix = 0; // Don't display a trailing 'c'
                 msg = s;
             }
             msg->toCBuffer(&buf, &hgs);
-            error("%s", buf.toChars());
+            error("%s", buf.peekString());
         }
         else
             error("(%s) is false", exp->toChars());
@@ -118,11 +118,7 @@ bool StaticAssert::oneMember(Dsymbol **ps, Identifier *ident)
     return true;
 }
 
-void StaticAssert::inlineScan()
-{
-}
-
-void StaticAssert::toObjFile(int multiobj)
+void StaticAssert::toObjFile(bool multiobj)
 {
 }
 

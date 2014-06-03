@@ -29,7 +29,7 @@ public:
     DebugSymbol(Loc loc, unsigned level);
     Dsymbol *syntaxCopy(Dsymbol *);
 
-    int addMember(Scope *sc, ScopeDsymbol *s, int memnum);
+    int addMember(Scope *sc, ScopeDsymbol *sds, int memnum);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     const char *kind();
@@ -45,7 +45,7 @@ public:
     VersionSymbol(Loc loc, unsigned level);
     Dsymbol *syntaxCopy(Dsymbol *);
 
-    int addMember(Scope *sc, ScopeDsymbol *s, int memnum);
+    int addMember(Scope *sc, ScopeDsymbol *sds, int memnum);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     const char *kind();

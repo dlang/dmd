@@ -302,7 +302,7 @@ auto foo10329(T)(T arg)
     {
         return arg;
     }
-    static assert(is(typeof(&bar) == T delegate() nothrow @safe));
+    static assert(is(typeof(&bar) == T delegate() nothrow @nogc @safe));
     return bar();
 }
 
@@ -313,7 +313,7 @@ auto make10329(T)(T arg)
         auto front() { return T.init; }
     }
     S s;
-    static assert(is(typeof(&s.front) == T delegate() pure nothrow @safe));
+    static assert(is(typeof(&s.front) == T delegate() pure nothrow @nogc @safe));
     return s;
 }
 
@@ -323,6 +323,84 @@ void test10329() pure nothrow @safe
 
     auto s = make10329(1);
     assert(s.front() == 0);
+}
+
+/**********************************/
+// 11896
+
+class Foo11896a(T = int)
+{
+    static if (!__traits(isVirtualMethod, zoo)) {} else { Undefined x; }
+
+    static void bar() {}
+    static void bar(Foo11896a foo) {}
+
+    static void zoo()
+    {
+        bar(new Foo11896a);
+    }
+}
+Foo11896a!(int) baz11896a;
+
+// ----
+
+Frop11896b!(int) frop11896b;
+
+mixin template baz11896b()
+{
+    public void bar11896b() {}
+}
+
+mixin baz11896b;
+
+class Foo11896b(T)
+{
+    static if (! __traits(isVirtualMethod, zoo)) {}
+
+    static void zoo()
+    {
+        bar11896b();
+    }
+}
+
+class Frop11896b(T) : Foo11896b!T {}
+
+// ----
+
+static bool flag11896c = false;
+
+class Bar11896c {}
+
+class Foo11896c(T = Bar11896c)
+{
+    static if (! __traits(isVirtualMethod, foo)) {}
+    alias Foo11896c!(T) this_type;
+    this()
+    {
+        flag11896c = true;
+    }
+    static public this_type foo()
+    {
+        auto c = new this_type();
+        return flag11896c ? c : null;
+    }
+}
+
+void test11896c()
+{
+    alias Foo11896c!Bar11896c FooBar;
+    assert(FooBar.foo() !is null);
+}
+
+/**********************************/
+// 12392
+
+void f12392(T)() {}
+alias fa12392 = f12392;
+
+void test12392() pure nothrow @safe
+{
+    fa12392!int();
 }
 
 /**********************************/
@@ -336,6 +414,7 @@ int main()
     test9952();
     test10373();
     test10329();
+    test11896c();
 
     printf("Success\n");
     return 0;

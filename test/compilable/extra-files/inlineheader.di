@@ -558,3 +558,15 @@ template Test10334(T...)
 mixin Test10334!int a;
 mixin Test10334!(int, long) b;
 mixin Test10334!"str" c;
+auto clamp12266a(T1, T2, T3)(T1 x, T2 min_val, T3 max_val)
+{
+	return 0;
+}
+pure clamp12266b(T1, T2, T3)(T1 x, T2 min_val, T3 max_val)
+{
+	return 0;
+}
+@disable pure clamp12266c(T1, T2, T3)(T1 x, T2 min_val, T3 max_val)
+{
+	return 0;
+}

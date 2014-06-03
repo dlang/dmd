@@ -4,12 +4,12 @@
 /*
 TEST_OUTPUT:
 ---
-output foo: 1e: pure nothrow @safe void(int x)
-output foo: 3e: pure nothrow @safe void(int x)
+output foo: 1e: pure nothrow @nogc @safe void(int x)
+output foo: 3e: pure nothrow @nogc @safe void(int x)
 ---
 */
 
-alias void function(int) pure nothrow @safe FuncPtrType;
+alias void function(int) pure nothrow @safe @nogc FuncPtrType;
 
 void foo1a(X)(X x) {}
 void foo1b(X)(X x) {}

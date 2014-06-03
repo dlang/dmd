@@ -39,6 +39,7 @@ class StructDeclaration;
 class UnionDeclaration;
 class FuncDeclaration;
 class FuncAliasDeclaration;
+class OverDeclaration;
 class FuncLiteralDeclaration;
 class CtorDeclaration;
 class PostBlitDeclaration;
@@ -64,6 +65,7 @@ class ScopeDsymbol;
 class TemplateDeclaration;
 class TemplateInstance;
 class TemplateMixin;
+class Nspace;
 class EnumMember;
 class WithScopeSymbol;
 class ArrayScopeSymbol;
@@ -81,6 +83,9 @@ struct TYPE;
 
 // Back end
 struct Classsym;
+
+const char *mangle(Dsymbol *s);
+const char *mangleExact(FuncDeclaration *fd);
 
 enum PROT
 {
@@ -137,7 +142,7 @@ public:
     bool errors;                // this symbol failed to pass semantic()
     PASS semanticRun;
     char *depmsg;               // customized deprecation message
-    Expressions *userAttributes;        // user defined attributes from UserAttributeDeclaration
+    UserAttributeDeclaration *userAttribDecl;   // user defined attributes
     UnitTestDeclaration *ddocUnittest; // !=NULL means there's a ddoc unittest associated with this symbol (only use this with ddoc)
 
     Dsymbol();
@@ -162,7 +167,8 @@ public:
     TemplateInstance *isSpeculative();
     Ungag ungagSpeculative();
 
-    int dyncast() { return DYNCAST_DSYMBOL; }   // kludge for template.isSymbol()
+    // kludge for template.isSymbol()
+    int dyncast() { return DYNCAST_DSYMBOL; }
 
     static Dsymbols *arraySyntaxCopy(Dsymbols *a);
 
@@ -171,20 +177,17 @@ public:
     virtual const char *kind();
     virtual Dsymbol *toAlias();                 // resolve real symbol
     virtual int apply(Dsymbol_apply_ft_t fp, void *param);
-    virtual int addMember(Scope *sc, ScopeDsymbol *s, int memnum);
+    virtual int addMember(Scope *sc, ScopeDsymbol *sds, int memnum);
     virtual void setScope(Scope *sc);
     virtual void importAll(Scope *sc);
     virtual void semantic(Scope *sc);
     virtual void semantic2(Scope *sc);
     virtual void semantic3(Scope *sc);
-    virtual void inlineScan();
     virtual Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
     Dsymbol *search_correct(Identifier *id);
     Dsymbol *searchX(Loc loc, Scope *sc, RootObject *id);
     virtual bool overloadInsert(Dsymbol *s);
-    virtual void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
     virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    virtual void toDocBuffer(OutBuffer *buf, Scope *sc);
     virtual unsigned size(Loc loc);
     virtual bool isforwardRef();
     virtual void defineRef(Dsymbol *s);
@@ -200,7 +203,6 @@ public:
     virtual LabelDsymbol *isLabel();            // is this a LabelDsymbol?
     virtual AggregateDeclaration *isMember();   // is this symbol a member of an AggregateDeclaration?
     virtual Type *getType();                    // is this a type?
-    virtual const char *mangle(bool isv = false);
     virtual bool needThis();                    // need a 'this' pointer?
     virtual PROT prot();
     virtual Dsymbol *syntaxCopy(Dsymbol *s);    // copy only syntax trees
@@ -217,14 +219,11 @@ public:
     virtual void checkCtorConstInit() { }
 
     virtual void addComment(const utf8_t *comment);
-    virtual void emitComment(Scope *sc);
-    void emitDitto(Scope *sc);
+
+    bool inNonRoot();
 
     // Backend
-
-    virtual Symbol *toSymbol();                 // to backend symbol
-    virtual void toObjFile(int multiobj);                       // compile to .obj file
-    virtual int cvMember(unsigned char *p);     // emit cv debug info for member
+    virtual void toObjFile(bool multiobj);                       // compile to .obj file
 
     Symbol *toImport();                         // to backend import symbol
     static Symbol *toImport(Symbol *s);         // to backend import symbol
@@ -238,6 +237,7 @@ public:
     virtual TemplateDeclaration *isTemplateDeclaration() { return NULL; }
     virtual TemplateInstance *isTemplateInstance() { return NULL; }
     virtual TemplateMixin *isTemplateMixin() { return NULL; }
+    virtual Nspace *isNspace() { return NULL; }
     virtual Declaration *isDeclaration() { return NULL; }
     virtual ThisDeclaration *isThisDeclaration() { return NULL; }
     virtual TypeInfoDeclaration *isTypeInfoDeclaration() { return NULL; }
@@ -247,6 +247,7 @@ public:
     virtual AggregateDeclaration *isAggregateDeclaration() { return NULL; }
     virtual FuncDeclaration *isFuncDeclaration() { return NULL; }
     virtual FuncAliasDeclaration *isFuncAliasDeclaration() { return NULL; }
+    virtual OverDeclaration *isOverDeclaration() { return NULL; }
     virtual FuncLiteralDeclaration *isFuncLiteralDeclaration() { return NULL; }
     virtual CtorDeclaration *isCtorDeclaration() { return NULL; }
     virtual PostBlitDeclaration *isPostBlitDeclaration() { return NULL; }
@@ -283,9 +284,11 @@ public:
     Dsymbols *members;          // all Dsymbol's in this scope
     DsymbolTable *symtab;       // members[] sorted into table
 
+private:
     Dsymbols *imports;          // imported Dsymbol's
     PROT *prots;                // array of PROT, one for each import
 
+public:
     ScopeDsymbol();
     ScopeDsymbol(Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *s);
@@ -299,8 +302,6 @@ public:
     FuncDeclaration *findGetMembers();
     virtual Dsymbol *symtabInsert(Dsymbol *s);
     bool hasStaticCtorOrDtor();
-
-    void emitMemberComments(Scope *sc);
 
     static size_t dim(Dsymbols *members);
     static Dsymbol *getNth(Dsymbols *members, size_t nth, size_t *pn = NULL);

@@ -3,6 +3,8 @@ module mixin1;
 
 import std.stdio;
 
+alias TypeTuple(T...) = T;
+
 /*******************************************/
 
 mixin template Foo(T)
@@ -1252,11 +1254,52 @@ void test11767()
         mixin M11767!();
         alias S2 = S11767;
         static assert(!is(S1 == S2));
-        static assert(S1.mangleof == "S6mixin19test11767FZv8__mixin16S11767");
-        static assert(S2.mangleof == "S6mixin19test11767FZv8__mixin26S11767");
+        static assert(S1.mangleof == "S6mixin19test11767FZ8__mixin16S11767");
+        static assert(S2.mangleof == "S6mixin19test11767FZ8__mixin26S11767");
     }
     mixin M11767!();
     static assert(!__traits(compiles, S11767));
+}
+
+/*******************************************/
+// 12023
+
+void Delete12023(Object obj) {}
+
+template MessageCode12023()
+{
+    alias typeof(this) C;
+
+    struct MessageDeinitHelper
+    {
+        C m_outer;
+
+        ~this()
+        {
+            m_outer.DoDeinitMessaging();
+        }
+    }
+
+    CToClient toClient = null;
+    TypeTuple!(CToClient) toClients;
+
+    class CToClient {}
+
+    void DoDeinitMessaging()
+    {
+        Delete12023(toClient);
+        Delete12023(toClients);
+    }
+}
+
+class TurretCannon12023(ProjectileClass)
+{
+    mixin MessageCode12023;
+}
+
+void test12023()
+{
+    auto tc = new TurretCannon12023!Object();
 }
 
 /*******************************************/
@@ -1309,6 +1352,7 @@ int main()
     test42();
     test9417();
     test11767();
+    test12023();
 
     printf("Success\n");
     return 0;

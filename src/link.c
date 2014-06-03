@@ -33,7 +33,6 @@
     #include        <spawn.h>
     #if __APPLE__
         #include <crt_externs.h>
-        #define environ (*(_NSGetEnviron()))
     #endif
 #else
     #define HAS_POSIX_SPAWN 0
@@ -47,7 +46,7 @@
 
 #include        "arraytypes.h"
 
-void toWinPath(char *src);
+const char * toWinPath(const char *src);
 int executecmd(const char *cmd, const char *args);
 int executearg0(const char *cmd, const char *args);
 
@@ -158,8 +157,10 @@ int runLINK()
             const char *basename = FileName::removeExt(FileName::name(p));
             const char *ext = FileName::ext(p);
             if (ext && !strchr(basename, '.'))
+            {
                 // Write name sans extension (but not if a double extension)
                 writeFilename(&cmdbuf, p, ext - p - 1);
+            }
             else
                 writeFilename(&cmdbuf, p);
             FileName::free(basename);
@@ -226,6 +227,10 @@ int runLINK()
         {
             cmdbuf.writeByte(' ');
             cmdbuf.writestring("/DEBUG");
+
+            // in release mode we need to reactivate /OPT:REF after /DEBUG
+            if (global.params.release)
+                cmdbuf.writestring(" /OPT:REF");
         }
 
         if (global.params.dll)
@@ -256,7 +261,7 @@ int runLINK()
             cmdbuf.writestring("lib\\x64\"");
         }
 
-        char *p = cmdbuf.toChars();
+        char *p = cmdbuf.peekString();
 
         const char *lnkfilename = NULL;
         size_t plen = strlen(p);
@@ -282,8 +287,7 @@ int runLINK()
                 OutBuffer linkcmdbuf;
                 linkcmdbuf.writestring(vcinstalldir);
                 linkcmdbuf.writestring("bin\\amd64\\link");
-                linkcmd = linkcmdbuf.toChars();
-                linkcmdbuf.extractData();
+                linkcmd = linkcmdbuf.extractString();
             }
             else
                 linkcmd = "link";
@@ -311,8 +315,10 @@ int runLINK()
             const char *basename = FileName::removeExt(FileName::name(p));
             const char *ext = FileName::ext(p);
             if (ext && !strchr(basename, '.'))
+            {
                 // Write name sans extension (but not if a double extension)
                 writeFilename(&cmdbuf, p, ext - p - 1);
+            }
             else
                 writeFilename(&cmdbuf, p);
             FileName::free(basename);
@@ -403,7 +409,7 @@ int runLINK()
         }
         cmdbuf.writeByte(';');
 
-        char *p = cmdbuf.toChars();
+        char *p = cmdbuf.peekString();
 
         const char *lnkfilename = NULL;
         size_t plen = strlen(p);
@@ -549,21 +555,21 @@ int runLINK()
         argv.push(global.params.mapfile);
     }
 
-    if (0 && global.params.exefile)
-    {
-        /* This switch enables what is known as 'smart linking'
-         * in the Windows world, where unreferenced sections
-         * are removed from the executable. It eliminates unreferenced
-         * functions, essentially making a 'library' out of a module.
-         * Although it is documented to work with ld version 2.13,
-         * in practice it does not, but just seems to be ignored.
-         * Thomas Kuehne has verified that it works with ld 2.16.1.
-         * BUG: disabled because it causes exception handling to fail
-         * because EH sections are "unreferenced" and elided
-         */
-        argv.push("-Xlinker");
-        argv.push("--gc-sections");
-    }
+    /* This switch enables what is known as 'smart linking'
+     * in the Windows world, where unreferenced sections
+     * are removed from the executable. It eliminates unreferenced
+     * functions, essentially making a 'library' out of a module.
+     * Although it is documented to work with ld version 2.13,
+     * in practice it does not, but just seems to be ignored.
+     * Thomas Kuehne has verified that it works with ld 2.16.1.
+     */
+#if __linux__
+    /* Only works on linux because the linkers shipped with other
+     * OSes don't yet support this flag.
+     */
+    argv.push("-Xlinker");
+    argv.push("--gc-sections");
+#endif
 
     for (size_t i = 0; i < global.params.linkswitches->dim; i++)
     {   const char *p = (*global.params.linkswitches)[i];
@@ -596,6 +602,12 @@ int runLINK()
             memcpy(s + 2, p, plen + 1);
             argv.push(s);
         }
+    }
+
+    for (size_t i = 0; i < global.params.dllfiles->dim; i++)
+    {
+        const char *p = (*global.params.dllfiles)[i];
+        argv.push(p);
     }
 
     /* Standard libraries must go after user specified libraries
@@ -635,7 +647,7 @@ int runLINK()
     argv.push("-lrt");
 #endif
 
-    if (!global.params.quiet || global.params.verbose)
+    if (global.params.verbose)
     {
         // Print it
         for (size_t i = 0; i < argv.dim; i++)
@@ -728,7 +740,7 @@ int executecmd(const char *cmd, const char *args)
     int status;
     size_t len;
 
-    if (!global.params.quiet || global.params.verbose)
+    if (global.params.verbose)
         fprintf(global.stdmsg, "%s %s\n", cmd, args);
 
     if (!global.params.is64bit)
@@ -750,9 +762,7 @@ int executecmd(const char *cmd, const char *args)
     }
 
     // Normalize executable path separators, see Bugzilla 9330
-    char *p = mem.strdup(cmd);
-    toWinPath(p);
-    cmd = p;
+    cmd = toWinPath(cmd);
 
 #ifdef _MSC_VER
     if(strchr(cmd, ' '))

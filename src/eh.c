@@ -40,7 +40,7 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 #error fix
 #endif
 
-extern void error(const char *filename, unsigned linnum, const char *format, ...);
+extern void error(const char *filename, unsigned linnum, unsigned charnum, const char *format, ...);
 
 /****************************
  * Generate and output scope table.
@@ -54,7 +54,7 @@ symbol *except_gentables()
         // BUG: alloca() changes the stack size, which is not reflected
         // in the fixed eh tables.
         if (usedalloca)
-            error(NULL, 0, "cannot mix core.std.stdlib.alloca() and exception handling in %s()", funcsym_p->Sident);
+            error(NULL, 0, 0, "cannot mix core.std.stdlib.alloca() and exception handling in %s()", funcsym_p->Sident);
 
         char name[13+5+1];
         static int tmpnum;

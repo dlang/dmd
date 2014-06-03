@@ -18,7 +18,7 @@ class Module;
 struct Scope;
 class ScopeDsymbol;
 class DebugCondition;
-#include "lexer.h" // dmdhg
+#include "lexer.h"
 enum TOK;
 struct HdrGenState;
 
@@ -28,14 +28,15 @@ class Condition
 {
 public:
     Loc loc;
-    int inc;            // 0: not computed yet
-                        // 1: include
-                        // 2: do not include
+    // 0: not computed yet
+    // 1: include
+    // 2: do not include
+    int inc;
 
     Condition(Loc loc);
 
     virtual Condition *syntaxCopy() = 0;
-    virtual int include(Scope *sc, ScopeDsymbol *s) = 0;
+    virtual int include(Scope *sc, ScopeDsymbol *sds) = 0;
     virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs) = 0;
     virtual DebugCondition *isDebugCondition() { return NULL; }
 };
@@ -60,7 +61,7 @@ public:
 
     DebugCondition(Module *mod, unsigned level, Identifier *ident);
 
-    int include(Scope *sc, ScopeDsymbol *s);
+    int include(Scope *sc, ScopeDsymbol *sds);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     DebugCondition *isDebugCondition() { return this; }
 };
@@ -80,7 +81,7 @@ public:
 
     VersionCondition(Module *mod, unsigned level, Identifier *ident);
 
-    int include(Scope *sc, ScopeDsymbol *s);
+    int include(Scope *sc, ScopeDsymbol *sds);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 
@@ -92,7 +93,7 @@ public:
 
     StaticIfCondition(Loc loc, Expression *exp);
     Condition *syntaxCopy();
-    int include(Scope *sc, ScopeDsymbol *s);
+    int include(Scope *sc, ScopeDsymbol *sds);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 

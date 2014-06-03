@@ -34,17 +34,6 @@ ClassReferenceExp::ClassReferenceExp(Loc loc, StructLiteralExp *lit, Type *type)
     this->type = type;
 }
 
-Expression *ClassReferenceExp::interpret(InterState *istate, CtfeGoal goal)
-{
-    //printf("ClassReferenceExp::interpret() %s\n", value->toChars());
-    return this;
-}
-
-void ClassReferenceExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring(value->toChars());
-}
-
 ClassDeclaration *ClassReferenceExp::originalClass()
 {
     return value->sd->isClassDeclaration();
@@ -120,13 +109,6 @@ char *VoidInitExp::toChars()
     return (char *)"void";
 }
 
-Expression *VoidInitExp::interpret(InterState *istate, CtfeGoal goal)
-{
-    error("CTFE internal error: trying to read uninitialized variable");
-    assert(0);
-    return EXP_CANT_INTERPRET;
-}
-
 // Return index of the field, or -1 if not found
 // Same as getFieldIndex, but checks for a direct match with the VarDeclaration
 int findFieldIndexByName(StructDeclaration *sd, VarDeclaration *v)
@@ -147,12 +129,6 @@ ThrownExceptionExp::ThrownExceptionExp(Loc loc, ClassReferenceExp *victim) : Exp
     this->type = victim->type;
 }
 
-Expression *ThrownExceptionExp::interpret(InterState *istate, CtfeGoal)
-{
-    assert(0); // This should never be interpreted
-    return this;
-}
-
 char *ThrownExceptionExp::toChars()
 {
     return (char *)"CTFE ThrownException";
@@ -162,7 +138,7 @@ char *ThrownExceptionExp::toChars()
 void ThrownExceptionExp::generateUncaughtError()
 {
     Expression *e = (*thrown->value->elements)[0];
-    StringExp* se = e->toString();
+    StringExp* se = e->toStringExp();
     thrown->error("Uncaught CTFE exception %s(%s)", thrown->type->toChars(), se ? se->toChars() : e->toChars());
 
     /* Also give the line where the throw statement was. We won't have it
@@ -273,12 +249,12 @@ Expression *copyLiteral(Expression *e)
         r->ownedByCtfe = true;
         return r;
     }
-    /* syntaxCopy doesn't work for struct literals, because of a nasty special
-     * case: block assignment is permitted inside struct literals, eg,
-     * an int[4] array can be initialized with a single int.
-     */
     else if (e->op == TOKstructliteral)
     {
+        /* syntaxCopy doesn't work for struct literals, because of a nasty special
+         * case: block assignment is permitted inside struct literals, eg,
+         * an int[4] array can be initialized with a single int.
+         */
         StructLiteralExp *se = (StructLiteralExp *)e;
         Expressions *oldelems = se->elements;
         Expressions * newelems = new Expressions();
@@ -291,9 +267,7 @@ Expression *copyLiteral(Expression *e)
             VarDeclaration *v = sd->fields[i];
             // If it is a void assignment, use the default initializer
             if (!m)
-                m = v->type->voidInitLiteral(v);
-            if (m->op == TOKslice)
-                m = resolveSlice(m);
+                m = voidInitLiteral(v->type, v);
             if ((v->type->ty != m->type->ty) && v->type->ty == Tsarray)
             {
                 // Block assignment from inside struct literals
@@ -305,11 +279,7 @@ Expression *copyLiteral(Expression *e)
                 m = copyLiteral(m);
             (*newelems)[i] = m;
         }
-#if DMDV2
         StructLiteralExp *r = new StructLiteralExp(e->loc, se->sd, newelems, se->stype);
-#else
-        StructLiteralExp *r = new StructLiteralExp(e->loc, se->sd, newelems);
-#endif
         r->type = e->type;
         r->ownedByCtfe = true;
         r->origin = ((StructLiteralExp*)e)->origin;
@@ -327,8 +297,9 @@ Expression *copyLiteral(Expression *e)
         r->type = e->type;
         return r;
     }
-    else if ( isPointer(e->type) )
-    {   // For pointers, we only do a shallow copy.
+    else if (isPointer(e->type))
+    {
+        // For pointers, we only do a shallow copy.
         Expression *r;
         if (e->op == TOKaddress)
             r = new AddrExp(e->loc, ((AddrExp *)e)->e1);
@@ -336,12 +307,8 @@ Expression *copyLiteral(Expression *e)
             r = new IndexExp(e->loc, ((IndexExp *)e)->e1, ((IndexExp *)e)->e2);
         else if (e->op == TOKdotvar)
         {
-#if DMDV2
             r = new DotVarExp(e->loc, ((DotVarExp *)e)->e1,
                 ((DotVarExp *)e)->var, ((DotVarExp *)e)->hasOverloads);
-#else
-            r = new DotVarExp(e->loc, ((DotVarExp *)e)->e1, ((DotVarExp *)e)->var);
-#endif
         }
         else
             assert(0);
@@ -349,9 +316,10 @@ Expression *copyLiteral(Expression *e)
         return r;
     }
     else if (e->op == TOKslice)
-    {   // Array slices only do a shallow copy
+    {
+        // Array slices only do a shallow copy
         Expression *r = new SliceExp(e->loc, ((SliceExp *)e)->e1,
-         ((SliceExp *)e)->lwr,  ((SliceExp *)e)->upr);
+            ((SliceExp *)e)->lwr, ((SliceExp *)e)->upr);
         r->type = e->type;
         return r;
     }
@@ -378,9 +346,13 @@ Expression *paintTypeOntoLiteral(Type *type, Expression *lit)
     if (lit->type->equals(type))
         return lit;
 
-    // If it is a cast to inout, retain the original type.
-    if (type->hasWild())
+    // If it is a cast to inout, retain the original type of the referenced part.
+    if (type->hasWild() && type->hasPointers())
+    {
+        lit = lit->copy();
+        lit->type = type;
         return lit;
+    }
 
     Expression *e;
     if (lit->op == TOKslice)
@@ -415,7 +387,8 @@ Expression *paintTypeOntoLiteral(Type *type, Expression *lit)
         e = aae;
     }
     else
-    {   // Can't type paint from struct to struct*; this needs another
+    {
+        // Can't type paint from struct to struct*; this needs another
         // level of indirection
         if (lit->op == TOKstructliteral && isPointer(type) )
             lit->error("CTFE internal error painting %s", type->toChars());
@@ -516,23 +489,12 @@ StringExp *createBlockDuplicatedStringLiteral(Loc loc, Type *type,
     return se;
 }
 
-// Return true if t is an AA, or AssociativeArray!(key, value)
+// Return true if t is an AA
 bool isAssocArray(Type *t)
 {
     t = t->toBasetype();
     if (t->ty == Taarray)
         return true;
-#if DMDV2
-    if (t->ty != Tstruct)
-        return false;
-    StructDeclaration *sym = ((TypeStruct *)t)->sym;
-    if (sym->ident == Id::AssociativeArray && sym->parent &&
-        sym->parent->parent &&
-        sym->parent->parent->ident == Id::object)
-    {
-        return true;
-    }
-#endif
     return false;
 }
 
@@ -542,17 +504,8 @@ TypeAArray *toBuiltinAAType(Type *t)
     t = t->toBasetype();
     if (t->ty == Taarray)
         return (TypeAArray *)t;
-#if DMDV2
-    assert(t->ty == Tstruct);
-    StructDeclaration *sym = ((TypeStruct *)t)->sym;
-    assert(sym->ident == Id::AssociativeArray);
-    TemplateInstance *tinst = sym->parent->isTemplateInstance();
-    assert(tinst);
-    return new TypeAArray((Type *)(*tinst->tiargs)[1], (Type *)(*tinst->tiargs)[0]);
-#else
     assert(0);
     return NULL;
-#endif
 }
 
 /************** TypeInfo operations ************************************/
@@ -594,12 +547,8 @@ bool isSafePointerCast(Type *srcPointee, Type *destPointee)
         destPointee = destPointee->nextOf();
     }
 
-#if DMDV2
-   // It's OK if both are the same (modulo const)
-    srcPointee = srcPointee->castMod(0);
-    destPointee = destPointee->castMod(0);
-#endif
-    if (srcPointee == destPointee)
+    // It's OK if both are the same (modulo const)
+    if (srcPointee->constConv(destPointee))
         return true;
 
     // It's OK if function pointers differ only in safe/pure/nothrow
@@ -608,6 +557,10 @@ bool isSafePointerCast(Type *srcPointee, Type *destPointee)
 
     // it's OK to cast to void*
     if (destPointee->ty == Tvoid)
+        return true;
+
+    // It's OK to cast from V[K] to void*
+    if (srcPointee->ty == Taarray && destPointee == Type::tvoidptr)
         return true;
 
     // It's OK if they are the same size (static array of) integers, eg:
@@ -920,10 +873,10 @@ void intUnary(TOK op, IntegerExp *e)
     switch (op)
     {
     case TOKneg:
-        e->value = -e->value;
+        e->setInteger(-e->getInteger());
         break;
     case TOKtilde:
-        e->value = ~e->value;
+        e->setInteger(~e->getInteger());
         break;
     default:
         assert(0);
@@ -939,26 +892,27 @@ void intBinary(TOK op, IntegerExp *dest, Type *type, IntegerExp *e1, IntegerExp 
     switch (op)
     {
     case TOKand:
-        result = e1->value & e2->value;
+        result = e1->getInteger() & e2->getInteger();
         break;
     case TOKor:
-        result = e1->value | e2->value;
+        result = e1->getInteger() | e2->getInteger();
         break;
     case TOKxor:
-        result = e1->value ^ e2->value;
+        result = e1->getInteger() ^ e2->getInteger();
         break;
     case TOKadd:
-        result = e1->value + e2->value;
+        result = e1->getInteger() + e2->getInteger();
         break;
     case TOKmin:
-        result = e1->value - e2->value;
+        result = e1->getInteger() - e2->getInteger();
         break;
     case TOKmul:
-        result = e1->value * e2->value;
+        result = e1->getInteger() * e2->getInteger();
         break;
     case TOKdiv:
-        {   sinteger_t n1 = e1->value;
-            sinteger_t n2 = e2->value;
+        {
+            sinteger_t n1 = e1->getInteger();
+            sinteger_t n2 = e2->getInteger();
 
             if (n2 == 0)
             {   e2->error("divide by 0");
@@ -971,8 +925,8 @@ void intBinary(TOK op, IntegerExp *dest, Type *type, IntegerExp *e1, IntegerExp 
         }
         break;
     case TOKmod:
-        {   sinteger_t n1 = e1->value;
-            sinteger_t n2 = e2->value;
+        {   sinteger_t n1 = e1->getInteger();
+            sinteger_t n2 = e2->getInteger();
 
             if (n2 == 0)
             {   e2->error("divide by 0");
@@ -998,13 +952,13 @@ void intBinary(TOK op, IntegerExp *dest, Type *type, IntegerExp *e1, IntegerExp 
         }
         break;
     case TOKpow:
-        {   dinteger_t n = e2->value;
+        {   dinteger_t n = e2->getInteger();
             if (!e2->type->isunsigned() && (sinteger_t)n < 0)
             {
                 e2->error("integer ^^ -integer: total loss of precision");
                 n = 1;
             }
-            uinteger_t r = e1->value;
+            uinteger_t r = e1->getInteger();
             result = 1;
             while (n != 0)
             {
@@ -1016,11 +970,11 @@ void intBinary(TOK op, IntegerExp *dest, Type *type, IntegerExp *e1, IntegerExp 
         }
         break;
     case TOKshl:
-        result = e1->value << e2->value;
+        result = e1->getInteger() << e2->getInteger();
         break;
     case TOKshr:
-        {   dinteger_t value = e1->value;
-            dinteger_t dcount = e2->value;
+        {   dinteger_t value = e1->getInteger();
+            dinteger_t dcount = e2->getInteger();
             assert(dcount <= 0xFFFFFFFF);
             unsigned count = (unsigned)dcount;
             switch (e1->type->toBasetype()->ty)
@@ -1065,8 +1019,8 @@ void intBinary(TOK op, IntegerExp *dest, Type *type, IntegerExp *e1, IntegerExp 
         }
         break;
     case TOKushr:
-        {   dinteger_t value = e1->value;
-            dinteger_t dcount = e2->value;
+        {   dinteger_t value = e1->getInteger();
+            dinteger_t dcount = e2->getInteger();
             assert(dcount <= 0xFFFFFFFF);
             unsigned count = (unsigned)dcount;
             switch (e1->type->toBasetype()->ty)
@@ -1103,16 +1057,16 @@ void intBinary(TOK op, IntegerExp *dest, Type *type, IntegerExp *e1, IntegerExp 
         break;
     case TOKequal:
     case TOKidentity:
-        result = (e1->value == e2->value);
+        result = (e1->getInteger() == e2->getInteger());
         break;
     case TOKnotequal:
     case TOKnotidentity:
-        result = (e1->value != e2->value);
+        result = (e1->getInteger() != e2->getInteger());
         break;
     default:
         assert(0);
     }
-    dest->value = result;
+    dest->setInteger(result);
     dest->type = type;
 }
 
@@ -1754,10 +1708,11 @@ Expression *ctfeCast(Loc loc, Type *type, Type *to, Expression *e)
     if (e->op == TOKnull)
         return paintTypeOntoLiteral(to, e);
     if (e->op == TOKclassreference)
-    {   // Disallow reinterpreting class casts. Do this by ensuring that
+    {
+        // Disallow reinterpreting class casts. Do this by ensuring that
         // the original class can implicitly convert to the target class
         ClassDeclaration *originalClass = ((ClassReferenceExp *)e)->originalClass();
-        if (originalClass->type->implicitConvTo(to))
+        if (originalClass->type->implicitConvTo(to->mutableOf()))
             return paintTypeOntoLiteral(to, e);
         else
             return new NullExp(loc, to);
@@ -1765,12 +1720,10 @@ Expression *ctfeCast(Loc loc, Type *type, Type *to, Expression *e)
     // Allow TypeInfo type painting
     if (isTypeInfo_Class(e->type) && e->type->implicitConvTo(to))
         return paintTypeOntoLiteral(to, e);
-#if DMDV2
     // Allow casting away const for struct literals
     if (e->op == TOKstructliteral &&
         e->type->toBasetype()->castMod(0) == to->toBasetype()->castMod(0))
         return paintTypeOntoLiteral(to, e);
-#endif
     Expression *r = Cast(type, to, e);
     if (r == EXP_CANT_INTERPRET)
         error(loc, "cannot cast %s to %s at compile time", e->toChars(), to->toChars());
@@ -1800,6 +1753,8 @@ void assignInPlace(Expression *dest, Expression *src)
         assert(dest->op == src->op);
         oldelems = ((StructLiteralExp *)dest)->elements;
         newelems = ((StructLiteralExp *)src)->elements;
+        if (((StructLiteralExp *)dest)->sd->isNested() && oldelems->dim == newelems->dim - 1)
+            oldelems->push(NULL);
     }
     else if (dest->op == TOKarrayliteral && src->op==TOKarrayliteral)
     {
@@ -1848,13 +1803,8 @@ void assignInPlace(Expression *dest, Expression *src)
 void recursiveBlockAssign(ArrayLiteralExp *ae, Expression *val, bool wantRef)
 {
     assert( ae->type->ty == Tsarray || ae->type->ty == Tarray);
-#if DMDV2
     Type *desttype = ((TypeArray *)ae->type)->next->toBasetype()->castMod(0);
     bool directblk = (val->type->toBasetype()->castMod(0))->equals(desttype);
-#else
-    Type *desttype = ((TypeArray *)ae->type)->next;
-    bool directblk = (val->type->toBasetype())->equals(desttype);
-#endif
 
     bool cow = !(val->op == TOKstructliteral || val->op == TOKarrayliteral
         || val->op == TOKstring);
@@ -2007,12 +1957,7 @@ Expression *changeArrayLiteralLength(Loc loc, TypeArray *arrayType,
 
 bool isCtfeValueValid(Expression *newval)
 {
-#if DMDV2
-    bool isnull = newval->type->ty == Tnull;
-#else
-    bool isnull = false;
-#endif
-    if (isnull || isPointer(newval->type))
+    if (newval->type->ty == Tnull || isPointer(newval->type))
     {
         if (newval->op == TOKaddress || newval->op == TOKnull ||
             newval->op == TOKstring)
@@ -2039,7 +1984,7 @@ bool isCtfeValueValid(Expression *newval)
         VarExp *ve = (VarExp *)newval;
         VarDeclaration *vv = ve->var->isVarDeclaration();
         // Must not be a reference to a reference
-        if (!(vv && vv->getValue() && vv->getValue()->op == TOKvar))
+        if (!(vv && getValue(vv) && getValue(vv)->op == TOKvar))
             return true;
     }
     if (newval->op == TOKdotvar)
@@ -2173,8 +2118,8 @@ void showCtfeExpr(Expression *e, int level)
     {
         printf("VAR %p %s\n", e, e->toChars());
         VarDeclaration *v = ((VarExp *)e)->var->isVarDeclaration();
-        if (v && v->getValue())
-            showCtfeExpr(v->getValue(), level + 1);
+        if (v && getValue(v))
+            showCtfeExpr(getValue(v), level + 1);
     }
     else if (isPointer(e->type))
     {
@@ -2243,43 +2188,47 @@ void showCtfeExpr(Expression *e, int level)
 
 /*************************** Void initialization ***************************/
 
-Expression *Type::voidInitLiteral(VarDeclaration *var)
+Expression *voidInitLiteral(Type *t, VarDeclaration *var)
 {
-    return new VoidInitExp(var, this);
-}
-
-Expression *TypeSArray::voidInitLiteral(VarDeclaration *var)
-{
-    Expression *elem = next->voidInitLiteral(var);
-
-    // For aggregate value types (structs, static arrays) we must
-    // create an a separate copy for each element.
-    bool mustCopy = (elem->op == TOKarrayliteral || elem->op == TOKstructliteral);
-
-    Expressions *elements = new Expressions();
-    size_t d = (size_t)dim->toInteger();
-    elements->setDim(d);
-    for (size_t i = 0; i < d; i++)
-    {   if (mustCopy && i > 0)
-            elem  = copyLiteral(elem);
-        (*elements)[i] = elem;
-    }
-    ArrayLiteralExp *ae = new ArrayLiteralExp(var->loc, elements);
-    ae->type = this;
-    ae->ownedByCtfe = true;
-    return ae;
-}
-
-Expression *TypeStruct::voidInitLiteral(VarDeclaration *var)
-{
-    Expressions *exps = new Expressions();
-    exps->setDim(sym->fields.dim);
-    for (size_t i = 0; i < sym->fields.dim; i++)
+    if (t->ty == Tsarray)
     {
-        (*exps)[i] = sym->fields[i]->type->voidInitLiteral(sym->fields[i]);
+        TypeSArray *tsa = (TypeSArray *)t;
+        Expression *elem = voidInitLiteral(tsa->next, var);
+
+        // For aggregate value types (structs, static arrays) we must
+        // create an a separate copy for each element.
+        bool mustCopy = (elem->op == TOKarrayliteral || elem->op == TOKstructliteral);
+
+        Expressions *elements = new Expressions();
+        size_t d = (size_t)tsa->dim->toInteger();
+        elements->setDim(d);
+        for (size_t i = 0; i < d; i++)
+        {
+            if (mustCopy && i > 0)
+                elem  = copyLiteral(elem);
+            (*elements)[i] = elem;
+        }
+        ArrayLiteralExp *ae = new ArrayLiteralExp(var->loc, elements);
+        ae->type = tsa;
+        ae->ownedByCtfe = true;
+        return ae;
     }
-    StructLiteralExp *se = new StructLiteralExp(var->loc, sym, exps);
-    se->type = this;
-    se->ownedByCtfe = true;
-    return se;
+    else if (t->ty == Tstruct)
+    {
+        TypeStruct *ts = (TypeStruct *)t;
+        Expressions *exps = new Expressions();
+        exps->setDim(ts->sym->fields.dim);
+        for (size_t i = 0; i < ts->sym->fields.dim; i++)
+        {
+            (*exps)[i] = voidInitLiteral(ts->sym->fields[i]->type, ts->sym->fields[i]);
+        }
+        StructLiteralExp *se = new StructLiteralExp(var->loc, ts->sym, exps);
+        se->type = ts;
+        se->ownedByCtfe = true;
+        return se;
+    }
+    else
+    {
+        return new VoidInitExp(var, t);
+    }
 }

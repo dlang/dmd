@@ -81,28 +81,28 @@ public:
     Dsymbols *parseBlock(Dsymbol **pLastDecl);
     void composeStorageClass(StorageClass stc);
     StorageClass parseAttribute(Expressions **pexps);
-    StorageClass parsePostfix();
+    StorageClass parsePostfix(Expressions **pudas);
     StorageClass parseTypeCtor();
     Expression *parseConstraint();
     TemplateDeclaration *parseTemplateDeclaration(bool ismixin = false);
     TemplateParameters *parseTemplateParameterList(int flag = 0);
     Dsymbol *parseMixin();
+    Objects *parseTemplateArguments();
     Objects *parseTemplateArgumentList();
-    Objects *parseTemplateArgumentList2();
-    Objects *parseTemplateArgument();
+    Objects *parseTemplateSingleArgument();
     StaticAssert *parseStaticAssert();
     TypeQualified *parseTypeof();
     Type *parseVector();
-    LINK parseLinkage();
+    LINK parseLinkage(Identifiers **);
     Condition *parseDebugCondition();
     Condition *parseVersionCondition();
     Condition *parseStaticIfCondition();
     Dsymbol *parseCtor();
-    DtorDeclaration *parseDtor();
-    StaticCtorDeclaration *parseStaticCtor();
-    StaticDtorDeclaration *parseStaticDtor();
-    SharedStaticCtorDeclaration *parseSharedStaticCtor();
-    SharedStaticDtorDeclaration *parseSharedStaticDtor();
+    Dsymbol *parseDtor();
+    Dsymbol *parseStaticCtor();
+    Dsymbol *parseStaticDtor();
+    Dsymbol *parseSharedStaticCtor();
+    Dsymbol *parseSharedStaticDtor();
     InvariantDeclaration *parseInvariant();
     UnitTestDeclaration *parseUnitTest();
     NewDeclaration *parseNew();
@@ -111,16 +111,18 @@ public:
     EnumDeclaration *parseEnum();
     Dsymbol *parseAggregate();
     BaseClasses *parseBaseClasses();
-    Import *parseImport(Dsymbols *decldefs, int isstatic);
+    Dsymbols *parseImport();
     Type *parseType(Identifier **pident = NULL, TemplateParameters **tpl = NULL);
     Type *parseBasicType();
     Type *parseBasicType2(Type *t);
-    Type *parseDeclarator(Type *t, Identifier **pident, TemplateParameters **tpl = NULL, StorageClass storage_class = 0, int* pdisable = NULL);
-    Dsymbols *parseDeclarations(StorageClass storage_class, const utf8_t *comment);
+    Type *parseDeclarator(Type *t, Identifier **pident,
+        TemplateParameters **tpl = NULL, StorageClass storage_class = 0, int* pdisable = NULL, Expressions **pudas = NULL);
+    void parseStorageClasses(StorageClass &storage_class, LINK &link, unsigned &structalign, Expressions *&udas);
+    Dsymbols *parseDeclarations(bool autodecl, StorageClass storage_class, const utf8_t *comment);
 #if DMD_OBJC
     ObjcSelector *parseObjCSelector();
 #endif
-    void parseContracts(FuncDeclaration *f);
+    FuncDeclaration *parseContracts(FuncDeclaration *f);
     void checkDanglingElse(Loc elseloc);
     /** endPtr used for documented unittests */
     Statement *parseStatement(int flags, const utf8_t** endPtr = NULL);

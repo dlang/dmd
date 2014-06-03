@@ -120,7 +120,7 @@ size_t extractArgN(const utf8_t *p, size_t end, const utf8_t **pmarg, size_t *pm
   Largstart:
 #if 1
     // Skip first space, if any, to find the start of the macro argument
-    if (v < end && isspace(p[v]))
+    if (n != 1 && v < end && isspace(p[v]))
         v++;
 #else
     // Skip past spaces to find the start of the macro argument
@@ -278,7 +278,13 @@ void Macro::expand(OutBuffer *buf, size_t start, size_t *pend,
 
             const utf8_t *marg;
             size_t marglen;
-            extractArgN(arg, arglen, &marg, &marglen, n);
+            if (n == 0)
+            {
+                marg = arg;
+                marglen = arglen;
+            }
+            else
+                extractArgN(arg, arglen, &marg, &marglen, n);
             if (marglen == 0)
             {   // Just remove macro invocation
                 //printf("Replacing '$%c' with '%.*s'\n", p[u + 1], marglen, marg);

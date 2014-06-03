@@ -1,12 +1,10 @@
-
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
-// All Rights Reserved
-// written by Rainer Schuetze
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+/* Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved, written by Rainer Schuetze
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/root/longdouble.h
+ */
 
 // 80 bit floating point value implementation for Microsoft compiler
 
@@ -198,7 +196,6 @@ longdouble tanl (longdouble ld);
 
 longdouble fmodl(longdouble x, longdouble y);
 longdouble ldexpl(longdouble ldval, int exp); // see strtold
-longdouble strtold(const char *p,char **endp);
 
 inline longdouble fabs (longdouble ld) { return fabsl(ld); }
 inline longdouble sqrt (longdouble ld) { return sqrtl(ld); }

@@ -1651,6 +1651,7 @@ void test100()
     printf("d = %llx, ulong.max = %llx\n", d, ulong.max);
     assert(d == ulong.max);
   }
+  static if(real.mant_dig == 64)
   {
     real r = ulong.max - 1;
     printf("r = %Lg, ulong.max = %llu\n", r, ulong.max);
@@ -1658,6 +1659,11 @@ void test100()
     printf("d = %llx, ulong.max = %llx\n", d, ulong.max);
     assert(d == ulong.max - 1);
   }
+  else static if(real.mant_dig == 53)
+  { //can't store ulong.max-1 in double
+  }
+  else
+     static assert(false, "Test not implemented for this platform");
 }
 
 /***************************************************/
@@ -2084,6 +2090,42 @@ void test129()
     int[] a = [ 1, 2, 3 ];
     auto r = retro129(a);
     auto i = begin129(r);
+}
+
+/***************************************************/
+// 12725
+
+struct R12725(R : E[], E)
+{
+}
+
+int begin12725(F)(R12725!(F) range)
+{
+    return 0;
+}
+
+void test12725()
+{
+    R12725!(int[], int) r;
+    auto i = begin12725(r);
+}
+
+/***************************************************/
+// 12728
+
+struct Matrix12728(T, uint m, uint n = m, ubyte f = 0)
+{
+    void foo(uint r)(auto ref in Matrix12728!(T, n, r) b)
+    {
+    }
+}
+
+void test12728()
+{
+    alias Matrix4 = Matrix12728!(float, 4);
+
+    Matrix4 m;
+    m.foo(m);
 }
 
 /***************************************************/
@@ -5420,7 +5462,12 @@ void testdbl_to_ulong()
     real adjust = 1.0L/real.epsilon;
     u = d2ulong(adjust);
     //writefln("%s %s", adjust, u);
-    assert(u == 9223372036854775808UL);
+    static if(real.mant_dig == 64)
+        assert(u == 9223372036854775808UL);
+    else static if(real.mant_dig == 53)
+        assert(u == 4503599627370496UL);
+    else
+        static assert(false, "Test not implemented for this architecture");
 
     auto v = d2ulong(adjust * 1.1);
     //writefln("%s %s %s", adjust, v, u + u/10);
@@ -5462,7 +5509,12 @@ void testreal_to_ulong()
     real adjust = 1.0L/real.epsilon;
     u = r2ulong(adjust);
     //writefln("%s %s", adjust, u);
-    assert(u == 9223372036854775808UL);
+    static if(real.mant_dig == 64)
+        assert(u == 9223372036854775808UL);
+    else static if(real.mant_dig == 53)
+        assert(u == 4503599627370496UL);
+    else
+        static assert(false, "Test not implemented for this architecture");
 
     auto v = r2ulong(adjust * 1.1);
     writefln("%s %s %s", adjust, v, u + u/10);

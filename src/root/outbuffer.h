@@ -1,11 +1,11 @@
 
-// Copyright (c) 1999-2011 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+/* Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved, written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/root/outbuffer.h
+ */
 
 #ifndef OUTBUFFER_H
 #define OUTBUFFER_H
@@ -15,7 +15,6 @@
 #include <string.h>
 #include <assert.h>
 #include "port.h"
-#include "rmem.h"
 
 #if __DMC__
 #pragma once
@@ -46,7 +45,6 @@ struct OutBuffer
     void prependstring(const char *string);
     void writenl();                     // write newline
     void writeByte(unsigned b);
-    void writebyte(unsigned b) { writeByte(b); }
     void writeUTF8(unsigned b);
     void prependbyte(unsigned b);
     void writewchar(unsigned w);
@@ -64,7 +62,9 @@ struct OutBuffer
     void spread(size_t offset, size_t nbytes);
     size_t insert(size_t offset, const void *data, size_t nbytes);
     void remove(size_t offset, size_t nbytes);
-    char *toChars();
+    // Append terminating null if necessary and get view of internal buffer
+    char *peekString();
+    // Append terminating null if necessary and take ownership of data
     char *extractString();
 };
 

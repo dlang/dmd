@@ -2130,6 +2130,25 @@ void test103()
 
 /***************************************************/
 
+class C11616
+{
+    virtual void a() {}
+    virtual { void b() {} }
+virtual:
+    final void c() {}
+final:
+    virtual void d() {}
+}
+
+class D11616 : C11616
+{
+    final override void a() {}
+    final override void b() {}
+    final override void d() {}
+}
+
+/***************************************************/
+
 int foo104(int x)
 {
     int* p = &(x += 1);
@@ -3160,6 +3179,14 @@ void test141()
 }
 
 /***************************************************/
+
+class test5498_A {}
+class test5498_B : test5498_A {}
+class test5498_C : test5498_A {}
+
+static assert(is(typeof([test5498_B.init, test5498_C.init]) == test5498_A[]));
+
+/***************************************************/
 // 3688
 
 struct S142
@@ -4111,7 +4138,7 @@ void test6264()
     S s;
     static assert(!is(typeof(a[] = s[])));
     int*[] b;
-    static assert(!is(typeof(b[] = [new immutable(int)])));
+    static assert(is(typeof(b[] = [new immutable(int)])));
     char[] c = new char[](5);
     c[] = "hello";
 }
@@ -4234,27 +4261,6 @@ void test6293() {
     auto x = new C6293;
     x.token = x;
     f6293([x]);
-}
-
-/***************************************************/
-// 2774
-
-int foo2774(int n){ return 0; }
-static assert(foo2774.mangleof == "_D7xtest467foo2774FiZi");
-
-class C2774
-{
-    int foo2774(){ return 0; }
-}
-static assert(C2774.foo2774.mangleof == "_D7xtest465C27747foo2774MFZi");
-
-template TFoo2774(T){}
-static assert(TFoo2774!int.mangleof == "7xtest4615__T8TFoo2774TiZ");
-
-void test2774()
-{
-    int foo2774(int n){ return 0; }
-    static assert(foo2774.mangleof == "_D7xtest468test2774FZv7foo2774MFiZi");
 }
 
 /***************************************************/
@@ -5451,8 +5457,8 @@ void test7285()
 
 void test7321()
 {
-    static assert(is(typeof((){})==void function()pure nothrow @safe));         // ok
-    static assert(is(typeof((){return;})==void function()pure nothrow @safe));  // fail
+    static assert(is(typeof((){})==void function()pure nothrow @nogc @safe));         // ok
+    static assert(is(typeof((){return;})==void function()pure nothrow @nogc @safe));  // fail
 }
 
 /***************************************************/
@@ -6376,7 +6382,7 @@ void test163() {
     shared const S* s3 = new S();
 
     shared S* s4;
-    assert(!__traits(compiles, s4 = new immutable(S)()));
+    assert(__traits(compiles, s4 = new immutable(S)()));
 
     struct T { int x; int y; }
     immutable T* t;
@@ -6828,7 +6834,8 @@ void test10634()
 
 /***************************************************/
 
-immutable(char)[4] bar7254(int i) {
+immutable(char)[4] bar7254(int i)
+{
     if (i)
     {
         immutable(char)[4] r; return r;
@@ -6862,6 +6869,19 @@ void test11075()
     static assert(!is(typeof(I11075!().x)));
 }
 
+/***************************************************/
+// 11181
+
+void test11181()
+{
+    auto a = ["a", "b"];
+
+    static assert(!is(typeof([a, "x"])));
+    static assert(!is(typeof(true ? a : "x")));
+
+    static assert(!is(typeof(true ? a[0 .. $] : "x")));
+    static assert(!is(typeof([a[0 .. $], "x"])));
+}
 
 /***************************************************/
 // 11317
@@ -6877,6 +6897,34 @@ void test11317()
     static assert(!__traits(compiles, test(fun())));
 
     assert(fun() == 0);
+}
+
+/***************************************************/
+// 12153
+
+void test12153()
+{
+    int[1] i, j;
+    bool b = true;
+    (b ? i : j)[] = [4];
+    assert(i == [4]);
+}
+
+/***************************************************/
+// 12498
+
+string a12498()
+{
+    string b;
+    while (b) { }
+    for (; b; ) { }
+    return "";
+}
+
+void test12498()
+{
+    enum t = a12498();
+    string x = t;
 }
 
 /***************************************************/
@@ -7079,7 +7127,6 @@ int main()
     test6335();
     test1687();
     test6228();
-    test2774();
     test3733();
     test4392();
     test6220();
@@ -7163,7 +7210,9 @@ int main()
     test10634();
     test7254();
     test11075();
+    test11181();
     test11317();
+    test12153();
 
     printf("Success\n");
     return 0;

@@ -26,13 +26,14 @@ class ForeachStatement;
 class ClassDeclaration;
 class AggregateDeclaration;
 class FuncDeclaration;
+class UserAttributeDeclaration;
 struct DocComment;
 class TemplateInstance;
 
 #if __GNUC__
 // Requires a full definition for PROT and LINK
-#include "dsymbol.h"    // PROT
-#include "mars.h"       // LINK
+#include "dsymbol.h"
+#include "mars.h"
 #else
 enum LINK;
 enum PROT;
@@ -66,25 +67,20 @@ struct Scope
     Scope *enclosing;           // enclosing Scope
 
     Module *module;             // Root module
-    Module *instantiatingModule; // top level module that started a chain of template instantiations
     ScopeDsymbol *scopesym;     // current symbol
-    ScopeDsymbol *sd;           // if in static if, and declaring new symbols,
-                                // sd gets the addMember()
+    ScopeDsymbol *sds;          // if in static if, and declaring new symbols,
+                                // sds gets the addMember()
     FuncDeclaration *func;      // function we are in
     Dsymbol *parent;            // parent to use
     LabelStatement *slabel;     // enclosing labelled statement
     SwitchStatement *sw;        // enclosing switch statement
     TryFinallyStatement *tf;    // enclosing try finally statement
+    OnScopeStatement *os;       // enclosing scope(xxx) statement
     TemplateInstance *tinst;    // enclosing template instance
     Statement *sbreak;          // enclosing statement that supports "break"
     Statement *scontinue;       // enclosing statement that supports "continue"
     ForeachStatement *fes;      // if nested function for ForeachStatement, this is it
     Scope *callsc;              // used for __FUNCTION__, __PRETTY_FUNCTION__ and __MODULE__
-    unsigned offset;            // next offset to use in aggregate
-                                // This really shouldn't be a part of Scope, because it requires
-                                // semantic() to be done in the lexical field order. It should be
-                                // set in a pass after semantic() on all fields so they can be
-                                // semantic'd in any order.
     int inunion;                // we're processing members of a union
     int nofree;                 // set if shouldn't free it
     int noctor;                 // set if constructor calls aren't allowed
@@ -107,10 +103,11 @@ struct Scope
 
     unsigned flags;
 
-    Expressions *userAttributes;        // user defined attributes
+    UserAttributeDeclaration *userAttribDecl;   // user defined attributes
 
     DocComment *lastdc;         // documentation comment for last symbol at this scope
-    size_t lastoffset;        // offset in docbuf of where to insert next dec
+    size_t lastoffset;          // offset in docbuf of where to insert next dec (for ditto)
+    size_t lastoffset2;         // offset in docbuf of where to insert next dec (for unittest)
     OutBuffer *docbuf;          // buffer for documentation output
 
     static Scope *freelist;
@@ -119,6 +116,8 @@ struct Scope
 
     Scope();
     Scope(Scope *enclosing);
+
+    Scope *copy();
 
     Scope *push();
     Scope *push(ScopeDsymbol *ss);
@@ -131,6 +130,8 @@ struct Scope
 
     unsigned *saveFieldInit();
     void mergeFieldInit(Loc loc, unsigned *cses);
+
+    Module *instantiatingModule();
 
     Dsymbol *search(Loc loc, Identifier *ident, Dsymbol **pscopesym);
     Dsymbol *search_correct(Identifier *ident);

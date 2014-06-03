@@ -2734,7 +2734,7 @@ void test10055a()
     static struct SG { SX sx; SY sy;      nothrow       ~this() {} }
     static struct SH { SX sx; SY sy; pure               ~this() {} }
     static struct SI { SX sx; SY sy;                    ~this() {} }
-    static assert(is( typeof(&check!S1) == void function() pure nothrow @safe ));
+    static assert(is( typeof(&check!S1) == void function() pure nothrow @nogc @safe ));
     static assert(is( typeof(&check!S2) == void function()                    ));
     static assert(is( typeof(&check!SA) == void function() pure nothrow @safe ));
     static assert(is( typeof(&check!SB) == void function() pure nothrow @safe ));
@@ -2783,7 +2783,7 @@ void test10055b()
     static struct SG { SX sx; SY sy;      nothrow       this(this) {} }
     static struct SH { SX sx; SY sy; pure               this(this) {} }
     static struct SI { SX sx; SY sy;                    this(this) {} }
-    static assert(is( typeof(&check!S1) == void function() pure nothrow @safe ));
+    static assert(is( typeof(&check!S1) == void function() pure nothrow @nogc @safe ));
     static assert(is( typeof(&check!S2) == void function()                    ));
     static assert(is( typeof(&check!SA) == void function() pure nothrow @safe ));
     static assert(is( typeof(&check!SB) == void function() pure nothrow @safe ));
@@ -2818,7 +2818,7 @@ void test10055b()
 struct S10160 { this(this) {} }
 
 struct X10160a { S10160 s; const int x;     }
-struct X10160b { S10160 s; const int x = 1; }
+struct X10160b { S10160 s; enum int x = 1; }
 
 void test10160()
 {
@@ -3134,6 +3134,146 @@ void test11505()
 }
 
 /**********************************/
+// 12045
+
+bool test12045()
+{
+    string dtor;
+    void* ptr;
+
+    struct S12045
+    {
+        string val;
+
+        this(this) { assert(0); }
+        ~this() { dtor ~= val; }
+    }
+
+    auto makeS12045(bool thrown)
+    {
+        auto s1 = S12045("1");
+        auto s2 = S12045("2");
+        ptr = &s1;
+
+        if (thrown)
+            throw new Exception("");
+
+        return s1;  // NRVO
+    }
+
+    dtor = null, ptr = null;
+    try
+    {
+        S12045 s = makeS12045(true);
+        assert(0);
+    }
+    catch (Exception e)
+    {
+        assert(dtor == "21", dtor);
+    }
+
+    dtor = null, ptr = null;
+    {
+        S12045 s = makeS12045(false);
+        assert(dtor == "2");
+        if (!__ctfe) assert(ptr is &s);   // NRVO
+    }
+    assert(dtor == "21");
+
+    return true;
+}
+static assert(test12045());
+
+/**********************************/
+// 12591
+
+struct S12591(T)
+{
+    this(this)
+    {}
+}
+
+struct Tuple12591(Types...)
+{
+    Types expand;
+    this(Types values)
+    {
+        expand[] = values[];
+    }
+}
+
+void test12591()
+{
+    alias T1 = Tuple12591!(S12591!int);
+}
+
+/**********************************/
+// 12660
+
+struct X12660
+{
+    this(this) @nogc {}
+    ~this() @nogc {}
+    void opAssign(X12660) @nogc {}
+    @nogc invariant() {}
+}
+struct Y12660
+{
+    X12660 x;
+
+    this(this) @nogc {}
+    ~this() @nogc {}
+    @nogc invariant() {}
+}
+struct Z12660
+{
+    Y12660 y;
+}
+
+class C12660
+{
+    this() @nogc {}
+    @nogc invariant() {}
+}
+
+void test12660() @nogc
+{
+    X12660 x;
+    x = x;
+
+    Y12660 y = { x };
+    y = y;
+
+    Z12660 z = { y };
+    z = z;
+}
+
+/**********************************/
+// 12686
+
+struct Foo12686
+{
+    static int count;
+
+    invariant() { ++count; }
+
+    @disable this(this);
+
+    Foo12686 bar()
+    {
+        Foo12686 f;
+        return f;
+    }
+}
+
+void test12686()
+{
+    Foo12686 f;
+    Foo12686 f2 = f.bar();
+    assert(Foo12686.count == 2);
+}
+
+/**********************************/
 
 int main()
 {
@@ -3231,6 +3371,10 @@ int main()
     test11197();
     test7474();
     test11505();
+    test12045();
+    test12591();
+    test12660();
+    test12686();
 
     printf("Success\n");
     return 0;

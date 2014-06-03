@@ -263,6 +263,22 @@ void test8()
     }
 }
 
+/**************************************************/
+
+struct S
+{
+    int opApply(int delegate(ref int a)) { return 0; }
+    int opApplyReverse(int delegate(ref int a)) { return 0; }
+    int dg(int delegate(ref int a)) { return 0; }
+}
+
+void test9()
+{
+    S s;
+    foreach(a; s) {}
+    foreach_reverse(a; s) {}
+    foreach(a; &s.dg) {}
+}
 
 /**************************************************/
 
@@ -276,6 +292,7 @@ int main()
     test6();
     test7();
     test8();
+    test9();
 
     printf("Success\n");
     return 0;

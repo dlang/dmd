@@ -48,3 +48,4 @@ dmd.xcodeproj/project.xcworkspace/xcuserdata
 # Output files
 src/*.bak
 src/*.lib
+tags

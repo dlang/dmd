@@ -286,6 +286,9 @@ struct Task
     }
 }
 
+/************************************/
+// 9356
+
 void test9356()
 {
     static inout(char)[] bar (inout(char)[] a)
@@ -296,6 +299,27 @@ void test9356()
     string result;
     result ~= bar("abc");
     assert(result == "abc");
+}
+
+/************************************/
+// 12079
+
+void test12079()
+{
+    string[string][string] foo;
+
+    foo.get("bar", null).get("baz", null);
+}
+
+/************************************/
+// 12243
+
+char f12243() { return 'a'; }
+
+void test12243()
+{
+    string s;
+    s ~= f12243();
 }
 
 /************************************/
@@ -355,6 +379,10 @@ struct S11224
     {
         ptr11224 = &this;
         /*printf("ctor &this = %p\n", &this);*/
+    }
+    this(this)
+    {
+        /*printf("cpctor &this = %p\n", &this);*/
     }
     int num;
 }
@@ -427,6 +455,42 @@ void test11394()
   //debug(NRVO) printf("p1 = %p\np2 = %p\np3 = %p\n", p11394a, p11394b, p11394c);
     debug(NRVO) assert(p11394a == p11394b);
     debug(NRVO) assert(p11394b == p11394c);
+}
+
+/**********************************/
+// 12080
+
+class TZ12080 {}
+
+struct ST12080
+{
+    ST12080 opBinary()() const pure nothrow
+    {
+        auto retval = ST12080();
+        return retval;  // NRVO
+    }
+
+    long  _stdTime;
+    immutable TZ12080 _timezone;
+}
+
+class Foo12080
+{
+
+    ST12080 bar;
+    bool quux;
+
+    public ST12080 sysTime()
+    out {}
+    body
+    {
+        if (quux)
+            return ST12080();
+
+        return bar.opBinary();
+        // returned value is set to __result
+        // --> Inliner wrongly created the second DeclarationExp for __result.
+    }
 }
 
 /**********************************/

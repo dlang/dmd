@@ -52,15 +52,21 @@ Import::Import(Loc loc, Identifiers *packages, Identifier *id, Identifier *alias
     this->mod = NULL;
 
     // Set symbol name (bracketed)
-    // import [cstdio] = std.stdio;
     if (aliasId)
+    {
+        // import [cstdio] = std.stdio;
         this->ident = aliasId;
-    // import [std].stdio;
+    }
     else if (packages && packages->dim)
+    {
+        // import [std].stdio;
         this->ident = (*packages)[0];
-    // import [foo];
+    }
     else
+    {
+        // import [foo];
         this->ident = id;
+    }
 }
 
 void Import::addAlias(Identifier *name, Identifier *alias)
@@ -135,11 +141,11 @@ void Import::load(Scope *sc)
                     else
                         assert(p->isPkgMod == PKGmodule);
                 }
-                else if (p->isPkgMod == PKGmodule)
+                else
                 {
-                    mod = p->mod;
+                    mod = p->isPackageMod();
                 }
-                if (p->isPkgMod != PKGmodule)
+                if (!mod)
                 {
                     ::error(loc, "can only import from a module, not from package %s.%s",
                         p->toPrettyChars(), id->toChars());
@@ -251,9 +257,9 @@ void Import::semantic(Scope *sc)
         sc->protection = PROTpublic;
 #endif
         for (size_t i = 0; i < aliasdecls.dim; i++)
-        {   AliasDeclaration *ad = aliasdecls[i];
-
-            //printf("\tImport alias semantic('%s')\n", s->toChars());
+        {
+            AliasDeclaration *ad = aliasdecls[i];
+            //printf("\tImport alias semantic('%s')\n", ad->toChars());
             if (mod->search(loc, names[i]))
             {
                 ad->semantic(sc);
@@ -265,15 +271,16 @@ void Import::semantic(Scope *sc)
                     mod->error(loc, "import '%s' not found, did you mean '%s %s'?", names[i]->toChars(), s->kind(), s->toChars());
                 else
                     mod->error(loc, "import '%s' not found", names[i]->toChars());
+                ad->type = Type::terror;
             }
         }
         sc = sc->pop();
     }
 
+    // object self-imports itself, so skip that (Bugzilla 7547)
+    // don't list pseudo modules __entrypoint.d, __main.d (Bugzilla 11117, 11164)
     if (global.params.moduleDeps != NULL &&
-        // object self-imports itself, so skip that (Bugzilla 7547)
         !(id == Id::object && sc->module->ident == Id::object) &&
-        // don't list pseudo modules __entrypoint.d, __main.d (Bugzilla 11117, 11164)
         sc->module->ident != Id::entrypoint &&
         strcmp(sc->module->ident->string, "__main") != 0)
     {
@@ -291,7 +298,7 @@ void Import::semantic(Scope *sc)
          */
 
         OutBuffer *ob = global.params.moduleDeps;
-        Module* imod = sc->instantiatingModule ? sc->instantiatingModule : sc->module;
+        Module* imod = sc->instantiatingModule();
         if (!global.params.moduleDepsFile)
             ob->writestring("depsImport ");
         ob->writestring(imod->toPrettyChars());
@@ -321,14 +328,14 @@ void Import::semantic(Scope *sc)
             escapePath(ob, mod->srcfile->toChars());
         else
             ob->writestring("???");
-        ob->writebyte(')');
+        ob->writeByte(')');
 
         for (size_t i = 0; i < names.dim; i++)
         {
             if (i == 0)
-                ob->writebyte(':');
+                ob->writeByte(':');
             else
-                ob->writebyte(',');
+                ob->writeByte(',');
 
             Identifier *name = names[i];
             Identifier *alias = aliases[i];
@@ -415,6 +422,7 @@ Dsymbol *Import::search(Loc loc, Identifier *ident, int flags)
     if (!pkg)
     {
         load(NULL);
+        mod->importAll(NULL);
         mod->semantic();
     }
 

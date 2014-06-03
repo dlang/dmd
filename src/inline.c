@@ -24,20 +24,20 @@
 #include "statement.h"
 #include "mtype.h"
 #include "scope.h"
+#include "attrib.h"
+#include "template.h"
+#include "module.h"
+
+static Expression *expandInline(FuncDeclaration *fd, FuncDeclaration *parent,
+    Expression *eret, Expression *ethis, Expressions *arguments, Statement **ps);
+bool walkPostorder(Expression *e, StoppableVisitor *v);
+int canInline(FuncDeclaration *fd, int hasthis, int hdrscan, int statementsToo);
 
 /* ========== Compute cost of inlining =============== */
 
 /* Walk trees to determine if inlining can be done, and if so,
  * if it is too complex to be worth inlining or not.
  */
-
-struct InlineCostState
-{
-    int nested;
-    int hasthis;
-    int hdrscan;    // !=0 if inline scan for 'header' content
-    FuncDeclaration *fd;
-};
 
 const int COST_MAX = 250;
 const int STATEMENT_COST = 0x1000;
@@ -49,292 +49,336 @@ const int STATEMENT_COST_MAX = 250 * 0x1000;
 
 bool tooCostly(int cost) { return ((cost & (STATEMENT_COST - 1)) >= COST_MAX); }
 
-int expressionInlineCost(Expression *e, InlineCostState *ics);
-
-int Statement::inlineCost(InlineCostState *ics)
+class InlineCostVisitor : public Visitor
 {
-    //printf("Statement::inlineCost = %d\n", COST_MAX);
-    //printf("%p\n", isScopeStatement());
-    //printf("%s\n", toChars());
-    return COST_MAX;            // default is we can't inline it
-}
-
-int ExpStatement::inlineCost(InlineCostState *ics)
-{
-    return expressionInlineCost(exp, ics);
-    //return exp ? exp->inlineCost(ics) : 0;
-}
-
-int CompoundStatement::inlineCost(InlineCostState *ics)
-{   int cost = 0;
-
-    for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s = (*statements)[i];
-        if (s)
-        {
-            cost += s->inlineCost(ics);
-            if (tooCostly(cost))
-                break;
-        }
-    }
-    //printf("CompoundStatement::inlineCost = %d\n", cost);
-    return cost;
-}
-
-int UnrolledLoopStatement::inlineCost(InlineCostState *ics)
-{   int cost = 0;
-
-    for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s = (*statements)[i];
-        if (s)
-        {
-            cost += s->inlineCost(ics);
-            if (tooCostly(cost))
-                break;
-        }
-    }
-    return cost;
-}
-
-int ScopeStatement::inlineCost(InlineCostState *ics)
-{
-    return statement ? 1 + statement->inlineCost(ics) : 1;
-}
-
-int IfStatement::inlineCost(InlineCostState *ics)
-{
+public:
+    int nested;
+    int hasthis;
+    int hdrscan;    // !=0 if inline scan for 'header' content
+    FuncDeclaration *fd;
     int cost;
 
-    /* Can't declare variables inside ?: expressions, so
-     * we cannot inline if a variable is declared.
-     */
-    if (arg)
-        return COST_MAX;
-
-    cost = expressionInlineCost(condition, ics);
-
-    /* Specifically allow:
-     *  if (condition)
-     *      return exp1;
-     *  else
-     *      return exp2;
-     * Otherwise, we can't handle return statements nested in if's.
-     */
-
-    if (elsebody && ifbody &&
-        ifbody->isReturnStatement() &&
-        elsebody->isReturnStatement())
+    InlineCostVisitor()
     {
-        cost += ifbody->inlineCost(ics);
-        cost += elsebody->inlineCost(ics);
-        //printf("cost = %d\n", cost);
+        nested = 0;
+        hasthis = 0;
+        hdrscan = 0;
+        fd = NULL;
+        cost = 0;
     }
-    else
+
+    InlineCostVisitor(InlineCostVisitor *icv)
     {
-        ics->nested += 1;
-        if (ifbody)
-            cost += ifbody->inlineCost(ics);
-        if (elsebody)
-            cost += elsebody->inlineCost(ics);
-        ics->nested -= 1;
+        nested = icv->nested;
+        hasthis = icv->hasthis;
+        hdrscan = icv->hdrscan;
+        fd = icv->fd;
+        cost = 0;   // zero start for subsequent AST
     }
-    //printf("IfStatement::inlineCost = %d\n", cost);
-    return cost;
-}
 
-int ReturnStatement::inlineCost(InlineCostState *ics)
-{
-    // Can't handle return statements nested in if's
-    if (ics->nested)
-        return COST_MAX;
-    return expressionInlineCost(exp, ics);
-}
-
-int ImportStatement::inlineCost(InlineCostState *ics)
-{
-    return 0;
-}
-
-int ForStatement::inlineCost(InlineCostState *ics)
-{
-    //return COST_MAX;
-    int cost = STATEMENT_COST;
-    if (init)
-        cost += init->inlineCost(ics);
-    if (condition)
-        cost += expressionInlineCost(condition, ics);
-    if (increment)
-        cost += expressionInlineCost(increment, ics);
-    if (body)
-        cost += body->inlineCost(ics);
-    //printf("ForStatement: inlineCost = %d\n", cost);
-    return cost;
-}
-
-
-/* -------------------------- */
-
-struct ICS2
-{
-    int cost;
-    InlineCostState *ics;
-};
-
-int lambdaInlineCost(Expression *e, void *param)
-{
-    ICS2 *ics2 = (ICS2 *)param;
-    ics2->cost += e->inlineCost3(ics2->ics);
-    return (ics2->cost >= COST_MAX);
-}
-
-int expressionInlineCost(Expression *e, InlineCostState *ics)
-{
-    //printf("expressionInlineCost()\n");
-    //e->dump(0);
-    ICS2 ics2;
-    ics2.cost = 0;
-    ics2.ics = ics;
-    if (e)
-        e->apply(&lambdaInlineCost, &ics2);
-    return ics2.cost;
-}
-
-int Expression::inlineCost3(InlineCostState *ics)
-{
-    return 1;
-}
-
-int VarExp::inlineCost3(InlineCostState *ics)
-{
-    //printf("VarExp::inlineCost3() %s\n", toChars());
-    Type *tb = type->toBasetype();
-    if (tb->ty == Tstruct)
+    void visit(Statement *s)
     {
-        StructDeclaration *sd = ((TypeStruct *)tb)->sym;
-        if (sd->isNested())
-            /* An inner struct will be nested inside another function hierarchy than where
-             * we're inlining into, so don't inline it.
-             * At least not until we figure out how to 'move' the struct to be nested
-             * locally. Example:
-             *   struct S(alias pred) { void unused_func(); }
-             *   void abc() { int w; S!(w) m; }
-             *   void bar() { abc(); }
-             */
-            return COST_MAX;
+        //printf("Statement::inlineCost = %d\n", COST_MAX);
+        //printf("%p\n", s->isScopeStatement());
+        //printf("%s\n", s->toChars());
+        cost += COST_MAX;            // default is we can't inline it
     }
-    FuncDeclaration *fd = var->isFuncDeclaration();
-    if (fd && fd->isNested())           // see Bugzilla 7199 for test case
-        return COST_MAX;
-    return 1;
-}
 
-int ThisExp::inlineCost3(InlineCostState *ics)
-{
-    //printf("ThisExp::inlineCost3() %s\n", toChars());
-    FuncDeclaration *fd = ics->fd;
-    if (!fd)
-        return COST_MAX;
-    if (!ics->hdrscan)
-        if (fd->isNested() || !ics->hasthis)
-            return COST_MAX;
-    return 1;
-}
+    void visit(ExpStatement *s)
+    {
+        expressionInlineCost(s->exp);
+    }
 
-int StructLiteralExp::inlineCost3(InlineCostState *ics)
-{
-    //printf("StructLiteralExp::inlineCost3() %s\n", toChars());
-    if (sd->isNested())
-        return COST_MAX;
-    return 1;
-}
+    void visit(CompoundStatement *s)
+    {
+        InlineCostVisitor icv(this);
+        for (size_t i = 0; i < s->statements->dim; i++)
+        {
+            Statement *s2 = (*s->statements)[i];
+            if (s2)
+            {
+                s2->accept(&icv);
+                if (tooCostly(icv.cost))
+                    break;
+            }
+        }
+        cost += icv.cost;
+    }
 
-int FuncExp::inlineCost3(InlineCostState *ics)
-{
-    //printf("FuncExp::inlineCost3()\n");
-    // Right now, this makes the function be output to the .obj file twice.
-    return COST_MAX;
-}
+    void visit(UnrolledLoopStatement *s)
+    {
+        InlineCostVisitor icv(this);
+        for (size_t i = 0; i < s->statements->dim; i++)
+        {
+            Statement *s2 = (*s->statements)[i];
+            if (s2)
+            {
+                s2->accept(&icv);
+                if (tooCostly(icv.cost))
+                    break;
+            }
+        }
+        cost += icv.cost;
+    }
 
-int DelegateExp::inlineCost3(InlineCostState *ics)
-{
-    //printf("DelegateExp::inlineCost3()\n");
-    return COST_MAX;
-}
+    void visit(ScopeStatement *s)
+    {
+        cost++;
+        if (s->statement)
+            s->statement->accept(this);
+    }
+
+    void visit(IfStatement *s)
+    {
+        /* Can't declare variables inside ?: expressions, so
+         * we cannot inline if a variable is declared.
+         */
+        if (s->arg)
+        {
+            cost = COST_MAX;
+            return;
+        }
+
+        expressionInlineCost(s->condition);
+
+        /* Specifically allow:
+         *  if (condition)
+         *      return exp1;
+         *  else
+         *      return exp2;
+         * Otherwise, we can't handle return statements nested in if's.
+         */
+
+        if (s->elsebody && s->ifbody &&
+            s->ifbody->isReturnStatement() &&
+            s->elsebody->isReturnStatement())
+        {
+            s->ifbody->accept(this);
+            s->elsebody->accept(this);
+            //printf("cost = %d\n", cost);
+        }
+        else
+        {
+            nested += 1;
+            if (s->ifbody)
+                s->ifbody->accept(this);
+            if (s->elsebody)
+                s->elsebody->accept(this);
+            nested -= 1;
+        }
+        //printf("IfStatement::inlineCost = %d\n", cost);
+    }
+
+    void visit(ReturnStatement *s)
+    {
+        // Can't handle return statements nested in if's
+        if (nested)
+        {
+            cost = COST_MAX;
+        }
+        else
+        {
+            expressionInlineCost(s->exp);
+        }
+    }
+
+    void visit(ImportStatement *s)
+    {
+    }
+
+    void visit(ForStatement *s)
+    {
+        cost += STATEMENT_COST;
+        if (s->init)
+            s->init->accept(this);
+        if (s->condition)
+            s->condition->accept(this);
+        if (s->increment)
+            s->increment->accept(this);
+        if (s->body)
+            s->body->accept(this);
+        //printf("ForStatement: inlineCost = %d\n", cost);
+    }
+
+    void visit(ThrowStatement *s)
+    {
+        cost += STATEMENT_COST;
+        s->exp->accept(this);
+    }
+
+    /* -------------------------- */
+
+    void expressionInlineCost(Expression *e)
+    {
+        //printf("expressionInlineCost()\n");
+        //e->print();
+        if (e)
+        {
+            class LambdaInlineCost : public StoppableVisitor
+            {
+                InlineCostVisitor *icv;
+            public:
+                LambdaInlineCost(InlineCostVisitor *icv) : icv(icv) {}
+
+                void visit(Expression *e)
+                {
+                    e->accept(icv);
+                    stop = icv->cost >= COST_MAX;
+                }
+            };
+
+            InlineCostVisitor icv(this);
+            LambdaInlineCost lic(&icv);
+            walkPostorder(e, &lic);
+            cost += icv.cost;
+        }
+    }
+
+    void visit(Expression *e)
+    {
+        cost++;
+    }
+
+    void visit(VarExp *e)
+    {
+        //printf("VarExp::inlineCost3() %s\n", toChars());
+        Type *tb = e->type->toBasetype();
+        if (tb->ty == Tstruct)
+        {
+            StructDeclaration *sd = ((TypeStruct *)tb)->sym;
+            if (sd->isNested())
+            {
+                /* An inner struct will be nested inside another function hierarchy than where
+                 * we're inlining into, so don't inline it.
+                 * At least not until we figure out how to 'move' the struct to be nested
+                 * locally. Example:
+                 *   struct S(alias pred) { void unused_func(); }
+                 *   void abc() { int w; S!(w) m; }
+                 *   void bar() { abc(); }
+                 */
+                cost = COST_MAX;
+                return;
+            }
+        }
+        FuncDeclaration *fd = e->var->isFuncDeclaration();
+        if (fd && fd->isNested())           // see Bugzilla 7199 for test case
+            cost = COST_MAX;
+        else
+            cost++;
+    }
+
+    void visit(ThisExp *e)
+    {
+        //printf("ThisExp::inlineCost3() %s\n", toChars());
+        if (!fd)
+        {
+            cost = COST_MAX;
+            return;
+        }
+        if (!hdrscan)
+        {
+            if (fd->isNested() || !hasthis)
+            {
+                cost = COST_MAX;
+                return;
+            }
+        }
+        cost++;
+    }
+
+    void visit(StructLiteralExp *e)
+    {
+        //printf("StructLiteralExp::inlineCost3() %s\n", toChars());
+        if (e->sd->isNested())
+            cost = COST_MAX;
+        else
+            cost++;
+    }
+
+    void visit(FuncExp *e)
+    {
+        //printf("FuncExp::inlineCost3()\n");
+        // Right now, this makes the function be output to the .obj file twice.
+        cost = COST_MAX;
+    }
+
+    void visit(DelegateExp *e)
+    {
+        //printf("DelegateExp::inlineCost3()\n");
+        cost = COST_MAX;
+    }
 
 #if DMD_OBJC
-int ObjcSelectorExp::inlineCost3(InlineCostState *ics)
-{
-    return COST_MAX;
-}
-#endif
-
-int DeclarationExp::inlineCost3(InlineCostState *ics)
-{   int cost = 0;
-    VarDeclaration *vd;
-
-    //printf("DeclarationExp::inlineCost3()\n");
-    vd = declaration->isVarDeclaration();
-    if (vd)
+    void visit(ObjcSelectorExp *e)
     {
-        TupleDeclaration *td = vd->toAlias()->isTupleDeclaration();
-        if (td)
-        {
-#if 1
-            return COST_MAX;    // finish DeclarationExp::doInline
-#else
-            for (size_t i = 0; i < td->objects->dim; i++)
-            {   RootObject *o = (*td->objects)[i];
-                if (o->dyncast() != DYNCAST_EXPRESSION)
-                    return COST_MAX;
-                Expression *eo = (Expression *)o;
-                if (eo->op != TOKdsymbol)
-                    return COST_MAX;
-            }
-            return td->objects->dim;
+        cost = COST_MAX;
+    }
 #endif
-        }
-        if (!ics->hdrscan && vd->isDataseg())
-            return COST_MAX;
-        cost += 1;
 
-        if (vd->edtor)                  // if destructor required
-            return COST_MAX;            // needs work to make this work
-        // Scan initializer (vd->init)
-        if (vd->init)
+    void visit(DeclarationExp *e)
+    {
+        //printf("DeclarationExp::inlineCost3()\n");
+        VarDeclaration *vd = e->declaration->isVarDeclaration();
+        if (vd)
         {
-            ExpInitializer *ie = vd->init->isExpInitializer();
-
-            if (ie)
+            TupleDeclaration *td = vd->toAlias()->isTupleDeclaration();
+            if (td)
             {
-                cost += expressionInlineCost(ie->exp, ics);
+                cost = COST_MAX;    // finish DeclarationExp::doInline
+                return;
             }
+            if (!hdrscan && vd->isDataseg())
+            {
+                cost = COST_MAX;
+                return;
+            }
+
+            if (vd->edtor)
+            {
+                // if destructor required
+                // needs work to make this work
+                cost = COST_MAX;
+                return;
+            }
+            // Scan initializer (vd->init)
+            if (vd->init)
+            {
+                ExpInitializer *ie = vd->init->isExpInitializer();
+
+                if (ie)
+                {
+                    expressionInlineCost(ie->exp);
+                }
+            }
+            cost += 1;
         }
+
+        // These can contain functions, which when copied, get output twice.
+        if (e->declaration->isStructDeclaration() ||
+            e->declaration->isClassDeclaration() ||
+            e->declaration->isFuncDeclaration() ||
+            e->declaration->isTypedefDeclaration() ||
+            e->declaration->isAttribDeclaration() ||
+            e->declaration->isTemplateMixin())
+        {
+            cost = COST_MAX;
+            return;
+        }
+
+        //printf("DeclarationExp::inlineCost3('%s')\n", toChars());
     }
 
-    // These can contain functions, which when copied, get output twice.
-    if (declaration->isStructDeclaration() ||
-        declaration->isClassDeclaration() ||
-        declaration->isFuncDeclaration() ||
-        declaration->isTypedefDeclaration() ||
-        declaration->isAttribDeclaration() ||
-        declaration->isTemplateMixin())
-        return COST_MAX;
-
-    //printf("DeclarationExp::inlineCost3('%s')\n", toChars());
-    return cost;
-}
-
-int CallExp::inlineCost3(InlineCostState *ics)
-{
-    //printf("CallExp::inlineCost3() %s\n", toChars());
-    // Bugzilla 3500: super.func() calls must be devirtualized, and the inliner
-    // can't handle that at present.
-    if (e1->op == TOKdotvar && ((DotVarExp *)e1)->e1->op == TOKsuper)
-        return COST_MAX;
-
-    return 1;
-}
-
+    void visit(CallExp *e)
+    {
+        //printf("CallExp::inlineCost3() %s\n", toChars());
+        // Bugzilla 3500: super.func() calls must be devirtualized, and the inliner
+        // can't handle that at present.
+        if (e->e1->op == TOKdotvar && ((DotVarExp *)e->e1)->e1->op == TOKsuper)
+            cost = COST_MAX;
+        else
+            cost++;
+    }
+};
 
 /* ======================== Perform the inlining ============================== */
 
@@ -355,650 +399,676 @@ struct InlineDoState
     // inline result
     bool foundReturn;
 };
-/* -------------------------------------------------------------------- */
 
-Statement *Statement::doInlineStatement(InlineDoState *ids)
-{
-    assert(0);
-    return NULL;                // default is we can't inline it
-}
-
-Statement *ExpStatement::doInlineStatement(InlineDoState *ids)
-{
-#if LOG
-    if (exp) printf("ExpStatement::doInlineStatement() '%s'\n", exp->toChars());
-#endif
-    return new ExpStatement(loc, exp ? exp->doInline(ids) : NULL);
-}
-
-Statement *CompoundStatement::doInlineStatement(InlineDoState *ids)
-{
-    //printf("CompoundStatement::doInlineStatement() %d\n", statements->dim);
-    Statements *as = new Statements();
-    as->reserve(statements->dim);
-    for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s = (*statements)[i];
-        if (s)
-        {
-            as->push(s->doInlineStatement(ids));
-            if (ids->foundReturn)
-                break;
-        }
-        else
-            as->push(NULL);
-    }
-    return new CompoundStatement(loc, as);
-}
-
-Statement *UnrolledLoopStatement::doInlineStatement(InlineDoState *ids)
-{
-    //printf("UnrolledLoopStatement::doInlineStatement() %d\n", statements->dim);
-    Statements *as = new Statements();
-    as->reserve(statements->dim);
-    for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s = (*statements)[i];
-        if (s)
-        {
-            as->push(s->doInlineStatement(ids));
-            if (ids->foundReturn)
-                break;
-        }
-        else
-            as->push(NULL);
-    }
-    return new UnrolledLoopStatement(loc, as);
-}
-
-Statement *ScopeStatement::doInlineStatement(InlineDoState *ids)
-{
-    //printf("ScopeStatement::doInlineStatement() %d\n", statements->dim);
-    return statement ? new ScopeStatement(loc, statement->doInlineStatement(ids)) : this;
-}
-
-Statement *IfStatement::doInlineStatement(InlineDoState *ids)
-{
-    assert(!arg);
-
-    Expression *condition = this->condition ? this->condition->doInline(ids) : NULL;
-    Statement *ifbody = this->ifbody ? this->ifbody->doInlineStatement(ids) : NULL;
-    bool bodyReturn = ids->foundReturn;
-    ids->foundReturn = false;
-    Statement *elsebody = this->elsebody ? this->elsebody->doInlineStatement(ids) : NULL;
-    ids->foundReturn = ids->foundReturn && bodyReturn;
-
-
-    return new IfStatement(loc, arg, condition, ifbody, elsebody);
-}
-
-Statement *ReturnStatement::doInlineStatement(InlineDoState *ids)
-{
-    //printf("ReturnStatement::doInlineStatement() '%s'\n", exp ? exp->toChars() : "");
-    ids->foundReturn = true;
-    return new ReturnStatement(loc, exp ? exp->doInline(ids) : NULL);
-}
-
-Statement *ImportStatement::doInlineStatement(InlineDoState *ids)
-{
-    return NULL;
-}
-
-Statement *ForStatement::doInlineStatement(InlineDoState *ids)
-{
-    //printf("ForStatement::doInlineStatement()\n");
-    Statement *init = this->init ? this->init->doInlineStatement(ids) : NULL;
-    Expression *condition = this->condition ? this->condition->doInline(ids) : NULL;
-    Expression *increment = this->increment ? this->increment->doInline(ids) : NULL;
-    Statement *body = this->body ? this->body->doInlineStatement(ids) : NULL;
-    return new ForStatement(loc, init, condition, increment, body);
-}
+Expression *doInline(Statement *s, InlineDoState *ids);
+Expression *doInline(Expression *e, InlineDoState *ids);
 
 /* -------------------------------------------------------------------- */
 
-Expression *Statement::doInline(InlineDoState *ids)
+Statement *inlineAsStatement(Statement *s, InlineDoState *ids)
 {
-    printf("Statement::doInline()\n%s\n", toChars());
-    fflush(stdout);
-    assert(0);
-    return NULL;                // default is we can't inline it
-}
+    class InlineAsStatement : public Visitor
+    {
+    public:
+        InlineDoState *ids;
+        Statement *result;
 
-Expression *ExpStatement::doInline(InlineDoState *ids)
-{
-#if LOG
-    if (exp) printf("ExpStatement::doInline() '%s'\n", exp->toChars());
-#endif
-    return exp ? exp->doInline(ids) : NULL;
-}
-
-Expression *CompoundStatement::doInline(InlineDoState *ids)
-{
-    Expression *e = NULL;
-
-    //printf("CompoundStatement::doInline() %d\n", statements->dim);
-    for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s =  (*statements)[i];
-        if (s)
+        InlineAsStatement(InlineDoState *ids)
+            : ids(ids)
         {
-            Expression *e2 = s->doInline(ids);
-            e = Expression::combine(e, e2);
-            if (ids->foundReturn)
-                break;
-
+            result = NULL;
         }
-    }
-    return e;
-}
 
-Expression *UnrolledLoopStatement::doInline(InlineDoState *ids)
-{
-    Expression *e = NULL;
-
-    //printf("UnrolledLoopStatement::doInline() %d\n", statements->dim);
-    for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s =  (*statements)[i];
-        if (s)
+        void visit(Statement *s)
         {
-            Expression *e2 = s->doInline(ids);
-            e = Expression::combine(e, e2);
-            if (ids->foundReturn)
-                break;
+            assert(0); // default is we can't inline it
         }
-    }
-    return e;
-}
 
-Expression *ScopeStatement::doInline(InlineDoState *ids)
-{
-    return statement ? statement->doInline(ids) : NULL;
-}
-
-Expression *IfStatement::doInline(InlineDoState *ids)
-{
-    Expression *econd;
-    Expression *e1;
-    Expression *e2;
-    Expression *e;
-
-    assert(!arg);
-    econd = condition->doInline(ids);
-    assert(econd);
-    if (ifbody)
-    {
-        e1 = ifbody->doInline(ids);
-    }
-    else
-        e1 = NULL;
-    bool bodyReturn = ids->foundReturn;
-    ids->foundReturn = false;
-    if (elsebody)
-        e2 = elsebody->doInline(ids);
-    else
-        e2 = NULL;
-    if (e1 && e2)
-    {
-        e = new CondExp(econd->loc, econd, e1, e2);
-        e->type = e1->type;
-        if (e->type->ty == Ttuple)
+        void visit(ExpStatement *s)
         {
-            e1->type = Type::tvoid;
-            e2->type = Type::tvoid;
-            e->type = Type::tvoid;
+        #if LOG
+            if (s->exp) printf("ExpStatement::inlineAsStatement() '%s'\n", s->exp->toChars());
+        #endif
+            result = new ExpStatement(s->loc, s->exp ? doInline(s->exp, ids) : NULL);
         }
-    }
-    else if (e1)
-    {
-        e = new AndAndExp(econd->loc, econd, e1);
-        e->type = Type::tvoid;
-    }
-    else if (e2)
-    {
-        e = new OrOrExp(econd->loc, econd, e2);
-        e->type = Type::tvoid;
-    }
-    else
-    {
-        e = econd;
-    }
-    ids->foundReturn = ids->foundReturn && bodyReturn;
-    return e;
+
+        void visit(CompoundStatement *s)
+        {
+            //printf("CompoundStatement::inlineAsStatement() %d\n", s->statements->dim);
+            Statements *as = new Statements();
+            as->reserve(s->statements->dim);
+            for (size_t i = 0; i < s->statements->dim; i++)
+            {
+                Statement *sx = (*s->statements)[i];
+                if (sx)
+                {
+                    as->push(inlineAsStatement(sx, ids));
+                    if (ids->foundReturn)
+                        break;
+                }
+                else
+                    as->push(NULL);
+            }
+            result = new CompoundStatement(s->loc, as);
+        }
+
+        void visit(UnrolledLoopStatement *s)
+        {
+            //printf("UnrolledLoopStatement::inlineAsStatement() %d\n", s->statements->dim);
+            Statements *as = new Statements();
+            as->reserve(s->statements->dim);
+            for (size_t i = 0; i < s->statements->dim; i++)
+            {
+                Statement *sx = (*s->statements)[i];
+                if (sx)
+                {
+                    as->push(inlineAsStatement(sx, ids));
+                    if (ids->foundReturn)
+                        break;
+                }
+                else
+                    as->push(NULL);
+            }
+            result = new UnrolledLoopStatement(s->loc, as);
+        }
+
+        void visit(ScopeStatement *s)
+        {
+            //printf("ScopeStatement::inlineAsStatement() %d\n", s->statement->dim);
+            result = s->statement ? new ScopeStatement(s->loc, inlineAsStatement(s->statement, ids)) : s;
+        }
+
+        void visit(IfStatement *s)
+        {
+            assert(!s->arg);
+
+            Expression *condition = s->condition ? doInline(s->condition, ids) : NULL;
+            Statement *ifbody = s->ifbody ? inlineAsStatement(s->ifbody, ids) : NULL;
+            bool bodyReturn = ids->foundReturn;
+            ids->foundReturn = false;
+            Statement *elsebody = s->elsebody ? inlineAsStatement(s->elsebody, ids) : NULL;
+            ids->foundReturn = ids->foundReturn && bodyReturn;
+
+            result = new IfStatement(s->loc, s->arg, condition, ifbody, elsebody);
+        }
+
+        void visit(ReturnStatement *s)
+        {
+            //printf("ReturnStatement::inlineAsStatement() '%s'\n", s->exp ? s->exp->toChars() : "");
+            ids->foundReturn = true;
+            result = new ReturnStatement(s->loc, s->exp ? doInline(s->exp, ids) : NULL);
+        }
+
+        void visit(ImportStatement *s)
+        {
+            result = NULL;
+        }
+
+        void visit(ForStatement *s)
+        {
+            //printf("ForStatement::inlineAsStatement()\n");
+            Statement *init = s->init ? inlineAsStatement(s->init, ids) : NULL;
+            Expression *condition = s->condition ? doInline(s->condition, ids) : NULL;
+            Expression *increment = s->increment ? doInline(s->increment, ids) : NULL;
+            Statement *body = s->body ? inlineAsStatement(s->body, ids) : NULL;
+            result = new ForStatement(s->loc, init, condition, increment, body);
+        }
+
+        void visit(ThrowStatement *s)
+        {
+            //printf("ThrowStatement::inlineAsStatement() '%s'\n", s->exp->toChars());
+            result = new ThrowStatement(s->loc, doInline(s->exp, ids));
+        }
+    };
+
+    InlineAsStatement v(ids);
+    s->accept(&v);
+    return v.result;
 }
 
-Expression *ReturnStatement::doInline(InlineDoState *ids)
-{
-    //printf("ReturnStatement::doInline() '%s'\n", exp ? exp->toChars() : "");
-    ids->foundReturn = true;
-    return exp ? exp->doInline(ids) : NULL;
-}
+/* -------------------------------------------------------------------- */
 
-Expression *ImportStatement::doInline(InlineDoState *ids)
+Expression *doInline(Statement *s, InlineDoState *ids)
 {
-    return NULL;
+    class InlineStatement : public Visitor
+    {
+    public:
+        InlineDoState *ids;
+        Expression *result;
+
+        InlineStatement(InlineDoState *ids)
+            : ids(ids)
+        {
+            result = NULL;
+        }
+
+        void visit(Statement *s)
+        {
+            printf("Statement::doInline()\n%s\n", s->toChars());
+            fflush(stdout);
+            assert(0); // default is we can't inline it
+        }
+
+        void visit(ExpStatement *s)
+        {
+        #if LOG
+            if (s->exp) printf("ExpStatement::doInline() '%s'\n", s->exp->toChars());
+        #endif
+            result = s->exp ? doInline(s->exp, ids) : NULL;
+        }
+
+        void visit(CompoundStatement *s)
+        {
+            //printf("CompoundStatement::doInline() %d\n", s->statements->dim);
+            for (size_t i = 0; i < s->statements->dim; i++)
+            {
+                Statement *sx =  (*s->statements)[i];
+                if (sx)
+                {
+                    Expression *e = doInline(sx, ids);
+                    result = Expression::combine(result, e);
+                    if (ids->foundReturn)
+                        break;
+
+                }
+            }
+        }
+
+        void visit(UnrolledLoopStatement *s)
+        {
+            //printf("UnrolledLoopStatement::doInline() %d\n", s->statements->dim);
+            for (size_t i = 0; i < s->statements->dim; i++)
+            {
+                Statement *sx =  (*s->statements)[i];
+                if (sx)
+                {
+                    Expression *e = doInline(sx, ids);
+                    result = Expression::combine(result, e);
+                    if (ids->foundReturn)
+                        break;
+
+                }
+            }
+        }
+
+        void visit(ScopeStatement *s)
+        {
+            result = s->statement ? doInline(s->statement, ids) : NULL;
+        }
+
+        void visit(IfStatement *s)
+        {
+            assert(!s->arg);
+            Expression *econd = doInline(s->condition, ids);
+            assert(econd);
+            Expression *e1 = s->ifbody ? doInline(s->ifbody, ids) : NULL;
+            bool bodyReturn = ids->foundReturn;
+            ids->foundReturn = false;
+            Expression *e2 = s->elsebody ? doInline(s->elsebody, ids) : NULL;
+            if (e1 && e2)
+            {
+                result = new CondExp(econd->loc, econd, e1, e2);
+                result->type = e1->type;
+                if (result->type->ty == Ttuple)
+                {
+                    e1->type = Type::tvoid;
+                    e2->type = Type::tvoid;
+                    result->type = Type::tvoid;
+                }
+            }
+            else if (e1)
+            {
+                result = new AndAndExp(econd->loc, econd, e1);
+                result->type = Type::tvoid;
+            }
+            else if (e2)
+            {
+                result = new OrOrExp(econd->loc, econd, e2);
+                result->type = Type::tvoid;
+            }
+            else
+            {
+                result = econd;
+            }
+            ids->foundReturn = ids->foundReturn && bodyReturn;
+        }
+
+        void visit(ReturnStatement *s)
+        {
+            //printf("ReturnStatement::doInline() '%s'\n", s->exp ? s->exp->toChars() : "");
+            ids->foundReturn = true;
+            result = s->exp ? doInline(s->exp, ids) : NULL;
+        }
+
+        void visit(ImportStatement *s)
+        {
+        }
+    };
+
+    InlineStatement v(ids);
+    s->accept(&v);
+    return v.result;
 }
 
 /* --------------------------------------------------------------- */
 
-/******************************
- * Perform doInline() on an array of Expressions.
- */
-
-Expressions *arrayExpressiondoInline(Expressions *a, InlineDoState *ids)
-{   Expressions *newa = NULL;
-
-    if (a)
-    {
-        newa = new Expressions();
-        newa->setDim(a->dim);
-
-        for (size_t i = 0; i < a->dim; i++)
-        {   Expression *e = (*a)[i];
-
-            if (e)
-                e = e->doInline(ids);
-            (*newa)[i] = e;
-        }
-    }
-    return newa;
-}
-
-Expression *Expression::doInline(InlineDoState *ids)
+Expression *doInline(Expression *e, InlineDoState *ids)
 {
-    //printf("Expression::doInline(%s): %s\n", Token::toChars(op), toChars());
-    return copy();
-}
-
-Expression *SymOffExp::doInline(InlineDoState *ids)
-{
-    //printf("SymOffExp::doInline(%s)\n", toChars());
-    for (size_t i = 0; i < ids->from.dim; i++)
+    class InlineExpression : public Visitor
     {
-        if (var == ids->from[i])
+    public:
+        InlineDoState *ids;
+        Expression *result;
+
+        InlineExpression(InlineDoState *ids)
+            : ids(ids)
         {
-            SymOffExp *se = (SymOffExp *)copy();
-            se->var = (Declaration *)ids->to[i];
-            return se;
+            result = NULL;
         }
-    }
-    return this;
-}
 
-Expression *VarExp::doInline(InlineDoState *ids)
-{
-    //printf("VarExp::doInline(%s)\n", toChars());
-    for (size_t i = 0; i < ids->from.dim; i++)
-    {
-        if (var == ids->from[i])
+        /******************************
+         * Perform doInline() on an array of Expressions.
+         */
+        Expressions *arrayExpressiondoInline(Expressions *a)
         {
-            VarExp *ve = (VarExp *)copy();
-            ve->var = (Declaration *)ids->to[i];
-            return ve;
-        }
-    }
-    if (ids->fd && var == ids->fd->vthis)
-    {
-        VarExp *ve = new VarExp(loc, ids->vthis);
-        ve->type = type;
-        return ve;
-    }
+            if (!a)
+                return NULL;
 
-    /* Inlining context pointer access for nested referenced variables.
-     * For example:
-     *      auto fun() {
-     *        int i = 40;
-     *        auto foo() {
-     *          int g = 2;
-     *          struct Result {
-     *            auto bar() { return i + g; }
-     *          }
-     *          return Result();
-     *        }
-     *        return foo();
-     *      }
-     *      auto t = fun();
-     * 'i' and 'g' are nested referenced variables in Result.bar(), so:
-     *      auto x = t.bar();
-     * should be inlined to:
-     *      auto x = *(t.vthis.vthis + i->voffset) + *(t.vthis + g->voffset)
-     */
-    VarDeclaration *v = var->isVarDeclaration();
-    if (v && v->nestedrefs.dim && ids->vthis)
-    {
-        Dsymbol *s = ids->fd;
-        FuncDeclaration *fdv = v->toParent()->isFuncDeclaration();
-        assert(fdv);
-        Expression *ve = new VarExp(loc, ids->vthis);
-        ve->type = ids->vthis->type;
-        while (s != fdv)
-        {
-            FuncDeclaration *f = s->isFuncDeclaration();
-            if (AggregateDeclaration *ad = s->isThis())
+            Expressions *newa = new Expressions();
+            newa->setDim(a->dim);
+
+            for (size_t i = 0; i < a->dim; i++)
             {
-                assert(ad->vthis);
-                ve = new DotVarExp(loc, ve, ad->vthis);
-                ve->type = ad->vthis->type;
-                s = ad->toParent2();
+                Expression *e = (*a)[i];
+                if (e)
+                    e = doInline(e, ids);
+                (*newa)[i] = e;
             }
-            else if (f && f->isNested())
+            return newa;
+        }
+
+        void visit(Expression *e)
+        {
+            //printf("Expression::doInline(%s): %s\n", Token::toChars(e->op), e->toChars());
+            result = e->copy();
+        }
+
+        void visit(SymOffExp *e)
+        {
+            //printf("SymOffExp::doInline(%s)\n", e->toChars());
+            for (size_t i = 0; i < ids->from.dim; i++)
             {
-                assert(f->vthis);
-                if (f->hasNestedFrameRefs())
+                if (e->var == ids->from[i])
                 {
-                    ve = new DotVarExp(loc, ve, f->vthis);
-                    ve->type = f->vthis->type;
+                    SymOffExp *se = (SymOffExp *)e->copy();
+                    se->var = (Declaration *)ids->to[i];
+                    result = se;
+                    return;
                 }
-                s = f->toParent2();
             }
-            else
-                assert(0);
-            assert(s);
+            result = e;
         }
-        ve = new DotVarExp(loc, ve, v);
-        ve->type = v->type;
-        //printf("\t==> ve = %s, type = %s\n", ve->toChars(), ve->type->toChars());
-        return ve;
-    }
 
-    return this;
-}
-
-Expression *ThisExp::doInline(InlineDoState *ids)
-{
-    //if (!ids->vthis)
-        //error("no 'this' when inlining %s", ids->parent->toChars());
-    if (!ids->vthis)
-    {
-        return this;
-    }
-
-    VarExp *ve = new VarExp(loc, ids->vthis);
-    ve->type = type;
-    return ve;
-}
-
-Expression *SuperExp::doInline(InlineDoState *ids)
-{
-    assert(ids->vthis);
-
-    VarExp *ve = new VarExp(loc, ids->vthis);
-    ve->type = type;
-    return ve;
-}
-
-Expression *DeclarationExp::doInline(InlineDoState *ids)
-{
-    //printf("DeclarationExp::doInline(%s)\n", toChars());
-    VarDeclaration *vd = declaration->isVarDeclaration();
-    if (vd)
-    {
-#if 0
-        // Need to figure this out before inlining can work for tuples
-        TupleDeclaration *td = vd->toAlias()->isTupleDeclaration();
-        if (td)
+        void visit(VarExp *e)
         {
-            for (size_t i = 0; i < td->objects->dim; i++)
-            {   DsymbolExp *se = (*td->objects)[i];
-                assert(se->op == TOKdsymbol);
-                se->s;
-            }
-            return st->objects->dim;
-        }
-#endif
-        if (vd->isStatic())
-            ;
-        else
-        {
-            VarDeclaration *vto;
-            if (ids->fd && vd == ids->fd->nrvo_var)
+            //printf("VarExp::doInline(%s)\n", e->toChars());
+            for (size_t i = 0; i < ids->from.dim; i++)
             {
-                for (size_t i = 0; i < ids->from.dim; i++)
+                if (e->var == ids->from[i])
                 {
-                    if (vd == ids->from[i])
+                    VarExp *ve = (VarExp *)e->copy();
+                    ve->var = (Declaration *)ids->to[i];
+                    result = ve;
+                    return;
+                }
+            }
+            if (ids->fd && e->var == ids->fd->vthis)
+            {
+                result = new VarExp(e->loc, ids->vthis);
+                result->type = e->type;
+                return;
+            }
+
+            /* Inlining context pointer access for nested referenced variables.
+             * For example:
+             *      auto fun() {
+             *        int i = 40;
+             *        auto foo() {
+             *          int g = 2;
+             *          struct Result {
+             *            auto bar() { return i + g; }
+             *          }
+             *          return Result();
+             *        }
+             *        return foo();
+             *      }
+             *      auto t = fun();
+             * 'i' and 'g' are nested referenced variables in Result.bar(), so:
+             *      auto x = t.bar();
+             * should be inlined to:
+             *      auto x = *(t.vthis.vthis + i->voffset) + *(t.vthis + g->voffset)
+             */
+            VarDeclaration *v = e->var->isVarDeclaration();
+            if (v && v->nestedrefs.dim && ids->vthis)
+            {
+                Dsymbol *s = ids->fd;
+                FuncDeclaration *fdv = v->toParent()->isFuncDeclaration();
+                assert(fdv);
+                result = new VarExp(e->loc, ids->vthis);
+                result->type = ids->vthis->type;
+                while (s != fdv)
+                {
+                    FuncDeclaration *f = s->isFuncDeclaration();
+                    if (AggregateDeclaration *ad = s->isThis())
                     {
-                        vto = (VarDeclaration *)ids->to[i];
-                        if ((vd->storage_class & STCref) == 0 &&
-                            (vto->storage_class & STCref))
-                        {
-                            Expression *e;
-                            if (vd->init && !vd->init->isVoidInitializer())
-                            {
-                                e = vd->init->toExpression();
-                                assert(e);
-                                e = e->doInline(ids);
-                            }
-                            else
-                                e = new IntegerExp(vd->init->loc, 0, Type::tint32);
-                            return e;
-                        }
-                        goto L1;
+                        assert(ad->vthis);
+                        result = new DotVarExp(e->loc, result, ad->vthis);
+                        result->type = ad->vthis->type;
+                        s = ad->toParent2();
                     }
+                    else if (f && f->isNested())
+                    {
+                        assert(f->vthis);
+                        if (f->hasNestedFrameRefs())
+                        {
+                            result = new DotVarExp(e->loc, result, f->vthis);
+                            result->type = f->vthis->type;
+                        }
+                        s = f->toParent2();
+                    }
+                    else
+                        assert(0);
+                    assert(s);
                 }
+                result = new DotVarExp(e->loc, result, v);
+                result->type = v->type;
+                //printf("\t==> result = %s, type = %s\n", result->toChars(), result->type->toChars());
+                return;
             }
-            vto = new VarDeclaration(vd->loc, vd->type, vd->ident, vd->init);
-            memcpy((void *)vto, (void *)vd, sizeof(VarDeclaration));
-            vto->parent = ids->parent;
-            vto->csym = NULL;
-            vto->isym = NULL;
 
-            ids->from.push(vd);
-            ids->to.push(vto);
+            result = e;
+        }
 
-        L1:
-            if (vd->init)
+        void visit(ThisExp *e)
+        {
+            //if (!ids->vthis)
+                //e->error("no 'this' when inlining %s", ids->parent->toChars());
+            if (!ids->vthis)
             {
-                if (vd->init->isVoidInitializer())
+                result = e;
+                return;
+            }
+
+            result = new VarExp(e->loc, ids->vthis);
+            result->type = e->type;
+        }
+
+        void visit(SuperExp *e)
+        {
+            assert(ids->vthis);
+
+            result = new VarExp(e->loc, ids->vthis);
+            result->type = e->type;
+        }
+
+        void visit(DeclarationExp *e)
+        {
+            //printf("DeclarationExp::doInline(%s)\n", e->toChars());
+            if (VarDeclaration *vd = e->declaration->isVarDeclaration())
+            {
+        #if 0
+                // Need to figure this out before inlining can work for tuples
+                TupleDeclaration *td = vd->toAlias()->isTupleDeclaration();
+                if (td)
                 {
-                    vto->init = new VoidInitializer(vd->init->loc);
+                    for (size_t i = 0; i < td->objects->dim; i++)
+                    {
+                        DsymbolExp *se = (*td->objects)[i];
+                        assert(se->op == TOKdsymbol);
+                        se->s;
+                    }
+                    result = st->objects->dim;
+                    return;
                 }
-                else
+        #endif
+                if (!vd->isStatic())
                 {
-                    Expression *e = vd->init->toExpression();
-                    assert(e);
-                    vto->init = new ExpInitializer(e->loc, e->doInline(ids));
+                    if (ids->fd && vd == ids->fd->nrvo_var)
+                    {
+                        for (size_t i = 0; i < ids->from.dim; i++)
+                        {
+                            if (vd == ids->from[i])
+                            {
+                                VarDeclaration *vto = (VarDeclaration *)ids->to[i];
+                                if (vd->init && !vd->init->isVoidInitializer())
+                                {
+                                    result = vd->init->toExpression();
+                                    assert(result);
+                                    result = doInline(result, ids);
+                                }
+                                else
+                                    result = new IntegerExp(vd->init->loc, 0, Type::tint32);
+                                return;
+                            }
+                        }
+                    }
+                    VarDeclaration *vto = new VarDeclaration(vd->loc, vd->type, vd->ident, vd->init);
+                    memcpy((void *)vto, (void *)vd, sizeof(VarDeclaration));
+                    vto->parent = ids->parent;
+                    vto->csym = NULL;
+                    vto->isym = NULL;
+
+                    ids->from.push(vd);
+                    ids->to.push(vto);
+
+                    if (vd->init)
+                    {
+                        if (vd->init->isVoidInitializer())
+                        {
+                            vto->init = new VoidInitializer(vd->init->loc);
+                        }
+                        else
+                        {
+                            Expression *ei = vd->init->toExpression();
+                            assert(ei);
+                            vto->init = new ExpInitializer(ei->loc, doInline(ei, ids));
+                        }
+                    }
+                    DeclarationExp *de = (DeclarationExp *)e->copy();
+                    de->declaration = vto;
+                    result = de;
+                    return;
                 }
             }
-            DeclarationExp *de = (DeclarationExp *)copy();
-            de->declaration = (Dsymbol *) (void *)vto;
-            return de;
+            /* This needs work, like DeclarationExp::toElem(), if we are
+             * to handle TemplateMixin's. For now, we just don't inline them.
+             */
+            visit((Expression *)e);
         }
-    }
-    /* This needs work, like DeclarationExp::toElem(), if we are
-     * to handle TemplateMixin's. For now, we just don't inline them.
-     */
-    return Expression::doInline(ids);
-}
 
-Expression *NewExp::doInline(InlineDoState *ids)
-{
-    //printf("NewExp::doInline(): %s\n", toChars());
-    NewExp *ne = (NewExp *)copy();
-
-    if (thisexp)
-        ne->thisexp = thisexp->doInline(ids);
-    ne->newargs = arrayExpressiondoInline(ne->newargs, ids);
-    ne->arguments = arrayExpressiondoInline(ne->arguments, ids);
-    return ne;
-}
-
-Expression *UnaExp::doInline(InlineDoState *ids)
-{
-    UnaExp *ue = (UnaExp *)copy();
-
-    ue->e1 = e1->doInline(ids);
-    return ue;
-}
-
-Expression *AssertExp::doInline(InlineDoState *ids)
-{
-    AssertExp *ae = (AssertExp *)copy();
-
-    ae->e1 = e1->doInline(ids);
-    if (msg)
-        ae->msg = msg->doInline(ids);
-    return ae;
-}
-
-Expression *BinExp::doInline(InlineDoState *ids)
-{
-    BinExp *be = (BinExp *)copy();
-
-    be->e1 = e1->doInline(ids);
-    be->e2 = e2->doInline(ids);
-    return be;
-}
-
-Expression *CallExp::doInline(InlineDoState *ids)
-{
-    CallExp *ce;
-
-    ce = (CallExp *)copy();
-    ce->e1 = e1->doInline(ids);
-    ce->arguments = arrayExpressiondoInline(arguments, ids);
-    return ce;
-}
-
-
-Expression *IndexExp::doInline(InlineDoState *ids)
-{
-    IndexExp *are = (IndexExp *)copy();
-
-    are->e1 = e1->doInline(ids);
-
-    if (lengthVar)
-    {   //printf("lengthVar\n");
-        VarDeclaration *vd = lengthVar;
-        ExpInitializer *ie;
-        ExpInitializer *ieto;
-        VarDeclaration *vto;
-
-        vto = new VarDeclaration(vd->loc, vd->type, vd->ident, vd->init);
-        memcpy((void*)vto, (void*)vd, sizeof(VarDeclaration));
-        vto->parent = ids->parent;
-        vto->csym = NULL;
-        vto->isym = NULL;
-
-        ids->from.push(vd);
-        ids->to.push(vto);
-
-        if (vd->init && !vd->init->isVoidInitializer())
+        void visit(NewExp *e)
         {
-            ie = vd->init->isExpInitializer();
-            assert(ie);
-            ieto = new ExpInitializer(ie->loc, ie->exp->doInline(ids));
-            vto->init = ieto;
+            //printf("NewExp::doInline(): %s\n", e->toChars());
+            NewExp *ne = (NewExp *)e->copy();
+
+            if (e->thisexp)
+                ne->thisexp = doInline(e->thisexp, ids);
+            ne->newargs = arrayExpressiondoInline(e->newargs);
+            ne->arguments = arrayExpressiondoInline(e->arguments);
+            result = ne;
         }
 
-        are->lengthVar = (VarDeclaration *) (void *)vto;
-    }
-    are->e2 = e2->doInline(ids);
-    return are;
-}
-
-
-Expression *SliceExp::doInline(InlineDoState *ids)
-{
-    SliceExp *are = (SliceExp *)copy();
-
-    are->e1 = e1->doInline(ids);
-
-    if (lengthVar)
-    {   //printf("lengthVar\n");
-        VarDeclaration *vd = lengthVar;
-        ExpInitializer *ie;
-        ExpInitializer *ieto;
-        VarDeclaration *vto;
-
-        vto = new VarDeclaration(vd->loc, vd->type, vd->ident, vd->init);
-        memcpy((void*)vto, (void*)vd, sizeof(VarDeclaration));
-        vto->parent = ids->parent;
-        vto->csym = NULL;
-        vto->isym = NULL;
-
-        ids->from.push(vd);
-        ids->to.push(vto);
-
-        if (vd->init && !vd->init->isVoidInitializer())
+        void visit(UnaExp *e)
         {
-            ie = vd->init->isExpInitializer();
-            assert(ie);
-            ieto = new ExpInitializer(ie->loc, ie->exp->doInline(ids));
-            vto->init = ieto;
+            UnaExp *ue = (UnaExp *)e->copy();
+
+            ue->e1 = doInline(e->e1, ids);
+            result = ue;
         }
 
-        are->lengthVar = (VarDeclaration *) (void *)vto;
-    }
-    if (lwr)
-        are->lwr = lwr->doInline(ids);
-    if (upr)
-        are->upr = upr->doInline(ids);
-    return are;
+        void visit(AssertExp *e)
+        {
+            AssertExp *ae = (AssertExp *)e->copy();
+
+            ae->e1 = doInline(e->e1, ids);
+            if (e->msg)
+                ae->msg = doInline(e->msg, ids);
+            result = ae;
+        }
+
+        void visit(BinExp *e)
+        {
+            BinExp *be = (BinExp *)e->copy();
+
+            be->e1 = doInline(e->e1, ids);
+            be->e2 = doInline(e->e2, ids);
+            result = be;
+        }
+
+        void visit(CallExp *e)
+        {
+            CallExp *ce = (CallExp *)e->copy();
+
+            ce->e1 = doInline(e->e1, ids);
+            ce->arguments = arrayExpressiondoInline(e->arguments);
+            result = ce;
+        }
+
+        void visit(IndexExp *e)
+        {
+            IndexExp *are = (IndexExp *)e->copy();
+
+            are->e1 = doInline(e->e1, ids);
+
+            if (e->lengthVar)
+            {
+                //printf("lengthVar\n");
+                VarDeclaration *vd = e->lengthVar;
+
+                VarDeclaration *vto = new VarDeclaration(vd->loc, vd->type, vd->ident, vd->init);
+                memcpy((void*)vto, (void*)vd, sizeof(VarDeclaration));
+                vto->parent = ids->parent;
+                vto->csym = NULL;
+                vto->isym = NULL;
+
+                ids->from.push(vd);
+                ids->to.push(vto);
+
+                if (vd->init && !vd->init->isVoidInitializer())
+                {
+                    ExpInitializer *ie = vd->init->isExpInitializer();
+                    assert(ie);
+                    vto->init = new ExpInitializer(ie->loc, doInline(ie->exp, ids));;
+                }
+
+                are->lengthVar = vto;
+            }
+            are->e2 = doInline(e->e2, ids);
+            result = are;
+        }
+
+        void visit(SliceExp *e)
+        {
+            SliceExp *are = (SliceExp *)e->copy();
+
+            are->e1 = doInline(e->e1, ids);
+
+            if (e->lengthVar)
+            {
+                //printf("lengthVar\n");
+                VarDeclaration *vd = e->lengthVar;
+
+                VarDeclaration *vto = new VarDeclaration(vd->loc, vd->type, vd->ident, vd->init);
+                memcpy((void*)vto, (void*)vd, sizeof(VarDeclaration));
+                vto->parent = ids->parent;
+                vto->csym = NULL;
+                vto->isym = NULL;
+
+                ids->from.push(vd);
+                ids->to.push(vto);
+
+                if (vd->init && !vd->init->isVoidInitializer())
+                {
+                    ExpInitializer *ie = vd->init->isExpInitializer();
+                    assert(ie);
+                    vto->init = new ExpInitializer(ie->loc, doInline(ie->exp, ids));;
+                }
+
+                are->lengthVar = vto;
+            }
+            if (e->lwr)
+                are->lwr = doInline(e->lwr, ids);
+            if (e->upr)
+                are->upr = doInline(e->upr, ids);
+            result = are;
+        }
+
+        void visit(TupleExp *e)
+        {
+            TupleExp *ce = (TupleExp *)e->copy();
+
+            if (e->e0)
+                ce->e0 = doInline(e->e0, ids);
+            ce->exps = arrayExpressiondoInline(e->exps);
+            result = ce;
+        }
+
+        void visit(ArrayLiteralExp *e)
+        {
+            ArrayLiteralExp *ce = (ArrayLiteralExp *)e->copy();
+
+            ce->elements = arrayExpressiondoInline(e->elements);
+            result = ce;
+        }
+
+        void visit(AssocArrayLiteralExp *e)
+        {
+            AssocArrayLiteralExp *ce = (AssocArrayLiteralExp *)e->copy();
+
+            ce->keys = arrayExpressiondoInline(e->keys);
+            ce->values = arrayExpressiondoInline(e->values);
+            result = ce;
+        }
+
+        void visit(StructLiteralExp *e)
+        {
+            if (e->inlinecopy)
+            {
+                result = e->inlinecopy;
+                return;
+            }
+            StructLiteralExp *ce = (StructLiteralExp *)e->copy();
+
+            e->inlinecopy = ce;
+            ce->elements = arrayExpressiondoInline(e->elements);
+            e->inlinecopy = NULL;
+            result = ce;
+        }
+
+        void visit(ArrayExp *e)
+        {
+            ArrayExp *ce = (ArrayExp *)e->copy();
+
+            ce->e1 = doInline(e->e1, ids);
+            ce->arguments = arrayExpressiondoInline(e->arguments);
+            result = ce;
+        }
+
+        void visit(CondExp *e)
+        {
+            CondExp *ce = (CondExp *)e->copy();
+
+            ce->econd = doInline(e->econd, ids);
+            ce->e1 = doInline(e->e1, ids);
+            ce->e2 = doInline(e->e2, ids);
+            result = ce;
+        }
+    };
+
+    InlineExpression v(ids);
+    e->accept(&v);
+    return v.result;
 }
-
-
-Expression *TupleExp::doInline(InlineDoState *ids)
-{
-    TupleExp *ce;
-
-    ce = (TupleExp *)copy();
-    if (e0)
-        ce->e0 = e0->doInline(ids);
-    ce->exps = arrayExpressiondoInline(exps, ids);
-    return ce;
-}
-
-
-Expression *ArrayLiteralExp::doInline(InlineDoState *ids)
-{
-    ArrayLiteralExp *ce;
-
-    ce = (ArrayLiteralExp *)copy();
-    ce->elements = arrayExpressiondoInline(elements, ids);
-    return ce;
-}
-
-
-Expression *AssocArrayLiteralExp::doInline(InlineDoState *ids)
-{
-    AssocArrayLiteralExp *ce;
-
-    ce = (AssocArrayLiteralExp *)copy();
-    ce->keys = arrayExpressiondoInline(keys, ids);
-    ce->values = arrayExpressiondoInline(values, ids);
-    return ce;
-}
-
-
-Expression *StructLiteralExp::doInline(InlineDoState *ids)
-{
-    if(inlinecopy) return inlinecopy;
-    StructLiteralExp *ce;
-    ce = (StructLiteralExp *)copy();
-    inlinecopy = ce;
-    ce->elements = arrayExpressiondoInline(elements, ids);
-    inlinecopy = NULL;
-    return ce;
-}
-
-
-Expression *ArrayExp::doInline(InlineDoState *ids)
-{
-    ArrayExp *ce;
-
-    ce = (ArrayExp *)copy();
-    ce->e1 = e1->doInline(ids);
-    ce->arguments = arrayExpressiondoInline(arguments, ids);
-    return ce;
-}
-
-
-Expression *CondExp::doInline(InlineDoState *ids)
-{
-    CondExp *ce = (CondExp *)copy();
-
-    ce->econd = econd->doInline(ids);
-    ce->e1 = e1->doInline(ids);
-    ce->e2 = e2->doInline(ids);
-    return ce;
-}
-
 
 /* ========== Walk the parse trees, and inline expand functions ============= */
 
@@ -1006,546 +1076,568 @@ Expression *CondExp::doInline(InlineDoState *ids)
  * Inline any that can be.
  */
 
-struct InlineScanState
+class InlineScanVisitor : public Visitor
 {
-    FuncDeclaration *fd;        // function being scanned
-};
+public:
+    FuncDeclaration *parent; // function being scanned
+    // As the visit method cannot return a value, these variables
+    // are used to pass the result from 'visit' back to 'inlineScan'
+    Statement *result;
+    Expression *eresult;
 
-Statement *Statement::inlineScan(InlineScanState *iss)
-{
-    return this;
-}
-
-Statement *ExpStatement::inlineScan(InlineScanState *iss)
-{
-#if LOG
-    printf("ExpStatement::inlineScan(%s)\n", toChars());
-#endif
-    if (exp)
+    InlineScanVisitor()
     {
-        exp = exp->inlineScan(iss);
+        this->parent = NULL;
+        this->result = NULL;
+        this->eresult = NULL;
+    }
 
-        /* See if we can inline as a statement rather than as
-         * an Expression.
-         */
-        if (exp && exp->op == TOKcall)
+    void visit(Statement *s)
+    {
+    }
+
+    void visit(ExpStatement *s)
+    {
+    #if LOG
+        printf("ExpStatement::inlineScan(%s)\n", s->toChars());
+    #endif
+        if (s->exp)
         {
-            CallExp *ce = (CallExp *)exp;
-            if (ce->e1->op == TOKvar)
-            {
-                VarExp *ve = (VarExp *)ce->e1;
-                FuncDeclaration *fd = ve->var->isFuncDeclaration();
+            inlineScan(&s->exp);
 
-                if (fd && fd != iss->fd && fd->canInline(0, 0, 1))
+            /* See if we can inline as a statement rather than as
+             * an Expression.
+             */
+            if (s->exp && s->exp->op == TOKcall)
+            {
+                CallExp *ce = (CallExp *)s->exp;
+                if (ce->e1->op == TOKvar)
                 {
-                    Statement *s;
-                    fd->expandInline(iss, NULL, NULL, ce->arguments, &s);
-                    return s;
+                    VarExp *ve = (VarExp *)ce->e1;
+                    FuncDeclaration *fd = ve->var->isFuncDeclaration();
+
+                    if (fd && fd != parent && canInline(fd, 0, 0, 1))
+                    {
+                        expandInline(fd, parent, NULL, NULL, ce->arguments, &result);
+                    }
                 }
             }
         }
     }
-    return this;
-}
 
-Statement *CompoundStatement::inlineScan(InlineScanState *iss)
-{
-    for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s =  (*statements)[i];
-        if (s)
-            (*statements)[i] = s->inlineScan(iss);
-    }
-    return this;
-}
-
-Statement *UnrolledLoopStatement::inlineScan(InlineScanState *iss)
-{
-    for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s =  (*statements)[i];
-        if (s)
-            (*statements)[i] = s->inlineScan(iss);
-    }
-    return this;
-}
-
-Statement *ScopeStatement::inlineScan(InlineScanState *iss)
-{
-    if (statement)
-        statement = statement->inlineScan(iss);
-    return this;
-}
-
-Statement *WhileStatement::inlineScan(InlineScanState *iss)
-{
-    condition = condition->inlineScan(iss);
-    body = body ? body->inlineScan(iss) : NULL;
-    return this;
-}
-
-
-Statement *DoStatement::inlineScan(InlineScanState *iss)
-{
-    body = body ? body->inlineScan(iss) : NULL;
-    condition = condition->inlineScan(iss);
-    return this;
-}
-
-
-Statement *ForStatement::inlineScan(InlineScanState *iss)
-{
-    if (init)
-        init = init->inlineScan(iss);
-    if (condition)
-        condition = condition->inlineScan(iss);
-    if (increment)
-        increment = increment->inlineScan(iss);
-    if (body)
-        body = body->inlineScan(iss);
-    return this;
-}
-
-
-Statement *ForeachStatement::inlineScan(InlineScanState *iss)
-{
-    aggr = aggr->inlineScan(iss);
-    if (body)
-        body = body->inlineScan(iss);
-    return this;
-}
-
-
-Statement *ForeachRangeStatement::inlineScan(InlineScanState *iss)
-{
-    lwr = lwr->inlineScan(iss);
-    upr = upr->inlineScan(iss);
-    if (body)
-        body = body->inlineScan(iss);
-    return this;
-}
-
-
-Statement *IfStatement::inlineScan(InlineScanState *iss)
-{
-    condition = condition->inlineScan(iss);
-    if (ifbody)
-        ifbody = ifbody->inlineScan(iss);
-    if (elsebody)
-        elsebody = elsebody->inlineScan(iss);
-    return this;
-}
-
-
-Statement *SwitchStatement::inlineScan(InlineScanState *iss)
-{
-    //printf("SwitchStatement::inlineScan()\n");
-    condition = condition->inlineScan(iss);
-    body = body ? body->inlineScan(iss) : NULL;
-    if (sdefault)
-        sdefault = (DefaultStatement *)sdefault->inlineScan(iss);
-    if (cases)
+    void visit(CompoundStatement *s)
     {
-        for (size_t i = 0; i < cases->dim; i++)
-        {   CaseStatement *s;
-
-            s =  (*cases)[i];
-            (*cases)[i] = (CaseStatement *)s->inlineScan(iss);
-        }
-    }
-    return this;
-}
-
-
-Statement *CaseStatement::inlineScan(InlineScanState *iss)
-{
-    //printf("CaseStatement::inlineScan()\n");
-    exp = exp->inlineScan(iss);
-    if (statement)
-        statement = statement->inlineScan(iss);
-    return this;
-}
-
-
-Statement *DefaultStatement::inlineScan(InlineScanState *iss)
-{
-    if (statement)
-        statement = statement->inlineScan(iss);
-    return this;
-}
-
-
-Statement *ReturnStatement::inlineScan(InlineScanState *iss)
-{
-    //printf("ReturnStatement::inlineScan()\n");
-    if (exp)
-        exp = exp->inlineScan(iss);
-    return this;
-}
-
-
-Statement *SynchronizedStatement::inlineScan(InlineScanState *iss)
-{
-    if (exp)
-        exp = exp->inlineScan(iss);
-    if (body)
-        body = body->inlineScan(iss);
-    return this;
-}
-
-
-Statement *WithStatement::inlineScan(InlineScanState *iss)
-{
-    if (exp)
-        exp = exp->inlineScan(iss);
-    if (body)
-        body = body->inlineScan(iss);
-    return this;
-}
-
-
-Statement *TryCatchStatement::inlineScan(InlineScanState *iss)
-{
-    if (body)
-        body = body->inlineScan(iss);
-    if (catches)
-    {
-        for (size_t i = 0; i < catches->dim; i++)
-        {   Catch *c = (*catches)[i];
-
-            if (c->handler)
-                c->handler = c->handler->inlineScan(iss);
-        }
-    }
-    return this;
-}
-
-
-Statement *TryFinallyStatement::inlineScan(InlineScanState *iss)
-{
-    if (body)
-        body = body->inlineScan(iss);
-    if (finalbody)
-        finalbody = finalbody->inlineScan(iss);
-    return this;
-}
-
-
-Statement *ThrowStatement::inlineScan(InlineScanState *iss)
-{
-    if (exp)
-        exp = exp->inlineScan(iss);
-    return this;
-}
-
-
-Statement *LabelStatement::inlineScan(InlineScanState *iss)
-{
-    if (statement)
-        statement = statement->inlineScan(iss);
-    return this;
-}
-
-/* -------------------------- */
-
-void arrayInlineScan(InlineScanState *iss, Expressions *arguments)
-{
-    if (arguments)
-    {
-        for (size_t i = 0; i < arguments->dim; i++)
-        {   Expression *e = (*arguments)[i];
-
-            if (e)
-            {
-                e = e->inlineScan(iss);
-                (*arguments)[i] = e;
-            }
-        }
-    }
-}
-
-Expression *Expression::inlineScan(InlineScanState *iss)
-{
-    return this;
-}
-
-Expression *scanVar(Dsymbol *s, InlineScanState *iss)
-{
-    //printf("scanVar(%s %s)\n", s->kind(), s->toPrettyChars());
-    VarDeclaration *vd = s->isVarDeclaration();
-    if (vd)
-    {
-        TupleDeclaration *td = vd->toAlias()->isTupleDeclaration();
-        if (td)
+        for (size_t i = 0; i < s->statements->dim; i++)
         {
-            for (size_t i = 0; i < td->objects->dim; i++)
-            {
-                DsymbolExp *se = (DsymbolExp *)(*td->objects)[i];
-                assert(se->op == TOKdsymbol);
-                scanVar(se->s, iss);    // TODO
-            }
+            inlineScan(&(*s->statements)[i]);
         }
-        else if (vd->init)
+    }
+
+    void visit(UnrolledLoopStatement *s)
+    {
+        for (size_t i = 0; i < s->statements->dim; i++)
         {
-            if (ExpInitializer *ie = vd->init->isExpInitializer())
-            {
-                Expression *e = ie->exp->inlineScan(iss);
-                if (vd->init != ie)     // DeclareExp with vd appears in e
-                    return e;
-                ie->exp = e;
-            }
+            inlineScan(&(*s->statements)[i]);
         }
     }
-    else
+
+    void visit(ScopeStatement *s)
     {
-        s->inlineScan();
+        inlineScan(&s->statement);
     }
-    return NULL;
-}
 
-Expression *DeclarationExp::inlineScan(InlineScanState *iss)
-{
-    //printf("DeclarationExp::inlineScan()\n");
-    Expression *e = scanVar(declaration, iss);
-    return e ? e : this;
-}
-
-Expression *UnaExp::inlineScan(InlineScanState *iss)
-{
-    e1 = e1->inlineScan(iss);
-    return this;
-}
-
-Expression *AssertExp::inlineScan(InlineScanState *iss)
-{
-    e1 = e1->inlineScan(iss);
-    if (msg)
-        msg = msg->inlineScan(iss);
-    return this;
-}
-
-Expression *BinExp::inlineScan(InlineScanState *iss)
-{
-    e1 = e1->inlineScan(iss);
-    e2 = e2->inlineScan(iss);
-    return this;
-}
-
-Expression *AssignExp::inlineScan(InlineScanState *iss)
-{
-    if (op == TOKconstruct && e2->op == TOKcall)
+    void visit(WhileStatement *s)
     {
-        CallExp *ce = (CallExp *)e2;
-        if (ce->f && ce->f->nrvo_var)   // NRVO
+        inlineScan(&s->condition);
+        inlineScan(&s->body);
+    }
+
+    void visit(DoStatement *s)
+    {
+        inlineScan(&s->body);
+        inlineScan(&s->condition);
+    }
+
+    void visit(ForStatement *s)
+    {
+        inlineScan(&s->init);
+        inlineScan(&s->condition);
+        inlineScan(&s->increment);
+        inlineScan(&s->body);
+    }
+
+    void visit(ForeachStatement *s)
+    {
+        inlineScan(&s->aggr);
+        inlineScan(&s->body);
+    }
+
+    void visit(ForeachRangeStatement *s)
+    {
+        inlineScan(&s->lwr);
+        inlineScan(&s->upr);
+        inlineScan(&s->body);
+    }
+
+    void visit(IfStatement *s)
+    {
+        inlineScan(&s->condition);
+        inlineScan(&s->ifbody);
+        inlineScan(&s->elsebody);
+    }
+
+    void visit(SwitchStatement *s)
+    {
+        //printf("SwitchStatement::inlineScan()\n");
+        inlineScan(&s->condition);
+        inlineScan(&s->body);
+        Statement *sdefault = s->sdefault;
+        inlineScan(&sdefault);
+        s->sdefault = (DefaultStatement *)sdefault;
+        if (s->cases)
         {
-            if (e1->op == TOKvar)
+            for (size_t i = 0; i < s->cases->dim; i++)
             {
-                /* Inlining:
-                 *   S s = foo();   // initializing by rvalue
-                 *   S s = S(1);    // constrcutor call
-                 */
-                Declaration *d = ((VarExp *)e1)->var;
-                if (d->storage_class & (STCout | STCref))  // refinit
-                    goto L1;
-            }
-            else
-            {
-                /* Inlining:
-                 *   this.field = foo();   // inside constructor
-                 */
-                e1 = e1->inlineScan(iss);
-            }
-
-            Expression *e = ce->inlineScan(iss, e1);
-            if (e != ce)
-            {
-                //printf("call with nrvo: %s ==> %s\n", toChars(), e->toChars());
-                return e;
+                Statement *scase = (*s->cases)[i];
+                inlineScan(&scase);
+                (*s->cases)[i] = (CaseStatement *)scase;
             }
         }
     }
-L1:
-    return BinExp::inlineScan(iss);
-}
 
-Expression *CallExp::inlineScan(InlineScanState *iss)
-{
-    return inlineScan(iss, NULL);
-}
-
-Expression *CallExp::inlineScan(InlineScanState *iss, Expression *eret)
-{
-    Expression *e = this;
-
-    //printf("CallExp::inlineScan()\n");
-    e1 = e1->inlineScan(iss);
-    arrayInlineScan(iss, arguments);
-
-    if (e1->op == TOKvar)
+    void visit(CaseStatement *s)
     {
-        VarExp *ve = (VarExp *)e1;
-        FuncDeclaration *fd = ve->var->isFuncDeclaration();
+        //printf("CaseStatement::inlineScan()\n");
+        inlineScan(&s->exp);
+        inlineScan(&s->statement);
+    }
 
-        if (fd && fd != iss->fd && fd->canInline(0, 0, 0))
+    void visit(DefaultStatement *s)
+    {
+        inlineScan(&s->statement);
+    }
+
+    void visit(ReturnStatement *s)
+    {
+        //printf("ReturnStatement::inlineScan()\n");
+        inlineScan(&s->exp);
+    }
+
+    void visit(SynchronizedStatement *s)
+    {
+        inlineScan(&s->exp);
+        inlineScan(&s->body);
+    }
+
+    void visit(WithStatement *s)
+    {
+        inlineScan(&s->exp);
+        inlineScan(&s->body);
+    }
+
+    void visit(TryCatchStatement *s)
+    {
+        inlineScan(&s->body);
+        if (s->catches)
         {
-            e = fd->expandInline(iss, eret, NULL, arguments, NULL);
-        }
-    }
-    else if (e1->op == TOKdotvar)
-    {
-        DotVarExp *dve = (DotVarExp *)e1;
-        FuncDeclaration *fd = dve->var->isFuncDeclaration();
-
-        if (fd && fd != iss->fd && fd->canInline(1, 0, 0))
-        {
-            if (dve->e1->op == TOKcall &&
-                dve->e1->type->toBasetype()->ty == Tstruct)
+            for (size_t i = 0; i < s->catches->dim; i++)
             {
-                /* To create ethis, we'll need to take the address
-                 * of dve->e1, but this won't work if dve->e1 is
-                 * a function call.
-                 */
-                ;
+                Catch *c = (*s->catches)[i];
+                inlineScan(&c->handler);
             }
-            else
-                e = fd->expandInline(iss, eret, dve->e1, arguments, NULL);
         }
     }
 
-    if (e && type->ty != Tvoid)
-        e->type = type;
-    return e;
-}
-
-
-Expression *SliceExp::inlineScan(InlineScanState *iss)
-{
-    e1 = e1->inlineScan(iss);
-    if (lwr)
-        lwr = lwr->inlineScan(iss);
-    if (upr)
-        upr = upr->inlineScan(iss);
-    return this;
-}
-
-
-Expression *TupleExp::inlineScan(InlineScanState *iss)
-{   Expression *e = this;
-
-    //printf("TupleExp::inlineScan()\n");
-    if (e0)
-        e0->inlineScan(iss);
-    arrayInlineScan(iss, exps);
-
-    return e;
-}
-
-
-Expression *ArrayLiteralExp::inlineScan(InlineScanState *iss)
-{   Expression *e = this;
-
-    //printf("ArrayLiteralExp::inlineScan()\n");
-    arrayInlineScan(iss, elements);
-
-    return e;
-}
-
-
-Expression *AssocArrayLiteralExp::inlineScan(InlineScanState *iss)
-{   Expression *e = this;
-
-    //printf("AssocArrayLiteralExp::inlineScan()\n");
-    arrayInlineScan(iss, keys);
-    arrayInlineScan(iss, values);
-
-    return e;
-}
-
-
-Expression *StructLiteralExp::inlineScan(InlineScanState *iss)
-{   Expression *e = this;
-
-    //printf("StructLiteralExp::inlineScan()\n");
-    if(stageflags & stageInlineScan) return e;
-    int old = stageflags;
-    stageflags |= stageInlineScan;
-    arrayInlineScan(iss, elements);
-    stageflags = old;
-    return e;
-}
-
-
-Expression *ArrayExp::inlineScan(InlineScanState *iss)
-{   Expression *e = this;
-
-    //printf("ArrayExp::inlineScan()\n");
-    e1 = e1->inlineScan(iss);
-    arrayInlineScan(iss, arguments);
-
-    return e;
-}
-
-
-Expression *CondExp::inlineScan(InlineScanState *iss)
-{
-    econd = econd->inlineScan(iss);
-    e1 = e1->inlineScan(iss);
-    e2 = e2->inlineScan(iss);
-    return this;
-}
-
-
-/* ==========  =============== */
-
-void FuncDeclaration::inlineScan()
-{
-    InlineScanState iss;
-
-#if LOG
-    printf("FuncDeclaration::inlineScan('%s')\n", toPrettyChars());
-#endif
-    memset(&iss, 0, sizeof(iss));
-    iss.fd = this;
-    if (fbody && !naked)
+    void visit(TryFinallyStatement *s)
     {
-        inlineNest++;
-        fbody = fbody->inlineScan(&iss);
-        inlineNest--;
+        inlineScan(&s->body);
+        inlineScan(&s->finalbody);
     }
+
+    void visit(ThrowStatement *s)
+    {
+        inlineScan(&s->exp);
+    }
+
+    void visit(LabelStatement *s)
+    {
+        inlineScan(&s->statement);
+    }
+
+    void inlineScan(Statement **s)
+    {
+        if (!*s) return;
+        Statement *save = result;
+        result = *s;
+        (*s)->accept(this);
+        *s = result;
+        result = save;
+    }
+
+    /* -------------------------- */
+
+    void arrayInlineScan(Expressions *arguments)
+    {
+        if (arguments)
+        {
+            for (size_t i = 0; i < arguments->dim; i++)
+            {
+                inlineScan(&(*arguments)[i]);
+            }
+        }
+    }
+
+    void visit(Expression *e)
+    {
+    }
+
+    Expression *scanVar(Dsymbol *s)
+    {
+        //printf("scanVar(%s %s)\n", s->kind(), s->toPrettyChars());
+        VarDeclaration *vd = s->isVarDeclaration();
+        if (vd)
+        {
+            TupleDeclaration *td = vd->toAlias()->isTupleDeclaration();
+            if (td)
+            {
+                for (size_t i = 0; i < td->objects->dim; i++)
+                {
+                    DsymbolExp *se = (DsymbolExp *)(*td->objects)[i];
+                    assert(se->op == TOKdsymbol);
+                    scanVar(se->s);    // TODO
+                }
+            }
+            else if (vd->init)
+            {
+                if (ExpInitializer *ie = vd->init->isExpInitializer())
+                {
+                    Expression *e = ie->exp;
+                    inlineScan(&e);
+                    if (vd->init != ie)     // DeclareExp with vd appears in e
+                        return e;
+                    ie->exp = e;
+                }
+            }
+        }
+        else
+        {
+            s->accept(this);
+        }
+        return NULL;
+    }
+
+    void visit(DeclarationExp *e)
+    {
+        //printf("DeclarationExp::inlineScan()\n");
+        Expression *ed = scanVar(e->declaration);
+        if (ed)
+            eresult = ed;
+    }
+
+    void visit(UnaExp *e)
+    {
+        inlineScan(&e->e1);
+    }
+
+    void visit(AssertExp *e)
+    {
+        inlineScan(&e->e1);
+        inlineScan(&e->msg);
+    }
+
+    void visit(BinExp *e)
+    {
+        inlineScan(&e->e1);
+        inlineScan(&e->e2);
+    }
+
+    void visit(AssignExp *e)
+    {
+        if (e->op == TOKconstruct && e->e2->op == TOKcall)
+        {
+            CallExp *ce = (CallExp *)e->e2;
+            if (ce->f && ce->f->nrvo_var)   // NRVO
+            {
+                if (e->e1->op == TOKvar)
+                {
+                    /* Inlining:
+                     *   S s = foo();   // initializing by rvalue
+                     *   S s = S(1);    // constrcutor call
+                     */
+                    Declaration *d = ((VarExp *)e->e1)->var;
+                    if (d->storage_class & (STCout | STCref))  // refinit
+                        goto L1;
+                }
+                else
+                {
+                    /* Inlining:
+                     *   this.field = foo();   // inside constructor
+                     */
+                    inlineScan(&e->e1);
+                }
+
+                visitCallExp(ce, e->e1);
+                if (eresult)
+                {
+                    //printf("call with nrvo: %s ==> %s\n", e->toChars(), eresult->toChars());
+                    return;
+                }
+            }
+        }
+    L1:
+        visit((BinExp *)e);
+    }
+
+    void visit(CallExp *e)
+    {
+        visitCallExp(e, NULL);
+    }
+
+    void visitCallExp(CallExp *e, Expression *eret)
+    {
+        //printf("CallExp::inlineScan()\n");
+        inlineScan(&e->e1);
+        arrayInlineScan(e->arguments);
+
+        if (e->e1->op == TOKvar)
+        {
+            VarExp *ve = (VarExp *)e->e1;
+            FuncDeclaration *fd = ve->var->isFuncDeclaration();
+
+            if (fd && fd != parent && canInline(fd, 0, 0, 0))
+            {
+                Expression *ex = expandInline(fd, parent, eret, NULL, e->arguments, NULL);
+                if (ex)
+                    eresult = ex;
+            }
+        }
+        else if (e->e1->op == TOKdotvar)
+        {
+            DotVarExp *dve = (DotVarExp *)e->e1;
+            FuncDeclaration *fd = dve->var->isFuncDeclaration();
+
+            if (fd && fd != parent && canInline(fd, 1, 0, 0))
+            {
+                if (dve->e1->op == TOKcall &&
+                    dve->e1->type->toBasetype()->ty == Tstruct)
+                {
+                    /* To create ethis, we'll need to take the address
+                     * of dve->e1, but this won't work if dve->e1 is
+                     * a function call.
+                     */
+                    ;
+                }
+                else
+                {
+                    Expression *ex = expandInline(fd, parent, eret, dve->e1, e->arguments, NULL);
+                    if (ex)
+                        eresult = ex;
+                }
+            }
+        }
+
+        if (eresult && e->type->ty != Tvoid)
+        {
+            Expression *ex = eresult;
+            while (ex->op == TOKcomma)
+            {
+                ex->type = e->type;
+                ex = ((CommaExp *)ex)->e2;
+            }
+            ex->type = e->type;
+        }
+    }
+
+    void visit(SliceExp *e)
+    {
+        inlineScan(&e->e1);
+        inlineScan(&e->lwr);
+        inlineScan(&e->upr);
+    }
+
+    void visit(TupleExp *e)
+    {
+        //printf("TupleExp::inlineScan()\n");
+        inlineScan(&e->e0);
+        arrayInlineScan(e->exps);
+    }
+
+    void visit(ArrayLiteralExp *e)
+    {
+        //printf("ArrayLiteralExp::inlineScan()\n");
+        arrayInlineScan(e->elements);
+    }
+
+    void visit(AssocArrayLiteralExp *e)
+    {
+        //printf("AssocArrayLiteralExp::inlineScan()\n");
+        arrayInlineScan(e->keys);
+        arrayInlineScan(e->values);
+    }
+
+    void visit(StructLiteralExp *e)
+    {
+        //printf("StructLiteralExp::inlineScan()\n");
+        if (e->stageflags & stageInlineScan) return;
+        int old = e->stageflags;
+        e->stageflags |= stageInlineScan;
+        arrayInlineScan(e->elements);
+        e->stageflags = old;
+    }
+
+    void visit(ArrayExp *e)
+    {
+        //printf("ArrayExp::inlineScan()\n");
+        inlineScan(&e->e1);
+        arrayInlineScan(e->arguments);
+    }
+
+    void visit(CondExp *e)
+    {
+        inlineScan(&e->econd);
+        inlineScan(&e->e1);
+        inlineScan(&e->e2);
+    }
+
+    void inlineScan(Expression **e)
+    {
+        if (!*e) return;
+        Expression *save = eresult;
+        eresult = *e;
+        (*e)->accept(this);
+        assert(eresult);
+        *e = eresult;
+        eresult = save;
+    }
+
+    /*************************************
+     * Look for function inlining possibilities.
+     */
+
+    void visit(Dsymbol *d)
+    {
+        // Most Dsymbols aren't functions
+    }
+
+    void visit(FuncDeclaration *fd)
+    {
+    #if LOG
+        printf("FuncDeclaration::inlineScan('%s')\n", fd->toPrettyChars());
+    #endif
+        if (fd->isUnitTestDeclaration() && !global.params.useUnitTests)
+            return;
+
+        FuncDeclaration *oldparent = parent;
+        parent = fd;
+        if (fd->fbody && !fd->naked)
+        {
+            fd->inlineNest++;
+            inlineScan(&fd->fbody);
+            fd->inlineNest--;
+        }
+        parent = oldparent;
+    }
+
+    void visit(AttribDeclaration *d)
+    {
+        Dsymbols *decls = d->include(NULL, NULL);
+
+        if (decls)
+        {
+            for (size_t i = 0; i < decls->dim; i++)
+            {
+                Dsymbol *s = (*decls)[i];
+                //printf("AttribDeclaration::inlineScan %s\n", s->toChars());
+                s->accept(this);
+            }
+        }
+    }
+
+    void visit(AggregateDeclaration *ad)
+    {
+        //printf("AggregateDeclaration::inlineScan(%s)\n", toChars());
+        if (ad->members)
+        {
+            for (size_t i = 0; i < ad->members->dim; i++)
+            {
+                Dsymbol *s = (*ad->members)[i];
+                //printf("inline scan aggregate symbol '%s'\n", s->toChars());
+                s->accept(this);
+            }
+        }
+    }
+
+    void visit(TemplateInstance *ti)
+    {
+    #if LOG
+        printf("TemplateInstance::inlineScan('%s')\n", ti->toChars());
+    #endif
+        if (!ti->errors && ti->members)
+        {
+            for (size_t i = 0; i < ti->members->dim; i++)
+            {
+                Dsymbol *s = (*ti->members)[i];
+                s->accept(this);
+            }
+        }
+    }
+};
+
+// scan for functions to inline
+void inlineScan(Module *m)
+{
+    if (m->semanticRun != PASSsemantic3done)
+        return;
+    m->semanticRun = PASSinline;
+
+    // Note that modules get their own scope, from scratch.
+    // This is so regardless of where in the syntax a module
+    // gets imported, it is unaffected by context.
+    //printf("Module = %p\n", m->sc.scopesym);
+
+    for (size_t i = 0; i < m->members->dim; i++)
+    {
+        Dsymbol *s = (*m->members)[i];
+        //if (global.params.verbose)
+        //    fprintf(global.stdmsg, "inline scan symbol %s\n", s->toChars());
+        InlineScanVisitor v;
+        s->accept(&v);
+    }
+    m->semanticRun = PASSinlinedone;
 }
 
-int FuncDeclaration::canInline(int hasthis, int hdrscan, int statementsToo)
+int canInline(FuncDeclaration *fd, int hasthis, int hdrscan, int statementsToo)
 {
-    InlineCostState ics;
     int cost;
 
 #define CANINLINE_LOG 0
 
 #if CANINLINE_LOG
-    printf("FuncDeclaration::canInline(hasthis = %d, statementsToo = %d, '%s')\n", hasthis, statementsToo, toPrettyChars());
+    printf("FuncDeclaration::canInline(hasthis = %d, statementsToo = %d, '%s')\n", hasthis, statementsToo, fd->toPrettyChars());
 #endif
 
-    if (needThis() && !hasthis)
+    if (fd->needThis() && !hasthis)
         return 0;
 
-    if (inlineNest || (semanticRun < PASSsemantic3 && !hdrscan))
+    if (fd->inlineNest || (fd->semanticRun < PASSsemantic3 && !hdrscan))
     {
 #if CANINLINE_LOG
-        printf("\t1: no, inlineNest = %d, semanticRun = %d\n", inlineNest, semanticRun);
+        printf("\t1: no, inlineNest = %d, semanticRun = %d\n", fd->inlineNest, fd->semanticRun);
 #endif
         return 0;
     }
 
-#if 1
-    switch (statementsToo ? inlineStatusStmt : inlineStatusExp)
+    switch (statementsToo ? fd->inlineStatusStmt : fd->inlineStatusExp)
     {
         case ILSyes:
 #if CANINLINE_LOG
-            printf("\t1: yes %s\n", toChars());
+            printf("\t1: yes %s\n", fd->toChars());
 #endif
             return 1;
 
         case ILSno:
 #if CANINLINE_LOG
-            printf("\t1: no %s\n", toChars());
+            printf("\t1: no %s\n", fd->toChars());
 #endif
             return 0;
 
@@ -1555,11 +1647,11 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan, int statementsToo)
         default:
             assert(0);
     }
-#endif
 
-    if (type)
-    {   assert(type->ty == Tfunction);
-        TypeFunction *tf = (TypeFunction *)type;
+    if (fd->type)
+    {
+        assert(fd->type->ty == Tfunction);
+        TypeFunction *tf = (TypeFunction *)fd->type;
         if (tf->varargs == 1)   // no variadic parameter lists
             goto Lno;
 
@@ -1568,7 +1660,7 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan, int statementsToo)
          * No statement inlining for non-voids.
          */
         if (tf->next && tf->next->ty != Tvoid &&
-            (!(hasReturnExp & 1) || statementsToo) &&
+            (!(fd->hasReturnExp & 1) || statementsToo) &&
             !hdrscan)
             goto Lno;
     }
@@ -1577,45 +1669,36 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan, int statementsToo)
     //      return;
     // to:
     //      return this;
-    if (
-        !fbody ||
-        ident == Id::ensure ||  // ensure() has magic properties the inliner loses
-        (ident == Id::require &&             // require() has magic properties too
-         toParent()->isFuncDeclaration() &&  // see bug 7699
-         toParent()->isFuncDeclaration()->needThis()) ||
+    // ensure() has magic properties the inliner loses
+    // require() has magic properties too
+    // see bug 7699
+    // no nested references to this frame
+    if (!fd->fbody ||
+        fd->ident == Id::ensure ||
+        (fd->ident == Id::require &&
+         fd->toParent()->isFuncDeclaration() &&
+         fd->toParent()->isFuncDeclaration()->needThis()) ||
         !hdrscan &&
         (
-        isSynchronized() ||
-        isImportedSymbol() ||
-        hasNestedFrameRefs() ||      // no nested references to this frame
-        (isVirtual() && !isFinalFunc())
+        fd->isSynchronized() ||
+        fd->isImportedSymbol() ||
+        fd->hasNestedFrameRefs() ||
+        (fd->isVirtual() && !fd->isFinalFunc())
        ))
     {
         goto Lno;
     }
 
-#if 0
-    /* If any parameters are Tsarray's (which are passed by reference)
-     * or out parameters (also passed by reference), don't do inlining.
-     */
-    if (parameters)
     {
-        for (size_t i = 0; i < parameters->dim; i++)
-        {
-            VarDeclaration *v = (*parameters)[i];
-            if (v->type->toBasetype()->ty == Tsarray)
-                goto Lno;
-        }
+        InlineCostVisitor icv;
+        icv.hasthis = hasthis;
+        icv.fd = fd;
+        icv.hdrscan = hdrscan;
+        fd->fbody->accept(&icv);
+        cost = icv.cost;
     }
-#endif
-
-    memset(&ics, 0, sizeof(ics));
-    ics.hasthis = hasthis;
-    ics.fd = this;
-    ics.hdrscan = hdrscan;
-    cost = fbody->inlineCost(&ics);
 #if CANINLINE_LOG
-    printf("cost = %d for %s\n", cost, toChars());
+    printf("cost = %d for %s\n", cost, fd->toChars());
 #endif
     if (tooCostly(cost))
         goto Lno;
@@ -1626,22 +1709,24 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan, int statementsToo)
     {
         // Don't modify inlineStatus for header content scan
         if (statementsToo)
-            inlineStatusStmt = ILSyes;
+            fd->inlineStatusStmt = ILSyes;
         else
-            inlineStatusExp = ILSyes;
+            fd->inlineStatusExp = ILSyes;
 
-        inlineScan();    // Don't scan recursively for header content scan
+        InlineScanVisitor v;
+        fd->accept(&v);      // Don't scan recursively for header content scan
 
-        if (inlineStatusExp == ILSuninitialized)
+        if (fd->inlineStatusExp == ILSuninitialized)
         {
             // Need to redo cost computation, as some statements or expressions have been inlined
-            memset(&ics, 0, sizeof(ics));
-            ics.hasthis = hasthis;
-            ics.fd = this;
-            ics.hdrscan = hdrscan;
-            cost = fbody->inlineCost(&ics);
+            InlineCostVisitor icv;
+            icv.hasthis = hasthis;
+            icv.fd = fd;
+            icv.hdrscan = hdrscan;
+            fd->fbody->accept(&icv);
+            cost = icv.cost;
         #if CANINLINE_LOG
-            printf("recomputed cost = %d for %s\n", cost, toChars());
+            printf("recomputed cost = %d for %s\n", cost, fd->toChars());
         #endif
             if (tooCostly(cost))
                 goto Lno;
@@ -1649,44 +1734,45 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan, int statementsToo)
                 goto Lno;
 
             if (statementsToo)
-                inlineStatusStmt = ILSyes;
+                fd->inlineStatusStmt = ILSyes;
             else
-                inlineStatusExp = ILSyes;
+                fd->inlineStatusExp = ILSyes;
         }
     }
 #if CANINLINE_LOG
-    printf("\t2: yes %s\n", toChars());
+    printf("\t2: yes %s\n", fd->toChars());
 #endif
     return 1;
 
 Lno:
     if (!hdrscan)    // Don't modify inlineStatus for header content scan
-    {   if (statementsToo)
-            inlineStatusStmt = ILSno;
+    {
+        if (statementsToo)
+            fd->inlineStatusStmt = ILSno;
         else
-            inlineStatusExp = ILSno;
+            fd->inlineStatusExp = ILSno;
     }
 #if CANINLINE_LOG
-    printf("\t2: no %s\n", toChars());
+    printf("\t2: no %s\n", fd->toChars());
 #endif
     return 0;
 }
 
-Expression *FuncDeclaration::expandInline(InlineScanState *iss,
+static Expression *expandInline(FuncDeclaration *fd, FuncDeclaration *parent,
         Expression *eret, Expression *ethis, Expressions *arguments, Statement **ps)
 {
     InlineDoState ids;
     Expression *e = NULL;
     Statements *as = NULL;
-    TypeFunction *tf = (TypeFunction*)type;
+    TypeFunction *tf = (TypeFunction*)fd->type;
 
 #if LOG || CANINLINE_LOG
     printf("FuncDeclaration::expandInline('%s')\n", toChars());
 #endif
 
     memset(&ids, 0, sizeof(ids));
-    ids.parent = iss->fd;
-    ids.fd = this;
+    ids.parent = parent;
+    ids.fd = fd;
 
     if (ps)
         as = new Statements();
@@ -1704,20 +1790,20 @@ Expression *FuncDeclaration::expandInline(InlineScanState *iss,
             /* Inlining:
              *   this.field = foo();   // inside constructor
              */
-            vret = new VarDeclaration(loc, eret->type, Lexer::uniqueId("_satmp"), NULL);
+            vret = new VarDeclaration(fd->loc, eret->type, Lexer::uniqueId("_satmp"), NULL);
             vret->storage_class |= STCtemp | STCforeach | STCref;
             vret->linkage = LINKd;
-            vret->parent = iss->fd;
+            vret->parent = parent;
 
             Expression *de;
-            de = new DeclarationExp(loc, vret);
+            de = new DeclarationExp(fd->loc, vret);
             de->type = Type::tvoid;
             e = Expression::combine(e, de);
 
             Expression *ex;
-            ex = new VarExp(loc, vret);
+            ex = new VarExp(fd->loc, vret);
             ex->type = vret->type;
-            ex = new ConstructExp(loc, ex, eret);
+            ex = new ConstructExp(fd->loc, ex, eret);
             ex->type = vret->type;
             e = Expression::combine(e, ex);
         }
@@ -1743,7 +1829,7 @@ Expression *FuncDeclaration::expandInline(InlineScanState *iss,
         else
             vthis->storage_class = STCin;
         vthis->linkage = LINKd;
-        vthis->parent = iss->fd;
+        vthis->parent = parent;
 
         ve = new VarExp(vthis->loc, vthis);
         ve->type = vthis->type;
@@ -1767,33 +1853,37 @@ Expression *FuncDeclaration::expandInline(InlineScanState *iss,
         e = Expression::combine(e, de);
     }
 
-    if (!ps && nrvo_var)
+    if (!ps && fd->nrvo_var)
     {
         if (vret)
         {
-            ids.from.push(nrvo_var);
+            ids.from.push(fd->nrvo_var);
             ids.to.push(vret);
         }
         else
         {
             Identifier* tmp = Identifier::generateId("__nrvoretval");
-            VarDeclaration* vd = new VarDeclaration(loc, nrvo_var->type, tmp, NULL);
+            VarDeclaration* vd = new VarDeclaration(fd->loc, fd->nrvo_var->type, tmp, NULL);
             assert(!tf->isref);
             vd->storage_class = STCtemp | STCrvalue;
             vd->linkage = tf->linkage;
-            vd->parent = iss->fd;
+            vd->parent = parent;
 
-            ids.from.push(nrvo_var);
+            ids.from.push(fd->nrvo_var);
             ids.to.push(vd);
+
+            Expression *de = new DeclarationExp(Loc(), vd);
+            de->type = Type::tvoid;
+            e = Expression::combine(e, de);
         }
     }
     if (arguments && arguments->dim)
     {
-        assert(parameters->dim == arguments->dim);
+        assert(fd->parameters->dim == arguments->dim);
 
         for (size_t i = 0; i < arguments->dim; i++)
         {
-            VarDeclaration *vfrom = (*parameters)[i];
+            VarDeclaration *vfrom = (*fd->parameters)[i];
             VarDeclaration *vto;
             Expression *arg = (*arguments)[i];
             ExpInitializer *ei;
@@ -1804,15 +1894,18 @@ Expression *FuncDeclaration::expandInline(InlineScanState *iss,
             vto = new VarDeclaration(vfrom->loc, vfrom->type, vfrom->ident, ei);
             vto->storage_class |= vfrom->storage_class & (STCtemp | STCin | STCout | STClazy | STCref);
             vto->linkage = vfrom->linkage;
-            vto->parent = iss->fd;
+            vto->parent = parent;
             //printf("vto = '%s', vto->storage_class = x%x\n", vto->toChars(), vto->storage_class);
-            //printf("vto->parent = '%s'\n", iss->fd->toChars());
+            //printf("vto->parent = '%s'\n", parent->toChars());
 
             ve = new VarExp(vto->loc, vto);
             //ve->type = vto->type;
             ve->type = arg->type;
 
-            ei->exp = new ConstructExp(vto->loc, ve, arg);
+            if (vfrom->storage_class & (STCout | STCref))
+                ei->exp = new ConstructExp(vto->loc, ve, arg);
+            else
+                ei->exp = new BlitExp(vto->loc, ve, arg);
             ei->exp->type = ve->type;
             //ve->type->print();
             //arg->type->print();
@@ -1832,21 +1925,21 @@ Expression *FuncDeclaration::expandInline(InlineScanState *iss,
     {
         if (e)
             as->push(new ExpStatement(Loc(), e));
-        inlineNest++;
-        Statement *s = fbody->doInlineStatement(&ids);
+        fd->inlineNest++;
+        Statement *s = inlineAsStatement(fd->fbody, &ids);
         as->push(s);
         *ps = new ScopeStatement(Loc(), new CompoundStatement(Loc(), as));
-        inlineNest--;
+        fd->inlineNest--;
     }
     else
     {
-        inlineNest++;
-        Expression *eb = fbody->doInline(&ids);
+        fd->inlineNest++;
+        Expression *eb = doInline(fd->fbody, &ids);
         e = Expression::combine(e, eb);
-        inlineNest--;
+        fd->inlineNest--;
         //eb->type->print();
         //eb->print();
-        //eb->dump(0);
+        //eb->print();
 
         // Bugzilla 11322:
         if (tf->isref)
@@ -1865,24 +1958,24 @@ Expression *FuncDeclaration::expandInline(InlineScanState *iss,
          * the returned reference is exactly same as vthis, and the 'this' variable
          * already exists at the caller side.
          */
-        if (tf->next->ty == Tstruct && !nrvo_var && !isCtorDeclaration())
+        if (tf->next->ty == Tstruct && !fd->nrvo_var && !fd->isCtorDeclaration())
         {
             /* Generate a new variable to hold the result and initialize it with the
              * inlined body of the function:
              *   tret __inlineretval = e;
              */
-            ExpInitializer* ei = new ExpInitializer(loc, e);
+            ExpInitializer* ei = new ExpInitializer(fd->loc, e);
 
             Identifier* tmp = Identifier::generateId("__inlineretval");
-            VarDeclaration* vd = new VarDeclaration(loc, tf->next, tmp, ei);
+            VarDeclaration* vd = new VarDeclaration(fd->loc, tf->next, tmp, ei);
             vd->storage_class = (tf->isref ? STCref : 0) | STCtemp | STCrvalue;
             vd->linkage = tf->linkage;
-            vd->parent = iss->fd;
+            vd->parent = parent;
 
-            VarExp *ve = new VarExp(loc, vd);
+            VarExp *ve = new VarExp(fd->loc, vd);
             ve->type = tf->next;
 
-            ei->exp = new ConstructExp(loc, ve, e);
+            ei->exp = new ConstructExp(fd->loc, ve, e);
             ei->exp->type = ve->type;
 
             DeclarationExp* de = new DeclarationExp(Loc(), vd);
@@ -1895,59 +1988,49 @@ Expression *FuncDeclaration::expandInline(InlineScanState *iss,
             //fprintf(stderr, "CallExp::inlineScan: e = "); e->print();
         }
     }
-    //printf("%s->expandInline = { %s }\n", toChars(), e->toChars());
+    //printf("%s->expandInline = { %s }\n", fd->toChars(), e->toChars());
 
     // Need to reevaluate whether parent can now be inlined
     // in expressions, as we might have inlined statements
-    iss->fd->inlineStatusExp = ILSuninitialized;
+    parent->inlineStatusExp = ILSuninitialized;
     return e;
-}
-
-void UnitTestDeclaration::inlineScan()
-{
-    if (global.params.useUnitTests)
-    {
-        FuncDeclaration::inlineScan();
-    }
 }
 
 /****************************************************
  * Perform the "inline copying" of a default argument for a function parameter.
  */
 
-Expression *Expression::inlineCopy(Scope *sc)
+Expression *inlineCopy(Expression *e, Scope *sc)
 {
-#if 0
     /* See Bugzilla 2935 for explanation of why just a copy() is broken
      */
-    return copy();
-#else
-    if (op == TOKdelegate)
-    {   DelegateExp *de = (DelegateExp *)this;
+    //return e->copy();
+
+    if (e->op == TOKdelegate)
+    {
+        DelegateExp *de = (DelegateExp *)e;
 
         if (de->func->isNested())
-        {   /* See Bugzilla 4820
+        {
+            /* See Bugzilla 4820
              * Defer checking until later if we actually need the 'this' pointer
              */
-            Expression *e = de->copy();
-            return e;
+            return de->copy();
         }
     }
 
-    InlineCostState ics;
-
-    memset(&ics, 0, sizeof(ics));
-    ics.hdrscan = 1;                    // so DeclarationExp:: will work on 'statics' which are not
-    int cost = expressionInlineCost(this, &ics);
+    InlineCostVisitor icv;
+    icv.hdrscan = 1;
+    icv.expressionInlineCost(e);
+    int cost = icv.cost;
     if (cost >= COST_MAX)
-    {   error("cannot inline default argument %s", toChars());
+    {
+        e->error("cannot inline default argument %s", e->toChars());
         return new ErrorExp();
     }
     InlineDoState ids;
     memset(&ids, 0, sizeof(ids));
     ids.parent = sc->parent;
-    Expression *e = doInline(&ids);
-    return e;
-#endif
+    return doInline(e, &ids);
 }
 

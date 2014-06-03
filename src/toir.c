@@ -49,6 +49,9 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 bool ISREF(Declaration *var, Type *tb);
 bool ISWIN64REF(Declaration *var);
 
+type *Type_toCtype(Type *t);
+unsigned totym(Type *tx);
+Symbol *toSymbol(Dsymbol *s);
 
 /*********************************************
  * Produce elem which increments the usage count for a particular line.
@@ -317,34 +320,34 @@ int intrinsic_op(char *name)
         /* The names are mangled differently because of the pure and
          * nothrow attributes.
          */
-        "4math3cosFNaNbNfeZe",
-        "4math3sinFNaNbNfeZe",
-        "4math4fabsFNaNbNfeZe",
-        "4math4rintFNaNbNfeZe",
-        "4math4sqrtFNaNbNfdZd",
-        "4math4sqrtFNaNbNfeZe",
-        "4math4sqrtFNaNbNffZf",
-        "4math4yl2xFNaNbNfeeZe",
-        "4math5ldexpFNaNbNfeiZe",
-        "4math6rndtolFNaNbNfeZl",
-        "4math6yl2xp1FNaNbNfeeZe",
+        "4math3cosFNaNbNiNfeZe",
+        "4math3sinFNaNbNiNfeZe",
+        "4math4fabsFNaNbNiNfeZe",
+        "4math4rintFNaNbNiNfeZe",
+        "4math4sqrtFNaNbNiNfdZd",
+        "4math4sqrtFNaNbNiNfeZe",
+        "4math4sqrtFNaNbNiNffZf",
+        "4math4yl2xFNaNbNiNfeeZe",
+        "4math5ldexpFNaNbNiNfeiZe",
+        "4math6rndtolFNaNbNiNfeZl",
+        "4math6yl2xp1FNaNbNiNfeeZe",
     };
     static const char *std_namearray64[] =
     {
         /* The names are mangled differently because of the pure and
          * nothrow attributes.
          */
-        "4math3cosFNaNbNfeZe",
-        "4math3sinFNaNbNfeZe",
-        "4math4fabsFNaNbNfeZe",
-        "4math4rintFNaNbNfeZe",
-        "4math4sqrtFNaNbNfdZd",
-        "4math4sqrtFNaNbNfeZe",
-        "4math4sqrtFNaNbNffZf",
-        "4math4yl2xFNaNbNfeeZe",
-        "4math5ldexpFNaNbNfeiZe",
-        "4math6rndtolFNaNbNfeZl",
-        "4math6yl2xp1FNaNbNfeeZe",
+        "4math3cosFNaNbNiNfeZe",
+        "4math3sinFNaNbNiNfeZe",
+        "4math4fabsFNaNbNiNfeZe",
+        "4math4rintFNaNbNiNfeZe",
+        "4math4sqrtFNaNbNiNfdZd",
+        "4math4sqrtFNaNbNiNfeZe",
+        "4math4sqrtFNaNbNiNffZf",
+        "4math4yl2xFNaNbNiNfeeZe",
+        "4math5ldexpFNaNbNiNfeiZe",
+        "4math6rndtolFNaNbNiNfeZl",
+        "4math6yl2xp1FNaNbNiNfeeZe",
     };
     static unsigned char std_ioptab[] =
     {
@@ -363,77 +366,77 @@ int intrinsic_op(char *name)
 
     static const char *core_namearray[] =
     {
-        "4math3cosFNaNbNfeZe",
-        "4math3sinFNaNbNfeZe",
-        "4math4fabsFNaNbNfeZe",
-        "4math4rintFNaNbNfeZe",
-        "4math4sqrtFNaNbNfdZd",
-        "4math4sqrtFNaNbNfeZe",
-        "4math4sqrtFNaNbNffZf",
-        "4math4yl2xFNaNbNfeeZe",
-        "4math5ldexpFNaNbNfeiZe",
-        "4math6rndtolFNaNbNfeZl",
-        "4math6yl2xp1FNaNbNfeeZe",
+        "4math3cosFNaNbNiNfeZe",
+        "4math3sinFNaNbNiNfeZe",
+        "4math4fabsFNaNbNiNfeZe",
+        "4math4rintFNaNbNiNfeZe",
+        "4math4sqrtFNaNbNiNfdZd",
+        "4math4sqrtFNaNbNiNfeZe",
+        "4math4sqrtFNaNbNiNffZf",
+        "4math4yl2xFNaNbNiNfeeZe",
+        "4math5ldexpFNaNbNiNfeiZe",
+        "4math6rndtolFNaNbNiNfeZl",
+        "4math6yl2xp1FNaNbNiNfeeZe",
 
-        "4simd10__simd_stoFNaNbNfE4core4simd3XMMNhG16vNhG16vZNhG16v",
-        "4simd10__simd_stoFNaNbNfE4core4simd3XMMdNhG16vZNhG16v",
-        "4simd10__simd_stoFNaNbNfE4core4simd3XMMfNhG16vZNhG16v",
-        "4simd6__simdFNaNbNfE4core4simd3XMMNhG16vNhG16vZNhG16v",
-        "4simd6__simdFNaNbNfE4core4simd3XMMNhG16vNhG16vhZNhG16v",
-        "4simd6__simdFNaNbNfE4core4simd3XMMNhG16vZNhG16v",
-        "4simd6__simdFNaNbNfE4core4simd3XMMdZNhG16v",
-        "4simd6__simdFNaNbNfE4core4simd3XMMfZNhG16v",
-        "4simd9__simd_ibFNaNbNfE4core4simd3XMMNhG16vhZNhG16v",
+        "4simd10__simd_stoFNaNbNiNfE4core4simd3XMMNhG16vNhG16vZNhG16v",
+        "4simd10__simd_stoFNaNbNiNfE4core4simd3XMMdNhG16vZNhG16v",
+        "4simd10__simd_stoFNaNbNiNfE4core4simd3XMMfNhG16vZNhG16v",
+        "4simd6__simdFNaNbNiNfE4core4simd3XMMNhG16vNhG16vZNhG16v",
+        "4simd6__simdFNaNbNiNfE4core4simd3XMMNhG16vNhG16vhZNhG16v",
+        "4simd6__simdFNaNbNiNfE4core4simd3XMMNhG16vZNhG16v",
+        "4simd6__simdFNaNbNiNfE4core4simd3XMMdZNhG16v",
+        "4simd6__simdFNaNbNiNfE4core4simd3XMMfZNhG16v",
+        "4simd9__simd_ibFNaNbNiNfE4core4simd3XMMNhG16vhZNhG16v",
 
-        "5bitop3bsfFNaNbNfkZi",
-        "5bitop3bsrFNaNbNfkZi",
-        "5bitop3btcFNaNbPkkZi",
-        "5bitop3btrFNaNbPkkZi",
-        "5bitop3btsFNaNbPkkZi",
-        "5bitop3inpFNbkZh",
-        "5bitop4inplFNbkZk",
-        "5bitop4inpwFNbkZt",
-        "5bitop4outpFNbkhZh",
-        "5bitop5bswapFNaNbNfkZk",
-        "5bitop5outplFNbkkZk",
-        "5bitop5outpwFNbktZt",
+        "5bitop3bsfFNaNbNiNfkZi",
+        "5bitop3bsrFNaNbNiNfkZi",
+        "5bitop3btcFNaNbNiPkkZi",
+        "5bitop3btrFNaNbNiPkkZi",
+        "5bitop3btsFNaNbNiPkkZi",
+        "5bitop3inpFNbNikZh",
+        "5bitop4inplFNbNikZk",
+        "5bitop4inpwFNbNikZt",
+        "5bitop4outpFNbNikhZh",
+        "5bitop5bswapFNaNbNiNfkZk",
+        "5bitop5outplFNbNikkZk",
+        "5bitop5outpwFNbNiktZt",
     };
     static const char *core_namearray64[] =
     {
-        "4math3cosFNaNbNfeZe",
-        "4math3sinFNaNbNfeZe",
-        "4math4fabsFNaNbNfeZe",
-        "4math4rintFNaNbNfeZe",
-        "4math4sqrtFNaNbNfdZd",
-        "4math4sqrtFNaNbNfeZe",
-        "4math4sqrtFNaNbNffZf",
-        "4math4yl2xFNaNbNfeeZe",
-        "4math5ldexpFNaNbNfeiZe",
-        "4math6rndtolFNaNbNfeZl",
-        "4math6yl2xp1FNaNbNfeeZe",
+        "4math3cosFNaNbNiNfeZe",
+        "4math3sinFNaNbNiNfeZe",
+        "4math4fabsFNaNbNiNfeZe",
+        "4math4rintFNaNbNiNfeZe",
+        "4math4sqrtFNaNbNiNfdZd",
+        "4math4sqrtFNaNbNiNfeZe",
+        "4math4sqrtFNaNbNiNffZf",
+        "4math4yl2xFNaNbNiNfeeZe",
+        "4math5ldexpFNaNbNiNfeiZe",
+        "4math6rndtolFNaNbNiNfeZl",
+        "4math6yl2xp1FNaNbNiNfeeZe",
 
-        "4simd10__simd_stoFNaNbNfE4core4simd3XMMNhG16vNhG16vZNhG16v",
-        "4simd10__simd_stoFNaNbNfE4core4simd3XMMdNhG16vZNhG16v",
-        "4simd10__simd_stoFNaNbNfE4core4simd3XMMfNhG16vZNhG16v",
-        "4simd6__simdFNaNbNfE4core4simd3XMMNhG16vNhG16vZNhG16v",
-        "4simd6__simdFNaNbNfE4core4simd3XMMNhG16vNhG16vhZNhG16v",
-        "4simd6__simdFNaNbNfE4core4simd3XMMNhG16vZNhG16v",
-        "4simd6__simdFNaNbNfE4core4simd3XMMdZNhG16v",
-        "4simd6__simdFNaNbNfE4core4simd3XMMfZNhG16v",
-        "4simd9__simd_ibFNaNbNfE4core4simd3XMMNhG16vhZNhG16v",
+        "4simd10__simd_stoFNaNbNiNfE4core4simd3XMMNhG16vNhG16vZNhG16v",
+        "4simd10__simd_stoFNaNbNiNfE4core4simd3XMMdNhG16vZNhG16v",
+        "4simd10__simd_stoFNaNbNiNfE4core4simd3XMMfNhG16vZNhG16v",
+        "4simd6__simdFNaNbNiNfE4core4simd3XMMNhG16vNhG16vZNhG16v",
+        "4simd6__simdFNaNbNiNfE4core4simd3XMMNhG16vNhG16vhZNhG16v",
+        "4simd6__simdFNaNbNiNfE4core4simd3XMMNhG16vZNhG16v",
+        "4simd6__simdFNaNbNiNfE4core4simd3XMMdZNhG16v",
+        "4simd6__simdFNaNbNiNfE4core4simd3XMMfZNhG16v",
+        "4simd9__simd_ibFNaNbNiNfE4core4simd3XMMNhG16vhZNhG16v",
 
-        "5bitop3bsfFNaNbNfmZi",
-        "5bitop3bsrFNaNbNfmZi",
-        "5bitop3btcFNaNbPmmZi",
-        "5bitop3btrFNaNbPmmZi",
-        "5bitop3btsFNaNbPmmZi",
-        "5bitop3inpFNbkZh",
-        "5bitop4inplFNbkZk",
-        "5bitop4inpwFNbkZt",
-        "5bitop4outpFNbkhZh",
-        "5bitop5bswapFNaNbNfkZk",
-        "5bitop5outplFNbkkZk",
-        "5bitop5outpwFNbktZt",
+        "5bitop3bsfFNaNbNiNfmZi",
+        "5bitop3bsrFNaNbNiNfmZi",
+        "5bitop3btcFNaNbNiPmmZi",
+        "5bitop3btrFNaNbNiPmmZi",
+        "5bitop3btsFNaNbNiPmmZi",
+        "5bitop3inpFNbNikZh",
+        "5bitop4inplFNbNikZk",
+        "5bitop4inpwFNbNikZt",
+        "5bitop4outpFNbNikhZh",
+        "5bitop5bswapFNaNbNiNfkZk",
+        "5bitop5outplFNbNikkZk",
+        "5bitop5outpwFNbNiktZt",
     };
     static unsigned char core_ioptab[] =
     {
@@ -571,7 +574,7 @@ elem *resolveLengthVar(VarDeclaration *lengthVar, elem **pe, Type *t1)
             elength = el_una(I64 ? OP128_64 : OP64_32, TYsize_t, elength);
 
         L3:
-            slength = lengthVar->toSymbol();
+            slength = toSymbol(lengthVar);
             //symbol_add(slength);
 
             einit = el_bin(OPeq, TYsize_t, el_var(slength), elength);
@@ -601,10 +604,11 @@ elem *resolveLengthVar(VarDeclaration *lengthVar, elem **pe, Type *t1)
  */
 
 
-void FuncDeclaration::buildClosure(IRState *irs)
+void buildClosure(FuncDeclaration *fd, IRState *irs)
 {
-    if (needsClosure())
-    {   // Generate closure on the heap
+    if (fd->needsClosure())
+    {
+        // Generate closure on the heap
         // BUG: doesn't capture variadic arguments passed to this function
 
         /* BUG: doesn't handle destructors for the local variables.
@@ -621,27 +625,32 @@ void FuncDeclaration::buildClosure(IRState *irs)
          */
         //printf("FuncDeclaration::buildClosure() %s\n", toChars());
         Symbol *sclosure;
-        sclosure = symbol_name("__closptr",SCauto,Type::tvoidptr->toCtype());
+        sclosure = symbol_name("__closptr", SCauto, Type_toCtype(Type::tvoidptr));
         sclosure->Sflags |= SFLtrue | SFLfree;
         symbol_add(sclosure);
         irs->sclosure = sclosure;
 
         unsigned offset = Target::ptrsize;      // leave room for previous sthis
-        for (size_t i = 0; i < closureVars.dim; i++)
-        {   VarDeclaration *v = closureVars[i];
+        for (size_t i = 0; i < fd->closureVars.dim; i++)
+        {
+            VarDeclaration *v = fd->closureVars[i];
             //printf("closure var %s\n", v->toChars());
             assert(v->isVarDeclaration());
 
             if (v->needsAutoDtor())
+            {
                 /* Because the value needs to survive the end of the scope!
                  */
                 v->error("has scoped destruction, cannot build closure");
+            }
             if (v->isargptr)
+            {
                 /* See Bugzilla 2479
                  * This is actually a bug, but better to produce a nice
                  * message at compile time rather than memory corruption at runtime
                  */
                 v->error("cannot reference variadic arguments from closure");
+            }
             /* Align and allocate space for v in the closure
              * just like AggregateDeclaration::addField() does.
              */
@@ -664,7 +673,8 @@ void FuncDeclaration::buildClosure(IRState *irs)
                 xalign = v->alignment;
             }
             else if (ISREF(v, NULL))
-            {    // reference parameters are just pointers
+            {
+                // reference parameters are just pointers
                 memsize = Target::ptrsize;
                 memalignsize = memsize;
                 xalign = STRUCTALIGN_DEFAULT;
@@ -682,16 +692,15 @@ void FuncDeclaration::buildClosure(IRState *irs)
             /* Can't do nrvo if the variable is put in a closure, since
              * what the shidden points to may no longer exist.
              */
-            if (nrvo_can && nrvo_var == v)
+            if (fd->nrvo_can && fd->nrvo_var == v)
             {
-                nrvo_can = 0;
+                fd->nrvo_can = 0;
             }
         }
         // offset is now the size of the closure
 
         // Allocate memory for the closure
-        elem *e;
-        e = el_long(TYsize_t, offset);
+        elem *e = el_long(TYsize_t, offset);
         e = el_bin(OPcall, TYnptr, el_var(rtlsym[RTLSYM_ALLOCMEMORY]), e);
 
         // Assign block of memory to sclosure
@@ -710,12 +719,13 @@ void FuncDeclaration::buildClosure(IRState *irs)
         e = el_combine(e, ex);
 
         // Copy function parameters into closure
-        for (size_t i = 0; i < closureVars.dim; i++)
-        {   VarDeclaration *v = closureVars[i];
+        for (size_t i = 0; i < fd->closureVars.dim; i++)
+        {
+            VarDeclaration *v = fd->closureVars[i];
 
             if (!v->isParameter())
                 continue;
-            tym_t tym = v->type->totym();
+            tym_t tym = totym(v->type);
             bool win64ref = ISWIN64REF(v);
             if (win64ref)
             {
@@ -728,17 +738,17 @@ void FuncDeclaration::buildClosure(IRState *irs)
                 tym = TYdelegate;
             ex = el_bin(OPadd, TYnptr, el_var(sclosure), el_long(TYsize_t, v->offset));
             ex = el_una(OPind, tym, ex);
-            elem *ev = el_var(v->toSymbol());
+            elem *ev = el_var(toSymbol(v));
             if (win64ref)
             {
                 ev->Ety = TYnptr;
                 ev = el_una(OPind, tym, ev);
                 if (tybasic(ev->Ety) == TYstruct || tybasic(ev->Ety) == TYarray)
-                    ev->ET = v->type->toCtype();
+                    ev->ET = Type_toCtype(v->type);
             }
             if (tybasic(ex->Ety) == TYstruct || tybasic(ex->Ety) == TYarray)
             {
-                ::type *t = v->type->toCtype();
+                ::type *t = Type_toCtype(v->type);
                 ex->ET = t;
                 ex = el_bin(OPstreq, tym, ex, ev);
                 ex->ET = t;
@@ -759,16 +769,16 @@ void FuncDeclaration::buildClosure(IRState *irs)
  * through a hidden pointer to the caller's stack.
  */
 
-RET TypeFunction::retStyle()
+RET retStyle(TypeFunction *tf)
 {
     //printf("TypeFunction::retStyle() %s\n", toChars());
-    if (isref)
+    if (tf->isref)
     {
         //printf("  ref RETregs\n");
         return RETregs;                 // returns a pointer
     }
 
-    Type *tn = next->toBasetype();
+    Type *tn = tf->next->toBasetype();
     //printf("tn = %s\n", tn->toChars());
     d_uns64 sz = tn->size();
     Type *tns = tn;
@@ -800,12 +810,13 @@ Lagain:
         if (tns->ty != Tstruct)
         {
 L2:
-            if (global.params.isLinux && linkage != LINKd && !global.params.is64bit)
+            if (global.params.isLinux && tf->linkage != LINKd && !global.params.is64bit)
                 ;                               // 32 bit C/C++ structs always on stack
             else
             {
                 switch (sz)
-                {   case 1:
+                {
+                    case 1:
                     case 2:
                     case 4:
                     case 8:
@@ -822,8 +833,9 @@ L2:
     }
 
     if (tns->ty == Tstruct)
-    {   StructDeclaration *sd = ((TypeStruct *)tns)->sym;
-        if (global.params.isLinux && linkage != LINKd && !global.params.is64bit)
+    {
+        StructDeclaration *sd = ((TypeStruct *)tns)->sym;
+        if (global.params.isLinux && tf->linkage != LINKd && !global.params.is64bit)
         {
             //printf("  2 RETstack\n");
             return RETstack;            // 32 bit C/C++ structs always on stack
@@ -840,7 +852,8 @@ L2:
         else if (sd->isPOD())
         {
             switch (sz)
-            {   case 1:
+            {
+                case 1:
                 case 2:
                 case 4:
                 case 8:
@@ -859,7 +872,7 @@ L2:
         return RETstack;
     }
     else if ((global.params.isLinux || global.params.isOSX || global.params.isFreeBSD || global.params.isSolaris) &&
-             linkage == LINKc &&
+             tf->linkage == LINKc &&
              tns->iscomplex())
     {
         if (tns->ty == Tcomplex32)

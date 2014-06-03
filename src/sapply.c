@@ -13,6 +13,7 @@
 
 #include "mars.h"
 #include "statement.h"
+#include "visitor.h"
 
 
 /**************************************
@@ -26,181 +27,130 @@
  * Creating an iterator for this would be much more complex.
  */
 
-typedef bool (*sapply_fp_t)(Statement *, void *);
-
-bool Statement::apply(sapply_fp_t fp, void *param)
+class PostorderStatementVisitor : public StoppableVisitor
 {
-    return (*fp)(this, param);
-}
+public:
+    StoppableVisitor *v;
+    PostorderStatementVisitor(StoppableVisitor *v) : v(v) {}
 
-/******************************
- * Perform apply() on an t if not null
- */
-#define scondApply(t, fp, param) (t ? t->apply(fp, param) : false)
-
-
-
-bool PeelStatement::apply(sapply_fp_t fp, void *param)
-{
-    return s->apply(fp, param) ||
-           (*fp)(this, param);
-}
-
-bool CompoundStatement::apply(sapply_fp_t fp, void *param)
-{
-    for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s = (*statements)[i];
-
-        bool r = scondApply(s, fp, param);
-        if (r)
-            return r;
+    bool doCond(Statement *s)
+    {
+        if (!stop && s)
+            s->accept(this);
+        return stop;
     }
-    return (*fp)(this, param);
-}
-
-bool UnrolledLoopStatement::apply(sapply_fp_t fp, void *param)
-{
-    for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s = (*statements)[i];
-
-        bool r = scondApply(s, fp, param);
-        if (r)
-            return r;
+    bool applyTo(Statement *s)
+    {
+        s->accept(v);
+        stop = v->stop;
+        return true;
     }
-    return (*fp)(this, param);
-}
 
-bool ScopeStatement::apply(sapply_fp_t fp, void *param)
-{
-    return scondApply(statement, fp, param) ||
-           (*fp)(this, param);
-}
-
-bool WhileStatement::apply(sapply_fp_t fp, void *param)
-{
-    return scondApply(body, fp, param) ||
-           (*fp)(this, param);
-}
-
-bool DoStatement::apply(sapply_fp_t fp, void *param)
-{
-    return scondApply(body, fp, param) ||
-           (*fp)(this, param);
-}
-
-bool ForStatement::apply(sapply_fp_t fp, void *param)
-{
-    return scondApply(init, fp, param) ||
-           scondApply(body, fp, param) ||
-           (*fp)(this, param);
-}
-
-bool ForeachStatement::apply(sapply_fp_t fp, void *param)
-{
-    return scondApply(body, fp, param) ||
-           (*fp)(this, param);
-}
-
-bool ForeachRangeStatement::apply(sapply_fp_t fp, void *param)
-{
-    return scondApply(body, fp, param) ||
-           (*fp)(this, param);
-}
-
-bool IfStatement::apply(sapply_fp_t fp, void *param)
-{
-    return scondApply(ifbody, fp, param) ||
-           scondApply(elsebody, fp, param) ||
-           (*fp)(this, param);
-}
-
-bool ConditionalStatement::apply(sapply_fp_t fp, void *param)
-{
-    return scondApply(ifbody, fp, param) ||
-           scondApply(elsebody, fp, param) ||
-           (*fp)(this, param);
-}
-
-bool PragmaStatement::apply(sapply_fp_t fp, void *param)
-{
-    return scondApply(body, fp, param) ||
-           (*fp)(this, param);
-}
-
-bool SwitchStatement::apply(sapply_fp_t fp, void *param)
-{
-    return scondApply(body, fp, param) ||
-           (*fp)(this, param);
-}
-
-bool CaseStatement::apply(sapply_fp_t fp, void *param)
-{
-    return scondApply(statement, fp, param) ||
-           (*fp)(this, param);
-}
-
-bool CaseRangeStatement::apply(sapply_fp_t fp, void *param)
-{
-    return scondApply(statement, fp, param) ||
-           (*fp)(this, param);
-}
-
-bool DefaultStatement::apply(sapply_fp_t fp, void *param)
-{
-    return scondApply(statement, fp, param) ||
-           (*fp)(this, param);
-}
-
-bool SynchronizedStatement::apply(sapply_fp_t fp, void *param)
-{
-    return scondApply(body, fp, param) ||
-           (*fp)(this, param);
-}
-
-bool WithStatement::apply(sapply_fp_t fp, void *param)
-{
-    return scondApply(body, fp, param) ||
-           (*fp)(this, param);
-}
-
-bool TryCatchStatement::apply(sapply_fp_t fp, void *param)
-{
-    bool r = scondApply(body, fp, param);
-    if (r)
-        return r;
-
-    for (size_t i = 0; i < catches->dim; i++)
-    {   Catch *c = (*catches)[i];
-
-        r = scondApply(c->handler, fp, param);
-        if (r)
-            return r;
+    void visit(Statement *s)
+    {
+        applyTo(s);
     }
-    return (*fp)(this, param);
-}
+    void visit(PeelStatement *s)
+    {
+        doCond(s->s) || applyTo(s);
+    }
+    void visit(CompoundStatement *s)
+    {
+        for (size_t i = 0; i < s->statements->dim; i++)
+            if (doCond((*s->statements)[i]))
+                return;
+        applyTo(s);
+    }
+    void visit(UnrolledLoopStatement *s)
+    {
+        for (size_t i = 0; i < s->statements->dim; i++)
+            if (doCond((*s->statements)[i]))
+                return;
+        applyTo(s);
+    }
+    void visit(ScopeStatement *s)
+    {
+        doCond(s->statement) || applyTo(s);
+    }
+    void visit(WhileStatement *s)
+    {
+        doCond(s->body) || applyTo(s);
+    }
+    void visit(DoStatement *s)
+    {
+        doCond(s->body) || applyTo(s);
+    }
+    void visit(ForStatement *s)
+    {
+        doCond(s->init) || doCond(s->body) || applyTo(s);
+    }
+    void visit(ForeachStatement *s)
+    {
+        doCond(s->body) || applyTo(s);
+    }
+    void visit(ForeachRangeStatement *s)
+    {
+        doCond(s->body) || applyTo(s);
+    }
+    void visit(IfStatement *s)
+    {
+        doCond(s->ifbody) || doCond(s->elsebody) || applyTo(s);
+    }
+    void visit(PragmaStatement *s)
+    {
+        doCond(s->body) || applyTo(s);
+    }
+    void visit(SwitchStatement *s)
+    {
+        doCond(s->body) || applyTo(s);
+    }
+    void visit(CaseStatement *s)
+    {
+        doCond(s->statement) || applyTo(s);
+    }
+    void visit(DefaultStatement *s)
+    {
+        doCond(s->statement) || applyTo(s);
+    }
+    void visit(SynchronizedStatement *s)
+    {
+        doCond(s->body) || applyTo(s);
+    }
+    void visit(WithStatement *s)
+    {
+        doCond(s->body) || applyTo(s);
+    }
+    void visit(TryCatchStatement *s)
+    {
+        if (doCond(s->body))
+            return;
 
-bool TryFinallyStatement::apply(sapply_fp_t fp, void *param)
+        for (size_t i = 0; i < s->catches->dim; i++)
+            if (doCond((*s->catches)[i]->handler))
+                return;
+        applyTo(s);
+    }
+    void visit(TryFinallyStatement *s)
+    {
+        doCond(s->body) || doCond(s->finalbody) || applyTo(s);
+    }
+    void visit(OnScopeStatement *s)
+    {
+        doCond(s->statement) || applyTo(s);
+    }
+    void visit(DebugStatement *s)
+    {
+        doCond(s->statement) || applyTo(s);
+    }
+    void visit(LabelStatement *s)
+    {
+        doCond(s->statement) || applyTo(s);
+    }
+};
+
+bool walkPostorder(Statement *s, StoppableVisitor *v)
 {
-    return scondApply(body, fp, param) ||
-           scondApply(finalbody, fp, param) ||
-           (*fp)(this, param);
+    PostorderStatementVisitor pv(v);
+    s->accept(&pv);
+    return v->stop;
 }
-
-bool OnScopeStatement::apply(sapply_fp_t fp, void *param)
-{
-    return scondApply(statement, fp, param) ||
-           (*fp)(this, param);
-}
-
-bool DebugStatement::apply(sapply_fp_t fp, void *param)
-{
-    return scondApply(statement, fp, param) ||
-           (*fp)(this, param);
-}
-
-bool LabelStatement::apply(sapply_fp_t fp, void *param)
-{
-    return scondApply(statement, fp, param) ||
-           (*fp)(this, param);
-}
-

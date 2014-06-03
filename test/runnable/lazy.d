@@ -187,6 +187,26 @@ void test6()
 
 /*********************************************************/
 
+void foo7(long delegate()[] dg...)
+{
+    assert(dg[0]() == 1024);
+    assert(dg[1]() == 1024);
+}
+
+void bar7(lazy long n)
+{
+    assert(n == 1024);
+}
+
+void test7()
+{
+    int n = 1024;
+    foo7(n, n);
+    bar7(n);
+}
+
+/*********************************************************/
+
 struct Bug5750 { int a, b; }
 pure Bug5750 bug5750(lazy int y) {
     Bug5750 retval;
@@ -257,6 +277,7 @@ int main()
     test4();
     test5();
     test6();
+    test7();
 
     test5750a();
     test5750b();

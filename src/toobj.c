@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2012 by Digital Mars
+// Copyright (c) 1999-2014 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -24,6 +24,7 @@
 #include "id.h"
 #include "import.h"
 #include "template.h"
+#include "nspace.h"
 
 #include "rmem.h"
 #include "target.h"
@@ -45,6 +46,18 @@ extern bool obj_includelib(const char *name);
 void obj_startaddress(Symbol *s);
 void obj_lzext(Symbol *s1,Symbol *s2);
 
+void TypeInfo_toDt(dt_t **pdt, TypeInfoDeclaration *d);
+dt_t *Initializer_toDt(Initializer *init);
+dt_t **Type_toDt(Type *t, dt_t **pdt);
+void ClassDeclaration_toDt(ClassDeclaration *cd, dt_t **pdt);
+void StructDeclaration_toDt(StructDeclaration *sd, dt_t **pdt);
+Symbol *toSymbol(Dsymbol *s);
+
+void toDebug(TypedefDeclaration *tdd);
+void toDebug(EnumDeclaration *ed);
+void toDebug(StructDeclaration *sd);
+void toDebug(ClassDeclaration *cd);
+
 /* ================================================================== */
 
 // Put out instance of ModuleInfo for this Module
@@ -58,7 +71,7 @@ void Module::genmoduleinfo()
         ObjectNotFound(Id::ModuleInfo);
     }
 
-    Symbol *msym = toSymbol();
+    Symbol *msym = toSymbol(this);
 
     //////////////////////////////////////////////
 
@@ -70,7 +83,8 @@ void Module::genmoduleinfo()
 
     //printf("members->dim = %d\n", members->dim);
     for (size_t i = 0; i < members->dim; i++)
-    {   Dsymbol *member = (*members)[i];
+    {
+        Dsymbol *member = (*members)[i];
 
         //printf("\tmember '%s'\n", member->toChars());
         member->addLocalClass(&aclasses);
@@ -79,7 +93,8 @@ void Module::genmoduleinfo()
     // importedModules[]
     size_t aimports_dim = aimports.dim;
     for (size_t i = 0; i < aimports.dim; i++)
-    {   Module *m = aimports[i];
+    {
+        Module *m = aimports[i];
         if (!m->needmoduleinfo)
             aimports_dim--;
     }
@@ -134,7 +149,7 @@ void Module::genmoduleinfo()
     if (flags & MIdtor)
         dtxoff(&dt, sshareddtor, 0, TYnptr);
     if (flags & MIxgetMembers)
-        dtxoff(&dt, sgetmembers->toSymbol(), 0, TYnptr);
+        dtxoff(&dt, toSymbol(sgetmembers), 0, TYnptr);
     if (flags & MIictor)
         dtxoff(&dt, sictor, 0, TYnptr);
     if (flags & MIunitTest)
@@ -146,7 +161,8 @@ void Module::genmoduleinfo()
         {   Module *m = aimports[i];
 
             if (m->needmoduleinfo)
-            {   Symbol *s = m->toSymbol();
+            {
+                Symbol *s = toSymbol(m);
 
                 /* Weak references don't pull objects in from the library,
                  * they resolve to 0 if not pulled in by something else.
@@ -163,7 +179,7 @@ void Module::genmoduleinfo()
         for (size_t i = 0; i < aclasses.dim; i++)
         {
             ClassDeclaration *cd = aclasses[i];
-            dtxoff(&dt, cd->toSymbol(), 0, TYnptr);
+            dtxoff(&dt, toSymbol(cd), 0, TYnptr);
         }
     }
     if (flags & MIname)
@@ -200,7 +216,7 @@ void Module::genmoduleinfo()
 
 /* ================================================================== */
 
-void Dsymbol::toObjFile(int multiobj)
+void Dsymbol::toObjFile(bool multiobj)
 {
     //printf("Dsymbol::toObjFile('%s')\n", toChars());
     // ignore
@@ -208,7 +224,7 @@ void Dsymbol::toObjFile(int multiobj)
 
 /* ================================================================== */
 
-void ClassDeclaration::toObjFile(int multiobj)
+void ClassDeclaration::toObjFile(bool multiobj)
 {
     unsigned offset;
     Symbol *sinit;
@@ -237,7 +253,7 @@ void ClassDeclaration::toObjFile(int multiobj)
     }
 
     if (global.params.symdebug)
-        toDebug();
+        toDebug(this);
 
     assert(!scope);     // semantic() should have been run to completion
 
@@ -267,7 +283,7 @@ void ClassDeclaration::toObjFile(int multiobj)
 #endif
 
     // Generate C symbols
-    toSymbol();
+    toSymbol(this);
     toVtblSymbol();
     sinit = toInitializer();
 
@@ -276,14 +292,14 @@ void ClassDeclaration::toObjFile(int multiobj)
     // Generate static initializer
     sinit->Sclass = scclass;
     sinit->Sfl = FLdata;
-    toDt(&sinit->Sdt);
+    ClassDeclaration_toDt(this, &sinit->Sdt);
     out_readonly(sinit);
     outdata(sinit);
 
     //////////////////////////////////////////////
 
     // Put out the TypeInfo
-    type->getTypeInfo(NULL);
+    type->genTypeInfo(NULL);
     //type->vtinfo->toObjFile(multiobj);
 
     //////////////////////////////////////////////
@@ -361,19 +377,19 @@ void ClassDeclaration::toObjFile(int multiobj)
 
     // base
     if (baseClass)
-        dtxoff(&dt, baseClass->toSymbol(), 0, TYnptr);
+        dtxoff(&dt, toSymbol(baseClass), 0, TYnptr);
     else
         dtsize_t(&dt, 0);
 
     // destructor
     if (dtor)
-        dtxoff(&dt, dtor->toSymbol(), 0, TYnptr);
+        dtxoff(&dt, toSymbol(dtor), 0, TYnptr);
     else
         dtsize_t(&dt, 0);
 
     // invariant
     if (inv)
-        dtxoff(&dt, inv->toSymbol(), 0, TYnptr);
+        dtxoff(&dt, toSymbol(inv), 0, TYnptr);
     else
         dtsize_t(&dt, 0);
 
@@ -407,7 +423,7 @@ void ClassDeclaration::toObjFile(int multiobj)
 
     // deallocator
     if (aggDelete)
-        dtxoff(&dt, aggDelete->toSymbol(), 0, TYnptr);
+        dtxoff(&dt, toSymbol(aggDelete), 0, TYnptr);
     else
         dtsize_t(&dt, 0);
 
@@ -417,7 +433,7 @@ void ClassDeclaration::toObjFile(int multiobj)
 
     // defaultConstructor
     if (defaultCtor)
-        dtxoff(&dt, defaultCtor->toSymbol(), 0, TYnptr);
+        dtxoff(&dt, toSymbol(defaultCtor), 0, TYnptr);
     else
         dtsize_t(&dt, 0);
 
@@ -429,7 +445,7 @@ void ClassDeclaration::toObjFile(int multiobj)
     else
         dtsize_t(&dt, 1);
 
-    //dtxoff(&dt, type->vtinfo->toSymbol(), 0, TYnptr); // typeinfo
+    //dtxoff(&dt, toSymbol(type->vtinfo), 0, TYnptr); // typeinfo
 
     //////////////////////////////////////////////
 
@@ -453,7 +469,7 @@ void ClassDeclaration::toObjFile(int multiobj)
         // Fill in vtbl[]
         b->fillVtbl(this, &b->vtbl, 1);
 
-        dtxoff(&dt, id->toSymbol(), 0, TYnptr);         // ClassInfo
+        dtxoff(&dt, toSymbol(id), 0, TYnptr);         // ClassInfo
 
         // vtbl[]
         dtsize_t(&dt, id->vtbl.dim);
@@ -476,7 +492,7 @@ void ClassDeclaration::toObjFile(int multiobj)
         if (id->vtblOffset())
         {
             // First entry is ClassInfo reference
-            //dtxoff(&dt, id->toSymbol(), 0, TYnptr);
+            //dtxoff(&dt, toSymbol(id), 0, TYnptr);
 
             // First entry is struct Interface reference
             dtxoff(&dt, csym, classinfo_size + i * (4 * Target::ptrsize), TYnptr);
@@ -524,10 +540,10 @@ void ClassDeclaration::toObjFile(int multiobj)
                 if (id->vtblOffset())
                 {
                     // First entry is ClassInfo reference
-                    //dtxoff(&dt, id->toSymbol(), 0, TYnptr);
+                    //dtxoff(&dt, toSymbol(id), 0, TYnptr);
 
                     // First entry is struct Interface reference
-                    dtxoff(&dt, cd->toSymbol(), classinfo_size + k * (4 * Target::ptrsize), TYnptr);
+                    dtxoff(&dt, toSymbol(cd), classinfo_size + k * (4 * Target::ptrsize), TYnptr);
                     j = 1;
                 }
 
@@ -569,7 +585,7 @@ void ClassDeclaration::toObjFile(int multiobj)
             // Ensure function has a return value (Bugzilla 4869)
             fd->functionSemantic();
 
-            Symbol *s = fd->toSymbol();
+            Symbol *s = toSymbol(fd);
 
             if (isFuncHidden(fd))
             {   /* fd is hidden from the view of this class.
@@ -586,7 +602,14 @@ void ClassDeclaration::toObjFile(int multiobj)
                     {
                         TypeFunction *tf = (TypeFunction *)fd->type;
                         if (tf->ty == Tfunction)
-                            deprecation("use of %s%s hidden by %s is deprecated. Use 'alias %s.%s %s;' to introduce base class overload set.", fd->toPrettyChars(), Parameter::argsTypesToChars(tf->parameters, tf->varargs), toChars(), fd->parent->toChars(), fd->toChars(), fd->toChars());
+                            deprecation("use of %s%s hidden by %s is deprecated; use 'alias %s = %s.%s;' to introduce base class overload set",
+                                fd->toPrettyChars(),
+                                Parameter::argsTypesToChars(tf->parameters, tf->varargs),
+                                toChars(),
+
+                                fd->toChars(),
+                                fd->parent->toChars(),
+                                fd->toChars());
                         else
                             deprecation("use of %s hidden by %s is deprecated", fd->toPrettyChars(), toChars());
                         s = rtlsym[RTLSYM_DHIDDENFUNC];
@@ -658,7 +681,7 @@ unsigned ClassDeclaration::baseVtblOffset(BaseClass *bc)
 
 /* ================================================================== */
 
-void InterfaceDeclaration::toObjFile(int multiobj)
+void InterfaceDeclaration::toObjFile(bool multiobj)
 {
     enum_SC scclass;
 
@@ -673,7 +696,7 @@ void InterfaceDeclaration::toObjFile(int multiobj)
         return;
 
     if (global.params.symdebug)
-        toDebug();
+        toDebug(this);
 
     scclass = SCglobal;
     if (isInstantiated())
@@ -687,12 +710,12 @@ void InterfaceDeclaration::toObjFile(int multiobj)
     }
 
     // Generate C symbols
-    toSymbol();
+    toSymbol(this);
 
     //////////////////////////////////////////////
 
     // Put out the TypeInfo
-    type->getTypeInfo(NULL);
+    type->genTypeInfo(NULL);
     type->vtinfo->toObjFile(multiobj);
 
     //////////////////////////////////////////////
@@ -799,7 +822,7 @@ void InterfaceDeclaration::toObjFile(int multiobj)
     else
         dtsize_t(&dt, 0);       // no pointers
 
-    //dtxoff(&dt, type->vtinfo->toSymbol(), 0, TYnptr); // typeinfo
+    //dtxoff(&dt, toSymbol(type->vtinfo), 0, TYnptr); // typeinfo
 
     //////////////////////////////////////////////
 
@@ -812,7 +835,7 @@ void InterfaceDeclaration::toObjFile(int multiobj)
         ClassDeclaration *id = b->base;
 
         // ClassInfo
-        dtxoff(&dt, id->toSymbol(), 0, TYnptr);
+        dtxoff(&dt, toSymbol(id), 0, TYnptr);
 
         // vtbl[]
         dtsize_t(&dt, 0);
@@ -831,7 +854,7 @@ void InterfaceDeclaration::toObjFile(int multiobj)
 
 /* ================================================================== */
 
-void StructDeclaration::toObjFile(int multiobj)
+void StructDeclaration::toObjFile(bool multiobj)
 {
     //printf("StructDeclaration::toObjFile('%s')\n", toChars());
 
@@ -850,9 +873,9 @@ void StructDeclaration::toObjFile(int multiobj)
     if (!isAnonymous() && members)
     {
         if (global.params.symdebug)
-            toDebug();
+            toDebug(this);
 
-        type->getTypeInfo(NULL);        // generate TypeInfo
+        type->genTypeInfo(NULL);
 
         if (1)
         {
@@ -868,7 +891,7 @@ void StructDeclaration::toObjFile(int multiobj)
             }
 
             sinit->Sfl = FLdata;
-            toDt(&sinit->Sdt);
+            StructDeclaration_toDt(this, &sinit->Sdt);
             dt_optimize(sinit->Sdt);
             out_readonly(sinit);    // put in read-only segment
             outdata(sinit);
@@ -893,7 +916,7 @@ void StructDeclaration::toObjFile(int multiobj)
 
 /* ================================================================== */
 
-void VarDeclaration::toObjFile(int multiobj)
+void VarDeclaration::toObjFile(bool multiobj)
 {
     Symbol *s;
     unsigned sz;
@@ -920,7 +943,7 @@ void VarDeclaration::toObjFile(int multiobj)
 
     if (isDataseg() && !(storage_class & STCextern))
     {
-        s = toSymbol();
+        s = toSymbol(this);
         sz = type->size();
 
         parent = this->toParent();
@@ -947,7 +970,8 @@ void VarDeclaration::toObjFile(int multiobj)
         s->Sfl = FLdata;
 
         if (init)
-        {   s->Sdt = init->toDt();
+        {
+            s->Sdt = Initializer_toDt(init);
 
             // Look for static array that is block initialized
             Type *tb;
@@ -979,7 +1003,7 @@ void VarDeclaration::toObjFile(int multiobj)
         }
         else
         {
-            type->toDt(&s->Sdt);
+            Type_toDt(type, &s->Sdt);
         }
         dt_optimize(s->Sdt);
 
@@ -1008,7 +1032,7 @@ void VarDeclaration::toObjFile(int multiobj)
 
 /* ================================================================== */
 
-void TypedefDeclaration::toObjFile(int multiobj)
+void TypedefDeclaration::toObjFile(bool multiobj)
 {
     //printf("TypedefDeclaration::toObjFile('%s')\n", toChars());
 
@@ -1018,9 +1042,9 @@ void TypedefDeclaration::toObjFile(int multiobj)
     }
 
     if (global.params.symdebug)
-        toDebug();
+        toDebug(this);
 
-    type->getTypeInfo(NULL);    // generate TypeInfo
+    type->genTypeInfo(NULL);
 
     TypeTypedef *tc = (TypeTypedef *)type;
     if (type->isZeroInit() || !tc->sym->init)
@@ -1035,7 +1059,7 @@ void TypedefDeclaration::toObjFile(int multiobj)
         toInitializer();
         sinit->Sclass = scclass;
         sinit->Sfl = FLdata;
-        sinit->Sdt = tc->sym->init->toDt();
+        sinit->Sdt = Initializer_toDt(tc->sym->init);
         out_readonly(sinit);
         outdata(sinit);
     }
@@ -1043,7 +1067,7 @@ void TypedefDeclaration::toObjFile(int multiobj)
 
 /* ================================================================== */
 
-void EnumDeclaration::toObjFile(int multiobj)
+void EnumDeclaration::toObjFile(bool multiobj)
 {
     if (semanticRun >= PASSobj)  // already written
         return;
@@ -1058,9 +1082,9 @@ void EnumDeclaration::toObjFile(int multiobj)
         return;
 
     if (global.params.symdebug)
-        toDebug();
+        toDebug(this);
 
-    type->getTypeInfo(NULL);    // generate TypeInfo
+    type->genTypeInfo(NULL);
 
     TypeEnum *tc = (TypeEnum *)type;
     if (!tc->sym->members || type->isZeroInit())
@@ -1083,7 +1107,7 @@ void EnumDeclaration::toObjFile(int multiobj)
 
 /* ================================================================== */
 
-void TypeInfoDeclaration::toObjFile(int multiobj)
+void TypeInfoDeclaration::toObjFile(bool multiobj)
 {
     //printf("TypeInfoDeclaration::toObjFile(%p '%s') protection %d\n", this, toChars(), protection);
 
@@ -1093,11 +1117,11 @@ void TypeInfoDeclaration::toObjFile(int multiobj)
         return;
     }
 
-    Symbol *s = toSymbol();
+    Symbol *s = toSymbol(this);
     s->Sclass = SCcomdat;
     s->Sfl = FLdata;
 
-    toDt(&s->Sdt);
+    TypeInfo_toDt(&s->Sdt, this);
 
     dt_optimize(s->Sdt);
 
@@ -1117,7 +1141,7 @@ void TypeInfoDeclaration::toObjFile(int multiobj)
 
 /* ================================================================== */
 
-void AttribDeclaration::toObjFile(int multiobj)
+void AttribDeclaration::toObjFile(bool multiobj)
 {
     Dsymbols *d = include(NULL, NULL);
 
@@ -1132,7 +1156,7 @@ void AttribDeclaration::toObjFile(int multiobj)
 
 /* ================================================================== */
 
-void PragmaDeclaration::toObjFile(int multiobj)
+void PragmaDeclaration::toObjFile(bool multiobj)
 {
     if (ident == Id::lib)
     {
@@ -1167,7 +1191,7 @@ void PragmaDeclaration::toObjFile(int multiobj)
         Dsymbol *sa = getDsymbol(e);
         FuncDeclaration *f = sa->isFuncDeclaration();
         assert(f);
-        Symbol *s = f->toSymbol();
+        Symbol *s = toSymbol(f);
         obj_startaddress(s);
     }
     AttribDeclaration::toObjFile(multiobj);
@@ -1175,12 +1199,12 @@ void PragmaDeclaration::toObjFile(int multiobj)
 
 /* ================================================================== */
 
-void TemplateInstance::toObjFile(int multiobj)
+void TemplateInstance::toObjFile(bool multiobj)
 {
 #if LOG
     printf("TemplateInstance::toObjFile('%s', this = %p)\n", toChars(), this);
 #endif
-    if (!errors && members)
+    if (!isError(this) && members)
     {
         if (multiobj)
             // Append to list of object files to be written later
@@ -1198,9 +1222,33 @@ void TemplateInstance::toObjFile(int multiobj)
 
 /* ================================================================== */
 
-void TemplateMixin::toObjFile(int multiobj)
+void TemplateMixin::toObjFile(bool multiobj)
 {
     //printf("TemplateMixin::toObjFile('%s')\n", toChars());
     TemplateInstance::toObjFile(0);
 }
+
+/* ================================================================== */
+
+void Nspace::toObjFile(bool multiobj)
+{
+#if LOG
+    printf("Nspace::toObjFile('%s', this = %p)\n", toChars(), this);
+#endif
+    if (!isError(this) && members)
+    {
+        if (multiobj)
+            // Append to list of object files to be written later
+            obj_append(this);
+        else
+        {
+            for (size_t i = 0; i < members->dim; i++)
+            {
+                Dsymbol *s = (*members)[i];
+                s->toObjFile(multiobj);
+            }
+        }
+    }
+}
+
 

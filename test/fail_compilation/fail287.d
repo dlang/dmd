@@ -2,7 +2,7 @@
 TEST_OUTPUT:
 ---
 fail_compilation/fail287.d(14): Error: had 299 cases which is more than 256 cases in case range
-fail_compilation/fail287.d(12): Deprecation: non-final switch statement without a default is deprecated
+fail_compilation/fail287.d(12): Deprecation: switch statement without a default is deprecated; use 'final switch' or add 'default: assert(0);' or add 'default: break;'
 ---
 */
 

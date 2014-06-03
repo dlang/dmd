@@ -25,6 +25,12 @@ ifeq (,$(OS))
   endif
 endif
 
+# When running make from XCode it may set environment var OS=MACOS.
+# Adjust it here:
+ifeq (MACOS,$(OS))
+  OS:=osx
+endif
+
 ifeq (,$(MODEL))
   uname_M:=$(shell uname -m)
   ifneq (,$(findstring $(uname_M),x86_64 amd64))

@@ -10,6 +10,8 @@
 
 #include <string.h>                     // memset()
 
+void genhdrfile(Module *m);
+
 struct HdrGenState
 {
     int hdrgen;         // 1 if generating header file
@@ -34,3 +36,5 @@ struct HdrGenState
 
     HdrGenState() { memset(this, 0, sizeof(HdrGenState)); }
 };
+
+void functionToBufferFull(TypeFunction *tf, OutBuffer *buf, Identifier *ident, HdrGenState* hgs, TemplateDeclaration *td);

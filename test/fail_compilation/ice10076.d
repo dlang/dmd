@@ -1,12 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice10076.d(21): Error: template instance getMembersAndAttributesWhere!() template 'getMembersAndAttributesWhere' is not defined
-fail_compilation/ice10076.d(26): Error: template instance ice10076.getValidaterAttrs!string error instantiating
-fail_compilation/ice10076.d(16):        instantiated from here: validate!string
-fail_compilation/ice10076.d(26): Error: forward reference to 'getMembersAndAttributesWhere!().Elements'
-fail_compilation/ice10076.d(26): Error: forward reference to 'getMembersAndAttributesWhere!().Elements'
-fail_compilation/ice10076.d(16): Error: template instance ice10076.validate!string error instantiating
+fail_compilation/ice10076.d(18): Error: template instance getMembersAndAttributesWhere!() template 'getMembersAndAttributesWhere' is not defined
+fail_compilation/ice10076.d(23): Error: template instance ice10076.getValidaterAttrs!string error instantiating
+fail_compilation/ice10076.d(13):        instantiated from here: validate!string
 ---
 */
 

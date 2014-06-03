@@ -360,7 +360,7 @@ public:
         }
     }
 
-    void property(const char *name, Loc *loc)
+    void property(const char *linename, const char *charname, Loc *loc)
     {
         if (loc)
         {
@@ -375,7 +375,11 @@ public:
             }
 
             if (loc->linnum)
-                property(name, loc->linnum);
+            {
+                property(linename, loc->linnum);
+                if (loc->charnum)
+                    property(charname, loc->charnum);
+            }
         }
     }
 
@@ -447,9 +451,15 @@ public:
         if (s->prot() != PROTpublic)
             property("protection", Pprotectionnames[s->prot()]);
 
+        if (EnumMember *em = s->isEnumMember())
+        {
+            if (em->origValue)
+                property("value", em->origValue->toChars());
+        }
+
         property("comment", (const char *)s->comment);
 
-        property("line", &s->loc);
+        property("line", "char", &s->loc);
     }
 
     void jsonProperties(Declaration *d)
@@ -543,7 +553,7 @@ public:
 
         property("kind", s->kind());
         property("comment", (const char *)s->comment);
-        property("line", &s->loc);
+        property("line", "char", &s->loc);
         if (s->prot() != PROTpublic)
             property("protection", Pprotectionnames[s->prot()]);
         if (s->aliasId)
@@ -691,7 +701,7 @@ public:
         if (tf && tf->ty == Tfunction)
             property("parameters", tf->parameters);
 
-        property("endline", &d->endloc);
+        property("endline", "endchar", &d->endloc);
 
         if (d->foverrides.dim)
         {

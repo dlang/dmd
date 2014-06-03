@@ -43,61 +43,23 @@
  * Emit symbolic debug info in Dwarf2 format.
  */
 
-void TypedefDeclaration::toDebug()
+void toDebug(TypedefDeclaration *tdd)
 {
-    //printf("TypedefDeclaration::toDebug('%s')\n", toChars());
+    //printf("TypedefDeclaration::toDebug('%s')\n", tdd->toChars());
 }
 
 
-void EnumDeclaration::toDebug()
+void toDebug(EnumDeclaration *ed)
 {
-    //printf("EnumDeclaration::toDebug('%s')\n", toChars());
+    //printf("EnumDeclaration::toDebug('%s')\n", ed->toChars());
 }
 
 
-void StructDeclaration::toDebug()
-{
-}
-
-
-void ClassDeclaration::toDebug()
+void toDebug(StructDeclaration *sd)
 {
 }
 
 
-/* ===================================================================== */
-
-/*****************************************
- * Insert CV info into *p.
- * Returns:
- *      number of bytes written, or that would be written if p==NULL
- */
-
-int Dsymbol::cvMember(unsigned char *p)
+void toDebug(ClassDeclaration *cd)
 {
-    return 0;
 }
-
-
-int TypedefDeclaration::cvMember(unsigned char *p)
-{
-    return 0;
-}
-
-
-int EnumDeclaration::cvMember(unsigned char *p)
-{
-    return 0;
-}
-
-
-int FuncDeclaration::cvMember(unsigned char *p)
-{
-    return 0;
-}
-
-int VarDeclaration::cvMember(unsigned char *p)
-{
-    return 0;
-}
-

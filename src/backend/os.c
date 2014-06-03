@@ -250,7 +250,7 @@ void *vmem_mapfile(const char *filename,void *ptr,unsigned long size,int flag)
 
     dbg_printf("vmem_mapfile(filename = '%s', ptr = %p, size = x%lx, flag = %d)\n",filename,ptr,size,flag);
 
-    hFile = CreateFile(filename, GENERIC_READ | GENERIC_WRITE,
+    hFile = CreateFileA(filename, GENERIC_READ | GENERIC_WRITE,
                         FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
                         OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
     if (hFile == INVALID_HANDLE_VALUE)
@@ -262,7 +262,7 @@ void *vmem_mapfile(const char *filename,void *ptr,unsigned long size,int flag)
     if (flag == 1 && OsVerInfo.dwPlatformId == 1)       // Windows 95, 98, ME
         hFileMap = NULL;
     else
-        hFileMap = CreateFileMapping(hFile,NULL,
+        hFileMap = CreateFileMappingA(hFile,NULL,
                 (flag == 1) ? PAGE_WRITECOPY : PAGE_READWRITE,0,size,NULL);
 
     if (hFileMap == NULL)               // mapping failed
@@ -706,7 +706,7 @@ long os_file_size(int fd)
 char *file_8dot3name(const char *filename)
 {
     HANDLE h;
-    WIN32_FIND_DATA fileinfo;
+    WIN32_FIND_DATAA fileinfo;
     char *buf;
     int i;
 
@@ -770,7 +770,7 @@ err:
     HANDLE h;
     DWORD numwritten;
 
-    h = CreateFile((LPTSTR)name,GENERIC_WRITE,0,NULL,CREATE_ALWAYS,
+    h = CreateFileA((LPTSTR)name,GENERIC_WRITE,0,NULL,CREATE_ALWAYS,
         FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL);
     if (h == INVALID_HANDLE_VALUE)
     {
@@ -778,7 +778,7 @@ err:
         {
             if (!file_createdirs(name))
             {
-                h = CreateFile((LPTSTR)name,GENERIC_WRITE,0,NULL,CREATE_ALWAYS,
+                h = CreateFileA((LPTSTR)name,GENERIC_WRITE,0,NULL,CREATE_ALWAYS,
                     FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL);
                 if (h != INVALID_HANDLE_VALUE)
                     goto Lok;

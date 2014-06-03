@@ -57,6 +57,7 @@ Module::Module(const char *filename, Identifier *ident, int doDocComment, int do
     numlines = 0;
     members = NULL;
     isDocFile = 0;
+    isPackageFile = false;
     needmoduleinfo = 0;
     selfimports = 0;
     insearch = 0;
@@ -192,16 +193,14 @@ const char *Module::kind()
 }
 
 Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
-{   Module *m;
-    char *filename;
-
+{
     //printf("Module::load(ident = '%s')\n", ident->toChars());
 
     // Build module filename by turning:
     //  foo.bar.baz
     // into:
     //  foo\bar\baz
-    filename = ident->toChars();
+    char *filename = ident->toChars();
     if (packages && packages->dim)
     {
         OutBuffer buf;
@@ -221,7 +220,7 @@ Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
         filename = (char *)buf.extractData();
     }
 
-    m = new Module(filename, ident, 0, 0);
+    Module *m = new Module(filename, ident, 0, 0);
     m->loc = loc;
 
     /* Look for the source file
@@ -236,7 +235,8 @@ Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
         if (packages)
         {
             for (size_t i = 0; i < packages->dim; i++)
-            {   Identifier *pid = (*packages)[i];
+            {
+                Identifier *pid = (*packages)[i];
                 fprintf(global.stdmsg, "%s.", pid->toChars());
             }
         }
@@ -330,6 +330,8 @@ void Module::parse()
 
     char *srcname = srcfile->name->toChars();
     //printf("Module::parse(srcname = '%s')\n", srcname);
+
+    isPackageFile = (strcmp(srcfile->name->name(), "package.d") == 0);
 
     utf8_t *buf = (utf8_t *)srcfile->buffer;
     size_t buflen = srcfile->len;
@@ -557,8 +559,7 @@ void Module::parse()
 
     // Insert module into the symbol table
     Dsymbol *s = this;
-    bool isPackageMod = strcmp(srcfile->name->name(), "package.d") == 0;
-    if (isPackageMod)
+    if (isPackageFile)
     {
         /* If the source tree is as follows:
          *     pkg/
@@ -594,7 +595,7 @@ void Module::parse()
         if (Module *mprev = prev->isModule())
         {
             if (strcmp(srcname, mprev->srcfile->toChars()) == 0)
-                error(loc, "from file %s must be imported as module '%s'",
+                error(loc, "from file %s must be imported with 'import %s;'",
                     srcname, toPrettyChars());
             else
                 error(loc, "from file %s conflicts with another module %s from file %s",
@@ -602,7 +603,7 @@ void Module::parse()
         }
         else if (Package *pkg = prev->isPackage())
         {
-            if (pkg->isPkgMod == PKGunknown && isPackageMod)
+            if (pkg->isPkgMod == PKGunknown && isPackageFile)
             {
                 /* If the previous inserted Package is not yet determined as package.d,
                  * link it to the actual module.
@@ -661,7 +662,7 @@ void Module::importAll(Scope *prevsc)
         for (size_t i = 0; i < members->dim; i++)
         {
             Dsymbol *s = (*members)[i];
-            s->addMember(NULL, sc->scopesym, 1);
+            s->addMember(sc, sc->scopesym, 1);
         }
     }
     // anything else should be run after addMember, so version/debug symbols are defined
@@ -707,34 +708,6 @@ void Module::semantic()
 
     //printf("Module = %p, linkage = %d\n", sc->scopesym, sc->linkage);
 
-#if 0
-    // Add import of "object" if this module isn't "object"
-    if (ident != Id::object)
-    {
-        Import *im = new Import(0, NULL, Id::object, NULL, 0);
-        members->shift(im);
-    }
-
-    // Add all symbols into module's symbol table
-    symtab = new DsymbolTable();
-    for (size_t i = 0; i < members->dim; i++)
-    {
-        Dsymbol *s = (Dsymbol *)members->data[i];
-        s->addMember(NULL, sc->scopesym, 1);
-    }
-
-    /* Set scope for the symbols so that if we forward reference
-     * a symbol, it can possibly be resolved on the spot.
-     * If this works out well, it can be extended to all modules
-     * before any semantic() on any of them.
-     */
-    for (size_t i = 0; i < members->dim; i++)
-    {
-        Dsymbol *s = (Dsymbol *)members->data[i];
-        s->setScope(sc);
-    }
-#endif
-
     // Pass 1 semantic routines: do public side of the definition
     for (size_t i = 0; i < members->dim; i++)
     {
@@ -756,16 +729,6 @@ void Module::semantic()
 
 void Module::semantic2()
 {
-    if (deferred.dim)
-    {
-        for (size_t i = 0; i < deferred.dim; i++)
-        {
-            Dsymbol *sd = deferred[i];
-
-            sd->error("unable to resolve forward reference in definition");
-        }
-        return;
-    }
     //printf("Module::semantic2('%s'): parent = %p\n", toChars(), parent);
     if (semanticRun != PASSsemanticdone)       // semantic() not completed yet - could be recursive call
         return;
@@ -814,27 +777,6 @@ void Module::semantic3()
     sc = sc->pop();
     sc->pop();
     semanticRun = PASSsemantic3done;
-}
-
-void Module::inlineScan()
-{
-    if (semanticRun != PASSsemantic3done)
-        return;
-    semanticRun = PASSinline;
-
-    // Note that modules get their own scope, from scratch.
-    // This is so regardless of where in the syntax a module
-    // gets imported, it is unaffected by context.
-    //printf("Module = %p\n", sc.scopesym);
-
-    for (size_t i = 0; i < members->dim; i++)
-    {
-        Dsymbol *s = (*members)[i];
-        //if (global.params.verbose)
-        //    fprintf(global.stdmsg, "inline scan symbol %s\n", s->toChars());
-        s->inlineScan();
-    }
-    semanticRun = PASSinlinedone;
 }
 
 /****************************************************
@@ -1080,8 +1022,7 @@ char *ModuleDeclaration::toChars()
         }
     }
     buf.writestring(id->toChars());
-    buf.writeByte(0);
-    return (char *)buf.extractData();
+    return buf.extractString();
 }
 
 /* =========================== Package ===================== */
@@ -1097,6 +1038,15 @@ Package::Package(Identifier *ident)
 const char *Package::kind()
 {
     return "package";
+}
+
+Module *Package::isPackageMod()
+{
+    if (isPkgMod == PKGmodule)
+    {
+        return mod;
+    }
+    return NULL;
 }
 
 /****************************************************

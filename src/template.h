@@ -46,9 +46,16 @@ class Tuple : public RootObject
 public:
     Objects objects;
 
-    int dyncast() { return DYNCAST_TUPLE; } // kludge for template.isType()
+    // kludge for template.isType()
+    int dyncast() { return DYNCAST_TUPLE; }
 };
 
+struct TemplatePrevious
+{
+    TemplatePrevious *prev;
+    Scope *sc;
+    Objects *dedargs;
+};
 
 class TemplateDeclaration : public ScopeDsymbol
 {
@@ -73,12 +80,7 @@ public:
     bool isstatic;              // this is static template declaration
     PROT protection;
 
-    struct Previous
-    {   Previous *prev;
-        Scope *sc;
-        Objects *dedargs;
-    };
-    Previous *previous;         // threaded list of previous instantiation attempts on stack
+    TemplatePrevious *previous;         // threaded list of previous instantiation attempts on stack
 
     TemplateDeclaration(Loc loc, Identifier *id, TemplateParameters *parameters,
         Expression *constraint, Dsymbols *decldefs, bool ismixin = false, bool literal = false);
@@ -90,46 +92,56 @@ public:
     const char *kind();
     char *toChars();
 
-    void emitComment(Scope *sc);
     PROT prot();
-//    void toDocBuffer(OutBuffer *buf);
+
+    bool evaluateConstraint(TemplateInstance *ti, Scope *sc, Scope *paramscope, Objects *dedtypes, FuncDeclaration *fd);
 
     MATCH matchWithInstance(Scope *sc, TemplateInstance *ti, Objects *atypes, Expressions *fargs, int flag);
     MATCH leastAsSpecialized(Scope *sc, TemplateDeclaration *td2, Expressions *fargs);
 
-    MATCH deduceFunctionTemplateMatch(FuncDeclaration *f, Loc loc, Scope *sc, Objects *tiargs, Type *tthis, Expressions *fargs, Objects *dedargs);
+    MATCH deduceFunctionTemplateMatch(TemplateInstance *ti, Scope *sc, FuncDeclaration *&fd, Type *tthis, Expressions *fargs);
     RootObject *declareParameter(Scope *sc, TemplateParameter *tp, RootObject *o);
-    FuncDeclaration *doHeaderInstantiation(Scope *sc, Objects *tdargs, Type *tthis, Expressions *fargs);
+    FuncDeclaration *doHeaderInstantiation(TemplateInstance *ti, Scope *sc, FuncDeclaration *fd, Type *tthis, Expressions *fargs);
     TemplateInstance *findExistingInstance(TemplateInstance *tithis, Expressions *fargs);
     TemplateInstance *addInstance(TemplateInstance *ti);
     void removeInstance(TemplateInstance *handle);
+
+    TemplateInstance *getInstantiating(Scope *sc);
 
     TemplateDeclaration *isTemplateDeclaration() { return this; }
 
     TemplateTupleParameter *isVariadic();
     bool isOverloadable();
 
-    void makeParamNamesVisibleInConstraint(Scope *paramscope, Expressions *fargs);
     void accept(Visitor *v) { v->visit(this); }
 };
 
+/* For type-parameter:
+ *  template Foo(ident)             // specType is set to NULL
+ *  template Foo(ident : specType)
+ * For value-parameter:
+ *  template Foo(valType ident)     // specValue is set to NULL
+ *  template Foo(valType ident : specValue)
+ * For alias-parameter:
+ *  template Foo(alias ident)
+ * For this-parameter:
+ *  template Foo(this ident)
+ */
 class TemplateParameter
 {
 public:
-    /* For type-parameter:
-     *  template Foo(ident)             // specType is set to NULL
-     *  template Foo(ident : specType)
-     * For value-parameter:
-     *  template Foo(valType ident)     // specValue is set to NULL
-     *  template Foo(valType ident : specValue)
-     * For alias-parameter:
-     *  template Foo(alias ident)
-     * For this-parameter:
-     *  template Foo(this ident)
-     */
-
     Loc loc;
     Identifier *ident;
+
+    /* True if this is a part of precedent parameter specialization pattern.
+     *
+     *  template A(T : X!TL, alias X, TL...) {}
+     *  // X and TL are dependent template parameter
+     *
+     * A dependent template parameter should return MATCHexact in matchArg()
+     * to respect the match level of the corresponding precedent parameter.
+     */
+    bool dependent;
 
     Declaration *sparam;
 
@@ -148,6 +160,7 @@ public:
     virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs) = 0;
     virtual RootObject *specialization() = 0;
     virtual RootObject *defaultArg(Loc loc, Scope *sc) = 0;
+    virtual bool hasDefaultArg() = 0;
 
     /* If TemplateParameter's match as far as overloading goes.
      */
@@ -163,12 +176,12 @@ public:
     virtual void *dummyArg() = 0;
 };
 
+/* Syntax:
+ *  ident : specType = defaultType
+ */
 class TemplateTypeParameter : public TemplateParameter
 {
 public:
-    /* Syntax:
-     *  ident : specType = defaultType
-     */
     Type *specType;     // type parameter: if !=NULL, this is the type specialization
     Type *defaultType;
 
@@ -184,18 +197,18 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     RootObject *specialization();
     RootObject *defaultArg(Loc loc, Scope *sc);
+    bool hasDefaultArg();
     int overloadMatch(TemplateParameter *);
     MATCH matchArg(Scope *sc, RootObject *oarg, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     void *dummyArg();
 };
 
+/* Syntax:
+ *  this ident : specType = defaultType
+ */
 class TemplateThisParameter : public TemplateTypeParameter
 {
 public:
-    /* Syntax:
-     *  this ident : specType = defaultType
-     */
-
     TemplateThisParameter(Loc loc, Identifier *ident, Type *specType, Type *defaultType);
 
     TemplateThisParameter *isTemplateThisParameter();
@@ -203,13 +216,12 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 
+/* Syntax:
+ *  valType ident : specValue = defaultValue
+ */
 class TemplateValueParameter : public TemplateParameter
 {
 public:
-    /* Syntax:
-     *  valType ident : specValue = defaultValue
-     */
-
     Type *valType;
     Expression *specValue;
     Expression *defaultValue;
@@ -226,18 +238,18 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     RootObject *specialization();
     RootObject *defaultArg(Loc loc, Scope *sc);
+    bool hasDefaultArg();
     int overloadMatch(TemplateParameter *);
     MATCH matchArg(Scope *sc, RootObject *oarg, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     void *dummyArg();
 };
 
+/* Syntax:
+ *  specType ident : specAlias = defaultAlias
+ */
 class TemplateAliasParameter : public TemplateParameter
 {
 public:
-    /* Syntax:
-     *  specType ident : specAlias = defaultAlias
-     */
-
     Type *specType;
     RootObject *specAlias;
     RootObject *defaultAlias;
@@ -254,18 +266,18 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     RootObject *specialization();
     RootObject *defaultArg(Loc loc, Scope *sc);
+    bool hasDefaultArg();
     int overloadMatch(TemplateParameter *);
     MATCH matchArg(Scope *sc, RootObject *oarg, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     void *dummyArg();
 };
 
+/* Syntax:
+ *  ident ...
+ */
 class TemplateTupleParameter : public TemplateParameter
 {
 public:
-    /* Syntax:
-     *  ident ...
-     */
-
     TemplateTupleParameter(Loc loc, Identifier *ident);
 
     TemplateTupleParameter *isTemplateTupleParameter();
@@ -276,35 +288,37 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     RootObject *specialization();
     RootObject *defaultArg(Loc loc, Scope *sc);
+    bool hasDefaultArg();
     int overloadMatch(TemplateParameter *);
     MATCH matchArg(Loc loc, Scope *sc, Objects *tiargs, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     MATCH matchArg(Scope *sc, RootObject *oarg, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     void *dummyArg();
 };
 
+/* Given:
+ *  foo!(args) =>
+ *      name = foo
+ *      tiargs = args
+ */
 class TemplateInstance : public ScopeDsymbol
 {
 public:
-    /* Given:
-     *  foo!(args) =>
-     *      name = foo
-     *      tiargs = args
-     */
     Identifier *name;
-    Objects *tiargs;            // Array of Types/Expressions of template
-                                // instance arguments [int*, char, 10*10]
 
-    Objects tdtypes;            // Array of Types/Expressions corresponding
-                                // to TemplateDeclaration.parameters
-                                // [int, char, 100]
+    // Array of Types/Expressions of template
+    // instance arguments [int*, char, 10*10]
+    Objects *tiargs;
+
+    // Array of Types/Expressions corresponding
+    // to TemplateDeclaration.parameters
+    // [int, char, 100]
+    Objects tdtypes;
 
     Dsymbol *tempdecl;                  // referenced by foo.bar.abc
     TemplateInstance *inst;             // refer to existing instance
     TemplateInstance *tinst;            // enclosing template instance
     ScopeDsymbol *argsym;               // argument symbol table
-    AliasDeclaration *aliasdecl;        // !=NULL if instance is an alias for its
-                                        // sole member
-    WithScopeSymbol *withsym;           // if a member of a with statement
+    Dsymbol *aliasdecl;                 // !=NULL if instance is an alias for its sole member
     int nest;                           // for recursion detection
     bool semantictiargsdone;            // has semanticTiargs() been done?
     bool havetempdecl;                  // if used second constructor
@@ -324,25 +338,23 @@ public:
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
     void semantic3(Scope *sc);
-    void inlineScan();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toCBufferTiargs(OutBuffer *buf, HdrGenState *hgs);
     Dsymbol *toAlias();                 // resolve real symbol
     const char *kind();
     bool oneMember(Dsymbol **ps, Identifier *ident);
     char *toChars();
-    const char *mangle(bool isv = false);
     void printInstantiationTrace();
     Identifier *getIdent();
     int compare(RootObject *o);
     hash_t hashCode();
 
-    void toObjFile(int multiobj);                       // compile to .obj file
+    void toObjFile(bool multiobj);                       // compile to .obj file
 
     // Internal
-    bool findTemplateDeclaration(Scope *sc);
-    bool updateTemplateDeclaration(Scope *sc, Dsymbol *s);
-    static void semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int flags);
+    bool findTempDecl(Scope *sc, WithScopeSymbol **pwithsym);
+    bool updateTempDecl(Scope *sc, Dsymbol *s);
+    static bool semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int flags);
     bool semanticTiargs(Scope *sc);
     bool findBestMatch(Scope *sc, Expressions *fargs);
     bool needsTypeInference(Scope *sc, int flag = 0);
@@ -354,7 +366,6 @@ public:
     void trySemantic3(Scope *sc2);
 
     TemplateInstance *isTemplateInstance() { return this; }
-    AliasDeclaration *isAliasDeclaration();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -368,7 +379,6 @@ public:
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
     void semantic3(Scope *sc);
-    void inlineScan();
     const char *kind();
     bool oneMember(Dsymbol **ps, Identifier *ident);
     int apply(Dsymbol_apply_ft_t fp, void *param);
@@ -377,9 +387,9 @@ public:
     char *toChars();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
-    void toObjFile(int multiobj);                       // compile to .obj file
+    void toObjFile(bool multiobj);                       // compile to .obj file
 
-    bool findTemplateDeclaration(Scope *sc);
+    bool findTempDecl(Scope *sc);
 
     TemplateMixin *isTemplateMixin() { return this; }
     void accept(Visitor *v) { v->visit(this); }

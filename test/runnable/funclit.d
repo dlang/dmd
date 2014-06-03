@@ -314,7 +314,7 @@ void test10()
 void test11()
 {
     auto a1 = [x => x, (int x) => x * 2];
-    static assert(is(typeof(a1[0]) == int function(int) pure @safe nothrow));
+    static assert(is(typeof(a1[0]) == int function(int) pure @safe nothrow @nogc));
     assert(a1[0](10) == 10);
     assert(a1[1](10) == 20);
 
@@ -395,7 +395,7 @@ void test7288()
         return () => { return x; };
     }
     pragma(msg, typeof(&foo));
-    alias int delegate() nothrow @safe delegate() nothrow @safe delegate() Dg;
+    alias int delegate() nothrow @nogc @safe delegate() nothrow @nogc @safe delegate() Dg;
     pragma(msg, Dg);
     static assert(is(typeof(&foo) == Dg));  // should pass
 }
@@ -536,10 +536,10 @@ auto foo7743b()
 }
 void test7743()
 {
-    static assert(is(typeof(&foo7743a) == int delegate() nothrow @safe function()));
+    static assert(is(typeof(&foo7743a) == int delegate() nothrow @nogc @safe function()));
     assert(foo7743a()() == 10);
 
-    static assert(is(typeof(&foo7743b) == int delegate() nothrow @safe function()));
+    static assert(is(typeof(&foo7743b) == int delegate() nothrow @nogc @safe function()));
     assert(foo7743b()() == 10);
 }
 
@@ -550,7 +550,7 @@ enum dg7761 = (int a) pure => 2 * a;
 
 void test7761()
 {
-    static assert(is(typeof(dg7761) == int function(int) pure @safe nothrow));
+    static assert(is(typeof(dg7761) == int function(int) pure @safe nothrow @nogc));
     assert(dg7761(10) == 20);
 }
 
@@ -793,6 +793,48 @@ void test9928()
 }
 
 /***************************************************/
+// 10133
+
+ptrdiff_t countUntil10133(alias pred, R)(R haystack)
+{
+    typeof(return) i;
+
+    alias T = dchar;
+
+    foreach (T elem; haystack)
+    {
+        if (pred(elem)) return i;
+        ++i;
+    }
+
+    return -1;
+}
+
+bool func10133(string s)() if (countUntil10133!(x => x == 'x')(s) == 1)
+{
+    return true;
+}
+
+bool func10133a(string s)() if (countUntil10133!(x => s == "x")(s) != -1)
+{
+    return true;
+}
+bool func10133b(string s)() if (countUntil10133!(x => s == "x")(s) != -1)
+{
+    return true;
+}
+
+void test10133()
+{
+    func10133!("ax")();
+
+    func10133a!("x")();
+    static assert(!is(typeof(func10133a!("ax")())));
+    static assert(!is(typeof(func10133b!("ax")())));
+    func10133b!("x")();
+}
+
+/***************************************************/
 // 10288
 
 T foo10288(T)(T x)
@@ -911,12 +953,85 @@ C11230 visit11230()
 }
 
 /***************************************************/
+// 10336
+
+struct S10336
+{
+    template opDispatch(string name)
+    {
+        enum opDispatch = function(int x) {
+            return x;
+        };
+    }
+}
+
+void test10336()
+{
+    S10336 s;
+    assert(s.hello(12) == 12);
+}
+
+/***************************************************/
 // 11661
 
 void test11661()
 {
     void delegate() dg = {};  // OK
     void function() fp = {};  // OK <- NG
+}
+
+/***************************************************/
+// 11774
+
+void f11774(T, R)(R delegate(T[]) dg)
+{
+    T[] src;
+    dg(src);
+}
+
+void test11774()
+{
+    int[] delegate(int[]) dg = (int[] a) => a;
+    f11774!int(dg);
+    f11774!Object(a => a);
+    f11774!int(dg);
+}
+
+/***************************************************/
+// 12508
+
+interface A12508(T)
+{
+    T getT();
+}
+
+class C12508 : A12508!double
+{
+    double getT() { return 1; }
+}
+
+void f12508(A12508!double delegate() dg)
+{
+    auto a = dg();
+    assert(a !is null);
+    assert(a.getT() == 1.0);    // fails!
+}
+
+void t12508(T)(A12508!T delegate() dg)
+{
+    auto a = dg();
+    assert(a !is null);
+    assert(a.getT() == 1.0);    // fails!
+}
+
+ref alias Dg12508 = A12508!double delegate();
+void t12508(T)(Dg12508 dg) {}
+
+void test12508()
+{
+    f12508({ return new C12508(); });
+    t12508({ return new C12508(); });
+    static assert(!__traits(compiles, x12508({ return new C12508(); })));
 }
 
 /***************************************************/
@@ -965,8 +1080,12 @@ int main()
     test9415();
     test9628();
     test9928();
+    test10133();
     test10288();
+    test10336();
     test11661();
+    test11774();
+    test12508();
 
     printf("Success\n");
     return 0;

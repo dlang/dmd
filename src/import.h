@@ -42,15 +42,14 @@ public:
     Identifiers names;
     Identifiers aliases;
 
-    Import(Loc loc, Identifiers *packages, Identifier *id, Identifier *aliasId,
-        int isstatic);
-    void addAlias(Identifier *name, Identifier *alias);
-
-    AliasDeclarations aliasdecls; // corresponding AliasDeclarations for alias=name pairs
-
     Module *mod;
     Package *pkg;               // leftmost package/module
 
+    AliasDeclarations aliasdecls; // corresponding AliasDeclarations for alias=name pairs
+
+    Import(Loc loc, Identifiers *packages, Identifier *id, Identifier *aliasId,
+        int isstatic);
+    void addAlias(Identifier *name, Identifier *alias);
     const char *kind();
     PROT prot();
     Dsymbol *syntaxCopy(Dsymbol *s);    // copy only syntax trees
@@ -59,7 +58,7 @@ public:
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
     Dsymbol *toAlias();
-    int addMember(Scope *sc, ScopeDsymbol *s, int memnum);
+    int addMember(Scope *sc, ScopeDsymbol *sds, int memnum);
     Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
     bool overloadInsert(Dsymbol *s);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);

@@ -14,6 +14,8 @@
 #include "mtype.h"
 #include "stringtable.h"
 
+Symbol *toSymbol(Dsymbol *s);
+
 struct Identifier;
 struct Symbol;
 struct FuncDeclaration;
@@ -183,8 +185,8 @@ struct TypeObjcSelector : TypeNext
     MATCH implicitConvTo(Type *to);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     Expression *defaultInit(Loc loc);
-    int isZeroInit(Loc loc);
-    int checkBoolean();
+    bool isZeroInit(Loc loc);
+    bool checkBoolean();
     TypeInfoDeclaration *getTypeInfoDeclaration();
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     int hasPointers();

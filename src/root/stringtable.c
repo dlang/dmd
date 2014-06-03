@@ -1,12 +1,11 @@
 
-// Copyright (c) 1999-2013 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
-
+/* Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved, written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/root/stringtable.c
+ */
 
 #include <stdio.h>
 #include <stdint.h>                     // uint{8|16|32}_t
@@ -22,6 +21,13 @@ hash_t calcHash(const char *str, size_t len)
 {
     hash_t hash = 0;
 
+    union
+    {
+        uint8_t  scratchB[4];
+        uint16_t scratchS[2];
+        uint32_t scratchI;
+    };
+    
     while (1)
     {
         switch (len)
@@ -36,18 +42,26 @@ hash_t calcHash(const char *str, size_t len)
 
             case 2:
                 hash *= 37;
-                hash += *(const uint16_t *)str;
+                scratchB[0] = str[0];
+                scratchB[1] = str[1];
+                hash += scratchS[0];
                 return hash;
 
             case 3:
                 hash *= 37;
-                hash += (*(const uint16_t *)str << 8) +
+                scratchB[0] = str[0];
+                scratchB[1] = str[1];
+                hash += (scratchS[0] << 8) +
                         ((const uint8_t *)str)[2];
                 return hash;
 
             default:
                 hash *= 37;
-                hash += *(const uint32_t *)str;
+                scratchB[0] = str[0];
+                scratchB[1] = str[1];
+                scratchB[2] = str[2];
+                scratchB[3] = str[3];
+                hash += scratchI;
                 str += 4;
                 len -= 4;
                 break;

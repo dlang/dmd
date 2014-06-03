@@ -18,6 +18,7 @@ int Target::realsize;
 int Target::realpad;
 int Target::realalignsize;
 bool Target::reverseCppOverloads;
+int Target::longsize;
 
 
 void Target::init()
@@ -32,12 +33,14 @@ void Target::init()
         realsize = 12;
         realpad = 2;
         realalignsize = 4;
+        longsize = 4;
     }
     else if (global.params.isOSX)
     {
         realsize = 16;
         realpad = 6;
         realalignsize = 16;
+        longsize = 4;
     }
     else if (global.params.isWindows)
     {
@@ -45,6 +48,7 @@ void Target::init()
         realpad = 0;
         realalignsize = 2;
         reverseCppOverloads = !global.params.is64bit;
+        longsize = 4;
     }
     else
         assert(0);
@@ -56,6 +60,11 @@ void Target::init()
             realsize = 16;
             realpad = 6;
             realalignsize = 16;
+            longsize = 8;
+        }
+        else if (global.params.isOSX)
+        {
+            longsize = 8;
         }
     }
 
@@ -154,3 +163,35 @@ unsigned Target::critsecsize()
     return 0;
 }
 
+/***********************************
+ * Returns a Type for the va_list type of the target.
+ * NOTE: For Posix/x86_64 this returns the type which will really
+ * be used for passing an argument of type va_list.
+ */
+Type *Target::va_listType()
+{
+    if (global.params.isWindows)
+    {
+        return Type::tchar->pointerTo();
+    }
+    else if (global.params.isLinux ||
+             global.params.isFreeBSD ||
+             global.params.isOpenBSD ||
+             global.params.isSolaris ||
+             global.params.isOSX)
+    {
+        if (global.params.is64bit)
+        {
+            return (new TypeIdentifier(Loc(), Lexer::idPool("__va_list_tag")))->pointerTo();
+        }
+        else
+        {
+            return Type::tchar->pointerTo();
+        }
+    }
+    else
+    {
+        assert(0);
+        return NULL;
+    }
+}

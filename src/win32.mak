@@ -39,10 +39,6 @@
 # LFLAGS.  The difference between CFLAGS and OPT is that CFLAGS primarily
 # applies to front-end files, while OPT applies to essentially all C++ sources.
 #
-# Pre-compiled headers may be enabled via the PREC variable.  This configuration
-# has not been tested recently.  If you enable pre-compiled headers, you should
-# update the TOTALH variable as mentioned in the accompanying comment.
-#
 # Targets:
 #
 # defaulttarget - debug dmd
@@ -66,8 +62,6 @@
 
 # DMC directory
 DMCROOT=$(DM_HOME)\dm
-# STLPort directory
-STLPORT=$(DMCROOT)\stlport\stlport
 # DMD source directories
 C=backend
 TK=tk
@@ -117,9 +111,6 @@ CFLAGS=
 OPT=
 # Debug flags
 DEBUG=-gl -D -DUNITTEST
-# Precompiled Header support
-# To enable, use: PREC=-H -HItotal.h -HO
-PREC=
 # Linker flags (prefix with -L)
 LFLAGS=
 # Librarian flags
@@ -141,15 +132,15 @@ DMDMAKE=$(MAKE) -fwin32.mak C=$C TK=$(TK) ROOT=$(ROOT)
 FRONTOBJ= enum.obj struct.obj dsymbol.obj import.obj id.obj \
 	staticassert.obj identifier.obj mtype.obj expression.obj \
 	optimize.obj template.obj lexer.obj declaration.obj cast.obj \
-	init.obj func.obj utf.obj parse.obj statement.obj \
+	init.obj func.obj nogc.obj utf.obj parse.obj statement.obj \
 	constfold.obj version.obj inifile.obj cppmangle.obj \
-	module.obj scope.obj dump.obj cond.obj inline.obj opover.obj \
+	module.obj scope.obj cond.obj inline.obj opover.obj \
 	entity.obj class.obj mangle.obj attrib.obj impcnvtab.obj \
 	link.obj access.obj doc.obj macro.obj hdrgen.obj delegatize.obj \
 	interpret.obj ctfeexpr.obj traits.obj aliasthis.obj \
 	builtin.obj clone.obj arrayop.obj \
 	json.obj unittests.obj imphint.obj argtypes.obj apply.obj sapply.obj \
-	sideeffect.obj intrange.obj canthrow.obj target.obj
+	sideeffect.obj intrange.obj canthrow.obj target.obj nspace.obj
 
 # Glue layer
 GLUEOBJ=glue.obj msc.obj s2ir.obj todt.obj e2ir.obj tocsym.obj \
@@ -187,14 +178,14 @@ SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
 	template.h template.c lexer.c declaration.c cast.c \
 	cond.h cond.c link.c aggregate.h staticassert.h parse.c statement.c \
 	constfold.c version.h version.c inifile.c staticassert.c \
-	module.c scope.c dump.c init.h init.c attrib.h attrib.c opover.c \
-	class.c mangle.c func.c inline.c access.c complex_t.h cppmangle.c \
+	module.c scope.c init.h init.c attrib.h attrib.c opover.c \
+	class.c mangle.c func.c nogc.c inline.c access.c complex_t.h cppmangle.c \
 	identifier.h parse.h scope.h enum.h import.h \
 	mars.h module.h mtype.h dsymbol.h \
 	declaration.h lexer.h expression.h statement.h doc.h doc.c \
 	macro.h macro.c hdrgen.h hdrgen.c arraytypes.h \
 	delegatize.c interpret.c ctfeexpr.c traits.c builtin.c \
-	clone.c lib.h arrayop.c \
+	clone.c lib.h arrayop.c nspace.h nspace.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c argtypes.c \
 	apply.c sapply.c sideeffect.c ctfe.h \
 	intrange.h intrange.c canthrow.c target.c target.h visitor.h
@@ -257,7 +248,6 @@ ROOTSRC= $(ROOT)\root.h \
 #	$(ROOT)\gc\win32.c
 
 # Header files
-#TOTALH=total.sym # Use with pre-compiled headers
 TOTALH=id.h
 CH= $C\cc.h $C\global.h $C\oper.h $C\code.h $C\code_x86.h $C\type.h $C\dt.h $C\cgcv.h \
 	$C\el.h $C\iasm.h $C\obj.h
@@ -311,7 +301,6 @@ $(TARGETEXE): mars.obj $(LIBS) win32.mak
 
 clean:
 	$(DEL) *.obj
-	$(DEL) total.sym
 	$(DEL) msgs.h msgs.c
 	$(DEL) elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c
 	$(DEL) impcnvtab.c
@@ -398,17 +387,10 @@ verstr.h : ..\VERSION
 
 # Default rules
 .c.obj:
-	$(CC) -c $(CFLAGS) $(PREC) $*
+	$(CC) -c $(CFLAGS) $*
 
 .asm.obj:
 	$(CC) -c $(CFLAGS) $*
-
-# Pre-compiled header
-total.sym : $(ROOT)\root.h mars.h lexer.h parse.h enum.h dsymbol.h \
-	mtype.h expression.h attrib.h init.h cond.h version.h \
-	declaration.h statement.h scope.h import.h module.h id.h \
-	template.h aggregate.h arraytypes.h lib.h total.h
-	$(CC) -c $(CFLAGS) -HFtotal.sym total.h
 
 # Generated source
 impcnvtab.obj : mtype.h impcnvtab.c
@@ -539,13 +521,13 @@ imphint.obj : imphint.c
 	$(CC) -c $(CFLAGS) $*
 
 mars.obj : $(TOTALH) module.h mars.h mars.c verstr.h
-	$(CC) -c $(CFLAGS) $(PREC) $* -Ae
+	$(CC) -c $(CFLAGS) $* -Ae
 
 md5.obj : $C\md5.h $C\md5.c
 	$(CC) -c $(MFLAGS) $C\md5
 
 module.obj : $(TOTALH) module.c
-	$(CC) -c $(CFLAGS) -I$C $(PREC) module.c
+	$(CC) -c $(CFLAGS) -I$C module.c
 
 msc.obj : $(CH) mars.h msc.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) msc
@@ -620,7 +602,7 @@ tocsym.obj : $(CH) $(TOTALH) mars.h module.h tocsym.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) tocsym
 
 unittests.obj : $(TOTALH) unittests.c
-	$(CC) -c $(CFLAGS) $(PREC) $*
+	$(CC) -c $(CFLAGS) $*
 
 util2.obj : $C\util2.c
 	$(CC) -c $(MFLAGS) $C\util2
@@ -724,6 +706,7 @@ libomf.obj : $(TOTALH) lib.h libomf.c
 link.obj : $(TOTALH) link.c
 macro.obj : $(TOTALH) macro.h macro.c
 mangle.obj : $(TOTALH) dsymbol.h declaration.h mangle.c
+nspace.obj : $(TOTALH) nspace.c
 opover.obj : $(TOTALH) expression.h opover.c
 optimize.obj : $(TOTALH) expression.h optimize.c
 parse.obj : $(TOTALH) attrib.h lexer.h parse.h parse.c

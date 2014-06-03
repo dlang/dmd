@@ -88,47 +88,46 @@ typedef Array<const char *> Strings;
 // Put command line switches in here
 struct Param
 {
-    char obj;           // write object file
-    char link;          // perform link
-    char dll;           // generate shared dynamic library
-    char lib;           // write library file instead of object file(s)
-    char multiobj;      // break one object file into multiple ones
-    char oneobj;        // write one object file instead of multiple ones
+    bool obj;           // write object file
+    bool link;          // perform link
+    bool dll;           // generate shared dynamic library
+    bool lib;           // write library file instead of object file(s)
+    bool multiobj;      // break one object file into multiple ones
+    bool oneobj;        // write one object file instead of multiple ones
     bool trace;         // insert profiling hooks
-    char quiet;         // suppress non-error messages
-    char verbose;       // verbose compile
-    char vtls;          // identify thread local variables
-    char vfield;        // identify non-mutable field variables
+    bool verbose;       // verbose compile
+    bool showColumns;   // print character (column) numbers in diagnostics
+    bool vtls;          // identify thread local variables
+    char vgc;           // identify gc usage
+    bool vfield;        // identify non-mutable field variables
     char symdebug;      // insert debug symbolic information
     bool alwaysframe;   // always emit standard stack frame
     bool optimize;      // run optimizer
-    char map;           // generate linker .map file
+    bool map;           // generate linker .map file
     bool is64bit;       // generate 64 bit code
-    char isLP64;        // generate code for LP64
-    char isLinux;       // generate code for linux
-    char isOSX;         // generate code for Mac OSX
-    char isWindows;     // generate code for Windows
-    char isFreeBSD;     // generate code for FreeBSD
-    char isOpenBSD;     // generate code for OpenBSD
-    char isSolaris;     // generate code for Solaris
-    char scheduler;     // which scheduler to use
+    bool isLP64;        // generate code for LP64
+    bool isLinux;       // generate code for linux
+    bool isOSX;         // generate code for Mac OSX
+    bool isWindows;     // generate code for Windows
+    bool isFreeBSD;     // generate code for FreeBSD
+    bool isOpenBSD;     // generate code for OpenBSD
+    bool isSolaris;     // generate code for Solaris
     char useDeprecated; // 0: don't allow use of deprecated features
                         // 1: silently allow use of deprecated features
                         // 2: warn about the use of deprecated features
-    char useAssert;     // generate runtime code for assert()'s
-    char useInvariants; // generate class invariant checks
-    char useIn;         // generate precondition checks
-    char useOut;        // generate postcondition checks
+    bool useAssert;     // generate runtime code for assert()'s
+    bool useInvariants; // generate class invariant checks
+    bool useIn;         // generate precondition checks
+    bool useOut;        // generate postcondition checks
     char useArrayBounds; // 0: no array bounds checks
                          // 1: array bounds checks for safe functions only
                          // 2: array bounds checks for all functions
-    char noboundscheck; // no array bounds checking at all
     bool stackstomp;    // add stack stomping code
-    char useSwitchError; // check for switches without a default
-    char useUnitTests;  // generate unittest code
-    char useInline;     // inline expand functions
-    char release;       // build release version
-    char preservePaths; // !=0 means don't strip path from source file
+    bool useSwitchError; // check for switches without a default
+    bool useUnitTests;  // generate unittest code
+    bool useInline;     // inline expand functions
+    bool release;       // build release version
+    bool preservePaths; // true means don't strip path from source file
     char warnings;      // 0: enable warnings
                         // 1: warnings as errors
                         // 2: informational warnings (no errors)
@@ -136,9 +135,9 @@ struct Param
     bool cov;           // generate code coverage data
     unsigned char covPercent;   // 0..100 code coverage percentage required
     bool nofloat;       // code should not pull in floating point support
-    char ignoreUnsupportedPragmas;      // rather than error on them
-    char enforcePropertySyntax;
-    char betterC;       // be a "better C" compiler; no dependency on D runtime
+    bool ignoreUnsupportedPragmas;      // rather than error on them
+    bool enforcePropertySyntax;
+    bool betterC;       // be a "better C" compiler; no dependency on D runtime
     bool addMain;       // add a default main() function
     bool allInst;       // generate code for all template instantiations
 
@@ -149,17 +148,17 @@ struct Param
     const char *objname;  // .obj file output name
     const char *libname;  // .lib file output name
 
-    char doDocComments;  // process embedded documentation comments
+    bool doDocComments;  // process embedded documentation comments
     const char *docdir;  // write documentation file to docdir directory
     const char *docname; // write documentation file to docname
     Strings *ddocfiles;  // macro include files for Ddoc
 
-    char doHdrGeneration;  // process embedded documentation comments
+    bool doHdrGeneration;  // process embedded documentation comments
     const char *hdrdir;    // write 'header' file to docdir directory
     const char *hdrname;   // write 'header' file to docname
 
-    char doXGeneration;    // write JSON file
-    const char *xfilename; // write JSON file to xfilename
+    bool doJsonGeneration;    // write JSON file
+    const char *jsonfilename; // write JSON file to jsonfilename
 
     unsigned debuglevel;   // debug level
     Strings *debugids;     // debug identifiers
@@ -175,15 +174,15 @@ struct Param
 
     // Hidden debug switches
     char debuga;
-    char debugb;
-    char debugc;
-    char debugf;
-    char debugr;
+    bool debugb;
+    bool debugc;
+    bool debugf;
+    bool debugr;
     char debugw;
-    char debugx;
-    char debugy;
+    bool debugx;
+    bool debugy;
 
-    char run;           // run resulting executable
+    bool run;           // run resulting executable
     size_t runargs_length;
     const char** runargs; // arguments for executable
 
@@ -191,6 +190,7 @@ struct Param
     Strings *objfiles;
     Strings *linkswitches;
     Strings *libfiles;
+    Strings *dllfiles;
     const char *deffile;
     const char *resfile;
     const char *exefile;
@@ -273,13 +273,22 @@ extern Global global;
 
 #include "complex_t.h"
 
+// Because int64_t and friends may be any integral type of the
+// correct size, we have to explicitly ask for the correct
+// integer type to get the correct mangling with ddmd
+#if __LP64__
 // Be careful not to care about sign when using dinteger_t
-typedef uint64_t dinteger_t;    // use this instead of integer_t to
-                                // avoid conflicts with system #include's
-
+// use this instead of integer_t to
+// avoid conflicts with system #include's
+typedef unsigned long dinteger_t;
 // Signed and unsigned variants
-typedef int64_t sinteger_t;
-typedef uint64_t uinteger_t;
+typedef long sinteger_t;
+typedef unsigned long uinteger_t;
+#else
+typedef unsigned long long dinteger_t;
+typedef long long sinteger_t;
+typedef unsigned long long uinteger_t;
+#endif
 
 typedef int8_t                  d_int8;
 typedef uint8_t                 d_uns8;
@@ -308,14 +317,16 @@ struct Loc
 {
     const char *filename;
     unsigned linnum;
+    unsigned charnum;
 
     Loc()
     {
         linnum = 0;
+        charnum = 0;
         filename = NULL;
     }
 
-    Loc(Module *mod, unsigned linnum);
+    Loc(Module *mod, unsigned linnum, unsigned charnum);
 
     char *toChars();
     bool equals(const Loc& loc);

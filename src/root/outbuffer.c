@@ -1,17 +1,21 @@
 
-// Copyright (c) 1999-2012 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+/* Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved, written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/root/outbuffer.c
+ */
 
 #include <assert.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#if __sun
+#include <alloca.h>
+#endif
 
 #include "outbuffer.h"
 #include "object.h"
@@ -405,8 +409,16 @@ void OutBuffer::remove(size_t offset, size_t nbytes)
     this->offset -= nbytes;
 }
 
-char *OutBuffer::toChars()
+char *OutBuffer::peekString()
 {
-    writeByte(0);
+    if (!offset || data[offset-1] != '\0')
+        writeByte(0);
     return (char *)data;
+}
+
+char *OutBuffer::extractString()
+{
+    if (!offset || data[offset-1] != '\0')
+        writeByte(0);
+    return extractData();
 }

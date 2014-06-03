@@ -1,18 +1,7 @@
 // EXTRA_CPP_SOURCES: cppb.cpp
 
-version (Win64)
-{
-// Name mangling isn't compatible with VC yet
-pragma(mangle, "?foo@@YAHHHH@Z")
-int foo(int i, int j, int k) { return 0; }
-
-void main() {}
-
-}
-else
-{
-
 import std.c.stdio;
+import core.stdc.stdarg;
 
 extern (C++)
         int foob(int i, int j, int k);
@@ -139,7 +128,21 @@ extern(C++)
         int i;
         double d;
     }
+
+    union S6_2
+    {
+        int i;
+        double d;
+    }
+
+    enum S6_3
+    {
+        A, B
+    }
+
     S6 foo6();
+    S6_2 foo6_2();
+    S6_3 foo6_3();
 }
 
 extern (C) int foosize6();
@@ -154,6 +157,8 @@ version (X86)
     assert(f.i == 42);
     printf("f.d = %g\n", f.d);
     assert(f.d == 2.5);
+    assert(foo6_2().i == 42);
+    assert(foo6_3() == S6_3.A);
 }
 }
 
@@ -175,7 +180,7 @@ void test7()
 
 /****************************************/
 
-extern (C++) void foo8(const char *);
+extern (C++) void foo8(const(char)*);
 
 void test8()
 {
@@ -222,7 +227,13 @@ void test11802()
     auto x = new D11802();
     x.x = 0;
     test11802x(x);
-    assert(x.x == 9);
+    version(Win64)
+    {
+    }
+    else
+    {
+        assert(x.x == 9);
+    }
 }
 
 
@@ -231,9 +242,10 @@ void test11802()
 
 extern (C++)
 {
-    void foo10(const char*, const char*);
+    void foo10(const(char)*, const(char)*);
     void foo10(const int, const int);
     void foo10(const char, const char);
+    void foo10(bool, bool);
 
     struct MyStructType { }
     void foo10(const MyStructType s, const MyStructType t);
@@ -256,6 +268,48 @@ void test10()
 
 /****************************************/
 
+extern (C++, N11.M) { void bar11(); }
+
+extern (C++, A11.B) { extern (C++, C) { void bar(); }}
+
+void test11()
+{
+    bar11();
+    A11.B.C.bar();
+}
+/****************************************/
+
+char[100] valistbuffer;
+
+extern(C++) void myvprintfx(const(char)* format, va_list va)
+{
+    vsprintf(valistbuffer.ptr, format, va);
+}
+extern(C++) void myvprintf(const(char)*, va_list);
+extern(C++) void myprintf(const(char)* format, ...)
+{
+    va_list ap;
+    version(X86_64)
+    {
+        version(Windows)
+            va_start(ap, format);
+        else
+            va_start(ap, __va_argsave);
+    }
+    else
+        va_start(ap, format);
+    myvprintf(format, ap);
+    va_end(ap);
+}
+
+void testvalist()
+{
+    myprintf("hello %d", 999);
+    assert(valistbuffer[0..9] == "hello 999");
+}
+
+/****************************************/
+
 void main()
 {
     test1();
@@ -269,7 +323,8 @@ void main()
     test11802();
     test9();
     test10();
+    test11();
+    testvalist();
 
     printf("Success\n");
-}
 }

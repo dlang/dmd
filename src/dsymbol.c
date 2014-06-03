@@ -51,7 +51,7 @@ Dsymbol::Dsymbol()
     this->semanticRun = PASSinit;
     this->errors = false;
     this->depmsg = NULL;
-    this->userAttributes = NULL;
+    this->userAttribDecl = NULL;
     this->ddocUnittest = NULL;
 }
 
@@ -68,7 +68,7 @@ Dsymbol::Dsymbol(Identifier *ident)
     this->semanticRun = PASSinit;
     this->errors = false;
     this->depmsg = NULL;
-    this->userAttributes = NULL;
+    this->userAttribDecl = NULL;
     this->ddocUnittest = NULL;
 }
 
@@ -129,8 +129,8 @@ bool Dsymbol::oneMembers(Dsymbols *members, Dsymbol **ps, Identifier *ident)
     if (members)
     {
         for (size_t i = 0; i < members->dim; i++)
-        {   Dsymbol *sx = (*members)[i];
-
+        {
+            Dsymbol *sx = (*members)[i];
             bool x = sx->oneMember(ps, ident);
             //printf("\t[%d] kind %s = %d, s = %p\n", i, sx->kind(), x, *ps);
             if (!x)
@@ -166,7 +166,8 @@ bool Dsymbol::oneMembers(Dsymbols *members, Dsymbol **ps, Identifier *ident)
                     }
                 }
                 else                    // more than one symbol
-                {   *ps = NULL;
+                {
+                    *ps = NULL;
                     //printf("\tfalse 2\n");
                     return false;
                 }
@@ -346,6 +347,9 @@ void Dsymbol::setScope(Scope *sc)
     scope = sc;
     if (sc->depmsg)
         depmsg = sc->depmsg;
+
+    if (!userAttribDecl)
+        userAttribDecl = sc->userAttribDecl;
 }
 
 void Dsymbol::importAll(Scope *sc)
@@ -377,15 +381,6 @@ void Dsymbol::semantic2(Scope *sc)
 void Dsymbol::semantic3(Scope *sc)
 {
     // Most Dsymbols have no further semantic analysis needed
-}
-
-/*************************************
- * Look for function inlining possibilities.
- */
-
-void Dsymbol::inlineScan()
-{
-    // Most Dsymbols aren't functions
 }
 
 /*********************************************
@@ -595,25 +590,23 @@ int Dsymbol::apply(Dsymbol_apply_ft_t fp, void *param)
     return (*fp)(this, param);
 }
 
-int Dsymbol::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
+int Dsymbol::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
 {
     //printf("Dsymbol::addMember('%s')\n", toChars());
-    //printf("Dsymbol::addMember(this = %p, '%s' scopesym = '%s')\n", this, toChars(), sd->toChars());
-    //printf("Dsymbol::addMember(this = %p, '%s' sd = %p, sd->symtab = %p)\n", this, toChars(), sd, sd->symtab);
-    parent = sd;
+    //printf("Dsymbol::addMember(this = %p, '%s' scopesym = '%s')\n", this, toChars(), sds->toChars());
+    //printf("Dsymbol::addMember(this = %p, '%s' sds = %p, sds->symtab = %p)\n", this, toChars(), sds, sds->symtab);
+    parent = sds;
     if (!isAnonymous())         // no name, so can't add it to symbol table
     {
-        if (!sd->symtabInsert(this))    // if name is already defined
+        if (!sds->symtabInsert(this))    // if name is already defined
         {
-            Dsymbol *s2;
-
-            s2 = sd->symtab->lookup(ident);
+            Dsymbol *s2 = sds->symtab->lookup(ident);
             if (!s2->overloadInsert(this))
             {
-                sd->multiplyDefined(Loc(), this, s2);
+                sds->multiplyDefined(Loc(), this, s2);
             }
         }
-        if (sd->isAggregateDeclaration() || sd->isEnumDeclaration())
+        if (sds->isAggregateDeclaration() || sds->isEnumDeclaration())
         {
             if (ident == Id::__sizeof || ident == Id::__xalignof || ident == Id::mangleof)
                 error(".%s property cannot be redefined", ident->toChars());
@@ -746,10 +739,12 @@ Module *Dsymbol::getAccessModule()
             return m;
         TemplateInstance *ti = s->isTemplateInstance();
         if (ti && ti->enclosing)
+        {
             /* Because of local template instantiation, the parent isn't where the access
              * rights come from - it's the template declaration
              */
             s = ti->tempdecl;
+        }
         else
             s = s->parent;
     }
@@ -806,6 +801,33 @@ void Dsymbol::addComment(const utf8_t *comment)
     }
 }
 
+/****************************************
+ * Returns true if this symbol is defined in non-root module.
+ */
+
+bool Dsymbol::inNonRoot()
+{
+    Dsymbol *s = parent;
+    for (; s; s = s->parent)
+    {
+        if (TemplateInstance *ti = s->isTemplateInstance())
+        {
+            if (ti->isTemplateMixin())
+                continue;
+            if (!ti->instantiatingModule || !ti->instantiatingModule->isRoot())
+                return true;
+            return false;
+        }
+        else if (Module *m = s->isModule())
+        {
+            if (!m->isRoot())
+                return true;
+            break;
+        }
+    }
+    return false;
+}
+
 /********************************* OverloadSet ****************************/
 
 OverloadSet::OverloadSet(Identifier *ident)
@@ -848,13 +870,13 @@ Dsymbol *ScopeDsymbol::syntaxCopy(Dsymbol *s)
 {
     //printf("ScopeDsymbol::syntaxCopy('%s')\n", toChars());
 
-    ScopeDsymbol *sd;
+    ScopeDsymbol *sds;
     if (s)
-        sd = (ScopeDsymbol *)s;
+        sds = (ScopeDsymbol *)s;
     else
-        sd = new ScopeDsymbol(ident);
-    sd->members = arraySyntaxCopy(members);
-    return sd;
+        sds = new ScopeDsymbol(ident);
+    sds->members = arraySyntaxCopy(members);
+    return sds;
 }
 
 /*****************************************
@@ -875,9 +897,8 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
         //printf("\ts = '%s.%s'\n",toChars(),s1->toChars());
         return s1;
     }
-    else if (!imports)
-        return NULL;
-    else
+
+    if (imports)
     {
         Dsymbol *s = NULL;
         OverloadSet *a = NULL;
@@ -971,24 +992,26 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
             }
         }
 
-        /* Build special symbol if we had multiple finds
-         */
-        if (a)
-        {   assert(s);
-            a->push(s);
-            s = a;
-        }
-
         if (s)
         {
+            /* Build special symbol if we had multiple finds
+             */
+            if (a)
+            {
+                a->push(s);
+                s = a;
+            }
+
             if (!(flags & IgnoreErrors) && s->prot() == PROTprivate && !s->parent->isTemplateMixin())
             {
                 if (!s->isImport())
                     error(loc, "%s %s is private", s->kind(), s->toPrettyChars());
             }
+            return s;
         }
-        return s;
     }
+
+    return s1;
 }
 
 void ScopeDsymbol::importScope(Dsymbol *s, PROT protection)
@@ -1263,10 +1286,7 @@ Dsymbol *WithScopeSymbol::search(Loc loc, Identifier *ident, int flags)
         else
         {
             Type *t = e->type->toBasetype();
-            if (t->ty == Taarray)
-                s = ((TypeAArray *)t)->getImpl();
-            else
-                s = t->toDsymbol(NULL);
+            s = t->toDsymbol(NULL);
         }
         if (s)
         {
@@ -1313,13 +1333,14 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
 {
     //printf("ArrayScopeSymbol::search('%s', flags = %d)\n", ident->toChars(), flags);
     if (ident == Id::dollar)
-    {   VarDeclaration **pvar;
+    {
+        VarDeclaration **pvar;
         Expression *ce;
 
     L1:
-
         if (td)
-        {   /* $ gives the number of elements in the tuple
+        {
+            /* $ gives the number of elements in the tuple
              */
             VarDeclaration *v = new VarDeclaration(loc, Type::tsize_t, Id::dollar, NULL);
             Expression *e = new IntegerExp(Loc(), td->objects->dim, Type::tsize_t);
@@ -1330,7 +1351,8 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
         }
 
         if (type)
-        {   /* $ gives the number of type entries in the type tuple
+        {
+            /* $ gives the number of type entries in the type tuple
              */
             VarDeclaration *v = new VarDeclaration(loc, Type::tsize_t, Id::dollar, NULL);
             Expression *e = new IntegerExp(Loc(), type->arguments->dim, Type::tsize_t);
@@ -1341,34 +1363,36 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
         }
 
         if (exp->op == TOKindex)
-        {   /* array[index] where index is some function of $
+        {
+            /* array[index] where index is some function of $
              */
             IndexExp *ie = (IndexExp *)exp;
-
             pvar = &ie->lengthVar;
             ce = ie->e1;
         }
         else if (exp->op == TOKslice)
-        {   /* array[lwr .. upr] where lwr or upr is some function of $
+        {
+            /* array[lwr .. upr] where lwr or upr is some function of $
              */
             SliceExp *se = (SliceExp *)exp;
-
             pvar = &se->lengthVar;
             ce = se->e1;
         }
         else if (exp->op == TOKarray)
-        {   /* array[e0, e1, e2, e3] where e0, e1, e2 are some function of $
+        {
+            /* array[e0, e1, e2, e3] where e0, e1, e2 are some function of $
              * $ is a opDollar!(dim)() where dim is the dimension(0,1,2,...)
              */
             ArrayExp *ae = (ArrayExp *)exp;
-
             pvar = &ae->lengthVar;
             ce = ae->e1;
         }
         else
+        {
             /* Didn't find $, look in enclosing scope(s).
              */
             return NULL;
+        }
 
         while (ce->op == TOKcomma)
             ce = ((CommaExp *)ce)->e2;
@@ -1381,7 +1405,8 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
         {
             Type *t = ((TypeExp *)ce)->type;
             if (t->ty == Ttuple)
-            {   type = (TypeTuple *)t;
+            {
+                type = (TypeTuple *)t;
                 goto L1;
             }
         }
@@ -1390,12 +1415,14 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
          * multiple times, it gets set only once.
          */
         if (!*pvar)             // if not already initialized
-        {   /* Create variable v and set it to the value of $
+        {
+            /* Create variable v and set it to the value of $
              */
             VarDeclaration *v;
             Type *t;
             if (ce->op == TOKtuple)
-            {   /* It is for an expression tuple, so the
+            {
+                /* It is for an expression tuple, so the
                  * length will be a const.
                  */
                 Expression *e = new IntegerExp(Loc(), ((TupleExp *)ce)->exps->dim, Type::tsize_t);
@@ -1404,18 +1431,10 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
             }
             else if (ce->type && (t = ce->type->toBasetype()) != NULL &&
                      (t->ty == Tstruct || t->ty == Tclass))
-            {   // Look for opDollar
+            {
+                // Look for opDollar
                 assert(exp->op == TOKarray || exp->op == TOKslice);
-                AggregateDeclaration *ad = NULL;
-
-                if (t->ty == Tclass)
-                {
-                    ad = ((TypeClass *)t)->sym;
-                }
-                else if (t->ty == Tstruct)
-                {
-                    ad = ((TypeStruct *)t)->sym;
-                }
+                AggregateDeclaration *ad = isAggregate(t);
                 assert(ad);
 
                 Dsymbol *s = ad->search(loc, Id::opDollar);
@@ -1436,19 +1455,20 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
                     {
                         dim = 0; // slices are currently always one-dimensional
                     }
+                    else
+                    {
+                        assert(0);
+                    }
 
-                    Objects *tdargs = new Objects();
+                    Objects *tiargs = new Objects();
                     Expression *edim = new IntegerExp(Loc(), dim, Type::tsize_t);
                     edim = edim->semantic(sc);
-                    tdargs->push(edim);
-
-                    //TemplateInstance *ti = new TemplateInstance(loc, td, tdargs);
-                    //ti->semantic(sc);
-
-                    e = new DotTemplateInstanceExp(loc, ce, td->ident, tdargs);
+                    tiargs->push(edim);
+                    e = new DotTemplateInstanceExp(loc, ce, td->ident, tiargs);
                 }
                 else
-                {   /* opDollar exists, but it's not a template.
+                {
+                    /* opDollar exists, but it's not a template.
                      * This is acceptable ONLY for single-dimension indexing.
                      * Note that it's impossible to have both template & function opDollar,
                      * because both take no arguments.
@@ -1469,10 +1489,11 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
                 if (t && t->ty == Tfunction)
                     e = new CallExp(e->loc, e);
                 v = new VarDeclaration(loc, NULL, Id::dollar, new ExpInitializer(Loc(), e));
-                v->storage_class |= STCtemp;
+                v->storage_class |= STCtemp | STCctfe;
             }
             else
-            {   /* For arrays, $ will either be a compile-time constant
+            {
+                /* For arrays, $ will either be a compile-time constant
                  * (in which case its value in set during constant-folding),
                  * or a variable (in which case an expression is created in
                  * toir.c).

@@ -12,6 +12,7 @@
 #include <string.h>                     // strlen()
 
 #include "root.h"
+#include "rmem.h"
 #include "speller.h"
 
 #include "mars.h"
@@ -26,6 +27,7 @@
 #include "module.h"
 #include "id.h"
 #include "lexer.h"
+#include "template.h"
 
 Scope *Scope::freelist = NULL;
 
@@ -47,17 +49,18 @@ void *Scope::operator new(size_t size)
 }
 
 Scope::Scope()
-{   // Create root scope
+{
+    // Create root scope
 
     //printf("Scope::Scope() %p\n", this);
     this->module = NULL;
-    this->instantiatingModule = NULL;
     this->scopesym = NULL;
-    this->sd = NULL;
+    this->sds = NULL;
     this->enclosing = NULL;
     this->parent = NULL;
     this->sw = NULL;
     this->tf = NULL;
+    this->os = NULL;
     this->tinst = NULL;
     this->sbreak = NULL;
     this->scontinue = NULL;
@@ -71,7 +74,6 @@ Scope::Scope()
     this->explicitProtection = 0;
     this->stc = 0;
     this->depmsg = NULL;
-    this->offset = 0;
     this->inunion = 0;
     this->nofree = 0;
     this->noctor = 0;
@@ -85,7 +87,7 @@ Scope::Scope()
     this->lastdc = NULL;
     this->lastoffset = 0;
     this->docbuf = NULL;
-    this->userAttributes = NULL;
+    this->userAttribDecl = NULL;
 }
 
 Scope::Scope(Scope *enclosing)
@@ -93,13 +95,13 @@ Scope::Scope(Scope *enclosing)
     //printf("Scope::Scope(enclosing = %p) %p\n", enclosing, this);
     assert(!(enclosing->flags & SCOPEfree));
     this->module = enclosing->module;
-    this->instantiatingModule = enclosing->instantiatingModule;
     this->func   = enclosing->func;
     this->parent = enclosing->parent;
     this->scopesym = NULL;
-    this->sd = NULL;
+    this->sds = NULL;
     this->sw = enclosing->sw;
     this->tf = enclosing->tf;
+    this->os = enclosing->os;
     this->tinst = enclosing->tinst;
     this->sbreak = enclosing->sbreak;
     this->scontinue = enclosing->scontinue;
@@ -122,7 +124,6 @@ Scope::Scope(Scope *enclosing)
     this->explicitProtection = enclosing->explicitProtection;
     this->depmsg = enclosing->depmsg;
     this->stc = enclosing->stc;
-    this->offset = 0;
     this->inunion = enclosing->inunion;
     this->nofree = 0;
     this->noctor = enclosing->noctor;
@@ -136,8 +137,19 @@ Scope::Scope(Scope *enclosing)
     this->lastdc = NULL;
     this->lastoffset = 0;
     this->docbuf = enclosing->docbuf;
-    this->userAttributes = enclosing->userAttributes;
+    this->userAttribDecl = enclosing->userAttribDecl;
     assert(this != enclosing);
+}
+
+Scope *Scope::copy()
+{
+    Scope *sc = new Scope(*this);
+
+    /* Bugzilla 11777: The copied scope should not inherit fieldinit.
+     */
+    sc->fieldinit = NULL;
+
+    return sc;
 }
 
 Scope *Scope::createGlobal(Module *module)
@@ -188,13 +200,12 @@ Scope *Scope::pop()
         enclosing->callSuper |= callSuper;
         if (enclosing->fieldinit && fieldinit)
         {
+            assert(fieldinit != enclosing->fieldinit);
+
             size_t dim = fieldinit_dim;
             for (size_t i = 0; i < dim; i++)
                 enclosing->fieldinit[i] |= fieldinit[i];
-            /* Workaround regression @@@BUG11777@@@.
-            Probably this memory is used in future.
             mem.free(fieldinit);
-            */
             fieldinit = NULL;
         }
     }
@@ -243,17 +254,18 @@ void Scope::mergeCallSuper(Loc loc, unsigned cs)
 
         bool ok = true;
 
-        // If one has returned without a constructor call, there must be never
-        // have been ctor calls in the other.
         if ( (aRet && !aAny && bAny) ||
              (bRet && !bAny && aAny))
-        {   ok = false;
+        {
+            // If one has returned without a constructor call, there must be never
+            // have been ctor calls in the other.
+            ok = false;
         }
-        // If one branch has called a ctor and then exited, anything the
-        // other branch has done is OK (except returning without a
-        // ctor call, but we already checked that).
         else if (aRet && aAll)
         {
+            // If one branch has called a ctor and then exited, anything the
+            // other branch has done is OK (except returning without a
+            // ctor call, but we already checked that).
             callSuper |= cs & (CSXany_ctor | CSXlabel);
         }
         else if (bRet && bAll)
@@ -316,62 +328,6 @@ bool mergeFieldInit(Loc loc, unsigned &fieldInit, unsigned fi, bool mustInit)
 
         return ok;
     }
-#if 0
-    // This does a primitive flow analysis to support the restrictions
-    // regarding when and how constructors can appear.
-    // It merges the results of two paths.
-    // The two paths are fieldInit and fi; the result is merged into fieldInit.
-
-    if (fi != fieldInit)
-    {   // Have ALL branches called a constructor?
-        int aAll = (fi        & CSXthis_ctor) != 0;
-        int bAll = (fieldInit & CSXthis_ctor) != 0;
-
-        // Have ANY branches called a constructor?
-        bool aAny = (fi        & CSXany_ctor) != 0;
-        bool bAny = (fieldInit & CSXany_ctor) != 0;
-
-        // Have any branches returned?
-        bool aRet = (fi        & CSXreturn) != 0;
-        bool bRet = (fieldInit & CSXreturn) != 0;
-
-        bool ok = true;
-
-printf("L%d fieldInit = x%x, fi = x%x\n", __LINE__, fieldInit, fi);
-
-        // If one has returned without a constructor call, there must be never
-        // have been ctor calls in the other.
-        if ( (aRet && !aAny && bAny) ||
-             (bRet && !bAny && aAny))
-        {   ok = false;
-printf("L%d\n", __LINE__);
-        }
-        // If one branch has called a ctor and then exited, anything the
-        // other branch has done is OK (except returning without a
-        // ctor call, but we already checked that).
-        else if (aRet && aAll)
-        {
-            //fieldInit |= fi & (CSXany_ctor | CSXlabel);
-printf("L%d -> fieldInit = x%x\n", __LINE__, fieldInit);
-        }
-        else if (bRet && bAll)
-        {
-            fieldInit = fi;// | (fieldInit & (CSXany_ctor | CSXlabel));
-printf("L%d -> fieldInit = x%x\n", __LINE__, fieldInit);
-        }
-        else
-        {   // Both branches must have called ctors, or both not.
-            ok = (aAll == bAll);
-            // If one returned without a ctor, we must remember that
-            // (Don't bother if we've already found an error)
-            if (ok && aRet && !aAny)
-                fieldInit |= CSXreturn;
-            fieldInit |= fi & (CSXany_ctor | CSXlabel);
-printf("L%d ok = %d, fieldInit = x%x, fi = x%x\n", __LINE__, ok, fieldInit, fi);
-        }
-        return ok;
-    }
-#endif
     return true;
 }
 
@@ -396,6 +352,13 @@ void Scope::mergeFieldInit(Loc loc, unsigned *fies)
             }
         }
     }
+}
+
+Module *Scope::instantiatingModule()
+{
+    if (tinst && tinst->instantiatingModule)
+        return tinst->instantiatingModule;
+    return module;
 }
 
 Dsymbol *Scope::search(Loc loc, Identifier *ident, Dsymbol **pscopesym)
