@@ -2354,14 +2354,14 @@ public:
                 !hasValue(v) &&
                 v->init && !v->isCTFE())
             {
-                if(v->scope)
-                    v->init = v->init->semantic(v->scope, v->type, INITinterpret); // might not be run on aggregate members
-                e = v->init->toExpression(v->type);
                 if (v->inuse)
                 {
                     error(loc, "circular initialization of %s", v->toChars());
                     return EXP_CANT_INTERPRET;
                 }
+                if (v->scope)
+                    v->init = v->init->semantic(v->scope, v->type, INITinterpret); // might not be run on aggregate members
+                e = v->init->toExpression(v->type);
 
                 if (e && (e->op == TOKconstruct || e->op == TOKblit))
                 {

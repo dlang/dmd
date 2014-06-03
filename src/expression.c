@@ -3183,6 +3183,14 @@ Lagain:
 
     if (VarDeclaration *v = s->isVarDeclaration())
     {
+        // Detect recursive initializers.
+        // BUG: The check for speculative gagging is not correct
+        if (v->inuse && !global.isSpeculativeGagging())
+        {
+            error("circular initialization of %s", v->toChars());
+            return new ErrorExp();
+        }
+
         /* Bugzilla 12023: forward reference should be resolved
          * before 's->needThis()' is called.
          */
@@ -3237,14 +3245,6 @@ Lagain:
             }
             e = e->copy();
             e->loc = loc;   // for better error message
-
-            // Detect recursive initializers.
-            // BUG: The check for speculative gagging is not correct
-            if (v->inuse && !global.isSpeculativeGagging())
-            {
-                e->error("circular initialization of %s", v->toChars());
-                return new ErrorExp();
-            }
             e = e->semantic(sc);
             return e;
         }
