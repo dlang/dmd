@@ -9083,9 +9083,11 @@ Expression *AddrExp::semantic(Scope *sc)
                 return new ErrorExp;
             Dsymbol *s = ti->inst->toAlias();
             FuncDeclaration *f = s->isFuncDeclaration();
-            assert(f);
-            e1 = new DotVarExp(e1->loc, dti->e1, f);
-            e1 = e1->semantic(sc);
+            if (f)
+            {
+                e1 = new DotVarExp(e1->loc, dti->e1, f);
+                e1 = e1->semantic(sc);
+            }
         }
     }
     else if (e1->op == TOKimport)
@@ -9099,9 +9101,11 @@ Expression *AddrExp::semantic(Scope *sc)
                 return new ErrorExp;
             Dsymbol *s = ti->inst->toAlias();
             FuncDeclaration *f = s->isFuncDeclaration();
-            assert(f);
-            e1 = new VarExp(e1->loc, f);
-            e1 = e1->semantic(sc);
+            if (f)
+            {
+                e1 = new VarExp(e1->loc, f);
+                e1 = e1->semantic(sc);
+            }
         }
     }
     e1 = e1->toLvalue(sc, NULL);
