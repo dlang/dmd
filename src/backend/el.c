@@ -660,8 +660,6 @@ void el_replace_sym(elem *e,symbol *s1,symbol *s2)
  *      0       no
  */
 
-#if MARS
-
 int el_appears(elem *e,Symbol *s)
 {
     symbol_debug(s);
@@ -687,6 +685,8 @@ int el_appears(elem *e,Symbol *s)
     }
     return 0;
 }
+
+#if MARS
 
 /*****************************************
  * Look for symbol that is a base of addressing mode e.
@@ -1792,12 +1792,7 @@ int el_noreturn(elem *e)
     while (1)
     {   elem_debug(e);
         switch (e->Eoper)
-        {   case OPcomma:
-                if ((result |= el_noreturn(e->E1)) != 0)
-                    break;
-                e = e->E2;
-                continue;
-
+        {
             case OPcall:
             case OPucall:
                 e = e->E1;
@@ -1809,7 +1804,28 @@ int el_noreturn(elem *e)
                 result = 1;
                 break;
 
+            case OPandand:
+            case OPoror:
+                e = e->E1;
+                continue;
+
+            case OPcolon:
+            case OPcolon2:
+                return el_noreturn(e->E1) && el_noreturn(e->E2);
+
             default:
+                if (EBIN(e))
+                {
+                    if (el_noreturn(e->E2))
+                        return 1;
+                    e = e->E1;
+                    continue;
+                }
+                if (EUNA(e))
+                {
+                    e = e->E1;
+                    continue;
+                }
                 break;
         }
         break;

@@ -622,7 +622,7 @@ void boolopt()
  */
 
 STATIC void abewalk(elem *n,vec_t ae,vec_t aeval)
-{   vec_t aer,aerval;
+{
     unsigned i,op;
     unsigned i1,i2;
     elem *t;
@@ -633,37 +633,104 @@ STATIC void abewalk(elem *n,vec_t ae,vec_t aeval)
     /*chkvecdim(exptop);*/
     op = n->Eoper;
     switch (op)
-    {   case OPcolon:
-        case OPcolon2:
-            /* ae = ae & ael & aer      */
-            /* AEs gened by ael and aer are mutually exclusive  */
-            aer = vec_clone(ae);
-            aerval = vec_clone(aeval);
-            abewalk(n->E1,ae,aeval);
-            goto L1;
-        case OPandand:
-        case OPoror:
+    {
+        case OPcond:
+        {
+            assert(n->E2->Eoper == OPcolon || n->E2->Eoper == OPcolon2);
             abewalk(n->E1,ae,aeval);
             abeboolres(n->E1,ae,aeval);
-            /* ae &= aer        */
-            aer = vec_clone(ae);
-            aerval = vec_clone(aeval);
-            abeset(n->E1,aer,aerval,(op == OPandand));
-        L1:
-            abewalk(n->E2,aer,aerval);
-            if (!el_noreturn(n->E2))
-            {   vec_xorass(aerval,aeval);
+            vec_t aer = vec_clone(ae);
+            vec_t aerval = vec_clone(aeval);
+            if (el_noreturn(n->E2->E1))
+            {
+                abeset(n->E1,aer,aerval,true);
+                abewalk(n->E2->E1,aer,aerval);
+                abeset(n->E1,ae,aeval,false);
+                abewalk(n->E2->E2,ae,aeval);
+            }
+            else if (el_noreturn(n->E2->E2))
+            {
+                abeset(n->E1,ae,aeval,true);
+                abewalk(n->E2->E1,ae,aeval);
+                abeset(n->E1,aer,aerval,false);
+                abewalk(n->E2->E2,aer,aerval);
+            }
+            else
+            {
+                /* ae = ae & ael & aer
+                 * AEs gened by ael and aer are mutually exclusive
+                 */
+                abeset(n->E1,aer,aerval,true);
+                abewalk(n->E2->E1,aer,aerval);
+                abeset(n->E1,ae,aeval,false);
+                abewalk(n->E2->E2,ae,aeval);
+
+                vec_xorass(aerval,aeval);
                 vec_subass(aer,aerval);
                 vec_andass(ae,aer);
             }
             vec_free(aer);
             vec_free(aerval);
             break;
+        }
+
+        case OPcolon:
+        case OPcolon2:
+            assert(0);
+
+        case OPandand:
+        case OPoror:
+        {
+            //printf("test1 %p: ", n); WReqn(n); printf("\n");
+            abewalk(n->E1,ae,aeval);
+            abeboolres(n->E1,ae,aeval);
+            vec_t aer = vec_clone(ae);
+            vec_t aerval = vec_clone(aeval);
+            if (el_noreturn(n->E2))
+            {
+                abeset(n->E1,aer,aerval,(op == OPandand));
+                abewalk(n->E2,aer,aerval);
+                abeset(n->E1,ae,aeval,(op != OPandand));
+            }
+            else
+            {
+                /* ae &= aer
+                 */
+                abeset(n->E1,aer,aerval,(op == OPandand));
+                abewalk(n->E2,aer,aerval);
+
+                vec_xorass(aerval,aeval);
+                vec_subass(aer,aerval);
+                vec_andass(ae,aer);
+            }
+
+            vec_free(aer);
+            vec_free(aerval);
+            break;
+        }
+
         case OPbool:
         case OPnot:
             abewalk(n->E1,ae,aeval);
             abeboolres(n->E1,ae,aeval);
             break;
+
+        case OPeqeq:
+        case OPne:
+        case OPlt:
+        case OPle:
+        case OPgt:
+        case OPge:
+        case OPunord:   case OPlg:      case OPleg:     case OPule:
+        case OPul:      case OPuge:     case OPug:      case OPue:
+        case OPngt:     case OPnge:     case OPnlt:     case OPnle:
+        case OPord:     case OPnlg:     case OPnleg:    case OPnule:
+        case OPnul:     case OPnuge:    case OPnug:     case OPnue:
+            abewalk(n->E1,ae,aeval);
+            abewalk(n->E2,ae,aeval);
+            abeboolres(n,ae,aeval);
+            break;
+
         case OPnegass:
             t = Elvalue(n);
             if (t->Eoper == OPind)
@@ -704,9 +771,13 @@ STATIC void abewalk(elem *n,vec_t ae,vec_t aeval)
                 if (!(s->Sflags & SFLunambig))
                         vec_subass(ae,starkill);
                 foreach (i,exptop,ae)   /* for each ae elem     */
-                {       register elem *e = expnod[i];
+                {       elem *e = expnod[i];
 
                         if (!e) continue;
+#if 1
+                        if (el_appears(e,s))
+                            vec_clearbit(i,ae);
+#else
                         if (OTunary(e->Eoper))
                         {
                                 if (vec_testbit(e->E1->Eexp,ae))
@@ -725,6 +796,7 @@ STATIC void abewalk(elem *n,vec_t ae,vec_t aeval)
                         else
                                 continue;
                         vec_clearbit(i,ae);
+#endif
                 }
         }
         else                    /* else ambiguous definition    */
@@ -774,23 +846,24 @@ STATIC void abewalk(elem *n,vec_t ae,vec_t aeval)
  */
 
 STATIC void abeboolres(elem *n,vec_t ae,vec_t aeval)
-{   unsigned i;
-
+{
+    //printf("abeboolres()[%d %p] ", n->Eexp, expnod[n->Eexp]); WReqn(n); printf("\n");
     elem_debug(n);
-    if (n->Eexp)
+    if (n->Eexp && expnod[n->Eexp])
     {   /* Try to find an equivalent AE, and point to it instead */
         assert(expnod[n->Eexp] == n);
+        unsigned i;
         foreach (i,exptop,ae)
         {   elem *e = expnod[i];
 
-            // Attempt to replace n with e
-            //dbg_printf("Looking at expnod[%d] = %p\n",i,e);
+            // Attempt to replace n with the boolean result of e
+            //printf("Looking at expnod[%d] = %p\n",i,e);
             assert(e);
             elem_debug(e);
             if (n != e && el_match(n,e))
             {
 #ifdef DEBUG
-                if (debugc)
+                //if (debugc)
                 {   dbg_printf("Elem %p: ",n);
                     WReqn(n);
                     dbg_printf(" is replaced by %d\n",vec_testbit(i,aeval) != 0);
@@ -813,7 +886,7 @@ STATIC void abeboolres(elem *n,vec_t ae,vec_t aeval)
 
 STATIC void abefree(elem *e,vec_t ae)
 {
-    //dbg_printf("abefree %p: "); WReqn(e); dbg_printf("\n");
+    //printf("abefree [%d %p]: ", e->Eexp, e); WReqn(e); dbg_printf("\n");
     assert(e->Eexp);
     vec_clearbit(e->Eexp,ae);
     expnod[e->Eexp] = NULL;
@@ -835,14 +908,13 @@ STATIC void abefree(elem *e,vec_t ae)
  */
 
 STATIC void abeset(elem *e,vec_t ae,vec_t aeval,int flag)
-{   unsigned i;
-
+{
     while (1)
     {
-        i = e->Eexp;
+        unsigned i = e->Eexp;
         if (i && expnod[i])
         {
-            //dbg_printf("abeset for expnod[%d] = %p: ",i,e); WReqn(e); dbg_printf("\n");
+            //printf("abeset for expnod[%d] = %p: ",i,e); WReqn(e); dbg_printf("\n");
             vec_setbit(i,ae);
             if (flag)
                 vec_setbit(i,aeval);
