@@ -2233,7 +2233,7 @@ struct Gcx
         pool.Dtor();
         cstdlib.free(pool);
         if (!isOOM)
-            newPool(npages, isLargeObject, true);
+            return newPool(npages, isLargeObject, true);
         return null;
     }
 
