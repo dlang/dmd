@@ -291,14 +291,12 @@ auto fb10148(T)()
     struct A(S)
     {
         // [4] Parent function fb is already inferred to @safe, then
-        // fc is forcely marked @safe on default until 2.052.
-        // But fc should keep attribute inference ability
-        // by overriding the inherited @safe-ty from its parent.
+        // fc is forcely marked @safe on default.
         void fc(T2)()
         {
-            // [5] During semantic3 process, fc is not @safe on default.
-            static assert(is(typeof(&fc) == void delegate()));
-            fa10148();
+            // [5] During semantic3 process, fc is @safe by default.
+            static assert(is(typeof(&fc) == void delegate() @safe));
+            static assert(!__traits(compiles, fa10148()));
         }
         // [1] this is now inferred to @safe by implementing issue 7511
         this(S a) {}
@@ -314,7 +312,7 @@ void test10148()
                          // [3] instantiate fc
 
     // [6] Afer semantic3 done, fc!int is deduced to @system.
-    static assert(is(typeof(&fb10148!int.fc!int) == void delegate() @system));
+    static assert(is(typeof(&fb10148!int.fc!int) == void delegate() nothrow @safe));
 }
 
 /***************************************************/
@@ -423,6 +421,18 @@ void test12542() @safe nothrow pure
 void foo12704() @system;
 alias FP12704 = typeof(function() { foo12704(); });
 static assert(is(FP12704 == void function() @system));
+
+/***************************************************/
+// 12857
+
+void test12857() @safe
+{
+    void f1() {}
+    static assert(is(typeof(&f1) == void delegate() @safe));
+
+    void f2()() {}
+    static assert(is(typeof(&f2!()) == void delegate() @safe pure nothrow @nogc));
+}
 
 /***************************************************/
 
