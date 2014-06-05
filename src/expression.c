@@ -11582,9 +11582,11 @@ Expression *AssignExp::semantic(Scope *sc)
         // e1 is not an lvalue, but we let code generator handle it
         ArrayLengthExp *ale = (ArrayLengthExp *)e1;
 
-        ale->e1 = ale->e1->modifiableLvalue(sc, e1);
-        if (ale->e1->op == TOKerror)
-            return ale->e1;
+        Expression *ale1x = ale->e1;
+        ale1x = ale1x->modifiableLvalue(sc, e1);
+        if (ale1x->op == TOKerror)
+            return ale1x;
+        ale->e1 = ale1x;
 
         Type *tn = ale->e1->type->toBasetype()->nextOf();
         checkDefCtor(ale->loc, tn);
@@ -11601,20 +11603,25 @@ Expression *AssignExp::semantic(Scope *sc)
     }
     else
     {
+        Expression *e1x = e1;
+
         // Try to do a decent error message with the expression
         // before it got constant folded
-        if (e1->op != TOKvar)
-            e1 = e1->optimize(WANTvalue);
+        if (e1x->op != TOKvar)
+            e1x = e1x->optimize(WANTvalue);
 
         if (op == TOKassign)
-            e1 = e1->modifiableLvalue(sc, e1old);
+            e1x = e1x->modifiableLvalue(sc, e1old);
+
+        if (e1x->op == TOKerror)
+            return e1x;
+        e1 = e1x;
     }
-    if (e1->op == TOKerror)
-        return e1;
 
     /* Tweak e2 based on the type of e1.
      */
-    Type *t2 = e2->type->toBasetype();
+    Expression *e2x = e2;
+    Type *t2 = e2x->type->toBasetype();
 
     // If it is a array, get the element type. Note that it may be
     // multi-dimensional.
@@ -11623,16 +11630,16 @@ Expression *AssignExp::semantic(Scope *sc)
         telem = telem->nextOf();
 
     if (e1->op == TOKslice &&
-        t1->nextOf() && (telem->ty != Tvoid || e2->op == TOKnull) &&
-        e2->implicitConvTo(t1->nextOf())
+        t1->nextOf() && (telem->ty != Tvoid || e2x->op == TOKnull) &&
+        e2x->implicitConvTo(t1->nextOf())
        )
     {
         // Check for block assignment. If it is of type void[], void[][], etc,
         // '= null' is the only allowable block assignment (Bug 7493)
         // memset
         ismemset = 1;   // make it easy for back end to tell what this is
-        e2 = e2->implicitCastTo(sc, t1->nextOf());
-        if (op != TOKblit && e2->isLvalue())
+        e2x = e2x->implicitCastTo(sc, t1->nextOf());
+        if (op != TOKblit && e2x->isLvalue())
             e1->checkPostblit(sc, t1->nextOf());
     }
     else if (e1->op == TOKslice &&
@@ -11647,10 +11654,10 @@ Expression *AssignExp::semantic(Scope *sc)
         SliceExp *se1 = (SliceExp *)e1;
         TypeSArray *tsa1 = (TypeSArray *)toStaticArrayType(se1);
         TypeSArray *tsa2 = NULL;
-        if (e2->op == TOKarrayliteral)
-            tsa2 = (TypeSArray *)t2->nextOf()->sarrayOf(((ArrayLiteralExp *)e2)->elements->dim);
-        else if (e2->op == TOKslice)
-            tsa2 = (TypeSArray *)toStaticArrayType((SliceExp *)e2);
+        if (e2x->op == TOKarrayliteral)
+            tsa2 = (TypeSArray *)t2->nextOf()->sarrayOf(((ArrayLiteralExp *)e2x)->elements->dim);
+        else if (e2x->op == TOKslice)
+            tsa2 = (TypeSArray *)toStaticArrayType((SliceExp *)e2x);
         else if (t2->ty == Tsarray)
             tsa2 = (TypeSArray *)t2;
         if (tsa1 && tsa2)
@@ -11665,25 +11672,25 @@ Expression *AssignExp::semantic(Scope *sc)
         }
 
         if (op != TOKblit &&
-            (e2->op == TOKslice && ((UnaExp *)e2)->e1->isLvalue() ||
-             e2->op == TOKcast  && ((UnaExp *)e2)->e1->isLvalue() ||
-             e2->op != TOKslice && e2->isLvalue()))
+            (e2x->op == TOKslice && ((UnaExp *)e2x)->e1->isLvalue() ||
+             e2x->op == TOKcast  && ((UnaExp *)e2x)->e1->isLvalue() ||
+             e2x->op != TOKslice && e2x->isLvalue()))
         {
             e1->checkPostblit(sc, t1->nextOf());
         }
 
         if (0 && global.params.warnings && !global.gag && op == TOKassign &&
-            e2->op != TOKslice && e2->op != TOKassign &&
-            e2->op != TOKarrayliteral && e2->op != TOKstring &&
-            !(e2->op == TOKadd || e2->op == TOKmin ||
-              e2->op == TOKmul || e2->op == TOKdiv ||
-              e2->op == TOKmod || e2->op == TOKxor ||
-              e2->op == TOKand || e2->op == TOKor  ||
-              e2->op == TOKpow ||
-              e2->op == TOKtilde || e2->op == TOKneg))
+            e2x->op != TOKslice && e2x->op != TOKassign &&
+            e2x->op != TOKarrayliteral && e2x->op != TOKstring &&
+            !(e2x->op == TOKadd || e2x->op == TOKmin ||
+              e2x->op == TOKmul || e2x->op == TOKdiv ||
+              e2x->op == TOKmod || e2x->op == TOKxor ||
+              e2x->op == TOKand || e2x->op == TOKor  ||
+              e2x->op == TOKpow ||
+              e2x->op == TOKtilde || e2x->op == TOKneg))
         {
             const char* e1str = e1->toChars();
-            const char* e2str = e2->toChars();
+            const char* e2str = e2x->toChars();
             warning("explicit element-wise assignment %s = (%s)[] is better than %s = %s",
                 e1str, e2str, e1str, e2str);
         }
@@ -11703,39 +11710,40 @@ Expression *AssignExp::semantic(Scope *sc)
              *  C[2] ca;  D[] da;
              *  ca[] = da;
              */
-            if (isArrayOpValid(e2))
+            if (isArrayOpValid(e2x))
             {
                 // Don't add CastExp to keep AST for array operations
-                e2 = e2->copy();
-                e2->type = e1->type->constOf();
+                e2x = e2x->copy();
+                e2x->type = e1->type->constOf();
             }
             else
-                e2 = e2->castTo(sc, e1->type->constOf());
+                e2x = e2x->castTo(sc, e1->type->constOf());
         }
         else
-            e2 = e2->implicitCastTo(sc, e1->type);
+            e2x = e2x->implicitCastTo(sc, e1->type);
     }
     else
     {
         if (0 && global.params.warnings && !global.gag && op == TOKassign &&
             t1->ty == Tarray && t2->ty == Tsarray &&
-            e2->op != TOKslice &&
+            e2x->op != TOKslice &&
             t2->implicitConvTo(t1))
         {   // Disallow ar[] = sa (Converted to ar[] = sa[])
             // Disallow da   = sa (Converted to da   = sa[])
             const char* e1str = e1->toChars();
-            const char* e2str = e2->toChars();
+            const char* e2str = e2x->toChars();
             const char* atypestr = e1->op == TOKslice ? "element-wise" : "slice";
             warning("explicit %s assignment %s = (%s)[] is better than %s = %s",
                 atypestr, e1str, e2str, e1str, e2str);
         }
         if (op == TOKblit)
-            e2 = e2->castTo(sc, e1->type);
+            e2x = e2x->castTo(sc, e1->type);
         else
-            e2 = e2->implicitCastTo(sc, e1->type);
+            e2x = e2x->implicitCastTo(sc, e1->type);
     }
-    if (e2->op == TOKerror)
-        return new ErrorExp();
+    if (e2x->op == TOKerror)
+        return e2x;
+    e2 = e2x;
 
     /* Look for array operations
      */
