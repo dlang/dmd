@@ -1202,7 +1202,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             Expression *e1 = fromConstInitializer(result, e->e1);
             Expression *e2 = fromConstInitializer(result, e->e2);
 
-            ret = Cmp(e->op, e->type, e->e1, e->e2);
+            ret = Cmp(e->op, e->type, e1, e2);
             if (ret == EXP_CANT_INTERPRET)
                 ret = e;
         }
