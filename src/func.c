@@ -443,27 +443,28 @@ void FuncDeclaration::semantic(Scope *sc)
         sc = sc->push();
         sc->stc |= storage_class & STCdisable;  // forward to function type
         TypeFunction *tf = (TypeFunction *)type;
-#if 1
-        /* If the parent is @safe, then this function defaults to safe
-         * too.
-         * If the parent's @safe-ty is inferred, then this function's @safe-ty needs
-         * to be inferred first.
-         */
-        if (tf->trust == TRUSTdefault &&
-            !isInstantiated())
+
+        if (sc->func)
         {
-            for (Dsymbol *p = sc->func; p; p = p->toParent2())
+            FuncDeclaration *fd = sc->func;
+
+            /* If the parent is @safe, then this function defaults to safe too.
+             */
+            if (tf->trust == TRUSTdefault)
             {
-                FuncDeclaration *fd = p->isFuncDeclaration();
-                if (fd)
+                // Inherit @safe attribute from lexically enclosing function.
+                if (fd->isSafeBypassingInference())
+                    tf->trust = TRUSTsafe;              // default to @safe
+            }
+            else if (tf->trust == TRUSTsystem)
+            {
+                if (fd->isSafeBypassingInference())
                 {
-                    if (fd->isSafeBypassingInference())
-                        tf->trust = TRUSTsafe;              // default to @safe
-                    break;
+                    error("cannot annotate @system inside @safe function %s", fd->toChars());
                 }
             }
         }
-#endif
+
         if (tf->isref)      sc->stc |= STCref;
         if (tf->isnothrow)  sc->stc |= STCnothrow;
         if (tf->isnogc)     sc->stc |= STCnogc;
