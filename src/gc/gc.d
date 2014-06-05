@@ -2165,7 +2165,7 @@ struct Gcx
      * Sort it into pooltable[].
      * Return null if failed.
      */
-    Pool *newPool(size_t npages, bool isLargeObject, bool isOOM = false) nothrow
+    Pool *newPool(size_t npages, bool isLargeObject) nothrow
     {
         Pool*  pool;
         Pool** newpooltable;
@@ -2185,14 +2185,11 @@ struct Gcx
         }
 
         // Allocate successively larger pools up to 8 megs
-        if (!isOOM && npools)
+        if (npools)
         {   size_t n;
 
-            n = npools;
-            if (n > 32)
-                n *= n;
-            else if (n > 8)
-                n = 16;
+            n = npools * 3;
+            
             n *= (POOLSIZE / PAGESIZE);
             if (npages < n)
                 npages = n;
@@ -2232,8 +2229,6 @@ struct Gcx
       Lerr:
         pool.Dtor();
         cstdlib.free(pool);
-        if (!isOOM)
-            return newPool(npages, isLargeObject, true);
         return null;
     }
 
