@@ -6090,6 +6090,8 @@ Expression *TypeidExp::semantic(Scope *sc)
         /* Get the static type
          */
         e = ta->getTypeInfo(sc);
+        if (e->op == TOKerror)
+            return e;
         if (e->loc.linnum == 0)
             e->loc = loc;               // so there's at least some line number info
         if (ea)

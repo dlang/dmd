@@ -258,6 +258,7 @@ Symbol *toSymbol(Dsymbol *s)
         void visit(TypeInfoDeclaration *tid)
         {
             //printf("TypeInfoDeclaration::toSymbol(%s), linkage = %d\n", tid->toChars(), tid->linkage);
+            assert(tid->tinfo->ty != Terror);
             visit((VarDeclaration *)tid);
         }
 
