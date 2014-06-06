@@ -3638,127 +3638,127 @@ Dsymbols *Parser::parseDeclarations(bool autodecl, PrefixAttributes *pAttrs, con
         goto L2;
     }
 
-    switch (token.value)
+    if (token.value == TOKalias)
     {
-        case TOKalias:
+        tok = token.value;
+        nextToken();
+
+        /* Look for:
+         *   alias identifier this;
+         */
+        if (token.value == TOKidentifier && peekNext() == TOKthis)
         {
-            /* Look for:
-             *   alias identifier this;
-             */
-            tok = token.value;
+            AliasThis *s = new AliasThis(loc, token.ident);
             nextToken();
-            if (token.value == TOKidentifier && peekNext() == TOKthis)
-            {
-                AliasThis *s = new AliasThis(loc, token.ident);
-                nextToken();
-                check(TOKthis);
-                check(TOKsemicolon);
-                Dsymbols *a = new Dsymbols();
-                a->push(s);
-                addComment(s, comment);
-                return a;
-            }
-#if 0
-            /* Look for:
-             *  alias this = identifier;
-             */
-            if (token.value == TOKthis && peekNext() == TOKassign && peekNext2() == TOKidentifier)
-            {
-                check(TOKthis);
-                check(TOKassign);
-                AliasThis *s = new AliasThis(loc, token.ident);
-                nextToken();
-                check(TOKsemicolon);
-                Dsymbols *a = new Dsymbols();
-                a->push(s);
-                addComment(s, comment);
-                return a;
-            }
-#endif
-            /* Look for:
-             *  alias identifier = type;
-             *  alias identifier(...) = type;
-             */
-            if (token.value == TOKidentifier &&
-                skipParensIf(peek(&token), &tk) &&
-                tk->value == TOKassign)
-            {
-                Dsymbols *a = new Dsymbols();
-                while (1)
-                {
-                    ident = token.ident;
-                    nextToken();
-                    TemplateParameters *tpl = NULL;
-                    if (token.value == TOKlparen)
-                        tpl = parseTemplateParameterList();
-                    check(TOKassign);
-
-                    storage_class = STCundefined;
-                    link = linkage;
-                    structalign = 0;
-                    udas = NULL;
-                    parseStorageClasses(storage_class, link, structalign, udas);
-
-                    if (udas)
-                        error("user defined attributes not allowed for %s declarations", Token::toChars(tok));
-
-                    t = parseType();
-                    Declaration *v = new AliasDeclaration(loc, ident, t);
-                    v->storage_class = storage_class;
-
-                    Dsymbol *s = v;
-                    if (tpl)
-                    {
-                        Dsymbols *a2 = new Dsymbols();
-                        a2->push(s);
-                        TemplateDeclaration *tempdecl =
-                            new TemplateDeclaration(loc, ident, tpl, NULL, a2);
-                        s = tempdecl;
-                    }
-                    if (link != linkage)
-                    {
-                        Dsymbols *a2 = new Dsymbols();
-                        a2->push(s);
-                        s = new LinkDeclaration(link, a2);
-                    }
-                    a->push(s);
-                    switch (token.value)
-                    {
-                        case TOKsemicolon:
-                            nextToken();
-                            addComment(s, comment);
-                            break;
-                        case TOKcomma:
-                            nextToken();
-                            addComment(s, comment);
-                            if (token.value != TOKidentifier)
-                            {
-                                error("identifier expected following comma, not %s", token.toChars());
-                                break;
-                            }
-                            if (peekNext() != TOKassign && peekNext() != TOKlparen)
-                            {
-                                error("= expected following identifier");
-                                nextToken();
-                                break;
-                            }
-                            continue;
-                        default:
-                            error("semicolon expected to close %s declaration", Token::toChars(tok));
-                            break;
-                    }
-                    break;
-                }
-                return a;
-            }
-            break;
+            check(TOKthis);
+            check(TOKsemicolon);
+            Dsymbols *a = new Dsymbols();
+            a->push(s);
+            addComment(s, comment);
+            return a;
         }
-        case TOKtypedef:
-            error("use alias instead of typedef");
-            tok = token.value;
+#if 0
+        /* Look for:
+         *  alias this = identifier;
+         */
+        if (token.value == TOKthis && peekNext() == TOKassign && peekNext2() == TOKidentifier)
+        {
+            check(TOKthis);
+            check(TOKassign);
+            AliasThis *s = new AliasThis(loc, token.ident);
             nextToken();
-            break;
-        default: break;
+            check(TOKsemicolon);
+            Dsymbols *a = new Dsymbols();
+            a->push(s);
+            addComment(s, comment);
+            return a;
+        }
+#endif
+        /* Look for:
+         *  alias identifier = type;
+         *  alias identifier(...) = type;
+         */
+        if (token.value == TOKidentifier &&
+            skipParensIf(peek(&token), &tk) &&
+            tk->value == TOKassign)
+        {
+            Dsymbols *a = new Dsymbols();
+            while (1)
+            {
+                ident = token.ident;
+                nextToken();
+                TemplateParameters *tpl = NULL;
+                if (token.value == TOKlparen)
+                    tpl = parseTemplateParameterList();
+                check(TOKassign);
+
+                storage_class = STCundefined;
+                link = linkage;
+                structalign = 0;
+                udas = NULL;
+                parseStorageClasses(storage_class, link, structalign, udas);
+
+                if (udas)
+                    error("user defined attributes not allowed for %s declarations", Token::toChars(tok));
+
+                t = parseType();
+                Declaration *v = new AliasDeclaration(loc, ident, t);
+                v->storage_class = storage_class;
+
+                Dsymbol *s = v;
+                if (tpl)
+                {
+                    Dsymbols *a2 = new Dsymbols();
+                    a2->push(s);
+                    TemplateDeclaration *tempdecl =
+                        new TemplateDeclaration(loc, ident, tpl, NULL, a2);
+                    s = tempdecl;
+                }
+                if (link != linkage)
+                {
+                    Dsymbols *a2 = new Dsymbols();
+                    a2->push(s);
+                    s = new LinkDeclaration(link, a2);
+                }
+                a->push(s);
+
+                switch (token.value)
+                {
+                    case TOKsemicolon:
+                        nextToken();
+                        addComment(s, comment);
+                        break;
+                    case TOKcomma:
+                        nextToken();
+                        addComment(s, comment);
+                        if (token.value != TOKidentifier)
+                        {
+                            error("identifier expected following comma, not %s", token.toChars());
+                            break;
+                        }
+                        if (peekNext() != TOKassign && peekNext() != TOKlparen)
+                        {
+                            error("= expected following identifier");
+                            nextToken();
+                            break;
+                        }
+                        continue;
+                    default:
+                        error("semicolon expected to close %s declaration", Token::toChars(tok));
+                        break;
+                }
+                break;
+            }
+            return a;
+        }
+
+        // alias StorageClasses type ident;
+    }
+    else if (token.value == TOKtypedef)
+    {
+        error("use alias instead of typedef");
+        tok = token.value;
+        nextToken();
     }
 
     parseStorageClasses(storage_class, link, structalign, udas);
