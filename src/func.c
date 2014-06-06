@@ -433,27 +433,25 @@ void FuncDeclaration::semantic(Scope *sc)
         sc = sc->push();
         sc->stc |= storage_class & (STCdisable | STCdeprecated);  // forward to function type
         TypeFunction *tf = (TypeFunction *)type;
-#if 1
-        /* If the parent is @safe, then this function defaults to safe
-         * too.
-         * If the parent's @safe-ty is inferred, then this function's @safe-ty needs
-         * to be inferred first.
-         */
-        if (tf->trust == TRUSTdefault &&
-            !isInstantiated())
+
+        if (sc->func)
         {
-            for (Dsymbol *p = sc->func; p; p = p->toParent2())
+            /* If the parent is @safe, then this function defaults to safe too.
+             */
+            if (tf->trust == TRUSTdefault)
             {
-                FuncDeclaration *fd = p->isFuncDeclaration();
-                if (fd)
-                {
-                    if (fd->isSafeBypassingInference())
-                        tf->trust = TRUSTsafe;              // default to @safe
-                    break;
-                }
+                FuncDeclaration *fd = sc->func;
+
+                /* If the parent's @safe-ty is inferred, then this function's @safe-ty needs
+                 * to be inferred first.
+                 * If this function's @safe-ty is inferred, then it needs to be infeerd first.
+                 * (local template function inside @safe function can be inferred to @system).
+                 */
+                if (fd->isSafeBypassingInference() && !isInstantiated())
+                    tf->trust = TRUSTsafe;              // default to @safe
             }
         }
-#endif
+
         if (tf->isref)      sc->stc |= STCref;
         if (tf->isnothrow)  sc->stc |= STCnothrow;
         if (tf->isnogc)     sc->stc |= STCnogc;
