@@ -2769,6 +2769,11 @@ ErrorExp::ErrorExp()
     type = Type::terror;
 }
 
+ErrorExp *ErrorExp::create()
+{
+    return new ErrorExp();
+}
+
 Expression *ErrorExp::toLvalue(Scope *sc, Expression *e)
 {
     return this;
