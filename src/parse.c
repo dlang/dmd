@@ -6949,7 +6949,7 @@ Expression *Parser::parsePrimaryExp()
                 td = new TemplateDeclaration(fd->loc, fd->ident, tpl, NULL, decldefs, false, true);
             }
 
-            e = new FuncExp(loc, fd, td);
+            e = new FuncExp(loc, td ? (Dsymbol *)td : fd);
             break;
         }
 

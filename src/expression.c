@@ -5508,11 +5508,17 @@ Expression *TupleExp::semantic(Scope *sc)
 
 /******************************** FuncExp *********************************/
 
-FuncExp::FuncExp(Loc loc, FuncLiteralDeclaration *fd, TemplateDeclaration *td)
+FuncExp::FuncExp(Loc loc, Dsymbol *s)
         : Expression(loc, TOKfunction, sizeof(FuncExp))
 {
-    this->fd = fd;
-    this->td = td;
+    this->td = s->isTemplateDeclaration();
+    this->fd = s->isFuncLiteralDeclaration();
+    if (td)
+    {
+        assert(td->literal);
+        assert(td->members && td->members->dim == 1);
+        fd = (*td->members)[0]->isFuncLiteralDeclaration();
+    }
     tok = fd->tok;  // save original kind of function/delegate/(infer)
     assert(fd->fbody);
 }
@@ -5561,27 +5567,12 @@ void FuncExp::genIdent(Scope *sc)
 
 Expression *FuncExp::syntaxCopy()
 {
-    TemplateDeclaration *td2;
-    FuncLiteralDeclaration *fd2;
     if (td)
-    {
-        td2 = (TemplateDeclaration *)td->syntaxCopy(NULL);
-        assert(td2->members->dim == 1);
-        fd2 = (*td2->members)[0]->isFuncLiteralDeclaration();
-        assert(fd2);
-    }
+        return new FuncExp(loc, td->syntaxCopy(NULL));
     else if (fd->semanticRun == PASSinit)
-    {
-        td2 = NULL;
-        fd2 = (FuncLiteralDeclaration *)fd->syntaxCopy(NULL);
-    }
-    else
-    {
-        // Bugzilla 13481: Prevent multiple semantic analysis of lambda body.
-        td2 = NULL;
-        fd2 = fd;
-    }
-    return new FuncExp(loc, fd2, td2);
+        return new FuncExp(loc, fd->syntaxCopy(NULL));
+    else    // Bugzilla 13481: Prevent multiple semantic analysis of lambda body.
+        return new FuncExp(loc, fd);
 }
 
 Expression *FuncExp::semantic(Scope *sc)
