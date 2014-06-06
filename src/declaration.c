@@ -1869,7 +1869,7 @@ void VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
                     if (FuncLiteralDeclaration *fld = s->isFuncLiteralDeclaration())
                     {
                         fld->tok = TOKdelegate;
-
+#if 0
                         /* This is necessary to avoid breaking tests for 8751 & 8793.
                          * See: compilable/testInference.d
                          */
@@ -1882,6 +1882,7 @@ void VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
                         {
                             fld->setImpure();   // Bugzilla 9415
                         }
+#endif
                     }
                 }
 

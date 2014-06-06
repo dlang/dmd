@@ -302,7 +302,7 @@ auto foo10329(T)(T arg)
     {
         return arg;
     }
-    static assert(is(typeof(&bar) == T delegate() nothrow @nogc @safe));
+    static assert(is(typeof(&bar) == T delegate() pure nothrow @nogc @safe));
     return bar();
 }
 

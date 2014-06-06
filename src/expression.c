@@ -2234,8 +2234,8 @@ void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
     /* Given:
      * void f() {
      *   pure void g() {
-     *     void h() {
-     *       void i() { }
+     *     /+pure+/ void h() {
+     *       /+pure+/ void i() { }
      *     }
      *   }
      * }
@@ -2347,9 +2347,9 @@ void Expression::checkPurity(Scope *sc, VarDeclaration *v)
          *   int fx;
          *   pure void g() {
          *     int gx;
-         *     void h() {
+         *     /+pure+/ void h() {
          *       int hx;
-         *       void i() { }
+         *       /+pure+/ void i() { }
          *     }
          *   }
          * }
@@ -2362,15 +2362,36 @@ void Expression::checkPurity(Scope *sc, VarDeclaration *v)
             if (s == vparent)
                 break;
 
+            if (AggregateDeclaration *ad = s->isAggregateDeclaration())
+            {
+                if (ad->isNested())
+                    continue;
+                break;
+            }
             FuncDeclaration *ff = s->isFuncDeclaration();
             if (!ff)
                 break;
-            if (sc->flags & SCOPEcompile ? ff->isPureBypassingInferenceX() : ff->setImpure())
+            if (ff->isNested())
             {
-                error("pure nested function '%s' cannot access mutable data '%s'",
-                    ff->toChars(), v->toChars());
-                break;
+                if (ff->type->isImmutable())
+                {
+                    error("pure immutable nested function '%s' cannot access mutable data '%s'",
+                        ff->toPrettyChars(), v->toChars());
+                    break;
+                }
+                continue;
             }
+            if (ff->isThis())
+            {
+                if (ff->type->isImmutable())
+                {
+                    error("pure immutable member function '%s' cannot access mutable data '%s'",
+                        ff->toPrettyChars(), v->toChars());
+                    break;
+                }
+                continue;
+            }
+            break;
         }
     }
 

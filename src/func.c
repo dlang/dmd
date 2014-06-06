@@ -450,6 +450,30 @@ void FuncDeclaration::semantic(Scope *sc)
                 if (fd->isSafeBypassingInference() && !isInstantiated())
                     tf->trust = TRUSTsafe;              // default to @safe
             }
+
+            /* If the nesting parent is pure, then this function defaults to pure too.
+             */
+            if (tf->purity == PUREimpure && (isNested() || isThis()))
+            {
+                FuncDeclaration *fd = NULL;
+                for (Dsymbol *p = toParent2(); p; p = p->toParent2())
+                {
+                    if (AggregateDeclaration *ad = p->isAggregateDeclaration())
+                    {
+                        if (ad->isNested())
+                            continue;
+                        break;
+                    }
+                    if ((fd = p->isFuncDeclaration()) != NULL)
+                        break;
+                }
+
+                /* If the parent's purity is inferred, then this function's purity needs
+                 * to be inferred first.
+                 */
+                if (fd && fd->isPureBypassingInferenceX())
+                    tf->purity = PUREfwdref;            // default to pure
+            }
         }
 
         if (tf->isref)      sc->stc |= STCref;
