@@ -3591,7 +3591,7 @@ Type *TypeVector::syntaxCopy()
 
 Type *TypeVector::semantic(Loc loc, Scope *sc)
 {
-    int errors = global.errors;
+    unsigned int errors = global.errors;
     basetype = basetype->semantic(loc, sc);
     if (errors != global.errors)
         return terror;
@@ -3805,7 +3805,6 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
         Expressions *arguments;
         dinteger_t size = next->size(e->loc);
 
-        Expression *olde = e;
         assert(size);
 
         static FuncDeclaration *adReverse_fd = NULL;
@@ -4079,7 +4078,7 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
     if (dim)
     {   dinteger_t n, n2;
 
-        int errors = global.errors;
+        unsigned int errors = global.errors;
         dim = semanticLength(sc, tbn, dim);
         if (errors != global.errors)
             goto Lerror;
@@ -7478,7 +7477,7 @@ char *TypeTypedef::toChars()
 Type *TypeTypedef::semantic(Loc loc, Scope *sc)
 {
     //printf("TypeTypedef::semantic(%s), sem = %d\n", toChars(), sym->sem);
-    int errors = global.errors;
+    unsigned int errors = global.errors;
     sym->semantic(sc);
     if (errors != global.errors || sym->errors || sym->basetype->ty == Terror)
         return terror;

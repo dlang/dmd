@@ -330,7 +330,7 @@ void TypedefDeclaration::semantic(Scope *sc)
     {
         sem = SemanticIn;
         parent = sc->parent;
-        int errors = global.errors;
+        unsigned int errors = global.errors;
         Type *savedbasetype = basetype;
         basetype = basetype->semantic(loc, sc);
         if (errors != global.errors)
@@ -373,7 +373,7 @@ void TypedefDeclaration::semantic2(Scope *sc)
         if (init)
         {
             Initializer *savedinit = init;
-            int errors = global.errors;
+            unsigned int errors = global.errors;
             init = init->semantic(sc, basetype, INITinterpret);
             if (errors != global.errors || init->isErrorInitializer())
             {
@@ -504,7 +504,7 @@ void AliasDeclaration::semantic(Scope *sc)
     // type. If it is a symbol, then aliassym is set and type is NULL -
     // toAlias() will return aliasssym.
 
-    int errors = global.errors;
+    unsigned int errors = global.errors;
     Type *savedtype = type;
 
     Dsymbol *s;

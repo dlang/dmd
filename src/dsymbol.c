@@ -1444,7 +1444,7 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
                 // Check for multi-dimensional opDollar(dim) template.
                 if (TemplateDeclaration *td = s->isTemplateDeclaration())
                 {
-                    dinteger_t dim;
+                    dinteger_t dim = 0;
                     if (exp->op == TOKarray)
                     {
                         dim = ((ArrayExp *)exp)->currentDimension;

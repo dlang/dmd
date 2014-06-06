@@ -1300,7 +1300,7 @@ void FuncDeclaration::semantic3(Scope *sc)
         sc2->fieldinit = NULL;
         sc2->fieldinit_dim = 0;
 
-        if (AggregateDeclaration *ad = isMember2())
+        if (isMember2())
         {
             FuncLiteralDeclaration *fld = isFuncLiteralDeclaration();
             if (fld && !sc->intypeof)
@@ -1703,7 +1703,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 }
 
                 // Check for errors related to 'nothrow'.
-                int nothrowErrors = global.errors;
+                unsigned int nothrowErrors = global.errors;
                 int blockexit = fbody->blockExit(this, f->isnothrow);
                 if (f->isnothrow && (global.errors != nothrowErrors) )
                     ::error(loc, "%s '%s' is nothrow yet may throw", kind(), toPrettyChars());
@@ -1757,7 +1757,7 @@ void FuncDeclaration::semantic3(Scope *sc)
             else
             {
                 // Check for errors related to 'nothrow'.
-                int nothrowErrors = global.errors;
+                unsigned int nothrowErrors = global.errors;
                 int blockexit = fbody->blockExit(this, f->isnothrow);
                 if (f->isnothrow && (global.errors != nothrowErrors) )
                     ::error(loc, "%s '%s' is nothrow yet may throw", kind(), toPrettyChars());
@@ -2052,7 +2052,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                     {
                         Statement *s = new ExpStatement(Loc(), e);
                         s = s->semantic(sc2);
-                        int nothrowErrors = global.errors;
+                        unsigned int nothrowErrors = global.errors;
                         bool isnothrow = f->isnothrow & !(flags & FUNCFLAGnothrowInprocess);
                         int blockexit = s->blockExit(this, isnothrow);
                         if (f->isnothrow && (global.errors != nothrowErrors) )
@@ -3012,7 +3012,6 @@ MATCH FuncDeclaration::leastAsSpecialized(FuncDeclaration *g)
     TypeFunction *tf = (TypeFunction *)type;
     TypeFunction *tg = (TypeFunction *)g->type;
     size_t nfparams = Parameter::dim(tf->parameters);
-    size_t ngparams = Parameter::dim(tg->parameters);
 
     /* If both functions have a 'this' pointer, and the mods are not
      * the same and g's is not const, then this is less specialized.
@@ -3225,7 +3224,6 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
         }
     }
 
-Lerror:
     /* Failed to find a best match.
      * Do nothing or print error.
      */
@@ -4017,7 +4015,7 @@ void FuncDeclaration::checkNestedReference(Scope *sc, Loc loc)
             if (fdthis != this)
             {
                 bool found = false;
-                for (int i = 0; i < siblingCallers.dim; ++i)
+                for (size_t i = 0; i < siblingCallers.dim; ++i)
                 {
                     if (siblingCallers[i] == fdthis)
                         found = true;
@@ -4092,7 +4090,7 @@ bool checkEscapingSiblings(FuncDeclaration *f, FuncDeclaration *outerFunc, void 
 
     //printf("checkEscapingSiblings(f = %s, outerfunc = %s)\n", f->toChars(), outerFunc->toChars());
     bool bAnyClosures = false;
-    for (int i = 0; i < f->siblingCallers.dim; ++i)
+    for (size_t i = 0; i < f->siblingCallers.dim; ++i)
     {
         FuncDeclaration *g = f->siblingCallers[i];
         if (g->isThis() || g->tookAddressOf)

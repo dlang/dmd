@@ -106,7 +106,6 @@ Expression *implicitCastTo(Expression *e, Scope *sc, Type *t)
         void visit(StringExp *e)
         {
             //printf("StringExp::implicitCastTo(%s of type %s) => %s\n", e->toChars(), e->type->toChars(), t->toChars());
-            unsigned char committed = e->committed;
             visit((Expression *)e);
             if (result->op == TOKstring)
             {

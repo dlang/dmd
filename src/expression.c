@@ -2869,7 +2869,7 @@ void realToMangleBuffer(OutBuffer *buf, real_t value)
         char buffer[BUFFER_LEN];
         size_t n = ld_sprint(buffer, 'A', value);
         assert(n < BUFFER_LEN);
-        for (int i = 0; i < n; i++)
+        for (size_t i = 0; i < n; i++)
         {   char c = buffer[i];
 
             switch (c)
@@ -4081,7 +4081,7 @@ StringExp *ArrayLiteralExp::toStringExp()
         OutBuffer buf;
         if (elements)
         {
-            for (int i = 0; i < elements->dim; ++i)
+            for (size_t i = 0; i < elements->dim; ++i)
             {
                 Expression *ch = (*elements)[i];
                 if (ch->op != TOKint64)
@@ -8959,7 +8959,7 @@ Lagain:
 
     if (!arguments)
         arguments = new Expressions();
-    int olderrors = global.errors;
+    unsigned int olderrors = global.errors;
     type = functionParameters(loc, sc, (TypeFunction *)(t1), tthis, arguments, f);
     if (olderrors != global.errors)
         return new ErrorExp();
@@ -10659,7 +10659,6 @@ Expression *IndexExp::semantic(Scope *sc)
             e2 = e2->implicitCastTo(sc, Type::tsize_t);
             if (e2->type == Type::terror)
                 return new ErrorExp();
-            TypeSArray *tsa = (TypeSArray *)t1;
             e->type = t1->nextOf();
             break;
         }
@@ -10778,7 +10777,7 @@ Expression *IndexExp::modifiableLvalue(Scope *sc, Expression *e)
     modifiable = 1;
     Type *t1 = e1->type->toBasetype();
     if (t1->ty == Taarray)
-    {   TypeAArray *taa = (TypeAArray *)t1;
+    {
         Type *t2b = e2->type->toBasetype();
         if (t2b->ty == Tarray && t2b->nextOf()->isMutable())
             error("associative arrays can only be assigned values with immutable keys, not %s", e2->type->toChars());
@@ -12723,8 +12722,6 @@ Expression *PowExp::semantic(Scope *sc)
 
     // For built-in numeric types, there are several cases.
     // TODO: backend support, especially for  e1 ^^ 2.
-
-    bool wantSqrt = false;
 
     // First, attempt to fold the expression.
     e = optimize(WANTvalue);

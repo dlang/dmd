@@ -666,7 +666,7 @@ Expression *Xor(Type *type, Expression *e1, Expression *e2)
 Expression *Equal(TOK op, Type *type, Expression *e1, Expression *e2)
 {   Expression *e;
     Loc loc = e1->loc;
-    int cmp;
+    int cmp = 0;
     real_t r1;
     real_t r2;
 

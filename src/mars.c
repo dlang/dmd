@@ -534,7 +534,9 @@ int tryMain(size_t argc, const char *argv[])
     bool setdebuglib = false;
     bool setboundscheck = false;
     char boundscheck = 2;
+#if TARGET_WINDOS
     bool setdefaultlib = false;
+#endif
     const char *inifilename = NULL;
     global.init();
 
@@ -1041,7 +1043,9 @@ Language changes listed by -transition=id:\n\
             }
             else if (memcmp(p + 1, "defaultlib=", 11) == 0)
             {
+#if TARGET_WINDOS
                 setdefaultlib = true;
+#endif
                 global.params.defaultlibname = p + 1 + 11;
             }
             else if (memcmp(p + 1, "debuglib=", 9) == 0)
@@ -1885,7 +1889,6 @@ void getenv_setargv(const char *envvar, size_t *pargc, const char** *pargv)
     size_t j = 1;               // leave argv[0] alone
     while (1)
     {
-        int wildcard = 1;       // do wildcard expansion
         switch (*env)
         {
             case ' ':
@@ -1896,8 +1899,6 @@ void getenv_setargv(const char *envvar, size_t *pargc, const char** *pargv)
             case 0:
                 goto Ldone;
 
-            case '"':
-                wildcard = 0;
             default:
                 argv->push(env);                // append
                 //argv->insert(j, env);         // insert at position j

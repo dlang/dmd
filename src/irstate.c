@@ -141,7 +141,6 @@ block *IRState::getContBlock(Identifier *ident)
 
     if (ident)
     {
-        Statement *related = NULL;
         block *ret = NULL;
         for (bc = this; bc; bc = bc->prev)
         {
@@ -151,7 +150,6 @@ block *IRState::getContBlock(Identifier *ident)
             // in many cases will be this same statement).
             if (bc->contBlock)
             {
-                related = bc->statement->getRelatedLabeled();
                 ret = bc->contBlock;
             }
             if (bc->prev && bc->prev->ident == ident)

@@ -113,7 +113,7 @@ char *VoidInitExp::toChars()
 // Same as getFieldIndex, but checks for a direct match with the VarDeclaration
 int findFieldIndexByName(StructDeclaration *sd, VarDeclaration *v)
 {
-    for (int i = 0; i < sd->fields.dim; ++i)
+    for (size_t i = 0; i < sd->fields.dim; ++i)
     {
         if (sd->fields[i] == v)
             return i;

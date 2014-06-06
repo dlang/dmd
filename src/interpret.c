@@ -137,7 +137,6 @@ size_t CtfeStack::maxStackUsage()
 
 void CtfeStack::startFrame(Expression *thisexp)
 {
-    size_t oldframe = framepointer;
     frames.push((void *)(size_t)(framepointer));
     savedThis.push(localThis);
     framepointer = stackPointer();
@@ -693,7 +692,6 @@ void ctfeCompile(FuncDeclaration *fd)
     {
         Type *tb = fd->type->toBasetype();
         assert(tb->ty == Tfunction);
-        TypeFunction *tf = (TypeFunction *)tb;
         for (size_t i = 0; i < fd->parameters->dim; i++)
         {
             VarDeclaration *v = (*fd->parameters)[i];
@@ -6855,7 +6853,7 @@ Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *del
                 }
                 else
                     buflen = (indx + 4 > len) ? len - indx : 4;
-                for (int i = 0; i < buflen; ++i)
+                for (size_t i = 0; i < buflen; ++i)
                 {
                     Expression * r = (*ale->elements)[indx + i];
                     assert(r->op == TOKint64);
@@ -6880,7 +6878,7 @@ Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *del
                 }
                 else
                     buflen = (indx + 2 > len) ? len - indx : 2;
-                for (int i=0; i < buflen; ++i)
+                for (size_t i=0; i < buflen; ++i)
                 {
                     Expression * r = (*ale->elements)[indx + i];
                     assert(r->op == TOKint64);
@@ -7071,7 +7069,7 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
             // But we might need some magic if stack tracing gets added to druntime.
             StructLiteralExp *se = ((ClassReferenceExp *)pthis)->value;
             assert(arguments->dim <= se->elements->dim);
-            for (int i = 0; i < arguments->dim; ++i)
+            for (size_t i = 0; i < arguments->dim; ++i)
             {
                 e = (*arguments)[i]->interpret(istate);
                 if (exceptionOrCantInterpret(e))

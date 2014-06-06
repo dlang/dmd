@@ -1569,7 +1569,6 @@ elem *toElem(Expression *e, IRState *irs)
                     // Single dimension array allocations
                     Expression *arg = (*ne->arguments)[0]; // gives array length
                     e = arg->toElem(irs);
-                    d_uns64 elemsize = tda->next->size();
 
                     // call _d_newT(ti, arg)
                     e = el_param(e, ne->type->getTypeInfo(NULL)->toElem(irs));
@@ -1599,9 +1598,7 @@ elem *toElem(Expression *e, IRState *irs)
             else if (t->ty == Tpointer)
             {
                 TypePointer *tp = (TypePointer *)t;
-                d_uns64 elemsize = tp->next->size();
                 Expression *di = tp->next->defaultInit();
-                d_uns64 disize = di->type->size();
 
                 // call _d_newitemT(ti)
                 e = ne->type->getTypeInfo(NULL)->toElem(irs);
@@ -1946,7 +1943,6 @@ elem *toElem(Expression *e, IRState *irs)
             Type *tb2 = ce->e2->type->toBasetype();
 
             Type *ta = (tb1->ty == Tarray || tb1->ty == Tsarray) ? tb1 : tb2;
-            Type *tn = ta->nextOf();
 
             elem *e;
             if (ce->e1->op == TOKcat)
@@ -2359,7 +2355,6 @@ elem *toElem(Expression *e, IRState *irs)
                     //printf("Lpair %s\n", ae->toChars());
                     Type *tb = ta->nextOf()->toBasetype();
                     unsigned sz = tb->size();
-                    tym_t tym = totym(ae->type);
 
                     elem *n1 = are->e1->toElem(irs);
                     elem *elwr = are->lwr ? are->lwr->toElem(irs) : NULL;
@@ -5020,7 +5015,6 @@ elem *toElem(Expression *e, IRState *irs)
                             e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, sle->soffset));
                     }
                     e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, v->offset));
-                    elem *ec = e1;                      // pointer to destination
 
                     elem *ep = el->toElem(irs);
 
@@ -5061,7 +5055,6 @@ elem *toElem(Expression *e, IRState *irs)
             {
                 // Initialize the hidden 'this' pointer
                 assert(sle->sd->fields.dim);
-                ThisDeclaration *v = sle->sd->fields[sle->sd->fields.dim - 1]->isThisDeclaration();
 
                 elem *e1;
                 if (tybasic(stmp->Stype->Tty) == TYnptr)

@@ -742,7 +742,6 @@ void FuncDeclaration::toObjFile(bool multiobj)
     FuncDeclaration *func = this;
     ClassDeclaration *cd = func->parent->isClassDeclaration();
     int reverse;
-    int has_arguments;
 
     //printf("FuncDeclaration::toObjFile(%p, %s.%s)\n", func, parent->toChars(), func->toChars());
 
@@ -997,7 +996,6 @@ void FuncDeclaration::toObjFile(bool multiobj)
 
     assert(func->type->ty == Tfunction);
     tf = (TypeFunction *)(func->type);
-    has_arguments = (tf->linkage == LINKd) && (tf->varargs == 1);
     retmethod = retStyle(tf);
     if (retmethod == RETstack)
     {
