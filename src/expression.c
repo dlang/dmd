@@ -2304,7 +2304,7 @@ void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
     // OR, they must have the same pure parent.
     if (!f->isPure() && calledparent != outerfunc)
     {
-        if (outerfunc->setImpure())
+        if (sc->flags & SCOPEcompile ? outerfunc->isPureBypassingInferenceX() : outerfunc->setImpure())
         {
             error("pure function '%s' cannot call impure function '%s'",
                 outerfunc->toPrettyChars(), f->toPrettyChars());
@@ -2353,7 +2353,7 @@ void Expression::checkPurity(Scope *sc, VarDeclaration *v)
             FuncDeclaration *ff = s->isFuncDeclaration();
             if (!ff)
                 break;
-            if (ff->setImpure())
+            if (sc->flags & SCOPEcompile ? ff->isPureBypassingInferenceX() : ff->setImpure())
             {
                 error("pure function '%s' cannot access mutable static data '%s'",
                     sc->func->toPrettyChars(), v->toChars());
@@ -2405,7 +2405,7 @@ void Expression::checkPurity(Scope *sc, VarDeclaration *v)
             FuncDeclaration *ff = s->isFuncDeclaration();
             if (!ff)
                 break;
-            if (ff->setImpure())
+            if (sc->flags & SCOPEcompile ? ff->isPureBypassingInferenceX() : ff->setImpure())
             {
                 error("pure nested function '%s' cannot access mutable data '%s'",
                     ff->toChars(), v->toChars());
@@ -2437,7 +2437,7 @@ void Expression::checkSafety(Scope *sc, FuncDeclaration *f)
 
     if (!f->isSafe() && !f->isTrusted())
     {
-        if (sc->func->setUnsafe())
+        if (sc->flags & SCOPEcompile ? sc->func->isSafeBypassingInference() : sc->func->setUnsafe())
         {
             if (loc.linnum == 0)  // e.g. implicitly generated dtor
                 loc = sc->func->loc;
@@ -2461,7 +2461,7 @@ void Expression::checkNogc(Scope *sc, FuncDeclaration *f)
 
     if (!f->isNogc())
     {
-        if (sc->func->setGC())
+        if (sc->flags & SCOPEcompile ? sc->func->isNogcBypassingInference() : sc->func->setGC())
         {
             if (loc.linnum == 0)  // e.g. implicitly generated dtor
                 loc = sc->func->loc;

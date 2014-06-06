@@ -1291,6 +1291,7 @@ void FuncDeclaration::semantic3(Scope *sc)
         sc2->structalign = STRUCTALIGN_DEFAULT;
         if (this->ident != Id::require && this->ident != Id::ensure)
             sc2->flags = sc->flags & ~SCOPEcontract;
+        sc2->flags &= ~SCOPEcompile;
         sc2->tf = NULL;
         sc2->os = NULL;
         sc2->noctor = 0;
