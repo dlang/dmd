@@ -876,6 +876,35 @@ void test12211()
 }
 
 /***************************************************/
+// 4791 (dup of 12212)
+
+void test4791()
+{
+    int[2] na;
+    na = na;
+
+    static struct S
+    {
+        static string res;
+        int n;
+        this(this) { ++n; res ~= "p" ~ cast(char)('0' + n); }
+        ~this()    {      res ~= "d" ~ cast(char)('0' + n); }
+    }
+    {
+        S[3] sa;
+        sa[0].n = 1, sa[1].n = 2, sa[2].n = 3;
+
+        S.res = null;
+        sa = sa;
+        assert(S.res == "p2d1p3d2p4d3");
+        assert(sa[0].n == 2 && sa[1].n == 3 && sa[2].n == 4);
+
+        S.res = null;
+    }
+    assert(S.res == "d4d3d2");
+}
+
+/***************************************************/
 // 12212
 
 void test12212()
@@ -1058,6 +1087,7 @@ int main()
     test11187();
     test12131();
     test12211();
+    test4791();
     test12212();
     test12650();
 
