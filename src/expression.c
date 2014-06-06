@@ -2341,7 +2341,7 @@ void Expression::checkPurity(Scope *sc, VarDeclaration *v)
     if (v->isDataseg())
     {
         // Bugzilla 7533: Accessing implicit generated __gate is pure.
-        if (strcmp(v->ident->toChars(), "__gate") == 0)
+        if (v->ident == Id::gate)
             return;
 
         /* Accessing global mutable state.

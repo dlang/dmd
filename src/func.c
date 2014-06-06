@@ -4851,13 +4851,12 @@ void StaticCtorDeclaration::semantic(Scope *sc)
          * Note that this is not thread safe; should not have threads
          * during static construction.
          */
-        Identifier *id = Lexer::idPool("__gate");
-        VarDeclaration *v = new VarDeclaration(Loc(), Type::tint32, id, NULL);
+        VarDeclaration *v = new VarDeclaration(Loc(), Type::tint32, Id::gate, NULL);
         v->storage_class = STCtemp | (isSharedStaticCtorDeclaration() ? STCstatic : STCtls);
         Statements *sa = new Statements();
         Statement *s = new ExpStatement(Loc(), v);
         sa->push(s);
-        Expression *e = new IdentifierExp(Loc(), id);
+        Expression *e = new IdentifierExp(Loc(), v->ident);
         e = new AddAssignExp(Loc(), e, new IntegerExp(1));
         e = new EqualExp(TOKnotequal, Loc(), e, new IntegerExp(1));
         s = new IfStatement(Loc(), NULL, e, new ReturnStatement(Loc(), NULL), NULL);
@@ -4983,13 +4982,12 @@ void StaticDtorDeclaration::semantic(Scope *sc)
          * Note that this is not thread safe; should not have threads
          * during static destruction.
          */
-        Identifier *id = Lexer::idPool("__gate");
-        VarDeclaration *v = new VarDeclaration(Loc(), Type::tint32, id, NULL);
+        VarDeclaration *v = new VarDeclaration(Loc(), Type::tint32, Id::gate, NULL);
         v->storage_class = STCtemp | (isSharedStaticDtorDeclaration() ? STCstatic : STCtls);
         Statements *sa = new Statements();
         Statement *s = new ExpStatement(Loc(), v);
         sa->push(s);
-        Expression *e = new IdentifierExp(Loc(), id);
+        Expression *e = new IdentifierExp(Loc(), v->ident);
         e = new AddAssignExp(Loc(), e, new IntegerExp(-1));
         e = new EqualExp(TOKnotequal, Loc(), e, new IntegerExp(0));
         s = new IfStatement(Loc(), NULL, e, new ReturnStatement(Loc(), NULL), NULL);
