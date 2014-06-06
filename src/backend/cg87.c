@@ -3492,6 +3492,8 @@ code *cdind87(elem *e,regm_t *pretregs)
 
             case TYildouble:
             case TYldouble:
+                if (I64)
+                    cs.Irex &= ~REX_W;
                 cs.Iop = 0xDB;
                 cs.Irm |= modregrm(0,5,0);
                 break;
