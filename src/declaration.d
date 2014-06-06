@@ -560,6 +560,28 @@ public:
         //printf("AliasDeclaration::semantic() %s\n", toChars());
         if (aliassym)
         {
+            auto fd = aliassym.isFuncLiteralDeclaration();
+            auto td = aliassym.isTemplateDeclaration();
+            if (fd || td && td.literal)
+            {
+                if (fd && fd.semanticRun >= PASSsemanticdone)
+                    return;
+
+                Expression e = new FuncExp(loc, aliassym);
+                e = e.semantic(sc);
+                if (e.op == TOKfunction)
+                {
+                    FuncExp fe = cast(FuncExp)e;
+                    aliassym = fe.td ? cast(Dsymbol)fe.td : fe.fd;
+                }
+                else
+                {
+                    aliassym = null;
+                    type = Type.terror;
+                }
+                return;
+            }
+
             if (aliassym.isTemplateInstance())
                 aliassym.semantic(sc);
             return;
