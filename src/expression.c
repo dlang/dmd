@@ -2256,50 +2256,58 @@ void Expression::checkDeprecated(Scope *sc, Dsymbol *s)
  */
 void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
 {
-    if (sc->func && sc->func != f && sc->intypeof != 1 && !(sc->flags & (SCOPEctfe | SCOPEdebug)))
+    if (!sc->func)
+        return;
+    if (sc->func == f)
+        return;
+    if (sc->intypeof == 1)
+        return;
+    if (sc->flags & (SCOPEctfe | SCOPEdebug))
+        return;
+
+    /* Given:
+     * void f()
+     * { pure void g()
+     *   {
+     *      void h()
+     *      {
+     *         void i() { }
+     *      }
+     *   }
+     * }
+     * g() can call h() but not f()
+     * i() can call h() and g() but not f()
+     */
+
+    // Find the closest pure parent of the calling function
+    FuncDeclaration *outerfunc = sc->func;
+    while ( outerfunc->toParent2() &&
+           !outerfunc->isPureBypassingInference() &&
+            outerfunc->toParent2()->isFuncDeclaration())
     {
-        /* Given:
-         * void f()
-         * { pure void g()
-         *   {
-         *      void h()
-         *      {
-         *         void i() { }
-         *      }
-         *   }
-         * }
-         * g() can call h() but not f()
-         * i() can call h() and g() but not f()
-         */
+        outerfunc = outerfunc->toParent2()->isFuncDeclaration();
+        if (outerfunc->type->ty == Terror)
+            return;
+    }
 
-        // Find the closest pure parent of the calling function
-        FuncDeclaration *outerfunc = sc->func;
-        while ( outerfunc->toParent2() &&
-               !outerfunc->isPureBypassingInference() &&
-                outerfunc->toParent2()->isFuncDeclaration())
-        {
-            outerfunc = outerfunc->toParent2()->isFuncDeclaration();
-            if (outerfunc->type->ty == Terror)
-                return;
-        }
+    FuncDeclaration *calledparent = f;
+    while ( calledparent->toParent2() &&
+           !calledparent->isPureBypassingInference() &&
+            calledparent->toParent2()->isFuncDeclaration())
+    {
+        calledparent = calledparent->toParent2()->isFuncDeclaration();
+        if (calledparent->type->ty == Terror)
+            return;
+    }
 
-        FuncDeclaration *calledparent = f;
-        while ( calledparent->toParent2() &&
-               !calledparent->isPureBypassingInference() &&
-                calledparent->toParent2()->isFuncDeclaration())
+    // If the caller has a pure parent, then either the called func must be pure,
+    // OR, they must have the same pure parent.
+    if (!f->isPure() && calledparent != outerfunc)
+    {
+        if (sc->flags & SCOPEcompile ? outerfunc->isPureBypassingInferenceX() : outerfunc->setImpure())
         {
-            calledparent = calledparent->toParent2()->isFuncDeclaration();
-            if (calledparent->type->ty == Terror)
-                return;
-        }
-
-        // If the caller has a pure parent, then either the called func must be pure,
-        // OR, they must have the same pure parent.
-        if (!f->isPure() && calledparent != outerfunc)
-        {
-            if (outerfunc->setImpure())
-                error("pure function '%s' cannot call impure function '%s'",
-                    outerfunc->toPrettyChars(), f->toPrettyChars());
+            error("pure function '%s' cannot call impure function '%s'",
+                outerfunc->toPrettyChars(), f->toPrettyChars());
         }
     }
 }
@@ -2318,10 +2326,8 @@ void Expression::checkPurity(Scope *sc, VarDeclaration *v)
         return;
     if (sc->intypeof == 1)
         return; // allow violations inside typeof(expression)
-    if (sc->flags & SCOPEdebug)
-        return; // allow violations inside debug conditionals
-    if (sc->flags & SCOPEctfe)
-        return; // allow violations inside compile-time evaluated expressions
+    if (sc->flags & (SCOPEctfe | SCOPEdebug))
+        return; // allow violations inside compile-time evaluated expressions and debug conditionals
     if (v->ident == Id::ctfe)
         return; // magic variable never violates pure and safe
     if (v->isImmutable())
@@ -2334,21 +2340,24 @@ void Expression::checkPurity(Scope *sc, VarDeclaration *v)
 
     if (v->isDataseg())
     {
+        // Bugzilla 7533: Accessing implicit generated __gate is pure.
+        if (v->ident == Id::gate)
+            return;
+
         /* Accessing global mutable state.
          * Therefore, this function and all its immediately enclosing
          * functions must be pure.
          */
-        bool msg = false;
         for (Dsymbol *s = sc->func; s; s = s->toParent2())
         {
             FuncDeclaration *ff = s->isFuncDeclaration();
             if (!ff)
                 break;
-            // Accessing implicit generated __gate is pure.
-            if (ff->setImpure() && !msg && strcmp(v->ident->toChars(), "__gate"))
-            {   error("pure function '%s' cannot access mutable static data '%s'",
+            if (sc->flags & SCOPEcompile ? ff->isPureBypassingInferenceX() : ff->setImpure())
+            {
+                error("pure function '%s' cannot access mutable static data '%s'",
                     sc->func->toPrettyChars(), v->toChars());
-                msg = true;                     // only need the innermost message
+                break;
             }
         }
     }
@@ -2396,8 +2405,9 @@ void Expression::checkPurity(Scope *sc, VarDeclaration *v)
             FuncDeclaration *ff = s->isFuncDeclaration();
             if (!ff)
                 break;
-            if (ff->setImpure())
-            {   error("pure nested function '%s' cannot access mutable data '%s'",
+            if (sc->flags & SCOPEcompile ? ff->isPureBypassingInferenceX() : ff->setImpure())
+            {
+                error("pure nested function '%s' cannot access mutable data '%s'",
                     ff->toChars(), v->toChars());
                 break;
             }
@@ -2416,11 +2426,18 @@ void Expression::checkPurity(Scope *sc, VarDeclaration *v)
 
 void Expression::checkSafety(Scope *sc, FuncDeclaration *f)
 {
-    if (sc->func && sc->func != f && sc->intypeof != 1 &&
-        !(sc->flags & SCOPEctfe) &&
-        !f->isSafe() && !f->isTrusted())
+    if (!sc->func)
+        return;
+    if (sc->func == f)
+        return;
+    if (sc->intypeof == 1)
+        return;
+    if (sc->flags & SCOPEctfe)
+        return;
+
+    if (!f->isSafe() && !f->isTrusted())
     {
-        if (sc->func->setUnsafe())
+        if (sc->flags & SCOPEcompile ? sc->func->isSafeBypassingInference() : sc->func->setUnsafe())
         {
             if (loc.linnum == 0)  // e.g. implicitly generated dtor
                 loc = sc->func->loc;
@@ -2433,11 +2450,18 @@ void Expression::checkSafety(Scope *sc, FuncDeclaration *f)
 
 void Expression::checkNogc(Scope *sc, FuncDeclaration *f)
 {
-    if (sc->func && sc->func != f && sc->intypeof != 1 &&
-        !(sc->flags & SCOPEctfe) &&
-        !f->isNogc())
+    if (!sc->func)
+        return;
+    if (sc->func == f)
+        return;
+    if (sc->intypeof == 1)
+        return;
+    if (sc->flags & SCOPEctfe)
+        return;
+
+    if (!f->isNogc())
     {
-        if (sc->func->setGC())
+        if (sc->flags & SCOPEcompile ? sc->func->isNogcBypassingInference() : sc->func->setGC())
         {
             if (loc.linnum == 0)  // e.g. implicitly generated dtor
                 loc = sc->func->loc;

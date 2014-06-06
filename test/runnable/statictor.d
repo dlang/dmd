@@ -38,10 +38,8 @@ static this() nothrow pure @safe
     int* p;
     static assert(!__traits(compiles, ++p));
     static assert(!__traits(compiles, ++global6677));
-    // BUG (not related to this):
-    //auto throwit = { throw new Exception("sup"); };
-    //static assert(!__traits(compiles, throwit() )); // Should pass
-    //throwit() // This fails, but __traits(compiles, ...) claims it compiles
+    auto throwit = { throw new Exception("sup"); };
+    static assert(!__traits(compiles, throwit() ));
 }
 
 shared static this() nothrow pure @safe

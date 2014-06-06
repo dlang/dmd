@@ -901,6 +901,11 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
                 ex = ex->semantic(sc2);
                 ex = resolvePropertiesOnly(sc2, ex);
                 ex = ex->optimize(WANTvalue);
+                if (sc2->func && sc2->func->type->ty == Tfunction)
+                {
+                    TypeFunction *tf = (TypeFunction *)sc2->func->type;
+                    canThrow(ex, sc2->func, tf->isnothrow);
+                }
                 ex = checkGC(sc2, ex);
                 if (ex->op == TOKerror)
                     err = true;
