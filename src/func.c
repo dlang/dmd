@@ -3661,6 +3661,11 @@ PURE FuncDeclaration::isPureBypassingInference()
         return isPure();
 }
 
+bool FuncDeclaration::isPureBypassingInferenceX()
+{
+    return !(flags & FUNCFLAGpurityInprocess) && isPure() != PUREimpure;
+}
+
 /**************************************
  * The function is doing something impure,
  * so mark it as impure.
