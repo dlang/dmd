@@ -143,6 +143,51 @@ private template CodeGenSliceSliceOp(string opD, string opSSE, string op3DNow)
             }
         }
     }
+    else version (D_InlineAsm_X86_64)
+    {
+        // All known X86_64 have SSE2
+        if (b.length >= 16)
+        {
+            auto n = aptr + (b.length & ~15);
+
+            // Unaligned case
+            asm
+            {
+                mov RAX, bptr; // left operand
+                mov RCX, cptr; // right operand
+                mov RSI, aptr; // destination operand
+                mov RDI, n;    // end comparison
+
+                align 8;
+            startsseloopb:
+                movups XMM0, [RAX];
+                movups XMM1, [RAX+16];
+                movups XMM2, [RAX+32];
+                movups XMM3, [RAX+48];
+                add RAX, 64;
+                movups XMM4, [RCX];
+                movups XMM5, [RCX+16];
+                movups XMM6, [RCX+32];
+                movups XMM7, [RCX+48];
+                add RSI, 64;
+                ` ~ opSSE ~ ` XMM0, XMM4;
+                ` ~ opSSE ~ ` XMM1, XMM5;
+                ` ~ opSSE ~ ` XMM2, XMM6;
+                ` ~ opSSE ~ ` XMM3, XMM7;
+                add RCX, 64;
+                movups [RSI+ 0-64], XMM0;
+                movups [RSI+16-64], XMM1;
+                movups [RSI+32-64], XMM2;
+                movups [RSI+48-64], XMM3;
+                cmp RSI, RDI;
+                jb startsseloopb;
+
+                mov aptr, RSI;
+                mov bptr, RAX;
+                mov cptr, RCX;
+            }
+        }
+    }
 
     // Handle remainder
     while (aptr < aend)
@@ -404,6 +449,43 @@ private template CodeGenExpSliceOpAssign(string opD, string opSSE, string op3DNo
 
                 emms;
                 mov dword ptr [aptr], ESI;
+            }
+        }
+    }
+    else version (D_InlineAsm_X86_64)
+    {
+        // All known X86_64 have SSE2
+        if (a.length >= 16)
+        {
+            auto n = aptr + (a.length & ~15);
+            if (aptr < n)
+
+            asm
+            {
+                mov RSI, aptr;
+                mov RDI, n;
+                movss XMM4, value;
+                shufps XMM4, XMM4, 0;
+
+                align 8;
+            startsseloopa:
+                movups XMM0, [RSI];
+                movups XMM1, [RSI+16];
+                movups XMM2, [RSI+32];
+                movups XMM3, [RSI+48];
+                add RSI, 64;
+                ` ~ opSSE ~ ` XMM0, XMM4;
+                ` ~ opSSE ~ ` XMM1, XMM4;
+                ` ~ opSSE ~ ` XMM2, XMM4;
+                ` ~ opSSE ~ ` XMM3, XMM4;
+                movups [RSI+ 0-64], XMM0;
+                movups [RSI+16-64], XMM1;
+                movups [RSI+32-64], XMM2;
+                movups [RSI+48-64], XMM3;
+                cmp RSI, RDI;
+                jb startsseloopa;
+
+                mov aptr, RSI;
             }
         }
     }
@@ -709,6 +791,46 @@ private template CodeGenSliceExpOp(string opD, string opSSE, string op3DNow)
             }
         }
     }
+    else version (D_InlineAsm_X86_64)
+    {
+        // All known X86_64 have SSE2
+        if (a.length >= 16)
+        {
+            auto n = aptr + (a.length & ~15);
+
+            // Unaligned case
+            asm
+            {
+                mov RAX, bptr;
+                mov RSI, aptr;
+                mov RDI, n;
+                movss XMM4, value;
+                shufps XMM4, XMM4, 0;
+
+                align 8;
+            startsseloop:
+                add RSI, 64;
+                movups XMM0, [RAX];
+                movups XMM1, [RAX+16];
+                movups XMM2, [RAX+32];
+                movups XMM3, [RAX+48];
+                add RAX, 64;
+                ` ~ opSSE ~ ` XMM0, XMM4;
+                ` ~ opSSE ~ ` XMM1, XMM4;
+                ` ~ opSSE ~ ` XMM2, XMM4;
+                ` ~ opSSE ~ ` XMM3, XMM4;
+                movups [RSI+ 0-64], XMM0;
+                movups [RSI+16-64], XMM1;
+                movups [RSI+32-64], XMM2;
+                movups [RSI+48-64], XMM3;
+                cmp RSI, RDI;
+                jb startsseloop;
+
+                mov aptr, RSI;
+                mov bptr, RAX;
+            }
+        }
+    }
 
     while (aptr < aend)
         *aptr++ = *bptr++ ` ~ opD ~ ` value;
@@ -921,6 +1043,10 @@ unittest
 /* ======================================================================== */
 /* ======================================================================== */
 
+/* template for the case
+ *   a[] ?= b[]
+ * with some binary operator ?
+ */
 private template CodeGenSliceOpAssign(string opD, string opSSE, string op3DNow)
 {
     const CodeGenSliceOpAssign = `
@@ -1003,6 +1129,48 @@ private template CodeGenSliceOpAssign(string opD, string opSSE, string op3DNow)
                 emms;
                 mov dword ptr [aptr], ESI;
                 mov dword ptr [bptr], ECX;
+            }
+        }
+    }
+    else version (D_InlineAsm_X86_64)
+    {
+        // All known X86_64 have SSE2
+        if (a.length >= 16)
+        {
+            auto n = aptr + (a.length & ~15);
+
+            // Unaligned case
+            asm
+            {
+                mov RCX, bptr; // right operand
+                mov RSI, aptr; // destination operand
+                mov RDI, n; // end comparison
+
+                align 8;
+            startsseloopb:
+                movups XMM0, [RSI];
+                movups XMM1, [RSI+16];
+                movups XMM2, [RSI+32];
+                movups XMM3, [RSI+48];
+                add RSI, 64;
+                movups XMM4, [RCX];
+                movups XMM5, [RCX+16];
+                movups XMM6, [RCX+32];
+                movups XMM7, [RCX+48];
+                add RCX, 64;
+                ` ~ opSSE ~ ` XMM0, XMM4;
+                ` ~ opSSE ~ ` XMM1, XMM5;
+                ` ~ opSSE ~ ` XMM2, XMM6;
+                ` ~ opSSE ~ ` XMM3, XMM7;
+                movups [RSI+ 0-64], XMM0;
+                movups [RSI+16-64], XMM1;
+                movups [RSI+32-64], XMM2;
+                movups [RSI+48-64], XMM3;
+                cmp RSI, RDI;
+                jb startsseloopb;
+
+                mov aptr, RSI;
+                mov bptr, RCX;
             }
         }
     }
