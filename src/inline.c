@@ -1401,7 +1401,11 @@ public:
             {
                 Expression *ex = expandInline(fd, parent, eret, NULL, e->arguments, NULL);
                 if (ex)
+                {
                     eresult = ex;
+                    if (global.params.verbose)
+                        fprintf(global.stdmsg, "inlined   %s =>\n          %s\n", fd->toPrettyChars(), parent->toPrettyChars());
+                }
             }
         }
         else if (e->e1->op == TOKdotvar)
@@ -1424,7 +1428,11 @@ public:
                 {
                     Expression *ex = expandInline(fd, parent, eret, dve->e1, e->arguments, NULL);
                     if (ex)
+                    {
                         eresult = ex;
+                        if (global.params.verbose)
+                            fprintf(global.stdmsg, "inlined   %s =>\n          %s\n", fd->toPrettyChars(), parent->toPrettyChars());
+                    }
                 }
             }
         }
