@@ -3188,7 +3188,6 @@ code *cnvt87(elem *e,regm_t *pretregs)
         tym = e->Ety;
         sz = tysize(tym);
         szoff = sz;
-        unsigned grex = I64 ? REX_W << 16 : 0;
 
         switch (e->Eoper)
         {   case OPd_s16:
@@ -3269,7 +3268,7 @@ code *cnvt87(elem *e,regm_t *pretregs)
             pop87();
 
             c1 = genfwait(c1);
-            gen2sib(c1,mf,grex | modregrm(0,rf,4),modregrm(0,4,SP));                   // FISTP [ESP]
+            gen2sib(c1,mf,modregrm(0,rf,4),modregrm(0,4,SP));                   // FISTP [ESP]
 
             retregs = *pretregs & (ALLREGS | mBP);
             if (!retregs)
@@ -3277,7 +3276,7 @@ code *cnvt87(elem *e,regm_t *pretregs)
             c2 = allocreg(&retregs,&reg,tym);
 
             c2 = genfwait(c2);                                                          // FWAIT
-            c2 = genc1(c2,0xD9,grex | modregrm(2,5,4) + 256*modregrm(0,4,SP),FLconst,szoff);   // FLDCW szoff[ESP]
+            c2 = genc1(c2,0xD9,modregrm(2,5,4) + 256*modregrm(0,4,SP),FLconst,szoff);   // FLDCW szoff[ESP]
 
             if (szoff > REGSIZE)
             {   szpush -= REGSIZE;
