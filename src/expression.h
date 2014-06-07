@@ -281,6 +281,7 @@ class ErrorExp : public Expression
 {
 public:
     ErrorExp();
+    static ErrorExp *create();
 
     Expression *toLvalue(Scope *sc, Expression *e);
     void accept(Visitor *v) { v->visit(this); }
