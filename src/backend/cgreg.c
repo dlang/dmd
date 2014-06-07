@@ -73,7 +73,7 @@ void cgreg_init()
     {   unsigned sz;
         symbol *s = globsym.tab[i];
 
-        //printf("candidate '%s' for register\n",s->Sident);
+        //printf("considering candidate '%s' for register\n",s->Sident);
 
         if (s->Srange)
             s->Srange = vec_realloc(s->Srange,dfotop);
@@ -89,7 +89,17 @@ void cgreg_init()
         {
             #ifdef DEBUG
             if (debugr)
+            {
                 printf("not considering variable '%s' for register\n",s->Sident);
+                if (!(s->Sflags & GTregcand))
+                    printf("\tnot GTregcand\n");
+                if (!s->Srange)
+                    printf("\tno Srange\n");
+                if (sz == 0)
+                    printf("\tsz == 0\n");
+                if (tysize(s->ty()) == -1)
+                    printf("\ttysize\n");
+            }
             #endif
             s->Sflags &= ~GTregcand;
             continue;

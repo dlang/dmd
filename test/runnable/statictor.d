@@ -28,6 +28,28 @@ class Bar
         static ~this() {printf("Bar static dtor\n");}
 }
 
+/***********************************************/
+// 6677
+
+int global6677;
+
+static this() nothrow pure @safe
+{
+    int* p;
+    static assert(!__traits(compiles, ++p));
+    static assert(!__traits(compiles, ++global6677));
+    auto throwit = { throw new Exception("sup"); };
+    static assert(!__traits(compiles, throwit() ));
+}
+
+shared static this() nothrow pure @safe
+{
+    int* p;
+    static assert(!__traits(compiles, ++p));
+    static assert(!__traits(compiles, ++global6677));
+}
+
+/***********************************************/
 // 7533
 struct Foo7533(int n)
 {
@@ -35,6 +57,8 @@ struct Foo7533(int n)
 }
 
 alias Foo7533!5 Bar7533;
+
+/***********************************************/
 
 void main()
 {

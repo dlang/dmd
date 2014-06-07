@@ -113,8 +113,8 @@ struct ObjcClassRefExp : Expression
     ClassDeclaration *cdecl;
 
     ObjcClassRefExp(Loc loc, ClassDeclaration *cdecl);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    elem *toElem(IRState *irs);
+
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 struct ObjcDotClassExp : UnaExp
@@ -123,10 +123,10 @@ struct ObjcDotClassExp : UnaExp
 
     ObjcDotClassExp(Loc loc, Expression *e);
     Expression *semantic(Scope *sc);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    elem *toElem(IRState *irs);
 
     static FuncDeclaration *classFunc();
+
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 struct ObjcProtocolOfExp : UnaExp
@@ -136,8 +136,8 @@ struct ObjcProtocolOfExp : UnaExp
 
     ObjcProtocolOfExp(Loc loc, Expression *e);
     Expression *semantic(Scope *sc);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    elem *toElem(IRState *irs);
+
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 
@@ -183,19 +183,14 @@ struct TypeObjcSelector : TypeNext
     d_uns64 size(Loc loc);
     unsigned alignsize();
     MATCH implicitConvTo(Type *to);
-    void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     Expression *defaultInit(Loc loc);
     bool isZeroInit(Loc loc);
     bool checkBoolean();
     TypeInfoDeclaration *getTypeInfoDeclaration();
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     int hasPointers();
-    TypeTuple *toArgTypes();
-#if CPP_MANGLE
-    void toCppMangle(OutBuffer *buf, CppMangleState *cms);
-#endif
 
-    type *toCtype();
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 #endif

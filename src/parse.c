@@ -1395,16 +1395,10 @@ Dsymbol *Parser::parseStaticCtor()
     nextToken();
     check(TOKlparen);
     check(TOKrparen);
+    StorageClass stc = parsePostfix(NULL);
 
-    //StorageClass stc = parsePostfix(&udas);
-    StaticCtorDeclaration *f = new StaticCtorDeclaration(loc, Loc());
+    StaticCtorDeclaration *f = new StaticCtorDeclaration(loc, Loc(), stc);
     Dsymbol *s = parseContracts(f);
-    //if (udas)
-    //{
-    //    Dsymbols *a = new Dsymbols();
-    //    a->push(f);
-    //    s = new UserAttributeDeclaration(udas, a);
-    //}
     return s;
 }
 
@@ -1424,16 +1418,10 @@ Dsymbol *Parser::parseSharedStaticCtor()
     nextToken();
     check(TOKlparen);
     check(TOKrparen);
+    StorageClass stc = parsePostfix(NULL);
 
-    //StorageClass stc = parsePostfix(&udas);
-    SharedStaticCtorDeclaration *f = new SharedStaticCtorDeclaration(loc, Loc());
+    SharedStaticCtorDeclaration *f = new SharedStaticCtorDeclaration(loc, Loc(), stc);
     Dsymbol *s = parseContracts(f);
-    //if (udas)
-    //{
-    //    Dsymbols *a = new Dsymbols();
-    //    a->push(f);
-    //    s = new UserAttributeDeclaration(udas, a);
-    //}
     return s;
 }
 
@@ -3580,8 +3568,8 @@ L2:
         }
         else if (t->ty == Tfunction)
         {
-            TypeFunction *tf = (TypeFunction *)t;
             Expression *constraint = NULL;
+            TypeFunction *tf = (TypeFunction *)t;
 #if 0
             if (Parameter::isTPL(tf->parameters))
             {
@@ -4174,7 +4162,7 @@ Expression *Parser::parseDefaultInitExp()
         Token *t = peek(&token);
         if (t->value == TOKcomma || t->value == TOKrparen)
         {
-            Expression *e;
+            Expression *e = NULL;
             if (token.value == TOKfile)
                 e = new FileInitExp(token.loc);
             else if (token.value == TOKline)

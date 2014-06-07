@@ -209,7 +209,12 @@ char *Dsymbol::toChars()
     return ident ? ident->toChars() : (char *)"__anonymous";
 }
 
-const char *Dsymbol::toPrettyChars()
+char *Dsymbol::toPrettyCharsHelper()
+{
+    return toChars();
+}
+
+const char *Dsymbol::toPrettyChars(bool QualifyTypes)
 {   Dsymbol *p;
     char *s;
     char *q;
@@ -221,14 +226,14 @@ const char *Dsymbol::toPrettyChars()
 
     len = 0;
     for (p = this; p; p = p->parent)
-        len += strlen(p->toChars()) + 1;
+        len += strlen(QualifyTypes ? p->toPrettyCharsHelper() : p->toChars()) + 1;
 
     s = (char *)mem.malloc(len);
     q = s + len - 1;
     *q = 0;
     for (p = this; p; p = p->parent)
     {
-        char *t = p->toChars();
+        char *t = QualifyTypes ? p->toPrettyCharsHelper() : p->toChars();
         len = strlen(t);
         q -= len;
         memcpy(q, t, len);
@@ -1446,7 +1451,7 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
                 // Check for multi-dimensional opDollar(dim) template.
                 if (TemplateDeclaration *td = s->isTemplateDeclaration())
                 {
-                    dinteger_t dim;
+                    dinteger_t dim = 0;
                     if (exp->op == TOKarray)
                     {
                         dim = ((ArrayExp *)exp)->currentDimension;

@@ -5861,6 +5861,23 @@ void test7436()
 }
 
 /***************************************************/
+// 12138
+
+struct S12138
+{
+    int num;
+    this(int n) { num = n; }
+    ~this() { num = 0; }
+}
+
+void test12138()
+{
+label:
+    auto s = S12138(10);
+    assert(s.num == 10);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -6151,6 +6168,7 @@ int main()
     test10633();
     test10642();
     test7436();
+    test12138();
 
     writefln("Success");
     return 0;

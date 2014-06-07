@@ -4242,6 +4242,25 @@ bool f12016(immutable B12016 b)
 static assert(f12016(new immutable C12016));
 
 /**************************************************
+    10610 ice immutable implicit conversion
+**************************************************/
+
+class Bug10610(T)
+{
+    int baz() immutable {
+        return 1;
+    }
+    static immutable(Bug10610!T) min = new Bug10610!T();
+}
+
+void ice10610()
+{
+   alias T10610 = Bug10610!(int);
+   static assert (T10610.min.baz());
+}
+
+
+/**************************************************
     11587 AA compare
 **************************************************/
 

@@ -6599,6 +6599,23 @@ L1:     pop     RAX;
 
 /****************************************************/
 
+void test12849()
+{
+    ulong a = 0xff00ff00ff00ff00L;
+    ulong result;
+    ulong expected = 0b10101010;
+    asm
+    {
+        pxor XMM0, XMM0;
+        movq XMM0, a;
+        pmovmskb RAX, XMM0;
+        mov result, RAX;
+    }
+    assert (result == expected);
+}
+
+/****************************************************/
+
 int main()
 {
     printf("Testing iasm64.d\n");
@@ -6668,6 +6685,7 @@ int main()
     test9866();
     testxadd();
     test9965();
+    test12849();
 
     printf("Success\n");
     return 0;

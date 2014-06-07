@@ -950,18 +950,18 @@ public:
     {
         TemplateInstance *ti = t->sym->parent->isTemplateInstance();
         if (ti && ti->toAlias() == t->sym)
-            buf->writestring(ti->toChars());
+            buf->writestring((hgs->fullQualification) ? ti->toPrettyChars() : ti->toChars());
         else
-            buf->writestring(t->sym->toChars());
+            buf->writestring((hgs->fullQualification) ? t->sym->toPrettyChars() : t->sym->toChars());
     }
 
     void visit(TypeClass *t)
     {
         TemplateInstance *ti = t->sym->parent->isTemplateInstance();
         if (ti && ti->toAlias() == t->sym)
-            buf->writestring(ti->toChars());
+            buf->writestring((hgs->fullQualification) ? ti->toPrettyChars() : ti->toChars());
         else
-            buf->writestring(t->sym->toChars());
+            buf->writestring((hgs->fullQualification) ? t->sym->toPrettyChars() : t->sym->toChars());
     }
 
     void visit(TypeTuple *t)
@@ -1726,6 +1726,34 @@ public:
     {
         buf->writestring(e->value->toChars());
     }
+#if DMD_OBJC
+    void visit(ObjcSelectorExp *e)
+    {
+        buf->writeByte('&');
+        if (e->func)
+            buf->writestring(e->func->toChars());
+        else
+            buf->writestring(e->selname);
+    }
+
+    void visit(ObjcDotClassExp *e)
+    {
+        toCBuffer(e->e1, buf, hgs);
+        buf->writestring(".class");
+    }
+
+    void visit(ObjcClassRefExp *e)
+    {
+        buf->writestring(e->cdecl->objcident->string);
+        buf->writestring(".class");
+    }
+
+    void visit(ObjcProtocolOfExp *e)
+    {
+        e->e1->toCBuffer(buf, hgs);
+        buf->writestring(".protocolof");
+    }
+#endif
 };
 
 void toCBuffer(Statement *s, OutBuffer *buf, HdrGenState *hgs)

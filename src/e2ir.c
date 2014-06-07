@@ -1708,7 +1708,6 @@ elem *toElem(Expression *e, IRState *irs)
                     // Single dimension array allocations
                     Expression *arg = (*ne->arguments)[0]; // gives array length
                     e = arg->toElem(irs);
-                    d_uns64 elemsize = tda->next->size();
 
                     // call _d_newT(ti, arg)
                     e = el_param(e, ne->type->getTypeInfo(NULL)->toElem(irs));
@@ -1738,9 +1737,7 @@ elem *toElem(Expression *e, IRState *irs)
             else if (t->ty == Tpointer)
             {
                 TypePointer *tp = (TypePointer *)t;
-                d_uns64 elemsize = tp->next->size();
                 Expression *di = tp->next->defaultInit();
-                d_uns64 disize = di->type->size();
 
                 // call _d_newitemT(ti)
                 e = ne->type->getTypeInfo(NULL)->toElem(irs);
@@ -1856,6 +1853,7 @@ elem *toElem(Expression *e, IRState *irs)
             el_setLoc(e,ne->loc);
             result = e;
         }
+
 
         /***************************************
          */
@@ -2094,7 +2092,6 @@ elem *toElem(Expression *e, IRState *irs)
             Type *tb2 = ce->e2->type->toBasetype();
 
             Type *ta = (tb1->ty == Tarray || tb1->ty == Tsarray) ? tb1 : tb2;
-            Type *tn = ta->nextOf();
 
             elem *e;
             if (ce->e1->op == TOKcat)
@@ -2507,7 +2504,6 @@ elem *toElem(Expression *e, IRState *irs)
                     //printf("Lpair %s\n", ae->toChars());
                     Type *tb = ta->nextOf()->toBasetype();
                     unsigned sz = tb->size();
-                    tym_t tym = totym(ae->type);
 
                     elem *n1 = are->e1->toElem(irs);
                     elem *elwr = are->lwr ? are->lwr->toElem(irs) : NULL;
@@ -3024,7 +3020,7 @@ elem *toElem(Expression *e, IRState *irs)
                     // Append array
                     e1 = el_una(OPaddr, TYnptr, e1);
                     if (config.exe == EX_WIN64)
-                        e2 = addressElem(e2, tb2);
+                        e2 = addressElem(e2, tb2, true);
                     else
                         e2 = useOPstrpar(e2);
                     elem *ep = el_params(e2, e1, ce->e1->type->getTypeInfo(NULL)->toElem(irs), NULL);
@@ -3471,13 +3467,14 @@ elem *toElem(Expression *e, IRState *irs)
         }
 
 #if DMD_OBJC
-        void visist (ObjcSelectorExp *ose)
+        void visit(ObjcSelectorExp *ose)
         {
             if (ose->func)
                 result = ose->func->objcSelector->toElem();
             else if (ose->selname)
                 result = ObjcSelector::lookup(ose->selname)->toElem();
-            assert(0);
+            else
+                assert(0);
         }
 #endif
 
@@ -5236,7 +5233,6 @@ elem *toElem(Expression *e, IRState *irs)
                             e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, sle->soffset));
                     }
                     e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, v->offset));
-                    elem *ec = e1;                      // pointer to destination
 
                     elem *ep = el->toElem(irs);
 
@@ -5277,7 +5273,6 @@ elem *toElem(Expression *e, IRState *irs)
             {
                 // Initialize the hidden 'this' pointer
                 assert(sle->sd->fields.dim);
-                ThisDeclaration *v = sle->sd->fields[sle->sd->fields.dim - 1]->isThisDeclaration();
 
                 elem *e1;
                 if (tybasic(stmp->Stype->Tty) == TYnptr)
@@ -5320,6 +5315,16 @@ elem *toElem(Expression *e, IRState *irs)
                 e = ec->toElem(irs);
             }
             result = e;
+        }
+
+        void visit(ObjcClassRefExp *ocre)
+        {
+            result = el_var(ObjcSymbols::getClassReference(ocre->cdecl));
+        }
+
+        void visit(ObjcProtocolOfExp *e)
+        {
+            result = el_ptr(ObjcSymbols::getProtocolSymbol(e->idecl));
         }
 #endif
 

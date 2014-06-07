@@ -75,6 +75,7 @@ Msgtable msgtable[] =
     { "q" },
     { "__vptr" },
     { "__monitor" },
+    { "gate", "__gate" },
 
     { "TypeInfo" },
     { "TypeInfo_Class" },

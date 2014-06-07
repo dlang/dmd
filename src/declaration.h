@@ -569,6 +569,11 @@ void add_builtin(const char *mangle, builtin_fp fp);
 void builtin_init();
 void buildClosure(FuncDeclaration *fd, IRState *irs);
 
+#define FUNCFLAGpurityInprocess 1   // working on determining purity
+#define FUNCFLAGsafetyInprocess 2   // working on determining safety
+#define FUNCFLAGnothrowInprocess 4  // working on determining nothrow
+#define FUNCFLAGnogcInprocess 8     // working on determining @nogc
+
 class FuncDeclaration : public Declaration
 {
 public:
@@ -649,10 +654,6 @@ public:
                                         // called this one
 
     unsigned flags;
-    #define FUNCFLAGpurityInprocess 1   // working on determining purity
-    #define FUNCFLAGsafetyInprocess 2   // working on determining safety
-    #define FUNCFLAGnothrowInprocess 4  // working on determining nothrow
-    #define FUNCFLAGnogcInprocess 8     // working on determining @nogc
 
     FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageClass storage_class, Type *type);
     Dsymbol *syntaxCopy(Dsymbol *);
@@ -680,7 +681,7 @@ public:
     int getLevel(Loc loc, Scope *sc, FuncDeclaration *fd); // lexical nesting level difference
     void appendExp(Expression *e);
     void appendState(Statement *s);
-    const char *toPrettyChars();
+    const char *toPrettyChars(bool QualifyTypes = false);
     const char *toFullSignature();  // for diagnostics, e.g. 'int foo(int x, int y) pure'
     bool isMain();
     bool isWinMain();
@@ -692,6 +693,7 @@ public:
     bool hasOverloads();
     PURE isPure();
     PURE isPureBypassingInference();
+    bool isPureBypassingInferenceX();
     bool setImpure();
     bool isSafe();
     bool isSafeBypassingInference();
@@ -779,7 +781,7 @@ public:
 
     FuncLiteralDeclaration *isFuncLiteralDeclaration() { return this; }
     const char *kind();
-    const char *toPrettyChars();
+    const char *toPrettyChars(bool QualifyTypes = false);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -837,8 +839,8 @@ public:
 class StaticCtorDeclaration : public FuncDeclaration
 {
 public:
-    StaticCtorDeclaration(Loc loc, Loc endloc);
-    StaticCtorDeclaration(Loc loc, Loc endloc, const char *name);
+    StaticCtorDeclaration(Loc loc, Loc endloc, StorageClass stc);
+    StaticCtorDeclaration(Loc loc, Loc endloc, const char *name, StorageClass stc);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     AggregateDeclaration *isThis();
@@ -855,7 +857,7 @@ public:
 class SharedStaticCtorDeclaration : public StaticCtorDeclaration
 {
 public:
-    SharedStaticCtorDeclaration(Loc loc, Loc endloc);
+    SharedStaticCtorDeclaration(Loc loc, Loc endloc, StorageClass stc);
     Dsymbol *syntaxCopy(Dsymbol *);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 

@@ -565,48 +565,6 @@ void ClassDeclaration::semantic(Scope *sc)
             b->base = baseClass;
         }
 
-#if DMD_OBJC
-        if (objc && !objcmeta && !metaclass)
-        {
-            if (!objcident)
-                objcident = ident;
-
-            if (objcident == Id::Protocol)
-            {   if (ObjcProtocolOfExp::protocolClassDecl == NULL)
-                ObjcProtocolOfExp::protocolClassDecl = this;
-            else if (ObjcProtocolOfExp::protocolClassDecl != this)
-            {   error("duplicate definition of Objective-C class '%s'", Id::Protocol);
-            }
-            }
-
-            // Create meta class derived from all our base's metaclass
-            BaseClasses *metabases = new BaseClasses();
-            for (size_t i = 0; i < baseclasses->dim; ++i)
-            {   ClassDeclaration *basecd = ((BaseClass *)baseclasses->data[i])->base;
-                assert(basecd);
-                if (basecd->objc)
-                {   assert(basecd->metaclass);
-                    assert(basecd->metaclass->objcmeta);
-                    assert(basecd->metaclass->type->ty == Tclass);
-                    assert(((TypeClass *)basecd->metaclass->type)->sym == basecd->metaclass);
-                    BaseClass *metabase = new BaseClass(basecd->metaclass->type, PROTpublic);
-                    metabase->base = basecd->metaclass;
-                    metabases->push(metabase);
-                }
-                else
-                    error("base class and interfaces for an Objective-C class must be extern (Objective-C)");
-            }
-            metaclass = new ClassDeclaration(loc, Id::Class, metabases);
-            metaclass->storage_class |= STCstatic;
-            metaclass->objc = 1;
-            metaclass->objcmeta = 1;
-            metaclass->objcextern = objcextern;
-            metaclass->objcident = objcident;
-            members->push(metaclass);
-            metaclass->addMember(sc, this, 1);
-        }
-#endif
-
         if (baseClass)
         {
             if (baseClass->storage_class & STCfinal)
@@ -667,6 +625,48 @@ Lancestorsdone:
 
     if (sizeok == SIZEOKnone)
     {
+#if DMD_OBJC
+        if (objc && !objcmeta && !metaclass)
+        {
+            if (!objcident)
+                objcident = ident;
+
+            if (objcident == Id::Protocol)
+            {   if (ObjcProtocolOfExp::protocolClassDecl == NULL)
+                ObjcProtocolOfExp::protocolClassDecl = this;
+            else if (ObjcProtocolOfExp::protocolClassDecl != this)
+            {   error("duplicate definition of Objective-C class '%s'", Id::Protocol);
+            }
+            }
+
+            // Create meta class derived from all our base's metaclass
+            BaseClasses *metabases = new BaseClasses();
+            for (size_t i = 0; i < baseclasses->dim; ++i)
+            {   ClassDeclaration *basecd = ((BaseClass *)baseclasses->data[i])->base;
+                assert(basecd);
+                if (basecd->objc)
+                {   assert(basecd->metaclass);
+                    assert(basecd->metaclass->objcmeta);
+                    assert(basecd->metaclass->type->ty == Tclass);
+                    assert(((TypeClass *)basecd->metaclass->type)->sym == basecd->metaclass);
+                    BaseClass *metabase = new BaseClass(basecd->metaclass->type, PROTpublic);
+                    metabase->base = basecd->metaclass;
+                    metabases->push(metabase);
+                }
+                else
+                    error("base class and interfaces for an Objective-C class must be extern (Objective-C)");
+            }
+            metaclass = new ClassDeclaration(loc, Id::Class, metabases);
+            metaclass->storage_class |= STCstatic;
+            metaclass->objc = 1;
+            metaclass->objcmeta = 1;
+            metaclass->objcextern = objcextern;
+            metaclass->objcident = objcident;
+            members->push(metaclass);
+            metaclass->addMember(sc, this, 1);
+        }
+#endif
+
         // initialize vtbl
         if (baseClass)
         {
@@ -898,8 +898,8 @@ Lancestorsdone:
 			}
 			newinitfd->fbody = new ReturnStatement(loc, new CommaExp(loc, inite, retvale));
 			members->push(newinitfd);
-			newinitfd->addMember(sc, this, 1);
-			newinitfd->semantic(sc);
+			newinitfd->addMember(sc2, this, 1);
+			newinitfd->semantic(sc2);
 
 			// replace initfd for next step
 			initfd = newinitfd;
@@ -932,8 +932,8 @@ Lancestorsdone:
             }
 			newinvfd->fbody = new ExpStatement(iloc, e);
 			members->push(newinvfd);
-			newinvfd->addMember(sc, this, 1);
-			newinvfd->semantic(sc);
+			newinvfd->addMember(sc2, this, 1);
+			newinvfd->semantic(sc2);
         }
 	}
 #endif
@@ -1026,7 +1026,7 @@ Lancestorsdone:
     }
 #if DMD_OBJC
     //    if (metaclass)
-    //        metaclass->semantic(sc);
+    //        metaclass->semantic(sc2);
 #endif
     sc2->pop();
 
@@ -1331,7 +1331,6 @@ FuncDeclaration *ClassDeclaration::findFunc(Identifier *ident, TypeFunction *tf)
                     goto Lfdmatch;
                 }
 
-            Lambig:
                 fdambig = fd;
                 //printf("Lambig fdambig = %s %s [%s]\n", fdambig->toChars(), fdambig->type->toChars(), fdambig->loc.toChars());
                 continue;

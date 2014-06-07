@@ -85,6 +85,69 @@ void test6351()
 }
 
 /***************************************************/
+// 6359
+
+void    impure6359()      nothrow @safe @nogc {}
+void throwable6359() pure         @safe @nogc {}
+void    system6359() pure nothrow       @nogc {}
+void    gcable6359() pure nothrow @safe       {}
+
+int global6359;
+
+void f6359() pure nothrow @safe @nogc
+{
+    static assert(!__traits(compiles,    impure6359()));
+    static assert(!__traits(compiles, throwable6359()));
+    static assert(!__traits(compiles,    system6359()));
+    static assert(!__traits(compiles,    gcable6359()));
+    static assert(!__traits(compiles,    global6359++));
+
+  //static assert(!__traits(compiles, {    impure6359(); }())); // BUG: blocked by issue 9148.
+    static assert(!__traits(compiles, { throwable6359(); }()));
+    static assert(!__traits(compiles, {    system6359(); }()));
+    static assert(!__traits(compiles, {    gcable6359(); }()));
+    static assert(!__traits(compiles, {    global6359++; }()));
+}
+
+void g6359()() pure nothrow @safe @nogc
+{
+    static assert(!__traits(compiles,    impure6359()));
+    static assert(!__traits(compiles, throwable6359()));
+    static assert(!__traits(compiles,    system6359()));
+    static assert(!__traits(compiles,    gcable6359()));
+    static assert(!__traits(compiles,    global6359++));
+
+  //static assert(!__traits(compiles, {    impure6359(); }())); // BUG: blocked by issue 9148.
+    static assert(!__traits(compiles, { throwable6359(); }()));
+    static assert(!__traits(compiles, {    system6359(); }()));
+    static assert(!__traits(compiles, {    gcable6359(); }()));
+    static assert(!__traits(compiles, {    global6359++; }()));
+}
+
+// attribute inference is not affected by the expressions inside __traits(compiles)
+void h6359()()
+{
+    static assert( __traits(compiles,    impure6359()));
+    static assert( __traits(compiles, throwable6359()));
+    static assert( __traits(compiles,    system6359()));
+    static assert( __traits(compiles,    gcable6359()));
+    static assert( __traits(compiles,    global6359++));
+
+    static assert( __traits(compiles, {    impure6359(); }()));
+    static assert( __traits(compiles, { throwable6359(); }()));
+    static assert( __traits(compiles, {    system6359(); }()));
+    static assert( __traits(compiles, {    gcable6359(); }()));
+  //static assert( __traits(compiles, {    global6359++; }())); // BUG: blocked by issue 9148.
+}
+
+void test6359() pure nothrow @safe @nogc
+{
+    f6359();
+    g6359();
+    h6359();
+}
+
+/***************************************************/
 // 7017
 
 template map7017(fun...) if (fun.length >= 1)

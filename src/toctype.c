@@ -54,7 +54,7 @@ public:
     void visit(TypeDArray *t)
     {
         t->ctype = type_dyn_array(Type_toCtype(t->next));
-        t->ctype->Tident = t->toChars(); // needed to generate sensible debug info for cv8
+        t->ctype->Tident = t->toPrettyChars(true);
     }
 
     void visit(TypeAArray *t)
@@ -102,7 +102,7 @@ public:
     {
         type *tn;
 
-        //printf("TypePointer::toCtype() %s\n", toChars());
+        //printf("TypePointer::toCtype() %s\n", t->toChars());
         if (t->ctype)
             return;
 
@@ -160,7 +160,7 @@ public:
         else
         {
             StructDeclaration *sym = t->sym;
-            t->ctype = type_struct_class(sym->toPrettyChars(), sym->alignsize, sym->structsize,
+            t->ctype = type_struct_class(sym->toPrettyChars(true), sym->alignsize, sym->structsize,
                     sym->arg1type ? Type_toCtype(sym->arg1type) : NULL,
                     sym->arg2type ? Type_toCtype(sym->arg2type) : NULL,
                     sym->isUnionDeclaration() != 0,

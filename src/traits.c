@@ -295,7 +295,6 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             return new ErrorExp();
     }
     size_t dim = e->args ? e->args->dim : 0;
-    Declaration *d;
 
     if (e->ident == Id::isArithmetic)
     {
@@ -902,6 +901,11 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
                 ex = ex->semantic(sc2);
                 ex = resolvePropertiesOnly(sc2, ex);
                 ex = ex->optimize(WANTvalue);
+                if (sc2->func && sc2->func->type->ty == Tfunction)
+                {
+                    TypeFunction *tf = (TypeFunction *)sc2->func->type;
+                    canThrow(ex, sc2->func, tf->isnothrow);
+                }
                 ex = checkGC(sc2, ex);
                 if (ex->op == TOKerror)
                     err = true;
@@ -1023,7 +1027,6 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             goto Lfalse;
         }
         fd = fd->toAliasFunc(); // Neccessary to support multiple overloads.
-        ptrdiff_t result = fd->isVirtual() ? fd->vtblIndex : -1;
         return new IntegerExp(e->loc, fd->vtblIndex, Type::tptrdiff_t);
     }
     else

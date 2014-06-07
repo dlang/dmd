@@ -1593,6 +1593,17 @@ char *Type::toChars()
     return buf.extractString();
 }
 
+char *Type::toPrettyChars(bool QualifyTypes)
+{
+    OutBuffer buf;
+    buf.reserve(16);
+    HdrGenState hgs;
+    hgs.fullQualification = QualifyTypes;
+
+    toCBuffer(&buf, NULL, &hgs);
+    return buf.extractString();
+}
+
 void Type::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
 {
     ::toCBuffer(this, buf, ident, hgs);
@@ -3608,7 +3619,7 @@ Type *TypeVector::syntaxCopy()
 
 Type *TypeVector::semantic(Loc loc, Scope *sc)
 {
-    int errors = global.errors;
+    unsigned int errors = global.errors;
     basetype = basetype->semantic(loc, sc);
     if (errors != global.errors)
         return terror;
@@ -3822,7 +3833,6 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
         Expressions *arguments;
         dinteger_t size = next->size(e->loc);
 
-        Expression *olde = e;
         assert(size);
 
         static FuncDeclaration *adReverse_fd = NULL;
@@ -4096,7 +4106,7 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
     if (dim)
     {   dinteger_t n, n2;
 
-        int errors = global.errors;
+        unsigned int errors = global.errors;
         dim = semanticLength(sc, tbn, dim);
         if (errors != global.errors)
             goto Lerror;
@@ -4712,13 +4722,23 @@ printf("index->ito->ito = x%x\n", index->ito->ito);
             return Type::terror;
         case Tstruct:
         {
-            /* AA's need opCmp. Issue error if not correctly set up.
+            /* AA's need opEquals and opCmp. Issue error if not correctly set up.
              */
             StructDeclaration *sd = ((TypeStruct *)index->toBasetype())->sym;
             if (sd->scope)
                 sd->semantic(NULL);
 
             // duplicate a part of StructDeclaration::semanticTypeInfoMembers
+            if (sd->xeq &&
+                sd->xeq->scope &&
+                sd->xeq->semanticRun < PASSsemantic3done)
+            {
+                unsigned errors = global.startGagging();
+                sd->xeq->semantic3(sd->xeq->scope);
+                if (global.endGagging(errors))
+                    sd->xeq = sd->xerreq;
+            }
+
             if (sd->xcmp &&
                 sd->xcmp->scope &&
                 sd->xcmp->semanticRun < PASSsemantic3done)
@@ -4729,6 +4749,13 @@ printf("index->ito->ito = x%x\n", index->ito->ito);
                     sd->xcmp = sd->xerrcmp;
             }
 
+            if (sd->xeq == sd->xerreq)
+            {
+                error(loc, "associative array key type %s does not have 'const bool opEquals(ref const %s)' member function",
+                        index->toBasetype()->toChars(), sd->toChars());
+                return Type::terror;
+            }
+            // the opCmp requirement can go away once druntime fully switched to using opEquals
             if (sd->xcmp == sd->xerrcmp)
             {
                 error(loc, "associative array key type %s does not have 'const int opCmp(ref const %s)' member function",
@@ -4982,7 +5009,22 @@ MATCH TypePointer::implicitConvTo(Type *to)
                     return MATCHconst;
 
                 if (next->covariant(tp->next) == 1)
+                {
+                    Type *tret = this->next->nextOf();
+                    Type *toret = tp->next->nextOf();
+                    if (tret->ty == Tclass && toret->ty == Tclass)
+                    {
+                        /* Bugzilla 10219: Check covariant interface return with offset tweaking.
+                         * interface I {}
+                         * class C : Object, I {}
+                         * I function() dg = function C() {}    // should be error
+                         */
+                        int offset = 0;
+                        if (toret->isBaseOf(tret, &offset) && offset != 0)
+                            return MATCHnomatch;
+                    }
                     return MATCHconvert;
+                }
             }
             else if (tp->next->ty == Tvoid)
             {
@@ -6295,7 +6337,22 @@ MATCH TypeDelegate::implicitConvTo(Type *to)
         return MATCHexact;
 #if 1 // not allowing covariant conversions because it interferes with overriding
     if (to->ty == Tdelegate && this->nextOf()->covariant(to->nextOf()) == 1)
+    {
+        Type *tret = this->next->nextOf();
+        Type *toret = ((TypeDelegate *)to)->next->nextOf();
+        if (tret->ty == Tclass && toret->ty == Tclass)
+        {
+            /* Bugzilla 10219: Check covariant interface return with offset tweaking.
+             * interface I {}
+             * class C : Object, I {}
+             * I delegate() dg = delegate C() {}    // should be error
+             */
+            int offset = 0;
+            if (toret->isBaseOf(tret, &offset) && offset != 0)
+                return MATCHnomatch;
+        }
         return MATCHconvert;
+    }
 #endif
     return MATCHnomatch;
 }
@@ -7448,7 +7505,7 @@ char *TypeTypedef::toChars()
 Type *TypeTypedef::semantic(Loc loc, Scope *sc)
 {
     //printf("TypeTypedef::semantic(%s), sem = %d\n", toChars(), sym->sem);
-    int errors = global.errors;
+    unsigned int errors = global.errors;
     sym->semantic(sc);
     if (errors != global.errors || sym->errors || sym->basetype->ty == Terror)
         return terror;

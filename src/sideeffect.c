@@ -83,6 +83,10 @@ int callSideEffectLevel(Type *t)
     TypeFunction *tf;
     if (t->ty == Tdelegate)
         tf = (TypeFunction *)((TypeDelegate *)t)->next;
+#if DMD_OBJC
+    else if (t->ty == Tobjcselector)
+        tf = (TypeFunction *)((TypeDelegate *)t)->next;
+#endif
     else
     {
         assert(t->ty == Tfunction);
@@ -212,6 +216,16 @@ void discardValue(Expression *e)
         case TOKerror:
             return;
 
+        case TOKvar:
+        {
+            VarDeclaration *v = ((VarExp *)e)->var->isVarDeclaration();
+            if (v && (v->storage_class & STCtemp))
+            {
+                // Bugzilla 5810: Don't complain about an internal generated variable.
+                return;
+            }
+            break;
+        }
         case TOKcall:
             /* Issue 3882: */
             if (global.params.warnings && !global.gag)

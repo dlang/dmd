@@ -677,8 +677,7 @@ ObjcSelector *ObjcSelector::create(FuncDeclaration *fdecl)
     TypeFunction *ftype = (TypeFunction *)fdecl->type;
 
     // Special case: property setter
-    if ((fdecl->storage_class & STCproperty) &&
-        ftype->parameters && ftype->parameters->dim == 1)
+    if (ftype->isproperty && ftype->parameters && ftype->parameters->dim == 1)
     {   // rewrite "identifier" as "setIdentifier"
         char firstChar = fdecl->ident->string[0];
         if (firstChar >= 'a' && firstChar <= 'z')
@@ -740,18 +739,6 @@ ObjcClassRefExp::ObjcClassRefExp(Loc loc, ClassDeclaration *cdecl)
     this->type = ObjcClassDeclaration::getObjcMetaClass(cdecl)->getType();
 }
 
-void ObjcClassRefExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring(cdecl->objcident->string);
-    buf->writestring(".class");
-}
-
-elem *ObjcClassRefExp::toElem(IRState *irs)
-{
-    return el_var(ObjcSymbols::getClassReference(cdecl->objcident));
-}
-
-
 // MARK: .class Expression
 
 ObjcDotClassExp::ObjcDotClassExp(Loc loc, Expression *e)
@@ -797,12 +784,6 @@ Expression *ObjcDotClassExp::semantic(Scope *sc)
     return new ErrorExp();
 }
 
-void ObjcDotClassExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    e1->toCBuffer(buf, hgs);
-    buf->writestring(".class");
-}
-
 // MARK: .interface Expression
 
 ClassDeclaration *ObjcProtocolOfExp::protocolClassDecl = NULL;
@@ -846,18 +827,6 @@ Expression *ObjcProtocolOfExp::semantic(Scope *sc)
     error("%s of type %s has no 'protocolof' property", e1->toChars(), e1->type->toChars());
     return new ErrorExp();
 }
-
-void ObjcProtocolOfExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    e1->toCBuffer(buf, hgs);
-    buf->writestring(".protocolof");
-}
-
-elem *ObjcProtocolOfExp::toElem(IRState *irs)
-{
-    return el_ptr(ObjcSymbols::getProtocolSymbol(idecl));
-}
-
 
 // MARK: ObjcClassDeclaration
 

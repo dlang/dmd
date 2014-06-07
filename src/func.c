@@ -1362,6 +1362,7 @@ void FuncDeclaration::semantic3(Scope *sc)
         sc2->structalign = STRUCTALIGN_DEFAULT;
         if (this->ident != Id::require && this->ident != Id::ensure)
             sc2->flags = sc->flags & ~SCOPEcontract;
+        sc2->flags &= ~SCOPEcompile;
         sc2->tf = NULL;
         sc2->os = NULL;
         sc2->noctor = 0;
@@ -1371,7 +1372,7 @@ void FuncDeclaration::semantic3(Scope *sc)
         sc2->fieldinit = NULL;
         sc2->fieldinit_dim = 0;
 
-        if (AggregateDeclaration *ad = isMember2())
+        if (isMember2())
         {
             FuncLiteralDeclaration *fld = isFuncLiteralDeclaration();
             if (fld && !sc->intypeof)
@@ -1737,9 +1738,9 @@ void FuncDeclaration::semantic3(Scope *sc)
                             if (v->isCtorinit() && !v->type->isMutable() && cd)
                                 error("missing initializer for %s field %s", MODtoChars(v->type->mod), v->toChars());
                             else if (v->storage_class & STCnodefaultctor)
-                                error("field %s must be initialized in constructor", v->toChars());
+                                ::error(loc, "field %s must be initialized in constructor", v->toChars());
                             else if (v->type->needsNested())
-                                error("field %s must be initialized in constructor, because it is nested struct", v->toChars());
+                                ::error(loc, "field %s must be initialized in constructor, because it is nested struct", v->toChars());
                         }
                         else
                         {
@@ -1778,14 +1779,18 @@ void FuncDeclaration::semantic3(Scope *sc)
                 }
 
                 // Check for errors related to 'nothrow'.
-                int nothrowErrors = global.errors;
+                unsigned int nothrowErrors = global.errors;
                 int blockexit = fbody->blockExit(this, f->isnothrow);
                 if (f->isnothrow && (global.errors != nothrowErrors) )
                     ::error(loc, "%s '%s' is nothrow yet may throw", kind(), toPrettyChars());
                 if (flags & FUNCFLAGnothrowInprocess)
                 {
                     if (type == f) f = (TypeFunction *)f->copy();
+#if DMD_OBJC
+                    f->isnothrow = !(blockexit & BEthrowany);
+#else
                     f->isnothrow = !(blockexit & BEthrow);
+#endif
                 }
                 //printf("callSuper = x%x\n", sc2->callSuper);
 
@@ -1813,7 +1818,11 @@ void FuncDeclaration::semantic3(Scope *sc)
                 if (flags & FUNCFLAGnothrowInprocess)
                 {
                     if (type == f) f = (TypeFunction *)f->copy();
+#if DMD_OBJC
+                    f->isnothrow = !(blockexit & BEthrowany);
+#else
                     f->isnothrow = !(blockexit & BEthrow);
+#endif
                 }
                 //printf("callSuper = x%x\n", sc2->callSuper);
 
@@ -1832,14 +1841,18 @@ void FuncDeclaration::semantic3(Scope *sc)
             else
             {
                 // Check for errors related to 'nothrow'.
-                int nothrowErrors = global.errors;
+                unsigned int nothrowErrors = global.errors;
                 int blockexit = fbody->blockExit(this, f->isnothrow);
                 if (f->isnothrow && (global.errors != nothrowErrors) )
                     ::error(loc, "%s '%s' is nothrow yet may throw", kind(), toPrettyChars());
                 if (flags & FUNCFLAGnothrowInprocess)
                 {
                     if (type == f) f = (TypeFunction *)f->copy();
+#if DMD_OBJC
+                    f->isnothrow = !(blockexit & BEthrowany);
+#else
                     f->isnothrow = !(blockexit & BEthrow);
+#endif
                 }
 
                 int offend = blockexit & BEfallthru;
@@ -2127,7 +2140,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                     {
                         Statement *s = new ExpStatement(Loc(), e);
                         s = s->semantic(sc2);
-                        int nothrowErrors = global.errors;
+                        unsigned int nothrowErrors = global.errors;
                         bool isnothrow = f->isnothrow & !(flags & FUNCFLAGnothrowInprocess);
                         int blockexit = s->blockExit(this, isnothrow);
                         if (f->isnothrow && (global.errors != nothrowErrors) )
@@ -3124,7 +3137,6 @@ MATCH FuncDeclaration::leastAsSpecialized(FuncDeclaration *g)
     TypeFunction *tf = (TypeFunction *)type;
     TypeFunction *tg = (TypeFunction *)g->type;
     size_t nfparams = Parameter::dim(tf->parameters);
-    size_t ngparams = Parameter::dim(tg->parameters);
 
     /* If both functions have a 'this' pointer, and the mods are not
      * the same and g's is not const, then this is less specialized.
@@ -3337,7 +3349,6 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
         }
     }
 
-Lerror:
     /* Failed to find a best match.
      * Do nothing or print error.
      */
@@ -3617,12 +3628,12 @@ void FuncDeclaration::appendState(Statement *s)
     }
 }
 
-const char *FuncDeclaration::toPrettyChars()
+const char *FuncDeclaration::toPrettyChars(bool QualifyTypes)
 {
     if (isMain())
         return "D main";
     else
-        return Dsymbol::toPrettyChars();
+        return Dsymbol::toPrettyChars(QualifyTypes);
 }
 
 /** for diagnostics, e.g. 'int foo(int x, int y) pure' */
@@ -3793,6 +3804,11 @@ PURE FuncDeclaration::isPureBypassingInference()
         return PUREfwdref;
     else
         return isPure();
+}
+
+bool FuncDeclaration::isPureBypassingInferenceX()
+{
+    return !(flags & FUNCFLAGpurityInprocess) && isPure() != PUREimpure;
 }
 
 /**************************************
@@ -4166,7 +4182,7 @@ void FuncDeclaration::checkNestedReference(Scope *sc, Loc loc)
             if (fdthis != this)
             {
                 bool found = false;
-                for (int i = 0; i < siblingCallers.dim; ++i)
+                for (size_t i = 0; i < siblingCallers.dim; ++i)
                 {
                     if (siblingCallers[i] == fdthis)
                         found = true;
@@ -4241,7 +4257,7 @@ bool checkEscapingSiblings(FuncDeclaration *f, FuncDeclaration *outerFunc, void 
 
     //printf("checkEscapingSiblings(f = %s, outerfunc = %s)\n", f->toChars(), outerFunc->toChars());
     bool bAnyClosures = false;
-    for (int i = 0; i < f->siblingCallers.dim; ++i)
+    for (size_t i = 0; i < f->siblingCallers.dim; ++i)
     {
         FuncDeclaration *g = f->siblingCallers[i];
         if (g->isThis() || g->tookAddressOf)
@@ -4690,15 +4706,15 @@ void FuncLiteralDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     }
 }
 
-const char *FuncLiteralDeclaration::toPrettyChars()
+const char *FuncLiteralDeclaration::toPrettyChars(bool QualifyTypes)
 {
     if (parent)
     {
         TemplateInstance *ti = parent->isTemplateInstance();
         if (ti)
-            return ti->tempdecl->toPrettyChars();
+            return ti->tempdecl->toPrettyChars(QualifyTypes);
     }
-    return Dsymbol::toPrettyChars();
+    return Dsymbol::toPrettyChars(QualifyTypes);
 }
 
 /********************************* CtorDeclaration ****************************/
@@ -4955,22 +4971,22 @@ void DtorDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /********************************* StaticCtorDeclaration ****************************/
 
-StaticCtorDeclaration::StaticCtorDeclaration(Loc loc, Loc endloc)
+StaticCtorDeclaration::StaticCtorDeclaration(Loc loc, Loc endloc, StorageClass stc)
     : FuncDeclaration(loc, endloc,
-      Identifier::generateId("_staticCtor"), STCstatic, NULL)
+      Identifier::generateId("_staticCtor"), STCstatic | stc, NULL)
 {
 }
 
-StaticCtorDeclaration::StaticCtorDeclaration(Loc loc, Loc endloc, const char *name)
+StaticCtorDeclaration::StaticCtorDeclaration(Loc loc, Loc endloc, const char *name, StorageClass stc)
     : FuncDeclaration(loc, endloc,
-      Identifier::generateId(name), STCstatic, NULL)
+      Identifier::generateId(name), STCstatic | stc, NULL)
 {
 }
 
 Dsymbol *StaticCtorDeclaration::syntaxCopy(Dsymbol *s)
 {
     assert(!s);
-    StaticCtorDeclaration *scd = new StaticCtorDeclaration(loc, endloc);
+    StaticCtorDeclaration *scd = new StaticCtorDeclaration(loc, endloc, storage_class);
     return FuncDeclaration::syntaxCopy(scd);
 }
 
@@ -4980,12 +4996,28 @@ void StaticCtorDeclaration::semantic(Scope *sc)
     //printf("StaticCtorDeclaration::semantic()\n");
 
     if (scope)
-    {   sc = scope;
+    {
+        sc = scope;
         scope = NULL;
     }
 
+    if (storage_class & STCshared && !isSharedStaticCtorDeclaration())
+    {
+        ::error(loc, "to create a shared static constructor, use 'shared static this'");
+        storage_class &= ~STCshared;
+    }
+
+    if (storage_class & (STCimmutable | STCconst | STCshared | STCwild))
+    {
+        OutBuffer buf;
+        StorageClassDeclaration::stcToCBuffer(&buf, storage_class & (STCimmutable | STCconst | STCshared | STCwild));
+        ::error(loc, "static constructors cannot be %s", buf.peekString());
+    }
+
+    storage_class &= ~STC_TYPECTOR; // remove qualifiers
+
     if (!type)
-        type = new TypeFunction(NULL, Type::tvoid, false, LINKd);
+        type = new TypeFunction(NULL, Type::tvoid, false, LINKd, storage_class);
 
     /* If the static ctor appears within a template instantiation,
      * it could get called multiple times by the module constructors
@@ -4999,13 +5031,12 @@ void StaticCtorDeclaration::semantic(Scope *sc)
          * Note that this is not thread safe; should not have threads
          * during static construction.
          */
-        Identifier *id = Lexer::idPool("__gate");
-        VarDeclaration *v = new VarDeclaration(Loc(), Type::tint32, id, NULL);
+        VarDeclaration *v = new VarDeclaration(Loc(), Type::tint32, Id::gate, NULL);
         v->storage_class = STCtemp | (isSharedStaticCtorDeclaration() ? STCstatic : STCtls);
         Statements *sa = new Statements();
         Statement *s = new ExpStatement(Loc(), v);
         sa->push(s);
-        Expression *e = new IdentifierExp(Loc(), id);
+        Expression *e = new IdentifierExp(Loc(), v->ident);
         e = new AddAssignExp(Loc(), e, new IntegerExp(1));
         e = new EqualExp(TOKnotequal, Loc(), e, new IntegerExp(1));
         s = new IfStatement(Loc(), NULL, e, new ReturnStatement(Loc(), NULL), NULL);
@@ -5066,15 +5097,15 @@ void StaticCtorDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /********************************* SharedStaticCtorDeclaration ****************************/
 
-SharedStaticCtorDeclaration::SharedStaticCtorDeclaration(Loc loc, Loc endloc)
-    : StaticCtorDeclaration(loc, endloc, "_sharedStaticCtor")
+SharedStaticCtorDeclaration::SharedStaticCtorDeclaration(Loc loc, Loc endloc, StorageClass stc)
+    : StaticCtorDeclaration(loc, endloc, "_sharedStaticCtor", stc)
 {
 }
 
 Dsymbol *SharedStaticCtorDeclaration::syntaxCopy(Dsymbol *s)
 {
     assert(!s);
-    SharedStaticCtorDeclaration *scd = new SharedStaticCtorDeclaration(loc, endloc);
+    SharedStaticCtorDeclaration *scd = new SharedStaticCtorDeclaration(loc, endloc, storage_class);
     return FuncDeclaration::syntaxCopy(scd);
 }
 
@@ -5131,13 +5162,12 @@ void StaticDtorDeclaration::semantic(Scope *sc)
          * Note that this is not thread safe; should not have threads
          * during static destruction.
          */
-        Identifier *id = Lexer::idPool("__gate");
-        VarDeclaration *v = new VarDeclaration(Loc(), Type::tint32, id, NULL);
+        VarDeclaration *v = new VarDeclaration(Loc(), Type::tint32, Id::gate, NULL);
         v->storage_class = STCtemp | (isSharedStaticDtorDeclaration() ? STCstatic : STCtls);
         Statements *sa = new Statements();
         Statement *s = new ExpStatement(Loc(), v);
         sa->push(s);
-        Expression *e = new IdentifierExp(Loc(), id);
+        Expression *e = new IdentifierExp(Loc(), v->ident);
         e = new AddAssignExp(Loc(), e, new IntegerExp(-1));
         e = new EqualExp(TOKnotequal, Loc(), e, new IntegerExp(0));
         s = new IfStatement(Loc(), NULL, e, new ReturnStatement(Loc(), NULL), NULL);

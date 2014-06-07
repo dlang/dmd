@@ -110,7 +110,6 @@ void semanticTypeInfo(Scope *sc, Type *t)
         }
         void visit(TypeStruct *t)
         {
-            Dsymbol *s;
             StructDeclaration *sd = t->sym;
             if (sd->members &&
                 (sd->xeq  && sd->xeq  != sd->xerreq  ||
@@ -357,7 +356,6 @@ unsigned AggregateDeclaration::size(Loc loc)
              */
             static int func(Dsymbol *s, void *param)
             {
-                SV *psv = (SV *)param;
                 VarDeclaration *v = s->isVarDeclaration();
                 if (v)
                 {

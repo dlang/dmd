@@ -26,6 +26,7 @@ struct HdrGenState
     int inArrExp;
     int emitInst;
     int autoMember;
+    bool fullQualification; // fully qualify types when printing
 
     struct
     {

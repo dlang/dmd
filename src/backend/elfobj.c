@@ -3226,7 +3226,9 @@ static void obj_rtinit()
          *
          * Generate the following function as a COMDAT so there's only one per DSO:
          *  .text.d_dso_init    segment
-         *      enter   0,0
+         *      push    EBP
+         *      mov     EBP,ESP
+         *      sub     ESP,align
          *      lea     RAX,deh_end[RIP]
          *      push    RAX
          *      lea     RAX,deh_beg[RIP]
@@ -3270,12 +3272,34 @@ static void obj_rtinit()
             // return address, EBP, EBX, DSO, arg
             (-(3 * NPTRSIZE + sizeof_dso + NPTRSIZE) & 0xF);
 
-        // enter align, 0
-        buf->writeByte(0xC8);
-        buf->writeByte(align & 0xFF);
-        buf->writeByte(align >> 8 & 0xFF);
-        buf->writeByte(0);
-        off += 4;
+        // push EBP
+        buf->writeByte(0x50 + BP);
+        off += 1;
+        // mov EBP, ESP
+        if (I64)
+        {
+            buf->writeByte(REX | REX_W);
+            off += 1;
+        }
+        buf->writeByte(0x8B);
+        buf->writeByte(modregrm(3,BP,SP));
+        off += 2;
+        // sub ESP, align
+        if (align)
+        {
+            if (I64)
+            {
+                buf->writeByte(REX | REX_W);
+                off += 1;
+            }
+            buf->writeByte(0x81);
+            buf->writeByte(modregrm(3,5,SP));
+            buf->writeByte(align & 0xFF);
+            buf->writeByte(align >> 8 & 0xFF);
+            buf->writeByte(0);
+            buf->writeByte(0);
+            off += 6;
+        }
 
         if (config.flags3 & CFG3pic && I32)
         {   // see cod3_load_got() for reference

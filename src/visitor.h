@@ -80,6 +80,9 @@ class TypeClass;
 class TypeTuple;
 class TypeSlice;
 class TypeNull;
+#if DMD_OBJC
+class TypeObjcSelector;
+#endif
 
 class Dsymbol;
 
@@ -283,6 +286,12 @@ class PrettyFuncInitExp;
 class ClassReferenceExp;
 class VoidInitExp;
 class ThrownExceptionExp;
+#if DMD_OBJC
+class ObjcSelectorExp;
+class ObjcDotClassExp;
+class ObjcClassRefExp;
+class ObjcProtocolOfExp;
+#endif
 
 class Visitor
 {
@@ -356,6 +365,9 @@ public:
     virtual void visit(TypeTuple *t) { visit((Type *)t); }
     virtual void visit(TypeSlice *t) { visit((TypeNext *)t); }
     virtual void visit(TypeNull *t) { visit((Type *)t); }
+#if DMD_OBJC
+    virtual void visit(TypeObjcSelector *t) { visit((TypeNext *)t); }
+#endif
 
     virtual void visit(Dsymbol *) { assert(0); }
 
@@ -559,16 +571,18 @@ public:
     virtual void visit(ClassReferenceExp *e) { visit((Expression *)e); }
     virtual void visit(VoidInitExp *e) { visit((Expression *)e); }
     virtual void visit(ThrownExceptionExp *e) { visit((Expression *)e); }
+#if DMD_OBJC
+    virtual void visit(ObjcSelectorExp *e) { visit((Expression *)e); }
+    virtual void visit(ObjcDotClassExp *e) { visit((UnaExp *)e); }
+    virtual void visit(ObjcClassRefExp *e) { visit((Expression *)e); }
+    virtual void visit(ObjcProtocolOfExp *e) { visit((UnaExp *)e); }
+#endif
 };
 
 class StoppableVisitor : public Visitor
 {
 public:
-#if DMD_OBJC
-    int stop;
-#else
     bool stop;
-#endif
     StoppableVisitor() : stop(false) {}
 };
 

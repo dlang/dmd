@@ -587,6 +587,11 @@ Expression *op_overload(Expression *e, Scope *sc)
             if (ad2 && id_r)
             {
                 s_r = search_function(ad2, id_r);
+
+                // Bugzilla 12778: If both x.opBinary(y) and y.opBinaryRight(x) found,
+                // and they are exactly same symbol, x.opBinary(y) should be preferred.
+                if (s_r && s_r == s)
+                    s_r = NULL;
             }
         #endif
 
@@ -621,6 +626,8 @@ Expression *op_overload(Expression *e, Scope *sc)
                         result = new ErrorExp();
                         return;
                     }
+                    if (s_r && s_r == s)    // Bugzilla 12778
+                        s_r = NULL;
                 }
 
                 // Set tiargs, the template argument list, which will be the operator string
@@ -723,6 +730,8 @@ Expression *op_overload(Expression *e, Scope *sc)
                 if (ad2 && id)
                 {
                     s = search_function(ad2, id);
+                    if (s && s == s_r)  // Bugzilla 12778
+                        s = NULL;
                 }
 
                 if (s || s_r)
@@ -1485,7 +1494,7 @@ bool inferAggregate(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply)
                     }
                 }
 
-                if (Dsymbol *shead = ad->search(Loc(), idfront))
+                if (ad->search(Loc(), idfront))
                 {
                     // range aggregate
                     break;
@@ -1785,7 +1794,6 @@ static int inferApplyArgTypesY(TypeFunction *tf, Parameters *arguments, int flag
             arg->type = arg->type->addStorageClass(arg->storageClass);
         }
     }
-Lmatch:
     return 1;
 
 Lnomatch:

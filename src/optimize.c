@@ -488,7 +488,6 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
                 if (t1->ty == Tdelegate) t1 = t1->nextOf();
                 assert(t1->ty == Tfunction);
                 TypeFunction *tf = (TypeFunction *)t1;
-                size_t pdim = Parameter::dim(tf->parameters) - (tf->varargs == 2 ? 1 : 0);
                 for (size_t i = 0; i < e->arguments->dim; i++)
                 {
                     Parameter *p = Parameter::getNth(tf->parameters, i);
@@ -1202,7 +1201,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             Expression *e1 = fromConstInitializer(result, e->e1);
             Expression *e2 = fromConstInitializer(result, e->e2);
 
-            ret = Cmp(e->op, e->type, e->e1, e->e2);
+            ret = Cmp(e->op, e->type, e1, e2);
             if (ret == EXP_CANT_INTERPRET)
                 ret = e;
         }

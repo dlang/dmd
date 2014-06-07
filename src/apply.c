@@ -62,22 +62,15 @@ public:
     void visit(NewExp *e)
     {
         //printf("NewExp::apply(): %s\n", toChars());
-#if DMD_OBJC
-        doCond(e->thisexp) | doCond(e->newargs) | doCond(e->arguments) | applyTo(e);
-#else
+
         doCond(e->thisexp) || doCond(e->newargs) || doCond(e->arguments) || applyTo(e);
-#endif
     }
 
     void visit(NewAnonClassExp *e)
     {
         //printf("NewAnonClassExp::apply(): %s\n", toChars());
 
-#if DMD_OBJC
-        doCond(e->thisexp) | doCond(e->newargs) | doCond(e->arguments) | applyTo(e);
-#else
         doCond(e->thisexp) || doCond(e->newargs) || doCond(e->arguments) || applyTo(e);
-#endif
     }
 
     void visit(UnaExp *e)
@@ -87,21 +80,13 @@ public:
 
     void visit(BinExp *e)
     {
-#if DMD_OBJC
-        doCond(e->e1) | doCond(e->e2) | applyTo(e);
-#else
         doCond(e->e1) || doCond(e->e2) || applyTo(e);
-#endif
     }
 
     void visit(AssertExp *e)
     {
         //printf("CallExp::apply(apply_fp_t fp, void *param): %s\n", toChars());
-#if DMD_OBJC
-        doCond(e->e1) | doCond(e->msg) | applyTo(e);
-#else
         doCond(e->e1) || doCond(e->msg) || applyTo(e);
-#endif
     }
 
     void visit(CallExp *e)
@@ -118,11 +103,7 @@ public:
 
     void visit(SliceExp *e)
     {
-#if DMD_OBJC
-        doCond(e->e1) | doCond(e->lwr) | doCond(e->upr) | applyTo(e);
-#else
         doCond(e->e1) || doCond(e->lwr) || doCond(e->upr) || applyTo(e);
-#endif
     }
 
     void visit(ArrayLiteralExp *e)
@@ -132,11 +113,7 @@ public:
 
     void visit(AssocArrayLiteralExp *e)
     {
-#if DMD_OBJC
-        doCond(e->keys) | doCond(e->values) | applyTo(e);
-#else
         doCond(e->keys) || doCond(e->values) || applyTo(e);
-#endif
     }
 
     void visit(StructLiteralExp *e)
@@ -155,11 +132,7 @@ public:
 
     void visit(CondExp *e)
     {
-#if DMD_OBCJ
-        doCond(e->econd) | doCond(e->e1) | doCond(e->e2) | applyTo(e);
-#else
         doCond(e->econd) || doCond(e->e1) || doCond(e->e2) || applyTo(e);
-#endif
     }
 };
 

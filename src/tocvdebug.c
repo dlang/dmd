@@ -299,7 +299,7 @@ void toDebug(TypedefDeclaration *tdd)
         if (tdd->basetype->ty == Ttuple)
             return;
 
-        const char *id = tdd->toPrettyChars();
+        const char *id = tdd->toPrettyChars(true);
         idx_t typidx = cv4_typidx(Type_toCtype(tdd->basetype));
         if (config.fulltypes == CV8)
             cv8_udt(id, typidx);
@@ -331,7 +331,7 @@ void toDebug(EnumDeclaration *ed)
     // If it is a member, it is handled by cvMember()
     if (!ed->isMember())
     {
-        const char *id = ed->toPrettyChars();
+        const char *id = ed->toPrettyChars(true);
         idx_t typidx = cv4_Denum(ed);
         if (config.fulltypes == CV8)
             cv8_udt(id, typidx);
@@ -416,7 +416,7 @@ void toDebug(StructDeclaration *sd)
 //    if (st->Sopeq && !(st->Sopeq->Sfunc->Fflags & Fnodebug))
 //      property |= 0x20;               // class has overloaded assignment
 
-    const char *id = sd->toPrettyChars();
+    const char *id = sd->toPrettyChars(true);
 
     unsigned leaf = sd->isUnionDeclaration() ? LF_UNION : LF_STRUCTURE;
     if (config.fulltypes == CV8)
@@ -581,7 +581,7 @@ void toDebug(ClassDeclaration *cd)
 //    if (st->Sopeq && !(st->Sopeq->Sfunc->Fflags & Fnodebug))
 //      property |= 0x20;               // class has overloaded assignment
 
-    const char *id = cd->isCPPinterface() ? cd->ident->toChars() : cd->toPrettyChars();
+    const char *id = cd->isCPPinterface() ? cd->ident->toChars() : cd->toPrettyChars(true);
     unsigned leaf = config.fulltypes == CV8 ? LF_CLASS_V3 : LF_CLASS;
 
     unsigned numidx = (leaf == LF_CLASS_V3) ? 18 : 12;

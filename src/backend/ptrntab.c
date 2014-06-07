@@ -2692,7 +2692,8 @@ PTRNTAB3 aptb3VPMINUB[] = /* VPMINUB */ {
 
 PTRNTAB2 aptb2PMOVMSKB[] = /* PMOVMSKB */ {
         { 0x0FD7, _r,_r32,_mm },
-        { PMOVMSKB, _r,_r32,_xmm },
+        { PMOVMSKB, _r, _r32, _xmm },
+        { PMOVMSKB, _r|_64_bit, _r64, _xmm },
         { ASM_END }
 };
 

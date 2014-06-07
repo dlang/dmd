@@ -678,7 +678,7 @@ int Statement::blockExit(FuncDeclaration *func, bool mustNotThrow)
             }
 
             if (result == BEhalt && finalresult != BEhalt && s->finalbody &&
-                /*!s->finalbody->comeFrom() &&*/ s->finalbody->hasCode())
+                s->finalbody->hasCode())
             {
                 s->finalbody->warning("statement is not reachable");
             }
@@ -1902,7 +1902,6 @@ Statement *ForeachStatement::semantic(Scope *sc)
 
     sc->noctor++;
 
-Lagain:
     switch (tab->ty)
     {
         case Tarray:
@@ -2699,7 +2698,7 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
         else
         {
             AddExp ea(loc, lwr, upr);
-            if (Expression *ex = typeCombine(&ea, sc))
+            if (typeCombine(&ea, sc))
                 return new ErrorStatement();
             arg->type = ea.type;
             lwr = ea.e1;
@@ -5058,8 +5057,22 @@ Statement *LabelStatement::semantic(Scope *sc)
     }
     sc->slabel = this;
     if (statement)
-        statement = statement->semanticNoScope(sc);
+        statement = statement->semantic(sc);
     sc->pop();
+    return this;
+}
+
+Statement *LabelStatement::scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally)
+{
+    //printf("LabelStatement::scopeCode()\n");
+    if (statement)
+        statement = statement->scopeCode(sc, sentry, sexit, sfinally);
+    else
+    {
+        *sentry = NULL;
+        *sexit = NULL;
+        *sfinally = NULL;
+    }
     return this;
 }
 

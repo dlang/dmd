@@ -106,7 +106,6 @@ Expression *implicitCastTo(Expression *e, Scope *sc, Type *t)
         void visit(StringExp *e)
         {
             //printf("StringExp::implicitCastTo(%s of type %s) => %s\n", e->toChars(), e->type->toChars(), t->toChars());
-            unsigned char committed = e->committed;
             visit((Expression *)e);
             if (result->op == TOKstring)
             {
@@ -1612,6 +1611,7 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                         e->semantic(sc);
                     }
                 }
+                result = e;
                 return;
             }
 
@@ -2141,7 +2141,7 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                         if (f->objcSelector && f->linkage == LINKobjc && f->needThis())
                         {
                             result = new ObjcSelectorExp(e->loc, f);
-                            result = e->semantic(sc);
+                            result = result->semantic(sc);
                             return;
                         }
                         else
@@ -2261,11 +2261,10 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
             if (tb != typeb)
             {
                 // Look for delegates to functions where the functions are overloaded.
-                if (typeb->ty == Tdelegate &&
-                    tb->ty == Tdelegate)
+                if (typeb->ty == Tobjcselector && typeb->nextOf()->ty == Tfunction &&
+                    tb->ty == Tobjcselector && tb->nextOf()->ty == Tfunction)
                 {
-                    if (typeb->ty == Tobjcselector && typeb->nextOf()->ty == Tfunction &&
-                        tb->ty == Tobjcselector && tb->nextOf()->ty == Tfunction)
+                    if (e->func)
                     {
                         FuncDeclaration *f = e->func->overloadExactMatch(tb->nextOf());
                         if (f)
@@ -2288,7 +2287,7 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
             {
                 int offset;
 
-                if (e->func->tintro && e->func->tintro->nextOf()->isBaseOf(e->func->type->nextOf(), &offset) && offset)
+                if (e->func && e->func->tintro && e->func->tintro->nextOf()->isBaseOf(e->func->type->nextOf(), &offset) && offset)
                     e->error("%s", msg);
                 result = e->copy();
                 result->type = t;

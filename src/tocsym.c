@@ -227,6 +227,7 @@ Symbol *toSymbol(Dsymbol *s)
                         break;
 
                     case LINKc:
+                    case LINKobjc:
                         m = mTYman_c;
                         break;
 
@@ -258,6 +259,7 @@ Symbol *toSymbol(Dsymbol *s)
         void visit(TypeInfoDeclaration *tid)
         {
             //printf("TypeInfoDeclaration::toSymbol(%s), linkage = %d\n", tid->toChars(), tid->linkage);
+            assert(tid->tinfo->ty != Terror);
             visit((VarDeclaration *)tid);
         }
 
@@ -331,6 +333,7 @@ Symbol *toSymbol(Dsymbol *s)
                             break;
 
                         case LINKc:
+                        case LINKobjc:
                             t->Tmangle = mTYman_c;
                             break;
 

@@ -210,6 +210,12 @@ public:
     void checkNogc(Scope *sc, FuncDeclaration *f);
     bool checkPostblit(Scope *sc, Type *t);
     virtual int checkModifiable(Scope *sc, int flag = 0);
+
+    // check whether the expression allows RMW operations, error with rmw operator diagnostic if not.
+    // exp is the RHS expression, or NULL if ++/-- is used (for diagnostics)
+    Expression *readModifyWrite(TOK rmwOp, Expression *exp = NULL);
+    virtual bool checkReadModifyWrite();  // return true if the expression allows RMW operations.
+
     virtual Expression *checkToBoolean(Scope *sc);
     virtual Expression *addDtorHook(Scope *sc);
     Expression *checkToPointer();
@@ -658,6 +664,7 @@ public:
     void checkEscape();
     void checkEscapeRef();
     int checkModifiable(Scope *sc, int flag);
+    bool checkReadModifyWrite();
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
@@ -888,6 +895,7 @@ public:
     DotVarExp(Loc loc, Expression *e, Declaration *var, bool hasOverloads = false);
     Expression *semantic(Scope *sc);
     int checkModifiable(Scope *sc, int flag);
+    bool checkReadModifyWrite();
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
@@ -931,13 +939,8 @@ public:
     ObjcSelectorExp(Loc loc, FuncDeclaration *func, int hasOverloads = 0);
     ObjcSelectorExp(Loc loc, char *selname, int hasOverloads = 0);
     Expression *semantic(Scope *sc);
-    Expression *interpret(InterState *istate);
-    MATCH implicitConvTo(Type *t);
-    Expression *castTo(Scope *sc, Type *t);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    void dump(int indent);
 
-    elem *toElem(IRState *irs);
+    void accept(Visitor *v) { v->visit(this); }
 };
 #endif
 
