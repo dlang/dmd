@@ -576,10 +576,20 @@ else version( OSX )
 {
     struct stat_t
     {
+      version ( DARWIN_USE_64_BIT_INODE )
+      {
+        dev_t       st_dev;
+        mode_t      st_mode;
+        nlink_t     st_nlink;
+        ino_t       st_ino;
+      }
+      else
+      {
         dev_t       st_dev;
         ino_t       st_ino;
         mode_t      st_mode;
         nlink_t     st_nlink;
+      }
         uid_t       st_uid;
         gid_t       st_gid;
         dev_t       st_rdev;
