@@ -632,7 +632,7 @@ int Statement::blockExit(FuncDeclaration *func, bool mustNotThrow)
             }
 
             if (result == BEhalt && finalresult != BEhalt && s->finalbody &&
-                /*!s->finalbody->comeFrom() &&*/ s->finalbody->hasCode())
+                s->finalbody->hasCode())
             {
                 s->finalbody->warning("statement is not reachable");
             }
