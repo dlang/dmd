@@ -6613,3 +6613,13 @@ static assert(testWrap12602a() == [1,2,1,2]);
 static assert(testWrap12602b() == [1,2,1,2]);
 static assert(testWrap12602c() == [1,2,1,2]);
 static assert(testWrap12602d() == [1,2,1,2]);
+
+/**************************************************
+    12851 - interpret function local const static array
+**************************************************/
+
+void test12851()
+{
+    const int[5] arr;
+    alias staticZip = TypeTuple!(arr[0]);
+}
