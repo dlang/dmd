@@ -3456,7 +3456,7 @@ Expression *ThisExp::modifiableLvalue(Scope *sc, Expression *e)
 {
     if (type->toBasetype()->ty == Tclass)
     {
-        error("Cannot modify '%s'", toChars());
+        error("cannot modify '%s' reference", toChars());
         return toLvalue(sc, e);
     }
     return Expression::modifiableLvalue(sc, e);
@@ -3894,7 +3894,7 @@ Expression *StringExp::toLvalue(Scope *sc, Expression *e)
 
 Expression *StringExp::modifiableLvalue(Scope *sc, Expression *e)
 {
-    error("Cannot modify '%s'", toChars());
+    error("cannot modify string literal %s", toChars());
     return new ErrorExp();
 }
 
@@ -5325,7 +5325,7 @@ Expression *VarExp::modifiableLvalue(Scope *sc, Expression *e)
     //printf("VarExp::modifiableLvalue('%s')\n", var->toChars());
     if (var->storage_class & STCmanifest)
     {
-        error("Cannot modify '%s'", toChars());
+        error("cannot modify manifest constant '%s'", toChars());
         return new ErrorExp();
     }
     // See if this expression is a modifiable lvalue (i.e. not const)

@@ -3962,26 +3962,6 @@ deprecated @disable int bug6389;
 static assert(!is(typeof(bug6389 = bug6389)));
 
 /***************************************************/
-// 4596
-
-class NoGo4596
-{
-    void fun()
-    {
-        static assert(!__traits(compiles, this = new NoGo4596));
-        static assert(!__traits(compiles, (1?this:this) = new NoGo4596));
-        static assert(!__traits(compiles, super = new Object));
-        static assert(!__traits(compiles, (1?super:super) = new Object));
-    }
-}
-
-void test4596()
-{
-    auto n = new NoGo4596;
-    n.fun();
-}
-
-/***************************************************/
 
 void test10927()
 {
@@ -7123,7 +7103,6 @@ int main()
     test658();
     test4258();
     test4539();
-    test4596();
     test4963();
     test4031();
     test5437();
