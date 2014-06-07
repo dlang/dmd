@@ -2129,38 +2129,18 @@ Expression *Expression::modifiableLvalue(Scope *sc, Expression *e)
     if (checkModifiable(sc) == 1)
     {
         assert(type);
-        if (type->isMutable())
+        if (!type->isMutable())
         {
-            if (!type->isAssignable())
-            {
-                error("cannot modify struct %s %s with immutable members", toChars(), type->toChars());
-                goto Lerror;
-            }
+            error("cannot modify %s expression %s", MODtoChars(type->mod), toChars());
+            return new ErrorExp();
         }
-        else
+        else if (!type->isAssignable())
         {
-            Declaration *var = NULL;
-            if (op == TOKvar)
-                var = ((VarExp *)this)->var;
-            else if (op == TOKdotvar)
-                var = ((DotVarExp *)this)->var;
-            if (var && var->storage_class & STCctorinit)
-            {
-                const char *p = var->isStatic() ? "static " : "";
-                error("can only initialize %sconst member %s inside %sconstructor",
-                    p, var->toChars(), p);
-            }
-            else
-            {
-                error("cannot modify %s expression %s", MODtoChars(type->mod), toChars());
-            }
-            goto Lerror;
+            error("cannot modify struct %s %s with immutable members", toChars(), type->toChars());
+            return new ErrorExp();
         }
     }
     return toLvalue(sc, e);
-
-Lerror:
-    return new ErrorExp();
 }
 
 Expression *Expression::readModifyWrite(TOK rmwOp, Expression *ex)

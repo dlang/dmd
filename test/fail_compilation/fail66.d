@@ -14,7 +14,7 @@ class C1
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail66.d(28): Error: can only initialize const member y inside constructor
+fail_compilation/fail66.d(28): Error: cannot modify const expression c.y
 ---
 */
 class C2
@@ -31,7 +31,7 @@ void test2()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail66.d(43): Error: can only initialize const member y inside constructor
+fail_compilation/fail66.d(43): Error: cannot modify const expression this.y
 ---
 */
 class C3
@@ -47,7 +47,7 @@ class C3
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail66.d(59): Error: can only initialize static const member x inside static constructor
+fail_compilation/fail66.d(59): Error: cannot modify const expression x
 ---
 */
 class C4
@@ -63,7 +63,7 @@ class C4
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail66.d(73): Error: can only initialize const member z5 inside constructor
+fail_compilation/fail66.d(73): Error: cannot modify const expression z5
 ---
 */
 const int z5;
@@ -76,7 +76,7 @@ void test5()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail66.d(89): Error: can only initialize const member y inside constructor
+fail_compilation/fail66.d(89): Error: cannot modify const expression c.y
 ---
 */
 class C6
