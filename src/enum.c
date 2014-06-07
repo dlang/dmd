@@ -604,6 +604,8 @@ void EnumMember::semantic(Scope *sc)
         e = e->semantic(sc);
         e = resolveProperties(sc, e);
         e = e->ctfeInterpret();
+        if (e->op == TOKerror)
+            goto Lerrors;
         if (first && !ed->memtype && !ed->isAnonymous())
         {
             ed->memtype = e->type;
