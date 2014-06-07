@@ -1012,18 +1012,20 @@ Expression *ExpInitializer::toExpression(Type *t)
 {
     if (t)
     {
+        //printf("ExpInitializer::toExpression(t = %s) exp = %s\n", t->toChars(), exp->toChars());
         Type *tb = t->toBasetype();
-        if (tb->ty == Tsarray && exp->implicitConvTo(tb->nextOf()))
+        Expression *e = (exp->op == TOKconstruct || exp->op == TOKblit) ? ((AssignExp *)exp)->e2 : exp;
+        if (tb->ty == Tsarray && e->implicitConvTo(tb->nextOf()))
         {
             TypeSArray *tsa = (TypeSArray *)tb;
             size_t d = (size_t)tsa->dim->toInteger();
             Expressions *elements = new Expressions();
             elements->setDim(d);
             for (size_t i = 0; i < d; i++)
-                (*elements)[i] = exp;
-            ArrayLiteralExp *ae = new ArrayLiteralExp(exp->loc, elements);
+                (*elements)[i] = e;
+            ArrayLiteralExp *ae = new ArrayLiteralExp(e->loc, elements);
             ae->type = t;
-            exp = ae;
+            return ae;
         }
     }
     return exp;
