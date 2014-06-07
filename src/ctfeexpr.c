@@ -116,7 +116,7 @@ int findFieldIndexByName(StructDeclaration *sd, VarDeclaration *v)
     for (size_t i = 0; i < sd->fields.dim; ++i)
     {
         if (sd->fields[i] == v)
-            return i;
+            return (int)i;
     }
     return -1;
 }
