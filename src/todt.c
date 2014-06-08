@@ -620,7 +620,10 @@ void membersToDt(ClassDeclaration *cd, dt_t **pdt, ClassDeclaration *concreteTyp
     }
     else
     {
-        offset = Target::ptrsize * 2;
+        if (cd->cpp)
+            offset = Target::ptrsize;       // allow room for __vptr
+        else
+            offset = Target::ptrsize * 2;   // allow room for __vptr and __monitor
     }
 
     // Note equivalence of this loop to struct's

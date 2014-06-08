@@ -309,6 +309,19 @@ void testvalist()
 }
 
 /****************************************/
+// 12825
+
+extern(C++) class C12825
+{
+    uint a = 0x12345678;
+}
+
+void test12825()
+{
+    auto c = new C12825();
+}
+
+/****************************************/
 
 void main()
 {
@@ -325,6 +338,7 @@ void main()
     test10();
     test11();
     testvalist();
+    test12825();
 
     printf("Success\n");
 }
