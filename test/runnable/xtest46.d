@@ -4957,6 +4957,22 @@ void test6836()
 
 /***************************************************/
 
+string func12864() { return ['a', 'b', 'c']; }
+
+void test12864(string s)
+{
+    switch (s)
+    {
+    case func12864():
+        break;
+
+    default:
+        break;
+    }
+}
+
+/***************************************************/
+
 void test5448()
 {
     int[int][] aaa = [[1: 2]];
