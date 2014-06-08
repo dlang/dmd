@@ -897,18 +897,6 @@ void ClassDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writenl();
 }
 
-#if 0
-void ClassDeclaration::defineRef(Dsymbol *s)
-{
-    ClassDeclaration *cd;
-
-    AggregateDeclaration::defineRef(s);
-    cd = s->isClassDeclaration();
-    baseType = cd->baseType;
-    cd->baseType = NULL;
-}
-#endif
-
 /*********************************************
  * Determine if 'this' is a base class of cd.
  * This is used to detect circular inheritance only.

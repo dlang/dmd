@@ -2151,13 +2151,6 @@ bool VarDeclaration::isDataseg()
 bool VarDeclaration::isThreadlocal()
 {
     //printf("VarDeclaration::isThreadlocal(%p, '%s')\n", this, toChars());
-#if 0 //|| TARGET_OSX
-    /* To be thread-local, must use the __thread storage class.
-     * BUG: OSX doesn't support thread local yet.
-     */
-    return isDataseg() &&
-        (storage_class & (STCtls | STCconst | STCimmutable | STCshared | STCgshared)) == STCtls;
-#else
     /* Data defaults to being thread-local. It is not thread-local
      * if it is immutable, const or shared.
      */
@@ -2165,7 +2158,6 @@ bool VarDeclaration::isThreadlocal()
         !(storage_class & (STCimmutable | STCconst | STCshared | STCgshared));
     //printf("\treturn %d\n", i);
     return i;
-#endif
 }
 
 /********************************************
