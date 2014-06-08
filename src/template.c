@@ -1470,23 +1470,15 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
 
                     Type *tt;
                     MATCH m;
-
-                    if (tid->mod & MODwild)
+                    if (unsigned char wm = deduceWildHelper(farg->type, &tt, tid))
                     {
-                        unsigned char wm = deduceWildHelper(farg->type, &tt, tid);
-                        if (wm)
-                        {
-                            wildmatch |= wm;
-                            m = MATCHconst;
-                            goto Lx;
-                        }
+                        wildmatch |= wm;
+                        m = MATCHconst;
                     }
-
-                    m = deduceTypeHelper(farg->type, &tt, tid);
-                    if (!m)
-                        goto Lnomatch;
-
-                Lx:
+                    else
+                    {
+                        m = deduceTypeHelper(farg->type, &tt, tid);
+                    }
                     if (m <= MATCHnomatch)
                         goto Lnomatch;
                     if (m < match)
@@ -2983,7 +2975,9 @@ size_t templateParameterLookup(Type *tparam, TemplateParameters *parameters)
 
 unsigned char deduceWildHelper(Type *t, Type **at, Type *tparam)
 {
-    assert(tparam->mod & MODwild);
+    if ((tparam->mod & MODwild) == 0)
+        return 0;
+
     *at = NULL;
 
     #define X(U,T)  ((U) << 4) | (T)
@@ -3398,36 +3392,32 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                     return;
                 }
 
-                if (wm && (tparam->mod & MODwild))
+                if (unsigned char wx = wm ? deduceWildHelper(t, &tt, tparam) : 0)
                 {
-                    unsigned char wx = deduceWildHelper(t, &tt, tparam);
-                    if (wx)
+                    if (!at)
                     {
-                        if (!at)
-                        {
-                            (*dedtypes)[i] = tt;
-                            *wm |= wx;
-                            goto Lconst;
-                        }
-
-                        if (tt->equals(at))
-                        {
-                            goto Lconst;
-                        }
-                        if (tt->implicitConvTo(at->constOf()))
-                        {
-                            (*dedtypes)[i] = at->constOf()->mutableOf();
-                            *wm |= MODconst;
-                            goto Lconst;
-                        }
-                        if (at->implicitConvTo(tt->constOf()))
-                        {
-                            (*dedtypes)[i] = tt->constOf()->mutableOf();
-                            *wm |= MODconst;
-                            goto Lconst;
-                        }
-                        goto Lnomatch;
+                        (*dedtypes)[i] = tt;
+                        *wm |= wx;
+                        goto Lconst;
                     }
+
+                    if (tt->equals(at))
+                    {
+                        goto Lconst;
+                    }
+                    if (tt->implicitConvTo(at->constOf()))
+                    {
+                        (*dedtypes)[i] = at->constOf()->mutableOf();
+                        *wm |= MODconst;
+                        goto Lconst;
+                    }
+                    if (at->implicitConvTo(tt->constOf()))
+                    {
+                        (*dedtypes)[i] = tt->constOf()->mutableOf();
+                        *wm |= MODconst;
+                        goto Lconst;
+                    }
+                    goto Lnomatch;
                 }
 
                 MATCH m = deduceTypeHelper(t, &tt, tparam);
