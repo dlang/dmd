@@ -4324,6 +4324,20 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             if (i == IDX_NOTFOUND)
                 return false;
 
+            Type *t = e->type;
+            Type *tt;
+            if (unsigned char wx = wm ? deduceWildHelper(t, &tt, tparam) : 0)
+            {
+                *wm |= wx;
+                result = MATCHconst;
+            }
+            else
+            {
+                result = deduceTypeHelper(t, &tt, tparam);
+            }
+            if (result <= MATCHnomatch)
+                return true;
+
             Type *at = (Type *)(*dedtypes)[i];
             if (!at)                        // expression vs ()
             {
@@ -4334,8 +4348,12 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                  *      // 1: deduceType(oarg='1', tparam='T', ...)
                  *      //      T <= TypeTypeof(1)
                  */
+                if (t != tt)
+                {
+                    e = e->copy();
+                    e->type = tt;
+                }
                 (*dedtypes)[i] = new TypeTypeof(e->loc, e);
-                result = MATCHexact;        // TODO
             }
             else if (at->ty == Ttypeof)     // expression vs expression
             {
@@ -4359,7 +4377,6 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 if (ec == condexp)
                 {
                     ((TypeTypeof *)at)->exp = condexp;
-                    result = MATCHexact;    // TODO
                 }
             }
             else                            // expression vs type
