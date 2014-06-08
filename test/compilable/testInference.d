@@ -63,6 +63,22 @@ void fECPb() {
 }
 
 /***************************************************/
+// 5635
+
+pure bool foo5635(R = int)(string x)
+{
+    bool result = false;
+    foreach (dchar d; x)
+        result = true;
+    return result;
+}
+
+void test5635()
+{
+    foo5635("hi");
+}
+
+/***************************************************/
 // 5936
 
 auto bug5936c(R)(R i) @safe pure nothrow {
