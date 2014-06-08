@@ -182,6 +182,43 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
         {
         }
 
+        bool optimizeChildren(BinExp *e, int flags)
+        {
+            assert(e->e1);
+            assert(e->e2);
+            e->e1 = e->e1->optimize(flags);
+            e->e2 = e->e2->optimize(flags);
+            if (e->e1->op == TOKerror)
+            {
+                ret = e->e1;
+                return false;
+            }
+            else if (e->e2->op == TOKerror)
+            {
+                ret = e->e2;
+                return false;
+            }
+            else
+            {
+                return true;
+            }
+        }
+
+        bool optimizeChildren(UnaExp *e, int flags)
+        {
+            assert(e->e1);
+            e->e1 = e->e1->optimize(flags);
+            if (e->e1->op == TOKerror)
+            {
+                ret = e->e1;
+                return false;
+            }
+            else
+            {
+                return true;
+            }
+        }
+
         void visit(Expression *e)
         {
             //printf("Expression::optimize(result = x%x) %s\n", result, e->toChars());
@@ -260,12 +297,15 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
         void visit(UnaExp *e)
         {
             //printf("UnaExp::optimize() %s\n", e->toChars());
-            e->e1 = e->e1->optimize(result);
+            if (!optimizeChildren(e, result))
+                return;
         }
 
         void visit(NegExp *e)
         {
-            e->e1 = e->e1->optimize(result);
+            if (!optimizeChildren(e, result))
+                return;
+
             if (e->e1->isConst() == 1)
             {
                 ret = Neg(e->type, e->e1).copy();
@@ -274,7 +314,9 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
 
         void visit(ComExp *e)
         {
-            e->e1 = e->e1->optimize(result);
+            if (!optimizeChildren(e, result))
+                return;
+
             if (e->e1->isConst() == 1)
             {
                 ret = Com(e->type, e->e1).copy();
@@ -283,7 +325,9 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
 
         void visit(NotExp *e)
         {
-            e->e1 = e->e1->optimize(result);
+            if (!optimizeChildren(e, result))
+                return;
+
             if (e->e1->isConst() == 1)
             {
                 ret = Not(e->type, e->e1).copy();
@@ -292,7 +336,9 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
 
         void visit(BoolExp *e)
         {
-            e->e1 = e->e1->optimize(result);
+            if (!optimizeChildren(e, result))
+                return;
+
             if (e->e1->isConst() == 1)
             {
                 ret = Bool(e->type, e->e1).copy();
@@ -641,18 +687,10 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
         void visit(AddExp *e)
         {
             //printf("AddExp::optimize(%s)\n", e->toChars());
-            e->e1 = e->e1->optimize(result);
-            e->e2 = e->e2->optimize(result);
-            if (e->e1->op == TOKerror)
-            {
-                ret = e->e1;
+
+            if (!optimizeChildren(e, result))
                 return;
-            }
-            if (e->e2->op == TOKerror)
-            {
-                ret = e->e2;
-                return;
-            }
+
             if (e->e1->isConst() && e->e2->isConst())
             {
                 if (e->e1->op == TOKsymoff && e->e2->op == TOKsymoff)
@@ -663,18 +701,9 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
 
         void visit(MinExp *e)
         {
-            e->e1 = e->e1->optimize(result);
-            e->e2 = e->e2->optimize(result);
-            if (e->e1->op == TOKerror)
-            {
-                ret = e->e1;
+            if (!optimizeChildren(e, result))
                 return;
-            }
-            if (e->e2->op == TOKerror)
-            {
-                ret = e->e2;
-                return;
-            }
+
             if (e->e1->isConst() && e->e2->isConst())
             {
                 if (e->e2->op == TOKsymoff)
@@ -686,18 +715,10 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
         void visit(MulExp *e)
         {
             //printf("MulExp::optimize(result = %d) %s\n", result, e->toChars());
-            e->e1 = e->e1->optimize(result);
-            e->e2 = e->e2->optimize(result);
-            if (e->e1->op == TOKerror)
-            {
-                ret = e->e1;
+
+            if (!optimizeChildren(e, result))
                 return;
-            }
-            if (e->e2->op == TOKerror)
-            {
-                ret = e->e2;
-                return;
-            }
+
             if (e->e1->isConst() == 1 && e->e2->isConst() == 1)
             {
                 ret = Mul(e->type, e->e1, e->e2).copy();
@@ -707,18 +728,10 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
         void visit(DivExp *e)
         {
             //printf("DivExp::optimize(%s)\n", e->toChars());
-            e->e1 = e->e1->optimize(result);
-            e->e2 = e->e2->optimize(result);
-            if (e->e1->op == TOKerror)
-            {
-                ret = e->e1;
+
+            if (!optimizeChildren(e, result))
                 return;
-            }
-            if (e->e2->op == TOKerror)
-            {
-                ret = e->e2;
-                return;
-            }
+
             if (e->e1->isConst() == 1 && e->e2->isConst() == 1)
             {
                 ret = Div(e->type, e->e1, e->e2).copy();
@@ -727,18 +740,9 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
 
         void visit(ModExp *e)
         {
-            e->e1 = e->e1->optimize(result);
-            e->e2 = e->e2->optimize(result);
-            if (e->e1->op == TOKerror)
-            {
-                ret = e->e1;
+            if (!optimizeChildren(e, result))
                 return;
-            }
-            if (e->e2->op == TOKerror)
-            {
-                ret = e->e2;
-                return;
-            }
+
             if (e->e1->isConst() == 1 && e->e2->isConst() == 1)
             {
                 ret = Mod(e->type, e->e1, e->e2).copy();
@@ -747,18 +751,9 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
 
         void shift_optimize(BinExp *e, UnionExp (*shift)(Type *, Expression *, Expression *))
         {
-            e->e1 = e->e1->optimize(result);
-            e->e2 = e->e2->optimize(result);
-            if (e->e1->op == TOKerror)
-            {
-                ret = e->e1;
+            if (!optimizeChildren(e, result))
                 return;
-            }
-            if (e->e2->op == TOKerror)
-            {
-                ret = e->e2;
-                return;
-            }
+
             if (e->e2->isConst() == 1)
             {
                 sinteger_t i2 = e->e2->toInteger();
@@ -794,31 +789,18 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
 
         void visit(AndExp *e)
         {
-            e->e1 = e->e1->optimize(result);
-            e->e2 = e->e2->optimize(result);
-            if (e->e1->op == TOKerror)
-            {
-                ret = e->e1;
+            if (!optimizeChildren(e, result))
                 return;
-            }
-            if (e->e2->op == TOKerror)
-            {
-                ret = e->e2;
-                return;
-            }
+
             if (e->e1->isConst() == 1 && e->e2->isConst() == 1)
                 ret = And(e->type, e->e1, e->e2).copy();
         }
 
         void visit(OrExp *e)
         {
-            e->e1 = e->e1->optimize(result);
-            e->e2 = e->e2->optimize(result);
-            if (e->e1->op == TOKerror)
-            {
-                ret = e->e1;
+            if (!optimizeChildren(e, result))
                 return;
-            }
+
             if (e->e2->op == TOKerror)
             {
                 ret = e->e2;
@@ -830,36 +812,17 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
 
         void visit(XorExp *e)
         {
-            e->e1 = e->e1->optimize(result);
-            e->e2 = e->e2->optimize(result);
-            if (e->e1->op == TOKerror)
-            {
-                ret = e->e1;
+            if (!optimizeChildren(e, result))
                 return;
-            }
-            if (e->e2->op == TOKerror)
-            {
-                ret = e->e2;
-                return;
-            }
+
             if (e->e1->isConst() == 1 && e->e2->isConst() == 1)
                 ret = Xor(e->type, e->e1, e->e2).copy();
         }
 
         void visit(PowExp *e)
         {
-            e->e1 = e->e1->optimize(result);
-            e->e2 = e->e2->optimize(result);
-            if (e->e1->op == TOKerror)
-            {
-                ret = e->e1;
+            if (!optimizeChildren(e, result))
                 return;
-            }
-            if (e->e2->op == TOKerror)
-            {
-                ret = e->e2;
-                return;
-            }
 
             // Replace 1 ^^ x or 1.0^^x by (x, 1)
             if ((e->e1->op == TOKint64 && e->e1->toInteger() == 1) ||
@@ -976,12 +939,9 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
         void visit(ArrayLengthExp *e)
         {
             //printf("ArrayLengthExp::optimize(result = %d) %s\n", result, e->toChars());
-            e->e1 = e->e1->optimize(WANTexpand);
-            if (e->e1->op == TOKerror)
-            {
-                ret = e->e1;
+
+            if (!optimizeChildren(e, WANTexpand))
                 return;
-            }
 
             // CTFE interpret static immutable arrays (to get better diagnostics)
             if (e->e1->op == TOKvar)
@@ -1028,19 +988,9 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
         void visit(IdentityExp *e)
         {
             //printf("IdentityExp::optimize(result = %d) %s\n", result, e->toChars());
-            e->e1 = e->e1->optimize(WANTvalue);
-            e->e2 = e->e2->optimize(WANTvalue);
 
-            if (e->e1->op == TOKerror)
-            {
-                ret = e->e1;
+            if (!optimizeChildren(e, WANTvalue))
                 return;
-            }
-            if (e->e2->op == TOKerror)
-            {
-                ret = e->e2;
-                return;
-            }
 
             if ((e->e1->isConst()     && e->e2->isConst()) ||
                 (e->e1->op == TOKnull && e->e2->op == TOKnull)
@@ -1227,8 +1177,9 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
         void visit(CatExp *e)
         {
             //printf("CatExp::optimize(%d) %s\n", result, e->toChars());
-            e->e1 = e->e1->optimize(result);
-            e->e2 = e->e2->optimize(result);
+
+            if (!optimizeChildren(e, result))
+                return;
 
             if (e->e1->op == TOKcat)
             {
