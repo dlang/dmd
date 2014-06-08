@@ -3033,5 +3033,4 @@ struct __UnitTest
     string file;
     uint line;
     bool disabled;
-    string name;
 }
