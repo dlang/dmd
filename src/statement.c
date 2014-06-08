@@ -3277,7 +3277,9 @@ Statement *CaseStatement::semantic(Scope *sc)
         else
             exp = exp->ctfeInterpret();
 
-        if (exp->op != TOKstring && exp->op != TOKint64 && exp->op != TOKerror)
+        if (StringExp *se = exp->toStringExp())
+            exp = se;
+        else if (exp->op != TOKint64 && exp->op != TOKerror)
         {
             error("case must be a string or an integral constant, not %s", exp->toChars());
             exp = new ErrorExp();
