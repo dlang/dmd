@@ -537,11 +537,6 @@ ClassDeclaration *Dsymbol::isClassMember()      // are we a member of a class?
     return ad ? ad->isClassDeclaration() : NULL;
 }
 
-void Dsymbol::defineRef(Dsymbol *s)
-{
-    assert(0);
-}
-
 bool Dsymbol::isExport()
 {
     return false;
@@ -1050,15 +1045,6 @@ bool ScopeDsymbol::isforwardRef()
     return (members == NULL);
 }
 
-void ScopeDsymbol::defineRef(Dsymbol *s)
-{
-    ScopeDsymbol *ss;
-
-    ss = s->isScopeDsymbol();
-    members = ss->members;
-    ss->members = NULL;
-}
-
 void ScopeDsymbol::multiplyDefined(Loc loc, Dsymbol *s1, Dsymbol *s2)
 {
 #if 0
@@ -1080,28 +1066,6 @@ void ScopeDsymbol::multiplyDefined(Loc loc, Dsymbol *s1, Dsymbol *s2)
             s2->toPrettyChars(),
             s2->locToChars());
     }
-}
-
-Dsymbol *ScopeDsymbol::nameCollision(Dsymbol *s)
-{
-    Dsymbol *sprev;
-
-    // Look to see if we are defining a forward referenced symbol
-
-    sprev = symtab->lookup(s->ident);
-    assert(sprev);
-    if (s->equals(sprev))               // if the same symbol
-    {
-        if (s->isforwardRef())          // if second declaration is a forward reference
-            return sprev;
-        if (sprev->isforwardRef())
-        {
-            sprev->defineRef(s);        // copy data from s into sprev
-            return sprev;
-        }
-    }
-    multiplyDefined(Loc(), s, sprev);
-    return sprev;
 }
 
 const char *ScopeDsymbol::kind()
