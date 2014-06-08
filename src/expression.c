@@ -10700,6 +10700,8 @@ Expression *IndexExp::semantic(Scope *sc)
             if (!arrayTypeCompatibleWithoutCasting(e2->loc, e2->type, taa->index))
             {
                 e2 = e2->implicitCastTo(sc, taa->index);        // type checking
+                if (e2->type == Type::terror)
+                    return new ErrorExp();
             }
             type = taa->next;
             break;

@@ -312,7 +312,7 @@ struct CompiledCtfeFunction
                     return;
                 }
 
-                e->error("CTFE internal error: ErrorExp in %s\n", ccf->func ? ccf->func->loc.toChars() : ccf->callingloc.toChars());
+                ::error(e->loc, "CTFE internal error: ErrorExp in %s\n", ccf->func ? ccf->func->loc.toChars() : ccf->callingloc.toChars());
                 assert(0);
             }
 
