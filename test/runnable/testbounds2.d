@@ -245,6 +245,19 @@ void test9747()
 }
 
 /******************************************/
+// 12876
+
+void test12876()
+{
+    void foo(int[4] b) {}
+    void bar(size_t n)(int[n] c) { static assert(n == 4); }
+
+    int[5] a;
+    foo(a[1 .. $]); // OK
+    bar(a[1 .. $]); // OK <- Error
+}
+
+/******************************************/
 
 int main()
 {

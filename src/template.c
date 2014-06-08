@@ -1562,6 +1562,10 @@ Lretry:
             if (!(fparam->storageClass & STClazy) && argtype->ty == Tvoid && farg->op != TOKfunction)
                 goto Lnomatch;
 
+            // Bugzilla 12876: optimize arugument to allow CT-known length matching
+            farg = farg->optimize(WANTvalue, (fparam->storageClass & (STCref | STCout)) != 0);
+            //printf("farg = %s %s\n", farg->type->toChars(), farg->toChars());
+
             /* Adjust top const of the dynamic array type or pointer type argument
              * to the corresponding parameter type qualifier,
              * to pass through deduceType.
