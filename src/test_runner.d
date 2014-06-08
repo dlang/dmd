@@ -18,35 +18,25 @@ bool tester()
     if(name.length > pkgLen && name[$ - pkgLen .. $] == pkg)
         name = name[0 .. $ - pkgLen];
 
-    bool result = true;
-    if (auto tests = getModuleInfo(name).unitTests)
+    if (auto fp = getModuleInfo(name).unitTest)
     {
-        immutable t0 = TickDuration.currSystemTick;
-
-        foreach(test; tests)
+        try
         {
-            if(test.disabled)
-                continue;
-            try
-            {
-                test.func();
-            }
-            catch (Throwable e)
-            {
-                auto msg = e.toString();
-                printf("****** FAIL %.*s\n%.*s\n", cast(int)name.length, name.ptr,
-                    cast(int)msg.length, msg.ptr);
-                result = false;
-            }
-        }
-        immutable t1 = TickDuration.currSystemTick;
-        if (result)
-        {
+            immutable t0 = TickDuration.currSystemTick;
+            fp();
+            immutable t1 = TickDuration.currSystemTick;
             printf("%.3fs PASS %.*s\n", (t1 - t0).msecs / 1000.,
                 cast(int)name.length, name.ptr);
         }
+        catch (Throwable e)
+        {
+            auto msg = e.toString();
+            printf("****** FAIL %.*s\n%.*s\n", cast(int)name.length, name.ptr,
+                cast(int)msg.length, msg.ptr);
+            return false;
+        }
     }
-    return result;
+    return true;
 }
 
 shared static this()

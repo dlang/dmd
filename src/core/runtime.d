@@ -398,24 +398,9 @@ extern (C) bool runModuleUnitTests()
         {
             if( m )
             {
-                foreach(test; m.unitTests)
-                {
-                    if(test.disabled)
-                        continue;
-                    try
-                    {
-                        test.func();
-                    }
-                    catch( Throwable e )
-                    {
-                        e.toString(&printErr); printErr("\n");
-                        failed++;
-                    }
-                }
-
-
                 auto fp = m.unitTest;
-                if( m.unitTests.length == 0 && fp )
+
+                if( fp )
                 {
                     try
                     {
