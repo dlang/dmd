@@ -1225,21 +1225,6 @@ void FuncDeclaration::semantic3(Scope *sc)
     if (!inferRetType && f->next->ty == Terror)
         return;
 
-#if 0
-    // Check the 'throws' clause
-    if (fthrows)
-    {
-        for (size_t i = 0; i < fthrows->dim; i++)
-        {
-            Type *t = (*fthrows)[i];
-
-            t = t->semantic(loc, sc);
-            if (!t->isClassHandle())
-                error("can only throw classes, not %s", t->toChars());
-        }
-    }
-#endif
-
     if (!fbody && inferRetType && !type->nextOf())
     {
         error("has no function body with return type inference");
