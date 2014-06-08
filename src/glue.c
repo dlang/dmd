@@ -57,7 +57,8 @@ symbol *ictorlocalgot;
 symbols sctors;
 StaticDtorDeclarations ectorgates;
 symbols sdtors;
-symbols stests;
+symbols oldstests;
+UnitTestDeclarations stests;
 
 symbols ssharedctors;
 SharedStaticDtorDeclarations esharedctorgates;
@@ -326,6 +327,7 @@ void Module::genobjfile(bool multiobj)
     ssharedctors.setDim(0);
     esharedctorgates.setDim(0);
     sshareddtors.setDim(0);
+    oldstests.setDim(0);
     stests.setDim(0);
     dtorcount = 0;
     shareddtorcount = 0;
@@ -454,7 +456,36 @@ void Module::genobjfile(bool multiobj)
 
         ssharedctor = callFuncsAndGates(this, &ssharedctors, (StaticDtorDeclarations *)&esharedctorgates, "__modsharedctor");
         sshareddtor = callFuncsAndGates(this, &sshareddtors, NULL, "__modshareddtor");
-        stest = callFuncsAndGates(this, &stests, NULL, "__modtest");
+        stest = callFuncsAndGates(this, &oldstests, NULL, "__modtest");
+        /*
+         * Unittest V2: Generate static array of UnitTests (see druntime)
+         */
+        if (stests.dim)
+        {
+            if (!StructDeclaration::UnitTest)
+            {
+                warning(loc, "mismatch between compiler and object.d or object.di found. "
+                    "struct UnitTest was not found, advanced unittest information won't "
+                    "be available. "
+                    "Check installation and import paths with -v compiler switch.");
+            }
+            else
+            {
+                unitTests = new UnitTestDeclarations(stests);
+                Type *ttype = new TypeSArray(StructDeclaration::UnitTest->type,
+                    new IntegerExp(loc, stests.dim, Type::tsize_t));
+
+                ArrayInitializer *init = new ArrayInitializer(loc);
+                for (unsigned i = 0; i < stests.dim; i++)
+                {
+                    init->addInit(NULL, stests[i]->toUnitTestInfo());
+                }
+                init->semantic(this->scope, ttype, INITnointerpret);
+                unitTestArr = new VarDeclaration(loc, ttype, new Identifier("__modtestArray", 0), init);
+                unitTestArr->storage_class |= STCgshared | STCimmutable;
+                unitTestArr->semantic(this->scope);
+            }
+        }
 
         if (doppelganger)
             genmoduleinfo();
@@ -1271,7 +1302,8 @@ void FuncDeclaration::toObjFile(bool multiobj)
     // If unit test
     if (ud)
     {
-        stests.push(s);
+        oldstests.push(s);
+        stests.push(this->isUnitTestDeclaration());
     }
 
     if (global.errors)

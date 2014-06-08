@@ -893,11 +893,12 @@ class UnitTestDeclaration : public FuncDeclaration
 {
 public:
     char *codedoc; /** For documented unittest. */
+    Identifier *id;
 
     // toObjFile() these nested functions after this one
     FuncDeclarations deferredNested;
 
-    UnitTestDeclaration(Loc loc, Loc endloc, char *codedoc);
+    UnitTestDeclaration(Loc loc, Loc endloc, char *codedoc, Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     AggregateDeclaration *isThis();
@@ -906,6 +907,7 @@ public:
     bool addPostInvariant();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
+    ExpInitializer *toUnitTestInfo();
     UnitTestDeclaration *isUnitTestDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };

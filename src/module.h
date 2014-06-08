@@ -140,6 +140,9 @@ public:
     static void runDeferredSemantic3();
     int imports(Module *m);
 
+    Declaration *unitTestArr; //Static array of UnitTests (see druntime)
+    UnitTestDeclarations *unitTests; //All unitTests in this module
+
     bool isRoot() { return this->importedFrom == this; }
                                 // true if the module source file is directly
                                 // listed in command line.

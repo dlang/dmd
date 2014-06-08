@@ -1485,6 +1485,7 @@ InvariantDeclaration *Parser::parseInvariant()
 /*****************************************
  * Parse a unittest definition:
  *      unittest { body }
+ *      unittest identifier { body }
  * Current token is 'unittest'.
  */
 
@@ -1493,8 +1494,14 @@ UnitTestDeclaration *Parser::parseUnitTest()
     UnitTestDeclaration *f;
     Statement *body;
     Loc loc = token.loc;
+    Identifier *id = NULL;
 
     nextToken();
+    if(token.value == TOKidentifier)
+    {
+        id = token.ident;
+        nextToken();
+    }
     const utf8_t *begPtr = token.ptr + 1;  // skip '{'
     const utf8_t *endPtr = NULL;
     body = parseStatement(PScurly, &endPtr);
@@ -1521,7 +1528,7 @@ UnitTestDeclaration *Parser::parseUnitTest()
         }
     }
 
-    f = new UnitTestDeclaration(loc, token.loc, docline);
+    f = new UnitTestDeclaration(loc, token.loc, docline, id);
     f->fbody = body;
     return f;
 }
