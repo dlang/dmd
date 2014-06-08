@@ -468,6 +468,25 @@ void test7()
 }
 
 /********************************************************/
+// 6430
+
+auto bug6430(int a)
+{
+    static struct Result2 {}
+    return 4;
+}
+auto bug6430(int a, int b)
+{
+    static struct Result2
+    {
+        int z;
+        int y() { return z; }
+    }
+    auto t = Result2(1);
+    return 5;
+}
+
+/********************************************************/
 // 9619
 
 struct Foo9619 { int x; }
