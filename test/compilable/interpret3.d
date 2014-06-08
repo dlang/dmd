@@ -6615,6 +6615,27 @@ static assert(testWrap12602c() == [1,2,1,2]);
 static assert(testWrap12602d() == [1,2,1,2]);
 
 /**************************************************
+    12677 - class type initializing from DotVarExp
+**************************************************/
+
+final class C12677
+{
+    TypeTuple!(Object, int[]) _test;
+    this()
+    {
+        auto t0 = _test[0]; //
+        auto t1 = _test[1]; //
+        assert(t0 is null);
+        assert(t1 is null);
+    }
+}
+
+struct S12677
+{
+    auto f = new C12677();
+}
+
+/**************************************************
     12851 - interpret function local const static array
 **************************************************/
 

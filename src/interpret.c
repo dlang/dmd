@@ -3780,13 +3780,20 @@ public:
         // ---------------------------------------
         if (wantRef && !fp && e->e1->op != TOKarraylength)
         {
-            newval = e->e2->interpret(istate,
-                wantLvalueRef ? ctfeNeedLvalueRef : ctfeNeedLvalue);
+            CtfeGoal e2goal;
+            if (wantLvalueRef)
+                e2goal = ctfeNeedLvalueRef; // for internal ref variable initializing
+            else if (e->e2->type->ty == Tarray || e->e2->type->ty == Tclass)
+                e2goal = ctfeNeedRvalue;    // for assignment of reference types
+            else
+                e2goal = ctfeNeedLvalue;    // other types
+            newval = e->e2->interpret(istate, e2goal);
             if (exceptionOrCantInterpret(newval))
             {
                 result = newval;
                 return;
             }
+
             // If it is an assignment from a array function parameter passed by
             // reference, resolve the reference. (This should NOT happen for
             // non-reference types).
