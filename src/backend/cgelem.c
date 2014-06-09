@@ -1918,11 +1918,10 @@ STATIC elem * elcond(elem *e, goal_t goal)
         {
             if (OPTIMIZER)
             {
-            elem *ec1,*ec2;
             tym_t ty = e->Ety;
+            elem *ec1 = e->E2->E1;
+            elem *ec2 = e->E2->E2;
 
-            ec1 = e->E2->E1;
-            ec2 = e->E2->E2;
             if (tyintegral(ty) && ec1->Eoper == OPconst && ec2->Eoper == OPconst)
             {   targ_llong i1,i2;
                 targ_llong b;
@@ -2010,7 +2009,7 @@ STATIC elem * elcond(elem *e, goal_t goal)
 
             // Try to detect absolute value expression
             // (a < 0) -a : a
-            if ((e1->Eoper == OPlt || e1->Eoper == OPle) &&
+            else if ((e1->Eoper == OPlt || e1->Eoper == OPle) &&
                 e1->E2->Eoper == OPconst &&
                 !boolres(e1->E2) &&
                 !tyuns(e1->E1->Ety) &&
@@ -2041,6 +2040,40 @@ STATIC elem * elcond(elem *e, goal_t goal)
                 el_free(e);
                 e = el_una(OPabs,ty,ec1);
             }
+
+            /* Replace:
+             *    a ? noreturn : c
+             * with:
+             *    (a && noreturn), c
+             * because that means fewer noreturn cases for the data flow analysis to deal with
+             */
+            else if (el_noreturn(ec1))
+            {
+                e->Eoper = OPcomma;
+                e->E1 = e->E2;
+                e->E2 = ec2;
+                e->E1->Eoper = OPandand;
+                e->E1->Ety = TYvoid;
+                e->E1->E2 = ec1;
+                e->E1->E1 = e1;
+            }
+
+            /* Replace:
+             *    a ? b : noreturn
+             * with:
+             *    (a || noreturn), b
+             */
+            else if (el_noreturn(ec2))
+            {
+                e->Eoper = OPcomma;
+                e->E1 = e->E2;
+                e->E2 = ec1;
+                e->E1->Eoper = OPoror;
+                e->E1->Ety = TYvoid;
+                e->E1->E2 = ec2;
+                e->E1->E1 = e1;
+            }
+
             break;
             }
         }
