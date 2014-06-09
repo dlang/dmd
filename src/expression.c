@@ -1622,7 +1622,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                 {
                     //printf("arg->type = %s, p->type = %s\n", arg->type->toChars(), p->type->toChars());
                     arg = arg->implicitCastTo(sc, tprm);
-                    arg = arg->optimize(WANTvalue, (p->storageClass & STCref) != 0);
+                    arg = arg->optimize(WANTvalue, (p->storageClass & (STCref | STCout)) != 0);
                 }
             }
             if (p->storageClass & STCref)

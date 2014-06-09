@@ -1286,6 +1286,8 @@ Type *toStaticArrayType(SliceExp *e)
 {
     if (e->lwr && e->upr)
     {
+        // For the following code to work, e should be optimized beforehand.
+        // (eg. $ in lwr and upr should be already resolved, if possible)
         Expression *lwr = e->lwr->optimize(WANTvalue);
         Expression *upr = e->upr->optimize(WANTvalue);
         if (lwr->isConst() && upr->isConst())
