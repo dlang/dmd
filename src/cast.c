@@ -1367,8 +1367,10 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                     if (typeb->ty == Tstruct)
                     {
                         TypeStruct *ts = (TypeStruct *)typeb;
-                        if (!(tb->ty == Tstruct && ts->sym == ((TypeStruct *)tb)->sym) &&
-                            ts->sym->aliasthis)
+                        if(ts->sym->aliasthis &&
+                           ts->implicitConvWithoutAliasThis(tb) == MATCHnomatch &&
+                           (ts->implicitConvViaAliasThis(tb) > MATCHnomatch ||
+                            !(tb->ty == Tstruct && ts->sym == ((TypeStruct *)tb)->sym)))
                         {
                             /* Forward the cast to our alias this member, rewrite to:
                              *   cast(to)e1.aliasthis
@@ -1380,24 +1382,16 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                     }
                     else if (typeb->ty == Tclass)
                     {
-                        TypeClass *ts = (TypeClass *)typeb;
-                        if (ts->sym->aliasthis)
+                        TypeClass *ts = (TypeClass *)typeb;                        if(ts->sym->aliasthis &&
+                           ts->implicitConvWithoutAliasThis(tb) == MATCHnomatch &&
+                           (ts->implicitConvViaAliasThis(tb) > MATCHnomatch ||
+                            !(tb->ty == Tclass && ts->sym == ((TypeClass *)tb)->sym)))
                         {
-                            if (tb->ty == Tclass)
-                            {
-                                ClassDeclaration *cdfrom = typeb->isClassHandle();
-                                ClassDeclaration *cdto   = tb->isClassHandle();
-                                int offset;
-                                if (cdto->isBaseOf(cdfrom, &offset))
-                                     goto L1;
-                            }
                             /* Forward the cast to our alias this member, rewrite to:
                              *   cast(to)e1.aliasthis
                              */
-                            Expression *e1 = resolveAliasThis(sc, e);
-                            Expression *e2 = new CastExp(e->loc, e1, tb);
-                            e2 = e2->semantic(sc);
-                            result = e2;
+                            Expression *ex = resolveAliasThis(sc, e);
+                            result = ex->castTo(sc, t);
                             return;
                         }
                     }

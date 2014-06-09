@@ -801,6 +801,8 @@ public:
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
     MATCH implicitConvTo(Type *to);
+    MATCH implicitConvWithoutAliasThis(Type *to);
+    MATCH implicitConvViaAliasThis(Type *to);
     MATCH constConv(Type *to);
     unsigned char deduceWild(Type *t, bool isRef);
     Type *toHeadMutable();
@@ -908,6 +910,8 @@ public:
     ClassDeclaration *isClassHandle();
     int isBaseOf(Type *t, int *poffset);
     MATCH implicitConvTo(Type *to);
+    MATCH implicitConvWithoutAliasThis(Type *to);
+    MATCH implicitConvViaAliasThis(Type *to);
     MATCH constConv(Type *to);
     unsigned char deduceWild(Type *t, bool isRef);
     Type *toHeadMutable();
