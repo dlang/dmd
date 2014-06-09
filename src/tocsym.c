@@ -618,7 +618,7 @@ Symbol *Module::toModuleAssert()
 
         massert = toSymbolX("__assert", SCextern, t, "FiZv");
         massert->Sfl = FLextern;
-        massert->Sflags |= SFLnodebug;
+        massert->Sflags |= SFLnodebug | SFLexit;
         slist_add(massert);
     }
     return massert;
