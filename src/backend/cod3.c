@@ -3939,12 +3939,22 @@ code* gen_spill_reg(Symbol* s, bool toreg)
         cs.orReg(s->Sreglsw);
         if (I64 && sz == 1 && s->Sreglsw >= 4)
             cs.Irex |= REX;
-        c = gen(c,&cs);
+        if ((cs.Irm & 0xC0) == 0xC0 &&                  // reg,reg
+            (((cs.Irm >> 3) ^ cs.Irm) & 7) == 0 &&      // registers match
+            (((cs.Irex >> 2) ^ cs.Irex) & 1) == 0)      // REX_R and REX_B match
+            ;                                           // skip MOV reg,reg
+        else
+            c = gen(c,&cs);
         if (sz > REGSIZE)
         {
             cs.setReg(s->Sregmsw);
             getlvalue_msw(&cs);
-            c = gen(c,&cs);
+            if ((cs.Irm & 0xC0) == 0xC0 &&              // reg,reg
+                (((cs.Irm >> 3) ^ cs.Irm) & 7) == 0 &&  // registers match
+                (((cs.Irex >> 2) ^ cs.Irex) & 1) == 0)  // REX_R and REX_B match
+                ;                                       // skip MOV reg,reg
+            else
+                c = gen(c,&cs);
         }
     }
 
