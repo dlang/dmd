@@ -1,14 +1,15 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag8178.d(5): Error: Cannot modify 's'
+fail_compilation/diag8178.d(14): Error: cannot modify manifest constant 's'
 ---
 */
 
-#line 1
-struct Foo {
+struct Foo
+{
     enum string s = "";
 }
-void main() {
+void main()
+{
     Foo.s = "";
 }
