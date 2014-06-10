@@ -651,7 +651,7 @@ Symbol *Module::toModuleArray()
 
         marray = toSymbolX("__array", SCextern, t, "Z");
         marray->Sfl = FLextern;
-        marray->Sflags |= SFLnodebug;
+        marray->Sflags |= SFLnodebug | SFLexit;
         slist_add(marray);
     }
     return marray;
