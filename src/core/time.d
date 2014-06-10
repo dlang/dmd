@@ -2985,13 +2985,13 @@ class TimeException : Exception
 /++
     Returns the absolute value of a duration.
   +/
-Duration abs(Duration duration)
+Duration abs(Duration duration) @safe pure nothrow
 {
     return Duration(_abs(duration._hnsecs));
 }
 
 /++ Ditto +/
-TickDuration abs(TickDuration duration)
+TickDuration abs(TickDuration duration) @safe pure nothrow
 {
     return TickDuration(_abs(duration.length));
 }
@@ -3275,10 +3275,10 @@ unittest
 }
 
 
-/++
+/+
     Local version of abs, since std.math.abs is in Phobos, not druntime.
   +/
-long _abs(long val)
+long _abs(long val) @safe pure nothrow
 {
     return val >= 0 ? val : -val;
 }
