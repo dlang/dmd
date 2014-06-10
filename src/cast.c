@@ -1382,10 +1382,14 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                     }
                     else if (typeb->ty == Tclass)
                     {
-                        TypeClass *ts = (TypeClass *)typeb;                        if(ts->sym->aliasthis &&
+                        TypeClass *ts = (TypeClass *)typeb;
+                        bool canCast = tb->ty == Tclass &&
+                            (ts->sym == ((TypeClass *)tb)->sym ||
+                             tb->isClassHandle()->isBaseOf(typeb->isClassHandle(), NULL));
+                        if(ts->sym->aliasthis &&
                            ts->implicitConvWithoutAliasThis(tb) == MATCHnomatch &&
-                           (ts->implicitConvViaAliasThis(tb) > MATCHnomatch ||
-                            !(tb->ty == Tclass && ts->sym == ((TypeClass *)tb)->sym)))
+                           (ts->implicitConvViaAliasThis(tb) > MATCHnomatch || !canCast)
+                        )
                         {
                             /* Forward the cast to our alias this member, rewrite to:
                              *   cast(to)e1.aliasthis
