@@ -2971,9 +2971,41 @@ class TimeException : Exception
             line = The line number where the exception occurred.
             next = The previous exception in the chain of exceptions, if any.
       +/
-    @safe pure nothrow this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null)
+    this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null) @safe pure nothrow
     {
         super(msg, file, line, next);
+    }
+
+    /++
+        Params:
+            msg  = The message for the exception.
+            next = The previous exception in the chain of exceptions.
+            file = The file where the exception occurred.
+            line = The line number where the exception occurred.
+      +/
+    this(string msg, Throwable next, string file = __FILE__, size_t line = __LINE__) @safe pure nothrow
+    {
+        super(msg, file, line, next);
+    }
+}
+
+unittest
+{
+    {
+        auto e = new TimeException("hello");
+        assert(e.msg == "hello");
+        assert(e.file == __FILE__);
+        assert(e.line == __LINE__ - 3);
+        assert(e.next is null);
+    }
+
+    {
+        auto next = new Exception("foo");
+        auto e = new TimeException("goodbye", next);
+        assert(e.msg == "goodbye");
+        assert(e.file == __FILE__);
+        assert(e.line == __LINE__ - 3);
+        assert(e.next is next);
     }
 }
 
