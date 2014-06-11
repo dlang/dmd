@@ -38,7 +38,7 @@ public:
     Loc loc;
 
     Initializer(Loc loc);
-    virtual Initializer *syntaxCopy();
+    virtual Initializer *syntaxCopy() = 0;
     static Initializers *arraySyntaxCopy(Initializers *ai);
 
     /* Translates to an expression to infer type.
@@ -47,7 +47,7 @@ public:
     virtual Initializer *inferType(Scope *sc) = 0;
 
     // needInterpret is INITinterpret if must be a manifest constant, 0 if not.
-    virtual Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
+    virtual Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret) = 0;
     virtual Expression *toExpression(Type *t = NULL) = 0;
     virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs) = 0;
     char *toChars();

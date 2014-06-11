@@ -32,16 +32,6 @@ Initializer::Initializer(Loc loc)
     this->loc = loc;
 }
 
-Initializer *Initializer::syntaxCopy()
-{
-    return this;
-}
-
-Initializer *Initializer::semantic(Scope *sc, Type *t, NeedInterpret needInterpret)
-{
-    return this;
-}
-
 Initializers *Initializer::arraySyntaxCopy(Initializers *ai)
 {
     Initializers *a = NULL;
@@ -155,9 +145,9 @@ Initializer *StructInitializer::syntaxCopy()
     {
         ai->field[i] = field[i];
 
-        Initializer *init = value[i];
-        init = init->syntaxCopy();
-        ai->value[i] = init;
+        Initializer *iz = value[i];
+        iz = iz->syntaxCopy();
+        ai->value[i] = iz;
     }
     return ai;
 }
@@ -363,9 +353,9 @@ Initializer *ArrayInitializer::syntaxCopy()
             e = e->syntaxCopy();
         ai->index[i] = e;
 
-        Initializer *init = value[i];
-        init = init->syntaxCopy();
-        ai->value[i] = init;
+        Initializer *iz = value[i];
+        iz = iz->syntaxCopy();
+        ai->value[i] = iz;
     }
     return ai;
 }
