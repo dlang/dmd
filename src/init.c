@@ -49,15 +49,15 @@ Type *Initializer::inferType(Scope *sc)
 }
 
 Initializers *Initializer::arraySyntaxCopy(Initializers *ai)
-{   Initializers *a = NULL;
-
+{
+    Initializers *a = NULL;
     if (ai)
     {
         a = new Initializers();
         a->setDim(ai->dim);
         for (size_t i = 0; i < a->dim; i++)
-        {   Initializer *e = (*ai)[i];
-
+        {
+            Initializer *e = (*ai)[i];
             e = e->syntaxCopy();
             (*a)[i] = e;
         }
@@ -81,12 +81,10 @@ ErrorInitializer::ErrorInitializer()
 {
 }
 
-
 Initializer *ErrorInitializer::syntaxCopy()
 {
     return this;
 }
-
 
 Initializer *ErrorInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInterpret)
 {
@@ -94,18 +92,15 @@ Initializer *ErrorInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
     return this;
 }
 
-
 Expression *ErrorInitializer::toExpression(Type *t)
 {
     return new ErrorExp();
 }
 
-
 void ErrorInitializer::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("__error__");
 }
-
 
 /********************************** VoidInitializer ***************************/
 
@@ -115,12 +110,10 @@ VoidInitializer::VoidInitializer(Loc loc)
     type = NULL;
 }
 
-
 Initializer *VoidInitializer::syntaxCopy()
 {
     return new VoidInitializer(loc);
 }
-
 
 Initializer *VoidInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInterpret)
 {
@@ -129,18 +122,15 @@ Initializer *VoidInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInt
     return this;
 }
 
-
 Expression *VoidInitializer::toExpression(Type *t)
 {
     return NULL;
 }
 
-
 void VoidInitializer::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("void");
 }
-
 
 /********************************** StructInitializer *************************/
 
@@ -356,7 +346,8 @@ Initializer *ArrayInitializer::syntaxCopy()
     ai->index.setDim(index.dim);
     ai->value.setDim(value.dim);
     for (size_t i = 0; i < ai->value.dim; i++)
-    {   Expression *e = index[i];
+    {
+        Expression *e = index[i];
         if (e)
             e = e->syntaxCopy();
         ai->index[i] = e;
@@ -467,7 +458,8 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
 
         length++;
         if (length == 0)
-        {   error(loc, "array dimension overflow");
+        {
+            error(loc, "array dimension overflow");
             goto Lerr;
         }
         if (length > dim)
@@ -486,7 +478,8 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
         goto Lerr;
 
     if ((uinteger_t) dim * t->nextOf()->size() >= amax)
-    {   error(loc, "array dimension %u exceeds max of %u", (unsigned) dim, (unsigned)(amax / t->nextOf()->size()));
+    {
+        error(loc, "array dimension %u exceeds max of %u", (unsigned) dim, (unsigned)(amax / t->nextOf()->size()));
         goto Lerr;
     }
     return this;
@@ -587,7 +580,8 @@ Expression *ArrayInitializer::toExpression(Type *tx)
     }
 
     for (size_t i = 0; i < edim; i++)
-    {   Expression *e = (*elements)[i];
+    {
+        Expression *e = (*elements)[i];
         if (e->op == TOKerror)
             return e;
     }
@@ -600,7 +594,6 @@ Expression *ArrayInitializer::toExpression(Type *tx)
 Lno:
     return NULL;
 }
-
 
 /********************************
  * If possible, convert array initializer to associative array initializer.
@@ -668,9 +661,11 @@ Type *ArrayInitializer::inferType(Scope *sc)
     {
         Initializer *iz = (Initializer *)value.data[i];
         if (iz)
-        {   Type *t = iz->inferType(sc);
+        {
+            Type *t = iz->inferType(sc);
             if (i == 0)
-            {   /* BUG: This gets the type from the first element.
+            {
+                /* BUG: This gets the type from the first element.
                  * Fix to use all the elements to figure out the type.
                  */
                 t = new TypeSArray(t, new IntegerExp(value.dim));
@@ -688,7 +683,8 @@ Laa:
     Initializer *iz = (Initializer *)value.data[0];
     Expression *indexinit = (Expression *)index.data[0];
     if (iz && indexinit)
-    {   Type *t = iz->inferType(sc);
+    {
+        Type *t = iz->inferType(sc);
         indexinit = indexinit->semantic(sc);
         Type *indext = indexinit->type;
         t = new TypeAArray(t, indext);
@@ -699,7 +695,6 @@ Laa:
     return type;
 #endif
 }
-
 
 void ArrayInitializer::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
@@ -720,7 +715,6 @@ void ArrayInitializer::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     }
     buf->writeByte(']');
 }
-
 
 /********************************** ExpInitializer ************************************/
 
@@ -804,14 +798,13 @@ bool hasNonConstPointers(Expression *e)
 bool arrayHasNonConstPointers(Expressions *elems)
 {
     for (size_t i = 0; i < elems->dim; i++)
-    {   Expression *e = (*elems)[i];
+    {
+        Expression *e = (*elems)[i];
         if (e && hasNonConstPointers(e))
             return true;
     }
     return false;
 }
-
-
 
 Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInterpret)
 {
@@ -870,8 +863,8 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInte
      * literal.
      */
     if (exp->op == TOKstring && tb->ty == Tsarray && ti->ty == Tsarray)
-    {   StringExp *se = (StringExp *)exp;
-
+    {
+        StringExp *se = (StringExp *)exp;
         if (!se->committed && se->type->ty == Tsarray &&
             ((TypeSArray *)se->type)->dim->toInteger() <
             ((TypeSArray *)t)->dim->toInteger())
@@ -888,7 +881,8 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInte
     {
         StructDeclaration *sd = ((TypeStruct *)tb)->sym;
         if (sd->ctor)
-        {   // Rewrite as S().ctor(exp)
+        {
+            // Rewrite as S().ctor(exp)
             Expression *e;
             e = new StructLiteralExp(loc, sd, NULL);
             e = new DotIdExp(loc, e, Id::ctor);
@@ -963,7 +957,8 @@ Type *ExpInitializer::inferType(Scope *sc)
     exp = exp->semantic(sc);
     exp = resolveProperties(sc, exp);
     if (exp->op == TOKimport)
-    {   ScopeExp *se = (ScopeExp *)exp;
+    {
+        ScopeExp *se = (ScopeExp *)exp;
         TemplateInstance *ti = se->sds->isTemplateInstance();
         if (ti && ti->semanticRun == PASSsemantic && !ti->aliasdecl)
             se->error("cannot infer type from %s %s, possible circular dependency", se->sds->kind(), se->toChars());
@@ -1032,11 +1027,7 @@ Expression *ExpInitializer::toExpression(Type *t)
     return exp;
 }
 
-
 void ExpInitializer::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     exp->toCBuffer(buf, hgs);
 }
-
-
-
