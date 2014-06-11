@@ -97,7 +97,7 @@ version(OSX)
 
 public import core.sys.osx.mach.kern_return;
 
-extern(C)
+extern(C) nothrow
 {
 
 struct mach_timebase_info_data_t
@@ -2142,15 +2142,13 @@ struct TickDuration
         Throws:
             $(D TimeException) if it fails to get the time.
       +/
-    static @property TickDuration currSystemTick() @trusted
+    static @property TickDuration currSystemTick() @trusted nothrow
     {
         version(Windows)
         {
             ulong ticks;
-
             if(QueryPerformanceCounter(cast(long*)&ticks) == 0)
-                // This probably cannot happen on Windows 95 or later
-                throw new TimeException("Failed in QueryPerformanceCounter().");
+                assert(0, "Failed in QueryPerformanceCounter().");
 
             return TickDuration(ticks);
         }
@@ -2162,7 +2160,7 @@ struct TickDuration
             {
                 timeval tv;
                 if(gettimeofday(&tv, null) != 0)
-                    throw new TimeException("Failed in gettimeofday().");
+                    assert(0, "Failed in gettimeofday().");
 
                 return TickDuration(tv.tv_sec * TickDuration.ticksPerSec +
                                     tv.tv_usec * TickDuration.ticksPerSec / 1000 / 1000);
@@ -2173,9 +2171,8 @@ struct TickDuration
             static if(is(typeof(clock_gettime)))
             {
                 timespec ts;
-
                 if(clock_gettime(CLOCK_MONOTONIC, &ts) != 0)
-                    throw new TimeException("Failed in clock_gettime().");
+                    assert(0, "Failed in clock_gettime().");
 
                 return TickDuration(ts.tv_sec * TickDuration.ticksPerSec +
                                     ts.tv_nsec * TickDuration.ticksPerSec / 1000 / 1000 / 1000);
@@ -2184,7 +2181,7 @@ struct TickDuration
             {
                 timeval tv;
                 if(gettimeofday(&tv, null) != 0)
-                    throw new TimeException("Failed in gettimeofday().");
+                    assert(0, "Failed in gettimeofday().");
 
                 return TickDuration(tv.tv_sec * TickDuration.ticksPerSec +
                                     tv.tv_usec * TickDuration.ticksPerSec / 1000 / 1000);
@@ -2192,7 +2189,7 @@ struct TickDuration
         }
     }
 
-    unittest
+    @safe nothrow unittest
     {
         assert(TickDuration.currSystemTick.length > 0);
     }
