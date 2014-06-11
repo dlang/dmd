@@ -990,40 +990,18 @@ void VarDeclaration::semantic(Scope *sc)
         if (needctfe) sc = sc->startCTFE();
 
         //printf("inferring type for %s with init %s\n", toChars(), init->toChars());
-        ArrayInitializer *ai = init->isArrayInitializer();
-        if (ai)
+        init = init->inferType(sc);
+        if (ExpInitializer *ei = init->isExpInitializer())
         {
-            Expression *e;
-            if (ai->isAssociativeArray())
-                e = ai->toAssocArrayLiteral();
-            else
-                e = init->toExpression();
-            if (!e)
-            {
-                error("cannot infer type from initializer");
-                e = new ErrorExp();
-            }
-            init = new ExpInitializer(e->loc, e);
-            type = init->inferType(sc);
-            if (type->ty == Tsarray)
-                type = type->nextOf()->arrayOf();
+            type = ei->exp->type;
         }
         else
-        {
-            type = init->inferType(sc);
-        }
+            type = Type::terror;
 
         if (needctfe) sc = sc->endCTFE();
-//      type = type->semantic(loc, sc);
 
         inuse--;
         inferred = 1;
-
-        if (init->isArrayInitializer() && type->toBasetype()->ty == Tsarray)
-        {
-            // Prefer array literals to give a T[] type rather than a T[dim]
-            type = type->toBasetype()->nextOf()->arrayOf();
-        }
 
         /* This is a kludge to support the existing syntax for RAII
          * declarations.

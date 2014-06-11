@@ -42,10 +42,10 @@ Initializer *Initializer::semantic(Scope *sc, Type *t, NeedInterpret needInterpr
     return this;
 }
 
-Type *Initializer::inferType(Scope *sc)
+Initializer *Initializer::inferType(Scope *sc)
 {
     error(loc, "cannot infer type from initializer");
-    return Type::terror;
+    return new ErrorInitializer();
 }
 
 Initializers *Initializer::arraySyntaxCopy(Initializers *ai)
@@ -89,6 +89,11 @@ Initializer *ErrorInitializer::syntaxCopy()
 Initializer *ErrorInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInterpret)
 {
     //printf("ErrorInitializer::semantic(t = %p)\n", t);
+    return this;
+}
+
+Initializer *ErrorInitializer::inferType(Scope *sc)
+{
     return this;
 }
 
@@ -645,55 +650,21 @@ int ArrayInitializer::isAssociativeArray()
     return 0;
 }
 
-Type *ArrayInitializer::inferType(Scope *sc)
+Initializer *ArrayInitializer::inferType(Scope *sc)
 {
     //printf("ArrayInitializer::inferType() %s\n", toChars());
-    assert(0);
-    return NULL;
-#if 0
-    type = Type::terror;
-    for (size_t i = 0; i < value.dim; i++)
-    {
-        if (index.data[i])
-            goto Laa;
-    }
-    for (size_t i = 0; i < value.dim; i++)
-    {
-        Initializer *iz = (Initializer *)value.data[i];
-        if (iz)
-        {
-            Type *t = iz->inferType(sc);
-            if (i == 0)
-            {
-                /* BUG: This gets the type from the first element.
-                 * Fix to use all the elements to figure out the type.
-                 */
-                t = new TypeSArray(t, new IntegerExp(value.dim));
-                t = t->semantic(loc, sc);
-                type = t;
-            }
-        }
-    }
-    return type;
-
-Laa:
-    /* It's possibly an associative array initializer.
-     * BUG: inferring type from first member.
-     */
-    Initializer *iz = (Initializer *)value.data[0];
-    Expression *indexinit = (Expression *)index.data[0];
-    if (iz && indexinit)
-    {
-        Type *t = iz->inferType(sc);
-        indexinit = indexinit->semantic(sc);
-        Type *indext = indexinit->type;
-        t = new TypeAArray(t, indext);
-        type = t->semantic(loc, sc);
-    }
+    Expression *e;
+    if (isAssociativeArray())
+        e = toAssocArrayLiteral();
     else
-        error(loc, "cannot infer type from this array initializer");
-    return type;
-#endif
+        e = toExpression();
+    if (!e)
+    {
+        error(loc, "cannot infer type from initializer");
+        return new ErrorInitializer();
+    }
+    ExpInitializer *init = new ExpInitializer(e->loc, e);
+    return init->inferType(sc);
 }
 
 void ArrayInitializer::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -951,7 +922,7 @@ L1:
     return this;
 }
 
-Type *ExpInitializer::inferType(Scope *sc)
+Initializer *ExpInitializer::inferType(Scope *sc)
 {
     //printf("ExpInitializer::inferType() %s\n", toChars());
     exp = exp->semantic(sc);
@@ -964,7 +935,7 @@ Type *ExpInitializer::inferType(Scope *sc)
             se->error("cannot infer type from %s %s, possible circular dependency", se->sds->kind(), se->toChars());
         else
             se->error("cannot infer type from %s %s", se->sds->kind(), se->toChars());
-        return Type::terror;
+        return new ErrorInitializer();
     }
 
     // Give error for overloaded function addresses
@@ -974,7 +945,7 @@ Type *ExpInitializer::inferType(Scope *sc)
         if (se->hasOverloads && !se->var->isFuncDeclaration()->isUnique())
         {
             exp->error("cannot infer type from overloaded function symbol %s", exp->toChars());
-            return Type::terror;
+            return new ErrorInitializer();
         }
     }
     if (exp->op == TOKdelegate)
@@ -985,7 +956,7 @@ Type *ExpInitializer::inferType(Scope *sc)
             !se->func->isFuncDeclaration()->isUnique())
         {
             exp->error("cannot infer type from overloaded function symbol %s", exp->toChars());
-            return Type::terror;
+            return new ErrorInitializer();
         }
     }
     if (exp->op == TOKaddress)
@@ -994,14 +965,13 @@ Type *ExpInitializer::inferType(Scope *sc)
         if (ae->e1->op == TOKoverloadset)
         {
             exp->error("cannot infer type from overloaded function symbol %s", exp->toChars());
-            return Type::terror;
+            return new ErrorInitializer();
         }
     }
 
-    Type *t = exp->type;
-    if (!t)
-        t = Initializer::inferType(sc);
-    return t;
+    if (!exp->type)
+        return new ErrorInitializer();
+    return this;
 }
 
 Expression *ExpInitializer::toExpression(Type *t)
