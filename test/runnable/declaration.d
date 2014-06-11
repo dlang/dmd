@@ -278,6 +278,23 @@ void test10142()
 }
 
 /***************************************************/
+// 11421
+
+void test11421()
+{
+    // AAs in array
+    const            a1 = [[1:2], [3:4]];   // ok <- error
+    const int[int][] a2 = [[1:2], [3:4]];   // ok
+    static assert(is(typeof(a1) == typeof(a2)));
+
+    // AAs in AA
+    auto aa = [1:["a":1.0], 2:["b":2.0]];
+    static assert(is(typeof(aa) == double[string][int]));
+    assert(aa[1]["a"] == 1.0);
+    assert(aa[2]["b"] == 2.0);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -290,6 +307,7 @@ int main()
     test8410();
     test8942();
     test10142();
+    test11421();
 
     printf("Success\n");
     return 0;

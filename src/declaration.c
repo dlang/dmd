@@ -991,12 +991,7 @@ void VarDeclaration::semantic(Scope *sc)
 
         //printf("inferring type for %s with init %s\n", toChars(), init->toChars());
         init = init->inferType(sc);
-        if (ExpInitializer *ei = init->isExpInitializer())
-        {
-            type = ei->exp->type;
-        }
-        else
-            type = Type::terror;
+        type = init->toExpression()->type;
 
         if (needctfe) sc = sc->endCTFE();
 
