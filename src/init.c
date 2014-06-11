@@ -344,7 +344,7 @@ ArrayInitializer::ArrayInitializer(Loc loc)
 {
     dim = 0;
     type = NULL;
-    sem = 0;
+    sem = false;
 }
 
 Initializer *ArrayInitializer::syntaxCopy()
@@ -378,14 +378,14 @@ void ArrayInitializer::addInit(Expression *index, Initializer *value)
     type = NULL;
 }
 
-int ArrayInitializer::isAssociativeArray()
+bool ArrayInitializer::isAssociativeArray()
 {
     for (size_t i = 0; i < value.dim; i++)
     {
         if (index[i])
-            return 1;
+            return true;
     }
-    return 0;
+    return false;
 }
 
 Initializer *ArrayInitializer::inferType(Scope *sc)
@@ -470,7 +470,7 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
     //printf("ArrayInitializer::semantic(%s)\n", t->toChars());
     if (sem)                            // if semantic() already run
         return this;
-    sem = 1;
+    sem = true;
     t = t->toBasetype();
     switch (t->ty)
     {
@@ -523,7 +523,7 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
         Initializer *val = value[i];
         ExpInitializer *ei = val->isExpInitializer();
         if (ei && !idx)
-            ei->expandTuples = 1;
+            ei->expandTuples = true;
         val = val->semantic(sc, t->nextOf(), needInterpret);
         if (val->isErrorInitializer())
             errors = true;
@@ -755,7 +755,7 @@ ExpInitializer::ExpInitializer(Loc loc, Expression *exp)
     : Initializer(loc)
 {
     this->exp = exp;
-    this->expandTuples = 0;
+    this->expandTuples = false;
 }
 
 Initializer *ExpInitializer::syntaxCopy()
@@ -941,9 +941,7 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInte
     Type *tb = t->toBasetype();
     Type *ti = exp->type->toBasetype();
 
-    if (exp->op == TOKtuple &&
-        expandTuples &&
-        !exp->implicitConvTo(t))
+    if (exp->op == TOKtuple && expandTuples && !exp->implicitConvTo(t))
         return new ExpInitializer(loc, exp);
 
     /* Look for case of initializing a static array with a too-short

@@ -115,12 +115,12 @@ public:
     Initializers value; // of Initializer *'s
     size_t dim;         // length of array being initialized
     Type *type;         // type that array will be used to initialize
-    int sem;            // !=0 if semantic() is run
+    bool sem;           // true if semantic() is run
 
     ArrayInitializer(Loc loc);
     Initializer *syntaxCopy();
     void addInit(Expression *index, Initializer *value);
-    int isAssociativeArray();
+    bool isAssociativeArray();
     Initializer *inferType(Scope *sc);
     Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
     Expression *toExpression(Type *t = NULL);
@@ -135,7 +135,7 @@ class ExpInitializer : public Initializer
 {
 public:
     Expression *exp;
-    int expandTuples;
+    bool expandTuples;
 
     ExpInitializer(Loc loc, Expression *exp);
     Initializer *syntaxCopy();
