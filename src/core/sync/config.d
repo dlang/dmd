@@ -51,21 +51,18 @@ version( Posix )
     void mvtspec( ref timespec t, Duration delta )
     {
         auto val  = delta;
-             val += dur!("seconds")( t.tv_sec );
-             val += dur!("nsecs")( t.tv_nsec );
+             val += dur!"seconds"( t.tv_sec );
+             val += dur!"nsecs"( t.tv_nsec );
 
-        //auto val = delta + dur!("seconds")( t.tv_sec ) +
-        //                 + dur!("nsecs")( t.tv_nsec );
+        //auto val = delta + dur!"seconds"( t.tv_sec ) +
+        //                 + dur!"nsecs"( t.tv_nsec );
 
         if( val.total!"seconds" > t.tv_sec.max )
         {
             t.tv_sec  = t.tv_sec.max;
-            t.tv_nsec = cast(typeof(t.tv_nsec)) val.fracSec.nsecs;
+            t.tv_nsec = cast(typeof(t.tv_nsec)) val.split!("seconds", "nsecs")().nsecs;
         }
         else
-        {
-            t.tv_sec  = cast(typeof(t.tv_sec)) val.total!"seconds";
-            t.tv_nsec = cast(typeof(t.tv_nsec)) val.fracSec.nsecs;
-        }
+            val.split!("seconds", "nsecs")(t.tv_sec, t.tv_nsec);
     }
 }
