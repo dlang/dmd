@@ -19,6 +19,9 @@ interface Baz(T...) { T[0] t() const; } // bug 3466
 
 template P(alias T) {}
 
+
+template IncludeConstraint(T) if (T == string) {}
+
 class Bar2 : Bar!1, Baz!(int, 2, null) {
     this() {}
     ~this() {} // bug 4178
