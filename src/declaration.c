@@ -1853,6 +1853,8 @@ void VarDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset,
         ad->sizeok = SIZEOKfwd;             // cannot finish; flag as forward referenced
         return;
     }
+    if (t->ty == Terror)
+        return;
 
 
     unsigned memsize      = (unsigned)t->size(loc);  // size of member

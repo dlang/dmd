@@ -431,15 +431,11 @@ void AggregateDeclaration::alignmember(
             break;
 
         case (structalign_t) STRUCTALIGN_DEFAULT:
-        {
-            /* Must match what the corresponding C compiler's default
-             * alignment behavior is.
-             */
-            assert(size != 3);
-            unsigned sa = (size == 0 || 8 < size) ? 8 : size;
-            *poffset = (*poffset + sa - 1) & ~(sa - 1);
+            // Alignment in Target::fieldalignsize must match what the
+            // corresponding C compiler's default alignment behavior is.
+            assert(size > 0 && !(size & (size - 1)));
+            *poffset = (*poffset + size - 1) & ~(size - 1);
             break;
-        }
 
         default:
             // Align on alignment boundary, which must be a positive power of 2

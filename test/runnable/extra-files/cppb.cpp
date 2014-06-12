@@ -182,6 +182,20 @@ extern "C" { int foo7()
 
 /**************************************/
 
+struct Struct10071
+{
+    void *p;
+    long double r;
+};
+
+size_t offset10071()
+{
+    Struct10071 s;
+    return (char *)&s.r - (char *)&s;
+}
+
+/**************************************/
+
 void foo8(const char *p)
 {
 }

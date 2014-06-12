@@ -279,6 +279,20 @@ void test11()
 }
 /****************************************/
 
+struct Struct10071
+{
+    void *p;
+    real r;
+}
+
+extern(C++) size_t offset10071();
+void test10071()
+{
+    assert(offset10071() == Struct10071.r.offsetof);
+}
+
+/****************************************/
+
 char[100] valistbuffer;
 
 extern(C++) void myvprintfx(const(char)* format, va_list va)
@@ -331,6 +345,7 @@ void main()
     test4();
     test5();
     test6();
+    test10071();
     test7();
     test8();
     test11802();
