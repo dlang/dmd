@@ -1201,7 +1201,7 @@ public:
         Returns the number of weeks in this $(D Duration)
         (minus the larger units).
       +/
-    deprecated(`Please use split instead. weeks was too frequently confused for total!"weeks".`)
+    deprecated(`Please use split instead. The functions which wrapped get were too frequently confused with total.`)
     @property long weeks() @safe const pure nothrow
     {
         return get!"weeks"();
