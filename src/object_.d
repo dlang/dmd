@@ -1975,11 +1975,11 @@ extern (C)
     // int _aaApply2(void* aa, size_t keysize, _dg2_t dg);
 
     private struct AARange { void* impl, current; }
-    AARange _aaRange(void* aa);
-    bool _aaRangeEmpty(AARange r);
-    void* _aaRangeFrontKey(AARange r);
-    void* _aaRangeFrontValue(AARange r);
-    void _aaRangePopFront(ref AARange r);
+    AARange _aaRange(void* aa) pure nothrow;
+    bool _aaRangeEmpty(AARange r) pure nothrow;
+    void* _aaRangeFrontKey(AARange r) pure nothrow;
+    void* _aaRangeFrontValue(AARange r) pure nothrow;
+    void _aaRangePopFront(ref AARange r) pure nothrow;
 
     int _aaEqual(in TypeInfo tiRaw, in void* e1, in void* e2);
     hash_t _aaGetHash(in void* aa, in TypeInfo tiRaw) nothrow;
@@ -2026,12 +2026,13 @@ Value[Key] dup(T : Value[Key], Value, Key)(T* aa) if (is(typeof((*aa).dup)))
 
 Value[Key] dup(T : Value[Key], Value, Key)(T* aa) if (!is(typeof((*aa).dup)));
 
-auto byKey(T : Value[Key], Value, Key)(T aa)
+auto byKey(T : Value[Key], Value, Key)(T aa) pure nothrow
 {
     static struct Result
     {
         AARange r;
 
+    pure nothrow:
         @property bool empty() { return _aaRangeEmpty(r); }
         @property ref Key front() { return *cast(Key*)_aaRangeFrontKey(r); }
         void popFront() { _aaRangePopFront(r); }
@@ -2041,17 +2042,18 @@ auto byKey(T : Value[Key], Value, Key)(T aa)
     return Result(_aaRange(cast(void*)aa));
 }
 
-auto byKey(T : Value[Key], Value, Key)(T *aa)
+auto byKey(T : Value[Key], Value, Key)(T *aa) pure nothrow
 {
     return (*aa).byKey();
 }
 
-auto byValue(T : Value[Key], Value, Key)(T aa)
+auto byValue(T : Value[Key], Value, Key)(T aa) pure nothrow
 {
     static struct Result
     {
         AARange r;
 
+    pure nothrow:
         @property bool empty() { return _aaRangeEmpty(r); }
         @property ref Value front() { return *cast(Value*)_aaRangeFrontValue(r); }
         void popFront() { _aaRangePopFront(r); }
@@ -2061,7 +2063,7 @@ auto byValue(T : Value[Key], Value, Key)(T aa)
     return Result(_aaRange(cast(void*)aa));
 }
 
-auto byValue(T : Value[Key], Value, Key)(T *aa)
+auto byValue(T : Value[Key], Value, Key)(T *aa) pure nothrow
 {
     return (*aa).byValue();
 }
@@ -2099,7 +2101,7 @@ inout(V) get(K, V)(inout(V[K])* aa, K key, lazy inout(V) defaultValue)
     return (*aa).get(key, defaultValue);
 }
 
-unittest
+pure nothrow unittest
 {
     int[int] a;
     foreach (i; a.byKey)
@@ -2112,7 +2114,7 @@ unittest
     }
 }
 
-unittest
+pure /*nothrow @@@BUG5555@@@*/ unittest
 {
     auto a = [ 1:"one", 2:"two", 3:"three" ];
     auto b = a.dup;
@@ -2130,7 +2132,8 @@ unittest
     assert(c[1] == 2);
     assert(c[2] == 3);
 }
-unittest
+
+pure nothrow unittest
 {
     // test for bug 5925
     const a = [4:0];
@@ -2138,7 +2141,7 @@ unittest
     assert(a == b);
 }
 
-unittest
+pure nothrow unittest
 {
     // test for bug 9052
     static struct Json {
@@ -2152,7 +2155,7 @@ unittest
     }
 }
 
-unittest
+pure nothrow unittest
 {
     // test for bug 8583: ensure Slot and aaA are on the same page wrt value alignment
     string[byte]    aa0 = [0: "zero"];
@@ -2168,7 +2171,7 @@ unittest
     assert(aa4.byValue.front == "onetwothreefourfive");
 }
 
-unittest
+pure nothrow unittest
 {
     // test for bug 10720
     static struct NC
@@ -2180,7 +2183,7 @@ unittest
     static assert(!is(aa.nonExistingField));
 }
 
-unittest
+pure nothrow unittest
 {
     // bug 5842
     string[string] test = null;
@@ -2190,7 +2193,7 @@ unittest
     test["test3"] = "test3"; // causes divide by zero if rehash broke the AA
 }
 
-unittest
+pure nothrow unittest
 {
     string[] keys = ["a", "b", "c", "d", "e", "f"];
 
@@ -2271,7 +2274,7 @@ unittest
     }
 }
 
-unittest
+pure nothrow unittest
 {
     // expanded test for 5842: increase AA size past the point where the AA
     // stops using binit, in order to test another code path in rehash.
