@@ -243,7 +243,7 @@ string execute(ref File f, string command, bool expectpass, string result_path)
     if (WIFSIGNALED(rc))
     {
         auto value = WTERMSIG(rc);
-        enforce(0 == value, "caught signal: " ~ to!string(value));
+        enforceEx!Error(0 == value, "caught signal: " ~ to!string(value));
     }
     else if (WIFEXITED(rc))
     {
