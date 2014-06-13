@@ -1453,6 +1453,8 @@ unsigned totym(Type *tx)
             switch (tf->linkage)
             {
                 case LINKwindows:
+                    if (global.params.is64bit)
+                        goto Lc;
                     t = (tf->varargs == 1) ? TYnfunc : TYnsfunc;
                     break;
 
@@ -1462,6 +1464,7 @@ unsigned totym(Type *tx)
 
                 case LINKc:
                 case LINKcpp:
+                Lc:
                     t = TYnfunc;
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
                     if (I32 && retStyle(tf) == RETstack)
