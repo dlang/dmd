@@ -2,6 +2,7 @@ DOCS=\
 	$(DOCDIR)\object.html \
 	$(DOCDIR)\core_atomic.html \
 	$(DOCDIR)\core_bitop.html \
+	$(DOCDIR)\core_checkedint.html \
 	$(DOCDIR)\core_cpuid.html \
 	$(DOCDIR)\core_demangle.html \
 	$(DOCDIR)\core_exception.html \

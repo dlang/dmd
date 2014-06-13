@@ -50,6 +50,9 @@ $(DOCDIR)\core_atomic.html : src\core\atomic.d
 $(DOCDIR)\core_bitop.html : src\core\bitop.d
 	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
 
+$(DOCDIR)\core_checkedint.html : src\core\checkedint.d
+	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
+
 $(DOCDIR)\core_cpuid.html : src\core\cpuid.d
 	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
 
@@ -150,6 +153,9 @@ $(IMPDIR)\core\atomic.d : src\core\atomic.d
 	copy $** $@
 
 $(IMPDIR)\core\bitop.d : src\core\bitop.d
+	copy $** $@
+
+$(IMPDIR)\core\checkedint.d : src\core\checkedint.d
 	copy $** $@
 
 $(IMPDIR)\core\cpuid.d : src\core\cpuid.d
