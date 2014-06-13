@@ -367,11 +367,11 @@ extern (C)
     // int _aaApply2(void* aa, size_t keysize, _dg2_t dg);
 
     private struct AARange { void* impl, current; }
-    AARange _aaRange(void* aa);
-    bool _aaRangeEmpty(AARange r);
-    void* _aaRangeFrontKey(AARange r);
-    void* _aaRangeFrontValue(AARange r);
-    void _aaRangePopFront(ref AARange r);
+    AARange _aaRange(void* aa) pure nothrow;
+    bool _aaRangeEmpty(AARange r) pure nothrow;
+    void* _aaRangeFrontKey(AARange r) pure nothrow;
+    void* _aaRangeFrontValue(AARange r) pure nothrow;
+    void _aaRangePopFront(ref AARange r) pure nothrow;
 }
 
 alias AssociativeArray(Key, Value) = Value[Key];
@@ -415,12 +415,13 @@ Value[Key] dup(T : Value[Key], Value, Key)(T* aa) if (is(typeof((*aa).dup)))
 
 Value[Key] dup(T : Value[Key], Value, Key)(T* aa) if (!is(typeof((*aa).dup)));
 
-auto byKey(T : Value[Key], Value, Key)(T aa)
+auto byKey(T : Value[Key], Value, Key)(T aa) pure nothrow
 {
     static struct Result
     {
         AARange r;
 
+    pure nothrow:
         @property bool empty() { return _aaRangeEmpty(r); }
         @property ref Key front() { return *cast(Key*)_aaRangeFrontKey(r); }
         void popFront() { _aaRangePopFront(r); }
@@ -430,17 +431,18 @@ auto byKey(T : Value[Key], Value, Key)(T aa)
     return Result(_aaRange(cast(void*)aa));
 }
 
-auto byKey(T : Value[Key], Value, Key)(T *aa)
+auto byKey(T : Value[Key], Value, Key)(T *aa) pure nothrow
 {
     return (*aa).byKey();
 }
 
-auto byValue(T : Value[Key], Value, Key)(T aa)
+auto byValue(T : Value[Key], Value, Key)(T aa) pure nothrow
 {
     static struct Result
     {
         AARange r;
 
+    pure nothrow:
         @property bool empty() { return _aaRangeEmpty(r); }
         @property ref Value front() { return *cast(Value*)_aaRangeFrontValue(r); }
         void popFront() { _aaRangePopFront(r); }
@@ -450,7 +452,7 @@ auto byValue(T : Value[Key], Value, Key)(T aa)
     return Result(_aaRange(cast(void*)aa));
 }
 
-auto byValue(T : Value[Key], Value, Key)(T *aa)
+auto byValue(T : Value[Key], Value, Key)(T *aa) pure nothrow
 {
     return (*aa).byValue();
 }

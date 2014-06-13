@@ -441,7 +441,7 @@ inout(ArrayRet_t) _aaKeys(inout AA aa, in size_t keysize) pure nothrow
     return *cast(inout ArrayRet_t*)(&a);
 }
 
-unittest
+pure nothrow unittest
 {
     int[string] aa;
 
@@ -798,7 +798,7 @@ hash_t _aaGetHash(in AA* aa, in TypeInfo tiRaw) nothrow
     return h;
 }
 
-unittest
+pure nothrow unittest
 {
     string[int] key1 = [1: "true", 2: "false"];
     string[int] key2 = [1: "false", 2: "true"];
@@ -825,7 +825,7 @@ unittest
 }
 
 // Issue 9852
-unittest
+pure nothrow unittest
 {
     // Original test case (revised, original assert was wrong)
     int[string] a;
@@ -857,7 +857,7 @@ struct Range
 }
 
 
-Range _aaRange(AA aa)
+Range _aaRange(AA aa) pure nothrow
 {
     typeof(return) res;
     if (aa.impl is null)
@@ -876,13 +876,13 @@ Range _aaRange(AA aa)
 }
 
 
-bool _aaRangeEmpty(Range r)
+bool _aaRangeEmpty(Range r) pure nothrow
 {
     return r.current is null;
 }
 
 
-void* _aaRangeFrontKey(Range r)
+void* _aaRangeFrontKey(Range r) pure nothrow
 in
 {
     assert(r.current !is null);
@@ -893,7 +893,7 @@ body
 }
 
 
-void* _aaRangeFrontValue(Range r)
+void* _aaRangeFrontValue(Range r) pure nothrow
 in
 {
     assert(r.current !is null);
@@ -905,7 +905,7 @@ body
 }
 
 
-void _aaRangePopFront(ref Range r)
+void _aaRangePopFront(ref Range r) pure nothrow
 {
     if (r.current.next !is null)
     {
