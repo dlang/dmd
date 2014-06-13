@@ -271,7 +271,7 @@ class TypeInfo
     int compare(in void* p1, in void* p2) const { return _xopCmp(p1, p2); }
 
     /// Returns size of the type.
-    @property size_t tsize() nothrow pure const @safe { return 0; }
+    @property size_t tsize() nothrow pure const @safe @nogc { return 0; }
 
     /// Swaps two instances of the type.
     void swap(void* p1, void* p2) const
@@ -287,16 +287,16 @@ class TypeInfo
 
     /// Get TypeInfo for 'next' type, as defined by what kind of type this is,
     /// null if none.
-    @property inout(TypeInfo) next() nothrow pure inout { return null; }
+    @property inout(TypeInfo) next() nothrow pure inout @nogc { return null; }
 
     /// Return default initializer.  If the type should be initialized to all zeros,
     /// an array with a null ptr and a length equal to the type size will be returned.
     // TODO: make this a property, but may need to be renamed to diambiguate with T.init...
-    const(void)[] init() nothrow pure const @safe { return null; }
+    const(void)[] init() nothrow pure const @safe @nogc { return null; }
 
     /// Get flags for type: 1 means GC should scan for pointers,
     /// 2 means arg of this type is passed in XMM register
-    @property uint flags() nothrow pure const @safe { return 0; }
+    @property uint flags() nothrow pure const @safe @nogc { return 0; }
 
     /// Get type information on the contents of the type; null if not available
     const(OffsetTypeInfo)[] offTi() const { return null; }
@@ -307,7 +307,7 @@ class TypeInfo
 
 
     /// Return alignment of type
-    @property size_t talign() nothrow pure const @safe { return tsize; }
+    @property size_t talign() nothrow pure const @safe @nogc { return tsize; }
 
     /** Return internal info on arguments fitting into 8byte.
      * See X86-64 ABI 3.2.3
@@ -320,7 +320,7 @@ class TypeInfo
 
     /** Return info used by the garbage collector to do precise collection.
      */
-    @property immutable(void)* rtInfo() nothrow pure const @safe { return null; }
+    @property immutable(void)* rtInfo() nothrow pure const @safe @nogc { return null; }
 }
 
 class TypeInfo_Typedef : TypeInfo
@@ -1961,7 +1961,7 @@ extern (C)
 {
     // from druntime/src/rt/aaA.d
 
-    // size_t _aaLen(in void* p) pure nothrow;
+    // size_t _aaLen(in void* p) pure nothrow @nogc;
     // void* _aaGetX(void** pp, const TypeInfo keyti, in size_t valuesize, in void* pkey);
     // inout(void)* _aaGetRvalueX(inout void* p, in TypeInfo keyti, in size_t valuesize, in void* pkey);
     inout(void)[] _aaValues(inout void* p, in size_t keysize, in size_t valuesize) pure nothrow;
@@ -1975,11 +1975,11 @@ extern (C)
     // int _aaApply2(void* aa, size_t keysize, _dg2_t dg);
 
     private struct AARange { void* impl, current; }
-    AARange _aaRange(void* aa) pure nothrow;
-    bool _aaRangeEmpty(AARange r) pure nothrow;
-    void* _aaRangeFrontKey(AARange r) pure nothrow;
-    void* _aaRangeFrontValue(AARange r) pure nothrow;
-    void _aaRangePopFront(ref AARange r) pure nothrow;
+    AARange _aaRange(void* aa) pure nothrow @nogc;
+    bool _aaRangeEmpty(AARange r) pure nothrow @nogc;
+    void* _aaRangeFrontKey(AARange r) pure nothrow @nogc;
+    void* _aaRangeFrontValue(AARange r) pure nothrow @nogc;
+    void _aaRangePopFront(ref AARange r) pure nothrow @nogc;
 
     int _aaEqual(in TypeInfo tiRaw, in void* e1, in void* e2);
     hash_t _aaGetHash(in void* aa, in TypeInfo tiRaw) nothrow;
@@ -2026,13 +2026,13 @@ Value[Key] dup(T : Value[Key], Value, Key)(T* aa) if (is(typeof((*aa).dup)))
 
 Value[Key] dup(T : Value[Key], Value, Key)(T* aa) if (!is(typeof((*aa).dup)));
 
-auto byKey(T : Value[Key], Value, Key)(T aa) pure nothrow
+auto byKey(T : Value[Key], Value, Key)(T aa) pure nothrow @nogc
 {
     static struct Result
     {
         AARange r;
 
-    pure nothrow:
+    pure nothrow @nogc:
         @property bool empty() { return _aaRangeEmpty(r); }
         @property ref Key front() { return *cast(Key*)_aaRangeFrontKey(r); }
         void popFront() { _aaRangePopFront(r); }
@@ -2042,18 +2042,18 @@ auto byKey(T : Value[Key], Value, Key)(T aa) pure nothrow
     return Result(_aaRange(cast(void*)aa));
 }
 
-auto byKey(T : Value[Key], Value, Key)(T *aa) pure nothrow
+auto byKey(T : Value[Key], Value, Key)(T *aa) pure nothrow @nogc
 {
     return (*aa).byKey();
 }
 
-auto byValue(T : Value[Key], Value, Key)(T aa) pure nothrow
+auto byValue(T : Value[Key], Value, Key)(T aa) pure nothrow @nogc
 {
     static struct Result
     {
         AARange r;
 
-    pure nothrow:
+    pure nothrow @nogc:
         @property bool empty() { return _aaRangeEmpty(r); }
         @property ref Value front() { return *cast(Value*)_aaRangeFrontValue(r); }
         void popFront() { _aaRangePopFront(r); }
@@ -2063,7 +2063,7 @@ auto byValue(T : Value[Key], Value, Key)(T aa) pure nothrow
     return Result(_aaRange(cast(void*)aa));
 }
 
-auto byValue(T : Value[Key], Value, Key)(T *aa) pure nothrow
+auto byValue(T : Value[Key], Value, Key)(T *aa) pure nothrow @nogc
 {
     return (*aa).byValue();
 }

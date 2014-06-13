@@ -72,7 +72,7 @@ struct Impl
     TypeInfo _keyti;
     Entry*[4] binit;    // initial value of buckets[]
 
-    @property const(TypeInfo) keyti() const @safe pure nothrow
+    @property const(TypeInfo) keyti() const @safe pure nothrow @nogc
     { return _keyti; }
 }
 
@@ -89,7 +89,7 @@ struct AA
  * GC won't be faced with misaligned pointers
  * in value.
  */
-size_t aligntsize(in size_t tsize) @safe pure nothrow
+size_t aligntsize(in size_t tsize) @safe pure nothrow @nogc
 {
     version (D_LP64) {
         // align to 16 bytes on 64-bit
@@ -105,7 +105,7 @@ extern (C):
 /****************************************************
  * Determine number of entries in associative array.
  */
-size_t _aaLen(in AA aa) pure nothrow
+size_t _aaLen(in AA aa) pure nothrow @nogc
 in
 {
     //printf("_aaLen()+\n");
@@ -626,7 +626,7 @@ Impl* _d_assocarrayliteralTX(const TypeInfo_AssociativeArray ti, void[] keys, vo
 }
 
 
-const(TypeInfo_AssociativeArray) _aaUnwrapTypeInfo(const(TypeInfo) tiRaw) pure nothrow
+const(TypeInfo_AssociativeArray) _aaUnwrapTypeInfo(const(TypeInfo) tiRaw) pure nothrow @nogc
 {
     const(TypeInfo)* p = &tiRaw;
     TypeInfo_AssociativeArray ti;
@@ -857,7 +857,7 @@ struct Range
 }
 
 
-Range _aaRange(AA aa) pure nothrow
+Range _aaRange(AA aa) pure nothrow @nogc
 {
     typeof(return) res;
     if (aa.impl is null)
@@ -876,13 +876,13 @@ Range _aaRange(AA aa) pure nothrow
 }
 
 
-bool _aaRangeEmpty(Range r) pure nothrow
+bool _aaRangeEmpty(Range r) pure nothrow @nogc
 {
     return r.current is null;
 }
 
 
-void* _aaRangeFrontKey(Range r) pure nothrow
+void* _aaRangeFrontKey(Range r) pure nothrow @nogc
 in
 {
     assert(r.current !is null);
@@ -893,7 +893,7 @@ body
 }
 
 
-void* _aaRangeFrontValue(Range r) pure nothrow
+void* _aaRangeFrontValue(Range r) pure nothrow @nogc
 in
 {
     assert(r.current !is null);
@@ -905,7 +905,7 @@ body
 }
 
 
-void _aaRangePopFront(ref Range r) pure nothrow
+void _aaRangePopFront(ref Range r) pure nothrow @nogc
 {
     if (r.current.next !is null)
     {
