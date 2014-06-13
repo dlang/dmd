@@ -1206,6 +1206,8 @@ unsigned TypeFunction::totym()
     switch (linkage)
     {
         case LINKwindows:
+            if (global.params.is64bit)
+                goto Lc;
             tyf = (varargs == 1) ? TYnfunc : TYnsfunc;
             break;
 
@@ -1215,6 +1217,7 @@ unsigned TypeFunction::totym()
 
         case LINKc:
         case LINKcpp:
+        Lc:
             tyf = TYnfunc;
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
             if (I32 && retStyle() == RETstack)

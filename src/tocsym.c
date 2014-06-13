@@ -149,7 +149,7 @@ Symbol *Dsymbol::toImport(Symbol *sym)
     else if (sym->Stype->Tmangle == mTYman_d)
         sprintf(id,"_imp_%s",n);
     else
-        sprintf(id,"_imp__%s",n);
+        sprintf(id,(config.exe == EX_WIN64) ? "__imp_%s" : "_imp__%s",n);
     t = type_alloc(TYnptr | mTYconst);
     t->Tnext = sym->Stype;
     t->Tnext->Tcount++;
@@ -267,7 +267,7 @@ Symbol *VarDeclaration::toSymbol()
         switch (linkage)
         {
             case LINKwindows:
-                m = mTYman_std;
+                m = global.params.is64bit ? mTYman_c : mTYman_std;
                 break;
 
             case LINKpascal:
@@ -385,7 +385,7 @@ Symbol *FuncDeclaration::toSymbol()
             switch (linkage)
             {
                 case LINKwindows:
-                    t->Tmangle = mTYman_std;
+                    t->Tmangle = global.params.is64bit ? mTYman_c : mTYman_std;
                     break;
 
                 case LINKpascal:
