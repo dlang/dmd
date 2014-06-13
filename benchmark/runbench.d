@@ -29,7 +29,6 @@ void usage()
           "      CC:            C++ compiler to use, ex: dmc, g++\n"
           "      OS:            win32, win64, linux, freebsd, osx\n"
           "      RESULTS_DIR:   base directory for test results\n"
-          "      GC_OPT:        GC options to be set for the test\n"
           "   windows vs non-windows portability env vars:\n"
           "      DSEP:          \\\\ or /\n"
           "      SEP:           \\ or /\n"
@@ -429,7 +428,10 @@ int runTest(const ref EnvData envData, string tst, string test_args)
     fflush(core.stdc.stdio.stdout);
 
     if (testArgs.disabled)
+    {
         writefln("!!! [DISABLED: %s]", testArgs.disabled_reason);
+        return 0;
+    }
 
     removeIfExists(output_file);
 
@@ -516,13 +518,10 @@ int runTest(const ref EnvData envData, string tst, string test_args)
                 string command = test_app_dmd;
                 if (!test_args.empty)
                     command ~= " " ~ test_args;
-                else if (testArgs.executeArgs)
+                else if (!testArgs.executeArgs.empty)
                     command ~= " " ~ testArgs.executeArgs;
 
-                if (std.file.exists("gcx.log"))
-                    std.file.remove("gcx.log");
-                string gcopt = environment.get("GC_OPT");
-                environment["D_GC"] = gcopt;
+                removeIfExists("gcx.log");
 
                 StopWatch sw;
                 sw.start();
@@ -561,7 +560,7 @@ int runTest(const ref EnvData envData, string tst, string test_args)
 
             fThisRun.close();
 
-            if (testArgs.postScript)
+            if (!testArgs.postScript.empty)
             {
                 f.write("Executing post-test script: ");
                 string prefix = "";
