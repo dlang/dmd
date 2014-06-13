@@ -373,12 +373,13 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             //printf("PtrExp::optimize(result = x%x) %s\n", result, e->toChars());
             e->e1 = e->e1->optimize(result);
             // Convert *&ex to ex
+            // But only if there is no type punning involved
             if (e->e1->op == TOKaddress)
             {
                 Expression *ex = ((AddrExp *)e->e1)->e1;
                 if (e->type->equals(ex->type))
                     ret = ex;
-                else
+                else if (ex->type->implicitConvTo(e->type) >= MATCHconst)
                 {
                     ret = ex->copy();
                     ret->type = e->type;
