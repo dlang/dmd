@@ -1165,7 +1165,7 @@ struct Struct13190
     uint b;
 };
 
-__gshared Struct13190* table13190 =
+__gshared Struct13190[] table13190 =
 [
     Struct13190(1, 1),
     Struct13190(0, 2)

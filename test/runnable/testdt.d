@@ -17,6 +17,21 @@ void test1()
 }
 
 /******************************************/
+// 6469
+
+// ArrayInitializer is translated to ArrayLiteralExp in front-end layer.
+int[] a6469 = [1:10, 100000:20];
+
+void test6469()
+{
+    assert(a6469.length == 100001);
+    assert(a6469[0] == 0);
+    assert(a6469[1] == 10);
+    assert(a6469[50000] == 0);
+    assert(a6469[100000] == 20);
+}
+
+/******************************************/
 // 10629
 
 class Foo10629 {}
@@ -165,6 +180,7 @@ void test15664()
 int main()
 {
     test1();
+    test6469();
     test11672();
     test15664();
 

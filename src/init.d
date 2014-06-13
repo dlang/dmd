@@ -8,6 +8,7 @@
 
 module ddmd.init;
 
+import core.stdc.stdio;
 import ddmd.aggregate;
 import ddmd.arraytypes;
 import ddmd.dcast;
@@ -71,8 +72,74 @@ public:
      */
     abstract Initializer inferType(Scope* sc);
 
+    final Type checkMultiDimInit(Scope* sc, Type t)
+    {
+        Type tb = t.toBasetype();
+        if (tb.ty == Tsarray)
+        {
+            Type tn = (cast(TypeNext)tb).next;
+            if (isArrayInitializer() &&
+                tn.ty != Tarray && tn.ty != Tsarray && tn.ty != Taarray)
+            {
+                // do not test matching
+            }
+            else
+            {
+                Type tx = checkMultiDimInit(sc, tn);
+                if (tx)
+                    return tx;
+            }
+        }
+        return canMatch(sc, t) ? t : null;
+    }
+
+    bool canMatch(Scope* sc, Type t)
+    {
+        return false;
+    }
+
     // needInterpret is INITinterpret if must be a manifest constant, 0 if not.
-    abstract Initializer semantic(Scope* sc, Type t, NeedInterpret needInterpret);
+    final Initializer semantic(Scope* sc, Type t, NeedInterpret needInterpret)
+    {
+        if (needInterpret)
+            sc = sc.startCTFE();
+
+        // Prefer multidimensional initializing in local variable
+        Type to = checkMultiDimInit(sc, t);
+        if (!to)
+            to = t;
+        auto iz = semantic(sc, to);
+
+        if (needInterpret)
+            sc = sc.endCTFE();
+
+        auto ez = iz.isExpInitializer();
+        if (needInterpret && ez)
+        {
+            auto e = ez.exp;
+
+            // If the result will be implicitly cast, move the cast into CTFE
+            // to avoid premature truncation of polysemous types.
+            // eg real [] x = [1.1, 2.2]; should use real precision.
+            if (e.implicitConvTo(to))
+                e = e.implicitCastTo(sc, to);
+            e = e.ctfeInterpret();
+            if (hasNonConstPointers(e))
+            {
+                e.error("cannot use non-constant CTFE pointer in an initializer '%s'", e.toChars());
+                e = new ErrorExp();
+            }
+            e = e.implicitCastTo(sc, to);
+
+            if (e.op == TOKerror)
+                iz = new ErrorInitializer();
+            else
+                ez.exp = e;
+        }
+        return iz;
+    }
+
+    abstract Initializer semantic(Scope* sc, Type t);
 
     abstract Expression toExpression(Type t = null);
 
@@ -138,7 +205,7 @@ public:
         return new ErrorInitializer();
     }
 
-    override Initializer semantic(Scope* sc, Type t, NeedInterpret needInterpret)
+    override Initializer semantic(Scope* sc, Type t)
     {
         //printf("VoidInitializer::semantic(t = %p)\n", t);
         type = t;
@@ -181,7 +248,7 @@ public:
         return this;
     }
 
-    override Initializer semantic(Scope* sc, Type t, NeedInterpret needInterpret)
+    override Initializer semantic(Scope* sc, Type t)
     {
         //printf("ErrorInitializer::semantic(t = %p)\n", t);
         return this;
@@ -209,7 +276,7 @@ extern (C++) final class StructInitializer : Initializer
 {
 public:
     Identifiers field;      // of Identifier *'s
-    Initializers value;     // parallel array of Initializer *'s
+    Initializers value;     // parallel array of Initializer's
 
     extern (D) this(Loc loc)
     {
@@ -243,9 +310,17 @@ public:
         return new ErrorInitializer();
     }
 
-    override Initializer semantic(Scope* sc, Type t, NeedInterpret needInterpret)
+    override bool canMatch(Scope* sc, Type t)
     {
-        //printf("StructInitializer::semantic(t = %s) %s\n", t->toChars(), toChars());
+        t = t.toBasetype();
+        return (t.ty == Tstruct ||
+                t.ty == Tdelegate ||
+                t.ty == Tpointer && (cast(TypeNext)t).next.ty == Tfunction);
+    }
+
+    override Initializer semantic(Scope* sc, Type t)
+    {
+        //printf("StructInitializer::semantic(t = %s) %s\n", t.toChars(), toChars());
         t = t.toBasetype();
         if (t.ty == Tsarray && t.nextOf().toBasetype().ty == Tstruct)
             t = t.nextOf().toBasetype();
@@ -320,7 +395,7 @@ public:
                 }
                 assert(sc);
                 Initializer iz = value[i];
-                iz = iz.semantic(sc, vd.type.addMod(t.mod), needInterpret);
+                iz = iz.semantic(sc, vd.type.addMod(t.mod));
                 Expression ex = iz.toExpression();
                 if (ex.op == TOKerror)
                 {
@@ -338,7 +413,7 @@ public:
                 return new ErrorInitializer();
             sle.type = t;
             auto ie = new ExpInitializer(loc, sle);
-            return ie.semantic(sc, t, needInterpret);
+            return ie.semantic(sc, t);
         }
         else if ((t.ty == Tdelegate || t.ty == Tpointer && t.nextOf().ty == Tfunction) && value.dim == 0)
         {
@@ -352,7 +427,7 @@ public:
             fd.endloc = loc;
             Expression e = new FuncExp(loc, fd);
             auto ie = new ExpInitializer(loc, e);
-            return ie.semantic(sc, t, needInterpret);
+            return ie.semantic(sc, t);
         }
         error(loc, "a struct is not a valid initializer for a %s", t.toChars());
         return new ErrorInitializer();
@@ -386,10 +461,7 @@ extern (C++) final class ArrayInitializer : Initializer
 {
 public:
     Expressions index;      // indices
-    Initializers value;     // of Initializer *'s
-    size_t dim;             // length of array being initialized
-    Type type;              // type that array will be used to initialize
-    bool sem;               // true if semantic() is run
+    Initializers value;     // of Initializer's
 
     extern (D) this(Loc loc)
     {
@@ -415,8 +487,6 @@ public:
     {
         this.index.push(index);
         this.value.push(value);
-        dim = 0;
-        type = null;
     }
 
     bool isAssociativeArray()
@@ -440,13 +510,15 @@ public:
             keys.setDim(value.dim);
             values = new Expressions();
             values.setDim(value.dim);
+
             for (size_t i = 0; i < value.dim; i++)
             {
-                Expression e = index[i];
+                auto e = index[i];
                 if (!e)
                     goto Lno;
                 (*keys)[i] = e;
-                Initializer iz = value[i];
+
+                auto iz = value[i];
                 if (!iz)
                     goto Lno;
                 iz = iz.inferType(sc);
@@ -456,19 +528,22 @@ public:
                 (*values)[i] = (cast(ExpInitializer)iz).exp;
                 assert((*values)[i].op != TOKerror);
             }
-            Expression e = new AssocArrayLiteralExp(loc, keys, values);
-            auto ei = new ExpInitializer(loc, e);
-            return ei.inferType(sc);
+
+            auto e = new AssocArrayLiteralExp(loc, keys, values);
+            auto ez = new ExpInitializer(loc, e);
+            return ez.inferType(sc);
         }
         else
         {
             auto elements = new Expressions();
             elements.setDim(value.dim);
             elements.zero();
+
             for (size_t i = 0; i < value.dim; i++)
             {
                 assert(!index[i]); // already asserted by isAssociativeArray()
-                Initializer iz = value[i];
+
+                auto iz = value[i];
                 if (!iz)
                     goto Lno;
                 iz = iz.inferType(sc);
@@ -478,7 +553,8 @@ public:
                 (*elements)[i] = (cast(ExpInitializer)iz).exp;
                 assert((*elements)[i].op != TOKerror);
             }
-            Expression e = new ArrayLiteralExp(loc, elements);
+
+            auto e = new ArrayLiteralExp(loc, elements);
             auto ei = new ExpInitializer(loc, e);
             return ei.inferType(sc);
         }
@@ -494,53 +570,96 @@ public:
         return new ErrorInitializer();
     }
 
-    override Initializer semantic(Scope* sc, Type t, NeedInterpret needInterpret)
+    override bool canMatch(Scope* sc, Type t)
     {
-        size_t length;
+        t = t.toBasetype();
+        if (t.ty == Tvector)
+            t = (cast(TypeVector)t).basetype;
+        if (t.ty == Tarray || t.ty == Tsarray || t.ty == Taarray)
+        {
+            if (value.dim)
+            {
+                Type tn = (cast(TypeNext)t).next;
+                for (size_t i = 0; i < value.dim; i++)
+                {
+                    // definitely not an AA literal
+                    if (index[i] is null && t.ty == Taarray)
+                        return false;
+
+                    if (!value[i].canMatch(sc, tn))
+                        return false;
+                }
+                return true;
+            }
+            else
+            {
+                if (t.ty == Tarray)
+                    return true;
+                else if (t.ty == Taarray)
+                    return false;
+                else
+                    return (cast(TypeSArray)t).dim.toInteger() == 0;
+            }
+        }
+        return false;
+    }
+
+    /********************************
+     * Convert array initializer to array expression.
+     */
+    override Initializer semantic(Scope* sc, Type t)
+    {
+        //printf("ArrayInitializer::semantic(%s)\n", t.toChars());
+
         const(uint) amax = 0x80000000;
         bool errors = false;
-        //printf("ArrayInitializer::semantic(%s)\n", t->toChars());
-        if (sem) // if semantic() already run
-            return this;
-        sem = true;
+
         t = t.toBasetype();
         switch (t.ty)
         {
         case Tsarray:
         case Tarray:
+            // void[$], void[]
+            Type tn = (cast(TypeNext)t).next;
+            if (tn.ty == Tvoid)
+            {
+                auto iz = inferType(sc);
+                auto e = iz.toExpression();
+                if (e.op == TOKarrayliteral)
+                {
+                    // cast to void[]
+                    // TODO: check content size matching?
+                    t = tn.arrayOf();
+                }
+                iz = new ExpInitializer(loc, e);
+                return iz.semantic(sc, t);
+            }
             break;
+
         case Tvector:
             t = (cast(TypeVector)t).basetype;
             break;
+
         case Taarray:
+            return semanticAA(sc, t);
+
         case Tstruct: // consider implicit constructor call
-            {
-                Expression e;
-                // note: MyStruct foo = [1:2, 3:4] is correct code if MyStruct has a this(int[int])
-                if (t.ty == Taarray || isAssociativeArray())
-                    e = toAssocArrayLiteral();
-                else
-                    e = toExpression();
-                if (!e) // Bugzilla 13987
-                {
-                    error(loc, "cannot use array to initialize %s", t.toChars());
-                    goto Lerr;
-                }
-                auto ei = new ExpInitializer(e.loc, e);
-                return ei.semantic(sc, t, needInterpret);
-            }
-        case Tpointer:
-            if (t.nextOf().ty != Tfunction)
-                break;
-            goto default;
+            auto iz = inferType(sc);
+            return iz.semantic(sc, t);
+
         default:
             error(loc, "cannot use array to initialize %s", t.toChars());
-            goto Lerr;
+            return new ErrorInitializer();
         }
-        type = t;
-        length = 0;
+
+        size_t dim = 0;
+        size_t length = 0;
+        Type tn = (cast(TypeNext)t).next;
         for (size_t i = 0; i < index.dim; i++)
         {
+            /* On sparse array initializing, indices should be
+             * interpretd at compile time, even in function bodies.
+             */
             Expression idx = index[i];
             if (idx)
             {
@@ -553,23 +672,26 @@ public:
                 if (idx.op == TOKerror)
                     errors = true;
             }
-            Initializer val = value[i];
-            ExpInitializer ei = val.isExpInitializer();
-            if (ei && !idx)
-                ei.expandTuples = true;
-            val = val.semantic(sc, t.nextOf(), needInterpret);
-            if (val.isErrorInitializer())
+
+            auto iz = value[i];
+            auto ez = iz.isExpInitializer();
+            if (ez && !idx)
+                ez.expandTuples = true;
+            iz = iz.semantic(sc, tn);
+            if (iz.isErrorInitializer())
                 errors = true;
-            ei = val.isExpInitializer();
+
+            ez = iz.isExpInitializer();
             // found a tuple, expand it
-            if (ei && ei.exp.op == TOKtuple)
+            if (ez && ez.exp.op == TOKtuple)
             {
-                TupleExp te = cast(TupleExp)ei.exp;
+                auto te = cast(TupleExp)ez.exp;
                 index.remove(i);
                 value.remove(i);
+
                 for (size_t j = 0; j < te.exps.dim; ++j)
                 {
-                    Expression e = (*te.exps)[j];
+                    auto e = (*te.exps)[j];
                     index.insert(i + j, cast(Expression)null);
                     value.insert(i + j, new ExpInitializer(e.loc, e));
                 }
@@ -578,165 +700,150 @@ public:
             }
             else
             {
-                value[i] = val;
+                value[i] = iz;
             }
+
             length++;
             if (length == 0)
             {
                 error(loc, "array dimension overflow");
-                goto Lerr;
+                return new ErrorInitializer();
             }
             if (length > dim)
                 dim = length;
         }
+        if (errors)
+            return new ErrorInitializer();
         if (t.ty == Tsarray)
         {
-            dinteger_t edim = (cast(TypeSArray)t).dim.toInteger();
-            if (dim > edim)
+            const needInterpret = (sc.flags & SCOPEctfe) != 0;
+            const edim = (cast(TypeSArray)t).dim.toInteger();
+
+            /* For local variables this is not accepted, but
+             * loosely allowed for static variables.
+             *  int[3] a = [1,2];
+             */
+            if (needInterpret ? dim > edim : dim != edim)
             {
                 error(loc, "array initializer has %u elements, but array length is %lld", dim, edim);
-                goto Lerr;
+                return new ErrorInitializer();
             }
         }
-        if (errors)
-            goto Lerr;
+
         if (cast(uinteger_t)dim * t.nextOf().size() >= amax)
         {
             error(loc, "array dimension %u exceeds max of %u", cast(uint)dim, cast(uint)(amax / t.nextOf().size()));
-            goto Lerr;
+            return new ErrorInitializer();
         }
-        return this;
-    Lerr:
-        return new ErrorInitializer();
-    }
 
-    /********************************
-     * If possible, convert array initializer to array literal.
-     * Otherwise return NULL.
-     */
-    override Expression toExpression(Type tx = null)
-    {
-        //printf("ArrayInitializer::toExpression(), dim = %d\n", dim);
-        //static int i; if (++i == 2) assert(0);
-        Expressions* elements;
+        /* Convert to ExpInitializer with ArrayLiteralExp
+         */
         size_t edim;
-        Type t = null;
-        if (type)
+        switch (t.ty)
         {
-            if (type == Type.terror)
-                return new ErrorExp();
-            t = type.toBasetype();
-            switch (t.ty)
-            {
-            case Tsarray:
-                edim = cast(size_t)(cast(TypeSArray)t).dim.toInteger();
-                break;
-            case Tvector:
-                t = (cast(TypeVector)t).basetype;
-                edim = cast(size_t)(cast(TypeSArray)t).dim.toInteger();
-                break;
-            case Tpointer:
-            case Tarray:
-                edim = dim;
-                break;
-            default:
-                assert(0);
-            }
+           case Tsarray:
+               edim = cast(size_t)(cast(TypeSArray)t).dim.toInteger();
+               break;
+
+           case Tpointer:
+           case Tarray:
+               edim = dim;
+               break;
+
+           default:
+               assert(0);
         }
-        else
-        {
-            edim = value.dim;
-            for (size_t i = 0, j = 0; i < value.dim; i++, j++)
-            {
-                if (index[i])
-                {
-                    if (index[i].op == TOKint64)
-                        j = cast(size_t)index[i].toInteger();
-                    else
-                        goto Lno;
-                }
-                if (j >= edim)
-                    edim = j + 1;
-            }
-        }
-        elements = new Expressions();
+
+        auto elements = new Expressions();
         elements.setDim(edim);
         elements.zero();
         for (size_t i = 0, j = 0; i < value.dim; i++, j++)
         {
             if (index[i])
-                j = cast(size_t)index[i].toInteger();
+                j = cast(size_t)(index[i]).toInteger();
             assert(j < edim);
-            Initializer iz = value[i];
-            if (!iz)
-                goto Lno;
-            Expression ex = iz.toExpression();
-            if (!ex)
+
+            auto iz = value[i];
+            auto ex = iz.toExpression();
+            assert(ex);
+            if (tn.ty == Tsarray && ex.implicitConvTo(tn.nextOf()))
             {
-                goto Lno;
+                size_t d = cast(size_t)(cast(TypeSArray)tn).dim.toInteger();
+                auto a = new Expressions();
+                a.setDim(d);
+                for (size_t k = 0; k < d; k++)
+                    (*a)[k] = ex;
+                ex = new ArrayLiteralExp(ex.loc, a);
             }
             (*elements)[j] = ex;
         }
+
         /* Fill in any missing elements with the default initializer
          */
+        Expression einit;
+        for (size_t i = 0; i < edim; i++)
         {
-            Expression _init = null;
-            for (size_t i = 0; i < edim; i++)
+            if ((*elements)[i])
+                continue;
+            if (!einit)
             {
-                if (!(*elements)[i])
-                {
-                    if (!type)
-                        goto Lno;
-                    if (!_init)
-                        _init = (cast(TypeNext)t).next.defaultInit();
-                    (*elements)[i] = _init;
-                }
+                if (tn.ty == Tsarray)
+                    einit = tn.defaultInitLiteral(loc);
+                else
+                    einit = tn.defaultInit();
             }
-            for (size_t i = 0; i < edim; i++)
-            {
-                Expression e = (*elements)[i];
-                if (e.op == TOKerror)
-                    return e;
-            }
-            Expression e = new ArrayLiteralExp(loc, elements);
-            e.type = type;
-            return e;
+            (*elements)[i] = einit;
         }
-    Lno:
-        return null;
+
+        auto e = new ArrayLiteralExp(loc, elements);
+        auto ez = new ExpInitializer(loc, e);
+        return ez.semantic(sc, t);
     }
 
     /********************************
-     * If possible, convert array initializer to associative array initializer.
+     * If possible, convert array initializer to associative array expression.
      */
-    Expression toAssocArrayLiteral()
+    Initializer semanticAA(Scope* sc, Type t)
     {
-        Expression e;
-        //printf("ArrayInitializer::toAssocArrayInitializer()\n");
-        //static int i; if (++i == 2) assert(0);
+        //printf("ArrayInitializer::semanticAA() %s, t = %s\n", toChars(), t.toChars());
+        assert(t.ty == Taarray);
+        auto taa = cast(TypeAArray)t;
+
         auto keys = new Expressions();
         keys.setDim(value.dim);
         auto values = new Expressions();
         values.setDim(value.dim);
+
         for (size_t i = 0; i < value.dim; i++)
         {
-            e = index[i];
+            auto e = index[i];
             if (!e)
-                goto Lno;
+            {
+            Lno:
+                delete keys;
+                delete values;
+                error(loc, "not an associative array initializer");
+                return new ErrorInitializer();
+            }
             (*keys)[i] = e;
-            Initializer iz = value[i];
+
+            auto iz = value[i];
             if (!iz)
                 goto Lno;
-            e = iz.toExpression();
-            if (!e)
-                goto Lno;
-            (*values)[i] = e;
+            iz = iz.semantic(sc, taa.next);
+            if (iz.isErrorInitializer())
+                return iz;
+            (*values)[i] = iz.toExpression();
         }
-        e = new AssocArrayLiteralExp(loc, keys, values);
-        return e;
-    Lno:
-        error(loc, "not an associative array initializer");
-        return new ErrorExp();
+        auto e = new AssocArrayLiteralExp(loc, keys, values);
+        auto ez = new ExpInitializer(e.loc, e);
+        return ez.semantic(sc, t);
+    }
+
+    override Expression toExpression(Type tx = null)
+    {
+        //printf("ArrayInitializer::toExpression(), dim = %d\n", dim);
+        assert(0);
     }
 
     override ArrayInitializer isArrayInitializer()
@@ -774,10 +881,11 @@ public:
         //printf("ExpInitializer::inferType() %s\n", toChars());
         exp = exp.semantic(sc);
         exp = resolveProperties(sc, exp);
+
         if (exp.op == TOKscope)
         {
-            ScopeExp se = cast(ScopeExp)exp;
-            TemplateInstance ti = se.sds.isTemplateInstance();
+            auto se = cast(ScopeExp)exp;
+            auto ti = se.sds.isTemplateInstance();
             if (ti && ti.semanticRun == PASSsemantic && !ti.aliasdecl)
                 se.error("cannot infer type from %s %s, possible circular dependency", se.sds.kind(), se.toChars());
             else
@@ -799,13 +907,14 @@ public:
         }
         if (exp.op == TOKaddress)
         {
-            AddrExp ae = cast(AddrExp)exp;
+            auto ae = cast(AddrExp)exp;
             if (ae.e1.op == TOKoverloadset)
             {
                 exp.error("cannot infer type from overloaded function symbol %s", exp.toChars());
                 return new ErrorInitializer();
             }
         }
+
         if (exp.op == TOKerror)
             return new ErrorInitializer();
         if (!exp.type)
@@ -813,35 +922,34 @@ public:
         return this;
     }
 
-    override Initializer semantic(Scope* sc, Type t, NeedInterpret needInterpret)
+    override bool canMatch(Scope* sc, Type t)
     {
-        //printf("ExpInitializer::semantic(%s), type = %s\n", exp->toChars(), t->toChars());
-        if (needInterpret)
-            sc = sc.startCTFE();
+        exp = .inferType(exp, t);
         exp = exp.semantic(sc);
         exp = resolveProperties(sc, exp);
-        if (needInterpret)
-            sc = sc.endCTFE();
+
+        //printf("exp = %s, exp.type = %s, t = %s, m = %d\n", exp.toChars(), exp.type.toChars(), t.toChars(), exp.implicitConvTo(t));
+        t = t.toBasetype();
+        if (t.ty == Tarray && t.nextOf().ty == Tvoid)
+            return false;   // do not match conversion to void[]
+        return (exp.implicitConvTo(t) ||
+                t.ty == Tsarray && exp.implicitConvTo((cast(TypeNext)t).next));
+    }
+
+    override Initializer semantic(Scope* sc, Type t)
+    {
+        //printf("ExpInitializer::semantic(%s), type = %s\n", exp.toChars(), t.toChars());
+        exp = .inferType(exp, t);
+        exp = exp.semantic(sc);
+        exp = resolveProperties(sc, exp);
         if (exp.op == TOKerror)
             return new ErrorInitializer();
+
         uint olderrors = global.errors;
-        if (needInterpret)
-        {
-            // If the result will be implicitly cast, move the cast into CTFE
-            // to avoid premature truncation of polysemous types.
-            // eg real [] x = [1.1, 2.2]; should use real precision.
-            if (exp.implicitConvTo(t))
-            {
-                exp = exp.implicitCastTo(sc, t);
-            }
-            exp = exp.ctfeInterpret();
-        }
-        else
-        {
-            exp = exp.optimize(WANTvalue);
-        }
+        exp = exp.optimize(WANTvalue);
         if (!global.gag && olderrors != global.errors)
             return this; // Failed, suppress duplicate error messages
+
         if (exp.type.ty == Ttuple && (cast(TypeTuple)exp.type).arguments.dim == 0)
         {
             Type et = exp.type;
@@ -850,19 +958,16 @@ public:
         }
         if (exp.op == TOKtype)
         {
-            exp.error("initializer must be an expression, not '%s'", exp.toChars());
+            exp.error("initializer must be an expression, not a type '%s'", exp.toChars());
             return new ErrorInitializer();
         }
-        // Make sure all pointers are constants
-        if (needInterpret && hasNonConstPointers(exp))
-        {
-            exp.error("cannot use non-constant CTFE pointer in an initializer '%s'", exp.toChars());
-            return new ErrorInitializer();
-        }
+
         Type tb = t.toBasetype();
         Type ti = exp.type.toBasetype();
+
         if (exp.op == TOKtuple && expandTuples && !exp.implicitConvTo(t))
             return new ExpInitializer(loc, exp);
+
         /* Look for case of initializing a static array with a too-short
          * string literal, such as:
          *  char[5] foo = "abc";
@@ -871,7 +976,7 @@ public:
          */
         if (exp.op == TOKstring && tb.ty == Tsarray)
         {
-            StringExp se = cast(StringExp)exp;
+            auto se = cast(StringExp)exp;
             Type typeb = se.type.toBasetype();
             TY tynto = tb.nextOf().ty;
             if (!se.committed &&
@@ -883,33 +988,40 @@ public:
                 goto L1;
             }
         }
-        // Look for implicit constructor call
+
         if (tb.ty == Tstruct && !(ti.ty == Tstruct && tb.toDsymbol(sc) == ti.toDsymbol(sc)) && !exp.implicitConvTo(t))
         {
             StructDeclaration sd = (cast(TypeStruct)tb).sym;
             if (sd.ctor)
             {
-                // Rewrite as S().ctor(exp)
+                /* Look for implicit constructor call
+                 * Rewrite as:
+                 *      S().ctor(exp)
+                 */
                 Expression e;
-                e = new StructLiteralExp(loc, sd, null);
+                e = new StructLiteralExp(loc, sd, null, t);
                 e = new DotIdExp(loc, e, Id.ctor);
                 e = new CallExp(loc, e, exp);
                 e = e.semantic(sc);
-                if (needInterpret)
-                    exp = e.ctfeInterpret();
-                else
-                    exp = e.optimize(WANTvalue);
+                exp = e.optimize(WANTvalue);
             }
         }
+
         // Look for the case of statically initializing an array
         // with a single member.
-        if (tb.ty == Tsarray && !tb.nextOf().equals(ti.toBasetype().nextOf()) && exp.implicitConvTo(tb.nextOf()))
+        if (tb.ty == Tsarray &&
+            !tb.nextOf().equals(ti.toBasetype().nextOf()) &&
+            exp.implicitConvTo(tb.nextOf()))
         {
             /* If the variable is not actually used in compile time, array creation is
              * redundant. So delay it until invocation of toExpression() or toDt().
              */
             t = tb.nextOf();
         }
+
+        if (exp.checkValue())
+            return new ErrorInitializer();
+
         if (exp.implicitConvTo(t))
         {
             exp = exp.implicitCastTo(sc, t);
@@ -918,13 +1030,14 @@ public:
         {
             // Look for mismatch of compile-time known length to emit
             // better diagnostic message, as same as AssignExp::semantic.
-            if (tb.ty == Tsarray && exp.implicitConvTo(tb.nextOf().arrayOf()) > MATCHnomatch)
+            if (tb.ty == Tsarray &&
+                exp.implicitConvTo(tb.nextOf().arrayOf()) > MATCHnomatch)
             {
                 uinteger_t dim1 = (cast(TypeSArray)tb).dim.toInteger();
                 uinteger_t dim2 = dim1;
                 if (exp.op == TOKarrayliteral)
                 {
-                    ArrayLiteralExp ale = cast(ArrayLiteralExp)exp;
+                    auto ale = cast(ArrayLiteralExp)exp;
                     dim2 = ale.elements ? ale.elements.dim : 0;
                 }
                 else if (exp.op == TOKslice)
@@ -933,22 +1046,33 @@ public:
                     if (tx)
                         dim2 = (cast(TypeSArray)tx).dim.toInteger();
                 }
+                else if (ti.ty == Tsarray)
+                {
+                    dim2 = (cast(TypeSArray)ti).dim.toInteger();
+                }
                 if (dim1 != dim2)
                 {
                     exp.error("mismatched array lengths, %d and %d", cast(int)dim1, cast(int)dim2);
-                    exp = new ErrorExp();
+                    return new ErrorInitializer();
                 }
+
+                /* Do not call implicitCastTo here to accept:
+                 *  int[] fo();
+                 *  int[3] a = foo();
+                 */
             }
-            exp = exp.implicitCastTo(sc, t);
+            else
+            {
+                // In here, exp should match to t here.
+                // Therefore don't have to consider block initializing.
+                exp = exp.implicitCastTo(sc, t);
+            }
         }
     L1:
         if (exp.op == TOKerror)
-            return this;
-        if (needInterpret)
-            exp = exp.ctfeInterpret();
-        else
-            exp = exp.optimize(WANTvalue);
-        //printf("-ExpInitializer::semantic(): "); exp->print();
+            return new ErrorInitializer();
+        exp = exp.optimize(WANTvalue);
+        //printf("-ExpInitializer::semantic(): "); exp.print();
         return this;
     }
 
@@ -956,7 +1080,7 @@ public:
     {
         if (t)
         {
-            //printf("ExpInitializer::toExpression(t = %s) exp = %s\n", t->toChars(), exp->toChars());
+            //printf("ExpInitializer::toExpression(t = %s) exp = %s\n", t.toChars(), exp.toChars());
             Type tb = t.toBasetype();
             Expression e = (exp.op == TOKconstruct || exp.op == TOKblit) ? (cast(AssignExp)exp).e2 : exp;
             if (tb.ty == Tsarray && e.implicitConvTo(tb.nextOf()))
@@ -992,6 +1116,7 @@ version (all)
     {
         if (e.type.ty == Terror)
             return false;
+
         if (e.op == TOKnull)
             return false;
         if (e.op == TOKstructliteral)

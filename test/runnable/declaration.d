@@ -2,6 +2,103 @@
 extern(C) int printf(const char*, ...);
 
 /***************************************************/
+// 6469
+
+void test6469()
+{
+    /* Multidimensional block initializing */
+
+    // '1' matches to int
+    int[2][2] a1 = 1;
+    assert(a1 == [[1,1], [1,1]]);
+
+    // 'sa' matches to int[3]
+    int[3] sa = [1,2,3];
+    int[3][3] a2 = sa;
+    assert(a2 == [[1,2,3], [1,2,3], [1,2,3]]);
+
+    // '[1,2]' matches to int[3], but element number mismatch occurs.
+    static assert(!__traits(compiles, { int[3][3] a = [1,2]; }));
+
+    // '[1,2]' matches to int[]
+    int[][3] a3 = [1,2];
+    assert(a3 == [[1,2], [1,2], [1,2]]);
+    assert(a3[0] is a3[1] && a3[1] is a3[2]);
+
+    // '[1,2]' cannot match to both int[][] and int[][][3]
+    static assert(!__traits(compiles, { int[][][3] a = [1,2]; }));
+
+    // '[[1],[2]]' matches to int[1][2]
+    int[1][2][3] a4 = [[1],[2]];
+    assert(a4 == [[[1],[2]], [[1],[2]], [[1],[2]]]);
+
+    /* ArrayInitializer with heterogeneous elements */
+
+    // '1' and '[2]' match to int[1], then '[1, [2]]' matches to int[1][2]
+    int[1][2] a5 = [1, [2]];
+    assert(a5 == [[1], [2]]);
+
+    // '1' and '[2]' match to int[1], then '[1, [2]]' matches to int[1][2]
+    int[1][2][3] a6 = [1, [2]];
+    assert(a6 == [[[1], [2]], [[1], [2]], [[1], [2]]]);
+
+    // '1' and '[2]' match to int[1], then '[1, [2]]' matches to int[1][2]
+    int[1][2][2][2] a6x = [1, [2]];
+    assert(a6x == [[[[1], [2]], [[1], [2]]], [[[1], [2]], [[1], [2]]]]);
+
+    /* Implicit constructor call */
+
+    struct S { this(int n) { num = n; } int num; }
+
+    // '1', '2', and '3' cannot match to S, then semantic analysis will try
+    // to fit '[1,2,3]' to S[3], and invokes implicit ctor call for the
+    // ArrayInitializer elements.
+    S[3] a7 = [1, 2, 3];
+    assert(a7 == [S(1), S(2), S(3)]);
+
+    // '1' cannot match to S, and element number mismatch occurs (3 vs 2).
+    static assert(!__traits(compiles, { S[3] a = [1, 1]; }));
+
+    /* Actual cases from issues */
+
+    // 6469
+    int[int][int] aa1 = [30: [10: 1, 20: 2]];
+    int[char][char] aa2 = ['A': ['B': 1]];
+    string[string][string] aa3 = ["one" : ["a":"A", "b":"B"]];
+
+    // 9520
+    struct Foo { int[int][char] aa; }
+    Foo   foo1 =  { ['A': [0:10, 1:20]] };
+    Foo[] foo2 = [{ ['A': [0:10, 1:20]] }, { ['B': [9:40, 10:30]] }];
+
+    // 12787
+    int[][char][][int] table = [1000:[['a':[1,2,3],'b':[2,3,4]]]];
+
+    // 8864
+    struct Nibble
+    {
+        ubyte u;
+        this(ubyte ub) { this.u = ub; }
+    }
+    Nibble[] data1 = [5, 6];
+    assert(data1 == [Nibble(5), Nibble(6)]);
+    Nibble[][3] data2 = [[1,2], [3], [4,5,6]];
+    assert(data2 == [[Nibble(1), Nibble(2)], [Nibble(3)], [Nibble(4), Nibble(5), Nibble(6)]]);
+}
+
+void test6469a()
+{
+    static ubyte[] foo() { return [1,2]; }
+    static ubyte[2] b1 = foo();
+    assert(b1 == [1,2]);
+
+    ubyte[] a = [1,2];
+    size_t i;
+    ubyte[2] b2 = a[i .. i+2];
+    assert(b2 == [1,2]);
+}
+
+/***************************************************/
 // 6475
 
 class Foo6475(Value)
@@ -114,6 +211,8 @@ void test7239()
 }
 
 /***************************************************/
+// 10635
+
 struct S10635
 {
     string str;
@@ -395,6 +494,8 @@ void test13950()
 
 int main()
 {
+    test6469();
+    test6469a();
     test6475();
     test6905();
     test7019();
