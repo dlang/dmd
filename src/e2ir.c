@@ -3215,6 +3215,17 @@ elem *toElem(Expression *e, IRState *irs)
                 dve->error("%s is not a field, but a %s", dve->var->toChars(), dve->var->kind());
             }
 
+            // Bugzilla 12900
+            Type *txb = dve->type->toBasetype();
+            Type *tyb = v->type->toBasetype();
+            if (txb->ty == Tvector) txb = ((TypeVector *)txb)->basetype;
+            if (tyb->ty == Tvector) tyb = ((TypeVector *)tyb)->basetype;
+#if DEBUG
+            if (txb->ty != tyb->ty)
+                printf("[%s] dve = %s, dve->type = %s, v->type = %s\n", dve->loc.toChars(), dve->toChars(), dve->type->toChars(), v->type->toChars());
+#endif
+            assert(txb->ty == tyb->ty);
+
             elem *e = dve->e1->toElem(irs);
             Type *tb1 = dve->e1->type->toBasetype();
             if (tb1->ty != Tclass && tb1->ty != Tpointer)

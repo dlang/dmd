@@ -157,7 +157,7 @@ public:
         elem *e;
         Blockx *blx = irs->blx;
 
-        //printf("IfStatement::toIR('%s')\n", condition->toChars());
+        //printf("IfStatement::toIR('%s')\n", s->condition->toChars());
 
         IRState mystate(irs, s);
 
