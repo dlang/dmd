@@ -11,11 +11,15 @@
  *    (See accompanying file LICENSE or copy at
  *          http://www.boost.org/LICENSE_1_0.txt)
  */
-import std.stdio, std.container, std.range;
+// EXECUTE_ARGS: 7000000 100
 
-void main() {
-    enum int range = 100;
-    enum int n = 1_000_000;
+import std.stdio, std.container, std.range, std.conv, std.exception;
+
+void main(string[] args)
+{
+    enforce(args.length > 2, "usage: tree2 <n> <range>");
+    int n = to!int(args[1]);
+    int range = to!int(args[2]);
 
     auto t = redBlackTree!int();
 

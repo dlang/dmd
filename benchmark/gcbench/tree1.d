@@ -11,7 +11,9 @@
  *    (See accompanying file LICENSE or copy at
  *          http://www.boost.org/LICENSE_1_0.txt)
  */
-import std.stdio, std.conv;
+// EXECUTE_ARGS: 14 4
+
+import std.stdio, std.conv, std.exception;
 
 class TreeNode {
     private TreeNode left, right;
@@ -47,8 +49,10 @@ class TreeNode {
 
 
 void main(string[] args) {
-    enum int minDepth = 4;
-    enum n = 18;
+
+    enforce(args.length > 2, "usage: tree1 <n> <minDepth>");
+    int n = to!int(args[1]);
+    int minDepth = to!int(args[2]);
 
     int maxDepth = (minDepth + 2 > n) ? minDepth + 2 : n;
     int stretchDepth = maxDepth + 1;

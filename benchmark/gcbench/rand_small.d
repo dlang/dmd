@@ -11,14 +11,17 @@
  *    (See accompanying file LICENSE or copy at
  *          http://www.boost.org/LICENSE_1_0.txt)
  */
-import std.random, core.memory, std.stdio;
+import std.random, core.memory, std.stdio, std.conv;
 
-enum nIter = 1000;
+void main(string[] args)
+{
+    size_t nIter = 1000;
+    if(args.length > 1)
+        nIter = to!size_t(args[1]);
 
-void main() {
     auto ptrs = new void*[4096];
 
-    // Allocate 1024 large blocks with size uniformly distributed between 8
+    // Allocate large blocks with size uniformly distributed between 8
     // and 2048 bytes.
     foreach(i; 0..nIter) {
         foreach(ref ptr; ptrs) {

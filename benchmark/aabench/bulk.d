@@ -6,7 +6,9 @@
  * Authors:    Martin Nowak
  */
 
-import std.random, std.typetuple;
+// EXECUTE_ARGS: 20
+
+import std.random, std.typetuple, std.conv;
 
 version (VERBOSE) import std.datetime, std.stdio;
 
@@ -14,7 +16,7 @@ alias TypeTuple!(ubyte, short, uint, long, void*, Object, ubyte[16], ubyte[64],
                  ubyte[256], ubyte[1024], ubyte[4096], ubyte[16384]
 ) ValueTuple;
 
-enum Size = 2 ^^ 24;
+size_t Size = 2 ^^ 24;
 size_t trot;
 
 void runTest(V)(ref V v)
@@ -81,8 +83,11 @@ void runTest(V)(ref V v)
     version (VERBOSE) writeln();
 }
 
-void main()
+void main(string[] args)
 {
+    if (args.length > 1)
+        Size = 1 << to!int(args[1]);
+
     version (RANDOMIZE)
         trot = uniform(1, 200);
     else
