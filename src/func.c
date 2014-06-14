@@ -2005,7 +2005,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 a->push(s);
             }
 
-            fbody = new CompoundStatement(Loc(), a);
+            Statement *sbody = new CompoundStatement(Loc(), a);
             /* Append destructor calls for parameters as finally blocks.
              */
             if (parameters)
@@ -2032,10 +2032,10 @@ void FuncDeclaration::semantic3(Scope *sc)
                             ::error(loc, "%s '%s' is nothrow yet may throw", kind(), toPrettyChars());
                         if (flags & FUNCFLAGnothrowInprocess && blockexit & BEthrow)
                             f->isnothrow = false;
-                        if (fbody->blockExit(this, f->isnothrow) == BEfallthru)
-                            fbody = new CompoundStatement(Loc(), fbody, s);
+                        if (sbody->blockExit(this, f->isnothrow) == BEfallthru)
+                            sbody = new CompoundStatement(Loc(), sbody, s);
                         else
-                            fbody = new TryFinallyStatement(Loc(), fbody, s);
+                            sbody = new TryFinallyStatement(Loc(), sbody, s);
                     }
                 }
             }
@@ -2052,7 +2052,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 {
                     if (!global.params.is64bit &&
                         global.params.isWindows &&
-                        !isStatic() && !fbody->usesEH() && !global.params.trace)
+                        !isStatic() && !sbody->usesEH() && !global.params.trace)
                     {
                         /* The back end uses the "jmonitor" hack for syncing;
                          * no need to do the sync at this level.
@@ -2071,9 +2071,9 @@ void FuncDeclaration::semantic3(Scope *sc)
                             // 'this' is the monitor
                             vsync = new VarExp(loc, vthis);
                         }
-                        fbody = new PeelStatement(fbody);       // don't redo semantic()
-                        fbody = new SynchronizedStatement(loc, vsync, fbody);
-                        fbody = fbody->semantic(sc2);
+                        sbody = new PeelStatement(sbody);       // don't redo semantic()
+                        sbody = new SynchronizedStatement(loc, vsync, sbody);
+                        sbody = sbody->semantic(sc2);
                     }
                 }
                 else
@@ -2081,6 +2081,11 @@ void FuncDeclaration::semantic3(Scope *sc)
                     error("synchronized function %s must be a member of a class", toChars());
                 }
             }
+
+            // If declaration has no body, don't set sbody to prevent incorrect codegen.
+            InterfaceDeclaration *id = parent->isInterfaceDeclaration();
+            if (fbody || id && (fdensure || fdrequire) && isVirtual())
+                fbody = sbody;
         }
 
         // Fix up forward-referenced gotos
