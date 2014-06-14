@@ -514,7 +514,7 @@ void outcommon(symbol *s,targ_size_t n)
 void out_readonly(symbol *s)
 {
     // The default is DATA
-#if ELFOBJ
+#if ELFOBJ || MACHOBJ
     /* Cannot have pointers in CDATA when compiling PIC code, because
      * they require dynamic relocations of the read-only segment.
      * Instead use the .data.rel.ro section. See Bugzilla 11171.
@@ -523,12 +523,6 @@ void out_readonly(symbol *s)
         s->Sseg = CDATAREL;
     else
         s->Sseg = CDATA;
-#endif
-#if MACHOBJ
-    /* Because of PIC and CDATA being in the _TEXT segment;
-     * cannot have pointers in CDATA.
-     * Should check s->Sdt and make it CDATA if it has no pointers.
-     */
 #endif
 #if OMFOBJ
     // Haven't really worked out where immutable read-only data can go.

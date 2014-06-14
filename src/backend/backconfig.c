@@ -48,7 +48,7 @@ void out_config_init(
                         // 1: D
                         // 2: fake it with C symbolic debug info
         bool alwaysframe,       // always create standard function frame
-        bool stackstomp // add stack stomping code
+        bool stackstomp         // add stack stomping code
         )
 {
 #if MARS
@@ -193,6 +193,8 @@ void out_config_init(
         {
             configv.addlinenumbers = 1;
             config.fulltypes = CV8;
+            if(symdebug > 1)
+                config.flags2 |= CFG2gms;
         }
         else
         {

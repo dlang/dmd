@@ -142,6 +142,7 @@ void Statement::toIR(IRState *irs)
 
 void OnScopeStatement::toIR(IRState *irs)
 {
+    //printf("OnScopeStatement::toIR() %p\n", this);
 }
 
 /****************************************
@@ -806,6 +807,7 @@ void VolatileStatement::toIR(IRState *irs)
 
 void GotoStatement::toIR(IRState *irs)
 {
+    //printf("GotoStatement::toIR() %p\n", this);
     Blockx *blx = irs->blx;
 
     if (!label->statement)
@@ -1178,6 +1180,7 @@ void SwitchErrorStatement::toIR(IRState *irs)
 
 void ReturnStatement::toIR(IRState *irs)
 {
+    //printf("ReturnStatement::toIR()\n");
     Blockx *blx = irs->blx;
     enum BC bc;
 
@@ -1300,6 +1303,7 @@ void ExpStatement::toIR(IRState *irs)
 
 void CompoundStatement::toIR(IRState *irs)
 {
+    //printf("CompoundStatement::toIR() %p\n", this);
     if (statements)
     {
         size_t dim = statements->dim;
@@ -1360,6 +1364,7 @@ void UnrolledLoopStatement::toIR(IRState *irs)
 
 void ScopeStatement::toIR(IRState *irs)
 {
+    //printf("ScopeStatement::toIR() %p\n", this);
     if (statement)
     {
         Blockx *blx = irs->blx;

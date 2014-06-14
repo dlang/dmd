@@ -3077,6 +3077,7 @@ STATIC void elstructwalk(elem *e,tym_t tym)
 elem * elstruct(elem *e, goal_t goal)
 {
     //printf("elstruct(%p)\n", e);
+    //elem_print(e);
     if (e->Eoper == OPstreq && (e->E1->Eoper == OPcomma || OTassign(e->E1->Eoper)))
         return cgel_lvalue(e);
 
@@ -3111,6 +3112,8 @@ elem * elstruct(elem *e, goal_t goal)
 
     unsigned sz = type_size(e->ET);
     //printf("\tsz = %d\n", (int)sz);
+//if (targ1) { printf("targ1\n"); type_print(targ1); }
+//if (targ2) { printf("targ2\n"); type_print(targ2); }
     switch ((int)sz)
     {
         case 1:  tym = TYchar;   goto L1;
@@ -3129,6 +3132,10 @@ elem * elstruct(elem *e, goal_t goal)
             {
                  goto L1;
             }
+            if (e->Eoper == OPstrpar && I64 && ty == TYstruct)
+            {
+                goto L1;
+            }
             tym = ~0;
             goto Ldefault;
 
@@ -3136,6 +3143,15 @@ elem * elstruct(elem *e, goal_t goal)
         case 12:
             if (tysize(TYldouble) == sz && targ1 && !targ2 && tybasic(targ1->Tty) == TYldouble)
             {   tym = TYldouble;
+                goto L1;
+            }
+        case 9:
+        case 11:
+        case 13:
+        case 14:
+        case 15:
+            if (e->Eoper == OPstrpar && I64 && ty == TYstruct && config.exe != EX_WIN64)
+            {
                 goto L1;
             }
             goto Ldefault;

@@ -92,6 +92,33 @@ static Outbuffer *linepair;     // array of offset/line pairs
 unsigned cv8_addfile(const char *filename);
 void cv8_writesection(int seg, unsigned type, Outbuffer *buf);
 
+void cv8_writename(Outbuffer *buf, const char* name, size_t len)
+{
+    if(config.flags2 & CFG2gms)
+    {
+        const char* start = name;
+        const char* cur = strchr(start, '.');
+        const char* end = start + len;
+        while(cur != NULL)
+        {
+            if(cur >= end)
+            {
+                buf->writen(start, end - start);
+                return;
+            }
+            buf->writen(start, cur - start);
+            buf->writeByte('@');
+            start = cur + 1;
+            if(start >= end)
+                return;
+            cur = strchr(start, '.');
+        }
+        buf->writen(start, end - start);
+    }
+    else
+        buf->writen(name, len);
+}
+
 /************************************************
  * Called at the start of an object file generation.
  * One source file can generate multiple object files; this starts an object file.
@@ -551,6 +578,7 @@ void cv8_outsym(Symbol *s)
     //printf("typidx = %x\n", typidx);
     const char *id = s->prettyIdent ? s->prettyIdent : prettyident(s);
     size_t len = strlen(id);
+
     if(len > CV8_MAX_SYMBOL_LENGTH)
         len = CV8_MAX_SYMBOL_LENGTH;
 
@@ -587,7 +615,7 @@ void cv8_outsym(Symbol *s)
             buf->write32(s->Soffset + base + BPoff);
             buf->write32(typidx);
             buf->writeWordn(334);       // relative to RBP
-            buf->writen(id, len);
+            cv8_writename(buf, id, len);
             buf->writeByte(0);
 #else
             // This is supposed to work, implicit BP relative addressing, but it does not
@@ -596,7 +624,7 @@ void cv8_outsym(Symbol *s)
             buf->writeWordn(0x1006);
             buf->write32(s->Soffset + base + BPoff);
             buf->write32(typidx);
-            buf->writen(id, len);
+            cv8_writename(buf, id, len);
             buf->writeByte(0);
 #endif
             break;
@@ -623,12 +651,12 @@ void cv8_outsym(Symbol *s)
             buf->writeWordn(S_REGISTER_V3);
             buf->write32(typidx);
             buf->writeWordn(cv8_regnum(s));
-            buf->writen(id, len);
+            cv8_writename(buf, id, len);
             buf->writeByte(0);
             break;
 
         case SCextern:
-            return;
+            break;
 
         case SCstatic:
         case SClocstat:
@@ -661,12 +689,12 @@ void cv8_outsym(Symbol *s)
             buf->write32(0);
             buf->writeWordn(0);
 
-            buf->writen(id, len);
+            cv8_writename(buf, id, len);
             buf->writeByte(0);
             break;
 
         default:
-            return;
+            break;
     }
 }
 
@@ -682,13 +710,14 @@ void cv8_udt(const char *id, idx_t typidx)
     //printf("cv8_udt('%s', %x)\n", id, typidx);
     Outbuffer *buf = currentfuncdata.f1buf;
     size_t len = strlen(id);
+
     if (len > CV8_MAX_SYMBOL_LENGTH)
         len = CV8_MAX_SYMBOL_LENGTH;
     buf->reserve(2 + 2 + 4 + len + 1);
     buf->writeWordn( 2 + 4 + len + 1);
     buf->writeWordn(S_UDT_V3);
     buf->write32(typidx);
-    buf->writen(id, len);
+    cv8_writename(buf, id, len);
     buf->writeByte(0);
 }
 
@@ -762,6 +791,7 @@ idx_t cv8_fwdref(Symbol *s)
     }
     unsigned len = numidx + cv4_numericbytes(0);
     int idlen = strlen(s->Sident);
+
     if (idlen > CV8_MAX_SYMBOL_LENGTH)
         idlen = CV8_MAX_SYMBOL_LENGTH;
 
@@ -776,10 +806,11 @@ idx_t cv8_fwdref(Symbol *s)
         TOLONG(d->data + 14, 0);        // vshape
     }
     cv4_storenumeric(d->data + numidx, 0);
-    memcpy(d->data + len, s->Sident, idlen);
+    cv_namestring(d->data + len, s->Sident, idlen);
     d->data[len + idlen] = 0;
     idx_t typidx = cv_debtyp(d);
     s->Stypidx = typidx;
+
     return typidx;
 }
 
@@ -857,6 +888,7 @@ idx_t cv8_darray(type *t, idx_t etypidx)
     }
 
     int idlen = strlen(id);
+
     if (idlen > CV8_MAX_SYMBOL_LENGTH)
         idlen = CV8_MAX_SYMBOL_LENGTH;
 
@@ -868,7 +900,7 @@ idx_t cv8_darray(type *t, idx_t etypidx)
     TOLONG(d->data + 10, 0);    // dList
     TOLONG(d->data + 14, 0);    // vtshape
     TOWORD(d->data + 18, 16);   // size
-    memcpy(d->data + 20, id, idlen);
+    cv_namestring(d->data + 20, id, idlen);
     d->data[20 + idlen] = 0;
 
     idx_t top = cv_numdebtypes();

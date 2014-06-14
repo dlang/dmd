@@ -459,7 +459,7 @@ void Module::genobjfile(int multiobj)
         unsigned bc;
         switch (i)
         {
-            case 0:     ma = marray;    rt = RTLSYM_DARRAY;     bc = BCexit; break;
+            case 0:     ma = marray;    rt = RTLSYM_DARRAYM;    bc = BCexit; break;
             case 1:     ma = massert;   rt = RTLSYM_DASSERT;    bc = BCexit; break;
             case 2:     ma = munittest; rt = RTLSYM_DUNITTESTM; bc = BCret;  break;
             default:    assert(0);
