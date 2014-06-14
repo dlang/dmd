@@ -3604,8 +3604,12 @@ Statement *ReturnStatement::semantic(Scope *sc)
             exp = inferType(exp, fld->treq->nextOf()->nextOf());
         exp = exp->semantic(sc);
         exp = resolveProperties(sc, exp);
-        if (!exp->rvalue(true)) // don't make error for void expression
-            exp = new ErrorExp();
+        if (exp->type && exp->type->ty != Tvoid ||
+            exp->op == TOKfunction || exp->op == TOKtype || exp->op == TOKtemplate)
+        {
+            if (!exp->rvalue()) // don't make error for void expression
+                exp = new ErrorExp();
+        }
         if (isNonAssignmentArrayOp(exp))
         {
             exp->error("array operation %s without assignment not implemented", exp->toChars());

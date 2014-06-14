@@ -1970,9 +1970,9 @@ void Expression::deprecation(const char *format, ...)
     }
 }
 
-int Expression::rvalue(bool allowVoid)
+bool Expression::rvalue()
 {
-    if (!allowVoid && type && type->toBasetype()->ty == Tvoid)
+    if (type && type->toBasetype()->ty == Tvoid)
     {
         error("expression %s is void and has no value", toChars());
 #if 0
@@ -1981,9 +1981,9 @@ int Expression::rvalue(bool allowVoid)
 #endif
         if (!global.gag)
             type = Type::terror;
-        return 0;
+        return false;
     }
-    return 1;
+    return true;
 }
 
 /**********************************
@@ -4508,10 +4508,10 @@ Expression *TypeExp::semantic(Scope *sc)
     return e;
 }
 
-int TypeExp::rvalue(bool allowVoid)
+bool TypeExp::rvalue()
 {
     error("type %s has no value", toChars());
-    return 0;
+    return false;
 }
 
 /************************************************************/
@@ -4645,10 +4645,10 @@ TemplateExp::TemplateExp(Loc loc, TemplateDeclaration *td, FuncDeclaration *fd)
     this->fd = fd;
 }
 
-int TemplateExp::rvalue(bool allowVoid)
+bool TemplateExp::rvalue()
 {
     error("template %s has no value", toChars());
-    return 0;
+    return false;
 }
 
 int TemplateExp::isLvalue()
@@ -5490,6 +5490,16 @@ FuncExp::FuncExp(Loc loc, FuncLiteralDeclaration *fd, TemplateDeclaration *td)
     this->td = td;
     tok = fd->tok;  // save original kind of function/delegate/(infer)
     assert(fd->fbody);
+}
+
+bool FuncExp::rvalue()
+{
+    if (td)
+    {
+        error("template lambda has no value");
+        return false;
+    }
+    return true;
 }
 
 void FuncExp::genIdent(Scope *sc)
