@@ -364,7 +364,6 @@ void FuncDeclaration::semantic(Scope *sc)
 {
     TypeFunction *f;
     AggregateDeclaration *ad;
-    ClassDeclaration *cd;
     InterfaceDeclaration *id;
 
 #if 0
@@ -643,15 +642,6 @@ void FuncDeclaration::semantic(Scope *sc)
     }
 #endif
 
-    StructDeclaration *sd = parent->isStructDeclaration();
-    if (sd)
-    {
-        if (isCtorDeclaration())
-        {
-            goto Ldone;
-        }
-    }
-
     id = parent->isInterfaceDeclaration();
     if (id)
     {
@@ -672,15 +662,18 @@ void FuncDeclaration::semantic(Scope *sc)
     if (!fbody && (fensure || frequire) && !(id && isVirtual()))
         error("in and out contracts require function body");
 
-    cd = parent->isClassDeclaration();
-    if (cd)
+    if (StructDeclaration *sd = parent->isStructDeclaration())
     {
-        int vi;
         if (isCtorDeclaration())
         {
-//          ctor = (CtorDeclaration *)this;
-//          if (!cd->ctor)
-//              cd->ctor = ctor;
+            goto Ldone;
+        }
+    }
+
+    if (ClassDeclaration *cd = parent->isClassDeclaration())
+    {
+        if (isCtorDeclaration())
+        {
             goto Ldone;
         }
 
@@ -728,8 +721,8 @@ void FuncDeclaration::semantic(Scope *sc)
         /* Find index of existing function in base class's vtbl[] to override
          * (the index will be the same as in cd's current vtbl[])
          */
-        vi = cd->baseClass ? findVtblIndex((Dsymbols*)&cd->baseClass->vtbl, (int)cd->baseClass->vtbl.dim)
-                           : -1;
+        int vi = cd->baseClass ? findVtblIndex((Dsymbols*)&cd->baseClass->vtbl, (int)cd->baseClass->vtbl.dim)
+                               : -1;
 
         bool doesoverride = false;
         switch (vi)
@@ -1022,10 +1015,10 @@ void FuncDeclaration::semantic(Scope *sc)
             }
 
             // If it's a member template
-            ClassDeclaration *cd2 = ti->tempdecl->isClassMember();
-            if (cd2)
+            ClassDeclaration *cd = ti->tempdecl->isClassMember();
+            if (cd)
             {
-                error("cannot use template to add virtual function to class '%s'", cd2->toChars());
+                error("cannot use template to add virtual function to class '%s'", cd->toChars());
             }
         }
     }
