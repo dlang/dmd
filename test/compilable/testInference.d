@@ -495,6 +495,28 @@ void test9148e()
 }
 
 /***************************************************/
+// 12912
+
+struct S12912(alias fun)
+{
+    void f() { fun(); }
+}
+
+class C12912
+{
+    int n;
+
+    void f() pure
+    {
+        S12912!(() => n) s;
+        // Here lambda should be inferred to weak purity.
+
+        s.f();
+        // And this call will be a pure member function call.
+    }
+}
+
+/***************************************************/
 // 10002
 
 void impure10002() {}
