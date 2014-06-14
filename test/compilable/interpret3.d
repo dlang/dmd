@@ -6089,6 +6089,17 @@ bool test9245()
 static assert(test9245());
 
 /**************************************************
+    12906 don't call postblit on blit initializing
+**************************************************/
+
+struct S12906 { this(this) { assert(0); } }
+
+static assert({
+    S12906[1] arr;
+    return true;
+}());
+
+/**************************************************
     11510 support overlapped field access in CTFE
 **************************************************/
 
