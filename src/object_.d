@@ -3014,7 +3014,7 @@ unittest
     shared(void)[] s = [cast(shared)1];
     immutable(void)[] i = [cast(immutable)2];
 
-    s.dup;
+    s = s.dup;
     static assert(is(typeof(s.dup) == shared(void)[]));
 
     m = i.dup;
