@@ -956,6 +956,13 @@ Expression *op_overload(Expression *e, Scope *sc)
                             return;
                         }
 
+                        e->e2 = e->e2->semantic(sc);
+                        if (e->e2->op == TOKerror)
+                        {
+                            result = e->e2;
+                            return;
+                        }
+
                         Expressions *a = (Expressions *)ae->arguments->copy();
                         a->insert(0, e->e2);
 
