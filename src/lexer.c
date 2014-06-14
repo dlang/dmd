@@ -2789,7 +2789,6 @@ static Keyword keywords[] =
     {   "import",       TOKimport       },
     {   "mixin",        TOKmixin        },
     {   "static",       TOKstatic       },
-    {   "virtual",      TOKvirtual      },
     {   "final",        TOKfinal        },
     {   "const",        TOKconst        },
     {   "typedef",      TOKtypedef      },
