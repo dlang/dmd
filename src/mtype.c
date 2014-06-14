@@ -5770,71 +5770,77 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 void TypeFunction::purityLevel()
 {
     TypeFunction *tf = this;
-    if (tf->purity == PUREfwdref)
-    {   /* Evaluate what kind of purity based on the modifiers for the parameters
-         */
-        tf->purity = PUREstrong;        // assume strong until something weakens it
-        if (tf->parameters)
+    if (tf->purity != PUREfwdref)
+        return;
+
+    /* Evaluate what kind of purity based on the modifiers for the parameters
+     */
+    tf->purity = PUREstrong;        // assume strong until something weakens it
+
+    size_t dim = Parameter::dim(tf->parameters);
+    if (!dim)
+        return;
+    for (size_t i = 0; i < dim; i++)
+    {
+        Parameter *fparam = Parameter::getNth(tf->parameters, i);
+        Type *t = fparam->type;
+        if (!t)
+            continue;
+
+        if (fparam->storageClass & (STClazy | STCout))
         {
-            size_t dim = Parameter::dim(tf->parameters);
-            for (size_t i = 0; i < dim; i++)
-            {   Parameter *fparam = Parameter::getNth(tf->parameters, i);
-                if (fparam->storageClass & STClazy)
-                {
-                    tf->purity = PUREweak;
-                    break;
-                }
-                if (fparam->storageClass & STCout)
-                {
-                    tf->purity = PUREweak;
-                    break;
-                }
-                if (!fparam->type)
-                    continue;
-                if (fparam->storageClass & STCref)
-                {
-                    if (!(fparam->type->mod & (MODconst | MODimmutable | MODwild)))
-                    {   tf->purity = PUREweak;
-                        break;
-                    }
-                    if (fparam->type->mod & MODconst)
-                    {   tf->purity = PUREconst;
-                        continue;
-                    }
-                }
-                Type *t = fparam->type->toBasetype();
-                if (!t->hasPointers())
-                    continue;
-                if (t->mod & MODimmutable)
-                    continue;
-                /* The rest of this is too strict; fix later.
-                 * For example, the only pointer members of a struct may be immutable,
-                 * which would maintain strong purity.
+            tf->purity = PUREweak;
+            break;
+        }
+        if (fparam->storageClass & STCref)
+        {
+            if (t->mod & MODimmutable)
+                continue;
+            if (t->mod & (MODconst | MODwild))
+            {
+                tf->purity = PUREconst;
+                continue;
+            }
+            tf->purity = PUREweak;
+            break;
+        }
+
+        t = t->toBasetype();
+        if (!t->hasPointers())
+            continue;
+        if (t->mod & MODimmutable)
+            continue;
+
+        /* The rest of this is too strict; fix later.
+         * For example, the only pointer members of a struct may be immutable,
+         * which would maintain strong purity.
+         */
+        if (t->mod & (MODconst | MODwild))
+        {
+            tf->purity = PUREconst;
+            continue;
+        }
+        if (Type *tn = t->nextOf())
+        {
+            tn = tn->toBasetype();
+            if (tn->ty == Tpointer || tn->ty == Tarray)
+            {
+                /* Accept immutable(T)* and immutable(T)[] as being strongly pure
                  */
-                if (t->mod & (MODconst | MODwild))
-                {   tf->purity = PUREconst;
+                if (tn->mod & MODimmutable)
+                    continue;
+                if (tn->mod & (MODconst | MODwild))
+                {
+                    tf->purity = PUREconst;
                     continue;
                 }
-                Type *tn = t->nextOf();
-                if (tn)
-                {   tn = tn->toBasetype();
-                    if (tn->ty == Tpointer || tn->ty == Tarray)
-                    {   /* Accept immutable(T)* and immutable(T)[] as being strongly pure
-                         */
-                        if (tn->mod & MODimmutable)
-                            continue;
-                        if (tn->mod & (MODconst | MODwild))
-                        {   tf->purity = PUREconst;
-                            continue;
-                        }
-                    }
-                }
-                /* Should catch delegates and function pointers, and fold in their purity
-                 */
-                tf->purity = PUREweak;          // err on the side of too strict
-                break;
             }
         }
+        /* Should catch delegates and function pointers, and fold in their purity
+         */
+
+        tf->purity = PUREweak;          // err on the side of too strict
+        break;
     }
 }
 
