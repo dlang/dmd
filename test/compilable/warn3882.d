@@ -59,4 +59,8 @@ void test12909()
 {
     immutable(int[])[int] aa;
     f12909(aa);
+
+    // from 12910
+    const(int[])[int] makeAA() { return null; }  // to make r-value
+    makeAA().rehash();
 }
