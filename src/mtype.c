@@ -5805,11 +5805,25 @@ void TypeFunction::purityLevel()
             break;
         }
 
-        t = t->toBasetype();
+        t = t->baseElemOf();
         if (!t->hasPointers())
             continue;
         if (t->mod & MODimmutable)
             continue;
+
+        /* Accept immutable(T)[] and immutable(T)* as being strongly pure
+         */
+        if (t->ty == Tarray || t->ty == Tpointer)
+        {
+            Type *tn = t->nextOf()->toBasetype();
+            if (tn->mod & MODimmutable)
+                continue;
+            if (tn->mod & (MODconst | MODwild))
+            {
+                tf->purity = PUREconst;
+                continue;
+            }
+        }
 
         /* The rest of this is too strict; fix later.
          * For example, the only pointer members of a struct may be immutable,
@@ -5820,22 +5834,7 @@ void TypeFunction::purityLevel()
             tf->purity = PUREconst;
             continue;
         }
-        if (Type *tn = t->nextOf())
-        {
-            tn = tn->toBasetype();
-            if (tn->ty == Tpointer || tn->ty == Tarray)
-            {
-                /* Accept immutable(T)* and immutable(T)[] as being strongly pure
-                 */
-                if (tn->mod & MODimmutable)
-                    continue;
-                if (tn->mod & (MODconst | MODwild))
-                {
-                    tf->purity = PUREconst;
-                    continue;
-                }
-            }
-        }
+
         /* Should catch delegates and function pointers, and fold in their purity
          */
 

@@ -46,3 +46,17 @@ struct K12760
     }
 }
 
+/******************************************/
+// 12909
+
+int f12909(immutable(int[])[int] aa) pure nothrow
+{
+    aa[0] = [];
+    return 0;
+}
+
+void test12909()
+{
+    immutable(int[])[int] aa;
+    f12909(aa);
+}
