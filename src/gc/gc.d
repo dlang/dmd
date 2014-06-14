@@ -19,6 +19,7 @@ module gc.gc;
 
 //debug = PRINTF;               // turn on printf's
 //debug = COLLECT_PRINTF;       // turn on printf's
+//debug = PRINTF_TO_FILE;       // redirect printf's ouptut to file "gcx.log"
 //debug = LOGGING;              // log allocations / frees
 //debug = MEMSTOMP;             // stomp on memory
 //debug = SENTINEL;             // add underrun/overrrun protection
@@ -54,10 +55,31 @@ private alias BlkInfo = core.memory.GC.BlkInfo;
 
 version (GNU) import gcc.builtins;
 
-debug (PRINTF) import core.stdc.stdio : printf;
-debug (CACHE_HITRATE) import core.stdc.stdio : printf;
-debug (COLLECT_PRINTF) import core.stdc.stdio : printf;
+     debug (PRINTF_TO_FILE) import core.stdc.stdio : fprintf, fopen, fflush, FILE;
+else debug (PRINTF) import core.stdc.stdio : printf;
+else debug (CACHE_HITRATE) import core.stdc.stdio : printf;
+else debug (COLLECT_PRINTF) import core.stdc.stdio : printf;
 debug private import core.stdc.stdio;
+
+debug(PRINTF_TO_FILE)
+{
+    import core.time;
+
+    private __gshared TickDuration gcStartTick;
+    private __gshared FILE* gcx_fh;
+
+    private int printf(ARGS...)(const char* fmt, ARGS args) nothrow
+    {
+        if (gcStartTick == TickDuration.zero)
+            gcStartTick = TickDuration.currSystemTick;
+        if (!gcx_fh)
+            gcx_fh = fopen("gcx.log", "w");
+        int len = fprintf(gcx_fh, "%10.6lf: ", (TickDuration.currSystemTick - gcStartTick).to!("seconds", double));
+        len += fprintf(gcx_fh, fmt, args);
+        fflush(gcx_fh);
+        return len;
+    }
+}
 
 debug(PRINTF) void printFreeInfo(Pool* pool) nothrow
 {
