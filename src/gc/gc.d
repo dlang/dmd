@@ -434,7 +434,7 @@ class GC
         // when allocating.
         {
             gcLock.lock();
-            p = mallocNoSync(size, bits, alloc_size, ti);
+            p = mallocNoSync(size, bits, *alloc_size, ti);
             gcLock.unlock();
         }
 
@@ -450,7 +450,7 @@ class GC
     //
     //
     //
-    private void *mallocNoSync(size_t size, uint bits = 0, size_t *alloc_size = null, const TypeInfo ti = null) nothrow
+    private void *mallocNoSync(size_t size, uint bits, ref size_t alloc_size, const TypeInfo ti = null) nothrow
     {
         assert(size != 0);
 
@@ -470,8 +470,7 @@ class GC
 
         if (bin < B_PAGE)
         {
-            if(alloc_size)
-                *alloc_size = binsize[bin];
+            alloc_size = binsize[bin];
             int  state     = gcx.disabled ? 1 : 0;
             bool collected = false;
 
@@ -526,7 +525,7 @@ class GC
             size -= SENTINEL_EXTRA;
             p = sentinel_add(p);
             sentinel_init(p, size);
-            *alloc_size = size;
+            alloc_size = size;
         }
         gcx.log_malloc(p, size);
 
@@ -559,7 +558,7 @@ class GC
         // when allocating.
         {
             gcLock.lock();
-            p = mallocNoSync(size, bits, alloc_size, ti);
+            p = mallocNoSync(size, bits, *alloc_size, ti);
             gcLock.unlock();
         }
 
@@ -586,7 +585,7 @@ class GC
         // when allocating.
         {
             gcLock.lock();
-            p = reallocNoSync(p, size, bits, alloc_size, ti);
+            p = reallocNoSync(p, size, bits, *alloc_size, ti);
             gcLock.unlock();
         }
 
@@ -602,7 +601,7 @@ class GC
     //
     //
     //
-    private void *reallocNoSync(void *p, size_t size, uint bits = 0, size_t *alloc_size = null, const TypeInfo ti = null) nothrow
+    private void *reallocNoSync(void *p, size_t size, uint bits, ref size_t alloc_size, const TypeInfo ti = null) nothrow
     {
         if (gcx.running)
             onInvalidMemoryOperationError();
@@ -612,8 +611,7 @@ class GC
             {   freeNoSync(p);
                 p = null;
             }
-            if(alloc_size)
-                *alloc_size = 0;
+            alloc_size = 0;
         }
         else if (!p)
         {
@@ -693,8 +691,7 @@ class GC
                         gcx.clrBits(pool, biti, ~BlkAttr.NONE);
                         gcx.setBits(pool, biti, bits);
                     }
-                    if(alloc_size)
-                        *alloc_size = newsz * PAGESIZE;
+                    alloc_size = newsz * PAGESIZE;
                     return p;
                     Lfallthrough:
                         {}
@@ -723,8 +720,8 @@ class GC
                     memcpy(p2, p, size);
                     p = p2;
                 }
-                else if(alloc_size)
-                    *alloc_size = psize;
+                else
+                    alloc_size = psize;
             }
         }
         return p;
@@ -2084,7 +2081,7 @@ struct Gcx
      * Allocate a chunk of memory that is larger than a page.
      * Return null if out of memory.
      */
-    void *bigAlloc(size_t size, Pool **poolPtr, size_t *alloc_size = null) nothrow
+    void *bigAlloc(size_t size, Pool **poolPtr, ref size_t alloc_size) nothrow
     {
         debug(PRINTF) printf("In bigAlloc.  Size:  %d\n", size);
 
@@ -2170,8 +2167,7 @@ struct Gcx
         p = pool.baseAddr + pn * PAGESIZE;
         debug(PRINTF) printf("Got large alloc:  %p, pt = %d, np = %d\n", p, pool.pagetable[pn], npages);
         debug (MEMSTOMP) memset(p, 0xF1, size);
-        if(alloc_size)
-            *alloc_size = npages * PAGESIZE;
+        alloc_size = npages * PAGESIZE;
         //debug(PRINTF) printf("\tp = %p\n", p);
 
         *poolPtr = pool;
