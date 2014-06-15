@@ -652,7 +652,7 @@ FuncDeclaration *buildXopCmp(StructDeclaration *sd, Scope *sc)
 
     Expression *e1 = new IdentifierExp(loc, Id::p);
     Expression *e2 = new IdentifierExp(loc, Id::q);
-    Expression *e = new CallExp(loc, new DotIdExp(loc, e1, Id::cmp), e2);
+    Expression *e = new CallExp(loc, new DotIdExp(loc, e2, Id::cmp), e1);
 
     fop->fbody = new ReturnStatement(loc, e);
 
