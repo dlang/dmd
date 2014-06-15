@@ -4017,7 +4017,7 @@ public:
                 else
                 {
                     setValue(v, newval);
-                    if (tyE1 == Tsarray && e->e2->isLvalue())
+                    if (e->op != TOKblit && tyE1 == Tsarray && e->e2->isLvalue())
                     {
                         assert(newval->op == TOKarrayliteral);
                         ArrayLiteralExp *ale = (ArrayLiteralExp *)newval;
@@ -4560,7 +4560,7 @@ public:
             {
                 (*oldelems)[(size_t)(j + firstIndex)] = paintTypeOntoLiteral(elemtype, (*newelems)[j]);
             }
-            if (originalExp->e2->isLvalue())
+            if (originalExp->op != TOKblit && originalExp->e2->isLvalue())
             {
                 Expression *x = evaluatePostblits(istate, existingAE, 0, oldelems->dim);
                 if (exceptionOrCantInterpret(x))
@@ -4644,7 +4644,7 @@ public:
                         assignInPlace((*existingAE->elements)[(size_t)(j+firstIndex)], newval);
                 }
             }
-            if (!wantRef && !cow && originalExp->e2->isLvalue())
+            if (!wantRef && !cow && originalExp->op != TOKblit && originalExp->e2->isLvalue())
             {
                 Expression *x = evaluatePostblits(istate, existingAE, (size_t)firstIndex, (size_t)(firstIndex+upperbound-lowerbound));
                 if (exceptionOrCantInterpret(x))
