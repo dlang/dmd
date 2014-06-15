@@ -10986,6 +10986,10 @@ Expression *AssignExp::semantic(Scope *sc)
                 if (ex->op == TOKerror)
                     return ex;
 
+                e2 = e2->semantic(sc);
+                if (e2->op == TOKerror)
+                    return e2;
+
                 Expressions *a = (Expressions *)ae->arguments->copy();
                 a->insert(0, e2);
 
