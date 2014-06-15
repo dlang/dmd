@@ -364,7 +364,6 @@ void FuncDeclaration::semantic(Scope *sc)
 {
     TypeFunction *f;
     AggregateDeclaration *ad;
-    ClassDeclaration *cd;
     InterfaceDeclaration *id;
 
 #if 0
@@ -643,15 +642,6 @@ void FuncDeclaration::semantic(Scope *sc)
     }
 #endif
 
-    StructDeclaration *sd = parent->isStructDeclaration();
-    if (sd)
-    {
-        if (isCtorDeclaration())
-        {
-            goto Ldone;
-        }
-    }
-
     id = parent->isInterfaceDeclaration();
     if (id)
     {
@@ -672,15 +662,18 @@ void FuncDeclaration::semantic(Scope *sc)
     if (!fbody && (fensure || frequire) && !(id && isVirtual()))
         error("in and out contracts require function body");
 
-    cd = parent->isClassDeclaration();
-    if (cd)
+    if (StructDeclaration *sd = parent->isStructDeclaration())
     {
-        int vi;
         if (isCtorDeclaration())
         {
-//          ctor = (CtorDeclaration *)this;
-//          if (!cd->ctor)
-//              cd->ctor = ctor;
+            goto Ldone;
+        }
+    }
+
+    if (ClassDeclaration *cd = parent->isClassDeclaration())
+    {
+        if (isCtorDeclaration())
+        {
             goto Ldone;
         }
 
@@ -728,8 +721,8 @@ void FuncDeclaration::semantic(Scope *sc)
         /* Find index of existing function in base class's vtbl[] to override
          * (the index will be the same as in cd's current vtbl[])
          */
-        vi = cd->baseClass ? findVtblIndex((Dsymbols*)&cd->baseClass->vtbl, (int)cd->baseClass->vtbl.dim)
-                           : -1;
+        int vi = cd->baseClass ? findVtblIndex((Dsymbols*)&cd->baseClass->vtbl, (int)cd->baseClass->vtbl.dim)
+                               : -1;
 
         bool doesoverride = false;
         switch (vi)
@@ -1022,10 +1015,10 @@ void FuncDeclaration::semantic(Scope *sc)
             }
 
             // If it's a member template
-            ClassDeclaration *cd2 = ti->tempdecl->isClassMember();
-            if (cd2)
+            ClassDeclaration *cd = ti->tempdecl->isClassMember();
+            if (cd)
             {
-                error("cannot use template to add virtual function to class '%s'", cd2->toChars());
+                error("cannot use template to add virtual function to class '%s'", cd->toChars());
             }
         }
     }
@@ -2012,7 +2005,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 a->push(s);
             }
 
-            fbody = new CompoundStatement(Loc(), a);
+            Statement *sbody = new CompoundStatement(Loc(), a);
             /* Append destructor calls for parameters as finally blocks.
              */
             if (parameters)
@@ -2039,10 +2032,10 @@ void FuncDeclaration::semantic3(Scope *sc)
                             ::error(loc, "%s '%s' is nothrow yet may throw", kind(), toPrettyChars());
                         if (flags & FUNCFLAGnothrowInprocess && blockexit & BEthrow)
                             f->isnothrow = false;
-                        if (fbody->blockExit(this, f->isnothrow) == BEfallthru)
-                            fbody = new CompoundStatement(Loc(), fbody, s);
+                        if (sbody->blockExit(this, f->isnothrow) == BEfallthru)
+                            sbody = new CompoundStatement(Loc(), sbody, s);
                         else
-                            fbody = new TryFinallyStatement(Loc(), fbody, s);
+                            sbody = new TryFinallyStatement(Loc(), sbody, s);
                     }
                 }
             }
@@ -2059,7 +2052,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 {
                     if (!global.params.is64bit &&
                         global.params.isWindows &&
-                        !isStatic() && !fbody->usesEH() && !global.params.trace)
+                        !isStatic() && !sbody->usesEH() && !global.params.trace)
                     {
                         /* The back end uses the "jmonitor" hack for syncing;
                          * no need to do the sync at this level.
@@ -2078,9 +2071,9 @@ void FuncDeclaration::semantic3(Scope *sc)
                             // 'this' is the monitor
                             vsync = new VarExp(loc, vthis);
                         }
-                        fbody = new PeelStatement(fbody);       // don't redo semantic()
-                        fbody = new SynchronizedStatement(loc, vsync, fbody);
-                        fbody = fbody->semantic(sc2);
+                        sbody = new PeelStatement(sbody);       // don't redo semantic()
+                        sbody = new SynchronizedStatement(loc, vsync, sbody);
+                        sbody = sbody->semantic(sc2);
                     }
                 }
                 else
@@ -2088,6 +2081,11 @@ void FuncDeclaration::semantic3(Scope *sc)
                     error("synchronized function %s must be a member of a class", toChars());
                 }
             }
+
+            // If declaration has no body, don't set sbody to prevent incorrect codegen.
+            InterfaceDeclaration *id = parent->isInterfaceDeclaration();
+            if (fbody || id && (fdensure || fdrequire) && isVirtual())
+                fbody = sbody;
         }
 
         // Fix up forward-referenced gotos
