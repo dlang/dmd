@@ -7839,8 +7839,8 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
             Identifier *id = Lexer::uniqueId("__tup");
             ExpInitializer *ei = new ExpInitializer(e->loc, ev);
             VarDeclaration *vd = new VarDeclaration(e->loc, NULL, id, ei);
-            vd->storage_class |= STCtemp | STCctfe | STCref | STCforeach;
-
+            vd->storage_class |= STCtemp | STCctfe
+                              | (ev->isLvalue() ? STCref | STCforeach : STCrvalue);
             e0 = new DeclarationExp(e->loc, vd);
             ev = new VarExp(e->loc, vd);
         }
@@ -8396,8 +8396,8 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
             Identifier *id = Lexer::uniqueId("__tup");
             ExpInitializer *ei = new ExpInitializer(e->loc, ev);
             VarDeclaration *vd = new VarDeclaration(e->loc, NULL, id, ei);
-            vd->storage_class |= STCtemp | STCctfe | STCref | STCforeach;
-
+            vd->storage_class |= STCtemp | STCctfe
+                              | (ev->isLvalue() ? STCref | STCforeach : STCrvalue);
             e0 = new DeclarationExp(e->loc, vd);
             ev = new VarExp(e->loc, vd);
         }
