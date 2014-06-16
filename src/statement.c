@@ -1676,7 +1676,8 @@ Statement *ForeachStatement::semantic(Scope *sc)
 
         Type *argtype = (*arguments)[dim-1]->type;
         if (argtype)
-        {   argtype = argtype->semantic(loc, sc);
+        {
+            argtype = argtype->semantic(loc, sc);
             if (argtype->ty == Terror)
                 goto Lerror;
         }
@@ -1687,7 +1688,8 @@ Statement *ForeachStatement::semantic(Scope *sc)
         size_t n;
         TupleExp *te = NULL;
         if (aggr->op == TOKtuple)       // expression tuple
-        {   te = (TupleExp *)aggr;
+        {
+            te = (TupleExp *)aggr;
             n = te->exps->dim;
         }
         else if (aggr->op == TOKtype)   // type tuple
@@ -1697,7 +1699,8 @@ Statement *ForeachStatement::semantic(Scope *sc)
         else
             assert(0);
         for (size_t j = 0; j < n; j++)
-        {   size_t k = (op == TOKforeach) ? j : n - 1 - j;
+        {
+            size_t k = (op == TOKforeach) ? j : n - 1 - j;
             Expression *e = NULL;
             Type *t = NULL;
             if (te)
@@ -1708,9 +1711,11 @@ Statement *ForeachStatement::semantic(Scope *sc)
             Statements *st = new Statements();
 
             if (dim == 2)
-            {   // Declare key
+            {
+                // Declare key
                 if (arg->storageClass & (STCout | STCref | STClazy))
-                {   error("no storage class for key %s", arg->ident->toChars());
+                {
+                    error("no storage class for key %s", arg->ident->toChars());
                     goto Lerror;
                 }
                 arg->type = arg->type->semantic(loc, sc);
@@ -1720,12 +1725,14 @@ Statement *ForeachStatement::semantic(Scope *sc)
                     if (global.params.is64bit)
                     {
                         if (keyty != Tint64 && keyty != Tuns64)
-                        {   error("foreach: key type must be int or uint, long or ulong, not %s", arg->type->toChars());
+                        {
+                            error("foreach: key type must be int or uint, long or ulong, not %s", arg->type->toChars());
                             goto Lerror;
                         }
                     }
                     else
-                    {   error("foreach: key type must be int or uint, not %s", arg->type->toChars());
+                    {
+                        error("foreach: key type must be int or uint, not %s", arg->type->toChars());
                         goto Lerror;
                     }
                 }
@@ -1764,11 +1771,13 @@ Statement *ForeachStatement::semantic(Scope *sc)
                 {
                     var = new AliasDeclaration(loc, arg->ident, ds);
                     if (arg->storageClass & STCref)
-                    {   error("symbol %s cannot be ref", s->toChars());
+                    {
+                        error("symbol %s cannot be ref", s->toChars());
                         goto Lerror;
                     }
                     if (argtype)
-                    {   error("cannot specify element type for symbol %s", ds->toChars());
+                    {
+                        error("cannot specify element type for symbol %s", ds->toChars());
                         goto Lerror;
                     }
                 }
@@ -1776,7 +1785,8 @@ Statement *ForeachStatement::semantic(Scope *sc)
                 {
                     var = new AliasDeclaration(loc, arg->ident, e->type);
                     if (argtype)
-                    {   error("cannot specify element type for type %s", e->type->toChars());
+                    {
+                        error("cannot specify element type for type %s", e->type->toChars());
                         goto Lerror;
                     }
                 }
@@ -1791,8 +1801,10 @@ Statement *ForeachStatement::semantic(Scope *sc)
                         v->storage_class |= STCref | STCforeach;
                     if (e->isConst() || e->op == TOKstring ||
                         e->op == TOKstructliteral || e->op == TOKarrayliteral)
-                    {   if (v->storage_class & STCref)
-                        {   error("constant value %s cannot be ref", ie->toChars());
+                    {
+                        if (v->storage_class & STCref)
+                        {
+                            error("constant value %s cannot be ref", ie->toChars());
                             goto Lerror;
                         }
                         else
@@ -1805,7 +1817,8 @@ Statement *ForeachStatement::semantic(Scope *sc)
             {
                 var = new AliasDeclaration(loc, arg->ident, t);
                 if (argtype)
-                {   error("cannot specify element type for symbol %s", s->toChars());
+                {
+                    error("cannot specify element type for symbol %s", s->toChars());
                     goto Lerror;
                 }
             }
@@ -1838,6 +1851,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
     {
         case Tarray:
         case Tsarray:
+        {
             if (!checkForArgTypes())
                 return this;
 
@@ -1862,13 +1876,16 @@ Statement *ForeachStatement::semantic(Scope *sc)
                     (tnv->ty == Tchar || tnv->ty == Twchar || tnv->ty == Tdchar))
                 {
                     if (arg->storageClass & STCref)
-                    {   error("foreach: value of UTF conversion cannot be ref");
+                    {
+                        error("foreach: value of UTF conversion cannot be ref");
                         goto Lerror2;
                     }
                     if (dim == 2)
-                    {   arg = (*arguments)[0];
+                    {
+                        arg = (*arguments)[0];
                         if (arg->storageClass & STCref)
-                        {   error("foreach: key cannot be ref");
+                        {
+                            error("foreach: key cannot be ref");
                             goto Lerror2;
                         }
                     }
@@ -1877,7 +1894,8 @@ Statement *ForeachStatement::semantic(Scope *sc)
             }
 
             for (size_t i = 0; i < dim; i++)
-            {   // Declare args
+            {
+                // Declare args
                 Parameter *arg = (*arguments)[i];
                 arg->type = arg->type->semantic(loc, sc);
                 arg->type = arg->type->addStorageClass(arg->storageClass);
@@ -1936,14 +1954,8 @@ Statement *ForeachStatement::semantic(Scope *sc)
                         }
                     }
                 }
-#if 0
-                DeclarationExp *de = new DeclarationExp(loc, var);
-                de->semantic(sc);
-#endif
             }
 
-#if 1
-        {
              /* Convert to a ForStatement
               *   foreach (key, value; a) body =>
               *   for (T[] tmp = a[], size_t key; key < tmp.length; ++key)
@@ -1990,15 +2002,18 @@ Statement *ForeachStatement::semantic(Scope *sc)
 
             Expression *increment = NULL;
             if (op == TOKforeach)
+            {
                 // key += 1
                 increment = new AddAssignExp(loc, new VarExp(loc, key), new IntegerExp(loc, 1, key->type));
+            }
 
             // T value = tmp[key];
             value->init = new ExpInitializer(loc, new IndexExp(loc, new VarExp(loc, tmp), new VarExp(loc, key)));
             Statement *ds = new ExpStatement(loc, value);
 
             if (dim == 2)
-            {   Parameter *arg = (*arguments)[0];
+            {
+                Parameter *arg = (*arguments)[0];
                 if ((arg->storageClass & STCref) && arg->type->equals(key->type))
                 {
                     key->range = NULL;
@@ -2027,38 +2042,6 @@ Statement *ForeachStatement::semantic(Scope *sc)
             s = s->semantic(sc);
             break;
         }
-#else
-            if (tab->nextOf()->implicitConvTo(value->type) < MATCHconst)
-            {
-                if (aggr->op == TOKstring)
-                    aggr = aggr->implicitCastTo(sc, value->type->arrayOf());
-                else
-                    error("foreach: %s is not an array of %s",
-                        tab->toChars(), value->type->toChars());
-            }
-
-            if (key)
-            {
-                if (key->type->ty != Tint32 && key->type->ty != Tuns32)
-                {
-                    if (global.params.is64bit)
-                    {
-                        if (key->type->ty != Tint64 && key->type->ty != Tuns64)
-                            error("foreach: key type must be int or uint, long or ulong, not %s", key->type->toChars());
-                    }
-                    else
-                        error("foreach: key type must be int or uint, not %s", key->type->toChars());
-                }
-
-                if (key->storage_class & (STCout | STCref))
-                    error("foreach: key cannot be out or ref");
-            }
-
-            sc->sbreak = this;
-            sc->scontinue = this;
-            body = body->semantic(sc);
-            break;
-#endif
 
         case Taarray:
             if (!checkForArgTypes())
@@ -2079,12 +2062,13 @@ Statement *ForeachStatement::semantic(Scope *sc)
             if (sapply)
                 goto Lapply;
 
-        {   /* Look for range iteration, i.e. the properties
+        {
+            /* Look for range iteration, i.e. the properties
              * .empty, .popFront, .popBack, .front and .back
              *    foreach (e; aggr) { ... }
              * translates to:
-             *    for (auto __r = aggr[]; !__r.empty; __r.popFront)
-             *    {   auto e = __r.front;
+             *    for (auto __r = aggr[]; !__r.empty; __r.popFront) {
+             *        auto e = __r.front;
              *        ...
              *    }
              */
@@ -2094,11 +2078,13 @@ Statement *ForeachStatement::semantic(Scope *sc)
             Identifier *idfront;
             Identifier *idpopFront;
             if (op == TOKforeach)
-            {   idfront = Id::Ffront;
+            {
+                idfront = Id::Ffront;
                 idpopFront = Id::FpopFront;
             }
             else
-            {   idfront = Id::Fback;
+            {
+                idfront = Id::Fback;
                 idpopFront = Id::FpopBack;
             }
             Dsymbol *sfront = ad->search(Loc(), idfront);
@@ -2230,15 +2216,18 @@ Statement *ForeachStatement::semantic(Scope *sc)
             Expression *e;
 
             if (!checkForArgTypes())
-            {   body = body->semanticNoScope(sc);
+            {
+                body = body->semanticNoScope(sc);
                 return this;
             }
 
             TypeFunction *tfld = NULL;
             if (sapply)
-            {   FuncDeclaration *fdapply = sapply->isFuncDeclaration();
+            {
+                FuncDeclaration *fdapply = sapply->isFuncDeclaration();
                 if (fdapply)
-                {   assert(fdapply->type && fdapply->type->ty == Tfunction);
+                {
+                    assert(fdapply->type && fdapply->type->ty == Tfunction);
                     tfld = (TypeFunction *)fdapply->type->semantic(loc, sc);
                     goto Lget;
                 }
@@ -2251,7 +2240,8 @@ Statement *ForeachStatement::semantic(Scope *sc)
                     {
                         Parameter *p = Parameter::getNth(tfld->parameters, 0);
                         if (p->type && p->type->ty == Tdelegate)
-                        {   Type *t = p->type->semantic(loc, sc);
+                        {
+                            Type *t = p->type->semantic(loc, sc);
                             assert(t->ty == Tdelegate);
                             tfld = (TypeFunction *)t->nextOf();
                         }
@@ -2264,32 +2254,38 @@ Statement *ForeachStatement::semantic(Scope *sc)
              */
             Parameters *args = new Parameters();
             for (size_t i = 0; i < dim; i++)
-            {   Parameter *arg = (*arguments)[i];
+            {
+                Parameter *arg = (*arguments)[i];
                 StorageClass stc = STCref;
                 Identifier *id;
 
                 arg->type = arg->type->semantic(loc, sc);
                 arg->type = arg->type->addStorageClass(arg->storageClass);
                 if (tfld)
-                {   Parameter *prm = Parameter::getNth(tfld->parameters, i);
+                {
+                    Parameter *prm = Parameter::getNth(tfld->parameters, i);
                     //printf("\tprm = %s%s\n", (prm->storageClass&STCref?"ref ":""), prm->ident->toChars());
                     stc = prm->storageClass & STCref;
                     id = arg->ident;    // argument copy is not need.
                     if ((arg->storageClass & STCref) != stc)
-                    {   if (!stc)
-                        {   error("foreach: cannot make %s ref", arg->ident->toChars());
+                    {
+                        if (!stc)
+                        {
+                            error("foreach: cannot make %s ref", arg->ident->toChars());
                             goto Lerror2;
                         }
                         goto LcopyArg;
                     }
                 }
                 else if (arg->storageClass & STCref)
-                {   // default delegate parameters are marked as ref, then
+                {
+                    // default delegate parameters are marked as ref, then
                     // argument copy is not need.
                     id = arg->ident;
                 }
                 else
-                {   // Make a copy of the ref argument so it isn't
+                {
+                    // Make a copy of the ref argument so it isn't
                     // a reference.
                 LcopyArg:
                     id = Lexer::uniqueId("__applyArg", (int)i);
@@ -2331,18 +2327,21 @@ Statement *ForeachStatement::semantic(Scope *sc)
                 if (dim == 2)
                 {
                     if (arg->storageClass & STCref)
-                    {   error("foreach: index cannot be ref");
+                    {
+                        error("foreach: index cannot be ref");
                         goto Lerror2;
                     }
                     if (!taa->index->implicitConvTo(arg->type))
-                    {   error("foreach: index must be type %s, not %s", taa->index->toChars(), arg->type->toChars());
+                    {
+                        error("foreach: index must be type %s, not %s", taa->index->toChars(), arg->type->toChars());
                         goto Lerror2;
                     }
                     arg = (*arguments)[1];
                 }
                 if ((!arg->type->equals(taa->nextOf()) && (arg->storageClass & STCref)) ||
                     !taa->nextOf()->implicitConvTo(arg->type))
-                {   error("foreach: value must be type %s, not %s", taa->nextOf()->toChars(), arg->type->toChars());
+                {
+                    error("foreach: value must be type %s, not %s", taa->nextOf()->toChars(), arg->type->toChars());
                     goto Lerror2;
                 }
                 /* Call:
@@ -2490,7 +2489,8 @@ Statement *ForeachStatement::semantic(Scope *sc)
                 s = new ExpStatement(loc, e);
             }
             else
-            {   // Construct a switch statement around the return value
+            {
+                // Construct a switch statement around the return value
                 // of the apply function.
                 Statements *a = new Statements();
 
@@ -2528,10 +2528,12 @@ Statement *ForeachStatement::semantic(Scope *sc)
 }
 
 bool ForeachStatement::checkForArgTypes()
-{   bool result = true;
+{
+    bool result = true;
 
     for (size_t i = 0; i < arguments->dim; i++)
-    {   Parameter *arg = (*arguments)[i];
+    {
+        Parameter *arg = (*arguments)[i];
         if (!arg->type)
         {
             error("cannot infer type for %s", arg->ident->toChars());
