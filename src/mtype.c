@@ -8195,14 +8195,20 @@ int TypeStruct::hasPointers()
 }
 
 MATCH TypeStruct::implicitConvTo(Type *to)
-{   MATCH m;
-
+{
     //printf("TypeStruct::implicitConvTo(%s => %s)\n", toChars(), to->toChars());
+    MATCH m = implicitConvWithoutAliasThis(to);
+    return m > MATCHnomatch ? m : implicitConvViaAliasThis(to);
+}
 
+MATCH TypeStruct::implicitConvWithoutAliasThis(Type *to)
+{
+    MATCH m = MATCHnomatch;
     if (ty == to->ty && sym == ((TypeStruct *)to)->sym)
     {
-        m = MATCHexact;         // exact match
-        if (mod != to->mod)
+        if (mod == to->mod)
+            m = MATCHexact;         // exact match
+        else
         {
             m = MATCHconst;
             if (MODimplicitConv(mod, to->mod))
@@ -8226,7 +8232,7 @@ MATCH TypeStruct::implicitConvTo(Type *to)
                     else
                     {
                         if (m <= MATCHnomatch)
-                            return m;
+                            break;
                     }
 
                     // 'from' type
@@ -8239,8 +8245,6 @@ MATCH TypeStruct::implicitConvTo(Type *to)
                     MATCH mf = tvf->implicitConvTo(tv);
                     //printf("\t%s => %s, match = %d\n", v->type->toChars(), tv->toChars(), mf);
 
-                    if (mf <= MATCHnomatch)
-                        return mf;
                     if (mf < m)         // if field match is worse
                         m = mf;
                     offset = v->offset;
@@ -8248,15 +8252,19 @@ MATCH TypeStruct::implicitConvTo(Type *to)
             }
         }
     }
-    else if (sym->aliasthis && !(att & RECtracing))
+    return m;
+}
+
+MATCH TypeStruct::implicitConvViaAliasThis(Type *to)
+{
+    if (sym->aliasthis && !(att & RECtracing))
     {
         att = (AliasThisRec)(att | RECtracing);
-        m = aliasthisOf()->implicitConvTo(to);
+        MATCH m = aliasthisOf()->implicitConvTo(to);
         att = (AliasThisRec)(att & ~RECtracing);
+        return m > MATCHconvert ? MATCHconvert : m;
     }
-    else
-        m = MATCHnomatch;       // no match
-    return m;
+    return MATCHnomatch;
 }
 
 MATCH TypeStruct::constConv(Type *to)
@@ -8762,6 +8770,12 @@ int TypeClass::isBaseOf(Type *t, int *poffset)
 MATCH TypeClass::implicitConvTo(Type *to)
 {
     //printf("TypeClass::implicitConvTo(to = '%s') %s\n", to->toChars(), toChars());
+    MATCH m = implicitConvWithoutAliasThis(to);
+    return m > MATCHnomatch ? m : implicitConvViaAliasThis(to);
+}
+
+MATCH TypeClass::implicitConvWithoutAliasThis(Type *to)
+{
     MATCH m = constConv(to);
     if (m > MATCHnomatch)
         return m;
@@ -8781,15 +8795,19 @@ MATCH TypeClass::implicitConvTo(Type *to)
         }
     }
 
-    m = MATCHnomatch;
+    return MATCHnomatch;
+}
+
+MATCH TypeClass::implicitConvViaAliasThis(Type *to)
+{
     if (sym->aliasthis && !(att & RECtracing))
     {
         att = (AliasThisRec)(att | RECtracing);
-        m = aliasthisOf()->implicitConvTo(to);
+        MATCH m = aliasthisOf()->implicitConvTo(to);
         att = (AliasThisRec)(att & ~RECtracing);
+        return m > MATCHconvert ? MATCHconvert : m;
     }
-
-    return m;
+    return MATCHnomatch;
 }
 
 MATCH TypeClass::constConv(Type *to)
