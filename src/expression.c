@@ -7476,7 +7476,7 @@ Expression *DotVarExp::semantic(Scope *sc)
         Expressions *exps = new Expressions;
         Expression *e0 = NULL;
         Expression *ev = e1;
-        if (sc->func && hasSideEffect(e1))
+        if (sc->func && !isTrivialExp(e1))
         {
             Identifier *id = Lexer::uniqueId("__tup");
             ExpInitializer *ei = new ExpInitializer(e1->loc, e1);
@@ -11438,7 +11438,7 @@ Expression *AssignExp::semantic(Scope *sc)
                 Expression *ea = ie->e1;
                 Expression *ek = ie->e2;
                 Expression *ev = e2x;
-                if (hasSideEffect(ea))
+                if (!isTrivialExp(ea))
                 {
                     VarDeclaration *v = new VarDeclaration(loc, ie->e1->type,
                         Lexer::uniqueId("__aatmp"), new ExpInitializer(loc, ie->e1));
@@ -11448,7 +11448,7 @@ Expression *AssignExp::semantic(Scope *sc)
                     e0 = combine(e0, new DeclarationExp(loc, v));
                     ea = new VarExp(loc, v);
                 }
-                if (hasSideEffect(ek))
+                if (!isTrivialExp(ek))
                 {
                     VarDeclaration *v = new VarDeclaration(loc, ie->e2->type,
                         Lexer::uniqueId("__aakey"), new ExpInitializer(loc, ie->e2));
@@ -11458,7 +11458,7 @@ Expression *AssignExp::semantic(Scope *sc)
                     e0 = combine(e0, new DeclarationExp(loc, v));
                     ek = new VarExp(loc, v);
                 }
-                if (hasSideEffect(ev))
+                if (!isTrivialExp(ev))
                 {
                     VarDeclaration *v = new VarDeclaration(loc, e2x->type,
                         Lexer::uniqueId("__aaval"), new ExpInitializer(loc, e2x));
@@ -13927,7 +13927,7 @@ Expression *extractOpDollarSideEffect(Scope *sc, UnaExp *ue)
     Expression *e1 = Expression::extractLast(ue->e1, &e0);
     // Bugzilla 12585: Extract the side effect part if ue->e1 is comma.
 
-    if (hasSideEffect(e1))
+    if (!isTrivialExp(e1))
     {
         /* Even if opDollar is needed, 'e1' should be evaluate only once. So
          * Rewrite:
@@ -14116,7 +14116,7 @@ Expression *BinExp::reorderSettingAAElem(Scope *sc)
     Expression *de = NULL;
     while (1)
     {
-        if (hasSideEffect(ie->e2))
+        if (!isTrivialExp(ie->e2))
         {
             Identifier *id = Lexer::uniqueId("__aakey");
             VarDeclaration *vd = new VarDeclaration(ie->e2->loc, ie->e2->type, id, new ExpInitializer(ie->e2->loc, ie->e2));
@@ -14138,7 +14138,7 @@ Expression *BinExp::reorderSettingAAElem(Scope *sc)
     }
     assert(ie->e1->type->toBasetype()->ty == Taarray);
 
-    if (hasSideEffect(ie->e1))
+    if (!isTrivialExp(ie->e1))
     {
         Identifier *id = Lexer::uniqueId("__aatmp");
         VarDeclaration *vd = new VarDeclaration(ie->e1->loc, ie->e1->type, id, new ExpInitializer(ie->e1->loc, ie->e1));
