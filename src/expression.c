@@ -12067,15 +12067,16 @@ Expression *PowAssignExp::semantic(Scope *sc)
     else
     {
         e1 = e1->modifiableLvalue(sc, e1);
-
-        e = reorderSettingAAElem(sc);
-        if (e != this)
-            return e;
     }
 
     if ((e1->type->isintegral() || e1->type->isfloating()) &&
         (e2->type->isintegral() || e2->type->isfloating()))
     {
+        Expression *e0 = NULL;
+        e = reorderSettingAAElem(sc);
+        e = extractLast(e, &e0);
+        assert(e == this);
+
         if (e1->op == TOKvar)
         {
             // Rewrite: e1 = e1 ^^ e2
@@ -12094,6 +12095,7 @@ Expression *PowAssignExp::semantic(Scope *sc)
             e = new AssignExp(loc, new VarExp(e1->loc, v), e);
             e = new CommaExp(loc, de, e);
         }
+        e = Expression::combine(e0, e);
         e = e->semantic(sc);
         if (e->type->toBasetype()->ty == Tvector)
             return incompatibleTypes();
@@ -14093,61 +14095,75 @@ Expression *resolveOpDollar(Scope *sc, SliceExp *se, Expression **pe0)
 
 Expression *BinExp::reorderSettingAAElem(Scope *sc)
 {
-    if (this->e1->op != TOKindex)
-        return this;
-    IndexExp *ie = (IndexExp *)e1;
-    Type *t1 = ie->e1->type->toBasetype();
-    if (t1->ty != Taarray)
-        return this;
+    BinExp *be = this;
 
-    /* Check recursive conversion */
-    VarDeclaration *var;
-    bool isrefvar = (e2->op == TOKvar &&
-                    (var = ((VarExp *)e2)->var->isVarDeclaration()) != NULL);
-    if (isrefvar)
-        return this;
+    if (be->e1->op != TOKindex)
+        return be;
+    IndexExp *ie = (IndexExp *)be->e1;
+    if (ie->e1->type->toBasetype()->ty != Taarray)
+        return be;
 
     /* Fix evaluation order of setting AA element. (Bugzilla 3825)
      * Rewrite:
-     *     aa[key] op= val;
+     *     aa[k1][k2][k3] op= val;
      * as:
-     *     ref __aatmp = aa;
-     *     ref __aakey = key;
-     *     ref __aaval = val;
-     *     __aatmp[__aakey] op= __aaval;  // assignment
+     *     auto ref __aatmp = aa;
+     *     auto ref __aakey3 = k1, __aakey2 = k2, __aakey1 = k3;
+     *     auto ref __aaval = val;
+     *     __aatmp[__aakey3][__aakey2][__aakey1] op= __aaval;  // assignment
      */
-    Expression *ec = NULL;
+
+    Expression *de = NULL;
+    while (1)
+    {
+        if (hasSideEffect(ie->e2))
+        {
+            Identifier *id = Lexer::uniqueId("__aakey");
+            VarDeclaration *vd = new VarDeclaration(ie->e2->loc, ie->e2->type, id, new ExpInitializer(ie->e2->loc, ie->e2));
+            vd->storage_class |= STCtemp
+                              | (ie->e2->isLvalue() ? STCref | STCforeach : STCrvalue);
+            de = Expression::combine(new DeclarationExp(ie->e2->loc, vd), de);
+
+            ie->e2 = new VarExp(ie->e2->loc, vd);
+            ie->e2->type = vd->type;
+        }
+
+        Expression *ie1 = ie->e1;
+        if (ie1->op != TOKindex ||
+            ((IndexExp *)ie1)->e1->type->toBasetype()->ty != Taarray)
+        {
+            break;
+        }
+        ie = (IndexExp *)ie1;
+    }
+    assert(ie->e1->type->toBasetype()->ty == Taarray);
+
     if (hasSideEffect(ie->e1))
     {
         Identifier *id = Lexer::uniqueId("__aatmp");
         VarDeclaration *vd = new VarDeclaration(ie->e1->loc, ie->e1->type, id, new ExpInitializer(ie->e1->loc, ie->e1));
         vd->storage_class |= STCtemp
                           | (ie->e1->isLvalue() ? STCref | STCforeach : STCrvalue);
-        Expression *de = new DeclarationExp(ie->e1->loc, vd);
-        ec = de;
+        de = Expression::combine(new DeclarationExp(ie->e1->loc, vd), de);
+
         ie->e1 = new VarExp(ie->e1->loc, vd);
+        ie->e1->type = vd->type;
     }
-    if (hasSideEffect(ie->e2))
-    {
-        Identifier *id = Lexer::uniqueId("__aakey");
-        VarDeclaration *vd = new VarDeclaration(ie->e2->loc, ie->e2->type, id, new ExpInitializer(ie->e2->loc, ie->e2));
-        vd->storage_class |= STCtemp
-                          | (ie->e2->isLvalue() ? STCref | STCforeach : STCrvalue);
-        Expression *de = new DeclarationExp(ie->e2->loc, vd);
-        ec = ec ? new CommaExp(loc, ec, de) : de;
-        ie->e2 = new VarExp(ie->e2->loc, vd);
-    }
+
     {
         Identifier *id = Lexer::uniqueId("__aaval");
-        VarDeclaration *vd = new VarDeclaration(loc, this->e2->type, id, new ExpInitializer(this->e2->loc, this->e2));
+        VarDeclaration *vd = new VarDeclaration(be->loc, be->e2->type, id, new ExpInitializer(be->e2->loc, be->e2));
         vd->storage_class |= STCtemp
-                          | (this->e2->isLvalue() ? STCref | STCforeach : STCrvalue);
-        Expression *de = new DeclarationExp(this->e2->loc, vd);
-        ec = ec ? new CommaExp(loc, ec, de) : de;
-        this->e2 = new VarExp(this->e2->loc, vd);
+                          | (be->e2->isLvalue() ? STCref | STCforeach : STCrvalue);
+        de = Expression::combine(de, new DeclarationExp(be->e2->loc, vd));
+
+        be->e2 = new VarExp(be->e2->loc, vd);
+        be->e2->type = vd->type;
     }
-    ec = new CommaExp(loc, ec, this);
-    return ec->semantic(sc);
+
+    de = de->semantic(sc);
+    //printf("-de = %s, be = %s\n", de->toChars(), be->toChars());
+    return Expression::combine(de, be);
 }
 
 /***************************************
