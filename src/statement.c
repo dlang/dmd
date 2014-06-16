@@ -2038,7 +2038,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
                     VarDeclaration *v = new VarDeclaration(loc, arg->type, arg->ident, ei);
                     v->storage_class |= STCforeach | (arg->storageClass & STCref);
                     body = new CompoundStatement(loc, new ExpStatement(loc, v), body);
-                    if (key->range && arg->storageClass & (STCimmutable | STCconst))
+                    if (key->range && !arg->type->isMutable())
                     {
                         /* Limit the range of the key to the specified range
                          */
@@ -2752,7 +2752,7 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
         VarDeclaration *v = new VarDeclaration(loc, arg->type, arg->ident, ie);
         v->storage_class |= STCtemp | STCforeach | (arg->storageClass & STCref);
         body = new CompoundStatement(loc, new ExpStatement(loc, v), body);
-        if (key->range && arg->storageClass & (STCimmutable | STCconst))
+        if (key->range && !arg->type->isMutable())
         {
             /* Limit the range of the key to the specified range
              */
