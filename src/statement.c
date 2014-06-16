@@ -1967,7 +1967,19 @@ Statement *ForeachStatement::semantic(Scope *sc)
               */
             Identifier *id = Lexer::uniqueId("__aggr");
             ExpInitializer *ie = new ExpInitializer(loc, new SliceExp(loc, aggr, NULL, NULL));
-            VarDeclaration *tmp = new VarDeclaration(loc, tab->nextOf()->arrayOf(), id, ie);
+            VarDeclaration *tmp;
+            if (aggr->op == TOKarrayliteral &&
+                !((*arguments)[dim - 1]->storageClass & STCref))
+             {
+                ArrayLiteralExp *ale = (ArrayLiteralExp *)aggr;
+                size_t edim = ale->elements ? ale->elements->dim : 0;
+                aggr->type = tab->nextOf()->sarrayOf(edim);
+
+                // for (T[edim] tmp = a, ...)
+                tmp = new VarDeclaration(loc, aggr->type, id, ie);
+            }
+            else
+                tmp = new VarDeclaration(loc, tab->nextOf()->arrayOf(), id, ie);
             tmp->storage_class |= STCtemp;
 
             Expression *tmp_length = new DotIdExp(loc, new VarExp(loc, tmp), Id::length);

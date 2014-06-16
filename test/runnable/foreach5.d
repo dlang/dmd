@@ -950,6 +950,19 @@ void test12739() nothrow
 }
 
 /***************************************/
+// 12932
+
+void test12932() @nogc
+{
+    int sum;
+    foreach (e; [1,2,3])
+    {
+        sum += e;
+    }
+    assert(sum == 6);
+}
+
+/***************************************/
 
 int main()
 {
@@ -977,6 +990,7 @@ int main()
     test11291();
     test12103();
     test12739();
+    test12932();
 
     printf("Success\n");
     return 0;
