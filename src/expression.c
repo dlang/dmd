@@ -6571,23 +6571,26 @@ Expression *BinExp::checkComplexOpAssign(Scope *sc)
         // Any multiplication by an imaginary or complex number yields a complex result.
         // r *= c, i*=c, r*=i, i*=i are all forbidden operations.
         const char *opstr = Token::toChars(op);
-        if ( e1->type->isreal() && e2->type->iscomplex())
+        if (e1->type->isreal() && e2->type->iscomplex())
         {
             error("%s %s %s is undefined. Did you mean %s %s %s.re ?",
                 e1->type->toChars(), opstr, e2->type->toChars(),
                 e1->type->toChars(), opstr, e2->type->toChars());
+            return new ErrorExp();
         }
         else if (e1->type->isimaginary() && e2->type->iscomplex())
         {
             error("%s %s %s is undefined. Did you mean %s %s %s.im ?",
                 e1->type->toChars(), opstr, e2->type->toChars(),
                 e1->type->toChars(), opstr, e2->type->toChars());
+            return new ErrorExp();
         }
         else if ((e1->type->isreal() || e1->type->isimaginary()) &&
             e2->type->isimaginary())
         {
             error("%s %s %s is an undefined operation", e1->type->toChars(),
                     opstr, e2->type->toChars());
+            return new ErrorExp();
         }
     }
 
@@ -6596,12 +6599,12 @@ Expression *BinExp::checkComplexOpAssign(Scope *sc)
     {
         // Addition or subtraction of a real and an imaginary is a complex result.
         // Thus, r+=i, r+=c, i+=r, i+=c are all forbidden operations.
-        if ( (e1->type->isreal() && (e2->type->isimaginary() || e2->type->iscomplex())) ||
-             (e1->type->isimaginary() && (e2->type->isreal() || e2->type->iscomplex()))
-            )
+        if ((e1->type->isreal() && (e2->type->isimaginary() || e2->type->iscomplex())) ||
+            (e1->type->isimaginary() && (e2->type->isreal() || e2->type->iscomplex())))
         {
             error("%s %s %s is undefined (result is complex)",
                 e1->type->toChars(), Token::toChars(op), e2->type->toChars());
+            return new ErrorExp();
         }
         if (type->isreal() || type->isimaginary())
         {
@@ -6639,13 +6642,15 @@ Expression *BinExp::checkComplexOpAssign(Scope *sc)
                 }
             }
         }
-    } else if (op == TOKdivass)
+    }
+    else if (op == TOKdivass)
     {
         if (e2->type->isimaginary())
         {
             Type *t1 = e1->type;
             if (t1->isreal())
-            {   // x/iv = i(-x/v)
+            {
+                // x/iv = i(-x/v)
                 // Therefore, the result is 0
                 e2 = new CommaExp(loc, e2, new RealExp(loc, ldouble(0.0), t1));
                 e2->type = t1;
@@ -6654,8 +6659,8 @@ Expression *BinExp::checkComplexOpAssign(Scope *sc)
                 return e;
             }
             else if (t1->isimaginary())
-            {   Type *t2;
-
+            {
+                Type *t2;
                 switch (t1->ty)
                 {
                     case Timaginary32: t2 = Type::tfloat32; break;
@@ -6670,7 +6675,8 @@ Expression *BinExp::checkComplexOpAssign(Scope *sc)
                 return e;
             }
         }
-    } else if (op == TOKmodass)
+    }
+    else if (op == TOKmodass)
     {
         if (e2->type->iscomplex())
         {
@@ -6798,8 +6804,12 @@ Expression *BinAssignExp::semantic(Scope *sc)
     if (e1->op == TOKerror || e2->op == TOKerror)
         return new ErrorExp();
 
-    checkComplexOpAssign(sc);
-    return reorderSettingAAElem(sc);
+    e = checkComplexOpAssign(sc);
+    if (e->op == TOKerror)
+        return e;
+
+    assert(e->op == TOKassign || e == this);
+    return ((BinExp *)e)->reorderSettingAAElem(sc);
 }
 
 int BinAssignExp::isLvalue()
