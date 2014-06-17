@@ -5616,7 +5616,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
                         tv = tv->nextOf()->toBasetype();
                     if (tv->ty == Tstruct && ((TypeStruct *)tv)->sym->noDefaultCtor)
                     {
-                        error(loc, "cannot have out parameter of type %s because the default construction is disbaled",
+                        error(loc, "cannot have out parameter of type %s because the default construction is disabled",
                             fparam->type->toChars());
                         errors = true;
                     }
