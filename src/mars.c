@@ -609,7 +609,10 @@ int main(int iargc, char *argv[])
             else if (strcmp(p + 1, "v1") == 0)
                 global.params.Dversion = 1;
             else if (strcmp(p + 1, "v2") == 0)
+            {
                 global.params.Dversion = 3;     // 2 was already taken
+                global.params.warnings = 2;     // make -v2 messages informational
+            }
             else if (strcmp(p + 1, "w") == 0)
                 global.params.warnings = 1;
             else if (strcmp(p + 1, "wi") == 0)

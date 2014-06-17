@@ -2157,12 +2157,14 @@ Ldone:
         break;
     }
 
-#if DMDV2
-    if (base == 8 && n >= 8)
-        deprecation("octal literals 0%llo%.*s are deprecated, use std.conv.octal!%llo%.*s instead",
-                n, p - psuffix, psuffix, n, p - psuffix, psuffix);
-#endif
-
+    if (global.params.Dversion >= 3 &&
+        base == 8 && n >= 8)
+    {
+        warning(loc, "octal literals 0%llo%.*s are not in D2, use std.conv.octal!%llo%.*s instead or hex 0x%llx%.*s",
+                n, p - psuffix, psuffix,
+                n, p - psuffix, psuffix,
+                n, p - psuffix, psuffix);
+    }
 
     switch (flags)
     {
