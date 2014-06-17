@@ -10765,7 +10765,7 @@ Expression *IndexExp::semantic(Scope *sc)
             e2 = e2->optimize(WANTvalue);
             dinteger_t length = el->toInteger();
             if (length)
-                skipboundscheck = IntRange(SignExtendedNumber(0), SignExtendedNumber(length)).contains(getIntRange(e2));
+                skipboundscheck = IntRange(SignExtendedNumber(0), SignExtendedNumber(length-1)).contains(getIntRange(e2));
         }
     }
 
