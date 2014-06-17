@@ -87,6 +87,7 @@ Expression *resolveOpDollar(Scope *sc, ArrayExp *ae, Expression **pe0);
 Expression *resolveOpDollar(Scope *sc, SliceExp *se, Expression **pe0);
 Expression *integralPromotions(Expression *e, Scope *sc);
 void discardValue(Expression *e);
+bool isTrivialExp(Expression *e);
 
 int isConst(Expression *e);
 Expression *toDelegate(Expression *e, Scope *sc);

@@ -27,6 +27,39 @@
 bool walkPostorder(Expression *e, StoppableVisitor *v);
 bool lambdaHasSideEffect(Expression *e);
 
+/**************************************************
+ * Front-end expression rewriting should create temporary variables for
+ * non trivial sub-expressions in order to:
+ *  1. save evaluation order
+ *  2. prevent sharing of sub-expression in AST
+ */
+bool isTrivialExp(Expression *e)
+{
+    class IsTrivialExp : public StoppableVisitor
+    {
+    public:
+        IsTrivialExp() {}
+
+        void visit(Expression *e)
+        {
+            /* Bugzilla 11201: CallExp is always non trivial expression,
+             * especially for inlining.
+             */
+            if (e->op == TOKcall)
+            {
+                stop = true;
+                return;
+            }
+
+            // stop walking if we determine this expression has side effects
+            stop = lambdaHasSideEffect(e);
+        }
+    };
+
+    IsTrivialExp v;
+    return walkPostorder(e, &v) == false;
+}
+
 /********************************************
  * Determine if Expression has any side effects.
  */

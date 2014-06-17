@@ -323,6 +323,26 @@ void test12243()
 }
 
 /************************************/
+// 11201
+
+struct Foo11201
+{
+    int a;
+    float b;
+
+    Foo11201 func()() const { return this; }
+}
+
+auto f11201()(Foo11201 a) { return a; }
+
+void test11201()
+{
+    auto a = Foo11201(0, 1);
+
+    assert(f11201(a.func!()()) == a);
+}
+
+/************************************/
 // 11223
 
 struct Tuple11223(T...)
@@ -507,6 +527,7 @@ int main()
     test7();
     test8();
     test4841();
+    test11201();
     test11223();
     test11314();
     test11224();
