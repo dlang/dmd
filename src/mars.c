@@ -374,6 +374,7 @@ Usage:\n\
 "  -unittest      compile in unit tests\n\
   -v             verbose\n\
   -v1            D language version 1\n\
+  -v2            give hints for converting to D2\n\
   -version=level compile in version code >= level\n\
   -version=ident compile in version code identified by ident\n\
   -w             warnings as errors (compilation will halt)\n\
@@ -606,14 +607,9 @@ int main(int iargc, char *argv[])
                 global.params.vtls = 1;
 #endif
             else if (strcmp(p + 1, "v1") == 0)
-            {
-#if DMDV1
                 global.params.Dversion = 1;
-#else
-                error(0, "use DMD 1.0 series compilers for -v1 switch");
-                break;
-#endif
-            }
+            else if (strcmp(p + 1, "v2") == 0)
+                global.params.Dversion = 3;     // 2 was already taken
             else if (strcmp(p + 1, "w") == 0)
                 global.params.warnings = 1;
             else if (strcmp(p + 1, "wi") == 0)
