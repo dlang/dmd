@@ -2158,7 +2158,9 @@ Ldone:
     }
 
     if (global.params.Dversion >= 3 &&
-        base == 8 && n >= 8)
+        base == 8 && n >= 8 &&
+        mod && mod->isRoot()
+        )
     {
         warning(loc, "octal literals 0%llo%.*s are not in D2, use std.conv.octal!%llo%.*s instead or hex 0x%llx%.*s",
                 n, p - psuffix, psuffix,

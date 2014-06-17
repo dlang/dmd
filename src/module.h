@@ -138,6 +138,10 @@ struct Module : Package
     static void clearCache();
     int imports(Module *m);
 
+    bool isRoot() { return this->importedFrom == this; }
+                                // true if the module source file is directly
+                                // listed in command line.
+
     // Back end
 
     int doppelganger;           // sub-module
