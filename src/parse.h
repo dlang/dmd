@@ -46,6 +46,7 @@ struct ModuleDeclaration;
 class TemplateDeclaration;
 class TemplateInstance;
 class StaticAssert;
+struct PrefixAttributes;
 
 /************************************
  * These control how parseStatement() works.
@@ -74,9 +75,9 @@ public:
     Parser(Module *module, const utf8_t *base, size_t length, int doDocComment);
 
     Dsymbols *parseModule();
-    Dsymbols *parseDeclDefs(int once, Dsymbol **pLastDecl = NULL);
+    Dsymbols *parseDeclDefs(int once, Dsymbol **pLastDecl = NULL, PrefixAttributes *pAttrs = NULL);
     Dsymbols *parseAutoDeclarations(StorageClass storageClass, const utf8_t *comment);
-    Dsymbols *parseBlock(Dsymbol **pLastDecl);
+    Dsymbols *parseBlock(Dsymbol **pLastDecl, PrefixAttributes *pAttrs = NULL);
     void composeStorageClass(StorageClass stc);
     StorageClass parseAttribute(Expressions **pexps);
     StorageClass parsePostfix(Expressions **pudas);
