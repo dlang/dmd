@@ -19,6 +19,7 @@
  * relative to the cost of the operation itself, compiler implementations are free
  * to recognize them and generate equivalent and faster code.
  *
+ * References: $(LINK2 http://blog.regehr.org/archives/1139, Fast Integer Overflow Checks)
  * Copyright: Copyright (c) Walter Bright 2014.
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Authors:   Walter Bright
