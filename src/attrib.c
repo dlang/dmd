@@ -638,21 +638,10 @@ Scope *ProtDeclaration::newScope(Scope *sc)
     return createNewScope(sc, sc->stc, sc->linkage, this->protection, 1, sc->structalign);
 }
 
-void ProtDeclaration::protectionToCBuffer(OutBuffer *buf, PROT protection)
-{
-    const char *p;
-
-    p = Pprotectionnames[protection];
-
-    assert(p);
-
-    buf->writestring(p);
-    buf->writeByte(' ');
-}
-
 void ProtDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    protectionToCBuffer(buf, protection);
+    protectionToBuffer(buf, protection);
+    buf->writeByte(' ');
     AttribDeclaration::toCBuffer(buf, hgs);
 }
 

@@ -111,8 +111,6 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-
-    static void protectionToCBuffer(OutBuffer *buf, PROT protection);
     void accept(Visitor *v) { v->visit(this); }
 };
 

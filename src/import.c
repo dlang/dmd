@@ -309,7 +309,8 @@ void Import::semantic(Scope *sc)
 
         // use protection instead of sc->protection because it couldn't be
         // resolved yet, see the comment above
-        ProtDeclaration::protectionToCBuffer(ob, protection);
+        protectionToBuffer(ob, protection);
+        ob->writeByte(' ');
         if (isstatic)
             StorageClassDeclaration::stcToCBuffer(ob, STCstatic);
         ob->writestring(": ");

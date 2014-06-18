@@ -451,7 +451,7 @@ public:
         }
 
         if (s->prot() != PROTpublic)
-            property("protection", Pprotectionnames[s->prot()]);
+            property("protection", protectionToChars(s->prot()));
 
         if (EnumMember *em = s->isEnumMember())
         {
@@ -557,7 +557,7 @@ public:
         property("comment", (const char *)s->comment);
         property("line", "char", &s->loc);
         if (s->prot() != PROTpublic)
-            property("protection", Pprotectionnames[s->prot()]);
+            property("protection", protectionToChars(s->prot()));
         if (s->aliasId)
             property("alias", s->aliasId->toChars());
 
