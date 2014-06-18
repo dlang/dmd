@@ -119,13 +119,10 @@ ulong mach_absolute_time();
 
 }
 
-version(unittest)
+//To verify that an lvalue isn't required.
+version(unittest) T copy(T)(T t)
 {
-    //To verify that an lvalue isn't required.
-    T copy(T)(T t)
-    {
-        return t;
-    }
+    return t;
 }
 
 
