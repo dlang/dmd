@@ -528,9 +528,13 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
 
             if ((e->e1->op == TOKstring || e->e1->op == TOKarrayliteral) &&
                 (e->type->ty == Tpointer || e->type->ty == Tarray) &&
-                e->e1->type->toBasetype()->nextOf()->size() == e->type->nextOf()->size()
-               )
+                e->e1->type->toBasetype()->nextOf()->size() == e->type->nextOf()->size())
             {
+                // Bugzilla 12937: If target type is void array, trying to paint
+                // e->e1 with that type will cause infinite recursive optimization.
+                if (e->type->nextOf()->ty == Tvoid)
+                    return;
+
                 ret = e->e1->castTo(NULL, e->type);
                 //printf(" returning1 %s\n", ret->toChars());
                 return;
