@@ -41,6 +41,7 @@
 #include "aav.h"
 #include "nspace.h"
 #include "ctfe.h"
+#include "conditionvisitor.h"
 
 bool typeMerge(Scope *sc, TOK op, Type **pt, Expression **pe1, Expression **pe2);
 bool isArrayOpValid(Expression *e);
@@ -12901,6 +12902,7 @@ Expression *UshrExp::semantic(Scope *sc)
     if (type)
         return this;
 
+    // TODO: if e1 is a comparison with a variable, push range before and pop after e2->semantic
     if (Expression *ex = binSemanticProp(sc))
         return ex;
     Expression *e = op_overload(sc);
@@ -13139,9 +13141,12 @@ Expression *AndAndExp::semantic(Scope *sc)
         }
     }
 
+    ConditionVisitor v;
+    e1->accept(&v);
     e2 = e2->semantic(sc);
     sc->mergeCallSuper(loc, cs1);
     e2 = resolveProperties(sc, e2);
+    v.popRanges();//should not be here; move to scope?
 
     if (e2->type->ty == Tvoid)
         type = Type::tvoid;

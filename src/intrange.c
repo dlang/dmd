@@ -429,6 +429,12 @@ IntRange IntRange::unionWith(const IntRange& other) const
                     imax > other.imax ? imax : other.imax);
 }
 
+IntRange IntRange::intersectWith(const IntRange& other) const
+{
+    return IntRange(imin > other.imin ? imin : other.imin,
+                    imax < other.imax ? imax : other.imax);
+}
+
 void IntRange::unionOrAssign(const IntRange& other, bool& union_)
 {
     if (!union_ || imin > other.imin)

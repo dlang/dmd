@@ -143,7 +143,7 @@ DMD_OBJS = \
 	arrayop.o json.o unittests.o \
 	imphint.o argtypes.o apply.o sapply.o sideeffect.o \
 	intrange.o canthrow.o target.o nspace.o errors.o \
-	escape.o tokens.o globals.o
+	escape.o tokens.o globals.o conditionvisitor.o
 
 ROOT_OBJS = \
 	rmem.o port.o man.o stringtable.o response.o \
