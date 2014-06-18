@@ -6202,9 +6202,6 @@ Type *TypeFunction::addStorageClass(StorageClass stc)
     return t;
 }
 
-// in hdrgen.c
-void trustToBuffer(OutBuffer *buf, TRUST trust);
-
 /** For each active attribute (ref/const/nogc/etc) call fp with a void* for the
 work param and a string representation of the attribute. */
 int TypeFunction::attributesApply(void *param, int (*fp)(void *, const char *), TRUSTformat trustFormat)
@@ -6237,10 +6234,7 @@ int TypeFunction::attributesApply(void *param, int (*fp)(void *, const char *), 
             return res;  // avoid calling with an empty string
     }
 
-    OutBuffer buf;
-    trustToBuffer(&buf, trustAttrib);
-    res = fp(param, buf.extractString());
-    return res;
+    return fp(param, trustToChars(trustAttrib));
 }
 
 /***************************** TypeDelegate *****************************/

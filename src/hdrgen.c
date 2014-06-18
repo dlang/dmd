@@ -49,8 +49,6 @@
 
 void argsToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *hgs);
 void sizeToCBuffer(OutBuffer *buf, HdrGenState *hgs, Expression *e);
-void trustToBuffer(OutBuffer *buf, TRUST trust);
-void linkageToBuffer(OutBuffer *buf, LINK linkage);
 void toBufferShort(Type *t, OutBuffer *buf, HdrGenState *hgs);
 void expToCBuffer(OutBuffer *buf, HdrGenState *hgs, Expression *e, PREC pr);
 void toCBuffer(Module *m, OutBuffer *buf, HdrGenState *hgs);
@@ -857,7 +855,10 @@ public:
     void visitFuncIdent(TypeFunction *t, const char *ident)
     {
         if (t->linkage > LINKd && hgs->ddoc != 1 && !hgs->hdrgen)
+        {
             linkageToBuffer(buf, t->linkage);
+            buf->writeByte(' ');
+        }
 
         if (t->next)
         {
@@ -1749,42 +1750,71 @@ void toBufferShort(Type *t, OutBuffer *buf, HdrGenState *hgs)
 
 void trustToBuffer(OutBuffer *buf, TRUST trust)
 {
+    const char *p = trustToChars(trust);
+    if (p)
+        buf->writestring(p);
+}
+
+const char *trustToChars(TRUST trust)
+{
     switch (trust)
     {
-        case TRUSTsystem:
-            buf->writestring("@system");
-            break;
-
-        case TRUSTtrusted:
-            buf->writestring("@trusted");
-            break;
-
-        case TRUSTsafe:
-            buf->writestring("@safe");
-            break;
-
-        case TRUSTdefault:
-            break;
-
-        default: assert(0);  // unhandled trust
+        case TRUSTdefault:  return NULL;
+        case TRUSTsystem:   return "@system";
+        case TRUSTtrusted:  return "@trusted";
+        case TRUSTsafe:     return "@safe";
+        default:            assert(0);
     }
+    return NULL;    // never reached
 }
 
 void linkageToBuffer(OutBuffer *buf, LINK linkage)
 {
-    const char *p = NULL;
+    const char *p = linkageToChars(linkage);
+    if (p)
+    {
+        buf->writestring("extern (");
+        buf->writestring(p);
+        buf->writeByte(')');
+    }
+}
+
+const char *linkageToChars(LINK linkage)
+{
     switch (linkage)
     {
-        case LINKc:         p = "C";        break;
-        case LINKwindows:   p = "Windows";  break;
-        case LINKpascal:    p = "Pascal";   break;
-        case LINKcpp:       p = "C++";      break;
-        default:
-            assert(0);
+        case LINKdefault:   return NULL;
+        case LINKd:         return "D";
+        case LINKc:         return "C";
+        case LINKcpp:       return "C++";
+        case LINKwindows:   return "Windows";
+        case LINKpascal:    return "Pascal";
+        default:            assert(0);
     }
-    buf->writestring("extern (");
-    buf->writestring(p);
-    buf->writestring(") ");
+    return NULL;    // never reached
+}
+
+void protectionToBuffer(OutBuffer *buf, PROT prot)
+{
+    const char *p = protectionToChars(prot);
+    if (p)
+        buf->writestring(p);
+}
+
+const char *protectionToChars(PROT prot)
+{
+    switch (prot)
+    {
+        case PROTundefined: return NULL;
+        case PROTnone:      return "none";
+        case PROTprivate:   return "private";
+        case PROTpackage:   return "package";
+        case PROTprotected: return "protected";
+        case PROTpublic:    return "public";
+        case PROTexport:    return "export";
+        default:            assert(0);
+    }
+    return NULL;    // never reached
 }
 
 // callback for TypeFunction::attributesApply, avoids 'ref' in ctors and appends spaces
@@ -1833,7 +1863,10 @@ void functionToBufferFull(TypeFunction *tf, OutBuffer *buf, Identifier *ident,
     tf->attributesApply(&pas, &PostAppendStrings::fp);
 
     if (tf->linkage > LINKd && hgs->ddoc != 1 && !hgs->hdrgen)
+    {
         linkageToBuffer(buf, tf->linkage);
+        buf->writeByte(' ');
+    }
 
     if (ident && ident->toHChars2() != ident->toChars())
     {

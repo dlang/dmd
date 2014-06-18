@@ -476,10 +476,8 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         }
         if (s->scope)
             s->semantic(s->scope);
-        PROT protection = s->prot();
 
-        const char *protName = Pprotectionnames[protection];
-
+        const char *protName = protectionToChars(s->prot());
         assert(protName);
         StringExp *se = new StringExp(e->loc, (char *) protName);
         return se->semantic(sc);

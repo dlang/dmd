@@ -340,6 +340,10 @@ enum LINK
     LINKpascal,
 };
 
+// in hdrgen.c
+void linkageToBuffer(OutBuffer *buf, LINK linkage);
+const char *linkageToChars(LINK linkage);
+
 enum DYNCAST
 {
     DYNCAST_OBJECT,

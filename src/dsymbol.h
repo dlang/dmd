@@ -99,8 +99,9 @@ enum PROT
     PROTexport,
 };
 
-// this is used for printing the protection in json, traits, docs, etc.
-extern const char* Pprotectionnames[];
+// in hdrgen.c
+void protectionToBuffer(OutBuffer *buf, PROT prot);
+const char *protectionToChars(PROT prot);
 
 /* State of symbol in winding its way through the passes of the compiler
  */
