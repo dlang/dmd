@@ -98,6 +98,24 @@ void test6469a()
     assert(b2 == [1,2]);
 }
 
+void test6469b()
+{
+    struct S
+    {
+        int a;
+        static S opCall(int i)
+        {
+            S s;
+            s.a = i;
+            return s;
+        }
+    }
+
+    S s = 3;
+    assert(s.a == 3);
+    static assert(!__traits(compiles, { static S gs = 3; }));
+}
+
 /***************************************************/
 // 6475
 
@@ -496,6 +514,7 @@ int main()
 {
     test6469();
     test6469a();
+    test6469b();
     test6475();
     test6905();
     test7019();

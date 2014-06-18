@@ -25,6 +25,7 @@ import ddmd.hdrgen;
 import ddmd.id;
 import ddmd.identifier;
 import ddmd.mtype;
+import ddmd.opover;
 import ddmd.root.outbuffer;
 import ddmd.root.rootobject;
 import ddmd.statement;
@@ -108,7 +109,7 @@ public:
         Type to = checkMultiDimInit(sc, t);
         if (!to)
             to = t;
-        auto iz = semantic(sc, to);
+        auto iz = semantic(sc, to, true);
 
         if (needInterpret)
             sc = sc.endCTFE();
@@ -139,7 +140,7 @@ public:
         return iz;
     }
 
-    abstract Initializer semantic(Scope* sc, Type t);
+    abstract Initializer semantic(Scope* sc, Type t, bool top = false);
 
     abstract Expression toExpression(Type t = null);
 
@@ -205,7 +206,7 @@ public:
         return new ErrorInitializer();
     }
 
-    override Initializer semantic(Scope* sc, Type t)
+    override Initializer semantic(Scope* sc, Type t, bool top = false)
     {
         //printf("VoidInitializer::semantic(t = %p)\n", t);
         type = t;
@@ -248,7 +249,7 @@ public:
         return this;
     }
 
-    override Initializer semantic(Scope* sc, Type t)
+    override Initializer semantic(Scope* sc, Type t, bool top = false)
     {
         //printf("ErrorInitializer::semantic(t = %p)\n", t);
         return this;
@@ -318,7 +319,7 @@ public:
                 t.ty == Tpointer && (cast(TypeNext)t).next.ty == Tfunction);
     }
 
-    override Initializer semantic(Scope* sc, Type t)
+    override Initializer semantic(Scope* sc, Type t, bool top = false)
     {
         //printf("StructInitializer::semantic(t = %s) %s\n", t.toChars(), toChars());
         t = t.toBasetype();
@@ -413,7 +414,7 @@ public:
                 return new ErrorInitializer();
             sle.type = t;
             auto ie = new ExpInitializer(loc, sle);
-            return ie.semantic(sc, t);
+            return ie.semantic(sc, t, top);
         }
         else if ((t.ty == Tdelegate || t.ty == Tpointer && t.nextOf().ty == Tfunction) && value.dim == 0)
         {
@@ -427,7 +428,7 @@ public:
             fd.endloc = loc;
             Expression e = new FuncExp(loc, fd);
             auto ie = new ExpInitializer(loc, e);
-            return ie.semantic(sc, t);
+            return ie.semantic(sc, t, top);
         }
         error(loc, "a struct is not a valid initializer for a %s", t.toChars());
         return new ErrorInitializer();
@@ -607,7 +608,7 @@ public:
     /********************************
      * Convert array initializer to array expression.
      */
-    override Initializer semantic(Scope* sc, Type t)
+    override Initializer semantic(Scope* sc, Type t, bool top = false)
     {
         //printf("ArrayInitializer::semantic(%s)\n", t.toChars());
 
@@ -632,7 +633,7 @@ public:
                     t = tn.arrayOf();
                 }
                 iz = new ExpInitializer(loc, e);
-                return iz.semantic(sc, t);
+                return iz.semantic(sc, t, top);
             }
             break;
 
@@ -641,11 +642,11 @@ public:
             break;
 
         case Taarray:
-            return semanticAA(sc, t);
+            return semanticAA(sc, t, top);
 
         case Tstruct: // consider implicit constructor call
             auto iz = inferType(sc);
-            return iz.semantic(sc, t);
+            return iz.semantic(sc, t, top);
 
         default:
             error(loc, "cannot use array to initialize %s", t.toChars());
@@ -797,13 +798,13 @@ public:
 
         auto e = new ArrayLiteralExp(loc, elements);
         auto ez = new ExpInitializer(loc, e);
-        return ez.semantic(sc, t);
+        return ez.semantic(sc, t, top);
     }
 
     /********************************
      * If possible, convert array initializer to associative array expression.
      */
-    Initializer semanticAA(Scope* sc, Type t)
+    Initializer semanticAA(Scope* sc, Type t, bool top = false)
     {
         //printf("ArrayInitializer::semanticAA() %s, t = %s\n", toChars(), t.toChars());
         assert(t.ty == Taarray);
@@ -837,7 +838,7 @@ public:
         }
         auto e = new AssocArrayLiteralExp(loc, keys, values);
         auto ez = new ExpInitializer(e.loc, e);
-        return ez.semantic(sc, t);
+        return ez.semantic(sc, t, top);
     }
 
     override Expression toExpression(Type tx = null)
@@ -936,7 +937,7 @@ public:
                 t.ty == Tsarray && exp.implicitConvTo((cast(TypeNext)t).next));
     }
 
-    override Initializer semantic(Scope* sc, Type t)
+    override Initializer semantic(Scope* sc, Type t, bool top = false)
     {
         //printf("ExpInitializer::semantic(%s), type = %s\n", exp.toChars(), t.toChars());
         exp = .inferType(exp, t);
@@ -989,9 +990,12 @@ public:
             }
         }
 
-        if (tb.ty == Tstruct && !(ti.ty == Tstruct && tb.toDsymbol(sc) == ti.toDsymbol(sc)) && !exp.implicitConvTo(t))
+        if (tb.ty == Tstruct &&
+            !(ti.ty == Tstruct && tb.toDsymbol(sc) == ti.toDsymbol(sc)) &&
+            !exp.implicitConvTo(t))
         {
-            StructDeclaration sd = (cast(TypeStruct)tb).sym;
+            const needInterpret = (sc.flags & SCOPEctfe) != 0;
+            auto sd = (cast(TypeStruct)tb).sym;
             if (sd.ctor)
             {
                 /* Look for implicit constructor call
@@ -1003,6 +1007,20 @@ public:
                 e = new DotIdExp(loc, e, Id.ctor);
                 e = new CallExp(loc, e, exp);
                 e = e.semantic(sc);
+                exp = e.optimize(WANTvalue);
+            }
+            else if (!needInterpret && top && search_function(sd, Id.call))
+            {
+                /* Look for static opCall
+                 * (See bugzilla 2702 for more discussion)
+                 * Rewrite as:
+                 *      S.opCall(exp)
+                 */
+                Expression e;
+                e = typeDotIdExp(exp.loc, t, Id.call);
+                e = new CallExp(loc, e, exp);
+                e = e.semantic(sc);
+                e = resolveProperties(sc, e);
                 exp = e.optimize(WANTvalue);
             }
         }
