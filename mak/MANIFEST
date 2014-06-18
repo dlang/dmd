@@ -20,6 +20,7 @@ MANIFEST=\
 	\
 	src\core\atomic.d \
 	src\core\bitop.d \
+	src\core\checkedint.d \
 	src\core\cpuid.d \
 	src\core\demangle.d \
 	src\core\exception.d \
