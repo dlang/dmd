@@ -72,18 +72,18 @@ class TypeInfo
     size_t   getHash(in void* p) @trusted nothrow const;
     bool     equals(in void* p1, in void* p2) const;
     int      compare(in void* p1, in void* p2) const;
-    @property size_t   tsize() nothrow pure const @safe;
+    @property size_t   tsize() nothrow pure const @safe @nogc;
     void     swap(void* p1, void* p2) const;
-    @property inout(TypeInfo) next() nothrow pure inout;
-    const(void)[]   init() nothrow pure const @safe; // TODO: make this a property, but may need to be renamed to diambiguate with T.init...
-    @property uint     flags() nothrow pure const @safe;
+    @property inout(TypeInfo) next() nothrow pure inout @nogc;
+    const(void)[]   init() nothrow pure const @safe @nogc; // TODO: make this a property, but may need to be renamed to diambiguate with T.init...
+    @property uint     flags() nothrow pure const @safe @nogc;
     // 1:    // has possible pointers into GC memory
     const(OffsetTypeInfo)[] offTi() const;
     void destroy(void* p) const;
     void postblit(void* p) const;
-    @property size_t talign() nothrow pure const @safe;
+    @property size_t talign() nothrow pure const @safe @nogc;
     version (X86_64) int argTypes(out TypeInfo arg1, out TypeInfo arg2) @safe nothrow;
-    @property immutable(void)* rtInfo() nothrow pure const @safe;
+    @property immutable(void)* rtInfo() nothrow pure const @safe @nogc;
 }
 
 class TypeInfo_Typedef : TypeInfo
@@ -353,7 +353,7 @@ extern (C)
 {
     // from druntime/src/rt/aaA.d
 
-    // size_t _aaLen(in void* p) pure nothrow;
+    // size_t _aaLen(in void* p) pure nothrow @nogc;
     // void* _aaGetX(void** pp, const TypeInfo keyti, in size_t valuesize, in void* pkey);
     // inout(void)* _aaGetRvalueX(inout void* p, in TypeInfo keyti, in size_t valuesize, in void* pkey);
     inout(void)[] _aaValues(inout void* p, in size_t keysize, in size_t valuesize) pure nothrow;
@@ -367,11 +367,11 @@ extern (C)
     // int _aaApply2(void* aa, size_t keysize, _dg2_t dg);
 
     private struct AARange { void* impl, current; }
-    AARange _aaRange(void* aa) pure nothrow;
-    bool _aaRangeEmpty(AARange r) pure nothrow;
-    void* _aaRangeFrontKey(AARange r) pure nothrow;
-    void* _aaRangeFrontValue(AARange r) pure nothrow;
-    void _aaRangePopFront(ref AARange r) pure nothrow;
+    AARange _aaRange(void* aa) pure nothrow @nogc;
+    bool _aaRangeEmpty(AARange r) pure nothrow @nogc;
+    void* _aaRangeFrontKey(AARange r) pure nothrow @nogc;
+    void* _aaRangeFrontValue(AARange r) pure nothrow @nogc;
+    void _aaRangePopFront(ref AARange r) pure nothrow @nogc;
 }
 
 alias AssociativeArray(Key, Value) = Value[Key];
@@ -415,13 +415,13 @@ Value[Key] dup(T : Value[Key], Value, Key)(T* aa) if (is(typeof((*aa).dup)))
 
 Value[Key] dup(T : Value[Key], Value, Key)(T* aa) if (!is(typeof((*aa).dup)));
 
-auto byKey(T : Value[Key], Value, Key)(T aa) pure nothrow
+auto byKey(T : Value[Key], Value, Key)(T aa) pure nothrow @nogc
 {
     static struct Result
     {
         AARange r;
 
-    pure nothrow:
+    pure nothrow @nogc:
         @property bool empty() { return _aaRangeEmpty(r); }
         @property ref Key front() { return *cast(Key*)_aaRangeFrontKey(r); }
         void popFront() { _aaRangePopFront(r); }
@@ -431,18 +431,18 @@ auto byKey(T : Value[Key], Value, Key)(T aa) pure nothrow
     return Result(_aaRange(cast(void*)aa));
 }
 
-auto byKey(T : Value[Key], Value, Key)(T *aa) pure nothrow
+auto byKey(T : Value[Key], Value, Key)(T *aa) pure nothrow @nogc
 {
     return (*aa).byKey();
 }
 
-auto byValue(T : Value[Key], Value, Key)(T aa) pure nothrow
+auto byValue(T : Value[Key], Value, Key)(T aa) pure nothrow @nogc
 {
     static struct Result
     {
         AARange r;
 
-    pure nothrow:
+    pure nothrow @nogc:
         @property bool empty() { return _aaRangeEmpty(r); }
         @property ref Value front() { return *cast(Value*)_aaRangeFrontValue(r); }
         void popFront() { _aaRangePopFront(r); }
@@ -452,7 +452,7 @@ auto byValue(T : Value[Key], Value, Key)(T aa) pure nothrow
     return Result(_aaRange(cast(void*)aa));
 }
 
-auto byValue(T : Value[Key], Value, Key)(T *aa) pure nothrow
+auto byValue(T : Value[Key], Value, Key)(T *aa) pure nothrow @nogc
 {
     return (*aa).byValue();
 }
