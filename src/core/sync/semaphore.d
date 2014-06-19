@@ -223,13 +223,10 @@ class Semaphore
             if( period.total!"seconds" > t.tv_sec.max )
             {
                 t.tv_sec  = t.tv_sec.max;
-                t.tv_nsec = cast(typeof(t.tv_nsec)) period.fracSec.nsecs;
+                t.tv_nsec = cast(typeof(t.tv_nsec)) period.split!("seconds", "nsecs")().nsecs;
             }
             else
-            {
-                t.tv_sec  = cast(typeof(t.tv_sec)) period.total!"seconds";
-                t.tv_nsec = cast(typeof(t.tv_nsec)) period.fracSec.nsecs;
-            }
+                period.split!("seconds", "nsecs")(t.tv_sec, t.tv_nsec);
             while( true )
             {
                 auto rc = semaphore_timedwait( m_hndl, t );
