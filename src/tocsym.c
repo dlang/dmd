@@ -220,7 +220,7 @@ Symbol *toSymbol(Dsymbol *s)
                 switch (vd->linkage)
                 {
                     case LINKwindows:
-                        m = mTYman_std;
+                        m = global.params.is64bit ? mTYman_c : mTYman_std;
                         break;
 
                     case LINKpascal:
@@ -324,7 +324,7 @@ Symbol *toSymbol(Dsymbol *s)
                     switch (fd->linkage)
                     {
                         case LINKwindows:
-                            t->Tmangle = mTYman_std;
+                            t->Tmangle = global.params.is64bit ? mTYman_c : mTYman_std;
                             break;
 
                         case LINKpascal:
@@ -481,7 +481,7 @@ Symbol *Dsymbol::toImport(Symbol *sym)
     }
     else
     {
-        sprintf(id,(config.exe == EX_WIN64) ? "__imp__%s" : "_imp__%s",n);
+        sprintf(id,(config.exe == EX_WIN64) ? "__imp_%s" : "_imp__%s",n);
     }
     t = type_alloc(TYnptr | mTYconst);
     t->Tnext = sym->Stype;
