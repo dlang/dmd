@@ -53,9 +53,15 @@ public private void f10() {}
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/parseStc2.d(60): Error: redundant alignment attribute align(1)
-fail_compilation/parseStc2.d(61): Error: conflicting alignment attribute align(1) and align(2)
+fail_compilation/parseStc2.d(63): Error: redundant alignment attribute align
+fail_compilation/parseStc2.d(64): Error: redundant alignment attribute align(1)
+fail_compilation/parseStc2.d(65): Error: conflicting alignment attribute align and align(1)
+fail_compilation/parseStc2.d(66): Error: conflicting alignment attribute align(1) and align
+fail_compilation/parseStc2.d(67): Error: conflicting alignment attribute align(1) and align(2)
 ---
 */
-align(1) align(1) void f11() {}
-align(1) align(2) void f12() {}
+align    align    void f11() {}
+align(1) align(1) void f12() {}
+align    align(1) void f13() {}
+align(1) align    void f14() {}
+align(1) align(2) void f15() {}

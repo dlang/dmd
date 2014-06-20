@@ -697,10 +697,26 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl, PrefixAttributes 
 
                 if (pAttrs->alignment != 0)
                 {
+                    const char *s1 = "";
+                    OutBuffer buf1;
+                    if (n != STRUCTALIGN_DEFAULT)
+                    {
+                        buf1.printf("(%d)", n);
+                        s1 = buf1.peekString();
+                    }
                     if (pAttrs->alignment != n)
-                        error("conflicting alignment attribute align(%d) and align(%d)", pAttrs->alignment, n);
+                    {
+                        OutBuffer buf2;
+                        const char *s2 = "";
+                        if (pAttrs->alignment != STRUCTALIGN_DEFAULT)
+                        {
+                            buf2.printf("(%d)", pAttrs->alignment);
+                            s2 = buf2.peekString();
+                        }
+                        error("conflicting alignment attribute align%s and align%s", s2, s1);
+                    }
                     else
-                        error("redundant alignment attribute align(%d)", n);
+                        error("redundant alignment attribute align%s", s1);
                 }
 
                 pAttrs->alignment = n;
