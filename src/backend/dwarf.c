@@ -1392,7 +1392,7 @@ void cv_outsym(symbol *s)
 
             infobuf->writeByte(DW_OP_addr);
             dwarf_addrel(infoseg,infobuf->size(),s->Sseg);
-            infobuf->write32(0);        // address of global
+            append_addr(infobuf, 0);    // address of global
 
             infobuf->buf[soffset] = infobuf->size() - soffset - 1;
             break;
