@@ -558,6 +558,26 @@ Scope *ProtDeclaration::newScope(Scope *sc)
     return createNewScope(sc, sc->stc, sc->linkage, this->protection, 1, sc->structalign);
 }
 
+void ProtDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    protectionToBuffer(buf, protection);
+    buf->writeByte(' ');
+    AttribDeclaration::toCBuffer(buf, hgs);
+}
+
+void ProtDeclaration::semantic(Scope* sc)
+{
+    AttribDeclaration::semantic(sc);
+    if ((protection.kind == PROTpackage) && (protection.pkg != NULL) && sc->module)
+    {
+        Package* pkg =  sc->module->parent->isPackage();
+        assert(pkg);
+        if (pkg && !protection.pkg->isAncestorPackageOf(pkg))
+            error("'%s' is not one of ancestor packages of module '%s'",
+                protection.pkg->toChars(), sc->module->toPrettyChars(true));
+    }
+}
+
 /********************************* AlignDeclaration ****************************/
 
 AlignDeclaration::AlignDeclaration(unsigned sa, Dsymbols *decl)

@@ -110,6 +110,8 @@ public:
     ProtDeclaration(Prot p, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    void semantic(Scope* sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 

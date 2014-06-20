@@ -10,5 +10,3 @@ import samepkg = protection.subpkg.explicit;
 
 static assert ( is(typeof(samepkg.commonAncestorFoo())));
 static assert ( is(typeof(samepkg.samePkgFoo())));
-static assert (!is(typeof(samepkg.differentSubPkgFoo())));
-static assert (!is(typeof(samepkg.unknownPkgFoo())));
