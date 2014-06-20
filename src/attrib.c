@@ -540,10 +540,11 @@ char *LinkDeclaration::toChars()
 
 /********************************* ProtDeclaration ****************************/
 
-ProtDeclaration::ProtDeclaration(Prot p, Dsymbols *decl)
+ProtDeclaration::ProtDeclaration(Loc loc, Prot p, Dsymbols *decl)
         : AttribDeclaration(decl)
 {
-    protection = p;
+    this->loc = loc;
+    this->protection = p;
     //printf("decl = %p\n", decl);
 }
 
@@ -573,8 +574,43 @@ void ProtDeclaration::semantic(Scope* sc)
         Package* pkg =  sc->module->parent->isPackage();
         assert(pkg);
         if (pkg && !protection.pkg->isAncestorPackageOf(pkg))
-            error("'%s' is not one of ancestor packages of module '%s'",
-                protection.pkg->toChars(), sc->module->toPrettyChars(true));
+            error("does not bind to one of ancestor packages of module '%s'",
+               sc->module->toPrettyChars(true));
+    }
+}
+
+
+const char *ProtDeclaration::kind()
+{
+    return "protection attribute";
+}
+
+const char *ProtDeclaration::toPrettyChars(bool unused)
+{
+    assert(protection.kind > PROTundefined);
+
+    const char* kind = protectionToChars(this->protection);
+
+    OutBuffer buffer;
+
+    if ((protection.kind == PROTpackage) && protection.pkg)
+    {
+        // 'package(name)'
+        const char* name = protection.pkg->toPrettyChars(true);
+        buffer.writestring("'");
+        buffer.writestring(kind);
+        buffer.writestring("(");
+        buffer.writestring(name);
+        buffer.writestring(")'");
+        return buffer.extractString();
+    }
+    else
+    {
+        // 'attrkind'
+        buffer.writestring("'");
+        buffer.writestring(kind);
+        buffer.writestring("'");
+        return buffer.extractString();
     }
 }
 

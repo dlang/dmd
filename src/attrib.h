@@ -104,13 +104,17 @@ public:
 
     /**
     * Params:
+    *  loc = source location of attribute token
     *  p = protection attribute data
     *  decl = declarations which are affected by this protection attribute
     */
-    ProtDeclaration(Prot p, Dsymbols *decl);
+    ProtDeclaration(Loc loc, Prot p, Dsymbols *decl);
+
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    const char *kind();
+    const char *toPrettyChars(bool unused);
     void semantic(Scope* sc);
     void accept(Visitor *v) { v->visit(this); }
 };

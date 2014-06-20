@@ -661,29 +661,32 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl, PrefixAttributes 
 
                 nextToken();
 
-                if (pAttrs->protection.kind == PROTpackage)
                 {
-                    // optional qualified package identifier to bind
-                    // protection to
-                    if ((pAttrs->protection.kind == PROTpackage) && (token.value == TOKlparen))
+                    if (pAttrs->protection.kind == PROTpackage)
                     {
-                            pkg_prot_idents = parseQualifiedIdentifier("protection package");
-                        check(TOKrparen);
-                    }
-                }
-
-                a = parseBlock(pLastDecl, pAttrs);
-                if (pAttrs->protection.kind != PROTundefined)
-                {
-                    if ((pAttrs->protection.kind == PROTpackage) && pkg_prot_idents)
-                    {
-                        Dsymbol* tmp;
-                        Package::resolve(pkg_prot_idents, &tmp, NULL);
-                        pAttrs->protection.pkg = tmp ? tmp->isPackage() : NULL;
+                        // optional qualified package identifier to bind
+                        // protection to
+                        if ((pAttrs->protection.kind == PROTpackage) && (token.value == TOKlparen))
+                        {
+                                pkg_prot_idents = parseQualifiedIdentifier("protection package");
+                            check(TOKrparen);
+                        }
                     }
 
-                    s = new ProtDeclaration(pAttrs->protection, a);
-                    pAttrs->protection = Prot();
+                    Loc attrloc = token.loc;
+                    a = parseBlock(pLastDecl, pAttrs);
+                    if (pAttrs->protection.kind != PROTundefined)
+                    {
+                        if ((pAttrs->protection.kind == PROTpackage) && pkg_prot_idents)
+                        {
+                            Dsymbol* tmp;
+                            Package::resolve(pkg_prot_idents, &tmp, NULL);
+                            pAttrs->protection.pkg = tmp ? tmp->isPackage() : NULL;
+                        }
+
+                        s = new ProtDeclaration(attrloc, pAttrs->protection, a);
+                        pAttrs->protection = Prot();
+                    }
                 }
                 break;
 
