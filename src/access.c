@@ -270,31 +270,40 @@ bool isFriendOf(AggregateDeclaration *ad, AggregateDeclaration *cd)
 bool hasPackageAccess(Scope *sc, Dsymbol *s)
 {
 #if LOG
-    printf("hasPackageAccess(s = '%s', sc = '%p')\n", s->toChars(), sc);
+    printf("hasPackageAccess(s = '%s', sc = '%p', s->protection.pkg = '%s')\n",
+            s->toChars(), sc,
+            s->protection.pkg ? s->protection.pkg->toChars() : "NULL");
 #endif
 
     Package *pkg = NULL;
-    for (; s; s = s->parent)
+
+    if (s->prot().pkg)
+        pkg = s->prot().pkg;
+    else
     {
-        if (Module *m = s->isModule())
+        // no explicit package for protection, inferring most qualified one
+        for (; s; s = s->parent)
         {
-            DsymbolTable *dst = Package::resolve(m->md ? m->md->packages : NULL, NULL, NULL);
-            assert(dst);
-            Dsymbol *s2 = dst->lookup(m->ident);
-            assert(s2);
-            Package *p = s2->isPackage();
-            if (p && p->isPackageMod())
+            if (Module *m = s->isModule())
             {
-                pkg = p;
-                break;
+                DsymbolTable *dst = Package::resolve(m->md ? m->md->packages : NULL, NULL, NULL);
+                assert(dst);
+                Dsymbol *s2 = dst->lookup(m->ident);
+                assert(s2);
+                Package *p = s2->isPackage();
+                if (p && p->isPackageMod())
+                {
+                    pkg = p;
+                    break;
+                }
             }
+            else if ((pkg = s->isPackage()) != NULL)
+                break;
         }
-        else if ((pkg = s->isPackage()) != NULL)
-            break;
     }
 #if LOG
     if (pkg)
-        printf("\tthis is in package '%s'\n", pkg->toChars());
+        printf("\tsymbol access binds to package '%s'\n", pkg->toChars());
 #endif
 
     if (pkg)
@@ -302,7 +311,7 @@ bool hasPackageAccess(Scope *sc, Dsymbol *s)
         if (pkg == sc->module->parent)
         {
 #if LOG
-            printf("\ts is in same package as sc\n");
+            printf("\tsc is in permitted package for s\n");
 #endif
             return true;
         }
@@ -313,13 +322,13 @@ bool hasPackageAccess(Scope *sc, Dsymbol *s)
 #endif
             return true;
         }
-        s = sc->module->parent;
-        for (; s; s = s->parent)
+        Dsymbol* ancestor = sc->module->parent;
+        for (; ancestor; ancestor = ancestor->parent)
         {
-            if (s == pkg)
+            if (ancestor == pkg)
             {
 #if LOG
-                printf("\ts is in ancestor package of sc\n");
+                printf("\tsc is in permitted ancestor package for s\n");
 #endif
                 return true;
             }

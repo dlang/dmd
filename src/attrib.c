@@ -76,8 +76,7 @@ Scope *AttribDeclaration::createNewScope(Scope *sc,
     Scope *sc2 = sc;
     if (stc != sc->stc ||
         linkage != sc->linkage ||
-        //protection.isMoreRestrictiveThan(sc->protection) ||
-        !protection.isIdenticalTo(sc->protection) ||
+        !protection.isSubsetOf(sc->protection) ||
         explicitProtection != sc->explicitProtection ||
         structalign != sc->structalign)
     {

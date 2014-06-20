@@ -1561,7 +1561,31 @@ bool Prot::isMoreRestrictiveThan(Prot other)
     return this->kind < other.kind;
 }
 
-bool Prot::isIdenticalTo(Prot other)
+bool Prot::operator==(Prot other)
 {
-    return this->kind == other.kind;
+    if (this->kind == other.kind)
+    {
+        if (this->kind == PROTpackage)
+            return this->pkg == other.pkg;
+        return true;
+    }
+    return false;
+}
+
+bool Prot::isSubsetOf(Prot parent)
+{
+    if (this->kind != parent.kind)
+        return false;
+
+    if (this->kind == PROTpackage)
+    {
+        if (!this->pkg)
+            return true;
+        if (!parent.pkg)
+            return false;
+        if (parent.pkg->isAncestorPackageOf(this->pkg))
+            return true;
+    }
+
+    return true;
 }

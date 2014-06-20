@@ -118,7 +118,18 @@ struct Prot
     /**
      * Checks if `this` is absolutely identical protection attribute to `other`
      */
-    bool isIdenticalTo(Prot other);
+    bool operator==(Prot other);
+    /**
+     * Checks if parent defines different access restrictions than this one.
+     *
+     * Params:
+     *  parent = protection attribute for scope that hosts this one
+     *
+     * Returns:
+     *  'true' if parent is already more restrictive than this one and thus
+     *  no differentiation is needed.
+     */
+    bool isSubsetOf(Prot other);
 };
 
 // in hdrgen.c
