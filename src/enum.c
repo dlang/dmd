@@ -441,7 +441,7 @@ bool EnumDeclaration::isDeprecated()
     return isdeprecated;
 }
 
-PROT EnumDeclaration::prot()
+Prot EnumDeclaration::prot()
 {
     return protection;
 }

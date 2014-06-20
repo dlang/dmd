@@ -757,9 +757,9 @@ Module *Dsymbol::getAccessModule()
 /*************************************
  */
 
-PROT Dsymbol::prot()
+Prot Dsymbol::prot()
 {
-    return PROTpublic;
+    return Prot(PROTpublic);
 }
 
 /*************************************
@@ -926,7 +926,7 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
                      * the other.
                      */
                     if (s->isDeprecated() ||
-                        s2->prot() > s->prot() && s2->prot() != PROTnone)
+                        s->prot().isMoreRestrictiveThan(s2->prot()) && s2->prot().kind != PROTnone)
                         s = s2;
                 }
                 else
@@ -982,7 +982,7 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
                 s = a;
             }
 
-            if (!(flags & IgnoreErrors) && s->prot() == PROTprivate && !s->parent->isTemplateMixin())
+            if (!(flags & IgnoreErrors) && s->prot().kind == PROTprivate && !s->parent->isTemplateMixin())
             {
                 if (!s->isImport())
                     error(loc, "%s %s is private", s->kind(), s->toPrettyChars());
@@ -1028,8 +1028,10 @@ OverloadSet *ScopeDsymbol::mergeOverloadSet(OverloadSet *os, Dsymbol *s)
             Dsymbol *s2 = os->a[j];
             if (s->toAlias() == s2->toAlias())
             {
+
                 if (s2->isDeprecated() ||
-                    s->prot() > s2->prot() && s->prot() != PROTnone)
+                    (s2->prot().isMoreRestrictiveThan(s->prot()) &&
+                        s->prot().kind != PROTnone))
                 {
                     os->a[j] = s;
                 }
@@ -1043,7 +1045,7 @@ OverloadSet *ScopeDsymbol::mergeOverloadSet(OverloadSet *os, Dsymbol *s)
     return os;
 }
 
-void ScopeDsymbol::importScope(Dsymbol *s, PROT protection)
+void ScopeDsymbol::importScope(Dsymbol *s, Prot protection)
 {
     //printf("%s->ScopeDsymbol::importScope(%s, %d)\n", toChars(), s->toChars(), protection);
 
@@ -1059,15 +1061,15 @@ void ScopeDsymbol::importScope(Dsymbol *s, PROT protection)
                 Dsymbol *ss = (*imports)[i];
                 if (ss == s)                    // if already imported
                 {
-                    if (protection > prots[i])
-                        prots[i] = protection;  // upgrade access
+                    if (protection.kind > prots[i])
+                        prots[i] = protection.kind;  // upgrade access
                     return;
                 }
             }
         }
         imports->push(s);
-        prots = (PROT *)mem.realloc(prots, imports->dim * sizeof(prots[0]));
-        prots[imports->dim - 1] = protection;
+        prots = (PROTKIND *)mem.realloc(prots, imports->dim * sizeof(prots[0]));
+        prots[imports->dim - 1] = protection.kind;
     }
 }
 
@@ -1543,4 +1545,21 @@ Dsymbol *DsymbolTable::update(Dsymbol *s)
     Dsymbol **ps = (Dsymbol **)dmd_aaGet(&tab, (void *)ident);
     *ps = s;
     return s;
+}
+
+/****************************** Prot ******************************/
+
+Prot::Prot(PROTKIND kind)
+{
+    this->kind = kind;
+}
+
+bool Prot::isMoreRestrictiveThan(Prot other)
+{
+    return this->kind < other.kind;
+}
+
+bool Prot::isIdenticalTo(Prot other)
+{
+    return this->kind == other.kind;
 }

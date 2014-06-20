@@ -92,7 +92,7 @@ struct Ungag
 const char *mangle(Dsymbol *s);
 const char *mangleExact(FuncDeclaration *fd);
 
-enum PROT
+enum PROTKIND
 {
     PROTundefined,
     PROTnone,           // no access
@@ -103,9 +103,26 @@ enum PROT
     PROTexport,
 };
 
+struct Prot
+{
+    PROTKIND kind;
+
+    Prot(PROTKIND kind = PROTundefined);
+
+    /**
+     * Checks if `this` is superset of `other` restrictions.
+     * For example, "protected" is more restrictive than "public".
+     */
+    bool isMoreRestrictiveThan(Prot other);
+    /**
+     * Checks if `this` is absolutely identical protection attribute to `other`
+     */
+    bool isIdenticalTo(Prot other);
+};
+
 // in hdrgen.c
-void protectionToBuffer(OutBuffer *buf, PROT prot);
-const char *protectionToChars(PROT prot);
+void protectionToBuffer(OutBuffer *buf, Prot prot);
+const char *protectionToChars(Prot prot);
 
 /* State of symbol in winding its way through the passes of the compiler
  */
@@ -209,7 +226,7 @@ public:
     virtual AggregateDeclaration *isMember();   // is this symbol a member of an AggregateDeclaration?
     virtual Type *getType();                    // is this a type?
     virtual bool needThis();                    // need a 'this' pointer?
-    virtual PROT prot();
+    virtual Prot prot();
     virtual Dsymbol *syntaxCopy(Dsymbol *s);    // copy only syntax trees
     virtual bool oneMember(Dsymbol **ps, Identifier *ident);
     static bool oneMembers(Dsymbols *members, Dsymbol **ps, Identifier *ident);
@@ -287,7 +304,7 @@ public:
 
 private:
     Dsymbols *imports;          // imported Dsymbol's
-    PROT *prots;                // array of PROT, one for each import
+    PROTKIND *prots;            // array of PROTKIND, one for each import
 
 public:
     ScopeDsymbol();
@@ -295,7 +312,7 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *s);
     Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
     OverloadSet *mergeOverloadSet(OverloadSet *os, Dsymbol *s);
-    void importScope(Dsymbol *s, PROT protection);
+    void importScope(Dsymbol *s, Prot protection);
     bool isforwardRef();
     static void multiplyDefined(Loc loc, Dsymbol *s1, Dsymbol *s2);
     const char *kind();

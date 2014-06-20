@@ -359,7 +359,7 @@ void ClassDeclaration::semantic(Scope *sc)
             if (tb->ty == Ttuple)
             {
                 TypeTuple *tup = (TypeTuple *)tb;
-                PROT protection = b->protection;
+                Prot protection = b->protection;
                 baseclasses->remove(i);
                 size_t dim = Parameter::dim(tup->arguments);
                 for (size_t j = 0; j < dim; j++)
@@ -1299,7 +1299,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
             if (tb->ty == Ttuple)
             {
                 TypeTuple *tup = (TypeTuple *)tb;
-                PROT protection = b->protection;
+                Prot protection = b->protection;
                 baseclasses->remove(i);
                 size_t dim = Parameter::dim(tup->arguments);
                 for (size_t j = 0; j < dim; j++)
@@ -1656,7 +1656,7 @@ BaseClass::BaseClass()
     memset(this, 0, sizeof(BaseClass));
 }
 
-BaseClass::BaseClass(Type *type, PROT protection)
+BaseClass::BaseClass(Type *type, Prot protection)
 {
     //printf("BaseClass(this = %p, '%s')\n", this, type->toChars());
     this->type = type;

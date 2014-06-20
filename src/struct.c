@@ -154,7 +154,7 @@ AggregateDeclaration::AggregateDeclaration(Loc loc, Identifier *id)
     getRTInfo = NULL;
 }
 
-PROT AggregateDeclaration::prot()
+Prot AggregateDeclaration::prot()
 {
     return protection;
 }
@@ -384,7 +384,7 @@ bool AggregateDeclaration::isDeprecated()
 
 bool AggregateDeclaration::isExport()
 {
-    return protection == PROTexport;
+    return protection.kind == PROTexport;
 }
 
 /****************************

@@ -33,7 +33,6 @@ struct InterState;
 struct IRState;
 struct CompiledCtfeFunction;
 
-enum PROT;
 enum LINK;
 enum TOK;
 enum MATCH;
@@ -123,7 +122,7 @@ public:
     Type *type;
     Type *originalType;         // before semantic analysis
     StorageClass storage_class;
-    PROT protection;
+    Prot protection;
     LINK linkage;
     int inuse;                  // used to detect cycles
     const char *mangleOverride;      // overridden symbol with pragma(mangle, "...")
@@ -161,7 +160,7 @@ public:
     bool isOut()   { return (storage_class & STCout) != 0; }
     bool isRef()   { return (storage_class & STCref) != 0; }
 
-    PROT prot();
+    Prot prot();
 
     Declaration *isDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }

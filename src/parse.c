@@ -178,7 +178,7 @@ struct PrefixAttributes
     StorageClass storageClass;
     Expression *depmsg;
     LINK link;
-    PROT protection;
+    Prot protection;
     unsigned alignment;
     Expressions *udas;
     const utf8_t *comment;
@@ -217,7 +217,7 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl, PrefixAttributes 
             pAttrs = &attrs;
             pAttrs->comment = token.blockComment;
         }
-        PROT prot;
+        PROTKIND prot;
         StorageClass stc;
         Condition *condition;
 
@@ -649,20 +649,20 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl, PrefixAttributes 
             case TOKexport:     prot = PROTexport;      goto Lprot;
             Lprot:
                 nextToken();
-                if (pAttrs->protection != PROTundefined)
+                if (pAttrs->protection.kind != PROTundefined)
                 {
-                    if (pAttrs->protection != prot)
+                    if (pAttrs->protection.kind != prot)
                         error("conflicting protection attribute '%s' and '%s'",
-                            protectionToChars(pAttrs->protection), protectionToChars(prot));
+                            protectionToChars(pAttrs->protection.kind), protectionToChars(prot));
                     else
                         error("redundant protection attribute '%s'", protectionToChars(prot));
                 }
-                pAttrs->protection = prot;
+                pAttrs->protection.kind = prot;
                 a = parseBlock(pLastDecl, pAttrs);
-                if (pAttrs->protection != PROTundefined)
+                if (pAttrs->protection.kind != PROTundefined)
                 {
                     s = new ProtDeclaration(pAttrs->protection, a);
-                    pAttrs->protection = PROTundefined;
+                    pAttrs->protection.kind = PROTundefined;
                 }
                 break;
 
@@ -2060,7 +2060,7 @@ BaseClasses *Parser::parseBaseClasses()
     for (; 1; nextToken())
     {
         bool prot = false;
-        PROT protection = PROTpublic;
+        Prot protection = PROTpublic;
         switch (token.value)
         {
             case TOKprivate:

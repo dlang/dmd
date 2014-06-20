@@ -2104,7 +2104,7 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
             if (tf->equals(m->lastf->type) &&
                 fd->storage_class == m->lastf->storage_class &&
                 fd->parent == m->lastf->parent &&
-                fd->protection == m->lastf->protection &&
+                fd->protection.isIdenticalTo(m->lastf->protection) &&
                 fd->linkage == m->lastf->linkage)
             {
                 if ( fd->fbody && !m->lastf->fbody) goto LfIsBetter;
@@ -2630,7 +2630,7 @@ char *TemplateDeclaration::toChars()
     return buf.extractString();
 }
 
-PROT TemplateDeclaration::prot()
+Prot TemplateDeclaration::prot()
 {
     return protection;
 }

@@ -78,7 +78,7 @@ public:
     bool literal;               // this template declaration is a literal
     bool ismixin;               // template declaration is only to be used as a mixin
     bool isstatic;              // this is static template declaration
-    PROT protection;
+    Prot protection;
 
     TemplatePrevious *previous;         // threaded list of previous instantiation attempts on stack
 
@@ -91,7 +91,7 @@ public:
     const char *kind();
     char *toChars();
 
-    PROT prot();
+    Prot prot();
 
     bool evaluateConstraint(TemplateInstance *ti, Scope *sc, Scope *paramscope, Objects *dedtypes, FuncDeclaration *fd);
 

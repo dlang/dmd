@@ -70,13 +70,14 @@ int AttribDeclaration::apply(Dsymbol_apply_ft_t fp, void *param)
  * the scope after it used.
  */
 Scope *AttribDeclaration::createNewScope(Scope *sc,
-        StorageClass stc, LINK linkage, PROT protection, int explicitProtection,
+        StorageClass stc, LINK linkage, Prot protection, int explicitProtection,
         structalign_t structalign)
 {
     Scope *sc2 = sc;
     if (stc != sc->stc ||
         linkage != sc->linkage ||
-        protection != sc->protection ||
+        //protection.isMoreRestrictiveThan(sc->protection) ||
+        !protection.isIdenticalTo(sc->protection) ||
         explicitProtection != sc->explicitProtection ||
         structalign != sc->structalign)
     {
@@ -540,7 +541,7 @@ char *LinkDeclaration::toChars()
 
 /********************************* ProtDeclaration ****************************/
 
-ProtDeclaration::ProtDeclaration(PROT p, Dsymbols *decl)
+ProtDeclaration::ProtDeclaration(Prot p, Dsymbols *decl)
         : AttribDeclaration(decl)
 {
     protection = p;
