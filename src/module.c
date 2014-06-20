@@ -1051,6 +1051,21 @@ Module *Package::isPackageMod()
     return NULL;
 }
 
+bool Package::isAncestorPackageOf(Package* pkg)
+{
+   if (!pkg)
+       return false;
+
+   while (pkg)
+   {
+       if (this == pkg)
+           return true;
+       pkg = pkg->parent ? pkg->parent->isPackage() : NULL;
+   }
+
+   return false;
+}
+
 /****************************************************
  * Input:
  *      packages[]      the pkg1.pkg2 of pkg1.pkg2.mod

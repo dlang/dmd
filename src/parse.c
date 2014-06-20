@@ -218,6 +218,7 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl, PrefixAttributes 
             pAttrs->comment = token.blockComment;
         }
         PROTKIND prot;
+        Identifiers* pkg_prot_idents = NULL;
         StorageClass stc;
         Condition *condition;
 
@@ -648,7 +649,6 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl, PrefixAttributes 
             case TOKpublic:     prot = PROTpublic;      goto Lprot;
             case TOKexport:     prot = PROTexport;      goto Lprot;
             Lprot:
-                nextToken();
                 if (pAttrs->protection.kind != PROTundefined)
                 {
                     if (pAttrs->protection.kind != prot)
@@ -658,11 +658,32 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl, PrefixAttributes 
                         error("redundant protection attribute '%s'", protectionToChars(prot));
                 }
                 pAttrs->protection.kind = prot;
+
+                nextToken();
+
+                if (pAttrs->protection.kind == PROTpackage)
+                {
+                    // optional qualified package identifier to bind
+                    // protection to
+                    if ((pAttrs->protection.kind == PROTpackage) && (token.value == TOKlparen))
+                    {
+                            pkg_prot_idents = parseQualifiedIdentifier("protection package");
+                        check(TOKrparen);
+                    }
+                }
+
                 a = parseBlock(pLastDecl, pAttrs);
                 if (pAttrs->protection.kind != PROTundefined)
                 {
+                    if ((pAttrs->protection.kind == PROTpackage) && pkg_prot_idents)
+                    {
+                        Dsymbol* tmp;
+                        Package::resolve(pkg_prot_idents, &tmp, NULL);
+                        pAttrs->protection.pkg = tmp ? tmp->isPackage() : NULL;
+                    }
+
                     s = new ProtDeclaration(pAttrs->protection, a);
-                    pAttrs->protection.kind = PROTundefined;
+                    pAttrs->protection = Prot();
                 }
                 break;
 
@@ -1197,6 +1218,42 @@ LINK Parser::parseLinkage(Identifiers **pidents)
     check(TOKrparen);
     *pidents = idents;
     return link;
+}
+
+/***********************************
+ * Parse ident1.ident2.ident3
+ *
+ * Params:
+ *  entity = what qualified identifier is expected to resolve into.
+ *     Used only for better error message
+ *
+ * Returns:
+ *     array of identifiers with actual qualified one stored last
+ */
+Identifiers* Parser::parseQualifiedIdentifier(const char* entity)
+{
+    Identifiers *qualified = new Identifiers();
+
+    do
+    {
+        nextToken();
+
+        if (token.value != TOKidentifier)
+        {
+            error(
+                "%s expected as dot-separated identifiers, got '%s'",
+                entity,
+                token.toChars()
+            );
+        }
+
+        Identifier *id = token.ident;
+        qualified->push(id);
+
+        nextToken();
+    } while (token.value == TOKdot);
+
+    return qualified;
 }
 
 /**************************************

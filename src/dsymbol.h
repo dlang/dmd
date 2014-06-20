@@ -106,6 +106,7 @@ enum PROTKIND
 struct Prot
 {
     PROTKIND kind;
+    Package* pkg;
 
     Prot(PROTKIND kind = PROTundefined);
 

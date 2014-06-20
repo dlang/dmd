@@ -102,6 +102,11 @@ class ProtDeclaration : public AttribDeclaration
 public:
     Prot protection;
 
+    /**
+    * Params:
+    *  p = protection attribute data
+    *  decl = declarations which are affected by this protection attribute
+    */
     ProtDeclaration(Prot p, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);

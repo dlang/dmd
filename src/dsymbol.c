@@ -1552,7 +1552,9 @@ Dsymbol *DsymbolTable::update(Dsymbol *s)
 Prot::Prot(PROTKIND kind)
 {
     this->kind = kind;
+    this->pkg = NULL;
 }
+
 
 bool Prot::isMoreRestrictiveThan(Prot other)
 {
