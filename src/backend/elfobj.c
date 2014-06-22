@@ -41,6 +41,18 @@
 #include        "aa.h"
 #include        "tinfo.h"
 
+#ifndef ELFOSABI
+# if TARGET_LINUX
+#  define ELFOSABI ELFOSABI_LINUX
+# elif TARGET_FREEBSD
+#  define ELFOSABI ELFOSABI_FREEBSD
+# elif TARGET_SOLARIS
+#  define ELFOSABI ELFOSABI_SYSV
+# elif TARGET_OPENBSD
+#  define ELFOSABI ELFOSABI_OPENBSD
+# endif
+#endif
+
 //#define DEBSYM 0x7E
 
 static Outbuffer *fobjbuf;
@@ -1069,7 +1081,7 @@ void Obj::term(const char *objfilename)
         ELFCLASS32,             // EI_CLASS
         ELFDATA2LSB,    // EI_DATA
         EV_CURRENT,             // EI_VERSION
-        ELFOSABI_LINUX,0,       // EI_OSABI,EI_ABIVERSION
+        ELFOSABI,0,       // EI_OSABI,EI_ABIVERSION
         0,0,0,0,0,0,0
     };
     static const char elf_string64[EI_NIDENT] =
@@ -1078,7 +1090,7 @@ void Obj::term(const char *objfilename)
         ELFCLASS64,             // EI_CLASS
         ELFDATA2LSB,    // EI_DATA
         EV_CURRENT,             // EI_VERSION
-        ELFOSABI_LINUX,0,       // EI_OSABI,EI_ABIVERSION
+        ELFOSABI,0,       // EI_OSABI,EI_ABIVERSION
         0,0,0,0,0,0,0
     };
     fobjbuf->write(I64 ? elf_string64 : elf_string32, EI_NIDENT);
