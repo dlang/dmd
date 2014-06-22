@@ -31,7 +31,11 @@ ifeq (,$(OS))
 endif
 
 ifeq (,$(MODEL))
-  uname_M:=$(shell uname -m)
+  ifeq ($(OS),solaris)
+    uname_M:=$(shell isainfo -n)
+  else
+    uname_M:=$(shell uname -m)
+  endif
   ifneq (,$(findstring $(uname_M),x86_64 amd64))
     MODEL:=64
   endif
