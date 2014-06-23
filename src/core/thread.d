@@ -1943,15 +1943,15 @@ version( Windows )
 
 
 /**
- * Deregisters the given thread from use with the runtime.  If this routine
+ * Deregisters the calling thread from use with the runtime.  If this routine
  * is called for a thread which is not registered, the result is undefined.
  *
- * NOTE: This routine does not run thread-local static dtors when called.  If
- *       full functionality as a D thread is desired, the following function
+ * NOTE: This routine does not run thread-local static destructors when called.
+ *       If full functionality as a D thread is desired, the following function
  *       must be called after thread_detachThis, particularly if the thread is
  *       being detached at some indeterminate time before program termination:
  *
- *       extern (C) void rt_moduleTlsDtor();
+ *       $(D extern(C) void rt_moduleTlsCtor();)
  */
 extern (C) void thread_detachThis()
 {
@@ -1960,7 +1960,17 @@ extern (C) void thread_detachThis()
 }
 
 
-/// ditto
+/**
+ * Deregisters the given thread from use with the runtime.  If this routine
+ * is called for a thread which is not registered, the result is undefined.
+ *
+ * NOTE: This routine does not run thread-local static destructors when called.
+ *       If full functionality as a D thread is desired, the following function
+ *       must be called after thread_detachThis, particularly if the thread is
+ *       being detached at some indeterminate time before program termination:
+ *
+ *       $(D extern(C) void rt_moduleTlsCtor();)
+ */
 extern (C) void thread_detachByAddr( Thread.ThreadAddr addr )
 {
     if( auto t = thread_findByAddr( addr ) )
