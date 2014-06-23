@@ -33,7 +33,6 @@ class C3
 		return 0;
 	}
 
-
 }
 T foo3(T)()
 {

@@ -117,7 +117,7 @@ public:
     Type *parseDeclarator(Type *t, Identifier **pident,
         TemplateParameters **tpl = NULL, StorageClass storage_class = 0, int* pdisable = NULL, Expressions **pudas = NULL);
     void parseStorageClasses(StorageClass &storage_class, LINK &link, unsigned &structalign, Expressions *&udas);
-    Dsymbols *parseDeclarations(bool autodecl, StorageClass storage_class, const utf8_t *comment);
+    Dsymbols *parseDeclarations(bool autodecl, PrefixAttributes *pAttrs, const utf8_t *comment);
     FuncDeclaration *parseContracts(FuncDeclaration *f);
     void checkDanglingElse(Loc elseloc);
     /** endPtr used for documented unittests */

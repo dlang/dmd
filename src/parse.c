@@ -311,7 +311,7 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl, PrefixAttributes 
             case TOKclass:
             case TOKinterface:
             Ldeclaration:
-                a = parseDeclarations(false, STCundefined, NULL);
+                a = parseDeclarations(false, pAttrs, pAttrs->comment);
                 if (a && a->dim)
                     *pLastDecl = (*a)[a->dim-1];
                 break;
@@ -524,8 +524,7 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl, PrefixAttributes 
                      tk->value == TOKbody)
                    )
                 {
-                    a = parseDeclarations(true, pAttrs->storageClass, pAttrs->comment);
-                    pAttrs->storageClass = STCundefined;
+                    a = parseDeclarations(true, pAttrs, pAttrs->comment);
                     if (a && a->dim)
                         *pLastDecl = (*a)[a->dim-1];
                     if (pAttrs->udas)
@@ -3272,8 +3271,9 @@ void Parser::parseStorageClasses(StorageClass &storage_class, LINK &link, unsign
  * Return array of Declaration *'s.
  */
 
-Dsymbols *Parser::parseDeclarations(bool autodecl, StorageClass storage_class, const utf8_t *comment)
+Dsymbols *Parser::parseDeclarations(bool autodecl, PrefixAttributes *pAttrs, const utf8_t *comment)
 {
+    StorageClass storage_class = STCundefined;
     Type *ts;
     Type *t;
     Type *tfirst;
@@ -3299,7 +3299,6 @@ Dsymbols *Parser::parseDeclarations(bool autodecl, StorageClass storage_class, c
     {
         case TOKalias:
         {
-            assert(storage_class == STCundefined);
             /* Look for:
              *   alias identifier this;
              */
@@ -3596,6 +3595,34 @@ L2:
 #endif
 
             //printf("%s funcdecl t = %s, storage_class = x%lx\n", loc.toChars(), t->toChars(), storage_class);
+            if (pAttrs)
+            {
+                StorageClass prefixStc = pAttrs->storageClass;
+                t = t->addSTC(prefixStc);
+
+                TypeFunction *tf = (TypeFunction *)t;
+                if (prefixStc & STCpure)
+                    tf->purity = PUREfwdref;
+                if (prefixStc & STCnothrow)
+                    tf->isnothrow = true;
+                if (prefixStc & STCnogc)
+                    tf->isnogc = true;
+                if (prefixStc & STCproperty)
+                    tf->isproperty = true;
+
+                if (prefixStc & STCref)
+                    tf->isref = true;
+
+                if (prefixStc & STCsafe)
+                    tf->trust = TRUSTsafe;
+                if (prefixStc & STCsystem)
+                    tf->trust = TRUSTsystem;
+                if (prefixStc & STCtrusted)
+                    tf->trust = TRUSTtrusted;
+
+                storage_class |= prefixStc & ~(STC_TYPECTOR | STC_FUNCATTR);
+                pAttrs->storageClass = STCundefined;
+            }
 
             FuncDeclaration *f =
                 new FuncDeclaration(loc, Loc(), ident, storage_class | (disable ? STCdisable : 0), t);
@@ -4327,7 +4354,7 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
         case TOKinterface:
         Ldeclaration:
         {
-            Dsymbols *a = parseDeclarations(false, STCundefined, NULL);
+            Dsymbols *a = parseDeclarations(false, NULL, NULL);
             if (a->dim > 1)
             {
                 Statements *as = new Statements();

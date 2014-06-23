@@ -447,17 +447,15 @@ int bar11(T)()
 }
 struct S6360
 {
-	@property const pure nothrow long weeks1()
+	const pure nothrow @property long weeks1()
 	{
 		return 0;
 	}
 
-
-	const nothrow pure @property long weeks2()
+	const pure nothrow @property long weeks2()
 	{
 		return 0;
 	}
-
 
 }
 struct S12
