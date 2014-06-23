@@ -470,6 +470,8 @@ void FuncDeclaration::semantic(Scope *sc)
         if (tf->isnogc)     sc->stc |= STCnogc;
         if (tf->isproperty) sc->stc |= STCproperty;
         if (tf->purity == PUREfwdref)   sc->stc |= STCpure;
+        if (tf->trust != TRUSTdefault)
+            sc->stc &= ~(STCsafe | STCsystem | STCtrusted);
         if (tf->trust == TRUSTsafe)     sc->stc |= STCsafe;
         if (tf->trust == TRUSTsystem)   sc->stc |= STCsystem;
         if (tf->trust == TRUSTtrusted)  sc->stc |= STCtrusted;
