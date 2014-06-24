@@ -52,6 +52,7 @@
 #  define ELFOSABI ELFOSABI_OPENBSD
 # else
 #  error "No ELF OS ABI defined.  Please fix"
+# endif
 #endif
 
 //#define DEBSYM 0x7E
