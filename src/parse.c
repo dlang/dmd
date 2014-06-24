@@ -3602,23 +3602,59 @@ L2:
 
                 TypeFunction *tf = (TypeFunction *)t;
                 if (prefixStc & STCpure)
+                {
+                    if (tf->purity == PUREfwdref)
+                        error("redundant storage class 'pure'");
                     tf->purity = PUREfwdref;
+                }
                 if (prefixStc & STCnothrow)
+                {
+                    if (tf->isnothrow)
+                        error("redundant storage class 'nothrow'");
                     tf->isnothrow = true;
+                }
                 if (prefixStc & STCnogc)
+                {
+                    if (tf->isnogc)
+                        error("redundant storage class '@nogc'");
                     tf->isnogc = true;
+                }
                 if (prefixStc & STCproperty)
+                {
+                    if (tf->isproperty)
+                        error("redundant storage class '@property'");
                     tf->isproperty = true;
+                }
 
                 if (prefixStc & STCref)
+                {
+                    if (tf->isref)
+                        error("redundant storage class 'ref'");
                     tf->isref = true;
+                }
 
-                if (prefixStc & STCsafe)
-                    tf->trust = TRUSTsafe;
-                if (prefixStc & STCsystem)
-                    tf->trust = TRUSTsystem;
-                if (prefixStc & STCtrusted)
-                    tf->trust = TRUSTtrusted;
+                StorageClass postfixTrustStc;
+                switch (tf->trust)
+                {
+                    case TRUSTdefault:
+                        if (prefixStc & STCsafe)    tf->trust = TRUSTsafe;
+                        if (prefixStc & STCsystem)  tf->trust = TRUSTsystem;
+                        if (prefixStc & STCtrusted) tf->trust = TRUSTtrusted;
+                        break;
+                    case TRUSTsafe:     postfixTrustStc = STCsafe;      goto Ltrust;
+                    case TRUSTsystem:   postfixTrustStc = STCsystem;    goto Ltrust;
+                    case TRUSTtrusted:  postfixTrustStc = STCtrusted;   goto Ltrust;
+                    Ltrust:
+                    {
+                        if (prefixStc & postfixTrustStc)
+                            error("redundant storage class '%s'", trustToChars(tf->trust));
+                        else if (prefixStc & (STCsafe | STCsystem | STCtrusted))
+                            error("conflicting storage class '%s'", trustToChars(tf->trust));
+                        break;
+                    }
+                    default:
+                        assert(0);
+                }
 
                 storage_class |= prefixStc & ~(STC_TYPECTOR | STC_FUNCATTR);
                 pAttrs->storageClass = STCundefined;
