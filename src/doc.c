@@ -527,7 +527,7 @@ static bool emitAnchorName(OutBuffer *buf, Dsymbol *s, Scope *sc)
 
     // Add parent names first
     if (s->parent)
-        dot = emitAnchorName(buf, s->parent, NULL);
+        dot = emitAnchorName(buf, s->parent, sc);
     else if (sc)
     {
         dot = emitAnchorName(buf, sc->scopesym, skipNonQualScopes(sc->enclosing));
