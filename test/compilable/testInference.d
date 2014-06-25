@@ -504,6 +504,37 @@ alias FP12704 = typeof(function() { foo12704(); });
 static assert(is(FP12704 == void function() @system));
 
 /***************************************************/
+// 12970
+
+@system { @safe void f12970a() {} }
+@system { void f12970b() @safe {} }
+static assert(is(typeof(&f12970a) == void function() @safe));
+static assert(is(typeof(&f12970b) == void function() @safe));
+
+@system { @trusted void f12970c() {} }
+@system { void f12970d() @trusted {} }
+static assert(is(typeof(&f12970c) == void function() @trusted));
+static assert(is(typeof(&f12970d) == void function() @trusted));
+
+@safe { @system void f12970e() {} }
+@safe { void f12970f() @system {} }
+static assert(is(typeof(&f12970e) == void function() @system));
+static assert(is(typeof(&f12970f) == void function() @system));
+
+@safe { @trusted void f12970g() {} }
+@safe { void f12970h() @trusted {} }
+static assert(is(typeof(&f12970g) == void function() @trusted));
+static assert(is(typeof(&f12970h) == void function() @trusted));
+
+@trusted { @safe void f12970i() {} }
+@trusted { void f12970j() @safe {} }
+static assert(is(typeof(&f12970i) == void function() @safe));
+static assert(is(typeof(&f12970j) == void function() @safe));
+
+@trusted { @system void f12970k() {} }
+@trusted { void f12970l() @system {} }
+static assert(is(typeof(&f12970k) == void function() @system));
+static assert(is(typeof(&f12970l) == void function() @system));
 
 // Add more tests regarding inferences later.
 
