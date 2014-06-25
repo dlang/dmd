@@ -29,6 +29,7 @@
 #include "parse.h"
 #include "template.h"
 #include "attrib.h"
+#include "module.h"
 
 extern int os_critsecsize32();
 extern int os_critsecsize64();
@@ -2611,7 +2612,12 @@ Statement *SwitchStatement::semantic(Scope *sc)
     if (!sc->sw->sdefault)
     {   hasNoDefault = 1;
 
-        warning("switch statement has no default");
+        if (global.params.Dversion >= 3 &&
+            sc->module && sc->module->isRoot()
+            )
+            warning("switch statement without a default is not allowed in D2; add 'default: assert(0);' or add 'default: break;'");
+        else
+            warning("switch statement has no default");
 
         // Generate runtime error if the default is hit
         Statements *a = new Statements();
