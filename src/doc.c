@@ -508,16 +508,31 @@ void escapeStrayParenthesis(OutBuffer *buf, size_t start, Dsymbol *s)
     }
 }
 
-static bool emitAnchorName(OutBuffer *buf, Dsymbol *s)
+// Basically, this is to skip over things like private{} blocks in a struct or
+// class definition that don't add any components to the qualified name.
+static Scope *skipNonQualScopes(Scope *sc)
+{
+    while (sc && !sc->scopesym)
+        sc = sc->enclosing;
+    return sc;
+}
+
+static bool emitAnchorName(OutBuffer *buf, Dsymbol *s, Scope *sc)
 {
     if (!s || s->isPackage() || s->isModule())
         return false;
 
     TemplateDeclaration *td;
-    bool dot;
+    bool dot = false;
 
     // Add parent names first
-    dot = emitAnchorName(buf, s->parent);
+    if (s->parent)
+        dot = emitAnchorName(buf, s->parent, NULL);
+    else if (sc)
+    {
+        dot = emitAnchorName(buf, sc->scopesym, skipNonQualScopes(sc->enclosing));
+    }
+
     // Eponymous template members can share the parent anchor name
     if (s->parent && (td = s->parent->isTemplateDeclaration()) != NULL &&
         td->onemember == s)
@@ -538,10 +553,10 @@ static bool emitAnchorName(OutBuffer *buf, Dsymbol *s)
     return true;
 }
 
-static void emitAnchor(OutBuffer *buf, Dsymbol *s)
+static void emitAnchor(OutBuffer *buf, Dsymbol *s, Scope *sc)
 {
     buf->writestring("$(DDOC_ANCHOR ");
-    emitAnchorName(buf, s);
+    emitAnchorName(buf, s, skipNonQualScopes(sc));
     buf->writeByte(')');
 }
 
@@ -2478,7 +2493,7 @@ void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset, bool an
     {
         OutBuffer ancbuf;
 
-        emitAnchor(&ancbuf, s);
+        emitAnchor(&ancbuf, s, sc);
         buf->insert(offset, (char *)ancbuf.data, ancbuf.offset);
         offset += ancbuf.offset;
     }
