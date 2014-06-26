@@ -3045,6 +3045,12 @@ Statement *Parser::parseStatement(int flags)
             check(TOKlparen, "while");
             condition = parseExpression();
             check(TOKrparen);
+            if (token.value == TOKsemicolon)
+                nextToken();
+            else if (global.params.Dversion >= 3 &&
+                mod && mod->isRoot()
+                )
+                warning(loc, "D2 requires that 'do { ... } while(...)' end with a ;");
             s = new DoStatement(loc, body, condition);
             break;
         }
