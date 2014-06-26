@@ -1419,14 +1419,14 @@ Expression *build_overload(Loc loc, Scope *sc, Expression *ethis, Expression *ea
  * Search for function funcid in aggregate ad.
  */
 
-Dsymbol *search_function(ScopeDsymbol *ad, Identifier *funcid)
+Dsymbol *search_function(ScopeDsymbol *ad, Identifier *funcid, bool allow_variables)
 {
     Dsymbol *s = ad->search(Loc(), funcid);
     if (s)
     {
-        //printf("search_function: s = '%s'\n", s->kind());
+        // printf("search_function: s = '%s' (%s)\n", s->kind(), s->toChars());
         Dsymbol *s2 = s->toAlias();
-        //printf("search_function: s2 = '%s'\n", s2->kind());
+        // printf("search_function: s2 = '%s' (%s)\n", s2->kind(), s2->toChars());
         FuncDeclaration *fd = s2->isFuncDeclaration();
         if (fd && fd->type->ty == Tfunction)
             return fd;
@@ -1434,6 +1434,12 @@ Dsymbol *search_function(ScopeDsymbol *ad, Identifier *funcid)
         TemplateDeclaration *td = s2->isTemplateDeclaration();
         if (td)
             return td;
+
+        if (allow_variables)
+        {
+            VarDeclaration* vd = s2->isVarDeclaration();
+            return vd;
+        }
     }
     return NULL;
 }

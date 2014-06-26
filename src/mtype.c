@@ -4045,11 +4045,44 @@ void TypeSArray::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
             *ps = tds;
         }
         else
+        {
+            TemplateInstance* ti = s->isTemplateInstance();
+
+            if (ti)
+            {
+                Dsymbol* opIndex = search_function(ti, Id::index);
+
+                    if (opIndex)
+                    {
+                        TemplateDeclaration* decl = opIndex->isTemplateDeclaration();
+                        if (decl)
+                    {
+                            ScopeDsymbol *sym = new ArrayScopeSymbol(sc, ti);
+                            sym->parent = sc->scopesym;
+                            sc = sc->push(sym);
+                            sc = sc->startCTFE();
+                            dim = dim->semantic(sc);
+                            sc = sc->endCTFE();
+                            sc = sc->pop();
+                            dim = dim->ctfeInterpret();
+
+                            Objects* args = new Objects();
+                            args->push(dim);
+                            TemplateInstance* inst = new TemplateInstance(loc, decl, args);
+                            inst->semantic(sc);
+                            *ps = inst->toAlias();
+                            return;
+                        }
+                    }
+
+            }
+
             goto Ldefault;
+        }
     }
     else
     {
-     Ldefault:
+    Ldefault:
         Type::resolve(loc, sc, pe, pt, ps, intypeid);
     }
 }
