@@ -339,7 +339,8 @@ Msgtable msgtable[] =
     { "getAttributes" },
     { "getFunctionAttributes" },
     { "getUnitTests" },
-    { "getVirtualIndex" }
+    { "getVirtualIndex" },
+    { "valueRange" }
 };
 
 

@@ -255,6 +255,7 @@ const char* traits[] = {
     "getFunctionAttributes",
     "getUnitTests",
     "getVirtualIndex",
+    "valueRange",
     NULL
 };
 
@@ -1027,6 +1028,18 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         }
         fd = fd->toAliasFunc(); // Neccessary to support multiple overloads.
         return new IntegerExp(e->loc, fd->vtblIndex, Type::tptrdiff_t);
+    }
+    else if(e->ident == Id::valueRange)
+    {
+        if (dim != 1)
+            goto Ldimerror;
+        Expression *exp = isExpression((*e->args)[0]);
+        IntRange ir = getIntRange(exp);
+        Expressions *exps = new Expressions();
+        exps->push(new IntegerExp(e->loc, ir.imin.value, ir.imin.negative ? Type::tint64 : Type::tuns64));
+        exps->push(new IntegerExp(e->loc, ir.imax.value, ir.imax.negative ? Type::tint64 : Type::tuns64));
+        TupleExp *tup = new TupleExp(e->loc, exps);
+        return tup->semantic(sc);
     }
     else
     {
