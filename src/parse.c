@@ -500,15 +500,7 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl, PrefixAttributes 
                 goto Lautodecl;
             }
             Lstc:
-                if (pAttrs->storageClass & stc)
-                {
-                    if (token.value == TOKidentifier)
-                        error("redundant storage class '@%s'", token.ident->toChars());
-                    else
-                        error("redundant storage class '%s'", Token::toChars(token.value));
-                }
-                composeStorageClass(pAttrs->storageClass | stc);
-                pAttrs->storageClass |= stc;
+                pAttrs->storageClass = appendStorageClass(pAttrs->storageClass, stc);
                 nextToken();
 
             Lautodecl:
@@ -910,23 +902,45 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl, PrefixAttributes 
 }
 
 /*********************************************
- * Give error on conflicting storage classes.
+ * Give error on redundant/conflicting storage class.
  */
 
-void Parser::composeStorageClass(StorageClass stc)
+StorageClass Parser::appendStorageClass(StorageClass storageClass, StorageClass stc)
 {
-    StorageClass u = stc;
-    u &= STCconst | STCimmutable | STCmanifest;
-    if (u & (u - 1))
-        error("conflicting storage class %s", Token::toChars(token.value));
-    u = stc;
-    u &= STCgshared | STCshared | STCtls;
-    if (u & (u - 1))
-        error("conflicting storage class %s", Token::toChars(token.value));
-    u = stc;
-    u &= STCsafe | STCsystem | STCtrusted;
-    if (u & (u - 1))
-        error("conflicting attribute @%s", token.toChars());
+    if ((storageClass & stc) ||
+        (storageClass & STCin && stc & (STCconst | STCscope)) ||
+        (stc & STCin && storageClass & (STCconst | STCscope)))
+    {
+        OutBuffer buf;
+        StorageClassDeclaration::stcToCBuffer(&buf, stc);
+        if (buf.data[buf.offset - 1] == ' ')
+            buf.data[buf.offset - 1] = '\0';
+        error("redundant attribute '%s'", buf.peekString());
+        return storageClass | stc;
+    }
+
+    storageClass |= stc;
+
+    if (stc & (STCconst | STCimmutable | STCmanifest))
+    {
+        StorageClass u = storageClass & (STCconst | STCimmutable | STCmanifest);
+        if (u & (u - 1))
+            error("conflicting attribute '%s'", Token::toChars(token.value));
+    }
+    if (stc & (STCgshared | STCshared | STCtls))
+    {
+        StorageClass u = storageClass & (STCgshared | STCshared | STCtls);
+        if (u & (u - 1))
+            error("conflicting attribute '%s'", Token::toChars(token.value));
+    }
+    if (stc & (STCsafe | STCsystem | STCtrusted))
+    {
+        StorageClass u = storageClass & (STCsafe | STCsystem | STCtrusted);
+        if (u & (u - 1))
+            error("conflicting attribute '@%s'", token.toChars());
+    }
+
+    return storageClass;
 }
 
 /***********************************************
@@ -1002,24 +1016,23 @@ StorageClass Parser::parseAttribute(Expressions **pudas)
  * Parse const/immutable/shared/inout/nothrow/pure postfix
  */
 
-StorageClass Parser::parsePostfix(Expressions **pudas)
+StorageClass Parser::parsePostfix(StorageClass storageClass, Expressions **pudas)
 {
-    StorageClass stc = STCundefined;
-
     while (1)
     {
+        StorageClass stc;
         switch (token.value)
         {
-            case TOKconst:              stc |= STCconst;                break;
-            case TOKimmutable:          stc |= STCimmutable;            break;
-            case TOKshared:             stc |= STCshared;               break;
-            case TOKwild:               stc |= STCwild;                 break;
-            case TOKnothrow:            stc |= STCnothrow;              break;
-            case TOKpure:               stc |= STCpure;                 break;
+            case TOKconst:      stc = STCconst;         break;
+            case TOKimmutable:  stc = STCimmutable;     break;
+            case TOKshared:     stc = STCshared;        break;
+            case TOKwild:       stc = STCwild;          break;
+            case TOKnothrow:    stc = STCnothrow;       break;
+            case TOKpure:       stc = STCpure;          break;
             case TOKat:
             {
                 Expressions *udas = NULL;
-                stc |= parseAttribute(&udas);
+                stc = parseAttribute(&udas);
                 if (udas)
                 {
                     if (pudas)
@@ -1036,31 +1049,35 @@ StorageClass Parser::parsePostfix(Expressions **pudas)
                 break;
             }
 
-            default: return stc;
+            default:
+                return storageClass;
         }
-        composeStorageClass(stc);
+        storageClass = appendStorageClass(storageClass, stc);
         nextToken();
     }
 }
 
 StorageClass Parser::parseTypeCtor()
 {
-    StorageClass stc = 0;
+    StorageClass storageClass = STCundefined;
 
     while (1)
     {
         if (peek(&token)->value == TOKlparen)
-            return stc;
+            return storageClass;
+
+        StorageClass stc;
         switch (token.value)
         {
-            case TOKconst:              stc |= STCconst;                break;
-            case TOKimmutable:          stc |= STCimmutable;            break;
-            case TOKshared:             stc |= STCshared;               break;
-            case TOKwild:               stc |= STCwild;                 break;
+            case TOKconst:      stc = STCconst;         break;
+            case TOKimmutable:  stc = STCimmutable;     break;
+            case TOKshared:     stc = STCshared;        break;
+            case TOKwild:       stc = STCwild;          break;
 
-            default: return stc;
+            default:
+                return storageClass;
         }
-        composeStorageClass(stc);
+        storageClass = appendStorageClass(storageClass, stc);
         nextToken();
     }
 }
@@ -1414,7 +1431,7 @@ Dsymbol *Parser::parseCtor()
         nextToken();
         check(TOKrparen);
 
-        StorageClass stc = parsePostfix(&udas);
+        StorageClass stc = parsePostfix(STCundefined, &udas);
         PostBlitDeclaration *f = new PostBlitDeclaration(loc, Loc(), stc, Id::_postblit);
         Dsymbol *s = parseContracts(f);
         if (udas)
@@ -1437,7 +1454,7 @@ Dsymbol *Parser::parseCtor()
 
         int varargs;
         Parameters *parameters = parseParameters(&varargs);
-        StorageClass stc = parsePostfix(&udas);
+        StorageClass stc = parsePostfix(STCundefined, &udas);
 
         Expression *constraint = tpl ? parseConstraint() : NULL;
 
@@ -1465,7 +1482,7 @@ Dsymbol *Parser::parseCtor()
      */
     int varargs;
     Parameters *parameters = parseParameters(&varargs);
-    StorageClass stc = parsePostfix(&udas);
+    StorageClass stc = parsePostfix(STCundefined, &udas);
     Type *tf = new TypeFunction(parameters, NULL, varargs, linkage, stc);   // RetrunType -> auto
     tf = tf->addSTC(stc);
 
@@ -1496,7 +1513,7 @@ Dsymbol *Parser::parseDtor()
     check(TOKlparen);
     check(TOKrparen);
 
-    StorageClass stc = parsePostfix(&udas);
+    StorageClass stc = parsePostfix(STCundefined, &udas);
     DtorDeclaration *f = new DtorDeclaration(loc, Loc(), stc, Id::dtor);
     Dsymbol *s = parseContracts(f);
     if (udas)
@@ -1523,7 +1540,7 @@ Dsymbol *Parser::parseStaticCtor()
     nextToken();
     check(TOKlparen);
     check(TOKrparen);
-    StorageClass stc = parsePostfix(NULL);
+    StorageClass stc = parsePostfix(STCundefined, NULL);
 
     StaticCtorDeclaration *f = new StaticCtorDeclaration(loc, Loc(), stc);
     Dsymbol *s = parseContracts(f);
@@ -1546,7 +1563,7 @@ Dsymbol *Parser::parseSharedStaticCtor()
     nextToken();
     check(TOKlparen);
     check(TOKrparen);
-    StorageClass stc = parsePostfix(NULL);
+    StorageClass stc = parsePostfix(STCundefined, NULL);
 
     SharedStaticCtorDeclaration *f = new SharedStaticCtorDeclaration(loc, Loc(), stc);
     Dsymbol *s = parseContracts(f);
@@ -1570,7 +1587,7 @@ Dsymbol *Parser::parseStaticDtor()
     check(TOKlparen);
     check(TOKrparen);
 
-    StorageClass stc = parsePostfix(&udas);
+    StorageClass stc = parsePostfix(STCundefined, &udas);
     if (stc & STCshared)
         error("to create a 'shared' static destructor, move 'shared' in front of the declaration");
 
@@ -1603,7 +1620,7 @@ Dsymbol *Parser::parseSharedStaticDtor()
     check(TOKlparen);
     check(TOKrparen);
 
-    StorageClass stc = parsePostfix(&udas);
+    StorageClass stc = parsePostfix(STCundefined, &udas);
     if (stc & STCshared)
         error("static destructor is 'shared' already");
 
@@ -1791,13 +1808,7 @@ Parameters *Parser::parseParameters(int *pvarargs, TemplateParameters **tpl)
                 case TOKfinal:     stc = STCfinal;      goto L2;
                 case TOKauto:      stc = STCauto;       goto L2;
                 L2:
-                    if (storageClass & stc ||
-                        (storageClass & STCin && stc & (STCconst | STCscope)) ||
-                        (stc & STCin && storageClass & (STCconst | STCscope))
-                       )
-                        error("redundant storage class '%s'", Token::toChars(token.value));
-                    storageClass |= stc;
-                    composeStorageClass(storageClass);
+                    storageClass = appendStorageClass(storageClass, stc);
                     continue;
 
 #if 0
@@ -3060,7 +3071,7 @@ Type *Parser::parseBasicType2(Type *t)
                 nextToken();
                 arguments = parseParameters(&varargs);
 
-                StorageClass stc = parsePostfix(NULL);
+                StorageClass stc = parsePostfix(STCundefined, NULL);
                 TypeFunction *tf = new TypeFunction(arguments, t, varargs, linkage, stc);
                 if (stc & (STCconst | STCimmutable | STCshared | STCwild))
                 {
@@ -3087,7 +3098,7 @@ Type *Parser::parseBasicType2(Type *t)
 }
 
 Type *Parser::parseDeclarator(Type *t, int *palt, Identifier **pident,
-        TemplateParameters **tpl, StorageClass storage_class, int* pdisable, Expressions **pudas)
+        TemplateParameters **tpl, StorageClass storageClass, int* pdisable, Expressions **pudas)
 {
     //printf("parseDeclarator(tpl = %p)\n", tpl);
     t = parseBasicType2(t);
@@ -3229,8 +3240,8 @@ Type *Parser::parseDeclarator(Type *t, int *palt, Identifier **pident,
 
                 /* Parse const/immutable/shared/inout/nothrow/pure postfix
                  */
-                StorageClass stc = parsePostfix(pudas);
-                stc |= storage_class;   // merge prefix storage classes
+                StorageClass stc = parsePostfix(storageClass, pudas);
+                                        // merge prefix storage classes
                 Type *tf = new TypeFunction(arguments, t, varargs, linkage, stc);
                 tf = tf->addSTC(stc);
                 if (pdisable)
@@ -3309,10 +3320,7 @@ void Parser::parseStorageClasses(StorageClass &storage_class, LINK &link, unsign
                 continue;
             }
             L1:
-                if (storage_class & stc)
-                    error("redundant storage class '%s'", token.toChars());
-                storage_class = storage_class | stc;
-                composeStorageClass(storage_class);
+                storage_class = appendStorageClass(storage_class, stc);
                 nextToken();
                 continue;
 
@@ -3603,6 +3611,12 @@ L2:
     tfirst = NULL;
     Dsymbols *a = new Dsymbols();
 
+    if (pAttrs)
+    {
+        storage_class |= pAttrs->storageClass;
+        pAttrs->storageClass = STCundefined;
+    }
+
     while (1)
     {
         TemplateParameters *tpl = NULL;
@@ -3701,71 +3715,6 @@ L2:
 #endif
 
             //printf("%s funcdecl t = %s, storage_class = x%lx\n", loc.toChars(), t->toChars(), storage_class);
-            if (pAttrs)
-            {
-                StorageClass prefixStc = pAttrs->storageClass;
-                t = t->addSTC(prefixStc);
-
-                TypeFunction *tf = (TypeFunction *)t;
-                if (prefixStc & STCpure)
-                {
-                    if (tf->purity == PUREfwdref)
-                        error("redundant storage class 'pure'");
-                    tf->purity = PUREfwdref;
-                }
-                if (prefixStc & STCnothrow)
-                {
-                    if (tf->isnothrow)
-                        error("redundant storage class 'nothrow'");
-                    tf->isnothrow = true;
-                }
-                if (prefixStc & STCnogc)
-                {
-                    if (tf->isnogc)
-                        error("redundant storage class '@nogc'");
-                    tf->isnogc = true;
-                }
-                if (prefixStc & STCproperty)
-                {
-                    if (tf->isproperty)
-                        error("redundant storage class '@property'");
-                    tf->isproperty = true;
-                }
-
-                if (prefixStc & STCref)
-                {
-                    if (tf->isref)
-                        error("redundant storage class 'ref'");
-                    tf->isref = true;
-                }
-
-                StorageClass postfixTrustStc;
-                switch (tf->trust)
-                {
-                    case TRUSTdefault:
-                        if (prefixStc & STCsafe)    tf->trust = TRUSTsafe;
-                        if (prefixStc & STCsystem)  tf->trust = TRUSTsystem;
-                        if (prefixStc & STCtrusted) tf->trust = TRUSTtrusted;
-                        break;
-                    case TRUSTsafe:     postfixTrustStc = STCsafe;      goto Ltrust;
-                    case TRUSTsystem:   postfixTrustStc = STCsystem;    goto Ltrust;
-                    case TRUSTtrusted:  postfixTrustStc = STCtrusted;   goto Ltrust;
-                    Ltrust:
-                    {
-                        if (prefixStc & postfixTrustStc)
-                            error("redundant storage class '%s'", trustToChars(tf->trust));
-                        else if (prefixStc & (STCsafe | STCsystem | STCtrusted))
-                            error("conflicting storage class '%s'", trustToChars(tf->trust));
-                        break;
-                    }
-                    default:
-                        assert(0);
-                }
-
-                storage_class |= prefixStc & ~(STC_TYPECTOR | STC_FUNCATTR);
-                pAttrs->storageClass = STCundefined;
-            }
-
             FuncDeclaration *f =
                 new FuncDeclaration(loc, Loc(), ident, storage_class | (disable ? STCdisable : 0), t);
             if (tpl)
@@ -4715,10 +4664,7 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
             Lagain:
                 if (stc)
                 {
-                    if (storageClass & stc)
-                        error("redundant storage class '%s'", Token::toChars(token.value));
-                    storageClass |= stc;
-                    composeStorageClass(storageClass);
+                    storageClass = appendStorageClass(storageClass, stc);
                     nextToken();
                 }
                 switch (token.value)
@@ -4815,10 +4761,7 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
         LagainStc:
             if (stc)
             {
-                if (storageClass & stc)
-                    error("redundant storage class '%s'", Token::toChars(token.value));
-                storageClass |= stc;
-                composeStorageClass(storageClass);
+                storageClass = appendStorageClass(storageClass, stc);
                 nextToken();
             }
             switch (token.value)
@@ -6682,7 +6625,7 @@ Expression *Parser::parsePrimaryExp()
                     // (parameters) => expression
                     // (parameters) { statements... }
                     parameters = parseParameters(&varargs, &tpl);
-                    stc = parsePostfix(NULL);
+                    stc = parsePostfix(STCundefined, NULL);
                     if (stc & (STCconst | STCimmutable | STCshared | STCwild))
                         error("const/immutable/shared/inout attributes are only valid for non-static member functions");
                     break;
