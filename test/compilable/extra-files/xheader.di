@@ -15,7 +15,6 @@ struct Foo3
 class C3
 {
 	@property int get();
-
 }
 T foo3(T)()
 {
