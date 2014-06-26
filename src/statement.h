@@ -116,6 +116,7 @@ struct Statement : Object
     virtual void scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
     virtual Statements *flatten(Scope *sc);
     virtual Expression *interpret(InterState *istate);
+    virtual Statement *last();
     virtual bool apply(sapply_fp_t fp, void *param);
 
     virtual int inlineCost(InlineCostState *ics);
@@ -194,6 +195,7 @@ struct CompoundStatement : Statement
     bool hasCodeImpl();
     Statements *flatten(Scope *sc);
     ReturnStatement *isReturnStatement();
+    Statement *last();
     Expression *interpret(InterState *istate);
     bool apply(sapply_fp_t fp, void *param);
 

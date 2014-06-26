@@ -218,6 +218,10 @@ int Statement::blockExit(bool mustNotThrow)
     return BEany;
 }
 
+Statement *Statement::last()
+{
+    return this;
+}
 
 /****************************************
  * If this statement has code that needs to run in a finally clause
@@ -622,6 +626,22 @@ ReturnStatement *CompoundStatement::isReturnStatement()
     return rs;
 }
 
+Statement *CompoundStatement::last()
+{
+    Statement *s = NULL;
+
+    for (size_t i = statements->dim; i; --i)
+    {   s = (*statements)[i - 1];
+        if (s)
+        {
+            s = s->last();
+            if (s)
+                break;
+        }
+    }
+    return s;
+}
+
 void CompoundStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     for (size_t i = 0; i < statements->dim; i++)
@@ -635,12 +655,35 @@ int CompoundStatement::blockExit(bool mustNotThrow)
 {
     //printf("CompoundStatement::blockExit(%p) %d\n", this, statements->dim);
     int result = BEfallthru;
+    Statement *slast = NULL;
     for (size_t i = 0; i < statements->dim; i++)
     {   Statement *s = (*statements)[i];
         if (s)
         {
-//printf("result = x%x\n", result);
-//printf("%s\n", s->toChars());
+            //printf("result = x%x\n", result);
+            //printf("%s\n", s->toChars());
+            if (global.params.Dversion >= 3 && // sc->module && sc->module->isRoot() && /* doesn't have sc */
+                result & BEfallthru && slast)
+            {
+                slast = slast->last();
+                if (slast && (slast->isCaseStatement() || slast->isDefaultStatement()) &&
+                             (s->isCaseStatement() || s->isDefaultStatement()))
+                {
+                    // Allow if last case/default was empty
+                    CaseStatement *sc = slast->isCaseStatement();
+                    DefaultStatement *sd = slast->isDefaultStatement();
+                    if (sc && (!sc->statement->hasCode() || sc->statement->isCaseStatement()))
+                        ;
+                    else if (sd && (!sd->statement->hasCode() || sd->statement->isCaseStatement()))
+                        ;
+                    else
+                    {
+                        const char *gototype = s->isCaseStatement() ? "case" : "default";
+                        s->warning("switch case fallthrough not allowed in D2, insert 'goto %s;'", gototype);
+                    }
+                }
+            }
+
             if (!(result & BEfallthru) && !s->comeFrom())
             {
                 if (s->blockExit(mustNotThrow) != BEhalt && s->hasCode())
@@ -651,6 +694,7 @@ int CompoundStatement::blockExit(bool mustNotThrow)
                 result &= ~BEfallthru;
                 result |= s->blockExit(mustNotThrow);
             }
+            slast = s;
         }
     }
     return result;
@@ -2615,7 +2659,7 @@ Statement *SwitchStatement::semantic(Scope *sc)
         if (global.params.Dversion >= 3 &&
             sc->module && sc->module->isRoot()
             )
-            warning("switch statement without a default is not allowed in D2; add 'default: assert(0);' or add 'default: break;'");
+            warning("switch statement without a default is not allowed in D2; add 'default: assert(0);'");
         else
             warning("switch statement has no default");
 
