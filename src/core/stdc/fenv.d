@@ -94,6 +94,16 @@ else version( linux )
 
         alias fexcept_t = ushort;
     }
+    // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/arm/bits/fenv.h
+    else version (ARM)
+    {
+        struct fenv_t
+        {
+            uint __cw;
+        }
+
+        alias fexcept_t = uint;
+    }
     else
     {
         static assert(0, "Unimplemented architecture");
