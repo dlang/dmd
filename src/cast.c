@@ -3405,11 +3405,20 @@ IntRange getIntRange(Expression *e)
             range = IntRange(ir1.imin >> ir2.imax, ir1.imax >> ir2.imin).cast(e->type);
         }
 
+        void visit(AssignExp *e)
+        {
+            range = getIntRange(e->e2).cast(e->type);
+        }
+
         void visit(VarExp *e)
         {
+            Expression *ie;
             VarDeclaration* vd = e->var->isVarDeclaration();
             if (vd && vd->range)
-                range = *vd->range;
+                range = vd->range->cast(e->type);
+            else if (vd && vd->init && !vd->type->isMutable() &&
+                (ie = vd->getConstInitializer()))
+                ie->accept(this);
             else
                 visit((Expression *)e);
         }
