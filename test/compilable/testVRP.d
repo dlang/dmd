@@ -319,3 +319,13 @@ void test10018(ubyte value)
     static assert(!__traits(compiles, b = i + 1));
 }
 
+void test13001(bool unknown)
+{
+    foreach (const i; 0..unknown?2:3)
+    {
+        ubyte b = i;
+        static assert(!__traits(compiles, b = i - 1));
+        b = i + 253;
+        static assert(!__traits(compiles, b = i + 254));
+    }
+}

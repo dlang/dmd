@@ -3410,6 +3410,14 @@ IntRange getIntRange(Expression *e)
             range = getIntRange(e->e2).cast(e->type);
         }
 
+        void visit(CondExp *e)
+        {
+            // No need to check e->econd; assume caller has called optimize()
+            IntRange ir1 = getIntRange(e->e1);
+            IntRange ir2 = getIntRange(e->e2);
+            range = ir1.unionWith(ir2).cast(e->type);
+        }
+
         void visit(VarExp *e)
         {
             Expression *ie;
