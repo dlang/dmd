@@ -104,6 +104,12 @@ else version( linux )
 
         alias fexcept_t = uint;
     }
+    // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/powerpc/bits/fenv.h
+    else version (PPC64)
+    {
+        alias fenv_t = double;
+        alias fexcept_t = uint;
+    }
     else
     {
         static assert(0, "Unimplemented architecture");
