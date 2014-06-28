@@ -3614,7 +3614,7 @@ L2:
     if (pAttrs)
     {
         storage_class |= pAttrs->storageClass;
-        pAttrs->storageClass = STCundefined;
+        //pAttrs->storageClass = STCundefined;
     }
 
     while (1)
@@ -3676,6 +3676,16 @@ L2:
                 v = new AliasDeclaration(loc, ident, t);
             }
             v->storage_class = storage_class;
+            if (pAttrs)
+            {
+                /* AliasDeclaration distinguish @safe, @system, @trusted atttributes
+                 * on prefix and postfix.
+                 *   @safe alias void function() FP1;
+                 *   alias @safe void function() FP2;    // FP2 is not @safe
+                 *   alias void function() @safe FP3;
+                 */
+                pAttrs->storageClass &= (STCsafe | STCsystem | STCtrusted);
+            }
             Dsymbol *s = v;
 
             if (link != linkage)
@@ -3717,6 +3727,8 @@ L2:
             //printf("%s funcdecl t = %s, storage_class = x%lx\n", loc.toChars(), t->toChars(), storage_class);
             FuncDeclaration *f =
                 new FuncDeclaration(loc, Loc(), ident, storage_class | (disable ? STCdisable : 0), t);
+            if (pAttrs)
+                pAttrs->storageClass = STCundefined;
             if (tpl)
                 constraint = parseConstraint();
             Dsymbol *s = parseContracts(f);
@@ -3768,6 +3780,9 @@ L2:
 
             VarDeclaration *v = new VarDeclaration(loc, t, ident, init);
             v->storage_class = storage_class;
+            if (pAttrs)
+                pAttrs->storageClass = STCundefined;
+
             Dsymbol *s = v;
 
             if (tpl && init)
