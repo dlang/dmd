@@ -8524,6 +8524,8 @@ L1:
         }
         if (ident == Id::outer && sym->vthis)
         {
+            if (sym->vthis->scope)
+                sym->vthis->semantic(NULL);
             s = sym->vthis;
         }
         else

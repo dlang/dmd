@@ -2111,7 +2111,8 @@ bool VarDeclaration::isDataseg()
         return false;
     Dsymbol *parent = this->toParent();
     if (!parent && !(storage_class & STCstatic))
-    {   error("forward referenced");
+    {
+        error("forward referenced");
         type = Type::terror;
         return false;
     }
