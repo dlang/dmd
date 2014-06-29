@@ -23,6 +23,7 @@
 #include "id.h"
 #include "template.h"
 #include "ctfe.h"
+#include "target.h"
 
 int RealEquals(real_t x1, real_t x2);
 
@@ -804,18 +805,6 @@ int comparePointers(Loc loc, TOK op, Type *type, Expression *agg1, dinteger_t of
     return cmp;
 }
 
-union UnionFloatInt
-{
-    float f;
-    d_int32 x;
-};
-
-union UnionDoubleLong
-{
-    double f;
-    d_int64 x;
-};
-
 // True if conversion from type 'from' to 'to' involves a reinterpret_cast
 // floating point -> integer or integer -> floating point
 bool isFloatIntPaint(Type *to, Type *from)
@@ -831,36 +820,8 @@ Expression *paintFloatInt(Expression *fromVal, Type *to)
     if (exceptionOrCantInterpret(fromVal))
         return fromVal;
 
-    if (to->size() == 4)
-    {
-        UnionFloatInt u;
-        if (to->isintegral())
-        {
-            u.f = fromVal->toReal();
-            return new IntegerExp(fromVal->loc, (dinteger_t)ldouble(u.x), to);
-        }
-        else
-        {
-            u.x = (d_int32)fromVal->toInteger();
-            return new RealExp(fromVal->loc, ldouble(u.f), to);
-        }
-    }
-    else if (to->size() == 8)
-    {
-        UnionDoubleLong v;
-        if (to->isintegral())
-        {
-            v.f = fromVal->toReal();
-            return new IntegerExp(fromVal->loc, v.x, to);
-        }
-        else
-        {
-            v.x = fromVal->toInteger();
-            return new RealExp(fromVal->loc, ldouble(v.f), to);
-        }
-    }
-    assert(0);
-    return NULL;    // avoid warning
+    assert(to->size() == 4 || to->size() == 8);
+    return Target::paintAsType(fromVal, to);
 }
 
 
