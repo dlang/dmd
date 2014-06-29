@@ -2118,11 +2118,6 @@ int Expression::checkModifiable(Scope *sc, int flag)
     return type ? 1 : 0;    // default modifiable
 }
 
-bool Expression::checkReadModifyWrite()
-{
-    return !type->isShared();
-}
-
 Expression *Expression::modifiableLvalue(Scope *sc, Expression *e)
 {
     //printf("Expression::modifiableLvalue() %s, type = %s\n", toChars(), type->toChars());
@@ -2145,20 +2140,26 @@ Expression *Expression::modifiableLvalue(Scope *sc, Expression *e)
     return toLvalue(sc, e);
 }
 
-Expression *Expression::readModifyWrite(TOK rmwOp, Expression *ex)
+/*******************************
+ * Check whether the expression allows RMW operations, error with rmw operator diagnostic if not.
+ * exp is the RHS expression, or NULL if ++/-- is used (for diagnostics)
+ */
+Expression *Expression::checkReadModifyWrite(TOK rmwOp, Expression *ex)
 {
-    //printf("Expression::readModifyWrite() %s %s", toChars(), ex ? ex->toChars() : "");
-    if (checkReadModifyWrite())
-        return this;
+    //printf("Expression::checkReadModifyWrite() %s %s", toChars(), ex ? ex->toChars() : "");
+    if (!type || !type->isShared())
+        return NULL;
 
     // atomicOp uses opAssign (+=/-=) rather than opOp (++/--) for the CT string literal.
     switch (rmwOp)
     {
-        case TOKplusplus: case TOKpreplusplus:
+        case TOKplusplus:
+        case TOKpreplusplus:
             rmwOp = TOKaddass;
             break;
 
-        case TOKminusminus: case TOKpreminusminus:
+        case TOKminusminus:
+        case TOKpreminusminus:
             rmwOp = TOKminass;
             break;
 
@@ -2169,12 +2170,11 @@ Expression *Expression::readModifyWrite(TOK rmwOp, Expression *ex)
     deprecation("Read-modify-write operations are not allowed for shared variables. "
                 "Use core.atomic.atomicOp!\"%s\"(%s, %s) instead.",
                 Token::tochars[rmwOp], toChars(), ex ? ex->toChars() : "1");
-    return this;
+    return NULL;
 
     // note: enable when deprecation becomes an error.
     // return new ErrorExp();
 }
-
 
 /************************************
  * Detect cases where pointers to the stack can 'escape' the
@@ -5316,12 +5316,6 @@ int VarExp::checkModifiable(Scope *sc, int flag)
     return var->checkModify(loc, sc, type, NULL, flag);
 }
 
-bool VarExp::checkReadModifyWrite()
-{
-    //printf("VarExp::checkReadModifyWrite %s", toChars());
-    return (var->storage_class & STCshared) == 0;
-}
-
 Expression *VarExp::modifiableLvalue(Scope *sc, Expression *e)
 {
     //printf("VarExp::modifiableLvalue('%s')\n", var->toChars());
@@ -6727,7 +6721,9 @@ Expression *BinAssignExp::semantic(Scope *sc)
     if (e)
         return e;
 
-    e1->readModifyWrite(op, e2);
+    e = e1->checkReadModifyWrite(op, e2);
+    if (e)
+        return e;
 
     if (e1->op == TOKarraylength)
     {
@@ -7703,12 +7699,6 @@ int DotVarExp::checkModifiable(Scope *sc, int flag)
 
     //printf("\te1 = %s\n", e1->toChars());
     return e1->checkModifiable(sc, flag);
-}
-
-bool DotVarExp::checkReadModifyWrite()
-{
-    //printf("DotVarExp::checkReadModifyWrite %s", toChars());
-    return (var->storage_class & STCshared) == 0;
 }
 
 Expression *DotVarExp::modifiableLvalue(Scope *sc, Expression *e)
@@ -10846,7 +10836,9 @@ Expression *PostExp::semantic(Scope *sc)
     if (e)
         return e;
 
-    e1->readModifyWrite(op);  // check whether rmw operation is allowed
+    e = e1->checkReadModifyWrite(op);
+    if (e)
+        return e;
 
     if (e1->op == TOKslice)
     {
@@ -12042,7 +12034,9 @@ Expression *PowAssignExp::semantic(Scope *sc)
     if (e)
         return e;
 
-    e1->readModifyWrite(op, e2);  // check whether rmw operation is allowed
+    e = e1->checkReadModifyWrite(op, e2);
+    if (e)
+        return e;
 
     assert(e1->type && e2->type);
     if (e1->op == TOKslice || e1->type->ty == Tarray || e1->type->ty == Tsarray)

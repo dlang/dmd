@@ -205,6 +205,7 @@ public:
     void checkNoBool();
     Expression *checkIntegral();
     Expression *checkArithmetic();
+    Expression *checkReadModifyWrite(TOK rmwOp, Expression *exp = NULL);
     void checkDeprecated(Scope *sc, Dsymbol *s);
     void checkPurity(Scope *sc, FuncDeclaration *f);
     void checkPurity(Scope *sc, VarDeclaration *v);
@@ -212,12 +213,6 @@ public:
     void checkNogc(Scope *sc, FuncDeclaration *f);
     bool checkPostblit(Scope *sc, Type *t);
     virtual int checkModifiable(Scope *sc, int flag = 0);
-
-    // check whether the expression allows RMW operations, error with rmw operator diagnostic if not.
-    // exp is the RHS expression, or NULL if ++/-- is used (for diagnostics)
-    Expression *readModifyWrite(TOK rmwOp, Expression *exp = NULL);
-    virtual bool checkReadModifyWrite();  // return true if the expression allows RMW operations.
-
     virtual Expression *checkToBoolean(Scope *sc);
     virtual Expression *addDtorHook(Scope *sc);
     Expression *checkToPointer();
