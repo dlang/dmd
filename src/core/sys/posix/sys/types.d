@@ -171,7 +171,7 @@ else version (Solaris)
     }
 
     alias uint blksize_t;
-    alias ulong dev_t;
+    alias c_ulong dev_t;
     alias uid_t gid_t;
     alias uint mode_t;
     alias uint nlink_t;
