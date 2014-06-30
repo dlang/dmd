@@ -193,18 +193,20 @@ Dsymbols *Parser::parseDeclDefs(int once)
                 break;
 
             case TOKinvariant:
-#if 1
-                s = parseInvariant();
-#else
-                if (peek(&token)->value == TOKlcurly)
-                    s = parseInvariant();
-                else
+            {
+                Token *t = peek(&token);
+                if (t->value == TOKlparen && peek(t)->value == TOKrparen)
                 {
-                    stc = STCimmutable;
-                    goto Lstc;
                 }
-#endif
+                else if (global.params.Dversion >= 3 &&
+                    mod && mod->isRoot()
+                    )
+                {
+                    warning(loc, "D2 requires () after invariant");
+                }
+                s = parseInvariant();
                 break;
+            }
 
             case TOKunittest:
                 s = parseUnitTest();
