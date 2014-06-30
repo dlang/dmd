@@ -329,3 +329,9 @@ void test13001(bool unknown)
         static assert(!__traits(compiles, b = i + 254));
     }
 }
+
+void test13010(ubyte value)
+{
+    immutable int i = value;
+    static assert(i + 1 > 0);
+}

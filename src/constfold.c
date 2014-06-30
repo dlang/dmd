@@ -985,6 +985,62 @@ UnionExp Identity(TOK op, Type *type, Expression *e1, Expression *e2)
 }
 
 
+static bool unsignedCmp(d_uns64 n1, TOK op, d_uns64 n2)
+{
+    switch (op)
+    {
+        case TOKlt:     return n1 <  n2;
+        case TOKle:     return n1 <= n2;
+        case TOKgt:     return n1 >  n2;
+        case TOKge:     return n1 >= n2;
+
+        case TOKleg:    return 1;
+        case TOKlg:     return n1 != n2;
+        case TOKunord:  return 0;
+        case TOKue:     return n1 == n2;
+        case TOKug:     return n1 >  n2;
+        case TOKuge:    return n1 >= n2;
+        case TOKul:     return n1 <  n2;
+        case TOKule:    return n1 <= n2;
+
+        default:
+            assert(0);
+    }
+}
+
+static bool signedCmp(sinteger_t n1, TOK op, sinteger_t n2)
+{
+    switch (op)
+    {
+        case TOKlt:     return n1 <  n2;
+        case TOKle:     return n1 <= n2;
+        case TOKgt:     return n1 >  n2;
+        case TOKge:     return n1 >= n2;
+
+        case TOKleg:    return 1;
+        case TOKlg:     return n1 != n2;
+        case TOKunord:  return 0;
+        case TOKue:     return n1 == n2;
+        case TOKug:     return n1 >  n2;
+        case TOKuge:    return n1 >= n2;
+        case TOKul:     return n1 <  n2;
+        case TOKule:    return n1 <= n2;
+
+        default:
+            assert(0);
+    }
+}
+
+static bool integerCmp(bool anyunsigned, sinteger_t n1, TOK op, sinteger_t n2)
+{
+    /* Do an unsigned comparison if any of the integers is unsigned. */
+    if (anyunsigned)
+        return unsignedCmp(n1, op, n2);
+    else
+        return signedCmp(n1, op, n2);
+}
+
+
 UnionExp Cmp(TOK op, Type *type, Expression *e1, Expression *e2)
 {
     UnionExp ue;
@@ -1030,19 +1086,26 @@ UnionExp Cmp(TOK op, Type *type, Expression *e1, Expression *e2)
                 assert(0);
         }
     }
-    else if (e1->isConst() != 1 || e2->isConst() != 1)
-    {
-        new(&ue) CTFEExp(TOKcantexp);
-        return ue;
-    }
     else if (e1->type->isreal())
     {
+        if (e1->isConst() != 1 || e2->isConst() != 1)
+        {
+            new(&ue) CTFEExp(TOKcantexp);
+            return ue;
+        }
+
         r1 = e1->toReal();
         r2 = e2->toReal();
         goto L1;
     }
     else if (e1->type->isimaginary())
     {
+        if (e1->isConst() != 1 || e2->isConst() != 1)
+        {
+            new(&ue) CTFEExp(TOKcantexp);
+            return ue;
+        }
+
         r1 = e1->toImaginary();
         r2 = e2->toImaginary();
      L1:
@@ -1097,57 +1160,68 @@ UnionExp Cmp(TOK op, Type *type, Expression *e1, Expression *e2)
     {
         assert(0);
     }
+    else if (e1->isConst() != 1 || e2->isConst() != 1)
+    {
+        /* Use VRP to determine whether the comparison is always true or false. */
+        bool anyunsigned = (e1->type->isunsigned() || e2->type->isunsigned());
+        IntRange r1 = getIntRange(e1);
+        IntRange r2 = getIntRange(e2);
+        switch (op)
+        {
+            case TOKul:
+            case TOKule:
+            case TOKlt:
+            case TOKle:
+                if (integerCmp(anyunsigned, r1.imax.value, op, r2.imin.value))
+                    n = 1;
+                else if (integerCmp(anyunsigned, r1.imin.value, op, r2.imax.value))
+                {
+                    new(&ue) CTFEExp(TOKcantexp);
+                    return ue;
+                }
+                else
+                    n = 0;
+                break;
+
+            case TOKug:
+            case TOKuge:
+            case TOKgt:
+            case TOKge:
+                if (integerCmp(anyunsigned, r1.imin.value, op, r2.imax.value))
+                    n = 1;
+                else if (integerCmp(anyunsigned, r1.imax.value, op, r2.imin.value))
+                {
+                    new(&ue) CTFEExp(TOKcantexp);
+                    return ue;
+                }
+                else
+                    n = 0;
+                break;
+
+            case TOKleg:
+                n = 1;
+                break;
+
+            case TOKunord:
+                n = 0;
+                break;
+
+            case TOKue:
+            case TOKlg:
+                new(&ue) CTFEExp(TOKcantexp);
+                return ue;
+
+            default:
+                assert(0);
+        }
+    }
     else
     {
-        sinteger_t n1;
-        sinteger_t n2;
+        sinteger_t n1 = e1->toInteger();
+        sinteger_t n2 = e2->toInteger();
 
-        n1 = e1->toInteger();
-        n2 = e2->toInteger();
-        if (e1->type->isunsigned() || e2->type->isunsigned())
-        {
-            switch (op)
-            {
-                case TOKlt:     n = ((d_uns64) n1) <  ((d_uns64) n2);   break;
-                case TOKle:     n = ((d_uns64) n1) <= ((d_uns64) n2);   break;
-                case TOKgt:     n = ((d_uns64) n1) >  ((d_uns64) n2);   break;
-                case TOKge:     n = ((d_uns64) n1) >= ((d_uns64) n2);   break;
-
-                case TOKleg:    n = 1;                                  break;
-                case TOKlg:     n = ((d_uns64) n1) != ((d_uns64) n2);   break;
-                case TOKunord:  n = 0;                                  break;
-                case TOKue:     n = ((d_uns64) n1) == ((d_uns64) n2);   break;
-                case TOKug:     n = ((d_uns64) n1) >  ((d_uns64) n2);   break;
-                case TOKuge:    n = ((d_uns64) n1) >= ((d_uns64) n2);   break;
-                case TOKul:     n = ((d_uns64) n1) <  ((d_uns64) n2);   break;
-                case TOKule:    n = ((d_uns64) n1) <= ((d_uns64) n2);   break;
-
-                default:
-                    assert(0);
-            }
-        }
-        else
-        {
-            switch (op)
-            {
-                case TOKlt:     n = n1 <  n2;   break;
-                case TOKle:     n = n1 <= n2;   break;
-                case TOKgt:     n = n1 >  n2;   break;
-                case TOKge:     n = n1 >= n2;   break;
-
-                case TOKleg:    n = 1;          break;
-                case TOKlg:     n = n1 != n2;   break;
-                case TOKunord:  n = 0;          break;
-                case TOKue:     n = n1 == n2;   break;
-                case TOKug:     n = n1 >  n2;   break;
-                case TOKuge:    n = n1 >= n2;   break;
-                case TOKul:     n = n1 <  n2;   break;
-                case TOKule:    n = n1 <= n2;   break;
-
-                default:
-                    assert(0);
-            }
-        }
+        bool anyunsigned = (e1->type->isunsigned() || e2->type->isunsigned());
+        n = integerCmp(anyunsigned, n1, op, n2);
     }
     new(&ue) IntegerExp(loc, n, type);
     return ue;
