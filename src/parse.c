@@ -2183,6 +2183,10 @@ Dsymbols *Parser::parseDeclarations()
     switch (token.value)
     {
         case TOKtypedef:
+            if (global.params.Dversion >= 3 && mod && mod->isRoot())
+            {
+                warning(loc, "use alias for D2 rather than typedef");
+            }
         case TOKalias:
             tok = token.value;
             nextToken();
@@ -2312,7 +2316,9 @@ Dsymbols *Parser::parseDeclarations()
                 init = parseInitializer();
             }
             if (tok == TOKtypedef)
+            {
                 v = new TypedefDeclaration(loc, ident, t, init);
+            }
             else
             {   if (init)
                     error("alias cannot have initializer");
