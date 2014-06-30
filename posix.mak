@@ -205,7 +205,7 @@ $(addprefix $(OBJDIR)/,$(DISABLED_TESTS)) :
 ifneq (linux,$(OS))
 
 $(OBJDIR)/test_runner: $(OBJS) $(SRCS) src/test_runner.d
-	$(DMD) $(UDFLAGS) -version=druntime_unittest -unittest -of$@ src/test_runner.d $(SRCS) $(OBJS) -debuglib= -defaultlib=
+	$(DMD) $(UDFLAGS) -unittest -of$@ src/test_runner.d $(SRCS) $(OBJS) -debuglib= -defaultlib=
 
 else
 
@@ -214,7 +214,7 @@ UT_DRUNTIME:=$(OBJDIR)/lib$(DRUNTIME_BASE)-ut$(DOTDLL)
 $(UT_DRUNTIME): override PIC:=-fPIC
 $(UT_DRUNTIME): UDFLAGS+=-version=Shared
 $(UT_DRUNTIME): $(OBJS) $(SRCS)
-	$(DMD) $(UDFLAGS) -shared -version=druntime_unittest -unittest -of$@ $(SRCS) $(OBJS) -L-ldl -debuglib= -defaultlib=
+	$(DMD) $(UDFLAGS) -shared -unittest -of$@ $(SRCS) $(OBJS) -L-ldl -debuglib= -defaultlib=
 
 $(OBJDIR)/test_runner: $(UT_DRUNTIME) src/test_runner.d
 	$(DMD) $(UDFLAGS) -of$@ src/test_runner.d -L$(UT_DRUNTIME) -debuglib= -defaultlib=
