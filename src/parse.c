@@ -3573,9 +3573,10 @@ Statement *Parser::parseStatement(int flags)
         case TOKvolatile:
             nextToken();
             s = parseStatement(PSsemi | PScurlyscope);
-#if DMDV2
-            deprecation("volatile statements deprecated; used synchronized statements instead");
-#endif
+            if (global.params.Dversion >= 3 && mod && mod->isRoot())
+            {
+                warning(loc, "for D2 use 'synchronized' instead of 'volatile'");
+            }
             s = new VolatileStatement(loc, s);
             break;
 
