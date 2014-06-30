@@ -329,3 +329,32 @@ void test13001(bool unknown)
         static assert(!__traits(compiles, b = i + 254));
     }
 }
+
+void test13010(ubyte value)
+{
+    immutable int i = value;
+    static assert(0 < i + 1);
+    static assert(0U < i + 1);
+    static assert(-1 < i);
+    static assert(0 <= i);
+    static assert(0U <= i);
+    static assert(256 > i);
+    static assert(256U > i);
+    static assert(255 >= i);
+    static assert(255U >= i);
+    //static assert(-1 != i);
+    //static assert(256 != i);
+    //static assert(256U != i);
+    static assert(i + 1 > 0);
+    static assert(i + 1 > 0U);
+    static assert(i > -1);
+    static assert(i >= 0);
+    static assert(i >= 0U);
+    static assert(i < 256);
+    static assert(i < 256U);
+    static assert(i <= 255);
+    static assert(i <= 255U);
+    //static assert(i != -1);
+    //static assert(i != 256);
+    //static assert(i != 256U);
+}
