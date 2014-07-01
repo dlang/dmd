@@ -442,7 +442,7 @@ void FuncDeclaration::semantic(Scope *sc)
     if (!type->deco)
     {
         sc = sc->push();
-        sc->stc |= storage_class & STCdisable;  // forward to function type
+        sc->stc |= storage_class & (STCdisable | STCdeprecated);  // forward to function type
         TypeFunction *tf = (TypeFunction *)type;
 #if 1
         /* If the parent is @safe, then this function defaults to safe
