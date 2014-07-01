@@ -2062,19 +2062,34 @@ void test1961c()
 
 /************************************/
 
-inout(int) function(inout(int)) notinoutfun1() { return null; }
-inout(int) delegate(inout(int)) notinoutfun2() { return null; }
-void notinoutfun1(inout(int) function(inout(int)) fn) {}
-void notinoutfun2(inout(int) delegate(inout(int)) dg) {}
+inout(int) function(inout(int))   notinoutfun1() { return null; }
+inout(int) function(inout(int))[] notinoutfun2() { return null; }
+inout(int) delegate(inout(int))   notinoutfun3() { return null; }
+inout(int) delegate(inout(int))[] notinoutfun4() { return null; }
+void notinoutfun1(inout(int) function(inout(int))   fn) {}
+void notinoutfun2(inout(int) function(inout(int))[] fn) {}
+void notinoutfun3(inout(int) delegate(inout(int))   dg) {}
+void notinoutfun4(inout(int) delegate(inout(int))[] dg) {}
 
 void test88()
 {
-    inout(int) function(inout(int)) fp;
-    inout(int) delegate(inout(int)) dg;
+    inout(int) function(inout int) fp;
+    inout(int) delegate(inout int) dg;
 
-    static assert(!__traits(compiles, {
-        inout(int)* p;
-    }));
+    inout(int) function(inout int)*   fp2p;
+    inout(int) function(inout int)[]  fp2a;
+    inout(int) function(inout int)[3] fp2s;
+
+    inout(int) delegate(inout int)*   dg3p;
+    inout(int) delegate(inout int)[]  dg3a;
+    inout(int) delegate(inout int)[3] dg3s;
+
+    int delegate() inout*   dg4p;
+    int delegate() inout[]  dg4a;
+    int delegate() inout[3] dg4s;
+
+    static assert(!__traits(compiles, { inout(int)* p; }));
+    static assert(!__traits(compiles, { inout(int delegate()) dg; }));
 }
 
 /************************************/
@@ -3709,6 +3724,20 @@ void test12403()
 }
 
 /************************************/
+// 13011
+
+void test13011()
+{
+    static size_t hashOf(int delegate() inout val)
+    {
+        return 0;
+    }
+
+    int delegate() inout dg;
+    auto h = hashOf(dg);
+}
+
+/************************************/
 
 int main()
 {
@@ -3838,6 +3867,7 @@ int main()
     test9209();
     test11226();
     test11768();
+    test13011();
 
     printf("Success\n");
     return 0;

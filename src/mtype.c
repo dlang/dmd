@@ -2582,6 +2582,10 @@ void TypeNext::checkDeprecated(Loc loc, Scope *sc)
 
 int TypeNext::hasWild()
 {
+    if (ty == Tfunction)
+        return 0;
+    if (ty == Tdelegate)
+        return Type::hasWild();
     return mod & MODwild || (next && next->hasWild());
 }
 
@@ -5539,8 +5543,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
             error(loc, "functions cannot return scope %s", tf->next->toChars());
             errors = true;
         }
-        if (tf->next->hasWild() &&
-            !(tf->next->ty == Tpointer && tf->next->nextOf()->ty == Tfunction || tf->next->ty == Tdelegate))
+        if (tf->next->hasWild())
             wildreturn = true;
     }
 
@@ -5623,8 +5626,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
                 }
             }
 
-            if (t->hasWild() &&
-                !(t->ty == Tpointer && t->nextOf()->ty == Tfunction || t->ty == Tdelegate))
+            if (t->hasWild())
             {
                 wildparams |= 1;
                 //if (tf->next && !wildreturn)
