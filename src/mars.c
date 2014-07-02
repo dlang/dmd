@@ -38,6 +38,7 @@
 #include "declaration.h"
 #include "hdrgen.h"
 #include "doc.h"
+#include "color.h"
 
 bool response_expand(size_t *pargc, const char ***pargv);
 void browse(const char *url);
@@ -269,11 +270,17 @@ void verrorPrint(Loc loc, const char *header, const char *format, va_list ap,
 {
     char *p = loc.toChars();
 
+    if (global.params.color)
+        setConsoleColorBright();
     if (*p)
         fprintf(stderr, "%s: ", p);
     mem.free(p);
 
+    if (global.params.color)
+        setConsoleColorError();
     fputs(header, stderr);
+    if (global.params.color)
+        resetConsoleColor();
     if (p1)
         fprintf(stderr, "%s ", p1);
     if (p2)
@@ -415,6 +422,7 @@ Usage:\n\
   @cmdfile       read arguments from cmdfile\n\
   -allinst       generate code for all template instantiations\n\
   -c             do not link\n\
+  -color[=on|off]   force colored console output on or off\n\
   -cov           do code coverage analysis\n\
   -cov=nnn       require at least nnn%% code coverage\n\
   -D             generate documentation\n\
@@ -567,6 +575,7 @@ int tryMain(size_t argc, const char *argv[])
 
     // Set default values
     global.params.argv0 = argv[0];
+    global.params.color = isConsoleColorSupported();
     global.params.link = true;
     global.params.useAssert = true;
     global.params.useInvariants = true;
@@ -679,6 +688,22 @@ int tryMain(size_t argc, const char *argv[])
                 global.params.useDeprecated = 2;
             else if (strcmp(p + 1, "c") == 0)
                 global.params.link = false;
+            else if (memcmp(p + 1, "color", 5) == 0)
+            {
+                global.params.color = true;
+                // Parse:
+                //      -color
+                //      -color=on|off
+                if (p[6] == '=')
+                {
+                    if (strcmp(p + 7, "off") == 0)
+                        global.params.color = false;
+                    else if (strcmp(p + 7, "on") != 0)
+                        goto Lerror;
+                }
+                else if (p[6])
+                    goto Lerror;
+            }
             else if (memcmp(p + 1, "cov", 3) == 0)
             {
                 global.params.cov = true;
