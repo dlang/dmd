@@ -27,7 +27,6 @@ private
     import core.memory;
     import rt.util.hash;
     import rt.util.string;
-    import rt.minfo;
     debug(PRINTF) import core.stdc.stdio;
 
     extern (C) void onOutOfMemoryError(void* pretend_sideffect = null) @trusted pure nothrow; /* dmd @@@BUG11461@@@ */
@@ -1729,6 +1728,7 @@ const:
 
     static int opApply(scope ApplyDg dg)
     {
+        import rt.minfo;
         return rt.minfo.moduleinfos_apply(dg);
     }
 }
