@@ -104,6 +104,7 @@ Msgtable msgtable[] =
     { "postblit" },
     { "xopEquals", "__xopEquals" },
     { "xopCmp", "__xopCmp" },
+    { "xtoHash", "__xtoHash" },
 
     { "LINE", "__LINE__" },
     { "FILE", "__FILE__" },

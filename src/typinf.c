@@ -92,7 +92,6 @@ Expression *Type::getInternalTypeInfo(Scope *sc)
 }
 
 
-FuncDeclaration *search_toHash(StructDeclaration *sd);
 FuncDeclaration *search_toString(StructDeclaration *sd);
 
 /****************************************************
@@ -594,7 +593,7 @@ public:
         else
             dtxoff(pdt, sd->toInitializer(), 0);    // init.ptr
 
-        if (FuncDeclaration *fd = search_toHash(sd))
+        if (FuncDeclaration *fd = sd->xhash)
         {
             dtxoff(pdt, toSymbol(fd), 0);
             TypeFunction *tf = (TypeFunction *)fd->type;

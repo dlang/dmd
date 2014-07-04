@@ -672,6 +672,116 @@ FuncDeclaration *buildXopCmp(StructDeclaration *sd, Scope *sc)
 }
 
 /*******************************************
+ * We need a toHash for the struct if
+ * any fields has a toHash.
+ * Generate one if a user-specified one does not exist.
+ */
+
+bool needToHash(StructDeclaration *sd)
+{
+    //printf("StructDeclaration::needToHash() %s\n", sd->toChars());
+
+    if (sd->xhash)
+        goto Lneed;
+
+    if (sd->isUnionDeclaration())
+        goto Ldontneed;
+
+    /* If any of the fields has an opEquals, then we
+     * need it too.
+     */
+    for (size_t i = 0; i < sd->fields.dim; i++)
+    {
+        VarDeclaration *v = sd->fields[i];
+        if (v->storage_class & STCref)
+            continue;
+        Type *tv = v->type->toBasetype();
+        if (tv->isfloating())
+            goto Lneed;
+        if (tv->ty == Tarray)
+            goto Lneed;
+        if (tv->ty == Taarray)
+            goto Lneed;
+        if (tv->ty == Tclass)
+            goto Lneed;
+        tv = tv->baseElemOf();
+        if (tv->ty == Tstruct)
+        {
+            TypeStruct *ts = (TypeStruct *)tv;
+            if (needToHash(ts->sym))
+                goto Lneed;
+        }
+    }
+Ldontneed:
+    //printf("\tdontneed\n");
+    return false;
+
+Lneed:
+    //printf("\tneed\n");
+    return true;
+}
+
+/******************************************
+ * Build __xtoHash for non-bitwise hashing
+ *      static hash_t xtoHash(ref const S p) nothrow @trusted;
+ */
+
+FuncDeclaration *buildXtoHash(StructDeclaration *sd, Scope *sc)
+{
+    if (Dsymbol *s = search_function(sd, Id::tohash))
+    {
+        static TypeFunction *tftohash;
+        if (!tftohash)
+        {
+            tftohash = new TypeFunction(NULL, Type::thash_t, 0, LINKd);
+            tftohash->mod = MODconst;
+            tftohash = (TypeFunction *)tftohash->merge();
+        }
+
+        if (FuncDeclaration *fd = s->isFuncDeclaration())
+        {
+            fd = fd->overloadExactMatch(tftohash);
+            if (fd)
+                return fd;
+        }
+    }
+
+    if (!needToHash(sd))
+        return NULL;
+
+    //printf("StructDeclaration::buildXtoHash() %s\n", sd->toPrettyChars());
+    Loc declLoc = Loc();    // loc is unnecessary so __xtoHash is never called directly
+    Loc loc = Loc();        // internal code should have no loc to prevent coverage
+
+    Parameters *parameters = new Parameters();
+    parameters->push(new Parameter(STCref | STCconst, sd->type, Id::p, NULL));
+    TypeFunction *tf = new TypeFunction(parameters, Type::thash_t, 0, LINKd, STCnothrow | STCtrusted);
+    tf = (TypeFunction *)tf->semantic(loc, sc);
+
+    Identifier *id = Id::xtoHash;
+    FuncDeclaration *fop = new FuncDeclaration(declLoc, Loc(), id, STCstatic, tf);
+
+    const char *code =
+        "size_t h = 0;"\
+        "foreach (i, T; typeof(p.tupleof))"\
+        "    h += typeid(T).getHash(cast(const void*)&p.tupleof[i]);"\
+        "return h;";
+    fop->fbody = new CompileStatement(loc, new StringExp(loc, (char *)code));
+
+    Scope *sc2 = sc->push();
+    sc2->stc = 0;
+    sc2->linkage = LINKd;
+
+    fop->semantic(sc2);
+    fop->semantic2(sc2);
+
+    sc2->pop();
+
+    //printf("%s fop = %s %s\n", sd->toChars(), fop->toChars(), fop->type->toChars());
+    return fop;
+}
+
+/*******************************************
  * Build copy constructor for struct.
  *      void __cpctpr(ref const S s) [pure nothrow @trusted]
  *      {

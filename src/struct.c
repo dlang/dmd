@@ -29,29 +29,6 @@ FuncDeclaration *StructDeclaration::xerreq;     // object.xopEquals
 FuncDeclaration *StructDeclaration::xerrcmp;    // object.xopCmp
 
 /***************************************
- * Search toHash member function for TypeInfo_Struct.
- *      const hash_t toHash();
- */
-FuncDeclaration *search_toHash(StructDeclaration *sd)
-{
-    Dsymbol *s = search_function(sd, Id::tohash);
-    FuncDeclaration *fd = s ? s->isFuncDeclaration() : NULL;
-    if (fd)
-    {
-        static TypeFunction *tftohash;
-        if (!tftohash)
-        {
-            tftohash = new TypeFunction(NULL, Type::thash_t, 0, LINKd);
-            tftohash->mod = MODconst;
-            tftohash = (TypeFunction *)tftohash->merge();
-        }
-
-        fd = fd->overloadExactMatch(tftohash);
-    }
-    return fd;
-}
-
-/***************************************
  * Search toString member function for TypeInfo_Struct.
  *      string toString();
  */
@@ -117,7 +94,7 @@ void semanticTypeInfo(Scope *sc, Type *t)
                  sd->xcmp && sd->xcmp != sd->xerrcmp ||
                  (sd->postblit && !(sd->postblit->storage_class & STCdisable)) ||
                  sd->dtor ||
-                 search_toHash(sd) ||
+                 sd->xhash ||
                  search_toString(sd)
                 ) &&
                 sd->inNonRoot())
@@ -312,12 +289,11 @@ void StructDeclaration::semanticTypeInfoMembers()
         ftostr->semantic3(ftostr->scope);
     }
 
-    FuncDeclaration *ftohash = search_toHash(this);
-    if (ftohash &&
-        ftohash->scope &&
-        ftohash->semanticRun < PASSsemantic3done)
+    if (xhash &&
+        xhash->scope &&
+        xhash->semanticRun < PASSsemantic3done)
     {
-        ftohash->semantic3(ftohash->scope);
+        xhash->semantic3(xhash->scope);
     }
 
     if (postblit &&
@@ -649,6 +625,7 @@ StructDeclaration::StructDeclaration(Loc loc, Identifier *id)
 
     xeq = NULL;
     xcmp = NULL;
+    xhash = NULL;
     alignment = 0;
     ispod = ISPODfwd;
     arg1type = NULL;
@@ -856,6 +833,7 @@ void StructDeclaration::semantic(Scope *sc)
 
     xeq = buildXopEquals(this, sc2);
     xcmp = buildXopCmp(this, sc2);
+    xhash = buildXtoHash(this, sc2);
 
     /* Even if the struct is merely imported and its semantic3 is not run,
      * the TypeInfo object would be speculatively stored in each object
