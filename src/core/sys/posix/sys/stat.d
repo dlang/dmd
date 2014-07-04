@@ -725,7 +725,7 @@ else version (Solaris)
 
     version (D_LP64)
     {
-        struct stat64_t
+        struct stat_t
         {
             dev_t st_dev;
             ino_t st_ino;
@@ -743,7 +743,7 @@ else version (Solaris)
             char[_ST_FSTYPSZ] st_fstype;
         }
 
-        alias stat64_t stat32_t;
+        static if (__USE_LARGEFILE64) alias stat_t stat64_t;
     }
     else
     {
@@ -790,12 +790,13 @@ else version (Solaris)
             char[_ST_FSTYPSZ] st_fstype;
             c_long[8] st_pad4;
         }
-    }
 
-    static if (__USE_FILE_OFFSET64)
-        alias stat64_t stat_t;
-    else
-        alias stat32_t stat_t;
+        static if (__USE_FILE_OFFSET64)
+            alias stat64_t stat_t;
+        else
+            alias stat32_t stat_t;
+
+    }
 
     enum S_IRUSR = 0x100;
     enum S_IWUSR = 0x080;
@@ -831,6 +832,8 @@ else version (Solaris)
     extern (D) bool S_ISREG(mode_t mode) { return S_ISTYPE(mode, S_IFREG); }
     extern (D) bool S_ISLNK(mode_t mode) { return S_ISTYPE(mode, S_IFLNK); }
     extern (D) bool S_ISSOCK(mode_t mode) { return S_ISTYPE(mode, S_IFSOCK); }
+    extern (D) bool S_ISDOOR(mode_t mode) { return S_ISTYPE(mode, S_IFDOOR); }
+    extern (D) bool S_ISPORT(mode_t mode) { return S_ISTYPE(mode, S_IFPORT); }
 }
 else version( Android )
 {
@@ -936,22 +939,38 @@ version( linux )
 }
 else version (Solaris)
 {
-    static if (__USE_LARGEFILE64)
-    {
-        int   fstat64(int, stat_t*);
-        alias fstat64 fstat;
-
-        int   lstat64(in char*, stat_t*);
-        alias lstat64 lstat;
-
-        int   stat64(in char*, stat_t*);
-        alias stat64 stat;
-    }
-    else
+    version (D_LP64)
     {
         int fstat(int, stat_t*);
         int lstat(in char*, stat_t*);
         int stat(in char*, stat_t*);
+
+        static if (__USE_LARGEFILE64)
+        {
+            alias fstat fstat64;
+            alias lstat lstat64;
+            alias stat stat64;
+        }
+    }
+    else
+    {
+        static if (__USE_LARGEFILE64)
+        {
+            int   fstat64(int, stat_t*);
+            alias fstat64 fstat;
+
+            int   lstat64(in char*, stat_t*);
+            alias lstat64 lstat;
+
+            int   stat64(in char*, stat_t*);
+            alias stat64 stat;
+        }
+        else
+        {
+            int fstat(int, stat_t*);
+            int lstat(in char*, stat_t*);
+            int stat(in char*, stat_t*);
+        }
     }
 }
 else version( Posix )
@@ -1033,6 +1052,8 @@ else version (Solaris)
     enum S_IFDIR = 0x4000;
     enum S_IFLNK = 0xA000;
     enum S_IFSOCK = 0xC000;
+    enum S_IFDOOR = 0xD000;
+    enum S_IFPORT = 0xE000;
 
     int mknod(in char*, mode_t, dev_t);
 }
