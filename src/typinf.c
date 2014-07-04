@@ -131,11 +131,19 @@ void Type::genTypeInfo(Scope *sc)
             // Generate COMDAT
             if (sc)                     // if in semantic() pass
             {
-                // Find module that will go all the way to an object file
-                Module *m = sc->module->importedFrom;
-                m->members->push(t->vtinfo);
+                if (sc->func && !sc->func->isInstantiated() && sc->func->inNonRoot())
+                {
+                    // Bugzilla 13043: Avoid linking TypeInfo if it's not
+                    // necessary for root module compilation
+                }
+                else
+                {
+                    // Find module that will go all the way to an object file
+                    Module *m = sc->module->importedFrom;
+                    m->members->push(t->vtinfo);
 
-                semanticTypeInfo(sc, t);
+                    semanticTypeInfo(sc, t);
+                }
             }
             else                        // if in obj generation pass
             {
