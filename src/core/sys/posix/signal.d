@@ -108,14 +108,26 @@ version( Posix )
         void*   sival_ptr;
     }
 
-    private extern (C) nothrow @nogc
+    version( Solaris )
     {
-        int __libc_current_sigrtmin();
-        int __libc_current_sigrtmax();
-    }
+        import core.sys.posix.unistd;
+        private int _sigrtmin() { return cast(int) sysconf(_SC_SIGRT_MIN); }
+        private int _sigrtmax() { return cast(int) sysconf(_SC_SIGRT_MAX); }
 
-    alias __libc_current_sigrtmin SIGRTMIN;
-    alias __libc_current_sigrtmax SIGRTMAX;
+        alias _sigrtmin SIGRTMIN;
+        alias _sigrtmax SIGRTMAX;
+    }
+    else
+    {
+        private extern (C) nothrow @nogc
+        {
+            int __libc_current_sigrtmin();
+            int __libc_current_sigrtmax();
+        }
+
+        alias __libc_current_sigrtmin SIGRTMIN;
+        alias __libc_current_sigrtmax SIGRTMAX;
+    }
 }
 
 version( linux )
@@ -437,6 +449,9 @@ else version (Solaris)
         }
 
         sigset_t sa_mask;
+        version (D_LP64) {}
+        else
+            int[2] sa_resv;
     }
 }
 else version (Android)
