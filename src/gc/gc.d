@@ -38,6 +38,7 @@ version = STACKGROWSDOWN;       // growing the stack means subtracting from the 
 
 import gc.bits;
 import gc.stats;
+import gc.structinfo;
 import gc.os;
 import gc.config;
 
@@ -130,6 +131,8 @@ private
     {
         // to allow compilation of this module without access to the rt package,
         //  make these functions available from rt.lifetime
+		void rt_finalize_struct(void* p, StructInfo inf, bool resetMemory) nothrow;
+		int rt_hasStructFinalizerInSegment(void* p, StructInfo inf, in void[] segment) nothrow;
         void rt_finalize2(void* p, bool det, bool resetMemory) nothrow;
         int rt_hasFinalizerInSegment(void* p, in void[] segment) nothrow;
 
@@ -371,7 +374,7 @@ class GC
     /**
      *
      */
-    uint setAttr(void* p, uint mask) nothrow
+    uint setAttr(void* p, uint mask, StructInfo inf = null) nothrow
     {
         if (!p)
         {
@@ -389,7 +392,7 @@ class GC
                 auto biti = cast(size_t)(p - pool.baseAddr) >> pool.shiftBy;
 
                 oldb = gcx.getBits(pool, biti);
-                gcx.setBits(pool, biti, mask);
+                gcx.setBits(pool, biti, mask, inf);
             }
             return oldb;
         }
@@ -482,7 +485,7 @@ class GC
         if (gcx.running)
             onInvalidMemoryOperationError();
 
-        auto p = gcx.alloc(size + SENTINEL_EXTRA, alloc_size, bits);
+        auto p = gcx.alloc(size + SENTINEL_EXTRA, alloc_size, bits, ti);
         if (!p)
             onOutOfMemoryError();
 
@@ -600,7 +603,7 @@ class GC
                             if (bits)
                             {
                                 gcx.clrBits(pool, biti, ~BlkAttr.NONE);
-                                gcx.setBits(pool, biti, bits);
+                                gcx.setBits(pool, biti, bits, cast(StructInfo)ti);
                             }
                             else
                             {
@@ -652,7 +655,7 @@ class GC
                     {
                         immutable biti = cast(size_t)(p - pool.baseAddr) >> pool.shiftBy;
                         gcx.clrBits(pool, biti, ~BlkAttr.NONE);
-                        gcx.setBits(pool, biti, bits);
+                        gcx.setBits(pool, biti, bits, cast(StructInfo)ti);
                     }
                     alloc_size = newsz * PAGESIZE;
                     return p;
@@ -669,7 +672,7 @@ class GC
                         if (bits)
                         {
                             gcx.clrBits(pool, biti, ~BlkAttr.NONE);
-                            gcx.setBits(pool, biti, bits);
+                            gcx.setBits(pool, biti, bits, cast(StructInfo)ti);
                         }
                         else
                         {
@@ -1538,7 +1541,7 @@ struct Gcx
     {
         foreach (pool; pooltable[0 .. npools])
         {
-            if (!pool.finals.nbits) continue;
+            if (!pool.finals.nbits && !pool.structFinals.nbits) continue;
 
             if (pool.isLargeObject)
             {
@@ -1550,11 +1553,18 @@ struct Gcx
 
                     auto p = pool.baseAddr + pn * PAGESIZE;
 
-                    if (!pool.finals.test(biti) ||
-                        !rt_hasFinalizerInSegment(sentinel_add(p), segment))
+                    if (pool.structFinals.nbits && pool.structFinals.test(biti))
+                    {
+                        auto si = pool.structInfo.data[biti];
+                        if (!rt_hasStructFinalizerInSegment(sentinel_add(p), si, segment))
+                            continue;
+                        rt_finalize_struct(sentinel_add(p), si, false);
+                    }
+                    else if (!pool.finals.nbits || !pool.finals.test(biti) || !rt_hasFinalizerInSegment(sentinel_add(p), segment))
                         continue;
+                    else
+                        rt_finalize2(sentinel_add(p), false, false);
 
-                    rt_finalize2(sentinel_add(p), false, false);
                     clrBits(pool, biti, ~BlkAttr.NONE);
 
                     if (pn < pool.searchStart) pool.searchStart = pn;
@@ -1601,11 +1611,18 @@ struct Gcx
                             clearIndex = biti & GCBits.BITS_MASK;
                         }
 
-                        if (!pool.finals.test(biti) ||
-                            !rt_hasFinalizerInSegment(sentinel_add(p), segment))
+                        if (pool.structFinals.nbits && pool.structFinals.test(biti))
+                        {
+                            auto si = pool.structInfo.data[biti];
+                            if (!rt_hasStructFinalizerInSegment(sentinel_add(p), si, segment))
+                                continue;
+                            rt_finalize_struct(sentinel_add(p), si, false);
+                        }
+                        else if (!pool.finals.nbits || !pool.finals.test(biti) || !rt_hasFinalizerInSegment(sentinel_add(p), segment))
                             continue;
+                        else
+                            rt_finalize2(sentinel_add(p), false, false);
 
-                        rt_finalize2(sentinel_add(p), false, false);
                         toClear |= GCBits.BITS_1 << clearIndex;
 
                         debug(COLLECT_PRINTF) printf("\tcollecting %p\n", p);
@@ -2064,14 +2081,14 @@ struct Gcx
     }
 
 
-    void* alloc(size_t size, ref size_t alloc_size, uint bits) nothrow
+	void* alloc(size_t size, ref size_t alloc_size, uint bits, const TypeInfo ti = null) nothrow
     {
         immutable bin = findBin(size);
-        return bin < B_PAGE ? smallAlloc(bin, alloc_size, bits) :
-            bigAlloc(size, alloc_size, bits);
+        return bin < B_PAGE ? smallAlloc(bin, alloc_size, bits, ti) :
+            bigAlloc(size, alloc_size, bits, ti);
     }
 
-    void* smallAlloc(Bins bin, ref size_t alloc_size, uint bits) nothrow
+	void* smallAlloc(Bins bin, ref size_t alloc_size, uint bits, const TypeInfo ti = null) nothrow
     {
         alloc_size = binsize[bin];
 
@@ -2110,7 +2127,13 @@ struct Gcx
         // Return next item from free list
         bucket[bin] = (cast(List*)p).next;
         auto pool = (cast(List*)p).pool;
-        if (bits) setBits(pool, (p - pool.baseAddr) >> pool.shiftBy, bits);
+        if (bits)
+		{
+			if (ti)
+				setBits(pool, (p - pool.baseAddr) >> pool.shiftBy, bits, cast(StructInfo)ti.next);
+			else
+				setBits(pool, (p - pool.baseAddr) >> pool.shiftBy, bits);
+		}
         //debug(PRINTF) printf("\tmalloc => %p\n", p);
         debug (MEMSTOMP) memset(p, 0xF0, size);
         return p;
@@ -2120,7 +2143,7 @@ struct Gcx
      * Allocate a chunk of memory that is larger than a page.
      * Return null if out of memory.
      */
-    void* bigAlloc(size_t size, ref size_t alloc_size, uint bits) nothrow
+	void* bigAlloc(size_t size, ref size_t alloc_size, uint bits, const TypeInfo ti = null) nothrow
     {
         debug(PRINTF) printf("In bigAlloc.  Size:  %d\n", size);
 
@@ -2191,7 +2214,13 @@ struct Gcx
         alloc_size = npages * PAGESIZE;
         //debug(PRINTF) printf("\tp = %p\n", p);
 
-        if (bits) setBits(pool, pn * PAGESIZE >> pool.shiftBy, bits);
+		if (bits)
+		{
+			if (ti)
+				setBits(pool, pn * PAGESIZE >> pool.shiftBy, bits, cast(StructInfo)ti.next);
+			else
+				setBits(pool, pn * PAGESIZE >> pool.shiftBy, bits);
+		}
         return p;
     }
 
@@ -2630,8 +2659,12 @@ struct Gcx
                     {   byte *p = pool.baseAddr + pn * PAGESIZE;
 
                         sentinel_Invariant(sentinel_add(p));
-                        if (pool.finals.nbits && pool.finals.testClear(biti))
+
+                        if (pool.structFinals.nbits && pool.structFinals.testClear(biti))
+                            rt_finalize_struct(sentinel_add(p), pool.structInfo.data[biti], false);
+                        else if (pool.finals.nbits && pool.finals.testClear(biti))
                             rt_finalize2(sentinel_add(p), false, false);
+
                         clrBits(pool, biti, ~BlkAttr.NONE ^ BlkAttr.FINALIZE);
 
                         debug(COLLECT_PRINTF) printf("\tcollecting big %p\n", p);
@@ -2700,8 +2733,12 @@ struct Gcx
                                 sentinel_Invariant(sentinel_add(p));
 
                                 pool.freebits.set(biti);
-                                if (pool.finals.nbits && pool.finals.test(biti))
+
+                                if (pool.structFinals.nbits && pool.structFinals.test(biti))
+                                    rt_finalize_struct(sentinel_add(p), pool.structInfo.data[biti], false);
+                                else if (pool.finals.nbits && pool.finals.test(biti))
                                     rt_finalize2(sentinel_add(p), false, false);
+
                                 toClear |= GCBits.BITS_1 << clearIndex;
 
                                 List *list = cast(List *)p;
@@ -2851,6 +2888,9 @@ struct Gcx
         if (pool.finals.nbits &&
             pool.finals.test(biti))
             bits |= BlkAttr.FINALIZE;
+        if (pool.structFinals.nbits &&
+            pool.structFinals.test(biti))
+            biti |= BlkAttr.STRUCT_FINALIZE;
         if (pool.noscan.test(biti))
             bits |= BlkAttr.NO_SCAN;
         if (pool.nointerior.nbits && pool.nointerior.test(biti))
@@ -2867,7 +2907,7 @@ struct Gcx
     /**
      *
      */
-    void setBits(Pool* pool, size_t biti, uint mask) nothrow
+    void setBits(Pool* pool, size_t biti, uint mask, StructInfo inf = null) nothrow
     in
     {
         assert(pool);
@@ -2885,6 +2925,16 @@ struct Gcx
             if (!pool.finals.nbits)
                 pool.finals.alloc(pool.mark.nbits);
             pool.finals.data[dataIndex] |= orWith;
+        }
+        else if (mask & BlkAttr.STRUCT_FINALIZE)
+        {
+            if (!pool.structFinals.nbits)
+            {
+                pool.structFinals.alloc(pool.mark.nbits);
+                pool.structInfo.alloc(pool.mark.nbits);
+            }
+            pool.structFinals.data[dataIndex] |= orWith;
+            pool.structInfo.data[biti] = inf;
         }
         if (mask & BlkAttr.NO_SCAN)
         {
@@ -2926,6 +2976,11 @@ struct Gcx
 
         if (mask & BlkAttr.FINALIZE && pool.finals.nbits)
             pool.finals.data[dataIndex] &= keep;
+        else if (mask & BlkAttr.STRUCT_FINALIZE && pool.structFinals.nbits)
+        {
+            pool.structFinals.data[dataIndex] &= keep;
+            pool.structInfo.data[biti] = null;
+        }
         if (mask & BlkAttr.NO_SCAN)
             pool.noscan.data[dataIndex] &= keep;
 //        if (mask & BlkAttr.NO_MOVE && pool.nomove.nbits)
@@ -2946,6 +3001,11 @@ struct Gcx
         immutable toKeep = ~toClear;
         if (pool.finals.nbits)
             pool.finals.data[dataIndex] &= toKeep;
+        if (pool.structFinals.nbits)
+        {
+            pool.structFinals.data[dataIndex] &= toKeep;
+            pool.structInfo.data[(dataIndex << GCBits.BITS_SHIFT) - 1] = null;
+        }
 
         pool.noscan.data[dataIndex] &= toKeep;
 
@@ -3091,6 +3151,8 @@ struct Pool
     GCBits scan;        // entries that need to be scanned
     GCBits freebits;    // entries that are on the free list
     GCBits finals;      // entries that need finalizer run on them
+    GCBits structFinals;// struct entries that need a finalzier run on them
+    GCStructInfoArray structInfo; // struct info for struct entries
     GCBits noscan;      // entries that should not be scanned
     GCBits appendable;  // entries that are appendable
     GCBits nointerior;  // interior pointers should be ignored.
@@ -3211,6 +3273,8 @@ struct Pool
             freebits.Dtor();
         }
         finals.Dtor();
+        structFinals.Dtor();
+        structInfo.Dtor();
         noscan.Dtor();
         appendable.Dtor();
     }
@@ -3226,6 +3290,7 @@ struct Pool
         //scan.Invariant();
         //freebits.Invariant();
         //finals.Invariant();
+        //structFinals.Invariant();
         //noscan.Invariant();
         //appendable.Invariant();
         //nointerior.Invariant();

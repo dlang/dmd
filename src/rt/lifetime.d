@@ -22,7 +22,7 @@ static import rt.tlsgc;
 
 alias BlkInfo = GC.BlkInfo;
 alias BlkAttr = GC.BlkAttr;
-import core.exception : onOutOfMemoryError, onFinalizeError;
+import core.exception : onOutOfMemoryError, onFinalizeError, onStructFinalizeError;
 
 private
 {
@@ -52,7 +52,6 @@ extern (C) void* _d_allocmemory(size_t sz)
 {
     return GC.malloc(sz);
 }
-
 
 /**
  *
@@ -1011,6 +1010,10 @@ extern (C) void[] _d_newarraymiT(const TypeInfo ti, size_t ndims, ...)
 extern (C) void* _d_newitemT(TypeInfo ti)
 {
     auto size = ti.tsize;                  // array element size
+    auto size = ti.tsize;                  // array element size
+    auto baseFlags = !(ti.flags & 1) ? BlkAttr.NO_SCAN : 0;
+    if (auto si = cast(StructInfo)ti)
+        baseFlags |= si.xdtor ? BlkAttr.STRUCT_FINALIZE : 0;
 
     debug(PRINTF) printf("_d_newitemT(size = %d)\n", size);
     /* not sure if we need this...
@@ -1019,7 +1022,7 @@ extern (C) void* _d_newitemT(TypeInfo ti)
     else
     {*/
         // allocate a block to hold this item
-        auto ptr = GC.malloc(size, !(ti.flags & 1) ? BlkAttr.NO_SCAN : 0, ti);
+        auto ptr = GC.malloc(size, baseFlags, ti);
         debug(PRINTF) printf(" p = %p\n", ptr);
         if(size == ubyte.sizeof)
             *cast(ubyte*)ptr = 0;
@@ -1037,6 +1040,9 @@ extern (C) void* _d_newitemT(TypeInfo ti)
 extern (C) void* _d_newitemiT(TypeInfo ti)
 {
     auto size = ti.tsize;                  // array element size
+    auto baseFlags = !(ti.flags & 1) ? BlkAttr.NO_SCAN : 0;
+    if (auto si = cast(StructInfo)ti)
+        baseFlags |= si.xdtor ? BlkAttr.STRUCT_FINALIZE : 0;
 
     debug(PRINTF) printf("_d_newitemiT(size = %d)\n", size);
 
@@ -1048,7 +1054,7 @@ extern (C) void* _d_newitemiT(TypeInfo ti)
         auto isize = initializer.length;
         auto q = initializer.ptr;
 
-        auto ptr = GC.malloc(size, !(ti.flags & 1) ? BlkAttr.NO_SCAN : 0, ti);
+        auto ptr = GC.malloc(size, baseFlags, ti);
         debug(PRINTF) printf(" p = %p\n", ptr);
         if (isize == 1)
             *cast(ubyte*)ptr =  *cast(ubyte*)q;
@@ -1210,6 +1216,37 @@ extern (C) int rt_hasFinalizerInSegment(void* p, in void[] segment) nothrow
     return false;
 }
 
+extern (C) int rt_hasStructFinalizerInSegment(void* p, StructInfo inf, in void[] segment) nothrow
+{
+    if(!p)
+        return false;
+
+    return cast(size_t)(cast(void*)inf.xdtor - segment.ptr) < segment.length;
+}
+
+extern (C) void rt_finalize_struct(void* p, StructInfo inf, bool resetMemory = true) nothrow
+{
+    debug(PRINTF) printf("rt_finalize_struct(p = %p)\n", p);
+
+    if(!p)
+        return;
+
+    try
+    {
+        if (inf.xdtor)
+            inf.xdtor(p); // call destructor
+        
+        if(resetMemory)
+        {
+            ubyte[] w = cast(ubyte[])inf.m_init;
+            (cast(ubyte*) p)[0 .. w.length] = w[];
+        }
+    }
+    catch (Throwable e)
+    {
+        onStructFinalizeError(inf, e);
+    }
+}
 
 /**
  *
