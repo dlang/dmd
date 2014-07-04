@@ -26,6 +26,7 @@
 #include "module.h"
 
 char *toCppMangle(Dsymbol *s);
+void toBuffer(OutBuffer *buf, const char *id, Dsymbol *s);
 
 void mangleFunc(OutBuffer *buf, FuncDeclaration *fd, bool inParent)
 {
@@ -77,7 +78,7 @@ void mangleParent(OutBuffer *buf, Dsymbol *s)
         if (p->getIdent())
         {
             const char *id = p->ident->toChars();
-            buf->printf("%llu%s", (ulonglong)strlen(id), id);
+            toBuffer(buf, id, s);
 
             if (FuncDeclaration *f = p->isFuncDeclaration())
                 mangleFunc(buf, f, true);
@@ -93,7 +94,7 @@ void mangleDecl(OutBuffer *buf, Declaration *sthis)
 
     assert(sthis->ident);
     const char *id = sthis->ident->toChars();
-    buf->printf("%llu%s", (ulonglong)strlen(id), id);
+    toBuffer(buf, id, sthis);
 
     if (FuncDeclaration *fd = sthis->isFuncDeclaration())
     {
@@ -228,7 +229,7 @@ public:
             visit((Dsymbol *)od);
             return;
         }
-    
+
         if (FuncDeclaration *fd = od->aliassym->isFuncDeclaration())
         {
             if (!od->hasOverloads || fd->isUnique())
@@ -337,7 +338,7 @@ public:
 
         ti->getIdent();
         const char *id = ti->ident ? ti->ident->toChars() : ti->toChars();
-        buf.printf("%llu%s", (ulonglong)strlen(id), id);
+        toBuffer(&buf, id, ti);
         id = buf.extractString();
 
         //printf("TemplateInstance::mangle() %s = %s\n", ti->toChars(), ti->id);
@@ -357,7 +358,7 @@ public:
         mangleParent(&buf, s);
 
         char *id = s->ident ? s->ident->toChars() : s->toChars();
-        buf.printf("%llu%s", (ulonglong)strlen(id), id);
+        toBuffer(&buf, id, s);
         id = buf.extractString();
 
         //printf("Dsymbol::mangle() %s = %s\n", s->toChars(), id);
@@ -380,4 +381,21 @@ const char *mangleExact(FuncDeclaration *fd)
     Mangler v;
     v.mangleExact(fd);
     return v.result;
+}
+
+
+/************************************************************
+ * Write length prefixed string to buf.
+ */
+
+void toBuffer(OutBuffer *buf, const char *id, Dsymbol *s)
+{
+    size_t len = strlen(id);
+    if (len >= 8 * 1024 * 1024)         // 8 megs ought be enough for anyone
+        s->error("excessive length %llu for symbol, possible recursive expansion?", len);
+    else
+    {
+        buf->printf("%llu", (ulonglong)len);
+        buf->write(id, len);
+    }
 }

@@ -5951,6 +5951,7 @@ void TemplateInstance::tryExpandMembers(Scope *sc2)
     }
 
     expandMembers(sc2);
+
     nest--;
 }
 
@@ -5958,6 +5959,7 @@ void TemplateInstance::trySemantic3(Scope *sc2)
 {
     // extracted to a function to allow windows SEH to work without destructors in the same function
     static int nest;
+    //printf("%d\n", nest);
     if (++nest > 300)
     {
         global.gag = 0;            // ensure error message gets printed
