@@ -3338,14 +3338,17 @@ void test12290()
     static assert(is(typeof(func3a("str1" , "str2"d)) == dstring));
     static assert(is(typeof(func3b("str1"d, "str2" )) == dstring));
 
-    inout(V) get12220(K, V)(inout(V[K]) aa, K key, lazy V defaultValue) { return V.init; }
-    short[short] hash12220;
-    short res12220 = get12220(hash12220, 1, 1);
+    inout(V) get(K, V)(inout(V[K]) aa, K key, lazy V defaultValue) { return V.init; }
 
-    void get12221(K, V)(inout(V[K]) aa, K key, lazy V defaultValue) {}
+    short[short] hash12220;
+    short res12220 = get(hash12220, 1, 1);
+
     short[short] hash12221;
     enum Key12221 : short { a }
     get(hash12221, Key12221.a, Key12221.a);
+
+    int[][string] mapping13026;
+    int[] v = get(mapping13026, "test", []);
 }
 
 /******************************************/
