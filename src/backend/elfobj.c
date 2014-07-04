@@ -2687,6 +2687,8 @@ static size_t writeaddrval(int targseg, size_t offset, targ_size_t val, size_t s
 size_t ElfObj::writerel(int targseg, size_t offset, unsigned reltype,
                         IDXSYM symidx, targ_size_t val)
 {
+    assert(reltype != R_X86_64_NONE);
+
     size_t sz;
     if (I64)
     {
@@ -3176,7 +3178,7 @@ static void obj_rtinit()
 {
 #if TX86
     // create brackets for .deh_eh and .minfo sections
-    IDXSYM deh_beg, deh, deh_end, minfo_beg, minfo, minfo_end, dso_rec;
+    IDXSYM deh_beg, deh_end, minfo_beg, minfo_end, dso_rec;
     IDXSTR namidx;
     int seg;
 
@@ -3186,8 +3188,7 @@ static void obj_rtinit()
     seg = ElfObj::getsegment(".deh_beg", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
     deh_beg = MAP_SEG2SYMIDX(seg);
 
-    seg = ElfObj::getsegment(".deh_eh", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
-    deh = MAP_SEG2SYMIDX(seg);
+    ElfObj::getsegment(".deh_eh", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
 
     seg = ElfObj::getsegment(".deh_end", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
     deh_end = MAP_SEG2SYMIDX(seg);
@@ -3196,8 +3197,7 @@ static void obj_rtinit()
     seg = ElfObj::getsegment(".minfo_beg", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
     minfo_beg = MAP_SEG2SYMIDX(seg);
 
-    seg = ElfObj::getsegment(".minfo", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
-    minfo = MAP_SEG2SYMIDX(seg);
+    ElfObj::getsegment(".minfo", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
 
     seg = ElfObj::getsegment(".minfo_end", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
     minfo_end = MAP_SEG2SYMIDX(seg);
@@ -3482,12 +3482,6 @@ static void obj_rtinit()
         // ret
         buf->writeByte(0xC3);
         off += 2;
-
-        // add fake references to pin .minfo and .deh_eh sections (--gc-sections)
-        reltype = I64 ? R_X86_64_NONE : RI_TYPE_NONE;
-        off += ElfObj::writerel(codseg, off, reltype, minfo, 0);
-        off += ElfObj::writerel(codseg, off, reltype, deh, 0);
-
         Offset(codseg) = off;
 
         // put a reference into .ctors/.dtors each
