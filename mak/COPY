@@ -114,6 +114,10 @@ COPY=\
 	$(IMPDIR)\core\sys\posix\sys\wait.d \
 	$(IMPDIR)\core\sys\posix\sys\utsname.d \
 	\
+	$(IMPDIR)\core\sys\solaris\sys\procset.d \
+	$(IMPDIR)\core\sys\solaris\sys\types.d \
+	$(IMPDIR)\core\sys\solaris\sys\priocntl.d \
+	\
 	$(IMPDIR)\core\sys\windows\dbghelp.d \
 	$(IMPDIR)\core\sys\windows\dll.d \
 	$(IMPDIR)\core\sys\windows\stacktrace.d \
