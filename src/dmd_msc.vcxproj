@@ -88,6 +88,7 @@
     <ClCompile Include="cast.c" />
     <ClCompile Include="class.c" />
     <ClCompile Include="clone.c" />
+    <ClCompile Include="color.c" />
     <ClCompile Include="cond.c" />
     <ClCompile Include="constfold.c" />
     <ClCompile Include="cppmangle.c" />
@@ -285,6 +286,7 @@
     <ClInclude Include="aliasthis.h" />
     <ClInclude Include="arraytypes.h" />
     <ClInclude Include="attrib.h" />
+    <ClInclude Include="color.h" />
     <ClInclude Include="complex_t.h" />
     <ClInclude Include="cond.h" />
     <ClInclude Include="declaration.h" />
