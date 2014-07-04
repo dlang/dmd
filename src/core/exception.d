@@ -181,6 +181,71 @@ unittest
     }
 }
 
+/**
+ * Thrown on struct finalize error.
+ */
+class StructFinalizeError : Error
+{
+    StructInfo   info;
+    
+    @safe pure nothrow this( StructInfo si, Throwable next, string file = __FILE__, size_t line = __LINE__ )
+    {
+        this(si, file, line, next);
+    }
+    
+    @safe pure nothrow this( StructInfo si, string file = __FILE__, size_t line = __LINE__, Throwable next = null )
+    {
+        super( "Finalization error", file, line, next );
+        info = si;
+    }
+    
+    @safe override const string toString()
+    {
+        return "An exception was thrown while finalizing an instance of struct " ~ info.name;
+    }
+}
+
+unittest
+{
+    StructInfo info = new StructInfo;
+    info.name = "testInfo";
+    
+    {
+        auto fe = new StructFinalizeError(info);
+        assert(fe.file == __FILE__);
+        assert(fe.line == __LINE__ - 2);
+        assert(fe.next is null);
+        assert(fe.msg == "Finalization error");
+        assert(fe.info == info);
+    }
+    
+    {
+        auto fe = new StructFinalizeError(info, new Exception("It's an Exception!"));
+        assert(fe.file == __FILE__);
+        assert(fe.line == __LINE__ - 2);
+        assert(fe.next !is null);
+        assert(fe.msg == "Finalization error");
+        assert(fe.info == info);
+    }
+    
+    {
+        auto fe = new StructFinalizeError(info, "hello", 42);
+        assert(fe.file == "hello");
+        assert(fe.line == 42);
+        assert(fe.next is null);
+        assert(fe.msg == "Finalization error");
+        assert(fe.info == info);
+    }
+    
+    {
+        auto fe = new StructFinalizeError(info, "hello", 42, new Exception("It's an Exception!"));
+        assert(fe.file == "hello");
+        assert(fe.line == 42);
+        assert(fe.next !is null);
+        assert(fe.msg == "Finalization error");
+        assert(fe.info == info);
+    }
+}
 
 /**
  * Thrown on hidden function error.
@@ -485,6 +550,24 @@ extern (C) void onRangeError( string file = __FILE__, size_t line = __LINE__ ) @
 extern (C) void onFinalizeError( ClassInfo info, Throwable e, string file = __FILE__, size_t line = __LINE__ ) @safe pure nothrow
 {
     throw new FinalizeError( info, file, line, e );
+}
+
+
+/**
+ * A callback for struct finalize errors in D.  A StructFinalizeError will be thrown.
+ *
+ * Params:
+ *  info = The StructInfo instance for the object that failed finalization.
+ *  e = The exception thrown during finalization.
+ *  file = The name of the file that signaled this error.
+ *  line = The line number on which this error occurred.
+ *
+ * Throws:
+ *  FinalizeError.
+ */
+extern (C) void onStructFinalizeError( StructInfo info, Throwable e, string file = __FILE__, size_t line = __LINE__ ) @safe pure nothrow
+{
+    throw new StructFinalizeError( info, file, line, e );
 }
 
 
