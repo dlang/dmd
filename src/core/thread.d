@@ -1466,7 +1466,6 @@ private:
     }
 
     __gshared Context*  sm_cbeg;
-    __gshared size_t    sm_clen;
 
     __gshared Thread    sm_tbeg;
     __gshared size_t    sm_tlen;
@@ -1513,7 +1512,6 @@ private:
                         sm_cbeg.prev = c;
                     }
                     sm_cbeg = c;
-                    ++sm_clen;
                    return;
                 }
             }
@@ -1541,7 +1539,6 @@ private:
             c.next.prev = c.prev;
         if( sm_cbeg == c )
             sm_cbeg = c.next;
-        --sm_clen;
         // NOTE: Don't null out c.next or c.prev because opApply currently
         //       follows c.next after removing a node.  This could be easily
         //       addressed by simply returning the next node from this
