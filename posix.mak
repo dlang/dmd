@@ -70,7 +70,7 @@ DDOCFLAGS=-c -w -o- -Isrc -Iimport -version=CoreDdoc
 
 CFLAGS=$(MODEL_FLAG) -O $(PIC)
 ifeq (solaris,$(OS))
-    CFLAGS+=-D_REENTRANT
+    CFLAGS+=-D_REENTRANT  # for thread-safe errno
 endif
 
 ifeq (osx,$(OS))
