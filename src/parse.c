@@ -5749,13 +5749,14 @@ int Parser::isParameters(Token **pt)
                 t = peek(t);
                 break;
 
+            case TOKin:
+            case TOKout:
 #if D1INOUT
             case TOKinout:
 #endif
-            case TOKin:
-            case TOKout:
             case TOKref:
             case TOKlazy:
+            case TOKscope:
             case TOKfinal:
             case TOKauto:
                 continue;
