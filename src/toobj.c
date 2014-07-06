@@ -368,6 +368,14 @@ void ClassDeclaration::toObjFile(bool multiobj)
     flags |= ClassFlags::hasTypeInfo;
     if (ctor)
         flags |= ClassFlags::hasCtor;
+    for (ClassDeclaration *cd = this; cd; cd = cd->baseClass)
+    {
+        if (cd->dtor)
+        {
+            flags |= ClassFlags::hasDtor;
+            break;
+        }
+    }
     if (isabstract)
         flags |= ClassFlags::isAbstract;
     for (ClassDeclaration *cd = this; cd; cd = cd->baseClass)
