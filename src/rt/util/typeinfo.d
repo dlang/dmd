@@ -36,6 +36,9 @@ if (is(T == float) || is(T == double) || is(T == real))
 
     size_t hashOf(T value) @trusted
     {
+        if (value == 0) // +0.0 and -0.0
+            value = 0;
+
         static if (is(T == float))  // special case?
             return *cast(uint*)&value;
         else
@@ -71,6 +74,8 @@ if (is(T == cfloat) || is(T == cdouble) || is(T == creal))
 
     size_t hashOf(T value) @trusted
     {
+        if (value == 0 + 0i)
+            value = 0 + 0i;
         return rt.util.hash.hashOf(&value, T.sizeof);
     }
 }
@@ -113,6 +118,172 @@ if (is(T ==  float) || is(T ==  double) || is(T ==  real) ||
 
     size_t hashOf(T[] value)
     {
-        return rt.util.hash.hashOf(value.ptr, value.length * T.sizeof);
+        size_t h = 0;
+        foreach (e; value)
+            h += Floating!T.hashOf(e);
+        return h;
+    }
+}
+
+version(unittest)
+{
+    alias TypeTuple(T...) = T;
+}
+unittest
+{
+    // Bugzilla 13052
+
+    static struct SX(F) { F f; }
+    TypeInfo ti;
+
+    // real types
+    foreach (F; TypeTuple!(float, double, real))
+    {
+        alias S = SX!F;
+        F f1 = +0.0,
+          f2 = -0.0;
+
+        assert(f1  == f2);
+        assert(f1 !is f2);
+        ti = typeid(F);
+        assert(ti.getHash(&f1) == ti.getHash(&f2));
+
+        F[] a1 = [f1, f1, f1];
+        F[] a2 = [f2, f2, f2];
+        assert(a1  == a2);
+        assert(a1 !is a2);
+        ti = typeid(F[]);
+        assert(ti.getHash(&a1) == ti.getHash(&a2));
+
+        F[][] aa1 = [a1, a1, a1];
+        F[][] aa2 = [a2, a2, a2];
+        assert(aa1  == aa2);
+        assert(aa1 !is aa2);
+        ti = typeid(F[][]);
+        assert(ti.getHash(&aa1) == ti.getHash(&aa2));
+
+        S s1 = {f1},
+          s2 = {f2};
+        assert(s1  == s2);
+        assert(s1 !is s2);
+        ti = typeid(S);
+        assert(ti.getHash(&s1) == ti.getHash(&s2));
+
+        S[] da1 = [S(f1), S(f1), S(f1)],
+            da2 = [S(f2), S(f2), S(f2)];
+        assert(da1  == da2);
+        assert(da1 !is da2);
+        ti = typeid(S[]);
+        assert(ti.getHash(&da1) == ti.getHash(&da2));
+
+        S[3] sa1 = {f1},
+             sa2 = {f2};
+        assert(sa1  == sa2);
+        assert(sa1 !is sa2);
+        ti = typeid(S[3]);
+        assert(ti.getHash(&sa1) == ti.getHash(&sa2));
+    }
+
+    // imaginary types
+    foreach (F; TypeTuple!(ifloat, idouble, ireal))
+    {
+        alias S = SX!F;
+        F f1 = +0.0i,
+          f2 = -0.0i;
+
+        assert(f1  == f2);
+        assert(f1 !is f2);
+        ti = typeid(F);
+        assert(ti.getHash(&f1) == ti.getHash(&f2));
+
+        F[] a1 = [f1, f1, f1];
+        F[] a2 = [f2, f2, f2];
+        assert(a1  == a2);
+        assert(a1 !is a2);
+        ti = typeid(F[]);
+        assert(ti.getHash(&a1) == ti.getHash(&a2));
+
+        F[][] aa1 = [a1, a1, a1];
+        F[][] aa2 = [a2, a2, a2];
+        assert(aa1  == aa2);
+        assert(aa1 !is aa2);
+        ti = typeid(F[][]);
+        assert(ti.getHash(&aa1) == ti.getHash(&aa2));
+
+        S s1 = {f1},
+          s2 = {f2};
+        assert(s1  == s2);
+        assert(s1 !is s2);
+        ti = typeid(S);
+        assert(ti.getHash(&s1) == ti.getHash(&s2));
+
+        S[] da1 = [S(f1), S(f1), S(f1)],
+            da2 = [S(f2), S(f2), S(f2)];
+        assert(da1  == da2);
+        assert(da1 !is da2);
+        ti = typeid(S[]);
+        assert(ti.getHash(&da1) == ti.getHash(&da2));
+
+        S[3] sa1 = {f1},
+             sa2 = {f2};
+        assert(sa1  == sa2);
+        assert(sa1 !is sa2);
+        ti = typeid(S[3]);
+        assert(ti.getHash(&sa1) == ti.getHash(&sa2));
+    }
+
+    // complex types
+    foreach (F; TypeTuple!(cfloat, cdouble, creal))
+    {
+        alias S = SX!F;
+        F[4] f = [+0.0 + 0.0i,
+                  +0.0 - 0.0i,
+                  -0.0 + 0.0i,
+                  -0.0 - 0.0i];
+
+        foreach (i, f1; f) foreach (j, f2; f) if (i != j)
+        {
+            assert(f1 == 0 + 0i);
+
+            assert(f1  == f2);
+            assert(f1 !is f2);
+            ti = typeid(F);
+            assert(ti.getHash(&f1) == ti.getHash(&f2));
+
+            F[] a1 = [f1, f1, f1];
+            F[] a2 = [f2, f2, f2];
+            assert(a1  == a2);
+            assert(a1 !is a2);
+            ti = typeid(F[]);
+            assert(ti.getHash(&a1) == ti.getHash(&a2));
+
+            F[][] aa1 = [a1, a1, a1];
+            F[][] aa2 = [a2, a2, a2];
+            assert(aa1  == aa2);
+            assert(aa1 !is aa2);
+            ti = typeid(F[][]);
+            assert(ti.getHash(&aa1) == ti.getHash(&aa2));
+
+            S s1 = {f1},
+              s2 = {f2};
+            assert(s1  == s2);
+            assert(s1 !is s2);
+            ti = typeid(S);
+            assert(ti.getHash(&s1) == ti.getHash(&s2));
+
+            S[] da1 = [S(f1), S(f1), S(f1)],
+                da2 = [S(f2), S(f2), S(f2)];
+            assert(da1  == da2);
+            assert(da1 !is da2);
+            ti = typeid(S[]);
+            assert(ti.getHash(&da1) == ti.getHash(&da2));
+
+            S[3] sa1 = {f1},
+                 sa2 = {f2};
+            assert(sa1  == sa2);
+            assert(sa1 !is sa2);
+            ti = typeid(S[3]);
+            assert(ti.getHash(&sa1) == ti.getHash(&sa2));
+        }
     }
 }
