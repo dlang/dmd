@@ -220,6 +220,16 @@ MANIFEST=\
 	src\rt\tlsgc.d \
 	src\rt\trace.d \
 	\
+	src\rt\util\array.d \
+	src\rt\util\hash.d \
+	src\rt\util\random.d \
+	src\rt\util\string.d \
+	src\rt\util\utf.d \
+	src\rt\util\container\array.d \
+	src\rt\util\container\common.d \
+	src\rt\util\container\hashtab.d \
+	src\rt\util\container\treap.d \
+	\
 	src\rt\typeinfo\ti_AC.d \
 	src\rt\typeinfo\ti_Acdouble.d \
 	src\rt\typeinfo\ti_Acfloat.d \
@@ -231,8 +241,8 @@ MANIFEST=\
 	src\rt\typeinfo\ti_Along.d \
 	src\rt\typeinfo\ti_Areal.d \
 	src\rt\typeinfo\ti_Ashort.d \
-	src\rt\typeinfo\ti_C.d \
 	src\rt\typeinfo\ti_byte.d \
+	src\rt\typeinfo\ti_C.d \
 	src\rt\typeinfo\ti_cdouble.d \
 	src\rt\typeinfo\ti_cfloat.d \
 	src\rt\typeinfo\ti_char.d \
@@ -255,15 +265,5 @@ MANIFEST=\
 	src\rt\typeinfo\ti_ushort.d \
 	src\rt\typeinfo\ti_void.d \
 	src\rt\typeinfo\ti_wchar.d \
-	\
-	src\rt\util\array.d \
-	src\rt\util\hash.d \
-	src\rt\util\random.d \
-	src\rt\util\string.d \
-	src\rt\util\utf.d \
-	src\rt\util\container\array.d \
-	src\rt\util\container\common.d \
-	src\rt\util\container\hashtab.d \
-	src\rt\util\container\treap.d \
 	\
 	src\etc\linux\memoryerror.d

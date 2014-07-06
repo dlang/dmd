@@ -26,10 +26,10 @@ SRCS=\
 	src\core\stdc\math.d \
 	src\core\stdc\signal.d \
 	src\core\stdc\stdarg.d \
+	src\core\stdc\stddef.d \
+	src\core\stdc\stdint.d \
 	src\core\stdc\stdio.d \
 	src\core\stdc\stdlib.d \
-	src\core\stdc\stdint.d \
-	src\core\stdc\stddef.d \
 	src\core\stdc\string.d \
 	src\core\stdc\time.d \
 	src\core\stdc\wchar_.d \
