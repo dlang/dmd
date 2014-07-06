@@ -359,7 +359,12 @@ bool needOpEquals(StructDeclaration *sd)
             continue;
         Type *tv = v->type->toBasetype();
         if (tv->isfloating())
+        {
+            // This is necessray for:
+            //  1. comparison of +0.0 and -0.0 should be true.
+            //  2. comparison of NANs should be false always.
             goto Lneed;
+        }
         if (tv->ty == Tarray)
             goto Lneed;
         if (tv->ty == Taarray)
@@ -697,7 +702,11 @@ bool needToHash(StructDeclaration *sd)
             continue;
         Type *tv = v->type->toBasetype();
         if (tv->isfloating())
+        {
+            // This is necessray for:
+            //  1. comparison of +0.0 and -0.0 should be true.
             goto Lneed;
+        }
         if (tv->ty == Tarray)
             goto Lneed;
         if (tv->ty == Taarray)
