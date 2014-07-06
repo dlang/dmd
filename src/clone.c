@@ -523,7 +523,6 @@ FuncDeclaration *buildXopEquals(StructDeclaration *sd, Scope *sc)
     parameters->push(new Parameter(STCref | STCconst, sd->type, Id::p, NULL));
     parameters->push(new Parameter(STCref | STCconst, sd->type, Id::q, NULL));
     TypeFunction *tf = new TypeFunction(parameters, Type::tbool, 0, LINKd);
-    tf = (TypeFunction *)tf->semantic(loc, sc);
 
     Identifier *id = Id::xopEquals;
     FuncDeclaration *fop = new FuncDeclaration(declLoc, Loc(), id, STCstatic, tf);
@@ -650,7 +649,6 @@ FuncDeclaration *buildXopCmp(StructDeclaration *sd, Scope *sc)
     parameters->push(new Parameter(STCref | STCconst, sd->type, Id::p, NULL));
     parameters->push(new Parameter(STCref | STCconst, sd->type, Id::q, NULL));
     TypeFunction *tf = new TypeFunction(parameters, Type::tint32, 0, LINKd);
-    tf = (TypeFunction *)tf->semantic(loc, sc);
 
     Identifier *id = Id::xopCmp;
     FuncDeclaration *fop = new FuncDeclaration(declLoc, Loc(), id, STCstatic, tf);
@@ -765,7 +763,6 @@ FuncDeclaration *buildXtoHash(StructDeclaration *sd, Scope *sc)
     Parameters *parameters = new Parameters();
     parameters->push(new Parameter(STCref | STCconst, sd->type, Id::p, NULL));
     TypeFunction *tf = new TypeFunction(parameters, Type::thash_t, 0, LINKd, STCnothrow | STCtrusted);
-    tf = (TypeFunction *)tf->semantic(loc, sc);
 
     Identifier *id = Id::xtoHash;
     FuncDeclaration *fop = new FuncDeclaration(declLoc, Loc(), id, STCstatic, tf);
