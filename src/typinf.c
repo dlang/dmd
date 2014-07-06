@@ -92,7 +92,6 @@ Expression *Type::getInternalTypeInfo(Scope *sc)
 }
 
 
-FuncDeclaration *search_toHash(StructDeclaration *sd);
 FuncDeclaration *search_toString(StructDeclaration *sd);
 
 /****************************************************
@@ -131,11 +130,19 @@ void Type::genTypeInfo(Scope *sc)
             // Generate COMDAT
             if (sc)                     // if in semantic() pass
             {
-                // Find module that will go all the way to an object file
-                Module *m = sc->module->importedFrom;
-                m->members->push(t->vtinfo);
+                if (sc->func && !sc->func->isInstantiated() && sc->func->inNonRoot())
+                {
+                    // Bugzilla 13043: Avoid linking TypeInfo if it's not
+                    // necessary for root module compilation
+                }
+                else
+                {
+                    // Find module that will go all the way to an object file
+                    Module *m = sc->module->importedFrom;
+                    m->members->push(t->vtinfo);
 
-                semanticTypeInfo(sc, t);
+                    semanticTypeInfo(sc, t);
+                }
             }
             else                        // if in obj generation pass
             {
@@ -586,7 +593,7 @@ public:
         else
             dtxoff(pdt, sd->toInitializer(), 0);    // init.ptr
 
-        if (FuncDeclaration *fd = search_toHash(sd))
+        if (FuncDeclaration *fd = sd->xhash)
         {
             dtxoff(pdt, toSymbol(fd), 0);
             TypeFunction *tf = (TypeFunction *)fd->type;
