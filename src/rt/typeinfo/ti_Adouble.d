@@ -13,63 +13,36 @@
  */
 module rt.typeinfo.ti_Adouble;
 
-private import rt.typeinfo.ti_double;
-private import rt.util.hash;
+private import rt.util.typeinfo;
 
 // double[]
 
 class TypeInfo_Ad : TypeInfo_Array
 {
+    alias F = double;
+
     override bool opEquals(Object o) { return TypeInfo.opEquals(o); }
 
-    override string toString() const { return "double[]"; }
+    override string toString() const { return (F[]).stringof; }
 
     override size_t getHash(in void* p) @trusted const
     {
-        double[] s = *cast(double[]*)p;
-        return rt.util.hash.hashOf(s.ptr, s.length * double.sizeof);
+        return Array!F.hashOf(*cast(F[]*)p);
     }
 
     override bool equals(in void* p1, in void* p2) const
     {
-        double[] s1 = *cast(double[]*)p1;
-        double[] s2 = *cast(double[]*)p2;
-        size_t len = s1.length;
-
-        if (len != s2.length)
-            return 0;
-        for (size_t u = 0; u < len; u++)
-        {
-            if (!TypeInfo_d._equals(s1[u], s2[u]))
-                return false;
-        }
-        return true;
+        return Array!F.equals(*cast(F[]*)p1, *cast(F[]*)p2);
     }
 
     override int compare(in void* p1, in void* p2) const
     {
-        double[] s1 = *cast(double[]*)p1;
-        double[] s2 = *cast(double[]*)p2;
-        size_t len = s1.length;
-
-        if (s2.length < len)
-            len = s2.length;
-        for (size_t u = 0; u < len; u++)
-        {
-            int c = TypeInfo_d._compare(s1[u], s2[u]);
-            if (c)
-                return c;
-        }
-        if (s1.length < s2.length)
-            return -1;
-        else if (s1.length > s2.length)
-            return 1;
-        return 0;
+        return Array!F.compare(*cast(F[]*)p1, *cast(F[]*)p2);
     }
 
     override @property inout(TypeInfo) next() inout
     {
-        return cast(inout)typeid(double);
+        return cast(inout)typeid(F);
     }
 }
 
@@ -77,10 +50,12 @@ class TypeInfo_Ad : TypeInfo_Array
 
 class TypeInfo_Ap : TypeInfo_Ad
 {
-    override string toString() const { return "idouble[]"; }
+    alias F = idouble;
+
+    override string toString() const { return (F[]).stringof; }
 
     override @property inout(TypeInfo) next() inout
     {
-        return cast(inout)typeid(idouble);
+        return cast(inout)typeid(F);
     }
 }

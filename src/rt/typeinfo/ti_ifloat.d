@@ -19,10 +19,9 @@ private import rt.typeinfo.ti_float;
 
 class TypeInfo_o : TypeInfo_f
 {
-    @trusted:
-    const:
-    pure:
-    nothrow:
+  pure:
+  nothrow:
+  @safe:
 
-    override string toString() const pure nothrow @safe { return "ifloat"; }
+    override string toString() const { return ifloat.stringof; }
 }

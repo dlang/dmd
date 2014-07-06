@@ -13,78 +13,55 @@
  */
 module rt.typeinfo.ti_real;
 
-private import rt.util.hash;
+private import rt.util.typeinfo;
 
 // real
 
 class TypeInfo_e : TypeInfo
 {
-    @trusted:
-    pure:
-    nothrow:
+  pure:
+  nothrow:
+  @safe:
 
-    static bool _equals(real f1, real f2)
+    alias F = real;
+
+    override string toString() const { return F.stringof; }
+
+    override size_t getHash(in void* p) const @trusted
     {
-        return f1 == f2;
+        return Floating!F.hashOf(*cast(F*)p);
     }
 
-    static int _compare(real d1, real d2)
+    override bool equals(in void* p1, in void* p2) const @trusted
     {
-        if (d1 != d1 || d2 != d2)         // if either are NaN
-        {
-            if (d1 != d1)
-            {
-                if (d2 != d2)
-                    return 0;
-                return -1;
-            }
-            return 1;
-        }
-        return (d1 == d2) ? 0 : ((d1 < d2) ? -1 : 1);
+        return Floating!F.equals(*cast(F*)p1, *cast(F*)p2);
     }
 
-    const:
-
-    override string toString() const pure nothrow @safe { return "real"; }
-
-    override size_t getHash(in void* p)
+    override int compare(in void* p1, in void* p2) const @trusted
     {
-        return rt.util.hash.hashOf(p, real.sizeof);
+        return Floating!F.compare(*cast(F*)p1, *cast(F*)p2);
     }
 
-    override bool equals(in void* p1, in void* p2)
+    override @property size_t tsize() const
     {
-        return _equals(*cast(real *)p1, *cast(real *)p2);
+        return F.sizeof;
     }
 
-    override int compare(in void* p1, in void* p2)
+    override void swap(void *p1, void *p2) const @trusted
     {
-        return _compare(*cast(real *)p1, *cast(real *)p2);
+        F t = *cast(F*)p1;
+        *cast(F*)p1 = *cast(F*)p2;
+        *cast(F*)p2 = t;
     }
 
-    override @property size_t tsize() nothrow pure
+    override const(void)[] init() const @trusted
     {
-        return real.sizeof;
+        static immutable F r;
+        return (&r)[0 .. 1];
     }
 
-    override void swap(void *p1, void *p2)
+    override @property size_t talign() const
     {
-        real t;
-
-        t = *cast(real *)p1;
-        *cast(real *)p1 = *cast(real *)p2;
-        *cast(real *)p2 = t;
-    }
-
-    override const(void)[] init() nothrow pure
-    {
-        static immutable real r;
-
-        return (cast(real *)&r)[0 .. 1];
-    }
-
-    override @property size_t talign() nothrow pure
-    {
-        return real.alignof;
+        return F.alignof;
     }
 }

@@ -13,81 +13,56 @@
  */
 module rt.typeinfo.ti_cfloat;
 
-private import rt.util.hash;
+private import rt.util.typeinfo;
 
 // cfloat
 
 class TypeInfo_q : TypeInfo
 {
-    @trusted:
-    pure:
-    nothrow:
+  pure:
+  nothrow:
+  @safe:
 
-    static bool _equals(cfloat f1, cfloat f2)
+    alias F = cfloat;
+
+    override string toString() const { return F.stringof; }
+
+    override size_t getHash(in void* p) const @trusted
     {
-        return f1 == f2;
+        return Floating!F.hashOf(*cast(F*)p);
     }
 
-    static int _compare(cfloat f1, cfloat f2)
+    override bool equals(in void* p1, in void* p2) const @trusted
     {
-        int result;
-
-        if (f1.re < f2.re)
-            result = -1;
-        else if (f1.re > f2.re)
-            result = 1;
-        else if (f1.im < f2.im)
-            result = -1;
-        else if (f1.im > f2.im)
-            result = 1;
-        else
-            result = 0;
-        return result;
+        return Floating!F.equals(*cast(F*)p1, *cast(F*)p2);
     }
 
-    const:
-
-    override string toString() const pure nothrow @safe { return "cfloat"; }
-
-    override size_t getHash(in void* p)
+    override int compare(in void* p1, in void* p2) const @trusted
     {
-        return rt.util.hash.hashOf(p, cfloat.sizeof);
+        return Floating!F.compare(*cast(F*)p1, *cast(F*)p2);
     }
 
-    override bool equals(in void* p1, in void* p2)
+    override @property size_t tsize() const
     {
-        return _equals(*cast(cfloat *)p1, *cast(cfloat *)p2);
+        return F.sizeof;
     }
 
-    override int compare(in void* p1, in void* p2)
+    override void swap(void *p1, void *p2) const @trusted
     {
-        return _compare(*cast(cfloat *)p1, *cast(cfloat *)p2);
+        F t = *cast(F*)p1;
+        *cast(F*)p1 = *cast(F*)p2;
+        *cast(F*)p2 = t;
     }
 
-    override @property size_t tsize() nothrow pure
+    override const(void)[] init() const @trusted
     {
-        return cfloat.sizeof;
+        static immutable F r;
+        return (&r)[0 .. 1];
     }
 
-    override void swap(void *p1, void *p2)
+    override @property size_t talign() const
     {
-        cfloat t;
-
-        t = *cast(cfloat *)p1;
-        *cast(cfloat *)p1 = *cast(cfloat *)p2;
-        *cast(cfloat *)p2 = t;
-    }
-
-    override const(void)[] init() nothrow pure
-    {
-        static immutable cfloat r;
-
-        return (cast(cfloat *)&r)[0 .. 1];
-    }
-
-    override @property size_t talign() nothrow pure
-    {
-        return cfloat.alignof;
+        return F.alignof;
     }
 
     version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
