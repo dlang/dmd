@@ -42,6 +42,31 @@ void test10077i()
 }
 
 /***************************************************/
+// 13050
+
+void func13050(int);
+template decl13050(Arg)
+{
+    void decl13050(Arg);
+}
+template problem13050(Arg)
+{
+    pragma(mangle, "foobar")
+        void problem13050(Arg);
+}
+template workaround13050(Arg)
+{
+    pragma(mangle, "foobar")
+        void func(Arg);
+    alias workaround13050 = func;
+}
+
+static assert(is(typeof(&func13050) == void function(int)));
+static assert(is(typeof(&decl13050!int) == void function(int)));
+static assert(is(typeof(&problem13050!int) == void function(int)));
+static assert(is(typeof(&workaround13050!int) == void function(int)));
+
+/***************************************************/
 // 2774
 
 int foo2774(int n) { return 0; }

@@ -1111,12 +1111,6 @@ Lnodecl:
     }
 }
 
-bool PragmaDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
-{
-    *ps = NULL;
-    return true;
-}
-
 const char *PragmaDeclaration::kind()
 {
     return "pragma";
