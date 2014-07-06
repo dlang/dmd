@@ -158,6 +158,7 @@ enum TOK
         TOKat,
         TOKline,
         TOKfile,
+        TOKD2kwd,
 #if DMDV2
         TOKtraits,
         TOKoverloadset,

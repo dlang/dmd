@@ -655,6 +655,12 @@ void Lexer::scan(Token *t)
                 }
                 t->ident = id;
                 t->value = (enum TOK) id->value;
+                if (t->value == TOKD2kwd)
+                {
+                    if (global.params.Dversion >= 3 && mod && mod->isRoot())
+                        warning(loc, "%s is a D2 keyword", id->toChars());
+                    t->value = TOKidentifier;
+                }
                 anyToken = 1;
                 if (*t->ptr == '_')     // if special identifier token
                 {
@@ -2921,7 +2927,6 @@ static Keyword keywords[] =
     {   "invariant",    TOKinvariant    },
     {   "unittest",     TOKunittest     },
     {   "version",      TOKversion      },
-    //{ "manifest",     TOKmanifest     },
 
     // Added after 1.0
     {   "__argTypes",   TOKargTypes     },
@@ -2929,17 +2934,19 @@ static Keyword keywords[] =
     {   "__LINE__",     TOKline         },
     {   "ref",          TOKref          },
     {   "macro",        TOKmacro        },
-#if DMDV2
-    {   "pure",         TOKpure         },
-    {   "nothrow",      TOKnothrow      },
-    {   "__thread",     TOKtls          },
-    {   "__gshared",    TOKgshared      },
-    {   "__traits",     TOKtraits       },
-    {   "__vector",     TOKvector       },
-    {   "__overloadset", TOKoverloadset },
-    {   "shared",       TOKshared       },
-    {   "immutable",    TOKimmutable    },
-#endif
+
+    {   "pure",         TOKD2kwd        },
+    {   "nothrow",      TOKD2kwd        },
+    {   "__parameters", TOKD2kwd        },
+    {   "__gshared",    TOKD2kwd        },
+    {   "__traits",     TOKD2kwd        },
+    {   "__vector",     TOKD2kwd        },
+    {   "__overloadset", TOKD2kwd       },
+    {   "__MODULE__",   TOKD2kwd        },
+    {   "__FUNCTION__", TOKD2kwd        },
+    {   "__PRETTY_FUNCTION__", TOKD2kwd },
+    {   "shared",       TOKD2kwd        },
+    {   "immutable",    TOKD2kwd        },
 };
 
 int Token::isKeyword()
