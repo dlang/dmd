@@ -1063,6 +1063,29 @@ void test12650()
 }
 
 /***************************************************/
+// 13044
+
+void test13044()
+{
+    static struct Good
+    {
+        const int i;
+    }
+
+    static struct Bad
+    {
+        const int i;
+        ~this() {}
+    }
+
+    Good good1, good2;
+    static assert(!__traits(compiles, { good1 = good2; })); // OK
+
+    Bad bad1, bad2;
+    static assert(!__traits(compiles, { bad1 = bad2; }));   // OK <- fails
+}
+
+/***************************************************/
 
 int main()
 {
@@ -1090,6 +1113,7 @@ int main()
     test4791();
     test12212();
     test12650();
+    test13044();
 
     printf("Success\n");
     return 0;
