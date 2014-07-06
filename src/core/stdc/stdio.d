@@ -662,8 +662,8 @@ version( MinGW )
   // No unsafe pointer manipulation.
   extern (D) @trusted
   {
-    void rewind(FILE* stream)   { fseek(stream,0L,SEEK_SET); stream._flag&=~_IOERR; }
-    pure void clearerr(FILE* stream) { stream._flag &= ~(_IOERR|_IOEOF);                 }
+    void rewind(FILE* stream)   { fseek(stream,0L,SEEK_SET); stream._flag = stream._flag & ~_IOERR; }
+    pure void clearerr(FILE* stream) { stream._flag = stream._flag & ~(_IOERR|_IOEOF);                 }
     pure int  feof(FILE* stream)     { return stream._flag&_IOEOF;                       }
     pure int  ferror(FILE* stream)   { return stream._flag&_IOERR;                       }
   }
@@ -680,8 +680,8 @@ else version( Win32 )
   // No unsafe pointer manipulation.
   extern (D) @trusted
   {
-    void rewind(FILE* stream)   { fseek(stream,0L,SEEK_SET); stream._flag&=~_IOERR; }
-    pure void clearerr(FILE* stream) { stream._flag &= ~(_IOERR|_IOEOF);                 }
+    void rewind(FILE* stream)   { fseek(stream,0L,SEEK_SET); stream._flag= stream._flag & ~_IOERR; }
+    pure void clearerr(FILE* stream) { stream._flag = stream._flag & ~(_IOERR|_IOEOF);                 }
     pure int  feof(FILE* stream)     { return stream._flag&_IOEOF;                       }
     pure int  ferror(FILE* stream)   { return stream._flag&_IOERR;                       }
   }
@@ -696,8 +696,8 @@ else version( Win64 )
   // No unsafe pointer manipulation.
   extern (D) @trusted
   {
-    void rewind(FILE* stream)   { fseek(stream,0L,SEEK_SET); stream._flag&=~_IOERR; }
-    pure void clearerr(FILE* stream) { stream._flag &= ~(_IOERR|_IOEOF);                 }
+    void rewind(FILE* stream)   { fseek(stream,0L,SEEK_SET); stream._flag = stream._flag & ~_IOERR; }
+    pure void clearerr(FILE* stream) { stream._flag = stream._flag & ~(_IOERR|_IOEOF);                 }
     pure int  feof(FILE* stream)     { return stream._flag&_IOEOF;                       }
     pure int  ferror(FILE* stream)   { return stream._flag&_IOERR;                       }
     pure int  fileno(FILE* stream)   { return stream._file;                              }
@@ -716,16 +716,26 @@ else version( Win64 )
 
     int _fputc_nolock(int c, FILE *fp)
     {
-        if (--fp._cnt >= 0)
-            return *fp._ptr++ = cast(char)c;
+        fp._cnt = fp._cnt - 1;
+        if (fp._cnt >= 0)
+        {
+            *fp._ptr = cast(char)c;
+            fp._ptr = fp._ptr + 1;
+            return cast(char)c;
+        }
         else
             return _flsbuf(c, fp);
     }
 
     int _fgetc_nolock(FILE *fp)
     {
-        if (--fp._cnt >= 0)
-            return *fp._ptr++;
+        fp._cnt = fp._cnt - 1;
+        if (fp._cnt >= 0)
+        {
+            char c = *fp._ptr;
+            fp._ptr = fp._ptr + 1;
+            return c;
+        }
         else
             return _filbuf(fp);
     }
