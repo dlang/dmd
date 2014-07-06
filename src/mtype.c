@@ -4697,49 +4697,79 @@ printf("index->ito->ito = x%x\n", index->ito->ito);
             error(loc, "can't have associative array key of %s", index->toBasetype()->toChars());
         case Terror:
             return Type::terror;
-        case Tstruct:
-        {
-            /* AA's need opEquals and opCmp. Issue error if not correctly set up.
-             */
-            StructDeclaration *sd = ((TypeStruct *)index->toBasetype())->sym;
-            if (sd->scope)
-                sd->semantic(NULL);
-
-            // duplicate a part of StructDeclaration::semanticTypeInfoMembers
-            if (sd->xeq &&
-                sd->xeq->scope &&
-                sd->xeq->semanticRun < PASSsemantic3done)
-            {
-                unsigned errors = global.startGagging();
-                sd->xeq->semantic3(sd->xeq->scope);
-                if (global.endGagging(errors))
-                    sd->xeq = sd->xerreq;
-            }
-
-            if (sd->xcmp &&
-                sd->xcmp->scope &&
-                sd->xcmp->semanticRun < PASSsemantic3done)
-            {
-                unsigned errors = global.startGagging();
-                sd->xcmp->semantic3(sd->xcmp->scope);
-                if (global.endGagging(errors))
-                    sd->xcmp = sd->xerrcmp;
-            }
-
-            if (sd->xeq == sd->xerreq)
-            {
-                error(loc, "associative array key type %s does not have 'const bool opEquals(ref const %s)' member function",
-                        index->toBasetype()->toChars(), sd->toChars());
-                return Type::terror;
-            }
-            // the opCmp requirement can go away once druntime fully switched to using opEquals
-            if (sd->xcmp == sd->xerrcmp)
-            {
-                error(loc, "associative array key type %s does not have 'const int opCmp(ref const %s)' member function",
-                        index->toBasetype()->toChars(), sd->toChars());
-                return Type::terror;
-            }
+        default:
             break;
+    }
+    Type *tbase = index->baseElemOf();
+    while (tbase->ty == Tarray)
+        tbase = tbase->nextOf()->baseElemOf();
+    if (tbase->ty == Tstruct)
+    {
+        /* AA's need typeid(index).equals() and getHash(). Issue error if not correctly set up.
+         */
+        StructDeclaration *sd = ((TypeStruct *)tbase)->sym;
+        if (sd->scope)
+            sd->semantic(NULL);
+
+        // duplicate a part of StructDeclaration::semanticTypeInfoMembers
+        if (sd->xeq &&
+            sd->xeq->scope &&
+            sd->xeq->semanticRun < PASSsemantic3done)
+        {
+            unsigned errors = global.startGagging();
+            sd->xeq->semantic3(sd->xeq->scope);
+            if (global.endGagging(errors))
+                sd->xeq = sd->xerreq;
+        }
+
+        //printf("AA = %s, key: xeq = %p, xhash = %p\n", toChars(), sd->xeq, sd->xhash);
+        const char *s = (index->toBasetype()->ty != Tstruct) ? "bottom of " : "";
+        if (!sd->xeq)
+        {
+            // If sd->xhash != NULL:
+            //   sd or its fields have user-defined toHash.
+            //   AA assumes that its result is consistent with bitwise equality.
+            // else:
+            //   bitwise equality & hashing
+        }
+        else if (sd->xeq == sd->xerreq)
+        {
+            if (search_function(sd, Id::eq))
+            {
+                error(loc, "%sAA key type %s does not have 'bool opEquals(ref const %s) const'",
+                        s, sd->toChars(), sd->toChars());
+            }
+            else
+            {
+                error(loc, "%sAA key type %s does not support const equality",
+                        s, sd->toChars());
+            }
+            return Type::terror;
+        }
+        else if (!sd->xhash)
+        {
+            if (search_function(sd, Id::eq))
+            {
+                error(loc, "%sAA key type %s should have 'size_t toHash() const nothrow @safe' if opEquals defined",
+                        s, sd->toChars());
+            }
+            else
+            {
+                error(loc, "%sAA key type %s supports const equality but doesn't support const hashing",
+                        s, sd->toChars());
+            }
+            return Type::terror;
+        }
+        else
+        {
+            // defined equality & hashing
+            assert(sd->xeq && sd->xhash);
+
+            /* xeq and xhash may be implicitly defined by compiler. For example:
+             *   struct S { int[] arr; }
+             * With 'arr' field equality and hashing, compiler will implicitly
+             * generate functions for xopEquals and xtoHash in TypeInfo_Struct.
+             */
         }
     }
     next = next->semantic(loc,sc)->merge2();
