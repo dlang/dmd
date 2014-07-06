@@ -599,9 +599,9 @@ class GC
 
 
     //
+    // bits will be set to the resulting bits of the new block
     //
-    //
-    private void *reallocNoSync(void *p, size_t size, uint bits, ref size_t alloc_size, const TypeInfo ti = null) nothrow
+    private void *reallocNoSync(void *p, size_t size, ref uint bits, ref size_t alloc_size, const TypeInfo ti = null) nothrow
     {
         if (gcx.running)
             onInvalidMemoryOperationError();
