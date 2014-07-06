@@ -962,6 +962,11 @@ class Thread
             // are broken for the default (TS / time sharing) scheduling class.
             // instead, we use priocntl(2) which gives us the desired behavior.
 
+            // We hardcode the min and max priorities to the current value
+            // so this is a no-op for RT threads.
+            if (m_isRTClass)
+                return;
+
             pcparms_t   pcparm;
 
             pcparm.pc_cid = PC_CLNULL;
@@ -972,14 +977,7 @@ class Thread
 
             // clparms is filled in by the PC_GETPARMS call, only necessary
             // to adjust the element that contains the thread priority
-            if (m_classId[pcparm.pc_cid] == "RT")
-            {
-                clparms[0] = cast(pri_t) val;
-            }
-            else
-            {
-                clparms[1] = cast(pri_t) val;
-            }
+            clparms[1] = cast(pri_t) val;
 
             if (priocntl(idtype_t.P_LWPID, P_MYID, PC_SETPARMS, &pcparm) == -1)
                 throw new ThreadException( "Unable to set schedulign class" );
@@ -1212,66 +1210,54 @@ class Thread
         }
         else version( Solaris )
         {
-            int nclass;
-            int myClass;
-            pcparms_t pcparms;
+            pcparms_t pcParms;
+            pcinfo_t pcInfo;
 
-            if (priocntl(idtype_t.P_PID, P_MYID, PC_GETPARMS, &pcparms) == -1)
+            pcParms.pc_cid = PC_CLNULL;
+            if (priocntl(idtype_t.P_PID, P_MYID, PC_GETPARMS, &pcParms) == -1)
                 throw new ThreadException( "Unable to get scheduling class" );
 
-            myClass = pcparms.pc_cid;
-
+            pcInfo.pc_cid = pcParms.pc_cid;
             // PC_GETCLINFO ignores the first two args, use dummy values
-            nclass = cast(int) priocntl(idtype_t.P_PID, 0, PC_GETCLINFO, 0);
-            if (nclass == -1)
-                throw new ThreadException( "Unable to get number of configured classes" );
+            if (priocntl(idtype_t.P_PID, 0, PC_GETCLINFO, &pcInfo) == -1)
+                throw new ThreadException( "Unable to get scheduling class info" );
 
-            for (int classId = 0; classId < nclass; ++classId)
+            pri_t* clparms = cast(pri_t*)&pcParms.pc_clparms;
+            pri_t* clinfo = cast(pri_t*)&pcInfo.pc_clinfo;
+
+            if (pcInfo.pc_clname == "RT")
             {
-                pcinfo_t pcinfo;
+                m_isRTClass = true;
 
-                pcinfo.pc_cid = classId;
-                if (priocntl(idtype_t.P_PID, 0, PC_GETCLINFO, &pcinfo) == -1)
-                    throw new ThreadException( "Unable to get class name" );
+                // For RT class, just assume it can't be changed
+                PRIORITY_MAX = clparms[0];
+                PRIORITY_MIN = clparms[0];
+                PRIORITY_DEFAULT = clparms[0];
+            }
+            else
+            {
+                m_isRTClass = false;
 
-                m_classId[classId] = pcinfo.pc_clname.idup;
+                // For all other scheduling classes, there are
+                // two key values -- uprilim and maxupri.
+                // maxupri is the maximum possible priority defined
+                // for the scheduling class, and valid priorities
+                // range are in [-maxupri, maxupri].
+                //
+                // However, uprilim is an upper limit that the
+                // current thread can set for the current scheduling
+                // class, which can be less than maxupri.  As such,
+                // use this value for PRIORITY_MAX since this is
+                // the effective maximum.
 
-                if (classId == myClass)
-                {
-                    pri_t* clparms = cast(pri_t*)&pcparms.pc_clparms;
-                    pri_t* clinfo = cast(pri_t*)&pcinfo.pc_clinfo;
+                // uprilim
+                PRIORITY_MAX = clparms[0];
 
-                    if (pcinfo.pc_clname == "RT")
-                    {
-                        // For RT class, just assume it can't be changed
-                        PRIORITY_MAX = clparms[0];
-                        PRIORITY_MIN = clparms[0];
-                        PRIORITY_DEFAULT = clparms[0];
-                    }
-                    else
-                    {
-                        // For all other scheduling classes, there are
-                        // two key values -- uprilim and maxupri.
-                        // maxupri is the maximum possible priority defined
-                        // for the scheduling class, and valid priorities
-                        // range are in [-maxupri, maxupri].
-                        //
-                        // However, uprilim is an upper limit that the
-                        // current thread can set for the current scheduling
-                        // class, which can be less than maxupri.  As such,
-                        // use this value for PRIORITY_MAX since this is
-                        // the effective maximum.
+                // maxupri
+                PRIORITY_MIN = -clinfo[0];
 
-                        // uprilim
-                        PRIORITY_MAX = clparms[0];
-
-                        // maxupri
-                        PRIORITY_MIN = -clinfo[0];
-
-                        // by definition
-                        PRIORITY_DEFAULT = 0;
-                    }
-                }
+                // by definition
+                PRIORITY_DEFAULT = 0;
             }
         }
         else version( Posix )
@@ -1413,10 +1399,9 @@ private:
     bool                m_isInCriticalRegion;
     Throwable           m_unhandled;
 
-    // Class ID to name map
     version( Solaris )
     {
-        __gshared string[] m_classId;
+        __gshared immutable bool m_isRTClass;
     }
 
 private:
