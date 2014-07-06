@@ -119,12 +119,6 @@ private
     extern (C) void rt_finalize2(void* p, bool det, bool resetMemory) nothrow;
     extern (C) int rt_hasFinalizerInSegment(void* p, in void[] segment) nothrow;
 
-    enum IsMarked : int
-    {
-        no,
-        yes,
-        unknown, // memory is not managed by GC, treated as yes by lifetime.processGCMarks
-    }
     enum
     {
         OPFAIL = ~cast(size_t)0
@@ -242,7 +236,7 @@ const uint GCVERSION = 1;       // increment every time we change interface
                                 // to GC.
 
 // This just makes Mutex final to de-virtualize member function calls.
-final class GCMutex : Mutex 
+final class GCMutex : Mutex
 {
     // it doesn't make sense to use Exception throwing functions here, because allocating
     //  the exception will try to lock the mutex again, probably resulting in stack overflow
@@ -599,9 +593,9 @@ class GC
 
 
     //
+    // bits will be set to the resulting bits of the new block
     //
-    //
-    private void *reallocNoSync(void *p, size_t size, uint bits, ref size_t alloc_size, const TypeInfo ti = null) nothrow
+    private void *reallocNoSync(void *p, size_t size, ref uint bits, ref size_t alloc_size, const TypeInfo ti = null) nothrow
     {
         if (gcx.running)
             onInvalidMemoryOperationError();
@@ -2443,7 +2437,7 @@ struct Gcx
         running = 1;
 
         thread_suspendAll();
-        
+
         anychanges = 0;
         for (n = 0; n < npools; n++)
         {

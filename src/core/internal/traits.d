@@ -52,3 +52,22 @@ template Unqual(T)
         else                                             alias Unqual = T;
     }
 }
+
+/// used to declare an extern(D) function that is defined in a different module
+template externDFunc(string fqn, T:FT*, FT) if(is(FT == function))
+{
+    static if (is(FT RT == return) && is(FT Args == function))
+    {
+        import core.demangle : mangleFunc;
+        enum decl = {
+            string s = "extern(D) RT bug13050(Args)";
+            foreach (attr; __traits(getFunctionAttributes, FT))
+                s ~= " " ~ attr;
+            return s ~ ";";
+        }();
+        pragma(mangle, mangleFunc!T(fqn)) mixin(decl);
+        alias externDFunc = bug13050;
+    }
+    else
+        static assert(0);
+}

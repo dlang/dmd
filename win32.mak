@@ -74,7 +74,7 @@ $(DOCDIR)\core_runtime.html : src\core\runtime.d
 $(DOCDIR)\core_simd.html : src\core\simd.d
 	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
 
-$(DOCDIR)\core_thread.html : src\core\thread.di
+$(DOCDIR)\core_thread.html : src\core\thread.d
 	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
 
 $(DOCDIR)\core_time.html : src\core\time.d
@@ -179,7 +179,7 @@ $(IMPDIR)\core\runtime.d : src\core\runtime.d
 $(IMPDIR)\core\simd.d : src\core\simd.d
 	copy $** $@
 
-$(IMPDIR)\core\thread.di : src\core\thread.di
+$(IMPDIR)\core\thread.d : src\core\thread.d
 	copy $** $@
 
 $(IMPDIR)\core\time.d : src\core\time.d
