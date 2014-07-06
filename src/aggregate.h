@@ -56,6 +56,7 @@ bool needOpEquals(StructDeclaration *sd);
 FuncDeclaration *buildOpEquals(StructDeclaration *sd, Scope *sc);
 FuncDeclaration *buildXopEquals(StructDeclaration *sd, Scope *sc);
 FuncDeclaration *buildXopCmp(StructDeclaration *sd, Scope *sc);
+FuncDeclaration *buildXtoHash(StructDeclaration *ad, Scope *sc);
 FuncDeclaration *buildCpCtor(StructDeclaration *sd, Scope *sc);
 FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc);
 FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc);
@@ -151,6 +152,7 @@ public:
 
     FuncDeclaration *xeq;       // TypeInfo_Struct.xopEquals
     FuncDeclaration *xcmp;      // TypeInfo_Struct.xopCmp
+    FuncDeclaration *xhash;     // TypeInfo_Struct.xtoHash
     static FuncDeclaration *xerreq;      // object.xopEquals
     static FuncDeclaration *xerrcmp;     // object.xopCmp
 
