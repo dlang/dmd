@@ -210,6 +210,8 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
 
     if (sd->dtor || sd->postblit)
     {
+        if (!sd->type->isAssignable())  // Bugzilla 13044
+            return NULL;
         if (sd->dtor)
         {
             stc = mergeFuncAttrs(stc, sd->dtor);
@@ -302,9 +304,8 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
         fop->fbody = new CompoundStatement(loc, s1, s2);
     }
 
-    Dsymbol *s = fop;
-    sd->members->push(s);
-    s->addMember(sc, sd, 1);
+    sd->members->push(fop);
+    fop->addMember(sc, sd, 1);
     sd->hasIdentityAssign = true;        // temporary mark identity assignable
 
     unsigned errors = global.startGagging();    // Do not report errors, even if the
@@ -315,9 +316,9 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
     sc2->linkage = LINKd;
     sc2->speculative = true;
 
-    s->semantic(sc2);
-    s->semantic2(sc2);
-    s->semantic3(sc2);
+    fop->semantic(sc2);
+    fop->semantic2(sc2);
+    fop->semantic3(sc2);
 
     sc2->pop();
     global.speculativeGag = oldspec;
@@ -328,7 +329,7 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
         fop->fbody = NULL;  // remove fbody which contains the error
     }
 
-    //printf("-StructDeclaration::buildOpAssign() %s %s, errors = %d\n", toChars(), s->kind(), (fop->storage_class & STCdisable) != 0);
+    //printf("-StructDeclaration::buildOpAssign() %s, errors = %d\n", sd->toChars(), (fop->storage_class & STCdisable) != 0);
 
     return fop;
 }
