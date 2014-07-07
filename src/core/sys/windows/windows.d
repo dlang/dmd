@@ -3939,11 +3939,11 @@ BOOL IsDebuggerPresent();
 LPSTR lstrcatA(LPSTR lpString1, LPCSTR lpString2);
 LPWSTR lstrcatW(LPWSTR lpString1, LPCWSTR lpString2);
 
-int lstrcmp(LPCSTR lpString1, LPCSTR lpString2);
-int lstrcmp(LPCWSTR lpString1,LPCWSTR lpString2);
+int lstrcmpA(LPCSTR lpString1, LPCSTR lpString2);
+int lstrcmpW(LPCWSTR lpString1,LPCWSTR lpString2);
 
-int lstrcmpi(LPCSTR lpString1, LPCSTR lpString2);
-int lstrcmpi(LPCWSTR lpString1,LPCWSTR lpString2);
+int lstrcmpiA(LPCSTR lpString1, LPCSTR lpString2);
+int lstrcmpiW(LPCWSTR lpString1,LPCWSTR lpString2);
 
 LPSTR lstrcpyA(LPSTR lpString1, LPCSTR lpString2);
 LPWSTR lstrcpyW(LPWSTR lpString1, LPCWSTR lpString2);
