@@ -148,6 +148,10 @@ MANIFEST=\
 	src\core\sys\posix\sys\utsname.d \
 	src\core\sys\posix\sys\wait.d \
 	\
+	src\core\sys\solaris\sys\priocntl.d \
+	src\core\sys\solaris\sys\procset.d \
+	src\core\sys\solaris\sys\types.d \
+	\
 	src\core\sys\windows\dbghelp.d \
 	src\core\sys\windows\dll.d \
 	src\core\sys\windows\stacktrace.d \
