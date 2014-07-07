@@ -57,6 +57,8 @@ private
         import core.sys.freebsd.execinfo;
     else version( Windows )
         import core.sys.windows.stacktrace;
+    else version( Solaris )
+        import core.sys.solaris.execinfo;
 
     // For runModuleUnitTests error reporting.
     version( Windows )
