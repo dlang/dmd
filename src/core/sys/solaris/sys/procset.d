@@ -14,12 +14,12 @@
  */
 module core.sys.solaris.sys.procset;
 
-import core.sys.posix.sys.types : id_t;
-import core.sys.posix.sys.wait : idtype_t;
-
 version (Solaris):
 nothrow:
 @nogc:
+
+import core.sys.posix.sys.types : id_t;
+import core.sys.posix.sys.wait : idtype_t;
 
 enum P_INITPID  = 1;
 enum P_INITUID  = 0;
