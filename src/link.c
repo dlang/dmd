@@ -636,10 +636,6 @@ int runLINK()
         argv.push(buf);             // turns into /usr/lib/libphobos2.a
     }
 
-#ifdef __sun
-    argv.push("-mt");
-#endif
-
 //    argv.push("-ldruntime");
     argv.push("-lpthread");
     argv.push("-lm");
