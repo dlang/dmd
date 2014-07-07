@@ -2003,13 +2003,7 @@ struct Gcx
         usePools();
 
         {
-            version (Bug7068_FIXED)
-                Pool*[NPOOLS] opools = gcx.pooltable[0 .. NPOOLS];
-            else
-            {
-                Pool*[NPOOLS] opools = void;
-                memcpy(opools.ptr, gcx.pooltable, (Pool*).sizeof * NPOOLS);
-            }
+            Pool*[NPOOLS] opools = gcx.pooltable[0 .. NPOOLS];
             gcx.pooltable[2].freepages = NPAGES;
 
             gcx.minimize();
