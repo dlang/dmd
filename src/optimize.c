@@ -437,8 +437,10 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             {
                 StructLiteralExp *sle = (StructLiteralExp *)ex;
                 VarDeclaration *vf = e->var->isVarDeclaration();
-                if (vf)
+                if (vf && !vf->overlapped)
                 {
+                    /* Bugzilla 13021: Prevent optimization if vf has overlapped fields.
+                     */
                     ex = sle->getField(e->type, vf->offset);
                     if (ex && ex != EXP_CANT_INTERPRET)
                     {
