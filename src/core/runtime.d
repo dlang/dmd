@@ -589,6 +589,18 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
                         symEnd = eptr - buf.ptr;
                     }
                 }
+                else version( Solaris )
+                {
+                    // format is object'symbol+offset [pc]
+                    auto bptr = cast(char*) memchr( buf.ptr, '\'', buf.length );
+                    auto eptr = cast(char*) memchr( buf.ptr, '+', buf.length );
+
+                    if( bptr++ && eptr )
+                    {
+                        symBeg = bptr - buf.ptr;
+                        symEnd = eptr - buf.ptr;
+                    }
+                }
                 else
                 {
                     // fallthrough
