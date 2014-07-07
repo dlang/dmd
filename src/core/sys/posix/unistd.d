@@ -30,10 +30,10 @@ version( Posix )
     enum STDOUT_FILENO = 1;
     enum STDERR_FILENO = 2;
 
-    char*   optarg;
-    int     optind;
-    int     opterr;
-    int     optopt;
+    extern __gshared char*   optarg;
+    extern __gshared int     optind;
+    extern __gshared int     opterr;
+    extern __gshared int     optopt;
 
     int     access(in char*, int);
     uint    alarm(uint) @trusted;
