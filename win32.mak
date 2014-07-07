@@ -141,6 +141,7 @@ copydir: $(IMPDIR)
 	mkdir $(IMPDIR)\core\sys\posix\net
 	mkdir $(IMPDIR)\core\sys\posix\netinet
 	mkdir $(IMPDIR)\core\sys\posix\sys
+	mkdir $(IMPDIR)\core\sys\solaris\sys
 	mkdir $(IMPDIR)\core\sys\windows
 	mkdir $(IMPDIR)\etc\linux
 
@@ -456,6 +457,15 @@ $(IMPDIR)\core\sys\posix\unistd.d : src\core\sys\posix\unistd.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\posix\utime.d : src\core\sys\posix\utime.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\solaris\sys\procset.d : src\core\sys\solaris\sys\procset.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\solaris\sys\types.d : src\core\sys\solaris\sys\types.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\solaris\sys\priocntl.d : src\core\sys\solaris\sys\priocntl.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\windows\dbghelp.d : src\core\sys\windows\dbghelp.d
