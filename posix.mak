@@ -69,6 +69,9 @@ UDFLAGS=$(MODEL_FLAG) -O -release -w -Isrc -Iimport $(PIC)
 DDOCFLAGS=-c -w -o- -Isrc -Iimport -version=CoreDdoc
 
 CFLAGS=$(MODEL_FLAG) -O $(PIC)
+ifeq (solaris,$(OS))
+    CFLAGS+=-D_REENTRANT  # for thread-safe errno
+endif
 
 ifeq (osx,$(OS))
     ASMFLAGS =
@@ -120,9 +123,6 @@ endif
 doc: $(DOCS)
 
 $(DOCDIR)/object.html : src/object_.d
-	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
-
-$(DOCDIR)/core_%.html : src/core/%.di
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
 $(DOCDIR)/core_%.html : src/core/%.d

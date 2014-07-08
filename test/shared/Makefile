@@ -7,7 +7,7 @@ DRUNTIMESO:=
 QUIET:=
 
 SRC:=src
-ROOT:=obj/$(OS)/$(MODEL)
+ROOT:=./obj/$(OS)/$(MODEL)
 TESTS:=link load linkD linkDR loadDR host finalize
 TESTS+=link_linkdep load_linkdep link_loaddep load_loaddep
 
@@ -24,7 +24,7 @@ $(ROOT)/loadDR.done: RUN_ARGS:=$(DRUNTIMESO)
 
 $(ROOT)/%.done: $(ROOT)/%
 	@echo Testing $*
-	$(QUIET)./$(ROOT)/$* $(RUN_ARGS)
+	$(QUIET)$(ROOT)/$* $(RUN_ARGS)
 	@touch $@
 
 $(ROOT)/link: $(SRC)/link.d $(ROOT)/lib.so $(DRUNTIMESO)

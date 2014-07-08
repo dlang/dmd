@@ -500,7 +500,7 @@ BOOL   FindNextFileA(HANDLE hFindFile, WIN32_FIND_DATA* lpFindFileData);
 BOOL   FindNextFileW(HANDLE hFindFile, WIN32_FIND_DATAW* lpFindFileData);
 BOOL   GetExitCodeThread(HANDLE hThread, DWORD *lpExitCode);
 BOOL   GetExitCodeProcess(HANDLE hProcess, DWORD *lpExitCode);
-DWORD  GetLastError();
+DWORD  GetLastError() @trusted;
 DWORD  GetFileAttributesA(in char *lpFileName);
 DWORD  GetFileAttributesW(in wchar *lpFileName);
 BOOL   GetFileAttributesExA(LPCSTR, GET_FILEEX_INFO_LEVELS, PVOID);
@@ -3939,11 +3939,11 @@ BOOL IsDebuggerPresent();
 LPSTR lstrcatA(LPSTR lpString1, LPCSTR lpString2);
 LPWSTR lstrcatW(LPWSTR lpString1, LPCWSTR lpString2);
 
-int lstrcmp(LPCSTR lpString1, LPCSTR lpString2);
-int lstrcmp(LPCWSTR lpString1,LPCWSTR lpString2);
+int lstrcmpA(LPCSTR lpString1, LPCSTR lpString2);
+int lstrcmpW(LPCWSTR lpString1,LPCWSTR lpString2);
 
-int lstrcmpi(LPCSTR lpString1, LPCSTR lpString2);
-int lstrcmpi(LPCWSTR lpString1,LPCWSTR lpString2);
+int lstrcmpiA(LPCSTR lpString1, LPCSTR lpString2);
+int lstrcmpiW(LPCWSTR lpString1,LPCWSTR lpString2);
 
 LPSTR lstrcpyA(LPSTR lpString1, LPCSTR lpString2);
 LPWSTR lstrcpyW(LPWSTR lpString1, LPCWSTR lpString2);

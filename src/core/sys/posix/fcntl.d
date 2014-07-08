@@ -363,7 +363,7 @@ else version (Solaris)
     enum F_GETFL = 3;
     enum F_SETFL = 4;
 
-    static if (__USE_FILE_OFFSET64)
+    version (D_LP64)
     {
         enum F_GETLK = 14;
         enum F_SETLK = 6;
@@ -371,9 +371,18 @@ else version (Solaris)
     }
     else
     {
-        enum F_GETLK = 33;
-        enum F_SETLK = 34;
-        enum F_SETLKW = 35;
+        static if (__USE_FILE_OFFSET64)
+        {
+            enum F_GETLK = 14;
+            enum F_SETLK = 6;
+            enum F_SETLKW = 7;
+        }
+        else
+        {
+            enum F_GETLK = 33;
+            enum F_SETLK = 34;
+            enum F_SETLKW = 35;
+        }
     }
 
     enum F_GETOWN = 23;
@@ -417,16 +426,44 @@ else version (Solaris)
 
     static if (__USE_LARGEFILE64)
     {
-        int creat64(in char*, mode_t);
-        alias creat64 creat;
-
-        int open64(in char*, int, ...);
-        alias open64 open;
+        struct flock64
+        {
+            short       l_type;
+            short       l_whence;
+            off64_t     l_start;
+            off64_t     l_len;
+            int         l_sysid;
+            pid_t       l_pid;
+            c_long[4]   l_pad;
+        }
     }
-    else
+
+    version (D_LP64)
     {
         int creat(in char*, mode_t);
         int open(in char*, int, ...);
+
+        static if (__USE_LARGEFILE64)
+        {
+            alias creat creat64;
+            alias open open64;
+        }
+    }
+    else
+    {
+        static if (__USE_LARGEFILE64)
+        {
+            int creat64(in char*, mode_t);
+            alias creat64 creat;
+
+            int open64(in char*, int, ...);
+            alias open64 open;
+        }
+        else
+        {
+            int creat(in char*, mode_t);
+            int open(in char*, int, ...);
+        }
     }
 }
 else version( Android )
