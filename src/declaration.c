@@ -1343,8 +1343,7 @@ Lnomatch:
         error("only parameters or foreach declarations can be ref");
     }
 
-    if (type->hasWild() &&
-        !(type->ty == Tpointer && type->nextOf()->ty == Tfunction || type->ty == Tdelegate))
+    if (type->hasWild())
     {
         if (storage_class & (STCstatic | STCextern | STCtls | STCgshared | STCmanifest | STCfield) ||
             isDataseg()
@@ -1542,8 +1541,8 @@ Lnomatch:
                     Expression *ex = ei->exp;
                     while (ex->op == TOKcomma)
                         ex = ((CommaExp *)ex)->e2;
-                    assert(ex->op == TOKblit || ex->op == TOKconstruct);
-                    ex = ((AssignExp *)ex)->e2;
+                    if (ex->op == TOKblit || ex->op == TOKconstruct)
+                        ex = ((AssignExp *)ex)->e2;
                     if (ex->op == TOKnew)
                     {
                         // See if initializer is a NewExp that can be allocated on the stack

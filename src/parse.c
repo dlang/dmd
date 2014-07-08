@@ -54,9 +54,6 @@
 //      int a[3][4];
 #define CARRAYDECL      1
 
-// Support D1 inout
-#define D1INOUT         0
-
 Parser::Parser(Module *module, const utf8_t *base, size_t length, int doDocComment)
     : Lexer(module, base, 0, length, doDocComment, 0)
 {
@@ -1697,9 +1694,6 @@ Parameters *Parser::parseParameters(int *pvarargs, TemplateParameters **tpl)
 
                 case TOKin:        stc = STCin;         goto L2;
                 case TOKout:       stc = STCout;        goto L2;
-#if D1INOUT
-                case TOKinout:
-#endif
                 case TOKref:       stc = STCref;        goto L2;
                 case TOKlazy:      stc = STClazy;       goto L2;
                 case TOKscope:     stc = STCscope;      goto L2;
@@ -4605,9 +4599,6 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
                 switch (token.value)
                 {
                     case TOKref:
-#if D1INOUT
-                    case TOKinout:
-#endif
                         stc = STCref;
                         goto Lagain;
 
@@ -5749,13 +5740,11 @@ int Parser::isParameters(Token **pt)
                 t = peek(t);
                 break;
 
-#if D1INOUT
-            case TOKinout:
-#endif
             case TOKin:
             case TOKout:
             case TOKref:
             case TOKlazy:
+            case TOKscope:
             case TOKfinal:
             case TOKauto:
                 continue;

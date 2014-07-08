@@ -210,6 +210,8 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
 
     if (sd->dtor || sd->postblit)
     {
+        if (!sd->type->isAssignable())  // Bugzilla 13044
+            return NULL;
         if (sd->dtor)
         {
             stc = mergeFuncAttrs(stc, sd->dtor);
@@ -302,9 +304,8 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
         fop->fbody = new CompoundStatement(loc, s1, s2);
     }
 
-    Dsymbol *s = fop;
-    sd->members->push(s);
-    s->addMember(sc, sd, 1);
+    sd->members->push(fop);
+    fop->addMember(sc, sd, 1);
     sd->hasIdentityAssign = true;        // temporary mark identity assignable
 
     unsigned errors = global.startGagging();    // Do not report errors, even if the
@@ -315,9 +316,9 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
     sc2->linkage = LINKd;
     sc2->speculative = true;
 
-    s->semantic(sc2);
-    s->semantic2(sc2);
-    s->semantic3(sc2);
+    fop->semantic(sc2);
+    fop->semantic2(sc2);
+    fop->semantic3(sc2);
 
     sc2->pop();
     global.speculativeGag = oldspec;
@@ -328,7 +329,7 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
         fop->fbody = NULL;  // remove fbody which contains the error
     }
 
-    //printf("-StructDeclaration::buildOpAssign() %s %s, errors = %d\n", toChars(), s->kind(), (fop->storage_class & STCdisable) != 0);
+    //printf("-StructDeclaration::buildOpAssign() %s, errors = %d\n", sd->toChars(), (fop->storage_class & STCdisable) != 0);
 
     return fop;
 }
@@ -359,7 +360,12 @@ bool needOpEquals(StructDeclaration *sd)
             continue;
         Type *tv = v->type->toBasetype();
         if (tv->isfloating())
+        {
+            // This is necessray for:
+            //  1. comparison of +0.0 and -0.0 should be true.
+            //  2. comparison of NANs should be false always.
             goto Lneed;
+        }
         if (tv->ty == Tarray)
             goto Lneed;
         if (tv->ty == Taarray)
@@ -518,7 +524,6 @@ FuncDeclaration *buildXopEquals(StructDeclaration *sd, Scope *sc)
     parameters->push(new Parameter(STCref | STCconst, sd->type, Id::p, NULL));
     parameters->push(new Parameter(STCref | STCconst, sd->type, Id::q, NULL));
     TypeFunction *tf = new TypeFunction(parameters, Type::tbool, 0, LINKd);
-    tf = (TypeFunction *)tf->semantic(loc, sc);
 
     Identifier *id = Id::xopEquals;
     FuncDeclaration *fop = new FuncDeclaration(declLoc, Loc(), id, STCstatic, tf);
@@ -645,7 +650,6 @@ FuncDeclaration *buildXopCmp(StructDeclaration *sd, Scope *sc)
     parameters->push(new Parameter(STCref | STCconst, sd->type, Id::p, NULL));
     parameters->push(new Parameter(STCref | STCconst, sd->type, Id::q, NULL));
     TypeFunction *tf = new TypeFunction(parameters, Type::tint32, 0, LINKd);
-    tf = (TypeFunction *)tf->semantic(loc, sc);
 
     Identifier *id = Id::xopCmp;
     FuncDeclaration *fop = new FuncDeclaration(declLoc, Loc(), id, STCstatic, tf);
@@ -668,6 +672,119 @@ FuncDeclaration *buildXopCmp(StructDeclaration *sd, Scope *sc)
     if (global.endGagging(errors))    // if errors happened
         fop = sd->xerrcmp;
 
+    return fop;
+}
+
+/*******************************************
+ * We need a toHash for the struct if
+ * any fields has a toHash.
+ * Generate one if a user-specified one does not exist.
+ */
+
+bool needToHash(StructDeclaration *sd)
+{
+    //printf("StructDeclaration::needToHash() %s\n", sd->toChars());
+
+    if (sd->xhash)
+        goto Lneed;
+
+    if (sd->isUnionDeclaration())
+        goto Ldontneed;
+
+    /* If any of the fields has an opEquals, then we
+     * need it too.
+     */
+    for (size_t i = 0; i < sd->fields.dim; i++)
+    {
+        VarDeclaration *v = sd->fields[i];
+        if (v->storage_class & STCref)
+            continue;
+        Type *tv = v->type->toBasetype();
+        if (tv->isfloating())
+        {
+            // This is necessray for:
+            //  1. comparison of +0.0 and -0.0 should be true.
+            goto Lneed;
+        }
+        if (tv->ty == Tarray)
+            goto Lneed;
+        if (tv->ty == Taarray)
+            goto Lneed;
+        if (tv->ty == Tclass)
+            goto Lneed;
+        tv = tv->baseElemOf();
+        if (tv->ty == Tstruct)
+        {
+            TypeStruct *ts = (TypeStruct *)tv;
+            if (needToHash(ts->sym))
+                goto Lneed;
+        }
+    }
+Ldontneed:
+    //printf("\tdontneed\n");
+    return false;
+
+Lneed:
+    //printf("\tneed\n");
+    return true;
+}
+
+/******************************************
+ * Build __xtoHash for non-bitwise hashing
+ *      static hash_t xtoHash(ref const S p) nothrow @trusted;
+ */
+
+FuncDeclaration *buildXtoHash(StructDeclaration *sd, Scope *sc)
+{
+    if (Dsymbol *s = search_function(sd, Id::tohash))
+    {
+        static TypeFunction *tftohash;
+        if (!tftohash)
+        {
+            tftohash = new TypeFunction(NULL, Type::thash_t, 0, LINKd);
+            tftohash->mod = MODconst;
+            tftohash = (TypeFunction *)tftohash->merge();
+        }
+
+        if (FuncDeclaration *fd = s->isFuncDeclaration())
+        {
+            fd = fd->overloadExactMatch(tftohash);
+            if (fd)
+                return fd;
+        }
+    }
+
+    if (!needToHash(sd))
+        return NULL;
+
+    //printf("StructDeclaration::buildXtoHash() %s\n", sd->toPrettyChars());
+    Loc declLoc = Loc();    // loc is unnecessary so __xtoHash is never called directly
+    Loc loc = Loc();        // internal code should have no loc to prevent coverage
+
+    Parameters *parameters = new Parameters();
+    parameters->push(new Parameter(STCref | STCconst, sd->type, Id::p, NULL));
+    TypeFunction *tf = new TypeFunction(parameters, Type::thash_t, 0, LINKd, STCnothrow | STCtrusted);
+
+    Identifier *id = Id::xtoHash;
+    FuncDeclaration *fop = new FuncDeclaration(declLoc, Loc(), id, STCstatic, tf);
+
+    const char *code =
+        "size_t h = 0;"\
+        "foreach (i, T; typeof(p.tupleof))"\
+        "    h += typeid(T).getHash(cast(const void*)&p.tupleof[i]);"\
+        "return h;";
+    fop->fbody = new CompileStatement(loc, new StringExp(loc, (char *)code));
+
+    Scope *sc2 = sc->push();
+    sc2->stc = 0;
+    sc2->linkage = LINKd;
+
+    fop->semantic(sc2);
+    fop->semantic2(sc2);
+
+    sc2->pop();
+
+    //printf("%s fop = %s %s\n", sd->toChars(), fop->toChars(), fop->type->toChars());
     return fop;
 }
 

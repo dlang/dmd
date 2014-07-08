@@ -556,21 +556,21 @@ int runLINK()
         argv.push(global.params.mapfile);
     }
 
-    /* This switch enables what is known as 'smart linking'
-     * in the Windows world, where unreferenced sections
-     * are removed from the executable. It eliminates unreferenced
-     * functions, essentially making a 'library' out of a module.
-     * Although it is documented to work with ld version 2.13,
-     * in practice it does not, but just seems to be ignored.
-     * Thomas Kuehne has verified that it works with ld 2.16.1.
-     */
-#if __linux__
-    /* Only works on linux because the linkers shipped with other
-     * OSes don't yet support this flag.
-     */
-    argv.push("-Xlinker");
-    argv.push("--gc-sections");
-#endif
+    if (0 && global.params.exefile)
+    {
+        /* This switch enables what is known as 'smart linking'
+         * in the Windows world, where unreferenced sections
+         * are removed from the executable. It eliminates unreferenced
+         * functions, essentially making a 'library' out of a module.
+         * Although it is documented to work with ld version 2.13,
+         * in practice it does not, but just seems to be ignored.
+         * Thomas Kuehne has verified that it works with ld 2.16.1.
+         * BUG: disabled because it causes exception handling to fail
+         * because EH sections are "unreferenced" and elided
+         */
+        argv.push("-Xlinker");
+        argv.push("--gc-sections");
+    }
 
     for (size_t i = 0; i < global.params.linkswitches->dim; i++)
     {   const char *p = (*global.params.linkswitches)[i];
@@ -635,10 +635,6 @@ int runLINK()
         strcat(buf, libname);
         argv.push(buf);             // turns into /usr/lib/libphobos2.a
     }
-
-#ifdef __sun
-    argv.push("-mt");
-#endif
 
 //    argv.push("-ldruntime");
     argv.push("-lpthread");

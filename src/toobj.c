@@ -191,7 +191,7 @@ void Module::genmoduleinfo()
     }
 
     csym->Sdt = dt;
-    // Cannot be CONST because the startup code sets flag bits in it
+    out_readonly(csym);
     outdata(csym);
 
     //////////////////////////////////////////////
@@ -826,12 +826,14 @@ void StructDeclaration::toObjFile(bool multiobj)
     //printf("StructDeclaration::toObjFile('%s')\n", toChars());
 
     if (type->ty == Terror)
-    {   error("had semantic errors when compiling");
+    {
+        error("had semantic errors when compiling");
         return;
     }
 
     if (multiobj && !hasStaticCtorOrDtor())
-    {   obj_append(this);
+    {
+        obj_append(this);
         return;
     }
 
@@ -878,6 +880,8 @@ void StructDeclaration::toObjFile(bool multiobj)
             xeq->toObjFile(multiobj);
         if (xcmp && xcmp != xerrcmp)
             xcmp->toObjFile(multiobj);
+        if (xhash)
+            xhash->toObjFile(multiobj);
     }
 }
 
@@ -1217,5 +1221,3 @@ void Nspace::toObjFile(bool multiobj)
         }
     }
 }
-
-

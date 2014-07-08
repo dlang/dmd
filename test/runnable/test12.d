@@ -914,7 +914,6 @@ struct Property
 struct Value
 {
     int a,b,c,d;
-    const int opCmp(ref const Value v) { return 0; }
 }
 
 struct PropTable
