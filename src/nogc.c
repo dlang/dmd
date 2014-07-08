@@ -62,7 +62,7 @@ public:
     {
         // Note that, walkPostorder does not support DeclarationExp today.
         VarDeclaration *v = e->declaration->isVarDeclaration();
-        if (v && (v->storage_class & (STCmanifest | STCstatic)) == 0 && v->init)
+        if (v && !(v->storage_class & STCmanifest) && !v->isDataseg() && v->init)
         {
             if (v->init->isVoidInitializer())
             {
