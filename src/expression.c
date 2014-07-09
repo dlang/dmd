@@ -10987,9 +10987,10 @@ Expression *AssignExp::semantic(Scope *sc)
                 if (ex->op == TOKerror)
                     return ex;
 
-                e2 = e2->semantic(sc);
-                if (e2->op == TOKerror)
-                    return e2;
+                Expression *e2x = e2->semantic(sc);
+                if (e2x->op == TOKerror)
+                    return e2x;
+                e2 = e2x;
 
                 Expressions *a = (Expressions *)ae->arguments->copy();
                 a->insert(0, e2);
@@ -13643,33 +13644,37 @@ Expression *CondExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    econd = econd->semantic(sc);
-    econd = resolveProperties(sc, econd);
-    econd = econd->checkToPointer();
-    econd = econd->checkToBoolean(sc);
+    Expression *ec = econd->semantic(sc);
+    ec = resolveProperties(sc, ec);
+    ec = ec->checkToPointer();
+    ec = ec->checkToBoolean(sc);
 
     unsigned cs0 = sc->callSuper;
     unsigned *fi0 = sc->saveFieldInit();
-    e1 = e1->semantic(sc);
-    e1 = resolveProperties(sc, e1);
+    Expression *e1x = e1->semantic(sc);
+    e1x = resolveProperties(sc, e1x);
 
     unsigned cs1 = sc->callSuper;
     unsigned *fi1 = sc->fieldinit;
     sc->callSuper = cs0;
     sc->fieldinit = fi0;
-    e2 = e2->semantic(sc);
-    e2 = resolveProperties(sc, e2);
+    Expression *e2x = e2->semantic(sc);
+    e2x = resolveProperties(sc, e2x);
 
     sc->mergeCallSuper(loc, cs1);
     sc->mergeFieldInit(loc, fi1);
 
-    if (econd->type == Type::terror)
-        return econd;
-    if (e1->type == Type::terror)
-        return e1;
-    if (e2->type == Type::terror)
-        return e2;
+    if (ec->op == TOKerror) return ec;
+    if (ec->type == Type::terror) return new ErrorExp();
+    econd = ec;
 
+    if (e1x->op == TOKerror) return e1x;
+    if (e1x->type == Type::terror) return new ErrorExp();
+    e1 = e1x;
+
+    if (e2x->op == TOKerror) return e2x;
+    if (e2x->type == Type::terror) return new ErrorExp();
+    e2 = e2x;
 
     // If either operand is void, the result is void
     Type *t1 = e1->type;
