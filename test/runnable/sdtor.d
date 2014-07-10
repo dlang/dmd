@@ -3269,6 +3269,29 @@ void test12686()
 }
 
 /**********************************/
+// 13089
+
+struct S13089
+{
+    @disable this(this);    // non nothrow
+}
+
+void* p13089;
+
+S13089[1000] foo13089() nothrow
+{
+    typeof(return) data;
+    p13089 = &data;
+    return data;
+}
+
+void test13089() nothrow
+{
+    immutable data = foo13089();
+    assert(p13089 == &data);
+}
+
+/**********************************/
 
 int main()
 {
@@ -3370,6 +3393,7 @@ int main()
     test12591();
     test12660();
     test12686();
+    test13089();
 
     printf("Success\n");
     return 0;
