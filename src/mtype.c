@@ -6510,7 +6510,9 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                 if (v->storage_class & (STCconst | STCimmutable | STCmanifest) ||
                     v->type->isConst() || v->type->isImmutable())
                 {
-                    goto L3;
+                    // Bugzilla 13087: this.field is not constant always
+                    if (!v->isThisDeclaration())
+                        goto L3;
                 }
             }
             if (!sm)

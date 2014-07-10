@@ -3457,6 +3457,28 @@ void f12880(T)(in T value) { static assert(is(T == string)); }
 void test12880() { f12880(string.init); }
 
 /******************************************/
+// 13087
+
+struct Vec13087
+{
+    int x;
+    void m()                      { auto n = component13087!(this, 'x'); }
+    void c() const                { auto n = component13087!(this, 'x'); }
+    void w() inout                { auto n = component13087!(this, 'x'); }
+    void wc() inout const         { auto n = component13087!(this, 'x'); }
+    void s() shared               { auto n = component13087!(this, 'x'); }
+    void sc() shared const        { auto n = component13087!(this, 'x'); }
+    void sw() shared inout        { auto n = component13087!(this, 'x'); }
+    void swc() shared inout const { auto n = component13087!(this, 'x'); }
+    void i() immutable            { auto n = component13087!(this, 'x'); }
+}
+
+template component13087(alias vec, char c)
+{
+    alias component13087 = vec.x;
+}
+
+/******************************************/
 
 int main()
 {
