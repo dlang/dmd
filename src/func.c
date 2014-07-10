@@ -1718,9 +1718,12 @@ void FuncDeclaration::semantic3(Scope *sc)
                 //printf("callSuper = x%x\n", sc2->callSuper);
 
                 // For foreach(){} body, append a return 0;
-                Expression *e = new IntegerExp(0);
-                Statement *s = new ReturnStatement(Loc(), e);
-                fbody = new CompoundStatement(Loc(), fbody, s);
+                if (blockexit & BEfallthru)
+                {
+                    Expression *e = new IntegerExp(0);
+                    Statement *s = new ReturnStatement(Loc(), e);
+                    fbody = new CompoundStatement(Loc(), fbody, s);
+                }
                 assert(!returnLabel);
             }
             else if (!hasReturnExp && type->nextOf()->ty != Tvoid)
