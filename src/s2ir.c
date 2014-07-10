@@ -386,22 +386,28 @@ public:
             return;
         block *b = blx->curblock;
         incUsage(irs, s->loc);
+        b->appendSucc(bdest);
 
-        if (b->Btry != bdest->Btry)
+        // Check that bdest is in an enclosing try block
+        for (block *bt = b->Btry; bt != bdest->Btry; bt = bt->Btry)
         {
-            // Check that bdest is in an enclosing try block
-            for (block *bt = b->Btry; bt != bdest->Btry; bt = bt->Btry)
+            if (!bt)
             {
-                if (!bt)
-                {
-                    //printf("b->Btry = %p, bdest->Btry = %p\n", b->Btry, bdest->Btry);
-                    s->error("cannot goto into try block");
-                    break;
-                }
+                //printf("b->Btry = %p, bdest->Btry = %p\n", b->Btry, bdest->Btry);
+                s->error("cannot goto into try block");
+                break;
+            }
+
+            // A finally block is a successor to a goto block inside a try-finally
+            block *btry = bt;
+            if (btry && btry->numSucc() == 2)      // try-finally
+            {
+                block *bfinally = btry->nthSucc(1);
+                assert(bfinally->BC == BC_finally);
+                b->appendSucc(bfinally);
             }
         }
 
-        b->appendSucc(bdest);
         block_next(blx,BCgoto,NULL);
     }
 
@@ -1131,6 +1137,25 @@ public:
 
         finallyblock->appendSucc(blx->curblock);
         retblock->appendSucc(blx->curblock);
+
+        /* From tryblock to finallyblock, for blocks that list finallyblock as a successor,
+         * add the successor to those blocks as a successor to retblock.
+         * These were added to BCgoto's by GotoStatement.
+         */
+        for (block *b = tryblock; b != finallyblock; b = b->Bnext)
+        {
+            if (b->BC == BCgoto)
+            {
+                for (list_t bp = b->Bsucc; bp; bp = list_next(bp))
+                {
+                    if (list_block(bp) == finallyblock)
+                    {
+                        retblock->appendSucc(b->nthSucc(0));
+                        break;
+                    }
+                }
+            }
+        }
     }
 
     /****************************************

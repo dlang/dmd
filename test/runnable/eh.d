@@ -702,6 +702,56 @@ void test10964()
 
 /****************************************************/
 
+alias Action = void delegate();
+
+class A10
+{
+    invariant()
+    {
+    }
+
+    public Action foo(Action a)
+    {
+        synchronized
+        {
+            B10 elements = new B10;
+            Action[] actions = [a];
+
+            elements.bar(actions);
+
+            if (actions.length > 1)
+                elements.bar(actions);
+            return actions[0];
+        }
+        return null;
+    }
+}
+
+class B10
+{
+    public bool bar(ref Action[])
+    {
+        return false;
+    }
+}
+
+class D10
+{
+    void baz()
+    {
+    }
+}
+
+void test12989()
+{
+    auto a = new A10;
+    auto d = new D10;
+
+    assert(a.foo(&d.baz) == &d.baz);
+}
+
+/****************************************************/
+
 int main()
 {
     printf("start\n");
@@ -722,6 +772,7 @@ int main()
     test8();
     test9();
     test10964();
+    test12989();
 
     printf("finish\n");
     return 0;
