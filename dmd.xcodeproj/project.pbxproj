@@ -143,6 +143,9 @@
 		7A8F5AAF173E8704002091B3 /* type.c in Sources */ = {isa = PBXBuildFile; fileRef = 7A8F5A75173E8704002091B3 /* type.c */; };
 		7A8F5AB0173E8704002091B3 /* util2.c in Sources */ = {isa = PBXBuildFile; fileRef = 7A8F5A76173E8704002091B3 /* util2.c */; };
 		7A8F5AB1173E8704002091B3 /* var.c in Sources */ = {isa = PBXBuildFile; fileRef = 7A8F5A77173E8704002091B3 /* var.c */; };
+		7B226337196FEC14003C9F1D /* color.c in Sources */ = {isa = PBXBuildFile; fileRef = 7B226335196FEC14003C9F1D /* color.c */; };
+		7B22633B196FEC56003C9F1D /* nogc.c in Sources */ = {isa = PBXBuildFile; fileRef = 7B226338196FEC56003C9F1D /* nogc.c */; };
+		7B22633C196FEC56003C9F1D /* nspace.c in Sources */ = {isa = PBXBuildFile; fileRef = 7B226339196FEC56003C9F1D /* nspace.c */; };
 		7BA9FB2418D9AF78002A15A5 /* object.c in Sources */ = {isa = PBXBuildFile; fileRef = 7BA9FB1318D99DF0002A15A5 /* object.c */; };
 		7BA9FB2518D9AFDB002A15A5 /* outbuffer.c in Sources */ = {isa = PBXBuildFile; fileRef = 7BA9FB1518D99DF0002A15A5 /* outbuffer.c */; };
 		7BA9FB2618D9AFEA002A15A5 /* file.c in Sources */ = {isa = PBXBuildFile; fileRef = 7BA9FB0F18D99DF0002A15A5 /* file.c */; };
@@ -389,6 +392,11 @@
 		7A8F5ACF173E870F002091B3 /* ty.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; fileEncoding = 4; path = ty.h; sourceTree = "<group>"; };
 		7A8F5AD0173E870F002091B3 /* type.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; fileEncoding = 4; path = type.h; sourceTree = "<group>"; };
 		7A8F5AD1173E870F002091B3 /* xmm.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; fileEncoding = 4; path = xmm.h; sourceTree = "<group>"; };
+		7B226335196FEC14003C9F1D /* color.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = color.c; path = src/color.c; sourceTree = "<group>"; };
+		7B226336196FEC14003C9F1D /* color.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = color.h; path = src/color.h; sourceTree = "<group>"; };
+		7B226338196FEC56003C9F1D /* nogc.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = nogc.c; path = src/nogc.c; sourceTree = "<group>"; };
+		7B226339196FEC56003C9F1D /* nspace.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = nspace.c; path = src/nspace.c; sourceTree = "<group>"; };
+		7B22633A196FEC56003C9F1D /* nspace.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = nspace.h; path = src/nspace.h; sourceTree = "<group>"; };
 		7BA9FB0E18D99DF0002A15A5 /* array.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = array.h; sourceTree = "<group>"; };
 		7BA9FB0F18D99DF0002A15A5 /* file.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; path = file.c; sourceTree = "<group>"; };
 		7BA9FB1018D99DF0002A15A5 /* file.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = file.h; sourceTree = "<group>"; };
@@ -426,6 +434,11 @@
 		7A8F54FD173E7CDD002091B3 = {
 			isa = PBXGroup;
 			children = (
+				7B226338196FEC56003C9F1D /* nogc.c */,
+				7B226339196FEC56003C9F1D /* nspace.c */,
+				7B22633A196FEC56003C9F1D /* nspace.h */,
+				7B226335196FEC14003C9F1D /* color.c */,
+				7B226336196FEC14003C9F1D /* color.h */,
 				7BA9FB2C18D9B0CD002A15A5 /* cdxxx.c */,
 				7BA9FB2D18D9B0CD002A15A5 /* debtab.c */,
 				7BA9FB2E18D9B0CD002A15A5 /* elxxx.c */,
@@ -864,8 +877,10 @@
 				7A8F5998173E86C7002091B3 /* man.c in Sources */,
 				7A8F5999173E86C7002091B3 /* port.c in Sources */,
 				7A8F599A173E86C7002091B3 /* response.c in Sources */,
+				7B226337196FEC14003C9F1D /* color.c in Sources */,
 				7A8F599B173E86C7002091B3 /* rmem.c in Sources */,
 				7A8F599D173E86C7002091B3 /* speller.c in Sources */,
+				7B22633B196FEC56003C9F1D /* nogc.c in Sources */,
 				7A8F599E173E86C7002091B3 /* stringtable.c in Sources */,
 				7A8F5A78173E8704002091B3 /* aa.c in Sources */,
 				7A8F5A79173E8704002091B3 /* backconfig.c in Sources */,
@@ -916,6 +931,7 @@
 				7A8F5AAB173E8704002091B3 /* strtold.c in Sources */,
 				7A8F5AAC173E8704002091B3 /* symbol.c in Sources */,
 				7A8F5AAD173E8704002091B3 /* ti_achar.c in Sources */,
+				7B22633C196FEC56003C9F1D /* nspace.c in Sources */,
 				7A8F5AAE173E8704002091B3 /* ti_pvoid.c in Sources */,
 				7A8F5AAF173E8704002091B3 /* type.c in Sources */,
 				7A8F5AB0173E8704002091B3 /* util2.c in Sources */,
