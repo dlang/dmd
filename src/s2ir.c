@@ -397,15 +397,6 @@ public:
                 s->error("cannot goto into try block");
                 break;
             }
-
-            // A finally block is a successor to a goto block inside a try-finally
-            block *btry = bt;
-            if (btry && btry->numSucc() == 2)      // try-finally
-            {
-                block *bfinally = btry->nthSucc(1);
-                assert(bfinally->BC == BC_finally);
-                b->appendSucc(bfinally);
-            }
         }
 
         block_next(blx,BCgoto,NULL);
@@ -1138,22 +1129,41 @@ public:
         finallyblock->appendSucc(blx->curblock);
         retblock->appendSucc(blx->curblock);
 
-        /* From tryblock to finallyblock, for blocks that list finallyblock as a successor,
-         * add the successor to those blocks as a successor to retblock.
-         * These were added to BCgoto's by GotoStatement.
+        /* The BCfinally..BC_ret blocks form a function that gets called from stack unwinding.
+         * The successors to BC_ret blocks are both the next outer BCfinally and the destination
+         * after the unwinding is complete.
          */
         for (block *b = tryblock; b != finallyblock; b = b->Bnext)
         {
-            if (b->BC == BCgoto)
+            block *btry = b->Btry;
+
+            if (b->BC == BCgoto && b->numSucc() == 1)
             {
-                for (list_t bp = b->Bsucc; bp; bp = list_next(bp))
+                block *bdest = b->nthSucc(0);
+                if (btry && bdest->Btry != btry)
                 {
-                    if (list_block(bp) == finallyblock)
-                    {
-                        retblock->appendSucc(b->nthSucc(0));
-                        break;
-                    }
+                    //printf("test1 b %p b->Btry %p bdest %p bdest->Btry %p\n", b, btry, bdest, bdest->Btry);
+                    block *bfinally = btry->nthSucc(1);
+                    if (bfinally == finallyblock)
+                        b->appendSucc(finallyblock);
                 }
+            }
+
+            // If the goto exits a try block, then the finally block is also a successor
+            if (b->BC == BCgoto && b->numSucc() == 2) // if goto exited a tryblock
+            {
+                block *bdest = b->nthSucc(0);
+
+                // If the last finally block executed by the goto
+                if (bdest->Btry == tryblock->Btry)
+                    // The finally block will exit and return to the destination block
+                    retblock->appendSucc(bdest);
+            }
+
+            if (b->BC == BC_ret && b->Btry == tryblock)
+            {
+                // b is nested inside this TryFinally, and so this finally will be called next
+                b->appendSucc(finallyblock);
             }
         }
     }
