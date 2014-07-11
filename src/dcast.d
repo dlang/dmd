@@ -830,11 +830,22 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
              * 2. implicit conversion only fails because of mod bits
              * 3. each function parameter can be implicitly converted to the mod bits
              */
-            Type tx = e.f ? e.f.type : e.e1.type;
-            tx = tx.toBasetype();
+            Type tx = (e.f ? e.f.type : e.e1.type).toBasetype();
             if (tx.ty != Tfunction)
                 return;
             TypeFunction tf = cast(TypeFunction)tx;
+
+            /* If function returns inout without inout parameter, the inout part
+             * can have arbitrary qualifier.
+             */
+            if (!tf.iswild && e.type.hasWild() &&
+                (e.type.substWildTo(MODmutable)  .implicitConvTo(t) ||
+                 e.type.substWildTo(MODimmutable).implicitConvTo(t) ||
+                 e.type.substWildTo(MODconst)    .implicitConvTo(t)))
+            {
+                result = MATCHconst;
+                return;
+            }
 
             if (tf.purity == PUREimpure)
                 return;

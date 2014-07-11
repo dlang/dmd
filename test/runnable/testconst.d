@@ -1469,12 +1469,12 @@ void test82(inout(int) _ = 0)
 
 void test83(inout(int) _ = 0)
 {
-    static assert( __traits(compiles, typeid(int* function(inout int))));
-    static assert( __traits(compiles, typeid(int* delegate(inout int))));
-    static assert(!__traits(compiles, typeid(inout(int*) function(int))));
-    static assert(!__traits(compiles, typeid(inout(int*) delegate(int))));
-    static assert(!__traits(compiles, typeid(inout(int*) function())));
-    static assert(!__traits(compiles, typeid(inout(int*) delegate())));
+    static assert(__traits(compiles, typeid(int* function(inout int))));
+    static assert(__traits(compiles, typeid(int* delegate(inout int))));
+    static assert(__traits(compiles, typeid(inout(int*) function(int))));
+    static assert(__traits(compiles, typeid(inout(int*) delegate(int))));
+    static assert(__traits(compiles, typeid(inout(int*) function())));
+    static assert(__traits(compiles, typeid(inout(int*) delegate())));
     inout(int*) function(inout(int)) fp;
     inout(int*) delegate(inout(int)) dg;
 }
@@ -1993,8 +1993,8 @@ void test88()
     int delegate() inout[]  dg4a;
     int delegate() inout[3] dg4s;
 
-    static assert(!__traits(compiles, { inout(int)* p; }));
-    static assert(!__traits(compiles, { inout(int delegate()) dg; }));
+    inout(int)* wp;
+    inout(int delegate()) wdg;
 }
 
 /************************************/
@@ -3648,6 +3648,50 @@ void test12403()
 }
 
 /************************************/
+// 13006
+
+void test13066()
+{
+    static const(int)[] ga;
+
+    static inout(int)[] foo()
+    {
+        inout(int)[] a = [1,2,3];
+        ga = a;
+        return a;
+    }
+
+    static inout(const int)[] bar()
+    {
+        inout(int)[] a = [1,2,3];
+        ga = a;
+        return a;
+    }
+
+    auto wa = foo();
+    static assert(is(typeof(wa) == inout(int)[]));
+    static assert(!__traits(compiles, (wa[0] = 10)));
+    assert(wa is ga);
+
+    int[] ma;
+    ma = foo();
+    assert(ma is ga);
+    static assert(!__traits(compiles, ma = bar()));
+
+    const(int)[] ca;
+    ca = foo();
+    assert(ca is ga);
+    ca = bar();
+    assert(ca is ga);
+
+    immutable(int)[] ia;
+    ia = foo();
+    assert(ia is ga);
+    ia = bar();
+    assert(ia is ga);
+}
+
+/************************************/
 // 13011
 
 void test13011()
@@ -3867,6 +3911,7 @@ int main()
     test9209();
     test11226();
     test11768();
+    test13066();
     test13011();
 
     printf("Success\n");
