@@ -2597,7 +2597,10 @@ FuncDeclaration *TemplateDeclaration::doHeaderInstantiation(
                 hasttp = true;
         }
         if (hasttp)
-            tf = (TypeFunction *)tf->addMod(tthis->mod);
+        {
+            tf = (TypeFunction *)tf->addSTC(ModToStc(tthis->mod));
+            assert(!tf->deco);
+        }
     }
 
     Scope *scx = sc2->push();

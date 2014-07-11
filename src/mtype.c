@@ -1038,6 +1038,20 @@ Type *Type::addSTC(StorageClass stc)
 }
 
 /************************************
+ * Convert MODxxxx to STCxxx
+ */
+
+StorageClass ModToStc(unsigned mod)
+{
+    StorageClass stc;
+    if (mod & MODimmutable) stc |= STCimmutable;
+    if (mod & MODconst)     stc |= STCconst;
+    if (mod & MODwild)      stc |= STCwild;
+    if (mod & MODshared)    stc |= STCshared;
+    return stc;
+}
+
+/************************************
  * Apply MODxxxx bits to existing type.
  */
 
@@ -6496,7 +6510,9 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                 if (v->storage_class & (STCconst | STCimmutable | STCmanifest) ||
                     v->type->isConst() || v->type->isImmutable())
                 {
-                    goto L3;
+                    // Bugzilla 13087: this.field is not constant always
+                    if (!v->isThisDeclaration())
+                        goto L3;
                 }
             }
             if (!sm)
