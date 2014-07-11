@@ -394,6 +394,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\color.c"
+				>
+			</File>
+			<File
+				RelativePath=".\color.h"
+				>
+			</File>
+			<File
 				RelativePath=".\complex_t.h"
 				>
 			</File>

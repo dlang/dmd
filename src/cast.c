@@ -3425,7 +3425,7 @@ IntRange getIntRange(Expression *e)
             if (vd && vd->range)
                 range = vd->range->cast(e->type);
             else if (vd && vd->init && !vd->type->isMutable() &&
-                (ie = vd->getConstInitializer()))
+                (ie = vd->getConstInitializer()) != NULL)
                 ie->accept(this);
             else
                 visit((Expression *)e);
