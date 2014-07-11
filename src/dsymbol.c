@@ -978,6 +978,11 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
                             a = mergeOverloadSet(a, s2);
                             continue;
                         }
+                        else if (ss->isModule() && s2->prot() == PROTprivate)
+                        {
+                            continue;
+                        }
+
                         if (flags & IgnoreAmbiguous)    // if return NULL on ambiguity
                             return NULL;
                         if (!(flags & IgnoreErrors))
