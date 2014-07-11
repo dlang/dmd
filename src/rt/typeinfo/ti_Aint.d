@@ -111,6 +111,20 @@ class TypeInfo_Ak : TypeInfo_Ai
     }
 }
 
+unittest
+{
+    // Original test case from issue 13073
+    uint x = 0x22_DF_FF_FF;
+    uint y = 0xA2_DF_FF_FF;
+    assert(!(x < y && y < x));
+    uint[] a = [x];
+    uint[] b = [y];
+    assert(!(a < b && b < a)); // Original failing case
+    uint[1] a1 = [x];
+    uint[1] b1 = [y];
+    assert(!(a1 < b1 && b1 < a1)); // Original failing case
+}
+
 // dchar[]
 
 class TypeInfo_Aw : TypeInfo_Ak
