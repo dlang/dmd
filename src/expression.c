@@ -1169,7 +1169,16 @@ bool arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt)
         {
             Expression *e = (*exps)[i];
             e = e->implicitCastTo(sc, t0);
-            assert(e->op != TOKerror);
+            //assert(e->op != TOKerror);
+            if (e->op == TOKerror)
+            {
+                /* Bugzilla 13024: a workaround for the bug in typeMerge -
+                 * it should paint e1 and e2 by deduced common type,
+                 * but doesn't in this particular case.
+                 */
+                t0 = Type::terror;
+                break;
+            }
             (*exps)[i] = e;
         }
     }
