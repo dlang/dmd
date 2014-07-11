@@ -375,13 +375,25 @@ extern (C)
 
 alias AssociativeArray(Key, Value) = Value[Key];
 
-Value[Key] rehash(T : Value[Key], Value, Key)(auto ref T aa)
+T rehash(T : Value[Key], Value, Key)(T aa)
 {
     _aaRehash(cast(void**)&aa, typeid(Value[Key]));
     return aa;
 }
 
-Value[Key] rehash(T : Value[Key], Value, Key)(T* aa)
+T rehash(T : Value[Key], Value, Key)(T* aa)
+{
+    _aaRehash(cast(void**)aa, typeid(Value[Key]));
+    return *aa;
+}
+
+T rehash(T : shared Value[Key], Value, Key)(T aa)
+{
+    _aaRehash(cast(void**)&aa, typeid(Value[Key]));
+    return aa;
+}
+
+T rehash(T : shared Value[Key], Value, Key)(T* aa)
 {
     _aaRehash(cast(void**)aa, typeid(Value[Key]));
     return *aa;
