@@ -73,12 +73,6 @@ ifeq (solaris,$(OS))
     CFLAGS+=-D_REENTRANT  # for thread-safe errno
 endif
 
-ifeq (osx,$(OS))
-    ASMFLAGS =
-else
-    ASMFLAGS = -Wa,--noexecstack
-endif
-
 OBJDIR=obj/$(MODEL)
 DRUNTIME_BASE=druntime-$(OS)$(MODEL)
 DRUNTIME=lib/lib$(DRUNTIME_BASE).a
@@ -163,7 +157,7 @@ $(OBJDIR)/errno_c.o : src/core/stdc/errno.c
 
 $(OBJDIR)/threadasm.o : src/core/threadasm.S
 	@mkdir -p $(OBJDIR)
-	$(CC) $(ASMFLAGS) -c $(CFLAGS) $< -o$@
+	$(CC) -c $(CFLAGS) $< -o$@
 
 ######################## Create a shared library ##############################
 
