@@ -93,9 +93,10 @@ class TypeInfo_Ak : TypeInfo_Ai
             len = s2.length;
         for (size_t u = 0; u < len; u++)
         {
-            int result = s1[u] - s2[u];
-            if (result)
-                return result;
+            if (s1[u] < s2[u])
+                return -1;
+            else if (s1[u] > s2[u])
+                return 1;
         }
         if (s1.length < s2.length)
             return -1;
