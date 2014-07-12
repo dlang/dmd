@@ -14,7 +14,6 @@
 #include <stdio.h>
 
 #if _WIN32
-#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <io.h>
 #endif
@@ -26,26 +25,32 @@
 #endif
 
 #if _WIN32
-static CONSOLE_SCREEN_BUFFER_INFO sbi;
-static const BOOL sbi_inited = GetConsoleScreenBufferInfo(GetStdHandle(STD_ERROR_HANDLE), &sbi);
+static CONSOLE_SCREEN_BUFFER_INFO *consoleAttributes()
+{
+    static CONSOLE_SCREEN_BUFFER_INFO sbi;
+    static bool sbi_inited = false;
+    if (!sbi_inited)
+        sbi_inited = GetConsoleScreenBufferInfo(GetStdHandle(STD_ERROR_HANDLE), &sbi) != FALSE;
+    return &sbi;
+}
 #endif
 
-int isConsoleColorSupported()
+bool isConsoleColorSupported()
 {
 #if _WIN32
-    return _isatty(_fileno(stderr));
+    return _isatty(_fileno(stderr)) != 0;
 #elif __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
     const char *term = getenv("TERM");
     return isatty(STDERR_FILENO) && term && term[0] && 0 != strcmp(term, "dumb");
 #else
-    return 0;
+    return false;
 #endif
 }
 
 void setConsoleColorBright()
 {
 #if _WIN32
-    SetConsoleTextAttribute(GetStdHandle(STD_ERROR_HANDLE), sbi.wAttributes | FOREGROUND_INTENSITY);
+    SetConsoleTextAttribute(GetStdHandle(STD_ERROR_HANDLE), consoleAttributes()->wAttributes | FOREGROUND_INTENSITY);
 #else
     fprintf(stderr, "\033[1m");
 #endif
@@ -55,7 +60,7 @@ void setConsoleColorError()
 {
 #if _WIN32
     enum { FOREGROUND_WHITE = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE };
-    SetConsoleTextAttribute(GetStdHandle(STD_ERROR_HANDLE), (sbi.wAttributes & ~FOREGROUND_WHITE) | FOREGROUND_RED | FOREGROUND_INTENSITY);
+    SetConsoleTextAttribute(GetStdHandle(STD_ERROR_HANDLE), (consoleAttributes()->wAttributes & ~FOREGROUND_WHITE) | FOREGROUND_RED | FOREGROUND_INTENSITY);
 #else
     fprintf(stderr, "\033[1;31m");
 #endif
@@ -64,7 +69,7 @@ void setConsoleColorError()
 void resetConsoleColor()
 {
 #if _WIN32
-    SetConsoleTextAttribute(GetStdHandle(STD_ERROR_HANDLE), sbi.wAttributes);
+    SetConsoleTextAttribute(GetStdHandle(STD_ERROR_HANDLE), consoleAttributes()->wAttributes);
 #else
     fprintf(stderr, "\033[m");
 #endif
