@@ -292,7 +292,6 @@ void verrorPrint(Loc loc, const char *header, const char *format, va_list ap,
 }
 
 // header is "Error: " by default (see mars.h)
-extern "C" {
 void verror(Loc loc, const char *format, va_list ap,
                 const char *p1, const char *p2, const char *header)
 {
@@ -310,7 +309,6 @@ void verror(Loc loc, const char *format, va_list ap,
         global.gaggedErrors++;
     }
     global.errors++;
-}
 }
 
 // Doesn't increase error count, doesn't print "Error:".
