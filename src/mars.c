@@ -1238,6 +1238,11 @@ Language changes listed by -transition=id:\n\
             }
         }
     }
+    else if (global.params.run)
+    {
+        error(Loc(), "flags conflict with -run");
+        fatal();
+    }
     else if (global.params.lib)
     {
         global.params.libname = global.params.objname;
@@ -1246,11 +1251,6 @@ Language changes listed by -transition=id:\n\
         // Haven't investigated handling these options with multiobj
         if (!global.params.cov && !global.params.trace)
             global.params.multiobj = true;
-    }
-    else if (global.params.run)
-    {
-        error(Loc(), "flags conflict with -run");
-        fatal();
     }
     else
     {
