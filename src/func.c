@@ -1718,9 +1718,12 @@ void FuncDeclaration::semantic3(Scope *sc)
                 //printf("callSuper = x%x\n", sc2->callSuper);
 
                 // For foreach(){} body, append a return 0;
-                Expression *e = new IntegerExp(0);
-                Statement *s = new ReturnStatement(Loc(), e);
-                fbody = new CompoundStatement(Loc(), fbody, s);
+                if (blockexit & BEfallthru)
+                {
+                    Expression *e = new IntegerExp(0);
+                    Statement *s = new ReturnStatement(Loc(), e);
+                    fbody = new CompoundStatement(Loc(), fbody, s);
+                }
                 assert(!returnLabel);
             }
             else if (!hasReturnExp && type->nextOf()->ty != Tvoid)
@@ -1742,32 +1745,28 @@ void FuncDeclaration::semantic3(Scope *sc)
                     f->isnothrow = !(blockexit & BEthrow);
                 }
 
-                int offend = blockexit & BEfallthru;
-                if (type->nextOf()->ty != Tvoid)
+                if ((blockexit & BEfallthru) && type->nextOf()->ty != Tvoid)
                 {
-                    if (offend)
+                    Expression *e;
+                    error("no return exp; or assert(0); at end of function");
+                    if (global.params.useAssert &&
+                        !global.params.useInline)
                     {
-                        Expression *e;
-                        error("no return exp; or assert(0); at end of function");
-                        if (global.params.useAssert &&
-                            !global.params.useInline)
-                        {
-                            /* Add an assert(0, msg); where the missing return
-                             * should be.
-                             */
-                            e = new AssertExp(
-                                  endloc,
-                                  new IntegerExp(0),
-                                  new StringExp(loc, (char *)"missing return expression")
-                                );
-                        }
-                        else
-                            e = new HaltExp(endloc);
-                        e = new CommaExp(Loc(), e, type->nextOf()->defaultInit());
-                        e = e->semantic(sc2);
-                        Statement *s = new ExpStatement(Loc(), e);
-                        fbody = new CompoundStatement(Loc(), fbody, s);
+                        /* Add an assert(0, msg); where the missing return
+                         * should be.
+                         */
+                        e = new AssertExp(
+                              endloc,
+                              new IntegerExp(0),
+                              new StringExp(loc, (char *)"missing return expression")
+                            );
                     }
+                    else
+                        e = new HaltExp(endloc);
+                    e = new CommaExp(Loc(), e, type->nextOf()->defaultInit());
+                    e = e->semantic(sc2);
+                    Statement *s = new ExpStatement(Loc(), e);
+                    fbody = new CompoundStatement(Loc(), fbody, s);
                 }
             }
 
