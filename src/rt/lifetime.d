@@ -73,10 +73,11 @@ extern (C) Object _d_newclass(const ClassInfo ci)
     else
     {
         // TODO: should this be + 1 to avoid having pointers to the next block?
-        BlkAttr attr = BlkAttr.FINALIZE;
+        BlkAttr attr = BlkAttr.NONE;
         // extern(C++) classes don't have a classinfo pointer in their vtable so the GC can't finalize them
-        if (ci.m_flags & TypeInfo_Class.ClassFlags.isCPPclass)
-            attr &= ~BlkAttr.FINALIZE;
+        if (ci.m_flags & TypeInfo_Class.ClassFlags.hasDtor
+            && !(ci.m_flags & TypeInfo_Class.ClassFlags.isCPPclass))
+            attr |= BlkAttr.FINALIZE;
         if (ci.m_flags & TypeInfo_Class.ClassFlags.noPointers)
             attr |= BlkAttr.NO_SCAN;
         p = GC.malloc(ci.init.length, attr, ci);
