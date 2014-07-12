@@ -1875,6 +1875,7 @@ TOK Lexer::number(Token *t)
     uinteger_t n = 0;                       // unsigned >=64 bit integer type
     int d;
     bool err = false;
+    bool overflow = false;
 
     c = *p;
     if (c == '0')
@@ -2007,24 +2008,27 @@ TOK Lexer::number(Token *t)
         }
 
         uinteger_t n2 = n * base;
-        if ((n2 / base != n || n2 + d < n) && !err)
+        if ((n2 / base != n || n2 + d < n))
         {
-            error("integer overflow");
-            err = true;
+            overflow = true;
         }
         n = n2 + d;
 
         // if n needs more than 64 bits
         if (sizeof(n) > 8 &&
-            n > 0xFFFFFFFFFFFFFFFFULL &&
-            !err)
+            n > 0xFFFFFFFFFFFFFFFFULL)
         {
-            error("integer overflow");
-            err = true;
+            overflow = true;
         }
     }
 
 Ldone:
+
+    if (overflow && !err)
+    {
+        error("integer overflow");
+        err = true;
+    }
 
     enum FLAGS
     {
