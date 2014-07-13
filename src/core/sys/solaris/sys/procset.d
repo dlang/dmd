@@ -25,14 +25,16 @@ enum P_INITPID  = 1;
 enum P_INITUID  = 0;
 enum P_INITPGID = 0;
 
-enum idop_t {
+enum idop_t
+{
     POP_DIFF,
     POP_AND,
     POP_OR,
     POP_XOR
 }
 
-struct procset_t {
+struct procset_t
+{
     idop_t      p_op;
     idtype_t    p_lidtype;
     id_t        p_lid;

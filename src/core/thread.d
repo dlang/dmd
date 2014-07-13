@@ -980,8 +980,7 @@ class Thread
             clparms[1] = cast(pri_t) val;
 
             if (priocntl(idtype_t.P_LWPID, P_MYID, PC_SETPARMS, &pcparm) == -1)
-                throw new ThreadException( "Unable to set schedulign class" );
-
+                throw new ThreadException( "Unable to set scheduling class" );
         }
         else version( Posix )
         {

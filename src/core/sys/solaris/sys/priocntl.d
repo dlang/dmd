@@ -87,7 +87,8 @@ enum PC_VAPARMCNT = 8;  // max # of kv pairs
 enum PC_KY_NULL   = 0;  // kv chain terminator
 enum PC_KY_CLNAME = 1;  // get the class name of a process or LWP
 
-struct pc_vaparm_t {
+struct pc_vaparm_t
+{
     int     pc_key;
     ulong   pc_parm;
 }
