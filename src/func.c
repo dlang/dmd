@@ -3685,6 +3685,8 @@ bool FuncDeclaration::setImpure()
     if (flags & FUNCFLAGpurityInprocess)
     {
         flags &= ~FUNCFLAGpurityInprocess;
+        if (fes)
+            fes->func->setImpure();
     }
     else if (isPure())
         return true;
@@ -3723,6 +3725,8 @@ bool FuncDeclaration::setUnsafe()
     {
         flags &= ~FUNCFLAGsafetyInprocess;
         ((TypeFunction *)type)->trust = TRUSTsystem;
+        if (fes)
+            fes->func->setUnsafe();
     }
     else if (isSafe())
         return true;
@@ -3754,6 +3758,8 @@ bool FuncDeclaration::setGC()
     {
         flags &= ~FUNCFLAGnogcInprocess;
         ((TypeFunction *)type)->isnogc = false;
+        if (fes)
+            fes->func->setGC();
     }
     else if (isNogc())
         return true;
