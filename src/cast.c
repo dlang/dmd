@@ -59,7 +59,7 @@ Expression *implicitCastTo(Expression *e, Scope *sc, Type *t)
             {
                 if (match == MATCHconst &&
                     (e->type->constConv(t) ||
-                     !e->isLvalue() && e->type->immutableOf()->equals(t->immutableOf())))
+                     (!e->isLvalue() && e->type->immutableOf()->equals(t->immutableOf()))))
                 {
                     /* Do not emit CastExp for const conversions and
                      * unique conversions on rvalue.
@@ -2247,7 +2247,7 @@ Expression *inferType(Expression *e, Type *t, int flag)
         {
             //printf("FuncExp::inferType('%s'), to=%s\n", fe->type ? fe->type->toChars() : "null", t->toChars());
             if (t->ty == Tdelegate ||
-                t->ty == Tpointer && t->nextOf()->ty == Tfunction)
+                (t->ty == Tpointer && t->nextOf()->ty == Tfunction))
             {
                 fe->fd->treq = t;
             }
@@ -2384,7 +2384,7 @@ int typeMerge(Scope *sc, Expression *e, Type **pt, Expression **pe1, Expression 
     Type *t2b = e2->type->toBasetype();
 
     if (e->op != TOKquestion ||
-        t1b->ty != t2b->ty && (t1b->isTypeBasic() && t2b->isTypeBasic()))
+        (t1b->ty != t2b->ty && (t1b->isTypeBasic() && t2b->isTypeBasic())))
     {
         e1 = integralPromotions(e1, sc);
         e2 = integralPromotions(e2, sc);
@@ -2568,8 +2568,8 @@ Lagain:
         }
     }
     else if ((t1->ty == Tsarray || t1->ty == Tarray) &&
-             (e2->op == TOKnull && t2->ty == Tpointer && t2->nextOf()->ty == Tvoid ||
-              e2->op == TOKarrayliteral && t2->ty == Tsarray && t2->nextOf()->ty == Tvoid && ((TypeSArray *)t2)->dim->toInteger() == 0 ||
+             ((e2->op == TOKnull && t2->ty == Tpointer && t2->nextOf()->ty == Tvoid) ||
+              (e2->op == TOKarrayliteral && t2->ty == Tsarray && t2->nextOf()->ty == Tvoid && ((TypeSArray *)t2)->dim->toInteger() == 0) ||
               isVoidArrayLiteral(e2, t1))
             )
     {
@@ -2583,8 +2583,8 @@ Lagain:
         goto Lx1;
     }
     else if ((t2->ty == Tsarray || t2->ty == Tarray) &&
-             (e1->op == TOKnull && t1->ty == Tpointer && t1->nextOf()->ty == Tvoid ||
-              e1->op == TOKarrayliteral && t1->ty == Tsarray && t1->nextOf()->ty == Tvoid && ((TypeSArray *)t1)->dim->toInteger() == 0 ||
+             ((e1->op == TOKnull && t1->ty == Tpointer && t1->nextOf()->ty == Tvoid) ||
+              (e1->op == TOKarrayliteral && t1->ty == Tsarray && t1->nextOf()->ty == Tvoid && ((TypeSArray *)t1)->dim->toInteger() == 0) ||
               isVoidArrayLiteral(e1, t2))
             )
     {

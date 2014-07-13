@@ -331,8 +331,8 @@ code *cdorth(elem *e,regm_t *pretregs)
         // Handle the case of ((e + c) + e2)
         if (!I16 &&
             e1oper == OPadd &&
-            (e1->E2->Eoper == OPconst && el_signx32(e1->E2) ||
-             e2oper == OPconst && el_signx32(e2)) &&
+            ((e1->E2->Eoper == OPconst && el_signx32(e1->E2)) ||
+             (e2oper == OPconst && el_signx32(e2))) &&
             !e1->Ecount
            )
         {   elem *e11;
@@ -3898,7 +3898,7 @@ code *cdstreq(elem *e,regm_t *pretregs)
         {
             c1a = cdrelconst(e2,&srcregs);
             segreg = segfl[el_fl(e2)];
-            if ((config.wflags & WFssneds) && segreg == SEG_SS || /* if source is on stack */
+            if (((config.wflags & WFssneds) && segreg == SEG_SS) || /* if source is on stack */
                 segreg == SEG_CS)               /* if source is in CS */
             {   code *c;
 

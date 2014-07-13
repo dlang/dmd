@@ -2180,7 +2180,7 @@ STATIC void findbasivs(loop *l)
                 if ((n->Eoper == OPaddass || n->Eoper == OPminass ||
                      n->Eoper == OPpostinc || n->Eoper == OPpostdec) &&
                         (cnst(n->E2) || /* if x += c or x -= c          */
-                         n->E2->Eoper == OPvar && isLI(n->E2)))
+                         (n->E2->Eoper == OPvar && isLI(n->E2))))
                 {       if (vec_testbit(v,poss))
                                 /* We've already seen this def elem,    */
                                 /* therefore there is more than one     */
@@ -2507,7 +2507,7 @@ STATIC void ivfamelems(register Iv *biv,register elem **pn)
                         fl->c1 = el_una(op,ty,fl->c1); /* c1 = -1       */
                 }
                 else if (n2->Eoper == OPconst ||
-                         isLI(n2) && (op == OPadd || op == OPmin))
+                         (isLI(n2) && (op == OPadd || op == OPmin)))
                 {       register famlist *fl;
 
 #ifdef DEBUG
@@ -2575,7 +2575,7 @@ STATIC void ivfamelems(register Iv *biv,register elem **pn)
 
                 }
                 else if (n2->Eoper == OPconst ||
-                         isLI(n2) && (op == OPadd || op == OPmin))
+                         (isLI(n2) && (op == OPadd || op == OPmin)))
                 {
 #ifdef DEBUG
                         if (debugc)
@@ -3014,8 +3014,8 @@ STATIC void elimbasivs(register loop *l)
                    by -1
                  */
                 if (!tyuns(ty) &&
-                    (tyintegral(ty) && el_tolong(fl->c1) < 0 ||
-                     tyfloating(ty) && el_toldouble(fl->c1) < 0.0))
+                    ((tyintegral(ty) && el_tolong(fl->c1) < 0) ||
+                     (tyfloating(ty) && el_toldouble(fl->c1) < 0.0)))
                         refEoper = swaprel(refEoper);
 
                 /* Replace (X relop e) with (X relop (short)e)
@@ -3341,7 +3341,7 @@ STATIC famlist * flcmp(famlist *f1,famlist *f2)
             case TYschar:
             case TYuchar:
                 if (t2->Vuchar == 1 ||
-                    t1->Vuchar != 1 && f2->c2->EV.Vuchar == 0)
+                    (t1->Vuchar != 1 && f2->c2->EV.Vuchar == 0))
                         goto Lf2;
                 break;
             case TYshort:
@@ -3350,7 +3350,7 @@ STATIC famlist * flcmp(famlist *f1,famlist *f2)
             case TYwchar_t:     // BUG: what about 4 byte wchar_t's?
             case_short:
                 if (t2->Vshort == 1 ||
-                    t1->Vshort != 1 && f2->c2->EV.Vshort == 0)
+                    (t1->Vshort != 1 && f2->c2->EV.Vshort == 0))
                         goto Lf2;
                 break;
 
@@ -3379,29 +3379,29 @@ STATIC famlist * flcmp(famlist *f1,famlist *f2)
 #endif
             case_long:
                 if (t2->Vlong == 1 ||
-                    t1->Vlong != 1 && f2->c2->EV.Vlong == 0)
+                    (t1->Vlong != 1 && f2->c2->EV.Vlong == 0))
                         goto Lf2;
                 break;
             case TYfloat:
                 if (t2->Vfloat == 1 ||
-                    t1->Vfloat != 1 && f2->c2->EV.Vfloat == 0)
+                    (t1->Vfloat != 1 && f2->c2->EV.Vfloat == 0))
                         goto Lf2;
                 break;
             case TYdouble:
             case TYdouble_alias:
                 if (t2->Vdouble == 1.0 ||
-                    t1->Vdouble != 1.0 && f2->c2->EV.Vdouble == 0)
+                    (t1->Vdouble != 1.0 && f2->c2->EV.Vdouble == 0))
                         goto Lf2;
                 break;
             case TYldouble:
                 if (t2->Vldouble == 1.0 ||
-                    t1->Vldouble != 1.0 && f2->c2->EV.Vldouble == 0)
+                    (t1->Vldouble != 1.0 && f2->c2->EV.Vldouble == 0))
                         goto Lf2;
                 break;
             case TYllong:
             case TYullong:
                 if (t2->Vllong == 1 ||
-                    t1->Vllong != 1 && f2->c2->EV.Vllong == 0)
+                    (t1->Vllong != 1 && f2->c2->EV.Vllong == 0))
                         goto Lf2;
                 break;
             default:
@@ -3497,8 +3497,8 @@ STATIC void countrefs(register elem **pn,bool flag)
                 /* Check both subtrees to see if n is the comparison node,
                  * that is, if X is a leaf of the comparison.
                  */
-                if (e1->Eoper == OPvar && e1->EV.sp.Vsym == X && !countrefs2(n->E2) ||
-                    n->E2->Eoper == OPvar && n->E2->EV.sp.Vsym == X && !countrefs2(e1))
+                if ((e1->Eoper == OPvar && e1->EV.sp.Vsym == X && !countrefs2(n->E2)) ||
+                    (n->E2->Eoper == OPvar && n->E2->EV.sp.Vsym == X && !countrefs2(e1)))
                         nd = pn;                /* found the relop node */
         }
     L1:

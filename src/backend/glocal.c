@@ -406,8 +406,8 @@ Loop:
                     f2 = local_getflags(e->E2,s);
                     if (f1 & f2 & LFsymref ||   // if both reference or
                         (f1 | f2) & LFsymdef || // either define
-                        f & LFambigref && (f1 | f2) & LFambigdef ||
-                        f & LFambigdef && (f1 | f2) & (LFambigref | LFambigdef)
+                        (f & LFambigref && (f1 | f2) & LFambigdef) ||
+                        (f & LFambigdef && (f1 | f2) & (LFambigref | LFambigdef))
                        )
                         local_rem(u);
                     else if (f & LFunambigdef && local_chkrem(e,eu->E2))

@@ -918,7 +918,7 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
             else if (s2 && s != s2)
             {
                 if (s->toAlias() == s2->toAlias() ||
-                    s->getType() == s2->getType() && s->getType())
+                    (s->getType() == s2->getType() && s->getType()))
                 {
                     /* After following aliases, we found the same
                      * symbol, so it's not an ambiguity.  But if one
@@ -926,7 +926,7 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
                      * the other.
                      */
                     if (s->isDeprecated() ||
-                        s2->prot() > s->prot() && s2->prot() != PROTnone)
+                        (s2->prot() > s->prot() && s2->prot() != PROTnone))
                         s = s2;
                 }
                 else
@@ -970,7 +970,7 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
                                 if (s2->toAlias() == s3->toAlias())
                                 {
                                     if (s3->isDeprecated() ||
-                                        s2->prot() > s3->prot() && s2->prot() != PROTnone)
+                                        (s2->prot() > s3->prot() && s2->prot() != PROTnone))
                                         a->a[j] = s2;
                                     goto Lcontinue;
                                 }

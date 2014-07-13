@@ -1539,9 +1539,9 @@ Statement *ForStatement::semantic(Scope *sc)
 
     sc->pop();
 
-    if (condition && condition->op == TOKerror ||
-        increment && increment->op == TOKerror ||
-        body      && body->isErrorStatement())
+    if ((condition && condition->op == TOKerror) ||
+        (increment && increment->op == TOKerror) ||
+        (body      && body->isErrorStatement()))
         return new ErrorStatement();
 
     return this;
@@ -1745,7 +1745,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
             }
             // Declare value
             if (arg->storageClass & (STCout | STClazy) ||
-                arg->storageClass & STCref && !te)
+                (arg->storageClass & STCref && !te))
             {
                 error("no storage class for value %s", arg->ident->toChars());
                 goto Lerror;
@@ -3643,7 +3643,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
             exp = inferType(exp, fld->treq->nextOf()->nextOf());
         exp = exp->semantic(sc);
         exp = resolveProperties(sc, exp);
-        if (exp->type && exp->type->ty != Tvoid ||
+        if ((exp->type && exp->type->ty != Tvoid) ||
             exp->op == TOKfunction || exp->op == TOKtype || exp->op == TOKtemplate)
         {
             if (!exp->rvalue()) // don't make error for void expression

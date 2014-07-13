@@ -1262,9 +1262,9 @@ STATIC elem * elbitwise(elem *e, goal_t goal)
 
                 if (
                     /* OK for unsigned if AND or high bits of i are 0   */
-                    op == OPu8_16 && (e->Eoper == OPand || !(i & ~0xFF)) ||
+                    (op == OPu8_16 && (e->Eoper == OPand || !(i & ~0xFF))) ||
                     /* OK for signed if i is 'sign-extended'    */
-                    op == OPs8_16 && (targ_short)(targ_schar)i == i
+                    (op == OPs8_16 && (targ_short)(targ_schar)i == i)
                    )
                 {
                         /* Convert ((u8int) e) & i) to (u8int)(e & (int8) i) */
@@ -1324,12 +1324,12 @@ STATIC elem * elbitwise(elem *e, goal_t goal)
                 }
             }
 
-            if (op == OPs16_32 && (ul & 0xFFFFFFFFFFFF8000LL) == 0 ||
-                op == OPu16_32 && (ul & 0xFFFFFFFFFFFF0000LL) == 0 ||
-                op == OPs8_16  && (ul & 0xFFFFFFFFFFFFFF80LL) == 0 ||
-                op == OPu8_16  && (ul & 0xFFFFFFFFFFFFFF00LL) == 0 ||
-                op == OPs32_64 && (ul & 0xFFFFFFFF80000000LL) == 0 ||
-                op == OPu32_64 && (ul & 0xFFFFFFFF00000000LL) == 0
+            if ((op == OPs16_32 && (ul & 0xFFFFFFFFFFFF8000LL) == 0) ||
+                (op == OPu16_32 && (ul & 0xFFFFFFFFFFFF0000LL) == 0) ||
+                (op == OPs8_16  && (ul & 0xFFFFFFFFFFFFFF80LL) == 0) ||
+                (op == OPu8_16  && (ul & 0xFFFFFFFFFFFFFF00LL) == 0) ||
+                (op == OPs32_64 && (ul & 0xFFFFFFFF80000000LL) == 0) ||
+                (op == OPu32_64 && (ul & 0xFFFFFFFF00000000LL) == 0)
                )
             {
                 if (e->Eoper == OPand)
@@ -3914,9 +3914,9 @@ L1:
         tym_t tym;
         int sz;
 
-        if (e1->Eoper == OPu16_32 && e2->EV.Vulong <= (targ_ulong) SHORTMASK ||
-                 e1->Eoper == OPs16_32 &&
-                 e2->EV.Vlong == (targ_short) e2->EV.Vlong)
+        if ((e1->Eoper == OPu16_32 && e2->EV.Vulong <= (targ_ulong) SHORTMASK) ||
+                 (e1->Eoper == OPs16_32 &&
+                 e2->EV.Vlong == (targ_short) e2->EV.Vlong))
         {
                 tym = (uns || e1->Eoper == OPu16_32) ? TYushort : TYshort;
                 e->E2 = el_una(OP32_16,tym,e2);
@@ -3970,9 +3970,9 @@ L1:
             }
         }
 
-        if (e1->Eoper == OPu8_16 && e2->EV.Vuns < 256 ||
-                 e1->Eoper == OPs8_16 &&
-                 e2->EV.Vint == (targ_schar) e2->EV.Vint)
+        if ((e1->Eoper == OPu8_16 && e2->EV.Vuns < 256) ||
+                 (e1->Eoper == OPs8_16 &&
+                 e2->EV.Vint == (targ_schar) e2->EV.Vint))
         {
                 tym = (uns || e1->Eoper == OPu8_16) ? TYuchar : TYschar;
                 e->E2 = el_una(OP16_8,tym,e2);
@@ -4418,8 +4418,8 @@ STATIC elem * el64_32(elem *e, goal_t goal)
 
     case OPshr:                 // OP64_32(x >> 32) => OPmsw(x)
         if (e1->E2->Eoper == OPconst &&
-            (e->Eoper == OP64_32 && el_tolong(e1->E2) == 32 && !I64 ||
-             e->Eoper == OP128_64 && el_tolong(e1->E2) == 64 && I64)
+            ((e->Eoper == OP64_32 && el_tolong(e1->E2) == 32 && !I64) ||
+             (e->Eoper == OP128_64 && el_tolong(e1->E2) == 64 && I64))
            )
         {
             e->Eoper = OPmsw;

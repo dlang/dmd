@@ -1131,8 +1131,8 @@ Ldone:
     TemplateInstance *ti;
     if (fbody &&
         (isFuncLiteralDeclaration() ||
-         isInstantiated() && !isVirtualMethod() &&
-         !(ti = parent->isTemplateInstance(), ti && !ti->isTemplateMixin() && ti->tempdecl->ident != ident)))
+         (isInstantiated() && !isVirtualMethod() &&
+         !(ti = parent->isTemplateInstance(), ti && !ti->isTemplateMixin() && ti->tempdecl->ident != ident))))
     {
         if (f->purity == PUREimpure)        // purity not specified
             flags |= FUNCFLAGpurityInprocess;
@@ -2085,7 +2085,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 
             // If declaration has no body, don't set sbody to prevent incorrect codegen.
             InterfaceDeclaration *id = parent->isInterfaceDeclaration();
-            if (fbody || id && (fdensure || fdrequire) && isVirtual())
+            if (fbody || (id && (fdensure || fdrequire) && isVirtual()))
                 fbody = sbody;
         }
 
@@ -3177,8 +3177,8 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
     }
 #endif
 
-    if (tiargs && arrayObjectIsError(tiargs) ||
-        fargs  && arrayObjectIsError((Objects *)fargs))
+    if ((tiargs && arrayObjectIsError(tiargs)) ||
+        (fargs  && arrayObjectIsError((Objects *)fargs)))
     {
         return NULL;
     }

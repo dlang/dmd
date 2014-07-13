@@ -300,7 +300,7 @@ public:
             /* These are reserved to the compiler, so keep simple
              * names for them.
              */
-            if (cd->ident == Id::Exception && cd->parent->ident == Id::object ||
+            if ((cd->ident == Id::Exception && cd->parent->ident == Id::object) ||
                 cd->ident == Id::TypeInfo ||
                 cd->ident == Id::TypeInfo_Struct ||
                 cd->ident == Id::TypeInfo_Class ||
