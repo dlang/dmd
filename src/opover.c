@@ -1704,7 +1704,7 @@ static Dsymbol *inferApplyArgTypesX(Expression *ethis, FuncDeclaration *fstart, 
   struct ParamOpOver
   {
     Parameters *arguments;
-    unsigned char mod;
+    MOD mod;
     MATCH match;
     FuncDeclaration *fd_best;
     FuncDeclaration *fd_ambig;
