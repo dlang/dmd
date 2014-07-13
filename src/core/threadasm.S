@@ -13,7 +13,7 @@
  *          http://www.boost.org/LICENSE_1_0.txt)
  */
 
-#if defined(__linux__)
+#if (defined(__linux__) || defined(__FreeBSD__)) && defined(__ELF__)
 /*
  * Mark the resulting object file as not requiring execution permissions on
  * stack memory. The absence of this section would mark the whole resulting
@@ -21,7 +21,7 @@
  * dynamically load druntime on several Linux platforms where this is
  * forbidden due to security policies.
  */
-.section .note.GNU-stack,"",@progbits
+.section .note.GNU-stack,"",%progbits
 #endif
 
 /************************************************************************************
