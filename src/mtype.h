@@ -115,20 +115,26 @@ extern int Tsize_t;
 extern int Tptrdiff_t;
 
 
-/* pick this order of numbers so switch statements work better
+/**
+ * type modifiers
+ * pick this order of numbers so switch statements work better
  */
-#define MODconst     1  // type is const
-#define MODimmutable 4  // type is immutable
-#define MODshared    2  // type is shared
-#define MODwild      8  // type is wild
-#define MODwildconst (MODwild | MODconst)  // type is wild const
-#define MODmutable   0x10       // type is mutable (only used in wildcard matching)
+enum MODFlags
+{
+    MODconst     = 1, // type is const
+    MODimmutable = 4, // type is immutable
+    MODshared    = 2, // type is shared
+    MODwild      = 8, // type is wild
+    MODwildconst = (MODwild | MODconst), // type is wild const
+    MODmutable   = 0x10       // type is mutable (only used in wildcard matching)
+};
+typedef unsigned char MOD;
 
 class Type : public RootObject
 {
 public:
     TY ty;
-    unsigned char mod;  // modifiers MODxxxx
+    MOD mod;  // modifiers MODxxxx
     char *deco;
 
     /* These are cached values that are lazily evaluated by constOf(), immutableOf(), etc.
@@ -296,8 +302,8 @@ public:
     void fixTo(Type *t);
     void check();
     Type *addSTC(StorageClass stc);
-    Type *castMod(unsigned mod);
-    Type *addMod(unsigned mod);
+    Type *castMod(MOD mod);
+    Type *addMod(MOD mod);
     virtual Type *addStorageClass(StorageClass stc);
     Type *pointerTo();
     Type *referenceTo();
@@ -1014,11 +1020,11 @@ public:
 
 int arrayTypeCompatible(Loc loc, Type *t1, Type *t2);
 int arrayTypeCompatibleWithoutCasting(Loc loc, Type *t1, Type *t2);
-void MODtoBuffer(OutBuffer *buf, unsigned char mod);
-char *MODtoChars(unsigned char mod);
-int MODimplicitConv(unsigned char modfrom, unsigned char modto);
-int MODmethodConv(unsigned char modfrom, unsigned char modto);
-unsigned char MODmerge(unsigned char mod1, unsigned char mod2);
+void MODtoBuffer(OutBuffer *buf, MOD mod);
+char *MODtoChars(MOD mod);
+bool MODimplicitConv(MOD modfrom, MOD modto);
+bool MODmethodConv(MOD modfrom, MOD modto);
+MOD MODmerge(MOD mod1, MOD mod2);
 void identifierToDocBuffer(Identifier* ident, OutBuffer *buf, HdrGenState *hgs);
 
 #endif /* DMD_MTYPE_H */
