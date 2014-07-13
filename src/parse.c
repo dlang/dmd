@@ -479,6 +479,9 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl, PrefixAttributes 
                 {
                     if (token.value == TOKidentifier)
                         error("redundant storage class '@%s'", token.ident->toChars());
+                    else if (pAttrs->storageClass & stc & STCstatic)
+                        // Eventually deprecate then make this an error
+                        warning(token.loc, "redundant storage class '%s'", Token::toChars(token.value));
                     else
                         error("redundant storage class '%s'", Token::toChars(token.value));
                 }
