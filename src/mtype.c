@@ -4809,6 +4809,39 @@ printf("index->ito->ito = x%x\n", index->ito->ito);
              */
         }
     }
+    else if (tbase->ty == Tclass)
+    {
+        ClassDeclaration *cd = ((TypeClass *)tbase)->sym;
+        if (cd->scope)
+            cd->semantic(NULL);
+
+        if (!ClassDeclaration::object)
+        {
+            error(Loc(), "missing or corrupt object.d");
+            fatal();
+        }
+
+        static FuncDeclaration *feq   = NULL;
+        static FuncDeclaration *fcmp  = NULL;
+        static FuncDeclaration *fhash = NULL;
+        if (!feq)   feq   = search_function(ClassDeclaration::object, Id::eq)->isFuncDeclaration();
+        if (!fcmp)  fcmp  = search_function(ClassDeclaration::object, Id::cmp)->isFuncDeclaration();
+        if (!fhash) fhash = search_function(ClassDeclaration::object, Id::tohash)->isFuncDeclaration();
+        assert(fcmp && feq && fhash);
+
+        if (cd->vtbl[feq ->vtblIndex] == feq)
+        {
+        #if 1
+            if (cd->vtbl[fcmp->vtblIndex] != fcmp)
+            {
+                const char *s = (index->toBasetype()->ty != Tclass) ? "bottom of " : "";
+                error(loc, "%sAA key type %s now requires equality rather than comparison",
+                    s, cd->toChars());
+                errorSupplemental(loc, "Please override Object.opEquals and toHash.");
+            }
+        #endif
+        }
+    }
     next = next->semantic(loc,sc)->merge2();
     transitive();
 
