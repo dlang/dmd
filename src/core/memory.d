@@ -433,6 +433,19 @@ struct GC
         return gc_realloc( p, sz, ba, ti );
     }
 
+    /// Issue 13111
+    unittest
+    {
+        enum size1 = 1 << 11 + 1; // page in large object pool
+        enum size2 = 1 << 22 + 1; // larger than large object pool size
+
+        auto data1 = cast(ubyte*)GC.calloc(size1);
+        auto data2 = cast(ubyte*)GC.realloc(data1, size2);
+
+        BlkInfo info = query(data2);
+        assert(info.size >= size2);
+    }
+
 
     /**
      * Requests that the managed memory block referenced by p be extended in

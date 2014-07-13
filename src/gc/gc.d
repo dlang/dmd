@@ -678,6 +678,8 @@ class GC
                         pool.freepages -= (newsz - psz);
                         debug(PRINTF) printFreeInfo(pool);
                     }
+                    else
+                        goto Lfallthrough; // does not fit into current pool
                     pool.updateOffsets(pagenum);
                     if (bits)
                     {
