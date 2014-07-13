@@ -178,6 +178,20 @@ extern (C) void _d_delstruct(void** p, TypeInfo_Struct inf)
     }
 }
 
+/**
+ *
+ */
+extern (C) void _d_delstruct(void** p, StructInfo inf)
+{
+    if (*p)
+    {
+        debug(PRINTF) printf("_d_delstruct(%p, %p)\n", *p, cast(void*)inf);
+        rt_finalize_struct(*p, inf);
+        GC.free(*p);
+        *p = null;
+    }
+}
+
 /** dummy class used to lock for shared array appending */
 private class ArrayAllocLengthLock
 {}
@@ -1010,10 +1024,12 @@ extern (C) void[] _d_newarraymiT(const TypeInfo ti, size_t ndims, ...)
 extern (C) void* _d_newitemT(TypeInfo ti)
 {
     auto size = ti.tsize;                  // array element size
-    auto size = ti.tsize;                  // array element size
     auto baseFlags = !(ti.flags & 1) ? BlkAttr.NO_SCAN : 0;
     if (auto si = cast(StructInfo)ti)
+	{
         baseFlags |= si.xdtor ? BlkAttr.STRUCT_FINALIZE : 0;
+        size += size_t.sizeof; // Need space for the type info
+    }
 
     debug(PRINTF) printf("_d_newitemT(size = %d)\n", size);
     /* not sure if we need this...
@@ -1032,6 +1048,10 @@ extern (C) void* _d_newitemT(TypeInfo ti)
             *cast(uint*)ptr = 0;
         else
             memset(ptr, 0, size);
+
+        if (baseFlags & BlkAttr.STRUCT_FINALIZE)
+            *cast(TypeInfo*)(ptr + GC.sizeOf(ptr) - size_t.sizeof) = ti;
+
         return ptr;
     //}
 
@@ -1042,7 +1062,10 @@ extern (C) void* _d_newitemiT(TypeInfo ti)
     auto size = ti.tsize;                  // array element size
     auto baseFlags = !(ti.flags & 1) ? BlkAttr.NO_SCAN : 0;
     if (auto si = cast(StructInfo)ti)
+	{
         baseFlags |= si.xdtor ? BlkAttr.STRUCT_FINALIZE : 0;
+        size += size_t.sizeof; // Need space for the type info
+    }
 
     debug(PRINTF) printf("_d_newitemiT(size = %d)\n", size);
 
@@ -1064,6 +1087,9 @@ extern (C) void* _d_newitemiT(TypeInfo ti)
             *cast(uint*)ptr =  *cast(uint*)q;
         else
             memcpy(ptr, q, isize);
+
+        if (baseFlags & BlkAttr.STRUCT_FINALIZE)
+            *cast(TypeInfo*)(ptr + GC.sizeOf(ptr) - size_t.sizeof) = ti;
         return ptr;
     //}
 }
@@ -1233,13 +1259,19 @@ extern (C) void rt_finalize_struct(void* p, StructInfo inf, bool resetMemory = t
 
     try
     {
+        // Mark it as finalized so that the GC doesn't attempt to
+        // finalize it again.
+        GC.clrAttr(p, BlkAttr.FINALIZE | BlkAttr.STRUCT_FINALIZE);
         if (inf.xdtor)
             inf.xdtor(p); // call destructor
         
         if(resetMemory)
         {
             ubyte[] w = cast(ubyte[])inf.m_init;
-            (cast(ubyte*) p)[0 .. w.length] = w[];
+            if (w.ptr is null)
+                (cast(ubyte*) p)[0 .. w.length] = 0;
+            else
+                (cast(ubyte*) p)[0 .. w.length] = w[];
         }
     }
     catch (Throwable e)

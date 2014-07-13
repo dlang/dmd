@@ -78,7 +78,6 @@ SRCS=\
 	src\gc\bits.d \
 	src\gc\config.d \
 	src\gc\stats.d \
-	src\gc\structinfo.d \
 	src\gc\proxy.d \
 	\
 	src\rt\aApply.d \

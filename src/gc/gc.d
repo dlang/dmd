@@ -38,7 +38,6 @@ version = STACKGROWSDOWN;       // growing the stack means subtracting from the 
 
 import gc.bits;
 import gc.stats;
-import gc.structinfo;
 import gc.os;
 import gc.config;
 
@@ -1615,7 +1614,7 @@ struct Gcx
 
                     if (pool.structFinals.nbits && pool.structFinals.test(biti))
                     {
-                        auto si = pool.structInfo.data[biti];
+                        auto si = *cast(StructInfo*)(sentinel_add(p) + pool.getSize(p) - size_t.sizeof);
                         if (!rt_hasStructFinalizerInSegment(sentinel_add(p), si, segment))
                             continue;
                         rt_finalize_struct(sentinel_add(p), si, false);
@@ -1673,7 +1672,7 @@ struct Gcx
 
                         if (pool.structFinals.nbits && pool.structFinals.test(biti))
                         {
-                            auto si = pool.structInfo.data[biti];
+                            auto si = *cast(StructInfo*)(sentinel_add(p) + pool.getSize(p) - size_t.sizeof);
                             if (!rt_hasStructFinalizerInSegment(sentinel_add(p), si, segment))
                                 continue;
                             rt_finalize_struct(sentinel_add(p), si, false);
@@ -2675,7 +2674,7 @@ struct Gcx
                         sentinel_Invariant(sentinel_add(p));
 
                         if (pool.structFinals.nbits && pool.structFinals.testClear(biti))
-                            rt_finalize_struct(sentinel_add(p), pool.structInfo.data[biti], false);
+                            rt_finalize_struct(sentinel_add(p), *cast(StructInfo*)(sentinel_add(p) + pool.getSize(p) - size_t.sizeof), false);
                         else if (pool.finals.nbits && pool.finals.testClear(biti))
                             rt_finalize2(sentinel_add(p), false, false);
 
@@ -2749,7 +2748,7 @@ struct Gcx
                                 pool.freebits.set(biti);
 
                                 if (pool.structFinals.nbits && pool.structFinals.test(biti))
-                                    rt_finalize_struct(sentinel_add(p), pool.structInfo.data[biti], false);
+                                    rt_finalize_struct(sentinel_add(p), *cast(StructInfo*)(sentinel_add(p) + pool.getSize(p) - size_t.sizeof), false);
                                 else if (pool.finals.nbits && pool.finals.test(biti))
                                     rt_finalize2(sentinel_add(p), false, false);
 
@@ -2944,10 +2943,8 @@ struct Gcx
             if (!pool.structFinals.nbits)
             {
                 pool.structFinals.alloc(pool.mark.nbits);
-                pool.structInfo.alloc(pool.mark.nbits);
             }
             pool.structFinals.data[dataIndex] |= orWith;
-            pool.structInfo.data[biti] = inf;
         }
         if (mask & BlkAttr.NO_SCAN)
         {
@@ -2989,11 +2986,8 @@ struct Gcx
 
         if (mask & BlkAttr.FINALIZE && pool.finals.nbits)
             pool.finals.data[dataIndex] &= keep;
-        else if (mask & BlkAttr.STRUCT_FINALIZE && pool.structFinals.nbits)
-        {
+        if (mask & BlkAttr.STRUCT_FINALIZE && pool.structFinals.nbits)
             pool.structFinals.data[dataIndex] &= keep;
-            pool.structInfo.data[biti] = null;
-        }
         if (mask & BlkAttr.NO_SCAN)
             pool.noscan.data[dataIndex] &= keep;
 //        if (mask & BlkAttr.NO_MOVE && pool.nomove.nbits)
@@ -3015,10 +3009,7 @@ struct Gcx
         if (pool.finals.nbits)
             pool.finals.data[dataIndex] &= toKeep;
         if (pool.structFinals.nbits)
-        {
             pool.structFinals.data[dataIndex] &= toKeep;
-            pool.structInfo.data[(dataIndex << GCBits.BITS_SHIFT) - 1] = null;
-        }
 
         pool.noscan.data[dataIndex] &= toKeep;
 
@@ -3165,7 +3156,6 @@ struct Pool
     GCBits freebits;    // entries that are on the free list
     GCBits finals;      // entries that need finalizer run on them
     GCBits structFinals;// struct entries that need a finalzier run on them
-    GCStructInfoArray structInfo; // struct info for struct entries
     GCBits noscan;      // entries that should not be scanned
     GCBits appendable;  // entries that are appendable
     GCBits nointerior;  // interior pointers should be ignored.
@@ -3287,7 +3277,6 @@ struct Pool
         }
         finals.Dtor();
         structFinals.Dtor();
-        structInfo.Dtor();
         noscan.Dtor();
         appendable.Dtor();
     }
