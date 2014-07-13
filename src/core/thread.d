@@ -1727,32 +1727,32 @@ unittest
 
 version( Posix )
 {
-  __gshared int suspendSignalNumber;
-  __gshared int resumeSignalNumber;
+    __gshared int suspendSignalNumber;
+    __gshared int resumeSignalNumber;
 
-/** 
- *  Instruct the thread module, when initialized,, to use a different set of 
- * signals besides SIGUSR1 and SIGUSr2 for suspension and resumption of threads.
- * This function should be called at most once, prior to thread_init().
- */  
-  extern (C) void thread_setGCSignals(int suspendSignalNo, int resumeSignalNo)
-  in 
-  {
-    assert(suspendSignalNumber == 0);
-    assert(resumeSignalNumber  == 0);
-    assert(suspendSignalNo != 0);
-    assert(resumeSignalNo  != 0);
-  }
-  out
-  {
-    assert(suspendSignalNumber != 0);
-    assert(resumeSignalNumber  != 0);
-  }
-  body
-  {
-    suspendSignalNumber = suspendSignalNo;
-    resumeSignalNumber  = resumeSignalNo;
-  }
+    /** 
+     *  Instruct the thread module, when initialized,, to use a different set of 
+     * signals besides SIGUSR1 and SIGUSr2 for suspension and resumption of threads.
+     * This function should be called at most once, prior to thread_init().
+     */  
+    extern (C) void thread_setGCSignals(int suspendSignalNo, int resumeSignalNo)
+    in 
+    {
+        assert(suspendSignalNumber == 0);
+        assert(resumeSignalNumber  == 0);
+        assert(suspendSignalNo != 0);
+        assert(resumeSignalNo  != 0);
+    }
+    out
+    {
+        assert(suspendSignalNumber != 0);
+        assert(resumeSignalNumber  != 0);
+    }
+    body
+    {
+        suspendSignalNumber = suspendSignalNo;
+        resumeSignalNumber  = resumeSignalNo;
+    }
 }
 
 /**
@@ -1776,13 +1776,13 @@ extern (C) void thread_init()
     else version( Posix )
     {
         if( suspendSignalNumber == 0 )
-	{
-          suspendSignalNumber = SIGUSR1;
+        {
+            suspendSignalNumber = SIGUSR1;
         } 
 
         if( resumeSignalNumber == 0 )
         {
-          resumeSignalNumber = SIGUSR2;
+            resumeSignalNumber = SIGUSR2;
         }
 
         int         status;
