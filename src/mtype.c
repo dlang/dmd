@@ -1043,7 +1043,7 @@ Type *Type::addSTC(StorageClass stc)
 
 StorageClass ModToStc(unsigned mod)
 {
-    StorageClass stc;
+    StorageClass stc = 0;
     if (mod & MODimmutable) stc |= STCimmutable;
     if (mod & MODconst)     stc |= STCconst;
     if (mod & MODwild)      stc |= STCwild;
