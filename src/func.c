@@ -323,7 +323,8 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
     isArrayOp = 0;
     semantic3Errors = false;
     fes = NULL;
-    introducing = 0;
+    inferAttributes = false;
+    introducing = false;
     tintro = NULL;
     /* The type given for "infer the return type" is a TypeFunction with
      * NULL for the return type.
@@ -1130,7 +1131,7 @@ Ldone:
      */
     TemplateInstance *ti;
     if (fbody &&
-        (isFuncLiteralDeclaration() ||
+        (inferAttributes ||
          isInstantiated() && !isVirtualMethod() &&
          !(ti = parent->isTemplateInstance(), ti && !ti->isTemplateMixin() && ti->tempdecl->ident != ident)))
     {
@@ -4388,6 +4389,7 @@ FuncLiteralDeclaration::FuncLiteralDeclaration(Loc loc, Loc endloc, Type *type,
     this->tok = tok;
     this->fes = fes;
     this->treq = NULL;
+    this->inferAttributes = true;
     //printf("FuncLiteralDeclaration() id = '%s', type = '%s'\n", this->ident->toChars(), type->toChars());
 }
 

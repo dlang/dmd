@@ -932,11 +932,14 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
     if (e || (stc & STCdisable))
     {
         //printf("Building __fieldPostBlit()\n");
-        PostBlitDeclaration *dd = new PostBlitDeclaration(declLoc, Loc(), stc, Lexer::idPool("__fieldPostBlit"));
+        PostBlitDeclaration *dd = new PostBlitDeclaration(declLoc, Loc(), stc & STCdisable, Lexer::idPool("__fieldPostBlit"));
+        dd->inferAttributes = true;
         dd->fbody = new ExpStatement(loc, e);
         sd->postblits.shift(dd);
         sd->members->push(dd);
         dd->semantic(sc);
+        dd->semantic2(sc);
+        dd->semantic3(sc);
     }
 
     switch (sd->postblits.dim)
@@ -964,10 +967,13 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
                 ex = new CallExp(loc, ex);
                 e = Expression::combine(e, ex);
             }
-            PostBlitDeclaration *dd = new PostBlitDeclaration(declLoc, Loc(), stc, Lexer::idPool("__aggrPostBlit"));
+            PostBlitDeclaration *dd = new PostBlitDeclaration(declLoc, Loc(), stc & STCdisable, Lexer::idPool("__aggrPostBlit"));
+            dd->inferAttributes = true;
             dd->fbody = new ExpStatement(loc, e);
             sd->members->push(dd);
             dd->semantic(sc);
+            dd->semantic2(sc);
+            dd->semantic3(sc);
             return dd;
     }
 }
@@ -1045,11 +1051,14 @@ FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc)
     if (e || (stc & STCdisable))
     {
         //printf("Building __fieldDtor()\n");
-        DtorDeclaration *dd = new DtorDeclaration(declLoc, Loc(), stc, Lexer::idPool("__fieldDtor"));
+        DtorDeclaration *dd = new DtorDeclaration(declLoc, Loc(), stc & STCdisable, Lexer::idPool("__fieldDtor"));
+        dd->inferAttributes = true;
         dd->fbody = new ExpStatement(loc, e);
         ad->dtors.shift(dd);
         ad->members->push(dd);
         dd->semantic(sc);
+        dd->semantic2(sc);
+        dd->semantic3(sc);
     }
 
     switch (ad->dtors.dim)
@@ -1077,10 +1086,13 @@ FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc)
                 ex = new CallExp(loc, ex);
                 e = Expression::combine(ex, e);
             }
-            DtorDeclaration *dd = new DtorDeclaration(declLoc, Loc(), stc, Lexer::idPool("__aggrDtor"));
+            DtorDeclaration *dd = new DtorDeclaration(declLoc, Loc(), stc & STCdisable, Lexer::idPool("__aggrDtor"));
+            dd->inferAttributes = true;
             dd->fbody = new ExpStatement(loc, e);
             ad->members->push(dd);
             dd->semantic(sc);
+            dd->semantic2(sc);
+            dd->semantic3(sc);
             return dd;
     }
 }

@@ -44,6 +44,21 @@ void test12642() @nogc
 }
 
 /***********************/
+// 13113
+
+class Gcx
+{
+	invariant() { }
+
+	Treap!int tr;
+}
+
+struct Treap(E)
+{
+    ~this() { }
+}
+
+/***********************/
 
 int main()
 {
