@@ -444,27 +444,28 @@ unittest
 
 uint mulu(uint x, uint y, ref bool overflow)
 {
-    uint r = x * y;
-    if (r && (r < x || r < y))
+    ulong r = ulong(x) * ulong(y);
+    if (r > uint.max)
         overflow = true;
-    return r;
+    return cast(uint)r;
 }
 
 unittest
 {
-    bool overflow;
-    assert(mulu(2, 3, overflow) == 6);
-    assert(!overflow);
-    assert(mulu(1, uint.max, overflow) == uint.max);
-    assert(!overflow);
-    assert(mulu(uint.min, 1, overflow) == uint.min);
-    assert(!overflow);
-    assert(mulu(uint.max, 2, overflow) == (uint.max * 2));
-    assert(overflow);
-    overflow = false;
-    assert(mulu(uint.min, -1, overflow) == uint.min);
-    assert(!overflow);
-    overflow = true;
+    void test(uint x, uint y, uint r, bool overflow) @nogc nothrow
+    {
+        bool o;
+        assert(mulu(x, y, o) == r);
+        assert(o == overflow);
+    }
+    test(2, 3, 6, false);
+    test(1, uint.max, uint.max, false);
+    test(0, 1, 0, false);
+    test(0, uint.max, 0, false);
+    test(uint.max, 2, 2 * uint.max, true);
+    test(1 << 16, 1U << 16, 0, true);
+
+    bool overflow = true;
     assert(mulu(0, 0, overflow) == 0);
     assert(overflow);                   // sticky
 }
@@ -473,29 +474,27 @@ unittest
 ulong mulu(ulong x, ulong y, ref bool overflow)
 {
     ulong r = x * y;
-    if (r && (r < x || r < y))
+    if (x && (r / x) != y)
         overflow = true;
     return r;
 }
 
 unittest
 {
-    bool overflow;
-    assert(mulu(2UL, 3UL, overflow) == 6);
-    assert(!overflow);
-    assert(mulu(1, ulong.max, overflow) == ulong.max);
-    assert(!overflow);
-    assert(mulu(ulong.min, 1, overflow) == ulong.min);
-    assert(!overflow);
-    assert(mulu(ulong.max, 2, overflow) == (ulong.max * 2));
-    assert(overflow);
-    overflow = false;
-    assert(mulu(ulong.min, -1, overflow) == ulong.min);
-    assert(!overflow);
-    overflow = true;
+    void test(ulong x, ulong y, ulong r, bool overflow) @nogc nothrow
+    {
+        bool o;
+        assert(mulu(x, y, o) == r);
+        assert(o == overflow);
+    }
+    test(2, 3, 6, false);
+    test(1, ulong.max, ulong.max, false);
+    test(0, 1, 0, false);
+    test(0, ulong.max, 0, false);
+    test(ulong.max, 2, 2 * ulong.max, true);
+    test(1UL << 32, 1UL << 32, 0, true);
+
+    bool overflow = true;
     assert(mulu(0UL, 0UL, overflow) == 0);
     assert(overflow);                   // sticky
 }
-
-
-
