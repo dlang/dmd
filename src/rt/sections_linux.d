@@ -739,9 +739,8 @@ const(char)[] dsoName(const char* dlpi_name)
 
 extern(C)
 {
-    // .bss, .lbss, .lrodata, .ldata
-    extern __gshared void* __bss_start;
-    extern __gshared void* _end;
+    void* rt_get_bss_start() @nogc nothrow;
+    void* rt_get_end() @nogc nothrow;
 }
 
 nothrow
@@ -751,13 +750,14 @@ body
 {
     immutable(ModuleInfo)* conflicting;
 
-    auto bss_start = cast(void*)&__bss_start;
-    immutable bss_size = cast(void*)&_end - bss_start;
+    auto bss_start = rt_get_bss_start();
+    immutable bss_size = rt_get_end() - bss_start;
+    assert(bss_size >= 0);
 
     foreach (m; modules)
     {
         auto addr = cast(const(void*))m;
-        if (cast(size_t)(addr - bss_start) < bss_size)
+        if (cast(size_t)(addr - bss_start) < cast(size_t)bss_size)
         {
             // Module is in .bss of the exe because it was copy relocated
         }
