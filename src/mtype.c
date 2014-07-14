@@ -4809,7 +4809,7 @@ printf("index->ito->ito = x%x\n", index->ito->ito);
              */
         }
     }
-    else if (tbase->ty == Tclass)
+    else if (tbase->ty == Tclass && !((TypeClass *)tbase)->sym->isInterfaceDeclaration())
     {
         ClassDeclaration *cd = ((TypeClass *)tbase)->sym;
         if (cd->scope)
@@ -4829,10 +4829,10 @@ printf("index->ito->ito = x%x\n", index->ito->ito);
         if (!fhash) fhash = search_function(ClassDeclaration::object, Id::tohash)->isFuncDeclaration();
         assert(fcmp && feq && fhash);
 
-        if (cd->vtbl[feq ->vtblIndex] == feq)
+        if (feq ->vtblIndex < cd->vtbl.dim && cd->vtbl[feq ->vtblIndex] == feq)
         {
         #if 1
-            if (cd->vtbl[fcmp->vtblIndex] != fcmp)
+            if (fcmp->vtblIndex < cd->vtbl.dim && cd->vtbl[fcmp->vtblIndex] != fcmp)
             {
                 const char *s = (index->toBasetype()->ty != Tclass) ? "bottom of " : "";
                 error(loc, "%sAA key type %s now requires equality rather than comparison",
