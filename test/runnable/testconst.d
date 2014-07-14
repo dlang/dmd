@@ -1968,46 +1968,7 @@ void test1961b()
 inout(T) min2(int i, int j, T)(inout(T) a, inout(T) b)
 {
     //pragma(msg, "(", i, ", ", j, ") = ", T);
-    static if (i == 0)
-    {
-        static if (j == 0) static assert(is(T == immutable(char)[]));
-        static if (j == 1) static assert(is(T == immutable(char)[]));
-        static if (j == 2) static assert(is(T == const(char)[]));
-        static if (j == 3) static assert(is(T == const(char)[]));
-        static if (j == 4) static assert(is(T == const(char)[]));
-    }
-    static if (i == 1)
-    {
-        static if (j == 0) static assert(is(T == immutable(char)[]));
-        static if (j == 1) static assert(is(T == immutable(char)[]));
-        static if (j == 2) static assert(is(T == const(char)[]));
-        static if (j == 3) static assert(is(T == const(char)[]));
-        static if (j == 4) static assert(is(T == const(char)[]));
-    }
-    static if (i == 2)
-    {
-        static if (j == 0) static assert(is(T == const(char)[]));
-        static if (j == 1) static assert(is(T == const(char)[]));
-        static if (j == 2) static assert(is(T == const(char)[]));
-        static if (j == 3) static assert(is(T == const(char)[]));
-        static if (j == 4) static assert(is(T == const(char)[]));
-    }
-    static if (i == 3)
-    {
-        static if (j == 0) static assert(is(T == const(char)[]));
-        static if (j == 1) static assert(is(T == const(char)[]));
-        static if (j == 2) static assert(is(T == const(char)[]));
-        static if (j == 3) static assert(is(T == const(char)[]));
-        static if (j == 4) static assert(is(T == const(char)[]));
-    }
-    static if (i == 4)
-    {
-        static if (j == 0) static assert(is(T == const(char)[]));
-        static if (j == 1) static assert(is(T == const(char)[]));
-        static if (j == 2) static assert(is(T == const(char)[]));
-        static if (j == 3) static assert(is(T == const(char)[]));
-        static if (j == 4) static assert(is(T == char[]));
-    }
+    static assert(is(T == char[]));
     return a < b ? a : b;
 }
 
@@ -2026,37 +1987,6 @@ void test1961c()
     {
         min2!(i, j)(x, y);
         //pragma(msg, "x: ",typeof(x), ", y: ",typeof(y), " -> ", typeof(min2(x, y)), " : ", __traits(compiles, min2(x, y)));
-        /+
-        x: immutable(char[])    , y: immutable(char[]) -> immutable(char[])         : true
-        x: immutable(char[])    , y: immutable(char)[] -> const(immutable(char)[])  : true
-        x: immutable(char[])    , y: const(char[])     -> const(char[])             : true
-        x: immutable(char[])    , y: const(char)[]     -> const(char[])             : true
-        x: immutable(char[])    , y: char[]            -> const(char[])             : true
-
-        x: immutable(char)[]    , y: immutable(char[]) -> const(immutable(char)[])  : true
-        x: immutable(char)[]    , y: immutable(char)[] -> immutable(char)[]         : true
-        x: immutable(char)[]    , y: const(char[])     -> const(char[])             : true
-        x: immutable(char)[]    , y: const(char)[]     -> const(char)[]             : true
-        x: immutable(char)[]    , y: char[]            -> const(char)[]             : true
-
-        x: const(char[])        , y: immutable(char[]) -> const(char[])             : true
-        x: const(char[])        , y: immutable(char)[] -> const(char[])             : true
-        x: const(char[])        , y: const(char[])     -> const(char[])             : true
-        x: const(char[])        , y: const(char)[]     -> const(char[])             : true
-        x: const(char[])        , y: char[]            -> const(char[])             : true
-
-        x: const(char)[]        , y: immutable(char[]) -> const(char[])             : true
-        x: const(char)[]        , y: immutable(char)[] -> const(char)[]             : true
-        x: const(char)[]        , y: const(char[])     -> const(char[])             : true
-        x: const(char)[]        , y: const(char)[]     -> const(char)[]             : true
-        x: const(char)[]        , y: char[]            -> const(char)[]             : true
-
-        x: char[]               , y: immutable(char[]) -> const(char[])             : true
-        x: char[]               , y: immutable(char)[] -> const(char)[]             : true
-        x: char[]               , y: const(char[])     -> const(char[])             : true
-        x: char[]               , y: const(char)[]     -> const(char)[]             : true
-        x: char[]               , y: char[]            -> char[]                    : true
-        +/
     }
 }
 
