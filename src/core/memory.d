@@ -220,7 +220,6 @@ struct GC
         and is only implemented for data structures at least a page in size.
         */
         NO_INTERIOR = 0b0001_0000,
-        STRUCT_FINALIZE = 0b0010_0000, /// Finalize the struct data in this block on collect.
     }
 
 
