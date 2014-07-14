@@ -1140,7 +1140,7 @@ void DocComment::parseSections(unsigned char *comment)
                     p++;
                 }
                 // BUG: handle UTF PS and LS too
-                if (!*p || *p == '\r' || *p == '\n' && numdash >= 3)
+                if ((!*p || *p == '\r' || *p == '\n') && numdash >= 3)
                     inCode ^= 1;
                 pend = p;
             }
