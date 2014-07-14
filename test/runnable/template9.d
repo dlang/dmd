@@ -2065,7 +2065,7 @@ class C9083
 
     void func()
     {
-        void templateFunc(T)(ref const T obj)
+        void templateFunc(T)(const T obj)
         {
             enum x1 = isFunction9083!(mixin("x"));  // NG
             enum x2 = isFunction9083!(x);           // NG
