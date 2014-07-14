@@ -554,14 +554,12 @@ class GC
             alloc_size = size;
         }
         gcx.log_malloc(p, size);
-
-        if (bits)
-        {
-            if (ti)
-                gcx.setBits(pool, cast(size_t)(sentinel_sub(p) - pool.baseAddr) >> pool.shiftBy, bits, cast(StructInfo)ti.next);
-            else
-                gcx.setBits(pool, cast(size_t)(sentinel_sub(p) - pool.baseAddr) >> pool.shiftBy, bits);
-        }
+        
+        if (ti)
+            gcx.setBits(pool, cast(size_t)(p - pool.baseAddr) >> pool.shiftBy, bits, cast(StructInfo)ti.next);
+        else
+            gcx.setBits(pool, cast(size_t)(p - pool.baseAddr) >> pool.shiftBy, bits);
+        
         return p;
     }
 
@@ -2897,12 +2895,8 @@ struct Gcx
     {
         uint bits;
 
-        if (pool.finals.nbits &&
-            pool.finals.test(biti))
+        if ((pool.finals.nbits && pool.finals.test(biti)) || (pool.structFinals.nbits && pool.structFinals.test(biti)))
             bits |= BlkAttr.FINALIZE;
-        if (pool.structFinals.nbits &&
-            pool.structFinals.test(biti))
-            biti |= BlkAttr.STRUCT_FINALIZE;
         if (pool.noscan.test(biti))
             bits |= BlkAttr.NO_SCAN;
         if (pool.nointerior.nbits && pool.nointerior.test(biti))
@@ -2931,41 +2925,45 @@ struct Gcx
         immutable dataIndex = 1 + (biti >> GCBits.BITS_SHIFT);
         immutable bitOffset = biti & GCBits.BITS_MASK;
         immutable orWith = GCBits.BITS_1 << bitOffset;
-
-        if (mask & BlkAttr.FINALIZE)
-        {
-            if (!pool.finals.nbits)
-                pool.finals.alloc(pool.mark.nbits);
-            pool.finals.data[dataIndex] |= orWith;
-        }
-        else if (mask & BlkAttr.STRUCT_FINALIZE)
+        
+        if (inf !is null && inf.xdtor !is null)
         {
             if (!pool.structFinals.nbits)
-            {
                 pool.structFinals.alloc(pool.mark.nbits);
-            }
             pool.structFinals.data[dataIndex] |= orWith;
-        }
-        if (mask & BlkAttr.NO_SCAN)
-        {
-            pool.noscan.data[dataIndex] |= orWith;
-        }
-//        if (mask & BlkAttr.NO_MOVE)
-//        {
-//            if (!pool.nomove.nbits)
-//                pool.nomove.alloc(pool.mark.nbits);
-//            pool.nomove.data[dataIndex] |= orWith;
-//        }
-        if (mask & BlkAttr.APPENDABLE)
-        {
-            pool.appendable.data[dataIndex] |= orWith;
+            mask &= ~BlkAttr.FINALIZE; // prevent from setting normal finalize attribute.
         }
 
-        if (pool.isLargeObject && (mask & BlkAttr.NO_INTERIOR))
+        if (mask)
         {
-            if(!pool.nointerior.nbits)
-                pool.nointerior.alloc(pool.mark.nbits);
-            pool.nointerior.data[dataIndex] |= orWith;
+            if (mask & BlkAttr.FINALIZE)
+            {
+                if (!pool.finals.nbits)
+                    pool.finals.alloc(pool.mark.nbits);
+                pool.finals.data[dataIndex] |= orWith;
+            }
+
+            if (mask & BlkAttr.NO_SCAN)
+            {
+                pool.noscan.data[dataIndex] |= orWith;
+            }
+    //        if (mask & BlkAttr.NO_MOVE)
+    //        {
+    //            if (!pool.nomove.nbits)
+    //                pool.nomove.alloc(pool.mark.nbits);
+    //            pool.nomove.data[dataIndex] |= orWith;
+    //        }
+            if (mask & BlkAttr.APPENDABLE)
+            {
+                pool.appendable.data[dataIndex] |= orWith;
+            }
+
+            if (pool.isLargeObject && (mask & BlkAttr.NO_INTERIOR))
+            {
+                if(!pool.nointerior.nbits)
+                    pool.nointerior.alloc(pool.mark.nbits);
+                pool.nointerior.data[dataIndex] |= orWith;
+            }
         }
     }
 
@@ -2984,10 +2982,13 @@ struct Gcx
         immutable bitOffset = biti & GCBits.BITS_MASK;
         immutable keep = ~(GCBits.BITS_1 << bitOffset);
 
-        if (mask & BlkAttr.FINALIZE && pool.finals.nbits)
-            pool.finals.data[dataIndex] &= keep;
-        if (mask & BlkAttr.STRUCT_FINALIZE && pool.structFinals.nbits)
-            pool.structFinals.data[dataIndex] &= keep;
+        if (mask & BlkAttr.FINALIZE)
+        {
+            if (pool.finals.nbits)
+                pool.finals.data[dataIndex] &= keep;
+            if (pool.structFinals.nbits)
+                pool.structFinals.data[dataIndex] &= keep;
+        }
         if (mask & BlkAttr.NO_SCAN)
             pool.noscan.data[dataIndex] &= keep;
 //        if (mask & BlkAttr.NO_MOVE && pool.nomove.nbits)

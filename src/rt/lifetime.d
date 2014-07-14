@@ -1025,10 +1025,14 @@ extern (C) void* _d_newitemT(TypeInfo ti)
 {
     auto size = ti.tsize;                  // array element size
     auto baseFlags = !(ti.flags & 1) ? BlkAttr.NO_SCAN : 0;
+	bool needsTypeInfo = false;
     if (auto si = cast(StructInfo)ti)
 	{
-        baseFlags |= si.xdtor ? BlkAttr.STRUCT_FINALIZE : 0;
-        size += size_t.sizeof; // Need space for the type info
+        if (si.xdtor !is null)
+        {
+            needsTypeInfo = true;
+            size += size_t.sizeof; // Need space for the type info
+        }
     }
 
     debug(PRINTF) printf("_d_newitemT(size = %d)\n", size);
@@ -1049,8 +1053,8 @@ extern (C) void* _d_newitemT(TypeInfo ti)
         else
             memset(ptr, 0, size);
 
-        if (baseFlags & BlkAttr.STRUCT_FINALIZE)
-            *cast(TypeInfo*)(ptr + GC.sizeOf(ptr) - size_t.sizeof) = ti;
+        if (needsTypeInfo)
+            *cast(TypeInfo*)(ptr + GC.sizeOf(ptr) - size_t.sizeof) = ti.next;
 
         return ptr;
     //}
@@ -1061,10 +1065,14 @@ extern (C) void* _d_newitemiT(TypeInfo ti)
 {
     auto size = ti.tsize;                  // array element size
     auto baseFlags = !(ti.flags & 1) ? BlkAttr.NO_SCAN : 0;
+	bool needsTypeInfo = false;
     if (auto si = cast(StructInfo)ti)
 	{
-        baseFlags |= si.xdtor ? BlkAttr.STRUCT_FINALIZE : 0;
-        size += size_t.sizeof; // Need space for the type info
+        if (si.xdtor !is null)
+        {
+            needsTypeInfo = true;
+            size += size_t.sizeof; // Need space for the type info
+        }
     }
 
     debug(PRINTF) printf("_d_newitemiT(size = %d)\n", size);
@@ -1088,8 +1096,8 @@ extern (C) void* _d_newitemiT(TypeInfo ti)
         else
             memcpy(ptr, q, isize);
 
-        if (baseFlags & BlkAttr.STRUCT_FINALIZE)
-            *cast(TypeInfo*)(ptr + GC.sizeOf(ptr) - size_t.sizeof) = ti;
+        if (needsTypeInfo)
+            *cast(TypeInfo*)(ptr + GC.sizeOf(ptr) - size_t.sizeof) = ti.next;
         return ptr;
     //}
 }
@@ -1261,7 +1269,7 @@ extern (C) void rt_finalize_struct(void* p, StructInfo inf, bool resetMemory = t
     {
         // Mark it as finalized so that the GC doesn't attempt to
         // finalize it again.
-        GC.clrAttr(p, BlkAttr.FINALIZE | BlkAttr.STRUCT_FINALIZE);
+        GC.clrAttr(p, BlkAttr.FINALIZE);
         if (inf.xdtor)
             inf.xdtor(p); // call destructor
         
