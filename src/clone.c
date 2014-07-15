@@ -769,9 +769,9 @@ FuncDeclaration *buildXtoHash(StructDeclaration *sd, Scope *sc)
     FuncDeclaration *fop = new FuncDeclaration(declLoc, Loc(), id, STCstatic, tf);
 
     const char *code =
-        "size_t h = 0;"\
-        "foreach (i, T; typeof(p.tupleof))"\
-        "    h += typeid(T).getHash(cast(const void*)&p.tupleof[i]);"\
+        "size_t h = 0;"
+        "foreach (i, T; typeof(p.tupleof))"
+        "    h += typeid(T).getHash(cast(const void*)&p.tupleof[i]);"
         "return h;";
     fop->fbody = new CompileStatement(loc, new StringExp(loc, (char *)code));
 
