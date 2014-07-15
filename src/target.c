@@ -220,12 +220,12 @@ Expression *Target::paintAsType(Expression *e, Type *type)
     {
         case Tint32:
         case Tuns32:
-            u.int32value = e->toInteger();
+            u.int32value = (d_int32)e->toInteger();
             break;
 
         case Tint64:
         case Tuns64:
-            u.int64value = e->toInteger();
+            u.int64value = (d_int64)e->toInteger();
             break;
 
         case Tfloat32:
