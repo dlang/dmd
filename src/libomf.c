@@ -111,7 +111,7 @@ void LibOMF::setFilename(const char *dir, const char *filename)
         arg = FileName::combine(dir, arg);
     const char *libfilename = FileName::defaultExt(arg, global.lib_ext);
 
-    libfile = new File(libfilename);
+    libfile = File::create(libfilename);
 
     loc.filename = libfile->name->toChars();
     loc.linnum = 0;
@@ -236,12 +236,11 @@ void LibOMF::addObject(const char *module_name, void *buf, size_t buflen)
 #endif
     if (!buf)
     {   assert(module_name);
-        FileName f((char *)module_name);
-        File file(&f);
-        readFile(Loc(), &file);
-        buf = file.buffer;
-        buflen = file.len;
-        file.ref = 1;
+        File *file = File::create((char *)module_name);
+        readFile(Loc(), file);
+        buf = file->buffer;
+        buflen = file->len;
+        file->ref = 1;
     }
 
     unsigned g_page_size;
