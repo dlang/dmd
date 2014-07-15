@@ -105,7 +105,7 @@ void LibElf::setFilename(const char *dir, const char *filename)
         arg = FileName::combine(dir, arg);
     const char *libfilename = FileName::defaultExt(arg, global.lib_ext);
 
-    libfile = new File(libfilename);
+    libfile = File::create(libfilename);
 
     loc.filename = libfile->name->toChars();
     loc.linnum = 0;
@@ -312,12 +312,11 @@ void LibElf::addObject(const char *module_name, void *buf, size_t buflen)
     int fromfile = 0;
     if (!buf)
     {   assert(module_name[0]);
-        FileName f((char *)module_name);
-        File file(&f);
-        readFile(Loc(), &file);
-        buf = file.buffer;
-        buflen = file.len;
-        file.ref = 1;
+        File *file = File::create((char *)module_name);
+        readFile(Loc(), file);
+        buf = file->buffer;
+        buflen = file->len;
+        file->ref = 1;
         fromfile = 1;
     }
     int reason = 0;
