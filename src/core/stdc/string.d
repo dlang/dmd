@@ -22,6 +22,10 @@ nothrow:
 pure void* memchr(in void* s, int c, size_t n);
 pure int   memcmp(in void* s1, in void* s2, size_t n);
 pure void* memcpy(void* s1, in void* s2, size_t n);
+version (Windows)
+{
+    int memicmp(in char* s1, in char* s2, size_t n);
+}
 pure void* memmove(void* s1, in void* s2, size_t n);
 pure void* memset(void* s, int c, size_t n);
 
@@ -41,5 +45,13 @@ pure size_t strspn(in char* s1, in char* s2);
 pure char*  strstr(in char* s1, in char* s2);
 char*  strtok(char* s1, in char* s2);
 char*  strerror(int errnum);
+version (linux)
+{
+    const(char)* strerror_r(int errnum, char* buf, size_t buflen);
+}
+else version (Posix)
+{
+    int strerror_r(int errnum, char* buf, size_t buflen);
+}
 pure size_t strlen(in char* s);
 char*  strdup(in char *s);

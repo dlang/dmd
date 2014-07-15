@@ -97,8 +97,16 @@ else
 // No unsafe pointer manipulation.
 @trusted
 {
-    int     rand();
-    void    srand(uint seed);
+    version(Android)
+    {
+       alias core.sys.posix.stdlib.lrand48 rand;
+       alias core.sys.posix.stdlib.srand48 srand;
+    }
+    else
+    {
+       int     rand();
+       void    srand(uint seed);
+    }
 }
 
 // We don't mark these @trusted. Given that they return a void*, one has
