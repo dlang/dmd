@@ -221,7 +221,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
          * Returns:
          *      match level
          */
-        static MATCH implicitMod(Expression *e, Type *t, unsigned mod)
+        static MATCH implicitMod(Expression *e, Type *t, MOD mod)
         {
             Type *tprime;
             if (t->ty == Tpointer)
@@ -774,7 +774,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
             /* Get mod bits of what we're converting to
              */
             Type *tb = t->toBasetype();
-            unsigned mod = tb->mod;
+            MOD mod = tb->mod;
             if (tf->isref)
                 ;
             else
@@ -1055,7 +1055,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
             /* Get mod bits of what we're converting to
              */
             Type *tb = t->toBasetype();
-            unsigned mod = tb->mod;
+            MOD mod = tb->mod;
             if (Type *ti = getIndirection(t))
                 mod = ti->mod;
 #if LOG
@@ -1177,7 +1177,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
 
                     struct ClassCheck
                     {
-                        static bool convertible(Loc loc, ClassDeclaration *cd, unsigned mod)
+                        static bool convertible(Loc loc, ClassDeclaration *cd, MOD mod)
                         {
                             for (size_t i = 0; i < cd->fields.dim; i++)
                             {

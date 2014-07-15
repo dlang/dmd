@@ -1216,7 +1216,7 @@ Type *Type::addStorageClass(StorageClass stc)
 {
     /* Just translate to MOD bits and let addMod() do the work
      */
-    unsigned mod = 0;
+    MOD mod = 0;
 
     if (stc & STCimmutable)
         mod = MODimmutable;
