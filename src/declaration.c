@@ -512,6 +512,15 @@ void AliasDeclaration::semantic(Scope *sc)
     Type *t;
     Expression *e;
 
+    // Ungag errors when not instantiated DeclDefs scope alias
+    Ungag ungag(global.gag);
+    //printf("%s parent = %s, specgag= %d, instantiated = %d\n", toChars(), parent, global.isSpeculativeGagging(), isInstantiated());
+    if (parent && global.isSpeculativeGagging() && !isInstantiated() && !toParent2()->isFuncDeclaration())
+    {
+        //printf("%s type = %s\n", toPrettyChars(), type->toChars());
+        global.gag = 0;
+    }
+
     /* This section is needed because resolve() will:
      *   const x = 3;
      *   alias x y;
