@@ -9,7 +9,7 @@
  * https://github.com/D-Programming-Language/dmd/blob/master/src/mars.c
  */
 
-extern int isConsoleColorSupported();
+extern bool isConsoleColorSupported();
 extern void setConsoleColorBright();
 extern void setConsoleColorError();
 extern void resetConsoleColor();

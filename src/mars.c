@@ -292,7 +292,6 @@ void verrorPrint(Loc loc, const char *header, const char *format, va_list ap,
 }
 
 // header is "Error: " by default (see mars.h)
-extern "C" {
 void verror(Loc loc, const char *format, va_list ap,
                 const char *p1, const char *p2, const char *header)
 {
@@ -310,7 +309,6 @@ void verror(Loc loc, const char *format, va_list ap,
         global.gaggedErrors++;
     }
     global.errors++;
-}
 }
 
 // Doesn't increase error count, doesn't print "Error:".
@@ -1238,6 +1236,11 @@ Language changes listed by -transition=id:\n\
             }
         }
     }
+    else if (global.params.run)
+    {
+        error(Loc(), "flags conflict with -run");
+        fatal();
+    }
     else if (global.params.lib)
     {
         global.params.libname = global.params.objname;
@@ -1246,11 +1249,6 @@ Language changes listed by -transition=id:\n\
         // Haven't investigated handling these options with multiobj
         if (!global.params.cov && !global.params.trace)
             global.params.multiobj = true;
-    }
-    else if (global.params.run)
-    {
-        error(Loc(), "flags conflict with -run");
-        fatal();
     }
     else
     {

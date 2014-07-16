@@ -1927,7 +1927,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
                         {
                             error("index type '%s' cannot cover index range 0..%llu", arg->type->toChars(), ta->dim->toInteger());
                         }
-                        key->range = new IntRange(0, dimrange.imax);
+                        key->range = new IntRange(SignExtendedNumber(0), dimrange.imax);
                     }
                 }
                 else
@@ -2042,7 +2042,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
                     {
                         /* Limit the range of the key to the specified range
                          */
-                        v->range = new IntRange(key->range->imin, key->range->imax - 1);
+                        v->range = new IntRange(key->range->imin, key->range->imax - SignExtendedNumber(1));
                     }
                 }
             }
@@ -2756,7 +2756,7 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
         {
             /* Limit the range of the key to the specified range
              */
-            v->range = new IntRange(key->range->imin, key->range->imax - 1);
+            v->range = new IntRange(key->range->imin, key->range->imax - SignExtendedNumber(1));
         }
     }
     if (arg->storageClass & STCref)
