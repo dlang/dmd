@@ -91,12 +91,23 @@ version( linux )
     {
         IPPROTO_IP   = 0,
         IPPROTO_ICMP = 1,
+        IPPROTO_IGMP = 2,
+        IPPROTO_GGP  = 3,
         IPPROTO_TCP  = 6,
-        IPPROTO_UDP  = 17
+        IPPROTO_PUP  = 12,
+        IPPROTO_UDP  = 17,
+        IPPROTO_IDP  = 22,
+        IPPROTO_ND   = 77,
+        IPPROTO_MAX  = 256
     }
 
-    enum uint INADDR_ANY       = 0x00000000;
-    enum uint INADDR_BROADCAST = 0xffffffff;
+    enum : uint
+    {
+        INADDR_ANY       = 0x00000000,
+        INADDR_BROADCAST = 0xffffffff,
+        INADDR_LOOPBACK  = 0x7F000001,
+        INADDR_NONE      = 0xFFFFFFFF
+    }
 
     //enum INET_ADDRSTRLEN       = 16;
 }
@@ -125,12 +136,23 @@ else version( OSX )
     {
         IPPROTO_IP   = 0,
         IPPROTO_ICMP = 1,
+        IPPROTO_IGMP = 2,
+        IPPROTO_GGP  = 3,
         IPPROTO_TCP  = 6,
-        IPPROTO_UDP  = 17
+        IPPROTO_PUP  = 12,
+        IPPROTO_UDP  = 17,
+        IPPROTO_IDP  = 22,
+        IPPROTO_ND   = 77,
+        IPPROTO_MAX  = 256
     }
 
-    enum uint INADDR_ANY       = 0x00000000;
-    enum uint INADDR_BROADCAST = 0xffffffff;
+    enum : uint
+    {
+        INADDR_ANY       = 0x00000000,
+        INADDR_BROADCAST = 0xffffffff,
+        INADDR_LOOPBACK  = 0x7F000001,
+        INADDR_NONE      = 0xFFFFFFFF
+    }
 
     //enum INET_ADDRSTRLEN       = 16;
 }
@@ -157,12 +179,23 @@ else version( FreeBSD )
     {
         IPPROTO_IP   = 0,
         IPPROTO_ICMP = 1,
+        IPPROTO_IGMP = 2,
+        IPPROTO_GGP  = 3,
         IPPROTO_TCP  = 6,
-        IPPROTO_UDP  = 17
+        IPPROTO_PUP  = 12,
+        IPPROTO_UDP  = 17,
+        IPPROTO_IDP  = 22,
+        IPPROTO_ND   = 77,
+        IPPROTO_MAX  = 256
     }
 
-    enum uint INADDR_ANY       = 0x00000000;
-    enum uint INADDR_BROADCAST = 0xffffffff;
+    enum : uint
+    {
+        INADDR_ANY       = 0x00000000,
+        INADDR_BROADCAST = 0xffffffff,
+        INADDR_LOOPBACK  = 0x7f000001,
+        INADDR_NONE      = 0xffffffff
+    }
 
     //enum INET_ADDRSTRLEN       = 16;
 }
@@ -185,12 +218,19 @@ else version( Android )
     {
         IPPROTO_IP   = 0,
         IPPROTO_ICMP = 1,
+        IPPROTO_IGMP = 2,
         IPPROTO_TCP  = 6,
-        IPPROTO_UDP  = 17
+        IPPROTO_PUP  = 12,
+        IPPROTO_UDP  = 17,
+        IPPROTO_IDP  = 22
     }
 
-    enum c_ulong INADDR_ANY       = 0x00000000;
-    enum c_ulong INADDR_BROADCAST = 0xffffffff;
+    enum : c_ulong
+    {
+        INADDR_ANY       = 0x00000000,
+        INADDR_BROADCAST = 0xffffffff,
+        INADDR_NONE      = 0xFFFFFFFF
+    }
 }
 
 
