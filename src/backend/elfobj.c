@@ -1601,7 +1601,8 @@ void Obj::ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym)
     symbol *ehtab_entry = symbol_generate(SCstatic,type_alloc(TYint));
     symbol_keep(ehtab_entry);
 
-    const int shf_flags = SHF_ALLOC | (config.flags3 & CFG3pic ? SHF_WRITE : 0);
+    // needs to be writeable for PIC code, see Bugzilla 13117
+    const int shf_flags = SHF_ALLOC | SHF_WRITE;
     ElfObj::getsegment(".deh_beg", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
     int seg = ElfObj::getsegment(".deh_eh", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
     ehtab_entry->Sseg = seg;
@@ -1624,7 +1625,8 @@ void Obj::ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym)
 
 void Obj::ehsections()
 {
-    const int shf_flags = SHF_ALLOC | (config.flags3 & CFG3pic ? SHF_WRITE : 0);
+    // needs to be writeable for PIC code, see Bugzilla 13117
+    const int shf_flags = SHF_ALLOC | SHF_WRITE;
     int sec = ElfObj::getsegment(".deh_beg", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
     //Obj::bytes(sec, 0, 4, NULL);
 
@@ -3117,7 +3119,8 @@ void Obj::moduleinfo(Symbol *scc)
     const int CFflags = I64 ? (CFoffset64 | CFoff) : CFoff;
 
     {
-        const int shf_flags = SHF_ALLOC | (config.flags3 & CFG3pic ? SHF_WRITE : 0);
+        // needs to be writeable for PIC code, see Bugzilla 13117
+        const int shf_flags = SHF_ALLOC | SHF_WRITE;
         ElfObj::getsegment(".minfo_beg", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
         const int seg = ElfObj::getsegment(".minfo", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
         ElfObj::getsegment(".minfo_end", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
@@ -3183,7 +3186,8 @@ static void obj_rtinit()
     int seg;
 
     {
-    const int shf_flags = SHF_ALLOC | (config.flags3 & CFG3pic ? SHF_WRITE : 0);
+    // needs to be writeable for PIC code, see Bugzilla 13117
+    const int shf_flags = SHF_ALLOC | SHF_WRITE;
 
     seg = ElfObj::getsegment(".deh_beg", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
     deh_beg = MAP_SEG2SYMIDX(seg);
