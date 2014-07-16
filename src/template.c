@@ -1571,28 +1571,38 @@ Lretry:
              * to the corresponding parameter type qualifier,
              * to pass through deduceType.
              */
-            Type *at = argtype;
             if ((argtype->ty == Tarray || argtype->ty == Tpointer) &&
-                ((prmtype->mod & MODwild) || deduceTypeHelper(argtype, &at, prmtype)) &&
                 (!(fparam->storageClass & STCref) ||
                  (fparam->storageClass & STCauto) && !farg->isLvalue()))
             {
-                if ((prmtype->mod & MODwild) || prmtype->mod == 0)
+                /*     prmtype          argtype              adjusted argtype   U
+                 * foo(            U)   immutable(T[])    => immutable(T)[]     immutable(int)[]
+                 *
+                 * foo(  immutable U)   immutable(T)[]    => immutable(T[])     immutable(int)[]
+                 * foo(      const U)       const(T)[]    =>     const(T[])         const(int)[]
+                 * foo(      inout U)   immutable(T[])    => immutable(T[])               int []
+                 *
+                 * foo(      inout U)   inout(const(T[])) =>     inout(T[])         const(int)[]
+                 * foo(inout const U)   inout(const(T)[]) =>           T[]                int []
+                 *
+                 * foo(     shared U)   shared(T)[]       =>    shared(T[])        shared(int)[]
+                 *
+                 * Then, U will be deduced to some_qual(V)[]
+                 */
+                //printf("+argtype = %s, prmtype = %s\n", argtype->toChars(), prmtype->toChars());
+                MOD m = 0;
+                MOD margn = argtype->nextOf()->mod;
+                if (!prmtype->isMutable())
                 {
-                    /*     prmtype      argtype                Adjusted argtype
-                     * foo(      U)     immutable(int[])    => immutable(int)[]
-                     * foo(inout U)     immutable(int[])    => immutable(int)[]
-                     */
-                    argtype = at->mutableOf();
+                    m = margn & (MODimmutable | MODwild | MODconst);
+                    if (prmtype->isWild() && m == MODwildconst)
+                        m &= prmtype->mod;
                 }
-                else
-                {
-                    /*     prmtype      argtype                Adjusted argtype
-                     * foo(immutable U) immutable(int)[]    => immutable(int[])
-                     * foo(    const U) immutable(int[])    => const(immutable(int)[])
-                     */
-                    argtype = at->addMod(prmtype->mod);
-                }
+                if (prmtype->isShared())
+                    m |= (margn & MODshared);
+
+                argtype = argtype->castMod(m);
+                //printf("-argtype = %s, m = x%x\n", argtype->toChars(), m);
                 if (!farg->type->equals(argtype))
                 {
                     farg = farg->copy();
@@ -4395,6 +4405,10 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             }
             else                            // expression vs type
             {
+                at = at->addMod(tparam->mod);
+                if (wm)
+                    at = at->substWildTo(*wm);
+
                 /* Check the expression is implicitly convertible to the already deduced type.
                  *
                  *  auto foo(T)(T arg1, T arg2);

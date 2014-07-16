@@ -3479,6 +3479,227 @@ template component13087(alias vec, char c)
 }
 
 /******************************************/
+// 13127
+
+void test13127(inout int = 0)
+{
+                       int []   ma1;
+                 const(int)[]   ca1;
+                 const(int[])   ca2;
+           inout(      int)[]  wma1;
+           inout(      int[])  wma2;
+           inout(const int)[]  wca1;
+           inout(const int[])  wca2;
+             immutable(int)[]   ia1;
+             immutable(int[])   ia2;
+    shared(            int)[]  sma1;
+    shared(            int[])  sma2;
+    shared(      const int)[]  sca1;
+    shared(      const int[])  sca2;
+    shared(inout       int)[] swma1;
+    shared(inout       int[]) swma2;
+    shared(inout const int)[] swca1;
+    shared(inout const int[]) swca2;
+
+    /* In all cases, U should be deduced to top-unqualified type.
+     */
+
+    /* Parameter is (shared) mutable
+     */
+    U f_m(U)(       U) { return null; }
+    U fsm(U)(shared U) { return null; }
+    // 9 * 2 - 1
+    static assert(is(typeof(f_m(  ma1))  ==                    int []));
+    static assert(is(typeof(f_m(  ca1))  ==              const(int)[]));
+    static assert(is(typeof(f_m(  ca2))  ==              const(int)[]));
+    static assert(is(typeof(f_m( wma1))  ==        inout(      int)[]));
+    static assert(is(typeof(f_m( wma2))  ==        inout(      int)[]));
+    static assert(is(typeof(f_m( wca1))  ==        inout(const int)[]));
+    static assert(is(typeof(f_m( wca2))  ==        inout(const int)[]));
+    static assert(is(typeof(f_m(  ia1))  ==          immutable(int)[]));
+    static assert(is(typeof(f_m(  ia2))  ==          immutable(int)[]));
+    static assert(is(typeof(f_m( sma1))  == shared(            int)[]));
+    static assert(is(typeof(f_m( sma2))  == shared(            int)[]));  // <- shared(int[])
+    static assert(is(typeof(f_m( sca1))  == shared(      const int)[]));
+    static assert(is(typeof(f_m( sca2))  == shared(      const int)[]));  // <- shared(const(int)[])
+    static assert(is(typeof(f_m(swma1))  == shared(inout       int)[]));
+    static assert(is(typeof(f_m(swma2))  == shared(inout       int)[]));  // <- shared(inout(int[])
+    static assert(is(typeof(f_m(swca1))  == shared(inout const int)[]));
+    static assert(is(typeof(f_m(swca2))  == shared(inout const int)[]));  // <- shared(inout(const(int))[])
+    // 9 * 2 - 1
+    static assert(is(typeof(fsm(  ma1))) == false);
+    static assert(is(typeof(fsm(  ca1))) == false);
+    static assert(is(typeof(fsm(  ca2))) == false);
+    static assert(is(typeof(fsm( wma1))) == false);
+    static assert(is(typeof(fsm( wma2))) == false);
+    static assert(is(typeof(fsm( wca1))) == false);
+    static assert(is(typeof(fsm( wca2))) == false);
+    static assert(is(typeof(fsm(  ia1))) == false);
+    static assert(is(typeof(fsm(  ia2))) == false);
+    static assert(is(typeof(fsm( sma1))  == shared(            int)[]));  // <- NG
+    static assert(is(typeof(fsm( sma2))  == shared(            int)[]));
+    static assert(is(typeof(fsm( sca1))  == shared(      const int)[]));  // <- NG
+    static assert(is(typeof(fsm( sca2))  == shared(      const int)[]));
+    static assert(is(typeof(fsm(swma1))  == shared(inout       int)[]));  // <- NG
+    static assert(is(typeof(fsm(swma2))  == shared(inout       int)[]));
+    static assert(is(typeof(fsm(swca1))  == shared(inout const int)[]));  // <- NG
+    static assert(is(typeof(fsm(swca2))  == shared(inout const int)[]));
+
+    /* Parameter is (shared) const
+     */
+    U f_c(U)(       const U) { return null; }
+    U fsc(U)(shared const U) { return null; }
+    // 9 * 2 - 1
+    static assert(is(typeof(f_c(  ma1))  ==                    int []));
+    static assert(is(typeof(f_c(  ca1))  ==              const(int)[]));
+    static assert(is(typeof(f_c(  ca2))  ==              const(int)[]));
+    static assert(is(typeof(f_c( wma1))  ==        inout(      int)[]));
+    static assert(is(typeof(f_c( wma2))  ==        inout(      int)[]));
+    static assert(is(typeof(f_c( wca1))  ==        inout(const int)[]));
+    static assert(is(typeof(f_c( wca2))  ==        inout(const int)[]));
+    static assert(is(typeof(f_c(  ia1))  ==          immutable(int)[]));
+    static assert(is(typeof(f_c(  ia2))  ==          immutable(int)[]));
+    static assert(is(typeof(f_c( sma1))  == shared(            int)[]));
+    static assert(is(typeof(f_c( sma2))  == shared(            int)[]));  // <- shared(int[])
+    static assert(is(typeof(f_c( sca1))  == shared(      const int)[]));
+    static assert(is(typeof(f_c( sca2))  == shared(      const int)[]));  // <- shared(const(int)[])
+    static assert(is(typeof(f_c(swma1))  == shared(inout       int)[]));
+    static assert(is(typeof(f_c(swma2))  == shared(inout       int)[]));  // shared(inout(int)[])
+    static assert(is(typeof(f_c(swca1))  == shared(inout const int)[]));
+    static assert(is(typeof(f_c(swca2))  == shared(inout const int)[]));  // shared(inout(const(int))[])
+    // 9 * 2 - 1
+    static assert(is(typeof(fsc(  ma1))) == false);
+    static assert(is(typeof(fsc(  ca1))) == false);
+    static assert(is(typeof(fsc(  ca2))) == false);
+    static assert(is(typeof(fsc( wma1))) == false);
+    static assert(is(typeof(fsc( wma2))) == false);
+    static assert(is(typeof(fsc( wca1))) == false);
+    static assert(is(typeof(fsc( wca2))) == false);
+    static assert(is(typeof(fsc(  ia1))  ==          immutable(int)[]));  // <- NG
+    static assert(is(typeof(fsc(  ia2))  ==          immutable(int)[]));  // <- NG
+    static assert(is(typeof(fsc( sma1))  == shared(            int)[]));  // <- NG
+    static assert(is(typeof(fsc( sma2))  == shared(            int)[]));
+    static assert(is(typeof(fsc( sca1))  == shared(      const int)[]));  // <- NG
+    static assert(is(typeof(fsc( sca2))  == shared(      const int)[]));
+    static assert(is(typeof(fsc(swma1))  == shared(inout       int)[]));  // <- NG
+    static assert(is(typeof(fsc(swma2))  == shared(inout       int)[]));
+    static assert(is(typeof(fsc(swca1))  == shared(inout const int)[]));  // <- NG
+    static assert(is(typeof(fsc(swca2))  == shared(inout const int)[]));
+
+    /* Parameter is immutable
+     */
+    U fi(U)(immutable U) { return null; }
+    // 9 * 2 - 1
+    static assert(is(typeof(fi(  ma1))) == false);
+    static assert(is(typeof(fi(  ca1))) == false);
+    static assert(is(typeof(fi(  ca2))) == false);
+    static assert(is(typeof(fi( wma1))) == false);
+    static assert(is(typeof(fi( wma2))) == false);
+    static assert(is(typeof(fi( wca1))) == false);
+    static assert(is(typeof(fi( wca2))) == false);
+    static assert(is(typeof(fi(  ia1))  == immutable(int)[]));  // <- NG
+    static assert(is(typeof(fi(  ia2))  == immutable(int)[]));  // <- NG
+    static assert(is(typeof(fi( sma1))) == false);
+    static assert(is(typeof(fi( sma2))) == false);
+    static assert(is(typeof(fi( sca1))) == false);
+    static assert(is(typeof(fi( sca2))) == false);
+    static assert(is(typeof(fi(swma1))) == false);
+    static assert(is(typeof(fi(swma2))) == false);
+    static assert(is(typeof(fi(swca1))) == false);
+    static assert(is(typeof(fi(swca2))) == false);
+
+    /* Parameter is (shared) inout
+     */
+    U f_w(U)(       inout U) { return null; }
+    U fsw(U)(shared inout U) { return null; }
+    // 9 * 2 - 1
+    static assert(is(typeof(f_w(  ma1))  ==              int []));
+    static assert(is(typeof(f_w(  ca1))  ==              int []));  // <- const(int)[]
+    static assert(is(typeof(f_w(  ca2))  ==              int []));  // <- const(int)[]
+    static assert(is(typeof(f_w( wma1))  ==              int []));  // <- inout(int)[]
+    static assert(is(typeof(f_w( wma2))  ==              int []));  // <- inout(int)[]
+    static assert(is(typeof(f_w( wca1))  ==        const(int)[]));  // <- inout(const(int))[]
+    static assert(is(typeof(f_w( wca2))  ==        const(int)[]));  // <- inout(const(int))[]
+    static assert(is(typeof(f_w(  ia1))  ==              int []));  // <- immutable(int)[]
+    static assert(is(typeof(f_w(  ia2))  ==              int []));  // <- immutable(int)[]
+    static assert(is(typeof(f_w( sma1))  == shared(      int)[]));
+    static assert(is(typeof(f_w( sma2))  == shared(      int)[]));  // <- shared(int[])
+    static assert(is(typeof(f_w( sca1))  == shared(      int)[]));  // <- shared(const(int))[]
+    static assert(is(typeof(f_w( sca2))  == shared(      int)[]));  // <- shared(const(int)[])
+    static assert(is(typeof(f_w(swma1))  == shared(      int)[]));  // <- shared(inout(int))[]
+    static assert(is(typeof(f_w(swma2))  == shared(      int)[]));  // <- shared(inout(int)[])
+    static assert(is(typeof(f_w(swca1))  == shared(const int)[]));  // <- shared(inout(const(int)))[]
+    static assert(is(typeof(f_w(swca2))  == shared(const int)[]));  // <- shared(inout(const(int))[])
+    // 9 * 2 - 1
+    static assert(is(typeof(fsw(  ma1))) == false);
+    static assert(is(typeof(fsw(  ca1))) == false);
+    static assert(is(typeof(fsw(  ca2))) == false);
+    static assert(is(typeof(fsw( wma1))) == false);
+    static assert(is(typeof(fsw( wma2))) == false);
+    static assert(is(typeof(fsw( wca1))) == false);
+    static assert(is(typeof(fsw( wca2))) == false);
+    static assert(is(typeof(fsw(  ia1))  ==              int []));  // <- NG
+    static assert(is(typeof(fsw(  ia2))  ==              int []));  // <- NG
+    static assert(is(typeof(fsw( sma1))  ==              int []));  // <- NG
+    static assert(is(typeof(fsw( sma2))  ==              int []));
+    static assert(is(typeof(fsw( sca1))  ==              int []));  // <- NG
+    static assert(is(typeof(fsw( sca2))  ==              int []));  // const(int)[]
+    static assert(is(typeof(fsw(swma1))  ==              int []));  // <- NG
+    static assert(is(typeof(fsw(swma2))  ==              int []));  // inout(int)[]
+    static assert(is(typeof(fsw(swca1))  ==        const(int)[]));  // <- NG
+    static assert(is(typeof(fsw(swca2))  ==        const(int)[]));  // <- inout(const(int))[]
+
+    /* Parameter is (shared) inout const
+     */
+    U f_wc(U)(       inout const U) { return null; }
+    U fswc(U)(shared inout const U) { return null; }
+    // 9 * 2 - 1
+    static assert(is(typeof(f_wc(  ma1))  ==        int []));
+    static assert(is(typeof(f_wc(  ca1))  ==        int []));  // <- const(int)[]
+    static assert(is(typeof(f_wc(  ca2))  ==        int []));  // <- const(int)[]
+    static assert(is(typeof(f_wc( wma1))  ==        int []));  // <- inout(int)[]
+    static assert(is(typeof(f_wc( wma2))  ==        int []));  // <- inout(int)[]
+    static assert(is(typeof(f_wc( wca1))  ==        int []));  // <- inout(const(int))[]
+    static assert(is(typeof(f_wc( wca2))  ==        int []));  // <- inout(const(int))[]
+    static assert(is(typeof(f_wc(  ia1))  ==        int []));  // <- immutable(int)[]
+    static assert(is(typeof(f_wc(  ia2))  ==        int []));  // <- immutable(int)[]
+    static assert(is(typeof(f_wc( sma1))  == shared(int)[]));
+    static assert(is(typeof(f_wc( sma2))  == shared(int)[]));  // <- shared(int[])
+    static assert(is(typeof(f_wc( sca1))  == shared(int)[]));  // <- shared(const(int))[]
+    static assert(is(typeof(f_wc( sca2))  == shared(int)[]));  // <- shared(const(int)[])
+    static assert(is(typeof(f_wc(swma1))  == shared(int)[]));  // <- shared(inout(int))[]
+    static assert(is(typeof(f_wc(swma2))  == shared(int)[]));  // <- shared(inout(int)[])
+    static assert(is(typeof(f_wc(swca1))  == shared(int)[]));  // <- shared(inout(const(int)))[]
+    static assert(is(typeof(f_wc(swca2))  == shared(int)[]));  // <- shared(inout(const(int))[])
+    // 9 * 2 - 1
+    static assert(is(typeof(fswc(  ma1))) == false);
+    static assert(is(typeof(fswc(  ca1))) == false);
+    static assert(is(typeof(fswc(  ca2))) == false);
+    static assert(is(typeof(fswc( wma1))) == false);
+    static assert(is(typeof(fswc( wma2))) == false);
+    static assert(is(typeof(fswc( wca1))) == false);
+    static assert(is(typeof(fswc( wca2))) == false);
+    static assert(is(typeof(fswc(  ia1))  ==        int []));  // <- NG
+    static assert(is(typeof(fswc(  ia2))  ==        int []));  // <- NG
+    static assert(is(typeof(fswc( sma1))  ==        int []));  // <- NG
+    static assert(is(typeof(fswc( sma2))  ==        int []));
+    static assert(is(typeof(fswc( sca1))  ==        int []));  // <- NG
+    static assert(is(typeof(fswc( sca2))  ==        int []));  // <- const(int)[]
+    static assert(is(typeof(fswc(swma1))  ==        int []));  // <- NG
+    static assert(is(typeof(fswc(swma2))  ==        int []));  // <- inout(int)[]
+    static assert(is(typeof(fswc(swca1))  ==        int []));  // <- NG
+    static assert(is(typeof(fswc(swca2))  ==        int []));  // <- inout(const(int))[]
+}
+
+void test13127a()
+{
+    void foo(T)(in T[] src, T[] dst) { static assert(is(T == int[])); }
+
+    int[][] a;
+    foo(a, a);
+}
+
+/******************************************/
 
 int main()
 {
