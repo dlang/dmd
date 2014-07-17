@@ -1086,6 +1086,29 @@ int bug8525(int[] devt)
     return devt[$ - 1];
 }
 
+////////////////////////////////////////////////////////////////////////
+
+void test12833a(int a)
+{
+    long x = cast(long)a;
+
+    switch (cast(int)(cast(ushort)(x >> 16 & 65535L)))
+    {
+        case 1:
+        {
+            break;
+        }
+        default:
+        {
+            assert(0);
+        }
+    }
+}
+
+void test12833()
+{
+    test12833a(0x1_0000);
+}
 
 ////////////////////////////////////////////////////////////////////////
  
@@ -1119,6 +1142,7 @@ int main()
     test10715();
     test10678();
     test7565();
+    test12833();
     printf("Success\n");
     return 0;
 }
