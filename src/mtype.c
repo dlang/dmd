@@ -1712,7 +1712,8 @@ Type *stripDefaultArgs(Type *t)
         Parameters *args = N::stripParams(tt->arguments);
         if (args == tt->arguments)
             goto Lnot;
-        t = new TypeTuple(args);
+        t = t->copy();
+        ((TypeTuple *)t)->arguments = args;
     }
     else if (t->ty == Tenum)
     {
