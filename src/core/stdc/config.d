@@ -36,3 +36,43 @@ else
     alias uint  c_ulong;
   }
 }
+
+version( DigitalMars )
+{
+    version( X86 )
+        alias real c_long_double;
+    else version( X86_64 )
+    {
+        version( Windows )
+            alias double c_long_double;
+        else version( linux )
+            alias real c_long_double;
+        else version( FreeBSD )
+            alias real c_long_double;
+        else version( OSX )
+            alias real c_long_double;
+    }
+}
+else version( GNU )
+{
+    version( X86 )
+        alias real c_long_double;
+    else version( X86_64 )
+        alias real c_long_double;
+}
+else version( LDC )
+{
+    version( X86 )
+        alias real c_long_double;
+    else version( X86_64 )
+        alias real c_long_double;
+}
+else version( SDC )
+{
+    version( X86 )
+        alias real c_long_double;
+    else version( X86_64 )
+        alias real c_long_double;
+}
+
+static assert(is(c_long_double), "c_long_double needs to be declared for this platform/architecture.");
