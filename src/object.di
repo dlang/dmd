@@ -276,10 +276,10 @@ class MemberInfo_function : MemberInfo
 
 struct ModuleInfo
 {
-const:
     uint _flags;
     uint _index;
 
+const:
     @property uint index() nothrow pure;
     @property uint flags() nothrow pure;
     @property void function() tlsctor() nothrow pure;
