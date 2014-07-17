@@ -1270,7 +1270,7 @@ void test79()
 
 /************************************/
 
-void test80(inout(int) _ = 0)
+void test80()
 {
     char x;
     inout(char) y = x;
@@ -1327,7 +1327,7 @@ void test80(inout(int) _ = 0)
 
 /************************************/
 
-void test81(inout(int) _ = 0)
+void test81()
 {
     const(char)* c;
     immutable(char)* i;
@@ -1369,7 +1369,7 @@ void test81(inout(int) _ = 0)
 /************************************/
 
 
-void test82(inout(int) _ = 0)
+void test82()
 {
     const(immutable(char)*) c;
     pragma(msg, typeof(c));
@@ -1467,7 +1467,7 @@ void test82(inout(int) _ = 0)
 
 /************************************/
 
-void test83(inout(int) _ = 0)
+void test83()
 {
     static assert(__traits(compiles, typeid(int* function(inout int))));
     static assert(__traits(compiles, typeid(int* delegate(inout int))));
@@ -1674,7 +1674,7 @@ void test3748()
 
 /************************************/
 
-void test3748a(inout int = 1)
+void test3748a()
 {
                  int[]    ma;
            inout(int[])   wa;
@@ -1703,7 +1703,7 @@ void test3748a(inout int = 1)
     static assert( is( typeof(foo2(sca)) == int));
 }
 
-void test3748b(inout int = 1)
+void test3748b()
 {
     // Top of the parameter type is non-ref & qualified
     static        inout(int[])  foo1(       inout(int[])  a);
@@ -1768,7 +1768,7 @@ void test3748b(inout int = 1)
     static assert( is( typeof(foo2( ia2)) == typeof( ia2) ));
 }
 
-void test3748c(inout int = 1)
+void test3748c()
 {
     // Top of the parameter type is ref & qualified
     static        inout(int[])  foo1(ref        inout(int[])  a);
@@ -2592,7 +2592,7 @@ inout(const(int[])) foo6930(inout(int)[] x)
     return condition ? x : new immutable(int[])(2);
 }
 
-void test6930b(inout int = 0)
+void test6930b()
 {
     alias T1 = inout(shared(const(int)));
     static assert(T1.stringof == "shared(inout(const(int)))");
@@ -2717,7 +2717,7 @@ inout(int) dup12524(inout(const(int)) val)
     return val;
 }
 
-void test12524(inout(int))
+void test12524()
 {
     inout(const(int)) val;
 
@@ -3550,7 +3550,7 @@ static assert(is(typeof(f11215((const int).init)) == shared(const(void)**)));
 /************************************/
 // 11489
 
-void test11489(inout int = 0)
+void test11489()
 {
     static class B {}
     static class D : B {}
@@ -3623,7 +3623,7 @@ void test11489(inout int = 0)
 /************************************/
 // 11768
 
-void test11768(inout int = 0)
+void test11768()
 {
     const(inout(char)) k1;
     inout(const(char)) k2;
