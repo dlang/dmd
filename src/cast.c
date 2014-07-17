@@ -749,6 +749,8 @@ MATCH implicitConvTo(Expression *e, Type *t)
             if (e->f && e->f->isolateReturn())
             {
                 result = e->type->immutableOf()->implicitConvTo(t);
+                if (result > MATCHconst)    // Match level is MATCHconst at best.
+                    result = MATCHconst;
                 return;
             }
 
