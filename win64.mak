@@ -466,6 +466,9 @@ $(IMPDIR)\core\sys\posix\unistd.d : src\core\sys\posix\unistd.d
 $(IMPDIR)\core\sys\posix\utime.d : src\core\sys\posix\utime.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\solaris\execinfo.d : src\core\sys\solaris\sys\execinfo.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\solaris\sys\procset.d : src\core\sys\solaris\sys\procset.d
 	copy $** $@
 
