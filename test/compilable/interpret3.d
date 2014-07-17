@@ -4259,6 +4259,28 @@ void ice10610()
    static assert (T10610.min.baz());
 }
 
+/**************************************************
+    13141 regression fix caused by 10610
+**************************************************/
+
+struct MapResult13141(alias pred)
+{
+    int[] range;
+    @property empty() { return range.length == 0; }
+    @property front() { return pred(range[0]); }
+    void popFront() { range = range[1..$]; }
+}
+
+string[] array13141(R)(R r)
+{
+    typeof(return) result;
+    foreach (e; r)
+        result ~= e;
+    return result;
+}
+
+//immutable string[] splitterNames = [4].map!(e => "4").array();
+immutable string[] splitterNames13141 = MapResult13141!(e => "4")([4]).array13141();
 
 /**************************************************
     11587 AA compare
