@@ -1712,7 +1712,8 @@ Type *stripDefaultArgs(Type *t)
         Parameters *args = N::stripParams(tt->arguments);
         if (args == tt->arguments)
             goto Lnot;
-        t = new TypeTuple(args);
+        t = t->copy();
+        ((TypeTuple *)t)->arguments = args;
     }
     else if (t->ty == Tenum)
     {
@@ -7415,10 +7416,10 @@ Expression *TypeEnum::dotExp(Scope *sc, Expression *e, Identifier *ident, int fl
 }
 
 Expression *TypeEnum::getProperty(Loc loc, Identifier *ident, int flag)
-{   Expression *e;
-
+{
+    Expression *e;
     if (ident == Id::max || ident == Id::min)
-        {
+    {
         return sym->getMaxMinValue(loc, ident);
     }
     else if (ident == Id::init)
@@ -7426,7 +7427,8 @@ Expression *TypeEnum::getProperty(Loc loc, Identifier *ident, int flag)
         e = defaultInitLiteral(loc);
     }
     else if (ident == Id::stringof)
-    {   char *s = toChars();
+    {
+        char *s = toChars();
         e = new StringExp(loc, s, strlen(s), 'c');
         Scope sc;
         e = e->semantic(&sc);

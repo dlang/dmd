@@ -306,7 +306,7 @@ Expression *EnumDeclaration::getMaxMinValue(Loc loc, Identifier *id)
         goto Lerrors;
     }
     if (*pval)
-        return *pval;
+        goto Ldone;
 
     if (scope)
         semantic(scope);
@@ -360,7 +360,16 @@ Expression *EnumDeclaration::getMaxMinValue(Loc loc, Identifier *id)
                 *pval = e;
         }
     }
-    return *pval;
+Ldone:
+  {
+    Expression *e = *pval;
+    if (e->op != TOKerror)
+    {
+        e = e->copy();
+        e->loc = loc;
+    }
+    return e;
+  }
 
 Lerrors:
     *pval = new ErrorExp();
