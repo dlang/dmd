@@ -1246,8 +1246,20 @@ Type *Type::aliasthisOf()
         if (s->isAliasDeclaration())
             s = s->toAlias();
         Declaration *d = s->isDeclaration();
-        if (d && !d->isTupleDeclaration())
+        if (d)
         {
+            TupleDeclaration *td = d->isTupleDeclaration();
+            if (td)
+            {
+                assert(td->objects);
+                if (!td->objects || td->objects->dim != 1)
+                    return Type::terror;
+                RootObject *o = (*td->objects)[0];
+                if (o->dyncast() != DYNCAST_EXPRESSION)
+                    return Type::terror;
+                Expression *e = (Expression *)o;
+                return e->type;
+            }
             assert(d->type);
             Type *t = d->type;
             if (d->isVarDeclaration() && d->needThis())
@@ -1294,6 +1306,7 @@ Type *Type::aliasthisOf()
                 return Type::terror;
         }
         //printf("%s\n", s->kind());
+        return Type::terror;
     }
     return NULL;
 }
