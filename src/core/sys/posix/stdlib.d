@@ -400,18 +400,18 @@ else version( Solaris )
 
     version (D_LP64)
     {
-        mkstemp(char*);
+        int mkstemp(char*);
 
         static if ( __USE_LARGEFILE64 )
             alias mkstemp mkstemp64;
     }
     else
     {
-        mkstemp64(char*);
+        int mkstemp64(char*);
 
         static if ( __USE_LARGEFILE64 )
             alias mkstemp64 mkstemp;
         else
-            mkstemp(char*);
+            int mkstemp(char*);
     }
 }
