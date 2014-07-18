@@ -138,3 +138,15 @@ double *_memsetDouble(double *p, double value, size_t count)
         *p = value;
     return pstart;
 }
+
+version (D_SIMD)
+{
+    import core.simd;
+
+    void16* _memsetSIMD(void16 *p, void16 value, size_t count)
+    {
+        foreach (i; 0..count)
+            p[i] = value;
+        return p;
+    }
+}
