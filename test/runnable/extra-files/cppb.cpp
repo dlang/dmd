@@ -234,3 +234,46 @@ void myvprintf(const char* format, va_list va)
 {
     myvprintfx(format, va);
 }
+
+/**************************************/
+
+class C13161
+{
+public:
+	virtual void dummyfunc() {}
+	long long val_5;
+	unsigned val_9;
+};
+
+class Test : public C13161
+{
+public:
+	unsigned val_0;
+	long long val_1;
+};
+
+size_t getoffset13161()
+{
+    Test s;
+    return (char *)&s.val_0 - (char *)&s;
+}
+
+class C13161a
+{
+public:
+	virtual void dummyfunc() {}
+	long double val_5;
+	unsigned val_9;
+};
+
+class Testa : public C13161a
+{
+public:
+	bool val_0;
+};
+
+size_t getoffset13161a()
+{
+    Testa s;
+    return (char *)&s.val_0 - (char *)&s;
+}
