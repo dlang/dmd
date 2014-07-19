@@ -337,6 +337,43 @@ void test12825()
 
 /****************************************/
 
+extern(C++) class C13161
+{
+	void dummyfunc() {}
+	long val_5;
+	uint val_9;
+}
+
+extern(C++) class Test : C13161
+{
+	uint val_0;
+	long val_1;
+}
+
+extern(C++) size_t getoffset13161();
+
+extern(C++) class C13161a
+{
+	void dummyfunc() {}
+	real val_5;
+	uint val_9;
+}
+
+extern(C++) class Testa : C13161a
+{
+	bool val_0;
+}
+
+extern(C++) size_t getoffset13161a();
+
+void test13161()
+{
+	assert(getoffset13161() == Test.val_0.offsetof);
+	assert(getoffset13161a() == Testa.val_0.offsetof);
+}
+
+/****************************************/
+
 void main()
 {
     test1();
@@ -354,6 +391,7 @@ void main()
     test11();
     testvalist();
     test12825();
+    test13161();
 
     printf("Success\n");
 }
