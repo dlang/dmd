@@ -6939,6 +6939,22 @@ void test12937()
 }
 
 /***************************************************/
+// 13154
+
+void test13154()
+{
+    int[3] ints      = [2   , 1   , 0   , 1   ][0..3];
+    float[3] floats0 = [2f  , 1f  , 0f  , 1f  ][0..3];
+    float[3] floats1 = [2.0 , 1.0 , 0.0 , 1.0 ][0..3];  // fails!
+    float[3] floats2 = [2.0f, 1.0f, 0.0f, 1.0f][0..3];
+    assert(ints == [2, 1, 0]);
+    assert(floats0 == [2, 1, 0]);
+    assert(floats1 == [2, 1, 0]); // fail!
+    assert(floats1 != [0, 0, 0]); // fail!
+    assert(floats2 == [2, 1, 0]);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -7225,6 +7241,7 @@ int main()
     test11317();
     test12153();
     test12937();
+    test13154();
 
     printf("Success\n");
     return 0;
