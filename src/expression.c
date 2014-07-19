@@ -9547,7 +9547,7 @@ Expression *DeleteExp::semantic(Scope *sc)
                 FuncDeclaration *f = sd->aggDelete;
                 FuncDeclaration *fd = sd->dtor;
 
-                if (!f && !fd)
+                if (!f)
                     break;
 
                 /* Construct:

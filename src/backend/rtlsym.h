@@ -94,6 +94,7 @@ SYMBOL_MARS(CALLFINALIZER, FLfunc,FREGSAVED,"_d_callfinalizer", 0, t) \
 SYMBOL_MARS(CALLINTERFACEFINALIZER, FLfunc,FREGSAVED,"_d_callinterfacefinalizer", 0, t) \
 SYMBOL_MARS(DELCLASS,      FLfunc,FREGSAVED,"_d_delclass", 0, t) \
 SYMBOL_MARS(DELINTERFACE,  FLfunc,FREGSAVED,"_d_delinterface", 0, t) \
+SYMBOL_MARS(DELSTRUCT,     FLfunc,FREGSAVED,"_d_delstruct", 0, t) \
 SYMBOL_MARS(ALLOCMEMORY,   FLfunc,FREGSAVED,"_d_allocmemory", 0, t) \
 SYMBOL_MARS(DELARRAY,      FLfunc,FREGSAVED,"_d_delarray", 0, t) \
 SYMBOL_MARS(DELARRAYT,     FLfunc,FREGSAVED,"_d_delarray_t", 0, t) \
