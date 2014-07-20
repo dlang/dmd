@@ -671,7 +671,9 @@ Lancestorsdone:
     if (baseClass)
     {
         alignsize = baseClass->alignsize;
-        structsize = (baseClass->structsize + alignsize - 1) & ~(alignsize - 1);
+        structsize = baseClass->structsize;
+        if (cpp && global.params.isWindows)
+            structsize = (structsize + alignsize - 1) & ~(alignsize - 1);
     }
     else
     {
