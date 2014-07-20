@@ -119,7 +119,11 @@ bool canThrow(Expression *e, FuncDeclaration *func, bool mustNotThrow)
              */
             Type *t;
             if (ae->type->toBasetype()->ty == Tsarray)
+            {
+                if (!ae->e2->isLvalue())
+                    return;
                 t = ae->type;
+            }
             else if (ae->e1->op == TOKslice)
                 t = ((SliceExp *)ae->e1)->e1->type;
             else
