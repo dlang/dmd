@@ -1471,9 +1471,20 @@ void FuncDeclaration::semantic3(Scope *sc)
                 }
                 if (inv)
                 {
-                    e = new DsymbolExp(Loc(), inv);
+                    //e = new DsymbolExp(Loc(), inv);
+                    //e = new CallExp(Loc(), e);
+                    //e = e->semantic(sc2);
+
+                    /* Bugzilla 13113: Currently virtual invariant calls completely
+                     * bypass attribute enforcement.
+                     * Change the behavior of pre-invariant call by following it.
+                     */
+                    e = new ThisExp(Loc());
+                    e->type = vthis->type;
+                    e = new DotVarExp(Loc(), e, inv, 0);
+                    e->type = inv->type;
                     e = new CallExp(Loc(), e);
-                    e = e->semantic(sc2);
+                    e->type = Type::tvoid;
                 }
             }
             else
@@ -1512,9 +1523,19 @@ void FuncDeclaration::semantic3(Scope *sc)
                 }
                 if (inv)
                 {
-                    e = new DsymbolExp(Loc(), inv);
+                    //e = new DsymbolExp(Loc(), inv);
+                    //e = new CallExp(Loc(), e);
+                    //e = e->semantic(sc2);
+
+                    /* Bugzilla 13113: As same as pre-invariant in destructor,
+                     * change the behavior of post-invariant call.
+                     */
+                    e = new ThisExp(Loc());
+                    e->type = vthis->type;
+                    e = new DotVarExp(Loc(), e, inv, 0);
+                    e->type = inv->type;
                     e = new CallExp(Loc(), e);
-                    e = e->semantic(sc2);
+                    e->type = Type::tvoid;
                 }
             }
             else
