@@ -420,6 +420,7 @@ void *symbol_search_fp(void *arg, const char *seed)
     assert(id);
 
     Dsymbol *s = (Dsymbol *)arg;
+    Module::clearCache();
     return (void *)s->search(Loc(), id, IgnoreErrors | IgnoreAmbiguous);
 }
 
