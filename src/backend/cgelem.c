@@ -5287,7 +5287,7 @@ beg:
   else /* unary operator */
   {
         assert(!e->E2 || op == OPinfo || op == OParraylength || op == OPddtor);
-        if (!goal && !OTsideff(op))
+        if (!goal && !OTsideff(op) && !(e->Ety & mTYvolatile))
         {
             tym_t tym = e->E1->Ety;
 

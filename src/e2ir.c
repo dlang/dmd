@@ -329,6 +329,12 @@ if (I32) assert(tysize[TYnptr] == 4);
             ep->Eoper = op;
             ep->Ety = tyret;
             e = ep;
+            if (op == OPeq)
+            {   /* This was a volatileStore(ptr, value) operation, rewrite as:
+                 *   *ptr = value
+                 */
+                e->E1 = el_una(OPind, e->E2->Ety | mTYvolatile, e->E1);
+            }
 #if TX86
             if (op == OPscale)
             {
@@ -372,6 +378,8 @@ if (I32) assert(tysize[TYnptr] == 4);
             else
                 e = el_una(op,tyret,ep);
         }
+        else if (op == OPind)
+            e = el_una(op,mTYvolatile | tyret,ep);
         else
             e = el_una(op,tyret,ep);
     }
