@@ -69,7 +69,7 @@ Expression *eval_sqrt(Loc loc, FuncDeclaration *fd, Expressions *arguments)
 {
     Expression *arg0 = (*arguments)[0];
     assert(arg0->op == TOKfloat64);
-    return new RealExp(loc, sqrtl(arg0->toReal()), arg0->type);
+    return new RealExp(loc, Port::sqrt(arg0->toReal()), arg0->type);
 }
 
 Expression *eval_fabs(Loc loc, FuncDeclaration *fd, Expressions *arguments)

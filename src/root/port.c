@@ -77,6 +77,11 @@ int Port::isInfinity(double r)
     return (::fpclassify(r) == FP_INFINITE);
 }
 
+longdouble Port::sqrt(longdouble x)
+{
+    return ::sqrtl(x);
+}
+
 longdouble Port::fmodl(longdouble x, longdouble y)
 {
     return ::fmodl(x, y);
@@ -212,6 +217,11 @@ int Port::isSignallingNan(longdouble r)
 int Port::isInfinity(double r)
 {
     return (::_fpclass(r) & (_FPCLASS_NINF | _FPCLASS_PINF));
+}
+
+longdouble Port::sqrt(longdouble x)
+{
+    return ::sqrtl(x);
 }
 
 longdouble Port::fmodl(longdouble x, longdouble y)
@@ -350,6 +360,11 @@ int Port::isSignallingNan(longdouble r)
 int Port::isInfinity(double r)
 {
     return isinf(r);
+}
+
+longdouble Port::sqrt(longdouble x)
+{
+    return ::sqrtl(x);
 }
 
 longdouble Port::fmodl(longdouble x, longdouble y)
@@ -572,6 +587,11 @@ int Port::isInfinity(double r)
 #endif
 }
 
+longdouble Port::sqrt(longdouble x)
+{
+    return ::sqrtl(x);
+}
+
 longdouble Port::fmodl(longdouble x, longdouble y)
 {
 #if __FreeBSD__ && __FreeBSD_version < 800000 || __OpenBSD__
@@ -751,6 +771,11 @@ int Port::isSignallingNan(longdouble r)
 int Port::isInfinity(double r)
 {
     return isinf(r);
+}
+
+longdouble Port::sqrt(longdouble x)
+{
+    return ::sqrtl(x);
 }
 
 longdouble Port::fmodl(longdouble x, longdouble y)
