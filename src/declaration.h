@@ -602,8 +602,9 @@ public:
     bool isArrayOp;                     // true if array operation
     bool semantic3Errors;               // true if errors in semantic3
                                         // this function's frame ptr
-    ForeachStatement *fes;              // if foreach body, this is the foreach
+    bool inferAttributes;               // set if infer purity/nothrow/nogc/safe
     bool introducing;                   // true if 'introducing' function
+    ForeachStatement *fes;              // if foreach body, this is the foreach
     Type *tintro;                       // if !=NULL, then this is the type
                                         // of the 'introducing' function
                                         // this one is overriding
