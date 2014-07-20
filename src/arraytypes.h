@@ -44,9 +44,6 @@ typedef Array<class Initializer *> Initializers;
 typedef Array<class VarDeclaration *> VarDeclarations;
 
 typedef Array<class Type *> Types;
-
-typedef Array<class ScopeDsymbol *> ScopeDsymbols;
-
 typedef Array<class Catch *> Catches;
 
 typedef Array<class StaticDtorDeclaration *> StaticDtorDeclarations;
@@ -66,8 +63,6 @@ typedef Array<class ScopeStatement *> ScopeStatements;
 typedef Array<class GotoCaseStatement *> GotoCaseStatements;
 
 typedef Array<class GotoStatement *> GotoStatements;
-
-typedef Array<class ReturnStatement *> ReturnStatements;
 
 typedef Array<class TemplateInstance *> TemplateInstances;
 
