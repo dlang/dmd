@@ -1087,6 +1087,21 @@ int bug8525(int[] devt)
 }
 
 
+/***********************************************/
+
+struct Point9449
+{
+    double f = 3.0;
+    double g = 4.0;
+}
+
+void test9449()
+{
+    Point9449[1] arr;
+    if (arr[0].f != 3.0) assert(0);
+    if (arr[0].g != 4.0) assert(0);
+}
+
 ////////////////////////////////////////////////////////////////////////
  
 int main()
@@ -1119,6 +1134,8 @@ int main()
     test10715();
     test10678();
     test7565();
+    test12833();
+    test9449();
     printf("Success\n");
     return 0;
 }
