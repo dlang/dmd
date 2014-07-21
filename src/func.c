@@ -387,10 +387,9 @@ void FuncDeclaration::semantic(Scope *sc)
                 if (fdv->isFinal())
                     error("cannot override final function %s", fdv->toPrettyChars());
 
-#if DMDV2
-                if (!isOverride())
+                if (!isOverride() &&
+                    global.params.Dversion >= 3 && sc->module && sc->module->isRoot())
                     warning(loc, "overrides base class function %s, but is not marked with 'override'", fdv->toPrettyChars());
-#endif
 
                 FuncDeclaration *fdc = ((Dsymbol *)cd->vtbl.data[vi])->isFuncDeclaration();
                 if (fdc->toParent() == parent)
