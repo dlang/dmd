@@ -3700,6 +3700,35 @@ void test13127a()
 }
 
 /******************************************/
+// 13159
+
+template maxSize13159(T...)
+{
+    static if (T.length == 1)
+    {
+        enum size_t maxSize13159 = T[0].sizeof;
+    }
+    else
+    {
+        enum size_t maxSize13159 =
+            T[0].sizeof >= maxSize13159!(T[1 .. $])
+                ? T[0].sizeof
+                : maxSize13159!(T[1 .. $]);
+    }
+}
+
+struct Node13159
+{
+    struct Pair
+    {
+        Node13159 value;
+    }
+
+    //alias Algebraic!(Node[], int) Value;
+    enum n = maxSize13159!(Node13159[], int);
+}
+
+/******************************************/
 
 int main()
 {

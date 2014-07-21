@@ -6340,6 +6340,26 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     tryExpandMembers(sc2);
 
     semanticRun = PASSsemanticdone;
+
+    /* ConditionalDeclaration may introduce eponymous declaration,
+     * so we should find it once again after semantic.
+     */
+    if (members->dim)
+    {
+        Dsymbol *s;
+        if (Dsymbol::oneMembers(members, &s, tempdecl->ident) && s)
+        {
+            if (!aliasdecl || aliasdecl != s)
+            {
+                //printf("s->kind = '%s'\n", s->kind());
+                //s->print();
+                //printf("'%s', '%s'\n", s->ident->toChars(), tempdecl->ident->toChars());
+                //printf("setting aliasdecl 2\n");
+                aliasdecl = s;
+            }
+        }
+    }
+
     if (global.errors != errorsave)
         goto Laftersemantic;
 
@@ -6367,25 +6387,6 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     }
     if (found_deferred_ad || Module::deferred.dim)
         goto Laftersemantic;
-    }
-
-    /* ConditionalDeclaration may introduce eponymous declaration,
-     * so we should find it once again after semantic.
-     */
-    if (members->dim)
-    {
-        Dsymbol *s;
-        if (Dsymbol::oneMembers(members, &s, tempdecl->ident) && s)
-        {
-            if (!aliasdecl || aliasdecl != s)
-            {
-                //printf("s->kind = '%s'\n", s->kind());
-                //s->print();
-                //printf("'%s', '%s'\n", s->ident->toChars(), tempdecl->ident->toChars());
-                //printf("setting aliasdecl 2\n");
-                aliasdecl = s;
-            }
-        }
     }
 
     /* The problem is when to parse the initializer for a variable.
