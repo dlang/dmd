@@ -728,6 +728,10 @@ Lagain:
             goto Ldefault;
         }
 
+        case Tvector:
+            r = RTLSYM_MEMSETSIMD;
+            break;
+
         default:
         Ldefault:
             switch (sz)
@@ -767,10 +771,18 @@ Lagain:
                  * register, but the argument pusher may have other ideas on I64.
                  * MEMSETN is inefficient, though.
                  */
-                if (tybasic(evalue->ET->Tty) == TYstruct &&
-                    !evalue->ET->Ttag->Sstruct->Sarg1type &&
-                    !evalue->ET->Ttag->Sstruct->Sarg2type)
-                    r = RTLSYM_MEMSETN;
+                if (tybasic(evalue->ET->Tty) == TYstruct)
+                {
+                    type *t1 = evalue->ET->Ttag->Sstruct->Sarg1type;
+                    type *t2 = evalue->ET->Ttag->Sstruct->Sarg2type;
+                    if (!t1 && !t2)
+                        r = RTLSYM_MEMSETN;
+                    else if (config.exe != EX_WIN64 &&
+                             r == RTLSYM_MEMSET128ii &&
+                             t1->Tty == TYdouble &&
+                             t2->Tty == TYdouble)
+                        r = RTLSYM_MEMSET128;
+                }
             }
 
             if (r == RTLSYM_MEMSETN)

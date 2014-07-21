@@ -2670,7 +2670,8 @@ code *cdfunc(elem *e,regm_t *pretregs)
         parameters[i].reg = NOREG;
         unsigned alignsize = el_alignsize(ep);
         parameters[i].numalign = 0;
-        if (I64 && alignsize > stackalign)
+        if (alignsize > stackalign &&
+            (I64 || (alignsize == 16 && tyvector(ep->Ety))))
         {   unsigned newnumpara = (numpara + (alignsize - 1)) & ~(alignsize - 1);
             parameters[i].numalign = newnumpara - numpara;
             numpara = newnumpara;
