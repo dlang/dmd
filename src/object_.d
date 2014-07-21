@@ -1588,10 +1588,10 @@ enum
 
 struct ModuleInfo
 {
-const:
     uint _flags;
     uint _index; // index into _moduleinfo_array[]
 
+const:
     private void* addrOf(int flag) nothrow pure
     in
     {
@@ -1724,15 +1724,22 @@ const:
         // return null;
     }
 
-    alias int delegate(immutable(ModuleInfo*)) ApplyDg;
-
-    static int opApply(scope ApplyDg dg)
+    static int opApply(scope int delegate(immutable(ModuleInfo*)) dg)
     {
         import rt.minfo;
         return rt.minfo.moduleinfos_apply(dg);
     }
 }
 
+unittest
+{
+    ModuleInfo mi;
+    foreach (m; ModuleInfo)
+    {
+        mi = *m;
+        break;
+    }
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // Monitor
