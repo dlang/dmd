@@ -91,6 +91,9 @@ public:
     int selfImports();          // returns !=0 if module imports itself
 
     int insearch;
+    Identifier *searchCacheIdent;
+    Dsymbol *searchCacheSymbol; // cached value of search
+    int searchCacheFlags;       // cached flags
 
     Module *importedFrom;       // module from command line we're imported from,
                                 // i.e. a module that will be taken all the
@@ -134,11 +137,13 @@ public:
     void gensymfile();
     int needModuleInfo();
     Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
+    Dsymbol *symtabInsert(Dsymbol *s);
     void deleteObjFile();
     static void addDeferredSemantic(Dsymbol *s);
     static void runDeferredSemantic();
     static void addDeferredSemantic3(Dsymbol *s);
     static void runDeferredSemantic3();
+    static void clearCache();
     int imports(Module *m);
 
     bool isRoot() { return this->importedFrom == this; }
