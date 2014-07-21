@@ -62,6 +62,9 @@ Module::Module(const char *filename, Identifier *ident, int doDocComment, int do
     needmoduleinfo = 0;
     selfimports = 0;
     insearch = 0;
+    searchCacheIdent = NULL;
+    searchCacheSymbol = NULL;
+    searchCacheFlags = 0;
     decldefs = NULL;
     massert = NULL;
     munittest = NULL;
@@ -825,16 +828,45 @@ Dsymbol *Module::search(Loc loc, Identifier *ident, int flags)
      */
 
     //printf("%s Module::search('%s', flags = %d) insearch = %d\n", toChars(), ident->toChars(), flags, insearch);
-    Dsymbol *s;
     if (insearch)
-        s = NULL;
-    else
+        return NULL;
+    if (searchCacheIdent == ident && searchCacheFlags == flags)
     {
-        insearch = 1;
-        s = ScopeDsymbol::search(loc, ident, flags);
-        insearch = 0;
+        //printf("%s Module::search('%s', flags = %d) insearch = %d searchCacheSymbol = %s\n",
+        //        toChars(), ident->toChars(), flags, insearch, searchCacheSymbol ? searchCacheSymbol->toChars() : "null");
+        return searchCacheSymbol;
+    }
+
+    unsigned int errors = global.errors;
+
+    insearch = 1;
+    Dsymbol *s = ScopeDsymbol::search(loc, ident, flags);
+    insearch = 0;
+
+    if (errors == global.errors)
+    {
+        // Bugzilla 10752: We can cache the result only when it does not cause
+        // access error so the side-effect should be reproduced in later search.
+        searchCacheIdent = ident;
+        searchCacheSymbol = s;
+        searchCacheFlags = flags;
     }
     return s;
+}
+
+Dsymbol *Module::symtabInsert(Dsymbol *s)
+{
+    searchCacheIdent = NULL;       // symbol is inserted, so invalidate cache
+    return Package::symtabInsert(s);
+}
+
+void Module::clearCache()
+{
+    for (size_t i = 0; i < amodules.dim; i++)
+    {
+        Module *m = amodules[i];
+        m->searchCacheIdent = NULL;
+    }
 }
 
 /*******************************************
