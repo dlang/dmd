@@ -102,13 +102,13 @@ static void collectUnitTests(Dsymbols *symbols, AA *uniqueUnitTests, Expressions
         UnitTestDeclaration *unitTest = symbol->isUnitTestDeclaration();
         if (unitTest)
         {
-            if (!_aaGetRvalue(uniqueUnitTests, unitTest))
+            if (!dmd_aaGetRvalue(uniqueUnitTests, (void *)unitTest))
             {
                 FuncAliasDeclaration* alias = new FuncAliasDeclaration(unitTest, 0);
                 alias->protection = unitTest->protection;
                 Expression* e = new DsymbolExp(Loc(), alias);
                 unitTests->push(e);
-                bool* value = (bool*) _aaGet(&uniqueUnitTests, unitTest);
+                bool* value = (bool*) dmd_aaGet(&uniqueUnitTests, (void *)unitTest);
                 *value = true;
             }
         }
