@@ -33,7 +33,7 @@
 
 Scope *Scope::freelist = NULL;
 
-void *Scope::operator new(size_t size)
+Scope *Scope::alloc()
 {
     if (freelist)
     {
@@ -45,9 +45,7 @@ void *Scope::operator new(size_t size)
         return s;
     }
 
-    void *p = ::operator new(size);
-    //printf("new %p\n", p);
-    return p;
+    return new Scope();
 }
 
 Scope::Scope()
@@ -92,60 +90,16 @@ Scope::Scope()
     this->userAttribDecl = NULL;
 }
 
-Scope::Scope(Scope *enclosing)
+Scope *Scope::copyExact()
 {
-    //printf("Scope::Scope(enclosing = %p) %p\n", enclosing, this);
-    assert(!(enclosing->flags & SCOPEfree));
-    this->module = enclosing->module;
-    this->func   = enclosing->func;
-    this->parent = enclosing->parent;
-    this->scopesym = NULL;
-    this->sds = NULL;
-    this->sw = enclosing->sw;
-    this->tf = enclosing->tf;
-    this->os = enclosing->os;
-    this->tinst = enclosing->tinst;
-    this->sbreak = enclosing->sbreak;
-    this->scontinue = enclosing->scontinue;
-    this->fes = enclosing->fes;
-    this->callsc = enclosing->callsc;
-    this->structalign = enclosing->structalign;
-    this->enclosing = enclosing;
-#ifdef DEBUG
-    if (enclosing->enclosing)
-        assert(!(enclosing->enclosing->flags & SCOPEfree));
-    if (this == enclosing->enclosing)
-    {
-        printf("this = %p, enclosing = %p, enclosing->enclosing = %p\n", this, enclosing, enclosing->enclosing);
-    }
-    assert(this != enclosing->enclosing);
-#endif
-    this->slabel = NULL;
-    this->linkage = enclosing->linkage;
-    this->protection = enclosing->protection;
-    this->explicitProtection = enclosing->explicitProtection;
-    this->depmsg = enclosing->depmsg;
-    this->stc = enclosing->stc;
-    this->inunion = enclosing->inunion;
-    this->nofree = 0;
-    this->noctor = enclosing->noctor;
-    this->intypeof = enclosing->intypeof;
-    this->speculative = enclosing->speculative;
-    this->lastVar = enclosing->lastVar;
-    this->callSuper = enclosing->callSuper;
-    this->fieldinit = enclosing->saveFieldInit();
-    this->fieldinit_dim = enclosing->fieldinit_dim;
-    this->flags = (enclosing->flags & (SCOPEcontract | SCOPEdebug | SCOPEctfe | SCOPEcompile));
-    this->lastdc = NULL;
-    this->lastoffset = 0;
-    this->docbuf = enclosing->docbuf;
-    this->userAttribDecl = enclosing->userAttribDecl;
-    assert(this != enclosing);
+    Scope *sc = Scope::alloc();
+    memcpy(sc, this, sizeof(Scope));
+    return sc;
 }
 
 Scope *Scope::copy()
 {
-    Scope *sc = new Scope(*this);
+    Scope *sc = copyExact();
 
     /* Bugzilla 11777: The copied scope should not inherit fieldinit.
      */
@@ -158,7 +112,12 @@ Scope *Scope::createGlobal(Module *module)
 {
     Scope *sc;
 
-    sc = new Scope();
+    sc = Scope::alloc();
+    memset(sc, 0, sizeof(Scope));
+    sc->structalign = STRUCTALIGN_DEFAULT;
+    sc->linkage = LINKd;
+    sc->protection = PROTpublic;
+
     sc->module = module;
     sc->scopesym = new ScopeDsymbol();
     sc->scopesym->symtab = new DsymbolTable();
@@ -179,7 +138,29 @@ Scope *Scope::createGlobal(Module *module)
 Scope *Scope::push()
 {
     //printf("Scope::push()\n");
-    Scope *s = new Scope(this);
+    Scope *s = copyExact();
+
+    //printf("Scope::Scope(enclosing = %p) %p\n", enclosing, this);
+    assert(!(flags & SCOPEfree));
+    s->scopesym = NULL;
+    s->sds = NULL;
+    s->enclosing = this;
+#ifdef DEBUG
+    if (enclosing)
+        assert(!(enclosing->flags & SCOPEfree));
+    if (s == enclosing)
+    {
+        printf("this = %p, enclosing = %p, enclosing->enclosing = %p\n", s, this, enclosing);
+    }
+    assert(s != enclosing);
+#endif
+    s->slabel = NULL;
+    s->nofree = 0;
+    s->fieldinit = saveFieldInit();
+    s->flags = (flags & (SCOPEcontract | SCOPEdebug | SCOPEctfe | SCOPEcompile));
+    s->lastdc = NULL;
+    s->lastoffset = 0;
+
     assert(this != s);
     return s;
 }
