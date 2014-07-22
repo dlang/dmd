@@ -12,8 +12,8 @@ typedef void* Key;
 
 struct AA;
 
-size_t _aaLen(AA* aa);
-Value* _aaGet(AA** aa, Key key);
-Value _aaGetRvalue(AA* aa, Key key);
-void _aaRehash(AA** paa);
+size_t dmd_aaLen(AA* aa);
+Value* dmd_aaGet(AA** aa, Key key);
+Value dmd_aaGetRvalue(AA* aa, Key key);
+void dmd_aaRehash(AA** paa);
 

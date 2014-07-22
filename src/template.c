@@ -5520,7 +5520,7 @@ MATCH TemplateValueParameter::matchArg(Scope *sc, RootObject *oarg,
 
     if (specValue)
     {
-        if (!ei || _aaGetRvalue(edummies, ei->type) == ei)
+        if (!ei || (Expression *)dmd_aaGetRvalue(edummies, (void *)ei->type) == ei)
             goto Lnomatch;
 
         Expression *e = specValue;
@@ -5607,7 +5607,7 @@ void *TemplateValueParameter::dummyArg()
     if (!e)
     {
         // Create a dummy value
-        Expression **pe = (Expression **)_aaGet(&edummies, valType);
+        Expression **pe = (Expression **)dmd_aaGet(&edummies, (void *)valType);
         if (!*pe)
             *pe = valType->defaultInit();
         e = *pe;
@@ -8106,7 +8106,7 @@ void TemplateMixin::semantic(Scope *sc)
             symtab = sc->parent->isScopeDsymbol()->symtab;
         L1:
             assert(symtab);
-            int num = (int)_aaLen(symtab->tab) + 1;
+            int num = (int)dmd_aaLen(symtab->tab) + 1;
             ident = Lexer::uniqueId(s, num);
             symtab->insert(this);
         }
