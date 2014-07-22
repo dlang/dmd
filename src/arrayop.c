@@ -228,7 +228,7 @@ Expression *arrayOp(BinExp *e, Scope *sc)
     char *name = buf.peekString();
     Identifier *ident = Lexer::idPool(name);
 
-    FuncDeclaration **pFd = (FuncDeclaration **)_aaGet(&arrayfuncs, ident);
+    FuncDeclaration **pFd = (FuncDeclaration **)dmd_aaGet(&arrayfuncs, (void *)ident);
     FuncDeclaration *fd = *pFd;
 
     if (!fd)

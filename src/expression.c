@@ -5535,7 +5535,7 @@ void FuncExp::genIdent(Scope *sc)
             symtab = sds->symtab;
         }
         assert(symtab);
-        int num = (int)_aaLen(symtab->tab) + 1;
+        int num = (int)dmd_aaLen(symtab->tab) + 1;
         Identifier *id = Lexer::uniqueId(s, num);
         fd->ident = id;
         if (td) td->ident = id;
