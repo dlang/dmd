@@ -294,7 +294,7 @@ const:
     @property TypeInfo_Class[] localClasses() nothrow pure;
     @property string name() nothrow pure;
 
-    static int opApply(scope int delegate(immutable(ModuleInfo*)) dg);
+    static int opApply(scope int delegate(ModuleInfo*) dg);
 }
 
 class Throwable : Object

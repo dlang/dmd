@@ -1725,10 +1725,12 @@ const:
         // return null;
     }
 
-    static int opApply(scope int delegate(immutable(ModuleInfo*)) dg)
+    static int opApply(scope int delegate(ModuleInfo*) dg)
     {
         import rt.minfo;
-        return rt.minfo.moduleinfos_apply(dg);
+        // Bugzilla 13084 - enforcing immutable ModuleInfo would break client code
+        return rt.minfo.moduleinfos_apply(
+            (immutable(ModuleInfo*)m) => dg(cast(ModuleInfo*)m));
     }
 }
 
@@ -1739,6 +1741,15 @@ unittest
     {
         mi = *m;
         break;
+    }
+}
+
+unittest
+{
+    ModuleInfo* m1;
+    foreach (m; ModuleInfo)
+    {
+        m1 = m;
     }
 }
 
