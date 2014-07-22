@@ -1592,6 +1592,17 @@ struct ModuleInfo
     uint _flags;
     uint _index; // index into _moduleinfo_array[]
 
+    version (all)
+    {
+        deprecated("ModuleInfo cannot be copy-assigned because it is a variable-sized struct.")
+        void opAssign(in ModuleInfo m) { _flags = m._flags; _index = m._index; }
+    }
+    else
+    {
+        @disable this();
+        @disable this(this) const;
+    }
+
 const:
     private void* addrOf(int flag) nothrow pure
     in
@@ -1731,16 +1742,6 @@ const:
         // Bugzilla 13084 - enforcing immutable ModuleInfo would break client code
         return rt.minfo.moduleinfos_apply(
             (immutable(ModuleInfo*)m) => dg(cast(ModuleInfo*)m));
-    }
-}
-
-unittest
-{
-    ModuleInfo mi;
-    foreach (m; ModuleInfo)
-    {
-        mi = *m;
-        break;
     }
 }
 

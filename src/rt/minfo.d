@@ -392,6 +392,11 @@ unittest
 
     static struct UTModuleInfo
     {
+        this(uint flags)
+        {
+            mi._flags = flags;
+        }
+
         void setImports(immutable(ModuleInfo)*[] imports...)
         {
             import core.bitop;
@@ -413,7 +418,7 @@ unittest
 
     static UTModuleInfo mockMI(uint flags)
     {
-        auto mi = UTModuleInfo(ModuleInfo(flags | MIimportedModules));
+        auto mi = UTModuleInfo(flags | MIimportedModules);
         auto p = cast(void function()*)&mi.pad;
         if (flags & MItlsctor) *p++ = &stub;
         if (flags & MItlsdtor) *p++ = &stub;
