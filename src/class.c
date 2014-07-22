@@ -350,7 +350,7 @@ void ClassDeclaration::semantic(Scope *sc)
         for (size_t i = 0; i < baseclasses->dim; )
         {
             if (!scx)
-                scx = new Scope(*sc);
+                scx = sc->copyExact();
             scope = scx;
             scope->setNoFree();
 
@@ -1336,7 +1336,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
         for (size_t i = 0; i < baseclasses->dim; )
         {
             if (!scx)
-                scx = new Scope(*sc);
+                scx = sc->copyExact();
             scope = scx;
             scope->setNoFree();
 
