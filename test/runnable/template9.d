@@ -3729,6 +3729,44 @@ struct Node13159
 }
 
 /******************************************/
+// 13180
+
+void test13180()
+{
+    inout(V) get1a(K, V)(inout(V[K]) aa, lazy inout(V) defaultValue)
+    {
+        static assert(is(V == string));
+        static assert(is(K == string));
+        return defaultValue;
+    }
+    inout(V) get1b(K, V)(lazy inout(V) defaultValue, inout(V[K]) aa)
+    {
+        static assert(is(V == string));
+        static assert(is(K == string));
+        return defaultValue;
+    }
+
+    inout(V) get2a(K, V)(inout(V)[K] aa, lazy inout(V) defaultValue)
+    {
+        static assert(is(V == string));
+        static assert(is(K == string));
+        return defaultValue;
+    }
+    inout(V) get2b(K, V)(lazy inout(V) defaultValue, inout(V)[K] aa)
+    {
+        static assert(is(V == string));
+        static assert(is(K == string));
+        return defaultValue;
+    }
+    string def;
+    string[string] aa;
+    string s1a = get1a(aa, def);
+    string s1b = get1b(def, aa);
+    string s2a = get2a(aa, def);
+    string s2b = get2b(def, aa);
+}
+
+/******************************************/
 
 int main()
 {
