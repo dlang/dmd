@@ -41,6 +41,20 @@
 #include        "aa.h"
 #include        "tinfo.h"
 
+#ifndef ELFOSABI
+# if TARGET_LINUX
+#  define ELFOSABI ELFOSABI_LINUX
+# elif TARGET_FREEBSD
+#  define ELFOSABI ELFOSABI_FREEBSD
+# elif TARGET_SOLARIS
+#  define ELFOSABI ELFOSABI_SYSV
+# elif TARGET_OPENBSD
+#  define ELFOSABI ELFOSABI_OPENBSD
+# else
+#  error "No ELF OS ABI defined.  Please fix"
+# endif
+#endif
+
 //#define DEBSYM 0x7E
 
 static Outbuffer *fobjbuf;
@@ -1067,18 +1081,18 @@ void Obj::term(const char *objfilename)
     {
         ELFMAG0,ELFMAG1,ELFMAG2,ELFMAG3,
         ELFCLASS32,             // EI_CLASS
-        ELFDATA2LSB,    // EI_DATA
+        ELFDATA2LSB,            // EI_DATA
         EV_CURRENT,             // EI_VERSION
-        ELFOSABI_LINUX,0,       // EI_OSABI,EI_ABIVERSION
+        ELFOSABI,0,             // EI_OSABI,EI_ABIVERSION
         0,0,0,0,0,0,0
     };
     static const char elf_string64[EI_NIDENT] =
     {
         ELFMAG0,ELFMAG1,ELFMAG2,ELFMAG3,
         ELFCLASS64,             // EI_CLASS
-        ELFDATA2LSB,    // EI_DATA
+        ELFDATA2LSB,            // EI_DATA
         EV_CURRENT,             // EI_VERSION
-        ELFOSABI_LINUX,0,       // EI_OSABI,EI_ABIVERSION
+        ELFOSABI,0,             // EI_OSABI,EI_ABIVERSION
         0,0,0,0,0,0,0
     };
     fobjbuf->write(I64 ? elf_string64 : elf_string32, EI_NIDENT);
@@ -1587,7 +1601,8 @@ void Obj::ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym)
     symbol *ehtab_entry = symbol_generate(SCstatic,type_alloc(TYint));
     symbol_keep(ehtab_entry);
 
-    const int shf_flags = SHF_ALLOC | (config.flags3 & CFG3pic ? SHF_WRITE : 0);
+    // needs to be writeable for PIC code, see Bugzilla 13117
+    const int shf_flags = SHF_ALLOC | SHF_WRITE;
     ElfObj::getsegment(".deh_beg", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
     int seg = ElfObj::getsegment(".deh_eh", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
     ehtab_entry->Sseg = seg;
@@ -1610,7 +1625,8 @@ void Obj::ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym)
 
 void Obj::ehsections()
 {
-    const int shf_flags = SHF_ALLOC | (config.flags3 & CFG3pic ? SHF_WRITE : 0);
+    // needs to be writeable for PIC code, see Bugzilla 13117
+    const int shf_flags = SHF_ALLOC | SHF_WRITE;
     int sec = ElfObj::getsegment(".deh_beg", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
     //Obj::bytes(sec, 0, 4, NULL);
 
@@ -3103,7 +3119,8 @@ void Obj::moduleinfo(Symbol *scc)
     const int CFflags = I64 ? (CFoffset64 | CFoff) : CFoff;
 
     {
-        const int shf_flags = SHF_ALLOC | (config.flags3 & CFG3pic ? SHF_WRITE : 0);
+        // needs to be writeable for PIC code, see Bugzilla 13117
+        const int shf_flags = SHF_ALLOC | SHF_WRITE;
         ElfObj::getsegment(".minfo_beg", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
         const int seg = ElfObj::getsegment(".minfo", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
         ElfObj::getsegment(".minfo_end", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
@@ -3169,7 +3186,8 @@ static void obj_rtinit()
     int seg;
 
     {
-    const int shf_flags = SHF_ALLOC | (config.flags3 & CFG3pic ? SHF_WRITE : 0);
+    // needs to be writeable for PIC code, see Bugzilla 13117
+    const int shf_flags = SHF_ALLOC | SHF_WRITE;
 
     seg = ElfObj::getsegment(".deh_beg", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
     deh_beg = MAP_SEG2SYMIDX(seg);
@@ -3226,7 +3244,9 @@ static void obj_rtinit()
          *
          * Generate the following function as a COMDAT so there's only one per DSO:
          *  .text.d_dso_init    segment
-         *      enter   0,0
+         *      push    EBP
+         *      mov     EBP,ESP
+         *      sub     ESP,align
          *      lea     RAX,deh_end[RIP]
          *      push    RAX
          *      lea     RAX,deh_beg[RIP]
@@ -3270,12 +3290,34 @@ static void obj_rtinit()
             // return address, EBP, EBX, DSO, arg
             (-(3 * NPTRSIZE + sizeof_dso + NPTRSIZE) & 0xF);
 
-        // enter align, 0
-        buf->writeByte(0xC8);
-        buf->writeByte(align & 0xFF);
-        buf->writeByte(align >> 8 & 0xFF);
-        buf->writeByte(0);
-        off += 4;
+        // push EBP
+        buf->writeByte(0x50 + BP);
+        off += 1;
+        // mov EBP, ESP
+        if (I64)
+        {
+            buf->writeByte(REX | REX_W);
+            off += 1;
+        }
+        buf->writeByte(0x8B);
+        buf->writeByte(modregrm(3,BP,SP));
+        off += 2;
+        // sub ESP, align
+        if (align)
+        {
+            if (I64)
+            {
+                buf->writeByte(REX | REX_W);
+                off += 1;
+            }
+            buf->writeByte(0x81);
+            buf->writeByte(modregrm(3,5,SP));
+            buf->writeByte(align & 0xFF);
+            buf->writeByte(align >> 8 & 0xFF);
+            buf->writeByte(0);
+            buf->writeByte(0);
+            off += 6;
+        }
 
         if (config.flags3 & CFG3pic && I32)
         {   // see cod3_load_got() for reference

@@ -2771,7 +2771,12 @@ code *cdind(elem *e,regm_t *pretregs)
   //printf("Irex = %02x, Irm = x%02x, Isib = x%02x\n", cs.Irex, cs.Irm, cs.Isib);
   /*fprintf(stderr,"cd2 :\n"); WRcodlst(c);*/
   if (*pretregs == 0)
-        return c;
+  {
+        if (e->Ety & mTYvolatile)               // do the load anyway
+            *pretregs = regmask(e->Ety, 0);     // load into registers
+        else
+            return c;
+  }
 
   idxregs = idxregm(&cs);               // mask of index regs used
 

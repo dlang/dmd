@@ -1,5 +1,5 @@
 // Copyright (C) 1989-1997 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2013 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -45,6 +45,9 @@ extern mangle_t varmangletab[LINK_MAXDIM];
 #ifndef EL_H
 #include        "el.h"
 #endif
+
+void list_hydrate(list_t *plist, void (*hydptr)(void *));
+void list_dehydrate(list_t *plist, void (*dehydptr)(void *));
 
 /* Type matches */
 #define TMATCHnomatch   0       /* no match                             */
@@ -95,6 +98,71 @@ struct Match
 #define DTORnoeh        0x20    // do not append eh stuff
 #define DTORnoaccess    0x40    // do not perform access check
 
+
+struct phstring_t
+{
+#define PHSTRING_ARRAY 1
+#if PHSTRING_ARRAY
+    phstring_t() { dim = 0; }
+
+    size_t length() { return dim; }
+
+    int cmp(phstring_t s2, int (*func)(void *,void *));
+
+    bool empty() { return dim == 0; }
+
+    char* operator[] (size_t index)
+    {
+        return dim == 1 ? (char *)data : data[index];
+    }
+
+    void push(const char *s);
+
+    void hydrate();
+
+    void dehydrate();
+
+    int find(const char *s);
+
+    void free(list_free_fp freeptr);
+
+  private:
+    size_t dim;
+    char** data;
+#else
+    phstring_t() { list = NULL; }
+
+    size_t length() { return list_nitems(list); }
+
+    int cmp(phstring_t s2, int (*func)(void *,void *))
+    {
+        return list_cmp(list, s2.list, func);
+    }
+
+    bool empty() { return list == NULL; }
+
+    char* operator[] (size_t index)
+    {
+        return (char *)list_ptr(list_nth(list, index));
+    }
+
+    void push(const char *s) { list_append(&list, (void *)s); }
+
+    void hydrate() { list_hydrate(&list, NULL); }
+
+    void dehydrate() { list_dehydrate(&list, NULL); }
+
+    int find(const char *s);
+
+    void free(list_free_fp freeptr) { list_free(&list, freeptr); }
+
+  private:
+    list_t list;
+#endif
+};
+
+
+
 /***************************
  * Macros.
  */
@@ -113,7 +181,7 @@ struct MACRO
 #endif
 
     char *Mtext;                // replacement text
-    list_t Marglist;            // list of arguments (as char*'s)
+    phstring_t Marglist;        // list of arguments (as char*'s)
     macro_t *ML,*MR;
 #if TX86
     macro_t *Mnext;             // next macro in threaded list (all macros
@@ -151,9 +219,8 @@ struct MACRO
 #define FQtop           8       // top level file, already open
 #define FQqual          0x10    // filename is already qualified
 #endif
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
 #define FQnext          0x20    // search starts after directory
-#endif                          // of last included file
+                                // of last included file (for #include_next)
 
 /***************************************************************************
  * Which block is active is maintained by the BLKLST, which is a backwardly
@@ -169,34 +236,32 @@ struct BLKLST
     unsigned char   BLflags;    /* input block list flags               */
 #       define BLspace   0x01   /* we've put out an extra space         */
 #       define BLexpanded 0x40  // already macro expanded; don't do it again
-#if IMPLIED_PRAGMA_ONCE
-#       define BLnew     0x02   /* start of new file                    */
-#       define BLfndif   0x04   /* found initial #ifdef at start        */
-#       define BLckendif 0x08   /* check if looking for EOF after #endif */
-#       define BLckonce  (BLnew|BLfndif|BLckendif)
-                                /* check if file only included once     */
-#       define BLclear   0xf1   /* to clear implied pragma once flags   */
-#endif
-#if PRAGMA_ONCE
-#       define BLponce   0x10   /* pragma - only include this file once */
-#endif
+#       define BLtokens  0x10   // saw tokens in input
+#       define BLsystem  0x04   // it's a system #include (and it must be 4)
     char        BLtyp;          /* type of block (BLxxxx)               */
 #       define BLstr    2       /* string                               */
 #       define BLfile   3       /* a #include file                      */
 #       define BLarg    4       /* macro argument                       */
 #       define BLrtext  5       // random text
 
+#if IMPLIED_PRAGMA_ONCE
+#       define BLnew     0x02   // start of new file
+#       define BLifndef  0x20   // found #ifndef/#define at start
+#       define BLendif   0x08   // found matching #endif
+    unsigned ifnidx;            // index into ifn[] of IF_FIRSTIF
+#endif
+
     list_t      BLaargs;        /* actual arguments                     */
     list_t      BLeargs;        /* actual arguments                     */
     int         BLnargs;        /* number of dummy args                 */
     int         BLtextmax;      /* size of text buffer                  */
-#if INDIVFILEIO
     unsigned char *BLbuf;       // BLfile: file buffer
     unsigned char *BLbufp;      // BLfile: next position in file buffer
-#else
-    FILE        *BLstream;      /* BLfile                               */
+#if IMPLIED_PRAGMA_ONCE
+    char        *BLinc_once_id; // macro identifier for #include guard
 #endif
     Srcpos      BLsrcpos;       /* BLfile, position in that file        */
+    int         BLsearchpath;   // BLfile: remaining search path for #include_next
 #if SOURCE_OFFSETS
     long        BLfoffset;      /* BLfile, offset into file             */
     short       BLcurcnt;       /* BLfile, current count from offset    */
@@ -245,7 +310,9 @@ extern int TokenCnt;
 #else
 #define EGCHAR() egchar()
 #endif
-
+
+
+
 /**********************************
  * Function return value methods.
  */
@@ -257,40 +324,49 @@ extern int TokenCnt;
 #define RET_PSTACK      2       // returned on stack (DOS pascal style)
 
 /* from blklst.c */
-CEXTERN blklst *bl;
-CEXTERN unsigned char *btextp;
+extern blklst *bl;
+extern unsigned char *btextp;
 extern int blklst_deferfree;
 extern char *eline;
 extern int elinmax;             /* # of chars in buffer eline[]         */
 extern int elini;               /* index into eline[]                   */
 extern int elinnum;             /* expanded line number                 */
-CEXTERN int expflag;            /* != 0 means not expanding list file   */
+extern int expflag;            /* != 0 means not expanding list file   */
 blklst *blklst_getfileblock(void);
 void putback(int);
-#if PRAGMA_ONCE
-extern blklst *Once;
-void *once_dehydrate(void);
-void once_hydrate(blklst *);
-#endif
 
-unsigned char *macro_replacement_text(macro_t *m, list_t args);
+unsigned char *macro_replacement_text(macro_t *m, phstring_t args);
 unsigned char *macro_rescan(macro_t *m, unsigned char *text);
 unsigned char *macro_expand(unsigned char *text);
 
-CEXTERN void explist(HINT);
-void expstring(char *);
+extern void explist(int);
+void expstring(const char *);
 void expinsert(int);
 void expbackup(void);
+
+/***************************************
+ * Erase the current line of expanded output.
+ */
+
+inline void experaseline()
+{
+    // Remove the #pragma once from the expanded listing
+    if (config.flags2 & CFG2expand && expflag == 0)
+    {   elini = 0;
+        eline[0] = 0;
+    }
+}
+
 void wrtexp(FILE *);
-CEXTERN UHINT egchar2(void);
-CEXTERN UHINT egchar(void);
+extern unsigned egchar2(void);
+extern unsigned egchar(void);
 
 void insblk(unsigned char *text,int typ,list_t aargs,int nargs,macro_t *m);
 void insblk2(unsigned char *text,int typ);
 
 #if __GNUC__
 unsigned getreallinnum();
-CEXTERN void getcharnum(void);
+extern void getcharnum(void);
 #endif
 
 Srcpos getlinnum(void);
@@ -359,7 +435,7 @@ extern char ext_dmodule[];
 extern int includenest;
 #endif
 
-int file_qualify(char **pfilename,int flag);
+int file_qualify(char **pfilename,int flag,phstring_t pathlist, int *next_path);
 void afopen(char *,blklst *,int);
 FILE *file_openwrite(const char *name,const char *mode);
 void file_iofiles(void);
@@ -543,12 +619,13 @@ void *ph_dehydrate(void *pp);
 #if PRAGMA_PARAM
 extern short pragma_param_cnt;
 #endif
-int __near pragma_search(char *id);
-macro_t *__near macfind(void);
-void __near listident(void);
+int pragma_search(const char *id);
+macro_t *macfind(void);
+macro_t *macdefined(const char *id, unsigned hash);
+void listident(void);
 char *filename_stringize(char *name);
 unsigned char *macro_predefined(macro_t *m);
-int macprocess(macro_t *m, list_t *pargs, BlklstSave *blsave);
+int macprocess(macro_t *m, phstring_t *pargs, BlklstSave *blsave);
 void pragma_include(char *filename,int flag);
 void pragma_init(void);
 void pragma_term(void);
@@ -676,18 +753,17 @@ char *arglist_tostring(Outbuffer *,list_t el);
 char *ptpl_tostring(Outbuffer *, param_t *ptpl);
 char *el_tostring(Outbuffer *, elem *e);
 
-extern list_t pathlist;                 // include paths
+extern phstring_t pathlist;             // include paths
+extern int pathsysi;                    // pathlist[pathsysi] is start of -isystem=
 extern list_t headers;                  // pre-include files
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
-extern list_t pathsyslist;              // include path for .h file overrides
-#endif
 
 extern int structalign;                 /* alignment for members of structures  */
 extern char dbcs;
 extern int colnumber;                   /* current column number                */
-CEXTERN HINT xc;                /* character last read                  */
+extern int xc;                /* character last read                  */
 extern targ_size_t      dsout;          /* # of bytes actually output to data   */
                                         /* segment, used to pad for alignment   */
+extern phstring_t fdeplist;
 extern char *fdepname;
 extern FILE *fdep;
 extern char *flstname,*fsymname,*fphreadname,*ftdbname;
@@ -700,7 +776,7 @@ extern FILE *fdmodule;
 extern FILE *fout;
 #endif
 
-CEXTERN unsigned idhash;        // hash value of identifier
+extern unsigned idhash;        // hash value of identifier
 extern tym_t pointertype;       // default data pointer type
 extern int level;               // declaration level
                                 // -2: base class list
@@ -713,5 +789,15 @@ extern int level;               // declaration level
 extern symbol *symlinkage;              /* symbol linkage table                 */
 #endif
 extern param_t *paramlst;               /* function parameter list              */
+
+struct RawString
+{
+    enum { RAWdchar, RAWstring, RAWend, RAWdone, RAWerror } rawstate;
+    char dcharbuf[16 + 1];
+    int dchari;
+
+    void init();
+    bool inString(unsigned char c);
+};
 
 #endif /* PARSER_H */

@@ -5153,7 +5153,8 @@ void pinholeopt(code *c,block *b)
                         break;
                     case 0x8F:  op = 0x58 + ereg; break;
                     case 0x87:
-                        if (reg == 0) op = 0x90 + ereg;
+                        if (reg == 0 && !(c->Irex & (REX_R | REX_B))) // Issue 12968: Needed to ensure it's referencing RAX, not R8
+                            op = 0x90 + ereg;
                         break;
                 }
                 c->Iop = op;

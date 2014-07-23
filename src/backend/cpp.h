@@ -71,7 +71,7 @@ symbol *cpp_typecast(type *tclass , type *t2 , Match *pmatch);
 #endif
 int cpp_typecmp(type *t1, type *t2, int relax, param_t *p1 = NULL, param_t *p2 = NULL);
 char *cpp_typetostring(type *t , char *prefix);
-HINT cpp_cast(elem **pe1 , type *t2 , int doit);
+int cpp_cast(elem **pe1 , type *t2 , int doit);
 elem *cpp_initctor(type *tclass , list_t arglist);
 int cpp_casttoptr(elem **pe);
 elem *cpp_bool(elem *e, int flags);
@@ -125,7 +125,7 @@ symbol *cpp_lookformatch(symbol *sfunc , type *tthis , list_t arglist,
 struct OPTABLE
 {   unsigned char tokn;         /* token(TKxxxx)                */
     unsigned char oper;         /* corresponding operator(OPxxxx) */
-    char __near *string;        /* identifier string            */
+    char *string;               /* identifier string            */
     char pretty[5];             /* for pretty-printing          */
                                 /* longest OP is OPunord        */
 };
