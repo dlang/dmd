@@ -47,7 +47,7 @@ struct AA
  * Determine number of entries in associative array.
  */
 
-size_t _aaLen(AA* aa)
+size_t dmd_aaLen(AA* aa)
 {
     return aa ? aa->nodes : 0;
 }
@@ -58,7 +58,7 @@ size_t _aaLen(AA* aa)
  * Add entry for key if it is not already there.
  */
 
-Value* _aaGet(AA** paa, Key key)
+Value* dmd_aaGet(AA** paa, Key key)
 {
     //printf("paa = %p\n", paa);
 
@@ -102,7 +102,7 @@ Value* _aaGet(AA** paa, Key key)
     if (nodes > (*paa)->b_length * 2)
     {
         //printf("rehash\n");
-        _aaRehash(paa);
+        dmd_aaRehash(paa);
     }
 
     return &e->value;
@@ -114,7 +114,7 @@ Value* _aaGet(AA** paa, Key key)
  * Returns NULL if it is not already there.
  */
 
-Value _aaGetRvalue(AA* aa, Key key)
+Value dmd_aaGetRvalue(AA* aa, Key key)
 {
     //printf("_aaGetRvalue(key = %p)\n", key);
     if (aa)
@@ -138,7 +138,7 @@ Value _aaGetRvalue(AA* aa, Key key)
  * Rehash an array.
  */
 
-void _aaRehash(AA** paa)
+void dmd_aaRehash(AA** paa)
 {
     //printf("Rehash\n");
     if (*paa)
@@ -179,12 +179,12 @@ void _aaRehash(AA** paa)
 void unittest_aa()
 {
     AA* aa = NULL;
-    Value v = _aaGetRvalue(aa, NULL);
+    Value v = dmd_aaGetRvalue(aa, NULL);
     assert(!v);
-    Value *pv = _aaGet(&aa, NULL);
+    Value *pv = dmd_aaGet(&aa, NULL);
     assert(pv);
     *pv = (void *)3;
-    v = _aaGetRvalue(aa, NULL);
+    v = dmd_aaGetRvalue(aa, NULL);
     assert(v == (void *)3);
 }
 

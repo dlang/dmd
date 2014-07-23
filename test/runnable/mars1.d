@@ -1126,6 +1126,18 @@ void test9449()
 }
 
 ////////////////////////////////////////////////////////////////////////
+// https://issues.dlang.org/show_bug.cgi?id=12057
+
+bool prop12057(real x) { return false; }
+double f12057(real) { return double.init; }
+void test12057()
+{
+    real fc = f12057(real.init);
+    if (fc == 0 || fc.prop12057) {}
+}
+
+
+////////////////////////////////////////////////////////////////////////
  
 int main()
 {
@@ -1159,6 +1171,7 @@ int main()
     test7565();
     test12833();
     test9449();
+    test12057();
     printf("Success\n");
     return 0;
 }

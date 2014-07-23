@@ -1615,8 +1615,7 @@ Lretry:
 
             unsigned wm = 0;
             MATCH m = deduceType(farg, paramscope, prmtype, parameters, dedtypes, &wm, inferStart);
-            //printf("\tdeduceType m = %d\n", m);
-            //printf("\twildmatch = x%x m = %d\n", wildmatch, m);
+            //printf("\tL%d deduceType m = %d, wm = x%x, wildmatch = x%x\n", __LINE__, m, wm, wildmatch);
             wildmatch |= wm;
 
             /* If no match, see if the argument can be matched by using
@@ -1824,7 +1823,7 @@ Lmatch:
     {
         Type *at = isType((*dedtypes)[i]);
         if (at && at->ty == Ttypeof)
-            (*dedtypes)[i] = ((TypeTypeof *)at)->exp->type;    // 'unbox'
+            (*dedtypes)[i] = ((TypeTypeof *)at)->idents[0];    // 'unbox'
     }
     for (size_t i = ntargs; i < dedargs->dim; i++)
     {
@@ -3342,7 +3341,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 TypeIdentifier *tident = (TypeIdentifier *)tparam;
                 if (tident->idents.dim > 0)
                 {
-                    //printf("matching %s to %s\n", tparam->toChars(), toChars());
+                    //printf("matching %s to %s\n", tparam->toChars(), t->toChars());
                     Dsymbol *s = t->toDsymbol(sc);
                     for (size_t j = tident->idents.dim; j-- > 0; )
                     {
@@ -3378,6 +3377,8 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                         if (!tt)
                             goto Lnomatch;
                         Type *at = (Type *)(*dedtypes)[i];
+                        if (at && at->ty == Ttypeof)
+                            at = (Type *)((TypeTypeof *)at)->idents[0];
                         if (!at || tt->equals(at))
                         {
                             (*dedtypes)[i] = tt;
@@ -3399,26 +3400,29 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 // Found the corresponding parameter tp
                 if (!tp->isTemplateTypeParameter())
                     goto Lnomatch;
-                Type *tt;
+
+                bool inTransitivePart = (wm && *wm == MODmutable);
                 Type *at = (Type *)(*dedtypes)[i];
-
-                if (at && at->ty == Ttypeof)    // type vs expression
-                {
-                    result = ((TypeTypeof *)at)->exp->implicitConvTo(t);
-                    if (result > MATCHnomatch)
-                        (*dedtypes)[i] = t;
-                    return;
-                }
-
+                Type *tt;
                 if (unsigned char wx = wm ? deduceWildHelper(t, &tt, tparam) : 0)
                 {
-                    if (!at)
+                    if (inTransitivePart)
+                    {
+                        if (at && at->ty == Ttypeof)
+                        {
+                            // Bugzilla 13180: Prefer this type vs Tident match,
+                            // by overriding previous exp vs Tident match result.
+                        }
+                        else
+                            goto Lx;
+                    }
+
+                    if (!at || at->ty == Ttypeof)
                     {
                         (*dedtypes)[i] = tt;
                         *wm |= wx;
                         goto Lconst;
                     }
-
                     if (tt->equals(at))
                     {
                         goto Lconst;
@@ -3435,12 +3439,18 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                         *wm |= MODconst;
                         goto Lconst;
                     }
-                    goto Lnomatch;
                 }
-
-                MATCH m = deduceTypeHelper(t, &tt, tparam);
-                if (m)
+                else
                 {
+                Lx:
+                    if (inTransitivePart)
+                    {
+                        tparam = tparam->substWildTo(MODmutable);   // tparam->mutableOf();
+                    }
+                    MATCH m = deduceTypeHelper(t, &tt, tparam);
+                    if (m <= MATCHnomatch)
+                        goto Lnomatch;
+
                     if (!at)
                     {
                         (*dedtypes)[i] = tt;
@@ -3448,6 +3458,14 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                             goto Lexact;
                         else
                             goto Lconst;
+                    }
+                    if (at->ty == Ttypeof)
+                    {
+                        Type *tx = tt->addMod(tparam->mod);
+                        result = ((TypeTypeof *)at)->exp->implicitConvTo(tx);
+                        if (result > MATCHnomatch)
+                            (*dedtypes)[i] = tt;
+                        return;
                     }
 
                     if (tt->equals(at))
@@ -3529,7 +3547,9 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 if (wm && t->ty == Taarray && tparam->isWild())
                 {
                     // Bugzilla 12403: In IFTI, stop inout matching on transitive part of AA types.
-                    tpn = tpn->substWildTo(MODmutable);
+                    unsigned wmx = MODmutable;  // ignore
+                    result = deduceType(t->nextOf(), sc, tpn, parameters, dedtypes, &wmx);
+                    return;
                 }
 
                 result = deduceType(t->nextOf(), sc, tpn, parameters, dedtypes, wm);
@@ -4321,59 +4341,21 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
 
         void visit(Expression *e)
         {
-            e->type->accept(this);
-            if (result > MATCHnomatch)
-                return;
-
             size_t i = templateParameterLookup(tparam, parameters);
-            if (i != IDX_NOTFOUND)
+            if (i == IDX_NOTFOUND || ((TypeIdentifier *)tparam)->idents.dim > 0)
             {
-                if (Type *at = isType((*dedtypes)[i]))
-                {
-                    if (e->type->implicitConvTo(at))
-                        result = MATCHconvert;
-                }
+                e->type->accept(this);
+                return;
             }
-        }
 
-        bool deduceExpType(Expression *e)
-        {
-            size_t i = templateParameterLookup(tparam, parameters);
-            if (i == IDX_NOTFOUND)
-                return false;
-
-            Type *t = e->type;
+            Type *at = (Type *)(*dedtypes)[i];
             Type *tt;
-            if (unsigned char wx = wm ? deduceWildHelper(t, &tt, tparam) : 0)
+            if (unsigned char wx = wm ? deduceWildHelper(e->type, &tt, tparam) : 0)
             {
                 *wm |= wx;
                 result = MATCHconst;
             }
-            else
-            {
-                result = deduceTypeHelper(t, &tt, tparam);
-            }
-            if (result <= MATCHnomatch)
-                return true;
-
-            Type *at = (Type *)(*dedtypes)[i];
-            if (!at)                        // expression vs ()
-            {
-                /* Use TypeTypeof as the 'box' to save polymopthism.
-                 *
-                 *  auto foo(T)(T arg);
-                 *  foo(1);
-                 *      // 1: deduceType(oarg='1', tparam='T', ...)
-                 *      //      T <= TypeTypeof(1)
-                 */
-                if (t != tt)
-                {
-                    e = e->copy();
-                    e->type = tt;
-                }
-                (*dedtypes)[i] = new TypeTypeof(e->loc, e);
-            }
-            else if (at->ty == Ttypeof)     // expression vs expression
+            else if (at && at->ty == Ttypeof)    // expression vs expression
             {
                 /* Calculate common type of passed expressions.
                  *
@@ -4394,61 +4376,49 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 unsigned olderrors = global.startGagging();
                 Expression *ec = condexp->semantic(sc);
                 if (global.endGagging(olderrors))
-                {
-                    result = MATCHnomatch;
-                    return true;
-                }
+                    return;
                 if (ec == condexp)
                 {
-                    ((TypeTypeof *)at)->exp = condexp;
+                    e = condexp;
+                    ((TypeTypeof *)at)->exp = e;
+                    ((TypeTypeof *)at)->idents[0] = e->type;
                 }
+
+                result = deduceTypeHelper(e->type, &tt, tparam);
             }
-            else                            // expression vs type
+            else
             {
-                at = at->addMod(tparam->mod);
-                if (wm)
-                    at = at->substWildTo(*wm);
-
-                /* Check the expression is implicitly convertible to the already deduced type.
-                 *
-                 *  auto foo(T)(T arg1, T arg2);
-                 *  short v; foo(v, 1);
-                 *      // 1: deduceType(oarg='v', tparam='T', ...)
-                 *      //      T <= short
-                 *      // 2: deduceType(oarg='1', tparam='T', ...)
-                 *      //      T <= short  (because '1' is implicitly convertible to short)
-                 */
-                result = e->implicitConvTo(at);
+                result = deduceTypeHelper(e->type, &tt, tparam);
             }
-            return true;
-        }
-
-        void visit(IntegerExp *e)
-        {
-            if (deduceExpType(e))
+            if (result <= MATCHnomatch)
                 return;
-            visit((Expression *)e);
-        }
 
-        void visit(RealExp *e)
-        {
-            if (deduceExpType(e))
-                return;
-            visit((Expression *)e);
-        }
+            if (!at)                        // expression vs ()
+            {
+                /* Use TypeTypeof as the 'box' to save polymopthism.
+                 *
+                 *  auto foo(T)(T arg);
+                 *  foo(1);
+                 *      // 1: deduceType(oarg='1', tparam='T', ...)
+                 *      //      T <= TypeTypeof(1)
+                 */
+                at = new TypeTypeof(e->loc, e);
+                ((TypeTypeof *)at)->idents.push(tt);
+                (*dedtypes)[i] = at;
+            }
+            else if (at->ty == Ttypeof)
+                tt = (Type *)((TypeTypeof *)at)->idents[0];
+            else
+                tt = at;
 
-        void visit(NullExp *e)
-        {
-            if (deduceExpType(e))
-                return;
-            visit((Expression *)e);
+            tt = tt->addMod(tparam->mod);
+            if (wm && *wm)
+                tt = tt->substWildTo(*wm);
+            result = e->implicitConvTo(tt);
         }
 
         void visit(StringExp *e)
         {
-            if (deduceExpType(e))
-                return;
-
             Type *taai;
             if (e->type->ty == Tarray &&
                 (tparam->ty == Tsarray ||
@@ -4489,10 +4459,6 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 e->type->nextOf()->sarrayOf(e->elements->dim)->accept(this);
                 return;
             }
-
-            if (deduceExpType(e))   // Bugzilla 13026
-                return;
-
             visit((Expression *)e);
         }
 
@@ -5554,7 +5520,7 @@ MATCH TemplateValueParameter::matchArg(Scope *sc, RootObject *oarg,
 
     if (specValue)
     {
-        if (!ei || _aaGetRvalue(edummies, ei->type) == ei)
+        if (!ei || (Expression *)dmd_aaGetRvalue(edummies, (void *)ei->type) == ei)
             goto Lnomatch;
 
         Expression *e = specValue;
@@ -5641,7 +5607,7 @@ void *TemplateValueParameter::dummyArg()
     if (!e)
     {
         // Create a dummy value
-        Expression **pe = (Expression **)_aaGet(&edummies, valType);
+        Expression **pe = (Expression **)dmd_aaGet(&edummies, (void *)valType);
         if (!*pe)
             *pe = valType->defaultInit();
         e = *pe;
@@ -6340,6 +6306,26 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     tryExpandMembers(sc2);
 
     semanticRun = PASSsemanticdone;
+
+    /* ConditionalDeclaration may introduce eponymous declaration,
+     * so we should find it once again after semantic.
+     */
+    if (members->dim)
+    {
+        Dsymbol *s;
+        if (Dsymbol::oneMembers(members, &s, tempdecl->ident) && s)
+        {
+            if (!aliasdecl || aliasdecl != s)
+            {
+                //printf("s->kind = '%s'\n", s->kind());
+                //s->print();
+                //printf("'%s', '%s'\n", s->ident->toChars(), tempdecl->ident->toChars());
+                //printf("setting aliasdecl 2\n");
+                aliasdecl = s;
+            }
+        }
+    }
+
     if (global.errors != errorsave)
         goto Laftersemantic;
 
@@ -6367,25 +6353,6 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     }
     if (found_deferred_ad || Module::deferred.dim)
         goto Laftersemantic;
-    }
-
-    /* ConditionalDeclaration may introduce eponymous declaration,
-     * so we should find it once again after semantic.
-     */
-    if (members->dim)
-    {
-        Dsymbol *s;
-        if (Dsymbol::oneMembers(members, &s, tempdecl->ident) && s)
-        {
-            if (!aliasdecl || aliasdecl != s)
-            {
-                //printf("s->kind = '%s'\n", s->kind());
-                //s->print();
-                //printf("'%s', '%s'\n", s->ident->toChars(), tempdecl->ident->toChars());
-                //printf("setting aliasdecl 2\n");
-                aliasdecl = s;
-            }
-        }
     }
 
     /* The problem is when to parse the initializer for a variable.
@@ -8139,7 +8106,7 @@ void TemplateMixin::semantic(Scope *sc)
             symtab = sc->parent->isScopeDsymbol()->symtab;
         L1:
             assert(symtab);
-            int num = (int)_aaLen(symtab->tab) + 1;
+            int num = (int)dmd_aaLen(symtab->tab) + 1;
             ident = Lexer::uniqueId(s, num);
             symtab->insert(this);
         }
