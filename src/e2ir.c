@@ -606,9 +606,11 @@ Lagain:
             goto Ldefault;
         }
 
+#if DMDV2
         case Tvector:
             r = RTLSYM_MEMSETSIMD;
             break;
+#endif
 
         default:
         Ldefault:
