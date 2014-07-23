@@ -1753,10 +1753,10 @@ void VarDeclaration::semantic2(Scope *sc)
     }
     else if (init && isThreadlocal())
     {
-        if ((type->ty == Tclass)&&type->isMutable()&&!type->isShared())
+        if ((type->ty == Tclass) && type->isMutable() && !type->isShared())
         {
             ExpInitializer *ei = init->isExpInitializer();
-            if (ei->exp->op == TOKclassreference)
+            if (ei && ei->exp->op == TOKclassreference)
                 error("is mutable. Only const or immutable class thread local variable are allowed, not %s", type->toChars());
         }
         else if (type->ty == Tpointer && type->nextOf()->ty == Tstruct && type->nextOf()->isMutable() &&!type->nextOf()->isShared())
