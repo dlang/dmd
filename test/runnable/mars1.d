@@ -1088,6 +1088,36 @@ int bug8525(int[] devt)
 
 ////////////////////////////////////////////////////////////////////////
 
+void func13190(int) {}
+
+struct Struct13190
+{
+    ulong a;
+    uint b;
+};
+
+__gshared Struct13190* table13190 =
+[
+    Struct13190(1, 1),
+    Struct13190(0, 2)
+];
+
+void test13190()
+{
+    for (int i = 0; table13190[i].a; i++)
+    {
+        ulong tbl = table13190[i].a;
+        func13190(i);
+        if (1 + tbl)
+        {
+            if (tbl == 0x80000)
+                return;
+        }
+    }
+}
+
+////////////////////////////////////////////////////////////////////////
+
 void test12833a(int a)
 {
     long x = cast(long)a;
@@ -1165,6 +1195,7 @@ int main()
     testandand();
     testor_combine();
     testshrshl();
+    test13190();
     test10639();
     test10715();
     test10678();
