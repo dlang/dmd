@@ -2213,6 +2213,8 @@ code* gen_testcse(code *c, unsigned sz, targ_uns i)
                 FLcs,i, FLconst,(targ_uns) 0);
     if ((I64 || I32) && sz == 2)
         c->Iflags |= CFopsize;
+    if (I64 && sz == 8)
+        code_orrex(c, REX_W);
     return c;
 }
 
