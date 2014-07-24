@@ -218,6 +218,20 @@ void testarrayinit()
 
 ///////////////////////
 
+void test13023(ulong n)
+{
+    static void func(bool b) {}
+
+    ulong k = 0;
+
+    func(k >= n / 2);
+
+    if (k >= n / 2)
+        assert(0);
+}
+
+///////////////////////
+
 struct U { int a; union { char c; int d; } long b; }
 
 U f = { b:3, d:2, a:1 };
@@ -1222,6 +1236,7 @@ int main()
     test10715();
     test10678();
     test7565();
+    test13023(0x10_0000_0000);
     test12833();
     test9449();
     test12057();
