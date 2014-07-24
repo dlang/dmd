@@ -3726,7 +3726,7 @@ code *params(elem *e,unsigned stackalign)
         {   // Avoid PUSH MEM on the Pentium when optimizing for speed
             break;
         }
-        else if (movOnly(e))
+        else if (movOnly(e) || szb < 4)
             break;                      // no PUSH MEM
         else
         {   int regsize = REGSIZE;
