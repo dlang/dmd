@@ -19,7 +19,7 @@ public import core.stdc.inttypes; // for uint32_t, uint16_t
 public import core.sys.posix.sys.socket; // for socklen_t
 
 version (Posix):
-extern (C):
+extern (C) nothrow @nogc:
 
 //
 // Required
@@ -61,10 +61,13 @@ version( linux )
 
     enum INET_ADDRSTRLEN = 16;
 
+    @trusted pure
+    {
     uint32_t htonl(uint32_t);
     uint16_t htons(uint16_t);
     uint32_t ntohl(uint32_t);
     uint16_t ntohs(uint16_t);
+    }
 
     in_addr_t       inet_addr(in char*);
     char*           inet_ntoa(in_addr);
@@ -83,10 +86,13 @@ else version( OSX )
 
     enum INET_ADDRSTRLEN = 16;
 
+    @trusted pure
+    {
     uint32_t htonl(uint32_t);
     uint16_t htons(uint16_t);
     uint32_t ntohl(uint32_t);
     uint16_t ntohs(uint16_t);
+    }
 
     in_addr_t       inet_addr(in char*);
     char*           inet_ntoa(in_addr);
@@ -105,10 +111,13 @@ else version( FreeBSD )
 
     enum INET_ADDRSTRLEN = 16;
 
+    @trusted pure
+    {
     uint32_t htonl(uint32_t);
     uint16_t htons(uint16_t);
     uint32_t ntohl(uint32_t);
     uint16_t ntohs(uint16_t);
+    }
 
     in_addr_t       inet_addr(in char*);
     char*           inet_ntoa(in_addr);
@@ -126,9 +135,9 @@ else version( Android )
 
     enum INET_ADDRSTRLEN = 16;
 
-    private
+    @safe pure extern (D)
     {
-        extern (D)
+        private
         {
             uint32_t __swap32( uint32_t x )
             {
@@ -143,10 +152,7 @@ else version( Android )
                 return byte16_swap;
             }
         }
-    }
 
-    extern (D)
-    {
         uint32_t htonl(uint32_t x) { return __swap32(x); }
         uint16_t htons(uint16_t x) { return __swap16(x); }
         uint32_t ntohl(uint32_t x) { return __swap32(x); }
