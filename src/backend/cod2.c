@@ -2822,6 +2822,7 @@ code *cdind(elem *e,regm_t *pretregs)
                     gen2(ce,0xD1,modregrm(3,4,reg));    /* SHL reg,1    */
         L4:     cs.Iop = 0x0B;
                 getlvalue_lsw(&cs);
+                cs.Iflags |= CFpsw;
                 gen(ce,&cs);                    /* OR reg,lsw           */
         }
         else if (!I32 && sz == 8)
