@@ -1034,6 +1034,27 @@ void test10715()
 
 ////////////////////////////////////////////////////////////////////////
 
+ptrdiff_t compare12164(A12164* rhsPA, A12164* zis)
+{
+    if (*rhsPA == *zis)
+        return 0;
+    return ptrdiff_t.min;
+}
+
+struct A12164
+{
+    int a;
+}
+
+void test12164()
+{
+    auto a = A12164(3);
+    auto b = A12164(2);
+    assert(compare12164(&a, &b));
+}
+
+////////////////////////////////////////////////////////////////////////
+
 int foo10678(char[5] txt)
 {
     return txt[0] + txt[1] + txt[4];
@@ -1177,6 +1198,7 @@ int main()
     testbreak();
     teststringswitch();
     teststrarg();
+    test12164();
     testsizes();
     testarrayinit();
     testU();

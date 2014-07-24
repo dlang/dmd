@@ -1910,7 +1910,6 @@ code *cdcond(elem *e,regm_t *pretregs)
         e22->Eoper == OPconst
      )
   {     regm_t retregs;
-        unsigned reg;
         targ_size_t v1,v2;
         int opcode;
 
@@ -1918,13 +1917,11 @@ code *cdcond(elem *e,regm_t *pretregs)
         if (!retregs)
             retregs = ALLREGS;
         cdcmp_flag = 1;
-        c = codelem(e1,&retregs,FALSE);
-        reg = findreg(retregs);
         v1 = e21->EV.Vllong;
         v2 = e22->EV.Vllong;
         if (jop == JNC)
         {   v1 = v2;
-            v2 = e21->EV.Vlong;
+            v2 = e21->EV.Vllong;
         }
 
         opcode = 0x81;
@@ -1941,35 +1938,49 @@ code *cdcond(elem *e,regm_t *pretregs)
                         break;
         }
 
-        if (v1 == 0 && v2 == ~(targ_size_t)0)
+        if (I64 && v1 != (targ_ullong)(targ_ulong)v1)
         {
-            c = gen2(c,0xF6 + (opcode & 1),grex | modregrmx(3,2,reg));  // NOT reg
-            if (I64 && sz2 == REGSIZE)
-                code_orrex(c, REX_W);
+            // only zero-extension from 32-bits is available for 'or'
+        }
+        else if (I64 && v2 != (targ_llong)(targ_long)v2)
+        {
+            // only sign-extension from 32-bits is available for 'and'
         }
         else
         {
-            v1 -= v2;
-            c = genc2(c,opcode,grex | modregrmx(3,4,reg),v1);   // AND reg,v1-v2
-            if (I64 && sz1 == 1 && reg >= 4)
-                code_orrex(c, REX);
-            if (v2 == 1 && !I64)
-                gen1(c,0x40 + reg);                     // INC reg
-            else if (v2 == -1L && !I64)
-                gen1(c,0x48 + reg);                     // DEC reg
+            c = codelem(e1,&retregs,FALSE);
+            unsigned reg = findreg(retregs);
+
+            if (v1 == 0 && v2 == ~(targ_size_t)0)
+            {
+                c = gen2(c,0xF6 + (opcode & 1),grex | modregrmx(3,2,reg));  // NOT reg
+                if (I64 && sz2 == REGSIZE)
+                    code_orrex(c, REX_W);
+            }
             else
-            {   genc2(c,opcode,grex | modregrmx(3,0,reg),v2);   // ADD reg,v2
+            {
+                v1 -= v2;
+                c = genc2(c,opcode,grex | modregrmx(3,4,reg),v1);   // AND reg,v1-v2
                 if (I64 && sz1 == 1 && reg >= 4)
                     code_orrex(c, REX);
+                if (v2 == 1 && !I64)
+                    gen1(c,0x40 + reg);                     // INC reg
+                else if (v2 == -1L && !I64)
+                    gen1(c,0x48 + reg);                     // DEC reg
+                else
+                {   genc2(c,opcode,grex | modregrmx(3,0,reg),v2);   // ADD reg,v2
+                    if (I64 && sz1 == 1 && reg >= 4)
+                        code_orrex(c, REX);
+                }
             }
+
+            freenode(e21);
+            freenode(e22);
+            freenode(e2);
+
+            c = cat(c,fixresult(e,retregs,pretregs));
+            goto Lret;
         }
-
-        freenode(e21);
-        freenode(e22);
-        freenode(e2);
-
-        c = cat(c,fixresult(e,retregs,pretregs));
-        goto Lret;
   }
 
   if (op1 != OPcond && op1 != OPandand && op1 != OPoror &&
