@@ -2784,6 +2784,7 @@ code *cdind(elem *e,regm_t *pretregs)
                 code_newreg(&cs,reg);
                 ce = gen(CNIL,&cs);                     // MOV reg,lsw
                 gen2(ce,0xD1,modregrmx(3,4,reg));       // SHL reg,1
+                code_orflag(ce, CFpsw);
         }
         else if (sz <= REGSIZE)
         {
