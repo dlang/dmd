@@ -70,17 +70,17 @@ static void cmtable_init()
 
 const char *Token::tochars[TOKMAX];
 
-void *Token::operator new(size_t size)
-{   Token *t;
-
+Token *Token::alloc()
+{
     if (Lexer::freelist)
     {
-        t = Lexer::freelist;
+        Token *t = Lexer::freelist;
         Lexer::freelist = t->next;
+        t->next = NULL;
         return t;
     }
 
-    return ::operator new(size);
+    return new Token();
 }
 
 #ifdef DEBUG
@@ -361,7 +361,7 @@ Token *Lexer::peek(Token *ct)
         t = ct->next;
     else
     {
-        t = new Token();
+        t = Token::alloc();
         scan(t);
         ct->next = t;
     }
