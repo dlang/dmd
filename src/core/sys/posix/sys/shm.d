@@ -19,7 +19,7 @@ public import core.sys.posix.sys.types; // for pid_t, time_t, key_t, size_t
 public import core.sys.posix.sys.ipc;
 
 version (Posix):
-extern (C):
+extern (C) nothrow @nogc:
 
 //
 // XOpen (XSI)

@@ -18,7 +18,7 @@ private import core.sys.posix.config;
 public import core.stdc.inttypes;
 
 version (Posix):
-extern (C):
+extern (C) nothrow @nogc:
 
 //
 // Required

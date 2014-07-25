@@ -18,8 +18,7 @@ private import core.sys.posix.config;
 private import core.sys.posix.signal; // for sigset_t
 
 version (Posix):
-extern (C):
-@nogc:
+extern (C) nothrow @nogc:
 
 //
 // Required
