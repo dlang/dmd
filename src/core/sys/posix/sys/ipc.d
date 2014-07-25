@@ -18,7 +18,7 @@ private import core.sys.posix.config;
 public import core.sys.posix.sys.types; // for uid_t, gid_t, mode_t, key_t
 
 version (Posix):
-extern (C):
+extern (C) nothrow @nogc:
 
 //
 // XOpen (XSI)
