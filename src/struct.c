@@ -634,7 +634,11 @@ StructDeclaration::StructDeclaration(Loc loc, Identifier *id)
     // For forward references
     type = new TypeStruct(this);
 
-    if (id == Id::ModuleInfo && !Module::moduleinfo)
+    /* Recognize both identifiers for the moment so that testing with druntine
+     * is easier.
+     */
+    if ((id == Id::ModuleInfo ||
+         id == Id::_ModuleInfo) && !Module::moduleinfo)
         Module::moduleinfo = this;
 }
 
