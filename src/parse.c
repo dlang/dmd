@@ -5253,7 +5253,7 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
 
                     default:
                     Ldefault:
-                        *ptoklist = new Token();
+                        *ptoklist = Token::alloc();
                         memcpy(*ptoklist, &token, sizeof(Token));
                         ptoklist = &(*ptoklist)->next;
                         *ptoklist = NULL;
