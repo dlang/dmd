@@ -279,6 +279,17 @@ struct ModuleInfo
     uint _flags;
     uint _index;
 
+    version (all)
+    {
+        deprecated("ModuleInfo cannot be copy-assigned because it is a variable-sized struct.")
+        void opAssign(in ModuleInfo m) { _flags = m._flags; _index = m._index; }
+    }
+    else
+    {
+        @disable this();
+        @disable this(this) const;
+    }
+
 const:
     @property uint index() nothrow pure;
     @property uint flags() nothrow pure;
@@ -293,7 +304,7 @@ const:
     @property TypeInfo_Class[] localClasses() nothrow pure;
     @property string name() nothrow pure;
 
-    static int opApply(scope int delegate(immutable(ModuleInfo*)) dg);
+    static int opApply(scope int delegate(ModuleInfo*) dg);
 }
 
 class Throwable : Object
