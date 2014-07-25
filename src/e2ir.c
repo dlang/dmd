@@ -1774,7 +1774,7 @@ elem *toElem(Expression *e, IRState *irs)
                     ts = symbol_genauto(Type_toCtype(t1));
                     int rtl;
                     if (global.params.isLinux || global.params.isFreeBSD || global.params.isSolaris ||
-                        I64 && global.params.isWindows)
+                        (I64 && global.params.isWindows))
                         rtl = RTLSYM__DINVARIANT;
                     else
                         rtl = RTLSYM_DINVARIANT;
@@ -2486,9 +2486,9 @@ elem *toElem(Expression *e, IRState *irs)
                      */
                     int postblit = 0;
                     if (needsPostblit(t1->nextOf()) &&
-                        (ae->e2->op == TOKslice && ((UnaExp *)ae->e2)->e1->isLvalue() ||
-                         ae->e2->op == TOKcast  && ((UnaExp *)ae->e2)->e1->isLvalue() ||
-                         ae->e2->op != TOKslice && ae->e2->isLvalue()))
+                        ((ae->e2->op == TOKslice && ((UnaExp *)ae->e2)->e1->isLvalue()) ||
+                         (ae->e2->op == TOKcast  && ((UnaExp *)ae->e2)->e1->isLvalue()) ||
+                         (ae->e2->op != TOKslice && ae->e2->isLvalue())))
                     {
                         postblit = 1;
                     }
@@ -2787,9 +2787,9 @@ elem *toElem(Expression *e, IRState *irs)
                 /* Determine if we need to do postblit
                  */
                 if (postblit &&
-                    !(ae->e2->op == TOKslice && ((UnaExp *)ae->e2)->e1->isLvalue() ||
-                      ae->e2->op == TOKcast  && ((UnaExp *)ae->e2)->e1->isLvalue() ||
-                      ae->e2->op != TOKslice && ae->e2->isLvalue()))
+                    !((ae->e2->op == TOKslice && ((UnaExp *)ae->e2)->e1->isLvalue()) ||
+                      (ae->e2->op == TOKcast  && ((UnaExp *)ae->e2)->e1->isLvalue()) ||
+                      (ae->e2->op != TOKslice && ae->e2->isLvalue())))
                 {
                     postblit = false;
                 }

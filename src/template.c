@@ -1490,7 +1490,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
                     if ((tt->ty == Tarray || tt->ty == Tpointer) &&
                         !tt->isMutable() &&
                         (!(fparam->storageClass & STCref) ||
-                         (fparam->storageClass & STCauto) && !farg->isLvalue()))
+                         ((fparam->storageClass & STCauto) && !farg->isLvalue())))
                     {
                         tt = tt->mutableOf();
                     }
@@ -1573,7 +1573,7 @@ Lretry:
              */
             if ((argtype->ty == Tarray || argtype->ty == Tpointer) &&
                 (!(fparam->storageClass & STCref) ||
-                 (fparam->storageClass & STCauto) && !farg->isLvalue()))
+                 ((fparam->storageClass & STCauto) && !farg->isLvalue())))
             {
                 /*     prmtype          argtype              adjusted argtype   U
                  * foo(            U)   immutable(T[])    => immutable(T)[]     immutable(int)[]
@@ -2128,7 +2128,7 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
             //printf("%s tf->mod = x%x tthis_fd->mod = x%x %d\n", tf->toChars(),
             //        tf->mod, tthis_fd->mod, fd->isolateReturn());
             if (MODimplicitConv(tf->mod, tthis_fd->mod) ||
-                tf->isWild() && tf->isShared() == tthis_fd->isShared() ||
+                (tf->isWild() && tf->isShared() == tthis_fd->isShared()) ||
                 fd->isolateReturn())
             {
                 /* && tf->isShared() == tthis_fd->isShared()*/
@@ -2380,7 +2380,7 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
                 {
                     assert(tf->next);
                     if (MODimplicitConv(tf->mod, tthis_fd->mod) ||
-                        tf->isWild() && tf->isShared() == tthis_fd->isShared() ||
+                        (tf->isWild() && tf->isShared() == tthis_fd->isShared()) ||
                         fd->isolateReturn())
                     {
                         tthis_fd = NULL;
@@ -3644,8 +3644,8 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                         edim = s ? getValue(s) : getValue(e);
                     }
                 }
-                if (tp && tp->matchArg(sc, t->dim, i, parameters, dedtypes, NULL) ||
-                    edim && edim->toInteger() == t->dim->toInteger())
+                if ((tp && tp->matchArg(sc, t->dim, i, parameters, dedtypes, NULL)) ||
+                    (edim && edim->toInteger() == t->dim->toInteger()))
                 {
                     result = deduceType(t->next, sc, tparam->nextOf(), parameters, dedtypes, wm);
                     return;
@@ -4148,7 +4148,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             }
             Type *tb = t->toBasetype();
             if (tb->ty == tparam->ty ||
-                tb->ty == Tsarray && tparam->ty == Taarray)
+                (tb->ty == Tsarray && tparam->ty == Taarray))
             {
                 result = deduceType(tb, sc, tparam, parameters, dedtypes, wm);
                 return;
@@ -4422,8 +4422,8 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             Type *taai;
             if (e->type->ty == Tarray &&
                 (tparam->ty == Tsarray ||
-                 tparam->ty == Taarray && (taai = ((TypeAArray *)tparam)->index)->ty == Tident &&
-                                          ((TypeIdentifier *)taai)->idents.dim == 0))
+                 (tparam->ty == Taarray && (taai = ((TypeAArray *)tparam)->index)->ty == Tident &&
+                                          ((TypeIdentifier *)taai)->idents.dim == 0)))
             {
                 // Consider compile-time known boundaries
                 e->type->nextOf()->sarrayOf(e->len)->accept(this);
@@ -4452,8 +4452,8 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             Type *taai;
             if (e->type->ty == Tarray &&
                 (tparam->ty == Tsarray ||
-                 tparam->ty == Taarray && (taai = ((TypeAArray *)tparam)->index)->ty == Tident &&
-                                          ((TypeIdentifier *)taai)->idents.dim == 0))
+                 (tparam->ty == Taarray && (taai = ((TypeAArray *)tparam)->index)->ty == Tident &&
+                                          ((TypeIdentifier *)taai)->idents.dim == 0)))
             {
                 // Consider compile-time known boundaries
                 e->type->nextOf()->sarrayOf(e->elements->dim)->accept(this);
@@ -4575,8 +4575,8 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             Type *taai;
             if (e->type->ty == Tarray &&
                 (tparam->ty == Tsarray ||
-                 tparam->ty == Taarray && (taai = ((TypeAArray *)tparam)->index)->ty == Tident &&
-                                          ((TypeIdentifier *)taai)->idents.dim == 0))
+                 (tparam->ty == Taarray && (taai = ((TypeAArray *)tparam)->index)->ty == Tident &&
+                                          ((TypeIdentifier *)taai)->idents.dim == 0)))
             {
                 // Consider compile-time known boundaries
                 if (Type *tsa = toStaticArrayType(e))
@@ -6370,7 +6370,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     if (global.errors != errorsave)
         goto Laftersemantic;
 
-    if (sc->func && (aliasdecl && aliasdecl->toAlias()->isFuncDeclaration() || !tinst))
+    if (sc->func && ((aliasdecl && aliasdecl->toAlias()->isFuncDeclaration()) || !tinst))
     {
         /* Template function instantiation should run semantic3 immediately
          * for attribute inference.
@@ -7747,9 +7747,9 @@ void TemplateInstance::toCBufferTiargs(OutBuffer *buf, HdrGenState *hgs)
             if (Type *t = isType(oarg))
             {
                 if (t->equals(Type::tstring) ||
-                    t->mod == 0 &&
+                    (t->mod == 0 &&
                     (t->isTypeBasic() ||
-                     t->ty == Tident && ((TypeIdentifier *)t)->idents.dim == 0))
+                     (t->ty == Tident && ((TypeIdentifier *)t)->idents.dim == 0))))
                 {
                     buf->writestring(t->toChars());
                     return;

@@ -1567,8 +1567,8 @@ int typematch(type *t1, type *t2, int relax);
 static int paramlstmatch(param_t *p1,param_t *p2)
 {
         return p1 == p2 ||
-            p1 && p2 && typematch(p1->Ptype,p2->Ptype,0) &&
-            paramlstmatch(p1->Pnext,p2->Pnext)
+            (p1 && p2 && typematch(p1->Ptype,p2->Ptype,0) &&
+            paramlstmatch(p1->Pnext,p2->Pnext))
             ;
 }
 
@@ -1588,7 +1588,7 @@ int typematch(type *t1,type *t2,int relax)
   tym = ~(mTYimport | mTYnaked);
 
   return t1 == t2 ||
-            t1 && t2 &&
+            (t1 && t2 &&
 
             (
                 /* ignore name mangling */
@@ -1600,11 +1600,12 @@ int typematch(type *t1,type *t2,int relax)
              t1->Tflags & TFsizeunknown || t2->Tflags & TFsizeunknown)
                  &&
 
-            (tybasic(t1ty) != TYstruct
+            ((tybasic(t1ty) != TYstruct
                 && tybasic(t1ty) != TYenum
 #if !MARS
                 && tybasic(t1ty) != TYmemptr
 #endif
+             )
              || t1->Ttag == t2->Ttag)
                  &&
 
@@ -1614,7 +1615,7 @@ int typematch(type *t1,type *t2,int relax)
             (!tyfunc(t1ty) ||
              ((t1->Tflags & TFfixed) == (t2->Tflags & TFfixed) &&
                  paramlstmatch(t1->Tparamtypes,t2->Tparamtypes) ))
-         ;
+         );
 }
 
 #endif

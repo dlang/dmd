@@ -167,7 +167,7 @@ AggregateDeclaration *isAggregate(Type *t)
 /*******************************************
  * Helper function to turn operator into template argument list
  */
-Objects *opToArg(Scope *sc, TOK op)
+static Objects *opToArg(Scope *sc, TOK op)
 {
     /* Remove the = from op=
      */
@@ -186,6 +186,7 @@ Objects *opToArg(Scope *sc, TOK op)
         case TOKushrass: op = TOKushr; break;
         case TOKcatass: op = TOKcat; break;
         case TOKpowass: op = TOKpow; break;
+        default: break;
     }
     Expression *e = new StringExp(Loc(), (char *)Token::toChars(op));
     e = e->semantic(sc);
@@ -705,7 +706,7 @@ Expression *op_overload(Expression *e, Scope *sc)
                     // Rewrite (e1 -- e2) as e1.postdec()
                     result = build_overload(e->loc, sc, e->e1, NULL, m.lastf ? m.lastf : s);
                 }
-                else if (lastf && m.lastf == lastf || !s_r && m.last <= MATCHnomatch)
+                else if ((lastf && m.lastf == lastf) || (!s_r && m.last <= MATCHnomatch))
                 {
                     // Rewrite (e1 op e2) as e1.opfunc(e2)
                     result = build_overload(e->loc, sc, e->e1, e->e2, m.lastf ? m.lastf : s);
@@ -792,7 +793,7 @@ Expression *op_overload(Expression *e, Scope *sc)
                         m.lastf = m.anyf;
                     }
 
-                    if (lastf && m.lastf == lastf || !s && m.last <= MATCHnomatch)
+                    if ((lastf && m.lastf == lastf) || (!s && m.last <= MATCHnomatch))
                     {
                         // Rewrite (e1 op e2) as e1.opfunc_r(e2)
                         result = build_overload(e->loc, sc, e->e1, e->e2, m.lastf ? m.lastf : s_r);
@@ -824,6 +825,9 @@ Expression *op_overload(Expression *e, Scope *sc)
                         case TOKleg:
                         case TOKue:
                             break;
+
+                        default:
+                            assert(0);
                     }
 
                     return;
@@ -1320,7 +1324,7 @@ Expression *compare_overload(BinExp *e, Scope *sc, Identifier *id)
         }
 
         Expression *result;
-        if (lastf && m.lastf == lastf || !s_r && m.last <= MATCHnomatch)
+        if ((lastf && m.lastf == lastf) || (!s_r && m.last <= MATCHnomatch))
         {
             // Rewrite (e1 op e2) as e1.opfunc(e2)
             result = build_overload(e->loc, sc, e->e1, e->e2, m.lastf ? m.lastf : s);

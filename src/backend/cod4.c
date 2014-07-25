@@ -361,14 +361,14 @@ code *cdeq(elem *e,regm_t *pretregs)
   {     int fl;
 
         if ((e2oper == OPconst ||       /* if rvalue is a constant      */
-             e2oper == OPrelconst &&
-             !(I64 && (config.flags3 & CFG3pic || config.exe == EX_WIN64)) &&
-             ((fl = el_fl(e2)) == FLdata ||
-              fl==FLudata || fl == FLextern)
+             (e2oper == OPrelconst
+              && !(I64 && (config.flags3 & CFG3pic || config.exe == EX_WIN64))
+              && ((fl = el_fl(e2)) == FLdata ||
+                   fl == FLudata || fl == FLextern)
 #if TARGET_SEGMENTED
               && !(e2->EV.sp.Vsym->ty() & mTYcs)
 #endif
-            ) &&
+            )) &&
             !evalinregister(e2) &&
             !e1->Ecount)        /* and no CSE headaches */
         {
@@ -1874,8 +1874,8 @@ code *cdcmp(elem *e,regm_t *pretregs)
   /* routine, because we don't know the target of the signed branch     */
   /* (have to set up flags so that jmpopcode() will do it right)        */
   if (!eqorne &&
-        (I16 && tym == TYlong  && tybasic(e2->Ety) == TYlong ||
-         I32 && tym == TYllong && tybasic(e2->Ety) == TYllong)
+        ((I16 && tym == TYlong  && tybasic(e2->Ety) == TYlong) ||
+         (I32 && tym == TYllong && tybasic(e2->Ety) == TYllong))
      )
   {
         assert(jop != JC && jop != JNC);
@@ -2119,8 +2119,8 @@ code *cdcmp(elem *e,regm_t *pretregs)
          * common subexpression
          */
 
-        if ((e1->Eoper == OPvar && datafl[el_fl(e1)] ||
-             e1->Eoper == OPind) &&
+        if (((e1->Eoper == OPvar && datafl[el_fl(e1)]) ||
+              e1->Eoper == OPind) &&
             !evalinregister(e1))
         {       cl = getlvalue(&cs,e1,RMload);
                 freenode(e1);
@@ -2484,8 +2484,8 @@ code *longcmp(elem *e,bool jcond,unsigned fltarg,code *targ)
          * common subexpression
          */
 
-        if ((e1->Eoper == OPvar && datafl[el_fl(e1)] ||
-             e1->Eoper == OPind) &&
+        if (((e1->Eoper == OPvar && datafl[el_fl(e1)]) ||
+              e1->Eoper == OPind) &&
             !evalinregister(e1))
         {       cl = getlvalue(&cs,e1,0);
                 freenode(e1);
@@ -2848,7 +2848,7 @@ code *cdshtlng(elem *e,regm_t *pretregs)
         c = cat(c1,c2);
   }
   else if (!I16 && (op == OPs16_32 || op == OPu16_32) ||
-            I64 && op == OPs32_64)
+            (I64 && op == OPs32_64))
   {
     elem *e11;
 
@@ -3154,8 +3154,8 @@ code *cdlngsht(elem *e,regm_t *pretregs)
             bool isOff = false;
 #endif
             if (I16 ||
-                I32 && (isOff || e->Eoper == OP64_32) ||
-                I64 && (isOff || e->Eoper == OP128_64))
+                (I32 && (isOff || e->Eoper == OP64_32)) ||
+                (I64 && (isOff || e->Eoper == OP128_64)))
                 retregs &= mLSW;                /* want LSW only        */
         }
   }

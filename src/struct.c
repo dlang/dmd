@@ -90,8 +90,8 @@ void semanticTypeInfo(Scope *sc, Type *t)
         {
             StructDeclaration *sd = t->sym;
             if (sd->members &&
-                (sd->xeq  && sd->xeq  != sd->xerreq  ||
-                 sd->xcmp && sd->xcmp != sd->xerrcmp ||
+                ((sd->xeq  && sd->xeq  != sd->xerreq)  ||
+                 (sd->xcmp && sd->xcmp != sd->xerrcmp) ||
                  (sd->postblit && !(sd->postblit->storage_class & STCdisable)) ||
                  sd->dtor ||
                  sd->xhash ||
@@ -1115,7 +1115,7 @@ bool StructDeclaration::fill(Loc loc, Expressions *elements, bool ctorinit)
                  * union U { int a; int b = 2; }
                  * U u;    // OK (u.b == 2)
                  */
-                if (!vx || !vx->init && v2->init)
+                if (!vx || (!vx->init && v2->init))
                     vx = v2, fieldi = j;
                 else if (vx != vd &&
                     !(vx->offset < v2->offset + v2->type->size() &&

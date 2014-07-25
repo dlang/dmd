@@ -1516,7 +1516,7 @@ Lnomatch:
                 {
                     ArrayInitializer *ai = init->isArrayInitializer();
                     Expression *e;
-                    if (ai && (tb->ty == Taarray || tb->ty == Tstruct && ai->isAssociativeArray()))
+                    if (ai && (tb->ty == Taarray || (tb->ty == Tstruct && ai->isAssociativeArray())))
                         e = ai->toAssocArrayLiteral();
                     else
                         e = init->toExpression();

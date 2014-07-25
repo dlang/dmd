@@ -2547,7 +2547,7 @@ code *movregconst(code *c,unsigned reg,targ_size_t value,regm_t flags)
             {
                 if ((regcon.immed.value[r] & 0xFF) == value)
                 {   c = genregs(c,0x8A,reg,r);          // MOV regL,rL
-                    if (I64 && reg >= 4 || r >= 4)
+                    if ((I64 && reg >= 4) || r >= 4)
                         code_orrex(c, REX);
                     goto L2;
                 }
@@ -4203,7 +4203,7 @@ int branch(block *bl,int flag)
         csize = calccodsize(c);
         cn = code_next(c);
         op = c->Iop;
-        if ((op & ~0x0F) == 0x70 && c->Iflags & CFjmp16 ||
+        if (((op & ~0x0F) == 0x70 && c->Iflags & CFjmp16) ||
             (op == JMP && !(c->Iflags & CFjmp5)))
         {
           L1:
@@ -4515,7 +4515,7 @@ void assignaddrc(code *c)
         {
 
             if (
-                ((rm & 0xC0) == 0 && !((rm & 7) == 4 && (c->Isib & 7) == 5 || (rm & 7) == 5))
+                ((rm & 0xC0) == 0 && !(((rm & 7) == 4 && (c->Isib & 7) == 5) || (rm & 7) == 5))
                )
                 goto do2;       /* if no first operand  */
         }
@@ -5003,9 +5003,9 @@ void pinholeopt(code *c,block *b)
 
                 /* Look for TEST or OR or XOR with an immediate constant */
                 /* that we can replace with a byte operation            */
-                if (op == 0xF7 && reg == modregrm(0,0,0) ||
-                    op == 0x81 && reg == modregrm(0,6,0) && !flags ||
-                    op == 0x81 && reg == modregrm(0,1,0))
+                if ((op == 0xF7 && reg == modregrm(0,0,0)) ||
+                    (op == 0x81 && reg == modregrm(0,6,0) && !flags) ||
+                    (op == 0x81 && reg == modregrm(0,1,0)))
                 {
                     // See if we can replace a dword with a word
                     // (avoid for 32 bit instructions, because CFopsize
@@ -5643,7 +5643,7 @@ Lmodrm:
                 size++;
             switch (mod)
             {   case 0:
-                    if (issib(rm) && (c->Isib & 7) == 5 ||
+                    if ((issib(rm) && (c->Isib & 7) == 5) ||
                         (rm & 7) == 5)
                         size += 4;      /* disp32                       */
                     if (c->Irex & REX_B && (rm & 7) == 5)
@@ -6048,7 +6048,7 @@ unsigned codout(code *c)
                         do8bit((enum FL) c->IFL1,&c->IEV1);     // 8 bit
                         break;
                     case 0:
-                        if (!(issib(rm) && (c->Isib & 7) == 5 ||
+                        if (!((issib(rm) && (c->Isib & 7) == 5) ||
                               (rm & 7) == 5))
                             break;
                     case 0x80:

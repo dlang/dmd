@@ -5416,7 +5416,7 @@ bool TupleExp::equals(RootObject *o)
         TupleExp *te = (TupleExp *)o;
         if (exps->dim != te->exps->dim)
             return false;
-        if (e0 && !e0->equals(te->e0) || !e0 && te->e0)
+        if ((e0 && !e0->equals(te->e0)) || (!e0 && te->e0))
             return false;
         for (size_t i = 0; i < exps->dim; i++)
         {
@@ -5796,8 +5796,8 @@ MATCH FuncExp::matchType(Type *to, Scope *sc, FuncExp **presult, int flag)
 
     Type *tx;
     if (tok == TOKdelegate ||
-        tok == TOKreserved && (type->ty == Tdelegate ||
-                               type->ty == Tpointer && to->ty == Tdelegate))
+        (tok == TOKreserved && (type->ty == Tdelegate ||
+                               (type->ty == Tpointer && to->ty == Tdelegate))))
     {
         // Allow conversion from implicit function pointer to delegate
         tx = new TypeDelegate(tfx);
@@ -5966,7 +5966,7 @@ Expression *DeclarationExp::semantic(Scope *sc)
                  s->isTypedefDeclaration() ||
                  s->isAggregateDeclaration() ||
                  s->isEnumDeclaration() ||
-                 v && v->isDataseg()) &&
+                 (v && v->isDataseg())) &&
                 !sc->func->localsymtab->insert(s))
             {
                 error("declaration %s is already defined in another scope in %s",
@@ -8515,7 +8515,7 @@ Lagain:
         }
     }
 
-    if (e1->op == TOKdotvar && t1->ty == Tfunction ||
+    if ((e1->op == TOKdotvar && t1->ty == Tfunction) ||
         e1->op == TOKdottd)
     {
         UnaExp *ue = (UnaExp *)(e1);
@@ -9830,8 +9830,8 @@ Expression *CastExp::semantic(Scope *sc)
             Type* tobn = tob->nextOf()->toBasetype();
             Type* t1bn = t1b->nextOf()->toBasetype();
             // If the struct is opaque we don't know about the struct members and the cast becomes unsafe
-            bool sfwrd = tobn->ty == Tstruct && !((StructDeclaration *)((TypeStruct *)tobn)->sym)->members ||
-                    t1bn->ty == Tstruct && !((StructDeclaration *)((TypeStruct *)t1bn)->sym)->members;
+            bool sfwrd = (tobn->ty == Tstruct && !((StructDeclaration *)((TypeStruct *)tobn)->sym)->members) ||
+                    (t1bn->ty == Tstruct && !((StructDeclaration *)((TypeStruct *)t1bn)->sym)->members);
             if (!sfwrd && !tobn->hasPointers() &&
                 tobn->ty != Tfunction && t1bn->ty != Tfunction &&
                 tobn->size() <= t1bn->size() &&
@@ -10085,8 +10085,8 @@ Lagain:
         if (t->ty == Ttuple) sc2 = sc2->endCTFE();
         upr = upr->implicitCastTo(sc2, Type::tsize_t);
     }
-    if (lwr && lwr->type == Type::terror ||
-        upr && upr->type == Type::terror)
+    if ((lwr && lwr->type == Type::terror) ||
+        (upr && upr->type == Type::terror))
     {
         goto Lerr;
     }
@@ -11544,9 +11544,9 @@ Expression *AssignExp::semantic(Scope *sc)
         if (e2x->implicitConvTo(e1x->type))
         {
             if (op != TOKblit &&
-                (e2x->op == TOKslice && ((UnaExp *)e2x)->e1->isLvalue() ||
-                 e2x->op == TOKcast  && ((UnaExp *)e2x)->e1->isLvalue() ||
-                 e2x->op != TOKslice && e2x->isLvalue()))
+                ((e2x->op == TOKslice && ((UnaExp *)e2x)->e1->isLvalue()) ||
+                 (e2x->op == TOKcast  && ((UnaExp *)e2x)->e1->isLvalue()) ||
+                 (e2x->op != TOKslice && e2x->isLvalue())))
             {
                 e1x->checkPostblit(sc, t1);
             }
@@ -11701,9 +11701,9 @@ Expression *AssignExp::semantic(Scope *sc)
         }
 
         if (op != TOKblit &&
-            (e2x->op == TOKslice && ((UnaExp *)e2x)->e1->isLvalue() ||
-             e2x->op == TOKcast  && ((UnaExp *)e2x)->e1->isLvalue() ||
-             e2x->op != TOKslice && e2x->isLvalue()))
+            ((e2x->op == TOKslice && ((UnaExp *)e2x)->e1->isLvalue()) ||
+             (e2x->op == TOKcast  && ((UnaExp *)e2x)->e1->isLvalue()) ||
+             (e2x->op != TOKslice && e2x->isLvalue())))
         {
             e1->checkPostblit(sc, t1->nextOf());
         }
@@ -11728,7 +11728,7 @@ Expression *AssignExp::semantic(Scope *sc)
         Type *t1n = t1->nextOf();
         int offset;
         if (t2n->immutableOf()->equals(t1n->immutableOf()) ||
-            t1n->isBaseOf(t2n, &offset) && offset == 0)
+            (t1n->isBaseOf(t2n, &offset) && offset == 0))
         {
             /* Allow copy of distinct qualifier elements.
              * eg.
@@ -12129,20 +12129,20 @@ Expression *AddExp::semantic(Scope *sc)
     Type *tb2 = e2->type->toBasetype();
 
     if (tb1->ty == Tdelegate ||
-        tb1->ty == Tpointer && tb1->nextOf()->ty == Tfunction)
+        (tb1->ty == Tpointer && tb1->nextOf()->ty == Tfunction))
     {
         e = e1->checkArithmetic();
     }
     if (tb2->ty == Tdelegate ||
-        tb2->ty == Tpointer && tb2->nextOf()->ty == Tfunction)
+        (tb2->ty == Tpointer && tb2->nextOf()->ty == Tfunction))
     {
         e = e2->checkArithmetic();
     }
     if (e)
         return e;
 
-    if (tb1->ty == Tpointer && e2->type->isintegral() ||
-        tb2->ty == Tpointer && e1->type->isintegral())
+    if ((tb1->ty == Tpointer && e2->type->isintegral()) ||
+        (tb2->ty == Tpointer && e1->type->isintegral()))
     {
         return scaleFactor(this, sc);
     }
@@ -12223,12 +12223,12 @@ Expression *MinExp::semantic(Scope *sc)
     Type *t2 = e2->type->toBasetype();
 
     if (t1->ty == Tdelegate ||
-        t1->ty == Tpointer && t1->nextOf()->ty == Tfunction)
+        (t1->ty == Tpointer && t1->nextOf()->ty == Tfunction))
     {
         e = e1->checkArithmetic();
     }
     if (t2->ty == Tdelegate ||
-        t2->ty == Tpointer && t2->nextOf()->ty == Tfunction)
+        (t2->ty == Tpointer && t2->nextOf()->ty == Tfunction))
     {
         e = e2->checkArithmetic();
     }
@@ -13265,8 +13265,8 @@ Expression *CmpExp::semantic(Scope *sc)
         return ex;
     Type *t1 = e1->type->toBasetype();
     Type *t2 = e2->type->toBasetype();
-    if (t1->ty == Tclass && e2->op == TOKnull ||
-        t2->ty == Tclass && e1->op == TOKnull)
+    if ((t1->ty == Tclass && e2->op == TOKnull) ||
+        (t2->ty == Tclass && e1->op == TOKnull))
     {
         error("do not use null when comparing class types");
         return new ErrorExp();
@@ -13290,8 +13290,8 @@ Expression *CmpExp::semantic(Scope *sc)
 
     /* Disallow comparing T[]==T and T==T[]
      */
-    if (e1->op == TOKslice && t1->ty == Tarray && e2->implicitConvTo(t1->nextOf()) ||
-        e2->op == TOKslice && t2->ty == Tarray && e1->implicitConvTo(t2->nextOf()))
+    if ((e1->op == TOKslice && t1->ty == Tarray && e2->implicitConvTo(t1->nextOf())) ||
+        (e2->op == TOKslice && t2->ty == Tarray && e1->implicitConvTo(t2->nextOf())))
     {
         return incompatibleTypes();
     }
@@ -13464,8 +13464,8 @@ Expression *EqualExp::semantic(Scope *sc)
 
     Type *t1 = e1->type->toBasetype();
     Type *t2 = e2->type->toBasetype();
-    if (t1->ty == Tclass && e2->op == TOKnull ||
-        t2->ty == Tclass && e1->op == TOKnull)
+    if ((t1->ty == Tclass && e2->op == TOKnull) ||
+        (t2->ty == Tclass && e1->op == TOKnull))
     {
         error("use '%s' instead of '%s' when comparing with null",
                 Token::toChars(op == TOKequal ? TOKidentity : TOKnotidentity),
@@ -13508,8 +13508,8 @@ Expression *EqualExp::semantic(Scope *sc)
 
     /* Disallow comparing T[]==T and T==T[]
      */
-    if (e1->op == TOKslice && t1->ty == Tarray && e2->implicitConvTo(t1->nextOf()) ||
-        e2->op == TOKslice && t2->ty == Tarray && e1->implicitConvTo(t2->nextOf()))
+    if ((e1->op == TOKslice && t1->ty == Tarray && e2->implicitConvTo(t1->nextOf())) ||
+        (e2->op == TOKslice && t2->ty == Tarray && e1->implicitConvTo(t2->nextOf())))
     {
         return incompatibleTypes();
     }

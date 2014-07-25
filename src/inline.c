@@ -1682,13 +1682,13 @@ int canInline(FuncDeclaration *fd, int hasthis, int hdrscan, int statementsToo)
         (fd->ident == Id::require &&
          fd->toParent()->isFuncDeclaration() &&
          fd->toParent()->isFuncDeclaration()->needThis()) ||
-        !hdrscan &&
+        (!hdrscan &&
         (
         fd->isSynchronized() ||
         fd->isImportedSymbol() ||
         fd->hasNestedFrameRefs() ||
         (fd->isVirtual() && !fd->isFinalFunc())
-       ))
+       )))
     {
         goto Lno;
     }

@@ -507,8 +507,8 @@ STATIC elem * chkprop(elem *n,list_t rdlist)
                 /* (in case of assigning to overlapping unions, etc.)   */
                 if (t->EV.sp.Voffset != noff ||
                     /* If sizes match, we are ok        */
-                    size(t->Ety) != nsize &&
-                        !(d->E2->Eoper == OPconst && size(t->Ety) > nsize && !tyfloating(d->E2->Ety)))
+                    (size(t->Ety) != nsize &&
+                        !(d->E2->Eoper == OPconst && size(t->Ety) > nsize && !tyfloating(d->E2->Ety))))
                     goto noprop;
             }
             else
@@ -758,7 +758,7 @@ STATIC void intranges()
             rd2 = list_elem(list_next(iel->rdlist));
             /* The rd's for the relational elem (rdeq,rdinc) must be    */
             /* the same as the rd's for tne increment elem (rd1,rd2).   */
-            if (rd1 == rdeq && rd2 == rdinc || rd1 == rdinc && rd2 == rdeq)
+            if ((rd1 == rdeq && rd2 == rdinc) || (rd1 == rdinc && rd2 == rdeq))
                 break;
         }
 

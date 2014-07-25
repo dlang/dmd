@@ -327,7 +327,7 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl, PrefixAttributes 
             case TOKinvariant:
             {
                 Token *t = peek(&token);
-                if (t->value == TOKlparen && peek(t)->value == TOKrparen ||
+                if ((t->value == TOKlparen && peek(t)->value == TOKrparen) ||
                     t->value == TOKlcurly)
                 {
                     // invariant {}
@@ -4216,7 +4216,7 @@ void Parser::checkDanglingElse(Loc elseloc)
 
 Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
 {
-    Statement *s;
+    Statement *s = NULL;
     Condition *cond;
     Statement *ifbody;
     Statement *elsebody;
@@ -6378,10 +6378,10 @@ Expression *Parser::parsePrimaryExp()
                          token.value == TOKinterface ||
                          token.value == TOKargTypes ||
                          token.value == TOKparameters ||
-                         token.value == TOKconst && peek(&token)->value == TOKrparen ||
-                         token.value == TOKimmutable && peek(&token)->value == TOKrparen ||
-                         token.value == TOKshared && peek(&token)->value == TOKrparen ||
-                         token.value == TOKwild && peek(&token)->value == TOKrparen ||
+                         (token.value == TOKconst && peek(&token)->value == TOKrparen) ||
+                         (token.value == TOKimmutable && peek(&token)->value == TOKrparen) ||
+                         (token.value == TOKshared && peek(&token)->value == TOKrparen) ||
+                         (token.value == TOKwild && peek(&token)->value == TOKrparen) ||
                          token.value == TOKfunction ||
                          token.value == TOKdelegate ||
                          token.value == TOKreturn))

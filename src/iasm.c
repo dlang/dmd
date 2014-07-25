@@ -1380,9 +1380,9 @@ static code *asm_emit(Loc loc,
               )
             {
                 if ((popndTmp->pregDisp1 &&
-                        popndTmp->pregDisp1->val == _BP) ||
-                        popndTmp->pregDisp2 &&
-                        popndTmp->pregDisp2->val == _BP)
+                     popndTmp->pregDisp1->val == _BP) ||
+                    (popndTmp->pregDisp2 &&
+                     popndTmp->pregDisp2->val == _BP))
                         usDefaultseg = _SS;
                 else
                         usDefaultseg = _DS;
@@ -1442,7 +1442,7 @@ static code *asm_emit(Loc loc,
                     pc,
                     ptb.pptb1->usFlags,
                     popnd1, popnd2);
-            else if (usNumops == 2 || usNumops == 3 && aoptyTable3 == _imm)
+            else if (usNumops == 2 || (usNumops == 3 && aoptyTable3 == _imm))
                 asm_make_modrm_byte(
 #ifdef DEBUG
                     auchOpcode, &usIdx,
@@ -3037,9 +3037,9 @@ static bool asm_match_flags(opflag_t usOp, opflag_t usTable)
                                   aoptyOp == _rel))
             goto Lok;
         if (aoptyTable == _mnoi && aoptyOp == _m &&
-            (uSizemaskOp == _32 && amodOp == _addr16 ||
-             uSizemaskOp == _48 && amodOp == _addr32 ||
-             uSizemaskOp == _48 && amodOp == _normal)
+            ((uSizemaskOp == _32 && amodOp == _addr16) ||
+             (uSizemaskOp == _48 && amodOp == _addr32) ||
+             (uSizemaskOp == _48 && amodOp == _normal))
           )
             goto Lok;
         goto EXIT;

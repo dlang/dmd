@@ -276,7 +276,7 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, NeedInterpret needI
         ExpInitializer *ie = new ExpInitializer(loc, sle);
         return ie->semantic(sc, t, needInterpret);
     }
-    else if ((t->ty == Tdelegate || t->ty == Tpointer && t->nextOf()->ty == Tfunction) && value.dim == 0)
+    else if ((t->ty == Tdelegate || (t->ty == Tpointer && t->nextOf()->ty == Tfunction)) && value.dim == 0)
     {
         TOK tok = (t->ty == Tdelegate) ? TOKdelegate : TOKfunction;
         /* Rewrite as empty delegate literal { }

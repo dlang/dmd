@@ -634,7 +634,7 @@ L1:
   code_newreg(cs, reg);                         // OR in reg field
   if (!I16)
   {
-      if (reg == 6 && op == 0xFF ||             /* don't PUSH a word    */
+      if ((reg == 6 && op == 0xFF) ||           /* don't PUSH a word    */
           op == 0x0FB7 || op == 0x0FBF ||       /* MOVZX/MOVSX          */
           (op & 0xFFF8) == 0xD8 ||              /* 8087 instructions    */
           op == 0x8D)                           /* LEA                  */
@@ -1390,8 +1390,8 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
              * the opcode. The only way to deal with this is to prevent enregistering
              * such variables.
              */
-            if (tyxmmreg(ty) && !(s->Sregm & XMMREGS) ||
-                !tyxmmreg(ty) && (s->Sregm & XMMREGS))
+            if ((tyxmmreg(ty) && !(s->Sregm & XMMREGS)) ||
+                (!tyxmmreg(ty) && (s->Sregm & XMMREGS)))
                 cgreg_unregister(s->Sregm);
 
             if (
@@ -2837,22 +2837,26 @@ code *cdfunc(elem *e,regm_t *pretregs)
                     if (v ^ (preg != mreg))
                     {
                         if (preg != lreg)
+                        {
                             if (mask[preg] & XMMREGS)
                             {   unsigned op = xmmload(ty1);            // MOVSS/D preg,lreg
                                 c1 = gen2(c1,op,modregxrmx(3,preg-XMM0,lreg-XMM0));
                             }
                             else
                                 c1 = genmovreg(c1, preg, lreg);
+                        }
                     }
                     else
                     {
                         if (preg2 != mreg)
+                        {
                             if (mask[preg2] & XMMREGS)
                             {   unsigned op = xmmload(ty2);            // MOVSS/D preg2,mreg
                                 c1 = gen2(c1,op,modregxrmx(3,preg2-XMM0,mreg-XMM0));
                             }
                             else
                                 c1 = genmovreg(c1, preg2, mreg);
+                        }
                     }
                 }
 
@@ -4212,7 +4216,7 @@ code *loaddata(elem *e,regm_t *pretregs)
                 ce = movregconst(CNIL,sreg,lsw,0);
                 reg = findregmsw(forregs);
                 /* Decide if we need to set flags when we load msw      */
-                if (flags && (msw && msw|lsw || !(msw|lsw)))
+                if (flags && ((msw && msw|lsw) || !(msw|lsw)))
                 {   mswflags = mPSW;
                     flags = 0;
                 }

@@ -413,8 +413,8 @@ void accessCheck(Loc loc, Scope *sc, Expression *e, Declaration *d)
     }
     if (!e)
     {
-        if (d->prot() == PROTprivate && d->getAccessModule() != sc->module ||
-            d->prot() == PROTpackage && !hasPackageAccess(sc, d))
+        if ((d->prot() == PROTprivate && d->getAccessModule() != sc->module) ||
+            (d->prot() == PROTpackage && !hasPackageAccess(sc, d)))
         {
             error(loc, "%s %s is not accessible from module %s",
                 d->kind(), d->toPrettyChars(), sc->module->toChars());

@@ -1964,10 +1964,10 @@ STATIC code * cse_save(regm_t ms)
                     tym_t tym = e->Ety;
                     unsigned sz = tysize(tym);
                     if (sz <= REGSIZE ||
-                        sz <= 2 * REGSIZE &&
-                            (regm & mMSW && csextab[i].regm & mMSW ||
-                             regm & mLSW && csextab[i].regm & mLSW) ||
-                        sz == 4 * REGSIZE && regm == csextab[i].regm
+                        (sz <= 2 * REGSIZE &&
+                            ((regm & mMSW && csextab[i].regm & mMSW) ||
+                             (regm & mLSW && csextab[i].regm & mLSW))) ||
+                        (sz == 4 * REGSIZE && regm == csextab[i].regm)
                        )
                     {
                         ms &= ~regm;

@@ -678,7 +678,7 @@ void Type::fixTo(Type *t)
     // cache t to this->xto won't break transitivity.
     Type *mto = NULL;
     Type *tn = nextOf();
-    if (!tn || ty != Tsarray && tn->mod == t->nextOf()->mod)
+    if (!tn || (ty != Tsarray && tn->mod == t->nextOf()->mod))
     {
         switch (t->mod)
         {
@@ -2450,7 +2450,7 @@ Identifier *Type::getTypeInfoIdent(int internal)
     assert(strlen(name) < namelen);     // don't overflow the buffer
 
     size_t off = 0;
-    if (global.params.isOSX || global.params.isWindows && !global.params.is64bit)
+    if (global.params.isOSX || (global.params.isWindows && !global.params.is64bit))
         ++off;                 // C mangling will add '_' back in
     Identifier *id = Lexer::idPool(name + off);
 
@@ -6601,7 +6601,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                     Expression *e;
                     VarDeclaration *v = s->isVarDeclaration();
                     FuncDeclaration *f = s->isFuncDeclaration();
-                    if (intypeid || !v && !f)
+                    if (intypeid || (!v && !f))
                         e = new DsymbolExp(loc, s);
                     else
                         e = new VarExp(loc, s->isDeclaration());
@@ -8111,7 +8111,7 @@ L1:
     }
 
     bool unreal = e->op == TOKvar && ((VarExp *)e)->var->isField();
-    if (d->isDataseg() || unreal && d->isField())
+    if (d->isDataseg() || (unreal && d->isField()))
     {
         // (e, d)
         accessCheck(e->loc, sc, e, d);
@@ -8818,7 +8818,7 @@ L1:
     }
 
     bool unreal = e->op == TOKvar && ((VarExp *)e)->var->isField();
-    if (d->isDataseg() || unreal && d->isField())
+    if (d->isDataseg() || (unreal && d->isField()))
     {
         // (e, d)
         accessCheck(e->loc, sc, e, d);
