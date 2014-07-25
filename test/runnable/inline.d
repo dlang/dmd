@@ -365,6 +365,23 @@ void test11223()
 }
 
 /************************************/
+
+
+void foo3918()
+{
+    import core.stdc.stdlib : alloca;
+    void[] mem = alloca(1024)[0..1024];
+}
+
+void test3918()
+{
+    foreach(i; 0 .. 10_000_000)
+    {
+        foo3918();
+    }
+}
+
+/************************************/
 // 11314
 
 struct Tuple11314(T...)
@@ -520,6 +537,7 @@ int main()
     test1();
     test2();
     test3();
+    test3918();
     test4();
     test5();
     test9356();
