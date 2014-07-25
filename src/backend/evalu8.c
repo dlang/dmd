@@ -1226,7 +1226,7 @@ elem * evalu8(elem *e, goal_t goal)
     case OPdiv:
         if (!boolres(e2))                       // divide by 0
         {
-#if SCPP
+#if SCPP || MARS
             if (!tyfloating(tym))
 #endif
                 goto div0;
@@ -1401,15 +1401,20 @@ elem * evalu8(elem *e, goal_t goal)
         }
         break;
     case OPmod:
-        if (!boolres(e2))
-        {
-            div0:
-#if SCPP
-                synerr(EM_divby0);
-#else // MARS
-                //error(e->Esrcpos.Sfilename, e->Esrcpos.Slinnum, e->Esrcpos.Scharnum, "divide by zero");
+#if MARS
+        if (!tyfloating(tym))
 #endif
-                break;
+        {
+            if (!boolres(e2))
+            {
+                div0:
+#if SCPP
+                    synerr(EM_divby0);
+#elif MARS
+                    error(e->Esrcpos.Sfilename, e->Esrcpos.Slinnum, e->Esrcpos.Scharnum, "divide by zero");
+#endif
+                    break;
+            }
         }
         if (uns)
             e->EV.Vullong = ((targ_ullong) l1) % ((targ_ullong) l2);
@@ -1485,6 +1490,7 @@ elem * evalu8(elem *e, goal_t goal)
     {
         targ_llong rem, quo;
 
+        assert(!tyfloating(tym));
         if (!boolres(e2))
             goto div0;
         if (uns)
