@@ -90,16 +90,10 @@ Scope::Scope()
     this->userAttribDecl = NULL;
 }
 
-Scope *Scope::copyExact()
+Scope *Scope::copy()
 {
     Scope *sc = Scope::alloc();
     memcpy(sc, this, sizeof(Scope));
-    return sc;
-}
-
-Scope *Scope::copy()
-{
-    Scope *sc = copyExact();
 
     /* Bugzilla 11777: The copied scope should not inherit fieldinit.
      */
@@ -137,10 +131,9 @@ Scope *Scope::createGlobal(Module *module)
 
 Scope *Scope::push()
 {
-    //printf("Scope::push()\n");
-    Scope *s = copyExact();
+    Scope *s = copy();
 
-    //printf("Scope::Scope(enclosing = %p) %p\n", enclosing, this);
+    //printf("Scope::push(this = %p) new = %p\n", this, s);
     assert(!(flags & SCOPEfree));
     s->scopesym = NULL;
     s->sds = NULL;
