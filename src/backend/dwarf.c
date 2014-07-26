@@ -73,7 +73,7 @@ static char __file__[] = __FILE__;      // for tassert.h
 int dwarf_getsegment(const char *name, int align)
 {
 #if ELFOBJ
-    return ElfObj::getsegment(name, NULL, SHT_PROGDEF, 0, align * 4);
+    return ElfObj::getsegment(name, NULL, SHT_PROGBITS, 0, align * 4);
 #elif MACHOBJ
     return MachObj::getsegment(name, "__DWARF", align * 2, S_ATTR_DEBUG);
 #else
@@ -89,7 +89,7 @@ int dwarf_getsegment(const char *name, int align)
 void dwarf_addrel(int seg, targ_size_t offset, int targseg, targ_size_t val = 0)
 {
 #if ELFOBJ
-    ElfObj::addrel(seg, offset, I64 ? R_X86_64_32 : RI_TYPE_SYM32, MAP_SEG2SYMIDX(targseg), val);
+    ElfObj::addrel(seg, offset, I64 ? R_X86_64_32 : R_386_32, MAP_SEG2SYMIDX(targseg), val);
 #elif MACHOBJ
     MachObj::addrel(seg, offset, NULL, targseg, RELaddr, val);
 #else
