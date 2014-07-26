@@ -44,7 +44,7 @@ void scanElfObjModule(void* pctx, void (*pAddSymbol)(void* pctx, char* name, int
     unsigned char *buf = (unsigned char *)base;
     int reason = 0;
 
-    if (buflen < EI_NIDENT + sizeof(Elf32_Hdr))
+    if (buflen < sizeof(Elf32_Ehdr))
     {
         reason = __LINE__;
       Lcorrupt:
@@ -68,7 +68,7 @@ void scanElfObjModule(void* pctx, void (*pAddSymbol)(void* pctx, char* name, int
     }
     if (buf[EI_CLASS] == ELFCLASS32)
     {
-        Elf32_Hdr *eh = (Elf32_Hdr *)(buf + EI_NIDENT);
+        Elf32_Ehdr *eh = (Elf32_Ehdr *)buf;
         if (eh->e_type != ET_REL)
         {
             error(loc, "ELF object module %s is not relocatable", module_name);
@@ -112,8 +112,8 @@ void scanElfObjModule(void* pctx, void (*pAddSymbol)(void* pctx, char* name, int
     }
     else if (buf[EI_CLASS] == ELFCLASS64)
     {
-        Elf64_Ehdr *eh = (Elf64_Ehdr *)(buf + EI_NIDENT);
-        if (buflen < EI_NIDENT + sizeof(Elf64_Ehdr))
+        Elf64_Ehdr *eh = (Elf64_Ehdr *)buf;
+        if (buflen < sizeof(Elf64_Ehdr))
             goto Lcorrupt;
         if (eh->e_type != ET_REL)
         {
