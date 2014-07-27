@@ -118,7 +118,6 @@ struct Scope
 
     Scope();
 
-    Scope *copyExact();
     Scope *copy();
 
     Scope *push();
