@@ -56,3 +56,28 @@ float[] f12769(float[] a)
     else
         return (-a[])[0..4];
 }
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/ice12179.d(74): Error: array operation a[] - a[] without assignment not implemented
+fail_compilation/ice12179.d(76): Error: array operation a[] - a[] without assignment not implemented
+fail_compilation/ice12179.d(77): Error: array operation a[] - a[] without assignment not implemented
+fail_compilation/ice12179.d(80): Error: array operation a[] - a[] without assignment not implemented
+fail_compilation/ice12179.d(82): Error: array operation a[] - a[] without assignment not implemented
+---
+*/
+void test13208()
+{
+    int[] a;
+
+    auto arr = [a[] - a[]][0];
+
+    auto aa1 = [1 : a[] - a[]];
+    auto aa2 = [a[] - a[] : 1];
+
+    struct S { int[] a; }
+    auto s = S(a[] - a[]);
+
+    auto n = int(a[] - a[]);
+}
