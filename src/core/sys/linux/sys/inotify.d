@@ -46,9 +46,50 @@ enum: uint
     IN_ISDIR         = 0x40000000,
     IN_ONESHOT       = 0x80000000,
     IN_ALL_EVENTS    = 0x80000FFF,
-    IN_CLOEXEC       = 0x02000000,
-    IN_NONBLOCK      = 0x00004000,
 }
+
+version (X86)
+{
+    enum IN_CLOEXEC = 0x80000; // octal!2000000
+    enum IN_NONBLOCK = 0x800; // octal!4000
+}
+else version (X86_64)
+{
+    enum IN_CLOEXEC = 0x80000; // octal!2000000
+    enum IN_NONBLOCK = 0x800; // octal!4000
+}
+else version (MIPS32)
+{
+    enum IN_CLOEXEC = 0x80000; // octal!2000000
+    enum IN_NONBLOCK = 0x80; // octal!200
+}
+else version (MIPS64)
+{
+    enum IN_CLOEXEC = 0x80000; // octal!2000000
+    enum IN_NONBLOCK = 0x80; // octal!200
+}
+else version (PPC)
+{
+    enum IN_CLOEXEC = 0x80000; // octal!2000000
+    enum IN_NONBLOCK = 0x800; // octal!4000
+}
+else version (PPC64)
+{
+    enum IN_CLOEXEC = 0x80000; // octal!2000000
+    enum IN_NONBLOCK = 0x800; // octal!4000
+}
+else version (ARM)
+{
+    enum IN_CLOEXEC = 0x80000; // octal!2000000
+    enum IN_NONBLOCK = 0x800; // octal!4000
+}
+else version (AArch64)
+{
+    enum IN_CLOEXEC = 0x80000; // octal!2000000
+    enum IN_NONBLOCK = 0x800; // octal!4000
+}
+else
+    static assert(0, "unimplemented");
 
 int inotify_init();
 int inotify_init1(int flags);
