@@ -267,7 +267,8 @@ void Type::init()
     mangleChar[Tnull] = 'n';    // same as TypeNone
 
     for (size_t i = 0; i < TMAX; i++)
-    {   if (!mangleChar[i])
+    {
+        if (!mangleChar[i])
             fprintf(stderr, "ty = %llu\n", (ulonglong)i);
         assert(mangleChar[i]);
     }
@@ -1581,6 +1582,15 @@ void Type::toDecoBuffer(OutBuffer *buf, int flag)
     {
         MODtoDecoBuffer(buf, mod);
     }
+    mangleToBuffer(buf);
+}
+
+/********************************
+ * Store this type's mangle name into buf.
+ */
+void Type::mangleToBuffer(OutBuffer *buf)
+{
+    assert(mangleChar[ty] != '@');
     buf->writeByte(mangleChar[ty]);
 }
 
@@ -2427,9 +2437,13 @@ Identifier *Type::getTypeInfoIdent(int internal)
     buf.reserve(32);
 
     if (internal)
-    {   buf.writeByte(mangleChar[ty]);
+    {
+        mangleToBuffer(&buf);
         if (ty == Tarray)
-            buf.writeByte(mangleChar[((TypeArray *)this)->next->ty]);
+        {
+            Type *tn = ((TypeArray *)this)->next;
+            tn->mangleToBuffer(&buf);
+        }
     }
     else if (deco)
         buf.writestring(deco);

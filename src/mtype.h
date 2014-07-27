@@ -257,6 +257,7 @@ public:
     virtual Type *semantic(Loc loc, Scope *sc);
     Type *trySemantic(Loc loc, Scope *sc);
     virtual void toDecoBuffer(OutBuffer *buf, int flag = 0);
+    void mangleToBuffer(OutBuffer *buf);
     Type *merge();
     Type *merge2();
     void toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
