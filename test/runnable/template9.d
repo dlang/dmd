@@ -3767,6 +3767,26 @@ void test13180()
 }
 
 /******************************************/
+// 13219
+
+struct Map13219(V) {}
+
+void test13219a(alias F, VA, VB)(Map13219!VA a, Map13219!VB b)
+if (is(VA : typeof(F(VA.init, VB.init))))
+{}
+
+void test13219b(alias F)()
+{
+    test13219a!((a, b) => b)(Map13219!int.init, Map13219!int.init);
+}
+
+void test13219()
+{
+    int x;
+    test13219b!x();
+}
+
+/******************************************/
 
 int main()
 {
