@@ -921,9 +921,9 @@ Lagain:
                         /* and the d=b copy elem now reaches the end    */
                         /* of the block (the d=a elem didn't).          */
                 }
-                if (recalc)
-                    goto Lagain;
         }
+        if (recalc)
+            goto Lagain;
 }
 
 /*****************************
@@ -940,8 +940,6 @@ STATIC void cpwalk(register elem *n,vec_t IN)
 
         assert(n && IN);
         /*chkvecdim(exptop,0);*/
-        if (recalc)
-            return;
         op = n->Eoper;
         if (op == OPcolon || op == OPcolon2)
         {
@@ -1098,15 +1096,7 @@ STATIC void cpwalk(register elem *n,vec_t IN)
                         n->ET = nt;
 
                         changes++;
-
-                        // Mark ones we can no longer use
-                        foreach(i,exptop,IN)
-                        {
-                            if (f == expnod[i]->E2->EV.sp.Vsym)
-                            {   recalc++;
-                                break;
-                            }
-                        }
+                        recalc++;
                 }
                 //else dbg_printf("not found\n");
             noprop:
