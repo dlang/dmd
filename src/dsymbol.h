@@ -291,6 +291,7 @@ public:
     ScopeDsymbol(Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *s);
     Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
+    OverloadSet *mergeOverloadSet(OverloadSet *os, Dsymbol *s);
     void importScope(Dsymbol *s, PROT protection);
     bool isforwardRef();
     static void multiplyDefined(Loc loc, Dsymbol *s1, Dsymbol *s2);
