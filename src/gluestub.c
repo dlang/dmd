@@ -379,3 +379,15 @@ int binary(const char *p, const char **tab, int n)
             return i;
     return -1;
 }
+
+// toir
+
+void buildClosure(FuncDeclaration *fd, IRState *irs)
+{
+    assert(0);
+}
+
+RET retStyle(TypeFunction *tf)
+{
+    return RETregs;
+}
