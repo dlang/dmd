@@ -18,6 +18,7 @@
 #include "init.h"
 #include "ctfe.h"
 #include "lib.h"
+#include "nspace.h"
 
 // tocsym
 
@@ -168,6 +169,11 @@ void TemplateInstance::toObjFile(bool multiobj)
 }
 
 void TemplateMixin::toObjFile(bool multiobj)
+{
+    assert(0);
+}
+
+void Nspace::toObjFile(bool multiobj)
 {
     assert(0);
 }
