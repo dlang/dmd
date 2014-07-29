@@ -21,19 +21,7 @@
 
 // tocsym
 
-Symbol *SymbolDeclaration::toSymbol()
-{
-    assert(0);
-    return NULL;
-}
-
 Symbol *Dsymbol::toSymbolX(const char *prefix, int sclass, TYPE *t, const char *suffix)
-{
-    assert(0);
-    return NULL;
-}
-
-Symbol *Dsymbol::toSymbol()
 {
     assert(0);
     return NULL;
@@ -51,61 +39,7 @@ Symbol *Dsymbol::toImport(Symbol *sym)
     return NULL;
 }
 
-Symbol *VarDeclaration::toSymbol()
-{
-    assert(0);
-    return NULL;
-}
-
-Symbol *ClassInfoDeclaration::toSymbol()
-{
-    assert(0);
-    return NULL;
-}
-
-Symbol *TypeInfoDeclaration::toSymbol()
-{
-    assert(0);
-    return NULL;
-}
-
-Symbol *TypeInfoClassDeclaration::toSymbol()
-{
-    assert(0);
-    return NULL;
-}
-
-Symbol *FuncAliasDeclaration::toSymbol()
-{
-    assert(0);
-    return NULL;
-}
-
-Symbol *FuncDeclaration::toSymbol()
-{
-    assert(0);
-    return NULL;
-}
-
 Symbol *FuncDeclaration::toThunkSymbol(int offset)
-{
-    assert(0);
-    return NULL;
-}
-
-Symbol *ClassDeclaration::toSymbol()
-{
-    assert(0);
-    return NULL;
-}
-
-Symbol *InterfaceDeclaration::toSymbol()
-{
-    assert(0);
-    return NULL;
-}
-
-Symbol *Module::toSymbol()
 {
     assert(0);
     return NULL;
