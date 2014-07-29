@@ -49,6 +49,7 @@
 #include "import.h"
 #include "aggregate.h"
 #include "hdrgen.h"
+#include "module.h"
 
 FuncDeclaration *hasThis(Scope *sc);
 
@@ -2969,6 +2970,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
             if (tf->inuse == 1) tf->inuse--;
 
             Type *t = fparam->type->toBasetype();
+printf("t = %s\n", t->toChars());
 
             if (fparam->storageClass & (STCout | STCref | STClazy))
             {
@@ -3019,6 +3021,12 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
                 dim = Parameter::dim(tf->parameters);
                 i--;
                 continue;
+            }
+
+            if (global.params.Dversion >= 3 && sc->module && sc->module->isRoot() &&
+                t->ty == Tsarray)
+            {
+                warning(loc, "D2 passes static arrays by value, use %s[] instead", t->next->toChars());
             }
         }
         argsc->pop();
