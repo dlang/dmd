@@ -4105,12 +4105,17 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
 
         dim = dim->optimize(WANTvalue);
         dim = dim->ctfeInterpret();
+        if (dim->op == TOKerror)
+            goto Lerror;
         errors = global.errors;
         dinteger_t d1 = dim->toInteger();
         if (errors != global.errors)
             goto Lerror;
+
         dim = dim->implicitCastTo(sc, tsize_t);
         dim = dim->optimize(WANTvalue);
+        if (dim->op == TOKerror)
+            goto Lerror;
         errors = global.errors;
         dinteger_t d2 = dim->toInteger();
         if (errors != global.errors)
