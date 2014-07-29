@@ -6893,6 +6893,12 @@ bool TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
         {
         Ldsym:
             //printf("dsym %s %s\n", sa->kind(), sa->toChars());
+            if (sa->errors)
+            {
+                err = true;
+                continue;
+            }
+
             TupleDeclaration *d = sa->toAlias()->isTupleDeclaration();
             if (d)
             {
