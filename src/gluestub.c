@@ -366,7 +366,7 @@ Library *LibMach_factory()
     return NULL;
 }
 
-Statement *AsmStatement::semantic(Scope *)
+Statement* asmSemantic(AsmStatement *s, Scope *sc)
 {
     assert(0);
     return NULL;
