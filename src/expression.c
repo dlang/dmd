@@ -11890,13 +11890,13 @@ Expression *CatAssignExp::semantic(Scope *sc)
     Type *tb1 = e1->type->toBasetype();
     Type *tb1next = tb1->nextOf();
     Type *tb2 = e2->type->toBasetype();
+    Type *tb2next = tb2->nextOf();
 
     if ((tb1->ty == Tarray) &&
         (tb2->ty == Tarray || tb2->ty == Tsarray) &&
         (e2->implicitConvTo(e1->type)
          || (tb2->nextOf()->implicitConvTo(tb1next) &&
-             (tb2->nextOf()->size(Loc()) == tb1next->size(Loc()) ||
-             tb1next->ty == Tchar || tb1next->ty == Twchar || tb1next->ty == Tdchar))
+             (tb2->nextOf()->size(Loc()) == tb1next->size(Loc())))
         )
        )
     {
@@ -11924,6 +11924,12 @@ Expression *CatAssignExp::semantic(Scope *sc)
         /* Do not allow appending wchar to char[] because if wchar happens
          * to be a surrogate pair, nothing good can result.
          */
+    }
+    else if (tb1->ty == Tarray && (tb2->ty == Tarray || tb2->ty == Tsarray) &&
+        (tb1next->ty == Tchar || tb1next->ty == Twchar || tb1next->ty == Tdchar) &&
+        (tb2next->ty == Tchar || tb2next->ty == Twchar || tb2next->ty == Tdchar))
+    {
+        // Concatenating strings with different character widths together is allowed
     }
     else
     {

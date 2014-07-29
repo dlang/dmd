@@ -110,6 +110,12 @@ SYMBOL_MARS(ARRAYAPPENDCT,  FLfunc,FREGSAVED,"_d_arrayappendcT", 0, tv) \
 SYMBOL_MARS(ARRAYAPPENDCTX, FLfunc,FREGSAVED,"_d_arrayappendcTX", 0, t) \
 SYMBOL_MARS(ARRAYAPPENDCD,  FLfunc,FREGSAVED,"_d_arrayappendcd", 0, t) \
 SYMBOL_MARS(ARRAYAPPENDWD,  FLfunc,FREGSAVED,"_d_arrayappendwd", 0, t) \
+SYMBOL_MARS(ARRAYAPPENDCWA, FLfunc,FREGSAVED,"_d_arrayappendcwa", 0, t) \
+SYMBOL_MARS(ARRAYAPPENDCDA, FLfunc,FREGSAVED,"_d_arrayappendcda", 0, t) \
+SYMBOL_MARS(ARRAYAPPENDWCA, FLfunc,FREGSAVED,"_d_arrayappendwca", 0, t) \
+SYMBOL_MARS(ARRAYAPPENDWDA, FLfunc,FREGSAVED,"_d_arrayappendwda", 0, t) \
+SYMBOL_MARS(ARRAYAPPENDDCA, FLfunc,FREGSAVED,"_d_arrayappenddca", 0, t) \
+SYMBOL_MARS(ARRAYAPPENDDWA, FLfunc,FREGSAVED,"_d_arrayappenddwa", 0, t) \
 SYMBOL_MARS(ARRAYSETLENGTHT,FLfunc,FREGSAVED,"_d_arraysetlengthT", 0, t) \
 SYMBOL_MARS(ARRAYSETLENGTHIT,FLfunc,FREGSAVED,"_d_arraysetlengthiT", 0, t) \
 SYMBOL_MARS(ARRAYCOPY,     FLfunc,FREGSAVED,"_d_arraycopy", 0, t) \

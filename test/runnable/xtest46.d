@@ -1655,6 +1655,29 @@ void test82()
 
 /***************************************************/
 
+void test7942()
+{
+    string a = "a";
+    wstring b = "b";
+    dstring c = "c";
+
+    a ~= "a"c;
+    a ~= "b"w;
+    a ~= "c"d;
+    b ~= "a"c;
+    b ~= "b"w;
+    b ~= "c"d;
+    c ~= "a"c;
+    c ~= "b"w;
+    c ~= "c"d;
+
+    assert(a == "aabc");
+    assert(b == "babc");
+    assert(c == "cabc");
+}
+
+/***************************************************/
+
 void bump(ref int x) { ++x; }
 
 void test83()
@@ -7166,6 +7189,7 @@ int main()
     test6228();
     test3733();
     test4392();
+    test7942();
     test6220();
     test5799();
     test157();
