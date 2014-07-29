@@ -2970,7 +2970,6 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
             if (tf->inuse == 1) tf->inuse--;
 
             Type *t = fparam->type->toBasetype();
-printf("t = %s\n", t->toChars());
 
             if (fparam->storageClass & (STCout | STCref | STClazy))
             {
