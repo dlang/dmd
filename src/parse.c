@@ -3575,7 +3575,7 @@ Statement *Parser::parseStatement(int flags)
             s = parseStatement(PSsemi | PScurlyscope);
             if (global.params.Dversion >= 3 && mod && mod->isRoot())
             {
-                warning(loc, "for D2 use 'synchronized' instead of 'volatile'");
+                warning(loc, "'volatile' is deprecated in D2, consult with module maintainer for appropriate replacement");
             }
             s = new VolatileStatement(loc, s);
             break;
