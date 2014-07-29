@@ -211,6 +211,11 @@ void FuncDeclaration::toObjFile(bool multiobj)
     assert(0);
 }
 
+void Module::genhelpers(bool iscomdat)
+{
+    assert(0);
+}
+
 // msc
 
 void backend_init()
