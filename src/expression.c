@@ -8268,7 +8268,6 @@ Ldotti:
                     e1 = new DotTemplateExp(loc, se->e1, td);
                 else if (OverDeclaration *od = ti->tempdecl->isOverDeclaration())
                 {
-                    printf("call = %s od = %s\n", toChars(), od->toChars());
                     e1 = new DotVarExp(loc, se->e1, od);
                 }
                 else
