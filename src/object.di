@@ -34,7 +34,11 @@ class Object
     string   toString();
     size_t   toHash() @trusted nothrow;
     int      opCmp(Object o);
-    bool     opEquals(Object o);
+
+    bool opEquals(Object o)
+    {
+        return this is o;
+    }
 
     interface Monitor
     {
@@ -45,8 +49,30 @@ class Object
     static Object factory(string classname);
 }
 
-bool opEquals(const Object lhs, const Object rhs);
-bool opEquals(Object lhs, Object rhs);
+bool opEquals(const Object lhs, const Object rhs)
+{
+    // A hack for the moment.
+    return opEquals(cast()lhs, cast()rhs);
+}
+
+bool opEquals(Object lhs, Object rhs)
+{
+    // If aliased to the same object or both null => equal
+    if (lhs is rhs) return true;
+
+    // If either is null => non-equal
+    if (lhs is null || rhs is null) return false;
+
+    // If same exact type => one call to method opEquals
+    if (!__ctfe && // CTFE doesn't like comparing typeid
+        (typeid(lhs) is typeid(rhs) || typeid(lhs).opEquals(typeid(rhs))))
+    {
+        return lhs.opEquals(rhs);
+    }
+
+    // General case => symmetric calls to method opEquals
+    return lhs.opEquals(rhs) && rhs.opEquals(lhs);
+}
 
 void setSameMutex(shared Object ownee, shared Object owner);
 
