@@ -180,7 +180,7 @@ $(DRUNTIME): $(OBJS) $(SRCS)
 UT_MODULES:=$(patsubst src/%.d,$(OBJDIR)/%,$(SRCS))
 HAS_ADDITIONAL_TESTS:=$(shell test -d test && echo 1)
 ifeq ($(HAS_ADDITIONAL_TESTS),1)
-	ADDITIONAL_TESTS:=test/init_fini test/exceptions test/bugzilla
+	ADDITIONAL_TESTS:=test/init_fini test/exceptions
 	ADDITIONAL_TESTS+=$(if $(findstring $(OS),linux),test/shared,)
 endif
 
