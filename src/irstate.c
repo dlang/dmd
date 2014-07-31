@@ -26,6 +26,7 @@ IRState::IRState(IRState *irs, Statement *s)
     contBlock = NULL;
     switchBlock = NULL;
     defaultBlock = NULL;
+    finallyBlock = NULL;
     ident = NULL;
     ehidden = NULL;
     startaddress = NULL;
@@ -60,6 +61,7 @@ IRState::IRState(IRState *irs, Dsymbol *s)
     contBlock = NULL;
     switchBlock = NULL;
     defaultBlock = NULL;
+    finallyBlock = NULL;
     ident = NULL;
     ehidden = NULL;
     startaddress = NULL;
@@ -95,6 +97,7 @@ IRState::IRState(Module *m, Dsymbol *s)
     contBlock = NULL;
     switchBlock = NULL;
     defaultBlock = NULL;
+    finallyBlock = NULL;
     ident = NULL;
     ehidden = NULL;
     shidden = NULL;
@@ -191,6 +194,18 @@ block *IRState::getDefaultBlock()
     {
         if (bc->defaultBlock)
             return bc->defaultBlock;
+    }
+    return NULL;
+}
+
+block *IRState::getFinallyBlock()
+{
+    IRState *bc;
+
+    for (bc = this; bc; bc = bc->prev)
+    {
+        if (bc->finallyBlock)
+            return bc->finallyBlock;
     }
     return NULL;
 }

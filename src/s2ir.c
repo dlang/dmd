@@ -812,17 +812,12 @@ public:
         else
             bc = BCret;
 
-        block *btry = blx->curblock->Btry;
-        if (btry)
+        if (block *finallyBlock = irs->getFinallyBlock())
         {
-            // A finally block is a successor to a return block inside a try-finally
-            if (btry->numSucc() == 2)      // try-finally
-            {
-                block *bfinally = btry->nthSucc(1);
-                assert(bfinally->BC == BC_finally);
-                blx->curblock->appendSucc(bfinally);
-            }
+            assert(finallyBlock->BC == BC_finally);
+            blx->curblock->appendSucc(finallyBlock);
         }
+
         block_next(blx, bc, NULL);
     }
 
@@ -1099,6 +1094,7 @@ public:
         block *contblock = block_calloc(blx);
         tryblock->appendSucc(contblock);
         contblock->BC = BC_finally;
+        bodyirs.finallyBlock = contblock;
 
         if (s->body)
             Statement_toIR(s->body, &bodyirs);
