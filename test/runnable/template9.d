@@ -3821,6 +3821,40 @@ void test13219()
 }
 
 /******************************************/
+// 13223
+
+void test13223()
+{
+    T[] f1(T)(T[] a1, T[] a2)
+    {
+        static assert(is(T == int));
+        return a1 ~ a2;
+    }
+    T[] f2(T)(T[] a1, T[] a2)
+    {
+        static assert(is(T == int));
+        return a1 ~ a2;
+    }
+    int[] a = [1, 2];
+    static assert(is(typeof(f1(a, [])) == int[]));
+    static assert(is(typeof(f2([], a)) == int[]));
+  //static assert(is(typeof(f1(a, null)) == int[]));
+  //static assert(is(typeof(f2(null, a)) == int[]));
+
+    T[] f3(T)(T[] a) { return a; }
+    static assert(is(typeof(f3([])) == void[]));
+  //static assert(is(typeof(f3(null)) == void[]));
+
+    T f4(T)(T a) { return a; }
+    static assert(is(typeof(f4([])) == void[]));
+    static assert(is(typeof(f4(null)) == typeof(null)));
+
+    T[][] f5(T)(T[][] a) { return a; }
+  //static assert(is(typeof(f5([])) == void[]));
+  //static assert(is(typeof(f5(null)) == void[]));
+}
+
+/******************************************/
 
 int main()
 {
