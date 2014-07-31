@@ -113,11 +113,10 @@ struct Scope
     OutBuffer *docbuf;          // buffer for documentation output
 
     static Scope *freelist;
-    static void *operator new(size_t sz);
+    static Scope *alloc();
     static Scope *createGlobal(Module *module);
 
     Scope();
-    Scope(Scope *enclosing);
 
     Scope *copy();
 

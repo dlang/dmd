@@ -270,6 +270,7 @@ Msgtable msgtable[] =
     { "getmembers", "getMembers" },
 
     // Special functions
+    { "__alloca", "alloca" },
     { "main" },
     { "WinMain" },
     { "DllMain" },

@@ -349,9 +349,7 @@ void ClassDeclaration::semantic(Scope *sc)
         // Expand any tuples in baseclasses[]
         for (size_t i = 0; i < baseclasses->dim; )
         {
-            if (!scx)
-                scx = new Scope(*sc);
-            scope = scx;
+            scope = scx ? scx : sc->copy();
             scope->setNoFree();
 
             BaseClass *b = (*baseclasses)[i];
@@ -1335,9 +1333,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
         // Expand any tuples in baseclasses[]
         for (size_t i = 0; i < baseclasses->dim; )
         {
-            if (!scx)
-                scx = new Scope(*sc);
-            scope = scx;
+            scope = scx ? scx : sc->copy();
             scope->setNoFree();
 
             BaseClass *b = (*baseclasses)[i];

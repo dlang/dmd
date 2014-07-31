@@ -6025,9 +6025,15 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
         !semanticTiargs(sc) ||
         !findBestMatch(sc, fargs))
     {
-        inst = this;
-        inst->errors = true;
-        return;             // error recovery
+        if (global.gag)
+        {
+            // Bugzilla 13220: Rollback status for later semantic re-running.
+            semanticRun = PASSinit;
+        }
+        else
+            inst = this;
+        errors = true;
+        return;
     }
     TemplateDeclaration *tempdecl = this->tempdecl->isTemplateDeclaration();
     assert(tempdecl);
@@ -6893,6 +6899,12 @@ bool TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
         {
         Ldsym:
             //printf("dsym %s %s\n", sa->kind(), sa->toChars());
+            if (sa->errors)
+            {
+                err = true;
+                continue;
+            }
+
             TupleDeclaration *d = sa->toAlias()->isTupleDeclaration();
             if (d)
             {
@@ -7149,6 +7161,8 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
 bool TemplateInstance::needsTypeInference(Scope *sc, int flag)
 {
     //printf("TemplateInstance::needsTypeInference() %s\n", toChars());
+    if (semanticRun != PASSinit)
+        return false;
 
   struct ParamNeedsInf
   {
@@ -7273,9 +7287,12 @@ bool TemplateInstance::needsTypeInference(Scope *sc, int flag)
     }
     if (olderrs != global.errors)
     {
-        errorSupplemental(loc, "while looking for match for %s", toChars());
-        semanticRun = PASSsemanticdone;
-        inst = this;
+        if (!global.gag)
+        {
+            errorSupplemental(loc, "while looking for match for %s", toChars());
+            semanticRun = PASSsemanticdone;
+            inst = this;
+        }
         errors = true;
     }
     //printf("false\n");
@@ -8079,7 +8096,7 @@ void TemplateMixin::semantic(Scope *sc)
         }
 
         inst = this;
-        inst->errors = true;
+        errors = true;
         return;         // error recovery
     }
     TemplateDeclaration *tempdecl = this->tempdecl->isTemplateDeclaration();

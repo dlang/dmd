@@ -4105,12 +4105,17 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
 
         dim = dim->optimize(WANTvalue);
         dim = dim->ctfeInterpret();
+        if (dim->op == TOKerror)
+            goto Lerror;
         errors = global.errors;
         dinteger_t d1 = dim->toInteger();
         if (errors != global.errors)
             goto Lerror;
+
         dim = dim->implicitCastTo(sc, tsize_t);
         dim = dim->optimize(WANTvalue);
+        if (dim->op == TOKerror)
+            goto Lerror;
         errors = global.errors;
         dinteger_t d2 = dim->toInteger();
         if (errors != global.errors)
@@ -4746,29 +4751,6 @@ printf("index->ito->ito = x%x\n", index->ito->ito);
             //   AA assumes that its result is consistent with bitwise equality.
             // else:
             //   bitwise equality & hashing
-
-        #if 1
-            /* Note that this diagnostic error report should be removed in near future.
-             * See also bugzilla 13074.
-             */
-
-            // duplicate a part of StructDeclaration::semanticTypeInfoMembers
-            if (sd->xcmp &&
-                sd->xcmp->scope &&
-                sd->xcmp->semanticRun < PASSsemantic3done)
-            {
-                unsigned errors = global.startGagging();
-                sd->xcmp->semantic3(sd->xcmp->scope);
-                if (global.endGagging(errors))
-                    sd->xcmp = sd->xerrcmp;
-            }
-            if (sd->xcmp && sd->xcmp != sd->xerrcmp)
-            {
-                error(loc, "%sAA key type %s now requires equality rather than comparison",
-                    s, sd->toChars());
-                errorSupplemental(loc, "Please define opEquals, or remove opCmp to also rely on default memberwise comparison.");
-            }
-        #endif
         }
         else if (sd->xeq == sd->xerreq)
         {

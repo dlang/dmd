@@ -3767,6 +3767,60 @@ void test13180()
 }
 
 /******************************************/
+// 13218
+
+template isCallable13218(T...)
+    if (T.length == 1)
+{
+    static assert(0);
+}
+
+template ParameterTypeTuple13218(func...)
+    if (func.length == 1 && isCallable13218!func)
+{
+    static assert(0);
+}
+
+struct R13218
+{
+    private static string mangleFuncPtr(ArgTypes...)()
+    {
+        string result = "fnp_";
+        foreach (T; ArgTypes)
+            result ~= T.mangleof;
+        return result;
+    }
+    void function(int) fnp_i;
+    double delegate(double) fnp_d;
+
+    void opAssign(FnT)(FnT func)
+    {
+        mixin(mangleFuncPtr!( ParameterTypeTuple13218!FnT) ~ " = func;");   // parsed as TypeInstance
+      //mixin(mangleFuncPtr!(.ParameterTypeTuple13218!FnT) ~ " = func;");   // parsed as DotTemplateInstanceExp -> works
+    }
+}
+
+/******************************************/
+// 13219
+
+struct Map13219(V) {}
+
+void test13219a(alias F, VA, VB)(Map13219!VA a, Map13219!VB b)
+if (is(VA : typeof(F(VA.init, VB.init))))
+{}
+
+void test13219b(alias F)()
+{
+    test13219a!((a, b) => b)(Map13219!int.init, Map13219!int.init);
+}
+
+void test13219()
+{
+    int x;
+    test13219b!x();
+}
+
+/******************************************/
 
 int main()
 {

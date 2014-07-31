@@ -218,6 +218,20 @@ void testarrayinit()
 
 ///////////////////////
 
+void test13023(ulong n)
+{
+    static void func(bool b) {}
+
+    ulong k = 0;
+
+    func(k >= n / 2);
+
+    if (k >= n / 2)
+        assert(0);
+}
+
+///////////////////////
+
 struct U { int a; union { char c; int d; } long b; }
 
 U f = { b:3, d:2, a:1 };
@@ -1034,6 +1048,27 @@ void test10715()
 
 ////////////////////////////////////////////////////////////////////////
 
+ptrdiff_t compare12164(A12164* rhsPA, A12164* zis)
+{
+    if (*rhsPA == *zis)
+        return 0;
+    return ptrdiff_t.min;
+}
+
+struct A12164
+{
+    int a;
+}
+
+void test12164()
+{
+    auto a = A12164(3);
+    auto b = A12164(2);
+    assert(compare12164(&a, &b));
+}
+
+////////////////////////////////////////////////////////////////////////
+
 int foo10678(char[5] txt)
 {
     return txt[0] + txt[1] + txt[4];
@@ -1084,6 +1119,36 @@ void test7565()
 int bug8525(int[] devt)
 {
     return devt[$ - 1];
+}
+
+////////////////////////////////////////////////////////////////////////
+
+void func13190(int) {}
+
+struct Struct13190
+{
+    ulong a;
+    uint b;
+};
+
+__gshared Struct13190* table13190 =
+[
+    Struct13190(1, 1),
+    Struct13190(0, 2)
+];
+
+void test13190()
+{
+    for (int i = 0; table13190[i].a; i++)
+    {
+        ulong tbl = table13190[i].a;
+        func13190(i);
+        if (1 + tbl)
+        {
+            if (tbl == 0x80000)
+                return;
+        }
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -1147,6 +1212,7 @@ int main()
     testbreak();
     teststringswitch();
     teststrarg();
+    test12164();
     testsizes();
     testarrayinit();
     testU();
@@ -1165,10 +1231,12 @@ int main()
     testandand();
     testor_combine();
     testshrshl();
+    test13190();
     test10639();
     test10715();
     test10678();
     test7565();
+    test13023(0x10_0000_0000);
     test12833();
     test9449();
     test12057();
