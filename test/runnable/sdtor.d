@@ -2395,32 +2395,44 @@ Foo9320 test9320(Foo9320 a, Foo9320 b, Foo9320 c) {
 struct Test9386
 {
     string name;
-    static string op;
+    static char[21] op;
+    static size_t i;
+
+    static @property string sop() { return cast(string)op[0..i]; }
 
     this(string name)
     {
         this.name = name;
         printf("Created %.*s...\n", name.length, name.ptr);
-        op ~= "a";
+        assert(i + 1 < op.length);
+        op[i++] = 'a';
     }
 
     this(this)
     {
         printf("Copied %.*s...\n", name.length, name.ptr);
-        op ~= "b";
+        assert(i + 1 < op.length);
+        op[i++] = 'b';
     }
 
     ~this()
     {
         printf("Deleted %.*s\n", name.length, name.ptr);
-        op ~= "c";
+        assert(i + 1 < op.length);
+        op[i++] = 'c';
+    }
+
+    const int opCmp(ref const Test9386 t)
+    {
+        return op[0] - t.op[0];
     }
 }
 
 void test9386()
 {
     {
-        Test9386.op = null;
+        Test9386.op[] = 0;
+        Test9386.i = 0;
 
         Test9386[] tests =
             [ Test9386("one"),
@@ -2428,30 +2440,33 @@ void test9386()
               Test9386("three"),
               Test9386("four") ];
 
-        assert(Test9386.op == "aaaa");
-        Test9386.op = null;
+        assert(Test9386.sop == "aaaa");
+        Test9386.op[] = 0;
+        Test9386.i = 0;
 
         printf("----\n");
         foreach (Test9386 test; tests)
         {
             printf("\tForeach %.*s\n", test.name.length, test.name.ptr);
-            Test9386.op ~= "x";
+            Test9386.op[Test9386.i++] = 'x';
         }
 
-        assert(Test9386.op == "bxcbxcbxcbxc");
-        Test9386.op = null;
+        assert(Test9386.sop == "bxcbxcbxcbxc");
+        Test9386.op[] = 0;
+        Test9386.i = 0;
 
         printf("----\n");
         foreach (ref Test9386 test; tests)
         {
             printf("\tForeach %.*s\n", test.name.length, test.name.ptr);
-            Test9386.op ~= "x";
+            Test9386.op[Test9386.i++] = 'x';
         }
-        assert(Test9386.op == "xxxx");
+        assert(Test9386.sop == "xxxx");
     }
     printf("====\n");
     {
-        Test9386.op = null;
+        Test9386.op[] = 0;
+        Test9386.i = 0;
 
         Test9386[Test9386] tests =
             [ Test9386("1") : Test9386("one"),
@@ -2459,28 +2474,32 @@ void test9386()
               Test9386("3") : Test9386("three"),
               Test9386("4") : Test9386("four") ];
 
-        assert(Test9386.op == "aaaaaaaa");
-        Test9386.op = null;
+        assert(Test9386.sop == "aaaaaaaa");
+        Test9386.op[] = 0;
+        Test9386.i = 0;
 
         printf("----\n");
         foreach (Test9386 k, Test9386 v; tests)
         {
             printf("\tForeach %.*s : %.*s\n", k.name.length, k.name.ptr,
                                               v.name.length, v.name.ptr);
-            Test9386.op ~= "x";
+            Test9386.op[Test9386.i++] = 'x';
         }
 
-        assert(Test9386.op == "bbxccbbxccbbxccbbxcc");
-        Test9386.op = null;
+        assert(Test9386.sop == "bbxccbbxccbbxccbbxcc");
+        Test9386.op[] = 0;
+        Test9386.i = 0;
 
         printf("----\n");
         foreach (Test9386 k, ref Test9386 v; tests)
         {
             printf("\tForeach %.*s : %.*s\n", k.name.length, k.name.ptr,
                                               v.name.length, v.name.ptr);
-            Test9386.op ~= "x";
+            Test9386.op[Test9386.i++] = 'x';
         }
-        assert(Test9386.op == "bxcbxcbxcbxc");
+        assert(Test9386.sop == "bxcbxcbxcbxc");
+        Test9386.op[] = 0;
+        Test9386.i = 0;
     }
 }
 

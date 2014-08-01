@@ -3599,6 +3599,17 @@ elem *toElem(Expression *e, IRState *irs)
                 case Tpointer:
                     e = addressElem(e, de->e1->type);
                     rtl = RTLSYM_DELMEMORY;
+                    tb = ((TypePointer *)tb)->next->toBasetype();
+                    if (tb->ty == Tstruct)
+                    {
+                        TypeStruct *ts = (TypeStruct *)tb;
+                        if (ts->sym->dtor)
+                        {
+                            rtl = RTLSYM_DELSTRUCT;
+                            elem *et = tb->getTypeInfo(NULL)->toElem(irs);
+                            e = el_params(et, e, NULL);
+                        }
+                    }
                     break;
 
                 default:
