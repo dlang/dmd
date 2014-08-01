@@ -250,7 +250,7 @@ struct Runtime
 
 
     /**
-     * Overrides the default trace mechanism with s user-supplied version.  A
+     * Overrides the default trace mechanism with a user-supplied version.  A
      * trace represents the context from which an exception was thrown, and the
      * trace handler will be called when this occurs.  The pointer supplied to
      * this routine indicates the base address from which tracing should occur.
