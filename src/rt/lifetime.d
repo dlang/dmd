@@ -159,6 +159,24 @@ extern (C) void _d_delclass(Object* p)
     }
 }
 
+/**
+ * This is called for a delete statement where the value
+ * being deleted is a pointer to a struct with a destructor
+ * but doesn't have an overloaded delete operator.
+ */
+extern (C) void _d_delstruct(void** p, TypeInfo_Struct inf)
+{
+    if (*p)
+    {
+        debug(PRINTF) printf("_d_delstruct(%p, %p)\n", *p, cast(void*)inf);
+
+        inf.xdtor(*p);
+
+        GC.free(*p);
+        *p = null;
+    }
+}
+
 /** dummy class used to lock for shared array appending */
 private class ArrayAllocLengthLock
 {}
