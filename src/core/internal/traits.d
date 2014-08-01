@@ -60,13 +60,12 @@ template externDFunc(string fqn, T:FT*, FT) if(is(FT == function))
     {
         import core.demangle : mangleFunc;
         enum decl = {
-            string s = "extern(D) RT bug13050(Args)";
+            string s = "extern(D) RT externDFunc(Args)";
             foreach (attr; __traits(getFunctionAttributes, FT))
                 s ~= " " ~ attr;
             return s ~ ";";
         }();
         pragma(mangle, mangleFunc!T(fqn)) mixin(decl);
-        alias externDFunc = bug13050;
     }
     else
         static assert(0);
