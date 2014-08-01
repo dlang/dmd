@@ -97,7 +97,7 @@ version(OSX)
 
 public import core.sys.osx.mach.kern_return;
 
-extern(C)
+extern(C) nothrow
 {
 
 struct mach_timebase_info_data_t
@@ -809,21 +809,343 @@ public:
 
 
     /++
+        Splits out the Duration into the given units.
+
+        split takes the list of time units to split out as template arguments.
+        The time unit strings must be given in decreasing order. How it returns
+        the values for those units depends on the overload used.
+
+        The overload which accepts function arguments takes integral types in
+        the order that the time unit strings were given, and those integers are
+        passed by $(D ref). split assigns the values for the units to each
+        corresponding integer. Any integral type may be used, but no attempt is
+        made to prevent integer overflow, so don't use small integral types in
+        circumstances where the values for those units aren't likely to fit in
+        an integral type that small.
+
+        The overload with no arguments returns the values for the units in a
+        struct with members whose names are the same as the given time unit
+        strings. The members are all $(D long)s. This overload will also work
+        with no time strings being given, in which case $(I all) of the time
+        units from weeks through hnsecs will be provided (but no nsecs, since it
+        would always be $(D 0)).
+
+        For both overloads, the entire value of the Duration is split among the
+        units (rather than splitting the Duration across all units and then only
+        providing the values for the requested units), so if only one unit is
+        given, the result is equivalent to $(LREF total).
+
+        $(D "nsecs") is accepted by split, but $(D "years") and $(D "months")
+        are not.
+
+        For negative durations, all of the split values will be negative.
+      +/
+    template split(units...)
+        if(allAreAcceptedUnits!("weeks", "days", "hours", "minutes", "seconds",
+                                "msecs", "usecs", "hnsecs", "nsecs")(units) &&
+           unitsAreInDescendingOrder(units))
+    {
+        /++ Ditto +/
+        void split(Args...)(out Args args) @safe const pure nothrow
+            if(units.length != 0 && args.length == units.length && allAreMutableIntegralTypes!Args)
+        {
+            long hnsecs = _hnsecs;
+            foreach(i, unit; units)
+            {
+                static if(unit == "nsecs")
+                    args[i] = cast(typeof(args[i]))convert!("hnsecs", "nsecs")(hnsecs);
+                else
+                    args[i] = cast(typeof(args[i]))splitUnitsFromHNSecs!unit(hnsecs);
+            }
+        }
+
+        /++ Ditto +/
+        auto split() @safe const pure nothrow
+        {
+            static if(units.length == 0)
+                return split!("weeks", "days", "hours", "minutes", "seconds", "msecs", "usecs", "hnsecs")();
+            else
+            {
+                static string genMemberDecls()
+                {
+                    string retval;
+                    foreach(unit; units)
+                    {
+                        retval ~= "long ";
+                        retval ~= unit;
+                        retval ~= "; ";
+                    }
+                    return retval;
+                }
+
+                static struct SplitUnits
+                {
+                    mixin(genMemberDecls);
+                }
+
+                static string genSplitCall()
+                {
+                    auto retval = "split(";
+                    foreach(i, unit; units)
+                    {
+                        retval ~= "su.";
+                        retval ~= unit;
+                        if(i < units.length - 1)
+                            retval ~= ", ";
+                        else
+                            retval ~= ");";
+                    }
+                    return retval;
+                }
+
+                SplitUnits su = void;
+                mixin(genSplitCall());
+                return su;
+            }
+        }
+
+        /+
+            Whether all of the given arguments are integral types.
+          +/
+        private template allAreMutableIntegralTypes(Args...)
+        {
+            static if(Args.length == 0)
+                enum allAreMutableIntegralTypes = true;
+            else static if(!is(Args[0] == long) &&
+                           !is(Args[0] == int) &&
+                           !is(Args[0] == short) &&
+                           !is(Args[0] == byte) &&
+                           !is(Args[0] == ulong) &&
+                           !is(Args[0] == uint) &&
+                           !is(Args[0] == ushort) &&
+                           !is(Args[0] == ubyte))
+            {
+                enum allAreMutableIntegralTypes = false;
+            }
+            else
+                enum allAreMutableIntegralTypes = allAreMutableIntegralTypes!(Args[1 .. $]);
+        }
+
+        unittest
+        {
+            foreach(T; _TypeTuple!(long, int, short, byte, ulong, uint, ushort, ubyte))
+                static assert(allAreMutableIntegralTypes!T);
+            foreach(T; _TypeTuple!(long, int, short, byte, ulong, uint, ushort, ubyte))
+                static assert(!allAreMutableIntegralTypes!(const T));
+            foreach(T; _TypeTuple!(char, wchar, dchar, float, double, real, string))
+                static assert(!allAreMutableIntegralTypes!T);
+            static assert(allAreMutableIntegralTypes!(long, int, short, byte));
+            static assert(!allAreMutableIntegralTypes!(long, int, short, char, byte));
+            static assert(!allAreMutableIntegralTypes!(long, int*, short));
+        }
+    }
+
+    ///
+    unittest
+    {
+        {
+            auto d = dur!"days"(12) + dur!"minutes"(7) + dur!"usecs"(501223);
+            long days;
+            int seconds;
+            short msecs;
+            d.split!("days", "seconds", "msecs")(days, seconds, msecs);
+            assert(days == 12);
+            assert(seconds == 7 * 60);
+            assert(msecs == 501);
+
+            auto splitStruct = d.split!("days", "seconds", "msecs")();
+            assert(splitStruct.days == 12);
+            assert(splitStruct.seconds == 7 * 60);
+            assert(splitStruct.msecs == 501);
+
+            auto fullSplitStruct = d.split();
+            assert(fullSplitStruct.weeks == 1);
+            assert(fullSplitStruct.days == 5);
+            assert(fullSplitStruct.hours == 0);
+            assert(fullSplitStruct.minutes == 7);
+            assert(fullSplitStruct.seconds == 0);
+            assert(fullSplitStruct.msecs == 501);
+            assert(fullSplitStruct.usecs == 223);
+            assert(fullSplitStruct.hnsecs == 0);
+
+            assert(d.split!"minutes"().minutes == d.total!"minutes");
+        }
+
+        {
+            auto d = dur!"days"(12);
+            assert(d.split!"weeks"().weeks == 1);
+            assert(d.split!"days"().days == 12);
+
+            assert(d.split().weeks == 1);
+            assert(d.split().days == 5);
+        }
+
+        {
+            auto d = dur!"days"(7) + dur!"hnsecs"(42);
+            assert(d.split!("seconds", "nsecs")().nsecs == 4200);
+        }
+
+        {
+            auto d = dur!"days"(-7) + dur!"hours"(-9);
+            auto result = d.split!("days", "hours")();
+            assert(result.days == -7);
+            assert(result.hours == -9);
+        }
+    }
+
+    pure nothrow unittest
+    {
+        foreach(D; _TypeTuple!(const Duration, immutable Duration))
+        {
+            D d = dur!"weeks"(3) + dur!"days"(5) + dur!"hours"(19) + dur!"minutes"(7) +
+                  dur!"seconds"(2) + dur!"hnsecs"(1234567);
+            byte weeks;
+            ubyte days;
+            short hours;
+            ushort minutes;
+            int seconds;
+            uint msecs;
+            long usecs;
+            ulong hnsecs;
+            long nsecs;
+
+            d.split!("weeks", "days", "hours", "minutes", "seconds", "msecs", "usecs", "hnsecs", "nsecs")
+                    (weeks, days, hours, minutes, seconds, msecs, usecs, hnsecs, nsecs);
+            assert(weeks == 3);
+            assert(days == 5);
+            assert(hours == 19);
+            assert(minutes == 7);
+            assert(seconds == 2);
+            assert(msecs == 123);
+            assert(usecs == 456);
+            assert(hnsecs == 7);
+            assert(nsecs == 0);
+
+            d.split!("weeks", "days", "hours", "seconds", "usecs")(weeks, days, hours, seconds, usecs);
+            assert(weeks == 3);
+            assert(days == 5);
+            assert(hours == 19);
+            assert(seconds == 422);
+            assert(usecs == 123456);
+
+            d.split!("days", "minutes", "seconds", "nsecs")(days, minutes, seconds, nsecs);
+            assert(days == 26);
+            assert(minutes == 1147);
+            assert(seconds == 2);
+            assert(nsecs == 123456700);
+
+            d.split!("minutes", "msecs", "usecs", "hnsecs")(minutes, msecs, usecs, hnsecs);
+            assert(minutes == 38587);
+            assert(msecs == 2123);
+            assert(usecs == 456);
+            assert(hnsecs == 7);
+
+            {
+                auto result = d.split!("weeks", "days", "hours", "minutes", "seconds",
+                                       "msecs", "usecs", "hnsecs", "nsecs");
+                assert(result.weeks == 3);
+                assert(result.days == 5);
+                assert(result.hours == 19);
+                assert(result.minutes == 7);
+                assert(result.seconds == 2);
+                assert(result.msecs == 123);
+                assert(result.usecs == 456);
+                assert(result.hnsecs == 7);
+                assert(result.nsecs == 0);
+            }
+
+            {
+                auto result = d.split!("weeks", "days", "hours", "seconds", "usecs");
+                assert(result.weeks == 3);
+                assert(result.days == 5);
+                assert(result.hours == 19);
+                assert(result.seconds == 422);
+                assert(result.usecs == 123456);
+            }
+
+            {
+                auto result = d.split!("days", "minutes", "seconds", "nsecs")();
+                assert(result.days == 26);
+                assert(result.minutes == 1147);
+                assert(result.seconds == 2);
+                assert(result.nsecs == 123456700);
+            }
+
+            {
+                auto result = d.split!("minutes", "msecs", "usecs", "hnsecs")();
+                assert(result.minutes == 38587);
+                assert(result.msecs == 2123);
+                assert(result.usecs == 456);
+                assert(result.hnsecs == 7);
+            }
+
+            {
+                auto result = d.split();
+                assert(result.weeks == 3);
+                assert(result.days == 5);
+                assert(result.hours == 19);
+                assert(result.minutes == 7);
+                assert(result.seconds == 2);
+                assert(result.msecs == 123);
+                assert(result.usecs == 456);
+                assert(result.hnsecs == 7);
+                static assert(!is(typeof(result.nsecs)));
+            }
+
+            static assert(!is(typeof(d.split("seconds", "hnsecs")(seconds))));
+            static assert(!is(typeof(d.split("hnsecs", "seconds", "minutes")(hnsecs, seconds, minutes))));
+            static assert(!is(typeof(d.split("hnsecs", "seconds", "msecs")(hnsecs, seconds, msecs))));
+            static assert(!is(typeof(d.split("seconds", "hnecs", "msecs")(seconds, hnsecs, msecs))));
+            static assert(!is(typeof(d.split("seconds", "msecs", "msecs")(seconds, msecs, msecs))));
+            static assert(!is(typeof(d.split("hnsecs", "seconds", "minutes")())));
+            static assert(!is(typeof(d.split("hnsecs", "seconds", "msecs")())));
+            static assert(!is(typeof(d.split("seconds", "hnecs", "msecs")())));
+            static assert(!is(typeof(d.split("seconds", "msecs", "msecs")())));
+            alias _TypeTuple!("nsecs", "hnsecs", "usecs", "msecs", "seconds",
+                              "minutes", "hours", "days", "weeks") timeStrs;
+            foreach(i, str; timeStrs[1 .. $])
+                static assert(!is(typeof(d.split!(timeStrs[i - 1], str)())));
+
+            D nd = -d;
+
+            {
+                auto result = nd.split();
+                assert(result.weeks == -3);
+                assert(result.days == -5);
+                assert(result.hours == -19);
+                assert(result.minutes == -7);
+                assert(result.seconds == -2);
+                assert(result.msecs == -123);
+                assert(result.usecs == -456);
+                assert(result.hnsecs == -7);
+            }
+
+            {
+                auto result = nd.split!("weeks", "days", "hours", "minutes", "seconds", "nsecs")();
+                assert(result.weeks == -3);
+                assert(result.days == -5);
+                assert(result.hours == -19);
+                assert(result.minutes == -7);
+                assert(result.seconds == -2);
+                assert(result.nsecs == -123456700);
+            }
+        }
+    }
+
+
+    /++
+        $(RED Deprecated. Please use $(LREF split) instead. Too frequently,
+              get or one of the individual unit getters is used when the
+              function that gave the desired behavior was $(LREF total). This
+              should make it more explicit and help prevent bugs. This function
+              will be removed in June 2015.)
+
         Returns the number of the given units in this $(D Duration)
         (minus the larger units).
 
-        Examples:
---------------------
-assert(dur!"weeks"(12).get!"weeks"() == 12);
-assert(dur!"weeks"(12).get!"days"() == 0);
-
-assert(dur!"days"(13).get!"weeks"() == 1);
-assert(dur!"days"(13).get!"days"() == 6);
-
-assert(dur!"hours"(49).get!"days"() == 2);
-assert(dur!"hours"(49).get!"hours"() == 1);
---------------------
+        $(D d.get!"minutes"()) is equivalent to $(D d.split().minutes).
       +/
+    deprecated("Please use split instead. get was too frequently confused for total.")
     long get(string units)() @safe const pure nothrow
         if(units == "weeks" ||
            units == "days" ||
@@ -836,63 +1158,63 @@ assert(dur!"hours"(49).get!"hours"() == 1);
         else
         {
             immutable hnsecs = removeUnitsFromHNSecs!(nextLargerTimeUnits!units)(_hnsecs);
-
             return getUnitsFromHNSecs!units(hnsecs);
         }
     }
 
-    //Verify Examples
-    unittest
+    ///
+    deprecated unittest
     {
-        assert(dur!"weeks"(12).get!"weeks"() == 12);
-        assert(dur!"weeks"(12).get!"days"() == 0);
+        assert(dur!"weeks"(12).get!"weeks" == 12);
+        assert(dur!"weeks"(12).get!"days" == 0);
 
-        assert(dur!"days"(13).get!"weeks"() == 1);
-        assert(dur!"days"(13).get!"days"() == 6);
+        assert(dur!"days"(13).get!"weeks" == 1);
+        assert(dur!"days"(13).get!"days" == 6);
 
-        assert(dur!"hours"(49).get!"days"() == 2);
-        assert(dur!"hours"(49).get!"hours"() == 1);
+        assert(dur!"hours"(49).get!"days" == 2);
+        assert(dur!"hours"(49).get!"hours" == 1);
     }
 
-    unittest
+    deprecated unittest
     {
         foreach(D; _TypeTuple!(const Duration, immutable Duration))
         {
-            assert((cast(D)dur!"weeks"(12)).get!"weeks"() == 12);
-            assert((cast(D)dur!"weeks"(12)).get!"days"() == 0);
+            assert((cast(D)dur!"weeks"(12)).get!"weeks" == 12);
+            assert((cast(D)dur!"weeks"(12)).get!"days" == 0);
 
-            assert((cast(D)dur!"days"(13)).get!"weeks"() == 1);
-            assert((cast(D)dur!"days"(13)).get!"days"() == 6);
+            assert((cast(D)dur!"days"(13)).get!"weeks" == 1);
+            assert((cast(D)dur!"days"(13)).get!"days" == 6);
 
-            assert((cast(D)dur!"hours"(49)).get!"days"() == 2);
-            assert((cast(D)dur!"hours"(49)).get!"hours"() == 1);
+            assert((cast(D)dur!"hours"(49)).get!"days" == 2);
+            assert((cast(D)dur!"hours"(49)).get!"hours" == 1);
         }
     }
 
 
     /++
+        $(RED Deprecated. Please use $(LREF split) instead. Too frequently,
+              $(LREF get) or one of the individual unit getters is used when the
+              function that gave the desired behavior was $(LREF total). This
+              should make it more explicit and help prevent bugs. This function
+              will be removed in June 2015.)
+
         Returns the number of weeks in this $(D Duration)
         (minus the larger units).
-
-        Examples:
---------------------
-assert(dur!"weeks"(12).weeks == 12);
-assert(dur!"days"(13).weeks == 1);
---------------------
       +/
+    deprecated(`Please use split instead. The functions which wrapped get were too frequently confused with total.`)
     @property long weeks() @safe const pure nothrow
     {
         return get!"weeks"();
     }
 
-    //Verify Examples
-    unittest
+    ///
+    deprecated unittest
     {
         assert(dur!"weeks"(12).weeks == 12);
         assert(dur!"days"(13).weeks == 1);
     }
 
-    unittest
+    deprecated unittest
     {
         foreach(D; _TypeTuple!(const Duration, immutable Duration))
         {
@@ -903,30 +1225,30 @@ assert(dur!"days"(13).weeks == 1);
 
 
     /++
+        $(RED Deprecated. Please use $(LREF split) instead. Too frequently,
+              $(LREF get) or one of the individual unit getters is used when the
+              function that gave the desired behavior was $(LREF total). This
+              should make it more explicit and help prevent bugs. This function
+              will be removed in June 2015.)
+
         Returns the number of days in this $(D Duration)
         (minus the larger units).
-
-        Examples:
---------------------
-assert(dur!"weeks"(12).days == 0);
-assert(dur!"days"(13).days == 6);
-assert(dur!"hours"(49).days == 2);
---------------------
       +/
+    deprecated(`Please use split instead. days was too frequently confused for total!"days".`)
     @property long days() @safe const pure nothrow
     {
         return get!"days"();
     }
 
-    //Verify Examples.
-    unittest
+    ///
+    deprecated unittest
     {
         assert(dur!"weeks"(12).days == 0);
         assert(dur!"days"(13).days == 6);
         assert(dur!"hours"(49).days == 2);
     }
 
-    unittest
+    deprecated unittest
     {
         foreach(D; _TypeTuple!(const Duration, immutable Duration))
         {
@@ -938,30 +1260,30 @@ assert(dur!"hours"(49).days == 2);
 
 
     /++
+        $(RED Deprecated. Please use $(LREF split) instead. Too frequently,
+              $(LREF get) or one of the individual unit getters is used when the
+              function that gave the desired behavior was $(LREF total). This
+              should make it more explicit and help prevent bugs. This function
+              will be removed in June 2015.)
+
         Returns the number of hours in this $(D Duration)
         (minus the larger units).
-
-        Examples:
---------------------
-assert(dur!"days"(8).hours == 0);
-assert(dur!"hours"(49).hours == 1);
-assert(dur!"minutes"(121).hours == 2);
---------------------
       +/
+    deprecated(`Please use split instead. hours was too frequently confused for total!"hours".`)
     @property long hours() @safe const pure nothrow
     {
         return get!"hours"();
     }
 
-    //Verify Examples.
-    unittest
+    ///
+    deprecated unittest
     {
         assert(dur!"days"(8).hours == 0);
         assert(dur!"hours"(49).hours == 1);
         assert(dur!"minutes"(121).hours == 2);
     }
 
-    unittest
+    deprecated unittest
     {
         foreach(D; _TypeTuple!(const Duration, immutable Duration))
         {
@@ -973,30 +1295,30 @@ assert(dur!"minutes"(121).hours == 2);
 
 
     /++
+        $(RED Deprecated. Please use $(LREF split) instead. Too frequently,
+              $(LREF get) or one of the individual unit getters is used when the
+              function that gave the desired behavior was $(LREF total). This
+              should make it more explicit and help prevent bugs. This function
+              will be removed in June 2015.)
+
         Returns the number of minutes in this $(D Duration)
         (minus the larger units).
-
-        Examples:
---------------------
-assert(dur!"hours"(47).minutes == 0);
-assert(dur!"minutes"(127).minutes == 7);
-assert(dur!"seconds"(121).minutes == 2);
---------------------
       +/
+    deprecated(`Please use split instead. minutes was too frequently confused for total!"minutes".`)
     @property long minutes() @safe const pure nothrow
     {
         return get!"minutes"();
     }
 
-    //Verify Examples.
-    unittest
+    ///
+    deprecated unittest
     {
         assert(dur!"hours"(47).minutes == 0);
         assert(dur!"minutes"(127).minutes == 7);
         assert(dur!"seconds"(121).minutes == 2);
     }
 
-    unittest
+    deprecated unittest
     {
         foreach(D; _TypeTuple!(const Duration, immutable Duration))
         {
@@ -1008,30 +1330,30 @@ assert(dur!"seconds"(121).minutes == 2);
 
 
     /++
+        $(RED Deprecated. Please use $(LREF split) instead. Too frequently,
+              $(LREF get) or one of the individual unit getters is used when the
+              function that gave the desired behavior was $(LREF total). This
+              should make it more explicit and help prevent bugs. This function
+              will be removed in June 2015.)
+
         Returns the number of seconds in this $(D Duration)
         (minus the larger units).
-
-        Examples:
---------------------
-assert(dur!"minutes"(47).seconds == 0);
-assert(dur!"seconds"(127).seconds == 7);
-assert(dur!"msecs"(1217).seconds == 1);
---------------------
       +/
+    deprecated(`Please use split instead. seconds was too frequently confused for total!"seconds".`)
     @property long seconds() @safe const pure nothrow
     {
         return get!"seconds"();
     }
 
-    //Verify Examples.
-    unittest
+    ///
+    deprecated unittest
     {
         assert(dur!"minutes"(47).seconds == 0);
         assert(dur!"seconds"(127).seconds == 7);
         assert(dur!"msecs"(1217).seconds == 1);
     }
 
-    unittest
+    deprecated unittest
     {
         foreach(D; _TypeTuple!(const Duration, immutable Duration))
         {
@@ -1043,23 +1365,15 @@ assert(dur!"msecs"(1217).seconds == 1);
 
 
     /++
-        Returns the fractional seconds passed the second in this $(D Duration).
+        $(RED Deprecated. Please use $(LREF split) instead. Too frequently,
+              $(LREF get) or one of the individual unit getters is used when the
+              function that gave the desired behavior was $(LREF total). This
+              should make it more explicit and help prevent bugs. This function
+              will be removed in June 2015.)
 
-        Examples:
---------------------
-assert(dur!"msecs"(1000).fracSec == FracSec.from!"msecs"(0));
-assert(dur!"msecs"(1217).fracSec == FracSec.from!"msecs"(217));
-assert(dur!"usecs"(43).fracSec == FracSec.from!"usecs"(43));
-assert(dur!"hnsecs"(50_007).fracSec == FracSec.from!"hnsecs"(50_007));
-assert(dur!"nsecs"(62_127).fracSec == FracSec.from!"nsecs"(62_100));
-
-assert(dur!"msecs"(-1000).fracSec == FracSec.from!"msecs"(-0));
-assert(dur!"msecs"(-1217).fracSec == FracSec.from!"msecs"(-217));
-assert(dur!"usecs"(-43).fracSec == FracSec.from!"usecs"(-43));
-assert(dur!"hnsecs"(-50_007).fracSec == FracSec.from!"hnsecs"(-50_007));
-assert(dur!"nsecs"(-62_127).fracSec == FracSec.from!"nsecs"(-62_100));
---------------------
+        Returns the fractional seconds past the second in this $(D Duration).
      +/
+    deprecated(`Please use split instead.`)
     @property FracSec fracSec() @safe const pure nothrow
     {
         try
@@ -1072,8 +1386,8 @@ assert(dur!"nsecs"(-62_127).fracSec == FracSec.from!"nsecs"(-62_100));
             assert(0, "FracSec.from!\"hnsecs\"() threw.");
     }
 
-    //Verify Examples.
-    unittest
+    ///
+    deprecated unittest
     {
         assert(dur!"msecs"(1000).fracSec == FracSec.from!"msecs"(0));
         assert(dur!"msecs"(1217).fracSec == FracSec.from!"msecs"(217));
@@ -1088,7 +1402,7 @@ assert(dur!"nsecs"(-62_127).fracSec == FracSec.from!"nsecs"(-62_100));
         assert(dur!"nsecs"(-62_127).fracSec == FracSec.from!"nsecs"(-62_100));
     }
 
-    unittest
+    deprecated unittest
     {
         foreach(D; _TypeTuple!(const Duration, immutable Duration))
         {
@@ -1109,22 +1423,7 @@ assert(dur!"nsecs"(-62_127).fracSec == FracSec.from!"nsecs"(-62_100));
 
     /++
         Returns the total number of the given units in this $(D Duration).
-        So, unlike $(D get), it does not strip out the larger units.
-
-        Examples:
---------------------
-assert(dur!"weeks"(12).total!"weeks" == 12);
-assert(dur!"weeks"(12).total!"days" == 84);
-
-assert(dur!"days"(13).total!"weeks" == 1);
-assert(dur!"days"(13).total!"days" == 13);
-
-assert(dur!"hours"(49).total!"days" == 2);
-assert(dur!"hours"(49).total!"hours" == 49);
-
-assert(dur!"nsecs"(2007).total!"hnsecs" == 20);
-assert(dur!"nsecs"(2007).total!"nsecs" == 2000);
---------------------
+        So, unlike $(D split), it does not strip out the larger units.
       +/
     @property long total(string units)() @safe const pure nothrow
         if(units == "weeks" ||
@@ -1143,7 +1442,7 @@ assert(dur!"nsecs"(2007).total!"nsecs" == 2000);
             return getUnitsFromHNSecs!units(_hnsecs);
     }
 
-    //Verify Examples.
+    ///
     unittest
     {
         assert(dur!"weeks"(12).total!"weeks" == 12);
@@ -2142,15 +2441,13 @@ struct TickDuration
         Throws:
             $(D TimeException) if it fails to get the time.
       +/
-    static @property TickDuration currSystemTick() @trusted
+    static @property TickDuration currSystemTick() @trusted nothrow
     {
         version(Windows)
         {
             ulong ticks;
-
             if(QueryPerformanceCounter(cast(long*)&ticks) == 0)
-                // This probably cannot happen on Windows 95 or later
-                throw new TimeException("Failed in QueryPerformanceCounter().");
+                assert(0, "Failed in QueryPerformanceCounter().");
 
             return TickDuration(ticks);
         }
@@ -2162,7 +2459,7 @@ struct TickDuration
             {
                 timeval tv;
                 if(gettimeofday(&tv, null) != 0)
-                    throw new TimeException("Failed in gettimeofday().");
+                    assert(0, "Failed in gettimeofday().");
 
                 return TickDuration(tv.tv_sec * TickDuration.ticksPerSec +
                                     tv.tv_usec * TickDuration.ticksPerSec / 1000 / 1000);
@@ -2173,9 +2470,8 @@ struct TickDuration
             static if(is(typeof(clock_gettime)))
             {
                 timespec ts;
-
                 if(clock_gettime(CLOCK_MONOTONIC, &ts) != 0)
-                    throw new TimeException("Failed in clock_gettime().");
+                    assert(0, "Failed in clock_gettime().");
 
                 return TickDuration(ts.tv_sec * TickDuration.ticksPerSec +
                                     ts.tv_nsec * TickDuration.ticksPerSec / 1000 / 1000 / 1000);
@@ -2184,7 +2480,7 @@ struct TickDuration
             {
                 timeval tv;
                 if(gettimeofday(&tv, null) != 0)
-                    throw new TimeException("Failed in gettimeofday().");
+                    assert(0, "Failed in gettimeofday().");
 
                 return TickDuration(tv.tv_sec * TickDuration.ticksPerSec +
                                     tv.tv_usec * TickDuration.ticksPerSec / 1000 / 1000);
@@ -2192,7 +2488,7 @@ struct TickDuration
         }
     }
 
-    unittest
+    @safe nothrow unittest
     {
         assert(TickDuration.currSystemTick.length > 0);
     }
@@ -2974,9 +3270,41 @@ class TimeException : Exception
             line = The line number where the exception occurred.
             next = The previous exception in the chain of exceptions, if any.
       +/
-    @safe pure nothrow this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null)
+    this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null) @safe pure nothrow
     {
         super(msg, file, line, next);
+    }
+
+    /++
+        Params:
+            msg  = The message for the exception.
+            next = The previous exception in the chain of exceptions.
+            file = The file where the exception occurred.
+            line = The line number where the exception occurred.
+      +/
+    this(string msg, Throwable next, string file = __FILE__, size_t line = __LINE__) @safe pure nothrow
+    {
+        super(msg, file, line, next);
+    }
+}
+
+unittest
+{
+    {
+        auto e = new TimeException("hello");
+        assert(e.msg == "hello");
+        assert(e.file == __FILE__);
+        assert(e.line == __LINE__ - 3);
+        assert(e.next is null);
+    }
+
+    {
+        auto next = new Exception("foo");
+        auto e = new TimeException("goodbye", next);
+        assert(e.msg == "goodbye");
+        assert(e.file == __FILE__);
+        assert(e.line == __LINE__ - 3);
+        assert(e.next is next);
     }
 }
 
@@ -2985,13 +3313,13 @@ class TimeException : Exception
 /++
     Returns the absolute value of a duration.
   +/
-Duration abs(Duration duration)
+Duration abs(Duration duration) @safe pure nothrow
 {
     return Duration(_abs(duration._hnsecs));
 }
 
 /++ Ditto +/
-TickDuration abs(TickDuration duration)
+TickDuration abs(TickDuration duration) @safe pure nothrow
 {
     return TickDuration(_abs(duration.length));
 }
@@ -3192,23 +3520,90 @@ unittest
 }
 
 
-/++
-    Whether all of the given strings are valid units of time.
+/+
+    Whether all of the given strings are among the accepted strings.
   +/
-bool validTimeUnits(string[] units...)
+bool allAreAcceptedUnits(acceptedUnits...)(string[] units...)
 {
-    foreach(str; units)
+    foreach(unit; units)
     {
-        switch(str)
+        bool found = false;
+        foreach(acceptedUnit; acceptedUnits)
         {
-            case "years", "months", "weeks", "days", "hours", "minutes", "seconds", "msecs", "usecs", "hnsecs":
-                return true;
-            default:
-                return false;
+            if(unit == acceptedUnit)
+            {
+                found = true;
+                break;
+            }
+        }
+        if(!found)
+            return false;
+    }
+    return true;
+}
+
+unittest
+{
+    assert(allAreAcceptedUnits!("hours", "seconds")("seconds", "hours"));
+    assert(!allAreAcceptedUnits!("hours", "seconds")("minutes", "hours"));
+    assert(!allAreAcceptedUnits!("hours", "seconds")("seconds", "minutes"));
+    assert(allAreAcceptedUnits!("days", "hours", "minutes", "seconds", "msecs")("minutes"));
+    assert(!allAreAcceptedUnits!("days", "hours", "minutes", "seconds", "msecs")("usecs"));
+    assert(!allAreAcceptedUnits!("days", "hours", "minutes", "seconds", "msecs")("secs"));
+}
+
+
+/+
+    Whether the given time unit strings are arranged in order from largest to
+    smallest.
+  +/
+bool unitsAreInDescendingOrder(string[] units...)
+{
+    if(units.length <= 1)
+        return true;
+
+    immutable string[] timeStrings = ["nsecs", "hnsecs", "usecs", "msecs", "seconds",
+                                      "minutes", "hours", "days", "weeks", "months", "years"];
+    size_t currIndex = 42;
+    foreach(i, timeStr; timeStrings)
+    {
+        if(units[0] == timeStr)
+        {
+            currIndex = i;
+            break;
         }
     }
+    assert(currIndex != 42);
 
-    return false;
+    foreach(unit; units[1 .. $])
+    {
+        size_t nextIndex = 42;
+        foreach(i, timeStr; timeStrings)
+        {
+            if(unit == timeStr)
+            {
+                nextIndex = i;
+                break;
+            }
+        }
+        assert(nextIndex != 42);
+
+        if(currIndex <= nextIndex)
+            return false;
+        currIndex = nextIndex;
+    }
+    return true;
+}
+
+unittest
+{
+    assert(unitsAreInDescendingOrder("years", "months", "weeks", "days", "hours", "minutes",
+                                     "seconds", "msecs", "usecs", "hnsecs", "nsecs"));
+    assert(unitsAreInDescendingOrder("weeks", "hours", "msecs"));
+    assert(unitsAreInDescendingOrder("days", "hours", "minutes"));
+    assert(unitsAreInDescendingOrder("hnsecs"));
+    assert(!unitsAreInDescendingOrder("days", "hours", "hours"));
+    assert(!unitsAreInDescendingOrder("days", "hours", "days"));
 }
 
 
@@ -3275,10 +3670,10 @@ unittest
 }
 
 
-/++
+/+
     Local version of abs, since std.math.abs is in Phobos, not druntime.
   +/
-long _abs(long val)
+long _abs(long val) @safe pure nothrow
 {
     return val >= 0 ? val : -val;
 }

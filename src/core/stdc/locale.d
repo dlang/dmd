@@ -109,9 +109,19 @@ else version(Android)
         LC_IDENTIFICATION = 12,
     }
 }
+else version(Solaris)
+{
+    enum LC_CTYPE       = 0;
+    enum LC_NUMERIC     = 1;
+    enum LC_TIME        = 2;
+    enum LC_COLLATE     = 3;
+    enum LC_MONETARY    = 4;
+    enum LC_MESSAGES    = 5;
+    enum LC_ALL         = 6;
+}
 else
 {
-    static assert(false);
+    static assert(false, "Unsupported platform");
 }
 
 @system char*  setlocale(int category, in char* locale);

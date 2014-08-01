@@ -49,9 +49,10 @@ class TypeInfo_Ai : TypeInfo_Array
             len = s2.length;
         for (size_t u = 0; u < len; u++)
         {
-            int result = s1[u] - s2[u];
-            if (result)
-                return result;
+            if (s1[u] < s2[u])
+                return -1;
+            else if (s1[u] > s2[u])
+                return 1;
         }
         if (s1.length < s2.length)
             return -1;
@@ -77,6 +78,16 @@ unittest
     assert(a == [[5,3,8], [5,3,8,7]]);
 }
 
+unittest
+{
+    // Issue 13073: original code uses int subtraction which is susceptible to
+    // integer overflow, causing the following case to fail.
+    int[] a = [int.max, int.max];
+    int[] b = [int.min, int.min];
+    assert(a > b);
+    assert(b < a);
+}
+
 // uint[]
 
 class TypeInfo_Ak : TypeInfo_Ai
@@ -93,9 +104,10 @@ class TypeInfo_Ak : TypeInfo_Ai
             len = s2.length;
         for (size_t u = 0; u < len; u++)
         {
-            int result = s1[u] - s2[u];
-            if (result)
-                return result;
+            if (s1[u] < s2[u])
+                return -1;
+            else if (s1[u] > s2[u])
+                return 1;
         }
         if (s1.length < s2.length)
             return -1;
@@ -108,6 +120,20 @@ class TypeInfo_Ak : TypeInfo_Ai
     {
         return cast(inout)typeid(uint);
     }
+}
+
+unittest
+{
+    // Original test case from issue 13073
+    uint x = 0x22_DF_FF_FF;
+    uint y = 0xA2_DF_FF_FF;
+    assert(!(x < y && y < x));
+    uint[] a = [x];
+    uint[] b = [y];
+    assert(!(a < b && b < a)); // Original failing case
+    uint[1] a1 = [x];
+    uint[1] b1 = [y];
+    assert(!(a1 < b1 && b1 < a1)); // Original failing case
 }
 
 // dchar[]

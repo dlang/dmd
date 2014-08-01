@@ -82,9 +82,11 @@ void[]* initTLSRanges()
 
 void finiTLSRanges(void[]* rng)
 {
+    .free(rng.ptr);
+    .free(rng);
 }
 
-void scanTLSRanges(void[]* rng, scope void delegate(void* pbeg, void* pend) dg)
+void scanTLSRanges(void[]* rng, scope void delegate(void* pbeg, void* pend) nothrow dg) nothrow
 {
     dg(rng.ptr, rng.ptr + rng.length);
 }

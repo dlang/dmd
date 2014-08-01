@@ -105,12 +105,12 @@ version( none )
 version( DigitalMars )
 {
     version( Win32 )
-        version = DigitalMarsWin32;
+        version = DMC_RUNTIME;
     version( Win64 )
-        version = DigitalMarsWin64;     // just to get it to compile for the moment - fix later
+        version = MSVC_RUNTIME;     // just to get it to compile for the moment - fix later
 }
 
-version( DigitalMarsWin32 )
+version( DMC_RUNTIME )
 {
     enum
     {
@@ -179,7 +179,7 @@ version( DigitalMarsWin32 )
     }
   }
 }
-else version( DigitalMarsWin64 )
+else version( MSVC_RUNTIME )
 {
     enum
     {
@@ -951,6 +951,238 @@ version( FreeBSD )
 
     double  fma(double x, double y, double z);
     float   fmaf(float x, float y, float z);
+}
+else version(Android)
+{
+    // Android defines long double as 64 bits, same as double, so several long
+    // double functions are missing.  nexttoward was modified to reflect this.
+    double  acos(double x);
+    float   acosf(float x);
+    //real    acosl(real x);
+
+    double  asin(double x);
+    float   asinf(float x);
+    //real    asinl(real x);
+
+    double  atan(double x);
+    float   atanf(float x);
+    //real    atanl(real x);
+
+    double  atan2(double y, double x);
+    float   atan2f(float y, float x);
+    //real    atan2l(real y, real x);
+
+    double  cos(double x);
+    float   cosf(float x);
+    //real    cosl(real x);
+
+    double  sin(double x);
+    float   sinf(float x);
+    //real    sinl(real x);
+
+    double  tan(double x);
+    float   tanf(float x);
+    //real    tanl(real x);
+
+    double  acosh(double x);
+    float   acoshf(float x);
+    //real    acoshl(real x);
+
+    double  asinh(double x);
+    float   asinhf(float x);
+    //real    asinhl(real x);
+
+    double  atanh(double x);
+    float   atanhf(float x);
+    //real    atanhl(real x);
+
+    double  cosh(double x);
+    float   coshf(float x);
+    //real    coshl(real x);
+
+    double  sinh(double x);
+    float   sinhf(float x);
+    //real    sinhl(real x);
+
+    double  tanh(double x);
+    float   tanhf(float x);
+    //real    tanhl(real x);
+
+    double  exp(double x);
+    float   expf(float x);
+    //real    expl(real x);
+
+    double  exp2(double x);
+    float   exp2f(float x);
+    real    exp2l(real x) { return exp2(x); }
+
+    double  expm1(double x);
+    float   expm1f(float x);
+    //real    expm1l(real x);
+
+    double  frexp(double value, int* exp);
+    float   frexpf(float value, int* exp);
+    // alias for double: real    frexpl(real value, int* exp);
+
+    int     ilogb(double x);
+    int     ilogbf(float x);
+    int     ilogbl(real x) { return ilogb(x); }
+
+    double  ldexp(double x, int exp);
+    float   ldexpf(float x, int exp);
+    // alias for double: real    ldexpl(real x, int exp);
+
+    double  log(double x);
+    float   logf(float x);
+    //real    logl(real x);
+
+    double  log10(double x);
+    float   log10f(float x);
+    //real    log10l(real x);
+
+    double  log1p(double x);
+    float   log1pf(float x);
+    //real    log1pl(real x);
+
+    //double  log2(double x);
+    //float   log2f(float x);
+    //real    log2l(real x);
+
+    double  logb(double x);
+    float   logbf(float x);
+    real    logbl(real x) { return logb(x); }
+
+    double  modf(double value, double* iptr);
+    float   modff(float value, float* iptr);
+    real    modfl(real value, real *iptr) { return modf(value, cast(double*)iptr); }
+
+    double  scalbn(double x, int n);
+    float   scalbnf(float x, int n);
+    // alias for double: real    scalbnl(real x, int n);
+
+    double  scalbln(double x, c_long n);
+    float   scalblnf(float x, c_long n);
+    // alias for double: real    scalblnl(real x, c_long n);
+
+    double  cbrt(double x);
+    float   cbrtf(float x);
+    real    cbrtl(real x) { return cbrt(x); }
+
+    double  fabs(double x);
+    float   fabsf(float x);
+    // alias for double: real    fabsl(real x);
+
+    double  hypot(double x, double y);
+    float   hypotf(float x, float y);
+    //real    hypotl(real x, real y);
+
+    double  pow(double x, double y);
+    float   powf(float x, float y);
+    //real    powl(real x, real y);
+
+    double  sqrt(double x);
+    float   sqrtf(float x);
+    //real    sqrtl(real x);
+
+    double  erf(double x);
+    float   erff(float x);
+    //real    erfl(real x);
+
+    double  erfc(double x);
+    float   erfcf(float x);
+    //real    erfcl(real x);
+
+    double  lgamma(double x);
+    float   lgammaf(float x);
+    //real    lgammal(real x);
+
+    double  tgamma(double x);
+    //float   tgammaf(float x);
+    //real    tgammal(real x);
+
+    double  ceil(double x);
+    float   ceilf(float x);
+    // alias for double: real    ceill(real x);
+
+    double  floor(double x);
+    float   floorf(float x);
+    // alias for double: real    floorl(real x);
+
+    double  nearbyint(double x);
+    float   nearbyintf(float x);
+    real    nearbyintl(real x) { return nearbyint(x); }
+
+    double  rint(double x);
+    float   rintf(float x);
+    //real    rintl(real x);
+
+    c_long  lrint(double x);
+    c_long  lrintf(float x);
+    //c_long  lrintl(real x);
+
+    long    llrint(double x);
+    long    llrintf(float x);
+    //long    llrintl(real x);
+
+    double  round(double x);
+    float   roundf(float x);
+    real    roundl(real x) { return round(x); }
+
+    c_long  lround(double x);
+    c_long  lroundf(float x);
+    // alias for double: c_long  lroundl(real x);
+
+    long    llround(double x);
+    long    llroundf(float x);
+    long    llroundl(real x) { return llround(x); }
+
+    double  trunc(double x);
+    float   truncf(float x);
+    real    truncl(real x) { return trunc(x); }
+
+    double  fmod(double x, double y);
+    float   fmodf(float x, float y);
+    real    fmodl(real x, real y) { return fmod(x,y); }
+
+    double  remainder(double x, double y);
+    float   remainderf(float x, float y);
+    real    remainderl(real x, real y) { return remainder(x,y); }
+
+    double  remquo(double x, double y, int* quo);
+    float   remquof(float x, float y, int* quo);
+    real    remquol(real x, real y, int* quo) { return remquo(x,y,quo); }
+
+    double  copysign(double x, double y);
+    float   copysignf(float x, float y);
+    // alias for double: real    copysignl(real x, real y);
+
+    //double  nan(char* tagp);
+    //float   nanf(char* tagp);
+    //real    nanl(char* tagp);
+
+    double  nextafter(double x, double y);
+    float   nextafterf(float x, float y);
+    // alias for double: real    nextafterl(real x, real y);
+
+    double  nexttoward(double x, double y);
+    float   nexttowardf(float x, double y);
+    // alias for double: real    nexttowardl(real x, real y);
+
+    double  fdim(double x, double y);
+    float   fdimf(float x, float y);
+    // alias for double: real    fdiml(real x, real y);
+
+    double  fmax(double x, double y);
+    float   fmaxf(float x, float y);
+    // alias for double: real    fmaxl(real x, real y);
+
+    double  fmin(double x, double y);
+    float   fminf(float x, float y);
+    // alias for double: real    fminl(real x, real y);
+
+    double  fma(double x, double y, double z);
+    float   fmaf(float x, float y, float z);
+    // alias for double: real    fmal(real x, real y, real z);
 }
 else
 {

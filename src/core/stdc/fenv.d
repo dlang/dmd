@@ -94,6 +94,22 @@ else version( linux )
 
         alias fexcept_t = ushort;
     }
+    // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/arm/bits/fenv.h
+    else version (ARM)
+    {
+        struct fenv_t
+        {
+            uint __cw;
+        }
+
+        alias fexcept_t = uint;
+    }
+    // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/powerpc/bits/fenv.h
+    else version (PPC64)
+    {
+        alias fenv_t = double;
+        alias fexcept_t = uint;
+    }
     else
     {
         static assert(0, "Unimplemented architecture");
@@ -154,6 +170,26 @@ else version( Android )
         static assert(false, "Architecture not supported.");
     }
 }
+else version( Solaris )
+{
+    import core.stdc.config : c_ulong;
+
+    enum FEX_NUM_EXC = 12;
+
+    struct fex_handler_t
+    {
+        int             __mode;
+        void function() __handler;
+    }
+
+    struct fenv_t
+    {
+        fex_handler_t[FEX_NUM_EXC]  __handler;
+        c_ulong                     __fsr;
+    }
+
+    alias int fexcept_t;
+}
 else
 {
     static assert( false, "Unsupported platform" );
@@ -197,6 +233,11 @@ else version( Android )
 {
     private extern const fenv_t __fe_dfl_env;
     const fenv_t* FE_DFL_ENV = &__fe_dfl_env;
+}
+else version( Solaris )
+{
+    private extern const fenv_t __fenv_def_env;
+    const fenv_t* FE_DFL_ENV = &__fenv_def_env;
 }
 else
 {

@@ -7,7 +7,7 @@ DRUNTIMESO:=
 QUIET:=
 
 SRC:=src
-ROOT:=obj/$(OS)/$(MODEL)
+ROOT:=./obj/$(OS)/$(MODEL)
 TESTS:=thread_join runtime_args
 
 ifneq (default,$(MODEL))
@@ -21,7 +21,7 @@ all: $(addprefix $(ROOT)/,$(addsuffix .done,$(TESTS)))
 
 $(ROOT)/%.done: $(ROOT)/%
 	@echo Testing $*
-	$(QUIET)./$(ROOT)/$* $(RUN_ARGS)
+	$(QUIET)$(ROOT)/$* $(RUN_ARGS)
 	@touch $@
 
 $(ROOT)/%: $(SRC)/%.d

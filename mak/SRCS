@@ -3,6 +3,7 @@ SRCS=\
 	\
 	src\core\atomic.d \
 	src\core\bitop.d \
+	src\core\checkedint.d \
 	src\core\cpuid.d \
 	src\core\demangle.d \
 	src\core\exception.d \
@@ -55,6 +56,10 @@ SRCS=\
 	src\core\sys\posix\sys\utsname.d \
 	src\core\sys\posix\netinet\in_.d \
 	src\core\sys\posix\arpa\inet.d \
+	\
+	src\core\sys\solaris\sys\priocntl.d \
+	src\core\sys\solaris\sys\types.d \
+	src\core\sys\solaris\sys\procset.d \
 	\
 	src\core\sys\windows\dbghelp.d \
 	src\core\sys\windows\dll.d \

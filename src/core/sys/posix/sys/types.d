@@ -107,7 +107,11 @@ else version( OSX )
     alias int       blksize_t;
     alias int       dev_t;
     alias uint      gid_t;
-    alias uint      ino_t;
+    version( DARWIN_USE_64_BIT_INODE ) {
+        alias ulong ino_t;
+    } else {
+        alias uint  ino_t;
+    }
     alias ushort    mode_t;
     alias ushort    nlink_t;
     alias long      off_t;
@@ -167,7 +171,7 @@ else version (Solaris)
     }
 
     alias uint blksize_t;
-    alias ulong dev_t;
+    alias c_ulong dev_t;
     alias uid_t gid_t;
     alias uint mode_t;
     alias uint nlink_t;

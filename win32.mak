@@ -50,6 +50,9 @@ $(DOCDIR)\core_atomic.html : src\core\atomic.d
 $(DOCDIR)\core_bitop.html : src\core\bitop.d
 	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
 
+$(DOCDIR)\core_checkedint.html : src\core\checkedint.d
+	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
+
 $(DOCDIR)\core_cpuid.html : src\core\cpuid.d
 	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
 
@@ -71,7 +74,7 @@ $(DOCDIR)\core_runtime.html : src\core\runtime.d
 $(DOCDIR)\core_simd.html : src\core\simd.d
 	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
 
-$(DOCDIR)\core_thread.html : src\core\thread.di
+$(DOCDIR)\core_thread.html : src\core\thread.d
 	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
 
 $(DOCDIR)\core_time.html : src\core\time.d
@@ -138,6 +141,7 @@ copydir: $(IMPDIR)
 	mkdir $(IMPDIR)\core\sys\posix\net
 	mkdir $(IMPDIR)\core\sys\posix\netinet
 	mkdir $(IMPDIR)\core\sys\posix\sys
+	mkdir $(IMPDIR)\core\sys\solaris\sys
 	mkdir $(IMPDIR)\core\sys\windows
 	mkdir $(IMPDIR)\etc\linux
 
@@ -150,6 +154,9 @@ $(IMPDIR)\core\atomic.d : src\core\atomic.d
 	copy $** $@
 
 $(IMPDIR)\core\bitop.d : src\core\bitop.d
+	copy $** $@
+
+$(IMPDIR)\core\checkedint.d : src\core\checkedint.d
 	copy $** $@
 
 $(IMPDIR)\core\cpuid.d : src\core\cpuid.d
@@ -173,7 +180,7 @@ $(IMPDIR)\core\runtime.d : src\core\runtime.d
 $(IMPDIR)\core\simd.d : src\core\simd.d
 	copy $** $@
 
-$(IMPDIR)\core\thread.di : src\core\thread.di
+$(IMPDIR)\core\thread.d : src\core\thread.d
 	copy $** $@
 
 $(IMPDIR)\core\time.d : src\core\time.d
@@ -452,6 +459,15 @@ $(IMPDIR)\core\sys\posix\unistd.d : src\core\sys\posix\unistd.d
 $(IMPDIR)\core\sys\posix\utime.d : src\core\sys\posix\utime.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\solaris\sys\procset.d : src\core\sys\solaris\sys\procset.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\solaris\sys\types.d : src\core\sys\solaris\sys\types.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\solaris\sys\priocntl.d : src\core\sys\solaris\sys\priocntl.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\windows\dbghelp.d : src\core\sys\windows\dbghelp.d
 	copy $** $@
 
@@ -489,7 +505,7 @@ $(DRUNTIME): $(OBJS) $(SRCS) win$(MODEL).mak
 	$(DMD) -lib -of$(DRUNTIME) -Xfdruntime.json $(DFLAGS) $(SRCS) $(OBJS)
 
 unittest : $(SRCS) $(DRUNTIME) src\unittest.d
-	$(DMD) $(UDFLAGS) -L/co -version=druntime_unittest -unittest src\unittest.d $(SRCS) $(DRUNTIME) -debuglib=$(DRUNTIME) -defaultlib=$(DRUNTIME)
+	$(DMD) $(UDFLAGS) -L/co -unittest src\unittest.d $(SRCS) $(DRUNTIME) -debuglib=$(DRUNTIME) -defaultlib=$(DRUNTIME)
 	unittest
 
 zip: druntime.zip

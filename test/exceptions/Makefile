@@ -7,7 +7,7 @@ DRUNTIMESO:=
 QUIET:=
 
 SRC:=src
-ROOT:=obj/$(OS)/$(MODEL)
+ROOT:=./obj/$(OS)/$(MODEL)
 TESTS:=stderr_msg unittest_assert
 
 ifneq (default,$(MODEL))
@@ -21,7 +21,7 @@ all: $(addprefix $(ROOT)/,$(addsuffix .done,$(TESTS)))
 
 $(ROOT)/%.done: $(ROOT)/%
 	@echo Testing $*
-	$(QUIET)./$(ROOT)/$* $(RUN_ARGS)
+	$(QUIET)$(ROOT)/$* $(RUN_ARGS)
 	@touch $@
 
 $(ROOT)/stderr_msg.done: $(ROOT)/stderr_msg

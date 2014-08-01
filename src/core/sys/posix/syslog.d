@@ -17,9 +17,7 @@ module core.sys.posix.syslog;
 
 version (Posix):
 
-extern (C):
-@system:
-nothrow:
+extern (C) nothrow @nogc:
 
 version(linux)
 {

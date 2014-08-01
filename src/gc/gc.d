@@ -19,6 +19,7 @@ module gc.gc;
 
 //debug = PRINTF;               // turn on printf's
 //debug = COLLECT_PRINTF;       // turn on printf's
+//debug = PRINTF_TO_FILE;       // redirect printf's ouptut to file "gcx.log"
 //debug = LOGGING;              // log allocations / frees
 //debug = MEMSTOMP;             // stomp on memory
 //debug = SENTINEL;             // add underrun/overrrun protection
@@ -54,12 +55,33 @@ private alias BlkInfo = core.memory.GC.BlkInfo;
 
 version (GNU) import gcc.builtins;
 
-debug (PRINTF) import core.stdc.stdio : printf;
-debug (CACHE_HITRATE) import core.stdc.stdio : printf;
-debug (COLLECT_PRINTF) import core.stdc.stdio : printf;
+     debug (PRINTF_TO_FILE) import core.stdc.stdio : fprintf, fopen, fflush, FILE;
+else debug (PRINTF) import core.stdc.stdio : printf;
+else debug (CACHE_HITRATE) import core.stdc.stdio : printf;
+else debug (COLLECT_PRINTF) import core.stdc.stdio : printf;
 debug private import core.stdc.stdio;
 
-debug(PRINTF) void printFreeInfo(Pool* pool)
+debug(PRINTF_TO_FILE)
+{
+    import core.time;
+
+    private __gshared TickDuration gcStartTick;
+    private __gshared FILE* gcx_fh;
+
+    private int printf(ARGS...)(const char* fmt, ARGS args) nothrow
+    {
+        if (gcStartTick == TickDuration.zero)
+            gcStartTick = TickDuration.currSystemTick;
+        if (!gcx_fh)
+            gcx_fh = fopen("gcx.log", "w");
+        int len = fprintf(gcx_fh, "%10.6lf: ", (TickDuration.currSystemTick - gcStartTick).to!("seconds", double));
+        len += fprintf(gcx_fh, fmt, args);
+        fflush(gcx_fh);
+        return len;
+    }
+}
+
+debug(PRINTF) void printFreeInfo(Pool* pool) nothrow
 {
     uint nReallyFree;
     foreach(i; 0..pool.npages) {
@@ -97,12 +119,6 @@ private
     extern (C) void rt_finalize2(void* p, bool det, bool resetMemory) nothrow;
     extern (C) int rt_hasFinalizerInSegment(void* p, in void[] segment) nothrow;
 
-    enum IsMarked : int
-    {
-        no,
-        yes,
-        unknown, // memory is not managed by GC, treated as yes by lifetime.processGCMarks
-    }
     enum
     {
         OPFAIL = ~cast(size_t)0
@@ -126,7 +142,7 @@ debug (LOGGING)
         char*  file;
         void*  parent;
 
-        void print()
+        void print() nothrow
         {
             printf("    p = %p, size = %zd, parent = %p ", p, size, parent);
             if (file)
@@ -144,14 +160,14 @@ debug (LOGGING)
         size_t allocdim;
         Log *data;
 
-        void Dtor()
+        void Dtor() nothrow
         {
             if (data)
                 cstdlib.free(data);
             data = null;
         }
 
-        void reserve(size_t nentries)
+        void reserve(size_t nentries) nothrow
         {
             assert(dim <= allocdim);
             if (allocdim - dim < nentries)
@@ -178,20 +194,20 @@ debug (LOGGING)
         }
 
 
-        void push(Log log)
+        void push(Log log) nothrow
         {
             reserve(1);
             data[dim++] = log;
         }
 
-        void remove(size_t i)
+        void remove(size_t i) nothrow
         {
             memmove(data + i, data + i + 1, (dim - i) * Log.sizeof);
             dim--;
         }
 
 
-        size_t find(void *p)
+        size_t find(void *p) nothrow
         {
             for (size_t i = 0; i < dim; i++)
             {
@@ -202,7 +218,7 @@ debug (LOGGING)
         }
 
 
-        void copy(LogArray *from)
+        void copy(LogArray *from) nothrow
         {
             reserve(from.dim - dim);
             assert(from.dim <= allocdim);
@@ -220,7 +236,7 @@ const uint GCVERSION = 1;       // increment every time we change interface
                                 // to GC.
 
 // This just makes Mutex final to de-virtualize member function calls.
-final class GCMutex : Mutex 
+final class GCMutex : Mutex
 {
     // it doesn't make sense to use Exception throwing functions here, because allocating
     //  the exception will try to lock the mutex again, probably resulting in stack overflow
@@ -394,7 +410,7 @@ class GC
     /**
      *
      */
-    void *malloc(size_t size, uint bits = 0, size_t *alloc_size = null) nothrow
+    void *malloc(size_t size, uint bits = 0, size_t *alloc_size = null, const TypeInfo ti = null) nothrow
     {
         if (!size)
         {
@@ -412,7 +428,7 @@ class GC
         // when allocating.
         {
             gcLock.lock();
-            p = mallocNoSync(size, bits, alloc_size);
+            p = mallocNoSync(size, bits, *alloc_size, ti);
             gcLock.unlock();
         }
 
@@ -428,7 +444,7 @@ class GC
     //
     //
     //
-    private void *mallocNoSync(size_t size, uint bits = 0, size_t *alloc_size = null) nothrow
+    private void *mallocNoSync(size_t size, uint bits, ref size_t alloc_size, const TypeInfo ti = null) nothrow
     {
         assert(size != 0);
 
@@ -448,8 +464,7 @@ class GC
 
         if (bin < B_PAGE)
         {
-            if(alloc_size)
-                *alloc_size = binsize[bin];
+            alloc_size = binsize[bin];
             int  state     = gcx.disabled ? 1 : 0;
             bool collected = false;
 
@@ -504,7 +519,7 @@ class GC
             size -= SENTINEL_EXTRA;
             p = sentinel_add(p);
             sentinel_init(p, size);
-            *alloc_size = size;
+            alloc_size = size;
         }
         gcx.log_malloc(p, size);
 
@@ -519,7 +534,7 @@ class GC
     /**
      *
      */
-    void *calloc(size_t size, uint bits = 0, size_t *alloc_size = null) nothrow
+    void *calloc(size_t size, uint bits = 0, size_t *alloc_size = null, const TypeInfo ti = null) nothrow
     {
         if (!size)
         {
@@ -537,7 +552,7 @@ class GC
         // when allocating.
         {
             gcLock.lock();
-            p = mallocNoSync(size, bits, alloc_size);
+            p = mallocNoSync(size, bits, *alloc_size, ti);
             gcLock.unlock();
         }
 
@@ -553,7 +568,7 @@ class GC
     /**
      *
      */
-    void *realloc(void *p, size_t size, uint bits = 0, size_t *alloc_size = null) nothrow
+    void *realloc(void *p, size_t size, uint bits = 0, size_t *alloc_size = null, const TypeInfo ti = null) nothrow
     {
         size_t localAllocSize = void;
         auto oldp = p;
@@ -564,7 +579,7 @@ class GC
         // when allocating.
         {
             gcLock.lock();
-            p = reallocNoSync(p, size, bits, alloc_size);
+            p = reallocNoSync(p, size, bits, *alloc_size, ti);
             gcLock.unlock();
         }
 
@@ -578,9 +593,9 @@ class GC
 
 
     //
+    // bits will be set to the resulting bits of the new block
     //
-    //
-    private void *reallocNoSync(void *p, size_t size, uint bits = 0, size_t *alloc_size = null) nothrow
+    private void *reallocNoSync(void *p, size_t size, ref uint bits, ref size_t alloc_size, const TypeInfo ti = null) nothrow
     {
         if (gcx.running)
             onInvalidMemoryOperationError();
@@ -590,12 +605,11 @@ class GC
             {   freeNoSync(p);
                 p = null;
             }
-            if(alloc_size)
-                *alloc_size = 0;
+            alloc_size = 0;
         }
         else if (!p)
         {
-            p = mallocNoSync(size, bits, alloc_size);
+            p = mallocNoSync(size, bits, alloc_size, ti);
         }
         else
         {   void *p2;
@@ -627,7 +641,7 @@ class GC
                             }
                         }
                     }
-                    p2 = mallocNoSync(size, bits, alloc_size);
+                    p2 = mallocNoSync(size, bits, alloc_size, ti);
                     if (psize < size)
                         size = psize;
                     //debug(PRINTF) printf("\tcopying %d bytes\n",size);
@@ -664,6 +678,8 @@ class GC
                         pool.freepages -= (newsz - psz);
                         debug(PRINTF) printFreeInfo(pool);
                     }
+                    else
+                        goto Lfallthrough; // does not fit into current pool
                     pool.updateOffsets(pagenum);
                     if (bits)
                     {
@@ -671,8 +687,7 @@ class GC
                         gcx.clrBits(pool, biti, ~BlkAttr.NONE);
                         gcx.setBits(pool, biti, bits);
                     }
-                    if(alloc_size)
-                        *alloc_size = newsz * PAGESIZE;
+                    alloc_size = newsz * PAGESIZE;
                     return p;
                     Lfallthrough:
                         {}
@@ -694,15 +709,15 @@ class GC
                             bits = gcx.getBits(pool, biti);
                         }
                     }
-                    p2 = mallocNoSync(size, bits, alloc_size);
+                    p2 = mallocNoSync(size, bits, alloc_size, ti);
                     if (psize < size)
                         size = psize;
                     //debug(PRINTF) printf("\tcopying %d bytes\n",size);
                     memcpy(p2, p, size);
                     p = p2;
                 }
-                else if(alloc_size)
-                    *alloc_size = psize;
+                else
+                    alloc_size = psize;
             }
         }
         return p;
@@ -718,10 +733,10 @@ class GC
      *  0 if could not extend p,
      *  total size of entire memory block if successful.
      */
-    size_t extend(void* p, size_t minsize, size_t maxsize) nothrow
+    size_t extend(void* p, size_t minsize, size_t maxsize, const TypeInfo ti = null) nothrow
     {
         gcLock.lock();
-        auto rc = extendNoSync(p, minsize, maxsize);
+        auto rc = extendNoSync(p, minsize, maxsize, ti);
         gcLock.unlock();
         return rc;
     }
@@ -730,7 +745,7 @@ class GC
     //
     //
     //
-    private size_t extendNoSync(void* p, size_t minsize, size_t maxsize) nothrow
+    private size_t extendNoSync(void* p, size_t minsize, size_t maxsize, const TypeInfo ti = null) nothrow
     in
     {
         assert(minsize <= maxsize);
@@ -1111,7 +1126,7 @@ class GC
     /**
      * add range to scan for roots
      */
-    void addRange(void *p, size_t sz) nothrow
+    void addRange(void *p, size_t sz, const TypeInfo ti = null) nothrow
     {
         if (!p || !sz)
         {
@@ -1121,7 +1136,7 @@ class GC
         //debug(PRINTF) printf("+GC.addRange(p = %p, sz = 0x%zx), p + sz = %p\n", p, sz, p + sz);
 
         gcLock.lock();
-        gcx.addRange(p, p + sz);
+        gcx.addRange(p, p + sz, ti);
         gcLock.unlock();
 
         //debug(PRINTF) printf("-GC.addRange()\n");
@@ -1494,7 +1509,7 @@ struct Gcx
     /**
      *
      */
-    void addRange(void *pbot, void *ptop) nothrow
+    void addRange(void *pbot, void *ptop, const TypeInfo ti) nothrow
     {
         //debug(PRINTF) printf("Thread %x ", pthread_self());
         debug(PRINTF) printf("%p.Gcx::addRange(%p, %p)\n", &this, pbot, ptop);
@@ -1984,13 +1999,7 @@ struct Gcx
         usePools();
 
         {
-            version (Bug7068_FIXED)
-                Pool*[NPOOLS] opools = gcx.pooltable[0 .. NPOOLS];
-            else
-            {
-                Pool*[NPOOLS] opools = void;
-                memcpy(opools.ptr, gcx.pooltable, (Pool*).sizeof * NPOOLS);
-            }
+            Pool*[NPOOLS] opools = gcx.pooltable[0 .. NPOOLS];
             gcx.pooltable[2].freepages = NPAGES;
 
             gcx.minimize();
@@ -2062,7 +2071,7 @@ struct Gcx
      * Allocate a chunk of memory that is larger than a page.
      * Return null if out of memory.
      */
-    void *bigAlloc(size_t size, Pool **poolPtr, size_t *alloc_size = null) nothrow
+    void *bigAlloc(size_t size, Pool **poolPtr, ref size_t alloc_size) nothrow
     {
         debug(PRINTF) printf("In bigAlloc.  Size:  %d\n", size);
 
@@ -2148,8 +2157,7 @@ struct Gcx
         p = pool.baseAddr + pn * PAGESIZE;
         debug(PRINTF) printf("Got large alloc:  %p, pt = %d, np = %d\n", p, pool.pagetable[pn], npages);
         debug (MEMSTOMP) memset(p, 0xF1, size);
-        if(alloc_size)
-            *alloc_size = npages * PAGESIZE;
+        alloc_size = npages * PAGESIZE;
         //debug(PRINTF) printf("\tp = %p\n", p);
 
         *poolPtr = pool;
@@ -2425,7 +2433,7 @@ struct Gcx
         running = 1;
 
         thread_suspendAll();
-        
+
         anychanges = 0;
         for (n = 0; n < npools; n++)
         {

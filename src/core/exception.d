@@ -371,13 +371,13 @@ Gets/sets assert hander. null means the default handler is used.
 alias AssertHandler = void function(string file, size_t line, string msg) nothrow;
 
 /// ditto
-@property AssertHandler assertHandler() @trusted nothrow
+@property AssertHandler assertHandler() @trusted nothrow @nogc
 {
     return _assertHandler;
 }
 
 /// ditto
-@property void assertHandler(AssertHandler handler) @trusted nothrow
+@property void assertHandler(AssertHandler handler) @trusted nothrow @nogc
 {
     _assertHandler = handler;
 }
@@ -390,7 +390,7 @@ alias AssertHandler = void function(string file, size_t line, string msg) nothro
  * Params:
  *  h = The new assert handler.  Set to null to use the default handler.
  */
-deprecated void setAssertHandler( AssertHandler h ) @trusted nothrow
+deprecated void setAssertHandler( AssertHandler h ) @trusted nothrow @nogc
 {
     assertHandler = h;
 }
@@ -509,7 +509,7 @@ extern (C) void onHiddenFuncError( Object o ) @safe pure nothrow
  * Throws:
  *  OutOfMemoryError.
  */
-extern (C) void onOutOfMemoryError(void* pretend_sideffect = null) @trusted pure nothrow /* dmd @@@BUG11461@@@ */
+extern (C) void onOutOfMemoryError(void* pretend_sideffect = null) @trusted pure nothrow @nogc /* dmd @@@BUG11461@@@ */
 {
     // NOTE: Since an out of memory condition exists, no allocation must occur
     //       while generating this object.
@@ -524,7 +524,7 @@ extern (C) void onOutOfMemoryError(void* pretend_sideffect = null) @trusted pure
  * Throws:
  *  InvalidMemoryOperationError.
  */
-extern (C) void onInvalidMemoryOperationError(void* pretend_sideffect = null) @trusted pure nothrow /* dmd @@@BUG11461@@@ */
+extern (C) void onInvalidMemoryOperationError(void* pretend_sideffect = null) @trusted pure nothrow @nogc /* dmd @@@BUG11461@@@ */
 {
     // The same restriction applies as for onOutOfMemoryError. The GC is in an
     // undefined state, thus no allocation must occur while generating this object.

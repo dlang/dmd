@@ -19,7 +19,7 @@ public import core.sys.posix.sys.types; // for ssize_t, size_t
 public import core.sys.posix.sys.uio;   // for iovec
 
 version (Posix):
-extern (C):
+extern (C) nothrow @nogc:
 
 //
 // Required
@@ -1097,6 +1097,15 @@ else version( Android )
         SHUT_WR,
         SHUT_RDWR
     }
+
+    // constants needed for std.socket
+    enum AF_IPX       = 4;
+    enum AF_APPLETALK = 5;
+    enum SOCK_RDM     = 4;
+    enum IPPROTO_IGMP = 2;
+    enum IPPROTO_PUP  = 12;
+    enum IPPROTO_IDP  = 22;
+    enum INADDR_NONE  = 0xFFFFFFFF;
 
     int     accept(int, sockaddr*, socklen_t*);
     int     bind(int, in sockaddr*, int);

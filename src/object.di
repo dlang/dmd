@@ -72,18 +72,18 @@ class TypeInfo
     size_t   getHash(in void* p) @trusted nothrow const;
     bool     equals(in void* p1, in void* p2) const;
     int      compare(in void* p1, in void* p2) const;
-    @property size_t   tsize() nothrow pure const @safe;
+    @property size_t   tsize() nothrow pure const @safe @nogc;
     void     swap(void* p1, void* p2) const;
-    @property inout(TypeInfo) next() nothrow pure inout;
-    const(void)[]   init() nothrow pure const @safe; // TODO: make this a property, but may need to be renamed to diambiguate with T.init...
-    @property uint     flags() nothrow pure const @safe;
+    @property inout(TypeInfo) next() nothrow pure inout @nogc;
+    const(void)[]   init() nothrow pure const @safe @nogc; // TODO: make this a property, but may need to be renamed to diambiguate with T.init...
+    @property uint     flags() nothrow pure const @safe @nogc;
     // 1:    // has possible pointers into GC memory
     const(OffsetTypeInfo)[] offTi() const;
     void destroy(void* p) const;
     void postblit(void* p) const;
-    @property size_t talign() nothrow pure const @safe;
+    @property size_t talign() nothrow pure const @safe @nogc;
     version (X86_64) int argTypes(out TypeInfo arg1, out TypeInfo arg2) @safe nothrow;
-    @property immutable(void)* rtInfo() nothrow pure const @safe;
+    @property immutable(void)* rtInfo() nothrow pure const @safe @nogc;
 }
 
 class TypeInfo_Typedef : TypeInfo
@@ -171,6 +171,7 @@ class TypeInfo_Class : TypeInfo
         hasTypeInfo = 0x20,
         isAbstract = 0x40,
         isCPPclass = 0x80,
+        hasDtor = 0x100,
     }
     ClassFlags m_flags;
     void*       deallocator;
@@ -276,10 +277,21 @@ class MemberInfo_function : MemberInfo
 
 struct ModuleInfo
 {
-const:
     uint _flags;
     uint _index;
 
+    version (all)
+    {
+        deprecated("ModuleInfo cannot be copy-assigned because it is a variable-sized struct.")
+        void opAssign(in ModuleInfo m) { _flags = m._flags; _index = m._index; }
+    }
+    else
+    {
+        @disable this();
+        @disable this(this) const;
+    }
+
+const:
     @property uint index() nothrow pure;
     @property uint flags() nothrow pure;
     @property void function() tlsctor() nothrow pure;
@@ -289,12 +301,11 @@ const:
     @property void function() dtor() nothrow pure;
     @property void function() ictor() nothrow pure;
     @property void function() unitTest() nothrow pure;
-    @property __UnitTest[] unitTests() nothrow;
     @property immutable(ModuleInfo*)[] importedModules() nothrow pure;
     @property TypeInfo_Class[] localClasses() nothrow pure;
     @property string name() nothrow pure;
 
-    static int opApply(scope int delegate(immutable(ModuleInfo*)) dg);
+    static int opApply(scope int delegate(ModuleInfo*) dg);
 }
 
 class Throwable : Object
@@ -353,7 +364,7 @@ extern (C)
 {
     // from druntime/src/rt/aaA.d
 
-    // size_t _aaLen(in void* p) pure nothrow;
+    // size_t _aaLen(in void* p) pure nothrow @nogc;
     // void* _aaGetX(void** pp, const TypeInfo keyti, in size_t valuesize, in void* pkey);
     // inout(void)* _aaGetRvalueX(inout void* p, in TypeInfo keyti, in size_t valuesize, in void* pkey);
     inout(void)[] _aaValues(inout void* p, in size_t keysize, in size_t valuesize) pure nothrow;
@@ -367,22 +378,34 @@ extern (C)
     // int _aaApply2(void* aa, size_t keysize, _dg2_t dg);
 
     private struct AARange { void* impl, current; }
-    AARange _aaRange(void* aa);
-    bool _aaRangeEmpty(AARange r);
-    void* _aaRangeFrontKey(AARange r);
-    void* _aaRangeFrontValue(AARange r);
-    void _aaRangePopFront(ref AARange r);
+    AARange _aaRange(void* aa) pure nothrow @nogc;
+    bool _aaRangeEmpty(AARange r) pure nothrow @nogc;
+    void* _aaRangeFrontKey(AARange r) pure nothrow @nogc;
+    void* _aaRangeFrontValue(AARange r) pure nothrow @nogc;
+    void _aaRangePopFront(ref AARange r) pure nothrow @nogc;
 }
 
 alias AssociativeArray(Key, Value) = Value[Key];
 
-Value[Key] rehash(T : Value[Key], Value, Key)(auto ref T aa)
+T rehash(T : Value[Key], Value, Key)(T aa)
 {
     _aaRehash(cast(void**)&aa, typeid(Value[Key]));
     return aa;
 }
 
-Value[Key] rehash(T : Value[Key], Value, Key)(T* aa)
+T rehash(T : Value[Key], Value, Key)(T* aa)
+{
+    _aaRehash(cast(void**)aa, typeid(Value[Key]));
+    return *aa;
+}
+
+T rehash(T : shared Value[Key], Value, Key)(T aa)
+{
+    _aaRehash(cast(void**)&aa, typeid(Value[Key]));
+    return aa;
+}
+
+T rehash(T : shared Value[Key], Value, Key)(T* aa)
 {
     _aaRehash(cast(void**)aa, typeid(Value[Key]));
     return *aa;
@@ -415,12 +438,13 @@ Value[Key] dup(T : Value[Key], Value, Key)(T* aa) if (is(typeof((*aa).dup)))
 
 Value[Key] dup(T : Value[Key], Value, Key)(T* aa) if (!is(typeof((*aa).dup)));
 
-auto byKey(T : Value[Key], Value, Key)(T aa)
+auto byKey(T : Value[Key], Value, Key)(T aa) pure nothrow @nogc
 {
     static struct Result
     {
         AARange r;
 
+    pure nothrow @nogc:
         @property bool empty() { return _aaRangeEmpty(r); }
         @property ref Key front() { return *cast(Key*)_aaRangeFrontKey(r); }
         void popFront() { _aaRangePopFront(r); }
@@ -430,17 +454,18 @@ auto byKey(T : Value[Key], Value, Key)(T aa)
     return Result(_aaRange(cast(void*)aa));
 }
 
-auto byKey(T : Value[Key], Value, Key)(T *aa)
+auto byKey(T : Value[Key], Value, Key)(T *aa) pure nothrow @nogc
 {
     return (*aa).byKey();
 }
 
-auto byValue(T : Value[Key], Value, Key)(T aa)
+auto byValue(T : Value[Key], Value, Key)(T aa) pure nothrow @nogc
 {
     static struct Result
     {
         AARange r;
 
+    pure nothrow @nogc:
         @property bool empty() { return _aaRangeEmpty(r); }
         @property ref Value front() { return *cast(Value*)_aaRangeFrontValue(r); }
         void popFront() { _aaRangePopFront(r); }
@@ -450,7 +475,7 @@ auto byValue(T : Value[Key], Value, Key)(T aa)
     return Result(_aaRange(cast(void*)aa));
 }
 
-auto byValue(T : Value[Key], Value, Key)(T *aa)
+auto byValue(T : Value[Key], Value, Key)(T *aa) pure nothrow @nogc
 {
     return (*aa).byValue();
 }
@@ -580,55 +605,6 @@ template RTInfo(T)
     enum RTInfo = cast(void*)0x12345678;
 }
 
-version (unittest)
-{
-    string __unittest_toString(T)(ref T value) pure nothrow @trusted
-    {
-        static if (is(T == string))
-            return `"` ~ value ~ `"`;   // TODO: Escape internal double-quotes.
-        else
-        {
-            version (druntime_unittest)
-            {
-                return T.stringof;
-            }
-            else
-            {
-                enum phobos_impl = q{
-                    import std.traits;
-                    alias Unqual!T U;
-                    static if (isFloatingPoint!U)
-                    {
-                        import std.string;
-                        enum format_string = is(U == float) ? "%.7g" :
-                                             is(U == double) ? "%.16g" : "%.20g";
-                        return (cast(string function(...) pure nothrow @safe)&format)(format_string, value);
-                    }
-                    else
-                    {
-                        import std.conv;
-                        alias to!string toString;
-                        alias toString!T f;
-                        return (cast(string function(T) pure nothrow @safe)&f)(value);
-                    }
-                };
-                enum tango_impl = q{
-                    import tango.util.Convert;
-                    alias to!(string, T) f;
-                    return (cast(string function(T) pure nothrow @safe)&f)(value);
-                };
-
-                static if (__traits(compiles, { mixin(phobos_impl); }))
-                    mixin(phobos_impl);
-                else static if (__traits(compiles, { mixin(tango_impl); }))
-                    mixin(tango_impl);
-                else
-                    return T.stringof;
-            }
-        }
-    }
-}
-
 /// Provide the .dup array property.
 @property auto dup(T)(T[] a)
     if (!is(const(T) : T))
@@ -738,14 +714,4 @@ private void _doPostblit(T)(T[] ary)
         foreach (ref el; ary)
             postBlit(cast(void*)&el);
     }
-}
-
-
-struct __UnitTest
-{
-    void function() func;
-    string file;
-    uint line;
-    bool disabled;
-    string name;
 }

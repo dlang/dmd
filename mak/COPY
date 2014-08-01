@@ -2,6 +2,7 @@ COPY=\
 	$(IMPDIR)\object.di \
 	$(IMPDIR)\core\atomic.d \
 	$(IMPDIR)\core\bitop.d \
+	$(IMPDIR)\core\checkedint.d \
 	$(IMPDIR)\core\cpuid.d \
 	$(IMPDIR)\core\demangle.d \
 	$(IMPDIR)\core\exception.d \
@@ -9,7 +10,7 @@ COPY=\
 	$(IMPDIR)\core\memory.d \
 	$(IMPDIR)\core\runtime.d \
 	$(IMPDIR)\core\simd.d \
-	$(IMPDIR)\core\thread.di \
+	$(IMPDIR)\core\thread.d \
 	$(IMPDIR)\core\time.d \
 	$(IMPDIR)\core\vararg.d \
 	\
@@ -112,6 +113,10 @@ COPY=\
 	$(IMPDIR)\core\sys\posix\sys\un.d \
 	$(IMPDIR)\core\sys\posix\sys\wait.d \
 	$(IMPDIR)\core\sys\posix\sys\utsname.d \
+	\
+	$(IMPDIR)\core\sys\solaris\sys\procset.d \
+	$(IMPDIR)\core\sys\solaris\sys\types.d \
+	$(IMPDIR)\core\sys\solaris\sys\priocntl.d \
 	\
 	$(IMPDIR)\core\sys\windows\dbghelp.d \
 	$(IMPDIR)\core\sys\windows\dll.d \

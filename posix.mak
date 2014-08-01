@@ -31,7 +31,11 @@ ifeq (,$(OS))
 endif
 
 ifeq (,$(MODEL))
-  uname_M:=$(shell uname -m)
+  ifeq ($(OS),solaris)
+    uname_M:=$(shell isainfo -n)
+  else
+    uname_M:=$(shell uname -m)
+  endif
   ifneq (,$(findstring $(uname_M),x86_64 amd64))
     MODEL:=64
   endif
@@ -65,11 +69,8 @@ UDFLAGS=$(MODEL_FLAG) -O -release -w -Isrc -Iimport $(PIC)
 DDOCFLAGS=-c -w -o- -Isrc -Iimport -version=CoreDdoc
 
 CFLAGS=$(MODEL_FLAG) -O $(PIC)
-
-ifeq (osx,$(OS))
-    ASMFLAGS =
-else
-    ASMFLAGS = -Wa,--noexecstack
+ifeq (solaris,$(OS))
+    CFLAGS+=-D_REENTRANT  # for thread-safe errno
 endif
 
 OBJDIR=obj/$(MODEL)
@@ -101,7 +102,7 @@ SRCS:=$(subst \,/,$(SRCS))
 # NOTE: a pre-compiled minit.obj has been provided in dmd for Win32	 and
 #       minit.asm is not used by dmd for Linux
 
-OBJS= $(OBJDIR)/errno_c.o $(OBJDIR)/threadasm.o
+OBJS= $(OBJDIR)/errno_c.o $(OBJDIR)/bss_section.o $(OBJDIR)/threadasm.o
 
 ######################## All of'em ##############################
 
@@ -116,9 +117,6 @@ endif
 doc: $(DOCS)
 
 $(DOCDIR)/object.html : src/object_.d
-	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
-
-$(DOCDIR)/core_%.html : src/core/%.di
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
 $(DOCDIR)/core_%.html : src/core/%.d
@@ -159,7 +157,7 @@ $(OBJDIR)/errno_c.o : src/core/stdc/errno.c
 
 $(OBJDIR)/threadasm.o : src/core/threadasm.S
 	@mkdir -p $(OBJDIR)
-	$(CC) $(ASMFLAGS) -c $(CFLAGS) $< -o$@
+	$(CC) -c $(CFLAGS) $< -o$@
 
 ######################## Create a shared library ##############################
 
@@ -201,7 +199,7 @@ $(addprefix $(OBJDIR)/,$(DISABLED_TESTS)) :
 ifneq (linux,$(OS))
 
 $(OBJDIR)/test_runner: $(OBJS) $(SRCS) src/test_runner.d
-	$(DMD) $(UDFLAGS) -version=druntime_unittest -unittest -of$@ src/test_runner.d $(SRCS) $(OBJS) -debuglib= -defaultlib=
+	$(DMD) $(UDFLAGS) -unittest -of$@ src/test_runner.d $(SRCS) $(OBJS) -debuglib= -defaultlib=
 
 else
 
@@ -210,7 +208,7 @@ UT_DRUNTIME:=$(OBJDIR)/lib$(DRUNTIME_BASE)-ut$(DOTDLL)
 $(UT_DRUNTIME): override PIC:=-fPIC
 $(UT_DRUNTIME): UDFLAGS+=-version=Shared
 $(UT_DRUNTIME): $(OBJS) $(SRCS)
-	$(DMD) $(UDFLAGS) -shared -version=druntime_unittest -unittest -of$@ $(SRCS) $(OBJS) -L-ldl -debuglib= -defaultlib=
+	$(DMD) $(UDFLAGS) -shared -unittest -of$@ $(SRCS) $(OBJS) -L-ldl -debuglib= -defaultlib=
 
 $(OBJDIR)/test_runner: $(UT_DRUNTIME) src/test_runner.d
 	$(DMD) $(UDFLAGS) -of$@ src/test_runner.d -L$(UT_DRUNTIME) -debuglib= -defaultlib=
@@ -247,10 +245,11 @@ druntime.zip: $(MANIFEST) $(IMPORTS)
 	zip $@ $^
 
 install: target
-	mkdir -p $(INSTALL_DIR)/import
-	cp -r import/* $(INSTALL_DIR)/import/
-	mkdir -p $(INSTALL_DIR)/lib
-	cp -r lib/* $(INSTALL_DIR)/lib/
+	mkdir -p $(INSTALL_DIR)/src/druntime/import
+	cp -r import/* $(INSTALL_DIR)/src/druntime/import/
+	$(eval lib_dir=$(if $(filter $(OS),osx), lib, lib$(MODEL)))
+	mkdir -p $(INSTALL_DIR)/$(OS)/$(lib_dir)
+	cp -r lib/* $(INSTALL_DIR)/$(OS)/$(lib_dir)/
 	cp LICENSE $(INSTALL_DIR)/druntime-LICENSE.txt
 
 clean: $(addsuffix /.clean,$(ADDITIONAL_TESTS))

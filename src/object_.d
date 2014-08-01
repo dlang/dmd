@@ -27,19 +27,13 @@ private
     import core.memory;
     import rt.util.hash;
     import rt.util.string;
-    import rt.minfo;
     debug(PRINTF) import core.stdc.stdio;
 
-    extern (C) void onOutOfMemoryError(void* pretend_sideffect = null) @trusted pure nothrow; /* dmd @@@BUG11461@@@ */
+    extern (C) void onOutOfMemoryError(void* pretend_sideffect = null) @trusted pure nothrow @nogc; /* dmd @@@BUG11461@@@ */
     extern (C) Object _d_newclass(const TypeInfo_Class ci);
     extern (C) void _d_arrayshrinkfit(const TypeInfo ti, void[] arr) nothrow;
     extern (C) size_t _d_arraysetcapacity(const TypeInfo ti, size_t newcapacity, void *arrptr) pure nothrow;
     extern (C) void rt_finalize(void *data, bool det=true);
-}
-
-version (druntime_unittest)
-{
-    string __unittest_toString(T)(T) { return T.stringof; }
 }
 
 // NOTE: For some reason, this declaration method doesn't work
@@ -268,10 +262,10 @@ class TypeInfo
     bool equals(in void* p1, in void* p2) const { return p1 == p2; }
 
     /// Compares two instances for &lt;, ==, or &gt;.
-    int compare(in void* p1, in void* p2) const { return 0; }
+    int compare(in void* p1, in void* p2) const { return _xopCmp(p1, p2); }
 
     /// Returns size of the type.
-    @property size_t tsize() nothrow pure const @safe { return 0; }
+    @property size_t tsize() nothrow pure const @safe @nogc { return 0; }
 
     /// Swaps two instances of the type.
     void swap(void* p1, void* p2) const
@@ -287,16 +281,16 @@ class TypeInfo
 
     /// Get TypeInfo for 'next' type, as defined by what kind of type this is,
     /// null if none.
-    @property inout(TypeInfo) next() nothrow pure inout { return null; }
+    @property inout(TypeInfo) next() nothrow pure inout @nogc { return null; }
 
     /// Return default initializer.  If the type should be initialized to all zeros,
     /// an array with a null ptr and a length equal to the type size will be returned.
     // TODO: make this a property, but may need to be renamed to diambiguate with T.init...
-    const(void)[] init() nothrow pure const @safe { return null; }
+    const(void)[] init() nothrow pure const @safe @nogc { return null; }
 
     /// Get flags for type: 1 means GC should scan for pointers,
     /// 2 means arg of this type is passed in XMM register
-    @property uint flags() nothrow pure const @safe { return 0; }
+    @property uint flags() nothrow pure const @safe @nogc { return 0; }
 
     /// Get type information on the contents of the type; null if not available
     const(OffsetTypeInfo)[] offTi() const { return null; }
@@ -307,7 +301,7 @@ class TypeInfo
 
 
     /// Return alignment of type
-    @property size_t talign() nothrow pure const @safe { return tsize; }
+    @property size_t talign() nothrow pure const @safe @nogc { return tsize; }
 
     /** Return internal info on arguments fitting into 8byte.
      * See X86-64 ABI 3.2.3
@@ -320,7 +314,7 @@ class TypeInfo
 
     /** Return info used by the garbage collector to do precise collection.
      */
-    @property immutable(void)* rtInfo() nothrow pure const @safe { return null; }
+    @property immutable(void)* rtInfo() nothrow pure const @safe @nogc { return null; }
 }
 
 class TypeInfo_Typedef : TypeInfo
@@ -636,13 +630,6 @@ class TypeInfo_AssociativeArray : TypeInfo
         return !!_aaEqual(this, *cast(const void**) p1, *cast(const void**) p2);
     }
 
-    override int compare(in void* p1, in void* p2) const
-    {
-        // This is a hack to fix Issue 10380 because AA uses
-        // `compare` instead of `equals`.
-        return !equals(p1, p2);
-    }
-
     override hash_t getHash(in void* p) nothrow @trusted const
     {
         return _aaGetHash(cast(void*)p, this);
@@ -860,6 +847,7 @@ class TypeInfo_Class : TypeInfo
         hasTypeInfo = 0x20,
         isAbstract = 0x40,
         isCPPclass = 0x80,
+        hasDtor = 0x100,
     }
     ClassFlags m_flags;
     void*       deallocator;
@@ -1596,20 +1584,30 @@ enum
     MIimportedModules = 0x400,
     MIlocalClasses = 0x800,
     MIname       = 0x1000,
-    MIunitTest2  = 0x2000,
 }
 
 
 struct ModuleInfo
 {
-const:
     uint _flags;
     uint _index; // index into _moduleinfo_array[]
 
+    version (all)
+    {
+        deprecated("ModuleInfo cannot be copy-assigned because it is a variable-sized struct.")
+        void opAssign(in ModuleInfo m) { _flags = m._flags; _index = m._index; }
+    }
+    else
+    {
+        @disable this();
+        @disable this(this) const;
+    }
+
+const:
     private void* addrOf(int flag) nothrow pure
     in
     {
-        assert(flag >= MItlsctor && flag <= MIunitTest2);
+        assert(flag >= MItlsctor && flag <= MIname);
         assert(!(flag & (flag - 1)) && !(flag & ~(flag - 1) << 1));
     }
     body
@@ -1664,16 +1662,7 @@ const:
         if (true || flags & MIname) // always available for now
         {
             if (flag == MIname) return p;
-            auto len = .strlen(cast(immutable char*)p) + 1;
-            //Align p
-            p += len;
-            if (len % (void*).sizeof != 0)
-                p += (void*).sizeof - (len % (void*).sizeof);
-        }
-        if (flags & MIunitTest2)
-        {
-            if (flag == MIunitTest2) return p;
-            p += (__UnitTest[]).sizeof;
+            p += .strlen(cast(immutable char*)p);
         }
         assert(0);
     }
@@ -1712,18 +1701,9 @@ const:
         return flags & MIictor ? *cast(typeof(return)*)addrOf(MIictor) : null;
     }
 
-    /**
-     * Deprecated:
-     * Please use unitTests instead.
-     */
     @property void function() unitTest() nothrow pure
     {
         return flags & MIunitTest ? *cast(typeof(return)*)addrOf(MIunitTest) : null;
-    }
-
-    @property __UnitTest[] unitTests() nothrow
-    {
-        return flags & MIunitTest2 ? *cast(typeof(return)*)addrOf(MIunitTest2) : null;
     }
 
     @property immutable(ModuleInfo*)[] importedModules() nothrow pure
@@ -1756,14 +1736,23 @@ const:
         // return null;
     }
 
-    alias int delegate(immutable(ModuleInfo*)) ApplyDg;
-
-    static int opApply(scope ApplyDg dg)
+    static int opApply(scope int delegate(ModuleInfo*) dg)
     {
-        return rt.minfo.moduleinfos_apply(dg);
+        import rt.minfo;
+        // Bugzilla 13084 - enforcing immutable ModuleInfo would break client code
+        return rt.minfo.moduleinfos_apply(
+            (immutable(ModuleInfo*)m) => dg(cast(ModuleInfo*)m));
     }
 }
 
+unittest
+{
+    ModuleInfo* m1;
+    foreach (m; ModuleInfo)
+    {
+        m1 = m;
+    }
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // Monitor
@@ -1968,7 +1957,7 @@ extern (C)
 {
     // from druntime/src/rt/aaA.d
 
-    // size_t _aaLen(in void* p) pure nothrow;
+    // size_t _aaLen(in void* p) pure nothrow @nogc;
     // void* _aaGetX(void** pp, const TypeInfo keyti, in size_t valuesize, in void* pkey);
     // inout(void)* _aaGetRvalueX(inout void* p, in TypeInfo keyti, in size_t valuesize, in void* pkey);
     inout(void)[] _aaValues(inout void* p, in size_t keysize, in size_t valuesize) pure nothrow;
@@ -1982,11 +1971,11 @@ extern (C)
     // int _aaApply2(void* aa, size_t keysize, _dg2_t dg);
 
     private struct AARange { void* impl, current; }
-    AARange _aaRange(void* aa);
-    bool _aaRangeEmpty(AARange r);
-    void* _aaRangeFrontKey(AARange r);
-    void* _aaRangeFrontValue(AARange r);
-    void _aaRangePopFront(ref AARange r);
+    AARange _aaRange(void* aa) pure nothrow @nogc;
+    bool _aaRangeEmpty(AARange r) pure nothrow @nogc;
+    void* _aaRangeFrontKey(AARange r) pure nothrow @nogc;
+    void* _aaRangeFrontValue(AARange r) pure nothrow @nogc;
+    void _aaRangePopFront(ref AARange r) pure nothrow @nogc;
 
     int _aaEqual(in TypeInfo tiRaw, in void* e1, in void* e2);
     hash_t _aaGetHash(in void* aa, in TypeInfo tiRaw) nothrow;
@@ -1994,13 +1983,25 @@ extern (C)
 
 alias AssociativeArray(Key, Value) = Value[Key];
 
-Value[Key] rehash(T : Value[Key], Value, Key)(auto ref T aa)
+T rehash(T : Value[Key], Value, Key)(T aa)
 {
     _aaRehash(cast(void**)&aa, typeid(Value[Key]));
     return aa;
 }
 
-Value[Key] rehash(T : Value[Key], Value, Key)(T* aa)
+T rehash(T : Value[Key], Value, Key)(T* aa)
+{
+    _aaRehash(cast(void**)aa, typeid(Value[Key]));
+    return *aa;
+}
+
+T rehash(T : shared Value[Key], Value, Key)(T aa)
+{
+    _aaRehash(cast(void**)&aa, typeid(Value[Key]));
+    return aa;
+}
+
+T rehash(T : shared Value[Key], Value, Key)(T* aa)
 {
     _aaRehash(cast(void**)aa, typeid(Value[Key]));
     return *aa;
@@ -2033,12 +2034,13 @@ Value[Key] dup(T : Value[Key], Value, Key)(T* aa) if (is(typeof((*aa).dup)))
 
 Value[Key] dup(T : Value[Key], Value, Key)(T* aa) if (!is(typeof((*aa).dup)));
 
-auto byKey(T : Value[Key], Value, Key)(T aa)
+auto byKey(T : Value[Key], Value, Key)(T aa) pure nothrow @nogc
 {
     static struct Result
     {
         AARange r;
 
+    pure nothrow @nogc:
         @property bool empty() { return _aaRangeEmpty(r); }
         @property ref Key front() { return *cast(Key*)_aaRangeFrontKey(r); }
         void popFront() { _aaRangePopFront(r); }
@@ -2048,17 +2050,18 @@ auto byKey(T : Value[Key], Value, Key)(T aa)
     return Result(_aaRange(cast(void*)aa));
 }
 
-auto byKey(T : Value[Key], Value, Key)(T *aa)
+auto byKey(T : Value[Key], Value, Key)(T *aa) pure nothrow @nogc
 {
     return (*aa).byKey();
 }
 
-auto byValue(T : Value[Key], Value, Key)(T aa)
+auto byValue(T : Value[Key], Value, Key)(T aa) pure nothrow @nogc
 {
     static struct Result
     {
         AARange r;
 
+    pure nothrow @nogc:
         @property bool empty() { return _aaRangeEmpty(r); }
         @property ref Value front() { return *cast(Value*)_aaRangeFrontValue(r); }
         void popFront() { _aaRangePopFront(r); }
@@ -2068,7 +2071,7 @@ auto byValue(T : Value[Key], Value, Key)(T aa)
     return Result(_aaRange(cast(void*)aa));
 }
 
-auto byValue(T : Value[Key], Value, Key)(T *aa)
+auto byValue(T : Value[Key], Value, Key)(T *aa) pure nothrow @nogc
 {
     return (*aa).byValue();
 }
@@ -2106,7 +2109,7 @@ inout(V) get(K, V)(inout(V[K])* aa, K key, lazy inout(V) defaultValue)
     return (*aa).get(key, defaultValue);
 }
 
-unittest
+pure nothrow unittest
 {
     int[int] a;
     foreach (i; a.byKey)
@@ -2119,7 +2122,7 @@ unittest
     }
 }
 
-unittest
+pure /*nothrow @@@BUG5555@@@*/ unittest
 {
     auto a = [ 1:"one", 2:"two", 3:"three" ];
     auto b = a.dup;
@@ -2137,7 +2140,8 @@ unittest
     assert(c[1] == 2);
     assert(c[2] == 3);
 }
-unittest
+
+pure nothrow unittest
 {
     // test for bug 5925
     const a = [4:0];
@@ -2145,7 +2149,7 @@ unittest
     assert(a == b);
 }
 
-unittest
+pure nothrow unittest
 {
     // test for bug 9052
     static struct Json {
@@ -2159,7 +2163,7 @@ unittest
     }
 }
 
-unittest
+pure nothrow unittest
 {
     // test for bug 8583: ensure Slot and aaA are on the same page wrt value alignment
     string[byte]    aa0 = [0: "zero"];
@@ -2175,7 +2179,7 @@ unittest
     assert(aa4.byValue.front == "onetwothreefourfive");
 }
 
-unittest
+pure nothrow unittest
 {
     // test for bug 10720
     static struct NC
@@ -2187,7 +2191,7 @@ unittest
     static assert(!is(aa.nonExistingField));
 }
 
-unittest
+pure nothrow unittest
 {
     // bug 5842
     string[string] test = null;
@@ -2197,7 +2201,7 @@ unittest
     test["test3"] = "test3"; // causes divide by zero if rehash broke the AA
 }
 
-unittest
+pure nothrow unittest
 {
     string[] keys = ["a", "b", "c", "d", "e", "f"];
 
@@ -2278,7 +2282,7 @@ unittest
     }
 }
 
-unittest
+pure nothrow unittest
 {
     // expanded test for 5842: increase AA size past the point where the AA
     // stops using binit, in order to test another code path in rehash.
@@ -2289,6 +2293,13 @@ unittest
         aa.remove(i);
     aa.rehash;
     aa[1] = 1;
+}
+
+pure nothrow unittest
+{
+    // bug 13078
+    shared string[][string] map;
+    map.rehash;
 }
 
 deprecated("Please use destroy instead of clear.")
@@ -3018,7 +3029,7 @@ unittest
     shared(void)[] s = [cast(shared)1];
     immutable(void)[] i = [cast(immutable)2];
 
-    s.dup;
+    s = s.dup;
     static assert(is(typeof(s.dup) == shared(void)[]));
 
     m = i.dup;
@@ -3028,17 +3039,4 @@ unittest
     i = s.idup;
     i = s.dup;
     static assert(!__traits(compiles, m = s.dup));
-}
-
-
-///////////////////////////////////////////////////////////////////////////////
-// Unittest support
-///////////////////////////////////////////////////////////////////////////////
-struct __UnitTest
-{
-    void function() func;
-    string file;
-    uint line;
-    bool disabled;
-    string name;
 }

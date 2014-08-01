@@ -73,13 +73,14 @@ extern (C) Object _d_newclass(const ClassInfo ci)
     else
     {
         // TODO: should this be + 1 to avoid having pointers to the next block?
-        BlkAttr attr = BlkAttr.FINALIZE;
+        BlkAttr attr = BlkAttr.NONE;
         // extern(C++) classes don't have a classinfo pointer in their vtable so the GC can't finalize them
-        if (ci.m_flags & TypeInfo_Class.ClassFlags.isCPPclass)
-            attr &= ~BlkAttr.FINALIZE;
+        if (ci.m_flags & TypeInfo_Class.ClassFlags.hasDtor
+            && !(ci.m_flags & TypeInfo_Class.ClassFlags.isCPPclass))
+            attr |= BlkAttr.FINALIZE;
         if (ci.m_flags & TypeInfo_Class.ClassFlags.noPointers)
             attr |= BlkAttr.NO_SCAN;
-        p = GC.malloc(ci.init.length, attr);
+        p = GC.malloc(ci.init.length, attr, ci);
         debug(PRINTF) printf(" p = %p\n", p);
     }
 
@@ -1001,7 +1002,7 @@ extern (C) void* _d_newitemT(TypeInfo ti)
     else
     {*/
         // allocate a block to hold this item
-        auto ptr = GC.malloc(size, !(ti.next.flags & 1) ? BlkAttr.NO_SCAN : 0);
+        auto ptr = GC.malloc(size, !(ti.next.flags & 1) ? BlkAttr.NO_SCAN : 0, ti);
         debug(PRINTF) printf(" p = %p\n", ptr);
         if(size == ubyte.sizeof)
             *cast(ubyte*)ptr = 0;
@@ -1032,7 +1033,7 @@ extern (C) void* _d_newitemiT(TypeInfo ti)
         auto isize = initializer.length;
         auto q = initializer.ptr;
 
-        auto ptr = GC.malloc(size, !(ti.next.flags & 1) ? BlkAttr.NO_SCAN : 0);
+        auto ptr = GC.malloc(size, !(ti.next.flags & 1) ? BlkAttr.NO_SCAN : 0, ti);
         debug(PRINTF) printf(" p = %p\n", ptr);
         if (isize == 1)
             *cast(ubyte*)ptr =  *cast(ubyte*)q;
@@ -1934,6 +1935,90 @@ extern (C) void[] _d_arrayappendwd(ref byte[] x, dchar c)
     // Once the compiler is fixed, the proper typeinfo should be forwarded.
     //
     return _d_arrayappendT(typeid(shared wchar[]), x, appendthis);
+}
+
+
+/**
+ * Append wchar[] to char[]
+ */
+extern (C) void _d_arrayappendcwa(ref char[] chars, in wchar[] wchars)
+{
+    auto arr = cast(byte[]*)&chars;
+    foreach(dchar c; wchars)
+        *arr = cast(byte[])_d_arrayappendcd(*arr, c);
+}
+
+
+/**
+ * Append dchar[] to char[]
+ */
+extern (C) void _d_arrayappendcda(ref char[] chars, in dchar[] dchars)
+{
+    auto arr = cast(byte[]*)&chars;
+    foreach(dchar c; dchars)
+        *arr = cast(byte[])_d_arrayappendcd(*arr, c);
+}
+
+
+/**
+ * Append char[] to wchar[]
+ */
+extern (C) void _d_arrayappendwca(ref wchar[] wchars, in char[] chars)
+{
+    auto arr = cast(byte[]*)&wchars;
+    foreach(dchar c; chars)
+        *arr = cast(byte[])_d_arrayappendwd(*arr, c);
+}
+
+
+/**
+ * Append dchar[] to wchar[]
+ */
+extern (C) void _d_arrayappendwda(ref wchar[] wchars, in dchar[] dchars)
+{
+    auto arr = cast(byte[]*)&wchars;
+    foreach(dchar c; dchars)
+        *arr = cast(byte[])_d_arrayappendwd(*arr, c);
+}
+
+
+/**
+ * Append char[] to dchar[]
+ */
+extern (C) void _d_arrayappenddca(ref dchar[] dchars, in char[] chars)
+{
+    foreach(dchar c; chars)
+        dchars ~= c;
+}
+
+
+/**
+ * Append wchar[] to dchar[]
+ */
+extern (C) void _d_arrayappenddwa(ref dchar[] dchars, in wchar[] wchars)
+{
+    foreach(dchar c; wchars)
+        dchars ~= c;
+}
+
+
+unittest
+{
+    auto chars = "a"c.dup;
+    auto wchars = "b"w.dup;
+    auto dchars = "c"d.dup;
+
+    _d_arrayappendcwa(chars, "b"w);
+    _d_arrayappendcda(chars, "c"d);
+    assert(chars == "abc");
+
+    _d_arrayappendwca(wchars, "a"c);
+    _d_arrayappendwda(wchars, "c"d);
+    assert(wchars == "bac");
+
+    _d_arrayappenddca(dchars, "a"c);
+    _d_arrayappenddwa(dchars, "b"w);
+    assert(dchars == "cab");
 }
 
 
