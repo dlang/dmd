@@ -25,11 +25,11 @@ private
     alias rt_tlsgc_destroy = externDFunc!("rt.tlsgc.destroy", void function(void*));
 
     alias ScanDg = void delegate(void* pstart, void* pend) nothrow;
-    alias ScanFunc = void function(void*, scope ScanDg) nothrow; // Bug 13049
-    alias rt_tlsgc_scan = externDFunc!("rt.tlsgc.scan", ScanFunc);
+    alias rt_tlsgc_scan =
+        externDFunc!("rt.tlsgc.scan", void function(void*, scope ScanDg) nothrow);
 
-    alias ProcessFunc = void function(void*, scope IsMarkedDg) nothrow; // Bug 13049
-    alias rt_tlsgc_processGCMarks = externDFunc!("rt.tlsgc.processGCMarks", ProcessFunc);
+    alias rt_tlsgc_processGCMarks =
+        externDFunc!("rt.tlsgc.processGCMarks", void function(void*, scope IsMarkedDg) nothrow);
 }
 
 version( Solaris )
