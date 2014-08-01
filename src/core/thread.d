@@ -2027,7 +2027,6 @@ version( Windows )
 
 /**
  * Deregisters the calling thread from use with the runtime.  If this routine
-<<<<<<< HEAD
  * is called for a thread which is not registered, the result is undefined.
  *
  * NOTE: This routine does not run thread-local static destructors when called.
@@ -2036,9 +2035,6 @@ version( Windows )
  *       being detached at some indeterminate time before program termination:
  *
  *       $(D extern(C) void rt_moduleTlsCtor();)
-=======
- * is called for a thread which is not registered, no action is performed.
->>>>>>> master
  */
 extern (C) void thread_detachThis()
 {
@@ -2053,7 +2049,7 @@ extern (C) void thread_detachThis()
  *
  * NOTE: This routine does not run thread-local static destructors when called.
  *       If full functionality as a D thread is desired, the following function
- *       must be called after thread_detachThis, particularly if the thread is
+ *       must be called by the detached thread, particularly if the thread is
  *       being detached at some indeterminate time before program termination:
  *
  *       $(D extern(C) void rt_moduleTlsCtor();)
