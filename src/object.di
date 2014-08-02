@@ -190,7 +190,6 @@ class TypeInfo_Interface : TypeInfo
     ClassInfo info;
 }
 
-alias TypeInfo_Struct StructInfo;
 class TypeInfo_Struct : TypeInfo
 {
     string name;

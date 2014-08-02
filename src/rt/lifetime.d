@@ -170,23 +170,7 @@ extern (C) void _d_delstruct(void** p, TypeInfo_Struct inf)
     if (*p)
     {
         debug(PRINTF) printf("_d_delstruct(%p, %p)\n", *p, cast(void*)inf);
-
-        inf.xdtor(*p);
-
-        GC.free(*p);
-        *p = null;
-    }
-}
-
-/**
- *
- */
-extern (C) void _d_delstruct(void** p, StructInfo inf)
-{
-    if (*p)
-    {
-        debug(PRINTF) printf("_d_delstruct(%p, %p)\n", *p, cast(void*)inf);
-        rt_finalize_struct(*p, inf);
+        rt_finalize_struct(*p);
         GC.free(*p);
         *p = null;
     }
@@ -235,7 +219,7 @@ private class ArrayAllocLengthLock
 bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, const TypeInfo ti, size_t oldlength = ~0) pure nothrow
 {
     bool needToSetTypeInfo = false;
-    if (auto si = cast(const StructInfo)ti.next)
+    if (auto si = cast(const TypeInfo_Struct)ti.next)
     {
         if (si.xdtor)
         {
@@ -277,8 +261,8 @@ bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, co
         }
         if (needToSetTypeInfo)
         {
-            auto typeInfo = cast(StructInfo*)(info.base + info.size - SMALLPAD - size_t.sizeof);
-            *typeInfo = cast(StructInfo)ti.next;
+            auto typeInfo = cast(TypeInfo_Struct*)(info.base + info.size - SMALLPAD - size_t.sizeof);
+            *typeInfo = cast(TypeInfo_Struct)ti.next;
         }
     }
     else if(info.size < PAGESIZE)
@@ -316,8 +300,8 @@ bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, co
         }
         if (needToSetTypeInfo)
         {
-            auto typeInfo = cast(StructInfo*)(info.base + info.size - MEDPAD - size_t.sizeof);
-            *typeInfo = cast(StructInfo)ti.next;
+            auto typeInfo = cast(TypeInfo_Struct*)(info.base + info.size - MEDPAD - size_t.sizeof);
+            *typeInfo = cast(TypeInfo_Struct)ti.next;
         }
     }
     else
@@ -355,8 +339,8 @@ bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, co
         }
         if (needToSetTypeInfo)
         {
-            auto typeInfo = cast(StructInfo*)(info.base + size_t.sizeof);
-            *typeInfo = cast(StructInfo)ti.next;
+            auto typeInfo = cast(TypeInfo_Struct*)(info.base + size_t.sizeof);
+            *typeInfo = cast(TypeInfo_Struct)ti.next;
         }
     }
     return true; // resize succeeded
@@ -378,7 +362,7 @@ void *__arrayStart(BlkInfo info) nothrow pure
 size_t __arrayPad(size_t size, const TypeInfo ti) nothrow pure @trusted
 {
     size_t typeInfoSize = 0;
-    if (auto si = cast(const StructInfo)ti.next)
+    if (auto si = cast(const TypeInfo_Struct)ti.next)
     {
         if (si.xdtor)
             typeInfoSize = size_t.sizeof;
@@ -1056,7 +1040,7 @@ extern (C) void* _d_newitemT(TypeInfo ti)
     auto size = ti.tsize;                  // array element size
     auto baseFlags = !(ti.flags & 1) ? BlkAttr.NO_SCAN : 0;
 	bool needsTypeInfo = false;
-    if (auto si = cast(StructInfo)ti)
+    if (auto si = cast(TypeInfo_Struct)ti)
 	{
         if (si.xdtor !is null)
         {
@@ -1096,7 +1080,7 @@ extern (C) void* _d_newitemiT(TypeInfo ti)
     auto size = ti.tsize;                  // array element size
     auto baseFlags = !(ti.flags & 1) ? BlkAttr.NO_SCAN : 0;
 	bool needsTypeInfo = false;
-    if (auto si = cast(StructInfo)ti)
+    if (auto si = cast(TypeInfo_Struct)ti)
 	{
         if (si.xdtor !is null)
         {
@@ -1270,11 +1254,12 @@ extern (C) int rt_hasFinalizerInSegment(void* p, in void[] segment) nothrow
     return false;
 }
 
-extern (C) int rt_hasStructFinalizerInSegment(void* p, StructInfo inf, in void[] segment) nothrow
+extern (C) int rt_hasStructFinalizerInSegment(void* p, in void[] segment) nothrow
 {
     if(!p)
         return false;
-    
+
+    auto inf = *cast(TypeInfo_Struct*)(p + GC.sizeOf(p) - size_t.sizeof);
     return cast(size_t)(cast(void*)inf.xdtor - segment.ptr) < segment.length;
 }
 
@@ -1283,14 +1268,14 @@ extern (C) int rt_hasArrayFinalizerInSegment(void* p, in void[] segment) nothrow
     if(!p)
         return false;
 
-    StructInfo si = void;
+    TypeInfo_Struct si = void;
     BlkInfo inf = GC.query(p);
     if(inf.size <= 256)
-        si = *cast(StructInfo*)(inf.base + inf.size - SMALLPAD - size_t.sizeof);
+        si = *cast(TypeInfo_Struct*)(inf.base + inf.size - SMALLPAD - size_t.sizeof);
     else if (inf.size < PAGESIZE)
-        si = *cast(StructInfo*)(inf.base + inf.size - MEDPAD - size_t.sizeof);
+        si = *cast(TypeInfo_Struct*)(inf.base + inf.size - MEDPAD - size_t.sizeof);
     else
-        si = *cast(StructInfo*)(inf.base + size_t.sizeof);
+        si = *cast(TypeInfo_Struct*)(inf.base + size_t.sizeof);
 
     return cast(size_t)(cast(void*)si.xdtor - segment.ptr) < segment.length;
 }
@@ -1298,26 +1283,26 @@ extern (C) int rt_hasArrayFinalizerInSegment(void* p, in void[] segment) nothrow
 extern (C) void rt_finalize_array(void* p, bool resetMemory = true) nothrow
 {
     debug(PRINTF) printf("rt_finalize_array(p = %p)\n", p);
-    
+
     if(!p)
         return;
 
     size_t elementCount = void;
-    StructInfo si = void;
+    TypeInfo_Struct si = void;
     BlkInfo inf = GC.query(p);
     if(inf.size <= 256)
     {
-        si = *cast(StructInfo*)(inf.base + inf.size - SMALLPAD - size_t.sizeof);
+        si = *cast(TypeInfo_Struct*)(inf.base + inf.size - SMALLPAD - size_t.sizeof);
         elementCount = *cast(ubyte*)(inf.base + inf.size - SMALLPAD) / si.tsize;
     }
     else if (inf.size < PAGESIZE)
     {
-        si = *cast(StructInfo*)(inf.base + inf.size - MEDPAD - size_t.sizeof);
+        si = *cast(TypeInfo_Struct*)(inf.base + inf.size - MEDPAD - size_t.sizeof);
         elementCount = *cast(ushort*)(inf.base + inf.size - MEDPAD) / si.tsize;
     }
     else
     {
-        si = *cast(StructInfo*)(inf.base + size_t.sizeof);
+        si = *cast(TypeInfo_Struct*)(inf.base + size_t.sizeof);
         elementCount = *cast(size_t*)(inf.base) / si.tsize;
     }
 
@@ -1333,7 +1318,7 @@ extern (C) void rt_finalize_array(void* p, bool resetMemory = true) nothrow
         for (size_t i = 0; i < elementCount; i++, curP -= si.tsize)
         {
             si.xdtor(curP); // call destructor
-            
+
             if(resetMemory)
             {
                 ubyte[] w = cast(ubyte[])si.m_init;
@@ -1350,13 +1335,14 @@ extern (C) void rt_finalize_array(void* p, bool resetMemory = true) nothrow
     }
 }
 
-extern (C) void rt_finalize_struct(void* p, StructInfo inf, bool resetMemory = true) nothrow
+extern (C) void rt_finalize_struct(void* p, bool resetMemory = true) nothrow
 {
     debug(PRINTF) printf("rt_finalize_struct(p = %p)\n", p);
 
     if(!p)
         return;
 
+    auto inf = *cast(TypeInfo_Struct*)(p + GC.sizeOf(p) - size_t.sizeof);
     try
     {
         // Mark it as finalized so that the GC doesn't attempt to
@@ -1364,7 +1350,7 @@ extern (C) void rt_finalize_struct(void* p, StructInfo inf, bool resetMemory = t
         GC.clrAttr(p, BlkAttr.FINALIZE);
         if (inf.xdtor)
             inf.xdtor(p); // call destructor
-        
+
         if(resetMemory)
         {
             ubyte[] w = cast(ubyte[])inf.m_init;
