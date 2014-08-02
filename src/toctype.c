@@ -30,6 +30,11 @@ void slist_add(Symbol *s);
 void slist_reset();
 unsigned totym(Type *tx);
 
+void toDebug(TypedefDeclaration *tdd);
+void toDebug(EnumDeclaration *ed);
+void toDebug(StructDeclaration *sd);
+void toDebug(ClassDeclaration *cd);
+
 /***************************************
  * Convert from D type to C type.
  * This is done so C debug info can be generated.
@@ -160,6 +165,9 @@ public:
             }
         }
 
+        if (global.params.symdebugref)
+            toDebug(t->sym);
+
         //printf("t = %p, Tflags = x%x\n", ctype, ctype->Tflags);
     }
 
@@ -211,6 +219,9 @@ public:
         {
             t->ctype = Type_toCtype(t->sym->memtype);
         }
+        
+        if (global.params.symdebugref)
+            toDebug(t->sym);
 
         //printf("t = %p, Tflags = x%x\n", t, t->Tflags);
     }
@@ -218,6 +229,9 @@ public:
     void visit(TypeTypedef *t)
     {
         t->ctype = Type_toCtype(t->sym->basetype);
+
+        if (global.params.symdebugref)
+            toDebug(t->sym);
     }
 
     void visit(TypeClass *t)
@@ -243,6 +257,8 @@ public:
                 symbol_struct_addField(tc->Ttag, v->ident->toChars(), Type_toCtype(v->type), v->offset);
             }
         }
+        if (global.params.symdebugref)
+            toDebug(t->sym);
     }
 };
 
