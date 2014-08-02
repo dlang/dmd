@@ -195,11 +195,6 @@ struct Interface
 alias TypeInfo_Class Classinfo;
 
 /**
- * Runtime type information about a struct.
- */
-alias TypeInfo_Struct StructInfo;
-
-/**
  * Array of pairs giving the offset and type information for each
  * member in an aggregate.
  */

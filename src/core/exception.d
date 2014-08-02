@@ -186,14 +186,14 @@ unittest
  */
 class StructFinalizeError : Error
 {
-    StructInfo   info;
+    TypeInfo_Struct   info;
     
-    @safe pure nothrow this( StructInfo si, Throwable next, string file = __FILE__, size_t line = __LINE__ )
+    @safe pure nothrow this( TypeInfo_Struct si, Throwable next, string file = __FILE__, size_t line = __LINE__ )
     {
         this(si, file, line, next);
     }
     
-    @safe pure nothrow this( StructInfo si, string file = __FILE__, size_t line = __LINE__, Throwable next = null )
+    @safe pure nothrow this( TypeInfo_Struct si, string file = __FILE__, size_t line = __LINE__, Throwable next = null )
     {
         super( "Finalization error", file, line, next );
         info = si;
@@ -207,7 +207,7 @@ class StructFinalizeError : Error
 
 unittest
 {
-    StructInfo info = new StructInfo;
+    TypeInfo_Struct info = new TypeInfo_Struct;
     info.name = "testInfo";
     
     {
@@ -557,7 +557,7 @@ extern (C) void onFinalizeError( ClassInfo info, Throwable e, string file = __FI
  * A callback for struct finalize errors in D.  A StructFinalizeError will be thrown.
  *
  * Params:
- *  info = The StructInfo instance for the object that failed finalization.
+ *  info = The TypeInfo_Struct instance for the object that failed finalization.
  *  e = The exception thrown during finalization.
  *  file = The name of the file that signaled this error.
  *  line = The line number on which this error occurred.
@@ -565,7 +565,7 @@ extern (C) void onFinalizeError( ClassInfo info, Throwable e, string file = __FI
  * Throws:
  *  FinalizeError.
  */
-extern (C) void onStructFinalizeError( StructInfo info, Throwable e, string file = __FILE__, size_t line = __LINE__ ) @safe pure nothrow
+extern (C) void onStructFinalizeError( TypeInfo_Struct info, Throwable e, string file = __FILE__, size_t line = __LINE__ ) @safe pure nothrow
 {
     throw new StructFinalizeError( info, file, line, e );
 }
