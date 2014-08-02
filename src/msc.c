@@ -89,7 +89,7 @@ void backend_init()
 #endif
 
     out_config_init(
-        params->is64bit ? 64 : 32,
+        (params->is64bit ? 64 : 32) | params->objfmt,
         exe,
         false, //params->trace,
         params->nofloat,

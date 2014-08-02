@@ -64,6 +64,8 @@ void out_config_init(
     config.memmodel = 0;
     config.flags |= CFGuchar;   // make sure TYchar is unsigned
     tytab[TYchar] |= TYFLuns;
+    config.objfmt = model & 0x1f;
+    model &= ~0x1f;
 #if TARGET_WINDOS
     if (model == 64)
     {   config.exe = EX_WIN64;
@@ -189,7 +191,7 @@ void out_config_init(
         config.fulltypes = (symdebug == 1) ? CVDWARF_D : CVDWARF_C;
 #endif
 #if SYMDEB_CODEVIEW
-        if (model == 64)
+        if (config.objfmt == OBJ_COFF)
         {
             configv.addlinenumbers = 1;
             config.fulltypes = CV8;

@@ -238,8 +238,8 @@ void obj_start(char *srcfile)
 #if TARGET_WINDOS
     // Produce Ms COFF files for 64 bit code, OMF for 32 bit code
     assert(objbuf.size() == 0);
-    objmod = global.params.is64bit ? MsCoffObj::init(&objbuf, srcfile, NULL)
-                                   :       Obj::init(&objbuf, srcfile, NULL);
+    objmod = global.params.objfmt == OBJ_COFF ? MsCoffObj::init(&objbuf, srcfile, NULL)
+                                              :       Obj::init(&objbuf, srcfile, NULL);
 #else
     objmod = Obj::init(&objbuf, srcfile, NULL);
 #endif
@@ -904,7 +904,7 @@ void FuncDeclaration::toObjFile(bool multiobj)
             objmod->ehsections();   // initialize exception handling sections
 #endif
 #if TARGET_WINDOS
-            if (I64)
+            if (global.params.objfmt == OBJ_COFF)
             {
                 objmod->external_def("main");
                 objmod->ehsections();   // initialize exception handling sections
@@ -921,7 +921,7 @@ void FuncDeclaration::toObjFile(bool multiobj)
         else if (strcmp(s->Sident, "main") == 0 && linkage == LINKc)
         {
 #if TARGET_WINDOS
-            if (I64)
+            if (global.params.objfmt == OBJ_COFF)
             {
                 objmod->includelib("LIBCMT");
                 objmod->includelib("OLDNAMES");
@@ -937,7 +937,7 @@ void FuncDeclaration::toObjFile(bool multiobj)
 #if TARGET_WINDOS
         else if (func->isWinMain() && onlyOneMain(loc))
         {
-            if (I64)
+            if (global.params.objfmt == OBJ_COFF)
             {
                 objmod->includelib("uuid");
                 objmod->includelib("LIBCMT");
@@ -955,7 +955,7 @@ void FuncDeclaration::toObjFile(bool multiobj)
         // Pull in RTL startup code
         else if (func->isDllMain() && onlyOneMain(loc))
         {
-            if (I64)
+            if (global.params.objfmt == OBJ_COFF)
             {
                 objmod->includelib("uuid");
                 objmod->includelib("LIBCMT");

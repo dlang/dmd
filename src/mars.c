@@ -40,7 +40,11 @@
 #include "doc.h"
 #include "color.h"
 
+#include "backend/cdef.h"
+
 bool response_expand(size_t *pargc, const char ***pargv);
+
+
 void browse(const char *url);
 void getenv_setargv(const char *envvar, size_t *pargc, const char** *pargv);
 
@@ -49,7 +53,7 @@ void obj_end(Library *library, File *objfile);
 
 void printCtfePerformanceStats();
 
-static bool parse_arch(size_t argc, const char** argv, bool is64bit);
+static const char* parse_arch(size_t argc, const char** argv, const char* arch);
 
 void inlineScan(Module *m);
 
@@ -595,11 +599,14 @@ int tryMain(size_t argc, const char *argv[])
     global.params.is64bit = (sizeof(size_t) == 8);
 
 #if TARGET_WINDOS
+	global.params.objfmt = OBJ_OMF;
     global.params.is64bit = false;
     global.params.defaultlibname = "phobos";
 #elif TARGET_LINUX
+	global.params.objfmt = OBJ_ELF;
     global.params.defaultlibname = "libphobos2.a";
 #elif TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+	global.params.objfmt = OBJ_MACH;
     global.params.defaultlibname = "phobos2";
 #else
 #error "fix this"
@@ -654,13 +661,13 @@ int tryMain(size_t argc, const char *argv[])
     const char** dflags_argv = NULL;
     getenv_setargv("DFLAGS", &dflags_argc, &dflags_argv);
 
-    bool is64bit = global.params.is64bit; // use default
-    is64bit = parse_arch(argc, argv, is64bit);
-    is64bit = parse_arch(dflags_argc, dflags_argv, is64bit);
-    global.params.is64bit = is64bit;
+    const char *arch = global.params.is64bit ? "64" : "32"; // use default
+    arch = parse_arch(argc, argv, arch);
+    arch = parse_arch(dflags_argc, dflags_argv, arch);
+    bool is64bit = arch[0] == '6';
 
-    const char *envsec = is64bit ? "Environment64" : "Environment32";
-    inifile(argv[0], inifilename, envsec);
+    char envsection[80] = "Environment";
+    inifile(argv[0], inifilename, strcat(envsection, arch));
 
     getenv_setargv("DFLAGS", &argc, &argv);
 
@@ -761,9 +768,20 @@ int tryMain(size_t argc, const char *argv[])
                 global.params.trace = true;
             }
             else if (strcmp(p + 1, "m32") == 0)
+            {
                 global.params.is64bit = false;
+                global.params.objfmt = TARGET_WINDOS ? OBJ_OMF : global.params.objfmt;
+            }
             else if (strcmp(p + 1, "m64") == 0)
+            {
                 global.params.is64bit = true;
+                global.params.objfmt = TARGET_WINDOS ? OBJ_COFF : global.params.objfmt;
+            }
+            else if (strcmp(p + 1, "m32coff") == 0)
+            {
+                global.params.is64bit = 0;
+                global.params.objfmt = TARGET_WINDOS ? OBJ_COFF : global.params.objfmt;
+            }
             else if (strcmp(p + 1, "profile") == 0)
                 global.params.trace = true;
             else if (strcmp(p + 1, "v") == 0)
@@ -1172,7 +1190,7 @@ Language changes listed by -transition=id:\n\
 
     if(global.params.is64bit != is64bit)
         error(Loc(), "the architecture must not be changed in the %s section of %s",
-              envsec, inifilename);
+              envsection, inifilename);
 
     // Target uses 64bit pointers.
     global.params.isLP64 = global.params.is64bit;
@@ -1283,8 +1301,21 @@ Language changes listed by -transition=id:\n\
 #endif
 #if TARGET_WINDOS
         VersionCondition::addPredefinedGlobalIdent("Win32");
+        if (!setdefaultlib && global.params.objfmt == OBJ_COFF)
+        {   global.params.defaultlibname = "phobos32coff";
+            if (!setdebuglib)
+                global.params.debuglibname = global.params.defaultlibname;
+        }
 #endif
     }
+#if TARGET_WINDOS
+    if (global.params.objfmt == OBJ_COFF)
+        VersionCondition::addPredefinedGlobalIdent("CRuntime_Microsoft");
+    else
+        VersionCondition::addPredefinedGlobalIdent("CRuntime_DigitalMars");
+#else
+    VersionCondition::addPredefinedGlobalIdent("CRuntime_GNU");
+#endif
     if (global.params.isLP64)
         VersionCondition::addPredefinedGlobalIdent("D_LP64");
     if (global.params.doDocComments)
@@ -2010,21 +2041,19 @@ void escapePath(OutBuffer *buf, const char *fname)
  * to detect the desired architecture.
  */
 
-static bool parse_arch(size_t argc, const char** argv, bool is64bit)
+static const char* parse_arch(size_t argc, const char** argv, const char* arch)
 {
     for (size_t i = 0; i < argc; ++i)
     {   const char* p = argv[i];
         if (p[0] == '-')
         {
-            if (strcmp(p + 1, "m32") == 0)
-                is64bit = false;
-            else if (strcmp(p + 1, "m64") == 0)
-                is64bit = true;
+            if (strcmp(p + 1, "m32") == 0 || strcmp(p + 1, "m32coff") == 0 || strcmp(p + 1, "m64") == 0)
+                arch = p + 2;
             else if (strcmp(p + 1, "run") == 0)
                 break;
         }
     }
-    return is64bit;
+    return arch;
 }
 
 Dsymbols *Dsymbols_create() { return new Dsymbols(); }

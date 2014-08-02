@@ -47,6 +47,10 @@
 
 #include        "arraytypes.h"
 
+#if _WIN32
+#include        "backend/cdef.h"
+#endif
+
 const char * toWinPath(const char *src);
 int executecmd(const char *cmd, const char *args);
 int executearg0(const char *cmd, const char *args);
@@ -144,7 +148,7 @@ int findNoMainError(int fd)
 int runLINK()
 {
 #if _WIN32
-    if (global.params.is64bit)
+    if (global.params.objfmt == OBJ_COFF)
     {
         OutBuffer cmdbuf;
 
@@ -250,16 +254,22 @@ int runLINK()
          */
         const char *vcinstalldir = getenv("VCINSTALLDIR");
         if (vcinstalldir)
-        {   cmdbuf.writestring(" \"/LIBPATH:");
+        {   cmdbuf.writestring(" /LIBPATH:\"");
             cmdbuf.writestring(vcinstalldir);
-            cmdbuf.writestring("lib\\amd64\"");
+            if(global.params.is64bit)
+                cmdbuf.writestring("\\lib\\amd64\"");
+            else
+                cmdbuf.writestring("\\lib\"");
         }
 
         const char *windowssdkdir = getenv("WindowsSdkDir");
         if (windowssdkdir)
-        {   cmdbuf.writestring(" \"/LIBPATH:");
+        {   cmdbuf.writestring(" /LIBPATH:\"");
             cmdbuf.writestring(windowssdkdir);
-            cmdbuf.writestring("lib\\x64\"");
+            if(global.params.is64bit)
+                cmdbuf.writestring("\\lib\\x64\"");
+            else
+                cmdbuf.writestring("\\lib\"");
         }
 
         char *p = cmdbuf.peekString();
@@ -278,7 +288,7 @@ int runLINK()
                 sprintf(p, "@%s", lnkfilename);
         }
 
-        const char *linkcmd = getenv("LINKCMD64");
+        const char *linkcmd = getenv(global.params.is64bit ? "LINKCMD64" : "LINKCMD");
         if (!linkcmd)
             linkcmd = getenv("LINKCMD"); // backward compatible
         if (!linkcmd)
@@ -287,7 +297,10 @@ int runLINK()
             {
                 OutBuffer linkcmdbuf;
                 linkcmdbuf.writestring(vcinstalldir);
-                linkcmdbuf.writestring("bin\\amd64\\link");
+                if(global.params.is64bit)
+                    linkcmdbuf.writestring("\\bin\\amd64\\link");
+                else
+                    linkcmdbuf.writestring("\\bin\\link");
                 linkcmd = linkcmdbuf.extractString();
             }
             else
@@ -740,7 +753,7 @@ int executecmd(const char *cmd, const char *args)
     if (global.params.verbose)
         fprintf(global.stdmsg, "%s %s\n", cmd, args);
 
-    if (!global.params.is64bit)
+    if (global.params.objfmt != OBJ_COFF)
     {
         if ((len = strlen(args)) > 255)
         {
