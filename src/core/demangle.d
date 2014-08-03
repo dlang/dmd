@@ -494,7 +494,6 @@ private struct Demangle
         Immutable
         Wild
         TypeArray
-        TypeNewArray
         TypeStaticArray
         TypeAssocArray
         TypePointer
@@ -544,9 +543,6 @@ private struct Demangle
 
     TypeArray:
         A Type
-
-    TypeNewArray:
-        Ne Type
 
     TypeStaticArray:
         G Number Type
@@ -716,11 +712,6 @@ private struct Demangle
                 put( "inout(" );
                 parseType();
                 put( ")" );
-                return dst[beg .. len];
-            case 'e': // TypeNewArray (Ne Type)
-                next();
-                // TODO: Anything needed here?
-                parseType();
                 return dst[beg .. len];
             default:
                 error();
