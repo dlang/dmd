@@ -232,41 +232,41 @@ enum
 version( DMC_RUNTIME )
 {
     private extern __gshared fenv_t _FE_DFL_ENV;
-    fenv_t* FE_DFL_ENV = &_FE_DFL_ENV;
+    enum fenv_t* FE_DFL_ENV = &_FE_DFL_ENV;
 }
 else version( Windows )
 {
     version( MinGW )
-        enum fenv_t* FE_DFL_ENV = cast(fenv_t*)(-1);
+        enum FE_DFL_ENV = cast(fenv_t*)(-1);
     else
     {
         private immutable fenv_t _Fenv0 = {0, 0};
-        immutable FE_DFL_ENV = &_Fenv0;
+        enum FE_DFL_ENV = &_Fenv0;
     }
 }
 else version( linux )
 {
-    enum fenv_t* FE_DFL_ENV = cast(fenv_t*)(-1);
+    enum FE_DFL_ENV = cast(fenv_t*)(-1);
 }
 else version( OSX )
 {
     private extern __gshared fenv_t _FE_DFL_ENV;
-    fenv_t* FE_DFL_ENV = &_FE_DFL_ENV;
+    enum FE_DFL_ENV = &_FE_DFL_ENV;
 }
 else version( FreeBSD )
 {
     private extern const fenv_t __fe_dfl_env;
-    const fenv_t* FE_DFL_ENV = &__fe_dfl_env;
+    enum FE_DFL_ENV = &__fe_dfl_env;
 }
 else version( Android )
 {
     private extern const fenv_t __fe_dfl_env;
-    const fenv_t* FE_DFL_ENV = &__fe_dfl_env;
+    enum FE_DFL_ENV = &__fe_dfl_env;
 }
 else version( Solaris )
 {
     private extern const fenv_t __fenv_def_env;
-    const fenv_t* FE_DFL_ENV = &__fenv_def_env;
+    enum FE_DFL_ENV = &__fenv_def_env;
 }
 else
 {
