@@ -2381,7 +2381,8 @@ unittest
         }
     }
     auto sarr = new S[1];
-    assert(sarr.capacity == 1);
+    debug(SENTINEL) {} else
+        assert(sarr.capacity == 1);
 
     // length extend
     auto sarr2 = sarr;
@@ -2457,7 +2458,8 @@ unittest
     auto s3 = new S3(1);
     assert(s3.x == [1,1,1,1]);
     assert(GC.getAttr(s3) == BlkAttr.NO_SCAN);
-    assert(GC.sizeOf(s3) == 16);
+    debug(SENTINEL) {} else
+        assert(GC.sizeOf(s3) == 16);
 
     auto s4 = new S4;
     assert(s4.x == null);

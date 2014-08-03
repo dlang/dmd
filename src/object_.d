@@ -2520,8 +2520,11 @@ unittest
     int[] a = [1, 2, 3, 4];
     int[] b = a[1 .. $];
     int[] c = a[1 .. $ - 1];
-    assert(a.capacity != 0);
-    assert(a.capacity == b.capacity + 1); //both a and b share the same tail
+    debug(SENTINEL) {} else // non-zero capacity very much depends on the array and GC implementation
+    {
+        assert(a.capacity != 0);
+        assert(a.capacity == b.capacity + 1); //both a and b share the same tail
+    }
     assert(c.capacity == 0);              //an append to c must relocate c.
 }
 
@@ -2595,10 +2598,13 @@ unittest
     b ~= 5;
     assert(a.ptr != b.ptr);
 
-    // With assumeSafeAppend. Appending overwrites.
-    int[] c = a [0 .. 3];
-    c.assumeSafeAppend() ~= 5;
-    assert(a.ptr == c.ptr);
+    debug(SENTINEL) {} else
+    {
+        // With assumeSafeAppend. Appending overwrites.
+        int[] c = a [0 .. 3];
+        c.assumeSafeAppend() ~= 5;
+        assert(a.ptr == c.ptr);
+    }
 }
 
 unittest
@@ -3019,7 +3025,8 @@ unittest
 {
     auto a = [1, 2, 3];
     auto b = a.dup;
-    assert(b.capacity >= 3);
+    debug(SENTINEL) {} else
+        assert(b.capacity >= 3);
 }
 
 unittest

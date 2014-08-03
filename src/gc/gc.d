@@ -109,7 +109,10 @@ private
     // The maximum number of recursions of mark() before transitioning to
     // multiple heap traversals to avoid consuming O(D) stack space where
     // D is the depth of the heap graph.
-    enum MAX_MARK_RECURSIONS = 64;
+    version(Win64)
+        enum MAX_MARK_RECURSIONS = 32; // stack overflow in fibers
+    else
+        enum MAX_MARK_RECURSIONS = 64;
 }
 
 private
@@ -329,6 +332,7 @@ class GC
 
             if (pool)
             {
+                p = sentinel_sub(p);
                 auto biti = cast(size_t)(p - pool.baseAddr) >> pool.shiftBy;
 
                 oldb = gcx.getBits(pool, biti);
@@ -360,6 +364,7 @@ class GC
 
             if (pool)
             {
+                p = sentinel_sub(p);
                 auto biti = cast(size_t)(p - pool.baseAddr) >> pool.shiftBy;
 
                 oldb = gcx.getBits(pool, biti);
@@ -392,6 +397,7 @@ class GC
 
             if (pool)
             {
+                p = sentinel_sub(p);
                 auto biti = cast(size_t)(p - pool.baseAddr) >> pool.shiftBy;
 
                 oldb = gcx.getBits(pool, biti);
@@ -525,7 +531,7 @@ class GC
 
         if (bits)
         {
-            gcx.setBits(pool, cast(size_t)(p - pool.baseAddr) >> pool.shiftBy, bits);
+            gcx.setBits(pool, cast(size_t)(sentinel_sub(p) - pool.baseAddr) >> pool.shiftBy, bits);
         }
         return p;
     }
@@ -628,7 +634,7 @@ class GC
 
                         if (pool)
                         {
-                            auto biti = cast(size_t)(p - pool.baseAddr) >> pool.shiftBy;
+                            auto biti = cast(size_t)(sentinel_sub(p) - pool.baseAddr) >> pool.shiftBy;
 
                             if (bits)
                             {
@@ -866,17 +872,27 @@ class GC
         pool = gcx.findPool(p);
         if (!pool)                              // if not one of ours
             return;                             // ignore
-        sentinel_Invariant(p);
-        p = sentinel_sub(p);
+
         pagenum = pool.pagenumOf(p);
 
         debug(PRINTF) printf("pool base = %p, PAGENUM = %d of %d, bin = %d\n", pool.baseAddr, pagenum, pool.npages, pool.pagetable[pagenum]);
         debug(PRINTF) if(pool.isLargeObject) printf("Block size = %d\n", pool.bPageOffsets[pagenum]);
+
+        bin = cast(Bins)pool.pagetable[pagenum];
+
+        // Verify that the pointer is at the beginning of a block,
+        //  no action should be taken if p is an interior pointer
+        if (bin > B_PAGE) // B_PAGEPLUS or B_FREE
+            return;
+        if ((sentinel_sub(p) - pool.baseAddr) & (binsize[bin] - 1))
+            return;
+
+        sentinel_Invariant(p);
+        p = sentinel_sub(p);
         biti = cast(size_t)(p - pool.baseAddr) >> pool.shiftBy;
 
         gcx.clrBits(pool, biti, ~BlkAttr.NONE);
 
-        bin = cast(Bins)pool.pagetable[pagenum];
         if (bin == B_PAGE)              // if large alloc
         {   size_t npages;
 
@@ -928,7 +944,10 @@ class GC
             return null;
         }
 
-        return gcx.findBase(p);
+        auto q = gcx.findBase(p);
+        if (q)
+            q = sentinel_add(q);
+        return q;
     }
 
 
@@ -1011,7 +1030,16 @@ class GC
     {
         assert(p);
 
-        return gcx.getInfo(p);
+        BlkInfo info = gcx.getInfo(p);
+        debug(SENTINEL)
+        {
+            if (info.base)
+            {
+                info.base = sentinel_add(info.base);
+                info.size = *sentinel_size(info.base);
+            }
+        }
+        return info;
     }
 
 
@@ -2347,7 +2375,7 @@ struct Gcx
                     {
                         auto offsetBase = offset & notbinsize[bin];
                         base = pool.baseAddr + offsetBase;
-                        pointsToBase = offsetBase == offset;
+                        pointsToBase = (base == sentinel_sub(p));
                         biti = offsetBase >> pool.shiftBy;
                         //debug(PRINTF) printf("\t\tbiti = x%x\n", biti);
 
@@ -3370,8 +3398,13 @@ debug (SENTINEL)
 
     void sentinel_Invariant(const void *p) nothrow
     {
-        assert(*sentinel_pre(p) == SENTINEL_PRE);
-        assert(*sentinel_post(p) == SENTINEL_POST);
+        debug
+        {
+            assert(*sentinel_pre(p) == SENTINEL_PRE);
+            assert(*sentinel_post(p) == SENTINEL_POST);
+        }
+        else if(*sentinel_pre(p) != SENTINEL_PRE || *sentinel_post(p) != SENTINEL_POST)
+            onInvalidMemoryOperationError(); // also trigger in release build
     }
 
 
