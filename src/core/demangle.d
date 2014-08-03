@@ -494,6 +494,7 @@ private struct Demangle
         Immutable
         Wild
         TypeArray
+        TypeVector
         TypeStaticArray
         TypeAssocArray
         TypePointer
@@ -543,6 +544,9 @@ private struct Demangle
 
     TypeArray:
         A Type
+
+    TypeVector:
+        Nh Type
 
     TypeStaticArray:
         G Number Type
@@ -710,6 +714,12 @@ private struct Demangle
                 next();
                 // TODO: Anything needed here?
                 put( "inout(" );
+                parseType();
+                put( ")" );
+                return dst[beg .. len];
+            case 'h': // TypeVector (Nh Type)
+                next();
+                put( "__vector(" );
                 parseType();
                 put( ")" );
                 return dst[beg .. len];
@@ -912,9 +922,11 @@ private struct Demangle
                 put( "@safe " );
                 continue;
             case 'g':
-                // NOTE: The inout parameter type is represented as "Ng",
-                //       which makes it look like a FuncAttr.  So if we
-                //       see an "Ng" FuncAttr we know we're really in
+            case 'h':
+                // NOTE: The inout parameter type is represented as "Ng".
+                //       The vector parameter type is represented as "Nh".
+                //       These make it look like a FuncAttr, but infact
+                //       if we see these, then we know we're really in
                 //       the parameter list.  Rewind and break.
                 pos--;
                 break breakFuncAttrs;
@@ -1797,6 +1809,13 @@ version(unittest)
         ["_D8serenity9persister6Sqlite70__T15SqlitePersisterTS8serenity9persister6Sqlite11__unittest6FZv4TestZ15SqlitePersister12__T7opIndexZ7opIndexMFmZS8serenity9persister6Sqlite11__unittest6FZv4Test",
          "serenity.persister.Sqlite.__unittest6().Test serenity.persister.Sqlite.SqlitePersister!(serenity.persister.Sqlite.__unittest6().Test).SqlitePersister.opIndex!().opIndex(ulong)"],
         ["_D8bug100274mainFZv5localMFZi","int bug10027.main().local()"],
+        ["_D8demangle4testFNhG16gZv", "void demangle.test(__vector(byte[16]))"],
+        ["_D8demangle4testFNhG8sZv", "void demangle.test(__vector(short[8]))"],
+        ["_D8demangle4testFNhG4iZv", "void demangle.test(__vector(int[4]))"],
+        ["_D8demangle4testFNhG2lZv", "void demangle.test(__vector(long[2]))"],
+        ["_D8demangle4testFNhG4fZv", "void demangle.test(__vector(float[4]))"],
+        ["_D8demangle4testFNhG2dZv", "void demangle.test(__vector(double[2]))"],
+        ["_D8demangle4testFNhG4fNhG4fZv", "void demangle.test(__vector(float[4]), __vector(float[4]))"],
     ];
 
     template staticIota(int x)
