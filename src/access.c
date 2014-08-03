@@ -230,6 +230,8 @@ void accessCheck(AggregateDeclaration *ad, Loc loc, Scope *sc, Dsymbol *smember)
     if (!result)
     {
         ad->error(loc, "member %s is not accessible", smember->toChars());
+        //printf("smember = %s %s, prot = %d, semanticRun = %d\n",
+        //        smember->kind(), smember->toPrettyChars(), smember->prot(), smember->semanticRun);
     }
 }
 

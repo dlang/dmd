@@ -8085,6 +8085,8 @@ L1:
                 return e;
             }
         }
+        if (d->semanticRun == PASSinit && d->scope)
+            d->semantic(d->scope);
         accessCheck(e->loc, sc, e, d);
         VarExp *ve = new VarExp(e->loc, d, 1);
         if (d->isVarDeclaration() && d->needThis())
@@ -8792,6 +8794,8 @@ L1:
             }
         }
         //printf("e = %s, d = %s\n", e->toChars(), d->toChars());
+        if (d->semanticRun == PASSinit && d->scope)
+            d->semantic(d->scope);
         accessCheck(e->loc, sc, e, d);
         VarExp *ve = new VarExp(e->loc, d, 1);
         if (d->isVarDeclaration() && d->needThis())
