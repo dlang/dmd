@@ -47,10 +47,6 @@
 
 #include        "arraytypes.h"
 
-#if _WIN32
-#include        "backend/cdef.h"
-#endif
-
 const char * toWinPath(const char *src);
 int executecmd(const char *cmd, const char *args);
 int executearg0(const char *cmd, const char *args);
@@ -148,7 +144,7 @@ int findNoMainError(int fd)
 int runLINK()
 {
 #if _WIN32
-    if (global.params.objfmt == OBJ_COFF)
+    if (global.params.coff)
     {
         OutBuffer cmdbuf;
 
@@ -753,7 +749,7 @@ int executecmd(const char *cmd, const char *args)
     if (global.params.verbose)
         fprintf(global.stdmsg, "%s %s\n", cmd, args);
 
-    if (global.params.objfmt != OBJ_COFF)
+    if (!global.params.coff)
     {
         if ((len = strlen(args)) > 255)
         {

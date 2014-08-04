@@ -64,7 +64,7 @@ void out_config_init(
     config.memmodel = 0;
     config.flags |= CFGuchar;   // make sure TYchar is unsigned
     tytab[TYchar] |= TYFLuns;
-    config.objfmt = model & 0x1f;
+    bool coff = model & 1;
     model &= ~0x1f;
 #if TARGET_WINDOS
     if (model == 64)
@@ -75,10 +75,12 @@ void out_config_init(
         config.flags |= CFGnoebp;
         config.flags |= CFGalwaysframe;
         config.flags |= CFGromable; // put switch tables in code segment
+        config.objfmt = OBJ_COFF;
     }
     else
     {   config.exe = EX_NT;
         config.flags2 |= CFG2seh;       // Win32 eh
+        config.objfmt = coff ? OBJ_COFF : OBJ_OMF;
     }
 
     if (exe)
@@ -100,6 +102,7 @@ void out_config_init(
     config.flags |= CFGalwaysframe;
     if (!exe)
         config.flags3 |= CFG3pic;
+    config.objfmt = OBJ_ELF;
 #endif
 #if TARGET_OSX
     config.fpxmmregs = TRUE;
@@ -114,6 +117,7 @@ void out_config_init(
     if (!exe)
         config.flags3 |= CFG3pic;
     config.flags |= CFGromable; // put switch tables in code segment
+    config.objfmt = OBJ_MACH;
 #endif
 #if TARGET_FREEBSD
     if (model == 64)
@@ -130,6 +134,7 @@ void out_config_init(
     config.flags |= CFGalwaysframe;
     if (!exe)
         config.flags3 |= CFG3pic;
+    config.objfmt = OBJ_ELF;
 #endif
 #if TARGET_OPENBSD
     if (model == 64)
@@ -146,6 +151,7 @@ void out_config_init(
     config.flags |= CFGalwaysframe;
     if (!exe)
         config.flags3 |= CFG3pic;
+    config.objfmt = OBJ_ELF;
 #endif
 #if TARGET_SOLARIS
     if (model == 64)
@@ -162,6 +168,7 @@ void out_config_init(
     config.flags |= CFGalwaysframe;
     if (!exe)
         config.flags3 |= CFG3pic;
+    config.objfmt = OBJ_ELF;
 #endif
     config.flags2 |= CFG2nodeflib;      // no default library
     config.flags3 |= CFG3eseqds;

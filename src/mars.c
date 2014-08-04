@@ -40,8 +40,6 @@
 #include "doc.h"
 #include "color.h"
 
-#include "backend/cdef.h"
-
 bool response_expand(size_t *pargc, const char ***pargv);
 
 
@@ -599,14 +597,12 @@ int tryMain(size_t argc, const char *argv[])
     global.params.is64bit = (sizeof(size_t) == 8);
 
 #if TARGET_WINDOS
-	global.params.objfmt = OBJ_OMF;
+	global.params.coff = false;
     global.params.is64bit = false;
     global.params.defaultlibname = "phobos";
 #elif TARGET_LINUX
-	global.params.objfmt = OBJ_ELF;
     global.params.defaultlibname = "libphobos2.a";
 #elif TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-	global.params.objfmt = OBJ_MACH;
     global.params.defaultlibname = "phobos2";
 #else
 #error "fix this"
@@ -770,18 +766,20 @@ int tryMain(size_t argc, const char *argv[])
             else if (strcmp(p + 1, "m32") == 0)
             {
                 global.params.is64bit = false;
-                global.params.objfmt = TARGET_WINDOS ? OBJ_OMF : global.params.objfmt;
+                global.params.coff = false;
             }
             else if (strcmp(p + 1, "m64") == 0)
             {
                 global.params.is64bit = true;
-                global.params.objfmt = TARGET_WINDOS ? OBJ_COFF : global.params.objfmt;
+                global.params.coff = true;
             }
+#if TARGET_WINDOS
             else if (strcmp(p + 1, "m32coff") == 0)
             {
                 global.params.is64bit = 0;
-                global.params.objfmt = TARGET_WINDOS ? OBJ_COFF : global.params.objfmt;
+                global.params.coff = true;
             }
+#endif
             else if (strcmp(p + 1, "profile") == 0)
                 global.params.trace = true;
             else if (strcmp(p + 1, "v") == 0)
@@ -1301,15 +1299,16 @@ Language changes listed by -transition=id:\n\
 #endif
 #if TARGET_WINDOS
         VersionCondition::addPredefinedGlobalIdent("Win32");
-        if (!setdefaultlib && global.params.objfmt == OBJ_COFF)
-        {   global.params.defaultlibname = "phobos32coff";
+        if (!setdefaultlib && global.params.coff)
+        {
+            global.params.defaultlibname = "phobos32coff";
             if (!setdebuglib)
                 global.params.debuglibname = global.params.defaultlibname;
         }
 #endif
     }
 #if TARGET_WINDOS
-    if (global.params.objfmt == OBJ_COFF)
+    if (global.params.coff)
         VersionCondition::addPredefinedGlobalIdent("CRuntime_Microsoft");
     else
         VersionCondition::addPredefinedGlobalIdent("CRuntime_DigitalMars");
