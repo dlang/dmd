@@ -46,3 +46,8 @@ Licensing
 ---------
 
 See the LICENSE file for licensing information.
+
+Building
+--------
+
+See http://wiki.dlang.org/Building_DMD for build instructions.
