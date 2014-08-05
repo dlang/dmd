@@ -3855,6 +3855,33 @@ void test13223()
 }
 
 /******************************************/
+// 13252
+
+alias TypeTuple13252(T...) = T;
+
+static assert(is(typeof(TypeTuple13252!(cast(int )1)[0]) == int ));
+static assert(is(typeof(TypeTuple13252!(cast(long)1)[0]) == long));
+
+static assert(is(typeof(TypeTuple13252!(cast(float )3.14)[0]) == float ));
+static assert(is(typeof(TypeTuple13252!(cast(double)3.14)[0]) == double));
+
+static assert(is(typeof(TypeTuple13252!(cast(cfloat )(1 + 2i))[0]) == cfloat ));
+static assert(is(typeof(TypeTuple13252!(cast(cdouble)(1 + 2i))[0]) == cdouble));
+
+static assert(is(typeof(TypeTuple13252!(cast(string  )null)[0]) == string  ));
+static assert(is(typeof(TypeTuple13252!(cast(string[])null)[0]) == string[]));  // OK <- NG
+
+static assert(is(typeof(TypeTuple13252!(cast(wstring)"abc")[0]) == wstring));
+static assert(is(typeof(TypeTuple13252!(cast(dstring)"abc")[0]) == dstring));
+
+static assert(is(typeof(TypeTuple13252!(cast(int[] )[])[0]) == int[] ));
+static assert(is(typeof(TypeTuple13252!(cast(long[])[])[0]) == long[]));        // OK <- NG
+
+struct S13252 { }
+static assert(is(typeof(TypeTuple13252!(const     S13252())[0]) ==     const(S13252)));
+static assert(is(typeof(TypeTuple13252!(immutable S13252())[0]) == immutable(S13252)));     // OK <- NG
+
+/******************************************/
 
 int main()
 {
