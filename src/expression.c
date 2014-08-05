@@ -3573,7 +3573,7 @@ bool NullExp::equals(RootObject *o)
     {
         Expression *e = (Expression *)o;
         if (e->op == TOKnull &&
-            type->toHeadMutable()->equals(e->type->toHeadMutable()))
+            type->equals(e->type))
         {
             return true;
         }
@@ -4026,7 +4026,7 @@ bool ArrayLiteralExp::equals(RootObject *o)
         if (elements->dim != ae->elements->dim)
             return false;
         if (elements->dim == 0 &&
-            !type->toHeadMutable()->equals(ae->type->toHeadMutable()))
+            !type->equals(ae->type))
         {
             return false;
         }
