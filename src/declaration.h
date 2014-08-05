@@ -662,8 +662,6 @@ public:
     AggregateDeclaration *isThis();
     AggregateDeclaration *isMember2();
     int getLevel(Loc loc, Scope *sc, FuncDeclaration *fd); // lexical nesting level difference
-    void appendExp(Expression *e);
-    void appendState(Statement *s);
     const char *toPrettyChars(bool QualifyTypes = false);
     const char *toFullSignature();  // for diagnostics, e.g. 'int foo(int x, int y) pure'
     bool isMain();
