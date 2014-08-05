@@ -20,6 +20,7 @@
 #include "rmem.h"
 #include "root.h"
 #include "port.h"
+#include "aav.h"
 
 #include "attrib.h"
 #include "cond.h"
@@ -540,21 +541,42 @@ static bool emitAnchorName(OutBuffer *buf, Dsymbol *s, Scope *sc)
     // Use "this" not "__ctor"
     if (s->isCtorDeclaration() || ((td = s->isTemplateDeclaration()) != NULL &&
         td->onemember && td->onemember->isCtorDeclaration()))
+    {
         buf->writestring("this");
+    }
     else
     {
         /* We just want the identifier, not overloads like TemplateDeclaration::toChars.
          * We don't want the template parameter list and constraints. */
         buf->writestring(s->Dsymbol::toChars());
     }
-
     return true;
 }
 
 static void emitAnchor(OutBuffer *buf, Dsymbol *s, Scope *sc)
 {
+    Identifier *ident;
+    {
+        OutBuffer anc;
+        emitAnchorName(&anc, s, skipNonQualScopes(sc));
+        ident = Lexer::idPool(anc.peekString());
+    }
+    size_t *count = (size_t*)dmd_aaGet(&sc->anchorCounts, ident);
+    TemplateDeclaration *td = getEponymousParentTemplate(s);
+    // don't write an anchor for matching consecutive ditto symbols
+    if (*count > 0 && sc->prevAnchor == ident &&
+        sc->lastdc && (isDitto(s->comment) || (td && isDitto(td->comment))))
+        return;
+
+    (*count)++;
+    // cache anchor name
+    sc->prevAnchor = ident;
+
     buf->writestring("$(DDOC_ANCHOR ");
-    emitAnchorName(buf, s, skipNonQualScopes(sc));
+    buf->writestring(ident->string);
+    // only append count once there's a duplicate
+    if (*count != 1)
+        buf->printf(".%u", *count);
     buf->writeByte(')');
 }
 
