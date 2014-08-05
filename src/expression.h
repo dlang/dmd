@@ -367,7 +367,6 @@ public:
     int isBool(int result);
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
-    Expression *modifiableLvalue(Scope *sc, Expression *e);
 
     void accept(Visitor *v) { v->visit(this); }
 };
