@@ -3452,7 +3452,8 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                 {
                     sm = t->toDsymbol(sc);
                     if (sm)
-                    {   assert(id->dyncast() == DYNCAST_IDENTIFIER);
+                    {   if (id->dyncast() != DYNCAST_IDENTIFIER)
+                            error(loc, "'%s' is not an identifier", id->toChars());
                         sm = sm->search(loc, (Identifier *)id, 0);
                         if (sm)
                             goto L2;
