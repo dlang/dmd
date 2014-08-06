@@ -4492,6 +4492,12 @@ const char *FuncLiteralDeclaration::kind()
 
 void FuncLiteralDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
+    if (type->ty == Terror)
+    {
+        buf->writestring("__error");
+        return;
+    }
+
     if (tok != TOKreserved)
     {
         buf->writestring(kind());

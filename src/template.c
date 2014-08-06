@@ -8075,24 +8075,15 @@ void TemplateMixin::semantic(Scope *sc)
 #endif
     if (semanticRun != PASSinit)
     {
-        // This for when a class/struct contains mixin members, and
-        // is done over because of forward references
-        if (parent && toParent()->isAggregateDeclaration())
-        {
-            if (sc->parent != parent)
-                return;
-            semanticRun = PASSsemantic;            // do over
-        }
-        else
-        {
+        // When a class/struct contains mixin members, and is done over
+        // because of forward references, never reach here so semanticRun
+        // has been reset to PASSinit.
 #if LOG
-            printf("\tsemantic done\n");
+        printf("\tsemantic done\n");
 #endif
-            return;
-        }
+        return;
     }
-    if (semanticRun == PASSinit)
-        semanticRun = PASSsemantic;
+    semanticRun = PASSsemantic;
 #if LOG
     printf("\tdo semantic\n");
 #endif
@@ -8104,7 +8095,6 @@ void TemplateMixin::semantic(Scope *sc)
         scx = scope;            // save so we don't make redundant copies
         scope = NULL;
     }
-
 
     /* Run semantic on each argument, place results in tiargs[],
      * then find best match template with tiargs
