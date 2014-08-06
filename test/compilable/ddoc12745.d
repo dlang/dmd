@@ -11,10 +11,15 @@ $(BR)
 _0 not underscored $(BR)
 __0 force underscored
 
-Underscores:
+1 underscore:
+$(BR)
 1_1 $(BR)
 1_a $(BR)
 a_1 $(BR)
 a_a $(BR)
+$(BR)
+2 underscores: $(BR)
+1__a $(BR)
+2__b
 */
 int i;
