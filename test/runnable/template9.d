@@ -3855,6 +3855,52 @@ void test13223()
 }
 
 /******************************************/
+// 13235
+
+struct Tuple13235(T...)
+{
+    T expand;
+    alias expand field;
+
+    this(T values)
+    {
+        field = values;
+    }
+}
+struct Foo13235
+{
+    Tuple13235!(int, Foo13235)* foo;
+}
+
+template Inst13235(T...)
+{
+    struct Tuple
+    {
+        T expand;
+        alias expand field;
+
+        this(T values)
+        {
+            field = values;
+        }
+    }
+    alias Inst13235 = Tuple*;
+}
+struct Bar13235
+{
+    Inst13235!(int, Bar13235) bar;
+}
+
+void test13235()
+{
+    alias Tup1 = Tuple13235!(int, Foo13235);
+    assert(Tup1(1, Foo13235()).expand[0] == 1);
+
+    alias Tup2 = typeof(*Inst13235!(int, Bar13235).init);
+    assert(Tup2(1, Bar13235()).expand[0] == 1);
+}
+
+/******************************************/
 // 13252
 
 alias TypeTuple13252(T...) = T;
@@ -3982,6 +4028,7 @@ int main()
     test12122();
     test12207();
     test12376();
+    test13235();
 
     printf("Success\n");
     return 0;
