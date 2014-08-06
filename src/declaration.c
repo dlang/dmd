@@ -1249,6 +1249,7 @@ Lnomatch:
         v2->parent = this->parent;
         v2->isexp = true;
         aliassym = v2;
+        sem = SemanticDone;
         return;
     }
 
