@@ -3464,32 +3464,6 @@ Lerr:
     return 1;
 }
 
-void FuncDeclaration::appendExp(Expression *e)
-{   Statement *s;
-
-    s = new ExpStatement(Loc(), e);
-    appendState(s);
-}
-
-void FuncDeclaration::appendState(Statement *s)
-{
-    if (!fbody)
-        fbody = s;
-    else
-    {
-        CompoundStatement *cs = fbody->isCompoundStatement();
-        if (cs)
-        {
-            if (!cs->statements)
-                fbody = s;
-            else
-                cs->statements->push(s);
-        }
-        else
-            fbody = new CompoundStatement(Loc(), fbody, s);
-    }
-}
-
 const char *FuncDeclaration::toPrettyChars(bool QualifyTypes)
 {
     if (isMain())
