@@ -285,8 +285,6 @@ TypedefDeclaration::TypedefDeclaration(Loc loc, Identifier *id, Type *basetype, 
     this->type = new TypeTypedef(this);
     this->basetype = basetype->toBasetype();
     this->init = init;
-    this->htype = NULL;
-    this->hbasetype = NULL;
     this->loc = loc;
     this->sinit = NULL;
 }
@@ -302,25 +300,6 @@ Dsymbol *TypedefDeclaration::syntaxCopy(Dsymbol *s)
     assert(!s);
     TypedefDeclaration *st;
     st = new TypedefDeclaration(loc, ident, basetype, init);
-
-    // Syntax copy for header file
-    if (!htype)      // Don't overwrite original
-    {   if (type)    // Make copy for both old and new instances
-        {   htype = type->syntaxCopy();
-            st->htype = type->syntaxCopy();
-        }
-    }
-    else            // Make copy of original for new instance
-        st->htype = htype->syntaxCopy();
-    if (!hbasetype)
-    {   if (basetype)
-        {   hbasetype = basetype->syntaxCopy();
-            st->hbasetype = basetype->syntaxCopy();
-        }
-    }
-    else
-        st->hbasetype = hbasetype->syntaxCopy();
-
     return st;
 }
 
@@ -426,8 +405,6 @@ AliasDeclaration::AliasDeclaration(Loc loc, Identifier *id, Type *type)
     this->type = type;
     this->aliassym = NULL;
     this->import = NULL;
-    this->htype = NULL;
-    this->haliassym = NULL;
     this->overnext = NULL;
     this->inSemantic = false;
     assert(type);
@@ -442,8 +419,6 @@ AliasDeclaration::AliasDeclaration(Loc loc, Identifier *id, Dsymbol *s)
     this->type = NULL;
     this->aliassym = s;
     this->import = NULL;
-    this->htype = NULL;
-    this->haliassym = NULL;
     this->overnext = NULL;
     this->inSemantic = false;
     assert(s);
@@ -459,25 +434,6 @@ Dsymbol *AliasDeclaration::syntaxCopy(Dsymbol *s)
     else
         sa = new AliasDeclaration(loc, ident, aliassym->syntaxCopy(NULL));
     sa->storage_class = storage_class;
-
-    // Syntax copy for header file
-    if (!htype)     // Don't overwrite original
-    {   if (type)       // Make copy for both old and new instances
-        {   htype = type->syntaxCopy();
-            sa->htype = type->syntaxCopy();
-        }
-    }
-    else                        // Make copy of original for new instance
-        sa->htype = htype->syntaxCopy();
-    if (!haliassym)
-    {   if (aliassym)
-        {   haliassym = aliassym->syntaxCopy(s);
-            sa->haliassym = aliassym->syntaxCopy(s);
-        }
-    }
-    else
-        sa->haliassym = haliassym->syntaxCopy(s);
-
     return sa;
 }
 
@@ -889,8 +845,6 @@ VarDeclaration::VarDeclaration(Loc loc, Type *type, Identifier *id, Initializer 
     assert(type || init);
     this->type = type;
     this->init = init;
-    this->htype = NULL;
-    this->hinit = NULL;
     this->loc = loc;
     offset = 0;
     noscope = 0;
@@ -927,24 +881,6 @@ Dsymbol *VarDeclaration::syntaxCopy(Dsymbol *s)
         sv = new VarDeclaration(loc, type ? type->syntaxCopy() : NULL, ident, init);
         sv->storage_class = storage_class;
     }
-
-    // Syntax copy for header file
-    if (!htype)      // Don't overwrite original
-    {   if (type)    // Make copy for both old and new instances
-        {   htype = type->syntaxCopy();
-            sv->htype = type->syntaxCopy();
-        }
-    }
-    else            // Make copy of original for new instance
-        sv->htype = htype->syntaxCopy();
-    if (!hinit)
-    {   if (init)
-        {   hinit = init->syntaxCopy();
-            sv->hinit = init->syntaxCopy();
-        }
-    }
-    else
-        sv->hinit = hinit->syntaxCopy();
 
     return sv;
 }

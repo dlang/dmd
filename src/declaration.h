@@ -203,8 +203,6 @@ public:
     const char *kind();
     Type *getType();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    Type *htype;
-    Type *hbasetype;
 
     void toObjFile(bool multiobj);                       // compile to .obj file
 
@@ -234,8 +232,6 @@ public:
     Type *getType();
     Dsymbol *toAlias();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    Type *htype;
-    Dsymbol *haliassym;
 
     AliasDeclaration *isAliasDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -299,8 +295,6 @@ public:
     void semantic2(Scope *sc);
     const char *kind();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    Type *htype;
-    Initializer *hinit;
     AggregateDeclaration *isThis();
     bool needThis();
     bool isExport();
