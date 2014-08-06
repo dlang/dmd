@@ -20,7 +20,13 @@ bool RootObject::equals(RootObject *o)
 
 int RootObject::compare(RootObject *obj)
 {
-    return this - obj;
+    size_t lhs = (size_t)this;
+    size_t rhs = (size_t)obj;
+    if (lhs < rhs)
+        return -1;
+    else if (lhs > rhs)
+        return 1;
+    return 0;
 }
 
 void RootObject::print()
