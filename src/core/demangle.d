@@ -1328,12 +1328,57 @@ private struct Demangle
             case 'S':
                 next();
                 if( n ) put( ", " );
+
+                if ( mayBeMangledNameArg() )
+                {
+                    auto l = len;
+                    auto p = pos;
+
+                    try
+                    {
+                        debug(trace) printf( "may be mangled name arg\n" );
+                        parseMangledNameArg();
+                        continue;
+                    }
+                    catch( ParseException e )
+                    {
+                        len = l;
+                        pos = p;
+                        debug(trace) printf( "not a mangled name arg\n" );
+                    }
+                }
+
                 parseQualifiedName();
                 continue;
             default:
                 return;
             }
         }
+    }
+
+
+    bool mayBeMangledNameArg()
+    {
+        debug(trace) printf( "mayBeMangledNameArg+\n" );
+        debug(trace) scope(success) printf( "mayBeMangledNameArg-\n" );
+
+        auto p = pos;
+        scope(exit) pos = p;
+        auto n = decodeNumber();
+        return n >= 4 &&
+           pos < buf.length && '_' == buf[pos++] &&
+           pos < buf.length && 'D' == buf[pos++] &&
+           isDigit(buf[pos]);
+    }
+
+
+    void parseMangledNameArg()
+    {
+        debug(trace) printf( "parseMangledNameArg+\n" );
+        debug(trace) scope(success) printf( "parseMangledNameArg-\n" );
+
+        auto n = decodeNumber();
+        parseMangledName( n );
     }
 
 
@@ -1472,11 +1517,13 @@ private struct Demangle
         _D QualifiedName Type
         _D QualifiedName M Type
     */
-    void parseMangledName()
+    void parseMangledName(size_t n = 0)
     {
         debug(trace) printf( "parseMangledName+\n" );
         debug(trace) scope(success) printf( "parseMangledName-\n" );
         char[] name = null;
+
+        auto end = pos + n;
 
         eat( '_' );
         match( 'D' );
@@ -1488,7 +1535,7 @@ private struct Demangle
                 next(); // has 'this' pointer
             if( AddType.yes == addType )
                 parseType( name );
-            if( pos >= buf.length )
+            if( pos >= buf.length || (n != 0 && pos >= n) )
                 return;
             put( "." );
         } while( true );
@@ -1816,6 +1863,7 @@ version(unittest)
         ["_D8demangle4testFNhG4fZv", "void demangle.test(__vector(float[4]))"],
         ["_D8demangle4testFNhG2dZv", "void demangle.test(__vector(double[2]))"],
         ["_D8demangle4testFNhG4fNhG4fZv", "void demangle.test(__vector(float[4]), __vector(float[4]))"],
+        ["_D8bug1119234__T3fooS23_D8bug111924mainFZ3bariZ3fooMFZv","void bug11192.foo!(int bug11192.main().bar).foo()"],
     ];
 
     template staticIota(int x)
