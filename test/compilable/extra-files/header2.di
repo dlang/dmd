@@ -87,3 +87,4 @@ void foo11217()(in int[] arr)
 void foo11217()(inout int[] arr)
 {
 }
+void test13275();

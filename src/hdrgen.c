@@ -263,8 +263,7 @@ public:
             Parameter *a = (*s->arguments)[i];
             if (i)
                 buf->writestring(", ");
-            if (a->storageClass & STCref)
-                buf->writestring((char*)"ref ");
+            StorageClassDeclaration::stcToCBuffer(buf, a->storageClass);
             if (a->type)
                 typeToBuffer(a->type, a->ident);
             else
@@ -313,15 +312,16 @@ public:
     void visit(IfStatement *s)
     {
         buf->writestring("if (");
-        if (s->arg)
+        if (Parameter *a = s->arg)
         {
-            if (s->arg->type)
-                typeToBuffer(s->arg->type, s->arg->ident);
+            StorageClass stc = a->storageClass;
+            if (!a->type && !stc)
+                stc = STCauto;
+            StorageClassDeclaration::stcToCBuffer(buf, stc);
+            if (a->type)
+                typeToBuffer(a->type, a->ident);
             else
-            {
-                buf->writestring("auto ");
-                buf->writestring(s->arg->ident->toChars());
-            }
+                buf->writestring(a->ident->toChars());
             buf->writestring(" = ");
         }
         s->condition->accept(this);

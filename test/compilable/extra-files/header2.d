@@ -85,3 +85,43 @@ void foo11217()( auto ref int[] arr) {}
 void foo11217()(    scope int[] arr) {}
 void foo11217()(       in int[] arr) {}
 void foo11217()(    inout int[] arr) {}
+
+// 13275
+void test13275()
+{
+    if (        auto n = 1) {}
+    if (       const n = 1) {}
+    if (   immutable n = 1) {}
+    if (shared       n = 1) {}
+    if (shared const n = 1) {}
+
+    if (             int  n = 1) {}
+
+    if (       const int  n = 1) {}
+    if (   immutable int  n = 1) {}
+    if (shared       int  n = 1) {}
+    if (shared const int  n = 1) {}
+
+    if (       const(int) n = 1) {}
+    if (   immutable(int) n = 1) {}
+    if (shared      (int) n = 1) {}
+    if (shared const(int) n = 1) {}
+
+    foreach (             e; [1,2]) {}
+    foreach (       const e; [1,2]) {}
+    foreach (   immutable e; [1,2]) {}
+    foreach (shared       e; [1,2]) {}
+    foreach (shared const e; [1,2]) {}
+
+    foreach (             int e; [1,2]) {}
+    foreach (       const int e; [1,2]) {}
+    foreach (   immutable int e; [1,2]) {}
+    foreach (shared       int e; [1,2]) {}
+    foreach (shared const int e; [1,2]) {}
+
+    foreach (             int e; [1,2]) {}
+    foreach (       const(int) e; [1,2]) {}
+    foreach (   immutable(int) e; [1,2]) {}
+    foreach (shared      (int) e; [1,2]) {}
+    foreach (shared const(int) e; [1,2]) {}
+}
