@@ -766,7 +766,6 @@ PROT Dsymbol::prot()
  * Do syntax copy of an array of Dsymbol's.
  */
 
-
 Dsymbols *Dsymbol::arraySyntaxCopy(Dsymbols *a)
 {
 
@@ -776,15 +775,11 @@ Dsymbols *Dsymbol::arraySyntaxCopy(Dsymbols *a)
         b = a->copy();
         for (size_t i = 0; i < b->dim; i++)
         {
-            Dsymbol *s = (*b)[i];
-
-            s = s->syntaxCopy(NULL);
-            (*b)[i] = s;
+            (*b)[i] = (*b)[i]->syntaxCopy(NULL);
         }
     }
     return b;
 }
-
 
 /****************************************
  * Add documentation comment to Dsymbol.
@@ -872,12 +867,7 @@ ScopeDsymbol::ScopeDsymbol(Identifier *id)
 Dsymbol *ScopeDsymbol::syntaxCopy(Dsymbol *s)
 {
     //printf("ScopeDsymbol::syntaxCopy('%s')\n", toChars());
-
-    ScopeDsymbol *sds;
-    if (s)
-        sds = (ScopeDsymbol *)s;
-    else
-        sds = new ScopeDsymbol(ident);
+    ScopeDsymbol *sds = s ? (ScopeDsymbol *)s : new ScopeDsymbol(ident);
     sds->members = arraySyntaxCopy(members);
     return sds;
 }

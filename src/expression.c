@@ -2554,18 +2554,16 @@ Expression *Expression::resolveLoc(Loc loc, Scope *sc)
 }
 
 Expressions *Expression::arraySyntaxCopy(Expressions *exps)
-{   Expressions *a = NULL;
-
+{
+    Expressions *a = NULL;
     if (exps)
     {
         a = new Expressions();
         a->setDim(exps->dim);
         for (size_t i = 0; i < a->dim; i++)
-        {   Expression *e = (*exps)[i];
-
-            if (e)
-                e = e->syntaxCopy();
-            (*a)[i] = e;
+        {
+            Expression *e = (*exps)[i];
+            (*a)[i] = e ? e->syntaxCopy() : NULL;
         }
     }
     return a;
@@ -3578,14 +3576,6 @@ StringExp *StringExp::create(Loc loc, char *s)
     return new StringExp(loc, s);
 }
 
-#if 0
-Expression *StringExp::syntaxCopy()
-{
-    printf("StringExp::syntaxCopy() %s\n", toChars());
-    return copy();
-}
-#endif
-
 bool StringExp::equals(RootObject *o)
 {
     //printf("StringExp::equals('%s') %s\n", o->toChars(), toChars());
@@ -4413,7 +4403,6 @@ TypeExp::TypeExp(Loc loc, Type *type)
 
 Expression *TypeExp::syntaxCopy()
 {
-    //printf("TypeExp::syntaxCopy()\n");
     return new TypeExp(loc, type->syntaxCopy());
 }
 
@@ -4468,8 +4457,7 @@ ScopeExp::ScopeExp(Loc loc, ScopeDsymbol *pkg)
 
 Expression *ScopeExp::syntaxCopy()
 {
-    ScopeExp *se = new ScopeExp(loc, (ScopeDsymbol *)sds->syntaxCopy(NULL));
-    return se;
+    return new ScopeExp(loc, (ScopeDsymbol *)sds->syntaxCopy(NULL));
 }
 
 Expression *ScopeExp::semantic(Scope *sc)
@@ -4627,7 +4615,6 @@ Expression *NewExp::syntaxCopy()
         arraySyntaxCopy(newargs),
         newtype->syntaxCopy(), arraySyntaxCopy(arguments));
 }
-
 
 Expression *NewExp::semantic(Scope *sc)
 {
@@ -5028,7 +5015,6 @@ Expression *NewAnonClassExp::syntaxCopy()
         (ClassDeclaration *)cd->syntaxCopy(NULL),
         arraySyntaxCopy(arguments));
 }
-
 
 Expression *NewAnonClassExp::semantic(Scope *sc)
 {
@@ -5946,12 +5932,10 @@ TypeidExp::TypeidExp(Loc loc, RootObject *o)
     this->obj = o;
 }
 
-
 Expression *TypeidExp::syntaxCopy()
 {
     return new TypeidExp(loc, objectSyntaxCopy(obj));
 }
-
 
 Expression *TypeidExp::semantic(Scope *sc)
 {
@@ -6028,7 +6012,6 @@ TraitsExp::TraitsExp(Loc loc, Identifier *ident, Objects *args)
     this->args = args;
 }
 
-
 Expression *TraitsExp::syntaxCopy()
 {
     return new TraitsExp(loc, ident, TemplateInstance::arraySyntaxCopy(args));
@@ -6078,11 +6061,8 @@ Expression *IsExp::syntaxCopy()
         p = new TemplateParameters();
         p->setDim(parameters->dim);
         for (size_t i = 0; i < p->dim; i++)
-        {   TemplateParameter *tp = (*parameters)[i];
-            (*p)[i] = tp->syntaxCopy();
-        }
+            (*p)[i] = (*parameters)[i]->syntaxCopy();
     }
-
     return new IsExp(loc,
         targ->syntaxCopy(),
         id,
@@ -6923,9 +6903,7 @@ AssertExp::AssertExp(Loc loc, Expression *e, Expression *msg)
 
 Expression *AssertExp::syntaxCopy()
 {
-    AssertExp *ae = new AssertExp(loc, e1->syntaxCopy(),
-                                       msg ? msg->syntaxCopy() : NULL);
-    return ae;
+    return new AssertExp(loc, e1->syntaxCopy(), msg ? msg->syntaxCopy() : NULL);
 }
 
 Expression *AssertExp::semantic(Scope *sc)
@@ -7659,11 +7637,10 @@ DotTemplateInstanceExp::DotTemplateInstanceExp(Loc loc, Expression *e, TemplateI
 
 Expression *DotTemplateInstanceExp::syntaxCopy()
 {
-    DotTemplateInstanceExp *de = new DotTemplateInstanceExp(loc,
+    return new DotTemplateInstanceExp(loc,
         e1->syntaxCopy(),
         ti->name,
         TemplateInstance::arraySyntaxCopy(ti->tiargs));
-    return de;
 }
 
 bool DotTemplateInstanceExp::findTempDecl(Scope *sc)
@@ -9553,7 +9530,6 @@ Expression *CastExp::syntaxCopy()
               : new CastExp(loc, e1->syntaxCopy(), mod);
 }
 
-
 Expression *CastExp::semantic(Scope *sc)
 {
 #if LOGSEMANTIC
@@ -9818,15 +9794,9 @@ SliceExp::SliceExp(Loc loc, Expression *e1, Expression *lwr, Expression *upr)
 
 Expression *SliceExp::syntaxCopy()
 {
-    Expression *lwr = NULL;
-    if (this->lwr)
-        lwr = this->lwr->syntaxCopy();
-
-    Expression *upr = NULL;
-    if (this->upr)
-        upr = this->upr->syntaxCopy();
-
-    SliceExp *se = new SliceExp(loc, e1->syntaxCopy(), lwr, upr);
+    SliceExp *se = new SliceExp(loc, e1->syntaxCopy(),
+        lwr ? lwr->syntaxCopy() : NULL,
+        upr ? upr->syntaxCopy() : NULL);
     se->lengthVar = this->lengthVar;    // bug7871
     return se;
 }
@@ -13529,7 +13499,6 @@ Expression *CondExp::syntaxCopy()
 {
     return new CondExp(loc, econd->syntaxCopy(), e1->syntaxCopy(), e2->syntaxCopy());
 }
-
 
 Expression *CondExp::semantic(Scope *sc)
 {

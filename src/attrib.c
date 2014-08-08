@@ -339,11 +339,8 @@ StorageClassDeclaration::StorageClassDeclaration(StorageClass stc, Dsymbols *dec
 
 Dsymbol *StorageClassDeclaration::syntaxCopy(Dsymbol *s)
 {
-    StorageClassDeclaration *scd;
-
     assert(!s);
-    scd = new StorageClassDeclaration(stc, Dsymbol::arraySyntaxCopy(decl));
-    return scd;
+    return new StorageClassDeclaration(stc, Dsymbol::arraySyntaxCopy(decl));
 }
 
 bool StorageClassDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
@@ -527,11 +524,8 @@ LinkDeclaration::LinkDeclaration(LINK p, Dsymbols *decl)
 
 Dsymbol *LinkDeclaration::syntaxCopy(Dsymbol *s)
 {
-    LinkDeclaration *ld;
-
     assert(!s);
-    ld = new LinkDeclaration(linkage, Dsymbol::arraySyntaxCopy(decl));
-    return ld;
+    return new LinkDeclaration(linkage, Dsymbol::arraySyntaxCopy(decl));
 }
 
 Scope *LinkDeclaration::newScope(Scope *sc)
@@ -555,11 +549,8 @@ ProtDeclaration::ProtDeclaration(PROT p, Dsymbols *decl)
 
 Dsymbol *ProtDeclaration::syntaxCopy(Dsymbol *s)
 {
-    ProtDeclaration *pd;
-
     assert(!s);
-    pd = new ProtDeclaration(protection, Dsymbol::arraySyntaxCopy(decl));
-    return pd;
+    return new ProtDeclaration(protection, Dsymbol::arraySyntaxCopy(decl));
 }
 
 Scope *ProtDeclaration::newScope(Scope *sc)
@@ -577,11 +568,8 @@ AlignDeclaration::AlignDeclaration(unsigned sa, Dsymbols *decl)
 
 Dsymbol *AlignDeclaration::syntaxCopy(Dsymbol *s)
 {
-    AlignDeclaration *ad;
-
     assert(!s);
-    ad = new AlignDeclaration(salign, Dsymbol::arraySyntaxCopy(decl));
-    return ad;
+    return new AlignDeclaration(salign, Dsymbol::arraySyntaxCopy(decl));
 }
 
 Scope *AlignDeclaration::newScope(Scope *sc)
@@ -602,11 +590,8 @@ AnonDeclaration::AnonDeclaration(Loc loc, bool isunion, Dsymbols *decl)
 
 Dsymbol *AnonDeclaration::syntaxCopy(Dsymbol *s)
 {
-    AnonDeclaration *ad;
-
     assert(!s);
-    ad = new AnonDeclaration(loc, isunion, Dsymbol::arraySyntaxCopy(decl));
-    return ad;
+    return new AnonDeclaration(loc, isunion, Dsymbol::arraySyntaxCopy(decl));
 }
 
 void AnonDeclaration::semantic(Scope *sc)
@@ -722,12 +707,10 @@ PragmaDeclaration::PragmaDeclaration(Loc loc, Identifier *ident, Expressions *ar
 Dsymbol *PragmaDeclaration::syntaxCopy(Dsymbol *s)
 {
     //printf("PragmaDeclaration::syntaxCopy(%s)\n", toChars());
-    PragmaDeclaration *pd;
-
     assert(!s);
-    pd = new PragmaDeclaration(loc, ident,
-        Expression::arraySyntaxCopy(args), Dsymbol::arraySyntaxCopy(decl));
-    return pd;
+    return new PragmaDeclaration(loc, ident,
+        Expression::arraySyntaxCopy(args),
+        Dsymbol::arraySyntaxCopy(decl));
 }
 
 void PragmaDeclaration::setScope(Scope *sc)
@@ -1019,13 +1002,10 @@ ConditionalDeclaration::ConditionalDeclaration(Condition *condition, Dsymbols *d
 
 Dsymbol *ConditionalDeclaration::syntaxCopy(Dsymbol *s)
 {
-    ConditionalDeclaration *dd;
-
     assert(!s);
-    dd = new ConditionalDeclaration(condition->syntaxCopy(),
+    return new ConditionalDeclaration(condition->syntaxCopy(),
         Dsymbol::arraySyntaxCopy(decl),
         Dsymbol::arraySyntaxCopy(elsedecl));
-    return dd;
 }
 
 bool ConditionalDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
@@ -1110,13 +1090,10 @@ StaticIfDeclaration::StaticIfDeclaration(Condition *condition,
 
 Dsymbol *StaticIfDeclaration::syntaxCopy(Dsymbol *s)
 {
-    StaticIfDeclaration *dd;
-
     assert(!s);
-    dd = new StaticIfDeclaration(condition->syntaxCopy(),
+    return new StaticIfDeclaration(condition->syntaxCopy(),
         Dsymbol::arraySyntaxCopy(decl),
         Dsymbol::arraySyntaxCopy(elsedecl));
-    return dd;
 }
 
 Dsymbols *StaticIfDeclaration::include(Scope *sc, ScopeDsymbol *sds)
@@ -1232,8 +1209,7 @@ CompileDeclaration::CompileDeclaration(Loc loc, Expression *exp)
 Dsymbol *CompileDeclaration::syntaxCopy(Dsymbol *s)
 {
     //printf("CompileDeclaration::syntaxCopy('%s')\n", toChars());
-    CompileDeclaration *sc = new CompileDeclaration(loc, exp->syntaxCopy());
-    return sc;
+    return new CompileDeclaration(loc, exp->syntaxCopy());
 }
 
 int CompileDeclaration::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
@@ -1329,8 +1305,9 @@ Dsymbol *UserAttributeDeclaration::syntaxCopy(Dsymbol *s)
 {
     //printf("UserAttributeDeclaration::syntaxCopy('%s')\n", toChars());
     assert(!s);
-    Expressions *atts = Expression::arraySyntaxCopy(this->atts);
-    return new UserAttributeDeclaration(atts, Dsymbol::arraySyntaxCopy(decl));
+    return new UserAttributeDeclaration(
+        Expression::arraySyntaxCopy(this->atts),
+        Dsymbol::arraySyntaxCopy(decl));
 }
 
 Scope *UserAttributeDeclaration::newScope(Scope *sc)

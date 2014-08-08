@@ -395,7 +395,6 @@ public:
     StringExp(Loc loc, void *s, size_t len);
     StringExp(Loc loc, void *s, size_t len, utf8_t postfix);
     static StringExp *create(Loc loc, char *s);
-    //Expression *syntaxCopy();
     bool equals(RootObject *o);
     Expression *semantic(Scope *sc);
     size_t length();

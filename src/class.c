@@ -244,13 +244,10 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
 
 Dsymbol *ClassDeclaration::syntaxCopy(Dsymbol *s)
 {
-    ClassDeclaration *cd;
-
     //printf("ClassDeclaration::syntaxCopy('%s')\n", toChars());
-    if (s)
-        cd = (ClassDeclaration *)s;
-    else
-        cd = new ClassDeclaration(loc, ident, NULL);
+    ClassDeclaration *cd =
+        s ? (ClassDeclaration *)s
+          : new ClassDeclaration(loc, ident, NULL);
 
     cd->storage_class |= storage_class;
 
@@ -262,8 +259,7 @@ Dsymbol *ClassDeclaration::syntaxCopy(Dsymbol *s)
         (*cd->baseclasses)[i] = b2;
     }
 
-    ScopeDsymbol::syntaxCopy(cd);
-    return cd;
+    return ScopeDsymbol::syntaxCopy(cd);
 }
 
 void ClassDeclaration::semantic(Scope *sc)
@@ -1222,15 +1218,10 @@ InterfaceDeclaration::InterfaceDeclaration(Loc loc, Identifier *id, BaseClasses 
 
 Dsymbol *InterfaceDeclaration::syntaxCopy(Dsymbol *s)
 {
-    InterfaceDeclaration *id;
-
-    if (s)
-        id = (InterfaceDeclaration *)s;
-    else
-        id = new InterfaceDeclaration(loc, ident, NULL);
-
-    ClassDeclaration::syntaxCopy(id);
-    return id;
+    InterfaceDeclaration *id =
+        s ? (InterfaceDeclaration *)s
+          : new InterfaceDeclaration(loc, ident, NULL);
+    return ClassDeclaration::syntaxCopy(id);
 }
 
 void InterfaceDeclaration::semantic(Scope *sc)

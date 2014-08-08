@@ -44,27 +44,10 @@ EnumDeclaration::EnumDeclaration(Loc loc, Identifier *id, Type *memtype)
 
 Dsymbol *EnumDeclaration::syntaxCopy(Dsymbol *s)
 {
-    Type *t = NULL;
-    if (memtype)
-        t = memtype->syntaxCopy();
-
-    EnumDeclaration *ed;
-    if (s)
-    {   ed = (EnumDeclaration *)s;
-        ed->memtype = t;
-    }
-    else
-        ed = new EnumDeclaration(loc, ident, t);
-    ScopeDsymbol::syntaxCopy(ed);
-    if (isAnonymous())
-    {
-        for (size_t i = 0; i < members->dim; i++)
-        {
-            EnumMember *em = (*members)[i]->isEnumMember();
-            em->ed = ed;
-        }
-    }
-    return ed;
+    assert(!s);
+    EnumDeclaration *ed = new EnumDeclaration(loc, ident,
+        memtype ? memtype->syntaxCopy() : NULL);
+    return ScopeDsymbol::syntaxCopy(ed);
 }
 
 void EnumDeclaration::setScope(Scope *sc)
@@ -496,28 +479,10 @@ EnumMember::EnumMember(Loc loc, Identifier *id, Expression *value, Type *type)
 
 Dsymbol *EnumMember::syntaxCopy(Dsymbol *s)
 {
-    Expression *e = NULL;
-    if (value)
-        e = value->syntaxCopy();
-
-    Type *t = NULL;
-    if (type)
-        t = type->syntaxCopy();
-
-    EnumMember *em;
-    if (s)
-    {   em = (EnumMember *)s;
-        em->loc = loc;
-        em->value = e;
-        em->type = t;
-        em->origValue = origValue ? origValue->syntaxCopy() : NULL;
-    }
-    else
-    {
-        em = new EnumMember(loc, ident, e, t);
-        em->origValue = origValue ? origValue->syntaxCopy() : NULL;
-    }
-    return em;
+    assert(!s);
+    return new EnumMember(loc, ident,
+        value ? value->syntaxCopy() : NULL,
+        type ? type->syntaxCopy() : NULL);
 }
 
 const char *EnumMember::kind()

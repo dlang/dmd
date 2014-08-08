@@ -290,16 +290,10 @@ TypedefDeclaration::TypedefDeclaration(Loc loc, Identifier *id, Type *basetype, 
 
 Dsymbol *TypedefDeclaration::syntaxCopy(Dsymbol *s)
 {
-    Type *basetype = this->basetype->syntaxCopy();
-
-    Initializer *init = NULL;
-    if (this->init)
-        init = this->init->syntaxCopy();
-
     assert(!s);
-    TypedefDeclaration *st;
-    st = new TypedefDeclaration(loc, ident, basetype, init);
-    return st;
+    return new TypedefDeclaration(loc, ident,
+        basetype->syntaxCopy(),
+        init ? init->syntaxCopy() : NULL);
 }
 
 void TypedefDeclaration::semantic(Scope *sc)
@@ -414,11 +408,9 @@ Dsymbol *AliasDeclaration::syntaxCopy(Dsymbol *s)
 {
     //printf("AliasDeclaration::syntaxCopy()\n");
     assert(!s);
-    AliasDeclaration *sa;
-    if (type)
-        sa = new AliasDeclaration(loc, ident, type->syntaxCopy());
-    else
-        sa = new AliasDeclaration(loc, ident, aliassym->syntaxCopy(NULL));
+    AliasDeclaration *sa =
+        type ? new AliasDeclaration(loc, ident, type->syntaxCopy())
+             : new AliasDeclaration(loc, ident, aliassym->syntaxCopy(NULL));
     sa->storage_class = storage_class;
     return sa;
 }
@@ -850,24 +842,13 @@ VarDeclaration::VarDeclaration(Loc loc, Type *type, Identifier *id, Initializer 
 Dsymbol *VarDeclaration::syntaxCopy(Dsymbol *s)
 {
     //printf("VarDeclaration::syntaxCopy(%s)\n", toChars());
-
-    VarDeclaration *sv;
-    if (s)
-    {   sv = (VarDeclaration *)s;
-    }
-    else
-    {
-        Initializer *init = NULL;
-        if (this->init)
-        {   init = this->init->syntaxCopy();
-            //init->isExpInitializer()->exp->print();
-        }
-
-        sv = new VarDeclaration(loc, type ? type->syntaxCopy() : NULL, ident, init);
-        sv->storage_class = storage_class;
-    }
-
-    return sv;
+    assert(!s);
+    VarDeclaration *v = new VarDeclaration(loc,
+            type ? type->syntaxCopy() : NULL,
+            ident,
+            init ? init->syntaxCopy() : NULL);
+    v->storage_class = storage_class;
+    return v;
 }
 
 void VarDeclaration::semantic(Scope *sc)

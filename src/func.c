@@ -342,13 +342,10 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
 
 Dsymbol *FuncDeclaration::syntaxCopy(Dsymbol *s)
 {
-    FuncDeclaration *f;
-
     //printf("FuncDeclaration::syntaxCopy('%s')\n", toChars());
-    if (s)
-        f = (FuncDeclaration *)s;
-    else
-        f = new FuncDeclaration(loc, endloc, ident, storage_class, type->syntaxCopy());
+    FuncDeclaration *f =
+        s ? (FuncDeclaration *)s
+          : new FuncDeclaration(loc, endloc, ident, storage_class, type->syntaxCopy());
     f->outId = outId;
     f->frequire = frequire ? frequire->syntaxCopy() : NULL;
     f->fensure  = fensure  ? fensure->syntaxCopy()  : NULL;
@@ -4208,16 +4205,12 @@ FuncLiteralDeclaration::FuncLiteralDeclaration(Loc loc, Loc endloc, Type *type,
 
 Dsymbol *FuncLiteralDeclaration::syntaxCopy(Dsymbol *s)
 {
-    FuncLiteralDeclaration *f;
-
     //printf("FuncLiteralDeclaration::syntaxCopy('%s')\n", toChars());
-    if (s)
-        f = (FuncLiteralDeclaration *)s;
-    else
-        f = new FuncLiteralDeclaration(loc, endloc, type->syntaxCopy(), tok, fes, ident);
+    assert(!s);
+    FuncLiteralDeclaration *f = new FuncLiteralDeclaration(loc, endloc,
+        type->syntaxCopy(), tok, fes, ident);
     f->treq = treq;     // don't need to copy
-    FuncDeclaration::syntaxCopy(f);
-    return f;
+    return FuncDeclaration::syntaxCopy(f);
 }
 
 bool FuncLiteralDeclaration::isNested()
@@ -4309,16 +4302,13 @@ CtorDeclaration::CtorDeclaration(Loc loc, Loc endloc, StorageClass stc, Type *ty
 Dsymbol *CtorDeclaration::syntaxCopy(Dsymbol *s)
 {
     CtorDeclaration *f = new CtorDeclaration(loc, endloc, storage_class, type->syntaxCopy());
-
     f->outId = outId;
     f->frequire = frequire ? frequire->syntaxCopy() : NULL;
     f->fensure  = fensure  ? fensure->syntaxCopy()  : NULL;
     f->fbody    = fbody    ? fbody->syntaxCopy()    : NULL;
     assert(!fthrows); // deprecated
-
     return f;
 }
-
 
 void CtorDeclaration::semantic(Scope *sc)
 {
@@ -4327,7 +4317,8 @@ void CtorDeclaration::semantic(Scope *sc)
     assert(tf && tf->ty == Tfunction);
 
     if (scope)
-    {   sc = scope;
+    {
+        sc = scope;
         scope = NULL;
     }
 
@@ -4405,14 +4396,14 @@ Dsymbol *PostBlitDeclaration::syntaxCopy(Dsymbol *s)
     return FuncDeclaration::syntaxCopy(dd);
 }
 
-
 void PostBlitDeclaration::semantic(Scope *sc)
 {
     //printf("PostBlitDeclaration::semantic() %s\n", toChars());
     //printf("ident: %s, %s, %p, %p\n", ident->toChars(), Id::dtor->toChars(), ident, Id::dtor);
     //printf("stc = x%llx\n", sc->stc);
     if (scope)
-    {   sc = scope;
+    {
+        sc = scope;
         scope = NULL;
     }
     parent = sc->parent;
@@ -4476,13 +4467,13 @@ Dsymbol *DtorDeclaration::syntaxCopy(Dsymbol *s)
     return FuncDeclaration::syntaxCopy(dd);
 }
 
-
 void DtorDeclaration::semantic(Scope *sc)
 {
     //printf("DtorDeclaration::semantic() %s\n", toChars());
     //printf("ident: %s, %s, %p, %p\n", ident->toChars(), Id::dtor->toChars(), ident, Id::dtor);
     if (scope)
-    {   sc = scope;
+    {
+        sc = scope;
         scope = NULL;
     }
     parent = sc->parent;
@@ -4558,7 +4549,6 @@ Dsymbol *StaticCtorDeclaration::syntaxCopy(Dsymbol *s)
     StaticCtorDeclaration *scd = new StaticCtorDeclaration(loc, endloc, storage_class);
     return FuncDeclaration::syntaxCopy(scd);
 }
-
 
 void StaticCtorDeclaration::semantic(Scope *sc)
 {
@@ -4689,11 +4679,11 @@ Dsymbol *StaticDtorDeclaration::syntaxCopy(Dsymbol *s)
     return FuncDeclaration::syntaxCopy(sdd);
 }
 
-
 void StaticDtorDeclaration::semantic(Scope *sc)
 {
     if (scope)
-    {   sc = scope;
+    {
+        sc = scope;
         scope = NULL;
     }
 
@@ -4791,19 +4781,16 @@ InvariantDeclaration::InvariantDeclaration(Loc loc, Loc endloc, StorageClass stc
 
 Dsymbol *InvariantDeclaration::syntaxCopy(Dsymbol *s)
 {
-    InvariantDeclaration *id;
-
     assert(!s);
-    id = new InvariantDeclaration(loc, endloc, storage_class);
-    FuncDeclaration::syntaxCopy(id);
-    return id;
+    InvariantDeclaration *id = new InvariantDeclaration(loc, endloc, storage_class);
+    return FuncDeclaration::syntaxCopy(id);
 }
-
 
 void InvariantDeclaration::semantic(Scope *sc)
 {
     if (scope)
-    {   sc = scope;
+    {
+        sc = scope;
         scope = NULL;
     }
     parent = sc->parent;
@@ -4869,13 +4856,10 @@ UnitTestDeclaration::UnitTestDeclaration(Loc loc, Loc endloc, char *codedoc)
 
 Dsymbol *UnitTestDeclaration::syntaxCopy(Dsymbol *s)
 {
-    UnitTestDeclaration *utd;
-
     assert(!s);
-    utd = new UnitTestDeclaration(loc, endloc, codedoc);
+    UnitTestDeclaration *utd = new UnitTestDeclaration(loc, endloc, codedoc);
     return FuncDeclaration::syntaxCopy(utd);
 }
-
 
 void UnitTestDeclaration::semantic(Scope *sc)
 {
@@ -4947,24 +4931,19 @@ NewDeclaration::NewDeclaration(Loc loc, Loc endloc, Parameters *arguments, int v
 
 Dsymbol *NewDeclaration::syntaxCopy(Dsymbol *s)
 {
-    NewDeclaration *f;
-
-    f = new NewDeclaration(loc, endloc, NULL, varargs);
-
-    FuncDeclaration::syntaxCopy(f);
-
+    assert(!s);
+    NewDeclaration *f = new NewDeclaration(loc, endloc, NULL, varargs);
     f->arguments = Parameter::arraySyntaxCopy(arguments);
-
-    return f;
+    return FuncDeclaration::syntaxCopy(f);
 }
-
 
 void NewDeclaration::semantic(Scope *sc)
 {
     //printf("NewDeclaration::semantic()\n");
 
     if (scope)
-    {   sc = scope;
+    {
+        sc = scope;
         scope = NULL;
     }
 
@@ -5028,24 +5007,19 @@ DeleteDeclaration::DeleteDeclaration(Loc loc, Loc endloc, Parameters *arguments)
 
 Dsymbol *DeleteDeclaration::syntaxCopy(Dsymbol *s)
 {
-    DeleteDeclaration *f;
-
-    f = new DeleteDeclaration(loc, endloc, NULL);
-
-    FuncDeclaration::syntaxCopy(f);
-
+    assert(!s);
+    DeleteDeclaration *f = new DeleteDeclaration(loc, endloc, NULL);
     f->arguments = Parameter::arraySyntaxCopy(arguments);
-
-    return f;
+    return FuncDeclaration::syntaxCopy(f);
 }
-
 
 void DeleteDeclaration::semantic(Scope *sc)
 {
     //printf("DeleteDeclaration::semantic()\n");
 
     if (scope)
-    {   sc = scope;
+    {
+        sc = scope;
         scope = NULL;
     }
 

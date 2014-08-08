@@ -3004,7 +3004,6 @@ Type *TypeBasic::syntaxCopy()
     return this;
 }
 
-
 char *TypeBasic::toChars()
 {
     return Type::toChars();
@@ -4416,7 +4415,8 @@ Type *TypeDArray::syntaxCopy()
     if (t == next)
         t = this;
     else
-    {   t = new TypeDArray(t);
+    {
+        t = new TypeDArray(t);
         t->mod = mod;
     }
     return t;
@@ -4635,7 +4635,8 @@ Type *TypeAArray::syntaxCopy()
     if (t == next && ti == index)
         t = this;
     else
-    {   t = new TypeAArray(t, ti);
+    {
+        t = new TypeAArray(t, ti);
         t->mod = mod;
     }
     return t;
@@ -4645,7 +4646,6 @@ d_uns64 TypeAArray::size(Loc loc)
 {
     return Target::ptrsize;
 }
-
 
 Type *TypeAArray::semantic(Loc loc, Scope *sc)
 {
@@ -4998,7 +4998,8 @@ Type *TypePointer::syntaxCopy()
     if (t == next)
         t = this;
     else
-    {   t = new TypePointer(t);
+    {
+        t = new TypePointer(t);
         t->mod = mod;
     }
     return t;
@@ -5169,7 +5170,8 @@ Type *TypeReference::syntaxCopy()
     if (t == next)
         t = this;
     else
-    {   t = new TypeReference(t);
+    {
+        t = new TypeReference(t);
         t->mod = mod;
     }
     return t;
@@ -6335,7 +6337,8 @@ Type *TypeDelegate::syntaxCopy()
     if (t == next)
         t = this;
     else
-    {   t = new TypeDelegate(t);
+    {
+        t = new TypeDelegate(t);
         t->mod = mod;
     }
     return t;
@@ -6480,7 +6483,6 @@ void TypeQualified::syntaxCopyHelper(TypeQualified *t)
         idents[i] = id;
     }
 }
-
 
 void TypeQualified::addIdent(Identifier *ident)
 {
@@ -6742,12 +6744,9 @@ const char *TypeIdentifier::kind()
     return "identifier";
 }
 
-
 Type *TypeIdentifier::syntaxCopy()
 {
-    TypeIdentifier *t;
-
-    t = new TypeIdentifier(loc, ident);
+    TypeIdentifier *t = new TypeIdentifier(loc, ident);
     t->syntaxCopyHelper(this);
     t->mod = mod;
     return t;
@@ -6920,9 +6919,7 @@ const char *TypeInstance::kind()
 Type *TypeInstance::syntaxCopy()
 {
     //printf("TypeInstance::syntaxCopy() %s, %d\n", toChars(), idents.dim);
-    TypeInstance *t;
-
-    t = new TypeInstance(loc, (TemplateInstance *)tempinst->syntaxCopy(NULL));
+    TypeInstance *t = new TypeInstance(loc, (TemplateInstance *)tempinst->syntaxCopy(NULL));
     t->syntaxCopyHelper(this);
     t->mod = mod;
     return t;
@@ -7042,9 +7039,7 @@ const char *TypeTypeof::kind()
 Type *TypeTypeof::syntaxCopy()
 {
     //printf("TypeTypeof::syntaxCopy() %s\n", toChars());
-    TypeTypeof *t;
-
-    t = new TypeTypeof(loc, exp->syntaxCopy());
+    TypeTypeof *t = new TypeTypeof(loc, exp->syntaxCopy());
     t->syntaxCopyHelper(this);
     t->mod = mod;
     return t;
@@ -9351,26 +9346,21 @@ Parameter *Parameter::create(StorageClass storageClass, Type *type, Identifier *
 
 Parameter *Parameter::syntaxCopy()
 {
-    Parameter *a = new Parameter(storageClass,
-                type ? type->syntaxCopy() : NULL,
-                ident,
-                defaultArg ? defaultArg->syntaxCopy() : NULL);
-    return a;
+    return new Parameter(storageClass,
+        type ? type->syntaxCopy() : NULL,
+        ident,
+        defaultArg ? defaultArg->syntaxCopy() : NULL);
 }
 
 Parameters *Parameter::arraySyntaxCopy(Parameters *args)
-{   Parameters *a = NULL;
-
+{
+    Parameters *a = NULL;
     if (args)
     {
         a = new Parameters();
         a->setDim(args->dim);
         for (size_t i = 0; i < a->dim; i++)
-        {   Parameter *arg = (*args)[i];
-
-            arg = arg->syntaxCopy();
-            (*a)[i] = arg;
-        }
+            (*a)[i] = (*args)[i]->syntaxCopy();
     }
     return a;
 }

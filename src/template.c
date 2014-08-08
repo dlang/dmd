@@ -406,11 +406,9 @@ RootObject *objectSyntaxCopy(RootObject *o)
 {
     if (!o)
         return NULL;
-    Type *t = isType(o);
-    if (t)
+    if (Type *t = isType(o))
         return t->syntaxCopy();
-    Expression *e = isExpression(o);
-    if (e)
+    if (Expression *e = isExpression(o))
         return e->syntaxCopy();
     return o;
 }
@@ -471,26 +469,17 @@ TemplateDeclaration::TemplateDeclaration(Loc loc, Identifier *id,
 Dsymbol *TemplateDeclaration::syntaxCopy(Dsymbol *)
 {
     //printf("TemplateDeclaration::syntaxCopy()\n");
-    TemplateDeclaration *td;
-    TemplateParameters *p;
-
-    p = NULL;
+    TemplateParameters *p = NULL;
     if (parameters)
     {
         p = new TemplateParameters();
         p->setDim(parameters->dim);
         for (size_t i = 0; i < p->dim; i++)
-        {
-            TemplateParameter *tp = (*parameters)[i];
-            (*p)[i] = tp->syntaxCopy();
-        }
+            (*p)[i] = (*parameters)[i]->syntaxCopy();
     }
-    Expression *e = NULL;
-    if (constraint)
-        e = constraint->syntaxCopy();
-    Dsymbols *d = Dsymbol::arraySyntaxCopy(members);
-    td = new TemplateDeclaration(loc, ident, p, e, d, ismixin, literal);
-    return td;
+    return new TemplateDeclaration(loc, ident, p,
+        constraint ? constraint->syntaxCopy() : NULL,
+        Dsymbol::arraySyntaxCopy(members), ismixin, literal);
 }
 
 void TemplateDeclaration::semantic(Scope *sc)
@@ -4682,12 +4671,9 @@ TemplateTypeParameter  *TemplateTypeParameter::isTemplateTypeParameter()
 
 TemplateParameter *TemplateTypeParameter::syntaxCopy()
 {
-    TemplateTypeParameter *tp = new TemplateTypeParameter(loc, ident, specType, defaultType);
-    if (tp->specType)
-        tp->specType = specType->syntaxCopy();
-    if (defaultType)
-        tp->defaultType = defaultType->syntaxCopy();
-    return tp;
+    return new TemplateTypeParameter(loc, ident,
+        specType    ? specType->syntaxCopy()    : NULL,
+        defaultType ? defaultType->syntaxCopy() : NULL);
 }
 
 void TemplateTypeParameter::declareParameter(Scope *sc)
@@ -4878,12 +4864,9 @@ TemplateThisParameter  *TemplateThisParameter::isTemplateThisParameter()
 
 TemplateParameter *TemplateThisParameter::syntaxCopy()
 {
-    TemplateThisParameter *tp = new TemplateThisParameter(loc, ident, specType, defaultType);
-    if (tp->specType)
-        tp->specType = specType->syntaxCopy();
-    if (defaultType)
-        tp->defaultType = defaultType->syntaxCopy();
-    return tp;
+    return new TemplateThisParameter(loc, ident,
+        specType    ? specType->syntaxCopy()    : NULL,
+        defaultType ? defaultType->syntaxCopy() : NULL);
 }
 
 /* ======================== TemplateAliasParameter ========================== */
@@ -4909,12 +4892,10 @@ TemplateAliasParameter *TemplateAliasParameter::isTemplateAliasParameter()
 
 TemplateParameter *TemplateAliasParameter::syntaxCopy()
 {
-    TemplateAliasParameter *tp = new TemplateAliasParameter(loc, ident, specType, specAlias, defaultAlias);
-    if (tp->specType)
-        tp->specType = specType->syntaxCopy();
-    tp->specAlias = objectSyntaxCopy(specAlias);
-    tp->defaultAlias = objectSyntaxCopy(defaultAlias);
-    return tp;
+    return new TemplateAliasParameter(loc, ident,
+        specType ? specType->syntaxCopy() : NULL,
+        objectSyntaxCopy(specAlias),
+        objectSyntaxCopy(defaultAlias));
 }
 
 void TemplateAliasParameter::declareParameter(Scope *sc)
@@ -5182,14 +5163,10 @@ TemplateValueParameter *TemplateValueParameter::isTemplateValueParameter()
 
 TemplateParameter *TemplateValueParameter::syntaxCopy()
 {
-    TemplateValueParameter *tp =
-        new TemplateValueParameter(loc, ident, valType, specValue, defaultValue);
-    tp->valType = valType->syntaxCopy();
-    if (specValue)
-        tp->specValue = specValue->syntaxCopy();
-    if (defaultValue)
-        tp->defaultValue = defaultValue->syntaxCopy();
-    return tp;
+    return new TemplateValueParameter(loc, ident,
+        valType->syntaxCopy(),
+        specValue    ? specValue->syntaxCopy()    : NULL,
+        defaultValue ? defaultValue->syntaxCopy() : NULL);
 }
 
 void TemplateValueParameter::declareParameter(Scope *sc)
@@ -5444,8 +5421,7 @@ TemplateTupleParameter *TemplateTupleParameter::isTemplateTupleParameter()
 
 TemplateParameter *TemplateTupleParameter::syntaxCopy()
 {
-    TemplateTupleParameter *tp = new TemplateTupleParameter(loc, ident);
-    return tp;
+    return new TemplateTupleParameter(loc, ident);
 }
 
 void TemplateTupleParameter::declareParameter(Scope *sc)
@@ -5652,24 +5628,17 @@ Objects *TemplateInstance::arraySyntaxCopy(Objects *objs)
         a = new Objects();
         a->setDim(objs->dim);
         for (size_t i = 0; i < objs->dim; i++)
-        {
             (*a)[i] = objectSyntaxCopy((*objs)[i]);
-        }
     }
     return a;
 }
 
 Dsymbol *TemplateInstance::syntaxCopy(Dsymbol *s)
 {
-    TemplateInstance *ti;
-
-    if (s)
-        ti = (TemplateInstance *)s;
-    else
-        ti = new TemplateInstance(loc, name);
-
+    TemplateInstance *ti =
+        s ? (TemplateInstance *)s
+          : new TemplateInstance(loc, name);
     ti->tiargs = arraySyntaxCopy(tiargs);
-
     TemplateDeclaration *td;
     if (inst && tempdecl && (td = tempdecl->isTemplateDeclaration()) != NULL)
         td->ScopeDsymbol::syntaxCopy(ti);
@@ -5677,7 +5646,6 @@ Dsymbol *TemplateInstance::syntaxCopy(Dsymbol *s)
         ScopeDsymbol::syntaxCopy(ti);
     return ti;
 }
-
 
 void TemplateInstance::semantic(Scope *sc)
 {
@@ -7794,8 +7762,7 @@ Dsymbol *TemplateMixin::syntaxCopy(Dsymbol *s)
 {
     TemplateMixin *tm = new TemplateMixin(loc, ident,
                 (TypeQualified *)tqual->syntaxCopy(), tiargs);
-    TemplateInstance::syntaxCopy(tm);
-    return tm;
+    return TemplateInstance::syntaxCopy(tm);
 }
 
 bool TemplateMixin::findTempDecl(Scope *sc)
