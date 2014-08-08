@@ -69,6 +69,15 @@ hash_t calcHash(const char *str, size_t len)
     }
 }
 
+static int hashCmp(hash_t lhs, hash_t rhs)
+{
+    if (lhs == rhs)
+        return 0;
+    else if (lhs < rhs)
+        return -1;
+    return 1;
+}
+
 void StringValue::ctor(const char *p, size_t length)
 {
     this->length = length;
@@ -129,7 +138,7 @@ void **StringTable::search(const char *s, size_t len)
     //printf("\thash = %d, u = %d\n",hash,u);
     while (*se)
     {
-        cmp = (*se)->hash - hash;
+        cmp = hashCmp((*se)->hash, hash);
         if (cmp == 0)
         {
             cmp = (*se)->value.len() - len;
