@@ -292,21 +292,20 @@ int match(RootObject *o1, RootObject *o2)
     {
         //printf("t1 = %s\n", t1->toChars());
         //printf("t2 = %s\n", t2->toChars());
-        if (!t2 || !t1->equals(t2))
+        if (!t2)
+            goto Lnomatch;
+        if (!t1->equals(t2))
             goto Lnomatch;
     }
     else if (e1)
     {
-#if 0
-        if (e1 && e2)
-        {
-            printf("match %d\n", e1->equals(e2));
-            printf("\te1 = %p %s %s %s\n", e1, e1->type->toChars(), Token::toChars(e1->op), e1->toChars());
-            printf("\te2 = %p %s %s %s\n", e2, e2->type->toChars(), Token::toChars(e2->op), e2->toChars());
-        }
-#endif
         if (!e2)
             goto Lnomatch;
+#if 0
+        printf("match %d\n", e1->equals(e2));
+        printf("\te1 = %p %s %s %s\n", e1, e1->type->toChars(), Token::toChars(e1->op), e1->toChars());
+        printf("\te2 = %p %s %s %s\n", e2, e2->type->toChars(), Token::toChars(e2->op), e2->toChars());
+#endif
         if (!e1->equals(e2))
             goto Lnomatch;
     }
@@ -8076,24 +8075,15 @@ void TemplateMixin::semantic(Scope *sc)
 #endif
     if (semanticRun != PASSinit)
     {
-        // This for when a class/struct contains mixin members, and
-        // is done over because of forward references
-        if (parent && toParent()->isAggregateDeclaration())
-        {
-            if (sc->parent != parent)
-                return;
-            semanticRun = PASSsemantic;            // do over
-        }
-        else
-        {
+        // When a class/struct contains mixin members, and is done over
+        // because of forward references, never reach here so semanticRun
+        // has been reset to PASSinit.
 #if LOG
-            printf("\tsemantic done\n");
+        printf("\tsemantic done\n");
 #endif
-            return;
-        }
+        return;
     }
-    if (semanticRun == PASSinit)
-        semanticRun = PASSsemantic;
+    semanticRun = PASSsemantic;
 #if LOG
     printf("\tdo semantic\n");
 #endif
@@ -8105,7 +8095,6 @@ void TemplateMixin::semantic(Scope *sc)
         scx = scope;            // save so we don't make redundant copies
         scope = NULL;
     }
-
 
     /* Run semantic on each argument, place results in tiargs[],
      * then find best match template with tiargs

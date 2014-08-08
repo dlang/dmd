@@ -616,7 +616,7 @@ void Module::parse()
                 pkg->mod = this;
             }
             else
-                error(pkg->loc, "from file %s conflicts with package name %s",
+                error(md ? md->loc : loc, "from file %s conflicts with package name %s",
                     srcname, pkg->toChars());
         }
         else

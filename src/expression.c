@@ -3572,8 +3572,11 @@ bool NullExp::equals(RootObject *o)
     if (o && o->dyncast() == DYNCAST_EXPRESSION)
     {
         Expression *e = (Expression *)o;
-        if (e->op == TOKnull)
+        if (e->op == TOKnull &&
+            type->equals(e->type))
+        {
             return true;
+        }
     }
     return false;
 }
@@ -4022,6 +4025,11 @@ bool ArrayLiteralExp::equals(RootObject *o)
         ArrayLiteralExp *ae = (ArrayLiteralExp *)o;
         if (elements->dim != ae->elements->dim)
             return false;
+        if (elements->dim == 0 &&
+            !type->equals(ae->type))
+        {
+            return false;
+        }
         for (size_t i = 0; i < elements->dim; i++)
         {
             Expression *e1 = (*elements)[i];
@@ -4273,7 +4281,7 @@ bool StructLiteralExp::equals(RootObject *o)
         ((Expression *)o)->op == TOKstructliteral)
     {
         StructLiteralExp *se = (StructLiteralExp *)o;
-        if (sd != se->sd)
+        if (!type->equals(se->type))
             return false;
         if (elements->dim != se->elements->dim)
             return false;

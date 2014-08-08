@@ -921,9 +921,9 @@ Lagain:
                         /* and the d=b copy elem now reaches the end    */
                         /* of the block (the d=a elem didn't).          */
                 }
+                if (recalc)
+                    goto Lagain;
         }
-        if (recalc)
-            goto Lagain;
 }
 
 /*****************************
@@ -940,6 +940,8 @@ STATIC void cpwalk(register elem *n,vec_t IN)
 
         assert(n && IN);
         /*chkvecdim(exptop,0);*/
+        if (recalc)
+            return;
         op = n->Eoper;
         if (op == OPcolon || op == OPcolon2)
         {
@@ -1086,17 +1088,44 @@ STATIC void cpwalk(register elem *n,vec_t IN)
                 }
                 if (foundelem)          /* if we can do the copy prop   */
                 {
-                        cmes3("Copyprop, from '%s' to '%s'\n",
-                            (v->Sident) ? (char *)v->Sident : "temp",
-                            (f->Sident) ? (char *)f->Sident : "temp");
-
+#ifdef DEBUG
+                        if (debugc)
+                        {
+                            printf("Copyprop, from '%s'(%d) to '%s'(%d)\n",
+                                (v->Sident) ? (char *)v->Sident : "temp", v->Ssymnum,
+                                (f->Sident) ? (char *)f->Sident : "temp", f->Ssymnum);
+                        }
+#endif
                         type *nt = n->ET;
                         el_copy(n,foundelem->E2);
                         n->Ety = ty;    // retain original type
                         n->ET = nt;
 
+                        /* original => rewrite
+                         *  v = f
+                         *  g = v   => g = f
+                         *  f = x
+                         *  d = g   => d = f !!error
+                         * Therefore, if g appears as an rvalue in expnod[], then recalc
+                         */
+                        for (size_t i = 1; i < exptop; ++i)
+                        {
+                            if (expnod[i]->E2 == n)
+                            {
+                                symbol *g = expnod[i]->E1->EV.sp.Vsym;
+                                for (size_t j = 1; j < exptop; ++j)
+                                {
+                                    if (expnod[j]->E2->EV.sp.Vsym == g)
+                                    {
+                                        ++recalc;
+                                        break;
+                                    }
+                                }
+                                break;
+                            }
+                        }
+
                         changes++;
-                        recalc++;
                 }
                 //else dbg_printf("not found\n");
             noprop:

@@ -188,7 +188,6 @@ dt_t *Initializer_toDt(Initializer *init)
 
     InitToDt v;
     init->accept(&v);
-    assert(v.result);
     return v.result;
 }
 
