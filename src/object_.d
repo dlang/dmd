@@ -1034,7 +1034,16 @@ class TypeInfo_Struct : TypeInfo
     override void destroy(void* p) const
     {
         if (xdtor)
-            (*xdtor)(p);
+        {
+            import core.memory : GC;
+
+            auto inf = GC.query(p);
+
+            if (inf != GC.BlkInfo.init && (inf.attr & GC.BlkAttr.FINALIZE))
+                GC.runFinalizers(p[0..1]);
+            else
+                (*xdtor)(p);
+        }
     }
 
     override void postblit(void* p) const
