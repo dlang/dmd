@@ -62,7 +62,7 @@ void genhdrfile(Module *m)
     hdrbufr.writenl();
 
     HdrGenState hgs;
-    hgs.hdrgen = 1;
+    hgs.hdrgen = true;
 
     toCBuffer(m, &hdrbufr, &hgs);
 
@@ -942,18 +942,18 @@ public:
     {
         TemplateInstance *ti = t->sym->parent->isTemplateInstance();
         if (ti && ti->toAlias() == t->sym)
-            buf->writestring((hgs->fullQualification) ? ti->toPrettyChars() : ti->toChars());
+            buf->writestring(hgs->fullQual ? ti->toPrettyChars() : ti->toChars());
         else
-            buf->writestring((hgs->fullQualification) ? t->sym->toPrettyChars() : t->sym->toChars());
+            buf->writestring(hgs->fullQual ? t->sym->toPrettyChars() : t->sym->toChars());
     }
 
     void visit(TypeClass *t)
     {
         TemplateInstance *ti = t->sym->parent->isTemplateInstance();
         if (ti && ti->toAlias() == t->sym)
-            buf->writestring((hgs->fullQualification) ? ti->toPrettyChars() : ti->toChars());
+            buf->writestring(hgs->fullQual ? ti->toPrettyChars() : ti->toChars());
         else
-            buf->writestring((hgs->fullQualification) ? t->sym->toPrettyChars() : t->sym->toChars());
+            buf->writestring(hgs->fullQual ? t->sym->toPrettyChars() : t->sym->toChars());
     }
 
     void visit(TypeTuple *t)

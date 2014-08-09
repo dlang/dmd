@@ -15,26 +15,17 @@ void genhdrfile(Module *m);
 
 struct HdrGenState
 {
-    int hdrgen;         // 1 if generating header file
-    int ddoc;           // 1 if generating Ddoc file
-    int console;        // 1 if writing to console
+    bool hdrgen;        // true if generating header file
+    bool ddoc;          // true if generating Ddoc file
+    bool console;       // true if writing to console
+    bool fullQual;      // fully qualify types when printing
     int tpltMember;
-    int inCallExp;
-    int inPtrExp;
-    int inSlcExp;
-    int inDotExp;
-    int inBinExp;
-    int inArrExp;
-    int emitInst;
     int autoMember;
-    bool fullQualification; // fully qualify types when printing
 
     struct
     {
         int init;
-        int decl;
     } FLinit;
-    Scope* scope;       // Scope when generating ddoc
 
     HdrGenState() { memset(this, 0, sizeof(HdrGenState)); }
 };

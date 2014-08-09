@@ -7896,7 +7896,7 @@ char *TemplateInstance::toPrettyCharsHelper()
 {
     OutBuffer buf;
     HdrGenState hgs;
-    hgs.fullQualification = 1;
+    hgs.fullQual = true;
     toCBuffer(&buf, &hgs);
 
     return buf.extractString();

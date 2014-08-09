@@ -1603,7 +1603,7 @@ char *Type::toPrettyChars(bool QualifyTypes)
     OutBuffer buf;
     buf.reserve(16);
     HdrGenState hgs;
-    hgs.fullQualification = QualifyTypes;
+    hgs.fullQual = QualifyTypes;
 
     toCBuffer(&buf, NULL, &hgs);
     return buf.extractString();

@@ -91,7 +91,7 @@ void StaticAssert::semantic2(Scope *sc)
             msg = resolveProperties(sc, msg);
             sc = sc->endCTFE();
             msg = msg->ctfeInterpret();
-            hgs.console = 1;
+            hgs.console = true;
             StringExp * s = msg->toStringExp();
             if (s)
             {   s->postfix = 0; // Don't display a trailing 'c'
