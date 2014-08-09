@@ -216,7 +216,6 @@ struct Ungag
 struct Global
 {
     const char *mars_ext;
-    const char *sym_ext;
     const char *obj_ext;
     const char *lib_ext;
     const char *dll_ext;
