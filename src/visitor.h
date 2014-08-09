@@ -284,6 +284,13 @@ class ClassReferenceExp;
 class VoidInitExp;
 class ThrownExceptionExp;
 
+class TemplateParameter;
+class TemplateTypeParameter;
+class TemplateThisParameter;
+class TemplateValueParameter;
+class TemplateAliasParameter;
+class TemplateTupleParameter;
+
 class Visitor
 {
 public:
@@ -557,6 +564,13 @@ public:
     virtual void visit(ClassReferenceExp *e) { visit((Expression *)e); }
     virtual void visit(VoidInitExp *e) { visit((Expression *)e); }
     virtual void visit(ThrownExceptionExp *e) { visit((Expression *)e); }
+
+    virtual void visit(TemplateParameter *) { assert(0); }
+    virtual void visit(TemplateTypeParameter *tp) { visit((TemplateParameter *)tp); }
+    virtual void visit(TemplateThisParameter *tp) { visit((TemplateTypeParameter *)tp); }
+    virtual void visit(TemplateValueParameter *tp) { visit((TemplateParameter *)tp); }
+    virtual void visit(TemplateAliasParameter *tp) { visit((TemplateParameter *)tp); }
+    virtual void visit(TemplateTupleParameter *tp) { visit((TemplateParameter *)tp); }
 };
 
 class StoppableVisitor : public Visitor

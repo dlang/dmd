@@ -175,6 +175,7 @@ public:
     /* Create dummy argument based on parameter.
      */
     virtual void *dummyArg() = 0;
+    virtual void accept(Visitor *v) { v->visit(this); }
 };
 
 /* Syntax:
@@ -202,6 +203,7 @@ public:
     int overloadMatch(TemplateParameter *);
     MATCH matchArg(Scope *sc, RootObject *oarg, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     void *dummyArg();
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 /* Syntax:
@@ -215,6 +217,7 @@ public:
     TemplateThisParameter *isTemplateThisParameter();
     TemplateParameter *syntaxCopy();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 /* Syntax:
@@ -243,6 +246,7 @@ public:
     int overloadMatch(TemplateParameter *);
     MATCH matchArg(Scope *sc, RootObject *oarg, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     void *dummyArg();
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 /* Syntax:
@@ -271,6 +275,7 @@ public:
     int overloadMatch(TemplateParameter *);
     MATCH matchArg(Scope *sc, RootObject *oarg, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     void *dummyArg();
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 /* Syntax:
@@ -294,6 +299,7 @@ public:
     MATCH matchArg(Loc loc, Scope *sc, Objects *tiargs, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     MATCH matchArg(Scope *sc, RootObject *oarg, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     void *dummyArg();
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 /* Given:
