@@ -62,7 +62,6 @@ void genhdrfile(Module *m)
     hdrbufr.writenl();
 
     HdrGenState hgs;
-    memset(&hgs, 0, sizeof(hgs));
     hgs.hdrgen = 1;
 
     toCBuffer(m, &hdrbufr, &hgs);

@@ -1939,10 +1939,8 @@ void Expression::print()
 
 char *Expression::toChars()
 {
-    HdrGenState hgs;
-    memset(&hgs, 0, sizeof(hgs));
-
     OutBuffer buf;
+    HdrGenState hgs;
     toCBuffer(&buf, &hgs);
     return buf.extractString();
 }

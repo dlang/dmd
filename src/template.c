@@ -2800,7 +2800,6 @@ char *TemplateDeclaration::toChars()
     OutBuffer buf;
     HdrGenState hgs;
 
-    memset(&hgs, 0, sizeof(hgs));
     buf.writestring(ident->toChars());
     buf.writeByte('(');
     for (size_t i = 0; i < parameters->dim; i++)
