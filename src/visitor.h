@@ -291,6 +291,12 @@ class TemplateValueParameter;
 class TemplateAliasParameter;
 class TemplateTupleParameter;
 
+class Condition;
+class DVCondition;
+class DebugCondition;
+class VersionCondition;
+class StaticIfCondition;
+
 class Visitor
 {
 public:
@@ -571,6 +577,12 @@ public:
     virtual void visit(TemplateValueParameter *tp) { visit((TemplateParameter *)tp); }
     virtual void visit(TemplateAliasParameter *tp) { visit((TemplateParameter *)tp); }
     virtual void visit(TemplateTupleParameter *tp) { visit((TemplateParameter *)tp); }
+
+    virtual void visit(Condition *) { assert(0); }
+    virtual void visit(DVCondition *c) { visit((Condition *)c); }
+    virtual void visit(DebugCondition *c) { visit((DVCondition *)c); }
+    virtual void visit(VersionCondition *c) { visit((DVCondition *)c); }
+    virtual void visit(StaticIfCondition *c) { visit((Condition *)c); }
 };
 
 class StoppableVisitor : public Visitor

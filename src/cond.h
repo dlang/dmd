@@ -40,6 +40,7 @@ public:
     virtual int include(Scope *sc, ScopeDsymbol *sds) = 0;
     virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs) = 0;
     virtual DebugCondition *isDebugCondition() { return NULL; }
+    virtual void accept(Visitor *v) { v->visit(this); }
 };
 
 class DVCondition : public Condition
@@ -52,6 +53,7 @@ public:
     DVCondition(Module *mod, unsigned level, Identifier *ident);
 
     Condition *syntaxCopy();
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class DebugCondition : public DVCondition
@@ -65,6 +67,7 @@ public:
     int include(Scope *sc, ScopeDsymbol *sds);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     DebugCondition *isDebugCondition() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class VersionCondition : public DVCondition
@@ -84,6 +87,7 @@ public:
 
     int include(Scope *sc, ScopeDsymbol *sds);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class StaticIfCondition : public Condition
@@ -96,6 +100,7 @@ public:
     Condition *syntaxCopy();
     int include(Scope *sc, ScopeDsymbol *sds);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 #endif
