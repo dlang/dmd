@@ -113,6 +113,7 @@ class Package;
 class Module;
 class WithScopeSymbol;
 class ArrayScopeSymbol;
+class Nspace;
 
 class AggregateDeclaration;
 class StructDeclaration;
@@ -386,6 +387,7 @@ public:
     virtual void visit(Module *s) { visit((Package *)s); }
     virtual void visit(WithScopeSymbol *s) { visit((ScopeDsymbol *)s); }
     virtual void visit(ArrayScopeSymbol *s) { visit((ScopeDsymbol *)s); }
+    virtual void visit(Nspace *s) { visit((ScopeDsymbol *)s); }
 
     virtual void visit(AggregateDeclaration *s) { visit((ScopeDsymbol *)s); }
     virtual void visit(StructDeclaration *s) { visit((AggregateDeclaration *)s); }
