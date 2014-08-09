@@ -45,7 +45,6 @@
 #include "hdrgen.h"
 
 FuncDeclaration *hasThis(Scope *sc);
-void toCBuffer(Type *t, OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
 
 #define LOGDOTEXP       0       // log ::dotExp()
 #define LOGDEFAULTINIT  0       // log ::defaultInit()
@@ -1594,7 +1593,7 @@ char *Type::toChars()
     buf.reserve(16);
     HdrGenState hgs;
 
-    toCBuffer(&buf, NULL, &hgs);
+    ::toCBuffer(this, &buf, NULL, &hgs);
     return buf.extractString();
 }
 
@@ -1605,13 +1604,8 @@ char *Type::toPrettyChars(bool QualifyTypes)
     HdrGenState hgs;
     hgs.fullQual = QualifyTypes;
 
-    toCBuffer(&buf, NULL, &hgs);
+    ::toCBuffer(this, &buf, NULL, &hgs);
     return buf.extractString();
-}
-
-void Type::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
-{
-    ::toCBuffer(this, buf, ident, hgs);
 }
 
 /*********************************
@@ -9372,85 +9366,6 @@ Parameters *Parameter::arraySyntaxCopy(Parameters *args)
         }
     }
     return a;
-}
-
-char *Parameter::argsTypesToChars(Parameters *args, int varargs)
-{
-    OutBuffer buf;
-    buf.reserve(16);
-
-    HdrGenState hgs;
-    argsToCBuffer(&buf, &hgs, args, varargs);
-
-    buf.writeByte(0);
-    return buf.extractData();
-}
-
-void Parameter::argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Parameters *arguments, int varargs)
-{
-    buf->writeByte('(');
-    if (arguments)
-    {
-        OutBuffer argbuf;
-        argbuf.reserve(32);
-
-        size_t dim = Parameter::dim(arguments);
-        for (size_t i = 0; i < dim; i++)
-        {
-            if (i)
-                buf->writestring(", ");
-            Parameter *arg = Parameter::getNth(arguments, i);
-
-            if (arg->storageClass & STCauto)
-                buf->writestring("auto ");
-
-            if (arg->storageClass & STCout)
-                buf->writestring("out ");
-            else if (arg->storageClass & STCref)
-                buf->writestring("ref ");
-            else if (arg->storageClass & STCin)
-                buf->writestring("in ");
-            else if (arg->storageClass & STClazy)
-                buf->writestring("lazy ");
-            else if (arg->storageClass & STCalias)
-                buf->writestring("alias ");
-
-            StorageClass stc = arg->storageClass;
-            if (arg->type && arg->type->mod & MODshared)
-                stc &= ~STCshared;
-
-            StorageClassDeclaration::stcToCBuffer(buf,
-                stc & (STCconst | STCimmutable | STCwild | STCshared | STCscope));
-
-            argbuf.reset();
-            if (arg->storageClass & STCalias)
-            {   if (arg->ident)
-                    argbuf.writestring(arg->ident->toChars());
-            }
-            else if (arg->type->ty == Tident &&
-                     ((TypeIdentifier *)arg->type)->ident->len > 3 &&
-                     strncmp(((TypeIdentifier *)arg->type)->ident->string, "__T", 3) == 0)
-            {
-                // print parameter name, instead of undetermined type parameter
-                argbuf.writestring(arg->ident->toChars());
-            }
-            else
-                arg->type->toCBuffer(&argbuf, arg->ident, hgs);
-            if (arg->defaultArg)
-            {
-                argbuf.writestring(" = ");
-                arg->defaultArg->toCBuffer(&argbuf, hgs);
-            }
-            buf->write(&argbuf);
-        }
-        if (varargs)
-        {
-            if (arguments->dim && varargs == 1)
-                buf->writestring(", ");
-            buf->writestring("...");
-        }
-    }
-    buf->writeByte(')');
 }
 
 static int argsToDecoBufferDg(void *ctx, size_t n, Parameter *arg)

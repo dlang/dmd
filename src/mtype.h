@@ -39,7 +39,6 @@ class TemplateDeclaration;
 enum LINK;
 
 class TypeBasic;
-struct HdrGenState;
 class Parameter;
 
 // Back end
@@ -259,7 +258,6 @@ public:
     virtual void toDecoBuffer(OutBuffer *buf, int flag = 0);
     Type *merge();
     Type *merge2();
-    void toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
     void modToBuffer(OutBuffer *buf);
     char *modToChars();
 
@@ -1009,8 +1007,6 @@ public:
     virtual void accept(Visitor *v) { v->visit(this); }
 
     static Parameters *arraySyntaxCopy(Parameters *args);
-    static char *argsTypesToChars(Parameters *args, int varargs);
-    static void argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Parameters *arguments, int varargs);
     static void argsToDecoBuffer(OutBuffer *buf, Parameters *arguments);
     static int isTPL(Parameters *arguments);
     static size_t dim(Parameters *arguments);
@@ -1027,6 +1023,5 @@ char *MODtoChars(MOD mod);
 bool MODimplicitConv(MOD modfrom, MOD modto);
 bool MODmethodConv(MOD modfrom, MOD modto);
 MOD MODmerge(MOD mod1, MOD mod2);
-void identifierToDocBuffer(Identifier* ident, OutBuffer *buf, HdrGenState *hgs);
 
 #endif /* DMD_MTYPE_H */

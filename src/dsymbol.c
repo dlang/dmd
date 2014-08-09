@@ -494,11 +494,6 @@ bool Dsymbol::overloadInsert(Dsymbol *s)
     return false;
 }
 
-void Dsymbol::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring(toChars());
-}
-
 unsigned Dsymbol::size(Loc loc)
 {
     error("Dsymbol '%s' has no size", toChars());

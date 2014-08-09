@@ -861,43 +861,6 @@ Lancestorsdone:
     //printf("-ClassDeclaration::semantic(%s), type = %p, sizeok = %d, this = %p\n", toChars(), type, sizeok, this);
 }
 
-void ClassDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    if (!isAnonymous())
-    {
-        buf->printf("%s ", kind());
-        buf->writestring(toChars());
-        if (baseclasses->dim)
-            buf->writestring(" : ");
-    }
-    for (size_t i = 0; i < baseclasses->dim; i++)
-    {
-        BaseClass *b = (*baseclasses)[i];
-
-        if (i)
-            buf->writestring(", ");
-        //buf->writestring(b->base->ident->toChars());
-        b->type->toCBuffer(buf, NULL, hgs);
-    }
-    if (members)
-    {
-        buf->writenl();
-        buf->writeByte('{');
-        buf->writenl();
-        buf->level++;
-        for (size_t i = 0; i < members->dim; i++)
-        {
-            Dsymbol *s = (*members)[i];
-            s->toCBuffer(buf, hgs);
-        }
-        buf->level--;
-        buf->writestring("}");
-    }
-    else
-        buf->writeByte(';');
-    buf->writenl();
-}
-
 /*********************************************
  * Determine if 'this' is a base class of cd.
  * This is used to detect circular inheritance only.

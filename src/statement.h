@@ -48,7 +48,6 @@ class TryFinallyStatement;
 class CaseStatement;
 class DefaultStatement;
 class LabelStatement;
-struct HdrGenState;
 struct InterState;
 struct CompiledCtfeFunction;
 
@@ -81,8 +80,6 @@ enum BE
     BEerrthrow = 0x80,
     BEany = (BEfallthru | BEthrow | BEreturn | BEgoto | BEhalt),
 };
-
-void toCBuffer(Statement *s, OutBuffer *buf, HdrGenState *hgs);
 
 class Statement : public RootObject
 {

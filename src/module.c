@@ -21,7 +21,6 @@
 #include "id.h"
 #include "import.h"
 #include "dsymbol.h"
-#include "hdrgen.h"
 #include "lexer.h"
 
 #ifdef IN_GCC

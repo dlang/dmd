@@ -33,7 +33,6 @@
 
 void functionToBufferWithIdent(TypeFunction *t, OutBuffer *buf, const char *ident);
 void genCmain(Scope *sc);
-void toBufferShort(Type *t, OutBuffer *buf, HdrGenState *hgs);
 
 /* A visitor to walk entire statements and provides ability to replace any sub-statements.
  */
@@ -2251,30 +2250,6 @@ bool FuncDeclaration::functionSemantic3()
     return true;
 }
 
-void FuncDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    //printf("FuncDeclaration::toCBuffer() '%s'\n", toChars());
-
-    StorageClassDeclaration::stcToCBuffer(buf, storage_class);
-    type->toCBuffer(buf, ident, hgs);
-    if (hgs->hdrgen == 1)
-    {
-        if (storage_class & STCauto)
-        {
-            hgs->autoMember++;
-            bodyToCBuffer(buf, hgs);
-            hgs->autoMember--;
-        }
-        else if (hgs->tpltMember == 0 && !global.params.useInline)
-            buf->writestring(";");
-        else
-            bodyToCBuffer(buf, hgs);
-    }
-    else
-        bodyToCBuffer(buf, hgs);
-    buf->writenl();
-}
-
 VarDeclaration *FuncDeclaration::declareThis(Scope *sc, AggregateDeclaration *ad)
 {
     if (ad && !isFuncLiteralDeclaration())
@@ -2346,63 +2321,6 @@ bool FuncDeclaration::equals(RootObject *o)
             fd1->ident->equals(fd2->ident) && fd1->type->equals(fd2->type);
     }
     return false;
-}
-
-void FuncDeclaration::bodyToCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    if (fbody && (!hgs->hdrgen || global.params.useInline || hgs->autoMember || hgs->tpltMember))
-    {
-        int savetlpt = hgs->tpltMember;
-        int saveauto = hgs->autoMember;
-        hgs->tpltMember = 0;
-        hgs->autoMember = 0;
-
-        buf->writenl();
-
-        // in{}
-        if (frequire)
-        {
-            buf->writestring("in");
-            buf->writenl();
-            ::toCBuffer(frequire, buf, hgs);
-        }
-
-        // out{}
-        if (fensure)
-        {
-            buf->writestring("out");
-            if (outId)
-            {
-                buf->writeByte('(');
-                buf->writestring(outId->toChars());
-                buf->writeByte(')');
-            }
-            buf->writenl();
-            ::toCBuffer(fensure, buf, hgs);
-        }
-
-        if (frequire || fensure)
-        {
-            buf->writestring("body");
-            buf->writenl();
-        }
-
-        buf->writeByte('{');
-        buf->writenl();
-        buf->level++;
-        ::toCBuffer(fbody, buf, hgs);
-        buf->level--;
-        buf->writeByte('}');
-        buf->writenl();
-
-        hgs->tpltMember = savetlpt;
-        hgs->autoMember = saveauto;
-    }
-    else
-    {
-        buf->writeByte(';');
-        buf->writenl();
-    }
 }
 
 /****************************************************
@@ -3145,7 +3063,7 @@ struct FuncCandidateWalker
         FuncCandidateWalker *p = (FuncCandidateWalker *)param;
 
         ::errorSupplemental(f->loc, "%s%s", f->toPrettyChars(),
-            Parameter::argsTypesToChars(((TypeFunction *)f->type)->parameters, ((TypeFunction *)f->type)->varargs));
+            parametersTypeToChars(((TypeFunction *)f->type)->parameters, ((TypeFunction *)f->type)->varargs));
 
         if (!global.params.verbose && --(p->numToDisplay) == 0 && f->overnext)
         {
@@ -3238,26 +3156,17 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
             return NULL;    // no match
     }
 
-    HdrGenState hgs;
-
     FuncDeclaration *fd = s->isFuncDeclaration();
     TemplateDeclaration *td = s->isTemplateDeclaration();
     if (td && td->funcroot)
         s = fd = td->funcroot;
 
     OutBuffer tiargsBuf;
-    size_t dim = tiargs ? tiargs->dim : 0;
-    for (size_t i = 0; i < dim; i++)
-    {
-        if (i)
-            tiargsBuf.writestring(", ");
-        RootObject *oarg = (*tiargs)[i];
-        ObjectToCBuffer(&tiargsBuf, &hgs, oarg);
-    }
+    arrayObjectsToBuffer(&tiargsBuf, tiargs);
 
     OutBuffer fargsBuf;
     fargsBuf.writeByte('(');
-    argExpTypesToCBuffer(&fargsBuf, fargs, &hgs);
+    argExpTypesToCBuffer(&fargsBuf, fargs);
     fargsBuf.writeByte(')');
     if (tthis)
         tthis->modToBuffer(&fargsBuf);
@@ -3304,7 +3213,7 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
                             fd->ident->toChars(), fargsBuf.peekString());
                 else
                     fd->error(loc, "%s%s is not callable using argument types %s",
-                        Parameter::argsTypesToChars(tf->parameters, tf->varargs),
+                        parametersTypeToChars(tf->parameters, tf->varargs),
                         tf->modToChars(),
                         fargsBuf.peekString());
             }
@@ -3323,8 +3232,8 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
     {
         TypeFunction *tf1 = (TypeFunction *)m.lastf->type;
         TypeFunction *tf2 = (TypeFunction *)m.nextf->type;
-        const char *lastprms = Parameter::argsTypesToChars(tf1->parameters, tf1->varargs);
-        const char *nextprms = Parameter::argsTypesToChars(tf2->parameters, tf2->varargs);
+        const char *lastprms = parametersTypeToChars(tf1->parameters, tf1->varargs);
+        const char *nextprms = parametersTypeToChars(tf2->parameters, tf2->varargs);
         ::error(loc, "%s.%s called with argument types %s matches both:\n"
                      "%s:     %s%s\nand:\n%s:     %s%s",
                 s->parent->toPrettyChars(), s->ident->toChars(),
@@ -4464,48 +4373,6 @@ const char *FuncLiteralDeclaration::kind()
     return (tok != TOKfunction) ? (char*)"delegate" : (char*)"function";
 }
 
-void FuncLiteralDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    if (type->ty == Terror)
-    {
-        buf->writestring("__error");
-        return;
-    }
-
-    if (tok != TOKreserved)
-    {
-        buf->writestring(kind());
-        buf->writeByte(' ');
-    }
-
-    TypeFunction *tf = (TypeFunction *)type;
-    // Don't print tf->mod, tf->trust, and tf->linkage
-    if (!inferRetType && tf->next)
-        toBufferShort(tf->next, buf, hgs);
-    Parameter::argsToCBuffer(buf, hgs, tf->parameters, tf->varargs);
-
-    CompoundStatement *cs = fbody->isCompoundStatement();
-    Statement *s1;
-    if (semanticRun >= PASSsemantic3done && cs)
-    {
-        s1 = (*cs->statements)[cs->statements->dim - 1];
-    }
-    else
-        s1 = !cs ? fbody : NULL;
-    ReturnStatement *rs = s1 ? s1->isReturnStatement() : NULL;
-    if (rs && rs->exp)
-    {
-        buf->writestring(" => ");
-        rs->exp->toCBuffer(buf, hgs);
-    }
-    else
-    {
-        hgs->tpltMember++;
-        bodyToCBuffer(buf, hgs);
-        hgs->tpltMember--;
-    }
-}
-
 const char *FuncLiteralDeclaration::toPrettyChars(bool QualifyTypes)
 {
     if (parent)
@@ -4676,12 +4543,6 @@ bool PostBlitDeclaration::isVirtual()
     return false;
 }
 
-void PostBlitDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("this(this)");
-    bodyToCBuffer(buf, hgs);
-}
-
 /********************************* DtorDeclaration ****************************/
 
 DtorDeclaration::DtorDeclaration(Loc loc, Loc endloc)
@@ -4761,12 +4622,6 @@ bool DtorDeclaration::isVirtual()
 {
     // false so that dtor's don't get put into the vtbl[]
     return false;
-}
-
-void DtorDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("~this()");
-    bodyToCBuffer(buf, hgs);
 }
 
 /********************************* StaticCtorDeclaration ****************************/
@@ -4883,18 +4738,6 @@ bool StaticCtorDeclaration::addPostInvariant()
     return false;
 }
 
-void StaticCtorDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    if (hgs->hdrgen && !hgs->tpltMember)
-    {
-        buf->writestring("static this();");
-        buf->writenl();
-        return;
-    }
-    buf->writestring("static this()");
-    bodyToCBuffer(buf, hgs);
-}
-
 /********************************* SharedStaticCtorDeclaration ****************************/
 
 SharedStaticCtorDeclaration::SharedStaticCtorDeclaration(Loc loc, Loc endloc, StorageClass stc)
@@ -4907,12 +4750,6 @@ Dsymbol *SharedStaticCtorDeclaration::syntaxCopy(Dsymbol *s)
     assert(!s);
     SharedStaticCtorDeclaration *scd = new SharedStaticCtorDeclaration(loc, endloc, storage_class);
     return FuncDeclaration::syntaxCopy(scd);
-}
-
-void SharedStaticCtorDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("shared ");
-    StaticCtorDeclaration::toCBuffer(buf, hgs);
 }
 
 /********************************* StaticDtorDeclaration ****************************/
@@ -5015,14 +4852,6 @@ bool StaticDtorDeclaration::addPostInvariant()
     return false;
 }
 
-void StaticDtorDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    if (hgs->hdrgen)
-        return;
-    buf->writestring("static ~this()");
-    bodyToCBuffer(buf, hgs);
-}
-
 /********************************* SharedStaticDtorDeclaration ****************************/
 
 SharedStaticDtorDeclaration::SharedStaticDtorDeclaration(Loc loc, Loc endloc, StorageClass stc)
@@ -5036,16 +4865,6 @@ Dsymbol *SharedStaticDtorDeclaration::syntaxCopy(Dsymbol *s)
     SharedStaticDtorDeclaration *sdd = new SharedStaticDtorDeclaration(loc, endloc, storage_class);
     return FuncDeclaration::syntaxCopy(sdd);
 }
-
-void SharedStaticDtorDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    if (!hgs->hdrgen)
-    {
-        buf->writestring("shared ");
-        StaticDtorDeclaration::toCBuffer(buf, hgs);
-    }
-}
-
 
 /********************************* InvariantDeclaration ****************************/
 
@@ -5113,15 +4932,6 @@ bool InvariantDeclaration::addPostInvariant()
 {
     return false;
 }
-
-void InvariantDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    if (hgs->hdrgen)
-        return;
-    buf->writestring("invariant");
-    bodyToCBuffer(buf, hgs);
-}
-
 
 /********************************* UnitTestDeclaration ****************************/
 
@@ -5212,14 +5022,6 @@ bool UnitTestDeclaration::addPostInvariant()
     return false;
 }
 
-void UnitTestDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    if (hgs->hdrgen)
-        return;
-    buf->writestring("unittest");
-    bodyToCBuffer(buf, hgs);
-}
-
 /********************************* NewDeclaration ****************************/
 
 NewDeclaration::NewDeclaration(Loc loc, Loc endloc, Parameters *arguments, int varargs)
@@ -5301,14 +5103,6 @@ bool NewDeclaration::addPostInvariant()
 {
     return false;
 }
-
-void NewDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("new");
-    Parameter::argsToCBuffer(buf, hgs, arguments, varargs);
-    bodyToCBuffer(buf, hgs);
-}
-
 
 /********************************* DeleteDeclaration ****************************/
 
@@ -5394,14 +5188,3 @@ bool DeleteDeclaration::addPostInvariant()
 {
     return false;
 }
-
-void DeleteDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("delete");
-    Parameter::argsToCBuffer(buf, hgs, arguments, 0);
-    bodyToCBuffer(buf, hgs);
-}
-
-
-
-

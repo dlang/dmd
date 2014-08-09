@@ -1016,7 +1016,7 @@ void toDocBuffer(Dsymbol *s, OutBuffer *buf, Scope *sc)
             //printf("Dsymbol::toDocbuffer() %s\n", s->toChars());
             HdrGenState hgs;
             hgs.ddoc = true;
-            s->toCBuffer(buf, &hgs);
+            ::toCBuffer(s, buf, &hgs);
         }
 
         void prefix(Dsymbol *s)
@@ -1067,7 +1067,7 @@ void toDocBuffer(Dsymbol *s, OutBuffer *buf, Scope *sc)
                         functionToBufferFull((TypeFunction *)origType, buf, decl->ident, &hgs, td);
                     }
                     else
-                        origType->toCBuffer(buf, decl->ident, &hgs);
+                        ::toCBuffer(origType, buf, decl->ident, &hgs);
                 }
                 else
                     buf->writestring(decl->ident->toChars());
@@ -1078,7 +1078,7 @@ void toDocBuffer(Dsymbol *s, OutBuffer *buf, Scope *sc)
                     HdrGenState hgs;
                     hgs.ddoc = true;
                     buf->writestring(" if (");
-                    td->constraint->toCBuffer(buf, &hgs);
+                    ::toCBuffer(td->constraint, buf, &hgs);
                     buf->writeByte(')');
                 }
 
@@ -1304,7 +1304,7 @@ void toDocBuffer(Dsymbol *s, OutBuffer *buf, Scope *sc)
                     else
                     {
                         HdrGenState hgs;
-                        bc->type->toCBuffer(buf, NULL, &hgs);
+                        ::toCBuffer(bc->type, buf, NULL, &hgs);
                     }
                 }
                 buf->writestring(";\n");
@@ -1320,7 +1320,7 @@ void toDocBuffer(Dsymbol *s, OutBuffer *buf, Scope *sc)
                 {
                     buf->writestring(": $(DDOC_ENUM_BASETYPE ");
                     HdrGenState hgs;
-                    ed->memtype->toCBuffer(buf, NULL, &hgs);
+                    ::toCBuffer(ed->memtype, buf, NULL, &hgs);
                     buf->writestring(")");
                 }
                 buf->writestring(";\n");
@@ -1666,7 +1666,7 @@ void ParamSection::write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
                     }
                     else if (arg && arg->type && arg->ident)
                     {
-                        arg->type->toCBuffer(buf, arg->ident, &hgs);
+                        ::toCBuffer(arg->type, buf, arg->ident, &hgs);
                     }
                     else
                     {

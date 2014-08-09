@@ -24,7 +24,6 @@ class LabelDsymbol;
 class Initializer;
 class Module;
 class Condition;
-struct HdrGenState;
 
 /**************************************************************/
 
@@ -54,7 +53,6 @@ public:
     bool hasStaticCtorOrDtor();
     void checkCtorConstInit();
     void addLocalClass(ClassDeclarations *);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     AttribDeclaration *isAttribDeclaration() { return this; }
 
     void toObjFile(bool multiobj);                       // compile to .obj file
@@ -70,7 +68,6 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
     bool oneMember(Dsymbol **ps, Identifier *ident);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     static const char *stcToChars(char tmp[], StorageClass& stc);
     static void stcToCBuffer(OutBuffer *buf, StorageClass stc);
@@ -85,7 +82,6 @@ public:
     DeprecatedDeclaration(Expression *msg, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void setScope(Scope *sc);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -97,7 +93,6 @@ public:
     LinkDeclaration(LINK p, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     char *toChars();
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -110,7 +105,6 @@ public:
     ProtDeclaration(PROT p, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -122,7 +116,6 @@ public:
     AlignDeclaration(unsigned sa, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -137,7 +130,6 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
     void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     const char *kind();
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -151,7 +143,6 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
     void setScope(Scope *sc);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     const char *kind();
     void toObjFile(bool multiobj);                       // compile to .obj file
     void accept(Visitor *v) { v->visit(this); }
@@ -168,7 +159,6 @@ public:
     bool oneMember(Dsymbol **ps, Identifier *ident);
     Dsymbols *include(Scope *sc, ScopeDsymbol *sds);
     void addComment(const utf8_t *comment);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void setScope(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -206,7 +196,6 @@ public:
     void setScope(Scope *sc);
     void compileIt(Scope *sc);
     void semantic(Scope *sc);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     const char *kind();
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -228,7 +217,6 @@ public:
     void setScope(Scope *sc);
     static Expressions *concat(Expressions *udas1, Expressions *udas2);
     Expressions *getAttributes();
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     const char *kind();
     void accept(Visitor *v) { v->visit(this); }
 };

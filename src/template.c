@@ -402,64 +402,6 @@ hash_t arrayObjectHash(Objects *oa1)
     return hash;
 }
 
-
-/****************************************
- * This makes a 'pretty' version of the template arguments.
- * It's analogous to genIdent() which makes a mangled version.
- */
-
-void ObjectToCBuffer(OutBuffer *buf, HdrGenState *hgs, RootObject *oarg)
-{
-    //printf("ObjectToCBuffer()\n");
-    Type *t = isType(oarg);
-    Expression *e = isExpression(oarg);
-    Dsymbol *s = isDsymbol(oarg);
-    Tuple *v = isTuple(oarg);
-    /* The logic of this should match what genIdent() does. The _dynamic_cast()
-     * function relies on all the pretty strings to be unique for different classes
-     * (see Bugzilla 7375).
-     * Perhaps it would be better to demangle what genIdent() does.
-     */
-    if (t)
-    {
-        //printf("\tt: %s ty = %d\n", t->toChars(), t->ty);
-        t->toCBuffer(buf, NULL, hgs);
-    }
-    else if (e)
-    {
-        if (e->op == TOKvar)
-            e = e->optimize(WANTvalue);         // added to fix Bugzilla 7375
-        e->toCBuffer(buf, hgs);
-    }
-    else if (s)
-    {
-        char *p = s->ident ? s->ident->toChars() : s->toChars();
-        buf->writestring(p);
-    }
-    else if (v)
-    {
-        Objects *args = &v->objects;
-        for (size_t i = 0; i < args->dim; i++)
-        {
-            if (i)
-                buf->writestring(", ");
-            RootObject *o = (*args)[i];
-            ObjectToCBuffer(buf, hgs, o);
-        }
-    }
-    else if (!oarg)
-    {
-        buf->writestring("NULL");
-    }
-    else
-    {
-#ifdef DEBUG
-        printf("bad Object = %p\n", oarg);
-#endif
-        assert(0);
-    }
-}
-
 RootObject *objectSyntaxCopy(RootObject *o)
 {
     if (!o)
@@ -2660,138 +2602,6 @@ bool TemplateDeclaration::hasStaticCtorOrDtor()
     return false;               // don't scan uninstantiated templates
 }
 
-void TemplateDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-#if 0 // Should handle template functions for doc generation
-    if (onemember && onemember->isFuncDeclaration())
-        buf->writestring("foo ");
-#endif
-    if (hgs->hdrgen && members && members->dim == 1)
-    {
-        FuncDeclaration *fd = (*members)[0]->isFuncDeclaration();
-        if (fd && fd->type && fd->type->ty == Tfunction && fd->ident == ident)
-        {
-            StorageClassDeclaration::stcToCBuffer(buf, fd->storage_class);
-            functionToBufferFull((TypeFunction *)fd->type, buf, ident, hgs, this);
-
-            if (constraint)
-            {
-                buf->writestring(" if (");
-                constraint->toCBuffer(buf, hgs);
-                buf->writeByte(')');
-            }
-
-            hgs->tpltMember++;
-            fd->bodyToCBuffer(buf, hgs);
-            hgs->tpltMember--;
-            return;
-        }
-
-        AggregateDeclaration *ad = (*members)[0]->isAggregateDeclaration();
-        if (ad)
-        {
-            buf->writestring(ad->kind());
-            buf->writeByte(' ');
-            buf->writestring(ident->toChars());
-            buf->writeByte('(');
-            for (size_t i = 0; i < parameters->dim; i++)
-            {
-                TemplateParameter *tp = (*parameters)[i];
-                if (hgs->ddoc)
-                    tp = (*origParameters)[i];
-                if (i)
-                    buf->writestring(", ");
-                tp->toCBuffer(buf, hgs);
-            }
-            buf->writeByte(')');
-
-            if (constraint)
-            {
-                buf->writestring(" if (");
-                constraint->toCBuffer(buf, hgs);
-                buf->writeByte(')');
-            }
-
-             ClassDeclaration *cd = ad->isClassDeclaration();
-            if (cd && cd->baseclasses->dim)
-            {
-                buf->writestring(" : ");
-                for (size_t i = 0; i < cd->baseclasses->dim; i++)
-                {
-                    BaseClass *b = (*cd->baseclasses)[i];
-                    if (i)
-                        buf->writestring(", ");
-                    b->type->toCBuffer(buf, NULL, hgs);
-                }
-            }
-
-            hgs->tpltMember++;
-            if (ad->members)
-            {
-                buf->writenl();
-                buf->writeByte('{');
-                buf->writenl();
-                buf->level++;
-                for (size_t i = 0; i < ad->members->dim; i++)
-                {
-                    Dsymbol *s = (*ad->members)[i];
-                    s->toCBuffer(buf, hgs);
-                }
-                buf->level--;
-                buf->writestring("}");
-            }
-            else
-                buf->writeByte(';');
-            buf->writenl();
-            hgs->tpltMember--;
-            return;
-        }
-    }
-
-    if (hgs->ddoc)
-        buf->writestring(kind());
-    else
-        buf->writestring("template");
-    buf->writeByte(' ');
-    buf->writestring(ident->toChars());
-    buf->writeByte('(');
-    for (size_t i = 0; i < parameters->dim; i++)
-    {
-        TemplateParameter *tp = (*parameters)[i];
-        if (hgs->ddoc)
-            tp = (*origParameters)[i];
-        if (i)
-            buf->writestring(", ");
-        tp->toCBuffer(buf, hgs);
-    }
-    buf->writeByte(')');
-    if (constraint)
-    {
-        buf->writestring(" if (");
-        constraint->toCBuffer(buf, hgs);
-        buf->writeByte(')');
-    }
-
-    if (hgs->hdrgen)
-    {
-        hgs->tpltMember++;
-        buf->writenl();
-        buf->writeByte('{');
-        buf->writenl();
-        buf->level++;
-        for (size_t i = 0; i < members->dim; i++)
-        {
-            Dsymbol *s = (*members)[i];
-            s->toCBuffer(buf, hgs);
-        }
-        buf->level--;
-        buf->writeByte('}');
-        buf->writenl();
-        hgs->tpltMember--;
-    }
-}
-
-
 char *TemplateDeclaration::toChars()
 {
     if (literal)
@@ -2807,7 +2617,7 @@ char *TemplateDeclaration::toChars()
         TemplateParameter *tp = (*parameters)[i];
         if (i)
             buf.writestring(", ");
-        tp->toCBuffer(&buf, &hgs);
+        ::toCBuffer(tp, &buf, &hgs);
     }
     buf.writeByte(')');
 
@@ -2817,15 +2627,14 @@ char *TemplateDeclaration::toChars()
         if (fd && fd->type)
         {
             TypeFunction *tf = (TypeFunction *)fd->type;
-            char const* args = Parameter::argsTypesToChars(tf->parameters, tf->varargs);
-            buf.writestring(args);
+            buf.writestring(parametersTypeToChars(tf->parameters, tf->varargs));
         }
     }
 
     if (constraint)
     {
         buf.writestring(" if (");
-        constraint->toCBuffer(&buf, &hgs);
+        ::toCBuffer(constraint, &buf, &hgs);
         buf.writeByte(')');
     }
     return buf.extractString();
@@ -5014,23 +4823,6 @@ void TemplateTypeParameter::print(RootObject *oarg, RootObject *oded)
     printf("\tDeduced Type:   %s\n", ta->toChars());
 }
 
-
-void TemplateTypeParameter::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring(ident->toChars());
-    if (specType)
-    {
-        buf->writestring(" : ");
-        specType->toCBuffer(buf, NULL, hgs);
-    }
-    if (defaultType)
-    {
-        buf->writestring(" = ");
-        defaultType->toCBuffer(buf, NULL, hgs);
-    }
-}
-
-
 void *TemplateTypeParameter::dummyArg()
 {
     Type *t = specType;
@@ -5091,12 +4883,6 @@ TemplateParameter *TemplateThisParameter::syntaxCopy()
     if (defaultType)
         tp->defaultType = defaultType->syntaxCopy();
     return tp;
-}
-
-void TemplateThisParameter::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("this ");
-    TemplateTypeParameter::toCBuffer(buf, hgs);
 }
 
 /* ======================== TemplateAliasParameter ========================== */
@@ -5330,29 +5116,6 @@ void TemplateAliasParameter::print(RootObject *oarg, RootObject *oded)
 
     printf("\tParameter alias: %s\n", sa->toChars());
 }
-
-void TemplateAliasParameter::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("alias ");
-    if (specType)
-    {
-        HdrGenState hgs1;
-        specType->toCBuffer(buf, ident, &hgs1);
-    }
-    else
-        buf->writestring(ident->toChars());
-    if (specAlias)
-    {
-        buf->writestring(" : ");
-        ObjectToCBuffer(buf, hgs, specAlias);
-    }
-    if (defaultAlias)
-    {
-        buf->writestring(" = ");
-        ObjectToCBuffer(buf, hgs, defaultAlias);
-    }
-}
-
 
 void *TemplateAliasParameter::dummyArg()
 {
@@ -5623,23 +5386,6 @@ void TemplateValueParameter::print(RootObject *oarg, RootObject *oded)
     printf("\tParameter Value: %s\n", ea ? ea->toChars() : "NULL");
 }
 
-
-void TemplateValueParameter::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    valType->toCBuffer(buf, ident, hgs);
-    if (specValue)
-    {
-        buf->writestring(" : ");
-        specValue->toCBuffer(buf, hgs);
-    }
-    if (defaultValue)
-    {
-        buf->writestring(" = ");
-        defaultValue->toCBuffer(buf, hgs);
-    }
-}
-
-
 void *TemplateValueParameter::dummyArg()
 {
     Expression *e = specValue;
@@ -5812,13 +5558,6 @@ void TemplateTupleParameter::print(RootObject *oarg, RootObject *oded)
 
     printf("]\n");
 }
-
-void TemplateTupleParameter::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring(ident->toChars());
-    buf->writestring("...");
-}
-
 
 void *TemplateTupleParameter::dummyArg()
 {
@@ -7781,64 +7520,6 @@ void TemplateInstance::printInstantiationTrace()
     }
 }
 
-void TemplateInstance::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    Identifier *id = name;
-    buf->writestring(id->toChars());
-    toCBufferTiargs(buf, hgs);
-}
-
-void TemplateInstance::toCBufferTiargs(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writeByte('!');
-    if (nest)
-        buf->writestring("(...)");
-    else if (!tiargs)
-        buf->writestring("()");
-    else
-    {
-        if (tiargs->dim == 1)
-        {
-            RootObject *oarg = (*tiargs)[0];
-            if (Type *t = isType(oarg))
-            {
-                if (t->equals(Type::tstring) ||
-                    t->mod == 0 &&
-                    (t->isTypeBasic() ||
-                     t->ty == Tident && ((TypeIdentifier *)t)->idents.dim == 0))
-                {
-                    buf->writestring(t->toChars());
-                    return;
-                }
-            }
-            else if (Expression *e = isExpression(oarg))
-            {
-                if (e->op == TOKint64 ||
-                    e->op == TOKfloat64 ||
-                    e->op == TOKnull ||
-                    e->op == TOKstring ||
-                    e->op == TOKthis)
-                {
-                    buf->writestring(e->toChars());
-                    return;
-                }
-            }
-        }
-        buf->writeByte('(');
-        nest++;
-        for (size_t i = 0; i < tiargs->dim; i++)
-        {
-            if (i)
-                buf->writestring(", ");
-            RootObject *oarg = (*tiargs)[i];
-            ObjectToCBuffer(buf, hgs, oarg);
-        }
-        nest--;
-        buf->writeByte(')');
-    }
-}
-
-
 Dsymbol *TemplateInstance::toAlias()
 {
 #if LOG
@@ -7884,21 +7565,14 @@ bool TemplateInstance::oneMember(Dsymbol **ps, Identifier *ident)
 char *TemplateInstance::toChars()
 {
     OutBuffer buf;
-    HdrGenState hgs;
-    char *s;
-
-    toCBuffer(&buf, &hgs);
-    s = buf.extractString();
-    return s;
+    toCBufferInstance(this, &buf);
+    return buf.extractString();
 }
 
 char *TemplateInstance::toPrettyCharsHelper()
 {
     OutBuffer buf;
-    HdrGenState hgs;
-    hgs.fullQual = true;
-    toCBuffer(&buf, &hgs);
-
+    toCBufferInstance(this, &buf, true);
     return buf.extractString();
 }
 
@@ -8463,26 +8137,6 @@ void TemplateMixin::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, 
 char *TemplateMixin::toChars()
 {
     OutBuffer buf;
-    HdrGenState hgs;
-    char *s;
-
-    TemplateInstance::toCBuffer(&buf, &hgs);
-    s = buf.extractString();
-    return s;
-}
-
-void TemplateMixin::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("mixin ");
-
-    tqual->toCBuffer(buf, NULL, hgs);
-    toCBufferTiargs(buf, hgs);
-
-    if (ident && memcmp(ident->string, "__mixin", 7) != 0)
-    {
-        buf->writeByte(' ');
-        buf->writestring(ident->toChars());
-    }
-    buf->writeByte(';');
-    buf->writenl();
+    toCBufferInstance(this, &buf);
+    return buf.extractString();
 }

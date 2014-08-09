@@ -37,7 +37,6 @@ struct Scope;
 class Expression;
 class AliasDeclaration;
 class FuncDeclaration;
-struct HdrGenState;
 class Parameter;
 enum MATCH;
 enum PASS;
@@ -88,7 +87,6 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     bool overloadInsert(Dsymbol *s);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     bool hasStaticCtorOrDtor();
     const char *kind();
     char *toChars();
@@ -158,7 +156,6 @@ public:
     virtual void declareParameter(Scope *sc) = 0;
     virtual void semantic(Scope *sc, TemplateParameters *parameters) = 0;
     virtual void print(RootObject *oarg, RootObject *oded) = 0;
-    virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs) = 0;
     virtual RootObject *specialization() = 0;
     virtual RootObject *defaultArg(Loc loc, Scope *sc) = 0;
     virtual bool hasDefaultArg() = 0;
@@ -196,7 +193,6 @@ public:
     void declareParameter(Scope *sc);
     void semantic(Scope *sc, TemplateParameters *parameters);
     void print(RootObject *oarg, RootObject *oded);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     RootObject *specialization();
     RootObject *defaultArg(Loc loc, Scope *sc);
     bool hasDefaultArg();
@@ -216,7 +212,6 @@ public:
 
     TemplateThisParameter *isTemplateThisParameter();
     TemplateParameter *syntaxCopy();
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -239,7 +234,6 @@ public:
     void declareParameter(Scope *sc);
     void semantic(Scope *sc, TemplateParameters *parameters);
     void print(RootObject *oarg, RootObject *oded);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     RootObject *specialization();
     RootObject *defaultArg(Loc loc, Scope *sc);
     bool hasDefaultArg();
@@ -268,7 +262,6 @@ public:
     void declareParameter(Scope *sc);
     void semantic(Scope *sc, TemplateParameters *parameters);
     void print(RootObject *oarg, RootObject *oded);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     RootObject *specialization();
     RootObject *defaultArg(Loc loc, Scope *sc);
     bool hasDefaultArg();
@@ -291,7 +284,6 @@ public:
     void declareParameter(Scope *sc);
     void semantic(Scope *sc, TemplateParameters *parameters);
     void print(RootObject *oarg, RootObject *oded);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     RootObject *specialization();
     RootObject *defaultArg(Loc loc, Scope *sc);
     bool hasDefaultArg();
@@ -345,8 +337,6 @@ public:
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
     void semantic3(Scope *sc);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    void toCBufferTiargs(OutBuffer *buf, HdrGenState *hgs);
     Dsymbol *toAlias();                 // resolve real symbol
     const char *kind();
     bool oneMember(Dsymbol **ps, Identifier *ident);
@@ -393,7 +383,6 @@ public:
     bool hasPointers();
     void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
     char *toChars();
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     void toObjFile(bool multiobj);                       // compile to .obj file
 
@@ -413,7 +402,6 @@ int isError(RootObject *o);
 Type *getType(RootObject *o);
 Dsymbol *getDsymbol(RootObject *o);
 
-void ObjectToCBuffer(OutBuffer *buf, HdrGenState *hgs, RootObject *oarg);
 RootObject *objectSyntaxCopy(RootObject *o);
 
 #endif /* DMD_TEMPLATE_H */

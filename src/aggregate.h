@@ -168,7 +168,6 @@ public:
     void semantic(Scope *sc);
     void semanticTypeInfoMembers();
     Dsymbol *search(Loc, Identifier *ident, int flags = IgnoreNone);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     const char *kind();
     void finalizeSize(Scope *sc);
     bool fit(Loc loc, Scope *sc, Expressions *elements, Type *stype);
@@ -271,7 +270,6 @@ public:
     ClassDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses, bool inObject = false);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     bool isBaseOf2(ClassDeclaration *cd);
 
     #define OFFSET_RUNTIME 0x76543210

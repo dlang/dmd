@@ -19,7 +19,6 @@
 #include "dsymbol.h"
 
 class Expression;
-struct HdrGenState;
 
 class StaticAssert : public Dsymbol
 {
@@ -36,7 +35,6 @@ public:
     bool oneMember(Dsymbol **ps, Identifier *ident);
     void toObjFile(bool multiobj);
     const char *kind();
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void accept(Visitor *v) { v->visit(this); }
 };
 
