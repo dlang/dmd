@@ -25,7 +25,6 @@
 #include "mtype.h"
 #include "scope.h"
 #include "arraytypes.h"
-#include "hdrgen.h"
 
 int findCondition(Strings *ids, Identifier *ident)
 {
@@ -135,14 +134,6 @@ int DebugCondition::include(Scope *sc, ScopeDsymbol *sds)
             printDepsConditional(sc, this, "depsDebug ");
     }
     return (inc == 1);
-}
-
-void DebugCondition::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    if (ident)
-        buf->printf("debug (%s)", ident->toChars());
-    else
-        buf->printf("debug (%u)", level);
 }
 
 /* ============================================================ */
@@ -303,15 +294,6 @@ int VersionCondition::include(Scope *sc, ScopeDsymbol *sds)
     return (inc == 1);
 }
 
-void VersionCondition::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    if (ident)
-        buf->printf("version (%s)", ident->toChars());
-    else
-        buf->printf("version (%u)", level);
-}
-
-
 /**************************** StaticIfCondition *******************************/
 
 StaticIfCondition::StaticIfCondition(Loc loc, Expression *exp)
@@ -391,11 +373,4 @@ Lerror:
     if (!global.gag)
         inc = 2;                // so we don't see the error message again
     return 0;
-}
-
-void StaticIfCondition::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("static if (");
-    ::toCBuffer(exp, buf, hgs);
-    buf->writeByte(')');
 }

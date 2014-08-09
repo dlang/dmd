@@ -392,7 +392,7 @@ public:
 
     void visit(ConditionalStatement *s)
     {
-        s->condition->toCBuffer(buf, hgs);
+        s->condition->accept(this);
         buf->writenl();
         buf->writeByte('{');
         buf->writenl();
@@ -2646,6 +2646,31 @@ public:
     {
         buf->writestring(tp->ident->toChars());
         buf->writestring("...");
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+
+    void visit(DebugCondition *c)
+    {
+        if (c->ident)
+            buf->printf("debug (%s)", c->ident->toChars());
+        else
+            buf->printf("debug (%u)", c->level);
+    }
+
+    void visit(VersionCondition *c)
+    {
+        if (c->ident)
+            buf->printf("version (%s)", c->ident->toChars());
+        else
+            buf->printf("version (%u)", c->level);
+    }
+
+    void visit(StaticIfCondition *c)
+    {
+        buf->writestring("static if (");
+        c->exp->accept(this);
+        buf->writeByte(')');
     }
 };
 
