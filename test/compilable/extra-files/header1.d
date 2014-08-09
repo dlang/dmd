@@ -1,8 +1,3 @@
-// PERMUTE_ARGS: -dw
-// REQUIRED_ARGS: -H -Hd${RESULTS_DIR}/compilable
-// POST_SCRIPT: compilable/extra-files/header-postscript.sh
-// REQUIRED_ARGS: -d
-
 module foo.bar;
 
 import core.vararg;
@@ -15,7 +10,7 @@ static assert(true, "message");
 
 typedef double mydbl = 10;
 
-int main()
+int testmain()
 in
 {
     assert(1+(2+3) == -(1 - 2*3));
