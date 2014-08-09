@@ -2331,7 +2331,7 @@ public:
             {
                 buf->writestring(", ");
                 TemplateParameter *tp = (*e->parameters)[i];
-                tp->toCBuffer(buf, hgs);
+                tp->accept(this);
             }
         }
         buf->writeByte(')');
@@ -2581,6 +2581,72 @@ public:
     {
         buf->writestring(e->value->toChars());
     }
+
+    ////////////////////////////////////////////////////////////////////////////
+
+    void visit(TemplateTypeParameter *tp)
+    {
+        buf->writestring(tp->ident->toChars());
+        if (tp->specType)
+        {
+            buf->writestring(" : ");
+            ::toCBuffer(tp->specType, buf, NULL, hgs);
+        }
+        if (tp->defaultType)
+        {
+            buf->writestring(" = ");
+            ::toCBuffer(tp->defaultType, buf, NULL, hgs);
+        }
+    }
+
+    void visit(TemplateThisParameter *tp)
+    {
+        buf->writestring("this ");
+        visit((TemplateTypeParameter *)tp);
+    }
+
+    void visit(TemplateAliasParameter *tp)
+    {
+        buf->writestring("alias ");
+        if (tp->specType)
+        {
+            HdrGenState hgs1;
+            ::toCBuffer(tp->specType, buf, tp->ident, &hgs1);
+        }
+        else
+            buf->writestring(tp->ident->toChars());
+        if (tp->specAlias)
+        {
+            buf->writestring(" : ");
+            ObjectToCBuffer(buf, hgs, tp->specAlias);
+        }
+        if (tp->defaultAlias)
+        {
+            buf->writestring(" = ");
+            ObjectToCBuffer(buf, hgs, tp->defaultAlias);
+        }
+    }
+
+    void visit(TemplateValueParameter *tp)
+    {
+        ::toCBuffer(tp->valType, buf, tp->ident, hgs);
+        if (tp->specValue)
+        {
+            buf->writestring(" : ");
+            tp->specValue->accept(this);
+        }
+        if (tp->defaultValue)
+        {
+            buf->writestring(" = ");
+            tp->defaultValue->accept(this);
+        }
+    }
+
+    void visit(TemplateTupleParameter *tp)
+    {
+        buf->writestring(tp->ident->toChars());
+        buf->writestring("...");
+    }
 };
 
 void toCBuffer(Statement *s, OutBuffer *buf, HdrGenState *hgs)
@@ -2781,7 +2847,7 @@ void functionToBufferFull(TypeFunction *tf, OutBuffer *buf, Identifier *ident,
             TemplateParameter *tp = (*td->origParameters)[i];
             if (i)
                 buf->writestring(", ");
-            tp->toCBuffer(buf, hgs);
+            ::toCBuffer(tp, buf, hgs);
         }
         buf->writeByte(')');
     }
@@ -2879,4 +2945,10 @@ void argsToCBuffer(OutBuffer *buf, Expressions *expressions, HdrGenState *hgs)
                 expToCBuffer(buf, hgs, e, PREC_assign);
         }
     }
+}
+
+void toCBuffer(TemplateParameter *tp, OutBuffer *buf, HdrGenState *hgs)
+{
+    PrettyPrintVisitor v(buf, hgs);
+    tp->accept(&v);
 }

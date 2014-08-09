@@ -2675,7 +2675,7 @@ char *TemplateDeclaration::toChars()
         TemplateParameter *tp = (*parameters)[i];
         if (i)
             buf.writestring(", ");
-        tp->toCBuffer(&buf, &hgs);
+        ::toCBuffer(tp, &buf, &hgs);
     }
     buf.writeByte(')');
 
@@ -4882,23 +4882,6 @@ void TemplateTypeParameter::print(RootObject *oarg, RootObject *oded)
     printf("\tDeduced Type:   %s\n", ta->toChars());
 }
 
-
-void TemplateTypeParameter::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring(ident->toChars());
-    if (specType)
-    {
-        buf->writestring(" : ");
-        ::toCBuffer(specType, buf, NULL, hgs);
-    }
-    if (defaultType)
-    {
-        buf->writestring(" = ");
-        ::toCBuffer(defaultType, buf, NULL, hgs);
-    }
-}
-
-
 void *TemplateTypeParameter::dummyArg()
 {
     Type *t = specType;
@@ -4959,12 +4942,6 @@ TemplateParameter *TemplateThisParameter::syntaxCopy()
     if (defaultType)
         tp->defaultType = defaultType->syntaxCopy();
     return tp;
-}
-
-void TemplateThisParameter::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("this ");
-    TemplateTypeParameter::toCBuffer(buf, hgs);
 }
 
 /* ======================== TemplateAliasParameter ========================== */
@@ -5198,29 +5175,6 @@ void TemplateAliasParameter::print(RootObject *oarg, RootObject *oded)
 
     printf("\tParameter alias: %s\n", sa->toChars());
 }
-
-void TemplateAliasParameter::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("alias ");
-    if (specType)
-    {
-        HdrGenState hgs1;
-        ::toCBuffer(specType, buf, ident, &hgs1);
-    }
-    else
-        buf->writestring(ident->toChars());
-    if (specAlias)
-    {
-        buf->writestring(" : ");
-        ObjectToCBuffer(buf, hgs, specAlias);
-    }
-    if (defaultAlias)
-    {
-        buf->writestring(" = ");
-        ObjectToCBuffer(buf, hgs, defaultAlias);
-    }
-}
-
 
 void *TemplateAliasParameter::dummyArg()
 {
@@ -5491,23 +5445,6 @@ void TemplateValueParameter::print(RootObject *oarg, RootObject *oded)
     printf("\tParameter Value: %s\n", ea ? ea->toChars() : "NULL");
 }
 
-
-void TemplateValueParameter::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    ::toCBuffer(valType, buf, ident, hgs);
-    if (specValue)
-    {
-        buf->writestring(" : ");
-        ::toCBuffer(specValue, buf, hgs);
-    }
-    if (defaultValue)
-    {
-        buf->writestring(" = ");
-        ::toCBuffer(defaultValue, buf, hgs);
-    }
-}
-
-
 void *TemplateValueParameter::dummyArg()
 {
     Expression *e = specValue;
@@ -5680,13 +5617,6 @@ void TemplateTupleParameter::print(RootObject *oarg, RootObject *oded)
 
     printf("]\n");
 }
-
-void TemplateTupleParameter::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring(ident->toChars());
-    buf->writestring("...");
-}
-
 
 void *TemplateTupleParameter::dummyArg()
 {

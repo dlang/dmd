@@ -157,7 +157,6 @@ public:
     virtual void declareParameter(Scope *sc) = 0;
     virtual void semantic(Scope *sc, TemplateParameters *parameters) = 0;
     virtual void print(RootObject *oarg, RootObject *oded) = 0;
-    virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs) = 0;
     virtual RootObject *specialization() = 0;
     virtual RootObject *defaultArg(Loc loc, Scope *sc) = 0;
     virtual bool hasDefaultArg() = 0;
@@ -195,7 +194,6 @@ public:
     void declareParameter(Scope *sc);
     void semantic(Scope *sc, TemplateParameters *parameters);
     void print(RootObject *oarg, RootObject *oded);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     RootObject *specialization();
     RootObject *defaultArg(Loc loc, Scope *sc);
     bool hasDefaultArg();
@@ -215,7 +213,6 @@ public:
 
     TemplateThisParameter *isTemplateThisParameter();
     TemplateParameter *syntaxCopy();
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -238,7 +235,6 @@ public:
     void declareParameter(Scope *sc);
     void semantic(Scope *sc, TemplateParameters *parameters);
     void print(RootObject *oarg, RootObject *oded);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     RootObject *specialization();
     RootObject *defaultArg(Loc loc, Scope *sc);
     bool hasDefaultArg();
@@ -267,7 +263,6 @@ public:
     void declareParameter(Scope *sc);
     void semantic(Scope *sc, TemplateParameters *parameters);
     void print(RootObject *oarg, RootObject *oded);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     RootObject *specialization();
     RootObject *defaultArg(Loc loc, Scope *sc);
     bool hasDefaultArg();
@@ -290,7 +285,6 @@ public:
     void declareParameter(Scope *sc);
     void semantic(Scope *sc, TemplateParameters *parameters);
     void print(RootObject *oarg, RootObject *oded);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     RootObject *specialization();
     RootObject *defaultArg(Loc loc, Scope *sc);
     bool hasDefaultArg();
