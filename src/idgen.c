@@ -342,7 +342,19 @@ Msgtable msgtable[] =
     { "getAttributes" },
     { "getFunctionAttributes" },
     { "getUnitTests" },
-    { "getVirtualIndex" }
+    { "getVirtualIndex" },
+
+    // template introspection traits
+    { "isTemplateTypeParam" },
+    { "isTemplateValueParam" },
+    { "isTemplateAliasParam" },
+    { "isTemplateThisParam" },
+    { "isTemplateVariadicParam" },
+    { "getTemplateParamCount" },
+    { "getTemplateParamIdent" },
+    { "getTemplateParamType" },
+    { "getTemplateParamSpec" },
+    { "getTemplateParamDefault" },
 };
 
 

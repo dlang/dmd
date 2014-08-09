@@ -118,15 +118,32 @@ public:
 };
 
 /* For type-parameter:
- *  template Foo(ident)             // specType is set to NULL
+ *  template Foo(ident)     // specValue is set to NULL
  *  template Foo(ident : specType)
+ *  template Foo(ident = defaultType)
+ *  template Foo(ident : specType = defaultType)
+ *
  * For value-parameter:
  *  template Foo(valType ident)     // specValue is set to NULL
  *  template Foo(valType ident : specValue)
+ *  template Foo(valType ident = defaultValue)
+ *  template Foo(valType ident : specValue = defaultValue)
+ *
  * For alias-parameter:
  *  template Foo(alias ident)
+ *  template Foo(alias ident : specAlias)
+ *  template Foo(alias ident = defaultAlias)
+ *  template Foo(alias ident : specAlias = defaultAlias)
+ *  template Foo(alias specType ident)
+ *  template Foo(alias specType ident : specAlias)
+ *  template Foo(alias specType ident = defaultAlias)
+ *  template Foo(alias specType ident : specAlias = defaultAlias)
+ *
  * For this-parameter:
  *  template Foo(this ident)
+ *  template Foo(this ident : specType)
+ *  template Foo(this ident = defaultType)
+ *  template Foo(this ident : specType = defaultType)
  */
 class TemplateParameter
 {
@@ -159,6 +176,7 @@ public:
     virtual void semantic(Scope *sc, TemplateParameters *parameters) = 0;
     virtual void print(RootObject *oarg, RootObject *oded) = 0;
     virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs) = 0;
+    char *toChars();
     virtual RootObject *specialization() = 0;
     virtual RootObject *defaultArg(Loc loc, Scope *sc) = 0;
     virtual bool hasDefaultArg() = 0;

@@ -4811,6 +4811,16 @@ TemplateThisParameter  *TemplateParameter::isTemplateThisParameter()
     return NULL;
 }
 
+char *TemplateParameter::toChars()
+{
+    HdrGenState hgs;
+    memset(&hgs, 0, sizeof(hgs));
+
+    OutBuffer buf;
+    toCBuffer(&buf, &hgs);
+    return buf.extractString();
+}
+
 /*******************************************
  * Match to a particular TemplateParameter.
  * Input:
