@@ -297,6 +297,8 @@ class DebugCondition;
 class VersionCondition;
 class StaticIfCondition;
 
+class Parameter;
+
 class Visitor
 {
 public:
@@ -583,6 +585,8 @@ public:
     virtual void visit(DebugCondition *c) { visit((DVCondition *)c); }
     virtual void visit(VersionCondition *c) { visit((DVCondition *)c); }
     virtual void visit(StaticIfCondition *c) { visit((Condition *)c); }
+
+    virtual void visit(Parameter *) { assert(0); }
 };
 
 class StoppableVisitor : public Visitor
