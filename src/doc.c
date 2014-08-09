@@ -1893,7 +1893,7 @@ void DocComment::parseEscapes(Escape **pescapetable, const utf8_t *textstart, si
         {
             if (p + 4 >= pend)
                 return;
-            if (!(*p == ' ' || *p == '\t' || *p == '\n' || *p == ','))
+            if (!(*p == ' ' || *p == '\t' || *p == '\r' || *p == '\n' || *p == ','))
                 break;
             p++;
         }
