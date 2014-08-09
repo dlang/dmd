@@ -5,26 +5,7 @@ pragma (lib, "test");
 pragma (msg, "Hello World");
 static assert(true, "message");
 typedef double mydbl = 10;
-int main()
-in
-{
-	assert(1 + (2 + 3) == -(1 - 2 * 3));
-}
-out(result)
-{
-	assert(result == 0);
-}
-body
-{
-	float f = (float).infinity;
-	int i = cast(int)f;
-	writeln((i , 1), 2);
-	writeln(cast(int)(float).max);
-	assert(i == cast(int)(float).max);
-	assert(i == 2147483648u);
-	return 0;
-}
-
+int testmain();
 struct S
 {
 	int m;
@@ -109,25 +90,7 @@ template Foo(T, int V)
 			C,
 		}
 		;
-		void fswitch(Label l)
-		{
-			final switch (l)
-			{
-				case A:
-				{
-					break;
-				}
-				case B:
-				{
-					break;
-				}
-				case C:
-				{
-					break;
-				}
-			}
-		}
-
+		void fswitch(Label l);
 		loop:
 		while (x)
 		{
@@ -186,143 +149,44 @@ class xFoo2 : iFoo, iFoo2
 }
 class Foo3
 {
-	this(int a, ...)
-	{
-	}
-
-	this(int* a)
-	{
-	}
-
+	this(int a, ...);
+	this(int* a);
 }
 alias int myint;
 static notquit = 1;
 class Test
 {
-	void a()
-	{
-	}
-
-	void b()
-	{
-	}
-
-	void c()
-	{
-	}
-
-	void d()
-	{
-	}
-
-	void e()
-	{
-	}
-
-	void f()
-	{
-	}
-
-	void g()
-	{
-	}
-
-	void h()
-	{
-	}
-
-	void i()
-	{
-	}
-
-	void j()
-	{
-	}
-
-	void k()
-	{
-	}
-
-	void l()
-	{
-	}
-
-	void m()
-	{
-	}
-
-	void n()
-	{
-	}
-
-	void o()
-	{
-	}
-
-	void p()
-	{
-	}
-
-	void q()
-	{
-	}
-
-	void r()
-	{
-	}
-
-	void s()
-	{
-	}
-
-	void t()
-	{
-	}
-
-	void u()
-	{
-	}
-
-	void v()
-	{
-	}
-
-	void w()
-	{
-	}
-
-	void x()
-	{
-	}
-
-	void y()
-	{
-	}
-
-	void z()
-	{
-	}
-
-	void aa()
-	{
-	}
-
-	void bb()
-	{
-	}
-
-	void cc()
-	{
-	}
-
-	void dd()
-	{
-	}
-
-	void ee()
-	{
-	}
-
+	void a();
+	void b();
+	void c();
+	void d();
+	void e();
+	void f();
+	void g();
+	void h();
+	void i();
+	void j();
+	void k();
+	void l();
+	void m();
+	void n();
+	void o();
+	void p();
+	void q();
+	void r();
+	void s();
+	void t();
+	void u();
+	void v();
+	void w();
+	void x();
+	void y();
+	void z();
+	void aa();
+	void bb();
+	void cc();
+	void dd();
+	void ee();
 	template A(T)
 	{
 	}
@@ -394,11 +258,7 @@ int test(T)(T t)
 	return 0;
 }
 enum x6 = 1;
-bool foo6(int a, int b, int c, int d)
-{
-	return (a < b) != (c < d);
-}
-
+bool foo6(int a, int b, int c, int d);
 auto foo7(int x)
 {
 	return 5;
@@ -407,11 +267,7 @@ auto foo7(int x)
 class D8
 {
 }
-void func8()
-{
-	scope a = new D8;
-}
-
+void func8();
 T func9(T)() if (true)
 {
 	T i;
@@ -432,11 +288,7 @@ template V10(T)
 	}
 
 }
-int foo11(int function() fn)
-{
-	return fn();
-}
-
+int foo11(int function() fn);
 int bar11(T)()
 {
 	return foo11(function int()
@@ -447,27 +299,13 @@ int bar11(T)()
 }
 struct S6360
 {
-	const pure nothrow @property long weeks1()
-	{
-		return 0;
-	}
-
-	const pure nothrow @property long weeks2()
-	{
-		return 0;
-	}
-
+	const pure nothrow @property long weeks1();
+	const pure nothrow @property long weeks2();
 }
 struct S12
 {
-	nothrow this(int n)
-	{
-	}
-
-	nothrow this(string s)
-	{
-	}
-
+	nothrow this(int n);
+	nothrow this(string s);
 
 }
 struct T12
