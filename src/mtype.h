@@ -1006,6 +1006,8 @@ public:
     void toDecoBuffer(OutBuffer *buf);
     // kludge for template.isType()
     int dyncast() { return DYNCAST_PARAMETER; }
+    virtual void accept(Visitor *v) { v->visit(this); }
+
     static Parameters *arraySyntaxCopy(Parameters *args);
     static char *argsTypesToChars(Parameters *args, int varargs);
     static void argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Parameters *arguments, int varargs);

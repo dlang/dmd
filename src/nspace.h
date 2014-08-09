@@ -34,6 +34,7 @@ class Nspace : public ScopeDsymbol
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toObjFile(bool multiobj);
     Nspace *isNspace() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 #endif /* DMD_NSPACE_H */
