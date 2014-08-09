@@ -388,7 +388,7 @@ void TypedefDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     if (init)
     {
         buf->writestring(" = ");
-        init->toCBuffer(buf, hgs);
+        ::toCBuffer(init, buf, hgs);
     }
     buf->writeByte(';');
     buf->writenl();
@@ -1814,12 +1814,13 @@ void VarDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     else
         buf->writestring(ident->toChars());
     if (init)
-    {   buf->writestring(" = ");
+    {
+        buf->writestring(" = ");
         ExpInitializer *ie = init->isExpInitializer();
         if (ie && (ie->exp->op == TOKconstruct || ie->exp->op == TOKblit))
             ((AssignExp *)ie->exp)->e2->toCBuffer(buf, hgs);
         else
-            init->toCBuffer(buf, hgs);
+            ::toCBuffer(init, buf, hgs);
     }
     buf->writeByte(';');
     buf->writenl();

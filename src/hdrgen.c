@@ -192,12 +192,13 @@ public:
                     }
 
                     if (v->init)
-                    {   buf->writestring(" = ");
+                    {
+                        buf->writestring(" = ");
                         ExpInitializer *ie = v->init->isExpInitializer();
                         if (ie && (ie->exp->op == TOKconstruct || ie->exp->op == TOKblit))
                             ((AssignExp *)ie->exp)->e2->toCBuffer(buf, hgs);
                         else
-                            v->init->toCBuffer(buf, hgs);
+                            v->init->accept(this);
                     }
                 }
                 else
@@ -977,7 +978,61 @@ public:
         buf->writestring("typeof(null)");
     }
 
-   ////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////
+
+    void visit(ErrorInitializer *iz)
+    {
+        buf->writestring("__error__");
+    }
+
+    void visit(VoidInitializer *iz)
+    {
+        buf->writestring("void");
+    }
+
+    void visit(StructInitializer *si)
+    {
+        //printf("StructInitializer::toCBuffer()\n");
+        buf->writeByte('{');
+        for (size_t i = 0; i < si->field.dim; i++)
+        {
+            if (i)
+                buf->writestring(", ");
+            if (Identifier *id = si->field[i])
+            {
+                buf->writestring(id->toChars());
+                buf->writeByte(':');
+            }
+            if (Initializer *iz = si->value[i])
+                iz->accept(this);
+        }
+        buf->writeByte('}');
+    }
+
+    void visit(ArrayInitializer *ai)
+    {
+        buf->writeByte('[');
+        for (size_t i = 0; i < ai->index.dim; i++)
+        {
+            if (i)
+                buf->writestring(", ");
+            if (Expression *ex = ai->index[i])
+            {
+                ex->accept(this);
+                buf->writeByte(':');
+            }
+            if (Initializer *iz = ai->value[i])
+                iz->accept(this);
+        }
+        buf->writeByte(']');
+    }
+
+    void visit(ExpInitializer *ei)
+    {
+        ei->exp->accept(this);
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
 
     void visit(Expression *e)
     {
@@ -1737,6 +1792,12 @@ void toCBuffer(Type *t, OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
         buf->writeByte(' ');
         buf->writestring(ident->toChars());
     }
+}
+
+void toCBuffer(Initializer *iz, OutBuffer *buf, HdrGenState *hgs)
+{
+    PrettyPrintVisitor v(buf, hgs);
+    iz->accept(&v);
 }
 
 // Bypass the special printing of function and error types

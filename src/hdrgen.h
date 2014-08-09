@@ -27,5 +27,6 @@ struct HdrGenState
 
 void toCBuffer(Statement *s, OutBuffer *buf, HdrGenState *hgs);
 void toCBuffer(Type *t, OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
+void toCBuffer(Initializer *iz, OutBuffer *buf, HdrGenState *hgs);
 
 void functionToBufferFull(TypeFunction *tf, OutBuffer *buf, Identifier *ident, HdrGenState* hgs, TemplateDeclaration *td);
