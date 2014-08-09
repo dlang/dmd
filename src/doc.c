@@ -1015,7 +1015,7 @@ void toDocBuffer(Dsymbol *s, OutBuffer *buf, Scope *sc)
         {
             //printf("Dsymbol::toDocbuffer() %s\n", s->toChars());
             HdrGenState hgs;
-            hgs.ddoc = 1;
+            hgs.ddoc = true;
             s->toCBuffer(buf, &hgs);
         }
 
@@ -1060,7 +1060,7 @@ void toDocBuffer(Dsymbol *s, OutBuffer *buf, Scope *sc)
                 if (decl->type)
                 {
                     HdrGenState hgs;
-                    hgs.ddoc = 1;
+                    hgs.ddoc = true;
                     Type *origType = decl->originalType ? decl->originalType : decl->type;
                     if (origType->ty == Tfunction)
                     {
@@ -1076,7 +1076,7 @@ void toDocBuffer(Dsymbol *s, OutBuffer *buf, Scope *sc)
                 if (td && td->constraint)
                 {
                     HdrGenState hgs;
-                    hgs.ddoc = 1;
+                    hgs.ddoc = true;
                     buf->writestring(" if (");
                     td->constraint->toCBuffer(buf, &hgs);
                     buf->writeByte(')');

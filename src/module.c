@@ -49,7 +49,6 @@ Module::Module(const char *filename, Identifier *ident, int doDocComment, int do
         : Package(ident)
 {
     const char *srcfilename;
-    const char *symfilename;
 
 //    printf("Module::Module(filename = '%s', ident = '%s')\n", filename, ident->toChars());
     this->arg = filename;
@@ -118,8 +117,6 @@ Module::Module(const char *filename, Identifier *ident, int doDocComment, int do
 
     objfile = setOutfile(global.params.objname, global.params.objdir, filename, global.obj_ext);
 
-    symfilename = FileName::forceExt(filename, global.sym_ext);
-
     if (doDocComment)
         setDocfile();
 
@@ -127,7 +124,6 @@ Module::Module(const char *filename, Identifier *ident, int doDocComment, int do
         hdrfile = setOutfile(global.params.hdrname, global.params.hdrdir, arg, global.hdr_ext);
 
     //objfile = new File(objfilename);
-    symfile = new File(symfilename);
 }
 
 Module *Module::create(const char *filename, Identifier *ident, int doDocComment, int doHdrGen)
@@ -781,32 +777,6 @@ void Module::semantic3()
     sc = sc->pop();
     sc->pop();
     semanticRun = PASSsemantic3done;
-}
-
-/****************************************************
- */
-
-void Module::gensymfile()
-{
-    OutBuffer buf;
-    HdrGenState hgs;
-
-    //printf("Module::gensymfile()\n");
-
-    buf.printf("// Sym file generated from '%s'", srcfile->toChars());
-    buf.writenl();
-
-    for (size_t i = 0; i < members->dim; i++)
-    {
-        Dsymbol *s = (*members)[i];
-        s->toCBuffer(&buf, &hgs);
-    }
-
-    // Transfer image to file
-    symfile->setbuffer(buf.data, buf.offset);
-    buf.data = NULL;
-
-    writeFile(loc, symfile);
 }
 
 /**********************************

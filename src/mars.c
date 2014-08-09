@@ -94,7 +94,6 @@ Global global;
 void Global::init()
 {
     mars_ext = "d";
-    sym_ext  = "d";
     hdr_ext  = "di";
     doc_ext  = "html";
     ddoc_ext = "ddoc";

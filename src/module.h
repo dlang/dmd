@@ -79,7 +79,6 @@ public:
     File *srcfile;      // input source file
     File *objfile;      // output .obj file
     File *hdrfile;      // 'header' file
-    File *symfile;      // output symbol file
     File *docfile;      // output documentation file
     unsigned errors;    // if any errors in file
     unsigned numlines;  // number of lines in source file
@@ -134,7 +133,6 @@ public:
     void semantic3();   // pass 3 semantic analysis
     void genobjfile(bool multiobj);
     void genhelpers(bool iscomdat);
-    void gensymfile();
     int needModuleInfo();
     Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
     Dsymbol *symtabInsert(Dsymbol *s);

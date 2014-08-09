@@ -62,8 +62,7 @@ void genhdrfile(Module *m)
     hdrbufr.writenl();
 
     HdrGenState hgs;
-    memset(&hgs, 0, sizeof(hgs));
-    hgs.hdrgen = 1;
+    hgs.hdrgen = true;
 
     toCBuffer(m, &hdrbufr, &hgs);
 
@@ -126,14 +125,14 @@ public:
             if (s->exp->op != TOKdeclaration)
             {
                 buf->writeByte(';');
-                if (!hgs->FLinit.init)
+                if (!hgs->forStmtInit)
                     buf->writenl();
             }
         }
         else
         {
             buf->writeByte(';');
-            if (!hgs->FLinit.init)
+            if (!hgs->forStmtInit)
                 buf->writenl();
         }
     }
@@ -143,7 +142,7 @@ public:
         buf->writestring("mixin(");
         s->exp->toCBuffer(buf, hgs);
         buf->writestring(");");
-        if (!hgs->FLinit.init)
+        if (!hgs->forStmtInit)
             buf->writenl();
     }
 
@@ -207,7 +206,7 @@ public:
             }
         }
         buf->writeByte(';');
-        if (!hgs->FLinit.init)
+        if (!hgs->forStmtInit)
             buf->writenl();
     }
 
@@ -270,9 +269,9 @@ public:
         buf->writestring("for (");
         if (s->init)
         {
-            hgs->FLinit.init++;
+            hgs->forStmtInit++;
             s->init->accept(this);
-            hgs->FLinit.init--;
+            hgs->forStmtInit--;
         }
         else
             buf->writeByte(';');
@@ -943,18 +942,18 @@ public:
     {
         TemplateInstance *ti = t->sym->parent->isTemplateInstance();
         if (ti && ti->toAlias() == t->sym)
-            buf->writestring((hgs->fullQualification) ? ti->toPrettyChars() : ti->toChars());
+            buf->writestring(hgs->fullQual ? ti->toPrettyChars() : ti->toChars());
         else
-            buf->writestring((hgs->fullQualification) ? t->sym->toPrettyChars() : t->sym->toChars());
+            buf->writestring(hgs->fullQual ? t->sym->toPrettyChars() : t->sym->toChars());
     }
 
     void visit(TypeClass *t)
     {
         TemplateInstance *ti = t->sym->parent->isTemplateInstance();
         if (ti && ti->toAlias() == t->sym)
-            buf->writestring((hgs->fullQualification) ? ti->toPrettyChars() : ti->toChars());
+            buf->writestring(hgs->fullQual ? ti->toPrettyChars() : ti->toChars());
         else
-            buf->writestring((hgs->fullQualification) ? t->sym->toPrettyChars() : t->sym->toChars());
+            buf->writestring(hgs->fullQual ? t->sym->toPrettyChars() : t->sym->toChars());
     }
 
     void visit(TypeTuple *t)
@@ -1208,12 +1207,11 @@ public:
             {
                 case '"':
                 case '\\':
-                    if (!hgs->console)
-                        buf->writeByte('\\');
+                    buf->writeByte('\\');
                 default:
                     if (c <= 0xFF)
                     {
-                        if (c <= 0x7F && (isprint(c) || hgs->console))
+                        if (c <= 0x7F && isprint(c))
                             buf->writeByte(c);
                         else
                             buf->printf("\\x%02x", c);
