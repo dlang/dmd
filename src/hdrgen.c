@@ -49,11 +49,11 @@
 #include "nspace.h"
 #include "hdrgen.h"
 
-void argsToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *hgs);
 void sizeToCBuffer(OutBuffer *buf, HdrGenState *hgs, Expression *e);
 void toBufferShort(Type *t, OutBuffer *buf, HdrGenState *hgs);
 void expToCBuffer(OutBuffer *buf, HdrGenState *hgs, Expression *e, PREC pr);
 void toCBuffer(Module *m, OutBuffer *buf, HdrGenState *hgs);
+void ObjectToCBuffer(OutBuffer *buf, HdrGenState *hgs, RootObject *oarg);
 
 void genhdrfile(Module *m)
 {
@@ -868,7 +868,7 @@ public:
             buf->writeByte(' ');
         }
         buf->writestring(ident);
-        Parameter::argsToCBuffer(buf, hgs, t->parameters, t->varargs);
+        parametersToCBuffer(buf, hgs, t->parameters, t->varargs);
 
         /* Use postfix style for attributes
          */
@@ -961,7 +961,7 @@ public:
 
     void visit(TypeTuple *t)
     {
-        Parameter::argsToCBuffer(buf, hgs, t->arguments, 0);
+        parametersToCBuffer(buf, hgs, t->arguments, 0);
     }
 
     void visit(TypeSlice *t)
@@ -1706,7 +1706,7 @@ public:
         // Don't print tf->mod, tf->trust, and tf->linkage
         if (!f->inferRetType && tf->next)
             toBufferShort(tf->next, buf, hgs);
-        Parameter::argsToCBuffer(buf, hgs, tf->parameters, tf->varargs);
+        parametersToCBuffer(buf, hgs, tf->parameters, tf->varargs);
 
         CompoundStatement *cs = f->fbody->isCompoundStatement();
         Statement *s1;
@@ -1785,14 +1785,14 @@ public:
     void visit(NewDeclaration *d)
     {
         buf->writestring("new");
-        Parameter::argsToCBuffer(buf, hgs, d->arguments, d->varargs);
+        parametersToCBuffer(buf, hgs, d->arguments, d->varargs);
         bodyToCBuffer(d);
     }
 
     void visit(DeleteDeclaration *d)
     {
         buf->writestring("delete");
-        Parameter::argsToCBuffer(buf, hgs, d->arguments, 0);
+        parametersToCBuffer(buf, hgs, d->arguments, 0);
         bodyToCBuffer(d);
     }
 
@@ -2876,7 +2876,7 @@ void functionToBufferFull(TypeFunction *tf, OutBuffer *buf, Identifier *ident,
         }
         buf->writeByte(')');
     }
-    Parameter::argsToCBuffer(buf, hgs, tf->parameters, tf->varargs);
+    parametersToCBuffer(buf, hgs, tf->parameters, tf->varargs);
     tf->inuse--;
 }
 
@@ -2956,19 +2956,34 @@ void expToCBuffer(OutBuffer *buf, HdrGenState *hgs, Expression *e, PREC pr)
 /**************************************************
  * Write out argument list to buf.
  */
-
 void argsToCBuffer(OutBuffer *buf, Expressions *expressions, HdrGenState *hgs)
 {
-    if (expressions)
-    {
-        for (size_t i = 0; i < expressions->dim; i++)
-        {   Expression *e = (*expressions)[i];
+    if (!expressions || !expressions->dim)
+        return;
 
-            if (i)
-                buf->writestring(", ");
-            if (e)
-                expToCBuffer(buf, hgs, e, PREC_assign);
-        }
+    for (size_t i = 0; i < expressions->dim; i++)
+    {
+        if (i)
+            buf->writestring(", ");
+        if (Expression *e = (*expressions)[i])
+            expToCBuffer(buf, hgs, e, PREC_assign);
+    }
+}
+
+/**************************************************
+ * Write out argument types to buf.
+ */
+void argExpTypesToCBuffer(OutBuffer *buf, Expressions *arguments)
+{
+    if (!arguments || !arguments->dim)
+        return;
+
+    HdrGenState hgs;
+    for (size_t i = 0; i < arguments->dim; i++)
+    {
+        if (i)
+            buf->writestring(", ");
+        toBufferShort((*arguments)[i]->type, buf, &hgs);
     }
 }
 
@@ -2976,4 +2991,141 @@ void toCBuffer(TemplateParameter *tp, OutBuffer *buf, HdrGenState *hgs)
 {
     PrettyPrintVisitor v(buf, hgs);
     tp->accept(&v);
+}
+
+/****************************************
+ * This makes a 'pretty' version of the template arguments.
+ * It's analogous to genIdent() which makes a mangled version.
+ */
+void ObjectToCBuffer(OutBuffer *buf, HdrGenState *hgs, RootObject *oarg)
+{
+    //printf("ObjectToCBuffer()\n");
+
+    /* The logic of this should match what genIdent() does. The _dynamic_cast()
+     * function relies on all the pretty strings to be unique for different classes
+     * (see Bugzilla 7375).
+     * Perhaps it would be better to demangle what genIdent() does.
+     */
+    if (Type *t = isType(oarg))
+    {
+        //printf("\tt: %s ty = %d\n", t->toChars(), t->ty);
+        toCBuffer(t, buf, NULL, hgs);
+    }
+    else if (Expression *e = isExpression(oarg))
+    {
+        if (e->op == TOKvar)
+            e = e->optimize(WANTvalue);         // added to fix Bugzilla 7375
+        toCBuffer(e, buf, hgs);
+    }
+    else if (Dsymbol *s = isDsymbol(oarg))
+    {
+        const char *p = s->ident ? s->ident->toChars() : s->toChars();
+        buf->writestring(p);
+    }
+    else if (Tuple *v = isTuple(oarg))
+    {
+        Objects *args = &v->objects;
+        for (size_t i = 0; i < args->dim; i++)
+        {
+            if (i)
+                buf->writestring(", ");
+            ObjectToCBuffer(buf, hgs, (*args)[i]);
+        }
+    }
+    else if (!oarg)
+    {
+        buf->writestring("NULL");
+    }
+    else
+    {
+#ifdef DEBUG
+        printf("bad Object = %p\n", oarg);
+#endif
+        assert(0);
+    }
+}
+
+void arrayObjectsToBuffer(OutBuffer *buf, Objects *objects)
+{
+    if (!objects || !objects->dim)
+        return;
+
+    HdrGenState hgs;
+    for (size_t i = 0; i < objects->dim; i++)
+    {
+        if (i)
+            buf->writestring(", ");
+        ObjectToCBuffer(buf, &hgs, (*objects)[i]);
+    }
+}
+
+const char *parametersTypeToChars(Parameters *parameters, int varargs)
+{
+    OutBuffer buf;
+    HdrGenState hgs;
+    parametersToCBuffer(&buf, &hgs, parameters, varargs);
+    return buf.extractString();
+}
+
+void parametersToCBuffer(OutBuffer *buf, HdrGenState *hgs, Parameters *parameters, int varargs)
+{
+    buf->writeByte('(');
+    if (parameters)
+    {
+        size_t dim = Parameter::dim(parameters);
+        for (size_t i = 0; i < dim; i++)
+        {
+            if (i)
+                buf->writestring(", ");
+            Parameter *fparam = Parameter::getNth(parameters, i);
+
+            if (fparam->storageClass & STCauto)
+                buf->writestring("auto ");
+
+            if (fparam->storageClass & STCout)
+                buf->writestring("out ");
+            else if (fparam->storageClass & STCref)
+                buf->writestring("ref ");
+            else if (fparam->storageClass & STCin)
+                buf->writestring("in ");
+            else if (fparam->storageClass & STClazy)
+                buf->writestring("lazy ");
+            else if (fparam->storageClass & STCalias)
+                buf->writestring("alias ");
+
+            StorageClass stc = fparam->storageClass;
+            if (fparam->type && fparam->type->mod & MODshared)
+                stc &= ~STCshared;
+
+            StorageClassDeclaration::stcToCBuffer(buf,
+                stc & (STCconst | STCimmutable | STCwild | STCshared | STCscope));
+
+            if (fparam->storageClass & STCalias)
+            {
+                if (fparam->ident)
+                    buf->writestring(fparam->ident->toChars());
+            }
+            else if (fparam->type->ty == Tident &&
+                     ((TypeIdentifier *)fparam->type)->ident->len > 3 &&
+                     strncmp(((TypeIdentifier *)fparam->type)->ident->string, "__T", 3) == 0)
+            {
+                // print parameter name, instead of undetermined type parameter
+                buf->writestring(fparam->ident->toChars());
+            }
+            else
+                ::toCBuffer(fparam->type, buf, fparam->ident, hgs);
+            if (fparam->defaultArg)
+            {
+                buf->writestring(" = ");
+                ::toCBuffer(fparam->defaultArg, buf, hgs);
+            }
+        }
+        if (varargs)
+        {
+            if (parameters->dim && varargs == 1)
+                buf->writestring(", ");
+            buf->writestring("...");
+        }
+    }
+    buf->writeByte(')');
 }

@@ -35,3 +35,12 @@ void toCBuffer(TemplateParameter *tp, OutBuffer *buf, HdrGenState *hgs);
 void toCBufferInstance(TemplateInstance *ti, OutBuffer *buf, bool qualifyTypes = false);
 
 void functionToBufferFull(TypeFunction *tf, OutBuffer *buf, Identifier *ident, HdrGenState* hgs, TemplateDeclaration *td);
+void functionToBufferWithIdent(TypeFunction *t, OutBuffer *buf, const char *ident);
+
+void argsToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *hgs);
+void argExpTypesToCBuffer(OutBuffer *buf, Expressions *arguments);
+
+void arrayObjectsToBuffer(OutBuffer *buf, Objects *objects);
+
+const char *parametersTypeToChars(Parameters *parameters, int varargs);
+void parametersToCBuffer(OutBuffer *buf, HdrGenState *hgs, Parameters *parameters, int varargs);

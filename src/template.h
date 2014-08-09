@@ -37,7 +37,6 @@ struct Scope;
 class Expression;
 class AliasDeclaration;
 class FuncDeclaration;
-struct HdrGenState;
 class Parameter;
 enum MATCH;
 enum PASS;
@@ -403,7 +402,6 @@ int isError(RootObject *o);
 Type *getType(RootObject *o);
 Dsymbol *getDsymbol(RootObject *o);
 
-void ObjectToCBuffer(OutBuffer *buf, HdrGenState *hgs, RootObject *oarg);
 RootObject *objectSyntaxCopy(RootObject *o);
 
 #endif /* DMD_TEMPLATE_H */

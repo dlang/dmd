@@ -3063,7 +3063,7 @@ struct FuncCandidateWalker
         FuncCandidateWalker *p = (FuncCandidateWalker *)param;
 
         ::errorSupplemental(f->loc, "%s%s", f->toPrettyChars(),
-            Parameter::argsTypesToChars(((TypeFunction *)f->type)->parameters, ((TypeFunction *)f->type)->varargs));
+            parametersTypeToChars(((TypeFunction *)f->type)->parameters, ((TypeFunction *)f->type)->varargs));
 
         if (!global.params.verbose && --(p->numToDisplay) == 0 && f->overnext)
         {
@@ -3156,26 +3156,17 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
             return NULL;    // no match
     }
 
-    HdrGenState hgs;
-
     FuncDeclaration *fd = s->isFuncDeclaration();
     TemplateDeclaration *td = s->isTemplateDeclaration();
     if (td && td->funcroot)
         s = fd = td->funcroot;
 
     OutBuffer tiargsBuf;
-    size_t dim = tiargs ? tiargs->dim : 0;
-    for (size_t i = 0; i < dim; i++)
-    {
-        if (i)
-            tiargsBuf.writestring(", ");
-        RootObject *oarg = (*tiargs)[i];
-        ObjectToCBuffer(&tiargsBuf, &hgs, oarg);
-    }
+    arrayObjectsToBuffer(&tiargsBuf, tiargs);
 
     OutBuffer fargsBuf;
     fargsBuf.writeByte('(');
-    argExpTypesToCBuffer(&fargsBuf, fargs, &hgs);
+    argExpTypesToCBuffer(&fargsBuf, fargs);
     fargsBuf.writeByte(')');
     if (tthis)
         tthis->modToBuffer(&fargsBuf);
@@ -3222,7 +3213,7 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
                             fd->ident->toChars(), fargsBuf.peekString());
                 else
                     fd->error(loc, "%s%s is not callable using argument types %s",
-                        Parameter::argsTypesToChars(tf->parameters, tf->varargs),
+                        parametersTypeToChars(tf->parameters, tf->varargs),
                         tf->modToChars(),
                         fargsBuf.peekString());
             }
@@ -3241,8 +3232,8 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
     {
         TypeFunction *tf1 = (TypeFunction *)m.lastf->type;
         TypeFunction *tf2 = (TypeFunction *)m.nextf->type;
-        const char *lastprms = Parameter::argsTypesToChars(tf1->parameters, tf1->varargs);
-        const char *nextprms = Parameter::argsTypesToChars(tf2->parameters, tf2->varargs);
+        const char *lastprms = parametersTypeToChars(tf1->parameters, tf1->varargs);
+        const char *nextprms = parametersTypeToChars(tf2->parameters, tf2->varargs);
         ::error(loc, "%s.%s called with argument types %s matches both:\n"
                      "%s:     %s%s\nand:\n%s:     %s%s",
                 s->parent->toPrettyChars(), s->ident->toChars(),

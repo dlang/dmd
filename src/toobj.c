@@ -27,6 +27,7 @@
 #include "import.h"
 #include "template.h"
 #include "nspace.h"
+#include "hdrgen.h"
 
 #include "rmem.h"
 #include "target.h"
@@ -579,7 +580,7 @@ void ClassDeclaration::toObjFile(bool multiobj)
                         if (tf->ty == Tfunction)
                             deprecation("use of %s%s hidden by %s is deprecated; use 'alias %s = %s.%s;' to introduce base class overload set",
                                 fd->toPrettyChars(),
-                                Parameter::argsTypesToChars(tf->parameters, tf->varargs),
+                                parametersTypeToChars(tf->parameters, tf->varargs),
                                 toChars(),
 
                                 fd->toChars(),

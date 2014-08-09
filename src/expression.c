@@ -45,9 +45,7 @@ bool isArrayOpValid(Expression *e);
 bool isNonAssignmentArrayOp(Expression *e);
 Expression *createTypeInfoArray(Scope *sc, Expression *args[], size_t dim);
 Expression *expandVar(int result, VarDeclaration *v);
-void functionToBufferWithIdent(TypeFunction *t, OutBuffer *buf, const char *ident);
 TypeTuple *toArgTypes(Type *t);
-void toBufferShort(Type *t, OutBuffer *buf, HdrGenState *hgs);
 void accessCheck(AggregateDeclaration *ad, Loc loc, Scope *sc, Dsymbol *smember);
 bool checkFrameAccess(Loc loc, Scope *sc, AggregateDeclaration *ad, size_t istart = 0);
 
@@ -1818,27 +1816,6 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
         tret = tret->substWildTo(wildmatch);
     }
     return tret;
-}
-
-/**************************************************
- * Write out argument types to buf.
- */
-
-void argExpTypesToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *hgs)
-{
-    if (arguments && arguments->dim)
-    {
-        OutBuffer argbuf;
-        for (size_t i = 0; i < arguments->dim; i++)
-        {
-            Expression *e = (*arguments)[i];
-            if (i)
-                buf->writestring(", ");
-            argbuf.reset();
-            toBufferShort(e->type, &argbuf, hgs);
-            buf->write(&argbuf);
-        }
-    }
 }
 
 /******************************** Expression **************************/
@@ -8827,21 +8804,14 @@ Lagain:
             OutBuffer buf;
 
             buf.writeByte('(');
-            if (arguments)
-            {
-                HdrGenState hgs;
-
-                argExpTypesToCBuffer(&buf, arguments, &hgs);
-                buf.writeByte(')');
-                if (tthis)
-                    tthis->modToBuffer(&buf);
-            }
-            else
-                buf.writeByte(')');
+            argExpTypesToCBuffer(&buf, arguments);
+            buf.writeByte(')');
+            if (tthis)
+                tthis->modToBuffer(&buf);
 
             //printf("tf = %s, args = %s\n", tf->deco, (*arguments)[0]->type->deco);
             ::error(loc, "%s %s %s is not callable using argument types %s",
-                p, e1->toChars(), Parameter::argsTypesToChars(tf->parameters, tf->varargs),
+                p, e1->toChars(), parametersTypeToChars(tf->parameters, tf->varargs),
                 buf.peekString());
 
             return new ErrorExp();
@@ -8905,17 +8875,12 @@ Lagain:
                 OutBuffer buf;
 
                 buf.writeByte('(');
-                if (arguments && arguments->dim)
-                {
-                    HdrGenState hgs;
-
-                    argExpTypesToCBuffer(&buf, arguments, &hgs);
-                }
+                argExpTypesToCBuffer(&buf, arguments);
                 buf.writeByte(')');
 
                 //printf("tf = %s, args = %s\n", tf->deco, (*arguments)[0]->type->deco);
                 ::error(loc, "%s %s is not callable using argument types %s",
-                    e1->toChars(), Parameter::argsTypesToChars(tf->parameters, tf->varargs),
+                    e1->toChars(), parametersTypeToChars(tf->parameters, tf->varargs),
                     buf.peekString());
 
                 f = NULL;
