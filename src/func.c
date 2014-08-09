@@ -2256,7 +2256,7 @@ void FuncDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     //printf("FuncDeclaration::toCBuffer() '%s'\n", toChars());
 
     StorageClassDeclaration::stcToCBuffer(buf, storage_class);
-    type->toCBuffer(buf, ident, hgs);
+    ::toCBuffer(type, buf, ident, hgs);
     if (hgs->hdrgen == 1)
     {
         if (storage_class & STCauto)

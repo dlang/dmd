@@ -384,7 +384,7 @@ Type *TypedefDeclaration::getType()
 void TypedefDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("typedef ");
-    basetype->toCBuffer(buf, ident, hgs);
+    ::toCBuffer(basetype, buf, ident, hgs);
     if (init)
     {
         buf->writestring(" = ");
@@ -708,7 +708,7 @@ void AliasDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         buf->writestring(ident->toChars());
     }
     else
-        type->toCBuffer(buf, ident, hgs);
+        ::toCBuffer(type, buf, ident, hgs);
     buf->writeByte(';');
     buf->writenl();
 }
@@ -1810,7 +1810,7 @@ void VarDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
      * too.
      */
     if (type)
-        type->toCBuffer(buf, ident, hgs);
+        ::toCBuffer(type, buf, ident, hgs);
     else
         buf->writestring(ident->toChars());
     if (init)

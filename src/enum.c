@@ -21,6 +21,7 @@
 #include "module.h"
 #include "declaration.h"
 #include "init.h"
+#include "hdrgen.h"
 
 /********************************* EnumDeclaration ****************************/
 
@@ -453,7 +454,7 @@ void EnumDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     if (memtype)
     {
         buf->writestring(": ");
-        memtype->toCBuffer(buf, NULL, hgs);
+        ::toCBuffer(memtype, buf, NULL, hgs);
     }
     if (!members)
     {
@@ -559,7 +560,7 @@ Dsymbol *EnumMember::syntaxCopy(Dsymbol *s)
 void EnumMember::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     if (type)
-        type->toCBuffer(buf, ident, hgs);
+        ::toCBuffer(type, buf, ident, hgs);
     else
         buf->writestring(ident->toChars());
     if (value)

@@ -259,7 +259,6 @@ public:
     virtual void toDecoBuffer(OutBuffer *buf, int flag = 0);
     Type *merge();
     Type *merge2();
-    void toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
     void modToBuffer(OutBuffer *buf);
     char *modToChars();
 

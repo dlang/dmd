@@ -45,7 +45,6 @@
 #include "hdrgen.h"
 
 FuncDeclaration *hasThis(Scope *sc);
-void toCBuffer(Type *t, OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
 
 #define LOGDOTEXP       0       // log ::dotExp()
 #define LOGDEFAULTINIT  0       // log ::defaultInit()
@@ -1594,7 +1593,7 @@ char *Type::toChars()
     buf.reserve(16);
     HdrGenState hgs;
 
-    toCBuffer(&buf, NULL, &hgs);
+    ::toCBuffer(this, &buf, NULL, &hgs);
     return buf.extractString();
 }
 
@@ -1605,13 +1604,8 @@ char *Type::toPrettyChars(bool QualifyTypes)
     HdrGenState hgs;
     hgs.fullQual = QualifyTypes;
 
-    toCBuffer(&buf, NULL, &hgs);
+    ::toCBuffer(this, &buf, NULL, &hgs);
     return buf.extractString();
-}
-
-void Type::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
-{
-    ::toCBuffer(this, buf, ident, hgs);
 }
 
 /*********************************
@@ -9435,7 +9429,7 @@ void Parameter::argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Parameters *argu
                 argbuf.writestring(arg->ident->toChars());
             }
             else
-                arg->type->toCBuffer(&argbuf, arg->ident, hgs);
+                ::toCBuffer(arg->type, &argbuf, arg->ident, hgs);
             if (arg->defaultArg)
             {
                 argbuf.writestring(" = ");

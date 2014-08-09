@@ -30,6 +30,7 @@
 #include "expression.h"
 #include "statement.h"
 #include "template.h"
+#include "hdrgen.h"
 
 /********************************* ClassDeclaration ****************************/
 
@@ -876,8 +877,7 @@ void ClassDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
         if (i)
             buf->writestring(", ");
-        //buf->writestring(b->base->ident->toChars());
-        b->type->toCBuffer(buf, NULL, hgs);
+        ::toCBuffer(b->type, buf, NULL, hgs);
     }
     if (members)
     {

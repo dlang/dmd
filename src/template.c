@@ -423,7 +423,7 @@ void ObjectToCBuffer(OutBuffer *buf, HdrGenState *hgs, RootObject *oarg)
     if (t)
     {
         //printf("\tt: %s ty = %d\n", t->toChars(), t->ty);
-        t->toCBuffer(buf, NULL, hgs);
+        ::toCBuffer(t, buf, NULL, hgs);
     }
     else if (e)
     {
@@ -2721,7 +2721,7 @@ void TemplateDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
                     BaseClass *b = (*cd->baseclasses)[i];
                     if (i)
                         buf->writestring(", ");
-                    b->type->toCBuffer(buf, NULL, hgs);
+                    ::toCBuffer(b->type, buf, NULL, hgs);
                 }
             }
 
@@ -5021,12 +5021,12 @@ void TemplateTypeParameter::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     if (specType)
     {
         buf->writestring(" : ");
-        specType->toCBuffer(buf, NULL, hgs);
+        ::toCBuffer(specType, buf, NULL, hgs);
     }
     if (defaultType)
     {
         buf->writestring(" = ");
-        defaultType->toCBuffer(buf, NULL, hgs);
+        ::toCBuffer(defaultType, buf, NULL, hgs);
     }
 }
 
@@ -5337,7 +5337,7 @@ void TemplateAliasParameter::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     if (specType)
     {
         HdrGenState hgs1;
-        specType->toCBuffer(buf, ident, &hgs1);
+        ::toCBuffer(specType, buf, ident, &hgs1);
     }
     else
         buf->writestring(ident->toChars());
@@ -5626,7 +5626,7 @@ void TemplateValueParameter::print(RootObject *oarg, RootObject *oded)
 
 void TemplateValueParameter::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    valType->toCBuffer(buf, ident, hgs);
+    ::toCBuffer(valType, buf, ident, hgs);
     if (specValue)
     {
         buf->writestring(" : ");
@@ -8475,7 +8475,7 @@ void TemplateMixin::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("mixin ");
 
-    tqual->toCBuffer(buf, NULL, hgs);
+    ::toCBuffer(tqual, buf, NULL, hgs);
     toCBufferTiargs(buf, hgs);
 
     if (ident && memcmp(ident->string, "__mixin", 7) != 0)

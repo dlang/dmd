@@ -186,7 +186,7 @@ public:
                     {
                         StorageClassDeclaration::stcToCBuffer(buf, v->storage_class);
                         if (v->type)
-                            v->type->toCBuffer(buf, v->ident, hgs);
+                            toCBuffer(v->type, buf, v->ident, hgs);
                         else
                             buf->writestring(v->ident->toChars());
                     }
@@ -309,7 +309,7 @@ public:
             if (a->storageClass & STCref)
                 buf->writestring((char*)"ref ");
             if (a->type)
-                a->type->toCBuffer(buf, a->ident, hgs);
+                toCBuffer(a->type, buf, a->ident, hgs);
             else
                 buf->writestring(a->ident->toChars());
         }
@@ -333,7 +333,7 @@ public:
         buf->writestring(" (");
 
         if (s->arg->type)
-            s->arg->type->toCBuffer(buf, s->arg->ident, hgs);
+            toCBuffer(s->arg->type, buf, s->arg->ident, hgs);
         else
             buf->writestring(s->arg->ident->toChars());
 
@@ -359,7 +359,7 @@ public:
         if (s->arg)
         {
             if (s->arg->type)
-                s->arg->type->toCBuffer(buf, s->arg->ident, hgs);
+                toCBuffer(s->arg->type, buf, s->arg->ident, hgs);
             else
             {
                 buf->writestring("auto ");
@@ -704,7 +704,7 @@ public:
         if (c->type)
         {
             buf->writeByte('(');
-            c->type->toCBuffer(buf, c->ident, hgs);
+            toCBuffer(c->type, buf, c->ident, hgs);
             buf->writeByte(')');
         }
         buf->writenl();
@@ -1279,7 +1279,7 @@ public:
 
     void visit(TypeExp *e)
     {
-        e->type->toCBuffer(buf, NULL, hgs);
+        toCBuffer(e->type, buf, NULL, hgs);
     }
 
     void visit(ScopeExp *e)
@@ -1324,7 +1324,7 @@ public:
             argsToCBuffer(buf, e->newargs, hgs);
             buf->writeByte(')');
         }
-        e->newtype->toCBuffer(buf, NULL, hgs);
+        toCBuffer(e->newtype, buf, NULL, hgs);
         if (e->arguments && e->arguments->dim)
         {
             buf->writeByte('(');
@@ -1441,7 +1441,7 @@ public:
     void visit(IsExp *e)
     {
         buf->writestring("is(");
-        e->targ->toCBuffer(buf, e->id, hgs);
+        toCBuffer(e->targ, buf, e->id, hgs);
         if (e->tok2 != TOKreserved)
         {
             buf->printf(" %s %s", Token::toChars(e->tok), Token::toChars(e->tok2));
@@ -1452,7 +1452,7 @@ public:
                 buf->writestring(" : ");
             else
                 buf->writestring(" == ");
-            e->tspec->toCBuffer(buf, NULL, hgs);
+            toCBuffer(e->tspec, buf, NULL, hgs);
         }
         if (e->parameters)
         {
@@ -1588,7 +1588,7 @@ public:
     {
         buf->writestring("cast(");
         if (e->to)
-            e->to->toCBuffer(buf, NULL, hgs);
+            toCBuffer(e->to, buf, NULL, hgs);
         else
         {
             MODtoBuffer(buf, e->mod);
@@ -1600,7 +1600,7 @@ public:
     void visit(VectorExp *e)
     {
         buf->writestring("cast(");
-        e->to->toCBuffer(buf, NULL, hgs);
+        toCBuffer(e->to, buf, NULL, hgs);
         buf->writeByte(')');
         expToCBuffer(buf, hgs, e->e1, precedence[e->op]);
     }
