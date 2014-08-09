@@ -563,7 +563,7 @@ static void emitAnchor(OutBuffer *buf, Dsymbol *s, Scope *sc)
 /** Get leading indentation from 'src' which represents lines of code. */
 static size_t getCodeIndent(const char *src)
 {
-    while (src && *src == '\n')
+    while (src && (*src == '\r' || *src == '\n'))
         ++src;  // skip until we find the first non-empty line
 
     size_t codeIndent = 0;
