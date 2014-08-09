@@ -21,7 +21,6 @@
 #include "module.h"
 #include "declaration.h"
 #include "init.h"
-#include "hdrgen.h"
 
 /********************************* EnumDeclaration ****************************/
 
@@ -444,42 +443,6 @@ bool EnumDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
     return Dsymbol::oneMember(ps, ident);
 }
 
-void EnumDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("enum ");
-    if (ident)
-    {   buf->writestring(ident->toChars());
-        buf->writeByte(' ');
-    }
-    if (memtype)
-    {
-        buf->writestring(": ");
-        ::toCBuffer(memtype, buf, NULL, hgs);
-    }
-    if (!members)
-    {
-        buf->writeByte(';');
-        buf->writenl();
-        return;
-    }
-    buf->writenl();
-    buf->writeByte('{');
-    buf->writenl();
-    buf->level++;
-    for (size_t i = 0; i < members->dim; i++)
-    {
-        EnumMember *em = (*members)[i]->isEnumMember();
-        if (!em)
-            continue;
-        em->toCBuffer(buf, hgs);
-        buf->writeByte(',');
-        buf->writenl();
-    }
-    buf->level--;
-    buf->writeByte('}');
-    buf->writenl();
-}
-
 Type *EnumDeclaration::getType()
 {
     return type;
@@ -555,19 +518,6 @@ Dsymbol *EnumMember::syntaxCopy(Dsymbol *s)
         em->origValue = origValue ? origValue->syntaxCopy() : NULL;
     }
     return em;
-}
-
-void EnumMember::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    if (type)
-        ::toCBuffer(type, buf, ident, hgs);
-    else
-        buf->writestring(ident->toChars());
-    if (value)
-    {
-        buf->writestring(" = ");
-        ::toCBuffer(value, buf, hgs);
-    }
 }
 
 const char *EnumMember::kind()

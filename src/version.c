@@ -92,17 +92,6 @@ void DebugSymbol::semantic(Scope *sc)
     //printf("DebugSymbol::semantic() %s\n", toChars());
 }
 
-void DebugSymbol::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("debug = ");
-    if (ident)
-        buf->writestring(ident->toChars());
-    else
-        buf->printf("%u", level);
-    buf->writestring(";");
-    buf->writenl();
-}
-
 const char *DebugSymbol::kind()
 {
     return "debug";
@@ -180,20 +169,7 @@ void VersionSymbol::semantic(Scope *sc)
 {
 }
 
-void VersionSymbol::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("version = ");
-    if (ident)
-        buf->writestring(ident->toChars());
-    else
-        buf->printf("%u", level);
-    buf->writestring(";");
-    buf->writenl();
-}
-
 const char *VersionSymbol::kind()
 {
     return "version";
 }
-
-

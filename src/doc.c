@@ -1016,7 +1016,7 @@ void toDocBuffer(Dsymbol *s, OutBuffer *buf, Scope *sc)
             //printf("Dsymbol::toDocbuffer() %s\n", s->toChars());
             HdrGenState hgs;
             hgs.ddoc = true;
-            s->toCBuffer(buf, &hgs);
+            ::toCBuffer(s, buf, &hgs);
         }
 
         void prefix(Dsymbol *s)

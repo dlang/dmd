@@ -127,10 +127,3 @@ const char *AliasThis::kind()
 {
     return "alias this";
 }
-
-void AliasThis::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("alias ");
-    buf->writestring(ident->toChars());
-    buf->writestring(" this;\n");
-}

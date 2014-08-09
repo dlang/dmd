@@ -2660,138 +2660,6 @@ bool TemplateDeclaration::hasStaticCtorOrDtor()
     return false;               // don't scan uninstantiated templates
 }
 
-void TemplateDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-#if 0 // Should handle template functions for doc generation
-    if (onemember && onemember->isFuncDeclaration())
-        buf->writestring("foo ");
-#endif
-    if (hgs->hdrgen && members && members->dim == 1)
-    {
-        FuncDeclaration *fd = (*members)[0]->isFuncDeclaration();
-        if (fd && fd->type && fd->type->ty == Tfunction && fd->ident == ident)
-        {
-            StorageClassDeclaration::stcToCBuffer(buf, fd->storage_class);
-            functionToBufferFull((TypeFunction *)fd->type, buf, ident, hgs, this);
-
-            if (constraint)
-            {
-                buf->writestring(" if (");
-                ::toCBuffer(constraint, buf, hgs);
-                buf->writeByte(')');
-            }
-
-            hgs->tpltMember++;
-            fd->bodyToCBuffer(buf, hgs);
-            hgs->tpltMember--;
-            return;
-        }
-
-        AggregateDeclaration *ad = (*members)[0]->isAggregateDeclaration();
-        if (ad)
-        {
-            buf->writestring(ad->kind());
-            buf->writeByte(' ');
-            buf->writestring(ident->toChars());
-            buf->writeByte('(');
-            for (size_t i = 0; i < parameters->dim; i++)
-            {
-                TemplateParameter *tp = (*parameters)[i];
-                if (hgs->ddoc)
-                    tp = (*origParameters)[i];
-                if (i)
-                    buf->writestring(", ");
-                tp->toCBuffer(buf, hgs);
-            }
-            buf->writeByte(')');
-
-            if (constraint)
-            {
-                buf->writestring(" if (");
-                ::toCBuffer(constraint, buf, hgs);
-                buf->writeByte(')');
-            }
-
-             ClassDeclaration *cd = ad->isClassDeclaration();
-            if (cd && cd->baseclasses->dim)
-            {
-                buf->writestring(" : ");
-                for (size_t i = 0; i < cd->baseclasses->dim; i++)
-                {
-                    BaseClass *b = (*cd->baseclasses)[i];
-                    if (i)
-                        buf->writestring(", ");
-                    ::toCBuffer(b->type, buf, NULL, hgs);
-                }
-            }
-
-            hgs->tpltMember++;
-            if (ad->members)
-            {
-                buf->writenl();
-                buf->writeByte('{');
-                buf->writenl();
-                buf->level++;
-                for (size_t i = 0; i < ad->members->dim; i++)
-                {
-                    Dsymbol *s = (*ad->members)[i];
-                    s->toCBuffer(buf, hgs);
-                }
-                buf->level--;
-                buf->writestring("}");
-            }
-            else
-                buf->writeByte(';');
-            buf->writenl();
-            hgs->tpltMember--;
-            return;
-        }
-    }
-
-    if (hgs->ddoc)
-        buf->writestring(kind());
-    else
-        buf->writestring("template");
-    buf->writeByte(' ');
-    buf->writestring(ident->toChars());
-    buf->writeByte('(');
-    for (size_t i = 0; i < parameters->dim; i++)
-    {
-        TemplateParameter *tp = (*parameters)[i];
-        if (hgs->ddoc)
-            tp = (*origParameters)[i];
-        if (i)
-            buf->writestring(", ");
-        tp->toCBuffer(buf, hgs);
-    }
-    buf->writeByte(')');
-    if (constraint)
-    {
-        buf->writestring(" if (");
-        ::toCBuffer(constraint, buf, hgs);
-        buf->writeByte(')');
-    }
-
-    if (hgs->hdrgen)
-    {
-        hgs->tpltMember++;
-        buf->writenl();
-        buf->writeByte('{');
-        buf->writenl();
-        buf->level++;
-        for (size_t i = 0; i < members->dim; i++)
-        {
-            Dsymbol *s = (*members)[i];
-            s->toCBuffer(buf, hgs);
-        }
-        buf->level--;
-        buf->writeByte('}');
-        buf->writenl();
-        hgs->tpltMember--;
-    }
-}
-
-
 char *TemplateDeclaration::toChars()
 {
     if (literal)
@@ -7781,64 +7649,6 @@ void TemplateInstance::printInstantiationTrace()
     }
 }
 
-void TemplateInstance::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    Identifier *id = name;
-    buf->writestring(id->toChars());
-    toCBufferTiargs(buf, hgs);
-}
-
-void TemplateInstance::toCBufferTiargs(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writeByte('!');
-    if (nest)
-        buf->writestring("(...)");
-    else if (!tiargs)
-        buf->writestring("()");
-    else
-    {
-        if (tiargs->dim == 1)
-        {
-            RootObject *oarg = (*tiargs)[0];
-            if (Type *t = isType(oarg))
-            {
-                if (t->equals(Type::tstring) ||
-                    t->mod == 0 &&
-                    (t->isTypeBasic() ||
-                     t->ty == Tident && ((TypeIdentifier *)t)->idents.dim == 0))
-                {
-                    buf->writestring(t->toChars());
-                    return;
-                }
-            }
-            else if (Expression *e = isExpression(oarg))
-            {
-                if (e->op == TOKint64 ||
-                    e->op == TOKfloat64 ||
-                    e->op == TOKnull ||
-                    e->op == TOKstring ||
-                    e->op == TOKthis)
-                {
-                    buf->writestring(e->toChars());
-                    return;
-                }
-            }
-        }
-        buf->writeByte('(');
-        nest++;
-        for (size_t i = 0; i < tiargs->dim; i++)
-        {
-            if (i)
-                buf->writestring(", ");
-            RootObject *oarg = (*tiargs)[i];
-            ObjectToCBuffer(buf, hgs, oarg);
-        }
-        nest--;
-        buf->writeByte(')');
-    }
-}
-
-
 Dsymbol *TemplateInstance::toAlias()
 {
 #if LOG
@@ -7884,21 +7694,14 @@ bool TemplateInstance::oneMember(Dsymbol **ps, Identifier *ident)
 char *TemplateInstance::toChars()
 {
     OutBuffer buf;
-    HdrGenState hgs;
-    char *s;
-
-    toCBuffer(&buf, &hgs);
-    s = buf.extractString();
-    return s;
+    toCBufferInstance(this, &buf);
+    return buf.extractString();
 }
 
 char *TemplateInstance::toPrettyCharsHelper()
 {
     OutBuffer buf;
-    HdrGenState hgs;
-    hgs.fullQual = true;
-    toCBuffer(&buf, &hgs);
-
+    toCBufferInstance(this, &buf, true);
     return buf.extractString();
 }
 
@@ -8463,26 +8266,6 @@ void TemplateMixin::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, 
 char *TemplateMixin::toChars()
 {
     OutBuffer buf;
-    HdrGenState hgs;
-    char *s;
-
-    TemplateInstance::toCBuffer(&buf, &hgs);
-    s = buf.extractString();
-    return s;
-}
-
-void TemplateMixin::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("mixin ");
-
-    ::toCBuffer(tqual, buf, NULL, hgs);
-    toCBufferTiargs(buf, hgs);
-
-    if (ident && memcmp(ident->string, "__mixin", 7) != 0)
-    {
-        buf->writeByte(' ');
-        buf->writestring(ident->toChars());
-    }
-    buf->writeByte(';');
-    buf->writenl();
+    toCBufferInstance(this, &buf);
+    return buf.extractString();
 }

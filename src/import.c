@@ -18,7 +18,6 @@
 #include "identifier.h"
 #include "module.h"
 #include "scope.h"
-#include "hdrgen.h"
 #include "mtype.h"
 #include "declaration.h"
 #include "id.h"
@@ -444,46 +443,3 @@ bool Import::overloadInsert(Dsymbol *s)
     else
         return false;
 }
-
-void Import::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    if (hgs->hdrgen && id == Id::object)
-        return;         // object is imported by default
-
-    if (isstatic)
-        buf->writestring("static ");
-    buf->writestring("import ");
-    if (aliasId)
-    {
-        buf->printf("%s = ", aliasId->toChars());
-    }
-    if (packages && packages->dim)
-    {
-        for (size_t i = 0; i < packages->dim; i++)
-        {   Identifier *pid = (*packages)[i];
-
-            buf->printf("%s.", pid->toChars());
-        }
-    }
-    buf->printf("%s", id->toChars());
-    if (names.dim)
-    {
-        buf->writestring(" : ");
-        for (size_t i = 0; i < names.dim; i++)
-        {
-            Identifier *name = names[i];
-            Identifier *alias = aliases[i];
-
-            if (alias)
-                buf->printf("%s = %s", alias->toChars(), name->toChars());
-            else
-                buf->printf("%s", name->toChars());
-
-            if (i < names.dim - 1)
-                buf->writestring(", ");
-        }
-    }
-    buf->printf(";");
-    buf->writenl();
-}
-

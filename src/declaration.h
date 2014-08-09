@@ -202,7 +202,6 @@ public:
     void semantic2(Scope *sc);
     const char *kind();
     Type *getType();
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     void toObjFile(bool multiobj);                       // compile to .obj file
 
@@ -231,7 +230,6 @@ public:
     const char *kind();
     Type *getType();
     Dsymbol *toAlias();
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     AliasDeclaration *isAliasDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -294,7 +292,6 @@ public:
     void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
     void semantic2(Scope *sc);
     const char *kind();
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     AggregateDeclaration *isThis();
     bool needThis();
     bool isExport();
@@ -643,8 +640,6 @@ public:
     VarDeclaration *declareThis(Scope *sc, AggregateDeclaration *ad);
     bool equals(RootObject *o);
 
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    void bodyToCBuffer(OutBuffer *buf, HdrGenState *hgs);
     int overrides(FuncDeclaration *fd);
     int findVtblIndex(Dsymbols *vtbl, int dim);
     bool overloadInsert(Dsymbol *s);
@@ -741,7 +736,6 @@ public:
 
     FuncLiteralDeclaration(Loc loc, Loc endloc, Type *type, TOK tok,
         ForeachStatement *fes, Identifier *id = NULL);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Dsymbol *syntaxCopy(Dsymbol *);
     bool isNested();
     bool isVirtual();
@@ -778,7 +772,6 @@ public:
     PostBlitDeclaration(Loc loc, Loc endloc, StorageClass stc, Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     bool isVirtual();
     bool addPreInvariant();
     bool addPostInvariant();
@@ -795,7 +788,6 @@ public:
     DtorDeclaration(Loc loc, Loc endloc, StorageClass stc, Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     const char *kind();
     char *toChars();
     bool isVirtual();
@@ -819,7 +811,6 @@ public:
     bool addPreInvariant();
     bool addPostInvariant();
     bool hasStaticCtorOrDtor();
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     StaticCtorDeclaration *isStaticCtorDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -830,7 +821,6 @@ class SharedStaticCtorDeclaration : public StaticCtorDeclaration
 public:
     SharedStaticCtorDeclaration(Loc loc, Loc endloc, StorageClass stc);
     Dsymbol *syntaxCopy(Dsymbol *);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     SharedStaticCtorDeclaration *isSharedStaticCtorDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -850,7 +840,6 @@ public:
     bool hasStaticCtorOrDtor();
     bool addPreInvariant();
     bool addPostInvariant();
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     StaticDtorDeclaration *isStaticDtorDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -861,7 +850,6 @@ class SharedStaticDtorDeclaration : public StaticDtorDeclaration
 public:
     SharedStaticDtorDeclaration(Loc loc, Loc endloc, StorageClass stc);
     Dsymbol *syntaxCopy(Dsymbol *);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     SharedStaticDtorDeclaration *isSharedStaticDtorDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -876,7 +864,6 @@ public:
     bool isVirtual();
     bool addPreInvariant();
     bool addPostInvariant();
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     InvariantDeclaration *isInvariantDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -897,7 +884,6 @@ public:
     bool isVirtual();
     bool addPreInvariant();
     bool addPostInvariant();
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     UnitTestDeclaration *isUnitTestDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -912,7 +898,6 @@ public:
     NewDeclaration(Loc loc, Loc endloc, Parameters *arguments, int varargs);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     const char *kind();
     bool isVirtual();
     bool addPreInvariant();
@@ -931,12 +916,12 @@ public:
     DeleteDeclaration(Loc loc, Loc endloc, Parameters *arguments);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     const char *kind();
     bool isDelete();
     bool isVirtual();
     bool addPreInvariant();
     bool addPostInvariant();
+
     DeleteDeclaration *isDeleteDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };

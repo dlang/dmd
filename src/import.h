@@ -21,11 +21,9 @@
 
 class Identifier;
 struct Scope;
-struct OutBuffer;
 class Module;
 class Package;
 class AliasDeclaration;
-struct HdrGenState;
 
 class Import : public Dsymbol
 {
@@ -62,7 +60,6 @@ public:
     int addMember(Scope *sc, ScopeDsymbol *sds, int memnum);
     Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
     bool overloadInsert(Dsymbol *s);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     Import *isImport() { return this; }
     void accept(Visitor *v) { v->visit(this); }

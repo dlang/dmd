@@ -24,7 +24,6 @@
 #include "id.h"
 #include "expression.h"
 #include "statement.h"
-#include "hdrgen.h"
 #include "ctfe.h"
 #include "target.h"
 
@@ -381,19 +380,6 @@ Type *TypedefDeclaration::getType()
     return type;
 }
 
-void TypedefDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("typedef ");
-    ::toCBuffer(basetype, buf, ident, hgs);
-    if (init)
-    {
-        buf->writestring(" = ");
-        ::toCBuffer(init, buf, hgs);
-    }
-    buf->writeByte(';');
-    buf->writenl();
-}
-
 /********************************* AliasDeclaration ****************************/
 
 AliasDeclaration::AliasDeclaration(Loc loc, Identifier *id, Type *type)
@@ -696,21 +682,6 @@ Dsymbol *AliasDeclaration::toAlias()
     Dsymbol *s = aliassym ? aliassym->toAlias() : this;
     inSemantic = false;
     return s;
-}
-
-void AliasDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("alias ");
-    if (aliassym)
-    {
-        aliassym->toCBuffer(buf, hgs);
-        buf->writeByte(' ');
-        buf->writestring(ident->toChars());
-    }
-    else
-        ::toCBuffer(type, buf, ident, hgs);
-    buf->writeByte(';');
-    buf->writenl();
 }
 
 /****************************** OverDeclaration **************************/
@@ -1800,30 +1771,6 @@ Dsymbol *VarDeclaration::toAlias()
     assert(this != aliassym);
     Dsymbol *s = aliassym ? aliassym->toAlias() : this;
     return s;
-}
-
-void VarDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    StorageClassDeclaration::stcToCBuffer(buf, storage_class);
-
-    /* If changing, be sure and fix CompoundDeclarationStatement::toCBuffer()
-     * too.
-     */
-    if (type)
-        ::toCBuffer(type, buf, ident, hgs);
-    else
-        buf->writestring(ident->toChars());
-    if (init)
-    {
-        buf->writestring(" = ");
-        ExpInitializer *ie = init->isExpInitializer();
-        if (ie && (ie->exp->op == TOKconstruct || ie->exp->op == TOKblit))
-            ::toCBuffer(((AssignExp *)ie->exp)->e2, buf, hgs);
-        else
-            ::toCBuffer(init, buf, hgs);
-    }
-    buf->writeByte(';');
-    buf->writenl();
 }
 
 AggregateDeclaration *VarDeclaration::isThis()

@@ -14,7 +14,6 @@
 #include "dsymbol.h"
 #include "nspace.h"
 #include "identifier.h"
-#include "hdrgen.h"
 #include "scope.h"
 
 /* This implements namespaces.
@@ -213,24 +212,4 @@ void Nspace::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool is
             s->setFieldOffset(ad, poffset, isunion);
         }
     }
-}
-
-
-void Nspace::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("extern (C++, ");
-    buf->writestring(ident->string);
-    buf->writeByte(')');
-    buf->writenl();
-    buf->writeByte('{');
-    buf->writenl();
-    buf->level++;
-    for (size_t i = 0; i < members->dim; i++)
-    {
-        Dsymbol *s = (*members)[i];
-        s->toCBuffer(buf, hgs);
-    }
-    buf->level--;
-    buf->writeByte('}');
-    buf->writenl();
 }

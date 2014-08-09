@@ -17,7 +17,6 @@
 #include "staticassert.h"
 #include "expression.h"
 #include "id.h"
-#include "hdrgen.h"
 #include "scope.h"
 #include "template.h"
 #include "declaration.h"
@@ -124,18 +123,4 @@ void StaticAssert::toObjFile(bool multiobj)
 const char *StaticAssert::kind()
 {
     return "static assert";
-}
-
-void StaticAssert::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring(kind());
-    buf->writeByte('(');
-    ::toCBuffer(exp, buf, hgs);
-    if (msg)
-    {
-        buf->writestring(", ");
-        ::toCBuffer(msg, buf, hgs);
-    }
-    buf->writestring(");");
-    buf->writenl();
 }

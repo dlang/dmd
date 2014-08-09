@@ -1223,32 +1223,6 @@ bool StructDeclaration::isPOD()
     return (ispod == ISPODyes);
 }
 
-void StructDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->printf("%s ", kind());
-    if (!isAnonymous())
-        buf->writestring(toChars());
-    if (!members)
-    {
-        buf->writeByte(';');
-        buf->writenl();
-        return;
-    }
-    buf->writenl();
-    buf->writeByte('{');
-    buf->writenl();
-    buf->level++;
-    for (size_t i = 0; i < members->dim; i++)
-    {
-        Dsymbol *s = (*members)[i];
-        s->toCBuffer(buf, hgs);
-    }
-    buf->level--;
-    buf->writeByte('}');
-    buf->writenl();
-}
-
-
 const char *StructDeclaration::kind()
 {
     return "struct";

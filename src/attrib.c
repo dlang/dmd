@@ -28,7 +28,6 @@
 #include "module.h"
 #include "parse.h"
 #include "template.h"
-#include "hdrgen.h"
 #include "utf.h"
 
 
@@ -330,40 +329,6 @@ void AttribDeclaration::addLocalClass(ClassDeclarations *aclasses)
     }
 }
 
-
-void AttribDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    if (decl)
-    {
-        if (decl->dim == 0)
-            buf->writestring("{}");
-        else if (hgs->hdrgen && decl->dim == 1 && (*decl)[0]->isUnitTestDeclaration())
-        {
-            // hack for bugzilla 8081
-            buf->writestring("{}");
-        }
-        else if (decl->dim == 1)
-            ((*decl)[0])->toCBuffer(buf, hgs);
-        else
-        {
-            buf->writenl();
-            buf->writeByte('{');
-            buf->writenl();
-            buf->level++;
-            for (size_t i = 0; i < decl->dim; i++)
-            {
-                Dsymbol *s = (*decl)[i];
-                s->toCBuffer(buf, hgs);
-            }
-            buf->level--;
-            buf->writeByte('}');
-        }
-    }
-    else
-        buf->writeByte(';');
-    buf->writenl();
-}
-
 /************************* StorageClassDeclaration ****************************/
 
 StorageClassDeclaration::StorageClassDeclaration(StorageClass stc, Dsymbols *decl)
@@ -383,7 +348,6 @@ Dsymbol *StorageClassDeclaration::syntaxCopy(Dsymbol *s)
 
 bool StorageClassDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
 {
-
     bool t = Dsymbol::oneMembers(decl, ps, ident);
     if (t && *ps)
     {
@@ -522,12 +486,6 @@ void StorageClassDeclaration::stcToCBuffer(OutBuffer *buf, StorageClass stc)
     }
 }
 
-void StorageClassDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    stcToCBuffer(buf, stc);
-    AttribDeclaration::toCBuffer(buf, hgs);
-}
-
 /********************************* DeprecatedDeclaration ****************************/
 
 DeprecatedDeclaration::DeprecatedDeclaration(Expression *msg, Dsymbols *decl)
@@ -558,14 +516,6 @@ void DeprecatedDeclaration::setScope(Scope *sc)
     scx->pop();
 }
 
-void DeprecatedDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("deprecated(");
-    ::toCBuffer(msg, buf, hgs);
-    buf->writestring(") ");
-    AttribDeclaration::toCBuffer(buf, hgs);
-}
-
 /********************************* LinkDeclaration ****************************/
 
 LinkDeclaration::LinkDeclaration(LINK p, Dsymbols *decl)
@@ -587,27 +537,6 @@ Dsymbol *LinkDeclaration::syntaxCopy(Dsymbol *s)
 Scope *LinkDeclaration::newScope(Scope *sc)
 {
     return createNewScope(sc, sc->stc, this->linkage, sc->protection, sc->explicitProtection, sc->structalign);
-}
-
-void LinkDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    const char *p;
-
-    switch (linkage)
-    {
-        case LINKd:             p = "D";                break;
-        case LINKc:             p = "C";                break;
-        case LINKcpp:           p = "C++";              break;
-        case LINKwindows:       p = "Windows";          break;
-        case LINKpascal:        p = "Pascal";           break;
-        default:
-            assert(0);
-            break;
-    }
-    buf->writestring("extern (");
-    buf->writestring(p);
-    buf->writestring(") ");
-    AttribDeclaration::toCBuffer(buf, hgs);
 }
 
 char *LinkDeclaration::toChars()
@@ -638,13 +567,6 @@ Scope *ProtDeclaration::newScope(Scope *sc)
     return createNewScope(sc, sc->stc, sc->linkage, this->protection, 1, sc->structalign);
 }
 
-void ProtDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    protectionToBuffer(buf, protection);
-    buf->writeByte(' ');
-    AttribDeclaration::toCBuffer(buf, hgs);
-}
-
 /********************************* AlignDeclaration ****************************/
 
 AlignDeclaration::AlignDeclaration(unsigned sa, Dsymbols *decl)
@@ -665,15 +587,6 @@ Dsymbol *AlignDeclaration::syntaxCopy(Dsymbol *s)
 Scope *AlignDeclaration::newScope(Scope *sc)
 {
     return createNewScope(sc, sc->stc, sc->linkage, sc->protection, sc->explicitProtection, this->salign);
-}
-
-void AlignDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    if (salign == STRUCTALIGN_DEFAULT)
-        buf->printf("align");
-    else
-        buf->printf("align (%d)", salign);
-    AttribDeclaration::toCBuffer(buf, hgs);
 }
 
 /********************************* AnonDeclaration ****************************/
@@ -727,7 +640,6 @@ void AnonDeclaration::semantic(Scope *sc)
         sc = sc->pop();
     }
 }
-
 
 void AnonDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion)
 {
@@ -790,27 +702,6 @@ void AnonDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset
             v->offset += anonoffset;
         }
     }
-}
-
-
-void AnonDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->printf(isunion ? "union" : "struct");
-    buf->writenl();
-    buf->writestring("{");
-    buf->writenl();
-    buf->level++;
-    if (decl)
-    {
-        for (size_t i = 0; i < decl->dim; i++)
-        {
-            Dsymbol *s = (*decl)[i];
-            s->toCBuffer(buf, hgs);
-        }
-    }
-    buf->level--;
-    buf->writestring("}");
-    buf->writenl();
 }
 
 const char *AnonDeclaration::kind()
@@ -1116,19 +1007,6 @@ const char *PragmaDeclaration::kind()
     return "pragma";
 }
 
-void PragmaDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->printf("pragma (%s", ident->toChars());
-    if (args && args->dim)
-    {
-        buf->writestring(", ");
-        argsToCBuffer(buf, args, hgs);
-    }
-    buf->writeByte(')');
-    AttribDeclaration::toCBuffer(buf, hgs);
-}
-
-
 /********************************* ConditionalDeclaration ****************************/
 
 ConditionalDeclaration::ConditionalDeclaration(Condition *condition, Dsymbols *decl, Dsymbols *elsedecl)
@@ -1149,7 +1027,6 @@ Dsymbol *ConditionalDeclaration::syntaxCopy(Dsymbol *s)
         Dsymbol::arraySyntaxCopy(elsedecl));
     return dd;
 }
-
 
 bool ConditionalDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
 {
@@ -1220,47 +1097,6 @@ void ConditionalDeclaration::addComment(const utf8_t *comment)
     }
 }
 
-void ConditionalDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    condition->toCBuffer(buf, hgs);
-    if (decl || elsedecl)
-    {
-        buf->writenl();
-        buf->writeByte('{');
-        buf->writenl();
-        buf->level++;
-        if (decl)
-        {
-            for (size_t i = 0; i < decl->dim; i++)
-            {
-                Dsymbol *s = (*decl)[i];
-                s->toCBuffer(buf, hgs);
-            }
-        }
-        buf->level--;
-        buf->writeByte('}');
-        if (elsedecl)
-        {
-            buf->writenl();
-            buf->writestring("else");
-            buf->writenl();
-            buf->writeByte('{');
-            buf->writenl();
-            buf->level++;
-            for (size_t i = 0; i < elsedecl->dim; i++)
-            {
-                Dsymbol *s = (*elsedecl)[i];
-                s->toCBuffer(buf, hgs);
-            }
-            buf->level--;
-            buf->writeByte('}');
-        }
-    }
-    else
-        buf->writeByte(':');
-    buf->writenl();
-}
-
 /***************************** StaticIfDeclaration ****************************/
 
 StaticIfDeclaration::StaticIfDeclaration(Condition *condition,
@@ -1271,7 +1107,6 @@ StaticIfDeclaration::StaticIfDeclaration(Condition *condition,
     sds = NULL;
     addisdone = 0;
 }
-
 
 Dsymbol *StaticIfDeclaration::syntaxCopy(Dsymbol *s)
 {
@@ -1341,7 +1176,6 @@ int StaticIfDeclaration::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
     return m;
 }
 
-
 void StaticIfDeclaration::importAll(Scope *sc)
 {
     // do not evaluate condition before semantic pass
@@ -1380,7 +1214,6 @@ const char *StaticIfDeclaration::kind()
 {
     return "static if";
 }
-
 
 /***************************** CompileDeclaration *****************************/
 
@@ -1478,19 +1311,10 @@ void CompileDeclaration::semantic(Scope *sc)
     AttribDeclaration::semantic(sc);
 }
 
-void CompileDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("mixin(");
-    ::toCBuffer(exp, buf, hgs);
-    buf->writestring(");");
-    buf->writenl();
-}
-
 const char *CompileDeclaration::kind()
 {
     return "mixin";
 }
-
 
 /***************************** UserAttributeDeclaration *****************************/
 
@@ -1590,17 +1414,7 @@ Expressions *UserAttributeDeclaration::getAttributes()
     return exps;
 }
 
-void UserAttributeDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("@(");
-    argsToCBuffer(buf, atts, hgs);
-    buf->writeByte(')');
-    AttribDeclaration::toCBuffer(buf, hgs);
-}
-
 const char *UserAttributeDeclaration::kind()
 {
     return "UserAttribute";
 }
-
-

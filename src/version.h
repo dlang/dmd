@@ -18,9 +18,6 @@
 
 #include "dsymbol.h"
 
-struct OutBuffer;
-struct HdrGenState;
-
 class DebugSymbol : public Dsymbol
 {
 public:
@@ -32,7 +29,6 @@ public:
 
     int addMember(Scope *sc, ScopeDsymbol *sds, int memnum);
     void semantic(Scope *sc);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     const char *kind();
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -48,7 +44,6 @@ public:
 
     int addMember(Scope *sc, ScopeDsymbol *sds, int memnum);
     void semantic(Scope *sc);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     const char *kind();
     void accept(Visitor *v) { v->visit(this); }
 };
