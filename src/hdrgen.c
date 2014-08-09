@@ -125,14 +125,14 @@ public:
             if (s->exp->op != TOKdeclaration)
             {
                 buf->writeByte(';');
-                if (!hgs->FLinit.init)
+                if (!hgs->forStmtInit)
                     buf->writenl();
             }
         }
         else
         {
             buf->writeByte(';');
-            if (!hgs->FLinit.init)
+            if (!hgs->forStmtInit)
                 buf->writenl();
         }
     }
@@ -142,7 +142,7 @@ public:
         buf->writestring("mixin(");
         s->exp->toCBuffer(buf, hgs);
         buf->writestring(");");
-        if (!hgs->FLinit.init)
+        if (!hgs->forStmtInit)
             buf->writenl();
     }
 
@@ -206,7 +206,7 @@ public:
             }
         }
         buf->writeByte(';');
-        if (!hgs->FLinit.init)
+        if (!hgs->forStmtInit)
             buf->writenl();
     }
 
@@ -269,9 +269,9 @@ public:
         buf->writestring("for (");
         if (s->init)
         {
-            hgs->FLinit.init++;
+            hgs->forStmtInit++;
             s->init->accept(this);
-            hgs->FLinit.init--;
+            hgs->forStmtInit--;
         }
         else
             buf->writeByte(';');

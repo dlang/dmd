@@ -20,11 +20,7 @@ struct HdrGenState
     bool fullQual;      // fully qualify types when printing
     int tpltMember;
     int autoMember;
-
-    struct
-    {
-        int init;
-    } FLinit;
+    int forStmtInit;
 
     HdrGenState() { memset(this, 0, sizeof(HdrGenState)); }
 };
