@@ -1078,7 +1078,7 @@ void toDocBuffer(Dsymbol *s, OutBuffer *buf, Scope *sc)
                     HdrGenState hgs;
                     hgs.ddoc = true;
                     buf->writestring(" if (");
-                    td->constraint->toCBuffer(buf, &hgs);
+                    ::toCBuffer(td->constraint, buf, &hgs);
                     buf->writeByte(')');
                 }
 

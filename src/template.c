@@ -429,7 +429,7 @@ void ObjectToCBuffer(OutBuffer *buf, HdrGenState *hgs, RootObject *oarg)
     {
         if (e->op == TOKvar)
             e = e->optimize(WANTvalue);         // added to fix Bugzilla 7375
-        e->toCBuffer(buf, hgs);
+        ::toCBuffer(e, buf, hgs);
     }
     else if (s)
     {
@@ -2677,7 +2677,7 @@ void TemplateDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
             if (constraint)
             {
                 buf->writestring(" if (");
-                constraint->toCBuffer(buf, hgs);
+                ::toCBuffer(constraint, buf, hgs);
                 buf->writeByte(')');
             }
 
@@ -2708,7 +2708,7 @@ void TemplateDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
             if (constraint)
             {
                 buf->writestring(" if (");
-                constraint->toCBuffer(buf, hgs);
+                ::toCBuffer(constraint, buf, hgs);
                 buf->writeByte(')');
             }
 
@@ -2768,7 +2768,7 @@ void TemplateDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     if (constraint)
     {
         buf->writestring(" if (");
-        constraint->toCBuffer(buf, hgs);
+        ::toCBuffer(constraint, buf, hgs);
         buf->writeByte(')');
     }
 
@@ -2825,7 +2825,7 @@ char *TemplateDeclaration::toChars()
     if (constraint)
     {
         buf.writestring(" if (");
-        constraint->toCBuffer(&buf, &hgs);
+        ::toCBuffer(constraint, &buf, &hgs);
         buf.writeByte(')');
     }
     return buf.extractString();
@@ -5630,12 +5630,12 @@ void TemplateValueParameter::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     if (specValue)
     {
         buf->writestring(" : ");
-        specValue->toCBuffer(buf, hgs);
+        ::toCBuffer(specValue, buf, hgs);
     }
     if (defaultValue)
     {
         buf->writestring(" = ");
-        defaultValue->toCBuffer(buf, hgs);
+        ::toCBuffer(defaultValue, buf, hgs);
     }
 }
 

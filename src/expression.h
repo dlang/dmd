@@ -104,7 +104,6 @@ elem *toElem(Expression *e, IRState *irs);
 MATCH implicitConvTo(Expression *e, Type *t);
 Expression *implicitCastTo(Expression *e, Scope *sc, Type *t);
 Expression *castTo(Expression *e, Scope *sc, Type *t);
-void toCBuffer(Expression *e, OutBuffer *buf, HdrGenState *hgs);
 Expression *ctfeInterpret(Expression *);
 Expression *inlineCopy(Expression *e, Scope *sc);
 Expression *op_overload(Expression *e, Scope *sc);
@@ -178,10 +177,6 @@ public:
     virtual real_t toImaginary();
     virtual complex_t toComplex();
     virtual StringExp *toStringExp();
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-    {
-        ::toCBuffer(this, buf, hgs);
-    }
     virtual void toMangleBuffer(OutBuffer *buf);
     virtual int isLvalue();
     virtual Expression *toLvalue(Scope *sc, Expression *e);

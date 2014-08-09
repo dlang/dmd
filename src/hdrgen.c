@@ -121,7 +121,7 @@ public:
     {
         if (s->exp)
         {
-            s->exp->toCBuffer(buf, hgs);
+            s->exp->accept(this);
             if (s->exp->op != TOKdeclaration)
             {
                 buf->writeByte(';');
@@ -140,7 +140,7 @@ public:
     void visit(CompileStatement *s)
     {
         buf->writestring("mixin(");
-        s->exp->toCBuffer(buf, hgs);
+        s->exp->accept(this);
         buf->writestring(");");
         if (!hgs->forStmtInit)
             buf->writenl();
@@ -196,7 +196,7 @@ public:
                         buf->writestring(" = ");
                         ExpInitializer *ie = v->init->isExpInitializer();
                         if (ie && (ie->exp->op == TOKconstruct || ie->exp->op == TOKblit))
-                            ((AssignExp *)ie->exp)->e2->toCBuffer(buf, hgs);
+                            ((AssignExp *)ie->exp)->e2->accept(this);
                         else
                             v->init->accept(this);
                     }
@@ -246,7 +246,7 @@ public:
     void visit(WhileStatement *s)
     {
         buf->writestring("while (");
-        s->condition->toCBuffer(buf, hgs);
+        s->condition->accept(this);
         buf->writeByte(')');
         buf->writenl();
         if (s->body)
@@ -260,7 +260,7 @@ public:
         if (s->body)
             s->body->accept(this);
         buf->writestring("while (");
-        s->condition->toCBuffer(buf, hgs);
+        s->condition->accept(this);
         buf->writestring(");");
         buf->writenl();
     }
@@ -279,13 +279,13 @@ public:
         if (s->condition)
         {
             buf->writeByte(' ');
-            s->condition->toCBuffer(buf, hgs);
+            s->condition->accept(this);
         }
         buf->writeByte(';');
         if (s->increment)
         {
             buf->writeByte(' ');
-            s->increment->toCBuffer(buf, hgs);
+            s->increment->accept(this);
         }
         buf->writeByte(')');
         buf->writenl();
@@ -315,7 +315,7 @@ public:
                 buf->writestring(a->ident->toChars());
         }
         buf->writestring("; ");
-        s->aggr->toCBuffer(buf, hgs);
+        s->aggr->accept(this);
         buf->writeByte(')');
         buf->writenl();
         buf->writeByte('{');
@@ -339,9 +339,9 @@ public:
             buf->writestring(s->arg->ident->toChars());
 
         buf->writestring("; ");
-        s->lwr->toCBuffer(buf, hgs);
+        s->lwr->accept(this);
         buf->writestring(" .. ");
-        s->upr->toCBuffer(buf, hgs);
+        s->upr->accept(this);
         buf->writeByte(')');
         buf->writenl();
         buf->writeByte('{');
@@ -368,7 +368,7 @@ public:
             }
             buf->writestring(" = ");
         }
-        s->condition->toCBuffer(buf, hgs);
+        s->condition->accept(this);
         buf->writeByte(')');
         buf->writenl();
         if (!s->ifbody->isScopeStatement())
@@ -453,7 +453,7 @@ public:
     void visit(SwitchStatement *s)
     {
         buf->writestring(s->isFinal ? "final switch (" : "switch (");
-        s->condition->toCBuffer(buf, hgs);
+        s->condition->accept(this);
         buf->writeByte(')');
         buf->writenl();
         if (s->body)
@@ -478,7 +478,7 @@ public:
     void visit(CaseStatement *s)
     {
         buf->writestring("case ");
-        s->exp->toCBuffer(buf, hgs);
+        s->exp->accept(this);
         buf->writeByte(':');
         buf->writenl();
         s->statement->accept(this);
@@ -487,9 +487,9 @@ public:
     void visit(CaseRangeStatement *s)
     {
         buf->writestring("case ");
-        s->first->toCBuffer(buf, hgs);
+        s->first->accept(this);
         buf->writestring(": .. case ");
-        s->last->toCBuffer(buf, hgs);
+        s->last->accept(this);
         buf->writeByte(':');
         buf->writenl();
         s->statement->accept(this);
@@ -514,7 +514,7 @@ public:
         if (s->exp)
         {
             buf->writeByte(' ');
-            s->exp->toCBuffer(buf, hgs);
+            s->exp->accept(this);
         }
         buf->writeByte(';');
         buf->writenl();
@@ -530,7 +530,7 @@ public:
     {
         buf->printf("return ");
         if (s->exp)
-            s->exp->toCBuffer(buf, hgs);
+            s->exp->accept(this);
         buf->writeByte(';');
         buf->writenl();
     }
@@ -565,7 +565,7 @@ public:
         if (s->exp)
         {
             buf->writeByte('(');
-            s->exp->toCBuffer(buf, hgs);
+            s->exp->accept(this);
             buf->writeByte(')');
         }
         if (s->body)
@@ -578,7 +578,7 @@ public:
     void visit(WithStatement *s)
     {
         buf->writestring("with (");
-        s->exp->toCBuffer(buf, hgs);
+        s->exp->accept(this);
         buf->writestring(")");
         buf->writenl();
         if (s->body)
@@ -630,7 +630,7 @@ public:
     void visit(ThrowStatement *s)
     {
         buf->printf("throw ");
-        s->exp->toCBuffer(buf, hgs);
+        s->exp->accept(this);
         buf->writeByte(';');
         buf->writenl();
     }
@@ -669,17 +669,17 @@ public:
         {
             buf->writestring(t->toChars());
             if (t->next                         &&
-               t->value != TOKmin               &&
-               t->value != TOKcomma             &&
-               t->next->value != TOKcomma       &&
-               t->value != TOKlbracket          &&
-               t->next->value != TOKlbracket    &&
-               t->next->value != TOKrbracket    &&
-               t->value != TOKlparen            &&
-               t->next->value != TOKlparen      &&
-               t->next->value != TOKrparen      &&
-               t->value != TOKdot               &&
-               t->next->value != TOKdot)
+                t->value != TOKmin              &&
+                t->value != TOKcomma            &&
+                t->next->value != TOKcomma      &&
+                t->value != TOKlbracket         &&
+                t->next->value != TOKlbracket   &&
+                t->next->value != TOKrbracket   &&
+                t->value != TOKlparen           &&
+                t->next->value != TOKlparen     &&
+                t->next->value != TOKrparen     &&
+                t->value != TOKdot              &&
+                t->next->value != TOKdot)
             {
                 buf->writeByte(' ');
             }
@@ -917,7 +917,7 @@ public:
     void visit(TypeTypeof *t)
     {
         buf->writestring("typeof(");
-        t->exp->toCBuffer(buf, hgs);
+        t->exp->accept(this);
         buf->writeByte(')');
         visitTypeQualifiedHelper(t);
     }
@@ -1441,7 +1441,7 @@ public:
         if (e->e0)
         {
             buf->writeByte('(');
-            e->e0->toCBuffer(buf, hgs);
+            e->e0->accept(this);
             buf->writestring(", tuple(");
             argsToCBuffer(buf, e->exps, hgs);
             buf->writestring("))");
@@ -1618,7 +1618,7 @@ public:
              * This is ok since types in constructor calls
              * can never depend on parens anyway
              */
-            e->e1->toCBuffer(buf, hgs);
+            e->e1->accept(this);
         }
         else
             expToCBuffer(buf, hgs, e->e1, precedence[e->op]);
@@ -2014,6 +2014,8 @@ void expToCBuffer(OutBuffer *buf, HdrGenState *hgs, Expression *e, PREC pr)
     assert(precedence[e->op] != PREC_zero);
     assert(pr != PREC_zero);
 
+    PrettyPrintVisitor v(buf, hgs);
+
     //if (precedence[e->op] == 0) e->print();
     /* Despite precedence, we don't allow a<b<c expressions.
      * They must be parenthesized.
@@ -2022,11 +2024,11 @@ void expToCBuffer(OutBuffer *buf, HdrGenState *hgs, Expression *e, PREC pr)
         (pr == PREC_rel && precedence[e->op] == pr))
     {
         buf->writeByte('(');
-        e->toCBuffer(buf, hgs);
+        e->accept(&v);
         buf->writeByte(')');
     }
     else
-        e->toCBuffer(buf, hgs);
+        e->accept(&v);
 }
 
 /**************************************************

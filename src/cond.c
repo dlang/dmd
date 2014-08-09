@@ -25,6 +25,7 @@
 #include "mtype.h"
 #include "scope.h"
 #include "arraytypes.h"
+#include "hdrgen.h"
 
 int findCondition(Strings *ids, Identifier *ident)
 {
@@ -395,6 +396,6 @@ Lerror:
 void StaticIfCondition::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("static if (");
-    exp->toCBuffer(buf, hgs);
+    ::toCBuffer(exp, buf, hgs);
     buf->writeByte(')');
 }

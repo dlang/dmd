@@ -1818,7 +1818,7 @@ void VarDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         buf->writestring(" = ");
         ExpInitializer *ie = init->isExpInitializer();
         if (ie && (ie->exp->op == TOKconstruct || ie->exp->op == TOKblit))
-            ((AssignExp *)ie->exp)->e2->toCBuffer(buf, hgs);
+            ::toCBuffer(((AssignExp *)ie->exp)->e2, buf, hgs);
         else
             ::toCBuffer(init, buf, hgs);
     }

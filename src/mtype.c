@@ -9433,7 +9433,7 @@ void Parameter::argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Parameters *argu
             if (arg->defaultArg)
             {
                 argbuf.writestring(" = ");
-                arg->defaultArg->toCBuffer(&argbuf, hgs);
+                ::toCBuffer(arg->defaultArg, &argbuf, hgs);
             }
             buf->write(&argbuf);
         }

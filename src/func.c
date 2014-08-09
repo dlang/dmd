@@ -4496,7 +4496,7 @@ void FuncLiteralDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     if (rs && rs->exp)
     {
         buf->writestring(" => ");
-        rs->exp->toCBuffer(buf, hgs);
+        ::toCBuffer(rs->exp, buf, hgs);
     }
     else
     {

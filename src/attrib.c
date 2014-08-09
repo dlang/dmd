@@ -561,7 +561,7 @@ void DeprecatedDeclaration::setScope(Scope *sc)
 void DeprecatedDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("deprecated(");
-    msg->toCBuffer(buf, hgs);
+    ::toCBuffer(msg, buf, hgs);
     buf->writestring(") ");
     AttribDeclaration::toCBuffer(buf, hgs);
 }
@@ -1481,7 +1481,7 @@ void CompileDeclaration::semantic(Scope *sc)
 void CompileDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("mixin(");
-    exp->toCBuffer(buf, hgs);
+    ::toCBuffer(exp, buf, hgs);
     buf->writestring(");");
     buf->writenl();
 }

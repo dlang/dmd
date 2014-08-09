@@ -566,7 +566,7 @@ void EnumMember::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     if (value)
     {
         buf->writestring(" = ");
-        value->toCBuffer(buf, hgs);
+        ::toCBuffer(value, buf, hgs);
     }
 }
 

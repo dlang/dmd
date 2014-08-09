@@ -1941,7 +1941,7 @@ char *Expression::toChars()
 {
     OutBuffer buf;
     HdrGenState hgs;
-    toCBuffer(&buf, &hgs);
+    toCBuffer(this, &buf, &hgs);
     return buf.extractString();
 }
 

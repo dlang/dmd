@@ -130,11 +130,11 @@ void StaticAssert::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring(kind());
     buf->writeByte('(');
-    exp->toCBuffer(buf, hgs);
+    ::toCBuffer(exp, buf, hgs);
     if (msg)
     {
         buf->writestring(", ");
-        msg->toCBuffer(buf, hgs);
+        ::toCBuffer(msg, buf, hgs);
     }
     buf->writestring(");");
     buf->writenl();
