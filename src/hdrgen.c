@@ -1207,12 +1207,11 @@ public:
             {
                 case '"':
                 case '\\':
-                    if (!hgs->console)
-                        buf->writeByte('\\');
+                    buf->writeByte('\\');
                 default:
                     if (c <= 0xFF)
                     {
-                        if (c <= 0x7F && (isprint(c) || hgs->console))
+                        if (c <= 0x7F && isprint(c))
                             buf->writeByte(c);
                         else
                             buf->printf("\\x%02x", c);

@@ -17,7 +17,6 @@ struct HdrGenState
 {
     bool hdrgen;        // true if generating header file
     bool ddoc;          // true if generating Ddoc file
-    bool console;       // true if writing to console
     bool fullQual;      // fully qualify types when printing
     int tpltMember;
     int autoMember;

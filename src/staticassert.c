@@ -83,22 +83,19 @@ void StaticAssert::semantic2(Scope *sc)
     {
         if (msg)
         {
-            HdrGenState hgs;
-            OutBuffer buf;
-
             sc = sc->startCTFE();
             msg = msg->semantic(sc);
             msg = resolveProperties(sc, msg);
             sc = sc->endCTFE();
             msg = msg->ctfeInterpret();
-            hgs.console = true;
-            StringExp * s = msg->toStringExp();
-            if (s)
-            {   s->postfix = 0; // Don't display a trailing 'c'
-                msg = s;
+            if (StringExp * se = msg->toStringExp())
+            {
+                // same with pragma(msg)
+                se = se->toUTF8(sc);
+                error("\"%.*s\"", (int)se->len, (char *)se->string);
             }
-            msg->toCBuffer(&buf, &hgs);
-            error("%s", buf.peekString());
+            else
+                error("%s", msg->toChars());
         }
         else
             error("(%s) is false", exp->toChars());
