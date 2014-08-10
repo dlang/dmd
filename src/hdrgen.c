@@ -183,7 +183,7 @@ public:
                     {
                         StorageClassDeclaration::stcToCBuffer(buf, v->storage_class);
                         if (v->type)
-                            toCBuffer(v->type, buf, v->ident, hgs);
+                            typeToBuffer(v->type, v->ident);
                         else
                             buf->writestring(v->ident->toChars());
                     }
@@ -307,7 +307,7 @@ public:
             if (a->storageClass & STCref)
                 buf->writestring((char*)"ref ");
             if (a->type)
-                toCBuffer(a->type, buf, a->ident, hgs);
+                typeToBuffer(a->type, a->ident);
             else
                 buf->writestring(a->ident->toChars());
         }
@@ -331,7 +331,7 @@ public:
         buf->writestring(" (");
 
         if (s->arg->type)
-            toCBuffer(s->arg->type, buf, s->arg->ident, hgs);
+            typeToBuffer(s->arg->type, s->arg->ident);
         else
             buf->writestring(s->arg->ident->toChars());
 
@@ -357,7 +357,7 @@ public:
         if (s->arg)
         {
             if (s->arg->type)
-                toCBuffer(s->arg->type, buf, s->arg->ident, hgs);
+                typeToBuffer(s->arg->type, s->arg->ident);
             else
             {
                 buf->writestring("auto ");
@@ -702,7 +702,7 @@ public:
         if (c->type)
         {
             buf->writeByte('(');
-            toCBuffer(c->type, buf, c->ident, hgs);
+            typeToBuffer(c->type, c->ident);
             buf->writeByte(')');
         }
         buf->writenl();
@@ -717,6 +717,31 @@ public:
     }
 
     ////////////////////////////////////////////////////////////////////////////
+
+    /**************************************************
+     * An entry point to pretty-print type.
+     */
+    void typeToBuffer(Type *t, Identifier *ident)
+    {
+        if (t->ty == Tfunction)
+        {
+            visitFuncIdentWithPrefix((TypeFunction *)t, ident, NULL, true);
+            return;
+        }
+        if (t->ty == Terror)
+        {
+            buf->writestring("_error_");
+            return;
+        }
+
+        visitWithMask(t, 0);
+
+        if (ident)
+        {
+            buf->writeByte(' ');
+            buf->writestring(ident->toChars());
+        }
+    }
 
     void visitWithMask(Type *t, unsigned char modMask)
     {
@@ -872,7 +897,7 @@ public:
 
         if (t->next)
         {
-            visitWithMask(t->next, 0);
+            typeToBuffer(t->next, NULL);
             if (ident)
                 buf->writeByte(' ');
         }
@@ -930,7 +955,7 @@ public:
         }
         else if (t->next)
         {
-            visitWithMask(t->next, 0);
+            typeToBuffer(t->next, NULL);
             if (ident)
                 buf->writeByte(' ');
         }
@@ -1100,7 +1125,7 @@ public:
     void visit(EnumMember *em)
     {
         if (em->type)
-            ::toCBuffer(em->type, buf, em->ident, hgs);
+            typeToBuffer(em->type, em->ident);
         else
             buf->writestring(em->ident->toChars());
         if (em->value)
@@ -1384,7 +1409,7 @@ public:
                         BaseClass *b = (*cd->baseclasses)[i];
                         if (i)
                             buf->writestring(", ");
-                        ::toCBuffer(b->type, buf, NULL, hgs);
+                        typeToBuffer(b->type, NULL);
                     }
                 }
 
@@ -1458,7 +1483,7 @@ public:
     {
         buf->writestring("mixin ");
 
-        ::toCBuffer(tm->tqual, buf, NULL, hgs);
+        typeToBuffer(tm->tqual, NULL);
         tiargsToBuffer(tm);
 
         if (tm->ident && memcmp(tm->ident->string, "__mixin", 7) != 0)
@@ -1539,7 +1564,7 @@ public:
         if (Type *t = isType(oarg))
         {
             //printf("\tt: %s ty = %d\n", t->toChars(), t->ty);
-            toCBuffer(t, buf, NULL, hgs);
+            typeToBuffer(t, NULL);
         }
         else if (Expression *e = isExpression(oarg))
         {
@@ -1586,7 +1611,7 @@ public:
         if (d->memtype)
         {
             buf->writestring(": ");
-            ::toCBuffer(d->memtype, buf, NULL, hgs);
+            typeToBuffer(d->memtype, NULL);
         }
         if (!d->members)
         {
@@ -1684,7 +1709,7 @@ public:
     void visit(TypedefDeclaration *d)
     {
         buf->writestring("typedef ");
-        ::toCBuffer(d->basetype, buf, d->ident, hgs);
+        typeToBuffer(d->basetype, d->ident);
         if (d->init)
         {
             buf->writestring(" = ");
@@ -1704,7 +1729,7 @@ public:
             buf->writestring(d->ident->toChars());
         }
         else
-            ::toCBuffer(d->type, buf, d->ident, hgs);
+            typeToBuffer(d->type, d->ident);
         buf->writeByte(';');
         buf->writenl();
     }
@@ -1717,7 +1742,7 @@ public:
          * too.
          */
         if (d->type)
-            ::toCBuffer(d->type, buf, d->ident, hgs);
+            typeToBuffer(d->type, d->ident);
         else
             buf->writestring(d->ident->toChars());
         if (d->init)
@@ -1738,7 +1763,7 @@ public:
         //printf("FuncDeclaration::toCBuffer() '%s'\n", toChars());
 
         StorageClassDeclaration::stcToCBuffer(buf, f->storage_class);
-        ::toCBuffer(f->type, buf, f->ident, hgs);
+        typeToBuffer(f->type, f->ident);
         if (hgs->hdrgen == 1)
         {
             if (f->storage_class & STCauto)
@@ -1830,7 +1855,7 @@ public:
         TypeFunction *tf = (TypeFunction *)f->type;
         // Don't print tf->mod, tf->trust, and tf->linkage
         if (!f->inferRetType && tf->next)
-            visitWithMask(tf->next, 0);
+            typeToBuffer(tf->next, NULL);
         parametersToBuffer(tf->parameters, tf->varargs);
 
         CompoundStatement *cs = f->fbody->isCompoundStatement();
@@ -2348,7 +2373,7 @@ public:
 
     void visit(TypeExp *e)
     {
-        toCBuffer(e->type, buf, NULL, hgs);
+        typeToBuffer(e->type, NULL);
     }
 
     void visit(ScopeExp *e)
@@ -2393,7 +2418,7 @@ public:
             argsToBuffer(e->newargs);
             buf->writeByte(')');
         }
-        toCBuffer(e->newtype, buf, NULL, hgs);
+        typeToBuffer(e->newtype, NULL);
         if (e->arguments && e->arguments->dim)
         {
             buf->writeByte('(');
@@ -2506,7 +2531,7 @@ public:
     void visit(IsExp *e)
     {
         buf->writestring("is(");
-        toCBuffer(e->targ, buf, e->id, hgs);
+        typeToBuffer(e->targ, e->id);
         if (e->tok2 != TOKreserved)
         {
             buf->printf(" %s %s", Token::toChars(e->tok), Token::toChars(e->tok2));
@@ -2517,7 +2542,7 @@ public:
                 buf->writestring(" : ");
             else
                 buf->writestring(" == ");
-            toCBuffer(e->tspec, buf, NULL, hgs);
+            typeToBuffer(e->tspec, NULL);
         }
         if (e->parameters)
         {
@@ -2652,7 +2677,7 @@ public:
     {
         buf->writestring("cast(");
         if (e->to)
-            toCBuffer(e->to, buf, NULL, hgs);
+            typeToBuffer(e->to, NULL);
         else
         {
             MODtoBuffer(buf, e->mod);
@@ -2664,7 +2689,7 @@ public:
     void visit(VectorExp *e)
     {
         buf->writestring("cast(");
-        toCBuffer(e->to, buf, NULL, hgs);
+        typeToBuffer(e->to, NULL);
         buf->writeByte(')');
         expToBuffer(e->e1, precedence[e->op]);
     }
@@ -2783,12 +2808,12 @@ public:
         if (tp->specType)
         {
             buf->writestring(" : ");
-            ::toCBuffer(tp->specType, buf, NULL, hgs);
+            typeToBuffer(tp->specType, NULL);
         }
         if (tp->defaultType)
         {
             buf->writestring(" = ");
-            ::toCBuffer(tp->defaultType, buf, NULL, hgs);
+            typeToBuffer(tp->defaultType, NULL);
         }
     }
 
@@ -2802,10 +2827,7 @@ public:
     {
         buf->writestring("alias ");
         if (tp->specType)
-        {
-            HdrGenState hgs1;
-            ::toCBuffer(tp->specType, buf, tp->ident, &hgs1);
-        }
+            typeToBuffer(tp->specType, tp->ident);
         else
             buf->writestring(tp->ident->toChars());
         if (tp->specAlias)
@@ -2822,7 +2844,7 @@ public:
 
     void visit(TemplateValueParameter *tp)
     {
-        ::toCBuffer(tp->valType, buf, tp->ident, hgs);
+        typeToBuffer(tp->valType, tp->ident);
         if (tp->specValue)
         {
             buf->writestring(" : ");
@@ -2904,7 +2926,7 @@ public:
             buf->writestring(p->ident->toChars());
         }
         else
-            toCBuffer(p->type, buf, p->ident, hgs);
+            typeToBuffer(p->type, p->ident);
         if (p->defaultArg)
         {
             buf->writestring(" = ");
@@ -2944,25 +2966,8 @@ void toCBuffer(Statement *s, OutBuffer *buf, HdrGenState *hgs)
 
 void toCBuffer(Type *t, OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
 {
-    if (t->ty == Tfunction)
-    {
-        functionToBufferFull((TypeFunction *)t, buf, ident, hgs, NULL);
-        return;
-    }
-    if (t->ty == Terror)
-    {
-        buf->writestring("_error_");
-        return;
-    }
-
     PrettyPrintVisitor v(buf, hgs);
-    v.visitWithMask(t, 0);
-
-    if (ident)
-    {
-        buf->writeByte(' ');
-        buf->writestring(ident->toChars());
-    }
+    v.typeToBuffer(t, ident);
 }
 
 void toCBuffer(Dsymbol *s, OutBuffer *buf, HdrGenState *hgs)
@@ -3092,7 +3097,7 @@ void argExpTypesToCBuffer(OutBuffer *buf, Expressions *arguments)
     {
         if (i)
             buf->writestring(", ");
-        v.visitWithMask((*arguments)[i]->type, 0);
+        v.typeToBuffer((*arguments)[i]->type, NULL);
     }
 }
 
