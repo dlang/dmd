@@ -11,6 +11,22 @@ class C1748(T) {}
 static assert(C1748!int.stringof == "C1748!int");
 
 /**************************************************
+    2438
+**************************************************/
+
+alias void delegate() Dg2438;
+
+alias typeof(Dg2438.ptr)     CP2438a;
+alias typeof(Dg2438.funcptr) FP2438a;
+static assert(is(CP2438a == void*));
+static assert(is(FP2438a == void function()));
+
+alias typeof(Dg2438.init.ptr)     CP2438b;
+alias typeof(Dg2438.init.funcptr) FP2438b;
+static assert(is(CP2438b == void*));
+static assert(is(FP2438b == void function()));
+
+/**************************************************
     5996    ICE(expression.c)
 **************************************************/
 
