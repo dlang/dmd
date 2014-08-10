@@ -728,11 +728,6 @@ public:
             visitFuncIdentWithPrefix((TypeFunction *)t, ident, NULL, true);
             return;
         }
-        if (t->ty == Terror)
-        {
-            buf->writestring("_error_");
-            return;
-        }
 
         visitWithMask(t, 0);
 
@@ -786,6 +781,11 @@ public:
     {
         printf("t = %p, ty = %d\n", t, t->ty);
         assert(0);
+    }
+
+    void visit(TypeError *t)
+    {
+        buf->writestring("_error_");
     }
 
     void visit(TypeBasic *t)
