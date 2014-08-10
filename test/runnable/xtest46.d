@@ -4573,6 +4573,53 @@ extern (C) int cfunc6596(){ return 0; }
 static assert(typeof(pfunc6596).stringof == "extern (C) int function()");
 static assert(typeof(cfunc6596).stringof == "extern (C) int()");
 
+
+/***************************************************/
+// 4423
+
+struct S4423
+{
+    this(string phrase, int num)
+    {
+        this.phrase = phrase;
+        this.num = num;
+    }
+
+    int opCmp(const ref S4423 rhs)
+    {
+        if (phrase < rhs.phrase)
+            return -1;
+        else if (phrase > rhs.phrase)
+            return 1;
+
+        if (num < rhs.num)
+            return -1;
+        else if (num > rhs.num)
+            return 1;
+
+        return 0;
+    }
+
+    string phrase;
+    int    num;
+}
+
+enum E4423 : S4423
+{
+    a = S4423("hello", 1),
+    b = S4423("goodbye", 45),
+    c = S4423("world", 22),
+};
+
+void test4423()
+{
+    E4423 e;
+    assert(e.phrase == "hello");
+
+    e = E4423.b;
+    assert(e.phrase == "goodbye");
+}
+
 /***************************************************/
 // 4647
 
@@ -7193,6 +7240,7 @@ int main()
     test6690();
     test2953();
     test2997();
+    test4423();
     test4647();
     test5696();
     test6084();

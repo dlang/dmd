@@ -536,5 +536,24 @@ static assert(is(typeof(&f12970j) == void function() @safe));
 static assert(is(typeof(&f12970k) == void function() @system));
 static assert(is(typeof(&f12970l) == void function() @system));
 
+/***************************************************/
+// 13217
+
+void writeln13217(string) {}
+
+nothrow void a13217(T)(T x)
+{
+    try
+    {
+        () { writeln13217("a"); } ();
+    }
+    catch (Exception e) {}
+}
+
+void test13217()
+{
+    a13217(1);
+}
+
 // Add more tests regarding inferences later.
 
