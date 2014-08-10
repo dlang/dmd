@@ -150,45 +150,13 @@ public:
         for (size_t i = 0; i < s->statements->dim; i++)
         {
             Statement *sx = (*s->statements)[i];
-            ExpStatement *ds;
-            if (sx &&
-                (ds = sx->isExpStatement()) != NULL &&
-                ds->exp->op == TOKdeclaration)
+            ExpStatement *ds = sx ? sx->isExpStatement() : NULL;
+            if (ds && ds->exp->op == TOKdeclaration)
             {
-                DeclarationExp *de = (DeclarationExp *)ds->exp;
-                Declaration *d = de->declaration->isDeclaration();
-                assert(d);
-                VarDeclaration *v = d->isVarDeclaration();
-                if (v)
-                {
-                    /* This essentially copies the part of VarDeclaration::toCBuffer()
-                     * that does not print the type.
-                     * Should refactor this.
-                     */
-                    if (anywritten)
-                    {
-                        buf->writestring(", ");
-                        buf->writestring(v->ident->toChars());
-                    }
-                    else
-                    {
-                        StorageClassDeclaration::stcToCBuffer(buf, v->storage_class);
-                        if (v->type)
-                            typeToBuffer(v->type, v->ident);
-                        else
-                            buf->writestring(v->ident->toChars());
-                    }
-
-                    if (v->init)
-                    {
-                        buf->writestring(" = ");
-                        ExpInitializer *ie = v->init->isExpInitializer();
-                        if (ie && (ie->exp->op == TOKconstruct || ie->exp->op == TOKblit))
-                            ((AssignExp *)ie->exp)->e2->accept(this);
-                        else
-                            v->init->accept(this);
-                    }
-                }
+                Dsymbol *d = ((DeclarationExp *)ds->exp)->declaration;
+                assert(d->isDeclaration());
+                if (VarDeclaration *v = d->isVarDeclaration())
+                    visitVarDecl(v, anywritten);
                 else
                     d->accept(this);
                 anywritten = true;
@@ -1727,26 +1695,34 @@ public:
 
     void visit(VarDeclaration *d)
     {
-        StorageClassDeclaration::stcToCBuffer(buf, d->storage_class);
-
-        /* If changing, be sure and fix CompoundDeclarationStatement::toCBuffer()
-         * too.
-         */
-        if (d->type)
-            typeToBuffer(d->type, d->ident);
+        visitVarDecl(d, false);
+        buf->writeByte(';');
+        buf->writenl();
+    }
+    void visitVarDecl(VarDeclaration *v, bool anywritten)
+    {
+        if (anywritten)
+        {
+            buf->writestring(", ");
+            buf->writestring(v->ident->toChars());
+        }
         else
-            buf->writestring(d->ident->toChars());
-        if (d->init)
+        {
+            StorageClassDeclaration::stcToCBuffer(buf, v->storage_class);
+            if (v->type)
+                typeToBuffer(v->type, v->ident);
+            else
+                buf->writestring(v->ident->toChars());
+        }
+        if (v->init)
         {
             buf->writestring(" = ");
-            ExpInitializer *ie = d->init->isExpInitializer();
+            ExpInitializer *ie = v->init->isExpInitializer();
             if (ie && (ie->exp->op == TOKconstruct || ie->exp->op == TOKblit))
                 ((AssignExp *)ie->exp)->e2->accept(this);
             else
-                d->init->accept(this);
+                v->init->accept(this);
         }
-        buf->writeByte(';');
-        buf->writenl();
     }
 
     void visit(FuncDeclaration *f)
