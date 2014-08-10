@@ -4341,11 +4341,22 @@ Statement *WithStatement::semantic(Scope *sc)
         {
             if (!exp->isLvalue())
             {
+                /* Re-write to
+                 * {
+                 *   auto __withtmp = exp
+                 *   with(__withtmp)
+                 *   {
+                 *     ...
+                 *   }
+                 * }
+                 */
                 init = new ExpInitializer(loc, exp);
                 wthis = new VarDeclaration(loc, exp->type, Lexer::uniqueId("__withtmp"), init);
                 wthis->storage_class |= STCtemp;
-                exp = new CommaExp(loc, new DeclarationExp(loc, wthis), new VarExp(loc, wthis));
-                exp = exp->semantic(sc);
+                ExpStatement *es = new ExpStatement(loc, new DeclarationExp(loc, wthis));
+                exp = new VarExp(loc, wthis);
+                Statement *ss = new ScopeStatement(loc, new CompoundStatement(loc, es, this));
+                return ss->semantic(sc);
             }
             Expression *e = exp->addressOf();
             init = new ExpInitializer(loc, e);
