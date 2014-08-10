@@ -1311,86 +1311,8 @@ public:
         if (onemember && onemember->isFuncDeclaration())
             buf->writestring("foo ");
     #endif
-        if (hgs->hdrgen && d->members && d->members->dim == 1)
-        {
-            Dsymbol *s1 = (*d->members)[0];
-
-            FuncDeclaration *fd = s1->isFuncDeclaration();
-            if (fd && fd->type && fd->type->ty == Tfunction && fd->ident == d->ident)
-            {
-                StorageClassDeclaration::stcToCBuffer(buf, fd->storage_class);
-                functionToBufferFull((TypeFunction *)fd->type, buf, d->ident, hgs, d);
-
-                if (d->constraint)
-                {
-                    buf->writestring(" if (");
-                    d->constraint->accept(this);
-                    buf->writeByte(')');
-                }
-
-                hgs->tpltMember++;
-                bodyToBuffer(fd);
-                hgs->tpltMember--;
-                return;
-            }
-
-            AggregateDeclaration *ad = s1->isAggregateDeclaration();
-            if (ad)
-            {
-                buf->writestring(ad->kind());
-                buf->writeByte(' ');
-                buf->writestring(ad->ident->toChars());
-                buf->writeByte('(');
-                for (size_t i = 0; i < d->parameters->dim; i++)
-                {
-                    TemplateParameter *tp = (*d->parameters)[i];
-                    if (hgs->ddoc)
-                        tp = (*d->origParameters)[i];
-                    if (i)
-                        buf->writestring(", ");
-                    tp->accept(this);
-                }
-                buf->writeByte(')');
-
-                if (d->constraint)
-                {
-                    buf->writestring(" if (");
-                    d->constraint->accept(this);
-                    buf->writeByte(')');
-                }
-
-                 ClassDeclaration *cd = ad->isClassDeclaration();
-                if (cd && cd->baseclasses->dim)
-                {
-                    buf->writestring(" : ");
-                    for (size_t i = 0; i < cd->baseclasses->dim; i++)
-                    {
-                        BaseClass *b = (*cd->baseclasses)[i];
-                        if (i)
-                            buf->writestring(", ");
-                        typeToBuffer(b->type, NULL);
-                    }
-                }
-
-                hgs->tpltMember++;
-                if (ad->members)
-                {
-                    buf->writenl();
-                    buf->writeByte('{');
-                    buf->writenl();
-                    buf->level++;
-                    for (size_t i = 0; i < ad->members->dim; i++)
-                        (*ad->members)[i]->accept(this);
-                    buf->level--;
-                    buf->writestring("}");
-                }
-                else
-                    buf->writeByte(';');
-                buf->writenl();
-                hgs->tpltMember--;
-                return;
-            }
-        }
+        if (hgs->hdrgen && visitEponymousMember(d))
+            return;
 
         if (hgs->ddoc)
             buf->writestring(d->kind());
@@ -1399,22 +1321,9 @@ public:
         buf->writeByte(' ');
         buf->writestring(d->ident->toChars());
         buf->writeByte('(');
-        for (size_t i = 0; i < d->parameters->dim; i++)
-        {
-            TemplateParameter *tp = (*d->parameters)[i];
-            if (hgs->ddoc)
-                tp = (*d->origParameters)[i];
-            if (i)
-                buf->writestring(", ");
-            tp->accept(this);
-        }
+        visitTemplateParameters(hgs->ddoc ? d->origParameters : d->parameters);
         buf->writeByte(')');
-        if (d->constraint)
-        {
-            buf->writestring(" if (");
-            d->constraint->accept(this);
-            buf->writeByte(')');
-        }
+        visitTemplateConstraint(d->constraint);
 
         if (hgs->hdrgen)
         {
@@ -1430,6 +1339,79 @@ public:
             buf->writenl();
             hgs->tpltMember--;
         }
+    }
+
+    bool visitEponymousMember(TemplateDeclaration *d)
+    {
+        if (!d->members || d->members->dim != 1)
+            return false;
+
+        Dsymbol *onemember = (*d->members)[0];
+        if (onemember->ident != d->ident)
+            return false;
+
+        if (FuncDeclaration *fd = onemember->isFuncDeclaration())
+        {
+            assert(fd->type);
+            StorageClassDeclaration::stcToCBuffer(buf, fd->storage_class);
+            functionToBufferFull((TypeFunction *)fd->type, buf, d->ident, hgs, d);
+            visitTemplateConstraint(d->constraint);
+
+            hgs->tpltMember++;
+            bodyToBuffer(fd);
+            hgs->tpltMember--;
+            return true;
+        }
+        if (AggregateDeclaration *ad = onemember->isAggregateDeclaration())
+        {
+            buf->writestring(ad->kind());
+            buf->writeByte(' ');
+            buf->writestring(ad->ident->toChars());
+            buf->writeByte('(');
+            visitTemplateParameters(hgs->ddoc ? d->origParameters : d->parameters);
+            buf->writeByte(')');
+            visitTemplateConstraint(d->constraint);
+            visitBaseClasses(ad->isClassDeclaration());
+
+            hgs->tpltMember++;
+            if (ad->members)
+            {
+                buf->writenl();
+                buf->writeByte('{');
+                buf->writenl();
+                buf->level++;
+                for (size_t i = 0; i < ad->members->dim; i++)
+                    (*ad->members)[i]->accept(this);
+                buf->level--;
+                buf->writeByte('}');
+            }
+            else
+                buf->writeByte(';');
+            buf->writenl();
+            hgs->tpltMember--;
+            return true;
+        }
+
+        return false;
+    }
+    void visitTemplateParameters(TemplateParameters *parameters)
+    {
+        if (!parameters || !parameters->dim)
+            return;
+        for (size_t i = 0; i < parameters->dim; i++)
+        {
+            if (i)
+                buf->writestring(", ");
+            (*parameters)[i]->accept(this);
+        }
+    }
+    void visitTemplateConstraint(Expression *constraint)
+    {
+        if (!constraint)
+            return;
+        buf->writestring(" if (");
+        constraint->accept(this);
+        buf->writeByte(')');
     }
 
     void visit(TemplateInstance *ti)
@@ -1638,17 +1620,11 @@ public:
     {
         if (!d->isAnonymous())
         {
-            buf->printf("%s ", d->kind());
-            buf->writestring(d->toChars());
-            if (d->baseclasses->dim)
-                buf->writestring(" : ");
+            buf->writestring(d->kind());
+            buf->writeByte(' ');
+            buf->writestring(d->ident->toChars());
         }
-        for (size_t i = 0; i < d->baseclasses->dim; i++)
-        {
-            if (i)
-                buf->writestring(", ");
-            (*d->baseclasses)[i]->type->accept(this);
-        }
+        visitBaseClasses(d);
         if (d->members)
         {
             buf->writenl();
@@ -1658,11 +1634,26 @@ public:
             for (size_t i = 0; i < d->members->dim; i++)
                 (*d->members)[i]->accept(this);
             buf->level--;
-            buf->writestring("}");
+            buf->writeByte('}');
         }
         else
             buf->writeByte(';');
         buf->writenl();
+    }
+
+    void visitBaseClasses(ClassDeclaration *d)
+    {
+        if (!d || !d->baseclasses->dim)
+            return;
+
+        buf->writestring(" : ");
+        for (size_t i = 0; i < d->baseclasses->dim; i++)
+        {
+            if (i)
+                buf->writestring(", ");
+            BaseClass *b = (*d->baseclasses)[i];
+            typeToBuffer(b->type, NULL);
+        }
     }
 
     void visit(TypedefDeclaration *d)
@@ -1740,7 +1731,7 @@ public:
                 hgs->autoMember--;
             }
             else if (hgs->tpltMember == 0 && !global.params.useInline)
-                buf->writestring(";");
+                buf->writeByte(';');
             else
                 bodyToBuffer(f);
         }
@@ -2129,7 +2120,7 @@ public:
                     break;
 
                 case Tbool:
-                    buf->writestring((char *)(v ? "true" : "false"));
+                    buf->writestring(v ? "true" : "false");
                     break;
 
                 case Tpointer:
@@ -2361,7 +2352,7 @@ public:
         else
         {
             buf->writestring(e->sds->kind());
-            buf->writestring(" ");
+            buf->writeByte(' ');
             buf->writestring(e->sds->toChars());
         }
     }
@@ -2511,14 +2502,10 @@ public:
                 buf->writestring(" == ");
             typeToBuffer(e->tspec, NULL);
         }
-        if (e->parameters)
+        if (e->parameters && e->parameters->dim)
         {
-            for (size_t i = 0; i < e->parameters->dim; i++)
-            {
-                buf->writestring(", ");
-                TemplateParameter *tp = (*e->parameters)[i];
-                tp->accept(this);
-            }
+            buf->writestring(", ");
+            visitTemplateParameters(e->parameters);
         }
         buf->writeByte(')');
     }
@@ -2675,7 +2662,7 @@ public:
             if (e->upr)
                 sizeToBuffer(e->upr);
             else
-                buf->writestring("$");
+                buf->writeByte('$');
         }
         buf->writeByte(']');
     }
@@ -2745,7 +2732,7 @@ public:
         expToBuffer(e->e1, PREC_primary);
         buf->writestring(".remove(");
         expToBuffer(e->e2, PREC_assign);
-        buf->writestring(")");
+        buf->writeByte(')');
     }
 
     void visit(CondExp *e)
