@@ -8313,6 +8313,8 @@ Lagain:
                 TypeDelegate *t = new TypeDelegate(tf);
                 ve->type = t->semantic(loc, sc);
             }
+            if (VarDeclaration *v = ve->var->isVarDeclaration())
+                ve->checkPurity(sc, v);
         }
 
         if (e1->op == TOKimport)
