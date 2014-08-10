@@ -812,9 +812,13 @@ public:
     void visit(TypePointer *t)
     {
         //printf("TypePointer::toCBuffer2() next = %d\n", t->next->ty);
-        visitWithMask(t->next, t->mod);
-        if (t->next->ty != Tfunction)
+        if (t->next->ty == Tfunction)
+            visitFuncIdentWithPostfix((TypeFunction *)t->next, "function");
+        else
+        {
+            visitWithMask(t->next, t->mod);
             buf->writeByte('*');
+        }
     }
 
     void visit(TypeReference *t)
@@ -826,32 +830,45 @@ public:
     void visit(TypeFunction *t)
     {
         //printf("TypeFunction::toCBuffer2() t = %p, ref = %d\n", t, t->isref);
+        visitFuncIdentWithPostfix(t, NULL);
+    }
+
+    // callback for TypeFunction::attributesApply
+    struct PrePostAppendStrings
+    {
+        OutBuffer *buf;
+        bool isPostfixStyle;
+        bool isCtor;
+
+        static int fp(void *param, const char *str)
+        {
+            PrePostAppendStrings *p = (PrePostAppendStrings *)param;
+
+            // don't write 'ref' for ctors
+            if (p->isCtor && strcmp(str, "ref") == 0)
+                return 0;
+
+            if ( p->isPostfixStyle) p->buf->writeByte(' ');
+            p->buf->writestring(str);
+            if (!p->isPostfixStyle) p->buf->writeByte(' ');
+            return 0;
+        }
+    };
+
+    void visitFuncIdentWithPostfix(TypeFunction *t, const char *ident)
+    {
         if (t->inuse)
         {
             t->inuse = 2;              // flag error to caller
             return;
         }
         t->inuse++;
-        visitFuncIdent(t, "function");
-        t->inuse--;
-    }
 
-    // callback for TypeFunction::attributesApply, prepends spaces
-    struct PreAppendStrings
-    {
-        OutBuffer *buf;
+        PrePostAppendStrings pas;
+        pas.buf = buf;
+        pas.isCtor = false;
+        pas.isPostfixStyle = true;
 
-        static int fp(void *param, const char *str)
-        {
-            PreAppendStrings *p = (PreAppendStrings *)param;
-            p->buf->writeByte(' ');
-            p->buf->writestring(str);
-            return 0;
-        }
-    };
-
-    void visitFuncIdent(TypeFunction *t, const char *ident)
-    {
         if (t->linkage > LINKd && hgs->ddoc != 1 && !hgs->hdrgen)
         {
             linkageToBuffer(buf, t->linkage);
@@ -861,26 +878,92 @@ public:
         if (t->next)
         {
             visitWithMask(t->next, 0);
-            buf->writeByte(' ');
+            if (ident)
+                buf->writeByte(' ');
         }
-        buf->writestring(ident);
+        else if (hgs->ddoc)
+            buf->writestring("auto ");
+
+        if (ident)
+            buf->writestring(ident);
+
         parametersToBuffer(t->parameters, t->varargs);
 
         /* Use postfix style for attributes
          */
-        if (modMask != t->mod)
+        if (t->mod)
         {
-            t->modToBuffer(buf);
+            buf->writeByte(' ');
+            MODtoBuffer(buf, t->mod);
+        }
+        t->attributesApply(&pas, &PrePostAppendStrings::fp);
+
+        t->inuse--;
+    }
+    void visitFuncIdentWithPrefix(TypeFunction *t, Identifier *ident, TemplateDeclaration *td, bool isPostfixStyle)
+    {
+        if (t->inuse)
+        {
+            t->inuse = 2;              // flag error to caller
+            return;
+        }
+        t->inuse++;
+
+        PrePostAppendStrings pas;
+        pas.buf = buf;
+        pas.isCtor = (ident == Id::ctor);
+        pas.isPostfixStyle = false;
+
+        /* Use 'storage class' (prefix) style for attributes
+         */
+        if (t->mod)
+        {
+            MODtoBuffer(buf, t->mod);
+            buf->writeByte(' ');
+        }
+        t->attributesApply(&pas, &PrePostAppendStrings::fp);
+
+        if (t->linkage > LINKd && hgs->ddoc != 1 && !hgs->hdrgen)
+        {
+            linkageToBuffer(buf, t->linkage);
+            buf->writeByte(' ');
         }
 
-        PreAppendStrings pas;
-        pas.buf = buf;
-        t->attributesApply(&pas, &PreAppendStrings::fp);
+        if (ident && ident->toHChars2() != ident->toChars())
+        {
+            // Don't print return type for ctor, dtor, unittest, etc
+        }
+        else if (t->next)
+        {
+            visitWithMask(t->next, 0);
+            if (ident)
+                buf->writeByte(' ');
+        }
+        else if (hgs->ddoc)
+            buf->writestring("auto ");
+
+        if (ident)
+            buf->writestring(ident->toHChars2());
+
+        if (td)
+        {
+            buf->writeByte('(');
+            for (size_t i = 0; i < td->origParameters->dim; i++)
+            {
+                if (i)
+                    buf->writestring(", ");
+                (*td->origParameters)[i]->accept(this);
+            }
+            buf->writeByte(')');
+        }
+        parametersToBuffer(t->parameters, t->varargs);
+
+        t->inuse--;
     }
 
     void visit(TypeDelegate *t)
     {
-        visitFuncIdent((TypeFunction *)t->next, "delegate");
+        visitFuncIdentWithPostfix((TypeFunction *)t->next, "delegate");
     }
 
     void visitTypeQualifiedHelper(TypeQualified *t)
@@ -2977,95 +3060,21 @@ const char *protectionToChars(PROT prot)
     return NULL;    // never reached
 }
 
-// callback for TypeFunction::attributesApply, avoids 'ref' in ctors and appends spaces
-struct PostAppendStrings
-{
-    bool isCtor;
-    OutBuffer *buf;
-
-    static int fp(void *param, const char *str)
-    {
-        PostAppendStrings *p = (PostAppendStrings *)param;
-
-        // don't write 'ref' for ctors
-        if (p->isCtor && strcmp(str, "ref") == 0)
-            return 0;
-
-        p->buf->writestring(str);
-        p->buf->writeByte(' ');
-        return 0;
-    }
-};
-
 // Print the full function signature with correct ident, attributes and template args
 void functionToBufferFull(TypeFunction *tf, OutBuffer *buf, Identifier *ident,
         HdrGenState* hgs, TemplateDeclaration *td)
 {
     //printf("TypeFunction::toCBuffer() this = %p\n", this);
-    if (tf->inuse)
-    {
-        tf->inuse = 2;              // flag error to caller
-        return;
-    }
-    tf->inuse++;
-
     PrettyPrintVisitor v(buf, hgs);
-
-    /* Use 'storage class' style for attributes
-     */
-    if (tf->mod)
-    {
-        MODtoBuffer(buf, tf->mod);
-        buf->writeByte(' ');
-    }
-
-    PostAppendStrings pas;
-    pas.isCtor = (ident == Id::ctor);
-    pas.buf = buf;
-    tf->attributesApply(&pas, &PostAppendStrings::fp);
-
-    if (tf->linkage > LINKd && hgs->ddoc != 1 && !hgs->hdrgen)
-    {
-        linkageToBuffer(buf, tf->linkage);
-        buf->writeByte(' ');
-    }
-
-    if (ident && ident->toHChars2() != ident->toChars())
-    {
-    }
-    else if (tf->next)
-    {
-        v.visitWithMask(tf->next, 0);
-        if (ident)
-            buf->writeByte(' ');
-    }
-    else if (hgs->ddoc)
-        buf->writestring("auto ");
-
-    if (ident)
-        buf->writestring(ident->toHChars2());
-
-    if (td)
-    {
-        buf->writeByte('(');
-        for (size_t i = 0; i < td->origParameters->dim; i++)
-        {
-            if (i)
-                buf->writestring(", ");
-            (*td->origParameters)[i]->accept(&v);
-        }
-        buf->writeByte(')');
-    }
-    v.parametersToBuffer(tf->parameters, tf->varargs);
-    tf->inuse--;
+    v.visitFuncIdentWithPrefix(tf, ident, td, true);
 }
 
 // ident is inserted before the argument list and will be "function" or "delegate" for a type
-void functionToBufferWithIdent(TypeFunction *t, OutBuffer *buf, const char *ident)
+void functionToBufferWithIdent(TypeFunction *tf, OutBuffer *buf, const char *ident)
 {
     HdrGenState hgs;
     PrettyPrintVisitor v(buf, &hgs);
-    v.visitFuncIdent(t, ident);
+    v.visitFuncIdentWithPostfix(tf, ident);
 }
 
 void toCBuffer(Expression *e, OutBuffer *buf, HdrGenState *hgs)
