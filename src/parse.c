@@ -1451,31 +1451,6 @@ Dsymbol *Parser::parseCtor()
     if (token.value == TOKlparen && peekPastParen(&token)->value == TOKlparen)
     {
         tpl = parseTemplateParameterList();
-
-        int varargs;
-        Parameters *parameters = parseParameters(&varargs);
-        StorageClass stc = parsePostfix(STCundefined, &udas);
-
-        Expression *constraint = tpl ? parseConstraint() : NULL;
-
-        Type *tf = new TypeFunction(parameters, NULL, varargs, linkage, stc);   // RetrunType -> auto
-        tf = tf->addSTC(stc);
-
-        CtorDeclaration *f = new CtorDeclaration(loc, Loc(), stc, tf);
-        Dsymbol *s = parseContracts(f);
-        if (udas)
-        {
-            Dsymbols *a = new Dsymbols();
-            a->push(f);
-            s = new UserAttributeDeclaration(udas, a);
-        }
-
-        // Wrap a template around it
-        Dsymbols *decldefs = new Dsymbols();
-        decldefs->push(s);
-        TemplateDeclaration *tempdecl =
-            new TemplateDeclaration(loc, f->ident, tpl, constraint, decldefs);
-        return tempdecl;
     }
 
     /* Just a regular constructor
@@ -1483,6 +1458,9 @@ Dsymbol *Parser::parseCtor()
     int varargs;
     Parameters *parameters = parseParameters(&varargs);
     StorageClass stc = parsePostfix(STCundefined, &udas);
+
+    Expression *constraint = tpl ? parseConstraint() : NULL;
+
     Type *tf = new TypeFunction(parameters, NULL, varargs, linkage, stc);   // RetrunType -> auto
     tf = tf->addSTC(stc);
 
@@ -1494,6 +1472,15 @@ Dsymbol *Parser::parseCtor()
         a->push(f);
         s = new UserAttributeDeclaration(udas, a);
     }
+
+    if (tpl)
+    {
+        // Wrap a template around it
+        Dsymbols *decldefs = new Dsymbols();
+        decldefs->push(s);
+        s = new TemplateDeclaration(loc, f->ident, tpl, constraint, decldefs);
+    }
+
     return s;
 }
 
