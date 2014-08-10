@@ -49,45 +49,36 @@
 #include "nspace.h"
 #include "hdrgen.h"
 
-void toCBuffer(Module *m, OutBuffer *buf, HdrGenState *hgs);
-
 void genhdrfile(Module *m)
 {
-    OutBuffer hdrbufr;
-    hdrbufr.doindent = 1;
+    OutBuffer buf;
+    buf.doindent = 1;
 
-    hdrbufr.printf("// D import file generated from '%s'", m->srcfile->toChars());
-    hdrbufr.writenl();
+    buf.printf("// D import file generated from '%s'", m->srcfile->toChars());
+    buf.writenl();
 
     HdrGenState hgs;
     hgs.hdrgen = true;
 
-    toCBuffer(m, &hdrbufr, &hgs);
-
-    // Transfer image to file
-    m->hdrfile->setbuffer(hdrbufr.data, hdrbufr.offset);
-    hdrbufr.data = NULL;
-
-    ensurePathToNameExists(Loc(), m->hdrfile->toChars());
-    writeFile(m->loc, m->hdrfile);
-}
-
-
-void toCBuffer(Module *m, OutBuffer *buf, HdrGenState *hgs)
-{
     if (m->md)
     {
-        buf->writestring("module ");
-        buf->writestring(m->md->toChars());
-        buf->writeByte(';');
-        buf->writenl();
+        buf.writestring("module ");
+        buf.writestring(m->md->toChars());
+        buf.writeByte(';');
+        buf.writenl();
     }
-
     for (size_t i = 0; i < m->members->dim; i++)
     {
         Dsymbol *s = (*m->members)[i];
-        ::toCBuffer(s, buf, hgs);
+        toCBuffer(s, &buf, &hgs);
     }
+
+    // Transfer image to file
+    m->hdrfile->setbuffer(buf.data, buf.offset);
+    buf.data = NULL;
+
+    ensurePathToNameExists(Loc(), m->hdrfile->toChars());
+    writeFile(m->loc, m->hdrfile);
 }
 
 class PrettyPrintVisitor : public Visitor
@@ -2385,9 +2376,9 @@ public:
         else if (hgs != NULL && hgs->ddoc)
         {
             // fixes bug 6491
-            Module *module = e->sds->isModule();
-            if (module)
-                buf->writestring(module->md->toChars());
+            Module *m = e->sds->isModule();
+            if (m)
+                buf->writestring(m->md->toChars());
             else
                 buf->writestring(e->sds->toChars());
         }
