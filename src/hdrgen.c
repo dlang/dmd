@@ -95,10 +95,9 @@ class PrettyPrintVisitor : public Visitor
 public:
     OutBuffer *buf;
     HdrGenState *hgs;
-    unsigned char modMask;
 
     PrettyPrintVisitor(OutBuffer *buf, HdrGenState *hgs)
-        : buf(buf), hgs(hgs), modMask(0)
+        : buf(buf), hgs(hgs)
     {
     }
 
@@ -719,11 +718,8 @@ public:
 
     ////////////////////////////////////////////////////////////////////////////
 
-    void visitWithMask(Type *t, unsigned char mod)
+    void visitWithMask(Type *t, unsigned char modMask)
     {
-        unsigned char save = modMask;
-        modMask = mod;
-
         // Tuples and functions don't use the type constructor syntax
         if (modMask == t->mod ||
             t->ty == Tfunction ||
@@ -759,7 +755,6 @@ public:
             if (m & MODshared)
                 buf->writeByte(')');
         }
-        modMask = save;
     }
 
     void visit(Type *t)
@@ -770,13 +765,13 @@ public:
 
     void visit(TypeBasic *t)
     {
-        //printf("TypeBasic::toCBuffer2(modMask = %d, t->mod = %d)\n", modMask, t->mod);
+        //printf("TypeBasic::toCBuffer2(t->mod = %d)\n", t->mod);
         buf->writestring(t->dstring);
     }
 
     void visit(TypeVector *t)
     {
-        //printf("TypeVector::toCBuffer2(modMask = %d, t->mod = %d)\n", modMask, t->mod);
+        //printf("TypeVector::toCBuffer2(t->mod = %d)\n", t->mod);
         buf->writestring("__vector(");
         visitWithMask(t->basetype, t->mod);
         buf->writestring(")");
