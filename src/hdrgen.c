@@ -1981,22 +1981,21 @@ public:
 
     void floatToBuffer(Type *type, real_t value)
     {
-        /* In order to get an exact representation, try converting it
-         * to decimal then back again. If it matches, use it.
-         * If it doesn't, fall back to hex, which is
-         * always exact.
-         * Longest string is for -real.max:
-         * "-1.18973e+4932\0".length == 17
-         * "-0xf.fffffffffffffffp+16380\0".length == 28
-         */
-        const size_t BUFFER_LEN = 32;
+        /** sizeof(value)*3 is because each byte of mantissa is max
+        of 256 (3 characters). The string will be "-M.MMMMe-4932".
+        (ie, 8 chars more than mantissa). Plus one for trailing \0.
+        Plus one for rounding. */
+        const size_t BUFFER_LEN = sizeof(value) * 3 + 8 + 1 + 1;
         char buffer[BUFFER_LEN];
         ld_sprint(buffer, 'g', value);
         assert(strlen(buffer) < BUFFER_LEN);
 
-        real_t r = Port::strtold(buffer, NULL);
-        if (r != value)                     // if exact duplication
-            ld_sprint(buffer, 'a', value);
+        if (hgs->hdrgen)
+        {
+            real_t r = Port::strtold(buffer, NULL);
+            if (r != value)                     // if exact duplication
+                ld_sprint(buffer, 'a', value);
+        }
         buf->writestring(buffer);
 
         if (type)

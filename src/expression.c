@@ -2753,20 +2753,7 @@ RealExp::RealExp(Loc loc, real_t value, Type *type)
 
 char *RealExp::toChars()
 {
-    /** sizeof(value)*3 is because each byte of mantissa is max
-    of 256 (3 characters). The string will be "-M.MMMMe-4932".
-    (ie, 8 chars more than mantissa). Plus one for trailing \0.
-    Plus one for rounding. */
-    const size_t BUFFER_LEN = sizeof(value) * 3 + 8 + 1 + 1;
-    char buffer[BUFFER_LEN];
-
-    ld_sprint(buffer, 'g', value);
-
-    if (type->isimaginary())
-        strcat(buffer, "i");
-
-    assert(strlen(buffer) < BUFFER_LEN);
-    return mem.strdup(buffer);
+    return Expression::toChars();
 }
 
 dinteger_t RealExp::toInteger()
@@ -2904,17 +2891,7 @@ ComplexExp::ComplexExp(Loc loc, complex_t value, Type *type)
 
 char *ComplexExp::toChars()
 {
-    const size_t BUFFER_LEN = sizeof(value) * 3 + 8 + 1 + 1;
-    char buffer[BUFFER_LEN];
-
-    char buf1[BUFFER_LEN];
-    char buf2[BUFFER_LEN];
-
-    ld_sprint(buf1, 'g', creall(value));
-    ld_sprint(buf2, 'g', cimagl(value));
-    sprintf(buffer, "(%s+%si)", buf1, buf2);
-    assert(strlen(buffer) < BUFFER_LEN);
-    return mem.strdup(buffer);
+    return Expression::toChars();
 }
 
 dinteger_t ComplexExp::toInteger()
