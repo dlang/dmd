@@ -2440,7 +2440,7 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
                         }
 
                         // leading '_' means no highlight unless it's a reserved symbol name
-                        if (buf->data[i] == '_' &&
+                        if (buf->data[i] == '_' && (i == 0 || !isdigit(buf->data[i-1])) &&
                             (i == buf->size-1 || !isReservedName((utf8_t *)(buf->data + i), j - i)))
                         {
                             buf->remove(i, 1);
