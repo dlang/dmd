@@ -1779,6 +1779,7 @@ void DocComment::parseMacros(Escape **pescapetable, Macro **pmacrotable, const u
                     p++;
                     continue;
 
+                case '\r':
                 case '\n':
                     p++;
                     goto Lcont;
@@ -1843,13 +1844,9 @@ void DocComment::parseMacros(Escape **pescapetable, Macro **pmacrotable, const u
         textstart = p;
 
       Ltext:
-        while (p < pend && *p != '\n')
+        while (p < pend && *p != '\r' && *p != '\n')
             p++;
         textlen = p - textstart;
-
-        // Remove trailing \r if there is one
-        if (p > m && p[-1] == '\r')
-            textlen--;
 
         p++;
         //printf("p = %p, pend = %p\n", p, pend);
@@ -1859,8 +1856,8 @@ void DocComment::parseMacros(Escape **pescapetable, Macro **pmacrotable, const u
 
      Lskipline:
         // Ignore this line
-        while (p < pend && *p++ != '\n')
-            ;
+        while (p < pend && *p != '\r' && *p != '\n')
+            p++;
     }
 Ldone:
     if (namelen)
