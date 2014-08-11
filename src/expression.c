@@ -2623,11 +2623,6 @@ bool IntegerExp::equals(RootObject *o)
     return false;
 }
 
-char *IntegerExp::toChars()
-{
-    return Expression::toChars();
-}
-
 void IntegerExp::setInteger(dinteger_t value)
 {
     this->value = value;
@@ -2749,11 +2744,6 @@ RealExp::RealExp(Loc loc, real_t value, Type *type)
     //printf("RealExp::RealExp(%Lg)\n", value);
     this->value = value;
     this->type = type;
-}
-
-char *RealExp::toChars()
-{
-    return Expression::toChars();
 }
 
 dinteger_t RealExp::toInteger()
@@ -2887,11 +2877,6 @@ ComplexExp::ComplexExp(Loc loc, complex_t value, Type *type)
     this->value = value;
     this->type = type;
     //printf("ComplexExp::ComplexExp(%s)\n", toChars());
-}
-
-char *ComplexExp::toChars()
-{
-    return Expression::toChars();
 }
 
 dinteger_t ComplexExp::toInteger()
@@ -3097,11 +3082,6 @@ Expression *IdentifierExp::semantic(Scope *sc)
             error("undefined identifier %s", ident->toChars());
     }
     return new ErrorExp();
-}
-
-char *IdentifierExp::toChars()
-{
-    return ident->toChars();
 }
 
 int IdentifierExp::isLvalue()
@@ -3320,11 +3300,6 @@ Lagain:
 
     error("%s '%s' is not a variable", s->kind(), s->toChars());
     return new ErrorExp();
-}
-
-char *DsymbolExp::toChars()
-{
-    return s->toChars();
 }
 
 int DsymbolExp::isLvalue()
@@ -5206,11 +5181,6 @@ Expression *VarExp::semantic(Scope *sc)
     }
 
     return this;
-}
-
-char *VarExp::toChars()
-{
-    return var->toChars();
 }
 
 void VarExp::checkEscape()
