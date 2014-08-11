@@ -340,37 +340,37 @@ void test12825()
 
 extern(C++) class C13161
 {
-	void dummyfunc() {}
-	long val_5;
-	uint val_9;
+    void dummyfunc() {}
+    long val_5;
+    uint val_9;
 }
 
 extern(C++) class Test : C13161
 {
-	uint val_0;
-	long val_1;
+    uint val_0;
+    long val_1;
 }
 
 extern(C++) size_t getoffset13161();
 
 extern(C++) class C13161a
 {
-	void dummyfunc() {}
-	c_long_double val_5;
-	uint val_9;
+    void dummyfunc() {}
+    c_long_double val_5;
+    uint val_9;
 }
 
 extern(C++) class Testa : C13161a
 {
-	bool val_0;
+    bool val_0;
 }
 
 extern(C++) size_t getoffset13161a();
 
 void test13161()
 {
-	assert(getoffset13161() == Test.val_0.offsetof);
-	assert(getoffset13161a() == Testa.val_0.offsetof);
+    assert(getoffset13161() == Test.val_0.offsetof);
+    assert(getoffset13161a() == Testa.val_0.offsetof);
 }
 
 /****************************************/
@@ -379,11 +379,11 @@ version (linux)
 {
     extern(C++, __gnu_cxx)
     {
-	struct new_allocator(T)
-	{
-	    alias size_type = size_t;
-	    void deallocate(T*, size_type);
-	}
+    struct new_allocator(T)
+    {
+        alias size_type = size_t;
+        void deallocate(T*, size_type);
+    }
     }
 }
 
@@ -391,20 +391,20 @@ extern (C++, std)
 {
     struct allocator(T)
     {
-	version (linux)
-	{
-	    alias size_type = size_t;
-	    void deallocate(T* p, size_type sz)
-	    {   (cast(__gnu_cxx.new_allocator!T*)&this).deallocate(p, sz); }
-	}
+    version (linux)
+    {
+        alias size_type = size_t;
+        void deallocate(T* p, size_type sz)
+        {   (cast(__gnu_cxx.new_allocator!T*)&this).deallocate(p, sz); }
+    }
     }
 
     version (linux)
     {
-	class vector(T, A = allocator!T)
-	{
-	    final void push_back(ref const T);
-	}
+    class vector(T, A = allocator!T)
+    {
+        final void push_back(ref const T);
+    }
     }
 }
 
@@ -418,7 +418,7 @@ void test14()
 {
     version (linux)
     {
-	std.vector!int p;
+    std.vector!int p;
         foo14(p);
     }
 }
@@ -427,13 +427,61 @@ version (linux)
 {
     void test14a(std.allocator!int * pa)
     {
-	pa.deallocate(null, 0);
+    pa.deallocate(null, 0);
     }
 
     void gun(std.vector!int pa)
     {
-	int x = 42;
-	pa.push_back(x);
+    int x = 42;
+    pa.push_back(x);
+    }
+}
+
+void test13289()
+{
+    assert(f13289_cpp_wchar_t('a') == 'A');
+    assert(f13289_cpp_wchar_t('B') == 'B');
+    assert(f13289_d_wchar('c') == 'C');
+    assert(f13289_d_wchar('D') == 'D');
+    assert(f13289_d_dchar('e') == 'E');
+    assert(f13289_d_dchar('F') == 'F');
+    assert(f13289_cpp_test());
+}
+
+extern(C++)
+{
+    bool f13289_cpp_test();
+
+    version(Posix)
+    {
+        dchar f13289_cpp_wchar_t(dchar);
+    }
+    else version(Windows)
+    {
+        wchar f13289_cpp_wchar_t(wchar);
+    }
+
+    wchar f13289_d_wchar(wchar ch)
+    {
+        if (ch <= 'z' && ch >= 'a')
+        {
+            return cast(wchar)(ch - ('a' - 'A'));
+        }
+        else
+        {
+            return ch;
+        }
+    }
+    dchar f13289_d_dchar(dchar ch)
+    {
+        if (ch <= 'z' && ch >= 'a')
+        {
+            return ch - ('a' - 'A');
+        }
+        else
+        {
+            return ch;
+        }
     }
 }
 
@@ -458,6 +506,7 @@ void main()
     test12825();
     test13161();
     test14();
+    test13289();
 
     printf("Success\n");
 }

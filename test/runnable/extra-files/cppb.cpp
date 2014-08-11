@@ -300,3 +300,44 @@ void foo15()
 void foo14(std::vector<int, std::allocator<int> > *p) { }
 
 #endif
+
+/**************************************/
+
+wchar_t f13289_cpp_wchar_t(wchar_t ch)
+{
+    if (ch <= L'z' && ch >= L'a')
+    {
+        return ch - (L'a' - L'A');
+    }
+    else
+    {
+        return ch;
+    }
+}
+
+#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+unsigned short f13289_d_wchar(unsigned short ch);
+wchar_t f13289_d_dchar(wchar_t ch);
+#elif _WIN32
+wchar_t f13289_d_wchar(wchar_t ch);
+unsigned int f13289_d_dchar(unsigned int ch);
+#endif
+
+bool f13289_cpp_test()
+{
+#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+    if (!(f13289_d_wchar((unsigned short)'c') == (unsigned short)'C')) return false;
+    if (!(f13289_d_wchar((unsigned short)'D') == (unsigned short)'D')) return false;
+    if (!(f13289_d_dchar(L'e') == L'E')) return false;
+    if (!(f13289_d_dchar(L'F') == L'F')) return false;
+    return true;
+#elif _WIN32
+    if (!(f13289_d_wchar(L'c') == L'C')) return false;
+    if (!(f13289_d_wchar(L'D') == L'D')) return false;
+    if (!(f13289_d_dchar((unsigned int)'e') == (unsigned int)'E')) return false;
+    if (!(f13289_d_dchar((unsigned int)'F') == (unsigned int)'F')) return false;
+    return true;
+#else
+    return false;
+#endif
+}
