@@ -1574,7 +1574,7 @@ UnitTestDeclaration *Parser::parseUnitTest()
     {
         /* Remove trailing whitespaces */
         for (const utf8_t *p = endPtr - 1;
-             begPtr <= p && (*p == ' ' || *p == '\n' || *p == '\t'); --p)
+             begPtr <= p && (*p == ' ' || *p == '\r' || *p == '\n' || *p == '\t'); --p)
         {
             endPtr = p;
         }
