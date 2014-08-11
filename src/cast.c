@@ -60,6 +60,10 @@ Expression *Expression::implicitCastTo(Scope *sc, Type *t)
                     toChars(), type->toChars(), t->toChars());
             }
         }
+
+        if (global.params.useDeprecated == 2 &&
+            (tyfrom == Tarray || tyfrom == Tsarray) && tyto == Tpointer)
+            warning("implicit conversion of %s to %s", type->toChars(), t->toChars());
 #if DMDV2
         if (match == MATCHconst && t == type->constOf())
         {
