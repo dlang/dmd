@@ -2623,11 +2623,6 @@ bool IntegerExp::equals(RootObject *o)
     return false;
 }
 
-char *IntegerExp::toChars()
-{
-    return Expression::toChars();
-}
-
 void IntegerExp::setInteger(dinteger_t value)
 {
     this->value = value;
@@ -2749,24 +2744,6 @@ RealExp::RealExp(Loc loc, real_t value, Type *type)
     //printf("RealExp::RealExp(%Lg)\n", value);
     this->value = value;
     this->type = type;
-}
-
-char *RealExp::toChars()
-{
-    /** sizeof(value)*3 is because each byte of mantissa is max
-    of 256 (3 characters). The string will be "-M.MMMMe-4932".
-    (ie, 8 chars more than mantissa). Plus one for trailing \0.
-    Plus one for rounding. */
-    const size_t BUFFER_LEN = sizeof(value) * 3 + 8 + 1 + 1;
-    char buffer[BUFFER_LEN];
-
-    ld_sprint(buffer, 'g', value);
-
-    if (type->isimaginary())
-        strcat(buffer, "i");
-
-    assert(strlen(buffer) < BUFFER_LEN);
-    return mem.strdup(buffer);
 }
 
 dinteger_t RealExp::toInteger()
@@ -2900,21 +2877,6 @@ ComplexExp::ComplexExp(Loc loc, complex_t value, Type *type)
     this->value = value;
     this->type = type;
     //printf("ComplexExp::ComplexExp(%s)\n", toChars());
-}
-
-char *ComplexExp::toChars()
-{
-    const size_t BUFFER_LEN = sizeof(value) * 3 + 8 + 1 + 1;
-    char buffer[BUFFER_LEN];
-
-    char buf1[BUFFER_LEN];
-    char buf2[BUFFER_LEN];
-
-    ld_sprint(buf1, 'g', creall(value));
-    ld_sprint(buf2, 'g', cimagl(value));
-    sprintf(buffer, "(%s+%si)", buf1, buf2);
-    assert(strlen(buffer) < BUFFER_LEN);
-    return mem.strdup(buffer);
 }
 
 dinteger_t ComplexExp::toInteger()
@@ -3120,11 +3082,6 @@ Expression *IdentifierExp::semantic(Scope *sc)
             error("undefined identifier %s", ident->toChars());
     }
     return new ErrorExp();
-}
-
-char *IdentifierExp::toChars()
-{
-    return ident->toChars();
 }
 
 int IdentifierExp::isLvalue()
@@ -3343,11 +3300,6 @@ Lagain:
 
     error("%s '%s' is not a variable", s->kind(), s->toChars());
     return new ErrorExp();
-}
-
-char *DsymbolExp::toChars()
-{
-    return s->toChars();
 }
 
 int DsymbolExp::isLvalue()
@@ -5229,11 +5181,6 @@ Expression *VarExp::semantic(Scope *sc)
     }
 
     return this;
-}
-
-char *VarExp::toChars()
-{
-    return var->toChars();
 }
 
 void VarExp::checkEscape()

@@ -131,7 +131,7 @@ void testti()
     static assert(StringOf!(typeof(test)) == "int[](int[])");
 
     float function(float x = 0F) fp = x => x;
-    static assert(typeof(fp).stringof == "float function(float x = " ~ (0F).stringof ~ "F)");
+    static assert(typeof(fp).stringof == "float function(float x = " ~ (0F).stringof ~ ")");
     static assert(StringOf!(typeof(fp)) == "float function(float)");
 
     double delegate(double x = 0.0) dg = x => x;

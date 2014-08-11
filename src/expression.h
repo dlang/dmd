@@ -250,7 +250,6 @@ public:
     IntegerExp(dinteger_t value);
     bool equals(RootObject *o);
     Expression *semantic(Scope *sc);
-    char *toChars();
     dinteger_t toInteger();
     real_t toReal();
     real_t toImaginary();
@@ -283,7 +282,6 @@ public:
     RealExp(Loc loc, real_t value, Type *type);
     bool equals(RootObject *o);
     Expression *semantic(Scope *sc);
-    char *toChars();
     dinteger_t toInteger();
     uinteger_t toUInteger();
     real_t toReal();
@@ -302,7 +300,6 @@ public:
     ComplexExp(Loc loc, complex_t value, Type *type);
     bool equals(RootObject *o);
     Expression *semantic(Scope *sc);
-    char *toChars();
     dinteger_t toInteger();
     uinteger_t toUInteger();
     real_t toReal();
@@ -322,7 +319,6 @@ public:
     IdentifierExp(Loc loc, Identifier *ident);
     static IdentifierExp *create(Loc loc, Identifier *ident);
     Expression *semantic(Scope *sc);
-    char *toChars();
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     void accept(Visitor *v) { v->visit(this); }
@@ -343,7 +339,6 @@ public:
 
     DsymbolExp(Loc loc, Dsymbol *s, bool hasOverloads = false);
     Expression *semantic(Scope *sc);
-    char *toChars();
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     void accept(Visitor *v) { v->visit(this); }
@@ -645,7 +640,6 @@ public:
     static VarExp *create(Loc loc, Declaration *var, bool hasOverloads = false);
     bool equals(RootObject *o);
     Expression *semantic(Scope *sc);
-    char *toChars();
     void checkEscape();
     void checkEscapeRef();
     int checkModifiable(Scope *sc, int flag);
