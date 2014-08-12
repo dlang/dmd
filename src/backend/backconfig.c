@@ -64,7 +64,7 @@ void out_config_init(
     config.memmodel = 0;
     config.flags |= CFGuchar;   // make sure TYchar is unsigned
     tytab[TYchar] |= TYFLuns;
-    bool coff = model & 1;
+    bool mscoff = model & 1;
     model &= ~0x1f;
 #if TARGET_WINDOS
     if (model == 64)
@@ -75,12 +75,12 @@ void out_config_init(
         config.flags |= CFGnoebp;
         config.flags |= CFGalwaysframe;
         config.flags |= CFGromable; // put switch tables in code segment
-        config.objfmt = OBJ_COFF;
+        config.objfmt = OBJ_MSCOFF;
     }
     else
     {   config.exe = EX_NT;
         config.flags2 |= CFG2seh;       // Win32 eh
-        config.objfmt = coff ? OBJ_COFF : OBJ_OMF;
+        config.objfmt = mscoff ? OBJ_MSCOFF : OBJ_OMF;
     }
 
     if (exe)
@@ -198,7 +198,7 @@ void out_config_init(
         config.fulltypes = (symdebug == 1) ? CVDWARF_D : CVDWARF_C;
 #endif
 #if SYMDEB_CODEVIEW
-        if (config.objfmt == OBJ_COFF)
+        if (config.objfmt == OBJ_MSCOFF)
         {
             configv.addlinenumbers = 1;
             config.fulltypes = CV8;

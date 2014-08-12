@@ -144,7 +144,7 @@ int findNoMainError(int fd)
 int runLINK()
 {
 #if _WIN32
-    if (global.params.coff)
+    if (global.params.mscoff)
     {
         OutBuffer cmdbuf;
 
@@ -749,7 +749,7 @@ int executecmd(const char *cmd, const char *args)
     if (global.params.verbose)
         fprintf(global.stdmsg, "%s %s\n", cmd, args);
 
-    if (!global.params.coff)
+    if (!global.params.mscoff)
     {
         if ((len = strlen(args)) > 255)
         {

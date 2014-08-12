@@ -597,7 +597,7 @@ int tryMain(size_t argc, const char *argv[])
     global.params.is64bit = (sizeof(size_t) == 8);
 
 #if TARGET_WINDOS
-	global.params.coff = false;
+	global.params.mscoff = false;
     global.params.is64bit = false;
     global.params.defaultlibname = "phobos";
 #elif TARGET_LINUX
@@ -766,18 +766,18 @@ int tryMain(size_t argc, const char *argv[])
             else if (strcmp(p + 1, "m32") == 0)
             {
                 global.params.is64bit = false;
-                global.params.coff = false;
+                global.params.mscoff = false;
             }
             else if (strcmp(p + 1, "m64") == 0)
             {
                 global.params.is64bit = true;
-                global.params.coff = true;
+                global.params.mscoff = true;
             }
 #if TARGET_WINDOS
-            else if (strcmp(p + 1, "m32coff") == 0)
+            else if (strcmp(p + 1, "m32mscoff") == 0)
             {
                 global.params.is64bit = 0;
-                global.params.coff = true;
+                global.params.mscoff = true;
             }
 #endif
             else if (strcmp(p + 1, "profile") == 0)
@@ -1299,16 +1299,16 @@ Language changes listed by -transition=id:\n\
 #endif
 #if TARGET_WINDOS
         VersionCondition::addPredefinedGlobalIdent("Win32");
-        if (!setdefaultlib && global.params.coff)
+        if (!setdefaultlib && global.params.mscoff)
         {
-            global.params.defaultlibname = "phobos32coff";
+            global.params.defaultlibname = "phobos32mscoff";
             if (!setdebuglib)
                 global.params.debuglibname = global.params.defaultlibname;
         }
 #endif
     }
 #if TARGET_WINDOS
-    if (global.params.coff)
+    if (global.params.mscoff)
         VersionCondition::addPredefinedGlobalIdent("CRuntime_Microsoft");
     else
         VersionCondition::addPredefinedGlobalIdent("CRuntime_DigitalMars");
@@ -2046,7 +2046,7 @@ static const char* parse_arch(size_t argc, const char** argv, const char* arch)
     {   const char* p = argv[i];
         if (p[0] == '-')
         {
-            if (strcmp(p + 1, "m32") == 0 || strcmp(p + 1, "m32coff") == 0 || strcmp(p + 1, "m64") == 0)
+            if (strcmp(p + 1, "m32") == 0 || strcmp(p + 1, "m32mscoff") == 0 || strcmp(p + 1, "m64") == 0)
                 arch = p + 2;
             else if (strcmp(p + 1, "run") == 0)
                 break;

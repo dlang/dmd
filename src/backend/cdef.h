@@ -705,7 +705,7 @@ struct Config
     short memmodel;             // 0:S,X,N,F, 1:M, 2:C, 3:L, 4:V
     unsigned objfmt;            // target object format
 #define OBJ_OMF         1
-#define OBJ_COFF        2
+#define OBJ_MSCOFF      2
 #define OBJ_ELF         3
 #define OBJ_MACH        4
     unsigned exe;               // target operating system

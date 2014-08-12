@@ -82,7 +82,7 @@ class LibOMF : public Library
 
 Library *LibOMF_factory()
 {
-    return global.params.coff ? LibMSCoff_factory() : new LibOMF();
+    return global.params.mscoff ? LibMSCoff_factory() : new LibOMF();
 }
 
 LibOMF::LibOMF()

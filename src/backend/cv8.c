@@ -277,7 +277,7 @@ void cv8_initmodule(const char *filename, const char *modulename)
 void cv8_termmodule()
 {
     //printf("cv8_termmodule()\n");
-    assert(config.objfmt == OBJ_COFF);
+    assert(config.objfmt == OBJ_MSCOFF);
 }
 
 /******************************************
@@ -806,7 +806,7 @@ idx_t cv8_fwdref(Symbol *s)
         TOLONG(d->data + 14, 0);        // vshape
     }
     cv4_storenumeric(d->data + numidx, 0);
-    cv_namestring(d->data + len, s->Sident, idlen); 
+    cv_namestring(d->data + len, s->Sident, idlen);
     d->data[len + idlen] = 0;
     idx_t typidx = cv_debtyp(d);
     s->Stypidx = typidx;
