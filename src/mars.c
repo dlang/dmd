@@ -456,6 +456,7 @@ Usage:\n\
   -map           generate linker .map file\n\
   -boundscheck=[on|safeonly|off]   bounds checks on, in @safe only, or off\n\
   -noboundscheck no array bounds checking (deprecated, use -boundscheck=off)\n\
+  -nested=num    maximum nested template instantiations (default 500)\n\
   -O             optimize\n\
   -o-            do not write object file\n\
   -odobjdir      write object & library files to directory objdir\n\
@@ -583,6 +584,7 @@ int tryMain(size_t argc, const char *argv[])
     global.params.useInline = false;
     global.params.obj = true;
     global.params.useDeprecated = 2;
+    global.params.nestedTmpl = 500;
 
     global.params.linkswitches = new Strings();
     global.params.libfiles = new Strings();
@@ -763,6 +765,27 @@ int tryMain(size_t argc, const char *argv[])
                 global.params.is64bit = false;
             else if (strcmp(p + 1, "m64") == 0)
                 global.params.is64bit = true;
+            else if (memcmp(p + 1, "nested", 6) == 0)
+            {
+                // Parse:
+                //      -nested=number
+                if (p[7] == '=')
+                {
+                    if (isdigit((utf8_t)p[8]))
+                    {   long num;
+
+                        errno = 0;
+                        num = strtol(p + 8, (char **)&p, 10);
+                        if (*p || errno || num > INT_MAX)
+                            goto Lerror;
+                        global.params.nestedTmpl = (unsigned) num;
+                    }
+                    else
+                        goto Lerror;
+                }
+                else
+                    goto Lerror;
+            }
             else if (strcmp(p + 1, "profile") == 0)
                 global.params.trace = true;
             else if (strcmp(p + 1, "v") == 0)
