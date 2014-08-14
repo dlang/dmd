@@ -16,6 +16,7 @@ module core.sys.posix.ucontext;
 
 private import core.sys.posix.config;
 public import core.sys.posix.signal; // for sigset_t, stack_t
+private import core.stdc.stdint : uintptr_t;
 
 version (Posix):
 extern (C):
@@ -766,3 +767,11 @@ static if( is( ucontext_t ) )
     int  setcontext(in ucontext_t*);
     int  swapcontext(ucontext_t*, in ucontext_t*);
 }
+
+version (Solaris)
+{
+    int walkcontext(in ucontext_t*, int function(uintptr_t, int, void*), void*);
+    int addrtosymstr(uintptr_t, char*, int);
+    int printstack(int);
+}
+

@@ -57,6 +57,8 @@ private
         import core.sys.freebsd.execinfo;
     else version( Windows )
         import core.sys.windows.stacktrace;
+    else version( Solaris )
+        import core.sys.solaris.execinfo;
 
     // For runModuleUnitTests error reporting.
     version( Windows )
@@ -579,6 +581,18 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
                 {
                     // format is: 0x00000000 <_D6module4funcAFZv+0x78> at module
                     auto bptr = cast(char*) memchr( buf.ptr, '<', buf.length );
+                    auto eptr = cast(char*) memchr( buf.ptr, '+', buf.length );
+
+                    if( bptr++ && eptr )
+                    {
+                        symBeg = bptr - buf.ptr;
+                        symEnd = eptr - buf.ptr;
+                    }
+                }
+                else version( Solaris )
+                {
+                    // format is object'symbol+offset [pc]
+                    auto bptr = cast(char*) memchr( buf.ptr, '\'', buf.length );
                     auto eptr = cast(char*) memchr( buf.ptr, '+', buf.length );
 
                     if( bptr++ && eptr )
