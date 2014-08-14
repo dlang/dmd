@@ -75,29 +75,41 @@ struct Array
 
     void reserve(size_t nentries)
     {
+        size_t n = dim + nentries;
         //printf("Array::reserve: dim = %d, allocdim = %d, nentries = %d\n", (int)dim, (int)allocdim, (int)nentries);
-        if (allocdim - dim < nentries)
+        if (n > allocdim)
         {
             if (allocdim == 0)
-            {   // Not properly initialized, someone memset it to zero
+            {
+                // Not properly initialized, someone memset it to zero
                 if (nentries <= SMALLARRAYCAP)
-                {   allocdim = SMALLARRAYCAP;
+                {
+                    allocdim = SMALLARRAYCAP;
                     data = SMALLARRAYCAP ? &smallarray[0] : NULL;
                 }
                 else
-                {   allocdim = nentries;
+                {
+                    allocdim = nentries;
                     data = (TYPE *)mem.malloc(allocdim * sizeof(*data));
                 }
             }
-            else if (allocdim == SMALLARRAYCAP)
-            {
-                allocdim = dim + nentries;
-                data = (TYPE *)mem.malloc(allocdim * sizeof(*data));
-                memcpy(data, &smallarray[0], dim * sizeof(*data));
-            }
             else
-            {   allocdim = dim + nentries;
-                data = (TYPE *)mem.realloc(data, allocdim * sizeof(*data));
+            {
+                size_t sz = allocdim;
+                while (sz < n)
+                    sz = sz * 2; // grow rule 1/2
+                
+                if (allocdim == SMALLARRAYCAP)
+                {
+                    allocdim = sz;
+                    data = (TYPE *)mem.malloc(allocdim * sizeof(*data));
+                    memcpy(data, &smallarray[0], dim * sizeof(*data));
+                }
+                else
+                {
+                    allocdim = sz;
+                    data = (TYPE *)mem.realloc(data, allocdim * sizeof(*data));
+                }
             }
         }
     }
