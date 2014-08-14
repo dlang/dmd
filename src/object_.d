@@ -2307,33 +2307,25 @@ pure nothrow unittest
     // bug 11761: test forward range functionality
     auto aa = ["a": 1];
 
+    void testFwdRange(R, T)(R fwdRange, T testValue)
     {
-        auto keys = aa.byKey;
-        assert(!keys.empty);
-        assert(keys.front == "a");
-        static assert(is(typeof(keys.save) == typeof(keys)));
-        auto saved = keys.save;
-        keys.popFront();
-        assert(keys.empty);
+        assert(!fwdRange.empty);
+        assert(fwdRange.front == testValue);
+        static assert(is(typeof(fwdRange.save) == typeof(fwdRange)));
+
+        auto saved = fwdRange.save;
+        fwdRange.popFront();
+        assert(fwdRange.empty);
+
         assert(!saved.empty);
-        assert(saved.front == "a");
+        assert(saved.front == testValue);
         saved.popFront();
         assert(saved.empty);
     }
 
-    {
-        auto values = aa.byValue;
-        assert(!values.empty);
-        assert(values.front == 1);
-        static assert(is(typeof(values.save) == typeof(values)));
-        auto saved = values.save;
-        values.popFront();
-        assert(values.empty);
-        assert(!saved.empty);
-        assert(saved.front == 1);
-        saved.popFront();
-        assert(saved.empty);
-    }
+    testFwdRange(aa.byKey, "a");
+    testFwdRange(aa.byValue, 1);
+    //testFwdRange(aa.byPair, tuple("a", 1));
 }
 
 deprecated("Please use destroy instead of clear.")
