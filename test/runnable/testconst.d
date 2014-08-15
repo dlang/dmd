@@ -584,7 +584,7 @@ class C42
 void test42()
 {
     printf("%d\n", C42.classinfo.init.length);
-    assert(C42.classinfo.init.length == 12 + (void*).sizeof + (void*).sizeof);
+    assert(C42.classinfo.init.length == 12 + (void*).sizeof);
     C42 c = new C42;
     assert(c.a == 1);
     assert(c.b == 2);
