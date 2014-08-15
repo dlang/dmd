@@ -392,7 +392,7 @@ AliasDeclaration::AliasDeclaration(Loc loc, Identifier *id, Type *type)
     this->aliassym = NULL;
     this->import = NULL;
     this->overnext = NULL;
-    this->inSemantic = false;
+    this->inSemantic = 0;
     assert(type);
 }
 
@@ -406,7 +406,7 @@ AliasDeclaration::AliasDeclaration(Loc loc, Identifier *id, Dsymbol *s)
     this->aliassym = s;
     this->import = NULL;
     this->overnext = NULL;
-    this->inSemantic = false;
+    this->inSemantic = 0;
     assert(s);
 }
 
@@ -432,7 +432,7 @@ void AliasDeclaration::semantic(Scope *sc)
             aliassym->semantic(sc);
         return;
     }
-    this->inSemantic = true;
+    this->inSemantic = 1;
 
     storage_class |= sc->stc & STCdeprecated;
     protection = sc->protection;
@@ -512,7 +512,7 @@ void AliasDeclaration::semantic(Scope *sc)
     }
     if (overnext)
         ScopeDsymbol::multiplyDefined(Loc(), overnext, this);
-    this->inSemantic = false;
+    this->inSemantic = 0;
 
     if (global.gag && errors != global.errors)
         type = savedtype;
@@ -588,14 +588,12 @@ void AliasDeclaration::semantic(Scope *sc)
         {
             type = savedtype;
             overnext = savedovernext;
-            aliassym = NULL;
-            inSemantic = false;
-            return;
+            s = NULL;
         }
     }
     //printf("setting aliassym %s to %s %s\n", toChars(), s->kind(), s->toChars());
     aliassym = s;
-    this->inSemantic = false;
+    this->inSemantic = 0;
 }
 
 bool AliasDeclaration::overloadInsert(Dsymbol *s)
@@ -654,10 +652,26 @@ Dsymbol *AliasDeclaration::toAlias()
     //printf("AliasDeclaration::toAlias('%s', this = %p, aliassym = %p, kind = '%s')\n", toChars(), this, aliassym, aliassym ? aliassym->kind() : "");
     assert(this != aliassym);
     //static int count; if (++count == 10) *(char*)0=0;
+    if (inSemantic == 1 && type && scope)
+    {
+        inSemantic = 2;
+        unsigned olderrors = global.errors;
+        Dsymbol *s = type->toDsymbol(scope);
+        //printf("[%s] %s, s = %p, this = %p\n", loc.toChars(), type->toChars(), s, this);
+        if (!s || global.errors != olderrors)
+            goto Lerr;
+        s = s->toAlias();
+        if (global.errors != olderrors)
+            goto Lerr;
+
+        aliassym = s;
+        inSemantic = 0;
+    }
     if (inSemantic)
     {
         error("recursive alias declaration");
 
+    Lerr:
         // Avoid breaking "recursive alias" state during errors gagged
         if (global.isSpeculativeGagging())
             return this;
@@ -678,9 +692,9 @@ Dsymbol *AliasDeclaration::toAlias()
     }
     else if (scope)
         semantic(scope);
-    inSemantic = true;
+    inSemantic = 1;
     Dsymbol *s = aliassym ? aliassym->toAlias() : this;
-    inSemantic = false;
+    inSemantic = 0;
     return s;
 }
 

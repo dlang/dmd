@@ -3767,6 +3767,38 @@ void test13180()
 }
 
 /******************************************/
+// 13204
+
+struct A13204(uint v)
+{
+    alias whatever = A13204y;
+    static assert(is(whatever == A13204));
+}
+alias A13204x = A13204!1;
+alias A13204y = A13204x;
+
+struct B13204(uint v)
+{
+    alias whatever = B13204z;
+    static assert(is(whatever == B13204));
+}
+alias B13204x = B13204!1;
+alias B13204y = B13204x;
+alias B13204z = B13204y;
+
+void test13204()
+{
+    static assert(is(A13204x == A13204!1));
+    static assert(is(A13204x == A13204!1.whatever));
+    static assert(is(A13204x == A13204y));
+
+    static assert(is(B13204x == B13204!1));
+    static assert(is(B13204x == B13204!1.whatever));
+    static assert(is(B13204x == B13204y));
+    static assert(is(B13204x == B13204z));
+}
+
+/******************************************/
 // 13218
 
 template isCallable13218(T...)
