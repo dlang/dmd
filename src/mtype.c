@@ -6842,7 +6842,8 @@ Dsymbol *TypeIdentifier::toDsymbol(Scope *sc)
             RootObject *id = idents[i];
             s = s->searchX(loc, sc, id);
             if (!s)                 // failed to find a symbol
-            {   //printf("\tdidn't find a symbol\n");
+            {
+                //printf("\tdidn't find a symbol\n");
                 break;
             }
         }
@@ -7001,6 +7002,8 @@ Dsymbol *TypeInstance::toDsymbol(Scope *sc)
 
     //printf("TypeInstance::semantic(%s)\n", toChars());
     resolve(loc, sc, &e, &t, &s);
+    if (t && t->ty != Tinstance)
+        s = t->toDsymbol(sc);
 
     return s;
 }
@@ -7055,9 +7058,7 @@ Type *TypeTypeof::syntaxCopy()
 
 Dsymbol *TypeTypeof::toDsymbol(Scope *sc)
 {
-    Type *t;
-
-    t = semantic(loc, sc);
+    Type *t = semantic(loc, sc);
     if (t == this)
         return NULL;
     return t->toDsymbol(sc);
