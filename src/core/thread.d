@@ -1912,6 +1912,12 @@ extern (C) bool thread_isMainThread()
 /**
  * Registers the calling thread for use with the D Runtime.  If this routine
  * is called for a thread which is already registered, no action is performed.
+ *
+ * NOTE: This routine does not run thread-local static constructors when called.
+ *       If full functionality as a D thread is desired, the following function
+ *       must be called after thread_attachThis:
+ *
+ *       extern (C) void rt_moduleTlsCtor();
  */
 extern (C) Thread thread_attachThis()
 {
@@ -2021,7 +2027,14 @@ version( Windows )
 
 /**
  * Deregisters the calling thread from use with the runtime.  If this routine
- * is called for a thread which is not registered, no action is performed.
+ * is called for a thread which is not registered, the result is undefined.
+ *
+ * NOTE: This routine does not run thread-local static destructors when called.
+ *       If full functionality as a D thread is desired, the following function
+ *       must be called after thread_detachThis, particularly if the thread is
+ *       being detached at some indeterminate time before program termination:
+ *
+ *       $(D extern(C) void rt_moduleTlsCtor();)
  */
 extern (C) void thread_detachThis()
 {
@@ -2030,11 +2043,42 @@ extern (C) void thread_detachThis()
 }
 
 
-/// ditto
+/**
+ * Deregisters the given thread from use with the runtime.  If this routine
+ * is called for a thread which is not registered, the result is undefined.
+ *
+ * NOTE: This routine does not run thread-local static destructors when called.
+ *       If full functionality as a D thread is desired, the following function
+ *       must be called by the detached thread, particularly if the thread is
+ *       being detached at some indeterminate time before program termination:
+ *
+ *       $(D extern(C) void rt_moduleTlsCtor();)
+ */
 extern (C) void thread_detachByAddr( Thread.ThreadAddr addr )
 {
     if( auto t = thread_findByAddr( addr ) )
         Thread.remove( t );
+}
+
+
+/// ditto
+extern (C) void thread_detachInstance( Thread t )
+{
+    Thread.remove( t );
+}
+
+
+unittest
+{
+    auto t = new Thread(
+    {
+        Thread.sleep(100.msecs);
+    });
+    t.start();
+    thread_detachInstance(t);
+    foreach (t2; Thread)
+        assert(t !is t2);
+    t.join();
 }
 
 
