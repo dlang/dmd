@@ -375,7 +375,8 @@ Initializer *ArrayInitializer::inferType(Scope *sc, Type *tx)
                 e = ::inferType(e, tidx);
                 e = e->semantic(sc);
                 e = resolveProperties(sc, e);
-                e = e->implicitCastTo(sc, tidx);
+                if (tidx->deco) // tidx may be partial type
+                    e = e->implicitCastTo(sc, tidx);
             }
             (*keys)[i] = e;
 

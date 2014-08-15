@@ -202,6 +202,45 @@ void test481()
     assert(a16x == a16y);
 }
 
+void test481b()
+{
+    auto[        auto] aa1 = [1:1, 2:2];
+    auto[       const] aa2 = [1:1, 2:2];
+    auto[   immutable] aa3 = [1:1, 2:2];
+    auto[shared const] aa4 = [1:1, 2:2];
+    static assert(is(typeof(aa1) == int[             int]));
+    static assert(is(typeof(aa2) == int[       const int]));
+    static assert(is(typeof(aa3) == int[   immutable int]));
+    static assert(is(typeof(aa4) == int[shared const int]));
+
+    auto[        auto[$]] aa5 = [[1,2]:1, [3,4]:2];
+    auto[       const[$]] aa6 = [[1,2]:1, [3,4]:2];
+    auto[   immutable[$]] aa7 = [[1,2]:1, [3,4]:2];
+    auto[shared const[$]] aa8 = [[1,2]:1, [3,4]:2];
+    static assert(is(typeof(aa5) == int[             int[2]]));
+    static assert(is(typeof(aa6) == int[       const int[2]]));
+    static assert(is(typeof(aa7) == int[   immutable int[2]]));
+    static assert(is(typeof(aa8) == int[shared const int[2]]));
+
+    auto[        auto[]] aa9  = [[1,2]:1, [3,4]:2];
+    auto[       const[]] aa10 = [[1,2]:1, [3,4]:2];
+    auto[   immutable[]] aa11 = [[1,2]:1, [3,4]:2];
+    auto[shared const[]] aa12 = [[1,2]:1, [3,4]:2];
+    static assert(is(typeof(aa9 ) == int[             int []]));
+    static assert(is(typeof(aa10) == int[       const(int)[]]));
+    static assert(is(typeof(aa11) == int[   immutable(int)[]]));
+    static assert(is(typeof(aa12) == int[shared(const int)[]]));
+
+    short[auto[$][$]] aa13 = [[[1],[2]]:1, [[3],[4]]:2];
+    static assert(is(typeof(aa13) == short[int[1][2]]));
+
+    auto[long[$][$]] aa14 = [[[1],[2]]:1, [[3],[4]]:2];
+    static assert(is(typeof(aa14) == int[long[1][2]]));
+
+    int[int[][$]] aa15 = [[[1],[2]]:1, [[3],[4]]:2];
+    static assert(is(typeof(aa15) == int[int[][2]]));
+}
+
 /***************************************************/
 // 6475
 

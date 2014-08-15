@@ -28,3 +28,4 @@ const[][] a481_16y = [[1, 2, 3]];
 auto[$] a481_17y = "abc";
 char[$] a481_18y = "abc";
 void test481();
+void test481b();

@@ -59,3 +59,21 @@ void test481()
 	;
 	E[$] esa0 = [];
 }
+void test481b()
+{
+	auto[auto] aa1 = [1:1, 2:2];
+	auto[const] aa2 = [1:1, 2:2];
+	auto[immutable] aa3 = [1:1, 2:2];
+	auto[shared const] aa4 = [1:1, 2:2];
+	auto[auto[$]] aa5 = [[1, 2]:1, [3, 4]:2];
+	auto[const[$]] aa6 = [[1, 2]:1, [3, 4]:2];
+	auto[immutable[$]] aa7 = [[1, 2]:1, [3, 4]:2];
+	auto[shared const[$]] aa8 = [[1, 2]:1, [3, 4]:2];
+	auto[auto[]] aa9 = [[1, 2]:1, [3, 4]:2];
+	auto[const[]] aa10 = [[1, 2]:1, [3, 4]:2];
+	auto[immutable[]] aa11 = [[1, 2]:1, [3, 4]:2];
+	auto[shared const[]] aa12 = [[1, 2]:1, [3, 4]:2];
+	short[auto[$][$]] aa13 = [[[1], [2]]:1, [[3], [4]]:2];
+	auto[long[$][$]] aa14 = [[[1], [2]]:1, [[3], [4]]:2];
+	int[int[][$]] aa15 = [[[1], [2]]:1, [[3], [4]]:2];
+}

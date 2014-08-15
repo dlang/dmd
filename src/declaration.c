@@ -787,6 +787,10 @@ Type *isPartialType(Type *t)
             return t;
         }
     }
+    if (t->ty == Taarray && isPartialType(((TypeAArray *)t)->index))
+    {
+        return t;
+    }
 
     return NULL;
 }
@@ -879,6 +883,15 @@ Type *semanticPartialType(Loc loc, Scope *sc, Type *t)
     {
         TypeAArray *taa = (TypeAArray *)t;
         Type *index = taa->index;
+
+        if (isPartialType(index))
+        {
+            index = semanticPartialType(loc, sc, index);
+            t = new TypeAArray(tn, index);
+            if (tn->deco && index->deco)
+                t = t->semantic(loc, sc);
+            return t;
+        }
 
         // Deal with the case where we thought the index was a type, but
         // in reality it was an expression.
@@ -975,7 +988,10 @@ Type *applyPartialType(Loc loc, Scope *sc, Type *t, Type *tx)
     if (tx->ty == Taarray)
     {
         if (t->ty == Taarray)
-            return (new TypeAArray(tn, ((TypeAArray *)tx)->index))->merge();
+        {
+            Type *index = applyPartialType(loc, sc, ((TypeAArray *)t)->index, ((TypeAArray *)tx)->index);
+            return (new TypeAArray(tn, index))->semantic(loc, sc);
+        }
         goto Lerror;
     }
     if (tx->ty == Tpointer)
@@ -1100,6 +1116,56 @@ Type *applyPartialType(Loc loc, Scope *sc, Expression *exp, Type *tx)
                 }
             }
             return tn->sarrayOf(d);
+        }
+    }
+    else if (exp->op == TOKassocarrayliteral)
+    {
+        t = t->toBasetype();
+        assert(t->ty == Taarray);
+        TypeAArray *taa = (TypeAArray *)t;
+        if (tx->ty == Taarray)
+        {
+            TypeAArray *txaa = (TypeAArray *)tx;
+            AssocArrayLiteralExp *aale = (AssocArrayLiteralExp *)exp;
+            size_t d = aale->keys ? aale->keys->dim : 0;
+            Type *ti = NULL;
+            for (size_t i = 0; i < d; i++)
+            {
+                Type *ti2 = applyPartialType(loc, sc, (*aale->keys)[i], txaa->index);
+                if (!ti || ti2->ty == Terror)
+                    ti = ti2;
+                else if (ti->ty != Terror && !ti->equals(ti2))
+                {
+                    // auto[$][2] a = [[1,2], [1,2,3]];    // $ => 2 or 3?
+                    error(loc, "mismatch type %s and %s", ti->toChars(), ti2->toChars());
+                    ti = Type::terror;
+                }
+            }
+            if (!ti)
+                ti = txaa->index->deco ? txaa->index : taa->index;
+
+            Type *tv = NULL;
+            for (size_t i = 0; i < d; i++)
+            {
+                Type *tv2 = applyPartialType(loc, sc, (*aale->values)[i], txn);
+                if (!tv || tv2->ty == Terror)
+                    tv = tv2;
+                else if (tv->ty != Terror && !tv->equals(tv2))
+                {
+                    // auto[$][2] a = [[1,2], [1,2,3]];    // $ => 2 or 3?
+                    error(loc, "mismatch type %s and %s", tv->toChars(), tv2->toChars());
+                    tv = Type::terror;
+                }
+            }
+            if (!tv)
+                tv = txn->deco ? txn : t->nextOf();
+
+            if (ti->ty == Terror)
+                return ti;
+            if (tv->ty == Terror)
+                return tv;
+
+            return (new TypeAArray(tv, ti))->semantic(loc, sc);
         }
     }
     return applyPartialType(loc, sc, exp->type, tx);
