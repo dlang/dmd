@@ -448,7 +448,7 @@ auto byKey(T : Value[Key], Value, Key)(T aa) pure nothrow @nogc
         @property bool empty() { return _aaRangeEmpty(r); }
         @property ref Key front() { return *cast(Key*)_aaRangeFrontKey(r); }
         void popFront() { _aaRangePopFront(r); }
-        Result save() { return this; }
+        @property Result save() { return this; }
     }
 
     return Result(_aaRange(cast(void*)aa));
@@ -469,7 +469,7 @@ auto byValue(T : Value[Key], Value, Key)(T aa) pure nothrow @nogc
         @property bool empty() { return _aaRangeEmpty(r); }
         @property ref Value front() { return *cast(Value*)_aaRangeFrontValue(r); }
         void popFront() { _aaRangePopFront(r); }
-        Result save() { return this; }
+        @property Result save() { return this; }
     }
 
     return Result(_aaRange(cast(void*)aa));

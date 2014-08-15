@@ -2044,7 +2044,7 @@ auto byKey(T : Value[Key], Value, Key)(T aa) pure nothrow @nogc
         @property bool empty() { return _aaRangeEmpty(r); }
         @property ref Key front() { return *cast(Key*)_aaRangeFrontKey(r); }
         void popFront() { _aaRangePopFront(r); }
-        Result save() { return this; }
+        @property Result save() { return this; }
     }
 
     return Result(_aaRange(cast(void*)aa));
@@ -2065,7 +2065,7 @@ auto byValue(T : Value[Key], Value, Key)(T aa) pure nothrow @nogc
         @property bool empty() { return _aaRangeEmpty(r); }
         @property ref Value front() { return *cast(Value*)_aaRangeFrontValue(r); }
         void popFront() { _aaRangePopFront(r); }
-        Result save() { return this; }
+        @property Result save() { return this; }
     }
 
     return Result(_aaRange(cast(void*)aa));
@@ -2300,6 +2300,32 @@ pure nothrow unittest
     // bug 13078
     shared string[][string] map;
     map.rehash;
+}
+
+pure nothrow unittest
+{
+    // bug 11761: test forward range functionality
+    auto aa = ["a": 1];
+
+    void testFwdRange(R, T)(R fwdRange, T testValue)
+    {
+        assert(!fwdRange.empty);
+        assert(fwdRange.front == testValue);
+        static assert(is(typeof(fwdRange.save) == typeof(fwdRange)));
+
+        auto saved = fwdRange.save;
+        fwdRange.popFront();
+        assert(fwdRange.empty);
+
+        assert(!saved.empty);
+        assert(saved.front == testValue);
+        saved.popFront();
+        assert(saved.empty);
+    }
+
+    testFwdRange(aa.byKey, "a");
+    testFwdRange(aa.byValue, 1);
+    //testFwdRange(aa.byPair, tuple("a", 1));
 }
 
 deprecated("Please use destroy instead of clear.")
