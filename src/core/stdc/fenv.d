@@ -17,19 +17,16 @@ extern (C):
 nothrow:
 @nogc:
 
-version( Windows )
-{
-    struct fenv_t
-    {
-        ushort    status;
-        ushort    control;
-        ushort    round;
-        ushort[2] reserved;
-    }
+version( MinGW )
+    version = GNUFP;
+version( linux )
+    version = GNUFP;
 
-    alias int fexcept_t;
-}
-else version( linux )
+version( DigitalMars )
+    version( Win32 )
+        version = DMC_RUNTIME;
+
+version( GNUFP )
 {
     // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/x86/fpu/bits/fenv.h
     version (X86)
@@ -114,6 +111,28 @@ else version( linux )
     {
         static assert(0, "Unimplemented architecture");
     }
+}
+else version( DMC_RUNTIME )
+{
+    struct fenv_t
+    {
+        ushort    status;
+        ushort    control;
+        ushort    round;
+        ushort[2] reserved;
+    }
+    alias fexcept_t = int;
+}
+else version( Windows )
+{
+    // MSVCRT
+    struct fenv_t
+    {
+        uint ctl;
+        uint stat;
+    }
+
+    alias fexcept_t = uint;
 }
 else version ( OSX )
 {
@@ -210,34 +229,44 @@ enum
     FE_TOWARDZERO   = 0xC00,
 }
 
-version( Windows )
+version( DMC_RUNTIME )
 {
     private extern __gshared fenv_t _FE_DFL_ENV;
-    fenv_t* FE_DFL_ENV = &_FE_DFL_ENV;
+    enum fenv_t* FE_DFL_ENV = &_FE_DFL_ENV;
+}
+else version( Windows )
+{
+    version( MinGW )
+        enum FE_DFL_ENV = cast(fenv_t*)(-1);
+    else
+    {
+        private immutable fenv_t _Fenv0 = {0, 0};
+        enum FE_DFL_ENV = &_Fenv0;
+    }
 }
 else version( linux )
 {
-    fenv_t* FE_DFL_ENV = cast(fenv_t*)(-1);
+    enum FE_DFL_ENV = cast(fenv_t*)(-1);
 }
 else version( OSX )
 {
     private extern __gshared fenv_t _FE_DFL_ENV;
-    fenv_t* FE_DFL_ENV = &_FE_DFL_ENV;
+    enum FE_DFL_ENV = &_FE_DFL_ENV;
 }
 else version( FreeBSD )
 {
     private extern const fenv_t __fe_dfl_env;
-    const fenv_t* FE_DFL_ENV = &__fe_dfl_env;
+    enum FE_DFL_ENV = &__fe_dfl_env;
 }
 else version( Android )
 {
     private extern const fenv_t __fe_dfl_env;
-    const fenv_t* FE_DFL_ENV = &__fe_dfl_env;
+    enum FE_DFL_ENV = &__fe_dfl_env;
 }
 else version( Solaris )
 {
     private extern const fenv_t __fenv_def_env;
-    const fenv_t* FE_DFL_ENV = &__fenv_def_env;
+    enum FE_DFL_ENV = &__fenv_def_env;
 }
 else
 {

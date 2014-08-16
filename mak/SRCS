@@ -22,6 +22,7 @@ SRCS=\
 	src\core\stdc\config.d \
 	src\core\stdc\ctype.d \
 	src\core\stdc\errno.d \
+	src\core\stdc\fenv.d \
 	src\core\stdc\math.d \
 	src\core\stdc\signal.d \
 	src\core\stdc\stdarg.d \
