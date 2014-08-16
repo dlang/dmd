@@ -37,6 +37,7 @@ struct Environment;
 void out_config_init(
         int model,      // 32: 32 bit code
                         // 64: 64 bit code
+                        // Windows: bit 0 set to generate MS-COFF instead of OMF
         bool exe,       // true: exe file
                         // false: dll or shared library (generate PIC code)
         bool trace,     // add profiling code

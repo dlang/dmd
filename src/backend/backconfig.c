@@ -38,6 +38,7 @@ extern void ph_init();
 void out_config_init(
         int model,      // 32: 32 bit code
                         // 64: 64 bit code
+                        // Windows: set bit 0 to generate MS-COFF instead of OMF
         bool exe,       // true: exe file
                         // false: dll or shared library (generate PIC code)
         bool trace,     // add profiling code
@@ -65,7 +66,7 @@ void out_config_init(
     config.flags |= CFGuchar;   // make sure TYchar is unsigned
     tytab[TYchar] |= TYFLuns;
     bool mscoff = model & 1;
-    model &= ~0x1f;
+    model &= 32 | 64;
 #if TARGET_WINDOS
     if (model == 64)
     {   config.exe = EX_WIN64;
