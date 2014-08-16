@@ -663,7 +663,7 @@ public:
         {
             if (cd->baseClass && cd->baseClass->ident != Id::Object)
             {
-                property("base", cd->baseClass->toChars());
+                property("base", cd->baseClass->toPrettyChars(true));
             }
             if (cd->interfaces_dim)
             {
@@ -672,7 +672,7 @@ public:
                 for (size_t i = 0; i < cd->interfaces_dim; i++)
                 {
                     BaseClass *b = cd->interfaces[i];
-                    item(b->base->toChars());
+                    item(b->base->toPrettyChars(true));
                 }
                 arrayEnd();
             }
