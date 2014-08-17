@@ -497,5 +497,70 @@ L12:        jmp     __ULDIV__       ;
 }
 
 
+version(Win32) version(CRuntime_Microsoft)
+{
+	extern(C) void _alldiv();
+	extern(C) void _aulldiv();
+	extern(C) void _allrem();
+	extern(C) void _aullrem();
 
+    void _ms_alldiv()
+    {
+        asm
+        {
+            naked            ;
+            push ECX         ;
+            push EBX         ;
+            push EDX         ;
+            push EAX         ;
+            call _alldiv     ;
+            ret              ;
+        }
+    }
 
+    void _ms_aulldiv()
+    {
+        asm
+        {
+            naked            ;
+            push ECX         ;
+            push EBX         ;
+            push EDX         ;
+            push EAX         ;
+            call _aulldiv    ;
+            ret              ;
+        }
+    }
+
+    void _ms_allrem()
+    {
+        asm
+        {
+            naked            ;
+            push ECX         ;
+            push EBX         ;
+            push EDX         ;
+            push EAX         ;
+            call _allrem     ;
+            mov EBX,EAX      ;
+            mov ECX,EDX      ;
+            ret              ;
+        }
+    }
+
+    void _ms_aullrem()
+    {
+        asm
+        {
+            naked            ;
+            push ECX         ;
+            push EBX         ;
+            push EDX         ;
+            push EAX         ;
+            call _aullrem    ;
+            mov EBX,EAX      ;
+            mov ECX,EDX      ;
+            ret              ;
+        }
+    }
+}

@@ -22,9 +22,9 @@ DDOCFLAGS=-c -w -o- -Isrc -Iimport -version=CoreDdoc
 #CFLAGS=/O2 /I"$(VCDIR)"\INCLUDE /I"$(SDKDIR)"\Include
 CFLAGS=/Z7 /I"$(VCDIR)"\INCLUDE /I"$(SDKDIR)"\Include
 
-DRUNTIME_BASE=druntime64
+DRUNTIME_BASE=druntime$(MODEL)
 DRUNTIME=lib\$(DRUNTIME_BASE).lib
-GCSTUB=lib\gcstub64.obj
+GCSTUB=lib\gcstub$(MODEL).obj
 
 DOCFMT=
 
@@ -506,12 +506,12 @@ src\rt\minit.obj : src\rt\minit.asm
 
 ################### gcstub generation #########################
 
-$(GCSTUB) : src\gcstub\gc.d win$(MODEL).mak
+$(GCSTUB) : src\gcstub\gc.d win64.mak
 	$(DMD) -c -of$(GCSTUB) src\gcstub\gc.d $(DFLAGS)
 
 ################### Library generation #########################
 
-$(DRUNTIME): $(OBJS) $(SRCS) win$(MODEL).mak
+$(DRUNTIME): $(OBJS) $(SRCS) win64.mak
 	$(DMD) -lib -of$(DRUNTIME) -Xfdruntime.json $(DFLAGS) $(SRCS) $(OBJS)
 
 unittest : $(SRCS) $(DRUNTIME) src\unittest.d

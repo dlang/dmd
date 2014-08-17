@@ -15,7 +15,7 @@ version (Posix)
 {
     version = alloca;
 }
-else version (Win64)
+else version (CRuntime_Microsoft)
 {
     version = alloca;
 }

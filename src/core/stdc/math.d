@@ -102,15 +102,7 @@ version( none )
     int isunordered(real x, real y);
 }
 
-version( DigitalMars )
-{
-    version( Win32 )
-        version = DMC_RUNTIME;
-    version( Win64 )
-        version = MSVC_RUNTIME;     // just to get it to compile for the moment - fix later
-}
-
-version( DMC_RUNTIME )
+version( CRuntime_DigitalMars )
 {
     enum
     {
@@ -179,7 +171,7 @@ version( DMC_RUNTIME )
     }
   }
 }
-else version( MSVC_RUNTIME )
+else version( CRuntime_Microsoft )
 {
     enum
     {
@@ -198,7 +190,7 @@ else version( MSVC_RUNTIME )
     float _copysignf(float x, float s);
     float _chgsignf(float x);
     int _finitef(float x);
-    int _isnanf(float x);
+    version(Win64) int _isnanf(float x); // not available in Win32?
     int _fpclassf(float x);
 
     double _copysign(double x, double s);
@@ -209,7 +201,8 @@ else version( MSVC_RUNTIME )
 
     extern(D)
     {
-        int isnan(float x)          { return _isnanf(x);   }
+        version(Win64) int isnan(float x)          { return _isnanf(x);   }
+        version(Win32) int isnan(float x)          { return _isnan(x);   }
         int isnan(double x)         { return _isnan(x);   }
         int isnan(real x)           { return _isnan(x);   }
     }

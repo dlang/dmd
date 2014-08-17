@@ -22,13 +22,28 @@ version( Windows )
     ///////////////////////////////////////////////////////////////////
     // support fixing implicit TLS for dynamically loaded DLLs on Windows XP
 
+    // in this special case, we have to treat _tlsstart and _tlsend as non-TLS variables
+    //  as they are used to simulate TLS when it is not set up under XP. In this case we must
+    //  not access tls_array[tls_index] as needed for thread local _tlsstart and _tlsend
     extern (C)
     {
         version (Win32)
         {
-            extern __gshared void* _tlsstart;
-            extern __gshared void* _tlsend;
-            extern __gshared void* _tls_callbacks_a;
+            version(CRuntime_DigitalMars)
+            {
+                extern __gshared byte  _tlsstart;
+                extern __gshared byte  _tlsend;
+                extern __gshared void* _tls_callbacks_a;
+            }
+            else version(CRuntime_Microsoft)
+            {
+                extern __gshared byte  _tls_start;
+                extern __gshared byte  _tls_end;
+                extern __gshared void*  __xl_a;
+                alias _tls_start _tlsstart;
+                alias _tls_end   _tlsend;
+                alias __xl_a     _tls_callbacks_a;
+            }
             extern __gshared int   _tls_index;
         }
     }

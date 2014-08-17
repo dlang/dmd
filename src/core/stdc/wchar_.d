@@ -65,7 +65,7 @@ extern (D) @trusted
 @trusted
 {
     wint_t ungetwc(wint_t c, FILE* stream);
-    version( Win64 )
+    version( CRuntime_Microsoft )
     {
         // MSVC defines this as an inline function.
         int fwide(FILE* stream, int mode) { return mode; }
