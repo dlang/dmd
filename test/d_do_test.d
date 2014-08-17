@@ -392,6 +392,8 @@ int main(string[] args)
             default:      envData.ccompiler = "g++"; break;
         }
     }
+    bool msc = envData.ccompiler.toLower.endsWith("cl.exe");
+
     gatherTestParameters(testArgs, input_dir, input_file, envData);
 
     //prepare cpp extra sources
@@ -420,13 +422,13 @@ int main(string[] args)
             string command = envData.ccompiler;
             if (envData.compiler == "dmd")
             {
-                if (envData.os == "win32")
-                {
-                    command ~= " -c "~curSrc~" -o"~curObj;
-                }
-                else if (envData.os == "win64")
+                if (msc)
                 {
                     command ~= ` /c /nologo `~curSrc~` /Fo`~curObj;
+                }
+                else if (envData.os == "win32")
+                {
+                    command ~= " -c "~curSrc~" -o"~curObj;
                 }
                 else
                 {
@@ -535,7 +537,7 @@ int main(string[] args)
             {
                 toCleanup ~= test_app_dmd;
                 version(Windows)
-                    if (envData.model == "64")
+                    if (msc)
                     {
                         toCleanup ~= test_app_dmd_base ~ to!string(i) ~ ".ilk";
                         toCleanup ~= test_app_dmd_base ~ to!string(i) ~ ".pdb";
