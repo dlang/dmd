@@ -181,6 +181,7 @@ MANIFEST=\
 	src\rt\arrayint.d \
 	src\rt\arrayreal.d \
 	src\rt\arrayshort.d \
+	src\rt\bss_section.c \
 	src\rt\cast_.d \
 	src\rt\cmath2.d \
 	src\rt\cover.d \
