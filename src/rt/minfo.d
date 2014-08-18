@@ -573,7 +573,7 @@ unittest
     }
 }
 
-version (Win64)
+version (CRuntime_Microsoft)
 {
     // Dummy so Win32 code can still call it
     extern(C) void _minit() { }

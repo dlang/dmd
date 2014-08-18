@@ -12,7 +12,7 @@
 
 module rt.sections_win32;
 
-version(Win32):
+version(CRuntime_DigitalMars):
 
 // debug = PRINTF;
 debug(PRINTF) import core.stdc.stdio;

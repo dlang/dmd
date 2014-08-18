@@ -70,9 +70,10 @@ long    strtoll(in char* nptr, char** endptr, int base);
 c_ulong strtoul(in char* nptr, char** endptr, int base);
 ulong   strtoull(in char* nptr, char** endptr, int base);
 
-version (Win64)
+version (CRuntime_Microsoft)
 {
-    real strtold(in char* nptr, char** endptr)
+    // strtold exists starting from VS2013, so we make this a template to avoid link errors
+    real strtold()(in char* nptr, char** endptr)
     {   // Fake it 'till we make it
         return strtod(nptr, endptr);
     }
@@ -154,7 +155,7 @@ else version( GNU )
     void* alloca(size_t size); // compiler intrinsic
 }
 
-version (Win64)
+version( CRuntime_Microsoft )
 {
     ulong  _strtoui64(in char *,char **,int);
     ulong  _wcstoui64(in wchar *,wchar **,int);

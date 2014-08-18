@@ -22,7 +22,7 @@ private
     import core.stdc.string;
     import rt.util.string;
 
-    version (Win64)
+    version (CRuntime_Microsoft)
         alias core.stdc.stdlib._strtoui64 strtoull;
 }
 
