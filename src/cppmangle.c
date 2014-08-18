@@ -101,13 +101,13 @@ class CppMangleVisitor : public Visitor
         components.push(p);
     }
 
-    void source_name(Dsymbol *s)
+    void source_name(Dsymbol *s, bool skipname = false)
     {
         char *name = s->ident->toChars();
         TemplateInstance *ti = s->isTemplateInstance();
         if (ti)
         {
-            if (!substitute(ti->tempdecl))
+            if (!skipname && !substitute(ti->tempdecl))
             {
                 store(ti->tempdecl);
                 name = ti->name->toChars();
@@ -208,7 +208,7 @@ class CppMangleVisitor : public Visitor
                     {
                         if (!substitute(d))
                         {
-                            cpp_mangle_name(d);
+                            cpp_mangle_name(d, false);
                             store(d);
                         }
                     }
@@ -240,6 +240,7 @@ class CppMangleVisitor : public Visitor
 
     void prefix_name(Dsymbol *s)
     {
+        //printf("prefix_name(%s)\n", s->toChars());
         if (!substitute(s))
         {
             store(s);
@@ -265,13 +266,32 @@ class CppMangleVisitor : public Visitor
         }
     }
 
-    void cpp_mangle_name(Dsymbol *s)
+    /* Is s the initial qualifier?
+     */
+    bool is_initial_qualifier(Dsymbol *s)
     {
         Dsymbol *p = s->toParent();
+        if (p && p->isTemplateInstance())
+        {
+            if (exist(p->isTemplateInstance()->tempdecl))
+            {
+                return true;
+            }
+            p = p->toParent();
+        }
+
+        return !p || p->isModule();
+    }
+
+    void cpp_mangle_name(Dsymbol *s, bool qualified)
+    {
+        //printf("cpp_mangle_name(%s)\n", s->toChars());
+        Dsymbol *p = s->toParent();
+        Dsymbol *se = s;
         bool dont_write_prefix = false;
         if (p && p->isTemplateInstance())
         {
-            s = p;
+            se = p;
             if (exist(p->isTemplateInstance()->tempdecl))
                 dont_write_prefix = true;
             p = p->toParent();
@@ -279,14 +299,38 @@ class CppMangleVisitor : public Visitor
 
         if (p && !p->isModule())
         {
-            buf.writeByte('N');
-            if (!dont_write_prefix)
-                prefix_name(p);
-            source_name(s);
-            buf.writeByte('E');
+            /* The N..E is not required if:
+             * 1. the parent is 'std'
+             * 2. 'std' is the initial qualifier
+             * 3. there is no CV-qualifier or a ref-qualifier for a member function
+             * ABI 5.1.8
+             */
+            if (p->ident == Id::std &&
+                is_initial_qualifier(p) &&
+                !qualified)
+            {
+                if (s->ident == Id::allocator)
+                {
+                    buf.writestring("Sa");      // "Sa" is short for ::std::allocator
+                    source_name(se, true);
+                }
+                else
+                {
+                    buf.writestring("St");
+                    source_name(se);
+                }
+            }
+            else
+            {
+                buf.writeByte('N');
+                if (!dont_write_prefix)
+                    prefix_name(p);
+                source_name(se);
+                buf.writeByte('E');
+            }
         }
         else
-            source_name(s);
+            source_name(se);
     }
 
     void mangle_variable(VarDeclaration *d, bool is_temp_arg_ref)
@@ -650,7 +694,7 @@ public:
 
         if (!substitute(t->sym))
         {
-            cpp_mangle_name(t->sym);
+            cpp_mangle_name(t->sym, t->isConst());
             store(t->sym);
         }
 
@@ -667,12 +711,13 @@ public:
     {
         is_top_level = false;
         if (substitute(t)) return;
+
         if (t->isConst())
             buf.writeByte('K');
 
         if (!substitute(t->sym))
         {
-            cpp_mangle_name(t->sym);
+            cpp_mangle_name(t->sym, t->isConst());
             store(t->sym);
         }
 
@@ -701,11 +746,13 @@ public:
             buf.writeByte('K');
         is_top_level = false;
         buf.writeByte('P');
+
         if (t->isConst())
             buf.writeByte('K');
+
         if (!substitute(t->sym))
         {
-            cpp_mangle_name(t->sym);
+            cpp_mangle_name(t->sym, t->isConst());
             store(t->sym);
         }
         if (t->isConst())

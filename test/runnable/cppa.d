@@ -1,6 +1,6 @@
 // EXTRA_CPP_SOURCES: cppb.cpp
 
-import std.c.stdio;
+import core.stdc.stdio;
 import core.stdc.stdarg;
 
 extern (C++)
@@ -374,6 +374,36 @@ void test13161()
 
 /****************************************/
 
+extern (C++, std)
+{
+    struct vector(T, A = allocator!T) { }
+
+    struct allocator(T) { }
+}
+
+extern (C++)
+{
+    version (linux)
+        void foo14(std.vector!(int)* p);
+    version (OSX)
+        void foo14(std.vector!(int)* p);
+    version (FreeBSD)
+        void foo14(std.vector!(int)* p);
+}
+
+void test14()
+{
+    std.vector!int* p;
+    version (linux)
+        foo14(p);
+    version (OSX)
+        foo14(p);
+    version (FreeBSD)
+        foo14(p);
+}
+
+/****************************************/
+
 void main()
 {
     test1();
@@ -392,6 +422,7 @@ void main()
     testvalist();
     test12825();
     test13161();
+    test14();
 
     printf("Success\n");
 }
