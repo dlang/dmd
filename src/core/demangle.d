@@ -1535,7 +1535,7 @@ private struct Demangle
                 next(); // has 'this' pointer
             if( AddType.yes == addType )
                 parseType( name );
-            if( pos >= buf.length || (n != 0 && pos >= n) )
+            if( pos >= buf.length || (n != 0 && pos >= end) )
                 return;
             put( "." );
         } while( true );
