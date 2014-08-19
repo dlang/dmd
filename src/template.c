@@ -5854,7 +5854,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
                     goto L1;
                 // It had succeeded, mark it is a non-speculative instantiation,
                 // and reuse it.
-                inst->speculative = 0;
+                inst->speculative = false;
             }
 
 #if LOG
@@ -5878,7 +5878,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     inst = this;
     // Mark as speculative if we are instantiated during errors gagged
     if (global.gag)
-        speculative = 1;
+        speculative = true;
 
     TemplateInstance *tempdecl_instance_idx = tempdecl->addInstance(this);
 
