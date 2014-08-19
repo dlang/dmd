@@ -3998,7 +3998,6 @@ struct DummyScope13333
     }
 }
 
-version(none)
 void test13333()
 {
     struct DummyScope
