@@ -168,7 +168,7 @@ BACKOBJ= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
 GCOBJS=rmem.obj
 # Removed garbage collector (look in history)
 #GCOBJS=dmgcmem.obj bits.obj win32.obj gc.obj
-ROOTOBJS= man.obj port.obj \
+ROOTOBJS= man.obj port.obj checkedint.obj \
 	stringtable.obj response.obj async.obj speller.obj aav.obj outbuffer.obj \
 	object.obj filename.obj file.obj \
 	$(GCOBJS)
@@ -229,11 +229,13 @@ TKSRC= $(TK)\filespec.h $(TK)\mem.h $(TK)\list.h $(TK)\vec.h $(TKSRCC)
 ROOTSRCC=$(ROOT)\rmem.c $(ROOT)\stringtable.c \
 	$(ROOT)\man.c $(ROOT)\port.c $(ROOT)\async.c $(ROOT)\response.c \
 	$(ROOT)\speller.c $(ROOT)\aav.c $(ROOT)\longdouble.c \
+	$(ROOT)\checkedint.c \
 	$(ROOT)\outbuffer.c $(ROOT)\object.c $(ROOT)\filename.c $(ROOT)\file.c
 ROOTSRC= $(ROOT)\root.h \
 	$(ROOT)\rmem.h $(ROOT)\port.h \
 	$(ROOT)\stringtable.h \
 	$(ROOT)\async.h \
+	$(ROOT)\checkedint.h \
 	$(ROOT)\speller.h \
 	$(ROOT)\aav.h \
 	$(ROOT)\longdouble.h \
@@ -621,6 +623,9 @@ aav.obj : $(ROOT)\aav.h $(ROOT)\aav.c
 
 async.obj : $(ROOT)\async.h $(ROOT)\async.c
 	$(CC) -c $(CFLAGS) $(ROOT)\async.c
+
+checkedint.obj : $(ROOT)\checkedint.h $(ROOT)\checkedint.c
+	$(CC) -c $(CFLAGS) $(ROOT)\checkedint.c
 
 dmgcmem.obj : $(ROOT)\dmgcmem.c
 	$(CC) -c $(CFLAGS) $(ROOT)\dmgcmem.c
