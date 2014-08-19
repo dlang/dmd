@@ -1673,7 +1673,7 @@ private:
 
 char *toCppMangle(Dsymbol *s)
 {
-    VisualCPPMangler v(!global.params.is64bit);
+    VisualCPPMangler v(!global.params.mscoff);
     return v.mangleOf(s);
 }
 

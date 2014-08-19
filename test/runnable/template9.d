@@ -2691,7 +2691,7 @@ void test10083()
     assert(foo10083a(1) == 2);
     assert(foo10083a!int(1) == 2);
     assert(foo10083a!int(1.0) == 1);
-    version (Win64) {}  // workaround
+    version (CRuntime_Microsoft) {}  // workaround, the linker is complaining about duplicate COMDAT
     else
     {
     static assert(!__traits(compiles, foo10083a!double(1)));

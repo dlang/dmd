@@ -263,13 +263,15 @@ version(Win32)
 
 extern(Windows)
 {
-    export uint DefWindowProcA(void*, uint, uint, ptrdiff_t);
-    alias uint function (void*, uint, uint, ptrdiff_t) WNDPROC;
+    // use a symbol from kernel32.lib, not user32.lib. The latter might not
+    //  be passed automatically on the command line
+    export void* GetModuleHandleA(const(char)*moduleName);
+    alias void* function(const(char)*moduleName) PROC;
 }
 
 void test10734()
 {
-    WNDPROC lpfnWndProc = &DefWindowProcA;
+    PROC lpfnProc = &GetModuleHandleA;
 }
 
 }

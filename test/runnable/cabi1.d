@@ -80,25 +80,24 @@ void test2()
 
 /******************************************/
 
+version (CRuntime_Microsoft)
+    alias long_double = double;
+else
+    alias long_double = real;
+
 extern (C)
 {
-    void ctestrir(int x1, int x2, int x3, int x4, int x5, int x6, real a, int b, real c);
+    void ctestrir(int x1, int x2, int x3, int x4, int x5, int x6, long_double a, int b, long_double c);
 }
 
 void test3()
 {
-version (Win64)
-{
-}
-else
-{
     ctestrir(1,2,3,4,5,6, 100.0, 67, 200.0);
-}
 }
 
 /******************************************/
 
-extern (C) void dtestrir(int x1, int x2, int x3, int x4, int x5, int x6, real a, int b, real c)
+extern (C) void dtestrir(int x1, int x2, int x3, int x4, int x5, int x6, long_double a, int b, long_double c)
 {
     assert(a == 300.0);
     assert(b == 68);
