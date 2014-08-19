@@ -5787,7 +5787,11 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
         printf("Recursive template expansion\n");
 #endif
         error(loc, "recursive template expansion");
-//      inst = this;
+        if (global.gag)
+            semanticRun = PASSinit;
+        else
+            inst = this;
+        errors = true;
         return;
     }
     semanticRun = PASSsemantic;
@@ -6899,6 +6903,12 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
 
             (*tiargs)[i] = tdtypes[i];
         }
+    }
+    else if (errors && inst)
+    {
+        // instantiation was failed with error reporting
+        assert(global.errors);
+        return false;
     }
     else
     {
