@@ -218,17 +218,17 @@ private class ArrayAllocLengthLock
   */
 bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, const TypeInfo ti, size_t oldlength = ~0) pure nothrow
 {
-    bool needToSetTypeInfo = false;
+    size_t typeInfoSize = 0;
     if (auto si = cast(const TypeInfo_Struct)ti.next)
     {
         if (si.xdtor)
         {
-            needToSetTypeInfo = true;
+            typeInfoSize = size_t.sizeof;
         }
     }
     if(info.size <= 256)
     {
-        if(newlength + SMALLPAD > info.size)
+        if(newlength + SMALLPAD + typeInfoSize > info.size)
             // new size does not fit inside block
             return false;
         auto length = cast(ubyte *)(info.base + info.size - SMALLPAD);
@@ -259,7 +259,7 @@ bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, co
             // setting the initial length, no lock needed
             *length = cast(ubyte)newlength;
         }
-        if (needToSetTypeInfo)
+        if (typeInfoSize)
         {
             auto typeInfo = cast(TypeInfo_Struct*)(info.base + info.size - SMALLPAD - size_t.sizeof);
             *typeInfo = cast(TypeInfo_Struct)ti.next;
@@ -267,7 +267,7 @@ bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, co
     }
     else if(info.size < PAGESIZE)
     {
-        if(newlength + MEDPAD > info.size)
+        if(newlength + MEDPAD + typeInfoSize > info.size)
             // new size does not fit inside block
             return false;
         auto length = cast(ushort *)(info.base + info.size - MEDPAD);
@@ -298,7 +298,7 @@ bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, co
             // setting the initial length, no lock needed
             *length = cast(ushort)newlength;
         }
-        if (needToSetTypeInfo)
+        if (typeInfoSize)
         {
             auto typeInfo = cast(TypeInfo_Struct*)(info.base + info.size - MEDPAD - size_t.sizeof);
             *typeInfo = cast(TypeInfo_Struct)ti.next;
@@ -337,7 +337,7 @@ bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, co
             // setting the initial length, no lock needed
             *length = newlength;
         }
-        if (needToSetTypeInfo)
+        if (typeInfoSize)
         {
             auto typeInfo = cast(TypeInfo_Struct*)(info.base + size_t.sizeof);
             *typeInfo = cast(TypeInfo_Struct)ti.next;
@@ -698,11 +698,21 @@ Lcontinue:
         {
             curallocsize = *(cast(ubyte *)(info.base + info.size - SMALLPAD));
             arraypad = SMALLPAD;
+            if (auto si = cast(const TypeInfo_Struct)ti.next)
+            {
+                if (si.xdtor)
+                    arraypad += size_t.sizeof;
+            }
         }
         else if(info.size < PAGESIZE)
         {
             curallocsize = *(cast(ushort *)(info.base + info.size - MEDPAD));
             arraypad = MEDPAD;
+            if (auto si = cast(const TypeInfo_Struct)ti.next)
+            {
+                if (si.xdtor)
+                    arraypad += size_t.sizeof;
+            }
         }
         else
         {
@@ -789,11 +799,26 @@ Lcontinue:
     // assumes you are not counting the pad size, and info.size does include
     // the pad.
     if(info.size <= 256)
+    {
         arraypad = SMALLPAD;
+        if (auto si = cast(const TypeInfo_Struct)ti.next)
+        {
+            if (si.xdtor)
+                arraypad += size_t.sizeof;
+        }
+    }
     else if(info.size < PAGESIZE)
+    {
         arraypad = MEDPAD;
+        if (auto si = cast(const TypeInfo_Struct)ti.next)
+        {
+            if (si.xdtor)
+                arraypad += size_t.sizeof;
+        }
+    }
     else
         arraypad = LARGEPAD;
+
 
     curcapacity = info.size - arraypad;
     return curcapacity / size;
