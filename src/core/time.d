@@ -1,8 +1,9 @@
 //Written in the D programming language
 
 /++
-    Module containing core time functionality, such as Duration (which
-    represents a duration of time).
+    Module containing core time functionality, such as $(LREF Duration) (which
+    represents a duration of time) or $(LREF MonoTime) (which represents a
+    timestamp of the system's monotonic clock).
 
     Various functions take a string (or strings) to represent a unit of time
     (e.g. $(D convert!("days", "hours")(numDays))). The valid strings to use
@@ -19,17 +20,19 @@
     or less (kept internally as hnsecs). (e.g. 22 days or 700 seconds).))
     $(TR $(TDNW $(LREF TickDuration)) $(TD Represents a duration of time in
     system clock ticks, using the highest precision that the system provides.))
+    $(TR $(TDNW $(LREF MonoTime)) $(TD Represents a monotonic timestamp in
+    system clock ticks, using the highest precision that the system provides.))
     $(TR $(TDNW $(LREF FracSec)) $(TD Represents fractional seconds
     (portions of time smaller than a second).))
     $(LEADINGROW Functions)
-    $(TR $(TDNW $(LREF convert)) $(TD Generic way of converting between two
-    time units.))
-    $(TR $(TDNW $(LREF dur)) $(TD Allow constructing a $(LREF Duration) from
+    $(TR $(TDNW $(LREF convert)) $(TD Generic way of converting between two time
+    units.))
+    $(TR $(TDNW $(LREF dur)) $(TD Allows constructing a $(LREF Duration) from
     the given time units with the given length.))
     $(TR $(TDNW $(LREF weeks)$(NBSP)$(LREF days)$(NBSP)$(LREF hours)$(BR)
     $(LREF minutes)$(NBSP)$(LREF seconds)$(NBSP)$(LREF msecs)$(BR)
     $(LREF usecs)$(NBSP)$(LREF hnsecs)$(NBSP)$(LREF nsecs))
-    $(TD Short-hands for $(D dur).))
+    $(TD Convenience aliases for $(LREF dur).))
     $(TR $(TDNW $(LREF abs)) $(TD Returns the absolute value of a duration.))
     )
 
@@ -116,6 +119,12 @@ ulong mach_absolute_time();
 
 }
 
+//To verify that an lvalue isn't required.
+version(unittest) T copy(T)(T t)
+{
+    return t;
+}
+
 
 /++
     Represents a duration of time of weeks or less (kept internally as hnsecs).
@@ -127,7 +136,7 @@ ulong mach_absolute_time();
     In std.datetime, it is also used as the result of various arithmetic
     operations on time points.
 
-    Use the $(LREF dur) function or on of its non-generic aliases to create
+    Use the $(LREF dur) function or one of its non-generic aliases to create
     $(D Duration)s.
 
     It's not possible to create a Duration of months or years, because the
@@ -139,18 +148,22 @@ ulong mach_absolute_time();
     years and months rather than creating a Duration of years or months and
     adding that to a $(XREF datetime, Date). But Duration is used when dealing
     with weeks or smaller.
+
+    Examples:
+--------------------
+assert(dur!"days"(12) == dur!"hnsecs"(10_368_000_000_000L));
+assert(dur!"hnsecs"(27) == dur!"hnsecs"(27));
+assert(std.datetime.Date(2010, 9, 7) + dur!"days"(5) ==
+       std.datetime.Date(2010, 9, 12));
+
+assert(days(-12) == dur!"hnsecs"(-10_368_000_000_000L));
+assert(hnsecs(-27) == dur!"hnsecs"(-27));
+assert(std.datetime.Date(2010, 9, 7) - std.datetime.Date(2010, 10, 3) ==
+       days(-26));
+--------------------
  +/
 struct Duration
 {
-    //Verify Examples.
-    unittest
-    {
-        assert(dur!"days"(12) == Duration(10_368_000_000_000L));
-        assert(dur!"hnsecs"(27) == Duration(27));
-        assert(dur!"days"(-12) == Duration(-10_368_000_000_000L));
-        assert(dur!"hnsecs"(-27) == Duration(-27));
-    }
-
 public:
 
     /++
@@ -204,12 +217,6 @@ public:
 
     unittest
     {
-        //To verify that an lvalue isn't required.
-        T copy(T)(T duration)
-        {
-            return duration;
-        }
-
         foreach(T; _TypeTuple!(Duration, const Duration, immutable Duration))
         {
             foreach(U; _TypeTuple!(Duration, const Duration, immutable Duration))
@@ -1778,6 +1785,605 @@ unittest
 
 
 /++
+    Represents a timestamp of the system's monotonic clock.
+
+    A monotonic clock is one which always goes forward and never moves
+    backwards, unlike the system's wall clock time (as represented by
+    $(XREF datetime, SysTime)). The system's wall clock time can be adjusted
+    by the user or by the system itself via services such as NTP, so it is
+    unreliable to use the wall clock time for timing. Timers which use the wall
+    clock time could easily end up never going off due changes made to the wall
+    clock time or otherwise waiting for a different period of time than that
+    specified by the programmer. However, because the monotonic clock always
+    increases at a fixed rate and is not affected by adjustments to the wall
+    clock time, it is ideal for use with timers or anything which requires high
+    precision timing.
+
+    So, MonoTime should be used for anything involving timers and timing,
+    whereas $(XREF datetime, SysTime) should be used when the wall clock time
+    is required.
+
+    The monotonic clock has no relation to wall clock time. Rather, it holds
+    its time as the number of ticks of the clock which have occurred since the
+    clock started (typically when the system booted up). So, to determine how
+    much time has passed between two points in time, one monotonic time is
+    subtracted from the other to determine the number of ticks which occurred
+    between the two points of time, and those ticks are divided by the number of
+    ticks that occur every second (as represented by MonoTime.ticksPerSecond)
+    to get a meaningful duration of time. Normally, MonoTime does these
+    calculations for the programmer, but the $(D ticks) and $(D ticksPerSecond)
+    properties are provided for those who require direct access to the system
+    ticks. However, the normal way that MonoTime would be used is
+
+--------------------
+        MonoTime before = MonoTime.currTime;
+        // do stuff...
+        MonoTime after = MonoTime.currTime;
+        Duration timeElapsed = after - before;
+--------------------
+  +/
+struct MonoTime
+{
+    /++
+        The current time of the system's monotonic clock. This has no relation
+        to the wall clock time, as the wall clock time can be adjusted (e.g.
+        by NTP), whereas the monotonic clock always moves forward. The source
+        of the monotonic time is system-specific.
+
+        On Windows, $(D QueryPerformanceCounter) is used. On Mac OS X,
+        $(D mach_absolute_time) is used, while on other POSIX systems,
+        $(D clock_gettime) is used.
+
+        $(RED Warning): On some systems, the monotonic clock may stop counting
+                        when the computer goes to sleep or hibernates. So, the
+                        monotonic clock may indicate less time than has actually
+                        passed if that occurs. This is known to happen on
+                        Mac OS X. It has not been tested whether it occurs on
+                        either Windows or on Linux.
+      +/
+    static @property MonoTime currTime() @trusted nothrow
+    {
+        if(_ticksPerSecond == 0)
+            assert(0, "MonoTime failed to get the frequency of the system's monotonic clock.");
+
+        version(Windows)
+        {
+            long ticks;
+            if(QueryPerformanceCounter(&ticks) == 0)
+            {
+                // This probably cannot happen on Windows 95 or later
+                assert(0, "Call to QueryPerformanceCounter failed.");
+            }
+            return MonoTime(ticks);
+        }
+        else version(OSX)
+            return MonoTime(mach_absolute_time());
+        else version(Posix)
+        {
+            timespec ts;
+            if(clock_gettime(CLOCK_MONOTONIC, &ts) != 0)
+                assert(0, "Call to clock_gettime failed.");
+
+            return MonoTime(convClockFreq(ts.tv_sec * 1_000_000_000L + ts.tv_nsec,
+                                          1_000_000_000L,
+                                          _ticksPerSecond));
+        }
+    }
+
+
+    /++
+        Compares this MonoTime with the given MonoTime.
+
+        Returns:
+            $(BOOKTABLE,
+                $(TR $(TD this &lt; rhs) $(TD &lt; 0))
+                $(TR $(TD this == rhs) $(TD 0))
+                $(TR $(TD this &gt; rhs) $(TD &gt; 0))
+            )
+     +/
+    int opCmp(MonoTime rhs) const @safe pure nothrow
+    {
+        if(_ticks < rhs._ticks)
+            return -1;
+        return _ticks > rhs._ticks ? 1 : 0;
+    }
+
+    unittest
+    {
+        foreach(T; _TypeTuple!(MonoTime, const MonoTime, immutable MonoTime))
+        {
+            foreach(U; _TypeTuple!(MonoTime, const MonoTime, immutable MonoTime))
+            {
+                T t = MonoTime.currTime;
+                U u = t;
+                assert(t == u);
+                assert(copy(t) == u);
+                assert(t == copy(u));
+            }
+        }
+
+        foreach(T; _TypeTuple!(MonoTime, const MonoTime, immutable MonoTime))
+        {
+            foreach(U; _TypeTuple!(MonoTime, const MonoTime, immutable MonoTime))
+            {
+                T before = MonoTime.currTime;
+                auto after = U(before._ticks + 42);
+                assert(before < after);
+                assert(before <= before);
+                assert(after > before);
+                assert(after >= after);
+
+                assert(copy(before) < after);
+                assert(copy(before) <= before);
+                assert(copy(after) > before);
+                assert(copy(after) >= after);
+
+                assert(before < copy(after));
+                assert(before <= copy(before));
+                assert(after > copy(before));
+                assert(after >= copy(after));
+            }
+        }
+
+        immutable currTime = MonoTime.currTime;
+        assert(MonoTime(long.max) > MonoTime(0));
+        assert(MonoTime(0) > MonoTime(long.min));
+        assert(MonoTime(long.max) > currTime);
+        assert(currTime > MonoTime(0));
+        assert(MonoTime(0) < currTime);
+        assert(MonoTime(0) < MonoTime(long.max));
+        assert(MonoTime(long.min) < MonoTime(0));
+    }
+
+
+    /++
+        Subtracting two MonoTimes results in a $(LREF Duration) representing the
+        amount of time which elapsed between them.
+
+        The primary way that programs should time how long something takes is to
+        do
+--------------------
+MonoTime before = MonoTime.currTime;
+// do stuff
+MonoTime after = MonoTime.currTime;
+
+// How long it took.
+Duration timeElapsed = after - before;
+--------------------
+        or to use a wrapper (such as a stop watch type) which does that.
+
+        $(RED Warning):
+            Because $(LREF Duration) is in hnsecs, whereas MonoTime is in system
+            ticks, it's usually the case that this assertion will fail
+--------------------
+auto before = MonoTime.currTime;
+// do stuff
+auto after = MonoTime.currTime;
+auto timeElapsed = after - before;
+assert(before + timeElapsed == after).
+--------------------
+
+            This is generally fine, and by its very nature, converting from
+            system ticks to any type of seconds (hnsecs, nsecs, etc.) will
+            introduce rounding errors, but if code needs to avoid any of the
+            small rounding errors introduced by conversion, then it needs to use
+            MonoTime's $(D ticks) property and keep all calculations in ticks
+            rather than using $(LREF Duration).
+      +/
+    Duration opBinary(string op)(MonoTime rhs) const @safe pure nothrow
+        if(op == "-")
+    {
+        immutable diff = _ticks - rhs._ticks;
+        return Duration(convClockFreq(diff , ticksPerSecond, hnsecsPer!"seconds"));
+    }
+
+    unittest
+    {
+        foreach(T; _TypeTuple!(MonoTime, const MonoTime, immutable MonoTime))
+        {
+            foreach(U; _TypeTuple!(MonoTime, const MonoTime, immutable MonoTime))
+            {
+                T t = MonoTime.currTime;
+                U u = t;
+                assert(u - t == Duration.zero);
+                assert(copy(t) - u == Duration.zero);
+                assert(t - copy(u) == Duration.zero);
+            }
+        }
+
+        foreach(T; _TypeTuple!(MonoTime, const MonoTime, immutable MonoTime))
+        {
+            foreach(U; _TypeTuple!(MonoTime, const MonoTime, immutable MonoTime))
+            {
+                static void test()(T before, U after, Duration min, size_t line = __LINE__)
+                {
+                    immutable diff = after - before;
+                    scope(failure)
+                    {
+                        printf("%s %s %s\n",
+                               numToStringz(before._ticks),
+                               numToStringz(after._ticks),
+                               (diff.toString() ~ "\0").ptr);
+                    }
+                    if(diff > min) {} else throw new AssertError("unittest failure 1", __FILE__, line);
+                    auto calcAfter = before + diff;
+                    assertApprox(calcAfter, calcAfter - Duration(1), calcAfter + Duration(1));
+                    if(before - after == -diff) {} else throw new AssertError("unittest failure 2", __FILE__, line);
+                }
+
+                T before = MonoTime.currTime;
+                test(before, MonoTime(before._ticks + 4202), Duration.zero);
+                test(before, MonoTime.currTime, Duration.zero);
+
+                auto durLargerUnits = dur!"minutes"(7) + dur!"seconds"(22);
+                test(before, before + durLargerUnits + dur!"msecs"(33) + dur!"hnsecs"(571), durLargerUnits);
+            }
+        }
+    }
+
+
+    /++
+        Adding or subtracting a $(LREF Duration) to/from a MonoTime results in
+        a MonoTime which is adjusted by that amount.
+      +/
+    MonoTime opBinary(string op)(Duration rhs) const @safe pure nothrow
+        if(op == "+" || op == "-")
+    {
+        immutable rhsConverted = convClockFreq(rhs._hnsecs, hnsecsPer!"seconds", ticksPerSecond);
+        mixin("return MonoTime(_ticks " ~ op ~ " rhsConverted);");
+    }
+
+    unittest
+    {
+        foreach(T; _TypeTuple!(MonoTime, const MonoTime, immutable MonoTime))
+        {
+            foreach(U; _TypeTuple!(MonoTime, const MonoTime, immutable MonoTime))
+            {
+                foreach(V; _TypeTuple!(Duration, const Duration, immutable Duration))
+                {
+                    T t = MonoTime.currTime;
+                    U u1 = t + V(0);
+                    U u2 = t - V(0);
+                    assert(t == u1);
+                    assert(t == u2);
+                }
+            }
+        }
+
+        foreach(T; _TypeTuple!(MonoTime, const MonoTime, immutable MonoTime))
+        {
+            foreach(U; _TypeTuple!(Duration, const Duration, immutable Duration))
+            {
+                T t = MonoTime.currTime;
+
+                // We reassign ticks in order to get the same rounding errors
+                // that we should be getting with Duration (e.g. MonoTime may be
+                // at a higher precision than hnsecs, meaning that 7333 would be
+                // truncated when converting to hnsecs).
+                long ticks = 7333;
+                auto hnsecs = convClockFreq(ticks, MonoTime.ticksPerSecond, hnsecsPer!"seconds");
+                ticks = convClockFreq(hnsecs, hnsecsPer!"seconds", MonoTime.ticksPerSecond);
+
+                assert(t - Duration(hnsecs) == MonoTime(t._ticks - ticks));
+                assert(t + Duration(hnsecs) == MonoTime(t._ticks + ticks));
+            }
+        }
+    }
+
+
+    /++ Ditto +/
+    ref MonoTime opOpAssign(string op)(Duration rhs) @safe pure nothrow
+        if(op == "+" || op == "-")
+    {
+        immutable rhsConverted = convClockFreq(rhs._hnsecs, hnsecsPer!"seconds", ticksPerSecond);
+        mixin("_ticks " ~ op ~ "= rhsConverted;");
+        return this;
+    }
+
+    unittest
+    {
+        foreach(T; _TypeTuple!(const MonoTime, immutable MonoTime))
+        {
+            T t = MonoTime.currTime;
+            static assert(!is(typeof(t += Duration.zero)));
+            static assert(!is(typeof(t -= Duration.zero)));
+        }
+
+        foreach(T; _TypeTuple!(Duration, const Duration, immutable Duration))
+        {
+            auto mt = MonoTime.currTime;
+            auto initial = mt;
+            mt += T(0);
+            assert(mt == initial);
+            mt -= T(0);
+            assert(mt == initial);
+
+            // We reassign ticks in order to get the same rounding errors
+            // that we should be getting with Duration (e.g. MonoTime may be
+            // at a higher precision than hnsecs, meaning that 7333 would be
+            // truncated when converting to hnsecs).
+            long ticks = 7333;
+            auto hnsecs = convClockFreq(ticks, MonoTime.ticksPerSecond, hnsecsPer!"seconds");
+            ticks = convClockFreq(hnsecs, hnsecsPer!"seconds", MonoTime.ticksPerSecond);
+            auto before = MonoTime(initial._ticks - ticks);
+
+            assert((mt -= Duration(hnsecs)) == before);
+            assert(mt  == before);
+            assert((mt += Duration(hnsecs)) == initial);
+            assert(mt  == initial);
+        }
+    }
+
+
+    /++
+        The number of ticks in the monotonic time.
+
+        Most programs should not use this directly, but it's exposed for those
+        few programs that need it.
+
+        The main reasons that a program might need to use ticks directly is if
+        the system clock has higher precision than hnsecs, and the program needs
+        that higher precision, or if the program needs to avoid the rounding
+        errors caused by converting to hnsecs.
+      +/
+    @property long ticks() const @safe pure nothrow
+    {
+        return _ticks;
+    }
+
+    unittest
+    {
+        auto mt = MonoTime.currTime;
+        assert(mt.ticks == mt._ticks);
+    }
+
+
+    /++
+        The number of ticks that MonoTime has per second - i.e. the resolution
+        or frequency of the system's monotonic clock.
+
+        e.g. if the system clock had a resolution of microseconds, then
+        ticksPerSecond would be $(D 1_000_000).
+      +/
+    static @property long ticksPerSecond() @safe pure nothrow
+    {
+        return _ticksPerSecond;
+    }
+
+    unittest
+    {
+        assert(MonoTime.ticksPerSecond == MonoTime._ticksPerSecond);
+    }
+
+
+    ///
+    string toString() @safe const pure nothrow
+    {
+        return "MonoTime(" ~ numToString(_ticks) ~ " ticks, " ~ numToString(_ticksPerSecond) ~ " ticks per second)";
+    }
+
+    unittest
+    {
+        static size_t findSpace(string str, size_t line = __LINE__)
+        {
+            for(size_t i = 0; i != str.length; ++i)
+            {
+                if(str[i] == ' ')
+                    return i;
+            }
+            throw new AssertError("unittest failure", __FILE__, line);
+        }
+
+        immutable mt = MonoTime.currTime;
+        auto str = mt.toString();
+        assert(str[0 .. "MonoTime(".length] == "MonoTime(");
+        str = str["MonoTime(".length .. $];
+        immutable space1 = findSpace(str);
+        immutable ticksStr = str[0 .. space1];
+        assert(ticksStr == numToString(mt._ticks));
+        str = str[space1 + 1 .. $];
+        assert(str[0 .. "ticks, ".length] == "ticks, ");
+        str = str["ticks, ".length .. $];
+        immutable space2 = findSpace(str);
+        immutable ticksPerSecondStr = str[0 .. space2];
+        assert(ticksPerSecondStr == numToString(MonoTime.ticksPerSecond));
+        str = str[space2 + 1 .. $];
+        assert(str == "ticks per second)");
+    }
+
+private:
+
+    static immutable long _ticksPerSecond;
+
+    @trusted shared static this()
+    {
+        version(Windows)
+        {
+            long ticksPerSecond;
+            if(QueryPerformanceFrequency(&ticksPerSecond) != 0)
+                _ticksPerSecond = ticksPerSecond;
+        }
+        else version(OSX)
+        {
+            mach_timebase_info_data_t info;
+            if(mach_timebase_info(&info) == 0)
+                _ticksPerSecond = 1_000_000_000L * info.numer / info.denom;
+        }
+        else version(Posix)
+        {
+            timespec ts;
+            if(clock_getres(CLOCK_MONOTONIC, &ts) == 0)
+            {
+                // For some reason, on some systems, clock_getres returns
+                // a resolution which is clearly wrong (it's a millisecond
+                // or worse, but the time is updated much more frequently
+                // than that). In such cases, we'll just use nanosecond
+                // resolution.
+                _ticksPerSecond = ts.tv_nsec >= 1000 ? 1_000_000_000L
+                                                     : 1_000_000_000L / ts.tv_nsec;
+            }
+        }
+    }
+
+    unittest
+    {
+        assert(_ticksPerSecond);
+    }
+
+
+    long _ticks;
+}
+
+
+/++
+    Converts the given time from one clock frequency/resolution to another.
+
+    See_Also:
+        $(LREF ticksToNSecs)
+  +/
+long convClockFreq(long ticks, long srcTicksPerSecond, long dstTicksPerSecond) @safe pure nothrow
+{
+    // This would be more straightforward with floating point arithmetic,
+    // but we avoid it here in order to avoid the rounding errors that that
+    // introduces. Also, by splitting out the units in this way, we're able
+    // to deal with much larger values before running into problems with
+    // integer overflow.
+    return ticks / srcTicksPerSecond * dstTicksPerSecond +
+           ticks % srcTicksPerSecond * dstTicksPerSecond / srcTicksPerSecond;
+}
+
+///
+unittest
+{
+    // one tick is one second -> one tick is a hecto-nanosecond
+    assert(convClockFreq(45, 1, 10_000_000) == 450_000_000);
+
+    // one tick is one microsecond -> one tick is a millisecond
+    assert(convClockFreq(9029, 1_000_000, 1_000) == 9);
+
+    // one tick is 1/3_515_654 of a second -> 1/1_001_010 of a second
+    assert(convClockFreq(912_319, 3_515_654, 1_001_010) == 259_764);
+
+    // one tick is 1/MonoTime.ticksPerSecond -> one tick is a nanosecond
+    // Equivalent to ticksToNSecs
+    auto nsecs = convClockFreq(1982, MonoTime.ticksPerSecond, 1_000_000_000);
+}
+
+unittest
+{
+    assert(convClockFreq(99, 43, 57) == 131);
+    assert(convClockFreq(131, 57, 43) == 98);
+    assert(convClockFreq(1234567890, 10_000_000, 1_000_000_000) == 123456789000);
+    assert(convClockFreq(1234567890, 1_000_000_000, 10_000_000) == 12345678);
+    assert(convClockFreq(123456789000, 1_000_000_000, 10_000_000) == 1234567890);
+    assert(convClockFreq(12345678, 10_000_000, 1_000_000_000) == 1234567800);
+    assert(convClockFreq(13131, 3_515_654, 10_000_000) == 37350);
+    assert(convClockFreq(37350, 10_000_000, 3_515_654) == 13130);
+    assert(convClockFreq(37350, 3_515_654, 10_000_000) == 106239);
+    assert(convClockFreq(106239, 10_000_000, 3_515_654) == 37349);
+
+    // It would be too expensive to cover a large range of possible values for
+    // ticks, so we use random values in an attempt to get reasonable coverage.
+    import core.stdc.stdlib;
+    immutable seed = cast(int)time(null);
+    srand(seed);
+    scope(failure) printf("seed %d\n", seed);
+    enum freq1 = 5_527_551L;
+    enum freq2 = 10_000_000L;
+    enum freq3 = 1_000_000_000L;
+    enum freq4 = 98_123_320L;
+    immutable freq5 = MonoTime.ticksPerSecond;
+
+    // This makes it so that freq6 is the first multiple of 10 which is greater
+    // than or equal to freq5, which at one point was considered for MonoTime's
+    // ticksPerSecond rather than using the system's actual clock frequency, so
+    // it seemed like a good test case to have.
+    import core.stdc.math;
+    immutable numDigitsMinus1 = cast(int)floor(log10(freq5));
+    auto freq6 = cast(long)pow(10, numDigitsMinus1);
+    if(freq5 > freq6)
+        freq6 *= 10;
+
+    foreach(_; 0 .. 10_000)
+    {
+        long[2] values = [rand(), cast(long)rand() * (rand() % 16)];
+        foreach(i; values)
+        {
+            scope(failure) printf("i %s\n", numToStringz(i));
+            assertApprox(convClockFreq(convClockFreq(i, freq1, freq2), freq2, freq1), i - 10, i + 10);
+            assertApprox(convClockFreq(convClockFreq(i, freq2, freq1), freq1, freq2), i - 10, i + 10);
+
+            assertApprox(convClockFreq(convClockFreq(i, freq3, freq4), freq4, freq3), i - 100, i + 100);
+            assertApprox(convClockFreq(convClockFreq(i, freq4, freq3), freq3, freq4), i - 100, i + 100);
+
+            scope(failure) printf("sys %s mt %s\n", numToStringz(freq5), numToStringz(freq6));
+            assertApprox(convClockFreq(convClockFreq(i, freq5, freq6), freq6, freq5), i - 10, i + 10);
+            assertApprox(convClockFreq(convClockFreq(i, freq6, freq5), freq5, freq6), i - 10, i + 10);
+
+            // This is here rather than in a unittest block immediately after
+            // ticksToNSecs in order to avoid code duplication in the unit tests.
+            assert(convClockFreq(i, MonoTime.ticksPerSecond, 1_000_000_000) == ticksToNSecs(i));
+        }
+    }
+}
+
+
+/++
+    Convenience wrapper around $(LREF convClockFreq) which converts ticks at
+    a clock frequency of $(D MonoTime.ticksPerSecond) to nanoseconds.
+
+    It's primarily of use when $(D MonoTime.ticksPerSecond) is greater than
+    hecto-nanosecond resolution, and an application needs a higher precision
+    than hecto-nanoceconds.
+
+    See_Also:
+        $(LREF convClockFreq)
+  +/
+long ticksToNSecs(long ticks) @safe pure nothrow
+{
+    return convClockFreq(ticks, MonoTime.ticksPerSecond, 1_000_000_000);
+}
+
+///
+unittest
+{
+    auto before = MonoTime.currTime;
+    // do stuff
+    auto after = MonoTime.currTime;
+    auto diffInTicks = after.ticks - before.ticks;
+    auto diffInNSecs = ticksToNSecs(diffInTicks);
+    assert(diffInNSecs == convClockFreq(diffInTicks, MonoTime.ticksPerSecond, 1_000_000_000));
+}
+
+
+/++
+    The reverse of $(LREF ticksToNSecs).
+  +/
+long nsecsToTicks(long ticks) @safe pure nothrow
+{
+    return convClockFreq(ticks, 1_000_000_000, MonoTime.ticksPerSecond);
+}
+
+unittest
+{
+    long ticks = 123409832717333;
+    auto nsecs = convClockFreq(ticks, MonoTime.ticksPerSecond, 1_000_000_000);
+    ticks = convClockFreq(nsecs, 1_000_000_000, MonoTime.ticksPerSecond);
+    assert(nsecsToTicks(nsecs) == ticks);
+}
+
+
+
+/++
+    $(RED Warning: TickDuration will be deprecated in the near future (once all
+          uses of it in Phobos have been deprecated). Please use
+          $(LREF MonoTime) for the cases where a monotonic timestamp is needed
+          and $(LREF Duration) when a duration is needed, rather than using
+          TickDuration. It has been decided that TickDuration is too confusing
+          (e.g. it conflates a monotonic timestamp and a duration in monotonic
+           clock ticks) and that having multiple duration types is too awkward
+          and confusing.)
+
    Represents a duration of time in system clock ticks.
 
    The system clock ticks are the ticks of the system clock at the highest
@@ -2185,12 +2791,6 @@ struct TickDuration
 
     unittest
     {
-        //To verify that an lvalue isn't required.
-        T copy(T)(T duration)
-        {
-            return duration;
-        }
-
         foreach(T; _TypeTuple!(TickDuration, const TickDuration, immutable TickDuration))
         {
             foreach(U; _TypeTuple!(TickDuration, const TickDuration, immutable TickDuration))
@@ -3715,6 +4315,11 @@ string numToString(long value) @safe pure nothrow
         assert(0, "Something threw when nothing can throw.");
 }
 
+version(unittest) const(char)* numToStringz(long value) @safe pure nothrow
+{
+    return (numToString(value) ~ "\0").ptr;
+}
+
 
 /+ A copy of std.typecons.TypeTuple. +/
 private template _TypeTuple(TList...)
@@ -3847,11 +4452,20 @@ version(unittest) void assertApprox(D, E)(D actual,
     }
 }
 
-version(unittest) void assertApprox()(long actual,
-                                      long lower,
-                                      long upper,
-                                      string msg = "unittest failure",
-                                      size_t line = __LINE__)
+version(unittest) void assertApprox(MonoTime actual,
+                                    MonoTime lower,
+                                    MonoTime upper,
+                                    string msg = "unittest failure",
+                                    size_t line = __LINE__)
+{
+    assertApprox(actual._ticks, lower._ticks, upper._ticks, msg, line);
+}
+
+version(unittest) void assertApprox(long actual,
+                                    long lower,
+                                    long upper,
+                                    string msg = "unittest failure",
+                                    size_t line = __LINE__)
 {
     if(actual < lower)
         throw new AssertError(msg ~ ": lower: " ~ numToString(actual), __FILE__, line);

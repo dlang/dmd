@@ -1,4 +1,4 @@
-import core.runtime, core.time : TickDuration;
+import core.runtime, core.time : MonoTime;
 import core.stdc.stdio;
 
 ModuleInfo* getModuleInfo(string name)
@@ -22,10 +22,10 @@ bool tester()
     {
         try
         {
-            immutable t0 = TickDuration.currSystemTick;
+            immutable t0 = MonoTime.currTime;
             fp();
-            immutable t1 = TickDuration.currSystemTick;
-            printf("%.3fs PASS %.*s\n", (t1 - t0).msecs / 1000.,
+            immutable t1 = MonoTime.currTime;
+            printf("%.3fs PASS %.*s\n", (t1 - t0).total!"msecs" / 1000.0,
                 cast(int)name.length, name.ptr);
         }
         catch (Throwable e)

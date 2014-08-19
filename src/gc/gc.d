@@ -65,16 +65,18 @@ debug(PRINTF_TO_FILE)
 {
     import core.time;
 
-    private __gshared TickDuration gcStartTick;
+    private __gshared MonoTime gcStartTick;
     private __gshared FILE* gcx_fh;
 
     private int printf(ARGS...)(const char* fmt, ARGS args) nothrow
     {
-        if (gcStartTick == TickDuration.zero)
-            gcStartTick = TickDuration.currSystemTick;
+        if (gcStartTick == MonoTime.init)
+            gcStartTick = MonoTime.currTime;
         if (!gcx_fh)
             gcx_fh = fopen("gcx.log", "w");
-        int len = fprintf(gcx_fh, "%10.6lf: ", (TickDuration.currSystemTick - gcStartTick).to!("seconds", double));
+        immutable timeElapsed = MonoTime.currTime - gcStartTick;
+        immutable secondsAsDouble = diff.total!"hnsecs" / cast(double)convert!("seconds", "hnsecs")(1);
+        int len = fprintf(gcx_fh, "%10.6lf: ", secondsAsDouble);
         len += fprintf(gcx_fh, fmt, args);
         fflush(gcx_fh);
         return len;
