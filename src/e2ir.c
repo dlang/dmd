@@ -5199,7 +5199,8 @@ elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi)
             {
                 *pe = el_combine(edtors, erx);
             }
-            else if (tybasic(erx->Ety) == TYstruct || tybasic(erx->Ety) == TYarray)
+            else if ((tybasic(erx->Ety) == TYstruct || tybasic(erx->Ety) == TYarray) &&
+                     !(erx->ET && type_size(erx->ET) <= 16))
             {
                 /* Expensive to copy, to take a pointer to it instead
                  */

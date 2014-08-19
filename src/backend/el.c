@@ -588,10 +588,18 @@ elem *exp2_copytotemp(elem *e)
 {
     //printf("exp2_copytotemp()\n");
     elem_debug(e);
-    Symbol *stmp = symbol_genauto(e);
+    tym_t ty = tybasic(e->Ety);
+    type *t;
+#if MARS
+    if ((ty == TYstruct || ty == TYarray) && e->ET)
+        t = e->ET;
+    else
+#endif
+        t = type_fake(ty);
+    Symbol *stmp = symbol_genauto(t);
     elem *eeq = el_bin(OPeq,e->Ety,el_var(stmp),e);
     elem *er = el_bin(OPcomma,e->Ety,eeq,el_var(stmp));
-    if (tybasic(e->Ety) == TYstruct || tybasic(e->Ety) == TYarray)
+    if (ty == TYstruct || ty == TYarray)
     {
         eeq->Eoper = OPstreq;
         eeq->ET = e->ET;
