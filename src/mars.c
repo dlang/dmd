@@ -85,7 +85,7 @@ Ungag Dsymbol::ungagSpeculative()
 {
     unsigned oldgag = global.gag;
 
-    if (global.isSpeculativeGagging() && !isSpeculative() && !toParent2()->isFuncDeclaration())
+    if (global.gag && !isSpeculative() && !toParent2()->isFuncDeclaration())
         global.gag = 0;
 
     return Ungag(oldgag);
@@ -166,11 +166,6 @@ bool Global::endGagging(unsigned oldGagged)
     errors -= (gaggedErrors - oldGagged);
     gaggedErrors = oldGagged;
     return anyErrs;
-}
-
-bool Global::isSpeculativeGagging()
-{
-    return gag && gag == speculativeGag;
 }
 
 void Global::increaseErrorCount()

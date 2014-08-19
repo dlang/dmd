@@ -456,8 +456,8 @@ void AliasDeclaration::semantic(Scope *sc)
 
     // Ungag errors when not instantiated DeclDefs scope alias
     Ungag ungag(global.gag);
-    //printf("%s parent = %s, specgag= %d, instantiated = %d\n", toChars(), parent, global.isSpeculativeGagging(), isInstantiated());
-    if (parent && global.isSpeculativeGagging() && !isInstantiated() && !toParent2()->isFuncDeclaration())
+    //printf("%s parent = %s, gag = %d, instantiated = %d\n", toChars(), parent, global.gag, isInstantiated());
+    if (parent && global.gag && !isInstantiated() && !toParent2()->isFuncDeclaration())
     {
         //printf("%s type = %s\n", toPrettyChars(), type->toChars());
         global.gag = 0;
@@ -673,7 +673,7 @@ Dsymbol *AliasDeclaration::toAlias()
 
     Lerr:
         // Avoid breaking "recursive alias" state during errors gagged
-        if (global.isSpeculativeGagging())
+        if (global.gag)
             return this;
 
         aliassym = new AliasDeclaration(loc, ident, Type::terror);
@@ -1954,7 +1954,7 @@ Expression *VarDeclaration::getConstInitializer(bool needFullType)
 
     // Ungag errors when not speculative
     unsigned oldgag = global.gag;
-    if (global.isSpeculativeGagging())
+    if (global.gag)
     {
         Dsymbol *sym = toParent()->isAggregateDeclaration();
         if (sym && !sym->isSpeculative())

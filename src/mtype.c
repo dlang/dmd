@@ -7083,12 +7083,8 @@ void TypeTypeof::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
         sc2->intypeof = 1;
         sc2->speculative = true;
         sc2->flags |= sc->flags & SCOPEstaticif;
-        unsigned oldspecgag = global.speculativeGag;
-        if (global.gag)
-            global.speculativeGag = global.gag;
         exp = exp->semantic(sc2);
         exp = resolvePropertiesOnly(sc2, exp);
-        global.speculativeGag = oldspecgag;
         sc2->pop();
         if (exp->op == TOKtype)
         {
