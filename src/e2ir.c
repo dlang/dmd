@@ -2886,6 +2886,9 @@ elem *toElem(Expression *e, IRState *irs)
                 elem *e2 = ce->e2->toElem(irs);
 
                 Type *tb1n = tb1->nextOf()->toBasetype();
+                Type *tb2n = tb2->nextOf();
+                if (tb2n) tb2n = tb2n->toBasetype();
+
                 if ((tb2->ty == Tarray || tb2->ty == Tsarray) &&
                     tb1n->equals(tb2->nextOf()->toBasetype()))
                 {
@@ -2960,6 +2963,38 @@ elem *toElem(Expression *e, IRState *irs)
                     e = el_combine(e2x, e);
                     e = el_combine(e, eeq);
                     e = el_combine(e, el_var(stmp));
+                }
+                else if (tb1->ty == Tarray &&
+                         (tb2->ty == Tarray || tb2->ty == Tsarray) &&
+                         (tb1n->ty == Tchar || tb1n->ty == Twchar || tb1n->ty == Tdchar) &&
+                         (tb2n->ty == Tchar || tb2n->ty == Twchar || tb2n->ty == Tdchar))
+                {
+                    #define X(fty, tty) ((fty) * TMAX + (tty))
+                    int rtl;
+                    switch(X(tb1n->ty, tb2n->ty))
+                    {
+                    case X(Tchar, Twchar):  rtl = RTLSYM_ARRAYAPPENDCWA; break;
+                    case X(Tchar, Tdchar):  rtl = RTLSYM_ARRAYAPPENDCDA; break;
+                    case X(Twchar, Tchar):  rtl = RTLSYM_ARRAYAPPENDWCA; break;
+                    case X(Twchar, Tdchar): rtl = RTLSYM_ARRAYAPPENDWDA; break;
+                    case X(Tdchar, Tchar):  rtl = RTLSYM_ARRAYAPPENDDCA; break;
+                    case X(Tdchar, Twchar): rtl = RTLSYM_ARRAYAPPENDDWA; break;
+
+                    case X(Tchar, Tchar):
+                    case X(Twchar, Twchar):
+                    case X(Tdchar, Tdchar):
+                    default:
+                        assert(0);
+                    }
+
+                    // Append dchar to char[] or wchar[]
+                    elem *e1 = ce->e1->toElem(irs);
+                    e1 = el_una(OPaddr, TYnptr, e1);
+                    elem *e2 = ce->e2->toElem(irs);
+
+                    elem *ep = el_params(e2, e1, NULL);
+                    e = el_bin(OPcall, TYdarray, el_var(rtlsym[rtl]), ep);
+                    el_setLoc(e, ce->loc);
                 }
                 else
                 {
