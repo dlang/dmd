@@ -279,10 +279,15 @@ void test11()
 }
 /****************************************/
 
+version(CRuntime_Microsoft)
+    alias long_double = double;
+else
+    alias long_double = real;
+
 struct Struct10071
 {
     void *p;
-    real r;
+    long_double r;
 }
 
 extern(C++) size_t offset10071();
@@ -355,7 +360,7 @@ extern(C++) size_t getoffset13161();
 extern(C++) class C13161a
 {
 	void dummyfunc() {}
-	real val_5;
+	long_double val_5;
 	uint val_9;
 }
 

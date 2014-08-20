@@ -139,7 +139,7 @@ interface Expression
 }
 
 //int test34(int[0][0]*);
-version(Win64){}
+version(CRuntime_Microsoft){}
 else
 {
     int test35(real arg);
@@ -243,7 +243,7 @@ void main()
     Expression.dispose(ee);
     assert(ee is null);
     //assert(test34(null) == 0);
-    version(Win64){}
+    version(CRuntime_Microsoft){}
     else
     {
         assert(test35(3.14L) == 3);
