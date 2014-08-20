@@ -107,8 +107,8 @@ private:
             int     reserved;
         }
 
-        alias extern(Windows)
-        HRESULT fnNtQuerySystemInformation( uint SystemInformationClass, void* info, uint infoLength, uint* ReturnLength ) nothrow;
+        alias fnNtQuerySystemInformation = extern(Windows)
+        HRESULT function( uint SystemInformationClass, void* info, uint infoLength, uint* ReturnLength ) nothrow;
 
         enum ThreadBasicInformation = 0;
 
@@ -123,8 +123,8 @@ private:
             int    BasePriority;
         }
 
-        alias extern(Windows)
-        int fnNtQueryInformationThread( HANDLE ThreadHandle, uint ThreadInformationClass, void* buf, uint size, uint* ReturnLength ) nothrow;
+        alias fnNtQueryInformationThread = extern(Windows)
+        int function( HANDLE ThreadHandle, uint ThreadInformationClass, void* buf, uint size, uint* ReturnLength ) nothrow;
 
         enum SYNCHRONIZE = 0x00100000;
         enum THREAD_GET_CONTEXT = 8;
@@ -137,7 +137,7 @@ private:
         {
             HANDLE nthnd = GetModuleHandleA( "NTDLL" );
             assert( nthnd, "cannot get module handle for ntdll" );
-            fnNtQueryInformationThread* fn = cast(fnNtQueryInformationThread*) GetProcAddress( nthnd, "NtQueryInformationThread" );
+            fnNtQueryInformationThread fn = cast(fnNtQueryInformationThread) GetProcAddress( nthnd, "NtQueryInformationThread" );
             assert( fn, "cannot find NtQueryInformationThread in ntdll" );
 
             THREAD_BASIC_INFORMATION tbi;
@@ -212,7 +212,7 @@ private:
         static bool enumProcessThreads( uint procid, bool function( uint id, void* context ) dg, void* context )
         {
             HANDLE hnd = GetModuleHandleA( "NTDLL" );
-            fnNtQuerySystemInformation* fn = cast(fnNtQuerySystemInformation*) GetProcAddress( hnd, "NtQuerySystemInformation" );
+            fnNtQuerySystemInformation fn = cast(fnNtQuerySystemInformation) GetProcAddress( hnd, "NtQuerySystemInformation" );
             if( !fn )
                 return false;
 
