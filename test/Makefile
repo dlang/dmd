@@ -103,8 +103,7 @@ export DMD=../src/dmd.exe
 export EXE=.exe
 export OBJ=.obj
 export DSEP=\\
-export SEP=$(shell echo '\')
-# bug in vim syntax hilighting, needed to kick it back into life: ')
+export SEP=$(subst /,\,/)
 else
 export ARGS=-inline -release -gc -O -unittest -fPIC
 export DMD=../src/dmd
