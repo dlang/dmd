@@ -6049,7 +6049,11 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
         printf("Recursive template expansion\n");
 #endif
         error(loc, "recursive template expansion");
-//      inst = this;
+        if (global.gag)
+            semanticRun = PASSinit;
+        else
+            inst = this;
+        errors = true;
         return;
     }
     semanticRun = PASSsemantic;
@@ -6112,7 +6116,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
                     goto L1;
                 // It had succeeded, mark it is a non-speculative instantiation,
                 // and reuse it.
-                inst->speculative = 0;
+                inst->speculative = false;
             }
 
 #if LOG
@@ -6134,9 +6138,9 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 #endif
     unsigned errorsave = global.errors;
     inst = this;
-    // Mark as speculative if we are instantiated from inside is(typeof())
-    if (global.gag && sc->speculative)
-        speculative = 1;
+    // Mark as speculative if we are instantiated during errors gagged
+    if (global.gag)
+        speculative = true;
 
     TemplateInstance *tempdecl_instance_idx = tempdecl->addInstance(this);
 
@@ -7162,6 +7166,12 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
             (*tiargs)[i] = tdtypes[i];
         }
     }
+    else if (errors && inst)
+    {
+        // instantiation was failed with error reporting
+        assert(global.errors);
+        return false;
+    }
     else
     {
         TemplateDeclaration *tdecl = tempdecl->isTemplateDeclaration();
@@ -7623,11 +7633,21 @@ void TemplateInstance::semantic2(Scope *sc)
 #endif
     if (!errors && members)
     {
+        TemplateDeclaration *tempdecl = this->tempdecl->isTemplateDeclaration();
+        assert(tempdecl);
+
         sc = tempdecl->scope;
         assert(sc);
         sc = sc->push(argsym);
         sc = sc->push(this);
         sc->tinst = this;
+
+        int needGagging = (speculative && !global.gag);
+        unsigned int olderrors = global.errors;
+        int oldGaggedErrors;
+        if (needGagging)
+            oldGaggedErrors = global.startGagging();
+
         for (size_t i = 0; i < members->dim; i++)
         {
             Dsymbol *s = (*members)[i];
@@ -7635,7 +7655,24 @@ void TemplateInstance::semantic2(Scope *sc)
 printf("\tmember '%s', kind = '%s'\n", s->toChars(), s->kind());
 #endif
             s->semantic2(sc);
+            if (speculative && global.errors != olderrors)
+                break;
         }
+
+        if (global.errors != olderrors)
+        {
+            if (!errors)
+            {
+                if (!tempdecl->literal)
+                    error(loc, "error instantiating");
+                if (tinst)
+                    tinst->printInstantiationTrace();
+            }
+            errors = true;
+        }
+        if (needGagging)
+            global.endGagging(oldGaggedErrors);
+
         sc = sc->pop();
         sc->pop();
     }

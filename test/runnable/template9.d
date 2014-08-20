@@ -3960,6 +3960,58 @@ static assert(is(typeof(TypeTuple13252!(const     S13252())[0]) ==     const(S13
 static assert(is(typeof(TypeTuple13252!(immutable S13252())[0]) == immutable(S13252)));     // OK <- NG
 
 /******************************************/
+// 13333
+
+template AliasThisTypeOf13333(T)
+{
+    static assert(0, T.stringof);  // T.stringof is important
+}
+
+template StaticArrayTypeOf13333(T)
+{
+    static if (is(AliasThisTypeOf13333!T AT))
+        alias X = StaticArrayTypeOf13333!AT;
+    else
+        alias X = T;
+
+    static if (is(X : E[n], E, size_t n))
+        alias StaticArrayTypeOf13333 = X;
+    else
+        static assert(0, T.stringof~" is not a static array type");
+}
+
+enum bool isStaticArray13333(T) = is(StaticArrayTypeOf13333!T);
+
+struct VaraiantN13333(T)
+{
+    static if (isStaticArray13333!T)
+        ~this() { static assert(0); }
+}
+
+struct DummyScope13333
+{
+    alias A = VaraiantN13333!C;
+
+    static class C
+    {
+        A entity;
+    }
+}
+
+void test13333()
+{
+    struct DummyScope
+    {
+        alias A = VaraiantN13333!C;
+
+        static class C
+        {
+            A entity;
+        }
+    }
+}
+
+/******************************************/
 
 int main()
 {
