@@ -58,7 +58,7 @@ static void cmtable_init()
     {
         if ('0' <= c && c <= '7')
             cmtable[c] |= CMoctal;
-        if (isdigit(c) || ('a' <= c && c <= 'f') || ('A' <= c && c <= 'F'))
+        if (isxdigit(c))
             cmtable[c] |= CMhex;
         if (isalnum(c) || c == '_')
             cmtable[c] |= CMidchar;
