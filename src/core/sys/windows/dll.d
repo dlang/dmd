@@ -72,8 +72,8 @@ private:
             int   tlsindex;
         }
 
-        alias extern(Windows)
-        void* fnRtlAllocateHeap(void* HeapHandle, uint Flags, size_t Size) nothrow;
+        alias fnRtlAllocateHeap = extern(Windows)
+        void* function(void* HeapHandle, uint Flags, size_t Size) nothrow;
 
         // find a code sequence and return the address after the sequence
         static void* findCodeSequence( void* adr, int len, ref ubyte[] pattern ) nothrow
@@ -160,7 +160,7 @@ private:
             if( !pLdrpNumberOfTlsEntries || !pNtdllBaseTag || !pLdrpTlsList )
                 return null;
 
-            fnRtlAllocateHeap* fnAlloc = cast(fnRtlAllocateHeap*) GetProcAddress( hnd, "RtlAllocateHeap" );
+            fnRtlAllocateHeap fnAlloc = cast(fnRtlAllocateHeap) GetProcAddress( hnd, "RtlAllocateHeap" );
             if( !fnAlloc )
                 return null;
 
@@ -197,7 +197,7 @@ private:
             HANDLE hnd = GetModuleHandleA( "NTDLL" );
             assert( hnd, "cannot get module handle for ntdll" );
 
-            fnRtlAllocateHeap* fnAlloc = cast(fnRtlAllocateHeap*) GetProcAddress( hnd, "RtlAllocateHeap" );
+            fnRtlAllocateHeap fnAlloc = cast(fnRtlAllocateHeap) GetProcAddress( hnd, "RtlAllocateHeap" );
             if( !fnAlloc || !pNtdllBaseTag )
                 return false;
 
