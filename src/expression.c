@@ -3188,7 +3188,7 @@ Lagain:
 
             // Detect recursive initializers.
             // BUG: The check for speculative gagging is not correct
-            if (v->inuse && !global.isSpeculativeGagging())
+            if (v->inuse && !global.gag)
             {
                 e->error("circular initialization of %s", v->toChars());
                 return new ErrorExp();
@@ -13913,13 +13913,10 @@ Expression *resolveOpDollar(Scope *sc, ArrayExp *ae, Expression **pe0)
             fargs->push(ie->upr);
 
             unsigned xerrors = global.startGagging();
-            unsigned oldspec = global.speculativeGag;
-            global.speculativeGag = global.gag;
             sc = sc->push();
             sc->speculative = true;
             FuncDeclaration *fslice = resolveFuncCall(ae->loc, sc, slice, tiargs, ae->e1->type, fargs, 1);
             sc = sc->pop();
-            global.speculativeGag = oldspec;
             global.endGagging(xerrors);
             if (!fslice)
                 goto Lfallback;
