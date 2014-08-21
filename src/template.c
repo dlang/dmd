@@ -7073,7 +7073,7 @@ bool TemplateInstance::needsTypeInference(Scope *sc, int flag)
             dedtypes.setDim(td->parameters->dim);
             dedtypes.zero();
             assert(td->semanticRun != PASSinit);
-            MATCH m = td->matchWithInstance(sc, ti, &dedtypes, NULL, 1);
+            MATCH m = td->matchWithInstance(sc, ti, &dedtypes, NULL, 0);
             if (m <= MATCHnomatch)
                 return 0;
         }
