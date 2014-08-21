@@ -87,7 +87,7 @@ struct Scope
     int nofree;                 // set if shouldn't free it
     int noctor;                 // set if constructor calls aren't allowed
     int intypeof;               // in typeof(exp)
-    bool speculative;            // in __traits(compiles) or typeof(exp)
+    bool speculative;           // in __traits(compiles) and so on
     VarDeclaration *lastVar;    // Previous symbol used to prevent goto-skips-init
 
     unsigned callSuper;         // primitive flow analysis for constructors

@@ -309,7 +309,6 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
     Scope *sc2 = sc->push();
     sc2->stc = 0;
     sc2->linkage = LINKd;
-    sc2->speculative = true;
 
     fop->semantic(sc2);
     fop->semantic2(sc2);

@@ -1186,9 +1186,18 @@ void TemplateInstance::toObjFile(bool multiobj)
 #endif
     if (!isError(this) && members)
     {
+        if (!needsCodegen())
+        {
+            //printf("-speculative (%p, %s)\n", this, toPrettyChars());
+            return;
+        }
+        //printf("TemplateInstance::toObjFile('%s', this = %p)\n", toChars(), this);
+
         if (multiobj)
+        {
             // Append to list of object files to be written later
             obj_append(this);
+        }
         else
         {
             for (size_t i = 0; i < members->dim; i++)
@@ -1205,7 +1214,14 @@ void TemplateInstance::toObjFile(bool multiobj)
 void TemplateMixin::toObjFile(bool multiobj)
 {
     //printf("TemplateMixin::toObjFile('%s')\n", toChars());
-    TemplateInstance::toObjFile(0);
+    if (!isError(this) && members)
+    {
+        for (size_t i = 0; i < members->dim; i++)
+        {
+            Dsymbol *s = (*members)[i];
+            s->toObjFile(multiobj);
+        }
+    }
 }
 
 /* ================================================================== */

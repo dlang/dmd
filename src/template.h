@@ -322,13 +322,16 @@ public:
     int nest;                           // for recursion detection
     bool semantictiargsdone;            // has semanticTiargs() been done?
     bool havetempdecl;                  // if used second constructor
+    bool gagged;                        // if the instantiation is done with error gagging
     hash_t hash;                        // cached result of hashCode()
     Expressions *fargs;                 // for function template, these are the function arguments
 
     TemplateInstances* deferred;
 
+    // Used to determine the instance needs code generation.
+    // Note that these are inaccurate until semantic analysis phase completed.
     Module *instantiatingModule;        // the top module that instantiated this instance
-    bool speculative;                   // if only instantiated with errors gagged
+    bool speculative;                   // if the instantiation is speculative
 
     TemplateInstance(Loc loc, Identifier *temp_id);
     TemplateInstance(Loc loc, TemplateDeclaration *tempdecl, Objects *tiargs);
@@ -348,6 +351,7 @@ public:
     int compare(RootObject *o);
     hash_t hashCode();
 
+    bool needsCodegen();
     void toObjFile(bool multiobj);                       // compile to .obj file
 
     // Internal

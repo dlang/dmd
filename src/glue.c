@@ -800,8 +800,15 @@ void FuncDeclaration::toObjFile(bool multiobj)
     assert(semanticRun == PASSsemantic3done);
     assert(ident != Id::empty);
 
-    if (!needsCodegen())
-        return;
+    for (FuncDeclaration *fd = this; fd; )
+    {
+        if (!fd->isInstantiated() && fd->inNonRoot())
+            return;
+        if (fd->isNested())
+            fd = fd->toParent2()->isFuncDeclaration();
+        else
+            break;
+    }
 
     FuncDeclaration *fdp = toParent2()->isFuncDeclaration();
     if (isNested())
