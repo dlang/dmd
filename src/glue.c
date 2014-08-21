@@ -495,6 +495,8 @@ void Module::genobjfile(bool multiobj)
 
 void Module::genhelpers(bool iscomdat)
 {
+    if (global.params.betterC)
+        return;
 
     // If module assert
     for (int i = 0; i < 3; i++)
