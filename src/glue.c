@@ -743,23 +743,22 @@ int isDruntimeArrayOp(Identifier *ident)
 
 void FuncDeclaration::toObjFile(bool multiobj)
 {
-    FuncDeclaration *func = this;
-    ClassDeclaration *cd = func->parent->isClassDeclaration();
+    ClassDeclaration *cd = parent->isClassDeclaration();
     int reverse;
 
-    //printf("FuncDeclaration::toObjFile(%p, %s.%s)\n", func, parent->toChars(), func->toChars());
+    //printf("FuncDeclaration::toObjFile(%p, %s.%s)\n", this, parent->toChars(), toChars());
 
-    //if (type) printf("type = %s\n", func->type->toChars());
+    //if (type) printf("type = %s\n", type->toChars());
 #if 0
-    //printf("line = %d\n",func->getWhere() / LINEINC);
+    //printf("line = %d\n", getWhere() / LINEINC);
     EEcontext *ee = env->getEEcontext();
     if (ee->EEcompile == 2)
     {
-        if (ee->EElinnum < (func->getWhere() / LINEINC) ||
-            ee->EElinnum > (func->endwhere / LINEINC)
+        if (ee->EElinnum < (getWhere() / LINEINC) ||
+            ee->EElinnum > (endwhere / LINEINC)
            )
             return;             // don't compile this function
-        ee->EEfunc = toSymbol(func);
+        ee->EEfunc = toSymbol(this);
     }
 #endif
 
@@ -776,10 +775,10 @@ void FuncDeclaration::toObjFile(bool multiobj)
     if (global.errors)
         return;
 
-    if (!func->fbody)
+    if (!fbody)
         return;
 
-    UnitTestDeclaration *ud = func->isUnitTestDeclaration();
+    UnitTestDeclaration *ud = isUnitTestDeclaration();
     if (ud && !global.params.useUnitTests)
         return;
 
@@ -804,7 +803,7 @@ void FuncDeclaration::toObjFile(bool multiobj)
     if (!needsCodegen())
         return;
 
-    FuncDeclaration *fdp = func->toParent2()->isFuncDeclaration();
+    FuncDeclaration *fdp = toParent2()->isFuncDeclaration();
     if (isNested())
     {
         if (fdp && fdp->semanticRun < PASSobj)
@@ -817,7 +816,7 @@ void FuncDeclaration::toObjFile(bool multiobj)
              */
             if (UnitTestDeclaration *udp = fdp->isUnitTestDeclaration())
             {
-                udp->deferredNested.push(func);
+                udp->deferredNested.push(this);
                 return;
             }
         }
@@ -833,13 +832,13 @@ void FuncDeclaration::toObjFile(bool multiobj)
     semanticRun = PASSobj;
 
     if (global.params.verbose)
-        fprintf(global.stdmsg, "function  %s\n",func->toPrettyChars());
+        fprintf(global.stdmsg, "function  %s\n", toPrettyChars());
 
-    Symbol *s = toSymbol(func);
+    Symbol *s = toSymbol(this);
     func_t *f = s->Sfunc;
 
     // tunnel type of "this" to debug info generation
-    if (AggregateDeclaration* ad = func->parent->isAggregateDeclaration())
+    if (AggregateDeclaration* ad = parent->isAggregateDeclaration())
     {
         ::type* t = Type_toCtype(ad->getType());
         if(cd)
@@ -897,7 +896,7 @@ void FuncDeclaration::toObjFile(bool multiobj)
                                 : global.params.defaultlibname;
 
         // Pull in RTL startup code (but only once)
-        if (func->isMain() && onlyOneMain(loc))
+        if (isMain() && onlyOneMain(loc))
         {
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
             objmod->external_def("_main");
@@ -935,7 +934,7 @@ void FuncDeclaration::toObjFile(bool multiobj)
             s->Sclass = SCglobal;
         }
 #if TARGET_WINDOS
-        else if (func->isWinMain() && onlyOneMain(loc))
+        else if (isWinMain() && onlyOneMain(loc))
         {
             if (global.params.mscoff)
             {
@@ -953,7 +952,7 @@ void FuncDeclaration::toObjFile(bool multiobj)
         }
 
         // Pull in RTL startup code
-        else if (func->isDllMain() && onlyOneMain(loc))
+        else if (isDllMain() && onlyOneMain(loc))
         {
             if (global.params.mscoff)
             {
@@ -984,7 +983,7 @@ void FuncDeclaration::toObjFile(bool multiobj)
             break;
     }
 
-    IRState irs(m, func);
+    IRState irs(m, this);
     Dsymbols deferToObj;                   // write these to OBJ file later
     irs.deferToObj = &deferToObj;
 
@@ -998,8 +997,8 @@ void FuncDeclaration::toObjFile(bool multiobj)
     //printf("linkage = %d, tyf = x%x\n", linkage, tyf);
     reverse = tyrevfunc(s->Stype->Tty);
 
-    assert(func->type->ty == Tfunction);
-    tf = (TypeFunction *)(func->type);
+    assert(type->ty == Tfunction);
+    tf = (TypeFunction *)(type);
     retmethod = retStyle(tf);
     if (retmethod == RETstack)
     {
@@ -1012,7 +1011,7 @@ void FuncDeclaration::toObjFile(bool multiobj)
         sprintf(hiddenparam,"__HID%d",++hiddenparami);
         shidden = symbol_name(hiddenparam,SCparameter,thidden);
         shidden->Sflags |= SFLtrue | SFLfree;
-        if (func->nrvo_can && func->nrvo_var && func->nrvo_var->nestedrefs.dim)
+        if (nrvo_can && nrvo_var && nrvo_var->nestedrefs.dim)
             type_setcv(&shidden->Stype, shidden->Stype->Tty | mTYvolatile);
         irs.shidden = shidden;
         this->shidden = shidden;
@@ -1145,11 +1144,11 @@ void FuncDeclaration::toObjFile(bool multiobj)
         free(params);
     params = NULL;
 
-    if (func->fbody)
+    if (fbody)
     {
         localgot = NULL;
 
-        Statement *sbody = func->fbody;
+        Statement *sbody = fbody;
 
         Blockx bx;
         memset(&bx,0,sizeof(bx));
@@ -1158,7 +1157,7 @@ void FuncDeclaration::toObjFile(bool multiobj)
         bx.funcsym = s;
         bx.scope_index = -1;
         bx.classdec = cd;
-        bx.member = func;
+        bx.member = this;
         bx.module = getModule();
         irs.blx = &bx;
 
@@ -1204,8 +1203,8 @@ void FuncDeclaration::toObjFile(bool multiobj)
         buildClosure(this, &irs);
 
 #if TARGET_WINDOS
-        if (func->isSynchronized() && cd && config.flags2 & CFG2seh &&
-            !func->isStatic() && !sbody->usesEH() && !global.params.trace)
+        if (isSynchronized() && cd && config.flags2 & CFG2seh &&
+            !isStatic() && !sbody->usesEH() && !global.params.trace)
         {
             /* The "jmonitor" hack uses an optimized exception handling frame
              * which is a little shorter than the more general EH frame.
