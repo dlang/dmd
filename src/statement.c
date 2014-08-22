@@ -4775,14 +4775,15 @@ Statement *GotoStatement::syntaxCopy()
 
 Statement *GotoStatement::semantic(Scope *sc)
 {
-    FuncDeclaration *fd = sc->func;
     //printf("GotoStatement::semantic()\n");
-    ident = fixupLabelName(sc, ident);
+    FuncDeclaration *fd = sc->func;
 
-    this->lastVar = sc->lastVar;
+    ident = fixupLabelName(sc, ident);
+    label = fd->searchLabel(ident);
     tf = sc->tf;
     os = sc->os;
-    label = fd->searchLabel(ident);
+    lastVar = sc->lastVar;
+
     if (!label->statement && sc->fes)
     {
         /* Either the goto label is forward referenced or it
@@ -4886,11 +4887,13 @@ Statement *LabelStatement::syntaxCopy()
 
 Statement *LabelStatement::semantic(Scope *sc)
 {
+    //printf("LabelStatement::semantic()\n");
     FuncDeclaration *fd = sc->parent->isFuncDeclaration();
 
-    this->lastVar = sc->lastVar;
-    //printf("LabelStatement::semantic()\n");
     ident = fixupLabelName(sc, ident);
+    tf = sc->tf;
+    os = sc->os;
+    lastVar = sc->lastVar;
 
     LabelDsymbol *ls = fd->searchLabel(ident);
     if (ls->statement)
@@ -4900,8 +4903,7 @@ Statement *LabelStatement::semantic(Scope *sc)
     }
     else
         ls->statement = this;
-    tf = sc->tf;
-    os = sc->os;
+
     sc = sc->push();
     sc->scopesym = sc->enclosing->scopesym;
     sc->callSuper |= CSXlabel;
@@ -4915,6 +4917,7 @@ Statement *LabelStatement::semantic(Scope *sc)
     if (statement)
         statement = statement->semantic(sc);
     sc->pop();
+
     return this;
 }
 
