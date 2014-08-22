@@ -240,16 +240,16 @@ void myvprintf(const char* format, va_list va)
 class C13161
 {
 public:
-	virtual void dummyfunc() {}
-	long long val_5;
-	unsigned val_9;
+        virtual void dummyfunc() {}
+        long long val_5;
+        unsigned val_9;
 };
 
 class Test : public C13161
 {
 public:
-	unsigned val_0;
-	long long val_1;
+        unsigned val_0;
+        long long val_1;
 };
 
 size_t getoffset13161()
@@ -261,15 +261,15 @@ size_t getoffset13161()
 class C13161a
 {
 public:
-	virtual void dummyfunc() {}
-	long double val_5;
-	unsigned val_9;
+        virtual void dummyfunc() {}
+        long double val_5;
+        unsigned val_9;
 };
 
 class Testa : public C13161a
 {
 public:
-	bool val_0;
+        bool val_0;
 };
 
 size_t getoffset13161a()
@@ -277,3 +277,11 @@ size_t getoffset13161a()
     Testa s;
     return (char *)&s.val_0 - (char *)&s;
 }
+
+/****************************************************/
+
+#if __linux__ || __APPLE__ || __FreeBSD__
+#include <vector>
+// _Z5foo14PSt6vectorIiSaIiEE
+void foo14(std::vector<int, std::allocator<int> > *p) { }
+#endif
