@@ -681,7 +681,6 @@ public:
     TryFinallyStatement *tf;
     OnScopeStatement *os;
     VarDeclaration *lastVar;
-    FuncDeclaration *fd;
 
     GotoStatement(Loc loc, Identifier *ident);
     Statement *syntaxCopy();

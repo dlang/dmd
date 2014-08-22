@@ -4766,7 +4766,6 @@ GotoStatement::GotoStatement(Loc loc, Identifier *ident)
     this->tf = NULL;
     this->os = NULL;
     this->lastVar = NULL;
-    this->fd = NULL;
 }
 
 Statement *GotoStatement::syntaxCopy()
@@ -4781,7 +4780,6 @@ Statement *GotoStatement::semantic(Scope *sc)
     ident = fixupLabelName(sc, ident);
 
     this->lastVar = sc->lastVar;
-    this->fd = sc->func;
     tf = sc->tf;
     os = sc->os;
     label = fd->searchLabel(ident);
