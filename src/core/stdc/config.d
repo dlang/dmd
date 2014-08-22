@@ -39,13 +39,15 @@ else
 
 version( DigitalMars )
 {
-    version( X86 )
+    version( CRuntime_Microsoft )
+        alias double c_long_double;
+    else version( X86 )
+    {
         alias real c_long_double;
+    }
     else version( X86_64 )
     {
-        version( Windows )
-            alias double c_long_double;
-        else version( linux )
+        version( linux )
             alias real c_long_double;
         else version( FreeBSD )
             alias real c_long_double;
