@@ -4766,7 +4766,6 @@ GotoStatement::GotoStatement(Loc loc, Identifier *ident)
     this->tf = NULL;
     this->os = NULL;
     this->lastVar = NULL;
-    this->fd = NULL;
 }
 
 Statement *GotoStatement::syntaxCopy()
@@ -4776,15 +4775,15 @@ Statement *GotoStatement::syntaxCopy()
 
 Statement *GotoStatement::semantic(Scope *sc)
 {
-    FuncDeclaration *fd = sc->func;
     //printf("GotoStatement::semantic()\n");
-    ident = fixupLabelName(sc, ident);
+    FuncDeclaration *fd = sc->func;
 
-    this->lastVar = sc->lastVar;
-    this->fd = sc->func;
+    ident = fixupLabelName(sc, ident);
+    label = fd->searchLabel(ident);
     tf = sc->tf;
     os = sc->os;
-    label = fd->searchLabel(ident);
+    lastVar = sc->lastVar;
+
     if (!label->statement && sc->fes)
     {
         /* Either the goto label is forward referenced or it
@@ -4875,8 +4874,8 @@ LabelStatement::LabelStatement(Loc loc, Identifier *ident, Statement *statement)
     this->statement = statement;
     this->tf = NULL;
     this->os = NULL;
-    this->gotoTarget = NULL;
     this->lastVar = NULL;
+    this->gotoTarget = NULL;
     this->lblock = NULL;
     this->fwdrefs = NULL;
 }
@@ -4888,11 +4887,13 @@ Statement *LabelStatement::syntaxCopy()
 
 Statement *LabelStatement::semantic(Scope *sc)
 {
+    //printf("LabelStatement::semantic()\n");
     FuncDeclaration *fd = sc->parent->isFuncDeclaration();
 
-    this->lastVar = sc->lastVar;
-    //printf("LabelStatement::semantic()\n");
     ident = fixupLabelName(sc, ident);
+    tf = sc->tf;
+    os = sc->os;
+    lastVar = sc->lastVar;
 
     LabelDsymbol *ls = fd->searchLabel(ident);
     if (ls->statement)
@@ -4902,8 +4903,7 @@ Statement *LabelStatement::semantic(Scope *sc)
     }
     else
         ls->statement = this;
-    tf = sc->tf;
-    os = sc->os;
+
     sc = sc->push();
     sc->scopesym = sc->enclosing->scopesym;
     sc->callSuper |= CSXlabel;
@@ -4917,6 +4917,7 @@ Statement *LabelStatement::semantic(Scope *sc)
     if (statement)
         statement = statement->semantic(sc);
     sc->pop();
+
     return this;
 }
 
