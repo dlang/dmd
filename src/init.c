@@ -40,11 +40,7 @@ Initializers *Initializer::arraySyntaxCopy(Initializers *ai)
         a = new Initializers();
         a->setDim(ai->dim);
         for (size_t i = 0; i < a->dim; i++)
-        {
-            Initializer *e = (*ai)[i];
-            e = e->syntaxCopy();
-            (*a)[i] = e;
-        }
+            (*a)[i] = (*ai)[i]->syntaxCopy();
     }
     return a;
 }
@@ -126,17 +122,13 @@ StructInitializer::StructInitializer(Loc loc)
 Initializer *StructInitializer::syntaxCopy()
 {
     StructInitializer *ai = new StructInitializer(loc);
-
     assert(field.dim == value.dim);
     ai->field.setDim(field.dim);
     ai->value.setDim(value.dim);
     for (size_t i = 0; i < field.dim; i++)
     {
         ai->field[i] = field[i];
-
-        Initializer *iz = value[i];
-        iz = iz->syntaxCopy();
-        ai->value[i] = iz;
+        ai->value[i] = value[i]->syntaxCopy();
     }
     return ai;
 }
@@ -308,22 +300,14 @@ ArrayInitializer::ArrayInitializer(Loc loc)
 Initializer *ArrayInitializer::syntaxCopy()
 {
     //printf("ArrayInitializer::syntaxCopy()\n");
-
     ArrayInitializer *ai = new ArrayInitializer(loc);
-
     assert(index.dim == value.dim);
     ai->index.setDim(index.dim);
     ai->value.setDim(value.dim);
     for (size_t i = 0; i < ai->value.dim; i++)
     {
-        Expression *e = index[i];
-        if (e)
-            e = e->syntaxCopy();
-        ai->index[i] = e;
-
-        Initializer *iz = value[i];
-        iz = iz->syntaxCopy();
-        ai->value[i] = iz;
+        ai->index[i] = index[i] ? index[i]->syntaxCopy() : NULL;
+        ai->value[i] = value[i]->syntaxCopy();
     }
     return ai;
 }

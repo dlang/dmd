@@ -640,14 +640,10 @@ StructDeclaration::StructDeclaration(Loc loc, Identifier *id)
 
 Dsymbol *StructDeclaration::syntaxCopy(Dsymbol *s)
 {
-    StructDeclaration *sd;
-
-    if (s)
-        sd = (StructDeclaration *)s;
-    else
-        sd = new StructDeclaration(loc, ident);
-    ScopeDsymbol::syntaxCopy(sd);
-    return sd;
+    StructDeclaration *sd =
+        s ? (StructDeclaration *)s
+          : new StructDeclaration(loc, ident);
+    return ScopeDsymbol::syntaxCopy(sd);
 }
 
 void StructDeclaration::semantic(Scope *sc)
@@ -1234,16 +1230,10 @@ UnionDeclaration::UnionDeclaration(Loc loc, Identifier *id)
 
 Dsymbol *UnionDeclaration::syntaxCopy(Dsymbol *s)
 {
-    UnionDeclaration *ud;
-
-    if (s)
-        ud = (UnionDeclaration *)s;
-    else
-        ud = new UnionDeclaration(loc, ident);
-    StructDeclaration::syntaxCopy(ud);
-    return ud;
+    assert(!s);
+    UnionDeclaration *ud = new UnionDeclaration(loc, ident);
+    return StructDeclaration::syntaxCopy(ud);
 }
-
 
 const char *UnionDeclaration::kind()
 {

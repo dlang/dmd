@@ -30,8 +30,7 @@ Nspace::Nspace(Loc loc, Identifier *ident, Dsymbols *members)
 Dsymbol *Nspace::syntaxCopy(Dsymbol *s)
 {
     Nspace *ns = new Nspace(loc, ident, NULL);
-    ScopeDsymbol::syntaxCopy(ns);
-    return ns;
+    return ScopeDsymbol::syntaxCopy(ns);
 }
 
 void Nspace::semantic(Scope *sc)

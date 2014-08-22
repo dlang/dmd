@@ -801,9 +801,7 @@ ExpStatement *ExpStatement::create(Loc loc, Expression *exp)
 
 Statement *ExpStatement::syntaxCopy()
 {
-    Expression *e = exp ? exp->syntaxCopy() : NULL;
-    ExpStatement *es = new ExpStatement(loc, e);
-    return es;
+    return new ExpStatement(loc, exp ? exp->syntaxCopy() : NULL);
 }
 
 Statement *ExpStatement::semantic(Scope *sc)
@@ -900,9 +898,7 @@ DtorExpStatement::DtorExpStatement(Loc loc, Expression *exp, VarDeclaration *v)
 
 Statement *DtorExpStatement::syntaxCopy()
 {
-    Expression *e = exp ? exp->syntaxCopy() : NULL;
-    DtorExpStatement *es = new DtorExpStatement(loc, e, var);
-    return es;
+    return new DtorExpStatement(loc, exp ? exp->syntaxCopy() : NULL, var);
 }
 
 /******************************** CompileStatement ***************************/
@@ -915,9 +911,7 @@ CompileStatement::CompileStatement(Loc loc, Expression *exp)
 
 Statement *CompileStatement::syntaxCopy()
 {
-    Expression *e = exp->syntaxCopy();
-    CompileStatement *es = new CompileStatement(loc, e);
-    return es;
+    return new CompileStatement(loc, exp->syntaxCopy());
 }
 
 Statements *CompileStatement::flatten(Scope *sc)
@@ -1001,15 +995,12 @@ Statement *CompoundStatement::syntaxCopy()
     Statements *a = new Statements();
     a->setDim(statements->dim);
     for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s = (*statements)[i];
-        if (s)
-            s = s->syntaxCopy();
-        (*a)[i] = s;
+    {
+        Statement *s = (*statements)[i];
+        (*a)[i] = s ? s->syntaxCopy() : NULL;
     }
-    CompoundStatement *cs = new CompoundStatement(loc, a);
-    return cs;
+    return new CompoundStatement(loc, a);
 }
-
 
 Statement *CompoundStatement::semantic(Scope *sc)
 {
@@ -1220,13 +1211,11 @@ Statement *CompoundDeclarationStatement::syntaxCopy()
     Statements *a = new Statements();
     a->setDim(statements->dim);
     for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s = (*statements)[i];
-        if (s)
-            s = s->syntaxCopy();
-        (*a)[i] = s;
+    {
+        Statement *s = (*statements)[i];
+        (*a)[i] = s ? s->syntaxCopy() : NULL;
     }
-    CompoundDeclarationStatement *cs = new CompoundDeclarationStatement(loc, a);
-    return cs;
+    return new CompoundDeclarationStatement(loc, a);
 }
 
 /**************************** UnrolledLoopStatement ***************************/
@@ -1242,15 +1231,12 @@ Statement *UnrolledLoopStatement::syntaxCopy()
     Statements *a = new Statements();
     a->setDim(statements->dim);
     for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s = (*statements)[i];
-        if (s)
-            s = s->syntaxCopy();
-        (*a)[i] = s;
+    {
+        Statement *s = (*statements)[i];
+        (*a)[i] = s ? s->syntaxCopy() : NULL;
     }
-    UnrolledLoopStatement *cs = new UnrolledLoopStatement(loc, a);
-    return cs;
+    return new UnrolledLoopStatement(loc, a);
 }
-
 
 Statement *UnrolledLoopStatement::semantic(Scope *sc)
 {
@@ -1298,11 +1284,7 @@ ScopeStatement::ScopeStatement(Loc loc, Statement *s)
 
 Statement *ScopeStatement::syntaxCopy()
 {
-    Statement *s;
-
-    s = statement ? statement->syntaxCopy() : NULL;
-    s = new ScopeStatement(loc, s);
-    return s;
+    return new ScopeStatement(loc, statement ? statement->syntaxCopy() : NULL);
 }
 
 ReturnStatement *ScopeStatement::isReturnStatement()
@@ -1379,10 +1361,10 @@ WhileStatement::WhileStatement(Loc loc, Expression *c, Statement *b)
 
 Statement *WhileStatement::syntaxCopy()
 {
-    WhileStatement *s = new WhileStatement(loc, condition->syntaxCopy(), body ? body->syntaxCopy() : NULL);
-    return s;
+    return new WhileStatement(loc,
+        condition->syntaxCopy(),
+        body ? body->syntaxCopy() : NULL);
 }
-
 
 Statement *WhileStatement::semantic(Scope *sc)
 {
@@ -1415,10 +1397,10 @@ DoStatement::DoStatement(Loc loc, Statement *b, Expression *c)
 
 Statement *DoStatement::syntaxCopy()
 {
-    DoStatement *s = new DoStatement(loc, body ? body->syntaxCopy() : NULL, condition->syntaxCopy());
-    return s;
+    return new DoStatement(loc,
+        body ? body->syntaxCopy() : NULL,
+        condition->syntaxCopy());
 }
-
 
 Statement *DoStatement::semantic(Scope *sc)
 {
@@ -1466,17 +1448,11 @@ ForStatement::ForStatement(Loc loc, Statement *init, Expression *condition, Expr
 
 Statement *ForStatement::syntaxCopy()
 {
-    Statement *i = NULL;
-    if (init)
-        i = init->syntaxCopy();
-    Expression *c = NULL;
-    if (condition)
-        c = condition->syntaxCopy();
-    Expression *inc = NULL;
-    if (increment)
-        inc = increment->syntaxCopy();
-    ForStatement *s = new ForStatement(loc, i, c, inc, body->syntaxCopy());
-    return s;
+    return new ForStatement(loc,
+        init ? init->syntaxCopy() : NULL,
+        condition ? condition->syntaxCopy() : NULL,
+        increment ? increment->syntaxCopy() : NULL,
+        body->syntaxCopy());
 }
 
 Statement *ForStatement::semantic(Scope *sc)
@@ -1591,11 +1567,10 @@ ForeachStatement::ForeachStatement(Loc loc, TOK op, Parameters *arguments,
 
 Statement *ForeachStatement::syntaxCopy()
 {
-    Parameters *args = Parameter::arraySyntaxCopy(arguments);
-    Expression *exp = aggr->syntaxCopy();
-    ForeachStatement *s = new ForeachStatement(loc, op, args, exp,
+    return new ForeachStatement(loc, op,
+        Parameter::arraySyntaxCopy(arguments),
+        aggr->syntaxCopy(),
         body ? body->syntaxCopy() : NULL);
-    return s;
 }
 
 Statement *ForeachStatement::semantic(Scope *sc)
@@ -2588,12 +2563,11 @@ ForeachRangeStatement::ForeachRangeStatement(Loc loc, TOK op, Parameter *arg,
 
 Statement *ForeachRangeStatement::syntaxCopy()
 {
-    ForeachRangeStatement *s = new ForeachRangeStatement(loc, op,
+    return new ForeachRangeStatement(loc, op,
         arg->syntaxCopy(),
         lwr->syntaxCopy(),
         upr->syntaxCopy(),
         body ? body->syntaxCopy() : NULL);
-    return s;
 }
 
 Statement *ForeachRangeStatement::semantic(Scope *sc)
@@ -2803,17 +2777,11 @@ IfStatement::IfStatement(Loc loc, Parameter *arg, Expression *condition, Stateme
 
 Statement *IfStatement::syntaxCopy()
 {
-    Statement *i = NULL;
-    if (ifbody)
-        i = ifbody->syntaxCopy();
-
-    Statement *e = NULL;
-    if (elsebody)
-        e = elsebody->syntaxCopy();
-
-    Parameter *a = arg ? arg->syntaxCopy() : NULL;
-    IfStatement *s = new IfStatement(loc, a, condition->syntaxCopy(), i, e);
-    return s;
+    return new IfStatement(loc,
+        arg ? arg->syntaxCopy() : NULL,
+        condition->syntaxCopy(),
+        ifbody ? ifbody->syntaxCopy() : NULL,
+        elsebody ? elsebody->syntaxCopy() : NULL);
 }
 
 Statement *IfStatement::semantic(Scope *sc)
@@ -2900,12 +2868,10 @@ ConditionalStatement::ConditionalStatement(Loc loc, Condition *condition, Statem
 
 Statement *ConditionalStatement::syntaxCopy()
 {
-    Statement *e = NULL;
-    if (elsebody)
-        e = elsebody->syntaxCopy();
-    ConditionalStatement *s = new ConditionalStatement(loc,
-                condition->syntaxCopy(), ifbody->syntaxCopy(), e);
-    return s;
+    return new ConditionalStatement(loc,
+        condition->syntaxCopy(),
+        ifbody->syntaxCopy(),
+        elsebody ? elsebody->syntaxCopy() : NULL);
 }
 
 Statement *ConditionalStatement::semantic(Scope *sc)
@@ -2970,16 +2936,14 @@ PragmaStatement::PragmaStatement(Loc loc, Identifier *ident, Expressions *args, 
 
 Statement *PragmaStatement::syntaxCopy()
 {
-    Statement *b = NULL;
-    if (body)
-        b = body->syntaxCopy();
-    PragmaStatement *s = new PragmaStatement(loc,
-                ident, Expression::arraySyntaxCopy(args), b);
-    return s;
+    return new PragmaStatement(loc, ident,
+        Expression::arraySyntaxCopy(args),
+        body ? body->syntaxCopy() : NULL);
 }
 
 Statement *PragmaStatement::semantic(Scope *sc)
-{   // Should be merged with PragmaDeclaration
+{
+    // Should be merged with PragmaDeclaration
     //printf("PragmaStatement::semantic() %s\n", toChars());
     //printf("body = %p\n", body);
     if (ident == Id::msg)
@@ -3091,8 +3055,7 @@ StaticAssertStatement::StaticAssertStatement(StaticAssert *sa)
 
 Statement *StaticAssertStatement::syntaxCopy()
 {
-    StaticAssertStatement *s = new StaticAssertStatement((StaticAssert *)sa->syntaxCopy(NULL));
-    return s;
+    return new StaticAssertStatement((StaticAssert *)sa->syntaxCopy(NULL));
 }
 
 Statement *StaticAssertStatement::semantic(Scope *sc)
@@ -3118,10 +3081,10 @@ SwitchStatement::SwitchStatement(Loc loc, Expression *c, Statement *b, bool isFi
 
 Statement *SwitchStatement::syntaxCopy()
 {
-    //printf("SwitchStatement::syntaxCopy(%p)\n", this);
-    SwitchStatement *s = new SwitchStatement(loc,
-        condition->syntaxCopy(), body->syntaxCopy(), isFinal);
-    return s;
+    return new SwitchStatement(loc,
+        condition->syntaxCopy(),
+        body->syntaxCopy(),
+        isFinal);
 }
 
 Statement *SwitchStatement::semantic(Scope *sc)
@@ -3284,8 +3247,9 @@ CaseStatement::CaseStatement(Loc loc, Expression *exp, Statement *s)
 
 Statement *CaseStatement::syntaxCopy()
 {
-    CaseStatement *s = new CaseStatement(loc, exp->syntaxCopy(), statement->syntaxCopy());
-    return s;
+    return new CaseStatement(loc,
+        exp->syntaxCopy(),
+        statement->syntaxCopy());
 }
 
 Statement *CaseStatement::semantic(Scope *sc)
@@ -3386,9 +3350,10 @@ CaseRangeStatement::CaseRangeStatement(Loc loc, Expression *first,
 
 Statement *CaseRangeStatement::syntaxCopy()
 {
-    CaseRangeStatement *s = new CaseRangeStatement(loc,
-        first->syntaxCopy(), last->syntaxCopy(), statement->syntaxCopy());
-    return s;
+    return new CaseRangeStatement(loc,
+        first->syntaxCopy(),
+        last->syntaxCopy(),
+        statement->syntaxCopy());
 }
 
 Statement *CaseRangeStatement::semantic(Scope *sc)
@@ -3476,8 +3441,7 @@ DefaultStatement::DefaultStatement(Loc loc, Statement *s)
 
 Statement *DefaultStatement::syntaxCopy()
 {
-    DefaultStatement *s = new DefaultStatement(loc, statement->syntaxCopy());
-    return s;
+    return new DefaultStatement(loc, statement->syntaxCopy());
 }
 
 Statement *DefaultStatement::semantic(Scope *sc)
@@ -3513,8 +3477,7 @@ GotoDefaultStatement::GotoDefaultStatement(Loc loc)
 
 Statement *GotoDefaultStatement::syntaxCopy()
 {
-    GotoDefaultStatement *s = new GotoDefaultStatement(loc);
-    return s;
+    return new GotoDefaultStatement(loc);
 }
 
 Statement *GotoDefaultStatement::semantic(Scope *sc)
@@ -3536,9 +3499,7 @@ GotoCaseStatement::GotoCaseStatement(Loc loc, Expression *exp)
 
 Statement *GotoCaseStatement::syntaxCopy()
 {
-    Expression *e = exp ? exp->syntaxCopy() : NULL;
-    GotoCaseStatement *s = new GotoCaseStatement(loc, e);
-    return s;
+    return new GotoCaseStatement(loc, exp ? exp->syntaxCopy() : NULL);
 }
 
 Statement *GotoCaseStatement::semantic(Scope *sc)
@@ -3578,11 +3539,7 @@ ReturnStatement::ReturnStatement(Loc loc, Expression *exp)
 
 Statement *ReturnStatement::syntaxCopy()
 {
-    Expression *e = NULL;
-    if (exp)
-        e = exp->syntaxCopy();
-    ReturnStatement *s = new ReturnStatement(loc, e);
-    return s;
+    return new ReturnStatement(loc, exp ? exp->syntaxCopy() : NULL);
 }
 
 Statement *ReturnStatement::semantic(Scope *sc)
@@ -3963,8 +3920,7 @@ BreakStatement::BreakStatement(Loc loc, Identifier *ident)
 
 Statement *BreakStatement::syntaxCopy()
 {
-    BreakStatement *s = new BreakStatement(loc, ident);
-    return s;
+    return new BreakStatement(loc, ident);
 }
 
 Statement *BreakStatement::semantic(Scope *sc)
@@ -4044,8 +4000,7 @@ ContinueStatement::ContinueStatement(Loc loc, Identifier *ident)
 
 Statement *ContinueStatement::syntaxCopy()
 {
-    ContinueStatement *s = new ContinueStatement(loc, ident);
-    return s;
+    return new ContinueStatement(loc, ident);
 }
 
 Statement *ContinueStatement::semantic(Scope *sc)
@@ -4137,9 +4092,9 @@ SynchronizedStatement::SynchronizedStatement(Loc loc, Expression *exp, Statement
 
 Statement *SynchronizedStatement::syntaxCopy()
 {
-    Expression *e = exp ? exp->syntaxCopy() : NULL;
-    SynchronizedStatement *s = new SynchronizedStatement(loc, e, body ? body->syntaxCopy() : NULL);
-    return s;
+    return new SynchronizedStatement(loc,
+        exp ? exp->syntaxCopy() : NULL,
+        body ? body->syntaxCopy() : NULL);
 }
 
 Statement *SynchronizedStatement::semantic(Scope *sc)
@@ -4283,12 +4238,14 @@ WithStatement::WithStatement(Loc loc, Expression *exp, Statement *body)
 
 Statement *WithStatement::syntaxCopy()
 {
-    WithStatement *s = new WithStatement(loc, exp->syntaxCopy(), body ? body->syntaxCopy() : NULL);
-    return s;
+    return new WithStatement(loc,
+        exp->syntaxCopy(),
+        body ? body->syntaxCopy() : NULL);
 }
 
 Statement *WithStatement::semantic(Scope *sc)
-{   ScopeDsymbol *sym;
+{
+    ScopeDsymbol *sym;
     Initializer *init;
 
     //printf("WithStatement::semantic()\n");
@@ -4404,11 +4361,9 @@ Statement *TryCatchStatement::syntaxCopy()
     for (size_t i = 0; i < a->dim; i++)
     {
         Catch *c = (*catches)[i];
-        c = c->syntaxCopy();
-        (*a)[i] = c;
+        (*a)[i] = c->syntaxCopy();
     }
-    TryCatchStatement *s = new TryCatchStatement(loc, body->syntaxCopy(), a);
-    return s;
+    return new TryCatchStatement(loc, body->syntaxCopy(), a);
 }
 
 Statement *TryCatchStatement::semantic(Scope *sc)
@@ -4493,7 +4448,7 @@ Catch::Catch(Loc loc, Type *t, Identifier *id, Statement *handler)
 Catch *Catch::syntaxCopy()
 {
     Catch *c = new Catch(loc,
-        (type ? type->syntaxCopy() : NULL),
+        type ? type->syntaxCopy() : NULL,
         ident,
         (handler ? handler->syntaxCopy() : NULL));
     c->internalCatch = internalCatch;
@@ -4581,9 +4536,8 @@ TryFinallyStatement *TryFinallyStatement::create(Loc loc, Statement *body, State
 
 Statement *TryFinallyStatement::syntaxCopy()
 {
-    TryFinallyStatement *s = new TryFinallyStatement(loc,
+    return new TryFinallyStatement(loc,
         body->syntaxCopy(), finalbody->syntaxCopy());
-    return s;
 }
 
 Statement *TryFinallyStatement::semantic(Scope *sc)
@@ -4629,9 +4583,7 @@ OnScopeStatement::OnScopeStatement(Loc loc, TOK tok, Statement *statement)
 
 Statement *OnScopeStatement::syntaxCopy()
 {
-    OnScopeStatement *s = new OnScopeStatement(loc,
-        tok, statement->syntaxCopy());
-    return s;
+    return new OnScopeStatement(loc, tok, statement->syntaxCopy());
 }
 
 Statement *OnScopeStatement::semantic(Scope *sc)
@@ -4772,9 +4724,8 @@ DebugStatement::DebugStatement(Loc loc, Statement *statement)
 
 Statement *DebugStatement::syntaxCopy()
 {
-    DebugStatement *s = new DebugStatement(loc,
-                statement ? statement->syntaxCopy() : NULL);
-    return s;
+    return new DebugStatement(loc,
+        statement ? statement->syntaxCopy() : NULL);
 }
 
 Statement *DebugStatement::semantic(Scope *sc)
@@ -4820,8 +4771,7 @@ GotoStatement::GotoStatement(Loc loc, Identifier *ident)
 
 Statement *GotoStatement::syntaxCopy()
 {
-    GotoStatement *s = new GotoStatement(loc, ident);
-    return s;
+    return new GotoStatement(loc, ident);
 }
 
 Statement *GotoStatement::semantic(Scope *sc)
@@ -4933,8 +4883,7 @@ LabelStatement::LabelStatement(Loc loc, Identifier *ident, Statement *statement)
 
 Statement *LabelStatement::syntaxCopy()
 {
-    LabelStatement *s = new LabelStatement(loc, ident, statement ? statement->syntaxCopy() : NULL);
-    return s;
+    return new LabelStatement(loc, ident, statement ? statement->syntaxCopy() : NULL);
 }
 
 Statement *LabelStatement::semantic(Scope *sc)

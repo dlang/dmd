@@ -34,11 +34,8 @@ StaticAssert::StaticAssert(Loc loc, Expression *exp, Expression *msg)
 
 Dsymbol *StaticAssert::syntaxCopy(Dsymbol *s)
 {
-    StaticAssert *sa;
-
     assert(!s);
-    sa = new StaticAssert(loc, exp->syntaxCopy(), msg ? msg->syntaxCopy() : NULL);
-    return sa;
+    return new StaticAssert(loc, exp->syntaxCopy(), msg ? msg->syntaxCopy() : NULL);
 }
 
 int StaticAssert::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
