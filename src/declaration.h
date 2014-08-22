@@ -712,7 +712,6 @@ public:
 
     Symbol *toThunkSymbol(int offset);  // thunk version
     void toObjFile(bool multiobj);                       // compile to .obj file
-    bool needsCodegen();
 
     FuncDeclaration *isFuncDeclaration() { return this; }
 

@@ -56,6 +56,7 @@ void StaticAssert::semantic2(Scope *sc)
     //printf("StaticAssert::semantic2() %s\n", toChars());
     ScopeDsymbol *sds = new ScopeDsymbol();
     sc = sc->push(sds);
+    sc->speculative = true;
     sc->flags |= SCOPEstaticassert;
 
     sc = sc->startCTFE();

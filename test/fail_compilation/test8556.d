@@ -4,12 +4,12 @@ TEST_OUTPUT:
 fail_compilation/test8556.d(33): Error: circular initialization of isSliceable
 fail_compilation/test8556.d(34): Error: circular initialization of isSliceable
 fail_compilation/test8556.d(22): Error: template instance test8556.isSliceable!(Circle!(uint[])) error instantiating
-fail_compilation/test8556.d(27):        instantiated from here: Grab!(Circle!(uint[]))
-fail_compilation/test8556.d(58):        instantiated from here: grab!(Circle!(uint[]))
 fail_compilation/test8556.d(27):        while looking for match for Grab!(Circle!(uint[]))
+fail_compilation/test8556.d(58): Error: template instance test8556.grab!(Circle!(uint[])) error instantiating
 fail_compilation/test8556.d(61): Error: Circle!(uint[]) cannot be sliced with []
 ---
 */
+
 
 extern(C) int printf(const char*, ...);
 

@@ -316,20 +316,24 @@ public:
     Objects tdtypes;
 
     Dsymbol *tempdecl;                  // referenced by foo.bar.abc
+    Dsymbol *enclosing;                 // if referencing local symbols, this is the context
+    Dsymbol *aliasdecl;                 // !=NULL if instance is an alias for its sole member
     TemplateInstance *inst;             // refer to existing instance
     TemplateInstance *tinst;            // enclosing template instance
     ScopeDsymbol *argsym;               // argument symbol table
-    Dsymbol *aliasdecl;                 // !=NULL if instance is an alias for its sole member
     int nest;                           // for recursion detection
     bool semantictiargsdone;            // has semanticTiargs() been done?
     bool havetempdecl;                  // if used second constructor
-    bool speculative;                   // if only instantiated with errors gagged
-    Dsymbol *enclosing;                 // if referencing local symbols, this is the context
+    bool gagged;                        // if the instantiation is done with error gagging
     hash_t hash;                        // cached result of hashCode()
     Expressions *fargs;                 // for function template, these are the function arguments
-    Module *instantiatingModule;        // the top module that instantiated this instance
 
     TemplateInstances* deferred;
+
+    // Used to determine the instance needs code generation.
+    // Note that these are inaccurate until semantic analysis phase completed.
+    Module *instantiatingModule;        // the top module that instantiated this instance
+    bool speculative;                   // if the instantiation is speculative
 
     TemplateInstance(Loc loc, Identifier *temp_id);
     TemplateInstance(Loc loc, TemplateDeclaration *tempdecl, Objects *tiargs);
@@ -351,6 +355,7 @@ public:
     int compare(RootObject *o);
     hash_t hashCode();
 
+    bool needsCodegen();
     void toObjFile(bool multiobj);                       // compile to .obj file
 
     // Internal

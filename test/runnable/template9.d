@@ -3960,6 +3960,37 @@ static assert(is(typeof(TypeTuple13252!(const     S13252())[0]) ==     const(S13
 static assert(is(typeof(TypeTuple13252!(immutable S13252())[0]) == immutable(S13252)));     // OK <- NG
 
 /******************************************/
+// 13299
+
+struct Foo13299
+{
+    Foo13299 opDispatch(string name)(int a, int[] b...)
+    if (name == "bar")
+    {
+        return Foo13299();
+    }
+
+    Foo13299 opDispatch(string name)()
+    if (name != "bar")
+    {
+        return Foo13299();
+    }
+}
+
+void test13299()
+{
+    Foo13299()
+        .bar(0)
+        .bar(1)
+        .bar(2);
+
+    Foo13299()
+        .opDispatch!"bar"(0)
+        .opDispatch!"bar"(1)
+        .opDispatch!"bar"(2);
+}
+
+/******************************************/
 // 13333
 
 template AliasThisTypeOf13333(T)
@@ -4113,6 +4144,7 @@ int main()
     test12207();
     test12376();
     test13235();
+    test13299();
 
     printf("Success\n");
     return 0;

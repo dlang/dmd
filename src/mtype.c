@@ -7085,9 +7085,19 @@ void TypeTypeof::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
 
     Type *t;
     {
+        /* Currently we cannot evalute 'exp' in speculative context, because
+         * the type implementation may leak to the final execution. Consider:
+         *
+         * struct S(T) {
+         *   string toString() const { return "x"; }
+         * }
+         * void main() {
+         *   alias X = typeof(S!int());
+         *   assert(typeid(X).xtoString(null) == "x");
+         * }
+         */
         Scope *sc2 = sc->push();
         sc2->intypeof = 1;
-        sc2->speculative = true;
         sc2->flags |= sc->flags & SCOPEstaticif;
         exp = exp->semantic(sc2);
         exp = resolvePropertiesOnly(sc2, exp);

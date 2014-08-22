@@ -73,22 +73,6 @@ const char * toWinPath(const char *src)
     return result;
 }
 
-Ungag::~Ungag()
-{
-    //printf("+ungag dtor gag %d => %d\n", global.gag, oldgag);
-    global.gag = oldgag;
-}
-
-Ungag Dsymbol::ungagSpeculative()
-{
-    unsigned oldgag = global.gag;
-
-    if (global.gag && !isSpeculative() && !toParent2()->isFuncDeclaration())
-        global.gag = 0;
-
-    return Ungag(oldgag);
-}
-
 Global global;
 
 void Global::init()
