@@ -8346,15 +8346,14 @@ Lagain:
     // Check for call operator overload
     if (t1)
     {
-        AggregateDeclaration *ad;
         if (t1->ty == Tstruct)
         {
-            ad = ((TypeStruct *)t1)->sym;
+            StructDeclaration *sd = ((TypeStruct *)t1)->sym;
 
             // First look for constructor
-            if (e1->op == TOKtype && ad->ctor)
+            if (e1->op == TOKtype && sd->ctor)
             {
-                if (!ad->noDefaultCtor && !(arguments && arguments->dim))
+                if (!sd->noDefaultCtor && !(arguments && arguments->dim))
                     goto Lx;
 
                 // Create variable that will get constructed
@@ -8363,7 +8362,6 @@ Lagain:
                 ExpInitializer *ei = NULL;
                 if (t1->needsNested())
                 {
-                    StructDeclaration *sd = (StructDeclaration *)ad;
                     StructLiteralExp *sle = new StructLiteralExp(loc, sd, NULL, e1->type);
                     if (!sd->fill(loc, sle->elements, true))
                         return new ErrorExp();
@@ -8375,15 +8373,15 @@ Lagain:
 
                 Expression *e = new DeclarationExp(loc, tmp);
                 e = new CommaExp(loc, e, new VarExp(loc, tmp));
-                if (CtorDeclaration *cf = ad->ctor->isCtorDeclaration())
+                if (CtorDeclaration *cf = sd->ctor->isCtorDeclaration())
                 {
                     e = new DotVarExp(loc, e, cf, 1);
                 }
-                else if (TemplateDeclaration *td = ad->ctor->isTemplateDeclaration())
+                else if (TemplateDeclaration *td = sd->ctor->isTemplateDeclaration())
                 {
                     e = new DotTemplateExp(loc, e, td);
                 }
-                else if (OverloadSet *os = ad->ctor->isOverloadSet())
+                else if (OverloadSet *os = sd->ctor->isOverloadSet())
                 {
                     e = new DotExp(loc, e, new OverExp(loc, os));
                 }
@@ -8394,33 +8392,31 @@ Lagain:
                 return e;
             }
             // No constructor, look for overload of opCall
-            if (search_function(ad, Id::call))
+            if (search_function(sd, Id::call))
                 goto L1;        // overload of opCall, therefore it's a call
 
             if (e1->op != TOKtype)
             {
-                if (ad->aliasthis && e1->type != att1)
+                if (sd->aliasthis && e1->type != att1)
                 {
                     if (!att1 && e1->type->checkAliasThisRec())
                         att1 = e1->type;
                     e1 = resolveAliasThis(sc, e1);
                     goto Lagain;
                 }
-                error("%s %s does not overload ()", ad->kind(), ad->toChars());
+                error("%s %s does not overload ()", sd->kind(), sd->toChars());
                 return new ErrorExp();
             }
 
             /* It's a struct literal
              */
         Lx:
-            Expression *e = new StructLiteralExp(loc, (StructDeclaration *)ad, arguments, e1->type);
+            Expression *e = new StructLiteralExp(loc, sd, arguments, e1->type);
             e = e->semantic(sc);
             return e;
         }
         else if (t1->ty == Tclass)
         {
-            ad = ((TypeClass *)t1)->sym;
-            goto L1;
         L1:
             // Rewrite as e1.call(arguments)
             Expression *e = new DotIdExp(loc, e1, Id::call);
