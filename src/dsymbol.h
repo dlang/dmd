@@ -81,8 +81,13 @@ typedef union tree_node TYPE;
 struct TYPE;
 #endif
 
-// Back end
-struct Classsym;
+struct Ungag
+{
+    unsigned oldgag;
+
+    Ungag(unsigned old) : oldgag(old) {}
+    ~Ungag() { global.gag = oldgag; }
+};
 
 const char *mangle(Dsymbol *s);
 const char *mangleExact(FuncDeclaration *fd);

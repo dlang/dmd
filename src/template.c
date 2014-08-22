@@ -742,6 +742,7 @@ bool TemplateDeclaration::evaluateConstraint(
     Scope *scx = paramscope->push(ti);
     scx->parent = ti;
     scx->tinst = ti;
+    scx->speculative = true;
 
     assert(!ti->symtab);
     if (fd)
@@ -5603,6 +5604,7 @@ TemplateInstance::TemplateInstance(Loc loc, Identifier *ident)
     this->nest = 0;
     this->havetempdecl = false;
     this->enclosing = NULL;
+    this->gagged = false;
     this->speculative = false;
     this->hash = 0;
     this->fargs = NULL;
@@ -5633,6 +5635,7 @@ TemplateInstance::TemplateInstance(Loc loc, TemplateDeclaration *td, Objects *ti
     this->nest = 0;
     this->havetempdecl = true;
     this->enclosing = NULL;
+    this->gagged = false;
     this->speculative = false;
     this->hash = 0;
     this->fargs = NULL;
@@ -5767,20 +5770,6 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 #endif
         return;
     }
-
-    // get the enclosing template instance from the scope tinst
-    tinst = sc->tinst;
-
-    Module *mi = sc->instantiatingModule();
-
-    /* If a TemplateInstance is ever instantiated by non-root modules,
-     * we do not have to generate code for it,
-     * because it will be generated when the non-root module is compiled.
-     */
-    if (!instantiatingModule || instantiatingModule->isRoot())
-        instantiatingModule = mi;
-    //printf("mi = %s\n", mi->toChars());
-
     if (semanticRun != PASSinit)
     {
 #if LOG
@@ -5794,6 +5783,34 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
         errors = true;
         return;
     }
+
+    /* If a TemplateInstance is ever instantiated by non-root modules,
+     * we do not have to generate code for it,
+     * because it will be generated when the non-root module is compiled.
+     */
+    Module *mi = sc->instantiatingModule();
+    if (!instantiatingModule || instantiatingModule->isRoot())
+        instantiatingModule = mi;
+    //printf("mi = %s\n", mi->toChars());
+
+    /* Get the enclosing template instance from the scope tinst
+     */
+    tinst = sc->tinst;
+
+    if (global.gag)
+        gagged = true;
+    if (sc->speculative || (tinst && tinst->speculative))
+    {
+        //printf("\tspeculative ti %s '%s' gag = %d, spec = %d\n", tempdecl->parent->toChars(), toChars(), global.gag, sc->speculative);
+        speculative = true;
+    }
+    if (sc->flags & (SCOPEstaticif | SCOPEstaticassert | SCOPEcompile))
+    {
+        // Disconnect the chain if this instantiation is in definitely speculative context.
+        // It should be done after sc->instantiatingModule().
+        tinst = NULL;
+    }
+
     semanticRun = PASSsemantic;
 
 #if LOG
@@ -5807,7 +5824,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
         !semanticTiargs(sc) ||
         !findBestMatch(sc, fargs))
     {
-        if (global.gag)
+        if (gagged)
         {
             // Bugzilla 13220: Rollback status for later semantic re-running.
             semanticRun = PASSinit;
@@ -5837,24 +5854,38 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
             inst = ti;
             parent = ti->parent;
 
-            // If both this and the previous instantiation were speculative,
+            // If both this and the previous instantiation were gagged,
             // use the number of errors that happened last time.
-            if (inst->speculative && global.gag)
+            if (inst->gagged && gagged)
             {
                 global.errors += inst->errors;
                 global.gaggedErrors += inst->errors;
             }
 
-            // If the first instantiation was speculative, but this is not:
-            if (inst->speculative && !global.gag)
+            // If the first instantiation was gagged, but this is not:
+            if (inst->gagged && !gagged)
             {
                 // If the first instantiation had failed, re-run semantic,
                 // so that error messages are shown.
                 if (inst->errors)
                     goto L1;
-                // It had succeeded, mark it is a non-speculative instantiation,
+                // It had succeeded, mark it is a non-gagged instantiation,
                 // and reuse it.
+                inst->gagged = false;
+            }
+
+            // If the first instantiation was speculative, but this is not:
+            if (inst->speculative && !sc->speculative)
+            {
+                // Mark it is a non-speculative instantiation.
                 inst->speculative = false;
+            }
+
+            // If the first instantiation was in speculative context, but this is not:
+            if (!inst->tinst && inst->speculative && !(sc->flags & (SCOPEstaticif | SCOPEstaticassert | SCOPEcompile)))
+            {
+                // Reconnect the chain if this instantiation is not in speculative context.
+                inst->tinst = tinst;
             }
 
 #if LOG
@@ -5876,9 +5907,6 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 #endif
     unsigned errorsave = global.errors;
     inst = this;
-    // Mark as speculative if we are instantiated during errors gagged
-    if (global.gag)
-        speculative = true;
 
     TemplateInstance *tempdecl_instance_idx = tempdecl->addInstance(this);
 
@@ -5967,7 +5995,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 #endif
 
     // Copy the syntax trees from the TemplateDeclaration
-    if (members && speculative && !errors)
+    if (members && speculative && !errors)      // todo
     {
         // Don't copy again so they were previously created.
     }
@@ -6189,6 +6217,8 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
         while (ti && !ti->deferred && ti->tinst)
         {
             ti = ti->tinst;
+            if (ti == tinst)
+                break;
             if (++nest > 500)
             {
                 global.gag = 0;            // ensure error message gets printed
@@ -6228,7 +6258,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
                 tinst->printInstantiationTrace();
         }
         errors = true;
-        if (global.gag)
+        if (gagged)
         {
             // Errors are gagged, so remove the template instance from the
             // instance/symbol lists we added it to and reset our state to
@@ -7043,7 +7073,7 @@ bool TemplateInstance::needsTypeInference(Scope *sc, int flag)
             dedtypes.setDim(td->parameters->dim);
             dedtypes.zero();
             assert(td->semanticRun != PASSinit);
-            MATCH m = td->matchWithInstance(sc, ti, &dedtypes, NULL, 1);
+            MATCH m = td->matchWithInstance(sc, ti, &dedtypes, NULL, 0);
             if (m <= MATCHnomatch)
                 return 0;
         }
@@ -7380,7 +7410,7 @@ void TemplateInstance::semantic2(Scope *sc)
         sc = sc->push(this);
         sc->tinst = this;
 
-        int needGagging = (speculative && !global.gag);
+        int needGagging = (gagged && !global.gag);
         unsigned int olderrors = global.errors;
         int oldGaggedErrors;
         if (needGagging)
@@ -7393,7 +7423,7 @@ void TemplateInstance::semantic2(Scope *sc)
 printf("\tmember '%s', kind = '%s'\n", s->toChars(), s->kind());
 #endif
             s->semantic2(sc);
-            if (speculative && global.errors != olderrors)
+            if (gagged && global.errors != olderrors)
                 break;
         }
 
@@ -7438,10 +7468,10 @@ void TemplateInstance::semantic3(Scope *sc)
         sc = sc->push(this);
         sc->tinst = this;
 
-        int needGagging = (speculative && !global.gag);
+        int needGagging = (gagged && !global.gag);
         unsigned int olderrors = global.errors;
         int oldGaggedErrors;
-        /* If this is a speculative instantiation, gag errors.
+        /* If this is a gagged instantiation, gag errors.
          * Future optimisation: If the results are actually needed, errors
          * would already be gagged, so we don't really need to run semantic
          * on the members.
@@ -7453,7 +7483,7 @@ void TemplateInstance::semantic3(Scope *sc)
         {
             Dsymbol *s = (*members)[i];
             s->semantic3(sc);
-            if (speculative && global.errors != olderrors)
+            if (gagged && global.errors != olderrors)
                 break;
         }
 
@@ -7677,7 +7707,76 @@ hash_t TemplateInstance::hashCode()
     return hash;
 }
 
+/***********************************************
+ * Returns true if this is not instantiated in non-root module, and
+ * is a part of non-speculative instantiatiation.
+ *
+ * Note: instantiatingModule does not stabilize until semantic analysis is completed,
+ * so don't call this function during semantic analysis to return precise result.
+ */
+bool TemplateInstance::needsCodegen()
+{
+    /* The issue is that if the importee is compiled with a different -debug
+     * setting than the importer, the importer may believe it exists
+     * in the compiled importee when it does not, when the instantiation
+     * is behind a conditional debug declaration.
+     */
+    // workaround for Bugzilla 11239
+    if (global.params.useUnitTests ||
+        global.params.allInst ||
+        global.params.debuglevel)
+    {
+        return true;
+    }
 
+    if (instantiatingModule && !instantiatingModule->isRoot())
+    {
+        Module *mi = instantiatingModule;
+
+        // If mi imports any root modules, we still need to generate the code.
+        for (size_t i = 0; i < Module::amodules.dim; ++i)
+        {
+            Module *m = Module::amodules[i];
+            m->insearch = 0;
+        }
+        bool importsRoot = false;
+        for (size_t i = 0; i < Module::amodules.dim; ++i)
+        {
+            Module *m = Module::amodules[i];
+            if (m->isRoot() && mi->imports(m))
+            {
+                importsRoot = true;
+                break;
+            }
+        }
+        for (size_t i = 0; i < Module::amodules.dim; ++i)
+        {
+            Module *m = Module::amodules[i];
+            m->insearch = 0;
+        }
+        if (!importsRoot)
+        {
+            //printf("instantiated by %s   %s\n", instantiatingModule->toChars(), toChars());
+            return false;
+        }
+    }
+
+    if (speculative)
+    {
+        //printf("\tti = %s spec = %d\n", toChars(), speculative);
+        TemplateInstance *ti = this;
+        while (ti->tinst && ti->tinst != this)
+        {
+            ti = ti->tinst;
+            //printf("\tti = %s spec = %d\n", ti->toChars(), ti->speculative);
+            if (!ti->speculative)
+                return true;
+        }
+        return false;
+    }
+
+    return true;
+}
 
 /* ======================== TemplateMixin ================================ */
 

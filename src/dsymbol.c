@@ -326,11 +326,21 @@ TemplateInstance *Dsymbol::isSpeculative()
     while (par)
     {
         TemplateInstance *ti = par->isTemplateInstance();
-        if (ti && ti->speculative)
+        if (ti && ti->gagged)
             return ti;
         par = par->toParent();
     }
     return NULL;
+}
+
+Ungag Dsymbol::ungagSpeculative()
+{
+    unsigned oldgag = global.gag;
+
+    if (global.gag && !isSpeculative() && !toParent2()->isFuncDeclaration())
+        global.gag = 0;
+
+    return Ungag(oldgag);
 }
 
 bool Dsymbol::isAnonymous()

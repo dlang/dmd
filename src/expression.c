@@ -5039,11 +5039,10 @@ Expression *NewAnonClassExp::semantic(Scope *sc)
 #endif
 
     Expression *d = new DeclarationExp(loc, cd);
-    sc = sc->startCTFE();       // just create new scope
+    sc = sc->push();            // just create new scope
     sc->flags &= ~SCOPEctfe;    // temporary stop CTFE
     d = d->semantic(sc);
-    sc->flags |=  SCOPEctfe;
-    sc = sc->endCTFE();
+    sc = sc->pop();
 
     Expression *n = new NewExp(loc, thisexp, newargs, cd->type, arguments);
 
@@ -5492,7 +5491,7 @@ Expression *FuncExp::semantic(Scope *sc)
 #endif
     Expression *e = this;
 
-    sc = sc->startCTFE();       // just create new scope
+    sc = sc->push();            // just create new scope
     sc->flags &= ~SCOPEctfe;    // temporary stop CTFE
     sc->protection = PROTpublic;    // Bugzilla 12506
 
@@ -5589,8 +5588,7 @@ Expression *FuncExp::semantic(Scope *sc)
         fd->tookAddressOf++;
     }
 Ldone:
-    sc->flags |=  SCOPEctfe;
-    sc = sc->endCTFE();
+    sc = sc->pop();
     return e;
 }
 
@@ -13914,7 +13912,6 @@ Expression *resolveOpDollar(Scope *sc, ArrayExp *ae, Expression **pe0)
 
             unsigned xerrors = global.startGagging();
             sc = sc->push();
-            sc->speculative = true;
             FuncDeclaration *fslice = resolveFuncCall(ae->loc, sc, slice, tiargs, ae->e1->type, fargs, 1);
             sc = sc->pop();
             global.endGagging(xerrors);

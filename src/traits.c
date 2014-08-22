@@ -909,7 +909,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             unsigned errors = global.startGagging();
             Scope *sc2 = sc->push();
             sc2->speculative = true;
-            sc2->flags = sc->flags & ~SCOPEctfe | SCOPEcompile;
+            sc2->flags = (sc->flags & ~SCOPEctfe) | SCOPEcompile;
             bool err = false;
 
             RootObject *o = (*e->args)[i];
