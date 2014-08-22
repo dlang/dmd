@@ -5893,6 +5893,8 @@ Expression *IsExp::syntaxCopy()
         p);
 }
 
+void unSpeculative(Scope *sc, RootObject *o);
+
 Expression *IsExp::semantic(Scope *sc)
 {
     /* is(targ id tok tspec)
@@ -5908,7 +5910,10 @@ Expression *IsExp::semantic(Scope *sc)
     }
 
     Type *tded = NULL;
-    Type *t = targ->trySemantic(loc, sc);
+    Scope *sc2 = sc->copy();    // keep sc->flags
+    sc2->speculative = true;
+    Type *t = targ->trySemantic(loc, sc2);
+    sc2->pop();
     if (!t)
         goto Lno;                       // errors, so condition is false
     targ = t;
@@ -6157,6 +6162,8 @@ Expression *IsExp::semantic(Scope *sc)
                     s->addMember(sc, sc->sds, 1);
                 else if (!sc->insert(s))
                     error("declaration %s is already defined", s->toChars());
+
+                unSpeculative(sc, s);
             }
             goto Lyes;
         }
@@ -6187,6 +6194,8 @@ Lyes:
             error("declaration %s is already defined", s->toChars());
         if (sc->sds)
             s->addMember(sc, sc->sds, 1);
+
+        unSpeculative(sc, s);
     }
     //printf("Lyes\n");
     return new IntegerExp(loc, 1, Type::tbool);
