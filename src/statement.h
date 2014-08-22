@@ -697,10 +697,10 @@ public:
     Statement *statement;
     TryFinallyStatement *tf;
     OnScopeStatement *os;
-    Statement *gotoTarget;      // interpret
     VarDeclaration *lastVar;
-    block *lblock;              // back end
+    Statement *gotoTarget;      // interpret
 
+    block *lblock;              // back end
     Blocks *fwdrefs;            // forward references to this LabelStatement
 
     LabelStatement(Loc loc, Identifier *ident, Statement *statement);
