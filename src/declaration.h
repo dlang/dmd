@@ -55,7 +55,6 @@ enum PURE;
 #define STCout          0x1000LL        // out parameter
 #define STClazy         0x2000LL        // lazy parameter
 #define STCforeach      0x4000LL        // variable for foreach loop
-#define STCcomdat       0x8000LL        // should go into COMDAT record
 #define STCvariadic     0x10000LL       // variadic function argument
 #define STCctorinit     0x20000LL       // can only be set inside constructor
 #define STCtemplateparameter  0x40000LL // template parameter

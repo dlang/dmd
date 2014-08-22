@@ -928,10 +928,7 @@ void VarDeclaration::toObjFile(bool multiobj)
 
         parent = this->toParent();
         {
-            if (storage_class & STCcomdat)
-                s->Sclass = SCcomdat;
-            else
-                s->Sclass = SCglobal;
+            s->Sclass = SCglobal;
 
             do
             {
