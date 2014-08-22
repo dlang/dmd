@@ -8356,23 +8356,19 @@ Lagain:
                 if (!sd->noDefaultCtor && !(arguments && arguments->dim))
                     goto Lx;
 
-                // Create variable that will get constructed
-                Identifier *idtmp = Lexer::uniqueId("__ctmp");
+                StructLiteralExp *sle = new StructLiteralExp(loc, sd, NULL, e1->type);
+                if (!sd->fill(loc, sle->elements, true))
+                    return new ErrorExp();
 
-                ExpInitializer *ei = NULL;
-                if (t1->needsNested())
-                {
-                    StructLiteralExp *sle = new StructLiteralExp(loc, sd, NULL, e1->type);
-                    if (!sd->fill(loc, sle->elements, true))
-                        return new ErrorExp();
-                    sle->type = type;
-                    ei = new ExpInitializer(loc, sle);
-                }
-                VarDeclaration *tmp = new VarDeclaration(loc, t1, idtmp, ei);
-                tmp->storage_class |= STCtemp | STCctfe;
+                /* Copy from the initializer symbol for larger symbols,
+                 * otherwise the literals expressed as code get excessively large.
+                 */
+                if (sd->size(loc) > Target::ptrsize * 4 && !t1->needsNested())
+                    sle->sinit = sd->toInitializer();
 
-                Expression *e = new DeclarationExp(loc, tmp);
-                e = new CommaExp(loc, e, new VarExp(loc, tmp));
+                sle->type = type;
+
+                Expression *e = sle;
                 if (CtorDeclaration *cf = sd->ctor->isCtorDeclaration())
                 {
                     e = new DotVarExp(loc, e, cf, 1);
