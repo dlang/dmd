@@ -5982,13 +5982,15 @@ Expression *IsExp::semantic(Scope *sc)
                 if (targ->ty != Tclass)
                     goto Lno;
                 else
-                {   ClassDeclaration *cd = ((TypeClass *)targ)->sym;
+                {
+                    ClassDeclaration *cd = ((TypeClass *)targ)->sym;
                     Parameters *args = new Parameters;
                     args->reserve(cd->baseclasses->dim);
                     if (cd->scope && !cd->symtab)
                         cd->semantic(cd->scope);
                     for (size_t i = 0; i < cd->baseclasses->dim; i++)
-                    {   BaseClass *b = (*cd->baseclasses)[i];
+                    {
+                        BaseClass *b = (*cd->baseclasses)[i];
                         args->push(new Parameter(STCin, b->type, NULL, NULL));
                     }
                     tded = new TypeTuple(args);
@@ -6027,7 +6029,8 @@ Expression *IsExp::semantic(Scope *sc)
                 Parameters *args = new Parameters;
                 args->reserve(dim);
                 for (size_t i = 0; i < dim; i++)
-                {   Parameter *arg = Parameter::getNth(params, i);
+                {
+                    Parameter *arg = Parameter::getNth(params, i);
                     assert(arg && arg->type);
                     /* If one of the default arguments was an error,
                        don't return an invalid tuple
@@ -6049,12 +6052,14 @@ Expression *IsExp::semantic(Scope *sc)
                 if (targ->ty == Tfunction)
                     tded = ((TypeFunction *)targ)->next;
                 else if (targ->ty == Tdelegate)
-                {   tded = ((TypeDelegate *)targ)->next;
+                {
+                    tded = ((TypeDelegate *)targ)->next;
                     tded = ((TypeFunction *)tded)->next;
                 }
                 else if (targ->ty == Tpointer &&
                          ((TypePointer *)targ)->next->ty == Tfunction)
-                {   tded = ((TypePointer *)targ)->next;
+                {
+                    tded = ((TypePointer *)targ)->next;
                     tded = ((TypeFunction *)tded)->next;
                 }
                 else
@@ -6087,13 +6092,15 @@ Expression *IsExp::semantic(Scope *sc)
         //printf("targ  = %s, %s\n", targ->toChars(), targ->deco);
         //printf("tspec = %s, %s\n", tspec->toChars(), tspec->deco);
         if (tok == TOKcolon)
-        {   if (targ->implicitConvTo(tspec))
+        {
+            if (targ->implicitConvTo(tspec))
                 goto Lyes;
             else
                 goto Lno;
         }
         else /* == */
-        {   if (targ->equals(tspec))
+        {
+            if (targ->equals(tspec))
                 goto Lyes;
             else
                 goto Lno;
@@ -6138,7 +6145,8 @@ Expression *IsExp::semantic(Scope *sc)
             /* Declare trailing parameters
              */
             for (size_t i = 1; i < parameters->dim; i++)
-            {   TemplateParameter *tp = (*parameters)[i];
+            {
+                TemplateParameter *tp = (*parameters)[i];
                 Declaration *s = NULL;
 
                 m = tp->matchArg(loc, sc, &tiargs, i, parameters, &dedtypes, &s);
