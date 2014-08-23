@@ -1023,6 +1023,7 @@ Expression *doInline(Expression *e, InlineDoState *ids)
 
             ce->keys = arrayExpressiondoInline(e->keys);
             ce->values = arrayExpressiondoInline(e->values);
+            ce->toObjectCodeExp();
             result = ce;
         }
 

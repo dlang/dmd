@@ -1,14 +1,14 @@
 struct S1 { bool opEquals(T : typeof(this))(T) { return false; } }
 struct S2 { bool opEquals(T : typeof(this))(T) { return false; } }
 struct S3 { bool opEquals(T : typeof(this))(T) { return false; } }
-struct S4 { bool opEquals(T : typeof(this))(T) { return false; } }
+struct S4 { bool opEquals(T : const(typeof(this)))(T) const { return false; } }
 struct S5 { bool opEquals(T : typeof(this))(T) { return false; } }
 struct S6 { bool opEquals(T : typeof(this))(T) { return false; } ~this(){} }
 struct S7 { bool opEquals(T : typeof(this))(T) { return false; } }
 struct S8 { bool opEquals(T : typeof(this))(T) { return false; } }
-struct S9 { bool opEquals(T : typeof(this))(T) { return false; } }
+struct S9 { bool opEquals(T : const(typeof(this)))(T) const { return false; } }
 
-struct S10 { bool opEquals(T : typeof(this))(T) { return false; } }
+struct S10 { bool opEquals(T : const(typeof(this)))(T) const { return false; } }
 struct S11 { bool opEquals(T : typeof(this))(T) const { return false; }
              int opCmp(T : typeof(this))(T) const { return 0; }
              size_t toHash() const nothrow @safe { return 0; } }

@@ -750,3 +750,23 @@ Symbol* ClassReferenceExp::toSymbol()
     outdata(s);
     return value->sym;
 }
+
+Symbol *TypeAArray::toInitializer()
+{
+    if (sinit) return sinit;
+    assert(init);
+    TYPE *t = type_alloc(TYint);
+    t->Tcount++;
+    Symbol *s = symbol_calloc("internal");
+    s->Sclass = SCstatic;
+    s->Sfl = FLextern;
+    s->Sflags |= SFLnodebug;
+    s->Stype = t;
+    sinit = s;
+    dt_t *d = NULL;
+    init->toDt(&d);
+    s->Sdt = d;
+    slist_add(s);
+    outdata(s);
+    return sinit;
+}

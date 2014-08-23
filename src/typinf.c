@@ -125,6 +125,11 @@ void Type::genTypeInfo(Scope *sc)
         /* If this has a custom implementation in std/typeinfo, then
          * do not generate a COMDAT for it.
          */
+        if (t->ty == Taarray)
+        {
+            t->defaultInit(Loc())->semantic(sc);
+        }
+
         if (!t->builtinTypeInfo())
         {
             // Generate COMDAT
@@ -484,7 +489,8 @@ public:
     void visit(TypeInfoAssociativeArrayDeclaration *d)
     {
         //printf("TypeInfoAssociativeArrayDeclaration::toDt()\n");
-        verifyStructSize(Type::typeinfoassociativearray, 4 * Target::ptrsize);
+        //will be added AA initializer
+        //verifyStructSize(Type::typeinfoassociativearray, 4 * Target::ptrsize);
 
         dtxoff(pdt, Type::typeinfoassociativearray->toVtblSymbol(), 0); // vtbl for TypeInfo_AssociativeArray
         dtsize_t(pdt, 0);                        // monitor
@@ -498,6 +504,10 @@ public:
 
         tc->index->genTypeInfo(NULL);
         dtxoff(pdt, toSymbol(tc->index->vtinfo), 0); // TypeInfo for array of type
+
+        assert(tc->init);
+        dtsize_t(pdt, tc->size(Loc()));      // init size
+        dtxoff(pdt, tc->toInitializer(), 0); // init value
     }
 
     void visit(TypeInfoFunctionDeclaration *d)

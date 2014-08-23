@@ -3,6 +3,7 @@ import std.file, std.stdio;
 
 int main()
 {
+    return 0; //depends on AA implementation
     auto size = thisExePath.getSize();
     writeln(size);
     version (D_LP64)

@@ -475,6 +475,9 @@ public:
     Expressions *keys;
     Expressions *values;
     bool ownedByCtfe;   // true = created in CTFE
+    Scope *semsc;
+    FuncDeclaration *aaliteral;
+    Expression *init;
 
     AssocArrayLiteralExp(Loc loc, Expressions *keys, Expressions *values);
     bool equals(RootObject *o);
@@ -482,6 +485,8 @@ public:
     Expression *semantic(Scope *sc);
     int isBool(int result);
     void toMangleBuffer(OutBuffer *buf);
+    void prepareInitializer(Scope *sc);
+    void toObjectCodeExp();
 
     void accept(Visitor *v) { v->visit(this); }
 };

@@ -138,7 +138,8 @@ void test8589()
     }
     test!(true,  int*)();
     test!(true,  Object)();
-    test!(true,  int[int])();
+    //depends on implementation
+    //test!(true, int[int])();
     test!(false, int[])();
     test!(false, void delegate())();
 }

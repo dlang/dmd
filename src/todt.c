@@ -350,8 +350,28 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
 
         void visit(NullExp *e)
         {
-            assert(e->type);
+            if (e->type->ty == Taarray)
+            {
+                TypeAArray *atype = (TypeAArray *)e->type;
+                if (!atype->init)
+                {
+                    printf("no init(%p): %s (%s)\n", atype, atype->toChars(), atype->loc.toChars());
+                    printf("expr(%p): %s\n", e, e->loc.toChars());
+                }
+                assert(atype->init);
+                pdt = atype->init->toDt(pdt);
+                return;
+            }
             pdt = dtnzeros(pdt, e->type->size());
+        }
+
+        void visit(AssocArrayLiteralExp *e)
+        {
+            //printf("AssocArrayLiteralExp::toDt() '%s', type = %s\n", toChars(), type->toChars());
+            assert(e->init);
+            Expression *ret = e->init->ctfeInterpret();
+            ret = ret->optimize(WANTvalue);
+            pdt = ret->toDt(pdt);
         }
 
         void visit(StringExp *e)
