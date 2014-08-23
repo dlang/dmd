@@ -575,7 +575,7 @@ int tryMain(size_t argc, const char *argv[])
     global.params.is64bit = (sizeof(size_t) == 8);
 
 #if TARGET_WINDOS
-	global.params.mscoff = false;
+    global.params.mscoff = false;
     global.params.is64bit = false;
     global.params.defaultlibname = "phobos";
 #elif TARGET_LINUX

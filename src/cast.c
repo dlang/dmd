@@ -1216,11 +1216,11 @@ MATCH implicitConvTo(Expression *e, Type *t)
                                             return false;
                                     }
                                     else
-				    {
+                                    {
                                         /* Enhancement: handle StructInitializer and ArrayInitializer
                                          */
                                         return false;
-				    }
+                                    }
                                 }
                                 else if (!v->type->isZeroInit(loc))
                                     return false;
