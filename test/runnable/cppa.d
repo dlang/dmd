@@ -2,6 +2,7 @@
 
 import core.stdc.stdio;
 import core.stdc.stdarg;
+import core.stdc.config;
 
 extern (C++)
         int foob(int i, int j, int k);
@@ -279,15 +280,10 @@ void test11()
 }
 /****************************************/
 
-version(CRuntime_Microsoft)
-    alias long_double = double;
-else
-    alias long_double = real;
-
 struct Struct10071
 {
     void *p;
-    long_double r;
+    c_long_double r;
 }
 
 extern(C++) size_t offset10071();
@@ -360,7 +356,7 @@ extern(C++) size_t getoffset13161();
 extern(C++) class C13161a
 {
 	void dummyfunc() {}
-	long_double val_5;
+	c_long_double val_5;
 	uint val_9;
 }
 
