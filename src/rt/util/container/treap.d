@@ -28,7 +28,7 @@ nothrow:
 
     void initialize()
     {
-	    rand48.defaultSeed();
+        rand48.defaultSeed();
     }
 
     void insert(E element)
@@ -203,7 +203,7 @@ static:
     void removeAll(Node* node)
     {
         if (!node)
-			return;
+            return;
         removeAll(node.left);
         removeAll(node.right);
         freeNode(node);

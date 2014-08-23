@@ -2302,9 +2302,9 @@ T[] _arraySliceExpMulSliceAddass_d(T[] a, T value, T[] b)
             // Array length greater than 8
             asm
             {
-                mov RCX, bptr; 		// right operand
-                mov RSI, aptr; 		// destination operand
-                mov RDI, n; 		// end comparison
+                mov RCX, bptr;      // right operand
+                mov RSI, aptr;      // destination operand
+                mov RDI, n;         // end comparison
                 movsd XMM3, value;  // multiplier
                 shufpd XMM3, XMM3, 0;
 

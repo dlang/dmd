@@ -291,7 +291,7 @@ extern (C) int _d_run_main(int argc, char **argv, MainFunc mainFunc)
                 push    EAX;
                 fstcw   word ptr [ESP];
                 or      [ESP], 0b11_00_111111; // 11: use 64 bit extended-precision
-				// 111111: mask all FP exceptions
+                // 111111: mask all FP exceptions
                 fldcw   word ptr [ESP];
                 pop     EAX;
             }

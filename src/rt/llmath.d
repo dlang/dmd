@@ -499,10 +499,10 @@ L12:        jmp     __ULDIV__       ;
 
 version(Win32) version(CRuntime_Microsoft)
 {
-	extern(C) void _alldiv();
-	extern(C) void _aulldiv();
-	extern(C) void _allrem();
-	extern(C) void _aullrem();
+    extern(C) void _alldiv();
+    extern(C) void _aulldiv();
+    extern(C) void _allrem();
+    extern(C) void _aullrem();
 
     void _ms_alldiv()
     {
