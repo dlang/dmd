@@ -375,11 +375,31 @@ void test13161()
 
 /****************************************/
 
+version (linux)
+{
+    extern(C++, __gnu_cxx)
+    {
+	struct new_allocator(T)
+	{
+	    alias size_type = size_t;
+	    void deallocate(T*, size_type);
+	}
+    }
+}
+
 extern (C++, std)
 {
     struct vector(T, A = allocator!T) { }
 
-    struct allocator(T) { }
+    struct allocator(T)
+    {
+	version (linux)
+	{
+	    alias size_type = size_t;
+	    void deallocate(T* p, size_type sz)
+	    {   (cast(__gnu_cxx.new_allocator!T*)&this).deallocate(p, sz); }
+	}
+    }
 }
 
 extern (C++)
@@ -401,6 +421,14 @@ void test14()
         foo14(p);
     version (FreeBSD)
         foo14(p);
+}
+
+version (linux)
+{
+    void test14a(std.allocator!int * pa)
+    {
+	pa.deallocate(null, 0);
+    }
 }
 
 /****************************************/
