@@ -272,7 +272,7 @@ bool hasPackageAccess(Scope *sc, Dsymbol *s)
 #if LOG
     printf("hasPackageAccess(s = '%s', sc = '%p', s->protection.pkg = '%s')\n",
             s->toChars(), sc,
-            s->protection.pkg ? s->protection.pkg->toChars() : "NULL");
+            s->prot().pkg ? s->prot().pkg->toChars() : "NULL");
 #endif
 
     Package *pkg = NULL;
