@@ -103,14 +103,14 @@ class CppMangleVisitor : public Visitor
 
     void source_name(Dsymbol *s, bool skipname = false)
     {
-        char *name = s->ident->toChars();
+        //printf("source_name(%s)\n", s->toChars());
         TemplateInstance *ti = s->isTemplateInstance();
         if (ti)
         {
             if (!skipname && !substitute(ti->tempdecl))
             {
                 store(ti->tempdecl);
-                name = ti->name->toChars();
+                const char *name = ti->toAlias()->ident->toChars();
                 buf.printf("%d%s", strlen(name), name);
             }
             buf.writeByte('I');
@@ -234,6 +234,7 @@ class CppMangleVisitor : public Visitor
         }
         else
         {
+            const char *name = s->ident->toChars();
             buf.printf("%d%s", strlen(name), name);
         }
     }
@@ -285,7 +286,7 @@ class CppMangleVisitor : public Visitor
 
     void cpp_mangle_name(Dsymbol *s, bool qualified)
     {
-        //printf("cpp_mangle_name(%s)\n", s->toChars());
+        //printf("cpp_mangle_name(%s, %d)\n", s->toChars(), qualified);
         Dsymbol *p = s->toParent();
         Dsymbol *se = s;
         bool dont_write_prefix = false;
@@ -368,6 +369,7 @@ class CppMangleVisitor : public Visitor
 
     void mangle_function(FuncDeclaration *d)
     {
+        //printf("mangle_function(%s)\n", d->toChars());
         /*
          * <mangled-name> ::= _Z <encoding>
          * <encoding> ::= <function name> <bare-function-type>
@@ -384,6 +386,14 @@ class CppMangleVisitor : public Visitor
             if (d->type->isConst())
                 buf.writeByte('K');
             prefix_name(p);
+
+            // Replace ::std::allocator with Sa
+            if (buf.offset >= 17 && memcmp(buf.data, "_ZN3std9allocator", 17) == 0)
+            {
+                buf.remove(3, 14);
+                buf.insert(3, "Sa", 2);
+            }
+
             if (d->isDtorDeclaration())
             {
                 buf.writestring("D1");
@@ -763,6 +773,7 @@ public:
 
 char *toCppMangle(Dsymbol *s)
 {
+    //printf("toCppMangle(%s)\n", s->toChars());
     CppMangleVisitor v;
     return v.mangleOf(s);
 }
