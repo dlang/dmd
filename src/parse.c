@@ -669,7 +669,16 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl, PrefixAttributes 
                         if ((pAttrs->protection.kind == PROTpackage) && (token.value == TOKlparen))
                         {
                             pkg_prot_idents = parseQualifiedIdentifier("protection package");
-                            check(TOKrparen);
+
+                            if (pkg_prot_idents)
+                            	check(TOKrparen);
+                            else
+                            {
+                                while (token.value != TOKsemicolon && token.value != TOKeof)
+                                    nextToken();
+                                nextToken();
+                                break;
+                            }
                         }
                     }
 
@@ -1245,6 +1254,8 @@ Identifiers* Parser::parseQualifiedIdentifier(const char* entity)
                 entity,
                 token.toChars()
             );
+
+            return NULL;
         }
 
         Identifier *id = token.ident;
