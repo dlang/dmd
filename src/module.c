@@ -1066,14 +1066,15 @@ Module *Package::isPackageMod()
  */
 bool Package::isAncestorPackageOf(Package* pkg)
 {
-   if (!pkg)
-       return false;
-
    while (pkg)
    {
        if (this == pkg)
            return true;
-       pkg = pkg->parent ? pkg->parent->isPackage() : NULL;
+
+       if (!pkg->parent)
+           break;
+
+       pkg = pkg->parent->isPackage();
    }
 
    return false;
