@@ -1872,6 +1872,33 @@ struct MonoTime
 
 
     /++
+        A $(D MonoTime) of $(D 0) ticks. It's provided to be consistent with
+        $(D Duration.zero), and it's more explicit than $(D MonoTime.init).
+      +/
+    static @property @safe pure nothrow MonoTime zero() { return MonoTime(0); }
+
+    /++
+        Largest $(D MonoTime) possible.
+      +/
+    static @property @safe pure nothrow MonoTime max() { return MonoTime(long.max); }
+
+    /++
+        Most negative $(D MonoTime) possible.
+      +/
+    static @property @safe pure nothrow MonoTime min() { return MonoTime(long.min); }
+
+    unittest
+    {
+        assert(zero == MonoTime(0));
+        assert(MonoTime.max == MonoTime(long.max));
+        assert(MonoTime.min == MonoTime(long.min));
+        assert(MonoTime.min < MonoTime.zero);
+        assert(MonoTime.zero < MonoTime.max);
+        assert(MonoTime.min < MonoTime.max);
+    }
+
+
+    /++
         Compares this MonoTime with the given MonoTime.
 
         Returns:
