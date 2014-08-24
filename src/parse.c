@@ -678,13 +678,10 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl, PrefixAttributes 
                     if (pAttrs->protection.kind != PROTundefined)
                     {
                         if ((pAttrs->protection.kind == PROTpackage) && pkg_prot_idents)
-                        {
-                            Dsymbol* tmp;
-                            Package::resolve(pkg_prot_idents, &tmp, NULL);
-                            pAttrs->protection.pkg = tmp ? tmp->isPackage() : NULL;
-                        }
+                            s = new ProtDeclaration(attrloc, pkg_prot_idents,  a);
+                        else
+                            s = new ProtDeclaration(attrloc, pAttrs->protection, a);
 
-                        s = new ProtDeclaration(attrloc, pAttrs->protection, a);
                         pAttrs->protection = Prot();
                     }
                 }

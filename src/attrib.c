@@ -540,28 +540,64 @@ char *LinkDeclaration::toChars()
 
 /********************************* ProtDeclaration ****************************/
 
+/**
+* Params:
+*  loc = source location of attribute token
+*  p = protection attribute data
+*  decl = declarations which are affected by this protection attribute
+*/
 ProtDeclaration::ProtDeclaration(Loc loc, Prot p, Dsymbols *decl)
         : AttribDeclaration(decl)
 {
     this->loc = loc;
     this->protection = p;
+    this->pkg_identifiers = NULL;
     //printf("decl = %p\n", decl);
+}
+
+/**
+* Params:
+*  loc = source location of attribute token
+*  pkg_identifiers = list of identifiers for a qualified package name
+*  decl = declarations which are affected by this protection attribute
+*/
+ProtDeclaration::ProtDeclaration(Loc loc, Identifiers* pkg_identifiers, Dsymbols *decl)
+        : AttribDeclaration(decl)
+{
+    this->loc = loc;
+    this->protection.kind = PROTpackage;
+    this->protection.pkg  = NULL;
+    this->pkg_identifiers = pkg_identifiers;
 }
 
 Dsymbol *ProtDeclaration::syntaxCopy(Dsymbol *s)
 {
     assert(!s);
-    return new ProtDeclaration(this->loc, protection, Dsymbol::arraySyntaxCopy(decl));
+    if (protection.kind == PROTpackage)
+    	return new ProtDeclaration(this->loc, pkg_identifiers, Dsymbol::arraySyntaxCopy(decl));
+    else
+    	return new ProtDeclaration(this->loc, protection, Dsymbol::arraySyntaxCopy(decl));
 }
 
 Scope *ProtDeclaration::newScope(Scope *sc)
 {
+    if (pkg_identifiers)
+        semantic(sc);
     return createNewScope(sc, sc->stc, sc->linkage, this->protection, 1, sc->structalign);
 }
 
 void ProtDeclaration::semantic(Scope* sc)
 {
+    if (pkg_identifiers)
+    {
+        Dsymbol* tmp;
+        Package::resolve(pkg_identifiers, &tmp, NULL);
+        protection.pkg = tmp ? tmp->isPackage() : NULL;
+        pkg_identifiers = NULL;
+    }
+
     AttribDeclaration::semantic(sc);
+
     if ((protection.kind == PROTpackage) && (protection.pkg != NULL) && sc->module)
     {
         Package* pkg =  sc->module->parent->isPackage();

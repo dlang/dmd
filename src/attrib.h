@@ -101,14 +101,10 @@ class ProtDeclaration : public AttribDeclaration
 {
 public:
     Prot protection;
+    Identifiers* pkg_identifiers;
 
-    /**
-    * Params:
-    *  loc = source location of attribute token
-    *  p = protection attribute data
-    *  decl = declarations which are affected by this protection attribute
-    */
     ProtDeclaration(Loc loc, Prot p, Dsymbols *decl);
+    ProtDeclaration(Loc loc, Identifiers* pkg_identifiers, Dsymbols *decl);
 
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
