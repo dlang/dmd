@@ -551,19 +551,12 @@ ProtDeclaration::ProtDeclaration(Loc loc, Prot p, Dsymbols *decl)
 Dsymbol *ProtDeclaration::syntaxCopy(Dsymbol *s)
 {
     assert(!s);
-    return new ProtDeclaration(protection, Dsymbol::arraySyntaxCopy(decl));
+    return new ProtDeclaration(this->loc, protection, Dsymbol::arraySyntaxCopy(decl));
 }
 
 Scope *ProtDeclaration::newScope(Scope *sc)
 {
     return createNewScope(sc, sc->stc, sc->linkage, this->protection, 1, sc->structalign);
-}
-
-void ProtDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    protectionToBuffer(buf, protection);
-    buf->writeByte(' ');
-    AttribDeclaration::toCBuffer(buf, hgs);
 }
 
 void ProtDeclaration::semantic(Scope* sc)

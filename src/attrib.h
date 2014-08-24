@@ -112,7 +112,6 @@ public:
 
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     const char *kind();
     const char *toPrettyChars(bool unused);
     void semantic(Scope* sc);
