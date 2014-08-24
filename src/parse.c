@@ -668,7 +668,7 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl, PrefixAttributes 
                         // protection to
                         if ((pAttrs->protection.kind == PROTpackage) && (token.value == TOKlparen))
                         {
-                                pkg_prot_idents = parseQualifiedIdentifier("protection package");
+                            pkg_prot_idents = parseQualifiedIdentifier("protection package");
                             check(TOKrparen);
                         }
                     }
