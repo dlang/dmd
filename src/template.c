@@ -5355,7 +5355,7 @@ MATCH TemplateValueParameter::matchArg(Scope *sc, RootObject *oarg,
             ei = new VarExp(loc, f);
             ei = ei->semantic(sc);
             if (!f->needThis())
-                ei = resolveProperties(sc, ei);
+                ei = resolvePropertiesOnly(sc, ei);
             /* If it was really a property, it will become a CallExp.
              * If it stayed as a var, it cannot be interpreted.
              */
