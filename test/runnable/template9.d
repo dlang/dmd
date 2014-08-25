@@ -4109,6 +4109,19 @@ void test13333()
 }
 
 /******************************************/
+// 13374
+
+int f13374(alias a)()  { return 1; }
+int f13374(string s)() { return 2; }
+
+void x13374(int i) {}
+
+void test13374()
+{
+    assert(f13374!x13374() == 1);
+}
+
+/******************************************/
 
 int main()
 {
@@ -4212,6 +4225,7 @@ int main()
     test13235();
     test13294();
     test13299();
+    test13374();
 
     printf("Success\n");
     return 0;
