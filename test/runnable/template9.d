@@ -3305,9 +3305,9 @@ void test12290()
     static assert(is(typeof(func1b(1.5, [1,2,3])) == double));
     static assert(is(typeof(func1a(["a","b"], "s"c)) ==  string));
     static assert(is(typeof(func1b("s"c, ["a","b"])) ==  string));
-  //static assert(is(typeof(func1a(["a","b"], "s"w)) == wstring));  // typeMerge bug
+    static assert(is(typeof(func1a(["a","b"], "s"w)) == wstring));
     static assert(is(typeof(func1b("s"w, ["a","b"])) == wstring));
-  //static assert(is(typeof(func1a(["a","b"], "s"d)) == dstring));  // typeMerge bug
+    static assert(is(typeof(func1a(["a","b"], "s"d)) == dstring));
     static assert(is(typeof(func1b("s"d, ["a","b"])) == dstring));
 
     auto func2a(K, V)(V[K], K, V) { return V[K].init; }
@@ -3481,7 +3481,7 @@ template component13087(alias vec, char c)
 /******************************************/
 // 13127
 
-void test13127(inout int = 0)
+/+void test13127(inout int = 0)
 {
                        int []   ma1;
                  const(int)[]   ca1;
@@ -3689,7 +3689,7 @@ void test13127(inout int = 0)
     static assert(is(typeof(fswc(swma2))  ==        int []));  // <- inout(int)[]
     static assert(is(typeof(fswc(swca1))  ==        int []));  // <- NG
     static assert(is(typeof(fswc(swca2))  ==        int []));  // <- inout(const(int))[]
-}
+}+/
 
 void test13127a()
 {
@@ -3870,20 +3870,52 @@ void test13223()
     int[] a = [1, 2];
     static assert(is(typeof(f1(a, [])) == int[]));
     static assert(is(typeof(f2([], a)) == int[]));
-  //static assert(is(typeof(f1(a, null)) == int[]));
-  //static assert(is(typeof(f2(null, a)) == int[]));
+    static assert(is(typeof(f1(a, null)) == int[]));
+    static assert(is(typeof(f2(null, a)) == int[]));
 
     T[] f3(T)(T[] a) { return a; }
     static assert(is(typeof(f3([])) == void[]));
-  //static assert(is(typeof(f3(null)) == void[]));
+    static assert(is(typeof(f3(null)) == void[]));
 
     T f4(T)(T a) { return a; }
     static assert(is(typeof(f4([])) == void[]));
     static assert(is(typeof(f4(null)) == typeof(null)));
 
     T[][] f5(T)(T[][] a) { return a; }
-  //static assert(is(typeof(f5([])) == void[]));
-  //static assert(is(typeof(f5(null)) == void[]));
+    static assert(is(typeof(f5([])) == void[][]));
+    static assert(is(typeof(f5(null)) == void[][]));
+
+    void translate(C = immutable char)(const(C)[] toRemove)
+    {
+        static assert(is(C == char));
+    }
+    translate(null);
+}
+
+void test13223a()
+{
+    T f(T)(T, T) { return T.init; }
+
+    immutable i = 0;
+    const c = 0;
+    auto m = 0;
+    shared s = 0;
+
+    static assert(is(typeof(f(i, i)) == immutable int));
+    static assert(is(typeof(f(i, c)) ==     const int));
+    static assert(is(typeof(f(c, i)) ==     const int));
+    static assert(is(typeof(f(i, m)) ==           int));
+    static assert(is(typeof(f(m, i)) ==           int));
+    static assert(is(typeof(f(c, m)) ==           int));
+    static assert(is(typeof(f(m, c)) ==           int));
+    static assert(is(typeof(f(m, m)) ==           int));
+    static assert(is(typeof(f(i, s)) ==    shared int));
+    static assert(is(typeof(f(s, i)) ==    shared int));
+    static assert(is(typeof(f(c, s)) ==    shared int));
+    static assert(is(typeof(f(s, c)) ==    shared int));
+    static assert(is(typeof(f(s, s)) ==    shared int));
+    static assert(is(typeof(f(s, m)) ==           int));
+    static assert(is(typeof(f(m, s)) ==           int));
 }
 
 /******************************************/
@@ -3958,6 +3990,40 @@ static assert(is(typeof(TypeTuple13252!(cast(long[])[])[0]) == long[]));        
 struct S13252 { }
 static assert(is(typeof(TypeTuple13252!(const     S13252())[0]) ==     const(S13252)));
 static assert(is(typeof(TypeTuple13252!(immutable S13252())[0]) == immutable(S13252)));     // OK <- NG
+
+/******************************************/
+// 13294
+
+void test13294()
+{
+    void f(T)(const ref T src, ref T dst)
+    {
+        pragma(msg, "T = ", T);
+        static assert(!is(T == const));
+    }
+    {
+        const byte src;
+              byte dst;
+        f(src, dst);
+    }
+    {
+        const char src;
+              char dst;
+        f(src, dst);
+    }
+
+    // 13351
+    T add(T)(in T x, in T y)
+    {
+        T z;
+        z = x + y;
+        return z;
+    }
+    const double a = 1.0;
+    const double b = 2.0;
+    double c;
+    c = add(a,b);
+}
 
 /******************************************/
 // 13299
@@ -4144,6 +4210,7 @@ int main()
     test12207();
     test12376();
     test13235();
+    test13294();
     test13299();
 
     printf("Success\n");
