@@ -4118,6 +4118,22 @@ void test13374()
 }
 
 /******************************************/
+// 13378
+
+struct Vec13378(size_t n, T, string as)
+{
+    T[n] data;
+}
+
+void doSome13378(size_t n, T, string as)(Vec13378!(n,T,as) v) {}
+
+void test13378()
+{
+    auto v = Vec13378!(3, float, "xyz")([1,2,3]);
+    doSome13378(v);
+}
+
+/******************************************/
 
 int main()
 {
@@ -4222,6 +4238,7 @@ int main()
     test13294();
     test13299();
     test13374();
+    test13378();
 
     printf("Success\n");
     return 0;
