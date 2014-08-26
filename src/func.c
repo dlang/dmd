@@ -4482,9 +4482,6 @@ Dsymbol *CtorDeclaration::syntaxCopy(Dsymbol *s)
 void CtorDeclaration::semantic(Scope *sc)
 {
     //printf("CtorDeclaration::semantic() %s\n", toChars());
-    TypeFunction *tf = (TypeFunction *)type;
-    assert(tf && tf->ty == Tfunction);
-
     if (scope)
     {   sc = scope;
         scope = NULL;
@@ -4497,6 +4494,12 @@ void CtorDeclaration::semantic(Scope *sc)
     FuncDeclaration::semantic(sc);
 
     sc->pop();
+
+    if (errors)
+        return;
+
+    TypeFunction *tf = (TypeFunction *)type;
+    assert(tf && tf->ty == Tfunction);
 
     Dsymbol *parent = toParent2();
     AggregateDeclaration *ad = parent->isAggregateDeclaration();
@@ -4511,7 +4514,8 @@ void CtorDeclaration::semantic(Scope *sc)
         if (sd)
         {
             if (fbody || !(storage_class & STCdisable))
-            {   error("default constructor for structs only allowed with @disable and no body");
+            {
+                error("default constructor for structs only allowed with @disable and no body");
                 storage_class |= STCdisable;
                 fbody = NULL;
             }
