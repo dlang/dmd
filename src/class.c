@@ -1313,6 +1313,14 @@ void InterfaceDeclaration::semantic(Scope *sc)
                 i++;
         }
 
+        if (doAncestorsSemantic == SemanticDone)
+        {
+            //printf("%s already semantic analyzed, semanticRun = %d\n", toChars(), semanticRun);
+            if (semanticRun >= PASSsemanticdone)
+                return;
+            goto Lancestorsdone;
+        }
+
         if (!baseclasses->dim && sc->linkage == LINKcpp)
             cpp = true;
 
@@ -1397,6 +1405,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
                 cpp = true;
         }
     }
+Lancestorsdone:
 
     if (!members)               // if opaque declaration
     {
