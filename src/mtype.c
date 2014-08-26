@@ -77,6 +77,8 @@ ClassDeclaration *Type::typeinfoshared;
 ClassDeclaration *Type::typeinfowild;
 
 TemplateDeclaration *Type::rtinfo;
+TemplateDeclaration *Type::aaLiteral;
+TemplateDeclaration *Type::aaInit;
 
 Type *Type::tvoid;
 Type *Type::tint8;
@@ -3923,6 +3925,29 @@ unsigned TypeSArray::alignsize()
     return next->alignsize();
 }
 
+bool TypeSArray::isAASubtype()
+{
+    Type *t = this;
+    while (1)
+    {
+        if (t->ty == Taarray)
+        {
+            return true;
+        }
+        else if (t->ty == Tsarray)
+        {
+            t = ((TypeNext *)t)->next;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    return false;
+}
+
+
 /**************************
  * This evaluates exp while setting length to be the number
  * of elements in the tuple t.
@@ -4616,6 +4641,8 @@ TypeAArray::TypeAArray(Type *t, Type *index)
     this->index = index;
     this->loc = Loc();
     this->sc = NULL;
+    this->init = NULL;
+    this->sinit = NULL;
 }
 
 TypeAArray *TypeAArray::create(Type *t, Type *index)
@@ -4639,6 +4666,8 @@ Type *TypeAArray::syntaxCopy()
         t = new TypeAArray(t, ti);
         t->mod = mod;
     }
+    ((TypeAArray *)t)->init = init;
+    ((TypeAArray *)t)->sc = sc;
     return t;
 }
 
@@ -4650,14 +4679,17 @@ d_uns64 TypeAArray::size(Loc loc)
 Type *TypeAArray::semantic(Loc loc, Scope *sc)
 {
     //printf("TypeAArray::semantic() %s index->ty = %d\n", toChars(), index->ty);
+    if (!this->sc)
+    {
+        this->sc = sc;
+        if (sc)
+            sc->setNoFree();
+    }
+
     if (deco)
         return this;
 
     this->loc = loc;
-    this->sc = sc;
-    if (sc)
-        sc->setNoFree();
-
     // Deal with the case where we thought the index was a type, but
     // in reality it was an expression.
     if (index->ty == Tident || index->ty == Tinstance || index->ty == Tsarray ||
@@ -4908,12 +4940,13 @@ Expression *TypeAArray::defaultInit(Loc loc)
 #if LOGDEFAULTINIT
     printf("TypeAArray::defaultInit() '%s'\n", toChars());
 #endif
+    assert(sc);
     return new NullExp(loc, this);
 }
 
 bool TypeAArray::isZeroInit(Loc loc)
 {
-    return true;
+    return false;
 }
 
 bool TypeAArray::checkBoolean()

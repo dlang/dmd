@@ -1671,6 +1671,66 @@ void VarDeclaration::semantic2(Scope *sc)
             }
         }
     }
+
+    bool is_union = false;
+
+    if (isThis() && type->ty != Ttuple)
+    {
+        int idx = -1;
+        for (size_t i = 0; i < isThis()->fields.dim; i++)
+        {
+            VarDeclaration *vd = isThis()->fields[i];
+            if (vd != this)
+            {
+                size_t sz = -1;
+                if (vd->type->ty == Ttuple)
+                {
+                    sz = 0;
+                    unsigned off = vd->offset;
+                    for (size_t j=0; j<((TypeTuple *)vd->type)->arguments->dim; j++)
+                    {
+                        Type *tt = (*((TypeTuple *)vd->type)->arguments)[i]->type;
+                        off += tt->size();
+                        AggregateDeclaration::alignmember(isThis()->alignsize, tt->size(), &off);
+                        sz = tt->size();
+                    }
+                    sz += (off - vd->offset);
+                }
+                else
+                {
+                    sz = vd->type->size();
+                }
+
+                if ((vd->offset <= offset && vd->offset + vd->type->size() > offset) ||
+                         (vd->offset >= offset && offset + type->size() > vd->offset))
+                {
+                    is_union = true;
+                    break;
+                }
+
+
+            }
+        }
+    }
+
+    if (!is_union)
+    {
+        if (!init && type->ty == Taarray)
+        {
+            init = new ExpInitializer(loc, type->defaultInit(loc));
+            init = init->semantic(sc->enclosing, type, INITinterpret);
+        }
+        else if (!init && type->ty == Tsarray && ((TypeSArray *)type)->isAASubtype())
+        {
+            ArrayLiteralExp *einit = (ArrayLiteralExp *)type->defaultInitLiteral(loc);
+            for (size_t i=0; i<einit->elements->dim; i++)
+            {
+                (*einit->elements)[i] = (*einit->elements)[i]->semantic(sc);
+            }
+            init = new ExpInitializer(loc, einit);
+            init = init->semantic(sc->enclosing, type, INITinterpret);
+        }
+    }
     sem = Semantic2Done;
 }
 

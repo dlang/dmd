@@ -2464,6 +2464,7 @@ void test9386()
         assert(Test9386.sop == "xxxx");
     }
     printf("====\n");
+    version(none)//depends on AA implementation
     {
         Test9386.op[] = 0;
         Test9386.i = 0;

@@ -221,6 +221,8 @@ public:
     static ClassDeclaration *typeinfowild;
 
     static TemplateDeclaration *rtinfo;
+    static TemplateDeclaration *aaLiteral;
+    static TemplateDeclaration *aaInit;
 
     static Type *basic[TMAX];
     static unsigned char mangleChar[TMAX];
@@ -498,6 +500,8 @@ public:
     bool needsNested();
 
     void accept(Visitor *v) { v->visit(this); }
+    //Check this type is subtype of AA
+    bool isAASubtype();
 };
 
 // Dynamic array, no dimension
@@ -531,6 +535,8 @@ public:
     Type *index;                // key type
     Loc loc;
     Scope *sc;
+    Expression *init;
+    Symbol *sinit;
 
     TypeAArray(Type *t, Type *index);
     static TypeAArray *create(Type *t, Type *index);
@@ -552,6 +558,7 @@ public:
 
     // Back end
     Symbol *aaGetSymbol(const char *func, int flags);
+    Symbol *toInitializer();
 
     void accept(Visitor *v) { v->visit(this); }
 };

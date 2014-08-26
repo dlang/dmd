@@ -53,7 +53,6 @@ Expression *implicitCastTo(Expression *e, Scope *sc, Type *t)
         void visit(Expression *e)
         {
             //printf("Expression::implicitCastTo(%s of type %s) => %s\n", e->toChars(), e->type->toChars(), t->toChars());
-
             MATCH match = e->implicitConvTo(t);
             if (match)
             {
@@ -66,6 +65,10 @@ Expression *implicitCastTo(Expression *e, Scope *sc, Type *t)
                      */
                     result = e->copy();
                     result->type = t;
+                    if (result->op == TOKnull)
+                    {
+                        result = result->semantic(sc);
+                    }
                     return;
                 }
                 result = e->castTo(sc, t);
@@ -1501,7 +1504,13 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                 result = e;
                 return;
             }
-
+            if (e->type->ty == Taarray && t->ty == Tpointer)
+            {
+                NullExp *e2 = (NullExp *)e->copy();
+                e2 = (NullExp *)e2->semantic(sc);
+                result = ((TypeAArray*)e2->type)->init->castTo(sc, t);
+                return;
+            }
             NullExp *ex = (NullExp *)e->copy();
             ex->committed = 1;
             Type *tb = t->toBasetype();
@@ -1517,7 +1526,7 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                 e->error("cannot cast null to %s", t->toChars());
             }
             ex->type = t;
-            result = ex;
+            result = ex->semantic(sc);
         }
 
         void visit(StructLiteralExp *e)
@@ -1995,6 +2004,8 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                     (*ae->keys)[i] = ex;
                 }
                 ae->type = t;
+                assert(ae->op == TOKassocarrayliteral);
+                ((AssocArrayLiteralExp *)ae)->prepareInitializer(sc);
                 result = ae;
                 return;
             }
