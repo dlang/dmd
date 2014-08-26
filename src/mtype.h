@@ -50,6 +50,7 @@ void semanticTypeInfo(Scope *sc, Type *t);
 MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL, size_t inferStart = 0);
 Type *reliesOnTident(Type *t, TemplateParameters *tparams = NULL, size_t iStart = 0);
 StorageClass ModToStc(unsigned mod);
+void aaLiteralCreate(Scope *sc, Type *t);
 
 enum ENUMTY
 {
@@ -215,6 +216,7 @@ public:
     static ClassDeclaration *typeinfowild;
 
     static TemplateDeclaration *rtinfo;
+    static TemplateDeclaration *aaLiteral;
 
     static Type *basic[TMAX];
     static unsigned char sizeTy[TMAX];
@@ -520,6 +522,7 @@ public:
     Type *index;                // key type
     Loc loc;
     Scope *sc;
+    FuncDeclaration *aaLiteral;
 
     TypeAArray(Type *t, Type *index);
     static TypeAArray *create(Type *t, Type *index);

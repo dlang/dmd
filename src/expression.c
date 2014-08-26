@@ -2589,7 +2589,7 @@ void Expression::checkNogc(Scope *sc, FuncDeclaration *f)
     if (sc->flags & SCOPEctfe)
         return;
 
-    if (!f->isNogc())
+    if (!f->isNogc() && f->ident != Id::aaLiteral)
     {
         if (sc->flags & SCOPEcompile ? sc->func->isNogcBypassingInference() : sc->func->setGC())
         {
@@ -4163,10 +4163,10 @@ Expression *AssocArrayLiteralExp::semantic(Scope *sc)
     type = type->semantic(loc, sc);
 
     semanticTypeInfo(sc, type);
+    aaLiteralCreate(sc, type);
 
     return this;
 }
-
 
 int AssocArrayLiteralExp::isBool(int result)
 {
@@ -10669,6 +10669,7 @@ Expression *IndexExp::semantic(Scope *sc)
             return new ErrorExp();
     }
 
+    aaLiteralCreate(sc, t1b);
     if (t1b->ty == Tsarray || t1b->ty == Tarray)
     {
         Expression *el = new ArrayLengthExp(loc, e1);

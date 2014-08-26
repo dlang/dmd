@@ -4608,7 +4608,7 @@ elem *toElem(Expression *e, IRState *irs)
             if (t1->ty == Taarray)
             {
                 // set to:
-                //      *aaGetX(aa, keyti, valuesize, &key);
+                //      *aaGetZ(aa, keyti, valuesize, &key);
 
                 TypeAArray *taa = (TypeAArray *)t1;
                 unsigned vsize = taa->next->size();
@@ -4625,21 +4625,30 @@ elem *toElem(Expression *e, IRState *irs)
                 elem *valuesize = el_long(TYsize_t, vsize);
                 //printf("valuesize: "); elem_print(valuesize);
                 Symbol *s;
+                //printf("taa->index = %s\n", taa->index->toChars());
+                elem* keyti = toElem(taa->index->getInternalTypeInfo(NULL), irs);
+                elem* ep;
                 if (ie->modifiable)
                 {
                     n1 = el_una(OPaddr, TYnptr, n1);
-                    s = taa->aaGetSymbol("GetX", 1);
+                    s = taa->aaGetSymbol("GetZ", 1);
+                    // pass pointer to aaLiteral!(Key, Value) so that aaGetZ can create a new AA
+                    if (!taa->aaLiteral)
+                    {
+                        printf("ICE: no aaLiteral for %s (%p), %s (%s)\n", taa->toChars(), taa, ie->toChars(), ie->loc.toChars());
+                        assert(0);
+                    }
+                    elem *aaLiteral = el_ptr(toSymbol(taa->aaLiteral));
+                    ep = el_params(aaLiteral, n2, valuesize, keyti, n1, NULL);
                 }
                 else
                 {
                     s = taa->aaGetSymbol("GetRvalueX", 1);
+                    ep = el_params(n2, valuesize, keyti, n1, NULL);
                 }
-                //printf("taa->index = %s\n", taa->index->toChars());
-                elem* keyti = toElem(taa->index->getInternalTypeInfo(NULL), irs);
                 //keyti = toElem(taa->index->getTypeInfo(NULL), irs);
                 //printf("keyti:\n");
                 //elem_print(keyti);
-                elem* ep = el_params(n2, valuesize, keyti, n1, NULL);
                 e = el_bin(OPcall, TYnptr, el_var(s), ep);
                 if (irs->arrayBoundsCheck())
                 {
@@ -4991,7 +5000,7 @@ elem *toElem(Expression *e, IRState *irs)
         {
             //printf("AssocArrayLiteralExp::toElem() %s\n", aale->toChars());
 
-            Type *t = aale->type->toBasetype()->mutableOf();
+            Type *t = aale->type->toBasetype();
 
             size_t dim = aale->keys->dim;
             if (dim)
@@ -5000,7 +5009,6 @@ elem *toElem(Expression *e, IRState *irs)
                 // Prefer this to avoid the varargs fiasco in 64 bit code
 
                 assert(t->ty == Taarray);
-                Type *ta = t;
 
                 symbol *skeys = NULL;
                 elem *ekeys = ExpressionsToStaticArray(aale->loc, aale->keys, &skeys);
@@ -5015,14 +5023,16 @@ elem *toElem(Expression *e, IRState *irs)
                     ev = addressElem(ev, Type::tvoid->arrayOf());
                     ek = addressElem(ek, Type::tvoid->arrayOf());
                 }
-                elem *e = el_params(ev, ek,
-                                    toElem(ta->getTypeInfo(NULL), irs),
-                                    NULL);
+                elem *e = el_params(ek, ev, NULL);
 
-                // call _d_assocarrayliteralTX(ti, keys, values)
-                e = el_bin(OPcall,TYnptr,el_var(rtlsym[RTLSYM_ASSOCARRAYLITERALTX]),e);
-                if (t != ta)
-                    e = addressElem(e, ta);
+
+                if (!((TypeAArray *)t)->aaLiteral)
+                {
+                    printf("ICE: no aaLiteral for %s (%p), %s (%s)\n", t->toChars(), t, aale->toChars(), aale->loc.toChars());
+                    assert(0);
+                }
+                // call extern(D) aaLiteral!(Key, Value)(keys, values)
+                e = el_bin(OPcall,TYnptr,el_var(toSymbol(((TypeAArray *)t)->aaLiteral)),e);
                 el_setLoc(e, aale->loc);
 
                 e = el_combine(evalues, e);
