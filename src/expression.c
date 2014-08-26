@@ -2599,7 +2599,7 @@ void Expression::checkNogc(Scope *sc, FuncDeclaration *f)
     if (sc->flags & SCOPEctfe)
         return;
 
-    if (!f->isNogc())
+    if (!f->isNogc() && f->ident != Id::aaLiteral)
     {
         if (sc->flags & SCOPEcompile ? sc->func->isNogcBypassingInference() : sc->func->setGC())
         {
@@ -4102,6 +4102,7 @@ AssocArrayLiteralExp::AssocArrayLiteralExp(Loc loc,
     this->keys = keys;
     this->values = values;
     this->ownedByCtfe = false;
+    this->init = NULL;
 }
 
 bool AssocArrayLiteralExp::equals(RootObject *o)
@@ -4134,8 +4135,10 @@ bool AssocArrayLiteralExp::equals(RootObject *o)
 
 Expression *AssocArrayLiteralExp::syntaxCopy()
 {
-    return new AssocArrayLiteralExp(loc,
-        arraySyntaxCopy(keys), arraySyntaxCopy(values));
+    AssocArrayLiteralExp* ret = new AssocArrayLiteralExp(loc, arraySyntaxCopy(keys),
+                                                         arraySyntaxCopy(values));
+    ret->init = init;
+    return ret;
 }
 
 Expression *AssocArrayLiteralExp::semantic(Scope *sc)
@@ -4143,8 +4146,12 @@ Expression *AssocArrayLiteralExp::semantic(Scope *sc)
 #if LOGSEMANTIC
     printf("AssocArrayLiteralExp::semantic('%s')\n", toChars());
 #endif
+    assert(sc);
     if (type)
+    {
+        aaLiteralCreate(sc);
         return this;
+    }
 
     // Run semantic() on each element
     bool err_keys = arrayExpressionSemantic(keys, sc);
@@ -4173,10 +4180,55 @@ Expression *AssocArrayLiteralExp::semantic(Scope *sc)
     type = type->semantic(loc, sc);
 
     semanticTypeInfo(sc, type);
+    aaLiteralCreate(sc);
 
     return this;
 }
 
+AssocArrayLiteralExp *AssocArrayLiteralExp::aaLiteralCreate(Scope *sc)
+{
+#if LOGSEMANTIC
+    printf("AssocArrayLiteralExp::aaLiteralCreate('%s')\n", toChars());
+#endif
+    assert(type);
+    assert(sc);
+    //Pass arguments to object.aaLiteral
+    Objects *tiargs = new Objects();
+
+    Type *tkey = NULL;
+    Type *tvalue = NULL;
+    assert(type->ty == Taarray);
+    tkey = ((TypeAArray *)type)->index;
+    tvalue = ((TypeAArray *)type)->next;
+    tiargs->push(tkey);
+    tiargs->push(tvalue);
+    assert(tkey);
+    assert(tvalue);
+    Expressions *fargs = new Expressions();
+
+    for (size_t i=0; i<keys->dim; ++i)
+    {
+        assert((*keys)[i]->type);
+        assert((*values)[i]->type);
+        fargs->push((*keys)[i]);
+        fargs->push((*values)[i]);
+    }
+
+    if (!Type::aaLiteral)
+    {
+        ObjectNotFound(Id::aaLiteral);
+        assert(0);
+    }
+
+    FuncDeclaration *aaliteral = resolveFuncCall(loc, sc, Type::aaLiteral, tiargs, NULL, fargs);
+    assert(aaliteral);
+
+    Expression *ret = new CallExp(loc, new VarExp(loc, aaliteral, 0), fargs);
+    ret = ret->semantic(sc);
+    ret = ret->optimize(WANTvalue);
+    init = ret;
+    return this;
+}
 
 int AssocArrayLiteralExp::isBool(int result)
 {
@@ -10672,7 +10724,7 @@ Expression *IndexExp::semantic(Scope *sc)
         Lerror:
             return new ErrorExp();
     }
-
+    aaNewCreate(t1, sc);
     if (t1->ty == Tsarray || t1->ty == Tarray)
     {
         Expression *el = new ArrayLengthExp(loc, e1);

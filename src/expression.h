@@ -442,12 +442,15 @@ public:
     Expressions *keys;
     Expressions *values;
     bool ownedByCtfe;   // true = created in CTFE
+    Expression *init;
 
     AssocArrayLiteralExp(Loc loc, Expressions *keys, Expressions *values);
     bool equals(RootObject *o);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     int isBool(int result);
+
+    AssocArrayLiteralExp *aaLiteralCreate(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
 };

@@ -4558,7 +4558,14 @@ elem *toElem(Expression *e, IRState *irs)
                 //keyti = toElem(taa->index->getTypeInfo(NULL), irs);
                 //printf("keyti:\n");
                 //elem_print(keyti);
-                elem* ep = el_params(n2, valuesize, keyti, n1, NULL);
+
+                if (!taa->aanew)
+                {
+                    printf("ICE: no (%s)->aanew : (%s), ie=(%s)\n", taa->toChars(), taa->loc.toChars(), ie->loc.toChars());
+                    assert(0);
+                }
+                elem *newaa = toElem(taa->aanew, irs);
+                elem* ep = el_params(newaa, n2, valuesize, keyti, n1, NULL);
                 e = el_bin(OPcall, TYnptr, el_var(s), ep);
                 if (irs->arrayBoundsCheck())
                 {
@@ -4909,54 +4916,8 @@ elem *toElem(Expression *e, IRState *irs)
         void visit(AssocArrayLiteralExp *aale)
         {
             //printf("AssocArrayLiteralExp::toElem() %s\n", aale->toChars());
-
-            Type *t = aale->type->toBasetype()->mutableOf();
-
-            size_t dim = aale->keys->dim;
-            if (dim)
-            {
-                // call _d_assocarrayliteralTX(TypeInfo_AssociativeArray ti, void[] keys, void[] values)
-                // Prefer this to avoid the varargs fiasco in 64 bit code
-
-                assert(t->ty == Taarray);
-                Type *ta = t;
-
-                symbol *skeys = NULL;
-                elem *ekeys = ExpressionsToStaticArray(aale->loc, aale->keys, &skeys);
-
-                symbol *svalues = NULL;
-                elem *evalues = ExpressionsToStaticArray(aale->loc, aale->values, &svalues);
-
-                elem *ev = el_pair(TYdarray, el_long(TYsize_t, dim), el_ptr(svalues));
-                elem *ek = el_pair(TYdarray, el_long(TYsize_t, dim), el_ptr(skeys  ));
-                if (config.exe == EX_WIN64)
-                {
-                    ev = addressElem(ev, Type::tvoid->arrayOf());
-                    ek = addressElem(ek, Type::tvoid->arrayOf());
-                }
-                elem *e = el_params(ev, ek,
-                                    toElem(ta->getTypeInfo(NULL), irs),
-                                    NULL);
-
-                // call _d_assocarrayliteralTX(ti, keys, values)
-                e = el_bin(OPcall,TYnptr,el_var(rtlsym[RTLSYM_ASSOCARRAYLITERALTX]),e);
-                if (t != ta)
-                    e = addressElem(e, ta);
-                el_setLoc(e, aale->loc);
-
-                e = el_combine(evalues, e);
-                e = el_combine(ekeys, e);
-                result = e;
-                return;
-            }
-            else
-            {
-                elem *e = el_long(TYnptr, 0);      // empty associative array is the null pointer
-                if (t->ty != Taarray)
-                    e = addressElem(e, Type::tvoidptr);
-                result = e;
-                return;
-            }
+            assert(aale->init);
+            result = toElem(aale->init, irs);
         }
 
         /*******************************************

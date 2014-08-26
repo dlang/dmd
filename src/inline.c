@@ -1023,6 +1023,8 @@ Expression *doInline(Expression *e, InlineDoState *ids)
         {
             AssocArrayLiteralExp *ce = (AssocArrayLiteralExp *)e->copy();
 
+            assert(ce->init);
+            ce->init = doInline(ce->init, ids);
             ce->keys = arrayExpressiondoInline(e->keys);
             ce->values = arrayExpressiondoInline(e->values);
             result = ce;

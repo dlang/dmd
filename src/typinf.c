@@ -141,12 +141,13 @@ void Type::genTypeInfo(Scope *sc)
                     // Find module that will go all the way to an object file
                     Module *m = sc->module->importedFrom;
                     m->members->push(t->vtinfo);
-
+                    aaNewCreate(t, NULL);
                     semanticTypeInfo(sc, t);
                 }
             }
             else                        // if in obj generation pass
             {
+                aaNewCreate(t, NULL);
                 t->vtinfo->toObjFile(global.params.multiobj);
             }
         }
@@ -436,7 +437,7 @@ public:
     void visit(TypeInfoAssociativeArrayDeclaration *d)
     {
         //printf("TypeInfoAssociativeArrayDeclaration::toDt()\n");
-        verifyStructSize(Type::typeinfoassociativearray, 4 * Target::ptrsize);
+        //verifyStructSize(Type::typeinfoassociativearray, 5 * Target::ptrsize);
 
         dtxoff(pdt, Type::typeinfoassociativearray->toVtblSymbol(), 0); // vtbl for TypeInfo_AssociativeArray
         dtsize_t(pdt, 0);                        // monitor
@@ -450,6 +451,18 @@ public:
 
         tc->index->genTypeInfo(NULL);
         dtxoff(pdt, toSymbol(tc->index->vtinfo), 0); // TypeInfo for array of type
+
+        if (!tc->aanew)
+        {
+            printf("ICE: no aaNew for %s (%s)\n", tc->toChars(), tc->loc.toChars());
+            assert(0);
+        }
+        if (tc->aanew->type->size(Loc()) != Target::ptrsize)
+        {
+            printf("ICE: aaNew should be pointer to a function\n");
+            assert(0);
+        }
+        Expression_toDt(tc->aanew, pdt);
     }
 
     void visit(TypeInfoFunctionDeclaration *d)

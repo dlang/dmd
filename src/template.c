@@ -498,6 +498,8 @@ void TemplateDeclaration::semantic(Scope *sc)
     {
         if (ident == Id::RTInfo)
             Type::rtinfo = this;
+        else if (ident == Id::aaLiteral)
+            Type::aaLiteral = this;
     }
 
     if (Module *m = sc->module) // should use getModule() instead?
