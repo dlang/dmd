@@ -607,7 +607,7 @@ void FuncDeclaration::semantic(Scope *sc)
         const char *sfunc;
         if (isStatic())
             sfunc = "static";
-        else if (protection == PROTprivate || protection == PROTpackage)
+        else if (protection.kind == PROTprivate || protection.kind == PROTpackage)
             sfunc = protectionToChars(protection);
         else
             sfunc = "non-virtual";
@@ -616,7 +616,7 @@ void FuncDeclaration::semantic(Scope *sc)
 
     if (isOverride() && !isVirtual())
     {
-        if ((prot() == PROTprivate || prot() == PROTpackage) && isMember())
+        if ((prot().kind == PROTprivate || prot().kind == PROTpackage) && isMember())
             error("%s method is not virtual and cannot override", protectionToChars(prot()));
         else
             error("cannot override a non-virtual function");
@@ -742,7 +742,7 @@ void FuncDeclaration::semantic(Scope *sc)
                         if (f2)
                         {
                             f2 = f2->overloadExactMatch(type);
-                            if (f2 && f2->isFinalFunc() && f2->prot() != PROTprivate)
+                            if (f2 && f2->isFinalFunc() && f2->prot().kind != PROTprivate)
                                 error("cannot override final function %s", f2->toPrettyChars());
                         }
                     }
@@ -981,7 +981,7 @@ void FuncDeclaration::semantic(Scope *sc)
                     if (f2)
                     {
                         f2 = f2->overloadExactMatch(type);
-                        if (f2 && f2->isFinalFunc() && f2->prot() != PROTprivate)
+                        if (f2 && f2->isFinalFunc() && f2->prot().kind != PROTprivate)
                             error("cannot override final function %s.%s", b->base->toChars(), f2->toPrettyChars());
                     }
                 }
@@ -3413,14 +3413,14 @@ bool FuncDeclaration::isDllMain()
 
 bool FuncDeclaration::isExport()
 {
-    return protection == PROTexport;
+    return protection.kind == PROTexport;
 }
 
 bool FuncDeclaration::isImportedSymbol()
 {
     //printf("isImportedSymbol()\n");
     //printf("protection = %d\n", protection);
-    return (protection == PROTexport) && !fbody;
+    return (protection.kind == PROTexport) && !fbody;
 }
 
 // Determine if function goes into virtual function pointer table
@@ -3441,7 +3441,7 @@ bool FuncDeclaration::isVirtual()
         !(p->isInterfaceDeclaration() && isFinalFunc()));
 #endif
     return isMember() &&
-        !(isStatic() || protection == PROTprivate || protection == PROTpackage) &&
+        !(isStatic() || protection.kind == PROTprivate || protection.kind == PROTpackage) &&
         p->isClassDeclaration() &&
         !(p->isInterfaceDeclaration() && isFinalFunc());
 }
@@ -3802,7 +3802,7 @@ bool FuncDeclaration::addPreInvariant()
     ClassDeclaration *cd = ad ? ad->isClassDeclaration() : NULL;
     return (ad && !(cd && cd->isCPPclass()) &&
             global.params.useInvariants &&
-            (protection == PROTprotected || protection == PROTpublic || protection == PROTexport) &&
+            (protection.kind == PROTprotected || protection.kind == PROTpublic || protection.kind == PROTexport) &&
             !naked &&
             ident != Id::cpctor);
 }
@@ -3814,7 +3814,7 @@ bool FuncDeclaration::addPostInvariant()
     return (ad && !(cd && cd->isCPPclass()) &&
             ad->inv &&
             global.params.useInvariants &&
-            (protection == PROTprotected || protection == PROTpublic || protection == PROTexport) &&
+            (protection.kind == PROTprotected || protection.kind == PROTpublic || protection.kind == PROTexport) &&
             !naked &&
             ident != Id::cpctor);
 }

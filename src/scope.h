@@ -32,13 +32,13 @@ class UserAttributeDeclaration;
 struct DocComment;
 class TemplateInstance;
 
-#if __GNUC__
-// Requires a full definition for PROT and LINK
 #include "dsymbol.h"
+
+#if __GNUC__
+// Requires a full definition for LINK
 #include "mars.h"
 #else
 enum LINK;
-enum PROT;
 #endif
 
 #define CSXthis_ctor    1       // called this()
@@ -97,7 +97,7 @@ struct Scope
     structalign_t structalign;       // alignment for struct members
     LINK linkage;          // linkage for external functions
 
-    PROT protection;       // protection for class members
+    Prot protection;       // protection for class members
     int explicitProtection;     // set if in an explicit protection attribute
 
     StorageClass stc;           // storage class

@@ -1051,6 +1051,35 @@ Module *Package::isPackageMod()
     return NULL;
 }
 
+/**
+ * Checks if pkg is a sub-package of this
+ *
+ * For example, if this qualifies to 'a1.a2' and pkg - to 'a1.a2.a3',
+ * this function returns 'true'. If it is other way around or qualified
+ * package paths conflict function returns 'false'.
+ *
+ * Params:
+ *  pkg = possible subpackage
+ *
+ * Returns:
+ *  see description
+ */
+bool Package::isAncestorPackageOf(Package* pkg)
+{
+   while (pkg)
+   {
+       if (this == pkg)
+           return true;
+
+       if (!pkg->parent)
+           break;
+
+       pkg = pkg->parent->isPackage();
+   }
+
+   return false;
+}
+
 /****************************************************
  * Input:
  *      packages[]      the pkg1.pkg2 of pkg1.pkg2.mod

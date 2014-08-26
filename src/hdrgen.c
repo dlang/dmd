@@ -2991,16 +2991,35 @@ const char *linkageToChars(LINK linkage)
     return NULL;    // never reached
 }
 
-void protectionToBuffer(OutBuffer *buf, PROT prot)
+void protectionToBuffer(OutBuffer *buf, Prot prot)
 {
     const char *p = protectionToChars(prot);
+
     if (p)
         buf->writestring(p);
+
+    if ((prot.kind == PROTpackage) && (prot.pkg))
+    {
+        Package* ppkg = prot.pkg;
+
+        if (ppkg)
+        {
+            buf->writeByte('(');
+            while (ppkg)
+            {
+                buf->writestring(ppkg->ident->string);
+                ppkg = ppkg->parent ? ppkg->parent->isPackage() : NULL;
+                if (ppkg)
+                    buf->writeByte('.');
+            }
+            buf->writeByte(')');
+        }
+    }
 }
 
-const char *protectionToChars(PROT prot)
+const char *protectionToChars(Prot prot)
 {
-    switch (prot)
+    switch (prot.kind)
     {
         case PROTundefined: return NULL;
         case PROTnone:      return "none";

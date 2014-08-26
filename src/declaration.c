@@ -126,7 +126,7 @@ bool Declaration::isCodeseg()
     return false;
 }
 
-PROT Declaration::prot()
+Prot Declaration::prot()
 {
     return protection;
 }
@@ -1796,12 +1796,12 @@ bool VarDeclaration::needThis()
 
 bool VarDeclaration::isExport()
 {
-    return protection == PROTexport;
+    return protection.kind == PROTexport;
 }
 
 bool VarDeclaration::isImportedSymbol()
 {
-    if (protection == PROTexport && !init &&
+    if (protection.kind == PROTexport && !init &&
         (storage_class & STCstatic || parent->isModule()))
         return true;
     return false;

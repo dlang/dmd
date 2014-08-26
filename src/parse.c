@@ -178,7 +178,7 @@ struct PrefixAttributes
     StorageClass storageClass;
     Expression *depmsg;
     LINK link;
-    PROT protection;
+    Prot protection;
     unsigned alignment;
     Expressions *udas;
     const utf8_t *comment;
@@ -217,7 +217,8 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl, PrefixAttributes 
             pAttrs = &attrs;
             pAttrs->comment = token.blockComment;
         }
-        PROT prot;
+        PROTKIND prot;
+        Identifiers* pkg_prot_idents = NULL;
         StorageClass stc;
         Condition *condition;
 
@@ -648,21 +649,50 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl, PrefixAttributes 
             case TOKpublic:     prot = PROTpublic;      goto Lprot;
             case TOKexport:     prot = PROTexport;      goto Lprot;
             Lprot:
-                nextToken();
-                if (pAttrs->protection != PROTundefined)
+                if (pAttrs->protection.kind != PROTundefined)
                 {
-                    if (pAttrs->protection != prot)
+                    if (pAttrs->protection.kind != prot)
                         error("conflicting protection attribute '%s' and '%s'",
-                            protectionToChars(pAttrs->protection), protectionToChars(prot));
+                            protectionToChars(pAttrs->protection.kind), protectionToChars(prot));
                     else
                         error("redundant protection attribute '%s'", protectionToChars(prot));
                 }
-                pAttrs->protection = prot;
-                a = parseBlock(pLastDecl, pAttrs);
-                if (pAttrs->protection != PROTundefined)
+                pAttrs->protection.kind = prot;
+
+                nextToken();
+
                 {
-                    s = new ProtDeclaration(pAttrs->protection, a);
-                    pAttrs->protection = PROTundefined;
+                    if (pAttrs->protection.kind == PROTpackage)
+                    {
+                        // optional qualified package identifier to bind
+                        // protection to
+                        if ((pAttrs->protection.kind == PROTpackage) && (token.value == TOKlparen))
+                        {
+                            pkg_prot_idents = parseQualifiedIdentifier("protection package");
+
+                            if (pkg_prot_idents)
+                            	check(TOKrparen);
+                            else
+                            {
+                                while (token.value != TOKsemicolon && token.value != TOKeof)
+                                    nextToken();
+                                nextToken();
+                                break;
+                            }
+                        }
+                    }
+
+                    Loc attrloc = token.loc;
+                    a = parseBlock(pLastDecl, pAttrs);
+                    if (pAttrs->protection.kind != PROTundefined)
+                    {
+                        if ((pAttrs->protection.kind == PROTpackage) && pkg_prot_idents)
+                            s = new ProtDeclaration(attrloc, pkg_prot_idents,  a);
+                        else
+                            s = new ProtDeclaration(attrloc, pAttrs->protection, a);
+
+                        pAttrs->protection = Prot();
+                    }
                 }
                 break;
 
@@ -1197,6 +1227,44 @@ LINK Parser::parseLinkage(Identifiers **pidents)
     check(TOKrparen);
     *pidents = idents;
     return link;
+}
+
+/***********************************
+ * Parse ident1.ident2.ident3
+ *
+ * Params:
+ *  entity = what qualified identifier is expected to resolve into.
+ *     Used only for better error message
+ *
+ * Returns:
+ *     array of identifiers with actual qualified one stored last
+ */
+Identifiers* Parser::parseQualifiedIdentifier(const char* entity)
+{
+    Identifiers *qualified = new Identifiers();
+
+    do
+    {
+        nextToken();
+
+        if (token.value != TOKidentifier)
+        {
+            error(
+                "%s expected as dot-separated identifiers, got '%s'",
+                entity,
+                token.toChars()
+            );
+
+            return NULL;
+        }
+
+        Identifier *id = token.ident;
+        qualified->push(id);
+
+        nextToken();
+    } while (token.value == TOKdot);
+
+    return qualified;
 }
 
 /**************************************
@@ -2060,7 +2128,7 @@ BaseClasses *Parser::parseBaseClasses()
     for (; 1; nextToken())
     {
         bool prot = false;
-        PROT protection = PROTpublic;
+        Prot protection = PROTpublic;
         switch (token.value)
         {
             case TOKprivate:

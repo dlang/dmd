@@ -67,7 +67,7 @@ class AggregateDeclaration : public ScopeDsymbol
 public:
     Type *type;
     StorageClass storage_class;
-    PROT protection;
+    Prot protection;
     unsigned structsize;        // size of struct
     unsigned alignsize;         // size of struct for alignment purposes
     VarDeclarations fields;     // VarDeclaration fields
@@ -118,7 +118,7 @@ public:
     bool isExport();
     Dsymbol *searchCtor();
 
-    PROT prot();
+    Prot prot();
 
     Type *handleType() { return type; } // 'this' type
 
@@ -194,7 +194,7 @@ public:
 struct BaseClass
 {
     Type *type;                         // (before semantic processing)
-    PROT protection;               // protection for the base interface
+    Prot protection;               // protection for the base interface
 
     ClassDeclaration *base;
     unsigned offset;                    // 'this' pointer offset
@@ -207,7 +207,7 @@ struct BaseClass
     BaseClass *baseInterfaces;
 
     BaseClass();
-    BaseClass(Type *type, PROT protection);
+    BaseClass(Type *type, Prot protection);
 
     bool fillVtbl(ClassDeclaration *cd, FuncDeclarations *vtbl, int newinstance);
     void copyBaseInterfaces(BaseClasses *);

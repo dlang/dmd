@@ -93,6 +93,7 @@ public:
     TypeQualified *parseTypeof();
     Type *parseVector();
     LINK parseLinkage(Identifiers **);
+    Identifiers* parseQualifiedIdentifier(const char* entity);
     Condition *parseDebugCondition();
     Condition *parseVersionCondition();
     Condition *parseStaticIfCondition();

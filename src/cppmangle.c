@@ -1154,7 +1154,7 @@ private:
             // Pivate methods always non-virtual in D and it should be mangled as non-virtual in C++
             if (d->isVirtual() && d->vtblIndex != -1)
             {
-                switch (d->protection)
+                switch (d->protection.kind)
                 {
                     case PROTprivate:
                         buf.writeByte('E');
@@ -1169,7 +1169,7 @@ private:
             }
             else
             {
-                switch (d->protection)
+                switch (d->protection.kind)
                 {
                     case PROTprivate:
                         buf.writeByte('A');
@@ -1195,7 +1195,7 @@ private:
         }
         else if (d->isMember2()) // static function
         {                        // <flags> ::= <virtual/protection flag> <calling convention flag>
-            switch (d->protection)
+            switch (d->protection.kind)
             {
                 case PROTprivate:
                     buf.writeByte('C');
@@ -1237,7 +1237,7 @@ private:
         }
         else
         {
-            switch (d->protection)
+            switch (d->protection.kind)
             {
                 case PROTprivate:
                     buf.writeByte('0');

@@ -36,7 +36,7 @@ public:
     virtual Dsymbols *include(Scope *sc, ScopeDsymbol *sds);
     int apply(Dsymbol_apply_ft_t fp, void *param);
     static Scope *createNewScope(Scope *sc,
-        StorageClass newstc, LINK linkage, PROT protection, int explictProtection,
+        StorageClass newstc, LINK linkage, Prot protection, int explictProtection,
         structalign_t structalign);
     virtual Scope *newScope(Scope *sc);
     int addMember(Scope *sc, ScopeDsymbol *sds, int memnum);
@@ -100,11 +100,17 @@ public:
 class ProtDeclaration : public AttribDeclaration
 {
 public:
-    PROT protection;
+    Prot protection;
+    Identifiers* pkg_identifiers;
 
-    ProtDeclaration(PROT p, Dsymbols *decl);
+    ProtDeclaration(Loc loc, Prot p, Dsymbols *decl);
+    ProtDeclaration(Loc loc, Identifiers* pkg_identifiers, Dsymbols *decl);
+
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
+    const char *kind();
+    const char *toPrettyChars(bool unused);
+    void semantic(Scope* sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 

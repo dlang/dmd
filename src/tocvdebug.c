@@ -55,11 +55,11 @@ int cvMember(Dsymbol *s, unsigned char *p);
  * Convert D protection attribute to cv attribute.
  */
 
-unsigned PROTtoATTR(PROT prot)
+unsigned PROTtoATTR(Prot prot)
 {
     unsigned attribute;
 
-    switch (prot)
+    switch (prot.kind)
     {
         case PROTprivate:       attribute = 1;  break;
         case PROTpackage:       attribute = 2;  break;

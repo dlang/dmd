@@ -86,9 +86,9 @@ const char *Import::kind()
     return isstatic ? (char *)"static import" : (char *)"import";
 }
 
-PROT Import::prot()
+Prot Import::prot()
 {
-    return protection;
+    return Prot(protection);
 }
 
 Dsymbol *Import::syntaxCopy(Dsymbol *s)
@@ -194,7 +194,7 @@ void Import::importAll(Scope *sc)
             if (!isstatic && !aliasId && !names.dim)
             {
                 if (sc->explicitProtection)
-                    protection = sc->protection;
+                    protection = sc->protection.kind;
                 sc->scopesym->importScope(mod, protection);
             }
         }
@@ -228,7 +228,7 @@ void Import::semantic(Scope *sc)
         if (!isstatic && !aliasId && !names.dim)
         {
             if (sc->explicitProtection)
-                protection = sc->protection;
+                protection = sc->protection.kind;
             for (Scope *scd = sc; scd; scd = scd->enclosing)
             {
                 if (scd->scopesym)
