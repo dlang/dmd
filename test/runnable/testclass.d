@@ -39,6 +39,24 @@ class Type12143 : Node12143 {}
 class Class12143 : Type12143 {}
 
 /***************************************************/
+// 13353
+
+interface Base13353(T)
+{
+    static assert(is(T : Base13353!T));
+}
+
+interface Derived13353 : Base13353!Derived13353
+{
+    void func();
+}
+
+class Concrete13353 : Derived13353
+{
+    void func() {}
+}
+
+/***************************************************/
 
 int main()
 {
