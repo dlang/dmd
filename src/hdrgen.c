@@ -3013,13 +3013,7 @@ void protectionToBuffer(OutBuffer *buf, Prot prot)
         Package *ppkg = prot.pkg;
 
         buf->writeByte('(');
-        while (ppkg)
-        {
-            buf->writestring(ppkg->ident->string);
-            ppkg = ppkg->parent ? ppkg->parent->isPackage() : NULL;
-            if (ppkg)
-                buf->writeByte('.');
-        }
+        buf->writestring(prot.pkg->toPrettyChars(true));
         buf->writeByte(')');
     }
 }
