@@ -3004,7 +3004,7 @@ const char *linkageToChars(LINK linkage)
 
 void protectionToBuffer(OutBuffer *buf, Prot prot)
 {
-    const char *p = protectionToChars(prot);
+    const char *p = protectionToChars(prot.kind);
     if (p)
         buf->writestring(p);
 
@@ -3024,9 +3024,9 @@ void protectionToBuffer(OutBuffer *buf, Prot prot)
     }
 }
 
-const char *protectionToChars(Prot prot)
+const char *protectionToChars(PROTKIND kind)
 {
-    switch (prot.kind)
+    switch (kind)
     {
         case PROTundefined: return NULL;
         case PROTnone:      return "none";

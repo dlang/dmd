@@ -608,7 +608,7 @@ void FuncDeclaration::semantic(Scope *sc)
         if (isStatic())
             sfunc = "static";
         else if (protection.kind == PROTprivate || protection.kind == PROTpackage)
-            sfunc = protectionToChars(protection);
+            sfunc = protectionToChars(protection.kind);
         else
             sfunc = "non-virtual";
         error("%s functions cannot be abstract", sfunc);
@@ -616,8 +616,9 @@ void FuncDeclaration::semantic(Scope *sc)
 
     if (isOverride() && !isVirtual())
     {
-        if ((prot().kind == PROTprivate || prot().kind == PROTpackage) && isMember())
-            error("%s method is not virtual and cannot override", protectionToChars(prot()));
+        PROTKIND kind = prot().kind;
+        if ((kind == PROTprivate || kind == PROTpackage) && isMember())
+            error("%s method is not virtual and cannot override", protectionToChars(kind));
         else
             error("cannot override a non-virtual function");
     }
