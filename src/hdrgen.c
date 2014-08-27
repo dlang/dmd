@@ -3005,7 +3005,6 @@ const char *linkageToChars(LINK linkage)
 void protectionToBuffer(OutBuffer *buf, Prot prot)
 {
     const char *p = protectionToChars(prot);
-
     if (p)
         buf->writestring(p);
 
@@ -3013,18 +3012,15 @@ void protectionToBuffer(OutBuffer *buf, Prot prot)
     {
         Package *ppkg = prot.pkg;
 
-        if (ppkg)
+        buf->writeByte('(');
+        while (ppkg)
         {
-            buf->writeByte('(');
-            while (ppkg)
-            {
-                buf->writestring(ppkg->ident->string);
-                ppkg = ppkg->parent ? ppkg->parent->isPackage() : NULL;
-                if (ppkg)
-                    buf->writeByte('.');
-            }
-            buf->writeByte(')');
+            buf->writestring(ppkg->ident->string);
+            ppkg = ppkg->parent ? ppkg->parent->isPackage() : NULL;
+            if (ppkg)
+                buf->writeByte('.');
         }
+        buf->writeByte(')');
     }
 }
 

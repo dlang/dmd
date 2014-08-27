@@ -242,7 +242,6 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl, PrefixAttributes 
             pAttrs->comment = token.blockComment;
         }
         PROTKIND prot;
-        Identifiers *pkg_prot_idents = NULL;
         StorageClass stc;
         Condition *condition;
 
@@ -673,6 +672,7 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl, PrefixAttributes 
             case TOKpublic:     prot = PROTpublic;      goto Lprot;
             case TOKexport:     prot = PROTexport;      goto Lprot;
             Lprot:
+            {
                 if (pAttrs->protection.kind != PROTundefined)
                 {
                     if (pAttrs->protection.kind != prot)
@@ -685,40 +685,37 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl, PrefixAttributes 
 
                 nextToken();
 
+                // optional qualified package identifier to bind
+                // protection to
+                Identifiers *pkg_prot_idents = NULL;
+                if (pAttrs->protection.kind == PROTpackage && token.value == TOKlparen)
                 {
-                    if (pAttrs->protection.kind == PROTpackage)
+                    pkg_prot_idents = parseQualifiedIdentifier("protection package");
+
+                    if (pkg_prot_idents)
+                        check(TOKrparen);
+                    else
                     {
-                        // optional qualified package identifier to bind
-                        // protection to
-                        if (pAttrs->protection.kind == PROTpackage && token.value == TOKlparen)
-                        {
-                            pkg_prot_idents = parseQualifiedIdentifier("protection package");
-
-                            if (pkg_prot_idents)
-                                check(TOKrparen);
-                            else
-                            {
-                                while (token.value != TOKsemicolon && token.value != TOKeof)
-                                    nextToken();
-                                nextToken();
-                                break;
-                            }
-                        }
-                    }
-
-                    Loc attrloc = token.loc;
-                    a = parseBlock(pLastDecl, pAttrs);
-                    if (pAttrs->protection.kind != PROTundefined)
-                    {
-                        if (pAttrs->protection.kind == PROTpackage && pkg_prot_idents)
-                            s = new ProtDeclaration(attrloc, pkg_prot_idents,  a);
-                        else
-                            s = new ProtDeclaration(attrloc, pAttrs->protection, a);
-
-                        pAttrs->protection = Prot();
+                        while (token.value != TOKsemicolon && token.value != TOKeof)
+                            nextToken();
+                        nextToken();
+                        break;
                     }
                 }
+
+                Loc attrloc = token.loc;
+                a = parseBlock(pLastDecl, pAttrs);
+                if (pAttrs->protection.kind != PROTundefined)
+                {
+                    if (pAttrs->protection.kind == PROTpackage && pkg_prot_idents)
+                        s = new ProtDeclaration(attrloc, pkg_prot_idents,  a);
+                    else
+                        s = new ProtDeclaration(attrloc, pAttrs->protection, a);
+
+                    pAttrs->protection = Prot(PROTundefined);
+                }
                 break;
+            }
 
             case TOKalign:
             {
@@ -1265,7 +1262,7 @@ LINK Parser::parseLinkage(Identifiers **pidents)
  */
 Identifiers *Parser::parseQualifiedIdentifier(const char *entity)
 {
-    Identifiers *qualified = new Identifiers();
+    Identifiers *qualified = NULL;
 
     do
     {
@@ -1278,6 +1275,8 @@ Identifiers *Parser::parseQualifiedIdentifier(const char *entity)
         }
 
         Identifier *id = token.ident;
+        if (!qualified)
+            qualified = new Identifiers();
         qualified->push(id);
 
         nextToken();

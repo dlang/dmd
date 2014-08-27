@@ -715,9 +715,11 @@ void emitMemberComments(ScopeDsymbol *sds, Scope *sc)
 
 void emitProtection(OutBuffer *buf, Prot prot)
 {
-    const char *p = (prot.kind == PROTpublic) ? NULL : protectionToChars(prot);
-    if (p)
-        buf->printf("%s ", p);
+    if (prot.kind != PROTundefined && prot.kind != PROTpublic)
+    {
+        protectionToBuffer(buf, prot);
+        buf->writeByte(' ');
+    }
 }
 
 void emitComment(Dsymbol *s, Scope *sc)

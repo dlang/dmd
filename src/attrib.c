@@ -617,29 +617,11 @@ const char *ProtDeclaration::toPrettyChars(bool)
 {
     assert(protection.kind > PROTundefined);
 
-    const char* kind = protectionToChars(this->protection);
-
-    OutBuffer buffer;
-
-    if (protection.kind == PROTpackage && protection.pkg)
-    {
-        // 'package(name)'
-        const char* name = protection.pkg->toPrettyChars(true);
-        buffer.writestring("'");
-        buffer.writestring(kind);
-        buffer.writestring("(");
-        buffer.writestring(name);
-        buffer.writestring(")'");
-        return buffer.extractString();
-    }
-    else
-    {
-        // 'attrkind'
-        buffer.writestring("'");
-        buffer.writestring(kind);
-        buffer.writestring("'");
-        return buffer.extractString();
-    }
+    OutBuffer buf;
+    buf.writeByte('\'');
+    protectionToBuffer(&buf, protection);
+    buf.writeByte('\'');
+    return buf.extractString();
 }
 
 /********************************* AlignDeclaration ****************************/
