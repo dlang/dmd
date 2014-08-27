@@ -98,6 +98,25 @@ Parser::Parser(Loc loc, Module *module, const utf8_t *base, size_t length, int d
 Dsymbols *Parser::parseModule()
 {
     Dsymbols *decldefs;
+    bool isdeprecated = false;
+    Expression *msg = NULL;
+
+    if (token.value == TOKdeprecated)
+    {
+        Token *tk;
+        if (skipParensIf(peek(&token), &tk) && tk->value == TOKmodule)
+        {
+            // deprecated (...) module ...
+            isdeprecated = true;
+            nextToken();
+            if (token.value == TOKlparen)
+            {
+                check(TOKlparen);
+                msg = parseAssignExp();
+                check(TOKrparen);
+            }
+        }
+    }
 
     // ModuleDeclation leads off
     if (token.value == TOKmodule)
@@ -112,7 +131,8 @@ Dsymbols *Parser::parseModule()
         {
             nextToken();
             if (token.value != TOKidentifier)
-            {   error("module (system) identifier expected");
+            {
+                error("module (system) identifier expected");
                 goto Lerr;
             }
             Identifier *id = token.ident;
@@ -127,7 +147,8 @@ Dsymbols *Parser::parseModule()
 #endif
 
         if (token.value != TOKidentifier)
-        {   error("Identifier expected following module");
+        {
+            error("Identifier expected following module");
             goto Lerr;
         }
         else
@@ -143,13 +164,16 @@ Dsymbols *Parser::parseModule()
                 a->push(id);
                 nextToken();
                 if (token.value != TOKidentifier)
-                {   error("Identifier expected following package");
+                {
+                    error("Identifier expected following package");
                     goto Lerr;
                 }
                 id = token.ident;
             }
 
             md = new ModuleDeclaration(loc, a, id, safe);
+            md->isdeprecated = isdeprecated;
+            md->msg = msg;
 
             if (token.value != TOKsemicolon)
                 error("';' expected following module declaration instead of %s", token.toChars());

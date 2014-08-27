@@ -62,6 +62,17 @@ void genhdrfile(Module *m)
 
     if (m->md)
     {
+        if (m->md->isdeprecated)
+        {
+            if (m->md->msg)
+            {
+                buf.writestring("deprecated(");
+                toCBuffer(m->md->msg, &buf, &hgs);
+                buf.writestring(") ");
+            }
+            else
+                buf.writestring("deprecated ");
+        }
         buf.writestring("module ");
         buf.writestring(m->md->toChars());
         buf.writeByte(';');
