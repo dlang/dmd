@@ -389,8 +389,6 @@ version (linux)
 
 extern (C++, std)
 {
-    struct vector(T, A = allocator!T) { }
-
     struct allocator(T)
     {
 	version (linux)
@@ -400,27 +398,29 @@ extern (C++, std)
 	    {   (cast(__gnu_cxx.new_allocator!T*)&this).deallocate(p, sz); }
 	}
     }
+
+    version (linux)
+    {
+	class vector(T, A = allocator!T)
+	{
+	    final void push_back(ref const T);
+	}
+    }
 }
 
 extern (C++)
 {
     version (linux)
-        void foo14(std.vector!(int)* p);
-    version (OSX)
-        void foo14(std.vector!(int)* p);
-    version (FreeBSD)
-        void foo14(std.vector!(int)* p);
+        void foo14(std.vector!(int) p);
 }
 
 void test14()
 {
-    std.vector!int* p;
     version (linux)
+    {
+	std.vector!int p;
         foo14(p);
-    version (OSX)
-        foo14(p);
-    version (FreeBSD)
-        foo14(p);
+    }
 }
 
 version (linux)
@@ -428,6 +428,12 @@ version (linux)
     void test14a(std.allocator!int * pa)
     {
 	pa.deallocate(null, 0);
+    }
+
+    void gun(std.vector!int pa)
+    {
+	int x = 42;
+	pa.push_back(x);
     }
 }
 
