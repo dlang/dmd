@@ -281,16 +281,19 @@ size_t getoffset13161a()
 /****************************************************/
 
 #if __linux__ || __APPLE__ || __FreeBSD__
+#include <memory>
 #include <vector>
 
 #if __linux__
 template struct std::allocator<int>;
+template struct std::vector<int>;
 
 void foo15()
 {
     std::allocator<int>* p;
     p->deallocate(0, 0);
 }
+
 #endif
 
 // _Z5foo14PSt6vectorIiSaIiEE

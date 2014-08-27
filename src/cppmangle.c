@@ -394,6 +394,13 @@ class CppMangleVisitor : public Visitor
                 buf.insert(3, "Sa", 2);
             }
 
+            // Replace ::std with St
+            if (buf.offset >= 7 && memcmp(buf.data, "_ZN3std", 7) == 0)
+            {
+                buf.remove(3, 4);
+                buf.insert(3, "St", 2);
+            }
+
             if (d->isDtorDeclaration())
             {
                 buf.writestring("D1");
