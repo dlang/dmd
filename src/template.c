@@ -1374,8 +1374,13 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
         }
     }
 
+#if BUGZILLA_11946
     if (isstatic)
         tthis = NULL;
+#else
+    if (toParent()->isModule() || (scope->stc & STCstatic))
+        tthis = NULL;
+#endif
     if (tthis)
     {
         bool hasttp = false;
@@ -6468,8 +6473,10 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     sc2->parent = this;
     sc2->tinst = this;
     sc2->speculative = speculative;
+#if BUGZILLA_11946
     if (enclosing && tempdecl->isstatic)
         sc2->stc &= ~STCstatic;
+#endif
 
     tryExpandMembers(sc2);
 

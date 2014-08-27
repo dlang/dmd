@@ -2970,6 +2970,8 @@ void test11271()
 /******************************************/
 // 11533
 
+version (none)
+{
 struct S11533
 {
     void put(alias fun)() { fun!int(); }
@@ -3000,6 +3002,20 @@ void test11533c()
     assert(foo.call() == var);
     var += 1;
     assert(foo.call() == var);
+}
+
+void test11533()
+{
+    test11533a();
+    test11533b();
+    test11533c();
+}
+}
+else
+{
+void test11533()
+{
+}
 }
 
 /******************************************/
@@ -4213,9 +4229,7 @@ int main()
     test10811();
     test10969();
     test11271();
-    test11533a();
-    test11533b();
-    test11533c();
+    test11533();
     test11818();
     test11843();
     test11872();
