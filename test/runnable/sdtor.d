@@ -3284,7 +3284,10 @@ void test12686()
 {
     Foo12686 f;
     Foo12686 f2 = f.bar();
-    assert(Foo12686.count == 2);
+    version (unittest)
+    { }
+    else
+        assert(Foo12686.count == 2);
 }
 
 /**********************************/
@@ -3308,6 +3311,42 @@ void test13089() nothrow
 {
     immutable data = foo13089();
     assert(p13089 == &data);
+}
+
+/**********************************/
+
+struct NoDtortest11763 {} 
+ 
+struct HasDtortest11763 
+{ 
+    NoDtortest11763 func() 
+    { 
+        return NoDtortest11763(); 
+    } 
+    ~this() {} 
+} 
+ 
+void test11763() 
+{ 
+    HasDtortest11763().func(); 
+} 
+
+/**********************************/
+
+struct Buf { }
+
+struct Variant
+{
+    ~this() { }
+
+    Buf get() { Buf b; return b; }
+}
+
+Variant value() { Variant v; return v; }
+
+void test13303()
+{
+    value.get();
 }
 
 /**********************************/
@@ -3413,6 +3452,8 @@ int main()
     test12660();
     test12686();
     test13089();
+    test11763();
+    test13303();
 
     printf("Success\n");
     return 0;
