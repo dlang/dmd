@@ -541,11 +541,11 @@ char *LinkDeclaration::toChars()
 /********************************* ProtDeclaration ****************************/
 
 /**
-* Params:
-*  loc = source location of attribute token
-*  p = protection attribute data
-*  decl = declarations which are affected by this protection attribute
-*/
+ * Params:
+ *  loc = source location of attribute token
+ *  p = protection attribute data
+ *  decl = declarations which are affected by this protection attribute
+ */
 ProtDeclaration::ProtDeclaration(Loc loc, Prot p, Dsymbols *decl)
         : AttribDeclaration(decl)
 {
@@ -556,11 +556,11 @@ ProtDeclaration::ProtDeclaration(Loc loc, Prot p, Dsymbols *decl)
 }
 
 /**
-* Params:
-*  loc = source location of attribute token
-*  pkg_identifiers = list of identifiers for a qualified package name
-*  decl = declarations which are affected by this protection attribute
-*/
+ * Params:
+ *  loc = source location of attribute token
+ *  pkg_identifiers = list of identifiers for a qualified package name
+ *  decl = declarations which are affected by this protection attribute
+ */
 ProtDeclaration::ProtDeclaration(Loc loc, Identifiers* pkg_identifiers, Dsymbols *decl)
         : AttribDeclaration(decl)
 {
@@ -574,9 +574,9 @@ Dsymbol *ProtDeclaration::syntaxCopy(Dsymbol *s)
 {
     assert(!s);
     if (protection.kind == PROTpackage)
-    	return new ProtDeclaration(this->loc, pkg_identifiers, Dsymbol::arraySyntaxCopy(decl));
+        return new ProtDeclaration(this->loc, pkg_identifiers, Dsymbol::arraySyntaxCopy(decl));
     else
-    	return new ProtDeclaration(this->loc, protection, Dsymbol::arraySyntaxCopy(decl));
+        return new ProtDeclaration(this->loc, protection, Dsymbol::arraySyntaxCopy(decl));
 }
 
 Scope *ProtDeclaration::newScope(Scope *sc)
@@ -598,23 +598,22 @@ void ProtDeclaration::semantic(Scope* sc)
 
     AttribDeclaration::semantic(sc);
 
-    if ((protection.kind == PROTpackage) && (protection.pkg != NULL) && sc->module)
+    if (protection.kind == PROTpackage && protection.pkg && sc->module)
     {
         Module *m = sc->module;
-        Package* pkg =  m->parent ? m->parent->isPackage() : NULL;
+        Package* pkg = m->parent ? m->parent->isPackage() : NULL;
         if (!pkg || !protection.pkg->isAncestorPackageOf(pkg))
             error("does not bind to one of ancestor packages of module '%s'",
                m->toPrettyChars(true));
     }
 }
 
-
 const char *ProtDeclaration::kind()
 {
     return "protection attribute";
 }
 
-const char *ProtDeclaration::toPrettyChars(bool unused)
+const char *ProtDeclaration::toPrettyChars(bool)
 {
     assert(protection.kind > PROTundefined);
 
@@ -622,7 +621,7 @@ const char *ProtDeclaration::toPrettyChars(bool unused)
 
     OutBuffer buffer;
 
-    if ((protection.kind == PROTpackage) && protection.pkg)
+    if (protection.kind == PROTpackage && protection.pkg)
     {
         // 'package(name)'
         const char* name = protection.pkg->toPrettyChars(true);

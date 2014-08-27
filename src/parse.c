@@ -242,7 +242,7 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl, PrefixAttributes 
             pAttrs->comment = token.blockComment;
         }
         PROTKIND prot;
-        Identifiers* pkg_prot_idents = NULL;
+        Identifiers *pkg_prot_idents = NULL;
         StorageClass stc;
         Condition *condition;
 
@@ -690,12 +690,12 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl, PrefixAttributes 
                     {
                         // optional qualified package identifier to bind
                         // protection to
-                        if ((pAttrs->protection.kind == PROTpackage) && (token.value == TOKlparen))
+                        if (pAttrs->protection.kind == PROTpackage && token.value == TOKlparen)
                         {
                             pkg_prot_idents = parseQualifiedIdentifier("protection package");
 
                             if (pkg_prot_idents)
-                            	check(TOKrparen);
+                                check(TOKrparen);
                             else
                             {
                                 while (token.value != TOKsemicolon && token.value != TOKeof)
@@ -710,7 +710,7 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl, PrefixAttributes 
                     a = parseBlock(pLastDecl, pAttrs);
                     if (pAttrs->protection.kind != PROTundefined)
                     {
-                        if ((pAttrs->protection.kind == PROTpackage) && pkg_prot_idents)
+                        if (pAttrs->protection.kind == PROTpackage && pkg_prot_idents)
                             s = new ProtDeclaration(attrloc, pkg_prot_idents,  a);
                         else
                             s = new ProtDeclaration(attrloc, pAttrs->protection, a);
@@ -1263,22 +1263,17 @@ LINK Parser::parseLinkage(Identifiers **pidents)
  * Returns:
  *     array of identifiers with actual qualified one stored last
  */
-Identifiers* Parser::parseQualifiedIdentifier(const char* entity)
+Identifiers *Parser::parseQualifiedIdentifier(const char *entity)
 {
     Identifiers *qualified = new Identifiers();
 
     do
     {
         nextToken();
-
         if (token.value != TOKidentifier)
         {
-            error(
-                "%s expected as dot-separated identifiers, got '%s'",
-                entity,
-                token.toChars()
-            );
-
+            error("%s expected as dot-separated identifiers, got '%s'",
+                    entity, token.toChars());
             return NULL;
         }
 

@@ -3009,9 +3009,9 @@ void protectionToBuffer(OutBuffer *buf, Prot prot)
     if (p)
         buf->writestring(p);
 
-    if ((prot.kind == PROTpackage) && (prot.pkg))
+    if (prot.kind == PROTpackage && prot.pkg)
     {
-        Package* ppkg = prot.pkg;
+        Package *ppkg = prot.pkg;
 
         if (ppkg)
         {
