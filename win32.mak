@@ -327,7 +327,16 @@ $(IMPDIR)\core\sys\osx\execinfo.d : src\core\sys\osx\execinfo.d
 $(IMPDIR)\core\sys\osx\pthread.d : src\core\sys\osx\pthread.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\osx\mach\dyld.d : src\core\sys\osx\mach\dyld.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\osx\mach\getsect.d : src\core\sys\osx\mach\getsect.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\osx\mach\kern_return.d : src\core\sys\osx\mach\kern_return.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\osx\mach\loader.d : src\core\sys\osx\mach\loader.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\osx\mach\port.d : src\core\sys\osx\mach\port.d
