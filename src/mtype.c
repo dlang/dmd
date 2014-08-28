@@ -2262,14 +2262,8 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
     }
     if (v)
     {
-        if (ident == Id::offset)
+        if (ident == Id::offsetof)
         {
-            error(e->loc, ".offset deprecated, use .offsetof");
-            goto Loffset;
-        }
-        else if (ident == Id::offsetof)
-        {
-          Loffset:
             if (v->isField())
             {
                 e = new IntegerExp(e->loc, v->offset, Type::tsize_t);
