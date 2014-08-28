@@ -600,11 +600,11 @@ void ProtDeclaration::semantic(Scope* sc)
 
     if ((protection.kind == PROTpackage) && (protection.pkg != NULL) && sc->module)
     {
-        Package* pkg =  sc->module->parent->isPackage();
-        assert(pkg);
-        if (pkg && !protection.pkg->isAncestorPackageOf(pkg))
+        Module *m = sc->module;
+        Package* pkg =  m->parent ? m->parent->isPackage() : NULL;
+        if (!pkg || !protection.pkg->isAncestorPackageOf(pkg))
             error("does not bind to one of ancestor packages of module '%s'",
-               sc->module->toPrettyChars(true));
+               m->toPrettyChars(true));
     }
 }
 
