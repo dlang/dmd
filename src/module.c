@@ -1077,18 +1077,18 @@ Module *Package::isPackageMod()
  */
 bool Package::isAncestorPackageOf(Package* pkg)
 {
-   while (pkg)
-   {
-       if (this == pkg)
-           return true;
+    while (pkg)
+    {
+        if (this == pkg)
+            return true;
 
-       if (!pkg->parent)
-           break;
+        if (!pkg->parent)
+            break;
 
-       pkg = pkg->parent->isPackage();
-   }
+        pkg = pkg->parent->isPackage();
+    }
 
-   return false;
+    return false;
 }
 
 /****************************************************

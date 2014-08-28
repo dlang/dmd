@@ -3004,33 +3004,23 @@ const char *linkageToChars(LINK linkage)
 
 void protectionToBuffer(OutBuffer *buf, Prot prot)
 {
-    const char *p = protectionToChars(prot);
-
+    const char *p = protectionToChars(prot.kind);
     if (p)
         buf->writestring(p);
 
-    if ((prot.kind == PROTpackage) && (prot.pkg))
+    if (prot.kind == PROTpackage && prot.pkg)
     {
-        Package* ppkg = prot.pkg;
+        Package *ppkg = prot.pkg;
 
-        if (ppkg)
-        {
-            buf->writeByte('(');
-            while (ppkg)
-            {
-                buf->writestring(ppkg->ident->string);
-                ppkg = ppkg->parent ? ppkg->parent->isPackage() : NULL;
-                if (ppkg)
-                    buf->writeByte('.');
-            }
-            buf->writeByte(')');
-        }
+        buf->writeByte('(');
+        buf->writestring(prot.pkg->toPrettyChars(true));
+        buf->writeByte(')');
     }
 }
 
-const char *protectionToChars(Prot prot)
+const char *protectionToChars(PROTKIND kind)
 {
-    switch (prot.kind)
+    switch (kind)
     {
         case PROTundefined: return NULL;
         case PROTnone:      return "none";

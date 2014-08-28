@@ -106,35 +106,18 @@ enum PROTKIND
 struct Prot
 {
     PROTKIND kind;
-    Package* pkg;
+    Package *pkg;
 
     Prot(PROTKIND kind = PROTundefined);
 
-    /**
-     * Checks if `this` is superset of `other` restrictions.
-     * For example, "protected" is more restrictive than "public".
-     */
     bool isMoreRestrictiveThan(Prot other);
-    /**
-     * Checks if `this` is absolutely identical protection attribute to `other`
-     */
     bool operator==(Prot other);
-    /**
-     * Checks if parent defines different access restrictions than this one.
-     *
-     * Params:
-     *  parent = protection attribute for scope that hosts this one
-     *
-     * Returns:
-     *  'true' if parent is already more restrictive than this one and thus
-     *  no differentiation is needed.
-     */
     bool isSubsetOf(Prot other);
 };
 
 // in hdrgen.c
 void protectionToBuffer(OutBuffer *buf, Prot prot);
-const char *protectionToChars(Prot prot);
+const char *protectionToChars(PROTKIND kind);
 
 /* State of symbol in winding its way through the passes of the compiler
  */
@@ -171,7 +154,7 @@ public:
     Dsymbol *parent;
     Symbol *csym;               // symbol for code generator
     Symbol *isym;               // import version of csym
-    const utf8_t *comment;     // documentation comment for this Dsymbol
+    const utf8_t *comment;      // documentation comment for this Dsymbol
     Loc loc;                    // where defined
     Scope *scope;               // !=NULL means context to use for semantic()
     bool errors;                // this symbol failed to pass semantic()

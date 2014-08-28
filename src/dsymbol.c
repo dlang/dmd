@@ -1028,10 +1028,9 @@ OverloadSet *ScopeDsymbol::mergeOverloadSet(OverloadSet *os, Dsymbol *s)
             Dsymbol *s2 = os->a[j];
             if (s->toAlias() == s2->toAlias())
             {
-
                 if (s2->isDeprecated() ||
                     (s2->prot().isMoreRestrictiveThan(s->prot()) &&
-                        s->prot().kind != PROTnone))
+                     s->prot().kind != PROTnone))
                 {
                     os->a[j] = s;
                 }
@@ -1555,12 +1554,18 @@ Prot::Prot(PROTKIND kind)
     this->pkg = NULL;
 }
 
-
+/**
+ * Checks if `this` is superset of `other` restrictions.
+ * For example, "protected" is more restrictive than "public".
+ */
 bool Prot::isMoreRestrictiveThan(Prot other)
 {
     return this->kind < other.kind;
 }
 
+/**
+ * Checks if `this` is absolutely identical protection attribute to `other`
+ */
 bool Prot::operator==(Prot other)
 {
     if (this->kind == other.kind)
@@ -1572,6 +1577,16 @@ bool Prot::operator==(Prot other)
     return false;
 }
 
+/**
+ * Checks if parent defines different access restrictions than this one.
+ *
+ * Params:
+ *  parent = protection attribute for scope that hosts this one
+ *
+ * Returns:
+ *  'true' if parent is already more restrictive than this one and thus
+ *  no differentiation is needed.
+ */
 bool Prot::isSubsetOf(Prot parent)
 {
     if (this->kind != parent.kind)

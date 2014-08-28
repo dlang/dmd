@@ -53,7 +53,7 @@ public:
 
     Package *isPackage() { return this; }
 
-    bool isAncestorPackageOf(Package* pkg);
+    bool isAncestorPackageOf(Package *pkg);
 
     void semantic(Scope *sc) { }
     Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);

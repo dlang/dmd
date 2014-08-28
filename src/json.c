@@ -450,8 +450,8 @@ public:
             property("kind", s->kind());
         }
 
-        if (s->prot().kind != PROTpublic)
-            property("protection", protectionToChars(s->prot()));
+        if (s->prot().kind != PROTpublic)   // TODO: How about package(names)?
+            property("protection", protectionToChars(s->prot().kind));
 
         if (EnumMember *em = s->isEnumMember())
         {
@@ -557,7 +557,7 @@ public:
         property("comment", (const char *)s->comment);
         property("line", "char", &s->loc);
         if (s->prot().kind != PROTpublic)
-            property("protection", protectionToChars(s->prot()));
+            property("protection", protectionToChars(s->prot().kind));
         if (s->aliasId)
             property("alias", s->aliasId->toChars());
 
