@@ -47,6 +47,7 @@ struct IRState
     block *contBlock;
     block *switchBlock;
     block *defaultBlock;
+    block *finallyBlock;
 
     IRState(IRState *irs, Statement *s);
     IRState(IRState *irs, Dsymbol *s);
@@ -56,6 +57,7 @@ struct IRState
     block *getContBlock(Identifier *ident);
     block *getSwitchBlock();
     block *getDefaultBlock();
+    block *getFinallyBlock();
     FuncDeclaration *getFunc();
     int arrayBoundsCheck();
 };

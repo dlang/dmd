@@ -205,14 +205,6 @@ typedef unsigned structalign_t;
 #define STRUCTALIGN_DEFAULT ((structalign_t) ~0)  // magic value means "match whatever the underlying C compiler does"
 // other values are all powers of 2
 
-struct Ungag
-{
-    unsigned oldgag;
-
-    Ungag(unsigned old) : oldgag(old) {}
-    ~Ungag();
-};
-
 struct Global
 {
     const char *mars_ext;
@@ -243,13 +235,8 @@ struct Global
     unsigned gag;          // !=0 means gag reporting of errors & warnings
     unsigned gaggedErrors; // number of errors reported while gagged
 
-    /* Gagging can either be speculative (is(typeof()), etc)
-     * or because of forward references
+    /* Start gagging. Return the current number of gagged errors
      */
-    unsigned speculativeGag; // == gag means gagging is for is(typeof);
-    bool isSpeculativeGagging();
-
-    // Start gagging. Return the current number of gagged errors
     unsigned startGagging();
 
     /* End gagging, restoring the old gagged state.

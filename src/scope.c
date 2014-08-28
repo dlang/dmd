@@ -78,7 +78,7 @@ Scope::Scope()
     this->nofree = 0;
     this->noctor = 0;
     this->intypeof = 0;
-    this->speculative = 0;
+    this->speculative = false;
     this->lastVar = NULL;
     this->callSuper = 0;
     this->fieldinit = NULL;
@@ -199,6 +199,25 @@ Scope *Scope::startCTFE()
 {
     Scope *sc = this->push();
     sc->flags = this->flags | SCOPEctfe;
+#if 0
+    /* TODO: Currently this is not possible, because we need to
+     * unspeculative some types and symbols if they are necessary for the
+     * final executable. Consider:
+     *
+     * struct S(T) {
+     *   string toString() const { return "instantiated"; }
+     * }
+     * enum x = S!int();
+     * void main() {
+     *   // To call x.toString in runtime, compiler should unspeculative S!int.
+     *   assert(x.toString() == "instantiated");
+     * }
+     */
+
+    // If a template is instantiated from CT evaluated expression,
+    // compiler can elide its code generation.
+    sc->speculative = true;
+#endif
     return sc;
 }
 

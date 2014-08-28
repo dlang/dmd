@@ -1269,7 +1269,6 @@ void FuncDeclaration::semantic3(Scope *sc)
         sc2->tf = NULL;
         sc2->os = NULL;
         sc2->noctor = 0;
-        sc2->speculative = sc->speculative || isSpeculative() != NULL;
         sc2->userAttribDecl = NULL;
         if (sc2->intypeof == 1) sc2->intypeof = 2;
         sc2->fieldinit = NULL;
@@ -2168,7 +2167,7 @@ void FuncDeclaration::semantic3(Scope *sc)
         sc = sc->pop();
     }
 
-    /* If this function had speculatively instantiated, error reproduction will be
+    /* If this function had instantiated with gagging, error reproduction will be
      * done by TemplateInstance::semantic.
      * Otherwise, error gagging should be temporarily ungagged by functionSemantic3.
      */
@@ -2195,7 +2194,7 @@ bool FuncDeclaration::functionSemantic()
         semantic(scope);
         global.gag = oldgag;
         if (spec && global.errors != olderrs)
-            spec->errors = global.errors - olderrs != 0;
+            spec->errors = (global.errors - olderrs != 0);
         if (olderrs != global.errors)   // if errors compiling this function
             return false;
     }
@@ -2229,8 +2228,8 @@ bool FuncDeclaration::functionSemantic3()
     if (semanticRun < PASSsemantic3 && scope)
     {
         /* Forward reference - we need to run semantic3 on this function.
-         * If errors are gagged, and it's not part of a speculative
-         * template instance, we need to temporarily ungag errors.
+         * If errors are gagged, and it's not part of a template instance,
+         * we need to temporarily ungag errors.
          */
         TemplateInstance *spec = isSpeculative();
         unsigned olderrs = global.errors;
@@ -2243,7 +2242,7 @@ bool FuncDeclaration::functionSemantic3()
         // If it is a speculatively-instantiated template, and errors occur,
         // we need to mark the template as having errors.
         if (spec && global.errors != olderrs)
-            spec->errors = global.errors - olderrs != 0;
+            spec->errors = (global.errors - olderrs != 0);
         if (olderrs != global.errors)   // if errors compiling this function
             return false;
     }
@@ -4253,91 +4252,6 @@ bool FuncDeclaration::hasNestedFrameRefs()
     return false;
 }
 
-/***********************************************
- * Returns true if this function is not defined in non-root module, nor
- * obviously instantiated in non-root module.
- *
- * Note: ti->instantiatingModule does not stabilize until semantic analysis is completed,
- * so don't call this function during semantic analysis to return precise result.
- */
-
-bool FuncDeclaration::needsCodegen()
-{
-    assert(semanticRun == PASSsemantic3done);
-
-    for (FuncDeclaration *fd = this; fd; )
-    {
-        if (!fd->isInstantiated() && fd->inNonRoot())
-            return false;
-        if (fd->isNested())
-            fd = fd->toParent2()->isFuncDeclaration();
-        else
-            break;
-    }
-
-    /* The issue is that if the importee is compiled with a different -debug
-     * setting than the importer, the importer may believe it exists
-     * in the compiled importee when it does not, when the instantiation
-     * is behind a conditional debug declaration.
-     */
-    // workaround for Bugzilla 11239
-    if (global.params.useUnitTests ||
-        global.params.allInst ||
-        global.params.debuglevel)
-    {
-        return true;
-    }
-
-    FuncDeclaration *fd = this;
-Lagain:
-    TemplateInstance *ti = fd->isInstantiated();
-    if (ti && ti->instantiatingModule && !ti->instantiatingModule->isRoot())
-    {
-        Module *mi = ti->instantiatingModule;
-
-        // If mi imports any root modules, we still need to generate the code.
-        for (size_t i = 0; i < Module::amodules.dim; ++i)
-        {
-            Module *m = Module::amodules[i];
-            m->insearch = 0;
-        }
-        bool importsRoot = false;
-        for (size_t i = 0; i < Module::amodules.dim; ++i)
-        {
-            Module *m = Module::amodules[i];
-            if (m->isRoot() && mi->imports(m))
-            {
-                importsRoot = true;
-                break;
-            }
-        }
-        for (size_t i = 0; i < Module::amodules.dim; ++i)
-        {
-            Module *m = Module::amodules[i];
-            m->insearch = 0;
-        }
-        if (!importsRoot)
-        {
-            //printf("instantiated by %s   %s\n", ti->instantiatingModule->toChars(), ti->toChars());
-            return false;
-        }
-    }
-
-    if (fd->isNested())
-    {
-        /* Bugzilla 11863: The enclosing function must have its code generated first.
-         * Therefore if parent is instantiated in non-root, this function also prevent
-         * code generation.
-         */
-        fd = fd->toParent2()->isFuncDeclaration();
-        if (fd)
-            goto Lagain;
-    }
-    //if (AggregateDeclaration *ad = fd->isMember2()) { ... }
-
-    return true;
-}
-
 /*********************************************
  * Return the function's parameter list, and whether
  * it is variadic or not.
@@ -4568,9 +4482,6 @@ Dsymbol *CtorDeclaration::syntaxCopy(Dsymbol *s)
 void CtorDeclaration::semantic(Scope *sc)
 {
     //printf("CtorDeclaration::semantic() %s\n", toChars());
-    TypeFunction *tf = (TypeFunction *)type;
-    assert(tf && tf->ty == Tfunction);
-
     if (scope)
     {   sc = scope;
         scope = NULL;
@@ -4583,6 +4494,12 @@ void CtorDeclaration::semantic(Scope *sc)
     FuncDeclaration::semantic(sc);
 
     sc->pop();
+
+    if (errors)
+        return;
+
+    TypeFunction *tf = (TypeFunction *)type;
+    assert(tf && tf->ty == Tfunction);
 
     Dsymbol *parent = toParent2();
     AggregateDeclaration *ad = parent->isAggregateDeclaration();
@@ -4597,7 +4514,8 @@ void CtorDeclaration::semantic(Scope *sc)
         if (sd)
         {
             if (fbody || !(storage_class & STCdisable))
-            {   error("default constructor for structs only allowed with @disable and no body");
+            {
+                error("default constructor for structs only allowed with @disable and no body");
                 storage_class |= STCdisable;
                 fbody = NULL;
             }

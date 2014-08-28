@@ -6842,7 +6842,8 @@ Dsymbol *TypeIdentifier::toDsymbol(Scope *sc)
             RootObject *id = idents[i];
             s = s->searchX(loc, sc, id);
             if (!s)                 // failed to find a symbol
-            {   //printf("\tdidn't find a symbol\n");
+            {
+                //printf("\tdidn't find a symbol\n");
                 break;
             }
         }
@@ -7001,6 +7002,8 @@ Dsymbol *TypeInstance::toDsymbol(Scope *sc)
 
     //printf("TypeInstance::semantic(%s)\n", toChars());
     resolve(loc, sc, &e, &t, &s);
+    if (t && t->ty != Tinstance)
+        s = t->toDsymbol(sc);
 
     return s;
 }
@@ -7055,9 +7058,7 @@ Type *TypeTypeof::syntaxCopy()
 
 Dsymbol *TypeTypeof::toDsymbol(Scope *sc)
 {
-    Type *t;
-
-    t = semantic(loc, sc);
+    Type *t = semantic(loc, sc);
     if (t == this)
         return NULL;
     return t->toDsymbol(sc);
@@ -7084,16 +7085,22 @@ void TypeTypeof::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
 
     Type *t;
     {
+        /* Currently we cannot evalute 'exp' in speculative context, because
+         * the type implementation may leak to the final execution. Consider:
+         *
+         * struct S(T) {
+         *   string toString() const { return "x"; }
+         * }
+         * void main() {
+         *   alias X = typeof(S!int());
+         *   assert(typeid(X).xtoString(null) == "x");
+         * }
+         */
         Scope *sc2 = sc->push();
         sc2->intypeof = 1;
-        sc2->speculative = true;
         sc2->flags |= sc->flags & SCOPEstaticif;
-        unsigned oldspecgag = global.speculativeGag;
-        if (global.gag)
-            global.speculativeGag = global.gag;
         exp = exp->semantic(sc2);
         exp = resolvePropertiesOnly(sc2, exp);
-        global.speculativeGag = oldspecgag;
         sc2->pop();
         if (exp->op == TOKtype)
         {

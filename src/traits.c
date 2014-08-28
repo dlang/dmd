@@ -872,11 +872,9 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         for (size_t i = 0; i < dim; i++)
         {
             unsigned errors = global.startGagging();
-            unsigned oldspec = global.speculativeGag;
-            global.speculativeGag = global.gag;
             Scope *sc2 = sc->push();
             sc2->speculative = true;
-            sc2->flags = sc->flags & ~SCOPEctfe | SCOPEcompile;
+            sc2->flags = (sc->flags & ~SCOPEctfe) | SCOPEcompile;
             bool err = false;
 
             RootObject *o = (*e->args)[i];
@@ -911,7 +909,6 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             }
 
             sc2->pop();
-            global.speculativeGag = oldspec;
             if (global.endGagging(errors) || err)
             {
                 goto Lfalse;

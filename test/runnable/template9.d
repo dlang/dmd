@@ -2970,6 +2970,8 @@ void test11271()
 /******************************************/
 // 11533
 
+version (none)
+{
 struct S11533
 {
     void put(alias fun)() { fun!int(); }
@@ -3000,6 +3002,20 @@ void test11533c()
     assert(foo.call() == var);
     var += 1;
     assert(foo.call() == var);
+}
+
+void test11533()
+{
+    test11533a();
+    test11533b();
+    test11533c();
+}
+}
+else
+{
+void test11533()
+{
+}
 }
 
 /******************************************/
@@ -3305,9 +3321,9 @@ void test12290()
     static assert(is(typeof(func1b(1.5, [1,2,3])) == double));
     static assert(is(typeof(func1a(["a","b"], "s"c)) ==  string));
     static assert(is(typeof(func1b("s"c, ["a","b"])) ==  string));
-  //static assert(is(typeof(func1a(["a","b"], "s"w)) == wstring));  // typeMerge bug
+    static assert(is(typeof(func1a(["a","b"], "s"w)) == wstring));
     static assert(is(typeof(func1b("s"w, ["a","b"])) == wstring));
-  //static assert(is(typeof(func1a(["a","b"], "s"d)) == dstring));  // typeMerge bug
+    static assert(is(typeof(func1a(["a","b"], "s"d)) == dstring));
     static assert(is(typeof(func1b("s"d, ["a","b"])) == dstring));
 
     auto func2a(K, V)(V[K], K, V) { return V[K].init; }
@@ -3481,7 +3497,7 @@ template component13087(alias vec, char c)
 /******************************************/
 // 13127
 
-void test13127(inout int = 0)
+/+void test13127(inout int = 0)
 {
                        int []   ma1;
                  const(int)[]   ca1;
@@ -3689,7 +3705,7 @@ void test13127(inout int = 0)
     static assert(is(typeof(fswc(swma2))  ==        int []));  // <- inout(int)[]
     static assert(is(typeof(fswc(swca1))  ==        int []));  // <- NG
     static assert(is(typeof(fswc(swca2))  ==        int []));  // <- inout(const(int))[]
-}
+}+/
 
 void test13127a()
 {
@@ -3767,6 +3783,38 @@ void test13180()
 }
 
 /******************************************/
+// 13204
+
+struct A13204(uint v)
+{
+    alias whatever = A13204y;
+    static assert(is(whatever == A13204));
+}
+alias A13204x = A13204!1;
+alias A13204y = A13204x;
+
+struct B13204(uint v)
+{
+    alias whatever = B13204z;
+    static assert(is(whatever == B13204));
+}
+alias B13204x = B13204!1;
+alias B13204y = B13204x;
+alias B13204z = B13204y;
+
+void test13204()
+{
+    static assert(is(A13204x == A13204!1));
+    static assert(is(A13204x == A13204!1.whatever));
+    static assert(is(A13204x == A13204y));
+
+    static assert(is(B13204x == B13204!1));
+    static assert(is(B13204x == B13204!1.whatever));
+    static assert(is(B13204x == B13204y));
+    static assert(is(B13204x == B13204z));
+}
+
+/******************************************/
 // 13218
 
 template isCallable13218(T...)
@@ -3838,20 +3886,98 @@ void test13223()
     int[] a = [1, 2];
     static assert(is(typeof(f1(a, [])) == int[]));
     static assert(is(typeof(f2([], a)) == int[]));
-  //static assert(is(typeof(f1(a, null)) == int[]));
-  //static assert(is(typeof(f2(null, a)) == int[]));
+    static assert(is(typeof(f1(a, null)) == int[]));
+    static assert(is(typeof(f2(null, a)) == int[]));
 
     T[] f3(T)(T[] a) { return a; }
     static assert(is(typeof(f3([])) == void[]));
-  //static assert(is(typeof(f3(null)) == void[]));
+    static assert(is(typeof(f3(null)) == void[]));
 
     T f4(T)(T a) { return a; }
     static assert(is(typeof(f4([])) == void[]));
     static assert(is(typeof(f4(null)) == typeof(null)));
 
     T[][] f5(T)(T[][] a) { return a; }
-  //static assert(is(typeof(f5([])) == void[]));
-  //static assert(is(typeof(f5(null)) == void[]));
+    static assert(is(typeof(f5([])) == void[][]));
+    static assert(is(typeof(f5(null)) == void[][]));
+
+    void translate(C = immutable char)(const(C)[] toRemove)
+    {
+        static assert(is(C == char));
+    }
+    translate(null);
+}
+
+void test13223a()
+{
+    T f(T)(T, T) { return T.init; }
+
+    immutable i = 0;
+    const c = 0;
+    auto m = 0;
+    shared s = 0;
+
+    static assert(is(typeof(f(i, i)) == immutable int));
+    static assert(is(typeof(f(i, c)) ==     const int));
+    static assert(is(typeof(f(c, i)) ==     const int));
+    static assert(is(typeof(f(i, m)) ==           int));
+    static assert(is(typeof(f(m, i)) ==           int));
+    static assert(is(typeof(f(c, m)) ==           int));
+    static assert(is(typeof(f(m, c)) ==           int));
+    static assert(is(typeof(f(m, m)) ==           int));
+    static assert(is(typeof(f(i, s)) ==    shared int));
+    static assert(is(typeof(f(s, i)) ==    shared int));
+    static assert(is(typeof(f(c, s)) ==    shared int));
+    static assert(is(typeof(f(s, c)) ==    shared int));
+    static assert(is(typeof(f(s, s)) ==    shared int));
+    static assert(is(typeof(f(s, m)) ==           int));
+    static assert(is(typeof(f(m, s)) ==           int));
+}
+
+/******************************************/
+// 13235
+
+struct Tuple13235(T...)
+{
+    T expand;
+    alias expand field;
+
+    this(T values)
+    {
+        field = values;
+    }
+}
+struct Foo13235
+{
+    Tuple13235!(int, Foo13235)* foo;
+}
+
+template Inst13235(T...)
+{
+    struct Tuple
+    {
+        T expand;
+        alias expand field;
+
+        this(T values)
+        {
+            field = values;
+        }
+    }
+    alias Inst13235 = Tuple*;
+}
+struct Bar13235
+{
+    Inst13235!(int, Bar13235) bar;
+}
+
+void test13235()
+{
+    alias Tup1 = Tuple13235!(int, Foo13235);
+    assert(Tup1(1, Foo13235()).expand[0] == 1);
+
+    alias Tup2 = typeof(*Inst13235!(int, Bar13235).init);
+    assert(Tup2(1, Bar13235()).expand[0] == 1);
 }
 
 /******************************************/
@@ -3880,6 +4006,136 @@ static assert(is(typeof(TypeTuple13252!(cast(long[])[])[0]) == long[]));        
 struct S13252 { }
 static assert(is(typeof(TypeTuple13252!(const     S13252())[0]) ==     const(S13252)));
 static assert(is(typeof(TypeTuple13252!(immutable S13252())[0]) == immutable(S13252)));     // OK <- NG
+
+/******************************************/
+// 13294
+
+void test13294()
+{
+    void f(T)(const ref T src, ref T dst)
+    {
+        pragma(msg, "T = ", T);
+        static assert(!is(T == const));
+    }
+    {
+        const byte src;
+              byte dst;
+        f(src, dst);
+    }
+    {
+        const char src;
+              char dst;
+        f(src, dst);
+    }
+
+    // 13351
+    T add(T)(in T x, in T y)
+    {
+        T z;
+        z = x + y;
+        return z;
+    }
+    const double a = 1.0;
+    const double b = 2.0;
+    double c;
+    c = add(a,b);
+}
+
+/******************************************/
+// 13299
+
+struct Foo13299
+{
+    Foo13299 opDispatch(string name)(int a, int[] b...)
+    if (name == "bar")
+    {
+        return Foo13299();
+    }
+
+    Foo13299 opDispatch(string name)()
+    if (name != "bar")
+    {
+        return Foo13299();
+    }
+}
+
+void test13299()
+{
+    Foo13299()
+        .bar(0)
+        .bar(1)
+        .bar(2);
+
+    Foo13299()
+        .opDispatch!"bar"(0)
+        .opDispatch!"bar"(1)
+        .opDispatch!"bar"(2);
+}
+
+/******************************************/
+// 13333
+
+template AliasThisTypeOf13333(T)
+{
+    static assert(0, T.stringof);  // T.stringof is important
+}
+
+template StaticArrayTypeOf13333(T)
+{
+    static if (is(AliasThisTypeOf13333!T AT))
+        alias X = StaticArrayTypeOf13333!AT;
+    else
+        alias X = T;
+
+    static if (is(X : E[n], E, size_t n))
+        alias StaticArrayTypeOf13333 = X;
+    else
+        static assert(0, T.stringof~" is not a static array type");
+}
+
+enum bool isStaticArray13333(T) = is(StaticArrayTypeOf13333!T);
+
+struct VaraiantN13333(T)
+{
+    static if (isStaticArray13333!T)
+        ~this() { static assert(0); }
+}
+
+struct DummyScope13333
+{
+    alias A = VaraiantN13333!C;
+
+    static class C
+    {
+        A entity;
+    }
+}
+
+void test13333()
+{
+    struct DummyScope
+    {
+        alias A = VaraiantN13333!C;
+
+        static class C
+        {
+            A entity;
+        }
+    }
+}
+
+/******************************************/
+// 13374
+
+int f13374(alias a)()  { return 1; }
+int f13374(string s)() { return 2; }
+
+void x13374(int i) {}
+
+void test13374()
+{
+    assert(f13374!x13374() == 1);
+}
 
 /******************************************/
 
@@ -3973,15 +4229,17 @@ int main()
     test10811();
     test10969();
     test11271();
-    test11533a();
-    test11533b();
-    test11533c();
+    test11533();
     test11818();
     test11843();
     test11872();
     test12122();
     test12207();
     test12376();
+    test13235();
+    test13294();
+    test13299();
+    test13374();
 
     printf("Success\n");
     return 0;

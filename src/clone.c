@@ -92,8 +92,6 @@ FuncDeclaration *hasIdentityOpAssign(AggregateDeclaration *ad, Scope *sc)
         FuncDeclaration *f = NULL;
 
         unsigned errors = global.startGagging();    // Do not report errors, even if the
-        unsigned oldspec = global.speculativeGag;   // template opAssign fbody makes it.
-        global.speculativeGag = global.gag;
         sc = sc->push();
         sc->speculative = true;
 
@@ -106,7 +104,6 @@ FuncDeclaration *hasIdentityOpAssign(AggregateDeclaration *ad, Scope *sc)
         }
 
         sc = sc->pop();
-        global.speculativeGag = oldspec;
         global.endGagging(errors);
 
         if (f)
@@ -309,19 +306,15 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
     sd->hasIdentityAssign = true;        // temporary mark identity assignable
 
     unsigned errors = global.startGagging();    // Do not report errors, even if the
-    unsigned oldspec = global.speculativeGag;   // template opAssign fbody makes it.
-    global.speculativeGag = global.gag;
     Scope *sc2 = sc->push();
     sc2->stc = 0;
     sc2->linkage = LINKd;
-    sc2->speculative = true;
 
     fop->semantic(sc2);
     fop->semantic2(sc2);
     fop->semantic3(sc2);
 
     sc2->pop();
-    global.speculativeGag = oldspec;
     if (global.endGagging(errors))    // if errors happened
     {
         // Disable generated opAssign, because some members forbid identity assignment.
@@ -412,8 +405,6 @@ FuncDeclaration *hasIdentityOpEquals(AggregateDeclaration *ad,  Scope *sc)
             FuncDeclaration *f = NULL;
 
             unsigned errors = global.startGagging();    // Do not report errors, even if the
-            unsigned oldspec = global.speculativeGag;   // template opAssign fbody makes it.
-            global.speculativeGag = global.gag;
             sc = sc->push();
             sc->speculative = true;
 
@@ -427,7 +418,6 @@ FuncDeclaration *hasIdentityOpEquals(AggregateDeclaration *ad,  Scope *sc)
             }
 
             sc = sc->pop();
-            global.speculativeGag = oldspec;
             global.endGagging(errors);
 
             if (f)
