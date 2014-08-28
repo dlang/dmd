@@ -2178,11 +2178,6 @@ Expression *Type::getProperty(Loc loc, Identifier *ident, int flag)
     {
         e = new IntegerExp(loc, alignsize(), Type::tsize_t);
     }
-    else if (ident == Id::typeinfo)
-    {
-        error(loc, ".typeinfo deprecated, use typeid(type)");
-        e = getTypeInfo(NULL);
-    }
     else if (ident == Id::init)
     {
         Type *tb = toBasetype();
@@ -2288,12 +2283,7 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
             goto Lreturn;
         }
     }
-    if (ident == Id::typeinfo)
-    {
-        error(e->loc, ".typeinfo deprecated, use typeid(type)");
-        e = getTypeInfo(sc);
-    }
-    else if (ident == Id::stringof)
+    if (ident == Id::stringof)
     {   /* Bugzilla 3796: this should demangle e->type->deco rather than
          * pretty-printing the type.
          */
@@ -8604,11 +8594,6 @@ L1:
             return e;
         }
 
-        if (ident == Id::typeinfo)
-        {
-            error(e->loc, ".typeinfo deprecated, use typeid(type)");
-            return getTypeInfo(sc);
-        }
         if (ident == Id::outer && sym->vthis)
         {
             if (sym->vthis->scope)
