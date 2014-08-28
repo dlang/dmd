@@ -1225,22 +1225,6 @@ void test4237()
 }
 
 /******************************************/
-// 3990
-
-void test3990()
-{
-    int[] a1 = [5, 4, 3];
-    assert(*a1 == 5);
-    alias typeof(a1) T1;
-    assert(is(typeof(*T1)));
-
-    int[3] a2 = [5, 4, 3];
-    assert(*a2 == 5);
-    alias typeof(a2) T2;
-    assert(is(typeof(*T2)));
-}
-
-/******************************************/
 // from extra-files/test2.d
 
 typedef void* HANDLE18;
@@ -1311,7 +1295,6 @@ int main()
     test23_test67();
     test34_test14();
     test34_test52();
-    test3990();
     test6289();
     test4237();
     test18();

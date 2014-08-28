@@ -9185,7 +9185,7 @@ Expression *PtrExp::semantic(Scope *sc)
 
         case Tsarray:
         case Tarray:
-            deprecation("using * on an array is deprecated; use *(%s).ptr instead", e1->toChars());
+            error("using * on an array is no longer supported; use *(%s).ptr instead", e1->toChars());
             type = ((TypeArray *)tb)->next;
             e1 = e1->castTo(sc, type->pointerTo());
             break;
