@@ -9,8 +9,21 @@
  * https://github.com/D-Programming-Language/dmd/blob/master/src/mars.c
  */
 
+enum COLOR
+{
+    COLOR_BLACK     = 0,
+    COLOR_RED       = 1,
+    COLOR_GREEN     = 2,
+    COLOR_BLUE      = 4,
+
+    COLOR_YELLOW    = COLOR_RED | COLOR_GREEN,
+    COLOR_MAGENTA   = COLOR_RED | COLOR_BLUE,
+    COLOR_CYAN      = COLOR_GREEN | COLOR_BLUE,
+    COLOR_WHITE     = COLOR_RED | COLOR_GREEN | COLOR_BLUE,
+};
+
 extern bool isConsoleColorSupported();
-extern void setConsoleColorBright();
-extern void setConsoleColorError();
+extern void setConsoleColorBright(bool bright);
+extern void setConsoleColor(COLOR color, bool bright);
 extern void resetConsoleColor();
 

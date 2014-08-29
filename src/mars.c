@@ -251,13 +251,13 @@ void verrorPrint(Loc loc, const char *header, const char *format, va_list ap,
     char *p = loc.toChars();
 
     if (global.params.color)
-        setConsoleColorBright();
+        setConsoleColorBright(true);
     if (*p)
         fprintf(stderr, "%s: ", p);
     mem.free(p);
 
     if (global.params.color)
-        setConsoleColorError();
+        setConsoleColor(COLOR_RED, true);
     fputs(header, stderr);
     if (global.params.color)
         resetConsoleColor();
