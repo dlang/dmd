@@ -550,8 +550,8 @@ public:
             case Tfloat80:  c = (Target::realsize - Target::realpad == 16) ? 'g' : 'e'; break;
             case Tbool:     c = 'b';        break;
             case Tchar:     c = 'c';        break;
-            case Twchar:    c = 't';        break;
-            case Tdchar:    c = 'w';        break;
+            case Twchar:    c = 't';        break; // unsigned short
+            case Tdchar:    c = 'w';        break; // wchar_t (UTF-32)
 
             case Timaginary32: p = 'G'; c = 'f';    break;
             case Timaginary64: p = 'G'; c = 'd';    break;
@@ -883,7 +883,7 @@ public:
             case Tfloat64:  buf.writeByte('N');        break;
             case Tbool:     buf.writestring("_N");     break;
             case Tchar:     buf.writeByte('D');        break;
-            case Twchar:    buf.writeByte('G');        break; // unsigned short
+            case Tdchar:    buf.writeByte('I');        break; // unsigned int
 
             case Tfloat80:
                 if (flags & IS_DMC)
@@ -892,7 +892,7 @@ public:
                     buf.writestring("_T"); // Intel long double
                 break;
 
-            case Tdchar:
+            case Twchar:
                 if (flags & IS_DMC)
                     buf.writestring("_Y"); // DigitalMars wchar_t
                 else
