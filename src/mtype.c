@@ -9201,6 +9201,43 @@ Type *TypeSlice::syntaxCopy()
 Type *TypeSlice::semantic(Loc loc, Scope *sc)
 {
     //printf("TypeSlice::semantic() %s\n", toChars());
+
+	Dsymbol* sym; Expression* expr; Type* type;
+    next->resolve(loc, sc, &expr, &type, &sym);
+    if (sym)
+    {
+    	ScopeDsymbol* scopesym = sym->isScopeDsymbol();
+    	Dsymbol* opSlice = search_function(scopesym, Id::slice, true);
+    	if (opSlice)
+    	{
+    		TemplateDeclaration* td = opSlice->isTemplateDeclaration();
+
+			scopesym = new ArrayScopeSymbol(sc, sym->isTemplateInstance());
+			scopesym->parent = sc->scopesym;
+			sc = sc->push(scopesym);
+			sc = sc->startCTFE();
+			lwr = lwr->semantic(sc);
+			upr = upr->semantic(sc);
+			sc = sc->endCTFE();
+			sc = sc->pop();
+			lwr = lwr->ctfeInterpret();
+			upr = upr->ctfeInterpret();
+
+			Objects* args = new Objects();
+			args->push(lwr);
+			args->push(upr);
+			TemplateInstance* inst = new TemplateInstance(loc, td, args);
+			inst->semantic(sc);
+			sym = inst->toAlias();
+			Type *t = sym->getType();
+
+			printf("%p\n", t);
+			printf("%s\n", sym->toChars());
+
+			return t;
+    	}
+    }
+
     Type *tn = next->semantic(loc, sc);
     //printf("next: %s\n", tn->toChars());
 
