@@ -4249,13 +4249,13 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 match1 = MATCHexact;
                 for (size_t j = 0; j < xt->argexps.dim; j++)
                 {
-                    Expression *e = xt->argexps[j];
-                    if (e == emptyArrayElement)
+                    Expression *ex = xt->argexps[j];
+                    if (ex == emptyArrayElement)
                         continue;
                     Type *pt = tt->addMod(xt->tparams[j]->mod);
                     if (wm && *wm)
                         pt = pt->substWildTo(*wm);
-                    MATCH m = e->implicitConvTo(pt);
+                    MATCH m = ex->implicitConvTo(pt);
                     if (match1 > m)
                         match1 = m;
                     if (match1 <= MATCHnomatch)
