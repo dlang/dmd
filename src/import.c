@@ -204,7 +204,7 @@ void Import::importAll(Scope *sc)
             {
                 if (sc->explicitProtection)
                     protection = sc->protection.kind;
-                sc->scopesym->importScope(mod, protection);
+                sc->scopesym->importScope(mod, Prot(protection));
             }
         }
     }
@@ -242,7 +242,7 @@ void Import::semantic(Scope *sc)
             {
                 if (scd->scopesym)
                 {
-                    scd->scopesym->importScope(mod, protection);
+                    scd->scopesym->importScope(mod, Prot(protection));
                     break;
                 }
             }
@@ -263,7 +263,7 @@ void Import::semantic(Scope *sc)
 #if 0
         sc->protection = protection;
 #else
-        sc->protection = PROTpublic;
+        sc->protection = Prot(PROTpublic);
 #endif
         for (size_t i = 0; i < aliasdecls.dim; i++)
         {
@@ -317,7 +317,7 @@ void Import::semantic(Scope *sc)
 
         // use protection instead of sc->protection because it couldn't be
         // resolved yet, see the comment above
-        protectionToBuffer(ob, protection);
+        protectionToBuffer(ob, Prot(protection));
         ob->writeByte(' ');
         if (isstatic)
             StorageClassDeclaration::stcToCBuffer(ob, STCstatic);

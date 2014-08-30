@@ -108,7 +108,8 @@ struct Prot
     PROTKIND kind;
     Package *pkg;
 
-    Prot(PROTKIND kind = PROTundefined);
+    Prot();
+    Prot(PROTKIND kind);
 
     bool isMoreRestrictiveThan(Prot other);
     bool operator==(Prot other);

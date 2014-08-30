@@ -58,7 +58,7 @@ void Nspace::semantic(Scope *sc)
             ScopeDsymbol *sds = (ScopeDsymbol *)sce->scopesym;
             if (sds)
             {
-                sds->importScope(this, PROTpublic);
+                sds->importScope(this, Prot(PROTpublic));
                 break;
             }
         }

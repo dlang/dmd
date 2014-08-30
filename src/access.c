@@ -42,7 +42,7 @@ bool isFriendOf(AggregateDeclaration *ad, AggregateDeclaration *cd);
 
 Prot getAccess(AggregateDeclaration *ad, Dsymbol *smember)
 {
-    Prot access_ret = PROTnone;
+    Prot access_ret = Prot(PROTnone);
 
 #if LOG
     printf("+AggregateDeclaration::getAccess(this = '%s', smember = '%s')\n",
@@ -71,7 +71,7 @@ Prot getAccess(AggregateDeclaration *ad, Dsymbol *smember)
                     break;
 
                 case PROTprivate:
-                    access_ret = PROTnone;  // private members of base class not accessible
+                    access_ret = Prot(PROTnone);  // private members of base class not accessible
                     break;
 
                 case PROTpackage:

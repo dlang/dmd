@@ -2146,27 +2146,27 @@ BaseClasses *Parser::parseBaseClasses()
     for (; 1; nextToken())
     {
         bool prot = false;
-        Prot protection = PROTpublic;
+        Prot protection = Prot(PROTpublic);
         switch (token.value)
         {
             case TOKprivate:
                 prot = true;
-                protection = PROTprivate;
+                protection = Prot(PROTprivate);
                 nextToken();
                 break;
             case TOKpackage:
                 prot = true;
-                protection = PROTpackage;
+                protection = Prot(PROTpackage);
                 nextToken();
                 break;
             case TOKprotected:
                 prot = true;
-                protection = PROTprotected;
+                protection = Prot(PROTprotected);
                 nextToken();
                 break;
             case TOKpublic:
                 prot = true;
-                protection = PROTpublic;
+                protection = Prot(PROTpublic);
                 nextToken();
                 break;
             default: break;

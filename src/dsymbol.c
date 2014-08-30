@@ -1548,6 +1548,12 @@ Dsymbol *DsymbolTable::update(Dsymbol *s)
 
 /****************************** Prot ******************************/
 
+Prot::Prot()
+{
+    this->kind = PROTundefined;
+    this->pkg = NULL;
+}
+
 Prot::Prot(PROTKIND kind)
 {
     this->kind = kind;

@@ -1257,7 +1257,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                         STCdeprecated | STCoverride |
                         STC_TYPECTOR | STCfinal | STCtls | STCgshared | STCref |
                         STCproperty | STCnothrow | STCpure | STCsafe | STCtrusted | STCsystem);
-        sc2->protection = PROTpublic;
+        sc2->protection = Prot(PROTpublic);
         sc2->explicitProtection = 0;
         sc2->structalign = STRUCTALIGN_DEFAULT;
         if (this->ident != Id::require && this->ident != Id::ensure)
@@ -3853,7 +3853,7 @@ FuncDeclaration *FuncDeclaration::genCfunc(Parameters *args, Type *treturn, Iden
     {
         tf = new TypeFunction(args, treturn, 0, LINKc);
         fd = new FuncDeclaration(Loc(), Loc(), id, STCstatic, tf);
-        fd->protection = PROTpublic;
+        fd->protection = Prot(PROTpublic);
         fd->linkage = LINKc;
 
         st->insert(fd);
