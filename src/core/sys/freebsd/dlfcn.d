@@ -81,7 +81,7 @@ static if (__BSD_VISIBLE)
     struct Dl_serinfo {
         size_t          dls_size;       /* total buffer size */
         uint            dls_cnt;        /* number of path entries */
-        Dl_serpath      dls_serpath[1]; /* there may be more than one */
+        Dl_serpath[1]   dls_serpath;    /* there may be more than one */
     };
 }
 

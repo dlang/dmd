@@ -321,7 +321,7 @@ struct DHandlerTable
     void *fptr;                 // pointer to start of function
     uint espoffset;         // offset of ESP from EBP
     uint retoffset;         // offset from start of function to return code
-    DHandlerInfo handler_info[1];
+    DHandlerInfo[1] handler_info;
 };
 
 struct DCatchBlock
@@ -335,7 +335,7 @@ struct DCatchBlock
 struct DCatchInfo
 {
     uint ncatches;                  // number of catch blocks
-    DCatchBlock catch_block[1];  // data for each catch block
+    DCatchBlock[1] catch_block;  // data for each catch block
 };
 
 // Macro to make our own exception code

@@ -844,9 +844,9 @@ version(CRuntime_DigitalMars)
     private enum _MAX_SEMAPHORES = 10 + _NFILE;
     private enum _semIO = 3;
 
-    private extern __gshared short _iSemLockCtrs[_MAX_SEMAPHORES];
-    private extern __gshared int _iSemThreadIds[_MAX_SEMAPHORES];
-    private extern __gshared int _iSemNestCount[_MAX_SEMAPHORES];
+    private extern __gshared short[_MAX_SEMAPHORES] _iSemLockCtrs;
+    private extern __gshared int[_MAX_SEMAPHORES] _iSemThreadIds;
+    private extern __gshared int[_MAX_SEMAPHORES] _iSemNestCount;
     private extern __gshared HANDLE[_NFILE] _osfhnd;
     private extern __gshared ubyte[_NFILE] __fhnd_info;
 

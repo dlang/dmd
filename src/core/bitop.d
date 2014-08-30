@@ -89,7 +89,7 @@ int bt(in size_t* p, size_t bitnum) pure @system
 ///
 @system pure unittest
 {
-    size_t array[2];
+    size_t[2] array;
 
     array[0] = 2;
     array[1] = 0x100;
@@ -129,7 +129,7 @@ int bts(size_t* p, size_t bitnum) pure @system;
 ///
 @system pure unittest
 {
-    size_t array[2];
+    size_t[2] array;
 
     array[0] = 2;
     array[1] = 0x100;

@@ -172,7 +172,7 @@ version( linux )
                 time_t      st_ctime;
                 ulong_t     st_ctimensec;
             }
-            slong_t     __unused[3];
+            slong_t[3]     __unused;
         }
     }
     else version (MIPS_O32)
@@ -613,7 +613,7 @@ else version( OSX )
         uint        st_flags;
         uint        st_gen;
         int         st_lspare;
-        long        st_qspare[2];
+        long[2]     st_qspare;
     }
 
     enum S_IRUSR    = 0x100;  // octal 0400

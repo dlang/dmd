@@ -25,7 +25,7 @@ alias Elf32_Sword Elf32_Ssize;
 
 struct Elf32_Ehdr
 {
-    char e_ident[EI_NIDENT];
+    char[EI_NIDENT] e_ident;
     Elf32_Half    e_type;
     Elf32_Half    e_machine;
     Elf32_Word    e_version;

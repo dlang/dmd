@@ -523,12 +523,12 @@ version( linux )
         struct sigcontext {
             ulong           fault_address;
             /* AArch64 registers */
-            ulong           regs[31];
+            ulong[31]       regs;
             ulong           sp;
             ulong           pc;
             ulong           pstate;
             /* 4K reserved for FP/SIMD state and future expansion */
-            align(16) ubyte __reserved[4096];
+            align(16) ubyte[4096] __reserved;
         }
 
         alias sigcontext mcontext_t;
@@ -591,12 +591,12 @@ else version( FreeBSD )
        long    mc_ownedfp;
 
        align(16)
-       long    mc_fpstate[64];
+       long[64]    mc_fpstate;
 
        __register_t    mc_fsbase;
        __register_t    mc_gsbase;
 
-       long    mc_spare[6];
+       long[6]    mc_spare;
       }
     }
     else version( X86 )

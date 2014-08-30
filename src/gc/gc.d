@@ -1384,8 +1384,8 @@ struct Root
 }
 
 
-immutable uint binsize[B_MAX] = [ 16,32,64,128,256,512,1024,2048,4096 ];
-immutable size_t notbinsize[B_MAX] = [ ~(16-1),~(32-1),~(64-1),~(128-1),~(256-1),
+immutable uint[B_MAX] binsize = [ 16,32,64,128,256,512,1024,2048,4096 ];
+immutable size_t[B_MAX] notbinsize = [ ~(16-1),~(32-1),~(64-1),~(128-1),~(256-1),
                                 ~(512-1),~(1024-1),~(2048-1),~(4096-1) ];
 
 /* ============================ Gcx =============================== */
@@ -1418,7 +1418,7 @@ struct Gcx
     size_t npools;
     Pool **pooltable;
 
-    List *bucket[B_MAX];        // free list for each size
+    List*[B_MAX]bucket;        // free list for each size
 
 
     void initialize()

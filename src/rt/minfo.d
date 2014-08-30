@@ -412,7 +412,7 @@ unittest
         }
 
         immutable ModuleInfo mi;
-        size_t pad[8];
+        size_t[8] pad;
         alias mi this;
     }
 
