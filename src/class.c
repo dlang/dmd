@@ -515,7 +515,7 @@ void ClassDeclaration::semantic(Scope *sc)
             assert(t->ty == Tclass);
             TypeClass *tc = (TypeClass *)t;
 
-            BaseClass *b = new BaseClass(tc, PROTpublic);
+            BaseClass *b = new BaseClass(tc, Prot(PROTpublic));
             baseclasses->shift(b);
 
             baseClass = tc->sym;
@@ -657,7 +657,7 @@ Lancestorsdone:
             sc2->linkage = LINKc;
         }
     }
-    sc2->protection = PROTpublic;
+    sc2->protection = Prot(PROTpublic);
     sc2->explicitProtection = 0;
     sc2->structalign = STRUCTALIGN_DEFAULT;
     sc2->userAttribDecl = NULL;
@@ -1488,7 +1488,7 @@ Lancestorsdone:
         sc2->linkage = LINKwindows;
     else if (cpp)
         sc2->linkage = LINKcpp;
-    sc2->protection = PROTpublic;
+    sc2->protection = Prot(PROTpublic);
     sc2->explicitProtection = 0;
     sc2->structalign = STRUCTALIGN_DEFAULT;
     sc2->userAttribDecl = NULL;

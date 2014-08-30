@@ -130,7 +130,7 @@ AggregateDeclaration::AggregateDeclaration(Loc loc, Identifier *id)
     this->loc = loc;
 
     storage_class = 0;
-    protection = PROTpublic;
+    protection = Prot(PROTpublic);
     type = NULL;
     structsize = 0;             // size of struct
     alignsize = 0;              // size of struct for alignment purposes
@@ -183,7 +183,7 @@ void AggregateDeclaration::semantic2(Scope *sc)
     sc2->parent = this;
     //if (isUnionDeclaration())     // TODO
     //    sc2->inunion = 1;
-    sc2->protection = PROTpublic;
+    sc2->protection = Prot(PROTpublic);
     sc2->explicitProtection = 0;
     sc2->structalign = STRUCTALIGN_DEFAULT;
     sc2->userAttribDecl = NULL;
@@ -217,7 +217,7 @@ void AggregateDeclaration::semantic3(Scope *sc)
     sc2->parent = this;
     if (isUnionDeclaration())
         sc2->inunion = 1;
-    sc2->protection = PROTpublic;
+    sc2->protection = Prot(PROTpublic);
     sc2->explicitProtection = 0;
     sc2->structalign = STRUCTALIGN_DEFAULT;
     sc2->userAttribDecl = NULL;
@@ -730,7 +730,7 @@ void StructDeclaration::semantic(Scope *sc)
     sc2->parent = this;
     if (isUnionDeclaration())
         sc2->inunion = 1;
-    sc2->protection = PROTpublic;
+    sc2->protection = Prot(PROTpublic);
     sc2->explicitProtection = 0;
     sc2->structalign = STRUCTALIGN_DEFAULT;
     sc2->userAttribDecl = NULL;

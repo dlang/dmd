@@ -5633,7 +5633,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
          */
         Scope *argsc = sc->push();
         argsc->stc = 0;                 // don't inherit storage class
-        argsc->protection = PROTpublic;
+        argsc->protection = Prot(PROTpublic);
         argsc->func = NULL;
 
         size_t dim = Parameter::dim(tf->parameters);

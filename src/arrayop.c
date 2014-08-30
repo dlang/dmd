@@ -72,7 +72,7 @@ FuncDeclaration *buildArrayOp(Identifier *ident, BinExp *exp, Scope *sc, Loc loc
     //printf("ftype: %s\n", ftype->toChars());
     FuncDeclaration *fd = new FuncDeclaration(Loc(), Loc(), ident, STCundefined, ftype);
     fd->fbody = fbody;
-    fd->protection = PROTpublic;
+    fd->protection = Prot(PROTpublic);
     fd->linkage = LINKc;
     fd->isArrayOp = 1;
 

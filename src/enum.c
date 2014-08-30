@@ -36,7 +36,7 @@ EnumDeclaration::EnumDeclaration(Loc loc, Identifier *id, Type *memtype)
     defaultval = NULL;
     sinit = NULL;
     isdeprecated = false;
-    protection = PROTundefined;
+    protection = Prot(PROTundefined);
     parent = NULL;
     added = false;
     inuse = 0;
@@ -677,7 +677,7 @@ Expression *EnumMember::getVarExp(Loc loc, Scope *sc)
         vd->storage_class = STCmanifest;
         vd->semantic(sc);
 
-        vd->protection = ed->isAnonymous() ? ed->protection : PROTpublic;
+        vd->protection = ed->isAnonymous() ? ed->protection : Prot(PROTpublic);
         vd->parent = ed->isAnonymous() ? ed->parent : ed;
         vd->userAttribDecl = ed->isAnonymous() ? ed->userAttribDecl : NULL;
     }

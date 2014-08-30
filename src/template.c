@@ -450,7 +450,7 @@ TemplateDeclaration::TemplateDeclaration(Loc loc, Identifier *id,
     this->ismixin = ismixin;
     this->isstatic = true;
     this->previous = NULL;
-    this->protection = PROTundefined;
+    this->protection = Prot(PROTundefined);
     this->numinstances = 0;
 
     // Compute in advance for Ddoc's use
@@ -8103,7 +8103,7 @@ void TemplateMixin::semantic(Scope *sc)
         ScopeDsymbol *sds = (ScopeDsymbol *)sce->scopesym;
         if (sds)
         {
-            sds->importScope(this, PROTpublic);
+            sds->importScope(this, Prot(PROTpublic));
             break;
         }
     }

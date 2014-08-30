@@ -70,7 +70,7 @@ Scope::Scope()
     this->func = NULL;
     this->slabel = NULL;
     this->linkage = LINKd;
-    this->protection = PROTpublic;
+    this->protection = Prot(PROTpublic);
     this->explicitProtection = 0;
     this->stc = 0;
     this->depmsg = NULL;
@@ -110,7 +110,7 @@ Scope *Scope::createGlobal(Module *module)
     memset(sc, 0, sizeof(Scope));
     sc->structalign = STRUCTALIGN_DEFAULT;
     sc->linkage = LINKd;
-    sc->protection = PROTpublic;
+    sc->protection = Prot(PROTpublic);
 
     sc->module = module;
     sc->scopesym = new ScopeDsymbol();

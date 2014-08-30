@@ -84,7 +84,7 @@ Declaration::Declaration(Identifier *id)
     type = NULL;
     originalType = NULL;
     storage_class = STCundefined;
-    protection = PROTundefined;
+    protection = Prot(PROTundefined);
     linkage = LINKdefault;
     inuse = 0;
     sem = SemanticStart;
@@ -2168,7 +2168,7 @@ TypeInfoDeclaration::TypeInfoDeclaration(Type *tinfo, int internal)
 {
     this->tinfo = tinfo;
     storage_class = STCstatic | STCgshared;
-    protection = PROTpublic;
+    protection = Prot(PROTpublic);
     linkage = LINKc;
 }
 
