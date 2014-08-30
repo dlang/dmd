@@ -1591,19 +1591,12 @@ Statement *ForeachStatement::semantic(Scope *sc)
 
     if (!inferAggregate(this, sc, sapply))
     {
-        const char *s;
+        const char *msg = "";
         if (aggr->type && isAggregate(aggr->type))
         {
-            s = ", define opApply(), range primitives, or use .tupleof";
+            msg = ", define opApply(), range primitives, or use .tupleof";
         }
-        else
-        {
-            // dumb else switch needed because recent GCC doesn't allow s to
-            // default inititalized because of jumps to Lerror
-            s = "";
-        }
-        error("invalid foreach aggregate %s%s", aggr->toChars(), s);
-    Lerror:
+        error("invalid foreach aggregate %s%s", aggr->toChars(), msg);
         return new ErrorStatement();
     }
 
@@ -1651,7 +1644,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
         else
             error("cannot uniquely infer foreach argument types");
 
-        goto Lerror;
+        return new ErrorStatement();
     }
 
     Type *tab = aggr->type->toBasetype();
@@ -1661,7 +1654,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
         if (dim < 1 || dim > 2)
         {
             error("only one (value) or two (key,value) arguments for tuple foreach");
-            goto Lerror;
+            return new ErrorStatement();
         }
 
         Type *argtype = (*arguments)[dim-1]->type;
@@ -1669,7 +1662,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
         {
             argtype = argtype->semantic(loc, sc);
             if (argtype->ty == Terror)
-                goto Lerror;
+                return new ErrorStatement();
         }
 
         TypeTuple *tuple = (TypeTuple *)tab;
@@ -1706,7 +1699,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
                 if (arg->storageClass & (STCout | STCref | STClazy))
                 {
                     error("no storage class for key %s", arg->ident->toChars());
-                    goto Lerror;
+                    return new ErrorStatement();
                 }
                 arg->type = arg->type->semantic(loc, sc);
                 TY keyty = arg->type->ty;
@@ -1717,13 +1710,13 @@ Statement *ForeachStatement::semantic(Scope *sc)
                         if (keyty != Tint64 && keyty != Tuns64)
                         {
                             error("foreach: key type must be int or uint, long or ulong, not %s", arg->type->toChars());
-                            goto Lerror;
+                            return new ErrorStatement();
                         }
                     }
                     else
                     {
                         error("foreach: key type must be int or uint, not %s", arg->type->toChars());
-                        goto Lerror;
+                        return new ErrorStatement();
                     }
                 }
                 Initializer *ie = new ExpInitializer(Loc(), new IntegerExp(k));
@@ -1738,7 +1731,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
                 arg->storageClass & STCref && !te)
             {
                 error("no storage class for value %s", arg->ident->toChars());
-                goto Lerror;
+                return new ErrorStatement();
             }
             Dsymbol *var;
             if (te)
@@ -1763,12 +1756,12 @@ Statement *ForeachStatement::semantic(Scope *sc)
                     if (arg->storageClass & STCref)
                     {
                         error("symbol %s cannot be ref", s->toChars());
-                        goto Lerror;
+                        return new ErrorStatement();
                     }
                     if (argtype)
                     {
                         error("cannot specify element type for symbol %s", ds->toChars());
-                        goto Lerror;
+                        return new ErrorStatement();
                     }
                 }
                 else if (e->op == TOKtype)
@@ -1777,7 +1770,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
                     if (argtype)
                     {
                         error("cannot specify element type for type %s", e->type->toChars());
-                        goto Lerror;
+                        return new ErrorStatement();
                     }
                 }
                 else
@@ -1795,7 +1788,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
                         if (v->storage_class & STCref)
                         {
                             error("constant value %s cannot be ref", ie->toChars());
-                            goto Lerror;
+                            return new ErrorStatement();
                         }
                         else
                             v->storage_class |= STCmanifest;
@@ -1809,7 +1802,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
                 if (argtype)
                 {
                     error("cannot specify element type for symbol %s", s->toChars());
-                    goto Lerror;
+                    return new ErrorStatement();
                 }
             }
             DeclarationExp *de = new DeclarationExp(loc, var);
