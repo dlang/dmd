@@ -245,19 +245,19 @@ void deprecation(Loc loc, const char *format, ...)
 }
 
 // Just print, doesn't care about gagging
-void verrorPrint(Loc loc, const char *header, const char *format, va_list ap,
-                const char *p1, const char *p2)
+void verrorPrint(Loc loc, COLOR headerColor, const char *header, const char *format, va_list ap,
+                const char *p1 = NULL, const char *p2 = NULL)
 {
     char *p = loc.toChars();
 
     if (global.params.color)
-        setConsoleColorBright();
+        setConsoleColorBright(true);
     if (*p)
         fprintf(stderr, "%s: ", p);
     mem.free(p);
 
     if (global.params.color)
-        setConsoleColorError();
+        setConsoleColor(headerColor, true);
     fputs(header, stderr);
     if (global.params.color)
         resetConsoleColor();
@@ -277,7 +277,7 @@ void verror(Loc loc, const char *format, va_list ap,
 {
     if (!global.gag)
     {
-        verrorPrint(loc, header, format, ap, p1, p2);
+        verrorPrint(loc, COLOR_RED, header, format, ap, p1, p2);
         if (global.errors >= 20)        // moderate blizzard of cascading messages
                 fatal();
 //halt();
@@ -285,7 +285,7 @@ void verror(Loc loc, const char *format, va_list ap,
     else
     {
         //fprintf(stderr, "(gag:%d) ", global.gag);
-        //verrorPrint(loc, header, format, ap, p1, p2);
+        //verrorPrint(loc, COLOR_RED, header, format, ap, p1, p2);
         global.gaggedErrors++;
     }
     global.errors++;
@@ -295,14 +295,14 @@ void verror(Loc loc, const char *format, va_list ap,
 void verrorSupplemental(Loc loc, const char *format, va_list ap)
 {
     if (!global.gag)
-        verrorPrint(loc, "       ", format, ap);
+        verrorPrint(loc, COLOR_RED, "       ", format, ap);
 }
 
 void vwarning(Loc loc, const char *format, va_list ap)
 {
     if (global.params.warnings && !global.gag)
     {
-        verrorPrint(loc, "Warning: ", format, ap);
+        verrorPrint(loc, COLOR_YELLOW, "Warning: ", format, ap);
 //halt();
         if (global.params.warnings == 1)
             global.warnings++;  // warnings don't count if gagged
@@ -316,7 +316,7 @@ void vdeprecation(Loc loc, const char *format, va_list ap,
     if (global.params.useDeprecated == 0)
         verror(loc, format, ap, p1, p2, header);
     else if (global.params.useDeprecated == 2 && !global.gag)
-        verrorPrint(loc, header, format, ap, p1, p2);
+        verrorPrint(loc, COLOR_BLUE, header, format, ap, p1, p2);
 }
 
 void readFile(Loc loc, File *f)

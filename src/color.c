@@ -25,14 +25,19 @@
 #endif
 
 #if _WIN32
-static CONSOLE_SCREEN_BUFFER_INFO *consoleAttributes()
+static WORD consoleAttributes(HANDLE h)
 {
     static CONSOLE_SCREEN_BUFFER_INFO sbi;
     static bool sbi_inited = false;
     if (!sbi_inited)
-        sbi_inited = GetConsoleScreenBufferInfo(GetStdHandle(STD_ERROR_HANDLE), &sbi) != FALSE;
-    return &sbi;
+        sbi_inited = GetConsoleScreenBufferInfo(h, &sbi) != FALSE;
+    return sbi.wAttributes;
 }
+
+enum
+{
+    FOREGROUND_WHITE = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE,
+};
 #endif
 
 bool isConsoleColorSupported()
@@ -47,29 +52,38 @@ bool isConsoleColorSupported()
 #endif
 }
 
-void setConsoleColorBright()
+void setConsoleColorBright(bool bright)
 {
 #if _WIN32
-    SetConsoleTextAttribute(GetStdHandle(STD_ERROR_HANDLE), consoleAttributes()->wAttributes | FOREGROUND_INTENSITY);
+    HANDLE h = GetStdHandle(STD_ERROR_HANDLE);
+    WORD attr = consoleAttributes(h);
+    SetConsoleTextAttribute(h, attr | (bright ? FOREGROUND_INTENSITY : 0));
 #else
-    fprintf(stderr, "\033[1m");
+    fprintf(stderr, "\033[%dm", bright ? 1 : 0);
 #endif
 }
 
-void setConsoleColorError()
+void setConsoleColor(COLOR color, bool bright)
 {
 #if _WIN32
-    enum { FOREGROUND_WHITE = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE };
-    SetConsoleTextAttribute(GetStdHandle(STD_ERROR_HANDLE), (consoleAttributes()->wAttributes & ~FOREGROUND_WHITE) | FOREGROUND_RED | FOREGROUND_INTENSITY);
+    HANDLE h = GetStdHandle(STD_ERROR_HANDLE);
+    WORD attr = consoleAttributes(h);
+    attr = (attr & ~(FOREGROUND_WHITE | FOREGROUND_INTENSITY)) |
+           ((color & COLOR_RED)   ? FOREGROUND_RED   : 0) |
+           ((color & COLOR_GREEN) ? FOREGROUND_GREEN : 0) |
+           ((color & COLOR_BLUE)  ? FOREGROUND_BLUE  : 0) |
+           (bright ? FOREGROUND_INTENSITY : 0);
+    SetConsoleTextAttribute(h, attr);
 #else
-    fprintf(stderr, "\033[1;31m");
+    fprintf(stderr, "\033[%d;%dm", bright ? 1 : 0, 30 + (int)color);
 #endif
 }
 
 void resetConsoleColor()
 {
 #if _WIN32
-    SetConsoleTextAttribute(GetStdHandle(STD_ERROR_HANDLE), consoleAttributes()->wAttributes);
+    HANDLE h = GetStdHandle(STD_ERROR_HANDLE);
+    SetConsoleTextAttribute(h, consoleAttributes(h));
 #else
     fprintf(stderr, "\033[m");
 #endif
