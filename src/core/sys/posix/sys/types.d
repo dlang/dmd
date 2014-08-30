@@ -477,7 +477,7 @@ version (linux)
 
     union pthread_attr_t
     {
-        byte __size[__SIZEOF_PTHREAD_ATTR_T];
+        byte[__SIZEOF_PTHREAD_ATTR_T] __size;
         c_long __align;
     }
 
@@ -493,13 +493,13 @@ version (linux)
 
     union pthread_cond_t
     {
-        byte __size[__SIZEOF_PTHREAD_COND_T];
+        byte[__SIZEOF_PTHREAD_COND_T] __size;
         long  __align;
     }
 
     union pthread_condattr_t
     {
-        byte __size[__SIZEOF_PTHREAD_CONDATTR_T];
+        byte[__SIZEOF_PTHREAD_CONDATTR_T] __size;
         int __align;
     }
 
@@ -507,13 +507,13 @@ version (linux)
 
     union pthread_mutex_t
     {
-        byte __size[__SIZEOF_PTHREAD_MUTEX_T];
+        byte[__SIZEOF_PTHREAD_MUTEX_T] __size;
         c_long __align;
     }
 
     union pthread_mutexattr_t
     {
-        byte __size[__SIZEOF_PTHREAD_MUTEXATTR_T];
+        byte[__SIZEOF_PTHREAD_MUTEXATTR_T] __size;
         int __align;
     }
 
@@ -521,13 +521,13 @@ version (linux)
 
     struct pthread_rwlock_t
     {
-        byte __size[__SIZEOF_PTHREAD_RWLOCK_T];
+        byte[__SIZEOF_PTHREAD_RWLOCK_T] __size;
         c_long __align;
     }
 
     struct pthread_rwlockattr_t
     {
-        byte __size[__SIZEOF_PTHREAD_RWLOCKATTR_T];
+        byte[__SIZEOF_PTHREAD_RWLOCKATTR_T] __size;
         c_long __align;
     }
 
@@ -797,13 +797,13 @@ version( linux )
 {
     struct pthread_barrier_t
     {
-        byte __size[__SIZEOF_PTHREAD_BARRIER_T];
+        byte[__SIZEOF_PTHREAD_BARRIER_T] __size;
         c_long __align;
     }
 
     struct pthread_barrierattr_t
     {
-        byte __size[__SIZEOF_PTHREAD_BARRIERATTR_T];
+        byte[__SIZEOF_PTHREAD_BARRIERATTR_T] __size;
         int __align;
     }
 }

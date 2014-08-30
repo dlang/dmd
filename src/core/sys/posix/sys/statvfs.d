@@ -37,7 +37,7 @@ version(linux) {
         }
         c_ulong f_flag;
         c_ulong f_namemax;
-        int __f_spare[6];
+        int[6] __f_spare;
     }
     /* Definitions for the flag in `f_flag'.  These definitions should be
       kept in sync with the definitions in <sys/mount.h>.  */

@@ -231,7 +231,7 @@ private struct Demangle
 
     char[] putAsHex( size_t val, int width = 0 )
     {
-        char tmp[20];
+        char[20] tmp;
         int  pos = tmp.length;
 
         while( val )

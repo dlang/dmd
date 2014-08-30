@@ -85,7 +85,7 @@ unittest
 {
     debug(qsort) printf("array.sort.unittest()\n");
 
-    int a[] = new int[10];
+    int[] a = new int[10];
 
     a[0] = 23;
     a[1] = 1;

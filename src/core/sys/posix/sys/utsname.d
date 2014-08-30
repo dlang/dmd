@@ -10,14 +10,14 @@ extern (C)
 
         struct utsname
         {
-            char sysname[utsNameLength];
-            char nodename[utsNameLength];
-            char release[utsNameLength];
+            char[utsNameLength] sysname;
+            char[utsNameLength] nodename;
+            char[utsNameLength] release;
             // The field name is version but version is a keyword in D.
-            char update[utsNameLength];
-            char machine[utsNameLength];
+            char[utsNameLength] update;
+            char[utsNameLength] machine;
 
-            char __domainname[utsNameLength];
+            char[utsNameLength] __domainname;
         }
 
         int uname(utsname* __name);
@@ -28,12 +28,12 @@ extern (C)
 
         struct utsname
         {
-            char sysname[utsNameLength];
-            char nodename[utsNameLength];
-            char release[utsNameLength];
+            char[utsNameLength] sysname;
+            char[utsNameLength] nodename;
+            char[utsNameLength] release;
             // The field name is version but version is a keyword in D.
-            char update[utsNameLength];
-            char machine[utsNameLength];
+            char[utsNameLength] update;
+            char[utsNameLength] machine;
         }
 
         int uname(utsname* __name);
@@ -44,12 +44,12 @@ extern (C)
 
         struct utsname
         {
-            char sysname[utsNameLength];
-            char nodename[utsNameLength];
-            char release[utsNameLength];
+            char[utsNameLength] sysname;
+            char[utsNameLength] nodename;
+            char[utsNameLength] release;
             // The field name is version but version is a keyword in D.
-            char update[utsNameLength];
-            char machine[utsNameLength];
+            char[utsNameLength] update;
+            char[utsNameLength] machine;
         }
 
         int uname(utsname* __name);
