@@ -599,6 +599,8 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl, PrefixAttributes 
 
             case TOKlbracket:
             {
+                if (peekNext() == TOKrbracket)
+                    error("empty attribute list is not allowed");
                 warning(token.loc, "use @(attributes) instead of [attributes]");
                 Expressions *exps = parseArguments();
                 // no redundant/conflicting check for UDAs
@@ -974,6 +976,8 @@ StorageClass Parser::parseAttribute(Expressions **pudas)
     {
         // @( ArgumentList )
         // Concatenate with existing
+        if (peekNext() == TOKrparen)
+            error("empty attribute list is not allowed");
         udas = parseArguments();
     }
     else
