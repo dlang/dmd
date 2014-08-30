@@ -40,16 +40,12 @@
 #include "outbuf.h"
 #include "irstate.h"
 
-void slist_add(Symbol *s);
-void slist_reset();
 void clearStringTab();
 
 elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
 void Statement_toIR(Statement *s, IRState *irs);
 elem *toEfilename(Module *m);
 Symbol *toSymbol(Dsymbol *s);
-
-#define STATICCTOR      0
 
 typedef Array<symbol *> symbols;
 Dsymbols *Dsymbols_create();

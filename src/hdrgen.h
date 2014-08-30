@@ -42,3 +42,5 @@ void argExpTypesToCBuffer(OutBuffer *buf, Expressions *arguments);
 void arrayObjectsToBuffer(OutBuffer *buf, Objects *objects);
 
 const char *parametersTypeToChars(Parameters *parameters, int varargs);
+
+const char *linkageToChars(LINK linkage);

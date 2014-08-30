@@ -46,9 +46,6 @@ bool response_expand(size_t *pargc, const char ***pargv);
 void browse(const char *url);
 void getenv_setargv(const char *envvar, size_t *pargc, const char** *pargv);
 
-void obj_start(char *srcfile);
-void obj_end(Library *library, File *objfile);
-
 void printCtfePerformanceStats();
 
 static const char* parse_arch(size_t argc, const char** argv, const char* arch);
@@ -57,6 +54,11 @@ void inlineScan(Module *m);
 
 // in traits.c
 void initTraitsStringTable();
+
+int runLINK();
+void deleteExeFile();
+int runProgram();
+const char *inifile(const char *argv0, const char *inifile, const char* envsectionname);
 
 /** Normalize path by turning forward slashes into backslashes */
 const char * toWinPath(const char *src)

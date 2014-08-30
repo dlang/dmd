@@ -44,8 +44,6 @@
 #include "aggregate.h"
 #include "hdrgen.h"
 
-FuncDeclaration *hasThis(Scope *sc);
-
 #define LOGDOTEXP       0       // log ::dotExp()
 #define LOGDEFAULTINIT  0       // log ::defaultInit()
 

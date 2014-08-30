@@ -80,7 +80,6 @@ struct OutBuffer;
 
 // Can't include arraytypes.h here, need to declare these directly.
 template <typename TYPE> struct Array;
-typedef Array<class Identifier *> Identifiers;
 typedef Array<const char *> Strings;
 
 // Put command line switches in here
@@ -173,12 +172,10 @@ struct Param
     OutBuffer *moduleDeps;      // contents to be written to deps file
 
     // Hidden debug switches
-    char debuga;
     bool debugb;
     bool debugc;
     bool debugf;
     bool debugr;
-    char debugw;
     bool debugx;
     bool debugy;
 
@@ -328,10 +325,6 @@ enum LINK
     LINKpascal,
 };
 
-// in hdrgen.c
-void linkageToBuffer(OutBuffer *buf, LINK linkage);
-const char *linkageToChars(LINK linkage);
-
 enum DYNCAST
 {
     DYNCAST_OBJECT,
@@ -373,11 +366,6 @@ void fatal();
 void fatal();
 #endif
 
-void err_nomem();
-int runLINK();
-void deleteExeFile();
-int runProgram();
-const char *inifile(const char *argv0, const char *inifile, const char* envsectionname);
 void halt();
 
 class Dsymbol;

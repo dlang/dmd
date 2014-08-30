@@ -107,7 +107,7 @@ void backend_init()
         params->debugc,
         params->debugf,
         params->debugr,
-        params->debugw,
+        false,
         params->debugx,
         params->debugy
     );

@@ -49,7 +49,6 @@ typedef Array<elem *> Elems;
 
 elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
 elem *array_toPtr(Type *t, elem *e);
-elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi);
 VarDeclarations *VarDeclarations_create();
 type *Type_toCtype(Type *t);
 elem *toElemDtor(Expression *e, IRState *irs);
