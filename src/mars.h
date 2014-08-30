@@ -361,7 +361,6 @@ void errorSupplemental(Loc loc, const char *format, ...);
 void verror(Loc loc, const char *format, va_list ap, const char *p1 = NULL, const char *p2 = NULL, const char *header = "Error: ");
 void vwarning(Loc loc, const char *format, va_list);
 void verrorSupplemental(Loc loc, const char *format, va_list ap);
-void verrorPrint(Loc loc, const char *header, const char *format, va_list ap, const char *p1 = NULL, const char *p2 = NULL);
 void vdeprecation(Loc loc, const char *format, va_list ap, const char *p1 = NULL, const char *p2 = NULL);
 
 #if defined(__GNUC__) || defined(__clang__)
