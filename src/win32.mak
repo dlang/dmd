@@ -141,7 +141,7 @@ FRONTOBJ= enum.obj struct.obj dsymbol.obj import.obj id.obj \
 	builtin.obj clone.obj arrayop.obj \
 	json.obj unittests.obj imphint.obj argtypes.obj apply.obj sapply.obj \
 	sideeffect.obj intrange.obj canthrow.obj target.obj nspace.obj \
-	color.obj
+	errors.obj
 
 # Glue layer
 GLUEOBJ=glue.obj msc.obj s2ir.obj todt.obj e2ir.obj tocsym.obj \
@@ -186,7 +186,7 @@ SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
 	declaration.h lexer.h expression.h statement.h doc.h doc.c \
 	macro.h macro.c hdrgen.h hdrgen.c arraytypes.h \
 	delegatize.c interpret.c ctfeexpr.c traits.c builtin.c \
-	clone.c lib.h arrayop.c nspace.h nspace.c color.h color.c \
+	clone.c lib.h arrayop.c nspace.h nspace.c errors.h errors.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c argtypes.c \
 	apply.c sapply.c sideeffect.c ctfe.h \
 	intrange.h intrange.c canthrow.c target.c target.h visitor.h
@@ -686,7 +686,7 @@ canthrow.obj : $(TOTALH) canthrow.c
 cast.obj : $(TOTALH) expression.h mtype.h cast.c
 class.obj : $(TOTALH) enum.h class.c
 clone.obj : $(TOTALH) clone.c
-color.obj : $(TOTALH) color.h color.c
+errors.obj : $(TOTALH) errors.h errors.c
 constfold.obj : $(TOTALH) expression.h constfold.c
 cond.obj : $(TOTALH) identifier.h declaration.h cond.h cond.c
 cppmangle.obj : $(TOTALH) mtype.h declaration.h mars.h

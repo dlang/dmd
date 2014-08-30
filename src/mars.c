@@ -38,7 +38,6 @@
 #include "declaration.h"
 #include "hdrgen.h"
 #include "doc.h"
-#include "color.h"
 
 bool response_expand(size_t *pargc, const char ***pargv);
 
@@ -194,133 +193,6 @@ bool Loc::equals(const Loc& loc)
         linnum == loc.linnum && FileName::equals(filename, loc.filename);
 }
 
-/**************************************
- * Print error message
- */
-
-void error(Loc loc, const char *format, ...)
-{
-    va_list ap;
-    va_start(ap, format);
-    verror(loc, format, ap);
-    va_end( ap );
-}
-
-void error(const char *filename, unsigned linnum, unsigned charnum, const char *format, ...)
-{   Loc loc;
-    loc.filename = (char *)filename;
-    loc.linnum = linnum;
-    loc.charnum = charnum;
-    va_list ap;
-    va_start(ap, format);
-    verror(loc, format, ap);
-    va_end( ap );
-}
-
-void warning(Loc loc, const char *format, ...)
-{
-    va_list ap;
-    va_start(ap, format);
-    vwarning(loc, format, ap);
-    va_end( ap );
-}
-
-/**************************************
- * Print supplementary message about the last error
- * Used for backtraces, etc
- */
-void errorSupplemental(Loc loc, const char *format, ...)
-{
-    va_list ap;
-    va_start(ap, format);
-    verrorSupplemental(loc, format, ap);
-    va_end( ap );
-}
-
-void deprecation(Loc loc, const char *format, ...)
-{
-    va_list ap;
-    va_start(ap, format);
-    vdeprecation(loc, format, ap);
-
-    va_end( ap );
-}
-
-// Just print, doesn't care about gagging
-void verrorPrint(Loc loc, COLOR headerColor, const char *header, const char *format, va_list ap,
-                const char *p1 = NULL, const char *p2 = NULL)
-{
-    char *p = loc.toChars();
-
-    if (global.params.color)
-        setConsoleColorBright(true);
-    if (*p)
-        fprintf(stderr, "%s: ", p);
-    mem.free(p);
-
-    if (global.params.color)
-        setConsoleColor(headerColor, true);
-    fputs(header, stderr);
-    if (global.params.color)
-        resetConsoleColor();
-    if (p1)
-        fprintf(stderr, "%s ", p1);
-    if (p2)
-        fprintf(stderr, "%s ", p2);
-    OutBuffer tmp;
-    tmp.vprintf(format, ap);
-    fprintf(stderr, "%s\n", tmp.peekString());
-    fflush(stderr);
-}
-
-// header is "Error: " by default (see mars.h)
-void verror(Loc loc, const char *format, va_list ap,
-                const char *p1, const char *p2, const char *header)
-{
-    if (!global.gag)
-    {
-        verrorPrint(loc, COLOR_RED, header, format, ap, p1, p2);
-        if (global.errors >= 20)        // moderate blizzard of cascading messages
-                fatal();
-//halt();
-    }
-    else
-    {
-        //fprintf(stderr, "(gag:%d) ", global.gag);
-        //verrorPrint(loc, COLOR_RED, header, format, ap, p1, p2);
-        global.gaggedErrors++;
-    }
-    global.errors++;
-}
-
-// Doesn't increase error count, doesn't print "Error:".
-void verrorSupplemental(Loc loc, const char *format, va_list ap)
-{
-    if (!global.gag)
-        verrorPrint(loc, COLOR_RED, "       ", format, ap);
-}
-
-void vwarning(Loc loc, const char *format, va_list ap)
-{
-    if (global.params.warnings && !global.gag)
-    {
-        verrorPrint(loc, COLOR_YELLOW, "Warning: ", format, ap);
-//halt();
-        if (global.params.warnings == 1)
-            global.warnings++;  // warnings don't count if gagged
-    }
-}
-
-void vdeprecation(Loc loc, const char *format, va_list ap,
-                const char *p1, const char *p2)
-{
-    static const char *header = "Deprecation: ";
-    if (global.params.useDeprecated == 0)
-        verror(loc, format, ap, p1, p2, header);
-    else if (global.params.useDeprecated == 2 && !global.gag)
-        verrorPrint(loc, COLOR_BLUE, header, format, ap, p1, p2);
-}
-
 void readFile(Loc loc, File *f)
 {
     if (f->read())
@@ -351,31 +223,6 @@ void ensurePathToNameExists(Loc loc, const char *name)
         }
     }
     FileName::free(pt);
-}
-
-
-/***************************************
- * Call this after printing out fatal error messages to clean up and exit
- * the compiler.
- */
-
-void fatal()
-{
-#if 0
-    halt();
-#endif
-    exit(EXIT_FAILURE);
-}
-
-/**************************************
- * Try to stop forgetting to remove the breakpoints from
- * release builds.
- */
-void halt()
-{
-#ifdef DEBUG
-    *(volatile char*)0=0;
-#endif
 }
 
 extern void backend_init();

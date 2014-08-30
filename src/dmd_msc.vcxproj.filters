@@ -63,9 +63,6 @@
     <ClCompile Include="cond.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="color.c">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="constfold.c">
       <Filter>src</Filter>
     </ClCompile>
@@ -94,6 +91,9 @@
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="enum.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="errors.c">
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="expression.c">
@@ -527,9 +527,6 @@
     <ClInclude Include="attrib.h">
       <Filter>src</Filter>
     </ClInclude>
-    <ClInclude Include="color.h">
-      <Filter>src</Filter>
-    </ClInclude>
     <ClInclude Include="complex_t.h">
       <Filter>src</Filter>
     </ClInclude>
@@ -546,6 +543,9 @@
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="enum.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="errors.h">
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="expression.h">
