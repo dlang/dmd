@@ -1890,7 +1890,7 @@ Lmatch:
                         goto Lnomatch;
                     if (m2 < matchTiargs)
                         matchTiargs = m2;             // pick worst match
-                    if ((*dedtypes)[i] != oded)
+                    if (!(*dedtypes)[i]->equals(oded))
                         error("specialization not allowed for deduced parameter %s", tparam->ident->toChars());
                 }
                 else
