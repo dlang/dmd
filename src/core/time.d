@@ -2032,7 +2032,7 @@ assert(before + timeElapsed == after).
                                numToStringz(after._ticks),
                                (diff.toString() ~ "\0").ptr);
                     }
-                    if(diff > min) {} else throw new AssertError("unittest failure 1", __FILE__, line);
+                    if(diff >= min) {} else throw new AssertError("unittest failure 1", __FILE__, line);
                     auto calcAfter = before + diff;
                     assertApprox(calcAfter, calcAfter - Duration(1), calcAfter + Duration(1));
                     if(before - after == -diff) {} else throw new AssertError("unittest failure 2", __FILE__, line);
