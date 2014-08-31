@@ -752,13 +752,15 @@ int tryMain(size_t argc, const char *argv[])
                 global.params.is64bit = true;
                 global.params.mscoff = true;
             }
-#if TARGET_WINDOS
             else if (strcmp(p + 1, "m32mscoff") == 0)
             {
+            #if TARGET_WINDOS
                 global.params.is64bit = 0;
                 global.params.mscoff = true;
+            #else
+                error(Loc(), "-m32mscoff can only be used on windows");
+            #endif
             }
-#endif
             else if (strcmp(p + 1, "profile") == 0)
                 global.params.trace = true;
             else if (strcmp(p + 1, "v") == 0)
