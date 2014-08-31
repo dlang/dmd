@@ -1526,7 +1526,7 @@ elem *toElem(Expression *e, IRState *irs)
                     d_uns64 elemsize = sd->size(ne->loc);
 
                     // call _d_newitemT(ti)
-                    e = ne->type->getTypeInfo(NULL)->toElem(irs);
+                    e = ne->newtype->getTypeInfo(NULL)->toElem(irs);
 
                     int rtl = t->isZeroInit() ? RTLSYM_NEWITEMT : RTLSYM_NEWITEMIT;
                     ex = el_bin(OPcall,TYnptr,el_var(rtlsym[rtl]),e);
@@ -1622,7 +1622,7 @@ elem *toElem(Expression *e, IRState *irs)
                 Expression *di = tp->next->defaultInit();
 
                 // call _d_newitemT(ti)
-                e = ne->type->getTypeInfo(NULL)->toElem(irs);
+                e = ne->newtype->getTypeInfo(NULL)->toElem(irs);
 
                 int rtl = tp->next->isZeroInit() ? RTLSYM_NEWITEMT : RTLSYM_NEWITEMIT;
                 e = el_bin(OPcall,TYnptr,el_var(rtlsym[rtl]),e);
