@@ -1570,13 +1570,11 @@ char *MODtoChars(MOD mod)
 
 /********************************
  * Name mangling.
- * Input:
- *      flag    0x100   do not do modifiers
  */
 
 void Type::toDecoBuffer(OutBuffer *buf, int flag)
 {
-    if (flag != mod && flag != 0x100)
+    if (flag != mod)
     {
         MODtoDecoBuffer(buf, mod);
     }
@@ -2563,7 +2561,7 @@ void TypeNext::toDecoBuffer(OutBuffer *buf, int flag)
     Type::toDecoBuffer(buf, flag);
     assert(next != this);
     //printf("this = %p, ty = %d, next = %p, ty = %d\n", this, this->ty, next, next->ty);
-    next->toDecoBuffer(buf, (flag & 0x100) ? 0 : mod);
+    next->toDecoBuffer(buf, mod);
 }
 
 void TypeNext::checkDeprecated(Loc loc, Scope *sc)
@@ -3632,12 +3630,12 @@ char *TypeVector::toChars()
 
 void TypeVector::toDecoBuffer(OutBuffer *buf, int flag)
 {
-    if (flag != mod && flag != 0x100)
+    if (flag != mod)
     {
         MODtoDecoBuffer(buf, mod);
     }
     buf->writestring("Nh");
-    basetype->toDecoBuffer(buf, (flag & 0x100) ? 0 : mod);
+    basetype->toDecoBuffer(buf, mod);
 }
 
 d_uns64 TypeVector::size(Loc loc)
@@ -4176,12 +4174,7 @@ void TypeSArray::toDecoBuffer(OutBuffer *buf, int flag)
     if (dim)
         buf->printf("%llu", dim->toInteger());
     if (next)
-        /* Note that static arrays are value types, so
-         * for a parameter, propagate the 0x100 to the next
-         * level, since for T[4][3], any const should apply to the T,
-         * not the [4].
-         */
-        next->toDecoBuffer(buf,  (flag & 0x100) ? flag : mod);
+        next->toDecoBuffer(buf, mod);
 }
 
 Expression *TypeSArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
@@ -4476,7 +4469,7 @@ void TypeDArray::toDecoBuffer(OutBuffer *buf, int flag)
 {
     Type::toDecoBuffer(buf, flag);
     if (next)
-        next->toDecoBuffer(buf, (flag & 0x100) ? 0 : mod);
+        next->toDecoBuffer(buf, mod);
 }
 
 Expression *TypeDArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
@@ -4884,7 +4877,7 @@ void TypeAArray::toDecoBuffer(OutBuffer *buf, int flag)
 {
     Type::toDecoBuffer(buf, flag);
     index->toDecoBuffer(buf);
-    next->toDecoBuffer(buf, (flag & 0x100) ? 0 : mod);
+    next->toDecoBuffer(buf, mod);
 }
 
 Expression *TypeAArray::defaultInit(Loc loc)
@@ -9428,15 +9421,7 @@ void Parameter::toDecoBuffer(OutBuffer *buf)
 #endif
             assert(0);
     }
-#if 0
-    int mod = 0x100;
-    if (type->toBasetype()->ty == Tclass)
-        mod = 0;
-    type->toDecoBuffer(buf, mod);
-#else
-    //type->toHeadMutable()->toDecoBuffer(buf, 0);
     type->toDecoBuffer(buf, 0);
-#endif
 }
 
 /***************************************
