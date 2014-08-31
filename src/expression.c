@@ -9301,26 +9301,8 @@ Expression *DeleteExp::semantic(Scope *sc)
             break;
         }
         default:
-            if (e1->op == TOKindex)
-            {
-                IndexExp *ae = (IndexExp *)(e1);
-                Type *tb1 = ae->e1->type->toBasetype();
-                if (tb1->ty == Taarray)
-                    break;
-            }
             error("cannot delete type %s", e1->type->toChars());
             goto Lerr;
-    }
-
-    if (e1->op == TOKindex)
-    {
-        IndexExp *ae = (IndexExp *)(e1);
-        Type *tb1 = ae->e1->type->toBasetype();
-        if (tb1->ty == Taarray)
-        {
-            error("use 'aa.remove(key)' instead of 'delete aa[key]'");
-            goto Lerr;
-        }
     }
 
     return this;
