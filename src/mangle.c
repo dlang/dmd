@@ -26,96 +26,112 @@
 #include "module.h"
 
 char *toCppMangle(Dsymbol *s);
-void toBuffer(OutBuffer *buf, const char *id, Dsymbol *s);
-
-void mangleFunc(OutBuffer *buf, FuncDeclaration *fd, bool inParent)
-{
-    //printf("deco = '%s'\n", fd->type->deco ? fd->type->deco : "null");
-    //printf("fd->type = %s\n", fd->type->toChars());
-    if (fd->needThis() || fd->isNested())
-        buf->writeByte(Type::needThisPrefix());
-    if (inParent)
-    {
-        TypeFunction *tfx = (TypeFunction *)fd->type;
-        TypeFunction *tf = (TypeFunction *)fd->originalType;
-
-        // replace with the actual parameter types
-        Parameters *prms = tf->parameters;
-        tf->parameters = tfx->parameters;
-
-        // do not mangle return type
-        Type *tret = tf->next;
-        tf->next = NULL;
-
-        tf->toDecoBuffer(buf, 0);
-
-        tf->parameters = prms;
-        tf->next = tret;
-    }
-    else if (fd->type->deco)
-    {
-        buf->writestring(fd->type->deco);
-    }
-    else
-    {
-        printf("[%s] %s %s\n", fd->loc.toChars(), fd->toChars(), fd->type->toChars());
-        assert(0);  // don't mangle function until semantic3 done.
-    }
-}
-
-void mangleParent(OutBuffer *buf, Dsymbol *s)
-{
-    Dsymbol *p;
-    if (TemplateInstance *ti = s->isTemplateInstance())
-        p = ti->isTemplateMixin() ? ti->parent : ti->tempdecl->parent;
-    else
-        p = s->parent;
-
-    if (p)
-    {
-        mangleParent(buf, p);
-
-        if (p->getIdent())
-        {
-            const char *id = p->ident->toChars();
-            toBuffer(buf, id, s);
-
-            if (FuncDeclaration *f = p->isFuncDeclaration())
-                mangleFunc(buf, f, true);
-        }
-        else
-            buf->writeByte('0');
-    }
-}
-
-void mangleDecl(OutBuffer *buf, Declaration *sthis)
-{
-    mangleParent(buf, sthis);
-
-    assert(sthis->ident);
-    const char *id = sthis->ident->toChars();
-    toBuffer(buf, id, sthis);
-
-    if (FuncDeclaration *fd = sthis->isFuncDeclaration())
-    {
-        mangleFunc(buf, fd, false);
-    }
-    else if (sthis->type->deco)
-    {
-        buf->writestring(sthis->type->deco);
-    }
-    else
-        assert(0);
-}
 
 class Mangler : public Visitor
 {
 public:
-    const char *result;
+    OutBuffer *buf;
 
-    Mangler()
+    Mangler(OutBuffer *buf)
     {
-        result = NULL;
+        this->buf = buf;
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+
+    void mangleDecl(Declaration *sthis)
+    {
+        mangleParent(sthis);
+
+        assert(sthis->ident);
+        const char *id = sthis->ident->toChars();
+        toBuffer(id, sthis);
+
+        if (FuncDeclaration *fd = sthis->isFuncDeclaration())
+        {
+            mangleFunc(fd, false);
+        }
+        else if (sthis->type->deco)
+        {
+            buf->writestring(sthis->type->deco);
+        }
+        else
+            assert(0);
+    }
+
+    void mangleParent(Dsymbol *s)
+    {
+        Dsymbol *p;
+        if (TemplateInstance *ti = s->isTemplateInstance())
+            p = ti->isTemplateMixin() ? ti->parent : ti->tempdecl->parent;
+        else
+            p = s->parent;
+
+        if (p)
+        {
+            mangleParent(p);
+
+            if (p->getIdent())
+            {
+                const char *id = p->ident->toChars();
+                toBuffer(id, s);
+
+                if (FuncDeclaration *f = p->isFuncDeclaration())
+                    mangleFunc(f, true);
+            }
+            else
+                buf->writeByte('0');
+        }
+    }
+
+    void mangleFunc(FuncDeclaration *fd, bool inParent)
+    {
+        //printf("deco = '%s'\n", fd->type->deco ? fd->type->deco : "null");
+        //printf("fd->type = %s\n", fd->type->toChars());
+        if (fd->needThis() || fd->isNested())
+            buf->writeByte(Type::needThisPrefix());
+        if (inParent)
+        {
+            TypeFunction *tfx = (TypeFunction *)fd->type;
+            TypeFunction *tf = (TypeFunction *)fd->originalType;
+
+            // replace with the actual parameter types
+            Parameters *prms = tf->parameters;
+            tf->parameters = tfx->parameters;
+
+            // do not mangle return type
+            Type *tret = tf->next;
+            tf->next = NULL;
+
+            tf->toDecoBuffer(buf, 0);
+
+            tf->parameters = prms;
+            tf->next = tret;
+        }
+        else if (fd->type->deco)
+        {
+            buf->writestring(fd->type->deco);
+        }
+        else
+        {
+            printf("[%s] %s %s\n", fd->loc.toChars(), fd->toChars(), fd->type->toChars());
+            assert(0);  // don't mangle function until semantic3 done.
+        }
+    }
+
+    /************************************************************
+     * Write length prefixed string to buf.
+     */
+    void toBuffer(const char *id, Dsymbol *s)
+    {
+        size_t len = strlen(id);
+        if (len >= 8 * 1024 * 1024)         // 8 megs ought be enough for anyone
+            s->error("excessive length %llu for symbol, possible recursive expansion?", len);
+        else
+        {
+            buf->printf("%llu", (ulonglong)len);
+            buf->write(id, len);
+        }
     }
 
     void visit(Declaration *d)
@@ -132,43 +148,39 @@ public:
                 case LINKc:
                 case LINKwindows:
                 case LINKpascal:
-                    result = d->ident->toChars();
-                    break;
+                    buf->writestring(d->ident->toChars());
+                    return;
 
                 case LINKcpp:
-                    result = toCppMangle(d);
-                    break;
+                    buf->writestring(toCppMangle(d));
+                    return;
 
                 case LINKdefault:
                     d->error("forward declaration");
-                    result = d->ident->toChars();
-                    break;
+                    buf->writestring(d->ident->toChars());
+                    return;
 
                 default:
                     fprintf(stderr, "'%s', linkage = %d\n", d->toChars(), d->linkage);
                     assert(0);
+                    return;
             }
         }
 
-        if (!result)
-        {
-            OutBuffer buf;
-            buf.writestring("_D");
-            mangleDecl(&buf, d);
-            result = buf.extractString();
-        }
+        buf->writestring("_D");
+        mangleDecl(d);
 
     #ifdef DEBUG
-        assert(result);
-        size_t len = strlen(result);
+        assert(buf->data);
+        size_t len = buf->offset;
         assert(len > 0);
         for (size_t i = 0; i < len; i++)
         {
-            assert(result[i] == '_' ||
-                   result[i] == '@' ||
-                   result[i] == '?' ||
-                   result[i] == '$' ||
-                   isalnum(result[i]) || result[i] & 0x80);
+            assert(buf->data[i] == '_' ||
+                   buf->data[i] == '@' ||
+                   buf->data[i] == '?' ||
+                   buf->data[i] == '$' ||
+                   isalnum(buf->data[i]) || buf->data[i] & 0x80);
         }
     #endif
     }
@@ -255,19 +267,19 @@ public:
 
         if (fd->mangleOverride)
         {
-            result = fd->mangleOverride;
+            buf->writestring(fd->mangleOverride);
             return;
         }
 
         if (fd->isMain())
         {
-            result = "_Dmain";
+            buf->writestring("_Dmain");
             return;
         }
 
         if (fd->isWinMain() || fd->isDllMain() || fd->ident == Id::tls_get_addr)
         {
-            result = fd->ident->toChars();
+            buf->writestring(fd->ident->toChars());
             return;
         }
 
@@ -278,7 +290,7 @@ public:
     {
         if (vd->mangleOverride)
         {
-            result = vd->mangleOverride;
+            buf->writestring(vd->mangleOverride);
             return;
         }
 
@@ -330,19 +342,16 @@ public:
         printf("\n");
     #endif
 
-        OutBuffer buf;
         if (!ti->tempdecl)
             ti->error("is not defined");
         else
-            mangleParent(&buf, ti);
+            mangleParent(ti);
 
         ti->getIdent();
         const char *id = ti->ident ? ti->ident->toChars() : ti->toChars();
-        toBuffer(&buf, id, ti);
-        id = buf.extractString();
+        toBuffer(id, ti);
 
         //printf("TemplateInstance::mangle() %s = %s\n", ti->toChars(), ti->id);
-        result = id;
     }
 
     void visit(Dsymbol *s)
@@ -354,23 +363,21 @@ public:
         printf("\n");
     #endif
 
-        OutBuffer buf;
-        mangleParent(&buf, s);
+        mangleParent(s);
 
         char *id = s->ident ? s->ident->toChars() : s->toChars();
-        toBuffer(&buf, id, s);
-        id = buf.extractString();
+        toBuffer(id, s);
 
         //printf("Dsymbol::mangle() %s = %s\n", s->toChars(), id);
-        result = id;
     }
 };
 
 const char *mangle(Dsymbol *s)
 {
-    Mangler v;
+    OutBuffer buf;
+    Mangler v(&buf);
     s->accept(&v);
-    return v.result;
+    return buf.extractString();
 }
 
 /******************************************************************************
@@ -378,24 +385,8 @@ const char *mangle(Dsymbol *s)
  */
 const char *mangleExact(FuncDeclaration *fd)
 {
-    Mangler v;
+    OutBuffer buf;
+    Mangler v(&buf);
     v.mangleExact(fd);
-    return v.result;
-}
-
-
-/************************************************************
- * Write length prefixed string to buf.
- */
-
-void toBuffer(OutBuffer *buf, const char *id, Dsymbol *s)
-{
-    size_t len = strlen(id);
-    if (len >= 8 * 1024 * 1024)         // 8 megs ought be enough for anyone
-        s->error("excessive length %llu for symbol, possible recursive expansion?", len);
-    else
-    {
-        buf->printf("%llu", (ulonglong)len);
-        buf->write(id, len);
-    }
+    return buf.extractString();
 }
