@@ -1009,9 +1009,7 @@ extern (C) void[] _d_newarraymiT(const TypeInfo ti, size_t ndims, ...)
 
 extern (C) void* _d_newitemT(TypeInfo ti)
 {
-    // BUG ti is actually still the array typeinfo.  Not that this is a
-    // difficult thing to workaround...
-    auto size = ti.next.tsize;                  // array element size
+    auto size = ti.tsize;                  // array element size
 
     debug(PRINTF) printf("_d_newitemT(size = %d)\n", size);
     /* not sure if we need this...
@@ -1020,7 +1018,7 @@ extern (C) void* _d_newitemT(TypeInfo ti)
     else
     {*/
         // allocate a block to hold this item
-        auto ptr = GC.malloc(size, !(ti.next.flags & 1) ? BlkAttr.NO_SCAN : 0, ti);
+        auto ptr = GC.malloc(size, !(ti.flags & 1) ? BlkAttr.NO_SCAN : 0, ti);
         debug(PRINTF) printf(" p = %p\n", ptr);
         if(size == ubyte.sizeof)
             *cast(ubyte*)ptr = 0;
@@ -1037,9 +1035,7 @@ extern (C) void* _d_newitemT(TypeInfo ti)
 
 extern (C) void* _d_newitemiT(TypeInfo ti)
 {
-    // BUG ti is actually still the array typeinfo.  Not that this is a
-    // difficult thing to workaround...
-    auto size = ti.next.tsize;                  // array element size
+    auto size = ti.tsize;                  // array element size
 
     debug(PRINTF) printf("_d_newitemiT(size = %d)\n", size);
 
@@ -1047,11 +1043,11 @@ extern (C) void* _d_newitemiT(TypeInfo ti)
         result = null;
     else
     {*/
-        auto initializer = ti.next.init();
+        auto initializer = ti.init();
         auto isize = initializer.length;
         auto q = initializer.ptr;
 
-        auto ptr = GC.malloc(size, !(ti.next.flags & 1) ? BlkAttr.NO_SCAN : 0, ti);
+        auto ptr = GC.malloc(size, !(ti.flags & 1) ? BlkAttr.NO_SCAN : 0, ti);
         debug(PRINTF) printf(" p = %p\n", ptr);
         if (isize == 1)
             *cast(ubyte*)ptr =  *cast(ubyte*)q;
