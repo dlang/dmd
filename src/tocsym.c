@@ -69,7 +69,8 @@ Symbol *Dsymbol::toSymbolX(const char *prefix, int sclass, type *t, const char *
     char idbuf[20];
     char *id = idbuf;
     if (idlen > sizeof(idbuf))
-    {   id = (char *)malloc(idlen);
+    {
+        id = (char *)malloc(idlen);
         assert(id);
     }
 
@@ -683,7 +684,8 @@ Symbol *TypeAArray::aaGetSymbol(const char *func, int flags)
 
         // See if symbol is already in sarray
         for (size_t i = 0; i < sarray->dim; i++)
-        {   Symbol *s = (*sarray)[i];
+        {
+            Symbol *s = (*sarray)[i];
             if (strcmp(id, s->Sident) == 0)
             {
 #ifdef DEBUG

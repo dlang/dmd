@@ -24,8 +24,112 @@
 #include "template.h"
 #include "id.h"
 #include "module.h"
+#include "enum.h"
 
 char *toCppMangle(Dsymbol *s);
+void mangleToBuffer(Type *t, OutBuffer *buf);
+
+static unsigned char mangleChar[TMAX];
+
+void initTypeMangle()
+{
+    mangleChar[Tarray] = 'A';
+    mangleChar[Tsarray] = 'G';
+    mangleChar[Taarray] = 'H';
+    mangleChar[Tpointer] = 'P';
+    mangleChar[Treference] = 'R';
+    mangleChar[Tfunction] = 'F';
+    mangleChar[Tident] = 'I';
+    mangleChar[Tclass] = 'C';
+    mangleChar[Tstruct] = 'S';
+    mangleChar[Tenum] = 'E';
+    mangleChar[Ttypedef] = 'T';
+    mangleChar[Tdelegate] = 'D';
+
+    mangleChar[Tnone] = 'n';
+    mangleChar[Tvoid] = 'v';
+    mangleChar[Tint8] = 'g';
+    mangleChar[Tuns8] = 'h';
+    mangleChar[Tint16] = 's';
+    mangleChar[Tuns16] = 't';
+    mangleChar[Tint32] = 'i';
+    mangleChar[Tuns32] = 'k';
+    mangleChar[Tint64] = 'l';
+    mangleChar[Tuns64] = 'm';
+    mangleChar[Tfloat32] = 'f';
+    mangleChar[Tfloat64] = 'd';
+    mangleChar[Tfloat80] = 'e';
+
+    mangleChar[Timaginary32] = 'o';
+    mangleChar[Timaginary64] = 'p';
+    mangleChar[Timaginary80] = 'j';
+    mangleChar[Tcomplex32] = 'q';
+    mangleChar[Tcomplex64] = 'r';
+    mangleChar[Tcomplex80] = 'c';
+
+    mangleChar[Tbool] = 'b';
+    mangleChar[Tchar] = 'a';
+    mangleChar[Twchar] = 'u';
+    mangleChar[Tdchar] = 'w';
+
+    // '@' shouldn't appear anywhere in the deco'd names
+    mangleChar[Tinstance] = '@';
+    mangleChar[Terror] = '@';
+    mangleChar[Ttypeof] = '@';
+    mangleChar[Ttuple] = 'B';
+    mangleChar[Tslice] = '@';
+    mangleChar[Treturn] = '@';
+    mangleChar[Tvector] = '@';
+    mangleChar[Tint128] = '@';
+    mangleChar[Tuns128] = '@';
+
+    mangleChar[Tnull] = 'n';    // same as TypeNone
+
+    for (size_t i = 0; i < TMAX; i++)
+    {
+        if (!mangleChar[i])
+            fprintf(stderr, "ty = %llu\n", (ulonglong)i);
+        assert(mangleChar[i]);
+    }
+}
+
+/*********************************
+ * Mangling for mod.
+ */
+void MODtoDecoBuffer(OutBuffer *buf, MOD mod)
+{
+    switch (mod)
+    {
+        case 0:
+            break;
+        case MODconst:
+            buf->writeByte('x');
+            break;
+        case MODimmutable:
+            buf->writeByte('y');
+            break;
+        case MODshared:
+            buf->writeByte('O');
+            break;
+        case MODshared | MODconst:
+            buf->writestring("Ox");
+            break;
+        case MODwild:
+            buf->writestring("Ng");
+            break;
+        case MODwildconst:
+            buf->writestring("Ngx");
+            break;
+        case MODshared | MODwild:
+            buf->writestring("ONg");
+            break;
+        case MODshared | MODwildconst:
+            buf->writestring("ONgx");
+            break;
+        default:
+            assert(0);
+    }
+}
 
 class Mangler : public Visitor
 {
@@ -35,6 +139,182 @@ public:
     Mangler(OutBuffer *buf)
     {
         this->buf = buf;
+    }
+
+
+    ////////////////////////////////////////////////////////////////////////////
+
+    /**************************************************
+     * Type mangling
+     */
+
+    void visitWithMask(Type *t, unsigned char modMask)
+    {
+        if (modMask != t->mod)
+        {
+            MODtoDecoBuffer(buf, t->mod);
+        }
+        t->accept(this);
+    }
+
+    void visit(Type *t)
+    {
+        buf->writeByte(mangleChar[t->ty]);
+    }
+
+    void visit(TypeNext *t)
+    {
+        visit((Type *)t);
+        visitWithMask(t->next, t->mod);
+    }
+
+    void visit(TypeVector *t)
+    {
+        buf->writestring("Nh");
+        visitWithMask(t->basetype, t->mod);
+    }
+
+    void visit(TypeSArray *t)
+    {
+        visit((Type *)t);
+        if (t->dim)
+            buf->printf("%llu", t->dim->toInteger());
+        if (t->next)
+            visitWithMask(t->next, t->mod);
+    }
+
+    void visit(TypeDArray *t)
+    {
+        visit((Type *)t);
+        if (t->next)
+            visitWithMask(t->next, t->mod);
+    }
+
+    void visit(TypeAArray *t)
+    {
+        visit((Type *)t);
+        visitWithMask(t->index, 0);
+        visitWithMask(t->next, t->mod);
+    }
+
+    void visit(TypeFunction *t)
+    {
+        //printf("TypeFunction::toDecoBuffer() t = %p %s\n", t, t->toChars());
+        //static int nest; if (++nest == 50) *(char*)0=0;
+
+        mangleFuncType(t, t, t->mod, t->next);
+    }
+
+    void mangleFuncType(TypeFunction *t, TypeFunction *ta, unsigned char modMask, Type *tret)
+    {
+        if (t->inuse)
+        {
+            t->inuse = 2;       // flag error to caller
+            return;
+        }
+        t->inuse++;
+
+        if (modMask != t->mod)
+            MODtoDecoBuffer(buf, t->mod);
+
+        unsigned char mc;
+        switch (t->linkage)
+        {
+            case LINKd:             mc = 'F';       break;
+            case LINKc:             mc = 'U';       break;
+            case LINKwindows:       mc = 'W';       break;
+            case LINKpascal:        mc = 'V';       break;
+            case LINKcpp:           mc = 'R';       break;
+            default:
+                assert(0);
+        }
+        buf->writeByte(mc);
+
+        if (ta->purity || ta->isnothrow || ta->isnogc || ta->isproperty || ta->isref || ta->trust)
+        {
+            if (ta->purity)
+                buf->writestring("Na");
+            if (ta->isnothrow)
+                buf->writestring("Nb");
+            if (ta->isref)
+                buf->writestring("Nc");
+            if (ta->isproperty)
+                buf->writestring("Nd");
+            if (ta->isnogc)
+                buf->writestring("Ni");
+            switch (ta->trust)
+            {
+                case TRUSTtrusted:
+                    buf->writestring("Ne");
+                    break;
+                case TRUSTsafe:
+                    buf->writestring("Nf");
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        // Write argument types
+        argsToDecoBuffer(t->parameters);
+        //if (buf->data[buf->offset - 1] == '@') halt();
+        buf->writeByte('Z' - t->varargs);   // mark end of arg list
+        if (tret != NULL)
+            visitWithMask(tret, 0);
+
+        t->inuse--;
+    }
+
+    void visit(TypeIdentifier *t)
+    {
+        visit((Type *)t);
+        const char *name = t->ident->toChars();
+        size_t len = strlen(name);
+        buf->printf("%u%s", (unsigned)len, name);
+    }
+
+    void visit(TypeEnum *t)
+    {
+        visit((Type *)t);
+        t->sym->accept(this);
+    }
+
+    void visit(TypeTypedef *t)
+    {
+        visit((Type *)t);
+        t->sym->accept(this);
+    }
+
+    void visit(TypeStruct *t)
+    {
+        //printf("TypeStruct::toDecoBuffer('%s') = '%s'\n", t->toChars(), name);
+        visit((Type *)t);
+        t->sym->accept(this);
+    }
+
+    void visit(TypeClass *t)
+    {
+        //printf("TypeClass::toDecoBuffer('%s' mod=%x) = '%s'\n", t->toChars(), mod, name);
+        visit((Type *)t);
+        t->sym->accept(this);
+    }
+
+    void visit(TypeTuple *t)
+    {
+        //printf("TypeTuple::toDecoBuffer() t = %p, %s\n", t, t->toChars());
+        visit((Type *)t);
+
+        OutBuffer buf2;
+        buf2.reserve(32);
+        Mangler v(&buf2);
+        v.argsToDecoBuffer(t->arguments);
+        int len = (int)buf2.offset;
+        buf->printf("%d%.*s", len, len, buf2.extractData());
+    }
+
+    void visit(TypeNull *t)
+    {
+        visit((Type *)t);
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -92,21 +372,9 @@ public:
             buf->writeByte(Type::needThisPrefix());
         if (inParent)
         {
-            TypeFunction *tfx = (TypeFunction *)fd->type;
-            TypeFunction *tf = (TypeFunction *)fd->originalType;
-
-            // replace with the actual parameter types
-            Parameters *prms = tf->parameters;
-            tf->parameters = tfx->parameters;
-
-            // do not mangle return type
-            Type *tret = tf->next;
-            tf->next = NULL;
-
-            tf->toDecoBuffer(buf, 0);
-
-            tf->parameters = prms;
-            tf->next = tret;
+            TypeFunction *tf = (TypeFunction *)fd->type;
+            TypeFunction *tfo = (TypeFunction *)fd->originalType;
+            mangleFuncType(tf, tfo, 0, NULL);
         }
         else if (fd->type->deco)
         {
@@ -370,6 +638,48 @@ public:
 
         //printf("Dsymbol::mangle() %s = %s\n", s->toChars(), id);
     }
+
+    ////////////////////////////////////////////////////////////////////////////
+
+    void argsToDecoBuffer(Parameters *arguments)
+    {
+        //printf("Parameter::argsToDecoBuffer()\n");
+        Parameter::foreach(arguments, &argsToDecoBufferDg, (void *)this);
+    }
+
+    static int argsToDecoBufferDg(void *ctx, size_t n, Parameter *arg)
+    {
+        arg->accept((Visitor *)ctx);
+        return 0;
+    }
+
+    void visit(Parameter *p)
+    {
+        if (p->storageClass & STCscope)
+            buf->writeByte('M');
+        switch (p->storageClass & (STCin | STCout | STCref | STClazy))
+        {
+            case 0:
+            case STCin:
+                break;
+            case STCout:
+                buf->writeByte('J');
+                break;
+            case STCref:
+                buf->writeByte('K');
+                break;
+            case STClazy:
+                buf->writeByte('L');
+                break;
+            default:
+    #ifdef DEBUG
+                printf("storageClass = x%llx\n", p->storageClass & (STCin | STCout | STCref | STClazy));
+                halt();
+    #endif
+                assert(0);
+        }
+        visitWithMask(p->type, 0);
+    }
 };
 
 const char *mangle(Dsymbol *s)
@@ -389,4 +699,24 @@ const char *mangleExact(FuncDeclaration *fd)
     Mangler v(&buf);
     v.mangleExact(fd);
     return buf.extractString();
+}
+
+void mangleToBuffer(Type *t, OutBuffer *buf)
+{
+    Mangler v(buf);
+    v.visitWithMask(t, 0);
+}
+
+void mangleToBuffer(Type *t, OutBuffer *buf, bool internal)
+{
+    if (internal)
+    {
+        buf->writeByte(mangleChar[t->ty]);
+        if (t->ty == Tarray)
+            buf->writeByte(mangleChar[((TypeArray *)t)->next->ty]);
+    }
+    else if (t->deco)
+        buf->writestring(t->deco);
+    else
+        mangleToBuffer(t, buf);
 }
