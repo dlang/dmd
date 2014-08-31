@@ -1,8 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/parse13361.d(10): Error: empty attribute list is not allowed
-fail_compilation/parse13361.d(13): Error: empty attribute list is not allowed
+fail_compilation/parse13361.d(11): Error: empty attribute list is not allowed
+fail_compilation/parse13361.d(14): Error: empty attribute list is not allowed
+fail_compilation/parse13361.d(14): Deprecation: use @(attributes) instead of [attributes]
 ---
 */
 struct A
