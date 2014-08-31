@@ -4608,7 +4608,7 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
             if (token.value == TOKsemicolon)
                 nextToken();
             else
-                deprecation("do-while statement without terminating ; is deprecated");
+                error("terminating ';' required after do-while statement");
             s = new DoStatement(loc, body, condition);
             break;
         }
