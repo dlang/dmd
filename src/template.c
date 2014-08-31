@@ -5946,10 +5946,15 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
             }
 
             // If the first instantiation was in speculative context, but this is not:
-            if (!inst->tinst && inst->speculative && !(sc->flags & (SCOPEstaticif | SCOPEstaticassert | SCOPEcompile)))
+            if (!inst->tinst && inst->speculative &&
+                tinst && !(sc->flags & (SCOPEstaticif | SCOPEstaticassert | SCOPEcompile)))
             {
                 // Reconnect the chain if this instantiation is not in speculative context.
-                inst->tinst = tinst;
+                TemplateInstance *tix = tinst;
+                while (tix && tix != inst)
+                    tix = tix->tinst;
+                if (tix != inst)    // Bugzilla 13379: Prevent circular chain
+                    inst->tinst = tinst;
             }
 
 #if LOG
@@ -6279,8 +6284,6 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
         while (ti && !ti->deferred && ti->tinst)
         {
             ti = ti->tinst;
-            if (ti == tinst)
-                break;
             if (++nest > 500)
             {
                 global.gag = 0;            // ensure error message gets printed
@@ -7823,21 +7826,14 @@ bool TemplateInstance::needsCodegen()
         }
     }
 
-    if (speculative)
+    for (TemplateInstance *ti = this; ti; ti = ti->tinst)
     {
-        //printf("\tti = %s spec = %d\n", toChars(), speculative);
-        TemplateInstance *ti = this;
-        while (ti->tinst && ti->tinst != this)
-        {
-            ti = ti->tinst;
-            //printf("\tti = %s spec = %d\n", ti->toChars(), ti->speculative);
-            if (!ti->speculative)
-                return true;
-        }
-        return false;
+        //printf("\tti = %s spec = %d\n", ti->toChars(), ti->speculative);
+        if (!ti->speculative)
+            return true;
     }
 
-    return true;
+    return false;
 }
 
 /* ======================== TemplateMixin ================================ */
