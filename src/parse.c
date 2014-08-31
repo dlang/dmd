@@ -2176,7 +2176,7 @@ BaseClasses *Parser::parseBaseClasses()
             default: break;
         }
         if (prot)
-            deprecation("use of base class protection is deprecated");
+            error("use of base class protection is no longer supported");
         BaseClass *b = new BaseClass(parseBasicType(), protection);
         baseclasses->push(b);
         if (token.value != TOKcomma)
