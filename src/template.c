@@ -5938,6 +5938,11 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
             {
                 // Mark it is a non-speculative instantiation.
                 inst->speculative = false;
+
+                // Bugzilla 13400: When an instance is changed to non-speculative,
+                // its instantiatingModule should also be updated.
+                // See test/runnable/link13400.d
+                inst->instantiatingModule = mi;
             }
 
             // If the first instantiation was in speculative context, but this is not:
