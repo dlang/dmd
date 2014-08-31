@@ -559,39 +559,6 @@ void Lexer::scan(Token *t)
                 t->value = escapeStringConstant(t,0);
                 return;
 
-            case '\\':                  // escaped string literal
-            {   unsigned c;
-                const utf8_t *pstart = p;
-
-                stringbuffer.reset();
-                do
-                {
-                    p++;
-                    switch (*p)
-                    {
-                        case 'u':
-                        case 'U':
-                        case '&':
-                            c = escapeSequence();
-                            stringbuffer.writeUTF8(c);
-                            break;
-
-                        default:
-                            c = escapeSequence();
-                            stringbuffer.writeByte(c);
-                            break;
-                    }
-                } while (*p == '\\');
-                t->len = (unsigned)stringbuffer.offset;
-                stringbuffer.writeByte(0);
-                t->ustring = (utf8_t *)mem.malloc(stringbuffer.offset);
-                memcpy(t->ustring, stringbuffer.data, stringbuffer.offset);
-                t->postfix = 0;
-                t->value = TOKstring;
-                error("Escape String literal %.*s is deprecated, use double quoted string literal \"%.*s\" instead", p - pstart, pstart, p - pstart, pstart);
-                return;
-            }
-
             case 'a':   case 'b':   case 'c':   case 'd':   case 'e':
             case 'f':   case 'g':   case 'h':   case 'i':   case 'j':
             case 'k':   case 'l':   case 'm':   case 'n':   case 'o':
@@ -1194,9 +1161,9 @@ void Lexer::scan(Token *t)
                     }
                 }
                 if (c < 0x80 && isprint(c))
-                    error("unsupported char '%c'", c);
+                    error("character '%c' is not a valid token", c);
                 else
-                    error("unsupported char 0x%02x", c);
+                    error("character 0x%02x is not a valid token", c);
                 p++;
                 continue;
             }
