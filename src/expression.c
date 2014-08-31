@@ -2054,11 +2054,6 @@ StringExp *Expression::toStringExp()
     return NULL;
 }
 
-void Expression::toMangleBuffer(OutBuffer *buf)
-{
-    error("expression %s is not a valid template value argument", toChars());
-}
-
 /***************************************
  * Return !=0 if expression is an lvalue.
  */
@@ -2709,14 +2704,6 @@ Expression *IntegerExp::toLvalue(Scope *sc, Expression *e)
     return new ErrorExp();
 }
 
-void IntegerExp::toMangleBuffer(OutBuffer *buf)
-{
-    if ((sinteger_t)value < 0)
-        buf->printf("N%lld", -value);
-    else
-        buf->printf("i%lld", value);
-}
-
 /******************************** ErrorExp **************************/
 
 /* Use this expression for error recovery.
@@ -2812,61 +2799,6 @@ int RealExp::isBool(int result)
                   : (value == 0);
 }
 
-void realToMangleBuffer(OutBuffer *buf, real_t value)
-{
-    /* Rely on %A to get portable mangling.
-     * Must munge result to get only identifier characters.
-     *
-     * Possible values from %A  => mangled result
-     * NAN                      => NAN
-     * -INF                     => NINF
-     * INF                      => INF
-     * -0X1.1BC18BA997B95P+79   => N11BC18BA997B95P79
-     * 0X1.9P+2                 => 19P2
-     */
-
-    if (Port::isNan(value))
-        buf->writestring("NAN");        // no -NAN bugs
-    else if (Port::isInfinity(value))
-        buf->writestring(value < 0 ? "NINF" : "INF");
-    else
-    {
-        const size_t BUFFER_LEN = 36;
-        char buffer[BUFFER_LEN];
-        size_t n = ld_sprint(buffer, 'A', value);
-        assert(n < BUFFER_LEN);
-        for (size_t i = 0; i < n; i++)
-        {   char c = buffer[i];
-
-            switch (c)
-            {
-                case '-':
-                    buf->writeByte('N');
-                    break;
-
-                case '+':
-                case 'X':
-                case '.':
-                    break;
-
-                case '0':
-                    if (i < 2)
-                        break;          // skip leading 0X
-                default:
-                    buf->writeByte(c);
-                    break;
-            }
-        }
-    }
-}
-
-void RealExp::toMangleBuffer(OutBuffer *buf)
-{
-    buf->writeByte('e');
-    realToMangleBuffer(buf, value);
-}
-
-
 /******************************** ComplexExp **************************/
 
 ComplexExp::ComplexExp(Loc loc, complex_t value, Type *type)
@@ -2934,16 +2866,6 @@ int ComplexExp::isBool(int result)
         return (bool)(value);
     else
         return !value;
-}
-
-void ComplexExp::toMangleBuffer(OutBuffer *buf)
-{
-    buf->writeByte('c');
-    real_t r = toReal();
-    realToMangleBuffer(buf, r);
-    buf->writeByte('c');        // separate the two
-    r = toImaginary();
-    realToMangleBuffer(buf, r);
 }
 
 /******************************** IdentifierExp **************************/
@@ -3531,11 +3453,6 @@ StringExp *NullExp::toStringExp()
     return NULL;
 }
 
-void NullExp::toMangleBuffer(OutBuffer *buf)
-{
-    buf->writeByte('n');
-}
-
 /******************************** StringExp **************************/
 
 StringExp::StringExp(Loc loc, char *string)
@@ -3849,66 +3766,6 @@ unsigned StringExp::charAt(uinteger_t i)
     return value;
 }
 
-void StringExp::toMangleBuffer(OutBuffer *buf)
-{   char m;
-    OutBuffer tmp;
-    unsigned c;
-    size_t u;
-    utf8_t *q;
-    size_t qlen;
-
-    /* Write string in UTF-8 format
-     */
-    switch (sz)
-    {   case 1:
-            m = 'a';
-            q = (utf8_t *)string;
-            qlen = len;
-            break;
-        case 2:
-            m = 'w';
-            for (u = 0; u < len; )
-            {
-                const char *p = utf_decodeWchar((unsigned short *)string, len, &u, &c);
-                if (p)
-                    error("%s", p);
-                else
-                    tmp.writeUTF8(c);
-            }
-            q = (utf8_t *)tmp.data;
-            qlen = tmp.offset;
-            break;
-        case 4:
-            m = 'd';
-            for (u = 0; u < len; u++)
-            {
-                c = ((unsigned *)string)[u];
-                if (!utf_isValidDchar(c))
-                    error("invalid UCS-32 char \\U%08x", c);
-                else
-                    tmp.writeUTF8(c);
-            }
-            q = (utf8_t *)tmp.data;
-            qlen = tmp.offset;
-            break;
-        default:
-            assert(0);
-    }
-    buf->reserve(1 + 11 + 2 * qlen);
-    buf->writeByte(m);
-    buf->printf("%d_", (int)qlen); // nbytes <= 11
-
-    for (utf8_t *p = (utf8_t *)buf->data + buf->offset, *pend = p + 2 * qlen;
-         p < pend; p += 2, ++q)
-    {
-        utf8_t hi = *q >> 4 & 0xF;
-        p[0] = (utf8_t)(hi < 10 ? hi + '0' : hi - 10 + 'a');
-        utf8_t lo = *q & 0xF;
-        p[1] = (utf8_t)(lo < 10 ? lo + '0' : lo - 10 + 'a');
-    }
-    buf->offset += 2 * qlen;
-}
-
 /************************ ArrayLiteralExp ************************************/
 
 // [ e1, e2, e3, ... ]
@@ -4041,16 +3898,6 @@ StringExp *ArrayLiteralExp::toStringExp()
     return NULL;
 }
 
-void ArrayLiteralExp::toMangleBuffer(OutBuffer *buf)
-{
-    size_t dim = elements ? elements->dim : 0;
-    buf->printf("A%u", dim);
-    for (size_t i = 0; i < dim; i++)
-    {   Expression *e = (*elements)[i];
-        e->toMangleBuffer(buf);
-    }
-}
-
 /************************ AssocArrayLiteralExp ************************************/
 
 // [ key0 : value0, key1 : value1, ... ]
@@ -4143,19 +3990,6 @@ int AssocArrayLiteralExp::isBool(int result)
 {
     size_t dim = keys->dim;
     return result ? (dim != 0) : (dim == 0);
-}
-
-void AssocArrayLiteralExp::toMangleBuffer(OutBuffer *buf)
-{
-    size_t dim = keys->dim;
-    buf->printf("A%u", dim);
-    for (size_t i = 0; i < dim; i++)
-    {   Expression *key = (*keys)[i];
-        Expression *value = (*values)[i];
-
-        key->toMangleBuffer(buf);
-        value->toMangleBuffer(buf);
-    }
 }
 
 /************************ StructLiteralExp ************************************/
@@ -4360,19 +4194,6 @@ int StructLiteralExp::getFieldIndex(Type *type, unsigned offset)
         }
     }
     return -1;
-}
-
-void StructLiteralExp::toMangleBuffer(OutBuffer *buf)
-{
-    size_t dim = elements ? elements->dim : 0;
-    buf->printf("S%u", dim);
-    for (size_t i = 0; i < dim; i++)
-    {   Expression *e = (*elements)[i];
-        if (e)
-            e->toMangleBuffer(buf);
-        else
-            buf->writeByte('v');        // 'v' for void
-    }
 }
 
 /************************ TypeDotIdExp ************************************/

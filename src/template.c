@@ -44,6 +44,7 @@ int arrayObjectMatch(Objects *oa1, Objects *oa2);
 hash_t arrayObjectHash(Objects *oa1);
 unsigned char deduceWildHelper(Type *t, Type **at, Type *tparam);
 MATCH deduceTypeHelper(Type *t, Type **at, Type *tparam);
+void mangleToBuffer(Expression *e, OutBuffer *buf);
 
 /********************************************
  * These functions substitute for dynamic_cast. dynamic_cast does not work
@@ -7374,7 +7375,7 @@ Identifier *TemplateInstance::genIdent(Objects *args)
             /* Use deco that matches what it would be for a function parameter
              */
             buf.writestring(ea->type->deco);
-            ea->toMangleBuffer(&buf);
+            mangleToBuffer(ea, &buf);
         }
         else if (sa)
         {

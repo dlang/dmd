@@ -120,10 +120,12 @@ Type *Type::tvoidptr;
 Type *Type::tstring;
 Type *Type::tvalist;
 Type *Type::basic[TMAX];
-unsigned char Type::mangleChar[TMAX];
 unsigned char Type::sizeTy[TMAX];
 StringTable Type::stringtable;
 
+void initTypeMangle();
+void mangleToBuffer(Type *t, OutBuffer *buf);
+void mangleToBuffer(Type *t, OutBuffer *buf, bool internal);
 
 Type::Type(TY ty)
 {
@@ -213,63 +215,7 @@ void Type::init()
     sizeTy[Terror] = sizeof(TypeError);
     sizeTy[Tnull] = sizeof(TypeNull);
 
-    mangleChar[Tarray] = 'A';
-    mangleChar[Tsarray] = 'G';
-    mangleChar[Taarray] = 'H';
-    mangleChar[Tpointer] = 'P';
-    mangleChar[Treference] = 'R';
-    mangleChar[Tfunction] = 'F';
-    mangleChar[Tident] = 'I';
-    mangleChar[Tclass] = 'C';
-    mangleChar[Tstruct] = 'S';
-    mangleChar[Tenum] = 'E';
-    mangleChar[Ttypedef] = 'T';
-    mangleChar[Tdelegate] = 'D';
-
-    mangleChar[Tnone] = 'n';
-    mangleChar[Tvoid] = 'v';
-    mangleChar[Tint8] = 'g';
-    mangleChar[Tuns8] = 'h';
-    mangleChar[Tint16] = 's';
-    mangleChar[Tuns16] = 't';
-    mangleChar[Tint32] = 'i';
-    mangleChar[Tuns32] = 'k';
-    mangleChar[Tint64] = 'l';
-    mangleChar[Tuns64] = 'm';
-    mangleChar[Tfloat32] = 'f';
-    mangleChar[Tfloat64] = 'd';
-    mangleChar[Tfloat80] = 'e';
-
-    mangleChar[Timaginary32] = 'o';
-    mangleChar[Timaginary64] = 'p';
-    mangleChar[Timaginary80] = 'j';
-    mangleChar[Tcomplex32] = 'q';
-    mangleChar[Tcomplex64] = 'r';
-    mangleChar[Tcomplex80] = 'c';
-
-    mangleChar[Tbool] = 'b';
-    mangleChar[Tchar] = 'a';
-    mangleChar[Twchar] = 'u';
-    mangleChar[Tdchar] = 'w';
-
-    // '@' shouldn't appear anywhere in the deco'd names
-    mangleChar[Tinstance] = '@';
-    mangleChar[Terror] = '@';
-    mangleChar[Ttypeof] = '@';
-    mangleChar[Ttuple] = 'B';
-    mangleChar[Tslice] = '@';
-    mangleChar[Treturn] = '@';
-    mangleChar[Tvector] = '@';
-    mangleChar[Tint128] = '@';
-    mangleChar[Tuns128] = '@';
-
-    mangleChar[Tnull] = 'n';    // same as TypeNone
-
-    for (size_t i = 0; i < TMAX; i++)
-    {   if (!mangleChar[i])
-            fprintf(stderr, "ty = %llu\n", (ulonglong)i);
-        assert(mangleChar[i]);
-    }
+    initTypeMangle();
 
     // Set basic types
     static TY basetab[] =
@@ -282,7 +228,8 @@ void Type::init()
           Tchar, Twchar, Tdchar, Terror };
 
     for (size_t i = 0; basetab[i] != Terror; i++)
-    {   Type *t = new TypeBasic(basetab[i]);
+    {
+        Type *t = new TypeBasic(basetab[i]);
         t = t->merge();
         basic[basetab[i]] = t;
     }
@@ -1471,43 +1418,6 @@ MOD MODmerge(MOD mod1, MOD mod2)
 }
 
 /*********************************
- * Mangling for mod.
- */
-void MODtoDecoBuffer(OutBuffer *buf, MOD mod)
-{
-    switch (mod)
-    {   case 0:
-            break;
-        case MODconst:
-            buf->writeByte('x');
-            break;
-        case MODimmutable:
-            buf->writeByte('y');
-            break;
-        case MODshared:
-            buf->writeByte('O');
-            break;
-        case MODshared | MODconst:
-            buf->writestring("Ox");
-            break;
-        case MODwild:
-            buf->writestring("Ng");
-            break;
-        case MODwildconst:
-            buf->writestring("Ngx");
-            break;
-        case MODshared | MODwild:
-            buf->writestring("ONg");
-            break;
-        case MODshared | MODwildconst:
-            buf->writestring("ONgx");
-            break;
-        default:
-            assert(0);
-    }
-}
-
-/*********************************
  * Store modifier name into buf.
  */
 void MODtoBuffer(OutBuffer *buf, MOD mod)
@@ -1566,21 +1476,6 @@ char *MODtoChars(MOD mod)
     buf.reserve(16);
     MODtoBuffer(&buf, mod);
     return buf.extractString();
-}
-
-/********************************
- * Name mangling.
- * Input:
- *      flag    0x100   do not do modifiers
- */
-
-void Type::toDecoBuffer(OutBuffer *buf, int flag)
-{
-    if (flag != mod && flag != 0x100)
-    {
-        MODtoDecoBuffer(buf, mod);
-    }
-    buf->writeByte(mangleChar[ty]);
 }
 
 /********************************
@@ -1750,12 +1645,12 @@ Type *Type::merge()
         OutBuffer buf;
         buf.reserve(32);
 
-        //if (next)
-            //next = next->merge();
-        toDecoBuffer(&buf);
+        mangleToBuffer(this, &buf);
+
         StringValue *sv = stringtable.update((char *)buf.data, buf.offset);
         if (sv->ptrvalue)
-        {   t = (Type *) sv->ptrvalue;
+        {
+            t = (Type *) sv->ptrvalue;
 #ifdef DEBUG
             if (!t->deco)
                 printf("t = %s\n", t->toChars());
@@ -2403,16 +2298,7 @@ Identifier *Type::getTypeInfoIdent(int internal)
     // _init_10TypeInfo_%s
     OutBuffer buf;
     buf.reserve(32);
-
-    if (internal)
-    {   buf.writeByte(mangleChar[ty]);
-        if (ty == Tarray)
-            buf.writeByte(mangleChar[((TypeArray *)this)->next->ty]);
-    }
-    else if (deco)
-        buf.writestring(deco);
-    else
-        toDecoBuffer(&buf);
+    mangleToBuffer(this, &buf, internal);
 
     size_t len = buf.offset;
     buf.writeByte(0);
@@ -2556,14 +2442,6 @@ TypeNext::TypeNext(TY ty, Type *next)
         : Type(ty)
 {
     this->next = next;
-}
-
-void TypeNext::toDecoBuffer(OutBuffer *buf, int flag)
-{
-    Type::toDecoBuffer(buf, flag);
-    assert(next != this);
-    //printf("this = %p, ty = %d, next = %p, ty = %d\n", this, this->ty, next, next->ty);
-    next->toDecoBuffer(buf, (flag & 0x100) ? 0 : mod);
 }
 
 void TypeNext::checkDeprecated(Loc loc, Scope *sc)
@@ -3630,16 +3508,6 @@ char *TypeVector::toChars()
     return Type::toChars();
 }
 
-void TypeVector::toDecoBuffer(OutBuffer *buf, int flag)
-{
-    if (flag != mod && flag != 0x100)
-    {
-        MODtoDecoBuffer(buf, mod);
-    }
-    buf->writestring("Nh");
-    basetype->toDecoBuffer(buf, (flag & 0x100) ? 0 : mod);
-}
-
 d_uns64 TypeVector::size(Loc loc)
 {
     return basetype->size();
@@ -4170,20 +4038,6 @@ Lerror:
     return Type::terror;
 }
 
-void TypeSArray::toDecoBuffer(OutBuffer *buf, int flag)
-{
-    Type::toDecoBuffer(buf, flag);
-    if (dim)
-        buf->printf("%llu", dim->toInteger());
-    if (next)
-        /* Note that static arrays are value types, so
-         * for a parameter, propagate the 0x100 to the next
-         * level, since for T[4][3], any const should apply to the T,
-         * not the [4].
-         */
-        next->toDecoBuffer(buf,  (flag & 0x100) ? flag : mod);
-}
-
 Expression *TypeSArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
 {
 #if LOGDOTEXP
@@ -4470,13 +4324,6 @@ void TypeDArray::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
      Ldefault:
         Type::resolve(loc, sc, pe, pt, ps, intypeid);
     }
-}
-
-void TypeDArray::toDecoBuffer(OutBuffer *buf, int flag)
-{
-    Type::toDecoBuffer(buf, flag);
-    if (next)
-        next->toDecoBuffer(buf, (flag & 0x100) ? 0 : mod);
 }
 
 Expression *TypeDArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
@@ -4878,13 +4725,6 @@ Expression *TypeAArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
     else
         e = Type::dotExp(sc, e, ident, flag);
     return e;
-}
-
-void TypeAArray::toDecoBuffer(OutBuffer *buf, int flag)
-{
-    Type::toDecoBuffer(buf, flag);
-    index->toDecoBuffer(buf);
-    next->toDecoBuffer(buf, (flag & 0x100) ? 0 : mod);
 }
 
 Expression *TypeAArray::defaultInit(Loc loc)
@@ -5443,65 +5283,6 @@ Ldistinct:
 Lnotcovariant:
     //printf("\tcovaraint: 2\n");
     return 2;
-}
-
-void TypeFunction::toDecoBuffer(OutBuffer *buf, int flag)
-{
-    //printf("TypeFunction::toDecoBuffer() this = %p %s\n", this, toChars());
-    //static int nest; if (++nest == 50) *(char*)0=0;
-    if (inuse)
-    {
-        inuse = 2;              // flag error to caller
-        return;
-    }
-    inuse++;
-
-    MODtoDecoBuffer(buf, mod);
-
-    unsigned char mc;
-    switch (linkage)
-    {
-        case LINKd:             mc = 'F';       break;
-        case LINKc:             mc = 'U';       break;
-        case LINKwindows:       mc = 'W';       break;
-        case LINKpascal:        mc = 'V';       break;
-        case LINKcpp:           mc = 'R';       break;
-        default:
-            assert(0);
-    }
-    buf->writeByte(mc);
-
-    if (purity || isnothrow || isnogc || isproperty || isref || trust)
-    {
-        if (purity)
-            buf->writestring("Na");
-        if (isnothrow)
-            buf->writestring("Nb");
-        if (isref)
-            buf->writestring("Nc");
-        if (isproperty)
-            buf->writestring("Nd");
-        if (isnogc)
-            buf->writestring("Ni");
-        switch (trust)
-        {
-            case TRUSTtrusted:
-                buf->writestring("Ne");
-                break;
-            case TRUSTsafe:
-                buf->writestring("Nf");
-                break;
-            default: break;
-        }
-    }
-
-    // Write argument types
-    Parameter::argsToDecoBuffer(buf, parameters);
-    //if (buf->data[buf->offset - 1] == '@') halt();
-    buf->writeByte('Z' - varargs);      // mark end of arg list
-    if (next != NULL)
-        next->toDecoBuffer(buf);
-    inuse--;
 }
 
 Type *TypeFunction::semantic(Loc loc, Scope *sc)
@@ -6736,14 +6517,6 @@ Type *TypeIdentifier::syntaxCopy()
     return t;
 }
 
-void TypeIdentifier::toDecoBuffer(OutBuffer *buf, int flag)
-{
-    Type::toDecoBuffer(buf, flag);
-    const char *name = ident->toChars();
-    size_t len = strlen(name);
-    buf->printf("%u%s", (unsigned)len, name);
-}
-
 /*************************************
  * Takes an array of Identifiers and figures out if
  * it represents a Type or an Expression.
@@ -7347,13 +7120,6 @@ Type *TypeEnum::toBasetype()
     return sym->getMemtype(Loc())->toBasetype();
 }
 
-void TypeEnum::toDecoBuffer(OutBuffer *buf, int flag)
-{
-    const char *name = mangle(sym);
-    Type::toDecoBuffer(buf, flag);
-    buf->writestring(name);
-}
-
 Expression *TypeEnum::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
 {
 #if LOGDOTEXP
@@ -7565,13 +7331,6 @@ unsigned TypeTypedef::alignsize()
 Dsymbol *TypeTypedef::toDsymbol(Scope *sc)
 {
     return sym;
-}
-
-void TypeTypedef::toDecoBuffer(OutBuffer *buf, int flag)
-{
-    Type::toDecoBuffer(buf, flag);
-    const char *name = mangle(sym);
-    buf->writestring(name);
 }
 
 Expression *TypeTypedef::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
@@ -7859,14 +7618,6 @@ unsigned TypeStruct::alignsize()
 Dsymbol *TypeStruct::toDsymbol(Scope *sc)
 {
     return sym;
-}
-
-void TypeStruct::toDecoBuffer(OutBuffer *buf, int flag)
-{
-    const char *name = mangle(sym);
-    //printf("TypeStruct::toDecoBuffer('%s') = '%s'\n", toChars(), name);
-    Type::toDecoBuffer(buf, flag);
-    buf->writestring(name);
 }
 
 Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
@@ -8404,14 +8155,6 @@ d_uns64 TypeClass::size(Loc loc)
 Dsymbol *TypeClass::toDsymbol(Scope *sc)
 {
     return sym;
-}
-
-void TypeClass::toDecoBuffer(OutBuffer *buf, int flag)
-{
-    const char *name = mangle(sym);
-    //printf("TypeClass::toDecoBuffer('%s' flag=%d mod=%x) = '%s'\n", toChars(), flag, mod, name);
-    Type::toDecoBuffer(buf, flag);
-    buf->writestring(name);
 }
 
 Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
@@ -9067,17 +8810,6 @@ Type *TypeTuple::makeConst()
 }
 #endif
 
-void TypeTuple::toDecoBuffer(OutBuffer *buf, int flag)
-{
-    //printf("TypeTuple::toDecoBuffer() this = %p, %s\n", this, toChars());
-    Type::toDecoBuffer(buf, flag);
-    OutBuffer buf2;
-    buf2.reserve(32);
-    Parameter::argsToDecoBuffer(&buf2, arguments);
-    int len = (int)buf2.offset;
-    buf->printf("%d%.*s", len, len, (char *)buf2.extractData());
-}
-
 Expression *TypeTuple::getProperty(Loc loc, Identifier *ident, int flag)
 {   Expression *e;
 
@@ -9299,12 +9031,6 @@ bool TypeNull::checkBoolean()
     return true;
 }
 
-void TypeNull::toDecoBuffer(OutBuffer *buf, int flag)
-{
-    //tvoidptr->toDecoBuffer(buf, flag);
-    Type::toDecoBuffer(buf, flag);
-}
-
 d_uns64 TypeNull::size(Loc loc) { return tvoidptr->size(loc); }
 Expression *TypeNull::defaultInit(Loc loc) { return new NullExp(Loc(), Type::tnull); }
 
@@ -9342,19 +9068,6 @@ Parameters *Parameter::arraySyntaxCopy(Parameters *args)
             (*a)[i] = (*args)[i]->syntaxCopy();
     }
     return a;
-}
-
-static int argsToDecoBufferDg(void *ctx, size_t n, Parameter *arg)
-{
-    arg->toDecoBuffer((OutBuffer *)ctx);
-    return 0;
-}
-
-void Parameter::argsToDecoBuffer(OutBuffer *buf, Parameters *arguments)
-{
-    //printf("Parameter::argsToDecoBuffer()\n");
-    // Write argument types
-    foreach(arguments, &argsToDecoBufferDg, buf);
 }
 
 /****************************************
@@ -9402,41 +9115,6 @@ Type *Parameter::isLazyArray()
         }
     }
     return NULL;
-}
-
-void Parameter::toDecoBuffer(OutBuffer *buf)
-{
-    if (storageClass & STCscope)
-        buf->writeByte('M');
-    switch (storageClass & (STCin | STCout | STCref | STClazy))
-    {   case 0:
-        case STCin:
-            break;
-        case STCout:
-            buf->writeByte('J');
-            break;
-        case STCref:
-            buf->writeByte('K');
-            break;
-        case STClazy:
-            buf->writeByte('L');
-            break;
-        default:
-#ifdef DEBUG
-            printf("storageClass = x%llx\n", storageClass & (STCin | STCout | STCref | STClazy));
-            halt();
-#endif
-            assert(0);
-    }
-#if 0
-    int mod = 0x100;
-    if (type->toBasetype()->ty == Tclass)
-        mod = 0;
-    type->toDecoBuffer(buf, mod);
-#else
-    //type->toHeadMutable()->toDecoBuffer(buf, 0);
-    type->toDecoBuffer(buf, 0);
-#endif
 }
 
 /***************************************

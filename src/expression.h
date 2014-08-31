@@ -174,7 +174,6 @@ public:
     virtual real_t toImaginary();
     virtual complex_t toComplex();
     virtual StringExp *toStringExp();
-    virtual void toMangleBuffer(OutBuffer *buf);
     virtual int isLvalue();
     virtual Expression *toLvalue(Scope *sc, Expression *e);
     virtual Expression *modifiableLvalue(Scope *sc, Expression *e);
@@ -242,10 +241,9 @@ public:
 
 class IntegerExp : public Expression
 {
-private:
+public:
     dinteger_t value;
 
-public:
     IntegerExp(Loc loc, dinteger_t value, Type *type);
     IntegerExp(dinteger_t value);
     bool equals(RootObject *o);
@@ -255,7 +253,6 @@ public:
     real_t toImaginary();
     complex_t toComplex();
     int isBool(int result);
-    void toMangleBuffer(OutBuffer *buf);
     Expression *toLvalue(Scope *sc, Expression *e);
     void accept(Visitor *v) { v->visit(this); }
     dinteger_t getInteger() { return value; }
@@ -288,7 +285,6 @@ public:
     real_t toImaginary();
     complex_t toComplex();
     int isBool(int result);
-    void toMangleBuffer(OutBuffer *buf);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -306,7 +302,6 @@ public:
     real_t toImaginary();
     complex_t toComplex();
     int isBool(int result);
-    void toMangleBuffer(OutBuffer *buf);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -377,7 +372,6 @@ public:
     Expression *semantic(Scope *sc);
     int isBool(int result);
     StringExp *toStringExp();
-    void toMangleBuffer(OutBuffer *buf);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -406,7 +400,6 @@ public:
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     unsigned charAt(uinteger_t i);
-    void toMangleBuffer(OutBuffer *buf);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -450,7 +443,6 @@ public:
     Expression *semantic(Scope *sc);
     int isBool(int result);
     StringExp *toStringExp();
-    void toMangleBuffer(OutBuffer *buf);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -467,7 +459,6 @@ public:
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     int isBool(int result);
-    void toMangleBuffer(OutBuffer *buf);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -521,7 +512,6 @@ public:
     Expression *semantic(Scope *sc);
     Expression *getField(Type *type, unsigned offset);
     int getFieldIndex(Type *type, unsigned offset);
-    void toMangleBuffer(OutBuffer *buf);
     Expression *addDtorHook(Scope *sc);
     Symbol *toSymbol();
 
