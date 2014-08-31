@@ -2042,7 +2042,7 @@ Ldone:
     }
 
     if (base == 8 && n >= 8)
-        deprecation("octal literals 0%llo%.*s are deprecated, use std.conv.octal!%llo%.*s instead",
+        error("octal literals 0%llo%.*s are no longer supported, use std.conv.octal!%llo%.*s instead",
                 n, p - psuffix, psuffix, n, p - psuffix, psuffix);
 
     TOK result;
