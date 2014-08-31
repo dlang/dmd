@@ -25,6 +25,8 @@
 #include "id.h"
 #include "module.h"
 #include "enum.h"
+#include "expression.h"
+#include "utf.h"
 
 char *toCppMangle(Dsymbol *s);
 void mangleToBuffer(Type *t, OutBuffer *buf);
@@ -641,6 +643,187 @@ public:
 
     ////////////////////////////////////////////////////////////////////////////
 
+    void visit(Expression *e)
+    {
+        e->error("expression %s is not a valid template value argument", e->toChars());
+    }
+
+    void visit(IntegerExp *e)
+    {
+        if ((sinteger_t)e->value < 0)
+            buf->printf("N%lld", -e->value);
+        else
+            buf->printf("i%lld",  e->value);
+    }
+
+    void visit(RealExp *e)
+    {
+        buf->writeByte('e');
+        realToMangleBuffer(e->value);
+    }
+
+    void realToMangleBuffer(real_t value)
+    {
+        /* Rely on %A to get portable mangling.
+         * Must munge result to get only identifier characters.
+         *
+         * Possible values from %A  => mangled result
+         * NAN                      => NAN
+         * -INF                     => NINF
+         * INF                      => INF
+         * -0X1.1BC18BA997B95P+79   => N11BC18BA997B95P79
+         * 0X1.9P+2                 => 19P2
+         */
+
+        if (Port::isNan(value))
+            buf->writestring("NAN");        // no -NAN bugs
+        else if (Port::isInfinity(value))
+            buf->writestring(value < 0 ? "NINF" : "INF");
+        else
+        {
+            const size_t BUFFER_LEN = 36;
+            char buffer[BUFFER_LEN];
+            size_t n = ld_sprint(buffer, 'A', value);
+            assert(n < BUFFER_LEN);
+            for (size_t i = 0; i < n; i++)
+            {
+                char c = buffer[i];
+                switch (c)
+                {
+                    case '-':
+                        buf->writeByte('N');
+                        break;
+
+                    case '+':
+                    case 'X':
+                    case '.':
+                        break;
+
+                    case '0':
+                        if (i < 2)
+                            break;          // skip leading 0X
+                    default:
+                        buf->writeByte(c);
+                        break;
+                }
+            }
+        }
+    }
+
+    void visit(ComplexExp *e)
+    {
+        buf->writeByte('c');
+        realToMangleBuffer(e->toReal());
+        buf->writeByte('c');        // separate the two
+        realToMangleBuffer(e->toImaginary());
+    }
+
+    void visit(NullExp *e)
+    {
+        buf->writeByte('n');
+    }
+
+    void visit(StringExp *e)
+    {
+        char m;
+        OutBuffer tmp;
+        utf8_t *q;
+        size_t qlen;
+
+        /* Write string in UTF-8 format
+         */
+        switch (e->sz)
+        {
+            case 1:
+                m = 'a';
+                q = (utf8_t *)e->string;
+                qlen = e->len;
+                break;
+
+            case 2:
+                m = 'w';
+                for (size_t u = 0; u < e->len; )
+                {
+                    unsigned c;
+                    const char *p = utf_decodeWchar((unsigned short *)e->string, e->len, &u, &c);
+                    if (p)
+                        e->error("%s", p);
+                    else
+                        tmp.writeUTF8(c);
+                }
+                q = (utf8_t *)tmp.data;
+                qlen = tmp.offset;
+                break;
+
+            case 4:
+                m = 'd';
+                for (size_t u = 0; u < e->len; u++)
+                {
+                    unsigned c = ((unsigned *)e->string)[u];
+                    if (!utf_isValidDchar(c))
+                        e->error("invalid UCS-32 char \\U%08x", c);
+                    else
+                        tmp.writeUTF8(c);
+                }
+                q = (utf8_t *)tmp.data;
+                qlen = tmp.offset;
+                break;
+
+            default:
+                assert(0);
+        }
+        buf->reserve(1 + 11 + 2 * qlen);
+        buf->writeByte(m);
+        buf->printf("%d_", (int)qlen); // nbytes <= 11
+
+        for (utf8_t *p = (utf8_t *)buf->data + buf->offset, *pend = p + 2 * qlen;
+             p < pend; p += 2, ++q)
+        {
+            utf8_t hi = *q >> 4 & 0xF;
+            p[0] = (utf8_t)(hi < 10 ? hi + '0' : hi - 10 + 'a');
+            utf8_t lo = *q & 0xF;
+            p[1] = (utf8_t)(lo < 10 ? lo + '0' : lo - 10 + 'a');
+        }
+        buf->offset += 2 * qlen;
+    }
+
+    void visit(ArrayLiteralExp *e)
+    {
+        size_t dim = e->elements ? e->elements->dim : 0;
+        buf->printf("A%u", dim);
+        for (size_t i = 0; i < dim; i++)
+        {
+            (*e->elements)[i]->accept(this);
+        }
+    }
+
+    void visit(AssocArrayLiteralExp *e)
+    {
+        size_t dim = e->keys->dim;
+        buf->printf("A%u", dim);
+        for (size_t i = 0; i < dim; i++)
+        {
+            (*e->keys)[i]->accept(this);
+            (*e->values)[i]->accept(this);
+        }
+    }
+
+    void visit(StructLiteralExp *e)
+    {
+        size_t dim = e->elements ? e->elements->dim : 0;
+        buf->printf("S%u", dim);
+        for (size_t i = 0; i < dim; i++)
+        {
+            Expression *ex = (*e->elements)[i];
+            if (ex)
+                ex->accept(this);
+            else
+                buf->writeByte('v');        // 'v' for void
+        }
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+
     void argsToDecoBuffer(Parameters *arguments)
     {
         //printf("Parameter::argsToDecoBuffer()\n");
@@ -719,4 +902,10 @@ void mangleToBuffer(Type *t, OutBuffer *buf, bool internal)
         buf->writestring(t->deco);
     else
         mangleToBuffer(t, buf);
+}
+
+void mangleToBuffer(Expression *e, OutBuffer *buf)
+{
+    Mangler v(buf);
+    e->accept(&v);
 }
