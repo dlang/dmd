@@ -1064,9 +1064,9 @@ extern (C) void* _d_newitemT(TypeInfo ti)
 {
     auto size = ti.tsize;                  // array element size
     auto baseFlags = !(ti.flags & 1) ? BlkAttr.NO_SCAN : 0;
-	bool needsTypeInfo = false;
+    bool needsTypeInfo = false;
     if (auto si = cast(TypeInfo_Struct)ti)
-	{
+    {
         if (si.xdtor !is null)
         {
             needsTypeInfo = true;
@@ -1104,9 +1104,9 @@ extern (C) void* _d_newitemiT(TypeInfo ti)
 {
     auto size = ti.tsize;                  // array element size
     auto baseFlags = !(ti.flags & 1) ? BlkAttr.NO_SCAN : 0;
-	bool needsTypeInfo = false;
+    bool needsTypeInfo = false;
     if (auto si = cast(TypeInfo_Struct)ti)
-	{
+    {
         if (si.xdtor !is null)
         {
             needsTypeInfo = true;
@@ -1279,6 +1279,8 @@ extern (C) int rt_hasFinalizerInSegment(void* p, in void[] segment) nothrow
     return false;
 }
 
+__gshared bool callStructDtorsDuringGC = true;
+
 extern (C) int rt_hasStructFinalizerInSegment(void* p, in void[] segment) nothrow
 {
     if(!p)
@@ -1305,16 +1307,18 @@ extern (C) int rt_hasArrayFinalizerInSegment(void* p, in void[] segment) nothrow
     return cast(size_t)(cast(void*)si.xdtor - segment.ptr) < segment.length;
 }
 
-extern (C) void rt_finalize_array(void* p, bool resetMemory = true) nothrow
+extern (C) void rt_finalize_array2(void* p, BlkInfo inf, bool resetMemory = true, bool fromGC = false) nothrow
 {
-    debug(PRINTF) printf("rt_finalize_array(p = %p)\n", p);
+    debug(PRINTF) printf("rt_finalize_array2(p = %p)\n", p);
+
+    if (fromGC && !callStructDtorsDuringGC)
+        return;
 
     if(!p)
         return;
 
     size_t elementCount = void;
     TypeInfo_Struct si = void;
-    BlkInfo inf = GC.query(p);
     if(inf.size <= 256)
     {
         si = *cast(TypeInfo_Struct*)(inf.base + inf.size - SMALLPAD - size_t.sizeof);
@@ -1333,9 +1337,6 @@ extern (C) void rt_finalize_array(void* p, bool resetMemory = true) nothrow
 
     try
     {
-        // Mark it as finalized so that the GC doesn't attempt to
-        // finalize it again.
-        GC.clrAttr(p, BlkAttr.FINALIZE);
         // Due to the fact that the delete operator calls destructors
         // for arrays from the last element to the first, we maintain
         // compatibility here by doing the same.
@@ -1360,9 +1361,26 @@ extern (C) void rt_finalize_array(void* p, bool resetMemory = true) nothrow
     }
 }
 
-extern (C) void rt_finalize_struct(void* p, bool resetMemory = true) nothrow
+extern (C) void rt_finalize_array(void* p, bool resetMemory = true) nothrow
+{
+    debug(PRINTF) printf("rt_finalize_array(p = %p)\n", p);
+
+    if(!p)
+        return;
+
+    BlkInfo inf = GC.query(p);
+    // Mark it as finalized so that the GC doesn't attempt to
+    // finalize it again.
+    GC.clrAttr(p, BlkAttr.FINALIZE);
+    rt_finalize_array2(p, inf, resetMemory);
+}
+
+extern (C) void rt_finalize_struct(void* p, bool resetMemory = true, bool fromGC = false) nothrow
 {
     debug(PRINTF) printf("rt_finalize_struct(p = %p)\n", p);
+
+    if (fromGC && !callStructDtorsDuringGC)
+        return;
 
     if(!p)
         return;

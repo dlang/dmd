@@ -761,3 +761,9 @@ struct GC
         gc_runFinalizers( segment );
     }
 }
+
+void callStructDtorsDuringGC(bool callThem)
+{
+	static import rt.lifetime;
+	rt.lifetime.callStructDtorsDuringGC = callThem;
+}

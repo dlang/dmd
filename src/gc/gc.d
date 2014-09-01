@@ -130,9 +130,9 @@ private
     {
         // to allow compilation of this module without access to the rt package,
         //  make these functions available from rt.lifetime
-		void rt_finalize_struct(void* p, bool resetMemory) nothrow;
+		void rt_finalize_struct(void* p, bool resetMemory, bool fromGC) nothrow;
 		int rt_hasStructFinalizerInSegment(void* p, in void[] segment) nothrow;
-		void rt_finalize_array(void* p, bool resetMemory = true) nothrow;
+		void rt_finalize_array2(void* p, BlkInfo inf, bool resetMemory, bool fromGC) nothrow;
 		int rt_hasArrayFinalizerInSegment(void* p, in void[] segment) nothrow;
         void rt_finalize2(void* p, bool det, bool resetMemory) nothrow;
         int rt_hasFinalizerInSegment(void* p, in void[] segment) nothrow;
@@ -1557,9 +1557,9 @@ struct Gcx
                     if (pool.structFinals.nbits && pool.structFinals.test(biti))
                     {
                         if (pool.appendable.nbits && pool.appendable.test(biti) && rt_hasArrayFinalizerInSegment(sentinel_add(p), segment))
-                            rt_finalize_array(sentinel_add(p));
+                            rt_finalize_array2(sentinel_add(p), BlkInfo(p, pool.bPageOffsets[pn] * PAGESIZE), true, true);
                         else if (rt_hasStructFinalizerInSegment(sentinel_add(p), segment))
-                            rt_finalize_struct(sentinel_add(p), false);
+                            rt_finalize_struct(sentinel_add(p), false, true);
                         else
                             continue;
                     }
@@ -1617,9 +1617,9 @@ struct Gcx
                         if (pool.structFinals.nbits && pool.structFinals.test(biti))
                         {
                             if (pool.appendable.nbits && pool.appendable.test(biti) && rt_hasArrayFinalizerInSegment(sentinel_add(p), segment))
-                                rt_finalize_array(sentinel_add(p));
+                                rt_finalize_array2(sentinel_add(p), BlkInfo(p, size), true, true);
                             else if (rt_hasStructFinalizerInSegment(sentinel_add(p), segment))
-                                rt_finalize_struct(sentinel_add(p), false);
+                                rt_finalize_struct(sentinel_add(p), false, true);
                             else
                                 continue;
                         }
@@ -2135,7 +2135,7 @@ struct Gcx
         if (bits)
 		{
 			if (ti)
-				setBits(pool, (p - pool.baseAddr) >> pool.shiftBy, bits, cast(StructInfo)ti.next);
+				setBits(pool, (p - pool.baseAddr) >> pool.shiftBy, bits, cast(TypeInfo_Struct)ti.next);
 			else
 				setBits(pool, (p - pool.baseAddr) >> pool.shiftBy, bits);
 		}
@@ -2222,7 +2222,7 @@ struct Gcx
 		if (bits)
 		{
 			if (ti)
-				setBits(pool, pn * PAGESIZE >> pool.shiftBy, bits, cast(StructInfo)ti.next);
+				setBits(pool, pn * PAGESIZE >> pool.shiftBy, bits, cast(TypeInfo_Struct)ti.next);
 			else
 				setBits(pool, pn * PAGESIZE >> pool.shiftBy, bits);
 		}
@@ -2668,9 +2668,9 @@ struct Gcx
                         if (pool.structFinals.nbits && pool.structFinals.testClear(biti))
                         {
                             if (pool.appendable.nbits && pool.appendable.test(biti))
-                                rt_finalize_array(sentinel_add(p));
+                                rt_finalize_array2(sentinel_add(p), BlkInfo(p, pool.bPageOffsets[pn] * PAGESIZE), true, true);
                             else
-                                rt_finalize_struct(sentinel_add(p), false);
+                                rt_finalize_struct(sentinel_add(p), false, true);
                         }
                         else if (pool.finals.nbits && pool.finals.testClear(biti))
                             rt_finalize2(sentinel_add(p), false, false);
@@ -2747,9 +2747,9 @@ struct Gcx
                                 if (pool.structFinals.nbits && pool.structFinals.test(biti))
                                 {
                                     if (pool.appendable.nbits && pool.appendable.test(biti))
-                                        rt_finalize_array(sentinel_add(p));
+                                        rt_finalize_array2(sentinel_add(p), BlkInfo(p, size), true, true);
                                     else
-                                        rt_finalize_struct(sentinel_add(p), false);
+                                        rt_finalize_struct(sentinel_add(p), false, true);
                                 }
                                 else if (pool.finals.nbits && pool.finals.test(biti))
                                     rt_finalize2(sentinel_add(p), false, false);
