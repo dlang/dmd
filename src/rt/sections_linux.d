@@ -520,8 +520,8 @@ void runModuleConstructors(DSO* pdso, bool runTlsCtors)
 
 void runModuleDestructors(DSO* pdso, bool runTlsDtors)
 {
-    pdso._moduleGroup.runTlsDtors();
-    if (runTlsDtors) pdso._moduleGroup.runDtors();
+    if (runTlsDtors) pdso._moduleGroup.runTlsDtors();
+    pdso._moduleGroup.runDtors();
 }
 
 void registerGCRanges(DSO* pdso)
