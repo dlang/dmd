@@ -314,7 +314,7 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
     overnext0 = NULL;
     vtblIndex = -1;
     hasReturnExp = 0;
-    naked = 0;
+    naked = false;
     inlineStatusExp = ILSuninitialized;
     inlineStatusStmt = ILSuninitialized;
     inlineNest = 0;
@@ -2140,6 +2140,9 @@ void FuncDeclaration::semantic3(Scope *sc)
                 (*gotos)[i]->checkLabel();
             }
         }
+
+        if (naked && (fensure || frequire))
+            error("naked assembly functions with contracts are not supported");
 
         sc2->callSuper = 0;
         sc2->pop();
