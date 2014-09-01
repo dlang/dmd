@@ -586,7 +586,7 @@ Scope *ProtDeclaration::newScope(Scope *sc)
     return createNewScope(sc, sc->stc, sc->linkage, this->protection, 1, sc->structalign);
 }
 
-void ProtDeclaration::semantic(Scope* sc)
+int ProtDeclaration::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
 {
     if (pkg_identifiers)
     {
@@ -596,8 +596,6 @@ void ProtDeclaration::semantic(Scope* sc)
         pkg_identifiers = NULL;
     }
 
-    AttribDeclaration::semantic(sc);
-
     if (protection.kind == PROTpackage && protection.pkg && sc->module)
     {
         Module *m = sc->module;
@@ -606,6 +604,8 @@ void ProtDeclaration::semantic(Scope* sc)
             error("does not bind to one of ancestor packages of module '%s'",
                m->toPrettyChars(true));
     }
+
+    return AttribDeclaration::addMember(sc, sds, memnum);
 }
 
 const char *ProtDeclaration::kind()
