@@ -195,7 +195,7 @@ class StructFinalizeError : Error
     
     @safe pure nothrow this( TypeInfo_Struct si, string file = __FILE__, size_t line = __LINE__, Throwable next = null )
     {
-        super( "Finalization error", file, line, next );
+        super( "Struct finalization error", file, line, next );
         info = si;
     }
     
@@ -215,7 +215,7 @@ unittest
         assert(fe.file == __FILE__);
         assert(fe.line == __LINE__ - 2);
         assert(fe.next is null);
-        assert(fe.msg == "Finalization error");
+        assert(fe.msg == "Struct finalization error");
         assert(fe.info == info);
     }
     
@@ -224,7 +224,7 @@ unittest
         assert(fe.file == __FILE__);
         assert(fe.line == __LINE__ - 2);
         assert(fe.next !is null);
-        assert(fe.msg == "Finalization error");
+        assert(fe.msg == "Struct finalization error");
         assert(fe.info == info);
     }
     
@@ -233,7 +233,7 @@ unittest
         assert(fe.file == "hello");
         assert(fe.line == 42);
         assert(fe.next is null);
-        assert(fe.msg == "Finalization error");
+        assert(fe.msg == "Struct finalization error");
         assert(fe.info == info);
     }
     
@@ -242,7 +242,7 @@ unittest
         assert(fe.file == "hello");
         assert(fe.line == 42);
         assert(fe.next !is null);
-        assert(fe.msg == "Finalization error");
+        assert(fe.msg == "Struct finalization error");
         assert(fe.info == info);
     }
 }
