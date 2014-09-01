@@ -887,7 +887,7 @@ public:
 
                 static struct SplitUnits
                 {
-                    mixin(genMemberDecls);
+                    mixin(genMemberDecls());
                 }
 
                 static string genSplitCall()
