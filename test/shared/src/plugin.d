@@ -1,8 +1,8 @@
 import core.thread, core.memory, core.atomic;
 
 shared uint gctor, gdtor, tctor, tdtor;
-shared static this() { atomicOp!"+="(gctor, 1); }
-shared static ~this() { atomicOp!"+="(gdtor, 1); }
+shared static this() { if (atomicOp!"+="(gctor, 1) != 1) assert(0); }
+shared static ~this() { if (atomicOp!"+="(gdtor, 1) != 1) assert(0); }
 static this() { atomicOp!"+="(tctor, 1); }
 static ~this() { atomicOp!"+="(tdtor, 1); }
 
