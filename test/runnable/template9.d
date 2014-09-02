@@ -4138,6 +4138,61 @@ void test13374()
 }
 
 /******************************************/
+// 13378
+
+struct Vec13378(size_t n, T, string as)
+{
+    T[n] data;
+}
+
+void doSome13378(size_t n, T, string as)(Vec13378!(n,T,as) v) {}
+
+void test13378()
+{
+    auto v = Vec13378!(3, float, "xyz")([1,2,3]);
+    doSome13378(v);
+}
+
+/******************************************/
+// 13379
+
+void test13379()
+{
+    match13379("");
+}
+
+auto match13379(RegEx )(RegEx  re)
+if (is(RegEx == Regex13379!char))       // #1 Regex!char (speculative && tinst == NULL)
+{}
+auto match13379(String)(String re)
+{}
+
+struct Regex13379(Char)
+{
+    ShiftOr13379!Char kickstart;        // #2 ShiftOr!char (speculative && tinst == Regex!char)
+}
+struct ShiftOr13379(Char)
+{
+    this(ref Regex13379!Char re)        // #3 Regex!Char (speculative && tinst == ShiftOr!char)
+    {
+        uint n_length;
+        uint idx;
+        n_length = min13379(idx, n_length);
+    }
+}
+
+template MinType13379(T...)
+{
+    alias MinType13379 = T[0];
+}
+MinType13379!T min13379(T...)(T args)   // #4 MinType!uint (speculative && thist == ShiftOr!char)
+{
+    alias a = args[0];
+    alias b = args[$-1];
+    return cast(typeof(return)) (a < b ? a : b);
+}
+
+/******************************************/
 
 int main()
 {
@@ -4240,6 +4295,8 @@ int main()
     test13294();
     test13299();
     test13374();
+    test13378();
+    test13379();
 
     printf("Success\n");
     return 0;

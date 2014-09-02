@@ -1470,6 +1470,12 @@ void FuncDeclaration::semantic3(Scope *sc)
                 }
                 if (inv)
                 {
+                #if 1
+                    // Workaround for bugzilla 13394: For the correct mangling,
+                    // run attribute inference on inv if needed.
+                    inv->functionSemantic();
+                #endif
+
                     //e = new DsymbolExp(Loc(), inv);
                     //e = new CallExp(Loc(), e);
                     //e = e->semantic(sc2);
@@ -1488,6 +1494,13 @@ void FuncDeclaration::semantic3(Scope *sc)
             }
             else
             {
+            #if 1
+                // Workaround for bugzilla 13394: For the correct mangling,
+                // run attribute inference on inv if needed.
+                if (ad->isStructDeclaration() && ad->inv)
+                    ad->inv->functionSemantic();
+            #endif
+
                 // Call invariant virtually
                 Expression *v = new ThisExp(Loc());
                 v->type = vthis->type;
@@ -1522,6 +1535,12 @@ void FuncDeclaration::semantic3(Scope *sc)
                 }
                 if (inv)
                 {
+                #if 1
+                    // Workaround for bugzilla 13394: For the correct mangling,
+                    // run attribute inference on inv if needed.
+                    inv->functionSemantic();
+                #endif
+
                     //e = new DsymbolExp(Loc(), inv);
                     //e = new CallExp(Loc(), e);
                     //e = e->semantic(sc2);
@@ -1539,6 +1558,13 @@ void FuncDeclaration::semantic3(Scope *sc)
             }
             else
             {
+            #if 1
+                // Workaround for bugzilla 13394: For the correct mangling,
+                // run attribute inference on inv if needed.
+                if (ad->isStructDeclaration() && ad->inv)
+                    ad->inv->functionSemantic();
+            #endif
+
                 // Call invariant virtually
                 Expression *v = new ThisExp(Loc());
                 v->type = vthis->type;
