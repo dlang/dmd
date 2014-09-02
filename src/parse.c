@@ -36,6 +36,7 @@
 #include "version.h"
 #include "aliasthis.h"
 #include "nspace.h"
+#include "hdrgen.h"
 
 // How multiple declarations are parsed.
 // If 1, treat as C.

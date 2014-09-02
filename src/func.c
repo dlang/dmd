@@ -31,7 +31,6 @@
 #include "rmem.h"
 #include "visitor.h"
 
-void functionToBufferWithIdent(TypeFunction *t, OutBuffer *buf, const char *ident);
 void genCmain(Scope *sc);
 
 /* A visitor to walk entire statements and provides ability to replace any sub-statements.

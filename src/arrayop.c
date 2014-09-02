@@ -26,7 +26,6 @@
 #include "module.h"
 #include "init.h"
 
-extern int binary(const char *p , const char **tab, int high);
 void buildArrayIdent(Expression *e, OutBuffer *buf, Expressions *arguments);
 Expression *buildArrayLoop(Expression *e, Parameters *fparams);
 
