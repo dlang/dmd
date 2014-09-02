@@ -73,25 +73,22 @@ const char *findinifile(const char *argv0, const char *inifile)
         return filename;
 
 #if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
-    /* argv0 might be a symbolic link,
-     * so try again looking past it to the real path
-     */
-    const char *real_argv0 = FileName::canonicalName(argv0);
-    //printf("argv0 = %s, real_argv0 = %p\n", argv0, real_argv0);
-    if (real_argv0)
-    {
-        filename = FileName::replaceName(real_argv0, inifile);
-        if (FileName::exists(filename))
-            return filename;
-    }
-
     // Search PATH for argv0
     const char *p = getenv("PATH");
 #if LOG
     printf("\tPATH='%s'\n", p);
 #endif
     Strings *paths = FileName::splitPath(p);
-    filename = FileName::searchPath(paths, argv0, 0);
+    const char *abspath = FileName::searchPath(paths, argv0, 0);
+    if (abspath)
+    {
+        const char *absname = FileName::replaceName(abspath, inifile);
+        if (FileName::exists(absname))
+            return absname;
+    }
+
+    // Resolve symbolic links
+    filename = FileName::canonicalName(abspath ? abspath : argv0);
     if (filename)
     {
         filename = FileName::replaceName(filename, inifile);
@@ -312,4 +309,3 @@ char *skipspace(char *p)
         p++;
     return p;
 }
-
