@@ -26,8 +26,8 @@ void tls_free() { tls_root = null; }
 
 // test Init
 shared uint shared_static_ctor, shared_static_dtor, static_ctor, static_dtor;
-shared static this() { ++shared_static_ctor; }
-shared static ~this() { ++shared_static_dtor; }
+shared static this() { if (++shared_static_ctor != 1) assert(0); }
+shared static ~this() { if (++shared_static_dtor != 1) assert(0); }
 static this() { ++static_ctor; }
 static ~this() { ++static_dtor; }
 
