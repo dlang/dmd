@@ -399,6 +399,9 @@ $(IMPDIR)\core\sys\posix\stdio.d : src\core\sys\posix\stdio.d
 $(IMPDIR)\core\sys\posix\stdlib.d : src\core\sys\posix\stdlib.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\posix\syslog.d : src\core\sys\posix\syslog.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\posix\sys\ioctl.d : src\core\sys\posix\sys\ioctl.d
 	copy $** $@
 

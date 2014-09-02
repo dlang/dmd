@@ -119,6 +119,7 @@ MANIFEST=\
 	src\core\sys\posix\signal.d \
 	src\core\sys\posix\stdio.d \
 	src\core\sys\posix\stdlib.d \
+	src\core\sys\posix\syslog.d \
 	src\core\sys\posix\termios.d \
 	src\core\sys\posix\time.d \
 	src\core\sys\posix\ucontext.d \
