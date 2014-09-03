@@ -780,7 +780,7 @@ bool TemplateDeclaration::evaluateConstraint(
     Expression *e = constraint->syntaxCopy();
 
     scx = scx->startCTFE();
-    scx->flags |= SCOPEstaticif;
+    scx->flags |= SCOPEcondition | SCOPEconstraint;
     assert(ti->inst == NULL);
     ti->inst = ti;  // temporary instantiation to enable genIdent()
 
@@ -2500,7 +2500,7 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
 
         if (FuncLiteralDeclaration *fld = m->lastf->isFuncLiteralDeclaration())
         {
-            if ((sc->flags & SCOPEstaticif) || sc->intypeof)
+            if ((sc->flags & SCOPEconstraint) || sc->intypeof)
             {
                 // Inside template constraint, or inside typeof,
                 // nested reference check doesn't work correctly.
@@ -5862,7 +5862,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
         //printf("\tspeculative ti %s '%s' gag = %d, spec = %d\n", tempdecl->parent->toChars(), toChars(), global.gag, sc->speculative);
         speculative = true;
     }
-    if (sc->flags & (SCOPEstaticif | SCOPEstaticassert | SCOPEcompile))
+    if (sc->flags & (SCOPEcondition | SCOPEcompile))
     {
         // Disconnect the chain if this instantiation is in definitely speculative context.
         // It should be done after sc->instantiatingModule().
@@ -5946,7 +5946,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 
             // If the first instantiation was in speculative context, but this is not:
             if (!inst->tinst && inst->speculative &&
-                tinst && !(sc->flags & (SCOPEstaticif | SCOPEstaticassert | SCOPEcompile)))
+                tinst && !(sc->flags & (SCOPEcondition | SCOPEcompile)))
             {
                 // Reconnect the chain if this instantiation is not in speculative context.
                 TemplateInstance *tix = tinst;

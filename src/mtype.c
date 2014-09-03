@@ -6842,7 +6842,6 @@ void TypeTypeof::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
          */
         Scope *sc2 = sc->push();
         sc2->intypeof = 1;
-        sc2->flags |= sc->flags & SCOPEstaticif;
         exp = exp->semantic(sc2);
         exp = resolvePropertiesOnly(sc2, exp);
         sc2->pop();

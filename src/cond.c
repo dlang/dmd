@@ -337,7 +337,7 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *sds)
         sc = sc->push(sc->scopesym);
         sc->sds = sds;                  // sds gets any addMember()
         //sc->speculative = true;       // TODO: static if (is(T U)) { /* U is available */ }
-        sc->flags |= SCOPEstaticif;
+        sc->flags |= SCOPEcondition;
 
         sc = sc->startCTFE();
         Expression *e = exp->semantic(sc);

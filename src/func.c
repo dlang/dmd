@@ -3388,7 +3388,7 @@ int FuncDeclaration::getLevel(Loc loc, Scope *sc, FuncDeclaration *fd)
 
 Lerr:
     // Don't give error if in template constraint
-    if (!(sc->flags & SCOPEstaticif))
+    if (!(sc->flags & SCOPEconstraint))
     {
         const char *xstatic = isStatic() ? "static " : "";
         // better diagnostics for static functions
