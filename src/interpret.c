@@ -2357,7 +2357,7 @@ public:
                 !hasValue(v) &&
                 v->init && !v->isCTFE())
             {
-                if(v->scope)
+                if(v->scope && !v->inuse)
                     v->init = v->init->semantic(v->scope, v->type, INITinterpret); // might not be run on aggregate members
                 e = v->init->toExpression(v->type);
                 if (v->inuse)
