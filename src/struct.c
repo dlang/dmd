@@ -172,6 +172,8 @@ void AggregateDeclaration::semantic2(Scope *sc)
     if (!members)
         return;
 
+    if (scope && sizeok == SIZEOKfwd)   // Bugzilla 12531
+        semantic(NULL);
     if (scope)
     {
         error("has forward references");
