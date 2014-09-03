@@ -4653,7 +4653,7 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
                 nextToken();
             }
             else
-            {   increment = parseExpression();
+            {   increment = parseCommaExpression();
                 check(TOKrparen);
             }
             body = parseStatement(PSscope);
@@ -7368,6 +7368,25 @@ Expression *Parser::parseExpression()
     Loc loc = token.loc;
 
     //printf("Parser::parseExpression() loc = %d\n", loc.linnum);
+    e = parseAssignExp();
+    while (token.value == TOKcomma)
+    {
+        warning(token.loc, "The comma operator will be deprecated");
+        nextToken();
+        e2 = parseAssignExp();
+        e = new CommaExp(loc, e, e2);
+        loc = token.loc;
+    }
+    return e;
+}
+
+Expression *Parser::parseCommaExpression()
+{
+    Expression *e;
+    Expression *e2;
+    Loc loc = token.loc;
+
+    //printf("Parser::parseCommaExpression() loc = %d\n", loc.linnum);
     e = parseAssignExp();
     while (token.value == TOKcomma)
     {

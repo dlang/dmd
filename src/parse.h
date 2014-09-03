@@ -139,6 +139,7 @@ public:
     int skipAttributes(Token *t, Token **pt);
 
     Expression *parseExpression();
+    Expression *parseCommaExpression();
     Expression *parsePrimaryExp();
     Expression *parseUnaryExp();
     Expression *parsePostExp(Expression *e);
