@@ -1,12 +1,13 @@
 
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2013 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/tocsym.c
+ */
 
 #include <stdio.h>
 #include <stddef.h>
@@ -68,7 +69,8 @@ Symbol *Dsymbol::toSymbolX(const char *prefix, int sclass, type *t, const char *
     char idbuf[20];
     char *id = idbuf;
     if (idlen > sizeof(idbuf))
-    {   id = (char *)malloc(idlen);
+    {
+        id = (char *)malloc(idlen);
         assert(id);
     }
 
@@ -219,7 +221,7 @@ Symbol *toSymbol(Dsymbol *s)
                 switch (vd->linkage)
                 {
                     case LINKwindows:
-                        m = mTYman_std;
+                        m = global.params.is64bit ? mTYman_c : mTYman_std;
                         break;
 
                     case LINKpascal:
@@ -324,7 +326,7 @@ Symbol *toSymbol(Dsymbol *s)
                     switch (fd->linkage)
                     {
                         case LINKwindows:
-                            t->Tmangle = mTYman_std;
+                            t->Tmangle = global.params.is64bit ? mTYman_c : mTYman_std;
                             break;
 
                         case LINKpascal:
@@ -482,7 +484,7 @@ Symbol *Dsymbol::toImport(Symbol *sym)
     }
     else
     {
-        sprintf(id,(config.exe == EX_WIN64) ? "__imp__%s" : "_imp__%s",n);
+        sprintf(id,(config.exe == EX_WIN64) ? "__imp_%s" : "_imp__%s",n);
     }
     t = type_alloc(TYnptr | mTYconst);
     t->Tnext = sym->Stype;
@@ -620,7 +622,7 @@ Symbol *Module::toModuleAssert()
 
         massert = toSymbolX("__assert", SCextern, t, "FiZv");
         massert->Sfl = FLextern;
-        massert->Sflags |= SFLnodebug;
+        massert->Sflags |= SFLnodebug | SFLexit;
         slist_add(massert);
     }
     return massert;
@@ -653,7 +655,7 @@ Symbol *Module::toModuleArray()
 
         marray = toSymbolX("__array", SCextern, t, "Z");
         marray->Sfl = FLextern;
-        marray->Sflags |= SFLnodebug;
+        marray->Sflags |= SFLnodebug | SFLexit;
         slist_add(marray);
     }
     return marray;
@@ -684,7 +686,8 @@ Symbol *TypeAArray::aaGetSymbol(const char *func, int flags)
 
         // See if symbol is already in sarray
         for (size_t i = 0; i < sarray->dim; i++)
-        {   Symbol *s = (*sarray)[i];
+        {
+            Symbol *s = (*sarray)[i];
             if (strcmp(id, s->Sident) == 0)
             {
 #ifdef DEBUG

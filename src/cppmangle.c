@@ -1,13 +1,13 @@
 
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2014 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
-// Source: https://github.com/D-Programming-Language/dmd/blob/master/src/cppmangle.c
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/cppmangle.c
+ */
 
 #include <stdio.h>
 #include <string.h>
@@ -101,16 +101,16 @@ class CppMangleVisitor : public Visitor
         components.push(p);
     }
 
-    void source_name(Dsymbol *s)
+    void source_name(Dsymbol *s, bool skipname = false)
     {
-        char *name = s->ident->toChars();
+        //printf("source_name(%s)\n", s->toChars());
         TemplateInstance *ti = s->isTemplateInstance();
         if (ti)
         {
-            if (!substitute(ti->tempdecl))
+            if (!skipname && !substitute(ti->tempdecl))
             {
                 store(ti->tempdecl);
-                name = ti->name->toChars();
+                const char *name = ti->toAlias()->ident->toChars();
                 buf.printf("%d%s", strlen(name), name);
             }
             buf.writeByte('I');
@@ -208,7 +208,7 @@ class CppMangleVisitor : public Visitor
                     {
                         if (!substitute(d))
                         {
-                            cpp_mangle_name(d);
+                            cpp_mangle_name(d, false);
                             store(d);
                         }
                     }
@@ -234,12 +234,14 @@ class CppMangleVisitor : public Visitor
         }
         else
         {
+            const char *name = s->ident->toChars();
             buf.printf("%d%s", strlen(name), name);
         }
     }
 
     void prefix_name(Dsymbol *s)
     {
+        //printf("prefix_name(%s)\n", s->toChars());
         if (!substitute(s))
         {
             store(s);
@@ -265,13 +267,32 @@ class CppMangleVisitor : public Visitor
         }
     }
 
-    void cpp_mangle_name(Dsymbol *s)
+    /* Is s the initial qualifier?
+     */
+    bool is_initial_qualifier(Dsymbol *s)
     {
         Dsymbol *p = s->toParent();
+        if (p && p->isTemplateInstance())
+        {
+            if (exist(p->isTemplateInstance()->tempdecl))
+            {
+                return true;
+            }
+            p = p->toParent();
+        }
+
+        return !p || p->isModule();
+    }
+
+    void cpp_mangle_name(Dsymbol *s, bool qualified)
+    {
+        //printf("cpp_mangle_name(%s, %d)\n", s->toChars(), qualified);
+        Dsymbol *p = s->toParent();
+        Dsymbol *se = s;
         bool dont_write_prefix = false;
         if (p && p->isTemplateInstance())
         {
-            s = p;
+            se = p;
             if (exist(p->isTemplateInstance()->tempdecl))
                 dont_write_prefix = true;
             p = p->toParent();
@@ -279,14 +300,38 @@ class CppMangleVisitor : public Visitor
 
         if (p && !p->isModule())
         {
-            buf.writeByte('N');
-            if (!dont_write_prefix)
-                prefix_name(p);
-            source_name(s);
-            buf.writeByte('E');
+            /* The N..E is not required if:
+             * 1. the parent is 'std'
+             * 2. 'std' is the initial qualifier
+             * 3. there is no CV-qualifier or a ref-qualifier for a member function
+             * ABI 5.1.8
+             */
+            if (p->ident == Id::std &&
+                is_initial_qualifier(p) &&
+                !qualified)
+            {
+                if (s->ident == Id::allocator)
+                {
+                    buf.writestring("Sa");      // "Sa" is short for ::std::allocator
+                    source_name(se, true);
+                }
+                else
+                {
+                    buf.writestring("St");
+                    source_name(se);
+                }
+            }
+            else
+            {
+                buf.writeByte('N');
+                if (!dont_write_prefix)
+                    prefix_name(p);
+                source_name(se);
+                buf.writeByte('E');
+            }
         }
         else
-            source_name(s);
+            source_name(se);
     }
 
     void mangle_variable(VarDeclaration *d, bool is_temp_arg_ref)
@@ -324,6 +369,7 @@ class CppMangleVisitor : public Visitor
 
     void mangle_function(FuncDeclaration *d)
     {
+        //printf("mangle_function(%s)\n", d->toChars());
         /*
          * <mangled-name> ::= _Z <encoding>
          * <encoding> ::= <function name> <bare-function-type>
@@ -340,6 +386,21 @@ class CppMangleVisitor : public Visitor
             if (d->type->isConst())
                 buf.writeByte('K');
             prefix_name(p);
+
+            // Replace ::std::allocator with Sa
+            if (buf.offset >= 17 && memcmp(buf.data, "_ZN3std9allocator", 17) == 0)
+            {
+                buf.remove(3, 14);
+                buf.insert(3, "Sa", 2);
+            }
+
+            // Replace ::std with St
+            if (buf.offset >= 7 && memcmp(buf.data, "_ZN3std", 7) == 0)
+            {
+                buf.remove(3, 4);
+                buf.insert(3, "St", 2);
+            }
+
             if (d->isDtorDeclaration())
             {
                 buf.writestring("D1");
@@ -489,8 +550,8 @@ public:
             case Tfloat80:  c = (Target::realsize - Target::realpad == 16) ? 'g' : 'e'; break;
             case Tbool:     c = 'b';        break;
             case Tchar:     c = 'c';        break;
-            case Twchar:    c = 't';        break;
-            case Tdchar:    c = 'w';        break;
+            case Twchar:    c = 't';        break; // unsigned short
+            case Tdchar:    c = 'w';        break; // wchar_t (UTF-32)
 
             case Timaginary32: p = 'G'; c = 'f';    break;
             case Timaginary64: p = 'G'; c = 'd';    break;
@@ -657,7 +718,7 @@ public:
 
         if (!substitute(t->sym))
         {
-            cpp_mangle_name(t->sym);
+            cpp_mangle_name(t->sym, t->isConst());
             store(t->sym);
         }
 
@@ -674,12 +735,13 @@ public:
     {
         is_top_level = false;
         if (substitute(t)) return;
+
         if (t->isConst())
             buf.writeByte('K');
 
         if (!substitute(t->sym))
         {
-            cpp_mangle_name(t->sym);
+            cpp_mangle_name(t->sym, t->isConst());
             store(t->sym);
         }
 
@@ -708,11 +770,13 @@ public:
             buf.writeByte('K');
         is_top_level = false;
         buf.writeByte('P');
+
         if (t->isConst())
             buf.writeByte('K');
+
         if (!substitute(t->sym))
         {
-            cpp_mangle_name(t->sym);
+            cpp_mangle_name(t->sym, t->isConst());
             store(t->sym);
         }
         if (t->isConst())
@@ -723,6 +787,7 @@ public:
 
 char *toCppMangle(Dsymbol *s)
 {
+    //printf("toCppMangle(%s)\n", s->toChars());
     CppMangleVisitor v;
     return v.mangleOf(s);
 }
@@ -825,7 +890,7 @@ public:
             case Tfloat64:  buf.writeByte('N');        break;
             case Tbool:     buf.writestring("_N");     break;
             case Tchar:     buf.writeByte('D');        break;
-            case Twchar:    buf.writeByte('G');        break; // unsigned short
+            case Tdchar:    buf.writeByte('I');        break; // unsigned int
 
             case Tfloat80:
                 if (flags & IS_DMC)
@@ -834,7 +899,7 @@ public:
                     buf.writestring("_T"); // Intel long double
                 break;
 
-            case Tdchar:
+            case Twchar:
                 if (flags & IS_DMC)
                     buf.writestring("_Y"); // DigitalMars wchar_t
                 else
@@ -1103,7 +1168,7 @@ private:
             // Pivate methods always non-virtual in D and it should be mangled as non-virtual in C++
             if (d->isVirtual() && d->vtblIndex != -1)
             {
-                switch (d->protection)
+                switch (d->protection.kind)
                 {
                     case PROTprivate:
                         buf.writeByte('E');
@@ -1118,7 +1183,7 @@ private:
             }
             else
             {
-                switch (d->protection)
+                switch (d->protection.kind)
                 {
                     case PROTprivate:
                         buf.writeByte('A');
@@ -1144,7 +1209,7 @@ private:
         }
         else if (d->isMember2()) // static function
         {                        // <flags> ::= <virtual/protection flag> <calling convention flag>
-            switch (d->protection)
+            switch (d->protection.kind)
             {
                 case PROTprivate:
                     buf.writeByte('C');
@@ -1186,7 +1251,7 @@ private:
         }
         else
         {
-            switch (d->protection)
+            switch (d->protection.kind)
             {
                 case PROTprivate:
                     buf.writeByte('0');
@@ -1680,7 +1745,7 @@ private:
 
 char *toCppMangle(Dsymbol *s)
 {
-    VisualCPPMangler v(!global.params.is64bit);
+    VisualCPPMangler v(!global.params.mscoff);
     return v.mangleOf(s);
 }
 

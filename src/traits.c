@@ -1,12 +1,13 @@
 
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2012 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/traits.c
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,7 +34,6 @@
 #include "dsymbol.h"
 #include "module.h"
 #include "attrib.h"
-#include "hdrgen.h"
 #include "parse.h"
 #include "speller.h"
 
@@ -101,13 +101,13 @@ static void collectUnitTests(Dsymbols *symbols, AA *uniqueUnitTests, Expressions
         UnitTestDeclaration *unitTest = symbol->isUnitTestDeclaration();
         if (unitTest)
         {
-            if (!_aaGetRvalue(uniqueUnitTests, unitTest))
+            if (!dmd_aaGetRvalue(uniqueUnitTests, (void *)unitTest))
             {
                 FuncAliasDeclaration* alias = new FuncAliasDeclaration(unitTest, 0);
                 alias->protection = unitTest->protection;
                 Expression* e = new DsymbolExp(Loc(), alias);
                 unitTests->push(e);
-                bool* value = (bool*) _aaGet(&uniqueUnitTests, unitTest);
+                bool* value = (bool*) dmd_aaGet(&uniqueUnitTests, (void *)unitTest);
                 *value = true;
             }
         }
@@ -283,6 +283,38 @@ void *trait_search_fp(void *arg, const char *seed)
     return sv ? (void*)sv->ptrvalue : NULL;
 }
 
+static int fpisTemplate(void *param, Dsymbol *s)
+{
+    if (s->isTemplateDeclaration())
+        return 1;
+
+    return 0;
+}
+
+bool isTemplate(Dsymbol *s)
+{
+    if (!s->toAlias()->isOverloadable())
+        return false;
+
+    return overloadApply(s, NULL, &fpisTemplate) != 0;
+}
+
+Expression *isSymbolX(TraitsExp *e, bool (*fp)(Dsymbol *s))
+{
+    int result = 0;
+    if (!e->args || !e->args->dim)
+        goto Lfalse;
+    for (size_t i = 0; i < e->args->dim; i++)
+    {
+        Dsymbol *s = getDsymbol((*e->args)[i]);
+        if (!s || !fp(s))
+            goto Lfalse;
+    }
+    result = 1;
+Lfalse:
+    return new IntegerExp(e->loc, result, Type::tbool);
+}
+
 Expression *semanticTraits(TraitsExp *e, Scope *sc)
 {
 #if LOGSEMANTIC
@@ -331,6 +363,10 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
     else if (e->ident == Id::isFinalClass)
     {
         return isTypeX(e, &isTypeFinalClass);
+    }
+    else if (e->ident == Id::isTemplate)
+    {
+        return isSymbolX(e, &isTemplate);
     }
     else if (e->ident == Id::isPOD)
     {
@@ -475,10 +511,8 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         }
         if (s->scope)
             s->semantic(s->scope);
-        PROT protection = s->prot();
 
-        const char *protName = Pprotectionnames[protection];
-
+        const char *protName = protectionToChars(s->prot().kind);   // TODO: How about package(names)
         assert(protName);
         StringExp *se = new StringExp(e->loc, (char *) protName);
         return se->semantic(sc);
@@ -701,7 +735,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             e->error("first argument is not a symbol");
             goto Lfalse;
         }
-        //printf("getAttributes %s, attrs = %p, scope = %p\n", s->toChars(), s->userAttributes, s->userAttributesScope);
+        //printf("getAttributes %s, attrs = %p, scope = %p\n", s->toChars(), s->userAttribDecl, s->scope);
         UserAttributeDeclaration *udad = s->userAttribDecl;
         TupleExp *tup = new TupleExp(e->loc, udad ? udad->getAttributes() : new Expressions());
         return tup->semantic(sc);
@@ -873,11 +907,9 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         for (size_t i = 0; i < dim; i++)
         {
             unsigned errors = global.startGagging();
-            unsigned oldspec = global.speculativeGag;
-            global.speculativeGag = global.gag;
             Scope *sc2 = sc->push();
             sc2->speculative = true;
-            sc2->flags = sc->flags & ~SCOPEctfe | SCOPEcompile;
+            sc2->flags = (sc->flags & ~(SCOPEctfe | SCOPEcondition)) | SCOPEcompile;
             bool err = false;
 
             RootObject *o = (*e->args)[i];
@@ -912,7 +944,6 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             }
 
             sc2->pop();
-            global.speculativeGag = oldspec;
             if (global.endGagging(errors) || err)
             {
                 goto Lfalse;

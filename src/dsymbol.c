@@ -1,12 +1,13 @@
 
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2012 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/dsymbol.c
+ */
 
 #include <stdio.h>
 #include <string.h>
@@ -32,8 +33,6 @@
 #include "template.h"
 #include "attrib.h"
 #include "enum.h"
-
-const char* Pprotectionnames[] = {NULL, "none", "private", "package", "protected", "public", "export"};
 
 
 /****************************** Dsymbol ******************************/
@@ -327,11 +326,21 @@ TemplateInstance *Dsymbol::isSpeculative()
     while (par)
     {
         TemplateInstance *ti = par->isTemplateInstance();
-        if (ti && ti->speculative)
+        if (ti && ti->gagged)
             return ti;
         par = par->toParent();
     }
     return NULL;
+}
+
+Ungag Dsymbol::ungagSpeculative()
+{
+    unsigned oldgag = global.gag;
+
+    if (global.gag && !isSpeculative() && !toParent2()->isFuncDeclaration())
+        global.gag = 0;
+
+    return Ungag(oldgag);
 }
 
 bool Dsymbol::isAnonymous()
@@ -421,6 +430,7 @@ void *symbol_search_fp(void *arg, const char *seed)
     assert(id);
 
     Dsymbol *s = (Dsymbol *)arg;
+    Module::clearCache();
     return (void *)s->search(Loc(), id, IgnoreErrors | IgnoreAmbiguous);
 }
 
@@ -494,11 +504,6 @@ bool Dsymbol::overloadInsert(Dsymbol *s)
     return false;
 }
 
-void Dsymbol::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring(toChars());
-}
-
 unsigned Dsymbol::size(Loc loc)
 {
     error("Dsymbol '%s' has no size", toChars());
@@ -535,11 +540,6 @@ ClassDeclaration *Dsymbol::isClassMember()      // are we a member of a class?
 {
     AggregateDeclaration *ad = isAggregateMember();
     return ad ? ad->isClassDeclaration() : NULL;
-}
-
-void Dsymbol::defineRef(Dsymbol *s)
-{
-    assert(0);
 }
 
 bool Dsymbol::isExport()
@@ -708,9 +708,8 @@ void Dsymbol::checkDeprecated(Loc loc, Scope *sc)
 Module *Dsymbol::getModule()
 {
     //printf("Dsymbol::getModule()\n");
-    TemplateDeclaration *td = getFuncTemplateDecl(this);
-    if (td)
-        return td->getModule();
+    if (TemplateInstance *ti = isInstantiated())
+        return ti->tempdecl->getModule();
 
     Dsymbol *s = this;
     while (s)
@@ -731,9 +730,8 @@ Module *Dsymbol::getModule()
 Module *Dsymbol::getAccessModule()
 {
     //printf("Dsymbol::getAccessModule()\n");
-    TemplateDeclaration *td = getFuncTemplateDecl(this);
-    if (td)
-        return td->getAccessModule();
+    if (TemplateInstance *ti = isInstantiated())
+        return ti->tempdecl->getAccessModule();
 
     Dsymbol *s = this;
     while (s)
@@ -759,15 +757,14 @@ Module *Dsymbol::getAccessModule()
 /*************************************
  */
 
-PROT Dsymbol::prot()
+Prot Dsymbol::prot()
 {
-    return PROTpublic;
+    return Prot(PROTpublic);
 }
 
 /*************************************
  * Do syntax copy of an array of Dsymbol's.
  */
-
 
 Dsymbols *Dsymbol::arraySyntaxCopy(Dsymbols *a)
 {
@@ -778,15 +775,11 @@ Dsymbols *Dsymbol::arraySyntaxCopy(Dsymbols *a)
         b = a->copy();
         for (size_t i = 0; i < b->dim; i++)
         {
-            Dsymbol *s = (*b)[i];
-
-            s = s->syntaxCopy(NULL);
-            (*b)[i] = s;
+            (*b)[i] = (*b)[i]->syntaxCopy(NULL);
         }
     }
     return b;
 }
-
 
 /****************************************
  * Add documentation comment to Dsymbol.
@@ -874,12 +867,7 @@ ScopeDsymbol::ScopeDsymbol(Identifier *id)
 Dsymbol *ScopeDsymbol::syntaxCopy(Dsymbol *s)
 {
     //printf("ScopeDsymbol::syntaxCopy('%s')\n", toChars());
-
-    ScopeDsymbol *sds;
-    if (s)
-        sds = (ScopeDsymbol *)s;
-    else
-        sds = new ScopeDsymbol(ident);
+    ScopeDsymbol *sds = s ? (ScopeDsymbol *)s : new ScopeDsymbol(ident);
     sds->members = arraySyntaxCopy(members);
     return sds;
 }
@@ -922,7 +910,11 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
              */
             Dsymbol *s2 = ss->search(loc, ident, ss->isModule() ? IgnorePrivateMembers : IgnoreNone);
             if (!s)
+            {
                 s = s2;
+                if (s && s->isOverloadSet())
+                    a = mergeOverloadSet(a, s);
+            }
             else if (s2 && s != s2)
             {
                 if (s->toAlias() == s2->toAlias() ||
@@ -934,7 +926,7 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
                      * the other.
                      */
                     if (s->isDeprecated() ||
-                        s2->prot() > s->prot() && s2->prot() != PROTnone)
+                        s->prot().isMoreRestrictiveThan(s2->prot()) && s2->prot().kind != PROTnone)
                         s = s2;
                 }
                 else
@@ -963,28 +955,10 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
                         /* If both s2 and s are overloadable (though we only
                          * need to check s once)
                          */
-                        if (s2->isOverloadable() && (a || s->isOverloadable()))
+                        if ((s2->isOverloadSet() || s2->isOverloadable()) &&
+                            (a || s->isOverloadable()))
                         {
-                            if (!a)
-                            {
-                                a = new OverloadSet(s->ident);
-                                a->parent = this;
-                            }
-                            /* Don't add to a[] if s2 is alias of previous sym
-                             */
-                            for (size_t j = 0; j < a->a.dim; j++)
-                            {
-                                Dsymbol *s3 = a->a[j];
-                                if (s2->toAlias() == s3->toAlias())
-                                {
-                                    if (s3->isDeprecated() ||
-                                        s2->prot() > s3->prot() && s2->prot() != PROTnone)
-                                        a->a[j] = s2;
-                                    goto Lcontinue;
-                                }
-                            }
-                            a->push(s2);
-                        Lcontinue:
+                            a = mergeOverloadSet(a, s2);
                             continue;
                         }
                         if (flags & IgnoreAmbiguous)    // if return NULL on ambiguity
@@ -1003,11 +977,12 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
              */
             if (a)
             {
-                a->push(s);
+                if (!s->isOverloadSet())
+                    a = mergeOverloadSet(a, s);
                 s = a;
             }
 
-            if (!(flags & IgnoreErrors) && s->prot() == PROTprivate && !s->parent->isTemplateMixin())
+            if (!(flags & IgnoreErrors) && s->prot().kind == PROTprivate && !s->parent->isTemplateMixin())
             {
                 if (!s->isImport())
                     error(loc, "%s %s is private", s->kind(), s->toPrettyChars());
@@ -1019,7 +994,57 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
     return s1;
 }
 
-void ScopeDsymbol::importScope(Dsymbol *s, PROT protection)
+OverloadSet *ScopeDsymbol::mergeOverloadSet(OverloadSet *os, Dsymbol *s)
+{
+    if (!os)
+    {
+        os = new OverloadSet(s->ident);
+        os->parent = this;
+    }
+    if (OverloadSet *os2 = s->isOverloadSet())
+    {
+        // Merge the cross-module overload set 'os2' into 'os'
+        if (os->a.dim == 0)
+        {
+            os->a.setDim(os2->a.dim);
+            memcpy(os->a.tdata(), os2->a.tdata(), sizeof(os->a[0]) * os2->a.dim);
+        }
+        else
+        {
+            for (size_t i = 0; i < os2->a.dim; i++)
+            {
+                os = mergeOverloadSet(os, os2->a[i]);
+            }
+        }
+    }
+    else
+    {
+        assert(s->isOverloadable());
+
+        /* Don't add to os[] if s is alias of previous sym
+         */
+        for (size_t j = 0; j < os->a.dim; j++)
+        {
+            Dsymbol *s2 = os->a[j];
+            if (s->toAlias() == s2->toAlias())
+            {
+                if (s2->isDeprecated() ||
+                    (s2->prot().isMoreRestrictiveThan(s->prot()) &&
+                     s->prot().kind != PROTnone))
+                {
+                    os->a[j] = s;
+                }
+                goto Lcontinue;
+            }
+        }
+        os->push(s);
+    Lcontinue:
+        ;
+    }
+    return os;
+}
+
+void ScopeDsymbol::importScope(Dsymbol *s, Prot protection)
 {
     //printf("%s->ScopeDsymbol::importScope(%s, %d)\n", toChars(), s->toChars(), protection);
 
@@ -1035,30 +1060,21 @@ void ScopeDsymbol::importScope(Dsymbol *s, PROT protection)
                 Dsymbol *ss = (*imports)[i];
                 if (ss == s)                    // if already imported
                 {
-                    if (protection > prots[i])
-                        prots[i] = protection;  // upgrade access
+                    if (protection.kind > prots[i])
+                        prots[i] = protection.kind;  // upgrade access
                     return;
                 }
             }
         }
         imports->push(s);
-        prots = (PROT *)mem.realloc(prots, imports->dim * sizeof(prots[0]));
-        prots[imports->dim - 1] = protection;
+        prots = (PROTKIND *)mem.realloc(prots, imports->dim * sizeof(prots[0]));
+        prots[imports->dim - 1] = protection.kind;
     }
 }
 
 bool ScopeDsymbol::isforwardRef()
 {
     return (members == NULL);
-}
-
-void ScopeDsymbol::defineRef(Dsymbol *s)
-{
-    ScopeDsymbol *ss;
-
-    ss = s->isScopeDsymbol();
-    members = ss->members;
-    ss->members = NULL;
 }
 
 void ScopeDsymbol::multiplyDefined(Loc loc, Dsymbol *s1, Dsymbol *s2)
@@ -1089,28 +1105,6 @@ void ScopeDsymbol::multiplyDefined(Loc loc, Dsymbol *s1, Dsymbol *s2)
             s2->toPrettyChars(),
             s2->locToChars());
     }
-}
-
-Dsymbol *ScopeDsymbol::nameCollision(Dsymbol *s)
-{
-    Dsymbol *sprev;
-
-    // Look to see if we are defining a forward referenced symbol
-
-    sprev = symtab->lookup(s->ident);
-    assert(sprev);
-    if (s->equals(sprev))               // if the same symbol
-    {
-        if (s->isforwardRef())          // if second declaration is a forward reference
-            return sprev;
-        if (sprev->isforwardRef())
-        {
-            sprev->defineRef(s);        // copy data from s into sprev
-            return sprev;
-        }
-    }
-    multiplyDefined(Loc(), s, sprev);
-    return sprev;
 }
 
 const char *ScopeDsymbol::kind()
@@ -1527,14 +1521,14 @@ DsymbolTable::DsymbolTable()
 Dsymbol *DsymbolTable::lookup(Identifier *ident)
 {
     //printf("DsymbolTable::lookup(%s)\n", (char*)ident->string);
-    return (Dsymbol *)_aaGetRvalue(tab, ident);
+    return (Dsymbol *)dmd_aaGetRvalue(tab, (void *)ident);
 }
 
 Dsymbol *DsymbolTable::insert(Dsymbol *s)
 {
     //printf("DsymbolTable::insert(this = %p, '%s')\n", this, s->ident->toChars());
     Identifier *ident = s->ident;
-    Dsymbol **ps = (Dsymbol **)_aaGet(&tab, ident);
+    Dsymbol **ps = (Dsymbol **)dmd_aaGet(&tab, (void *)ident);
     if (*ps)
         return NULL;            // already in table
     *ps = s;
@@ -1544,7 +1538,7 @@ Dsymbol *DsymbolTable::insert(Dsymbol *s)
 Dsymbol *DsymbolTable::insert(Identifier *ident, Dsymbol *s)
 {
     //printf("DsymbolTable::insert()\n");
-    Dsymbol **ps = (Dsymbol **)_aaGet(&tab, ident);
+    Dsymbol **ps = (Dsymbol **)dmd_aaGet(&tab, (void *)ident);
     if (*ps)
         return NULL;            // already in table
     *ps = s;
@@ -1554,7 +1548,72 @@ Dsymbol *DsymbolTable::insert(Identifier *ident, Dsymbol *s)
 Dsymbol *DsymbolTable::update(Dsymbol *s)
 {
     Identifier *ident = s->ident;
-    Dsymbol **ps = (Dsymbol **)_aaGet(&tab, ident);
+    Dsymbol **ps = (Dsymbol **)dmd_aaGet(&tab, (void *)ident);
     *ps = s;
     return s;
+}
+
+/****************************** Prot ******************************/
+
+Prot::Prot()
+{
+    this->kind = PROTundefined;
+    this->pkg = NULL;
+}
+
+Prot::Prot(PROTKIND kind)
+{
+    this->kind = kind;
+    this->pkg = NULL;
+}
+
+/**
+ * Checks if `this` is superset of `other` restrictions.
+ * For example, "protected" is more restrictive than "public".
+ */
+bool Prot::isMoreRestrictiveThan(Prot other)
+{
+    return this->kind < other.kind;
+}
+
+/**
+ * Checks if `this` is absolutely identical protection attribute to `other`
+ */
+bool Prot::operator==(Prot other)
+{
+    if (this->kind == other.kind)
+    {
+        if (this->kind == PROTpackage)
+            return this->pkg == other.pkg;
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Checks if parent defines different access restrictions than this one.
+ *
+ * Params:
+ *  parent = protection attribute for scope that hosts this one
+ *
+ * Returns:
+ *  'true' if parent is already more restrictive than this one and thus
+ *  no differentiation is needed.
+ */
+bool Prot::isSubsetOf(Prot parent)
+{
+    if (this->kind != parent.kind)
+        return false;
+
+    if (this->kind == PROTpackage)
+    {
+        if (!this->pkg)
+            return true;
+        if (!parent.pkg)
+            return false;
+        if (parent.pkg->isAncestorPackageOf(this->pkg))
+            return true;
+    }
+
+    return true;
 }

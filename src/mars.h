@@ -1,12 +1,13 @@
 
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2013 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/mars.h
+ */
 
 #ifndef DMD_MARS_H
 #define DMD_MARS_H
@@ -82,7 +83,6 @@ struct OutBuffer;
 
 // Can't include arraytypes.h here, need to declare these directly.
 template <typename TYPE> struct Array;
-typedef Array<class Identifier *> Identifiers;
 typedef Array<const char *> Strings;
 
 // Put command line switches in here
@@ -112,6 +112,7 @@ struct Param
     bool isFreeBSD;     // generate code for FreeBSD
     bool isOpenBSD;     // generate code for OpenBSD
     bool isSolaris;     // generate code for Solaris
+    bool mscoff;        // for Win32: write COFF object files instead of OMF
     char useDeprecated; // 0: don't allow use of deprecated features
                         // 1: silently allow use of deprecated features
                         // 2: warn about the use of deprecated features
@@ -132,6 +133,7 @@ struct Param
                         // 1: warnings as errors
                         // 2: informational warnings (no errors)
     bool pic;           // generate position-independent-code for shared libs
+    bool color;         // use ANSI colors in console output
     bool cov;           // generate code coverage data
     unsigned char covPercent;   // 0..100 code coverage percentage required
     bool nofloat;       // code should not pull in floating point support
@@ -173,12 +175,10 @@ struct Param
     OutBuffer *moduleDeps;      // contents to be written to deps file
 
     // Hidden debug switches
-    char debuga;
     bool debugb;
     bool debugc;
     bool debugf;
     bool debugr;
-    char debugw;
     bool debugx;
     bool debugy;
 
@@ -206,18 +206,9 @@ typedef unsigned structalign_t;
 #define STRUCTALIGN_DEFAULT ((structalign_t) ~0)  // magic value means "match whatever the underlying C compiler does"
 // other values are all powers of 2
 
-struct Ungag
-{
-    unsigned oldgag;
-
-    Ungag(unsigned old) : oldgag(old) {}
-    ~Ungag();
-};
-
 struct Global
 {
     const char *mars_ext;
-    const char *sym_ext;
     const char *obj_ext;
     const char *lib_ext;
     const char *dll_ext;
@@ -244,13 +235,8 @@ struct Global
     unsigned gag;          // !=0 means gag reporting of errors & warnings
     unsigned gaggedErrors; // number of errors reported while gagged
 
-    /* Gagging can either be speculative (is(typeof()), etc)
-     * or because of forward references
+    /* Start gagging. Return the current number of gagged errors
      */
-    unsigned speculativeGag; // == gag means gagging is for is(typeof);
-    bool isSpeculativeGagging();
-
-    // Start gagging. Return the current number of gagged errors
     unsigned startGagging();
 
     /* End gagging, restoring the old gagged state.
@@ -369,12 +355,9 @@ void warning(Loc loc, const char *format, ...);
 void deprecation(Loc loc, const char *format, ...);
 void error(Loc loc, const char *format, ...);
 void errorSupplemental(Loc loc, const char *format, ...);
-extern "C" {
 void verror(Loc loc, const char *format, va_list ap, const char *p1 = NULL, const char *p2 = NULL, const char *header = "Error: ");
-}
 void vwarning(Loc loc, const char *format, va_list);
 void verrorSupplemental(Loc loc, const char *format, va_list ap);
-void verrorPrint(Loc loc, const char *header, const char *format, va_list ap, const char *p1 = NULL, const char *p2 = NULL);
 void vdeprecation(Loc loc, const char *format, va_list ap, const char *p1 = NULL, const char *p2 = NULL);
 
 #if defined(__GNUC__) || defined(__clang__)
@@ -387,11 +370,6 @@ void fatal();
 void fatal();
 #endif
 
-void err_nomem();
-int runLINK();
-void deleteExeFile();
-int runProgram();
-const char *inifile(const char *argv0, const char *inifile, const char* envsectionname);
 void halt();
 
 class Dsymbol;

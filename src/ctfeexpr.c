@@ -1,11 +1,13 @@
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2012 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/ctfeexpr.c
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,6 +23,7 @@
 #include "id.h"
 #include "template.h"
 #include "ctfe.h"
+#include "target.h"
 
 int RealEquals(real_t x1, real_t x2);
 
@@ -802,18 +805,6 @@ int comparePointers(Loc loc, TOK op, Type *type, Expression *agg1, dinteger_t of
     return cmp;
 }
 
-union UnionFloatInt
-{
-    float f;
-    d_int32 x;
-};
-
-union UnionDoubleLong
-{
-    double f;
-    d_int64 x;
-};
-
 // True if conversion from type 'from' to 'to' involves a reinterpret_cast
 // floating point -> integer or integer -> floating point
 bool isFloatIntPaint(Type *to, Type *from)
@@ -829,36 +820,8 @@ Expression *paintFloatInt(Expression *fromVal, Type *to)
     if (exceptionOrCantInterpret(fromVal))
         return fromVal;
 
-    if (to->size() == 4)
-    {
-        UnionFloatInt u;
-        if (to->isintegral())
-        {
-            u.f = fromVal->toReal();
-            return new IntegerExp(fromVal->loc, (dinteger_t)ldouble(u.x), to);
-        }
-        else
-        {
-            u.x = (d_int32)fromVal->toInteger();
-            return new RealExp(fromVal->loc, ldouble(u.f), to);
-        }
-    }
-    else if (to->size() == 8)
-    {
-        UnionDoubleLong v;
-        if (to->isintegral())
-        {
-            v.f = fromVal->toReal();
-            return new IntegerExp(fromVal->loc, v.x, to);
-        }
-        else
-        {
-            v.x = fromVal->toInteger();
-            return new RealExp(fromVal->loc, ldouble(v.f), to);
-        }
-    }
-    assert(0);
-    return NULL;    // avoid warning
+    assert(to->size() == 4 || to->size() == 8);
+    return Target::paintAsType(fromVal, to);
 }
 
 
@@ -1680,10 +1643,12 @@ Expression *findKeyInAA(Loc loc, AssocArrayLiteralExp *ae, Expression *e2)
  * interpreted CTFE expression, so it cannot have side-effects.
  */
 Expression *ctfeIndex(Loc loc, Type *type, Expression *e1, uinteger_t indx)
-{   //printf("ctfeIndex(e1 = %s)\n", e1->toChars());
+{
+    //printf("ctfeIndex(e1 = %s)\n", e1->toChars());
     assert(e1->type);
     if (e1->op == TOKstring)
-    {   StringExp *es1 = (StringExp *)e1;
+    {
+        StringExp *es1 = (StringExp *)e1;
         if (indx >= es1->len)
         {
             error(loc, "string index %llu is out of bounds [0 .. %llu]", indx, (ulonglong)es1->len);

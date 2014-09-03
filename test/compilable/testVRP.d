@@ -306,3 +306,26 @@ void test9617a()
         }
     }
 }
+
+void test10018(ubyte value)
+{
+    const int c = value;
+    ubyte b = c;
+    static assert(!__traits(compiles, b = c - 1));
+    static assert(!__traits(compiles, b = c + 1));
+    immutable int i = value;
+    b = i;
+    static assert(!__traits(compiles, b = i - 1));
+    static assert(!__traits(compiles, b = i + 1));
+}
+
+void test13001(bool unknown)
+{
+    foreach (const i; 0..unknown?2:3)
+    {
+        ubyte b = i;
+        static assert(!__traits(compiles, b = i - 1));
+        b = i + 253;
+        static assert(!__traits(compiles, b = i + 254));
+    }
+}

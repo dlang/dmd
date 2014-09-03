@@ -1,12 +1,13 @@
 
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2013 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/module.c
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,7 +21,7 @@
 #include "id.h"
 #include "import.h"
 #include "dsymbol.h"
-#include "hdrgen.h"
+#include "expression.h"
 #include "lexer.h"
 
 #ifdef IN_GCC
@@ -48,7 +49,6 @@ Module::Module(const char *filename, Identifier *ident, int doDocComment, int do
         : Package(ident)
 {
     const char *srcfilename;
-    const char *symfilename;
 
 //    printf("Module::Module(filename = '%s', ident = '%s')\n", filename, ident->toChars());
     this->arg = filename;
@@ -61,6 +61,9 @@ Module::Module(const char *filename, Identifier *ident, int doDocComment, int do
     needmoduleinfo = 0;
     selfimports = 0;
     insearch = 0;
+    searchCacheIdent = NULL;
+    searchCacheSymbol = NULL;
+    searchCacheFlags = 0;
     decldefs = NULL;
     massert = NULL;
     munittest = NULL;
@@ -114,8 +117,6 @@ Module::Module(const char *filename, Identifier *ident, int doDocComment, int do
 
     objfile = setOutfile(global.params.objname, global.params.objdir, filename, global.obj_ext);
 
-    symfilename = FileName::forceExt(filename, global.sym_ext);
-
     if (doDocComment)
         setDocfile();
 
@@ -123,7 +124,6 @@ Module::Module(const char *filename, Identifier *ident, int doDocComment, int do
         hdrfile = setOutfile(global.params.hdrname, global.params.hdrdir, arg, global.hdr_ext);
 
     //objfile = new File(objfilename);
-    symfile = new File(symfilename);
 }
 
 Module *Module::create(const char *filename, Identifier *ident, int doDocComment, int doHdrGen)
@@ -612,7 +612,7 @@ void Module::parse()
                 pkg->mod = this;
             }
             else
-                error(pkg->loc, "from file %s conflicts with package name %s",
+                error(md ? md->loc : loc, "from file %s conflicts with package name %s",
                     srcname, pkg->toChars());
         }
         else
@@ -636,6 +636,14 @@ void Module::importAll(Scope *prevsc)
     {
         error("is a Ddoc file, cannot import it");
         return;
+    }
+
+    if (md && md->msg)
+    {
+        if (StringExp *se = md->msg->toStringExp())
+            md->msg = se;
+        else
+            md->msg->error("string expected, not '%s'", md->msg->toChars());
     }
 
     /* Note that modules get their own scope, from scratch.
@@ -779,32 +787,6 @@ void Module::semantic3()
     semanticRun = PASSsemantic3done;
 }
 
-/****************************************************
- */
-
-void Module::gensymfile()
-{
-    OutBuffer buf;
-    HdrGenState hgs;
-
-    //printf("Module::gensymfile()\n");
-
-    buf.printf("// Sym file generated from '%s'", srcfile->toChars());
-    buf.writenl();
-
-    for (size_t i = 0; i < members->dim; i++)
-    {
-        Dsymbol *s = (*members)[i];
-        s->toCBuffer(&buf, &hgs);
-    }
-
-    // Transfer image to file
-    symfile->setbuffer(buf.data, buf.offset);
-    buf.data = NULL;
-
-    writeFile(loc, symfile);
-}
-
 /**********************************
  * Determine if we need to generate an instance of ModuleInfo
  * for this Module.
@@ -824,16 +806,45 @@ Dsymbol *Module::search(Loc loc, Identifier *ident, int flags)
      */
 
     //printf("%s Module::search('%s', flags = %d) insearch = %d\n", toChars(), ident->toChars(), flags, insearch);
-    Dsymbol *s;
     if (insearch)
-        s = NULL;
-    else
+        return NULL;
+    if (searchCacheIdent == ident && searchCacheFlags == flags)
     {
-        insearch = 1;
-        s = ScopeDsymbol::search(loc, ident, flags);
-        insearch = 0;
+        //printf("%s Module::search('%s', flags = %d) insearch = %d searchCacheSymbol = %s\n",
+        //        toChars(), ident->toChars(), flags, insearch, searchCacheSymbol ? searchCacheSymbol->toChars() : "null");
+        return searchCacheSymbol;
+    }
+
+    unsigned int errors = global.errors;
+
+    insearch = 1;
+    Dsymbol *s = ScopeDsymbol::search(loc, ident, flags);
+    insearch = 0;
+
+    if (errors == global.errors)
+    {
+        // Bugzilla 10752: We can cache the result only when it does not cause
+        // access error so the side-effect should be reproduced in later search.
+        searchCacheIdent = ident;
+        searchCacheSymbol = s;
+        searchCacheFlags = flags;
     }
     return s;
+}
+
+Dsymbol *Module::symtabInsert(Dsymbol *s)
+{
+    searchCacheIdent = NULL;       // symbol is inserted, so invalidate cache
+    return Package::symtabInsert(s);
+}
+
+void Module::clearCache()
+{
+    for (size_t i = 0; i < amodules.dim; i++)
+    {
+        Module *m = amodules[i];
+        m->searchCacheIdent = NULL;
+    }
 }
 
 /*******************************************
@@ -1006,6 +1017,8 @@ ModuleDeclaration::ModuleDeclaration(Loc loc, Identifiers *packages, Identifier 
     this->packages = packages;
     this->id = id;
     this->safe = safe;
+    this->isdeprecated = false;
+    this->msg = NULL;
 }
 
 char *ModuleDeclaration::toChars()
@@ -1047,6 +1060,35 @@ Module *Package::isPackageMod()
         return mod;
     }
     return NULL;
+}
+
+/**
+ * Checks if pkg is a sub-package of this
+ *
+ * For example, if this qualifies to 'a1.a2' and pkg - to 'a1.a2.a3',
+ * this function returns 'true'. If it is other way around or qualified
+ * package paths conflict function returns 'false'.
+ *
+ * Params:
+ *  pkg = possible subpackage
+ *
+ * Returns:
+ *  see description
+ */
+bool Package::isAncestorPackageOf(Package* pkg)
+{
+    while (pkg)
+    {
+        if (this == pkg)
+            return true;
+
+        if (!pkg->parent)
+            break;
+
+        pkg = pkg->parent->isPackage();
+    }
+
+    return false;
 }
 
 /****************************************************

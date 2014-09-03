@@ -1,12 +1,13 @@
 
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2013 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/lexer.c
+ */
 
 /* Lexical Analyzer */
 
@@ -57,7 +58,7 @@ static void cmtable_init()
     {
         if ('0' <= c && c <= '7')
             cmtable[c] |= CMoctal;
-        if (isdigit(c) || ('a' <= c && c <= 'f') || ('A' <= c && c <= 'F'))
+        if (isxdigit(c))
             cmtable[c] |= CMhex;
         if (isalnum(c) || c == '_')
             cmtable[c] |= CMidchar;
@@ -69,17 +70,17 @@ static void cmtable_init()
 
 const char *Token::tochars[TOKMAX];
 
-void *Token::operator new(size_t size)
-{   Token *t;
-
+Token *Token::alloc()
+{
     if (Lexer::freelist)
     {
-        t = Lexer::freelist;
+        Token *t = Lexer::freelist;
         Lexer::freelist = t->next;
+        t->next = NULL;
         return t;
     }
 
-    return ::operator new(size);
+    return new Token();
 }
 
 #ifdef DEBUG
@@ -360,7 +361,7 @@ Token *Lexer::peek(Token *ct)
         t = ct->next;
     else
     {
-        t = new Token();
+        t = Token::alloc();
         scan(t);
         ct->next = t;
     }
@@ -557,39 +558,6 @@ void Lexer::scan(Token *t)
             case '"':
                 t->value = escapeStringConstant(t,0);
                 return;
-
-            case '\\':                  // escaped string literal
-            {   unsigned c;
-                const utf8_t *pstart = p;
-
-                stringbuffer.reset();
-                do
-                {
-                    p++;
-                    switch (*p)
-                    {
-                        case 'u':
-                        case 'U':
-                        case '&':
-                            c = escapeSequence();
-                            stringbuffer.writeUTF8(c);
-                            break;
-
-                        default:
-                            c = escapeSequence();
-                            stringbuffer.writeByte(c);
-                            break;
-                    }
-                } while (*p == '\\');
-                t->len = (unsigned)stringbuffer.offset;
-                stringbuffer.writeByte(0);
-                t->ustring = (utf8_t *)mem.malloc(stringbuffer.offset);
-                memcpy(t->ustring, stringbuffer.data, stringbuffer.offset);
-                t->postfix = 0;
-                t->value = TOKstring;
-                error("Escape String literal %.*s is deprecated, use double quoted string literal \"%.*s\" instead", p - pstart, pstart, p - pstart, pstart);
-                return;
-            }
 
             case 'a':   case 'b':   case 'c':   case 'd':   case 'e':
             case 'f':   case 'g':   case 'h':   case 'i':   case 'j':
@@ -1193,9 +1161,9 @@ void Lexer::scan(Token *t)
                     }
                 }
                 if (c < 0x80 && isprint(c))
-                    error("unsupported char '%c'", c);
+                    error("character '%c' is not a valid token", c);
                 else
-                    error("unsupported char 0x%02x", c);
+                    error("character 0x%02x is not a valid token", c);
                 p++;
                 continue;
             }
@@ -1874,6 +1842,7 @@ TOK Lexer::number(Token *t)
     uinteger_t n = 0;                       // unsigned >=64 bit integer type
     int d;
     bool err = false;
+    bool overflow = false;
 
     c = *p;
     if (c == '0')
@@ -2006,24 +1975,27 @@ TOK Lexer::number(Token *t)
         }
 
         uinteger_t n2 = n * base;
-        if ((n2 / base != n || n2 + d < n) && !err)
+        if ((n2 / base != n || n2 + d < n))
         {
-            error("integer overflow");
-            err = true;
+            overflow = true;
         }
         n = n2 + d;
 
         // if n needs more than 64 bits
         if (sizeof(n) > 8 &&
-            n > 0xFFFFFFFFFFFFFFFFULL &&
-            !err)
+            n > 0xFFFFFFFFFFFFFFFFULL)
         {
-            error("integer overflow");
-            err = true;
+            overflow = true;
         }
     }
 
 Ldone:
+
+    if (overflow && !err)
+    {
+        error("integer overflow");
+        err = true;
+    }
 
     enum FLAGS
     {
@@ -2070,7 +2042,7 @@ Ldone:
     }
 
     if (base == 8 && n >= 8)
-        deprecation("octal literals 0%llo%.*s are deprecated, use std.conv.octal!%llo%.*s instead",
+        error("octal literals 0%llo%.*s are no longer supported, use std.conv.octal!%llo%.*s instead",
                 n, p - psuffix, psuffix, n, p - psuffix, psuffix);
 
     TOK result;
@@ -2788,7 +2760,6 @@ static Keyword keywords[] =
     {   "import",       TOKimport       },
     {   "mixin",        TOKmixin        },
     {   "static",       TOKstatic       },
-    {   "virtual",      TOKvirtual      },
     {   "final",        TOKfinal        },
     {   "const",        TOKconst        },
     {   "typedef",      TOKtypedef      },

@@ -1,11 +1,13 @@
 
-// Copyright (c) 1999-2012 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/arrayop.c
+ */
 
 #include <stdio.h>
 #include <string.h>
@@ -24,7 +26,6 @@
 #include "module.h"
 #include "init.h"
 
-extern int binary(const char *p , const char **tab, int high);
 void buildArrayIdent(Expression *e, OutBuffer *buf, Expressions *arguments);
 Expression *buildArrayLoop(Expression *e, Parameters *fparams);
 
@@ -70,7 +71,7 @@ FuncDeclaration *buildArrayOp(Identifier *ident, BinExp *exp, Scope *sc, Loc loc
     //printf("ftype: %s\n", ftype->toChars());
     FuncDeclaration *fd = new FuncDeclaration(Loc(), Loc(), ident, STCundefined, ftype);
     fd->fbody = fbody;
-    fd->protection = PROTpublic;
+    fd->protection = Prot(PROTpublic);
     fd->linkage = LINKc;
     fd->isArrayOp = 1;
 
@@ -226,7 +227,7 @@ Expression *arrayOp(BinExp *e, Scope *sc)
     char *name = buf.peekString();
     Identifier *ident = Lexer::idPool(name);
 
-    FuncDeclaration **pFd = (FuncDeclaration **)_aaGet(&arrayfuncs, ident);
+    FuncDeclaration **pFd = (FuncDeclaration **)dmd_aaGet(&arrayfuncs, (void *)ident);
     FuncDeclaration *fd = *pFd;
 
     if (!fd)

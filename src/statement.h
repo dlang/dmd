@@ -1,12 +1,13 @@
 
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2012 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/statement.h
+ */
 
 #ifndef DMD_STATEMENT_H
 #define DMD_STATEMENT_H
@@ -47,7 +48,6 @@ class TryFinallyStatement;
 class CaseStatement;
 class DefaultStatement;
 class LabelStatement;
-struct HdrGenState;
 struct InterState;
 struct CompiledCtfeFunction;
 
@@ -86,8 +86,6 @@ enum BE
     BEany = (BEfallthru | BEthrow | BEreturn | BEgoto | BEhalt),
 #endif
 };
-
-void toCBuffer(Statement *s, OutBuffer *buf, HdrGenState *hgs);
 
 class Statement : public RootObject
 {
@@ -692,7 +690,6 @@ public:
     TryFinallyStatement *tf;
     OnScopeStatement *os;
     VarDeclaration *lastVar;
-    FuncDeclaration *fd;
 
     GotoStatement(Loc loc, Identifier *ident);
     Statement *syntaxCopy();
@@ -709,10 +706,10 @@ public:
     Statement *statement;
     TryFinallyStatement *tf;
     OnScopeStatement *os;
-    Statement *gotoTarget;      // interpret
     VarDeclaration *lastVar;
-    block *lblock;              // back end
+    Statement *gotoTarget;      // interpret
 
+    block *lblock;              // back end
     Blocks *fwdrefs;            // forward references to this LabelStatement
 
     LabelStatement(Loc loc, Identifier *ident, Statement *statement);
@@ -790,7 +787,6 @@ struct ObjcExceptionBridge : Statement
     ObjcExceptionBridge(Loc loc, Statement *body, ObjcThrowMode mode);
     Statement *syntaxCopy();
     int blockExit(bool mustNotThrow);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Statement *semantic(Scope *sc);
     int usesEH();
     

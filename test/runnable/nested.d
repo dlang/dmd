@@ -2384,6 +2384,24 @@ void test12234()
 }
 
 /*******************************************/
+// 12981
+
+template Mix12981(T)
+{
+    class A
+    {
+        alias typeof(this.outer) x;
+    }
+}
+
+class B12981
+{
+    mixin Mix12981!(int);
+
+    static assert(is(A.x == B12981));
+}
+
+/*******************************************/
 
 int main()
 {

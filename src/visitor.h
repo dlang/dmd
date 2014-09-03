@@ -1,10 +1,12 @@
-// Compiler implementation of the D programming language
-// Copyright (c) 2013-2014 by Digital Mars
-// All Rights Reserved
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+
+/* Compiler implementation of the D programming language
+ * Copyright (c) 2013-2014 by Digital Mars
+ * All Rights Reserved
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/visitor.h
+ */
 
 #ifndef DMD_VISITOR_H
 #define DMD_VISITOR_H
@@ -117,6 +119,7 @@ class Package;
 class Module;
 class WithScopeSymbol;
 class ArrayScopeSymbol;
+class Nspace;
 
 class AggregateDeclaration;
 class StructDeclaration;
@@ -293,6 +296,21 @@ class ObjcClassRefExp;
 class ObjcProtocolOfExp;
 #endif
 
+class TemplateParameter;
+class TemplateTypeParameter;
+class TemplateThisParameter;
+class TemplateValueParameter;
+class TemplateAliasParameter;
+class TemplateTupleParameter;
+
+class Condition;
+class DVCondition;
+class DebugCondition;
+class VersionCondition;
+class StaticIfCondition;
+
+class Parameter;
+
 class Visitor
 {
 public:
@@ -402,6 +420,7 @@ public:
     virtual void visit(Module *s) { visit((Package *)s); }
     virtual void visit(WithScopeSymbol *s) { visit((ScopeDsymbol *)s); }
     virtual void visit(ArrayScopeSymbol *s) { visit((ScopeDsymbol *)s); }
+    virtual void visit(Nspace *s) { visit((ScopeDsymbol *)s); }
 
     virtual void visit(AggregateDeclaration *s) { visit((ScopeDsymbol *)s); }
     virtual void visit(StructDeclaration *s) { visit((AggregateDeclaration *)s); }
@@ -571,6 +590,22 @@ public:
     virtual void visit(ClassReferenceExp *e) { visit((Expression *)e); }
     virtual void visit(VoidInitExp *e) { visit((Expression *)e); }
     virtual void visit(ThrownExceptionExp *e) { visit((Expression *)e); }
+
+    virtual void visit(TemplateParameter *) { assert(0); }
+    virtual void visit(TemplateTypeParameter *tp) { visit((TemplateParameter *)tp); }
+    virtual void visit(TemplateThisParameter *tp) { visit((TemplateTypeParameter *)tp); }
+    virtual void visit(TemplateValueParameter *tp) { visit((TemplateParameter *)tp); }
+    virtual void visit(TemplateAliasParameter *tp) { visit((TemplateParameter *)tp); }
+    virtual void visit(TemplateTupleParameter *tp) { visit((TemplateParameter *)tp); }
+
+    virtual void visit(Condition *) { assert(0); }
+    virtual void visit(DVCondition *c) { visit((Condition *)c); }
+    virtual void visit(DebugCondition *c) { visit((DVCondition *)c); }
+    virtual void visit(VersionCondition *c) { visit((DVCondition *)c); }
+    virtual void visit(StaticIfCondition *c) { visit((Condition *)c); }
+
+    virtual void visit(Parameter *) { assert(0); }
+
 #if DMD_OBJC
     virtual void visit(ObjcSelectorExp *e) { visit((Expression *)e); }
     virtual void visit(ObjcDotClassExp *e) { visit((UnaExp *)e); }

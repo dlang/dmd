@@ -1,11 +1,13 @@
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2012 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/interpret.c
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -312,7 +314,7 @@ struct CompiledCtfeFunction
                     return;
                 }
 
-                e->error("CTFE internal error: ErrorExp in %s\n", ccf->func ? ccf->func->loc.toChars() : ccf->callingloc.toChars());
+                ::error(e->loc, "CTFE internal error: ErrorExp in %s\n", ccf->func ? ccf->func->loc.toChars() : ccf->callingloc.toChars());
                 assert(0);
             }
 
@@ -711,8 +713,11 @@ void ctfeCompile(FuncDeclaration *fd)
  */
 Expression *ctfeInterpret(Expression *e)
 {
-    if (e->type == Type::terror)
+    if (e->op == TOKerror)
         return e;
+    //assert(e->type->ty != Terror);    // FIXME
+    if (e->type->ty == Terror)
+        return new ErrorExp();
 
     unsigned olderrors = global.errors;
 
@@ -3789,13 +3794,20 @@ public:
         // ---------------------------------------
         if (wantRef && !fp && e->e1->op != TOKarraylength)
         {
-            newval = e->e2->interpret(istate,
-                wantLvalueRef ? ctfeNeedLvalueRef : ctfeNeedLvalue);
+            CtfeGoal e2goal;
+            if (wantLvalueRef)
+                e2goal = ctfeNeedLvalueRef; // for internal ref variable initializing
+            else if (e->e2->type->ty == Tarray || e->e2->type->ty == Tclass)
+                e2goal = ctfeNeedRvalue;    // for assignment of reference types
+            else
+                e2goal = ctfeNeedLvalue;    // other types
+            newval = e->e2->interpret(istate, e2goal);
             if (exceptionOrCantInterpret(newval))
             {
                 result = newval;
                 return;
             }
+
             // If it is an assignment from a array function parameter passed by
             // reference, resolve the reference. (This should NOT happen for
             // non-reference types).
@@ -4017,7 +4029,7 @@ public:
                 else
                 {
                     setValue(v, newval);
-                    if (tyE1 == Tsarray && e->e2->isLvalue())
+                    if (e->op != TOKblit && tyE1 == Tsarray && e->e2->isLvalue())
                     {
                         assert(newval->op == TOKarrayliteral);
                         ArrayLiteralExp *ale = (ArrayLiteralExp *)newval;
@@ -4560,7 +4572,7 @@ public:
             {
                 (*oldelems)[(size_t)(j + firstIndex)] = paintTypeOntoLiteral(elemtype, (*newelems)[j]);
             }
-            if (originalExp->e2->isLvalue())
+            if (originalExp->op != TOKblit && originalExp->e2->isLvalue())
             {
                 Expression *x = evaluatePostblits(istate, existingAE, 0, oldelems->dim);
                 if (exceptionOrCantInterpret(x))
@@ -4644,7 +4656,7 @@ public:
                         assignInPlace((*existingAE->elements)[(size_t)(j+firstIndex)], newval);
                 }
             }
-            if (!wantRef && !cow && originalExp->e2->isLvalue())
+            if (!wantRef && !cow && originalExp->op != TOKblit && originalExp->e2->isLvalue())
             {
                 Expression *x = evaluatePostblits(istate, existingAE, (size_t)firstIndex, (size_t)(firstIndex+upperbound-lowerbound));
                 if (exceptionOrCantInterpret(x))

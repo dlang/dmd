@@ -41,6 +41,20 @@
 #include        "aa.h"
 #include        "tinfo.h"
 
+#ifndef ELFOSABI
+# if TARGET_LINUX
+#  define ELFOSABI ELFOSABI_LINUX
+# elif TARGET_FREEBSD
+#  define ELFOSABI ELFOSABI_FREEBSD
+# elif TARGET_SOLARIS
+#  define ELFOSABI ELFOSABI_SYSV
+# elif TARGET_OPENBSD
+#  define ELFOSABI ELFOSABI_OPENBSD
+# else
+#  error "No ELF OS ABI defined.  Please fix"
+# endif
+#endif
+
 //#define DEBSYM 0x7E
 
 static Outbuffer *fobjbuf;
@@ -1067,18 +1081,18 @@ void Obj::term(const char *objfilename)
     {
         ELFMAG0,ELFMAG1,ELFMAG2,ELFMAG3,
         ELFCLASS32,             // EI_CLASS
-        ELFDATA2LSB,    // EI_DATA
+        ELFDATA2LSB,            // EI_DATA
         EV_CURRENT,             // EI_VERSION
-        ELFOSABI_LINUX,0,       // EI_OSABI,EI_ABIVERSION
+        ELFOSABI,0,             // EI_OSABI,EI_ABIVERSION
         0,0,0,0,0,0,0
     };
     static const char elf_string64[EI_NIDENT] =
     {
         ELFMAG0,ELFMAG1,ELFMAG2,ELFMAG3,
         ELFCLASS64,             // EI_CLASS
-        ELFDATA2LSB,    // EI_DATA
+        ELFDATA2LSB,            // EI_DATA
         EV_CURRENT,             // EI_VERSION
-        ELFOSABI_LINUX,0,       // EI_OSABI,EI_ABIVERSION
+        ELFOSABI,0,             // EI_OSABI,EI_ABIVERSION
         0,0,0,0,0,0,0
     };
     fobjbuf->write(I64 ? elf_string64 : elf_string32, EI_NIDENT);
@@ -1587,7 +1601,8 @@ void Obj::ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym)
     symbol *ehtab_entry = symbol_generate(SCstatic,type_alloc(TYint));
     symbol_keep(ehtab_entry);
 
-    const int shf_flags = SHF_ALLOC | (config.flags3 & CFG3pic ? SHF_WRITE : 0);
+    // needs to be writeable for PIC code, see Bugzilla 13117
+    const int shf_flags = SHF_ALLOC | SHF_WRITE;
     ElfObj::getsegment(".deh_beg", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
     int seg = ElfObj::getsegment(".deh_eh", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
     ehtab_entry->Sseg = seg;
@@ -1610,7 +1625,8 @@ void Obj::ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym)
 
 void Obj::ehsections()
 {
-    const int shf_flags = SHF_ALLOC | (config.flags3 & CFG3pic ? SHF_WRITE : 0);
+    // needs to be writeable for PIC code, see Bugzilla 13117
+    const int shf_flags = SHF_ALLOC | SHF_WRITE;
     int sec = ElfObj::getsegment(".deh_beg", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
     //Obj::bytes(sec, 0, 4, NULL);
 
@@ -2673,6 +2689,8 @@ static size_t writeaddrval(int targseg, size_t offset, targ_size_t val, size_t s
 size_t ElfObj::writerel(int targseg, size_t offset, unsigned reltype,
                         IDXSYM symidx, targ_size_t val)
 {
+    assert(reltype != R_X86_64_NONE);
+
     size_t sz;
     if (I64)
     {
@@ -3101,7 +3119,8 @@ void Obj::moduleinfo(Symbol *scc)
     const int CFflags = I64 ? (CFoffset64 | CFoff) : CFoff;
 
     {
-        const int shf_flags = SHF_ALLOC | (config.flags3 & CFG3pic ? SHF_WRITE : 0);
+        // needs to be writeable for PIC code, see Bugzilla 13117
+        const int shf_flags = SHF_ALLOC | SHF_WRITE;
         ElfObj::getsegment(".minfo_beg", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
         const int seg = ElfObj::getsegment(".minfo", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
         ElfObj::getsegment(".minfo_end", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
@@ -3162,18 +3181,18 @@ static void obj_rtinit()
 {
 #if TX86
     // create brackets for .deh_eh and .minfo sections
-    IDXSYM deh_beg, deh, deh_end, minfo_beg, minfo, minfo_end, dso_rec;
+    IDXSYM deh_beg, deh_end, minfo_beg, minfo_end, dso_rec;
     IDXSTR namidx;
     int seg;
 
     {
-    const int shf_flags = SHF_ALLOC | (config.flags3 & CFG3pic ? SHF_WRITE : 0);
+    // needs to be writeable for PIC code, see Bugzilla 13117
+    const int shf_flags = SHF_ALLOC | SHF_WRITE;
 
     seg = ElfObj::getsegment(".deh_beg", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
     deh_beg = MAP_SEG2SYMIDX(seg);
 
-    seg = ElfObj::getsegment(".deh_eh", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
-    deh = MAP_SEG2SYMIDX(seg);
+    ElfObj::getsegment(".deh_eh", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
 
     seg = ElfObj::getsegment(".deh_end", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
     deh_end = MAP_SEG2SYMIDX(seg);
@@ -3182,8 +3201,7 @@ static void obj_rtinit()
     seg = ElfObj::getsegment(".minfo_beg", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
     minfo_beg = MAP_SEG2SYMIDX(seg);
 
-    seg = ElfObj::getsegment(".minfo", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
-    minfo = MAP_SEG2SYMIDX(seg);
+    ElfObj::getsegment(".minfo", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
 
     seg = ElfObj::getsegment(".minfo_end", NULL, SHT_PROGDEF, shf_flags, NPTRSIZE);
     minfo_end = MAP_SEG2SYMIDX(seg);
@@ -3468,12 +3486,6 @@ static void obj_rtinit()
         // ret
         buf->writeByte(0xC3);
         off += 2;
-
-        // add fake references to pin .minfo and .deh_eh sections (--gc-sections)
-        reltype = I64 ? R_X86_64_NONE : RI_TYPE_NONE;
-        off += ElfObj::writerel(codseg, off, reltype, minfo, 0);
-        off += ElfObj::writerel(codseg, off, reltype, deh, 0);
-
         Offset(codseg) = off;
 
         // put a reference into .ctors/.dtors each

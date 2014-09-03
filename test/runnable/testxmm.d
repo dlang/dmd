@@ -1161,6 +1161,38 @@ void test9910()
 
 /*****************************************/
 
+bool normalize(double[] range, double sum = 1)
+{
+    double s = 0;
+    const length = range.length;
+    foreach (e; range)
+    {
+        s += e;
+    }
+    if (s == 0)
+    {
+        return false;
+    }
+    return true;
+}
+
+void test12852()
+{
+    double[3] range = [0.0, 0.0, 0.0];
+    assert(normalize(range[]) == false);
+    range[1] = 3.0;
+    assert(normalize(range[]) == true);
+}
+
+/*****************************************/
+
+void test9449()
+{
+    ubyte16 table[1];
+}
+
+/*****************************************/
+
 int main()
 {
     test1();
@@ -1188,6 +1220,8 @@ int main()
 //    test9200();
     test9304();
     test9910();
+    test12852();
+    test9449();
 
     return 0;
 }

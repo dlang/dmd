@@ -1,12 +1,13 @@
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2014 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// https://github.com/D-Programming-Language/dmd/blob/master/src/mars.c
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/mars.c
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,22 +38,27 @@
 #include "declaration.h"
 #include "hdrgen.h"
 #include "doc.h"
+#include "color.h"
 
 bool response_expand(size_t *pargc, const char ***pargv);
+
+
 void browse(const char *url);
 void getenv_setargv(const char *envvar, size_t *pargc, const char** *pargv);
 
-void obj_start(char *srcfile);
-void obj_end(Library *library, File *objfile);
-
 void printCtfePerformanceStats();
 
-static bool parse_arch(size_t argc, const char** argv, bool is64bit);
+static const char* parse_arch(size_t argc, const char** argv, const char* arch);
 
 void inlineScan(Module *m);
 
 // in traits.c
 void initTraitsStringTable();
+
+int runLINK();
+void deleteExeFile();
+int runProgram();
+const char *inifile(const char *argv0, const char *inifile, const char* envsectionname);
 
 /** Normalize path by turning forward slashes into backslashes */
 const char * toWinPath(const char *src)
@@ -71,28 +77,11 @@ const char * toWinPath(const char *src)
     return result;
 }
 
-Ungag::~Ungag()
-{
-    //printf("+ungag dtor gag %d => %d\n", global.gag, oldgag);
-    global.gag = oldgag;
-}
-
-Ungag Dsymbol::ungagSpeculative()
-{
-    unsigned oldgag = global.gag;
-
-    if (global.isSpeculativeGagging() && !isSpeculative() && !toParent2()->isFuncDeclaration())
-        global.gag = 0;
-
-    return Ungag(oldgag);
-}
-
 Global global;
 
 void Global::init()
 {
     mars_ext = "d";
-    sym_ext  = "d";
     hdr_ext  = "di";
     doc_ext  = "html";
     ddoc_ext = "ddoc";
@@ -168,11 +157,6 @@ bool Global::endGagging(unsigned oldGagged)
     errors -= (gaggedErrors - oldGagged);
     gaggedErrors = oldGagged;
     return anyErrs;
-}
-
-bool Global::isSpeculativeGagging()
-{
-    return gag && gag == speculativeGag;
 }
 
 void Global::increaseErrorCount()
@@ -268,16 +252,22 @@ void deprecation(Loc loc, const char *format, ...)
 }
 
 // Just print, doesn't care about gagging
-void verrorPrint(Loc loc, const char *header, const char *format, va_list ap,
-                const char *p1, const char *p2)
+void verrorPrint(Loc loc, COLOR headerColor, const char *header, const char *format, va_list ap,
+                const char *p1 = NULL, const char *p2 = NULL)
 {
     char *p = loc.toChars();
 
+    if (global.params.color)
+        setConsoleColorBright(true);
     if (*p)
         fprintf(stderr, "%s: ", p);
     mem.free(p);
 
+    if (global.params.color)
+        setConsoleColor(headerColor, true);
     fputs(header, stderr);
+    if (global.params.color)
+        resetConsoleColor();
     if (p1)
         fprintf(stderr, "%s ", p1);
     if (p2)
@@ -289,13 +279,12 @@ void verrorPrint(Loc loc, const char *header, const char *format, va_list ap,
 }
 
 // header is "Error: " by default (see mars.h)
-extern "C" {
 void verror(Loc loc, const char *format, va_list ap,
                 const char *p1, const char *p2, const char *header)
 {
     if (!global.gag)
     {
-        verrorPrint(loc, header, format, ap, p1, p2);
+        verrorPrint(loc, COLOR_RED, header, format, ap, p1, p2);
         if (global.errors >= 20)        // moderate blizzard of cascading messages
                 fatal();
 //halt();
@@ -303,25 +292,24 @@ void verror(Loc loc, const char *format, va_list ap,
     else
     {
         //fprintf(stderr, "(gag:%d) ", global.gag);
-        //verrorPrint(loc, header, format, ap, p1, p2);
+        //verrorPrint(loc, COLOR_RED, header, format, ap, p1, p2);
         global.gaggedErrors++;
     }
     global.errors++;
-}
 }
 
 // Doesn't increase error count, doesn't print "Error:".
 void verrorSupplemental(Loc loc, const char *format, va_list ap)
 {
     if (!global.gag)
-        verrorPrint(loc, "       ", format, ap);
+        verrorPrint(loc, COLOR_RED, "       ", format, ap);
 }
 
 void vwarning(Loc loc, const char *format, va_list ap)
 {
     if (global.params.warnings && !global.gag)
     {
-        verrorPrint(loc, "Warning: ", format, ap);
+        verrorPrint(loc, COLOR_YELLOW, "Warning: ", format, ap);
 //halt();
         if (global.params.warnings == 1)
             global.warnings++;  // warnings don't count if gagged
@@ -335,7 +323,7 @@ void vdeprecation(Loc loc, const char *format, va_list ap,
     if (global.params.useDeprecated == 0)
         verror(loc, format, ap, p1, p2, header);
     else if (global.params.useDeprecated == 2 && !global.gag)
-        verrorPrint(loc, header, format, ap, p1, p2);
+        verrorPrint(loc, COLOR_BLUE, header, format, ap, p1, p2);
 }
 
 void readFile(Loc loc, File *f)
@@ -419,6 +407,7 @@ Usage:\n\
   @cmdfile       read arguments from cmdfile\n\
   -allinst       generate code for all template instantiations\n\
   -c             do not link\n\
+  -color[=on|off]   force colored console output on or off\n\
   -cov           do code coverage analysis\n\
   -cov=nnn       require at least nnn%% code coverage\n\
   -D             generate documentation\n\
@@ -473,7 +462,7 @@ Usage:\n\
   -version=level compile in version code >= level\n\
   -version=ident compile in version code identified by ident\n\
   -vtls          list all variables going into thread local storage\n\
-  -vgc           list all hidden gc allocations\n\
+  -vgc           list all gc allocations including hidden ones\n\
   -w             warnings as errors (compilation will halt)\n\
   -wi            warnings as messages (compilation will continue)\n\
   -X             generate JSON file\n\
@@ -571,6 +560,7 @@ int tryMain(size_t argc, const char *argv[])
 
     // Set default values
     global.params.argv0 = argv[0];
+    global.params.color = isConsoleColorSupported();
     global.params.link = true;
     global.params.useAssert = true;
     global.params.useInvariants = true;
@@ -592,6 +582,7 @@ int tryMain(size_t argc, const char *argv[])
     global.params.is64bit = (sizeof(size_t) == 8);
 
 #if TARGET_WINDOS
+    global.params.mscoff = false;
     global.params.is64bit = false;
     global.params.defaultlibname = "phobos";
 #elif TARGET_LINUX
@@ -651,13 +642,14 @@ int tryMain(size_t argc, const char *argv[])
     const char** dflags_argv = NULL;
     getenv_setargv("DFLAGS", &dflags_argc, &dflags_argv);
 
-    bool is64bit = global.params.is64bit; // use default
-    is64bit = parse_arch(argc, argv, is64bit);
-    is64bit = parse_arch(dflags_argc, dflags_argv, is64bit);
-    global.params.is64bit = is64bit;
+    const char *arch = global.params.is64bit ? "64" : "32"; // use default
+    arch = parse_arch(argc, argv, arch);
+    arch = parse_arch(dflags_argc, dflags_argv, arch);
+    bool is64bit = arch[0] == '6';
 
-    const char *envsec = is64bit ? "Environment64" : "Environment32";
-    inifile(argv[0], inifilename, envsec);
+    char envsection[80];
+    sprintf(envsection, "Environment%s", arch);
+    inifile(argv[0], inifilename, envsection);
 
     getenv_setargv("DFLAGS", &argc, &argv);
 
@@ -683,6 +675,22 @@ int tryMain(size_t argc, const char *argv[])
                 global.params.useDeprecated = 2;
             else if (strcmp(p + 1, "c") == 0)
                 global.params.link = false;
+            else if (memcmp(p + 1, "color", 5) == 0)
+            {
+                global.params.color = true;
+                // Parse:
+                //      -color
+                //      -color=on|off
+                if (p[6] == '=')
+                {
+                    if (strcmp(p + 7, "off") == 0)
+                        global.params.color = false;
+                    else if (strcmp(p + 7, "on") != 0)
+                        goto Lerror;
+                }
+                else if (p[6])
+                    goto Lerror;
+            }
             else if (memcmp(p + 1, "cov", 3) == 0)
             {
                 global.params.cov = true;
@@ -742,9 +750,24 @@ int tryMain(size_t argc, const char *argv[])
                 global.params.trace = true;
             }
             else if (strcmp(p + 1, "m32") == 0)
+            {
                 global.params.is64bit = false;
+                global.params.mscoff = false;
+            }
             else if (strcmp(p + 1, "m64") == 0)
+            {
                 global.params.is64bit = true;
+                global.params.mscoff = true;
+            }
+            else if (strcmp(p + 1, "m32mscoff") == 0)
+            {
+            #if TARGET_WINDOS
+                global.params.is64bit = 0;
+                global.params.mscoff = true;
+            #else
+                error(Loc(), "-m32mscoff can only be used on windows");
+            #endif
+            }
             else if (strcmp(p + 1, "profile") == 0)
                 global.params.trace = true;
             else if (strcmp(p + 1, "v") == 0)
@@ -1153,7 +1176,7 @@ Language changes listed by -transition=id:\n\
 
     if(global.params.is64bit != is64bit)
         error(Loc(), "the architecture must not be changed in the %s section of %s",
-              envsec, inifilename);
+              envsection, inifilename);
 
     // Target uses 64bit pointers.
     global.params.isLP64 = global.params.is64bit;
@@ -1217,6 +1240,11 @@ Language changes listed by -transition=id:\n\
             }
         }
     }
+    else if (global.params.run)
+    {
+        error(Loc(), "flags conflict with -run");
+        fatal();
+    }
     else if (global.params.lib)
     {
         global.params.libname = global.params.objname;
@@ -1225,11 +1253,6 @@ Language changes listed by -transition=id:\n\
         // Haven't investigated handling these options with multiobj
         if (!global.params.cov && !global.params.trace)
             global.params.multiobj = true;
-    }
-    else if (global.params.run)
-    {
-        error(Loc(), "flags conflict with -run");
-        fatal();
     }
     else
     {
@@ -1264,8 +1287,22 @@ Language changes listed by -transition=id:\n\
 #endif
 #if TARGET_WINDOS
         VersionCondition::addPredefinedGlobalIdent("Win32");
+        if (!setdefaultlib && global.params.mscoff)
+        {
+            global.params.defaultlibname = "phobos32mscoff";
+            if (!setdebuglib)
+                global.params.debuglibname = global.params.defaultlibname;
+        }
 #endif
     }
+#if TARGET_WINDOS
+    if (global.params.mscoff)
+        VersionCondition::addPredefinedGlobalIdent("CRuntime_Microsoft");
+    else
+        VersionCondition::addPredefinedGlobalIdent("CRuntime_DigitalMars");
+#else
+    VersionCondition::addPredefinedGlobalIdent("CRuntime_GNU");
+#endif
     if (global.params.isLP64)
         VersionCondition::addPredefinedGlobalIdent("D_LP64");
     if (global.params.doDocComments)
@@ -1995,21 +2032,19 @@ void escapePath(OutBuffer *buf, const char *fname)
  * to detect the desired architecture.
  */
 
-static bool parse_arch(size_t argc, const char** argv, bool is64bit)
+static const char* parse_arch(size_t argc, const char** argv, const char* arch)
 {
     for (size_t i = 0; i < argc; ++i)
     {   const char* p = argv[i];
         if (p[0] == '-')
         {
-            if (strcmp(p + 1, "m32") == 0)
-                is64bit = false;
-            else if (strcmp(p + 1, "m64") == 0)
-                is64bit = true;
+            if (strcmp(p + 1, "m32") == 0 || strcmp(p + 1, "m32mscoff") == 0 || strcmp(p + 1, "m64") == 0)
+                arch = p + 2;
             else if (strcmp(p + 1, "run") == 0)
                 break;
         }
     }
-    return is64bit;
+    return arch;
 }
 
 Dsymbols *Dsymbols_create() { return new Dsymbols(); }

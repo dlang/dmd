@@ -136,12 +136,12 @@ DMD_OBJS = \
 	builtin.o ctfeexpr.o clone.o aliasthis.o \
 	arrayop.o json.o unittests.o \
 	imphint.o argtypes.o apply.o sapply.o sideeffect.o \
-	intrange.o canthrow.o target.o nspace.o
+	intrange.o canthrow.o target.o nspace.o color.o
 
 ROOT_OBJS = \
 	rmem.o port.o man.o stringtable.o response.o \
 	aav.o speller.o outbuffer.o object.o \
-	filename.o file.o async.o
+	filename.o file.o async.o checkedint.o
 
 GLUE_OBJS = \
 	glue.o msc.o s2ir.o todt.o e2ir.o tocsym.o \
@@ -200,6 +200,7 @@ ROOT_SRC = $(ROOT)/root.h \
 	$(ROOT)/array.h \
 	$(ROOT)/rmem.h $(ROOT)/rmem.c $(ROOT)/port.h $(ROOT)/port.c \
 	$(ROOT)/man.c \
+	$(ROOT)/checkedint.h $(ROOT)/checkedint.c \
 	$(ROOT)/stringtable.h $(ROOT)/stringtable.c \
 	$(ROOT)/response.c $(ROOT)/async.h $(ROOT)/async.c \
 	$(ROOT)/aav.h $(ROOT)/aav.c \
@@ -385,10 +386,10 @@ $(ROOT_OBJS): %.o: $(ROOT)/%.c posix.mak
 ######################################################
 
 install: all
-	mkdir -p $(INSTALL_DIR)/bin
-	cp dmd $(INSTALL_DIR)/bin/dmd
 	$(eval bin_dir=$(if $(filter $(OS),osx), bin, bin$(MODEL)))
-	cp ../ini/$(OS)/$(bin_dir)/dmd.conf $(INSTALL_DIR)/bin/dmd.conf
+	mkdir -p $(INSTALL_DIR)/$(OS)/$(bin_dir)
+	cp dmd $(INSTALL_DIR)/$(OS)/$(bin_dir)/dmd
+	cp ../ini/$(OS)/$(bin_dir)/dmd.conf $(INSTALL_DIR)/$(OS)/$(bin_dir)/dmd.conf
 	cp backendlicense.txt $(INSTALL_DIR)/dmd-backendlicense.txt
 	cp artistic.txt $(INSTALL_DIR)/dmd-artistic.txt
 

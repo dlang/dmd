@@ -68,6 +68,7 @@ SYMBOL_MARS(MEMSET80,        FLfunc,FREGSAVED,"_memset80", 0, t) \
 SYMBOL_MARS(MEMSET160,       FLfunc,FREGSAVED,"_memset160",0, t) \
 SYMBOL_MARS(MEMSETFLOAT,     FLfunc,FREGSAVED,"_memsetFloat", 0, t) \
 SYMBOL_MARS(MEMSETDOUBLE,    FLfunc,FREGSAVED,"_memsetDouble", 0, t) \
+SYMBOL_MARS(MEMSETSIMD,      FLfunc,FREGSAVED,"_memsetSIMD",0, t) \
 SYMBOL_MARS(MEMSETN,         FLfunc,FREGSAVED,"_memsetn",  0, t) \
 SYMBOL_MARS(MODULO,          FLfunc,FREGSAVED,"_modulo",   0, t) \
 SYMBOL_MARS(MONITORENTER,  FLfunc,FREGSAVED,"_d_monitorenter",0, t) \
@@ -94,6 +95,7 @@ SYMBOL_MARS(CALLFINALIZER, FLfunc,FREGSAVED,"_d_callfinalizer", 0, t) \
 SYMBOL_MARS(CALLINTERFACEFINALIZER, FLfunc,FREGSAVED,"_d_callinterfacefinalizer", 0, t) \
 SYMBOL_MARS(DELCLASS,      FLfunc,FREGSAVED,"_d_delclass", 0, t) \
 SYMBOL_MARS(DELINTERFACE,  FLfunc,FREGSAVED,"_d_delinterface", 0, t) \
+SYMBOL_MARS(DELSTRUCT,     FLfunc,FREGSAVED,"_d_delstruct", 0, t) \
 SYMBOL_MARS(ALLOCMEMORY,   FLfunc,FREGSAVED,"_d_allocmemory", 0, t) \
 SYMBOL_MARS(DELARRAY,      FLfunc,FREGSAVED,"_d_delarray", 0, t) \
 SYMBOL_MARS(DELARRAYT,     FLfunc,FREGSAVED,"_d_delarray_t", 0, t) \

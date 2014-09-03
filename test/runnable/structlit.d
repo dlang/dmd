@@ -642,6 +642,7 @@ void test9993b()
 }
 
 /********************************************/
+// 1914
 
 struct Bug1914a
 {
@@ -697,6 +698,25 @@ void test3198and1914()
     auto f = new Foo3198();
     assert(f.x[0]==6);
     assert(f.y[0].g==4, "bug 3198");
+}
+
+/********************************************/
+// 2427
+
+void test2427()
+{
+    struct S
+    {
+        int x;
+    }
+
+    int foo(int i)
+    {
+        return i;
+    }
+
+    int i;
+    S s = { foo(i) };
 }
 
 /********************************************/
@@ -1345,6 +1365,44 @@ void test12011()
 }
 
 /********************************************/
+// 13021
+
+void test13021()
+{
+    static union U1
+    {
+        float a;
+        int b;
+    }
+
+    static union U2
+    {
+        double a;
+        long b;
+    }
+
+    static union U3
+    {
+        real a;
+        struct B { long b1, b2; } // ICE happens only if B.sizeof == real.sizeof
+        B b;
+    }
+
+    static union U4
+    {
+        real a;
+        long[2] b; // ditto
+    }
+
+    auto f = U1(1.0);  auto ok = f.b;
+
+    auto fail1 = U1(1.0).b; // OK <- Internal error: e2ir.c 1162
+    auto fail2 = U2(1.0).b; // OK <- Internal error: e2ir.c 1162
+    auto fail3 = U3(1.0).b; // OK <- Internal error: e2ir.c 1162
+    auto fail4 = U4(1.0).b; // OK <- Internal error: backend/el.c 2904
+}
+
+/********************************************/
 
 int main()
 {
@@ -1370,6 +1428,7 @@ int main()
     test9993a();
     test9993b();
     test3198and1914();
+    test2427();
     test5885();
     test5889();
     test4247();
@@ -1388,6 +1447,7 @@ int main()
     test11105();
     test11147();
     test11256();
+    test13021();
 
     printf("Success\n");
     return 0;

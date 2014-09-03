@@ -1,12 +1,13 @@
 
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/parse.h
+ */
 
 #ifndef DMD_PARSE_H
 #define DMD_PARSE_H
@@ -48,6 +49,7 @@ struct ModuleDeclaration;
 class TemplateDeclaration;
 class TemplateInstance;
 class StaticAssert;
+struct PrefixAttributes;
 
 /************************************
  * These control how parseStatement() works.
@@ -76,9 +78,9 @@ public:
     Parser(Module *module, const utf8_t *base, size_t length, int doDocComment);
 
     Dsymbols *parseModule();
-    Dsymbols *parseDeclDefs(int once, Dsymbol **pLastDecl = NULL);
+    Dsymbols *parseDeclDefs(int once, Dsymbol **pLastDecl = NULL, PrefixAttributes *pAttrs = NULL);
     Dsymbols *parseAutoDeclarations(StorageClass storageClass, const utf8_t *comment);
-    Dsymbols *parseBlock(Dsymbol **pLastDecl);
+    Dsymbols *parseBlock(Dsymbol **pLastDecl, PrefixAttributes *pAttrs = NULL);
     void composeStorageClass(StorageClass stc);
     StorageClass parseAttribute(Expressions **pexps);
     StorageClass parsePostfix(Expressions **pudas);
@@ -94,6 +96,7 @@ public:
     TypeQualified *parseTypeof();
     Type *parseVector();
     LINK parseLinkage(Identifiers **);
+    Identifiers *parseQualifiedIdentifier(const char *entity);
     Condition *parseDebugCondition();
     Condition *parseVersionCondition();
     Condition *parseStaticIfCondition();
@@ -118,7 +121,7 @@ public:
     Type *parseDeclarator(Type *t, Identifier **pident,
         TemplateParameters **tpl = NULL, StorageClass storage_class = 0, int* pdisable = NULL, Expressions **pudas = NULL);
     void parseStorageClasses(StorageClass &storage_class, LINK &link, unsigned &structalign, Expressions *&udas);
-    Dsymbols *parseDeclarations(bool autodecl, StorageClass storage_class, const utf8_t *comment);
+    Dsymbols *parseDeclarations(bool autodecl, PrefixAttributes *pAttrs, const utf8_t *comment);
 #if DMD_OBJC
     ObjcSelector *parseObjCSelector();
 #endif

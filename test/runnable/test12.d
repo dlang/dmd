@@ -781,7 +781,7 @@ void test36()
     printf("%d\n", a.d);
 
     version(D_LP64)
-        assert(a.classinfo.init.length == 40);
+        assert(a.classinfo.init.length == 36);
     else
         assert(a.classinfo.init.length == 28);
     assert(a.s == 1);
@@ -914,7 +914,6 @@ struct Property
 struct Value
 {
     int a,b,c,d;
-    const int opCmp(ref const Value v) { return 0; }
 }
 
 struct PropTable

@@ -2213,6 +2213,13 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
                 info[CLIBullngdbl].retregs32 = mAX;
                 info[CLIBdblullng].retregs32 = mAX;
             }
+            else if (config.objfmt == OBJ_MSCOFF)
+            {
+                strcpy(lib[CLIBldiv].Sident, "_ms_alldiv");
+                strcpy(lib[CLIBlmod].Sident, "_ms_allrem");   info[CLIBlmod].retregs32 = mAX|mDX;
+                strcpy(lib[CLIBuldiv].Sident, "_ms_aulldiv");
+                strcpy(lib[CLIBulmod].Sident, "_ms_aullrem"); info[CLIBulmod].retregs32 = mAX|mDX;
+            }
         }
         clib_inited++;
   }
@@ -2670,7 +2677,8 @@ code *cdfunc(elem *e,regm_t *pretregs)
         parameters[i].reg = NOREG;
         unsigned alignsize = el_alignsize(ep);
         parameters[i].numalign = 0;
-        if (I64 && alignsize > stackalign)
+        if (alignsize > stackalign &&
+            (I64 || (alignsize == 16 && tyvector(ep->Ety))))
         {   unsigned newnumpara = (numpara + (alignsize - 1)) & ~(alignsize - 1);
             parameters[i].numalign = newnumpara - numpara;
             numpara = newnumpara;
@@ -4032,6 +4040,7 @@ code *loaddata(elem *e,regm_t *pretregs)
   cs.Irex = 0;
   if (*pretregs == mPSW)
   {
+        symbol *s;
         regm = allregs;
         if (e->Eoper == OPconst)
         {       /* TRUE:        OR SP,SP        (SP is never 0)         */
@@ -4040,21 +4049,30 @@ code *loaddata(elem *e,regm_t *pretregs)
                 if (I64)
                     code_orrex(c, REX_W);
         }
+        else if (e->Eoper == OPvar &&
+            (s = e->EV.sp.Vsym)->Sfl == FLreg &&
+            s->Sregm & XMMREGS &&
+            (tym == TYfloat || tym == TYifloat || tym == TYdouble || tym ==TYidouble))
+        {
+            c = tstresult(s->Sregm,e->Ety,TRUE);
+        }
         else if (sz <= REGSIZE)
         {
             if (!I16 && (tym == TYfloat || tym == TYifloat))
-            {   c = allocreg(&regm,&reg,TYoffset);      /* get a register */
+            {
+                c = allocreg(&regm,&reg,TYoffset);      // get a register
                 ce = loadea(e,&cs,0x8B,reg,0,0,0);      // MOV reg,data
                 c = cat(c,ce);
-                ce = gen2(CNIL,0xD1,modregrmx(3,4,reg)); /* SHL reg,1      */
+                ce = gen2(CNIL,0xD1,modregrmx(3,4,reg)); // SHL reg,1
                 c = cat(c,ce);
             }
             else if (I64 && (tym == TYdouble || tym ==TYidouble))
-            {   c = allocreg(&regm,&reg,TYoffset);  /* get a register */
-                ce = loadea(e,&cs,0x8B,reg,0,0,0);  /* MOV reg,data */
+            {
+                c = allocreg(&regm,&reg,TYoffset);  // get a register
+                ce = loadea(e,&cs,0x8B,reg,0,0,0);  // MOV reg,data
                 c = cat(c,ce);
                 // remove sign bit, so that -0.0 == 0.0
-                ce = gen2(CNIL,0xD1,modregrmx(3,4,reg));        // SHL reg,1
+                ce = gen2(CNIL,0xD1,modregrmx(3,4,reg)); // SHL reg,1
                 code_orrex(ce, REX_W);
                 c = cat(c,ce);
             }

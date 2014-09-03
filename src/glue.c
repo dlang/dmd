@@ -1,9 +1,13 @@
 
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2013 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/glue.c
+ */
 
 #include <stdio.h>
 #include <stddef.h>
@@ -36,16 +40,12 @@
 #include "outbuf.h"
 #include "irstate.h"
 
-void slist_add(Symbol *s);
-void slist_reset();
 void clearStringTab();
 
 elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
 void Statement_toIR(Statement *s, IRState *irs);
 elem *toEfilename(Module *m);
 Symbol *toSymbol(Dsymbol *s);
-
-#define STATICCTOR      0
 
 typedef Array<symbol *> symbols;
 Dsymbols *Dsymbols_create();
@@ -234,8 +234,8 @@ void obj_start(char *srcfile)
 #if TARGET_WINDOS
     // Produce Ms COFF files for 64 bit code, OMF for 32 bit code
     assert(objbuf.size() == 0);
-    objmod = global.params.is64bit ? MsCoffObj::init(&objbuf, srcfile, NULL)
-                                   :       Obj::init(&objbuf, srcfile, NULL);
+    objmod = global.params.mscoff ? MsCoffObj::init(&objbuf, srcfile, NULL)
+                                  :       Obj::init(&objbuf, srcfile, NULL);
 #else
     objmod = Obj::init(&objbuf, srcfile, NULL);
 #endif
@@ -494,6 +494,8 @@ void Module::genobjfile(bool multiobj)
 
 void Module::genhelpers(bool iscomdat)
 {
+    if (global.params.betterC)
+        return;
 
     // If module assert
     for (int i = 0; i < 3; i++)
@@ -742,23 +744,22 @@ int isDruntimeArrayOp(Identifier *ident)
 
 void FuncDeclaration::toObjFile(bool multiobj)
 {
-    FuncDeclaration *func = this;
-    ClassDeclaration *cd = func->parent->isClassDeclaration();
+    ClassDeclaration *cd = parent->isClassDeclaration();
     int reverse;
 
-    //printf("FuncDeclaration::toObjFile(%p, %s.%s)\n", func, parent->toChars(), func->toChars());
+    //printf("FuncDeclaration::toObjFile(%p, %s.%s)\n", this, parent->toChars(), toChars());
 
-    //if (type) printf("type = %s\n", func->type->toChars());
+    //if (type) printf("type = %s\n", type->toChars());
 #if 0
-    //printf("line = %d\n",func->getWhere() / LINEINC);
+    //printf("line = %d\n", getWhere() / LINEINC);
     EEcontext *ee = env->getEEcontext();
     if (ee->EEcompile == 2)
     {
-        if (ee->EElinnum < (func->getWhere() / LINEINC) ||
-            ee->EElinnum > (func->endwhere / LINEINC)
+        if (ee->EElinnum < (getWhere() / LINEINC) ||
+            ee->EElinnum > (endwhere / LINEINC)
            )
             return;             // don't compile this function
-        ee->EEfunc = toSymbol(func);
+        ee->EEfunc = toSymbol(this);
     }
 #endif
 
@@ -775,10 +776,10 @@ void FuncDeclaration::toObjFile(bool multiobj)
     if (global.errors)
         return;
 
-    if (!func->fbody)
+    if (!fbody)
         return;
 
-    UnitTestDeclaration *ud = func->isUnitTestDeclaration();
+    UnitTestDeclaration *ud = isUnitTestDeclaration();
     if (ud && !global.params.useUnitTests)
         return;
 
@@ -800,10 +801,17 @@ void FuncDeclaration::toObjFile(bool multiobj)
     assert(semanticRun == PASSsemantic3done);
     assert(ident != Id::empty);
 
-    if (!needsCodegen())
-        return;
+    for (FuncDeclaration *fd = this; fd; )
+    {
+        if (!fd->isInstantiated() && fd->inNonRoot())
+            return;
+        if (fd->isNested())
+            fd = fd->toParent2()->isFuncDeclaration();
+        else
+            break;
+    }
 
-    FuncDeclaration *fdp = func->toParent2()->isFuncDeclaration();
+    FuncDeclaration *fdp = toParent2()->isFuncDeclaration();
     if (isNested())
     {
         if (fdp && fdp->semanticRun < PASSobj)
@@ -816,7 +824,7 @@ void FuncDeclaration::toObjFile(bool multiobj)
              */
             if (UnitTestDeclaration *udp = fdp->isUnitTestDeclaration())
             {
-                udp->deferredNested.push(func);
+                udp->deferredNested.push(this);
                 return;
             }
         }
@@ -832,13 +840,13 @@ void FuncDeclaration::toObjFile(bool multiobj)
     semanticRun = PASSobj;
 
     if (global.params.verbose)
-        fprintf(global.stdmsg, "function  %s\n",func->toPrettyChars());
+        fprintf(global.stdmsg, "function  %s\n", toPrettyChars());
 
-    Symbol *s = toSymbol(func);
+    Symbol *s = toSymbol(this);
     func_t *f = s->Sfunc;
 
     // tunnel type of "this" to debug info generation
-    if (AggregateDeclaration* ad = func->parent->isAggregateDeclaration())
+    if (AggregateDeclaration* ad = parent->isAggregateDeclaration())
     {
         ::type* t = Type_toCtype(ad->getType());
         if(cd)
@@ -896,14 +904,14 @@ void FuncDeclaration::toObjFile(bool multiobj)
                                 : global.params.defaultlibname;
 
         // Pull in RTL startup code (but only once)
-        if (func->isMain() && onlyOneMain(loc))
+        if (isMain() && onlyOneMain(loc))
         {
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
             objmod->external_def("_main");
             objmod->ehsections();   // initialize exception handling sections
 #endif
 #if TARGET_WINDOS
-            if (I64)
+            if (global.params.mscoff)
             {
                 objmod->external_def("main");
                 objmod->ehsections();   // initialize exception handling sections
@@ -920,7 +928,7 @@ void FuncDeclaration::toObjFile(bool multiobj)
         else if (strcmp(s->Sident, "main") == 0 && linkage == LINKc)
         {
 #if TARGET_WINDOS
-            if (I64)
+            if (global.params.mscoff)
             {
                 objmod->includelib("LIBCMT");
                 objmod->includelib("OLDNAMES");
@@ -934,9 +942,9 @@ void FuncDeclaration::toObjFile(bool multiobj)
             s->Sclass = SCglobal;
         }
 #if TARGET_WINDOS
-        else if (func->isWinMain() && onlyOneMain(loc))
+        else if (isWinMain() && onlyOneMain(loc))
         {
-            if (I64)
+            if (global.params.mscoff)
             {
                 objmod->includelib("uuid");
                 objmod->includelib("LIBCMT");
@@ -952,9 +960,9 @@ void FuncDeclaration::toObjFile(bool multiobj)
         }
 
         // Pull in RTL startup code
-        else if (func->isDllMain() && onlyOneMain(loc))
+        else if (isDllMain() && onlyOneMain(loc))
         {
-            if (I64)
+            if (global.params.mscoff)
             {
                 objmod->includelib("uuid");
                 objmod->includelib("LIBCMT");
@@ -983,7 +991,7 @@ void FuncDeclaration::toObjFile(bool multiobj)
             break;
     }
 
-    IRState irs(m, func);
+    IRState irs(m, this);
     Dsymbols deferToObj;                   // write these to OBJ file later
     irs.deferToObj = &deferToObj;
 
@@ -997,8 +1005,8 @@ void FuncDeclaration::toObjFile(bool multiobj)
     //printf("linkage = %d, tyf = x%x\n", linkage, tyf);
     reverse = tyrevfunc(s->Stype->Tty);
 
-    assert(func->type->ty == Tfunction);
-    tf = (TypeFunction *)(func->type);
+    assert(type->ty == Tfunction);
+    tf = (TypeFunction *)(type);
     retmethod = retStyle(tf);
     if (retmethod == RETstack)
     {
@@ -1011,7 +1019,7 @@ void FuncDeclaration::toObjFile(bool multiobj)
         sprintf(hiddenparam,"__HID%d",++hiddenparami);
         shidden = symbol_name(hiddenparam,SCparameter,thidden);
         shidden->Sflags |= SFLtrue | SFLfree;
-        if (func->nrvo_can && func->nrvo_var && func->nrvo_var->nestedrefs.dim)
+        if (nrvo_can && nrvo_var && nrvo_var->nestedrefs.dim)
             type_setcv(&shidden->Stype, shidden->Stype->Tty | mTYvolatile);
         irs.shidden = shidden;
         this->shidden = shidden;
@@ -1165,11 +1173,11 @@ void FuncDeclaration::toObjFile(bool multiobj)
         free(params);
     params = NULL;
 
-    if (func->fbody)
+    if (fbody)
     {
         localgot = NULL;
 
-        Statement *sbody = func->fbody;
+        Statement *sbody = fbody;
 
         Blockx bx;
         memset(&bx,0,sizeof(bx));
@@ -1178,7 +1186,7 @@ void FuncDeclaration::toObjFile(bool multiobj)
         bx.funcsym = s;
         bx.scope_index = -1;
         bx.classdec = cd;
-        bx.member = func;
+        bx.member = this;
         bx.module = getModule();
         irs.blx = &bx;
 
@@ -1214,7 +1222,7 @@ void FuncDeclaration::toObjFile(bool multiobj)
             Statement *sf = ExpStatement::create(loc, e);
 
             Statement *stf;
-            if (sbody->blockExit(this, tf->isnothrow) == BEfallthru)
+            if (sbody->blockExit(this, false) == BEfallthru)
                 stf = CompoundStatement::create(Loc(), sbody, sf);
             else
                 stf = TryFinallyStatement::create(Loc(), sbody, sf);
@@ -1224,8 +1232,8 @@ void FuncDeclaration::toObjFile(bool multiobj)
         buildClosure(this, &irs);
 
 #if TARGET_WINDOS
-        if (func->isSynchronized() && cd && config.flags2 & CFG2seh &&
-            !func->isStatic() && !sbody->usesEH() && !global.params.trace)
+        if (isSynchronized() && cd && config.flags2 & CFG2seh &&
+            !isStatic() && !sbody->usesEH() && !global.params.trace)
         {
             /* The "jmonitor" hack uses an optimized exception handling frame
              * which is a little shorter than the more general EH frame.
@@ -1476,6 +1484,8 @@ unsigned totym(Type *tx)
             switch (tf->linkage)
             {
                 case LINKwindows:
+                    if (global.params.is64bit)
+                        goto Lc;
                     t = (tf->varargs == 1) ? TYnfunc : TYnsfunc;
                     break;
 
@@ -1486,6 +1496,7 @@ unsigned totym(Type *tx)
                 case LINKc:
                 case LINKcpp:
                 case LINKobjc:
+                Lc:
                     t = TYnfunc;
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
                     if (I32 && retStyle(tf) == RETstack)

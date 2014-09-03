@@ -1,12 +1,13 @@
 
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2012 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/lexer.h
+ */
 
 #ifndef DMD_LEXER_H
 #define DMD_LEXER_H
@@ -74,6 +75,7 @@ enum TOK
         TOKdelegateptr,
         TOKdelegatefuncptr,
 
+// 54
         // Operators
         TOKlt,          TOKgt,
         TOKle,          TOKge,
@@ -82,11 +84,12 @@ enum TOK
         TOKindex,       TOKis,
         TOKtobool,
 
-// 63
+// 65
         // NCEG floating point compares
         // !<>=     <>    <>=    !>     !>=   !<     !<=   !<>
         TOKunord,TOKlg,TOKleg,TOKule,TOKul,TOKuge,TOKug,TOKue,
 
+// 73
         TOKshl,         TOKshr,
         TOKshlass,      TOKshrass,
         TOKushr,        TOKushrass,
@@ -102,7 +105,7 @@ enum TOK
         TOKquestion,    TOKandand,      TOKoror,
         TOKpreplusplus, TOKpreminusminus,
 
-// 110
+// 112
         // Numeric literals
         TOKint32v, TOKuns32v,
         TOKint64v, TOKuns64v,
@@ -130,14 +133,14 @@ enum TOK
         TOKcomplex32, TOKcomplex64, TOKcomplex80,
         TOKchar, TOKwchar, TOKdchar, TOKbool,
 
-// 155
+// 157
         // Aggregates
         TOKstruct, TOKclass, TOKinterface, TOKunion, TOKenum, TOKimport,
         TOKtypedef, TOKalias, TOKoverride, TOKdelegate, TOKfunction,
         TOKmixin,
 
         TOKalign, TOKextern, TOKprivate, TOKprotected, TOKpublic, TOKexport,
-        TOKstatic, TOKvirtual, TOKfinal, TOKconst, TOKabstract, TOKvolatile,
+        TOKstatic, TOKfinal, TOKconst, TOKabstract, TOKvolatile,
         TOKdebug, TOKdeprecated, TOKin, TOKout, TOKinout, TOKlazy,
         TOKauto, TOKpackage, TOKmanifest, TOKimmutable,
 
@@ -223,7 +226,7 @@ struct Token
     };
 
     static const char *tochars[TOKMAX];
-    static void *operator new(size_t sz);
+    static Token *alloc();
 
     Token() : next(NULL) {}
     int isKeyword();

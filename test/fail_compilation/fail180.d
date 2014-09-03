@@ -1,10 +1,10 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail180.d(23): Error: can only initialize const member x inside constructor
-fail_compilation/fail180.d(24): Error: can only initialize const member x inside constructor
-fail_compilation/fail180.d(38): Error: can only initialize const member x inside constructor
-fail_compilation/fail180.d(39): Error: can only initialize const member x inside constructor
+fail_compilation/fail180.d(23): Error: cannot modify const expression this.x
+fail_compilation/fail180.d(24): Error: cannot modify const expression this.x
+fail_compilation/fail180.d(38): Error: cannot modify const expression this.x
+fail_compilation/fail180.d(39): Error: cannot modify const expression this.x
 fail_compilation/fail180.d(50): Error: variable fail180.main.t final cannot be applied to variable, perhaps you meant const?
 fail_compilation/fail180.d(62): Error: variable fail180.test.d final cannot be applied to variable, perhaps you meant const?
 ---

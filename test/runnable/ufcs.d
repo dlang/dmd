@@ -795,6 +795,21 @@ void test10609()
 }
 
 /*******************************************/
+// 11312
+
+struct S11312;
+
+S11312* getS11312() { return null; }
+int getValue(S11312*) { return 10; }
+
+void test11312()
+{
+    S11312* op = getS11312();
+    int x = op.getValue();
+    assert(x == 10);
+}
+
+/*******************************************/
 
 int main()
 {
@@ -823,6 +838,7 @@ int main()
     test10041();
     test10047();
     test10526();
+    test11312();
 
     printf("Success\n");
     return 0;

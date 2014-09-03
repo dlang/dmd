@@ -149,9 +149,9 @@
     "kind" : "class",
     "line" : 22,
     "char" : 1,
-    "base" : "Bar",
+    "base" : "json.Bar!1.Bar",
     "interfaces" : [
-     "Baz"
+     "json.Baz!(int, 2, null).Baz"
     ],
     "members" : [
      {
@@ -219,7 +219,7 @@
     "kind" : "class",
     "line" : 31,
     "char" : 1,
-    "base" : "Bar2",
+    "base" : "json.Bar2",
     "members" : [
      {
       "name" : "val",

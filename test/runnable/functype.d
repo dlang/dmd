@@ -131,7 +131,7 @@ void testti()
     static assert(StringOf!(typeof(test)) == "int[](int[])");
 
     float function(float x = 0F) fp = x => x;
-    static assert(typeof(fp).stringof == "float function(float x = " ~ (0F).stringof ~ "F)");
+    static assert(typeof(fp).stringof == "float function(float x = " ~ (0F).stringof ~ ")");
     static assert(StringOf!(typeof(fp)) == "float function(float)");
 
     double delegate(double x = 0.0) dg = x => x;
@@ -263,13 +263,15 @@ version(Win32)
 
 extern(Windows)
 {
-    export uint DefWindowProcA(void*, uint, uint, ptrdiff_t);
-    alias uint function (void*, uint, uint, ptrdiff_t) WNDPROC;
+    // use a symbol from kernel32.lib, not user32.lib. The latter might not
+    //  be passed automatically on the command line
+    export void* GetModuleHandleA(const(char)*moduleName);
+    alias void* function(const(char)*moduleName) PROC;
 }
 
 void test10734()
 {
-    WNDPROC lpfnWndProc = &DefWindowProcA;
+    PROC lpfnProc = &GetModuleHandleA;
 }
 
 }

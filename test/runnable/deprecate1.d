@@ -43,20 +43,6 @@ void foo6e() {
 
 
 /**************************************
-        octal literals
-**************************************/
-
-void test10()
-{
-    int b = 0b_1_1__1_0_0_0_1_0_1_0_1_0_;
-    assert(b == 3626);
-
-    b = 0_1_2_3_4_;
-    printf("b = %d\n", b);
-    assert(b == 668);
-}
-
-/**************************************
             typedef
 **************************************/
 
@@ -1225,22 +1211,6 @@ void test4237()
 }
 
 /******************************************/
-// 3990
-
-void test3990()
-{
-    int[] a1 = [5, 4, 3];
-    assert(*a1 == 5);
-    alias typeof(a1) T1;
-    assert(is(typeof(*T1)));
-
-    int[3] a2 = [5, 4, 3];
-    assert(*a2 == 5);
-    alias typeof(a2) T2;
-    assert(is(typeof(*T2)));
-}
-
-/******************************************/
 // from extra-files/test2.d
 
 typedef void* HANDLE18;
@@ -1261,7 +1231,6 @@ int main()
 {
     test2();
     test5();
-    test10();
     test19();
     test33();
     test41();
@@ -1311,7 +1280,6 @@ int main()
     test23_test67();
     test34_test14();
     test34_test52();
-    test3990();
     test6289();
     test4237();
     test18();

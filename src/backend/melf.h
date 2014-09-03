@@ -40,6 +40,7 @@ typedef struct
             #define ELFOSABI_NETBSD     2
             #define ELFOSABI_LINUX      3
             #define ELFOSABI_FREEBSD    9
+            #define ELFOSABI_OPENBSD    12
             #define ELFOSABI_ARM        97      /* ARM */
             #define ELFOSABI_STANDALONE 255     /* Standalone/embedded */
 

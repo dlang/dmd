@@ -1,11 +1,13 @@
 
-// Copyright (c) 1999-2010 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/scope.c
+ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -31,7 +33,7 @@
 
 Scope *Scope::freelist = NULL;
 
-void *Scope::operator new(size_t size)
+Scope *Scope::alloc()
 {
     if (freelist)
     {
@@ -43,9 +45,7 @@ void *Scope::operator new(size_t size)
         return s;
     }
 
-    void *p = ::operator new(size);
-    //printf("new %p\n", p);
-    return p;
+    return new Scope();
 }
 
 Scope::Scope()
@@ -70,7 +70,7 @@ Scope::Scope()
     this->func = NULL;
     this->slabel = NULL;
     this->linkage = LINKd;
-    this->protection = PROTpublic;
+    this->protection = Prot(PROTpublic);
     this->explicitProtection = 0;
     this->stc = 0;
     this->depmsg = NULL;
@@ -78,7 +78,7 @@ Scope::Scope()
     this->nofree = 0;
     this->noctor = 0;
     this->intypeof = 0;
-    this->speculative = 0;
+    this->speculative = false;
     this->lastVar = NULL;
     this->callSuper = 0;
     this->fieldinit = NULL;
@@ -90,60 +90,10 @@ Scope::Scope()
     this->userAttribDecl = NULL;
 }
 
-Scope::Scope(Scope *enclosing)
-{
-    //printf("Scope::Scope(enclosing = %p) %p\n", enclosing, this);
-    assert(!(enclosing->flags & SCOPEfree));
-    this->module = enclosing->module;
-    this->func   = enclosing->func;
-    this->parent = enclosing->parent;
-    this->scopesym = NULL;
-    this->sds = NULL;
-    this->sw = enclosing->sw;
-    this->tf = enclosing->tf;
-    this->os = enclosing->os;
-    this->tinst = enclosing->tinst;
-    this->sbreak = enclosing->sbreak;
-    this->scontinue = enclosing->scontinue;
-    this->fes = enclosing->fes;
-    this->callsc = enclosing->callsc;
-    this->structalign = enclosing->structalign;
-    this->enclosing = enclosing;
-#ifdef DEBUG
-    if (enclosing->enclosing)
-        assert(!(enclosing->enclosing->flags & SCOPEfree));
-    if (this == enclosing->enclosing)
-    {
-        printf("this = %p, enclosing = %p, enclosing->enclosing = %p\n", this, enclosing, enclosing->enclosing);
-    }
-    assert(this != enclosing->enclosing);
-#endif
-    this->slabel = NULL;
-    this->linkage = enclosing->linkage;
-    this->protection = enclosing->protection;
-    this->explicitProtection = enclosing->explicitProtection;
-    this->depmsg = enclosing->depmsg;
-    this->stc = enclosing->stc;
-    this->inunion = enclosing->inunion;
-    this->nofree = 0;
-    this->noctor = enclosing->noctor;
-    this->intypeof = enclosing->intypeof;
-    this->speculative = enclosing->speculative;
-    this->lastVar = enclosing->lastVar;
-    this->callSuper = enclosing->callSuper;
-    this->fieldinit = enclosing->saveFieldInit();
-    this->fieldinit_dim = enclosing->fieldinit_dim;
-    this->flags = (enclosing->flags & (SCOPEcontract | SCOPEdebug | SCOPEctfe | SCOPEcompile));
-    this->lastdc = NULL;
-    this->lastoffset = 0;
-    this->docbuf = enclosing->docbuf;
-    this->userAttribDecl = enclosing->userAttribDecl;
-    assert(this != enclosing);
-}
-
 Scope *Scope::copy()
 {
-    Scope *sc = new Scope(*this);
+    Scope *sc = Scope::alloc();
+    memcpy(sc, this, sizeof(Scope));
 
     /* Bugzilla 11777: The copied scope should not inherit fieldinit.
      */
@@ -156,7 +106,12 @@ Scope *Scope::createGlobal(Module *module)
 {
     Scope *sc;
 
-    sc = new Scope();
+    sc = Scope::alloc();
+    memset(sc, 0, sizeof(Scope));
+    sc->structalign = STRUCTALIGN_DEFAULT;
+    sc->linkage = LINKd;
+    sc->protection = Prot(PROTpublic);
+
     sc->module = module;
     sc->scopesym = new ScopeDsymbol();
     sc->scopesym->symtab = new DsymbolTable();
@@ -176,8 +131,29 @@ Scope *Scope::createGlobal(Module *module)
 
 Scope *Scope::push()
 {
-    //printf("Scope::push()\n");
-    Scope *s = new Scope(this);
+    Scope *s = copy();
+
+    //printf("Scope::push(this = %p) new = %p\n", this, s);
+    assert(!(flags & SCOPEfree));
+    s->scopesym = NULL;
+    s->sds = NULL;
+    s->enclosing = this;
+#ifdef DEBUG
+    if (enclosing)
+        assert(!(enclosing->flags & SCOPEfree));
+    if (s == enclosing)
+    {
+        printf("this = %p, enclosing = %p, enclosing->enclosing = %p\n", s, this, enclosing);
+    }
+    assert(s != enclosing);
+#endif
+    s->slabel = NULL;
+    s->nofree = 0;
+    s->fieldinit = saveFieldInit();
+    s->flags = (flags & (SCOPEcontract | SCOPEdebug | SCOPEctfe | SCOPEcompile | SCOPEconstraint));
+    s->lastdc = NULL;
+    s->lastoffset = 0;
+
     assert(this != s);
     return s;
 }
@@ -223,6 +199,25 @@ Scope *Scope::startCTFE()
 {
     Scope *sc = this->push();
     sc->flags = this->flags | SCOPEctfe;
+#if 0
+    /* TODO: Currently this is not possible, because we need to
+     * unspeculative some types and symbols if they are necessary for the
+     * final executable. Consider:
+     *
+     * struct S(T) {
+     *   string toString() const { return "instantiated"; }
+     * }
+     * enum x = S!int();
+     * void main() {
+     *   // To call x.toString in runtime, compiler should unspeculative S!int.
+     *   assert(x.toString() == "instantiated");
+     * }
+     */
+
+    // If a template is instantiated from CT evaluated expression,
+    // compiler can elide its code generation.
+    sc->speculative = true;
+#endif
     return sc;
 }
 
@@ -542,6 +537,7 @@ void *scope_search_fp(void *arg, const char *seed)
     assert(id);
 
     Scope *sc = (Scope *)arg;
+    Module::clearCache();
     Dsymbol *s = sc->search(Loc(), id, NULL);
     return (void*)s;
 }

@@ -1,12 +1,13 @@
 
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2013 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/init.c
+ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -31,45 +32,24 @@ Initializer::Initializer(Loc loc)
     this->loc = loc;
 }
 
-Initializer *Initializer::syntaxCopy()
-{
-    return this;
-}
-
-Initializer *Initializer::semantic(Scope *sc, Type *t, NeedInterpret needInterpret)
-{
-    return this;
-}
-
-Type *Initializer::inferType(Scope *sc)
-{
-    error(loc, "cannot infer type from initializer");
-    return Type::terror;
-}
-
 Initializers *Initializer::arraySyntaxCopy(Initializers *ai)
-{   Initializers *a = NULL;
-
+{
+    Initializers *a = NULL;
     if (ai)
     {
         a = new Initializers();
         a->setDim(ai->dim);
         for (size_t i = 0; i < a->dim; i++)
-        {   Initializer *e = (*ai)[i];
-
-            e = e->syntaxCopy();
-            (*a)[i] = e;
-        }
+            (*a)[i] = (*ai)[i]->syntaxCopy();
     }
     return a;
 }
 
 char *Initializer::toChars()
 {
-    HdrGenState hgs;
-
     OutBuffer buf;
-    toCBuffer(&buf, &hgs);
+    HdrGenState hgs;
+    ::toCBuffer(this, &buf, &hgs);
     return buf.extractString();
 }
 
@@ -80,12 +60,15 @@ ErrorInitializer::ErrorInitializer()
 {
 }
 
-
 Initializer *ErrorInitializer::syntaxCopy()
 {
     return this;
 }
 
+Initializer *ErrorInitializer::inferType(Scope *sc)
+{
+    return this;
+}
 
 Initializer *ErrorInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInterpret)
 {
@@ -93,18 +76,10 @@ Initializer *ErrorInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
     return this;
 }
 
-
 Expression *ErrorInitializer::toExpression(Type *t)
 {
     return new ErrorExp();
 }
-
-
-void ErrorInitializer::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("__error__");
-}
-
 
 /********************************** VoidInitializer ***************************/
 
@@ -114,12 +89,16 @@ VoidInitializer::VoidInitializer(Loc loc)
     type = NULL;
 }
 
-
 Initializer *VoidInitializer::syntaxCopy()
 {
     return new VoidInitializer(loc);
 }
 
+Initializer *VoidInitializer::inferType(Scope *sc)
+{
+    error(loc, "cannot infer type from void initializer");
+    return new ErrorInitializer();
+}
 
 Initializer *VoidInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInterpret)
 {
@@ -128,18 +107,10 @@ Initializer *VoidInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInt
     return this;
 }
 
-
 Expression *VoidInitializer::toExpression(Type *t)
 {
     return NULL;
 }
-
-
-void VoidInitializer::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("void");
-}
-
 
 /********************************** StructInitializer *************************/
 
@@ -151,17 +122,13 @@ StructInitializer::StructInitializer(Loc loc)
 Initializer *StructInitializer::syntaxCopy()
 {
     StructInitializer *ai = new StructInitializer(loc);
-
     assert(field.dim == value.dim);
     ai->field.setDim(field.dim);
     ai->value.setDim(value.dim);
     for (size_t i = 0; i < field.dim; i++)
     {
         ai->field[i] = field[i];
-
-        Initializer *init = value[i];
-        init = init->syntaxCopy();
-        ai->value[i] = init;
+        ai->value[i] = value[i]->syntaxCopy();
     }
     return ai;
 }
@@ -171,6 +138,12 @@ void StructInitializer::addInit(Identifier *field, Initializer *value)
     //printf("StructInitializer::addInit(field = %p, value = %p)\n", field, value);
     this->field.push(field);
     this->value.push(value);
+}
+
+Initializer *StructInitializer::inferType(Scope *sc)
+{
+    error(loc, "cannot infer type from struct initializer");
+    return new ErrorInitializer();
 }
 
 Initializer *StructInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInterpret)
@@ -314,27 +287,6 @@ Expression *StructInitializer::toExpression(Type *t)
     return NULL;
 }
 
-void StructInitializer::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    //printf("StructInitializer::toCBuffer()\n");
-    buf->writeByte('{');
-    for (size_t i = 0; i < field.dim; i++)
-    {
-        if (i > 0)
-            buf->writestring(", ");
-        Identifier *id = field[i];
-        if (id)
-        {
-            buf->writestring(id->toChars());
-            buf->writeByte(':');
-        }
-        Initializer *iz = value[i];
-        if (iz)
-            iz->toCBuffer(buf, hgs);
-    }
-    buf->writeByte('}');
-}
-
 /********************************** ArrayInitializer ************************************/
 
 ArrayInitializer::ArrayInitializer(Loc loc)
@@ -342,27 +294,20 @@ ArrayInitializer::ArrayInitializer(Loc loc)
 {
     dim = 0;
     type = NULL;
-    sem = 0;
+    sem = false;
 }
 
 Initializer *ArrayInitializer::syntaxCopy()
 {
     //printf("ArrayInitializer::syntaxCopy()\n");
-
     ArrayInitializer *ai = new ArrayInitializer(loc);
-
     assert(index.dim == value.dim);
     ai->index.setDim(index.dim);
     ai->value.setDim(value.dim);
     for (size_t i = 0; i < ai->value.dim; i++)
-    {   Expression *e = index[i];
-        if (e)
-            e = e->syntaxCopy();
-        ai->index[i] = e;
-
-        Initializer *init = value[i];
-        init = init->syntaxCopy();
-        ai->value[i] = init;
+    {
+        ai->index[i] = index[i] ? index[i]->syntaxCopy() : NULL;
+        ai->value[i] = value[i]->syntaxCopy();
     }
     return ai;
 }
@@ -375,6 +320,89 @@ void ArrayInitializer::addInit(Expression *index, Initializer *value)
     type = NULL;
 }
 
+bool ArrayInitializer::isAssociativeArray()
+{
+    for (size_t i = 0; i < value.dim; i++)
+    {
+        if (index[i])
+            return true;
+    }
+    return false;
+}
+
+Initializer *ArrayInitializer::inferType(Scope *sc)
+{
+    //printf("ArrayInitializer::inferType() %s\n", toChars());
+    Expressions *keys = NULL;
+    Expressions *values;
+    if (isAssociativeArray())
+    {
+        keys = new Expressions();
+        keys->setDim(value.dim);
+        values = new Expressions();
+        values->setDim(value.dim);
+
+        for (size_t i = 0; i < value.dim; i++)
+        {
+            Expression *e = index[i];
+            if (!e)
+                goto Lno;
+            (*keys)[i] = e;
+
+            Initializer *iz = value[i];
+            if (!iz)
+                goto Lno;
+            iz = iz->inferType(sc);
+            if (iz->isErrorInitializer())
+                return iz;
+            assert(iz->isExpInitializer());
+            (*values)[i] = ((ExpInitializer *)iz)->exp;
+            assert((*values)[i]->op != TOKerror);
+        }
+
+        Expression *e = new AssocArrayLiteralExp(loc, keys, values);
+        ExpInitializer *ei = new ExpInitializer(loc, e);
+        return ei->inferType(sc);
+    }
+    else
+    {
+        Expressions *elements = new Expressions();
+        elements->setDim(value.dim);
+        elements->zero();
+
+        for (size_t i = 0; i < value.dim; i++)
+        {
+            assert(!index[i]);  // already asserted by isAssociativeArray()
+
+            Initializer *iz = value[i];
+            if (!iz)
+                goto Lno;
+            iz = iz->inferType(sc);
+            if (iz->isErrorInitializer())
+                return iz;
+            assert(iz->isExpInitializer());
+            (*elements)[i] = ((ExpInitializer *)iz)->exp;
+            assert((*elements)[i]->op != TOKerror);
+        }
+
+        Expression *e = new ArrayLiteralExp(loc, elements);
+        ExpInitializer *ei = new ExpInitializer(loc, e);
+        return ei->inferType(sc);
+    }
+Lno:
+    if (keys)
+    {
+        delete keys;
+        delete values;
+        error(loc, "not an associative array initializer");
+    }
+    else
+    {
+        error(loc, "cannot infer type from array initializer");
+    }
+    return new ErrorInitializer();
+}
+
 Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInterpret)
 {
     size_t length;
@@ -384,7 +412,7 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
     //printf("ArrayInitializer::semantic(%s)\n", t->toChars());
     if (sem)                            // if semantic() already run
         return this;
-    sem = 1;
+    sem = true;
     t = t->toBasetype();
     switch (t->ty)
     {
@@ -437,7 +465,7 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
         Initializer *val = value[i];
         ExpInitializer *ei = val->isExpInitializer();
         if (ei && !idx)
-            ei->expandTuples = 1;
+            ei->expandTuples = true;
         val = val->semantic(sc, t->nextOf(), needInterpret);
         if (val->isErrorInitializer())
             errors = true;
@@ -466,7 +494,8 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
 
         length++;
         if (length == 0)
-        {   error(loc, "array dimension overflow");
+        {
+            error(loc, "array dimension overflow");
             goto Lerr;
         }
         if (length > dim)
@@ -485,7 +514,8 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
         goto Lerr;
 
     if ((uinteger_t) dim * t->nextOf()->size() >= amax)
-    {   error(loc, "array dimension %u exceeds max of %u", (unsigned) dim, (unsigned)(amax / t->nextOf()->size()));
+    {
+        error(loc, "array dimension %u exceeds max of %u", (unsigned) dim, (unsigned)(amax / t->nextOf()->size()));
         goto Lerr;
     }
     return this;
@@ -586,7 +616,8 @@ Expression *ArrayInitializer::toExpression(Type *tx)
     }
 
     for (size_t i = 0; i < edim; i++)
-    {   Expression *e = (*elements)[i];
+    {
+        Expression *e = (*elements)[i];
         if (e->op == TOKerror)
             return e;
     }
@@ -599,7 +630,6 @@ Expression *ArrayInitializer::toExpression(Type *tx)
 Lno:
     return NULL;
 }
-
 
 /********************************
  * If possible, convert array initializer to associative array initializer.
@@ -641,93 +671,13 @@ Lno:
     return new ErrorExp();
 }
 
-int ArrayInitializer::isAssociativeArray()
-{
-    for (size_t i = 0; i < value.dim; i++)
-    {
-        if (index[i])
-            return 1;
-    }
-    return 0;
-}
-
-Type *ArrayInitializer::inferType(Scope *sc)
-{
-    //printf("ArrayInitializer::inferType() %s\n", toChars());
-    assert(0);
-    return NULL;
-#if 0
-    type = Type::terror;
-    for (size_t i = 0; i < value.dim; i++)
-    {
-        if (index.data[i])
-            goto Laa;
-    }
-    for (size_t i = 0; i < value.dim; i++)
-    {
-        Initializer *iz = (Initializer *)value.data[i];
-        if (iz)
-        {   Type *t = iz->inferType(sc);
-            if (i == 0)
-            {   /* BUG: This gets the type from the first element.
-                 * Fix to use all the elements to figure out the type.
-                 */
-                t = new TypeSArray(t, new IntegerExp(value.dim));
-                t = t->semantic(loc, sc);
-                type = t;
-            }
-        }
-    }
-    return type;
-
-Laa:
-    /* It's possibly an associative array initializer.
-     * BUG: inferring type from first member.
-     */
-    Initializer *iz = (Initializer *)value.data[0];
-    Expression *indexinit = (Expression *)index.data[0];
-    if (iz && indexinit)
-    {   Type *t = iz->inferType(sc);
-        indexinit = indexinit->semantic(sc);
-        Type *indext = indexinit->type;
-        t = new TypeAArray(t, indext);
-        type = t->semantic(loc, sc);
-    }
-    else
-        error(loc, "cannot infer type from this array initializer");
-    return type;
-#endif
-}
-
-
-void ArrayInitializer::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writeByte('[');
-    for (size_t i = 0; i < index.dim; i++)
-    {
-        if (i > 0)
-            buf->writestring(", ");
-        Expression *ex = index[i];
-        if (ex)
-        {
-            ex->toCBuffer(buf, hgs);
-            buf->writeByte(':');
-        }
-        Initializer *iz = value[i];
-        if (iz)
-            iz->toCBuffer(buf, hgs);
-    }
-    buf->writeByte(']');
-}
-
-
 /********************************** ExpInitializer ************************************/
 
 ExpInitializer::ExpInitializer(Loc loc, Expression *exp)
     : Initializer(loc)
 {
     this->exp = exp;
-    this->expandTuples = 0;
+    this->expandTuples = false;
 }
 
 Initializer *ExpInitializer::syntaxCopy()
@@ -735,6 +685,7 @@ Initializer *ExpInitializer::syntaxCopy()
     return new ExpInitializer(loc, exp->syntaxCopy());
 }
 
+#if 1   // should be removed and rely on ctfeInterpreter()
 bool arrayHasNonConstPointers(Expressions *elems);
 
 bool hasNonConstPointers(Expression *e)
@@ -803,14 +754,69 @@ bool hasNonConstPointers(Expression *e)
 bool arrayHasNonConstPointers(Expressions *elems)
 {
     for (size_t i = 0; i < elems->dim; i++)
-    {   Expression *e = (*elems)[i];
+    {
+        Expression *e = (*elems)[i];
         if (e && hasNonConstPointers(e))
             return true;
     }
     return false;
 }
+#endif
 
+Initializer *ExpInitializer::inferType(Scope *sc)
+{
+    //printf("ExpInitializer::inferType() %s\n", toChars());
+    exp = exp->semantic(sc);
+    exp = resolveProperties(sc, exp);
 
+    if (exp->op == TOKimport)
+    {
+        ScopeExp *se = (ScopeExp *)exp;
+        TemplateInstance *ti = se->sds->isTemplateInstance();
+        if (ti && ti->semanticRun == PASSsemantic && !ti->aliasdecl)
+            se->error("cannot infer type from %s %s, possible circular dependency", se->sds->kind(), se->toChars());
+        else
+            se->error("cannot infer type from %s %s", se->sds->kind(), se->toChars());
+        return new ErrorInitializer();
+    }
+
+    // Give error for overloaded function addresses
+    if (exp->op == TOKsymoff)
+    {
+        SymOffExp *se = (SymOffExp *)exp;
+        if (se->hasOverloads && !se->var->isFuncDeclaration()->isUnique())
+        {
+            exp->error("cannot infer type from overloaded function symbol %s", exp->toChars());
+            return new ErrorInitializer();
+        }
+    }
+    if (exp->op == TOKdelegate)
+    {
+        DelegateExp *se = (DelegateExp *)exp;
+        if (se->hasOverloads &&
+            se->func->isFuncDeclaration() &&
+            !se->func->isFuncDeclaration()->isUnique())
+        {
+            exp->error("cannot infer type from overloaded function symbol %s", exp->toChars());
+            return new ErrorInitializer();
+        }
+    }
+    if (exp->op == TOKaddress)
+    {
+        AddrExp *ae = (AddrExp *)exp;
+        if (ae->e1->op == TOKoverloadset)
+        {
+            exp->error("cannot infer type from overloaded function symbol %s", exp->toChars());
+            return new ErrorInitializer();
+        }
+    }
+
+    if (exp->op == TOKerror)
+        return new ErrorInitializer();
+    if (!exp->type)
+        return new ErrorInitializer();
+    return this;
+}
 
 Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInterpret)
 {
@@ -857,9 +863,7 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInte
     Type *tb = t->toBasetype();
     Type *ti = exp->type->toBasetype();
 
-    if (exp->op == TOKtuple &&
-        expandTuples &&
-        !exp->implicitConvTo(t))
+    if (exp->op == TOKtuple && expandTuples && !exp->implicitConvTo(t))
         return new ExpInitializer(loc, exp);
 
     /* Look for case of initializing a static array with a too-short
@@ -869,8 +873,8 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInte
      * literal.
      */
     if (exp->op == TOKstring && tb->ty == Tsarray && ti->ty == Tsarray)
-    {   StringExp *se = (StringExp *)exp;
-
+    {
+        StringExp *se = (StringExp *)exp;
         if (!se->committed && se->type->ty == Tsarray &&
             ((TypeSArray *)se->type)->dim->toInteger() <
             ((TypeSArray *)t)->dim->toInteger())
@@ -887,7 +891,8 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInte
     {
         StructDeclaration *sd = ((TypeStruct *)tb)->sym;
         if (sd->ctor)
-        {   // Rewrite as S().ctor(exp)
+        {
+            // Rewrite as S().ctor(exp)
             Expression *e;
             e = new StructLiteralExp(loc, sd, NULL);
             e = new DotIdExp(loc, e, Id::ctor);
@@ -956,84 +961,25 @@ L1:
     return this;
 }
 
-Type *ExpInitializer::inferType(Scope *sc)
-{
-    //printf("ExpInitializer::inferType() %s\n", toChars());
-    exp = exp->semantic(sc);
-    exp = resolveProperties(sc, exp);
-    if (exp->op == TOKimport)
-    {   ScopeExp *se = (ScopeExp *)exp;
-        TemplateInstance *ti = se->sds->isTemplateInstance();
-        if (ti && ti->semanticRun == PASSsemantic && !ti->aliasdecl)
-            se->error("cannot infer type from %s %s, possible circular dependency", se->sds->kind(), se->toChars());
-        else
-            se->error("cannot infer type from %s %s", se->sds->kind(), se->toChars());
-        return Type::terror;
-    }
-
-    // Give error for overloaded function addresses
-    if (exp->op == TOKsymoff)
-    {
-        SymOffExp *se = (SymOffExp *)exp;
-        if (se->hasOverloads && !se->var->isFuncDeclaration()->isUnique())
-        {
-            exp->error("cannot infer type from overloaded function symbol %s", exp->toChars());
-            return Type::terror;
-        }
-    }
-    if (exp->op == TOKdelegate)
-    {
-        DelegateExp *se = (DelegateExp *)exp;
-        if (se->hasOverloads &&
-            se->func->isFuncDeclaration() &&
-            !se->func->isFuncDeclaration()->isUnique())
-        {
-            exp->error("cannot infer type from overloaded function symbol %s", exp->toChars());
-            return Type::terror;
-        }
-    }
-    if (exp->op == TOKaddress)
-    {
-        AddrExp *ae = (AddrExp *)exp;
-        if (ae->e1->op == TOKoverloadset)
-        {
-            exp->error("cannot infer type from overloaded function symbol %s", exp->toChars());
-            return Type::terror;
-        }
-    }
-
-    Type *t = exp->type;
-    if (!t)
-        t = Initializer::inferType(sc);
-    return t;
-}
-
 Expression *ExpInitializer::toExpression(Type *t)
 {
     if (t)
     {
+        //printf("ExpInitializer::toExpression(t = %s) exp = %s\n", t->toChars(), exp->toChars());
         Type *tb = t->toBasetype();
-        if (tb->ty == Tsarray && exp->implicitConvTo(tb->nextOf()))
+        Expression *e = (exp->op == TOKconstruct || exp->op == TOKblit) ? ((AssignExp *)exp)->e2 : exp;
+        if (tb->ty == Tsarray && e->implicitConvTo(tb->nextOf()))
         {
             TypeSArray *tsa = (TypeSArray *)tb;
             size_t d = (size_t)tsa->dim->toInteger();
             Expressions *elements = new Expressions();
             elements->setDim(d);
             for (size_t i = 0; i < d; i++)
-                (*elements)[i] = exp;
-            ArrayLiteralExp *ae = new ArrayLiteralExp(exp->loc, elements);
+                (*elements)[i] = e;
+            ArrayLiteralExp *ae = new ArrayLiteralExp(e->loc, elements);
             ae->type = t;
-            exp = ae;
+            return ae;
         }
     }
     return exp;
 }
-
-
-void ExpInitializer::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    exp->toCBuffer(buf, hgs);
-}
-
-
-

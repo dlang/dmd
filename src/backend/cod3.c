@@ -2213,6 +2213,8 @@ code* gen_testcse(code *c, unsigned sz, targ_uns i)
                 FLcs,i, FLconst,(targ_uns) 0);
     if ((I64 || I32) && sz == 2)
         c->Iflags |= CFopsize;
+    if (I64 && sz == 8)
+        code_orrex(c, REX_W);
     return c;
 }
 
@@ -3939,12 +3941,22 @@ code* gen_spill_reg(Symbol* s, bool toreg)
         cs.orReg(s->Sreglsw);
         if (I64 && sz == 1 && s->Sreglsw >= 4)
             cs.Irex |= REX;
-        c = gen(c,&cs);
+        if ((cs.Irm & 0xC0) == 0xC0 &&                  // reg,reg
+            (((cs.Irm >> 3) ^ cs.Irm) & 7) == 0 &&      // registers match
+            (((cs.Irex >> 2) ^ cs.Irex) & 1) == 0)      // REX_R and REX_B match
+            ;                                           // skip MOV reg,reg
+        else
+            c = gen(c,&cs);
         if (sz > REGSIZE)
         {
             cs.setReg(s->Sregmsw);
             getlvalue_msw(&cs);
-            c = gen(c,&cs);
+            if ((cs.Irm & 0xC0) == 0xC0 &&              // reg,reg
+                (((cs.Irm >> 3) ^ cs.Irm) & 7) == 0 &&  // registers match
+                (((cs.Irex >> 2) ^ cs.Irex) & 1) == 0)  // REX_R and REX_B match
+                ;                                       // skip MOV reg,reg
+            else
+                c = gen(c,&cs);
         }
     }
 
@@ -4140,7 +4152,7 @@ void cod3_thunk(symbol *sthunk,symbol *sfunc,unsigned p,tym_t thisty,
     objmod->pubdef(cseg,sthunk,sthunk->Soffset);
 #endif
 #if TARGET_WINDOS
-    if (config.exe == EX_WIN64)
+    if (config.objfmt == OBJ_MSCOFF)
         objmod->pubdef(cseg,sthunk,sthunk->Soffset);
 #endif
     searchfixlist(sthunk);              /* resolve forward refs */
@@ -5143,7 +5155,8 @@ void pinholeopt(code *c,block *b)
                         break;
                     case 0x8F:  op = 0x58 + ereg; break;
                     case 0x87:
-                        if (reg == 0) op = 0x90 + ereg;
+                        if (reg == 0 && !(c->Irex & (REX_R | REX_B))) // Issue 12968: Needed to ensure it's referencing RAX, not R8
+                            op = 0x90 + ereg;
                         break;
                 }
                 c->Iop = op;

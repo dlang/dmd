@@ -1,11 +1,13 @@
 
-// Copyright (c) 1999-2014 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/toobj.c
+ */
 
 #include <stdio.h>
 #include <stddef.h>
@@ -25,6 +27,7 @@
 #include "import.h"
 #include "template.h"
 #include "nspace.h"
+#include "hdrgen.h"
 
 #include "rmem.h"
 #include "target.h"
@@ -206,7 +209,7 @@ void Module::genmoduleinfo()
 #endif
 
     csym->Sdt = dt;
-    // Cannot be CONST because the startup code sets flag bits in it
+    out_readonly(csym);
     outdata(csym);
 
     //////////////////////////////////////////////
@@ -401,6 +404,14 @@ void ClassDeclaration::toObjFile(bool multiobj)
     flags |= ClassFlags::hasTypeInfo;
     if (ctor)
         flags |= ClassFlags::hasCtor;
+    for (ClassDeclaration *cd = this; cd; cd = cd->baseClass)
+    {
+        if (cd->dtor)
+        {
+            flags |= ClassFlags::hasDtor;
+            break;
+        }
+    }
     if (isabstract)
         flags |= ClassFlags::isAbstract;
     for (ClassDeclaration *cd = this; cd; cd = cd->baseClass)
@@ -604,7 +615,7 @@ void ClassDeclaration::toObjFile(bool multiobj)
                         if (tf->ty == Tfunction)
                             deprecation("use of %s%s hidden by %s is deprecated; use 'alias %s = %s.%s;' to introduce base class overload set",
                                 fd->toPrettyChars(),
-                                Parameter::argsTypesToChars(tf->parameters, tf->varargs),
+                                parametersTypeToChars(tf->parameters, tf->varargs),
                                 toChars(),
 
                                 fd->toChars(),
@@ -859,12 +870,14 @@ void StructDeclaration::toObjFile(bool multiobj)
     //printf("StructDeclaration::toObjFile('%s')\n", toChars());
 
     if (type->ty == Terror)
-    {   error("had semantic errors when compiling");
+    {
+        error("had semantic errors when compiling");
         return;
     }
 
     if (multiobj && !hasStaticCtorOrDtor())
-    {   obj_append(this);
+    {
+        obj_append(this);
         return;
     }
 
@@ -911,6 +924,8 @@ void StructDeclaration::toObjFile(bool multiobj)
             xeq->toObjFile(multiobj);
         if (xcmp && xcmp != xerrcmp)
             xcmp->toObjFile(multiobj);
+        if (xhash)
+            xhash->toObjFile(multiobj);
     }
 }
 
@@ -948,10 +963,7 @@ void VarDeclaration::toObjFile(bool multiobj)
 
         parent = this->toParent();
         {
-            if (storage_class & STCcomdat)
-                s->Sclass = SCcomdat;
-            else
-                s->Sclass = SCglobal;
+            s->Sclass = SCglobal;
 
             do
             {
@@ -1206,9 +1218,18 @@ void TemplateInstance::toObjFile(bool multiobj)
 #endif
     if (!isError(this) && members)
     {
+        if (!needsCodegen())
+        {
+            //printf("-speculative (%p, %s)\n", this, toPrettyChars());
+            return;
+        }
+        //printf("TemplateInstance::toObjFile('%s', this = %p)\n", toChars(), this);
+
         if (multiobj)
+        {
             // Append to list of object files to be written later
             obj_append(this);
+        }
         else
         {
             for (size_t i = 0; i < members->dim; i++)
@@ -1225,7 +1246,14 @@ void TemplateInstance::toObjFile(bool multiobj)
 void TemplateMixin::toObjFile(bool multiobj)
 {
     //printf("TemplateMixin::toObjFile('%s')\n", toChars());
-    TemplateInstance::toObjFile(0);
+    if (!isError(this) && members)
+    {
+        for (size_t i = 0; i < members->dim; i++)
+        {
+            Dsymbol *s = (*members)[i];
+            s->toObjFile(multiobj);
+        }
+    }
 }
 
 /* ================================================================== */
@@ -1250,5 +1278,3 @@ void Nspace::toObjFile(bool multiobj)
         }
     }
 }
-
-

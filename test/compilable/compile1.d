@@ -11,6 +11,36 @@ class C1748(T) {}
 static assert(C1748!int.stringof == "C1748!int");
 
 /**************************************************
+    2438
+**************************************************/
+
+alias void delegate() Dg2438;
+
+alias typeof(Dg2438.ptr)     CP2438a;
+alias typeof(Dg2438.funcptr) FP2438a;
+static assert(is(CP2438a == void*));
+static assert(is(FP2438a == void function()));
+
+alias typeof(Dg2438.init.ptr)     CP2438b;
+alias typeof(Dg2438.init.funcptr) FP2438b;
+static assert(is(CP2438b == void*));
+static assert(is(FP2438b == void function()));
+
+/**************************************************
+    4225
+**************************************************/
+
+struct Foo4225
+{
+    enum x = Foo4225();
+
+    static Foo4225 opCall()
+    {
+        return Foo4225.init;
+    }
+}
+
+/**************************************************
     5996    ICE(expression.c)
 **************************************************/
 
@@ -520,6 +550,30 @@ class C10326
     invariant   { assert(val == 0); }
     invariant() { assert(val == 0); }
 }
+
+/***************************************************/
+// 11042
+
+static if           ((true  || error) == true ) {} else { static assert(0); }
+static if           ((false && error) == false) {} else { static assert(0); }
+static assert       ((true  || error) == true );
+static assert       ((false && error) == false);
+int f11042a1()() if ((true  || error) == true ) { return 0; }   enum x11042a1 = f11042a1();
+int f11042b1()() if ((false && error) == false) { return 0; }   enum x11042b1 = f11042b1();
+
+static if           (is(typeof(true  || error)) == false) {} else { static assert(0); }
+static if           (is(typeof(false && error)) == false) {} else { static assert(0); }
+static assert       (is(typeof(true  || error)) == false);
+static assert       (is(typeof(false && error)) == false);
+int f11042a2()() if (is(typeof(true  || error)) == false) { return 0; }   enum x11042a2 = f11042a2();
+int f11042b2()() if (is(typeof(false && error)) == false) { return 0; }   enum x11042b2 = f11042b2();
+
+static if           (__traits(compiles, true  || error) == false) {} else { static assert(0); }
+static if           (__traits(compiles, false && error) == false) {} else { static assert(0); }
+static assert       (__traits(compiles, true  || error) == false);
+static assert       (__traits(compiles, false && error) == false);
+int f11042a3()() if (__traits(compiles, true  || error) == false) { return 0; }   enum x11042a3 = f11042a3();
+int f11042b3()() if (__traits(compiles, false && error) == false) { return 0; }   enum x11042b3 = f11042b3();
 
 /***************************************************/
 // 11554

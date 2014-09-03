@@ -1,12 +1,13 @@
 
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2013 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/module.h
+ */
 
 #ifndef DMD_MODULE_H
 #define DMD_MODULE_H
@@ -52,6 +53,8 @@ public:
 
     Package *isPackage() { return this; }
 
+    bool isAncestorPackageOf(Package *pkg);
+
     void semantic(Scope *sc) { }
     Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
     void accept(Visitor *v) { v->visit(this); }
@@ -78,7 +81,6 @@ public:
     File *srcfile;      // input source file
     File *objfile;      // output .obj file
     File *hdrfile;      // 'header' file
-    File *symfile;      // output symbol file
     File *docfile;      // output documentation file
     unsigned errors;    // if any errors in file
     unsigned numlines;  // number of lines in source file
@@ -90,6 +92,9 @@ public:
     int selfImports();          // returns !=0 if module imports itself
 
     int insearch;
+    Identifier *searchCacheIdent;
+    Dsymbol *searchCacheSymbol; // cached value of search
+    int searchCacheFlags;       // cached flags
 
     Module *importedFrom;       // module from command line we're imported from,
                                 // i.e. a module that will be taken all the
@@ -130,14 +135,15 @@ public:
     void semantic3();   // pass 3 semantic analysis
     void genobjfile(bool multiobj);
     void genhelpers(bool iscomdat);
-    void gensymfile();
     int needModuleInfo();
     Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
+    Dsymbol *symtabInsert(Dsymbol *s);
     void deleteObjFile();
     static void addDeferredSemantic(Dsymbol *s);
     static void runDeferredSemantic();
     static void addDeferredSemantic3(Dsymbol *s);
     static void runDeferredSemantic3();
+    static void clearCache();
     int imports(Module *m);
 
     bool isRoot() { return this->importedFrom == this; }
@@ -181,6 +187,8 @@ struct ModuleDeclaration
     Identifier *id;
     Identifiers *packages;            // array of Identifier's representing packages
     bool safe;
+    bool isdeprecated;  // if it is a deprecated module
+    Expression *msg;
 
     ModuleDeclaration(Loc loc, Identifiers *packages, Identifier *id, bool safe);
 

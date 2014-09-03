@@ -3,9 +3,9 @@ TEST_OUTPUT:
 ---
 fail_compilation/fail177.d(22): Error: cannot modify immutable expression j
 fail_compilation/fail177.d(24): Error: cannot modify const expression i
-fail_compilation/fail177.d(26): Error: can only initialize const member x inside constructor
+fail_compilation/fail177.d(26): Error: cannot modify const expression s1.x
 fail_compilation/fail177.d(27): Error: cannot modify const expression *s1.p
-fail_compilation/fail177.d(29): Error: can only initialize const member x inside constructor
+fail_compilation/fail177.d(29): Error: cannot modify const expression s2.x
 fail_compilation/fail177.d(30): Error: cannot modify const expression *s2.p
 ---
 */

@@ -1,12 +1,13 @@
 
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2012 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/toir.c
+ */
 
 /* Code to help convert to the intermediate representation
  * of the compiler back end.
@@ -388,6 +389,16 @@ int intrinsic_op(char *name)
         "4simd6__simdFNaNbNiNfE4core4simd3XMMfZNhG16v",
         "4simd9__simd_ibFNaNbNiNfE4core4simd3XMMNhG16vhZNhG16v",
 
+        "5bitop12volatileLoadFNbNiNfPhZh",
+        "5bitop12volatileLoadFNbNiNfPkZk",
+        "5bitop12volatileLoadFNbNiNfPmZm",
+        "5bitop12volatileLoadFNbNiNfPtZt",
+
+        "5bitop13volatileStoreFNbNiNfPhhZv",
+        "5bitop13volatileStoreFNbNiNfPkkZv",
+        "5bitop13volatileStoreFNbNiNfPmmZv",
+        "5bitop13volatileStoreFNbNiNfPttZv",
+
         "5bitop3bsfFNaNbNiNfkZi",
         "5bitop3bsrFNaNbNiNfkZi",
         "5bitop3btcFNaNbNiPkkZi",
@@ -424,6 +435,16 @@ int intrinsic_op(char *name)
         "4simd6__simdFNaNbNiNfE4core4simd3XMMdZNhG16v",
         "4simd6__simdFNaNbNiNfE4core4simd3XMMfZNhG16v",
         "4simd9__simd_ibFNaNbNiNfE4core4simd3XMMNhG16vhZNhG16v",
+
+        "5bitop12volatileLoadFNbNiNfPhZh",
+        "5bitop12volatileLoadFNbNiNfPkZk",
+        "5bitop12volatileLoadFNbNiNfPmZm",
+        "5bitop12volatileLoadFNbNiNfPtZt",
+
+        "5bitop13volatileStoreFNbNiNfPhhZv",
+        "5bitop13volatileStoreFNbNiNfPkkZv",
+        "5bitop13volatileStoreFNbNiNfPmmZv",
+        "5bitop13volatileStoreFNbNiNfPttZv",
 
         "5bitop3bsfFNaNbNiNfmZi",
         "5bitop3bsrFNaNbNiNfmZi",
@@ -462,6 +483,16 @@ int intrinsic_op(char *name)
         OPvector,
         OPvector,
 
+        OPind,
+        OPind,
+        OPind,
+        OPind,
+
+        OPeq,
+        OPeq,
+        OPeq,
+        OPeq,
+
         OPbsf,
         OPbsr,
         OPbtc,
@@ -471,6 +502,7 @@ int intrinsic_op(char *name)
         OPinp,
         OPinp,
         OPoutp,
+
         OPbswap,
         OPoutp,
         OPoutp,
@@ -500,6 +532,7 @@ int intrinsic_op(char *name)
     assert(sizeof(core_namearray) / sizeof(char *) == sizeof(core_ioptab));
     for (size_t i = 0; i < sizeof(core_namearray) / sizeof(char *) - 1; i++)
     {
+        //printf("test1 %s %s %d\n", core_namearray[i], core_namearray[i + 1], strcmp(core_namearray[i], core_namearray[i + 1]));
         if (strcmp(core_namearray[i], core_namearray[i + 1]) >= 0)
         {
             printf("core_namearray[%ld] = '%s'\n", (long)i, core_namearray[i]);

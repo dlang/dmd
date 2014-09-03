@@ -1968,46 +1968,7 @@ void test1961b()
 inout(T) min2(int i, int j, T)(inout(T) a, inout(T) b)
 {
     //pragma(msg, "(", i, ", ", j, ") = ", T);
-    static if (i == 0)
-    {
-        static if (j == 0) static assert(is(T == immutable(char)[]));
-        static if (j == 1) static assert(is(T == immutable(char)[]));
-        static if (j == 2) static assert(is(T == const(char)[]));
-        static if (j == 3) static assert(is(T == const(char)[]));
-        static if (j == 4) static assert(is(T == const(char)[]));
-    }
-    static if (i == 1)
-    {
-        static if (j == 0) static assert(is(T == immutable(char)[]));
-        static if (j == 1) static assert(is(T == immutable(char)[]));
-        static if (j == 2) static assert(is(T == const(char)[]));
-        static if (j == 3) static assert(is(T == const(char)[]));
-        static if (j == 4) static assert(is(T == const(char)[]));
-    }
-    static if (i == 2)
-    {
-        static if (j == 0) static assert(is(T == const(char)[]));
-        static if (j == 1) static assert(is(T == const(char)[]));
-        static if (j == 2) static assert(is(T == const(char)[]));
-        static if (j == 3) static assert(is(T == const(char)[]));
-        static if (j == 4) static assert(is(T == const(char)[]));
-    }
-    static if (i == 3)
-    {
-        static if (j == 0) static assert(is(T == const(char)[]));
-        static if (j == 1) static assert(is(T == const(char)[]));
-        static if (j == 2) static assert(is(T == const(char)[]));
-        static if (j == 3) static assert(is(T == const(char)[]));
-        static if (j == 4) static assert(is(T == const(char)[]));
-    }
-    static if (i == 4)
-    {
-        static if (j == 0) static assert(is(T == const(char)[]));
-        static if (j == 1) static assert(is(T == const(char)[]));
-        static if (j == 2) static assert(is(T == const(char)[]));
-        static if (j == 3) static assert(is(T == const(char)[]));
-        static if (j == 4) static assert(is(T == char[]));
-    }
+    static assert(is(T == char[]));
     return a < b ? a : b;
 }
 
@@ -2026,55 +1987,39 @@ void test1961c()
     {
         min2!(i, j)(x, y);
         //pragma(msg, "x: ",typeof(x), ", y: ",typeof(y), " -> ", typeof(min2(x, y)), " : ", __traits(compiles, min2(x, y)));
-        /+
-        x: immutable(char[])    , y: immutable(char[]) -> immutable(char[])         : true
-        x: immutable(char[])    , y: immutable(char)[] -> const(immutable(char)[])  : true
-        x: immutable(char[])    , y: const(char[])     -> const(char[])             : true
-        x: immutable(char[])    , y: const(char)[]     -> const(char[])             : true
-        x: immutable(char[])    , y: char[]            -> const(char[])             : true
-
-        x: immutable(char)[]    , y: immutable(char[]) -> const(immutable(char)[])  : true
-        x: immutable(char)[]    , y: immutable(char)[] -> immutable(char)[]         : true
-        x: immutable(char)[]    , y: const(char[])     -> const(char[])             : true
-        x: immutable(char)[]    , y: const(char)[]     -> const(char)[]             : true
-        x: immutable(char)[]    , y: char[]            -> const(char)[]             : true
-
-        x: const(char[])        , y: immutable(char[]) -> const(char[])             : true
-        x: const(char[])        , y: immutable(char)[] -> const(char[])             : true
-        x: const(char[])        , y: const(char[])     -> const(char[])             : true
-        x: const(char[])        , y: const(char)[]     -> const(char[])             : true
-        x: const(char[])        , y: char[]            -> const(char[])             : true
-
-        x: const(char)[]        , y: immutable(char[]) -> const(char[])             : true
-        x: const(char)[]        , y: immutable(char)[] -> const(char)[]             : true
-        x: const(char)[]        , y: const(char[])     -> const(char[])             : true
-        x: const(char)[]        , y: const(char)[]     -> const(char)[]             : true
-        x: const(char)[]        , y: char[]            -> const(char)[]             : true
-
-        x: char[]               , y: immutable(char[]) -> const(char[])             : true
-        x: char[]               , y: immutable(char)[] -> const(char)[]             : true
-        x: char[]               , y: const(char[])     -> const(char[])             : true
-        x: char[]               , y: const(char)[]     -> const(char)[]             : true
-        x: char[]               , y: char[]            -> char[]                    : true
-        +/
     }
 }
 
 /************************************/
 
-inout(int) function(inout(int)) notinoutfun1() { return null; }
-inout(int) delegate(inout(int)) notinoutfun2() { return null; }
-void notinoutfun1(inout(int) function(inout(int)) fn) {}
-void notinoutfun2(inout(int) delegate(inout(int)) dg) {}
+inout(int) function(inout(int))   notinoutfun1() { return null; }
+inout(int) function(inout(int))[] notinoutfun2() { return null; }
+inout(int) delegate(inout(int))   notinoutfun3() { return null; }
+inout(int) delegate(inout(int))[] notinoutfun4() { return null; }
+void notinoutfun1(inout(int) function(inout(int))   fn) {}
+void notinoutfun2(inout(int) function(inout(int))[] fn) {}
+void notinoutfun3(inout(int) delegate(inout(int))   dg) {}
+void notinoutfun4(inout(int) delegate(inout(int))[] dg) {}
 
 void test88()
 {
-    inout(int) function(inout(int)) fp;
-    inout(int) delegate(inout(int)) dg;
+    inout(int) function(inout int) fp;
+    inout(int) delegate(inout int) dg;
 
-    static assert(!__traits(compiles, {
-        inout(int)* p;
-    }));
+    inout(int) function(inout int)*   fp2p;
+    inout(int) function(inout int)[]  fp2a;
+    inout(int) function(inout int)[3] fp2s;
+
+    inout(int) delegate(inout int)*   dg3p;
+    inout(int) delegate(inout int)[]  dg3a;
+    inout(int) delegate(inout int)[3] dg3s;
+
+    int delegate() inout*   dg4p;
+    int delegate() inout[]  dg4a;
+    int delegate() inout[3] dg4s;
+
+    static assert(!__traits(compiles, { inout(int)* p; }));
+    static assert(!__traits(compiles, { inout(int delegate()) dg; }));
 }
 
 /************************************/
@@ -3709,6 +3654,30 @@ void test12403()
 }
 
 /************************************/
+// 13011
+
+void test13011()
+{
+    static size_t hashOf(int delegate() inout val)
+    {
+        return 0;
+    }
+
+    int delegate() inout dg;
+    auto h = hashOf(dg);
+}
+
+/************************************/
+// 13030
+
+void va13030(Args...)(const Args args) {}
+
+void func13030(int delegate(int n) a)
+{
+    va13030(a);
+}
+
+/************************************/
 
 int main()
 {
@@ -3838,6 +3807,7 @@ int main()
     test9209();
     test11226();
     test11768();
+    test13011();
 
     printf("Success\n");
     return 0;

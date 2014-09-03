@@ -1,12 +1,13 @@
 
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2013 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/typinf.c
+ */
 
 #include <stdio.h>
 #include <string.h>
@@ -91,7 +92,6 @@ Expression *Type::getInternalTypeInfo(Scope *sc)
 }
 
 
-FuncDeclaration *search_toHash(StructDeclaration *sd);
 FuncDeclaration *search_toString(StructDeclaration *sd);
 
 /****************************************************
@@ -130,11 +130,19 @@ void Type::genTypeInfo(Scope *sc)
             // Generate COMDAT
             if (sc)                     // if in semantic() pass
             {
-                // Find module that will go all the way to an object file
-                Module *m = sc->module->importedFrom;
-                m->members->push(t->vtinfo);
+                if (sc->func && !sc->func->isInstantiated() && sc->func->inNonRoot())
+                {
+                    // Bugzilla 13043: Avoid linking TypeInfo if it's not
+                    // necessary for root module compilation
+                }
+                else
+                {
+                    // Find module that will go all the way to an object file
+                    Module *m = sc->module->importedFrom;
+                    m->members->push(t->vtinfo);
 
-                semanticTypeInfo(sc, t);
+                    semanticTypeInfo(sc, t);
+                }
             }
             else                        // if in obj generation pass
             {
@@ -608,7 +616,7 @@ public:
         else
             dtxoff(pdt, sd->toInitializer(), 0);    // init.ptr
 
-        if (FuncDeclaration *fd = search_toHash(sd))
+        if (FuncDeclaration *fd = sd->xhash)
         {
             dtxoff(pdt, toSymbol(fd), 0);
             TypeFunction *tf = (TypeFunction *)fd->type;

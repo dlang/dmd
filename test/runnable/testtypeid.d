@@ -523,6 +523,62 @@ void test11010()
 }
 
 /******************************************************/
+// 13045
+
+void test13045a()
+{
+    static struct S
+    {
+        int[] a;
+    }
+
+    auto s1 = S([1,2]);
+    auto s2 = S([1,2]);
+    assert(s1 !is s2);
+    assert(s1 == s2);
+    assert(typeid(S).getHash(&s1) == typeid(S).getHash(&s2));   // should succeed
+}
+
+void test13045b()
+{
+    bool thrown(T)(lazy T cond)
+    {
+        import core.exception;
+        try
+            cond();
+        catch (Error e)
+            return true;
+        return false;
+    }
+
+    struct S
+    {
+        size_t toHash() const nothrow @safe
+        {
+            // all getHash call should reach here
+            throw new Error("");
+        }
+    }
+    struct T
+    {
+        S s;
+    }
+    S s;
+    assert(thrown(typeid(S).getHash(&s)));      // OK
+    S[1] ssa;
+    assert(thrown(typeid(S[1]).getHash(&ssa))); // OK
+    S[] sda = [S(), S()];
+    assert(thrown(typeid(S[]).getHash(&sda)));  // OK
+
+    T t;
+    assert(thrown(typeid(T).getHash(&t)));      // OK <- NG
+    T[1] tsa;
+    assert(thrown(typeid(T[1]).getHash(&tsa))); // OK <- NG
+    T[] tda = [T(), T()];
+    assert(thrown(typeid(T[]).getHash(&tda)));  // OK <- NG
+}
+
+/******************************************************/
 
 int main()
 {
@@ -564,6 +620,8 @@ int main()
     test9442();
     test10451();
     test11010();
+    test13045a();
+    test13045b();
 
     return 0;
 }

@@ -19,6 +19,8 @@
 #include "global.h"
 #include "mach.h"
 
+void mangleToBuffer(Type *t, OutBuffer *buf);
+
 #define DMD_OBJC_ALIGN 2
 
 static void error (const char* format, ...)
@@ -702,7 +704,7 @@ ObjcSelector *ObjcSelector::create(FuncDeclaration *fdecl)
         for (size_t i = 0; i < dim; i++)
         {
             Parameter *arg = Parameter::getNth(arguments, i);
-            arg->toDecoBuffer(&buf);
+            mangleToBuffer(arg->type, &buf);
             buf.writeByte(':');
         }
         pcount = dim;

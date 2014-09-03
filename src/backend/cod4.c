@@ -2902,10 +2902,10 @@ code *cdshtlng(elem *e,regm_t *pretregs)
         if (op == OPu16_32 && c1)
         {
             code *cx = code_last(c1);
-            if (cx->Iop == 0x81 && (cx->Irm & modregrm(3,7,0)) == modregrm(3,4,0))
+            if (cx->Iop == 0x81 && (cx->Irm & modregrm(3,7,0)) == modregrm(3,4,0) &&
+                mask[cx->Irm & 7] == retregs)
             {
                 // Convert AND of a word to AND of a dword, zeroing upper word
-                retregs = mask[cx->Irm & 7];
                 if (cx->Irex & REX_B)
                     retregs = mask[8 | (cx->Irm & 7)];
                 cx->Iflags &= ~CFopsize;

@@ -1,12 +1,12 @@
 
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2012 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars, All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/optimize.c
+ */
 
 #include <stdio.h>
 #include <ctype.h>
@@ -322,7 +322,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
                 Expression *ex = ((PtrExp *)e->e1)->e1;
                 if (e->type->equals(ex->type))
                     ret = ex;
-                else
+                else if (e->type->toBasetype()->immutableOf()->equals(ex->type->toBasetype()->immutableOf()))
                 {
                     ret = ex->copy();
                     ret->type = e->type;
@@ -373,12 +373,13 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             //printf("PtrExp::optimize(result = x%x) %s\n", result, e->toChars());
             e->e1 = e->e1->optimize(result);
             // Convert *&ex to ex
+            // But only if there is no type punning involved
             if (e->e1->op == TOKaddress)
             {
                 Expression *ex = ((AddrExp *)e->e1)->e1;
                 if (e->type->equals(ex->type))
                     ret = ex;
-                else
+                else if (e->type->toBasetype()->immutableOf()->equals(ex->type->toBasetype()->immutableOf()))
                 {
                     ret = ex->copy();
                     ret->type = e->type;
@@ -436,8 +437,10 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             {
                 StructLiteralExp *sle = (StructLiteralExp *)ex;
                 VarDeclaration *vf = e->var->isVarDeclaration();
-                if (vf)
+                if (vf && !vf->overlapped)
                 {
+                    /* Bugzilla 13021: Prevent optimization if vf has overlapped fields.
+                     */
                     ex = sle->getField(e->type, vf->offset);
                     if (ex && ex != EXP_CANT_INTERPRET)
                     {
@@ -527,9 +530,13 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
 
             if ((e->e1->op == TOKstring || e->e1->op == TOKarrayliteral) &&
                 (e->type->ty == Tpointer || e->type->ty == Tarray) &&
-                e->e1->type->toBasetype()->nextOf()->size() == e->type->nextOf()->size()
-               )
+                e->e1->type->toBasetype()->nextOf()->size() == e->type->nextOf()->size())
             {
+                // Bugzilla 12937: If target type is void array, trying to paint
+                // e->e1 with that type will cause infinite recursive optimization.
+                if (e->type->nextOf()->ty == Tvoid)
+                    return;
+
                 ret = e->e1->castTo(NULL, e->type);
                 //printf(" returning1 %s\n", ret->toChars());
                 return;

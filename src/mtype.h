@@ -1,12 +1,13 @@
 
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2013 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/mtype.h
+ */
 
 #ifndef DMD_MTYPE_H
 #define DMD_MTYPE_H
@@ -27,18 +28,15 @@ class Identifier;
 class Expression;
 class StructDeclaration;
 class ClassDeclaration;
-class VarDeclaration;
 class EnumDeclaration;
 class TypedefDeclaration;
 class TypeInfoDeclaration;
 class Dsymbol;
 class TemplateInstance;
-struct CppMangleState;
 class TemplateDeclaration;
 enum LINK;
 
 class TypeBasic;
-struct HdrGenState;
 class Parameter;
 
 // Back end
@@ -48,11 +46,11 @@ typedef union tree_node type;
 typedef struct TYPE type;
 #endif
 struct Symbol;
-class TypeTuple;
 
 void semanticTypeInfo(Scope *sc, Type *t);
 MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL, size_t inferStart = 0);
 Type *reliesOnTident(Type *t, TemplateParameters *tparams = NULL, size_t iStart = 0);
+StorageClass ModToStc(unsigned mod);
 
 enum ENUMTY
 {
@@ -116,20 +114,26 @@ extern int Tsize_t;
 extern int Tptrdiff_t;
 
 
-/* pick this order of numbers so switch statements work better
+/**
+ * type modifiers
+ * pick this order of numbers so switch statements work better
  */
-#define MODconst     1  // type is const
-#define MODimmutable 4  // type is immutable
-#define MODshared    2  // type is shared
-#define MODwild      8  // type is wild
-#define MODwildconst (MODwild | MODconst)  // type is wild const
-#define MODmutable   0x10       // type is mutable (only used in wildcard matching)
+enum MODFlags
+{
+    MODconst     = 1, // type is const
+    MODimmutable = 4, // type is immutable
+    MODshared    = 2, // type is shared
+    MODwild      = 8, // type is wild
+    MODwildconst = (MODwild | MODconst), // type is wild const
+    MODmutable   = 0x10       // type is mutable (only used in wildcard matching)
+};
+typedef unsigned char MOD;
 
 class Type : public RootObject
 {
 public:
     TY ty;
-    unsigned char mod;  // modifiers MODxxxx
+    MOD mod;  // modifiers MODxxxx
     char *deco;
 
     /* These are cached values that are lazily evaluated by constOf(), immutableOf(), etc.
@@ -219,7 +223,6 @@ public:
     static TemplateDeclaration *rtinfo;
 
     static Type *basic[TMAX];
-    static unsigned char mangleChar[TMAX];
     static unsigned char sizeTy[TMAX];
     static StringTable stringtable;
 
@@ -251,10 +254,8 @@ public:
     virtual unsigned alignsize();
     virtual Type *semantic(Loc loc, Scope *sc);
     Type *trySemantic(Loc loc, Scope *sc);
-    virtual void toDecoBuffer(OutBuffer *buf, int flag = 0);
     Type *merge();
     Type *merge2();
-    void toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
     void modToBuffer(OutBuffer *buf);
     char *modToChars();
 
@@ -297,8 +298,8 @@ public:
     void fixTo(Type *t);
     void check();
     Type *addSTC(StorageClass stc);
-    Type *castMod(unsigned mod);
-    Type *addMod(unsigned mod);
+    Type *castMod(MOD mod);
+    Type *addMod(MOD mod);
     virtual Type *addStorageClass(StorageClass stc);
     Type *pointerTo();
     Type *referenceTo();
@@ -378,7 +379,6 @@ public:
     Type *next;
 
     TypeNext(TY ty, Type *next);
-    void toDecoBuffer(OutBuffer *buf, int flag);
     void checkDeprecated(Loc loc, Scope *sc);
     int hasWild();
     Type *nextOf();
@@ -442,7 +442,6 @@ public:
     Expression *getProperty(Loc loc, Identifier *ident, int flag);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     char *toChars();
-    void toDecoBuffer(OutBuffer *buf, int flag);
     bool isintegral();
     bool isfloating();
     bool isscalar();
@@ -479,7 +478,6 @@ public:
     unsigned alignsize();
     Type *semantic(Loc loc, Scope *sc);
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
-    void toDecoBuffer(OutBuffer *buf, int flag);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     bool isString();
     bool isZeroInit(Loc loc);
@@ -508,7 +506,6 @@ public:
     unsigned alignsize();
     Type *semantic(Loc loc, Scope *sc);
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
-    void toDecoBuffer(OutBuffer *buf, int flag);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     bool isString();
     bool isZeroInit(Loc loc);
@@ -536,7 +533,6 @@ public:
     d_uns64 size(Loc loc);
     Type *semantic(Loc loc, Scope *sc);
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
-    void toDecoBuffer(OutBuffer *buf, int flag);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     Expression *defaultInit(Loc loc);
     bool isZeroInit(Loc loc);
@@ -600,6 +596,10 @@ enum TRUST
     TRUSTsafe = 3,      // @safe
 };
 
+// in hdrgen.c
+void trustToBuffer(OutBuffer *buf, TRUST trust);
+const char *trustToChars(TRUST trust);
+
 enum TRUSTformat
 {
     TRUSTformatDefault,  // do not emit @system when trust == TRUSTdefault
@@ -643,7 +643,6 @@ public:
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
     void purityLevel();
-    void toDecoBuffer(OutBuffer *buf, int flag);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     bool hasLazyParameters();
     bool parameterEscapes(Parameter *p);
@@ -710,7 +709,6 @@ public:
     const char *kind();
     Type *syntaxCopy();
     //char *toChars();
-    void toDecoBuffer(OutBuffer *buf, int flag);
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
     Dsymbol *toDsymbol(Scope *sc);
     Type *semantic(Loc loc, Scope *sc);
@@ -729,7 +727,6 @@ public:
     const char *kind();
     Type *syntaxCopy();
     //char *toChars();
-    //void toDecoBuffer(OutBuffer *buf, int flag);
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
     Type *semantic(Loc loc, Scope *sc);
     Dsymbol *toDsymbol(Scope *sc);
@@ -791,7 +788,6 @@ public:
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
     Dsymbol *toDsymbol(Scope *sc);
-    void toDecoBuffer(OutBuffer *buf, int flag);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     structalign_t alignment();
     Expression *defaultInit(Loc loc);
@@ -824,7 +820,6 @@ public:
     char *toChars();
     Type *semantic(Loc loc, Scope *sc);
     Dsymbol *toDsymbol(Scope *sc);
-    void toDecoBuffer(OutBuffer *buf, int flag);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     Expression *getProperty(Loc loc, Identifier *ident, int flag);
     bool isintegral();
@@ -864,7 +859,6 @@ public:
     char *toChars();
     Type *semantic(Loc loc, Scope *sc);
     Dsymbol *toDsymbol(Scope *sc);
-    void toDecoBuffer(OutBuffer *buf, int flag);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     structalign_t alignment();
     Expression *getProperty(Loc loc, Identifier *ident, int flag);
@@ -906,7 +900,6 @@ public:
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
     Dsymbol *toDsymbol(Scope *sc);
-    void toDecoBuffer(OutBuffer *buf, int flag);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     ClassDeclaration *isClassHandle();
     int isBaseOf(Type *t, int *poffset);
@@ -940,7 +933,6 @@ public:
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
     bool equals(RootObject *o);
-    void toDecoBuffer(OutBuffer *buf, int flag);
     Expression *getProperty(Loc loc, Identifier *ident, int flag);
     Expression *defaultInit(Loc loc);
     TypeInfoDeclaration *getTypeInfoDeclaration();
@@ -968,7 +960,6 @@ public:
     const char *kind();
 
     Type *syntaxCopy();
-    void toDecoBuffer(OutBuffer *buf, int flag);
     MATCH implicitConvTo(Type *to);
     bool checkBoolean();
 
@@ -994,13 +985,11 @@ public:
     static Parameter *create(StorageClass storageClass, Type *type, Identifier *ident, Expression *defaultArg);
     Parameter *syntaxCopy();
     Type *isLazyArray();
-    void toDecoBuffer(OutBuffer *buf);
     // kludge for template.isType()
     int dyncast() { return DYNCAST_PARAMETER; }
+    virtual void accept(Visitor *v) { v->visit(this); }
+
     static Parameters *arraySyntaxCopy(Parameters *args);
-    static char *argsTypesToChars(Parameters *args, int varargs);
-    static void argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Parameters *arguments, int varargs);
-    static void argsToDecoBuffer(OutBuffer *buf, Parameters *arguments);
     static int isTPL(Parameters *arguments);
     static size_t dim(Parameters *arguments);
     static Parameter *getNth(Parameters *arguments, size_t nth, size_t *pn = NULL);
@@ -1011,11 +1000,10 @@ public:
 
 int arrayTypeCompatible(Loc loc, Type *t1, Type *t2);
 int arrayTypeCompatibleWithoutCasting(Loc loc, Type *t1, Type *t2);
-void MODtoBuffer(OutBuffer *buf, unsigned char mod);
-char *MODtoChars(unsigned char mod);
-int MODimplicitConv(unsigned char modfrom, unsigned char modto);
-int MODmethodConv(unsigned char modfrom, unsigned char modto);
-unsigned char MODmerge(unsigned char mod1, unsigned char mod2);
-void identifierToDocBuffer(Identifier* ident, OutBuffer *buf, HdrGenState *hgs);
+void MODtoBuffer(OutBuffer *buf, MOD mod);
+char *MODtoChars(MOD mod);
+bool MODimplicitConv(MOD modfrom, MOD modto);
+bool MODmethodConv(MOD modfrom, MOD modto);
+MOD MODmerge(MOD mod1, MOD mod2);
 
 #endif /* DMD_MTYPE_H */

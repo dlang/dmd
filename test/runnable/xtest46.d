@@ -2130,25 +2130,6 @@ void test103()
 
 /***************************************************/
 
-class C11616
-{
-    virtual void a() {}
-    virtual { void b() {} }
-virtual:
-    final void c() {}
-final:
-    virtual void d() {}
-}
-
-class D11616 : C11616
-{
-    final override void a() {}
-    final override void b() {}
-    final override void d() {}
-}
-
-/***************************************************/
-
 int foo104(int x)
 {
     int* p = &(x += 1);
@@ -3386,6 +3367,17 @@ void test3559()
     }
 }
 
+/***************************************************/
+
+extern(C++)
+class C13182
+{
+}
+
+void test13182()
+{
+    scope C13182 c = new C13182();
+}
 
 /***************************************************/
 // 5897
@@ -3960,26 +3952,6 @@ void test1471()
 
 deprecated @disable int bug6389;
 static assert(!is(typeof(bug6389 = bug6389)));
-
-/***************************************************/
-// 4596
-
-class NoGo4596
-{
-    void fun()
-    {
-        static assert(!__traits(compiles, this = new NoGo4596));
-        static assert(!__traits(compiles, (1?this:this) = new NoGo4596));
-        static assert(!__traits(compiles, super = new Object));
-        static assert(!__traits(compiles, (1?super:super) = new Object));
-    }
-}
-
-void test4596()
-{
-    auto n = new NoGo4596;
-    n.fun();
-}
 
 /***************************************************/
 
@@ -4601,6 +4573,53 @@ extern (C) int cfunc6596(){ return 0; }
 static assert(typeof(pfunc6596).stringof == "extern (C) int function()");
 static assert(typeof(cfunc6596).stringof == "extern (C) int()");
 
+
+/***************************************************/
+// 4423
+
+struct S4423
+{
+    this(string phrase, int num)
+    {
+        this.phrase = phrase;
+        this.num = num;
+    }
+
+    int opCmp(const ref S4423 rhs)
+    {
+        if (phrase < rhs.phrase)
+            return -1;
+        else if (phrase > rhs.phrase)
+            return 1;
+
+        if (num < rhs.num)
+            return -1;
+        else if (num > rhs.num)
+            return 1;
+
+        return 0;
+    }
+
+    string phrase;
+    int    num;
+}
+
+enum E4423 : S4423
+{
+    a = S4423("hello", 1),
+    b = S4423("goodbye", 45),
+    c = S4423("world", 22),
+};
+
+void test4423()
+{
+    E4423 e;
+    assert(e.phrase == "hello");
+
+    e = E4423.b;
+    assert(e.phrase == "goodbye");
+}
+
 /***************************************************/
 // 4647
 
@@ -4957,6 +4976,22 @@ void test6836()
 
 /***************************************************/
 
+string func12864() { return ['a', 'b', 'c']; }
+
+void test12864(string s)
+{
+    switch (s)
+    {
+    case func12864():
+        break;
+
+    default:
+        break;
+    }
+}
+
+/***************************************************/
+
 void test5448()
 {
     int[int][] aaa = [[1: 2]];
@@ -5130,6 +5165,33 @@ void test6910()
 }
 
 /***************************************************/
+
+void fun12503()
+{
+    string b = "abc";
+    try
+    {
+        try
+        {
+            b = null;
+            return;
+        }
+        catch
+        {
+        }
+    }
+    finally
+    {
+        assert("abc" !is b);
+    }
+}
+
+void test12503()
+{
+    fun12503();
+}
+
+/***************************************************/
 // 6902
 
 void test6902()
@@ -5165,6 +5227,25 @@ void test6330()
     S6330 s;
     S6330 s2;
     static assert(!is(typeof({ s2 = s; })));
+}
+
+/***************************************************/
+
+struct S8269
+{
+    bool dtor = false;
+    ~this()
+    {
+        dtor = true;
+    }
+}
+
+void test8269()
+{
+    with(S8269())
+    {
+        assert(!dtor);
+    }
 }
 
 /***************************************************/
@@ -6938,6 +7019,46 @@ void test12498()
 }
 
 /***************************************************/
+// 12900
+
+struct A12900
+{
+    char[1] b;
+}
+
+void test12900()
+{
+    A12900 c;
+    if (*c.b.ptr)
+        return;
+}
+
+/***************************************************/
+// 12937
+
+void test12937()
+{
+    void[1] sa2 = cast(void[])[cast(ubyte)1];   // ICE!
+    assert((cast(ubyte[])sa2[])[0] == 1);
+}
+
+/***************************************************/
+// 13154
+
+void test13154()
+{
+    int[3] ints      = [2   , 1   , 0   , 1   ][0..3];
+    float[3] floats0 = [2f  , 1f  , 0f  , 1f  ][0..3];
+    float[3] floats1 = [2.0 , 1.0 , 0.0 , 1.0 ][0..3];  // fails!
+    float[3] floats2 = [2.0f, 1.0f, 0.0f, 1.0f][0..3];
+    assert(ints == [2, 1, 0]);
+    assert(floats0 == [2, 1, 0]);
+    assert(floats1 == [2, 1, 0]); // fail!
+    assert(floats1 != [0, 0, 0]); // fail!
+    assert(floats2 == [2, 1, 0]);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -7123,7 +7244,6 @@ int main()
     test658();
     test4258();
     test4539();
-    test4596();
     test4963();
     test4031();
     test5437();
@@ -7147,6 +7267,7 @@ int main()
     test6690();
     test2953();
     test2997();
+    test4423();
     test4647();
     test5696();
     test6084();
@@ -7185,12 +7306,15 @@ int main()
     test7871();
     test7906();
     test7907();
+    test12503();
     test8004();
     test8064();
     test8105();
     test159();
     test12824();
     test8283();
+    test13182();
+    test8269();
     test8395();
     test5749();
     test8396();
@@ -7224,6 +7348,8 @@ int main()
     test11181();
     test11317();
     test12153();
+    test12937();
+    test13154();
 
     printf("Success\n");
     return 0;

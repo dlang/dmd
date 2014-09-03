@@ -1,4 +1,13 @@
 
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/gluestub.c
+ */
+
 #include "module.h"
 #include "declaration.h"
 #include "aggregate.h"
@@ -9,22 +18,11 @@
 #include "init.h"
 #include "ctfe.h"
 #include "lib.h"
+#include "nspace.h"
 
 // tocsym
 
-Symbol *SymbolDeclaration::toSymbol()
-{
-    assert(0);
-    return NULL;
-}
-
 Symbol *Dsymbol::toSymbolX(const char *prefix, int sclass, TYPE *t, const char *suffix)
-{
-    assert(0);
-    return NULL;
-}
-
-Symbol *Dsymbol::toSymbol()
 {
     assert(0);
     return NULL;
@@ -42,61 +40,7 @@ Symbol *Dsymbol::toImport(Symbol *sym)
     return NULL;
 }
 
-Symbol *VarDeclaration::toSymbol()
-{
-    assert(0);
-    return NULL;
-}
-
-Symbol *ClassInfoDeclaration::toSymbol()
-{
-    assert(0);
-    return NULL;
-}
-
-Symbol *TypeInfoDeclaration::toSymbol()
-{
-    assert(0);
-    return NULL;
-}
-
-Symbol *TypeInfoClassDeclaration::toSymbol()
-{
-    assert(0);
-    return NULL;
-}
-
-Symbol *FuncAliasDeclaration::toSymbol()
-{
-    assert(0);
-    return NULL;
-}
-
-Symbol *FuncDeclaration::toSymbol()
-{
-    assert(0);
-    return NULL;
-}
-
 Symbol *FuncDeclaration::toThunkSymbol(int offset)
-{
-    assert(0);
-    return NULL;
-}
-
-Symbol *ClassDeclaration::toSymbol()
-{
-    assert(0);
-    return NULL;
-}
-
-Symbol *InterfaceDeclaration::toSymbol()
-{
-    assert(0);
-    return NULL;
-}
-
-Symbol *Module::toSymbol()
 {
     assert(0);
     return NULL;
@@ -229,6 +173,11 @@ void TemplateMixin::toObjFile(bool multiobj)
     assert(0);
 }
 
+void Nspace::toObjFile(bool multiobj)
+{
+    assert(0);
+}
+
 // glue
 
 void obj_append(Dsymbol *s)
@@ -264,6 +213,11 @@ void Module::genobjfile(bool multiobj)
 }
 
 void FuncDeclaration::toObjFile(bool multiobj)
+{
+    assert(0);
+}
+
+void Module::genhelpers(bool iscomdat)
 {
     assert(0);
 }
@@ -423,7 +377,7 @@ Library *LibMach_factory()
     return NULL;
 }
 
-Statement *AsmStatement::semantic(Scope *)
+Statement* asmSemantic(AsmStatement *s, Scope *sc)
 {
     assert(0);
     return NULL;
@@ -435,4 +389,16 @@ int binary(const char *p, const char **tab, int n)
         if (!strcmp(p, tab[i]))
             return i;
     return -1;
+}
+
+// toir
+
+void buildClosure(FuncDeclaration *fd, IRState *irs)
+{
+    assert(0);
+}
+
+RET retStyle(TypeFunction *tf)
+{
+    return RETregs;
 }

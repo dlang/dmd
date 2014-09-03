@@ -1,11 +1,13 @@
 
-// Copyright (c) 1999-2005 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/version.c
+ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -90,17 +92,6 @@ void DebugSymbol::semantic(Scope *sc)
     //printf("DebugSymbol::semantic() %s\n", toChars());
 }
 
-void DebugSymbol::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("debug = ");
-    if (ident)
-        buf->writestring(ident->toChars());
-    else
-        buf->printf("%u", level);
-    buf->writestring(";");
-    buf->writenl();
-}
-
 const char *DebugSymbol::kind()
 {
     return "debug";
@@ -178,20 +169,7 @@ void VersionSymbol::semantic(Scope *sc)
 {
 }
 
-void VersionSymbol::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("version = ");
-    if (ident)
-        buf->writestring(ident->toChars());
-    else
-        buf->printf("%u", level);
-    buf->writestring(";");
-    buf->writenl();
-}
-
 const char *VersionSymbol::kind()
 {
     return "version";
 }
-
-

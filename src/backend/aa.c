@@ -42,6 +42,15 @@ size_t aligntsize(size_t tsize)
     return (tsize + sizeof(size_t) - 1) & ~(sizeof(size_t) - 1);
 }
 
+static int hashCmp(hash_t lhs, hash_t rhs)
+{
+    if (lhs == rhs)
+        return 0;
+    else if (lhs < rhs)
+        return -1;
+    return 1;
+}
+
 /**********************************
  * Constructor.
  */
@@ -122,7 +131,7 @@ void* AArray::get(void *pkey)
     while ((e = *pe) != NULL)
     {   int c;
 
-        c = key_hash - e->hash;
+        c = hashCmp(key_hash, e->hash);
         if (c == 0)
         {
             c = keyti->compare(pkey, e + 1);
@@ -180,7 +189,7 @@ void* AArray::in(void *pkey)
         while (e != NULL)
         {   int c;
 
-            c = key_hash - e->hash;
+            c = hashCmp(key_hash, e->hash);
             if (c == 0)
             {
                 c = keyti->compare(pkey, e + 1);
@@ -218,7 +227,7 @@ void AArray::del(void *pkey)
         while ((e = *pe) != NULL)       // NULL means not found
         {   int c;
 
-            c = key_hash - e->hash;
+            c = hashCmp(key_hash, e->hash);
             if (c == 0)
             {
                 c = keyti->compare(pkey, e + 1);
@@ -412,7 +421,7 @@ void AArray::rehash_x(aaA* olde, aaA** newbuckets, size_t newbuckets_length)
             //printf("\te = %p, e->left = %p, e->right = %p\n", e, e->left, e->right);
             assert(e->left != e);
             assert(e->right != e);
-            c = key_hash - e->hash;
+            c = hashCmp(key_hash, e->hash);
             if (c == 0)
                 c = keyti->compare(olde + 1, e + 1);
             if (c < 0)

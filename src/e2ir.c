@@ -1,12 +1,13 @@
 
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2013 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/e2ir.c
+ */
 
 #include        <stdio.h>
 #include        <string.h>
@@ -48,7 +49,6 @@ typedef Array<elem *> Elems;
 
 elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
 elem *array_toPtr(Type *t, elem *e);
-elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi);
 VarDeclarations *VarDeclarations_create();
 type *Type_toCtype(Type *t);
 elem *toElemDtor(Expression *e, IRState *irs);
@@ -411,6 +411,12 @@ if (I32) assert(tysize[TYnptr] == 4);
             ep->Eoper = op;
             ep->Ety = tyret;
             e = ep;
+            if (op == OPeq)
+            {   /* This was a volatileStore(ptr, value) operation, rewrite as:
+                 *   *ptr = value
+                 */
+                e->E1 = el_una(OPind, e->E2->Ety | mTYvolatile, e->E1);
+            }
 #if TX86
             if (op == OPscale)
             {
@@ -454,6 +460,8 @@ if (I32) assert(tysize[TYnptr] == 4);
             else
                 e = el_una(op,tyret,ep);
         }
+        else if (op == OPind)
+            e = el_una(op,mTYvolatile | tyret,ep);
         else
             e = el_una(op,tyret,ep);
     }
@@ -810,6 +818,10 @@ Lagain:
             goto Ldefault;
         }
 
+        case Tvector:
+            r = RTLSYM_MEMSETSIMD;
+            break;
+
         default:
         Ldefault:
             switch (sz)
@@ -849,10 +861,18 @@ Lagain:
                  * register, but the argument pusher may have other ideas on I64.
                  * MEMSETN is inefficient, though.
                  */
-                if (tybasic(evalue->ET->Tty) == TYstruct &&
-                    !evalue->ET->Ttag->Sstruct->Sarg1type &&
-                    !evalue->ET->Ttag->Sstruct->Sarg2type)
-                    r = RTLSYM_MEMSETN;
+                if (tybasic(evalue->ET->Tty) == TYstruct)
+                {
+                    type *t1 = evalue->ET->Ttag->Sstruct->Sarg1type;
+                    type *t2 = evalue->ET->Ttag->Sstruct->Sarg2type;
+                    if (!t1 && !t2)
+                        r = RTLSYM_MEMSETN;
+                    else if (config.exe != EX_WIN64 &&
+                             r == RTLSYM_MEMSET128ii &&
+                             t1->Tty == TYdouble &&
+                             t2->Tty == TYdouble)
+                        r = RTLSYM_MEMSET128;
+                }
             }
 
             if (r == RTLSYM_MEMSETN)
@@ -1644,7 +1664,7 @@ elem *toElem(Expression *e, IRState *irs)
                     d_uns64 elemsize = sd->size(ne->loc);
 
                     // call _d_newitemT(ti)
-                    e = ne->type->getTypeInfo(NULL)->toElem(irs);
+                    e = ne->newtype->getTypeInfo(NULL)->toElem(irs);
 
                     int rtl = t->isZeroInit() ? RTLSYM_NEWITEMT : RTLSYM_NEWITEMIT;
                     ex = el_bin(OPcall,TYnptr,el_var(rtlsym[rtl]),e);
@@ -1740,7 +1760,7 @@ elem *toElem(Expression *e, IRState *irs)
                 Expression *di = tp->next->defaultInit();
 
                 // call _d_newitemT(ti)
-                e = ne->type->getTypeInfo(NULL)->toElem(irs);
+                e = ne->newtype->getTypeInfo(NULL)->toElem(irs);
 
                 int rtl = tp->next->isZeroInit() ? RTLSYM_NEWITEMT : RTLSYM_NEWITEMIT;
                 e = el_bin(OPcall,TYnptr,el_var(rtlsym[rtl]),e);
@@ -3363,6 +3383,17 @@ elem *toElem(Expression *e, IRState *irs)
                 dve->error("%s is not a field, but a %s", dve->var->toChars(), dve->var->kind());
             }
 
+            // Bugzilla 12900
+            Type *txb = dve->type->toBasetype();
+            Type *tyb = v->type->toBasetype();
+            if (txb->ty == Tvector) txb = ((TypeVector *)txb)->basetype;
+            if (tyb->ty == Tvector) tyb = ((TypeVector *)tyb)->basetype;
+#if DEBUG
+            if (txb->ty != tyb->ty)
+                printf("[%s] dve = %s, dve->type = %s, v->type = %s\n", dve->loc.toChars(), dve->toChars(), dve->type->toChars(), v->type->toChars());
+#endif
+            assert(txb->ty == tyb->ty);
+
             elem *e = dve->e1->toElem(irs);
             Type *tb1 = dve->e1->type->toBasetype();
             if (tb1->ty != Tclass && tb1->ty != Tpointer)
@@ -3742,6 +3773,17 @@ elem *toElem(Expression *e, IRState *irs)
                 case Tpointer:
                     e = addressElem(e, de->e1->type);
                     rtl = RTLSYM_DELMEMORY;
+                    tb = ((TypePointer *)tb)->next->toBasetype();
+                    if (tb->ty == Tstruct)
+                    {
+                        TypeStruct *ts = (TypeStruct *)tb;
+                        if (ts->sym->dtor)
+                        {
+                            rtl = RTLSYM_DELSTRUCT;
+                            elem *et = tb->getTypeInfo(NULL)->toElem(irs);
+                            e = el_params(et, e, NULL);
+                        }
+                    }
                     break;
 
                 default:
@@ -5404,7 +5446,8 @@ elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi)
             {
                 *pe = el_combine(edtors, erx);
             }
-            else if (tybasic(erx->Ety) == TYstruct || tybasic(erx->Ety) == TYarray)
+            else if ((tybasic(erx->Ety) == TYstruct || tybasic(erx->Ety) == TYarray) &&
+                     !(erx->ET && type_size(erx->ET) <= 16))
             {
                 /* Expensive to copy, to take a pointer to it instead
                  */

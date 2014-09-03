@@ -215,8 +215,8 @@ enum OPER
         OPnullptr,              // null pointer
         OPasm,                  /* in-line assembly code        */
         OPinfo,                 // attach info (used to attach ctor/dtor
-        OPhalt,                 // insert HLT instruction
                                 // info for exception handling)
+        OPhalt,                 // insert HLT instruction
         OPctor,
         OPdtor,
         OPmark,

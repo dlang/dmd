@@ -63,6 +63,9 @@
     <ClCompile Include="cond.c">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="color.c">
+      <Filter>src</Filter>
+    </ClCompile>
     <ClCompile Include="constfold.c">
       <Filter>src</Filter>
     </ClCompile>
@@ -522,6 +525,9 @@
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="attrib.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="color.h">
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="complex_t.h">

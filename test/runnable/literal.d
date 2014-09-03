@@ -104,60 +104,6 @@ void test1()
     assert(dotype(0x8000000000000000uL) == T_ulong);
     assert(dotype(0xFFFFFFFFFFFFFFFFuL) == T_ulong);
 
-    /***************** Octal ***********************/
-
-    assert(dotype(0) == T_int);
-    assert(dotype(077777) == T_int);
-    assert(dotype(0100000) == T_int);
-    assert(dotype(0177777) == T_int);
-    assert(dotype(0200000) == T_int);
-    assert(dotype(017777777777) == T_int);
-    assert(dotype(020000000000) == T_uint);
-    assert(dotype(037777777777) == T_uint);
-    assert(dotype(040000000000) == T_long);
-    assert(dotype(0777777777777777777777) == T_long);
-    assert(dotype(01000000000000000000000) == T_ulong);
-    assert(dotype(01777777777777777777777) == T_ulong);
-
-    assert(dotype(0u) == T_uint);
-    assert(dotype(077777u) == T_uint);
-    assert(dotype(0100000u) == T_uint);
-    assert(dotype(0177777u) == T_uint);
-    assert(dotype(0200000u) == T_uint);
-    assert(dotype(017777777777u) == T_uint);
-    assert(dotype(020000000000u) == T_uint);
-    assert(dotype(037777777777u) == T_uint);
-    assert(dotype(040000000000u) == T_ulong);
-    assert(dotype(0777777777777777777777u) == T_ulong);
-    assert(dotype(01000000000000000000000u) == T_ulong);
-    assert(dotype(01777777777777777777777u) == T_ulong);
-
-    assert(dotype(0L) == T_long);
-    assert(dotype(077777L) == T_long);
-    assert(dotype(0100000L) == T_long);
-    assert(dotype(0177777L) == T_long);
-    assert(dotype(0200000L) == T_long);
-    assert(dotype(017777777777L) == T_long);
-    assert(dotype(020000000000L) == T_long);
-    assert(dotype(037777777777L) == T_long);
-    assert(dotype(040000000000L) == T_long);
-    assert(dotype(0777777777777777777777L) == T_long);
-    assert(dotype(01000000000000000000000L) == T_ulong);
-    assert(dotype(01777777777777777777777L) == T_ulong);
-
-    assert(dotype(0uL) == T_ulong);
-    assert(dotype(077777uL) == T_ulong);
-    assert(dotype(0100000uL) == T_ulong);
-    assert(dotype(0177777uL) == T_ulong);
-    assert(dotype(0200000uL) == T_ulong);
-    assert(dotype(017777777777uL) == T_ulong);
-    assert(dotype(020000000000uL) == T_ulong);
-    assert(dotype(037777777777uL) == T_ulong);
-    assert(dotype(040000000000uL) == T_ulong);
-    assert(dotype(0777777777777777777777uL) == T_ulong);
-    assert(dotype(01000000000000000000000uL) == T_ulong);
-    assert(dotype(01777777777777777777777uL) == T_ulong);
-
     /***************** Decimal ***********************/
 
     assert(dotype(0) == T_int);

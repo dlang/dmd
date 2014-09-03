@@ -4259,6 +4259,28 @@ void ice10610()
    static assert (T10610.min.baz());
 }
 
+/**************************************************
+    13141 regression fix caused by 10610
+**************************************************/
+
+struct MapResult13141(alias pred)
+{
+    int[] range;
+    @property empty() { return range.length == 0; }
+    @property front() { return pred(range[0]); }
+    void popFront() { range = range[1..$]; }
+}
+
+string[] array13141(R)(R r)
+{
+    typeof(return) result;
+    foreach (e; r)
+        result ~= e;
+    return result;
+}
+
+//immutable string[] splitterNames = [4].map!(e => "4").array();
+immutable string[] splitterNames13141 = MapResult13141!(e => "4")([4]).array13141();
 
 /**************************************************
     11587 AA compare
@@ -6089,6 +6111,17 @@ bool test9245()
 static assert(test9245());
 
 /**************************************************
+    12906 don't call postblit on blit initializing
+**************************************************/
+
+struct S12906 { this(this) { assert(0); } }
+
+static assert({
+    S12906[1] arr;
+    return true;
+}());
+
+/**************************************************
     11510 support overlapped field access in CTFE
 **************************************************/
 
@@ -6613,3 +6646,34 @@ static assert(testWrap12602a() == [1,2,1,2]);
 static assert(testWrap12602b() == [1,2,1,2]);
 static assert(testWrap12602c() == [1,2,1,2]);
 static assert(testWrap12602d() == [1,2,1,2]);
+
+/**************************************************
+    12677 - class type initializing from DotVarExp
+**************************************************/
+
+final class C12677
+{
+    TypeTuple!(Object, int[]) _test;
+    this()
+    {
+        auto t0 = _test[0]; //
+        auto t1 = _test[1]; //
+        assert(t0 is null);
+        assert(t1 is null);
+    }
+}
+
+struct S12677
+{
+    auto f = new C12677();
+}
+
+/**************************************************
+    12851 - interpret function local const static array
+**************************************************/
+
+void test12851()
+{
+    const int[5] arr;
+    alias staticZip = TypeTuple!(arr[0]);
+}

@@ -1,12 +1,13 @@
 
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2013 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/todt.c
+ */
 
 /* A dt_t is a simple structure representing data to be added
  * to the data segment of the output object file. As such,
@@ -187,7 +188,6 @@ dt_t *Initializer_toDt(Initializer *init)
 
     InitToDt v;
     init->accept(&v);
-    assert(v.result);
     return v.result;
 }
 
@@ -620,7 +620,10 @@ void membersToDt(ClassDeclaration *cd, dt_t **pdt, ClassDeclaration *concreteTyp
     }
     else
     {
-        offset = Target::ptrsize * 2;
+        if (cd->cpp)
+            offset = Target::ptrsize;       // allow room for __vptr
+        else
+            offset = Target::ptrsize * 2;   // allow room for __vptr and __monitor
     }
 
     // Note equivalence of this loop to struct's

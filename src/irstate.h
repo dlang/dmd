@@ -1,9 +1,13 @@
 
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/irstate.h
+ */
 
 #ifndef DMD_CONTEXT_H
 #define DMD_CONTEXT_H
@@ -43,6 +47,7 @@ struct IRState
     block *contBlock;
     block *switchBlock;
     block *defaultBlock;
+    block *finallyBlock;
 
     IRState(IRState *irs, Statement *s);
     IRState(IRState *irs, Dsymbol *s);
@@ -52,6 +57,7 @@ struct IRState
     block *getContBlock(Identifier *ident);
     block *getSwitchBlock();
     block *getDefaultBlock();
+    block *getFinallyBlock();
     FuncDeclaration *getFunc();
     int arrayBoundsCheck();
 };

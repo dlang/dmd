@@ -1,11 +1,13 @@
 
-// Copyright (c) 1999-2014 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/cast.c
+ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -139,6 +141,26 @@ Expression *implicitCastTo(Expression *e, Scope *sc, Type *t)
             if (tb->ty == Tarray)
                 semanticTypeInfo(sc, ((TypeDArray *)tb)->next);
         }
+
+        void visit(SliceExp *e)
+        {
+            visit((Expression *)e);
+            if (result->op != TOKslice)
+                return;
+
+            e = (SliceExp *)result;
+            if (e->e1->op == TOKarrayliteral)
+            {
+                ArrayLiteralExp *ale = (ArrayLiteralExp *)e->e1;
+                Type *tb = t->toBasetype();
+                Type *tx;
+                if (tb->ty == Tsarray)
+                    tx = tb->nextOf()->sarrayOf(ale->elements ? ale->elements->dim : 0);
+                else
+                    tx = tb->nextOf()->arrayOf();
+                e->e1 = ale->implicitCastTo(sc, tx);
+            }
+        }
     };
 
     ImplicitCastTo v(sc, t);
@@ -219,7 +241,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
          * Returns:
          *      match level
          */
-        static MATCH implicitMod(Expression *e, Type *t, unsigned mod)
+        static MATCH implicitMod(Expression *e, Type *t, MOD mod)
         {
             Type *tprime;
             if (t->ty == Tpointer)
@@ -759,6 +781,8 @@ MATCH implicitConvTo(Expression *e, Type *t)
             if (e->f && e->f->isolateReturn())
             {
                 result = e->type->immutableOf()->implicitConvTo(t);
+                if (result > MATCHconst)    // Match level is MATCHconst at best.
+                    result = MATCHconst;
                 return;
             }
 
@@ -784,7 +808,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
             /* Get mod bits of what we're converting to
              */
             Type *tb = t->toBasetype();
-            unsigned mod = tb->mod;
+            MOD mod = tb->mod;
             if (tf->isref)
                 ;
             else
@@ -1105,7 +1129,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
             /* Get mod bits of what we're converting to
              */
             Type *tb = t->toBasetype();
-            unsigned mod = tb->mod;
+            MOD mod = tb->mod;
             if (Type *ti = getIndirection(t))
                 mod = ti->mod;
 #if LOG
@@ -1227,7 +1251,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
 
                     struct ClassCheck
                     {
-                        static bool convertible(Loc loc, ClassDeclaration *cd, unsigned mod)
+                        static bool convertible(Loc loc, ClassDeclaration *cd, MOD mod)
                         {
                             for (size_t i = 0; i < cd->fields.dim; i++)
                             {
@@ -1244,11 +1268,11 @@ MATCH implicitConvTo(Expression *e, Type *t)
                                             return false;
                                     }
                                     else
-				    {
+                                    {
                                         /* Enhancement: handle StructInitializer and ArrayInitializer
                                          */
                                         return false;
-				    }
+                                    }
                                 }
                                 else if (!v->type->isZeroInit(loc))
                                     return false;
@@ -1338,6 +1362,8 @@ Type *toStaticArrayType(SliceExp *e)
 {
     if (e->lwr && e->upr)
     {
+        // For the following code to work, e should be optimized beforehand.
+        // (eg. $ in lwr and upr should be already resolved, if possible)
         Expression *lwr = e->lwr->optimize(WANTvalue);
         Expression *upr = e->upr->optimize(WANTvalue);
         if (lwr->isConst() && upr->isConst())
@@ -3593,7 +3619,32 @@ IntRange getIntRange(Expression *e)
                 ir2 = IntRange(SignExtendedNumber(0), SignExtendedNumber(64));
 
             range = IntRange(ir1.imin >> ir2.imax, ir1.imax >> ir2.imin).cast(e->type);
+        }
 
+        void visit(AssignExp *e)
+        {
+            range = getIntRange(e->e2).cast(e->type);
+        }
+
+        void visit(CondExp *e)
+        {
+            // No need to check e->econd; assume caller has called optimize()
+            IntRange ir1 = getIntRange(e->e1);
+            IntRange ir2 = getIntRange(e->e2);
+            range = ir1.unionWith(ir2).cast(e->type);
+        }
+
+        void visit(VarExp *e)
+        {
+            Expression *ie;
+            VarDeclaration* vd = e->var->isVarDeclaration();
+            if (vd && vd->range)
+                range = vd->range->cast(e->type);
+            else if (vd && vd->init && !vd->type->isMutable() &&
+                (ie = vd->getConstInitializer()) != NULL)
+                ie->accept(this);
+            else
+                visit((Expression *)e);
         }
 
         void visit(CommaExp *e)
