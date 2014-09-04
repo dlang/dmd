@@ -735,6 +735,10 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             e->error("first argument is not a symbol");
             goto Lfalse;
         }
+        if (s->isImport())
+        {
+            s = s->isImport()->mod;
+        }
         //printf("getAttributes %s, attrs = %p, scope = %p\n", s->toChars(), s->userAttribDecl, s->scope);
         UserAttributeDeclaration *udad = s->userAttribDecl;
         TupleExp *tup = new TupleExp(e->loc, udad ? udad->getAttributes() : new Expressions());

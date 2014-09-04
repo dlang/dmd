@@ -23,6 +23,7 @@
 #include "dsymbol.h"
 #include "expression.h"
 #include "lexer.h"
+#include "attrib.h"
 
 #ifdef IN_GCC
 #include "d-dmd-gcc.h"
@@ -726,6 +727,11 @@ void Module::semantic()
         runDeferredSemantic();
     }
 
+    if (userAttribDecl)
+    {
+        userAttribDecl->semantic(sc);
+    }
+
     if (!scope)
     {
         sc = sc->pop();
@@ -755,6 +761,11 @@ void Module::semantic2()
         s->semantic2(sc);
     }
 
+    if (userAttribDecl)
+    {
+        userAttribDecl->semantic2(sc);
+    }
+
     sc = sc->pop();
     sc->pop();
     semanticRun = PASSsemantic2done;
@@ -780,6 +791,11 @@ void Module::semantic3()
         Dsymbol *s = (*members)[i];
         //printf("Module %s: %s.semantic3()\n", toChars(), s->toChars());
         s->semantic3(sc);
+    }
+
+    if (userAttribDecl)
+    {
+        userAttribDecl->semantic3(sc);
     }
 
     sc = sc->pop();

@@ -101,22 +101,69 @@ Dsymbols *Parser::parseModule()
     Dsymbols *decldefs;
     bool isdeprecated = false;
     Expression *msg = NULL;
+    Token *tk;
+    Expressions *udas = NULL;
+    StorageClass stc;
 
-    if (token.value == TOKdeprecated)
+    if (skipAttributes(&token, &tk) && tk->value == TOKmodule)
     {
-        Token *tk;
-        if (skipParensIf(peek(&token), &tk) && tk->value == TOKmodule)
+        while (token.value != TOKmodule)
         {
-            // deprecated (...) module ...
-            isdeprecated = true;
-            nextToken();
-            if (token.value == TOKlparen)
+            switch (token.value)
             {
-                check(TOKlparen);
-                msg = parseAssignExp();
-                check(TOKrparen);
+                case TOKdeprecated:
+                {
+                    // deprecated (...) module ...
+                    if (isdeprecated)
+                    {
+                        error("there is only one deprecation attribute allowed for module declaration");
+                    }
+                    else
+                    {
+                        isdeprecated = true;
+                    }
+                    nextToken();
+                    if (token.value == TOKlparen)
+                    {
+                        check(TOKlparen);
+                        msg = parseAssignExp();
+                        check(TOKrparen);
+                    }
+                    break;
+                }
+                case TOKat:
+                {
+                    Expressions *exps = NULL;
+                    stc = parseAttribute(&exps);
+
+                    if (stc == STCproperty || stc == STCnogc || stc == STCdisable || 
+                        stc == STCsafe || stc == STCtrusted || stc == STCsystem)
+                    {
+                        error("@%s attribute for module declaration is not supported", token.toChars());
+                    }
+                    else
+                    {
+                        udas = UserAttributeDeclaration::concat(udas, exps);
+                    }
+                    if (stc)
+                        nextToken();
+                    break;
+                }
+                default:
+                {
+                    error("'module' expected instead of %s", token.toChars());
+                    nextToken();
+                    break;
+                }
             }
         }
+    }
+
+    if (udas)
+    {
+        Dsymbols *a = new Dsymbols();
+        UserAttributeDeclaration *udad = new UserAttributeDeclaration(udas, a);
+        mod->userAttribDecl = udad;
     }
 
     // ModuleDeclation leads off
@@ -6065,7 +6112,17 @@ int Parser::skipAttributes(Token *t, Token **pt)
             case TOKoverride:
             case TOKabstract:
             case TOKsynchronized:
+                break;
             case TOKdeprecated:
+                if (peek(t)->value == TOKlparen)
+                {
+                    t = peek(t);
+                    if (!skipParens(t, &t))
+                        goto Lerror;
+                    // t is on the next of closing parenthesis
+                    continue;
+                }
+                break;
             case TOKnothrow:
             case TOKpure:
             case TOKref:
