@@ -65,7 +65,10 @@ COPY=\
 	\
 	$(IMPDIR)\core\sys\osx\execinfo.d \
 	$(IMPDIR)\core\sys\osx\pthread.d \
+	$(IMPDIR)\core\sys\osx\mach\dyld.d \
+	$(IMPDIR)\core\sys\osx\mach\getsect.d \
 	$(IMPDIR)\core\sys\osx\mach\kern_return.d \
+	$(IMPDIR)\core\sys\osx\mach\loader.d \
 	$(IMPDIR)\core\sys\osx\mach\port.d \
 	$(IMPDIR)\core\sys\osx\mach\semaphore.d \
 	$(IMPDIR)\core\sys\osx\mach\thread_act.d \
