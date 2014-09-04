@@ -8158,6 +8158,18 @@ bool TemplateInstance::needsCodegen()
         global.params.allInst ||
         global.params.debuglevel)
     {
+        //printf("%s instantiatingModule = %s, speculative = %d, enclosing in nonRoot = %d\n",
+        //    toPrettyChars(), instantiatingModule ? instantiatingModule->toChars() : NULL, speculative,
+        //    enclosing && !enclosing->isInstantiated() && enclosing->inNonRoot());
+        if (enclosing)
+        {
+            // Bugzilla 13415: If and only if the enclosing scope needs codegen,
+            // the nested templates would need code generation.
+            if (TemplateInstance *ti = enclosing->isInstantiated())
+                return ti->needsCodegen();
+            else
+                return !enclosing->inNonRoot();
+        }
         return true;
     }
 

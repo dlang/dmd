@@ -1445,12 +1445,14 @@ STATIC elem * elbitwise(elem *e, goal_t goal)
          *  b btst a
          */
         if (e1->Eoper == OPshl &&
-            ELCONST(e1->E1,1))
+            ELCONST(e1->E1,1) &&
+            tysize(e->E1->Ety) <= REGSIZE)
         {
             e->Eoper = OPbtst;
-            e->Ety = OPbool;
+            e->Ety = TYbool;
             e->E1 = e2;
             e->E2 = e1->E2;
+            e->E2->Ety = e->E1->Ety;
             e1->E2 = NULL;
             el_free(e1);
             return optelem(e, goal);

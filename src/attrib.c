@@ -155,8 +155,8 @@ void AttribDeclaration::importAll(Scope *sc)
 
         for (size_t i = 0; i < d->dim; i++)
         {
-           Dsymbol *s = (*d)[i];
-           s->importAll(sc2);
+            Dsymbol *s = (*d)[i];
+            s->importAll(sc2);
         }
 
         if (sc2 != sc)
@@ -1515,7 +1515,7 @@ Scope *UserAttributeDeclaration::newScope(Scope *sc)
     if (atts && atts->dim)
     {
         // create new one for changes
-        sc2 = sc->push();
+        sc2 = sc->copy();
         sc2->userAttribDecl = this;
     }
     return sc2;
