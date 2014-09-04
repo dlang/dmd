@@ -7844,27 +7844,7 @@ bool TemplateInstance::needsCodegen()
          * See bugzilla 2500.
          */
 
-        for (size_t i = 0; i < Module::amodules.dim; ++i)
-        {
-            Module *m = Module::amodules[i];
-            m->insearch = 0;
-        }
-        bool importsRoot = false;
-        for (size_t i = 0; i < Module::amodules.dim; ++i)
-        {
-            Module *m = Module::amodules[i];
-            if (m->isRoot() && mi->imports(m))
-            {
-                importsRoot = true;
-                break;
-            }
-        }
-        for (size_t i = 0; i < Module::amodules.dim; ++i)
-        {
-            Module *m = Module::amodules[i];
-            m->insearch = 0;
-        }
-        if (!importsRoot)
+        if (!mi->rootImports())
         {
             //printf("instantiated by %s   %s\n", instantiatingModule->toChars(), toChars());
             return false;
