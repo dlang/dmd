@@ -104,10 +104,9 @@ Scope *Scope::copy()
 
 Scope *Scope::createGlobal(Module *module)
 {
-    Scope *sc;
-
-    sc = Scope::alloc();
+    Scope *sc = Scope::alloc();
     memset(sc, 0, sizeof(Scope));
+
     sc->structalign = STRUCTALIGN_DEFAULT;
     sc->linkage = LINKd;
     sc->protection = Prot(PROTpublic);
@@ -187,7 +186,8 @@ Scope *Scope::pop()
     }
 
     if (!nofree)
-    {   enclosing = freelist;
+    {
+        enclosing = freelist;
         freelist = this;
         flags |= SCOPEfree;
     }
@@ -235,7 +235,8 @@ void Scope::mergeCallSuper(Loc loc, unsigned cs)
     // The two paths are callSuper and cs; the result is merged into callSuper.
 
     if (cs != callSuper)
-    {   // Have ALL branches called a constructor?
+    {
+        // Have ALL branches called a constructor?
         int aAll = (cs        & (CSXthis_ctor | CSXsuper_ctor)) != 0;
         int bAll = (callSuper & (CSXthis_ctor | CSXsuper_ctor)) != 0;
 
@@ -268,7 +269,8 @@ void Scope::mergeCallSuper(Loc loc, unsigned cs)
             callSuper = cs | (callSuper & (CSXany_ctor | CSXlabel));
         }
         else
-        {   // Both branches must have called ctors, or both not.
+        {
+            // Both branches must have called ctors, or both not.
             ok = (aAll == bAll);
             // If one returned without a ctor, we must remember that
             // (Don't bother if we've already found an error)
@@ -298,7 +300,6 @@ bool mergeFieldInit(Loc loc, unsigned &fieldInit, unsigned fi, bool mustInit)
 {
     if (fi != fieldInit)
     {
-
         // Have any branches returned?
         bool aRet = (fi        & CSXreturn) != 0;
         bool bRet = (fieldInit & CSXreturn) != 0;
@@ -357,19 +358,17 @@ Module *Scope::instantiatingModule()
 }
 
 Dsymbol *Scope::search(Loc loc, Identifier *ident, Dsymbol **pscopesym)
-{   Dsymbol *s;
-    Scope *sc;
-
+{
     //printf("Scope::search(%p, '%s')\n", this, ident->toChars());
     if (ident == Id::empty)
     {
         // Look for module scope
-        for (sc = this; sc; sc = sc->enclosing)
+        for (Scope *sc = this; sc; sc = sc->enclosing)
         {
             assert(sc != sc->enclosing);
             if (sc->scopesym)
             {
-                s = sc->scopesym->isModule();
+                Dsymbol *s = sc->scopesym->isModule();
                 if (s)
                 {
                     //printf("\tfound %s.%s\n", s->parent ? s->parent->toChars() : "", s->toChars());
@@ -382,13 +381,13 @@ Dsymbol *Scope::search(Loc loc, Identifier *ident, Dsymbol **pscopesym)
         return NULL;
     }
 
-    for (sc = this; sc; sc = sc->enclosing)
+    for (Scope *sc = this; sc; sc = sc->enclosing)
     {
         assert(sc != sc->enclosing);
         if (sc->scopesym)
         {
             //printf("\tlooking in scopesym '%s', kind = '%s'\n", sc->scopesym->toChars(), sc->scopesym->kind());
-            s = sc->scopesym->search(loc, ident);
+            Dsymbol *s = sc->scopesym->search(loc, ident);
             if (s)
             {
                 if (ident == Id::length &&
@@ -448,15 +447,12 @@ Dsymbol *Scope::insert(Dsymbol *s)
  */
 
 ClassDeclaration *Scope::getClassScope()
-{   Scope *sc;
-
-    for (sc = this; sc; sc = sc->enclosing)
+{
+    for (Scope *sc = this; sc; sc = sc->enclosing)
     {
-        ClassDeclaration *cd;
-
         if (sc->scopesym)
         {
-            cd = sc->scopesym->isClassDeclaration();
+            ClassDeclaration *cd = sc->scopesym->isClassDeclaration();
             if (cd)
                 return cd;
         }
@@ -469,19 +465,17 @@ ClassDeclaration *Scope::getClassScope()
  */
 
 AggregateDeclaration *Scope::getStructClassScope()
-{   Scope *sc;
-
-    for (sc = this; sc; sc = sc->enclosing)
+{
+    for (Scope *sc = this; sc; sc = sc->enclosing)
     {
-        AggregateDeclaration *ad;
-
         if (sc->scopesym)
         {
-            ad = sc->scopesym->isClassDeclaration();
+            AggregateDeclaration *ad = sc->scopesym->isClassDeclaration();
             if (ad)
                 return ad;
             else
-            {   ad = sc->scopesym->isStructDeclaration();
+            {
+                ad = sc->scopesym->isStructDeclaration();
                 if (ad)
                     return ad;
             }
@@ -497,11 +491,11 @@ AggregateDeclaration *Scope::getStructClassScope()
  */
 
 void Scope::setNoFree()
-{   Scope *sc;
+{
     //int i = 0;
 
     //printf("Scope::setNoFree(this = %p)\n", this);
-    for (sc = this; sc; sc = sc->enclosing)
+    for (Scope *sc = this; sc; sc = sc->enclosing)
     {
         //printf("\tsc = %p\n", sc);
         sc->nofree = 1;
@@ -513,7 +507,6 @@ void Scope::setNoFree()
             //assert(0);
     }
 }
-
 
 /************************************************
  * Given the failed search attempt, try to find
