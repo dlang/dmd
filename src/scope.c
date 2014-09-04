@@ -366,16 +366,15 @@ Dsymbol *Scope::search(Loc loc, Identifier *ident, Dsymbol **pscopesym)
         for (Scope *sc = this; sc; sc = sc->enclosing)
         {
             assert(sc != sc->enclosing);
-            if (sc->scopesym)
+            if (!sc->scopesym)
+                continue;
+
+            if (Dsymbol *s = sc->scopesym->isModule())
             {
-                Dsymbol *s = sc->scopesym->isModule();
-                if (s)
-                {
-                    //printf("\tfound %s.%s\n", s->parent ? s->parent->toChars() : "", s->toChars());
-                    if (pscopesym)
-                        *pscopesym = sc->scopesym;
-                    return s;
-                }
+                //printf("\tfound %s.%s\n", s->parent ? s->parent->toChars() : "", s->toChars());
+                if (pscopesym)
+                    *pscopesym = sc->scopesym;
+                return s;
             }
         }
         return NULL;
@@ -384,25 +383,24 @@ Dsymbol *Scope::search(Loc loc, Identifier *ident, Dsymbol **pscopesym)
     for (Scope *sc = this; sc; sc = sc->enclosing)
     {
         assert(sc != sc->enclosing);
-        if (sc->scopesym)
-        {
-            //printf("\tlooking in scopesym '%s', kind = '%s'\n", sc->scopesym->toChars(), sc->scopesym->kind());
-            Dsymbol *s = sc->scopesym->search(loc, ident);
-            if (s)
-            {
-                if (ident == Id::length &&
-                    sc->scopesym->isArrayScopeSymbol() &&
-                    sc->enclosing &&
-                    sc->enclosing->search(loc, ident, NULL))
-                {
-                    warning(s->loc, "array 'length' hides other 'length' name in outer scope");
-                }
+        if (!sc->scopesym)
+            continue;
 
-                //printf("\tfound %s.%s, kind = '%s'\n", s->parent ? s->parent->toChars() : "", s->toChars(), s->kind());
-                if (pscopesym)
-                    *pscopesym = sc->scopesym;
-                return s;
+        //printf("\tlooking in scopesym '%s', kind = '%s'\n", sc->scopesym->toChars(), sc->scopesym->kind());
+        if (Dsymbol *s = sc->scopesym->search(loc, ident))
+        {
+            if (ident == Id::length &&
+                sc->scopesym->isArrayScopeSymbol() &&
+                sc->enclosing &&
+                sc->enclosing->search(loc, ident, NULL))
+            {
+                warning(s->loc, "array 'length' hides other 'length' name in outer scope");
             }
+
+            //printf("\tfound %s.%s, kind = '%s'\n", s->parent ? s->parent->toChars() : "", s->toChars(), s->kind());
+            if (pscopesym)
+                *pscopesym = sc->scopesym;
+            return s;
         }
     }
 
@@ -450,12 +448,12 @@ ClassDeclaration *Scope::getClassScope()
 {
     for (Scope *sc = this; sc; sc = sc->enclosing)
     {
-        if (sc->scopesym)
-        {
-            ClassDeclaration *cd = sc->scopesym->isClassDeclaration();
-            if (cd)
-                return cd;
-        }
+        if (!sc->scopesym)
+            continue;
+
+        ClassDeclaration *cd = sc->scopesym->isClassDeclaration();
+        if (cd)
+            return cd;
     }
     return NULL;
 }
@@ -468,18 +466,15 @@ AggregateDeclaration *Scope::getStructClassScope()
 {
     for (Scope *sc = this; sc; sc = sc->enclosing)
     {
-        if (sc->scopesym)
-        {
-            AggregateDeclaration *ad = sc->scopesym->isClassDeclaration();
-            if (ad)
-                return ad;
-            else
-            {
-                ad = sc->scopesym->isStructDeclaration();
-                if (ad)
-                    return ad;
-            }
-        }
+        if (!sc->scopesym)
+            continue;
+
+        AggregateDeclaration *ad = sc->scopesym->isClassDeclaration();
+        if (ad)
+            return ad;
+        ad = sc->scopesym->isStructDeclaration();
+        if (ad)
+            return ad;
     }
     return NULL;
 }
