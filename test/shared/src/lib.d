@@ -25,11 +25,12 @@ void tls_access() { assert(tls_root.toString() !is null); } // vtbl call will fa
 void tls_free() { tls_root = null; }
 
 // test Init
+import core.atomic : atomicOp;
 shared uint shared_static_ctor, shared_static_dtor, static_ctor, static_dtor;
-shared static this() { if (++shared_static_ctor != 1) assert(0); }
-shared static ~this() { if (++shared_static_dtor != 1) assert(0); }
-static this() { ++static_ctor; }
-static ~this() { ++static_dtor; }
+shared static this() { if (atomicOp!"+="(shared_static_ctor, 1) != 1) assert(0); }
+shared static ~this() { if (atomicOp!"+="(shared_static_dtor, 1) != 1) assert(0); }
+static this() { atomicOp!"+="(static_ctor, 1); }
+static ~this() { atomicOp!"+="(static_dtor, 1); }
 
 extern(C) int runTests()
 {

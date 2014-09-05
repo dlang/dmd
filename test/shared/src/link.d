@@ -27,11 +27,12 @@ void testGC()
     lib.free();
 }
 
+import core.atomic : atomicOp;
 shared static this() { assert(lib.shared_static_ctor == 1); }
 shared static ~this() { assert(lib.shared_static_dtor == 0); }
 shared uint static_ctor, static_dtor;
-static this() { assert(lib.static_ctor == ++static_ctor); }
-static ~this() { assert(lib.static_dtor == static_dtor++); }
+static this() { assert(lib.static_ctor == atomicOp!"+="(static_ctor, 1)); }
+static ~this() { assert(lib.static_dtor + 1 == atomicOp!"+="(static_dtor, 1)); }
 
 void testInit()
 {
