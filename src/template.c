@@ -6036,12 +6036,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 #endif
 
     // Copy the syntax trees from the TemplateDeclaration
-    if (members && speculative && !errors)      // todo
-    {
-        // Don't copy again so they were previously created.
-    }
-    else
-        members = Dsymbol::arraySyntaxCopy(tempdecl->members);
+    members = Dsymbol::arraySyntaxCopy(tempdecl->members);
 
     // resolve TemplateThisParameter
     for (size_t i = 0; i < tempdecl->parameters->dim; i++)
@@ -8105,12 +8100,7 @@ void TemplateMixin::semantic(Scope *sc)
     }
 
     // Copy the syntax trees from the TemplateDeclaration
-    if (scx && members && !errors)
-    {
-        // Don't copy again so they were previously created.
-    }
-    else
-        members = Dsymbol::arraySyntaxCopy(tempdecl->members);
+    members = Dsymbol::arraySyntaxCopy(tempdecl->members);
     if (!members)
         return;
 
@@ -8186,35 +8176,11 @@ void TemplateMixin::semantic(Scope *sc)
 
     nest--;
 
-    if (!sc->func && Module::deferred.dim > deferred_dim)
-    {
-        sc2->pop();
-        argscope->pop();
-        scy->pop();
-        //printf("deferring mixin %s, deferred.dim += %d\n", toChars(), Module::deferred.dim - deferred_dim);
-        //printf("\t[");
-        //for (size_t u = 0; u < Module::deferred.dim; u++) printf("%s%s", Module::deferred[u]->toChars(), u == Module::deferred.dim-1?"":", ");
-        //printf("]\n");
-
-        semanticRun = PASSinit;
-        AggregateDeclaration *ad = toParent()->isAggregateDeclaration();
-        if (ad)
-        {
-            /* Forward reference of base class should not make derived class SIZEfwd.
-             */
-            //printf("\tad = %s, sizeok = %d\n", ad->toChars(), ad->sizeok);
-            //ad->sizeok = SIZEOKfwd;
-        }
-        else
-        {
-            // Forward reference
-            //printf("forward reference - deferring\n");
-            scope = scx ? scx : sc->copy();
-            scope->setNoFree();
-            scope->module->addDeferredSemantic(this);
-        }
-        return;
-    }
+    /* In DeclDefs scope, TemplateMixin does not have to handle deferred symbols.
+     * Because the members would already call Module::addDeferredSemantic() for themselves.
+     * See Struct, Class, Interface, and EnumDeclaration::semantic().
+     */
+    //if (!sc->func && Module::deferred.dim > deferred_dim) {}
 
     AggregateDeclaration *ad = toParent()->isAggregateDeclaration();
     if (sc->func && !ad)
