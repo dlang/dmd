@@ -95,6 +95,35 @@ void test5()
 
 /**********************************/
 
+int foo6()() { return 0; }
+
+template A6() { alias f = foo6!(); }
+void testa6()() if (is(typeof(A6!().f))) {}
+
+template B6() { alias f = foo6!(); }
+void testb6()() if (is(typeof(B6!().f))) {}
+
+template C6() { void f() { B6!().f(); } }
+
+void test6()
+{
+    testa6();
+    // foo6!() is speculatively instantiated from A6!() [TemplateInstance a]
+    // -> foo6!() is instantiated in A6!(), so it should be inserted to the members of this module.
+
+    testb6();
+    // foo6!() is speculatively instantiated from B6!() [TemplateInstance b],
+    // but the tinst of cached [TemplateInstance a] is not changed.
+    // -> insert [b] to the tnext chain of [a]
+
+    C6!().f();
+    // foo6!() is used through C6!(), so it should be linked to the final executable.
+    // but its first instance does not link to any non-speculative instances.
+    // -> look for tnext chain and determine its codegen is really necessary.
+}
+
+/**********************************/
+
 int main()
 {
     test13350();
@@ -103,6 +132,7 @@ int main()
     test3();
     test4();
     test5();
+    test6();
 
     printf("Success\n");
     return 0;

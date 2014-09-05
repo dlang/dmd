@@ -105,8 +105,6 @@ public:
     TemplateInstance *addInstance(TemplateInstance *ti);
     void removeInstance(TemplateInstance *handle);
 
-    TemplateInstance *getInstantiating(Scope *sc);
-
     TemplateDeclaration *isTemplateDeclaration() { return this; }
 
     TemplateTupleParameter *isVariadic();
@@ -317,7 +315,6 @@ public:
     Dsymbol *enclosing;                 // if referencing local symbols, this is the context
     Dsymbol *aliasdecl;                 // !=NULL if instance is an alias for its sole member
     TemplateInstance *inst;             // refer to existing instance
-    TemplateInstance *tinst;            // enclosing template instance
     ScopeDsymbol *argsym;               // argument symbol table
     int nest;                           // for recursion detection
     bool semantictiargsdone;            // has semanticTiargs() been done?
@@ -330,8 +327,9 @@ public:
 
     // Used to determine the instance needs code generation.
     // Note that these are inaccurate until semantic analysis phase completed.
-    Module *instantiatingModule;        // the top module that instantiated this instance
-    bool speculative;                   // if the instantiation is speculative
+    TemplateInstance *tinst;            // enclosing template instance
+    TemplateInstance *tnext;            // non-first instantiated instances
+    Module *minst;                      // the top module that instantiated this instance
 
     TemplateInstance(Loc loc, Identifier *temp_id);
     TemplateInstance(Loc loc, TemplateDeclaration *tempdecl, Objects *tiargs);

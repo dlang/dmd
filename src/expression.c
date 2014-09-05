@@ -5911,7 +5911,8 @@ Expression *IsExp::semantic(Scope *sc)
 
     Type *tded = NULL;
     Scope *sc2 = sc->copy();    // keep sc->flags
-    sc2->speculative = true;
+    sc2->tinst = NULL;
+    sc2->minst = NULL;
     Type *t = targ->trySemantic(loc, sc2);
     sc2->pop();
     if (!t)

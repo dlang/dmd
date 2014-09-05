@@ -80,7 +80,6 @@ struct Scope
     SwitchStatement *sw;        // enclosing switch statement
     TryFinallyStatement *tf;    // enclosing try finally statement
     OnScopeStatement *os;       // enclosing scope(xxx) statement
-    TemplateInstance *tinst;    // enclosing template instance
     Statement *sbreak;          // enclosing statement that supports "break"
     Statement *scontinue;       // enclosing statement that supports "continue"
     ForeachStatement *fes;      // if nested function for ForeachStatement, this is it
@@ -89,8 +88,15 @@ struct Scope
     int nofree;                 // set if shouldn't free it
     int noctor;                 // set if constructor calls aren't allowed
     int intypeof;               // in typeof(exp)
-    bool speculative;           // in __traits(compiles) and so on
     VarDeclaration *lastVar;    // Previous symbol used to prevent goto-skips-init
+
+    /* If  minst && !tinst, it's in definitely non-speculative scope (eg. module member scope).
+     * If !minst && !tinst, it's in definitely speculative scope (eg. template constraint).
+     * If  minst &&  tinst, it's in instantiated code scope without speculation.
+     * If !minst &&  tinst, it's in instantiated code scope with speculation.
+     */
+    Module *minst;              // root module where the instantiated templates should belong to
+    TemplateInstance *tinst;    // enclosing template instance
 
     unsigned callSuper;         // primitive flow analysis for constructors
     unsigned *fieldinit;
