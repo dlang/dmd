@@ -19,13 +19,13 @@ struct dt_t;
 
 Symbol *toSymbol(Dsymbol *s);
 
-struct Identifier;
+class Identifier;
 struct Symbol;
-struct FuncDeclaration;
-struct ClassDeclaration;
-struct InterfaceDeclaration;
-struct ObjcSelector;
-struct ObjcClassDeclaration;
+class FuncDeclaration;
+class ClassDeclaration;
+class InterfaceDeclaration;
+class ObjcSelector;
+class ObjcClassDeclaration;
 
 enum ObjcSegment
 {
@@ -63,8 +63,9 @@ enum ObjcSegment
     SEG_MAX
 };
 
-struct ObjcSymbols
+class ObjcSymbols
 {
+public:
     static void init();
 
     static int hassymbols;
@@ -141,7 +142,7 @@ protected:
 
 namespace FragileAbi
 {
-    struct ObjcSymbols : ::ObjcSymbols
+    class ObjcSymbols : public ::ObjcSymbols
     {
     protected:
         virtual Symbol *_getModuleInfo(ClassDeclarations *cls, ClassDeclarations *cat);
@@ -151,8 +152,10 @@ namespace FragileAbi
 
 namespace NonFragileAbi
 {
-    struct ObjcSymbols : ::ObjcSymbols
+
+    class ObjcSymbols : public ::ObjcSymbols
     {
+    public:
         static ObjcSymbols* instance;
 
         Symbol *emptyCache;
@@ -175,8 +178,9 @@ namespace NonFragileAbi
 }
 
 // Helper class to efficiently build a selector from identifiers and colon tokens
-struct ObjcSelectorBuilder
+class ObjcSelectorBuilder
 {
+public:
     size_t slen;
     Identifier *parts[10];
     size_t partCount;
@@ -209,8 +213,9 @@ private:
     const char* buildString (char separator);
 };
 
-struct ObjcSelector
+class ObjcSelector
 {
+public:
     static StringTable stringtable;
     static StringTable vTableDispatchSelectors;
     static int incnum;
@@ -236,8 +241,9 @@ struct ObjcSelector
     static bool isVTableDispatchSelector(const char* selector, size_t length);
 };
 
-struct ObjcClassRefExp : Expression
+class ObjcClassRefExp : public Expression
 {
+public:
     ClassDeclaration *cdecl;
 
     ObjcClassRefExp(Loc loc, ClassDeclaration *cdecl);
@@ -245,8 +251,9 @@ struct ObjcClassRefExp : Expression
     void accept(Visitor *v) { v->visit(this); }
 };
 
-struct ObjcDotClassExp : UnaExp
+class ObjcDotClassExp : public UnaExp
 {
+public:
     int noop; // !=0 if nothing needs to be done
 
     ObjcDotClassExp(Loc loc, Expression *e);
@@ -257,8 +264,9 @@ struct ObjcDotClassExp : UnaExp
     void accept(Visitor *v) { v->visit(this); }
 };
 
-struct ObjcProtocolOfExp : UnaExp
+class ObjcProtocolOfExp : public UnaExp
 {
+public:
 	InterfaceDeclaration *idecl;
 	static ClassDeclaration *protocolClassDecl;
 
@@ -269,8 +277,9 @@ struct ObjcProtocolOfExp : UnaExp
 };
 
 
-struct ObjcClassDeclaration
+class ObjcClassDeclaration
 {
+public:
     ClassDeclaration *cdecl;
     int ismeta;
     Symbol *symbol;
@@ -295,8 +304,9 @@ struct ObjcClassDeclaration
 
 namespace FragileAbi
 {
-    struct ObjcClassDeclaration : ::ObjcClassDeclaration
+    class ObjcClassDeclaration : public ::ObjcClassDeclaration
     {
+    public:
         ObjcClassDeclaration(ClassDeclaration *cdecl, int ismeta = 0) :
             ::ObjcClassDeclaration(cdecl, ismeta) { }
 
@@ -310,8 +320,9 @@ namespace FragileAbi
 
 namespace NonFragileAbi
 {
-    struct ObjcClassDeclaration : ::ObjcClassDeclaration
+    class ObjcClassDeclaration : public ::ObjcClassDeclaration
     {
+    public:
         enum NonFragileFlags
         {
             nonFragileFlags_meta = 0x00001,
@@ -332,8 +343,9 @@ namespace NonFragileAbi
     };
 }
 
-struct ObjcProtocolDeclaration
+class ObjcProtocolDeclaration
 {
+public:
     ClassDeclaration *idecl;
     Symbol *symbol;
 
@@ -352,8 +364,9 @@ protected:
 
 namespace FragileAbi
 {
-    struct ObjcProtocolDeclaration : ::ObjcProtocolDeclaration
+    class ObjcProtocolDeclaration : public ::ObjcProtocolDeclaration
     {
+    public:
         ObjcProtocolDeclaration(ClassDeclaration *idecl) :
             ::ObjcProtocolDeclaration(idecl) { }
 
@@ -366,8 +379,9 @@ namespace FragileAbi
 
 namespace NonFragileAbi
 {
-    struct ObjcProtocolDeclaration : ::ObjcProtocolDeclaration
+    class ObjcProtocolDeclaration : public ::ObjcProtocolDeclaration
     {
+    public:
         ObjcProtocolDeclaration(ClassDeclaration *idecl) :
             ::ObjcProtocolDeclaration(idecl) { }
 
@@ -381,8 +395,9 @@ namespace NonFragileAbi
     };
 }
 
-struct TypeObjcSelector : TypeNext
+class TypeObjcSelector : public TypeNext
 {
+public:
     // .next is a TypeFunction
 
     TypeObjcSelector(Type *t);
