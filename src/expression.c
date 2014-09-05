@@ -5893,6 +5893,8 @@ Expression *IsExp::syntaxCopy()
         p);
 }
 
+void unSpeculative(Scope *sc, RootObject *o);
+
 Expression *IsExp::semantic(Scope *sc)
 {
     /* is(targ id tok tspec)
@@ -5908,7 +5910,10 @@ Expression *IsExp::semantic(Scope *sc)
     }
 
     Type *tded = NULL;
-    Type *t = targ->trySemantic(loc, sc);
+    Scope *sc2 = sc->copy();    // keep sc->flags
+    sc2->speculative = true;
+    Type *t = targ->trySemantic(loc, sc2);
+    sc2->pop();
     if (!t)
         goto Lno;                       // errors, so condition is false
     targ = t;
@@ -5982,13 +5987,15 @@ Expression *IsExp::semantic(Scope *sc)
                 if (targ->ty != Tclass)
                     goto Lno;
                 else
-                {   ClassDeclaration *cd = ((TypeClass *)targ)->sym;
+                {
+                    ClassDeclaration *cd = ((TypeClass *)targ)->sym;
                     Parameters *args = new Parameters;
                     args->reserve(cd->baseclasses->dim);
                     if (cd->scope && !cd->symtab)
                         cd->semantic(cd->scope);
                     for (size_t i = 0; i < cd->baseclasses->dim; i++)
-                    {   BaseClass *b = (*cd->baseclasses)[i];
+                    {
+                        BaseClass *b = (*cd->baseclasses)[i];
                         args->push(new Parameter(STCin, b->type, NULL, NULL));
                     }
                     tded = new TypeTuple(args);
@@ -6027,7 +6034,8 @@ Expression *IsExp::semantic(Scope *sc)
                 Parameters *args = new Parameters;
                 args->reserve(dim);
                 for (size_t i = 0; i < dim; i++)
-                {   Parameter *arg = Parameter::getNth(params, i);
+                {
+                    Parameter *arg = Parameter::getNth(params, i);
                     assert(arg && arg->type);
                     /* If one of the default arguments was an error,
                        don't return an invalid tuple
@@ -6049,12 +6057,14 @@ Expression *IsExp::semantic(Scope *sc)
                 if (targ->ty == Tfunction)
                     tded = ((TypeFunction *)targ)->next;
                 else if (targ->ty == Tdelegate)
-                {   tded = ((TypeDelegate *)targ)->next;
+                {
+                    tded = ((TypeDelegate *)targ)->next;
                     tded = ((TypeFunction *)tded)->next;
                 }
                 else if (targ->ty == Tpointer &&
                          ((TypePointer *)targ)->next->ty == Tfunction)
-                {   tded = ((TypePointer *)targ)->next;
+                {
+                    tded = ((TypePointer *)targ)->next;
                     tded = ((TypeFunction *)tded)->next;
                 }
                 else
@@ -6087,13 +6097,15 @@ Expression *IsExp::semantic(Scope *sc)
         //printf("targ  = %s, %s\n", targ->toChars(), targ->deco);
         //printf("tspec = %s, %s\n", tspec->toChars(), tspec->deco);
         if (tok == TOKcolon)
-        {   if (targ->implicitConvTo(tspec))
+        {
+            if (targ->implicitConvTo(tspec))
                 goto Lyes;
             else
                 goto Lno;
         }
         else /* == */
-        {   if (targ->equals(tspec))
+        {
+            if (targ->equals(tspec))
                 goto Lyes;
             else
                 goto Lno;
@@ -6138,7 +6150,8 @@ Expression *IsExp::semantic(Scope *sc)
             /* Declare trailing parameters
              */
             for (size_t i = 1; i < parameters->dim; i++)
-            {   TemplateParameter *tp = (*parameters)[i];
+            {
+                TemplateParameter *tp = (*parameters)[i];
                 Declaration *s = NULL;
 
                 m = tp->matchArg(loc, sc, &tiargs, i, parameters, &dedtypes, &s);
@@ -6149,6 +6162,8 @@ Expression *IsExp::semantic(Scope *sc)
                     s->addMember(sc, sc->sds, 1);
                 else if (!sc->insert(s))
                     error("declaration %s is already defined", s->toChars());
+
+                unSpeculative(sc, s);
             }
             goto Lyes;
         }
@@ -6179,6 +6194,8 @@ Lyes:
             error("declaration %s is already defined", s->toChars());
         if (sc->sds)
             s->addMember(sc, sc->sds, 1);
+
+        unSpeculative(sc, s);
     }
     //printf("Lyes\n");
     return new IntegerExp(loc, 1, Type::tbool);

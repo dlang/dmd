@@ -5862,7 +5862,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
         //printf("\tspeculative ti %s '%s' gag = %d, spec = %d\n", tempdecl->parent->toChars(), toChars(), global.gag, sc->speculative);
         speculative = true;
     }
-    if (sc->flags & (SCOPEcondition | SCOPEcompile))
+    if (sc->flags & (SCOPEconstraint | SCOPEcompile))
     {
         // Disconnect the chain if this instantiation is in definitely speculative context.
         // It should be done after sc->instantiatingModule().
@@ -5946,7 +5946,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 
             // If the first instantiation was in speculative context, but this is not:
             if (!inst->tinst && inst->speculative &&
-                tinst && !(sc->flags & (SCOPEcondition | SCOPEcompile)))
+                tinst && !(sc->flags & (SCOPEconstraint | SCOPEcompile)))
             {
                 // Reconnect the chain if this instantiation is not in speculative context.
                 TemplateInstance *tix = tinst;
@@ -7769,6 +7769,69 @@ hash_t TemplateInstance::hashCode()
         hash += arrayObjectHash(&tdtypes);
     }
     return hash;
+}
+
+/**************************************
+ * IsExpression can evaluate the specified type speculatively, and even if
+ * it instantiates any symbols, they are normally unnecessary for the
+ * final executable.
+ * However, if those symbols leak to the actual code, compiler should remark
+ * them as non-speculative to generate their code and link to the final executable.
+ */
+void unSpeculative(Scope *sc, RootObject *o)
+{
+    if (!o)
+        return;
+
+    if (Tuple *tup = isTuple(o))
+    {
+        for (size_t i = 0; i < tup->objects.dim; i++)
+        {
+            unSpeculative(sc, tup->objects[i]);
+        }
+        return;
+    }
+
+    Dsymbol *s = getDsymbol(o);
+    if (!s)
+        return;
+
+    Declaration *d = s->isDeclaration();
+    if (d)
+    {
+        if (VarDeclaration *vd = d->isVarDeclaration())
+            o = vd->type;
+        else if (AliasDeclaration *ad = d->isAliasDeclaration())
+        {
+            o = ad->getType();
+            if (!o)
+                o = ad->toAlias();
+        }
+        else
+            o = d->toAlias();
+
+        s = getDsymbol(o);
+        if (!s)
+            return;
+    }
+
+    if (TemplateInstance *ti = s->isTemplateInstance())
+    {
+        // If the instance is already non-speculative,
+        // or it is leaked to the speculative scope.
+        if (!ti->speculative || sc->speculative)
+            return;
+
+        // Remark as non-speculative instance.
+        ti->speculative = false;
+        if (!ti->tinst)
+            ti->tinst = sc->tinst;
+
+        unSpeculative(sc, ti->tempdecl);
+    }
+
+    if (TemplateInstance *ti = s->isInstantiated())
+        unSpeculative(sc, ti);
 }
 
 /***********************************************
