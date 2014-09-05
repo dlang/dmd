@@ -3457,7 +3457,7 @@ elem *toElem(Expression *e, IRState *irs)
                 ClassDeclaration* cls = ((TypeClass*) tb1)->sym;
                 if (cls->objc)
                 {
-                    NonFragileAbi::ObjcClassDeclaration objcClass(cls);
+                    NonFragileAbiObjcClassDeclaration objcClass(cls);
                     offset = el_var(objcClass.getIVarOffset(v));
                 }
             }

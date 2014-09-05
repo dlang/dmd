@@ -140,42 +140,35 @@ protected:
     virtual Symbol *_getClassName(ObjcClassDeclaration* cdecl) = 0;
 };
 
-namespace FragileAbi
+class FragileAbiObjcSymbols : public ObjcSymbols
 {
-    class ObjcSymbols : public ::ObjcSymbols
-    {
-    protected:
-        virtual Symbol *_getModuleInfo(ClassDeclarations *cls, ClassDeclarations *cat);
-        virtual Symbol *_getClassName(ObjcClassDeclaration* cdecl);
-    };
-}
+protected:
+    virtual Symbol *_getModuleInfo(ClassDeclarations *cls, ClassDeclarations *cat);
+    virtual Symbol *_getClassName(ObjcClassDeclaration* cdecl);
+};
 
-namespace NonFragileAbi
+class NonFragileAbiObjcSymbols : public ObjcSymbols
 {
+public:
+    static NonFragileAbiObjcSymbols* instance;
 
-    class ObjcSymbols : public ::ObjcSymbols
-    {
-    public:
-        static ObjcSymbols* instance;
+    Symbol *emptyCache;
+    Symbol *emptyVTable;
 
-        Symbol *emptyCache;
-        Symbol *emptyVTable;
+    NonFragileAbiObjcSymbols();
 
-        ObjcSymbols();
+    Symbol *getClassNameRo(const char *str, size_t len);
+    Symbol *getClassNameRo(Identifier* ident);
 
-        Symbol *getClassNameRo(const char *str, size_t len);
-        Symbol *getClassNameRo(Identifier* ident);
+    Symbol *getIVarOffset(ClassDeclaration *cdecl, VarDeclaration *ivar, bool outputSymbol);
 
-        Symbol *getIVarOffset(ClassDeclaration *cdecl, VarDeclaration *ivar, bool outputSymbol);
+    Symbol *getEmptyCache();
+    Symbol *getEmptyVTable();
 
-        Symbol *getEmptyCache();
-        Symbol *getEmptyVTable();
-
-    protected:
-        Symbol *_getModuleInfo(ClassDeclarations *cls, ClassDeclarations *cat);
-        Symbol *_getClassName(ObjcClassDeclaration* cdecl);
-    };
-}
+protected:
+    Symbol *_getModuleInfo(ClassDeclarations *cls, ClassDeclarations *cat);
+    Symbol *_getClassName(ObjcClassDeclaration* cdecl);
+};
 
 // Helper class to efficiently build a selector from identifiers and colon tokens
 class ObjcSelectorBuilder
@@ -302,46 +295,40 @@ public:
     Dsymbols *getProperties();
 };
 
-namespace FragileAbi
+class FragileAbiObjcClassDeclaration : public ObjcClassDeclaration
 {
-    class ObjcClassDeclaration : public ::ObjcClassDeclaration
-    {
-    public:
-        ObjcClassDeclaration(ClassDeclaration *cdecl, int ismeta = 0) :
-            ::ObjcClassDeclaration(cdecl, ismeta) { }
+public:
+    FragileAbiObjcClassDeclaration(ClassDeclaration *cdecl, int ismeta = 0) :
+        ObjcClassDeclaration(cdecl, ismeta) { }
 
-        void toObjFile(int multiobj);
-        void toDt(dt_t **pdt);
+    void toObjFile(int multiobj);
+    void toDt(dt_t **pdt);
 
-        Symbol *getIVarList();
-        Symbol *getClassExtension();
-    };
-}
+    Symbol *getIVarList();
+    Symbol *getClassExtension();
+};
 
-namespace NonFragileAbi
+class NonFragileAbiObjcClassDeclaration : public ObjcClassDeclaration
 {
-    class ObjcClassDeclaration : public ::ObjcClassDeclaration
+public:
+    enum NonFragileFlags
     {
-    public:
-        enum NonFragileFlags
-        {
-            nonFragileFlags_meta = 0x00001,
-            nonFragileFlags_root = 0x00002
-        };
-
-        ObjcClassDeclaration(ClassDeclaration *cdecl, int ismeta = 0) :
-            ::ObjcClassDeclaration(cdecl, ismeta) { }
-
-        void toObjFile(int multiobj);
-        void toDt(dt_t **pdt);
-
-        Symbol *getIVarList();
-        Symbol *getIVarOffset(VarDeclaration* ivar);
-        Symbol *getClassRo();
-        uint32_t generateFlags();
-        unsigned getInstanceStart();
+        nonFragileFlags_meta = 0x00001,
+        nonFragileFlags_root = 0x00002
     };
-}
+
+    NonFragileAbiObjcClassDeclaration(ClassDeclaration *cdecl, int ismeta = 0) :
+        ObjcClassDeclaration(cdecl, ismeta) { }
+
+    void toObjFile(int multiobj);
+    void toDt(dt_t **pdt);
+
+    Symbol *getIVarList();
+    Symbol *getIVarOffset(VarDeclaration* ivar);
+    Symbol *getClassRo();
+    uint32_t generateFlags();
+    unsigned getInstanceStart();
+};
 
 class ObjcProtocolDeclaration
 {
@@ -362,38 +349,32 @@ protected:
     virtual Symbol *getClassName() = 0;
 };
 
-namespace FragileAbi
+class FragileAbiObjcProtocolDeclaration : public ObjcProtocolDeclaration
 {
-    class ObjcProtocolDeclaration : public ::ObjcProtocolDeclaration
-    {
-    public:
-        ObjcProtocolDeclaration(ClassDeclaration *idecl) :
-            ::ObjcProtocolDeclaration(idecl) { }
+public:
+    FragileAbiObjcProtocolDeclaration(ClassDeclaration *idecl) :
+        ObjcProtocolDeclaration(idecl) { }
 
-        void toObjFile(int multiobj);
+    void toObjFile(int multiobj);
 
-    protected:
-        Symbol *getClassName();
-    };
-}
+protected:
+    Symbol *getClassName();
+};
 
-namespace NonFragileAbi
+class NonFragileAbiObjcProtocolDeclaration : public ObjcProtocolDeclaration
 {
-    class ObjcProtocolDeclaration : public ::ObjcProtocolDeclaration
-    {
-    public:
-        ObjcProtocolDeclaration(ClassDeclaration *idecl) :
-            ::ObjcProtocolDeclaration(idecl) { }
+public:
+    NonFragileAbiObjcProtocolDeclaration(ClassDeclaration *idecl) :
+        ObjcProtocolDeclaration(idecl) { }
 
-        void toObjFile(int multiobj);
-        void toDt(dt_t **pdt);
+    void toObjFile(int multiobj);
+    void toDt(dt_t **pdt);
 
-        Symbol *getMethodTypes();
+    Symbol *getMethodTypes();
 
-    protected:
-        Symbol *getClassName();
-    };
-}
+protected:
+    Symbol *getClassName();
+};
 
 class TypeObjcSelector : public TypeNext
 {
