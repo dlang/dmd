@@ -69,27 +69,46 @@ void genTypeInfo(Type *torig, Scope *sc)
         else
             t->vtinfo = getTypeInfoDeclaration(t);
         assert(t->vtinfo);
-
+    }
+    {
         /* If this has a custom implementation in std/typeinfo, then
          * do not generate a COMDAT for it.
          */
-        if (!builtinTypeInfo(t))
+        if (builtinTypeInfo(t))
+            goto Lskip;
+        else
         {
             // Generate COMDAT
             if (sc)                     // if in semantic() pass
             {
-                if (sc->func && sc->func->inNonRoot())
+                /* Insert vtinfo into scope like a template instance.
+                 */
+                Dsymbols *a = NULL;
+                if (sc->tinst)
                 {
-                    // Bugzilla 13043: Avoid linking TypeInfo if it's not
-                    // necessary for root module compilation
+                    /* If sc is an instantiated scope, add vtinfo in the member
+                     * of TemplateInstance, and rely on the TemplateInstance::needsCodegen().
+                     */
+                    a = sc->tinst->members;
                 }
-                else
+                else if (sc->minst && sc->minst->isRoot())
                 {
-                    // Find module that will go all the way to an object file
-                    Module *m = sc->module->importedFrom;
-                    m->members->push(t->vtinfo);
-
-                    semanticTypeInfo(sc, t);
+                    /* If sc is in root module, add vtinfo to the module scope members.
+                     */
+                    a = sc->minst->members;
+                }
+                if (a)
+                {
+                    for (size_t i = 0; 1; i++)
+                    {
+                        if (i == a->dim)
+                        {
+                            a->push(t->vtinfo);
+                            break;
+                        }
+                        if ((*a)[i] == t->vtinfo)
+                            break;
+                    }
                 }
             }
             else                        // if in obj generation pass
@@ -98,6 +117,7 @@ void genTypeInfo(Type *torig, Scope *sc)
             }
         }
     }
+  Lskip:
     if (!torig->vtinfo)
         torig->vtinfo = t->vtinfo;     // Types aren't merged, but we can share the vtinfo's
     assert(torig->vtinfo);

@@ -56,6 +56,7 @@ FuncDeclaration *search_toString(StructDeclaration *sd)
  */
 void semanticTypeInfo(Scope *sc, Type *t)
 {
+#if 0
     class FullTypeInfoVisitor : public Visitor
     {
     public:
@@ -124,6 +125,7 @@ void semanticTypeInfo(Scope *sc, Type *t)
     FullTypeInfoVisitor v;
     v.sc = sc;
     t->accept(&v);
+#endif
 }
 
 /********************************* AggregateDeclaration ****************************/
@@ -837,15 +839,6 @@ void StructDeclaration::semantic(Scope *sc)
     xcmp = buildXopCmp(this, sc2);
     xhash = buildXtoHash(this, sc2);
 
-    /* Even if the struct is merely imported and its semantic3 is not run,
-     * the TypeInfo object would be speculatively stored in each object
-     * files. To set correct function pointer, run semantic3 for xeq and xcmp.
-     */
-    //if ((xeq && xeq != xerreq || xcmp && xcmp != xerrcmp) && isImportedSym(this))
-    //    Module::addDeferredSemantic3(this);
-    /* Defer requesting semantic3 until TypeInfo generation is actually invoked.
-     * See semanticTypeInfo().
-     */
     inv = buildInv(this, sc2);
 
     sc2->pop();
