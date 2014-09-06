@@ -202,6 +202,19 @@ version( linux )
                              : cast(cmsghdr*) null );
     }
 
+    extern (D)
+    {
+        size_t CMSG_ALIGN( size_t len)
+        {
+            return (len + size_t.sizeof - 1) & cast(size_t) (~(size_t.sizeof - 1));
+        }
+
+        size_t CMSG_LEN( size_t len )
+        {
+            return CMSG_ALIGN(cmsghdr.sizeof) + len;
+        }
+    }
+
     struct linger
     {
         int l_onoff;
