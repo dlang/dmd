@@ -56,7 +56,9 @@ FuncDeclaration *search_toString(StructDeclaration *sd)
  */
 void semanticTypeInfo(Scope *sc, Type *t)
 {
-#if 0
+    if (!global.params.allInst)
+        return;
+
     class FullTypeInfoVisitor : public Visitor
     {
     public:
@@ -125,7 +127,6 @@ void semanticTypeInfo(Scope *sc, Type *t)
     FullTypeInfoVisitor v;
     v.sc = sc;
     t->accept(&v);
-#endif
 }
 
 /********************************* AggregateDeclaration ****************************/
@@ -216,7 +217,7 @@ void AggregateDeclaration::semantic3(Scope *sc)
     StructDeclaration *sd = isStructDeclaration();
     if (!sc)    // from runDeferredSemantic3 for TypeInfo generation
     {
-        assert(sd);
+        assert(sd && global.params.allInst);
         sd->semanticTypeInfoMembers();
         return;
     }

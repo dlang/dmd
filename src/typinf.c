@@ -69,7 +69,39 @@ void genTypeInfo(Type *torig, Scope *sc)
         else
             t->vtinfo = getTypeInfoDeclaration(t);
         assert(t->vtinfo);
+
+        /* If this has a custom implementation in std/typeinfo, then
+         * do not generate a COMDAT for it.
+         */
+        if (builtinTypeInfo(t))
+            goto Lskip;
+
+        if (global.params.allInst)
+        {
+            // Generate COMDAT
+            if (sc)                     // if in semantic() pass
+            {
+                if (sc->func && sc->func->inNonRoot())
+                {
+                    // Bugzilla 13043: Avoid linking TypeInfo if it's not
+                    // necessary for root module compilation
+                }
+                else
+                {
+                    // Find module that will go all the way to an object file
+                    Module *m = sc->module->importedFrom;
+                    m->members->push(t->vtinfo);
+
+                    semanticTypeInfo(sc, t);
+                }
+            }
+            else                        // if in obj generation pass
+            {
+                toObjFile(t->vtinfo, global.params.multiobj);
+            }
+        }
     }
+    if (!global.params.allInst)
     {
         /* If this has a custom implementation in std/typeinfo, then
          * do not generate a COMDAT for it.

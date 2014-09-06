@@ -1018,7 +1018,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             if (tid->semanticRun >= PASSobj)    // already written
                 return;
         
-            if (tid->tinfo->mod == 0)
+            if (tid->tinfo->mod == 0 && !global.params.allInst)
             {
                 Dsymbol *sym = tid->tinfo->toDsymbol(NULL);
                 if (sym)
