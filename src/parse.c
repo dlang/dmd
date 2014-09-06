@@ -3091,14 +3091,17 @@ Type *Parser::parseBasicType()
             {
                 nextToken();
 #if DMD_OBJC && 0
-                if (token.value == TOKclass)
-                {   // allow this for Objective-C types
+                bool isClass = token.value == TOKclass;
+#else
+                bool isClass = false;
+#endif
+                if (isClass)
+                {
+                    // allow this for Objective-C types
                     assert(token.ident);
                     break;
                 }
-                else
-#endif
-                if (token.value != TOKidentifier)
+                else if (token.value != TOKidentifier)
                 {
                     error("identifier expected following '.' instead of '%s'", token.toChars());
                     break;
@@ -3235,9 +3238,9 @@ Type *Parser::parseBasicType2(Type *t)
 
             case TOKdelegate:
             case TOKfunction:
-#if DMD_OBJC
+//#if DMD_OBJC
             case TOKobjcselector:
-#endif
+//#endif
             {
                 // Handle delegate declaration:
                 //      t delegate(parameter list) nothrow pure
@@ -3259,14 +3262,21 @@ Type *Parser::parseBasicType2(Type *t)
                         tf = (TypeFunction *)tf->addSTC(stc);
                 }
 
+#if DMD_OBJC
+                bool isObjcSelector = save == TOKobjcselector;
+#else
+                bool isObjcSelector = false;
+#endif
+
                 if (save == TOKdelegate)
                     t = new TypeDelegate(tf);
+                else if (isObjcSelector)
+                {
 #if DMD_OBJC
-                else if (save == TOKobjcselector)
-                {   tf->linkage = LINKobjc; // force Objective-C linkage
+                    tf->linkage = LINKobjc; // force Objective-C linkage
                     t = new TypeObjcSelector(tf);
-                }
 #endif
+                }
                 else
                     t = new TypePointer(tf);    // pointer to function
                 continue;
@@ -4647,9 +4657,9 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
         case TOKmodulestring:
         case TOKfuncstring:
         case TOKprettyfunc:
-#if DMD_OBJC
+//#if DMD_OBJC
         case TOKobjcselector:
-#endif
+//#endif
         Lexp:
         {
             Expression *exp = parseExpression();
@@ -5957,9 +5967,9 @@ int Parser::isDeclarator(Token **pt, int *haveId, int *haveTpl, TOK endtok)
 
             case TOKdelegate:
             case TOKfunction:
-#if DMD_OBJC
+//#if DMD_OBJC
             case TOKobjcselector:
-#endif
+//#endif
                 t = peek(t);
                 if (!isParameters(&t))
                     return false;
@@ -6727,6 +6737,11 @@ Expression *Parser::parsePrimaryExp()
                 {
                     tok = token.value;
                     nextToken();
+#if DMD_OBJC
+                    bool isObjcSelector = token.value == TOKobjcselector;
+#else
+                    bool isObjcSelector = false;
+#endif
                     if (tok == TOKequal &&
                         (token.value == TOKtypedef ||
                          token.value == TOKstruct ||
@@ -6743,9 +6758,7 @@ Expression *Parser::parsePrimaryExp()
                          token.value == TOKwild && peek(&token)->value == TOKrparen ||
                          token.value == TOKfunction ||
                          token.value == TOKdelegate ||
-#if DMD_OBJC
-                         token.value == TOKobjcselector ||
-#endif
+                         isObjcSelector ||
                          token.value == TOKreturn))
                     {
                         tok2 = token.value;
@@ -7004,7 +7017,13 @@ Expression *Parser::parsePostExp(Expression *e)
         switch (token.value)
         {
             case TOKdot:
+            {
                 nextToken();
+#if DMD_OBJC
+                bool isClass = token.value == TOKclass;
+#else
+                bool isClass = false;
+#endif
                 if (token.value == TOKidentifier)
                 {   Identifier *id = token.ident;
 
@@ -7023,17 +7042,19 @@ Expression *Parser::parsePostExp(Expression *e)
                     e = parseNewExp(e);
                     continue;
                 }
-#if DMD_OBJC
-                else if (token.value == TOKclass)
+
+                else if (isClass)
                 {
+#if DMD_OBJC
                     e = new ObjcDotClassExp(loc, e);
                     nextToken();
                     continue;
-                }
 #endif
+                }
                 else
                     error("identifier expected following '.', not '%s'", token.toChars());
                 break;
+            }
 
             case TOKplusplus:
                 e = new PostExp(TOKplusplus, loc, e);
@@ -7312,9 +7333,9 @@ Expression *Parser::parseUnaryExp()
                     case TOKimaginary32: case TOKimaginary64: case TOKimaginary80:
                     case TOKcomplex32: case TOKcomplex64: case TOKcomplex80:
                     case TOKvoid:
-#if DMD_OBJC
+//#if DMD_OBJC
                     case TOKobjcselector:
-#endif
+//#endif
                     {   // (type) una_exp
                         Type *t;
 
@@ -7810,7 +7831,7 @@ void initPrecedence()
     precedence[TOKtype] = PREC_expr;
     precedence[TOKerror] = PREC_expr;
 #if DMD_OBJC
-    precedence[TOKobjcclsref] = PREC_expr, // Objective-C class reference, same as TOKtype
+    precedence[TOKobjcclsref] = PREC_expr; // Objective-C class reference, same as TOKtype
 #endif
 
     precedence[TOKtypeof] = PREC_primary;

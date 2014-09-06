@@ -643,8 +643,10 @@ MATCH implicitConvTo(Expression *e, Type *t)
                             }
                             break;
                         }
-#if DMD_OBJC
+
                         case Tclass:
+                        {
+#if DMD_OBJC
                             ClassDeclaration *cd = ((TypeClass *)t)->sym;
                             if (cd->objc && (cd->objctakestringliteral))
                             {
@@ -653,6 +655,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
                             }
                             break;
 #endif
+                        }
                     }
                 }
             }
@@ -895,13 +898,13 @@ MATCH implicitConvTo(Expression *e, Type *t)
             // Look for pointers to functions where the functions are overloaded.
 
             t = t->toBasetype();
-
-            if (e->e1->op == TOKoverloadset &&
-                (t->ty == Tpointer || t->ty == Tdelegate
 #if DMD_OBJC
-                 || t->ty == Tobjcselector
+            bool isObjcSelector = t->ty == Tobjcselector;
+#else
+            bool isObjcSelector = false;
 #endif
-                 ) && t->nextOf()->ty == Tfunction)
+            if (e->e1->op == TOKoverloadset &&
+                (t->ty == Tpointer || t->ty == Tdelegate || isObjcSelector) && t->nextOf()->ty == Tfunction)
             {
                 OverExp *eo = (OverExp *)e->e1;
                 FuncDeclaration *f = NULL;
@@ -953,22 +956,26 @@ MATCH implicitConvTo(Expression *e, Type *t)
 
             // Look for pointers to functions where the functions are overloaded.
             t = t->toBasetype();
-            if (e->type->ty == Tpointer && e->type->nextOf()->ty == Tfunction &&
-                (t->ty == Tpointer || t->ty == Tdelegate
 #if DMD_OBJC
-                 || t->ty == Tobjcselector
+            bool isObjcSelector = t->ty == Tobjcselector;
+#else
+            bool isObjcSelector = false;
 #endif
-                 ) && t->nextOf()->ty == Tfunction)
+            if (e->type->ty == Tpointer && e->type->nextOf()->ty == Tfunction &&
+                (t->ty == Tpointer || t->ty == Tdelegate || isObjcSelector) && t->nextOf()->ty == Tfunction)
             {
                 if (FuncDeclaration *f = e->var->isFuncDeclaration())
                 {
                     f = f->overloadExactMatch(t->nextOf());
                     if (f)
                     {
-                        if ((t->ty == Tdelegate && (f->needThis() || f->isNested())) ||
 #if DMD_OBJC
-                            (t->ty == Tobjcselector && (f->needThis() || f->isNested())) ||
+                        bool isObjcSel = t->ty == Tobjcselector && (f->needThis() || f->isNested());
+#else
+                        bool isObjcSel = false;
 #endif
+                        if ((t->ty == Tdelegate && (f->needThis() || f->isNested())) ||
+                            isObjcSel ||
                             (t->ty == Tpointer && !(f->needThis() || f->isNested())))
                         {
                             result = MATCHexact;
@@ -991,19 +998,23 @@ MATCH implicitConvTo(Expression *e, Type *t)
 
             // Look for pointers to functions where the functions are overloaded.
             t = t->toBasetype();
+#if DMD_OBJC
+            bool isObjcSelector = t->ty == Tobjcselector && t->nextOf()->ty == Tfunction;
+#else
+            bool isObjcSelector = false;
+#endif
             if (e->type->ty == Tdelegate &&
                 t->ty == Tdelegate)
             {
                 if (e->func && e->func->overloadExactMatch(t->nextOf()))
                     result = MATCHexact;
             }
-#if DMD_OBJC
-            else if (t->ty == Tobjcselector && t->nextOf()->ty == Tfunction)
+
+            else if (isObjcSelector)
             {
                 if (e->func && e->func->overloadExactMatch(t->nextOf()))
                     result = MATCHexact;
             }
-#endif
         }
 
         void visit(FuncExp *e)
@@ -1897,13 +1908,13 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                 // Look for pointers to functions where the functions are overloaded.
 
 #if DMD_OBJC
-                if (e->e1->op == TOKoverloadset &&
-                    (t->ty == Tpointer || t->ty == Tdelegate || t->ty == Tobjcselector) &&
-                    t->nextOf()->ty == Tfunction)
+                bool isObjcSelector = t->ty == Tobjcselector;
 #else
-                if (e->e1->op == TOKoverloadset &&
-                    (t->ty == Tpointer || t->ty == Tdelegate) && t->nextOf()->ty == Tfunction)
+                bool isObjcSelector = false;
 #endif
+                if (e->e1->op == TOKoverloadset &&
+                    (t->ty == Tpointer || t->ty == Tdelegate || isObjcSelector) &&
+                    t->nextOf()->ty == Tfunction)
                 {
                     OverExp *eo = (OverExp *)e->e1;
                     FuncDeclaration *f = NULL;
@@ -2121,19 +2132,26 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                 return;
             }
 
+#if DMD_OBJC
+            bool isObjcSelector = tb->ty == Tobjcselector;
+#else
+            bool isObjcSelector = false;
+#endif
+
             // Look for pointers to functions where the functions are overloaded.
             if (e->hasOverloads &&
                 typeb->ty == Tpointer && typeb->nextOf()->ty == Tfunction &&
-                (tb->ty == Tpointer || tb->ty == Tdelegate
-#if DMD_OBJC
-                 || tb->ty == Tobjcselector
-#endif
-                 ) && tb->nextOf()->ty == Tfunction)
+                (tb->ty == Tpointer || tb->ty == Tdelegate || isObjcSelector) && tb->nextOf()->ty == Tfunction)
             {
                 FuncDeclaration *f = e->var->isFuncDeclaration();
                 f = f ? f->overloadExactMatch(tb->nextOf()) : NULL;
                 if (f)
                 {
+#if DMD_OBJC
+                    bool isObjcSel = tb->ty == Tobjcselector;
+#else
+                    bool isObjcSel = false;
+#endif
                     if (tb->ty == Tdelegate)
                     {
                         if (f->needThis() && hasThis(sc))
@@ -2159,9 +2177,10 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                             return;
                         }
                     }
-#if DMD_OBJC
-                    else if (tb->ty == Tobjcselector)
+
+                    else if (isObjcSel)
                     {
+#if DMD_OBJC
                         if (f->objcSelector && f->linkage == LINKobjc && f->needThis())
                         {
                             result = new ObjcSelectorExp(e->loc, f);
@@ -2174,8 +2193,9 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                             result = new ErrorExp();
                             return;
                         }
-                    }
 #endif
+                    }
+
                     else
                     {
                         result = new SymOffExp(e->loc, f, 0);
@@ -2183,8 +2203,10 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                     }
 #if DMD_OBJC
                     if (tb->ty != Tobjcselector)
-#endif
+                        f->tookAddressOf++;
+#else
                     f->tookAddressOf++;
+#endif
                     return;
                 }
             }
@@ -2203,6 +2225,11 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
             Type *typeb = e->type->toBasetype();
             if (!tb->equals(typeb) || e->hasOverloads)
             {
+#if DMD_OBJC
+                bool isObjcSelector = tb->ty == Tobjcselector && tb->nextOf()->ty == Tfunction;
+#else
+                bool isObjcSelector = false;
+#endif
                 // Look for delegates to functions where the functions are overloaded.
                 if (typeb->ty == Tdelegate &&
                     tb->ty == Tdelegate)
@@ -2224,9 +2251,10 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                             e->error("%s", msg);
                     }
                 }
-#if DMD_OBJC
-                else if (tb->ty == Tobjcselector && tb->nextOf()->ty == Tfunction)
+
+                else if (isObjcSelector)
                 {
+#if DMD_OBJC
                     static char msg2[] = "cannot form selector due to covariant return type";
                     if (e->func)
                     {
@@ -2244,8 +2272,9 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                         if (e->func->tintro)
                             e->error("%s", msg);
                     }
-                }
 #endif
+                }
+
                 visit((Expression *)e);
             }
             else

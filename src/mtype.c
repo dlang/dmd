@@ -824,11 +824,12 @@ void Type::check()
     }
 
     Type *tn = nextOf();
-    if (tn && ty != Tfunction && tn->ty != Tfunction && ty != Tenum
 #if DMD_OBJC
-        && ty != Tobjcselector && tn->ty != Tobjcselector
+    bool isObjcSelector = ty == Tobjcselector || (tn && tn->ty == Tobjcselector);
+#else
+    bool isObjcSelector = false;
 #endif
-        )
+    if (tn && ty != Tfunction && tn->ty != Tfunction && ty != Tenum && !isObjcSelector)
     {
         // Verify transitivity
         switch (mod)
@@ -2512,11 +2513,12 @@ Type *TypeNext::makeConst()
         return cto;
     }
     TypeNext *t = (TypeNext *)Type::makeConst();
-    if (ty != Tfunction && next->ty != Tfunction &&
 #if DMD_OBJC
-        ty != Tobjcselector && next->ty != Tobjcselector &&
+    bool isObjcSelector = ty == Tobjcselector || (next && next->ty == Tobjcselector);
+#else
+    bool isObjcSelector = false;
 #endif
-        !next->isImmutable())
+    if (ty != Tfunction && next->ty != Tfunction && !isObjcSelector && !next->isImmutable())
     {
         if (next->isShared())
         {
@@ -2546,11 +2548,12 @@ Type *TypeNext::makeImmutable()
         return ito;
     }
     TypeNext *t = (TypeNext *)Type::makeImmutable();
-    if (ty != Tfunction && next->ty != Tfunction &&
 #if DMD_OBJC
-        ty != Tobjcselector && next->ty != Tobjcselector &&
+    bool isObjcSelector = ty == Tobjcselector || (next && next->ty == Tobjcselector);
+#else
+    bool isObjcSelector = false;
 #endif
-        !next->isImmutable())
+    if (ty != Tfunction && next->ty != Tfunction && !isObjcSelector && !next->isImmutable())
     {
         t->next = next->immutableOf();
     }
@@ -2566,11 +2569,12 @@ Type *TypeNext::makeShared()
         return sto;
     }
     TypeNext *t = (TypeNext *)Type::makeShared();
-    if (ty != Tfunction && next->ty != Tfunction &&
 #if DMD_OBJC
-        ty != Tobjcselector && next->ty != Tobjcselector &&
+    bool isObjcSelector = ty == Tobjcselector || (next && next->ty == Tobjcselector);
+#else
+    bool isObjcSelector = false;
 #endif
-        !next->isImmutable())
+    if (ty != Tfunction && next->ty != Tfunction && !isObjcSelector && !next->isImmutable())
     {
         if (next->isWild())
         {
@@ -2600,11 +2604,12 @@ Type *TypeNext::makeSharedConst()
         return scto;
     }
     TypeNext *t = (TypeNext *)Type::makeSharedConst();
-    if (ty != Tfunction && next->ty != Tfunction &&
 #if DMD_OBJC
-        ty != Tobjcselector && next->ty != Tobjcselector &&
+    bool isObjcSelector = ty == Tobjcselector || (next && next->ty == Tobjcselector);
+#else
+    bool isObjcSelector = false;
 #endif
-        !next->isImmutable())
+    if (ty != Tfunction && next->ty != Tfunction && !isObjcSelector && !next->isImmutable())
     {
         if (next->isWild())
             t->next = next->sharedWildConstOf();
@@ -2624,11 +2629,12 @@ Type *TypeNext::makeWild()
         return wto;
     }
     TypeNext *t = (TypeNext *)Type::makeWild();
-    if (ty != Tfunction && next->ty != Tfunction &&
 #if DMD_OBJC
-        ty != Tobjcselector && next->ty != Tobjcselector &&
+    bool isObjcSelector = ty == Tobjcselector || (next && next->ty == Tobjcselector);
+#else
+    bool isObjcSelector = false;
 #endif
-        !next->isImmutable())
+    if (ty != Tfunction && next->ty != Tfunction && !isObjcSelector && !next->isImmutable())
     {
         if (next->isShared())
         {
@@ -2679,11 +2685,12 @@ Type *TypeNext::makeSharedWild()
         return swto;
     }
     TypeNext *t = (TypeNext *)Type::makeSharedWild();
-    if (ty != Tfunction && next->ty != Tfunction &&
 #if DMD_OBJC
-        ty != Tobjcselector && next->ty != Tobjcselector &&
+    bool isObjcSelector = ty == Tobjcselector || (next && next->ty == Tobjcselector);
+#else
+    bool isObjcSelector = false;
 #endif
-        !next->isImmutable())
+    if (ty != Tfunction && next->ty != Tfunction && !isObjcSelector && !next->isImmutable())
     {
         if (next->isConst())
             t->next = next->sharedWildConstOf();
@@ -8253,16 +8260,20 @@ L1:
             return e;
         }
 #if DMD_OBJC
-        if (sym->objc && d->isFuncDeclaration() && d->isStatic() && ((FuncDeclaration *)d)->objcSelector)
+        bool isObjcClassMethod = sym->objc && d->isFuncDeclaration() && d->isStatic() && ((FuncDeclaration *)d)->objcSelector;
+#else
+        bool isObjcClassMethod = false;
+#endif
+        if (isObjcClassMethod)
         {
+#if DMD_OBJC
             // Objective-C class methods uses the class object as 'this'
             DotVarExp *de = new DotVarExp(e->loc, new ObjcClassRefExp(e->loc, sym), d);
             e = de->semantic(sc);
             return e;
-        }
-        else
 #endif
-        if (d->needThis() && sc->intypeof != 1)
+        }
+        else if (d->needThis() && sc->intypeof != 1)
         {
             /* Rewrite as:
              *  this.d
@@ -8830,13 +8841,15 @@ MATCH TypeNull::implicitConvTo(Type *to)
     //if (type->ty == Tpointer && type->nextOf()->ty == Tvoid)
     {
         Type *tb = to->toBasetype();
+#if DMD_OBJC
+        bool isObjcSelector = tb->ty == Tobjcselector;
+#else
+        bool isObjcSelector = false;
+#endif
         if (tb->ty == Tnull ||
             tb->ty == Tpointer || tb->ty == Tarray ||
             tb->ty == Taarray  || tb->ty == Tclass ||
-#if DMD_OBJC
-            tb->ty == Tobjcselector ||
-#endif
-            tb->ty == Tdelegate)
+            isObjcSelector || tb->ty == Tdelegate)
             return MATCHconst;
     }
 

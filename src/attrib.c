@@ -834,7 +834,17 @@ static unsigned setMangleOverride(Dsymbol *s, char *sym)
 void PragmaDeclaration::semantic(Scope *sc)
 {
     // Should be merged with PragmaStatement
-
+#if DMD_OBJC
+    bool isObjcTakesStringLiteral = ident == Id::objc_takestringliteral;
+    bool isObjcSelectorTarget = ident == Id::objc_selectortarget;
+    bool isObjcSelector = ident == Id::objc_isselector;
+    bool isObjcNameOverride = ident == Id::objc_nameoverride;
+#else
+    bool isObjcTakesStringLiteral = false;
+    bool isObjcSelectorTarget = false;
+    bool isObjcSelector = false;
+    bool isObjcNameOverride = false;
+#endif
     //printf("\tPragmaDeclaration::semantic '%s'\n",toChars());
     if (ident == Id::msg)
     {
@@ -935,9 +945,10 @@ void PragmaDeclaration::semantic(Scope *sc)
         }
         goto Lnodecl;
     }
-#if DMD_OBJC
-    else if (ident == Id::objc_takestringliteral)
+
+    else if (isObjcTakesStringLiteral)
     {
+#if DMD_OBJC
         // This should apply only to a very limited number of classes and
         // interfaces: ObjcObject, NSObject, and NSString.
 
@@ -964,9 +975,11 @@ void PragmaDeclaration::semantic(Scope *sc)
                     error("can only apply to class or interface declarations, not %s", dsym->toChars());
             }
         }
+#endif
     }
-    else if (ident == Id::objc_selectortarget)
+    else if (isObjcSelectorTarget)
     {
+#if DMD_OBJC
         // This should apply only to a very limited number of struct types in
         // the Objective-C runtime bindings: objc_object, objc_class.
 
@@ -993,9 +1006,11 @@ void PragmaDeclaration::semantic(Scope *sc)
                     error("can only apply to struct declarations, not %s", dsym->toChars());
             }
         }
+#endif
     }
-    else if (ident == Id::objc_isselector)
+    else if (isObjcSelector)
     {
+#if DMD_OBJC
         // This should apply only to a very limited number of struct types in
         // the Objective-C runtime bindings: objc_object, objc_class.
 
@@ -1022,9 +1037,11 @@ void PragmaDeclaration::semantic(Scope *sc)
                     error("can only apply to struct declarations, not %s", dsym->toChars());
             }
         }
+#endif
     }
-    else if (ident == Id::objc_nameoverride)
+    else if (isObjcNameOverride)
     {
+#if DMD_OBJC
         if (!args || args->dim != 1)
             error("string expected for name override");
 
@@ -1060,8 +1077,9 @@ void PragmaDeclaration::semantic(Scope *sc)
         }
         else
             error("string expected for name override, not '%s'", e->toChars());
-    }
 #endif
+    }
+
     else if (ident == Id::mangle)
     {
         if (!args)

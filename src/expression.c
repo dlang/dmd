@@ -69,10 +69,12 @@ Expression *getRightThis(Loc loc, Scope *sc, AggregateDeclaration *ad,
     Type *t = e1->type->toBasetype();
     //printf("e1->type = %s, var->type = %s\n", e1->type->toChars(), var->type->toChars());
 
+    bool isObjcHandled = false;
 #if DMD_OBJC
     if (e1->op == TOKobjcclsref)
     {
         // We already have an Objective-C class reference, just use that as 'this'.
+        isObjcHandled = true;
     }
     else if (ad &&
         ad->isClassDeclaration() && ((ClassDeclaration *)ad)->objc &&
@@ -81,12 +83,12 @@ Expression *getRightThis(Loc loc, Scope *sc, AggregateDeclaration *ad,
     {
         // Create class reference from the class declaration
         e1 = new ObjcClassRefExp(e1->loc, (ClassDeclaration *)ad);
+        isObjcHandled = true;
     }
-    else
 #endif
     /* If e1 is not the 'this' pointer for ad
      */
-    if (ad &&
+    if (!isObjcHandled && ad &&
         !(t->ty == Tpointer && t->nextOf()->ty == Tstruct &&
           ((TypeStruct *)t->nextOf())->sym == ad)
         &&
@@ -3724,6 +3726,11 @@ Expression *StringExp::semantic(Scope *sc)
 #if LOGSEMANTIC
     printf("StringExp::semantic() %s\n", toChars());
 #endif
+#if DMD_OBJC
+    bool isClassAndNotCommited = type && type->ty == Tclass && !committed;
+#else
+    bool isClassAndNotCommited = false;
+#endif
     if (!type)
     {
         OutBuffer buffer;
@@ -3796,16 +3803,18 @@ Expression *StringExp::semantic(Scope *sc)
         //type = type->immutableOf();
         //printf("type = %s\n", type->toChars());
     }
-#if DMD_OBJC
-    else if (type && type->ty == Tclass && !committed)
+    else if (isClassAndNotCommited)
     {
+#if DMD_OBJC
         // determine if this string is pure ascii
         int ascii = 1;
         for (size_t i = 0; i < len; ++i)
-        {   if (((unsigned char *)string)[i] & 0x80)
-        {   ascii = 0;
-            break;
-        }
+        {
+            if (((unsigned char *)string)[i] & 0x80)
+            {
+                ascii = 0;
+                break;
+            }
         }
 
         if (!ascii)
@@ -3836,8 +3845,8 @@ Expression *StringExp::semantic(Scope *sc)
             sz = 2;
         }
         committed = 1;
-    }
 #endif
+    }
     return this;
 }
 
@@ -4913,8 +4922,13 @@ Lagain:
         }
 
 #if DMD_OBJC
-        if (cd->objc)
+        bool isObjc = cd->objc;
+#else
+        bool isObjc = false;
+#endif
+        if (isObjc)
         {
+#if DMD_OBJC
             if (cd->objcmeta)
             {   error("cannot instanciate meta class '%s'", cd->toChars());
                 goto Lerr;
@@ -4946,10 +4960,9 @@ Lagain:
             {   error("no matching 'alloc' function in Objective-C class %s", cd->toChars());
                 goto Lerr;
             }
-        }
-        else
 #endif
-        if (cd->aggNew)
+        }
+        else if (cd->aggNew)
         {
             // Prepend the size argument to newargs[]
             Expression *e = new IntegerExp(loc, cd->size(loc), Type::tsize_t);
@@ -6369,9 +6382,15 @@ Expression *IsExp::semantic(Scope *sc)
                 break;
             }
             case TOKreturn:
+            {
                 /* Get the 'return type' for the function,
                  * delegate, or pointer to function.
                  */
+#if DMD_OBJC
+                bool isObjcSelector = targ->ty == Tobjcselector;
+#else
+                bool isObjcSelector = false;
+#endif
                 if (targ->ty == Tfunction)
                     tded = ((TypeFunction *)targ)->next;
                 else if (targ->ty == Tdelegate)
@@ -6379,12 +6398,10 @@ Expression *IsExp::semantic(Scope *sc)
                     tded = ((TypeDelegate *)targ)->next;
                     tded = ((TypeFunction *)tded)->next;
                 }
-#if DMD_OBJC
-                else if (targ->ty == Tobjcselector)
+                else if (isObjcSelector)
                 {   tded = ((TypeDelegate *)targ)->next;
                     tded = ((TypeFunction *)tded)->next;
                 }
-#endif
                 else if (targ->ty == Tpointer &&
                          ((TypePointer *)targ)->next->ty == Tfunction)
                 {
@@ -6394,6 +6411,7 @@ Expression *IsExp::semantic(Scope *sc)
                 else
                     goto Lno;
                 break;
+            }
 
             case TOKargTypes:
                 /* Generate a type tuple of the equivalent types used to determine if a
@@ -8517,6 +8535,11 @@ Lagain:
     // Check for call operator overload
     if (t1)
     {
+#if DMD_OBJC
+        bool isObjcSelector = t1->ty == Tobjcselector;
+#else
+        bool isObjcSelector = false;
+#endif
         if (t1->ty == Tstruct)
         {
             StructDeclaration *sd = ((TypeStruct *)t1)->sym;
@@ -8612,9 +8635,10 @@ Lagain:
             e = e->semantic(sc);
             return e;
         }
+        else if (isObjcSelector)
+        {
 #if DMD_OBJC
-        else if (t1->ty == Tobjcselector)
-        {   assert(argument0 == NULL);
+            assert(argument0 == NULL);
             TypeObjcSelector *sel = (TypeObjcSelector *)t1;
 
             // harvest first argument and check if valid target for a selector
@@ -8646,8 +8670,8 @@ Lagain:
             }
             else
                 error("calling a selector needs an Objective-C object as the first argument");
-        }
 #endif
+        }
     }
 
     if (e1->op == TOKdotvar && t1->ty == Tfunction ||
@@ -8751,21 +8775,7 @@ Lagain:
             // See if we need to adjust the 'this' pointer
             AggregateDeclaration *ad = f->isThis();
             ClassDeclaration *cd = ue->e1->type->isClassHandle();
-#if DMD_OBJC && 0
-            ClassDeclaration *cad = ad->isClassDeclaration();
-//            if (ad && cd && cd->objc && ad->isClassDeclaration() && ((ClassDeclaration *)ad)->objc && f->objcSelector)
-//            {
-//                ClassDeclaration *cad = (ClassDeclaration *)ad;
-//                if (cad->objcmeta && cd->metaclass == ad)
-//                {
-//                    // need to go from object to class
-//                }
-//                else if (!cad->objcmeta)
-//                {
-//                    // need to convert to base class
-//                }
-//            }
-#endif
+
             if (ad && cd && ad->isClassDeclaration() && ad != cd &&
                 ue->e1->op != TOKsuper)
             {
@@ -8918,6 +8928,11 @@ Lagain:
         const char *p;
         Dsymbol *s;
         f = NULL;
+#if DMD_OBJC
+        bool isObjcSelector = t1->ty == Tobjcselector;
+#else
+        bool isObjcSelector = false;
+#endif
         if (e1->op == TOKfunction)
         {
             // function literal that direct called is always inferred.
@@ -8933,14 +8948,15 @@ Lagain:
             tf = (TypeFunction *)(td->next);
             p = "delegate";
         }
+        else if (isObjcSelector)
+        {
 #if DMD_OBJC
-        else if (t1->ty == Tobjcselector)
-        {   TypeObjcSelector *td = (TypeObjcSelector *)t1;
+            TypeObjcSelector *td = (TypeObjcSelector *)t1;
             assert(td->next->ty == Tfunction);
             tf = (TypeFunction *)(td->next);
             p = "Objective-C selector";
-        }
 #endif
+        }
         else if (t1->ty == Tpointer && ((TypePointer *)t1)->next->ty == Tfunction)
         {
             tf = (TypeFunction *)(((TypePointer *)t1)->next);
@@ -9318,13 +9334,22 @@ Expression *AddrExp::semantic(Scope *sc)
                 f->tookAddressOf++;
 
             Expression *e;
+            if (f->needThis())
+            {
 #if DMD_OBJC
-            if (f->needThis() && f->objcSelector)
-                e = new ObjcSelectorExp(loc, f, dve->hasOverloads);
-            else
+                bool isObjcSelector = f->objcSelector;
+#else
+                bool isObjcSelector = false;
 #endif
-            if ( f->needThis())
-                e = new DelegateExp(loc, dve->e1, f, dve->hasOverloads);
+                if (isObjcSelector)
+                {
+#if DMD_OBJC
+                    e = new ObjcSelectorExp(loc, f, dve->hasOverloads);
+#endif
+                }
+                else
+                    e = new DelegateExp(loc, dve->e1, f, dve->hasOverloads);
+            }
             else // It is a function pointer. Convert &v.f() --> (v, &V.f())
                 e = new CommaExp(loc, dve->e1, new AddrExp(loc, new VarExp(loc, f)));
             e = e->semantic(sc);
@@ -9384,15 +9409,19 @@ Expression *AddrExp::semantic(Scope *sc)
                 return e;
             }
 #if DMD_OBJC
-            if (f->needThis() && f->objcSelector)
+            bool isObjcSelector = f->needThis() && f->objcSelector;
+#else
+            bool isObjcSelector = false;
+#endif
+            if (isObjcSelector)
             {
+#if DMD_OBJC
                 Expression *e = new ObjcSelectorExp(loc, f, ve->hasOverloads);
                 e = e->semantic(sc);
                 return e;
-            }
-            else
 #endif
-            if (f->needThis() && hasThis(sc))
+            }
+            else if (f->needThis() && hasThis(sc))
             {
                 /* Should probably supply 'this' after overload resolution,
                  * not before.

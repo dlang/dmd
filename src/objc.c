@@ -84,7 +84,7 @@ static char* buildIVarName (ClassDeclaration* cdecl, VarDeclaration* ivar, size_
 
 static int seg_list[SEG_MAX] = {0};
 
-static int objc_getsegment(enum ObjcSegment segid)
+static int objc_getsegment(ObjcSegment segid)
 {
     int *seg = seg_list;
     if (seg[segid] != 0)
@@ -174,11 +174,9 @@ static const char* getTypeEncoding(Type* type)
     else if (type == Type::timaginary32) return "f";
     else if (type == Type::tfloat64)     return "d";
     else if (type == Type::timaginary64) return "d";
-    // "float80" is "long double" in Objective-C, but "long double" has no specific
-    // encoding character documented. Since @encode in Objective-C outputs "d",
-    // which is the same as "double", that's what we do here. But it doesn't look right.
-    else if (type == Type::tfloat80)     return "d";
-    else if (type == Type::timaginary80) return "d";
+    else if (type == Type::tfloat80)     return "d"; // "float80" is "long double" in Objective-C, but "long double" has no specific
+    else if (type == Type::timaginary80) return "d"; // encoding character documented. Since @encode in Objective-C outputs "d", which is the same as "double", that's what we do here. But it doesn't look right.
+
     else                                 return "?"; // unknown
     // TODO: add "B" BOOL, "*" char*, "#" Class, "@" id, ":" SEL
     // TODO: add "^"<type> indirection and "^^" double indirection
@@ -753,7 +751,7 @@ Symbol *FragileAbiObjcSymbols::_getModuleInfo(ClassDeclarations *cls, ClassDecla
     return symbol;
 }
 
-Symbol* FragileAbiObjcSymbols::_getClassName(::ObjcClassDeclaration *objcClass)
+Symbol* FragileAbiObjcSymbols::_getClassName(ObjcClassDeclaration *objcClass)
 {
     hassymbols = 1;
     ClassDeclaration* cdecl = objcClass->cdecl;

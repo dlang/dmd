@@ -527,12 +527,19 @@ void ClassDeclaration::semantic(Scope *sc)
         doAncestorsSemantic = SemanticDone;
 
 #if DMD_OBJC
-        if (objc || (baseClass && baseClass->objc))
-            objc = 1; // Objective-C classes do not inherit from Object
-        else
+        bool isObjcBaseClass = objc || (baseClass && baseClass->objc);
+#else
+        bool isObjcBaseClass = false;
 #endif
-        // If no base class, and this is not an Object, use Object as base class
-        if (!baseClass && ident != Id::Object && !cpp)
+        if (isObjcBaseClass)
+        {
+#if DMD_OBJC
+            // Objective-C classes do not inherit from Object
+            objc = 1;
+#endif
+        }
+
+        else if (!baseClass && ident != Id::Object && !cpp) // If no base class, and this is not an Object, use Object as base class
         {
             if (!object)
             {
@@ -722,6 +729,11 @@ Lancestorsdone:
     sc2->stc &= STCsafe | STCtrusted | STCsystem;
     sc2->parent = this;
     sc2->inunion = 0;
+#if DMD_OBJC
+    bool isObjc = objc;
+#else
+    bool isObjc = false;
+#endif
     if (isCOMclass())
     {
         if (global.params.isWindows)
@@ -734,12 +746,12 @@ Lancestorsdone:
             sc2->linkage = LINKc;
         }
     }
-#if DMD_OBJC
-    else if (objc)
+
+    else if (isObjc)
     {
         sc2->linkage = LINKobjc;
     }
-#endif
+
     sc2->protection = Prot(PROTpublic);
     sc2->explicitProtection = 0;
     sc2->structalign = STRUCTALIGN_DEFAULT;
@@ -752,12 +764,12 @@ Lancestorsdone:
         if (cpp && global.params.isWindows)
             structsize = (structsize + alignsize - 1) & ~(alignsize - 1);
     }
-#if DMD_OBJC
-    else if (objc)
+
+    else if (isObjc)
     {
         structsize = 0; // no hidden member for an Objective-C class
     }
-#endif
+
     else
     {
         alignsize = Target::ptrsize;
@@ -1020,10 +1032,6 @@ Lancestorsdone:
         if (!(f->storage_class & STCdisable))
             error(f->loc, "identity assignment operator overload is illegal");
     }
-#if DMD_OBJC
-    //    if (metaclass)
-    //        metaclass->semantic(sc2);
-#endif
     sc2->pop();
 
     //printf("-ClassDeclaration::semantic(%s), type = %p\n", toChars(), type);
@@ -1764,14 +1772,17 @@ Lancestorsdone:
     sc2->stc &= STCsafe | STCtrusted | STCsystem;
     sc2->parent = this;
     sc2->inunion = 0;
+#if DMD_OBJC
+    bool isObjCinterface = this->isObjCinterface();
+#else
+    bool isObjCinterface = false;
+#endif
     if (com)
         sc2->linkage = LINKwindows;
     else if (cpp)
         sc2->linkage = LINKcpp;
-#if DMD_OBJC
-    else if (isObjCinterface())
+    else if (isObjCinterface)
         sc->linkage = LINKobjc;
-#endif
     sc2->protection = Prot(PROTpublic);
     sc2->explicitProtection = 0;
     sc2->structalign = STRUCTALIGN_DEFAULT;
@@ -1823,10 +1834,6 @@ Lancestorsdone:
 
     inuse--;
     //members->print();
-#if DMD_OBJC
-    //    if (metaclass)
-    //        metaclass->semantic(sc);
-#endif
     sc2->pop();
     //printf("-InterfaceDeclaration::semantic(%s), type = %p\n", toChars(), type);
 

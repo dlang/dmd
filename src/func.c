@@ -682,13 +682,16 @@ void FuncDeclaration::semantic(Scope *sc)
         storage_class |= STCabstract;
 
 #if DMD_OBJC
-        if (id->objc && isCtorDeclaration() || isDtorDeclaration())
-        {   // constructors and destructor allowed in Objective-C interfaces
+        bool isObjcAndCtorDtor = id->objc && isCtorDeclaration() || isDtorDeclaration();
+#else
+        bool isObjcAndCtorDtor = false;
+#endif
+        if (isObjcAndCtorDtor)
+        {
+            // constructors and destructor allowed in Objective-C interfaces
             // to map them to selectors.
         }
-        else
-#endif
-        if (isCtorDeclaration() ||
+        else if (isCtorDeclaration() ||
             isPostBlitDeclaration() ||
             isDtorDeclaration() ||
             isInvariantDeclaration() ||
@@ -3398,20 +3401,25 @@ AggregateDeclaration *FuncDeclaration::isThis()
 {
     //printf("+FuncDeclaration::isThis() '%s'\n", toChars());
     AggregateDeclaration *ad = NULL;
+#if DMD_OBJC
+    bool isObjcSelector = objcSelector;
+#else
+    bool isObjcSelector = false;
+#endif
     if ((storage_class & STCstatic) == 0 && !isFuncLiteralDeclaration())
     {
         ad = isMember2();
     }
-#if DMD_OBJC
-    else if (objcSelector) // static Objective-C functions
+    else if (isObjcSelector) // static Objective-C functions
     {
+#if DMD_OBJC
         // Use Objective-C class object as 'this'
         ClassDeclaration *cd = isMember2()->isClassDeclaration();
         if (cd->objc)
             if (!cd->objcmeta) // but check that it hasn't already been done
                 ad = cd->metaclass;
-    }
 #endif
+    }
     //printf("-FuncDeclaration::isThis() %p\n", ad);
     return ad;
 }
@@ -3957,31 +3965,33 @@ bool FuncDeclaration::addPreInvariant()
 {
     AggregateDeclaration *ad = isThis();
     ClassDeclaration *cd = ad ? ad->isClassDeclaration() : NULL;
+
+#if DMD_OBJC
+    bool objcCond = ident != Id::_dobjc_preinit && ident != Id::_dobjc_invariant;
+#else
+    bool objcCond = true;
+#endif
+
     return (ad && !(cd && cd->isCPPclass()) &&
             global.params.useInvariants &&
             (protection.kind == PROTprotected || protection.kind == PROTpublic || protection.kind == PROTexport) &&
-            !naked &&
-#if DMD_OBJC
-            ident != Id::_dobjc_preinit &&
-            ident != Id::_dobjc_invariant &&
-#endif
-            ident != Id::cpctor);
+            !naked && objcCond && ident != Id::cpctor);
 }
 
 bool FuncDeclaration::addPostInvariant()
 {
     AggregateDeclaration *ad = isThis();
     ClassDeclaration *cd = ad ? ad->isClassDeclaration() : NULL;
+#if DMD_OBJC
+    bool objcCond = ident != Id::_dobjc_preinit && ident != Id::_dobjc_invariant;
+#else
+    bool objcCond = true;
+#endif
     return (ad && !(cd && cd->isCPPclass()) &&
             ad->inv &&
             global.params.useInvariants &&
             (protection.kind == PROTprotected || protection.kind == PROTpublic || protection.kind == PROTexport) &&
-            !naked &&
-#if DMD_OBJC
-            ident != Id::_dobjc_preinit &&
-            ident != Id::_dobjc_invariant &&
-#endif
-            ident != Id::cpctor);
+            !naked && objcCond && ident != Id::cpctor);
 }
 
 /********************************************************

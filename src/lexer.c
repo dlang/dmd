@@ -2812,9 +2812,8 @@ static Keyword keywords[] =
     {   "__PRETTY_FUNCTION__", TOKprettyfunc   },
     {   "shared",       TOKshared       },
     {   "immutable",    TOKimmutable    },
-#if DMD_OBJC
     {   "__selector",   TOKobjcselector },
-#endif
+
     {   NULL,           TOKreserved     }
 };
 

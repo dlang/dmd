@@ -128,12 +128,7 @@ void Global::init()
 #endif
 
     copyright = "Copyright (c) 1999-2014 by Digital Mars";
-    written = "written by Walter Bright"
-#if DMD_OBJC
-    "\nD/Objective-C (alpha 1 release) by Michel Fortin.";
-#else
-    ;
-#endif
+    written = "written by Walter Bright";
     version = "v"
 #include "verstr.h"
     ;
@@ -1213,7 +1208,7 @@ Language changes listed by -transition=id:\n\
 #if DMD_OBJC
 	VersionCondition::addPredefinedGlobalIdent("D_ObjC");
 
-    if (global.params.isOSX && global.params.is64bit /* && isArm*/)
+    if (global.params.isOSX && global.params.is64bit) // && isArm
     {
         global.params.isObjcNonFragileAbi = 1;
         VersionCondition::addPredefinedGlobalIdent("D_ObjCNonFragileABI");

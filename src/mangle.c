@@ -46,9 +46,7 @@ void initTypeMangle()
     mangleChar[Tstruct] = 'S';
     mangleChar[Tenum] = 'E';
     mangleChar[Tdelegate] = 'D';
-#if DMD_OBJC
     mangleChar[Tobjcselector] = '@';
-#endif
 
     mangleChar[Tnone] = 'n';
     mangleChar[Tvoid] = 'v';

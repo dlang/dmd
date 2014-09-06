@@ -75,13 +75,13 @@ enum BE
     BEbreak =    0x20,
     BEcontinue = 0x40,
 	BEerrthrow = 0x80,
-#if DMD_OBJC
+//#if DMD_OBJC
     BEthrowobjc = 0x100,
     BEthrowany = (BEthrow | BEthrowobjc),
     BEany = (BEfallthru | BEthrow | BEreturn | BEgoto | BEhalt | BEthrowobjc),
-#else
-    BEany = (BEfallthru | BEthrow | BEreturn | BEgoto | BEhalt),
-#endif
+//#else
+    //BEany = (BEfallthru | BEthrow | BEreturn | BEgoto | BEhalt),
+//#endif
 };
 
 class Statement : public RootObject

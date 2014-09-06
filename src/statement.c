@@ -641,10 +641,11 @@ int Statement::blockExit(FuncDeclaration *func, bool mustNotThrow)
                 catchresult |= cresult;
             }
 #if DMD_OBJC
-            if (mustNotThrow && (result & BEthrowany))
+            int isThrow = result & BEthrowany;
 #else
-            if (mustNotThrow && (result & BEthrow))
+            int isThrow = result & BEthrow;
 #endif
+            if (mustNotThrow && isThrow)
             {
                 // now explain why this is nothrow
                 s->body->blockExit(func, mustNotThrow);
@@ -4226,15 +4227,20 @@ Statement *SynchronizedStatement::semantic(Scope *sc)
         if (exp->op == TOKerror)
             goto Lbody;
         ClassDeclaration *cd = exp->type->isClassHandle();
+#if DMD_OBJC
+        bool isObjc = cd && cd->objc;
+#else
+        bool isObjc = false;
+#endif
         if (!cd)
         {
             error("can only synchronize on class objects, not '%s'", exp->type->toChars());
             return new ErrorStatement();
         }
-#if DMD_OBJC
-        else if (cd->objc)
-        { /* interface declaration not a special case in Objective-C */ }
-#endif
+        else if (isObjc)
+        {
+            /* interface declaration not a special case in Objective-C */
+        }
         else if (cd->isInterfaceDeclaration())
         {   /* Cast the interface to an object, as the object has the monitor,
              * not the interface.
@@ -4670,11 +4676,15 @@ void Catch::semantic(Scope *sc)
     type = type->semantic(loc, sc);
     ClassDeclaration *cd = type->toBasetype()->isClassHandle();
 #if DMD_OBJC
-    if (cd && cd->objc) // allow catching of Objective-C exceptions
-    {}
-    else
+    bool isObjc = cd && cd->objc;
+#else
+    bool isObjc = false;
 #endif
-    if (!cd || ((cd != ClassDeclaration::throwable) && !ClassDeclaration::throwable->isBaseOf(cd, NULL)))
+    if (isObjc)
+    {
+        // allow catching of Objective-C exceptions
+    }
+    else if (!cd || ((cd != ClassDeclaration::throwable) && !ClassDeclaration::throwable->isBaseOf(cd, NULL)))
     {
         if (type != Type::terror)
         {
@@ -4901,12 +4911,16 @@ Statement *ThrowStatement::semantic(Scope *sc)
         return new ErrorStatement();
     ClassDeclaration *cd = exp->type->toBasetype()->isClassHandle();
 #if DMD_OBJC
-    if (cd && cd->objc) // allow throwing of Objective-C exceptions
-    {   // FIXME: must derive from NSException
-    }
-    else
+    bool isObjc = cd && cd->objc;
+#else
+    bool isObjc = false;
 #endif
-    if (!cd || ((cd != ClassDeclaration::throwable) && !ClassDeclaration::throwable->isBaseOf(cd, NULL)))
+    if (isObjc)
+    {
+        // allow throwing of Objective-C exceptions
+        // FIXME: must derive from NSException
+    }
+    else if (!cd || ((cd != ClassDeclaration::throwable) && !ClassDeclaration::throwable->isBaseOf(cd, NULL)))
     {
         error("can only throw class objects derived from Throwable, not type %s", exp->type->toChars());
         return new ErrorStatement();

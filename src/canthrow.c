@@ -27,11 +27,9 @@
 int Dsymbol_canThrow(Dsymbol *s, FuncDeclaration *func, bool mustNotThrow);
 int walkPostorder(Expression *e, StoppableVisitor *v);
 
-#if DMD_OBJC
 // Changed to return flags BEthrow and/or BEthrowobjc depending on which
 // throwing mechanism is used. Both flags can be present at the same time
 // which means that both types of exceptions can be thrown by this expression.
-#endif
 
 /********************************************
  * Returns true if the expression may throw exceptions.
@@ -72,7 +70,7 @@ int canThrow(Expression *e, FuncDeclaration *func, bool mustNotThrow)
             result |= Dsymbol_canThrow(de->declaration, func, mustNotThrow);
             stop = result == BEthrowany;
 #else
-            stop = Dsymbol_canThrow(de->declaration, func, mustNotThrow);
+            stop = (bool)Dsymbol_canThrow(de->declaration, func, mustNotThrow);
 #endif
         }
 
@@ -86,17 +84,18 @@ int canThrow(Expression *e, FuncDeclaration *func, bool mustNotThrow)
              * Note that pure functions can throw.
              */
             Type *t = ce->e1->type->toBasetype();
+            bool isNoThrow = false;
             if (ce->f && ce->f == func)
-                ;
+                isNoThrow = true;
             else if (t->ty == Tfunction && ((TypeFunction *)t)->isnothrow)
-                ;
+                isNoThrow = true;
             else if (t->ty == Tdelegate && ((TypeFunction *)((TypeDelegate *)t)->next)->isnothrow)
-                ;
+                isNoThrow = true;
 #if DMD_OBJC
-            else if (t->ty == Tobjcselector && ((TypeFunction *)((TypeObjcSelector *)t)->next)->isnothrow)
-                ;
+            if (t->ty == Tobjcselector && ((TypeFunction *)((TypeObjcSelector *)t)->next)->isnothrow)
+                isNoThrow = true;
 #endif
-            else
+            if (!isNoThrow)
             {
 #if DMD_OBJC
                 int linkage;
@@ -253,14 +252,16 @@ int Dsymbol_canThrow(Dsymbol *s, FuncDeclaration *func, bool mustNotThrow)
     {
         s = s->toAlias();
         if (s != vd)
+        {
 #if DMD_OBJC
-        {   result |= Dsymbol_canThrow(s, func, mustNotThrow);
+            result |= Dsymbol_canThrow(s, func, mustNotThrow);
             if (result == BEthrowany)
                 return result;
-        }
 #else
             return Dsymbol_canThrow(s, func, mustNotThrow);
 #endif
+        }
+
         if (vd->storage_class & STCmanifest)
             ;
         else if (vd->isStatic() || vd->storage_class & (STCextern | STCtls | STCgshared))
@@ -283,11 +284,13 @@ int Dsymbol_canThrow(Dsymbol *s, FuncDeclaration *func, bool mustNotThrow)
 #endif
             }
             if (vd->edtor && !vd->noscope)
+            {
 #if DMD_OBJC
                 return result | canThrow(vd->edtor, func, mustNotThrow);
 #else
                 return canThrow(vd->edtor, func, mustNotThrow);
 #endif
+            }
         }
     }
     else if ((tm = s->isTemplateMixin()) != NULL)

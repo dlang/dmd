@@ -110,12 +110,8 @@ elem *callfunc(Loc loc,
         FuncDeclaration *fd,    // if !=NULL, this is the function being called
         Type *t,                // TypeDelegate or TypeFunction for this function
         elem *ehidden,          // if !=NULL, this is the 'hidden' argument
-        Expressions *arguments
-#if DMD_OBJC
-        ,
-        elem *esel = NULL       // selector for Objective-C methods (when not provided by fd)
-#endif
-        )
+        Expressions *arguments,
+        elem *esel = NULL)      // selector for Objective-C methods (when not provided by fd)
 {
     elem *ep;
     elem *e;
@@ -138,8 +134,12 @@ elem *callfunc(Loc loc,
     if (ehidden)
     {   printf("ehidden: "); elem_print(ehidden); }
 #endif
-
     t = t->toBasetype();
+#if DMD_OBJC
+    bool isObjcSelector = t->ty == Tobjcselector;
+#else
+    bool isObjcSelector = false;
+#endif
     if (t->ty == Tdelegate)
     {
         // A delegate consists of:
@@ -153,8 +153,7 @@ elem *callfunc(Loc loc,
         ec = array_toPtr(t, ec);                // get funcptr
         ec = el_una(OPind, totym(tf), ec);
     }
-#if DMD_OBJC
-    else if (t->ty == Tobjcselector)
+    else if (isObjcSelector)
     {
         assert(!fd);
         assert(esel);
@@ -162,7 +161,6 @@ elem *callfunc(Loc loc,
         tf = (TypeFunction *)(t->nextOf());
         ethis = ec;
     }
-#endif
     else
     {
         assert(t->ty == Tfunction);
@@ -329,9 +327,9 @@ elem *callfunc(Loc loc,
         }
         Symbol *sfunc = toSymbol(fd);
 
-#if DMD_OBJC
         if (esel)
         {
+#if DMD_OBJC
             if (fd->fbody && (!fd->isVirtual() || directcall || fd->isFinal()))
             {
                 // make static call
@@ -368,10 +366,9 @@ elem *callfunc(Loc loc,
                 else
                     ec = el_var(ObjcSymbols::getMsgSend(tret, ehidden != 0));
             }
-        }
-        else
 #endif
-        if (!fd->isVirtual() ||
+        }
+        else if (!fd->isVirtual() ||
             directcall ||               // BUG: fix
             fd->isFinalFunc()
            /* Future optimization: || (whole program analysis && not overridden)
@@ -402,15 +399,15 @@ if (I32) assert(tysize[TYnptr] == 4);
         assert(!ethis);
         ethis = getEthis(loc, irs, fd);
     }
-#if DMD_OBJC
     else if (esel)
     {
+#if DMD_OBJC
         // make objc-style "virtual" call using dispatch function
         assert(ethis);
         Type *tret = tf->next;
         ec = el_var(ObjcSymbols::getMsgSend(tret, ehidden != 0));
-    }
 #endif
+    }
 
     ep = el_param(ep, ethis);
     if (ehidden)
@@ -1447,13 +1444,13 @@ elem *toElem(Expression *e, IRState *irs)
                 e->EV.ss.Vstrlen = (se->len + 1) * se->sz;
                 e->Ety = TYnptr;
             }
-#if DMD_OBJC
             else if (tb->ty == Tclass)
             {
+#if DMD_OBJC
                 Symbol *si = ObjcSymbols::getStringLiteral(se->string, se->len, se->sz);
                 e = el_ptr(si);
-            }
 #endif
+            }
             else
             {
                 printf("type is %s\n", se->type->toChars());
@@ -1490,8 +1487,13 @@ elem *toElem(Expression *e, IRState *irs)
                 elem *ezprefix = NULL;
                 elem *ez = NULL;
 #if DMD_OBJC
-                if (cd->objc)
+                bool isObjc = cd->objc;
+#else
+                bool isObjc = false;
+#endif
+                if (isObjc)
                 {
+#if DMD_OBJC
                     elem *ei;
                     Symbol *si;
 
@@ -1530,10 +1532,9 @@ elem *toElem(Expression *e, IRState *irs)
                     //ex->Enumbytes = cd->size(loc);
                     //ex = el_una(OPaddr, TYnptr, ex);
                     ectype = tclass;
-                }
-                else
 #endif
-                if (ne->allocator || ne->onstack)
+                }
+                else if (ne->allocator || ne->onstack)
                 {
                     if (ne->onstack)
                     {
@@ -1635,18 +1636,18 @@ elem *toElem(Expression *e, IRState *irs)
                     ey = setEthis(ne->loc, irs, ey, cd);
                 }
 
-#if DMD_OBJC
-                if (ne->member && cd->objc)
-                    // Call Objective-C constructor (not a direct call)
-                    ez = callfunc(ne->loc, irs, 0, ne->type, ez, ectype, ne->member, ne->member->type, NULL, ne->arguments);
-                else
-#endif
                 if (ne->member)
                 {
                     if (ne->argprefix)
                         ezprefix = toElem(ne->argprefix, irs);
+#if DMD_OBJC
+                    // Call Objective-C constructor (not a direct call)
+                    bool isDirectCall = !cd->objc;
+#else
                     // Call constructor
-                    ez = callfunc(ne->loc, irs, 1, ne->type, ez, ectype, ne->member, ne->member->type, NULL, ne->arguments);
+                    bool isDirectCall = true;
+#endif
+                    ez = callfunc(ne->loc, irs, isDirectCall, ne->type, ez, ectype, ne->member, ne->member->type, NULL, ne->arguments);
                 }
 
                 e = el_combine(ex, ey);
@@ -1936,15 +1937,18 @@ elem *toElem(Expression *e, IRState *irs)
                 FuncDeclaration *inv;
 
 #if DMD_OBJC
-                if (global.params.useInvariants && t1->ty == Tclass &&
-                    ((TypeClass *)t1)->sym->objc)
+                bool callObjcInvariant = global.params.useInvariants &&
+                    t1->ty == Tclass && ((TypeClass *)t1)->sym->objc;
+#else
+                bool callObjcInvariant = false;
+#endif
+                if (callObjcInvariant)
                 {
                     ts = symbol_genauto(Type_toCtype(t1));
                     // Call Objective-C invariant
                     einv = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_DINVARIANT_OBJC]), el_var(ts));
                 }
                 else
-#endif
                 // If e1 is a class object, call the class invariant on it
                 if (global.params.useInvariants && t1->ty == Tclass &&
                     !((TypeClass *)t1)->sym->isInterfaceDeclaration() &&
@@ -3590,16 +3594,20 @@ elem *toElem(Expression *e, IRState *irs)
             FuncDeclaration *fd = NULL;
             bool dctor = false;
 #if DMD_OBJC
+            bool isObjcSelector = t1->ty == Tobjcselector;
+#else
+            bool isObjcSelector = false;
+#endif
             elem *esel = NULL;
-            if (t1->ty == Tobjcselector)
+            if (isObjcSelector)
             {
+#if DMD_OBJC
                 assert(ce->argument0);
                 ec = toElem(ce->argument0, irs);
                 esel = toElem(ce->e1, irs);
-            }
-            else
 #endif
-            if (ce->e1->op == TOKdotvar && t1->ty != Tdelegate)
+            }
+            else if (ce->e1->op == TOKdotvar && t1->ty != Tdelegate)
             {
                 DotVarExp *dve = (DotVarExp *)ce->e1;
 
@@ -4075,6 +4083,13 @@ elem *toElem(Expression *e, IRState *irs)
 
                 ClassDeclaration *cdfrom = tfrom->isClassHandle();
                 ClassDeclaration *cdto   = t->isClassHandle();
+#if DMD_OBJC
+                bool isFromObjc = cdfrom->objc;
+                bool isToObjc = cdto->objc;
+#else
+                bool isFromObjc = false;
+                bool isToObjc = false;
+#endif
                 if (cdfrom->cpp)
                 {
                     if (cdto->cpp)
@@ -4096,9 +4111,9 @@ elem *toElem(Expression *e, IRState *irs)
                     e = el_bin(OPcomma, TYnptr, e, el_long(TYnptr, 0));
                     goto Lret;
                 }
-#if DMD_OBJC
-                else if (cdfrom->objc)
+                else if (isFromObjc)
                 {
+#if DMD_OBJC
                     if (cdto->objc)
                     {   // casting from objc type to objc type, use objc function
                         if (cdto->isInterfaceDeclaration())
@@ -4110,18 +4125,15 @@ elem *toElem(Expression *e, IRState *irs)
                     {   // casting from objc type to non-objc type, always null
                         goto Lzero;
                     }
+#endif
                 }
-                else if (cdto->objc)
+                else if (isToObjc)
                 {   // casting from non-objc type to objc type, always null
                     goto Lzero;
                 }
-#endif
-#if DMD_OBJC
-                if (cdfrom->objc && cdto->objc && cdto->isInterfaceDeclaration())
+                if (isFromObjc && isToObjc && cdto->isInterfaceDeclaration())
                     rtl = RTLSYM_INTERFACE_CAST_OBJC;
-                else
-#endif
-                if (cdfrom->isInterfaceDeclaration())
+                else if (cdfrom->isInterfaceDeclaration())
                 {
                     rtl = RTLSYM_INTERFACE_CAST;
                 }

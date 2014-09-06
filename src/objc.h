@@ -135,16 +135,16 @@ public:
     static Symbol* getPropertyName(Identifier* ident);
     static Symbol* getPropertyTypeString(FuncDeclaration* property);
 
-protected:
+//protected:
     virtual Symbol *_getModuleInfo(ClassDeclarations *cls, ClassDeclarations *cat) = 0;
     virtual Symbol *_getClassName(ObjcClassDeclaration* cdecl) = 0;
 };
 
 class FragileAbiObjcSymbols : public ObjcSymbols
 {
-protected:
-    virtual Symbol *_getModuleInfo(ClassDeclarations *cls, ClassDeclarations *cat);
-    virtual Symbol *_getClassName(ObjcClassDeclaration* cdecl);
+//protected:
+    Symbol *_getModuleInfo(ClassDeclarations *cls, ClassDeclarations *cat);
+    Symbol *_getClassName(ObjcClassDeclaration* cdecl);
 };
 
 class NonFragileAbiObjcSymbols : public ObjcSymbols
@@ -165,7 +165,7 @@ public:
     Symbol *getEmptyCache();
     Symbol *getEmptyVTable();
 
-protected:
+//protected:
     Symbol *_getModuleInfo(ClassDeclarations *cls, ClassDeclarations *cat);
     Symbol *_getClassName(ObjcClassDeclaration* cdecl);
 };
@@ -345,7 +345,7 @@ public:
     Symbol *getMethodList(int wantsClassMethods);
     Symbol *getProtocolList();
 
-protected:
+//protected:
     virtual Symbol *getClassName() = 0;
 };
 
@@ -357,7 +357,7 @@ public:
 
     void toObjFile(int multiobj);
 
-protected:
+//protected:
     Symbol *getClassName();
 };
 
@@ -372,7 +372,7 @@ public:
 
     Symbol *getMethodTypes();
 
-protected:
+//protected:
     Symbol *getClassName();
 };
 
