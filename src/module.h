@@ -26,13 +26,6 @@ struct Escape;
 class VarDeclaration;
 class Library;
 
-// Back end
-#ifdef IN_GCC
-typedef union tree_node elem;
-#else
-struct elem;
-#endif
-
 enum PKG
 {
     PKGunknown, // not yet determined whether it's a package.d or not
