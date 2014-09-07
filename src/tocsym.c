@@ -51,6 +51,7 @@ Classsym *fake_classsym(Identifier *id);
 Symbols *Symbols_create();
 type *Type_toCtype(Type *t);
 dt_t **ClassReferenceExp_toInstanceDt(ClassReferenceExp *ce, dt_t **pdt);
+dt_t **Expression_toDt(Expression *e, dt_t **pdt);
 
 /*************************************
  * Helper
@@ -727,7 +728,7 @@ Symbol* StructLiteralExp::toSymbol()
     s->Stype = t;
     sym = s;
     dt_t *d = NULL;
-    toDt(&d);
+    Expression_toDt(this, &d);
     s->Sdt = d;
     slist_add(s);
     outdata(s);

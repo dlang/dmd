@@ -51,10 +51,6 @@ class SliceExp;
 
 enum TOK;
 
-// Back end
-struct IRState;
-struct dt_t;
-
 void initPrecedence();
 
 Expression *resolveProperties(Scope *sc, Expression *e);
@@ -90,7 +86,6 @@ Expression *arrayOp(BinAssignExp *e, Scope *sc);
 bool hasSideEffect(Expression *e);
 bool canThrow(Expression *e, FuncDeclaration *func, bool mustNotThrow);
 Expression *Expression_optimize(Expression *e, int result, bool keepLvalue);
-dt_t **Expression_toDt(Expression *e, dt_t **pdt);
 MATCH implicitConvTo(Expression *e, Type *t);
 Expression *implicitCastTo(Expression *e, Scope *sc, Type *t);
 Expression *castTo(Expression *e, Scope *sc, Type *t);
@@ -226,8 +221,6 @@ public:
         return ::op_overload(this, sc);
     }
 
-    // Back end
-    dt_t **toDt(dt_t **pdt) { return ::Expression_toDt(this, pdt); }
     virtual void accept(Visitor *v) { v->visit(this); }
 };
 

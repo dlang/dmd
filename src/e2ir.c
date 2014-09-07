@@ -55,6 +55,7 @@ elem *toElemDtor(Expression *e, IRState *irs);
 unsigned totym(Type *tx);
 Symbol *toSymbol(Dsymbol *s);
 elem *toElem(Expression *e, IRState *irs);
+dt_t **Expression_toDt(Expression *e, dt_t **pdt);
 
 int callSideEffectLevel(FuncDeclaration *f);
 int callSideEffectLevel(Type *t);
@@ -1303,7 +1304,7 @@ elem *toElem(Expression *e, IRState *irs)
                 st = &stringTab[stidx];
 
                 dt = NULL;
-                se->toDt(&dt);
+                Expression_toDt(se, &dt);
 
                 si = symbol_generate(SCstatic,type_fake(TYdarray));
                 si->Sdt = dt;
@@ -1323,7 +1324,7 @@ elem *toElem(Expression *e, IRState *irs)
             {
                 dt_t *dt = NULL;
 
-                se->toDt(&dt);
+                Expression_toDt(se, &dt);
                 dtnzeros(&dt, se->sz);              // leave terminating 0
 
                 ::type *t = type_static_array(se->sz * se->len, tschar);

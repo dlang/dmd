@@ -30,7 +30,6 @@ class FuncDeclaration;
 class ExpInitializer;
 class StructDeclaration;
 struct InterState;
-struct IRState;
 struct CompiledCtfeFunction;
 
 enum LINK;
@@ -543,7 +542,6 @@ BUILTIN isBuiltin(FuncDeclaration *fd);
 typedef Expression *(*builtin_fp)(Loc loc, FuncDeclaration *fd, Expressions *arguments);
 void add_builtin(const char *mangle, builtin_fp fp);
 void builtin_init();
-void buildClosure(FuncDeclaration *fd, IRState *irs);
 
 #define FUNCFLAGpurityInprocess 1   // working on determining purity
 #define FUNCFLAGsafetyInprocess 2   // working on determining safety
