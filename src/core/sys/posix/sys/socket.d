@@ -185,11 +185,11 @@ version( linux )
 
     static if( false /* (!is( __STRICT_ANSI__ ) && __GNUC__ >= 2) || __STDC_VERSION__ >= 199901L */ )
     {
-        extern (D) ubyte[1] CMSG_DATA( cmsghdr* cmsg ) { return cmsg.__cmsg_data; }
+        extern (D) ubyte[1] CMSG_DATA( cmsghdr* cmsg ) pure { return cmsg.__cmsg_data; }
     }
     else
     {
-        extern (D) ubyte*   CMSG_DATA( cmsghdr* cmsg ) { return cast(ubyte*)( cmsg + 1 ); }
+        extern (D) ubyte*   CMSG_DATA( cmsghdr* cmsg ) pure { return cast(ubyte*)( cmsg + 1 ); }
     }
 
     /*private*/ cmsghdr* __cmsg_nxthdr(msghdr*, cmsghdr*);
@@ -206,12 +206,12 @@ version( linux )
 
     extern (D)
     {
-        size_t CMSG_ALIGN( size_t len)
+        size_t CMSG_ALIGN( size_t len ) pure nothrow @nogc
         {
             return (len + size_t.sizeof - 1) & cast(size_t) (~(size_t.sizeof - 1));
         }
 
-        size_t CMSG_LEN( size_t len )
+        size_t CMSG_LEN( size_t len ) pure nothrow @nogc
         {
             return CMSG_ALIGN(cmsghdr.sizeof) + len;
         }
