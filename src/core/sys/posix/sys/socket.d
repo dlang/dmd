@@ -195,9 +195,9 @@ version( linux )
     private cmsghdr* __cmsg_nxthdr(msghdr*, cmsghdr*);
     alias            __cmsg_nxthdr CMSG_NXTHDR;
 
-    extern (D) size_t CMSG_FIRSTHDR( msghdr* mhdr )
+    extern (D) cmsghdr* CMSG_FIRSTHDR( msghdr* mhdr )
     {
-        return cast(size_t)( mhdr.msg_controllen >= cmsghdr.sizeof
+        return ( cast(size_t)mhdr.msg_controllen >= cmsghdr.sizeof
                              ? cast(cmsghdr*) mhdr.msg_control
                              : cast(cmsghdr*) null );
     }
