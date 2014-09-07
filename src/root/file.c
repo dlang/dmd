@@ -279,7 +279,7 @@ int File::write()
     char *name;
 
     name = this->name->toChars();
-    fd = open(name, O_CREAT | O_WRONLY | O_TRUNC, 0644);
+    fd = open(name, O_CREAT | O_WRONLY | O_TRUNC, (6 << 6) | (4 << 3) | 4);
     if (fd == -1)
         goto err;
 
