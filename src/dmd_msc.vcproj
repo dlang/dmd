@@ -394,11 +394,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\color.c"
+				RelativePath=".\errors.c"
 				>
 			</File>
 			<File
-				RelativePath=".\color.h"
+				RelativePath=".\errors.h"
 				>
 			</File>
 			<File
