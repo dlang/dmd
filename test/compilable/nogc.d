@@ -88,9 +88,12 @@ void test12630() @nogc
 /******************************************/
 // 12642
 
-import core.simd;
-
-ulong2 test12642() @nogc
+static if (is(__vector(ulong[2])))
 {
-    return [0, 0];
+    import core.simd;
+
+    ulong2 test12642() @nogc
+    {
+        return [0, 0];
+    }
 }
