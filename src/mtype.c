@@ -2296,7 +2296,7 @@ Identifier *Type::getTypeInfoIdent(int internal)
     // _init_10TypeInfo_%s
     OutBuffer buf;
     buf.reserve(32);
-    mangleToBuffer(this, &buf, internal);
+    mangleToBuffer(this, &buf, internal != 0);
 
     size_t len = buf.offset;
     buf.writeByte(0);
