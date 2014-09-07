@@ -51,9 +51,6 @@ class SliceExp;
 
 enum TOK;
 
-// Back end
-struct IRState;
-
 void initPrecedence();
 
 Expression *resolveProperties(Scope *sc, Expression *e);

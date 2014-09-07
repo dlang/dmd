@@ -46,6 +46,7 @@ elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
 void Statement_toIR(Statement *s, IRState *irs);
 elem *toEfilename(Module *m);
 Symbol *toSymbol(Dsymbol *s);
+void buildClosure(FuncDeclaration *fd, IRState *irs);
 
 typedef Array<symbol *> symbols;
 Dsymbols *Dsymbols_create();
