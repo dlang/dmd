@@ -4193,6 +4193,23 @@ MinType13379!T min13379(T...)(T args)   // #4 MinType!uint (speculative && thist
 }
 
 /******************************************/
+// 13417
+
+struct V13417(size_t N, E, alias string AS)
+{
+}
+
+auto f13417(E)(in V13417!(4, E, "ijka"))
+{
+    return V13417!(3, E, "xyz")();
+}
+
+void test13417()
+{
+    f13417(V13417!(4, float, "ijka")());
+}
+
+/******************************************/
 
 int main()
 {

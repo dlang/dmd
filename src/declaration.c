@@ -1516,6 +1516,8 @@ Lnomatch:
         sc->stc &= ~(STC_TYPECTOR | STCpure | STCnothrow | STCnogc | STCref | STCdisable);
 
         ExpInitializer *ei = init->isExpInitializer();
+        if (ei)     // Bugzilla 13424: Preset the required type to fail in FuncLiteralDeclaration::semantic3
+            ei->exp = inferType(ei->exp, type);
 
         // If inside function, there is no semantic3() call
         if (sc->func)
