@@ -192,7 +192,9 @@ version( linux )
         extern (D) ubyte*   CMSG_DATA( cmsghdr* cmsg ) { return cast(ubyte*)( cmsg + 1 ); }
     }
 
-    private cmsghdr* __cmsg_nxthdr(msghdr*, cmsghdr*);
+    /*private*/ cmsghdr* __cmsg_nxthdr(msghdr*, cmsghdr*);
+    // FIXME the alias is unusable because the target of the alias is private.
+    // Is this a bug?
     alias            __cmsg_nxthdr CMSG_NXTHDR;
 
     extern (D) cmsghdr* CMSG_FIRSTHDR( msghdr* mhdr )
