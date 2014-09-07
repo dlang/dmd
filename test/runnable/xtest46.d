@@ -5689,6 +5689,14 @@ mixin template ProxyOf(alias a)
 }
 
 /***************************************************/
+
+import core.stdc.stdlib;
+
+void test13427(void* buffer = alloca(100))
+{
+}
+
+/***************************************************/
 // 7583
 
 template Tup7583(E...) { alias E Tup7583; }
@@ -7316,6 +7324,7 @@ int main()
     test13182();
     test8269();
     test8395();
+    test13427();
     test5749();
     test8396();
     test160();
