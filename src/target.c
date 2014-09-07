@@ -206,7 +206,7 @@ Type *Target::va_listType()
 static void encodeInteger(Expression *e, unsigned char *buffer)
 {
     dinteger_t value = e->toInteger();
-    int size = e->type->size();
+    int size = (int)e->type->size();
 
     for (int p = 0; p < size; p++)
     {
@@ -220,7 +220,7 @@ static void encodeInteger(Expression *e, unsigned char *buffer)
 static Expression *decodeInteger(Loc loc, Type *type, unsigned char *buffer)
 {
     dinteger_t value = 0;
-    int size = type->size();
+    int size = (int)type->size();
 
     for (int p = 0; p < size; p++)
     {
