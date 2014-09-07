@@ -4356,7 +4356,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
         {
             if ((!e->elements || !e->elements->dim) &&
                 e->type->toBasetype()->nextOf()->ty == Tvoid &&
-                (tparam->ty == Tarray/* || tparam->ty == Tsarray || tparam->ty == Taarray*/))
+                tparam->ty == Tarray)
             {
                 // tparam:T[] <- e:[] (void[])
                 result = deduceEmptyArrayElement();
