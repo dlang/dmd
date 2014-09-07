@@ -107,7 +107,7 @@ struct Runtime
      * standard program initialization process is not executed.  This is most
      * often in shared libraries or in libraries linked to a C program.
      * If the runtime was already successfully initialized this returns true.
-     * Each call to initialize must be paired by a call to $(LREF, terminate).
+     * Each call to initialize must be paired by a call to $(LREF terminate).
      *
      * Returns:
      *  true if initialization succeeded or false if initialization failed.
