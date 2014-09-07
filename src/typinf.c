@@ -32,6 +32,7 @@
 #include "dt.h"
 
 Symbol *toSymbol(Dsymbol *s);
+dt_t **Expression_toDt(Expression *e, dt_t **pdt);
 
 /*******************************************
  * Get a canonicalized form of the TypeInfo for use with the internal
@@ -677,7 +678,7 @@ public:
 
         // xgetRTInfo
         if (sd->getRTInfo)
-            sd->getRTInfo->toDt(pdt);
+            Expression_toDt(sd->getRTInfo, pdt);
         else if (m_flags & StructFlags::hasPointers)
             dtsize_t(pdt, 1);
         else
@@ -729,7 +730,7 @@ public:
         {   Parameter *arg = (*tu->arguments)[i];
             Expression *e = arg->type->getTypeInfo(NULL);
             e = e->optimize(WANTvalue);
-            e->toDt(&dt);
+            Expression_toDt(e, &dt);
         }
 
         dtdtoff(pdt, dt, 0);              // elements.ptr

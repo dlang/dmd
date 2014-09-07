@@ -36,6 +36,8 @@
 // Back end
 #include        "dt.h"
 
+typedef Array<struct dt_t *> Dts;
+
 dt_t **Type_toDt(Type *t, dt_t **pdt);
 dt_t **toDtElem(TypeSArray *tsa, dt_t **pdt, Expression *e);
 void ClassDeclaration_toDt(ClassDeclaration *cd, dt_t **pdt);
@@ -46,6 +48,7 @@ dt_t **ClassReferenceExp_toInstanceDt(ClassReferenceExp *ce, dt_t **pdt);
 dt_t **membersToDt(ClassReferenceExp *ce, dt_t **pdt, ClassDeclaration *cd, Dts *dts);
 dt_t **ClassReferenceExp_toDt(ClassReferenceExp *e, dt_t **pdt, int off);
 Symbol *toSymbol(Dsymbol *s);
+dt_t **Expression_toDt(Expression *e, dt_t **pdt);
 
 /* ================================================================ */
 
@@ -130,7 +133,7 @@ dt_t *Initializer_toDt(Initializer *init)
                 else
                 {
                     for (size_t j = 0; j < n; j++)
-                        pdtend = edefault->toDt(pdtend);
+                        pdtend = Expression_toDt(edefault, pdtend);
                 }
             }
             switch (tb->ty)
@@ -151,7 +154,7 @@ dt_t *Initializer_toDt(Initializer *init)
                             for (size_t i = ai->dim; i < tadim; i++)
                             {
                                 for (size_t j = 0; j < n; j++)
-                                    pdtend = edefault->toDt(pdtend);
+                                    pdtend = Expression_toDt(edefault, pdtend);
                             }
                         }
                     }
@@ -182,7 +185,7 @@ dt_t *Initializer_toDt(Initializer *init)
         {
             //printf("ExpInitializer::toDt() %s\n", ei->exp->toChars());
             ei->exp = ei->exp->optimize(WANTvalue);
-            ei->exp->toDt(&result);
+            Expression_toDt(ei->exp, &result);
         }
     };
 
@@ -235,7 +238,7 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
                 }
                 else //casting from class to class
                 {
-                    pdt = e->e1->toDt(pdt);
+                    pdt = Expression_toDt(e->e1, pdt);
                     return;
                 }
             }
@@ -401,7 +404,7 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
             dt_t **pdtend = &d;
             for (size_t i = 0; i < e->elements->dim; i++)
             {
-                pdtend = (*e->elements)[i]->toDt(pdtend);
+                pdtend = Expression_toDt((*e->elements)[i], pdtend);
             }
             Type *t = e->type->toBasetype();
 
@@ -472,7 +475,7 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
                     if (tb->ty == Tsarray)
                         toDtElem(((TypeSArray *)tb), pdt, e);
                     else
-                        e->toDt(pdt);           // convert e to an initializer dt
+                        Expression_toDt(e, pdt);           // convert e to an initializer dt
 
                     offset = vd->offset + vd->type->size();
                 }
@@ -563,7 +566,7 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
                 }
                 else
                     elem = e->e1;
-                pdt = elem->toDt(pdt);
+                pdt = Expression_toDt(elem, pdt);
             }
         }
 
@@ -700,7 +703,7 @@ void StructDeclaration_toDt(StructDeclaration *sd, dt_t **pdt)
 
     //printf("sd->toDt sle = %s\n", sle->toChars());
     sle->type = sd->type;
-    sle->toDt(pdt);
+    Expression_toDt(sle, pdt);
 }
 
 /* ================================================================= */
@@ -721,7 +724,7 @@ dt_t **Type_toDt(Type *t, dt_t **pdt)
         {
             //printf("Type::toDt()\n");
             Expression *e = t->defaultInit();
-            pdt = e->toDt(pdt);
+            pdt = Expression_toDt(e, pdt);
         }
 
         void visit(TypeVector *t)
@@ -779,7 +782,7 @@ dt_t **toDtElem(TypeSArray *tsa, dt_t **pdt, Expression *e)
         }
         if (!e)                         // if not already supplied
             e = tnext->defaultInit();   // use default initializer
-        e->toDt(pdt);
+        Expression_toDt(e, pdt);
         dt_optimize(*pdt);
         if (e->op == TOKstring)
             len /= ((StringExp *)e)->len;
@@ -791,7 +794,7 @@ dt_t **toDtElem(TypeSArray *tsa, dt_t **pdt, Expression *e)
         {
             for (size_t i = 1; i < len; i++)
             {
-                pdt = e->toDt(pdt);
+                pdt = Expression_toDt(e, pdt);
             }
         }
     }
@@ -830,7 +833,7 @@ dt_t **ClassReferenceExp_toInstanceDt(ClassReferenceExp *ce, dt_t **pdt)
         if (!e)
             continue;
         dt_t *dt = NULL;
-        e->toDt(&dt);           // convert e to an initializer dt
+        Expression_toDt(e, &dt);           // convert e to an initializer dt
         dts[i] = dt;
     }
     dtxoff(pdtend, ce->originalClass()->toVtblSymbol(), 0);
