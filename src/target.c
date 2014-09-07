@@ -332,3 +332,36 @@ Expression *Target::paintAsType(Expression *e, Type *type)
 
     return NULL;    // avoid warning
 }
+
+/*
+ * Return true if the given type is supported for this target
+ */
+
+int Target::checkvectortype(int sz, Type *type)
+{
+    if (!global.params.is64bit && !global.params.isOSX)
+        return 1; // not supported
+
+    if (sz != 16 && sz != 32)
+        return 2; // wrong size
+
+    switch (type->ty)
+    {
+    case Tvoid:
+    case Tint8:
+    case Tuns8:
+    case Tint16:
+    case Tuns16:
+    case Tint32:
+    case Tuns32:
+    case Tfloat32:
+    case Tint64:
+    case Tuns64:
+    case Tfloat64:
+        break;
+    default:
+        return 3; // wrong base type
+    }
+
+    return 0;
+}
