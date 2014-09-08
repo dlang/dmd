@@ -368,7 +368,7 @@ STATIC void ecom(elem **pe)
     case OPstrctor: case OPu16_d: case OPd_u16:
     case OParrow:
     case OPvoid: case OPnullcheck:
-    case OPbsf: case OPbsr: case OPbswap: case OPvector:
+    case OPbsf: case OPbsr: case OPbswap: case OPpopcnt: case OPvector:
     case OPld_u64:
 #if TX86
     case OPsqrt: case OPsin: case OPcos:

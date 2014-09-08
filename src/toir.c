@@ -411,6 +411,10 @@ int intrinsic_op(char *name)
         "5bitop5bswapFNaNbNiNfkZk",
         "5bitop5outplFNbNikkZk",
         "5bitop5outpwFNbNiktZt",
+
+        "5bitop7_popcntFNaNbNiNfkZi",
+        "5bitop7_popcntFNaNbNiNfmxx", // don't find 64 bit version in 32 bit code
+        "5bitop7_popcntFNaNbNiNftZt",
     };
     static const char *core_namearray64[] =
     {
@@ -458,6 +462,10 @@ int intrinsic_op(char *name)
         "5bitop5bswapFNaNbNiNfkZk",
         "5bitop5outplFNbNikkZk",
         "5bitop5outpwFNbNiktZt",
+
+        "5bitop7_popcntFNaNbNiNfkZi",
+        "5bitop7_popcntFNaNbNiNfmZi",
+        "5bitop7_popcntFNaNbNiNftZt",
     };
     static unsigned char core_ioptab[] =
     {
@@ -506,6 +514,10 @@ int intrinsic_op(char *name)
         OPbswap,
         OPoutp,
         OPoutp,
+
+        OPpopcnt,
+        OPpopcnt,
+        OPpopcnt,
     };
 
 #ifdef DEBUG
