@@ -3473,7 +3473,7 @@ Type *TypeVector::semantic(Loc loc, Scope *sc)
     }
     TypeSArray *t = (TypeSArray *)basetype;
     int sz = (int)t->size(loc);
-    switch (Target::checkvectortype(sz, t->nextOf()))
+    switch (Target::checkVectorType(sz, t->nextOf()))
     {
     case 0: // valid
         break;
