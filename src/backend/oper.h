@@ -77,6 +77,7 @@ enum OPER
         OProl,                  // rotate left
         OPror,                  // rotate right
         OPbtst,                 // bit test
+        OPpopcnt,               // count of number of bits set to 1
 
         OPstreq,                /* structure assignment         */
 
