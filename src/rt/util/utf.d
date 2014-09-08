@@ -682,7 +682,7 @@ string toUTF8(in dchar[] s)
 
 /* =================== Conversion to UTF16 ======================= */
 
-wchar[] toUTF16(wchar[2] buf, dchar c)
+wchar[] toUTF16(out wchar[2] buf, dchar c)
     in
     {
         assert(isValidDchar(c));
@@ -896,4 +896,8 @@ unittest
     assert(c == "he\U000BAAAAllo");
     w = toUTF16(d);
     assert(w == "he\U000BAAAAllo");
+
+    wchar[2] buf;
+    auto ret = toUTF16(buf, '\U000BAAAA');
+    assert(ret == "\U000BAAAA");
 }
