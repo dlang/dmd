@@ -185,19 +185,19 @@ version( linux )
 
     static if( false /* (!is( __STRICT_ANSI__ ) && __GNUC__ >= 2) || __STDC_VERSION__ >= 199901L */ )
     {
-        extern (D) ubyte[1] CMSG_DATA( cmsghdr* cmsg ) pure { return cmsg.__cmsg_data; }
+        extern (D) ubyte[1] CMSG_DATA( cmsghdr* cmsg ) pure nothrow @nogc { return cmsg.__cmsg_data; }
     }
     else
     {
-        extern (D) ubyte*   CMSG_DATA( cmsghdr* cmsg ) pure { return cast(ubyte*)( cmsg + 1 ); }
+        extern (D) ubyte*   CMSG_DATA( cmsghdr* cmsg ) pure nothrow @nogc { return cast(ubyte*)( cmsg + 1 ); }
     }
 
-    /*private*/ cmsghdr* __cmsg_nxthdr(msghdr*, cmsghdr*);
+    /*private*/ cmsghdr* __cmsg_nxthdr(msghdr*, cmsghdr*) pure nothrow @nogc;
     // FIXME the alias is unusable because the target of the alias is private.
     // Is this a bug?
     alias            __cmsg_nxthdr CMSG_NXTHDR;
 
-    extern (D) cmsghdr* CMSG_FIRSTHDR( msghdr* mhdr )
+    extern (D) cmsghdr* CMSG_FIRSTHDR( msghdr* mhdr ) pure nothrow @nogc
     {
         return ( cast(size_t)mhdr.msg_controllen >= cmsghdr.sizeof
                              ? cast(cmsghdr*) mhdr.msg_control
