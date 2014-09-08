@@ -34,7 +34,7 @@ struct Target
     static unsigned critsecsize();
     static Type *va_listType();  // get type of va_list
     static Expression *paintAsType(Expression *e, Type *type);
-    static int checkvectortype(int sz, Type *type);
+    static int checkVectorType(int sz, Type *type);
 };
 
 #endif

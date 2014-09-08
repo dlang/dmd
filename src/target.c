@@ -337,7 +337,7 @@ Expression *Target::paintAsType(Expression *e, Type *type)
  * Return true if the given type is supported for this target
  */
 
-int Target::checkvectortype(int sz, Type *type)
+int Target::checkVectorType(int sz, Type *type)
 {
     if (!global.params.is64bit && !global.params.isOSX)
         return 1; // not supported
