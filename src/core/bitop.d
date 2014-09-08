@@ -212,6 +212,58 @@ version (DigitalMars) version (AnyX86) @system // not pure
     uint outpl(uint port_address, uint value);
 }
 
+version (AnyX86)
+{
+    /**
+     * Calculates the number of set bits in a 32-bit integer
+     * using the X86 SSE4 POPCNT instruction.
+     * POPCNT is not available on all X86 CPUs.
+     */
+    ushort _popcnt( ushort x ) pure;
+    /// ditto
+    int _popcnt( uint x ) pure;
+    version (X86_64)
+    {
+        /// ditto
+        int _popcnt( ulong x ) pure;
+    }
+
+    unittest
+    {
+        // Not everyone has SSE4 instructions
+        import core.cpuid;
+        if (!hasPopcnt())
+            return;
+
+        static int popcnt_x(ulong u) nothrow @nogc
+        {
+            int c;
+            while (u)
+            {
+                c += u & 1;
+                u >>= 1;
+            }
+            return c;
+        }
+
+        for (uint u = 0; u < 0x1_0000; ++u)
+        {
+            //writefln("%x %x %x", u,   _popcnt(cast(ushort)u), popcnt_x(cast(ushort)u));
+            assert(_popcnt(cast(ushort)u) == popcnt_x(cast(ushort)u));
+
+            assert(_popcnt(cast(uint)u) == popcnt_x(cast(uint)u));
+            uint ui = u * 0x3_0001;
+            assert(_popcnt(ui) == popcnt_x(ui));
+
+            version (X86_64)
+            {
+                assert(_popcnt(cast(ulong)u) == popcnt_x(cast(ulong)u));
+                ulong ul = u * 0x3_0003_0001;
+                assert(_popcnt(ul) == popcnt_x(ul));
+            }
+        }
+    }
+}
 
 /**
  *  Calculates the number of set bits in a 32-bit integer.
