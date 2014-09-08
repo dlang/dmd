@@ -1991,6 +1991,29 @@ elem * evalu8(elem *e, goal_t goal)
                      ((i1 <<  8) & 0x00FF0000) |
                      ((i1 << 24) & 0xFF000000);
         break;
+
+    case OPpopcnt:
+    {
+        // Eliminate any unwanted sign extension
+        switch (tysize(tym))
+        {
+            case 1:     l1 &= 0xFF;       break;
+            case 2:     l1 &= 0xFFFF;     break;
+            case 4:     l1 &= 0xFFFFFFFF; break;
+            case 8:     break;
+            default:    assert(0);
+        }
+
+        int popcnt = 0;
+        while (l1)
+        {   // Not efficient, but don't need efficiency here
+            popcnt += (l1 & 1);
+            l1 = (targ_ullong)l1 >> 1;  // shift is unsigned
+        }
+        e->EV.Vllong = popcnt;
+        break;
+    }
+
     case OProl:
     case OPror:
     {   unsigned n = i2;

@@ -82,7 +82,6 @@ Scope *AttribDeclaration::createNewScope(Scope *sc,
     {
         // create new one for changes
         sc2 = sc->copy();
-        sc2->flags &= ~SCOPEfree;
         sc2->stc = stc;
         sc2->linkage = linkage;
         sc2->protection = protection;

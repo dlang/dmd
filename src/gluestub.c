@@ -180,11 +180,6 @@ void Nspace::toObjFile(bool multiobj)
 
 // glue
 
-void obj_append(Dsymbol *s)
-{
-    assert(0);
-}
-
 void obj_write_deferred(Library *library)
 {
 }
@@ -195,17 +190,6 @@ void obj_start(char *srcfile)
 
 void obj_end(Library *library, File *objfile)
 {
-}
-
-bool obj_includelib(const char *name)
-{
-    assert(0);
-    return false;
-}
-
-void obj_startaddress(Symbol *s)
-{
-    assert(0);
 }
 
 void Module::genobjfile(bool multiobj)
@@ -383,20 +367,7 @@ Statement* asmSemantic(AsmStatement *s, Scope *sc)
     return NULL;
 }
 
-int binary(const char *p, const char **tab, int n)
-{
-    for (int i = 0; i < n; ++i)
-        if (!strcmp(p, tab[i]))
-            return i;
-    return -1;
-}
-
 // toir
-
-void buildClosure(FuncDeclaration *fd, IRState *irs)
-{
-    assert(0);
-}
 
 RET retStyle(TypeFunction *tf)
 {

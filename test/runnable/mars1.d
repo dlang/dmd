@@ -436,6 +436,27 @@ void test12095(int k)
 ////////////////////////////////////////////////////////////////////////
 
 
+bool test3918a( float t, real u )
+{
+	printf("%f\n", u );
+	return t && u;
+}
+
+bool test3918b( real t, float u )
+{
+	printf("%f\n", t );
+	return t && u;
+}
+
+void test3918()
+{
+	assert(test3918a(float.nan, real.nan));
+	assert(test3918b(real.nan, float.nan));
+}
+
+////////////////////////////////////////////////////////////////////////
+
+
 int div10(int x)
 {
     return x / 10;
@@ -1234,6 +1255,7 @@ int main()
     test8658();
     testfastudiv();
     testfastdiv();
+    test3918();
     test12051();
     testdocond();
     testnegcom();

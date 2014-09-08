@@ -14,6 +14,9 @@
 #include "mtype.h"
 #include "stringtable.h"
 
+struct elem;
+struct dt_t;
+
 Symbol *toSymbol(Dsymbol *s);
 
 struct Identifier;

@@ -26,13 +26,6 @@ struct Escape;
 class VarDeclaration;
 class Library;
 
-// Back end
-#ifdef IN_GCC
-typedef union tree_node elem;
-#else
-struct elem;
-#endif
-
 enum PKG
 {
     PKGunknown, // not yet determined whether it's a package.d or not
@@ -89,7 +82,10 @@ public:
     int needmoduleinfo;
 
     int selfimports;            // 0: don't know, 1: does not, 2: does
-    int selfImports();          // returns !=0 if module imports itself
+    bool selfImports();         // returns true if module imports itself
+
+    int rootimports;            // 0: don't know, 1: does not, 2: does
+    bool rootImports();         // returns true if module imports root module
 
     int insearch;
     Identifier *searchCacheIdent;

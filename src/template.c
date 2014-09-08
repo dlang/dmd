@@ -223,11 +223,11 @@ bool definitelyValueParameter(Expression *e)
     if (e->op != TOKdotvar)
         return true;
 
- /* Template instantiations involving a DotVar expression are difficult.
-  * In most cases, they should be treated as a value parameter, and interpreted.
-  * But they might also just be a fully qualified name, which should be treated
-  * as an alias.
-  */
+    /* Template instantiations involving a DotVar expression are difficult.
+     * In most cases, they should be treated as a value parameter, and interpreted.
+     * But they might also just be a fully qualified name, which should be treated
+     * as an alias.
+     */
 
     // x.y.f cannot be a value
     FuncDeclaration *f = ((DotVarExp *)e)->var->isFuncDeclaration();
@@ -3849,6 +3849,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                             // (it may be from a parent template, for example)
                         }
 
+                        e2 = e2->semantic(sc);      // Bugzilla 13417
                         e2 = e2->ctfeInterpret();
 
                         //printf("e1 = %s, type = %s %d\n", e1->toChars(), e1->type->toChars(), e1->type->ty);
@@ -4355,7 +4356,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
         {
             if ((!e->elements || !e->elements->dim) &&
                 e->type->toBasetype()->nextOf()->ty == Tvoid &&
-                (tparam->ty == Tarray/* || tparam->ty == Tsarray || tparam->ty == Taarray*/))
+                tparam->ty == Tarray)
             {
                 // tparam:T[] <- e:[] (void[])
                 result = deduceEmptyArrayElement();
@@ -5842,10 +5843,6 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
         return;
     }
 
-    /* If a TemplateInstance is ever instantiated by non-root modules,
-     * we do not have to generate code for it,
-     * because it will be generated when the non-root module is compiled.
-     */
     Module *mi = sc->instantiatingModule();
     if (!instantiatingModule || instantiatingModule->isRoot())
         instantiatingModule = mi;
@@ -5862,7 +5859,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
         //printf("\tspeculative ti %s '%s' gag = %d, spec = %d\n", tempdecl->parent->toChars(), toChars(), global.gag, sc->speculative);
         speculative = true;
     }
-    if (sc->flags & (SCOPEcondition | SCOPEcompile))
+    if (sc->flags & (SCOPEconstraint | SCOPEcompile))
     {
         // Disconnect the chain if this instantiation is in definitely speculative context.
         // It should be done after sc->instantiatingModule().
@@ -5904,82 +5901,81 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     /* See if there is an existing TemplateInstantiation that already
      * implements the typeargs. If so, just refer to that one instead.
      */
+    inst = tempdecl->findExistingInstance(this, fargs);
+    if (!inst)
     {
-        TemplateInstance *ti = tempdecl->findExistingInstance(this, fargs);
-        if (ti)
+        // So, we need to implement 'this' instance.
+    }
+    else if (inst->gagged && !gagged && inst->errors)
+    {
+        // If the first instantiation had failed, re-run semantic,
+        // so that error messages are shown.
+    }
+    else
+    {
+        // It's a match
+        parent = inst->parent;
+        errors = inst->errors;
+
+        // If both this and the previous instantiation were gagged,
+        // use the number of errors that happened last time.
+        if (inst->gagged && gagged)
         {
-            // It's a match
-            inst = ti;
-            parent = ti->parent;
+            global.errors += inst->errors;
+            global.gaggedErrors += inst->errors;
+        }
 
-            // If both this and the previous instantiation were gagged,
-            // use the number of errors that happened last time.
-            if (inst->gagged && gagged)
-            {
-                global.errors += inst->errors;
-                global.gaggedErrors += inst->errors;
-            }
+        // If the first instantiation was gagged, but this is not:
+        if (inst->gagged && !gagged)
+        {
+            // It had succeeded, mark it is a non-gagged instantiation,
+            // and reuse it.
+            inst->gagged = false;
+        }
 
-            // If the first instantiation was gagged, but this is not:
-            if (inst->gagged && !gagged)
-            {
-                // If the first instantiation had failed, re-run semantic,
-                // so that error messages are shown.
-                if (inst->errors)
-                    goto L1;
-                // It had succeeded, mark it is a non-gagged instantiation,
-                // and reuse it.
-                inst->gagged = false;
-            }
+        // If the first instantiation was speculative, but this is not:
+        if (inst->speculative && !sc->speculative)
+        {
+            // Mark it is a non-speculative instantiation.
+            inst->speculative = false;
 
-            // If the first instantiation was speculative, but this is not:
-            if (inst->speculative && !sc->speculative)
-            {
-                // Mark it is a non-speculative instantiation.
-                inst->speculative = false;
+            // Bugzilla 13400: When an instance is changed to non-speculative,
+            // its instantiatingModule should also be updated.
+            // See test/runnable/link13400.d
+            inst->instantiatingModule = mi;
+        }
 
-                // Bugzilla 13400: When an instance is changed to non-speculative,
-                // its instantiatingModule should also be updated.
-                // See test/runnable/link13400.d
-                inst->instantiatingModule = mi;
-            }
+        // If the first instantiation was in speculative context, but this is not:
+        if (!inst->tinst && inst->speculative &&
+            tinst && !(sc->flags & (SCOPEconstraint | SCOPEcompile)))
+        {
+            // Reconnect the chain if this instantiation is not in speculative context.
+            TemplateInstance *tix = tinst;
+            while (tix && tix != inst)
+                tix = tix->tinst;
+            if (tix != inst)    // Bugzilla 13379: Prevent circular chain
+                inst->tinst = tinst;
+        }
 
-            // If the first instantiation was in speculative context, but this is not:
-            if (!inst->tinst && inst->speculative &&
-                tinst && !(sc->flags & (SCOPEcondition | SCOPEcompile)))
-            {
-                // Reconnect the chain if this instantiation is not in speculative context.
-                TemplateInstance *tix = tinst;
-                while (tix && tix != inst)
-                    tix = tix->tinst;
-                if (tix != inst)    // Bugzilla 13379: Prevent circular chain
-                    inst->tinst = tinst;
-            }
+        if (!inst->instantiatingModule || inst->instantiatingModule->isRoot())
+            inst->instantiatingModule = mi;
 
 #if LOG
-            printf("\tit's a match with instance %p, %d\n", inst, inst->semanticRun);
+        printf("\tit's a match with instance %p, %d\n", inst, inst->semanticRun);
 #endif
-            if (!inst->instantiatingModule || inst->instantiatingModule->isRoot())
-                inst->instantiatingModule = mi;
-            errors = inst->errors;
-            return;
-        }
-    L1: ;
+        return;
     }
-
-    /* So, we need to implement 'this' instance.
-     */
 #if LOG
     printf("\timplement template instance %s '%s'\n", tempdecl->parent->toChars(), toChars());
     printf("\ttempdecl %s\n", tempdecl->toChars());
 #endif
     unsigned errorsave = global.errors;
+
     inst = this;
-
-    TemplateInstance *tempdecl_instance_idx = tempdecl->addInstance(this);
-
     parent = enclosing ? enclosing : tempdecl->parent;
     //printf("parent = '%s'\n", parent->kind());
+
+    TemplateInstance *tempdecl_instance_idx = tempdecl->addInstance(this);
 
     //getIdent();
 
@@ -5988,110 +5984,69 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     // in target_symbol_list(_idx) so we can remove it later if we encounter
     // an error.
 #if 1
-    Dsymbols *target_symbol_list = NULL;
+    Dsymbols *target_symbol_list;
     size_t target_symbol_list_idx = 0;
-
+    //if (sc->scopesym) printf("3: sc is %s %s\n", sc->scopesym->kind(), sc->scopesym->toChars());
+    if (sc->scopesym && sc->scopesym->members && !sc->scopesym->isTemplateMixin())
     {
-        Dsymbols *a;
-        Scope *scx = sc;
-#if 0
-        for (scx = sc; scx; scx = scx->enclosing)
-            if (scx->scopesym)
-                break;
-#endif
-
-        //if (scx && scx->scopesym) printf("3: scx is %s %s\n", scx->scopesym->kind(), scx->scopesym->toChars());
-        /* The problem is if A imports B, and B imports A, and both A
-         * and B instantiate the same template, does the compilation of A
-         * or the compilation of B do the actual instantiation?
-         *
-         * see bugzilla 2500.
-         *
-         * && !scx->module->selfImports()
+        /* A module can have explicit template instance and its alias
+         * in module scope (e,g, `alias Base64Impl!('+', '/') Base64;`).
+         * When the module is just imported, compiler can assume that
+         * its instantiated code would be contained in the separately compiled
+         * obj/lib file (e.g. phobos.lib). So we can omit their semantic3 running.
          */
-        if (scx && scx->scopesym && scx->scopesym->members &&
-            !scx->scopesym->isTemplateMixin())
-        {
-            /* A module can have explicit template instance and its alias
-             * in module scope (e,g, `alias Base64Impl!('+', '/') Base64;`).
-             * When the module is just imported, compiler can assume that
-             * its instantiated code would be contained in the separately compiled
-             * obj/lib file (e.g. phobos.lib). So we can omit their semantic3 running.
-             */
-            //if (scx->scopesym->isModule())
-            //    printf("module level instance %s\n", toChars());
+        //if (sc->scopesym->isModule())
+        //    printf("module level instance %s\n", toChars());
 
-            //printf("\t1: adding to %s %s\n", scx->scopesym->kind(), scx->scopesym->toChars());
-            a = scx->scopesym->members;
-        }
-        else
-        {
-            Dsymbol *s = enclosing ? enclosing : tempdecl->parent;
-            for (; s; s = s->toParent2())
-            {
-                if (s->isModule())
-                    break;
-            }
-            assert(s);
-            Module *m = (Module *)s;
-            if (!m->isRoot())
-            {
-                m = m->importedFrom;
-            }
-            //printf("\t2: adding to module %s instead of module %s\n", m->toChars(), sc->module->toChars());
-            a = m->members;
+        //printf("\t1: adding to %s %s\n", sc->scopesym->kind(), sc->scopesym->toChars());
+        target_symbol_list = sc->scopesym->members;
+    }
+    else
+    {
+        Dsymbol *s = enclosing ? enclosing : tempdecl->parent;
+        while (s && !s->isModule())
+            s = s->toParent2();
+        assert(s);
+        Module *m = (Module *)s;
+        if (!m->isRoot())
+            m = m->importedFrom;
 
-            /* Defer semantic3 running in order to avoid mutual forward reference.
-             * See test/runnable/test10736.d
-             */
-            if (m->semanticRun >= PASSsemantic3done)
-                Module::addDeferredSemantic3(this);
-        }
-        for (size_t i = 0; 1; i++)
+        //printf("\t2: adding to module %s instead of module %s\n", m->toChars(), sc->module->toChars());
+        target_symbol_list = m->members;
+
+        /* Defer semantic3 running in order to avoid mutual forward reference.
+         * See test/runnable/test10736.d
+         */
+        if (m->semanticRun >= PASSsemantic3done)
+            Module::addDeferredSemantic3(this);
+    }
+    for (size_t i = 0; 1; i++)
+    {
+        if (i == target_symbol_list->dim)
         {
-            if (i == a->dim)
-            {
-                target_symbol_list = a;
-                target_symbol_list_idx = i;
-                a->push(this);
-                break;
-            }
-            if (this == (*a)[i])  // if already in Array
-                break;
+            target_symbol_list_idx = i;
+            target_symbol_list->push(this);
+            break;
+        }
+        if (this == (*target_symbol_list)[i])   // if already in Array
+        {
+            target_symbol_list = NULL;
+            break;
         }
     }
 #endif
 
     // Copy the syntax trees from the TemplateDeclaration
-    if (members && speculative && !errors)      // todo
-    {
-        // Don't copy again so they were previously created.
-    }
-    else
-        members = Dsymbol::arraySyntaxCopy(tempdecl->members);
+    members = Dsymbol::arraySyntaxCopy(tempdecl->members);
 
-    // todo for TemplateThisParameter
+    // resolve TemplateThisParameter
     for (size_t i = 0; i < tempdecl->parameters->dim; i++)
     {
         if ((*tempdecl->parameters)[i]->isTemplateThisParameter() == NULL)
             continue;
         Type *t = isType((*tiargs)[i]);
         assert(t);
-
-        StorageClass stc = 0;
-        if (t->mod & MODimmutable)
-            stc |= STCimmutable;
-        else
-        {
-            if (t->mod & MODconst)
-                stc |= STCconst;
-            else if (t->mod & MODwild)
-                stc |= STCwild;
-
-            if (t->mod & MODshared)
-                stc |= STCshared;
-        }
-        if (stc != 0)
+        if (StorageClass stc = ModToStc(t->mod))
         {
             //printf("t = %s, stc = x%llx\n", t->toChars(), stc);
             Dsymbols *s = new Dsymbols();
@@ -7771,6 +7726,69 @@ hash_t TemplateInstance::hashCode()
     return hash;
 }
 
+/**************************************
+ * IsExpression can evaluate the specified type speculatively, and even if
+ * it instantiates any symbols, they are normally unnecessary for the
+ * final executable.
+ * However, if those symbols leak to the actual code, compiler should remark
+ * them as non-speculative to generate their code and link to the final executable.
+ */
+void unSpeculative(Scope *sc, RootObject *o)
+{
+    if (!o)
+        return;
+
+    if (Tuple *tup = isTuple(o))
+    {
+        for (size_t i = 0; i < tup->objects.dim; i++)
+        {
+            unSpeculative(sc, tup->objects[i]);
+        }
+        return;
+    }
+
+    Dsymbol *s = getDsymbol(o);
+    if (!s)
+        return;
+
+    Declaration *d = s->isDeclaration();
+    if (d)
+    {
+        if (VarDeclaration *vd = d->isVarDeclaration())
+            o = vd->type;
+        else if (AliasDeclaration *ad = d->isAliasDeclaration())
+        {
+            o = ad->getType();
+            if (!o)
+                o = ad->toAlias();
+        }
+        else
+            o = d->toAlias();
+
+        s = getDsymbol(o);
+        if (!s)
+            return;
+    }
+
+    if (TemplateInstance *ti = s->isTemplateInstance())
+    {
+        // If the instance is already non-speculative,
+        // or it is leaked to the speculative scope.
+        if (!ti->speculative || sc->speculative)
+            return;
+
+        // Remark as non-speculative instance.
+        ti->speculative = false;
+        if (!ti->tinst)
+            ti->tinst = sc->tinst;
+
+        unSpeculative(sc, ti->tempdecl);
+    }
+
+    if (TemplateInstance *ti = s->isInstantiated())
+        unSpeculative(sc, ti);
+}
+
 /***********************************************
  * Returns true if this is not instantiated in non-root module, and
  * is a part of non-speculative instantiatiation.
@@ -7809,28 +7827,20 @@ bool TemplateInstance::needsCodegen()
     {
         Module *mi = instantiatingModule;
 
-        // If mi imports any root modules, we still need to generate the code.
-        for (size_t i = 0; i < Module::amodules.dim; ++i)
-        {
-            Module *m = Module::amodules[i];
-            m->insearch = 0;
-        }
-        bool importsRoot = false;
-        for (size_t i = 0; i < Module::amodules.dim; ++i)
-        {
-            Module *m = Module::amodules[i];
-            if (m->isRoot() && mi->imports(m))
-            {
-                importsRoot = true;
-                break;
-            }
-        }
-        for (size_t i = 0; i < Module::amodules.dim; ++i)
-        {
-            Module *m = Module::amodules[i];
-            m->insearch = 0;
-        }
-        if (!importsRoot)
+        /* If a TemplateInstance is ever instantiated by non-root modules,
+         * we do not have to generate code for it,
+         * because it will be generated when the non-root module is compiled.
+         *
+         * But, if mi imports any root modules, we still need to generate the code.
+         *
+         * The problem is if A imports B, and B imports A, and both A
+         * and B instantiate the same template, does the compilation of A
+         * or the compilation of B do the actual instantiation?
+         *
+         * See bugzilla 2500.
+         */
+
+        if (!mi->rootImports())
         {
             //printf("instantiated by %s   %s\n", instantiatingModule->toChars(), toChars());
             return false;
@@ -8091,12 +8101,7 @@ void TemplateMixin::semantic(Scope *sc)
     }
 
     // Copy the syntax trees from the TemplateDeclaration
-    if (scx && members && !errors)
-    {
-        // Don't copy again so they were previously created.
-    }
-    else
-        members = Dsymbol::arraySyntaxCopy(tempdecl->members);
+    members = Dsymbol::arraySyntaxCopy(tempdecl->members);
     if (!members)
         return;
 
@@ -8172,35 +8177,11 @@ void TemplateMixin::semantic(Scope *sc)
 
     nest--;
 
-    if (!sc->func && Module::deferred.dim > deferred_dim)
-    {
-        sc2->pop();
-        argscope->pop();
-        scy->pop();
-        //printf("deferring mixin %s, deferred.dim += %d\n", toChars(), Module::deferred.dim - deferred_dim);
-        //printf("\t[");
-        //for (size_t u = 0; u < Module::deferred.dim; u++) printf("%s%s", Module::deferred[u]->toChars(), u == Module::deferred.dim-1?"":", ");
-        //printf("]\n");
-
-        semanticRun = PASSinit;
-        AggregateDeclaration *ad = toParent()->isAggregateDeclaration();
-        if (ad)
-        {
-            /* Forward reference of base class should not make derived class SIZEfwd.
-             */
-            //printf("\tad = %s, sizeok = %d\n", ad->toChars(), ad->sizeok);
-            //ad->sizeok = SIZEOKfwd;
-        }
-        else
-        {
-            // Forward reference
-            //printf("forward reference - deferring\n");
-            scope = scx ? scx : sc->copy();
-            scope->setNoFree();
-            scope->module->addDeferredSemantic(this);
-        }
-        return;
-    }
+    /* In DeclDefs scope, TemplateMixin does not have to handle deferred symbols.
+     * Because the members would already call Module::addDeferredSemantic() for themselves.
+     * See Struct, Class, Interface, and EnumDeclaration::semantic().
+     */
+    //if (!sc->func && Module::deferred.dim > deferred_dim) {}
 
     AggregateDeclaration *ad = toParent()->isAggregateDeclaration();
     if (sc->func && !ad)

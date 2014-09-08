@@ -88,7 +88,6 @@
     <ClCompile Include="cast.c" />
     <ClCompile Include="class.c" />
     <ClCompile Include="clone.c" />
-    <ClCompile Include="color.c" />
     <ClCompile Include="cond.c" />
     <ClCompile Include="constfold.c" />
     <ClCompile Include="cppmangle.c" />
@@ -101,6 +100,7 @@
     <ClCompile Include="eh.c" />
     <ClCompile Include="entity.c" />
     <ClCompile Include="enum.c" />
+    <ClCompile Include="errors.c" />
     <ClCompile Include="expression.c" />
     <ClCompile Include="func.c" />
     <ClCompile Include="glue.c" />
@@ -286,13 +286,13 @@
     <ClInclude Include="aliasthis.h" />
     <ClInclude Include="arraytypes.h" />
     <ClInclude Include="attrib.h" />
-    <ClInclude Include="color.h" />
     <ClInclude Include="complex_t.h" />
     <ClInclude Include="cond.h" />
     <ClInclude Include="declaration.h" />
     <ClInclude Include="doc.h" />
     <ClInclude Include="dsymbol.h" />
     <ClInclude Include="enum.h" />
+    <ClInclude Include="errors.h" />
     <ClInclude Include="expression.h" />
     <ClInclude Include="hdrgen.h" />
     <ClInclude Include="identifier.h" />

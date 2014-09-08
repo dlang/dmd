@@ -55,6 +55,7 @@ dt_t **Type_toDt(Type *t, dt_t **pdt);
 void ClassDeclaration_toDt(ClassDeclaration *cd, dt_t **pdt);
 void StructDeclaration_toDt(StructDeclaration *sd, dt_t **pdt);
 Symbol *toSymbol(Dsymbol *s);
+dt_t **Expression_toDt(Expression *e, dt_t **pdt);
 
 void toDebug(TypedefDeclaration *tdd);
 void toDebug(EnumDeclaration *ed);
@@ -450,7 +451,7 @@ void ClassDeclaration::toObjFile(bool multiobj)
 
     // xgetRTInfo
     if (getRTInfo)
-        getRTInfo->toDt(&dt);
+        Expression_toDt(getRTInfo, &dt);
     else if (flags & ClassFlags::noPointers)
         dtsize_t(&dt, 0);
     else
@@ -829,7 +830,7 @@ void InterfaceDeclaration::toObjFile(bool multiobj)
     // xgetRTInfo
     // xgetRTInfo
     if (getRTInfo)
-        getRTInfo->toDt(&dt);
+        Expression_toDt(getRTInfo, &dt);
     else
         dtsize_t(&dt, 0);       // no pointers
 
@@ -1001,7 +1002,7 @@ void VarDeclaration::toObjFile(bool multiobj)
                 dt_t **pdt = &s->Sdt;
                 while (--dim > 0)
                 {
-                    pdt = ie->exp->toDt(pdt);
+                    pdt = Expression_toDt(ie->exp, pdt);
                 }
             }
         }
@@ -1111,7 +1112,7 @@ void EnumDeclaration::toObjFile(bool multiobj)
         toInitializer();
         sinit->Sclass = scclass;
         sinit->Sfl = FLdata;
-        tc->sym->defaultval->toDt(&sinit->Sdt);
+        Expression_toDt(tc->sym->defaultval, &sinit->Sdt);
         outdata(sinit);
     }
     semanticRun = PASSobj;

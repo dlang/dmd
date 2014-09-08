@@ -60,6 +60,7 @@ Module::Module(const char *filename, Identifier *ident, int doDocComment, int do
     isPackageFile = false;
     needmoduleinfo = 0;
     selfimports = 0;
+    rootimports = 0;
     insearch = 0;
     searchCacheIdent = NULL;
     searchCacheSymbol = NULL;
@@ -981,33 +982,53 @@ int Module::imports(Module *m)
 }
 
 /*************************************
- * Return !=0 if module imports itself.
+ * Return true if module imports itself.
  */
 
-int Module::selfImports()
+bool Module::selfImports()
 {
     //printf("Module::selfImports() %s\n", toChars());
-    if (!selfimports)
+    if (selfimports == 0)
     {
         for (size_t i = 0; i < amodules.dim; i++)
-        {
-            Module *mi = amodules[i];
-            //printf("\t[%d] %s\n", i, mi->toChars());
-            mi->insearch = 0;
-        }
+            amodules[i]->insearch = 0;
 
         selfimports = imports(this) + 1;
 
         for (size_t i = 0; i < amodules.dim; i++)
-        {
-            Module *mi = amodules[i];
-            //printf("\t[%d] %s\n", i, mi->toChars());
-            mi->insearch = 0;
-        }
+            amodules[i]->insearch = 0;
     }
-    return selfimports - 1;
+    return selfimports == 2;
 }
 
+/*************************************
+ * Return true if module imports root module.
+ */
+
+bool Module::rootImports()
+{
+    //printf("Module::rootImports() %s\n", toChars());
+    if (rootimports == 0)
+    {
+        for (size_t i = 0; i < amodules.dim; i++)
+            amodules[i]->insearch = 0;
+
+        rootimports = 1;
+        for (size_t i = 0; i < amodules.dim; ++i)
+        {
+            Module *m = amodules[i];
+            if (m->isRoot() && imports(m))
+            {
+                rootimports = 2;
+                break;
+            }
+        }
+
+        for (size_t i = 0; i < amodules.dim; i++)
+            amodules[i]->insearch = 0;
+    }
+    return rootimports == 2;
+}
 
 /* =========================== ModuleDeclaration ===================== */
 

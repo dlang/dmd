@@ -62,7 +62,7 @@ int _unary[] =
          OPucall,OPucallns,OPstrpar,OPstrctor,OPu16_d,OPd_u16,
          OParrow,OPnegass,
          OPctor,OPdtor,OPsetjmp,OPvoid,OParraylength,
-         OPbsf,OPbsr,OPbswap,
+         OPbsf,OPbsr,OPbswap,OPpopcnt,
          OPddtor,
          OPvector,
 #if TX86
@@ -146,7 +146,7 @@ int _ae[] = {OPvar,OPconst,OPrelconst,OPneg,
                 OP128_64,OPs64_128,OPu64_128,
                 OPsizeof,OParray,OPfield,OPinstanceof,OPfinalinstanceof,OPcheckcast,OParraylength,
                 OPcallns,OPucallns,OPnullcheck,OPpair,OPrpair,
-                OPbsf,OPbsr,OPbt,OPbswap,OPb_8,OPbtst,
+                OPbsf,OPbsr,OPbt,OPbswap,OPb_8,OPbtst,OPpopcnt,
                 OPgot,OPremquo,
                 OPnullptr,
                 OProl,OPror,
@@ -176,7 +176,7 @@ int _exp[] = {OPvar,OPconst,OPrelconst,OPneg,OPabs,OPrndtol,OPrint,
                 OPcall,OPcallns,OPeq,OPstreq,OPpostinc,OPpostdec,
                 OPaddass,OPminass,OPmulass,OPdivass,OPmodass,OPandass,
                 OPorass,OPxorass,OPshlass,OPshrass,OPashrass,OPoror,OPandand,OPcond,
-                OPbsf,OPbsr,OPbt,OPbtc,OPbtr,OPbts,OPbswap,OPbtst,
+                OPbsf,OPbsr,OPbt,OPbtc,OPbtr,OPbts,OPbswap,OPbtst,OPpopcnt,
                 OProl,OPror,OPvector,
                 OPpair,OPrpair,OPframeptr,OPgot,OPremquo,
                 OPcolon,OPcolon2,OPasm,OPstrcpy,OPmemcpy,OPmemset,OPstrcat,OPnegass,
@@ -644,6 +644,7 @@ void dotab()
         case OPbts:     X("bts",        elzot,  cdbt);
 
         case OPbswap:   X("bswap",      evalu8, cdbswap);
+        case OPpopcnt:  X("popcnt",     evalu8, cdpopcnt);
         case OPvector:  X("vector",     elzot,  cdvector);
         case OPvecsto:  X("vecsto",     elzot,  cdvecsto);
 

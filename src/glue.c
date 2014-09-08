@@ -46,6 +46,7 @@ elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
 void Statement_toIR(Statement *s, IRState *irs);
 elem *toEfilename(Module *m);
 Symbol *toSymbol(Dsymbol *s);
+void buildClosure(FuncDeclaration *fd, IRState *irs);
 
 typedef Array<symbol *> symbols;
 Dsymbols *Dsymbols_create();
@@ -1459,22 +1460,7 @@ unsigned totym(Type *tx)
                     assert(0);
                     break;
             }
-            static bool once = false;
-            if (!once)
-            {
-                if (global.params.is64bit || global.params.isOSX)
-                    ;
-                else
-                {
-                    error(Loc(), "SIMD vector types not supported on this platform");
-                    once = true;
-                }
-                if (tv->size(Loc()) == 32)
-                {
-                    error(Loc(), "AVX vector types not supported");
-                    once = true;
-                }
-            }
+            assert(global.params.is64bit || global.params.isOSX);
             break;
         }
 

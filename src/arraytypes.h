@@ -70,6 +70,4 @@ typedef Array<struct block *> Blocks;
 
 typedef Array<struct Symbol *> Symbols;
 
-typedef Array<struct dt_t *> Dts;
-
 #endif

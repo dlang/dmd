@@ -1862,19 +1862,23 @@ int jmpopcode(elem *e)
         e = e->E2;                      /* right operand determines it  */
 
   op = e->Eoper;
+  tym_t tymx = tybasic(e->Ety);
+  bool needsNanCheck = tyfloating(tymx) && config.inline8087 &&
+    (tymx == TYldouble || tymx == TYildouble || tymx == TYcldouble ||
+     tymx == TYcdouble || tymx == TYcfloat ||
+     op == OPind ||
+     (OTcall(op) && (regmask(tymx, tybasic(e->E1->Eoper)) & (mST0 | XMMREGS))));
   if (e->Ecount != e->Ecomsub)          // comsubs just get Z bit set
-        return JNE;
+  {
+        if (needsNanCheck) // except for floating point values that need a NaN check
+            return XP|JNE;
+        else
+            return JNE;
+  }
   if (!OTrel(op))                       // not relational operator
   {
-        tym_t tymx = tybasic(e->Ety);
-        if (tyfloating(tymx) && config.inline8087 &&
-            (tymx == TYldouble || tymx == TYildouble || tymx == TYcldouble ||
-             tymx == TYcdouble || tymx == TYcfloat ||
-             op == OPind ||
-             (OTcall(op) && (regmask(tymx, tybasic(e->E1->Eoper)) & (mST0 | XMMREGS)))))
-        {
+        if (needsNanCheck)
             return XP|JNE;
-        }
         return ((op >= OPbt && op <= OPbts) || op == OPbtst) ? JC : JNE;
   }
 

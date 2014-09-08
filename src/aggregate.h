@@ -34,7 +34,6 @@ class DeleteDeclaration;
 class InterfaceDeclaration;
 class TypeInfoClassDeclaration;
 class VarDeclaration;
-struct dt_t;
 
 enum Sizeok
 {

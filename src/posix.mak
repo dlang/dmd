@@ -136,7 +136,7 @@ DMD_OBJS = \
 	builtin.o ctfeexpr.o clone.o aliasthis.o \
 	arrayop.o json.o unittests.o \
 	imphint.o argtypes.o apply.o sapply.o sideeffect.o \
-	intrange.o canthrow.o target.o nspace.o color.o
+	intrange.o canthrow.o target.o nspace.o errors.o
 
 ROOT_OBJS = \
 	rmem.o port.o man.o stringtable.o response.o \
