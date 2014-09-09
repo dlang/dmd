@@ -10336,8 +10336,11 @@ Expression *IndexExp::semantic(Scope *sc)
     if (t1->ty == Ttuple) sc = sc->endCTFE();
     if (e2->type == Type::terror)
         return new ErrorExp();
-    if (e2->type->ty == Ttuple && ((TupleExp *)e2)->exps->dim == 1) // bug 4444 fix
+    if (e2->type->ty == Ttuple && ((TupleExp *)e2)->exps &&
+        ((TupleExp *)e2)->exps->dim == 1) // bug 4444 fix
+    {
         e2 = (*((TupleExp *)e2)->exps)[0];
+    }
 
     if (t1->ty == Tsarray || t1->ty == Tarray || t1->ty == Ttuple)
         sc = sc->pop();
