@@ -2515,6 +2515,21 @@ void test124() {
 
 /***************************************************/
 
+void test3022()
+{
+    static class Foo3022
+    {
+        new(size_t)
+        {
+            assert(0);
+        }
+    }
+
+    scope x = new Foo3022;
+}
+
+/***************************************************/
+
 void doNothing() {}
 
 void bug5071(short d, ref short c) {
@@ -7286,6 +7301,7 @@ int main()
     test6733();
     test6813();
     test6859();
+    test3022();
     test6910();
     test6902();
     test6330();
