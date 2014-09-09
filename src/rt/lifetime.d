@@ -1081,7 +1081,8 @@ extern (C) void* _d_newitemT(TypeInfo ti)
     else
     {*/
         // allocate a block to hold this item
-        auto ptr = GC.malloc(size, baseFlags, ti);
+        auto blkInf = GC.qalloc(size, baseFlags, ti);
+        auto ptr = blkInf.base;
         debug(PRINTF) printf(" p = %p\n", ptr);
         if(size == ubyte.sizeof)
             *cast(ubyte*)ptr = 0;
@@ -1093,7 +1094,7 @@ extern (C) void* _d_newitemT(TypeInfo ti)
             memset(ptr, 0, size);
 
         if (needsTypeInfo)
-            *cast(TypeInfo*)(ptr + GC.sizeOf(ptr) - size_t.sizeof) = ti;
+            *cast(TypeInfo*)(ptr + blkInf.size - size_t.sizeof) = ti;
 
         return ptr;
     //}
@@ -1124,7 +1125,8 @@ extern (C) void* _d_newitemiT(TypeInfo ti)
         auto isize = initializer.length;
         auto q = initializer.ptr;
 
-        auto ptr = GC.malloc(size, baseFlags, ti);
+        auto blkInf = GC.qalloc(size, baseFlags, ti);
+        auto ptr = blkInf.base;
         debug(PRINTF) printf(" p = %p\n", ptr);
         if (isize == 1)
             *cast(ubyte*)ptr =  *cast(ubyte*)q;
@@ -1136,7 +1138,7 @@ extern (C) void* _d_newitemiT(TypeInfo ti)
             memcpy(ptr, q, isize);
 
         if (needsTypeInfo)
-            *cast(TypeInfo*)(ptr + GC.sizeOf(ptr) - size_t.sizeof) = ti;
+            *cast(TypeInfo*)(ptr + blkInf.size - size_t.sizeof) = ti;
         return ptr;
     //}
 }
