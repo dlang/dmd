@@ -1093,7 +1093,7 @@ extern (C) void* _d_newitemT(TypeInfo ti)
             memset(ptr, 0, size);
 
         if (needsTypeInfo)
-            *cast(TypeInfo*)(ptr + GC.sizeOf(ptr) - size_t.sizeof) = ti.next;
+            *cast(TypeInfo*)(ptr + GC.sizeOf(ptr) - size_t.sizeof) = ti;
 
         return ptr;
     //}
@@ -1136,7 +1136,7 @@ extern (C) void* _d_newitemiT(TypeInfo ti)
             memcpy(ptr, q, isize);
 
         if (needsTypeInfo)
-            *cast(TypeInfo*)(ptr + GC.sizeOf(ptr) - size_t.sizeof) = ti.next;
+            *cast(TypeInfo*)(ptr + GC.sizeOf(ptr) - size_t.sizeof) = ti;
         return ptr;
     //}
 }
@@ -1278,8 +1278,6 @@ extern (C) int rt_hasFinalizerInSegment(void* p, in void[] segment) nothrow
 
     return false;
 }
-
-__gshared bool callStructDtorsDuringGC = true;
 
 extern (C) int rt_hasStructFinalizerInSegment(void* p, in void[] segment) nothrow
 {
