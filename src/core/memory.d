@@ -762,8 +762,4 @@ struct GC
     }
 }
 
-void callStructDtorsDuringGC(bool callThem)
-{
-	static import rt.lifetime;
-	rt.lifetime.callStructDtorsDuringGC = callThem;
-}
+__gshared bool callStructDtorsDuringGC = true;
