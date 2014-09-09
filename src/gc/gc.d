@@ -1615,7 +1615,7 @@ struct Gcx
                     if (pool.structFinals.nbits && pool.structFinals.test(biti))
                     {
                         if (pool.appendable.nbits && pool.appendable.test(biti) && rt_hasArrayFinalizerInSegment(sentinel_add(p), segment))
-                            rt_finalize_array2(sentinel_add(p), BlkInfo(p, pool.bPageOffsets[pn] * PAGESIZE), true, true);
+                            rt_finalize_array2(sentinel_add(p), BlkInfo(sentinel_add(p), (pool.bPageOffsets[pn] * PAGESIZE) - SENTINEL_EXTRA), true, true);
                         else if (rt_hasStructFinalizerInSegment(sentinel_add(p), segment))
                             rt_finalize_struct(sentinel_add(p), false, true);
                         else
@@ -1675,7 +1675,7 @@ struct Gcx
                         if (pool.structFinals.nbits && pool.structFinals.test(biti))
                         {
                             if (pool.appendable.nbits && pool.appendable.test(biti) && rt_hasArrayFinalizerInSegment(sentinel_add(p), segment))
-                                rt_finalize_array2(sentinel_add(p), BlkInfo(p, size), true, true);
+                                rt_finalize_array2(sentinel_add(p), BlkInfo(sentinel_add(p), size - SENTINEL_EXTRA), true, true);
                             else if (rt_hasStructFinalizerInSegment(sentinel_add(p), segment))
                                 rt_finalize_struct(sentinel_add(p), false, true);
                             else
@@ -2680,7 +2680,7 @@ struct Gcx
                         if (pool.structFinals.nbits && pool.structFinals.testClear(biti))
                         {
                             if (pool.appendable.nbits && pool.appendable.test(biti))
-                                rt_finalize_array2(sentinel_add(p), BlkInfo(p, pool.bPageOffsets[pn] * PAGESIZE), true, true);
+                                rt_finalize_array2(sentinel_add(p), BlkInfo(sentinel_add(p), (pool.bPageOffsets[pn] * PAGESIZE) - SENTINEL_EXTRA), true, true);
                             else
                                 rt_finalize_struct(sentinel_add(p), false, true);
                         }
@@ -2759,7 +2759,7 @@ struct Gcx
                                 if (pool.structFinals.nbits && pool.structFinals.test(biti))
                                 {
                                     if (pool.appendable.nbits && pool.appendable.test(biti))
-                                        rt_finalize_array2(sentinel_add(p), BlkInfo(p, size), true, true);
+                                        rt_finalize_array2(sentinel_add(p), BlkInfo(sentinel_add(p), size - SENTINEL_EXTRA), true, true);
                                     else
                                         rt_finalize_struct(sentinel_add(p), false, true);
                                 }
