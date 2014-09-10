@@ -548,6 +548,10 @@ void ClassDeclaration::semantic(Scope *sc)
             // then this is a COM interface too.
             if (b->base->isCOMinterface())
                 com = true;
+            if (cpp && !b->base->isCPPinterface())
+            {
+                ::error(loc, "C++ class '%s' cannot implement D interface '%s'", toPrettyChars(), b->base->toPrettyChars());
+            }
         }
     }
 Lancestorsdone:
