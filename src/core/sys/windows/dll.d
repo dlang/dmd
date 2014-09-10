@@ -460,4 +460,39 @@ public:
         }
         return true;
     }
+
+    /// A simple mixin to provide a $(D DllMain) which calls the necessary
+    /// runtime initialization and termination functions automatically.
+    ///
+    /// Instead of writing a custom $(D DllMain), simply write:
+    ///
+    /// ---
+    /// mixin SimpleDllMain;
+    /// ---
+    mixin template SimpleDllMain()
+    {
+        import core.sys.windows.windows : HINSTANCE;
+
+        extern(Windows)
+        bool DllMain(HINSTANCE hInstance, uint ulReason, void* reserved)
+        {
+            import core.sys.windows.windows;
+            switch(ulReason)
+            {
+                default: assert(0);
+                case DLL_PROCESS_ATTACH:
+                    return dll_process_attach( hInstance, true );
+
+                case DLL_PROCESS_DETACH:
+                    dll_process_detach( hInstance, true );
+                    return true;
+
+                case DLL_THREAD_ATTACH:
+                    return dll_thread_attach( true, true );
+
+                case DLL_THREAD_DETACH:
+                    return dll_thread_detach( true, true );
+            }
+        }
+    }
 }
