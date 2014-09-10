@@ -2204,7 +2204,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
         }
         case Tdelegate:
             if (op == TOKforeach_reverse)
-                warning("cannot use foreach_reverse with a delegate");
+                deprecation("cannot use foreach_reverse with a delegate");
         Lapply:
         {
             Expression *ec;

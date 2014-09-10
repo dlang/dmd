@@ -1,10 +1,10 @@
-// REQUIRED_ARGS: -w
+// REQUIRED_ARGS: -de
 // PERMUTE_ARGS:
 
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/warn1553.d(19): Warning: cannot use foreach_reverse with a delegate
+fail_compilation/deprecate1553.d(19): Deprecation: cannot use foreach_reverse with a delegate
 ---
 */
 
