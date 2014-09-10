@@ -91,6 +91,18 @@ void scanTLSRanges(void[]* rng, scope void delegate(void* pbeg, void* pend) noth
     dg(rng.ptr, rng.ptr + rng.length);
 }
 
+/* NOTE: The Bionic C library does not allow storing thread-local data
+ *       in the normal .tbss/.tdata ELF sections. So instead we roll our
+ *       own by simply putting tls into the non-tls .data/.bss sections
+ *       and using the _tlsstart/_tlsend symbols as delimiters of the tls
+ *       data.
+ *
+ *       This function is called by the code emitted by the compiler.  It
+ *       is expected to translate an address in the TLS static data to
+ *       the corresponding address in the TLS dynamic per-thread data.
+ */
+
+// NB: the compiler mangles this function as '___tls_get_addr' even though it is extern(D)
 extern(D) void* ___tls_get_addr( void* p )
 {
     debug(PRINTF) printf("  ___tls_get_addr input - %p\n", p);

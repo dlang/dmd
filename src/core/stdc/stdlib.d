@@ -100,6 +100,7 @@ else
 {
     version(Android)
     {
+       import core.sys.posix.stdlib: lrand48, srand48;
        alias core.sys.posix.stdlib.lrand48 rand;
        alias core.sys.posix.stdlib.srand48 srand;
     }
