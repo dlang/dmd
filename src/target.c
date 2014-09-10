@@ -20,7 +20,8 @@ int Target::realsize;
 int Target::realpad;
 int Target::realalignsize;
 bool Target::reverseCppOverloads;
-int Target::longsize;
+int Target::c_longsize;
+int Target::c_long_doublesize;
 
 
 void Target::init()
@@ -28,6 +29,8 @@ void Target::init()
     // These have default values for 32 bit code, they get
     // adjusted for 64 bit code.
     ptrsize = 4;
+    if (global.params.isLP64)
+        ptrsize = 8;
 
     if (global.params.isLinux || global.params.isFreeBSD
         || global.params.isOpenBSD || global.params.isSolaris)
@@ -35,14 +38,14 @@ void Target::init()
         realsize = 12;
         realpad = 2;
         realalignsize = 4;
-        longsize = 4;
+        c_longsize = 4;
     }
     else if (global.params.isOSX)
     {
         realsize = 16;
         realpad = 6;
         realalignsize = 16;
-        longsize = 4;
+        c_longsize = 4;
     }
     else if (global.params.isWindows)
     {
@@ -50,7 +53,7 @@ void Target::init()
         realpad = 0;
         realalignsize = 2;
         reverseCppOverloads = !global.params.is64bit;
-        longsize = 4;
+        c_longsize = 4;
     }
     else
         assert(0);
@@ -62,16 +65,17 @@ void Target::init()
             realsize = 16;
             realpad = 6;
             realalignsize = 16;
-            longsize = 8;
+            c_longsize = 8;
         }
         else if (global.params.isOSX)
         {
-            longsize = 8;
+            c_longsize = 8;
         }
     }
 
-    if (global.params.isLP64)
-        ptrsize = 8;
+    c_long_doublesize = realsize;
+    if (global.params.is64bit && global.params.isWindows)
+        c_long_doublesize = 8;
 }
 
 /******************************
