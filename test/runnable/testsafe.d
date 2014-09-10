@@ -437,5 +437,8 @@ nothrow int g7803() {
     return 3;
 }
 
+void foo6405(int[][] args...) @trusted { }
+void test6405() @safe { foo6405([1,2,3], [1,2,3]); }
+
 void main() { }
 
