@@ -294,6 +294,11 @@ enum
 
 enum : DWORD
 {
+    INVALID_FILE_ATTRIBUTES = cast(DWORD)-1,
+}
+
+enum : DWORD
+{
     MAILSLOT_NO_MESSAGE = cast(DWORD)-1,
     MAILSLOT_WAIT_FOREVER = cast(DWORD)-1,
 }
