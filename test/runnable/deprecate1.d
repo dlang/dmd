@@ -9,38 +9,8 @@ import std.traits;
 import std.math : isNaN;
 
 
-/**************************************
-            volatile
-**************************************/
-void test5a(int *j)
-{
-    int i;
-
-    volatile i = *j;
-    volatile i = *j;
-}
-
-void test5()
-{
-    int x;
-
-    test5a(&x);
-}
-
 // from test23
 static int i2 = 1;
-
-void test2()
-{
-    volatile { int i2 = 2; }
-    assert(i2 == 1);
-}
-
-// bug 1200. Other tests in test42.d
-void foo6e() {
-        volatile debug {}
-}
-
 
 /**************************************
             typedef
@@ -1229,8 +1199,6 @@ void test18()
 
 int main()
 {
-    test2();
-    test5();
     test19();
     test33();
     test41();
