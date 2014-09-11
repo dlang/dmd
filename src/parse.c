@@ -5260,7 +5260,7 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
         case TOKvolatile:
             nextToken();
             s = parseStatement(PSsemi | PScurlyscope);
-            deprecation("volatile statements deprecated; use synchronized statements instead");
+            error("volatile statements no longer allowed; use synchronized statements instead");
             s = new SynchronizedStatement(loc, (Expression *)NULL, s);
             break;
 
