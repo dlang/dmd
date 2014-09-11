@@ -27,6 +27,7 @@
 #include "rmem.h"
 #include "port.h"
 #include "target.h"
+#include "checkedint.h"
 
 #include "dsymbol.h"
 #include "mtype.h"
@@ -3758,13 +3759,12 @@ d_uns64 TypeSArray::size(Loc loc)
         return Type::size(loc);
     sz = dim->toInteger();
 
-    {   dinteger_t n, n2;
+    {
+        bool overflow = false;
 
-        n = next->size();
-        n2 = n * sz;
-        if (n && (n2 / n) != sz)
+        sz = mulu(next->size(), sz, overflow);
+        if (overflow)
             goto Loverflow;
-        sz = n2;
     }
     return sz;
 
@@ -3972,6 +3972,7 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
         if (dim->op == TOKerror)
             goto Lerror;
 
+        bool overflow = false;
         if (d1 != d2)
             goto Loverflow;
 
@@ -3987,16 +3988,11 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
             /* Only do this for types that don't need to have semantic()
              * run on them for the size, since they may be forward referenced.
              */
-            n = tbn->size(loc);
-            n2 = n * d2;
-            if ((int)n2 < 0)
-                goto Loverflow;
-            if (n2 >= 0x1000000)        // put a 'reasonable' limit on it
-                goto Loverflow;
-            if (n && n2 / n != d2)
+            if (mulu(tbn->size(loc), d2, overflow) >= 0x1000000 ||  // put a 'reasonable' limit on it
+                overflow)
             {
               Loverflow:
-                error(loc, "index %lld overflow for static array", d1);
+                error(loc, "index %llu overflow for static array", (unsigned long long)d1);
                 goto Lerror;
             }
         }
