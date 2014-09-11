@@ -181,6 +181,8 @@ struct ModuleDeclaration
     Identifier *id;
     Identifiers *packages;            // array of Identifier's representing packages
     bool safe;
+    bool isdeprecated;          // if it is a deprecated module
+    Expression *msg;
 
     ModuleDeclaration(Identifiers *packages, Identifier *id);
 

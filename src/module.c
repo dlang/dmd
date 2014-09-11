@@ -36,6 +36,7 @@
 #include "dsymbol.h"
 #include "hdrgen.h"
 #include "lexer.h"
+#include "expression.h"
 
 #define MARS 1
 #include "html.h"
@@ -638,6 +639,14 @@ void Module::importAll(Scope *prevsc)
         return;
     }
 
+    if (md && md->msg)
+    {
+        if (StringExp *se = md->msg->toString())
+            md->msg = se;
+        else
+            md->msg->error("string expected, not '%s'", md->msg->toChars());
+    }
+
     /* Note that modules get their own scope, from scratch.
      * This is so regardless of where in the syntax a module
      * gets imported, it is unaffected by context.
@@ -1063,6 +1072,8 @@ ModuleDeclaration::ModuleDeclaration(Identifiers *packages, Identifier *id)
 {
     this->packages = packages;
     this->id = id;
+    this->isdeprecated = false;
+    this->msg = NULL;
 }
 
 char *ModuleDeclaration::toChars()
