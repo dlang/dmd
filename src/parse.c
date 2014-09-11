@@ -71,6 +71,26 @@ Dsymbols *Parser::parseModule()
 {
     Dsymbols *decldefs;
 
+    bool isdeprecated = false;
+    Expression *msg = NULL;
+
+    if (token.value == TOKdeprecated)
+    {
+        Token *tk;
+        if (skipParensIf(peek(&token), &tk) && tk->value == TOKmodule)
+        {
+            // deprecated (...) module ...
+            isdeprecated = true;
+            nextToken();
+            if (token.value == TOKlparen)
+            {
+                check(TOKlparen);
+                msg = parseAssignExp();
+                check(TOKrparen);
+            }
+        }
+    }
+
     // ModuleDeclation leads off
     if (token.value == TOKmodule)
     {
@@ -101,6 +121,8 @@ Dsymbols *Parser::parseModule()
             }
 
             md = new ModuleDeclaration(a, id);
+            md->isdeprecated = isdeprecated;
+            md->msg = msg;
 
             check(TOKsemicolon, "module declaration");
             addComment(mod, comment);
@@ -4238,6 +4260,17 @@ int Parser::skipParens(Token *t, Token **pt)
 
   Lfalse:
     return 0;
+}
+
+int Parser::skipParensIf(Token *t, Token **pt)
+{
+    if (t->value != TOKlparen)
+    {
+        if (pt)
+            *pt = t;
+            return 1;
+    }
+    return skipParens(t, pt);
 }
 
 /********************************* Expression Parser ***************************/

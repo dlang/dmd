@@ -151,14 +151,27 @@ void Import::importAll(Scope *sc)
     if (!mod)
     {
        load(sc);
-       mod->importAll(0);
 
-       /* Default to private importing
-        */
-       enum PROT prot = sc->protection;
-       if (!sc->explicitProtection)
-           prot = PROTprivate;
-       sc->scopesym->importScope(this, prot);
+       if (mod)
+       {
+           if (mod->md && mod->md->isdeprecated)
+           {
+               Expression *msg = mod->md->msg;
+               if (StringExp *se = msg ? msg->toString() : NULL)
+                   mod->deprecation(loc, "is deprecated - %s", se->string);
+               else
+                   mod->deprecation(loc, "is deprecated");
+           }
+
+           mod->importAll(0);
+
+           /* Default to private importing
+            */
+           enum PROT prot = sc->protection;
+           if (!sc->explicitProtection)
+               prot = PROTprivate;
+           sc->scopesym->importScope(this, prot);
+       }
     }
 }
 
