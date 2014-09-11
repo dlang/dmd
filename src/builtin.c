@@ -129,6 +129,20 @@ Expression *eval_bswap(Loc loc, FuncDeclaration *fd, Expressions *arguments)
     return new IntegerExp(loc, n, arg0->type);
 }
 
+Expression *eval_popcnt(Loc loc, FuncDeclaration *fd, Expressions *arguments)
+{
+    Expression *arg0 = (*arguments)[0];
+    assert(arg0->op == TOKint64);
+    uinteger_t n = arg0->toInteger();
+    int cnt = 0;
+    while (n)
+    {
+        cnt += (n & 1);
+        n >>= 1;
+    }
+    return new IntegerExp(loc, cnt, arg0->type);
+}
+
 void builtin_init()
 {
     builtins._init(45);
@@ -205,6 +219,16 @@ void builtin_init()
 
     // @safe @nogc pure nothrow uint function(uint)
     add_builtin("_D4core5bitop5bswapFNaNbNiNfkZk", &eval_bswap);
+
+    // @safe @nogc pure nothrow int function(uint)
+    add_builtin("_D4core5bitop7_popcntFNaNbNiNfkZi", &eval_popcnt);
+
+    // @safe @nogc pure nothrow ushort function(ushort)
+    add_builtin("_D4core5bitop7_popcntFNaNbNiNftZt", &eval_popcnt);
+
+    // @safe @nogc pure nothrow int function(ulong)
+    if (global.params.is64bit)
+        add_builtin("_D4core5bitop7_popcntFNaNbNiNfmZi", &eval_popcnt);
 }
 
 /**********************************
