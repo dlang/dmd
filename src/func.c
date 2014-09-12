@@ -41,8 +41,8 @@ class StatementRewriteWalker : public Visitor
      * By using replaceCurrent() method, you can replace AST during walking.
      */
     Statement **ps;
-    void visitStmt(Statement *&s) { ps = &s; s->accept(this); }
 public:
+    void visitStmt(Statement *&s) { ps = &s; s->accept(this); }
     void replaceCurrent(Statement *s) { *ps = s; }
 
     void visit(ErrorStatement *s) {  }
@@ -1630,7 +1630,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 NrvoWalker nw;
                 nw.fd = this;
                 nw.sc = sc2;
-                fbody->accept(&nw);
+                nw.visitStmt(fbody);
             }
             assert(type == f);
 
