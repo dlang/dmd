@@ -522,6 +522,7 @@ class ReturnStatement : public Statement
 {
 public:
     Expression *exp;
+    size_t caseDim;
 
     ReturnStatement(Loc loc, Expression *exp);
     Statement *syntaxCopy();

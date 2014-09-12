@@ -3538,6 +3538,7 @@ ReturnStatement::ReturnStatement(Loc loc, Expression *exp)
     : Statement(loc)
 {
     this->exp = exp;
+    this->caseDim = 0;
 }
 
 Statement *ReturnStatement::syntaxCopy()
@@ -3559,15 +3560,33 @@ Statement *ReturnStatement::semantic(Scope *sc)
     TypeFunction *tf = (TypeFunction *)fd->type;
     assert(tf->ty == Tfunction);
 
-    Type *tret = tf->next;
-    if (fd->tintro)
-        /* We'll be implicitly casting the return expression to tintro
-         */
-        tret = fd->tintro->nextOf();
-    Type *tbret = NULL;
+    if (exp && exp->op == TOKvar && ((VarExp *)exp)->var == fd->vresult)
+    {
+        // return vresult;
+        if (sc->fes)
+        {
+            assert(caseDim == 0);
+            sc->fes->cases->push(this);
+            return new ReturnStatement(Loc(), new IntegerExp(sc->fes->cases->dim + 1));
+        }
+        if (fd->returnLabel)
+        {
+            GotoStatement *gs = new GotoStatement(loc, Id::returnLabel);
+            gs->label = fd->returnLabel;
+            return gs;
+        }
 
-    if (tret)
-        tbret = tret->toBasetype();
+        if (!fd->returns)
+            fd->returns = new ReturnStatements();
+        fd->returns->push(this);
+        return this;
+    }
+
+    Type *tret = tf->next;
+    Type *tbret = tret ? tret->toBasetype() : NULL;
+
+    bool inferRef = (tf->isref && (fd->storage_class & STCauto));
+    Expression *e0 = NULL;
 
     if (sc->flags & SCOPEcontract)
         error("return statements cannot be in contracts");
@@ -3578,24 +3597,21 @@ Statement *ReturnStatement::semantic(Scope *sc)
 
     if (fd->isCtorDeclaration())
     {
+        if (exp)
+            error("cannot return expression from constructor");
+
         // Constructors implicitly do:
         //      return this;
-        if (exp && exp->op != TOKthis)
-            error("cannot return expression from constructor");
         exp = new ThisExp(Loc());
         exp->type = tret;
     }
-
-    if (!exp)
-        fd->nrvo_can = 0;
-
-    if (exp)
+    else if (exp)
     {
         fd->hasReturnExp |= 1;
 
         FuncLiteralDeclaration *fld = fd->isFuncLiteralDeclaration();
         if (tret)
-            exp = inferType(exp, tbret);
+            exp = inferType(exp, tret);
         else if (fld && fld->treq)
             exp = inferType(exp, fld->treq->nextOf()->nextOf());
         exp = exp->semantic(sc);
@@ -3614,17 +3630,75 @@ Statement *ReturnStatement::semantic(Scope *sc)
         if (exp->op == TOKcall)
             exp = valueNoDtor(exp);
 
-        // deduce 'auto ref'
-        if (tf->isref && (fd->storage_class & STCauto))
+        // Extract side-effect part
+        exp = Expression::extractLast(exp, &e0);
+
+        /* Void-return function can have void typed expression
+         * on return statement.
+         */
+        if (tbret && tbret->ty == Tvoid || exp->type->ty == Tvoid)
+        {
+            if (exp->type->ty != Tvoid)
+            {
+                error("cannot return non-void from void function");
+
+                exp = new CastExp(loc, exp, Type::tvoid);
+                exp = exp->semantic(sc);
+            }
+
+            /* Replace:
+             *      return exp;
+             * with:
+             *      exp; return;
+             */
+            e0 = Expression::combine(e0, exp);
+            exp = NULL;
+        }
+        if (e0)
+            e0 = checkGC(sc, e0);
+    }
+
+    if (exp)
+    {
+        if (fd->inferRetType)       // infer return type
+        {
+            if (!tret)
+            {
+                tf->next = exp->type;
+            }
+            else if (tret->ty != Terror && !exp->type->equals(tret))
+            {
+                int m1 = exp->type->implicitConvTo(tret);
+                int m2 = tret->implicitConvTo(exp->type);
+                //printf("exp->type = %s m2<-->m1 tret %s\n", exp->type->toChars(), tret->toChars());
+                //printf("m1 = %d, m2 = %d\n", m1, m2);
+
+                if (m1 && m2)
+                    ;
+                else if (!m1 && m2)
+                    tf->next = exp->type;
+                else if (m1 && !m2)
+                    ;
+                else if (exp->op != TOKerror)
+                {
+                    error("mismatched function return type inference of %s and %s",
+                        exp->type->toChars(), tret->toChars());
+                    tf->next = Type::terror;
+                }
+            }
+
+            tret = tf->next;
+            tbret = tret->toBasetype();
+        }
+
+        if (inferRef)               // deduce 'auto ref'
         {
             /* Determine "refness" of function return:
              * if it's an lvalue, return by ref, else return by value
              */
             if (exp->isLvalue())
             {
-                /* Return by ref
-                 * (but first ensure it doesn't fail the "check for
-                 * escaping reference" test)
+                /* May return by ref
                  */
                 unsigned errors = global.startGagging();
                 exp->checkEscapeRef();
@@ -3633,10 +3707,13 @@ Statement *ReturnStatement::semantic(Scope *sc)
             }
             else
                 tf->isref = false;      // return by value
-            fd->storage_class &= ~STCauto;
+
+            /* The "refness" is determined by all of return statements.
+             * This means:
+             *    return 3; return x;  // ok, x can be a value
+             *    return x; return 3;  // ok, x can be a value
+             */
         }
-        if (!tf->isref)
-            exp = exp->optimize(WANTvalue);
 
         // handle NRVO
         if (fd->nrvo_can && exp->op == TOKvar)
@@ -3647,7 +3724,8 @@ Statement *ReturnStatement::semantic(Scope *sc)
             if (tf->isref)
             {
                 // Function returns a reference
-                fd->nrvo_can = 0;
+                if (!inferRef)
+                    fd->nrvo_can = 0;
             }
             else if (!v || v->isOut() || v->isRef())
                 fd->nrvo_can = 0;
@@ -3664,190 +3742,48 @@ Statement *ReturnStatement::semantic(Scope *sc)
             else if (fd->nrvo_var != v)
                 fd->nrvo_can = 0;
         }
-        else
+        else //if (!exp->isLvalue())    // keep NRVO-ability
             fd->nrvo_can = 0;
+    }
+    else
+    {
+        // handle NRVO
+        fd->nrvo_can = 0;
 
         // infer return type
         if (fd->inferRetType)
         {
-            Type *tfret = tf->nextOf();
-            if (tfret)
+            if (tf->next && tf->next->ty != Tvoid)
             {
-                if (tfret != Type::terror)
-                {
-                    if (!exp->type->equals(tfret))
-                    {
-                        int m1 = exp->type->implicitConvTo(tfret);
-                        int m2 = tfret->implicitConvTo(exp->type);
-                        //printf("exp->type = %s m2<-->m1 tret %s\n", exp->type->toChars(), tfret->toChars());
-                        //printf("m1 = %d, m2 = %d\n", m1, m2);
-
-                        if (m1 && m2)
-                            ;
-                        else if (!m1 && m2)
-                            tf->next = exp->type;
-                        else if (m1 && !m2)
-                            ;
-                        else if (exp->op != TOKerror)
-                            error("mismatched function return type inference of %s and %s",
-                                exp->type->toChars(), tfret->toChars());
-                    }
-                }
-
-                /* The "refness" is determined by the first return statement,
-                 * not all of them. This means:
-                 *    return 3; return x;  // ok, x can be a value
-                 *    return x; return 3;  // error, 3 is not an lvalue
-                 */
-            }
-            else
-                tf->next = exp->type;
-
-            if (!fd->tintro)
-            {
-                tret = tf->next;
-                tbret = tret->toBasetype();
-            }
-        }
-
-        if (tbret->ty != Tvoid)
-        {
-            if (!exp->type->implicitConvTo(tret) &&
-                fd->parametersIntersect(exp->type))
-            {
-                if (exp->type->immutableOf()->implicitConvTo(tret))
-                    exp = exp->castTo(sc, exp->type->immutableOf());
-                else if (exp->type->wildOf()->implicitConvTo(tret))
-                    exp = exp->castTo(sc, exp->type->wildOf());
-            }
-            if (fd->tintro)
-                exp = exp->implicitCastTo(sc, tf->next);
-
-            // eorg isn't casted to tret (== fd->tintro->nextOf())
-            if (fd->returnLabel)
-                eorg = exp->copy();
-            exp = exp->implicitCastTo(sc, tret);
-
-            if (!tf->isref)
-                exp = exp->optimize(WANTvalue);
-        }
-    }
-    else if (fd->inferRetType)
-    {
-        if (tf->next)
-        {
-            if (tf->next->ty != Tvoid)
                 error("mismatched function return type inference of void and %s",
                     tf->next->toChars());
-        }
-        tf->next = Type::tvoid;
-
-        tret = Type::tvoid;
-        tbret = tret;
-    }
-    else if (tbret->ty != Tvoid)        // if non-void return
-        error("return expression expected");
-
-    if (sc->fes)
-    {
-        Statement *s;
-
-        if (exp)
-        {
-            exp = exp->implicitCastTo(sc, tret);
-        }
-        if (!exp || exp->op == TOKint64 || exp->op == TOKfloat64 ||
-            exp->op == TOKimaginary80 || exp->op == TOKcomplex80 ||
-            exp->op == TOKthis || exp->op == TOKsuper || exp->op == TOKnull ||
-            exp->op == TOKstring)
-        {
-            sc->fes->cases->push(this);
-            // Construct: return cases->dim+1;
-            s = new ReturnStatement(Loc(), new IntegerExp(sc->fes->cases->dim + 1));
-        }
-        else if (tf->next->toBasetype() == Type::tvoid)
-        {
-            s = new ReturnStatement(Loc(), NULL);
-            sc->fes->cases->push(s);
-
-            // Construct: { exp; return cases->dim + 1; }
-            Statement *s1 = new ExpStatement(loc, exp);
-            Statement *s2 = new ReturnStatement(Loc(), new IntegerExp(sc->fes->cases->dim + 1));
-            s = new CompoundStatement(loc, s1, s2);
-        }
-        else
-        {
-            // Construct: return vresult;
-            if (!fd->vresult)
-            {
-                // Declare vresult
-                Scope *sco = fd->scout ? fd->scout : scx;
-                if (!fd->outId)
-                    fd->outId = Id::result;
-                VarDeclaration *v = new VarDeclaration(loc, tret, fd->outId, NULL);
-                if (fd->outId == Id::result)
-                    v->storage_class |= STCtemp;
-                v->noscope = 1;
-                v->storage_class |= STCresult;
-                if (tf->isref)
-                    v->storage_class |= STCref | STCforeach;
-                v->semantic(sco);
-                if (!sco->insert(v))
-                    assert(0);
-                v->parent = fd;
-                fd->vresult = v;
             }
+            tf->next = Type::tvoid;
 
-            s = new ReturnStatement(Loc(), new VarExp(Loc(), fd->vresult));
-            sc->fes->cases->push(s);
-
-            // Construct: { vresult = exp; return cases->dim + 1; }
-            if (tf->isref)
-                exp = new ConstructExp(loc, new VarExp(Loc(), fd->vresult), exp);
-            else
-                exp = new BlitExp(loc, new VarExp(Loc(), fd->vresult), exp);
-            exp = exp->semantic(sc);
-            Statement *s1 = new ExpStatement(loc, exp);
-            Statement *s2 = new ReturnStatement(Loc(), new IntegerExp(sc->fes->cases->dim + 1));
-            s = new CompoundStatement(loc, s1, s2);
-        }
-        return s;
-    }
-
-    if (exp)
-    {
-        exp = checkGC(sc, exp);
-
-        if (tf->isref && !fd->isCtorDeclaration())
-        {
-            // Function returns a reference
-            exp = exp->toLvalue(sc, exp);
-            exp->checkEscapeRef();
-        }
-        else
-        {
-            //exp->print();
-            exp->checkEscape();
+            tret = tf->next;
+            tbret = tret->toBasetype();
         }
 
-        if (fd->returnLabel && tbret->ty != Tvoid)
-        {
-            fd->buildResultVar();
-            VarExp *v = new VarExp(Loc(), fd->vresult);
+        if (inferRef)               // deduce 'auto ref'
+            tf->isref = false;
 
-            assert(eorg);
-            if (tf->isref)
-                exp = new ConstructExp(loc, v, eorg);
-            else
-                exp = new BlitExp(loc, v, eorg);
-            exp = exp->semantic(sc);
+        if (tbret->ty != Tvoid)     // if non-void return
+        {
+            error("return expression expected");
+        }
+        else if (fd->isMain())
+        {
+            // main() returns 0, even if it returns void
+            exp = new IntegerExp(0);
         }
     }
 
     // If any branches have called a ctor, but this branch hasn't, it's an error
     if (sc->callSuper & CSXany_ctor &&
         !(sc->callSuper & (CSXthis_ctor | CSXsuper_ctor)))
+    {
         error("return without calling constructor");
+    }
     sc->callSuper |= CSXreturn;
     if (sc->fieldinit)
     {
@@ -3866,51 +3802,47 @@ Statement *ReturnStatement::semantic(Scope *sc)
         }
     }
 
-    // See if all returns are instead to be replaced with a goto returnLabel;
-    if (fd->returnLabel)
+    if (sc->fes)
     {
-        GotoStatement *gs = new GotoStatement(loc, Id::returnLabel);
-
-        gs->label = fd->returnLabel;
-        if (exp)
+        if (!exp)
         {
-            /* Replace: return exp;
-             * with:    exp; goto returnLabel;
-             */
-            Statement *s = new ExpStatement(Loc(), exp);
-            return new CompoundStatement(loc, s, gs);
-        }
-        return gs;
-    }
+            // Send out "case receiver" statement to the foreach.
+            //  return exp;
+            Statement *s = new ReturnStatement(Loc(), exp);
+            sc->fes->cases->push(s);
 
-    if (tbret->ty == Tvoid)
-    {
-        if (exp && exp->type->ty != Tvoid)
-        {
-            error("cannot return non-void from void function");
+            // Immediately rewrite "this" return statement as:
+            //  return cases->dim+1;
+            this->exp = new IntegerExp(sc->fes->cases->dim + 1);
+            if (e0)
+                return new CompoundStatement(loc, new ExpStatement(loc, e0), this);
+            return this;
         }
-
-        Expression *eret = exp;
-        // main() returns 0, even if it returns void
-        if (fd->isMain())
-            exp = new IntegerExp(0);
         else
-            exp = NULL;
-
-        if (eret)
         {
-            /* Replace:
-             *      return exp;
-             * with:
-             *      cast(void)exp; return;
-             */
-            Expression *ce = new CastExp(loc, eret, Type::tvoid);
-            Statement *s = new ExpStatement(loc, ce);
-            s = s->semantic(sc);
-            return new CompoundStatement(loc, s, this);
+            fd->buildResultVar(NULL, exp->type);
+            fd->vresult->checkNestedReference(sc, Loc());
+
+            // Send out "case receiver" statement to the foreach.
+            //  return vresult;
+            Statement *s = new ReturnStatement(Loc(), new VarExp(Loc(), fd->vresult));
+            sc->fes->cases->push(s);
+
+            // Save receiver index for the later rewriting from:
+            //  return exp;
+            // to:
+            //  vresult = exp; retrun caseDim;
+            caseDim = sc->fes->cases->dim + 1;
         }
     }
-
+    if (exp)
+    {
+        if (!fd->returns)
+            fd->returns = new ReturnStatements();
+        fd->returns->push(this);
+    }
+    if (e0)
+        return new CompoundStatement(loc, new ExpStatement(loc, e0), this);
     return this;
 }
 

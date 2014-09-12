@@ -563,7 +563,6 @@ public:
     Identifier *outId;                  // identifier for out statement
     VarDeclaration *vresult;            // variable corresponding to outId
     LabelDsymbol *returnLabel;          // where the return goes
-    Scope *scout;                       // out contract scope for vresult->semantic
 
     DsymbolTable *localsymtab;          // used to prevent symbols in different
                                         // scopes from having the same name
@@ -608,9 +607,11 @@ public:
     VarDeclaration *nrvo_var;           // variable to replace with shidden
     Symbol *shidden;                    // hidden pointer passed to function
 
+    ReturnStatements *returns;
+
     GotoStatements *gotos;              // Gotos with forward references
 
-    BUILTIN builtin;               // set if this is a known, builtin
+    BUILTIN builtin;                    // set if this is a known, builtin
                                         // function we can evaluate at compile
                                         // time
 
@@ -685,7 +686,7 @@ public:
     void checkNestedReference(Scope *sc, Loc loc);
     bool needsClosure();
     bool hasNestedFrameRefs();
-    void buildResultVar();
+    void buildResultVar(Scope *sc, Type *tret);
     Statement *mergeFrequire(Statement *);
     Statement *mergeFensure(Statement *, Identifier *oid);
     Parameters *getParameters(int *pvarargs);
