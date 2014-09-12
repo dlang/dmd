@@ -3538,7 +3538,6 @@ ReturnStatement::ReturnStatement(Loc loc, Expression *exp)
     : Statement(loc)
 {
     this->exp = exp;
-    this->implicit0 = 0;
 }
 
 Statement *ReturnStatement::syntaxCopy()
@@ -3569,13 +3568,6 @@ Statement *ReturnStatement::semantic(Scope *sc)
 
     if (tret)
         tbret = tret->toBasetype();
-
-    // main() returns 0, even if it returns void
-    if (!exp && (!tbret || tbret->ty == Tvoid) && fd->isMain())
-    {
-        implicit0 = 1;
-        exp = new IntegerExp(0);
-    }
 
     if (sc->flags & SCOPEcontract)
         error("return statements cannot be in contracts");
@@ -3760,7 +3752,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
     {
         Statement *s;
 
-        if (exp && !implicit0)
+        if (exp)
         {
             exp = exp->implicitCastTo(sc, tret);
         }
@@ -3891,24 +3883,32 @@ Statement *ReturnStatement::semantic(Scope *sc)
         return gs;
     }
 
-    if (exp && tbret->ty == Tvoid && !implicit0)
+    if (tbret->ty == Tvoid)
     {
-        if (exp->type->ty != Tvoid)
+        if (exp && exp->type->ty != Tvoid)
         {
             error("cannot return non-void from void function");
         }
 
-        /* Replace:
-         *      return exp;
-         * with:
-         *      cast(void)exp; return;
-         */
-        Expression *ce = new CastExp(loc, exp, Type::tvoid);
-        Statement *s = new ExpStatement(loc, ce);
-        s = s->semantic(sc);
+        Expression *eret = exp;
+        // main() returns 0, even if it returns void
+        if (fd->isMain())
+            exp = new IntegerExp(0);
+        else
+            exp = NULL;
 
-        exp = NULL;
-        return new CompoundStatement(loc, s, this);
+        if (eret)
+        {
+            /* Replace:
+             *      return exp;
+             * with:
+             *      cast(void)exp; return;
+             */
+            Expression *ce = new CastExp(loc, eret, Type::tvoid);
+            Statement *s = new ExpStatement(loc, ce);
+            s = s->semantic(sc);
+            return new CompoundStatement(loc, s, this);
+        }
     }
 
     return this;

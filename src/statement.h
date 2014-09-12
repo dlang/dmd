@@ -522,7 +522,6 @@ class ReturnStatement : public Statement
 {
 public:
     Expression *exp;
-    bool implicit0;             // this is an implicit "return 0;"
 
     ReturnStatement(Loc loc, Expression *exp);
     Statement *syntaxCopy();
