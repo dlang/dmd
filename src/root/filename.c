@@ -127,8 +127,14 @@ Strings *FileName::splitPath(const char *path)
 
 #if POSIX
                     case '~':
-                        buf.writestring(getenv("HOME"));
+                    {
+                        char *home = getenv("HOME");
+                        if (home)
+                            buf.writestring(home);
+                        else
+                            buf.writestring("~");
                         continue;
+                    }
 #endif
 
 #if 0
