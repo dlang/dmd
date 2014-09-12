@@ -1997,25 +1997,33 @@ Expression *Expression::combine(Expression *e1, Expression *e2)
  */
 Expression *Expression::extractLast(Expression *e, Expression **pe0)
 {
-    if (e->op == TOKcomma)
+    if (e->op != TOKcomma)
     {
-        CommaExp *ce = (CommaExp *)e;
-        *pe0 = ce;
+        *pe0 = NULL;
+        return e;
+    }
 
-        Expression **pe = &e;
-        while (((CommaExp *)(*pe))->e2->op == TOKcomma)
-        {
-            ce = (CommaExp *)(*pe);
-            pe = &ce->e2;
-        }
-
-        *pe = ce->e2;
-        if (pe == &e)
-            *pe0 = ce->e1;
+    CommaExp *ce = (CommaExp *)e;
+    if (ce->e2->op != TOKcomma)
+    {
+        *pe0 = ce->e1;
+        return ce->e2;
     }
     else
-        *pe0 = NULL;
-    return e;
+    {
+        *pe0 = e;
+
+        Expression **pce = &ce->e2;
+        while (((CommaExp *)(*pce))->e2->op == TOKcomma)
+        {
+            pce = &((CommaExp *)(*pce))->e2;
+        }
+        assert((*pce)->op == TOKcomma);
+        ce = (CommaExp *)(*pce);
+        *pce = ce->e1;
+
+        return ce->e2;
+    }
 }
 
 dinteger_t Expression::toInteger()
