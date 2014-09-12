@@ -825,6 +825,31 @@ Statement *ExpStatement::semantic(Scope *sc)
         }
 #endif
 
+        if (exp->op == TOKdeclaration)
+        {
+            if (TemplateMixin *tm = ((DeclarationExp *)exp)->declaration->isTemplateMixin())
+            {
+                // Have to do semantic now to resolve the mixin
+                tm->semantic(sc);
+
+                // Rewrite as a CompoundStatement containing multiple ExpStatements
+                Statements *ss = new Statements();
+                if (tm->members)
+                {
+                    for (size_t i = 0; i < tm->members->dim; i++)
+                    {
+                        Declaration *decl = (*tm->members)[i]->isDeclaration();
+                        ss->push(new ExpStatement(loc, new DeclarationExp(loc, decl)));
+                    }
+                }
+                /* If not wrapped in a ScopeStatement, mixing in the same template twice
+                 * will cause conflicts */
+                Statement *wrap = new ScopeStatement(loc, new CompoundStatement(loc, ss));
+                // It's ok to re-run semantic on declarations, and every other node is new
+                return wrap->semantic(sc);
+            }
+        }
+
         exp = exp->semantic(sc);
         exp = exp->addDtorHook(sc);
         exp = resolveProperties(sc, exp);

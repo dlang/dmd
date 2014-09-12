@@ -1079,6 +1079,19 @@ void test54()
 
 /***************************************************/
 
+mixin template mtemplate10492()
+{
+    scope var = new Object;
+}
+
+void test10492()
+{
+    mixin mtemplate10492!();
+    mixin mtemplate10492!();
+}
+
+/***************************************************/
+
 class Foo55
 {
     synchronized void noop1() { }
@@ -7378,6 +7391,7 @@ int main()
     test161();
     test8819();
     test8917();
+    test10492();
     test8945();
     test11805();
     test163();
