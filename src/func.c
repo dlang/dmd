@@ -4323,13 +4323,9 @@ CtorDeclaration::CtorDeclaration(Loc loc, Loc endloc, StorageClass stc, Type *ty
 
 Dsymbol *CtorDeclaration::syntaxCopy(Dsymbol *s)
 {
+    assert(!s);
     CtorDeclaration *f = new CtorDeclaration(loc, endloc, storage_class, type->syntaxCopy());
-    f->outId = outId;
-    f->frequire = frequire ? frequire->syntaxCopy() : NULL;
-    f->fensure  = fensure  ? fensure->syntaxCopy()  : NULL;
-    f->fbody    = fbody    ? fbody->syntaxCopy()    : NULL;
-    assert(!fthrows); // deprecated
-    return f;
+    return FuncDeclaration::syntaxCopy(f);
 }
 
 void CtorDeclaration::semantic(Scope *sc)
