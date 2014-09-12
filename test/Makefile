@@ -134,6 +134,12 @@ DISABLED_TESTS += testargtypes
 DISABLED_TESTS += testxmm
 endif
 
+ifeq ($(OS),osx)
+ifeq ($(MODEL),64)
+DISABLED_TESTS += test6423
+endif
+endif
+
 runnable_tests=$(wildcard runnable/*.d) $(wildcard runnable/*.sh)
 runnable_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(runnable_tests)))
 

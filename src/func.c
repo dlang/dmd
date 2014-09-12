@@ -191,6 +191,15 @@ public:
     }
     void visit(AsmStatement *s) {  }
     void visit(ImportStatement *s) {  }
+#if DMD_OBJC
+    void visit(ObjcExceptionBridge *s)
+    {
+        if (s->body)
+            visitStmt(s->body);
+        if (s->wrapped)
+            visitStmt(s->wrapped);
+    }
+#endif
 };
 
 /* Tweak all return statements and dtor call for nrvo_var, for correct NRVO.

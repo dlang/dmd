@@ -111,9 +111,9 @@ public:
 
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
+    int addMember(Scope *sc, ScopeDsymbol *sds, int memnum);
     const char *kind();
     const char *toPrettyChars(bool unused);
-    void semantic(Scope* sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 

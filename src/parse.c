@@ -3724,8 +3724,8 @@ L2:
         else if (t->ty == Tfunction)
         {
             Expression *constraint = NULL;
-            TypeFunction *tf = (TypeFunction *)t;
 #if 0
+            TypeFunction *tf = (TypeFunction *)t;
             if (Parameter::isTPL(tf->parameters))
             {
                 if (!tpl)
@@ -3805,7 +3805,9 @@ L2:
 #if DMD_OBJC
             f->objcSelector = parseObjCSelector();
             if (f->objcSelector)
-            {   if (tpl)
+            {
+                TypeFunction *tf = (TypeFunction *)t;
+                if (tpl)
                     error("function template cannot have an Objective-C selector attached");
                 if (f->objcSelector->paramCount != tf->parameters->dim)
                     error("number of colons in Objective-C selector must match number of parameters");
@@ -5380,7 +5382,7 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
         case TOKvolatile:
             nextToken();
             s = parseStatement(PSsemi | PScurlyscope);
-            deprecation("volatile statements deprecated; use synchronized statements instead");
+            error("volatile statements no longer allowed; use synchronized statements instead");
             s = new SynchronizedStatement(loc, (Expression *)NULL, s);
             break;
 

@@ -10576,8 +10576,11 @@ Expression *IndexExp::semantic(Scope *sc)
     if (t1->ty == Ttuple) sc = sc->endCTFE();
     if (e2->type == Type::terror)
         return new ErrorExp();
-    if (e2->type->ty == Ttuple && ((TupleExp *)e2)->exps->dim == 1) // bug 4444 fix
+    if (e2->type->ty == Ttuple && ((TupleExp *)e2)->exps &&
+        ((TupleExp *)e2)->exps->dim == 1) // bug 4444 fix
+    {
         e2 = (*((TupleExp *)e2)->exps)[0];
+    }
 
     if (t1->ty == Tsarray || t1->ty == Tarray || t1->ty == Ttuple)
         sc = sc->pop();
@@ -11843,13 +11846,13 @@ Expression *CatAssignExp::semantic(Scope *sc)
     Type *tb1 = e1->type->toBasetype();
     Type *tb1next = tb1->nextOf();
     Type *tb2 = e2->type->toBasetype();
+    Type *tb2next = tb2->nextOf();
 
     if ((tb1->ty == Tarray) &&
         (tb2->ty == Tarray || tb2->ty == Tsarray) &&
         (e2->implicitConvTo(e1->type)
          || (tb2->nextOf()->implicitConvTo(tb1next) &&
-             (tb2->nextOf()->size(Loc()) == tb1next->size(Loc()) ||
-             tb1next->ty == Tchar || tb1next->ty == Twchar || tb1next->ty == Tdchar))
+             (tb2->nextOf()->size(Loc()) == tb1next->size(Loc())))
         )
        )
     {

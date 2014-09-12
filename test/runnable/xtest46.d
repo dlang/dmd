@@ -1655,6 +1655,29 @@ void test82()
 
 /***************************************************/
 
+void test7942()
+{
+    string a = "a";
+    wstring b = "b";
+    dstring c = "c";
+
+    a ~= "a"c;
+    static assert(!is(typeof(a ~= "b"w)));
+    static assert(!is(typeof(a ~= "c"d)));
+    static assert(!is(typeof(b ~= "a"c)));
+    b ~= "b"w;
+    static assert(!is(typeof(b ~= "c"d)));
+    static assert(!is(typeof(c ~= "a"c)));
+    static assert(!is(typeof(c ~= "b"w)));
+    c ~= "c"d;
+
+    assert(a == "aa");
+    assert(b == "bb");
+    assert(c == "cc");
+}
+
+/***************************************************/
+
 void bump(ref int x) { ++x; }
 
 void test83()
@@ -2511,6 +2534,21 @@ void test124() {
     Bar124 q;
     stuff2["dog"] = q;
     assert(stuff2["dog"].z == 17);
+}
+
+/***************************************************/
+
+void test3022()
+{
+    static class Foo3022
+    {
+        new(size_t)
+        {
+            assert(0);
+        }
+    }
+
+    scope x = new Foo3022;
 }
 
 /***************************************************/
@@ -7267,6 +7305,7 @@ int main()
     test6228();
     test3733();
     test4392();
+    test7942();
     test6220();
     test5799();
     test157();
@@ -7286,6 +7325,7 @@ int main()
     test6733();
     test6813();
     test6859();
+    test3022();
     test6910();
     test6902();
     test6330();
