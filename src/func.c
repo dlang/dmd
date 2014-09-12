@@ -1180,7 +1180,6 @@ void FuncDeclaration::semantic2(Scope *sc)
 
 void FuncDeclaration::semantic3(Scope *sc)
 {
-    TypeFunction *f;
     VarDeclaration *argptr = NULL;
     VarDeclaration *_arguments = NULL;
     int nerrors = global.errors;
@@ -1206,11 +1205,11 @@ void FuncDeclaration::semantic3(Scope *sc)
 
     if (!type || type->ty != Tfunction)
         return;
-    f = (TypeFunction *)type;
+    TypeFunction *f = (TypeFunction *)type;
     if (!inferRetType && f->next->ty == Terror)
         return;
 
-    if (!fbody && inferRetType && !type->nextOf())
+    if (!fbody && inferRetType && !f->next)
     {
         error("has no function body with return type inference");
         return;
@@ -1616,15 +1615,12 @@ void FuncDeclaration::semantic3(Scope *sc)
             if (!fbody)
                 fbody = new CompoundStatement(Loc(), new Statements());
 
-            if (inferRetType)
-            {
-                // If no return type inferred yet, then infer a void
-                if (!type->nextOf())
-                {
-                    f->next = Type::tvoid;
-                    //type = type->semantic(loc, sc);   // Removed with 6902
-                }
-            }
+            assert(type == f);
+
+            // If no return type inferred yet, then infer a void
+            if (inferRetType && !f->next)
+                f->next = Type::tvoid;
+
             if (f->next->ty != Tvoid)
             {
                 NrvoWalker nw;
@@ -1632,7 +1628,6 @@ void FuncDeclaration::semantic3(Scope *sc)
                 nw.sc = sc2;
                 nw.visitStmt(fbody);
             }
-            assert(type == f);
 
             if (isStaticCtorDeclaration())
             {
@@ -1768,8 +1763,8 @@ void FuncDeclaration::semantic3(Scope *sc)
                 }
                 assert(!returnLabel);
             }
-            else if (!hasReturnExp && type->nextOf()->ty != Tvoid)
-                error("has no return statement, but is expected to return a value of type %s", type->nextOf()->toChars());
+            else if (!hasReturnExp && f->next->ty != Tvoid)
+                error("has no return statement, but is expected to return a value of type %s", f->next->toChars());
             else if (hasReturnExp & 8)               // if inline asm
             {
                 flags &= ~FUNCFLAGnothrowInprocess;
@@ -1787,7 +1782,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                     f->isnothrow = !(blockexit & BEthrow);
                 }
 
-                if ((blockexit & BEfallthru) && type->nextOf()->ty != Tvoid)
+                if ((blockexit & BEfallthru) && f->next->ty != Tvoid)
                 {
                     Expression *e;
                     error("no return exp; or assert(0); at end of function");
@@ -1805,7 +1800,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                     }
                     else
                         e = new HaltExp(endloc);
-                    e = new CommaExp(Loc(), e, type->nextOf()->defaultInit());
+                    e = new CommaExp(Loc(), e, f->next->defaultInit());
                     e = e->semantic(sc2);
                     Statement *s = new ExpStatement(Loc(), e);
                     fbody = new CompoundStatement(Loc(), fbody, s);
@@ -1848,12 +1843,10 @@ void FuncDeclaration::semantic3(Scope *sc)
         {
             /* fensure is composed of the [out] contracts
              */
-            if (type->nextOf()->ty == Tvoid && outId)
-            {
+            if (f->next->ty == Tvoid && outId)
                 error("void functions have no result");
-            }
 
-            if (type->nextOf()->ty != Tvoid)
+            if (f->next->ty != Tvoid)
                 buildResultVar();
 
             sc2 = scout;    //push
@@ -1865,7 +1858,7 @@ void FuncDeclaration::semantic3(Scope *sc)
             {
                 // Return type was unknown in the first semantic pass
                 Parameter *p = (*((TypeFunction *)fdensure->type)->parameters)[0];
-                p->type = ((TypeFunction *)type)->nextOf();
+                p->type = f->next;
             }
             fens = fens->semantic(sc2);
 
@@ -2028,7 +2021,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 returnLabel->statement = ls;
                 a->push(returnLabel->statement);
 
-                if (type->nextOf()->ty != Tvoid && vresult)
+                if (f->next->ty != Tvoid && vresult)
                 {
                     // Create: return vresult;
                     Expression *e = new VarExp(Loc(), vresult);
@@ -2041,7 +2034,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                     a->push(s);
                 }
             }
-            if (isMain() && type->nextOf()->ty == Tvoid)
+            if (isMain() && f->next->ty == Tvoid)
             {
                 // Add a return 0; statement
                 Statement *s = new ReturnStatement(Loc(), new IntegerExp(0));
