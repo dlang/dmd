@@ -41,8 +41,8 @@ class StatementRewriteWalker : public Visitor
      * By using replaceCurrent() method, you can replace AST during walking.
      */
     Statement **ps;
-    void visitStmt(Statement *&s) { ps = &s; s->accept(this); }
 public:
+    void visitStmt(Statement *&s) { ps = &s; s->accept(this); }
     void replaceCurrent(Statement *s) { *ps = s; }
 
     void visit(ErrorStatement *s) {  }
@@ -203,28 +203,22 @@ public:
 
     void visit(ReturnStatement *s)
     {
-        Expression *exp = s->exp;
-        if (exp)
+        // See if all returns are instead to be replaced with a goto returnLabel;
+        if (fd->returnLabel)
         {
-            TypeFunction *tf = (TypeFunction *)fd->type;
-
-            /* Bugzilla 10789:
-             * If NRVO is not possible, all returned lvalues should call their postblits.
+            /* Rewrite:
+             *  return exp;
+             * as:
+             *  vresult = exp; goto Lresult;
              */
-            if (!fd->nrvo_can && !tf->isref && exp->isLvalue())
-                exp = callCpCtor(sc, exp);
+            GotoStatement *gs = new GotoStatement(s->loc, Id::returnLabel);
+            gs->label = fd->returnLabel;
 
-            /* Bugzilla 8665:
-             * If auto function has multiple return statements, returned values
-             * should be fixed to the determined return type.
-             */
-            if (!fd->tintro && !tf->next->immutableOf()->equals(exp->type->immutableOf()))
-            {
-                exp = exp->castTo(sc, tf->next);
-                exp = exp->optimize(WANTvalue);
-            }
+            Statement *s1 = gs;
+            if (s->exp)
+                s1 = new CompoundStatement(s->loc, new ExpStatement(s->loc, s->exp), gs);
 
-            s->exp = exp;
+            replaceCurrent(s1);
         }
     }
     void visit(TryFinallyStatement *s)
@@ -296,7 +290,6 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
     outId = NULL;
     vresult = NULL;
     returnLabel = NULL;
-    scout = NULL;
     fensure = NULL;
     fbody = NULL;
     localsymtab = NULL;
@@ -336,6 +329,7 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
     tookAddressOf = 0;
     requiresClosure = false;
     flags = 0;
+    returns = NULL;
     gotos = NULL;
 }
 
@@ -1180,7 +1174,6 @@ void FuncDeclaration::semantic2(Scope *sc)
 
 void FuncDeclaration::semantic3(Scope *sc)
 {
-    TypeFunction *f;
     VarDeclaration *argptr = NULL;
     VarDeclaration *_arguments = NULL;
     int nerrors = global.errors;
@@ -1206,11 +1199,11 @@ void FuncDeclaration::semantic3(Scope *sc)
 
     if (!type || type->ty != Tfunction)
         return;
-    f = (TypeFunction *)type;
+    TypeFunction *f = (TypeFunction *)type;
     if (!inferRetType && f->next->ty == Terror)
         return;
 
-    if (!fbody && inferRetType && !type->nextOf())
+    if (!fbody && inferRetType && !f->next)
     {
         error("has no function body with return type inference");
         return;
@@ -1572,6 +1565,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 fpostinv = new ExpStatement(Loc(), e);
         }
 
+        Scope *scout = NULL;
         if (fensure || addPostInvariant())
         {
             if ((fensure && global.params.useOut) || fpostinv)
@@ -1612,27 +1606,41 @@ void FuncDeclaration::semantic3(Scope *sc)
             if (!inferRetType && retStyle(f) != RETstack)
                 nrvo_can = 0;
 
+            bool inferRef = (f->isref && (storage_class & STCauto));
+
             fbody = fbody->semantic(sc2);
             if (!fbody)
                 fbody = new CompoundStatement(Loc(), new Statements());
 
-            if (inferRetType)
+            assert(type == f);
+
+            // If no return type inferred yet, then infer a void
+            if (inferRetType && !f->next)
+                f->next = Type::tvoid;
+
+            if (returns && !fbody->isErrorStatement())
             {
-                // If no return type inferred yet, then infer a void
-                if (!type->nextOf())
+                for (size_t i = 0; i < returns->dim; )
                 {
-                    f->next = Type::tvoid;
-                    //type = type->semantic(loc, sc);   // Removed with 6902
+                    Expression *exp = (*returns)[i]->exp;
+                    if (exp->op == TOKvar && ((VarExp *)exp)->var == vresult)
+                    {
+                        exp->type = f->next;
+                        // Remove `return vresult;` from returns
+                        returns->remove(i);
+                        continue;
+                    }
+                    if (inferRef && f->isref && !exp->type->constConv(f->next))     // Bugzilla 13336
+                        f->isref = false;
+                    i++;
                 }
             }
-            if (f->next->ty != Tvoid)
+            if (f->isref)   // Function returns a reference
             {
-                NrvoWalker nw;
-                nw.fd = this;
-                nw.sc = sc2;
-                fbody->accept(&nw);
+                if (storage_class & STCauto)
+                    storage_class &= ~STCauto;
+                nrvo_can = 0;
             }
-            assert(type == f);
 
             if (isStaticCtorDeclaration())
             {
@@ -1737,10 +1745,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                  */
                 if (blockexit & BEfallthru)
                 {
-                    Expression *e = new ThisExp(loc);
-                    if (cd)
-                        e->type = cd->type;
-                    Statement *s = new ReturnStatement(loc, e);
+                    Statement *s = new ReturnStatement(loc, NULL);
                     s = s->semantic(sc2);
                     fbody = new CompoundStatement(loc, fbody, s);
                 }
@@ -1768,8 +1773,8 @@ void FuncDeclaration::semantic3(Scope *sc)
                 }
                 assert(!returnLabel);
             }
-            else if (!hasReturnExp && type->nextOf()->ty != Tvoid)
-                error("has no return statement, but is expected to return a value of type %s", type->nextOf()->toChars());
+            else if (!hasReturnExp && f->next->ty != Tvoid)
+                error("has no return statement, but is expected to return a value of type %s", f->next->toChars());
             else if (hasReturnExp & 8)               // if inline asm
             {
                 flags &= ~FUNCFLAGnothrowInprocess;
@@ -1787,7 +1792,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                     f->isnothrow = !(blockexit & BEthrow);
                 }
 
-                if ((blockexit & BEfallthru) && type->nextOf()->ty != Tvoid)
+                if ((blockexit & BEfallthru) && f->next->ty != Tvoid)
                 {
                     Expression *e;
                     error("no return exp; or assert(0); at end of function");
@@ -1805,11 +1810,88 @@ void FuncDeclaration::semantic3(Scope *sc)
                     }
                     else
                         e = new HaltExp(endloc);
-                    e = new CommaExp(Loc(), e, type->nextOf()->defaultInit());
+                    e = new CommaExp(Loc(), e, f->next->defaultInit());
                     e = e->semantic(sc2);
                     Statement *s = new ExpStatement(Loc(), e);
                     fbody = new CompoundStatement(Loc(), fbody, s);
                 }
+            }
+
+            if (returns && !fbody->isErrorStatement())
+            {
+                bool implicit0 = (f->next->ty == Tvoid && isMain());
+                Type *tret = implicit0 ? Type::tint32 : f->next;
+                assert(tret->ty != Tvoid);
+                if (vresult || returnLabel)
+                    buildResultVar(scout ? scout : sc2, tret);
+
+                /* Cannot move this loop into NrvoWalker, because
+                 * returns[i] may be in the nested delegate for foreach-body.
+                 */
+                for (size_t i = 0; i < returns->dim; i++)
+                {
+                    ReturnStatement *rs = (*returns)[i];
+                    Expression *exp = rs->exp;
+
+                    if (!exp->implicitConvTo(tret) &&
+                        parametersIntersect(exp->type))
+                    {
+                        if (exp->type->immutableOf()->implicitConvTo(tret))
+                            exp = exp->castTo(sc2, exp->type->immutableOf());
+                        else if (exp->type->wildOf()->implicitConvTo(tret))
+                            exp = exp->castTo(sc2, exp->type->wildOf());
+                    }
+                    else
+                        exp = exp->implicitCastTo(sc2, tret);
+
+                    if (f->isref)
+                    {
+                        // Function returns a reference
+                        exp = exp->toLvalue(sc2, exp);
+                        exp->checkEscapeRef();
+                    }
+                    else
+                    {
+                        exp = exp->optimize(WANTvalue);
+
+                        /* Bugzilla 10789:
+                         * If NRVO is not possible, all returned lvalues should call their postblits.
+                         */
+                        if (!nrvo_can && exp->isLvalue())
+                            exp = callCpCtor(sc2, exp);
+
+                        exp->checkEscape();
+                    }
+
+                    exp = checkGC(sc, exp);
+
+                    if (vresult)
+                    {
+                        // Create: return vresult = exp;
+                        VarExp *ve = new VarExp(Loc(), vresult);
+                        ve->type = vresult->type;
+                        if (f->isref)
+                            exp = new ConstructExp(rs->loc, ve, exp);
+                        else
+                            exp = new BlitExp(rs->loc, ve, exp);
+                        exp->type = ve->type;
+
+                        if (rs->caseDim)
+                            exp = Expression::combine(exp, new IntegerExp(rs->caseDim));
+                    }
+                    else if (tintro && !tret->equals(tintro->nextOf()))
+                    {
+                        exp = exp->implicitCastTo(sc2, tintro->nextOf());
+                    }
+                    rs->exp = exp;
+                }
+            }
+            if (nrvo_var || returnLabel)
+            {
+                NrvoWalker nw;
+                nw.fd = this;
+                nw.sc = sc2;
+                nw.visitStmt(fbody);
             }
 
             if (fieldinit)
@@ -1848,13 +1930,11 @@ void FuncDeclaration::semantic3(Scope *sc)
         {
             /* fensure is composed of the [out] contracts
              */
-            if (type->nextOf()->ty == Tvoid && outId)
-            {
+            if (f->next->ty == Tvoid && outId)
                 error("void functions have no result");
-            }
 
-            if (type->nextOf()->ty != Tvoid)
-                buildResultVar();
+            if (fensure && f->next->ty != Tvoid)
+                buildResultVar(scout, f->next);
 
             sc2 = scout;    //push
             sc2->flags = (sc2->flags & ~SCOPEcontract) | SCOPEensure;
@@ -1865,7 +1945,7 @@ void FuncDeclaration::semantic3(Scope *sc)
             {
                 // Return type was unknown in the first semantic pass
                 Parameter *p = (*((TypeFunction *)fdensure->type)->parameters)[0];
-                p->type = ((TypeFunction *)type)->nextOf();
+                p->type = f->next;
             }
             fens = fens->semantic(sc2);
 
@@ -2028,7 +2108,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 returnLabel->statement = ls;
                 a->push(returnLabel->statement);
 
-                if (type->nextOf()->ty != Tvoid && vresult)
+                if (f->next->ty != Tvoid && vresult)
                 {
                     // Create: return vresult;
                     Expression *e = new VarExp(Loc(), vresult);
@@ -2041,7 +2121,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                     a->push(s);
                 }
             }
-            if (isMain() && type->nextOf()->ty == Tvoid)
+            if (isMain() && f->next->ty == Tvoid)
             {
                 // Add a return 0; statement
                 Statement *s = new ReturnStatement(Loc(), new IntegerExp(0));
@@ -2352,41 +2432,43 @@ bool FuncDeclaration::equals(RootObject *o)
  * Declare result variable lazily.
  */
 
-void FuncDeclaration::buildResultVar()
+void FuncDeclaration::buildResultVar(Scope *sc, Type *tret)
 {
-    if (vresult)
-        return;
-
-    assert(type->nextOf());
-    assert(type->nextOf()->toBasetype()->ty != Tvoid);
-    TypeFunction *tf = (TypeFunction *)type;
-
-    Loc loc = this->loc;
-
-    if (fensure)
-        loc = fensure->loc;
-
-    if (!outId)
-        outId = Id::result;         // provide a default
-
-    VarDeclaration *v = new VarDeclaration(loc, type->nextOf(), outId, NULL);
-    if (outId == Id::result) v->storage_class |= STCtemp;
-    v->noscope = 1;
-    v->storage_class |= STCresult;
-    if (!isVirtual())
-        v->storage_class |= STCconst;
-    if (tf->isref)
+    if (!vresult)
     {
-        v->storage_class |= STCref | STCforeach;
-    }
-    v->semantic(scout);
-    if (!scout->insert(v))
-        error("out result %s is already defined", v->toChars());
-    v->parent = this;
-    vresult = v;
+        Loc loc = fensure ? fensure->loc : loc;
 
-    // vresult gets initialized with the function return value
-    // in ReturnStatement::semantic()
+        /* If inferRetType is true, tret may not be a correct return type yet.
+         * So, in here it may be a temporary type for vresult, and after
+         * fbody->semantic() running, vresult->type might be modified.
+         */
+        vresult = new VarDeclaration(loc, tret, outId ? outId : Id::result, NULL);
+        vresult->noscope = true;
+
+        if (outId == Id::result)
+            vresult->storage_class |= STCtemp;
+        if (!isVirtual())
+            vresult->storage_class |= STCconst;
+        vresult->storage_class |= STCresult;
+
+        // set before the semantic() for checkNestedReference()
+        vresult->parent = this;
+    }
+
+    if (sc && vresult->sem == SemanticStart)
+    {
+        assert(type->ty == Tfunction);
+        TypeFunction *tf = (TypeFunction *)type;
+        if (tf->isref)
+            vresult->storage_class |= STCref | STCforeach;
+        vresult->type = tret;
+
+        vresult->semantic(sc);
+
+        if (!sc->insert(vresult))
+            error("out result %s is already defined", vresult->toChars());
+        assert(vresult->parent == this);
+    }
 }
 
 /****************************************************
@@ -4296,6 +4378,9 @@ void FuncLiteralDeclaration::modifyReturns(Scope *sc, Type *tret)
     if (semanticRun < PASSsemantic3done)
         return;
 
+    if (fes)
+        return;
+
     RetWalker w;
     w.sc = sc;
     w.tret = tret;
@@ -4330,13 +4415,9 @@ CtorDeclaration::CtorDeclaration(Loc loc, Loc endloc, StorageClass stc, Type *ty
 
 Dsymbol *CtorDeclaration::syntaxCopy(Dsymbol *s)
 {
+    assert(!s);
     CtorDeclaration *f = new CtorDeclaration(loc, endloc, storage_class, type->syntaxCopy());
-    f->outId = outId;
-    f->frequire = frequire ? frequire->syntaxCopy() : NULL;
-    f->fensure  = fensure  ? fensure->syntaxCopy()  : NULL;
-    f->fbody    = fbody    ? fbody->syntaxCopy()    : NULL;
-    assert(!fthrows); // deprecated
-    return f;
+    return FuncDeclaration::syntaxCopy(f);
 }
 
 void CtorDeclaration::semantic(Scope *sc)
