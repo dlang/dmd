@@ -840,6 +840,8 @@ RET retStyle(TypeFunction *tf)
         if (tns->ty == Tstruct)
         {
             StructDeclaration *sd = ((TypeStruct *)tns)->sym;
+            if (sd->ident == Id::__c_long_double)
+                return RETregs;
             if (!sd->isPOD() || sz >= 8)
                 return RETstack;
         }

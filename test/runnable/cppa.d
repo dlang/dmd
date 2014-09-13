@@ -487,6 +487,32 @@ extern(C++)
 
 /****************************************/
 
+version (CRuntime_Microsoft)
+{
+    struct __c_long_double
+    {
+	this(double d) { ld = d; }
+	double ld;
+	alias ld this;
+    }
+
+    alias __c_long_double myld;
+}
+else
+    alias c_long_double myld;
+
+extern (C++) myld testld(myld);
+
+
+void test15()
+{
+    myld ld = 5.0;
+    ld = testld(ld);
+    assert(ld == 6.0);
+}
+
+/****************************************/
+
 void main()
 {
     test1();
@@ -507,6 +533,7 @@ void main()
     test13161();
     test14();
     test13289();
+    test15();
 
     printf("Success\n");
 }
