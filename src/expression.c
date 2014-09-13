@@ -12990,8 +12990,8 @@ Expression *CmpExp::semantic(Scope *sc)
 
     /* Disallow comparing T[]==T and T==T[]
      */
-    if (e1->op == TOKslice && t1->ty == Tarray && e2->implicitConvTo(t1->nextOf()) ||
-        e2->op == TOKslice && t2->ty == Tarray && e1->implicitConvTo(t2->nextOf()))
+    if (t1->ty == Tarray && e2->implicitConvTo(t1->nextOf()) ||
+        t2->ty == Tarray && e1->implicitConvTo(t2->nextOf()))
     {
         return incompatibleTypes();
     }
@@ -13208,8 +13208,8 @@ Expression *EqualExp::semantic(Scope *sc)
 
     /* Disallow comparing T[]==T and T==T[]
      */
-    if (e1->op == TOKslice && t1->ty == Tarray && e2->implicitConvTo(t1->nextOf()) ||
-        e2->op == TOKslice && t2->ty == Tarray && e1->implicitConvTo(t2->nextOf()))
+    if (t1->ty == Tarray && e2->implicitConvTo(t1->nextOf()) ||
+        t2->ty == Tarray && e1->implicitConvTo(t2->nextOf()))
     {
         return incompatibleTypes();
     }
@@ -13310,6 +13310,17 @@ Expression *IdentityExp::semantic(Scope *sc)
     if (Expression *ex = binSemanticProp(sc))
         return ex;
     type = Type::tboolean;
+
+    Type *t1 = e1->type->toBasetype();
+    Type *t2 = e2->type->toBasetype();
+
+    /* Disallow comparing T[]==T and T==T[]
+     */
+    if (t1->ty == Tarray && e2->implicitConvTo(t1->nextOf()) ||
+        t2->ty == Tarray && e1->implicitConvTo(t2->nextOf()))
+    {
+        return incompatibleTypes();
+    }
 
     if (Expression *ex = typeCombine(this, sc))
         return ex;
