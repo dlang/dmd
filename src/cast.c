@@ -2941,14 +2941,14 @@ Lcc:
     {
         goto Lt2;
     }
-    else if (e->op != TOKquestion && t1->ty == Tarray &&
+    else if (t1->ty == Tarray && isBinArrayOp(e->op) &&
              isArrayOpOperand(e1) && e2->implicitConvTo(t1->nextOf()))
     {
         // T[] op T
         e2 = e2->castTo(sc, t1->nextOf());
         t = t1->nextOf()->arrayOf();
     }
-    else if (e->op != TOKquestion && t2->ty == Tarray &&
+    else if (t2->ty == Tarray && isBinArrayOp(e->op) &&
              isArrayOpOperand(e2) && e1->implicitConvTo(t2->nextOf()))
     {
         // T op T[]

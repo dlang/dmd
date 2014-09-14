@@ -6487,7 +6487,12 @@ Expression *BinAssignExp::semantic(Scope *sc)
     if (e1->op == TOKslice || e1->type->ty == Tarray || e1->type->ty == Tsarray)
     {
         // T[] op= ...
-        if (Expression *ex = typeCombine(this, sc))
+        if (e2->implicitConvTo(e1->type->nextOf()))
+        {
+            // T[] op= T
+            e2 = e2->castTo(sc, e1->type->nextOf());
+        }
+        else if (Expression *ex = typeCombine(this, sc))
             return ex;
         type = e1->type;
         return arrayOp(this, sc);
@@ -11749,7 +11754,12 @@ Expression *PowAssignExp::semantic(Scope *sc)
     if (e1->op == TOKslice || e1->type->ty == Tarray || e1->type->ty == Tsarray)
     {
         // T[] ^^= ...
-        if (Expression *ex = typeCombine(this, sc))
+        if (e2->implicitConvTo(e1->type->nextOf()))
+        {
+            // T[] ^^= T
+            e2 = e2->castTo(sc, e1->type->nextOf());
+        }
+        else if (Expression *ex = typeCombine(this, sc))
             return ex;
 
         // Check element types are arithmetic
@@ -12989,14 +12999,6 @@ Expression *CmpExp::semantic(Scope *sc)
         return e;
     }
 
-    /* Disallow comparing T[]==T and T==T[]
-     */
-    if (e1->op == TOKslice && t1->ty == Tarray && e2->implicitConvTo(t1->nextOf()) ||
-        e2->op == TOKslice && t2->ty == Tarray && e1->implicitConvTo(t2->nextOf()))
-    {
-        return incompatibleTypes();
-    }
-
     if (Expression *ex = typeCombine(this, sc))
         return ex;
 
@@ -13205,14 +13207,6 @@ Expression *EqualExp::semantic(Scope *sc)
             e = e->semantic(sc);
         }
         return e;
-    }
-
-    /* Disallow comparing T[]==T and T==T[]
-     */
-    if (e1->op == TOKslice && t1->ty == Tarray && e2->implicitConvTo(t1->nextOf()) ||
-        e2->op == TOKslice && t2->ty == Tarray && e1->implicitConvTo(t2->nextOf()))
-    {
-        return incompatibleTypes();
     }
 
     if (t1->ty == Tstruct && t2->ty == Tstruct)
