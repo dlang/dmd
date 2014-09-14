@@ -1,6 +1,6 @@
 // PLATFORM: osx
-// REQUIRED_ARGS: -L-framework -LCocoa runnable/objc_code/objc_member_access.o $(clang -m$MODEL runnable/objc_code/objc_member_access.m -c -o runnable/objc_code/objc_member_access.o)
-// POST_SCRIPT: runnable/extra-files/objc_member_access-postscript.sh
+// EXTRA_OBJC_SOURCES: objc_member_access.m
+// REQUIRED_ARGS: -L-framework -LCocoa
 
 import std.c.stdio;
 

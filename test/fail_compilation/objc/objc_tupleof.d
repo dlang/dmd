@@ -2,8 +2,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/objc_tupleof.d(17): Error: .tupleof (obj) is not available for Objective-C classes (ObjcTupleof)
-fail_compilation/objc_tupleof.d(16): Error: .tupleof (ObjcTupleof) is not available for Objective-C classes (ObjcTupleof)
+fail_compilation/objc/objc_tupleof.d(17): Error: .tupleof (obj) is not available for Objective-C classes (ObjcTupleof)
+fail_compilation/objc/objc_tupleof.d(18): Error: .tupleof (ObjcTupleof) is not available for Objective-C classes (ObjcTupleof)
 ---
 */
 
