@@ -3165,12 +3165,14 @@ struct FuncCandidateWalker
     static int fp(void *param, Dsymbol *s)
     {
         FuncDeclaration *f = s->isFuncDeclaration();
-        if (!f) return 0;
+        if (!f || f->errors || f->type->ty == Terror)
+            return 0;
 
         FuncCandidateWalker *p = (FuncCandidateWalker *)param;
+        TypeFunction *tf = (TypeFunction *)f->type;
 
         ::errorSupplemental(f->loc, "%s%s", f->toPrettyChars(),
-            parametersTypeToChars(((TypeFunction *)f->type)->parameters, ((TypeFunction *)f->type)->varargs));
+            parametersTypeToChars(tf->parameters, tf->varargs));
 
         if (!global.params.verbose && --(p->numToDisplay) == 0 && f->overnext)
         {
