@@ -1894,8 +1894,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
                     key = var;
                     if (arg->storageClass & STCref)
                     {
-                        if (!var->type->immutableOf()->equals(arg->type->immutableOf()) ||
-                            !MODimplicitConv(var->type->mod, arg->type->mod))
+                        if (var->type->constConv(arg->type) <= MATCHnomatch)
                         {
                             error("key type mismatch, %s to ref %s",
                                   var->type->toChars(), arg->type->toChars());
@@ -1928,8 +1927,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
                             var->storage_class |= STCctorinit;
 
                         Type *t = tab->nextOf();
-                        if (!t->immutableOf()->equals(arg->type->immutableOf()) ||
-                            !MODimplicitConv(t->mod, arg->type->mod))
+                        if (t->constConv(arg->type) <= MATCHnomatch)
                         {
                             error("argument type mismatch, %s to ref %s",
                                   t->toChars(), arg->type->toChars());
@@ -2743,8 +2741,7 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
     }
     if (arg->storageClass & STCref)
     {
-        if (!key->type->immutableOf()->equals(arg->type->immutableOf()) ||
-            !MODimplicitConv(key->type->mod, arg->type->mod))
+        if (key->type->constConv(arg->type) <= MATCHnomatch)
         {
             error("argument type mismatch, %s to ref %s",
                   key->type->toChars(), arg->type->toChars());

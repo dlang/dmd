@@ -59,7 +59,7 @@ Expression *implicitCastTo(Expression *e, Scope *sc, Type *t)
             {
                 if (match == MATCHconst &&
                     (e->type->constConv(t) ||
-                     !e->isLvalue() && e->type->immutableOf()->equals(t->immutableOf())))
+                     !e->isLvalue() && e->type->equivalent(t)))
                 {
                     /* Do not emit CastExp for const conversions and
                      * unique conversions on rvalue.
@@ -272,7 +272,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
             Type *t1b = e->e1->type->toBasetype();
             Type *t2b = e->e2->type->toBasetype();
             if (t1b->ty == Tpointer && t2b->isintegral() &&
-                t1b->immutableOf()->equals(tb->immutableOf()))
+                t1b->equivalent(tb))
             {
                 // ptr + offset
                 // ptr - offset
@@ -280,7 +280,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
                 return (m > MATCHconst) ? MATCHconst : m;
             }
             if (t2b->ty == Tpointer && t1b->isintegral() &&
-                t2b->immutableOf()->equals(tb->immutableOf()))
+                t2b->equivalent(tb))
             {
                 // offset + ptr
                 MATCH m = e->e2->implicitConvTo(t);
@@ -521,7 +521,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
              * and mutable to immutable. It works because, after all, a null
              * doesn't actually point to anything.
              */
-            if (t->immutableOf()->equals(e->type->immutableOf()))
+            if (t->equivalent(e->type))
             {
                 result = MATCHconst;
                 return;
@@ -1269,8 +1269,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
              * same mod bits.
              */
             Type *t1b = e->e1->type->toBasetype();
-            if (tb->ty == Tarray &&
-                typeb->immutableOf()->equals(tb->immutableOf()))
+            if (tb->ty == Tarray && typeb->equivalent(tb))
             {
                 Type *tbn = tb->nextOf();
                 Type *tx = NULL;

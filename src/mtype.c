@@ -182,6 +182,11 @@ bool Type::equals(RootObject *o)
     return false;
 }
 
+bool Type::equivalent(Type *t)
+{
+    return immutableOf()->equals(t->immutableOf());
+}
+
 char Type::needThisPrefix()
 {
     return 'M';         // name mangling prefix for functions needing 'this'
