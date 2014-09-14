@@ -3811,6 +3811,17 @@ void test13204()
 }
 
 /******************************************/
+// 8462 (dup of 13204)
+
+alias FP8462 = void function(C8462.Type arg);
+
+class C8462
+{
+    enum Type { Foo }
+    alias funcPtrPtr = FP8462*;
+}
+
+/******************************************/
 // 13218
 
 template isCallable13218(T...)
