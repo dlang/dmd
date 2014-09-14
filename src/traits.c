@@ -908,7 +908,8 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         {
             unsigned errors = global.startGagging();
             Scope *sc2 = sc->push();
-            sc2->speculative = true;
+            sc2->tinst = NULL;
+            sc2->minst = NULL;
             sc2->flags = (sc->flags & ~(SCOPEctfe | SCOPEcondition)) | SCOPEcompile;
             bool err = false;
 

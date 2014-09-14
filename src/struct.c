@@ -859,7 +859,8 @@ void StructDeclaration::semantic(Scope *sc)
         {
             unsigned xerrors = global.startGagging();
             sc = sc->push();
-            sc->speculative = true;
+            sc->tinst = NULL;
+            sc->minst = NULL;
             FuncDeclaration *fcall = resolveFuncCall(loc, sc, scall, NULL, NULL, NULL, 1);
             sc = sc->pop();
             global.endGagging(xerrors);

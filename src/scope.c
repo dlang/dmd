@@ -62,6 +62,7 @@ Scope::Scope()
     this->tf = NULL;
     this->os = NULL;
     this->tinst = NULL;
+    this->minst = NULL;
     this->sbreak = NULL;
     this->scontinue = NULL;
     this->fes = NULL;
@@ -78,7 +79,6 @@ Scope::Scope()
     this->nofree = 0;
     this->noctor = 0;
     this->intypeof = 0;
-    this->speculative = false;
     this->lastVar = NULL;
     this->callSuper = 0;
     this->fieldinit = NULL;
@@ -112,6 +112,10 @@ Scope *Scope::createGlobal(Module *module)
     sc->protection = Prot(PROTpublic);
 
     sc->module = module;
+
+    sc->tinst = NULL;
+    sc->minst = module;
+
     sc->scopesym = new ScopeDsymbol();
     sc->scopesym->symtab = new DsymbolTable();
 
@@ -216,7 +220,8 @@ Scope *Scope::startCTFE()
 
     // If a template is instantiated from CT evaluated expression,
     // compiler can elide its code generation.
-    sc->speculative = true;
+    sc->tinst = NULL;
+    sc->minst = NULL;
 #endif
     return sc;
 }
@@ -352,9 +357,8 @@ void Scope::mergeFieldInit(Loc loc, unsigned *fies)
 
 Module *Scope::instantiatingModule()
 {
-    if (tinst && tinst->instantiatingModule)
-        return tinst->instantiatingModule;
-    return module;
+    // TODO: in speculative context, returning 'module' is correct?
+    return minst ? minst : module;
 }
 
 Dsymbol *Scope::search(Loc loc, Identifier *ident, Dsymbol **pscopesym)

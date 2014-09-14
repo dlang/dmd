@@ -812,7 +812,7 @@ bool Dsymbol::inNonRoot()
         {
             if (ti->isTemplateMixin())
                 continue;
-            if (!ti->instantiatingModule || !ti->instantiatingModule->isRoot())
+            if (!ti->minst || !ti->minst->isRoot())
                 return true;
             return false;
         }

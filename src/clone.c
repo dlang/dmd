@@ -93,7 +93,8 @@ FuncDeclaration *hasIdentityOpAssign(AggregateDeclaration *ad, Scope *sc)
 
         unsigned errors = global.startGagging();    // Do not report errors, even if the
         sc = sc->push();
-        sc->speculative = true;
+        sc->tinst = NULL;
+        sc->minst = NULL;
 
         for (size_t i = 0; i < 2; i++)
         {
@@ -406,7 +407,8 @@ FuncDeclaration *hasIdentityOpEquals(AggregateDeclaration *ad,  Scope *sc)
 
             unsigned errors = global.startGagging();    // Do not report errors, even if the
             sc = sc->push();
-            sc->speculative = true;
+            sc->tinst = NULL;
+            sc->minst = NULL;
 
             for (size_t j = 0; j < 2; j++)
             {
