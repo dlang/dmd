@@ -57,6 +57,7 @@ public:
     int nested;
     int hasthis;
     int hdrscan;    // !=0 if inline scan for 'header' content
+    bool allowAlloca;
     FuncDeclaration *fd;
     int cost;
 
@@ -65,6 +66,7 @@ public:
         nested = 0;
         hasthis = 0;
         hdrscan = 0;
+        allowAlloca = false;
         fd = NULL;
         cost = 0;
     }
@@ -74,6 +76,7 @@ public:
         nested = icv->nested;
         hasthis = icv->hasthis;
         hdrscan = icv->hdrscan;
+        allowAlloca = icv->allowAlloca;
         fd = icv->fd;
         cost = 0;   // zero start for subsequent AST
     }
@@ -370,7 +373,7 @@ public:
         // can't handle that at present.
         if (e->e1->op == TOKdotvar && ((DotVarExp *)e->e1)->e1->op == TOKsuper)
             cost = COST_MAX;
-        else if (e->f && e->f->ident == Id::__alloca && e->f->linkage == LINKc)
+        else if (e->f && e->f->ident == Id::__alloca && e->f->linkage == LINKc && !allowAlloca)
             cost = COST_MAX; // inlining alloca may cause stack overflows
         else
             cost++;
@@ -2025,6 +2028,7 @@ Expression *inlineCopy(Expression *e, Scope *sc)
 
     InlineCostVisitor icv;
     icv.hdrscan = 1;
+    icv.allowAlloca = true;
     icv.expressionInlineCost(e);
     int cost = icv.cost;
     if (cost >= COST_MAX)
