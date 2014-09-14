@@ -1249,6 +1249,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
 
         void visit(SliceExp *e)
         {
+            //printf("SliceExp::implicitConvTo e = %s, type = %s\n", e->toChars(), e->type->toChars());
             visit((Expression *)e);
             if (result != MATCHnomatch)
                 return;
@@ -2155,22 +2156,19 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
 
         void visit(SliceExp *e)
         {
+            //printf("SliceExp::castTo e = %s, type = %s, t = %s\n", e->toChars(), e->type->toChars(), t->toChars());
             Type *typeb = e->type->toBasetype();
             Type *tb = t->toBasetype();
 
-            if (typeb->ty == Tarray && tb->ty == Tsarray)
+            if (typeb->ty == Tarray && (tb->ty == Tarray || tb->ty == Tsarray) &&
+                typeb->nextOf()->equivalent(tb->nextOf()))
             {
+                // T[] to const(T)[]
+                // T[] to const(T)[dim]
+
                 /* If a SliceExp has Tsarray, it will become lvalue.
                  * That's handled in SliceExp::isLvalue and toLvalue
                  */
-                result = e->copy();
-                result->type = t;
-            }
-            else if (typeb->ty == Tarray && tb->ty == Tarray &&
-                     typeb->nextOf()->constConv(tb->nextOf()) == MATCHconst)
-            {
-                // immutable(T)[] to const(T)[]
-                //           T [] to const(T)[]
                 result = e->copy();
                 result->type = t;
             }

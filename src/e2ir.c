@@ -4388,9 +4388,9 @@ elem *toElem(Expression *e, IRState *irs)
 
         void visit(SliceExp *se)
         {
-            //printf("SliceExp::toElem()\n");
+            //printf("SliceExp::toElem() se = %s %s\n", se->type->toChars(), se->toChars());
             Type *tb = se->type->toBasetype();
-            assert(tb->ty == Tarray || tb->ty == Tsarray && se->lwr);
+            assert(tb->ty == Tarray || tb->ty == Tsarray);
             Type *t1 = se->e1->type->toBasetype();
             elem *e = toElem(se->e1, irs);
             if (se->lwr)
@@ -4484,9 +4484,14 @@ elem *toElem(Expression *e, IRState *irs)
                 e = el_combine(elwr, e);
                 e = el_combine(einit, e);
             }
-            else if (t1->ty == Tsarray)
+            else if (t1->ty == Tsarray && tb->ty == Tarray)
             {
                 e = sarray_toDarray(se->loc, t1, NULL, e);
+            }
+            else
+            {
+                assert(t1->ty == tb->ty);   // Tarray or Tsarray
+                assert(t1->nextOf()->equivalent(tb->nextOf()));
             }
             el_setLoc(e, se->loc);
             result = e;

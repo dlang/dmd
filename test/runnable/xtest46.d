@@ -7105,6 +7105,18 @@ void test13154()
 }
 
 /***************************************************/
+// 13437
+
+ubyte[4] foo13437() { return [1,2,3,4]; }
+
+void test13437()
+{
+    auto n = cast(ubyte[4])foo13437()[];  // OK <- ICE: e2ir.c 4616
+    static assert(is(typeof(n) == ubyte[4]));
+    assert(n == [1,2,3,4]);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -7399,6 +7411,7 @@ int main()
     test12153();
     test12937();
     test13154();
+    test13437();
 
     printf("Success\n");
     return 0;
