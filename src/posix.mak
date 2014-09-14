@@ -116,6 +116,9 @@ GLUE_FLAGS := -DDMDV2=1 -I$(ROOT) -I$(TK) -I$(C)
 BACK_FLAGS := -DDMDV2=1 -I$(ROOT) -I$(TK) -I$(C) -I.
 ROOT_FLAGS := -DDMDV2=1 -I$(ROOT)
 
+ifeq (osx,$(OS))
+D_OBJC := 1
+endif
 
 DMD_OBJS = \
 	access.o attrib.o \
