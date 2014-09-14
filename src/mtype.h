@@ -237,6 +237,7 @@ public:
     Type *copy();
     virtual Type *syntaxCopy();
     bool equals(RootObject *o);
+    bool equivalent(Type *t);
     // kludge for template.isType()
     int dyncast() { return DYNCAST_TYPE; }
     int covariant(Type *t, StorageClass *pstc = NULL);

@@ -11427,7 +11427,7 @@ Expression *AssignExp::semantic(Scope *sc)
         Type *t2n = t2->nextOf();
         Type *t1n = t1->nextOf();
         int offset;
-        if (t2n->immutableOf()->equals(t1n->immutableOf()) ||
+        if (t2n->equivalent(t1n) ||
             t1n->isBaseOf(t2n, &offset) && offset == 0)
         {
             /* Allow copy of distinct qualifier elements.

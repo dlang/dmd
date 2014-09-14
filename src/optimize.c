@@ -322,7 +322,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
                 Expression *ex = ((PtrExp *)e->e1)->e1;
                 if (e->type->equals(ex->type))
                     ret = ex;
-                else if (e->type->toBasetype()->immutableOf()->equals(ex->type->toBasetype()->immutableOf()))
+                else if (e->type->toBasetype()->equivalent(ex->type->toBasetype()))
                 {
                     ret = ex->copy();
                     ret->type = e->type;
@@ -379,7 +379,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
                 Expression *ex = ((AddrExp *)e->e1)->e1;
                 if (e->type->equals(ex->type))
                     ret = ex;
-                else if (e->type->toBasetype()->immutableOf()->equals(ex->type->toBasetype()->immutableOf()))
+                else if (e->type->toBasetype()->equivalent(ex->type->toBasetype()))
                 {
                     ret = ex->copy();
                     ret->type = e->type;
