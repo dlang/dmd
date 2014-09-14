@@ -692,6 +692,24 @@ void test7780()
 }
 
 /***************************************************/
+
+auto foo7849(string) { return 1; }
+auto foo7849(dstring) { return 2; }
+
+enum str7849a = "string";
+immutable str7849ai = "string";
+immutable str7849bi = str7849ai;
+enum str7849b = str7849ai;
+enum str7849c = str7849bi;
+
+void test7849()
+{
+    assert(foo7849(str7849a) == 1);
+    assert(foo7849(str7849b) == 1);
+    assert(foo7849(str7849c) == 1);
+}
+
+/***************************************************/
 // 8352
 
 void test8352()
@@ -1011,6 +1029,7 @@ int main()
     test1900d();
     test1900e();
     test7780();
+    test7849();
     test8352();
     test8441a();
     test8441b();

@@ -296,6 +296,35 @@ void test7156()
 }
 
 /*********************************************/
+// 7553
+
+template Foo7553()
+{
+    struct Range7553 {}
+}
+template Biz7553()
+{
+    struct Range7553 {}
+}
+
+class Bar7553
+{
+    mixin Foo7553!() index0;
+    mixin Biz7553!() index1;
+
+    auto to_range(Range)(Range r)
+    {
+        return r;
+    }
+
+}
+
+void test7553()
+{
+    auto r2 = new Bar7553().to_range(1);
+}
+
+/*********************************************/
 
 void main()
 {
