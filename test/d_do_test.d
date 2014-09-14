@@ -155,10 +155,8 @@ void replaceResultsDir(ref string arguments, const ref EnvData envData)
     arguments = replace(arguments, "${RESULTS_DIR}", envData.results_dir);
 }
 
-void gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_file, const ref EnvData envData)
+void gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_file, string file, const ref EnvData envData)
 {
-    string file = cast(string)std.file.read(input_file);
-
     findTestParameter(file, "REQUIRED_ARGS", testArgs.requiredArgs);
     if(envData.required_args.length)
         testArgs.requiredArgs ~= " " ~ envData.required_args;
@@ -394,7 +392,14 @@ int main(string[] args)
     }
     bool msc = envData.ccompiler.toLower.endsWith("cl.exe");
 
-    gatherTestParameters(testArgs, input_dir, input_file, envData);
+    auto fileContents = cast(string)std.file.read(input_file);
+
+    string platform;
+    auto hasPlatform = findTestParameter(fileContents, "PLATFORM", platform);
+    if (hasPlatform && envData.os != platform)
+        return 0;
+
+    gatherTestParameters(testArgs, input_dir, input_file, fileContents, envData);
 
     //prepare cpp extra sources
     if (testArgs.cppSources.length)

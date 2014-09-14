@@ -1,3 +1,4 @@
+// PLATFORM: osx
 
 extern (Objective-C)
 class A {}

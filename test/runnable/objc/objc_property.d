@@ -1,3 +1,4 @@
+// PLATFORM: osx
 // REQUIRED_ARGS: -L-framework -LCocoa
 
 import objc.runtime;

@@ -1,8 +1,9 @@
+// PLATFORM: osx
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/objc_offsetof.d(17): Error: .offsetof (obj.member) is not available for members of Objective-C classes (ObjcOffsetof)
-fail_compilation/objc_offsetof.d(18): Error: .offsetof (member) is not available for members of Objective-C classes (ObjcOffsetof)
+fail_compilation/objc_offsetof.d(18): Error: .offsetof (obj.member) is not available for members of Objective-C classes (ObjcOffsetof)
+fail_compilation/objc_offsetof.d(19): Error: .offsetof (member) is not available for members of Objective-C classes (ObjcOffsetof)
 ---
 */
 
