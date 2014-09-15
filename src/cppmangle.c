@@ -701,6 +701,7 @@ public:
     void visit(TypeStruct *t)
     {
         is_top_level = false;
+
         if (substitute(t)) return;
         if (t->isImmutable() || t->isShared())
         {
@@ -1046,14 +1047,33 @@ public:
 
     void visit(TypeStruct *type)
     {
-        if (checkTypeSaved(type)) return;
-        //printf("visit(TypeStruct); is_not_top_type = %d\n", (int)(flags & IS_NOT_TOP_TYPE));
-        mangleModifier(type);
-        if (type->sym->isUnionDeclaration())
-            buf.writeByte('T');
+        if (type->sym->ident == Id::__c_long_double)
+        {
+            if (type->isImmutable() || type->isShared())
+            {
+                visit((Type*)type);
+                return;
+            }
+
+            if (type->isConst() && ((flags & IS_NOT_TOP_TYPE) || (flags & IS_DMC)))
+            {
+                if (checkTypeSaved(type)) return;
+            }
+
+            mangleModifier(type);
+            buf.writeByte('O');         // mangle as VC++ long double
+        }
         else
-            buf.writeByte('U');
-        mangleIdent(type->sym);
+        {
+            if (checkTypeSaved(type)) return;
+            //printf("visit(TypeStruct); is_not_top_type = %d\n", (int)(flags & IS_NOT_TOP_TYPE));
+            mangleModifier(type);
+            if (type->sym->isUnionDeclaration())
+                buf.writeByte('T');
+            else
+                buf.writeByte('U');
+            mangleIdent(type->sym);
+        }
         flags &= ~IS_NOT_TOP_TYPE;
         flags &= ~IGNORE_CONST;
     }
@@ -1673,8 +1693,11 @@ private:
             flags &= ~IGNORE_CONST;
             if (rettype->ty == Tstruct || rettype->ty == Tenum)
             {
-                tmp.buf.writeByte('?');
-                tmp.buf.writeByte('A');
+                if (rettype->toDsymbol(NULL)->ident != Id::__c_long_double)
+                {
+                    tmp.buf.writeByte('?');
+                    tmp.buf.writeByte('A');
+                }
             }
             tmp.flags |= MANGLE_RETURN_TYPE;
             rettype->accept(&tmp);

@@ -21,6 +21,7 @@
 #include "declaration.h"
 #include "enum.h"
 #include "aggregate.h"
+#include "id.h"
 
 #include "cc.h"
 #include "global.h"
@@ -138,6 +139,12 @@ public:
         else
         {
             StructDeclaration *sym = t->sym;
+            if (sym->ident == Id::__c_long_double)
+            {
+                t->ctype = type_fake(TYdouble);
+                t->ctype->Tcount++;
+                return;
+            }
             t->ctype = type_struct_class(sym->toPrettyChars(true), sym->alignsize, sym->structsize,
                     sym->arg1type ? Type_toCtype(sym->arg1type) : NULL,
                     sym->arg2type ? Type_toCtype(sym->arg2type) : NULL,

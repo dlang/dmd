@@ -341,3 +341,11 @@ bool f13289_cpp_test()
     return false;
 #endif
 }
+
+/******************************************/
+
+long double testld(long double ld)
+{
+    assert(ld == 5);
+    return ld + 1;
+}
