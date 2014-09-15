@@ -420,6 +420,9 @@
     <ClCompile Include="root\async.c">
       <Filter>src\root</Filter>
     </ClCompile>
+    <ClCompile Include="root\checkedint.c">
+      <Filter>src\root</Filter>
+    </ClCompile>
     <ClCompile Include="root\dmgcmem.c">
       <Filter>src\root</Filter>
     </ClCompile>
@@ -720,6 +723,9 @@
       <Filter>src\root</Filter>
     </ClInclude>
     <ClInclude Include="root\async.h">
+      <Filter>src\root</Filter>
+    </ClInclude>
+    <ClInclude Include="root\checkedint.h">
       <Filter>src\root</Filter>
     </ClInclude>
     <ClInclude Include="root\longdouble.h">

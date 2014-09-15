@@ -1373,6 +1373,14 @@
 					>
 				</File>
 				<File
+					RelativePath=".\root\checkedint.c"
+					>
+				</File>
+				<File
+					RelativePath=".\root\checkedint.h"
+					>
+				</File>
+				<File
 					RelativePath=".\root\file.c"
 					>
 				</File>
