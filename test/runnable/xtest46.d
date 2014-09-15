@@ -7125,6 +7125,22 @@ void test13437()
 }
 
 /***************************************************/
+// 13472
+
+class A13472
+{
+    int a;
+}
+
+void test13472()
+{
+    A13472[] test;
+    test.length = 4;
+    auto b = test[0..2] ~ null ~ test[2..$];
+    assert(b.length == 5);
+}
+
+/***************************************************/
 // 13476
 
 template ParameterTypeTuple13476(func...)
@@ -7468,6 +7484,7 @@ int main()
     test12937();
     test13154();
     test13437();
+    test13472();
     test13476();
 
     printf("Success\n");
