@@ -6259,8 +6259,13 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 #if LOG
             printf("\tit's a match with instance %p, %d\n", inst, inst->semanticRun);
 #endif
-            if (!inst->instantiatingModule || inst->instantiatingModule->isRoot())
+            // If this is not a speculative instantiation, it might allow us to
+            // elide codegen for the template instance.
+            if (!speculative &&
+                (!inst->instantiatingModule || inst->instantiatingModule->isRoot()))
+            {
                 inst->instantiatingModule = mi;
+            }
             errors = inst->errors;
             return;
         }
