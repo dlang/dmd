@@ -99,7 +99,7 @@ public:
     Dsymbol *ctor;                      // CtorDeclaration or TemplateDeclaration
     CtorDeclaration *defaultCtor;       // default constructor - should have no arguments, because
                                         // it would be stored in TypeInfo_Class.defaultConstructor
-    Dsymbol *aliasthis;                 // forward unresolved lookups to aliasthis
+    Dsymbols *aliasThisSymbols;         // forward unresolved lookups to aliasthis
     bool noDefaultCtor;         // no default construction
 
     FuncDeclarations dtors;     // Array of destructors

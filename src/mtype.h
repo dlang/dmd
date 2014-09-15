@@ -46,10 +46,19 @@ typedef struct TYPE type;
 #endif
 
 void semanticTypeInfo(Scope *sc, Type *t);
-MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL, size_t inferStart = 0);
+MATCH deduceType(Loc loc, RootObject *o, Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL, size_t inferStart = 0);
 Type *reliesOnTident(Type *t, TemplateParameters *tparams = NULL, size_t iStart = 0);
 StorageClass ModToStc(unsigned mod);
+void getAliasThisTypes(Type *t, Types *ret, Bools *islavalues = NULL);
+MATCH implicitConvToWithAliasThis(Loc loc, Type *from, Type *to, Type *root_from = NULL, OutBuffer *buff = NULL,
+                                  int *state = NULL, OutBuffer *matchname = NULL);
 
+/**
+ * Should be called by iterateAliasThis.
+ * It tries to substitute a next subtype expression and check
+ * if it convertable to the target type
+ */
+bool atSubstCastTo(Scope *sc, Expression *e, void *ctx, Expression **outexpr);
 enum ENUMTY
 {
     Tarray,             // slice array, aka T[]
@@ -123,13 +132,24 @@ enum MODFlags
 };
 typedef unsigned char MOD;
 
+// Whether alias this dependency is recursive or not.
+enum AliasThisRec
+{
+    RECinit      = 0x0,
+    RECtracing   = 0x1, // mark in progress of implicitConvTo/deduceWild
+    RECtracingDT = 0x2, // mark in progress of deduceType
+};
+
 class Type : public RootObject
 {
 public:
     TY ty;
     MOD mod;  // modifiers MODxxxx
     char *deco;
-
+    /* This field is a bit-mask of AliasThisRec values.
+     * It is used to prevent alias this resolving.
+     */
+    unsigned aliasthislock;
     /* These are cached values that are lazily evaluated by constOf(), immutableOf(), etc.
      * They should not be referenced by anybody but mtype.c.
      * They can be NULL if not lazily evaluated yet.
@@ -299,8 +319,6 @@ public:
     Type *referenceTo();
     Type *arrayOf();
     Type *sarrayOf(dinteger_t dim);
-    Type *aliasthisOf();
-    bool checkAliasThisRec();
     virtual Type *makeConst();
     virtual Type *makeImmutable();
     virtual Type *makeShared();
@@ -742,23 +760,10 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
-// Whether alias this dependency is recursive or not.
-enum AliasThisRec
-{
-    RECno = 0,      // no alias this recursion
-    RECyes = 1,     // alias this has recursive dependency
-    RECfwdref = 2,  // not yet known
-    RECtypeMask = 3,// mask to read no/yes/fwdref
-
-    RECtracing = 0x4, // mark in progress of implicitConvTo/deduceWild
-    RECtracingDT = 0x8, // mark in progress of deduceType
-};
-
 class TypeStruct : public Type
 {
 public:
     StructDeclaration *sym;
-    AliasThisRec att;
 
     TypeStruct(StructDeclaration *sym);
     const char *kind();
@@ -826,7 +831,6 @@ class TypeClass : public Type
 {
 public:
     ClassDeclaration *sym;
-    AliasThisRec att;
 
     TypeClass(ClassDeclaration *sym);
     const char *kind();

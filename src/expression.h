@@ -65,7 +65,9 @@ bool arrayExpressionSemantic(Expressions *exps, Scope *sc);
 TemplateDeclaration *getFuncTemplateDecl(Dsymbol *s);
 Expression *valueNoDtor(Expression *e);
 int modifyFieldVar(Loc loc, Scope *sc, VarDeclaration *var, Expression *e1);
-Expression *resolveAliasThis(Scope *sc, Expression *e);
+typedef bool (*IterateAliasThisDg)(Scope *sc, Expression *aliasexpr, void *ctx, Expression **outexpr);
+bool iterateAliasThis(Scope *sc, Expression *e, IterateAliasThisDg dg,
+                      void *ctx, Expressions *ret, bool gagerrors = false, StringTable* syms = NULL);
 Expression *callCpCtor(Scope *sc, Expression *e);
 Expression *resolveOpDollar(Scope *sc, ArrayExp *ae, Expression **pe0);
 Expression *resolveOpDollar(Scope *sc, SliceExp *se, Expression **pe0);
@@ -100,6 +102,12 @@ Expression *inferType(Expression *e, Type *t, int flag = 0);
 Expression *semanticTraits(TraitsExp *e, Scope *sc);
 Type *getIndirection(Type *t);
 
+//replace op(e1) with op(e1.%aliasthis%)
+bool atSubstUna(Scope *sc, Expression *e, void *ctx, Expression **outexpr);
+//replace bin(una(e1), e2) with bin(una(e1.%aliasthis%), e2)
+bool atSubstBinUna(Scope *sc, Expression *e, void *ctx, Expression **outexpr);
+//replace una(una(e1)) with una(una(e1.%aliasthis%))
+bool atSubstUnaUna(Scope *sc, Expression *e, void *ctx, Expression **outexpr);
 Expression *checkGC(Scope *sc, Expression *e);
 
 bool checkEscape(Scope *sc, Expression *e, bool gag);
@@ -129,6 +137,9 @@ public:
     unsigned char size;         // # of bytes in Expression so we can copy() it
     unsigned char parens;       // if this is a parenthesized expression
 
+    /* This field is used to prevent alias this resolving.
+     */
+    bool aliasthislock;
     Expression(Loc loc, TOK op, int size);
     static void init();
     Expression *copy();
@@ -724,7 +735,6 @@ class UnaExp : public Expression
 {
 public:
     Expression *e1;
-    Type *att1; // Save alias this type to detect recursion
 
     UnaExp(Loc loc, TOK op, int size, Expression *e1);
     Expression *syntaxCopy();
@@ -743,9 +753,6 @@ class BinExp : public Expression
 public:
     Expression *e1;
     Expression *e2;
-
-    Type *att1; // Save alias this type to detect recursion
-    Type *att2; // Save alias this type to detect recursion
 
     BinExp(Loc loc, TOK op, int size, Expression *e1, Expression *e2);
     Expression *syntaxCopy();

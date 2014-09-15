@@ -1346,33 +1346,94 @@ WithScopeSymbol::WithScopeSymbol(WithStatement *withstate)
     this->withstate = withstate;
 }
 
+struct FindMemberCtx
+{
+    Loc loc;
+    Identifier *ident;
+    int flags;
+    Dsymbols* candidates;
+};
+
+/**
+ * Should be called by iterateAliasThis.
+ * It tries to substitute subtyped expression to an DotIdExp inside an WithStatement.
+ * with(e) { ident } -> with(e) { aliasthisX.ident }
+ */
+static bool atSubstWithDotId(Scope *sc, Expression *e, void *ctx_, Expression **outexpr)
+{
+    FindMemberCtx *ctx = (FindMemberCtx*)ctx_;
+    Dsymbol *s = NULL;
+    if (e->op == TOKimport)
+    {
+        s = ((ScopeExp *)e)->sds;
+    }
+    else if (e->op == TOKtype)
+    {
+        s = e->type->toDsymbol(NULL);
+    }
+    else
+    {
+        Type *t = e->type->toBasetype();
+        s = t->toDsymbol(NULL);
+    }
+    if (s)
+    {
+        s = s->search(ctx->loc, ctx->ident);
+        if (s)
+        {
+            ctx->candidates->push(s);
+            return true;
+        }
+    }
+
+    return false;
+}
+
 Dsymbol *WithScopeSymbol::search(Loc loc, Identifier *ident, int flags)
 {
     // Acts as proxy to the with class declaration
     Dsymbol *s = NULL;
-    Expression *eold = NULL;
-    for (Expression *e = withstate->exp; e != eold; e = resolveAliasThis(scope, e))
+
+    Expression *e = withstate->exp;
+
+    if (e->op == TOKimport)
     {
-        if (e->op == TOKimport)
-        {
-            s = ((ScopeExp *)e)->sds;
-        }
-        else if (e->op == TOKtype)
-        {
-            s = e->type->toDsymbol(NULL);
-        }
-        else
-        {
-            Type *t = e->type->toBasetype();
-            s = t->toDsymbol(NULL);
-        }
+        s = ((ScopeExp *)e)->sds;
+    }
+    else if (e->op == TOKtype)
+    {
+        s = e->type->toDsymbol(NULL);
+    }
+    else
+    {
+        Type *t = e->type->toBasetype();
+        s = t->toDsymbol(NULL);
+    }
+    if (s)
+    {
+        s = s->search(loc, ident);
         if (s)
+            return s;
+    }
+
+    //try alias this-es
+    Dsymbols candidates;
+    Expressions results;
+
+    FindMemberCtx ctx = {loc, ident, flags, &candidates};
+    iterateAliasThis(scope, e, &atSubstWithDotId, &ctx, &results);
+
+    if (candidates.dim == 1)
+    {
+        return candidates[0];
+    }
+    else if (candidates.dim > 1)
+    {
+        e->error("There are many candidates to %s.%s resolve:", e->toChars(), ident->toChars());
+        for (size_t j = 0; j < results.dim; ++j)
         {
-            s = s->search(loc, ident);
-            if (s)
-                return s;
+            e->error("%s", results[j]->toChars());
         }
-        eold = e;
     }
     return NULL;
 }

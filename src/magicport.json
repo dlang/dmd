@@ -986,7 +986,8 @@
                 "typedef GotoStatements",
                 "typedef TemplateInstances",
                 "typedef Blocks",
-                "typedef Symbols"
+                "typedef Symbols",
+                "typedef Bools"
             ]
         },
         {
@@ -1100,7 +1101,9 @@
                 "struct TypeTuple",
                 "struct TypeSlice",
                 "struct TypeNull",
-                "struct Parameter"
+                "struct Parameter",
+                "struct FindDotIdCtx",
+                "function atSubstDotId"
             ]
         },
         {
@@ -1937,7 +1940,9 @@
                 "struct WithScopeSymbol",
                 "struct ArrayScopeSymbol",
                 "struct OverloadSet",
-                "struct DsymbolTable"
+                "struct DsymbolTable",
+                "function atSubstWithDotId",
+                "struct FindMemberCtx"
             ]
         },
         {
@@ -2476,12 +2481,22 @@
                 "mtype",
                 "opover",
                 "root.outbuffer",
-                "visitor"
+                "root.stringtable",
+                "visitor",
+                "arraytypes",
+                "dclass",
+                "denum",
+                "dtemplate",
+                "core.stdc.string"
             ],
             "members" :
             [
                 "struct AliasThis",
-                "function resolveAliasThis"
+                "function resolveAliasThis",
+                "function iterateAliasThis",
+                "function getAliasThisTypes",
+                "function implicitConvToWithAliasThis",
+                "function aliasThisOf"
             ]
         },
         {
@@ -2861,7 +2876,19 @@
                 "struct LineInitExp",
                 "struct ModuleInitExp",
                 "struct FuncInitExp",
-                "struct PrettyFuncInitExp"
+                "struct PrettyFuncInitExp",
+                "typedef IterateAliasThisDg",
+                "function atSubstUna",
+                "function atSubstBinUna",
+                "function atSubstBinRhsConv",
+                "function atSubstUnaUna",
+                "function atSubstUnaDotId",
+                "function mergeAliasThis",
+                "function atCollectSubtypes",
+                "function atSubstCastTo",
+                "function findAliasThisSubtypes",
+                "function atSubstIdent",
+                "function atSubstCastToBool"
             ]
         },
         {
@@ -2912,7 +2939,8 @@
                 "globals",
                 "mtype",
                 "statement",
-                "visitor"
+                "visitor",
+                "aliasthis"
             ],
             "members" :
             [
@@ -2928,7 +2956,13 @@
                 "function inferAggregate",
                 "function inferApplyArgTypes",
                 "function inferApplyArgTypesX",
-                "function inferApplyArgTypesY"
+                "function inferApplyArgTypesY",
+                "function atSubstBinBoth",
+                "function atSubstBinRhs",
+                "function atSubstForeach",
+                "function resloveAliasThisForBinExp",
+                "function atSubstBinLhs",
+                "struct DoBothCtx"
             ]
         },
         {
@@ -3314,7 +3348,9 @@
         "PKG",
         "TRUSTformat",
         "Baseok",
-        "BOUNDSCHECK"
+        "BOUNDSCHECK",
+
+        "IterateAliasThisDg"
     ],
     "structTypes" :
     [
@@ -3345,7 +3381,9 @@
         "AsyncRead",
 
         "Strings",
-        "Sections"
+        "Sections",
+        "Bools",
+        "Strings"
     ],
     "classTypes" :
     [
