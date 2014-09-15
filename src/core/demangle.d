@@ -15,10 +15,6 @@ module core.demangle;
 
 debug(trace) import core.stdc.stdio : printf;
 debug(info) import core.stdc.stdio : printf;
-import core.stdc.stdio : snprintf;
-import core.stdc.string : memmove;
-import core.stdc.stdlib : strtold;
-
 
 private struct Demangle
 {
@@ -438,7 +434,9 @@ private struct Demangle
 
         tbuf[tlen] = 0;
         debug(info) printf( "got (%s)\n", tbuf.ptr );
+        import core.stdc.stdlib : strtold;
         val = strtold( tbuf.ptr, null );
+        import core.stdc.stdio : snprintf;
         tlen = snprintf( tbuf.ptr, tbuf.length, "%#Lg", val );
         debug(info) printf( "converted (%.*s)\n", cast(int) tlen, tbuf.ptr );
         put( tbuf[0 .. tlen] );

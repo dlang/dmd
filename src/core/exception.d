@@ -11,9 +11,6 @@
  */
 module core.exception;
 
-import core.stdc.stdio;
-
-
 /**
  * Thrown on a range error.
  */
