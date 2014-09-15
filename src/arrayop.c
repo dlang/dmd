@@ -111,47 +111,31 @@ bool isArrayOpValid(Expression *e)
         return (t->ty != Tvoid);
     }
     Type *tb = e->type->toBasetype();
-
-    BinExp *be;
     if (tb->ty == Tarray || tb->ty == Tsarray)
     {
-        switch (e->op)
+        if (isUnaArrayOp(e->op))
         {
-            case TOKadd:
-            case TOKmin:
-            case TOKmul:
-            case TOKdiv:
-            case TOKmod:
-            case TOKxor:
-            case TOKand:
-            case TOKor:
-            case TOKassign:
-            case TOKaddass:
-            case TOKminass:
-            case TOKmulass:
-            case TOKdivass:
-            case TOKmodass:
-            case TOKxorass:
-            case TOKandass:
-            case TOKorass:
-            case TOKpow:
-            case TOKpowass:
-                be = (BinExp *)e;
-                return isArrayOpValid(be->e1) && isArrayOpValid(be->e2);
-
-            case TOKconstruct:
-                be = (BinExp *)e;
-                return be->e1->op == TOKslice && isArrayOpValid(be->e2);
-
-            case TOKcall:
-                 return false; // TODO: Decide if [] is required after arrayop calls.
-
-            case TOKneg:
-            case TOKtilde:
-                 return isArrayOpValid(((UnaExp *)e)->e1);
-
-            default:
-                return false;
+             return isArrayOpValid(((UnaExp *)e)->e1);
+        }
+        if (isBinArrayOp(e->op) ||
+            isBinAssignArrayOp(e->op) ||
+            e->op == TOKassign)
+        {
+            BinExp *be = (BinExp *)e;
+            return isArrayOpValid(be->e1) && isArrayOpValid(be->e2);
+        }
+        if (e->op == TOKconstruct)
+        {
+            BinExp *be = (BinExp *)e;
+            return be->e1->op == TOKslice && isArrayOpValid(be->e2);
+        }
+        if (e->op == TOKcall)
+        {
+             return false; // TODO: Decide if [] is required after arrayop calls.
+        }
+        else
+        {
+            return false;
         }
     }
     return true;
@@ -165,24 +149,7 @@ bool isNonAssignmentArrayOp(Expression *e)
 
     if (tb->ty == Tarray || tb->ty == Tsarray)
     {
-        switch (e->op)
-        {
-            case TOKadd:
-            case TOKmin:
-            case TOKmul:
-            case TOKdiv:
-            case TOKmod:
-            case TOKxor:
-            case TOKand:
-            case TOKor:
-            case TOKpow:
-            case TOKneg:
-            case TOKtilde:
-                return true;
-
-            default:
-                return false;
-        }
+        return (isUnaArrayOp(e->op) || isBinArrayOp(e->op));
     }
     return false;
 }
@@ -515,17 +482,7 @@ Expression *buildArrayLoop(Expression *e, Parameters *fparams)
 
         void visit(BinExp *e)
         {
-            switch(e->op)
-            {
-            case TOKadd:
-            case TOKmin:
-            case TOKmul:
-            case TOKdiv:
-            case TOKmod:
-            case TOKxor:
-            case TOKand:
-            case TOKor:
-            case TOKpow:
+            if (isBinArrayOp(e->op))
             {
                 /* Evaluate assign expressions left to right
                  */
@@ -536,7 +493,8 @@ Expression *buildArrayLoop(Expression *e, Parameters *fparams)
                 result = be;
                 return;
             }
-            default:
+            else
+            {
                 visit((Expression *)e);
                 return;
             }
@@ -554,12 +512,77 @@ Expression *buildArrayLoop(Expression *e, Parameters *fparams)
 }
 
 /***********************************************
+ * Test if expression is a unary array op.
+ */
+
+bool isUnaArrayOp(TOK op)
+{
+    switch (op)
+    {
+    case TOKneg:
+    case TOKtilde:
+        return true;
+    default:
+        break;
+    }
+    return false;
+}
+
+/***********************************************
+ * Test if expression is a binary array op.
+ */
+
+bool isBinArrayOp(TOK op)
+{
+    switch (op)
+    {
+    case TOKadd:
+    case TOKmin:
+    case TOKmul:
+    case TOKdiv:
+    case TOKmod:
+    case TOKxor:
+    case TOKand:
+    case TOKor:
+    case TOKpow:
+        return true;
+    default:
+        break;
+    }
+    return false;
+}
+
+/***********************************************
+ * Test if expression is a binary assignment array op.
+ */
+
+bool isBinAssignArrayOp(TOK op)
+{
+    switch (op)
+    {
+    case TOKaddass:
+    case TOKminass:
+    case TOKmulass:
+    case TOKdivass:
+    case TOKmodass:
+    case TOKxorass:
+    case TOKandass:
+    case TOKorass:
+    case TOKpowass:
+        return true;
+    default:
+        break;
+    }
+    return false;
+}
+
+/***********************************************
  * Test if operand is a valid array op operand.
  */
 
-bool isArrayOperand(Expression *e)
+bool isArrayOpOperand(Expression *e)
 {
-    //printf("Expression::isArrayOperand() %s\n", e->toChars());
+    //printf("Expression::isArrayOpOperand() %s\n", e->toChars());
     if (e->op == TOKslice)
         return true;
     if (e->op == TOKarrayliteral)
@@ -569,36 +592,13 @@ bool isArrayOperand(Expression *e)
             t = t->nextOf()->toBasetype();
         return (t->ty != Tvoid);
     }
-    if (e->type->toBasetype()->ty == Tarray)
+    Type *tb = e->type->toBasetype();
+    if (tb->ty == Tarray)
     {
-        switch (e->op)
-        {
-        case TOKadd:
-        case TOKmin:
-        case TOKmul:
-        case TOKdiv:
-        case TOKmod:
-        case TOKxor:
-        case TOKand:
-        case TOKor:
-        case TOKassign:
-        case TOKaddass:
-        case TOKminass:
-        case TOKmulass:
-        case TOKdivass:
-        case TOKmodass:
-        case TOKxorass:
-        case TOKandass:
-        case TOKorass:
-        case TOKpow:
-        case TOKpowass:
-        case TOKneg:
-        case TOKtilde:
-            return true;
-
-        default:
-            break;
-        }
+        return (isUnaArrayOp(e->op) ||
+                isBinArrayOp(e->op) ||
+                isBinAssignArrayOp(e->op) ||
+                e->op == TOKassign);
     }
     return false;
 }
