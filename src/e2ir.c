@@ -1091,7 +1091,7 @@ elem *toElem(Expression *e, IRState *irs)
 
         void visit(DeclarationExp *de)
         {
-            //printf("DeclarationExp::toElem() %s\n", detoChars());
+            //printf("DeclarationExp::toElem() %s\n", de->toChars());
             result = Dsymbol_toElem(de->declaration);
         }
 
@@ -4825,6 +4825,10 @@ elem *toElem(Expression *e, IRState *irs)
             else if (EnumDeclaration *ed = s->isEnumDeclaration())
             {
                 irs->deferToObj->push(ed);
+            }
+            else if (TemplateInstance *ti = s->isTemplateInstance())
+            {
+                irs->deferToObj->push(ti);
             }
             return e;
         }
