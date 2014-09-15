@@ -6393,13 +6393,21 @@ void test161()
 }
 
 /***************************************************/
+// 7175
+
+void test7175()
+{
+    struct S { ubyte[0] arr; }
+    S s;
+    assert(s.arr.ptr !is null);
+    assert(cast(void*)s.arr.ptr is cast(void*)&s);
+}
+
+/***************************************************/
 // 8819
 
 void test8819()
 {
-    void[0] sa0 = (void[0]).init;
-    assert(sa0.ptr !is null); // 7175 - ptr should not be null
-
     void[1] sa1 = (void[1]).init;
     assert((cast(ubyte*)sa1.ptr)[0] == 0);
 
@@ -7388,6 +7396,7 @@ int main()
     test199();
     test8526();
     test161();
+    test7175();
     test8819();
     test8917();
     test8945();
