@@ -6804,18 +6804,6 @@ void TypeIdentifier::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsy
     }
 
     Dsymbol *s = sc->search(loc, ident, &scopesym);
-    if (s)
-    {
-        Declaration *d = s->isDeclaration();
-        if (d && d->inuse)
-        {
-            error(loc, "circular reference to '%s'", d->toPrettyChars());
-            *pe = NULL;
-            *ps = NULL;
-            *pt = Type::terror;
-            return;
-        }
-    }
     resolveHelper(loc, sc, s, scopesym, pe, pt, ps, intypeid);
     if (*pt)
         (*pt) = (*pt)->addMod(mod);

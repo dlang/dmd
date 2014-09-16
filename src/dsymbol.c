@@ -455,6 +455,15 @@ Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, RootObject *id)
     Dsymbol *s = toAlias();
     Dsymbol *sm;
 
+    if (Declaration *d = s->isDeclaration())
+    {
+        if (d->inuse)
+        {
+            ::error(loc, "circular reference to '%s'", d->toPrettyChars());
+            return NULL;
+        }
+    }
+
     switch (id->dyncast())
     {
         case DYNCAST_IDENTIFIER:
@@ -462,7 +471,8 @@ Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, RootObject *id)
             break;
 
         case DYNCAST_DSYMBOL:
-        {   // It's a template instance
+        {
+            // It's a template instance
             //printf("\ttemplate instance id\n");
             Dsymbol *st = (Dsymbol *)id;
             TemplateInstance *ti = st->isTemplateInstance();
