@@ -513,6 +513,62 @@ void test15()
 
 /****************************************/
 
+version( Windows )
+{
+    alias int   x_long;
+    alias uint  x_ulong;
+}
+else
+{
+  static if( (void*).sizeof > int.sizeof )
+  {
+    alias long  x_long;
+    alias ulong x_ulong;
+  }
+  else
+  {
+    alias int   x_long;
+    alias uint  x_ulong;
+  }
+}
+
+struct __c_long
+{
+    this(x_long d) { ld = d; }
+    x_long ld;
+    alias ld this;
+}
+
+struct __c_ulong
+{
+    this(x_ulong d) { ld = d; }
+    x_ulong ld;
+    alias ld this;
+}
+
+alias __c_long mylong;
+alias __c_ulong myulong;
+
+extern (C++) mylong testl(mylong);
+extern (C++) myulong testul(myulong);
+
+
+void test16()
+{
+  {
+    mylong ld = 5;
+    ld = testl(ld);
+    assert(ld == 5 + mylong.sizeof);
+  }
+  {
+    myulong ld = 5;
+    ld = testul(ld);
+    assert(ld == 5 + myulong.sizeof);
+  }
+}
+
+/****************************************/
+
 void main()
 {
     test1();
@@ -534,6 +590,7 @@ void main()
     test14();
     test13289();
     test15();
+    test16();
 
     printf("Success\n");
 }

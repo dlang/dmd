@@ -858,7 +858,9 @@ Lagain:
         {
 L2:
             if (global.params.isLinux && tf->linkage != LINKd && !global.params.is64bit)
+            {
                 ;                               // 32 bit C/C++ structs always on stack
+            }
             else
             {
                 switch (sz)
@@ -884,6 +886,9 @@ L2:
         StructDeclaration *sd = ((TypeStruct *)tns)->sym;
         if (global.params.isLinux && tf->linkage != LINKd && !global.params.is64bit)
         {
+            if (sd->ident == Id::__c_long || sd->ident == Id::__c_ulong)
+                return RETregs;
+
             //printf("  2 RETstack\n");
             return RETstack;            // 32 bit C/C++ structs always on stack
         }

@@ -77,6 +77,8 @@ Msgtable msgtable[] =
     { "__vptr" },
     { "__monitor" },
     { "gate", "__gate" },
+    { "__c_long" },
+    { "__c_ulong" },
     { "__c_long_double" },
 
     { "TypeInfo" },
