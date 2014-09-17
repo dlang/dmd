@@ -232,7 +232,7 @@ version (AnyX86)
     {
         // Not everyone has SSE4 instructions
         import core.cpuid;
-        if (!hasPopcnt())
+        if (!hasPopcnt)
             return;
 
         static int popcnt_x(ulong u) nothrow @nogc
