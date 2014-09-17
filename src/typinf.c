@@ -251,8 +251,8 @@ private:
             if (typeclass->structsize != expected)
             {
 #ifdef DEBUG
-                printf("expected = x%x, %s.structsize = x%x\n", expected,
-                    typeclass->toChars(), typeclass->structsize);
+                printf("expected = x%x, %s.structsize = x%x\n", (unsigned)expected,
+                    typeclass->toChars(), (unsigned)typeclass->structsize);
 #endif
                 error(typeclass->loc, "mismatch between compiler and object.d or object.di found. Check installation and import paths with -v compiler switch.");
                 fatal();
