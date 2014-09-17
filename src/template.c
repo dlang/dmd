@@ -1568,39 +1568,20 @@ Lretry:
             if (m == MATCHnomatch && prmtype->deco)
                 m = farg->implicitConvTo(prmtype);
 
-            /* If no match, see if there's a conversion to a delegate
-             */
             if (m == MATCHnomatch)
             {
-                Type *tbp = prmtype->toBasetype();
-                Type *tba = farg->type->toBasetype();
-                if (tbp->ty == Tdelegate)
+                AggregateDeclaration *ad = isAggregate(farg->type);
+                if (ad && ad->aliasthis)
                 {
-                    TypeDelegate *td = (TypeDelegate *)prmtype->toBasetype();
-                    TypeFunction *tf = (TypeFunction *)td->next;
-
-                    if (!tf->varargs && Parameter::dim(tf->parameters) == 0)
+                    /* If a semantic error occurs while doing alias this,
+                     * eg purity(bug 7295), just regard it as not a match.
+                     */
+                    unsigned olderrors = global.startGagging();
+                    Expression *e = resolveAliasThis(sc, farg);
+                    if (!global.endGagging(olderrors))
                     {
-                        m = deduceType(farg->type, paramscope, tf->next, parameters, dedtypes);
-                        if (m == MATCHnomatch && tf->next->toBasetype()->ty == Tvoid)
-                            m = MATCHconvert;
-                    }
-                    //printf("\tm2 = %d\n", m);
-                }
-                else if (AggregateDeclaration *ad = isAggregate(tba))
-                {
-                    if (ad->aliasthis)
-                    {
-                        /* If a semantic error occurs while doing alias this,
-                         * eg purity(bug 7295), just regard it as not a match.
-                         */
-                        unsigned olderrors = global.startGagging();
-                        Expression *e = resolveAliasThis(sc, farg);
-                        if (!global.endGagging(olderrors))
-                        {
-                            farg = e;
-                            goto Lretry;
-                        }
+                        farg = e;
+                        goto Lretry;
                     }
                 }
             }
@@ -1872,10 +1853,10 @@ Lmatch:
     }
 
 #if 0
-    for (i = 0; i < dedargs->dim; i++)
+    for (size_t i = 0; i < dedargs->dim; i++)
     {
-        Type *t = (*dedargs)[i];
-        printf("\tdedargs[%d] = %d, %s\n", i, t->dyncast(), t->toChars());
+        RootObject *o = (*dedargs)[i];
+        printf("\tdedargs[%d] = %d, %s\n", i, o->dyncast(), o->toChars());
     }
 #endif
 
@@ -3513,7 +3494,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                     fparam->type = fparam->type->addStorageClass(fparam->storageClass);
                     fparam->storageClass &= ~(STC_TYPECTOR | STCin);
                 }
-                //printf("\t-> this   = %d, ", ty); print();
+                //printf("\t-> this   = %d, ", t->ty); t->print();
                 //printf("\t-> tparam = %d, ", tparam->ty); tparam->print();
 
                 /* See if tuple match
