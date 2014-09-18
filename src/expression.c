@@ -5290,10 +5290,16 @@ Expression *FuncExp::syntaxCopy()
         fd2 = (*td2->members)[0]->isFuncLiteralDeclaration();
         assert(fd2);
     }
-    else
+    else if (fd->semanticRun == PASSinit)
     {
         td2 = NULL;
         fd2 = (FuncLiteralDeclaration *)fd->syntaxCopy(NULL);
+    }
+    else
+    {
+        // Bugzilla 13481: Prevent multiple semantic analysis of lambda body.
+        td2 = NULL;
+        fd2 = fd;
     }
     return new FuncExp(loc, fd2, td2);
 }

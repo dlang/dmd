@@ -708,3 +708,19 @@ final class C12703
 {
     S12703 s = S12703(1);
 }
+
+/***************************************************/
+// 13481
+
+mixin template Mix13481(void function() callback)
+{
+    static this()
+    {
+        callback();
+    }
+}
+
+void sort13481() { int[] arr; arr.sort; }
+mixin Mix13481!(&sort13481);
+
+mixin Mix13481!({ int[] arr; arr.sort; });
