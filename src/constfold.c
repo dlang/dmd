@@ -1704,11 +1704,13 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
             e->type = type;
     }
     else if ((e1->op == TOKarrayliteral || e1->op == TOKnull) &&
+        e1->type->toBasetype()->nextOf() &&
         e1->type->toBasetype()->nextOf()->equals(e2->type))
     {
         ArrayLiteralExp *es1;
         if (e1->op == TOKarrayliteral)
-        {   es1 = (ArrayLiteralExp *)e1;
+        {
+            es1 = (ArrayLiteralExp *)e1;
             es1 = new ArrayLiteralExp(es1->loc, (Expressions *)es1->elements->copy());
             es1->elements->push(e2);
         }
