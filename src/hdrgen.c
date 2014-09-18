@@ -2777,7 +2777,7 @@ public:
 
     void visit(ObjcClassRefExp *e)
     {
-        buf->writestring(e->cdecl->objcident->string);
+        buf->writestring(e->cdecl->objc.ident->string);
         buf->writestring(".class");
     }
 

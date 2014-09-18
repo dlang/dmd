@@ -2183,7 +2183,7 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
         if (ident == Id::offsetof)
         {
 #if DMD_OBJC
-            if (receiver && receiver->objc)
+            if (receiver && receiver->objc.objc)
                 error(e->loc, ".offsetof (%s) is not available for members of Objective-C classes (%s)", e->toChars(), receiver->toChars());
 #endif
             if (v->isField())
@@ -7969,7 +7969,7 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
     if (ident == Id::tupleof)
     {
 #if DMD_OBJC
-        if (sym->objc)
+        if (sym->objc.objc)
             error(e->loc, ".tupleof (%s) is not available for Objective-C classes (%s)", e->toChars(), sym->toChars());
 #endif
         /* Create a TupleExp
@@ -8260,7 +8260,7 @@ L1:
             return e;
         }
 #if DMD_OBJC
-        bool isObjcClassMethod = sym->objc && d->isFuncDeclaration() && d->isStatic() && ((FuncDeclaration *)d)->objcSelector;
+        bool isObjcClassMethod = sym->objc.objc && d->isFuncDeclaration() && d->isStatic() && ((FuncDeclaration *)d)->objcSelector;
 #else
         bool isObjcClassMethod = false;
 #endif

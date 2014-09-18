@@ -41,11 +41,11 @@ ClassDeclaration *ClassDeclaration::objcthrowable;
 ClassDeclaration *ClassDeclaration::exception;
 ClassDeclaration *ClassDeclaration::errorException;
 
-ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses, bool inObject)
-    : AggregateDeclaration(loc, id)
-{
-    static const char msg[] = "only object.d can define this reserved class name";
+static const char msg[] = "only object.d can define this reserved class name";
 
+ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses, bool inObject)
+    : AggregateDeclaration(loc, id), objc(this, msg)
+{
     if (baseclasses)
     {
         // Actually, this is a transfer
@@ -70,18 +70,6 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
 
     vtblsym = NULL;
     vclassinfo = NULL;
-
-#if DMD_OBJC
-    objc = 0;
-    objcmeta = 0;
-    objcextern = 0;
-    objctakestringliteral = 0;
-    objcident = NULL;
-    sobjccls = NULL;
-    objcMethods = NULL;
-    metaclass = NULL;
-    objchaspreinit = 0;
-#endif
 
     if (id)
     {
@@ -227,14 +215,6 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
             throwable = this;
         }
 
-#if DMD_OBJC
-        if (id == Id::ObjcThrowable)
-        {   if (objcthrowable)
-                objcthrowable->error("%s", msg);
-            objcthrowable = this;
-        }
-#endif
-
         if (id == Id::Exception)
         {
             if (!inObject)
@@ -346,8 +326,8 @@ void ClassDeclaration::semantic(Scope *sc)
         if (sc->linkage == LINKobjc)
         {
 #if DMD_OBJC
-            objc = 1;
-            objcextern = 1;
+            objc.objc = true;
+            objc.extern_ = true;
 #else
             error("Objective-C classes not supported");
 #endif
@@ -527,7 +507,7 @@ void ClassDeclaration::semantic(Scope *sc)
         doAncestorsSemantic = SemanticDone;
 
 #if DMD_OBJC
-        bool isObjcBaseClass = objc || (baseClass && baseClass->objc);
+        bool isObjcBaseClass = objc.objc || (baseClass && baseClass->objc.objc);
 #else
         bool isObjcBaseClass = false;
 #endif
@@ -535,7 +515,7 @@ void ClassDeclaration::semantic(Scope *sc)
         {
 #if DMD_OBJC
             // Objective-C classes do not inherit from Object
-            objc = 1;
+            objc.objc = true;
 #endif
         }
 
@@ -625,12 +605,12 @@ Lancestorsdone:
     if (sizeok == SIZEOKnone)
     {
 #if DMD_OBJC
-        if (objc && !objcmeta && !metaclass)
+        if (objc.objc && !objc.meta && !objc.metaclass)
         {
-            if (!objcident)
-                objcident = ident;
+            if (!objc.ident)
+                objc.ident = ident;
 
-            if (objcident == Id::Protocol)
+            if (objc.ident == Id::Protocol)
             {   if (ObjcProtocolOfExp::protocolClassDecl == NULL)
                 ObjcProtocolOfExp::protocolClassDecl = this;
             else if (ObjcProtocolOfExp::protocolClassDecl != this)
@@ -643,26 +623,26 @@ Lancestorsdone:
             for (size_t i = 0; i < baseclasses->dim; ++i)
             {   ClassDeclaration *basecd = ((BaseClass *)baseclasses->data[i])->base;
                 assert(basecd);
-                if (basecd->objc)
-                {   assert(basecd->metaclass);
-                    assert(basecd->metaclass->objcmeta);
-                    assert(basecd->metaclass->type->ty == Tclass);
-                    assert(((TypeClass *)basecd->metaclass->type)->sym == basecd->metaclass);
-                    BaseClass *metabase = new BaseClass(basecd->metaclass->type, PROTpublic);
-                    metabase->base = basecd->metaclass;
+                if (basecd->objc.objc)
+                {   assert(basecd->objc.metaclass);
+                    assert(basecd->objc.metaclass->objc.meta);
+                    assert(basecd->objc.metaclass->type->ty == Tclass);
+                    assert(((TypeClass *)basecd->objc.metaclass->type)->sym == basecd->objc.metaclass);
+                    BaseClass *metabase = new BaseClass(basecd->objc.metaclass->type, PROTpublic);
+                    metabase->base = basecd->objc.metaclass;
                     metabases->push(metabase);
                 }
                 else
                     error("base class and interfaces for an Objective-C class must be extern (Objective-C)");
             }
-            metaclass = new ClassDeclaration(loc, Id::Class, metabases);
-            metaclass->storage_class |= STCstatic;
-            metaclass->objc = 1;
-            metaclass->objcmeta = 1;
-            metaclass->objcextern = objcextern;
-            metaclass->objcident = objcident;
-            members->push(metaclass);
-            metaclass->addMember(sc, this, 1);
+            objc.metaclass = new ClassDeclaration(loc, Id::Class, metabases);
+            objc.metaclass->storage_class |= STCstatic;
+            objc.metaclass->objc.objc = true;
+            objc.metaclass->objc.meta = true;
+            objc.metaclass->objc.extern_ = objc.extern_;
+            objc.metaclass->objc.ident = objc.ident;
+            members->push(objc.metaclass);
+            objc.metaclass->addMember(sc, this, 1);
         }
 #endif
 
@@ -730,7 +710,7 @@ Lancestorsdone:
     sc2->parent = this;
     sc2->inunion = 0;
 #if DMD_OBJC
-    bool isObjc = objc;
+    bool isObjc = objc.objc;
 #else
     bool isObjc = false;
 #endif
@@ -781,8 +761,8 @@ Lancestorsdone:
     size_t members_dim = members->dim;
     sizeok = SIZEOKnone;
 #if DMD_OBJC
-    if (metaclass)
-        metaclass->members = new Dsymbols();
+    if (objc.metaclass)
+        objc.metaclass->members = new Dsymbols();
 #endif
 
     /* Set scope so if there are forward references, we still might be able to
@@ -838,8 +818,8 @@ Lancestorsdone:
         structsize = 0;
         alignsize = 0;
 #if DMD_OBJC
-        if (metaclass)
-            metaclass->members = NULL;
+        if (objc.metaclass)
+            objc.metaclass->members = NULL;
 #endif
 
         sc2->pop();
@@ -861,7 +841,7 @@ Lancestorsdone:
     inv = buildInv(this, sc2);
 
 #if DMD_OBJC
-	if (objc && !objcextern && !objcmeta)
+	if (objc.objc && !objc.extern_ && !objc.meta)
 	{	// Look for static initializers to create initializing function if needed
 		Expression *inite = NULL;
 		for (size_t i = 0; i < members_dim; i++)
@@ -916,7 +896,7 @@ Lancestorsdone:
 		if (initfd)
 		{	// replace alloc functions with stubs ending with a call to _dobjc_preinit
             // this is done by the backend glue in objc.c, we just need to set a flag
-            objchaspreinit = 1;
+            objc.hasPreinit = true;
 		}
 
         // invariant for Objective-C class is handled by adding a _dobjc_invariant
@@ -1347,18 +1327,6 @@ bool ClassDeclaration::isCPPinterface()
     return false;
 }
 
-#if DMD_OBJC
-bool ClassDeclaration::isObjCinterface()
-{
-    return objc;
-}
-
-bool ClassDeclaration::isObjCRootClass()
-{
-    return isObjCinterface() && !metaclass && !baseClass;
-}
-#endif
-
 
 /****************************************
  */
@@ -1411,7 +1379,7 @@ const char *ClassDeclaration::kind()
 void ClassDeclaration::addLocalClass(ClassDeclarations *aclasses)
 {
 #if DMD_OBJC
-    if (objc)
+    if (objc.objc)
         return;
 #endif
     aclasses->push(this);
@@ -1420,7 +1388,7 @@ void ClassDeclaration::addLocalClass(ClassDeclarations *aclasses)
 #if DMD_OBJC
 void ClassDeclaration::addObjcSymbols(ClassDeclarations *classes, ClassDeclarations *categories)
 {
-    if (objc && !objcextern && !objcmeta)
+    if (objc.objc && !objc.extern_ && !objc.meta)
         classes->push(this);
 }
 #endif
@@ -1548,15 +1516,15 @@ void InterfaceDeclaration::semantic(Scope *sc)
         if (sc->linkage == LINKobjc)
         {
 #if DMD_OBJC
-            objc = 1;
+            objc.objc = true;
             // In the abscense of a better solution, classes with Objective-C linkage
             // are only a declaration. A class that derives from one with Objective-C
             // linkage but which does not have Objective-C linkage itself will
             // generate a definition in the object file.
-            objcextern = 1; // this one is only a declaration
+            objc.extern_ = true; // this one is only a declaration
 
-            if (!objcident)
-                objcident = ident;
+            if (!objc.ident)
+                objc.ident = ident;
 #else
             error("Objective-C interfaces not supported");
 #endif
@@ -1577,16 +1545,16 @@ void InterfaceDeclaration::semantic(Scope *sc)
             }
 #if DMD_OBJC
             // Check for mixin Objective-C and non-Objective-C interfaces
-            if (!objc && tc->sym->objc)
+            if (!objc.objc && tc->sym->objc.objc)
             {   if (i == 0)
             {   // This is the first -- there's no non-Objective-C interface before this one.
                 // Implicitly switch this interface to Objective-C.
-                objc = 1;
+                objc.objc = true;
             }
             else
                 goto Lobjcmix; // same error as below
             }
-            else if (objc && !tc->sym->objc)
+            else if (objc.objc && !tc->sym->objc.objc)
             {
             Lobjcmix:
                 error ("cannot mix Objective-C and non-Objective-C interfaces");
@@ -1691,7 +1659,7 @@ Lancestorsdone:
     }
 
 #if DMD_OBJC
-    if (objc && !objcmeta && !metaclass)
+    if (objc.objc && !objc.meta && !objc.metaclass)
     {   // Create meta class derived from all our base's metaclass
         BaseClasses *metabases = new BaseClasses();
         for (size_t i = 0; i < baseclasses->dim; ++i)
@@ -1699,26 +1667,26 @@ Lancestorsdone:
             assert(basecd);
             InterfaceDeclaration *baseid = basecd->isInterfaceDeclaration();
             assert(baseid);
-            if (baseid->objc)
-            {   assert(baseid->metaclass);
-                assert(baseid->metaclass->objcmeta);
-                assert(baseid->metaclass->type->ty == Tclass);
-                assert(((TypeClass *)baseid->metaclass->type)->sym == baseid->metaclass);
-                BaseClass *metabase = new BaseClass(baseid->metaclass->type, PROTpublic);
-                metabase->base = baseid->metaclass;
+            if (baseid->objc.objc)
+            {   assert(baseid->objc.metaclass);
+                assert(baseid->objc.metaclass->objc.meta);
+                assert(baseid->objc.metaclass->type->ty == Tclass);
+                assert(((TypeClass *)baseid->objc.metaclass->type)->sym == baseid->objc.metaclass);
+                BaseClass *metabase = new BaseClass(baseid->objc.metaclass->type, PROTpublic);
+                metabase->base = baseid->objc.metaclass;
                 metabases->push(metabase);
             }
             else
                 error("base interfaces for an Objective-C interface must be extern (Objective-C)");
         }
-        metaclass = new InterfaceDeclaration(loc, Id::Class, metabases);
-        metaclass->storage_class |= STCstatic;
-        metaclass->objc = 1;
-        metaclass->objcmeta = 1;
-        metaclass->objcextern = objcextern;
-        metaclass->objcident = objcident;
-        members->push(metaclass);
-        metaclass->addMember(sc, this, 1);
+        objc.metaclass = new InterfaceDeclaration(loc, Id::Class, metabases);
+        objc.metaclass->storage_class |= STCstatic;
+        objc.metaclass->objc.objc = true;
+        objc.metaclass->objc.meta = true;
+        objc.metaclass->objc.extern_ = objc.extern_;
+        objc.metaclass->objc.ident = objc.ident;
+        members->push(objc.metaclass);
+        objc.metaclass->addMember(sc, this, 1);
     }
 #endif
 
@@ -1773,7 +1741,7 @@ Lancestorsdone:
     sc2->parent = this;
     sc2->inunion = 0;
 #if DMD_OBJC
-    bool isObjCinterface = this->isObjCinterface();
+    bool isObjCinterface = this->objc.isInterface();
 #else
     bool isObjCinterface = false;
 #endif
@@ -1792,8 +1760,8 @@ Lancestorsdone:
     inuse++;
 
 #if DMD_OBJC
-    if (metaclass)
-        metaclass->members = new Dsymbols();
+    if (objc.metaclass)
+        objc.metaclass->members = new Dsymbols();
 #endif
 
     /* Set scope so if there are forward references, we still might be able to
@@ -1862,7 +1830,7 @@ Lancestorsdone:
 bool InterfaceDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
 {
 #if DMD_OBJC
-    if (poffset && objc && cd->objc)
+    if (poffset && objc.objc && cd->objc.objc)
     {   // Objective-C interfaces inside Objective-C classes have no offset.
         // Set offset to zero then set poffset to null to avoid it being changed.
         *poffset = 0;
@@ -1909,7 +1877,7 @@ bool InterfaceDeclaration::isBaseOf(BaseClass *bc, int *poffset)
 {
     //printf("%s.InterfaceDeclaration::isBaseOf(bc = '%s')\n", toChars(), bc->base->toChars());
 #if DMD_OBJC
-    if (poffset && objc && bc->base && bc->base->objc)
+    if (poffset && objc.objc && bc->base && bc->base->objc.objc)
     {   // Objective-C interfaces inside Objective-C classes have no offset.
         // Set offset to zero then set poffset to null to avoid it being changed.
         *poffset = 0;

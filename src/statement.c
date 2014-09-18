@@ -4228,7 +4228,7 @@ Statement *SynchronizedStatement::semantic(Scope *sc)
             goto Lbody;
         ClassDeclaration *cd = exp->type->isClassHandle();
 #if DMD_OBJC
-        bool isObjc = cd && cd->objc;
+        bool isObjc = cd && cd->objc.objc;
 #else
         bool isObjc = false;
 #endif
@@ -4278,7 +4278,7 @@ Statement *SynchronizedStatement::semantic(Scope *sc)
 
         FuncDeclaration *fdenter = FuncDeclaration::genCfunc(args, Type::tvoid, Id::monitorenter, STCnothrow);
 #if DMD_OBJC
-        if (cd && cd->objc) // replace with Objective-C's equivalent function
+        if (cd && cd->objc.objc) // replace with Objective-C's equivalent function
             fdenter = FuncDeclaration::genCfunc(args, Type::tvoid, Id::objc_sync_enter);
 #endif
         Expression *e = new CallExp(loc, new VarExp(loc, fdenter), new VarExp(loc, tmp));
@@ -4287,7 +4287,7 @@ Statement *SynchronizedStatement::semantic(Scope *sc)
 
         FuncDeclaration *fdexit = FuncDeclaration::genCfunc(args, Type::tvoid, Id::monitorexit, STCnothrow);
 #if DMD_OBJC
-        if (cd && cd->objc) // replace with Objective-C's equivalent function
+        if (cd && cd->objc.objc) // replace with Objective-C's equivalent function
             fdexit = FuncDeclaration::genCfunc(args, Type::tvoid, Id::objc_sync_exit);
 #endif
         e = new CallExp(loc, new VarExp(loc, fdexit), new VarExp(loc, tmp));
@@ -4540,7 +4540,7 @@ Statement *TryCatchStatement::semantic(Scope *sc)
         // for all wrapped Objective-C exceptions and check Objective-C type
         // in code.
         ClassDeclaration *cd = c->type->toBasetype()->isClassHandle();
-        if (cd && cd->objc)
+        if (cd && cd->objc.objc)
         {
             if (newCatches == NULL)
             {   // create new catches array, fill up to were we are, don't add this one
@@ -4676,7 +4676,7 @@ void Catch::semantic(Scope *sc)
     type = type->semantic(loc, sc);
     ClassDeclaration *cd = type->toBasetype()->isClassHandle();
 #if DMD_OBJC
-    bool isObjc = cd && cd->objc;
+    bool isObjc = cd && cd->objc.objc;
 #else
     bool isObjc = false;
 #endif
@@ -4911,7 +4911,7 @@ Statement *ThrowStatement::semantic(Scope *sc)
         return new ErrorStatement();
     ClassDeclaration *cd = exp->type->toBasetype()->isClassHandle();
 #if DMD_OBJC
-    bool isObjc = cd && cd->objc;
+    bool isObjc = cd && cd->objc.objc;
 #else
     bool isObjc = false;
 #endif

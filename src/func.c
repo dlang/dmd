@@ -682,7 +682,7 @@ void FuncDeclaration::semantic(Scope *sc)
         storage_class |= STCabstract;
 
 #if DMD_OBJC
-        bool isObjcAndCtorDtor = id->objc && isCtorDeclaration() || isDtorDeclaration();
+        bool isObjcAndCtorDtor = id->objc.objc && isCtorDeclaration() || isDtorDeclaration();
 #else
         bool isObjcAndCtorDtor = false;
 #endif
@@ -774,10 +774,10 @@ void FuncDeclaration::semantic(Scope *sc)
         // Handle Objective-C static member functions, which are virtual
         // functions of the metaclass, by changing the parent class
         // declaration to the metaclass.
-        if (cd->objc && isStatic())
-        {   if (!cd->objcmeta) // but check that it hasn't already been done
-            {   assert(cd->metaclass);
-                parent = cd = cd->metaclass;
+        if (cd->objc.objc && isStatic())
+        {   if (!cd->objc.meta) // but check that it hasn't already been done
+            {   assert(cd->objc.metaclass);
+                parent = cd = cd->objc.metaclass;
             }
         }
 #endif
@@ -1033,7 +1033,7 @@ void FuncDeclaration::semantic(Scope *sc)
     L2: ;
 
 #if DMD_OBJC
-        if (cd->objc)
+        if (cd->objc.objc)
         {
             // Check for Objective-C selector inherited form overriden functions
             for (size_t i = 0; i < foverrides.dim; ++i)
@@ -1052,15 +1052,15 @@ void FuncDeclaration::semantic(Scope *sc)
             createObjCSelector(); // create a selector if needed
             if (objcSelector && cd)
             {
-                assert(isStatic() ? cd->objcmeta : !cd->objcmeta);
+                assert(isStatic() ? cd->objc.meta : !cd->objc.meta);
 
-                cd->objcMethodList.push(this);
-                if (cd->objcMethods == NULL)
+                cd->objc.methodList.push(this);
+                if (cd->objc.methods == NULL)
                 {
-                    cd->objcMethods = new StringTable;
-                    cd->objcMethods->_init();
+                    cd->objc.methods = new StringTable;
+                    cd->objc.methods->_init();
                 }
-                StringValue *sv = cd->objcMethods->update(objcSelector->stringvalue, objcSelector->stringlen);
+                StringValue *sv = cd->objc.methods->update(objcSelector->stringvalue, objcSelector->stringlen);
 
                 if (sv->ptrvalue)
                 {   // check if the other function with the same selector is
@@ -3415,9 +3415,9 @@ AggregateDeclaration *FuncDeclaration::isThis()
 #if DMD_OBJC
         // Use Objective-C class object as 'this'
         ClassDeclaration *cd = isMember2()->isClassDeclaration();
-        if (cd->objc)
-            if (!cd->objcmeta) // but check that it hasn't already been done
-                ad = cd->metaclass;
+        if (cd->objc.objc)
+            if (!cd->objc.meta) // but check that it hasn't already been done
+                ad = cd->objc.metaclass;
 #endif
     }
     //printf("-FuncDeclaration::isThis() %p\n", ad);

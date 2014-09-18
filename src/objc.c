@@ -5,6 +5,7 @@
 #include "declaration.h"
 #include "aggregate.h"
 #include "target.h"
+#include "id.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -53,8 +54,8 @@ static char *prefixSymbolName(const char *name, size_t name_len, const char *pre
 
 static char* buildIVarName (ClassDeclaration* cdecl, VarDeclaration* ivar, size_t* resultLength)
 {
-    const char* className = cdecl->objcident->string;
-    size_t classLength = cdecl->objcident->len;
+    const char* className = cdecl->objc.ident->string;
+    size_t classLength = cdecl->objc.ident->len;
     const char* ivarName = ivar->ident->string;
     size_t ivarLength = ivar->ident->len;
 
@@ -412,10 +413,10 @@ Symbol *ObjcSymbols::getSymbolMap(ClassDeclarations *cls, ClassDeclarations *cat
     dtdword(&dt, classcount + (catcount << 16)); // class count / category count (expects little-endian)
 
     for (size_t i = 0; i < cls->dim; ++i)
-        dtxoff(&dt, cls->tdata()[i]->sobjccls, 0, TYnptr); // reference to class
+        dtxoff(&dt, cls->tdata()[i]->objc.classSymbol, 0, TYnptr); // reference to class
 
     for (size_t i = 0; i < catcount; ++i)
-        dtxoff(&dt, cat->tdata()[i]->sobjccls, 0, TYnptr); // reference to category
+        dtxoff(&dt, cat->tdata()[i]->objc.classSymbol, 0, TYnptr); // reference to category
 
     ssymmap = symbol_name("L_OBJC_SYMBOLS", SCstatic, type_allocn(TYarray, tschar));
     ssymmap->Sdt = dt;
@@ -439,8 +440,8 @@ Symbol *ObjcSymbols::getClassName(ClassDeclaration* cdecl, bool meta)
 Symbol *ObjcSymbols::getClassReference(ClassDeclaration* cdecl)
 {
     hassymbols = 1;
-    const char* s = cdecl->objcident->string;
-    size_t len = cdecl->objcident->len;
+    const char* s = cdecl->objc.ident->string;
+    size_t len = cdecl->objc.ident->len;
 
     StringValue *sv = sclassreftable->update(s, len);
     Symbol *sy = (Symbol *) sv->ptrvalue;
@@ -643,9 +644,9 @@ Symbol *ObjcSymbols::getProtocolSymbol(ClassDeclaration *interface)
 {
     hassymbols = 1;
 
-    assert(interface->objcmeta == 0);
+    assert(interface->objc.meta == 0);
 
-    StringValue *sv = sprototable->update(interface->objcident->string, interface->objcident->len);
+    StringValue *sv = sprototable->update(interface->objc.ident->string, interface->objc.ident->len);
     Symbol *sy = (Symbol *) sv->ptrvalue;
     if (!sy)
     {
@@ -755,8 +756,8 @@ Symbol* FragileAbiObjcSymbols::_getClassName(ObjcClassDeclaration *objcClass)
 {
     hassymbols = 1;
     ClassDeclaration* cdecl = objcClass->cdecl;
-    const char* s = cdecl->objcident->string;
-    size_t len = cdecl->objcident->len;
+    const char* s = cdecl->objc.ident->string;
+    size_t len = cdecl->objc.ident->len;
 
     StringValue *sv = sclassnametable->update(s, len);
     Symbol *sy = (Symbol *) sv->ptrvalue;
@@ -871,8 +872,8 @@ Symbol* NonFragileAbiObjcSymbols::_getClassName(ObjcClassDeclaration *objcClass)
 {
     hassymbols = 1;
     ClassDeclaration* cdecl = objcClass->cdecl;
-    const char* s = cdecl->objcident->string;
-    size_t len = cdecl->objcident->len;
+    const char* s = cdecl->objc.ident->string;
+    size_t len = cdecl->objc.ident->len;
 
     const char* prefix = objcClass->ismeta ? "_OBJC_METACLASS_$_" : "_OBJC_CLASS_$_";
     const size_t prefixLength = objcClass->ismeta ? 18 : 14;
@@ -1133,7 +1134,7 @@ Expression *ObjcDotClassExp::semantic(Scope *sc)
     if (e1->type && e1->type->ty == Tclass)
     {
         ClassDeclaration *cd = ((TypeClass *)e1->type)->sym;
-        if (cd->objc)
+        if (cd->objc.objc)
         {
             if (e1->op = TOKtype)
             {
@@ -1144,7 +1145,7 @@ Expression *ObjcDotClassExp::semantic(Scope *sc)
                 }
                 return new ObjcClassRefExp(loc, cd);
             }
-            else if (cd->objcmeta)
+            else if (cd->objc.meta)
             {   // this is already a class object, nothing to do
                 noop = 1;
                 type = cd->type;
@@ -1152,7 +1153,7 @@ Expression *ObjcDotClassExp::semantic(Scope *sc)
             }
             else
             {   // this is a regular (non-class) object, invoke class method
-                type = cd->metaclass->type;
+                type = cd->objc.metaclass->type;
                 return this;
             }
         }
@@ -1180,7 +1181,7 @@ Expression *ObjcProtocolOfExp::semantic(Scope *sc)
     if (e1->type && e1->type->ty == Tclass)
     {
         ClassDeclaration *cd = ((TypeClass *)e1->type)->sym;
-        if (cd->objc)
+        if (cd->objc.objc)
         {
             if (e1->op = TOKtype)
             {
@@ -1222,7 +1223,7 @@ ObjcClassDeclaration *ObjcClassDeclaration::create(ClassDeclaration *cdecl, int 
  nil, and the root metaclass's metaclass is itself. */
 ClassDeclaration *ObjcClassDeclaration::getObjcMetaClass(ClassDeclaration *cdecl)
 {
-    if (!cdecl->metaclass && cdecl->objcmeta)
+    if (!cdecl->objc.metaclass && cdecl->objc.meta)
     {
         if (cdecl->baseClass)
             return getObjcMetaClass(cdecl->baseClass);
@@ -1230,7 +1231,7 @@ ClassDeclaration *ObjcClassDeclaration::getObjcMetaClass(ClassDeclaration *cdecl
             return cdecl;
     }
     else
-        return cdecl->metaclass;
+        return cdecl->objc.metaclass;
 }
 
 ObjcClassDeclaration::ObjcClassDeclaration(ClassDeclaration *cdecl, int ismeta)
@@ -1263,10 +1264,10 @@ Symbol *ObjcClassDeclaration::getMetaclass()
 
 Symbol *ObjcClassDeclaration::getMethodList()
 {
-    Dsymbols *methods = !ismeta ? &cdecl->objcMethodList : &cdecl->metaclass->objcMethodList;
+    Dsymbols *methods = !ismeta ? &cdecl->objc.methodList : &cdecl->objc.metaclass->objc.methodList;
     int methods_count = methods->dim;
 
-    int overridealloc = ismeta && cdecl->objchaspreinit;
+    int overridealloc = ismeta && cdecl->objc.hasPreinit;
     if (overridealloc)
         methods_count += 2; // adding alloc & allocWithZone:
 
@@ -1321,7 +1322,7 @@ Symbol *ObjcClassDeclaration::getMethodList()
         prefixLength = global.params.isObjcNonFragileAbi ? 23 : 21;
     }
 
-    sname = prefixSymbolName(cdecl->objcident->string, cdecl->objcident->len, prefix, prefixLength);
+    sname = prefixSymbolName(cdecl->objc.ident->string, cdecl->objc.ident->len, prefix, prefixLength);
     Symbol *sym = symbol_name(sname, SCstatic, type_fake(TYnptr));
     sym->Sdt = dt;
     sym->Sseg = objc_getsegment((!ismeta ? SEGinst_meth : SEGcls_meth));
@@ -1344,7 +1345,7 @@ Symbol *ObjcClassDeclaration::getProtocolList()
 
     for (size_t i = 0; i < cdecl->interfaces_dim; ++i)
     {
-        if (!cdecl->interfaces[i]->base->objc)
+        if (!cdecl->interfaces[i]->base->objc.objc)
             error("Only Objective-C interfaces are supported on an Objective-C class");
 
         dtxoff(&dt, ObjcSymbols::getProtocolSymbol(cdecl->interfaces[i]->base), 0, TYnptr); // pointer to protocol decl
@@ -1354,7 +1355,7 @@ Symbol *ObjcClassDeclaration::getProtocolList()
     const char* prefix = global.params.isObjcNonFragileAbi ? "l_OBJC_CLASS_PROTOCOLS_$_" : "L_OBJC_CLASS_PROTOCOLS_";
     size_t prefixLength = global.params.isObjcNonFragileAbi ? 25 : 23;
 
-    char *sname = prefixSymbolName(cdecl->objcident->string, cdecl->objcident->len, prefix, prefixLength);
+    char *sname = prefixSymbolName(cdecl->objc.ident->string, cdecl->objc.ident->len, prefix, prefixLength);
     sprotocols = symbol_name(sname, SCstatic, type_fake(TYnptr));
     sprotocols->Sdt = dt;
     sprotocols->Sseg = objc_getsegment(SEGcat_cls_meth);
@@ -1383,7 +1384,7 @@ Symbol *ObjcClassDeclaration::getPropertyList()
         dtxoff(&dt, ObjcSymbols::getPropertyTypeString(property), 0, TYnptr);
     }
 
-    const char* symbolName = prefixSymbolName(cdecl->objcident->string, cdecl->objcident->len, "l_OBJC_$_PROP_LIST_", 19);
+    const char* symbolName = prefixSymbolName(cdecl->objc.ident->string, cdecl->objc.ident->len, "l_OBJC_$_PROP_LIST_", 19);
     sproperties = symbol_name(symbolName, SCstatic, type_fake(TYnptr));
     sproperties->Sdt = dt;
     sproperties->Sseg = objc_getsegment(SEGproperty);
@@ -1398,9 +1399,9 @@ Dsymbols* ObjcClassDeclaration::getProperties()
     StringTable* uniqueProperties = new StringTable();
     uniqueProperties->_init();
 
-    for (size_t i = 0; i < cdecl->objcMethodList.dim; i++)
+    for (size_t i = 0; i < cdecl->objc.methodList.dim; i++)
     {
-        FuncDeclaration* method = (FuncDeclaration*) cdecl->objcMethodList[i];
+        FuncDeclaration* method = (FuncDeclaration*) cdecl->objc.methodList[i];
         TypeFunction* type = (TypeFunction*) method->type;
         Identifier* ident = method->ident;
 
@@ -1418,7 +1419,7 @@ Dsymbols* ObjcClassDeclaration::getProperties()
 
 void FragileAbiObjcClassDeclaration::toObjFile(int multiobj)
 {
-    if (cdecl->objcextern)
+    if (cdecl->objc.extern_)
         return; // only a declaration for an externally-defined class
 
     dt_t *dt = NULL;
@@ -1426,9 +1427,9 @@ void FragileAbiObjcClassDeclaration::toObjFile(int multiobj)
 
     char *sname;
     if (!ismeta)
-        sname = prefixSymbolName(cdecl->objcident->string, cdecl->objcident->len, "L_OBJC_CLASS_", 13);
+        sname = prefixSymbolName(cdecl->objc.ident->string, cdecl->objc.ident->len, "L_OBJC_CLASS_", 13);
     else
-        sname = prefixSymbolName(cdecl->objcident->string, cdecl->objcident->len, "L_OBJC_METACLASS_", 17);
+        sname = prefixSymbolName(cdecl->objc.ident->string, cdecl->objc.ident->len, "L_OBJC_METACLASS_", 17);
     symbol = symbol_name(sname, SCstatic, type_fake(TYnptr));
 
     symbol->Sdt = dt;
@@ -1439,7 +1440,7 @@ void FragileAbiObjcClassDeclaration::toObjFile(int multiobj)
     {
         dt_t *dt2 = NULL;
         dtdword(&dt2, 0); // version (for serialization)
-        char* sname = prefixSymbolName(cdecl->objcident->string, cdecl->objcident->len, ".objc_class_name_", 17);
+        char* sname = prefixSymbolName(cdecl->objc.ident->string, cdecl->objc.ident->len, ".objc_class_name_", 17);
         Symbol* symbol = symbol_name(sname, SCglobal, type_fake(TYnptr));
         symbol->Sdt = dt2;
         symbol->Sseg = MachObj::getsegment("__text", "__TEXT", 2, S_ATTR_NO_DEAD_STRIP);
@@ -1499,7 +1500,7 @@ Symbol *FragileAbiObjcClassDeclaration::getIVarList()
         dtdword(&dt, ivar->offset); // ivar offset
     }
 
-    char *sname = prefixSymbolName(cdecl->objcident->string, cdecl->objcident->len, "L_OBJC_INSTANCE_VARIABLES_", 26);
+    char *sname = prefixSymbolName(cdecl->objc.ident->string, cdecl->objc.ident->len, "L_OBJC_INSTANCE_VARIABLES_", 26);
 
     Symbol *sym = symbol_name(sname, SCstatic, type_fake(TYnptr));
     sym->Sdt = dt;
@@ -1518,7 +1519,7 @@ Symbol *FragileAbiObjcClassDeclaration::getClassExtension()
     if (properties) dtxoff(&dt, properties, 0, TYnptr);
     else dtdword(&dt, 0); // properties
 
-    const char* symbolName = prefixSymbolName(cdecl->objcident->string, cdecl->objcident->len, "L_OBJC_CLASSEXT_", 16);
+    const char* symbolName = prefixSymbolName(cdecl->objc.ident->string, cdecl->objc.ident->len, "L_OBJC_CLASSEXT_", 16);
     Symbol* symbol = symbol_name(symbolName, SCstatic, type_fake(TYnptr));
     symbol->Sdt = dt;
     symbol->Sseg = objc_getsegment(SEGclass_ext);
@@ -1531,7 +1532,7 @@ Symbol *FragileAbiObjcClassDeclaration::getClassExtension()
 
 void NonFragileAbiObjcClassDeclaration::toObjFile(int multiobj)
 {
-    if (cdecl->objcextern)
+    if (cdecl->objc.extern_)
         return; // only a declaration for an externally-defined class
 
     dt_t *dt = NULL;
@@ -1578,7 +1579,7 @@ Symbol *NonFragileAbiObjcClassDeclaration::getIVarList()
         dtdword(&dt, ivar->size(ivar->loc));
     }
 
-    char *sname = prefixSymbolName(cdecl->objcident->string, cdecl->objcident->len, "l_OBJC_$_INSTANCE_VARIABLES_", 28);
+    char *sname = prefixSymbolName(cdecl->objc.ident->string, cdecl->objc.ident->len, "l_OBJC_$_INSTANCE_VARIABLES_", 28);
 
     Symbol *sym = symbol_name(sname, SCstatic, type_fake(TYnptr));
     sym->Sdt = dt;
@@ -1608,7 +1609,7 @@ Symbol *NonFragileAbiObjcClassDeclaration::getClassRo()
     dtdword(&dt, 0); // reserved, only for 64bit targets
 
     dtsize_t(&dt, 0);
-    dtxoff(&dt, NonFragileAbiObjcSymbols::instance->getClassNameRo(cdecl->objcident), 0,TYnptr); // name of class
+    dtxoff(&dt, NonFragileAbiObjcSymbols::instance->getClassNameRo(cdecl->objc.ident), 0,TYnptr); // name of class
 
     Symbol* methods = getMethodList();
     if (methods) dtxoff(&dt, methods, 0, TYnptr); // instance method list
@@ -1640,7 +1641,7 @@ Symbol *NonFragileAbiObjcClassDeclaration::getClassRo()
 
     const char* prefix = ismeta ? "l_OBJC_METACLASS_RO_$_" : "l_OBJC_CLASS_RO_$_";
     size_t prefixLength = ismeta ? 22 : 18;
-    const char* symbolName = prefixSymbolName(cdecl->objcident->string, cdecl->objcident->len, prefix, prefixLength);
+    const char* symbolName = prefixSymbolName(cdecl->objc.ident->string, cdecl->objc.ident->len, prefix, prefixLength);
 
     Symbol* symbol = symbol_name(symbolName, SCstatic, type_fake(TYnptr));
     symbol->Sdt = dt;
@@ -1654,7 +1655,7 @@ uint32_t NonFragileAbiObjcClassDeclaration::generateFlags ()
 {
     uint32_t flags = ismeta ? nonFragileFlags_meta : 0;
 
-    if (cdecl->isObjCRootClass())
+    if (cdecl->objc.isRootClass())
         flags |= nonFragileFlags_root;
 
     return flags;
@@ -1720,7 +1721,7 @@ void ObjcProtocolDeclaration::toDt(dt_t **pdt)
 
 Symbol *ObjcProtocolDeclaration::getMethodList(int wantsClassMethods)
 {
-    Dsymbols *methods = !wantsClassMethods ? &idecl->objcMethodList : &idecl->metaclass->objcMethodList;
+    Dsymbols *methods = !wantsClassMethods ? &idecl->objc.methodList : &idecl->objc.metaclass->objc.methodList;
     if (!methods->dim) // no member, no method list.
         return NULL;
 
@@ -1757,7 +1758,7 @@ Symbol *ObjcProtocolDeclaration::getMethodList(int wantsClassMethods)
         prefixLength = global.params.isObjcNonFragileAbi ? 32 : 30;
     }
 
-    sname = prefixSymbolName(idecl->objcident->string, idecl->objcident->len, prefix, prefixLength);
+    sname = prefixSymbolName(idecl->objc.ident->string, idecl->objc.ident->len, prefix, prefixLength);
     Symbol *sym = symbol_name(sname, SCstatic, type_fake(TYnptr));
     sym->Sdt = dt;
     sym->Sseg = objc_getsegment((!wantsClassMethods ? SEGcat_inst_meth : SEGcat_cls_meth));
@@ -1775,7 +1776,7 @@ Symbol *ObjcProtocolDeclaration::getProtocolList()
 
     for (size_t i = 0; i < idecl->interfaces_dim; ++i)
     {
-        if (!idecl->interfaces[i]->base->objc)
+        if (!idecl->interfaces[i]->base->objc.objc)
             error("Only Objective-C interfaces are supported on an Objective-C interface");
 
         dtxoff(&dt, ObjcSymbols::getProtocolSymbol(idecl->interfaces[i]->base), 0, TYnptr); // pointer to protocol decl
@@ -1785,7 +1786,7 @@ Symbol *ObjcProtocolDeclaration::getProtocolList()
     const char* prefix = global.params.isObjcNonFragileAbi ? "l_OBJC_$_PROTOCOL_REFS_" : "L_OBJC_PROTOCOL_REFS_";
     size_t prefixLength = global.params.isObjcNonFragileAbi ? 23 : 21;
 
-    char *sname = prefixSymbolName(idecl->objcident->string, idecl->objcident->len, prefix, prefixLength);
+    char *sname = prefixSymbolName(idecl->objc.ident->string, idecl->objc.ident->len, prefix, prefixLength);
     Symbol *sprotocols = symbol_name(sname, SCstatic, type_fake(TYnptr));
     sprotocols->Sdt = dt;
     sprotocols->Sseg = objc_getsegment(SEGcat_cls_meth);
@@ -1800,7 +1801,7 @@ void FragileAbiObjcProtocolDeclaration::toObjFile(int multiobj)
     dt_t *dt = NULL;
     toDt(&dt);
 
-    char *sname = prefixSymbolName(idecl->objcident->string, idecl->objcident->len, "L_OBJC_PROTOCOL_", 16);
+    char *sname = prefixSymbolName(idecl->objc.ident->string, idecl->objc.ident->len, "L_OBJC_PROTOCOL_", 16);
     symbol = symbol_name(sname, SCstatic, type_fake(TYnptr));
 
     symbol->Sdt = dt;
@@ -1820,7 +1821,7 @@ void NonFragileAbiObjcProtocolDeclaration::toObjFile(int multiobj)
     dt_t *dt = NULL;
     toDt(&dt);
 
-    char *sname = prefixSymbolName(idecl->objcident->string, idecl->objcident->len, "l_OBJC_PROTOCOL_$_", 18);
+    char *sname = prefixSymbolName(idecl->objc.ident->string, idecl->objc.ident->len, "l_OBJC_PROTOCOL_$_", 18);
     symbol = ObjcSymbols::getGlobal(sname);
 
     symbol->Sclass = SCcomdat; // weak symbol
@@ -1831,7 +1832,7 @@ void NonFragileAbiObjcProtocolDeclaration::toObjFile(int multiobj)
     dt = NULL;
     dtxoff(&dt, symbol, 0, TYnptr);
 
-    const char* symbolName = prefixSymbolName(idecl->objcident->string, idecl->objcident->len, "l_OBJC_LABEL_PROTOCOL_$_", 24);
+    const char* symbolName = prefixSymbolName(idecl->objc.ident->string, idecl->objc.ident->len, "l_OBJC_LABEL_PROTOCOL_$_", 24);
     Symbol* labelSymbol = ObjcSymbols::getGlobal(sname);
 
     labelSymbol->Sclass = SCcomdat; // weak symbol
@@ -1862,12 +1863,12 @@ void NonFragileAbiObjcProtocolDeclaration::toDt(dt_t **pdt)
 
 Symbol* NonFragileAbiObjcProtocolDeclaration::getMethodTypes ()
 {
-    if (idecl->objcMethodList.dim == 0)
+    if (idecl->objc.methodList.dim == 0)
         return NULL;
 
     dt_t* dt = NULL;
 
-    Dsymbols *methods = &idecl->objcMethodList;
+    Dsymbols *methods = &idecl->objc.methodList;
 
     for (size_t i = 0; i < methods->dim; ++i)
     {
@@ -1877,7 +1878,7 @@ Symbol* NonFragileAbiObjcProtocolDeclaration::getMethodTypes ()
         dtxoff(&dt, ObjcSymbols::getMethVarType(func), 0, TYnptr);
     }
 
-    const char* symbolName = prefixSymbolName(idecl->objcident->string, idecl->objcident->len, "l_OBJC_$_PROTOCOL_METHOD_TYPES_", 31);
+    const char* symbolName = prefixSymbolName(idecl->objc.ident->string, idecl->objc.ident->len, "l_OBJC_$_PROTOCOL_METHOD_TYPES_", 31);
     Symbol* symbol = symbol_name(symbolName, SCstatic, type_fake(TYnptr));
     symbol->Sdt = dt;
     symbol->Sseg = objc_getsegment(SEGobjc_const);
@@ -1888,7 +1889,7 @@ Symbol* NonFragileAbiObjcProtocolDeclaration::getMethodTypes ()
 
 Symbol* NonFragileAbiObjcProtocolDeclaration::getClassName()
 {
-    return NonFragileAbiObjcSymbols::instance->getClassNameRo(idecl->objcident);
+    return NonFragileAbiObjcSymbols::instance->getClassNameRo(idecl->objc.ident);
 }
 
 /***************************** TypeObjcSelector *****************************/
@@ -1997,4 +1998,38 @@ Expression *TypeObjcSelector::dotExp(Scope *sc, Expression *e, Identifier *ident
 int TypeObjcSelector::hasPointers()
 {
     return FALSE; // not in GC memory
+}
+
+/***************************************/
+
+Objc_ClassDeclaration::Objc_ClassDeclaration(ClassDeclaration* cdecl, const char* msg)
+{
+    this->cdecl = cdecl;
+    objc = false;
+    meta = false;
+    extern_ = false;
+    hasPreinit = false;
+    takesStringLiteral = false;
+    ident = NULL;
+    classSymbol = NULL;
+    methods = NULL;
+    metaclass = NULL;
+
+    if (cdecl->ident && cdecl->ident == Id::ObjcThrowable)
+    {
+        if (ClassDeclaration::objcthrowable)
+            ClassDeclaration::objcthrowable->error("%s", msg);
+
+        ClassDeclaration::objcthrowable = cdecl;
+    }
+}
+
+bool Objc_ClassDeclaration::isInterface()
+{
+    return objc;
+}
+
+bool Objc_ClassDeclaration::isRootClass()
+{
+    return isInterface() && !metaclass && !cdecl->baseClass;
 }

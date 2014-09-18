@@ -963,7 +963,7 @@ void PragmaDeclaration::semantic(Scope *sc)
         {   Dsymbol *dsym = (Dsymbol *)currdecl->data[0];
             ClassDeclaration *cdecl = dsym->isClassDeclaration();
             if (cdecl)
-                cdecl->objctakestringliteral = 1; // set specific name
+                cdecl->objc.takesStringLiteral = true; // set specific name
             else
             {   AttribDeclaration *adecl = dsym->isAttribDeclaration();
                 if (adecl)
@@ -1062,7 +1062,7 @@ void PragmaDeclaration::semantic(Scope *sc)
             {   Dsymbol *dsym = (Dsymbol *)currdecl->data[0];
                 ClassDeclaration *cdecl = dsym->isClassDeclaration();
                 if (cdecl)
-                    cdecl->objcident = Lexer::idPool(name); // set specific name
+                    cdecl->objc.ident = Lexer::idPool(name); // set specific name
                 else
                 {   AttribDeclaration *adecl = dsym->isAttribDeclaration();
                     if (adecl)

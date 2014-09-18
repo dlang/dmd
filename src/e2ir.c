@@ -1487,7 +1487,7 @@ elem *toElem(Expression *e, IRState *irs)
                 elem *ezprefix = NULL;
                 elem *ez = NULL;
 #if DMD_OBJC
-                bool isObjc = cd->objc;
+                bool isObjc = cd->objc.objc;
 #else
                 bool isObjc = false;
 #endif
@@ -1642,7 +1642,7 @@ elem *toElem(Expression *e, IRState *irs)
                         ezprefix = toElem(ne->argprefix, irs);
 #if DMD_OBJC
                     // Call Objective-C constructor (not a direct call)
-                    bool isDirectCall = !cd->objc;
+                    bool isDirectCall = !cd->objc.objc;
 #else
                     // Call constructor
                     bool isDirectCall = true;
@@ -1938,7 +1938,7 @@ elem *toElem(Expression *e, IRState *irs)
 
 #if DMD_OBJC
                 bool callObjcInvariant = global.params.useInvariants &&
-                    t1->ty == Tclass && ((TypeClass *)t1)->sym->objc;
+                    t1->ty == Tclass && ((TypeClass *)t1)->sym->objc.objc;
 #else
                 bool callObjcInvariant = false;
 #endif
@@ -3459,7 +3459,7 @@ elem *toElem(Expression *e, IRState *irs)
             if (global.params.isObjcNonFragileAbi && tb1->ty == Tclass)
             {
                 ClassDeclaration* cls = ((TypeClass*) tb1)->sym;
-                if (cls->objc)
+                if (cls->objc.objc)
                 {
                     NonFragileAbiObjcClassDeclaration objcClass(cls);
                     offset = el_var(objcClass.getIVarOffset(v));
@@ -4084,8 +4084,8 @@ elem *toElem(Expression *e, IRState *irs)
                 ClassDeclaration *cdfrom = tfrom->isClassHandle();
                 ClassDeclaration *cdto   = t->isClassHandle();
 #if DMD_OBJC
-                bool isFromObjc = cdfrom->objc;
-                bool isToObjc = cdto->objc;
+                bool isFromObjc = cdfrom->objc.objc;
+                bool isToObjc = cdto->objc.objc;
 #else
                 bool isFromObjc = false;
                 bool isToObjc = false;
@@ -4114,11 +4114,11 @@ elem *toElem(Expression *e, IRState *irs)
                 else if (isFromObjc)
                 {
 #if DMD_OBJC
-                    if (cdto->objc)
+                    if (cdto->objc.objc)
                     {   // casting from objc type to objc type, use objc function
                         if (cdto->isInterfaceDeclaration())
                             rtl = RTLSYM_INTERFACE_CAST_OBJC;
-                        else if (cdfrom->objc)
+                        else if (cdfrom->objc.objc)
                             rtl = RTLSYM_DYNAMIC_CAST_OBJC;
                     }
                     else
@@ -4144,7 +4144,7 @@ elem *toElem(Expression *e, IRState *irs)
 
                     //printf("offset = %d\n", offset);
 #if DMD_OBJC
-                    if (cdfrom->objc)
+                    if (cdfrom->objc.objc)
                         assert(offset == 0); // no offset for Objective-C objects/interfaces
 #endif
                     if (offset)
@@ -4167,7 +4167,7 @@ elem *toElem(Expression *e, IRState *irs)
                     goto Lret;                  // no-op
                 }
 #if DMD_OBJC
-                if (cdto->objc)
+                if (cdto->objc.objc)
                 {
                     elem *esym;
                     if (cdto->isInterfaceDeclaration())

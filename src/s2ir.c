@@ -964,7 +964,7 @@ public:
         elem *e = toElemDtor(s->exp, irs);
 #if DMD_OBJC
         ClassDeclaration *cd = s->exp->type->toBasetype()->isClassHandle();
-        if (cd && cd->objc) // throwing Objective-C exception
+        if (cd && cd->objc.objc) // throwing Objective-C exception
         {
             e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_THROW_OBJC_AS_D]),e);
             block_appendexp(blx->curblock, e);

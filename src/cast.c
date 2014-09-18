@@ -648,7 +648,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
                         {
 #if DMD_OBJC
                             ClassDeclaration *cd = ((TypeClass *)t)->sym;
-                            if (cd->objc && (cd->objctakestringliteral))
+                            if (cd->objc.objc && (cd->objc.takesStringLiteral))
                             {
                                 result = MATCHexact;
                                 return;
@@ -1633,8 +1633,8 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
 
                 if (e->type->ty != Tclass) // not already converted to a string literal
                 {
-                    if (((TypeClass *)tb)->sym->objc &&
-                        ((TypeClass *)tb)->sym->objctakestringliteral)
+                    if (((TypeClass *)tb)->sym->objc.objc &&
+                        ((TypeClass *)tb)->sym->objc.takesStringLiteral)
                     {
                         if (e->committed)
                         {

@@ -77,7 +77,7 @@ Expression *getRightThis(Loc loc, Scope *sc, AggregateDeclaration *ad,
         isObjcHandled = true;
     }
     else if (ad &&
-        ad->isClassDeclaration() && ((ClassDeclaration *)ad)->objc &&
+        ad->isClassDeclaration() && ((ClassDeclaration *)ad)->objc.objc &&
         var->isFuncDeclaration() && ((FuncDeclaration *)var)->isStatic() &&
         ((FuncDeclaration *)var)->objcSelector)
     {
@@ -4922,14 +4922,14 @@ Lagain:
         }
 
 #if DMD_OBJC
-        bool isObjc = cd->objc;
+        bool isObjc = cd->objc.objc;
 #else
         bool isObjc = false;
 #endif
         if (isObjc)
         {
 #if DMD_OBJC
-            if (cd->objcmeta)
+            if (cd->objc.meta)
             {   error("cannot instanciate meta class '%s'", cd->toChars());
                 goto Lerr;
             }
@@ -8159,7 +8159,7 @@ Expression *ObjcSelectorExp::semantic(Scope *sc)
             return new ErrorExp();
         }
         ClassDeclaration *cd = func->toParent()->isClassDeclaration();
-        if (!cd->objc)
+        if (!cd->objc.objc)
         {   error("%s isn't an Objective-C class, function has no selector", cd->toChars());
             return new ErrorExp();
         }
@@ -8647,7 +8647,7 @@ Lagain:
             {   argument0 = ((Expression *)arguments->data[0])->semantic(sc);
                 if (argument0 && argument0->type->ty == Tclass)
                 {   TypeClass *tc = (TypeClass *)argument0->type;
-                    if (tc && tc->sym && tc->sym->objc)
+                    if (tc && tc->sym && tc->sym->objc.objc)
                         validtarget = 1; // Objective-C object
                 }
                 else if (argument0 && argument0->type->ty == Tpointer)
@@ -9919,8 +9919,8 @@ Expression *CastExp::semantic(Scope *sc)
                 goto Lfail;
         }
 #if DMD_OBJC
-        bool objcTakeStringLiteral = tob->ty == Tclass && ((TypeClass *)tob)->sym->objc &&
-        ((TypeClass *)tob)->sym->objctakestringliteral;
+        bool objcTakeStringLiteral = tob->ty == Tclass && ((TypeClass *)tob)->sym->objc.objc &&
+        ((TypeClass *)tob)->sym->objc.takesStringLiteral;
 #else
         bool objcTakeStringLiteral = false;
 #endif

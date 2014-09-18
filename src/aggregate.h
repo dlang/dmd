@@ -274,18 +274,7 @@ public:
     Semantic doAncestorsSemantic;       // Before searching symbol, whole ancestors should finish
                                         // calling semantic() at least once, due to fill symtab
                                         // and do addMember(). [== Semantic(Start,In,Done)]
-#if DMD_OBJC
-    int objc;                           // !=0 if this is an Objective-C class/interface
-    int objcmeta;                       // !=0 if this is an Objective-C metaclass
-    int objcextern;                     // !=0 if this is a delcaration for a class defined externally
-    int objctakestringliteral;          // !=0 if this class can represent NSString literals
-    Identifier *objcident;              // name of this class
-    Symbol *sobjccls;                   // generated symbol for this class (if not objcextern)
-    StringTable *objcMethods;           // table of selectors for methods
-    Dsymbols objcMethodList;               // list of non-inherited methods
-    ClassDeclaration *metaclass;        // class declaration for metaclass
-    int objchaspreinit;                 // !=0 if this class has _dobjc_preinit
-#endif
+    Objc_ClassDeclaration objc;
 
     ClassDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses, bool inObject = false);
     Dsymbol *syntaxCopy(Dsymbol *s);
@@ -305,10 +294,6 @@ public:
     virtual bool isCOMinterface();
     bool isCPPclass();
     virtual bool isCPPinterface();
-#if DMD_OBJC
-    virtual bool isObjCinterface();
-    bool isObjCRootClass();
-#endif
     bool isAbstract();
     virtual int vtblOffset();
     const char *kind();

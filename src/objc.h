@@ -397,4 +397,55 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
+/***************************************/
+
+struct Objc_StructDeclaration
+{
+    // true if valid target for a selector
+    bool isSelectorTarget;
+
+    // true if represents a selector
+    bool isSelector;
+};
+
+struct Objc_ClassDeclaration
+{
+    ClassDeclaration* cdecl;
+
+    // true if this is an Objective-C class/interface
+    bool objc;
+
+    // true if this is an Objective-C metaclass
+    bool meta;
+
+    // true if this is a delcaration for a class defined externally
+    bool extern_;
+
+    // true if this class has _dobjc_preinit
+    bool hasPreinit;
+
+    // true if this class can represent NSString literals
+    bool takesStringLiteral;
+
+    // name of this class
+    Identifier *ident;
+
+    // generated symbol for this class (if not objc.extern_)
+    Symbol *classSymbol;
+
+    // table of selectors for methods
+    StringTable *methods;
+
+    // list of non-inherited methods
+    Dsymbols methodList;
+
+    // class declaration for metaclass
+    ClassDeclaration *metaclass;
+
+    Objc_ClassDeclaration(ClassDeclaration* cdecl, const char* msg);
+
+    bool isInterface();
+    bool isRootClass();
+};
+
 #endif
