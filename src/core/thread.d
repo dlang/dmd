@@ -1725,16 +1725,23 @@ unittest
 // GC Support Routines
 ///////////////////////////////////////////////////////////////////////////////
 
-version( Posix )
+version( CoreDdoc )
+{
+    /** 
+     * Instruct the thread module, when initialized, to use a different set of 
+     * signals besides SIGUSR1 and SIGUSR2 for suspension and resumption of threads.
+     * This function should be called at most once, prior to thread_init().
+     * This function is Posix-only.
+     */  
+    extern (C) void thread_setGCSignals(int suspendSignalNo, int resumeSignalNo)
+    {
+    }
+}
+else version( Posix )
 {
     __gshared int suspendSignalNumber;
     __gshared int resumeSignalNumber;
 
-    /** 
-     *  Instruct the thread module, when initialized,, to use a different set of 
-     * signals besides SIGUSR1 and SIGUSr2 for suspension and resumption of threads.
-     * This function should be called at most once, prior to thread_init().
-     */  
     extern (C) void thread_setGCSignals(int suspendSignalNo, int resumeSignalNo)
     in 
     {
