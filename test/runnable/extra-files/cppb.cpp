@@ -349,3 +349,18 @@ long double testld(long double ld)
     assert(ld == 5);
     return ld + 1;
 }
+
+long testl(long lng)
+{
+    assert(lng == 5);
+    return lng + sizeof(long);
+}
+
+unsigned long testul(unsigned long ul)
+{
+    assert(ul == 5);
+    return ul + sizeof(unsigned long);
+}
+
+/******************************************/
+

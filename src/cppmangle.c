@@ -700,6 +700,39 @@ public:
 
     void visit(TypeStruct *t)
     {
+        Identifier *id = t->sym->ident;
+        char c;
+        if (id == Id::__c_long)
+            c = 'l';
+        else if (id == Id::__c_ulong)
+            c = 'm';
+        else
+            c = 0;
+        if (c)
+        {
+            if (t->isImmutable() || t->isShared())
+            {
+                visit((Type *)t);
+            }
+            if (t->isConst())
+            {
+                if (substitute(t))
+                {
+                    return;
+                }
+                else
+                {
+                    store(t);
+                }
+            }
+
+            if (t->isConst())
+                buf.writeByte('K');
+
+            buf.writeByte(c);
+            return;
+        }
+
         is_top_level = false;
 
         if (substitute(t)) return;
@@ -1047,7 +1080,18 @@ public:
 
     void visit(TypeStruct *type)
     {
-        if (type->sym->ident == Id::__c_long_double)
+        Identifier *id = type->sym->ident;
+        char c;
+        if (id == Id::__c_long_double)
+            c = 'O';                    // VC++ long double
+        else if (id == Id::__c_long)
+            c = 'J';                    // VC++ long
+        else if (id == Id::__c_ulong)
+            c = 'K';                    // VC++ unsigned long
+        else
+            c = 0;
+
+        if (c)
         {
             if (type->isImmutable() || type->isShared())
             {
@@ -1061,7 +1105,7 @@ public:
             }
 
             mangleModifier(type);
-            buf.writeByte('O');         // mangle as VC++ long double
+            buf.writeByte(c);
         }
         else
         {
@@ -1693,7 +1737,10 @@ private:
             flags &= ~IGNORE_CONST;
             if (rettype->ty == Tstruct || rettype->ty == Tenum)
             {
-                if (rettype->toDsymbol(NULL)->ident != Id::__c_long_double)
+                Identifier *id = rettype->toDsymbol(NULL)->ident;
+                if (id != Id::__c_long_double &&
+                    id != Id::__c_long &&
+                    id != Id::__c_ulong)
                 {
                     tmp.buf.writeByte('?');
                     tmp.buf.writeByte('A');
