@@ -4217,6 +4217,18 @@ void test13417()
 }
 
 /******************************************/
+// 13484
+
+int foo13484()(void delegate() hi) { return 1; }
+int foo13484(T)(void delegate(T) hi) { return 2; }
+
+void test13484()
+{
+    assert(foo13484({}) == 1);          // works
+    assert(foo13484((float v){}) == 2); // works <- throws error
+}
+
+/******************************************/
 
 int main()
 {
@@ -4321,6 +4333,7 @@ int main()
     test13374();
     test13378();
     test13379();
+    test13484();
 
     printf("Success\n");
     return 0;
