@@ -405,7 +405,7 @@ else version( Posix )
         extern (C) void thread_suspendHandler( int sig ) nothrow
         in
         {
-            assert( sig == SIGUSR1 );
+            assert( sig == suspendSignalNumber );
         }
         body
         {
@@ -433,7 +433,7 @@ else version( Posix )
                 status = sigfillset( &sigres );
                 assert( status == 0 );
 
-                status = sigdelset( &sigres, SIGUSR2 );
+                status = sigdelset( &sigres, resumeSignalNumber );
                 assert( status == 0 );
 
                 status = sem_post( &suspendCount );
@@ -454,7 +454,7 @@ else version( Posix )
         extern (C) void thread_resumeHandler( int sig ) nothrow
         in
         {
-            assert( sig == SIGUSR2 );
+            assert( sig == resumeSignalNumber );
         }
         body
         {
@@ -1813,6 +1813,42 @@ unittest
 // GC Support Routines
 ///////////////////////////////////////////////////////////////////////////////
 
+version( CoreDdoc )
+{
+    /** 
+     * Instruct the thread module, when initialized, to use a different set of 
+     * signals besides SIGUSR1 and SIGUSR2 for suspension and resumption of threads.
+     * This function should be called at most once, prior to thread_init().
+     * This function is Posix-only.
+     */  
+    extern (C) void thread_setGCSignals(int suspendSignalNo, int resumeSignalNo)
+    {
+    }
+}
+else version( Posix )
+{
+    __gshared int suspendSignalNumber;
+    __gshared int resumeSignalNumber;
+
+    extern (C) void thread_setGCSignals(int suspendSignalNo, int resumeSignalNo)
+    in 
+    {
+        assert(suspendSignalNumber == 0);
+        assert(resumeSignalNumber  == 0);
+        assert(suspendSignalNo != 0);
+        assert(resumeSignalNo  != 0);
+    }
+    out
+    {
+        assert(suspendSignalNumber != 0);
+        assert(resumeSignalNumber  != 0);
+    }
+    body
+    {
+        suspendSignalNumber = suspendSignalNo;
+        resumeSignalNumber  = resumeSignalNo;
+    }
+}
 
 /**
  * Initializes the thread module.  This function must be called by the
@@ -1834,6 +1870,16 @@ extern (C) void thread_init()
     }
     else version( Posix )
     {
+        if( suspendSignalNumber == 0 )
+        {
+            suspendSignalNumber = SIGUSR1;
+        } 
+
+        if( resumeSignalNumber == 0 )
+        {
+            resumeSignalNumber = SIGUSR2;
+        }
+
         int         status;
         sigaction_t sigusr1 = void;
         sigaction_t sigusr2 = void;
@@ -1856,7 +1902,7 @@ extern (C) void thread_init()
         status = sigfillset( &sigusr1.sa_mask );
         assert( status == 0 );
 
-        // NOTE: Since SIGUSR2 should only be issued for threads within the
+        // NOTE: Since resumeSignalNumber should only be issued for threads within the
         //       suspend handler, we don't want this signal to trigger a
         //       restart.
         sigusr2.sa_flags   = 0;
@@ -1866,10 +1912,10 @@ extern (C) void thread_init()
         status = sigfillset( &sigusr2.sa_mask );
         assert( status == 0 );
 
-        status = sigaction( SIGUSR1, &sigusr1, null );
+        status = sigaction( suspendSignalNumber, &sigusr1, null );
         assert( status == 0 );
 
-        status = sigaction( SIGUSR2, &sigusr2, null );
+        status = sigaction( resumeSignalNumber, &sigusr2, null );
         assert( status == 0 );
 
         status = sem_init( &suspendCount, 0, 0 );
@@ -2407,7 +2453,7 @@ private void suspend( Thread t ) nothrow
     {
         if( t.m_addr != pthread_self() )
         {
-            if( pthread_kill( t.m_addr, SIGUSR1 ) != 0 )
+            if( pthread_kill( t.m_addr, suspendSignalNumber ) != 0 )
             {
                 if( !t.isRunning )
                 {
@@ -2562,7 +2608,7 @@ private void resume( Thread t ) nothrow
     {
         if( t.m_addr != pthread_self() )
         {
-            if( pthread_kill( t.m_addr, SIGUSR2 ) != 0 )
+            if( pthread_kill( t.m_addr, resumeSignalNumber ) != 0 )
             {
                 if( !t.isRunning )
                 {
