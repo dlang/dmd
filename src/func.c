@@ -1841,8 +1841,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                         else if (exp->type->wildOf()->implicitConvTo(tret))
                             exp = exp->castTo(sc2, exp->type->wildOf());
                     }
-                    else
-                        exp = exp->implicitCastTo(sc2, tret);
+                    exp = exp->implicitCastTo(sc2, tret);
 
                     if (f->isref)
                     {
