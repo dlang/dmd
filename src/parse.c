@@ -3656,12 +3656,12 @@ L2:
             {
                 case TOKsemicolon:
                     nextToken();
-                    addComment(v, comment);
+                    addComment(s, comment);
                     break;
 
                 case TOKcomma:
                     nextToken();
-                    addComment(v, comment);
+                    addComment(s, comment);
                     continue;
 
                 default:
@@ -3749,11 +3749,9 @@ L2:
 
             FuncDeclaration *f =
                 new FuncDeclaration(loc, Loc(), ident, storage_class | (disable ? STCdisable : 0), t);
-            addComment(f, comment);
             if (tpl)
                 constraint = parseConstraint();
             Dsymbol *s = parseContracts(f);
-            addComment(s, NULL);
 
             /* A template parameter list means it's a function template
              */
@@ -3829,12 +3827,12 @@ L2:
             {
                 case TOKsemicolon:
                     nextToken();
-                    addComment(v, comment);
+                    addComment(s, comment);
                     break;
 
                 case TOKcomma:
                     nextToken();
-                    addComment(v, comment);
+                    addComment(s, comment);
                     continue;
 
                 default:
@@ -3890,7 +3888,7 @@ Dsymbols *Parser::parseAutoDeclarations(StorageClass storageClass, const utf8_t 
         {
             case TOKsemicolon:
                 nextToken();
-                addComment(v, comment);
+                addComment(s, comment);
                 break;
 
             case TOKcomma:
@@ -3902,7 +3900,7 @@ Dsymbols *Parser::parseAutoDeclarations(StorageClass storageClass, const utf8_t 
                     error("Identifier expected following comma");
                     break;
                 }
-                addComment(v, comment);
+                addComment(s, comment);
                 continue;
 
             default:
