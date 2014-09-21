@@ -10991,6 +10991,16 @@ Expression *AssignExp::semantic(Scope *sc)
     {
         //printf("[%s] change to init - %s\n", loc.toChars(), toChars());
         op = TOKconstruct;
+
+        // Bugzilla 13515: set Index::modifiable flag for complex AA element initialization
+        if (e1->op == TOKindex &&
+            ((IndexExp *)e1)->e1->type->toBasetype()->ty == Taarray)
+        {
+            Expression *e1x = e1->modifiableLvalue(sc, e1old);
+            if (e1x->op == TOKerror)
+                return e1x;
+            e1 = e1x;
+        }
     }
 
     /* If it is an assignment from a 'foreign' type,
