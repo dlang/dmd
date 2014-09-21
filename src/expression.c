@@ -11489,21 +11489,27 @@ Expression *AssignExp::semantic(Scope *sc)
     if (e2x->op == TOKerror)
         return e2x;
     e2 = e2x;
+    t2 = e2->type->toBasetype();
 
     /* Look for array operations
      */
-    if ((e1->op == TOKslice || e1->type->ty == Tarray) &&
-        !ismemset &&
-        (isUnaArrayOp(e2->op) || isBinArrayOp(e2->op)))
+    if ((t2->ty == Tarray || t2->ty == Tsarray) && isArrayOpValid(e2))
     {
-        if (op != TOKassign && e1->op != TOKslice)
+        // Look for valid array operations
+        if (!ismemset && e1->op == TOKslice &&
+            (isUnaArrayOp(e2->op) || isBinArrayOp(e2->op)))
         {
-            error("array operation %s without assignment not implemented", e2->toChars());
-            return new ErrorExp();
+            type = e1->type;
+            return arrayOp(this, sc);
         }
 
-        type = e1->type;
-        return arrayOp(this, sc);
+        // Drop invalid array operations in e2
+        //  d = a[] + b[], d = (a[] + b[])[0..2], etc
+        if (checkNonAssignmentArrayOp(e2))
+            return new ErrorExp();
+
+        // Remains valid array assignments
+        //  d = d[], d = [1,2,3], etc
     }
 
     if (e1->op == TOKvar &&
