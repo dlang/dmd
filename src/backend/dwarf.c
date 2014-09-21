@@ -1,11 +1,11 @@
-
+// Compiler implementation of the D programming language
 // Copyright (c) 1999-2013 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gpl.txt.
-// See the included readme.txt for details.
+// Distributed under the Boost Software License, Version 1.0.
+// http://www.boost.org/LICENSE_1_0.txt
+// https://github.com/D-Programming-Language/dmd/blob/master/src/backend/dwarf.c
 
 // Emit Dwarf symbolic debug info
 
