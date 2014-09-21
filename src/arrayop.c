@@ -154,11 +154,14 @@ bool isNonAssignmentArrayOp(Expression *e)
     return false;
 }
 
-bool checkNonAssignmentArrayOp(Expression *e)
+bool checkNonAssignmentArrayOp(Expression *e, bool suggestion)
 {
     if (isNonAssignmentArrayOp(e))
     {
-        e->error("array operation %s without assignment not implemented", e->toChars());
+        const char *s = "";
+        if (suggestion)
+            s = " (did you forget a [] ?)";
+        e->error("array operation %s without destination memory not allowed%s", e->toChars(), s);
         return true;
     }
     return false;

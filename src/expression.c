@@ -11514,7 +11514,7 @@ Expression *AssignExp::semantic(Scope *sc)
 
         // Drop invalid array operations in e2
         //  d = a[] + b[], d = (a[] + b[])[0..2], etc
-        if (checkNonAssignmentArrayOp(e2))
+        if (checkNonAssignmentArrayOp(e2, !ismemset && op == TOKassign))
             return new ErrorExp();
 
         // Remains valid array assignments

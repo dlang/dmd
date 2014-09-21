@@ -2,10 +2,10 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice13497.d(15): Error: array operation a[] * a[] without assignment not implemented
-fail_compilation/ice13497.d(16): Error: array operation (a[] * a[])[0..1] without assignment not implemented
-fail_compilation/ice13497.d(19): Error: array operation a[] * a[] without assignment not implemented
-fail_compilation/ice13497.d(20): Error: array operation (a[] * a[])[0..1] without assignment not implemented
+fail_compilation/ice13497.d(15): Error: array operation a[] * a[] without destination memory not allowed
+fail_compilation/ice13497.d(16): Error: array operation (a[] * a[])[0..1] without destination memory not allowed
+fail_compilation/ice13497.d(19): Error: array operation a[] * a[] without destination memory not allowed (did you forget a [] ?)
+fail_compilation/ice13497.d(20): Error: array operation (a[] * a[])[0..1] without destination memory not allowed (did you forget a [] ?)
 ---
 */
 
@@ -23,7 +23,7 @@ void test13497()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice13497.d(34): Error: array operation h * y[] without assignment not implemented
+fail_compilation/ice13497.d(34): Error: array operation h * y[] without destination memory not allowed
 ---
 */
 void test12381()

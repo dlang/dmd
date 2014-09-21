@@ -80,7 +80,7 @@ int isConst(Expression *e);
 Expression *toDelegate(Expression *e, Scope *sc);
 AggregateDeclaration *isAggregate(Type *t);
 IntRange getIntRange(Expression *e);
-bool checkNonAssignmentArrayOp(Expression *e);
+bool checkNonAssignmentArrayOp(Expression *e, bool suggestion = false);
 bool isUnaArrayOp(TOK op);
 bool isBinArrayOp(TOK op);
 bool isBinAssignArrayOp(TOK op);
