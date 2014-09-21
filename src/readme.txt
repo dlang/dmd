@@ -1,7 +1,7 @@
 
 		The D Programming Language
 		Compiler Front End Source
-		Copyright (c) 1999-2013, by Digital Mars
+		Copyright (c) 1999-2014, by Digital Mars
 		http://www.digitalmars.com/
 		All Rights Reserved
 
@@ -12,10 +12,9 @@ of the D Programming Language defined in the documents at
 http://dlang.org/
 
 These sources are free, they are redistributable and modifiable
-under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 1, or (at your option)
-any later version (attached as gpl.txt),
-or the Artistic License (attached as artistic.txt).
+under the terms of the Boost Software License, Version 1.0.
+The terms of this license are in the file boostlicense.txt,
+or see http://www.boost.org/LICENSE_1_0.txt.
 
 The optimizer and code generator sources are 
 covered under a separate license, backendlicense.txt.

@@ -5,7 +5,7 @@
 ;; http://www.digitalmars.com
 ;; Distributed under the Boost Software License, Version 1.0.
 ;; http://www.boost.org/LICENSE_1_0.txt
-;; https://github.com/D-Programming-Language/dmd/blob/master/src/test/UTFTest.cpp
+;; https://github.com/D-Programming-Language/dmd/blob/master/src/vcbuild/ldfpu.asm
 
 ;; 80 bit floating point value implementation for Microsoft compiler
 
