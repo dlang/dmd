@@ -42,7 +42,6 @@
 #include "nspace.h"
 
 bool isArrayOpValid(Expression *e);
-bool isNonAssignmentArrayOp(Expression *e);
 Expression *createTypeInfoArray(Scope *sc, Expression *args[], size_t dim);
 Expression *expandVar(int result, VarDeclaration *v);
 TypeTuple *toArgTypes(Type *t);
@@ -1133,9 +1132,8 @@ bool arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt)
             t0 = Type::terror;
             continue;
         }
-        if (isNonAssignmentArrayOp(e))
+        if (checkNonAssignmentArrayOp(e))
         {
-            e->error("array operation %s without assignment not implemented", e->toChars());
             t0 = Type::terror;
             continue;
         }
@@ -1236,9 +1234,8 @@ bool preFunctionParameters(Loc loc, Scope *sc, Expressions *exps)
                 arg = new ErrorExp();
                 err = true;
             }
-            if (isNonAssignmentArrayOp(arg))
+            if (checkNonAssignmentArrayOp(arg))
             {
-                arg->error("array operation %s without assignment not implemented", arg->toChars());
                 arg = new ErrorExp();
                 err = true;
             }
@@ -11625,11 +11622,8 @@ Expression *CatAssignExp::semantic(Scope *sc)
     if (e2->op == TOKerror)
         return e2;
 
-    if (isNonAssignmentArrayOp(e2))
-    {
-        error("array operation %s without assignment not implemented", e2->toChars());
+    if (checkNonAssignmentArrayOp(e2))
         return new ErrorExp();
-    }
 
     Type *tb1 = e1->type->toBasetype();
     Type *tb1next = tb1->nextOf();

@@ -154,6 +154,16 @@ bool isNonAssignmentArrayOp(Expression *e)
     return false;
 }
 
+bool checkNonAssignmentArrayOp(Expression *e)
+{
+    if (isNonAssignmentArrayOp(e))
+    {
+        e->error("array operation %s without assignment not implemented", e->toChars());
+        return true;
+    }
+    return false;
+}
+
 /***********************************
  * Construct the array operation expression.
  */
