@@ -9448,6 +9448,12 @@ Expression *CastExp::semantic(Scope *sc)
                 return e;
         }
 
+        if (!t1b->equals(tob) && (t1b->ty == Tarray || t1b->ty == Tsarray))
+        {
+            if (checkNonAssignmentArrayOp(e1))
+                return new ErrorExp;
+        }
+
         // Struct casts are possible only when the sizes match
         // Same with static array -> static array
         if (tob->ty == Tstruct || t1b->ty == Tstruct ||

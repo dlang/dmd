@@ -19,3 +19,17 @@ void test13497()
     c = (a[] * a[])[];
     c = (a[] * a[])[0..1];
 }
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/ice13497.d(34): Error: array operation h * y[] without assignment not implemented
+---
+*/
+void test12381()
+{
+    double[2] y;
+    double h;
+
+    double[2] temp1 = cast(double[2])(h * y[]);
+}
