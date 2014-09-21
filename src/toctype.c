@@ -106,10 +106,13 @@ public:
         Type *tm = t->mutableOf();
         if (tm->ctype)
         {
-            Symbol *s = tm->ctype->Ttag;
-            t->ctype = type_alloc(TYstruct);
-            t->ctype->Ttag = (Classsym *)s;            // structure tag name
+            t->ctype = type_alloc(tybasic(tm->ctype->Tty));
             t->ctype->Tcount++;
+            if (t->ctype->Tty == TYstruct)
+            {
+                Symbol *s = tm->ctype->Ttag;
+                t->ctype->Ttag = (Classsym *)s;            // structure tag name
+            }
             // Add modifiers
             switch (t->mod)
             {

@@ -1,3 +1,4 @@
+// PERMUTE_ARGS: -g
 // EXTRA_CPP_SOURCES: cppb.cpp
 
 import core.stdc.stdio;
