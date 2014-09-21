@@ -9457,17 +9457,11 @@ Expression *CastExp::semantic(Scope *sc)
             (tob->ty == Tsarray && t1b->ty == Tsarray))
         {
             if (t1b->ty == Tnull || tob->ty == Tnull || t1b->size(loc) != tob->size(loc))
-            {
-                error("cannot cast from %s to %s", e1->type->toChars(), to->toChars());
-                return new ErrorExp();
-            }
+                goto Lfail;
         }
 
         if ((t1b->ty == Tarray || t1b->ty == Tsarray) && tob->ty == Tclass)
-        {
-            error("cannot cast from %s to %s", e1->type->toChars(), to->toChars());
-            return new ErrorExp();
-        }
+            goto Lfail;
 
         // Look for casting to a vector type
         if (tob->ty == Tvector && t1b->ty != Tvector)
@@ -9575,7 +9569,7 @@ Lsafe:
     }
 
 Lfail:
-    error("cannot cast %s of type %s to %s", e1->toChars(), e1->type->toChars(), to->toChars());
+    error("cannot cast expression %s of type %s to %s", e1->toChars(), e1->type->toChars(), to->toChars());
     return new ErrorExp();
 }
 
