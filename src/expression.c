@@ -9678,7 +9678,8 @@ Lagain:
     if (!lwr && !upr)
     {
         if (e1->op == TOKarrayliteral)
-        {   // Convert [a,b,c][] to [a,b,c]
+        {
+            // Convert [a,b,c][] to [a,b,c]
             Type *t1b = e1->type->toBasetype();
             e = e1;
             if (t1b->ty == Tsarray)
@@ -9689,10 +9690,16 @@ Lagain:
             return e;
         }
         if (e1->op == TOKslice)
-        {   // Convert e[][] to e[]
+        {
+            // Convert e[][] to e[]
             SliceExp *se = (SliceExp *)e1;
             if (!se->lwr && !se->upr)
                 return se;
+        }
+        if (isArrayOpOperand(e1))
+        {
+            // Convert (a[]+b[])[] to a[]+b[]
+            return e1;
         }
     }
 
@@ -11490,13 +11497,14 @@ Expression *AssignExp::semantic(Scope *sc)
      */
     if ((e1->op == TOKslice || e1->type->ty == Tarray) &&
         !ismemset &&
-        (e2->op == TOKadd || e2->op == TOKmin ||
-         e2->op == TOKmul || e2->op == TOKdiv ||
-         e2->op == TOKmod || e2->op == TOKxor ||
-         e2->op == TOKand || e2->op == TOKor  ||
-         e2->op == TOKpow ||
-         e2->op == TOKtilde || e2->op == TOKneg))
+        (isUnaArrayOp(e2->op) || isBinArrayOp(e2->op)))
     {
+        if (op != TOKassign && e1->op != TOKslice)
+        {
+            error("array operation %s without assignment not implemented", e2->toChars());
+            return new ErrorExp();
+        }
+
         type = e1->type;
         return arrayOp(this, sc);
     }
