@@ -531,6 +531,32 @@ class Foo12080
 }
 
 /**********************************/
+// 13503
+
+void f13503a(string[] s...)
+{
+    assert(s[0] == "Cheese");
+}
+
+auto f13503b(string arg)
+{
+    string result = arg;
+    return result;
+}
+
+string f13503c(string arg)
+{
+    string result = arg;
+    return result;
+}
+
+void test13503()
+{
+    f13503a(f13503b("Cheese"));
+    f13503a(f13503c("Cheese"));
+}
+
+/**********************************/
 
 int main()
 {
@@ -551,6 +577,7 @@ int main()
     test11224();
     test11322();
     test11394();
+    test13503();
 
     printf("Success\n");
     return 0;
