@@ -9083,25 +9083,26 @@ int Parameter::isTPL(Parameters *arguments)
  * Determine if parameter is a lazy array of delegates.
  * If so, return the return type of those delegates.
  * If not, return NULL.
+ *
+ * Returns T if the type is one of the following forms:
+ *      T delegate()[]
+ *      T delegate()[dim]
  */
 
 Type *Parameter::isLazyArray()
 {
-//    if (inout == Lazy)
+    Type *tb = type->toBasetype();
+    if (tb->ty == Tsarray || tb->ty == Tarray)
     {
-        Type *tb = type->toBasetype();
-        if (tb->ty == Tsarray || tb->ty == Tarray)
+        Type *tel = ((TypeArray *)tb)->next->toBasetype();
+        if (tel->ty == Tdelegate)
         {
-            Type *tel = ((TypeArray *)tb)->next->toBasetype();
-            if (tel->ty == Tdelegate)
-            {
-                TypeDelegate *td = (TypeDelegate *)tel;
-                TypeFunction *tf = (TypeFunction *)td->next;
+            TypeDelegate *td = (TypeDelegate *)tel;
+            TypeFunction *tf = (TypeFunction *)td->next;
 
-                if (!tf->varargs && Parameter::dim(tf->parameters) == 0)
-                {
-                    return tf->next;    // return type of delegate
-                }
+            if (!tf->varargs && Parameter::dim(tf->parameters) == 0)
+            {
+                return tf->next;    // return type of delegate
             }
         }
     }
