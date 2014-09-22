@@ -7324,10 +7324,13 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
         else if (tdecl && !tdecl->overnext)
             // Only one template, so we can give better error message
             error("does not match template declaration %s", tdecl->toChars());
-        else
+        else if (tempdecl->parent)
             ::error(loc, "%s %s.%s does not match any template declaration",
                     tempdecl->kind(), tempdecl->parent->toPrettyChars(), tempdecl->ident->toChars());
-        return false;
+        else
+	    ::error(loc, "%s %s does not match any template declaration",
+		    tempdecl->kind(), tempdecl->ident->toChars());
+	return false;
     }
 
     /* The best match is td_last
