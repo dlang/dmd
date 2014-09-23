@@ -4733,7 +4733,7 @@ Expression *DeclarationExp::semantic(Scope *sc)
                 error("declaration %s is already defined in another scope in %s",
                     s->toPrettyChars(), sc->func->toChars());
             }
-            else if (!global.params.useDeprecated)
+            else if (global.params.useDeprecated != 1)
             {   // Disallow shadowing
 
                 for (Scope *scx = sc->enclosing; scx && scx->func == sc->func; scx = scx->enclosing)
