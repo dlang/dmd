@@ -258,9 +258,6 @@ CH= $C\cc.h $C\global.h $C\oper.h $C\code.h $C\code_x86.h $C\type.h $C\dt.h $C\c
 # Makefiles
 MAKEFILES=win32.mak posix.mak osmodel.mak
 
-# Unit tests
-TESTS=UTFTest.exe # LexerTest.exe
-
 ############################## Release Targets ###############################
 
 defaulttarget: debdmd
