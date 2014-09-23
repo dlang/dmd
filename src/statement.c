@@ -1908,6 +1908,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
                         if (!IntRange::fromType(var->type).contains(dimrange))
                         {
                             error("index type '%s' cannot cover index range 0..%llu", arg->type->toChars(), ta->dim->toInteger());
+                            goto Lerror2;
                         }
                         key->range = new IntRange(SignExtendedNumber(0), dimrange.imax);
                     }
@@ -2745,6 +2746,7 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
         {
             error("argument type mismatch, %s to ref %s",
                   key->type->toChars(), arg->type->toChars());
+            goto Lerror;
         }
     }
 
@@ -2983,9 +2985,13 @@ Statement *PragmaStatement::semantic(Scope *sc)
         /* Should this be allowed?
          */
         error("pragma(lib) not allowed as statement");
+        goto Lerror;
 #else
         if (!args || args->dim != 1)
+        {
             error("string expected for library name");
+            goto Lerror;
+        }
         else
         {
             Expression *e = (*args)[0];
@@ -2999,7 +3005,10 @@ Statement *PragmaStatement::semantic(Scope *sc)
             (*args)[0] = e;
             StringExp *se = e->toStringExp();
             if (!se)
+            {
                 error("string expected for library name, not '%s'", e->toChars());
+                goto Lerror;
+            }
             else if (global.params.verbose)
             {
                 char *name = (char *)mem.malloc(se->len + 1);
@@ -3028,22 +3037,33 @@ Statement *PragmaStatement::semantic(Scope *sc)
             (*args)[0] = e;
             Dsymbol *sa = getDsymbol(e);
             if (!sa || !sa->isFuncDeclaration())
+            {
                 error("function name expected for start address, not '%s'", e->toChars());
+                goto Lerror;
+            }
             if (body)
             {
                 body = body->semantic(sc);
+                if (body->isErrorStatement())
+                    return body;
             }
             return this;
         }
     }
     else
+    {
         error("unrecognized pragma(%s)", ident->toChars());
-Lerror:
+        goto Lerror;
+    }
+
     if (body)
     {
         body = body->semantic(sc);
     }
     return body;
+
+Lerror:
+    return new ErrorStatement();
 }
 
 /******************************** StaticAssertStatement ***************************/
@@ -3094,6 +3114,7 @@ Statement *SwitchStatement::semantic(Scope *sc)
     tf = sc->tf;
     if (cases)
         return this;            // already run
+    bool conditionError = false;
     condition = condition->semantic(sc);
     condition = resolveProperties(sc, condition);
     TypeEnum *te = NULL;
@@ -3113,10 +3134,17 @@ Statement *SwitchStatement::semantic(Scope *sc)
     {
         condition = integralPromotions(condition, sc);
         if (condition->op != TOKerror && !condition->type->isintegral())
+        {
             error("'%s' must be of integral or string type, it is a %s", condition->toChars(), condition->type->toChars());
+            conditionError = true;;
+        }
     }
     condition = condition->optimize(WANTvalue);
     condition = checkGC(sc, condition);
+    if (condition->op == TOKerror)
+        conditionError = true;
+
+    bool needswitcherror = false;
 
     sc = sc->push();
     sc->sbreak = this;
@@ -3127,6 +3155,9 @@ Statement *SwitchStatement::semantic(Scope *sc)
     body = body->semantic(sc);
     sc->noctor--;
 
+    if (conditionError || body->isErrorStatement())
+        goto Lerror;
+
     // Resolve any goto case's with exp
     for (size_t i = 0; i < gotoCases.dim; i++)
     {
@@ -3135,7 +3166,7 @@ Statement *SwitchStatement::semantic(Scope *sc)
         if (!gcs->exp)
         {
             gcs->error("no case statement following goto case;");
-            break;
+            goto Lerror;
         }
 
         for (Scope *scx = sc; scx; scx = scx->enclosing)
@@ -3154,12 +3185,12 @@ Statement *SwitchStatement::semantic(Scope *sc)
             }
         }
         gcs->error("case %s not found", gcs->exp->toChars());
+        goto Lerror;
 
      Lfoundcase:
         ;
     }
 
-    bool needswitcherror = false;
     if (isFinal)
     {   Type *t = condition->type;
         while (t && t->ty == Ttypedef)
@@ -3189,6 +3220,7 @@ Statement *SwitchStatement::semantic(Scope *sc)
                             goto L1;
                     }
                     error("enum member %s not represented in final switch", em->toChars());
+                    goto Lerror;
                 }
               L1:
                 ;
@@ -3228,6 +3260,10 @@ Statement *SwitchStatement::semantic(Scope *sc)
 
     sc->pop();
     return this;
+
+  Lerror:
+    sc->pop();
+    return new ErrorStatement();
 }
 
 bool SwitchStatement::hasBreak()
@@ -3256,6 +3292,7 @@ Statement *CaseStatement::syntaxCopy()
 Statement *CaseStatement::semantic(Scope *sc)
 {
     SwitchStatement *sw = sc->sw;
+    bool errors = false;
 
     //printf("CaseStatement::semantic() %s\n", toChars());
     sc = sc->startCTFE();
@@ -3279,7 +3316,10 @@ Statement *CaseStatement::semantic(Scope *sc)
                  */
                 sw->hasVars = 1;
                 if (sw->isFinal)
+                {
                     error("case variables not allowed in final switch statements");
+                    errors = true;
+                }
                 goto L1;
             }
         }
@@ -3291,7 +3331,7 @@ Statement *CaseStatement::semantic(Scope *sc)
         else if (exp->op != TOKint64 && exp->op != TOKerror)
         {
             error("case must be a string or an integral constant, not %s", exp->toChars());
-            exp = new ErrorExp();
+            errors = true;
         }
 
     L1:
@@ -3301,7 +3341,9 @@ Statement *CaseStatement::semantic(Scope *sc)
 
             //printf("comparing '%s' with '%s'\n", exp->toChars(), cs->exp->toChars());
             if (cs->exp->equals(exp))
-            {   error("duplicate case %s in switch statement", exp->toChars());
+            {
+                error("duplicate case %s in switch statement", exp->toChars());
+                errors = true;
                 break;
             }
         }
@@ -3321,11 +3363,21 @@ Statement *CaseStatement::semantic(Scope *sc)
         }
 
         if (sc->sw->tf != sc->tf)
+        {
             error("switch and case are in different finally blocks");
+            errors = true;
+        }
     }
     else
+    {
         error("case not in switch statement");
+        errors = true;
+    }
     statement = statement->semantic(sc);
+    if (statement->isErrorStatement())
+        return statement;
+    if (errors || exp->op == TOKerror)
+        return new ErrorStatement();
     return this;
 }
 
@@ -3363,12 +3415,16 @@ Statement *CaseRangeStatement::semantic(Scope *sc)
     if (sw == NULL)
     {
         error("case range not in switch statement");
-        return NULL;
+        return new ErrorStatement();
     }
 
     //printf("CaseRangeStatement::semantic() %s\n", toChars());
+    bool errors = false;
     if (sw->isFinal)
+    {
         error("case ranges not allowed in final switch");
+        errors = true;
+    }
 
     sc = sc->startCTFE();
     first = first->semantic(sc);
@@ -3384,8 +3440,12 @@ Statement *CaseRangeStatement::semantic(Scope *sc)
     last = last->implicitCastTo(sc, sw->condition->type);
     last = last->ctfeInterpret();
 
-    if (first->op == TOKerror || last->op == TOKerror)
-        return statement ? statement->semantic(sc) : NULL;
+    if (first->op == TOKerror || last->op == TOKerror || errors)
+    {
+        if (statement)
+            statement->semantic(sc);
+        return new ErrorStatement();
+    }
 
     uinteger_t fval = first->toInteger();
     uinteger_t lval = last->toInteger();
@@ -3396,13 +3456,19 @@ Statement *CaseRangeStatement::semantic(Scope *sc)
     {
         error("first case %s is greater than last case %s",
             first->toChars(), last->toChars());
+        errors = true;
         lval = fval;
     }
 
     if (lval - fval > 256)
-    {   error("had %llu cases which is more than 256 cases in case range", lval - fval);
+    {
+        error("had %llu cases which is more than 256 cases in case range", lval - fval);
+        errors = true;
         lval = fval + 256;
     }
+
+    if (errors)
+        return new ErrorStatement();
 
     /* This works by replacing the CaseRange with an array of Case's.
      *
@@ -3448,23 +3514,35 @@ Statement *DefaultStatement::syntaxCopy()
 Statement *DefaultStatement::semantic(Scope *sc)
 {
     //printf("DefaultStatement::semantic()\n");
+    bool errors = false;
     if (sc->sw)
     {
         if (sc->sw->sdefault)
         {
             error("switch statement already has a default");
+            errors = true;
         }
         sc->sw->sdefault = this;
 
         if (sc->sw->tf != sc->tf)
+        {
             error("switch and default are in different finally blocks");
-
+            errors = true;
+        }
         if (sc->sw->isFinal)
+        {
             error("default statement not allowed in final switch statement");
+            errors = true;
+        }
     }
     else
+    {
         error("default not in switch statement");
+        errors = true;
+    }
     statement = statement->semantic(sc);
+    if (errors || statement->isErrorStatement())
+        return new ErrorStatement();
     return this;
 }
 
@@ -3485,7 +3563,10 @@ Statement *GotoDefaultStatement::semantic(Scope *sc)
 {
     sw = sc->sw;
     if (!sw)
+    {
         error("goto default not in switch statement");
+        return new ErrorStatement();
+    }
     return this;
 }
 
@@ -3505,20 +3586,22 @@ Statement *GotoCaseStatement::syntaxCopy()
 
 Statement *GotoCaseStatement::semantic(Scope *sc)
 {
-    if (exp)
-        exp = exp->semantic(sc);
-
     if (!sc->sw)
-        error("goto case not in switch statement");
-    else
     {
-        sc->sw->gotoCases.push(this);
-        if (exp)
-        {
-            exp = exp->implicitCastTo(sc, sc->sw->condition->type);
-            exp = exp->optimize(WANTvalue);
-        }
+        error("goto case not in switch statement");
+        return new ErrorStatement();
     }
+
+    if (exp)
+    {
+        exp = exp->semantic(sc);
+        exp = exp->implicitCastTo(sc, sc->sw->condition->type);
+        exp = exp->optimize(WANTvalue);
+        if (exp->op == TOKerror)
+            return new ErrorStatement();
+    }
+
+    sc->sw->gotoCases.push(this);
     return this;
 }
 
@@ -3585,17 +3668,30 @@ Statement *ReturnStatement::semantic(Scope *sc)
     bool inferRef = (tf->isref && (fd->storage_class & STCauto));
     Expression *e0 = NULL;
 
+    bool errors = false;
     if (sc->flags & SCOPEcontract)
+    {
         error("return statements cannot be in contracts");
+        errors = true;
+    }
     if (sc->os && sc->os->tok != TOKon_scope_failure)
+    {
         error("return statements cannot be in %s bodies", Token::toChars(sc->os->tok));
+        errors = true;
+    }
     if (sc->tf)
+    {
         error("return statements cannot be in finally bodies");
+        errors = true;
+    }
 
     if (fd->isCtorDeclaration())
     {
         if (exp)
+        {
             error("cannot return expression from constructor");
+            errors = true;
+        }
 
         // Constructors implicitly do:
         //      return this;
@@ -3638,6 +3734,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
             if (exp->type->ty != Tvoid)
             {
                 error("cannot return non-void from void function");
+                errors = true;
 
                 exp = new CastExp(loc, exp, Type::tvoid);
                 exp = exp->semantic(sc);
@@ -3680,6 +3777,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
                 {
                     error("mismatched function return type inference of %s and %s",
                         exp->type->toChars(), tret->toChars());
+                    errors = true;
                     tf->next = Type::terror;
                 }
             }
@@ -3754,6 +3852,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
             {
                 error("mismatched function return type inference of void and %s",
                     tf->next->toChars());
+                errors = true;
             }
             tf->next = Type::tvoid;
 
@@ -3767,6 +3866,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
         if (tbret->ty != Tvoid)     // if non-void return
         {
             error("return expression expected");
+            errors = true;
         }
         else if (fd->isMain())
         {
@@ -3780,6 +3880,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
         !(sc->callSuper & (CSXthis_ctor | CSXsuper_ctor)))
     {
         error("return without calling constructor");
+        errors = true;
     }
     sc->callSuper |= CSXreturn;
     if (sc->fieldinit)
@@ -3793,11 +3894,16 @@ Statement *ReturnStatement::semantic(Scope *sc)
             bool mustInit = (v->storage_class & STCnodefaultctor ||
                              v->type->needsNested());
             if (mustInit && !(sc->fieldinit[i] & CSXthis_ctor))
+            {
                 error("an earlier return statement skips field %s initialization", v->toChars());
-
+                errors = true;
+            }
             sc->fieldinit[i] |= CSXreturn;
         }
     }
+
+    if (errors)
+        return new ErrorStatement();
 
     if (sc->fes)
     {
