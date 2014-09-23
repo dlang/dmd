@@ -2205,10 +2205,6 @@ Dsymbols *Parser::parseDeclarations()
     switch (token.value)
     {
         case TOKtypedef:
-            if (global.params.Dversion >= 3 && mod && mod->isRoot())
-            {
-                warning(loc, "typedef is deprecated in D2, use either alias or custom struct wrapper");
-            }
         case TOKalias:
             tok = token.value;
             nextToken();
