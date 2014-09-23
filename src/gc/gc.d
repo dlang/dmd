@@ -2226,11 +2226,8 @@ struct Gcx
         if (npools)
         {   size_t n;
 
-            n = npools;
-            if (n > 32)
-                n = 32;                 // cap pool size at 32 megs
-            else if (n > 8)
-                n = 16;
+            n = npools * 3;
+            
             n *= (POOLSIZE / PAGESIZE);
             if (npages < n)
                 npages = n;
