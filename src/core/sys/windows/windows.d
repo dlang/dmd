@@ -391,8 +391,8 @@ struct WIN32_FIND_DATA {
     DWORD nFileSizeLow;
     DWORD dwReserved0;
     DWORD dwReserved1;
-    char   cFileName[MAX_PATH];
-    char   cAlternateFileName[ 14 ];
+    char[MAX_PATH] cFileName;
+    char[14] cAlternateFileName;
 }
 
 struct WIN32_FIND_DATAW {
@@ -404,8 +404,8 @@ struct WIN32_FIND_DATAW {
     DWORD nFileSizeLow;
     DWORD dwReserved0;
     DWORD dwReserved1;
-    wchar  cFileName[ 260  ];
-    wchar  cAlternateFileName[ 14 ];
+    wchar[260] cFileName;
+    wchar[14]  cAlternateFileName;
 }
 
 // Critical Section
@@ -425,7 +425,7 @@ struct _RTL_CRITICAL_SECTION_DEBUG
     LIST_ENTRY ProcessLocksList;
     DWORD EntryCount;
     DWORD ContentionCount;
-    DWORD Spare[ 2 ];
+    DWORD[2] Spare;
 }
 alias _RTL_CRITICAL_SECTION_DEBUG RTL_CRITICAL_SECTION_DEBUG;
 
@@ -908,10 +908,10 @@ struct SYSTEMTIME
 
 struct TIME_ZONE_INFORMATION {
     LONG Bias;
-    WCHAR StandardName[ 32 ];
+    WCHAR[32] StandardName;
     SYSTEMTIME StandardDate;
     LONG StandardBias;
-    WCHAR DaylightName[ 32 ];
+    WCHAR[32] DaylightName;
     SYSTEMTIME DaylightDate;
     LONG DaylightBias;
 }
@@ -1230,9 +1230,9 @@ version (Win64)
         WORD Reserved3;
         DWORD MxCsr;
         DWORD MxCsr_Mask;
-        M128A FloatRegisters[8];
-        M128A XmmRegisters[16];
-        BYTE Reserved4[96];
+        M128A[8] FloatRegisters;
+        M128A[16] XmmRegisters;
+        BYTE[96] Reserved4;
     }
     alias XMM_SAVE_AREA32 PXMM_SAVE_AREA32;
 
@@ -1282,8 +1282,8 @@ version (Win64)
             XMM_SAVE_AREA32 FloatSave;
             struct
             {
-                M128A Header[2];
-                M128A Legacy[8];
+                M128A[2] Header;
+                M128A[8] Legacy;
                 M128A Xmm0;
                 M128A Xmm1;
                 M128A Xmm2;
@@ -1302,7 +1302,7 @@ version (Win64)
                 M128A Xmm15;
             };
         };
-        M128A VectorRegister[26];
+        M128A[26] VectorRegister;
         DWORD64 VectorControl;
         DWORD64 DebugControl;
         DWORD64 LastBranchToRip;
@@ -1346,7 +1346,7 @@ else // Win32
         DWORD   ErrorSelector;
         DWORD   DataOffset;
         DWORD   DataSelector;
-        BYTE    RegisterArea[SIZE_OF_80387_REGISTERS];
+        BYTE[SIZE_OF_80387_REGISTERS]    RegisterArea;
         DWORD   Cr0NpxState;
     }
 
@@ -1432,7 +1432,7 @@ else // Win32
         // The format and contexts are processor specific
         //
 
-        BYTE    ExtendedRegisters[MAXIMUM_SUPPORTED_EXTENSION];
+        BYTE[MAXIMUM_SUPPORTED_EXTENSION] ExtendedRegisters;
     }
 }
 
@@ -2076,7 +2076,7 @@ struct PAINTSTRUCT {
     RECT        rcPaint;
     BOOL        fRestore;
     BOOL        fIncUpdate;
-    BYTE        rgbReserved[32];
+    BYTE[32]    rgbReserved;
 }
 alias PAINTSTRUCT* PPAINTSTRUCT, NPPAINTSTRUCT, LPPAINTSTRUCT;
 
@@ -2301,7 +2301,7 @@ alias BITMAPINFOHEADER* LPBITMAPINFOHEADER, PBITMAPINFOHEADER;
 
 struct BITMAPINFO {
     BITMAPINFOHEADER    bmiHeader;
-    RGBQUAD             bmiColors[1];
+    RGBQUAD[1]          bmiColors;
 }
 alias BITMAPINFO* LPBITMAPINFO, PBITMAPINFO;
 
@@ -2316,7 +2316,7 @@ alias PALETTEENTRY* PPALETTEENTRY, LPPALETTEENTRY;
 struct LOGPALETTE {
     WORD        palVersion;
     WORD        palNumEntries;
-    PALETTEENTRY        palPalEntry[1];
+    PALETTEENTRY[1]  palPalEntry;
 }
 alias LOGPALETTE* PLOGPALETTE, NPLOGPALETTE, LPLOGPALETTE;
 
@@ -3251,7 +3251,7 @@ struct LOGFONTA
     BYTE      lfClipPrecision;
     BYTE      lfQuality;
     BYTE      lfPitchAndFamily;
-    CHAR      lfFaceName[32 ];
+    CHAR[32]  lfFaceName;
 }
 alias LOGFONTA* PLOGFONTA, NPLOGFONTA, LPLOGFONTA;
 
