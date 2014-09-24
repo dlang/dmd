@@ -112,15 +112,16 @@ public:
     Dsymbol *parseAggregate();
     BaseClasses *parseBaseClasses();
     Dsymbols *parseImport();
-    Type *parseType(Identifier **pident = NULL, TemplateParameters **tpl = NULL);
+    Type *parseType(Identifier **pident = NULL, TemplateParameters **ptpl = NULL);
     Type *parseBasicType();
     Type *parseBasicType2(Type *t);
-    Type *parseDeclarator(Type *t, Identifier **pident,
-        TemplateParameters **tpl = NULL, StorageClass storage_class = 0, int* pdisable = NULL, Expressions **pudas = NULL);
+    Type *parseDeclarator(Type *t, int *alt, Identifier **pident,
+        TemplateParameters **tpl = NULL, StorageClass storage_class = 0, int *pdisable = NULL, Expressions **pudas = NULL);
     void parseStorageClasses(StorageClass &storage_class, LINK &link, unsigned &structalign, Expressions *&udas);
     Dsymbols *parseDeclarations(bool autodecl, PrefixAttributes *pAttrs, const utf8_t *comment);
     FuncDeclaration *parseContracts(FuncDeclaration *f);
     void checkDanglingElse(Loc elseloc);
+    void checkCstyleTypeSyntax(Loc loc, Type *t, int alt, Identifier *ident);
     /** endPtr used for documented unittests */
     Statement *parseStatement(int flags, const utf8_t** endPtr = NULL);
     Initializer *parseInitializer();
