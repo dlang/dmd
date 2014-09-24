@@ -3,9 +3,9 @@
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+// Distributed under the Boost Software License, Version 1.0.
+// http://www.boost.org/LICENSE_1_0.txt
+// https://github.com/D-Programming-Language/dmd/blob/master/src/backend/cv8.c
 
 // This module generates the .debug$S and .debug$T sections for Win64,
 // which are the MS-Coff symbolic debug info and type debug info sections.

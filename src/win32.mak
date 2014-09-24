@@ -4,9 +4,9 @@
 # All Rights Reserved
 # written by Walter Bright
 # http://www.digitalmars.com
-# License for redistribution is by either the Artistic License
-# in artistic.txt, or the GNU General Public License in gnu.txt.
-# See the included readme.txt for details.
+# Distributed under the Boost Software License, Version 1.0.
+# http://www.boost.org/LICENSE_1_0.txt
+# https://github.com/D-Programming-Language/dmd/blob/master/src/win32.mak
 #
 # Dependencies:
 #
@@ -322,9 +322,8 @@ install-copy:
 	$(CP) $(TKSRC)              $(INSTALL)\src\dmd\tk
 	$(CP) $(BACKSRC)            $(INSTALL)\src\dmd\backend
 	$(CP) $(MAKEFILES)          $(INSTALL)\src\dmd
-	$(CP) gpl.txt               $(INSTALL)\src\dmd\gpl.txt
 	$(CP) readme.txt            $(INSTALL)\src\dmd\readme.txt
-	$(CP) artistic.txt          $(INSTALL)\src\dmd\artistic.txt
+	$(CP) boostlicense.txt      $(INSTALL)\src\dmd\boostlicense.txt
 	$(CP) backendlicense.txt    $(INSTALL)\src\dmd\backendlicense.txt
 
 install-clean:
