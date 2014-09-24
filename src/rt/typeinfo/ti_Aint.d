@@ -16,6 +16,8 @@ module rt.typeinfo.ti_Aint;
 private import core.stdc.string;
 private import rt.util.hash;
 
+extern (C) void[] _adSort(void[] a, TypeInfo ti);
+
 // int[]
 
 class TypeInfo_Ai : TypeInfo_Array
@@ -70,11 +72,11 @@ class TypeInfo_Ai : TypeInfo_Array
 unittest
 {
     int[][] a = [[5,3,8,7], [2,5,3,8,7]];
-    a.sort;
+    _adSort(*cast(void[]*)&a, typeid(a[0]));
     assert(a == [[2,5,3,8,7], [5,3,8,7]]);
 
     a = [[5,3,8,7], [5,3,8]];
-    a.sort;
+    _adSort(*cast(void[]*)&a, typeid(a[0]));
     assert(a == [[5,3,8], [5,3,8,7]]);
 }
 

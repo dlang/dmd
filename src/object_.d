@@ -2135,10 +2135,9 @@ pure /*nothrow @@@BUG5555@@@*/ unittest
     }
 
     assert(c.length == 3);
-    c.sort;
-    assert(c[0] == 1);
-    assert(c[1] == 2);
-    assert(c[2] == 3);
+    assert(c[0] == 1 || c[1] == 1 || c[2] == 1);
+    assert(c[0] == 2 || c[1] == 2 || c[2] == 2);
+    assert(c[0] == 3 || c[1] == 3 || c[2] == 3);
 }
 
 pure nothrow unittest
