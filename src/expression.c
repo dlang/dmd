@@ -1488,24 +1488,20 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                     case Tsarray:
                     case Tarray:
                     {
-                        // Create a static array variable v of type arg->type
-                        Identifier *id = Lexer::uniqueId("__arrayArg");
-                        Type *t = new TypeSArray(((TypeArray *)tb)->next, new IntegerExp(nargs - i));
-                        t = t->semantic(loc, sc);
-                        VarDeclaration *v = new VarDeclaration(loc, t, id,
-                            (sc->func && sc->func->isSafe()) ? NULL : new VoidInitializer(loc));
-                        v->storage_class |= STCtemp | STCctfe;
-                        v->semantic(sc);
-                        v->parent = sc->parent;
+                        /* Create a static array variable v of type arg->type:
+                         *  T[dim] __arrayArg = [ arguments[i], ..., arguments[nargs-1] ];
+                         *
+                         * The array literal in the initializer of the hidden variable
+                         * is now optimized. See Bugzilla 2356.
+                         */
+                        Type *tbn = ((TypeArray *)tb)->next;
+                        Type *tsa = tbn->sarrayOf(nargs - i);
 
-                        Expression *c = new DeclarationExp(loc, v);
-                        c->type = v->type;
-
-                        for (size_t u = i; u < nargs; u++)
+                        Expressions *elements = new Expressions();
+                        elements->setDim(nargs - i);
+                        for (size_t u = 0; u < elements->dim; u++)
                         {
-                            Expression *a = (*arguments)[u];
-                            TypeArray *ta = (TypeArray *)tb;
-                            (*arguments)[u] = a;
+                            Expression *a = (*arguments)[i + u];
                             if (tret && a->implicitConvTo(tret))
                             {
                                 a = a->implicitCastTo(sc, tret);
@@ -1513,18 +1509,21 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                                 a = toDelegate(a, sc);
                             }
                             else
-                                a = a->implicitCastTo(sc, ta->next);
-                            Expression *e = new VarExp(loc, v);
-                            e = new IndexExp(loc, e, new IntegerExp(u + 1 - nparams));
-                            ConstructExp *ae = new ConstructExp(loc, e, a);
-                            if (c)
-                                c = new CommaExp(loc, c, ae);
-                            else
-                                c = ae;
+                                a = a->implicitCastTo(sc, tbn);
+                            (*elements)[u] = a;
                         }
-                        arg = new VarExp(loc, v);
-                        if (c)
-                            arg = new CommaExp(loc, c, arg);
+                        ArrayLiteralExp *ale = new ArrayLiteralExp(loc, elements);
+                        ale->type = tsa;
+
+                        Identifier *id = Lexer::uniqueId("__arrayArg");
+                        VarDeclaration *v = new VarDeclaration(loc, tsa, id, new ExpInitializer(loc, ale));
+                        v->storage_class |= STCtemp | STCctfe;
+                        v->semantic(sc);
+                        v->parent = sc->parent;
+
+                        Expression *de = new DeclarationExp(loc, v);
+                        Expression *ve = new VarExp(loc, v);
+                        arg = Expression::combine(de, ve);
                         break;
                     }
                     case Tclass:

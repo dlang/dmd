@@ -1555,6 +1555,27 @@ void foo10279(int[][] strs...) @trusted { }
 void bar10279() @safe { foo10279(); }
 
 /***************************************/
+// 13508
+
+struct S13508
+{
+    this(T)(T[] t...) {}
+}
+
+template make13508(T)
+{
+    T make13508(Args...)(Args args)
+    {
+        return T(args);
+    }
+}
+
+void test13508() @safe @nogc
+{
+    S13508 s = make13508!S13508(5);
+}
+
+/***************************************/
 // 10414
 
 void foo10414(void delegate()[] ...) { }
