@@ -29,6 +29,8 @@ private
     alias bool function(Object) CollectHandler;
     __gshared CollectHandler collectHandler = null;
 
+    extern (C) void _d_monitordelete(Object h, bool det);
+
     enum : size_t
     {
         PAGESIZE = 4096,
