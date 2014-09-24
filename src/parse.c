@@ -3147,12 +3147,14 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident,
              */
             case TOKlbracket:
             {   // This is the old C-style post [] syntax.
+                Loc loc = token.loc;
                 TypeNext *ta;
                 nextToken();
                 if (token.value == TOKrbracket)
                 {   // It's a dynamic array
                     ta = new TypeDArray(t);             // []
                     nextToken();
+                    warning(loc, "instead of C-style 'T id[]' syntax, use D-style 'T[]' id syntax");
                 }
                 else if (isDeclaration(&token, 0, TOKrbracket, NULL))
                 {   // It's an associative array
@@ -3161,6 +3163,7 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident,
                     Type *index = parseType();          // [ type ]
                     check(TOKrbracket);
                     ta = new TypeAArray(t, index);
+                    warning(loc, "instead of C-style 'T id[type]' syntax, use D-style 'T[type]' id syntax");
                 }
                 else
                 {
@@ -3168,6 +3171,7 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident,
                     Expression *e = parseAssignExp();   // [ expression ]
                     ta = new TypeSArray(t, e);
                     check(TOKrbracket);
+                    warning(loc, "instead of C-style 'T id[exp]' syntax, use D-style 'T[exp] id' syntax");
                 }
 
                 /* Insert ta into
