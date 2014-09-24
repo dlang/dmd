@@ -854,7 +854,7 @@ Dsymbol *VarDeclaration::syntaxCopy(Dsymbol *s)
 void VarDeclaration::semantic(Scope *sc)
 {
 #if 0
-    printf("VarDeclaration::semantic('%s', parent = '%s')\n", toChars(), sc->parent->toChars());
+    printf("VarDeclaration::semantic('%s', parent = '%s') sem = %d\n", toChars(), sc->parent ? sc->parent->toChars() : NULL, sem);
     printf(" type = %s\n", type ? type->toChars() : "null");
     printf(" stc = x%x\n", sc->stc);
     printf(" storage_class = x%llx\n", storage_class);
@@ -1584,6 +1584,9 @@ Ldtor:
 
 void VarDeclaration::semantic2(Scope *sc)
 {
+    if (sem < SemanticDone && inuse)
+        return;
+
     //printf("VarDeclaration::semantic2('%s')\n", toChars());
         // Inside unions, default to void initializers
     if (!init && sc->inunion && !toParent()->isFuncDeclaration())
