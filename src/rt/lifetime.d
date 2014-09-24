@@ -790,7 +790,7 @@ extern (C) void[] _d_newarrayU(const TypeInfo ti, size_t length) pure nothrow
             mov     EAX,size        ;
             mul     EAX,length      ;
             mov     size,EAX        ;
-            jc      Loverflow       ;
+            jnc     Lcontinue       ;
         }
     }
     else version(D_InlineAsm_X86_64)
@@ -800,24 +800,28 @@ extern (C) void[] _d_newarrayU(const TypeInfo ti, size_t length) pure nothrow
             mov     RAX,size        ;
             mul     RAX,length      ;
             mov     size,RAX        ;
-            jc      Loverflow       ;
+            jnc     Lcontinue       ;
         }
     }
     else
     {
         auto newsize = size * length;
-        if (newsize / length != size)
-            goto Loverflow;
-
-        size = newsize;
+        if (newsize / length == size)
+        {
+            size = newsize;
+            goto Lcontinue;
+        }
     }
+Loverflow:
+    onOutOfMemoryError();
+    assert(0);
+Lcontinue:
 
     // increase the size by the array pad.
     auto pad = __arrayPad(size);
     if (size + pad < size)
         goto Loverflow;
 
-    {
     auto info = GC.qalloc(size + pad, !(ti.next.flags & 1) ? BlkAttr.NO_SCAN | BlkAttr.APPENDABLE : BlkAttr.APPENDABLE);
     debug(PRINTF) printf(" p = %p\n", info.base);
     // update the length of the array
@@ -825,11 +829,6 @@ extern (C) void[] _d_newarrayU(const TypeInfo ti, size_t length) pure nothrow
     auto isshared = typeid(ti) is typeid(TypeInfo_Shared);
     __setArrayAllocLength(info, size, isshared);
     return arrstart[0..length];
-    }
-
-Loverflow:
-    onOutOfMemoryError();
-    assert(0);
 }
 
 /**
