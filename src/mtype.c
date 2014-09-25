@@ -3635,6 +3635,7 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
         static const char *reverseName[2] = { "_adReverseChar", "_adReverseWchar" };
         static FuncDeclaration *reverseFd[2] = { NULL, NULL };
 
+        warning(e->loc, "use std.algorithm.reverse instead of .reverse property");
         int i = n->ty == Twchar;
         if (!reverseFd[i]) {
             Parameters *args = new Parameters;
@@ -3656,6 +3657,7 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
         static const char *sortName[2] = { "_adSortChar", "_adSortWchar" };
         static FuncDeclaration *sortFd[2] = { NULL, NULL };
 
+        warning(e->loc, "use std.algorithm.sort instead of .sort property");
         int i = n->ty == Twchar;
         if (!sortFd[i]) {
             Parameters *args = new Parameters;
@@ -3679,6 +3681,7 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
         Expressions *arguments;
         dinteger_t size = next->size(e->loc);
 
+        warning(e->loc, "use std.algorithm.reverse instead of .reverse property");
         assert(size);
 
         static FuncDeclaration *adReverse_fd = NULL;
@@ -3704,6 +3707,7 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
         Expression *ec;
         Expressions *arguments;
 
+        warning(e->loc, "use std.algorithm.sort instead of .sort property");
         if (!fd) {
             Parameters* args = new Parameters;
             args->push(new Parameter(0, Type::tvoid->arrayOf(), NULL, NULL));
