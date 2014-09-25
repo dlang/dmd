@@ -4468,13 +4468,16 @@ elem *toElem(Expression *e, IRState *irs)
                 // pointer is (ptr + lwr*sz)
                 // Combine as (length pair ptr)
 
-                elem *eptr = array_toPtr(se->e1->type, e);
+                e = array_toPtr(se->e1->type, e);
 
-                elem *elength = el_bin(OPmin, TYsize_t, eupr, elwr2);
-                eptr = el_bin(OPadd, TYnptr, eptr, el_bin(OPmul, TYsize_t, el_copytree(elwr2), el_long(TYsize_t, sz)));
+                elem *eptr = el_same(&e);
+                eptr = el_bin(OPadd, TYnptr, eptr, el_bin(OPmul, TYsize_t, elwr2, el_long(TYsize_t, sz)));
 
                 if (tb->ty == Tarray)
-                    e = el_pair(TYdarray, elength, eptr);
+                {
+                    elem *elength = el_bin(OPmin, TYsize_t, eupr, el_copytree(elwr2));
+                    e = el_combine(e, el_pair(TYdarray, elength, eptr));
+                }
                 else
                 {
                     assert(tb->ty == Tsarray);
