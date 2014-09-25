@@ -3178,6 +3178,50 @@ void test10687()
 }
 
 /************************************************/
+
+void test113()
+{
+    import core.math;
+
+    static void compare(real a, real b)
+    {
+        writefln("compare(%30.30f, %30.30f);", a, b);
+        assert(fabs(a - b) < 128*real.epsilon);
+    }
+
+    static if(__traits(compiles, (){enum real ctval1 = yl2x(3.14, 1);}))
+    {
+        enum real ctval1 = yl2x(3.14, 1);
+        enum real ctval2 = yl2x(2e1500L, 3);
+        enum real ctval3 = yl2x(1, 5);
+
+        real rtval1 = yl2x(3.14, 1);
+        real rtval2 = yl2x(2e1500L, 3);
+        real rtval3 = yl2x(1, 5);
+
+        compare(ctval1, rtval1);
+        compare(ctval2, rtval2);
+        compare(ctval3, rtval3);
+    }
+
+    static if(__traits(compiles, (){enum real ctval4 = yl2xp1(3.14, 1);}))
+    {
+        enum real ctval4 = yl2xp1(3.14, 1);
+        enum real ctval5 = yl2xp1(2e1500L, 3);
+        enum real ctval6 = yl2xp1(1, 5);
+
+        real rtval4 = yl2xp1(3.14, 1);
+        real rtval5 = yl2xp1(2e1500L, 3);
+        real rtval6 = yl2xp1(1, 5);
+
+        compare(ctval4, rtval4);
+        compare(ctval5, rtval5);
+        compare(ctval6, rtval6);
+    }
+}
+
+/************************************************/
+
 int main()
 {
     test1();
@@ -3290,6 +3334,7 @@ int main()
     //test108(); 
     test109();
     test112();
+    test113();
     test6439();
     test6504();
     test8818();

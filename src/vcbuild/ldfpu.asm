@@ -317,6 +317,32 @@ ld_tan PROC
 	ret
 ld_tan ENDP
 
+; void ld_yl2x(long_double *x, long_double *y, long_double *r);
+; rcx: &x
+; rdx: &y
+; r8:  &r
+ld_yl2x PROC
+    fld tbyte ptr [rdx]
+    fld tbyte ptr [rcx]
+    fyl2x
+    fwait
+    fstp tbyte ptr [r8]
+    ret
+ld_yl2x ENDP
+
+; void ld_yl2xp1(long_double *x, long_double *y, long_double *r);
+; rcx: &x
+; rdx: &y
+; r8:  &r
+ld_yl2xp1 PROC
+    fld tbyte ptr [rdx]
+    fld tbyte ptr [rcx]
+    fyl2xp1
+    fwait
+    fstp tbyte ptr [r8]
+    ret
+ld_yl2xp1 ENDP
+
 ; int ld_initfpu(int bits, int mask)
 ; ecx: bits
 ; edx: mask
