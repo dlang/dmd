@@ -13083,18 +13083,18 @@ Expression *CmpExp::semantic(Scope *sc)
             if (altop == TOKerror)
             {
                 const char *s = op == TOKunord ? "false" : "true";
-                warning("floating point operator '%s' always returns %s for non-floating comparisons",
+                deprecation("floating point operator '%s' always returns %s for non-floating comparisons",
                     Token::toChars(op), s);
             }
             else
             {
-                warning("use '%s' for non-floating comparisons rather than floating point operator '%s'",
+                deprecation("use '%s' for non-floating comparisons rather than floating point operator '%s'",
                     Token::toChars(altop), Token::toChars(op));
             }
         }
         else
         {
-            warning("use std.math.isNaN to deal with NaN operands rather than floating point operator '%s'",
+            deprecation("use std.math.isNaN to deal with NaN operands rather than floating point operator '%s'",
                 Token::toChars(op));
         }
     }
