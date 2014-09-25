@@ -13443,11 +13443,10 @@ int CondExp::isLvalue()
 Expression *CondExp::toLvalue(Scope *sc, Expression *ex)
 {
     // convert (econd ? e1 : e2) to *(econd ? &e1 : &e2)
-    PtrExp *e = new PtrExp(loc, this, type);
-    e1 = e1->toLvalue(sc, NULL)->addressOf();
-    e2 = e2->toLvalue(sc, NULL)->addressOf();
-    type = e2->type;
-    return e;
+    CondExp *e = (CondExp *)copy();
+    e->e1 = e1->toLvalue(sc, NULL)->addressOf();
+    e->e2 = e2->toLvalue(sc, NULL)->addressOf();
+    return new PtrExp(loc, e, type);
 }
 
 int CondExp::checkModifiable(Scope *sc, int flag)
