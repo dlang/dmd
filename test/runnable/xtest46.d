@@ -7187,6 +7187,26 @@ void test13476()
     assert(flag13476 == 2);
 }
 
+template Seq8262(T...) { alias T Seq8262; }
+
+void test8262()
+{
+    static struct S
+    {
+        int s;
+        alias Seq8262!s x;
+        alias x this;
+    }
+
+    //writeln(S.init); // from original test case
+
+    // The root of the original problem is that the nested alias this fails to
+    // make S implicitly convertible to S.s.
+    auto s = S(123);
+    static assert(is(typeof(s) : int));
+    assert(s == 123);
+}
+
 /***************************************************/
 
 int main()
@@ -7486,6 +7506,7 @@ int main()
     test13437();
     test13472();
     test13476();
+    test8262();
 
     printf("Success\n");
     return 0;
