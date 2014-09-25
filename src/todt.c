@@ -780,8 +780,8 @@ dt_t **toDtElem(TypeSArray *tsa, dt_t **pdt, Expression *e)
             tnext = tbn->nextOf();
             tbn = tnext->toBasetype();
         }
-        if (!e)                         // if not already supplied
-            e = tnext->defaultInit();   // use default initializer
+        if (!e)                             // if not already supplied
+            e = tsa->defaultInit(Loc());    // use default initializer
         Expression_toDt(e, pdt);
         dt_optimize(*pdt);
         if (e->op == TOKstring)
