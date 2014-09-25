@@ -98,7 +98,7 @@ unittest
     a[8] = 0;
     a[9] = -1;
 
-    a.sort;
+    _adSort(*cast(void[]*)&a, typeid(a[0]));
 
     for (int i = 0; i < a.length - 1; i++)
     {
