@@ -1925,8 +1925,12 @@ EnumDeclaration *Parser::parseEnum()
     if (token.value == TOKcolon)
     {
         nextToken();
+
+        int alt = 0;
+        Loc typeLoc = token.loc;
         memtype = parseBasicType();
-        memtype = parseDeclarator(memtype, NULL, NULL);
+        memtype = parseDeclarator(memtype, &alt, NULL);
+        checkCstyleTypeSyntax(typeLoc, memtype, alt, NULL);
     }
     else
         memtype = NULL;
@@ -2786,7 +2790,7 @@ Dsymbols *Parser::parseImport()
     return decldefs;
 }
 
-Type *Parser::parseType(Identifier **pident, TemplateParameters **tpl)
+Type *Parser::parseType(Identifier **pident, TemplateParameters **ptpl)
 {
     /* Take care of the storage class prefixes that
      * serve as type attributes:
@@ -2838,9 +2842,15 @@ Type *Parser::parseType(Identifier **pident, TemplateParameters **tpl)
         break;
     }
 
+    Loc typeLoc = token.loc;
+
     Type *t;
     t = parseBasicType();
-    t = parseDeclarator(t, pident, tpl);
+
+    int alt = 0;
+    t = parseDeclarator(t, &alt, pident, ptpl);
+    checkCstyleTypeSyntax(typeLoc, t, alt, pident ? *pident : NULL);
+
     t = t->addSTC(stc);
     return t;
 }
@@ -3076,7 +3086,7 @@ Type *Parser::parseBasicType2(Type *t)
     return NULL;
 }
 
-Type *Parser::parseDeclarator(Type *t, Identifier **pident,
+Type *Parser::parseDeclarator(Type *t, int *palt, Identifier **pident,
         TemplateParameters **tpl, StorageClass storage_class, int* pdisable, Expressions **pudas)
 {
     //printf("parseDeclarator(tpl = %p)\n", tpl);
@@ -3095,6 +3105,7 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident,
             break;
 
         case TOKlparen:
+        {
             // like: T (*fp)();
             // like: T ((*fp))();
             if (peekNext() == TOKmul ||
@@ -3105,14 +3116,14 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident,
                  * although the D style would be:
                  *  int[]*[3] ident
                  */
-                deprecation("C-style function pointer and pointer to array syntax is deprecated. Use 'function' to declare function pointers");
+                *palt |= 1;
                 nextToken();
-                ts = parseDeclarator(t, pident);
+                ts = parseDeclarator(t, palt, pident);
                 check(TOKrparen);
                 break;
             }
             ts = t;
-        {
+
             Token *peekt = &token;
             /* Completely disallow C-style things like:
              *   T (a);
@@ -3121,13 +3132,12 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident,
              */
             if (isParameters(&peekt))
             {
-                error("function declaration without return type. "
-                "(Note that constructors are always named 'this')");
+                error("function declaration without return type. (Note that constructors are always named 'this')");
             }
             else
                 error("unexpected ( in declarator");
-        }
             break;
+        }
 
         default:
             ts = t;
@@ -3146,24 +3156,26 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident,
              *   int[] ident
              */
             case TOKlbracket:
-            {   // This is the old C-style post [] syntax.
+            {
+                // This is the old C-style post [] syntax.
                 Loc loc = token.loc;
                 TypeNext *ta;
                 nextToken();
                 if (token.value == TOKrbracket)
-                {   // It's a dynamic array
+                {
+                    // It's a dynamic array
                     ta = new TypeDArray(t);             // []
                     nextToken();
-                    warning(loc, "instead of C-style 'T id[]' syntax, use D-style 'T[]' id syntax");
+                    *palt |= 2;
                 }
                 else if (isDeclaration(&token, 0, TOKrbracket, NULL))
-                {   // It's an associative array
-
+                {
+                    // It's an associative array
                     //printf("it's an associative array\n");
                     Type *index = parseType();          // [ type ]
                     check(TOKrbracket);
                     ta = new TypeAArray(t, index);
-                    warning(loc, "instead of C-style 'T id[type]' syntax, use D-style 'T[type]' id syntax");
+                    *palt |= 2;
                 }
                 else
                 {
@@ -3171,7 +3183,7 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident,
                     Expression *e = parseAssignExp();   // [ expression ]
                     ta = new TypeSArray(t, e);
                     check(TOKrbracket);
-                    warning(loc, "instead of C-style 'T id[exp]' syntax, use D-style 'T[exp] id' syntax");
+                    *palt |= 2;
                 }
 
                 /* Insert ta into
@@ -3593,12 +3605,13 @@ L2:
 
     while (1)
     {
-        loc = token.loc;
         TemplateParameters *tpl = NULL;
         int disable;
+        int alt = 0;
 
+        loc = token.loc;
         ident = NULL;
-        t = parseDeclarator(ts, &ident, &tpl, storage_class, &disable, &udas);
+        t = parseDeclarator(ts, &alt, &ident, &tpl, storage_class, &disable, &udas);
         assert(t);
         if (!tfirst)
             tfirst = t;
@@ -3606,7 +3619,9 @@ L2:
             error("multiple declarations must have the same type, not %s and %s",
                 tfirst->toChars(), t->toChars());
         bool isThis = (t->ty == Tident && ((TypeIdentifier *)t)->ident == Id::This);
-        if (!isThis && !ident)
+        if (ident)
+            checkCstyleTypeSyntax(loc, t, alt, ident);
+        else if (!isThis)
             error("no identifier for declarator %s", t->toChars());
 
         if (tok == TOKtypedef || tok == TOKalias)
@@ -4303,6 +4318,20 @@ void Parser::checkDanglingElse(Loc elseloc)
     {
         warning(elseloc, "else is dangling, add { } after condition at %s", lookingForElse.toChars());
     }
+}
+
+void Parser::checkCstyleTypeSyntax(Loc loc, Type *t, int alt, Identifier *ident)
+{
+    if (!alt)
+        return;
+
+    const char *sp = !ident ? "" : " ";
+    const char *s  = !ident ? "" : ident->toChars();
+    if (alt & 1)    // contains C-style function pointer syntax
+        ::deprecation(loc, "C-style syntax is deprecated. Please use '%s%s%s' instead", t->toChars(), sp, s);
+    else
+        ::warning(loc, "instead of C-style syntax, use D-style syntax '%s%s%s'", t->toChars(), sp, s);
+
 }
 
 /*****************************************
