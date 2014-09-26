@@ -71,6 +71,7 @@ SRCS=\
 	src\gc\gc.d \
 	src\gc\os.d \
 	src\gc\bits.d \
+	src\gc\config.d \
 	src\gc\stats.d \
 	src\gc\proxy.d \
 	\
