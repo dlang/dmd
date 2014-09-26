@@ -3494,7 +3494,7 @@ Dsymbols *Parser::parseDeclarations(bool autodecl, PrefixAttributes *pAttrs, con
             break;
         }
         case TOKtypedef:
-            deprecation("use of typedef is deprecated; use alias instead");
+            error("use alias instead of typedef");
             tok = token.value;
             nextToken();
             break;

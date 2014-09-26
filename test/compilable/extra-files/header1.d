@@ -8,7 +8,7 @@ pragma(msg, "Hello World");
 
 static assert(true, "message");
 
-typedef double mydbl = 10;
+alias double mydbl;
 
 int testmain()
 in

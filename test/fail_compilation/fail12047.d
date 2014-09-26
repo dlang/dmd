@@ -18,4 +18,4 @@ fail_compilation/fail12047.d(21): Error: undefined identifier asdf
 @asdf struct S {}
 @asdf class C {}
 @asdf interface I {}
-@asdf typedef int myint;
+@asdf alias int myint;

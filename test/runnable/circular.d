@@ -9,10 +9,10 @@ import std.c.stdio;
 import imports.circularA;
 
 class bclass {};
-typedef bclass Tclass;
+alias bclass Tclass;
 
 struct bstruct {}
-typedef bstruct Tstruct;
+alias bstruct Tstruct;
 
 
 /************************************/
