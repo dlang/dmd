@@ -565,6 +565,9 @@ int sigsuspend(in sigset_t*);
 int sigwait(in sigset_t*, int*);
 */
 
+nothrow @nogc
+{
+
 version( linux )
 {
     enum SIG_HOLD = cast(sigfn_t2) 1;
@@ -1046,7 +1049,7 @@ else
 {
     static assert(false, "Unsupported platform");
 }
-
+}
 
 //
 // XOpen (XSI)
@@ -1882,6 +1885,9 @@ int sigtimedwait(in sigset_t*, siginfo_t*, in timespec*);
 int sigwaitinfo(in sigset_t*, siginfo_t*);
 */
 
+nothrow:
+@nogc:
+
 version( linux )
 {
     private enum __SIGEV_MAX_SIZE = 64;
@@ -1998,9 +2004,6 @@ else
 int pthread_kill(pthread_t, int);
 int pthread_sigmask(int, in sigset_t*, sigset_t*);
 */
-
-nothrow:
-@nogc:
 
 version( linux )
 {
