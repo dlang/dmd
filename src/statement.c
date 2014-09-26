@@ -692,8 +692,6 @@ int Statement::blockExit(FuncDeclaration *func, bool mustNotThrow)
 
         void visit(AsmStatement *s)
         {
-            if (mustNotThrow)
-                s->error("asm statements are assumed to throw", s->toChars());
             // Assume the worst
             result = BEfallthru | BEthrow | BEreturn | BEgoto | BEhalt;
         }
