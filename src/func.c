@@ -1639,8 +1639,9 @@ void FuncDeclaration::semantic3(Scope *sc)
             {
                 if (storage_class & STCauto)
                     storage_class &= ~STCauto;
-                nrvo_can = 0;
             }
+            if (retStyle(f) != RETstack)
+                nrvo_can = 0;
 
             if (isStaticCtorDeclaration())
             {
