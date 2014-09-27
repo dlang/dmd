@@ -296,9 +296,7 @@ public:
     const char *kind();
 
     void addLocalClass(ClassDeclarations *);
-#if DMD_OBJC
     void addObjcSymbols(ClassDeclarations *classes, ClassDeclarations *categories);
-#endif
 
     // Back end
     void toObjFile(bool multiobj);                       // compile to .obj file
@@ -324,9 +322,7 @@ public:
     bool isCPPinterface();
     bool isCOMinterface();
 
-#if DMD_OBJC
     void addObjcSymbols(ClassDeclarations *classes, ClassDeclarations *categories);
-#endif
 
     void toObjFile(bool multiobj);                       // compile to .obj file
 

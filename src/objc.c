@@ -2039,3 +2039,9 @@ bool Objc_ClassDeclaration::isRootClass()
 {
     return isInterface() && !metaclass && !cdecl->baseClass;
 }
+
+void Objc_ClassDeclaration::addObjcSymbols(ClassDeclarations *classes, ClassDeclarations *categories)
+{
+    if (objc && !extern_ && !meta)
+        classes->push(cdecl);
+}

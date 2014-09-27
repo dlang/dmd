@@ -1385,13 +1385,10 @@ void ClassDeclaration::addLocalClass(ClassDeclarations *aclasses)
     aclasses->push(this);
 }
 
-#if DMD_OBJC
 void ClassDeclaration::addObjcSymbols(ClassDeclarations *classes, ClassDeclarations *categories)
 {
-    if (objc.objc && !objc.extern_ && !objc.meta)
-        classes->push(this);
+    objc.addObjcSymbols(classes, categories);
 }
-#endif
 
 
 /********************************* InterfaceDeclaration ****************************/
@@ -1934,12 +1931,10 @@ bool InterfaceDeclaration::isCPPinterface()
     return cpp;
 }
 
-#if DMD_OBJC
 void InterfaceDeclaration::addObjcSymbols(ClassDeclarations *classes, ClassDeclarations *categories)
 {
     // nothing to do
 }
-#endif
 
 /*******************************************
  */

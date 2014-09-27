@@ -448,6 +448,8 @@ struct Objc_ClassDeclaration
 
     bool isInterface();
     bool isRootClass();
+
+    void addObjcSymbols(ClassDeclarations *classes, ClassDeclarations *categories);
 };
 
 #endif
