@@ -46,19 +46,12 @@ int canThrow(Expression *e, FuncDeclaration *func, bool mustNotThrow)
         bool mustNotThrow;
 
     public:
-#if DMD_OBJC
         int result;
 
         CanThrow(FuncDeclaration *func, bool mustNotThrow)
             : func(func), mustNotThrow(mustNotThrow), result(0)
         {
         }
-#else
-        CanThrow(FuncDeclaration *func, bool mustNotThrow)
-            : func(func), mustNotThrow(mustNotThrow)
-        {
-        }
-#endif
 
         void visit(Expression *)
         {
@@ -66,12 +59,8 @@ int canThrow(Expression *e, FuncDeclaration *func, bool mustNotThrow)
 
         void visit(DeclarationExp *de)
         {
-#if DMD_OBJC
             result |= Dsymbol_canThrow(de->declaration, func, mustNotThrow);
             stop = result == BEthrowany;
-#else
-            stop = (bool)Dsymbol_canThrow(de->declaration, func, mustNotThrow);
-#endif
         }
 
         void visit(CallExp *ce)
@@ -84,20 +73,16 @@ int canThrow(Expression *e, FuncDeclaration *func, bool mustNotThrow)
              * Note that pure functions can throw.
              */
             Type *t = ce->e1->type->toBasetype();
-            bool isNoThrow = false;
             if (ce->f && ce->f == func)
-                isNoThrow = true;
+                ;
             else if (t->ty == Tfunction && ((TypeFunction *)t)->isnothrow)
-                isNoThrow = true;
+                ;
             else if (t->ty == Tdelegate && ((TypeFunction *)((TypeDelegate *)t)->next)->isnothrow)
-                isNoThrow = true;
-#if DMD_OBJC
-            if (t->ty == Tobjcselector && ((TypeFunction *)((TypeObjcSelector *)t)->next)->isnothrow)
-                isNoThrow = true;
-#endif
-            if (!isNoThrow)
+                ;
+            else if (t->ty == Tobjcselector && ((TypeFunction *)((TypeObjcSelector *)t)->next)->isnothrow)
+                ;
+            else
             {
-#if DMD_OBJC
                 int linkage;
 
                 if (t->ty == Tfunction)
@@ -108,7 +93,6 @@ int canThrow(Expression *e, FuncDeclaration *func, bool mustNotThrow)
                     linkage = ((TypeFunction *)((TypeObjcSelector *)t)->next)->linkage;
 
                 result |= linkage == LINKobjc ? BEthrowobjc : BEthrow;
-#endif
 
                 if (mustNotThrow)
                 {
@@ -138,15 +122,11 @@ int canThrow(Expression *e, FuncDeclaration *func, bool mustNotThrow)
                 {
                     if (mustNotThrow)
                         ne->error("constructor %s is not nothrow", ne->member->toChars());
-#if DMD_OBJC
                     if (((TypeFunction *)t)->linkage == LINKobjc)
                         result |= BEthrowobjc;
                     else
                         result |= BEthrow;
                     stop = result == BEthrowany;
-#else
-                    stop = true;
-#endif
                 }
             }
             // regard storage allocation failures as not recoverable
@@ -185,15 +165,11 @@ int canThrow(Expression *e, FuncDeclaration *func, bool mustNotThrow)
             {
                 if (mustNotThrow)
                     ae->error("'%s' is not nothrow", sd->postblit->toPrettyChars());
-#if DMD_OBJC
                 if (((TypeFunction *)sd)->linkage == LINKobjc)
                     result |= BEthrowobjc;
                 else
                     result |= BEthrow;
                 stop = result == BEthrowany;
-#else
-                stop = true;
-#endif
             }
         }
 
@@ -205,11 +181,7 @@ int canThrow(Expression *e, FuncDeclaration *func, bool mustNotThrow)
 
     CanThrow ct(func, mustNotThrow);
     walkPostorder(e, &ct);
-#if DMD_OBJC
     return ct.result;
-#else
-    return ct.stop;
-#endif
 }
 
 /**************************************
@@ -219,9 +191,7 @@ int canThrow(Expression *e, FuncDeclaration *func, bool mustNotThrow)
 
 int Dsymbol_canThrow(Dsymbol *s, FuncDeclaration *func, bool mustNotThrow)
 {
-#if DMD_OBJC
     int result = 0;
-#endif
     AttribDeclaration *ad;
     VarDeclaration *vd;
     TemplateMixin *tm;
@@ -237,14 +207,9 @@ int Dsymbol_canThrow(Dsymbol *s, FuncDeclaration *func, bool mustNotThrow)
             for (size_t i = 0; i < decl->dim; i++)
             {
                 s = (*decl)[i];
-#if DMD_OBJC
                 result |= Dsymbol_canThrow(s, func, mustNotThrow);
                 if (result == BEthrowany)
                     return result;
-#else
-                if (Dsymbol_canThrow(s, func, mustNotThrow))
-                    return true;
-#endif
             }
         }
     }
@@ -253,13 +218,9 @@ int Dsymbol_canThrow(Dsymbol *s, FuncDeclaration *func, bool mustNotThrow)
         s = s->toAlias();
         if (s != vd)
         {
-#if DMD_OBJC
             result |= Dsymbol_canThrow(s, func, mustNotThrow);
             if (result == BEthrowany)
                 return result;
-#else
-            return Dsymbol_canThrow(s, func, mustNotThrow);
-#endif
         }
 
         if (vd->storage_class & STCmanifest)
@@ -271,25 +232,16 @@ int Dsymbol_canThrow(Dsymbol *s, FuncDeclaration *func, bool mustNotThrow)
             if (vd->init)
             {
                 ExpInitializer *ie = vd->init->isExpInitializer();
-#if DMD_OBJC
                 if (ie)
                 {
                     result |= canThrow(ie->exp, func, mustNotThrow);
                     if (result == BEthrowany)
                         return result;
                 }
-#else
-                if (ie && canThrow(ie->exp, func, mustNotThrow))
-                    return true;
-#endif
             }
             if (vd->edtor && !vd->noscope)
             {
-#if DMD_OBJC
                 return result | canThrow(vd->edtor, func, mustNotThrow);
-#else
-                return canThrow(vd->edtor, func, mustNotThrow);
-#endif
             }
         }
     }
@@ -301,14 +253,9 @@ int Dsymbol_canThrow(Dsymbol *s, FuncDeclaration *func, bool mustNotThrow)
             for (size_t i = 0; i < tm->members->dim; i++)
             {
                 Dsymbol *sm = (*tm->members)[i];
-#if DMD_OBJC
                 result |= Dsymbol_canThrow(sm, func, mustNotThrow);
                 if (result == BEthrowany)
                     return result;
-#else
-                if (Dsymbol_canThrow(sm, func, mustNotThrow))
-                    return true;
-#endif
             }
         }
     }
@@ -323,21 +270,12 @@ int Dsymbol_canThrow(Dsymbol *s, FuncDeclaration *func, bool mustNotThrow)
                 if (eo->op == TOKdsymbol)
                 {
                     DsymbolExp *se = (DsymbolExp *)eo;
-#if DMD_OBJC
                     result |= Dsymbol_canThrow(se->s, func, mustNotThrow);
                     if (result == BEthrowany)
                         return result;
-#else
-                    if (Dsymbol_canThrow(se->s, func, mustNotThrow))
-                        return true;
-#endif
                 }
             }
         }
     }
-#if DMD_OBJC
     return result;
-#else
-    return false;
-#endif
 }
