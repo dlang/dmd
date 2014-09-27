@@ -6,6 +6,7 @@
 #include "aggregate.h"
 #include "target.h"
 #include "id.h"
+#include "attrib.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -2040,10 +2041,26 @@ bool Objc_ClassDeclaration::isRootClass()
     return isInterface() && !metaclass && !cdecl->baseClass;
 }
 
+// MARK: addObjcSymbols
+
 void Objc_ClassDeclaration::addObjcSymbols(ClassDeclarations *classes, ClassDeclarations *categories)
 {
     if (objc && !extern_ && !meta)
         classes->push(cdecl);
+}
+
+void objc_AttribDeclaration_addObjcSymbols(AttribDeclaration* self, ClassDeclarations *classes, ClassDeclarations *categories)
+{
+    Dsymbols *d = self->include(NULL, NULL);
+
+    if (d)
+    {
+        for (unsigned i = 0; i < d->dim; i++)
+        {
+            Dsymbol *s = (Dsymbol *)d->data[i];
+            s->addObjcSymbols(classes, categories);
+        }
+    }
 }
 
 TypeTuple * objc_toArgTypesVisit (TypeObjcSelector*)

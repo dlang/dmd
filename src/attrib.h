@@ -54,9 +54,7 @@ public:
     void checkCtorConstInit();
     void addLocalClass(ClassDeclarations *);
     AttribDeclaration *isAttribDeclaration() { return this; }
-#if DMD_OBJC
     void addObjcSymbols(ClassDeclarations *classes, ClassDeclarations *categories);
-#endif
 
     void toObjFile(bool multiobj);                       // compile to .obj file
     void accept(Visitor *v) { v->visit(this); }

@@ -452,6 +452,8 @@ struct Objc_ClassDeclaration
     void addObjcSymbols(ClassDeclarations *classes, ClassDeclarations *categories);
 };
 
+void objc_AttribDeclaration_addObjcSymbols(AttribDeclaration* self, ClassDeclarations *classes, ClassDeclarations *categories);
+
 TypeTuple * objc_toArgTypesVisit (TypeObjcSelector*);
 
 #endif
