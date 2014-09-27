@@ -457,5 +457,6 @@ void objc_AttribDeclaration_addObjcSymbols(AttribDeclaration* self, ClassDeclara
 TypeTuple * objc_toArgTypesVisit (TypeObjcSelector*);
 
 void objc_PragmaDeclaration_semantic_objcTakesStringLiteral(PragmaDeclaration* self, Scope *sc);
+void objc_PragmaDeclaration_semantic_objcSelectorTarget(PragmaDeclaration* self, Scope *sc);
 
 #endif
