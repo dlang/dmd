@@ -2133,3 +2133,34 @@ Lagain_selectortarget:
         }
     }
 }
+
+void objc_PragmaDeclaration_semantic_objcSelector(PragmaDeclaration* self, Scope *sc)
+{
+
+    // This should apply only to a very limited number of struct types in
+    // the Objective-C runtime bindings: objc_object, objc_class.
+
+    if (self->args && self->args->dim != 0)
+        self->error("takes no argument");
+
+    Dsymbols *currdecl = self->decl;
+Lagain_isselector:
+    if (currdecl->dim > 1)
+        self->error("can only apply to one declaration, not %u", currdecl->dim);
+    else if (currdecl->dim == 1)
+    {   Dsymbol *dsym = (Dsymbol *)currdecl->data[0];
+        StructDeclaration *sdecl = dsym->isStructDeclaration();
+        if (sdecl)
+            sdecl->objc.isSelector = true; // represents a selector
+        else
+        {   AttribDeclaration *adecl = dsym->isAttribDeclaration();
+            if (adecl)
+            {   // encountered attrib declaration, search for a class inside
+                currdecl = ((AttribDeclaration *)dsym)->decl;
+                goto Lagain_isselector;
+            }
+            else
+                self->error("can only apply to struct declarations, not %s", dsym->toChars());
+        }
+    }
+}

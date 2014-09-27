@@ -825,10 +825,8 @@ void PragmaDeclaration::semantic(Scope *sc)
 {
     // Should be merged with PragmaStatement
 #if DMD_OBJC
-    bool isObjcSelector = ident == Id::objc_isselector;
     bool isObjcNameOverride = ident == Id::objc_nameoverride;
 #else
-    bool isObjcSelector = false;
     bool isObjcNameOverride = false;
 #endif
     //printf("\tPragmaDeclaration::semantic '%s'\n",toChars());
@@ -940,36 +938,9 @@ void PragmaDeclaration::semantic(Scope *sc)
     {
         objc_PragmaDeclaration_semantic_objcSelectorTarget(this, sc);
     }
-    else if (isObjcSelector)
+    else if (ident == Id::objc_isselector)
     {
-#if DMD_OBJC
-        // This should apply only to a very limited number of struct types in
-        // the Objective-C runtime bindings: objc_object, objc_class.
-
-        if (args && args->dim != 0)
-            error("takes no argument");
-
-        Dsymbols *currdecl = decl;
-    Lagain_isselector:
-        if (currdecl->dim > 1)
-            error("can only apply to one declaration, not %u", currdecl->dim);
-        else if (currdecl->dim == 1)
-        {   Dsymbol *dsym = (Dsymbol *)currdecl->data[0];
-            StructDeclaration *sdecl = dsym->isStructDeclaration();
-            if (sdecl)
-                sdecl->objc.isSelector = true; // represents a selector
-            else
-            {   AttribDeclaration *adecl = dsym->isAttribDeclaration();
-                if (adecl)
-                {   // encountered attrib declaration, search for a class inside
-                    currdecl = ((AttribDeclaration *)dsym)->decl;
-                    goto Lagain_isselector;
-                }
-                else
-                    error("can only apply to struct declarations, not %s", dsym->toChars());
-            }
-        }
-#endif
+        objc_PragmaDeclaration_semantic_objcSelector(this, sc);
     }
     else if (isObjcNameOverride)
     {
