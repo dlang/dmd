@@ -825,12 +825,10 @@ void PragmaDeclaration::semantic(Scope *sc)
 {
     // Should be merged with PragmaStatement
 #if DMD_OBJC
-    bool isObjcTakesStringLiteral = ident == Id::objc_takestringliteral;
     bool isObjcSelectorTarget = ident == Id::objc_selectortarget;
     bool isObjcSelector = ident == Id::objc_isselector;
     bool isObjcNameOverride = ident == Id::objc_nameoverride;
 #else
-    bool isObjcTakesStringLiteral = false;
     bool isObjcSelectorTarget = false;
     bool isObjcSelector = false;
     bool isObjcNameOverride = false;
@@ -936,36 +934,9 @@ void PragmaDeclaration::semantic(Scope *sc)
         goto Lnodecl;
     }
 
-    else if (isObjcTakesStringLiteral)
+    else if (ident == Id::objc_takestringliteral)
     {
-#if DMD_OBJC
-        // This should apply only to a very limited number of classes and
-        // interfaces: ObjcObject, NSObject, and NSString.
-
-        if (args && args->dim != 0)
-            error("takes no argument");
-
-        Dsymbols *currdecl = decl;
-    Lagain_takestringliteral:
-        if (currdecl->dim > 1)
-            error("can only apply to one declaration, not %u", currdecl->dim);
-        else if (currdecl->dim == 1)
-        {   Dsymbol *dsym = (Dsymbol *)currdecl->data[0];
-            ClassDeclaration *cdecl = dsym->isClassDeclaration();
-            if (cdecl)
-                cdecl->objc.takesStringLiteral = true; // set specific name
-            else
-            {   AttribDeclaration *adecl = dsym->isAttribDeclaration();
-                if (adecl)
-                {   // encountered attrib declaration, search for a class inside
-                    currdecl = ((AttribDeclaration *)dsym)->decl;
-                    goto Lagain_takestringliteral;
-                }
-                else
-                    error("can only apply to class or interface declarations, not %s", dsym->toChars());
-            }
-        }
-#endif
+        objc_PragmaDeclaration_semantic_objcTakesStringLiteral(this, sc);
     }
     else if (isObjcSelectorTarget)
     {

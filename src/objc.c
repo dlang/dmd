@@ -2063,7 +2063,42 @@ void objc_AttribDeclaration_addObjcSymbols(AttribDeclaration* self, ClassDeclara
     }
 }
 
+// MARK: toArgTypes
+
 TypeTuple * objc_toArgTypesVisit (TypeObjcSelector*)
 {
     return new TypeTuple();     // pass on the stack for efficiency
+}
+
+// MARK: semantic
+
+void objc_PragmaDeclaration_semantic_objcTakesStringLiteral(PragmaDeclaration* self, Scope *sc)
+{
+    // This should apply only to a very limited number of classes and
+    // interfaces: ObjcObject, NSObject, and NSString.
+
+    if (self->args && self->args->dim != 0)
+        self->error("takes no argument");
+
+    Dsymbols *currdecl = self->decl;
+Lagain_takestringliteral:
+    if (currdecl->dim > 1)
+        self->error("can only apply to one declaration, not %u", currdecl->dim);
+    else if (currdecl->dim == 1)
+    {   Dsymbol *dsym = (Dsymbol *)currdecl->data[0];
+        ClassDeclaration *cdecl = dsym->isClassDeclaration();
+        if (cdecl)
+            cdecl->objc.takesStringLiteral = true; // set specific name
+        else
+        {
+            AttribDeclaration *adecl = dsym->isAttribDeclaration();
+            if (adecl)
+            {   // encountered attrib declaration, search for a class inside
+                currdecl = ((AttribDeclaration *)dsym)->decl;
+                goto Lagain_takestringliteral;
+            }
+            else
+                self->error("can only apply to class or interface declarations, not %s", dsym->toChars());
+        }
+    }
 }
