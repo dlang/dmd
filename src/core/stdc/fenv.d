@@ -211,19 +211,38 @@ else
     static assert( false, "Unsupported platform" );
 }
 
-enum
+version( CRuntime_Microsoft )
 {
-    FE_INVALID      = 1, ///
-    FE_DENORMAL     = 2, /// non-standard
-    FE_DIVBYZERO    = 4, ///
-    FE_OVERFLOW     = 8, ///
-    FE_UNDERFLOW    = 0x10, ///
-    FE_INEXACT      = 0x20, ///
-    FE_ALL_EXCEPT   = 0x3F, ///
-    FE_TONEAREST    = 0, ///
-    FE_UPWARD       = 0x800, ///
-    FE_DOWNWARD     = 0x400, ///
-    FE_TOWARDZERO   = 0xC00, ///
+    enum
+    {
+        FE_INEXACT      = 1, ///
+        FE_UNDERFLOW    = 2, ///
+        FE_OVERFLOW     = 4, ///
+        FE_DIVBYZERO    = 8, ///
+        FE_INVALID      = 0x10, ///
+        FE_ALL_EXCEPT   = 0x1F, ///
+        FE_TONEAREST    = 0, ///
+        FE_UPWARD       = 0x100, ///
+        FE_DOWNWARD     = 0x200, ///
+        FE_TOWARDZERO   = 0x300, ///
+    }
+}
+else
+{
+    enum
+    {
+        FE_INVALID      = 1, ///
+        FE_DENORMAL     = 2, /// non-standard
+        FE_DIVBYZERO    = 4, ///
+        FE_OVERFLOW     = 8, ///
+        FE_UNDERFLOW    = 0x10, ///
+        FE_INEXACT      = 0x20, ///
+        FE_ALL_EXCEPT   = 0x3F, ///
+        FE_TONEAREST    = 0, ///
+        FE_UPWARD       = 0x800, ///
+        FE_DOWNWARD     = 0x400, ///
+        FE_TOWARDZERO   = 0xC00, ///
+    }
 }
 
 version( GNUFP )
@@ -239,7 +258,7 @@ else version( CRuntime_DigitalMars )
 }
 else version( CRuntime_Microsoft )
 {
-    private immutable fenv_t _Fenv0 = {0, 0};
+    private extern __gshared fenv_t _Fenv0;
     ///
     enum FE_DFL_ENV = &_Fenv0;
 }
@@ -273,8 +292,6 @@ else
 }
 
 ///
-int feraiseexcept(int excepts);
-///
 int feclearexcept(int excepts);
 
 ///
@@ -296,5 +313,53 @@ int fesetround(int round);
 int fegetenv(fenv_t* envp);
 ///
 int fesetenv(in fenv_t* envp);
-///
-int feupdateenv(in fenv_t* envp);
+
+// MS define feraiseexcept() and feupdateenv() inline.
+version( CRuntime_Microsoft ) // supported since MSVCRT 12 (VS 2013) only
+{
+    ///
+    int feraiseexcept()(int excepts)
+    {
+        struct Entry
+        {
+            int    exceptVal;
+            double num;
+            double denom;
+        }
+        static __gshared immutable(Entry[5]) table =
+        [ // Raise exception by evaluating num / denom:
+            { FE_INVALID,   0.0,    0.0    },
+            { FE_DIVBYZERO, 1.0,    0.0    },
+            { FE_OVERFLOW,  1e+300, 1e-300 },
+            { FE_UNDERFLOW, 1e-300, 1e+300 },
+            { FE_INEXACT,   2.0,    3.0    }
+        ];
+
+        if ((excepts &= FE_ALL_EXCEPT) == 0)
+            return 0;
+
+        // Raise the exceptions not masked:
+        double ans = void;
+        foreach (i; 0 .. table.length)
+        {
+            if ((excepts & table[i].exceptVal) != 0)
+                ans = table[i].num / table[i].denom;
+        }
+
+        return 0;
+    }
+
+    ///
+    int feupdateenv()(in fenv_t* envp)
+    {
+        int excepts = fetestexcept(FE_ALL_EXCEPT);
+        return (fesetenv(envp) != 0 || feraiseexcept(excepts) != 0 ? 1 : 0);
+    }
+}
+else
+{
+    ///
+    int feraiseexcept(int excepts);
+    ///
+    int feupdateenv(in fenv_t* envp);
+}
