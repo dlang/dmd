@@ -2045,3 +2045,8 @@ void Objc_ClassDeclaration::addObjcSymbols(ClassDeclarations *classes, ClassDecl
     if (objc && !extern_ && !meta)
         classes->push(cdecl);
 }
+
+TypeTuple * objc_toArgTypesVisit (TypeObjcSelector*)
+{
+    return new TypeTuple();     // pass on the stack for efficiency
+}

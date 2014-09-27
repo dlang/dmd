@@ -266,12 +266,10 @@ TypeTuple *toArgTypes(Type *t)
             return t;
         }
 
-#if DMD_OBJC
-        void visit(TypeObjcSelector *)
+        void visit(TypeObjcSelector *tos)
         {
-            result = new TypeTuple();     // pass on the stack for efficiency
+            result = objc_toArgTypesVisit(tos);
         }
-#endif
 
         void visit(TypeDArray *)
         {
