@@ -2164,3 +2164,43 @@ Lagain_isselector:
         }
     }
 }
+
+void objc_PragmaDeclaration_semantic_objcNameOverride(PragmaDeclaration* self, Scope *sc)
+{
+    if (!self->args || self->args->dim != 1)
+        self->error("string expected for name override");
+
+    Expression *e = (Expression *)self->args->data[0];
+
+    e = e->semantic(sc);
+    e = e->optimize(WANTvalue);
+    if (e->op == TOKstring)
+    {
+        StringExp *se = (StringExp *)e;
+        const char *name = (const char *)se->string;
+
+        Dsymbols *currdecl = self->decl;
+    Lagain_nameoverride:
+        if (currdecl->dim > 1)
+            self->error("can only apply to one declaration, not %u", currdecl->dim);
+        else if (currdecl->dim == 1)
+        {
+            Dsymbol *dsym = (Dsymbol *)currdecl->data[0];
+            ClassDeclaration *cdecl = dsym->isClassDeclaration();
+            if (cdecl)
+                cdecl->objc.ident = Lexer::idPool(name); // set specific name
+            else
+            {   AttribDeclaration *adecl = dsym->isAttribDeclaration();
+                if (adecl)
+                {   // encountered attrib declaration, search for a class inside
+                    currdecl = ((AttribDeclaration *)dsym)->decl;
+                    goto Lagain_nameoverride;
+                }
+                else
+                    self->error("can only apply to class or interface declarations, not %s", dsym->toChars());
+            }
+        }
+    }
+    else
+        self->error("string expected for name override, not '%s'", e->toChars());
+}

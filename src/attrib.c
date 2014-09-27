@@ -824,11 +824,7 @@ static unsigned setMangleOverride(Dsymbol *s, char *sym)
 void PragmaDeclaration::semantic(Scope *sc)
 {
     // Should be merged with PragmaStatement
-#if DMD_OBJC
-    bool isObjcNameOverride = ident == Id::objc_nameoverride;
-#else
-    bool isObjcNameOverride = false;
-#endif
+
     //printf("\tPragmaDeclaration::semantic '%s'\n",toChars());
     if (ident == Id::msg)
     {
@@ -942,45 +938,9 @@ void PragmaDeclaration::semantic(Scope *sc)
     {
         objc_PragmaDeclaration_semantic_objcSelector(this, sc);
     }
-    else if (isObjcNameOverride)
+    else if (ident == Id::objc_nameoverride)
     {
-#if DMD_OBJC
-        if (!args || args->dim != 1)
-            error("string expected for name override");
-
-        Expression *e = (Expression *)args->data[0];
-
-        e = e->semantic(sc);
-        e = e->optimize(WANTvalue);
-        if (e->op == TOKstring)
-        {
-            StringExp *se = (StringExp *)e;
-            const char *name = (const char *)se->string;
-
-            Dsymbols *currdecl = decl;
-        Lagain_nameoverride:
-            if (currdecl->dim > 1)
-                error("can only apply to one declaration, not %u", currdecl->dim);
-            else if (currdecl->dim == 1)
-            {   Dsymbol *dsym = (Dsymbol *)currdecl->data[0];
-                ClassDeclaration *cdecl = dsym->isClassDeclaration();
-                if (cdecl)
-                    cdecl->objc.ident = Lexer::idPool(name); // set specific name
-                else
-                {   AttribDeclaration *adecl = dsym->isAttribDeclaration();
-                    if (adecl)
-                    {   // encountered attrib declaration, search for a class inside
-                        currdecl = ((AttribDeclaration *)dsym)->decl;
-                        goto Lagain_nameoverride;
-                    }
-                    else
-                        error("can only apply to class or interface declarations, not %s", dsym->toChars());
-                }
-            }
-        }
-        else
-            error("string expected for name override, not '%s'", e->toChars());
-#endif
+        objc_PragmaDeclaration_semantic_objcNameOverride(this, sc);
     }
 
     else if (ident == Id::mangle)
