@@ -399,6 +399,8 @@ public:
 
 /***************************************/
 
+class ObjcSelectorExp;
+
 enum ControlFlow
 {
     CFnone,
@@ -470,5 +472,6 @@ void objc_PragmaDeclaration_semantic_objcSelector(PragmaDeclaration* self, Scope
 void objc_PragmaDeclaration_semantic_objcNameOverride(PragmaDeclaration* self, Scope *sc);
 
 ControlFlow objc_implicitConvTo_visit_StringExp_Tclass(Type *t, MATCH *result);
+MATCH objc_implicitConvTo_visit_ObjcSelectorExp(Type *&t, ObjcSelectorExp *e);
 
 #endif

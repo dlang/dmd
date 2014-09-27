@@ -1025,27 +1025,10 @@ MATCH implicitConvTo(Expression *e, Type *t)
             visit((Expression *)e);
         }
 
-#if DMD_OBJC
         void visit(ObjcSelectorExp *e)
         {
-#if 0
-            printf("ObjcSelectorExp::implicitConvTo(this=%s, type=%s, t=%s)\n",
-                   e->toChars(), e->type->toChars(), t->toChars());
-#endif
-            result = e->type->implicitConvTo(t);
-            if (result != MATCHnomatch)
-                return;
-
-            // Look for pointers to functions where the functions are overloaded.
-            t = t->toBasetype();
-            if (e->type->ty == Tobjcselector && e->type->nextOf()->ty == Tfunction &&
-                t->ty == Tobjcselector && t->nextOf()->ty == Tfunction)
-            {
-                if (e->func && e->func->overloadExactMatch(t->nextOf()))
-                    result = MATCHexact;
-            }
+            result = objc_implicitConvTo_visit_ObjcSelectorExp(t, e);
         }
-#endif
 
         void visit(OrExp *e)
         {

@@ -2003,6 +2003,8 @@ int TypeObjcSelector::hasPointers()
 
 /***************************************/
 
+#include "expression.h"
+
 Objc_StructDeclaration::Objc_StructDeclaration()
 {
     selectorTarget = false;
@@ -2216,4 +2218,26 @@ ControlFlow objc_implicitConvTo_visit_StringExp_Tclass(Type *t, MATCH *result)
         return CFreturn;
     }
     return CFbreak;
+}
+
+MATCH objc_implicitConvTo_visit_ObjcSelectorExp(Type *&t, ObjcSelectorExp *e)
+{
+#if 0
+    printf("ObjcSelectorExp::implicitConvTo(this=%s, type=%s, t=%s)\n",
+           e->toChars(), e->type->toChars(), t->toChars());
+#endif
+    MATCH result = e->type->implicitConvTo(t);
+    if (result != MATCHnomatch)
+        return result;
+
+    // Look for pointers to functions where the functions are overloaded.
+    t = t->toBasetype();
+    if (e->type->ty == Tobjcselector && e->type->nextOf()->ty == Tfunction &&
+        t->ty == Tobjcselector && t->nextOf()->ty == Tfunction)
+    {
+        if (e->func && e->func->overloadExactMatch(t->nextOf()))
+            result = MATCHexact;
+    }
+
+    return result;
 }
