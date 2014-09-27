@@ -2204,3 +2204,16 @@ void objc_PragmaDeclaration_semantic_objcNameOverride(PragmaDeclaration* self, S
     else
         self->error("string expected for name override, not '%s'", e->toChars());
 }
+
+// MARK: implicitConvTo
+
+ControlFlow objc_implicitConvTo_visit_StringExp_Tclass(Type *t, MATCH *result)
+{
+    ClassDeclaration *cd = ((TypeClass *)t)->sym;
+    if (cd->objc.objc && (cd->objc.takesStringLiteral))
+    {
+        *result = MATCHexact;
+        return CFreturn;
+    }
+    return CFbreak;
+}

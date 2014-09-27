@@ -646,15 +646,11 @@ MATCH implicitConvTo(Expression *e, Type *t)
 
                         case Tclass:
                         {
-#if DMD_OBJC
-                            ClassDeclaration *cd = ((TypeClass *)t)->sym;
-                            if (cd->objc.objc && (cd->objc.takesStringLiteral))
-                            {
-                                result = MATCHexact;
+                            ControlFlow cf = objc_implicitConvTo_visit_StringExp_Tclass(t, &result);
+                            if (cf == CFreturn)
                                 return;
-                            }
-                            break;
-#endif
+                            else if (cf == CFbreak)
+                                break;
                         }
                     }
                 }
