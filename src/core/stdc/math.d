@@ -215,65 +215,152 @@ version( CRuntime_DigitalMars )
     }
   }
 }
-else version( CRuntime_Microsoft )
+else version( CRuntime_Microsoft ) // fully supported since MSVCRT 12 (VS 2013) only
 {
+  version( all ) // legacy stuff to be removed in the future
+  {
     enum
     {
-        ///
         _FPCLASS_SNAN = 1,
-        ///
         _FPCLASS_QNAN = 2,
-        ///
         _FPCLASS_NINF = 4,
-        ///
         _FPCLASS_NN   = 8,
-        ///
         _FPCLASS_ND   = 0x10,
-        ///
         _FPCLASS_NZ   = 0x20,
-        ///
         _FPCLASS_PZ   = 0x40,
-        ///
         _FPCLASS_PD   = 0x80,
-        ///
         _FPCLASS_PN   = 0x100,
-        ///
         _FPCLASS_PINF = 0x200,
     }
 
-    ///
+    //deprecated("Please use the standard C99 function copysignf() instead.")
     float _copysignf(float x, float s);
-    ///
+
+    //deprecated("_chgsignf(x) is a non-standard MS extension. Please consider using -x instead.")
     float _chgsignf(float x);
-    ///
-    int _finitef(float x);
-    ///
-    version(Win64) int _isnanf(float x); // not available in Win32?
-    ///
-    int _fpclassf(float x);
 
-    ///
+    version( Win64 ) // not available in 32-bit runtimes
+    {
+        //deprecated("Please use the standard C99 function isfinite() instead.")
+        int _finitef(float x);
+
+        //deprecated("Please use the standard C99 function isnan() instead.")
+        int _isnanf(float x);
+
+        //deprecated("Please use the standard C99 function fpclassify() instead.")
+        int _fpclassf(float x);
+    }
+
+    //deprecated("Please use the standard C99 function copysign() instead.")
     double _copysign(double x, double s);
-    ///
-    double _chgsign(double x);
-    ///
-    int _finite(double x);
-    ///
-    int _isnan(double x);
-    ///
-    int _fpclass(double x);
 
-    extern(D)
+    //deprecated("_chgsign(x) is a non-standard MS extension. Please consider using -x instead.")
+    double _chgsign(double x);
+
+    //deprecated("Please use the standard C99 function isfinite() instead.")
+    int _finite(double x);
+
+    //deprecated("Please use the standard C99 function isnan() instead.")
+    int _isnan(double x);
+
+    //deprecated("Please use the standard C99 function fpclassify() instead.")
+    int _fpclass(double x);
+  }
+
+    enum
     {
         ///
-        version(Win64) int isnan(float x)          { return _isnanf(x);   }
+        FP_SUBNORMAL = -2,
         ///
-        version(Win32) int isnan(float x)          { return _isnan(x);   }
+        FP_NORMAL    = -1,
         ///
-        int isnan(double x)         { return _isnan(x);   }
+        FP_ZERO      =  0,
         ///
-        int isnan(real x)           { return _isnan(x);   }
+        FP_INFINITE  =  1,
+        ///
+        FP_NAN       =  2,
     }
+
+    private short _fdclass(float x);
+    private short _dclass(double x);
+
+    private int _fdsign(float x);
+    private int _dsign(double x);
+
+  extern(D)
+  {
+    //int fpclassify(real-floating x);
+    ///
+    int fpclassify(float x)     { return _fdclass(x); }
+    ///
+    int fpclassify(double x)    { return _dclass(x);  }
+    ///
+    int fpclassify(real x)
+    {
+        static if (real.sizeof == double.sizeof)
+            return _dclass(cast(double) x);
+        else
+            static assert(false, "fpclassify(real) not supported by MS C runtime");
+    }
+
+    //int isfinite(real-floating x);
+    ///
+    int isfinite(float x)       { return fpclassify(x) <= 0; }
+    ///
+    int isfinite(double x)      { return fpclassify(x) <= 0; }
+    ///
+    int isfinite(real x)        { return fpclassify(x) <= 0; }
+
+    //int isinf(real-floating x);
+    ///
+    int isinf(float x)          { return fpclassify(x) == FP_INFINITE; }
+    ///
+    int isinf(double x)         { return fpclassify(x) == FP_INFINITE; }
+    ///
+    int isinf(real x)           { return fpclassify(x) == FP_INFINITE; }
+
+    //int isnan(real-floating x);
+    version( none ) // requires MSVCRT 12+ (VS 2013)
+    {
+        ///
+        int isnan(float x)      { return fpclassify(x) == FP_NAN; }
+        ///
+        int isnan(double x)     { return fpclassify(x) == FP_NAN; }
+        ///
+        int isnan(real x)       { return fpclassify(x) == FP_NAN; }
+    }
+    else // for backward compatibility with older runtimes
+    {
+        ///
+        int isnan(float x)      { version(Win64) return _isnanf(x); else return _isnan(cast(double) x); }
+        ///
+        int isnan(double x)     { return _isnan(x); }
+        ///
+        int isnan(real x)       { return _isnan(cast(double) x); }
+    }
+
+    //int isnormal(real-floating x);
+    ///
+    int isnormal(float x)       { return fpclassify(x) == FP_NORMAL; }
+    ///
+    int isnormal(double x)      { return fpclassify(x) == FP_NORMAL; }
+    ///
+    int isnormal(real x)        { return fpclassify(x) == FP_NORMAL; }
+
+    //int signbit(real-floating x);
+    ///
+    int signbit(float x)     { return _fdsign(x); }
+    ///
+    int signbit(double x)    { return _dsign(x);  }
+    ///
+    int signbit(real x)
+    {
+        static if (real.sizeof == double.sizeof)
+            return _dsign(cast(double) x);
+        else
+            return (cast(short*)&(x))[4] & 0x8000;
+    }
+  }
 }
 else version( linux )
 {
