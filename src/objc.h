@@ -402,10 +402,12 @@ public:
 struct Objc_StructDeclaration
 {
     // true if valid target for a selector
-    bool isSelectorTarget;
+    bool selectorTarget;
 
     // true if represents a selector
     bool isSelector;
+
+    Objc_StructDeclaration();
 };
 
 struct Objc_ClassDeclaration

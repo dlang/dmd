@@ -650,10 +650,6 @@ StructDeclaration::StructDeclaration(Loc loc, Identifier *id)
     ispod = ISPODfwd;
     arg1type = NULL;
     arg2type = NULL;
-#if DMD_OBJC
-    selectortarget = 0;
-    isselector = 0;
-#endif
 
     // For forward references
     type = new TypeStruct(this);

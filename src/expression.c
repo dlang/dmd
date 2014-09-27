@@ -8654,7 +8654,7 @@ Lagain:
                 {   TypePointer *tp = (TypePointer *)argument0->type;
                     if (tp->next->ty == Tstruct)
                     {   TypeStruct *ts = (TypeStruct *)tp->next;
-                        if (ts && ts->sym && ts->sym->selectortarget)
+                        if (ts && ts->sym && ts->sym->objc.selectorTarget)
                             validtarget = 1; // struct with objc_selectortarget pragma applied
                     }
                 }

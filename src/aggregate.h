@@ -159,10 +159,7 @@ public:
 
     structalign_t alignment;    // alignment applied outside of the struct
     StructPOD ispod;            // if struct is POD
-#if DMD_OBJC
-    int selectortarget;         // !=0 if valid target for a selector
-    int isselector;             // !=0 if represents a selector
-#endif
+    Objc_StructDeclaration objc;
 
     // For 64 bit Efl function call/return ABI
     Type *arg1type;

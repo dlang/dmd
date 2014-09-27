@@ -2002,6 +2002,12 @@ int TypeObjcSelector::hasPointers()
 
 /***************************************/
 
+Objc_StructDeclaration::Objc_StructDeclaration()
+{
+    selectorTarget = false;
+    isSelector = false;
+}
+
 Objc_ClassDeclaration::Objc_ClassDeclaration(ClassDeclaration* cdecl, const char* msg)
 {
     this->cdecl = cdecl;

@@ -994,7 +994,7 @@ void PragmaDeclaration::semantic(Scope *sc)
         {   Dsymbol *dsym = (Dsymbol *)currdecl->data[0];
             StructDeclaration *sdecl = dsym->isStructDeclaration();
             if (sdecl)
-                sdecl->selectortarget = 1; // set valid selector target
+                sdecl->objc.selectorTarget = true; // set valid selector target
             else
             {   AttribDeclaration *adecl = dsym->isAttribDeclaration();
                 if (adecl)
@@ -1025,7 +1025,7 @@ void PragmaDeclaration::semantic(Scope *sc)
         {   Dsymbol *dsym = (Dsymbol *)currdecl->data[0];
             StructDeclaration *sdecl = dsym->isStructDeclaration();
             if (sdecl)
-                sdecl->isselector = 1; // represents a selector
+                sdecl->objc.isSelector = true; // represents a selector
             else
             {   AttribDeclaration *adecl = dsym->isAttribDeclaration();
                 if (adecl)

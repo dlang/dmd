@@ -1654,7 +1654,7 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
             // selector type
             if (tb->ty == Tobjcselector ||
                 (tb->ty == Tpointer && tb->nextOf()->toBasetype()->ty == Tstruct &&
-                 ((TypeStruct *)tb->nextOf()->toBasetype())->sym->isselector))
+                 ((TypeStruct *)tb->nextOf()->toBasetype())->sym->objc.isSelector))
             {
                 if (e->committed)
                 {
