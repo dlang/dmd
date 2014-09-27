@@ -8,6 +8,7 @@ module rt.util.container.treap;
 
 static import common = rt.util.container.common;
 import rt.util.random;
+import rt.qsort;
 
 struct Treap(E)
 {
@@ -277,7 +278,7 @@ initialLoop:
                 continue initialLoop;
             }
     }
-    data.sort;
+    _adSort(*cast(void[]*)&data, typeid(data[0]));
     assert(treap == data);
     assert(treap.valid());
 
