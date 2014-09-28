@@ -590,47 +590,7 @@ Lancestorsdone:
 
     if (sizeok == SIZEOKnone)
     {
-#if DMD_OBJC
-        if (objc.objc && !objc.meta && !objc.metaclass)
-        {
-            if (!objc.ident)
-                objc.ident = ident;
-
-            if (objc.ident == Id::Protocol)
-            {   if (ObjcProtocolOfExp::protocolClassDecl == NULL)
-                ObjcProtocolOfExp::protocolClassDecl = this;
-            else if (ObjcProtocolOfExp::protocolClassDecl != this)
-            {   error("duplicate definition of Objective-C class '%s'", Id::Protocol);
-            }
-            }
-
-            // Create meta class derived from all our base's metaclass
-            BaseClasses *metabases = new BaseClasses();
-            for (size_t i = 0; i < baseclasses->dim; ++i)
-            {   ClassDeclaration *basecd = ((BaseClass *)baseclasses->data[i])->base;
-                assert(basecd);
-                if (basecd->objc.objc)
-                {   assert(basecd->objc.metaclass);
-                    assert(basecd->objc.metaclass->objc.meta);
-                    assert(basecd->objc.metaclass->type->ty == Tclass);
-                    assert(((TypeClass *)basecd->objc.metaclass->type)->sym == basecd->objc.metaclass);
-                    BaseClass *metabase = new BaseClass(basecd->objc.metaclass->type, PROTpublic);
-                    metabase->base = basecd->objc.metaclass;
-                    metabases->push(metabase);
-                }
-                else
-                    error("base class and interfaces for an Objective-C class must be extern (Objective-C)");
-            }
-            objc.metaclass = new ClassDeclaration(loc, Id::Class, metabases);
-            objc.metaclass->storage_class |= STCstatic;
-            objc.metaclass->objc.objc = true;
-            objc.metaclass->objc.meta = true;
-            objc.metaclass->objc.extern_ = objc.extern_;
-            objc.metaclass->objc.ident = objc.ident;
-            members->push(objc.metaclass);
-            objc.metaclass->addMember(sc, this, 1);
-        }
-#endif
+        objc_ClassDeclaration_semantic_SIZEOKnone(this, sc);
 
         // initialize vtbl
         if (baseClass)

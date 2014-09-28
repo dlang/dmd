@@ -2217,6 +2217,51 @@ void objc_ClassDeclaration_semantic_PASSinit_LINKobjc(ClassDeclaration *self)
 #endif
 }
 
+void objc_ClassDeclaration_semantic_SIZEOKnone(ClassDeclaration *self, Scope *sc)
+{
+    if (self->objc.objc && !self->objc.meta && !self->objc.metaclass)
+    {
+        if (!self->objc.ident)
+            self->objc.ident = self->ident;
+
+        if (self->objc.ident == Id::Protocol)
+        {
+            if (ObjcProtocolOfExp::protocolClassDecl == NULL)
+                ObjcProtocolOfExp::protocolClassDecl = self;
+            else if (ObjcProtocolOfExp::protocolClassDecl != self)
+                self->error("duplicate definition of Objective-C class '%s'", Id::Protocol);
+        }
+
+        // Create meta class derived from all our base's metaclass
+        BaseClasses *metabases = new BaseClasses();
+        for (size_t i = 0; i < self->baseclasses->dim; ++i)
+        {
+            ClassDeclaration *basecd = ((BaseClass *)self->baseclasses->data[i])->base;
+            assert(basecd);
+            if (basecd->objc.objc)
+            {
+                assert(basecd->objc.metaclass);
+                assert(basecd->objc.metaclass->objc.meta);
+                assert(basecd->objc.metaclass->type->ty == Tclass);
+                assert(((TypeClass *)basecd->objc.metaclass->type)->sym == basecd->objc.metaclass);
+                BaseClass *metabase = new BaseClass(basecd->objc.metaclass->type, PROTpublic);
+                metabase->base = basecd->objc.metaclass;
+                metabases->push(metabase);
+            }
+            else
+                self->error("base class and interfaces for an Objective-C class must be extern (Objective-C)");
+        }
+        self->objc.metaclass = new ClassDeclaration(self->loc, Id::Class, metabases);
+        self->objc.metaclass->storage_class |= STCstatic;
+        self->objc.metaclass->objc.objc = true;
+        self->objc.metaclass->objc.meta = true;
+        self->objc.metaclass->objc.extern_ = self->objc.extern_;
+        self->objc.metaclass->objc.ident = self->objc.ident;
+        self->members->push(self->objc.metaclass);
+        self->objc.metaclass->addMember(sc, self, 1);
+    }
+}
+
 // MARK: implicitConvTo
 
 ControlFlow objc_implicitConvTo_visit_StringExp_Tclass(Type *t, MATCH *result)
