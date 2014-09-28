@@ -2364,6 +2364,26 @@ void objc_ClassDeclaration_semantic_invariant(ClassDeclaration *self, Scope *sc2
     }
 }
 
+void objc_InterfaceDeclaration_semantic_objcExtern(InterfaceDeclaration *self, Scope *sc)
+{
+    if (sc->linkage == LINKobjc)
+    {
+#if DMD_OBJC
+        self->objc.objc = true;
+        // In the abscense of a better solution, classes with Objective-C linkage
+        // are only a declaration. A class that derives from one with Objective-C
+        // linkage but which does not have Objective-C linkage itself will
+        // generate a definition in the object file.
+        self->objc.extern_ = true; // this one is only a declaration
+
+        if (!self->objc.ident)
+            self->objc.ident = self->ident;
+#else
+        self->error("Objective-C interfaces not supported");
+#endif
+    }
+}
+
 // MARK: implicitConvTo
 
 ControlFlow objc_implicitConvTo_visit_StringExp_Tclass(Type *t, MATCH *result)

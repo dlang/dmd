@@ -476,6 +476,8 @@ void objc_ClassDeclaration_semantic_SIZEOKnone(ClassDeclaration *self, Scope *sc
 void objc_ClassDeclaration_semantic_staticInitializers(ClassDeclaration *self, Scope *sc2, size_t members_dim);
 void objc_ClassDeclaration_semantic_invariant(ClassDeclaration *self, Scope *sc2);
 
+void objc_InterfaceDeclaration_semantic_objcExtern(InterfaceDeclaration *self, Scope *sc);
+
 ControlFlow objc_implicitConvTo_visit_StringExp_Tclass(Type *t, MATCH *result);
 MATCH objc_implicitConvTo_visit_ObjcSelectorExp(Type *&t, ObjcSelectorExp *e);
 

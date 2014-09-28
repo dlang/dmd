@@ -1360,22 +1360,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
         if (!baseclasses->dim && sc->linkage == LINKcpp)
             cpp = true;
-        if (sc->linkage == LINKobjc)
-        {
-#if DMD_OBJC
-            objc.objc = true;
-            // In the abscense of a better solution, classes with Objective-C linkage
-            // are only a declaration. A class that derives from one with Objective-C
-            // linkage but which does not have Objective-C linkage itself will
-            // generate a definition in the object file.
-            objc.extern_ = true; // this one is only a declaration
-
-            if (!objc.ident)
-                objc.ident = ident;
-#else
-            error("Objective-C interfaces not supported");
-#endif
-        }
+        objc_InterfaceDeclaration_semantic_objcExtern(this, sc);
 
         // Check for errors, handle forward references
         for (size_t i = 0; i < baseclasses->dim; )
