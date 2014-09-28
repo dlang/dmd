@@ -473,6 +473,7 @@ void objc_PragmaDeclaration_semantic_objcNameOverride(PragmaDeclaration* self, S
 
 void objc_ClassDeclaration_semantic_PASSinit_LINKobjc(ClassDeclaration *self);
 void objc_ClassDeclaration_semantic_SIZEOKnone(ClassDeclaration *self, Scope *sc);
+void objc_ClassDeclaration_semantic_staticInitializers(ClassDeclaration *self, Scope *sc2, size_t members_dim);
 
 ControlFlow objc_implicitConvTo_visit_StringExp_Tclass(Type *t, MATCH *result);
 MATCH objc_implicitConvTo_visit_ObjcSelectorExp(Type *&t, ObjcSelectorExp *e);

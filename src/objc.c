@@ -2004,6 +2004,8 @@ int TypeObjcSelector::hasPointers()
 /***************************************/
 
 #include "expression.h"
+#include "init.h"
+#include "statement.h"
 
 Objc_StructDeclaration::Objc_StructDeclaration()
 {
@@ -2259,6 +2261,73 @@ void objc_ClassDeclaration_semantic_SIZEOKnone(ClassDeclaration *self, Scope *sc
         self->objc.metaclass->objc.ident = self->objc.ident;
         self->members->push(self->objc.metaclass);
         self->objc.metaclass->addMember(sc, self, 1);
+    }
+}
+
+void objc_ClassDeclaration_semantic_staticInitializers(ClassDeclaration *self, Scope *sc2, size_t members_dim)
+{
+    if (self->objc.objc && !self->objc.extern_ && !self->objc.meta)
+    {
+        // Look for static initializers to create initializing function if needed
+        Expression *inite = NULL;
+        for (size_t i = 0; i < members_dim; i++)
+        {
+            VarDeclaration *vd = ((Dsymbol *)self->members->data[i])->isVarDeclaration();
+            if (vd && vd->toParent() == self &&
+                ((vd->init && !vd->init->isVoidInitializer()) && (vd->init || !vd->getType()->isZeroInit())))
+            {
+                Expression *thise = new ThisExp(vd->loc);
+                thise->type = self->type;
+                Expression *ie = vd->init->toExpression();
+                if (!ie)
+                    ie = vd->type->defaultInit(self->loc);
+                if (!ie)
+                    continue; // skip
+                Expression *ve = new DotVarExp(vd->loc, thise, vd);
+                ve->type = vd->type;
+                Expression *e = new AssignExp(vd->loc, ve, ie);
+                e->op = TOKblit;
+                e->type = ve->type;
+                inite = inite ? new CommaExp(self->loc, inite, e) : e;
+            }
+        }
+
+        TypeFunction *tf = new TypeFunction(new Parameters, self->type, 0, LINKd);
+        FuncDeclaration *initfd = self->findFunc(Id::_dobjc_preinit, tf);
+
+        if (inite)
+        {
+            // we have static initializers, need to create any '_dobjc_preinit' instance
+            // method to handle them.
+            FuncDeclaration *newinitfd = new FuncDeclaration(self->loc, self->loc, Id::_dobjc_preinit, STCundefined, tf);
+            Expression *retvale;
+            if (initfd)
+            {
+                // call _dobjc_preinit in superclass
+                retvale = new CallExp(self->loc, new DotIdExp(self->loc, new SuperExp(self->loc), Id::_dobjc_preinit));
+                retvale->type = self->type;
+            }
+            else
+            {
+                // no _dobjc_preinit to call in superclass, just return this
+                retvale = new ThisExp(self->loc);
+                retvale->type = self->type;
+            }
+            newinitfd->fbody = new ReturnStatement(self->loc, new CommaExp(self->loc, inite, retvale));
+            self->members->push(newinitfd);
+            newinitfd->addMember(sc2, self, 1);
+            newinitfd->semantic(sc2);
+
+            // replace initfd for next step
+            initfd = newinitfd;
+        }
+
+        if (initfd)
+        {
+            // replace alloc functions with stubs ending with a call to _dobjc_preinit
+            // this is done by the backend glue in objc.c, we just need to set a flag
+            self->objc.hasPreinit = true;
+        }
     }
 }
 

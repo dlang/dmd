@@ -777,65 +777,10 @@ Lancestorsdone:
 
     inv = buildInv(this, sc2);
 
+    objc_ClassDeclaration_semantic_staticInitializers(this, sc2, members_dim);
 #if DMD_OBJC
 	if (objc.objc && !objc.extern_ && !objc.meta)
-	{	// Look for static initializers to create initializing function if needed
-		Expression *inite = NULL;
-		for (size_t i = 0; i < members_dim; i++)
-		{
-			VarDeclaration *vd = ((Dsymbol *)members->data[i])->isVarDeclaration();
-			if (vd && vd->toParent() == this &&
-				((vd->init && !vd->init->isVoidInitializer()) && (vd->init || !vd->getType()->isZeroInit())))
-			{
-				Expression *thise = new ThisExp(vd->loc);
-				thise->type = type;
-				Expression *ie = vd->init->toExpression();
-				if (!ie)
-					ie = vd->type->defaultInit(loc);
-				if (!ie)
-					continue; // skip
-				Expression *ve = new DotVarExp(vd->loc, thise, vd);
-				ve->type = vd->type;
-				Expression *e = new AssignExp(vd->loc, ve, ie);
-				e->op = TOKblit;
-				e->type = ve->type;
-				inite = inite ? new CommaExp(loc, inite, e) : e;
-			}
-		}
-
-		TypeFunction *tf = new TypeFunction(new Parameters, type, 0, LINKd);
-		FuncDeclaration *initfd = findFunc(Id::_dobjc_preinit, tf);
-
-		if (inite)
-		{   // we have static initializers, need to create any '_dobjc_preinit' instance
-			// method to handle them.
-			FuncDeclaration *newinitfd = new FuncDeclaration(loc, loc, Id::_dobjc_preinit, STCundefined, tf);
-			Expression *retvale;
-			if (initfd)
-			{	// call _dobjc_preinit in superclass
-				retvale = new CallExp(loc, new DotIdExp(loc, new SuperExp(loc), Id::_dobjc_preinit));
-				retvale->type = type;
-			}
-			else
-			{	// no _dobjc_preinit to call in superclass, just return this
-				retvale = new ThisExp(loc);
-				retvale->type = type;
-			}
-			newinitfd->fbody = new ReturnStatement(loc, new CommaExp(loc, inite, retvale));
-			members->push(newinitfd);
-			newinitfd->addMember(sc2, this, 1);
-			newinitfd->semantic(sc2);
-
-			// replace initfd for next step
-			initfd = newinitfd;
-		}
-
-		if (initfd)
-		{	// replace alloc functions with stubs ending with a call to _dobjc_preinit
-            // this is done by the backend glue in objc.c, we just need to set a flag
-            objc.hasPreinit = true;
-		}
-
+	{
         // invariant for Objective-C class is handled by adding a _dobjc_invariant
         // dynamic method calling the invariant function and then the parent's
         // _dobjc_invariant if applicable.
