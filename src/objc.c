@@ -2331,3 +2331,51 @@ ControlFlow objc_castTo_visit_DelegateExp_Tobjcselector(Type *t, Expression *&re
 
     return CFnone;
 }
+
+ControlFlow objc_castTo_visit_ObjcSelectorExp(Type *t, Expression *&result, ObjcSelectorExp *e)
+{
+#if 0
+    printf("ObjcSelectorExp::castTo(this=%s, type=%s, t=%s)\n",
+           e->toChars(), e->type->toChars(), t->toChars());
+#endif
+    static const char msg[] = "cannot form selector due to covariant return type";
+
+    Type *tb = t->toBasetype();
+    Type *typeb = e->type->toBasetype();
+    if (tb != typeb)
+    {
+        // Look for delegates to functions where the functions are overloaded.
+        if (typeb->ty == Tobjcselector && typeb->nextOf()->ty == Tfunction &&
+            tb->ty == Tobjcselector && tb->nextOf()->ty == Tfunction)
+        {
+            if (e->func)
+            {
+                FuncDeclaration *f = e->func->overloadExactMatch(tb->nextOf());
+                if (f)
+                {
+                    int offset;
+                    if (f->tintro && f->tintro->nextOf()->isBaseOf(f->type->nextOf(), &offset) && offset)
+                        e->error("%s", msg);
+
+                    result = new ObjcSelectorExp(e->loc, f);
+                    result->type = t;
+                    return CFreturn;
+                }
+                if (e->func->tintro)
+                    e->error("%s", msg);
+            }
+        }
+        return CFvisit;
+    }
+    else
+    {
+        int offset;
+
+        if (e->func && e->func->tintro && e->func->tintro->nextOf()->isBaseOf(e->func->type->nextOf(), &offset) && offset)
+            e->error("%s", msg);
+        result = e->copy();
+        result->type = t;
+    }
+
+    return CFnone;
+}
