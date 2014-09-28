@@ -2331,6 +2331,39 @@ void objc_ClassDeclaration_semantic_staticInitializers(ClassDeclaration *self, S
     }
 }
 
+void objc_ClassDeclaration_semantic_invariant(ClassDeclaration *self, Scope *sc2)
+{
+    if (self->objc.objc && !self->objc.extern_ && !self->objc.meta)
+    {
+        // invariant for Objective-C class is handled by adding a _dobjc_invariant
+        // dynamic method calling the invariant function and then the parent's
+        // _dobjc_invariant if applicable.
+        if (self->invs.dim > 0)
+        {
+            Loc iloc = self->inv->loc;
+            TypeFunction *invtf = new TypeFunction(new Parameters, Type::tvoid, 0, LINKobjc);
+            FuncDeclaration *invfd = self->findFunc(Id::_dobjc_invariant, invtf);
+
+            // create dynamic dispatch handler for invariant
+            FuncDeclaration *newinvfd = new FuncDeclaration(iloc, iloc, Id::_dobjc_invariant, STCundefined, invtf);
+            if (self->baseClass && self->baseClass->inv)
+                newinvfd->storage_class |= STCoverride;
+
+            Expression *e;
+            e = new DsymbolExp(iloc, self->inv);
+            e = new CallExp(iloc, e);
+            if (invfd)
+            {   // call super's _dobjc_invariant
+                e = new CommaExp(iloc, e, new CallExp(iloc, new DotIdExp(iloc, new SuperExp(iloc), Id::_dobjc_invariant)));
+            }
+            newinvfd->fbody = new ExpStatement(iloc, e);
+            self->members->push(newinvfd);
+            newinvfd->addMember(sc2, self, 1);
+            newinvfd->semantic(sc2);
+        }
+    }
+}
+
 // MARK: implicitConvTo
 
 ControlFlow objc_implicitConvTo_visit_StringExp_Tclass(Type *t, MATCH *result)
