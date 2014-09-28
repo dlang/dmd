@@ -409,7 +409,7 @@ else version( Posix )
         }
         body
         {
-            void op(void* sp)
+            void op(void* sp) nothrow
             {
                 // NOTE: Since registers are being pushed and popped from the
                 //       stack, any other stack data used by this function should
@@ -1815,12 +1815,12 @@ unittest
 
 version( CoreDdoc )
 {
-    /** 
-     * Instruct the thread module, when initialized, to use a different set of 
+    /**
+     * Instruct the thread module, when initialized, to use a different set of
      * signals besides SIGUSR1 and SIGUSR2 for suspension and resumption of threads.
      * This function should be called at most once, prior to thread_init().
      * This function is Posix-only.
-     */  
+     */
     extern (C) void thread_setGCSignals(int suspendSignalNo, int resumeSignalNo)
     {
     }
@@ -1831,7 +1831,7 @@ else version( Posix )
     __gshared int resumeSignalNumber;
 
     extern (C) void thread_setGCSignals(int suspendSignalNo, int resumeSignalNo)
-    in 
+    in
     {
         assert(suspendSignalNumber == 0);
         assert(resumeSignalNumber  == 0);
@@ -1873,7 +1873,7 @@ extern (C) void thread_init()
         if( suspendSignalNumber == 0 )
         {
             suspendSignalNumber = SIGUSR1;
-        } 
+        }
 
         if( resumeSignalNumber == 0 )
         {
@@ -2222,12 +2222,12 @@ version (PPC64) version = ExternStackShell;
 
 version (ExternStackShell)
 {
-    extern(D) public void callWithStackShell(scope void delegate(void* sp) fn) nothrow;
+    extern(D) public void callWithStackShell(scope void delegate(void* sp) nothrow fn) nothrow;
 }
 else
 {
     // Calls the given delegate, passing the current thread's stack pointer to it.
-    private void callWithStackShell(scope void delegate(void* sp) fn) nothrow
+    private void callWithStackShell(scope void delegate(void* sp) nothrow fn) nothrow
     in
     {
         assert(fn);
