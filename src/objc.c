@@ -2207,6 +2207,16 @@ void objc_PragmaDeclaration_semantic_objcNameOverride(PragmaDeclaration* self, S
         self->error("string expected for name override, not '%s'", e->toChars());
 }
 
+void objc_ClassDeclaration_semantic_PASSinit_LINKobjc(ClassDeclaration *self)
+{
+#if DMD_OBJC
+    self->objc.objc = true;
+    self->objc.extern_ = true;
+#else
+    self->error("Objective-C classes not supported");
+#endif
+}
+
 // MARK: implicitConvTo
 
 ControlFlow objc_implicitConvTo_visit_StringExp_Tclass(Type *t, MATCH *result)

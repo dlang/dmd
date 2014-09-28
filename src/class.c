@@ -324,14 +324,7 @@ void ClassDeclaration::semantic(Scope *sc)
         if (sc->linkage == LINKcpp)
             cpp = true;
         if (sc->linkage == LINKobjc)
-        {
-#if DMD_OBJC
-            objc.objc = true;
-            objc.extern_ = true;
-#else
-            error("Objective-C classes not supported");
-#endif
-        }
+            objc_ClassDeclaration_semantic_PASSinit_LINKobjc(this);
     }
     else if (symtab)
     {
