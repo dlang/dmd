@@ -506,17 +506,10 @@ void ClassDeclaration::semantic(Scope *sc)
         }
         doAncestorsSemantic = SemanticDone;
 
-#if DMD_OBJC
-        bool isObjcBaseClass = objc.objc || (baseClass && baseClass->objc.objc);
-#else
-        bool isObjcBaseClass = false;
-#endif
-        if (isObjcBaseClass)
+        if (objc.objc || (baseClass && baseClass->objc.objc))
         {
-#if DMD_OBJC
             // Objective-C classes do not inherit from Object
             objc.objc = true;
-#endif
         }
 
         else if (!baseClass && ident != Id::Object && !cpp) // If no base class, and this is not an Object, use Object as base class
@@ -709,11 +702,6 @@ Lancestorsdone:
     sc2->stc &= STCsafe | STCtrusted | STCsystem;
     sc2->parent = this;
     sc2->inunion = 0;
-#if DMD_OBJC
-    bool isObjc = objc.objc;
-#else
-    bool isObjc = false;
-#endif
     if (isCOMclass())
     {
         if (global.params.isWindows)
@@ -727,7 +715,7 @@ Lancestorsdone:
         }
     }
 
-    else if (isObjc)
+    else if (objc.objc)
     {
         sc2->linkage = LINKobjc;
     }
@@ -745,7 +733,7 @@ Lancestorsdone:
             structsize = (structsize + alignsize - 1) & ~(alignsize - 1);
     }
 
-    else if (isObjc)
+    else if (objc.objc)
     {
         structsize = 0; // no hidden member for an Objective-C class
     }
@@ -760,10 +748,8 @@ Lancestorsdone:
     }
     size_t members_dim = members->dim;
     sizeok = SIZEOKnone;
-#if DMD_OBJC
     if (objc.metaclass)
         objc.metaclass->members = new Dsymbols();
-#endif
 
     /* Set scope so if there are forward references, we still might be able to
      * resolve individual members like enums.
@@ -817,10 +803,8 @@ Lancestorsdone:
         fields.setDim(0);
         structsize = 0;
         alignsize = 0;
-#if DMD_OBJC
         if (objc.metaclass)
             objc.metaclass->members = NULL;
-#endif
 
         sc2->pop();
 
@@ -1378,10 +1362,8 @@ const char *ClassDeclaration::kind()
 
 void ClassDeclaration::addLocalClass(ClassDeclarations *aclasses)
 {
-#if DMD_OBJC
     if (objc.objc)
         return;
-#endif
     aclasses->push(this);
 }
 
@@ -1737,16 +1719,11 @@ Lancestorsdone:
     sc2->stc &= STCsafe | STCtrusted | STCsystem;
     sc2->parent = this;
     sc2->inunion = 0;
-#if DMD_OBJC
-    bool isObjCinterface = this->objc.isInterface();
-#else
-    bool isObjCinterface = false;
-#endif
     if (com)
         sc2->linkage = LINKwindows;
     else if (cpp)
         sc2->linkage = LINKcpp;
-    else if (isObjCinterface)
+    else if (this->objc.isInterface())
         sc->linkage = LINKobjc;
     sc2->protection = Prot(PROTpublic);
     sc2->explicitProtection = 0;
@@ -1756,10 +1733,8 @@ Lancestorsdone:
     structsize = Target::ptrsize * 2;
     inuse++;
 
-#if DMD_OBJC
     if (objc.metaclass)
         objc.metaclass->members = new Dsymbols();
-#endif
 
     /* Set scope so if there are forward references, we still might be able to
      * resolve individual members like enums.
@@ -1826,14 +1801,13 @@ Lancestorsdone:
 
 bool InterfaceDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
 {
-#if DMD_OBJC
     if (poffset && objc.objc && cd->objc.objc)
-    {   // Objective-C interfaces inside Objective-C classes have no offset.
+    {
+        // Objective-C interfaces inside Objective-C classes have no offset.
         // Set offset to zero then set poffset to null to avoid it being changed.
         *poffset = 0;
         poffset = NULL;
     }
-#endif
 
     //printf("%s.InterfaceDeclaration::isBaseOf(cd = '%s')\n", toChars(), cd->toChars());
     assert(!baseClass);
@@ -1873,14 +1847,13 @@ bool InterfaceDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
 bool InterfaceDeclaration::isBaseOf(BaseClass *bc, int *poffset)
 {
     //printf("%s.InterfaceDeclaration::isBaseOf(bc = '%s')\n", toChars(), bc->base->toChars());
-#if DMD_OBJC
     if (poffset && objc.objc && bc->base && bc->base->objc.objc)
-    {   // Objective-C interfaces inside Objective-C classes have no offset.
+    {
+        // Objective-C interfaces inside Objective-C classes have no offset.
         // Set offset to zero then set poffset to null to avoid it being changed.
         *poffset = 0;
         poffset = NULL;
     }
-#endif
     for (size_t j = 0; j < bc->baseInterfaces_dim; j++)
     {
         BaseClass *b = &bc->baseInterfaces[j];
