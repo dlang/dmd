@@ -2292,3 +2292,19 @@ ControlFlow objc_castTo_visit_StringExp_isSelector(Type *t, Expression *&result,
     }
     return CFnone;
 }
+
+ControlFlow objc_castTo_visit_SymOffExp_Tobjcselector(Scope *sc, Expression *&result, SymOffExp *e, FuncDeclaration *f)
+{
+    if (f->objcSelector && f->linkage == LINKobjc && f->needThis())
+    {
+        result = new ObjcSelectorExp(e->loc, f);
+        result = result->semantic(sc);
+    }
+    else
+    {
+        e->error("function %s has no selector", f->toChars());
+        result = new ErrorExp();
+    }
+
+    return CFreturn;
+}

@@ -2091,20 +2091,8 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
 
                     else if (tb->ty == Tobjcselector)
                     {
-#if DMD_OBJC
-                        if (f->objcSelector && f->linkage == LINKobjc && f->needThis())
-                        {
-                            result = new ObjcSelectorExp(e->loc, f);
-                            result = result->semantic(sc);
+                        if (objc_castTo_visit_SymOffExp_Tobjcselector(sc, result, e, f) == CFreturn)
                             return;
-                        }
-                        else
-                        {
-                            e->error("function %s has no selector", f->toChars());
-                            result = new ErrorExp();
-                            return;
-                        }
-#endif
                     }
 
                     else
