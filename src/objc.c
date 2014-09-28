@@ -2270,3 +2270,25 @@ ControlFlow objc_castTo_visit_StringExp_Tclass(Scope *sc, Type *t, Expression *&
     }
     return CFnone;
 }
+
+ControlFlow objc_castTo_visit_StringExp_isSelector(Type *t, Expression *&result, StringExp *e, Type *tb)
+{
+    // Either a typed selector or a pointer to a struct designated as a
+    // selector type
+    if (tb->ty == Tobjcselector ||
+        (tb->ty == Tpointer && tb->nextOf()->toBasetype()->ty == Tstruct &&
+         ((TypeStruct *)tb->nextOf()->toBasetype())->sym->objc.isSelector))
+    {
+        if (e->committed)
+        {
+            e->error("cannot convert string literal to Objective-C selector because of explicit character type");
+            result = new ErrorExp();
+            return CFreturn;
+        }
+        Expression *ose = new ObjcSelectorExp(e->loc, (char *)e->string);
+        ose->type = t;
+        result = ose;
+        return CFreturn;
+    }
+    return CFnone;
+}

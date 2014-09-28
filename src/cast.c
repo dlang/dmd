@@ -1592,26 +1592,9 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
             if (objc_castTo_visit_StringExp_Tclass(sc, t, result, e, tb) == CFreturn)
                 return;
 
-#if DMD_OBJC
-            // Either a typed selector or a pointer to a struct designated as a
-            // selector type
-            if (tb->ty == Tobjcselector ||
-                (tb->ty == Tpointer && tb->nextOf()->toBasetype()->ty == Tstruct &&
-                 ((TypeStruct *)tb->nextOf()->toBasetype())->sym->objc.isSelector))
-            {
-                if (e->committed)
-                {
-                    e->error("cannot convert string literal to Objective-C selector because of explicit character type");
-                    result = new ErrorExp();
-                    return;
-                }
-                Expression *ose = new ObjcSelectorExp(e->loc, (char *)e->string);
-                ose->type = t;
-                result = ose;
+            if (objc_castTo_visit_StringExp_isSelector(t, result, e, tb) == CFreturn)
                 return;
-            }
 
-#endif
             Type *typeb = e->type->toBasetype();
             if (typeb->equals(tb))
             {

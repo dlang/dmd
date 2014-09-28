@@ -475,5 +475,6 @@ ControlFlow objc_implicitConvTo_visit_StringExp_Tclass(Type *t, MATCH *result);
 MATCH objc_implicitConvTo_visit_ObjcSelectorExp(Type *&t, ObjcSelectorExp *e);
 
 ControlFlow objc_castTo_visit_StringExp_Tclass(Scope *sc, Type *t, Expression *&result, StringExp *e, Type *tb);
+ControlFlow objc_castTo_visit_StringExp_isSelector(Type *t, Expression *&result, StringExp *e, Type *tb);
 
 #endif
