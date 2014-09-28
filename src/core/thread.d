@@ -292,7 +292,7 @@ else version( Posix )
             obj.m_main.tstack = obj.m_main.bstack;
             obj.m_tlsgcdata = rt_tlsgc_init();
 
-            obj.m_isRunning = true;
+            atomicStore!(MemoryOrder.raw)(obj.m_isRunning, true);
             Thread.setThis( obj );
             //Thread.add( obj );
             scope( exit )
@@ -301,7 +301,7 @@ else version( Posix )
                 //       removed or a double-removal could occur between this
                 //       function and thread_suspendAll.
                 Thread.remove( obj );
-                obj.m_isRunning = false;
+                atomicStore!(MemoryOrder.raw)(obj.m_isRunning,false);
             }
             Thread.add( &obj.m_main );
 
@@ -314,7 +314,7 @@ else version( Posix )
                 //       not running and let thread_suspendAll remove it from
                 //       the thread list.  This is safer and is consistent
                 //       with the Windows thread code.
-                obj.m_isRunning = false;
+                atomicStore!(MemoryOrder.raw)(obj.m_isRunning,false);
             }
 
             // NOTE: Using void to skip the initialization here relies on
@@ -684,8 +684,8 @@ class Thread
                 // NOTE: This is also set to true by thread_entryPoint, but set it
                 //       here as well so the calling thread will see the isRunning
                 //       state immediately.
-                m_isRunning = true;
-                scope( failure ) m_isRunning = false;
+                atomicStore!(MemoryOrder.raw)(m_isRunning, true);
+                scope( failure ) atomicStore!(MemoryOrder.raw)(m_isRunning, false);
 
                 version (Shared)
                 {
@@ -873,10 +873,7 @@ class Thread
         }
         else version( Posix )
         {
-            // NOTE: It should be safe to access this value without
-            //       memory barriers because word-tearing and such
-            //       really isn't an issue for boolean values.
-            return m_isRunning;
+            return atomicLoad(m_isRunning);
         }
     }
 
@@ -916,6 +913,9 @@ class Thread
     /**
      * Gets the scheduling priority for the associated thread.
      *
+     * Note: Getting the priority of a thread that already terminated
+     * might return the default priority.
+     *
      * Returns:
      *  The scheduling priority of this thread.
      */
@@ -930,8 +930,12 @@ class Thread
             int         policy;
             sched_param param;
 
-            if( pthread_getschedparam( m_addr, &policy, &param ) )
-                throw new ThreadException( "Unable to get thread priority" );
+            if (auto err = pthread_getschedparam(m_addr, &policy, &param))
+            {
+                // ignore error if thread is not running => Bugzilla 8960
+                if (!atomicLoad(m_isRunning)) return PRIORITY_DEFAULT;
+                throw new ThreadException("Unable to get thread priority");
+            }
             return param.sched_priority;
         }
     }
@@ -939,6 +943,9 @@ class Thread
 
     /**
      * Sets the scheduling priority for the associated thread.
+     *
+     * Note: Setting the priority of a thread that already terminated
+     * might have no effect.
      *
      * Params:
      *  val = The new scheduling priority of this thread.
@@ -984,10 +991,14 @@ class Thread
         }
         else version( Posix )
         {
-            static if( __traits( compiles, pthread_setschedprio ) )
+            static if(__traits(compiles, pthread_setschedprio))
             {
-                if( pthread_setschedprio( m_addr, val ) )
-                    throw new ThreadException( "Unable to set thread priority" );
+                if (auto err = pthread_setschedprio(m_addr, val))
+                {
+                    // ignore error if thread is not running => Bugzilla 8960
+                    if (!atomicLoad(m_isRunning)) return;
+                    throw new ThreadException("Unable to set thread priority");
+                }
             }
             else
             {
@@ -996,11 +1007,19 @@ class Thread
                 int         policy;
                 sched_param param;
 
-                if( pthread_getschedparam( m_addr, &policy, &param ) )
-                    throw new ThreadException( "Unable to set thread priority" );
+                if (auto err = pthread_getschedparam(m_addr, &policy, &param))
+                {
+                    // ignore error if thread is not running => Bugzilla 8960
+                    if (!atomicLoad(m_isRunning)) return;
+                    throw new ThreadException("Unable to set thread priority");
+                }
                 param.sched_priority = val;
-                if( pthread_setschedparam( m_addr, policy, &param ) )
-                    throw new ThreadException( "Unable to set thread priority" );
+                if (auto err = pthread_setschedparam(m_addr, policy, &param))
+                {
+                    // ignore error if thread is not running => Bugzilla 8960
+                    if (!atomicLoad(m_isRunning)) return;
+                    throw new ThreadException("Unable to set thread priority");
+                }
             }
         }
     }
@@ -1018,6 +1037,18 @@ class Thread
         assert(thr.priority == PRIORITY_MIN);
         thr.priority = PRIORITY_MAX;
         assert(thr.priority == PRIORITY_MAX);
+    }
+
+    unittest // Bugzilla 8960
+    {
+        import core.sync.semaphore;
+
+        auto thr = new Thread({});
+        thr.start();
+        Thread.sleep(1.msecs);       // wait a little so the thread likely has finished
+        thr.priority = PRIORITY_MAX; // setting priority doesn't cause error
+        auto prio = thr.priority;    // getting priority doesn't cause error
+        assert(prio >= PRIORITY_MIN && prio <= PRIORITY_MAX);
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -1392,7 +1423,7 @@ private:
     size_t              m_sz;
     version( Posix )
     {
-        bool            m_isRunning;
+        shared bool     m_isRunning;
     }
     bool                m_isDaemon;
     bool                m_isInCriticalRegion;
@@ -1989,7 +2020,7 @@ extern (C) Thread thread_attachThis()
         thisContext.bstack = getStackBottom();
         thisContext.tstack = thisContext.bstack;
 
-        thisThread.m_isRunning = true;
+        atomicStore!(MemoryOrder.raw)(thisThread.m_isRunning, true);
     }
     thisThread.m_isDaemon = true;
     thisThread.m_tlsgcdata = rt_tlsgc_init();
