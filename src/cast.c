@@ -1588,30 +1588,11 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                 visit((Expression *)e);
                 return;
             }
-#if DMD_OBJC
-            if (tb->ty == Tclass)
-            {
-                // convert to Objective-C NSString literal
 
-                if (e->type->ty != Tclass) // not already converted to a string literal
-                {
-                    if (((TypeClass *)tb)->sym->objc.objc &&
-                        ((TypeClass *)tb)->sym->objc.takesStringLiteral)
-                    {
-                        if (e->committed)
-                        {
-                            e->error("cannot convert string literal to NSString because of explicit character type");
-                            result = new ErrorExp();
-                            return;
-                        }
-                        e->type = t;
-                        e->semantic(sc);
-                    }
-                }
-                result = e;
+            if (objc_castTo_visit_StringExp_Tclass(sc, t, result, e, tb) == CFreturn)
                 return;
-            }
 
+#if DMD_OBJC
             // Either a typed selector or a pointer to a struct designated as a
             // selector type
             if (tb->ty == Tobjcselector ||

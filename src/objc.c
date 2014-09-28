@@ -2241,3 +2241,32 @@ MATCH objc_implicitConvTo_visit_ObjcSelectorExp(Type *&t, ObjcSelectorExp *e)
 
     return result;
 }
+
+// MARK: castTo
+
+ControlFlow objc_castTo_visit_StringExp_Tclass(Scope *sc, Type *t, Expression *&result, StringExp *e, Type *tb)
+{
+    if (tb->ty == Tclass)
+    {
+        // convert to Objective-C NSString literal
+
+        if (e->type->ty != Tclass) // not already converted to a string literal
+        {
+            if (((TypeClass *)tb)->sym->objc.objc &&
+                ((TypeClass *)tb)->sym->objc.takesStringLiteral)
+            {
+                if (e->committed)
+                {
+                    e->error("cannot convert string literal to NSString because of explicit character type");
+                    result = new ErrorExp();
+                    return CFreturn;
+                }
+                e->type = t;
+                e->semantic(sc);
+            }
+        }
+        result = e;
+        return CFreturn;
+    }
+    return CFnone;
+}
