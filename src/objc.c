@@ -2308,3 +2308,26 @@ ControlFlow objc_castTo_visit_SymOffExp_Tobjcselector(Scope *sc, Expression *&re
 
     return CFreturn;
 }
+
+ControlFlow objc_castTo_visit_DelegateExp_Tobjcselector(Type *t, Expression *&result, DelegateExp *e, Type *tb)
+{
+    static char msg2[] = "cannot form selector due to covariant return type";
+    if (e->func)
+    {
+        FuncDeclaration *f = e->func->overloadExactMatch(tb->nextOf());
+        if (f)
+        {
+            int offset;
+            if (f->tintro && f->tintro->nextOf()->isBaseOf(f->type->nextOf(), &offset) && offset)
+                e->error("%s", msg2);
+
+            result = new ObjcSelectorExp(e->loc, f);
+            result->type = t;
+            return CFreturn;
+        }
+        if (e->func->tintro)
+            e->error("%s", msg2);
+    }
+
+    return CFnone;
+}
