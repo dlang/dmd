@@ -1815,23 +1815,20 @@ unittest
 
 version( CoreDdoc )
 {
-    /** 
-     * Instruct the thread module, when initialized, to use a different set of 
+    /**
+     * Instruct the thread module, when initialized, to use a different set of
      * signals besides SIGUSR1 and SIGUSR2 for suspension and resumption of threads.
      * This function should be called at most once, prior to thread_init().
      * This function is Posix-only.
-     */  
+     */
     extern (C) void thread_setGCSignals(int suspendSignalNo, int resumeSignalNo)
     {
     }
 }
 else version( Posix )
 {
-    __gshared int suspendSignalNumber;
-    __gshared int resumeSignalNumber;
-
     extern (C) void thread_setGCSignals(int suspendSignalNo, int resumeSignalNo)
-    in 
+    in
     {
         assert(suspendSignalNumber == 0);
         assert(resumeSignalNumber  == 0);
@@ -1848,6 +1845,12 @@ else version( Posix )
         suspendSignalNumber = suspendSignalNo;
         resumeSignalNumber  = resumeSignalNo;
     }
+}
+
+version( Posix )
+{
+    __gshared int suspendSignalNumber;
+    __gshared int resumeSignalNumber;
 }
 
 /**
@@ -1873,7 +1876,7 @@ extern (C) void thread_init()
         if( suspendSignalNumber == 0 )
         {
             suspendSignalNumber = SIGUSR1;
-        } 
+        }
 
         if( resumeSignalNumber == 0 )
         {
