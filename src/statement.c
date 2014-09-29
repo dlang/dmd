@@ -690,12 +690,14 @@ int Statement::blockExit(FuncDeclaration *func, bool mustNotThrow)
             result = s->statement ? s->statement->blockExit(func, mustNotThrow) : BEfallthru;
         }
 
-        void visit(AsmStatement *s)
+        void visit(AsmCompoundStatement *s)
         {
-            if (mustNotThrow)
-                s->error("asm statements are assumed to throw", s->toChars());
+            if (mustNotThrow && !(s->stc & STCnothrow))
+                s->deprecation("asm block is not nothrow");
+
             // Assume the worst
-            result = BEfallthru | BEthrow | BEreturn | BEgoto | BEhalt;
+            result = BEfallthru | BEreturn | BEgoto | BEhalt;
+            if (!(s->stc & STCnothrow)) result |= BEthrow;
         }
 
         void visit(ImportStatement *s)
@@ -5032,6 +5034,51 @@ AsmStatement::AsmStatement(Loc loc, Token *tokens)
 Statement *AsmStatement::syntaxCopy()
 {
     return new AsmStatement(loc, tokens);
+}
+
+/************************ AsmCompoundStatement ***************************************/
+
+AsmCompoundStatement::AsmCompoundStatement(Loc loc, Statements *s, StorageClass stc)
+    : CompoundStatement(loc, s)
+{
+    this->stc = stc;
+}
+
+AsmCompoundStatement *AsmCompoundStatement::syntaxCopy()
+{
+    Statements *a = new Statements();
+    a->setDim(statements->dim);
+    for (size_t i = 0; i < statements->dim; i++)
+    {
+        Statement *s = (*statements)[i];
+        (*a)[i] = s ? s->syntaxCopy() : NULL;
+    }
+    return new AsmCompoundStatement(loc, a, stc);
+}
+
+Statements *AsmCompoundStatement::flatten(Scope *sc)
+{
+    return NULL;
+}
+
+AsmCompoundStatement *AsmCompoundStatement::semantic(Scope *sc)
+{
+    for (size_t i = 0; i < statements->dim; i++)
+    {
+        Statement *s = (*statements)[i];
+        (*statements)[i] = s ? s->semantic(sc) : NULL;
+    }
+
+    assert(sc->func);
+    // use setImpure/setGC when the deprecation cycle is over
+    if (!(stc & STCpure) && sc->func->isPureBypassingInference())
+        deprecation("asm block is not pure");
+    if (!(stc & STCnogc) && sc->func->isNogcBypassingInference())
+        deprecation("asm block is not @nogc");
+    if (!(stc & (STCtrusted|STCsafe)) && sc->func->setUnsafe())
+        error("asm block is not @trusted or @safe");
+
+    return this;
 }
 
 /************************ ImportStatement ***************************************/
