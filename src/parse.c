@@ -5392,7 +5392,7 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
                 }
                 break;
             }
-            s = new CompoundStatement(loc, statements);
+            s = new AsmCompoundStatement(loc, statements, stc);
             nextToken();
             break;
         }

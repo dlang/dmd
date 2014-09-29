@@ -747,6 +747,20 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
+// a complete asm {} block
+class AsmCompoundStatement : public CompoundStatement
+{
+public:
+    StorageClass stc; // postfix attributes like nothrow/pure/@trusted
+
+    AsmCompoundStatement(Loc loc, Statements *s, StorageClass stc);
+    AsmCompoundStatement *syntaxCopy();
+    AsmCompoundStatement *semantic(Scope *sc);
+    Statements *flatten(Scope *sc);
+
+    void accept(Visitor *v) { v->visit(this); }
+};
+
 class ImportStatement : public Statement
 {
 public:

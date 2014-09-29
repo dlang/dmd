@@ -1776,24 +1776,26 @@ void FuncDeclaration::semantic3(Scope *sc)
             }
             else if (!hasReturnExp && f->next->ty != Tvoid)
                 error("has no return statement, but is expected to return a value of type %s", f->next->toChars());
-            else if (hasReturnExp & 8)               // if inline asm
-            {
-                flags &= ~FUNCFLAGnothrowInprocess;
-            }
             else
             {
                 // Check for errors related to 'nothrow'.
                 unsigned int nothrowErrors = global.errors;
                 int blockexit = fbody->blockExit(this, f->isnothrow);
-                if (f->isnothrow && (global.errors != nothrowErrors) )
-                    ::error(loc, "%s '%s' is nothrow yet may throw", kind(), toPrettyChars());
+                const bool inlineAsm = hasReturnExp & 8;
+                if (f->isnothrow && (global.errors != nothrowErrors))
+                {
+                    if (inlineAsm)
+                        ::deprecation(loc, "%s '%s' is nothrow yet may throw", kind(), toPrettyChars());
+                    else
+                        ::error(loc, "%s '%s' is nothrow yet may throw", kind(), toPrettyChars());
+                }
                 if (flags & FUNCFLAGnothrowInprocess)
                 {
                     if (type == f) f = (TypeFunction *)f->copy();
                     f->isnothrow = !(blockexit & BEthrow);
                 }
 
-                if ((blockexit & BEfallthru) && f->next->ty != Tvoid)
+                if ((blockexit & BEfallthru) && f->next->ty != Tvoid && !inlineAsm)
                 {
                     Expression *e;
                     error("no return exp; or assert(0); at end of function");
