@@ -153,6 +153,7 @@ code* cdnot      (elem* e, regm_t* pretregs) { assert(0); return NULL; }
 code* cdnullcheck(elem* e, regm_t* pretregs) { assert(0); return NULL; }
 code* cdorth     (elem* e, regm_t* pretregs) { assert(0); return NULL; }
 code* cdpair     (elem* e, regm_t* pretregs) { assert(0); return NULL; }
+code* cdpopcnt   (elem* e, regm_t* pretregs) { assert(0); return NULL; }
 code* cdport     (elem* e, regm_t* pretregs) { assert(0); return NULL; }
 code* cdpost     (elem* e, regm_t* pretregs) { assert(0); return NULL; }
 code* cdrelconst (elem* e, regm_t* pretregs) { assert(0); return NULL; }
