@@ -97,3 +97,15 @@ static if (is(__vector(ulong[2])))
         return [0, 0];
     }
 }
+
+/******************************************/
+// 13550
+
+auto foo13550() @nogc
+{
+    static int[] bar()
+    {
+        return new int[2];
+    }
+    return &bar;
+}

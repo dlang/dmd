@@ -1863,7 +1863,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                         exp->checkEscape();
                     }
 
-                    exp = checkGC(sc, exp);
+                    exp = checkGC(sc2, exp);
 
                     if (vresult)
                     {
