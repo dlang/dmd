@@ -787,7 +787,7 @@ extern (C) void[] _d_newarrayU(const TypeInfo ti, size_t length) pure nothrow
 
     version (D_InlineAsm_X86)
     {
-        asm
+        asm pure nothrow @nogc
         {
             mov     EAX,size        ;
             mul     EAX,length      ;
@@ -797,7 +797,7 @@ extern (C) void[] _d_newarrayU(const TypeInfo ti, size_t length) pure nothrow
     }
     else version(D_InlineAsm_X86_64)
     {
-        asm
+        asm pure nothrow @nogc
         {
             mov     RAX,size        ;
             mul     RAX,length      ;
@@ -1293,7 +1293,7 @@ body
         {
             size_t newsize = void;
 
-            asm
+            asm pure nothrow @nogc
             {
                 mov EAX, newlength;
                 mul EAX, sizeelem;
@@ -1305,7 +1305,7 @@ body
         {
             size_t newsize = void;
 
-            asm
+            asm pure nothrow @nogc
             {
                 mov RAX, newlength;
                 mul RAX, sizeelem;

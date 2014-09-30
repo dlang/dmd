@@ -163,7 +163,7 @@ private:
         {
             version(Win32)
             {
-                asm
+                asm pure nothrow @nogc
                 {
                     naked;
                     mov EAX,FS:[0x18];
@@ -172,7 +172,7 @@ private:
             }
             else version(Win64)
             {
-                asm
+                asm pure nothrow @nogc
                 {
                     naked;
                     mov RAX,0x30;
@@ -333,4 +333,3 @@ public:
         thread_aux.impersonate_thread(id, &rt_moduleTlsDtor);
     }
 }
-

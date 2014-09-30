@@ -436,7 +436,7 @@ void getcacheinfoCPUID2()
     // for old single-core CPUs.
     uint numinfos = 1;
     do {
-        asm {
+        asm pure nothrow @nogc {
             mov EAX, 2;
             cpuid;
             mov a, EAX;
@@ -478,7 +478,7 @@ void getcacheinfoCPUID4()
     int cachenum = 0;
     for(;;) {
         uint a, b, number_of_sets;
-        asm {
+        asm pure nothrow @nogc {
             mov EAX, 4;
             mov ECX, cachenum;
             cpuid;
@@ -516,7 +516,7 @@ void getcacheinfoCPUID4()
 void getAMDcacheinfo()
 {
     uint c5, c6, d6;
-    asm {
+    asm pure nothrow @nogc {
         mov EAX, 0x8000_0005; // L1 cache
         cpuid;
         // EAX has L1_TLB_4M.
@@ -533,7 +533,7 @@ void getAMDcacheinfo()
         // AMD K6-III or K6-2+ or later.
         ubyte numcores = 1;
         if (max_extended_cpuid >=0x8000_0008) {
-            asm {
+            asm pure nothrow @nogc {
                 mov EAX, 0x8000_0008;
                 cpuid;
                 mov numcores, CL;
@@ -541,7 +541,7 @@ void getAMDcacheinfo()
             ++numcores;
             if (numcores>maxCores) maxCores = numcores;
         }
-        asm {
+        asm pure nothrow @nogc {
             mov EAX, 0x8000_0006; // L2/L3 cache
             cpuid;
             mov c6, ECX; // L2 cache info
@@ -568,7 +568,7 @@ void getCpuInfo0B()
     int threadsPerCore;
     uint a, b, c, d;
     do {
-        asm {
+        asm pure nothrow @nogc {
             mov EAX, 0x0B;
             mov ECX, level;
             cpuid;
@@ -599,7 +599,7 @@ void cpuidX86()
     uint a, b, c, d, a2;
     version(D_InlineAsm_X86)
     {
-        asm {
+        asm pure nothrow @nogc {
             mov EAX, 0;
             cpuid;
             mov a, EAX;
@@ -611,7 +611,7 @@ void cpuidX86()
     }
     else version(D_InlineAsm_X86_64)
     {
-        asm {
+        asm pure nothrow @nogc {
             mov EAX, 0;
             cpuid;
             mov a, EAX;
@@ -621,7 +621,7 @@ void cpuidX86()
             mov [RAX + 8], ECX;
         }
     }
-    asm {
+    asm pure nothrow @nogc {
         mov EAX, 0x8000_0000;
         cpuid;
         mov a2, EAX;
@@ -633,7 +633,7 @@ void cpuidX86()
     probablyIntel = vendorID == "GenuineIntel";
     probablyAMD = vendorID == "AuthenticAMD";
     uint apic = 0; // brand index, apic id
-    asm {
+    asm pure nothrow @nogc {
         mov EAX, 1; // model, stepping
         cpuid;
         mov a, EAX;
@@ -648,7 +648,7 @@ void cpuidX86()
     {
         uint ext;
 
-        asm
+        asm pure nothrow @nogc
         {
             mov EAX, 7; // Structured extended feature leaf.
             mov ECX, 0; // Main leaf.
@@ -661,7 +661,7 @@ void cpuidX86()
 
     if (miscfeatures & OSXSAVE_BIT)
     {
-        asm {
+        asm pure nothrow @nogc {
             mov ECX, 0;
             xgetbv;
             mov d, EDX;
@@ -672,7 +672,7 @@ void cpuidX86()
     amdfeatures = 0;
     amdmiscfeatures = 0;
     if (max_extended_cpuid >= 0x8000_0001) {
-        asm {
+        asm pure nothrow @nogc {
             mov EAX, 0x8000_0001;
             cpuid;
             mov c, ECX;
@@ -693,7 +693,7 @@ void cpuidX86()
 
     if (!probablyIntel && max_extended_cpuid >= 0x8000_0008) {
         // determine max number of cores for AMD
-        asm {
+        asm pure nothrow @nogc {
             mov EAX, 0x8000_0008;
             cpuid;
             mov c, ECX;
@@ -714,7 +714,7 @@ void cpuidX86()
         char *procptr = processorNameBuffer.ptr;
         version(D_InlineAsm_X86)
         {
-            asm {
+            asm pure nothrow @nogc {
                 push ESI;
                 mov ESI, procptr;
                 mov EAX, 0x8000_0002;
@@ -740,7 +740,7 @@ void cpuidX86()
         }
         else version(D_InlineAsm_X86_64)
         {
-            asm {
+            asm pure nothrow @nogc {
                 push RSI;
                 mov RSI, procptr;
                 mov EAX, 0x8000_0002;
@@ -846,7 +846,7 @@ bool hasCPUID()
     else
     {
         uint flags;
-        asm {
+        asm nothrow @nogc {
             pushfd;
             pop EAX;
             mov flags, EAX;
