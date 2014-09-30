@@ -195,7 +195,8 @@ T[] _arraySliceExpAddSliceAssign_i(T[] a, T value, T[] b)
     }
     version (D_InlineAsm_X86_64)
     {
-        if (sse2 && a.length >= 8)
+        // All known X86_64 have SSE2
+        if (a.length >= 8)
         {
             auto n = aptr + (a.length & ~7);
 
@@ -463,7 +464,8 @@ T[] _arraySliceSliceAddSliceAssign_i(T[] a, T[] c, T[] b)
     }
     version (D_InlineAsm_X86_64)
     {
-        if (sse2 && a.length >= 8)
+        // All known X86_64 have SSE2
+        if (a.length >= 8)
         {
             auto n = aptr + (a.length & ~7);
 
@@ -720,7 +722,8 @@ T[] _arrayExpSliceAddass_i(T[] a, T value)
     }
     version (D_InlineAsm_X86_64)
     {
-        if (sse2 && a.length >= 8)
+        // All known X86_64 have SSE2
+        if (a.length >= 8)
         {
             auto n = aptr + (a.length & ~7);
 
@@ -969,7 +972,8 @@ T[] _arraySliceSliceAddass_i(T[] a, T[] b)
     }
     version (D_InlineAsm_X86_64)
     {
-        if (sse2 && a.length >= 8)
+        // All known X86_64 have SSE2
+        if (a.length >= 8)
         {
             auto n = aptr + (a.length & ~7);
 
@@ -1231,7 +1235,8 @@ T[] _arraySliceExpMinSliceAssign_i(T[] a, T value, T[] b)
     }
     version (D_InlineAsm_X86_64)
     {
-        if (sse2 && a.length >= 8)
+        // All known X86_64 have SSE2
+        if (a.length >= 8)
         {
             auto n = aptr + (a.length & ~7);
 
@@ -1495,7 +1500,8 @@ T[] _arrayExpSliceMinSliceAssign_i(T[] a, T[] b, T value)
     }
     version (D_InlineAsm_X86_64)
     {
-        if (sse2 && a.length >= 8)
+        // All known X86_64 have SSE2
+        if (a.length >= 8)
         {
             auto n = aptr + (a.length & ~7);
 
@@ -1768,7 +1774,8 @@ T[] _arraySliceSliceMinSliceAssign_i(T[] a, T[] c, T[] b)
     }
     version (D_InlineAsm_X86_64)
     {
-        if (sse2 && a.length >= 8)
+        // All known X86_64 have SSE2
+        if (a.length >= 8)
         {
             auto n = aptr + (a.length & ~7);
 
@@ -2025,7 +2032,8 @@ T[] _arrayExpSliceMinass_i(T[] a, T value)
     }
     version (D_InlineAsm_X86_64)
     {
-        if (sse2 && a.length >= 8)
+        // All known X86_64 have SSE2
+        if (a.length >= 8)
         {
             auto n = aptr + (a.length & ~7);
 
@@ -2274,7 +2282,8 @@ T[] _arraySliceSliceMinass_i(T[] a, T[] b)
     }
     version (D_InlineAsm_X86_64)
     {
-        if (sse2 && a.length >= 8)
+        // All known X86_64 have SSE2
+        if (a.length >= 8)
         {
             auto n = aptr + (a.length & ~7);
 
