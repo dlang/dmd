@@ -2384,6 +2384,31 @@ void objc_InterfaceDeclaration_semantic_objcExtern(InterfaceDeclaration *self, S
     }
 }
 
+ControlFlow objc_InterfaceDeclaration_semantic_mixingObjc(InterfaceDeclaration *self, Scope *sc, size_t i, TypeClass *tc)
+{
+    // Check for mixin Objective-C and non-Objective-C interfaces
+    if (!self->objc.objc && tc->sym->objc.objc)
+    {
+        if (i == 0)
+        {
+            // This is the first -- there's no non-Objective-C interface before this one.
+            // Implicitly switch this interface to Objective-C.
+            self->objc.objc = true;
+        }
+        else
+            goto Lobjcmix; // same error as below
+    }
+    else if (self->objc.objc && !tc->sym->objc.objc)
+    {
+    Lobjcmix:
+        self->error("cannot mix Objective-C and non-Objective-C interfaces");
+        self->baseclasses->remove(i);
+        return CFcontinue;
+    }
+
+    return CFnone;
+}
+
 // MARK: implicitConvTo
 
 ControlFlow objc_implicitConvTo_visit_StringExp_Tclass(Type *t, MATCH *result)

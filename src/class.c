@@ -1375,25 +1375,11 @@ void InterfaceDeclaration::semantic(Scope *sc)
                 baseclasses->remove(i);
                 continue;
             }
-#if DMD_OBJC
-            // Check for mixin Objective-C and non-Objective-C interfaces
-            if (!objc.objc && tc->sym->objc.objc)
-            {   if (i == 0)
-            {   // This is the first -- there's no non-Objective-C interface before this one.
-                // Implicitly switch this interface to Objective-C.
-                objc.objc = true;
-            }
-            else
-                goto Lobjcmix; // same error as below
-            }
-            else if (objc.objc && !tc->sym->objc.objc)
-            {
-            Lobjcmix:
-                error ("cannot mix Objective-C and non-Objective-C interfaces");
-                baseclasses->remove(i);
+
+            ControlFlow cf = objc_InterfaceDeclaration_semantic_mixingObjc(this, sc, i, tc);
+            if (cf == CFcontinue)
                 continue;
-            }
-#endif
+
             // Check for duplicate interfaces
             for (size_t j = 0; j < i; j++)
             {
