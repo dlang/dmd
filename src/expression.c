@@ -42,7 +42,6 @@
 #include "nspace.h"
 
 bool isArrayOpValid(Expression *e);
-bool isNonAssignmentArrayOp(Expression *e);
 Expression *createTypeInfoArray(Scope *sc, Expression *args[], size_t dim);
 Expression *expandVar(int result, VarDeclaration *v);
 TypeTuple *toArgTypes(Type *t);
@@ -1133,9 +1132,8 @@ bool arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt)
             t0 = Type::terror;
             continue;
         }
-        if (isNonAssignmentArrayOp(e))
+        if (checkNonAssignmentArrayOp(e))
         {
-            e->error("array operation %s without assignment not implemented", e->toChars());
             t0 = Type::terror;
             continue;
         }
@@ -1236,9 +1234,8 @@ bool preFunctionParameters(Loc loc, Scope *sc, Expressions *exps)
                 arg = new ErrorExp();
                 err = true;
             }
-            if (isNonAssignmentArrayOp(arg))
+            if (checkNonAssignmentArrayOp(arg))
             {
-                arg->error("array operation %s without assignment not implemented", arg->toChars());
                 arg = new ErrorExp();
                 err = true;
             }
@@ -9450,6 +9447,12 @@ Expression *CastExp::semantic(Scope *sc)
                 return e;
         }
 
+        if (!t1b->equals(tob) && (t1b->ty == Tarray || t1b->ty == Tsarray))
+        {
+            if (checkNonAssignmentArrayOp(e1))
+                return new ErrorExp;
+        }
+
         // Struct casts are possible only when the sizes match
         // Same with static array -> static array
         if (tob->ty == Tstruct || t1b->ty == Tstruct ||
@@ -11495,21 +11498,27 @@ Expression *AssignExp::semantic(Scope *sc)
     if (e2x->op == TOKerror)
         return e2x;
     e2 = e2x;
+    t2 = e2->type->toBasetype();
 
     /* Look for array operations
      */
-    if ((e1->op == TOKslice || e1->type->ty == Tarray) &&
-        !ismemset &&
-        (isUnaArrayOp(e2->op) || isBinArrayOp(e2->op)))
+    if ((t2->ty == Tarray || t2->ty == Tsarray) && isArrayOpValid(e2))
     {
-        if (op != TOKassign && e1->op != TOKslice)
+        // Look for valid array operations
+        if (!ismemset && e1->op == TOKslice &&
+            (isUnaArrayOp(e2->op) || isBinArrayOp(e2->op)))
         {
-            error("array operation %s without assignment not implemented", e2->toChars());
-            return new ErrorExp();
+            type = e1->type;
+            return arrayOp(this, sc);
         }
 
-        type = e1->type;
-        return arrayOp(this, sc);
+        // Drop invalid array operations in e2
+        //  d = a[] + b[], d = (a[] + b[])[0..2], etc
+        if (checkNonAssignmentArrayOp(e2))
+            return new ErrorExp();
+
+        // Remains valid array assignments
+        //  d = d[], d = [1,2,3], etc
     }
 
     if (e1->op == TOKvar &&
@@ -11628,11 +11637,8 @@ Expression *CatAssignExp::semantic(Scope *sc)
     if (e2->op == TOKerror)
         return e2;
 
-    if (isNonAssignmentArrayOp(e2))
-    {
-        error("array operation %s without assignment not implemented", e2->toChars());
+    if (checkNonAssignmentArrayOp(e2))
         return new ErrorExp();
-    }
 
     Type *tb1 = e1->type->toBasetype();
     Type *tb1next = tb1->nextOf();

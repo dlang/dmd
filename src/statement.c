@@ -33,7 +33,6 @@
 #include "import.h"
 
 bool walkPostorder(Statement *s, StoppableVisitor *v);
-bool isNonAssignmentArrayOp(Expression *e);
 
 Identifier *fixupLabelName(Scope *sc, Identifier *ident)
 {
@@ -3715,11 +3714,8 @@ Statement *ReturnStatement::semantic(Scope *sc)
             if (!exp->rvalue()) // don't make error for void expression
                 exp = new ErrorExp();
         }
-        if (isNonAssignmentArrayOp(exp))
-        {
-            exp->error("array operation %s without assignment not implemented", exp->toChars());
+        if (checkNonAssignmentArrayOp(exp))
             exp = new ErrorExp();
-        }
         if (exp->op == TOKcall)
             exp = valueNoDtor(exp);
 
