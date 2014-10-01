@@ -69,6 +69,7 @@ struct Impl
 {
     Entry*[] buckets;
     size_t nodes;       // total number of entries
+    size_t firstUsedBucket; // starting index for first used bucket.
     TypeInfo _keyti;
     Entry*[4] binit;    // initial value of buckets[]
 
@@ -199,6 +200,10 @@ body
         {
             //printf("rehash\n");
             _aaRehash(aa,keyti);
+        }
+        else
+        {
+            if (i < aa.impl.firstUsedBucket) aa.impl.firstUsedBucket = i;
         }
     }
 
@@ -398,6 +403,7 @@ body
 
             newImpl.nodes = oldImpl.nodes;
             newImpl._keyti = oldImpl._keyti;
+            newImpl.firstUsedBucket = 0; // cache is not initialized yet
 
             *paa.impl = newImpl;
         }
@@ -406,6 +412,7 @@ body
             if (paa.impl.buckets.ptr != paa.impl.binit.ptr)
                 GC.free(paa.impl.buckets.ptr);
             paa.impl.buckets = paa.impl.binit[];
+            paa.impl.firstUsedBucket = 0; // cache is not initialized yet
         }
     }
     return (*paa).impl;
@@ -586,6 +593,7 @@ Impl* _d_assocarrayliteralTX(const TypeInfo_AssociativeArray ti, void[] keys, vo
         }
         auto len = prime_list[i];
         result.buckets = newBuckets(len);
+        result.firstUsedBucket = size_t.max-1;
 
         size_t keytsize = aligntsize(keysize);
 
@@ -597,6 +605,7 @@ Impl* _d_assocarrayliteralTX(const TypeInfo_AssociativeArray ti, void[] keys, vo
             auto key_hash = keyti.getHash(pkey);
             //printf("hash = %d\n", key_hash);
             i = key_hash % len;
+            if (i < result.firstUsedBucket) result.firstUsedBucket = i;
             auto pe = &result.buckets[i];
             while (1)
             {
@@ -864,11 +873,13 @@ Range _aaRange(AA aa) pure nothrow @nogc
         return res;
 
     res.impl = aa.impl;
-    foreach (entry; aa.impl.buckets)
+    foreach (i; aa.impl.firstUsedBucket .. aa.impl.buckets.length )
     {
+        auto entry = aa.impl.buckets[i];
         if (entry !is null)
         {
             res.current = entry;
+            aa.impl.firstUsedBucket = i; // update cache
             break;
         }
     }
