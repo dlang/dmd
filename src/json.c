@@ -641,17 +641,6 @@ public:
         objectEnd();
     }
 
-    void visit(TypedefDeclaration *d)
-    {
-        objectStart();
-
-        jsonProperties(d);
-
-        property("base", "baseDeco", d->basetype);
-
-        objectEnd();
-    }
-
     void visit(AggregateDeclaration *d)
     {
         objectStart();

@@ -45,7 +45,6 @@ void initTypeMangle()
     mangleChar[Tclass] = 'C';
     mangleChar[Tstruct] = 'S';
     mangleChar[Tenum] = 'E';
-    mangleChar[Ttypedef] = 'T';
     mangleChar[Tdelegate] = 'D';
 
     mangleChar[Tnone] = 'n';
@@ -276,12 +275,6 @@ public:
     }
 
     void visit(TypeEnum *t)
-    {
-        visit((Type *)t);
-        t->sym->accept(this);
-    }
-
-    void visit(TypeTypedef *t)
     {
         visit((Type *)t);
         t->sym->accept(this);
@@ -567,12 +560,6 @@ public:
         visit((Declaration *)vd);
     }
 
-    void visit(TypedefDeclaration *td)
-    {
-        //printf("TypedefDeclaration::mangle() '%s'\n", toChars());
-        visit((Dsymbol *)td);
-    }
-
     void visit(AggregateDeclaration *ad)
     {
         ClassDeclaration *cd = ad->isClassDeclaration();
@@ -586,7 +573,6 @@ public:
                 cd->ident == Id::TypeInfo ||
                 cd->ident == Id::TypeInfo_Struct ||
                 cd->ident == Id::TypeInfo_Class ||
-                cd->ident == Id::TypeInfo_Typedef ||
                 cd->ident == Id::TypeInfo_Tuple ||
                 cd == ClassDeclaration::object ||
                 cd == Type::typeinfoclass ||

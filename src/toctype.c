@@ -225,11 +225,6 @@ public:
         //printf("t = %p, Tflags = x%x\n", t, t->Tflags);
     }
 
-    void visit(TypeTypedef *t)
-    {
-        t->ctype = Type_toCtype(t->sym->basetype);
-    }
-
     void visit(TypeClass *t)
     {
         //printf("TypeClass::toCtype() %s\n", toChars());

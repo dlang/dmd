@@ -53,7 +53,6 @@ void StructDeclaration_toDt(StructDeclaration *sd, dt_t **pdt);
 Symbol *toSymbol(Dsymbol *s);
 dt_t **Expression_toDt(Expression *e, dt_t **pdt);
 
-void toDebug(TypedefDeclaration *tdd);
 void toDebug(EnumDeclaration *ed);
 void toDebug(StructDeclaration *sd);
 void toDebug(ClassDeclaration *cd);
@@ -1005,41 +1004,6 @@ void VarDeclaration::toObjFile(bool multiobj)
             if (isExport())
             objmod->export_symbol(s,0);
         }
-    }
-}
-
-/* ================================================================== */
-
-void TypedefDeclaration::toObjFile(bool multiobj)
-{
-    //printf("TypedefDeclaration::toObjFile('%s')\n", toChars());
-
-    if (type->ty == Terror)
-    {   error("had semantic errors when compiling");
-        return;
-    }
-
-    if (global.params.symdebug)
-        toDebug(this);
-
-    type->genTypeInfo(NULL);
-
-    TypeTypedef *tc = (TypeTypedef *)type;
-    if (type->isZeroInit() || !tc->sym->init)
-        ;
-    else
-    {
-        enum_SC scclass = SCglobal;
-        if (isInstantiated())
-            scclass = SCcomdat;
-
-        // Generate static initializer
-        toInitializer();
-        sinit->Sclass = scclass;
-        sinit->Sfl = FLdata;
-        sinit->Sdt = Initializer_toDt(tc->sym->init);
-        out_readonly(sinit);
-        outdata(sinit);
     }
 }
 

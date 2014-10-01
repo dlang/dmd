@@ -1400,7 +1400,6 @@ unsigned totym(Type *tx)
             break;
 
         case Tenum:
-        case Ttypedef:
             t = totym(tx->toBasetype());
             break;
 

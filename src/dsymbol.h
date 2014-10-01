@@ -30,7 +30,6 @@ class Declaration;
 class ThisDeclaration;
 class TypeInfoDeclaration;
 class TupleDeclaration;
-class TypedefDeclaration;
 class AliasDeclaration;
 class AggregateDeclaration;
 class EnumDeclaration;
@@ -256,7 +255,6 @@ public:
     virtual ThisDeclaration *isThisDeclaration() { return NULL; }
     virtual TypeInfoDeclaration *isTypeInfoDeclaration() { return NULL; }
     virtual TupleDeclaration *isTupleDeclaration() { return NULL; }
-    virtual TypedefDeclaration *isTypedefDeclaration() { return NULL; }
     virtual AliasDeclaration *isAliasDeclaration() { return NULL; }
     virtual AggregateDeclaration *isAggregateDeclaration() { return NULL; }
     virtual FuncDeclaration *isFuncDeclaration() { return NULL; }

@@ -4818,10 +4818,6 @@ elem *toElem(Expression *e, IRState *irs)
                     }
                 }
             }
-            else if (TypedefDeclaration *tyd = s->isTypedefDeclaration())
-            {
-                irs->deferToObj->push(tyd);
-            }
             else if (EnumDeclaration *ed = s->isEnumDeclaration())
             {
                 irs->deferToObj->push(ed);

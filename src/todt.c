@@ -742,21 +742,6 @@ dt_t **Type_toDt(Type *t, dt_t **pdt)
         {
             StructDeclaration_toDt(t->sym, pdt);
         }
-
-        void visit(TypeTypedef *t)
-        {
-            if (t->sym->init)
-            {
-                dt_t *dt = Initializer_toDt(t->sym->init);
-
-                pdt = dtend(pdt);
-                *pdt = dt;
-            }
-            else
-            {
-                Type_toDt(t->sym->basetype, pdt);
-            }
-        }
     };
 
     TypeToDt v(pdt);

@@ -187,30 +187,6 @@ public:
 
 /**************************************************************/
 
-class TypedefDeclaration : public Declaration
-{
-public:
-    Type *basetype;
-    Initializer *init;
-
-    TypedefDeclaration(Loc loc, Identifier *ident, Type *basetype, Initializer *init);
-    Dsymbol *syntaxCopy(Dsymbol *);
-    void semantic(Scope *sc);
-    void semantic2(Scope *sc);
-    const char *kind();
-    Type *getType();
-
-    void toObjFile(bool multiobj);                       // compile to .obj file
-
-    TypedefDeclaration *isTypedefDeclaration() { return this; }
-
-    Symbol *sinit;
-    Symbol *toInitializer();
-    void accept(Visitor *v) { v->visit(this); }
-};
-
-/**************************************************************/
-
 class AliasDeclaration : public Declaration
 {
 public:
@@ -379,15 +355,6 @@ class TypeInfoInterfaceDeclaration : public TypeInfoDeclaration
 public:
     TypeInfoInterfaceDeclaration(Type *tinfo);
     static TypeInfoInterfaceDeclaration *create(Type *tinfo);
-
-    void accept(Visitor *v) { v->visit(this); }
-};
-
-class TypeInfoTypedefDeclaration : public TypeInfoDeclaration
-{
-public:
-    TypeInfoTypedefDeclaration(Type *tinfo);
-    static TypeInfoTypedefDeclaration *create(Type *tinfo);
 
     void accept(Visitor *v) { v->visit(this); }
 };

@@ -60,7 +60,6 @@ ClassDeclaration *Type::dtypeinfo;
 ClassDeclaration *Type::typeinfoclass;
 ClassDeclaration *Type::typeinfointerface;
 ClassDeclaration *Type::typeinfostruct;
-ClassDeclaration *Type::typeinfotypedef;
 ClassDeclaration *Type::typeinfopointer;
 ClassDeclaration *Type::typeinfoarray;
 ClassDeclaration *Type::typeinfostaticarray;
@@ -210,7 +209,6 @@ void Type::init()
     sizeTy[Tinstance] = sizeof(TypeInstance);
     sizeTy[Ttypeof] = sizeof(TypeTypeof);
     sizeTy[Tenum] = sizeof(TypeEnum);
-    sizeTy[Ttypedef] = sizeof(TypeTypedef);
     sizeTy[Tstruct] = sizeof(TypeStruct);
     sizeTy[Tclass] = sizeof(TypeClass);
     sizeTy[Ttuple] = sizeof(TypeTuple);
@@ -2114,7 +2112,7 @@ Expression *Type::getProperty(Loc loc, Identifier *ident, int flag)
     else
     {
         Dsymbol *s = NULL;
-        if (ty == Tstruct || ty == Tclass || ty == Tenum || ty == Ttypedef)
+        if (ty == Tstruct || ty == Tclass || ty == Tenum)
             s = toDsymbol(NULL);
         if (s)
             s = s->search_correct(ident);
@@ -6608,15 +6606,6 @@ Type *TypeIdentifier::semantic(Loc loc, Scope *sc)
     if (t)
     {
         //printf("\tit's a type %d, %s, %s\n", t->ty, t->toChars(), t->deco);
-
-        if (t->ty == Ttypedef)
-        {
-            TypeTypedef *tt = (TypeTypedef *)t;
-            if (tt->sym->sem == SemanticIn)
-            {   error(loc, "circular reference of typedef %s", tt->toChars());
-                return terror;
-            }
-        }
         t = t->addMod(mod);
     }
     else
@@ -7278,280 +7267,6 @@ int TypeEnum::hasPointers()
 Type *TypeEnum::nextOf()
 {
     return sym->getMemtype(Loc())->nextOf();
-}
-
-/***************************** TypeTypedef *****************************/
-
-TypeTypedef::TypeTypedef(TypedefDeclaration *sym)
-        : Type(Ttypedef)
-{
-    this->sym = sym;
-}
-
-const char *TypeTypedef::kind()
-{
-    return "typedef";
-}
-
-Type *TypeTypedef::syntaxCopy()
-{
-    return this;
-}
-
-char *TypeTypedef::toChars()
-{
-    return Type::toChars();
-}
-
-Type *TypeTypedef::semantic(Loc loc, Scope *sc)
-{
-    //printf("TypeTypedef::semantic(%s), sem = %d\n", toChars(), sym->sem);
-    unsigned int errors = global.errors;
-    sym->semantic(sc);
-    if (errors != global.errors || sym->errors || sym->basetype->ty == Terror)
-        return terror;
-    return merge();
-}
-
-d_uns64 TypeTypedef::size(Loc loc)
-{
-    return sym->basetype->size(loc);
-}
-
-unsigned TypeTypedef::alignsize()
-{
-    return sym->basetype->alignsize();
-}
-
-Dsymbol *TypeTypedef::toDsymbol(Scope *sc)
-{
-    return sym;
-}
-
-Expression *TypeTypedef::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
-{
-#if LOGDOTEXP
-    printf("TypeTypedef::dotExp(e = '%s', ident = '%s') '%s'\n", e->toChars(), ident->toChars(), toChars());
-#endif
-    if (ident == Id::init)
-    {
-        return Type::dotExp(sc, e, ident, flag);
-    }
-    return sym->basetype->dotExp(sc, e, ident, flag);
-}
-
-structalign_t TypeTypedef::alignment()
-{
-    if (sym->inuse)
-    {
-        sym->error("circular definition");
-        sym->basetype = Type::terror;
-        return STRUCTALIGN_DEFAULT;
-    }
-    sym->inuse = 1;
-    structalign_t a = sym->basetype->alignment();
-    sym->inuse = 0;
-    return a;
-}
-
-Expression *TypeTypedef::getProperty(Loc loc, Identifier *ident, int flag)
-{
-#if LOGDOTEXP
-    printf("TypeTypedef::getProperty(ident = '%s') '%s'\n", ident->toChars(), toChars());
-#endif
-    if (ident == Id::init)
-    {
-        return Type::getProperty(loc, ident, flag);
-    }
-    return sym->basetype->getProperty(loc, ident, flag);
-}
-
-bool TypeTypedef::isintegral()
-{
-    //printf("TypeTypedef::isintegral()\n");
-    //printf("sym = '%s'\n", sym->toChars());
-    //printf("basetype = '%s'\n", sym->basetype->toChars());
-    return sym->basetype->isintegral();
-}
-
-bool TypeTypedef::isfloating()
-{
-    return sym->basetype->isfloating();
-}
-
-bool TypeTypedef::isreal()
-{
-    return sym->basetype->isreal();
-}
-
-bool TypeTypedef::isimaginary()
-{
-    return sym->basetype->isimaginary();
-}
-
-bool TypeTypedef::iscomplex()
-{
-    return sym->basetype->iscomplex();
-}
-
-bool TypeTypedef::isunsigned()
-{
-    return sym->basetype->isunsigned();
-}
-
-bool TypeTypedef::isscalar()
-{
-    return sym->basetype->isscalar();
-}
-
-bool TypeTypedef::isAssignable()
-{
-    return sym->basetype->isAssignable();
-}
-
-bool TypeTypedef::checkBoolean()
-{
-    return sym->basetype->checkBoolean();
-}
-
-bool TypeTypedef::needsDestruction()
-{
-    return sym->basetype->needsDestruction();
-}
-
-bool TypeTypedef::needsNested()
-{
-    return sym->basetype->needsNested();
-}
-
-Type *TypeTypedef::toBasetype()
-{
-    if (sym->inuse)
-    {
-        sym->error("circular definition");
-        sym->basetype = Type::terror;
-        return Type::terror;
-    }
-    sym->inuse = 1;
-    Type *t = sym->basetype->toBasetype();
-    sym->inuse = 0;
-    t = t->addMod(mod);
-    return t;
-}
-
-MATCH TypeTypedef::implicitConvTo(Type *to)
-{   MATCH m;
-
-    //printf("TypeTypedef::implicitConvTo(to = %s) %s\n", to->toChars(), toChars());
-    if (equals(to))
-        m = MATCHexact;         // exact match
-    else if (sym->basetype->implicitConvTo(to))
-        m = MATCHconvert;       // match with conversions
-    else if (ty == to->ty && sym == ((TypeTypedef *)to)->sym)
-    {
-        m = constConv(to);
-    }
-    else
-        m = MATCHnomatch;       // no match
-    return m;
-}
-
-MATCH TypeTypedef::constConv(Type *to)
-{
-    if (equals(to))
-        return MATCHexact;
-    if (ty == to->ty && sym == ((TypeTypedef *)to)->sym)
-        return sym->basetype->implicitConvTo(((TypeTypedef *)to)->sym->basetype);
-    return MATCHnomatch;
-}
-
-Type *TypeTypedef::toHeadMutable()
-{
-    if (!mod)
-        return this;
-
-    Type *tb = toBasetype();
-    Type *t = tb->toHeadMutable();
-    if (t->equals(tb))
-        return this;
-    else
-        return mutableOf();
-}
-
-Expression *TypeTypedef::defaultInit(Loc loc)
-{
-#if LOGDEFAULTINIT
-    printf("TypeTypedef::defaultInit() '%s'\n", toChars());
-#endif
-    if (sym->init)
-    {
-        //sym->init->toExpression()->print();
-        return sym->init->toExpression();
-    }
-    Type *bt = sym->basetype;
-    Expression *e = bt->defaultInit(loc);
-    e->type = this;
-    while (bt->ty == Tsarray)
-    {   TypeSArray *tsa = (TypeSArray *)bt;
-        e->type = tsa->next;
-        bt = tsa->next->toBasetype();
-    }
-    return e;
-}
-
-Expression *TypeTypedef::defaultInitLiteral(Loc loc)
-{
-#if LOGDEFAULTINIT
-    printf("TypeTypedef::defaultInitLiteral() '%s'\n", toChars());
-#endif
-    if (sym->init)
-    {
-        //sym->init->toExpression()->print();
-        Expression *e = sym->init->toExpression();
-        if (!e)
-        {
-            error(loc, "void initializer has no value");
-            e = new ErrorExp();
-        }
-        return e;
-    }
-    Type *bt = sym->basetype;
-    Expression *e = bt->defaultInitLiteral(loc);
-    e->type = this;
-    return e;
-}
-
-bool TypeTypedef::isZeroInit(Loc loc)
-{
-    if (sym->init)
-    {
-        if (sym->init->isVoidInitializer())
-            return true;           // initialize voids to 0
-        Expression *e = sym->init->toExpression();
-        if (e && e->isBool(false))
-            return true;
-        return false;               // assume not
-    }
-    if (sym->inuse)
-    {
-        sym->error("circular definition");
-        sym->basetype = Type::terror;
-    }
-    sym->inuse = 1;
-    bool result = sym->basetype->isZeroInit(loc);
-    sym->inuse = 0;
-    return result;
-}
-
-int TypeTypedef::hasPointers()
-{
-    return toBasetype()->hasPointers();
-}
-
-int TypeTypedef::hasWild()
-{
-    assert(toBasetype());
-    return mod & MODwild || toBasetype()->hasWild();
 }
 
 /***************************** TypeStruct *****************************/

@@ -3191,11 +3191,8 @@ Statement *SwitchStatement::semantic(Scope *sc)
     }
 
     if (isFinal)
-    {   Type *t = condition->type;
-        while (t && t->ty == Ttypedef)
-        {   // Don't use toBasetype() because that will skip past enums
-            t = ((TypeTypedef *)t)->sym->basetype;
-        }
+    {
+        Type *t = condition->type;
         Dsymbol *ds;
         EnumDeclaration *ed = NULL;
         if (t && ((ds = t->toDsymbol(sc)) != NULL))

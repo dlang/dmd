@@ -3694,7 +3694,7 @@ L2:
             }
             if (tok == TOKtypedef)
             {
-                v = new TypedefDeclaration(loc, ident, t, init);
+                v = new AliasDeclaration(loc, ident, t);    // dummy
             }
             else
             {
@@ -6526,7 +6526,8 @@ Expression *Parser::parsePrimaryExp()
                     if (token.value == TOKcomma)
                         tpl = parseTemplateParameterList(1);
                     else
-                    {   tpl = new TemplateParameters();
+                    {
+                        tpl = new TemplateParameters();
                         check(TOKrparen);
                     }
                 }
@@ -6534,7 +6535,8 @@ Expression *Parser::parsePrimaryExp()
                     check(TOKrparen);
             }
             else
-            {   error("(type identifier : specialization) expected following is");
+            {
+                error("(type identifier : specialization) expected following is");
                 goto Lerr;
             }
             e = new IsExp(loc, targ, ident, tok, tspec, tok2, tpl);

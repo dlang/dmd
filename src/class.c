@@ -106,13 +106,6 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
                 Type::typeinfostruct = this;
             }
 
-            if (id == Id::TypeInfo_Typedef)
-            {
-                if (!inObject)
-                    error("%s", msg);
-                Type::typeinfotypedef = this;
-            }
-
             if (id == Id::TypeInfo_Pointer)
             {
                 if (!inObject)

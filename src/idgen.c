@@ -86,7 +86,6 @@ Msgtable msgtable[] =
     { "TypeInfo_Interface" },
     { "TypeInfo_Struct" },
     { "TypeInfo_Enum" },
-    { "TypeInfo_Typedef" },
     { "TypeInfo_Pointer" },
     { "TypeInfo_Vector" },
     { "TypeInfo_Array" },
