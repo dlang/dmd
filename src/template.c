@@ -5786,8 +5786,11 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 #if LOG
         printf("Recursive template expansion\n");
 #endif
+        Ungag ungag(global.gag);
+        if (!gagged)
+            global.gag = 0;
         error(loc, "recursive template expansion");
-        if (global.gag)
+        if (gagged)
             semanticRun = PASSinit;
         else
             inst = this;
