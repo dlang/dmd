@@ -82,6 +82,13 @@ bool requireDSOregistry()
            !(config.flags3 & CFG3android);
 }
 
+// remove SHF_TLS flag for Android TLS data sections
+int tls_section_flags()
+{
+    return (config.flags3 & CFG3android) ? SHF_ALLOC|SHF_WRITE :
+                                           SHF_ALLOC|SHF_WRITE|SHF_TLS;
+}
+
 /***************************************************
  * Correspondence of relocation types
  *      386             32 bit in 64      64 in 64
@@ -1649,17 +1656,18 @@ STATIC void obj_tlssections()
     IDXSTR namidx;
     int align = I64 ? 16 : 4;
 
-    int sec = ElfObj::getsegment(".tdata", NULL, SHT_PROGBITS, SHF_ALLOC|SHF_WRITE|SHF_TLS, align);
+    int sec = ElfObj::getsegment(".tdata", NULL, SHT_PROGBITS, tls_section_flags(), align);
     Obj::bytes(sec, 0, align, NULL);
 
     namidx = Obj::addstr(symtab_strings,"_tlsstart");
-    elf_addsym(namidx, 0, align, STT_TLS, STB_GLOBAL, MAP_SEG2SECIDX(sec));
+    const int tls_symbol = (config.flags3 & CFG3android) ? STT_OBJECT : STT_TLS;
+    elf_addsym(namidx, 0, align, tls_symbol, STB_GLOBAL, MAP_SEG2SECIDX(sec));
 
-    ElfObj::getsegment(".tdata.", NULL, SHT_PROGBITS, SHF_ALLOC|SHF_WRITE|SHF_TLS, align);
+    ElfObj::getsegment(".tdata.", NULL, SHT_PROGBITS, tls_section_flags(), align);
 
-    sec = ElfObj::getsegment(".tcommon", NULL, SHT_NOBITS, SHF_ALLOC|SHF_WRITE|SHF_TLS, align);
+    sec = ElfObj::getsegment(".tcommon", NULL, SHT_NOBITS, tls_section_flags(), align);
     namidx = Obj::addstr(symtab_strings,"_tlsend");
-    elf_addsym(namidx, 0, align, STT_TLS, STB_GLOBAL, MAP_SEG2SECIDX(sec));
+    elf_addsym(namidx, 0, align, tls_symbol, STB_GLOBAL, MAP_SEG2SECIDX(sec));
 }
 
 /*********************************
@@ -1696,12 +1704,12 @@ STATIC void setup_comdat(Symbol *s)
          */
         if (I64)
             align = 16;
-        ElfObj::getsegment(".tdata", NULL, SHT_PROGBITS, SHF_ALLOC|SHF_WRITE|SHF_TLS, align);
+        ElfObj::getsegment(".tdata", NULL, SHT_PROGBITS, tls_section_flags(), align);
 
         s->Sfl = FLtlsdata;
         prefix = ".tdata.";
         type = SHT_PROGBITS;
-        flags = SHF_ALLOC|SHF_WRITE|SHF_TLS;
+        flags = tls_section_flags();
     }
     else
     {
@@ -1924,7 +1932,7 @@ seg_data *Obj::tlsseg()
     /* Ensure that ".tdata" precedes any other .tdata. section, as the ld
      * linker script fails to work right.
      */
-    ElfObj::getsegment(".tdata", NULL, SHT_PROGBITS, SHF_ALLOC|SHF_WRITE|SHF_TLS, 4);
+    ElfObj::getsegment(".tdata", NULL, SHT_PROGBITS, tls_section_flags(), 4);
 
     static const char tlssegname[] = ".tdata.";
     //dbg_printf("Obj::tlsseg(\n");
@@ -1932,7 +1940,7 @@ seg_data *Obj::tlsseg()
     if (seg_tlsseg == UNKNOWN)
     {
         seg_tlsseg = ElfObj::getsegment(tlssegname, NULL, SHT_PROGBITS,
-            SHF_ALLOC|SHF_WRITE|SHF_TLS, I64 ? 16 : 4);
+            tls_section_flags(), I64 ? 16 : 4);
     }
     return SegData[seg_tlsseg];
 }
@@ -1954,7 +1962,7 @@ seg_data *Obj::tlsseg_bss()
     if (seg_tlsseg_bss == UNKNOWN)
     {
         seg_tlsseg_bss = ElfObj::getsegment(tlssegname, NULL, SHT_NOBITS,
-            SHF_ALLOC|SHF_WRITE|SHF_TLS, I64 ? 16 : 4);
+            tls_section_flags(), I64 ? 16 : 4);
     }
     return SegData[seg_tlsseg_bss];
 }
@@ -2213,7 +2221,9 @@ void Obj::pubdefsize(int seg, Symbol *s, targ_size_t offset, targ_size_t symsize
     }
     else
     {
-        const unsigned typ = (s->ty() & mTYthread) ? STT_TLS : STT_OBJECT;
+        const unsigned typ =
+            (s->ty() & mTYthread && !(config.flags3 & CFG3android)) ? STT_TLS : STT_OBJECT;
+
         s->Sxtrnnum = elf_addsym(namidx, offset, symsize,
             typ, bind, MAP_SEG2SECIDX(seg));
     }
@@ -2276,7 +2286,7 @@ int Obj::external(Symbol *s)
     if (s->ty() & mTYthread)
     {
         //printf("Obj::external('%s') %x TLS\n",s->Sident,s->Svalue);
-        symtype = STT_TLS;
+        symtype = (config.flags3 & CFG3android) ? STT_OBJECT : STT_TLS;
     }
 
     s->Sxtrnnum = elf_addsym(namidx, size, size, symtype,
@@ -2304,7 +2314,7 @@ int Obj::common_block(Symbol *s,targ_size_t size,targ_size_t count)
     if (s->ty() & mTYthread)
     {
         s->Sseg = ElfObj::getsegment(".tbss.", cpp_mangle(s),
-                SHT_NOBITS, SHF_ALLOC|SHF_WRITE|SHF_TLS, align);
+                SHT_NOBITS, tls_section_flags(), align);
         s->Sfl = FLtlsdata;
         SegData[s->Sseg]->SDsym = s;
         SegData[s->Sseg]->SDoffset += size * count;
