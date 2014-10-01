@@ -3011,7 +3011,12 @@ int Obj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
                                     // Could use 'local dynamic (LD)' to optimize multiple local TLS reads
                                     relinfo = R_386_TLS_GD;
                                 else
-                                    relinfo = R_386_TLS_GD;
+                                {
+                                    if (config.flags3 & CFG3android)
+                                        relinfo = R_386_GOT32;
+                                    else
+                                        relinfo = R_386_TLS_GD;
+                                }
                             }
                             else
                             {
