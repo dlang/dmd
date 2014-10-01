@@ -2,7 +2,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail6572.d(9): Deprecation: use of typedef is deprecated; use alias instead
+fail_compilation/fail6572.d(9): Error: use alias instead of typedef
 ---
 */
 
@@ -12,7 +12,7 @@ typedef int y;
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail6572.d(18): Deprecation: use of typedef is deprecated; use alias instead
+fail_compilation/fail6572.d(18): Error: use alias instead of typedef
 ---
 */
 typedef struct S { }

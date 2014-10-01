@@ -3,7 +3,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail8664.d(11): Error: typedef fail8664.foo circular definition
+fail_compilation/fail8664.d(11): Error: use alias instead of typedef
+fail_compilation/fail8664.d(12): Error: use alias instead of typedef
 ---
 */
 

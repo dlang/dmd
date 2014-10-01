@@ -7,7 +7,7 @@ fail_compilation/fail156.d(40): Error: overlapping initialization for y
 ---
 */
 
-typedef int myint = 4;
+alias int myint;
 
 struct S
 {
@@ -18,7 +18,7 @@ struct S
         int y;
     }
     int j = 3;
-    myint k;
+    myint k = 4;
 }
 
 void main()
