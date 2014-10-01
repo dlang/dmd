@@ -377,7 +377,7 @@ __gshared uint max_cpuid, max_extended_cpuid;
 void getcacheinfoCPUID2()
 {
     // We are only interested in the data caches
-    void decipherCpuid2(ubyte x) @nogc {
+    void decipherCpuid2(ubyte x) @nogc nothrow {
         if (x==0) return;
         // Values from http://www.sandpile.org/ia32/cpuid.htm.
         // Includes Itanium and non-Intel CPUs.

@@ -26,6 +26,8 @@ version (unittest)
      */
     uint cpuid;
     enum CPUID_MAX = 14;
+
+nothrow:
     @property bool mmx()                { return cpuid == 1 && core.cpuid.mmx; }
     @property bool sse()                { return cpuid == 2 && core.cpuid.sse; }
     @property bool sse2()               { return cpuid == 3 && core.cpuid.sse2; }
