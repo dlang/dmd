@@ -79,6 +79,8 @@ struct Param
     bool is64bit;           // generate 64 bit code
     bool isLP64;            // generate code for LP64
     bool isLinux;           // generate code for linux
+    bool isAndroid;         // generate code for linux with some modifications
+                            // for Android
     bool isOSX;             // generate code for Mac OSX
     bool isWindows;         // generate code for Windows
     bool isFreeBSD;         // generate code for FreeBSD

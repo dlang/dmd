@@ -50,7 +50,8 @@ void out_config_init(
                         // 2: fake it with C symbolic debug info
         bool alwaysframe,       // always create standard function frame
         bool stackstomp,        // add stack stomping code
-        bool dwarfeh            // use Dwarf eh
+        bool dwarfeh,            // use Dwarf eh
+        bool isAndroid          // make TLS adjustments for Android
         )
 {
 #if MARS
@@ -110,6 +111,8 @@ void out_config_init(
         config.flags3 |= CFG3pic;
         config.flags |= CFGalwaysframe; // PIC needs a frame for TLS fixups
     }
+    if (isAndroid)
+        config.flags3 |= CFG3android;
     config.objfmt = OBJ_ELF;
 #endif
 #if TARGET_OSX

@@ -76,7 +76,11 @@ char *obj_mangle2(Symbol *s,char *dest);
  * If set the compiler requires full druntime support of the new
  * section registration.
  */
-#define REQUIRE_DSO_REGISTRY (DMDV2 && (TARGET_LINUX || TARGET_FREEBSD))
+bool requireDSOregistry()
+{
+    return config.exe & (EX_LINUX | EX_LINUX64 | EX_FREEBSD | EX_FREEBSD64) &&
+           !(config.flags3 & CFG3android);
+}
 
 /***************************************************
  * Correspondence of relocation types
@@ -3357,78 +3361,77 @@ static void obj_rtinit()
             off += 1;
         }
 
-#if REQUIRE_DSO_REGISTRY
-
-        const IDXSYM symidx = Obj::external_def("_d_dso_registry");
-
-        // call _d_dso_registry@PLT
-        buf->writeByte(0xE8);
-        off += 1;
-        off += ElfObj::writerel(codseg, off, I64 ? R_X86_64_PLT32 : R_386_PLT32, symidx, -4);
-
-#else
-
-        // use a weak reference for _d_dso_registry
-        namidx = ElfObj::addstr(symtab_strings, "_d_dso_registry");
-        const IDXSYM symidx = elf_addsym(namidx, 0, 0, STT_NOTYPE, STB_WEAK, SHN_UNDEF);
-
-        if (config.flags3 & CFG3pic)
+        if (requireDSOregistry())
         {
-            if (I64)
-            {
-                // cmp foo@GOT[RIP], 0
-                buf->writeByte(REX | REX_W);
-                buf->writeByte(0x83);
-                buf->writeByte(modregrm(0,7,5));
-                off += 3;
-                off += ElfObj::writerel(codseg, off, R_X86_64_GOTPCREL, symidx, -5);
-                buf->writeByte(0);
-                off += 1;
-            }
-            else
-            {
-                // cmp foo[GOT], 0
-                buf->writeByte(0x81);
-                buf->writeByte(modregrm(2,7,BX));
-                off += 2;
-                off += ElfObj::writerel(codseg, off, R_386_GOT32, symidx, 0);
-                buf->write32(0);
-                off += 4;
-            }
-            // jz +5
-            buf->writeByte(0x74);
-            buf->writeByte(0x05);
-            off += 2;
+            const IDXSYM symidx = Obj::external_def("_d_dso_registry");
 
-            // call foo@PLT[RIP]
+            // call _d_dso_registry@PLT
             buf->writeByte(0xE8);
             off += 1;
             off += ElfObj::writerel(codseg, off, I64 ? R_X86_64_PLT32 : R_386_PLT32, symidx, -4);
         }
         else
         {
-            // mov ECX, offset foo
-            buf->writeByte(0xB8 + CX);
-            off += 1;
-            reltype = I64 ? R_X86_64_32 : R_386_32;
-            off += ElfObj::writerel(codseg, off, reltype, symidx, 0);
+            // use a weak reference for _d_dso_registry
+            namidx = ElfObj::addstr(symtab_strings, "_d_dso_registry");
+            const IDXSYM symidx = elf_addsym(namidx, 0, 0, STT_NOTYPE, STB_WEAK, SHN_UNDEF);
 
-            // test ECX, ECX
-            buf->writeByte(0x85);
-            buf->writeByte(modregrm(3,CX,CX));
+            if (config.flags3 & CFG3pic)
+            {
+                if (I64)
+                {
+                    // cmp foo@GOT[RIP], 0
+                    buf->writeByte(REX | REX_W);
+                    buf->writeByte(0x83);
+                    buf->writeByte(modregrm(0,7,5));
+                    off += 3;
+                    off += ElfObj::writerel(codseg, off, R_X86_64_GOTPCREL, symidx, -5);
+                    buf->writeByte(0);
+                    off += 1;
+                }
+                else
+                {
+                    // cmp foo[GOT], 0
+                    buf->writeByte(0x81);
+                    buf->writeByte(modregrm(2,7,BX));
+                    off += 2;
+                    off += ElfObj::writerel(codseg, off, R_386_GOT32, symidx, 0);
+                    buf->write32(0);
+                    off += 4;
+                }
+                // jz +5
+                buf->writeByte(0x74);
+                buf->writeByte(0x05);
+                off += 2;
 
-            // jz +5 (skip call)
-            buf->writeByte(0x74);
-            buf->writeByte(0x05);
-            off += 4;
+                // call foo@PLT[RIP]
+                buf->writeByte(0xE8);
+                off += 1;
+                off += ElfObj::writerel(codseg, off, I64 ? R_X86_64_PLT32 : R_386_PLT32, symidx, -4);
+            }
+            else
+            {
+                // mov ECX, offset foo
+                buf->writeByte(0xB8 + CX);
+                off += 1;
+                reltype = I64 ? R_X86_64_32 : R_386_32;
+                off += ElfObj::writerel(codseg, off, reltype, symidx, 0);
 
-            // call _d_dso_registry[RIP]
-            buf->writeByte(0xE8);
-            off += 1;
-            off += ElfObj::writerel(codseg, off, I64 ? R_X86_64_PC32 : R_386_PC32, symidx, -4);
+                // test ECX, ECX
+                buf->writeByte(0x85);
+                buf->writeByte(modregrm(3,CX,CX));
+
+                // jz +5 (skip call)
+                buf->writeByte(0x74);
+                buf->writeByte(0x05);
+                off += 4;
+
+                // call _d_dso_registry[RIP]
+                buf->writeByte(0xE8);
+                off += 1;
+                off += ElfObj::writerel(codseg, off, I64 ? R_X86_64_PC32 : R_386_PC32, symidx, -4);
+            }
         }
-
-#endif // REQUIRE_DSO_REGISTRY
 
         if (config.flags3 & CFG3pic && I32)
         {   // mov EBX,[EBP-4-align]

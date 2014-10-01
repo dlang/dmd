@@ -170,6 +170,14 @@ private  void usage()
     {
         const(char)* m32mscoff = "";
     }
+    static if (TARGET_LINUX)
+    {
+        const(char)* m32android = "  -m32android     generate 32 bit code for Android\n";
+    }
+    else
+    {
+        const(char)* m32android = "";
+    }
     logo();
     printf("
 Documentation: http://dlang.org/
@@ -216,7 +224,7 @@ Usage:
   -Llinkerflag   pass linkerflag to link
   -lib           generate library rather than object files
   -m32           generate 32 bit code
-%s  -m64           generate 64 bit code
+%s%s  -m64           generate 64 bit code
   -main          add default main() (e.g. for unittesting)
   -man           open web browser on manual page
   -map           generate linker .map file
@@ -246,7 +254,7 @@ Usage:
   -wi            warnings as messages (compilation will continue)
   -X             generate JSON file
   -Xffilename    write JSON file to filename
-", FileName.canonicalName(global.inifilename), fpic, m32mscoff);
+", FileName.canonicalName(global.inifilename), fpic, m32mscoff, m32android);
 }
 
 /// DMD-generated module `__entrypoint` where the C main resides
@@ -566,6 +574,18 @@ private int tryMain(size_t argc, const(char)** argv)
                 else
                 {
                     error(Loc(), "-m32mscoff can only be used on windows");
+                }
+            }
+            else if (strcmp(p + 1, "m32android") == 0)
+            {
+                static if (TARGET_LINUX)
+                {
+                    global.params.is64bit = false;
+                    global.params.isAndroid = true;
+                }
+                else
+                {
+                    error(Loc(), "-m32android can only be used on linux");
                 }
             }
             else if (memcmp(p + 1, cast(char*)"profile", 7) == 0)
@@ -1780,7 +1800,8 @@ private const(char)* parse_arch_arg(Strings* args, const(char)* arch)
         const(char)* p = (*args)[i];
         if (p[0] == '-')
         {
-            if (strcmp(p + 1, "m32") == 0 || strcmp(p + 1, "m32mscoff") == 0 || strcmp(p + 1, "m64") == 0)
+            if (strcmp(p + 1, "m32") == 0 || strcmp(p + 1, "m32android") == 0 ||
+                strcmp(p + 1, "m32mscoff") == 0 || strcmp(p + 1, "m64") == 0)
                 arch = p + 2;
             else if (strcmp(p + 1, "run") == 0)
                 break;
@@ -1984,7 +2005,14 @@ private void addDefaultVersionIdentifiers()
     }
     else static if (TARGET_LINUX)
     {
-        VersionCondition.addPredefinedGlobalIdent("CRuntime_Glibc");
+        if (global.params.isAndroid)
+        {
+            VersionCondition.addPredefinedGlobalIdent("Android");
+            VersionCondition.addPredefinedGlobalIdent("CRuntime_Bionic");
+            global.params.pic = 1;
+        }
+        else
+            VersionCondition.addPredefinedGlobalIdent("CRuntime_Glibc");
     }
 
     if (global.params.isLP64)
