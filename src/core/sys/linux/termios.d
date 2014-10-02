@@ -11,6 +11,7 @@ module core.sys.linux.termios;
 version(linux):
     public import core.sys.posix.termios;
 
+    enum B57600 = 0x1001; // 0010001
     enum B115200 = 0x1002; // 0010002
     enum B230400 = 0x1003; // 0010003
     enum B460800 = 0x1004; // 0010004
