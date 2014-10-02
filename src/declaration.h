@@ -19,9 +19,7 @@
 #include "dsymbol.h"
 #include "lexer.h"
 #include "mtype.h"
-#if DMD_OBJC
 #include "objc.h"
-#endif
 
 class Expression;
 class Statement;
@@ -426,7 +424,6 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
-#if DMD_OBJC
 class TypeInfoObjcSelectorDeclaration : public TypeInfoDeclaration
 {
 public:
@@ -435,7 +432,6 @@ public:
 
     void accept(Visitor *v) { v->visit(this); }
 };
-#endif
 
 class TypeInfoTupleDeclaration : public TypeInfoDeclaration
 {

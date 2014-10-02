@@ -2045,6 +2045,19 @@ bool Objc_ClassDeclaration::isRootClass()
     return isInterface() && !metaclass && !cdecl->baseClass;
 }
 
+// MARK: TypeInfoObjcSelectorDeclaration
+
+TypeInfoObjcSelectorDeclaration::TypeInfoObjcSelectorDeclaration(Type *tinfo)
+: TypeInfoDeclaration(tinfo, 0)
+{
+    type = Type::typeinfodelegate->type;
+}
+
+TypeInfoObjcSelectorDeclaration *TypeInfoObjcSelectorDeclaration::create(Type *tinfo)
+{
+    return new TypeInfoObjcSelectorDeclaration(tinfo);
+}
+
 // MARK: addObjcSymbols
 
 void Objc_ClassDeclaration::addObjcSymbols(ClassDeclarations *classes, ClassDeclarations *categories)
@@ -2622,7 +2635,7 @@ ControlFlow objc_castTo_visit_ObjcSelectorExp(Type *t, Expression *&result, Objc
 
 // MARK: cppmangle
 
-void objc_CppMangleVisitor_visit_TypeObjcSelector(OutBuffer &buf, TypeObjcSelector *t);
+void objc_CppMangleVisitor_visit_TypeObjcSelector(OutBuffer &buf, TypeObjcSelector *t)
 {
-    buf->writestring("P13objc_selector");
+    buf.writestring("P13objc_selector");
 }

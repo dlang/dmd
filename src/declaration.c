@@ -2361,21 +2361,6 @@ TypeInfoDelegateDeclaration *TypeInfoDelegateDeclaration::create(Type *tinfo)
     return new TypeInfoDelegateDeclaration(tinfo);
 }
 
-/************************** TypeInfoObjcSelectorDeclaration *******************/
-
-#if DMD_OBJC
-TypeInfoObjcSelectorDeclaration::TypeInfoObjcSelectorDeclaration(Type *tinfo)
-    : TypeInfoDeclaration(tinfo, 0)
-{
-    type = Type::typeinfodelegate->type;
-}
-
-TypeInfoObjcSelectorDeclaration *TypeInfoObjcSelectorDeclaration::create(Type *tinfo)
-{
-    return new TypeInfoObjcSelectorDeclaration(tinfo);
-}
-#endif
-
 /***************************** TypeInfoTupleDeclaration **********************/
 
 TypeInfoTupleDeclaration::TypeInfoTupleDeclaration(Type *tinfo)
