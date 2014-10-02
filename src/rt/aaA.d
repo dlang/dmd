@@ -337,7 +337,7 @@ inout(ArrayRet_t) _aaValues(inout AA aa, in size_t keysize, in size_t valuesize)
         a.ptr = cast(byte*) GC.malloc(a.length * valuesize,
                                       valuesize < (void*).sizeof ? GC.BlkAttr.NO_SCAN : 0);
         resi = 0;
-        foreach (inout(Entry)* e; aa.impl.buckets)
+        foreach (inout(Entry)* e; aa.impl.buckets[aa.impl.firstUsedBucket..$])
         {
             while (e)
             {
@@ -386,7 +386,7 @@ body
             len = prime_list[i];
             newImpl.buckets = newBuckets(len);
 
-            foreach (e; oldImpl.buckets)
+            foreach (e; oldImpl.buckets[oldImpl.firstUsedBucket..$])
             {
                 while (e)
                 {   auto enext = e.next;
@@ -431,7 +431,7 @@ inout(ArrayRet_t) _aaKeys(inout AA aa, in size_t keysize) pure nothrow
     auto res = (cast(byte*) GC.malloc(len * keysize, blkAttr))[0 .. len * keysize];
 
     size_t resi = 0;
-    foreach (inout(Entry)* e; aa.impl.buckets)
+    foreach (inout(Entry)* e; aa.impl.buckets[aa.impl.firstUsedBucket..$])
     {
         while (e)
         {
@@ -520,7 +520,7 @@ int _aaApply(AA aa, in size_t keysize, dg_t dg)
     immutable alignsize = aligntsize(keysize);
     //printf("_aaApply(aa = x%llx, keysize = %d, dg = x%llx)\n", aa.impl, keysize, dg);
 
-    foreach (e; aa.impl.buckets)
+    foreach (e; aa.impl.buckets[aa.impl.firstUsedBucket..$])
     {
         while (e)
         {
@@ -547,7 +547,7 @@ int _aaApply2(AA aa, in size_t keysize, dg2_t dg)
 
     immutable alignsize = aligntsize(keysize);
 
-    foreach (e; aa.impl.buckets)
+    foreach (e; aa.impl.buckets[aa.impl.firstUsedBucket..$])
     {
         while (e)
         {
@@ -749,7 +749,7 @@ int _aaEqual(in TypeInfo tiRaw, in AA e1, in AA e2)
         return 1;                       // this subtree matches
     }
 
-    foreach (e; e1.impl.buckets)
+    foreach (e; e1.impl.buckets[e1.impl.firstUsedBucket..$])
     {
         if (e)
         {   if (_aaKeys_x(e) == 0)
@@ -779,7 +779,7 @@ hash_t _aaGetHash(in AA* aa, in TypeInfo tiRaw) nothrow
     const valueti = ti.next;
     const keysize = aligntsize(keyti.tsize);
 
-    foreach (const(Entry)* e; aa.impl.buckets)
+    foreach (const(Entry)* e; aa.impl.buckets[aa.impl.firstUsedBucket..$])
     {
         while (e)
         {
