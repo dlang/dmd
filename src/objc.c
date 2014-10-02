@@ -2619,3 +2619,10 @@ ControlFlow objc_castTo_visit_ObjcSelectorExp(Type *t, Expression *&result, Objc
 
     return CFnone;
 }
+
+// MARK: cppmangle
+
+void objc_CppMangleVisitor_visit_TypeObjcSelector(OutBuffer &buf, TypeObjcSelector *t);
+{
+    buf->writestring("P13objc_selector");
+}

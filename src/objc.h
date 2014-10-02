@@ -490,4 +490,6 @@ ControlFlow objc_castTo_visit_SymOffExp_Tobjcselector(Scope *sc, Expression *&re
 ControlFlow objc_castTo_visit_DelegateExp_Tobjcselector(Type *t, Expression *&result, DelegateExp *e, Type *tb);
 ControlFlow objc_castTo_visit_ObjcSelectorExp(Type *t, Expression *&result, ObjcSelectorExp *e);
 
+void objc_CppMangleVisitor_visit_TypeObjcSelector(OutBuffer &buf, TypeObjcSelector *t);
+
 #endif

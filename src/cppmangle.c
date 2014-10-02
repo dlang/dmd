@@ -769,12 +769,10 @@ public:
         visit((Type *)t);
     }
 
-#if DMD_OBJC
     void visit (TypeObjcSelector *t)
     {
-        buf.writestring("P13objc_selector");
+        objc_CppMangleVisitor_visit_TypeObjcSelector(buf, t);
     }
-#endif
 
     void visit(TypeStruct *t)
     {
