@@ -1,11 +1,11 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/parseStc2.d(11): Error: conflicting storage class const
-fail_compilation/parseStc2.d(12): Error: conflicting attribute @system
-fail_compilation/parseStc2.d(13): Error: conflicting attribute @safe
-fail_compilation/parseStc2.d(14): Error: conflicting attribute @trusted
-fail_compilation/parseStc2.d(15): Error: conflicting storage class __gshared
+fail_compilation/parseStc2.d(11): Error: conflicting attribute 'const'
+fail_compilation/parseStc2.d(12): Error: conflicting attribute '@system'
+fail_compilation/parseStc2.d(13): Error: conflicting attribute '@safe'
+fail_compilation/parseStc2.d(14): Error: conflicting attribute '@trusted'
+fail_compilation/parseStc2.d(15): Error: conflicting attribute '__gshared'
 ---
 */
 immutable const void f4() {}
@@ -17,10 +17,10 @@ shared __gshared f4() {}
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/parseStc2.d(26): Error: redundant storage class 'static'
-fail_compilation/parseStc2.d(27): Error: redundant storage class 'pure'
-fail_compilation/parseStc2.d(28): Error: redundant storage class '@property'
-fail_compilation/parseStc2.d(29): Error: redundant storage class '@safe'
+fail_compilation/parseStc2.d(26): Error: redundant attribute 'static'
+fail_compilation/parseStc2.d(27): Error: redundant attribute 'pure'
+fail_compilation/parseStc2.d(28): Error: redundant attribute '@property'
+fail_compilation/parseStc2.d(29): Error: redundant attribute '@safe'
 ---
 */
 static static void f1() {}

@@ -3685,7 +3685,7 @@ auto ref boo(int i) pure nothrow { return i; }
 
 class A152 {
     auto hoo(int i) pure  { return i; }
-    const boo(int i) const { return i; }
+    const boo(int i) nothrow { return i; }
     auto coo(int i) const { return i; }
     auto doo(int i) immutable { return i; }
     auto eoo(int i) shared { return i; }

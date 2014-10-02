@@ -920,9 +920,18 @@ void VarDeclaration::semantic(Scope *sc)
     {
         if (!originalType)
             originalType = type->syntaxCopy();
+
+        /* Prefix function attributes of variable declaration can affect
+         * its type:
+         *      pure nothrow void function() fp;
+         *      static assert(is(typeof(fp) == void function() pure nothrow));
+         */
+        Scope *sc2 = sc->push();
+        sc2->stc |= (storage_class & STC_FUNCATTR);
         inuse++;
-        type = type->semantic(loc, sc);
+        type = type->semantic(loc, sc2);
         inuse--;
+        sc2->pop();
     }
     //printf(" semantic type = %s\n", type ? type->toChars() : "null");
 

@@ -379,7 +379,6 @@ public:
             s->elsebody->accept(this);
             buf->level--;
             buf->writeByte('}');
-            buf->writenl();
         }
         buf->writenl();
     }
@@ -1172,7 +1171,10 @@ public:
             buf->writestring("{}");
         }
         else if (d->decl->dim == 1)
+        {
             ((*d->decl)[0])->accept(this);
+            return;
+        }
         else
         {
             buf->writenl();
@@ -1744,13 +1746,15 @@ public:
                 hgs->autoMember--;
             }
             else if (hgs->tpltMember == 0 && !global.params.useInline)
+            {
                 buf->writeByte(';');
+                buf->writenl();
+            }
             else
                 bodyToBuffer(f);
         }
         else
             bodyToBuffer(f);
-        buf->writenl();
     }
 
     void bodyToBuffer(FuncDeclaration *f)

@@ -78,9 +78,9 @@ public:
     Dsymbols *parseDeclDefs(int once, Dsymbol **pLastDecl = NULL, PrefixAttributes *pAttrs = NULL);
     Dsymbols *parseAutoDeclarations(StorageClass storageClass, const utf8_t *comment);
     Dsymbols *parseBlock(Dsymbol **pLastDecl, PrefixAttributes *pAttrs = NULL);
-    void composeStorageClass(StorageClass stc);
+    StorageClass appendStorageClass(StorageClass storageClass, StorageClass stc);
     StorageClass parseAttribute(Expressions **pexps);
-    StorageClass parsePostfix(Expressions **pudas);
+    StorageClass parsePostfix(StorageClass storageClass, Expressions **pudas);
     StorageClass parseTypeCtor();
     Expression *parseConstraint();
     TemplateDeclaration *parseTemplateDeclaration(bool ismixin = false);
