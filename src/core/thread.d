@@ -1466,7 +1466,7 @@ private:
     ///////////////////////////////////////////////////////////////////////////
 
 
-    final void pushContext( Context* c )
+    final void pushContext( Context* c ) nothrow
     in
     {
         assert( !c.within );
@@ -1478,7 +1478,7 @@ private:
     }
 
 
-    final void popContext()
+    final void popContext() nothrow
     in
     {
         assert( m_curr && m_curr.within );
@@ -1491,7 +1491,7 @@ private:
     }
 
 
-    final Context* topContext()
+    final Context* topContext() nothrow
     in
     {
         assert( m_curr );
@@ -3116,7 +3116,7 @@ private void* getStackBottom() nothrow
  * Returns:
  *  The address of the stack top.
  */
-extern (C) void* thread_stackTop()
+extern (C) void* thread_stackTop() nothrow
 in
 {
     // Not strictly required, but it gives us more flexibility.
@@ -3138,7 +3138,7 @@ body
  * Returns:
  *  The address of the stack bottom.
  */
-extern (C) void* thread_stackBottom()
+extern (C) void* thread_stackBottom() nothrow
 in
 {
     assert(Thread.getThis());

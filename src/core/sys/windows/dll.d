@@ -342,6 +342,8 @@ public:
         if( !entry )
             return false;
 
+        scope (failure) assert(0); // enforce nothrow, Bugzilla 13561
+
         if( !enumProcessThreads(
             function (uint id, void* context) nothrow {
                 dll_aux.LdrpTlsListEntry* entry = cast(dll_aux.LdrpTlsListEntry*) context;
