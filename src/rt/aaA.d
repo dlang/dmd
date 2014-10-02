@@ -163,6 +163,7 @@ body
     if (aa.impl is null)
     {   aa.impl = new Impl();
         aa.impl.buckets = aa.impl.binit[];
+        aa.impl.firstUsedBucket = aa.impl.buckets.length;
     }
     //printf("aa = %p\n", aa);
     //printf("aa.a = %p\n", aa.a);
@@ -309,7 +310,9 @@ bool _aaDelX(AA aa, in TypeInfo keyti, in void* pkey)
                 if (keyti.equals(pkey, e + 1))
                 {
                     *pe = e.next;
-                    aa.impl.nodes--;
+                    if(!(--aa.impl.nodes))
+                        // reset cache, we know there are no nodes in the aa.
+                        aa.impl.firstUsedBucket = aa.impl.buckets.length;
                     GC.free(e);
                     return true;
                 }
@@ -385,6 +388,7 @@ body
             }
             len = prime_list[i];
             newImpl.buckets = newBuckets(len);
+            newImpl.firstUsedBucket = newImpl.buckets.length;
 
             foreach (e; oldImpl.buckets[oldImpl.firstUsedBucket..$])
             {
@@ -394,6 +398,8 @@ body
                     e.next = newImpl.buckets[j];
                     newImpl.buckets[j] = e;
                     e = enext;
+                    if(j < newImpl.firstUsedBucket)
+                        newImpl.firstUsedBucket = j;
                 }
             }
             if (oldImpl.buckets.ptr == oldImpl.binit.ptr)
@@ -403,7 +409,6 @@ body
 
             newImpl.nodes = oldImpl.nodes;
             newImpl._keyti = oldImpl._keyti;
-            newImpl.firstUsedBucket = 0; // cache is not initialized yet
 
             *paa.impl = newImpl;
         }
@@ -412,10 +417,10 @@ body
             if (paa.impl.buckets.ptr != paa.impl.binit.ptr)
                 GC.free(paa.impl.buckets.ptr);
             paa.impl.buckets = paa.impl.binit[];
-            paa.impl.firstUsedBucket = 0; // cache is not initialized yet
+            paa.impl.firstUsedBucket = paa.impl.buckets.length; // start out with the cache at the end
         }
     }
-    return (*paa).impl;
+    return paa.impl;
 }
 
 /********************************************
@@ -593,7 +598,7 @@ Impl* _d_assocarrayliteralTX(const TypeInfo_AssociativeArray ti, void[] keys, vo
         }
         auto len = prime_list[i];
         result.buckets = newBuckets(len);
-        result.firstUsedBucket = size_t.max-1;
+        result.firstUsedBucket = result.buckets.length;
 
         size_t keytsize = aligntsize(keysize);
 
