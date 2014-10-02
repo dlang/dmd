@@ -1476,37 +1476,7 @@ Lancestorsdone:
         }
     }
 
-#if DMD_OBJC
-    if (objc.objc && !objc.meta && !objc.metaclass)
-    {   // Create meta class derived from all our base's metaclass
-        BaseClasses *metabases = new BaseClasses();
-        for (size_t i = 0; i < baseclasses->dim; ++i)
-        {   ClassDeclaration *basecd = ((BaseClass *)baseclasses->data[i])->base;
-            assert(basecd);
-            InterfaceDeclaration *baseid = basecd->isInterfaceDeclaration();
-            assert(baseid);
-            if (baseid->objc.objc)
-            {   assert(baseid->objc.metaclass);
-                assert(baseid->objc.metaclass->objc.meta);
-                assert(baseid->objc.metaclass->type->ty == Tclass);
-                assert(((TypeClass *)baseid->objc.metaclass->type)->sym == baseid->objc.metaclass);
-                BaseClass *metabase = new BaseClass(baseid->objc.metaclass->type, PROTpublic);
-                metabase->base = baseid->objc.metaclass;
-                metabases->push(metabase);
-            }
-            else
-                error("base interfaces for an Objective-C interface must be extern (Objective-C)");
-        }
-        objc.metaclass = new InterfaceDeclaration(loc, Id::Class, metabases);
-        objc.metaclass->storage_class |= STCstatic;
-        objc.metaclass->objc.objc = true;
-        objc.metaclass->objc.meta = true;
-        objc.metaclass->objc.extern_ = objc.extern_;
-        objc.metaclass->objc.ident = objc.ident;
-        members->push(objc.metaclass);
-        objc.metaclass->addMember(sc, this, 1);
-    }
-#endif
+    objc_InterfaceDeclaration_semantic_createMetaclass(this, sc);
 
     {
         // initialize vtbl

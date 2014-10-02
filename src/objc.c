@@ -2409,6 +2409,44 @@ ControlFlow objc_InterfaceDeclaration_semantic_mixingObjc(InterfaceDeclaration *
     return CFnone;
 }
 
+void objc_InterfaceDeclaration_semantic_createMetaclass(InterfaceDeclaration *self, Scope *sc)
+{
+    if (self->objc.objc && !self->objc.meta && !self->objc.metaclass)
+    {   // Create meta class derived from all our base's metaclass
+        BaseClasses *metabases = new BaseClasses();
+        for (size_t i = 0; i < self->baseclasses->dim; ++i)
+        {
+            ClassDeclaration *basecd = ((BaseClass *)self->baseclasses->data[i])->base;
+            assert(basecd);
+            InterfaceDeclaration *baseid = basecd->isInterfaceDeclaration();
+            assert(baseid);
+            if (baseid->objc.objc)
+            {
+                assert(baseid->objc.metaclass);
+                assert(baseid->objc.metaclass->objc.meta);
+                assert(baseid->objc.metaclass->type->ty == Tclass);
+                assert(((TypeClass *)baseid->objc.metaclass->type)->sym == baseid->objc.metaclass);
+                BaseClass *metabase = new BaseClass(baseid->objc.metaclass->type, PROTpublic);
+                metabase->base = baseid->objc.metaclass;
+                metabases->push(metabase);
+            }
+            else
+                self->error("base interfaces for an Objective-C interface must be extern (Objective-C)");
+        }
+        self->objc.metaclass = new InterfaceDeclaration(self->loc, Id::Class, metabases);
+        self->objc.metaclass->storage_class |= STCstatic;
+        self->objc.metaclass->objc.objc = true;
+        self->objc.metaclass->objc.meta = true;
+        self->objc.metaclass->objc.extern_ = self->objc.extern_;
+        self->objc.metaclass->objc.ident = self->objc.ident;
+        self->
+
+
+        members->push(self->objc.metaclass);
+        self->objc.metaclass->addMember(sc, self, 1);
+    }
+}
+
 // MARK: implicitConvTo
 
 ControlFlow objc_implicitConvTo_visit_StringExp_Tclass(Type *t, MATCH *result)
