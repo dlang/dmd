@@ -6515,6 +6515,9 @@ Expression *Parser::parsePrimaryExp()
                     {
                         tok2 = token.value;
                         nextToken();
+
+                        if (tok2 == TOKtypedef)
+                            deprecation("typedef is removed");
                     }
                     else
                     {
