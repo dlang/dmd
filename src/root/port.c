@@ -293,8 +293,11 @@ void Port::yl2xp1_impl(longdouble* x, longdouble* y, longdouble* res)
 #elif _M_X64
 
 //defined in ldfpu.asm
-void ld_yl2x(long_double *x, long_double *y, long_double *r);
-void ld_yl2xp1(long_double *x, long_double *y, long_double *r);
+extern "C"
+{
+    void ld_yl2x(longdouble *x, longdouble *y, longdouble *r);
+    void ld_yl2xp1(longdouble *x, longdouble *y, longdouble *r);
+}
 
 void Port::yl2x_impl(longdouble* x, longdouble* y, longdouble* res)
 {
