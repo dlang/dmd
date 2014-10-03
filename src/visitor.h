@@ -52,6 +52,7 @@ class DebugStatement;
 class GotoStatement;
 class LabelStatement;
 class AsmStatement;
+class CompoundAsmStatement;
 class ImportStatement;
 
 class Type;
@@ -341,6 +342,7 @@ public:
     virtual void visit(GotoStatement *s) { visit((Statement *)s); }
     virtual void visit(LabelStatement *s) { visit((Statement *)s); }
     virtual void visit(AsmStatement *s) { visit((Statement *)s); }
+    virtual void visit(CompoundAsmStatement *s) { visit((CompoundStatement *)s); }
     virtual void visit(ImportStatement *s) { visit((Statement *)s); }
 
     virtual void visit(Type *) { assert(0); }

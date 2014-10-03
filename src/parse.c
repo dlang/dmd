@@ -5253,6 +5253,10 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
             Loc labelloc;
 
             nextToken();
+            StorageClass stc = parsePostfix(STCundefined, NULL);
+            if (stc & (STCconst | STCimmutable | STCshared | STCwild))
+                error("const/immutable/shared/inout attributes are not allowed on asm blocks");
+
             check(TOKlcurly);
             Token *toklist = NULL;
             Token **ptoklist = &toklist;
@@ -5333,7 +5337,7 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
                 }
                 break;
             }
-            s = new CompoundStatement(loc, statements);
+            s = new CompoundAsmStatement(loc, statements, stc);
             nextToken();
             break;
         }
