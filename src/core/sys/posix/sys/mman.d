@@ -202,10 +202,6 @@ version( linux )
     enum MAP_PRIVATE    = 0x02;
     enum MAP_FIXED      = 0x10;
 
-    static import core.sys.linux.sys.mman;
-    deprecated("Please use core.sys.linux.sys.mman for non-POSIX extensions")
-    alias MAP_ANON = core.sys.linux.sys.mman.MAP_ANON;
-
     enum MAP_FAILED     = cast(void*) -1;
 
     version (Alpha) enum
@@ -255,7 +251,9 @@ else version( FreeBSD )
     enum MAP_SHARED     = 0x0001;
     enum MAP_PRIVATE    = 0x0002;
     enum MAP_FIXED      = 0x0010;
-    enum MAP_ANON       = 0x1000; // non-standard
+    static import core.sys.freebsd.sys.mman;
+    deprecated("Please use core.sys.freebsd.sys.mman for non-POSIX extensions")
+    alias MAP_ANON = core.sys.freebsd.sys.mman.MAP_ANON;
 
     enum MAP_FAILED     = cast(void*)-1;
 
@@ -270,7 +268,9 @@ else version (Solaris)
     enum MAP_SHARED = 0x0001;
     enum MAP_PRIVATE = 0x0002;
     enum MAP_FIXED = 0x0010;
-    enum MAP_ANON = 0x0100;
+    static import core.sys.osx.sys.mman;
+    deprecated("Please use core.sys.osx.sys.mman for non-POSIX extensions")
+    alias MAP_ANON = core.sys.osx.sys.mman.MAP_ANON;
 
     enum MAP_FAILED = cast(void*)-1;
 
