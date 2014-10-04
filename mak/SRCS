@@ -44,7 +44,6 @@ SRCS=\
 	\
 	src\core\sys\freebsd\execinfo.d \
 	src\core\sys\freebsd\sys\event.d \
-	src\core\sys\freebsd\sys\mman.d \
 	\
 	src\core\sys\posix\signal.d \
 	src\core\sys\posix\dirent.d \
