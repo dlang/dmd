@@ -2007,6 +2007,8 @@ int TypeObjcSelector::hasPointers()
 #include "init.h"
 #include "statement.h"
 
+elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
+
 Objc_StructDeclaration::Objc_StructDeclaration()
 {
     selectorTarget = false;
@@ -2686,4 +2688,19 @@ void objc_callfunc_setupSelector(elem *ec, FuncDeclaration *fd, elem *esel, Type
     assert(t->nextOf()->ty == Tfunction);
     tf = (TypeFunction *)(t->nextOf());
     ethis = ec;
+}
+
+void objc_callfunc_setupMethodSelector(Type *tret, FuncDeclaration *fd, Type *t, elem *ehidden, elem *&esel)
+{
+    if (fd && fd->objc.selector && !esel)
+    {
+        if (fd->objc.selector->usesVTableDispatch())
+        {
+            elem* messageReference = el_var(ObjcSymbols::getMessageReference(fd->objc.selector, tret, ehidden != 0));
+            esel = addressElem(messageReference, t);
+        }
+
+        else
+            esel = fd->objc.selector->toElem();
+    }
 }

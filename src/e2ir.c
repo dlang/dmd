@@ -229,17 +229,7 @@ elem *callfunc(Loc loc,
     }
 
 #if DMD_OBJC
-    if (fd && fd->objc.selector && !esel)
-    {
-        if (fd->objc.selector->usesVTableDispatch())
-        {
-            elem* messageReference = el_var(ObjcSymbols::getMessageReference(fd->objc.selector, tret, ehidden != 0));
-            esel = addressElem(messageReference, t);
-        }
-
-        else
-            esel = fd->objc.selector->toElem();
-    }
+    objc_callfunc_setupMethodSelector(tret, fd, t, ehidden, esel);
 
     if (esel)
     {   // using objc-style "virtual" call
