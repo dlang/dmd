@@ -1,7 +1,7 @@
 // PERMUTE_ARGS:
 // POST_SCRIPT: runnable/extra-files/statictor-postscript.sh
 
-private import std.stdio;
+extern(C) int printf(const char*, ...);
 
 class Foo
 {

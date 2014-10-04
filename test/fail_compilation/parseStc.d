@@ -1,3 +1,5 @@
+// REQUIRED_ARGS: -d
+#line 1
 /*
 TEST_OUTPUT:
 ---

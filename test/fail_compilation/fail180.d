@@ -18,7 +18,7 @@ struct S59
     {
         x = 3;
     }
-    const void bar()
+    void bar() const
     {
         x = 4;
         this.x = 5;
@@ -33,7 +33,7 @@ class C
     {
         x = 3;
     }
-    const void bar()
+    void bar() const
     {
         x = 4;
         this.x = 5;
