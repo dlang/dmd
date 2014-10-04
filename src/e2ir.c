@@ -135,11 +135,6 @@ elem *callfunc(Loc loc,
     {   printf("ehidden: "); elem_print(ehidden); }
 #endif
     t = t->toBasetype();
-#if DMD_OBJC
-    bool isObjcSelector = t->ty == Tobjcselector;
-#else
-    bool isObjcSelector = false;
-#endif
     if (t->ty == Tdelegate)
     {
         // A delegate consists of:
@@ -153,13 +148,9 @@ elem *callfunc(Loc loc,
         ec = array_toPtr(t, ec);                // get funcptr
         ec = el_una(OPind, totym(tf), ec);
     }
-    else if (isObjcSelector)
+    else if (t->ty == Tobjcselector)
     {
-        assert(!fd);
-        assert(esel);
-        assert(t->nextOf()->ty == Tfunction);
-        tf = (TypeFunction *)(t->nextOf());
-        ethis = ec;
+        objc_callfunc_setupSelector(ec, fd, esel, t, tf, ethis);
     }
     else
     {

@@ -2677,3 +2677,13 @@ ControlFlow objc_ScopeDsymbol_multiplyDefined(Dsymbol *s1, Dsymbol *s2)
 
     return isMetaclass ? CFreturn : CFnone;
 }
+
+// MARK: callfunc
+void objc_callfunc_setupSelector(elem *ec, FuncDeclaration *fd, elem *esel, Type *t, TypeFunction *&tf, elem *&ethis)
+{
+    assert(!fd);
+    assert(esel);
+    assert(t->nextOf()->ty == Tfunction);
+    tf = (TypeFunction *)(t->nextOf());
+    ethis = ec;
+}
