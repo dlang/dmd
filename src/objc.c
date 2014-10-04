@@ -717,7 +717,7 @@ Symbol *ObjcSymbols::getPropertyName(Identifier* ident)
 
 Symbol *ObjcSymbols::getPropertyTypeString(FuncDeclaration* property)
 {
-    assert(property->isObjcProperty());
+    assert(property->objc.isProperty());
 
     TypeFunction* type = (TypeFunction*) property->type;
     Type* propertyType = type->next->ty != TYvoid ? type->next : (*type->parameters)[0]->type;
@@ -1406,7 +1406,7 @@ Dsymbols* ObjcClassDeclaration::getProperties()
         TypeFunction* type = (TypeFunction*) method->type;
         Identifier* ident = method->ident;
 
-        if (method->isObjcProperty() && !uniqueProperties->lookup(ident->string, ident->len))
+        if (method->objc.isProperty() && !uniqueProperties->lookup(ident->string, ident->len))
         {
             properties->push(method);
             uniqueProperties->insert(ident->string, ident->len);
@@ -2061,6 +2061,16 @@ void Ojbc_FuncDeclaration::createSelector()
         TypeFunction *ftype = (TypeFunction *)fdecl->type;
         selector = ObjcSelector::create(fdecl);
     }
+}
+
+bool Ojbc_FuncDeclaration::isProperty()
+{
+    TypeFunction* t = (TypeFunction*)fdecl->type;
+
+    return (fdecl->storage_class & STCproperty) &&
+        t && t->parameters &&
+        ((t->parameters->dim == 1 && t->next == Type::tvoid) ||
+        (t->parameters->dim == 0 && t->next != Type::tvoid));
 }
 
 // MARK: TypeInfoObjcSelectorDeclaration

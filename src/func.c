@@ -4401,20 +4401,6 @@ Parameters *FuncDeclaration::getParameters(int *pvarargs)
     return fparameters;
 }
 
-#if DMD_OBJC
-// Returns true if the receiver is an Objective-C property.
-bool FuncDeclaration::isObjcProperty()
-{
-    TypeFunction* t = (TypeFunction*) type;
-
-    return (storage_class & STCproperty) &&
-        t && t->parameters &&
-        (t->parameters->dim == 1 && t->next == Type::tvoid) ||
-        (t->parameters->dim == 0 && t->next != Type::tvoid);
-}
-#endif
-
-
 /****************************** FuncAliasDeclaration ************************/
 
 // Used as a way to import a set of functions from another scope into this one.

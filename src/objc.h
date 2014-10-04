@@ -480,6 +480,9 @@ struct Ojbc_FuncDeclaration
      * virtual member with Objective-C linkage.
      */
     void createSelector();
+
+    // Returns true if the receiver->fdecl is an Objective-C property.
+    bool isProperty();
 };
 
 void objc_AttribDeclaration_addObjcSymbols(AttribDeclaration* self, ClassDeclarations *classes, ClassDeclarations *categories);
