@@ -98,6 +98,7 @@ struct Param
     char vgc;           // identify gc usage
     bool vfield;        // identify non-mutable field variables
     char symdebug;      // insert debug symbolic information
+    bool symdebugref;   // insert debug symbolic information for referenced classes/structs/enums
     bool alwaysframe;   // always emit standard stack frame
     bool optimize;      // run optimizer
     bool map;           // generate linker .map file

@@ -53,6 +53,7 @@ void StructDeclaration_toDt(StructDeclaration *sd, dt_t **pdt);
 Symbol *toSymbol(Dsymbol *s);
 dt_t **Expression_toDt(Expression *e, dt_t **pdt);
 
+type *Type_toCtype(Type *t);
 void toDebug(TypedefDeclaration *tdd);
 void toDebug(EnumDeclaration *ed);
 void toDebug(StructDeclaration *sd);
@@ -232,7 +233,9 @@ void ClassDeclaration::toObjFile(bool multiobj)
         return;
     }
 
-    if (global.params.symdebug)
+    if (global.params.symdebugref)
+        Type_toCtype(type); // calls toDebug() only once
+    else if (global.params.symdebug)
         toDebug(this);
 
     assert(!scope);     // semantic() should have been run to completion
@@ -672,7 +675,9 @@ void InterfaceDeclaration::toObjFile(bool multiobj)
     if (!members)
         return;
 
-    if (global.params.symdebug)
+    if (global.params.symdebugref)
+        Type_toCtype(type); // calls toDebug() only once
+    else if (global.params.symdebug)
         toDebug(this);
 
     scclass = SCglobal;
@@ -851,7 +856,9 @@ void StructDeclaration::toObjFile(bool multiobj)
     // do not output forward referenced structs's
     if (!isAnonymous() && members)
     {
-        if (global.params.symdebug)
+        if (global.params.symdebugref)
+            Type_toCtype(type); // calls toDebug() only once
+        else if (global.params.symdebug)
             toDebug(this);
 
         type->genTypeInfo(NULL);
@@ -1019,7 +1026,9 @@ void TypedefDeclaration::toObjFile(bool multiobj)
         return;
     }
 
-    if (global.params.symdebug)
+    if (global.params.symdebugref)
+        Type_toCtype(type); // calls toDebug() only once
+    else if (global.params.symdebug)
         toDebug(this);
 
     type->genTypeInfo(NULL);
@@ -1059,7 +1068,9 @@ void EnumDeclaration::toObjFile(bool multiobj)
     if (isAnonymous())
         return;
 
-    if (global.params.symdebug)
+    if (global.params.symdebugref)
+        Type_toCtype(type); // calls toDebug() only once
+    else if (global.params.symdebug)
         toDebug(this);
 
     type->genTypeInfo(NULL);

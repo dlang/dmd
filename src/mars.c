@@ -579,8 +579,12 @@ int tryMain(size_t argc, const char *argv[])
                 global.params.map = true;
             else if (strcmp(p + 1, "multiobj") == 0)
                 global.params.multiobj = true;
-            else if (strcmp(p + 1, "g") == 0)
+            else if (strcmp(p + 1, "g") == 0 || strcmp(p + 1, "g1") == 0)
                 global.params.symdebug = 1;
+            else if (strcmp(p + 1, "g2") == 0)
+            {   global.params.symdebug = 1;
+                global.params.symdebugref = 1;
+            }
             else if (strcmp(p + 1, "gc") == 0)
                 global.params.symdebug = 2;
             else if (strcmp(p + 1, "gs") == 0)
