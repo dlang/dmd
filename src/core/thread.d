@@ -484,38 +484,6 @@ else
  * class, and instances of this class should never be explicitly deleted.
  * A new thread may be created using either derivation or composition, as
  * in the following example.
- *
- * Example:
- * ----------------------------------------------------------------------------
- *
- * class DerivedThread : Thread
- * {
- *     this()
- *     {
- *         super( &run );
- *     }
- *
- * private :
- *     void run()
- *     {
- *         printf( "Derived thread running.\n" );
- *     }
- * }
- *
- * void threadFunc()
- * {
- *     printf( "Composed thread running.\n" );
- * }
- *
- * // create instances of each type
- * Thread derived = new DerivedThread();
- * Thread composed = new Thread( &threadFunc );
- *
- * // start both threads
- * derived.start();
- * composed.start();
- *
- * ----------------------------------------------------------------------------
  */
 class Thread
 {
@@ -621,7 +589,7 @@ class Thread
      * Throws:
      *  ThreadException if the thread fails to start.
      */
-    final void start()
+    final Thread start()
     in
     {
         assert( !next && !prev );
@@ -726,9 +694,9 @@ class Thread
             //
             // VERIFY: does this actually also apply to other platforms?
             add( this );
+            return this;
         }
     }
-
 
     /**
      * Waits for this thread to complete.  If the thread terminated as the
@@ -1774,16 +1742,41 @@ private:
     }
 }
 
+///
+unittest
+{
+    class DerivedThread : Thread
+    {
+        this()
+        {
+            super(&run);
+        }
+
+    private:
+        void run()
+        {
+            // Derived thread running.
+        }
+    }
+
+    void threadFunc()
+    {
+        // Composed thread running.
+    }
+
+    // create and start instances of each type
+    auto derived = new DerivedThread().start();
+    auto composed = new Thread(&threadFunc).start();
+}
 
 unittest
 {
     int x = 0;
 
-    auto t = new Thread(
+    new Thread(
     {
         x++;
-    });
-    t.start(); t.join();
+    }).start().join();
     assert( x == 1 );
 }
 
@@ -1795,11 +1788,10 @@ unittest
 
     try
     {
-        auto t = new Thread(
+        new Thread(
         {
             throw new Exception( MSG );
-        });
-        t.start(); t.join();
+        }).start().join();
         assert( false, "Expected rethrown exception." );
     }
     catch( Throwable t )
@@ -1815,12 +1807,12 @@ unittest
 
 version( CoreDdoc )
 {
-    /** 
-     * Instruct the thread module, when initialized, to use a different set of 
+    /**
+     * Instruct the thread module, when initialized, to use a different set of
      * signals besides SIGUSR1 and SIGUSR2 for suspension and resumption of threads.
      * This function should be called at most once, prior to thread_init().
      * This function is Posix-only.
-     */  
+     */
     extern (C) void thread_setGCSignals(int suspendSignalNo, int resumeSignalNo)
     {
     }
@@ -1831,7 +1823,7 @@ else version( Posix )
     __gshared int resumeSignalNumber;
 
     extern (C) void thread_setGCSignals(int suspendSignalNo, int resumeSignalNo)
-    in 
+    in
     {
         assert(suspendSignalNumber == 0);
         assert(resumeSignalNumber  == 0);
@@ -1873,7 +1865,7 @@ extern (C) void thread_init()
         if( suspendSignalNumber == 0 )
         {
             suspendSignalNumber = SIGUSR1;
-        } 
+        }
 
         if( resumeSignalNumber == 0 )
         {
@@ -2119,8 +2111,7 @@ unittest
     auto t = new Thread(
     {
         Thread.sleep(100.msecs);
-    });
-    t.start();
+    }).start();
     thread_detachInstance(t);
     foreach (t2; Thread)
         assert(t !is t2);
@@ -3140,9 +3131,8 @@ class ThreadGroup
      */
     final Thread create( void function() fn )
     {
-        Thread t = new Thread( fn );
+        Thread t = new Thread( fn ).start();
 
-        t.start();
         synchronized( this )
         {
             m_all[t] = t;
@@ -3163,9 +3153,8 @@ class ThreadGroup
      */
     final Thread create( void delegate() dg )
     {
-        Thread t = new Thread( dg );
+        Thread t = new Thread( dg ).start();
 
-        t.start();
         synchronized( this )
         {
             m_all[t] = t;
@@ -4962,8 +4951,7 @@ unittest
     static void unreferencedThreadObject()
     {
         static void sleep() { Thread.sleep(dur!"msecs"(100)); }
-        auto thread = new Thread(&sleep);
-        thread.start();
+        auto thread = new Thread(&sleep).start();
     }
     unreferencedThreadObject();
     GC.collect();
