@@ -465,13 +465,21 @@ struct Objc_ClassDeclaration
 
 struct Ojbc_FuncDeclaration
 {
+    FuncDeclaration* fdecl;
+
     // Objective-C method selector (member function only)
     ObjcSelector *selector;
 
     // Objective-C implicit selector parameter
     VarDeclaration *vcmd;
 
-    Ojbc_FuncDeclaration();
+    Ojbc_FuncDeclaration(FuncDeclaration* fdecl);
+
+    /*********************************************
+     * Create the Objective-C selector for this function if this is a
+     * virtual member with Objective-C linkage.
+     */
+    void createSelector();
 };
 
 void objc_AttribDeclaration_addObjcSymbols(AttribDeclaration* self, ClassDeclarations *classes, ClassDeclarations *categories);

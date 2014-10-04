@@ -2047,10 +2047,20 @@ bool Objc_ClassDeclaration::isRootClass()
 
 // MARK: Ojbc_FuncDeclaration
 
-Ojbc_FuncDeclaration::Ojbc_FuncDeclaration()
+Ojbc_FuncDeclaration::Ojbc_FuncDeclaration(FuncDeclaration* fdecl)
 {
+    this->fdecl = fdecl;
     selector = NULL;
     vcmd = NULL;
+}
+
+void Ojbc_FuncDeclaration::createSelector()
+{
+    if (selector == NULL && fdecl->linkage == LINKobjc && fdecl->isVirtual() && fdecl->type)
+    {
+        TypeFunction *ftype = (TypeFunction *)fdecl->type;
+        selector = ObjcSelector::create(fdecl);
+    }
 }
 
 // MARK: TypeInfoObjcSelectorDeclaration

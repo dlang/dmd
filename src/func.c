@@ -280,7 +280,7 @@ public:
 /********************************* FuncDeclaration ****************************/
 
 FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageClass storage_class, Type *type)
-    : Declaration(id)
+    : Declaration(id), objc(this)
 {
     //printf("FuncDeclaration(id = '%s', type = %p)\n", id->toChars(), type);
     //printf("storage_class = x%x\n", storage_class);
@@ -1045,7 +1045,7 @@ void FuncDeclaration::semantic(Scope *sc)
             }
 
             // Add to class method lists
-            createObjCSelector(); // create a selector if needed
+            objc.createSelector(); // create a selector if needed
             if (objc.selector && cd)
             {
                 assert(isStatic() ? cd->objc.meta : !cd->objc.meta);
@@ -4402,19 +4402,6 @@ Parameters *FuncDeclaration::getParameters(int *pvarargs)
 }
 
 #if DMD_OBJC
-/*********************************************
- * Create the Objective-C selector for this function if this is a
- * virtual member with Objective-C linkage.
- */
-
-void FuncDeclaration::createObjCSelector()
-{
-    if (objc.selector == NULL && linkage == LINKobjc && isVirtual() && type)
-    {   TypeFunction *ftype = (TypeFunction *)type;
-        objc.selector = ObjcSelector::create(this);
-    }
-}
-
 // Returns true if the receiver is an Objective-C property.
 bool FuncDeclaration::isObjcProperty()
 {
