@@ -1085,7 +1085,7 @@ unittest
 {
     struct S
     {
-        const bool opEquals(ref const S rhs)
+        bool opEquals(ref const S rhs) const
         {
             return false;
         }

@@ -133,7 +133,7 @@ class FinalizeError : Error
         info = ci;
     }
 
-    @safe override const string toString()
+    @safe override string toString() const
     {
         return "An exception was thrown while finalizing an instance of class " ~ info.name;
     }
@@ -216,7 +216,7 @@ class OutOfMemoryError : Error
         super( "Memory allocation failed", file, line, next );
     }
 
-    @trusted override const string toString()
+    @trusted override string toString() const
     {
         return msg.length ? (cast()super).toString() : "Memory allocation failed";
     }
@@ -257,7 +257,7 @@ class InvalidMemoryOperationError : Error
         super( "Invalid memory operation", file, line, next );
     }
 
-    @trusted override const string toString()
+    @trusted override string toString() const
     {
         return msg.length ? (cast()super).toString() : "Invalid memory operation";
     }
