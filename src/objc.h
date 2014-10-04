@@ -514,4 +514,6 @@ ControlFlow objc_castTo_visit_ObjcSelectorExp(Type *t, Expression *&result, Objc
 
 void objc_CppMangleVisitor_visit_TypeObjcSelector(OutBuffer &buf, TypeObjcSelector *t);
 
+ControlFlow objc_ScopeDsymbol_multiplyDefined(Dsymbol *s1, Dsymbol *s2);
+
 #endif

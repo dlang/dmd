@@ -1101,17 +1101,11 @@ void ScopeDsymbol::multiplyDefined(Loc loc, Dsymbol *s1, Dsymbol *s2)
     printf("s1 = %p, '%s' kind = '%s', parent = %s\n", s1, s1->toChars(), s1->kind(), s1->parent ? s1->parent->toChars() : "");
     printf("s2 = %p, '%s' kind = '%s', parent = %s\n", s2, s2->toChars(), s2->kind(), s2->parent ? s2->parent->toChars() : "");
 #endif
-#if DMD_OBJC
-    bool isObjcMetaclass = s1->isClassDeclaration() && s2->isClassDeclaration() &&
-    ((ClassDeclaration *)s1)->objc.meta && ((ClassDeclaration *)s2)->objc.meta;
-#else
-    bool isObjcMetaclass = false;
-#endif
-    if (isObjcMetaclass)
-    {
-        // exception: duplicate is fine for Objective-C metaclasses
-    }
-    else if (loc.filename)
+
+    if (objc_ScopeDsymbol_multiplyDefined(s1, s1) == CFreturn)
+        return; // exception: duplicate is fine for Objective-C metaclasses
+
+    if (loc.filename)
     {   ::error(loc, "%s at %s conflicts with %s at %s",
             s1->toPrettyChars(),
             s1->locToChars(),
