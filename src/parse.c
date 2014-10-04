@@ -1551,11 +1551,11 @@ Dsymbol *Parser::parseCtor(PrefixAttributes *pAttrs)
     if (pAttrs)
         pAttrs->storageClass = STCundefined;
 #if DMD_OBJC
-    f->objcSelector = parseObjCSelector();
-    if (f->objcSelector)
+    f->objc.selector = parseObjCSelector();
+    if (f->objc.selector)
     {   if (tpl)
         error("constructor template cannot have an Objective-C selector attached");
-        if (f->objcSelector->paramCount != parameters->dim)
+        if (f->objc.selector->paramCount != parameters->dim)
             error("number of colons in Objective-C selector must match the number of parameters");
     }
 #endif
@@ -1608,7 +1608,7 @@ Dsymbol *Parser::parseDtor(PrefixAttributes *pAttrs)
     if (pAttrs)
         pAttrs->storageClass = STCundefined;
 #if DMD_OBJC
-    f->objcSelector = parseObjCSelector();
+    f->objc.selector = parseObjCSelector();
 #endif
     Dsymbol *s = parseContracts(f);
     if (udas)
@@ -3929,13 +3929,13 @@ L2:
             if (pAttrs)
                 pAttrs->storageClass = STCundefined;
 #if DMD_OBJC
-            f->objcSelector = parseObjCSelector();
-            if (f->objcSelector)
+            f->objc.selector = parseObjCSelector();
+            if (f->objc.selector)
             {
                 TypeFunction *tf = (TypeFunction *)t;
                 if (tpl)
                     error("function template cannot have an Objective-C selector attached");
-                if (f->objcSelector->paramCount != tf->parameters->dim)
+                if (f->objc.selector->paramCount != tf->parameters->dim)
                     error("number of colons in Objective-C selector must match number of parameters");
             }
 #endif

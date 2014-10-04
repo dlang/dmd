@@ -305,10 +305,6 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
     fbody = NULL;
     localsymtab = NULL;
     vthis = NULL;
-#if DMD_OBJC
-    objcSelector = NULL;
-    vobjccmd = NULL;
-#endif
     v_arguments = NULL;
 #ifdef IN_GCC
     v_argptr = NULL;
@@ -1039,18 +1035,18 @@ void FuncDeclaration::semantic(Scope *sc)
             for (size_t i = 0; i < foverrides.dim; ++i)
             {
                 FuncDeclaration *foverride = (FuncDeclaration *)foverrides.data[i];
-                if (foverride && foverride->objcSelector)
+                if (foverride && foverride->objc.selector)
                 {
-                    if (!objcSelector)
-                        objcSelector = foverride->objcSelector; // inherit selector
-                    else if (objcSelector != foverride->objcSelector)
-                        error("Objective-C selector %s must be the same as selector %s in overriden function.", objcSelector->stringvalue, foverride->objcSelector->stringvalue);
+                    if (!objc.selector)
+                        objc.selector = foverride->objc.selector; // inherit selector
+                    else if (objc.selector != foverride->objc.selector)
+                        error("Objective-C selector %s must be the same as selector %s in overriden function.", objc.selector->stringvalue, foverride->objc.selector->stringvalue);
                 }
             }
 
             // Add to class method lists
             createObjCSelector(); // create a selector if needed
-            if (objcSelector && cd)
+            if (objc.selector && cd)
             {
                 assert(isStatic() ? cd->objc.meta : !cd->objc.meta);
 
@@ -1060,21 +1056,21 @@ void FuncDeclaration::semantic(Scope *sc)
                     cd->objc.methods = new StringTable;
                     cd->objc.methods->_init();
                 }
-                StringValue *sv = cd->objc.methods->update(objcSelector->stringvalue, objcSelector->stringlen);
+                StringValue *sv = cd->objc.methods->update(objc.selector->stringvalue, objc.selector->stringlen);
 
                 if (sv->ptrvalue)
                 {   // check if the other function with the same selector is
                     // overriden by this one
                     FuncDeclaration *selowner = (FuncDeclaration *)sv->ptrvalue;
                     if (selowner != this && !overrides(selowner))
-                        error("Objcective-C selector '%s' already in use by function '%s'.", objcSelector->stringvalue, selowner->toChars());
+                        error("Objcective-C selector '%s' already in use by function '%s'.", objc.selector->stringvalue, selowner->toChars());
                 }
                 else
                     sv->ptrvalue = this;
             }
         }
 
-        if (linkage != LINKobjc && objcSelector)
+        if (linkage != LINKobjc && objc.selector)
             error("function must have Objective-C linkage to attach a selector");
 #endif
 
@@ -1401,7 +1397,7 @@ void FuncDeclaration::semantic3(Scope *sc)
         // Declare 'this'
         AggregateDeclaration *ad = isThis();
 #if DMD_OBJC
-        vthis = declareThis(sc2, ad, &vobjccmd);
+        vthis = declareThis(sc2, ad, &objc.vcmd);
 #else
         vthis = declareThis(sc2, ad);
 #endif
@@ -2379,7 +2375,7 @@ VarDeclaration *FuncDeclaration::declareThis(Scope *sc, AggregateDeclaration *ad
                 assert(0);
             v->parent = this;
 #if DMD_OBJC
-            if (vobjccmd && objcSelector)
+            if (vobjccmd && objc.selector)
             {
                 VarDeclaration* varObjc = new VarDeclaration(loc, Type::tvoidptr, Id::_cmd, NULL);
                 varObjc->storage_class |= STCparameter;
@@ -3402,7 +3398,7 @@ AggregateDeclaration *FuncDeclaration::isThis()
     //printf("+FuncDeclaration::isThis() '%s'\n", toChars());
     AggregateDeclaration *ad = NULL;
 #if DMD_OBJC
-    bool isObjcSelector = objcSelector;
+    bool isObjcSelector = objc.selector;
 #else
     bool isObjcSelector = false;
 #endif
@@ -4413,9 +4409,9 @@ Parameters *FuncDeclaration::getParameters(int *pvarargs)
 
 void FuncDeclaration::createObjCSelector()
 {
-    if (objcSelector == NULL && linkage == LINKobjc && isVirtual() && type)
+    if (objc.selector == NULL && linkage == LINKobjc && isVirtual() && type)
     {   TypeFunction *ftype = (TypeFunction *)type;
-        objcSelector = ObjcSelector::create(this);
+        objc.selector = ObjcSelector::create(this);
     }
 }
 

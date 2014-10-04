@@ -79,7 +79,7 @@ Expression *getRightThis(Loc loc, Scope *sc, AggregateDeclaration *ad,
     else if (ad &&
         ad->isClassDeclaration() && ((ClassDeclaration *)ad)->objc.objc &&
         var->isFuncDeclaration() && ((FuncDeclaration *)var)->isStatic() &&
-        ((FuncDeclaration *)var)->objcSelector)
+        ((FuncDeclaration *)var)->objc.selector)
     {
         // Create class reference from the class declaration
         e1 = new ObjcClassRefExp(e1->loc, (ClassDeclaration *)ad);
@@ -9337,7 +9337,7 @@ Expression *AddrExp::semantic(Scope *sc)
             if (f->needThis())
             {
 #if DMD_OBJC
-                bool isObjcSelector = f->objcSelector;
+                bool isObjcSelector = f->objc.selector;
 #else
                 bool isObjcSelector = false;
 #endif
@@ -9409,7 +9409,7 @@ Expression *AddrExp::semantic(Scope *sc)
                 return e;
             }
 #if DMD_OBJC
-            bool isObjcSelector = f->needThis() && f->objcSelector;
+            bool isObjcSelector = f->needThis() && f->objc.selector;
 #else
             bool isObjcSelector = false;
 #endif

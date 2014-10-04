@@ -463,6 +463,17 @@ struct Objc_ClassDeclaration
     void addObjcSymbols(ClassDeclarations *classes, ClassDeclarations *categories);
 };
 
+struct Ojbc_FuncDeclaration
+{
+    // Objective-C method selector (member function only)
+    ObjcSelector *selector;
+
+    // Objective-C implicit selector parameter
+    VarDeclaration *vcmd;
+
+    Ojbc_FuncDeclaration();
+};
+
 void objc_AttribDeclaration_addObjcSymbols(AttribDeclaration* self, ClassDeclarations *classes, ClassDeclarations *categories);
 
 TypeTuple * objc_toArgTypesVisit (TypeObjcSelector*);

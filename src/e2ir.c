@@ -238,16 +238,16 @@ elem *callfunc(Loc loc,
     }
 
 #if DMD_OBJC
-    if (fd && fd->objcSelector && !esel)
+    if (fd && fd->objc.selector && !esel)
     {
-        if (fd->objcSelector->usesVTableDispatch())
+        if (fd->objc.selector->usesVTableDispatch())
         {
-            elem* messageReference = el_var(ObjcSymbols::getMessageReference(fd->objcSelector, tret, ehidden != 0));
+            elem* messageReference = el_var(ObjcSymbols::getMessageReference(fd->objc.selector, tret, ehidden != 0));
             esel = addressElem(messageReference, t);
         }
 
         else
-            esel = fd->objcSelector->toElem();
+            esel = fd->objc.selector->toElem();
     }
 
     if (esel)
@@ -361,7 +361,7 @@ elem *callfunc(Loc loc,
                 assert(ethis);
                 Type *tret = tf->next;
 
-                if (fd->objcSelector->usesVTableDispatch())
+                if (fd->objc.selector->usesVTableDispatch())
                     ec = el_var(ObjcSymbols::getMsgSendFixup(tret, ehidden != 0));
                 else
                     ec = el_var(ObjcSymbols::getMsgSend(tret, ehidden != 0));
@@ -3570,7 +3570,7 @@ elem *toElem(Expression *e, IRState *irs)
         void visit(ObjcSelectorExp *ose)
         {
             if (ose->func)
-                result = ose->func->objcSelector->toElem();
+                result = ose->func->objc.selector->toElem();
             else if (ose->selname)
                 result = ObjcSelector::lookup(ose->selname)->toElem();
             else
@@ -5496,7 +5496,7 @@ elem *toElem(Expression *e, IRState *irs)
                 FuncDeclaration *fd = new FuncDeclaration(Loc(), Loc(), NULL, STCstatic, tf);
                 fd->protection = PROTpublic;
                 fd->linkage = LINKobjc;
-                fd->objcSelector = ObjcSelector::lookup("class", 5, 0);
+                fd->objc.selector = ObjcSelector::lookup("class", 5, 0);
 
                 Expression *ef = new VarExp(Loc(), fd);
                 Expression *ec = new CallExp(odce->loc, ef);

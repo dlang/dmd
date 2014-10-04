@@ -8260,7 +8260,7 @@ L1:
             return e;
         }
 #if DMD_OBJC
-        bool isObjcClassMethod = sym->objc.objc && d->isFuncDeclaration() && d->isStatic() && ((FuncDeclaration *)d)->objcSelector;
+        bool isObjcClassMethod = sym->objc.objc && d->isFuncDeclaration() && d->isStatic() && ((FuncDeclaration *)d)->objc.selector;
 #else
         bool isObjcClassMethod = false;
 #endif

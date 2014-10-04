@@ -1289,8 +1289,8 @@ Symbol *ObjcClassDeclaration::getMethodList()
         FuncDeclaration *func = methods->tdata()[i]->isFuncDeclaration();
         if (func && func->fbody)
         {
-            assert(func->objcSelector);
-            dtxoff(&dt, func->objcSelector->toNameSymbol(), 0, TYnptr); // method name
+            assert(func->objc.selector);
+            dtxoff(&dt, func->objc.selector->toNameSymbol(), 0, TYnptr); // method name
             dtxoff(&dt, ObjcSymbols::getMethVarType(func), 0, TYnptr); // method type string
             dtxoff(&dt, toSymbol(func), 0, TYnptr); // function implementation
         }
@@ -1736,8 +1736,8 @@ Symbol *ObjcProtocolDeclaration::getMethodList(int wantsClassMethods)
     {
         FuncDeclaration *func = methods->tdata()[i]->isFuncDeclaration();
         assert(func);
-        assert(func->objcSelector);
-        dtxoff(&dt, func->objcSelector->toNameSymbol(), 0, TYnptr); // method name
+        assert(func->objc.selector);
+        dtxoff(&dt, func->objc.selector->toNameSymbol(), 0, TYnptr); // method name
         dtxoff(&dt, ObjcSymbols::getMethVarType(func), 0, TYnptr); // method type string
 
         if (global.params.isObjcNonFragileAbi)
@@ -1875,7 +1875,7 @@ Symbol* NonFragileAbiObjcProtocolDeclaration::getMethodTypes ()
     {
         FuncDeclaration *func = methods->tdata()[i]->isFuncDeclaration();
         assert(func);
-        assert(func->objcSelector);
+        assert(func->objc.selector);
         dtxoff(&dt, ObjcSymbols::getMethVarType(func), 0, TYnptr);
     }
 
@@ -2043,6 +2043,14 @@ bool Objc_ClassDeclaration::isInterface()
 bool Objc_ClassDeclaration::isRootClass()
 {
     return isInterface() && !metaclass && !cdecl->baseClass;
+}
+
+// MARK: Ojbc_FuncDeclaration
+
+Ojbc_FuncDeclaration::Ojbc_FuncDeclaration()
+{
+    selector = NULL;
+    vcmd = NULL;
 }
 
 // MARK: TypeInfoObjcSelectorDeclaration
@@ -2221,6 +2229,8 @@ void objc_PragmaDeclaration_semantic_objcNameOverride(PragmaDeclaration* self, S
     else
         self->error("string expected for name override, not '%s'", e->toChars());
 }
+
+// MARK: semantic
 
 void objc_ClassDeclaration_semantic_PASSinit_LINKobjc(ClassDeclaration *self)
 {
@@ -2548,7 +2558,7 @@ ControlFlow objc_castTo_visit_StringExp_isSelector(Type *t, Expression *&result,
 
 ControlFlow objc_castTo_visit_SymOffExp_Tobjcselector(Scope *sc, Expression *&result, SymOffExp *e, FuncDeclaration *f)
 {
-    if (f->objcSelector && f->linkage == LINKobjc && f->needThis())
+    if (f->objc.selector && f->linkage == LINKobjc && f->needThis())
     {
         result = new ObjcSelectorExp(e->loc, f);
         result = result->semantic(sc);

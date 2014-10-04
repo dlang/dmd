@@ -545,11 +545,8 @@ public:
     DsymbolTable *localsymtab;          // used to prevent symbols in different
                                         // scopes from having the same name
     VarDeclaration *vthis;              // 'this' parameter (member and nested)
-#if DMD_OBJC
-    ObjcSelector *objcSelector;         // Objective-C method selector (member function only)
-	VarDeclaration *vobjccmd;           // Objective-C implicit selector parameter
-#endif
     VarDeclaration *v_arguments;        // '_arguments' parameter
+    Ojbc_FuncDeclaration objc;
 #ifdef IN_GCC
     VarDeclaration *v_arguments_var;    // '_arguments' variable
     VarDeclaration *v_argptr;           // '_argptr' variable
