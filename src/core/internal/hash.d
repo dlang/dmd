@@ -154,25 +154,18 @@ size_t hashOf(T)(auto ref T val, size_t seed = 0) if (!is(T == enum) && is(T == 
 //associative array hash. CTFE depends on base types
 size_t hashOf(T)(auto ref T aa, size_t seed = 0) if (!is(T == enum) && __traits(isAssociativeArray, T))
 {
-    try
-    {
-        if (!aa.length) return mixHash(0, seed);
-        size_t h = 0;
+    if (!aa.length) return mixHash(0, seed);
+    size_t h = 0;
 
-        // The computed hash is independent of the foreach traversal order.
-        foreach (key, ref val; aa)
-        {
-            size_t[2] hpair;
-            hpair[0] = key.hashOf();
-            hpair[1] = val.hashOf();
-            h ^= hpair.hashOf();
-        }
-        return mixHash(h, seed);
-    }
-    catch (Throwable thr)
+    // The computed hash is independent of the foreach traversal order.
+    foreach (key, ref val; aa)
     {
-        assert(0);
+        size_t[2] hpair;
+        hpair[0] = key.hashOf();
+        hpair[1] = val.hashOf();
+        h ^= hpair.hashOf();
     }
+    return mixHash(h, seed);
 }
 
 unittest
