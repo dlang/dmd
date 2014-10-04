@@ -1819,9 +1819,6 @@ version( CoreDdoc )
 }
 else version( Posix )
 {
-    __gshared int suspendSignalNumber;
-    __gshared int resumeSignalNumber;
-
     extern (C) void thread_setGCSignals(int suspendSignalNo, int resumeSignalNo)
     in
     {
@@ -1840,6 +1837,12 @@ else version( Posix )
         suspendSignalNumber = suspendSignalNo;
         resumeSignalNumber  = resumeSignalNo;
     }
+}
+
+version( Posix )
+{
+    __gshared int suspendSignalNumber;
+    __gshared int resumeSignalNumber;
 }
 
 /**
