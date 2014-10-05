@@ -103,10 +103,10 @@ public:
     Dsymbol *parseStaticDtor(PrefixAttributes *pAttrs);
     Dsymbol *parseSharedStaticCtor(PrefixAttributes *pAttrs);
     Dsymbol *parseSharedStaticDtor(PrefixAttributes *pAttrs);
-    InvariantDeclaration *parseInvariant();
-    UnitTestDeclaration *parseUnitTest();
-    NewDeclaration *parseNew();
-    DeleteDeclaration *parseDelete();
+    Dsymbol *parseInvariant(PrefixAttributes *pAttrs);
+    Dsymbol *parseUnitTest(PrefixAttributes *pAttrs);
+    Dsymbol *parseNew(PrefixAttributes *pAttrs);
+    Dsymbol *parseDelete(PrefixAttributes *pAttrs);
     Parameters *parseParameters(int *pvarargs, TemplateParameters **tpl = NULL);
     EnumDeclaration *parseEnum();
     Dsymbol *parseAggregate();

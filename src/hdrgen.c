@@ -1828,22 +1828,24 @@ public:
 
     void visit(StaticCtorDeclaration *d)
     {
+        StorageClassDeclaration::stcToCBuffer(buf, d->storage_class & ~STCstatic);
         if (d->isSharedStaticCtorDeclaration())
             buf->writestring("shared ");
+        buf->writestring("static this()");
         if (hgs->hdrgen && !hgs->tpltMember)
         {
-            buf->writestring("static this();");
+            buf->writeByte(';');
             buf->writenl();
-            return;
         }
-        buf->writestring("static this()");
-        bodyToBuffer(d);
+        else
+            bodyToBuffer(d);
     }
 
     void visit(StaticDtorDeclaration *d)
     {
         if (hgs->hdrgen)
             return;
+        StorageClassDeclaration::stcToCBuffer(buf, d->storage_class & ~STCstatic);
         if (d->isSharedStaticDtorDeclaration())
             buf->writestring("shared ");
         buf->writestring("static ~this()");
@@ -1854,6 +1856,7 @@ public:
     {
         if (hgs->hdrgen)
             return;
+        StorageClassDeclaration::stcToCBuffer(buf, d->storage_class);
         buf->writestring("invariant");
         bodyToBuffer(d);
     }
@@ -1862,12 +1865,14 @@ public:
     {
         if (hgs->hdrgen)
             return;
+        StorageClassDeclaration::stcToCBuffer(buf, d->storage_class);
         buf->writestring("unittest");
         bodyToBuffer(d);
     }
 
     void visit(NewDeclaration *d)
     {
+        StorageClassDeclaration::stcToCBuffer(buf, d->storage_class & ~STCstatic);
         buf->writestring("new");
         parametersToBuffer(d->arguments, d->varargs);
         bodyToBuffer(d);
@@ -1875,6 +1880,7 @@ public:
 
     void visit(DeleteDeclaration *d)
     {
+        StorageClassDeclaration::stcToCBuffer(buf, d->storage_class & ~STCstatic);
         buf->writestring("delete");
         parametersToBuffer(d->arguments, 0);
         bodyToBuffer(d);

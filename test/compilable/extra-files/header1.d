@@ -158,6 +158,16 @@ static ~this()
 {
 }
 
+pure nothrow @safe @nogc static  this() {}
+pure nothrow @safe @nogc static ~this() {}
+static  this() pure nothrow @safe @nogc {}
+static ~this() pure nothrow @safe @nogc {}
+
+pure nothrow @safe @nogc shared static  this() {}
+pure nothrow @safe @nogc shared static ~this() {}
+shared static  this() pure nothrow @safe @nogc {}
+shared static ~this() pure nothrow @safe @nogc {}
+
 interface iFoo{}
 class xFoo: iFoo{}
 
@@ -222,6 +232,12 @@ class Test
     alias A!(short) getHShort;
     alias A!(ushort) getHUShort;
     alias A!(real) getHReal;
+
+    pure nothrow @safe @nogc unittest {}
+    pure nothrow @safe @nogc invariant {}
+
+    pure nothrow @safe @nogc new (size_t sz) { return null; }
+    pure nothrow @safe @nogc delete (void* p) { }
 }
 
 template templ( T )

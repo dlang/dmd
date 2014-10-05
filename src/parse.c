@@ -404,7 +404,7 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl, PrefixAttributes 
                 {
                     // invariant {}
                     // invariant() {}
-                    s = parseInvariant();
+                    s = parseInvariant(pAttrs);
                 }
                 else
                 {
@@ -415,17 +415,17 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl, PrefixAttributes 
             }
 
             case TOKunittest:
-                s = parseUnitTest();
+                s = parseUnitTest(pAttrs);
                 if (*pLastDecl)
                     (*pLastDecl)->ddocUnittest = (UnitTestDeclaration *)s;
                 break;
 
             case TOKnew:
-                s = parseNew();
+                s = parseNew(pAttrs);
                 break;
 
             case TOKdelete:
-                s = parseDelete();
+                s = parseDelete(pAttrs);
                 break;
 
             case TOKcolon:
@@ -1764,10 +1764,10 @@ Dsymbol *Parser::parseSharedStaticDtor(PrefixAttributes *pAttrs)
  * Current token is 'invariant'.
  */
 
-InvariantDeclaration *Parser::parseInvariant()
+Dsymbol *Parser::parseInvariant(PrefixAttributes *pAttrs)
 {
-    InvariantDeclaration *f;
     Loc loc = token.loc;
+    StorageClass stc = pAttrs ? pAttrs->storageClass : STCundefined;
 
     nextToken();
     if (token.value == TOKlparen)       // optional ()
@@ -1776,7 +1776,9 @@ InvariantDeclaration *Parser::parseInvariant()
         check(TOKrparen);
     }
 
-    f = new InvariantDeclaration(loc, Loc(), STCundefined);
+    InvariantDeclaration *f = new InvariantDeclaration(loc, Loc(), stc);
+    if (pAttrs)
+        pAttrs->storageClass = STCundefined;
     f->fbody = parseStatement(PScurly);
     return f;
 }
@@ -1787,16 +1789,16 @@ InvariantDeclaration *Parser::parseInvariant()
  * Current token is 'unittest'.
  */
 
-UnitTestDeclaration *Parser::parseUnitTest()
+Dsymbol *Parser::parseUnitTest(PrefixAttributes *pAttrs)
 {
-    UnitTestDeclaration *f;
-    Statement *body;
     Loc loc = token.loc;
+    StorageClass stc = pAttrs ? pAttrs->storageClass : STCundefined;
 
     nextToken();
+
     const utf8_t *begPtr = token.ptr + 1;  // skip '{'
     const utf8_t *endPtr = NULL;
-    body = parseStatement(PScurly, &endPtr);
+    Statement *sbody = parseStatement(PScurly, &endPtr);
 
     /** Extract unittest body as a string. Must be done eagerly since memory
     will be released by the lexer before doc gen. */
@@ -1820,8 +1822,10 @@ UnitTestDeclaration *Parser::parseUnitTest()
         }
     }
 
-    f = new UnitTestDeclaration(loc, token.loc, docline);
-    f->fbody = body;
+    UnitTestDeclaration *f = new UnitTestDeclaration(loc, token.loc, stc, docline);
+    if (pAttrs)
+        pAttrs->storageClass = STCundefined;
+    f->fbody = sbody;
     return f;
 }
 
@@ -1831,18 +1835,20 @@ UnitTestDeclaration *Parser::parseUnitTest()
  * Current token is 'new'.
  */
 
-NewDeclaration *Parser::parseNew()
+Dsymbol *Parser::parseNew(PrefixAttributes *pAttrs)
 {
-    NewDeclaration *f;
-    Parameters *arguments;
-    int varargs;
     Loc loc = token.loc;
+    StorageClass stc = pAttrs ? pAttrs->storageClass : STCundefined;
 
     nextToken();
-    arguments = parseParameters(&varargs);
-    f = new NewDeclaration(loc, Loc(), arguments, varargs);
-    parseContracts(f);
-    return f;
+
+    int varargs;
+    Parameters *arguments = parseParameters(&varargs);
+    NewDeclaration *f = new NewDeclaration(loc, Loc(), stc, arguments, varargs);
+    if (pAttrs)
+        pAttrs->storageClass = STCundefined;
+    Dsymbol *s = parseContracts(f);
+    return s;
 }
 
 /*****************************************
@@ -1851,20 +1857,22 @@ NewDeclaration *Parser::parseNew()
  * Current token is 'delete'.
  */
 
-DeleteDeclaration *Parser::parseDelete()
+Dsymbol *Parser::parseDelete(PrefixAttributes *pAttrs)
 {
-    DeleteDeclaration *f;
-    Parameters *arguments;
-    int varargs;
     Loc loc = token.loc;
+    StorageClass stc = pAttrs ? pAttrs->storageClass : STCundefined;
 
     nextToken();
-    arguments = parseParameters(&varargs);
+
+    int varargs;
+    Parameters *arguments = parseParameters(&varargs);
     if (varargs)
         error("... not allowed in delete function parameter list");
-    f = new DeleteDeclaration(loc, Loc(), arguments);
-    parseContracts(f);
-    return f;
+    DeleteDeclaration *f = new DeleteDeclaration(loc, Loc(), stc, arguments);
+    if (pAttrs)
+        pAttrs->storageClass = STCundefined;
+    Dsymbol *s = parseContracts(f);
+    return s;
 }
 
 /**********************************************
