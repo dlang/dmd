@@ -97,12 +97,12 @@ public:
     Condition *parseDebugCondition();
     Condition *parseVersionCondition();
     Condition *parseStaticIfCondition();
-    Dsymbol *parseCtor();
-    Dsymbol *parseDtor();
-    Dsymbol *parseStaticCtor();
-    Dsymbol *parseStaticDtor();
-    Dsymbol *parseSharedStaticCtor();
-    Dsymbol *parseSharedStaticDtor();
+    Dsymbol *parseCtor(PrefixAttributes *pAttrs);
+    Dsymbol *parseDtor(PrefixAttributes *pAttrs);
+    Dsymbol *parseStaticCtor(PrefixAttributes *pAttrs);
+    Dsymbol *parseStaticDtor(PrefixAttributes *pAttrs);
+    Dsymbol *parseSharedStaticCtor(PrefixAttributes *pAttrs);
+    Dsymbol *parseSharedStaticDtor(PrefixAttributes *pAttrs);
     InvariantDeclaration *parseInvariant();
     UnitTestDeclaration *parseUnitTest();
     NewDeclaration *parseNew();

@@ -389,11 +389,11 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl, PrefixAttributes 
                 if (peekNext() == TOKdot)
                     goto Ldeclaration;
                 else
-                    s = parseCtor();
+                    s = parseCtor(pAttrs);
                 break;
 
             case TOKtilde:
-                s = parseDtor();
+                s = parseDtor(pAttrs);
                 break;
 
             case TOKinvariant:
@@ -443,9 +443,9 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl, PrefixAttributes 
             {
                 TOK next = peekNext();
                 if (next == TOKthis)
-                    s = parseStaticCtor();
+                    s = parseStaticCtor(pAttrs);
                 else if (next == TOKtilde)
-                    s = parseStaticDtor();
+                    s = parseStaticDtor(pAttrs);
                 else if (next == TOKassert)
                     s = parseStaticAssert();
                 else if (next == TOKif)
@@ -506,12 +506,12 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl, PrefixAttributes 
                     TOK next2 = peekNext2();
                     if (next2 == TOKthis)
                     {
-                        s = parseSharedStaticCtor();
+                        s = parseSharedStaticCtor(pAttrs);
                         break;
                     }
                     if (next2 == TOKtilde)
                     {
-                        s = parseSharedStaticDtor();
+                        s = parseSharedStaticDtor(pAttrs);
                         break;
                     }
                 }
@@ -1465,10 +1465,11 @@ Condition *Parser::parseStaticIfCondition()
  * Current token is 'this'.
  */
 
-Dsymbol *Parser::parseCtor()
+Dsymbol *Parser::parseCtor(PrefixAttributes *pAttrs)
 {
     Expressions *udas = NULL;
     Loc loc = token.loc;
+    StorageClass stc = pAttrs ? pAttrs->storageClass : STCundefined;
 
     nextToken();
     if (token.value == TOKlparen && peekNext() == TOKthis && peekNext2() == TOKrparen)
@@ -1478,8 +1479,10 @@ Dsymbol *Parser::parseCtor()
         nextToken();
         check(TOKrparen);
 
-        StorageClass stc = parsePostfix(STCundefined, &udas);
+        stc = parsePostfix(stc, &udas);
         PostBlitDeclaration *f = new PostBlitDeclaration(loc, Loc(), stc, Id::_postblit);
+        if (pAttrs)
+            pAttrs->storageClass = STCundefined;
         Dsymbol *s = parseContracts(f);
         if (udas)
         {
@@ -1504,7 +1507,7 @@ Dsymbol *Parser::parseCtor()
      */
     int varargs;
     Parameters *parameters = parseParameters(&varargs);
-    StorageClass stc = parsePostfix(STCundefined, &udas);
+    stc = parsePostfix(stc, &udas);
 
     Expression *constraint = tpl ? parseConstraint() : NULL;
 
@@ -1512,6 +1515,8 @@ Dsymbol *Parser::parseCtor()
     tf = tf->addSTC(stc);
 
     CtorDeclaration *f = new CtorDeclaration(loc, Loc(), stc, tf);
+    if (pAttrs)
+        pAttrs->storageClass = STCundefined;
     Dsymbol *s = parseContracts(f);
     if (udas)
     {
@@ -1537,18 +1542,21 @@ Dsymbol *Parser::parseCtor()
  * Current token is '~'.
  */
 
-Dsymbol *Parser::parseDtor()
+Dsymbol *Parser::parseDtor(PrefixAttributes *pAttrs)
 {
     Expressions *udas = NULL;
     Loc loc = token.loc;
+    StorageClass stc = pAttrs ? pAttrs->storageClass : STCundefined;
 
     nextToken();
     check(TOKthis);
     check(TOKlparen);
     check(TOKrparen);
 
-    StorageClass stc = parsePostfix(STCundefined, &udas);
+    stc = parsePostfix(stc, &udas);
     DtorDeclaration *f = new DtorDeclaration(loc, Loc(), stc, Id::dtor);
+    if (pAttrs)
+        pAttrs->storageClass = STCundefined;
     Dsymbol *s = parseContracts(f);
     if (udas)
     {
@@ -1565,18 +1573,22 @@ Dsymbol *Parser::parseDtor()
  * Current token is 'static'.
  */
 
-Dsymbol *Parser::parseStaticCtor()
+Dsymbol *Parser::parseStaticCtor(PrefixAttributes *pAttrs)
 {
     //Expressions *udas = NULL;
     Loc loc = token.loc;
+    StorageClass stc = pAttrs ? pAttrs->storageClass : STCundefined;
 
     nextToken();
     nextToken();
     check(TOKlparen);
     check(TOKrparen);
-    StorageClass stc = parsePostfix(STCundefined, NULL);
+
+    stc = parsePostfix(stc, NULL);
 
     StaticCtorDeclaration *f = new StaticCtorDeclaration(loc, Loc(), stc);
+    if (pAttrs)
+        pAttrs->storageClass = STCundefined;
     Dsymbol *s = parseContracts(f);
     return s;
 }
@@ -1587,10 +1599,11 @@ Dsymbol *Parser::parseStaticCtor()
  * Current token is 'static'.
  */
 
-Dsymbol *Parser::parseStaticDtor()
+Dsymbol *Parser::parseStaticDtor(PrefixAttributes *pAttrs)
 {
     Expressions *udas = NULL;
     Loc loc = token.loc;
+    StorageClass stc = pAttrs ? pAttrs->storageClass : STCundefined;
 
     nextToken();
     nextToken();
@@ -1598,11 +1611,13 @@ Dsymbol *Parser::parseStaticDtor()
     check(TOKlparen);
     check(TOKrparen);
 
-    StorageClass stc = parsePostfix(STCundefined, &udas);
+    stc = parsePostfix(stc, &udas);
     if (stc & STCshared)
         error("to create a 'shared' static destructor, move 'shared' in front of the declaration");
 
     StaticDtorDeclaration *f = new StaticDtorDeclaration(loc, Loc(), stc);
+    if (pAttrs)
+        pAttrs->storageClass = STCundefined;
     Dsymbol *s = parseContracts(f);
     if (udas)
     {
@@ -1619,19 +1634,23 @@ Dsymbol *Parser::parseStaticDtor()
  * Current token is 'shared'.
  */
 
-Dsymbol *Parser::parseSharedStaticCtor()
+Dsymbol *Parser::parseSharedStaticCtor(PrefixAttributes *pAttrs)
 {
     //Expressions *udas = NULL;
     Loc loc = token.loc;
+    StorageClass stc = pAttrs ? pAttrs->storageClass : STCundefined;
 
     nextToken();
     nextToken();
     nextToken();
     check(TOKlparen);
     check(TOKrparen);
-    StorageClass stc = parsePostfix(STCundefined, NULL);
+
+    stc = parsePostfix(stc, NULL);
 
     SharedStaticCtorDeclaration *f = new SharedStaticCtorDeclaration(loc, Loc(), stc);
+    if (pAttrs)
+        pAttrs->storageClass = STCundefined;
     Dsymbol *s = parseContracts(f);
     return s;
 }
@@ -1642,10 +1661,11 @@ Dsymbol *Parser::parseSharedStaticCtor()
  * Current token is 'shared'.
  */
 
-Dsymbol *Parser::parseSharedStaticDtor()
+Dsymbol *Parser::parseSharedStaticDtor(PrefixAttributes *pAttrs)
 {
     Expressions *udas = NULL;
     Loc loc = token.loc;
+    StorageClass stc = pAttrs ? pAttrs->storageClass : STCundefined;
 
     nextToken();
     nextToken();
@@ -1654,11 +1674,13 @@ Dsymbol *Parser::parseSharedStaticDtor()
     check(TOKlparen);
     check(TOKrparen);
 
-    StorageClass stc = parsePostfix(STCundefined, &udas);
+    stc = parsePostfix(stc, &udas);
     if (stc & STCshared)
         error("static destructor is 'shared' already");
 
     SharedStaticDtorDeclaration *f = new SharedStaticDtorDeclaration(loc, Loc(), stc);
+    if (pAttrs)
+        pAttrs->storageClass = STCundefined;
     Dsymbol *s = parseContracts(f);
     if (udas)
     {
