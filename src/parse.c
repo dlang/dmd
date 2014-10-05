@@ -1582,29 +1582,6 @@ Dsymbol *Parser::parseStaticCtor()
 }
 
 /*****************************************
- * Parse a shared static constructor definition:
- *      shared static this() { body }
- * Current token is 'shared'.
- */
-
-Dsymbol *Parser::parseSharedStaticCtor()
-{
-    //Expressions *udas = NULL;
-    Loc loc = token.loc;
-
-    nextToken();
-    nextToken();
-    nextToken();
-    check(TOKlparen);
-    check(TOKrparen);
-    StorageClass stc = parsePostfix(STCundefined, NULL);
-
-    SharedStaticCtorDeclaration *f = new SharedStaticCtorDeclaration(loc, Loc(), stc);
-    Dsymbol *s = parseContracts(f);
-    return s;
-}
-
-/*****************************************
  * Parse a static destructor definition:
  *      static ~this() { body }
  * Current token is 'static'.
@@ -1633,6 +1610,29 @@ Dsymbol *Parser::parseStaticDtor()
         a->push(f);
         s = new UserAttributeDeclaration(udas, a);
     }
+    return s;
+}
+
+/*****************************************
+ * Parse a shared static constructor definition:
+ *      shared static this() { body }
+ * Current token is 'shared'.
+ */
+
+Dsymbol *Parser::parseSharedStaticCtor()
+{
+    //Expressions *udas = NULL;
+    Loc loc = token.loc;
+
+    nextToken();
+    nextToken();
+    nextToken();
+    check(TOKlparen);
+    check(TOKrparen);
+    StorageClass stc = parsePostfix(STCundefined, NULL);
+
+    SharedStaticCtorDeclaration *f = new SharedStaticCtorDeclaration(loc, Loc(), stc);
+    Dsymbol *s = parseContracts(f);
     return s;
 }
 
