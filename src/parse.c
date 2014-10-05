@@ -389,11 +389,11 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl, PrefixAttributes 
                 if (peekNext() == TOKdot)
                     goto Ldeclaration;
                 else
-                    s = parseCtor();
+                    s = parseCtor(pAttrs);
                 break;
 
             case TOKtilde:
-                s = parseDtor();
+                s = parseDtor(pAttrs);
                 break;
 
             case TOKinvariant:
@@ -404,7 +404,7 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl, PrefixAttributes 
                 {
                     // invariant {}
                     // invariant() {}
-                    s = parseInvariant();
+                    s = parseInvariant(pAttrs);
                 }
                 else
                 {
@@ -415,17 +415,17 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl, PrefixAttributes 
             }
 
             case TOKunittest:
-                s = parseUnitTest();
+                s = parseUnitTest(pAttrs);
                 if (*pLastDecl)
                     (*pLastDecl)->ddocUnittest = (UnitTestDeclaration *)s;
                 break;
 
             case TOKnew:
-                s = parseNew();
+                s = parseNew(pAttrs);
                 break;
 
             case TOKdelete:
-                s = parseDelete();
+                s = parseDelete(pAttrs);
                 break;
 
             case TOKcolon:
@@ -443,9 +443,9 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl, PrefixAttributes 
             {
                 TOK next = peekNext();
                 if (next == TOKthis)
-                    s = parseStaticCtor();
+                    s = parseStaticCtor(pAttrs);
                 else if (next == TOKtilde)
-                    s = parseStaticDtor();
+                    s = parseStaticDtor(pAttrs);
                 else if (next == TOKassert)
                     s = parseStaticAssert();
                 else if (next == TOKif)
@@ -506,12 +506,12 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl, PrefixAttributes 
                     TOK next2 = peekNext2();
                     if (next2 == TOKthis)
                     {
-                        s = parseSharedStaticCtor();
+                        s = parseSharedStaticCtor(pAttrs);
                         break;
                     }
                     if (next2 == TOKtilde)
                     {
-                        s = parseSharedStaticDtor();
+                        s = parseSharedStaticDtor(pAttrs);
                         break;
                     }
                 }
@@ -1465,10 +1465,11 @@ Condition *Parser::parseStaticIfCondition()
  * Current token is 'this'.
  */
 
-Dsymbol *Parser::parseCtor()
+Dsymbol *Parser::parseCtor(PrefixAttributes *pAttrs)
 {
     Expressions *udas = NULL;
     Loc loc = token.loc;
+    StorageClass stc = pAttrs ? pAttrs->storageClass : STCundefined;
 
     nextToken();
     if (token.value == TOKlparen && peekNext() == TOKthis && peekNext2() == TOKrparen)
@@ -1478,8 +1479,13 @@ Dsymbol *Parser::parseCtor()
         nextToken();
         check(TOKrparen);
 
-        StorageClass stc = parsePostfix(STCundefined, &udas);
+        stc = parsePostfix(stc, &udas);
+        if (stc & STCstatic)
+            ::error(loc, "postblit cannot be static");
+
         PostBlitDeclaration *f = new PostBlitDeclaration(loc, Loc(), stc, Id::_postblit);
+        if (pAttrs)
+            pAttrs->storageClass = STCundefined;
         Dsymbol *s = parseContracts(f);
         if (udas)
         {
@@ -1504,7 +1510,19 @@ Dsymbol *Parser::parseCtor()
      */
     int varargs;
     Parameters *parameters = parseParameters(&varargs);
-    StorageClass stc = parsePostfix(STCundefined, &udas);
+    stc = parsePostfix(stc, &udas);
+    if (varargs != 0 || Parameter::dim(parameters) != 0)
+    {
+        if (stc & STCstatic)
+            ::error(loc, "constructor cannot be static");
+    }
+    else if (StorageClass ss = stc & (STCshared | STCstatic))   // this()
+    {
+        if (ss == STCstatic)
+            ::error(loc, "use 'static this()' to declare a static constructor");
+        else if (ss == (STCshared | STCstatic))
+            ::error(loc, "use 'shared static this()' to declare a shared static constructor");
+    }
 
     Expression *constraint = tpl ? parseConstraint() : NULL;
 
@@ -1512,6 +1530,8 @@ Dsymbol *Parser::parseCtor()
     tf = tf->addSTC(stc);
 
     CtorDeclaration *f = new CtorDeclaration(loc, Loc(), stc, tf);
+    if (pAttrs)
+        pAttrs->storageClass = STCundefined;
     Dsymbol *s = parseContracts(f);
     if (udas)
     {
@@ -1537,18 +1557,29 @@ Dsymbol *Parser::parseCtor()
  * Current token is '~'.
  */
 
-Dsymbol *Parser::parseDtor()
+Dsymbol *Parser::parseDtor(PrefixAttributes *pAttrs)
 {
     Expressions *udas = NULL;
     Loc loc = token.loc;
+    StorageClass stc = pAttrs ? pAttrs->storageClass : STCundefined;
 
     nextToken();
     check(TOKthis);
     check(TOKlparen);
     check(TOKrparen);
 
-    StorageClass stc = parsePostfix(STCundefined, &udas);
+    stc = parsePostfix(stc, &udas);
+    if (StorageClass ss = stc & (STCshared | STCstatic))
+    {
+        if (ss == STCstatic)
+            ::error(loc, "use 'static ~this()' to declare a static destructor");
+        else if (ss == (STCshared | STCstatic))
+            ::error(loc, "use 'shared static ~this()' to declare a shared static destructor");
+    }
+
     DtorDeclaration *f = new DtorDeclaration(loc, Loc(), stc, Id::dtor);
+    if (pAttrs)
+        pAttrs->storageClass = STCundefined;
     Dsymbol *s = parseContracts(f);
     if (udas)
     {
@@ -1565,41 +1596,35 @@ Dsymbol *Parser::parseDtor()
  * Current token is 'static'.
  */
 
-Dsymbol *Parser::parseStaticCtor()
+Dsymbol *Parser::parseStaticCtor(PrefixAttributes *pAttrs)
 {
     //Expressions *udas = NULL;
     Loc loc = token.loc;
+    StorageClass stc = pAttrs ? pAttrs->storageClass : STCundefined;
 
     nextToken();
     nextToken();
     check(TOKlparen);
     check(TOKrparen);
-    StorageClass stc = parsePostfix(STCundefined, NULL);
+
+    stc = parsePostfix(stc & ~STC_TYPECTOR, NULL) | stc;
+    if (stc & STCshared)
+        ::error(loc, "use 'shared static this()' to declare a shared static constructor");
+    else if (stc & STCstatic)
+        appendStorageClass(stc, STCstatic);     // complaint for the redundancy
+    else if (StorageClass modStc = stc & STC_TYPECTOR)
+    {
+        OutBuffer buf;
+        StorageClassDeclaration::stcToCBuffer(&buf, modStc);
+        if (buf.data[buf.offset - 1] == ' ')
+            buf.data[buf.offset - 1] = '\0';
+        ::error(loc, "static constructor cannot be %s", buf.peekString());
+    }
+    stc &= ~(STCstatic | STC_TYPECTOR);
 
     StaticCtorDeclaration *f = new StaticCtorDeclaration(loc, Loc(), stc);
-    Dsymbol *s = parseContracts(f);
-    return s;
-}
-
-/*****************************************
- * Parse a shared static constructor definition:
- *      shared static this() { body }
- * Current token is 'shared'.
- */
-
-Dsymbol *Parser::parseSharedStaticCtor()
-{
-    //Expressions *udas = NULL;
-    Loc loc = token.loc;
-
-    nextToken();
-    nextToken();
-    nextToken();
-    check(TOKlparen);
-    check(TOKrparen);
-    StorageClass stc = parsePostfix(STCundefined, NULL);
-
-    SharedStaticCtorDeclaration *f = new SharedStaticCtorDeclaration(loc, Loc(), stc);
+    if (pAttrs)
+        pAttrs->storageClass = STCundefined;
     Dsymbol *s = parseContracts(f);
     return s;
 }
@@ -1610,10 +1635,11 @@ Dsymbol *Parser::parseSharedStaticCtor()
  * Current token is 'static'.
  */
 
-Dsymbol *Parser::parseStaticDtor()
+Dsymbol *Parser::parseStaticDtor(PrefixAttributes *pAttrs)
 {
     Expressions *udas = NULL;
     Loc loc = token.loc;
+    StorageClass stc = pAttrs ? pAttrs->storageClass : STCundefined;
 
     nextToken();
     nextToken();
@@ -1621,11 +1647,24 @@ Dsymbol *Parser::parseStaticDtor()
     check(TOKlparen);
     check(TOKrparen);
 
-    StorageClass stc = parsePostfix(STCundefined, &udas);
+    stc = parsePostfix(stc & ~STC_TYPECTOR, &udas) | stc;
     if (stc & STCshared)
-        error("to create a 'shared' static destructor, move 'shared' in front of the declaration");
+        ::error(loc, "use 'shared static ~this()' to declare a shared static destructor");
+    else if (stc & STCstatic)
+        appendStorageClass(stc, STCstatic);     // complaint for the redundancy
+    else if (StorageClass modStc = stc & STC_TYPECTOR)
+    {
+        OutBuffer buf;
+        StorageClassDeclaration::stcToCBuffer(&buf, modStc);
+        if (buf.data[buf.offset - 1] == ' ')
+            buf.data[buf.offset - 1] = '\0';
+        ::error(loc, "static destructor cannot be %s", buf.peekString());
+    }
+    stc &= ~(STCstatic | STC_TYPECTOR);
 
     StaticDtorDeclaration *f = new StaticDtorDeclaration(loc, Loc(), stc);
+    if (pAttrs)
+        pAttrs->storageClass = STCundefined;
     Dsymbol *s = parseContracts(f);
     if (udas)
     {
@@ -1637,15 +1676,54 @@ Dsymbol *Parser::parseStaticDtor()
 }
 
 /*****************************************
+ * Parse a shared static constructor definition:
+ *      shared static this() { body }
+ * Current token is 'shared'.
+ */
+
+Dsymbol *Parser::parseSharedStaticCtor(PrefixAttributes *pAttrs)
+{
+    //Expressions *udas = NULL;
+    Loc loc = token.loc;
+    StorageClass stc = pAttrs ? pAttrs->storageClass : STCundefined;
+
+    nextToken();
+    nextToken();
+    nextToken();
+    check(TOKlparen);
+    check(TOKrparen);
+
+    stc = parsePostfix(stc & ~STC_TYPECTOR, NULL) | stc;
+    if (StorageClass ss = stc & (STCshared | STCstatic))
+        appendStorageClass(stc, ss);            // complaint for the redundancy
+    else if (StorageClass modStc = stc & STC_TYPECTOR)
+    {
+        OutBuffer buf;
+        StorageClassDeclaration::stcToCBuffer(&buf, modStc);
+        if (buf.data[buf.offset - 1] == ' ')
+            buf.data[buf.offset - 1] = '\0';
+        ::error(loc, "shared static constructor cannot be %s", buf.peekString());
+    }
+    stc &= ~(STCstatic | STC_TYPECTOR);
+
+    SharedStaticCtorDeclaration *f = new SharedStaticCtorDeclaration(loc, Loc(), stc);
+    if (pAttrs)
+        pAttrs->storageClass = STCundefined;
+    Dsymbol *s = parseContracts(f);
+    return s;
+}
+
+/*****************************************
  * Parse a shared static destructor definition:
  *      shared static ~this() { body }
  * Current token is 'shared'.
  */
 
-Dsymbol *Parser::parseSharedStaticDtor()
+Dsymbol *Parser::parseSharedStaticDtor(PrefixAttributes *pAttrs)
 {
     Expressions *udas = NULL;
     Loc loc = token.loc;
+    StorageClass stc = pAttrs ? pAttrs->storageClass : STCundefined;
 
     nextToken();
     nextToken();
@@ -1654,11 +1732,22 @@ Dsymbol *Parser::parseSharedStaticDtor()
     check(TOKlparen);
     check(TOKrparen);
 
-    StorageClass stc = parsePostfix(STCundefined, &udas);
-    if (stc & STCshared)
-        error("static destructor is 'shared' already");
+    stc = parsePostfix(stc & ~STC_TYPECTOR, &udas) | stc;
+    if (StorageClass ss = stc & (STCshared | STCstatic))
+        appendStorageClass(stc, ss);            // complaint for the redundancy
+    else if (StorageClass modStc = stc & STC_TYPECTOR)
+    {
+        OutBuffer buf;
+        StorageClassDeclaration::stcToCBuffer(&buf, modStc);
+        if (buf.data[buf.offset - 1] == ' ')
+            buf.data[buf.offset - 1] = '\0';
+        ::error(loc, "shared static destructor cannot be %s", buf.peekString());
+    }
+    stc &= ~(STCstatic | STC_TYPECTOR);
 
     SharedStaticDtorDeclaration *f = new SharedStaticDtorDeclaration(loc, Loc(), stc);
+    if (pAttrs)
+        pAttrs->storageClass = STCundefined;
     Dsymbol *s = parseContracts(f);
     if (udas)
     {
@@ -1675,10 +1764,10 @@ Dsymbol *Parser::parseSharedStaticDtor()
  * Current token is 'invariant'.
  */
 
-InvariantDeclaration *Parser::parseInvariant()
+Dsymbol *Parser::parseInvariant(PrefixAttributes *pAttrs)
 {
-    InvariantDeclaration *f;
     Loc loc = token.loc;
+    StorageClass stc = pAttrs ? pAttrs->storageClass : STCundefined;
 
     nextToken();
     if (token.value == TOKlparen)       // optional ()
@@ -1687,7 +1776,9 @@ InvariantDeclaration *Parser::parseInvariant()
         check(TOKrparen);
     }
 
-    f = new InvariantDeclaration(loc, Loc(), STCundefined);
+    InvariantDeclaration *f = new InvariantDeclaration(loc, Loc(), stc);
+    if (pAttrs)
+        pAttrs->storageClass = STCundefined;
     f->fbody = parseStatement(PScurly);
     return f;
 }
@@ -1698,16 +1789,16 @@ InvariantDeclaration *Parser::parseInvariant()
  * Current token is 'unittest'.
  */
 
-UnitTestDeclaration *Parser::parseUnitTest()
+Dsymbol *Parser::parseUnitTest(PrefixAttributes *pAttrs)
 {
-    UnitTestDeclaration *f;
-    Statement *body;
     Loc loc = token.loc;
+    StorageClass stc = pAttrs ? pAttrs->storageClass : STCundefined;
 
     nextToken();
+
     const utf8_t *begPtr = token.ptr + 1;  // skip '{'
     const utf8_t *endPtr = NULL;
-    body = parseStatement(PScurly, &endPtr);
+    Statement *sbody = parseStatement(PScurly, &endPtr);
 
     /** Extract unittest body as a string. Must be done eagerly since memory
     will be released by the lexer before doc gen. */
@@ -1731,8 +1822,10 @@ UnitTestDeclaration *Parser::parseUnitTest()
         }
     }
 
-    f = new UnitTestDeclaration(loc, token.loc, docline);
-    f->fbody = body;
+    UnitTestDeclaration *f = new UnitTestDeclaration(loc, token.loc, stc, docline);
+    if (pAttrs)
+        pAttrs->storageClass = STCundefined;
+    f->fbody = sbody;
     return f;
 }
 
@@ -1742,18 +1835,20 @@ UnitTestDeclaration *Parser::parseUnitTest()
  * Current token is 'new'.
  */
 
-NewDeclaration *Parser::parseNew()
+Dsymbol *Parser::parseNew(PrefixAttributes *pAttrs)
 {
-    NewDeclaration *f;
-    Parameters *arguments;
-    int varargs;
     Loc loc = token.loc;
+    StorageClass stc = pAttrs ? pAttrs->storageClass : STCundefined;
 
     nextToken();
-    arguments = parseParameters(&varargs);
-    f = new NewDeclaration(loc, Loc(), arguments, varargs);
-    parseContracts(f);
-    return f;
+
+    int varargs;
+    Parameters *arguments = parseParameters(&varargs);
+    NewDeclaration *f = new NewDeclaration(loc, Loc(), stc, arguments, varargs);
+    if (pAttrs)
+        pAttrs->storageClass = STCundefined;
+    Dsymbol *s = parseContracts(f);
+    return s;
 }
 
 /*****************************************
@@ -1762,20 +1857,22 @@ NewDeclaration *Parser::parseNew()
  * Current token is 'delete'.
  */
 
-DeleteDeclaration *Parser::parseDelete()
+Dsymbol *Parser::parseDelete(PrefixAttributes *pAttrs)
 {
-    DeleteDeclaration *f;
-    Parameters *arguments;
-    int varargs;
     Loc loc = token.loc;
+    StorageClass stc = pAttrs ? pAttrs->storageClass : STCundefined;
 
     nextToken();
-    arguments = parseParameters(&varargs);
+
+    int varargs;
+    Parameters *arguments = parseParameters(&varargs);
     if (varargs)
         error("... not allowed in delete function parameter list");
-    f = new DeleteDeclaration(loc, Loc(), arguments);
-    parseContracts(f);
-    return f;
+    DeleteDeclaration *f = new DeleteDeclaration(loc, Loc(), stc, arguments);
+    if (pAttrs)
+        pAttrs->storageClass = STCundefined;
+    Dsymbol *s = parseContracts(f);
+    return s;
 }
 
 /**********************************************

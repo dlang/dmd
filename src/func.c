@@ -4676,21 +4676,6 @@ void StaticCtorDeclaration::semantic(Scope *sc)
         scope = NULL;
     }
 
-    if (storage_class & STCshared && !isSharedStaticCtorDeclaration())
-    {
-        ::error(loc, "to create a shared static constructor, use 'shared static this'");
-        storage_class &= ~STCshared;
-    }
-
-    if (storage_class & (STCimmutable | STCconst | STCshared | STCwild))
-    {
-        OutBuffer buf;
-        StorageClassDeclaration::stcToCBuffer(&buf, storage_class & (STCimmutable | STCconst | STCshared | STCwild));
-        ::error(loc, "static constructors cannot be %s", buf.peekString());
-    }
-
-    storage_class &= ~STC_TYPECTOR; // remove qualifiers
-
     if (!type)
         type = new TypeFunction(NULL, Type::tvoid, false, LINKd, storage_class);
 
@@ -4964,8 +4949,8 @@ static Identifier *unitTestId(Loc loc)
     return Lexer::uniqueId(buf.peekString());
 }
 
-UnitTestDeclaration::UnitTestDeclaration(Loc loc, Loc endloc, char *codedoc)
-    : FuncDeclaration(loc, endloc, unitTestId(loc), STCundefined, NULL)
+UnitTestDeclaration::UnitTestDeclaration(Loc loc, Loc endloc, StorageClass stc, char *codedoc)
+    : FuncDeclaration(loc, endloc, unitTestId(loc), stc, NULL)
 {
     this->codedoc = codedoc;
 }
@@ -4973,7 +4958,7 @@ UnitTestDeclaration::UnitTestDeclaration(Loc loc, Loc endloc, char *codedoc)
 Dsymbol *UnitTestDeclaration::syntaxCopy(Dsymbol *s)
 {
     assert(!s);
-    UnitTestDeclaration *utd = new UnitTestDeclaration(loc, endloc, codedoc);
+    UnitTestDeclaration *utd = new UnitTestDeclaration(loc, endloc, storage_class, codedoc);
     return FuncDeclaration::syntaxCopy(utd);
 }
 
@@ -4993,7 +4978,7 @@ void UnitTestDeclaration::semantic(Scope *sc)
     if (global.params.useUnitTests)
     {
         if (!type)
-            type = new TypeFunction(NULL, Type::tvoid, false, LINKd);
+            type = new TypeFunction(NULL, Type::tvoid, false, LINKd, storage_class);
         Scope *sc2 = sc->push();
         sc2->linkage = LINKd;
         FuncDeclaration::semantic(sc2);
@@ -5038,8 +5023,8 @@ bool UnitTestDeclaration::addPostInvariant()
 
 /********************************* NewDeclaration ****************************/
 
-NewDeclaration::NewDeclaration(Loc loc, Loc endloc, Parameters *arguments, int varargs)
-    : FuncDeclaration(loc, endloc, Id::classNew, STCstatic, NULL)
+NewDeclaration::NewDeclaration(Loc loc, Loc endloc, StorageClass stc, Parameters *arguments, int varargs)
+    : FuncDeclaration(loc, endloc, Id::classNew, STCstatic | stc, NULL)
 {
     this->arguments = arguments;
     this->varargs = varargs;
@@ -5048,8 +5033,8 @@ NewDeclaration::NewDeclaration(Loc loc, Loc endloc, Parameters *arguments, int v
 Dsymbol *NewDeclaration::syntaxCopy(Dsymbol *s)
 {
     assert(!s);
-    NewDeclaration *f = new NewDeclaration(loc, endloc, NULL, varargs);
-    f->arguments = Parameter::arraySyntaxCopy(arguments);
+    NewDeclaration *f = new NewDeclaration(loc, endloc,
+        storage_class, Parameter::arraySyntaxCopy(arguments), varargs);
     return FuncDeclaration::syntaxCopy(f);
 }
 
@@ -5072,7 +5057,7 @@ void NewDeclaration::semantic(Scope *sc)
     }
     Type *tret = Type::tvoid->pointerTo();
     if (!type)
-        type = new TypeFunction(arguments, tret, varargs, LINKd);
+        type = new TypeFunction(arguments, tret, varargs, LINKd, storage_class);
 
     type = type->semantic(loc, sc);
     assert(type->ty == Tfunction);
@@ -5115,8 +5100,8 @@ bool NewDeclaration::addPostInvariant()
 
 /********************************* DeleteDeclaration ****************************/
 
-DeleteDeclaration::DeleteDeclaration(Loc loc, Loc endloc, Parameters *arguments)
-    : FuncDeclaration(loc, endloc, Id::classDelete, STCstatic, NULL)
+DeleteDeclaration::DeleteDeclaration(Loc loc, Loc endloc, StorageClass stc, Parameters *arguments)
+    : FuncDeclaration(loc, endloc, Id::classDelete, STCstatic | stc, NULL)
 {
     this->arguments = arguments;
 }
@@ -5124,8 +5109,8 @@ DeleteDeclaration::DeleteDeclaration(Loc loc, Loc endloc, Parameters *arguments)
 Dsymbol *DeleteDeclaration::syntaxCopy(Dsymbol *s)
 {
     assert(!s);
-    DeleteDeclaration *f = new DeleteDeclaration(loc, endloc, NULL);
-    f->arguments = Parameter::arraySyntaxCopy(arguments);
+    DeleteDeclaration *f = new DeleteDeclaration(loc, endloc,
+            storage_class, Parameter::arraySyntaxCopy(arguments));
     return FuncDeclaration::syntaxCopy(f);
 }
 
@@ -5147,7 +5132,7 @@ void DeleteDeclaration::semantic(Scope *sc)
         error("new allocators only are for class or struct definitions");
     }
     if (!type)
-        type = new TypeFunction(arguments, Type::tvoid, 0, LINKd);
+        type = new TypeFunction(arguments, Type::tvoid, 0, LINKd, storage_class);
 
     type = type->semantic(loc, sc);
     assert(type->ty == Tfunction);

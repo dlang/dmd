@@ -840,7 +840,7 @@ public:
     // toObjFile() these nested functions after this one
     FuncDeclarations deferredNested;
 
-    UnitTestDeclaration(Loc loc, Loc endloc, char *codedoc);
+    UnitTestDeclaration(Loc loc, Loc endloc, StorageClass stc, char *codedoc);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     AggregateDeclaration *isThis();
@@ -858,7 +858,7 @@ public:
     Parameters *arguments;
     int varargs;
 
-    NewDeclaration(Loc loc, Loc endloc, Parameters *arguments, int varargs);
+    NewDeclaration(Loc loc, Loc endloc, StorageClass stc, Parameters *arguments, int varargs);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     const char *kind();
@@ -876,7 +876,7 @@ class DeleteDeclaration : public FuncDeclaration
 public:
     Parameters *arguments;
 
-    DeleteDeclaration(Loc loc, Loc endloc, Parameters *arguments);
+    DeleteDeclaration(Loc loc, Loc endloc, StorageClass stc, Parameters *arguments);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     const char *kind();

@@ -133,6 +133,10 @@ template Foo(T, int V)
 	}
 }
 static this();
+nothrow pure @nogc @safe static this();
+nothrow pure @nogc @safe static this();
+nothrow pure @nogc @safe shared static this();
+nothrow pure @nogc @safe shared static this();
 interface iFoo
 {
 }
@@ -199,6 +203,8 @@ class Test
 	alias A!short getHShort;
 	alias A!ushort getHUShort;
 	alias A!real getHReal;
+	nothrow pure @nogc @safe new(size_t sz);
+	nothrow pure @nogc @safe delete(void* p);
 }
 void templ(T)(T val)
 {
@@ -314,8 +320,6 @@ void foo6591()()
 }
 version (unittest)
 {
-	nothrow pure {}
-	nothrow pure {}
 	public {}
 	extern (C) {}
 	align{}
