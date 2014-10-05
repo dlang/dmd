@@ -4676,21 +4676,6 @@ void StaticCtorDeclaration::semantic(Scope *sc)
         scope = NULL;
     }
 
-    if (storage_class & STCshared && !isSharedStaticCtorDeclaration())
-    {
-        ::error(loc, "to create a shared static constructor, use 'shared static this'");
-        storage_class &= ~STCshared;
-    }
-
-    if (storage_class & (STCimmutable | STCconst | STCshared | STCwild))
-    {
-        OutBuffer buf;
-        StorageClassDeclaration::stcToCBuffer(&buf, storage_class & (STCimmutable | STCconst | STCshared | STCwild));
-        ::error(loc, "static constructors cannot be %s", buf.peekString());
-    }
-
-    storage_class &= ~STC_TYPECTOR; // remove qualifiers
-
     if (!type)
         type = new TypeFunction(NULL, Type::tvoid, false, LINKd, storage_class);
 

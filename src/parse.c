@@ -1480,6 +1480,9 @@ Dsymbol *Parser::parseCtor(PrefixAttributes *pAttrs)
         check(TOKrparen);
 
         stc = parsePostfix(stc, &udas);
+        if (stc & STCstatic)
+            ::error(loc, "postblit cannot be static");
+
         PostBlitDeclaration *f = new PostBlitDeclaration(loc, Loc(), stc, Id::_postblit);
         if (pAttrs)
             pAttrs->storageClass = STCundefined;
@@ -1508,6 +1511,18 @@ Dsymbol *Parser::parseCtor(PrefixAttributes *pAttrs)
     int varargs;
     Parameters *parameters = parseParameters(&varargs);
     stc = parsePostfix(stc, &udas);
+    if (varargs != 0 || Parameter::dim(parameters) != 0)
+    {
+        if (stc & STCstatic)
+            ::error(loc, "constructor cannot be static");
+    }
+    else if (StorageClass ss = stc & (STCshared | STCstatic))   // this()
+    {
+        if (ss == STCstatic)
+            ::error(loc, "use 'static this()' to declare a static constructor");
+        else if (ss == (STCshared | STCstatic))
+            ::error(loc, "use 'shared static this()' to declare a shared static constructor");
+    }
 
     Expression *constraint = tpl ? parseConstraint() : NULL;
 
@@ -1554,6 +1569,14 @@ Dsymbol *Parser::parseDtor(PrefixAttributes *pAttrs)
     check(TOKrparen);
 
     stc = parsePostfix(stc, &udas);
+    if (StorageClass ss = stc & (STCshared | STCstatic))
+    {
+        if (ss == STCstatic)
+            ::error(loc, "use 'static ~this()' to declare a static destructor");
+        else if (ss == (STCshared | STCstatic))
+            ::error(loc, "use 'shared static ~this()' to declare a shared static destructor");
+    }
+
     DtorDeclaration *f = new DtorDeclaration(loc, Loc(), stc, Id::dtor);
     if (pAttrs)
         pAttrs->storageClass = STCundefined;
@@ -1584,7 +1607,20 @@ Dsymbol *Parser::parseStaticCtor(PrefixAttributes *pAttrs)
     check(TOKlparen);
     check(TOKrparen);
 
-    stc = parsePostfix(stc, NULL);
+    stc = parsePostfix(stc & ~STC_TYPECTOR, NULL) | stc;
+    if (stc & STCshared)
+        ::error(loc, "use 'shared static this()' to declare a shared static constructor");
+    else if (stc & STCstatic)
+        appendStorageClass(stc, STCstatic);     // complaint for the redundancy
+    else if (StorageClass modStc = stc & STC_TYPECTOR)
+    {
+        OutBuffer buf;
+        StorageClassDeclaration::stcToCBuffer(&buf, modStc);
+        if (buf.data[buf.offset - 1] == ' ')
+            buf.data[buf.offset - 1] = '\0';
+        ::error(loc, "static constructor cannot be %s", buf.peekString());
+    }
+    stc &= ~(STCstatic | STC_TYPECTOR);
 
     StaticCtorDeclaration *f = new StaticCtorDeclaration(loc, Loc(), stc);
     if (pAttrs)
@@ -1611,9 +1647,20 @@ Dsymbol *Parser::parseStaticDtor(PrefixAttributes *pAttrs)
     check(TOKlparen);
     check(TOKrparen);
 
-    stc = parsePostfix(stc, &udas);
+    stc = parsePostfix(stc & ~STC_TYPECTOR, &udas) | stc;
     if (stc & STCshared)
-        error("to create a 'shared' static destructor, move 'shared' in front of the declaration");
+        ::error(loc, "use 'shared static ~this()' to declare a shared static destructor");
+    else if (stc & STCstatic)
+        appendStorageClass(stc, STCstatic);     // complaint for the redundancy
+    else if (StorageClass modStc = stc & STC_TYPECTOR)
+    {
+        OutBuffer buf;
+        StorageClassDeclaration::stcToCBuffer(&buf, modStc);
+        if (buf.data[buf.offset - 1] == ' ')
+            buf.data[buf.offset - 1] = '\0';
+        ::error(loc, "static destructor cannot be %s", buf.peekString());
+    }
+    stc &= ~(STCstatic | STC_TYPECTOR);
 
     StaticDtorDeclaration *f = new StaticDtorDeclaration(loc, Loc(), stc);
     if (pAttrs)
@@ -1646,7 +1693,18 @@ Dsymbol *Parser::parseSharedStaticCtor(PrefixAttributes *pAttrs)
     check(TOKlparen);
     check(TOKrparen);
 
-    stc = parsePostfix(stc, NULL);
+    stc = parsePostfix(stc & ~STC_TYPECTOR, NULL) | stc;
+    if (StorageClass ss = stc & (STCshared | STCstatic))
+        appendStorageClass(stc, ss);            // complaint for the redundancy
+    else if (StorageClass modStc = stc & STC_TYPECTOR)
+    {
+        OutBuffer buf;
+        StorageClassDeclaration::stcToCBuffer(&buf, modStc);
+        if (buf.data[buf.offset - 1] == ' ')
+            buf.data[buf.offset - 1] = '\0';
+        ::error(loc, "shared static constructor cannot be %s", buf.peekString());
+    }
+    stc &= ~(STCstatic | STC_TYPECTOR);
 
     SharedStaticCtorDeclaration *f = new SharedStaticCtorDeclaration(loc, Loc(), stc);
     if (pAttrs)
@@ -1674,9 +1732,18 @@ Dsymbol *Parser::parseSharedStaticDtor(PrefixAttributes *pAttrs)
     check(TOKlparen);
     check(TOKrparen);
 
-    stc = parsePostfix(stc, &udas);
-    if (stc & STCshared)
-        error("static destructor is 'shared' already");
+    stc = parsePostfix(stc & ~STC_TYPECTOR, &udas) | stc;
+    if (StorageClass ss = stc & (STCshared | STCstatic))
+        appendStorageClass(stc, ss);            // complaint for the redundancy
+    else if (StorageClass modStc = stc & STC_TYPECTOR)
+    {
+        OutBuffer buf;
+        StorageClassDeclaration::stcToCBuffer(&buf, modStc);
+        if (buf.data[buf.offset - 1] == ' ')
+            buf.data[buf.offset - 1] = '\0';
+        ::error(loc, "shared static destructor cannot be %s", buf.peekString());
+    }
+    stc &= ~(STCstatic | STC_TYPECTOR);
 
     SharedStaticDtorDeclaration *f = new SharedStaticDtorDeclaration(loc, Loc(), stc);
     if (pAttrs)
