@@ -208,7 +208,7 @@ public:
 
 /**
  * User defined attributes look like:
- *      [ args, ... ]
+ *      @(args, ...)
  */
 class UserAttributeDeclaration : public AttribDeclaration
 {

@@ -62,29 +62,7 @@ void genhdrfile(Module *m)
     HdrGenState hgs;
     hgs.hdrgen = true;
 
-    if (m->md)
-    {
-        if (m->md->isdeprecated)
-        {
-            if (m->md->msg)
-            {
-                buf.writestring("deprecated(");
-                toCBuffer(m->md->msg, &buf, &hgs);
-                buf.writestring(") ");
-            }
-            else
-                buf.writestring("deprecated ");
-        }
-        buf.writestring("module ");
-        buf.writestring(m->md->toChars());
-        buf.writeByte(';');
-        buf.writenl();
-    }
-    for (size_t i = 0; i < m->members->dim; i++)
-    {
-        Dsymbol *s = (*m->members)[i];
-        toCBuffer(s, &buf, &hgs);
-    }
+    toCBuffer(m, &buf, &hgs);
 
     // Transfer image to file
     m->hdrfile->setbuffer(buf.data, buf.offset);
@@ -2926,6 +2904,41 @@ public:
             }
         }
         buf->writeByte(')');
+    }
+
+    void visit(Module *m)
+    {
+        if (m->md)
+        {
+            if (m->userAttribDecl)
+            {
+                buf->writestring("@(");
+                argsToBuffer(m->userAttribDecl->atts);
+                buf->writeByte(')');
+                buf->writenl();
+            }
+            if (m->md->isdeprecated)
+            {
+                if (m->md->msg)
+                {
+                    buf->writestring("deprecated(");
+                    m->md->msg->accept(this);
+                    buf->writestring(") ");
+                }
+                else
+                    buf->writestring("deprecated ");
+            }
+
+            buf->writestring("module ");
+            buf->writestring(m->md->toChars());
+            buf->writeByte(';');
+            buf->writenl();
+        }
+        for (size_t i = 0; i < m->members->dim; i++)
+        {
+            Dsymbol *s = (*m->members)[i];
+            s->accept(this);
+        }
     }
 };
 
