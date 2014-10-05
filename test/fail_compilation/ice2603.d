@@ -1,8 +1,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice2603.d(17): Error: array operation [1, 2, 3] - [1, 2, 3] without assignment not implemented
-fail_compilation/ice2603.d(20): Error: invalid array operation "a" - "b" (did you forget a [] ?)
+fail_compilation/ice2603.d(17): Error: array operation [1, 2, 3] - [1, 2, 3] without destination memory not allowed
+fail_compilation/ice2603.d(20): Error: invalid array operation "a" - "b" (possible missing [])
 ---
 */
 

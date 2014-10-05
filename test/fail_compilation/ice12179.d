@@ -1,19 +1,19 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice12179.d(25): Error: array operation a[] + a[] without assignment not implemented
-fail_compilation/ice12179.d(26): Error: array operation a[] - a[] without assignment not implemented
-fail_compilation/ice12179.d(27): Error: array operation a[] * a[] without assignment not implemented
-fail_compilation/ice12179.d(28): Error: array operation a[] / a[] without assignment not implemented
-fail_compilation/ice12179.d(29): Error: array operation a[] % a[] without assignment not implemented
-fail_compilation/ice12179.d(30): Error: array operation a[] ^ a[] without assignment not implemented
-fail_compilation/ice12179.d(31): Error: array operation a[] & a[] without assignment not implemented
-fail_compilation/ice12179.d(32): Error: array operation a[] | a[] without assignment not implemented
-fail_compilation/ice12179.d(33): Error: array operation a[] ^^ 10 without assignment not implemented
-fail_compilation/ice12179.d(34): Error: array operation -a[] without assignment not implemented
-fail_compilation/ice12179.d(35): Error: array operation ~a[] without assignment not implemented
-fail_compilation/ice12179.d(40): Error: array operation [1] + a[] without assignment not implemented
-fail_compilation/ice12179.d(41): Error: array operation [1] + a[] without assignment not implemented
+fail_compilation/ice12179.d(25): Error: array operation a[] + a[] without destination memory not allowed
+fail_compilation/ice12179.d(26): Error: array operation a[] - a[] without destination memory not allowed
+fail_compilation/ice12179.d(27): Error: array operation a[] * a[] without destination memory not allowed
+fail_compilation/ice12179.d(28): Error: array operation a[] / a[] without destination memory not allowed
+fail_compilation/ice12179.d(29): Error: array operation a[] % a[] without destination memory not allowed
+fail_compilation/ice12179.d(30): Error: array operation a[] ^ a[] without destination memory not allowed
+fail_compilation/ice12179.d(31): Error: array operation a[] & a[] without destination memory not allowed
+fail_compilation/ice12179.d(32): Error: array operation a[] | a[] without destination memory not allowed
+fail_compilation/ice12179.d(33): Error: array operation a[] ^^ 10 without destination memory not allowed
+fail_compilation/ice12179.d(34): Error: array operation -a[] without destination memory not allowed
+fail_compilation/ice12179.d(35): Error: array operation ~a[] without destination memory not allowed
+fail_compilation/ice12179.d(40): Error: array operation [1] + a[] without destination memory not allowed
+fail_compilation/ice12179.d(41): Error: array operation [1] + a[] without destination memory not allowed
 ---
 */
 
@@ -45,8 +45,8 @@ void main()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice12179.d(55): Error: array operation -a[] without assignment not implemented
-fail_compilation/ice12179.d(57): Error: array operation (-a[])[0..4] without assignment not implemented
+fail_compilation/ice12179.d(55): Error: array operation -a[] without destination memory not allowed
+fail_compilation/ice12179.d(57): Error: array operation (-a[])[0..4] without destination memory not allowed
 ---
 */
 float[] f12769(float[] a)
@@ -60,11 +60,11 @@ float[] f12769(float[] a)
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice12179.d(74): Error: array operation a[] - a[] without assignment not implemented
-fail_compilation/ice12179.d(76): Error: array operation a[] - a[] without assignment not implemented
-fail_compilation/ice12179.d(77): Error: array operation a[] - a[] without assignment not implemented
-fail_compilation/ice12179.d(80): Error: array operation a[] - a[] without assignment not implemented
-fail_compilation/ice12179.d(82): Error: array operation a[] - a[] without assignment not implemented
+fail_compilation/ice12179.d(74): Error: array operation a[] - a[] without destination memory not allowed
+fail_compilation/ice12179.d(76): Error: array operation a[] - a[] without destination memory not allowed
+fail_compilation/ice12179.d(77): Error: array operation a[] - a[] without destination memory not allowed
+fail_compilation/ice12179.d(80): Error: array operation a[] - a[] without destination memory not allowed
+fail_compilation/ice12179.d(82): Error: array operation a[] - a[] without destination memory not allowed
 ---
 */
 void test13208()

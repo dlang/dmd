@@ -9115,7 +9115,7 @@ Expression *NegExp::semantic(Scope *sc)
     {
         if (!isArrayOpValid(e1))
         {
-            error("invalid array operation %s (did you forget a [] ?)", toChars());
+            error("invalid array operation %s (possible missing [])", toChars());
             return new ErrorExp();
         }
         return this;
@@ -9174,7 +9174,7 @@ Expression *ComExp::semantic(Scope *sc)
     {
         if (!isArrayOpValid(e1))
         {
-            error("invalid array operation %s (did you forget a [] ?)", toChars());
+            error("invalid array operation %s (possible missing [])", toChars());
             return new ErrorExp();
         }
         return this;
@@ -11514,7 +11514,7 @@ Expression *AssignExp::semantic(Scope *sc)
 
         // Drop invalid array operations in e2
         //  d = a[] + b[], d = (a[] + b[])[0..2], etc
-        if (checkNonAssignmentArrayOp(e2))
+        if (checkNonAssignmentArrayOp(e2, !ismemset && op == TOKassign))
             return new ErrorExp();
 
         // Remains valid array assignments
@@ -11894,7 +11894,7 @@ Expression *AddExp::semantic(Scope *sc)
     {
         if (!isArrayOpValid(this))
         {
-            error("invalid array operation %s (did you forget a [] ?)", toChars());
+            error("invalid array operation %s (possible missing [])", toChars());
             return new ErrorExp();
         }
         return this;
@@ -12017,7 +12017,7 @@ Expression *MinExp::semantic(Scope *sc)
     {
         if (!isArrayOpValid(this))
         {
-            error("invalid array operation %s (did you forget a [] ?)", toChars());
+            error("invalid array operation %s (possible missing [])", toChars());
             return new ErrorExp();
         }
         return this;
@@ -12225,7 +12225,7 @@ Expression *MulExp::semantic(Scope *sc)
     {
         if (!isArrayOpValid(this))
         {
-            error("invalid array operation %s (did you forget a [] ?)", toChars());
+            error("invalid array operation %s (possible missing [])", toChars());
             return new ErrorExp();
         }
         return this;
@@ -12313,7 +12313,7 @@ Expression *DivExp::semantic(Scope *sc)
     {
         if (!isArrayOpValid(this))
         {
-            error("invalid array operation %s (did you forget a [] ?)", toChars());
+            error("invalid array operation %s (possible missing [])", toChars());
             return new ErrorExp();
         }
         return this;
@@ -12400,7 +12400,7 @@ Expression *ModExp::semantic(Scope *sc)
     {
         if (!isArrayOpValid(this))
         {
-            error("invalid array operation %s (did you forget a [] ?)", toChars());
+            error("invalid array operation %s (possible missing [])", toChars());
             return new ErrorExp();
         }
         return this;
@@ -12475,7 +12475,7 @@ Expression *PowExp::semantic(Scope *sc)
     {
         if (!isArrayOpValid(this))
         {
-            error("invalid array operation %s (did you forget a [] ?)", toChars());
+            error("invalid array operation %s (possible missing [])", toChars());
             return new ErrorExp();
         }
         return this;
@@ -12685,7 +12685,7 @@ Expression *AndExp::semantic(Scope *sc)
     {
         if (!isArrayOpValid(this))
         {
-            error("invalid array operation %s (did you forget a [] ?)", toChars());
+            error("invalid array operation %s (possible missing [])", toChars());
             return new ErrorExp();
         }
         return this;
@@ -12734,7 +12734,7 @@ Expression *OrExp::semantic(Scope *sc)
     {
         if (!isArrayOpValid(this))
         {
-            error("invalid array operation %s (did you forget a [] ?)", toChars());
+            error("invalid array operation %s (possible missing [])", toChars());
             return new ErrorExp();
         }
         return this;
@@ -12783,7 +12783,7 @@ Expression *XorExp::semantic(Scope *sc)
     {
         if (!isArrayOpValid(this))
         {
-            error("invalid array operation %s (did you forget a [] ?)", toChars());
+            error("invalid array operation %s (possible missing [])", toChars());
             return new ErrorExp();
         }
         return this;
