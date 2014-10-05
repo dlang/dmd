@@ -29,7 +29,6 @@ class Expression;
 class StructDeclaration;
 class ClassDeclaration;
 class EnumDeclaration;
-class TypedefDeclaration;
 class TypeInfoDeclaration;
 class Dsymbol;
 class TemplateInstance;
@@ -65,7 +64,6 @@ enum ENUMTY
     Tstruct,
     Tenum,
 
-    Ttypedef,
     Tdelegate,
     Tnone,
     Tvoid,
@@ -75,8 +73,8 @@ enum ENUMTY
     Tuns16,
     Tint32,
     Tuns32,
-
     Tint64,
+
     Tuns64,
     Tfloat32,
     Tfloat64,
@@ -86,8 +84,8 @@ enum ENUMTY
     Timaginary80,
     Tcomplex32,
     Tcomplex64,
-
     Tcomplex80,
+
     Tbool,
     Tchar,
     Twchar,
@@ -97,8 +95,8 @@ enum ENUMTY
     Ttypeof,
     Ttuple,
     Tslice,
-
     Treturn,
+
     Tnull,
     Tvector,
     Tint128,
@@ -202,7 +200,6 @@ public:
     static ClassDeclaration *typeinfoclass;
     static ClassDeclaration *typeinfointerface;
     static ClassDeclaration *typeinfostruct;
-    static ClassDeclaration *typeinfotypedef;
     static ClassDeclaration *typeinfopointer;
     static ClassDeclaration *typeinfoarray;
     static ClassDeclaration *typeinfostaticarray;
@@ -840,47 +837,6 @@ public:
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
     Type *nextOf();
-
-    void accept(Visitor *v) { v->visit(this); }
-};
-
-class TypeTypedef : public Type
-{
-public:
-    TypedefDeclaration *sym;
-
-    TypeTypedef(TypedefDeclaration *sym);
-    const char *kind();
-    Type *syntaxCopy();
-    d_uns64 size(Loc loc);
-    unsigned alignsize();
-    char *toChars();
-    Type *semantic(Loc loc, Scope *sc);
-    Dsymbol *toDsymbol(Scope *sc);
-    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
-    structalign_t alignment();
-    Expression *getProperty(Loc loc, Identifier *ident, int flag);
-    bool isintegral();
-    bool isfloating();
-    bool isreal();
-    bool isimaginary();
-    bool iscomplex();
-    bool isscalar();
-    bool isunsigned();
-    bool checkBoolean();
-    bool isAssignable();
-    bool needsDestruction();
-    bool needsNested();
-    Type *toBasetype();
-    MATCH implicitConvTo(Type *to);
-    MATCH constConv(Type *to);
-    Type *toHeadMutable();
-    Expression *defaultInit(Loc loc);
-    Expression *defaultInitLiteral(Loc loc);
-    bool isZeroInit(Loc loc);
-    TypeInfoDeclaration *getTypeInfoDeclaration();
-    int hasPointers();
-    int hasWild();
 
     void accept(Visitor *v) { v->visit(this); }
 };

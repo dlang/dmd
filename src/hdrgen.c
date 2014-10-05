@@ -983,12 +983,6 @@ public:
         buf->writestring(t->sym->toChars());
     }
 
-    void visit(TypeTypedef *t)
-    {
-        //printf("TypeTypedef::toCBuffer2() '%s'\n", t->sym->toChars());
-        buf->writestring(t->sym->toChars());
-    }
-
     void visit(TypeStruct *t)
     {
         TemplateInstance *ti = t->sym->parent->isTemplateInstance();
@@ -1649,19 +1643,6 @@ public:
         }
     }
 
-    void visit(TypedefDeclaration *d)
-    {
-        buf->writestring("typedef ");
-        typeToBuffer(d->basetype, d->ident);
-        if (d->init)
-        {
-            buf->writestring(" = ");
-            d->init->accept(this);
-        }
-        buf->writeByte(';');
-        buf->writenl();
-    }
-
     void visit(AliasDeclaration *d)
     {
         buf->writestring("alias ");
@@ -2047,14 +2028,6 @@ public:
                     TypeEnum *te = (TypeEnum *)t;
                     buf->printf("cast(%s)", te->sym->toChars());
                     t = te->sym->memtype;
-                    goto L1;
-                }
-
-                case Ttypedef:
-                {
-                    TypeTypedef *tt = (TypeTypedef *)t;
-                    buf->printf("cast(%s)", tt->sym->toChars());
-                    t = tt->sym->basetype;
                     goto L1;
                 }
 

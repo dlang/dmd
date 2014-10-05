@@ -576,20 +576,6 @@ Symbol *AggregateDeclaration::toInitializer()
     return sinit;
 }
 
-Symbol *TypedefDeclaration::toInitializer()
-{
-    if (!sinit)
-    {
-        Classsym *stag = fake_classsym(Id::ClassInfo);
-        Symbol *s = toSymbolX("__init", SCextern, stag->Stype, "Z");
-        s->Sfl = FLextern;
-        s->Sflags |= SFLnodebug;
-        slist_add(s);
-        sinit = s;
-    }
-    return sinit;
-}
-
 Symbol *EnumDeclaration::toInitializer()
 {
     if (!sinit)

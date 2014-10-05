@@ -172,11 +172,6 @@ TypeInfoDeclaration *Type::getTypeInfoDeclaration()
     return TypeInfoDeclaration::create(this, 0);
 }
 
-TypeInfoDeclaration *TypeTypedef::getTypeInfoDeclaration()
-{
-    return TypeInfoTypedefDeclaration::create(this);
-}
-
 TypeInfoDeclaration *TypePointer::getTypeInfoDeclaration()
 {
     return TypeInfoPointerDeclaration::create(this);
@@ -324,50 +319,6 @@ public:
         tm = tm->merge();
         tm->genTypeInfo(NULL);
         dtxoff(pdt, toSymbol(tm->vtinfo), 0);
-    }
-
-    void visit(TypeInfoTypedefDeclaration *d)
-    {
-        //printf("TypeInfoTypedefDeclaration::toDt() %s\n", toChars());
-        verifyStructSize(Type::typeinfotypedef, 7 * Target::ptrsize);
-
-        dtxoff(pdt, Type::typeinfotypedef->toVtblSymbol(), 0); // vtbl for TypeInfo_Typedef
-        dtsize_t(pdt, 0);                        // monitor
-
-        assert( d->tinfo->ty == Ttypedef);
-
-        TypeTypedef *tc = (TypeTypedef *)d->tinfo;
-        TypedefDeclaration *sd = tc->sym;
-        //printf("basetype = %s\n", sd->basetype->toChars());
-
-        /* Put out:
-         *  TypeInfo base;
-         *  char[] name;
-         *  void[] m_init;
-         */
-
-        sd->basetype = sd->basetype->merge();
-        sd->basetype->genTypeInfo(NULL);            // generate vtinfo
-        assert(sd->basetype->vtinfo);
-        dtxoff(pdt, toSymbol(sd->basetype->vtinfo), 0);   // TypeInfo for basetype
-
-        const char *name = sd->toPrettyChars();
-        size_t namelen = strlen(name);
-        dtsize_t(pdt, namelen);
-        dtabytes(pdt, 0, namelen + 1, name);
-
-        // void[] init;
-        if (d->tinfo->isZeroInit() || !sd->init)
-        {
-            // 0 initializer, or the same as the base type
-            dtsize_t(pdt, 0);        // init.length
-            dtsize_t(pdt, 0);        // init.ptr
-        }
-        else
-        {
-            dtsize_t(pdt, sd->type->size()); // init.length
-            dtxoff(pdt, sd->toInitializer(), 0);    // init.ptr
-        }
     }
 
     void visit(TypeInfoEnumDeclaration *d)

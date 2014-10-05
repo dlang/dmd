@@ -1179,20 +1179,6 @@ void toDocBuffer(Dsymbol *s, OutBuffer *buf, Scope *sc)
             }
         }
 
-        void visit(TypedefDeclaration *d)
-        {
-            if (d->ident)
-            {
-                if (d->isDeprecated())
-                    buf->writestring("deprecated ");
-
-                emitProtection(buf, d->protection);
-                buf->writestring("typedef ");
-                buf->writestring(d->toChars());
-                buf->writestring(";\n");
-            }
-        }
-
         void visit(FuncDeclaration *fd)
         {
             //printf("FuncDeclaration::toDocbuffer() %s\n", fd->toChars());

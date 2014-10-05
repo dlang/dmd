@@ -355,7 +355,6 @@ public:
         if (e->declaration->isStructDeclaration() ||
             e->declaration->isClassDeclaration() ||
             e->declaration->isFuncDeclaration() ||
-            e->declaration->isTypedefDeclaration() ||
             e->declaration->isAttribDeclaration() ||
             e->declaration->isTemplateMixin())
         {

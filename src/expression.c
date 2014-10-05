@@ -5700,7 +5700,6 @@ Expression *DeclarationExp::semantic(Scope *sc)
         {
             // Bugzilla 11720 - include Dataseg variables
             if ((s->isFuncDeclaration() ||
-                 s->isTypedefDeclaration() ||
                  s->isAggregateDeclaration() ||
                  s->isEnumDeclaration() ||
                  v && v->isDataseg()) &&
@@ -5933,10 +5932,7 @@ Expression *IsExp::semantic(Scope *sc)
         switch (tok2)
         {
             case TOKtypedef:
-                if (targ->ty != Ttypedef)
-                    goto Lno;
-                tded = ((TypeTypedef *)targ)->sym->basetype;
-                break;
+                goto Lno;
 
             case TOKstruct:
                 if (targ->ty != Tstruct)

@@ -781,11 +781,6 @@ public:
             store(t);
     }
 
-    void visit(TypeTypedef *t)
-    {
-        visit((Type *)t);
-    }
-
     void visit(TypeClass *t)
     {
         if (substitute(t)) return;

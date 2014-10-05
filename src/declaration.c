@@ -276,104 +276,6 @@ bool TupleDeclaration::needThis()
 }
 
 
-/********************************* TypedefDeclaration ****************************/
-
-TypedefDeclaration::TypedefDeclaration(Loc loc, Identifier *id, Type *basetype, Initializer *init)
-    : Declaration(id)
-{
-    this->type = new TypeTypedef(this);
-    this->basetype = basetype->toBasetype();
-    this->init = init;
-    this->loc = loc;
-    this->sinit = NULL;
-}
-
-Dsymbol *TypedefDeclaration::syntaxCopy(Dsymbol *s)
-{
-    assert(!s);
-    return new TypedefDeclaration(loc, ident,
-        basetype->syntaxCopy(),
-        init ? init->syntaxCopy() : NULL);
-}
-
-void TypedefDeclaration::semantic(Scope *sc)
-{
-    //printf("TypedefDeclaration::semantic(%s) sem = %d\n", toChars(), sem);
-    if (sem == SemanticStart)
-    {
-        sem = SemanticIn;
-        parent = sc->parent;
-        unsigned int errors = global.errors;
-        Type *savedbasetype = basetype;
-        basetype = basetype->semantic(loc, sc);
-        if (errors != global.errors)
-        {
-            basetype = savedbasetype;
-            sem = SemanticStart;
-            return;
-        }
-        sem = SemanticDone;
-        type = type->addStorageClass(storage_class);
-        Type *savedtype = type;
-        type = type->semantic(loc, sc);
-        if (sc->parent->isFuncDeclaration() && init)
-            semantic2(sc);
-        if (errors != global.errors)
-        {
-            basetype = savedbasetype;
-            type = savedtype;
-            sem = SemanticStart;
-            return;
-        }
-        storage_class |= sc->stc & STCdeprecated;
-        userAttribDecl = sc->userAttribDecl;
-    }
-    else if (sem == SemanticIn)
-    {
-        error("circular definition");
-        basetype = Type::terror;
-        errors = true;
-    }
-}
-
-void TypedefDeclaration::semantic2(Scope *sc)
-{
-    //printf("TypedefDeclaration::semantic2(%s) sem = %d\n", toChars(), sem);
-    if (sem == SemanticDone)
-    {
-        sem = Semantic2Done;
-        basetype->alignment();          // used to detect circular typedef declarations
-        if (init)
-        {
-            Initializer *savedinit = init;
-            unsigned int errors = global.errors;
-            init = init->semantic(sc, basetype, INITinterpret);
-            if (errors != global.errors || init->isErrorInitializer())
-            {
-                init = savedinit;
-                return;
-            }
-
-            ExpInitializer *ie = init->isExpInitializer();
-            if (ie)
-            {
-                if (ie->exp->type == basetype)
-                    ie->exp->type = type;
-            }
-        }
-    }
-}
-
-const char *TypedefDeclaration::kind()
-{
-    return "typedef";
-}
-
-Type *TypedefDeclaration::getType()
-{
-    return type;
-}
-
 /********************************* AliasDeclaration ****************************/
 
 AliasDeclaration::AliasDeclaration(Loc loc, Identifier *id, Type *type)
@@ -1381,20 +1283,6 @@ Lnomatch:
             init = new ExpInitializer(loc, e);
             goto Ldtor;
         }
-        else if (type->ty == Ttypedef)
-        {
-            TypeTypedef *td = (TypeTypedef *)type;
-            if (td->sym->init)
-            {
-                init = td->sym->init;
-                ExpInitializer *ie = init->isExpInitializer();
-                if (ie)
-                    // Make copy so we can modify it
-                    init = new ExpInitializer(ie->loc, ie->exp);
-            }
-            else
-                init = getExpInitializer();
-        }
         else if (type->baseElemOf()->ty == Tvoid)
         {
             error("%s does not have a default initializer", type->toChars());
@@ -2329,23 +2217,6 @@ TypeInfoInterfaceDeclaration::TypeInfoInterfaceDeclaration(Type *tinfo)
 TypeInfoInterfaceDeclaration *TypeInfoInterfaceDeclaration::create(Type *tinfo)
 {
     return new TypeInfoInterfaceDeclaration(tinfo);
-}
-
-/***************************** TypeInfoTypedefDeclaration *********************/
-
-TypeInfoTypedefDeclaration::TypeInfoTypedefDeclaration(Type *tinfo)
-    : TypeInfoDeclaration(tinfo, 0)
-{
-    if (!Type::typeinfotypedef)
-    {
-        ObjectNotFound(Id::TypeInfo_Typedef);
-    }
-    type = Type::typeinfotypedef->type;
-}
-
-TypeInfoTypedefDeclaration *TypeInfoTypedefDeclaration::create(Type *tinfo)
-{
-    return new TypeInfoTypedefDeclaration(tinfo);
 }
 
 /***************************** TypeInfoPointerDeclaration *********************/

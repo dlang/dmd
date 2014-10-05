@@ -3946,22 +3946,6 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             visit((Type *)t);
         }
 
-        void visit(TypeTypedef *t)
-        {
-            // Extra check
-            if (tparam && tparam->ty == Ttypedef)
-            {
-                TypeTypedef *tp = (TypeTypedef *)tparam;
-
-                if (t->sym != tp->sym)
-                {
-                    result = MATCHnomatch;
-                    return;
-                }
-            }
-            visit((Type *)t);
-        }
-
         /* Helper for TypeClass::deduceType().
          * Classes can match with implicit conversion to a base class or interface.
          * This is complicated, because there may be more than one base class which
