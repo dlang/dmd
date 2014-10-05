@@ -818,6 +818,8 @@ Expression *resolveUFCS(Scope *sc, CallExp *ce)
         {
             if (Expression *ey = die->semanticY(sc, 1))
             {
+                if (ey->op == TOKerror)
+                    return ey;
                 ce->e1 = ey;
                 if (isDotOpDispatch(ey))
                 {
