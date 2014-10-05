@@ -7419,10 +7419,19 @@ L1:
     s = s->toAlias();
 
     VarDeclaration *v = s->isVarDeclaration();
-    if (v && v->inuse && (!v->type || !v->type->deco))  // Bugzilla 9494
+    if (v && (!v->type || !v->type->deco))
     {
-        e->error("circular reference to '%s'", v->toPrettyChars());
-        return new ErrorExp();
+        if (v->inuse)   // Bugzilla 9494
+        {
+            e->error("circular reference to '%s'", v->toPrettyChars());
+            return new ErrorExp();
+        }
+        if (v->scope)
+        {
+            v->semantic(v->scope);
+            s = v->toAlias();   // Need this if 'v' is a tuple variable
+            v = s->isVarDeclaration();
+        }
     }
     if (v && !v->isDataseg() && (v->storage_class & STCmanifest))
     {
@@ -8057,10 +8066,19 @@ L1:
     s = s->toAlias();
 
     VarDeclaration *v = s->isVarDeclaration();
-    if (v && v->inuse && (!v->type || !v->type->deco))  // Bugzilla 9494
+    if (v && (!v->type || !v->type->deco))
     {
-        e->error("circular reference to '%s'", v->toPrettyChars());
-        return new ErrorExp();
+        if (v->inuse)   // Bugzilla 9494
+        {
+            e->error("circular reference to '%s'", v->toPrettyChars());
+            return new ErrorExp();
+        }
+        if (v->scope)
+        {
+            v->semantic(v->scope);
+            s = v->toAlias();   // Need this if 'v' is a tuple variable
+            v = s->isVarDeclaration();
+        }
     }
     if (v && !v->isDataseg() && (v->storage_class & STCmanifest))
     {
