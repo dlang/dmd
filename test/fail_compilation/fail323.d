@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail323.d(16): Error: invalid array operation -a (did you forget a [] ?)
+fail_compilation/fail323.d(16): Error: invalid array operation -a (possible missing [])
 ---
 */
 

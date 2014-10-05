@@ -160,7 +160,7 @@ bool checkNonAssignmentArrayOp(Expression *e, bool suggestion)
     {
         const char *s = "";
         if (suggestion)
-            s = " (did you forget a [] ?)";
+            s = " (possible missing [])";
         e->error("array operation %s without destination memory not allowed%s", e->toChars(), s);
         return true;
     }
@@ -185,7 +185,7 @@ Expression *arrayOp(BinExp *e, Scope *sc)
     }
     if (!isArrayOpValid(e))
     {
-        e->error("invalid array operation %s (did you forget a [] ?)", e->toChars());
+        e->error("invalid array operation %s (possible missing [])", e->toChars());
         return new ErrorExp();
     }
 

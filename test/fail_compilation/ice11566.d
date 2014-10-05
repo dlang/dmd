@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice11566.d(11): Error: invalid array operation a[] <<= 1 (did you forget a [] ?)
+fail_compilation/ice11566.d(11): Error: invalid array operation a[] <<= 1 (possible missing [])
 ---
 */
 
