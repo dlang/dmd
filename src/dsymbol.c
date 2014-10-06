@@ -1310,6 +1310,7 @@ ArrayScopeSymbol::ArrayScopeSymbol(Scope *sc, Expression *e)
     exp = e;
     type = NULL;
     td = NULL;
+    ti = NULL;
     this->sc = sc;
 }
 
@@ -1319,6 +1320,7 @@ ArrayScopeSymbol::ArrayScopeSymbol(Scope *sc, TypeTuple *t)
     exp = NULL;
     type = t;
     td = NULL;
+    ti = NULL;
     this->sc = sc;
 }
 
@@ -1328,6 +1330,17 @@ ArrayScopeSymbol::ArrayScopeSymbol(Scope *sc, TupleDeclaration *s)
     exp = NULL;
     type = NULL;
     td = s;
+    ti = NULL;
+    this->sc = sc;
+}
+
+ArrayScopeSymbol::ArrayScopeSymbol(Scope *sc, TemplateInstance *s)
+    : ScopeDsymbol()
+{
+    exp = NULL;
+    type = NULL;
+    td = NULL;
+    ti = s;
     this->sc = sc;
 }
 
@@ -1362,6 +1375,30 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
             v->storage_class |= STCtemp | STCstatic | STCconst;
             v->semantic(sc);
             return v;
+        }
+
+        if (ti)
+        {
+            /* $ resolves to nested opDollar member
+             */
+            Dsymbol* opDollar = search_function(ti, Id::opDollar, true);
+            if (!opDollar)
+                error("$ can only be used to index/slice template if it has opDollar member defined");
+            {
+                VarDeclaration* var = opDollar->isVarDeclaration();
+                if (var)
+                {
+                    return var;
+                }
+            }
+            {
+                TemplateDeclaration* td = opDollar->isTemplateDeclaration();
+                if (td)
+                {
+                        // TODO:
+                }
+            }
+            error("opDollar must resolve to either enum or alias");
         }
 
         if (exp->op == TOKindex)

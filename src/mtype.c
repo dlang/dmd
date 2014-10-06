@@ -3907,11 +3907,44 @@ void TypeSArray::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
             *ps = tds;
         }
         else
+        {
+            TemplateInstance* ti = s->isTemplateInstance();
+
+            if (ti)
+            {
+                Dsymbol* opIndex = search_function(ti, Id::index);
+
+                    if (opIndex)
+                    {
+                        TemplateDeclaration* decl = opIndex->isTemplateDeclaration();
+                        if (decl)
+                    {
+                            ScopeDsymbol *sym = new ArrayScopeSymbol(sc, ti);
+                            sym->parent = sc->scopesym;
+                            sc = sc->push(sym);
+                            sc = sc->startCTFE();
+                            dim = dim->semantic(sc);
+                            sc = sc->endCTFE();
+                            sc = sc->pop();
+                            dim = dim->ctfeInterpret();
+
+                            Objects* args = new Objects();
+                            args->push(dim);
+                            TemplateInstance* inst = new TemplateInstance(loc, decl, args);
+                            inst->semantic(sc);
+                            *ps = inst->toAlias();
+                            return;
+                        }
+                    }
+
+            }
+
             goto Ldefault;
+        }
     }
     else
     {
-     Ldefault:
+    Ldefault:
         Type::resolve(loc, sc, pe, pt, ps, intypeid);
     }
 }
@@ -8607,6 +8640,43 @@ Type *TypeSlice::syntaxCopy()
 Type *TypeSlice::semantic(Loc loc, Scope *sc)
 {
     //printf("TypeSlice::semantic() %s\n", toChars());
+
+	Dsymbol* sym; Expression* expr; Type* type;
+    next->resolve(loc, sc, &expr, &type, &sym);
+    if (sym)
+    {
+    	ScopeDsymbol* scopesym = sym->isScopeDsymbol();
+    	Dsymbol* opSlice = search_function(scopesym, Id::slice, true);
+    	if (opSlice)
+    	{
+    		TemplateDeclaration* td = opSlice->isTemplateDeclaration();
+
+			scopesym = new ArrayScopeSymbol(sc, sym->isTemplateInstance());
+			scopesym->parent = sc->scopesym;
+			sc = sc->push(scopesym);
+			sc = sc->startCTFE();
+			lwr = lwr->semantic(sc);
+			upr = upr->semantic(sc);
+			sc = sc->endCTFE();
+			sc = sc->pop();
+			lwr = lwr->ctfeInterpret();
+			upr = upr->ctfeInterpret();
+
+			Objects* args = new Objects();
+			args->push(lwr);
+			args->push(upr);
+			TemplateInstance* inst = new TemplateInstance(loc, td, args);
+			inst->semantic(sc);
+			sym = inst->toAlias();
+			Type *t = sym->getType();
+
+			printf("%p\n", t);
+			printf("%s\n", sym->toChars());
+
+			return t;
+    	}
+    }
+
     Type *tn = next->semantic(loc, sc);
     //printf("next: %s\n", tn->toChars());
 

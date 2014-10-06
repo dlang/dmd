@@ -57,7 +57,7 @@ Expression *resolveProperties(Scope *sc, Expression *e);
 Expression *resolvePropertiesOnly(Scope *sc, Expression *e1);
 void accessCheck(Loc loc, Scope *sc, Expression *e, Declaration *d);
 Expression *build_overload(Loc loc, Scope *sc, Expression *ethis, Expression *earg, Dsymbol *d);
-Dsymbol *search_function(ScopeDsymbol *ad, Identifier *funcid);
+Dsymbol *search_function(ScopeDsymbol *ad, Identifier *funcid, bool allow_variables = false);
 void expandTuples(Expressions *exps);
 TupleDeclaration *isAliasThisTuple(Expression *e);
 int expandAliasThisTuples(Expressions *exps, size_t starti = 0);

@@ -346,11 +346,13 @@ public:
     Expression *exp;    // IndexExp or SliceExp
     TypeTuple *type;    // for tuple[length]
     TupleDeclaration *td;       // for tuples of objects
+    TemplateInstance* ti; // for non-eponymous templates
     Scope *sc;
 
     ArrayScopeSymbol(Scope *sc, Expression *e);
     ArrayScopeSymbol(Scope *sc, TypeTuple *t);
     ArrayScopeSymbol(Scope *sc, TupleDeclaration *td);
+    ArrayScopeSymbol(Scope *sc, TemplateInstance *ti);
     Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
 
     ArrayScopeSymbol *isArrayScopeSymbol() { return this; }
