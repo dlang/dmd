@@ -75,6 +75,24 @@ struct Impl
 
     @property const(TypeInfo) keyti() const @safe pure nothrow @nogc
     { return _keyti; }
+
+    // helper function to determine first used bucket, and update implementation's cache for it
+    // NOTE: will not work with immutable AA in ROM, but that doesn't exist yet.
+    size_t firstUsedBucketCache() @safe pure nothrow @nogc
+    in
+    {
+        assert(firstUsedBucket < buckets.length);
+        foreach(i; 0 .. firstUsedBucket)
+            assert(buckets[i] is null);
+    }
+    body
+    {
+        size_t i;
+        for(i = firstUsedBucket; i < buckets.length; ++i)
+            if(buckets[i] !is null)
+                break;
+        return firstUsedBucket = i;
+    }
 }
 
 /* This is the type actually seen by the programmer, although
@@ -204,6 +222,7 @@ body
         }
         else
         {
+            // update cache if necessary
             if (i < aa.impl.firstUsedBucket) aa.impl.firstUsedBucket = i;
         }
     }
@@ -436,6 +455,7 @@ inout(ArrayRet_t) _aaKeys(inout AA aa, in size_t keysize) pure nothrow
     auto res = (cast(byte*) GC.malloc(len * keysize, blkAttr))[0 .. len * keysize];
 
     size_t resi = 0;
+    // note, can't use firstUsedBucketCache here, aa is inout
     foreach (inout(Entry)* e; aa.impl.buckets[aa.impl.firstUsedBucket..$])
     {
         while (e)
@@ -525,7 +545,7 @@ int _aaApply(AA aa, in size_t keysize, dg_t dg)
     immutable alignsize = aligntsize(keysize);
     //printf("_aaApply(aa = x%llx, keysize = %d, dg = x%llx)\n", aa.impl, keysize, dg);
 
-    foreach (e; aa.impl.buckets[aa.impl.firstUsedBucket..$])
+    foreach (e; aa.impl.buckets[aa.impl.firstUsedBucketCache .. $])
     {
         while (e)
         {
@@ -552,7 +572,7 @@ int _aaApply2(AA aa, in size_t keysize, dg2_t dg)
 
     immutable alignsize = aligntsize(keysize);
 
-    foreach (e; aa.impl.buckets[aa.impl.firstUsedBucket..$])
+    foreach (e; aa.impl.buckets[aa.impl.firstUsedBucketCache..$])
     {
         while (e)
         {
@@ -754,6 +774,7 @@ int _aaEqual(in TypeInfo tiRaw, in AA e1, in AA e2)
         return 1;                       // this subtree matches
     }
 
+    // note, cannot use firstUsedBucketCache here, e1 is const
     foreach (e; e1.impl.buckets[e1.impl.firstUsedBucket..$])
     {
         if (e)
@@ -784,6 +805,7 @@ hash_t _aaGetHash(in AA* aa, in TypeInfo tiRaw) nothrow
     const valueti = ti.next;
     const keysize = aligntsize(keyti.tsize);
 
+    // note, can't use firstUsedBucketCache here, aa is const
     foreach (const(Entry)* e; aa.impl.buckets[aa.impl.firstUsedBucket..$])
     {
         while (e)
@@ -878,13 +900,11 @@ Range _aaRange(AA aa) pure nothrow @nogc
         return res;
 
     res.impl = aa.impl;
-    foreach (i; aa.impl.firstUsedBucket .. aa.impl.buckets.length )
+    foreach (entry; aa.impl.buckets[aa.impl.firstUsedBucketCache .. $] )
     {
-        auto entry = aa.impl.buckets[i];
         if (entry !is null)
         {
             res.current = entry;
-            aa.impl.firstUsedBucket = i; // update cache
             break;
         }
     }
