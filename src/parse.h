@@ -126,6 +126,7 @@ public:
     Statement *parseStatement(int flags, const utf8_t** endPtr = NULL);
     Initializer *parseInitializer();
     Expression *parseDefaultInitExp();
+    CompoundStatement *parseAsmStatementBody(size_t nestlevel);
     void check(Loc loc, TOK value);
     void check(TOK value);
     void check(TOK value, const char *string);

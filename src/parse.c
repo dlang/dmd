@@ -4402,6 +4402,160 @@ Expression *Parser::parseDefaultInitExp()
 }
 
 /*****************************************
+ * Parses the body of an inline asm statement.
+ */
+
+CompoundStatement *Parser::parseAsmStatementBody(size_t pnestlevel)
+{
+    // Parse the asm block into a sequence of AsmStatements,
+    // each AsmStatement is one instruction.
+    // Separate out labels.
+    // Defer parsing of AsmStatements until semantic processing.
+
+    Loc labelloc;
+    Loc loc = token.loc;
+
+    Token *toklist = NULL;
+    Token **ptoklist = &toklist;
+    Identifier *label = NULL;
+    Condition *cond = NULL;
+    Statements *statements = new Statements();
+    size_t nestlevel = pnestlevel;
+    while (1)
+    {
+        switch (token.value)
+        {
+            case TOKstatic:
+            {
+                // Look ahead to see if it is a static if,
+                // otherwise it's an error.
+                Token *t = peek(&token);
+                if (t->value != TOKif)
+                    goto Ldefault;
+
+                cond = parseStaticIfCondition();
+                goto Lconditional;
+            }
+
+            case TOKversion:
+                nextToken();
+                cond = parseVersionCondition();
+                goto Lconditional;
+
+            case TOKdebug:
+                nextToken();
+                cond = parseDebugCondition();
+                goto Lconditional;
+
+            Lconditional:
+            {
+                Loc lookingForElseSave = lookingForElse;
+                lookingForElse = loc;
+                Statement *ifbody = parseAsmStatementBody(0);
+                lookingForElse = lookingForElseSave;
+                Statement *elsebody = NULL;
+                if (token.value == TOKelse)
+                {
+                    Loc elseloc = token.loc;
+                    nextToken();
+                    elsebody = parseAsmStatementBody(0);
+                    checkDanglingElse(elseloc);
+                }
+                statements->push(new ConditionalStatement(loc, cond, ifbody, elsebody));
+                cond = NULL;
+                continue;
+            }
+
+            case TOKidentifier:
+                if (!toklist)
+                {
+                    // Look ahead to see if it is a label
+                    Token *t = peek(&token);
+                    if (t->value == TOKcolon)
+                    {   // It's a label
+                        label = token.ident;
+                        labelloc = token.loc;
+                        nextToken();
+                        nextToken();
+                        continue;
+                    }
+                }
+                goto Ldefault;
+
+            case TOKlcurly:
+                ++nestlevel;
+                nextToken();
+                continue;
+
+            case TOKrcurly:
+                if (nestlevel > 1)
+                {
+                    nextToken();
+                    --nestlevel;
+                    continue;
+                }
+
+                if (toklist || label)
+                {
+                    // This will occur if a static if block was the last
+                    // in a statement.
+                    // Create AsmStatement from list of tokens we've saved
+                    Statement *s = new AsmStatement(token.loc, toklist);
+                    toklist = NULL;
+                    ptoklist = &toklist;
+                    if (label)
+                    {
+                        s = new LabelStatement(labelloc, label, s);
+                        label = NULL;
+                    }
+                    statements->push(s);
+                }
+                // Make sure we're not consuming a closing curly
+                // that doesn't belong to us.
+                if (nestlevel != 0)
+                    nextToken();
+                break;
+
+            case TOKsemicolon:
+                if (toklist || label)
+                {
+                    // Create AsmStatement from list of tokens we've saved
+                    Statement *s = new AsmStatement(token.loc, toklist);
+                    toklist = NULL;
+                    ptoklist = &toklist;
+                    if (label)
+                    {
+                        s = new LabelStatement(labelloc, label, s);
+                        label = NULL;
+                    }
+                    statements->push(s);
+                }
+                nextToken();
+                if (nestlevel == 0)
+                    break;
+                continue;
+
+            case TOKeof:
+                /* { */
+                error("matching '}' expected, not end of file");
+                return NULL;
+
+            default:
+            Ldefault:
+                *ptoklist = new Token();
+                memcpy(*ptoklist, &token, sizeof(Token));
+                ptoklist = &(*ptoklist)->next;
+                *ptoklist = NULL;
+
+                nextToken();
+                continue;
+        }
+        break;
+    }
+    return new CompoundStatement(loc, statements); 
+}
+
+/*****************************************
  */
 
 void Parser::checkDanglingElse(Loc elseloc)
@@ -5389,96 +5543,12 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
 
         case TOKasm:
         {
-            // Parse the asm block into a sequence of AsmStatements,
-            // each AsmStatement is one instruction.
-            // Separate out labels.
-            // Defer parsing of AsmStatements until semantic processing.
-
-            Loc labelloc;
-
+            // The body of the asm statement doesn't include 
+            // the outer-most curly brackets.
             nextToken();
             check(TOKlcurly);
-            Token *toklist = NULL;
-            Token **ptoklist = &toklist;
-            Identifier *label = NULL;
-            Statements *statements = new Statements();
-            size_t nestlevel = 0;
-            while (1)
-            {
-                switch (token.value)
-                {
-                    case TOKidentifier:
-                        if (!toklist)
-                        {
-                            // Look ahead to see if it is a label
-                            Token *t = peek(&token);
-                            if (t->value == TOKcolon)
-                            {   // It's a label
-                                label = token.ident;
-                                labelloc = token.loc;
-                                nextToken();
-                                nextToken();
-                                continue;
-                            }
-                        }
-                        goto Ldefault;
-
-                    case TOKlcurly:
-                        ++nestlevel;
-                        goto Ldefault;
-
-                    case TOKrcurly:
-                        if (nestlevel > 0)
-                        {
-                            --nestlevel;
-                            goto Ldefault;
-                        }
-
-                        if (toklist || label)
-                        {
-                            error("asm statements must end in ';'");
-                        }
-                        break;
-
-                    case TOKsemicolon:
-                        if (nestlevel != 0)
-                            error("mismatched number of curly brackets");
-
-                        s = NULL;
-                        if (toklist || label)
-                        {
-                            // Create AsmStatement from list of tokens we've saved
-                            s = new AsmStatement(token.loc, toklist);
-                            toklist = NULL;
-                            ptoklist = &toklist;
-                            if (label)
-                            {   s = new LabelStatement(labelloc, label, s);
-                                label = NULL;
-                            }
-                            statements->push(s);
-                        }
-                        nextToken();
-                        continue;
-
-                    case TOKeof:
-                        /* { */
-                        error("matching '}' expected, not end of file");
-                        goto Lerror;
-
-                    default:
-                    Ldefault:
-                        *ptoklist = Token::alloc();
-                        memcpy(*ptoklist, &token, sizeof(Token));
-                        ptoklist = &(*ptoklist)->next;
-                        *ptoklist = NULL;
-
-                        nextToken();
-                        continue;
-                }
-                break;
-            }
-            s = new CompoundStatement(loc, statements);
-            nextToken();
+            s = parseAsmStatementBody(1);
+            // The closing curly is already consumed.
             break;
         }
 
