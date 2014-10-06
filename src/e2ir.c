@@ -287,14 +287,7 @@ elem *callfunc(Loc loc,
         {
             // Evaluate ec for side effects
             eside = el_combine(ec, eside);
-
-#if DMD_OBJC
-            if (esel)
-            {
-                // All functions with a selector need a this pointer.
-                assert(ethis);
-            }
-#endif
+            objc_callfunc_checkThisForSelector(esel, ethis);
         }
         Symbol *sfunc = toSymbol(fd);
 

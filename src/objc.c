@@ -2717,3 +2717,12 @@ void objc_callfunc_setupEp(elem *esel, elem *&ep, int reverse)
             ep = el_param(ep,esel);
     }
 }
+
+void objc_callfunc_checkThisForSelector(elem *esel, elem *ethis)
+{
+    if (esel)
+    {
+        // All functions with a selector need a this pointer.
+        assert(ethis);
+    }
+}
