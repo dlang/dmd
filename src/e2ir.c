@@ -4404,11 +4404,6 @@ elem *toElem(Expression *e, IRState *irs)
 
                 elem *elwr2 = el_same(&elwr);
 
-                // Create an array reference where:
-                // length is (upr - lwr)
-                // pointer is (ptr + lwr*sz)
-                // Combine as (length pair ptr)
-
                 if (irs->arrayBoundsCheck())
                 {
                     // Checks (unsigned compares):
@@ -4418,7 +4413,6 @@ elem *toElem(Expression *e, IRState *irs)
                     elem *c1;
                     elem *c2;
                     elem *eupr2;
-                    elem *elength;
 
                     if (t1->ty == Tpointer)
                     {
@@ -4428,52 +4422,62 @@ elem *toElem(Expression *e, IRState *irs)
                         eupr2->Ety = TYsize_t;                    // make sure unsigned comparison
                         c1 = el_bin(OPle, TYint, elwr2, eupr2);
                         c1 = el_combine(eupr, c1);
-                        goto L2;
                     }
-                    else if (t1->ty == Tsarray)
+                    else
                     {
-                        TypeSArray *tsa = (TypeSArray *)t1;
-                        dinteger_t length = tsa->dim->toInteger();
+                        elem *elength;
 
-                        elength = el_long(TYsize_t, length);
-                        goto L1;
-                    }
-                    else if (t1->ty == Tarray)
-                    {
-                        if (se->lengthVar && !(se->lengthVar->storage_class & STCconst))
-                            elength = el_var(toSymbol(se->lengthVar));
-                        else
+                        if (t1->ty == Tsarray)
                         {
-                            elength = e;
-                            e = el_same(&elength);
-                            elength = el_una(I64 ? OP128_64 : OP64_32, TYsize_t, elength);
+                            TypeSArray *tsa = (TypeSArray *)t1;
+                            dinteger_t length = tsa->dim->toInteger();
+
+                            elength = el_long(TYsize_t, length);
                         }
-                    L1:
+                        else if (t1->ty == Tarray)
+                        {
+                            if (se->lengthVar && !(se->lengthVar->storage_class & STCconst))
+                                elength = el_var(toSymbol(se->lengthVar));
+                            else
+                            {
+                                elength = e;
+                                e = el_same(&elength);
+                                elength = el_una(I64 ? OP128_64 : OP64_32, TYsize_t, elength);
+                            }
+                        }
+
                         eupr2 = el_same(&eupr);
                         c1 = el_bin(OPle, TYint, eupr, elength);
                         eupr2->Ety = TYsize_t;                    // make sure unsigned comparison
                         c2 = el_bin(OPle, TYint, elwr2, eupr2);
                         c1 = el_bin(OPandand, TYint, c1, c2);   // (c1 && c2)
-
-                    L2:
-                        // Construct: (c1 || ModuleArray(line))
-                        Symbol *sassert = irs->blx->module->toModuleArray();
-                        elem *ea = el_bin(OPcall,TYvoid,el_var(sassert), el_long(TYint, se->loc.linnum));
-                        elem *eb = el_bin(OPoror,TYvoid,c1,ea);
-                        elwr = el_combine(elwr, eb);
-
-                        elwr2 = el_copytree(elwr2);
-                        eupr = el_copytree(eupr2);
                     }
+
+                    // Construct: (c1 || ModuleArray(line))
+                    Symbol *sassert = irs->blx->module->toModuleArray();
+                    elem *ea = el_bin(OPcall, TYvoid, el_var(sassert), el_long(TYint, se->loc.linnum));
+                    elem *eb = el_bin(OPoror, TYvoid, c1, ea);
+                    elwr = el_combine(elwr, eb);
+
+                    elwr2 = el_copytree(elwr2);
+                    eupr = el_copytree(eupr2);
                 }
 
-                elem *eptr = array_toPtr(se->e1->type, e);
+                // Create an array reference where:
+                // length is (upr - lwr)
+                // pointer is (ptr + lwr*sz)
+                // Combine as (length pair ptr)
 
-                elem *elength = el_bin(OPmin, TYsize_t, eupr, elwr2);
-                eptr = el_bin(OPadd, TYnptr, eptr, el_bin(OPmul, TYsize_t, el_copytree(elwr2), el_long(TYsize_t, sz)));
+                e = array_toPtr(se->e1->type, e);
+
+                elem *eptr = el_same(&e);
+                eptr = el_bin(OPadd, TYnptr, eptr, el_bin(OPmul, TYsize_t, elwr2, el_long(TYsize_t, sz)));
 
                 if (tb->ty == Tarray)
-                    e = el_pair(TYdarray, elength, eptr);
+                {
+                    elem *elength = el_bin(OPmin, TYsize_t, eupr, el_copytree(elwr2));
+                    e = el_combine(e, el_pair(TYdarray, elength, eptr));
+                }
                 else
                 {
                     assert(tb->ty == Tsarray);
