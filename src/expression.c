@@ -5045,6 +5045,11 @@ Expression *VarExp::toLvalue(Scope *sc, Expression *e)
         error("compiler-generated variable __ctfe is not an lvalue");
         return new ErrorExp();
     }
+    if (var->ident == Id::dollar)   // Bugzilla 13574
+    {
+        error("'$' is not an lvalue");
+        return new ErrorExp();
+    }
     return this;
 }
 
