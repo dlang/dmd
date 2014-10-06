@@ -4,7 +4,7 @@
 /*
 TEST_OUTPUT:
 ---
-compilable/deprecate12979a.d(13): Deprecation: asm block is not nothrow
+compilable/deprecate12979a.d(13): Deprecation: asm statement is assumed to throw - mark it with 'nothrow' if it does not
 ---
 */
 

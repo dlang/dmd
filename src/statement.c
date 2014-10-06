@@ -692,7 +692,7 @@ int Statement::blockExit(FuncDeclaration *func, bool mustNotThrow)
         void visit(CompoundAsmStatement *s)
         {
             if (mustNotThrow && !(s->stc & STCnothrow))
-                s->deprecation("asm block is not nothrow");
+                s->deprecation("asm statement is assumed to throw - mark it with 'nothrow' if it does not");
 
             // Assume the worst
             result = BEfallthru | BEreturn | BEgoto | BEhalt;
@@ -5069,11 +5069,11 @@ CompoundAsmStatement *CompoundAsmStatement::semantic(Scope *sc)
     // use setImpure/setGC when the deprecation cycle is over
     PURE pure;
     if (!(stc & STCpure) && (pure = sc->func->isPureBypassingInference()) != PUREimpure && pure != PUREfwdref)
-        deprecation("asm block is not pure");
+        deprecation("asm statement is assumed to be impure - mark it with 'pure' if it is not");
     if (!(stc & STCnogc) && sc->func->isNogcBypassingInference())
-        deprecation("asm block is not @nogc");
+        deprecation("asm statement is assumed to use the GC - mark it with '@nogc' if it does not");
     if (!(stc & (STCtrusted|STCsafe)) && sc->func->setUnsafe())
-        error("asm block is not @trusted or @safe");
+        error("asm statement is assumed to be @system - mark it with '@trusted' if it is not");
 
     return this;
 }
