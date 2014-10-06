@@ -2704,3 +2704,16 @@ void objc_callfunc_setupMethodSelector(Type *tret, FuncDeclaration *fd, Type *t,
             esel = fd->objc.selector->toElem();
     }
 }
+
+void objc_callfunc_setupEp(elem *esel, elem *&ep, int reverse)
+{
+    if (esel)
+    {
+        // using objc-style "virtual" call
+        // add hidden argument (second to 'this') for selector used by dispatch function
+        if (reverse)
+            ep = el_param(esel,ep);
+        else
+            ep = el_param(ep,esel);
+    }
+}

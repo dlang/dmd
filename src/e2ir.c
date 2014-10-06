@@ -228,18 +228,8 @@ elem *callfunc(Loc loc,
         }
     }
 
-#if DMD_OBJC
     objc_callfunc_setupMethodSelector(tret, fd, t, ehidden, esel);
-
-    if (esel)
-    {   // using objc-style "virtual" call
-        // add hidden argument (second to 'this') for selector used by dispatch function
-        if (reverse)
-            ep = el_param(esel,ep);
-        else
-            ep = el_param(ep,esel);
-    }
-#endif
+    objc_callfunc_setupEp(esel, ep, reverse);
 
     if (retmethod == RETstack)
     {
