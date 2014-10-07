@@ -2782,3 +2782,45 @@ void objc_toElem_visit_StringExp_Tclass(StringExp *se, elem *&e)
     Symbol *si = ObjcSymbols::getStringLiteral(se->string, se->len, se->sz);
     e = el_ptr(si);
 }
+
+void objc_toElem_visit_NewExp_Tclass(IRState *irs, NewExp *ne, Type *&ectype, TypeClass *tclass, ClassDeclaration *cd, elem *&ex, elem *&ey, elem *&ez)
+{
+    elem *ei;
+    Symbol *si;
+
+    if (ne->onstack)
+        ne->error("cannot allocate Objective-C class on the stack");
+
+    if (ne->objcalloc)
+    {
+        // Call allocator func with class reference
+        ex = el_var(ObjcSymbols::getClassReference(cd));
+        ex = callfunc(ne->loc, irs, 0, ne->type, ex, ne->objcalloc->type,
+                      ne->objcalloc, ne->objcalloc->type, NULL, ne->newargs, NULL);
+    }
+    else
+    {
+        ne->error("Cannot allocate Objective-C class, missing 'alloc' function.");
+        exit(-1);
+    }
+
+    // FIXME: skipping initialization (actually, all fields will be zeros)
+    // Need to assign each non-zero field separately.
+
+    //si = tclass->sym->toInitializer();
+    //ei = el_var(si);
+
+    if (cd->isNested())
+    {
+        ey = el_same(&ex);
+        ez = el_copytree(ey);
+    }
+    else if (ne->member)
+        ez = el_same(&ex);
+
+    //ex = el_una(OPind, TYstruct, ex);
+    //ex = el_bin(OPstreq, TYnptr, ex, ei);
+    //ex->Enumbytes = cd->size(loc);
+    //ex = el_una(OPaddr, TYnptr, ex);
+    ectype = tclass;
+}

@@ -400,6 +400,19 @@ public:
 /***************************************/
 
 class ObjcSelectorExp;
+struct IRState;
+
+elem *callfunc(Loc loc,
+               IRState *irs,
+               int directcall,         // 1: don't do virtual call
+               Type *tret,             // return type
+               elem *ec,               // evaluates to function address
+               Type *ectype,           // original type of ec
+               FuncDeclaration *fd,    // if !=NULL, this is the function being called
+               Type *t,                // TypeDelegate or TypeFunction for this function
+               elem *ehidden,          // if !=NULL, this is the 'hidden' argument
+               Expressions *arguments,
+               elem *esel);      // selector for Objective-C methods (when not provided by fd)
 
 enum ControlFlow
 {
@@ -524,5 +537,6 @@ void objc_callfunc_setupMethodCall(int directcall, elem *&ec, FuncDeclaration *f
 void objc_callfunc_setupSelectorCall(elem *&ec, elem *ehidden, elem *ethis, TypeFunction *tf);
 
 void objc_toElem_visit_StringExp_Tclass(StringExp *se, elem *&e);
+void objc_toElem_visit_NewExp_Tclass(IRState *irs, NewExp *ne, Type *&ectype, TypeClass *tclass, ClassDeclaration *cd, elem *&ex, elem *&ey, elem *&ez);
 
 #endif
