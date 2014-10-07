@@ -2766,3 +2766,11 @@ void objc_callfunc_setupMethodCall(int directcall, elem *&ec, FuncDeclaration *f
             ec = el_var(ObjcSymbols::getMsgSend(tret, ehidden != 0));
     }
 }
+
+void objc_callfunc_setupSelectorCall(elem *&ec, elem *ehidden, elem *ethis, TypeFunction *tf)
+{
+    // make objc-style "virtual" call using dispatch function
+    assert(ethis);
+    Type *tret = tf->next;
+    ec = el_var(ObjcSymbols::getMsgSend(tret, ehidden != 0));
+}

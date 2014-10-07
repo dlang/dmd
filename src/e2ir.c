@@ -328,12 +328,7 @@ if (I32) assert(tysize[TYnptr] == 4);
     }
     else if (esel)
     {
-#if DMD_OBJC
-        // make objc-style "virtual" call using dispatch function
-        assert(ethis);
-        Type *tret = tf->next;
-        ec = el_var(ObjcSymbols::getMsgSend(tret, ehidden != 0));
-#endif
+        objc_callfunc_setupSelectorCall(ec, ehidden, ethis, tf);
     }
 
     ep = el_param(ep, ethis);
