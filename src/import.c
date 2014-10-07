@@ -191,11 +191,16 @@ void Import::importAll(Scope *sc)
         {
             if (mod->md && mod->md->isdeprecated)
             {
-                Expression *msg = mod->md->msg;
-                if (StringExp *se = msg ? msg->toStringExp() : NULL)
-                    mod->deprecation(loc, "is deprecated - %s", se->string);
-                else
-                    mod->deprecation(loc, "is deprecated");
+                // do not print deprecation message if the root module is already
+                // deprecated
+                if (!mod->rootModule->md || !mod->rootModule->md->isdeprecated)
+                {
+                    Expression *msg = mod->md->msg;
+                    if (StringExp *se = msg ? msg->toStringExp() : NULL)
+                        mod->deprecation(loc, "is deprecated - %s", se->string);
+                    else
+                        mod->deprecation(loc, "is deprecated");
+                }
             }
 
             mod->importAll(NULL);
