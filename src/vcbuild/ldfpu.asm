@@ -325,7 +325,6 @@ ld_yl2x PROC
     fld tbyte ptr [rdx]
     fld tbyte ptr [rcx]
     fyl2x
-    fwait
     fstp tbyte ptr [r8]
     ret
 ld_yl2x ENDP
@@ -338,7 +337,6 @@ ld_yl2xp1 PROC
     fld tbyte ptr [rdx]
     fld tbyte ptr [rcx]
     fyl2xp1
-    fwait
     fstp tbyte ptr [r8]
     ret
 ld_yl2xp1 ENDP
