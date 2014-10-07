@@ -875,7 +875,6 @@ Lcontinue:
     if (size + pad < size)
         goto Loverflow;
 
-    auto info = GC.qalloc(size + pad, !(ti.next.flags & 1) ? BlkAttr.NO_SCAN | BlkAttr.APPENDABLE : BlkAttr.APPENDABLE);
     auto info = GC.qalloc(size + pad, !(ti.next.flags & 1) ? BlkAttr.NO_SCAN | BlkAttr.APPENDABLE : BlkAttr.APPENDABLE, ti);
     debug(PRINTF) printf(" p = %p\n", info.base);
     // update the length of the array
