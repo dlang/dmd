@@ -1368,10 +1368,7 @@ elem *toElem(Expression *e, IRState *irs)
             }
             else if (tb->ty == Tclass)
             {
-#if DMD_OBJC
-                Symbol *si = ObjcSymbols::getStringLiteral(se->string, se->len, se->sz);
-                e = el_ptr(si);
-#endif
+                objc_toElem_visit_StringExp_Tclass(se, e);
             }
             else
             {

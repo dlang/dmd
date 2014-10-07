@@ -2774,3 +2774,11 @@ void objc_callfunc_setupSelectorCall(elem *&ec, elem *ehidden, elem *ethis, Type
     Type *tret = tf->next;
     ec = el_var(ObjcSymbols::getMsgSend(tret, ehidden != 0));
 }
+
+// MARK: toElem
+
+void objc_toElem_visit_StringExp_Tclass(StringExp *se, elem *&e)
+{
+    Symbol *si = ObjcSymbols::getStringLiteral(se->string, se->len, se->sz);
+    e = el_ptr(si);
+}

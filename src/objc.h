@@ -523,4 +523,6 @@ void objc_callfunc_checkThisForSelector(elem *esel, elem *ethis);
 void objc_callfunc_setupMethodCall(int directcall, elem *&ec, FuncDeclaration *fd, Type *t, elem *&ehidden, elem *&ethis, TypeFunction *tf, Symbol *sfunc);
 void objc_callfunc_setupSelectorCall(elem *&ec, elem *ehidden, elem *ethis, TypeFunction *tf);
 
+void objc_toElem_visit_StringExp_Tclass(StringExp *se, elem *&e);
+
 #endif
