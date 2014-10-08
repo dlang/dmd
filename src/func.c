@@ -1643,7 +1643,9 @@ void FuncDeclaration::semantic3(Scope *sc)
             if (retStyle(f) != RETstack)
                 nrvo_can = 0;
 
-            if (isStaticCtorDeclaration())
+            if (fbody->isErrorStatement())
+                ;
+            else if (isStaticCtorDeclaration())
             {
                 /* It's a static constructor. Ensure that all
                  * ctor consts were initialized.
@@ -1664,9 +1666,6 @@ void FuncDeclaration::semantic3(Scope *sc)
                     }
                 }
             }
-
-            if (fbody->isErrorStatement())
-                ;
             else if (ad2 && isCtorDeclaration())
             {
                 ClassDeclaration *cd = ad2->isClassDeclaration();
@@ -1727,19 +1726,28 @@ void FuncDeclaration::semantic3(Scope *sc)
                         fbody = new CompoundStatement(Loc(), s, fbody);
                     }
                 }
+                //printf("callSuper = x%x\n", sc2->callSuper);
+            }
 
+            int blockexit = BEnone;
+            if (!fbody->isErrorStatement())
+            {
                 // Check for errors related to 'nothrow'.
                 unsigned int nothrowErrors = global.errors;
-                int blockexit = fbody->blockExit(this, f->isnothrow);
-                if (f->isnothrow && (global.errors != nothrowErrors) )
+                blockexit = fbody->blockExit(this, f->isnothrow);
+                if (f->isnothrow && (global.errors != nothrowErrors))
                     ::error(loc, "%s '%s' is nothrow yet may throw", kind(), toPrettyChars());
                 if (flags & FUNCFLAGnothrowInprocess)
                 {
                     if (type == f) f = (TypeFunction *)f->copy();
                     f->isnothrow = !(blockexit & BEthrow);
                 }
-                //printf("callSuper = x%x\n", sc2->callSuper);
+            }
 
+            if (fbody->isErrorStatement())
+                ;
+            else if (ad2 && isCtorDeclaration())
+            {
                 /* Append:
                  *  return this;
                  * to function body
@@ -1753,18 +1761,6 @@ void FuncDeclaration::semantic3(Scope *sc)
             }
             else if (fes)
             {
-                // Check for errors related to 'nothrow'.
-                int nothrowErrors = global.errors;
-                int blockexit = fbody->blockExit(this, f->isnothrow);
-                if (f->isnothrow && (global.errors != nothrowErrors) )
-                    ::error(loc, "%s '%s' is nothrow yet may throw", kind(), toPrettyChars());
-                if (flags & FUNCFLAGnothrowInprocess)
-                {
-                    if (type == f) f = (TypeFunction *)f->copy();
-                    f->isnothrow = !(blockexit & BEthrow);
-                }
-                //printf("callSuper = x%x\n", sc2->callSuper);
-
                 // For foreach(){} body, append a return 0;
                 if (blockexit & BEfallthru)
                 {
@@ -1774,26 +1770,16 @@ void FuncDeclaration::semantic3(Scope *sc)
                 }
                 assert(!returnLabel);
             }
-            else if (!hasReturnExp && f->next->ty != Tvoid)
-                error("has no return statement, but is expected to return a value of type %s", f->next->toChars());
             else
             {
-                // Check for errors related to 'nothrow'.
-                unsigned int nothrowErrors = global.errors;
-                int blockexit = fbody->blockExit(this, f->isnothrow);
-                if (f->isnothrow && (global.errors != nothrowErrors))
-                    ::error(loc, "%s '%s' is nothrow yet may throw", kind(), toPrettyChars());
-                if (flags & FUNCFLAGnothrowInprocess)
-                {
-                    if (type == f) f = (TypeFunction *)f->copy();
-                    f->isnothrow = !(blockexit & BEthrow);
-                }
-
                 const bool inlineAsm = hasReturnExp & 8;
                 if ((blockexit & BEfallthru) && f->next->ty != Tvoid && !inlineAsm)
                 {
                     Expression *e;
-                    error("no return exp; or assert(0); at end of function");
+                    if (!hasReturnExp)
+                        error("has no return statement, but is expected to return a value of type %s", f->next->toChars());
+                    else
+                        error("no return exp; or assert(0); at end of function");
                     if (global.params.useAssert &&
                         !global.params.useInline)
                     {
