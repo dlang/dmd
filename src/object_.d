@@ -1035,14 +1035,7 @@ class TypeInfo_Struct : TypeInfo
     {
         if (xdtor)
         {
-            import core.memory : GC;
-
-            auto inf = GC.query(p);
-
-            if (inf != GC.BlkInfo.init && (inf.attr & GC.BlkAttr.FINALIZE))
-                GC.runFinalizers(p[0..1]);
-            else
-                (*xdtor)(p);
+            (*xdtor)(p);
         }
     }
 
