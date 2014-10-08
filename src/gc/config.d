@@ -7,11 +7,19 @@
 
 module gc.config;
 
-// to add the possiblity to configure the GC from the outside, add gc.config
-//  with one of these versions to the executable build command line, e.g.
-//      dmd -version=initGCFromEnvironment main.c /path/to/druntime/src/gc/config.d
+// The default way to confige the GC is by passing command line argument --DRT-gcopt to
+// the executable, use --DRT-gcopt=help for a list of available options.
+//
+// Configuration can be disabled by building this module with version noinitGCFromCommandline
+// and linking it with your executable:
+//      dmd -version=noinitGCFromCommandline main.d /path/to/druntime/src/gc/config.d
+//
+// If you want to allow configuration by an environment variable DRT_GCOPT aswell, compile
+// gc.config with version initGCFromEnvironment:
+//      dmd -version=initGCFromEnvironment main.d /path/to/druntime/src/gc/config.d
 
-//version = initGCFromEnvironment; // read settings from environment variable D_GC
+//version = initGCFromEnvironment; // read settings from environment variable DRT_GCOPT
+version(noinitGCFromCommandline) {} else
 version = initGCFromCommandLine; // read settings from command line argument "--DRT-gcopt=options"
 
 version(initGCFromEnvironment)
@@ -36,14 +44,14 @@ struct Config
 
     size_t initReserve;      // initial reserve (MB)
     size_t minPoolSize = 1;  // initial and minimum pool size (MB)
-    size_t maxPoolSize = 32; // maximum pool size (MB)
+    size_t maxPoolSize = 64; // maximum pool size (MB)
     size_t incPoolSize = 3;  // pool size increment (MB)
 
     bool initialize(...) // avoid inlining
     {
         version(initGCFromEnvironment)
         {
-            auto p = getenv("D_GC");
+            auto p = getenv("DRT_GCOPT");
             if (p)
                 if (!parseOptions(p[0 .. strlen(p)]))
                     return false;
@@ -72,7 +80,7 @@ struct Config
 
     initReserve=N   - initial memory to reserve (MB), default 0
     minPoolSize=N   - initial and minimum pool size (MB), default 1
-    maxPoolSize=N   - maximum pool size (MB), default 32
+    maxPoolSize=N   - maximum pool size (MB), default 64
     incPoolSize=N   - pool size increment (MB), defaut 3
 ";
     }
