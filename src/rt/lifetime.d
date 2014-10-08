@@ -170,10 +170,24 @@ extern (C) void _d_delstruct(void** p, TypeInfo_Struct inf)
     if (*p)
     {
         debug(PRINTF) printf("_d_delstruct(%p, %p)\n", *p, cast(void*)inf);
-        rt_finalize_struct(*p);
+        
+        inf.xdtor(*p);
+        
         GC.free(*p);
         *p = null;
     }
+}
+
+// size used to store the TypeInfo at the end of an allocation for structs that have a destructor
+size_t structTypeInfoSize(const TypeInfo ti) pure nothrow @nogc
+{
+    if (ti && typeid(ti) is typeid(TypeInfo_Struct)) // avoid a complete dynamic type cast
+    {
+        auto sti = cast(TypeInfo_Struct)cast(void*)ti;
+        if (sti.xdtor)
+            return size_t.sizeof;
+    }
+    return 0;
 }
 
 /** dummy class used to lock for shared array appending */
@@ -218,14 +232,8 @@ private class ArrayAllocLengthLock
   */
 bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, const TypeInfo ti, size_t oldlength = ~0) pure nothrow
 {
-    size_t typeInfoSize = 0;
-    if (auto si = cast(const TypeInfo_Struct)ti.next)
-    {
-        if (si.xdtor)
-        {
-            typeInfoSize = size_t.sizeof;
-        }
-    }
+    size_t typeInfoSize = structTypeInfoSize(ti.next);
+
     if(info.size <= 256)
     {
         if(newlength + SMALLPAD + typeInfoSize > info.size)
@@ -361,12 +369,7 @@ void *__arrayStart(BlkInfo info) nothrow pure
   */
 size_t __arrayPad(size_t size, const TypeInfo ti) nothrow pure @trusted
 {
-    size_t typeInfoSize = 0;
-    if (auto si = cast(const TypeInfo_Struct)ti.next)
-    {
-        if (si.xdtor)
-            typeInfoSize = size_t.sizeof;
-    }
+    size_t typeInfoSize = structTypeInfoSize(ti.next);
     return size > MAXMEDSIZE ? LARGEPAD : ((size > MAXSMALLSIZE ? MEDPAD : SMALLPAD) + typeInfoSize);
 }
 
@@ -697,22 +700,12 @@ Lcontinue:
         if(info.size <= 256)
         {
             curallocsize = *(cast(ubyte *)(info.base + info.size - SMALLPAD));
-            arraypad = SMALLPAD;
-            if (auto si = cast(const TypeInfo_Struct)ti.next)
-            {
-                if (si.xdtor)
-                    arraypad += size_t.sizeof;
-            }
+            arraypad = SMALLPAD + structTypeInfoSize(ti.next);
         }
         else if(info.size < PAGESIZE)
         {
             curallocsize = *(cast(ushort *)(info.base + info.size - MEDPAD));
-            arraypad = MEDPAD;
-            if (auto si = cast(const TypeInfo_Struct)ti.next)
-            {
-                if (si.xdtor)
-                    arraypad += size_t.sizeof;
-            }
+            arraypad = MEDPAD + structTypeInfoSize(ti.next);
         }
         else
         {
@@ -799,26 +792,11 @@ Lcontinue:
     // assumes you are not counting the pad size, and info.size does include
     // the pad.
     if(info.size <= 256)
-    {
-        arraypad = SMALLPAD;
-        if (auto si = cast(const TypeInfo_Struct)ti.next)
-        {
-            if (si.xdtor)
-                arraypad += size_t.sizeof;
-        }
-    }
+        arraypad = SMALLPAD + structTypeInfoSize(ti.next);
     else if(info.size < PAGESIZE)
-    {
-        arraypad = MEDPAD;
-        if (auto si = cast(const TypeInfo_Struct)ti.next)
-        {
-            if (si.xdtor)
-                arraypad += size_t.sizeof;
-        }
-    }
+        arraypad = MEDPAD + structTypeInfoSize(ti.next);
     else
         arraypad = LARGEPAD;
-
 
     curcapacity = info.size - arraypad;
     return curcapacity / size;
@@ -1063,15 +1041,8 @@ extern (C) void* _d_newitemT(TypeInfo ti)
 {
     auto size = ti.tsize;                  // array element size
     auto baseFlags = !(ti.flags & 1) ? BlkAttr.NO_SCAN : 0;
-    bool needsTypeInfo = false;
-    if (auto si = cast(TypeInfo_Struct)ti)
-    {
-        if (si.xdtor !is null)
-        {
-            needsTypeInfo = true;
-            size += size_t.sizeof; // Need space for the type info
-        }
-    }
+    size_t typeInfoSize = structTypeInfoSize(ti);
+    size += typeInfoSize; // Need space for the type info
 
     debug(PRINTF) printf("_d_newitemT(size = %d)\n", size);
     /* not sure if we need this...
@@ -1092,8 +1063,8 @@ extern (C) void* _d_newitemT(TypeInfo ti)
         else
             memset(ptr, 0, size);
 
-        if (needsTypeInfo)
-            *cast(TypeInfo*)(ptr + blkInf.size - size_t.sizeof) = ti;
+        if (typeInfoSize)
+            *cast(TypeInfo*)(ptr + blkInf.size - typeInfoSize) = ti;
 
         return ptr;
     //}
@@ -1104,15 +1075,8 @@ extern (C) void* _d_newitemiT(TypeInfo ti)
 {
     auto size = ti.tsize;                  // array element size
     auto baseFlags = !(ti.flags & 1) ? BlkAttr.NO_SCAN : 0;
-    bool needsTypeInfo = false;
-    if (auto si = cast(TypeInfo_Struct)ti)
-    {
-        if (si.xdtor !is null)
-        {
-            needsTypeInfo = true;
-            size += size_t.sizeof; // Need space for the type info
-        }
-    }
+    size_t typeInfoSize = structTypeInfoSize(ti);
+    size += typeInfoSize; // Need space for the type info
 
     debug(PRINTF) printf("_d_newitemiT(size = %d)\n", size);
 
@@ -1136,8 +1100,8 @@ extern (C) void* _d_newitemiT(TypeInfo ti)
         else
             memcpy(ptr, q, isize);
 
-        if (needsTypeInfo)
-            *cast(TypeInfo*)(ptr + blkInf.size - size_t.sizeof) = ti;
+        if (typeInfoSize)
+            *cast(TypeInfo*)(ptr + blkInf.size - typeInfoSize) = ti;
         return ptr;
     //}
 }
@@ -1183,15 +1147,15 @@ debug(PRINTF)
 /**
  *
  */
-extern (C) void _d_delarray_t(void[]* p, const TypeInfo ti)
+extern (C) void _d_delarray_t(void[]* p, const TypeInfo_Struct ti)
 {
     if (p)
     {
         assert(!(*p).length || (*p).ptr);
         if ((*p).ptr)
         {
-            if (ti)
-                rt_finalize_array(p.ptr, false);
+            if (ti) // ti non-null only if ti is a struct with dtor
+                rt_finalize_array(p.ptr, p.length * ti.tsize, ti, false);
 
             // if p is in the cache, clear it as well
             if(auto bic = __getBlkInfo((*p).ptr))
@@ -1280,79 +1244,60 @@ extern (C) int rt_hasFinalizerInSegment(void* p, in void[] segment) nothrow
     return false;
 }
 
-extern (C) int rt_hasStructFinalizerInSegment(void* p, in void[] segment) nothrow
+extern (C) int rt_hasStructFinalizerInSegment(void* p, size_t size, in void[] segment) nothrow
 {
     if(!p)
         return false;
 
-    auto inf = *cast(TypeInfo_Struct*)(p + GC.sizeOf(p) - size_t.sizeof);
+    auto inf = *cast(TypeInfo_Struct*)(p + size - size_t.sizeof);
     return cast(size_t)(cast(void*)inf.xdtor - segment.ptr) < segment.length;
 }
 
-extern (C) int rt_hasArrayFinalizerInSegment(void* p, in void[] segment) nothrow
+extern (C) int rt_hasArrayFinalizerInSegment(void* p, size_t size, in void[] segment) nothrow
 {
     if(!p)
         return false;
 
     TypeInfo_Struct si = void;
-    BlkInfo inf = GC.query(p);
-    if(inf.size <= 256)
-        si = *cast(TypeInfo_Struct*)(inf.base + inf.size - SMALLPAD - size_t.sizeof);
-    else if (inf.size < PAGESIZE)
-        si = *cast(TypeInfo_Struct*)(inf.base + inf.size - MEDPAD - size_t.sizeof);
+    if(size <= 256)
+        si = *cast(TypeInfo_Struct*)(p + size - SMALLPAD - size_t.sizeof);
+    else if (size < PAGESIZE)
+        si = *cast(TypeInfo_Struct*)(p + size - MEDPAD - size_t.sizeof);
     else
-        si = *cast(TypeInfo_Struct*)(inf.base + size_t.sizeof);
+        si = *cast(TypeInfo_Struct*)(p + size_t.sizeof);
 
     return cast(size_t)(cast(void*)si.xdtor - segment.ptr) < segment.length;
 }
 
-extern (C) void rt_finalize_array2(void* p, BlkInfo inf, bool resetMemory = true, bool fromGC = false) nothrow
+// called by the GC
+extern (C) void rt_finalize_array2(void* p, size_t size, bool resetMemory = true) nothrow
 {
     debug(PRINTF) printf("rt_finalize_array2(p = %p)\n", p);
 
-    if (fromGC && !callStructDtorsDuringGC)
+    if (!callStructDtorsDuringGC)
         return;
 
-    if(!p)
-        return;
-
-    size_t elementCount = void;
     TypeInfo_Struct si = void;
-    if(inf.size <= 256)
+    if(size <= 256)
     {
-        si = *cast(TypeInfo_Struct*)(inf.base + inf.size - SMALLPAD - size_t.sizeof);
-        elementCount = *cast(ubyte*)(inf.base + inf.size - SMALLPAD) / si.tsize;
+        si = *cast(TypeInfo_Struct*)(p + size - SMALLPAD - size_t.sizeof);
+        size = *cast(ubyte*)(p + size - SMALLPAD);
     }
-    else if (inf.size < PAGESIZE)
+    else if (size < PAGESIZE)
     {
-        si = *cast(TypeInfo_Struct*)(inf.base + inf.size - MEDPAD - size_t.sizeof);
-        elementCount = *cast(ushort*)(inf.base + inf.size - MEDPAD) / si.tsize;
+        si = *cast(TypeInfo_Struct*)(p + size - MEDPAD - size_t.sizeof);
+        size = *cast(ushort*)(p + size - MEDPAD);
     }
     else
     {
-        si = *cast(TypeInfo_Struct*)(inf.base + size_t.sizeof);
-        elementCount = *cast(size_t*)(inf.base) / si.tsize;
+        si = *cast(TypeInfo_Struct*)(p + size_t.sizeof);
+        size = *cast(size_t*)p;
+        p += LARGEPAD;
     }
 
     try
     {
-        // Due to the fact that the delete operator calls destructors
-        // for arrays from the last element to the first, we maintain
-        // compatibility here by doing the same.
-        auto curP = &__arrayStart(inf)[(elementCount - 1) * si.tsize];
-        for (size_t i = 0; i < elementCount; i++, curP -= si.tsize)
-        {
-            si.xdtor(curP); // call destructor
-
-            if(resetMemory)
-            {
-                ubyte[] w = cast(ubyte[])si.m_init;
-                if (w.ptr is null)
-                    (cast(ubyte*) curP)[0 .. w.length] = 0;
-                else
-                    (cast(ubyte*) curP)[0 .. w.length] = w[];
-            }
-        }
+        rt_finalize_array(p, size, si, resetMemory);
     }
     catch (Throwable e)
     {
@@ -1360,36 +1305,38 @@ extern (C) void rt_finalize_array2(void* p, BlkInfo inf, bool resetMemory = true
     }
 }
 
-extern (C) void rt_finalize_array(void* p, bool resetMemory = true) nothrow
+extern (C) void rt_finalize_array(void* p, size_t size, const TypeInfo_Struct si, bool resetMemory = true)
 {
-    debug(PRINTF) printf("rt_finalize_array(p = %p)\n", p);
+    // Due to the fact that the delete operator calls destructors
+    // for arrays from the last element to the first, we maintain
+    // compatibility here by doing the same.
+    auto tsize = si.tsize;
+    for (auto curP = p + size - tsize; curP >= p; curP -= tsize)
+    {
+        si.xdtor(curP); // call destructor
 
-    if(!p)
-        return;
-
-    BlkInfo inf = GC.query(p);
-    // Mark it as finalized so that the GC doesn't attempt to
-    // finalize it again.
-    GC.clrAttr(p, BlkAttr.FINALIZE);
-    rt_finalize_array2(p, inf, resetMemory);
+        if(resetMemory)
+        {
+            ubyte[] w = cast(ubyte[])si.m_init;
+            if (w.ptr is null)
+                (cast(ubyte*) curP)[0 .. w.length] = 0;
+            else
+                (cast(ubyte*) curP)[0 .. w.length] = w[];
+        }
+    }
 }
 
-extern (C) void rt_finalize_struct(void* p, bool resetMemory = true, bool fromGC = false) nothrow
+// called by the GC
+extern (C) void rt_finalize_struct(void* p, size_t size, bool resetMemory = true) nothrow
 {
     debug(PRINTF) printf("rt_finalize_struct(p = %p)\n", p);
 
-    if (fromGC && !callStructDtorsDuringGC)
+    if (!callStructDtorsDuringGC)
         return;
 
-    if(!p)
-        return;
-
-    auto inf = *cast(TypeInfo_Struct*)(p + GC.sizeOf(p) - size_t.sizeof);
+    auto inf = *cast(TypeInfo_Struct*)(p + size - size_t.sizeof);
     try
     {
-        // Mark it as finalized so that the GC doesn't attempt to
-        // finalize it again.
-        GC.clrAttr(p, BlkAttr.FINALIZE);
         if (inf.xdtor)
             inf.xdtor(p); // call destructor
 

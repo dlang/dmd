@@ -130,10 +130,10 @@ private
     {
         // to allow compilation of this module without access to the rt package,
         //  make these functions available from rt.lifetime
-		void rt_finalize_struct(void* p, bool resetMemory, bool fromGC) nothrow;
-		int rt_hasStructFinalizerInSegment(void* p, in void[] segment) nothrow;
-		void rt_finalize_array2(void* p, BlkInfo inf, bool resetMemory, bool fromGC) nothrow;
-		int rt_hasArrayFinalizerInSegment(void* p, in void[] segment) nothrow;
+		void rt_finalize_struct(void* p, size_t size, bool resetMemory) nothrow;
+		int rt_hasStructFinalizerInSegment(void* p, size_t size, in void[] segment) nothrow;
+		void rt_finalize_array2(void* p, size_t size, bool resetMemory) nothrow;
+		int rt_hasArrayFinalizerInSegment(void* p, size_t size, in void[] segment) nothrow;
         void rt_finalize2(void* p, bool det, bool resetMemory) nothrow;
         int rt_hasFinalizerInSegment(void* p, in void[] segment) nothrow;
 
@@ -375,7 +375,7 @@ class GC
     /**
      *
      */
-    uint setAttr(void* p, uint mask, TypeInfo_Struct inf = null) nothrow
+    uint setAttr(void* p, uint mask, const TypeInfo inf = null) nothrow
     {
         if (!p)
         {
@@ -604,7 +604,7 @@ class GC
                             if (bits)
                             {
                                 gcx.clrBits(pool, biti, ~BlkAttr.NONE);
-                                gcx.setBits(pool, biti, bits, cast(TypeInfo_Struct)ti);
+                                gcx.setBits(pool, biti, bits, ti);
                             }
                             else
                             {
@@ -656,7 +656,7 @@ class GC
                     {
                         immutable biti = cast(size_t)(p - pool.baseAddr) >> pool.shiftBy;
                         gcx.clrBits(pool, biti, ~BlkAttr.NONE);
-                        gcx.setBits(pool, biti, bits, cast(TypeInfo_Struct)ti);
+                        gcx.setBits(pool, biti, bits, ti);
                     }
                     alloc_size = newsz * PAGESIZE;
                     return p;
@@ -673,7 +673,7 @@ class GC
                         if (bits)
                         {
                             gcx.clrBits(pool, biti, ~BlkAttr.NONE);
-                            gcx.setBits(pool, biti, bits, cast(TypeInfo_Struct)ti);
+                            gcx.setBits(pool, biti, bits, ti);
                         }
                         else
                         {
@@ -1552,21 +1552,22 @@ struct Gcx
                     if (bin > B_PAGE) continue;
                     size_t biti = pn;
 
-                    auto p = pool.baseAddr + pn * PAGESIZE;
+                    auto p = sentinel_add(pool.baseAddr + pn * PAGESIZE);
 
                     if (pool.structFinals.nbits && pool.structFinals.test(biti))
                     {
-                        if (pool.appendable.nbits && pool.appendable.test(biti) && rt_hasArrayFinalizerInSegment(sentinel_add(p), segment))
-                            rt_finalize_array2(sentinel_add(p), BlkInfo(sentinel_add(p), (pool.bPageOffsets[pn] * PAGESIZE) - SENTINEL_EXTRA), true, true);
-                        else if (rt_hasStructFinalizerInSegment(sentinel_add(p), segment))
-                            rt_finalize_struct(sentinel_add(p), false, true);
+                        size_t size = pool.bPageOffsets[pn] * PAGESIZE - SENTINEL_EXTRA;
+                        if (pool.appendable.nbits && pool.appendable.test(biti) && rt_hasArrayFinalizerInSegment(p, size, segment))
+                            rt_finalize_array2(p, size, true);
+                        else if (rt_hasStructFinalizerInSegment(p, size, segment))
+                            rt_finalize_struct(p, size, false);
                         else
                             continue;
                     }
-                    else if (!pool.finals.nbits || !pool.finals.test(biti) || !rt_hasFinalizerInSegment(sentinel_add(p), segment))
+                    else if (!pool.finals.nbits || !pool.finals.test(biti) || !rt_hasFinalizerInSegment(p, segment))
                         continue;
                     else
-                        rt_finalize2(sentinel_add(p), false, false);
+                        rt_finalize2(p, false, false);
 
                     clrBits(pool, biti, ~BlkAttr.NONE);
 
@@ -1616,10 +1617,12 @@ struct Gcx
 
                         if (pool.structFinals.nbits && pool.structFinals.test(biti))
                         {
-                            if (pool.appendable.nbits && pool.appendable.test(biti) && rt_hasArrayFinalizerInSegment(sentinel_add(p), segment))
-                                rt_finalize_array2(sentinel_add(p), BlkInfo(sentinel_add(p), size - SENTINEL_EXTRA), true, true);
-                            else if (rt_hasStructFinalizerInSegment(sentinel_add(p), segment))
-                                rt_finalize_struct(sentinel_add(p), false, true);
+                            auto q = sentinel_add(p);
+                            auto qsize = size - SENTINEL_EXTRA;
+                            if (pool.appendable.nbits && pool.appendable.test(biti) && rt_hasArrayFinalizerInSegment(q, qsize, segment))
+                                rt_finalize_array2(q, qsize, true);
+                            else if (rt_hasStructFinalizerInSegment(q, size, segment))
+                                rt_finalize_struct(q, size, false);
                             else
                                 continue;
                         }
@@ -2667,10 +2670,11 @@ struct Gcx
 
                         if (pool.structFinals.nbits && pool.structFinals.testClear(biti))
                         {
+                            auto size = (pool.bPageOffsets[pn] * PAGESIZE) - SENTINEL_EXTRA;
                             if (pool.appendable.nbits && pool.appendable.test(biti))
-                                rt_finalize_array2(sentinel_add(p), BlkInfo(sentinel_add(p), (pool.bPageOffsets[pn] * PAGESIZE) - SENTINEL_EXTRA), true, true);
+                                rt_finalize_array2(sentinel_add(p), size, true);
                             else
-                                rt_finalize_struct(sentinel_add(p), false, true);
+                                rt_finalize_struct(sentinel_add(p), size, false);
                         }
                         else if (pool.finals.nbits && pool.finals.testClear(biti))
                             rt_finalize2(sentinel_add(p), false, false);
@@ -2747,9 +2751,9 @@ struct Gcx
                                 if (pool.structFinals.nbits && pool.structFinals.test(biti))
                                 {
                                     if (pool.appendable.nbits && pool.appendable.test(biti))
-                                        rt_finalize_array2(sentinel_add(p), BlkInfo(sentinel_add(p), size - SENTINEL_EXTRA), true, true);
+                                        rt_finalize_array2(sentinel_add(p), size - SENTINEL_EXTRA, true);
                                     else
-                                        rt_finalize_struct(sentinel_add(p), false, true);
+                                        rt_finalize_struct(sentinel_add(p), size - SENTINEL_EXTRA, false);
                                 }
                                 else if (pool.finals.nbits && pool.finals.test(biti))
                                     rt_finalize2(sentinel_add(p), false, false);
@@ -2918,7 +2922,7 @@ struct Gcx
     /**
      *
      */
-    void setBits(Pool* pool, size_t biti, uint mask, TypeInfo_Struct inf = null) nothrow
+    void setBits(Pool* pool, size_t biti, uint mask, const TypeInfo inf = null) nothrow
     in
     {
         assert(pool);
@@ -2931,45 +2935,50 @@ struct Gcx
         immutable bitOffset = biti & GCBits.BITS_MASK;
         immutable orWith = GCBits.BITS_1 << bitOffset;
 
-        if (inf !is null && inf.xdtor !is null)
+        if (inf !is null)
         {
-            if (!pool.structFinals.nbits)
-                pool.structFinals.alloc(pool.mark.nbits);
-            pool.structFinals.data[dataIndex] |= orWith;
-
+            if (typeid(inf) is typeid(TypeInfo_Struct)) // avoid a complete dynamic type cast
+            {
+                auto ti = cast(TypeInfo_Struct)cast(void*)inf;
+                if(ti.xdtor !is null)
+                {
+                    if (!pool.structFinals.nbits)
+                        pool.structFinals.alloc(pool.mark.nbits);
+                    pool.structFinals.data[dataIndex] |= orWith;
+                }
+            }
             mask &= ~BlkAttr.FINALIZE; // prevent from setting normal finalize attribute.
+            if (!mask)
+                return;
         }
 
-        if (mask)
+        if (mask & BlkAttr.FINALIZE)
         {
-            if (mask & BlkAttr.FINALIZE)
-            {
-                if (!pool.finals.nbits)
-                    pool.finals.alloc(pool.mark.nbits);
-                pool.finals.data[dataIndex] |= orWith;
-            }
+            if (!pool.finals.nbits)
+                pool.finals.alloc(pool.mark.nbits);
+            pool.finals.data[dataIndex] |= orWith;
+        }
 
-            if (mask & BlkAttr.NO_SCAN)
-            {
-                pool.noscan.data[dataIndex] |= orWith;
-            }
-    //        if (mask & BlkAttr.NO_MOVE)
-    //        {
-    //            if (!pool.nomove.nbits)
-    //                pool.nomove.alloc(pool.mark.nbits);
-    //            pool.nomove.data[dataIndex] |= orWith;
-    //        }
-            if (mask & BlkAttr.APPENDABLE)
-            {
-                pool.appendable.data[dataIndex] |= orWith;
-            }
+        if (mask & BlkAttr.NO_SCAN)
+        {
+            pool.noscan.data[dataIndex] |= orWith;
+        }
+//        if (mask & BlkAttr.NO_MOVE)
+//        {
+//            if (!pool.nomove.nbits)
+//                pool.nomove.alloc(pool.mark.nbits);
+//            pool.nomove.data[dataIndex] |= orWith;
+//        }
+        if (mask & BlkAttr.APPENDABLE)
+        {
+            pool.appendable.data[dataIndex] |= orWith;
+        }
 
-            if (pool.isLargeObject && (mask & BlkAttr.NO_INTERIOR))
-            {
-                if(!pool.nointerior.nbits)
-                    pool.nointerior.alloc(pool.mark.nbits);
-                pool.nointerior.data[dataIndex] |= orWith;
-            }
+        if (pool.isLargeObject && (mask & BlkAttr.NO_INTERIOR))
+        {
+            if(!pool.nointerior.nbits)
+                pool.nointerior.alloc(pool.mark.nbits);
+            pool.nointerior.data[dataIndex] |= orWith;
         }
     }
 
