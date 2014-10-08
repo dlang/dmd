@@ -517,7 +517,7 @@ void cod3_buildmodulector(Outbuffer* buf, int codeOffset, int refOffset)
         /* movl ModuleReference*, %eax */
         buf->writeByte(0xB8);
         codeOffset += 1;
-        const unsigned reltype = I64 ? R_X86_64_32 : RI_TYPE_SYM32;
+        const unsigned reltype = I64 ? R_X86_64_32 : R_386_32;
         codeOffset += ElfObj::writerel(seg, codeOffset, reltype, 3 /*STI_DATA*/, refOffset);
 
         /* movl _Dmodule_ref, %ecx */
