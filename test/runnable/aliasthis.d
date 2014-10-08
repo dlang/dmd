@@ -1728,6 +1728,31 @@ void test13490()
 }
 
 /***************************************************/
+// 11355
+
+struct A11355
+{
+    static int postblit;
+    this(this) { ++postblit; }
+}
+
+struct B11355
+{
+    A11355 a;
+    alias a this;
+}
+
+B11355 make11355()
+{
+    return B11355();
+}
+void test11355()
+{
+    A11355 a1 = make11355();
+    assert(A11355.postblit == 1);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -1781,6 +1806,7 @@ int main()
     test11333();
     test11800();
     test13490();
+    test11355();
 
     printf("Success\n");
     return 0;
