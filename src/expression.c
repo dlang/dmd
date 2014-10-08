@@ -11140,6 +11140,12 @@ Expression *AssignExp::semantic(Scope *sc)
                         return new ErrorExp();
                 }
             }
+            else    // Bugzilla 11355
+            {
+                Expression *e = op_overload(sc);
+                if (e)
+                    return e;
+            }
         }
         else if (op == TOKassign)
         {
