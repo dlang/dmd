@@ -2347,13 +2347,13 @@ STATIC elem * eldiv(elem *e, goal_t goal)
  * Convert (a op b) op c to a op (b op c).
  */
 
-STATIC elem * swaplog(elem *e)
+STATIC elem * swaplog(elem *e, goal_t goal)
 {       elem *e1;
 
         e1 = e->E1;
         e->E1 = e1->E2;
         e1->E2 = e;
-        return optelem(e1,GOALvalue);
+        return optelem(e1,goal);
 }
 
 STATIC elem * eloror(elem *e, goal_t goal)
@@ -2386,7 +2386,7 @@ STATIC elem * eloror(elem *e, goal_t goal)
         }
         if (e1->Eoper == OPoror)
         {       /* convert (a||b)||c to a||(b||c). This will find more CSEs.    */
-              return swaplog(e);
+            return swaplog(e, goal);
         }
         e2 = elscancommas(e2);
         e1 = elscancommas(e1);
@@ -2723,7 +2723,7 @@ STATIC elem * elandand(elem *e, goal_t goal)
         }
         if (e1->Eoper == OPandand)
         {   /* convert (a&&b)&&c to a&&(b&&c). This will find more CSEs.        */
-            return swaplog(e);
+            return swaplog(e, goal);
         }
         e2 = elscancommas(e2);
 
