@@ -779,6 +779,16 @@ void VarDeclaration::semantic(Scope *sc)
     }
 
     storage_class |= sc->stc;
+
+    if (global.params.Dversion >= 3)
+    {
+        if (storage_class & STCconst && !init)
+        {
+            warning(loc, "There is no const storage class in D2, make variable '%s'' non-const",
+                toChars());
+        }
+    }
+
     if (storage_class & STCextern && init)
         error("extern symbols cannot have initializers");
 
