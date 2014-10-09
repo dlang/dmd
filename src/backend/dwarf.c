@@ -1390,9 +1390,35 @@ void cv_outsym(symbol *s)
             soffset = infobuf->size();
             infobuf->writeByte(2);                      // DW_FORM_block1
 
-            infobuf->writeByte(DW_OP_addr);
-            dwarf_addrel(infoseg,infobuf->size(),s->Sseg);
-            append_addr(infobuf, 0);    // address of global
+            // append DW_OP_GNU_push_tls_address for tls variables
+#if ELFOBJ
+            assert(s->Sxtrnnum);
+            if (s->Sfl == FLtlsdata)
+            {
+                if (I64)
+                {
+                    infobuf->writeByte(DW_OP_const8u);
+                    ElfObj::addrel(infoseg, infobuf->size(), R_X86_64_DTPOFF32, s->Sxtrnnum, 0);
+                    infobuf->write64(0);
+                }
+                else
+                {
+                    infobuf->writeByte(DW_OP_const4u);
+                    ElfObj::addrel(infoseg, infobuf->size(), R_386_TLS_LDO_32, s->Sxtrnnum, 0);
+                    infobuf->write32(0);
+                }
+            #if (DWARF_VERSION <= 2)
+                infobuf->writeByte(DW_OP_GNU_push_tls_address);
+            #else
+                infobuf->writeByte(DW_OP_form_tls_address);
+            #endif
+            } else
+#endif
+            {
+                infobuf->writeByte(DW_OP_addr);
+                dwarf_addrel(infoseg,infobuf->size(),s->Sseg);
+                append_addr(infobuf, s->Soffset);    // address of global
+            }
 
             infobuf->buf[soffset] = infobuf->size() - soffset - 1;
             break;
