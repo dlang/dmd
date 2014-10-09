@@ -136,7 +136,7 @@ Dsymbols *Parser::parseModule()
                     Expressions *exps = NULL;
                     stc = parseAttribute(&exps);
 
-                    if (stc == STCproperty || stc == STCnogc || stc == STCdisable || 
+                    if (stc == STCproperty || stc == STCnogc || stc == STCdisable ||
                         stc == STCsafe || stc == STCtrusted || stc == STCsystem)
                     {
                         error("@%s attribute for module declaration is not supported", token.toChars());
@@ -4423,7 +4423,7 @@ void Parser::checkCstyleTypeSyntax(Loc loc, Type *t, int alt, Identifier *ident)
     const char *sp = !ident ? "" : " ";
     const char *s  = !ident ? "" : ident->toChars();
     if (alt & 1)    // contains C-style function pointer syntax
-        ::deprecation(loc, "C-style syntax is deprecated. Please use '%s%s%s' instead", t->toChars(), sp, s);
+        error(loc, "instead of C-style syntax, use D-style '%s%s%s'", t->toChars(), sp, s);
     else
         ::warning(loc, "instead of C-style syntax, use D-style syntax '%s%s%s'", t->toChars(), sp, s);
 
