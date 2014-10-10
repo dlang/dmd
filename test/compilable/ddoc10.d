@@ -140,11 +140,11 @@ struct S
 
     /****
      */
-    const pure nothrow this(this) { }
+    pure nothrow this(this) const { }
 
     /****
      */
-    const pure nothrow ~this() { }
+    pure nothrow ~this() const { }
 
     /****
      */

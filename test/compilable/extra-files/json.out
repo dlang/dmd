@@ -125,7 +125,7 @@
         "kind" : "function",
         "line" : 18,
         "char" : 28,
-        "type" : "const T[0]()"
+        "type" : "T[0]() const"
        }
       ]
      }

@@ -3809,6 +3809,16 @@ L2:
             v->storage_class = storage_class;
             if (pAttrs)
             {
+                if (t->ty == Tfunction &&
+                    ((pAttrs->storageClass | storage_class) & STC_TYPECTOR))
+                {
+                    /* Disallow both:
+                     *   alias const int f1();
+                     *   const alias int f2();
+                     */
+                    ::deprecation(loc, "prefix type qualifier on function type is deprecated");
+                }
+
                 /* AliasDeclaration distinguish @safe, @system, @trusted atttributes
                  * on prefix and postfix.
                  *   @safe alias void function() FP1;
@@ -3859,7 +3869,11 @@ L2:
             FuncDeclaration *f =
                 new FuncDeclaration(loc, Loc(), ident, storage_class | (disable ? STCdisable : 0), t);
             if (pAttrs)
+            {
+                if (pAttrs->storageClass & STC_TYPECTOR)
+                    ::deprecation(loc, "prefix type qualifier on function is deprecated");
                 pAttrs->storageClass = STCundefined;
+            }
             if (tpl)
                 constraint = parseConstraint();
             Dsymbol *s = parseContracts(f);

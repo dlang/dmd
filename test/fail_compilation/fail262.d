@@ -7,12 +7,12 @@ fail_compilation/fail262.d(23): Error: function fail262.B.f does not override an
 
 // Issue 1645 - can override base class' const method with non-const method
 
-import std.c.stdio;
+extern(C) int printf(const char*, ...);
 
 class A
 {
     int x;
-    shared const void f()
+    void f() shared const
     {
         printf("A\n");
     }
@@ -20,7 +20,7 @@ class A
 
 class B : A
 {
-    override const void f()
+    override void f() const
     {
         //x = 2;
         printf("B\n");

@@ -296,8 +296,8 @@ int bar11(T)()
 }
 struct S6360
 {
-	const pure nothrow @property long weeks1();
-	const pure nothrow @property long weeks2();
+	pure nothrow @property long weeks1() const;
+	pure nothrow @property long weeks2() const;
 }
 struct S12
 {
@@ -306,10 +306,10 @@ struct S12
 }
 struct T12
 {
-	immutable this()(int args)
+	this()(int args) immutable
 	{
 	}
-	immutable this(A...)(A args)
+	this(A...)(A args) immutable
 	{
 	}
 }

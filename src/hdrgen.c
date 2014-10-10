@@ -674,7 +674,7 @@ public:
     {
         if (t->ty == Tfunction)
         {
-            visitFuncIdentWithPrefix((TypeFunction *)t, ident, NULL, true);
+            visitFuncIdentWithPrefix((TypeFunction *)t, ident, NULL);
             return;
         }
 
@@ -869,7 +869,7 @@ public:
 
         t->inuse--;
     }
-    void visitFuncIdentWithPrefix(TypeFunction *t, Identifier *ident, TemplateDeclaration *td, bool isPostfixStyle)
+    void visitFuncIdentWithPrefix(TypeFunction *t, Identifier *ident, TemplateDeclaration *td)
     {
         if (t->inuse)
         {
@@ -885,11 +885,6 @@ public:
 
         /* Use 'storage class' (prefix) style for attributes
          */
-        if (t->mod)
-        {
-            MODtoBuffer(buf, t->mod);
-            buf->writeByte(' ');
-        }
         t->attributesApply(&pas, &PrePostAppendStrings::fp);
 
         if (t->linkage > LINKd && hgs->ddoc != 1 && !hgs->hdrgen)
@@ -926,6 +921,14 @@ public:
             buf->writeByte(')');
         }
         parametersToBuffer(t->parameters, t->varargs);
+
+        /* Use postfix style for attributes
+         */
+        if (t->mod)
+        {
+            buf->writeByte(' ');
+            MODtoBuffer(buf, t->mod);
+        }
 
         t->inuse--;
     }
@@ -3038,7 +3041,7 @@ void functionToBufferFull(TypeFunction *tf, OutBuffer *buf, Identifier *ident,
 {
     //printf("TypeFunction::toCBuffer() this = %p\n", this);
     PrettyPrintVisitor v(buf, hgs);
-    v.visitFuncIdentWithPrefix(tf, ident, td, true);
+    v.visitFuncIdentWithPrefix(tf, ident, td);
 }
 
 // ident is inserted before the argument list and will be "function" or "delegate" for a type
