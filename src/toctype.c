@@ -214,7 +214,7 @@ public:
         }
         else if (t->sym->memtype->toBasetype()->ty == Tint32)
         {
-            t->ctype = type_enum(t->sym->toPrettyChars(), Type_toCtype(t->sym->memtype));
+            t->ctype = type_enum(t->sym->toPrettyChars(true), Type_toCtype(t->sym->memtype));
             tm->ctype = t->ctype;
         }
         else
@@ -228,7 +228,7 @@ public:
     void visit(TypeClass *t)
     {
         //printf("TypeClass::toCtype() %s\n", toChars());
-        type *tc = type_struct_class(t->sym->toPrettyChars(), t->sym->alignsize, t->sym->structsize,
+        type *tc = type_struct_class(t->sym->toPrettyChars(true), t->sym->alignsize, t->sym->structsize,
                 NULL,
                 NULL,
                 false,
