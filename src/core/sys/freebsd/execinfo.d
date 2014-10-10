@@ -22,9 +22,9 @@ extern (D) int backtrace(void** buffer, int size)
 
     void** p, pend=cast(void**)thread_stackBottom();
     version (D_InlineAsm_X86)
-        asm { mov p[EBP], EBP; }
+        asm nothrow @trusted { mov p[EBP], EBP; }
     else version (D_InlineAsm_X86_64)
-        asm { mov p[RBP], RBP; }
+        asm nothrow @trusted { mov p[RBP], RBP; }
     else
         static assert(false, "Architecture not supported.");
 
