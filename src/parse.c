@@ -98,13 +98,13 @@ Parser::Parser(Loc loc, Module *module, const utf8_t *base, size_t length, int d
 
 Dsymbols *Parser::parseModule()
 {
-    Dsymbols *decldefs;
+    const utf8_t *comment = token.blockComment;
     bool isdeprecated = false;
     Expression *msg = NULL;
-    Token *tk;
     Expressions *udas = NULL;
-    StorageClass stc;
+    Dsymbols *decldefs;
 
+    Token *tk;
     if (skipAttributes(&token, &tk) && tk->value == TOKmodule)
     {
         while (token.value != TOKmodule)
@@ -134,7 +134,7 @@ Dsymbols *Parser::parseModule()
                 case TOKat:
                 {
                     Expressions *exps = NULL;
-                    stc = parseAttribute(&exps);
+                    StorageClass stc = parseAttribute(&exps);
 
                     if (stc == STCproperty || stc == STCnogc || stc == STCdisable ||
                         stc == STCsafe || stc == STCtrusted || stc == STCsystem)
@@ -170,7 +170,6 @@ Dsymbols *Parser::parseModule()
     if (token.value == TOKmodule)
     {
         Loc loc = token.loc;
-        const utf8_t *comment = token.blockComment;
         bool safe = false;
 
         nextToken();
