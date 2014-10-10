@@ -856,7 +856,7 @@ version(CRuntime_DigitalMars)
     // this is copied from semlock.h in DMC's runtime.
     private void LockSemaphore(uint num)
     {
-        asm
+        asm nothrow @nogc
         {
             mov EDX, num;
             lock;
@@ -873,7 +873,7 @@ version(CRuntime_DigitalMars)
     // this is copied from semlock.h in DMC's runtime.
     private void UnlockSemaphore(uint num)
     {
-        asm
+        asm nothrow @nogc
         {
             mov EDX, num;
             lock;

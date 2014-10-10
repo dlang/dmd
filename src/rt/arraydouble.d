@@ -75,7 +75,7 @@ T[] _arraySliceSliceAddSliceAssign_d(T[] a, T[] c, T[] b)
             auto n = aptr + (b.length & ~7);
 
             // Array length greater than 8
-            asm
+            asm pure nothrow @nogc
             {
                 mov EAX, bptr; // left operand
                 mov ECX, cptr; // right operand
@@ -120,7 +120,7 @@ T[] _arraySliceSliceAddSliceAssign_d(T[] a, T[] c, T[] b)
             auto n = aptr + (b.length & ~7);
 
             // Array length greater than 8
-            asm
+            asm pure nothrow @nogc
             {
                 mov RAX, bptr; // left operand
                 mov RCX, cptr; // right operand
@@ -228,7 +228,7 @@ T[] _arraySliceSliceMinSliceAssign_d(T[] a, T[] c, T[] b)
             auto n = aptr + (b.length & ~7);
 
             // Array length greater than 8
-            asm
+            asm pure nothrow @nogc
             {
                 mov EAX, bptr; // left operand
                 mov ECX, cptr; // right operand
@@ -273,7 +273,7 @@ T[] _arraySliceSliceMinSliceAssign_d(T[] a, T[] c, T[] b)
             auto n = aptr + (b.length & ~7);
 
             // Array length greater than 8
-            asm
+            asm pure nothrow @nogc
             {
                 mov RAX, bptr; // left operand
                 mov RCX, cptr; // right operand
@@ -381,7 +381,7 @@ T[] _arraySliceExpAddSliceAssign_d(T[] a, T value, T[] b)
             auto n = aptr + (a.length & ~7);
 
             // Array length greater than 8
-            asm
+            asm pure nothrow @nogc
             {
                 mov EAX, bptr;
                 mov ESI, aptr;
@@ -421,7 +421,7 @@ T[] _arraySliceExpAddSliceAssign_d(T[] a, T value, T[] b)
             auto n = aptr + (a.length & ~7);
 
             // Array length greater than 8
-            asm
+            asm pure nothrow @nogc
             {
                 mov RAX, bptr;
                 mov RSI, aptr;
@@ -519,7 +519,7 @@ T[] _arrayExpSliceAddass_d(T[] a, T value)
             if (aptr < n)
 
             // Array length greater than 8
-            asm
+            asm pure nothrow @nogc
             {
                 mov ESI, aptr;
                 mov EDI, n;
@@ -557,7 +557,7 @@ T[] _arrayExpSliceAddass_d(T[] a, T value)
             if (aptr < n)
 
             // Array length greater than 8
-            asm
+            asm pure nothrow @nogc
             {
                 mov RSI, aptr;
                 mov RDI, n;
@@ -655,7 +655,7 @@ T[] _arraySliceSliceAddass_d(T[] a, T[] b)
             auto n = aptr + (a.length & ~7);
 
             // Array length greater than 8
-            asm
+            asm pure nothrow @nogc
             {
                 mov ECX, bptr; // right operand
                 mov ESI, aptr; // destination operand
@@ -697,7 +697,7 @@ T[] _arraySliceSliceAddass_d(T[] a, T[] b)
             auto n = aptr + (a.length & ~7);
 
             // Array length greater than 8
-            asm
+            asm pure nothrow @nogc
             {
                 mov RCX, bptr; // right operand
                 mov RSI, aptr; // destination operand
@@ -831,7 +831,7 @@ T[] _arraySliceExpMinSliceAssign_d(T[] a, T value, T[] b)
             auto n = aptr + (a.length & ~7);
 
             // Array length greater than 8
-            asm
+            asm pure nothrow @nogc
             {
                 mov EAX, bptr;
                 mov ESI, aptr;
@@ -871,7 +871,7 @@ T[] _arraySliceExpMinSliceAssign_d(T[] a, T value, T[] b)
             auto n = aptr + (a.length & ~7);
 
             // Array length greater than 8
-            asm
+            asm pure nothrow @nogc
             {
                 mov RAX, bptr;
                 mov RSI, aptr;
@@ -971,7 +971,7 @@ T[] _arrayExpSliceMinSliceAssign_d(T[] a, T[] b, T value)
             auto n = aptr + (a.length & ~7);
 
             // Array length greater than 8
-            asm
+            asm pure nothrow @nogc
             {
                 mov EAX, bptr;
                 mov ESI, aptr;
@@ -1015,7 +1015,7 @@ T[] _arrayExpSliceMinSliceAssign_d(T[] a, T[] b, T value)
             auto n = aptr + (a.length & ~7);
 
             // Array length greater than 8
-            asm
+            asm pure nothrow @nogc
             {
                 mov RAX, bptr;
                 mov RSI, aptr;
@@ -1117,7 +1117,7 @@ T[] _arrayExpSliceMinass_d(T[] a, T value)
             if (aptr < n)
 
             // Array length greater than 8
-            asm
+            asm pure nothrow @nogc
             {
                 mov ESI, aptr;
                 mov EDI, n;
@@ -1155,7 +1155,7 @@ T[] _arrayExpSliceMinass_d(T[] a, T value)
             if (aptr < n)
 
             // Array length greater than 8
-            asm
+            asm pure nothrow @nogc
             {
                 mov RSI, aptr;
                 mov RDI, n;
@@ -1253,7 +1253,7 @@ T[] _arraySliceSliceMinass_d(T[] a, T[] b)
             auto n = aptr + (a.length & ~7);
 
             // Array length greater than 8
-            asm
+            asm pure nothrow @nogc
             {
                 mov ECX, bptr; // right operand
                 mov ESI, aptr; // destination operand
@@ -1295,7 +1295,7 @@ T[] _arraySliceSliceMinass_d(T[] a, T[] b)
             auto n = aptr + (a.length & ~7);
 
             // Array length greater than 8
-            asm
+            asm pure nothrow @nogc
             {
                 mov RCX, bptr; // right operand
                 mov RSI, aptr; // destination operand
@@ -1398,7 +1398,7 @@ T[] _arraySliceExpMulSliceAssign_d(T[] a, T value, T[] b)
             auto n = aptr + (a.length & ~7);
 
             // Array length greater than 8
-            asm
+            asm pure nothrow @nogc
             {
                 mov EAX, bptr;
                 mov ESI, aptr;
@@ -1438,7 +1438,7 @@ T[] _arraySliceExpMulSliceAssign_d(T[] a, T value, T[] b)
             auto n = aptr + (a.length & ~7);
 
             // Array length greater than 8
-            asm
+            asm pure nothrow @nogc
             {
                 mov RAX, bptr;
                 mov RSI, aptr;
@@ -1540,7 +1540,7 @@ T[] _arraySliceSliceMulSliceAssign_d(T[] a, T[] c, T[] b)
             auto n = aptr + (a.length & ~7);
 
             // Array length greater than 8
-            asm
+            asm pure nothrow @nogc
             {
                 mov EAX, bptr; // left operand
                 mov ECX, cptr; // right operand
@@ -1585,7 +1585,7 @@ T[] _arraySliceSliceMulSliceAssign_d(T[] a, T[] c, T[] b)
             auto n = aptr + (a.length & ~7);
 
             // Array length greater than 8
-            asm
+            asm pure nothrow @nogc
             {
                 mov RAX, bptr; // left operand
                 mov RCX, cptr; // right operand
@@ -1688,7 +1688,7 @@ T[] _arrayExpSliceMulass_d(T[] a, T value)
             if (aptr < n)
 
             // Array length greater than 8
-            asm
+            asm pure nothrow @nogc
             {
                 mov ESI, aptr;
                 mov EDI, n;
@@ -1726,7 +1726,7 @@ T[] _arrayExpSliceMulass_d(T[] a, T value)
             if (aptr < n)
 
             // Array length greater than 8
-            asm
+            asm pure nothrow @nogc
             {
                 mov RSI, aptr;
                 mov RDI, n;
@@ -1824,7 +1824,7 @@ T[] _arraySliceSliceMulass_d(T[] a, T[] b)
             auto n = aptr + (a.length & ~7);
 
             // Array length greater than 8
-            asm
+            asm pure nothrow @nogc
             {
                 mov ECX, bptr; // right operand
                 mov ESI, aptr; // destination operand
@@ -1866,7 +1866,7 @@ T[] _arraySliceSliceMulass_d(T[] a, T[] b)
             auto n = aptr + (a.length & ~7);
 
             // Array length greater than 8
-            asm
+            asm pure nothrow @nogc
             {
                 mov RCX, bptr; // right operand
                 mov RSI, aptr; // destination operand
@@ -1974,7 +1974,7 @@ T[] _arraySliceExpDivSliceAssign_d(T[] a, T value, T[] b)
             auto n = aptr + (a.length & ~7);
 
             // Array length greater than 8
-            asm
+            asm pure nothrow @nogc
             {
                 mov EAX, bptr;
                 mov ESI, aptr;
@@ -2014,7 +2014,7 @@ T[] _arraySliceExpDivSliceAssign_d(T[] a, T value, T[] b)
             auto n = aptr + (a.length & ~7);
 
             // Array length greater than 8
-            asm
+            asm pure nothrow @nogc
             {
                 mov RAX, bptr;
                 mov RSI, aptr;
@@ -2118,7 +2118,7 @@ T[] _arrayExpSliceDivass_d(T[] a, T value)
             auto n = aptr + (a.length & ~7);
 
             // Array length greater than 8
-            asm
+            asm pure nothrow @nogc
             {
                 mov ESI, aptr;
                 mov EDI, n;
@@ -2155,7 +2155,7 @@ T[] _arrayExpSliceDivass_d(T[] a, T value)
             auto n = aptr + (a.length & ~7);
 
             // Array length greater than 8
-            asm
+            asm pure nothrow @nogc
             {
                 mov RSI, aptr;
                 mov RDI, n;
@@ -2264,7 +2264,7 @@ T[] _arraySliceExpMulSliceAddass_d(T[] a, T value, T[] b)
         {
             auto n = aptr + (a.length & ~7);
 
-            asm
+            asm pure nothrow @nogc
             {
                 mov ECX, bptr;      // right operand
                 mov ESI, aptr;      // destination operand
@@ -2302,7 +2302,7 @@ T[] _arraySliceExpMulSliceAddass_d(T[] a, T value, T[] b)
             auto n = aptr + (a.length & ~7);
 
             // Array length greater than 8
-            asm
+            asm pure nothrow @nogc
             {
                 mov RCX, bptr;      // right operand
                 mov RSI, aptr;      // destination operand

@@ -319,17 +319,17 @@ unittest
 {
     version (AsmX86)
     {
-        asm { naked; }
+        asm pure nothrow @nogc { naked; }
 
         version (D_InlineAsm_X86_64)
         {
             version (Win64)
-                asm { mov EAX, ECX; }
+                asm pure nothrow @nogc { mov EAX, ECX; }
             else
-                asm { mov EAX, EDI; }
+                asm pure nothrow @nogc { mov EAX, EDI; }
         }
 
-        asm
+        asm pure nothrow @nogc
         {
             // Author: Tiago Gasiba.
             mov EDX, EAX;
