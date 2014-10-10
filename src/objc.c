@@ -2824,3 +2824,14 @@ void objc_toElem_visit_NewExp_Tclass(IRState *irs, NewExp *ne, Type *&ectype, Ty
     //ex = el_una(OPaddr, TYnptr, ex);
     ectype = tclass;
 }
+
+bool objc_toElem_visit_NewExp_Tclass_isDirectCall(bool isObjc)
+{
+#if DMD_OBJC
+    // Call Objective-C constructor (not a direct call)
+    return !isObjc;
+#else
+    // Call constructor
+    return true;
+#endif
+}

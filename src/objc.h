@@ -538,5 +538,6 @@ void objc_callfunc_setupSelectorCall(elem *&ec, elem *ehidden, elem *ethis, Type
 
 void objc_toElem_visit_StringExp_Tclass(StringExp *se, elem *&e);
 void objc_toElem_visit_NewExp_Tclass(IRState *irs, NewExp *ne, Type *&ectype, TypeClass *tclass, ClassDeclaration *cd, elem *&ex, elem *&ey, elem *&ez);
+bool objc_toElem_visit_NewExp_Tclass_isDirectCall(bool isObjc);
 
 #endif
