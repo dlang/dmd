@@ -5296,12 +5296,10 @@ elem *toElem(Expression *e, IRState *irs)
             result = objc_toElem_visit_ObjcClassRefExp(ocre);
         }
 
-#if DMD_OBJC
         void visit(ObjcProtocolOfExp *e)
         {
-            result = el_ptr(ObjcSymbols::getProtocolSymbol(e->idecl));
+            result = objc_toElem_visit_ObjcProtocolOfExp(e);
         }
-#endif
 
         /*****************************************************/
         /*                   CTFE stuff                      */

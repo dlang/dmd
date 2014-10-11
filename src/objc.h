@@ -555,5 +555,6 @@ void objc_toElem_visit_CastExp_Tclass_assertNoOffset(int offset, ClassDeclaratio
 ControlFlow objc_toElem_visit_CastExp_Tclass_toObjcCall(elem *&e, int rtl, ClassDeclaration *cdto);
 elem *objc_toElem_visit_ObjcDotClassExp(IRState *irs, ObjcDotClassExp *odce);
 elem *objc_toElem_visit_ObjcClassRefExp(ObjcClassRefExp *ocre);
+elem *objc_toElem_visit_ObjcProtocolOfExp(ObjcProtocolOfExp *e);
 
 #endif
