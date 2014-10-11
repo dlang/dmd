@@ -283,6 +283,7 @@ size_t getoffset13161a()
 #if __linux__ || __APPLE__ || __FreeBSD__
 #include <memory>
 #include <vector>
+#include <string>
 
 #if __linux__
 template struct std::allocator<int>;
@@ -298,6 +299,14 @@ void foo15()
 
 // _Z5foo14PSt6vectorIiSaIiEE
 void foo14(std::vector<int, std::allocator<int> > *p) { }
+
+void foo14a(std::basic_string<char> *p) { }
+void foo14b(std::basic_string<int> *p) { }
+void foo14c(std::basic_istream<char> *p) { }
+void foo14d(std::basic_ostream<char> *p) { }
+void foo14e(std::basic_iostream<char> *p) { }
+
+void foo14f(std::char_traits<char>* x, std::basic_string<char> *p, std::basic_string<char> *q) { }
 
 #endif
 

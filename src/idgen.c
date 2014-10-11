@@ -348,6 +348,11 @@ Msgtable msgtable[] =
 
     // For C++ mangling
     { "allocator" },
+    { "basic_string" },
+    { "basic_istream" },
+    { "basic_ostream" },
+    { "basic_iostream" },
+    { "char_traits" },
 };
 
 

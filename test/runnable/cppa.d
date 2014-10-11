@@ -380,11 +380,14 @@ version (linux)
 {
     extern(C++, __gnu_cxx)
     {
-    struct new_allocator(T)
-    {
-        alias size_type = size_t;
-        void deallocate(T*, size_type);
-    }
+	struct new_allocator(T)
+	{
+	    alias size_type = size_t;
+	    static if (is(T : char))
+		void deallocate(T*, size_type) { }
+	    else
+		void deallocate(T*, size_type);
+	}
     }
 }
 
@@ -392,35 +395,71 @@ extern (C++, std)
 {
     struct allocator(T)
     {
-    version (linux)
-    {
-        alias size_type = size_t;
-        void deallocate(T* p, size_type sz)
-        {   (cast(__gnu_cxx.new_allocator!T*)&this).deallocate(p, sz); }
-    }
+	version (linux)
+	{
+	    alias size_type = size_t;
+	    void deallocate(T* p, size_type sz)
+	    {   (cast(__gnu_cxx.new_allocator!T*)&this).deallocate(p, sz); }
+	}
     }
 
     version (linux)
     {
-    class vector(T, A = allocator!T)
-    {
-        final void push_back(ref const T);
-    }
+	class vector(T, A = allocator!T)
+	{
+	    final void push_back(ref const T);
+	}
+
+	struct char_traits(T)
+	{
+	}
+
+	struct basic_string(T, C = char_traits!T, A = allocator!T)
+	{
+	}
+
+	struct basic_istream(T, C = char_traits!T)
+	{
+	}
+
+	struct basic_ostream(T, C = char_traits!T)
+	{
+	}
+
+	struct basic_iostream(T, C = char_traits!T)
+	{
+	}
     }
 }
 
 extern (C++)
 {
     version (linux)
+    {
         void foo14(std.vector!(int) p);
+        void foo14a(std.basic_string!(char) *p);
+        void foo14b(std.basic_string!(int) *p);
+        void foo14c(std.basic_istream!(char) *p);
+        void foo14d(std.basic_ostream!(char) *p);
+        void foo14e(std.basic_iostream!(char) *p);
+
+	void foo14f(std.char_traits!char* x, std.basic_string!char* p, std.basic_string!char* q);
+    }
 }
 
 void test14()
 {
     version (linux)
     {
-    std.vector!int p;
+        std.vector!int p;
         foo14(p);
+
+	foo14a(null);
+	foo14b(null);
+	foo14c(null);
+	foo14d(null);
+	foo14e(null);
+	foo14f(null, null, null);
     }
 }
 
