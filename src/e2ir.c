@@ -3947,7 +3947,7 @@ elem *toElem(Expression *e, IRState *irs)
                         goto Lzero;
                 }
                 if (cdfrom->objc.objc && cdto->objc.objc && cdto->isInterfaceDeclaration())
-                    rtl = RTLSYM_INTERFACE_CAST_OBJC;
+                    objc_toElem_visit_CastExp_Tclass_fromObjcToObjcInterface(rtl);
                 else if (cdfrom->isInterfaceDeclaration())
                 {
                     rtl = RTLSYM_INTERFACE_CAST;

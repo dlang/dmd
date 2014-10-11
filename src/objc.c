@@ -2901,3 +2901,8 @@ ControlFlow objc_toElem_visit_CastExp_Tclass_toObjc()
     // casting from non-objc type to objc type, always null
     return CFgoto;
 }
+
+void objc_toElem_visit_CastExp_Tclass_fromObjcToObjcInterface(int &rtl)
+{
+    rtl = RTLSYM_INTERFACE_CAST_OBJC;
+}
