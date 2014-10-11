@@ -22,6 +22,7 @@
 #include "import.h"
 #include "dsymbol.h"
 #include "hdrgen.h"
+#include "expression.h"
 #include "lexer.h"
 
 #ifdef IN_GCC
@@ -642,6 +643,14 @@ void Module::importAll(Scope *prevsc)
         return;
     }
 
+    if (md && md->msg)
+    {
+        if (StringExp *se = md->msg->toStringExp())
+            md->msg = se;
+        else
+            md->msg->error("string expected, not '%s'", md->msg->toChars());
+    }
+
     /* Note that modules get their own scope, from scratch.
      * This is so regardless of where in the syntax a module
      * gets imported, it is unaffected by context.
@@ -1039,6 +1048,8 @@ ModuleDeclaration::ModuleDeclaration(Loc loc, Identifiers *packages, Identifier 
     this->packages = packages;
     this->id = id;
     this->safe = safe;
+    this->isdeprecated = false;
+    this->msg = NULL;
 }
 
 char *ModuleDeclaration::toChars()
@@ -1234,5 +1245,3 @@ const char *lookForSourceFile(const char *filename)
     }
     return NULL;
 }
-
-

@@ -190,6 +190,15 @@ void Import::importAll(Scope *sc)
         load(sc);
         if (mod)                // if successfully loaded module
         {
+            if (mod->md && mod->md->isdeprecated)
+            {
+                Expression *msg = mod->md->msg;
+                if (StringExp *se = msg ? msg->toStringExp() : NULL)
+                    mod->deprecation(loc, "is deprecated - %s", se->string);
+                else
+                    mod->deprecation(loc, "is deprecated");
+            }
+
             mod->importAll(NULL);
 
             if (!isstatic && !aliasId && !names.dim)
