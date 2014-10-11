@@ -3316,18 +3316,8 @@ elem *toElem(Expression *e, IRState *irs)
             if (tb1->ty != Tclass && tb1->ty != Tpointer)
                 e = addressElem(e, tb1);
 
-            elem* offset = el_long(TYsize_t, v ? v->offset : 0);
-#if DMD_OBJC
-            if (global.params.isObjcNonFragileAbi && tb1->ty == Tclass)
-            {
-                ClassDeclaration* cls = ((TypeClass*) tb1)->sym;
-                if (cls->objc.objc)
-                {
-                    NonFragileAbiObjcClassDeclaration objcClass(cls);
-                    offset = el_var(objcClass.getIVarOffset(v));
-                }
-            }
-#endif
+            elem *offset = el_long(TYsize_t, v ? v->offset : 0);
+            objc_toElem_visit_DotVarExp_nonFragileAbiOffset(v, tb1, offset);
 
             e = el_bin(OPadd, TYnptr, e, offset);
             e = el_una(OPind, totym(dve->type), e);

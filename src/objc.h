@@ -543,5 +543,6 @@ void objc_toElem_visit_StringExp_Tclass(StringExp *se, elem *&e);
 void objc_toElem_visit_NewExp_Tclass(IRState *irs, NewExp *ne, Type *&ectype, TypeClass *tclass, ClassDeclaration *cd, elem *&ex, elem *&ey, elem *&ez);
 bool objc_toElem_visit_NewExp_Tclass_isDirectCall(bool isObjc);
 void objc_toElem_visit_AssertExp_callInvariant(symbol *&ts, elem *&einv, Type *t1);
+void objc_toElem_visit_DotVarExp_nonFragileAbiOffset(VarDeclaration *v, Type *tb1, elem *&offset);
 
 #endif

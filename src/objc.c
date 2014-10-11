@@ -2842,3 +2842,16 @@ void objc_toElem_visit_AssertExp_callInvariant(symbol *&ts, elem *&einv, Type *t
     // Call Objective-C invariant
     einv = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_DINVARIANT_OBJC]), el_var(ts));
 }
+
+void objc_toElem_visit_DotVarExp_nonFragileAbiOffset(VarDeclaration *v, Type *tb1, elem *&offset)
+{
+    if (global.params.isObjcNonFragileAbi && tb1->ty == Tclass)
+    {
+        ClassDeclaration* cls = ((TypeClass*) tb1)->sym;
+        if (cls->objc.objc)
+        {
+            NonFragileAbiObjcClassDeclaration objcClass(cls);
+            offset = el_var(objcClass.getIVarOffset(v));
+        }
+    }
+}
