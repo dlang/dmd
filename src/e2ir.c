@@ -3438,19 +3438,10 @@ elem *toElem(Expression *e, IRState *irs)
             elem *ec;
             FuncDeclaration *fd = NULL;
             bool dctor = false;
-#if DMD_OBJC
-            bool isObjcSelector = t1->ty == Tobjcselector;
-#else
-            bool isObjcSelector = false;
-#endif
             elem *esel = NULL;
-            if (isObjcSelector)
+            if (t1->ty == Tobjcselector)
             {
-#if DMD_OBJC
-                assert(ce->argument0);
-                ec = toElem(ce->argument0, irs);
-                esel = toElem(ce->e1, irs);
-#endif
+                objc_toElem_visit_CallExp_selector(irs, ce, ec, esel);
             }
             else if (ce->e1->op == TOKdotvar && t1->ty != Tdelegate)
             {

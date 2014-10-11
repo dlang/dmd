@@ -546,5 +546,6 @@ bool objc_toElem_visit_NewExp_Tclass_isDirectCall(bool isObjc);
 void objc_toElem_visit_AssertExp_callInvariant(symbol *&ts, elem *&einv, Type *t1);
 void objc_toElem_visit_DotVarExp_nonFragileAbiOffset(VarDeclaration *v, Type *tb1, elem *&offset);
 elem * objc_toElem_visit_ObjcSelectorExp(ObjcSelectorExp *ose);
+void objc_toElem_visit_CallExp_selector(IRState *irs, CallExp *ce, elem *&ec, elem *&esel);
 
 #endif

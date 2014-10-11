@@ -2869,3 +2869,10 @@ elem * objc_toElem_visit_ObjcSelectorExp(ObjcSelectorExp *ose)
 
     return result;
 }
+
+void objc_toElem_visit_CallExp_selector(IRState *irs, CallExp *ce, elem *&ec, elem *&esel)
+{
+    assert(ce->argument0);
+    ec = toElem(ce->argument0, irs);
+    esel = toElem(ce->e1, irs);
+}
