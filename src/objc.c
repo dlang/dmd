@@ -2930,3 +2930,21 @@ ControlFlow objc_toElem_visit_CastExp_Tclass_toObjcCall(elem *&e, int rtl, Class
 
     return CFnone;
 }
+
+elem *objc_toElem_visit_ObjcDotClassExp(IRState *irs, ObjcDotClassExp *odce)
+{
+    elem *e = toElem(odce->e1, irs);
+    if (!odce->noop)
+    {
+        TypeFunction *tf = new TypeFunction(NULL, odce->type, 0, LINKobjc);
+        FuncDeclaration *fd = new FuncDeclaration(Loc(), Loc(), NULL, STCstatic, tf);
+        fd->protection = PROTpublic;
+        fd->linkage = LINKobjc;
+        fd->objc.selector = ObjcSelector::lookup("class", 5, 0);
+
+        Expression *ef = new VarExp(Loc(), fd);
+        Expression *ec = new CallExp(odce->loc, ef);
+        e = toElem(ec, irs);
+    }
+    return e;
+}
