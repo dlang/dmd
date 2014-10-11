@@ -551,5 +551,6 @@ void objc_toElem_visit_CallExp_selector(IRState *irs, CallExp *ce, elem *&ec, el
 ControlFlow objc_toElem_visit_CastExp_Tclass_fromObjc(int &rtl, ClassDeclaration *cdfrom, ClassDeclaration *cdto);
 ControlFlow objc_toElem_visit_CastExp_Tclass_toObjc();
 void objc_toElem_visit_CastExp_Tclass_fromObjcToObjcInterface(int &rtl);
+void objc_toElem_visit_CastExp_Tclass_assertNoOffset(int offset, ClassDeclaration *cdfrom);
 
 #endif

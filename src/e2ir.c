@@ -3958,10 +3958,7 @@ elem *toElem(Expression *e, IRState *irs)
                      */
 
                     //printf("offset = %d\n", offset);
-#if DMD_OBJC
-                    if (cdfrom->objc.objc)
-                        assert(offset == 0); // no offset for Objective-C objects/interfaces
-#endif
+                    objc_toElem_visit_CastExp_Tclass_assertNoOffset(offset, cdfrom);
                     if (offset)
                     {
                         /* Rewrite cast as (e ? e + offset : null)
