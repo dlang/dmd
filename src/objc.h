@@ -549,5 +549,6 @@ void objc_toElem_visit_DotVarExp_nonFragileAbiOffset(VarDeclaration *v, Type *tb
 elem * objc_toElem_visit_ObjcSelectorExp(ObjcSelectorExp *ose);
 void objc_toElem_visit_CallExp_selector(IRState *irs, CallExp *ce, elem *&ec, elem *&esel);
 ControlFlow objc_toElem_visit_CastExp_Tclass_fromObjc(int &rtl, ClassDeclaration *cdfrom, ClassDeclaration *cdto);
+ControlFlow objc_toElem_visit_CastExp_Tclass_toObjc();
 
 #endif
