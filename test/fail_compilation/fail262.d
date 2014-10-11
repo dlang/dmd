@@ -7,7 +7,7 @@ fail_compilation/fail262.d(23): Error: function fail262.B.f does not override an
 
 // Issue 1645 - can override base class' const method with non-const method
 
-import std.c.stdio;
+import core.stdc.stdio;
 
 class A
 {

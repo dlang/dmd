@@ -2,7 +2,7 @@
 // PERMUTE_ARGS: -dw
 
 import std.stdio;
-import std.c.stdlib;
+import core.stdc.stdlib;
 
 enum
 {

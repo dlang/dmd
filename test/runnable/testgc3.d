@@ -1,7 +1,7 @@
 // PERMUTE_ARGS:
 // REQUIRED_ARGS:
 
-import std.c.stdio;
+import core.stdc.stdio;
 
 /* This isn't a very good test. If it 'fails' it just takes a very
  * long time. The performance improved by a factor of five between

@@ -4,7 +4,7 @@
 
 version(linux):
 
-import std.c.stdio;
+import core.stdc.stdio;
 
 extern (C++) int foob(int i, int j, int k);
 

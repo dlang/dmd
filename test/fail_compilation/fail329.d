@@ -6,7 +6,7 @@ fail_compilation/fail329.d(29): Error: variable fail329.A.foo.__ensure.result ca
 ---
 */
 
-//import std.c.stdio;
+//import core.stdc.stdio;
 
 /*******************************************/
 

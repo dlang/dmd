@@ -1,6 +1,6 @@
 // PERMUTE_ARGS:
 
-import std.c.stdio;
+import core.stdc.stdio;
 import std.math;
 
 void test12826()

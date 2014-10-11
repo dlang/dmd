@@ -7,7 +7,7 @@ import mydll;
 
 version (DYNAMIC_LOAD)
 {
-    import std.c.windows.windows;
+    import core.sys.windows.windows;
 
     alias MyClass function() getMyClass_fp;
 

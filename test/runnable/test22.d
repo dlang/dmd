@@ -1,7 +1,7 @@
 // REQUIRED_ARGS:
 
 import std.math: poly;
-import std.c.stdarg;
+import core.stdc.stdarg;
 
 extern(C)
 {
@@ -1179,7 +1179,7 @@ void test52()
 
 /*************************************/
 import std.stdio;
-import std.c.stdarg;
+import core.stdc.stdarg;
 
 void myfunc(int a1, ...) {
 	va_list argument_list;

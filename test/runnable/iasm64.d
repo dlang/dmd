@@ -5,7 +5,7 @@
 // written by Walter Bright
 // http://www.digitalmars.com
 
-import std.c.stdio;
+import core.stdc.stdio;
 
 version (D_PIC)
 {

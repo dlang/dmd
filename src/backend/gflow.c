@@ -774,7 +774,7 @@ STATIC void defstarkill()
 
 #if 1
 /* The following program fails for this:
-import std.c.stdio;
+import core.stdc.stdio;
 
 class Foo
 {

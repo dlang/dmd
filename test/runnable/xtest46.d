@@ -1,5 +1,5 @@
 import std.stdio;
-import std.c.stdio;
+import core.stdc.stdio;
 
 /******************************************/
 
@@ -3290,15 +3290,15 @@ void test144()
 
 void test145()
 {
-    import std.c.stdio;
+    import core.stdc.stdio;
     printf("hello world 145\n");
 }
 
 void test146()
 {
     test1();
-    static import std.c.stdio;
-    std.c.stdio.printf("hello world 146\n");
+    static import core.stdc.stdio;
+    core.stdc.stdio.printf("hello world 146\n");
 }
 
 /***************************************************/

@@ -1,6 +1,6 @@
 module imports.art4769a;
 
-import std.c.stdio;
+import core.stdc.stdio;
 
 template DataStreamability(T)
 {

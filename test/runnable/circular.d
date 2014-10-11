@@ -5,7 +5,7 @@
 
 // Bugzilla 4543
 
-import std.c.stdio;
+import core.stdc.stdio;
 import imports.circularA;
 
 class bclass {};
